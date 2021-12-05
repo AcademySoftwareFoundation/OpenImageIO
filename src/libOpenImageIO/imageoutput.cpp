@@ -39,6 +39,12 @@ public:
     // Thread-specific error message for this ImageOutput.
     thread_specific_ptr<std::string> m_errormessage;
     int m_threads = 0;
+
+    // The IOProxy object we will use for all I/O operations.
+    Filesystem::IOProxy* m_io = nullptr;
+    // The "local" proxy that we will create to use if the user didn't
+    // supply a proxy for us to use.
+    std::unique_ptr<Filesystem::IOProxy> m_io_local;
 };
 
 
@@ -706,6 +712,109 @@ ImageOutput::threads() const
     return m_impl->m_threads;
 }
 
+
+
+Filesystem::IOProxy*
+ImageOutput::ioproxy()
+{
+    return m_impl->m_io;
+}
+
+
+
+bool
+ImageOutput::set_ioproxy(Filesystem::IOProxy* ioproxy)
+{
+    m_impl->m_io = ioproxy;
+    return (ioproxy == nullptr || supports("ioproxy"));
+}
+
+
+
+bool
+ImageOutput::ioproxy_opened()
+{
+    Filesystem::IOProxy*& m_io(m_impl->m_io);
+    return m_io != nullptr && m_io->mode() == Filesystem::IOProxy::Write;
+}
+
+
+
+void
+ImageOutput::ioproxy_clear()
+{
+    m_impl->m_io = nullptr;
+    m_impl->m_io_local.reset();
+}
+
+
+
+void
+ImageOutput::ioproxy_retrieve_from_config(const ImageSpec& config)
+{
+    if (auto p = config.find_attribute("oiio:ioproxy", TypeDesc::PTR))
+        set_ioproxy(p->get<Filesystem::IOProxy*>());
+}
+
+
+
+bool
+ImageOutput::ioproxy_use_or_open(string_view name)
+{
+    Filesystem::IOProxy*& m_io(m_impl->m_io);
+    if (!m_io) {
+        // If no proxy was supplied, create an IOFile
+        m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Mode::Write);
+        m_impl->m_io_local.reset(m_io);
+    }
+    if (!m_io || m_io->mode() != Filesystem::IOProxy::Mode::Write) {
+        errorfmt("Could not open file \"{}\"", name);
+        ioproxy_clear();
+        return false;
+    }
+    return true;
+}
+
+
+
+bool
+ImageOutput::iowrite(const void* buf, size_t itemsize, size_t nitems)
+{
+    Filesystem::IOProxy*& m_io(m_impl->m_io);
+    size_t size = itemsize * nitems;
+    size_t n    = m_io->write(buf, size);
+    if (n != size)
+        ImageOutput::errorfmt(
+            "Write error at position {}, could only write {}/{} bytes {}",
+            m_io->tell() - n, n, size, m_io->error());
+    return n == size;
+}
+
+
+
+bool
+ImageOutput::ioseek(int64_t pos, int origin)
+{
+    Filesystem::IOProxy*& m_io(m_impl->m_io);
+    if (!m_io->seek(pos, origin)) {
+        errorfmt("Seek error, could not seek from {} to {} (total size {}) {}",
+                 m_io->tell(),
+                 origin == SEEK_SET ? pos
+                                    : (origin == SEEK_CUR ? pos + m_io->tell()
+                                                          : pos + m_io->size()),
+                 m_io->size(), m_io->error());
+        return false;
+    }
+    return true;
+}
+
+
+
+int64_t
+ImageOutput::iotell()
+{
+    return m_impl->m_io->tell();
+}
 
 
 OIIO_NAMESPACE_END

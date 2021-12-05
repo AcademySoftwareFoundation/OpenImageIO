@@ -150,7 +150,7 @@ JpgInput::valid_file(const std::string& filename, Filesystem::IOProxy* io) const
         FILE* fd = Filesystem::fopen(filename, "rb");
         if (!fd)
             return false;
-        ok = (fread(magic, sizeof(magic), 1, fd) == 1);
+        ok = (::fread(magic, sizeof(magic), 1, fd) == 1);
         fclose(fd);
     }
 
@@ -168,9 +168,7 @@ JpgInput::open(const std::string& name, ImageSpec& newspec,
 {
     auto p = config.find_attribute("_jpeg:raw", TypeInt);
     m_raw  = p && *(int*)p->data();
-    p      = config.find_attribute("oiio:ioproxy", TypeDesc::PTR);
-    if (p)
-        m_io = p->get<Filesystem::IOProxy*>();
+    ioproxy_retrieve_from_config(config);
     m_config.reset(new ImageSpec(config));  // save config spec
     return open(name, newspec);
 }
@@ -182,21 +180,14 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
 {
     m_filename = name;
 
-    if (m_io) {
-        // If an IOProxy was passed, it had better be a File or a
-        // MemReader, that's all we know how to use with jpeg.
-        std::string proxytype = m_io->proxytype();
-        if (proxytype != "file" && proxytype != "memreader") {
-            errorf("JPEG reader can't handle proxy type %s", proxytype);
-            return false;
-        }
-    } else {
-        // If no proxy was supplied, create a file reader
-        m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Mode::Read);
-        m_local_io.reset(m_io);
-    }
-    if (!m_io || m_io->mode() != Filesystem::IOProxy::Mode::Read) {
-        errorf("Could not open file \"%s\"", name);
+    if (!ioproxy_use_or_open(name))
+        return false;
+    // If an IOProxy was passed, it had better be a File or a
+    // MemReader, that's all we know how to use with jpeg.
+    Filesystem::IOProxy* m_io = ioproxy();
+    std::string proxytype     = m_io->proxytype();
+    if (proxytype != "file" && proxytype != "memreader") {
+        errorfmt("JPEG reader can't handle proxy type {}", proxytype);
         return false;
     }
 
@@ -233,7 +224,7 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
     jpeg_create_decompress(&m_cinfo);
     m_decomp_create = true;
     // specify the data source
-    if (!strcmp(m_io->proxytype(), "file")) {
+    if (proxytype == "file") {
         auto fd = reinterpret_cast<Filesystem::IOFile*>(m_io)->handle();
         jpeg_stdio_src(&m_cinfo, fd);
     } else {
@@ -487,7 +478,7 @@ JpgInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
 bool
 JpgInput::close()
 {
-    if (m_io) {
+    if (ioproxy_opened()) {
         // unnecessary?  jpeg_abort_decompress (&m_cinfo);
         if (m_decomp_create)
             jpeg_destroy_decompress(&m_cinfo);

@@ -44,11 +44,6 @@ public:
                             stride_t ystride, stride_t zstride) override;
     virtual bool close() override;
     virtual bool copy_image(ImageInput* in) override;
-    virtual bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
-    {
-        m_io = ioproxy;
-        return true;
-    }
 
 private:
     std::string m_filename;
@@ -60,8 +55,6 @@ private:
     jvirt_barray_ptr* m_copy_coeffs;
     struct jpeg_decompress_struct* m_copy_decompressor;
     std::vector<unsigned char> m_tilebuffer;
-    std::unique_ptr<Filesystem::IOProxy> m_io_local;
-    Filesystem::IOProxy* m_io = nullptr;
     // m_outbuffer/m_outsize are used for jpeg-to-memory
     unsigned char* m_outbuffer = nullptr;
 #if OIIO_JPEG_LIB_VERSION >= 94
@@ -78,8 +71,7 @@ private:
     {
         m_copy_coeffs       = NULL;
         m_copy_decompressor = NULL;
-        m_io_local.reset();
-        m_io = nullptr;
+        ioproxy_clear();
         clear_outbuffer();
     }
 
@@ -151,22 +143,13 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
         return false;
     }
 
-    if (auto ioparam = m_spec.find_attribute("oiio:ioproxy", TypeDesc::PTR))
-        m_io = ioparam->get<Filesystem::IOProxy*>();
-    if (!m_io) {
-        // If no proxy was supplied, create a file reader
-        m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Write);
-        m_io_local.reset(m_io);
-    }
-    if (!m_io || m_io->mode() != Filesystem::IOProxy::Write) {
-        errorfmt("Could not open \"{}\"", name);
-        m_io = nullptr;
-        m_io_local.reset();
+    ioproxy_retrieve_from_config(m_spec);
+    if (!ioproxy_use_or_open(name))
         return false;
-    }
 
     m_cinfo.err = jpeg_std_error(&c_jerr);  // set error handler
     jpeg_create_compress(&m_cinfo);         // create compressor
+    Filesystem::IOProxy* m_io = ioproxy();
     if (!strcmp(m_io->proxytype(), "file")) {
         auto fd = reinterpret_cast<Filesystem::IOFile*>(m_io)->handle();
         jpeg_stdio_dest(&m_cinfo, fd);  // set output stream
@@ -442,7 +425,7 @@ JpgOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
 bool
 JpgOutput::close()
 {
-    if (!m_io) {  // Already closed
+    if (!ioproxy_opened()) {  // Already closed
         init();
         return true;
     }
@@ -485,12 +468,10 @@ JpgOutput::close()
         // have fully general IO overloads, but it can write to memory
         // buffers, we did that, so now we have to copy that in one big chunk
         // to IOProxy.
-        m_io->write(m_outbuffer, m_outsize);
+        ioproxy()->write(m_outbuffer, m_outsize);
     }
 
-    m_io_local.reset();  // closes the file if we opened it locally
     init();
-
     return ok;
 }
 

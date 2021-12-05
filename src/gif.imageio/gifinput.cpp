@@ -41,7 +41,7 @@ public:
     virtual const char* format_name(void) const override { return "gif"; }
     virtual int supports(string_view feature) const override
     {
-        return (feature == "ioproxy");
+        return feature == "ioproxy";
     }
     virtual bool open(const std::string& name, ImageSpec& newspec) override;
     virtual bool open(const std::string& name, ImageSpec& newspec,
@@ -61,12 +61,6 @@ public:
         // No mipmap support
         return 0;
     }
-    virtual bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
-    {
-        m_io = ioproxy;
-        m_io_local.reset();
-        return true;
-    }
 
 private:
     std::string m_filename;          ///< Stash the filename
@@ -82,8 +76,6 @@ private:
     std::vector<unsigned char> m_canvas;  ///< Image canvas in output format, on
                                           ///  which subimages are sequentially
                                           ///  drawn.
-    std::unique_ptr<Filesystem::IOProxy> m_io_local;
-    Filesystem::IOProxy* m_io = nullptr;
 
     /// Reset everything to initial state
     ///
@@ -114,7 +106,7 @@ private:
     {
         size_t size(bytes);
         auto inp    = reinterpret_cast<GIFInput*>(gif->UserData);
-        auto io     = inp->m_io;
+        auto io     = inp->ioproxy();
         auto result = io->read(data, size);
         if (result < size)
             inp->errorfmt(
@@ -158,8 +150,7 @@ void
 GIFInput::init(void)
 {
     m_gif_file = nullptr;
-    m_io       = nullptr;
-    m_io_local.reset();
+    ioproxy_clear();
 }
 
 
@@ -187,12 +178,8 @@ GIFInput::open(const std::string& name, ImageSpec& newspec,
                const ImageSpec& config)
 {
     // Check 'config' for any special requests
-    auto ioparam = config.find_attribute("oiio:ioproxy", TypeDesc::PTR);
-    if (ioparam) {
-        m_io = ioparam->get<Filesystem::IOProxy*>();
-        if (m_io)
-            m_io->seek(0);
-    }
+    ioproxy_retrieve_from_config(config);
+    ioseek(0);
     return open(name, newspec);
 }
 
@@ -412,16 +399,8 @@ GIFInput::seek_subimage(int subimage, int miplevel)
     }
 
     if (!m_gif_file) {
-        if (!m_io) {
-            // If no proxy was supplied, create a file reader
-            m_io = new Filesystem::IOFile(m_filename,
-                                          Filesystem::IOProxy::Mode::Read);
-            m_io_local.reset(m_io);
-        }
-        if (!m_io || m_io->mode() != Filesystem::IOProxy::Mode::Read) {
-            errorfmt("Could not open file \"{}\"", m_filename);
+        if (!ioproxy_use_or_open(m_filename))
             return false;
-        }
 #if GIFLIB_MAJOR >= 5
         int giflib_error;
         m_gif_file = DGifOpen(this, readFunc, &giflib_error);
@@ -511,16 +490,10 @@ GIFInput::close(void)
             errorfmt("Error trying to close the file.");
             ok = false;
         }
-        m_io       = nullptr;
         m_gif_file = nullptr;
     }
     m_canvas.clear();
-
-    if (m_io_local) {
-        // If we allocated our own ioproxy, close it.
-        m_io_local.reset();
-    }
-
+    ioproxy_clear();
     return ok;
 }
 

@@ -1032,8 +1032,7 @@ Filesystem::IOFile::IOFile(string_view filename, Mode mode)
 {
     // Call Filesystem::fopen since it handles UTF-8 file paths on Windows,
     // which std fopen does not.
-    m_file = Filesystem::fopen(m_filename.c_str(),
-                               m_mode == Write ? "wb" : "rb");
+    m_file = Filesystem::fopen(m_filename, m_mode == Write ? "wb" : "rb");
     if (!m_file) {
         m_mode          = Closed;
         int e           = errno;
@@ -1089,6 +1088,15 @@ Filesystem::IOFile::read(void* buf, size_t size)
         return 0;
     size_t r = fread(buf, 1, size, m_file);
     m_pos += r;
+    if (r < size) {
+        if (feof(m_file))
+            error("end of file");
+        else if (ferror(m_file)) {
+            int e           = errno;
+            const char* msg = e ? std::strerror(e) : nullptr;
+            error(msg ? msg : "unknown error");
+        }
+    }
     return r;
 }
 
