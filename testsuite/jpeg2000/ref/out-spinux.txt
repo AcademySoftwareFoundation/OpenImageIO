@@ -4,7 +4,6 @@ Reading ../j2kp4files_v1_5/testfiles_jp2/file1.jp2
     channel list: R, G, B
     oiio:BitsPerSample: 8
     oiio:ColorSpace: "sRGB"
-    oiio:Orientation: 1
 Comparing "../j2kp4files_v1_5/testfiles_jp2/file1.jp2" and "file1.jp2"
 PASS
 Reading ../j2kp4files_v1_5/testfiles_jp2/file2.jp2
@@ -13,7 +12,6 @@ Reading ../j2kp4files_v1_5/testfiles_jp2/file2.jp2
     channel list: R, G, B
     oiio:BitsPerSample: 8
     oiio:ColorSpace: "sRGB"
-    oiio:Orientation: 1
 Comparing "../j2kp4files_v1_5/testfiles_jp2/file2.jp2" and "file2.jp2"
 PASS
 Reading ../j2kp4files_v1_5/testfiles_jp2/file3.jp2
@@ -22,7 +20,6 @@ Reading ../j2kp4files_v1_5/testfiles_jp2/file3.jp2
     channel list: R, G, B
     oiio:BitsPerSample: 8
     oiio:ColorSpace: "sRGB"
-    oiio:Orientation: 1
 Comparing "../j2kp4files_v1_5/testfiles_jp2/file3.jp2" and "file3.jp2"
 PASS
 Reading ../j2kp4files_v1_5/testfiles_jp2/file4.jp2
@@ -31,7 +28,6 @@ Reading ../j2kp4files_v1_5/testfiles_jp2/file4.jp2
     channel list: Y
     oiio:BitsPerSample: 8
     oiio:ColorSpace: "sRGB"
-    oiio:Orientation: 1
 Comparing "../j2kp4files_v1_5/testfiles_jp2/file4.jp2" and "file4.jp2"
 PASS
 Reading ../j2kp4files_v1_5/testfiles_jp2/file5.jp2
@@ -40,7 +36,6 @@ Reading ../j2kp4files_v1_5/testfiles_jp2/file5.jp2
     channel list: R, G, B
     oiio:BitsPerSample: 8
     oiio:ColorSpace: "sRGB"
-    oiio:Orientation: 1
 Comparing "../j2kp4files_v1_5/testfiles_jp2/file5.jp2" and "file5.jp2"
 PASS
 Reading ../j2kp4files_v1_5/testfiles_jp2/file6.jp2
@@ -49,7 +44,6 @@ Reading ../j2kp4files_v1_5/testfiles_jp2/file6.jp2
     channel list: Y
     oiio:BitsPerSample: 12
     oiio:ColorSpace: "sRGB"
-    oiio:Orientation: 1
 Comparing "../j2kp4files_v1_5/testfiles_jp2/file6.jp2" and "file6.jp2"
 PASS
 Reading ../j2kp4files_v1_5/testfiles_jp2/file7.jp2
@@ -58,7 +52,6 @@ Reading ../j2kp4files_v1_5/testfiles_jp2/file7.jp2
     channel list: R, G, B
     oiio:BitsPerSample: 16
     oiio:ColorSpace: "sRGB"
-    oiio:Orientation: 1
 Comparing "../j2kp4files_v1_5/testfiles_jp2/file7.jp2" and "file7.jp2"
 PASS
 Reading ../j2kp4files_v1_5/testfiles_jp2/file8.jp2
@@ -67,7 +60,6 @@ Reading ../j2kp4files_v1_5/testfiles_jp2/file8.jp2
     channel list: Y
     oiio:BitsPerSample: 8
     oiio:ColorSpace: "sRGB"
-    oiio:Orientation: 1
 Comparing "../j2kp4files_v1_5/testfiles_jp2/file8.jp2" and "file8.jp2"
 PASS
 Reading ../j2kp4files_v1_5/testfiles_jp2/file9.jp2
@@ -76,6 +68,5 @@ Reading ../j2kp4files_v1_5/testfiles_jp2/file9.jp2
     channel list: Y
     oiio:BitsPerSample: 8
     oiio:ColorSpace: "sRGB"
-    oiio:Orientation: 1
 Comparing "../j2kp4files_v1_5/testfiles_jp2/file9.jp2" and "file9.jp2"
 PASS

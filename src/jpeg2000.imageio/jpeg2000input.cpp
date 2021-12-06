@@ -10,6 +10,7 @@
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/sysutil.h>
 
 #if defined(OPJ_VERSION_MAJOR)
 // OpenJPEG >= 2.1 defines these symbols
@@ -30,9 +31,7 @@ static void
 openjpeg_error_callback(const char* msg, void* data)
 {
     if (ImageInput* input = (ImageInput*)data) {
-        if (!msg || !msg[0])
-            msg = "Unknown OpenJpeg error";
-        input->errorf("%s", msg);
+        input->errorfmt("{}", msg && msg[0] ? msg : "Unknown OpenJpeg error");
     }
 }
 
@@ -86,9 +85,9 @@ public:
     Jpeg2000Input() { init(); }
     virtual ~Jpeg2000Input() { close(); }
     virtual const char* format_name(void) const override { return "jpeg2000"; }
-    virtual int supports(string_view /*feature*/) const override
+    virtual int supports(string_view feature) const override
     {
-        return false;
+        return feature == "ioproxy";
         // FIXME: we should support Exif/IPTC, but currently don't.
     }
     virtual bool open(const std::string& name, ImageSpec& spec) override;
@@ -102,7 +101,6 @@ private:
     std::string m_filename;
     std::vector<int> m_bpp;  // per channel bpp
     opj_image_t* m_image;
-    FILE* m_file;
     opj_codec_t* m_codec;
     opj_stream_t* m_stream;
     bool m_keep_unassociated_alpha;  // Do not convert unassociated alpha
@@ -155,6 +153,28 @@ private:
         opj_set_warning_handler(codec, openjpeg_dummy_callback, NULL);
         opj_set_info_handler(codec, openjpeg_dummy_callback, NULL);
     }
+
+    static OPJ_SIZE_T StreamRead(void* p_buffer, OPJ_SIZE_T p_nb_bytes,
+                                 void* p_user_data)
+    {
+        auto in = static_cast<Jpeg2000Input*>(p_user_data);
+        auto r  = in->ioproxy()->read(p_buffer, p_nb_bytes);
+        return r ? OPJ_SIZE_T(r) : OPJ_SIZE_T(-1);
+    }
+
+    static OPJ_BOOL StreamSeek(OPJ_OFF_T p_nb_bytes, void* p_user_data)
+    {
+        auto in = static_cast<Jpeg2000Input*>(p_user_data);
+        return in->ioseek(p_nb_bytes, SEEK_SET);
+    }
+
+    static OPJ_OFF_T StreamSkip(OPJ_OFF_T p_nb_bytes, void* p_user_data)
+    {
+        auto in = static_cast<Jpeg2000Input*>(p_user_data);
+        return in->ioseek(p_nb_bytes, SEEK_CUR) ? p_nb_bytes : OPJ_SIZE_T(-1);
+    }
+
+    static void StreamFree(void* p_user_data) {}
 };
 
 
@@ -165,7 +185,7 @@ OIIO_EXPORT int jpeg2000_imageio_version = OIIO_PLUGIN_VERSION;
 OIIO_EXPORT const char*
 jpeg2000_imageio_library_version()
 {
-    return ustring::sprintf("OpenJpeg %s", opj_version()).c_str();
+    return ustring::fmtformat("OpenJpeg {}", opj_version()).c_str();
 }
 OIIO_EXPORT ImageInput*
 jpeg2000_input_imageio_create()
@@ -181,26 +201,27 @@ OIIO_PLUGIN_EXPORTS_END
 void
 Jpeg2000Input::init(void)
 {
-    m_file                    = NULL;
     m_image                   = NULL;
     m_codec                   = NULL;
     m_stream                  = NULL;
     m_keep_unassociated_alpha = false;
+    ioproxy_clear();
 }
 
 
+
 bool
-Jpeg2000Input::open(const std::string& p_name, ImageSpec& p_spec)
+Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
 {
-    m_filename = p_name;
-    if (!Filesystem::exists(m_filename)) {
-        errorf("Could not open file \"%s\"", m_filename);
+    m_filename = name;
+
+    if (!ioproxy_use_or_open(name))
         return false;
-    }
+    ioseek(0);
 
     m_codec = create_decompressor();
     if (!m_codec) {
-        errorf("Could not create Jpeg2000 stream decompressor");
+        errorfmt("Could not create Jpeg2000 stream decompressor");
         close();
         return false;
     }
@@ -220,22 +241,23 @@ Jpeg2000Input::open(const std::string& p_name, ImageSpec& p_spec)
     opj_codec_set_threads(m_codec, nthreads);
 #endif
 
-#if OIIO_OPJ_VERSION >= 20100
-    m_stream = opj_stream_create_default_file_stream(m_filename.c_str(), true);
-#else
-    // OpenJpeg 2.0: need to open a stream ourselves
-    m_file   = Filesystem::fopen(m_filename, "rb");
-    m_stream = opj_stream_create_default_file_stream(m_file, true);
-#endif
+    m_stream = opj_stream_default_create(true /* is_input */);
     if (!m_stream) {
-        errorf("Could not open Jpeg2000 stream");
+        errorfmt("Could not create Jpeg2000 stream");
         close();
         return false;
     }
 
+    opj_stream_set_user_data(m_stream, this, StreamFree);
+    opj_stream_set_read_function(m_stream, StreamRead);
+    opj_stream_set_seek_function(m_stream, StreamSeek);
+    opj_stream_set_skip_function(m_stream, StreamSkip);
+    opj_stream_set_user_data_length(m_stream, ioproxy()->size());
+    // opj_stream_set_write_function(m_stream, StreamWrite);
+
     OIIO_ASSERT(m_image == nullptr);
     if (!opj_read_header(m_stream, m_codec, &m_image)) {
-        errorf("Could not read Jpeg2000 header");
+        errorfmt("Could not read Jpeg2000 header");
         close();
         return false;
     }
@@ -247,7 +269,8 @@ Jpeg2000Input::open(const std::string& p_name, ImageSpec& p_spec)
     // we support only one, three or four components in image
     const int channelCount = m_image->numcomps;
     if (channelCount != 1 && channelCount != 3 && channelCount != 4) {
-        errorf("Only images with one, three or four components are supported");
+        errorfmt(
+            "Only images with one, three or four components are supported");
         close();
         return false;
     }
@@ -288,7 +311,6 @@ Jpeg2000Input::open(const std::string& p_name, ImageSpec& p_spec)
     m_spec.full_height = m_image->y1;
 
     m_spec.attribute("oiio:BitsPerSample", maxPrecision);
-    m_spec.attribute("oiio:Orientation", 1);
     m_spec.attribute("oiio:ColorSpace", "sRGB");
     if (m_image->icc_profile_len && m_image->icc_profile_buf)
         m_spec.attribute("ICCProfile",
@@ -308,6 +330,7 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& newspec,
     // Check 'config' for any special requests
     if (config.get_int_attribute("oiio:UnassociatedAlpha", 0) == 1)
         m_keep_unassociated_alpha = true;
+    ioproxy_retrieve_from_config(config);
     return open(name, newspec);
 }
 
@@ -351,10 +374,7 @@ Jpeg2000Input::close(void)
     }
     destroy_decompressor();
     destroy_stream();
-    if (m_file) {
-        fclose(m_file);
-        m_file = NULL;
-    }
+    init();
     return true;
 }
 
@@ -381,18 +401,13 @@ opj_codec_t*
 Jpeg2000Input::create_decompressor()
 {
     int magic[3];
-    size_t r = Filesystem::read_bytes(m_filename, magic, sizeof(magic));
+    auto r = ioproxy()->pread(magic, sizeof(magic), 0);
     if (r != 3 * sizeof(int)) {
-        errorf("Empty file \"%s\"", m_filename);
-        return NULL;
+        errorfmt("Empty file \"{}\"", m_filename);
+        return nullptr;
     }
-
-    opj_codec_t* codec = NULL;
-    if (isJp2File(magic))
-        codec = opj_create_decompress(OPJ_CODEC_JP2);
-    else
-        codec = opj_create_decompress(OPJ_CODEC_J2K);
-    return codec;
+    return opj_create_decompress(isJp2File(magic) ? OPJ_CODEC_JP2
+                                                  : OPJ_CODEC_J2K);
 }
 
 
