@@ -1145,6 +1145,14 @@ ImageInput::ioproxy()
 
 
 
+const Filesystem::IOProxy*
+ImageInput::ioproxy() const
+{
+    return m_impl->m_io;
+}
+
+
+
 bool
 ImageInput::set_ioproxy(Filesystem::IOProxy* ioproxy)
 {
@@ -1155,7 +1163,7 @@ ImageInput::set_ioproxy(Filesystem::IOProxy* ioproxy)
 
 
 bool
-ImageInput::ioproxy_opened()
+ImageInput::ioproxy_opened() const
 {
     Filesystem::IOProxy*& m_io(m_impl->m_io);
     return m_io != nullptr && m_io->mode() == Filesystem::IOProxy::Read;
@@ -1239,7 +1247,7 @@ ImageInput::ioseek(int64_t pos, int origin)
 
 
 int64_t
-ImageInput::iotell()
+ImageInput::iotell() const
 {
     return m_impl->m_io->tell();
 }
