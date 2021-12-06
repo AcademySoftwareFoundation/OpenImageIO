@@ -17,7 +17,8 @@ macro (PREFIX_FIND_INCLUDE_DIR prefix includefile libpath_var)
   string (TOUPPER ${prefix}_INCLUDE_DIR tmp_varname)
   find_path(${tmp_varname} ${includefile}
     PATHS ${${libpath_var}}
-    NO_DEFAULT_PATH
+    PATH_SUFFIXES openjpeg openjpeg-2.0 openjpeg-2.1 openjpeg-2.2
+                  openjpeg-2.3 openjpeg-2.4 openjpeg-2.5
   )
   if (${tmp_varname})
     mark_as_advanced (${tmp_varname})
@@ -31,12 +32,10 @@ macro (PREFIX_FIND_LIB prefix libname libpath_var liblist_var cachelist_var)
   find_library(${tmp_prefix}_LIBRARY_RELEASE
     NAMES ${libname}
     PATHS ${${libpath_var}}
-    NO_DEFAULT_PATH
   )
   find_library(${tmp_prefix}_LIBRARY_DEBUG
     NAMES ${libname}d ${libname}_d ${libname}debug ${libname}_debug
     PATHS ${${libpath_var}}
-    NO_DEFAULT_PATH
   )
   # Properly define ${tmp_prefix}_LIBRARY (cached) and ${tmp_prefix}_LIBRARIES
   select_library_configurations (${tmp_prefix})
@@ -56,25 +55,9 @@ endmacro ()
 
 # Generic search paths
 set (OpenJpeg_include_paths
-     /usr/local/include/openjpeg-2.4
-     /usr/local/include/openjpeg-2.3
-     /usr/local/include/openjpeg-2.2
-     /usr/local/include/openjpeg-2.1
-     /usr/local/include/openjpeg-2.0
-     /usr/local/include/openjpeg
-     /usr/local/include
-     /usr/include/openjpeg-2.4
-     /usr/include/openjpeg-2.3
-     /usr/include/openjpeg-2.2
-     /usr/include/openjpeg-2.1
-     /usr/include/openjpeg
      /usr/include
      /opt/local/include
-     /opt/local/include/openjpeg-2.4
-     /opt/local/include/openjpeg-2.3
-     /opt/local/include/openjpeg-2.2
-     /opt/local/include/openjpeg-2.1
-     /opt/local/include/openjpeg-2.0)
+    )
 
 set (OpenJpeg_library_paths
   /usr/lib
@@ -83,24 +66,6 @@ set (OpenJpeg_library_paths
   /sw/lib
   /opt/local/lib)
 
-if (OpenJPEG_ROOT)
-  set (OpenJpeg_library_paths
-       ${OpenJPEG_ROOT}/lib
-       ${OpenJPEG_ROOT}/lib64
-       ${OpenJPEG_ROOT}/bin
-       ${OpenJpeg_library_paths}
-      )
-  set (OpenJpeg_include_paths
-       ${OpenJPEG_ROOT}/include/openjpeg-2.4
-       ${OpenJPEG_ROOT}/include/openjpeg-2.3
-       ${OpenJPEG_ROOT}/include/openjpeg-2.2
-       ${OpenJPEG_ROOT}/include/openjpeg-2.1
-       ${OpenJPEG_ROOT}/include/openjpeg-2.0
-       ${OpenJPEG_ROOT}/include/openjpeg
-       ${OpenJPEG_ROOT}/include
-       ${OpenJpeg_include_paths}
-      )
-endif()
 
 
 # Locate the header files
