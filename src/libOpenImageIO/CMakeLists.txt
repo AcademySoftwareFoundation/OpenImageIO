@@ -125,29 +125,29 @@ target_link_libraries (OpenImageIO
         PUBLIC
             OpenImageIO_Util
             # For OpenEXR/Imath 3.x:
-            $<$<TARGET_EXISTS:Imath::Imath>:Imath::Imath>
-            $<$<TARGET_EXISTS:Imath::Half>:Imath::Half>
+            $<TARGET_NAME_IF_EXISTS:Imath::Imath>
+            $<TARGET_NAME_IF_EXISTS:Imath::Half>
             # For OpenEXR >= 2.4/2.5 with reliable exported targets
-            $<$<TARGET_EXISTS:IlmBase::Imath>:IlmBase::Imath>
-            $<$<TARGET_EXISTS:IlmBase::Half>:IlmBase::Half>
+            $<TARGET_NAME_IF_EXISTS:IlmBase::Imath>
+            $<TARGET_NAME_IF_EXISTS:IlmBase::Half>
             # For OpenEXR <= 2.3:
             ${ILMBASE_LIBRARIES}
             ${GCC_ATOMIC_LIBRARIES}
         PRIVATE
             # For OpenEXR/Imath 3.x:
-            $<$<TARGET_EXISTS:OpenEXR::OpenEXR>:OpenEXR::OpenEXR>
+            $<TARGET_NAME_IF_EXISTS:OpenEXR::OpenEXR>
             # For OpenEXR >= 2.4/2.5 with reliable exported targets
-            $<$<TARGET_EXISTS:OpenEXR::IlmImf>:OpenEXR::IlmImf>
-            $<$<TARGET_EXISTS:IlmBase::IlmThread>:IlmBase::IlmThread>
-            $<$<TARGET_EXISTS:IlmBase::Iex>:IlmBase::Iex>
+            $<TARGET_NAME_IF_EXISTS:OpenEXR::IlmImf>
+            $<TARGET_NAME_IF_EXISTS:IlmBase::IlmThread>
+            $<TARGET_NAME_IF_EXISTS:IlmBase::Iex>
             # For OpenEXR <= 2.3:
             ${OPENEXR_LIBRARIES}
             ${OpenCV_LIBRARIES}
             ${SANITIZE_LIBRARIES}
             ${format_plugin_libs} # Add all the target link libraries from the plugins
-            $<$<TARGET_EXISTS:OpenColorIO::OpenColorIO>:OpenColorIO::OpenColorIO>
-            $<$<TARGET_EXISTS:OpenColorIO::OpenColorIOHeaders>:OpenColorIO::OpenColorIOHeaders>
-            $<$<BOOL:${pugixml_FOUND}>:pugixml::pugixml>
+            $<TARGET_NAME_IF_EXISTS:OpenColorIO::OpenColorIO>
+            $<TARGET_NAME_IF_EXISTS:OpenColorIO::OpenColorIOHeaders>
+            $<TARGET_NAME_IF_EXISTS:pugixml::pugixml>
             ${BZIP2_LIBRARIES}
             ZLIB::ZLIB
             ${Boost_LIBRARIES}

@@ -5,7 +5,7 @@
 fancy_add_executable (LINK_LIBRARIES
                         OpenImageIO
                         ${Boost_LIBRARIES} # because regex
-                        $<$<TARGET_EXISTS:OpenEXR::OpenEXR>:OpenEXR::OpenEXR>
-                        $<$<TARGET_EXISTS:OpenEXR::IlmImf>:OpenEXR::IlmImf>
+                        $<TARGET_NAME_IF_EXISTS:OpenEXR::OpenEXR>
+                        $<TARGET_NAME_IF_EXISTS:OpenEXR::IlmImf>
                         ${OPENEXR_LIBRARIES}
                       )
