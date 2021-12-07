@@ -27,7 +27,13 @@ public:
     DDSInput() { init(); }
     virtual ~DDSInput() { close(); }
     virtual const char* format_name(void) const override { return "dds"; }
+    virtual int supports(string_view feature) const override
+    {
+        return feature == "ioproxy";
+    }
     virtual bool open(const std::string& name, ImageSpec& newspec) override;
+    virtual bool open(const std::string& name, ImageSpec& spec,
+                      const ImageSpec& config) override;
     virtual bool close() override;
     virtual int current_subimage(void) const override
     {
@@ -47,7 +53,6 @@ public:
 
 private:
     std::string m_filename;            ///< Stash the filename
-    FILE* m_file;                      ///< Open image handle
     std::vector<unsigned char> m_buf;  ///< Buffer the image pixels
     int m_subimage;
     int m_miplevel;
@@ -58,17 +63,16 @@ private:
     int m_greenL, m_greenR;  ///< Bit shifts to extract green channel
     int m_blueL, m_blueR;    ///< Bit shifts to extract blue channel
     int m_alphaL, m_alphaR;  ///< Bit shifts to extract alpha channel
-
-    dds_header m_dds;  ///< DDS header
+    dds_header m_dds;        ///< DDS header
 
     /// Reset everything to initial state
     ///
     void init()
     {
-        m_file     = NULL;
         m_subimage = -1;
         m_miplevel = -1;
         m_buf.clear();
+        ioproxy_clear();
     }
 
     /// Helper function: read the image as scanlines (all but cubemaps).
@@ -90,16 +94,6 @@ private:
 
     /// Helper function: performs the actual pixel decoding.
     bool internal_readimg(unsigned char* dst, int w, int h, int d);
-
-    /// Helper: read, with error detection
-    ///
-    bool fread(void* buf, size_t itemsize, size_t nitems)
-    {
-        size_t n = ::fread(buf, itemsize, nitems, m_file);
-        if (n != nitems)
-            errorf("Read error");
-        return n == nitems;
-    }
 };
 
 
@@ -128,21 +122,28 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 bool
+DDSInput::open(const std::string& name, ImageSpec& newspec,
+               const ImageSpec& config)
+{
+    ioproxy_retrieve_from_config(config);
+    return open(name, newspec);
+}
+
+
+
+bool
 DDSInput::open(const std::string& name, ImageSpec& newspec)
 {
     m_filename = name;
 
-    m_file = Filesystem::fopen(name, "rb");
-    if (!m_file) {
-        errorf("Could not open file \"%s\"", name);
+    if (!ioproxy_use_or_open(name))
         return false;
-    }
 
 // due to struct packing, we may get a corrupt header if we just load the
 // struct from file; to address that, read every member individually
 // save some typing
-#define RH(memb)                                    \
-    if (!fread(&m_dds.memb, sizeof(m_dds.memb), 1)) \
+#define RH(memb)                                     \
+    if (!ioread(&m_dds.memb, sizeof(m_dds.memb), 1)) \
     return false
 
     RH(fourCC);
@@ -155,7 +156,7 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
     RH(mipmaps);
 
     // advance the file pointer by 44 bytes (reserved fields)
-    fseek(m_file, 44, SEEK_CUR);
+    ioseek(44, SEEK_CUR);
 
     // pixel format struct
     RH(fmt.size);
@@ -172,7 +173,7 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
     RH(caps.flags2);
 
     // advance the file pointer by 8 bytes (reserved fields)
-    fseek(m_file, 8, SEEK_CUR);
+    ioseek(8, SEEK_CUR);
 #undef RH
     if (bigendian()) {
         // DDS files are little-endian
@@ -384,7 +385,7 @@ DDSInput::internal_seek_subimage(int cubeface, int miplevel, unsigned int& w,
         }
     }
     // seek to the offset we've found
-    fseek(m_file, ofs, SEEK_SET);
+    ioseek(ofs, SEEK_SET);
 }
 
 
@@ -523,7 +524,7 @@ DDSInput::internal_readimg(unsigned char* dst, int w, int h, int d)
         std::vector<squish::u8> tmp(
             squish::GetStorageRequirements(w, h, flags));
         // load image into buffer
-        if (!fread(&tmp[0], tmp.size(), 1))
+        if (!ioread(&tmp[0], tmp.size(), 1))
             return false;
         // decompress image
         squish::DecompressImage(dst, w, h, &tmp[0], flags);
@@ -549,14 +550,14 @@ DDSInput::internal_readimg(unsigned char* dst, int w, int h, int d)
 
         // HACK: shortcut for luminance
         if (m_dds.fmt.flags & DDS_PF_LUMINANCE) {
-            return fread(dst, w * m_Bpp, h);
+            return ioread(dst, w * m_Bpp, h);
         }
 
         int k, pixel = 0;
         for (int z = 0; z < d; z++) {
             for (int y = 0; y < h; y++) {
                 for (int x = 0; x < w; x++) {
-                    if (!fread(&pixel, 1, m_Bpp))
+                    if (!ioread(&pixel, 1, m_Bpp))
                         return false;
                     k          = (z * h * w + y * w + x) * m_spec.nchannels;
                     dst[k + 0] = ((pixel & m_dds.fmt.rmask) >> m_redR)
@@ -580,7 +581,7 @@ DDSInput::internal_readimg(unsigned char* dst, int w, int h, int d)
 bool
 DDSInput::readimg_scanlines()
 {
-    //std::cerr << "[dds] readimg: " << ftell (m_file) << "\n";
+    //std::cerr << "[dds] readimg: " << ftell() << "\n";
     // resize destination buffer
     m_buf.resize(m_spec.scanline_bytes() * m_spec.height * m_spec.depth
                  /*/ (1 << m_miplevel)*/);
@@ -606,11 +607,6 @@ DDSInput::readimg_tiles()
 bool
 DDSInput::close()
 {
-    if (m_file) {
-        fclose(m_file);
-        m_file = NULL;
-    }
-
     init();  // Reset to initial state
     return true;
 }
