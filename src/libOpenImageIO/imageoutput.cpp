@@ -732,7 +732,7 @@ ImageOutput::set_ioproxy(Filesystem::IOProxy* ioproxy)
 
 
 bool
-ImageOutput::ioproxy_opened()
+ImageOutput::ioproxy_opened() const
 {
     Filesystem::IOProxy*& m_io(m_impl->m_io);
     return m_io != nullptr && m_io->mode() == Filesystem::IOProxy::Write;
@@ -811,7 +811,7 @@ ImageOutput::ioseek(int64_t pos, int origin)
 
 
 int64_t
-ImageOutput::iotell()
+ImageOutput::iotell() const
 {
     return m_impl->m_io->tell();
 }

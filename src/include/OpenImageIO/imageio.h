@@ -1699,9 +1699,10 @@ protected:
 
     /// Get the IOProxy being used underneath.
     Filesystem::IOProxy* ioproxy();
+    const Filesystem::IOProxy* ioproxy() const;
 
     /// Is this file currenty opened (active proxy)?
-    bool ioproxy_opened();
+    bool ioproxy_opened() const;
 
     /// Clear the proxy ptr, and close/destroy any "local" proxy.
     void ioproxy_clear();
@@ -1730,7 +1731,7 @@ protected:
     bool ioseek(int64_t pos, int origin = SEEK_SET);
 
     /// Helper: retrieve the current position of the proxy, akin to ftell.
-    int64_t iotell();
+    int64_t iotell() const;
 
     /// @}
 
@@ -2455,9 +2456,10 @@ protected:
 
     /// Get the IOProxy being used underneath.
     Filesystem::IOProxy* ioproxy();
+    const Filesystem::IOProxy* ioproxy() const;
 
     /// Is this file currenty opened (active proxy)?
-    bool ioproxy_opened();
+    bool ioproxy_opened() const;
 
     /// Clear the proxy ptr, and close/destroy any "local" proxy.
     void ioproxy_clear();
@@ -2486,7 +2488,7 @@ protected:
     bool ioseek(int64_t pos, int origin = SEEK_SET);
 
     /// Helper: retrieve the current position of the proxy, akin to ftell.
-    int64_t iotell();
+    int64_t iotell() const;
 
     // Write a formatted string to the output proxy. Return true on success,
     // false upon failure and issue an error message.
