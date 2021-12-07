@@ -36,8 +36,7 @@ brew install --display-times -q jpeg-turbo openjpeg
 brew install --display-times -q freetype libraw dcmtk pybind11 numpy || true
 brew install --display-times -q ffmpeg libheif libsquish ptex || true
 brew install --display-times -q tbb || true
-# No OpenVDB until it's upgraded to use Imath 3
-# brew install --display-times -q openvdb || true
+brew install --display-times -q openvdb || true
 brew install --display-times -q opencv || true
 brew install --display-times -q qt@5
 
