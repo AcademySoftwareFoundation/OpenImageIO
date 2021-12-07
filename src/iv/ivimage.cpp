@@ -44,8 +44,9 @@ IvImage::init_spec_iv(const std::string& filename, int subimage, int miplevel)
         m_file_dataformat = spec().format;
     }
     string_view colorspace = spec().get_string_attribute("oiio:ColorSpace");
-    if (Strutil::istarts_with(colorspace, "GammaCorrected")) {
-        float g = Strutil::from_string<float>(colorspace.c_str() + 14);
+    if (Strutil::istarts_with(colorspace, "Gamma")) {
+        Strutil::parse_word(colorspace);
+        float g = Strutil::from_string<float>(colorspace);
         if (g > 1.0 && g <= 3.0 /*sanity check*/) {
             gamma(gamma() / g);
         }

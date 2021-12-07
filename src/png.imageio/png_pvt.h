@@ -229,7 +229,7 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
                 spec.attribute("oiio:ColorSpace", "linear");
             else
                 spec.attribute("oiio:ColorSpace",
-                               Strutil::sprintf("GammaCorrected%.2g", g));
+                               Strutil::sprintf("Gamma%.2g", g));
         }
     }
 
@@ -576,11 +576,12 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
 
     gamma = spec.get_float_attribute("oiio:Gamma", 1.0);
 
-    std::string colorspace = spec.get_string_attribute("oiio:ColorSpace");
+    string_view colorspace = spec.get_string_attribute("oiio:ColorSpace");
     if (Strutil::iequals(colorspace, "Linear")) {
         png_set_gAMA(sp, ip, 1.0);
-    } else if (Strutil::istarts_with(colorspace, "GammaCorrected")) {
-        float g = Strutil::from_string<float>(colorspace.c_str() + 14);
+    } else if (Strutil::istarts_with(colorspace, "Gamma")) {
+        Strutil::parse_word(colorspace);
+        float g = Strutil::from_string<float>(colorspace);
         if (g >= 0.01f && g <= 10.0f /* sanity check */)
             gamma = g;
         png_set_gAMA(sp, ip, 1.0f / gamma);

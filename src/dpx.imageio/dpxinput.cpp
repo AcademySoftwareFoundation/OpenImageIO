@@ -332,7 +332,7 @@ DPXInput::seek_subimage(int subimage, int miplevel)
         if (!std::isnan(m_dpx.header.Gamma()) && m_dpx.header.Gamma() != 0) {
             float g = float(m_dpx.header.Gamma());
             m_spec.attribute("oiio:ColorSpace",
-                             Strutil::sprintf("GammaCorrected%.2g", g));
+                             Strutil::sprintf("Gamma%.2g", g));
             m_spec.attribute("oiio:Gamma", g);
             break;
         }
