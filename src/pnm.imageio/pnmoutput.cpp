@@ -12,8 +12,13 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 class PNMOutput final : public ImageOutput {
 public:
-    virtual ~PNMOutput();
+    PNMOutput() { init(); }
+    virtual ~PNMOutput() { close(); }
     virtual const char* format_name(void) const override { return "pnm"; }
+    virtual int supports(string_view feature) const override
+    {
+        return feature == "ioproxy";
+    }
     virtual bool open(const std::string& name, const ImageSpec& spec,
                       OpenMode mode = Create) override;
     virtual bool close() override;
@@ -24,12 +29,22 @@ public:
                             stride_t ystride, stride_t zstride) override;
 
 private:
-    std::string m_filename;  ///< Stash the filename
-    OIIO::ofstream m_file;
+    std::string m_filename;  // Stash the filename
     unsigned int m_max_val, m_pnm_type;
     unsigned int m_dither;
     std::vector<unsigned char> m_scratch;
     std::vector<unsigned char> m_tilebuffer;
+
+    void init(void) { ioproxy_clear(); }
+
+    bool write_ascii_binary(const unsigned char* data, const stride_t stride);
+    bool write_raw_binary(const unsigned char* data, const stride_t stride);
+
+    template<class T>
+    bool write_ascii(const T* data, const stride_t stride,
+                     unsigned int max_val);
+    template<class T>
+    bool write_raw(const T* data, const stride_t stride, unsigned int max_val);
 };
 
 
@@ -49,80 +64,79 @@ OIIO_EXPORT const char* pnm_output_extensions[] = { "ppm", "pgm", "pbm", "pnm",
 OIIO_PLUGIN_EXPORTS_END
 
 
-inline void
-write_ascii_binary(std::ostream& file, const unsigned char* data,
-                   const stride_t stride, const ImageSpec& spec)
+bool
+PNMOutput::write_ascii_binary(const unsigned char* data, const stride_t stride)
 {
-    for (int x = 0; x < spec.width; x++)
-        file << (data[x * stride] ? '1' : '0') << "\n";
+    for (int x = 0; x < m_spec.width; x++)
+        if (!iowritefmt("{}\n", data[x * stride] ? '1' : '0'))
+            return false;
+    return true;
 }
 
 
 
-inline void
-write_raw_binary(std::ostream& file, const unsigned char* data,
-                 const stride_t stride, const ImageSpec& spec)
+bool
+PNMOutput::write_raw_binary(const unsigned char* data, const stride_t stride)
 {
-    unsigned char val;
-    for (int x = 0; x < spec.width;) {
-        val = 0;
-        for (int bit = 7; bit >= 0 && x < spec.width; x++, bit--)
+    for (int x = 0; x < m_spec.width;) {
+        unsigned char val = 0;
+        for (int bit = 7; bit >= 0 && x < m_spec.width; x++, bit--)
             val += (data[x * stride] ? (1 << bit) : 0);
-        file.write((char*)&val, sizeof(char));
+        if (!iowrite(&val, sizeof(val)))
+            return false;
     }
+    return true;
 }
 
 
 
 template<class T>
-inline void
-write_ascii(std::ostream& file, const T* data, const stride_t stride,
-            const ImageSpec& spec, unsigned int max_val)
+bool
+PNMOutput::write_ascii(const T* data, const stride_t stride,
+                       unsigned int max_val)
 {
-    unsigned int pixel, val;
-    for (int x = 0; x < spec.width; x++) {
-        pixel = x * stride;
-        for (int c = 0; c < spec.nchannels; c++) {
-            val = data[pixel + c];
-            val = val * max_val / std::numeric_limits<T>::max();
-            file << val << "\n";
+    int nc = m_spec.nchannels;
+    for (int x = 0; x < m_spec.width; x++) {
+        unsigned int pixel = x * stride;
+        for (int c = 0; c < nc; c++) {
+            unsigned int val = data[pixel + c];
+            val              = val * max_val / std::numeric_limits<T>::max();
+            if (!iowritefmt("{}\n", val))
+                return false;
         }
     }
+    return true;
 }
 
 
 
 template<class T>
-inline void
-write_raw(std::ostream& file, const T* data, const stride_t stride,
-          const ImageSpec& spec, unsigned int max_val)
+bool
+PNMOutput::write_raw(const T* data, const stride_t stride, unsigned int max_val)
 {
-    unsigned char byte;
-    unsigned int pixel, val;
-    for (int x = 0; x < spec.width; x++) {
-        pixel = x * stride;
-        for (int c = 0; c < spec.nchannels; c++) {
-            val = data[pixel + c];
-            val = val * max_val / std::numeric_limits<T>::max();
+    int nc = m_spec.nchannels;
+    for (int x = 0; x < m_spec.width; x++) {
+        unsigned int pixel = x * stride;
+        for (int c = 0; c < nc; c++) {
+            unsigned int val = data[pixel + c];
+            val              = val * max_val / std::numeric_limits<T>::max();
             if (sizeof(T) == 2) {
                 // Writing a 16bit ppm file
                 // I'll adopt the practice of Netpbm and write the MSB first
-                byte = static_cast<unsigned char>(val >> 8);
-                file.write((char*)&byte, 1);
-                byte = static_cast<unsigned char>(val & 0xff);
-                file.write((char*)&byte, 1);
+                uint8_t byte[2] = { static_cast<uint8_t>(val >> 8),
+                                    static_cast<uint8_t>(val & 0xff) };
+                if (!iowrite(&byte, 2))
+                    return false;
             } else {
                 // This must be an 8bit ppm file
-                byte = static_cast<unsigned char>(val);
-                file.write((char*)&byte, 1);
+                uint8_t byte = static_cast<uint8_t>(val);
+                if (!iowrite(&byte, 1))
+                    return false;
             }
         }
     }
+    return true;
 }
-
-
-
-PNMOutput::~PNMOutput() { close(); }
 
 
 
@@ -135,7 +149,6 @@ PNMOutput::open(const std::string& name, const ImageSpec& userspec,
         return false;
     }
 
-    close();                             // Close any already-opened file
     m_spec = userspec;                   // Stash the spec
     m_spec.set_format(TypeDesc::UINT8);  // Force 8 bit output
     int bits_per_sample = m_spec.get_int_attribute("oiio:BitsPerSample", 8);
@@ -155,32 +168,27 @@ PNMOutput::open(const std::string& name, const ImageSpec& userspec,
         m_pnm_type = 5;
     else
         m_pnm_type = 6;
-    if (!m_spec.get_int_attribute("pnm:binary", 1)) {
+    if (!m_spec.get_int_attribute("pnm:binary", 1))
         m_pnm_type -= 3;
-        Filesystem::open(m_file, name);
 
-    } else {
-        Filesystem::open(m_file, name, std::ios::out | std::ios::binary);
-    }
-
-    if (!m_file) {
-        errorf("Could not open \"%s\"", name);
+    ioproxy_retrieve_from_config(m_spec);
+    if (!ioproxy_use_or_open(name))
         return false;
-    }
 
     m_max_val = (1 << bits_per_sample) - 1;
     // Write header
-    m_file << "P" << m_pnm_type << std::endl;
-    m_file << m_spec.width << " " << m_spec.height << std::endl;
+    bool ok = true;
+    ok &= iowritefmt("P{}\n", m_pnm_type);
+    ok &= iowritefmt("{} {}\n", m_spec.width, m_spec.height);
     if (m_pnm_type != 1 && m_pnm_type != 4)  // only non-monochrome
-        m_file << m_max_val << std::endl;
+        ok &= iowritefmt("{}\n", m_max_val);
 
     // If user asked for tiles -- which this format doesn't support, emulate
     // it by buffering the whole image.
     if (m_spec.tile_width && m_spec.tile_height)
         m_tilebuffer.resize(m_spec.image_bytes());
 
-    return m_file.good();
+    return ok;
 }
 
 
@@ -188,9 +196,8 @@ PNMOutput::open(const std::string& name, const ImageSpec& userspec,
 bool
 PNMOutput::close()
 {
-    if (!m_file) {  // already closed
+    if (!ioproxy_opened())  // already closed
         return true;
-    }
 
     bool ok = true;
     if (m_spec.tile_width) {
@@ -198,10 +205,10 @@ PNMOutput::close()
         OIIO_DASSERT(m_tilebuffer.size());
         ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
                               m_spec.format, &m_tilebuffer[0]);
-        std::vector<unsigned char>().swap(m_tilebuffer);
+        m_tilebuffer.shrink_to_fit();
     }
 
-    m_file.close();
+    init();
     return ok;
 }
 
@@ -211,7 +218,7 @@ bool
 PNMOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
                           stride_t xstride)
 {
-    if (!m_file)
+    if (!ioproxy_opened())
         return false;
     if (z)
         return false;
@@ -223,33 +230,24 @@ PNMOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
         xstride = spec().nchannels;
 
     switch (m_pnm_type) {
-    case 1:
-        write_ascii_binary(m_file, (unsigned char*)data, xstride, m_spec);
-        break;
+    case 1: return write_ascii_binary((unsigned char*)data, xstride);
     case 2:
     case 3:
         if (m_max_val > std::numeric_limits<unsigned char>::max())
-            write_ascii(m_file, (unsigned short*)data, xstride, m_spec,
-                        m_max_val);
+            return write_ascii((unsigned short*)data, xstride, m_max_val);
         else
-            write_ascii(m_file, (unsigned char*)data, xstride, m_spec,
-                        m_max_val);
-        break;
-    case 4:
-        write_raw_binary(m_file, (unsigned char*)data, xstride, m_spec);
-        break;
+            return write_ascii((unsigned char*)data, xstride, m_max_val);
+    case 4: return write_raw_binary((unsigned char*)data, xstride);
     case 5:
     case 6:
         if (m_max_val > std::numeric_limits<unsigned char>::max())
-            write_raw(m_file, (unsigned short*)data, xstride, m_spec,
-                      m_max_val);
+            return write_raw((unsigned short*)data, xstride, m_max_val);
         else
-            write_raw(m_file, (unsigned char*)data, xstride, m_spec, m_max_val);
-        break;
+            return write_raw((unsigned char*)data, xstride, m_max_val);
     default: return false;
     }
 
-    return m_file.good();
+    return false;
 }
 
 

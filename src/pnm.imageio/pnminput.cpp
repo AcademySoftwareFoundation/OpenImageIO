@@ -15,18 +15,24 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 //
 // Documentation on the PNM formats can be found at:
 // http://netpbm.sourceforge.net/doc/pbm.html  (B&W)
-// http://netpbm.sourceforge.net/doc/ppm.html  (grey)
-// http://netpbm.sourceforge.net/doc/pgm.html  (color)
+// http://netpbm.sourceforge.net/doc/pgm.html  (grey)
+// http://netpbm.sourceforge.net/doc/ppm.html  (color)
 // http://netpbm.sourceforge.net/doc/pam.html  (base format)
 //
 
 
 class PNMInput final : public ImageInput {
 public:
-    PNMInput() {}
+    PNMInput() { init(); }
     virtual ~PNMInput() { close(); }
     virtual const char* format_name(void) const override { return "pnm"; }
+    virtual int supports(string_view feature) const override
+    {
+        return feature == "ioproxy";
+    }
     virtual bool open(const std::string& name, ImageSpec& newspec) override;
+    virtual bool open(const std::string& name, ImageSpec& spec,
+                      const ImageSpec& config) override;
     virtual bool close() override;
     virtual int current_subimage(void) const override { return 0; }
     virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
@@ -35,16 +41,37 @@ public:
 private:
     enum PNMType { P1, P2, P3, P4, P5, P6, Pf, PF };
 
-    OIIO::ifstream m_file;
-    std::streampos m_header_end_pos;  // file position after the header
-    std::string m_current_line;       ///< Buffer the image pixels
-    const char* m_pos;
     PNMType m_pnm_type;
-    unsigned int m_max_val;
+    int m_max_val;
     float m_scaling_factor;
+    std::vector<char> m_file_contents;
+    string_view m_remaining;
+    string_view m_after_header;
+    int m_y_next;
+
+    void init()
+    {
+        m_file_contents.shrink_to_fit();
+        ioproxy_clear();
+        m_y_next = 0;
+    }
 
     bool read_file_scanline(void* data, int y);
     bool read_file_header();
+
+    void skipComments()
+    {
+        while (m_remaining.size() && Strutil::parse_char(m_remaining, '#'))
+            Strutil::parse_line(m_remaining);
+    }
+
+    template<typename T> bool nextVal(T& val)
+    {
+        skipComments();
+        return Strutil::parse_value(m_remaining, val);
+    }
+
+    template<class T> bool ascii_to_raw(T* write, imagesize_t nvals, T max);
 };
 
 
@@ -72,65 +99,6 @@ OIIO_EXPORT const char* pnm_input_extensions[] = { "ppm", "pgm", "pbm",
 OIIO_PLUGIN_EXPORTS_END
 
 
-inline bool
-nextLine(std::istream& file, std::string& current_line, const char*& pos)
-{
-    if (!file.good())
-        return false;
-    getline(file, current_line);
-    if (file.fail())
-        return false;
-    pos = current_line.c_str();
-    return true;
-}
-
-
-
-inline const char*
-nextToken(std::istream& file, std::string& current_line, const char*& pos)
-{
-    while (1) {
-        while (isspace(*pos))
-            pos++;
-        if (*pos)
-            break;
-        else
-            nextLine(file, current_line, pos);
-    }
-    return pos;
-}
-
-
-
-inline const char*
-skipComments(std::istream& file, std::string& current_line, const char*& pos,
-             char comment = '#')
-{
-    while (1) {
-        nextToken(file, current_line, pos);
-        if (*pos == comment)
-            nextLine(file, current_line, pos);
-        else
-            break;
-    }
-    return pos;
-}
-
-
-
-inline bool
-nextVal(std::istream& file, std::string& current_line, const char*& pos,
-        int& val, char comment = '#')
-{
-    skipComments(file, current_line, pos, comment);
-    if (!isdigit(*pos))
-        return false;
-    val = strtol(pos, (char**)&pos, 10);
-    return true;
-}
-
-
-
 template<class T>
 inline void
 invert(const T* read, T* write, imagesize_t nvals)
@@ -142,14 +110,13 @@ invert(const T* read, T* write, imagesize_t nvals)
 
 
 template<class T>
-inline bool
-ascii_to_raw(std::istream& file, std::string& current_line, const char*& pos,
-             T* write, imagesize_t nvals, T max)
+bool
+PNMInput::ascii_to_raw(T* write, imagesize_t nvals, T max)
 {
     if (max)
         for (imagesize_t i = 0; i < nvals; i++) {
             int tmp;
-            if (!nextVal(file, current_line, pos, tmp))
+            if (!nextVal(tmp))
                 return false;
             write[i] = std::min((int)max, tmp) * std::numeric_limits<T>::max()
                        / max;
@@ -192,6 +159,8 @@ unpack(const unsigned char* read, unsigned char* write, imagesize_t size)
     }
 }
 
+
+
 inline void
 unpack_floats(const unsigned char* read, float* write, imagesize_t numsamples,
               float scaling_factor)
@@ -211,46 +180,26 @@ unpack_floats(const unsigned char* read, float* write, imagesize_t numsamples,
 
 
 
-template<class T>
-inline bool
-read_int(std::istream& in, T& dest, char comment = '#')
-{
-    T ret;
-    char c;
-    while (!in.eof()) {
-        in >> ret;
-        if (!in.good()) {
-            in.clear();
-            in >> c;
-            if (c == comment)
-                in.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            else
-                return false;
-        } else {
-            dest = ret;
-            return true;
-        }
-    }
-    return false;
-}
-
-
-
 bool
 PNMInput::read_file_scanline(void* data, int y)
 {
-    try {
-        std::vector<unsigned char> buf;
-        bool good = true;
-        if (!m_file)
-            return false;
-        int nsamples = m_spec.width * m_spec.nchannels;
+    if (y < m_y_next) {
+        // If being asked to backtrack to an earlier scanline, reset all the
+        // way to the beginning, right after the header.
+        m_remaining = m_after_header;
+        m_y_next    = 0;
+    }
 
+    std::vector<unsigned char> buf;
+    int nsamples = m_spec.width * m_spec.nchannels;
+    bool good    = true;
+    // If y is farther ahead, skip scanlines to get to it
+    for (; good && m_y_next <= y; ++m_y_next) {
         // PFM files are bottom-to-top, so we need to seek to the right spot
         if (m_pnm_type == PF || m_pnm_type == Pf) {
-            int file_scanline     = m_spec.height - 1 - (y - m_spec.y);
-            std::streampos offset = file_scanline * m_spec.scanline_bytes();
-            m_file.seekg(m_header_end_pos + offset, std::ios_base::beg);
+            int file_scanline = m_spec.height - 1 - (y - m_spec.y);
+            auto offset       = file_scanline * m_spec.scanline_bytes();
+            m_remaining       = m_after_header.substr(offset);
         }
 
         if ((m_pnm_type >= P4 && m_pnm_type <= P6) || m_pnm_type == PF
@@ -262,29 +211,26 @@ PNMInput::read_file_scanline(void* data, int y)
                 numbytes = m_spec.nchannels * 4 * m_spec.width;
             else
                 numbytes = m_spec.scanline_bytes();
-            buf.resize(numbytes);
-            m_file.read((char*)&buf[0], numbytes);
-            if (!m_file.good())
+            if (size_t(numbytes) > m_remaining.size())
                 return false;
+            buf.assign(m_remaining.begin(), m_remaining.begin() + numbytes);
+            m_remaining.remove_prefix(numbytes);
         }
 
         switch (m_pnm_type) {
         //Ascii
         case P1:
-            good &= ascii_to_raw(m_file, m_current_line, m_pos,
-                                 (unsigned char*)data, nsamples,
+            good &= ascii_to_raw((unsigned char*)data, nsamples,
                                  (unsigned char)m_max_val);
             invert((unsigned char*)data, (unsigned char*)data, nsamples);
             break;
         case P2:
         case P3:
             if (m_max_val > std::numeric_limits<unsigned char>::max())
-                good &= ascii_to_raw(m_file, m_current_line, m_pos,
-                                     (unsigned short*)data, nsamples,
+                good &= ascii_to_raw((unsigned short*)data, nsamples,
                                      (unsigned short)m_max_val);
             else
-                good &= ascii_to_raw(m_file, m_current_line, m_pos,
-                                     (unsigned char*)data, nsamples,
+                good &= ascii_to_raw((unsigned char*)data, nsamples,
                                      (unsigned char)m_max_val);
             break;
         //Raw
@@ -308,12 +254,8 @@ PNMInput::read_file_scanline(void* data, int y)
             break;
         default: return false;
         }
-        return good;
-
-    } catch (const std::exception& e) {
-        errorf("PNM exception: %s", e.what());
-        return false;
     }
+    return good;
 }
 
 
@@ -321,102 +263,78 @@ PNMInput::read_file_scanline(void* data, int y)
 bool
 PNMInput::read_file_header()
 {
-    try {
-        unsigned int width, height;
-        char c;
-        if (!m_file)
-            return false;
-
-        //MagicNumber
-        m_file >> c;
-        if (c != 'P')
-            return false;
-
-        m_file >> c;
-        switch (c) {
-        case '1': m_pnm_type = P1; break;
-        case '2': m_pnm_type = P2; break;
-        case '3': m_pnm_type = P3; break;
-        case '4': m_pnm_type = P4; break;
-        case '5': m_pnm_type = P5; break;
-        case '6': m_pnm_type = P6; break;
-        case 'f': m_pnm_type = Pf; break;
-        case 'F': m_pnm_type = PF; break;
-        default: return false;
-        }
-
-        //Size
-        if (!read_int(m_file, width))
-            return false;
-        if (!read_int(m_file, height))
-            return false;
-
-        if (m_pnm_type != PF && m_pnm_type != Pf) {
-            //Max Val
-            if (m_pnm_type != P1 && m_pnm_type != P4) {
-                if (!read_int(m_file, m_max_val))
-                    return false;
-            } else
-                m_max_val = 1;
-
-            //Space before content
-            if (!(isspace(m_file.get()) && m_file.good()))
-                return false;
-            m_header_end_pos = m_file.tellg();  // remember file pos
-
-            if (m_pnm_type == P3 || m_pnm_type == P6)
-                m_spec = ImageSpec(width, height, 3,
-                                   (m_max_val > 255) ? TypeDesc::UINT16
-                                                     : TypeDesc::UINT8);
-            else
-                m_spec = ImageSpec(width, height, 1,
-                                   (m_max_val > 255) ? TypeDesc::UINT16
-                                                     : TypeDesc::UINT8);
-
-            if (m_spec.nchannels == 1)
-                m_spec.channelnames[0] = "I";
-            else
-                m_spec.default_channel_names();
-
-            if (m_pnm_type >= P1 && m_pnm_type <= P3)
-                m_spec.attribute("pnm:binary", 0);
-            else
-                m_spec.attribute("pnm:binary", 1);
-
-            m_spec.attribute("oiio:BitsPerSample",
-                             ceilf(logf(m_max_val + 1) / logf(2)));
-            return true;
-        } else {
-            //Read scaling factor
-            if (!read_int(m_file, m_scaling_factor)) {
-                return false;
-            }
-
-            //Space before content
-            if (!(isspace(m_file.get()) && m_file.good()))
-                return false;
-            m_header_end_pos = m_file.tellg();  // remember file pos
-
-            if (m_pnm_type == PF) {
-                m_spec = ImageSpec(width, height, 3, TypeDesc::FLOAT);
-                m_spec.default_channel_names();
-            } else {
-                m_spec = ImageSpec(width, height, 1, TypeDesc::FLOAT);
-                m_spec.channelnames[0] = "I";
-            }
-
-            if (m_scaling_factor < 0) {
-                m_spec.attribute("pnm:bigendian", 0);
-            } else {
-                m_spec.attribute("pnm:bigendian", 1);
-            }
-
-            return true;
-        }
-    } catch (const std::exception& e) {
-        errorf("PNM exception: %s", e.what());
+    // MagicNumber
+    if (!Strutil::parse_char(m_remaining, 'P') || m_remaining.empty())
         return false;
+    switch (m_remaining.front()) {
+    case '1': m_pnm_type = P1; break;
+    case '2': m_pnm_type = P2; break;
+    case '3': m_pnm_type = P3; break;
+    case '4': m_pnm_type = P4; break;
+    case '5': m_pnm_type = P5; break;
+    case '6': m_pnm_type = P6; break;
+    case 'f': m_pnm_type = Pf; break;
+    case 'F': m_pnm_type = PF; break;
+    default: return false;
     }
+    m_remaining.remove_prefix(1);
+
+    //Size
+    int width, height;
+    if (!nextVal(width))
+        return false;
+    if (!nextVal(height))
+        return false;
+
+    if (m_pnm_type != PF && m_pnm_type != Pf) {
+        // Max Val
+        if (m_pnm_type != P1 && m_pnm_type != P4) {
+            if (!nextVal(m_max_val))
+                return false;
+        } else
+            m_max_val = 1;
+
+        //Space before content
+        if (!(m_remaining.size() && isspace(m_remaining.front())))
+            return false;
+        m_remaining.remove_prefix(1);
+        m_after_header = m_remaining;
+
+        m_spec = ImageSpec(width, height,
+                           (m_pnm_type == P3 || m_pnm_type == P6) ? 3 : 1,
+                           (m_max_val > 255) ? TypeDesc::UINT16
+                                             : TypeDesc::UINT8);
+        m_spec.attribute("pnm:binary",
+                         (m_pnm_type >= P1 && m_pnm_type <= P3) ? 0 : 1);
+        m_spec.attribute("oiio:BitsPerSample",
+                         ceilf(logf(m_max_val + 1) / logf(2)));
+    } else {
+        //Read scaling factor
+        if (!nextVal(m_scaling_factor))
+            return false;
+
+        //Space before content
+        if (!(m_remaining.size() && isspace(m_remaining.front())))
+            return false;
+        m_remaining.remove_prefix(1);
+        m_after_header = m_remaining;
+
+        m_spec = ImageSpec(width, height, m_pnm_type == PF ? 3 : 1,
+                           TypeDesc::FLOAT);
+        m_spec.attribute("pnm:bigendian", m_scaling_factor < 0 ? 0 : 1);
+    }
+    m_spec.attribute("oiio:ColorSpace", "Gamma2.2");
+    return true;
+}
+
+
+
+bool
+PNMInput::open(const std::string& name, ImageSpec& newspec,
+               const ImageSpec& config)
+{
+    ioproxy_retrieve_from_config(config);
+    return open(name, newspec);
 }
 
 
@@ -424,12 +342,14 @@ PNMInput::read_file_header()
 bool
 PNMInput::open(const std::string& name, ImageSpec& newspec)
 {
-    close();  //close previously opened file
+    if (!ioproxy_use_or_open(name))
+        return false;
 
-    Filesystem::open(m_file, name, std::ios::in | std::ios::binary);
-
-    m_current_line = "";
-    m_pos          = m_current_line.c_str();
+    // Read the whole file's contents into m_file_contents
+    Filesystem::IOProxy* m_io = ioproxy();
+    m_file_contents.resize(m_io->size());
+    m_io->pread(m_file_contents.data(), m_file_contents.size(), 0);
+    m_remaining = string_view(m_file_contents.data(), m_file_contents.size());
 
     if (!read_file_header())
         return false;
@@ -443,7 +363,7 @@ PNMInput::open(const std::string& name, ImageSpec& newspec)
 bool
 PNMInput::close()
 {
-    m_file.close();
+    init();
     return true;
 }
 
