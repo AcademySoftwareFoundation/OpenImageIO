@@ -1,3 +1,13 @@
+Release 2.3.10.1 (7 Dec 2021) -- compared to 2.3.10.0
+-----------------------------------------------------
+* Build: restore code that finds Jasper when using statically-linked libraw.
+  #3210
+* Build/test: Gracefully handle failing to find git for test data download.
+  #3212
+* fmath.h: bit_cast specialization should take refs, like the template.
+  This made warnings for some compilrs. #3213
+* Build: make sure to properly use the tbb target if it exists. #3214
+
 Release 2.3.10 (1 Dec 2021) -- compared to 2.3.9
 --------------------------------------------------
 New (non-compatibility-breaking) features:
