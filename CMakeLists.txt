@@ -279,7 +279,7 @@ install (EXPORT OIIO_EXPORTED_TARGETS
         NAMESPACE ${PROJECT_NAME}::)
 
 
-if (PROJECT_IS_TOP_LEVEL)
+if (PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
     oiio_setup_test_data()
     oiio_add_all_tests()
 endif ()
