@@ -34,7 +34,6 @@ private:
     WebPPicture m_webp_picture;
     WebPConfig m_webp_config;
     std::string m_filename;
-    FILE* m_file;
     int m_scanline_size;
     unsigned int m_dither;
     std::vector<uint8_t> m_uncompressed_image;
@@ -42,7 +41,7 @@ private:
     void init()
     {
         m_scanline_size = 0;
-        m_file          = NULL;
+        ioproxy_clear();
     }
 };
 
@@ -51,7 +50,7 @@ private:
 int
 WebpOutput::supports(string_view feature) const
 {
-    return feature == "tiles" || feature == "alpha"
+    return feature == "tiles" || feature == "alpha" || feature == "ioproxy"
            || feature == "random_access" || feature == "rewrite";
 }
 
@@ -61,13 +60,8 @@ static int
 WebpImageWriter(const uint8_t* img_data, size_t data_size,
                 const WebPPicture* const webp_img)
 {
-    FILE* out_file = (FILE*)webp_img->custom_ptr;
-    size_t wb      = fwrite(img_data, data_size, sizeof(uint8_t), out_file);
-    if (wb != sizeof(uint8_t)) {
-        //FIXME Bad write occurred
-    }
-
-    return 1;
+    auto io = (Filesystem::IOProxy*)webp_img->custom_ptr;
+    return io->write(img_data, data_size) == data_size;
 }
 
 
@@ -76,7 +70,7 @@ bool
 WebpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 {
     if (mode != Create) {
-        errorf("%s does not support subimages or MIP levels", format_name());
+        errorfmt("{} does not support subimages or MIP levels", format_name());
         return false;
     }
 
@@ -85,19 +79,17 @@ WebpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     m_spec     = spec;
 
     if (m_spec.nchannels != 3 && m_spec.nchannels != 4) {
-        errorf("%s does not support %d-channel images\n", format_name(),
-               m_spec.nchannels);
+        errorfmt("{} does not support {}-channel images\n", format_name(),
+                 m_spec.nchannels);
         return false;
     }
 
-    m_file = Filesystem::fopen(m_filename, "wb");
-    if (!m_file) {
-        errorf("Could not open \"%s\"", m_filename);
+    ioproxy_retrieve_from_config(m_spec);
+    if (!ioproxy_use_or_open(name))
         return false;
-    }
 
     if (!WebPPictureInit(&m_webp_picture)) {
-        errorf("Couldn't initialize WebPPicture\n");
+        errorfmt("Couldn't initialize WebPPicture\n");
         close();
         return false;
     }
@@ -105,10 +97,10 @@ WebpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     m_webp_picture.width      = m_spec.width;
     m_webp_picture.height     = m_spec.height;
     m_webp_picture.writer     = WebpImageWriter;
-    m_webp_picture.custom_ptr = (void*)m_file;
+    m_webp_picture.custom_ptr = (void*)ioproxy();
 
     if (!WebPConfigInit(&m_webp_config)) {
-        errorf("Couldn't initialize WebPPicture\n");
+        errorfmt("Couldn't initialize WebPPicture\n");
         close();
         return false;
     }
@@ -144,7 +136,7 @@ WebpOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
                            stride_t xstride)
 {
     if (y > m_spec.height) {
-        errorf("Attempt to write too many scanlines to %s", m_filename);
+        errorfmt("Attempt to write too many scanlines to {}", m_filename);
         close();
         return false;
     }
@@ -169,7 +161,7 @@ WebpOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
                                  m_scanline_size);
         }
         if (!WebPEncode(&m_webp_config, &m_webp_picture)) {
-            errorf("Failed to encode %s as WebP image", m_filename);
+            errorfmt("Failed to encode {} as WebP image", m_filename);
             close();
             return false;
         }
@@ -193,7 +185,7 @@ WebpOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
 bool
 WebpOutput::close()
 {
-    if (!m_file)
+    if (!ioproxy_opened())
         return true;  // already closed
 
     bool ok = true;
@@ -206,8 +198,7 @@ WebpOutput::close()
     }
 
     WebPPictureFree(&m_webp_picture);
-    fclose(m_file);
-    m_file = NULL;
+    init();
     return ok;
 }
 

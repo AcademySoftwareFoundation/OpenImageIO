@@ -63,6 +63,12 @@ make_test_image(string_view formatname)
     else if (!out->supports("alpha"))
         spec.nchannels = std::min(spec.nchannels, 3);
 
+    // Webp library seems to automatically truncate alpha when it's 1.0,
+    // botching our comparisons. Just ease the headache of tests by sticking
+    // to RGB.
+    if (formatname == "webp")
+        spec.nchannels = 3;
+
     // Force a fixed datetime metadata so it can't differ between writes
     // and make different file patterns for these tests.
     spec.attribute("DateTime", "01/01/2000 00:00:00");

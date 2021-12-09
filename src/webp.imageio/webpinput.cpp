@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // https://github.com/OpenImageIO/oiio
 
-#include <cstdio>
-
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imageio.h>
@@ -24,9 +22,11 @@ public:
     virtual const char* format_name() const override { return "webp"; }
     virtual int supports(string_view feature) const override
     {
-        return (feature == "exif");
+        return feature == "exif" || feature == "ioproxy";
     }
     virtual bool open(const std::string& name, ImageSpec& spec) override;
+    virtual bool open(const std::string& name, ImageSpec& newspec,
+                      const ImageSpec& config) override;
     virtual bool seek_subimage(int subimage, int miplevel) override;
     virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
                                       void* data) override;
@@ -45,6 +45,12 @@ private:
     WebPIterator m_iter;
     int m_subimage      = -1;  // Subimage we're pointed to
     int m_subimage_read = -1;  // Subimage stored in decoded_image
+
+    void init(void)
+    {
+        m_filename.clear();
+        ioproxy_clear();
+    }
 
     // Reposition the m_iter to the desired subimage, return true for
     // success and adjust m_subimage, false for failure.
@@ -73,67 +79,58 @@ private:
 
 
 bool
-WebpInput::open(const std::string& name, ImageSpec& spec)
+WebpInput::open(const std::string& name, ImageSpec& newspec)
+{
+    return open(name, newspec, ImageSpec());
+}
+
+
+
+bool
+WebpInput::open(const std::string& name, ImageSpec& spec,
+                const ImageSpec& config)
 {
     m_filename = name;
 
-    // Perform preliminary test on file type.
-    if (!Filesystem::is_regular(m_filename)) {
-        errorf("Not a regular file \"%s\"", m_filename);
+    ioproxy_retrieve_from_config(config);
+    if (!ioproxy_use_or_open(name))
         return false;
-    }
+    Filesystem::IOProxy* io = ioproxy();
 
     // Get file size and check we've got enough data to decode WebP.
-    m_image_size = Filesystem::file_size(name);
+    m_image_size = io->size();
     if (m_image_size == uint64_t(-1)) {
-        errorf("Failed to get size for \"%s\"", m_filename);
+        errorfmt("Failed to get size for \"{}\"", m_filename);
         return false;
     }
     if (m_image_size < 12) {
-        errorf("File size is less than WebP header for file \"%s\"",
-               m_filename);
+        errorfmt("File size is less than WebP header for file \"{}\"",
+                 m_filename);
         return false;
     }
     if (m_image_size > std::numeric_limits<size_t>::max()) {
-        errorf("Image size (%d) is too big to read", m_image_size);
-    }
-
-    FILE* file = Filesystem::fopen(m_filename, "rb");
-    if (!file) {
-        errorf("Could not open file \"%s\"", m_filename);
+        errorfmt("Image size ({}) is too big to read", m_image_size);
         return false;
     }
 
     // Read header and verify we've got WebP image.
     std::vector<uint8_t> image_header;
     image_header.resize(std::min(m_image_size, (uint64_t)64), 0);
-    size_t numRead = fread(&image_header[0], sizeof(uint8_t),
-                           image_header.size(), file);
-    if (numRead != image_header.size()) {
-        errorf("Read failure for header of \"%s\" (expected %d bytes, read %d)",
-               m_filename, image_header.size(), numRead);
-        fclose(file);
+    if (!io->pread(image_header.data(), image_header.size(), 0)) {
         close();
         return false;
     }
 
     int width = 0, height = 0;
     if (!WebPGetInfo(&image_header[0], image_header.size(), &width, &height)) {
-        errorf("%s is not a WebP image file", m_filename);
-        fclose(file);
+        errorfmt("{} is not a WebP image file", m_filename);
         close();
         return false;
     }
 
     // Read actual data and decode.
     m_encoded_image.reset(new uint8_t[m_image_size]);
-    fseek(file, 0, SEEK_SET);
-    numRead = fread(m_encoded_image.get(), sizeof(uint8_t), m_image_size, file);
-    fclose(file);
-    file = nullptr;
-    if (numRead != m_image_size) {
-        errorf("Read failure for \"%s\" (expected %d bytes, read %d)",
-               m_filename, m_image_size, numRead);
+    if (!io->pread(m_encoded_image.get(), m_image_size, 0)) {
         close();
         return false;
     }
@@ -142,7 +139,7 @@ WebpInput::open(const std::string& name, ImageSpec& spec)
     WebPData bitstream { m_encoded_image.get(), size_t(m_image_size) };
     m_demux = WebPDemux(&bitstream);
     if (!m_demux) {
-        errorf("Couldn't decode");
+        errorfmt("Couldn't decode");
         close();
         return false;
     }
@@ -367,6 +364,7 @@ WebpInput::close()
     m_decoded_image.reset();
     m_encoded_image.reset();
     m_subimage = -1;
+    init();
     return true;
 }
 
@@ -381,7 +379,7 @@ OIIO_EXPORT const char*
 webp_imageio_library_version()
 {
     int v = WebPGetDecoderVersion();
-    return ustring::sprintf("Webp %d.%d.%d", v >> 16, (v >> 8) & 255, v & 255)
+    return ustring::fmtformat("Webp {}.{}.{}", v >> 16, (v >> 8) & 255, v & 255)
         .c_str();
 }
 
