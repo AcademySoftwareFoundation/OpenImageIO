@@ -497,22 +497,23 @@ Command-line arguments are:
 =========
 
 The :program:`oiiotool` utility (Chapter :ref:`chap-oiiotool`) is capable of
-writing textures using the `-otex` option, and lat-long environment maps
-using the `-oenv` option. Roughly speaking,
+writing textures using the `-otex` option, lat-long environment maps using the
+`-oenv` option, and bump/normal maps that include normal distribution moments.
+Roughly speaking,
 
     `maketx` [*maketx-options*] *input* `-o` *output*
 
-is equivalent to
+    `maketx -envlatl` [*maketx-options*] *input* `-o` *output*
+
+    `maketx -bumpslopes` [*maketx-options*] *input* `-o` *output*
+
+are equivalent to, respectively,
 
     `oiiotool` *input* [*oiiotool-options*] `-otex` *output*
 
-and
-
-    `maketx -envlatl` [*maketx-options*] *input* `-o` *output*
-
-is equivalent to
-
     `oiiotool` *input* [*oiiotool-options*] `-oenv` *output*
+
+    `oiiotool` *input* [*oiiotool-options*] `-obump` *output*
 
 However, the notation for the various options are not identical between the
 two programs, as will be explained by the remainder of this section.
@@ -598,8 +599,8 @@ run generally:
     Set/override the camera and screen matrices.
 
 
-Optional arguments to `-otex` and `-oenv`
------------------------------------------
+Optional arguments to `-otex`, `-oenv`, `-obump`
+------------------------------------------------
 
 As with many :program:`oiiotool` commands, the `-otex` and `-oenv` may
 have various optional arguments appended, in the form `:name=value`
@@ -612,26 +613,28 @@ detailed explanations of each, for the corresponding :program:`maketx`
 option):
 
 
-=======================   ============================================
-Appended Option           `maketx` equivalent
-=======================   ============================================
-`wrap=` *string*          `--wrap`
-`swrap=` *string*         `--swrap`
-`twrap=` *string*         `--twrap`
-`resize=1`                `--resize`
-`nomipmap=1`              `--nomipmap`
-`updatemode=1`            `-u`
-`monochrome_detect=1`     `--monochrome-detect`
-`opaque_detect=1`         `--opaque-detect`
-`unpremult=1`             `--unpremult`
-`incolorspace=` *name*    `--incolorspace`
-`outcolorspace=` *name*   `--outcolorspace`
-`hilightcomp=1`           `--hicomp`
-`sharpen=` *float*        `--sharpen`
-`filter=` *string*        `--filter`
-`prman_metadata=1`        `--prman`
-`prman_options=1`         `--prman-metadata`
-=======================   ============================================
+=======================     ============================================
+Appended Option             `maketx` equivalent
+=======================     ============================================
+`wrap=` *string*            `--wrap`
+`swrap=` *string*           `--swrap`
+`twrap=` *string*           `--twrap`
+`resize=1`                  `--resize`
+`nomipmap=1`                `--nomipmap`
+`updatemode=1`              `-u`
+`monochrome_detect=1`       `--monochrome-detect`
+`opaque_detect=1`           `--opaque-detect`
+`unpremult=1`               `--unpremult`
+`incolorspace=` *name*      `--incolorspace`
+`outcolorspace=` *name*     `--outcolorspace`
+`hilightcomp=1`             `--hicomp`
+`sharpen=` *float*          `--sharpen`
+`filter=` *string*          `--filter`
+`bumpformat=` *string*      `--bumpformat`
+`uvslopes_scale=` *float*   `--uvslopes-scale`
+`prman_metadata=1`          `--prman`
+`prman_options=1`           `--prman-metadata`
+=======================     ============================================
 
 
 Examples
