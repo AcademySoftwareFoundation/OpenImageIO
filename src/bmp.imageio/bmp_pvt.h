@@ -35,10 +35,10 @@ const int32_t RLE4_COMPRESSION = 2;  // BI_RLE4
 class BmpFileHeader {
 public:
     // reads informations about BMP file
-    bool read_header(FILE* fd);
+    bool read_header(Filesystem::IOProxy* fd);
 
     // writes information about bmp file to given file
-    bool write_header(FILE* fd);
+    bool write_header(Filesystem::IOProxy* fd);
 
     // return true if given file is BMP file
     bool isBmp() const;
@@ -56,10 +56,10 @@ private:
 class DibInformationHeader {
 public:
     // reads informations about bitmap
-    bool read_header(FILE* fd);
+    bool read_header(Filesystem::IOProxy* fd);
 
     // writes informations about bitmap
-    bool write_header(FILE* fd);
+    bool write_header(Filesystem::IOProxy* fd);
 
     int32_t size;     // size of the header
     int32_t width;    // bitmap width in pixels

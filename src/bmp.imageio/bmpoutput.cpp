@@ -32,7 +32,6 @@ public:
 
 private:
     int64_t m_padded_scanline_size;
-    FILE* m_fd;
     std::string m_filename;
     bmp_pvt::BmpFileHeader m_bmp_header;
     bmp_pvt::DibInformationHeader m_dib_header;
@@ -45,8 +44,8 @@ private:
     void init(void)
     {
         m_padded_scanline_size = 0;
-        m_fd                   = NULL;
         m_filename.clear();
+        ioproxy_clear();
     }
 
     void create_and_write_file_header(void);
@@ -74,7 +73,7 @@ OIIO_PLUGIN_EXPORTS_END
 int
 BmpOutput::supports(string_view feature) const
 {
-    return (feature == "alpha");
+    return (feature == "alpha" || feature == "ioproxy");
 }
 
 
@@ -83,7 +82,7 @@ bool
 BmpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 {
     if (mode != Create) {
-        errorf("%s does not support subimages or MIP levels", format_name());
+        errorfmt("{} does not support subimages or MIP levels", format_name());
         return false;
     }
 
@@ -93,8 +92,8 @@ BmpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 
     if (m_spec.nchannels != 1 && m_spec.nchannels != 3
         && m_spec.nchannels != 4) {
-        errorf("%s does not support %d-channel images\n", format_name(),
-               m_spec.nchannels);
+        errorfmt("{} does not support {}-channel images\n", format_name(),
+                 m_spec.nchannels);
         return false;
     }
 
@@ -104,15 +103,13 @@ BmpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 
     int64_t file_size = m_spec.image_bytes() + BMP_HEADER_SIZE + WINDOWS_V3;
     if (file_size >= int64_t(1) << 32) {
-        errorf("%s does not support files over 4GB in size\n", format_name());
+        errorfmt("{} does not support files over 4GB in size\n", format_name());
         return false;
     }
 
-    m_fd = Filesystem::fopen(m_filename, "wb");
-    if (!m_fd) {
-        errorf("Could not open \"%s\"", m_filename);
+    ioproxy_retrieve_from_config(m_spec);
+    if (!ioproxy_use_or_open(name))
         return false;
-    }
 
     // Scanline size is rounded up to align to 4-byte boundary
     m_padded_scanline_size = round_to_multiple(m_spec.scanline_bytes(), 4);
@@ -120,7 +117,7 @@ BmpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     create_and_write_file_header();
     create_and_write_bitmap_header();
 
-    m_image_start = Filesystem::ftell(m_fd);
+    m_image_start = iotell();
 
     // If user asked for tiles -- which this format doesn't support, emulate
     // it by buffering the whole image.
@@ -137,7 +134,7 @@ BmpOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
                           stride_t xstride)
 {
     if (y > m_spec.height) {
-        errorf("Attempt to write too many scanlines to %s", m_filename);
+        errorfmt("Attempt to write too many scanlines to {}", m_filename);
         close();
         return false;
     }
@@ -145,7 +142,7 @@ BmpOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     if (m_spec.width >= 0)
         y = (m_spec.height - y - 1);
     int64_t scanline_off = y * m_padded_scanline_size;
-    Filesystem::fseek(m_fd, m_image_start + scanline_off, SEEK_SET);
+    ioseek(m_image_start + scanline_off);
 
     m_scratch.clear();
     data = to_native_scanline(format, data, xstride, m_scratch, m_dither, y, z);
@@ -159,8 +156,7 @@ BmpOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
              i += m_spec.nchannels)
             std::swap(m_buf[i], m_buf[i + 2]);
 
-    size_t byte_count = fwrite(&m_buf[0], 1, m_buf.size(), m_fd);
-    return byte_count == m_buf.size();  // true if wrote all bytes (no error)
+    return iowrite(&m_buf[0], m_buf.size());
 }
 
 
@@ -179,7 +175,7 @@ BmpOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
 bool
 BmpOutput::close(void)
 {
-    if (!m_fd) {  // already closed
+    if (!ioproxy_opened()) {  // already closed
         init();
         return true;
     }
@@ -193,8 +189,7 @@ BmpOutput::close(void)
         std::vector<unsigned char>().swap(m_tilebuffer);
     }
 
-    fclose(m_fd);
-    m_fd = NULL;
+    init();
     return ok;
 }
 
@@ -211,7 +206,7 @@ BmpOutput::create_and_write_file_header(void)
     m_bmp_header.res2  = 0;
     m_bmp_header.offset = BMP_HEADER_SIZE + WINDOWS_V3 + palettesize;
 
-    m_bmp_header.write_header(m_fd);
+    m_bmp_header.write_header(ioproxy());
 }
 
 
@@ -240,28 +235,20 @@ BmpOutput::create_and_write_bitmap_header(void)
     m_dib_header.hres  = 0;
     m_dib_header.vres  = 0;
 
-    ParamValue* p = m_spec.find_attribute("ResolutionUnit", TypeDesc::STRING);
-    if (p && p->data()) {
-        std::string res_units = *(char**)p->data();
-        if (Strutil::iequals(res_units, "m")
-            || Strutil::iequals(res_units, "pixel per meter")) {
-            ParamValue *resx = NULL, *resy = NULL;
-            resx = m_spec.find_attribute("XResolution", TypeDesc::INT32);
-            if (resx && resx->data())
-                m_dib_header.hres = *(int*)resx->data();
-            resy = m_spec.find_attribute("YResolution", TypeDesc::INT32);
-            if (resy && resy->data())
-                m_dib_header.vres = *(int*)resy->data();
-        }
+    string_view res_units = m_spec.get_string_attribute("ResolutionUnit");
+    if (Strutil::iequals(res_units, "m")
+        || Strutil::iequals(res_units, "pixel per meter")) {
+        m_dib_header.hres = m_spec.get_int_attribute("XResolution");
+        m_dib_header.vres = m_spec.get_int_attribute("YResolution");
     }
 
-    m_dib_header.write_header(m_fd);
+    m_dib_header.write_header(ioproxy());
 
     // Write palette, if there is one. This is only used for grayscale
     // images, and the palette is just the 256 possible gray values.
     for (int i = 0; i < m_dib_header.cpalete; ++i) {
         unsigned char val[4] = { uint8_t(i), uint8_t(i), uint8_t(i), 255 };
-        fwrite(&val, 1, 4, m_fd);
+        iowrite(&val, 4);
     }
 }
 

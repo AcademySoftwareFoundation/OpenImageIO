@@ -50,8 +50,8 @@ Reading ../oiio-images/bmpsuite/g04rle.bmp
 ../oiio-images/bmpsuite/g04rle.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: E92BEC9CBC28315DBEBDB943608FF72F88F0C8F6
     channel list: R, G, B
+    compression: "rle4"
     bmp:bitsperpixel: 4
-    bmp:compression: "rle4"
     bmp:version: 3
 Comparing "../oiio-images/bmpsuite/g04rle.bmp" and "g04rle.bmp"
 PASS
@@ -172,8 +172,8 @@ Reading ../oiio-images/bmpsuite/g08rle.bmp
 ../oiio-images/bmpsuite/g08rle.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: 18C1DA0C611E94F164B5C0758132EF9CE202DD47
     channel list: R, G, B
+    compression: "rle8"
     bmp:bitsperpixel: 8
-    bmp:compression: "rle8"
     bmp:version: 3
 Comparing "../oiio-images/bmpsuite/g08rle.bmp" and "g08rle.bmp"
 PASS

@@ -3,8 +3,7 @@
 // https://github.com/OpenImageIO/oiio
 
 
-#include <cstdio>
-
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 
@@ -18,23 +17,21 @@ namespace bmp_pvt {
 /// Helper - write, with error detection
 template<class T>
 bool
-fwrite(FILE* fd, const T* buf)
+fwrite(Filesystem::IOProxy* fd, const T* buf)
 {
-    size_t n = std::fwrite(buf, sizeof(T), 1, fd);
-    return n == 1;
+    return fd->write(buf, sizeof(T)) == sizeof(T);
 }
 
 /// Helper - read, with error detection
 template<class T>
 bool
-fread(FILE* fd, T* buf, size_t itemsize = sizeof(T))
+fread(Filesystem::IOProxy* fd, T* buf, size_t itemsize = sizeof(T))
 {
-    size_t n = std::fread(buf, itemsize, 1, fd);
-    return n == 1;
+    return fd->read(buf, itemsize) == itemsize;
 }
 
 bool
-BmpFileHeader::read_header(FILE* fd)
+BmpFileHeader::read_header(Filesystem::IOProxy* fd)
 {
     if (!fread(fd, &magic) || !fread(fd, &fsize) || !fread(fd, &res1)
         || !fread(fd, &res2) || !fread(fd, &offset)) {
@@ -49,7 +46,7 @@ BmpFileHeader::read_header(FILE* fd)
 
 
 bool
-BmpFileHeader::write_header(FILE* fd)
+BmpFileHeader::write_header(Filesystem::IOProxy* fd)
 {
     if (bigendian())
         swap_endian();
@@ -90,7 +87,7 @@ BmpFileHeader::swap_endian(void)
 
 
 bool
-DibInformationHeader::read_header(FILE* fd)
+DibInformationHeader::read_header(Filesystem::IOProxy* fd)
 {
     if (!fread(fd, &size))
         return false;
@@ -143,7 +140,7 @@ DibInformationHeader::read_header(FILE* fd)
 
 
 bool
-DibInformationHeader::write_header(FILE* fd)
+DibInformationHeader::write_header(Filesystem::IOProxy* fd)
 {
     if (bigendian())
         swap_endian();

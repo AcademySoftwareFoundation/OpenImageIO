@@ -24,6 +24,36 @@ It only supports unsigned integer 1-, 2-, 4-, and 8- bits per channel; only
 grayscale, RGB, and RGBA; does not support MIPmaps, multiimage, or
 tiles.
 
+**BMP Attributes**
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - ImageSpec Attribute
+     - Type
+     - BMP header data or explanation
+   * - ``compression``
+     - string - The compression of the BMP file (``"rle4"`` or ``"rle8"``, if
+       RLE compression is used).
+   * - ``XResolution``
+     - float
+     - hres
+   * - ``YResolution``
+     - float
+     - vres
+   * - ``ResolutionUnit``
+     - string
+     - always ``"m"`` (pixels per meter)
+   * - ``bmp:bitsperpixel``
+     - int
+     - When not a whole number of bytes per channel, this describes the
+       bits per pixel in the file (16 for R4G4B4, 8 for a 256-color palette
+       image, 4 for a 16-color palette image, 1 for a 2-color palette image).
+   * - ``bmp:version``
+     - int
+     - Version of the BMP file format
+
 **Configuration settings for BMP input**
 
 When opening a BMP ImageInput with a *configuration* (see
@@ -44,37 +74,42 @@ options are supported:
        and time (even though the BMP format does not actually support
        grayscale images per se. It is 1 by default, but by setting the hint
        to 0, you can disable this behavior.
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
 
-**BMP Attributes**
+**Configuration settings for BMP output**
+
+When opening an BMP ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
 
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
 
-   * - ImageSpec Attribute
+   * - Output Configuration Attribute
      - Type
-     - BMP header data or explanation
-   * - ``XResolution``
-     - float
-     - hres
-   * - ``YResolution``
-     - float
-     - vres
-   * - ``ResolutionUnit``
-     - string
-     - always ``"m"`` (pixels per meter)
-   * - ``bmp:bitsperpixel``
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by writing to a memory buffer.
+   * - ``oiio:dither``
      - int
-     - When not a whole number of bytes per channel, this describes the
-       bits per pixel in the file (16 for R4G4B4, 8 for a 256-color palette
-       image, 4 for a 16-color palette image, 1 for a 2-color palette image).
-   * - ``bmp:version``
-     - int
-     - Version of the BMP file format
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
+
+**Custom I/O Overrides**
+
+BMP input and output both support the "custom I/O" feature via the special
+``"oiio:ioproxy"`` attributes (see Sections :ref:`sec-imageoutput-ioproxy` and
+:ref:`sec-imageinput-ioproxy`) as well as the `set_ioproxy()` methods.
 
 **BMP Limitations**
 
-* OIIO's current implementation will only write uncompessed 8bpp (from a
+* OIIO's current implementation will only write uncompressed 8bpp (from a
   1-channel source), 24bpp (if 3 channel), or 32bpp (if 4 channel). Reads,
   however, can handle RLE compression as well as 1, 4, or 16 bpp input.
 * Only 1, 3, and 4-channel images are supported with BMP due to limitations
