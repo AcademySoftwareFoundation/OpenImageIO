@@ -2022,6 +2022,24 @@ attributes ``"thumbnail_width"``, ``"thumbnail_height"``, and
 retrievable via `ImageInput::get_thumbnail()` or `ImageBuf::thumbnail()` or
 `ImageCache::get_thumbnail()`.
 
+**Configuration settings for Targa input**
+
+When opening an Targa ImageInput with a *configuration* (see
+Section :ref:`sec-inputwithconfig`), the following special configuration
+attributes are supported:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
+
 **Configuration settings for Targa output**
 
 When opening a Targa ImageOutput, the following special metadata tokens
@@ -2039,7 +2057,17 @@ control aspects of the writing itself:
      - If nonzero and outputting UINT8 values in the file from a source of
        higher bit depth, will add a small amount of random dither to combat
        the appearance of banding.
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by writing to a memory buffer.
 
+**Custom I/O Overrides**
+
+DDS supports the "custom I/O" feature via the
+special ``"oiio:ioproxy"`` attributes (see Sections
+:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+the `set_ioproxy()` methods.
 
 **Limitations**
 

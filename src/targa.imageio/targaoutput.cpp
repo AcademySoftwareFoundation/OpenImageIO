@@ -30,7 +30,7 @@ public:
     virtual int supports(string_view feature) const override
     {
         return (feature == "alpha" || feature == "thumbnail"
-                || feature == "thumbnail_after_write");
+                || feature == "thumbnail_after_write" || feature == "ioproxy");
     }
     virtual bool open(const std::string& name, const ImageSpec& spec,
                       OpenMode mode = Create) override;
@@ -44,7 +44,6 @@ public:
 
 private:
     std::string m_filename;  ///< Stash the filename
-    FILE* m_file;            ///< Open image handle
     bool m_want_rle;         ///< Whether the client asked for RLE
     bool m_convert_alpha;    ///< Do we deassociate alpha?
     float m_gamma;           ///< Gamma to use for alpha conversion
@@ -57,10 +56,10 @@ private:
     // Initialize private members to pre-opened state
     void init(void)
     {
-        m_file          = NULL;
         m_convert_alpha = true;
         m_gamma         = 1.0;
         m_thumb.reset();
+        ioproxy_clear();
     }
 
     // Helper function to write the TGA 2.0 data fields, called by close()
@@ -74,46 +73,45 @@ private:
     ///
     inline void flush_rlp(unsigned char* buf, int size);
 
-    /// Helper - write, with error detection (no byte swapping!)
-    template<class T>
-    bool fwrite(const T* buf, size_t itemsize = sizeof(T), size_t nitems = 1)
+    bool write(const void* buf, size_t itemsize, size_t nitems = 1)
     {
-        if (itemsize * nitems == 0)
-            return true;
-        size_t n = std::fwrite(buf, itemsize, nitems, m_file);
-        if (n != nitems)
-            errorf("Write error: wrote %d records of %d", (int)n, (int)nitems);
-        return n == nitems;
+        return iowrite(buf, itemsize, nitems);
     }
 
     /// Helper -- write a 'short' with byte swapping if necessary
-    bool fwrite(uint16_t s)
+    bool write(uint16_t s)
     {
         if (bigendian())
             swap_endian(&s);
-        return fwrite(&s, sizeof(s), 1);
+        return iowrite(&s, sizeof(s));
     }
-    bool fwrite(uint32_t i)
+    bool write(uint32_t i)
     {
         if (bigendian())
             swap_endian(&i);
-        return fwrite(&i, sizeof(i), 1);
+        return iowrite(&i, sizeof(i));
     }
+    bool write(uint8_t i) { return iowrite(&i, sizeof(i)); }
 
-    /// Helper -- pad with zeroes
+    // Helper -- pad with zeroes
     bool pad(size_t n = 1)
     {
-        while (n--)
-            if (fputc(0, m_file))
+        // up to 64 bytes at a time
+        int zero[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        while (n > 0) {
+            size_t bytes = std::min(n, size_t(64));
+            if (!iowrite(zero, bytes))
                 return false;
+            n -= bytes;
+        }
         return true;
     }
 
-    /// Helper -- write string, with padding and/or truncation
-    bool fwrite_padded(const std::string& s, size_t len)
+    // Helper -- write string, with padding and/or truncation
+    bool write_padded(string_view s, size_t paddedlen)
     {
-        size_t slen = std::min(s.length(), len - 1);
-        return fwrite(s.c_str(), slen) && pad(len - slen);
+        size_t slen = std::min(s.length(), paddedlen - 1);
+        return iowrite(s.data(), slen) && pad(paddedlen - slen);
     }
 };
 
@@ -156,7 +154,6 @@ TGAOutput::open(const std::string& name, const ImageSpec& userspec,
         return false;
     }
 
-    close();            // Close any already-opened file
     m_spec = userspec;  // Stash the spec
 
     // Check for things this format doesn't support
@@ -192,11 +189,9 @@ TGAOutput::open(const std::string& name, const ImageSpec& userspec,
         return false;
     }
 
-    m_file = Filesystem::fopen(name, "wb");
-    if (!m_file) {
-        errorf("Could not open \"%s\"", name);
+    ioproxy_retrieve_from_config(m_spec);
+    if (!ioproxy_use_or_open(name))
         return false;
-    }
 
     // Force 8 bit integers
     m_spec.set_format(TypeDesc::UINT8);
@@ -246,38 +241,24 @@ TGAOutput::open(const std::string& name, const ImageSpec& userspec,
     // this flag instead
     if (m_want_rle)
         tga.attr |= FLAG_Y_FLIP;
-    if (bigendian()) {
-        // TGAs are little-endian
-        swap_endian(&tga.cmap_type);
-        swap_endian(&tga.type);
-        swap_endian(&tga.cmap_first);
-        swap_endian(&tga.cmap_length);
-        swap_endian(&tga.cmap_size);
-        swap_endian(&tga.x_origin);
-        swap_endian(&tga.y_origin);
-        swap_endian(&tga.width);
-        swap_endian(&tga.height);
-        swap_endian(&tga.bpp);
-        swap_endian(&tga.attr);
-    }
     // due to struct packing, we may get a corrupt header if we just dump the
     // struct to the file; to address that, write every member individually
-    // save some typing
-    if (!fwrite(&tga.idlen) || !fwrite(&tga.cmap_type) || !fwrite(&tga.type)
-        || !fwrite(&tga.cmap_first) || !fwrite(&tga.cmap_length)
-        || !fwrite(&tga.cmap_size) || !fwrite(&tga.x_origin)
-        || !fwrite(&tga.y_origin) || !fwrite(&tga.width) || !fwrite(&tga.height)
-        || !fwrite(&tga.bpp) || !fwrite(&tga.attr)) {
-        fclose(m_file);
-        m_file = NULL;
+    // save some typing. Note that these overloaded write calls will byte-swap
+    // as needed.
+    // Strutil::print("writing {} cmap_type {}\n", m_filename, int(tga.cmap_type));
+    if (!write(tga.idlen) || !write(tga.cmap_type) || !write(tga.type)
+        || !write(tga.cmap_first) || !write(tga.cmap_length)
+        || !write(tga.cmap_size) || !write(tga.x_origin) || !write(tga.y_origin)
+        || !write(tga.width) || !write(tga.height) || !write(tga.bpp)
+        || !write(tga.attr)) {
+        ioproxy_clear();
         return false;
     }
 
     // dump comment to file, don't bother about null termination
     if (tga.idlen) {
-        if (!fwrite(id.c_str(), tga.idlen)) {
-            fclose(m_file);
-            m_file = NULL;
+        if (!write(id.c_str(), tga.idlen)) {
+            ioproxy_clear();
             return false;
         }
     }
@@ -295,14 +276,14 @@ TGAOutput::open(const std::string& name, const ImageSpec& userspec,
 bool
 TGAOutput::write_tga20_data_fields()
 {
-    if (m_file) {
+    if (ioproxy_opened()) {
         // write out the TGA 2.0 data fields
 
         // FIXME: write out the developer area; according to Larry,
         // it's probably safe to ignore it altogether until someone complains
         // that it's missing :)
 
-        Filesystem::fseek(m_file, 0, SEEK_END);
+        ioseek(0, SEEK_END);
 
         // write out the thumbnail, if there is one
         uint32_t ofs_thumb = 0;
@@ -311,10 +292,10 @@ TGAOutput::write_tga20_data_fields()
             unsigned char th = m_thumb.spec().height;
             int tc           = m_thumb.spec().nchannels;
             OIIO_DASSERT(tw && th && tc == m_spec.nchannels);
-            ofs_thumb = (uint32_t)ftell(m_file);
+            ofs_thumb = (uint32_t)iotell();
             // dump thumbnail size
-            if (!fwrite(&tw) || !fwrite(&th)
-                || !fwrite(m_thumb.localpixels(), m_thumb.spec().image_bytes()))
+            if (!write(tw) || !write(th)
+                || !write(m_thumb.localpixels(), m_thumb.spec().image_bytes()))
                 return false;
         } else {
             // Old API -- honor it for a while
@@ -325,10 +306,10 @@ TGAOutput::write_tga20_data_fields()
             if (tw && th && tc == m_spec.nchannels) {
                 ParamValue* p = m_spec.find_attribute("thumbnail_image");
                 if (p) {
-                    ofs_thumb = (uint32_t)ftell(m_file);
+                    ofs_thumb = (uint32_t)iotell();
                     // dump thumbnail size
-                    if (!fwrite(&tw) || !fwrite(&th)
-                        || !fwrite(p->data(), p->datasize())) {
+                    if (!write(tw) || !write(th)
+                        || !write(p->data(), p->datasize())) {
                         return false;
                     }
                 }
@@ -336,18 +317,18 @@ TGAOutput::write_tga20_data_fields()
         }
 
         // prepare the footer
-        tga_footer foot = { (uint32_t)ftell(m_file), 0, "TRUEVISION-XFILE." };
+        tga_footer foot = { (uint32_t)iotell(), 0, "TRUEVISION-XFILE." };
 
         // write out the extension area
 
         // ext area size -- 2 bytes, always short(495)
-        fwrite(uint16_t(495));
+        write(uint16_t(495));
 
         // author - 41 bytes
-        fwrite_padded(m_spec.get_string_attribute("Artist"), 41);
+        write_padded(m_spec.get_string_attribute("Artist"), 41);
 
         // image comment - 324 bytes
-        fwrite_padded(m_spec.get_string_attribute("ImageDescription"), 324);
+        write_padded(m_spec.get_string_attribute("ImageDescription"), 324);
 
         // timestamp - 6 shorts (month, day, year, hour, minute, second)
         {
@@ -363,14 +344,14 @@ TGAOutput::write_tga20_data_fields()
                 i = hms[1];
                 s = hms[2];
             }
-            if (!fwrite(m) || !fwrite(d) || !fwrite(y) || !fwrite(h)
-                || !fwrite(i) || !fwrite(s)) {
+            if (!write(m) || !write(d) || !write(y) || !write(h) || !write(i)
+                || !write(s)) {
                 return false;
             }
         }
 
         // job ID - 41 bytes
-        fwrite_padded(m_spec.get_string_attribute("DocumentName"), 41);
+        write_padded(m_spec.get_string_attribute("DocumentName"), 41);
 
         // job time - 3 shorts (hours, minutes, seconds)
         {
@@ -380,15 +361,15 @@ TGAOutput::write_tga20_data_fields()
             if (jt.length() > 0 && Strutil::parse_values(jt, "", hms, ":")) {
                 h = hms[0], m = hms[1], s = hms[2];
             }
-            if (!fwrite(h) || !fwrite(m) || !fwrite(s))
+            if (!write(h) || !write(m) || !write(s))
                 return false;
         }
 
         // software ID -- 41 bytes
-        fwrite_padded(m_spec.get_string_attribute("Software"), 41);
+        write_padded(m_spec.get_string_attribute("Software"), 41);
 
         // software version - 3 bytes (first 2 bytes: version*100)
-        if (!fwrite(uint16_t(OIIO_VERSION)))
+        if (!write(uint16_t(OIIO_VERSION)))
             return false;
         pad(1);
 
@@ -403,12 +384,12 @@ TGAOutput::write_tga20_data_fields()
                 && ((ratio <= (1.f - EPS)) || (ratio >= (1.f + EPS)))) {
                 // FIXME: invent a smarter way to convert to a vulgar fraction?
                 // numerator
-                fwrite(uint16_t(ratio * 10000.f));  // numerator
-                fwrite(uint16_t(10000));            // denominator
+                write(uint16_t(ratio * 10000.f));  // numerator
+                write(uint16_t(10000));            // denominator
             } else {
                 // just dump two zeros in there
-                fwrite(uint16_t(0));
-                fwrite(uint16_t(0));
+                write(uint16_t(0));
+                write(uint16_t(0));
             }
         }
 
@@ -424,12 +405,12 @@ TGAOutput::write_tga20_data_fields()
             // NOTE: the spec states that only 1 decimal place of precision
             // is needed, thus the expansion by 10
             // numerator
-            fwrite(uint16_t(m_gamma * 10.0f));
-            fwrite(uint16_t(10));
+            write(uint16_t(m_gamma * 10.0f));
+            write(uint16_t(10));
         } else {
             // just dump two zeros in there
-            fwrite(uint16_t(0));
-            fwrite(uint16_t(0));
+            write(uint16_t(0));
+            write(uint16_t(0));
         }
 
         // offset to colour correction table - 4 bytes
@@ -439,7 +420,7 @@ TGAOutput::write_tga20_data_fields()
         pad(4);
 
         // offset to thumbnail - 4 bytes
-        if (!fwrite(ofs_thumb))
+        if (!write(ofs_thumb))
             return false;
 
         // offset to scanline table - 4 bytes
@@ -447,14 +428,14 @@ TGAOutput::write_tga20_data_fields()
         pad(4);
 
         // alpha type - one byte
-        unsigned char at = (m_spec.nchannels % 2 == 0) ? TGA_ALPHA_USEFUL
-                                                       : TGA_ALPHA_NONE;
-        if (!fwrite(&at))
+        uint8_t at = (m_spec.nchannels % 2 == 0) ? TGA_ALPHA_USEFUL
+                                                 : TGA_ALPHA_NONE;
+        if (!write(at))
             return false;
 
         // write out the TGA footer
-        if (!fwrite(foot.ofs_ext) || !fwrite(foot.ofs_dev)
-            || !fwrite(&foot.signature, 1, sizeof(foot.signature))) {
+        if (!write(foot.ofs_ext) || !write(foot.ofs_dev)
+            || !write(&foot.signature, 1, sizeof(foot.signature))) {
             return false;
         }
     }
@@ -467,7 +448,7 @@ TGAOutput::write_tga20_data_fields()
 bool
 TGAOutput::close()
 {
-    if (!m_file) {  // already closed
+    if (!ioproxy_opened()) {  // already closed
         init();
         return true;
     }
@@ -478,12 +459,10 @@ TGAOutput::close()
         OIIO_ASSERT(m_tilebuffer.size());
         ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
                               m_spec.format, &m_tilebuffer[0]);
-        std::vector<unsigned char>().swap(m_tilebuffer);
+        m_tilebuffer.shrink_to_fit();
     }
 
     ok &= write_tga20_data_fields();
-    fclose(m_file);  // close the stream
-    m_file = NULL;
 
     init();  // re-initialize
     return ok;
@@ -498,9 +477,9 @@ TGAOutput::flush_rlp(unsigned char* buf, int size)
     if (size < 1)
         return;
     // write packet header
-    unsigned char h = (size - 1) | 0x80;
+    uint8_t h = (size - 1) | 0x80;
     // write packet pixel
-    if (!fwrite(&h) || !fwrite(buf, m_spec.nchannels)) {
+    if (!write(h) || !write(buf, m_spec.nchannels)) {
         // do something intelligent?
         return;
     }
@@ -515,8 +494,8 @@ TGAOutput::flush_rawp(unsigned char*& src, int size, int start)
     if (size < 1)
         return;
     // write packet header
-    unsigned char h = (size - 1) & ~0x80;
-    if (!fwrite(&h))
+    uint8_t h = (size - 1) & ~0x80;
+    if (!write(h))
         return;
     // rewind the scanline and flush packet pixels
     unsigned char buf[4];
@@ -524,7 +503,7 @@ TGAOutput::flush_rawp(unsigned char*& src, int size, int start)
     for (int i = 0; i < size; i++) {
         if (n <= 2) {
             // 1- and 2-channels can write directly
-            if (!fwrite(src + start, n)) {
+            if (!write(src + start, n)) {
                 return;
             }
         } else {
@@ -534,7 +513,7 @@ TGAOutput::flush_rawp(unsigned char*& src, int size, int start)
             buf[2] = src[(start + i) * n + 0];
             if (n > 3)
                 buf[3] = src[(start + i) * n + 3];
-            if (!fwrite(buf, n)) {
+            if (!write(buf, n)) {
                 return;
             }
         }
@@ -710,12 +689,10 @@ TGAOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
         // seek to the correct scanline
         int n     = m_spec.nchannels;
         int64_t w = m_spec.width;
-        Filesystem::fseek(m_file,
-                          18 + m_idlen + int64_t(m_spec.height - y - 1) * w * n,
-                          SEEK_SET);
+        ioseek(18 + m_idlen + int64_t(m_spec.height - y - 1) * w * n);
         if (n <= 2) {
             // 1- and 2-channels can write directly
-            if (!fwrite(bdata, n, w)) {
+            if (!write(bdata, n, w)) {
                 return false;
             }
         } else {
@@ -725,7 +702,7 @@ TGAOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
             for (int x = 0; x < m_spec.width; x++)
                 std::swap(buf[x * n], buf[x * n + 2]);
 
-            if (!fwrite(&buf[0], n, w)) {
+            if (!write(&buf[0], n, w)) {
                 return false;
             }
         }
