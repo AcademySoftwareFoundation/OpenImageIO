@@ -1033,7 +1033,36 @@ metadata robustly.
    * - ``jpeg2000:streamformat``
      - string
      - specifies the JPEG-2000 stream format (``"none"`` or ``"jpc"``)
+   * - ``oiio:ColorSpace``
+     - string
+     - Color space (see Section :ref:`sec-metadata-color`).
+   * - ``ICCProfile``
+     - uint8[]
+     - The ICC color profile
 
+
+**Configuration settings for JPEG-2000 input**
+
+When opening an JPEG-2000 ImageInput with a *configuration* (see
+Section :ref:`sec-inputwithconfig`), the following special configuration
+attributes are supported:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:UnassociatedAlpha``
+     - int
+     - If nonzero, will leave alpha unassociated (versus the default of
+       premultiplying color channels by alpha if the alpha channel is
+       unassociated).
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
 
 **Configuration settings for JPEG-2000 output**
 
@@ -1052,6 +1081,23 @@ control aspects of the writing itself:
      - If nonzero and outputting UINT8 values in the file from a source of
        higher bit depth, will add a small amount of random dither to combat
        the appearance of banding.
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by writing to a memory buffer.
+   * - ``oiio:UnassociatedAlpha``
+     - int
+     - If nonzero, indicates that the data being passed is already in
+       unassociated form (non-premultiplied colors) and should stay that way
+       for output rather than being assumed to be associated and get automatic
+       un-association to store in the file.
+
+**Custom I/O Overrides**
+
+JPEG-2000 input and output both support the "custom I/O" feature via the
+special ``"oiio:ioproxy"`` attributes (see Sections
+:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+the `set_ioproxy()` methods.
 
 
 |
