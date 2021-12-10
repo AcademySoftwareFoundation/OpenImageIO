@@ -10,6 +10,16 @@
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 
+#if defined(OPJ_VERSION_MAJOR)
+// OpenJPEG >= 2.1 defines these symbols
+#    define OIIO_OPJ_VERSION                                 \
+        (OPJ_VERSION_MAJOR * 10000 + OPJ_VERSION_MINOR * 100 \
+         + OPJ_VERSION_BUILD)
+#else
+// Older, assume it's the minimum of 2.0
+#    define OIIO_OPJ_VERSION 20000
+#endif
+
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -309,7 +319,16 @@ Jpeg2000Output::save_image()
 
     opj_setup_encoder(m_codec, &m_compression_parameters, m_image);
 
-#if defined(OPJ_VERSION_MAJOR)
+#if OIIO_OPJ_VERSION >= 20400
+    // Set up multithread in OpenJPEG library -- added in OpenJPEG 2.2,
+    // but it doesn't seem reliably safe until 2.4.
+    int nthreads = threads();
+    if (!nthreads)
+        nthreads = OIIO::get_int_attribute("threads");
+    opj_codec_set_threads(m_codec, nthreads);
+#endif
+
+#if OIIO_OPJ_VERSION >= 20100
     // OpenJpeg >= 2.1
     m_stream = opj_stream_create_default_file_stream(m_filename.c_str(), false);
 #else
@@ -398,7 +417,10 @@ Jpeg2000Output::init_components(opj_image_cmptparm_t* components, int precision)
         components[i].w    = m_spec.width;
         components[i].h    = m_spec.height;
         components[i].prec = precision;
-        components[i].bpp  = precision;
+#if OIIO_OPJ_VERSION < 20500
+        // bpp field is deprecated starting with OpenJPEG 2.5
+        components[i].bpp = precision;
+#endif
         components[i].sgnd = 0;
     }
 }

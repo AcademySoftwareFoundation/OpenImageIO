@@ -42,7 +42,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for a wide variety of video formats:
      * **ffmpeg >= 3.0** (tested through 4.4)
  * If you want support for jpeg 2000 images:
-     * **OpenJpeg >= 2.0** (tested through 2.4)
+     * **OpenJpeg >= 2.0** (tested through 2.4; we recommend 2.4 or higher
+       for multithreading support)
  * If you want support for OpenVDB files:
      * OpenVDB >= 5.0 (tested through 9) and Intel TBB >= 2018 (tested
        through 2021)
