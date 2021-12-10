@@ -327,6 +327,7 @@ jobs:
       LIBTIFF_VERSION: v4.3.0
       OPENCOLORIO_VERSION: v2.1.0
       OPENEXR_VERSION: v3.1.3
+      OPENJPEG_VERSION: v2.4.0
       PUGIXML_VERSION: v1.11.4
       PTEX_VERSION: v2.4.0
       PYBIND11_VERSION: v2.8.1
@@ -387,6 +388,7 @@ jobs:
       LIBTIFF_VERSION: master
       OPENCOLORIO_VERSION: main
       OPENEXR_VERSION: master
+      OPENJPEG_VERSION: master
       PUGIXML_VERSION: master
       PTEX_VERSION: main
       PYBIND11_VERSION: master

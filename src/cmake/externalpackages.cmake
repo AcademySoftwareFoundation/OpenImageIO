@@ -221,7 +221,11 @@ if (LibRaw_FOUND AND LibRaw_VERSION VERSION_LESS 0.20 AND CMAKE_CXX_STANDARD VER
     # set (LIBRAW_FOUND 0)
 endif ()
 
-checked_find_package (OpenJPEG VERSION_MIN 2.0)
+checked_find_package (OpenJPEG VERSION_MIN 2.0
+                      RECOMMEND_MIN 2.2
+                      RECOMMEND_MIN_REASON "for multithreading support")
+# Note: Recent OpenJPEG versions have exported cmake configs, but we don't
+# find them reliable at all, so we stick to our FindOpenJPEG.cmake module.
 
 checked_find_package (OpenVDB
                       VERSION_MIN 5.0

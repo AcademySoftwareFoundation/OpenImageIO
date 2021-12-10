@@ -11,6 +11,15 @@
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imageio.h>
 
+#if defined(OPJ_VERSION_MAJOR)
+// OpenJPEG >= 2.1 defines these symbols
+#    define OIIO_OPJ_VERSION                                 \
+        (OPJ_VERSION_MAJOR * 10000 + OPJ_VERSION_MINOR * 100 \
+         + OPJ_VERSION_BUILD)
+#else
+// Older, assume it's the minimum of 2.0
+#    define OIIO_OPJ_VERSION 20000
+#endif
 
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -202,8 +211,16 @@ Jpeg2000Input::open(const std::string& p_name, ImageSpec& p_spec)
     opj_set_default_decoder_parameters(&parameters);
     opj_setup_decoder(m_codec, &parameters);
 
-#if defined(OPJ_VERSION_MAJOR)
-    // OpenJpeg >= 2.1
+#if OIIO_OPJ_VERSION >= 20200
+    // Set up multithread in OpenJPEG library -- added in OpenJPEG 2.2,
+    // but it doesn't seem reliably safe until 2.4.
+    int nthreads = threads();
+    if (!nthreads)
+        nthreads = OIIO::get_int_attribute("threads");
+    opj_codec_set_threads(m_codec, nthreads);
+#endif
+
+#if OIIO_OPJ_VERSION >= 20100
     m_stream = opj_stream_create_default_file_stream(m_filename.c_str(), true);
 #else
     // OpenJpeg 2.0: need to open a stream ourselves
@@ -273,16 +290,10 @@ Jpeg2000Input::open(const std::string& p_name, ImageSpec& p_spec)
     m_spec.attribute("oiio:BitsPerSample", maxPrecision);
     m_spec.attribute("oiio:Orientation", 1);
     m_spec.attribute("oiio:ColorSpace", "sRGB");
-#ifndef OPENJPEG_VERSION
-    // Sigh... openjpeg.h doesn't seem to have a clear version #define.
-    // OPENJPEG_VERSION only seems to exist in 1.3, which doesn't have
-    // the ICC fields. So assume its absence in the newer one (at least,
-    // 1.5) means the field is valid.
     if (m_image->icc_profile_len && m_image->icc_profile_buf)
         m_spec.attribute("ICCProfile",
                          TypeDesc(TypeDesc::UINT8, m_image->icc_profile_len),
                          m_image->icc_profile_buf);
-#endif
 
     p_spec = m_spec;
     return true;
