@@ -83,6 +83,11 @@ Mac OS X, and Windows.
 Our build system is based upon 'CMake'.  If you don't already have it
 installed on your system, you can get it from http://www.cmake.org
 
+If certain dependencies (robin-map and fmtlib) are not found, their sources
+will be retrieved and built into libraries, as part of the build process. The 
+sources of those dependences are cloned from their Git repo, hence `git` must 
+be available as a command.
+
 After you build OpenImageIO, if you compiled with the `EMBEDPLUGINS=0` flag
 you will need to set the environment variable `OIIO_LIBRARY_PATH` to point
 to the 'lib' directory where OpenImageIO is installed, or else it will
