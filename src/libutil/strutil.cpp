@@ -12,6 +12,7 @@
 #include <limits>
 #include <locale.h>
 #include <mutex>
+#include <numeric>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -1623,6 +1624,48 @@ Strutil::scan_datetime(string_view str, int& year, int& month, int& day,
               && parse_char(str, ':', false) && parse_int(str, sec);
     return ok && month >= 1 && month <= 12 && day >= 1 && day <= 31 && hour >= 0
            && hour <= 23 && min >= 0 && min <= 59 && sec >= 0 && sec <= 59;
+}
+
+
+
+// https://en.wikipedia.org/wiki/Levenshtein_distance
+// With some guidance from https://github.com/wooorm/levenshtein.c (MIT
+// license) as well.
+static size_t
+levenshtein_distance(string_view a, string_view b)
+{
+    if (a == b)
+        return 0;
+    if (a.size() == 0)
+        return b.size();
+    if (b.size() == 0)
+        return a.size();
+
+    size_t* cache;
+    OIIO_ALLOCATE_STACK_OR_HEAP(cache, size_t, a.size());
+    std::iota(cache, cache + a.size(), 1);  // [ 1, 2, 3, ... ]
+
+    size_t result = 0;
+    for (size_t bi = 0; bi < b.size(); ++bi) {
+        char code   = b[bi];
+        size_t dist = bi;
+        for (size_t ai = 0; ai < a.size(); ++ai) {
+            size_t bdist = code == a[ai] ? dist : dist + 1;
+            dist         = cache[ai];
+            result       = dist > result ? (bdist > result ? result + 1 : bdist)
+                                         : (bdist > dist ? dist + 1 : bdist);
+            cache[ai]    = result;
+        }
+    }
+    return result;
+}
+
+
+
+size_t
+Strutil::edit_distance(string_view a, string_view b, EditDistMetric metric)
+{
+    return levenshtein_distance(a, b);
 }
 
 OIIO_NAMESPACE_END

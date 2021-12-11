@@ -153,18 +153,17 @@ public:
     ArgOption* find_option(const char* name);
     int found(const char* option);  // number of times option was parsed
 
+    // Given an incorrect argument name `badarg`, return the closest match
+    // among the valid commands (that is within the threshold). Return an
+    // empty string if no other command has an edit distance within the
+    // threshold.
+    std::string closest_match(string_view badarg, size_t threshold = 2) const;
+
     // Error with std::fmt-like formatting
     template<typename... Args>
     void errorfmt(const char* fmt, const Args&... args) const
     {
         m_errmessage = Strutil::fmt::format(fmt, args...);
-    }
-
-    // Error with printf-like formatting
-    template<typename... Args>
-    void errorf(const char* fmt, const Args&... args) const
-    {
-        m_errmessage = Strutil::sprintf(fmt, args...);
     }
 };
 
@@ -469,7 +468,12 @@ ArgParse::Impl::parse_args(int xargc, const char** xargv)
                 argname.erase(colon, std::string::npos);
             ArgOption* option = find_option(argname.c_str());
             if (!option) {
-                errorf("Invalid option \"%s\"", m_argv[i]);
+                std::string suggestion = closest_match(argname);
+                if (suggestion.size())
+                    errorfmt("Invalid option \"{}\" (did you mean {}?)",
+                             m_argv[i], suggestion);
+                else
+                    errorfmt("Invalid option \"{}\"", m_argv[i]);
                 return -1;
             }
 
@@ -491,8 +495,8 @@ ArgParse::Impl::parse_args(int xargc, const char** xargv)
                 assert(n >= 1);
                 for (int j = 0; j < n; j++) {
                     if (j + i + 1 >= m_argc) {
-                        errorf("Missing parameter %d from option \"%s\"", j + 1,
-                               option->flag());
+                        errorfmt("Missing parameter {} from option \"{}\"",
+                                 j + 1, option->flag());
                         return -1;
                     }
                     option->set_parameter(j, m_argv[i + j + 1]);
@@ -521,14 +525,43 @@ ArgParse::Impl::parse_args(int xargc, const char** xargv)
                 else
                     m_global->invoke_callback(1, m_argv + i);
             } else {
-                errorf("Argument \"%s\" does not have an associated option",
-                       m_argv[i]);
+                errorfmt("Argument \"{}\" does not have an associated option",
+                         m_argv[i]);
                 return -1;
             }
         }
     }
 
     return 0;
+}
+
+
+
+std::string
+ArgParse::Impl::closest_match(string_view argname, size_t threshold) const
+{
+    string_view badarg(argname);
+    Strutil::parse_while(badarg, "-");
+    std::string suggestion;
+    if (badarg.size() <= 1) {
+        // Single char args presumed to have no unique helpful suggestions,
+        // since they are edit distance of 1 from all other 1-char options.
+        return suggestion;
+    }
+    size_t closest = threshold;
+    for (auto&& opt : m_option) {
+        string_view optname = opt->name();
+        if (!optname.size())
+            continue;
+        auto howclose = Strutil::edit_distance(badarg, optname);
+        // Strutil::print("{} vs {} -> {}\n", badarg, optname, howclose);
+        if (howclose < closest) {
+            closest    = howclose;
+            suggestion = opt->flag();
+        }
+    }
+    // Strutil::print("suggesting '{}' with {}\n", suggestion, closest);
+    return suggestion;
 }
 
 
@@ -550,7 +583,7 @@ ArgParse::options(const char* intro, ...)
     m_impl->m_description += intro;
     for (const char* cur = va_arg(ap, char*); cur; cur = va_arg(ap, char*)) {
         if (m_impl->find_option(cur) && strcmp(cur, "<SEPARATOR>")) {
-            m_impl->errorf("Option \"%s\" is multiply defined", cur);
+            m_impl->errorfmt("Option \"{}\" is multiply defined", cur);
             return -1;
         }
 
