@@ -804,11 +804,27 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
         if (size_t(subimage) >= m_subimage_specs.size())  // make room
             m_subimage_specs.resize(
                 subimage > 0 ? round_to_multiple(subimage + 1, 4) : 1);
-        if (m_subimage_specs[subimage]
-                .undefined())  // haven't cached this spec yet
+        if (m_subimage_specs[subimage].undefined()) {
+            // haven't cached this spec yet
             m_subimage_specs[subimage] = m_spec;
+        }
         if (m_spec.format == TypeDesc::UNKNOWN) {
             errorf("No support for data format of \"%s\"", m_filename);
+            return false;
+        }
+        if (pvt::limit_channels && m_spec.nchannels > pvt::limit_channels) {
+            errorfmt(
+                "{} channels exceeds \"limits:channels\" = {}. Possible corrupt input?\nIf you're sure this is a valid file, raise the OIIO global attribute \"limits:channels\".",
+                m_spec.nchannels, pvt::limit_channels);
+            return false;
+        }
+        if (pvt::limit_imagesize_MB
+            && m_spec.image_bytes(true)
+                   > pvt::limit_imagesize_MB * imagesize_t(1024 * 1024)) {
+            errorfmt(
+                "Uncompressed image size {:.1f} MB exceeds \"limits:imagesize_MB\" = {}. Possible corrupt input?\nIf you're sure this is a valid file, raise the OIIO global attribute \"limits:imagesize_MB\".",
+                float(m_spec.image_bytes(true)) / float(1024 * 1024),
+                pvt::limit_imagesize_MB);
             return false;
         }
         return true;
