@@ -31,11 +31,6 @@ public:
     virtual bool write_tile(int x, int y, int z, TypeDesc format,
                             const void* data, stride_t xstride,
                             stride_t ystride, stride_t zstride) override;
-    virtual bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
-    {
-        m_io = ioproxy;
-        return true;
-    }
 
 private:
     std::string m_filename;  ///< Stash the filename
@@ -48,9 +43,7 @@ private:
     std::vector<unsigned char> m_scratch;
     std::vector<png_text> m_pngtext;
     std::vector<unsigned char> m_tilebuffer;
-    std::unique_ptr<Filesystem::IOProxy> m_local_io;
-    Filesystem::IOProxy* m_io = nullptr;
-    bool m_err                = false;
+    bool m_err = false;
 
     // Initialize private members to pre-opened state
     void init(void)
@@ -60,8 +53,7 @@ private:
         m_convert_alpha = true;
         m_gamma         = 1.0;
         m_pngtext.clear();
-        m_local_io.reset();
-        m_io  = nullptr;
+        ioproxy_clear();
         m_err = false;
     }
 
@@ -76,18 +68,15 @@ private:
     {
         PNGOutput* pngoutput = (PNGOutput*)png_get_io_ptr(png_ptr);
         OIIO_DASSERT(pngoutput);
-        size_t bytes = pngoutput->m_io->write(data, length);
-        if (bytes != length) {
-            pngoutput->errorf("Write error");
+        if (!pngoutput->iowrite(data, length))
             pngoutput->m_err = true;
-        }
     }
 
     static void PngFlushCallback(png_structp png_ptr)
     {
         PNGOutput* pngoutput = (PNGOutput*)png_get_io_ptr(png_ptr);
         OIIO_DASSERT(pngoutput);
-        pngoutput->m_io->flush();
+        pngoutput->ioproxy()->flush();
     }
 };
 
@@ -139,18 +128,9 @@ PNGOutput::open(const std::string& name, const ImageSpec& userspec,
 
     // See if we were requested to write to a memory buffer, and if so,
     // extract the pointer.
-    auto ioparam = m_spec.find_attribute("oiio:ioproxy", TypeDesc::PTR);
-    if (ioparam)
-        m_io = ioparam->get<Filesystem::IOProxy*>();
-    if (!m_io) {
-        // If no proxy was supplied, create a file writer
-        m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Mode::Write);
-        m_local_io.reset(m_io);
-    }
-    if (!m_io || m_io->mode() != Filesystem::IOProxy::Mode::Write) {
-        errorf("Could not open \"%s\"", name);
+    ioproxy_retrieve_from_config(m_spec);
+    if (!ioproxy_use_or_open(name))
         return false;
-    }
 
     std::string s = PNG_pvt::create_write_struct(m_png, m_info, m_color_type,
                                                  m_spec, this);
@@ -236,7 +216,7 @@ PNGOutput::open(const std::string& name, const ImageSpec& userspec,
 bool
 PNGOutput::close()
 {
-    if (!m_io) {  // already closed
+    if (!ioproxy_opened()) {  // already closed
         init();
         return true;
     }

@@ -40,11 +40,6 @@ public:
                                       void* data) override;
     virtual bool read_native_scanlines(int subimage, int miplevel, int ybegin,
                                        int yend, int z, void* data) override;
-    virtual bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
-    {
-        m_io = ioproxy;
-        return true;
-    }
 
 private:
     int m_subimage;
@@ -53,9 +48,6 @@ private:
     std::vector<unsigned char> m_userBuf;
     bool m_rawcolor;
     std::vector<unsigned char> m_decodebuf;  // temporary decode buffer
-    std::unique_ptr<Filesystem::IOProxy> m_io_local;
-    Filesystem::IOProxy* m_io = nullptr;
-    int64_t m_io_offset       = 0;
 
     /// Reset everything to initial state
     ///
@@ -69,7 +61,7 @@ private:
         }
         m_userBuf.clear();
         m_rawcolor = false;
-        m_io       = nullptr;
+        ioproxy_clear();
     }
 
     /// Helper function - retrieve string for libdpx characteristic
@@ -137,18 +129,10 @@ DPXInput::valid_file(const std::string& filename) const
 bool
 DPXInput::open(const std::string& name, ImageSpec& newspec)
 {
-    if (!m_io) {
-        // If no proxy was supplied, create a file reader
-        m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Mode::Read);
-        m_io_local.reset(m_io);
-    }
-    if (!m_io || m_io->mode() != Filesystem::IOProxy::Mode::Read) {
-        errorf("Could not open file \"%s\"", name);
+    if (!ioproxy_use_or_open(name))
         return false;
-    }
-    m_io_offset = m_io->tell();
 
-    m_stream = new InStream(m_io);
+    m_stream = new InStream(ioproxy());
     if (!m_stream) {
         errorf("Could not open file \"%s\"", name);
         return false;
@@ -179,9 +163,7 @@ DPXInput::open(const std::string& name, ImageSpec& newspec,
     m_rawcolor = config.get_int_attribute("dpx:RawColor")
                  || config.get_int_attribute("dpx:RawData")  // deprecated
                  || config.get_int_attribute("oiio:RawColor");
-    auto ioparam = config.find_attribute("oiio:ioproxy", TypeDesc::PTR);
-    if (ioparam)
-        m_io = ioparam->get<Filesystem::IOProxy*>();
+    ioproxy_retrieve_from_config(config);
     return open(name, newspec);
 }
 
@@ -576,18 +558,6 @@ DPXInput::seek_subimage(int subimage, int miplevel)
 bool
 DPXInput::close()
 {
-    if (m_io_local) {
-        // If we allocated our own ioproxy, close it.
-        m_io_local.reset();
-        m_io = nullptr;
-    }
-    // N.B. If we were passed an ioproxy from the user (m_io != nullptr, but
-    // m_io_local was not set), don't actually close it, it belongs to the
-    // caller. And in the case of an ImageCache file, it's possible that the
-    // IC won't close this ImageInput until after the owner of the IOProxy
-    // destroyed it. So don't mess with it here in close() at all, because
-    // we just can't be sure if it's still alive or not.
-
     init();  // Reset to initial state
     return true;
 }

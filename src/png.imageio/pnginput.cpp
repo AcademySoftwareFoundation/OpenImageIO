@@ -32,11 +32,6 @@ public:
     }
     virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
                                       void* data) override;
-    virtual bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
-    {
-        m_io = ioproxy;
-        return true;
-    }
 
 private:
     std::string m_filename;            ///< Stash the filename
@@ -49,12 +44,9 @@ private:
     int m_subimage;                    ///< What subimage are we looking at?
     Imath::Color3f m_bg;               ///< Background color
     int m_next_scanline;
-    bool m_keep_unassociated_alpha;  ///< Do not convert unassociated alpha
-    std::unique_ptr<Filesystem::IOProxy> m_io_local;
+    bool m_keep_unassociated_alpha;       ///< Do not convert unassociated alpha
     std::unique_ptr<ImageSpec> m_config;  // Saved copy of configuration spec
-    Filesystem::IOProxy* m_io = nullptr;
-    int64_t m_io_offset       = 0;
-    bool m_err                = false;
+    bool m_err = false;
 
     /// Reset everything to initial state
     ///
@@ -63,12 +55,12 @@ private:
         m_subimage = -1;
         m_png      = nullptr;
         m_info     = nullptr;
-        m_io       = nullptr;
         m_buf.clear();
         m_next_scanline           = 0;
         m_keep_unassociated_alpha = false;
         m_err                     = false;
         m_config.reset();
+        ioproxy_clear();
     }
 
     /// Helper function: read the image.
@@ -85,11 +77,8 @@ private:
     {
         PNGInput* pnginput = (PNGInput*)png_get_io_ptr(png_ptr);
         OIIO_DASSERT(pnginput);
-        size_t bytes = pnginput->m_io->read(data, length);
-        if (bytes != length) {
-            pnginput->errorf("Read error: requested %d got %d", length, bytes);
+        if (!pnginput->ioread(data, length))
             pnginput->m_err = true;
-        }
     }
 };
 
@@ -139,19 +128,12 @@ PNGInput::open(const std::string& name, ImageSpec& newspec)
     m_filename = name;
     m_subimage = 0;
 
-    if (!m_io) {
-        // If no proxy was supplied, create a file reader
-        m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Mode::Read);
-        m_io_local.reset(m_io);
-    }
-    if (!m_io || m_io->mode() != Filesystem::IOProxy::Mode::Read) {
-        errorf("Could not open file \"%s\"", name);
+    if (!ioproxy_use_or_open(name))
         return false;
-    }
-    m_io->seek(0);
+    ioseek(0);
 
     unsigned char sig[8];
-    if (m_io->pread(sig, sizeof(sig), 0) != sizeof(sig)
+    if (ioproxy()->pread(sig, sizeof(sig), 0) != sizeof(sig)
         || png_sig_cmp(sig, 0, 7)) {
         errorf("Not a PNG file");
         return false;  // Read failed
@@ -190,10 +172,7 @@ PNGInput::open(const std::string& name, ImageSpec& newspec,
     // Check 'config' for any special requests
     if (config.get_int_attribute("oiio:UnassociatedAlpha", 0) == 1)
         m_keep_unassociated_alpha = true;
-    m_io_local.reset();
-    auto ioparam = config.find_attribute("oiio:ioproxy", TypeDesc::PTR);
-    if (ioparam)
-        m_io = ioparam->get<Filesystem::IOProxy*>();
+    ioproxy_retrieve_from_config(config);
     m_config.reset(new ImageSpec(config));  // save config spec
     return open(name, newspec);
 }
@@ -219,11 +198,6 @@ bool
 PNGInput::close()
 {
     PNG_pvt::destroy_read_struct(m_png, m_info);
-    if (m_io_local) {
-        // If we allocated our own ioproxy, close it.
-        m_io_local.reset();
-        m_io = nullptr;
-    }
     init();  // Reset to initial state
     return true;
 }
