@@ -333,7 +333,7 @@ function (oiio_get_test_data name)
                               "${CMAKE_BINARY_DIR}/testsuite/${name}"
                               SYMBOLIC COPY_ON_ERROR)
         else ()
-        # Older cmake -- copy
+            # Older cmake -- copy
             message (STATUS "Copying ${name} from ${OIIO_LOCAL_TESTDATA_ROOT}/../${name}")
             file (COPY "${OIIO_LOCAL_TESTDATA_ROOT}/${name}"
                   DESTINATION "${CMAKE_BINARY_DIR}/testsuite")
