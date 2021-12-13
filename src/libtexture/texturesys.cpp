@@ -2624,8 +2624,11 @@ TextureSystemImpl::sample_bicubic(
             // Shortcut if all the texels we need are on the same tile
             id.xy(stex[0] - tile_s, ttex[0] - tile_t);
             bool ok = find_tile(id, thread_info, sample == 0);
-            if (!ok)
-                error("{}", m_imagecache->geterror());
+            if (!ok) {
+                if (m_imagecache->has_error())
+                    error("{}", m_imagecache->geterror());
+                return false;
+            }
             TileRef& tile(thread_info->tile);
             if (!tile) {
                 return false;

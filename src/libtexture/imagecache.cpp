@@ -1020,7 +1020,7 @@ ImageCacheFile::read_untiled(ImageCachePerThreadInfo* thread_info,
                                               pixelsize, scanlinesize,
                                               scanlinesize * th);
                     ok &= tile->valid();
-                    imagecache().add_tile_to_cache(tile, thread_info);
+                    ok &= imagecache().add_tile_to_cache(tile, thread_info);
                 }
             }
         }
@@ -1518,7 +1518,7 @@ ImageCacheTile::memsize_needed() const
 
 
 
-void
+bool
 ImageCacheTile::read(ImageCachePerThreadInfo* thread_info)
 {
     ImageCacheFile& file(m_id.file());
@@ -1534,7 +1534,7 @@ ImageCacheTile::read(ImageCachePerThreadInfo* thread_info)
                              m_id.x(), m_id.y(), m_id.z(), m_id.chbegin(),
                              m_id.chend(), file.datatype(m_id.subimage()),
                              &m_pixels[0]);
-    m_id.file().imagecache().incr_mem(size);
+    file.imagecache().incr_mem(size);
     if (m_valid) {
         // Figure out if
         ImageCacheFile::LevelInfo& lev(
@@ -1556,6 +1556,10 @@ ImageCacheTile::read(ImageCachePerThreadInfo* thread_info)
             file.imagecache().error(
                 "File \"{}\" was modified after being opened by OIIO",
                 file.filename());
+        file.imagecache().error(
+            "Error reading from \"{}\" (subimg={}, mip={}, tile@{},{},{})",
+            file.filename(), m_id.subimage(), m_id.miplevel(), m_id.x(),
+            m_id.y(), m_id.z());
 #if 0
         std::cerr << "(1) error reading tile " << m_id.x() << ' ' << m_id.y()
                   << ' ' << m_id.z()
@@ -1566,6 +1570,7 @@ ImageCacheTile::read(ImageCachePerThreadInfo* thread_info)
     }
     m_pixels_ready = true;
     // FIXME -- for shadow, fill in mindepth, maxdepth
+    return m_valid;
 }
 
 
@@ -2382,14 +2387,14 @@ ImageCacheImpl::find_tile_main_cache(const TileID& id, ImageCacheTileRef& tile,
     OIIO_DASSERT(tile);
     OIIO_DASSERT(id == tile->id());
 
-    add_tile_to_cache(tile, thread_info);
+    bool ok = add_tile_to_cache(tile, thread_info);
     OIIO_DASSERT(id == tile->id());
-    return tile->valid();
+    return ok && tile->valid();
 }
 
 
 
-void
+bool
 ImageCacheImpl::add_tile_to_cache(ImageCacheTileRef& tile,
                                   ImageCachePerThreadInfo* thread_info)
 {
@@ -2398,10 +2403,11 @@ ImageCacheImpl::add_tile_to_cache(ImageCacheTileRef& tile,
     // If we added a new tile to the cache, we may still need to read the
     // pixels; and if we found the tile in cache, we may need to wait for
     // somebody else to read the pixels.
+    bool ok = true;
     if (ourtile) {
         if (!tile->pixels_ready()) {
             Timer timer;
-            tile->read(thread_info);
+            ok              = tile->read(thread_info);
             double readtime = timer();
             thread_info->m_stats.fileio_time += readtime;
             tile->id().file().iotime() += readtime;
@@ -2413,6 +2419,7 @@ ImageCacheImpl::add_tile_to_cache(ImageCacheTileRef& tile,
         // has read in the pixels.
         tile->wait_pixels_ready();
     }
+    return ok;
 }
 
 
@@ -3302,8 +3309,7 @@ ImageCacheImpl::add_tile(ustring filename, int subimage, int miplevel, int x,
             error("Could not construct the tile; unknown reasons.");
         return false;
     }
-    add_tile_to_cache(tile, thread_info);
-    return true;
+    return add_tile_to_cache(tile, thread_info);
 }
 
 
