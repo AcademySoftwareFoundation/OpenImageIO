@@ -359,10 +359,11 @@ TextureSystemImpl::accum3d_sample_closest(
     TileRef& tile(thread_info->tile);
     if (!tile || !ok)
         return false;
-    int tilepel = (tile_r * spec.tile_height + tile_t) * spec.tile_width
-                  + tile_s;
+    imagesize_t tilepel = (tile_r * spec.tile_height + imagesize_t(tile_t))
+                              * spec.tile_width
+                          + tile_s;
     int startchan_in_tile = options.firstchannel - id.chbegin();
-    int offset            = spec.nchannels * tilepel + startchan_in_tile;
+    imagesize_t offset    = spec.nchannels * tilepel + startchan_in_tile;
     OIIO_DASSERT((size_t)offset < spec.nchannels * spec.tile_pixels());
     if (pixeltype == TypeDesc::UINT8) {
         const unsigned char* texel = tile->bytedata() + offset;
@@ -508,12 +509,12 @@ TextureSystemImpl::accum3d_sample_bilinear(
         TileRef& tile(thread_info->tile);
         if (!tile->valid())
             return false;
-        size_t tilepel = (tile_r * spec.tile_height + tile_t) * spec.tile_width
-                         + tile_s;
-        size_t offset = (spec.nchannels * tilepel + startchan_in_tile)
-                        * channelsize;
-        OIIO_DASSERT((size_t)offset < spec.tile_width * spec.tile_height
-                                          * spec.tile_depth * pixelsize);
+        imagesize_t tilepel = (tile_r * spec.tile_height + imagesize_t(tile_t))
+                                  * spec.tile_width
+                              + tile_s;
+        imagesize_t offset = (spec.nchannels * tilepel + startchan_in_tile)
+                             * channelsize;
+        OIIO_DASSERT(offset < spec.tile_bytes());
 
         const unsigned char* b = tile->bytedata() + offset;
         texel[0][0][0]         = b;
@@ -546,24 +547,22 @@ TextureSystemImpl::accum3d_sample_bilinear(
                     TileRef& tile(thread_info->tile);
                     if (!tile->valid())
                         return false;
-                    savetile[k][j][i] = tile;
-                    size_t tilepel    = (tile_r * spec.tile_height + tile_t)
-                                         * spec.tile_width
-                                     + tile_s;
-                    size_t offset = (spec.nchannels * tilepel
-                                     + startchan_in_tile)
-                                    * channelsize;
+                    savetile[k][j][i]   = tile;
+                    imagesize_t tilepel = (tile_r * spec.tile_height
+                                           + imagesize_t(tile_t))
+                                              * spec.tile_width
+                                          + tile_s;
+                    imagesize_t offset = (spec.nchannels * tilepel
+                                          + startchan_in_tile)
+                                         * channelsize;
 #ifndef NDEBUG
-                    if ((size_t)offset >= spec.tile_width * spec.tile_height
-                                              * spec.tile_depth * pixelsize)
+                    if (offset >= spec.tile_bytes())
                         std::cerr << "offset=" << offset << ", whd "
                                   << spec.tile_width << ' ' << spec.tile_height
                                   << ' ' << spec.tile_depth << " pixsize "
                                   << pixelsize << "\n";
 #endif
-                    OIIO_DASSERT((size_t)offset
-                                 < spec.tile_width * spec.tile_height
-                                       * spec.tile_depth * pixelsize);
+                    OIIO_DASSERT((size_t)offset < spec.tile_bytes());
                     texel[k][j][i] = tile->bytedata() + offset;
                     OIIO_DASSERT(tile->id() == id);
                 }
