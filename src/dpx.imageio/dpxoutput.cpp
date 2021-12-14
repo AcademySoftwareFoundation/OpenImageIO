@@ -48,11 +48,6 @@ public:
     virtual bool write_tile(int x, int y, int z, TypeDesc format,
                             const void* data, stride_t xstride,
                             stride_t ystride, stride_t zstride) override;
-    virtual bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
-    {
-        m_io = ioproxy;
-        return true;
-    }
 
 private:
     OutStream* m_stream = nullptr;
@@ -74,8 +69,6 @@ private:
     bool m_write_pending;  // subimage buffer needs to be written
     unsigned int m_dither;
     std::vector<unsigned char> m_tilebuffer;
-    std::unique_ptr<Filesystem::IOProxy> m_io_local;
-    Filesystem::IOProxy* m_io = nullptr;
 
     // Initialize private members to pre-opened state
     void init(void)
@@ -90,8 +83,7 @@ private:
         m_subimages_to_write = 0;
         m_subimage_specs.clear();
         m_write_pending = false;
-        m_io_local.reset();
-        m_io = nullptr;
+        ioproxy_clear();
     }
 
     // Is the output file currently opened?
@@ -196,23 +188,11 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
     if (is_opened())
         close();  // Close any already-opened file
 
-    const ParamValue* param = userspec.find_attribute("oiio:ioproxy",
-                                                      TypeDesc::PTR);
-    if (param)
-        m_io = param->get<Filesystem::IOProxy*>();
-
-    if (!m_io) {
-        // If no proxy was supplied, create a file reader
-        m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Mode::Write);
-        m_io_local.reset(m_io);
-    }
-
-    if (!m_io || m_io->mode() != Filesystem::IOProxy::Mode::Write) {
-        errorf("Could not open file \"%s\"", name);
+    ioproxy_retrieve_from_config(userspec);
+    if (!ioproxy_use_or_open(name))
         return false;
-    }
 
-    m_stream = new OutStream(m_io);
+    m_stream = new OutStream(ioproxy());
     m_dpx.SetOutStream(m_stream);
     m_dpx.Start();
     m_subimage = 0;

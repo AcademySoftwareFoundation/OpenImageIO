@@ -58,15 +58,9 @@ public:
                              const void* data, stride_t xstride = AutoStride,
                              stride_t ystride = AutoStride,
                              stride_t zstride = AutoStride) override;
-    virtual bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
-    {
-        m_io = ioproxy;
-        return true;
-    }
 
 private:
-    TIFF* m_tif               = nullptr;
-    Filesystem::IOProxy* m_io = nullptr;
+    TIFF* m_tif = nullptr;
     std::vector<unsigned char> m_scratch;
     Timer m_checkpointTimer;
     int m_checkpointItems;
@@ -88,7 +82,6 @@ private:
     void init(void)
     {
         m_tif                 = nullptr;
-        m_io                  = nullptr;
         m_checkpointItems     = 0;
         m_compression         = COMPRESSION_ADOBE_DEFLATE;
         m_predictor           = PREDICTOR_NONE;
@@ -98,6 +91,7 @@ private:
         m_outputchans         = 0;
         m_convert_rgb_to_cmyk = false;
         m_bigtiff             = false;
+        ioproxy_clear();
     }
 
     // Close m_tif if it's open, but keep all other internal state, don't do a
@@ -426,12 +420,7 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
             return false;
         }
     }
-    {
-        const ParamValue* param = m_spec.find_attribute("oiio:ioproxy",
-                                                        TypeDesc::PTR);
-        if (param)
-            m_io = param->get<Filesystem::IOProxy*>();
-    }
+    ioproxy_retrieve_from_config(m_spec);
 
     // Classic/standard TIFF files use 32 bit offsets, and so are limited to
     // a total file size of 4GB. If the image size is getting close to this
@@ -456,9 +445,9 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
                                      : (mode == AppendSubimage ? "a" : "w");
 
     // Open the file
-    if (m_io) {
-        m_io->seek(0);
-        m_tif = TIFFClientOpen(name.c_str(), openmode, m_io, readproc,
+    if (ioproxy_opened()) {
+        ioseek(0);
+        m_tif = TIFFClientOpen(name.c_str(), openmode, ioproxy(), readproc,
                                writeproc, seekproc, closeproc, sizeproc,
                                mapproc, unmapproc);
     } else {
