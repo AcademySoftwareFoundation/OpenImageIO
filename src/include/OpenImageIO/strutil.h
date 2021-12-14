@@ -1036,6 +1036,19 @@ void OIIO_UTIL_API utf8_to_unicode (string_view str, std::vector<uint32_t> &uvec
 /// https://en.wikipedia.org/wiki/Base64
 std::string OIIO_UTIL_API base64_encode (string_view str);
 
+
+enum class EditDistMetric { Levenshtein };
+
+/// Compute an edit distance metric between strings `a` and `b`, roughly
+/// speaking, the number of changes that would be made to transform one string
+/// into the other. Identical strings have a distance of 0. The `method`
+/// selects among possible algorithms, which may have different distance
+/// metrics or allow different types of edits. (Currently, the only method
+/// supported is Levenshtein; this parameter is for future expansion.)
+OIIO_UTIL_API size_t
+edit_distance(string_view a, string_view b,
+              EditDistMetric metric = EditDistMetric::Levenshtein);
+
 }  // namespace Strutil
 
 OIIO_NAMESPACE_END

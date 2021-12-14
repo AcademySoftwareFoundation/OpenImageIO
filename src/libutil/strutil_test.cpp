@@ -1326,6 +1326,23 @@ test_datetime()
 
 
 
+void
+test_edit_distance()
+{
+    using namespace Strutil;
+    print("test_edit_distance\n");
+    OIIO_CHECK_EQUAL(edit_distance("", ""), 0);
+    OIIO_CHECK_EQUAL(edit_distance("", "abc"), 3);
+    OIIO_CHECK_EQUAL(edit_distance("abcd", ""), 4);
+    OIIO_CHECK_EQUAL(edit_distance("abc", "abc"), 0);
+    OIIO_CHECK_EQUAL(edit_distance("abc", "ab"), 1);
+    OIIO_CHECK_EQUAL(edit_distance("abc", "abcde"), 2);
+    OIIO_CHECK_EQUAL(edit_distance("abc", "abd"), 1);
+    OIIO_CHECK_EQUAL(edit_distance("sitting", "kitten"), 3);
+}
+
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -1356,6 +1373,7 @@ main(int /*argc*/, char* /*argv*/[])
     // test_float_formatting ();
     test_string_compare_function();
     test_datetime();
+    test_edit_distance();
 
     return unit_test_failures;
 }
