@@ -26,7 +26,7 @@ vector and matrix types, and an array length (if
 it's an array).
 
 The remainder of this section describes the C++ API for `TypeDesc`.
-See Section~\ref{sec:pythontypedesc} for the corresponding Python
+See Section :ref:`Python Bindings<chap-pythonbindings>` for the corresponding Python
 bindings.
 
 .. doxygenstruct:: OIIO::TypeDesc
