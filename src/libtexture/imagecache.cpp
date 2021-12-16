@@ -1469,6 +1469,7 @@ ImageCacheTile::ImageCacheTile(const TileID& id, const void* pels,
     const ImageSpec& spec(file.spec(id.subimage(), id.miplevel()));
     m_channelsize = file.datatype(id.subimage()).size();
     m_pixelsize   = id.nchannels() * m_channelsize;
+    m_tile_width  = spec.tile_width;
     if (copy) {
         size_t size = memsize_needed();
         OIIO_ASSERT_MSG(size > 0 && memsize() == 0,
@@ -1536,9 +1537,10 @@ ImageCacheTile::read(ImageCachePerThreadInfo* thread_info)
                              &m_pixels[0]);
     m_id.file().imagecache().incr_mem(size);
     if (m_valid) {
-        // Figure out if
         ImageCacheFile::LevelInfo& lev(
             file.levelinfo(m_id.subimage(), m_id.miplevel()));
+        m_tile_width = lev.spec.tile_width;
+        OIIO_DASSERT(m_tile_width > 0);
         int whichtile = ((m_id.x() - lev.spec.x) / lev.spec.tile_width)
                         + ((m_id.y() - lev.spec.y) / lev.spec.tile_height)
                               * lev.nxtiles
