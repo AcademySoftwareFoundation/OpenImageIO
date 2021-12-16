@@ -595,9 +595,9 @@ public:
 
     ~ImageCacheTile();
 
-    /// Actually read the pixels.  The caller had better be the thread
-    /// that constructed the tile.
-    void read(ImageCachePerThreadInfo* thread_info);
+    /// Actually read the pixels.  The caller had better be the thread that
+    /// constructed the tile.  Return true for success, false for failure.
+    OIIO_NODISCARD bool read(ImageCachePerThreadInfo* thread_info);
 
     /// Return pointer to the raw pixel data
     const void* data(void) const { return &m_pixels[0]; }
@@ -972,8 +972,8 @@ public:
 
     /// Add the tile to the cache.  This will also enforce cache memory
     /// limits.
-    void add_tile_to_cache(ImageCacheTileRef& tile,
-                           ImageCachePerThreadInfo* thread_info);
+    OIIO_NODISCARD bool add_tile_to_cache(ImageCacheTileRef& tile,
+                                          ImageCachePerThreadInfo* thread_info);
 
     /// Find the tile specified by id.  If found, return true and place
     /// the tile ref in thread_info->tile; if not found, return false.

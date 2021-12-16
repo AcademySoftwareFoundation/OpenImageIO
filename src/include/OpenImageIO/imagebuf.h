@@ -1323,6 +1323,12 @@ public:
             return m_ib->deep_value_uint(m_x, m_y, m_z, c, s);
         }
 
+        // Did we encounter an error while we iterated?
+        bool has_error() const { return m_readerror; }
+
+        // Clear the error flag
+        void clear_error() { m_readerror = false; }
+
     protected:
         friend class ImageBuf;
         friend class ImageBufImpl;
@@ -1344,6 +1350,7 @@ public:
         stride_t m_pixel_stride;
         char* m_proxydata = nullptr;
         WrapMode m_wrap   = WrapBlack;
+        bool m_readerror  = false;
 
         // Helper called by ctrs -- set up some locally cached values
         // that are copied or derived from the ImageBuf.
@@ -1374,7 +1381,7 @@ public:
                                                       m_tilexbegin,
                                                       m_tileybegin,
                                                       m_tilezbegin, m_tilexend,
-                                                      e, m_wrap);
+                                                      m_readerror, e, m_wrap);
                     m_exists    = e;
                 }
             }
@@ -1556,11 +1563,17 @@ protected:
 
     // Reset the ImageCacheTile* to reserve and point to the correct
     // tile for the given pixel, and return the ptr to the actual pixel
-    // within the tile.
+    // within the tile. If any read errors occur, set haderror=true (but
+    // if there are no errors, do not modify haderror).
     const void* retile(int x, int y, int z, pvt::ImageCacheTile*& tile,
                        int& tilexbegin, int& tileybegin, int& tilezbegin,
-                       int& tilexend, bool exists,
-                       WrapMode wrap = WrapDefault) const;
+                       int& tilexend, bool& haderr, bool exists,
+                       WrapMode wrap) const;
+
+    // DEPRECATED(2.4)
+    const void* retile(int x, int y, int z, pvt::ImageCacheTile*& tile,
+                       int& tilexbegin, int& tileybegin, int& tilezbegin,
+                       int& tilexend, bool exists, WrapMode wrap) const;
 
     const void* blackpixel() const;
 

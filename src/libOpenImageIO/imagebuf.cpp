@@ -149,7 +149,7 @@ public:
 
     const void* retile(int x, int y, int z, ImageCache::Tile*& tile,
                        int& tilexbegin, int& tileybegin, int& tilezbegin,
-                       int& tilexend, bool exists,
+                       int& tilexend, bool& haderror, bool exists,
                        ImageBuf::WrapMode wrap) const;
 
     bool do_wrap(int& x, int& y, int& z, ImageBuf::WrapMode wrap) const;
@@ -1823,6 +1823,7 @@ template<class D, class S>
 static bool
 copy_pixels_impl(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads = 0)
 {
+    std::atomic<bool> ok(true);
     ImageBufAlgo::parallel_image(roi, { "copy_pixels", nthreads }, [&](ROI roi) {
         int nchannels = roi.nchannels();
         if (is_same<D, S>::value) {
@@ -1850,6 +1851,8 @@ copy_pixels_impl(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads = 0)
                     for (int c = 0; c < nchannels; ++c)
                         d[c] = s[c];
                 }
+                if (s.has_error())
+                    ok = false;
             }
         } else {
             // If the two bufs are different types, convert through float
@@ -1859,9 +1862,11 @@ copy_pixels_impl(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads = 0)
                 for (int c = 0; c < nchannels; ++c)
                     d[c] = s[c];
             }
+            if (s.has_error())
+                ok = false;
         }
     });
-    return true;
+    return ok;
 }
 
 }  // namespace
@@ -2207,11 +2212,13 @@ get_pixels_(const ImageBuf& buf, const ImageBuf& /*dummy*/, ROI whole_roi,
             ROI roi, void* r_, stride_t xstride, stride_t ystride,
             stride_t zstride, int nthreads = 0)
 {
+    std::atomic<bool> ok(true);
     ImageBufAlgo::parallel_image(
-        roi, { "get_pixels", nthreads }, [=, &buf](ROI roi) {
+        roi, { "get_pixels", nthreads }, [=, &buf, &ok](ROI roi) {
             D* r       = (D*)r_;
             int nchans = roi.nchannels();
-            for (ImageBuf::ConstIterator<S, D> p(buf, roi); !p.done(); ++p) {
+            ImageBuf::ConstIterator<S, D> p(buf, roi);
+            for (; !p.done(); ++p) {
                 imagesize_t offset = (p.z() - whole_roi.zbegin) * zstride
                                      + (p.y() - whole_roi.ybegin) * ystride
                                      + (p.x() - whole_roi.xbegin) * xstride;
@@ -2219,8 +2226,10 @@ get_pixels_(const ImageBuf& buf, const ImageBuf& /*dummy*/, ROI whole_roi,
                 for (int c = 0; c < nchans; ++c)
                     rc[c] = p[c + roi.chbegin];
             }
+            if (p.has_error())
+                ok = false;
         });
-    return true;
+    return ok;
 }
 
 
@@ -2788,7 +2797,8 @@ ImageBuf::IteratorBase::release_tile()
 const void*
 ImageBufImpl::retile(int x, int y, int z, ImageCache::Tile*& tile,
                      int& tilexbegin, int& tileybegin, int& tilezbegin,
-                     int& tilexend, bool exists, ImageBuf::WrapMode wrap) const
+                     int& tilexend, bool& haderror, bool exists,
+                     ImageBuf::WrapMode wrap) const
 {
     if (!exists) {
         // Special case -- (x,y,z) describes a location outside the data
@@ -2829,7 +2839,9 @@ ImageBufImpl::retile(int x, int y, int z, ImageCache::Tile*& tile,
         if (!tile) {
             // Even though tile is NULL, ensure valid black pixel data
             std::string e = m_imagecache->geterror();
-            error("{}", e.size() ? e : "unspecified ImageCache error");
+            if (e.size())
+                error("{}", e);
+            haderror = true;
             return &m_blackpixel[0];
         }
     }
@@ -2850,11 +2862,23 @@ ImageBufImpl::retile(int x, int y, int z, ImageCache::Tile*& tile,
 
 const void*
 ImageBuf::retile(int x, int y, int z, ImageCache::Tile*& tile, int& tilexbegin,
+                 int& tileybegin, int& tilezbegin, int& tilexend,
+                 bool& haderror, bool exists, WrapMode wrap) const
+{
+    return m_impl->retile(x, y, z, tile, tilexbegin, tileybegin, tilezbegin,
+                          tilexend, haderror, exists, wrap);
+}
+
+
+// DEPRECATED(2.4)
+const void*
+ImageBuf::retile(int x, int y, int z, ImageCache::Tile*& tile, int& tilexbegin,
                  int& tileybegin, int& tilezbegin, int& tilexend, bool exists,
                  WrapMode wrap) const
 {
+    bool haderror;
     return m_impl->retile(x, y, z, tile, tilexbegin, tileybegin, tilezbegin,
-                          tilexend, exists, wrap);
+                          tilexend, haderror, exists, wrap);
 }
 
 
@@ -3055,7 +3079,7 @@ ImageBuf::IteratorBase::pos(int x_, int y_, int z_)
     } else if (!m_deep)
         m_proxydata = (char*)m_ib->retile(x_, y_, z_, m_tile, m_tilexbegin,
                                           m_tileybegin, m_tilezbegin,
-                                          m_tilexend, e, m_wrap);
+                                          m_tilexend, m_readerror, e, m_wrap);
     m_x      = x_;
     m_y      = y_;
     m_z      = z_;
