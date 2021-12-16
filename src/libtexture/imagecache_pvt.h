@@ -671,12 +671,26 @@ public:
     int channelsize() const { return m_channelsize; }
     int pixelsize() const { return m_pixelsize; }
 
+    // 1D index of the 2D tile coordinate. 64 bit safe.
+    imagesize_t pixel_index(int tile_s, int tile_t) const
+    {
+        return imagesize_t(tile_t) * m_tile_width + tile_s;
+    }
+
+    // Offset in bytes into the tile memory of the given 2D tile pixel
+    // coordinates.  64 bit safe.
+    imagesize_t pixel_offset(int tile_s, int tile_t) const
+    {
+        return m_pixelsize * pixel_index(tile_s, tile_t);
+    }
+
 private:
     TileID m_id;                       ///< ID of this tile
     std::unique_ptr<char[]> m_pixels;  ///< The pixel data
     size_t m_pixels_size { 0 };        ///< How much m_pixels has allocated
     int m_channelsize { 0 };           ///< How big is each channel (bytes)
     int m_pixelsize { 0 };             ///< How big is each pixel (bytes)
+    int m_tile_width { 0 };            ///< Tile width
     bool m_valid { false };            ///< Valid pixels
     bool m_nofree { false };  ///< We do NOT own the pixels, do not free!
     volatile bool m_pixels_ready {

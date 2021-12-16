@@ -2083,9 +2083,9 @@ TextureSystemImpl::sample_closest(
             allok = false;
             continue;
         }
-        int offset = id.nchannels() * (tile_t * spec.tile_width + tile_s)
-                     + (firstchannel - id.chbegin());
-        OIIO_DASSERT((size_t)offset < spec.nchannels * spec.tile_pixels());
+        size_t offset = id.nchannels() * tile->pixel_index(tile_s, tile_t)
+                        + (firstchannel - id.chbegin());
+        OIIO_DASSERT(offset < spec.nchannels * spec.tile_pixels());
         simd::vfloat4 texel_simd;
         if (pixeltype == TypeDesc::UINT8) {
             // special case for 8-bit tiles
@@ -2266,9 +2266,8 @@ TextureSystemImpl::sample_bilinear(
             TileRef& tile(thread_info->tile);
             if (!tile->valid())
                 return false;
-            int pixelsize = tile->pixelsize();
-            int offset    = pixelsize
-                         * (tile_st[T0] * spec.tile_width + tile_st[S0]);
+            int pixelsize      = tile->pixelsize();
+            imagesize_t offset = tile->pixel_offset(tile_st[S0], tile_st[T0]);
             const unsigned char* p = tile->bytedata() + offset
                                      + channelsize
                                            * (firstchannel - id.chbegin());
@@ -2330,12 +2329,9 @@ TextureSystemImpl::sample_bilinear(
                         OIIO_DASSERT(thread_info->tile->id() == id);
                     }
                     TileRef& tile(thread_info->tile);
-                    int pixelsize = tile->pixelsize();
-                    int offset    = pixelsize
-                                 * (tile_t * spec.tile_width + tile_s);
+                    imagesize_t offset = tile->pixel_offset(tile_s, tile_t);
                     offset += (firstchannel - id.chbegin()) * channelsize;
-                    OIIO_DASSERT(offset < spec.tile_width * spec.tile_height
-                                              * spec.tile_depth * pixelsize);
+                    OIIO_DASSERT(offset < spec.tile_bytes());
                     if (pixeltype == TypeDesc::UINT8)
                         texel_simd[j][i] = uchar2float4(
                             (const unsigned char*)(tile->bytedata() + offset));
@@ -2545,9 +2541,9 @@ TextureSystemImpl::sample_bicubic(
     }
     TileID id(texturefile, options.subimage, miplevel, 0, 0, 0, tile_chbegin,
               tile_chend);
-    size_t pixelsize                 = channelsize * id.nchannels();
-    size_t firstchannel_offset_bytes = channelsize
-                                       * (firstchannel - id.chbegin());
+    int pixelsize                         = channelsize * id.nchannels();
+    imagesize_t firstchannel_offset_bytes = channelsize
+                                            * (firstchannel - id.chbegin());
     vfloat4 accum, daccumds, daccumdt;
     accum.clear();
     if (daccumds_) {
@@ -2634,7 +2630,7 @@ TextureSystemImpl::sample_bicubic(
             }
             // N.B. thread_info->tile will keep holding a ref-counted pointer
             // to the tile for the duration that we're using the tile data.
-            int offset = pixelsize * (tile_t * spec.tile_width + tile_s);
+            imagesize_t offset        = tile->pixel_offset(tile_s, tile_t);
             const unsigned char* base = tile->bytedata() + offset
                                         + firstchannel_offset_bytes;
             OIIO_DASSERT(tile->data());
@@ -2681,8 +2677,8 @@ TextureSystemImpl::sample_bicubic(
                         texel_simd[j][i].clear();
                     continue;
                 }
-                int row_offset_bytes = tile_t[j]
-                                       * (spec.tile_width * pixelsize);
+                imagesize_t row_offset_bytes
+                    = tile_t[j] * imagesize_t(spec.tile_width * pixelsize);
                 for (int i = 0; i < 4; ++i) {
                     if (!svalid[i]) {
                         texel_simd[j][i].clear();
@@ -2704,7 +2700,8 @@ TextureSystemImpl::sample_bicubic(
                     }
                     TileRef& tile(thread_info->tile);
                     OIIO_DASSERT(tile->data());
-                    int offset = row_offset_bytes + column_offset_bytes[i];
+                    imagesize_t offset = row_offset_bytes
+                                         + column_offset_bytes[i];
                     // const unsigned char *pixelptr = tile->bytedata() + offset[i];
                     if (pixeltype == TypeDesc::UINT8)
                         texel_simd[j][i] = uchar2float4(tile->bytedata()
