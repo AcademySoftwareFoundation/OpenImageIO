@@ -34,7 +34,8 @@ tiles.
      - Type
      - BMP header data or explanation
    * - ``compression``
-     - string - The compression of the BMP file (``"rle4"`` or ``"rle8"``, if
+     - string
+     - The compression of the BMP file (``"rle4"`` or ``"rle8"``, if
        RLE compression is used).
    * - ``XResolution``
      - float
@@ -57,7 +58,7 @@ tiles.
 **Configuration settings for BMP input**
 
 When opening a BMP ImageInput with a *configuration* (see
-Section :ref:`sec-inputwithconfig`), the following special configuration
+Section :ref:`sec-input-with-config`), the following special configuration
 options are supported:
 
 .. list-table::
@@ -173,7 +174,7 @@ OpenImageIO currently only supports reading DDS files, not writing them.
 **Configuration settings for DDS input**
 
 When opening an DDS ImageInput with a *configuration* (see
-Section :ref:`sec-inputwithconfig`), the following special configuration
+Section :ref:`sec-input-with-config`), the following special configuration
 attributes are supported:
 
 .. list-table::
@@ -259,7 +260,7 @@ DPX files use the file extension :file:`.dpx`.
 **Configuration settings for DPX input**
 
 When opening a DPX ImageInput with a *configuration* (see
-Section :ref:`sec-inputwithconfig`), the following special configuration
+Section :ref:`sec-input-with-config`), the following special configuration
 options are supported:
 
 .. list-table::
@@ -585,7 +586,7 @@ despite its technical limitations.
 **Configuration settings for GIF input**
 
 When opening a GIF ImageInput with a *configuration* (see
-Section :ref:`sec-inputwithconfig`), the following special configuration
+Section :ref:`sec-input-with-config`), the following special configuration
 options are supported:
 
 .. list-table::
@@ -676,7 +677,7 @@ preferred except when legacy file access is required.
 **Configuration settings for HDR input**
 
 When opening an HDR ImageInput with a *configuration* (see
-Section :ref:`sec-inputwithconfig`), the following special configuration
+Section :ref:`sec-input-with-config`), the following special configuration
 options are supported:
 
 .. list-table::
@@ -739,7 +740,7 @@ future.
 **Configuration settings for HEIF input**
 
 When opening an HEIF ImageInput with a *configuration* (see
-Section :ref:`sec-inputwithconfig`), the following special configuration
+Section :ref:`sec-input-with-config`), the following special configuration
 attributes are supported:
 
 .. list-table::
@@ -943,7 +944,7 @@ anywhere near the acceptance of the original JPEG/JFIF format.
 **Configuration settings for JPEG input**
 
 When opening a JPEG ImageInput with a *configuration* (see
-Section :ref:`sec-inputwithconfig`), the following special configuration
+Section :ref:`sec-input-with-config`), the following special configuration
 attributes are supported:
 
 .. list-table::
@@ -1044,7 +1045,7 @@ metadata robustly.
 **Configuration settings for JPEG-2000 input**
 
 When opening an JPEG-2000 ImageInput with a *configuration* (see
-Section :ref:`sec-inputwithconfig`), the following special configuration
+Section :ref:`sec-input-with-config`), the following special configuration
 attributes are supported:
 
 .. list-table::
@@ -1309,7 +1310,7 @@ The official OpenEXR site is http://www.openexr.com/.
 **Configuration settings for OpenEXR input**
 
 When opening an OpenEXR ImageInput with a *configuration* (see
-Section :ref:`sec-inputwithconfig`), the following special configuration
+Section :ref:`sec-input-with-config`), the following special configuration
 attributes are supported:
 
 .. list-table::
@@ -1478,7 +1479,7 @@ files use the file extension :file:`.png`.
 **Configuration settings for PNG input**
 
 When opening an PNG ImageInput with a *configuration* (see
-Section :ref:`sec-inputwithconfig`), the following special configuration
+Section :ref:`sec-input-with-config`), the following special configuration
 attributes are supported:
 
 .. list-table::
@@ -1510,6 +1511,15 @@ control aspects of the writing itself:
    * - Output Configuration Attribute
      - Type
      - Meaning
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by writing to a memory buffer.
    * - ``png:compressionLevel``
      - int
      - Compression level for zip/deflate compression, on a scale from 0
@@ -1523,15 +1533,6 @@ control aspects of the writing itself:
        (``PNG_FILTER_NONE``), 16 (``PNG_FILTER_SUB``), 32
        (``PNG_FILTER_UP``), 64 (``PNG_FILTER_AVG``), or 128
        (``PNG_FILTER_PAETH``).
-   * - ``oiio:ioproxy``
-     - ptr
-     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
-       example by writing to a memory buffer.
-   * - ``oiio:dither``
-     - int
-     - If nonzero and outputting UINT8 values in the file from a source of
-       higher bit depth, will add a small amount of random dither to combat
-       the appearance of banding.
 
 **Custom I/O Overrides**
 
@@ -1604,7 +1605,7 @@ It's not a smart choice unless you are sending your images back to the
 **Configuration settings for PNM input**
 
 When opening a PNM ImageInput with a *configuration* (see
-Section :ref:`sec-inputwithconfig`), the following special configuration
+Section :ref:`sec-input-with-config`), the following special configuration
 attributes are supported:
 
 .. list-table::
@@ -1662,7 +1663,7 @@ write PSD files.
 **Configuration settings for PSD input**
 
 When opening an ImageInput with a *configuration* (see
-Section :ref:`sec-inputwithconfig`), the following special configuration
+Section :ref:`sec-input-with-config`), the following special configuration
 options are supported:
 
 .. list-table::
@@ -1746,7 +1747,7 @@ plugin that is based on the LibRaw library (http://www.libraw.org/).
 **Configuration settings for RAW input**
 
 When opening an ImageInput with a *configuration* (see
-Section :ref:`sec-inputwithconfig`), the following special configuration
+Section :ref:`sec-input-with-config`), the following special configuration
 options are supported:
 
 .. list-table::
@@ -2106,7 +2107,7 @@ retrievable via `ImageInput::get_thumbnail()` or `ImageBuf::thumbnail()` or
 **Configuration settings for Targa input**
 
 When opening an Targa ImageInput with a *configuration* (see
-Section :ref:`sec-inputwithconfig`), the following special configuration
+Section :ref:`sec-input-with-config`), the following special configuration
 attributes are supported:
 
 .. list-table::
@@ -2263,7 +2264,7 @@ metadata if present.
 **Configuration settings for TIFF input**
 
 When opening an ImageInput with a *configuration* (see
-Section :ref:`sec-inputwithconfig`), the following special configuration
+Section :ref:`sec-input-with-config`), the following special configuration
 options are supported:
 
 .. list-table::
@@ -2302,10 +2303,6 @@ aspects of the writing itself:
    * - Output Configuration Attribute
      - Type
      - Meaning
-   * - ``oiio:UnassociatedAlpha``
-     - int
-     - If nonzero, any alpha channel is understood to be unassociated, and
-       the EXTRASAMPLES tag in the TIFF file will be set to reflect this).
    * - ``oiio:BitsPerSample``
      - int
      - Requests a rescaling to a specific bits per sample (such as writing
@@ -2315,6 +2312,14 @@ aspects of the writing itself:
      - If nonzero and outputting UINT8 values in the file from a source of
        higher bit depth, will add a small amount of random dither to combat
        the appearance of banding.
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by writing to memory rather than the file system.
+   * - ``oiio:UnassociatedAlpha``
+     - int
+     - If nonzero, any alpha channel is understood to be unassociated, and
+       the EXTRASAMPLES tag in the TIFF file will be set to reflect this).
    * - ``tiff:write_exif``
      - int
      - If zero, will not write any Exif data to the TIFF file. (The default
@@ -2328,8 +2333,8 @@ aspects of the writing itself:
    * - ``tiff:ColorSpace``
      - string
      - Requests that the file be saved with a non-RGB color spaces. Choices
-       are ``RGB``, ``CMYK``. % , ``YCbCr``, ``CIELAB``, ``ICCLAB``,
-       ``ITULAB``.
+       are ``RGB``, ``CMYK``.  (``YCbCr``, ``CIELAB``, ``ICCLAB``,
+       ``ITULAB`` are not yet supported.)
    * - ``tiff:zipquality``
      - int
      - A time-vs-space knob for ``zip`` compression, ranging from 1-9
@@ -2344,10 +2349,6 @@ aspects of the writing itself:
      - int
      - If nonzero, forces use of "bigtiff," a nonstandard extension that
        allows files to be more than 4 GB (default: 0).
-   * - ``oiio:ioproxy``
-     - ptr
-     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
-       example by writing to memory rather than the file system.
 
 
 **TIFF compression modes**
@@ -2559,7 +2560,7 @@ open standard for lossy-compressed images for use on the web.
 **Configuration settings for WebP input**
 
 When opening an WebP ImageInput with a *configuration* (see
-Section :ref:`sec-inputwithconfig`), the following special configuration
+Section :ref:`sec-input-with-config`), the following special configuration
 attributes are supported:
 
 .. list-table::

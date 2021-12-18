@@ -733,7 +733,7 @@ public:
     ///
     /// @param  filename
     ///             The name of the image.
-    /// @param  thumb
+    /// @param  thumbnail
     ///             ImageBuf into which will be copied the thumbnail, if it
     ///             exists. If no thumbnail can be retrieved, `thumb` will
     ///             be reset to an uninitialized (empty) ImageBuf.

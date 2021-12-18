@@ -1,7 +1,7 @@
 .PHONY: figures
 
-include ../make/detectplatform.mk
-BUILDDIR := ../../build/${platform}
+#include ../make/detectplatform.mk
+BUILDDIR := ../../build
 ifeq (${OIIOTOOL},)
   ifneq (${shell ls ${BUILDDIR}/bin/oiiotool},)
     OIIOTOOL := "${BUILDDIR}/bin/oiiotool"

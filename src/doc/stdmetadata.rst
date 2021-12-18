@@ -240,8 +240,7 @@ buffer. This behavior is controlled by a special attributes
     Pointer to a `Filesystem::IOProxy` that will handle the I/O.
 
 An explanation of how this feature is used may be found in Sections
-:ref:`sec-imageinput-readfilefrommemory` and
-:ref:`sec-imageoutput-writefiletomemory`.
+:ref:`sec-imageinput-ioproxy` and :ref:`sec-imageoutput-ioproxy`.
 
 In addition to communicating IOProxy information via this attribute, it
 is also allowed (and probably preferred) to directly supply the IOProxy

@@ -4,6 +4,8 @@ ImageInput: Reading Images
 ##############################
 
 
+.. _sec-imageinput-made-simple:
+
 Image Input Made Simple
 ===========================
 
@@ -89,7 +91,7 @@ but that are more complex than the simple example above.
 Reading individual scanlines and tiles
 --------------------------------------
 
-The simple example of Section :ref:`Image Input Made Simple` read an entire
+The simple example of Section :ref:`sec-imageinput-made-simple` read an entire
 image with one call.  But sometimes you want to read a large image a little
 at a time and do not wish to retain the entire image in memory as you
 process it.  OpenImageIO allows you to read images one scanline at a time or
@@ -128,7 +130,7 @@ be 0 for 2D non-volume images).  This is followed by a `TypeDesc`
 describing the data type of the pixel buffer you are supplying, and a
 pointer to the pixel buffer itself.  Additional optional arguments
 describe the data stride, which can be ignored for contiguous data (use
-of strides is explained in Section :ref:`Data Strides`).
+of strides is explained in Section :ref:`sec-imageinput-data-strides`).
 
 Nearly all ImageInput implementations will be most efficient reading
 scanlines in strict order (starting with scanline 0, then 1, up to
@@ -145,7 +147,7 @@ but some image format readers may be able to read a contiguous block of
 scanlines more efficiently than reading each one individually.
 
 The full descriptions of the ``read_scanline()`` and ``read_scanlines()``
-functions may be found in Section :ref:`ImageInput Class Reference`.
+functions may be found in Section :ref:`sec-imageinput-class-reference`.
 
 Reading tiles
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -188,14 +190,14 @@ in order of increasing slice, increasing
 scanline within each slice, and increasing column within each scanline.
 Additional optional arguments describe the data stride, which can be
 ignored for contiguous data (use of strides is explained in
-Section :ref:`Data Strides`).
+Section :ref:`sec-imageinput-data-strides`).
 
 All ImageInput implementations are required to support reading tiles in
 arbitrary order (i.e., not in strict order of increasing ``y`` rows, and
 within each row, increasing ``x`` column, without missing any tiles).
 
 The full description of the ``read_tile()`` function may be found
-in Section :ref:`ImageInput Class Reference`.
+in Section :ref:`sec-imageinput-class-reference`.
 
 
 Converting formats
@@ -239,6 +241,7 @@ eliminating any translation among types and seeing the actual numerical
 values in the file.
 
 
+.. _sec-imageinput-data-strides:
 
 Data Strides
 --------------------------------
@@ -295,7 +298,7 @@ flexible functionality.  A few representative examples follow:
                    pixelsize,
                    scanlinesize);
 
-Please consult Section :ref:`ImageInput Class Reference` for detailed
+Please consult Section :ref:`sec-imageinput-class-reference` for detailed
 descriptions of the stride parameters to each ``read`` function.
 
 
@@ -473,7 +476,7 @@ values.
 
 The ``ImageSpec::extra_attribs`` field may store metadata that reveals the
 color space the image file in the ``"oiio:ColorSpace"`` attribute (see
-Section :ref:`Color information metadata` for explanations of particular values).
+Section :ref:`sec-metadata-color` for explanations of particular values).
 
 The ImageInput sets the ``"oiio:ColorSpace"`` metadata in a purely advisory
 capacity --- the ``read`` will not convert pixel values among color spaces.
@@ -626,7 +629,7 @@ It is only possible to read "native" data types from deep files; that is,
 there is no automatic translation into arbitrary data types as there is for
 ordinary images.  All three of these functions store the resulting deep data
 in a special DeepData structure, described in detail in
-Section :ref:`Reading "deep" data`.
+Section :ref:`sec-imageinput-deepdata`.
 
 Here is an example of using these methods to read a deep image from a file
 and print all its values::
@@ -665,7 +668,92 @@ and print all its values::
 
 
 
-.. _sec-imageinput-readfilefrommemory:
+.. _sec-input-with-config:
+
+Opening for input with configuration settings/hints
+---------------------------------------------------
+
+Sometimes you will want to give the image file reader hints or requests for
+how to open the file or present its data, hints which must be made in time for
+the initial opening of the file. For example, in specific circumstances, you
+might want to request that an image with unassociated alpha *not* be
+automatically converted to associated alpha by multiplying the color channel
+values by the alpha (as would be customary by OIIO convention).
+
+This is accomplished by using the ``ImageInput::open()`` or
+``ImageInput::create()`` method varieties that take an additional ``config``
+parameter. This is an ``ImageSpec`` object whose metadata contains the
+configuration hints.
+
+Configuration hints are optional and advisory only -- meaning that not all
+image file readers will respect them (and indeed, many of them are only
+sensible for certain file formats).
+
+Some common input configuration hints that tend to be respected across many
+readers (but not all, check Chapter :ref:`chap-bundledplugins` to see what
+hints are supported by each reader) are:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
+   * - ``oiio:RawColor``
+     - int
+     - If nonzero, reading images with non-RGB color models (such as YCbCr)
+       will return unaltered pixel values (versus the default OIIO behavior
+       of automatically converting to RGB).
+   * - ``oiio:UnassociatedAlpha``
+     - int
+     - If nonzero, and the file contains unassociated alpha, this will
+       cause the reader to leave alpha unassociated (versus the default of
+       premultiplying color channels by alpha if the alpha channel is
+       unassociated).
+
+Examples:
+
+    Below is an example where we wish to read in an RGBA image in a format
+    that tends to store it as unassociated alpha, but we DON'T want it to
+    automatically be converted to associated alpha.
+
+    .. tabs::
+    
+       .. code-tab:: c++
+    
+          // Set up an ImageSpec that holds the configuration hints.
+          ImageSpec config;
+          config["oiio:UnassociatedAlpha"] = 1;
+    
+          // Open the file, passing in the config.
+          auto inp = ImageInput::open (filename, config);
+          const ImageSpec &spec = inp->spec();
+          std::vector<unsigned char> pixels (spec.image_pixels() * spec.nchannels);
+          inp->read_image (TypeDesc::UINT8, pixels.data());
+          if (spec.get_int_attribute("oiio:UnassociatedAlpha"))
+              printf("pixels holds unassociated alpha\n");
+          else
+              printf("pixels holds associated alpha\n");
+
+       .. code-tab:: py
+    
+          # Set up an ImageSpec that holds the configuration hints.
+          config = ImageSpec()
+          config["oiio:UnassociatedAlpha"] = 1
+    
+          # Open the file, passing in the config.
+          inp = ImageInput.open (filename, config)
+          pixels = inp.read_image ("uint8")
+          if (spec["oiio:UnassociatedAlpha"] == 1)
+              print("pixels holds unassociated alpha")
+          else
+              print("pixels holds associated alpha")
+
 .. _sec-imageinput-ioproxy:
 
 Custom I/O proxies (and reading the file from a memory buffer)
@@ -711,8 +799,8 @@ buffer::
 Custom search paths for plugins
 --------------------------------
 
-Please see Section :ref:`Global Attributes` for discussion about setting the plugin
-search path via the ``attribute()`` function. For example::
+Please see Section :ref:`sec-globalattribs` for discussion about setting the
+plugin search path via the ``attribute()`` function. For example::
 
         std::string mysearch = "/usr/myapp/lib:${HOME}/plugins";
         OIIO::attribute ("plugin_searchpath", mysearch);
@@ -740,7 +828,7 @@ the latest error message resulting from a call to static ``open()`` or
 ``create()``.
 
 Here is another version of the simple image reading code from
-Section :ref:`Image Input Made Simple`, but this time it is fully
+Section :ref:`sec-imageinput-made-simple`, but this time it is fully
 elaborated with error checking and reporting::
 
         #include <OpenImageIO/imageio.h>
@@ -776,6 +864,7 @@ elaborated with error checking and reporting::
         }
 
 
+.. _sec-imageinput-class-reference:
 
 ImageInput Class Reference
 ===========================
