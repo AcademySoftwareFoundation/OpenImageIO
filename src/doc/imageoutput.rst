@@ -9,24 +9,47 @@ Image Output Made Simple
 ========================
 
 Here is the simplest sequence required to write the pixels of a 2D image
-to a file::
+to a file:
 
-    #include <OpenImageIO/imageio.h>
-    using namespace OIIO;
-    ...
+.. tabs::
 
-    const char *filename = "foo.jpg";
-    const int xres = 640, yres = 480;
-    const int channels = 3;  // RGB
-    unsigned char pixels[xres*yres*channels];
+    .. code-tab:: c++
 
-    std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
-    if (! out)
-        return;
-    ImageSpec spec (xres, yres, channels, TypeDesc::UINT8);
-    out->open (filename, spec);
-    out->write_image (TypeDesc::UINT8, pixels);
-    out->close ();
+       #include <OpenImageIO/imageio.h>
+       using namespace OIIO;
+       ...
+
+       const char *filename = "foo.jpg";
+       const int xres = 640, yres = 480;
+       const int channels = 3;  // RGB
+       unsigned char pixels[xres * yres * channels];
+
+       std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
+       if (! out)
+           return;
+       ImageSpec spec (xres, yres, channels, TypeDesc::UINT8);
+       out->open (filename, spec);
+       out->write_image (TypeDesc::UINT8, pixels);
+       out->close ();
+
+    .. code-tab:: py
+
+       import OpenImageIO as oiio
+       import numpy as np
+
+       filename = "foo.jpg"
+       xres = 640
+       yres = 480
+       channels = 3  # RGB
+       pixels = np.zeros((yres, xres, channels), dtype=np.uint8)
+
+       out = oiio.ImageOutput.create (filename)
+       if out is None:
+           return
+       spec = ImageSpec(xres, yres, channels, 'uint8')
+       out.open (filename, spec)
+       out.write_image (pixels)
+       out.close ()
 
 This little bit of code does a surprising amount of useful work:
 
@@ -34,15 +57,32 @@ This little bit of code does a surprising amount of useful work:
   :file:`foo.jpg`), deducing the format from the file extension.  When it
   finds such a plugin, it creates a subclass instance of ``ImageOutput``
   that writes the right kind of file format.
-  ::
-      std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
+
+  .. tabs::
+
+     .. code-tab:: c++
+
+        std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
+
+     .. code-tab:: py
+
+        out = ImageOutput.create (filename)
 
 * Open the file, write the correct headers, and in all other important ways
   prepare a file with the given dimensions (640 x 480), number of color
   channels (3), and data format (unsigned 8-bit integer).
-  ::
-      ImageSpec spec (xres, yres, channels, TypeDesc::UINT8);
-      out->open (filename, spec);
+
+  .. tabs::
+
+     .. code-tab:: c++
+
+        ImageSpec spec (xres, yres, channels, TypeDesc::UINT8);
+        out->open (filename, spec);
+
+     .. code-tab:: py
+
+        spec = ImageSpec (xres, yres, channels, 'uint8')
+        out.open (filename, spec)
 
 * Write the entire image, hiding all details of the encoding of image data
   in the file, whether the file is scanline- or tile-based, or what is the
@@ -50,12 +90,28 @@ This little bit of code does a surprising amount of useful work:
   unsigned 8-bit and we've requested the same format for disk storage, but
   if they had been different, ``write_image()`` would do all the conversions
   for us).
-  ::
-      out->write_image (TypeDesc::UINT8, &pixels);
+
+  .. tabs::
+
+     .. code-tab:: c++
+
+        out->write_image (TypeDesc::UINT8, &pixels);
+
+     .. code-tab:: py
+
+        out.write_image (pixels)
 
 * Close the file.
-  ::
-      out->close ();
+
+  .. tabs::
+
+     .. code-tab:: c++
+
+        out->close ();
+
+     .. code-tab:: py
+
+        out.close ()
 
 
 **What happens when the file format doesn't support the spec?**
@@ -112,18 +168,31 @@ time, one tile at a time, or by individual rectangles.
 Writing individual scanlines
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Individual scanlines may be written using the ``writescanline()`` API call::
+Individual scanlines may be written using the ``writescanline()`` API call:
 
-    ...
-    unsigned char scanline[xres*channels];
-    out->open (filename, spec);
-    int z = 0;   // Always zero for 2D images
-    for (int y = 0;  y < yres;  ++y) {
-        ... generate data in scanline[0..xres*channels-1] ...
-        out->write_scanline (y, z, TypeDesc::UINT8, scanline);
-    }
-    out->close ();
-    ...
+.. tabs::
+
+   .. code-tab:: c++
+
+      unsigned char scanline[xres*channels];
+      out->open (filename, spec);
+      int z = 0;   // Always zero for 2D images
+      for (int y = 0;  y < yres;  ++y) {
+          ... generate data in scanline[0..xres*channels-1] ...
+          out->write_scanline (y, z, TypeDesc::UINT8, scanline);
+      }
+      out->close ();
+
+   .. code-tab:: py
+
+      out.open (filename, spec)
+      z = 0   # Always zero for 2D images
+      for y in range(yres) :
+          # generate data in scanline[0..xres*channels-1] ...
+          scanline = ...
+          out.write_scanline (y, z, scanline)
+      }
+      out.close ()
 
 The first two arguments to ``writescanline()`` specify which scanline is
 being written by its vertical (*y*) scanline number (beginning with 0)
@@ -152,13 +221,22 @@ should gracefully handle the case that tiled output is not available for
 the chosen format.
 
 Once you ``create()`` an ``ImageOutput``, you can ask if it is capable
-of writing a tiled image by using the ``supports("tiles")`` query::
+of writing a tiled image by using the ``supports("tiles")`` query:
 
-    ...
-    std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
-    if (! out->supports ("tiles")) {
-        // Tiles are not supported}
+.. tabs::
+
+   .. code-tab:: c++
+
+      std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
+      if (! out->supports ("tiles")) {
+          // Tiles are not supported
+      }
     
+   .. code-tab:: py
+
+      out = ImageOutput.create (filename)
+      if not out.supports ("tiles") :
+          # Tiles are not supported
 
 Assuming that the ``ImageOutput`` supports tiled images, you need to
 specifically request a tiled image when you ``open()`` the file.  This
@@ -167,14 +245,23 @@ to ``open()``.  If the tile dimensions are not set, they will default
 to zero, which indicates that scanline output should be used rather than
 tiled output.
 
-.. code-block:: cpp
+.. tabs::
 
-    int tilesize = 64;
-    ImageSpec spec (xres, yres, channels, TypeDesc::UINT8);
-    spec.tile_width = tilesize;
-    spec.tile_height = tilesize;
-    out->open (filename, spec);
-    ...
+   .. code-tab:: c++
+
+      int tilesize = 64;
+      ImageSpec spec (xres, yres, channels, TypeDesc::UINT8);
+      spec.tile_width = tilesize;
+      spec.tile_height = tilesize;
+      out->open (filename, spec);
+
+   .. code-tab:: py
+
+      tilesize = 64
+      spec = ImageSpec (xres, yres, channels, 'uint8')
+      spec.tile_width = tilesize
+      spec.tile_height = tilesize
+      out.open (filename, spec)
 
 In this example, we have used square tiles (the same number of pixels
 horizontally and vertically), but this is not a requirement of OpenImageIO.
@@ -183,18 +270,28 @@ tiles, or only certain tile sizes (such as restricting tile sizes to
 powers of two).  Such restrictions should be documented by each
 individual plugin.
 
-.. code-block:: cpp
+.. tabs::
 
-    unsigned char tile[tilesize*tilesize*channels];
-    int z = 0;   // Always zero for 2D images
-    for (int y = 0;  y < yres;  y += tilesize) {
-        for (int x = 0;  x < xres;  x += tilesize) {
-            ... generate data in tile[] ..
-            out->write_tile (x, y, z, TypeDesc::UINT8, tile);
-        }
-    }
-    out->close ();
-    ...
+   .. code-tab:: c++
+
+      unsigned char tile[tilesize*tilesize*channels];
+      int z = 0;   // Always zero for 2D images
+      for (int y = 0;  y < yres;  y += tilesize) {
+          for (int x = 0;  x < xres;  x += tilesize) {
+              ... generate data in tile[] ..
+              out->write_tile (x, y, z, TypeDesc::UINT8, tile);
+          }
+      }
+      out->close ();
+
+   .. code-tab:: py
+
+      z = 0  # Always zero for 2D images
+      for y in range(0, yres, tilesize) :
+          for x in range(0, xres, tilesize) :
+              # ... generate data in tile[][][] ..
+              out.write_tile (x, y, z, tile)
+      out.close ()
 
 The first three arguments to ``writetile()`` specify which tile is being
 written by the pixel coordinates of any pixel contained in the tile: *x*
@@ -221,21 +318,39 @@ interactive image display, but probably not any that are outputting
 directly to a file --- may allow you to send arbitrary rectangular pixel
 regions.  Once you ``create()`` an ``ImageOutput``, you can ask if it is
 capable of accepting arbitrary rectangles by using the
-``supports("rectangles")`` query::
+``supports("rectangles")`` query:
 
-    ...
-    std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
-    if (! out->supports ("rectangles")) {
-        // Rectangles are not supported
-    }
+.. tabs::
 
-If rectangular regions are supported, they may be sent using
-the ``write_rectangle()`` API call::
+   .. code-tab:: c++
 
-    unsigned int rect[...];
-    ... generate data in rect[] ..
-    out->write_rectangle (xbegin, xend, ybegin, yend, zbegin, zend,
-                          TypeDesc::UINT8, rect);
+      std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
+      if (! out->supports ("rectangles")) {
+          // Rectangles are not supported
+      }
+
+   .. code-tab:: py
+
+      out = ImageOutput.create (filename)
+      if not out.supports ("rectangles") :
+          # Rectangles are not supported
+
+If rectangular regions are supported, they may be sent using the
+``write_rectangle()`` API call:
+
+.. tabs::
+
+   .. code-tab:: c++
+
+      unsigned int rect[...];
+      // ... generate data in rect[] ...
+      out->write_rectangle (xbegin, xend, ybegin, yend, zbegin, zend,
+                            TypeDesc::UINT8, rect);
+
+   .. code-tab:: py
+
+      # generate data in rect[] ...
+      out.write_rectangle (xbegin, xend, ybegin, yend, zbegin, zend, rect)
 
 The first six arguments to ``write_rectangle()`` specify the region of
 pixels that is being transmitted by supplying the minimum and one-past-maximum
@@ -243,12 +358,13 @@ pixel indices in *x* (column), *y* (scanline), and *z* (slice, always 0
 for 2D non-volume images).
 
 .. note:: OpenImageIO nearly always follows the C++ STL convention of
-          specifying ranges as ``[begin,end)``, that is, ``begin, begin+1,
-          ..., end-1.``
+          specifying ranges as the half-open interval ``[begin,end)``
+          specifying the sequence ``begin, begin+1, ..., end-1`` (but
+          the sequence does not contain the ``end`` value itself).
 
 The total number of pixels being transmitted is therefore::
 
-        (xend-xbegin) * (yend-ybegin) * (zend-zbegin)
+        (xend - xbegin) * (yend - ybegin) * (zend - zbegin)
 
 This is followed by a `TypeDesc` describing the data you are supplying,
 and a pointer to the rectangle's pixel data itself, which should be ordered
@@ -276,10 +392,18 @@ that requests a spec that stores pixel values as 16-bit unsigned integers::
 Or, for an ``ImageSpec`` that has already been constructed, you may reset
 its format using the ``set_format()`` method.
 
-.. code-block:: cpp
 
-    ImageSpec spec (...);
-    spec.set_format (TypeDesc::UINT16);
+.. tabs::
+
+   .. code-tab:: c++
+
+      ImageSpec spec(...);
+      spec.set_format(TypeDesc::UINT16);
+
+   .. code-tab:: py
+
+      spec = ImageSpec(...)
+      spec.set_format ('uint16')
 
 Note that resetting the pixel data type must be done *before* passing the
 spec to ``open()``, or it will have no effect on the file.
@@ -331,15 +455,29 @@ routines and OpenImageIO will automatically convert from the internal format
 to the native file format.  For example, the following code will open a TIFF
 file that stores pixel data as 16-bit unsigned integers (values ranging from
 0 to 65535), compute internal pixel values as floating-point values, with
-``writeimage()`` performing the conversion automatically::
+``writeimage()`` performing the conversion automatically:
 
-    std::unique_ptr<ImageOutput> out = ImageOutput::create ("myfile.tif");
-    ImageSpec spec (xres, yres, channels, TypeDesc::UINT16);
-    out->open (filename, spec);
-    ...
-    float pixels [xres*yres*channels];
-    ...
-    out->write_image (TypeDesc::FLOAT, pixels);
+.. tabs::
+
+   .. code-tab:: c++
+
+      std::unique_ptr<ImageOutput> out = ImageOutput::create ("myfile.tif");
+      ImageSpec spec (xres, yres, channels, TypeDesc::UINT16);
+      out->open (filename, spec);
+      ...
+      float pixels [xres*yres*channels];
+      ...
+      out->write_image (TypeDesc::FLOAT, pixels);
+
+   .. code-tab:: py
+
+      out = ImageOutput.create ('myfile.tif')
+      spec = ImageSpec (xres, yres, channels, 'uint16')
+      out.open (filename, spec)
+      ...
+      pixels = (...)
+      ...
+      out.write_image (pixels)
 
 
 Note that ``writescanline()``, ``writetile()``, and ``write_rectangle()``
@@ -1064,7 +1202,109 @@ without alteration while modifying the image description metadata::
 
 
 
-.. _sec-imageoutput-writefiletomemory:
+.. _sec-output-with-config:
+
+Opening for output with configuration settings/hints
+----------------------------------------------------
+
+Sometimes you will want to give the image file writer hints or requests
+related to *how to write the data*, hints which must be made in time for the
+initial opening of the file. For example, when writing to a file format that
+requires unassociated alpha, you may already have unpremultiplied colors to
+pass, rather than the more customary practice of passing associated colors and
+having them converted to unassociated while being output.
+
+This is accomplished by setting certain metadata in the ``ImageSpec`` that is
+passed to ``ImageOutput::open()``. These particular metadata entries will be
+understood to be hints that control choices about how to write the file,
+rather than as metadata to store in the file header.
+
+Configuration hints are optional and advisory only -- meaning that not all
+image file writers will respect them (and indeed, many of them are only
+sensible for certain file formats).
+
+Some common output configuration hints that tend to be respected across many
+writers (but not all, check Chapter :ref:`chap-bundledplugins` to see what
+hints are supported by each writer, as well as writer-specific settings) are:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``Compression``
+     - string
+     - Compression method (and sometimes quality level) to be used. Each
+       output file format may have a different set of possible compression
+       methods that are accepted. 
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by writing to a memory buffer.
+   * - ``oiio:BitsPerSample``
+     - int
+     - Requests that the data in the file use a particular bits-per-sample
+       that is not directly expressible by the ``ImageSpec.format`` or any of
+       the usual C data types, for example, requesting 10 bits per sample in
+       the output file.
+   * - ``oiio:dither``
+     - int
+     - If nonzero and writing UINT8 values to the file from a source
+       buffer of higher bit depth, will add a small amount of random dither to
+       combat the appearance of banding.
+   * - ``oiio:RawColor``
+     - int
+     - If nonzero, when writing images to certain formats that suppport or
+       dictate non-RGB color models (such as YCbCr), this indicates that the
+       input passed by the app will already be in this color model, and should
+       not be automatically converted from RGB to the designated color space
+       as the pixels are written.
+   * - ``oiio:UnassociatedAlpha``
+     - int
+     - If nonzero and writing to a file format that allows or dictates
+       unassociated alpha/color values, this hint indicates that the pixel
+       data that will be passed are already in unassociated form and should
+       not automatically be "un-premultiplied" by the writer in order to
+       conform to the file format's need for unassociated data.
+
+Examples:
+
+    Below is an example where we are writing to a PNG file, which dictates
+    that RGBA data is always unassociated (i.e., the color channels are not
+    already premultiplied by alpha), and we already have unassociated pixel
+    values we wish to write unaltered, without it assuming that it's
+    associated and automatically converteing to unassociated alpha:
+
+    .. tabs::
+    
+       .. code-tab:: c++
+
+          unsigned char unassociated_pixels[xres*yres*channels];
+      
+          ImageSpec spec (xres, yres, channels, TypeDesc::UINT8);
+          spec["oiio:UnassociatedAlpha"] = 1;
+
+          auto out = ImageOutput::create ("foo.png");
+          out->open ("foo.png", spec);
+          out->write_image (TypeDesc::UINT8, unassociated_pixels);
+          out->close ();
+
+       .. code-tab:: py
+
+          # Prepare the spec that describes the fie, but also add to it
+          # the hint that says that the pixel data we will send it will
+          # be already unassociated.
+          spec = ImageSpec (xres, yres, channels, "uint8")
+          spec["oiio:UnassociatedAlpha"] = 1
+
+          out = ImageOutput.create ("foo.png")
+          out.open ("foo.png", spec)
+          out.write_image (unassociated_pixels)
+          out.close ()
+
+.. _sec-imageoutput-ioproxy:
 
 Custom I/O proxies (and writing the file to a memory buffer)
 ------------------------------------------------------------
