@@ -2910,9 +2910,15 @@ current top image.
 
     Optional appended modifiers include:
 
-      `filter=` *name*
+      `:filter=` *name*
         Filter name. The default is `blackman-harris` when increasing
         resolution, `lanczos3` when decreasing resolution.
+
+      `:highlightcomp=` *val*
+        If nonzero, does highlight compensation by surrounding the filtered
+        operation with the equivalent of `--rangecompress` and
+        `--rangeexpand`, which can reduce visible ringing artifacts when a
+        filter with negative lobes is used on a very high-contrast HDR image.
 
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
@@ -2940,6 +2946,11 @@ current top image.
 
     - `filter=` *name* : Filter name. The default is `blackman-harris` when
       increasing resolution, `lanczos3` when decreasing resolution.
+    - `highlightcomp=` *val* : If nonzero, does highlight compensation by
+      surrounding the filtered operation with the equivalent of
+      `--rangecompress` and `--rangeexpand`, which can reduce visible ringing
+      artifacts when a filter with negative lobes is used on a very
+      high-contrast HDR image.
     - `fillmode=` *mode* : determines which of several methods will be used
       to determine how the image will fill the new frame, if its aspect
       ratio does not precisely match the original source aspect ratio:
@@ -3013,7 +3024,13 @@ current top image.
 
     Optional appended modifiers include:
 
-      - `filter=` *name* : Filter name. The default is `lanczos3`.
+      - `:filter=` *name* : Filter name. The default is `lanczos3`.
+
+      - `:highlightcomp=` *val* : If nonzero, does highlight compensation by
+        surrounding the filtered operation with the equivalent of
+        `--rangecompress` and `--rangeexpand`, which can reduce visible
+        ringing artifacts when a filter with negative lobes is used on a very
+        high-contrast HDR image.
 
     Examples::
 
@@ -3030,13 +3047,19 @@ current top image.
 
     Optional appended modifiers include:
 
-      `center=` *x,y*
+      `:center=` *x,y*
         Alternate center of rotation.
 
-      `filter=` *name*
+      `:filter=` *name*
         Filter name. The default is `lanczos3`.
 
-      `recompute_roi=` *val*
+      `:highlightcomp=` *val*
+        If nonzero, does highlight compensation by surrounding the filtered
+        operation with the equivalent of `--rangecompress` and
+        `--rangeexpand`, which can reduce visible ringing artifacts when a
+        filter with negative lobes is used on a very high-contrast HDR image.
+
+      `:recompute_roi=` *val*
         If nonzero, recompute the pixel data window to exactly hold the
         transformed image (default=0).
 
@@ -3063,10 +3086,16 @@ current top image.
 
     Optional appended modifiers include:
 
-      `filter=` *name*
+      `:filter=` *name*
         Filter name. The default is `lanczos3`.
 
-      `recompute_roi=` *val*
+      `:highlightcomp=` *val*
+        If nonzero, does highlight compensation by surrounding the filtered
+        operation with the equivalent of `--rangecompress` and
+        `--rangeexpand`, which can reduce visible ringing artifacts when a
+        filter with negative lobes is used on a very high-contrast HDR image.
+
+      `:recompute_roi=` *val*
         If nonzero, recompute the pixel data window to exactly hold the
         transformed image (default=0).
 
