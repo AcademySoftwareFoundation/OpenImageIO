@@ -141,7 +141,7 @@ All ImageBufAlgo functions take an optional `nthreads` parameter that
 signifies the maximum number of threads to use to parallelize the
 operation.  The default value for `nthreads` is 0, which signifies
 that the number of thread should be the OIIO global default set by
-`OIIO::attribute()` (see Section~\ref{sec:attribute:threads}), which
+`OIIO::attribute()` (see Section :ref:`sec-globalattribs`), which
 itself defaults to be the detected level of hardware concurrency (number
 of cores available).
 
@@ -176,24 +176,47 @@ zero() -- create a black image
 
 ..
 
-  Examples::
+  Examples:
 
-    // Create a new 3-channel, 512x512 float image filled with 0.0 values.
-    ImageBuf zero = ImageBufAlgo::zero (ROI(0,512,0,512,0,1,0,3));
-    
-    // Zero out an existing buffer, keeping it the same size and data type
-    ImageBuf A = ...;
-    ...
-    ImageBufAlgo::zero (A);
-    
-    // Zero out a rectangular region of an existing buffer
-    ImageBufAlgo::zero (A, ROI (0, 100, 0, 100));
-    
-    // Zero out just the green channel, leave everything else the same
-    ROI roi = A.roi ();
-    roi.chbegin = 1; // green
-    roi.chend = 2;   // one past the end of the channel region
-    ImageBufAlgo::zero (A, roi);
+    .. tabs::
+  
+       .. code-tab:: c++
+  
+          // Create a new 3-channel, 512x512 float image filled with 0.0 values.
+          ImageBuf zero = ImageBufAlgo::zero (ROI(0,512,0,512,0,1,0,3));
+          
+          // Zero out an existing buffer, keeping it the same size and data type
+          ImageBuf A = ...;
+          ...
+          ImageBufAlgo::zero (A);
+          
+          // Zero out a rectangular region of an existing buffer
+          ImageBufAlgo::zero (A, ROI (0, 100, 0, 100));
+          
+          // Zero out just the green channel, leave everything else the same
+          ROI roi = A.roi ();
+          roi.chbegin = 1; // green
+          roi.chend = 2;   // one past the end of the channel region
+          ImageBufAlgo::zero (A, roi);
+  
+       .. code-tab:: py
+  
+          # Create a new 3-channel, 512x512 float image filled with 0.0 values.
+          zero = ImageBufAlgo.zero (ROI(0,512,0,512,0,1,0,3))
+          
+          # Zero out an existing buffer, keeping it the same size and data type
+          A = ImageBuf(...)
+          ...
+          ImageBufAlgo.zero (A)
+          
+          # Zero out a rectangular region of an existing buffer
+          ImageBufAlgo.zero (A, ROI (0, 100, 0, 100))
+          
+          # Zero out just the green channel, leave everything else the same
+          roi = A.roi ()
+          roi.chbegin = 1 # green
+          roi.chend = 2   # one past the end of the channel region
+          ImageBufAlgo.zero (A, roi)
 
   Result-as-parameter version:
 

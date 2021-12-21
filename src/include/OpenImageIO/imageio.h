@@ -1878,20 +1878,20 @@ public:
     ///  - `"ioproxy"`
     ///         Does the image file format support writing to an `IOProxy`?
     ///
-    /// - `"procedural"` :
-    ///       Is this a purely procedural output that doesn't write an
-    ///       actual file?
+    ///  - `"procedural"` :
+    ///        Is this a purely procedural output that doesn't write an
+    ///        actual file?
     ///
-    /// - `"thumbnail"` :
-    ///       Does this format writer support adding a  reduced resolution
-    ///       copy of the image via the `thumbnail()` method?
+    ///  - `"thumbnail"` :
+    ///        Does this format writer support adding a  reduced resolution
+    ///        copy of the image via the `thumbnail()` method?
     ///
-    /// - `"thumbnail_after_write"` :
-    ///       Does this format writer support calling `thumbnail()` after
-    ///       the scanlines or tiles have been specified? (Supporting
-    ///       `"thumbnail"` but not `"thumbnail_after_write"` means that any
-    ///       thumbnail must be supplied immediately after `open()`, prior
-    ///       to any of the `write_*()` calls.)
+    ///  - `"thumbnail_after_write"` :
+    ///        Does this format writer support calling `thumbnail()` after
+    ///        the scanlines or tiles have been specified? (Supporting
+    ///        `"thumbnail"` but not `"thumbnail_after_write"` means that any
+    ///        thumbnail must be supplied immediately after `open()`, prior
+    ///        to any of the `write_*()` calls.)
     ///
     /// This list of queries may be extended in future releases. Since this
     /// can be done simply by recognizing new query strings, and does not

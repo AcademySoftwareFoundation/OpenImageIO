@@ -57,8 +57,8 @@ than images) can describe many types not used by
 OpenImageIO.  Please ignore this extra complexity; only the above simple types are understood by
 OpenImageIO as pixel storage data types, though a few others, including
 `string` and ``MATRIX44`` aggregates, are occasionally used for
-*metadata* for certain image file formats (see `sec-imageoutput-metadata`
-Sections `sec-imageoutput-metadata`, `sec-imageinput-metadata`,
+*metadata* for certain image file formats (see
+Sections :ref:`sec-imageoutput-metadata`, :ref:`sec-imageinput-metadata`,
 and the documentation of individual ImageIO plugins for details).
 
 
@@ -224,7 +224,7 @@ just exist in the OpenImageIO namespace as general utilities. (See
         int threads;
         OIIO::getattribute ("threads", &threads);
         std::string path;
-        OIIO::getattribute ("plugin_searchpath", &path);
+        OIIO::getattribute ("plugin_searchpath", path);
 
 .. cpp:function:: int get_int_attribute (string_view name, int defaultvalue=0)
                   float get_float_attribute (string_view name, float defaultvalue=0)
@@ -236,8 +236,8 @@ just exist in the OpenImageIO namespace as general utilities. (See
 
     EXAMPLES::
 
-        int threads = OIIO::getattribute ("threads", 0);
-        string_view path = OIIO::getattribute ("plugin_searchpath");
+        int threads = OIIO::get_int_attribute ("threads", 0);
+        string_view path = OIIO::get_string_attribute ("plugin_searchpath");
 
 
 
