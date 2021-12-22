@@ -639,7 +639,7 @@ public:
     /// The formatting of the string will always use the classic "C" locale
     /// conventions (in particular, '.' as decimal separator for float values).
     template<typename... Args>
-    static ustring sprintf(const char* fmt, const Args&... args)
+    OIIO_NODISCARD static ustring sprintf(const char* fmt, const Args&... args)
     {
         return ustring(Strutil::sprintf(fmt, args...));
     }
@@ -651,7 +651,8 @@ public:
     /// The formatting of the string will always use the classic "C" locale
     /// conventions (in particular, '.' as decimal separator for float values).
     template<typename... Args>
-    static ustring fmtformat(const char* fmt, const Args&... args)
+    OIIO_NODISCARD static ustring fmtformat(const char* fmt,
+                                            const Args&... args)
     {
         return ustring(Strutil::fmt::format(fmt, args...));
     }

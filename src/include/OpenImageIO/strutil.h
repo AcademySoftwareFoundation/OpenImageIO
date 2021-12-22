@@ -137,6 +137,7 @@ using ::fmt::sprintf;
 
 namespace fmt {
 template<typename Str, typename... Args>
+OIIO_NODISCARD
 inline std::string format(const Str& fmt, Args&&... args)
 {
 #if FMT_VERSION >= 70000

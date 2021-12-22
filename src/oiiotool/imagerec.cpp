@@ -206,7 +206,7 @@ ImageRec::read_nativespec()
     ustring uname(name());
     if (!m_imagecache->get_image_info(uname, 0, 0, u_subimages, TypeInt,
                                       &subimages)) {
-        errorf("file not found: \"%s\"", name());
+        errorfmt("file not found: \"{}\"", name());
         return false;  // Image not found
     }
     m_subimages.resize(subimages);
@@ -223,7 +223,7 @@ ImageRec::read_nativespec()
                 new ImageBuf(name(), s, m, m_imagecache, m_configspec.get()));
             bool ok = ib->init_spec(name(), s, m);
             if (!ok)
-                errorf("%s", ib->geterror());
+                errorfmt("{}", ib->geterror());
             allok &= ok;
             m_subimages[s].m_miplevels[m] = ib;
             m_subimages[s].m_specs[m]     = ib->spec();
@@ -245,7 +245,7 @@ ImageRec::read(ReadPolicy readpolicy, string_view channel_set)
     ustring uname(name());
     if (!m_imagecache->get_image_info(uname, 0, 0, u_subimages, TypeInt,
                                       &subimages)) {
-        errorf("file not found: \"%s\"", name());
+        errorfmt("file not found: \"{}\"", name());
         return false;  // Image not found
     }
     m_subimages.resize(subimages);
@@ -335,7 +335,7 @@ ImageRec::read(ReadPolicy readpolicy, string_view channel_set)
                                             &newchannelnames[0], false);
             }
             if (!ok)
-                errorf("%s", ib->geterror());
+                errorfmt("{}", ib->geterror());
 
             allok &= ok;
             // Remove any existing SHA-1 hash from the spec.
