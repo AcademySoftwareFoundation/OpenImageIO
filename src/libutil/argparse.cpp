@@ -85,6 +85,8 @@ public:
     bool is_separator() const { return argspec() == "<SEPARATOR>"; }
     bool hidden() const { return m_hidden; }
 
+    bool always_run() const { return m_always_run; }
+
     bool had_error() const { return m_error; }
     void had_error(bool e) { m_error = e; }
 
@@ -110,6 +112,7 @@ private:
     int m_repetitions            = 0;      // number of times on cmd line
     bool m_has_callback          = false;  // needs a callback?
     bool m_hidden                = false;  // hidden?
+    bool m_always_run            = false;  // always run?
     bool m_error                 = false;  // invalid option, had an error
     friend class ArgParse;
     friend class ArgParse::Arg;
@@ -134,7 +137,10 @@ public:
     bool m_print_defaults = false;
     bool m_add_help       = true;
     bool m_exit_on_error  = true;
+    bool m_running        = true;
     bool m_aborted        = false;
+    int m_current_arg;
+    int m_next_arg = -1;
     std::vector<std::unique_ptr<ArgOption>> m_option;
     callback_t m_preoption_help  = [](const ArgParse&, std::ostream&) {};
     callback_t m_postoption_help = [](const ArgParse&, std::ostream&) {};
@@ -435,8 +441,9 @@ ArgParse::parse_args(int xargc, const char** xargv)
 int
 ArgParse::Impl::parse_args(int xargc, const char** xargv)
 {
-    m_argc = xargc;
-    m_argv = xargv;
+    m_argc    = xargc;
+    m_argv    = xargv;
+    m_running = true;
 
     // Add help option if requested
     if (m_add_help && !find_option("--help")) {
@@ -455,7 +462,9 @@ ArgParse::Impl::parse_args(int xargc, const char** xargv)
     }
 
     bool any_option_encountered = false;
-    for (int i = 1; i < m_argc; i++) {
+    for (int i = 1; i < m_argc; ++i) {
+        m_current_arg = i;
+        m_next_arg    = -1;
         if (m_aborted)
             break;
         if (m_argv[i][0] == '-'
@@ -480,15 +489,16 @@ ArgParse::Impl::parse_args(int xargc, const char** xargv)
             option->found_on_command_line();
 
             if (option->is_flag() || option->is_reverse_flag()) {
-                option->set_parameter(0, nullptr);
-                if (option->has_callback())
-                    option->invoke_callback(1, m_argv + i);
-                if (option->m_action) {
-                    option->m_action(*option, { m_argv + i, 1 });
-                } else {
-                    m_params[option->dest()] = option->is_flag() ? 1 : 0;
+                if (m_running || option->always_run()) {
+                    option->set_parameter(0, nullptr);
+                    if (option->has_callback())
+                        option->invoke_callback(1, m_argv + i);
+                    if (option->m_action) {
+                        option->m_action(*option, { m_argv + i, 1 });
+                    } else {
+                        m_params[option->dest()] = option->is_flag() ? 1 : 0;
+                    }
                 }
-                // else
             } else {
                 assert(option->is_regular());
                 int n = option->nargs();
@@ -501,16 +511,18 @@ ArgParse::Impl::parse_args(int xargc, const char** xargv)
                     }
                     option->set_parameter(j, m_argv[i + j + 1]);
                 }
-                if (option->has_callback())
-                    option->invoke_callback(1 + n, m_argv + i);
-                if (option->m_action) {
-                    option->m_action(*option, { m_argv + i, n + 1 });
-                } else {
-                    m_params[option->dest()] = m_argv[i + 1];
+                if (m_running || option->always_run()) {
+                    if (option->has_callback())
+                        option->invoke_callback(1 + n, m_argv + i);
+                    if (option->m_action) {
+                        option->m_action(*option, { m_argv + i, n + 1 });
+                    } else {
+                        m_params[option->dest()] = m_argv[i + 1];
+                    }
                 }
                 i += n;
             }
-        } else {
+        } else if (m_running) {
             // not an option nor an option parameter, glob onto global list,
             // or the preoption list if a preoption callback was given and
             // we haven't encountered any options yet.
@@ -529,6 +541,10 @@ ArgParse::Impl::parse_args(int xargc, const char** xargv)
                          m_argv[i]);
                 return -1;
             }
+        }
+        if (m_next_arg >= 0) {
+            // The action we just took requested a different next arg.
+            i = m_next_arg - 1;
         }
     }
 
@@ -794,6 +810,15 @@ ArgParse::Arg&
 ArgParse::Arg::hidden()
 {
     static_cast<ArgOption*>(this)->m_hidden = true;
+    return *this;
+}
+
+
+
+ArgParse::Arg&
+ArgParse::Arg::always_run()
+{
+    static_cast<ArgOption*>(this)->m_always_run = true;
     return *this;
 }
 
@@ -1098,6 +1123,22 @@ ArgParse::set_postoption_help(callback_t callback)
 
 
 void
+ArgParse::running(bool run)
+{
+    m_impl->m_running = run;
+}
+
+
+
+bool
+ArgParse::running() const
+{
+    return m_impl->m_running;
+}
+
+
+
+void
 ArgParse::abort(bool aborted)
 {
     m_impl->m_aborted = aborted;
@@ -1109,6 +1150,22 @@ bool
 ArgParse::aborted() const
 {
     return m_impl->m_aborted;
+}
+
+
+
+int
+ArgParse::current_arg() const
+{
+    return m_impl->m_current_arg;
+}
+
+
+
+void
+ArgParse::set_next_arg(int nextarg)
+{
+    m_impl->m_next_arg = nextarg;
 }
 
 OIIO_NAMESPACE_END

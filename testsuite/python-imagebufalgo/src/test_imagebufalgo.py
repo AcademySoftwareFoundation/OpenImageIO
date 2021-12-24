@@ -51,7 +51,7 @@ try:
     ImageBufAlgo.checker (checker, 8, 8, 8, (0,0,0), (1,1,1))
     gray128 = make_constimage (128, 128, 3, oiio.HALF, (0.5,0.5,0.5))
     gray64 = make_constimage (64, 64, 3, oiio.HALF, (0.5,0.5,0.5))
-    tahoetiny = ImageBuf(OIIO_TESTSUITE_ROOT+"/oiiotool/src/tahoe-tiny.tif")
+    tahoetiny = ImageBuf(OIIO_TESTSUITE_ROOT+"/common/tahoe-tiny.tif")
 
     # black
     # b = ImageBuf (ImageSpec(320,240,3,oiio.UINT8))
@@ -223,7 +223,7 @@ try:
     write (b, "divc2.exr", oiio.HALF)
 
     # invert
-    a = ImageBuf (OIIO_TESTSUITE_ROOT+"/oiiotool/src/tahoe-small.tif")
+    a = ImageBuf (OIIO_TESTSUITE_ROOT+"/common/tahoe-small.tif")
     b = ImageBufAlgo.invert (a)
     write (b, "invert.tif", oiio.UINT8)
 
@@ -234,7 +234,7 @@ try:
     write (b, "cpow2.exr")
 
     # channel_sum
-    b = ImageBufAlgo.channel_sum (ImageBuf(OIIO_TESTSUITE_ROOT+"/oiiotool/src/tahoe-small.tif"),
+    b = ImageBufAlgo.channel_sum (ImageBuf(OIIO_TESTSUITE_ROOT+"/common/tahoe-small.tif"),
                                   (.2126,.7152,.0722))
     write (b, "chsum.tif", oiio.UINT8)
 
@@ -284,7 +284,7 @@ try:
     b = ImageBufAlgo.saturate (tahoetiny, scale = 2.0)
     write (b, "saturate-2.tif")
 
-    b = ImageBuf (OIIO_TESTSUITE_ROOT+"/oiiotool/src/tahoe-small.tif")
+    b = ImageBuf (OIIO_TESTSUITE_ROOT+"/common/tahoe-small.tif")
     b = ImageBufAlgo.rangecompress (b)
     write (b, "rangecompress.tif", oiio.UINT8)
     b = ImageBufAlgo.rangeexpand (b)
@@ -311,7 +311,7 @@ try:
     dumpimg (r, msg="after *M =")
 
     # computePixelStats
-    b = ImageBuf (OIIO_TESTSUITE_ROOT+"/oiiotool/src/tahoe-small.tif")
+    b = ImageBuf (OIIO_TESTSUITE_ROOT+"/common/tahoe-small.tif")
     stats = ImageBufAlgo.computePixelStats (b)
     print ("Stats for tahoe-small.tif:")
     print ("  min         = ", stats.min)
@@ -388,12 +388,12 @@ try:
     write (bsplinekernel, "bsplinekernel.exr")
 
     # convolve -- test with bspline blur
-    b = ImageBufAlgo.convolve (ImageBuf(OIIO_TESTSUITE_ROOT+"/oiiotool/src/tahoe-small.tif"),
+    b = ImageBufAlgo.convolve (ImageBuf(OIIO_TESTSUITE_ROOT+"/common/tahoe-small.tif"),
                                bsplinekernel)
     write (b, "bspline-blur.tif", oiio.UINT8)
 
     # median filter
-    b = ImageBufAlgo.median_filter (ImageBuf(OIIO_TESTSUITE_ROOT+"/oiiotool/src/tahoe-small.tif"), 5, 5)
+    b = ImageBufAlgo.median_filter (ImageBuf(OIIO_TESTSUITE_ROOT+"/common/tahoe-small.tif"), 5, 5)
     write (b, "tahoe-median.tif", oiio.UINT8)
 
     # Dilate/erode
@@ -405,17 +405,17 @@ try:
     undilated = None
 
     # unsharp_mask
-    b = ImageBufAlgo.unsharp_mask (ImageBuf(OIIO_TESTSUITE_ROOT+"/oiiotool/src/tahoe-small.tif"),
+    b = ImageBufAlgo.unsharp_mask (ImageBuf(OIIO_TESTSUITE_ROOT+"/common/tahoe-small.tif"),
                                    "gaussian", 3.0, 1.0, 0.0)
     write (b, "unsharp.tif", oiio.UINT8)
 
     # unsharp_mark with median filter
-    b = ImageBufAlgo.unsharp_mask (ImageBuf(OIIO_TESTSUITE_ROOT+"/oiiotool/src/tahoe-small.tif"),
+    b = ImageBufAlgo.unsharp_mask (ImageBuf(OIIO_TESTSUITE_ROOT+"/common/tahoe-small.tif"),
                                    "median", 3.0, 1.0, 0.0)
     write (b, "unsharp-median.tif", oiio.UINT8)
 
     # laplacian
-    b = ImageBufAlgo.laplacian (ImageBuf(OIIO_TESTSUITE_ROOT+"/oiiotool/src/tahoe-tiny.tif"))
+    b = ImageBufAlgo.laplacian (ImageBuf(OIIO_TESTSUITE_ROOT+"/common/tahoe-tiny.tif"))
     write (b, "tahoe-laplacian.tif", oiio.UINT8)
 
     # computePixelHashSHA1
@@ -423,7 +423,7 @@ try:
            ImageBufAlgo.computePixelHashSHA1(bsplinekernel))
 
     # fft, ifft
-    blue = ImageBufAlgo.channels (ImageBuf(OIIO_TESTSUITE_ROOT+"/oiiotool/src/tahoe-tiny.tif"), (2,))
+    blue = ImageBufAlgo.channels (ImageBuf(OIIO_TESTSUITE_ROOT+"/common/tahoe-tiny.tif"), (2,))
     fft = ImageBufAlgo.fft (blue)
     write (fft, "fft.exr", oiio.FLOAT)
     inv = ImageBufAlgo.ifft (fft)
@@ -484,7 +484,7 @@ try:
 
     # make_texture
     ImageBufAlgo.make_texture (oiio.MakeTxTexture,
-                               ImageBuf(OIIO_TESTSUITE_ROOT+"/oiiotool/src/tahoe-small.tif"),
+                               ImageBuf(OIIO_TESTSUITE_ROOT+"/common/tahoe-small.tif"),
                                "tahoe-small.tx")
 
     # capture_image - no test

@@ -41,7 +41,6 @@ using namespace ImageBufAlgo;
 
 
 static Oiiotool ot;
-static ArgParse ap;
 
 
 
@@ -474,7 +473,7 @@ Oiiotool::error(string_view command, string_view explanation) const
     // Repeat the command line, so if oiiotool is being called from a
     // script, it's easy to debug how the command was mangled.
     errstream << "Full command line was:\n> " << full_command_line << "\n";
-    ap.abort();  // Cease further processing of the command line
+    ot.ap.abort();  // Cease further processing of the command line
     ot.return_value = EXIT_FAILURE;
 }
 
@@ -1035,6 +1034,309 @@ set_dataformat(int argc, const char* argv[])
 
 
 
+static bool
+eval_as_bool(string_view value)
+{
+    Strutil::trim_whitespace(value);
+    if (Strutil::string_is_int(value)) {
+        return Strutil::stoi(value) != 0;
+    } else if (Strutil::string_is_float(value)) {
+        return Strutil::stof(value) != 0.0f;
+    } else {
+        return !(value.empty() || Strutil::iequals(value, "false")
+                 || Strutil::iequals(value, "no")
+                 || Strutil::iequals(value, "off"));
+    }
+}
+
+
+
+// --if
+static int
+control_if(int argc, const char* argv[])
+{
+    OIIO_DASSERT(argc == 2);
+
+    bool cond = false;
+    if (ot.running()) {
+        // string_view command = ot.express(argv[0]);
+        string_view value = ot.express(argv[1]);
+        cond              = eval_as_bool(value);
+        // Strutil::print("while: val='{}' cond={}\n", value, cond);
+    } else {
+        // If not running in the outer scope, don't even evaluate the
+        // condition.
+        // Strutil::print("while: not running\n");
+    }
+
+    ot.push_control("if", ot.ap.current_arg(), cond);
+
+    return 0;
+}
+
+
+
+// --else
+static int
+control_else(int argc, const char* argv[])
+{
+    OIIO_DASSERT(argc == 1);
+
+    string_view command = ot.express(argv[0]);
+    if (ot.control_stack.empty() || ot.control_stack.top().command != "if") {
+        ot.errorfmt(command, "else without matching if");
+        return 0;
+    }
+
+    // Pop the control record, flip the condition, and push it back
+    auto ctrl = ot.pop_control();
+    // Strutil::print("else: running={} old cond={}, new cond={}\n", ot.running(),
+    //                ctrl.condition, !ctrl.condition);
+    ot.push_control(ctrl.command, ctrl.start_arg, !ctrl.condition);
+    // Strutil::print("    (inside else, now running={})\n", ot.running());
+
+    return 0;
+}
+
+
+
+// --endif
+static int
+control_endif(int argc, const char* argv[])
+{
+    OIIO_DASSERT(argc == 1);
+
+    string_view command = ot.express(argv[0]);
+    if (ot.control_stack.empty() || ot.control_stack.top().command != "if") {
+        ot.errorfmt(command, "endif without matching if");
+        return 0;
+    }
+    // Strutil::print("endif: running={}\n", ot.running());
+    ot.pop_control();
+    // Strutil::print("    (after endif, now running={})\n", ot.running());
+
+    return 0;
+}
+
+
+
+// --while
+static int
+control_while(int argc, const char* argv[])
+{
+    OIIO_DASSERT(argc == 2);
+
+    bool cond = false;
+    if (ot.running()) {
+        // string_view command = ot.express(argv[0]);
+        string_view value = ot.express(argv[1]);
+        cond              = eval_as_bool(value);
+        // Strutil::print("while: val='{}' cond={}\n", value, cond);
+    } else {
+        // If not running in the outer scope, don't even evaluate the
+        // condition.
+        // Strutil::print("while: not running\n");
+    }
+
+    ot.push_control("while", ot.ap.current_arg(), cond);
+
+    return 0;
+}
+
+
+
+// --endwhile
+static int
+control_endwhile(int argc, const char* argv[])
+{
+    OIIO_DASSERT(argc == 1);
+
+    string_view command = ot.express(argv[0]);
+    if (ot.control_stack.empty() || ot.control_stack.top().command != "while") {
+        ot.errorfmt(command, "endwhile without matching while");
+        return 0;
+    }
+    // Strutil::print("endwhile: running={}\n", ot.running());
+    auto ctl = ot.pop_control();
+    if (ctl.condition) {
+        // If the while loop was active, loop back and run it again
+        ot.ap.set_next_arg(ctl.start_arg);
+    }
+    // Strutil::print("    (after endwhile, now running={})\n", ot.running());
+
+    return 0;
+}
+
+
+
+// --for
+static int
+control_for(int argc, const char* argv[])
+{
+    OIIO_DASSERT(argc == 3);
+
+    if (ot.running()) {
+        // string_view command = ot.express(argv[0]);
+        std::string variable = ot.express(argv[1]);
+        string_view range    = ot.express(argv[2]);
+
+        auto rangevals = Strutil::extract_from_list_string<float>(range);
+        if (rangevals.size() == 1)
+            rangevals.insert(rangevals.begin(), 0.0f);  // supply missing start
+        if (rangevals.size() == 2)
+            rangevals.push_back(1.0f);  // supply missing step
+        if (rangevals.size() != 3) {
+            ot.errorfmt(argv[0], "Invalid range \"{}\"", range);
+            return 0;
+        }
+        // TODO? If the range did not consist of well-formed numbers,
+        // hilarity ensues.
+
+        // There are two cases here: either we are hitting this --for
+        // for the first time (need to initialize and set up the control
+        // record), or we are re-iterating on a loop we already set up.
+        float val;
+        if (ot.control_stack.empty()
+            || ot.control_stack.top().start_arg != ot.ap.current_arg()) {
+            // First time through the loop. Note that we recognize our first
+            // time by the fact that the top of the control stack doesn't have
+            // a start_arg that is this --for command.
+            val = rangevals[0];
+            ot.push_control("for", ot.ap.current_arg(), true);
+            // Strutil::print("First for!\n");
+        } else {
+            // We've started this loop already, this is at least our 2nd time
+            // through. Just increment the variable and update the condition
+            // for another pass through the loop.
+            val = ot.uservars.get_float(variable) + rangevals[2];
+            // Strutil::print("Repeat for!\n");
+        }
+        ot.uservars.attribute(variable, val);
+        bool cond                        = val < rangevals[1];
+        ot.control_stack.top().condition = cond;
+        ot.ap.running(ot.running());
+        // Strutil::print("for {} {} : {}={} cond={} (now running={})\n", variable,
+        //                range, variable, val, cond, ot.running());
+    } else {
+        // If not running in the outer scope, don't even evaluate the
+        // condition, just push a control record with condition false, that
+        // will skip the body and resume execution after the endfor.
+        ot.push_control("for", ot.ap.current_arg(), false);
+        // Strutil::print("for: not running\n");
+    }
+
+    return 0;
+}
+
+
+
+// --endfor
+static int
+control_endfor(int argc, const char* argv[])
+{
+    OIIO_DASSERT(argc == 1);
+
+    string_view command = ot.express(argv[0]);
+    if (ot.control_stack.empty() || ot.control_stack.top().command != "for") {
+        ot.errorfmt(command, "endfor without matching for");
+        return 0;
+    }
+    // Strutil::print("endfor: running={}\n", ot.running());
+
+    if (ot.control_stack.top().condition) {
+        // If we just executed the loop body, don't pop the control record,
+        // just loop again. There is special logic in --for to figure out how
+        // to iterate upon hitting the start for the 2nd (or more) time.
+        OIIO_DASSERT(ot.running());
+        ot.ap.set_next_arg(ot.control_stack.top().start_arg);
+        ot.control_stack.top().running = true;
+        // Strutil::print("    (at endfor, looping back again\n");
+    } else {
+        // If we skipped the loop body because it's time to exit the loop, pop
+        // the control record and move on.
+        ot.pop_control();
+        // Strutil::print("    (after endfor, now running={})\n", ot.running());
+    }
+
+    return 0;
+}
+
+
+
+// --set
+static int
+set_user_variable(int argc, const char* argv[])
+{
+    OIIO_DASSERT(argc == 3);
+
+    string_view command = ot.express(argv[0]);
+    string_view name    = ot.express(argv[1]);
+    string_view value   = ot.express(argv[2]);
+    auto options        = ot.extract_options(command);
+    TypeDesc type(options["type"].as_string());
+
+    // First, handle the cases where we're told what to expect
+    if (type.basetype == TypeDesc::FLOAT) {
+        size_t n = type.numelements() * type.aggregate;
+        std::vector<float> vals(n, 0.0f);
+        for (size_t i = 0; i < n && value.size(); ++i) {
+            Strutil::parse_float(value, vals[i]);
+            Strutil::parse_char(value, ',');
+        }
+        ot.uservars.attribute(name, type, vals.data());
+        return 1;
+    }
+    if (type.basetype == TypeDesc::INT) {
+        size_t n = type.numelements() * type.aggregate;
+        std::vector<int> vals(n, 0);
+        for (size_t i = 0; i < n && value.size(); ++i) {
+            Strutil::parse_int(value, vals[i]);
+            Strutil::parse_char(value, ',');
+        }
+        ot.uservars.attribute(name, type, vals.data());
+        return 1;
+    }
+    if (type.basetype == TypeDesc::STRING) {
+        size_t n = type.numelements() * type.aggregate;
+        std::vector<ustring> vals(n, ustring());
+        if (n == 1)
+            vals[0] = ustring(value);
+        else {
+            for (size_t i = 0; i < n && value.size(); ++i) {
+                string_view s;
+                Strutil::parse_string(value, s);
+                vals[i] = ustring(s);
+                Strutil::parse_char(value, ',');
+            }
+        }
+        ot.uservars.attribute(name, type, vals.data());
+        return 1;
+    }
+
+    if (type == TypeInt
+        || (type == TypeUnknown && Strutil::string_is_int(value))) {
+        // Does it seem to be an int, or did the caller explicitly request
+        // that it be set as an int?
+        ot.uservars.attribute(name, Strutil::stoi(value));
+        return 1;
+    } else if (type == TypeFloat
+               || (type == TypeUnknown && Strutil::string_is_float(value))) {
+        // Does it seem to be a float, or did the caller explicitly request
+        // that it be set as a float?
+        ot.uservars.attribute(name, Strutil::stof(value));
+        return 1;
+    } else {
+        // Otherwise, set it as a string attribute
+        ot.uservars.attribute(name, value);
+        return 1;
+    }
+    ot.warningfmt(argv[0], "Don't know how to set {} to \"{}\" ({})", name,
+                  value, type);
+    return 0;
+}
+
+
+
 // --oiioattrib
 static int
 set_oiio_attribute(int argc, const char* argv[])
@@ -1287,6 +1589,22 @@ Oiiotool::express_error(const string_view expr, const string_view s,
 
 
 
+// If str starts with what looks like a function call "name(" (allowing for
+// whitespace before the paren), eat those chars from str and return true.
+// Otherwise return false and leave str unchanged.
+inline bool
+parse_function_start_if(string_view& str, string_view name)
+{
+    string_view s = str;
+    if (Strutil::parse_identifier_if(s, name) && Strutil::parse_char(s, '(')) {
+        str = s;
+        return true;
+    }
+    return false;
+}
+
+
+
 bool
 Oiiotool::express_parse_atom(const string_view expr, string_view& s,
                              std::string& result)
@@ -1298,13 +1616,16 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
 
     Strutil::skip_whitespace(s);
 
-    // handle + or - prefixes
+    // handle + - ! prefixes
     bool negative = false;
+    bool invert   = false;
     while (s.size()) {
         if (Strutil::parse_char(s, '-')) {
             negative = !negative;
         } else if (Strutil::parse_char(s, '+')) {
             // no op
+        } else if (Strutil::parse_char(s, '!')) {
+            invert = !invert;
         } else {
             break;
         }
@@ -1323,8 +1644,7 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
             return false;
         }
 
-    } else if (Strutil::parse_identifier_if(s, "getattribute")
-               && Strutil::parse_char(s, '(')) {
+    } else if (parse_function_start_if(s, "getattribute")) {
         // "{getattribute(name)}" retrieves global attribute `name`
         bool ok = true;
         Strutil::skip_whitespace(s);
@@ -1348,6 +1668,45 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
                 ok = false;
         }
         return Strutil::parse_char(s, ')') && ok;
+    } else if (parse_function_start_if(s, "var")) {
+        // "{var(name)}" retrieves user variable `name`
+        bool ok = true;
+        Strutil::skip_whitespace(s);
+        string_view name;
+        if (s.size() && (s.front() == '\"' || s.front() == '\''))
+            ok = Strutil::parse_string(s, name);
+        else {
+            name = Strutil::parse_until(s, ")");
+        }
+        if (name.size()) {
+            result = ot.uservars[name];
+        }
+        return Strutil::parse_char(s, ')') && ok;
+    } else if (parse_function_start_if(s, "eq")) {
+        std::string left, right;
+        bool ok = express_parse_atom(s, s, left) && Strutil::parse_char(s, ',');
+        ok &= express_parse_atom(s, s, right) && Strutil::parse_char(s, ')');
+        result = left == right ? "1" : "0";
+        // Strutil::print("eq: left='{}', right='{}' ok={} result={}\n", left,
+        //                right, ok, result);
+        if (!ok)
+            return false;
+    } else if (parse_function_start_if(s, "neq")) {
+        std::string left, right;
+        bool ok = express_parse_atom(s, s, left) && Strutil::parse_char(s, ',');
+        ok &= express_parse_atom(s, s, right) && Strutil::parse_char(s, ')');
+        result = left != right ? "1" : "0";
+        // Strutil::print("neq: left='{}', right='{}' ok={} result={}\n", left,
+        //                right, ok, result);
+        if (!ok)
+            return false;
+    } else if (parse_function_start_if(s, "not")) {
+        std::string val;
+        bool ok = express_parse_summands(s, s, val)
+                  && Strutil::parse_char(s, ')');
+        result = eval_as_bool(val) ? "0" : "1";
+        if (!ok)
+            return false;
 
     } else if (Strutil::starts_with(s, "TOP")
                || Strutil::starts_with(s, "IMG[")) {
@@ -1466,6 +1825,11 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
         }
     } else if (Strutil::parse_float(s, floatval)) {
         result = Strutil::fmt::format("{:g}", floatval);
+    } else if (Strutil::parse_char(s, '\"', true, false)
+               || Strutil::parse_char(s, '\'', true, false)) {
+        string_view r;
+        Strutil::parse_string(s, r);
+        result = r;
     }
     // Test some special identifiers
     else if (Strutil::parse_identifier_if(s, "FRAME_NUMBER")) {
@@ -1477,13 +1841,21 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
                                                  ot.frame_padding);
         result          = Strutil::sprintf(fmt.c_str(), ot.frame_number);
     } else {
-        express_error(expr, s, "syntax error");
-        result = orig;
-        return false;
+        string_view id = Strutil::parse_identifier(s, false);
+        if (id.size() && ot.uservars.contains(id)) {
+            result = ot.uservars[id];
+            Strutil::parse_identifier(s, true);  // eat the id
+        } else {
+            express_error(expr, s, "syntax error");
+            result = orig;
+            return false;
+        }
     }
 
     if (negative)
         result = "-" + result;
+    if (invert)
+        result = eval_as_bool(result) ? "0" : "1";
 
     // std::cout << " Exiting express_parse_atom, result='" << result << "'\n";
 
@@ -1581,7 +1953,6 @@ Oiiotool::express_parse_summands(const string_view expr, string_view& s,
 
     string_view orig = s;
     std::string atom;
-    float lval, rval;
 
     // parse the first summand
     if (!express_parse_factors(expr, s, atom)) {
@@ -1594,14 +1965,11 @@ Oiiotool::express_parse_summands(const string_view expr, string_view& s,
         result = atom.substr(1, atom.size() - 2);
     } else if (Strutil::string_is<float>(atom)) {
         // lval is a number
-        lval = Strutil::from_string<float>(atom);
+        float lval = Strutil::from_string<float>(atom);
         while (s.size()) {
-            char op;
-            if (Strutil::parse_char(s, '+'))
-                op = '+';
-            else if (Strutil::parse_char(s, '-'))
-                op = '-';
-            else {
+            Strutil::skip_whitespace(s);
+            string_view op = Strutil::parse_while(s, "+-<=>!&|");
+            if (op == "") {
                 // no more summands
                 break;
             }
@@ -1621,11 +1989,30 @@ Oiiotool::express_parse_summands(const string_view expr, string_view& s,
             }
 
             // rval is also a number, we can math
-            rval = Strutil::from_string<float>(atom);
-            if (op == '+')
+            float rval = Strutil::from_string<float>(atom);
+            if (op == "+") {
                 lval += rval;
-            else  // op == '-'
+            } else if (op == "-") {
                 lval -= rval;
+            } else if (op == "<") {
+                lval = (lval < rval) ? 1 : 0;
+            } else if (op == ">") {
+                lval = (lval > rval) ? 1 : 0;
+            } else if (op == "<=") {
+                lval = (lval <= rval) ? 1 : 0;
+            } else if (op == ">=") {
+                lval = (lval >= rval) ? 1 : 0;
+            } else if (op == "==") {
+                lval = (lval == rval) ? 1 : 0;
+            } else if (op == "!=") {
+                lval = (lval != rval) ? 1 : 0;
+            } else if (op == "<=>") {
+                lval = (lval < rval) ? -1 : (lval > rval ? 1 : 0);
+            } else if (op == "&&" || op == "&") {
+                lval = (lval != 0.0f && rval != 0.0f) ? 1 : 0;
+            } else if (op == "||" || op == "|") {
+                lval = (lval != 0.0f || rval != 0.0f) ? 1 : 0;
+            }
         }
 
         result = Strutil::fmt::format("{:g}", lval);
@@ -4757,7 +5144,7 @@ input_file(int argc, const char* argv[])
         if (substitute) {
             ot.push(ImageRecRef(new ImageRec(substitute)));
             readnow = false;
-            ap.abort(false);
+            ot.ap.abort(false);
         } else {
             if (ot.debug || ot.verbose)
                 std::cout << "Reading " << filename << "\n";
@@ -5679,7 +6066,7 @@ print_help_end(std::ostream& out)
 static void
 print_help(ArgParse& ap)
 {
-    ap.print_help();
+    ot.ap.print_help();
     print_help_end(std::cout);
 }
 
@@ -5700,8 +6087,8 @@ static void list_formats(cspan<const char*>)
 
 
 
-static void
-getargs(int argc, char* argv[])
+void
+Oiiotool::getargs(int argc, char* argv[])
 {
     bool help = false;
 
@@ -5723,7 +6110,7 @@ getargs(int argc, char* argv[])
       .hidden()
       .action(input_file);
 
-    ap.separator("Options (general flags, usually not positional):");
+    ap.separator("Options (general flags):");
     ap.arg("--help", &help)
       .help("Print help message");
     ap.arg("-v", &ot.verbose)
@@ -5764,24 +6151,6 @@ getargs(int argc, char* argv[])
     ap.arg("--threads %d:N")
       .help("Number of threads (default 0 == #cores)")
       .action(set_threads);
-    ap.arg("--frames %s:FRAMERANGE")
-      .help("Frame range for '#' or printf-style wildcards");
-    ap.arg("--framepadding %d:NDIGITS", &ot.frame_padding)
-      .help("Frame number padding digits (ignored when using printf-style wildcards)");
-    ap.arg("--views %s:VIEWNAMES")
-      .help("Views for %V/%v wildcards (comma-separated, defaults to \"left,right\")");
-    ap.arg("--skip-bad-frames", &ot.skip_bad_frames)
-      .help("Skip to next frame in range if there's an error, rather than exiting");
-    ap.arg("--wildcardoff")
-      .help("Disable numeric wildcard expansion for subsequent command line arguments");
-    ap.arg("--wildcardon")
-      .help("Enable numeric wildcard expansion for subsequent command line arguments");
-    ap.arg("--evaloff")
-      .help("Disable {expression} evaluation for subsequent command line arguments")
-      .action([&](cspan<const char*>){ ot.eval_enable = false; });
-    ap.arg("--evalon")
-      .help("Enable {expression} evaluation for subsequent command line arguments")
-      .action([&](cspan<const char*>){ ot.eval_enable = true; });
     ap.arg("--no-autopremult")
       .help("Turn off automatic premultiplication of images with unassociated alpha")
       .action(unset_autopremult);
@@ -5814,6 +6183,58 @@ getargs(int argc, char* argv[])
     ap.arg("--nostderr", &ot.nostderr)
       .help("Do not use stderr, output error messages to stdout")
       .hidden();
+
+    ap.separator("Control flow and scripting:");
+    ap.arg("--set %s:NAME %s:VALUE")
+      .help("Set a user variable (options: type=...)")
+      .action(set_user_variable);
+    ap.arg("--if %s:VALUE")
+      .help("If VALUE is not 0 or empty, execute commands until --endif")
+      .action(control_if)
+      .always_run();
+    ap.arg("--else")
+      .help("Else clause of the current 'if' block")
+      .action(control_else)
+      .always_run();
+    ap.arg("--endif")
+      .help("End the current 'if' block")
+      .action(control_endif)
+      .always_run();
+    ap.arg("--while %s:VALUE")
+      .help("If VALUE is not 0 or empty, execute commands until --endwhile and loop")
+      .action(control_while)
+      .always_run();
+    ap.arg("--endwhile")
+      .help("End the current 'while' block")
+      .action(control_endwhile)
+      .always_run();
+    ap.arg("--for %s:VARIABLE %s:RANGE")
+      .help("Iterate over a range the commands between here and --endfor. "
+            " The range may be END (implied begin 0 and step 1), START,END (implied step 1) or START,END,STEP")
+      .action(control_for)
+      .always_run();
+    ap.arg("--endfor")
+      .help("End the current 'for' block")
+      .action(control_endfor)
+      .always_run();
+    ap.arg("--frames %s:FRAMERANGE")
+      .help("Frame range for '#' or printf-style wildcards");
+    ap.arg("--framepadding %d:NDIGITS", &ot.frame_padding)
+      .help("Frame number padding digits (ignored when using printf-style wildcards)");
+    ap.arg("--views %s:VIEWNAMES")
+      .help("Views for %V/%v wildcards (comma-separated, defaults to \"left,right\")");
+    ap.arg("--skip-bad-frames", &ot.skip_bad_frames)
+      .help("Skip to next frame in range if there's an error, rather than exiting");
+    ap.arg("--wildcardoff")
+      .help("Disable numeric wildcard expansion for subsequent command line arguments");
+    ap.arg("--wildcardon")
+      .help("Enable numeric wildcard expansion for subsequent command line arguments");
+    ap.arg("--evaloff")
+      .help("Disable {expression} evaluation for subsequent command line arguments")
+      .action([&](cspan<const char*>){ ot.eval_enable = false; });
+    ap.arg("--evalon")
+      .help("Enable {expression} evaluation for subsequent command line arguments")
+      .action([&](cspan<const char*>){ ot.eval_enable = true; });
     ap.arg("--crash")
       .hidden()
       .action(crash_me);
@@ -6483,23 +6904,28 @@ handle_sequence(int argc, const char** argv)
 
         ot.clear_options();  // Careful to reset all command line options!
         ot.frame_number = frame_numbers[0][i];
-        getargs(argc, (char**)&seq_argv[0]);
+        ot.getargs(argc, (char**)&seq_argv[0]);
 
-        if (ap.aborted()) {
+        if (ot.ap.aborted()) {
             if (!ot.skip_bad_frames)
                 break;
             else
-                ap.abort(false);
+                ot.ap.abort(false);
         } else {
             ot.process_pending();
             if (ot.pending_callback())
                 ot.warning(ot.pending_callback_name(),
                            "pending command never executed");
+            if (!ot.control_stack.empty())
+                ot.warningfmt(ot.control_stack.top().command, "unterminated {}",
+                              ot.control_stack.top().command);
         }
 
         // Clear the stack at the end of each iteration
         ot.curimg.reset();
         ot.image_stack.clear();
+        while (ot.control_stack.size())
+            ot.control_stack.pop();
 
         if (ot.runstats)
             std::cout << "End iteration " << i << ": "
@@ -6569,17 +6995,20 @@ main(int argc, char* argv[])
 
     } else {
         // Not a sequence
-        getargs(argc, argv);
-        if (!ap.aborted()) {
+        ot.getargs(argc, argv);
+        if (!ot.ap.aborted()) {
             ot.process_pending();
             if (ot.pending_callback())
                 ot.warning(ot.pending_callback_name(),
                            "pending command never executed");
+            if (!ot.control_stack.empty())
+                ot.warningfmt(ot.control_stack.top().command, "unterminated {}",
+                              ot.control_stack.top().command);
         }
     }
 
     if (!ot.printinfo && !ot.printstats && !ot.dumpdata && !ot.dryrun
-        && !ot.printed_info && !ap.aborted()) {
+        && !ot.printed_info && !ot.ap.aborted()) {
         if (ot.curimg && !ot.curimg->was_output()
             && (ot.curimg->metadata_modified() || ot.curimg->pixels_modified()))
             ot.warning(

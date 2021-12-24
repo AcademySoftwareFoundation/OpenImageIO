@@ -1,0 +1,161 @@
+42+2 = 44
+42-2 = 40
+42*2 = 84
+42/2 = 21
+42<41 = 0
+42<42 = 0
+42<43 = 1
+42<=41 = 0
+42<=42 = 1
+42<=43 = 1
+42>41 = 1
+42>42 = 0
+42>43 = 0
+42>=41 = 1
+42>=42 = 1
+42>=43 = 0
+42==41 = 0
+42==42 = 1
+42==43 = 0
+42!=41 = 1
+42!=42 = 0
+42!=43 = 1
+42<=>41 = 1
+42<=>42 = 0
+42<=>43 = -1
+(1==2)&&(2==2) = 0
+(1==1)&&(2==2) = 1
+(1==2)&&(1==2) = 0
+(1==2)||(2==2) = 1
+(1==1)||(2==2) = 1
+(1==2)||(1==2) = 0
+not(1==1) = 0
+not(1==2) = 1
+!(1==1) = 0
+!(1==2) = 1
+eq(foo,foo) = 1
+eq(foo,bar) = 0
+neq(foo,foo) = 0
+neq(foo,bar) = 1
+16+5=21
+16-5=11
+16*5=80
+16/5=3.2
+16//5=3
+16%5=1
+xyz should say xyz
+timecode is 01:02:03:04
+2
+{3+4}
+4
+Testing --set:
+  i = 1
+  now i = 42
+Testing if with true cond (expect output):
+  inside if clause, i=42
+  done
+ 
+Testing if with false cond (expect NO output):
+  done
+ 
+Testing if/else with true cond:
+  inside if clause, i=42
+  done
+ 
+Testing if/else with false cond:
+  inside else clause, i=0
+  done
+ 
+Testing while (expect output 0..2):
+  i = 0
+  i = 1
+  i = 2
+ 
+Testing for i 5 (expect output 0..4):
+  i = 0
+  i = 1
+  i = 2
+  i = 3
+  i = 4
+ 
+Testing for i 5,10 (expect output 5..9):
+  i = 5
+  i = 6
+  i = 7
+  i = 8
+  i = 9
+ 
+Testing for i 5,10,2 (expect output 5,7,9):
+  i = 5
+  i = 7
+  i = 9
+ 
+copyA.0001.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0002.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0003.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0004.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0005.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0006.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0007.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0008.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0009.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0010.jpg       :  128 x   96, 3 channel, uint8 jpeg
+Sequence 1-5:  1
+Sequence 1-5:  2
+Sequence 1-5:  3
+Sequence 1-5:  4
+Sequence 1-5:  5
+Sequence -5-5:  -5
+Sequence -5-5:  -4
+Sequence -5-5:  -3
+Sequence -5-5:  -2
+Sequence -5-5:  -1
+Sequence -5-5:  0
+Sequence -5-5:  1
+Sequence -5-5:  2
+Sequence -5-5:  3
+Sequence -5-5:  4
+Sequence -5-5:  5
+Sequence -5--2:  -5
+Sequence -5--2:  -4
+Sequence -5--2:  -3
+Sequence -5--2:  -2
+
+Brief:  128 x   96, 3 channel, float tiff
+
+Meta:  128 x   96, 3 channel, float tiff
+    channel list: R, G, B
+    compression: "lzw"
+    DateTime: "2013:04:16 10:20:35"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    planarconfig: "contig"
+    ResolutionUnit: "in"
+    Software: "OpenImageIO 1.6.4dev : oiiotool testsuite/oiiotool/tahoe-small.tif -resize 128x96 -o testsuite/oiiotool/tahoe-tiny.tif"
+    XResolution: 72
+    YResolution: 72
+    oiio:BitsPerSample: 8
+    tiff:Compression: 5
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+    tiff:RowsPerStrip: 32
+
+Stats:
+Stats Min: 0 0 0 (of 255)
+Stats Max: 190 255 255 (of 255)
+Stats Avg: 26.00 55.26 108.45 (of 255)
+Stats StdDev: 32.31 59.12 95.51 (of 255)
+Stats NanCount: 0 0 0 
+Stats InfCount: 0 0 0 
+Stats FiniteCount: 12288 12288 12288 
+Constant: No
+Monochrome: No
+
+Comparing "exprgradient.tif" and "ref/exprgradient.tif"
+PASS
+Comparing "exprcropped.tif" and "ref/exprcropped.tif"
+PASS
+Comparing "exprstrcatlzw.tif" and "ref/exprstrcatlzw.tif"
+PASS
+Comparing "tahoe-contraststretch.tif" and "ref/tahoe-contraststretch.tif"
+PASS

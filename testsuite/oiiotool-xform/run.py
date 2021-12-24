@@ -31,8 +31,6 @@ def make_test_pattern1 (filename, xres=288, yres=216) :
 #make_test_pattern1 ("src/target1.exr", 288, 216)
 
 oiiotoolsrcdir = os.path.join(OIIO_TESTSUITE_ROOT, "oiiotool", "src")
-shutil.copy (oiiotoolsrcdir + "/tahoe-tiny.tif", "./tahoe-tiny.tif")
-shutil.copy (oiiotoolsrcdir + "/tahoe-small.tif", "./tahoe-small.tif")
 shutil.copy (oiiotoolsrcdir + "/image.tif", "./image.tif")
 
 
@@ -56,7 +54,7 @@ command += oiiotool ("--pattern fill:topleft=1,0,0:topright=0,1,0:bottomleft=0,0
 command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif --fit 360x240 -d uint8 -o fit.tif")
 command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif --fit 240x360 -d uint8 -o fit2.tif")
 # regression test: --fit without needing resize used to be problematic
-command += oiiotool ("tahoe-tiny.tif --fit 128x128 -d uint8 -o fit3.tif")
+command += oiiotool ("../common/tahoe-tiny.tif --fit 128x128 -d uint8 -o fit3.tif")
 # test --fit:exact=1 when we can't get a precise whole-pixel fit of aspect
 command += oiiotool ("src/target1.exr --fit:exact=1:filter=blackman-harris 216x162 -o fit4.exr")
 # test the different fill modes. We do this with a test pattern image
@@ -74,7 +72,7 @@ for wh in [ 'w', 'h' ] :
 
 
 # test --pixelaspect
-command += oiiotool ("tahoe-small.tif -resize 256x192 --pixelaspect 2.0 -d uint8 -o pixelaspect.tif")
+command += oiiotool ("../common/tahoe-small.tif -resize 256x192 --pixelaspect 2.0 -d uint8 -o pixelaspect.tif")
 
 # test rotate
 command += oiiotool ("resize.tif --rotate 45 -o rotated.tif")
