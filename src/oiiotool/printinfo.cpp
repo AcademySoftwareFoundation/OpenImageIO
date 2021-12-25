@@ -45,7 +45,7 @@ compute_sha1(Oiiotool& ot, ImageInput* input, int subimage)
             std::string err = input->geterror();
             if (err.empty())
                 err = "could not read image";
-            ot.errorf("-info", "SHA-1: %s", err);
+            ot.errorfmt("-info", "SHA-1: {}", err);
             return std::string();
         }
         // Hash both the sample counts and the data block
@@ -54,7 +54,7 @@ compute_sha1(Oiiotool& ot, ImageInput* input, int subimage)
     } else {
         imagesize_t size = input->spec().image_bytes(true /*native*/);
         if (size >= std::numeric_limits<size_t>::max()) {
-            ot.errorf("-info", "SHA-1: unable to compute, image is too big");
+            ot.error("-info", "SHA-1: unable to compute, image is too big");
             return std::string();
         } else if (size != 0) {
             std::unique_ptr<char[]> buf(new char[size]);
@@ -62,7 +62,7 @@ compute_sha1(Oiiotool& ot, ImageInput* input, int subimage)
                 std::string err = input->geterror();
                 if (err.empty())
                     err = "could not read image";
-                ot.errorf("-info", "SHA-1: %s", err);
+                ot.errorfmt("-info", "SHA-1: {}", err);
                 return std::string();
             }
             sha.append(&buf[0], size);

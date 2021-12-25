@@ -272,20 +272,6 @@ public:
     void error(string_view command, string_view message = "") const;
     void warning(string_view command, string_view message = "") const;
 
-    // Formatted errors with printf-like notation
-    template<typename... Args>
-    void errorf(string_view command, const char* fmt, const Args&... args) const
-    {
-        error(command, Strutil::sprintf(fmt, args...));
-    }
-
-    template<typename... Args>
-    void warningf(string_view command, const char* fmt,
-                  const Args&... args) const
-    {
-        warning(command, Strutil::sprintf(fmt, args...));
-    }
-
     // Formatted errors with std::format-like notation
     template<typename... Args>
     void errorfmt(string_view command, const char* fmt,
@@ -547,9 +533,18 @@ public:
     /// Error reporting for ImageRec: call this with printf-like arguments.
     /// Note however that this is fully typesafe!
     template<typename... Args>
+    OIIO_DEPRECATED("Use errorfmt instead")
     void errorf(const char* fmt, const Args&... args) const
     {
         append_error(Strutil::sprintf(fmt, args...));
+    }
+
+    /// Error reporting for ImageRec: call this with printf-like arguments.
+    /// Note however that this is fully typesafe!
+    template<typename... Args>
+    void errorfmt(const char* fmt, const Args&... args) const
+    {
+        append_error(Strutil::fmt::format(fmt, args...));
     }
 
     /// Return true if the IR has had an error and has an error message
@@ -867,7 +862,7 @@ public:
                     // Call the impl kernel for this subimage
                     bool ok = impl(m_img);
                     if (!ok)
-                        ot.errorf(opname(), "%s", m_img[0]->geterror());
+                        ot.errorfmt(opname(), "{}", m_img[0]->geterror());
 
                     // Merge metadata if called for
                     if (ot.metamerge)
@@ -885,7 +880,7 @@ public:
             // Make sure to forward any errors missed by the impl
             for (auto& im : m_img)
                 if (im->has_error())
-                    ot.errorf(opname(), "%s", im->geterror());
+                    ot.errorfmt(opname(), "{}", im->geterror());
         }
     }
 
