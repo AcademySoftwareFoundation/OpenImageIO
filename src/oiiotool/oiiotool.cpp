@@ -3209,6 +3209,7 @@ action_reorient(int argc, const char* argv[])
 OIIOTOOL_OP(rotate, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     float angle            = Strutil::from_string<float>(op.args(1));
     std::string filtername = op.options()["filter"];
+    bool highlightcomp     = op.options().get_int("highlightcomp");
     bool recompute_roi     = op.options().get_int("recompute_roi");
     std::string cent       = op.options()["center"];
     string_view center(cent);
@@ -3223,8 +3224,23 @@ OIIOTOOL_OP(rotate, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
         cx               = 0.5f * (src_roi_full.xbegin + src_roi_full.xend);
         cy               = 0.5f * (src_roi_full.ybegin + src_roi_full.yend);
     }
-    return ImageBufAlgo::rotate(*img[0], *img[1], angle * float(M_PI / 180.0),
-                                cx, cy, filtername, 0.0f, recompute_roi);
+    bool ok = true;
+    ImageBuf tmpimg;
+    ImageBuf* src = img[1];
+    if (highlightcomp) {
+        // If the caller requested highlight compensation for an HDR image to
+        // prevent ringing artifacts, we make a temporary image with the
+        // reduced-contrast data.
+        ok &= ImageBufAlgo::rangecompress(tmpimg, *src);
+        src = &tmpimg;
+    }
+    ok &= ImageBufAlgo::rotate(*img[0], *src, angle * float(M_PI / 180.0), cx,
+                               cy, filtername, 0.0f, recompute_roi);
+    if (highlightcomp && ok) {
+        // re-expand the range in place
+        ok &= ImageBufAlgo::rangeexpand(*img[0], *img[0]);
+    }
+    return ok;
 });
 
 
@@ -3232,6 +3248,7 @@ OIIOTOOL_OP(rotate, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
 // --warp
 OIIOTOOL_OP(warp, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     std::string filtername = op.options()["filter"];
+    bool highlightcomp     = op.options().get_int("highlightcomp");
     bool recompute_roi     = op.options().get_int("recompute_roi");
     std::vector<float> M(9);
     if (Strutil::extract_from_list_string(M, op.args(1)) != 9) {
@@ -3239,9 +3256,23 @@ OIIOTOOL_OP(warp, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
                  "expected 9 comma-separatd floats to form a 3x3 matrix");
         return false;
     }
-    return ImageBufAlgo::warp(*img[0], *img[1], *(Imath::M33f*)&M[0],
-                              filtername, 0.0f, recompute_roi,
-                              ImageBuf::WrapDefault);
+    bool ok = true;
+    ImageBuf tmpimg;
+    ImageBuf* src = img[1];
+    if (highlightcomp) {
+        // If the caller requested highlight compensation for an HDR image to
+        // prevent ringing artifacts, we make a temporary image with the
+        // reduced-contrast data.
+        ok &= ImageBufAlgo::rangecompress(tmpimg, *src);
+        src = &tmpimg;
+    }
+    ok &= ImageBufAlgo::warp(*img[0], *src, *(Imath::M33f*)&M[0], filtername,
+                             0.0f, recompute_roi, ImageBuf::WrapDefault);
+    if (highlightcomp && ok) {
+        // re-expand the range in place
+        ok &= ImageBufAlgo::rangeexpand(*img[0], *img[0]);
+    }
+    return ok;
 });
 
 
@@ -3803,6 +3834,7 @@ public:
     virtual bool impl(span<ImageBuf*> img) override
     {
         std::string filtername = options()["filter"];
+        bool highlightcomp     = options().get_int("highlightcomp");
         if (ot.debug) {
             const ImageSpec& newspec(img[0]->spec());
             const ImageSpec& Aspec(img[1]->spec());
@@ -3812,8 +3844,23 @@ public:
                       << (filtername.size() ? filtername.c_str() : "default")
                       << " filter\n";
         }
-        return ImageBufAlgo::resize(*img[0], *img[1], filtername, 0.0f,
-                                    img[0]->roi());
+        bool ok = true;
+        ImageBuf tmpimg;
+        ImageBuf* src = img[1];
+        if (highlightcomp) {
+            // If the caller requested highlight compensation for an HDR image
+            // to prevent ringing artifacts, we make a temporary image with
+            // the reduced-contrast data.
+            ok &= ImageBufAlgo::rangecompress(tmpimg, *src);
+            src = &tmpimg;
+        }
+        ok &= ImageBufAlgo::resize(*img[0], *src, filtername, 0.0f,
+                                   img[0]->roi());
+        if (highlightcomp && ok) {
+            // re-expand the range in place
+            ok &= ImageBufAlgo::rangeexpand(*img[0], *img[0]);
+        }
+        return ok;
     }
 };
 
@@ -3852,18 +3899,31 @@ action_fit(cspan<const char*> argv)
     std::string filtername = options["filter"];
     std::string fillmode   = options["fillmode"];
     bool exact             = options.get_int("exact");
+    bool highlightcomp     = options.get_int("highlightcomp");
 
     int subimages = allsubimages ? A->subimages() : 1;
     ImageRecRef R(new ImageRec(A->name(), subimages));
     for (int s = 0; s < subimages; ++s) {
         ImageSpec newspec = (*A)(s, 0).spec();
+        ImageBuf tmpimg;
+        ImageBuf* src = &((*A)(s, 0));
+        if (highlightcomp) {
+            // If the caller requested highlight compensation for an HDR image
+            // to prevent ringing artifacts, we make a temporary image with
+            // the reduced-contrast data.
+            ImageBufAlgo::rangecompress(tmpimg, *src);
+            src = &tmpimg;
+        }
         newspec.width = newspec.full_width = fit_full_width;
         newspec.height = newspec.full_height = fit_full_height;
         newspec.x = newspec.full_x = fit_full_x;
         newspec.y = newspec.full_y = fit_full_y;
         (*R)(s, 0).reset(newspec);
-        ImageBufAlgo::fit((*R)(s, 0), (*A)(s, 0), filtername, 0.0f, fillmode,
-                          exact);
+        ImageBufAlgo::fit((*R)(s, 0), *src, filtername, 0.0f, fillmode, exact);
+        if (highlightcomp) {
+            // re-expand the range in place
+            ImageBufAlgo::rangeexpand((*R)(s, 0), (*R)(s, 0));
+        }
         R->update_spec_from_imagebuf(s, 0);
     }
     ot.pop();
@@ -3939,6 +3999,7 @@ action_pixelaspect(int argc, const char* argv[])
 
     auto options           = ot.extract_options(command);
     std::string filtername = options["filter"];
+    bool highlightcomp     = options.get_int("highlightcomp");
 
     if (ot.debug) {
         std::cout << "  Scaling "
@@ -3956,6 +4017,8 @@ action_pixelaspect(int argc, const char* argv[])
         std::string command = "resize";
         if (filtername.size())
             command += Strutil::fmt::format(":filter={}", filtername);
+        if (highlightcomp)
+            command += ":highlightcomp=1";
         const char* newargv[2] = { command.c_str(), resize.c_str() };
         action_resize(2, newargv);
         A                         = ot.top();
@@ -4818,7 +4881,7 @@ prep_texture_config(ImageSpec& configspec, ParamValueList& fileoptions)
     configspec.attribute(
         "maketx:highlightcomp",
         fileoptions.get_int("highlightcomp",
-                            fileoptions.get_int("hilightcomp",
+                            fileoptions.get_int("highlightcomp",
                                                 fileoptions.get_int("hicomp"))));
     configspec.attribute("maketx:sharpen", fileoptions.get_float("sharpen"));
     if (fileoptions.contains("filter") || fileoptions.contains("filtername"))
@@ -6046,19 +6109,19 @@ getargs(int argc, char* argv[])
       .help("Resample (640x480, 50%) (options: interp=0)")
       .action(action_resample);
     ap.arg("--resize %s:GEOM")
-      .help("Resize (640x480, 50%) (options: filter=%s)")
+      .help("Resize (640x480, 50%) (options: filter=%s, highlightcomp=%d)")
       .action(action_resize);
     ap.arg("--fit %s:GEOM")
-      .help("Resize to fit within a window size (options: filter=%s, pad=%d, exact=%d)")
+      .help("Resize to fit within a window size (options: filter=%s, pad=%d, fillmode=%s, exact=%d, highlightcomp=%d)")
       .action(action_fit);
     ap.arg("--pixelaspect %g:ASPECT")
-      .help("Scale up the image's width or height to match the given pixel aspect ratio (options: filter=%s)")
+      .help("Scale up the image's width or height to match the given pixel aspect ratio (options: filter=%s, highlightcomp=%d)")
       .action(action_pixelaspect);
     ap.arg("--rotate %g:DEGREES")
-      .help("Rotate pixels (degrees clockwise) around the center of the display window (options: filter=%s, center=%f,%f, recompute_roi=%d")
+      .help("Rotate pixels (degrees clockwise) around the center of the display window (options: filter=%s, center=%f,%f, recompute_roi=%d, highlightcomp=%d")
       .action(action_rotate);
     ap.arg("--warp %s:MATRIX")
-      .help("Warp pixels (argument is a 3x3 matrix, separated by commas) (options: filter=%s, recompute_roi=%d)")
+      .help("Warp pixels (argument is a 3x3 matrix, separated by commas) (options: filter=%s, recompute_roi=%d, highlightcomp=%d)")
       .action(action_warp);
     ap.arg("--convolve")
       .help("Convolve with a kernel")
