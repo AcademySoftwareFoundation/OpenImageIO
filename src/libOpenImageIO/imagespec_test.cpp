@@ -296,7 +296,7 @@ static void
 test_imagespec_from_ROI()
 {
     ROI roi(0, 640, 0, 480, 0, 1, 0, 3);
-    ImageSpec spec(roi, TypeDesc::FLOAT);
+    ImageSpec spec(roi, "float");
     OIIO_CHECK_EQUAL(spec.nchannels, 3);
     OIIO_CHECK_EQUAL(spec.width, 640);
     OIIO_CHECK_EQUAL(spec.height, 480);
@@ -304,6 +304,7 @@ test_imagespec_from_ROI()
     OIIO_CHECK_EQUAL(spec.full_width, 640);
     OIIO_CHECK_EQUAL(spec.full_height, 480);
     OIIO_CHECK_EQUAL(spec.full_depth, 1);
+    OIIO_CHECK_EQUAL(spec.format, TypeFloat);
 }
 
 static void
@@ -320,6 +321,7 @@ test_imagespec_from_xml()
     OIIO_CHECK_EQUAL(spec.full_width, 1920);
     OIIO_CHECK_EQUAL(spec.full_height, 1080);
     OIIO_CHECK_EQUAL(spec.full_depth, 1);
+    OIIO_CHECK_EQUAL(spec.format, TypeFloat);
     OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace"), "Linear");
 }
 
