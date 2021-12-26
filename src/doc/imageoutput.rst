@@ -403,7 +403,7 @@ its format using the ``set_format()`` method.
    .. code-tab:: py
 
       spec = ImageSpec(...)
-      spec.set_format ('uint16')
+      spec.set_format ("uint16")
 
 Note that resetting the pixel data type must be done *before* passing the
 spec to ``open()``, or it will have no effect on the file.
@@ -471,8 +471,8 @@ file that stores pixel data as 16-bit unsigned integers (values ranging from
 
    .. code-tab:: py
 
-      out = ImageOutput.create ('myfile.tif')
-      spec = ImageSpec (xres, yres, channels, 'uint16')
+      out = ImageOutput.create ("myfile.tif")
+      spec = ImageSpec (xres, yres, channels, "uint16")
       out.open (filename, spec)
       ...
       pixels = (...)
@@ -613,29 +613,56 @@ functions should point to the beginning of the actual pixel data being
 passed (not the the hypothetical start of the full data, if it was all
 present).
 
-.. code-block:: cpp
+.. tabs::
 
-    int fullwidth = 640, fulllength = 480; // Full display image size
-    int cropwidth = 16, croplength = 16;  // Crop window size
-    int xorigin = 32, yorigin = 128;      // Crop window position
-    unsigned char pixels [cropwidth * croplength * channels]; // Crop size!
-    ...
-    std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
-    ImageSpec spec (cropwidth, croplength, channels, TypeDesc::UINT8);
-    spec.full_x = 0;
-    spec.full_y = 0;
-    spec.full_width = fullwidth;
-    spec.full_length = fulllength;
-    spec.x = xorigin;
-    spec.y = yorigin;
-    out->open (filename, spec);
-    ...
-    int z = 0;   // Always zero for 2D images
-    for (int y = yorigin;  y < yorigin+croplength;  ++y) {
-        out->write_scanline (y, z, TypeDesc::UINT8,
-                             (y-yorigin)*cropwidth*channels);
-    }
-    out->close ();
+   .. code-tab:: c++
+
+      int fullwidth = 640, fulllength = 480; // Full display image size
+      int cropwidth = 16, croplength = 16;  // Crop window size
+      int xorigin = 32, yorigin = 128;      // Crop window position
+      unsigned char pixels [cropwidth * croplength * channels]; // Crop size
+      ...
+      std::unique_ptr<ImageOutput> out = ImageOutput::create(filename);
+      ImageSpec spec(cropwidth, croplength, channels, TypeDesc::UINT8);
+      spec.full_x = 0;
+      spec.full_y = 0;
+      spec.full_width = fullwidth;
+      spec.full_length = fulllength;
+      spec.x = xorigin;
+      spec.y = yorigin;
+      out->open(filename, spec);
+      ...
+      int z = 0;   // Always zero for 2D images
+      for (int y = yorigin;  y < yorigin+croplength;  ++y) {
+          out->write_scanline(y, z, TypeDesc::UINT8,
+                              &pixels[(y-yorigin)*cropwidth*channels]);
+      }
+      out->close();
+
+   .. code-tab:: py
+
+      fullwidth = 640
+      fulllength = 480  # Full display image size
+      cropwidth = 16
+      croplength = 16   # Crop window size
+      xorigin = 32
+      yorigin = 128     # Crop window position
+      pixels = numpy.zeros((croplength, cropwidth, channels), dtype="uint8")
+      ...
+      spec = ImageSpec(cropwidth, croplength, channels, "uint8")
+      spec.full_x = 0
+      spec.full_y = 0
+      spec.full_width = fullwidth
+      spec.full_length = fulllength
+      spec.x = xorigin
+      spec.y = yorigin
+      out = ImageOutput.open(filename, spec)
+      ...
+      z = 0   # Always zero for 2D images
+      for y in range(yorigin, yorigin+croplength) :
+          out.write_scanline (y, z, TypeDesc::UINT8,
+                              pixels[y-origin:y-yorigin+1])
+      out.close()
 
 
 
@@ -673,33 +700,42 @@ want.
 The ``ImageSpec`` has a vector of strings called ``channelnames``.  Upon
 construction, it starts out with reasonable default values.  If you use it
 at all, you should make sure that it contains the same number of strings as
-the number of color channels in your image.  Here is an example::
+the number of color channels in your image.  Here is an example:
 
-        int channels = 4;
-        ImageSpec spec (width, length, channels, TypeDesc::UINT8);
-        spec.channelnames.clear ();
-        spec.channelnames.push_back ("R");
-        spec.channelnames.push_back ("G");
-        spec.channelnames.push_back ("B");
-        spec.channelnames.push_back ("A");
+.. tabs::
+
+   .. code-tab:: c++
+
+      int channels = 3;
+      ImageSpec spec (width, length, channels, TypeDesc::UINT8);
+      spec.channelnames.assign ({ "R", "G", "B" });
+
+   .. code-tab:: py
+
+      channels = 3
+      spec = ImageSpec(width, length, channels, "uint8")
+      spec.channelnames = ("R", "G", "B")
 
 Here is another example in which custom channel names are used to label the
 channels in an 8-channel image containing beauty pass RGB, per-channel
 opacity, and texture s,t coordinates for each pixel.
 
-.. code-block::
+.. tabs::
 
-        int channels = 8;
-        ImageSpec spec (width, length, channels, TypeDesc::UINT8);
-        spec.channelnames.clear ();
-        spec.channelnames.push_back ("R");
-        spec.channelnames.push_back ("G");
-        spec.channelnames.push_back ("B");
-        spec.channelnames.push_back ("opacityR");
-        spec.channelnames.push_back ("opacityG");
-        spec.channelnames.push_back ("opacityB");
-        spec.channelnames.push_back ("texture_s");
-        spec.channelnames.push_back ("texture_t");
+   .. code-tab:: c++
+
+      int channels = 8;
+      ImageSpec spec (width, length, channels, TypeDesc::UINT8);
+      spec.channelnames.clear ();
+      spec.channelnames.assign ({ "R", "G", "B", "opacityR", "opacityG",
+                                  "opacityB", "texture_s", "texture_t" });
+
+   .. code-tab:: py
+
+      channels = 8
+      spec = ImageSpec(width, length, channels, "uint8")
+      spec.channelnames = ("R", "G", "B", "opacityR", "opacityG", "opacityB",
+                           "texture_s", "texture_t")
 
 The main advantage to naming color channels is that if you are saving to
 a file format that supports channel names, then any application that
@@ -716,18 +752,25 @@ The ``ImageSpec`` contains two fields, ``alpha_channel`` and ``z_channel``,
 which can be used to designate which channel indices are used for alpha and
 *z* depth, if any.  Upon construction, these are both set to ``-1``,
 indicating that it is not known which channels are alpha or depth.  Here is
-an example of setting up a 5-channel output that represents RGBAZ::
+an example of setting up a 5-channel output that represents RGBAZ:
 
-    int channels = 5;
-    ImageSpec spec (width, length, channels, format);
-    spec.channelnames.clear();
-    spec.channelnames.push_back ("R");
-    spec.channelnames.push_back ("G");
-    spec.channelnames.push_back ("B");
-    spec.channelnames.push_back ("A");
-    spec.channelnames.push_back ("Z");
-    spec.alpha_channel = 3;
-    spec.z_channel = 4;
+.. tabs::
+
+   .. code-tab:: c++
+
+      int channels = 5;
+      ImageSpec spec (width, length, channels, format);
+      spec.channelnames.assign({ "R", "G", "B", "A", "Z" });
+      spec.alpha_channel = 3;
+      spec.z_channel = 4;
+
+   .. code-tab:: py
+
+      channels = 5
+      spec = ImageSpec(width, length, channels, "uint8")
+      spec.channelnames = ("R", "G", "B", "A", "Z")
+      spec.alpha_channel = 3
+      spec.z_channel = 4
 
 There are advantages to designating the alpha and depth channels in this
 manner: Some file formats may require that these channels be stored in a
@@ -741,19 +784,35 @@ For all other metadata that you wish to save in the file, you can attach the
 data to the ``ImageSpec`` using the ``attribute()`` methods. These come in
 polymorphic varieties that allow you to attach an attribute name and a value
 consisting of a single `int`, ``unsigned int``, `float`, ``char*``, or
-``std::string``, as shown in the following examples::
+``std::string``, as shown in the following examples:
 
-        ImageSpec spec (...);
-        ...
+.. tabs::
 
-        unsigned int u = 1;
-        spec.attribute ("Orientation", u);
+   .. code-tab:: c++
 
-        float x = 72.0;
-        spec.attribute ("dotsize", f);
+      ImageSpec spec (...);
 
-        std::string s = "Fabulous image writer 1.0";
-        spec.attribute ("Software", s);
+      int i = 1;
+      spec.attribute ("Orientation", i);
+
+      float f = 72.0f;
+      spec.attribute ("dotsize", f);
+
+      std::string s = "Fabulous image writer 1.0";
+      spec.attribute ("Software", s);
+
+   .. code-tab:: py
+
+      spec = ImageSpec(...)
+
+      int i = 1
+      spec.attribute ("Orientation", i)
+
+      x = 72.0
+      spec.attribute ("dotsize", f)
+
+      s = "Fabulous image writer 1.0"
+      spec.attribute ("Software", s)
 
 These are convenience routines for metadata that consist of a single value
 of one of these common types.  For other data types, or more complex
@@ -762,18 +821,31 @@ takes arguments giving the name, type (as a `TypeDesc`), number of values
 (1 for a single value, >1 for an array), and then a pointer to the data
 values.  For example,
 
-.. code-block::
+.. tabs::
 
-        ImageSpec spec (...);
+   .. code-tab:: c++
 
-        // Attach a 4x4 matrix to describe the camera coordinates
-        float mymatrix[16] = { ... };
-        spec.attribute ("worldtocamera", TypeMatrix, &mymatrix);
+      ImageSpec spec (...);
 
-        // Attach an array of two floats giving the CIE neutral color
-        float neutral[2] = { ... };
-        spec.attribute ("adoptedNeutral", TypeDesc(TypeDesc::FLOAT, 2), &neutral);
+      // Attach a 4x4 matrix to describe the camera coordinates
+      float mymatrix[16] = { ... };
+      spec.attribute ("worldtocamera", TypeMatrix, &mymatrix);
 
+      // Attach an array of two floats giving the CIE neutral color
+      float neutral[2] = { 0.3127, 0.329 };
+      spec.attribute ("adoptedNeutral", TypeDesc(TypeDesc::FLOAT, 2), &neutral);
+
+   .. code-tab:: py
+
+      spec = ImageSpec(...)
+
+      # Attach a 4x4 matrix to describe the camera coordinates
+      mymatrix = (1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
+      spec.attribute ("worldtocamera", "matrix", mymatrix)
+
+      # Attach an array of two floats giving the CIE neutral color
+      neutral = (0.3127, 0.329)
+      spec.attribute ("adoptedNeutral", "float[2]", neutral)
 
 In general, most image file formats (and therefore most ``ImageOutput``
 implementations) are aware of only a small number of name/value pairs
@@ -811,12 +883,19 @@ The color space hints only describe color channels.  You should always pass
 alpha, depth, or other non-color channels with linear values.
 
 Here is a simple example of setting up the ``ImageSpec`` when you know that
-the pixel values you are writing are linear::
+the pixel values you are writing are linear:
 
-    ImageSpec spec (width, length, channels, format);
-    spec.attribute ("oiio:ColorSpace", "Linear");
-    ...
+.. tabs::
 
+   .. code-tab:: c++
+
+      ImageSpec spec (width, length, channels, format);
+      spec.attribute ("oiio:ColorSpace", "Linear");
+
+   .. code-tab:: py
+
+      spec = ImageSpec(width, length, channels, format)
+      spec.attribute ("oiio:ColorSpace", "Linear")
 
 If a particular ``ImageOutput`` implementation is required (by the rules of
 the file format it writes) to have pixels in a particular color space,
@@ -841,20 +920,37 @@ write pixels in strict order of increasing *z* slice, increasing *y*
 scanlines/rows within each slice, and increasing *x* column within each row.
 It is generally not safe to skip scanlines or tiles, or transmit them out of
 order, unless the plugin specifically advertises that it supports random
-access or rewrites, which may be queried using::
+access or rewrites, which may be queried using:
 
-    std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
-    if (out->supports ("random_access"))
-        ...
+.. tabs::
 
-Similarly, you should assume the plugin will not correctly
-handle repeated transmissions of a scanline or tile that has already
-been sent, unless it advertises that it supports rewrites, which may be
-queried using::
+   .. code-tab:: c++
 
-    if (out->supports ("rewrite"))
-        ...
+      auto out = ImageOutput::create (filename);
+      if (out->supports ("random_access"))
+          ...
 
+   .. code-tab:: py
+
+      out = ImageOutput.create(filename)
+      if out.supports("random_access") :
+          ...
+
+Similarly, you should assume the plugin will not correctly handle repeated
+transmissions of a scanline or tile that has already been sent, unless it
+advertises that it supports rewrites, which may be queried using:
+
+.. tabs::
+
+   .. code-tab:: c++
+
+      if (out->supports("rewrite"))
+          ...
+
+   .. code-tab:: py
+
+      if out.supports("rewrite") :
+          ...
 
 
 Multi-image files
@@ -862,55 +958,102 @@ Multi-image files
 
 Some image file formats support storing multiple images within a single
 file.  Given a created ``ImageOutput``, you can query whether multiple
-images may be stored in the file::
+images may be stored in the file:
 
-        std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
-        if (out->supports ("multiimage"))
+.. tabs::
+
+   .. code-tab:: c++
+
+        auto out = ImageOutput::create(filename);
+        if (out->supports("multiimage"))
+            ...
+
+   .. code-tab:: py
+
+        out = ImageOutput.create(filename)
+        if out->supports("multiimage") :
             ...
 
 Some image formats allow you to do the initial ``open()`` call without
 declaring the specifics of the subimages, and simply append subimages as you
 go.  You can detect this by checking
 
-.. code-block::
+.. tabs::
 
-        if (out->supports ("appendsubimage"))
-            ...
+   .. code-tab:: c++
 
+      if (out->supports("appendsubimage"))
+          ...
+
+   .. code-tab:: py
+
+      if out.supports("appendsubimage") :
+          ...
 
 In this case, all you have to do is, after writing all the pixels of one
 image but before calling ``close()``, call ``open()`` again for the next
 subimage and pass ``AppendSubimage`` as the value for the *mode* argument
 (see Section :ref:`sec-imageoutput-class-reference` for the full technical
 description of the arguments to ``open()``).  The ``close()`` routine is
-called just once, after all subimages are completed.  Here is an example::
+called just once, after all subimages are completed.  Here is an example:
 
-    const char *filename = "foo.tif";
-    int nsubimages;     // assume this is set
-    ImageSpec specs[];  // assume these are set for each subimage
-    unsigned char *pixels[]; // assume a buffer for each subimage
+.. tabs::
 
-    // Create the ImageOutput
-    std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
+   .. code-tab:: c++
 
-    // Be sure we can support subimages
-    if (subimages > 1 &&  (! out->supports("multiimage") ||
-                           ! out->supports("appendsubimage"))) {
-        std::cerr << "Does not support appending of subimages\n";
-        return;
-    }
+      const char *filename = "foo.tif";
+      int nsubimages;     // assume this is set
+      ImageSpec specs[];  // assume these are set for each subimage
+      unsigned char *pixels[]; // assume a buffer for each subimage
 
-    // Use Create mode for the first level.
-    ImageOutput::OpenMode appendmode = ImageOutput::Create;
+      // Create the ImageOutput
+      auto out = ImageOutput::create (filename);
 
-    // Write the individual subimages
-    for (int s = 0;  s < nsubimages;  ++s) {
-        out->open (filename, specs[s], appendmode);
-        out->write_image (TypeDesc::UINT8, pixels[s]);
-        // Use AppendSubimage mode for subsequent levels
-        appendmode = ImageOutput::AppendSubimage;
-    }
-    out->close ();
+      // Be sure we can support subimages
+      if (subimages > 1 &&  (! out->supports("multiimage") ||
+                             ! out->supports("appendsubimage"))) {
+          std::cerr << "Does not support appending of subimages\n";
+          return;
+      }
+
+      // Use Create mode for the first level.
+      ImageOutput::OpenMode appendmode = ImageOutput::Create;
+
+      // Write the individual subimages
+      for (int s = 0;  s < nsubimages;  ++s) {
+          out->open (filename, specs[s], appendmode);
+          out->write_image (TypeDesc::UINT8, pixels[s]);
+          // Use AppendSubimage mode for subsequent levels
+          appendmode = ImageOutput::AppendSubimage;
+      }
+      out->close ();
+
+   .. code-tab:: py
+
+      filename = "foo.tif"
+      nsubimages = ...         # assume this is set
+      ImageSpec specs = (...)  # assume these are set for each subimage
+      pixels = (...)           # assume a buffer for each subimage
+
+      # Create the ImageOutput
+      out = ImageOutput.create(filename)
+
+      # Be sure we can support subimages
+      if subimages > 1 and (not out->supports("multiimage") or
+                            not out->supports("appendsubimage")) :
+          print("Does not support appending of subimages")
+          return
+
+      # Use Create mode for the first level.
+      appendmode = "Create"
+
+      # Write the individual subimages
+      for s in range(nsubimages) :
+          out.open (filename, specs[s], appendmode)
+          out.write_image (pixels[s])
+          # Use AppendSubimage mode for subsequent levels
+          appendmode = "AppendSubimage"
+      out.close ()
 
 On the other hand, if ``out->supports("appendsubimage")`` returns
 `false`, then you must use a different ``open()`` variety that
@@ -924,33 +1067,62 @@ whether it supports appending, and thus is the preferred method for
 writing subimages, assuming that you are able to know the number and
 specification of the subimages at the time you first open the file.
 
-.. code-block::
+.. tabs::
 
-    const char *filename = "foo.tif";
-    int nsubimages;     // assume this is set
-    ImageSpec specs[];  // assume these are set for each subimage
-    unsigned char *pixels[]; // assume a buffer for each subimage
+   .. code-tab:: c++
 
-    // Create the ImageOutput
-    std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
+      const char *filename = "foo.tif";
+      int nsubimages;     // assume this is set
+      ImageSpec specs[];  // assume these are set for each subimage
+      unsigned char *pixels[]; // assume a buffer for each subimage
 
-    // Be sure we can support subimages
-    if (subimages > 1 && ! out->supports ("multiimage")) {
-        std::cerr << "Cannot write multiple subimages\n";
-        return;
-    }
+      // Create the ImageOutput
+      auto out = ImageOutput::create (filename);
 
-    // Open and declare all subimages
-    out->open (filename, nsubimages, specs);
+      // Be sure we can support subimages
+      if (subimages > 1 &&  (! out->supports("multiimage") ||
+                             ! out->supports("appendsubimage"))) {
+          std::cerr << "Does not support appending of subimages\n";
+          return;
+      }
 
-    // Write the individual subimages
-    for (int s = 0;  s < nsubimages;  ++s) {
-        if (s > 0)  // Not needed for the first, which is already open
-            out->open (filename, specs[s], ImageInput::AppendSubimage);
-        out->write_image (TypeDesc::UINT8, pixels[s]);
-    }
-    out->close ();
+      // Open and declare all subimages
+      out->open (filename, nsubimages, specs);
 
+      // Write the individual subimages
+      for (int s = 0;  s < nsubimages;  ++s) {
+          if (s > 0)  // Not needed for the first, which is already open
+              out->open (filename, specs[s], ImageInput::AppendSubimage);
+          out->write_image (TypeDesc::UINT8, pixels[s]);
+      }
+      out->close ();
+
+
+   .. code-tab:: py
+
+      filename = "foo.tif"
+      nsubimages = ...         # assume this is set
+      ImageSpec specs = (...)  # assume these are set for each subimage
+      pixels = (...)           # assume a buffer for each subimage
+
+      # Create the ImageOutput
+      out = ImageOutput.create(filename)
+
+      # Be sure we can support subimages
+      if subimages > 1 and (not out->supports("multiimage") or
+                            not out->supports("appendsubimage")) :
+          print("Does not support appending of subimages")
+          return
+
+      # Open and declare all subimages
+      out.open (filename, nsubimages, specs)
+
+      # Write the individual subimages
+      for s in range(nsubimages) :
+          if s > 0 :
+              out.open (filename, specs[s], "AppendSubimage")
+          out.write_image (pixels[s])
+      out.close ()
 
 In both of these examples, we have used ``writeimage()``, but of course
 ``writescanline()``, ``writetile()``, and ``write_rectangle()`` work as you
@@ -964,11 +1136,21 @@ MIP-maps
 
 Some image file formats support multiple copies of an image at successively
 lower resolutions (MIP-map levels, or an "image pyramid").  Given a created
-``ImageOutput``, you can query whether MIP-maps may be stored in the file::
+``ImageOutput``, you can query whether MIP-maps may be stored in the file:
 
-    std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
-    if (out->supports ("mipmap"))
-        ...
+.. tabs::
+
+   .. code-tab:: c++
+
+      auto out = ImageOutput::create (filename);
+      if (out->supports ("mipmap"))
+          ...
+
+   .. code-tab:: py
+
+      out = ImageOutput.create(filename)
+      if out.supports("mipmap") :
+          ...
 
 If you are working with an ``ImageOutput`` that supports MIP-map levels, it
 is easy to write these levels.  After writing all the pixels of one MIP-map
@@ -980,47 +1162,92 @@ the arguments to ``open()``.)  The ``close()`` routine is called just once,
 after all subimages and MIP levels are completed.
 
 Below is pseudocode for writing a MIP-map (a multi-resolution image
-used for texture mapping)::
+used for texture mapping):
 
-    const char *filename = "foo.tif";
-    const int xres = 512, yres = 512;
-    const int channels = 3;  // RGB
-    unsigned char *pixels = new unsigned char [xres*yres*channels];
+.. tabs::
 
-    // Create the ImageOutput
-    std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
+   .. code-tab:: c++
 
-    // Be sure we can support either mipmaps or subimages
-    if (! out->supports ("mipmap") && ! out->supports ("multiimage")) {
-        std::cerr << "Cannot write a MIP-map\n";
-        return;
-    }
-    // Set up spec for the highest resolution
-    ImageSpec spec (xres, yres, channels, TypeDesc::UINT8);
+      const char *filename = "foo.tif";
+      const int xres = 512, yres = 512;
+      const int channels = 3;  // RGB
+      unsigned char *pixels = new unsigned char [xres*yres*channels];
 
-    // Use Create mode for the first level.
-    ImageOutput::OpenMode appendmode = ImageOutput::Create;
+      // Create the ImageOutput
+      auto out = ImageOutput::create (filename);
 
-    // Write images, halving every time, until we're down to
-    // 1 pixel in either dimension
-    while (spec.width >= 1 && spec.height >= 1) {
-        out->open (filename, spec, appendmode);
-        out->write_image (TypeDesc::UINT8, pixels);
-        // Assume halve() resamples the image to half resolution
-        halve (pixels, spec.width, spec.height);
-        // Don't forget to change spec for the next iteration
-        spec.width /= 2;
-        spec.height /= 2;
+      // Be sure we can support either mipmaps or subimages
+      if (! out->supports ("mipmap") && ! out->supports ("multiimage")) {
+          std::cerr << "Cannot write a MIP-map\n";
+          return;
+      }
+      // Set up spec for the highest resolution
+      ImageSpec spec (xres, yres, channels, TypeDesc::UINT8);
 
-        // For subsequent levels, change the mode argument to
-        // open().  If the format doesn't support MIPmaps directly,
-        // try to emulate it with subimages.
-        if (out->supports("mipmap"))
-            appendmode = ImageOutput::AppendMIPLevel;
-        else
-            appendmode = ImageOutput::AppendSubimage;
-    }
-    out->close ();
+      // Use Create mode for the first level.
+      ImageOutput::OpenMode appendmode = ImageOutput::Create;
+
+      // Write images, halving every time, until we're down to
+      // 1 pixel in either dimension
+      while (spec.width >= 1 && spec.height >= 1) {
+          out->open (filename, spec, appendmode);
+          out->write_image (TypeDesc::UINT8, pixels);
+          // Assume halve() resamples the image to half resolution
+          halve (pixels, spec.width, spec.height);
+          // Don't forget to change spec for the next iteration
+          spec.width /= 2;
+          spec.height /= 2;
+
+          // For subsequent levels, change the mode argument to
+          // open().  If the format doesn't support MIPmaps directly,
+          // try to emulate it with subimages.
+          if (out->supports("mipmap"))
+              appendmode = ImageOutput::AppendMIPLevel;
+          else
+              appendmode = ImageOutput::AppendSubimage;
+      }
+      out->close ();
+
+   .. code-tab:: py
+
+      filename = "foo.tif"
+      xres = 512
+      yres = 512
+      channels = 3  # RGB
+      pixels = numpy.array([yres, xres, channels], dtype='uint8')
+
+      # Create the ImageOutput
+      out = ImageOutput.create (filename)
+
+      # Be sure we can support either mipmaps or subimages
+      if not out.supports ("mipmap") and not out.supports ("multiimage") :
+          print("Cannot write a MIP-map")
+          return
+      # Set up spec for the highest resolution
+      spec = ImageSpec(xres, yres, channels, "uint8")
+
+      # Use Create mode for the first level.
+      appendmode = "Create"
+
+      # Write images, halving every time, until we're down to
+      # 1 pixel in either dimension
+      while spec.width >= 1 and spec.height >= 1 :
+          out.open (filename, spec, appendmode)
+          out.write_image (pixels)
+          # Assume halve() resamples the image to half resolution
+          halve (pixels, spec.width, spec.height)
+          # Don't forget to change spec for the next iteration
+          spec.width = spec.width // 2
+          spec.height = spec.height // 2
+
+          # For subsequent levels, change the mode argument to
+          # open().  If the format doesn't support MIPmaps directly,
+          # try to emulate it with subimages.
+          if (out.supports("mipmap"))
+              appendmode = ImageOutput.AppendMIPLevel
+          else
+              appendmode = ImageOutput.AppendSubimage
+      out.close ()
 
 
 In this example, we have used ``writeimage()``, but of course
@@ -1052,7 +1279,7 @@ a Z channel in `float`::
         struct Pixel { half r,g,b,a; float z; };
         Pixel pixels[xres*yres];
 
-        std::unique_ptr<ImageOutput> out = ImageOutput::create ("foo.exr");
+        auto out = ImageOutput::create ("foo.exr");
 
         // Double check that this format accepts per-channel formats
         if (! out->supports("channelformats")) {
@@ -1061,17 +1288,11 @@ a Z channel in `float`::
 
         // Prepare an ImageSpec with per-channel formats
         ImageSpec spec (xres, yres, 5, TypeDesc::FLOAT);
-        spec.channelformats.push_back (TypeDesc::HALF);
-        spec.channelformats.push_back (TypeDesc::HALF);
-        spec.channelformats.push_back (TypeDesc::HALF);
-        spec.channelformats.push_back (TypeDesc::HALF);
-        spec.channelformats.push_back (TypeDesc::FLOAT);
-        spec.channelnames.clear ();
-        spec.channelnames.push_back ("R");
-        spec.channelnames.push_back ("G");
-        spec.channelnames.push_back ("B");
-        spec.channelnames.push_back ("A");
-        spec.channelnames.push_back ("Z");
+        spec.channelformats.assign(
+            { TypeHalf, TypeHalf, TypeHalf, TypeHalf, TypeFloat });
+        spec.channelnames.assign({ "R", "G", "B", "A", "Z" });
+        spec.alpha_channel = 3;
+        spec.z_channel = 4;
 
         out->open (filename, spec);
         out->write_image (TypeDesc::UNKNOWN, /* use channel formats */
@@ -1111,46 +1332,87 @@ deep data in a special DeepData structure, described in
 detail in Section :ref:`sec-DeepData`.
 
 
-Here is an example of using these methods to write a deep image::
+Here is an example of using these methods to write a deep image:
 
-    // Prepare the spec for 'half' RGBA, 'float' z
-    int nchannels = 5;
-    ImageSpec spec (xres, yres, nchannels);
-    TypeDesc channeltypes[] = { TypeDesc::HALF, TypeDesc::HALF,
-          TypeDesc::HALF, TypeDesc::HALF, TypeDesc::FLOAT };
-    spec.z_channel = 4;
-    spec.channelnames[spec.z_channel] = "Z";
-    spec.channeltypes.assign (channeltypes+0, channeltypes+nchannels);
-    spec.deep = true;
+.. tabs::
 
-    // Prepare the data (sorry, complicated, but need to show the gist)
-    DeepData deepdata;
-    deepdata.init (spec);
-    for (int y = 0;  y < yres;  ++y)
-        for (int x = 0;  x < xres;  ++x)
-            deepdata.set_samples(y*xres+x, ...samples for that pixel...);
-    deepdata.alloc ();  // allocate pointers and data
-    int pixel = 0;
-    for (int y = 0;  y < yres;  ++y)
-        for (int x = 0;  x < xres;  ++x, ++pixel)
-            for (int chan = 0;  chan < nchannels;  ++chan)
-                for (int samp = 0; samp < deepdata.samples(pixel); ++samp)
-                    deepdata.set_deep_value (pixel, chan, samp, ...value...);
+   .. code-tab:: c++
 
+      // Prepare the spec for 'half' RGBA, 'float' z
+      int nchannels = 5;
+      ImageSpec spec (xres, yres, nchannels);
+      spec.channelnames.assign({ "R", "G", "B", "A", "Z" });
+      spec.channeltypes.assign ({ TypeHalf, TypeHalf, TypeHalf, TypeHalf,
+                                  TypeFloat });
+      spec.alpha_channel = 3;
+      spec.z_channel = 4;
+      spec.deep = true;
+  
+      // Prepare the data (sorry, complicated, but need to show the gist)
+      DeepData deepdata;
+      deepdata.init (spec);
+      for (int y = 0;  y < yres;  ++y)
+          for (int x = 0;  x < xres;  ++x)
+              deepdata.set_samples(y*xres+x, ...samples for that pixel...);
+      deepdata.alloc ();  // allocate pointers and data
+      int pixel = 0;
+      for (int y = 0;  y < yres;  ++y)
+          for (int x = 0;  x < xres;  ++x, ++pixel)
+              for (int chan = 0;  chan < nchannels;  ++chan)
+                  for (int samp = 0; samp < deepdata.samples(pixel); ++samp)
+                      deepdata.set_deep_value (pixel, chan, samp, ...value...);
+  
+      // Create the output
+      auto out = ImageOutput::create (filename);
+      if (! out)
+          return;
+      // Make sure the format can handle deep data and per-channel formats
+      if (! out->supports("deepdata") || ! out->supports("channelformats"))
+          return;
+  
+      // Do the I/O (this is the easy part!)
+      out->open (filename, spec);
+      out->write_deep_image (deepdata);
+      out->close ();
 
-    // Create the output
-    std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
-    if (! out)
-        return;
-    // Make sure the format can handle deep data and per-channel formats
-    if (! out->supports("deepdata") || ! out->supports("channelformats"))
-        return;
+   .. code-tab:: py
 
-    // Do the I/O (this is the easy part!)
-    out->open (filename, spec);
-    out->write_deep_image (deepdata);
-    out->close ();
-
+      # Prepare the spec for 'half' RGBA, 'float' z
+      int nchannels = 5
+      ImageSpec spec (xres, yres, nchannels)
+      spec.channelnames = ("R", "G", "B", "A", "Z")
+      spec.channeltypes = ("half", "half", "half", "half", "float")
+      spec.alpha_channel = 3
+      spec.z_channel = 4
+      spec.deep = True
+  
+      # Prepare the data (sorry, complicated, but need to show the gist)
+      deepdata = DeepData()
+      deepdata.init (spec)
+      for y in range(yres) :
+          for x in range(xres) :
+              deepdata.set_samples(y*xres+x, ...samples for that pixel...)
+      deepdata.alloc()  # allocate pointers and data
+      pixel = 0
+      for y in range(yres) :
+          for x in range(xres) :
+              for chan in range(nchannels) :
+                  for samp in range(deepdata.samples(pixel)) :
+                      deepdata.set_deep_value (pixel, chan, samp, ...value...)
+              pixel += 1
+    
+      # Create the output
+      out = ImageOutput.create (filename)
+      if out is None :
+          return
+      # Make sure the format can handle deep data and per-channel formats
+      if not out.supports("deepdata") or not out.supports("channelformats") :
+          return
+  
+      # Do the I/O (this is the easy part!)
+      out.open (filename, spec)
+      out.write_deep_image (deepdata)
+      out.close ()
 
 
 Copying an entire image
@@ -1180,25 +1442,45 @@ recommended for copying images so that maximal advantage will be taken in
 cases where savings can be had.
 
 The following is an example use of ``copy_image()`` to transfer pixels
-without alteration while modifying the image description metadata::
+without alteration while modifying the image description metadata:
 
-    // Open the input file
-    const char *input = "input.jpg";
-    std::unique_ptr<ImageInput> in = ImageInput::open (input);
+.. tabs::
 
-    // Make an output spec, identical to the input except for metadata
-    ImageSpec out_spec = in->spec();
-    out_spec.attribute ("ImageDescription", "My Title");
+   .. code-tab:: c++
 
-    // Create the output file and copy the image
-    const char *output = "output.jpg";
-    std::unique_ptr<ImageOutput> out = ImageOutput::create (output);
-    out->open (output, out_spec);
-    out->copy_image (in);
+      // Open the input file
+      auto in = ImageInput::open ("input.jpg");
+  
+      // Make an output spec, identical to the input except for metadata
+      ImageSpec out_spec = in->spec();
+      out_spec.attribute ("ImageDescription", "My Title");
+  
+      // Create the output file and copy the image
+      auto out = ImageOutput::create ("output.jpg");
+      out->open (output, out_spec);
+      out->copy_image (in);
+  
+      // Clean up
+      out->close ();
+      in->close ();
 
-    // Clean up
-    out->close ();
-    in->close ();
+   .. code-tab:: py
+
+      # Open the input file
+      inp = ImageInput.open ("input.jpg")
+  
+      # Make an output spec, identical to the input except for metadata
+      out_spec = inp.spec()
+      out_spec.attribute ("ImageDescription", "My Title")
+  
+      # Create the output file and copy the image
+      out = ImageOutput.create ("output.jpg")
+      out.open (output, out_spec)
+      out.copy_image (inp)
+  
+      # Clean up
+      out.close ()
+      inp.close ()
 
 
 
@@ -1399,44 +1681,78 @@ resulting from a call to ``create()``.
 
 Here is another version of the simple image writing code from Section
 :ref:`sec-image-output-made-simple`, but this time it is fully elaborated with
-error checking and reporting::
+error checking and reporting:
 
-    #include <OpenImageIO/imageio.h>
-    using namespace OIIO;
-    ...
+.. tabs::
 
-    const char *filename = "foo.jpg";
-    const int xres = 640, yres = 480;
-    const int channels = 3;  // RGB
-    unsigned char pixels[xres*yres*channels];
+   .. code-tab:: c++
 
-    std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
-    if (! out) {
-        std::cerr << "Could not create an ImageOutput for "
-                  << filename << ", error = "
-                  << OpenImageIO::geterror() << "\n";
-        return;
-    }
-    ImageSpec spec (xres, yres, channels, TypeDesc::UINT8);
+      #include <OpenImageIO/imageio.h>
+      using namespace OIIO;
+      ...
+  
+      const char *filename = "foo.jpg";
+      const int xres = 640, yres = 480;
+      const int channels = 3;  // RGB
+      unsigned char pixels[xres*yres*channels];
+  
+      auto out = ImageOutput::create (filename);
+      if (! out) {
+          std::cerr << "Could not create an ImageOutput for "
+                    << filename << ", error = "
+                    << OpenImageIO::geterror() << "\n";
+          return;
+      }
+      ImageSpec spec (xres, yres, channels, TypeDesc::UINT8);
+  
+      if (! out->open (filename, spec)) {
+          std::cerr << "Could not open " << filename
+                    << ", error = " << out->geterror() << "\n";
+          return;
+      }
+  
+      if (! out->write_image (TypeDesc::UINT8, pixels)) {
+          std::cerr << "Could not write pixels to " << filename
+                    << ", error = " << out->geterror() << "\n";
+          return;
+      }
+  
+      if (! out->close ()) {
+          std::cerr << "Error closing " << filename
+                    << ", error = " << out->geterror() << "\n";
+          return;
+      }
 
-    if (! out->open (filename, spec)) {
-        std::cerr << "Could not open " << filename
-                  << ", error = " << out->geterror() << "\n";
-        return;
-    }
+   .. code-tab:: py
 
-    if (! out->write_image (TypeDesc::UINT8, pixels)) {
-        std::cerr << "Could not write pixels to " << filename
-                  << ", error = " << out->geterror() << "\n";
-        return;
-    }
+      from OpenImageIO import ImageOutput, ImageSpec
+      import numpy as np
 
-    if (! out->close ()) {
-        std::cerr << "Error closing " << filename
-                  << ", error = " << out->geterror() << "\n";
-        return;
-    }
-
+      filename = "foo.jpg"
+      xres = 640
+      yres = 480
+      channels = 3  # RGB
+      pixels = np.zeros((yres, xres, channels), dtype=np.uint8)
+  
+      out = ImageOutput.create(filename)
+      if not out :
+          print("Could not create an ImageOutput for", filename,
+                ", error = ", OpenImageIO.geterror())
+          return
+      spec = ImageSpec(xres, yres, channels, 'uint8')
+  
+      if not out.open(filename, spec) :
+          print("Could not open", filename, ", error = ", out.geterror())
+          return
+  
+      if not out.write_image(pixels) :
+          print("Could not write pixels to", filename, ", error = ",
+                out.geterror())
+          return
+  
+      if not out.close() :
+          print("Error closing", filename, ", error = ", out.geterror())
+          return
 
 
 
