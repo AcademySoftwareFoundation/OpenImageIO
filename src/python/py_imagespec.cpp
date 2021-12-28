@@ -120,7 +120,8 @@ declare_imagespec(py::module& m)
         .def(
             "copy", [](const ImageSpec& self) { return ImageSpec(self); },
             py::return_value_policy::reference_internal)
-        .def("set_format", &ImageSpec::set_format)
+        .def("set_format",
+             [](ImageSpec& self, TypeDesc t) { self.set_format(t); })
         .def("default_channel_names", &ImageSpec::default_channel_names)
         .def("channel_bytes",
              [](const ImageSpec& spec) { return spec.channel_bytes(); })

@@ -314,6 +314,11 @@ public:
     /// something reasonable.
     ImageSpec (TypeDesc format = TypeDesc::UNKNOWN) noexcept;
 
+    /// Constructor: given just the data format (as any type name recognized
+    /// by the `TypeDesc` constructor), set all other fields to something
+    /// reasonable.
+    ImageSpec (string_view format) noexcept : ImageSpec(TypeDesc(format)) {}
+
     /// Constructs an `ImageSpec` with the given x and y resolution, number
     /// of channels, and pixel data format.
     ///
@@ -325,14 +330,30 @@ public:
     /// channel (if it exists) is assumed to be alpha.
     ImageSpec (int xres, int yres, int nchans, TypeDesc fmt = TypeUInt8) noexcept;
 
+    /// Construct an `ImageSpec` with the given x and y resolution, number
+    /// of channels, and pixel data format name (as any type name recognized
+    /// by the `TypeDesc` constructor).
+    ImageSpec (int xres, int yres, int nchans, string_view fmt) noexcept
+        : ImageSpec(xres, yres, nchans, TypeDesc(fmt)) {}
+
     /// Construct an `ImageSpec` whose dimensions (both data and "full") and
     /// number of channels are given by the `ROI`, pixel data type by `fmt`,
     /// and other fields are set to their default values.
     explicit ImageSpec (const ROI &roi, TypeDesc fmt = TypeUInt8) noexcept;
 
+    /// Construct an `ImageSpec` from an ROI giving dimensions, and the name
+    /// of a data type that will be recognized by the `TypeDesc` constructor.
+    explicit ImageSpec (const ROI &roi, string_view fmt) noexcept
+        : ImageSpec(roi, TypeDesc(fmt)) {}
+
     /// Set the data format, and clear any per-channel format information
     /// in `channelformats`.
     void set_format (TypeDesc fmt) noexcept;
+
+    /// Set the data format, and clear any per-channel format information
+    /// in `channelformats`. The `fmt` may be a string such as `"uint8"`,
+    /// or any other type name recognized by the TypeDesc constructor.
+    void set_format (string_view fmt) noexcept { set_format(TypeDesc(fmt)); }
 
     /// Sets the `channelnames` to reasonable defaults for the number of
     /// channels.  Specifically, channel names are set to "R", "G", "B,"
