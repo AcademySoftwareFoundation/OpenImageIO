@@ -31,6 +31,7 @@ jobs:
       CMAKE_CXX_STANDARD: 14
       USE_SIMD: sse4.2
       PUGIXML_VERSION: v1.9
+      PYBIND11_VERSION: v2.4.2
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
@@ -78,6 +79,7 @@ jobs:
       CXX: g++
       CC: gcc
       CMAKE_CXX_STANDARD: 14
+      PYBIND11_VERSION: v2.5.0
       PYTHON_VERSION: 3.7
       USE_SIMD: avx
       WEBP_VERSION: v1.1.0
@@ -129,6 +131,7 @@ jobs:
       CXX: g++
       CC: gcc
       CMAKE_CXX_STANDARD: 17
+      PYBIND11_VERSION: v2.7.0
       PYTHON_VERSION: 3.7
       USE_SIMD: avx2,f16c
       WEBP_VERSION: v1.1.0
@@ -179,6 +182,7 @@ jobs:
       CXX: g++
       CC: gcc
       CMAKE_CXX_STANDARD: 17
+      PYBIND11_VERSION: v2.9.0
       PYTHON_VERSION: 3.9
       USE_SIMD: avx2,f16c
     steps:
@@ -228,6 +232,7 @@ jobs:
       CMAKE_CXX_STANDARD: 14
       USE_SIMD: sse4.2
       OPENEXR_VERSION: v2.4.3
+      PYBIND11_VERSION: v2.6.2
       CMAKE_BUILD_TYPE: Debug
     steps:
       - uses: actions/checkout@v2
@@ -330,7 +335,7 @@ jobs:
       OPENJPEG_VERSION: v2.4.0
       PUGIXML_VERSION: v1.11.4
       PTEX_VERSION: v2.4.0
-      PYBIND11_VERSION: v2.8.1
+      PYBIND11_VERSION: v2.9.0
       PYTHON_VERSION: 3.8
       WEBP_VERSION: v1.2.1
       MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=8.0.1
@@ -732,7 +737,7 @@ jobs:
       CMAKE_CXX_STANDARD: 14
       PYTHON_VERSION: 3.7
       USE_SIMD: avx2,f16c
-      PYBIND11_VERSION: v2.6.1
+      PYBIND11_VERSION: v2.6.2
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
@@ -780,6 +785,7 @@ jobs:
     env:
       CXX: clang++
       CMAKE_CXX_STANDARD: 17
+      PYBIND11_VERSION: v2.8.1
       PYTHON_VERSION: 3.9
       USE_SIMD: avx2,f16c
     steps:
@@ -829,6 +835,7 @@ jobs:
       CMAKE_CXX_STANDARD: 14
       BUILD_SHARED_LIBS: OFF
       OPENEXR_VERSION: v2.4.3
+      PYBIND11_VERSION: v2.6.2
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
