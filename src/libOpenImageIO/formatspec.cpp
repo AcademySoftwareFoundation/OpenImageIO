@@ -427,6 +427,11 @@ ImageSpec::find_attribute(string_view name, ParamValue& tmpparam,
     GETINT(tile_depth);
     GETINT(alpha_channel);
     GETINT(z_channel);
+    if (MATCH("format", TypeString)) {
+        const char* formatstr = this->format.c_str();
+        tmpparam.init("format", TypeString, 1, &formatstr);
+        return &tmpparam;
+    }
 
     // some special cases -- assemblies of multiple fields or attributes
     if (MATCH("geom", TypeString)) {
