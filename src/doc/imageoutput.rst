@@ -1379,7 +1379,7 @@ Here is an example of using these methods to write a deep image:
 
       # Prepare the spec for 'half' RGBA, 'float' z
       int nchannels = 5
-      ImageSpec spec (xres, yres, nchannels)
+      spec = ImageSpec(xres, yres, nchannels)
       spec.channelnames = ("R", "G", "B", "A", "Z")
       spec.channeltypes = ("half", "half", "half", "half", "float")
       spec.alpha_channel = 3
