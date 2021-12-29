@@ -228,6 +228,14 @@ declare_imagespec(py::module& m)
         .def("getattribute", &ImageSpec_getattribute_typed, "name"_a,
              "type"_a = TypeUnknown)
         .def(
+            "get",
+            [](const ImageSpec& self, const std::string& key, py::object def) {
+                ParamValue tmpparam;
+                auto p = self.find_attribute(key, tmpparam);
+                return p ? ParamValue_getitem(*p, false, def) : def;
+            },
+            "key"_a, "default"_a = py::none())
+        .def(
             "erase_attribute",
             [](ImageSpec& spec, const std::string& name, TypeDesc type,
                bool casesensitive = false) {
@@ -264,6 +272,7 @@ declare_imagespec(py::module& m)
         .def("valid_tile_range", &ImageSpec::valid_tile_range, "xbegin"_a,
              "xend"_a, "ybegin"_a, "yend"_a, "zbegin"_a, "zend"_a)
         .def("copy_dimensions", &ImageSpec::copy_dimensions, "other"_a)
+        // __getitem__ is the dict-like `ImageSpec[key]` lookup
         .def("__getitem__",
              [](const ImageSpec& self, const std::string& key) {
                  ParamValue tmpparam;
@@ -272,10 +281,20 @@ declare_imagespec(py::module& m)
                      throw py::key_error("key '" + key + "' does not exist");
                  return ParamValue_getitem(*p);
              })
+        // __setitem__ is the dict-like `ImageSpec[key] = value` assignment
         .def("__setitem__",
              [](ImageSpec& self, const std::string& key, py::object val) {
                  delegate_setitem(self, key, val);
-             });
+             })
+        // __delitem__ is the dict-like `del ImageSpec[key]`
+        .def("__delitem__",
+             [](ImageSpec& self, const std::string& key) {
+                 self.erase_attribute(key);
+             })
+        // __contains__ is the dict-like `key in ImageSpec`
+        .def("__contains__", [](const ImageSpec& self, const std::string& key) {
+            return self.extra_attribs.contains(key);
+        });
 }
 
 }  // namespace PyOpenImageIO

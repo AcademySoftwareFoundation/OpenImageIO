@@ -584,7 +584,8 @@ make_numpy_array(TypeDesc format, void* data, int dims, size_t chans,
 
 
 inline py::object
-ParamValue_getitem(const ParamValue& self, bool allitems = false)
+ParamValue_getitem(const ParamValue& self, bool allitems = false,
+                   py::object defaultvalue = py::none())
 {
     TypeDesc t = self.type();
     int nvals  = allitems ? self.nvalues() : 1;
@@ -608,7 +609,7 @@ case TypeDesc::TYPE:                                                       \
         ParamValue_convert_dispatch(DOUBLE);
     case TypeDesc::STRING:
         return C_to_val_or_tuple((const char**)self.data(), t, nvals);
-    default: return py::none();
+    default: return defaultvalue;
     }
 
 #undef ParamValue_convert_dispatch

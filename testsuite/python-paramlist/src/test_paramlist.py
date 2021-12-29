@@ -66,9 +66,22 @@ try:
     print ("pl['e'] = {:.6}".format(pl['e']))
     print ("pl['pi'] = {:.6}".format(pl['pi']))
     print ("pl['foo'] =", pl['foo'])
+    print ("'e' in pl =", 'e' in pl)
 
     pl.remove('e')
     print ("after removing 'e', len=", len(pl), "pl.contains('e')=", pl.contains('e'))
+
+    pl['x'] = 123
+    print ("after adding 'x', then 'x' in pl =", 'x' in pl)
+    del pl['x']
+    print ("after removing 'x', then 'x' in pl =", 'x' in pl)
+
+    try :
+        print ("pl['unknown'] =", pl['unknown'])
+    except KeyError :
+        print ("pl['unknown'] raised a KeyError (as expected)")
+    except :
+        print ("pl['unknown'] threw an unknown exception (oh no!)")
 
     pl2 = oiio.ParamValueList()
     pl2.attribute ("a", "aval")

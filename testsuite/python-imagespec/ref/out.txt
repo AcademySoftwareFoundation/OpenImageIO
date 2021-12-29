@@ -88,9 +88,16 @@ getattribute('foo_vector') retrieves (1.0, 0.0, 11.0)
 getattribute('foo_matrix') retrieves (1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 2.0, 3.0, 1.0)
 getattribute('foo_no') retrieves None
 getattribute('smpte:TimeCode') retrieves (18356486L, 4294967295L)
+getattribute('unknown') retrieves None
+s.get('foo_int') = 14
+s.get('unknown') = None
+s.get('unknown', 123) = None
 s['delfoo_float'] = 99.5
 s['delfoo_int'] = 29
 s['delfoo_str'] = egg
+s['unknown'] raised a KeyError (as expected)
+'foo_int' in s = True
+'unknown' in s = False
 
 extra_attribs size is 9
 0 foo_str string blah
