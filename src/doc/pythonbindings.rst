@@ -604,13 +604,15 @@ Section :ref:`sec-ImageSpec`, is replicated for Python.
 
 
 
-.. py:attribute:: ImageSpec[name]
+.. py:attribute:: ImageSpec[key]
 
     *NEW in 2.1*
 
     Retrieve or set metadata using a dictionary-like syntax, rather than
-    `attribute()` and `getattribute()`. This is best illustrated by
-    example:
+    `attribute()` and `getattribute()`. When retrieving a key that is
+    not found, a `KeyError` exception will be thrown.
+    
+    Example:
 
     .. code-block:: python
 
