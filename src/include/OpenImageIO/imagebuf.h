@@ -807,10 +807,12 @@ public:
 
     /// Copy the data into the given ROI of the ImageBuf. The data points to
     /// values specified by `format`, with layout detailed by the stride
-    /// values (in bytes, with AutoStride indicating "contiguous" layout).
-    /// It is up to the caller to ensure that data points to an area of
-    /// memory big enough to account for the ROI. Return true if the
-    /// operation could be completed, otherwise return false.
+    /// values (in bytes, with AutoStride indicating "contiguous" layout). It
+    /// is up to the caller to ensure that data points to an area of memory
+    /// big enough to account for the ROI. If `roi` is set to `ROI::all()`,
+    /// the data buffer is assumed to have the same resolution as the ImageBuf
+    /// itself. Return true if the operation could be completed, otherwise
+    /// return false.
     bool set_pixels(ROI roi, TypeDesc format, const void* data,
                     stride_t xstride = AutoStride,
                     stride_t ystride = AutoStride,
