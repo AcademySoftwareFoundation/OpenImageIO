@@ -65,6 +65,12 @@ try:
     print ("After set, roi is", oiio.get_roi(spec))
     print ("After set, roi_full is", oiio.get_roi_full(spec))
 
+    r1 = oiio.ROI(0, 640, 0, 480, 0, 1, 0, 4)
+    r2 = r1.copy()
+    r2.xbegin = 42
+    print ("r1 =", r1)
+    print ("r2 =", r2)
+
     print ("")
 
     print ("Done.")
