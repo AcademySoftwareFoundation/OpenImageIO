@@ -14,6 +14,15 @@ Resetting to be a writable 640x480,3 Float:
   alpha channel =  -1
   z channel =  -1
   deep =  False
+Constructing from a bare numpy array:
+  resolution 2x3+0+0
+  untiled
+  4 channels: ('R', 'G', 'B', 'A')
+  format =  float
+  alpha channel =  3
+  z channel =  -1
+  deep =  False
+  pixel (0,1) = 0.3 0 0.8 1
 
 Testing read of ../common/textures/grid.tx:
 subimage: 0  /  1

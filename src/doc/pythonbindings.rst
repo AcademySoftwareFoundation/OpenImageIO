@@ -1558,6 +1558,28 @@ awaiting a call to `reset()` or `copy()` before it is useful.
         buf = ImageBuf (spec)
 
 
+.. py:method:: ImageBuf (data)
+
+    Construct a writable ImageBuf of the dimensions of `data`, which is a
+    NumPy `ndarray` of values indexed as `[y][x][channel]` for normal 2D
+    images, or for 3D volumetric images, as `[z][y][x][channel]`. The data
+    will be copied into the ImageBuf's internal storage. The NumPy array may
+    be strided for z, y, or x, but must have "contiguous" channel data within
+    each pixel. The pixel data type is also deduced from the contents of the
+    `data` array.
+
+    Note that this Python ImageBuf will contain its own copy of the data, so
+    further changes to the `data` array will not affect the ImageBuf. This is
+    different from the C++ ImageBuf constructor from a pointer, which will
+    "wrap" the existing user-provided buffer but not make its own copy.
+
+    Example:
+
+    .. code-block:: python
+
+        pixels = numpy.zeros ((640, 480, 3), dtype = numpy.float32)
+        buf = ImageBuf (pixels)
+
 
 .. py:method:: ImageBuf.clear ()
 
@@ -1589,6 +1611,22 @@ awaiting a call to `reset()` or `copy()` before it is useful.
     ImageBuf specified by an ImageSpec. The pixels will be iniialized to
     black/empty if `zero` is True, otherwise the pixel values will remain
     uninitialized.
+
+
+.. py:method:: ImageBuf.reset (data)
+
+    Reset the ImageBuf to be sized to the dimensions of `data`, which is a
+    NumPy `ndarray` of values indexed as `[y][x][channel]` for normal 2D
+    images, or for 3D volumetric images, as `[z][y][x][channel]`. The data
+    will be copied into the ImageBuf's internal storage. The NumPy array may
+    be strided for z, y, or x, but must have "contiguous" channel data within
+    each pixel. The pixel data type is also deduced from the contents of the
+    `data` array.
+
+    Note that this Python ImageBuf will contain its own copy of the data, so
+    further changes to the `data` array will not affect the ImageBuf. This is
+    different from the C++ ImageBuf constructor from a pointer, which will
+    "wrap" the existing user-provided buffer but not make its own copy.
 
 
 .. py:method:: ImageBuf.read(subimage=0, miplevel=0, force=False, convert=oiio.UNKNOWN)

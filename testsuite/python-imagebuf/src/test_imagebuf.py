@@ -145,6 +145,15 @@ try:
     print ("Resetting to be a writable 640x480,3 Float:")
     b.reset (oiio.ImageSpec(640,480,3,oiio.FLOAT))
     print_imagespec (b.spec())
+
+    print ("Constructing from a bare numpy array:")
+    b = oiio.ImageBuf(numpy.array([[[0.1,0.0,0.9,1.0], [0.2,0.0,0.7,1.0]],
+                                   [[0.3,0.0,0.8,1.0], [0.4,0.0,0.6,1.0]],
+                                   [[0.5,0.0,0.7,1.0], [0.6,0.0,0.5,1.0]]], dtype="f"))
+    # should be width=2, height=3, channels=4, format=FLOAT
+    print_imagespec (b.spec())
+    print ("  pixel (0,1) = {:.3g} {:.3g} {:.3g} {:.3g}".format(b.getpixel (0,1)[0],
+           b.getpixel (0,1)[1], b.getpixel (0,1)[2], b.getpixel(0,1)[3]))
     print ("")
 
     # Test reading from disk

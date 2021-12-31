@@ -13,6 +13,55 @@ namespace PyOpenImageIO {
 
 
 
+static ImageBuf
+ImageBuf_from_buffer(const py::buffer& buffer)
+{
+    ImageBuf ib;
+    const py::buffer_info info = buffer.request();
+    TypeDesc format;
+    if (info.format.size())
+        format = typedesc_from_python_array_code(info.format);
+    if (format == TypeUnknown)
+        return ib;
+    // Strutil::print("IB from {} buffer: dims = {}\n", format, info.ndim);
+    // for (int i = 0; i < info.ndim; ++i)
+    //     Strutil::print("IB from buffer: dim[{}]: size = {}, stride = {}\n", i,
+    //                    info.shape[i], info.strides[i]);
+    if (size_t(info.strides[info.ndim - 1]) != format.size()) {
+        ib.errorfmt(
+            "ImageBuf-from-numpy-array must have contiguous stride within pixels");
+        return ib;
+    }
+
+    if (info.ndim == 3) {
+        // Assume [y][x][c]
+        ImageSpec spec(info.shape[1], info.shape[0], info.shape[2], format);
+        ib.reset(spec, InitializePixels::No);
+        ib.set_pixels(get_roi(spec), format, info.ptr, info.strides[1],
+                      info.strides[0]);
+    } else if (info.ndim == 2) {
+        // Assume [y][x], single channel
+        ImageSpec spec(info.shape[1], info.shape[0], 1, format);
+        ib.reset(spec, InitializePixels::No);
+        ib.set_pixels(get_roi(spec), format, info.ptr, info.strides[1],
+                      info.strides[0]);
+    } else if (info.ndim == 4) {
+        // Assume volume [z][y][x][c]
+        ImageSpec spec(info.shape[2], info.shape[1], info.shape[3], format);
+        spec.depth      = info.shape[0];
+        spec.full_depth = spec.depth;
+        ib.reset(spec, InitializePixels::No);
+        ib.set_pixels(get_roi(spec), format, info.ptr, info.strides[2],
+                      info.strides[1], info.strides[0]);
+    } else {
+        ib.errorfmt(
+            "ImageBuf-from-numpy-array must have 2, 3, or 4 dimensions");
+    }
+    return ib;
+}
+
+
+
 py::tuple
 ImageBuf_getpixel(const ImageBuf& buf, int x, int y, int z = 0,
                   const std::string& wrapname = "black")
@@ -203,6 +252,10 @@ declare_imagebuf(py::module& m)
                  return ImageBuf(name, subimage, miplevel, nullptr, &config);
              }),
              "name"_a, "subimage"_a, "miplevel"_a, "config"_a)
+        .def(py::init([](const py::buffer& buffer) {
+                 return ImageBuf_from_buffer(buffer);
+             }),
+             "buffer"_a)
         .def("clear", &ImageBuf::clear)
         .def(
             "reset",
@@ -224,6 +277,13 @@ declare_imagebuf(py::module& m)
                 self.reset(spec, z);
             },
             "spec"_a, "zero"_a = true)
+        .def(
+            "reset",
+            [](ImageBuf& self, const py::buffer& buffer) {
+                self = ImageBuf_from_buffer(buffer);
+            },
+            "buffer"_a)
+
         .def_property_readonly("initialized",
                                [](const ImageBuf& self) {
                                    return self.initialized();
