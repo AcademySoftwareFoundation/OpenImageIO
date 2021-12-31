@@ -2278,6 +2278,17 @@ Pattern generation
         ImageBufAlgo.noise (buf, 'white', 0.25, 0.75)
 
 
+.. py:method:: ImageBuf ImageBufAlgo.bluenoise_image ()
+
+    Return a reference to a singleton ImageBuf containing a 4-channel float
+    periodic blue noise image.
+
+    Example:
+
+    .. code-block:: python
+
+        buf = ImageBufAlgo.bluenoise_image ()
+
 
 .. py:method:: ImageBufAlgo.render_point (dst, x, y, color=(1,1,1,1))
 
