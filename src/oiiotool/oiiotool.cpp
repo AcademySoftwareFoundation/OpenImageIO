@@ -3436,8 +3436,8 @@ action_pattern(int argc, const char* argv[])
     } else if (Strutil::istarts_with(pattern, "checker")) {
         auto options = ot.extract_options(pattern);
         int width    = options.get_int("width", 8);
-        int height   = options.get_int("height", 8);
-        int depth    = options.get_int("depth", 8);
+        int height   = options.get_int("height", width);
+        int depth    = options.get_int("depth", width);
         std::vector<float> color1(nchans, 0.0f);
         std::vector<float> color2(nchans, 1.0f);
         Strutil::extract_from_list_string(color1, options.get_string("color1"));
