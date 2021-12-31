@@ -46,3 +46,5 @@ Comparing "lines.tif" and "ref/lines.tif"
 PASS
 Comparing "box.tif" and "ref/box.tif"
 PASS
+Comparing "points.tif" and "ref/points.tif"
+PASS
