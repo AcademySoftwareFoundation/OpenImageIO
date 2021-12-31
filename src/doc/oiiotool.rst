@@ -4206,6 +4206,12 @@ General commands that also work for deep images
     Resampling (resize without filtering or interpolation, just choosing the
     closest deep pixel to copy for each output pixel).
 
+    Optional appended modifiers include:
+    
+    - `interp=` *val* :  If 0, the "closest" single pixel will be copied
+      for each sample. If 1, the nearest 4 pixels will be interpolated to
+      produce each sample. (Default: 1)
+
 .. option:: --diff
 
     Report on the difference of the top two images.

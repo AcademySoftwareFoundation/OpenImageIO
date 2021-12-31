@@ -954,6 +954,16 @@ bool OIIO_API channel_sum (ImageBuf &dst, const ImageBuf &src,
                            ROI roi={}, int nthreads=0);
 
 
+/// @defgroup maxminclamp (Maximum, minimum, clamping)
+/// @{
+///
+/// `max()` and `min()` take the pixel-by-pixel, channel-by-channel
+/// maximum and minimum of two images, or of an image and a constant.
+///
+/// `clamp()` restricts values of an image to the range between per-channel
+/// minimum and maximum constant values.
+
+
 /// Compute per-pixel `max(A, B)`, returning the result image.
 ///
 /// Either both `A` and `B` are images, or one is an image and the other is
@@ -979,12 +989,15 @@ bool OIIO_API min (ImageBuf &dst, Image_or_Const A, Image_or_Const B,
 
 
 /// Return pixels of `src` with pixel values clamped as follows:
-/// * `min` specifies the minimum clamp value for each channel
-///   (if min is empty, no minimum clamping is performed).
-/// * `max` specifies the maximum clamp value for each channel
-///   (if `max` is empty, no maximum clamping is performed).
-/// * If `clampalpha01` is true, then additionally any alpha channel is
-///   clamped to the 0-1 range.
+/// @param min
+///              The minimum clamp value for each channel. If `min` is
+///              empty, no minimum clamping is performed.
+/// @param max
+///              The maximum clamp value for each channel. If `max` is
+///              empty, no maximum clamping is performed.
+/// @param clampalpha01
+///              If true, then additionally any alpha channel is clamped
+///              to the 0-1 range.
 ImageBuf OIIO_API clamp (const ImageBuf &src,
                          cspan<float> min=-std::numeric_limits<float>::max(),
                          cspan<float> max=std::numeric_limits<float>::max(),
@@ -994,6 +1007,8 @@ bool OIIO_API clamp (ImageBuf &dst, const ImageBuf &src,
                      cspan<float> min=-std::numeric_limits<float>::max(),
                      cspan<float> max=std::numeric_limits<float>::max(),
                      bool clampalpha01 = false, ROI roi={}, int nthreads=0);
+
+/// @}
 
 
 /// @defgroup maxminchan (Maximum / minimum of channels)
@@ -1307,7 +1322,7 @@ inline bool isMonochrome (const ImageBuf &src, ROI roi, int nthreads=0) {
 
 
 /// Count how many pixels in the ROI match a list of colors. The colors to
-/// match are in::
+/// match are in:
 /// 
 ///     colors[0 ... nchans-1]
 ///     colors[nchans ... 2*nchans-1]
@@ -1325,7 +1340,7 @@ inline bool isMonochrome (const ImageBuf &src, ROI roi, int nthreads=0) {
 /// 8 bit images, but allows a wee bit of imprecision for float images.
 ///
 /// Upon success, return `true` and store the number of pixels that matched
-/// each color `count[..ncolors-1]`.  If there is an error, returns `false`
+/// each color `count[0..ncolors-1]`.  If there is an error, returns `false`
 /// and sets an appropriate error message set in `src`.
 bool OIIO_API color_count (const ImageBuf &src, imagesize_t *count,
                            int ncolors, cspan<float> color,

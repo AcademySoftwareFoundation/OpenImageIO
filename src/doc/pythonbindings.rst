@@ -3253,7 +3253,7 @@ Image comparison and statistics
 
 
 
-.. py:method:: bool ImageBufAlgo.color_range_check (src, low, high, roi=ROI.All, nthreads=0)
+.. py:method:: ImageBufAlgo.color_range_check (src, low, high, roi=ROI.All, nthreads=0)
 
     Count how many pixels in the `src` image (within the `roi`) are outside
     the value range described by `low` and `hi` (which each may be either
