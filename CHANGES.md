@@ -1,3 +1,6 @@
+Release 2.3.12 (1 Feb? 2022) -- compared to 2.3.11
+--------------------------------------------------
+
 Release 2.3.11 (1 Jan 2022) -- compared to 2.3.10
 --------------------------------------------------
 * JPEG2000: enable multithreading for decoding (if using OpenJPEG >= 2.2)
