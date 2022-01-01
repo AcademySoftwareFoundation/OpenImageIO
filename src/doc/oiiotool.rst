@@ -1955,8 +1955,11 @@ current top image.
       color can be set with the optional `:color=r,g,b,...` arguments giving
       a numerical value for each channel.
     * `checker` : A black and white checkerboard pattern.  The optional
-      argument `:width=` sets with width of the checkers (defaulting to 8
-      pixels).
+      modifier `:width=` sets the width of the checkers (defaulting to 8
+      pixels), `:height=` sets the height of the checkers (defaulting to equal
+      height and width). Optional modifiers `:color1=r,g,b,...` and
+      `:color2=r,g,b,...` set the colors of the alternating squares
+      (defaulting to black and white, respectively).
     * `fill`  : A constant color or gradient, depending on the optional
       colors. Argument `:color=r,g,b,...` results in a constant color.
       Argument `:top=r,g,b,...:bottom=...` results in a top-to-bottom
