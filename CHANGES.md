@@ -1,6 +1,33 @@
-Release 2.3.11 (1 Jan? 2022) -- compared to 2.3.10
+Release 2.3.11 (1 Jan 2022) -- compared to 2.3.10
 --------------------------------------------------
-
+* JPEG2000: enable multithreading for decoding (if using OpenJPEG >= 2.2)
+  and encoding (if using OpenJPEG >= 2.4). This speeds up JPEG-2000 I/O
+  by 3-4x. #2225
+* TIFF: automatically switch to "bigtiff" format for >4GB images. #3158
+* Security: New global OIIO attributes "limits:channels" (default: 1024) and
+  "limits:imagesize_MB" (default: 32768, or 32 GB) are intended to reject
+  input files that exceed these limits, on the assumption that they are either
+  corrupt or maliciously constructed, and would, if read, lead to absurd
+  allocations, crashes, or other mayhem. Apps may lower or raise these limits
+  if they know that a legitimate input image exceeds these limits. Currently,
+  only the TIFF reader checks these limits, but others will be modified to
+  honor the limits over time. #3230
+* TextureSystem: enhance safety/correctness for untiled images that exceed
+  2GB size (there was an integer overflow problem in computing offsets within
+  tiles). #3232
+* Cleanup: Get rid of an obsolete header c-imageio.h that was experimental
+  and the functions declared therein were not implemented in this release.
+  #3237
+* Build: rely on env variable "OpenImageIO_CI" to tell us if we are running in
+  a CI environment, not the more generic "CI" which could be set for other
+  reasons in some environments. #3211
+* Build: Improvements in how we find OpenVDB. #3216
+* Build: If CMake variable `BUILD_TESTING` is OFF, don't do any automatic
+  downloading of missing test data. #3227
+* Dev: Add Strutil::edit_distance(). #3229
+* Docs: Clean up intra-document section references, new explanations about
+  input and output configuration hints, more code examples in both C++ and
+  Python (especially for the ImageInput and ImageOutput chapters). #3238 #3244
 
 Release 2.3.10.1 (7 Dec 2021) -- compared to 2.3.10.0
 -----------------------------------------------------
