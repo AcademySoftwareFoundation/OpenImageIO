@@ -64,6 +64,9 @@ declare_roi(py::module& m)
         .def("__str__",
              [](const ROI& roi) { return PY_STR(Strutil::sprintf("%s", roi)); })
 
+        // Copy
+        .def("copy", [](const ROI& self) -> ROI { return self; })
+
         // roi_union, roi_intersection, get_roi(spec), get_roi_full(spec)
         // set_roi(spec,newroi), set_roi_full(newroi)
 
