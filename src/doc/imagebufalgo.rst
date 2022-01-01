@@ -213,7 +213,7 @@ zero() -- create a black image
           ImageBufAlgo.zero (A, ROI (0, 100, 0, 100))
           
           # Zero out just the green channel, leave everything else the same
-          roi = A.roi ()
+          roi = A.roi
           roi.chbegin = 1 # green
           roi.chend = 2   # one past the end of the channel region
           ImageBufAlgo.zero (A, roi)
