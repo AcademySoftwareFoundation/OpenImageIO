@@ -43,6 +43,12 @@ command += oiiotool ("--pattern checker:color1=.1,.1,.1:color2=0,0,0 256x256 3 "
                      "--box:color=0.5,0.5,0,0.5:fill=1 100,50,180,140  " +
                      "-d uint8 -o box.tif")
 
+# test --point
+command += oiiotool ("--create 64x64 3 " +
+                     "--point:color=0,1,1,1 50,10 " +
+                     "--point:color=1,0,1,1 20,20,30,30,40,40 " +
+                     "-d uint8 -o points.tif")
+
 
 
 # To add more tests, just append more lines like the above and also add
@@ -55,7 +61,7 @@ outputs = [ "pattern-const.tif", "pattern-gradienth.tif",
             "pattern-gradientv.tif", "pattern-gradient4.tif",
             "noise-uniform3.tif", "noise-gauss.tif", "noise-salt.tif",
             "filled.tif", "fillh.tif", "fillv.tif", "fill4.tif",
-            "lines.tif", "box.tif",
+            "lines.tif", "box.tif", "points.tif",
             "out.txt" ]
 
 #print "Running this command:\n" + command + "\n"

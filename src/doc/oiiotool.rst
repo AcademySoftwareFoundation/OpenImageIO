@@ -3496,28 +3496,6 @@ current top image.
     to fill internal "holes" as well as to extend an image out.
 
 
-.. option:: --line <x1,y1,x2,y2,...>
-
-    Draw (rasterize) an open polyline connecting the list of pixel
-    positions, as a comma-separated list of alternating *x* and *y* values.
-    Additional optional arguments include:
-
-      `color=` *r,g,b,...*
-        specify the color of the line
-      `:subimages=` *indices-or-names*
-        Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
-
-    The default color, if not supplied, is opaque white.
-
-    Examples::
-
-        oiiotool checker.exr --line:color=1,0,0 10,60,250,20,100,190 -o out.exr
-
-  .. image:: figures/lines.png
-    :align: center
-    :width: 2.0 in
-
-
 .. option:: --box <x1,y1,x2,y2>
 
     Draw (rasterize) a filled or unfilled a box with opposite corners
@@ -3540,6 +3518,50 @@ current top image.
     .. image:: figures/box.png
         :align: center
         :width: 2.0 in
+
+
+.. option:: --line <x1,y1,x2,y2,...>
+
+    Draw (rasterize) an open polyline connecting the list of pixel
+    positions, as a comma-separated list of alternating *x* and *y* values.
+    Additional optional arguments include:
+
+      `color=` *r,g,b,...*
+        specify the color of the line
+      `:subimages=` *indices-or-names*
+        Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+
+    The default color, if not supplied, is opaque white.
+
+    Examples::
+
+        oiiotool checker.exr --line:color=1,0,0 10,60,250,20,100,190 -o out.exr
+
+  .. image:: figures/lines.png
+    :align: center
+    :width: 2.0 in
+
+
+.. option:: --point <x1,y1,x2,y2,...>
+
+    Draw single points at the list of pixel positions, as a comma-separated
+    list of alternating *x* and *y* values. Additional optional arguments
+    include:
+
+      `color=` *r,g,b,...*
+        specify the color of the line
+      `:subimages=` *indices-or-names*
+        Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+
+    The default color, if not supplied, is opaque white.
+
+    Examples::
+
+        oiiotool checker.exr --point:color=1,0,0 10,60,250,20,100,190 -o out.exr
+
+  .. image:: figures/points.png
+    :align: center
+    :width: 2.0 in
 
 
 .. option:: --fill <size>
