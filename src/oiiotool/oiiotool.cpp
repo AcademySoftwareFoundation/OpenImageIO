@@ -4554,10 +4554,27 @@ OIIOTOOL_OP(line, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     bool closed = (points.size() > 4 && points[0] == points[points.size() - 2]
                    && points[1] == points[points.size() - 1]);
     bool ok     = true;
-    for (size_t i = 0, e = points.size() - 2; i < e; i += 2)
+    for (size_t i = 0, e = points.size() - 3; i < e; i += 2)
         ok &= ImageBufAlgo::render_line(*img[0], points[i + 0], points[i + 1],
                                         points[i + 2], points[i + 3], color,
                                         closed || i > 0 /*skip_first_point*/);
+    return ok;
+});
+
+
+
+// --point
+OIIOTOOL_OP(point, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
+    img[0]->copy(*img[1]);
+    const ImageSpec& Rspec(img[0]->spec());
+    std::vector<int> points;
+    Strutil::extract_from_list_string(points, op.args(1));
+    std::vector<float> color(Rspec.nchannels + 1, 1.0f);
+    Strutil::extract_from_list_string(color, op.options().get_string("color"));
+    bool ok = true;
+    for (size_t i = 0, e = points.size() - 1; i < e; i += 2)
+        ok &= ImageBufAlgo::render_point(*img[0], points[i + 0], points[i + 1],
+                                         color);
     return ok;
 });
 
@@ -6133,6 +6150,9 @@ getargs(int argc, char* argv[])
     ap.arg("--line %s:X1,Y1,X2,Y2,...")
       .help("Render a poly-line (options: color=)")
       .action(action_line);
+    ap.arg("--point %s:X1,Y1,X2,Y2,...")
+      .help("Render points (options: color=)")
+      .action(action_point);
     ap.arg("--box %s:X1,Y1,X2,Y2")
       .help("Render a box (options: color=)")
       .action(action_box);
