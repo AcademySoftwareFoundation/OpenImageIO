@@ -122,27 +122,29 @@ declare_paramvalue(py::module& m)
 
     py::class_<ParamValue>(m, "ParamValue")
         .def_property_readonly("name",
-                               [](const ParamValue& p) {
-                                   return PY_STR(p.name().string());
+                               [](const ParamValue& self) {
+                                   return PY_STR(self.name().string());
                                })
-        // FIXME: This implementation of `type` is almost certainly a
-        // mistake. This should return p.type(), just a TypeDesc, not a
-        // string. I think this was an error introduced in the Python
-        // binding overhaul of OIIO 2.0.  We can't break back compatibility
-        // by changing it until 3.0. It should really look like this:
-        //   .def_property_readonly("type",
-        //                          [](const ParamValue& p) {
-        //                              return p.type();
-        //                          })
+#if OIIO_VERSION_LESS(3, 0, 0)
         .def_property_readonly("type",
-                               [](const ParamValue& p) {
-                                   return PY_STR(p.type().c_str());
+                               [](const ParamValue& self) {
+                                   return PY_STR(self.type().c_str());
                                })
+    // FIXME: This implementation of `type` is almost certainly a
+    // mistake. This should return p.type(), just a TypeDesc, not a
+    // string. I think this was an error introduced in the Python
+    // binding overhaul of OIIO 2.0.  We can't break back compatibility
+    // by changing it until 3.0. It should really look like this:
+#else
+        .def_property_readonly("type",
+                               [](const ParamValue& self) {
+                                   return self.type();
+                               })
+#endif
         .def_property_readonly("value",
-                               [](const ParamValue& p) {
-                                   return ParamValue_getitem(p, true);
+                               [](const ParamValue& self) {
+                                   return ParamValue_getitem(self, true);
                                })
-        // .def("__getitem__",       &ParamValue_getitem)
         .def_property_readonly("__len__", &ParamValue::nvalues)
         .def(py::init<const std::string&, int>())
         .def(py::init<const std::string&, float>())
@@ -171,6 +173,7 @@ declare_paramvalue(py::module& m)
                 return self[i];
             },
             py::return_value_policy::reference_internal)
+        // __getitem__ is the dict-like `pvl[key]` lookup
         .def(
             "__getitem__",
             [](const ParamValueList& self, const std::string& key) {
@@ -180,9 +183,18 @@ declare_paramvalue(py::module& m)
                 return ParamValue_getitem(*p);
             },
             py::return_value_policy::reference_internal)
+        // __setitem__ is the dict-like `pvl[key] = value` assignment
         .def("__setitem__",
              [](ParamValueList& self, const std::string& key, py::object val) {
                  delegate_setitem(self, key, val);
+             })
+        // __delitem__ is the dict-like `del pvl[key]`
+        .def("__delitem__", [](ParamValueList& self,
+                               const std::string& key) { self.remove(key); })
+        // __contains__ is the dict-like `key in pvl`
+        .def("__contains__",
+             [](const ParamValueList& self, const std::string& key) {
+                 return self.contains(key);
              })
         .def("__len__", [](const ParamValueList& p) { return p.size(); })
         .def(

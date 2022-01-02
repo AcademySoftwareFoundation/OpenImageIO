@@ -111,9 +111,23 @@ try:
     print ("getattribute('foo_matrix') retrieves", s.getattribute("foo_matrix"))
     print ("getattribute('foo_no') retrieves", s.getattribute("foo_no"))
     print ("getattribute('smpte:TimeCode') retrieves", s.getattribute("smpte:TimeCode"))
+    print ("getattribute('unknown') retrieves", s.getattribute("unknown"))
+    print ("s.get('foo_int') =", s.get('foo_int'))
+    print ("s.get('unknown') =", s.get('unknown'))
+    print ("s.get('unknown', 123) =", s.get('unknown'))
     print ("s['delfoo_float'] =", s['delfoo_float'])
     print ("s['delfoo_int'] =", s['delfoo_int'])
     print ("s['delfoo_str'] =", s['delfoo_str'])
+    try :
+        print ("s['unknown'] =", s['unknown'])
+    except KeyError :
+        print ("s['unknown'] raised a KeyError (as expected)")
+    except :
+        print ("s['unknown'] threw an unknown exception (oh no!)")
+    print("'foo_int' in s =", "foo_int" in s)
+    print("'unknown' in s =", "unknown" in s)
+    s["extra"] = 1  # add 'extra', then delete it
+    del s["extra"]  # it should not appear in the serialization below
     print ()
 
     print ("extra_attribs size is", len(s.extra_attribs))
