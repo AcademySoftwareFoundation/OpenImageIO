@@ -606,22 +606,49 @@ Section :ref:`sec-ImageSpec`, is replicated for Python.
 
 .. py:attribute:: ImageSpec[key]
 
-    *NEW in 2.1*
-
-    Retrieve or set metadata using a dictionary-like syntax, rather than
-    `attribute()` and `getattribute()`. When retrieving a key that is
-    not found, a `KeyError` exception will be thrown.
+    ImageSpec provides a Python `dict`-like interface for metadata,
+    in addition to `attribute()` and `getattribute()`. 
     
-    Example:
+    The `ImageSpec["key"] = value` notation can be used to set an
+    attribute (just like calling `ImageSpec.attribute("key", value)`).
+    Also, `ImageSpec["key"]` can retrieve an attribute if it is present,
+    or raise a `KeyError` exception if not found.
+
+    Like dictionaries, `'key' in spec` is True if the attribute is present,
+    and `del spec['key']` will remove the attribute.
+    
+    Examples:
 
     .. code-block:: python
 
-        comp = spec["Compression"]
-        # Same as:  comp = spec.getattribute("Compression")
-
-        spec["Compression"] = comp
         # Same as: spec.attribute("Compression", comp)
+        spec["Compression"] = comp
 
+        # Same as:  comp = spec.getattribute("Compression")
+        # if it succeeds, or raises a KeyError if not found.
+        comp = spec["Compression"]
+
+        # Failed spec["key"] will raise a KeyError
+        try:
+            r = spec["unknown"]
+        except:
+            print("'unknown' key was not found")
+
+        # "key" in spec is True if the key is present
+        if "Compression" in spec:
+            print("'Compression' metadata is present")
+
+        # del spec["key"] removes the key
+        del key["Compression"]
+
+        # ImageSpec.get("key") returns the value, or None if not found
+        comp = spec.get("Compression")
+        # and optionally, a default value may be passed
+        comp = spec.get("Compression", "none")
+
+    The basic `["key"]` setting and retrieval was added in OpenImageIO in 2.1.
+    The `"key" in` and `del` operators, and the `get()` method, were added in
+    OpenImageIO 2.4.
 
 
 .. py:method:: ImageSpec.metadata_val (paramval, human=False)

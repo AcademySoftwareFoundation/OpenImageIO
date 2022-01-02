@@ -576,10 +576,15 @@ as an associative array or dictionary:
 
     .. code-tab:: py
 
-        # spec["key"] returns the attribute, or None
+        # spec["key"] returns the attribute if present, or raises KeyError
+        # if not found.
         i = spec["Orientation"]
         f = spec["PixelAspectRatio"]
         s = spec["ImageDescription"]
+
+        # spec.get("key", default=None) returns the attribute if present,
+        # or the default value if not found.
+        val = spec.get("Orientation", 1)
 
 Note that when retrieving with this "dictionary" syntax, the C++ and
 Python behaviors are different: C++ requires a `get<TYPE>()` call to
@@ -594,8 +599,7 @@ This can be accomplished using the technique of the following example:
 
     .. code-tab:: c++
 
-        for (size_t i = 0;  i < spec.extra_attribs.size();  ++i) {
-            const ParamValue &p (spec.extra_attribs[i]);
+        for (const auto &p : spec.extra_attribs) {
             printf ("    %s: %s\n", p.name().c_str(), p.get_string().c_str());
         }
 

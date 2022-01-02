@@ -23,7 +23,11 @@ pl[1] = s string Bob
 pl['e'] = 2.71828
 pl['pi'] = 3.14159
 pl['foo'] = bar
+'e' in pl = True
 after removing 'e', len= 7 pl.contains('e')= False
+after adding 'x', then 'x' in pl = True
+after removing 'x', then 'x' in pl = False
+pl['unknown'] raised a KeyError (as expected)
 pl2 =
   item a string aval
   item m int 1
