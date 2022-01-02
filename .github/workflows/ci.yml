@@ -30,6 +30,7 @@ jobs:
       CC: gcc
       CMAKE_CXX_STANDARD: 14
       USE_SIMD: sse4.2
+      FMT_VERSION: 6.1.2
       PUGIXML_VERSION: v1.9
       PYBIND11_VERSION: v2.4.2
     steps:
@@ -79,11 +80,11 @@ jobs:
       CXX: g++
       CC: gcc
       CMAKE_CXX_STANDARD: 14
+      FMT_VERSION: 7.0.1
       PYBIND11_VERSION: v2.5.0
       PYTHON_VERSION: 3.7
       USE_SIMD: avx
       WEBP_VERSION: v1.1.0
-      MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=7.0.1
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
@@ -131,6 +132,7 @@ jobs:
       CXX: g++
       CC: gcc
       CMAKE_CXX_STANDARD: 17
+      FMT_VERSION: 7.1.0
       PYBIND11_VERSION: v2.7.0
       PYTHON_VERSION: 3.7
       USE_SIMD: avx2,f16c
@@ -182,6 +184,7 @@ jobs:
       CXX: g++
       CC: gcc
       CMAKE_CXX_STANDARD: 17
+      FMT_VERSION: 8.1.0
       PYBIND11_VERSION: v2.9.0
       PYTHON_VERSION: 3.9
       USE_SIMD: avx2,f16c
@@ -322,15 +325,16 @@ jobs:
 
   linux-latest-releases:
     # Test against latest supported releases of toolchain and dependencies.
-    name: "Linux latest releases: gcc10 C++17 avx2 exr3.1 ocio2.0"
+    name: "Linux latest releases: gcc10 C++17 avx2 exr3.1 ocio2.1"
     runs-on: ubuntu-20.04
     env:
       CXX: g++-10
       CMAKE_CXX_STANDARD: 17
       USE_SIMD: avx2,f16c
+      FMT_VERSION: 8.1.0
       LIBRAW_VERSION: 0.20.2
       LIBTIFF_VERSION: v4.3.0
-      OPENCOLORIO_VERSION: v2.1.0
+      OPENCOLORIO_VERSION: v2.1.1
       OPENEXR_VERSION: v3.1.3
       OPENJPEG_VERSION: v2.4.0
       PUGIXML_VERSION: v1.11.4
@@ -338,7 +342,6 @@ jobs:
       PYBIND11_VERSION: v2.9.0
       PYTHON_VERSION: 3.8
       WEBP_VERSION: v1.2.1
-      MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=8.0.1
       OPENIMAGEIO_OPTIONS: "openexr:core=1"
       USE_OPENVDB: 0
       # The old installed OpenVDB has a TLS conflict with Python 3.8
@@ -389,6 +392,7 @@ jobs:
       CXX: g++-11
       CMAKE_CXX_STANDARD: 20
       USE_SIMD: avx2,f16c
+      FMT_VERSION: master
       LIBRAW_VERSION: master
       LIBTIFF_VERSION: master
       OPENCOLORIO_VERSION: main
@@ -399,7 +403,6 @@ jobs:
       PYBIND11_VERSION: master
       PYTHON_VERSION: 3.8
       WEBP_VERSION: master
-      MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=master
       OPENIMAGEIO_OPTIONS: "openexr:core=1"
       USE_OPENVDB: 0
       # The old installed OpenVDB has a TLS conflict with Python 3.8
@@ -456,11 +459,11 @@ jobs:
       USE_OPENCOLORIO: 0
       USE_OPENCV: 0
       EMBEDPLUGINS: 0
+      FMT_VERSION: 6.1.2
       OPENEXR_VERSION: v2.3.0
       PTEX_VERSION: v2.3.1
       PYBIND11_VERSION: v2.4.2
       WEBP_VERSION: v1.0.0
-      MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=6.1.2
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp

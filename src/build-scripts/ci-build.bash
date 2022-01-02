@@ -8,6 +8,10 @@ if [[ "$USE_SIMD" != "" ]] ; then
     MY_CMAKE_FLAGS="$MY_CMAKE_FLAGS -DUSE_SIMD=$USE_SIMD"
 fi
 
+if [[ -n "$FMT_VERSION" ]] ; then
+    MY_CMAKE_FLAGS="$MY_CMAKE_FLAGS -DBUILD_FMT_VERSION=$FMT_VERSION"
+fi
+
 pushd build
 cmake .. -G "$CMAKE_GENERATOR" \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
