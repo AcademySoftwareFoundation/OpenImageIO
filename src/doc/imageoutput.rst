@@ -1665,7 +1665,7 @@ libraries on Mac OS X (with the ``.dylib`` extension).
 OpenImageIO will look for matching plugins according to *search paths*,
 which are strings giving a list of directories to search, with each
 directory separated by a colon ``:``.  Within a search path, any substrings
-of the form ``{$FOO}`` will be replaced by the value of environment variable
+of the form ``${FOO}`` will be replaced by the value of environment variable
 ``FOO``.  For example, the searchpath ``"${HOME}/plugins:/shared/plugins"``
 will first check the directory :file:`/home/tom/plugins` (assuming the
 user's home directory is :file:`/home/tom`), and if not found there, will
