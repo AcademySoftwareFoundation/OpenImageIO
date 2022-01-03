@@ -162,6 +162,7 @@ public:
     Image_or_Const (cspan<float> val) : m_type(VAL), m_val(val) {}
     Image_or_Const (const float& val) : m_type(VAL), m_val(val) {}
     Image_or_Const (const std::vector<float>& val) : m_type(VAL), m_val(val) {}
+    Image_or_Const (std::initializer_list<const float> val) : m_type(VAL), m_val(val) {}
     Image_or_Const (const float *v, size_t s) : m_type(VAL), m_val(v,s) {}
     Image_or_Const (const float *v, int s) : m_type(VAL), m_val(v,s) {}
 
