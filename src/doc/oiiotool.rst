@@ -98,6 +98,152 @@ The *value* itself may be a single- or double-quoted string, and this is how
 you would make a value that itself contains a `:` character (which would
 otherwise denote the beginning of the next modifier).
 
+Expression evaluation and substitution
+----------------------------------------------
+
+:program:`oiiotool` can perform *expression evaluation and substitution* on
+command-line arguments. As command-line arguments are needed, they are
+scanned for containing braces `{ }`. If found, the braces and any text they
+enclose will be evaluated as an expression and replaced by its result. The
+contents of an expression may be any of:
+
+* *number*
+
+  A numerical value (e.g., 1 or 3.14159).
+
+* *imagename.metadata*
+
+  The named metadata of an image.
+  
+  The *imagename* may be one of: `TOP` (the top or current image), `IMG[i]`
+  describing the i-th image on the stack (thus `TOP` is a synonym for
+  `IMG[0]`, the next image on the stack is `IMG[1]`, etc.), or `IMG[name]`
+  to denote an image named by filename or by label name. Remember that the
+  positions on the stack (including `TOP`) refer to *at that moment*, with
+  successive commands changing the contents of the top image.
+  
+  The *metadata* may be any of:
+  
+  * the name of any standard metadata of the specified image (e.g.,
+    `ImageDescription`, or `width`)
+  * `filename` : the name of the file (e.g., `foo.tif`)
+  * `file_extension` : the extension of the file (e.g., `tif`)
+  * `geom` : the pixel data size in the form `640x480+0+0`)
+  * `full_geom` : the "full" or "display" size)
+  * `MINCOLOR` : the minimum value in each channel (channels are
+    comma-separated)
+  * `MAXCOLOR` : the maximum value in each channel (channels are
+    comma-separated)
+  * `AVGCOLOR` : the average pixel value of the image (channels are
+    comma-separated)
+  * `METABRIEF` : a string containing the brief one-line description that
+    would be printed with `oiiotool -info`.
+  * `META` : a multi-line string containing the full metadata that would
+    be printed with `oiiotool -info -v`.
+  * `STATS` : a multi-line string containing the image statistics that would
+    be printed with `oiiotool -stats`.
+
+* *imagename.'metadata'*
+
+  If the metadata name is not a "C identifier" (initial letter followed by
+  any number of letter, number, or underscore), it is permissible to use
+  single or double quotes to enclose the metadata name. For example, suppose
+  you want to retrieve metadata named "foo/bar", you could say
+
+  .. code-block::
+
+      {TOP.'foo/bar'}
+
+  Without the quotes, it might try to retrieve `TOP.foo` (which doesn't
+  exist) and divide it by `bar`.
+
+* Arithmetic
+
+  Sub-expressions may be joined by `+`, `-`, `*`, `/`, `//`, and `%` for
+  arithmetic operations. (Note that like in Python 3, `/` is floating point
+  division, while `//` signifies integer division.) Parentheses are
+  supported, and standard operator precedence applies.
+
+* Numeric and logical comparisons
+
+  Comparisons between numbers may be made with `<`, `<=`, `>`, `>=`, `==`, and
+  `!=`. In each case, the result will be 0 if the comparison is false, 1 if
+  the comparison is true.
+
+  The `<=>` operator is a three-way comparison, returning -1, 0, or 1,
+  depending on whether the first operand is less than, equal to, or greater
+  than the second operand.
+
+  The `&&` operator has a result of 1 if both the left and right expressions
+  are nonzero, otherwise 0. And `||` has a result of 1 if either the left or
+  right are nonzero, 0 if both evaluate to 0.
+
+* User variables
+
+  User variables are set by the `--set` command. A reference to a user
+  variable in an expression will be replaced by the value of the variable.
+
+* Special variables
+
+  * `FRAME_NUMBER` : the number of the frame in this iteration of
+    wildcard expansion.
+  * `FRAME_NUMBER_PAD` : like `FRAME_NUMBER`, but 0-padded based
+    on the value set on the command line by `--framepadding`.
+
+* Functions
+
+  * `getattribute(name)` : returns the global attribute that would be
+    retrieved by `OIIO::getattribute(name, ...)`. The `name` may be enclosed
+    in single or double quotes or be a single unquoted sequence of characters.
+    (Added in OIIO 2.3.)
+
+
+To illustrate how this works, consider the following command, which trims
+a four-pixel border from all sides and outputs a new image prefixed with
+"cropped_", without needing to know the resolution or filename of the
+original image::
+
+    oiiotool input.exr -cut "{TOP.width-2*4}x{TOP.height-2*4}+{TOP.x+4}+{TOP.y+4}" \
+        -o cropped_{TOP.filename}
+
+If you should come across filenames that contain braces (these are vary
+rare, but have been known to happen), you temporarily disable expression
+evaluation with the `--evaloff` end `--evalon` flags. For example::
+
+    $ oiiotool --info "{weird}.exr"
+    > oiiotool ERROR: expression : syntax error at char 1 of `weird'
+
+    $ oiiotool --info --evaloff "{weird}.exr"
+    > {weird.exr}          : 2048 x 1536, 3 channel, half openexr
+
+
+.. _sec-oiiotool-control-flow-explanation:
+
+Control flow
+----------------------------------------------
+
+Scriptability is provided by the use of control flow statements.
+The usual programming constructs are supported:
+
+* Conditionals : `--if` *condition* `--then` *commands...* `--else` *commands...* `--endif`
+
+* General looping: `--while` *condition* *commands...*
+
+* Iteration : `--for` *variable* *range* *commands...* `--endfor`
+
+  The range is a sequence of one to three comma-separated numbers: *begin*,
+  *end*, and *step*; *begin* and *end* (step is assumed to be 1); or just
+  *end* (begin assumed to be 0, step assumed to be 1). As in Python, the range
+  has an "exclusive end" -- when the *variable* is equal to *end*, the loop
+  will terminate, without actually running the commands for the *end* value
+  itself.
+
+Section :ref:`sec-oiiotool-control-flow-commands` contains more detailed
+descriptions of these commands and some examples to more clearly illustrate
+their behavior.
+
+
+
 Frame sequences
 -----------------------
 
@@ -198,111 +344,12 @@ would match `blah_l.0001.tif`, `blah_r.0001.tif`, `blah_l.0002.tif`,
 would only match `blah_l.0001.tif`, `blah_l.0002.tif`, `blah_l.0003.tif`,
 `blah_l.0004.tif`, `blah_l.0005.tif`.
 
-Expression evaluation and substitution
-----------------------------------------------
-
-:program:`oiiotool` can perform *expression evaluation and substitution* on
-command-line arguments. As command-line arguments are needed, they are
-scanned for containing braces `{ }`. If found, the braces and any text they
-enclose will be evaluated as an expression and replaced by its result. The
-contents of an expression may be any of:
-
-* *number*
-
-  A numerical value (e.g., 1 or 3.14159).
-
-* *imagename.metadata*
-
-  The named metadata of an image.
-  
-  The *imagename* may be one of: `TOP` (the top or current image), `IMG[i]`
-  describing the i-th image on the stack (thus `TOP` is a synonym for
-  `IMG[0]`, the next image on the stack is `IMG[1]`, etc.), or `IMG[name]`
-  to denote an image named by filename or by label name. Remember that the
-  positions on the stack (including `TOP`) refer to *at that moment*, with
-  successive commands changing the contents of the top image.
-  
-  The *metadata* may be any of:
-  
-  * the name of any standard metadata of the specified image (e.g.,
-    `ImageDescription`, or `width`)
-  * `filename` : the name of the file (e.g., `foo.tif`)
-  * `file_extension` : the extension of the file (e.g., `tif`)
-  * `geom` : the pixel data size in the form `640x480+0+0`)
-  * `full_geom` : the "full" or "display" size)
-  * `MINCOLOR` : the minimum value in each channel (channels are
-    comma-separated)
-  * `MAXCOLOR` : the maximum value in each channel (channels are
-    comma-separated)
-  * `AVGCOLOR` : the average pixel value of the image (channels are
-    comma-separated)
-  * `METABRIEF` : a string containing the brief one-line description that
-    would be printed with `oiiotool -info`.
-  * `META` : a multi-line string containing the full metadata that would
-    be printed with `oiiotool -info -v`.
-  * `STATS` : a multi-line string containing the image statistics that would
-    be printed with `oiiotool -stats`.
-
-* *imagename.'metadata'*
-
-  If the metadata name is not a "C identifier" (initial letter followed by
-  any number of letter, number, or underscore), it is permissible to use
-  single or double quotes to enclose the metadata name. For example, suppose
-  you want to retrieve metadata named "foo/bar", you could say
-
-  .. code-block::
-
-      {TOP.'foo/bar'}
-
-  Without the quotes, it might try to retrieve `TOP.foo` (which doesn't
-  exist) and divide it by `bar`.
-
-* Arithmetic
-
-  Sub-expressions may be joined by `+`, `-`, `*`, `/`, `//`, and `%` for
-  arithmetic operations. (Note that like in Python 3, `/` is floating point
-  division, while `//` signifies integer division.) Parentheses are
-  supported, and standard operator precedence applies.
-
-* Special variables
-
-  * `FRAME_NUMBER` : the number of the frame in this iteration of
-    wildcard expansion.
-  * `FRAME_NUMBER_PAD` : like `FRAME_NUMBER`, but 0-padded based
-    on the value set on the command line by `--framepadding`.
-
-* Functions
-
-  * `getattribute(name)` : returns the global attribute that would be
-    retrieved by `OIIO::getattribute(name, ...)`. The `name` may be enclosed
-    in single or double quotes or be a single unquoted sequence of characters.
-    (Added in OIIO 2.3.)
-
-
-To illustrate how this works, consider the following command, which trims
-a four-pixel border from all sides and outputs a new image prefixed with
-"cropped_", without needing to know the resolution or filename of the
-original image::
-
-    oiiotool input.exr -cut "{TOP.width-2*4}x{TOP.height-2*4}+{TOP.x+4}+{TOP.y+4}" \
-        -o cropped_{TOP.filename}
-
-If you should come across filenames that contain braces (these are vary
-rare, but have been known to happen), you temporarily disable expression
-evaluation with the `--evaloff` end `--evalon` flags. For example::
-
-    $ oiiotool --info "{weird}.exr"
-    > oiiotool ERROR: expression : syntax error at char 1 of `weird'
-
-    $ oiiotool --info --evaloff "{weird}.exr"
-    > {weird.exr}          : 2048 x 1536, 3 channel, half openexr
 
 
 .. _sec-oiiotool-subimage-modifier:
 
 Dealing with multi-subimage/multi-part files
 ----------------------------------------------
-
 
 Some file formats allow storing multiple images in one file (notably
 OpenEXR, which calls them "multi-part"). There are some special behaviors to
@@ -779,7 +826,7 @@ output each one to a different file, with names `sub0001.tif`,
 
 |
 
-:program:`oiiotool` commands: general non-positional flags
+:program:`oiiotool` commands: general flags
 ===========================================================
 
 .. option:: --help
@@ -838,6 +885,128 @@ output each one to a different file, with names `sub0001.tif`,
     Set the underlying ImageCache size (in MB). See Section
     :ref:`sec-imagecache-api`.
 
+.. option:: --oiioattrib <name> <value>
+
+    Adds or replaces a global OpenImageIO attribute with the given *name* to
+    have the specified *value*.
+
+    Optional appended modifiers include:
+
+    - `type=` *typename* : Specify the metadata type.
+
+    If the optional `type=` specifier is used, that provides an explicit
+    type for the metadata. If not provided, it will try to infer the type of
+    the metadata from the value: if the value contains only numerals (with
+    optional leading minus sign), it will be saved as `int` metadata; if it
+    also contains a decimal point, it will be saved as `float` metadata;
+    otherwise, it will be saved as a `string` metadata.
+
+    Examples::
+
+        oiiotool --oiioattrib debug 1 in.jpg -o out.jpg
+
+
+.. _sec-oiiotool-control-flow-commands:
+
+:program:`oiiotool` commands for control flow
+=============================================
+
+.. option:: --set <name> <value>
+
+    Adds or replaces a "user variable". User variables may be
+    referenced by name in expression substitution.
+
+    Optional appended modifiers include:
+
+    - `type=` *typename* : Specify the metadata type.
+
+    If the optional `type=` specifier is used, that provides an explicit type
+    for the variable. If not provided, it will try to infer the type from the
+    value: if the value contains only numerals (with optional leading minus
+    sign), it will be saved as `int`; if it also contains a decimal point, it
+    will be saved as a `float`; otherwise, it will be saved as a `string`.
+
+    This command was added in OIIO 2.4.0.
+
+    Examples::
+
+        $ oiiotool --set i 42 --echo "i = {i}"
+        i = 42
+
+.. option:: --if <condition> true-cmds... --endif
+            --if <condition> true-cmds... --else false-cmds... --endif
+
+    If the *condition* is true, execute *true-cmds*, otherwise execute
+    *false-cmds*.
+
+    The *condition* is considered false if it is integer 0 or float 0.0 or the
+    empty string ``""``, or any of the strings ``off``, ``false``, or ``no``
+    (without regard to capitalization). All other values or strings are
+    assumed to be considered "true" for the evaluation of the condition.
+
+    Examples::
+
+        # Read in.exr, and if it only has 3 channels, add an alpha channel
+        # that is 1.0 everywhere, but if it already has 4 channels, leave
+        # it alone. Then output the result to out.exr.
+        $ oiiotool in.exr --if "{TOP.nchannels == 3}" --ch ,,,A=1.0 --endif -o rgba.exr
+
+.. option:: --for <variable> <range> commands... --endfor
+
+    Iterate a *variable* over a *range*, executing the *commands*
+    for each iteration. The range may be one, two, or three numbers
+    separated by commas, indicating
+
+    - *end* : Iterate from 0 to *end*, incrementing by 1 each time.
+    - *begin* ``,`` *end* : Iterate from *begin* to *end*, incrementing
+       by 1 each time.
+    - *begin* ``,`` *end* ``,`` *step* : Iterate from *begin* to *end*,
+      incrementing by *step* each time.
+
+    Note that the *end* value is "exclusive," that is, the loop will
+    terminate once the value is equal to end, and the loop body will
+    not be executed for the *end* value.
+
+    Examples::
+
+        $ oiiotool --for i 5 --echo "i = {i}" --endfor
+        0
+        1
+        2
+        3
+        4
+
+        $ oiiotool --for i 5,10 --echo "i = {i}" --endfor
+        5
+        6
+        7
+        8
+        9
+
+        $ oiiotool --for i 5,10,2 --echo "i = {i}" --endfor
+        5
+        7
+        9
+
+.. option:: --while <condition> commands... --endwhile
+
+    If the *condition* is true, execute *commands*, and keep doing that
+    until the *condition* is false.
+
+    The *condition* is considered false if it is integer 0 or float 0.0 or the
+    empty string ``""``, or any of the strings ``off``, ``false``, or ``no``
+    (without regard to capitalization). All other values or strings are
+    assumed to be considered "true" for the evaluation of the condition.
+
+    Examples::
+
+        $ oiiotool -set i 0 --while "{i < 5}" --echo "i = {i}" -set i "{i + 1}" --endwhile
+        0
+        1
+        2
+        3
+        4
+    
 .. option:: --frames <seq>
             --framepadding <n>
 
@@ -884,25 +1053,6 @@ output each one to a different file, with names `sub0001.tif`,
     command line, for example if you actually have filenames containing curly
     braces.
 
-.. option:: --oiioattrib <name> <value>
-
-    Adds or replaces a global OpenImageIO attribute with the given *name* to
-    have the specified *value*.
-
-    Optional appended modifiers include:
-
-    - `type=` *typename* : Specify the metadata type.
-
-    If the optional `type=` specifier is used, that provides an explicit
-    type for the metadata. If not provided, it will try to infer the type of
-    the metadata from the value: if the value contains only numerals (with
-    optional leading minus sign), it will be saved as `int` metadata; if it
-    also contains a decimal point, it will be saved as `float` metadata;
-    otherwise, it will be saved as a `string` metadata.
-
-    Examples::
-
-        oiiotool --oiioattrib debug 1 in.jpg -o out.jpg
 
 
 

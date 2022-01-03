@@ -17,9 +17,9 @@ command += oiiotool ("filled.tif --colorcount:eps=.1,.1,.1 0,0,0:1,.5,.5:0,1,0")
 command += oiiotool ("filled.tif --rangecheck 0,0,0 1,0.9,1")
 
 # test --rangecompress & --rangeexpand
-command += oiiotool ("src/tahoe-small.tif --rangecompress -d uint8 -o rangecompress.tif")
+command += oiiotool ("../common/tahoe-small.tif --rangecompress -d uint8 -o rangecompress.tif")
 command += oiiotool ("rangecompress.tif --rangeexpand -d uint8 -o rangeexpand.tif")
-command += oiiotool ("src/tahoe-small.tif --rangecompress:luma=1 -d uint8 -o rangecompress-luma.tif")
+command += oiiotool ("../common/tahoe-small.tif --rangecompress:luma=1 -d uint8 -o rangecompress-luma.tif")
 command += oiiotool ("rangecompress-luma.tif --rangeexpand:luma=1 -d uint8 -o rangeexpand-luma.tif")
 
 # Test --add
@@ -58,7 +58,7 @@ command += oiiotool ("grey64.exr -pattern constant:color=1.5,1,0.5 64x64 3 "
                    + "-pattern constant:color=.1,.1,.1 64x64 3 --mad -o mad.exr")
 
 # test --invert
-command += oiiotool ("src/tahoe-small.tif --invert -o invert.tif")
+command += oiiotool ("../common/tahoe-small.tif --invert -o invert.tif")
 
 # Test --powc val (raise all channels by the same power)
 command += oiiotool ("grey128.exr --powc 2 -o cpow1.exr")
@@ -76,7 +76,7 @@ command += oiiotool ("negpos.exr -pattern constant:color=0.2,0.2,0.2 128x128 3 "
 command += oiiotool ("negpos.exr -absdiffc 0.2,0.2,0.2 -d half -o absdiffc.exr")
 
 # test --chsum
-command += oiiotool ("src/tahoe-small.tif --chsum:weight=.2126,.7152,.0722 "
+command += oiiotool ("../common/tahoe-small.tif --chsum:weight=.2126,.7152,.0722 "
             + "-d uint8 -o chsum.tif")
 
 # test --trim
@@ -149,14 +149,14 @@ command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif --resize 50%"
 command += oiiotool ("--kernel bspline 15x15 -o bsplinekernel.exr")
 
 # test convolve
-command += oiiotool ("src/tahoe-small.tif --kernel bspline 15x15 --convolve "
+command += oiiotool ("../common/tahoe-small.tif --kernel bspline 15x15 --convolve "
             + "-d uint8 -o bspline-blur.tif")
 
 # test blur
-command += oiiotool ("src/tahoe-small.tif --blur 5x5 -d uint8 -o gauss5x5-blur.tif")
+command += oiiotool ("../common/tahoe-small.tif --blur 5x5 -d uint8 -o gauss5x5-blur.tif")
 
 # test median filter
-command += oiiotool ("src/tahoe-small.tif --median 5x5 -d uint8 -o tahoe-median.tif")
+command += oiiotool ("../common/tahoe-small.tif --median 5x5 -d uint8 -o tahoe-median.tif")
 
 # test dilate and erode
 # command += oiiotool ("--pattern constant:color=0.1,0.1,0.1 80x64 3 --text:x=8:y=54:size=40:font=DroidSerif Aai -o morphsource.tif")
@@ -168,16 +168,16 @@ command += oiiotool ("src/morphsource.tif --erode 3x3 -d uint8 -o erode.tif")
 # command += oiiotool ("morphclose.tif morphsource.tif -sub -d uint8 -o bottomhat.tif")
 
 # test unsharp mask
-command += oiiotool ("src/tahoe-small.tif --unsharp -d uint8 -o unsharp.tif")
+command += oiiotool ("../common/tahoe-small.tif --unsharp -d uint8 -o unsharp.tif")
 
 # test unsharp mask with median filter
-command += oiiotool ("src/tahoe-small.tif --unsharp:kernel=median -d uint8 -o unsharp-median.tif")
+command += oiiotool ("../common/tahoe-small.tif --unsharp:kernel=median -d uint8 -o unsharp-median.tif")
 
 # test laplacian
-command += oiiotool ("src/tahoe-tiny.tif --laplacian -d uint8 -o tahoe-laplacian.tif")
+command += oiiotool ("../common/tahoe-tiny.tif --laplacian -d uint8 -o tahoe-laplacian.tif")
 
 # test fft, ifft
-command += oiiotool ("src/tahoe-tiny.tif --ch 2 --fft -d float -o fft.exr")
+command += oiiotool ("../common/tahoe-tiny.tif --ch 2 --fft -d float -o fft.exr")
 command += oiiotool ("fft.exr --ifft --ch 0 -d float -o ifft.exr")
 
 # test --polar, --unpolar
@@ -192,7 +192,6 @@ command += oiiotool (
             " --pattern constant:color=0.5,0.0,0.0 128x128 3 --label B " +
             " --pop --pop --pop " +
             " R G --add -d half -o labeladd.exr")
-
 
 # test subimages
 command += oiiotool ("--pattern constant:color=0.5,0.0,0.0 64x64 3 " +
@@ -210,37 +209,9 @@ command += oiiotool ("subimages-2.exr --sisplit -o subimage2.exr " +
                      "--pop -o subimage1.exr")
 command += oiiotool ("subimages-4.exr -cmul:subimages=0,2 0.5 -o subimage-individual.exr")
 
-# test sequences
-command += oiiotool ("src/tahoe-tiny.tif -o copyA.1-10#.jpg")
-command += oiiotool (" --info  " +  " ".join(["copyA.{0:04}.jpg".format(x) for x in range(1,11)]))
-command += oiiotool ("--frames 1-5 --echo \"Sequence 1-5:  {FRAME_NUMBER}\"")
-command += oiiotool ("--frames -5-5 --echo \"Sequence -5-5:  {FRAME_NUMBER}\"")
-command += oiiotool ("--frames -5--2 --echo \"Sequence -5--2:  {FRAME_NUMBER}\"")
-
-# test expression substitution
-command += oiiotool ('-echo "16+5={16+5}" -echo "16-5={16-5}" -echo "16*5={16*5}"')
-command += oiiotool ('-echo "16/5={16/5}" -echo "16//5={16//5}" -echo "16%5={16%5}"')
-command += oiiotool ("src/tahoe-small.tif --pattern fill:top=0,0,0,0:bottom=0,0,1,1 " +
-                     "{TOP.geom} {TOP.nchannels} -d uint8 -o exprgradient.tif")
-command += oiiotool ('src/tahoe-small.tif -cut "{TOP.width-20* 2}x{TOP.height-40+(4*2- 2 ) /6-1}+{TOP.x+100.5-80.5 }+{TOP.y+20}" -d uint8 -o exprcropped.tif')
-command += oiiotool ('src/tahoe-small.tif -o exprstrcat{TOP.compression}.tif')
-command += oiiotool ('src/tahoe-tiny.tif -subc "{TOP.MINCOLOR}" -divc "{TOP.MAXCOLOR}" -o tahoe-contraststretch.tif')
-# test use of quotes inside evaluation, {TOP.foo/bar} would ordinarily want
-# to interpret '/' for division, but we want to look up metadata called
-# 'foo/bar'.
-command += oiiotool ("-create 16x16 3 -attrib \"foo/bar\" \"xyz\" -echo \"{TOP.'foo/bar'} should say xyz\"")
-command += oiiotool ("-create 16x16 3 -attrib smpte:TimeCode \"01:02:03:04\" -echo \"timecode is {TOP.'smpte:TimeCode'}\"")
-# Ensure that --evaloff/--evalon work
-command += oiiotool ("-echo \"{1+1}\" --evaloff -echo \"{3+4}\" --evalon -echo \"{2*2}\"")
-
-# Test stats and metadata expression substitution
-command += oiiotool ("src/tahoe-tiny.tif --echo \"\\nBrief: {TOP.METABRIEF}\"")
-command += oiiotool ("src/tahoe-tiny.tif --echo \"\\nMeta: {TOP.META}\"")
-command += oiiotool ("src/tahoe-tiny.tif --echo \"\\nStats:\\n{TOP.STATS}\\n\"")
-
 # Test --statsnow
-command += oiiotool ("src/tahoe-tiny.tif --echo \"--printstats:\" --printstats")
-command += oiiotool ("src/tahoe-tiny.tif --printstats:window=10x10+50+50 --echo \" \"")
+command += oiiotool ("../common/tahoe-tiny.tif --echo \"--printstats:\" --printstats")
+command += oiiotool ("../common/tahoe-tiny.tif --printstats:window=10x10+50+50 --echo \" \"")
 
 # test --iconfig
 command += oiiotool ("--info -v -metamatch Debug --iconfig oiio:DebugOpenConfig! 1 black.tif")
@@ -308,8 +279,6 @@ outputs = [
             "subimage-individual.exr",
             "subimage1.exr",
             "labeladd.exr",
-            "exprgradient.tif", "exprcropped.tif", "exprstrcatlzw.tif",
-            "tahoe-contraststretch.tif",
             "const5-rgb.tif",
             "box_over_missing2.tif",
             "box_over_missing3.tif",

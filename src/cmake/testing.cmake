@@ -155,7 +155,7 @@ endmacro ()
 macro (oiio_add_all_tests)
     #   Tests that require oiio-images:
     oiio_add_tests (gpsread
-                    oiiotool oiiotool-attribs  oiiotool-copy
+                    oiiotool oiiotool-attribs oiiotool-copy
                     oiiotool-xform
                     maketx oiiotool-maketx
                     misnamed-file
@@ -172,7 +172,7 @@ macro (oiio_add_all_tests)
     oiio_add_tests (
                     cmake-consumer
                     nonwhole-tiles
-                    oiiotool-composite
+                    oiiotool-composite oiiotool-control
                     oiiotool-fixnan
                     oiiotool-pattern
                     oiiotool-readerror

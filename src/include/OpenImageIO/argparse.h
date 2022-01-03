@@ -255,6 +255,18 @@ public:
     /// Reveal whether the current state is aborted.
     bool aborted() const;
 
+    /// Set whether current actions should run.
+    void running(bool run);
+
+    /// Reveal whether current actions should run.
+    bool running() const;
+
+    /// Reveal the current argument that is being parsed.
+    int current_arg() const;
+
+    /// Set the next argument to be processed. Use with extreme caution!
+    void set_next_arg(int nextarg);
+
     /// @}
 
     // ------------------------------------------------------------------
@@ -483,6 +495,9 @@ public:
 
         /// Mark the argument as hidden from the help message.
         Arg& hidden();
+
+        /// Always run, even when ArgParse.running() is false.
+        Arg& always_run();
 
         /// Set the action for this argument to store 1 in the destination
         /// attribute. Initialize the destination attribute to 0 now. Do not

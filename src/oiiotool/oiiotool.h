@@ -7,6 +7,7 @@
 
 #include <functional>
 #include <memory>
+#include <stack>
 
 #include <boost/container/flat_set.hpp>
 
@@ -103,6 +104,24 @@ public:
     ImageSpec input_config;  // configuration options for reading
     ImageSpec first_input_dimensions;
     std::string input_channel_set;  // Optional input channel set
+    ParamValueList uservars;        // User-defined variables (with --set)
+    ArgParse ap;                    // Command-line argument parser
+
+    struct ControlRec {
+        std::string command;  // control command: "if", "while", etc.
+        int start_arg;        // argument number of the loop/condition start
+        bool condition;       // was the condition true?
+        bool running;         // are we currently running in this block?
+
+        ControlRec(string_view command, int start, bool condition, bool running)
+            : command(command)
+            , start_arg(start)
+            , condition(condition)
+            , running(running)
+        {
+        }
+    };
+    std::stack<ControlRec> control_stack;
 
     // Output options
     TypeDesc output_dataformat;  // Requested output data format
@@ -158,6 +177,29 @@ public:
 
     void clear_options();
     void clear_input_config();
+
+    // Process command line arguments
+    void getargs(int argc, char* argv[]);
+
+    bool running() const
+    {
+        return control_stack.empty()
+               || (control_stack.top().running & control_stack.top().condition);
+    }
+
+    void push_control(string_view command, int start, bool cond)
+    {
+        control_stack.emplace(command, start, cond, cond & running());
+        ap.running(running());
+    }
+
+    ControlRec pop_control()
+    {
+        ControlRec ctrl = control_stack.top();
+        control_stack.pop();
+        ap.running(running());
+        return ctrl;
+    }
 
     /// Force img to be read at this point.  Use this wrapper, don't directly
     /// call img->read(), because there's extra work done here specific to

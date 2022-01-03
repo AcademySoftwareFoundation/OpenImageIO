@@ -3,7 +3,6 @@
 from __future__ import absolute_import
 import os
 
-oiiotoolsrcdir = os.path.join(OIIO_TESTSUITE_ROOT, "oiiotool", "src")
 
 # Make test pattern with increasing intensity left to right, decreasing
 # alpha going down. Carefully done so that the first pixel is 0.0, last
@@ -13,12 +12,12 @@ command += oiiotool ("-pattern fill:topleft=0,0,0,1:topright=1,1,1,1:bottomleft=
 
 
 # test --colormap
-command += oiiotool ("--autocc " + oiiotoolsrcdir+"/tahoe-tiny.tif" +
-                     " --colormap inferno "
-            + "-d uint8 -o colormap-inferno.tif")
-command += oiiotool ("--autocc " + oiiotoolsrcdir+"/tahoe-tiny.tif" +
-                     " --colormap .25,.25,.25,0,.5,0,1,0,0 "
-            + "-d uint8 -o colormap-custom.tif")
+command += oiiotool ("--autocc " + "../common/tahoe-tiny.tif" +
+                     " --colormap inferno " +
+                     "-d uint8 -o colormap-inferno.tif")
+command += oiiotool ("--autocc " + "../common/tahoe-tiny.tif" +
+                     " --colormap .25,.25,.25,0,.5,0,1,0,0 " +
+                     "-d uint8 -o colormap-custom.tif")
 
 # test unpremult/premult
 command += oiiotool ("--pattern constant:color=.1,.1,.1,1 100x100 4 " 
@@ -31,21 +30,21 @@ command += oiiotool ("unpremult.exr --premult -o premult.exr")
 command += oiiotool ("--no-autopremult src/rgba.tga --ch R,G,B -o rgbfromtga.png")
 
 # test --contrast
-command += oiiotool ("--autocc " + oiiotoolsrcdir+"/tahoe-tiny.tif" +
+command += oiiotool ("--autocc " + "../common/tahoe-tiny.tif" +
                      " -contrast:black=0.1:white=0.75 -d uint8 -o contrast-stretch.tif")
-command += oiiotool ("--autocc " + oiiotoolsrcdir+"/tahoe-tiny.tif" +
+command += oiiotool ("--autocc " + "../common/tahoe-tiny.tif" +
                      " -contrast:min=0.1:max=0.75 -d uint8 -o contrast-shrink.tif")
-command += oiiotool ("--autocc " + oiiotoolsrcdir+"/tahoe-tiny.tif" +
+command += oiiotool ("--autocc " + "../common/tahoe-tiny.tif" +
                      " -contrast:black=1:white=0 -d uint8 -o contrast-inverse.tif")
-command += oiiotool ("--autocc " + oiiotoolsrcdir+"/tahoe-tiny.tif" +
+command += oiiotool ("--autocc " + "../common/tahoe-tiny.tif" +
                      " -contrast:black=1,1,.25:white=1,1,0.25 -d uint8 -o contrast-threshold.tif")
-command += oiiotool ("--autocc " + oiiotoolsrcdir+"/tahoe-tiny.tif" +
+command += oiiotool ("--autocc " + "../common/tahoe-tiny.tif" +
                      " -contrast:scontrast=5 -d uint8 -o contrast-sigmoid5.tif")
 
 # test --saturate
-command += oiiotool ("--autocc " + oiiotoolsrcdir+"/tahoe-tiny.tif" +
+command += oiiotool ("--autocc " + "../common/tahoe-tiny.tif" +
                      " --saturate 0 -d uint8 -o tahoe-sat0.tif")
-command += oiiotool ("--autocc " + oiiotoolsrcdir+"/tahoe-tiny.tif" +
+command += oiiotool ("--autocc " + "../common/tahoe-tiny.tif" +
                      " --saturate 2 -d uint8 -o tahoe-sat2.tif")
 
 
@@ -63,7 +62,7 @@ command += oiiotool ("greyalpha_linear.tif --colorconvert:unpremult=1 linear sRG
 command += oiiotool ("greyalpha_linear.tif --colorconvert:unpremult=1 linear Cineon -o greyalpha_Cineon_un.tif")
 
 # test color convert by matrix
-command += oiiotool ("--autocc " + oiiotoolsrcdir+"/tahoe-tiny.tif"+
+command += oiiotool ("--autocc " + "../common/tahoe-tiny.tif"+
                      " "
                      + "--ccmatrix 0.805,0.506,-0.311,0,-0.311,0.805,0.506,0,0.506,-0.311,0.805,0,0,0,0,1 "
                      + "-d uint8 -o tahoe-ccmatrix.tif")
