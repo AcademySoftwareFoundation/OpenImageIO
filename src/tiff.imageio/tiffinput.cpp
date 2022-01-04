@@ -205,6 +205,7 @@ private:
     // Convert palette to RGB
     void palette_to_rgb(int n, const unsigned char* palettepels,
                         unsigned char* rgb);
+    void palette_to_rgb(int n, const uint16_t* palettepels, unsigned char* rgb);
 
     // Convert in-bits to out-bits (outbits must be 8, 16, 32, and
     // inbits < outbits)
@@ -1382,13 +1383,15 @@ TIFFInput::readspec_photometric()
         TIFFGetField(m_tif, TIFFTAG_COLORMAP, &r, &g, &b);
         OIIO_ASSERT(r != NULL && g != NULL && b != NULL);
         m_colormap.clear();
+        m_colormap.reserve(3 * (1 << m_bitspersample));
         m_colormap.insert(m_colormap.end(), r, r + (1 << m_bitspersample));
         m_colormap.insert(m_colormap.end(), g, g + (1 << m_bitspersample));
         m_colormap.insert(m_colormap.end(), b, b + (1 << m_bitspersample));
-        // Palette TIFF images are always 3 channels (to the client)
+        // Palette TIFF images are always 3 channels, uint8 (to the client)
         m_spec.nchannels = 3;
+        m_spec.set_format(TypeUInt8);
         m_spec.default_channel_names();
-        if (m_bitspersample != m_spec.format.size() * 8) {
+        if (m_bitspersample < m_spec.format.size() * 8) {
             // For palette images with unusual bits per sample, set
             // oiio:BitsPerSample to the "full" version, to avoid problems
             // when copying the file back to a TIFF file (we don't write
@@ -1434,6 +1437,7 @@ TIFFInput::separate_to_contig(int nplanes, int nvals,
 
 
 
+// palette_to_rgb for <= 8 bit palette addressing
 void
 TIFFInput::palette_to_rgb(int n, const unsigned char* palettepels,
                           unsigned char* rgb)
@@ -1447,6 +1451,24 @@ TIFFInput::palette_to_rgb(int n, const unsigned char* palettepels,
         int i = palettepels[x / vals_per_byte];
         i >>= (m_bitspersample * (vals_per_byte - 1 - (x % vals_per_byte)));
         i &= highest;
+        *rgb++ = m_colormap[0 * entries + i] / 257;
+        *rgb++ = m_colormap[1 * entries + i] / 257;
+        *rgb++ = m_colormap[2 * entries + i] / 257;
+    }
+}
+
+
+
+// palette_to_rgb, for 16 bit palette addressing
+void
+TIFFInput::palette_to_rgb(int n, const uint16_t* palettepels,
+                          unsigned char* rgb)
+{
+    size_t entries = 1 << m_bitspersample;
+    OIIO_DASSERT(m_spec.nchannels == 3);
+    OIIO_DASSERT(m_colormap.size() == 3 * entries);
+    for (int x = 0; x < n; ++x) {
+        int i  = palettepels[x];
         *rgb++ = m_colormap[0 * entries + i] / 257;
         *rgb++ = m_colormap[1 * entries + i] / 257;
         *rgb++ = m_colormap[2 * entries + i] / 257;
@@ -1574,7 +1596,10 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
 
     // Make sure there's enough scratch space
     int nvals = m_spec.width * m_inputchannels;
-    m_scratch.resize(nvals * m_spec.format.size());
+    if (m_photometric == PHOTOMETRIC_PALETTE && m_bitspersample > 8)
+        m_scratch.resize(nvals * 2);  // special case for 16 bit palette
+    else
+        m_scratch.resize(nvals * m_spec.format.size());
 
     // How many color planes to read
     int planes = m_separate ? m_inputchannels : 1;
@@ -1630,7 +1655,11 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
             errorf("%s", oiio_tiff_last_error());
             return false;
         }
-        palette_to_rgb(m_spec.width, &m_scratch[0], (unsigned char*)data);
+        if (m_bitspersample <= 8)
+            palette_to_rgb(m_spec.width, &m_scratch[0], (unsigned char*)data);
+        else if (m_bitspersample == 16)
+            palette_to_rgb(m_spec.width, (uint16_t*)&m_scratch[0],
+                           (unsigned char*)data);
         return true;
     }
     // Not palette...
@@ -1954,7 +1983,10 @@ TIFFInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
 
     imagesize_t tile_pixels = m_spec.tile_pixels();
     imagesize_t nvals       = tile_pixels * m_spec.nchannels;
-    m_scratch.resize(m_spec.tile_bytes());
+    if (m_photometric == PHOTOMETRIC_PALETTE && m_bitspersample > 8)
+        m_scratch.resize(nvals * 2);  // special case for 16 bit palette
+    else
+        m_scratch.resize(m_spec.tile_bytes());
     bool no_bit_convert = (m_bitspersample == 8 || m_bitspersample == 16
                            || m_bitspersample == 32);
     if (m_photometric == PHOTOMETRIC_PALETTE) {
@@ -1963,7 +1995,11 @@ TIFFInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
             errorf("%s", oiio_tiff_last_error());
             return false;
         }
-        palette_to_rgb(tile_pixels, &m_scratch[0], (unsigned char*)data);
+        if (m_bitspersample <= 8)
+            palette_to_rgb(tile_pixels, &m_scratch[0], (unsigned char*)data);
+        else if (m_bitspersample == 16)
+            palette_to_rgb(tile_pixels, (uint16_t*)&m_scratch[0],
+                           (unsigned char*)data);
     } else {
         // Not palette
         imagesize_t plane_bytes = m_spec.tile_pixels() * m_spec.format.size();
