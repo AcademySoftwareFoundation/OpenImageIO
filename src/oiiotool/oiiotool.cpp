@@ -2958,6 +2958,7 @@ action_colorcount(cspan<const char*> argv)
         ot.error(command, (*ot.curimg)(0, 0).geterror());
     }
 
+    ot.printed_info = true;
     return;
 }
 
@@ -2993,6 +2994,7 @@ action_rangecheck(cspan<const char*> argv)
     } else {
         ot.error(command, (*ot.curimg)(0, 0).geterror());
     }
+    ot.printed_info = true;
 }
 
 
