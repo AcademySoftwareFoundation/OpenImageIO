@@ -146,6 +146,8 @@ Comparing "colormap-custom.tif" and "../../../testsuite/oiiotool-color/ref/color
 PASS
 Comparing "grid-clamped.tif" and "../../../testsuite/oiiotool/ref/grid-clamped.tif"
 PASS
+Comparing "clamped-with-float.exr" and "ref/clamped-with-float.exr"
+PASS
 Comparing "rangecompress.tif" and "../../../testsuite/oiiotool/ref/rangecompress.tif"
 PASS
 Comparing "rangeexpand.tif" and "../../../testsuite/oiiotool/ref/rangeexpand.tif"

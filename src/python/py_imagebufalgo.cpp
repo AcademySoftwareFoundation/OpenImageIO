@@ -1121,8 +1121,9 @@ IBA_clamp(ImageBuf& dst, const ImageBuf& src, py::object min_, py::object max_,
     std::vector<float> min, max;
     py_to_stdvector(min, min_);
     py_to_stdvector(max, max_);
-    min.resize(src.nchannels(), -std::numeric_limits<float>::max());
-    max.resize(src.nchannels(), std::numeric_limits<float>::max());
+    const float big = std::numeric_limits<float>::max();
+    min.resize(src.nchannels(), min.size() >= 1 ? min.back() : -big);
+    max.resize(src.nchannels(), max.size() >= 1 ? max.back() : big);
     py::gil_scoped_release gil;
     return ImageBufAlgo::clamp(dst, src, min, max, clampalpha01, roi, nthreads);
 }
