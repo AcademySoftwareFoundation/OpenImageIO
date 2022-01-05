@@ -166,6 +166,10 @@ try:
     b = ImageBufAlgo.clamp (b, (0.2,0.2,0.2,0.2), (100,100,0.5,1))
     write (b, "grid-clamped.tif", oiio.UINT8)
 
+    b = oiio.ImageBufAlgo.fill((0, 0, 0), (1, 1, 1), roi=oiio.ROI(0,64,0,64,0,1,0,3))
+    b = oiio.ImageBufAlgo.clamp(b, 0.25, 0.75)
+    write (b, "clamped-with-float.exr", "half")
+
     # add
     b = ImageBufAlgo.add (gray128, 0.25)
     write (b, "cadd1.exr")
