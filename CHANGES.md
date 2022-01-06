@@ -20,20 +20,112 @@ New major features and public API changes:
   TextureOpt field `rnd`. We measure this speeding up texture lookups by
   24-40%, though with more visual noise (which should be resolved cleanly by a
   renderer that uses many samples per pixel). #3127 (2.4.0/2.3.10)
+* maketx/make_texture() now supports options to store Gaussian forward and
+  inverse transform lookup tables in image metadata (must be OpenEXR textures
+  for this to work) to aid writing shaders that use histogram-preserving
+  blending of texture tiling. This is controlled by new maketx arguments
+  `--cdf`, `--cdfsigma`, `--sdfbits`, or for `IBA::make_texture()` by using
+  hints `maketx:cdf`, `maketx:cdfsigma`, and `maketx:cdfbits`. #3159 #3206
+  (2.4.0/2.3.10)
+* oiiotool new commands and features:
+  - Control flow via `--if`, `--else`, `--endif`, `--while`, `--endwhile`,
+    `--for`, `--endfor` let you prototypes conditional execution and loops
+    in the command sequence. #3242 (2.4.0)
+  - `--set` can set variables and their values can be retrieved in
+    expressions. #3242 (2.4.0)
+  - Expressions now support: numerical comparisons via `<`, `>`, `<=`, `>=`,
+     `==`, `!=`, `<=>`; logical operators `&&`, `||`, `!`, `not()`; string
+     comparison functions `eq(a,b)` and `neq()`. #3242 #3243 (2.4.0)
+  - `--oiioattrib` can set "global" OIIO control attributes for an oiiotool
+    run (equivalent of calling `OIIO::attribute()`). #3171 (2.4.0/2.3.10)
+  - `--repremult` exposes the previously existing `IBA::repremult()`. The
+    guidance here is that `--premult` should be used for one-time conversion
+    of "unassociated alpha/unpremultiplied color" to associated/premultiplied,
+    but when you are starting with a premultiplied image and have a sequence
+    of unpremultiply, doing some adjustment in unpremultiplied space, then
+    re-premultiplying, it's `--repremult` you want as the last step, because
+    it preserves alpha = 0, color > 0 data without crushing it to black. #3192
+    (2.4.0/2.3.10)
+  - `--saturate` can adjust saturation level of a color image. #3190
+    (2.4.0/2.3.10)
+  - `--maxchan` and `--minchan` turn an N-channel image into a 1-channel
+    images that for each pixel, contains the maximum value in any channel of
+    the original for that pixel. #3198 (2.4.0/2.3.10)
+  - `--point` lets you color one or more pixels in an image (analogous to
+    IBA::render_point). #3256 (2.4.0)
+* ImageSpec :
+  - New constructors to accept a string for the data type. #3245 (2.4.0/2.3.12)
+* ImageBuf/ImageBufAlgo :
+  - `IBA::saturate()` can adjust saturation level of a color image. #3190
+    (2.4.0/2.3.10)
+  - `IBA::maxchan()` and `minchan()` turn an N-channel image into a 1-channel
+    images that for each pixel, contains the maximum value in any channel of
+    the original for that pixel. #3198 (2.4.0/2.3.10)
+* Python bindings:
+  - New ImageBuf constructor and reset() from a NumPy array only -- it
+    deduces the resolution, channels, and data type from the array
+    dimensions and type. #3246 (2.4.0/2.3.12)
+  - ROI now has a working `copy()` method. #3253 (2.4.0/2.3.12)
+  - ImageSpec and ParamValueList now support `'key' in spec`,
+    `del spec['key']`, and `spec.get('key', defaultval)` to more fully emulate
+    Python `dict` syntax for manipulating metadata. #3252 (2.3.12/2.4.0)
+* New global OIIO attributes:
+  - `"try_all_readers"` can be set to 0 if you want to override the default
+    behavior and specifically NOT try any format readers that don't match the
+    file extension of an input image (usually, it will try that one first, but
+    it if fails to open the file, all known file readers will be tried in case
+    the file is just misnamed, but sometimes you don't want it to do that).
+    #3172  (2.4.0/2.3.10)
+* Full IOProxy support has been added to TIFF #3075 (2.4.0/2.3.8), JPEG, GIF
+  #3181 #3182 (2.4.0/2.3.10), DDS #3217, PNM #3219, PSD #3220, Targa #3221,
+  WebP #3224, BMP #3223, JPEG-2000 #3226 (2.4.0).
+* Convention change: Image readers who wish to convey that the color space of
+  an input image is a simple gamma-corrected space will now call the color
+  space "GammaX.Y" (previously we sometimes used this, but sometimes called it
+  "GammaCorrectedX.Y"). #3202 (2.4.0)
 
 Performance improvements:
+* Raise the default ImageCache default tile cache from 256MB to 1GB. This
+  should improve performance for some operations involving large images or
+  images with many channels. #3180 (2.4.0/2.3.10)
+* Performance of JPEG-2000 I/O is improved by 2-3x due to multithreading,
+  but only if you are using a sufficiently new version of OpenJPEG (2.2
+  for encoding, 2.4 for decoding). #2225 (2.3.11/2.4.0)
 
 Fixes and feature enhancements:
-* ImageSpec: implemented deserialization of extra_attribs from XML. #3066
-  (2.4.0/2.3.8)
+* ImageSpec:
+    - Implemented deserialization of extra_attribs from XML. #3066 (2.4.0/2.3.8)
+    - Allow `getattribute("format")` to retrieve the name of the pixel data
+      type. #3247 (2.4.0)
+* ImageInput / ImageOutput:
+    - Protected methods that make it easier to implement support for IOProxy
+      in image readers and writers. #3231 (2.4.0)
 * ImageBuf / ImageBufAlgo:
     - Fix ImageBuf::read bug for images of mixed per-channel data types. #3088
       (2.4.0/2.3.8)
     - `IBA::bluenoise_image()` returns a reference to a periodic blue noise
-      image. #3141 (2.4.0/2.3.10)
+      image. #3141 #3254 (2.4.0/2.3.10)
     - `IBA::noise()` now takes "blue" as a noise name. Also, "white" is now
       the preferred name for what used to be "uniform" (which still works as a
       synonym). #3141 (2.4.0/2.3.10)
+    - Refactor ImageBuf::Iterator, ConstIterator templates, reduces compile
+      time substantially. #3195 (2.4.0)
+    - IBA functions taking a `cspan<>` now more flexibly can be passed
+      an init list like `{ 0.2f, 0.4f, 0.5f }` instead of needing to wrap it
+      in a `cspan<float>()` constructor. #3257 (2.3.12/2.4.0)
+* ImageCache / TextureSystem / maketx:
+    - When textures are created with the "monochrome_detect" feature enabled,
+      which turns RGB textures where all channels are always equal into true
+      single channel greyscale, the single channel that results is now
+      correctly named "Y" instead of leaving it as "R" (it's not red, it's
+      luminance). #3205 (2.4.0/2.3.10)
+    - Enhance safety/correctness for untiled images that exceed 2GB size
+      (there was an integer overflow problem in computing offsets within
+      tiles). #3232 (2.3.11/2.4.0)
+    - Improve error propagation from ImageCache to higher levels, especially
+      for tile-reading errors encountered during ImageBuf iterator use, and
+      ImageCache errors encountered when using the TextureSystem. #3233
+      (2.4.0)
 * oiiotool:
     - `--ch` now has virtually no expense if the arguments require no change
       to the channel order or naming (previously, it would always incur an
@@ -53,26 +145,81 @@ Fixes and feature enhancements:
       (2.4.0/2.3.10)
     - `-d` now accepts "uint1", "uint2", "uint4", and "uint6" for formats that
       support such low bit depths (TIFF). #3141 (2.4.0/2.3.10)
+    - `--invert` fixed to avoid losing the alpha channel values. #3191
+      (2.4.0/2.3.10)
+    - Fix bug when autocropping output images when the entire pixel data
+      window is in the negative coordinate region. #3164 (2.4.0/2.3.10)
+    - Improved detection of file reading failures. #3165 (2.4.0/2.3.10)
+    - All commands that do filtering (--rotate, --warp, --reize, --fit, and
+      --pixelaspect) now accept optional modifier `:highlightcomp=1` to
+      enable "highlight compensation" to avoid ringing artifacts in HDR
+      images with very high-contrast regions. #3239 (2.4.0)
+    - `--pattern checker` behavior has changed slightly: if the optional
+      modifier `:width=` is specified but `:height=` is not, the height will
+      be equal to the width. #3255 (2.4.0)
 * Python bindings:
     - Subtle/asymptomatic bugs fixed in `ImageBufAlgo.color_range_check()` and
       `histogram()` due to incorrect release of the GIL. #3074 (2.4.0)
+    - Bug fix for `ImageBufAlgo.clamp()`: when just a float was passed for
+      the min or max, it only clamped the first channel instead of all
+      channels. #3265 (2.3.12/2.4.0)
+* BMP:
+    - IOProxy support. #3223 (2.4.0)
+* DDS:
+    - Don't set "texturetype" metadata, it should always have been only
+      "textureformat". Also, add unit testing of DDS to the testsuite. #3200
+      (2.4.0/2.3.10)
+    - IOProxy support. #3217 (2.4.0)
+* GIF
+    - IOProxy support. #3181 (2.4.0/2.3.10)
+* HDR:
+    - IOProxy support. #3218 (2.4.0)
+* HEIF:
+    - Handle images with unassociated alpha. #3146 (2.4.0/2.3.9)
+* JPEG:
+    - IOProxy support. #3182 (2.4.0/2.3.10)
+* JPEG2000:
+    - Enable multithreading for decoding (if using OpenJPEG >= 2.2) and
+      encoding (if using OpenJPEG >= 2.4). This speeds up JPEG-2000 I/O by
+      3-4x. #2225 (2.3.11/2.4.0)
+    - IOProxy support. #3226 (2.4.0)
 * OpenEXR:
     - When building against OpenEXR 3.1+ and when the global OIIO attribute
       "openexr:core" is set to nonzero, do more efficient multithreaded
       reading of OpenEXR files. #3107 (2.4.0/2.3.9.1)
-* HEIF:
-    - Handle images with unassociated alpha. #3146 (2.4.0/2.3.9)
+    - Fix excessive memory usage when saving EXR files with many channels.
+      #3176 (2.4.0/2.3.10)
+    - When building against OpenEXR >= 3.1.3, our OpenEXR output now supports
+      specifying the zip compression level (for example, by passing the
+      "compression" metadata as "zip:4"). Also note than when using OpenEXR >=
+      3.1.3, the default zip compression has been changed from 6 to 4, which
+      writes compressed files significantly (tens of percent) faster, but only
+      increases compressed file size by 1-2%. #3157 (2.4.0/2.3.10)
+* PSD:
+    - IOProxy support. #3220 (2.4.0)
 * RAW:
     - When using libraw 0.21+, now support new color space names "DCE-P3",
       "Rec2020", and "sRGB-linear", and "ProPhoto-linear". Fix incorrect gamma
       values for "ProPhoto". #3123 #3153 (2.4.0/2.3.9.1)
+* RLA:
+    -  Better guards against malformed input. #3163 (2.4.0/2.3.10)
 * Targa:
     - Improved error detection for read errors and corrupted files. #3120
-      (2.4.0/2.3.9.1)
+      (2.4.0/2.3.9.1) #3162 (2.4.0/2.3.10)
+    - Fixed bug when reading x-flipped images. #3162 (2.4.0/2.3.10)
+    - IOProxy support. #3221 (2.4.0)
 * TIFF:
     - IOProxy is now supported for TIFF output. #3075 (2.4.0/2.3.8)
     - Honor zip compression quality request when writing TIFF. #3110
-      (2.4.0/2.3.9.1)
+      (2.4.0/2.3.11)
+    - Automatically switch to "bigtiff" format for really big (> 4GB) images.
+      #3158 (2.4.0)
+    - Support for palette images with 16 bit palette indices. #3262
+      (2.4.0/2.3.12)
+* WebP:
+    - Fix previous failure to properly set the "oiio:LoopCount" metadata
+      when reading animated webp images. #3183 (2.4.0/2.3.10)
+    - IOProxy support. #3224 (2.4.0)
 * Better catching of exceptions thrown by OCIO 1.x if it encounters 2.0 config
   files. #3089 (2.4.0/2.3.9)
 * Improved internal logic and error reporting of missing OCIO configs. #3092
@@ -85,20 +232,53 @@ Fixes and feature enhancements:
   (2.4.0/2.3.9)
 * Fix possible bad data alignment and SIMD assumptions inside TextureSystems
   internals. #3145 (2.4.0/2.3.9)
+* Update internal stb_printf implementation (avoids some sanitizer alerts).
+  #3160 (2.4.0/2.3.10)
+* Replace the few remaining instances of `sscanf` in the codebase with Strutil
+  utilities that are guaranteed to be locale-independent. #3178 (2.4.0)
+* Security: New global OIIO attributes "limits:channels" (default: 1024) and
+  "limits:imagesize_MB" (default: 32768, or 32 GB) are intended to reject
+  input files that exceed these limits, on the assumption that they are either
+  corrupt or maliciously constructed, and would, if read, lead to absurd
+  allocations, crashes, or other mayhem. Apps may lower or raise these limits
+  if they know that a legitimate input image exceeds these limits. Currently,
+  only the TIFF reader checks these limits, but others will be modified to
+  honor the limits over time. #3230 (2.3.11/2.4.0)
 
 Developer goodies / internals:
 * filesystem.h:
     - A new version of `searchpath_split` returns the vector of strings rather
       than needing to be passed a reference. #3154 (2.4.0/2.3.10)
+    - New `write_binary_file()` utility function. #3199 (2.4.0/2.3.10)
 * fmath.h:
     - Added `round_down_to_multiple()`. Also, more correctly handle
       `round_to_multiple()` results when the value is < 0. #3104
     - Add `round_down_to_multiple()` and improve `round_to_multiple()` to
       correctly handle cases where the value is less than 0. #3104
       (2.4.0/2.3.8)
+    - Make bit_cast specialization take refs, like the template. This fixes
+      warnings for some compilers. #3213 (2.4.0/2.3.10.1)
+* imageio.h:
+    - ImageInput and ImageOutput have many new helper methods (protected,
+      meant for II and IO subclass implementations to use, not users of these
+      classes) for helping to implement IOProxy support in format readers and
+      writers. #3203 #3222 (2.4.0)
+* strutil.h:
+    - New utility functions: parse_values(), scan_values(), scan_datetime()
+      #3173 #3177 (2.4.0/2.3.10), edit_distance() #3229 (2.4.0/2.3.11)
 * timer.h:
     - `Timer::add_seconds()` and `Timer::add_ticks()` allows add/subtract
       directly to a timer's elapsed value. #3070 (2.4.0/2.3.8)
+* typedesc.h:
+    - Add Cuda host/device decorations to TypeDesc methods to make them GPU
+      friendly. #3188 (2.4.0/2.3.10)
+    - TypeDesc constructor from a string now accepts "box2f" and "box3f"
+      as synonyms for "box2" and "box3", respectively. #3183 (2.4.0/2.3.10)
+* sysutil.h:
+    - The `Term` class now recognizes a wider set of terminal emulators as
+      supporting color output. #3185 (2.4.0)
+* oiiotool internals have all been converted to use the new fmt style for
+  error messages and warnings. #3240 (2.4.0)
 
 Build/test system improvements and platform ports:
 * CMake build system and scripts:
@@ -110,6 +290,23 @@ Build/test system improvements and platform ports:
       installed as an application. #3111 (2.4.0)
     - Make `OpenImageIO_SUPPORTED_RELEASE` into a CMake cache variable so it
       can be overridden at build time. #3142 (2.4.0)
+    - New build option `-DTIME_COMMANDS=ON` will print time to compile each
+      module (for investigating build performance; only useful when building
+      with `CMAKE_BUILD_PARALLEL_LEVEL=1`). #3194 (2.4.0/2.3.10)
+    - `PROJECT_VERSION_RELEASE_TYPE` is now a cache variable that can be
+      overridden at build time. #3197 (2.4.0/2.3.10)
+    - Set and use the variable `PROJECT_IS_TOP_LEVEL` to know if OIIO is a
+      top level project or a subproject. #3197 (2.4.0/2.3.10)
+    - Restore code that finds Jasper when using statically-linked libraw.
+      #3210 (2.4.0/2.3.10.1)
+    - Gracefully handle failing to find git for test data download. #3212
+      (2.4.0/2.3.10.1)
+    - Make sure to properly use the tbb target if it exists. #3214
+      (2.4.0/2.3.10.1)
+    - Use a project-specific "OpenImageIO_CI" for whether we're running in CI,
+      rather than the confusingly generic "CI" #3211 (2.4.0/2.3.11)
+    - If CMake variable `BUILD_TESTING` is OFF, don't do any automatic
+      downloading of missing test data. #3227 (2.3.11/2.4.0)
 * Dependency version support:
     - When using C++17, use std::gcd instead of boost. #3076 (2.4.0)
     - When using C++17, use `inline constexpr` instead of certain statics.
@@ -119,20 +316,172 @@ Build/test system improvements and platform ports:
       (2.4.0/2.3.9)
     - The internals of `Filesystem::searchpath_split` have been reimplemented
       in such a way as to no longer need boost.tokenzer. #3154 (2.4.0/2.3.10)
+    - Deal with the fact that OpenColorIO has changed its default branch
+      name to "main". #3169 (2.4.0/2.3.10/2.2.20)
+    - pybind11 v2.9.0 incorporated into our testing and CI. #3248
 * Testing and Continuous integration (CI) systems:
     - Properly test against all the versions of VFX Platform 2022. #3074
       (2.4.0)
+    - The helper script `build_libtiff.bash` now allows you to override the
+      build type (by setting `LIBTIFF_BUILD_TYPE`) and also bumps the default
+      libtiff that it downloads and builds from 4.1.0 to 4.3.0. #3161 (2.4.0)
+    - CI test for MacOS 11. #3193 (2.4.0/2.3.10)
+    - Add a DDS test (we never had one before). #3200 (2.4.0/2.3.10)
+    - `imageinout_test` now has options to make it easy to unit test just one
+      named format, as well as to preserve the temp files for inspection.
+      #3201 (2.4.0/2.3.10)
+    - Add an HDR test (we never had one before). #3218 (2.4.0)
 * Platform support:
     - Fix when building with Clang on big-endian architectures. #3133
       (2.4.0/2.3.9)
     - Improvements to NetBSD and OpenBSD support. #3137. (2.4.0/2.3.9)
+    - Fixes for MSVS compile. #3168 (2.4.0/2.3.10)
 
 Notable documentation changes:
 * Add an oiiotool example of putting a border around an image. #3138
   (2.4.0/2.3.9)
 * Fix explanation of ImageCache "failure_retries" attribute. #3147
   (2.4.0/2.3.9)
+* Improved maketx argument explanations.
+* Clean up intra-document section references. #3238 (2.3.11/2.4.0)
+* New explanations about input and output configuration hints. #3238
+  (2.3.11/2.4.0)
+* More code examples in both C++ and Python (especially for the ImageInput,
+  ImageOutput, and ImageBufAlgo chapters). #3238 #3244 #3250 (2.3.11/2.4.0)
+  #3263 (2.3.12/2.4.0)
 
+
+
+Release 2.3.11 (1 Jan 2022) -- compared to 2.3.10
+--------------------------------------------------
+* JPEG2000: enable multithreading for decoding (if using OpenJPEG >= 2.2)
+  and encoding (if using OpenJPEG >= 2.4). This speeds up JPEG-2000 I/O
+  by 3-4x. #2225
+* TIFF: automatically switch to "bigtiff" format for >4GB images. #3158
+* Security: New global OIIO attributes "limits:channels" (default: 1024) and
+  "limits:imagesize_MB" (default: 32768, or 32 GB) are intended to reject
+  input files that exceed these limits, on the assumption that they are either
+  corrupt or maliciously constructed, and would, if read, lead to absurd
+  allocations, crashes, or other mayhem. Apps may lower or raise these limits
+  if they know that a legitimate input image exceeds these limits. Currently,
+  only the TIFF reader checks these limits, but others will be modified to
+  honor the limits over time. #3230
+* TextureSystem: enhance safety/correctness for untiled images that exceed
+  2GB size (there was an integer overflow problem in computing offsets within
+  tiles). #3232
+* Cleanup: Get rid of an obsolete header c-imageio.h that was experimental
+  and the functions declared therein were not implemented in this release.
+  #3237
+* Build: rely on env variable "OpenImageIO_CI" to tell us if we are running in
+  a CI environment, not the more generic "CI" which could be set for other
+  reasons in some environments. #3211
+* Build: Improvements in how we find OpenVDB. #3216
+* Build: If CMake variable `BUILD_TESTING` is OFF, don't do any automatic
+  downloading of missing test data. #3227
+* Dev: Add Strutil::edit_distance(). #3229
+* Docs: Clean up intra-document section references, new explanations about
+  input and output configuration hints, more code examples in both C++ and
+  Python (especially for the ImageInput and ImageOutput chapters). #3238 #3244
+
+Release 2.3.10.1 (7 Dec 2021) -- compared to 2.3.10.0
+-----------------------------------------------------
+* Build: restore code that finds Jasper when using statically-linked libraw.
+  #3210
+* Build/test: Gracefully handle failing to find git for test data download.
+  #3212
+* fmath.h: bit_cast specialization should take refs, like the template.
+  This made warnings for some compilers. #3213
+* Build: make sure to properly use the tbb target if it exists. #3214
+
+Release 2.3.10 (1 Dec 2021) -- compared to 2.3.9
+--------------------------------------------------
+New (non-compatibility-breaking) features:
+* TextureSystem: add feature for stochastic mipmap interpolation. This adds
+  new interpolation modes "StochasticTrilinear" and "StochasticAniso", which
+  in conjunction with the "rnd" field in TextureOpt, will stochastically
+  choose between bracketing MIPmap levels rather than interpolating them. This
+  reduces texture lookup cost by up to 40%, but it's only useful in the
+  context of a renderer that uses many samples per pixel. #3127
+* maketx/make_texture() now supports options to store Gaussian forward and
+  inverse transform lookup tables in image metadata (must be OpenEXR textures
+  for this to work) to aid writing shaders that use histogram-preserving
+  blending of texture tiling. This is controlled by new maketx arguments
+  `--cdf`, `--cdfsigma`, `--sdfbits`, or for `IBA::make_texture()` by using
+  hints `maketx:cdf`, `maketx:cdfsigma`, and `maketx:cdfbits`. #3159 #3206
+* `oiitool --oiioattrib` can set "global" OIIO control attributes for
+  an oiiotool run (equivalent of calling `OIIO::attribute()`). #3171
+* `oiiotool --repremult` exposes the previously existing `IBA::repremult()`.
+  The guidance here is that `--premult` should be used for one-time conversion
+  of "unassociated alpha/unpremultiplied color" to associated/premultiplied,
+  but when you are starting with a premultiplied image and have a sequence of
+  unpremultiply, doing some adjustment in unpremultiplied space, then
+  re-premultiplying, it's `--repremult` you want as the last step, because it
+  preserves alpha = 0, color > 0 data without crushing it to black. #3192
+* `oiiotool --saturate` and `IBA::saturate()` can adjust saturation level of a
+  color image. #3190
+* `oiiotool --maxchan` and `--minchan`, and `IBA::maxchan()` and `minchan()`
+  turn an N-channel image into a 1-channel images that for each pixel,
+  contains the maximum value in any channel of the original for that pixel.
+  #3198
+* When building against OpenEXR >= 3.1.3, our OpenEXR output now supports
+  specifying the zip compression level (for example, by passing the
+  "compression" metadata as "zip:4"). Also note than when using OpenEXR >=
+  3.1.3, the default zip compression has been changed from 6 to 4, which
+  writes compressed files significantly (tens of percent) faster, but only
+  increases compressed file size by 1-2%. #3157
+* Improved image dithering facilities: When dithering is chosen, it now
+  happens any time you reduce >8 bits to <= 8 bits (not just when converting
+  from float or half); change the dither pattern from hashed to blue noise,
+  which looks MUCH better (beware slightly changed appearance); `IBA::noise()`
+  and `oiiotool --noise` now take "blue" as a noise name, giving a blue noise
+  pattern; `IBA::bluenoise_image()` returns a reference to a stored periodic
+  blue noise iamge; `oiiotool -d` now lets you ask for "uint6", "uint4",
+  "uint2", and "uint1" bit depths, for formats that support them. #3141
+* New global OIIO attribute `"try_all_readers"` can be set to 0 if you want to
+  override the default behavior and specifically NOT try any format readers
+  that don't match the file extension of an input image (usually, it will try
+  that one first, but it if fails to open the file, all known file readers
+  will be tried in case the file is just misnamed, but sometimes you don't
+  want it to do that). #3172
+* Raise the default ImageCache default tile cache from 256MB to 1GB. This
+  should improve performance for some operations involving large images or
+  images with many channels. #3180
+* IOProxy support has been added to JPEG output (already was supported for
+  JPEG input) and for GIF input and output. #3181 #3182
+
+Bug fixes:
+* Fix `oiiotool --invert` to avoid losing the alpha channel values. #3191
+* Fix excessive memory usage when saving EXR files with many channels. #3176
+* WebP: Fix previous failure to properly set the "oiio:LoopCount" metadata
+  for animated webp images. #3183
+* Targa: Better detection/safety when reading corrupted files, and fixed
+  bug when reading x-flipped images. #3162
+* RLA: better guards against malformed input. #3163
+* Fix oiiotool bug when autocropping output images when the entire pixel data
+  window is in the negative coordinate region. #3164
+* oiiotool improved detection of file reading failures. #3165
+* DDS: Don't set "texturetype" metadata, it should always have been only
+  "textureformat". Also, add unit testing of DDS to the testsuite. #3200
+* When textures are created with the "monochrome-detect" feature enabled,
+  which turns RGB textures where all channels are always equal into true
+  single channel greyscale, the single channel that results is now correctly
+  named "Y" instead of leaving it as "R" (it's not red, it's luminance).
+  #3205
+
+Build fixes and developer goodies:
+* Update internal stb_printf implementation (avoids some sanitizer alerts).
+  #3160
+* Fixes for MSVS compile. #3168
+* Add Cuda host/device decorations to TypeDesc methods to make them GPU
+  friendly. #3188
+* TypeDesc: The constructor from a string now accepts "box2f" and "box3f"
+  as synonyms for "box2" and "box3", respectively. #3183
+* New Strutil::parse_values, scan_values, scan_datetime, parse_line. #3173
+  #3177
+* New `Filesystem::write_binary_file()` utility function. #3199
+* New build option `-DTIME_COMMANDS=ON` will print time to compile each module
+  (for investigating build performance; only useful when building with
+  `CMAKE_BUILD_PARALLEL_LEVEL=1`). #3194
 
 Release 2.3.9.1 (1 Nov 2021) -- compared to 2.3.8
 --------------------------------------------------
