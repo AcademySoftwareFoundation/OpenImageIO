@@ -184,7 +184,7 @@ jobs:
       CXX: g++
       CC: gcc
       CMAKE_CXX_STANDARD: 17
-      FMT_VERSION: 8.1.0
+      FMT_VERSION: 8.1.1
       PYBIND11_VERSION: v2.9.0
       PYTHON_VERSION: 3.9
       USE_SIMD: avx2,f16c
@@ -331,7 +331,7 @@ jobs:
       CXX: g++-10
       CMAKE_CXX_STANDARD: 17
       USE_SIMD: avx2,f16c
-      FMT_VERSION: 8.1.0
+      FMT_VERSION: 8.1.1
       LIBRAW_VERSION: 0.20.2
       LIBTIFF_VERSION: v4.3.0
       OPENCOLORIO_VERSION: v2.1.1
