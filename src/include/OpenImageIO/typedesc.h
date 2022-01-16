@@ -586,7 +586,7 @@ template <>
 struct formatter<OIIO::TypeDesc> {
     // Parses format specification
     // C++14: constexpr auto parse(format_parse_context& ctx) const {
-    auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) const // c++11
+    auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) // c++11
     {
         // Get the presentation type, if any. Required to be 's'.
         auto it = ctx.begin(), end = ctx.end();
