@@ -1006,6 +1006,11 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     if (!configspec.tile_depth)
         configspec.tile_depth = 1;
 
+    bool ignore_unassoc = configspec.get_int_attribute("maketx:ignore_unassoc");
+    ImageSpec inconfig;
+    if (ignore_unassoc)
+        inconfig.attribute("oiio::UnassociatedAlpha", 1);
+
     std::stringstream localstream;  // catch output when user doesn't want it
     std::ostream& outstream(outstream_ptr ? *outstream_ptr : localstream);
 
@@ -1019,7 +1024,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     std::shared_ptr<ImageBuf> src;
     if (input == NULL) {
         // No buffer supplied -- create one to read the file
-        src.reset(new ImageBuf(filename));
+        src.reset(new ImageBuf(filename, 0, 0, nullptr, &inconfig));
         src->init_spec(filename, 0, 0);  // force it to get the spec, not read
     } else if (input->cachedpixels()) {
         // Image buffer supplied that's backed by ImageCache -- create a
@@ -1473,7 +1478,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     // Default to black wrap mode, unless overridden by configspec
     dstspec.attribute("wrapmodes", "black,black");
 
-    if (configspec.get_int_attribute("maketx:ignore_unassoc"))
+    if (ignore_unassoc)
         dstspec.erase_attribute("oiio:UnassociatedAlpha");
 
     // Put a DateTime in the out file, either now, or matching the date
