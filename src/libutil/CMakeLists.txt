@@ -55,11 +55,12 @@ if (CMAKE_COMPILER_IS_GNUCC AND NOT ${GCC_VERSION} VERSION_LESS 9.0)
                   APPEND PROPERTY COMPILE_OPTIONS -Wno-stringop-truncation)
 endif ()
 
-# For consistency with the linux SpComp2s, create Mac OS X SpComp2s
-# with a .so suffix instead of a .dylib suffix.
-if (DEFINED OVERRIDE_SHARED_LIBRARY_SUFFIX)
-    set_target_properties (OpenImageIO_Util PROPERTIES SUFFIX ${OVERRIDE_SHARED_LIBRARY_SUFFIX})
+set (OpenImageIO_Util_LINK_FLAGS "${VISIBILITY_MAP_COMMAND} ${EXTRA_DSO_LINK_ARGS}")
+if (UNIX AND NOT APPLE)
+    # Hide symbols from any static dependent libraries embedded here.
+    set (OpenImageIO_Util_LINK_FLAGS "${OpenImageIO_Util_LINK_FLAGS} -Wl,--exclude-libs,ALL")
 endif ()
+set_target_properties (OpenImageIO_Util PROPERTIES LINK_FLAGS ${OpenImageIO_Util_LINK_FLAGS})
 
 install_targets (OpenImageIO_Util)
 

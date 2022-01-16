@@ -11,7 +11,7 @@ OPENCOLORIO_VERSION=${OPENCOLORIO_VERSION:=v2.0.1}
 
 # Where to install the final results
 LOCAL_DEPS_DIR=${LOCAL_DEPS_DIR:=${PWD}/ext}
-OPENCOLORIO_SOURCE_DIR=${OPENCOLORIO_BUILD_DIR:=${LOCAL_DEPS_DIR}/OpenColorIO}
+OPENCOLORIO_SOURCE_DIR=${OPENCOLORIO_SOURCE_DIR:=${LOCAL_DEPS_DIR}/OpenColorIO}
 OPENCOLORIO_BUILD_DIR=${OPENCOLORIO_BUILD_DIR:=${LOCAL_DEPS_DIR}/OpenColorIO-build}
 OPENCOLORIO_INSTALL_DIR=${OPENCOLORIO_INSTALL_DIR:=${LOCAL_DEPS_DIR}/dist}
 OPENCOLORIO_CXX_FLAGS=${OPENCOLORIO_CXX_FLAGS:="-Wno-unused-function -Wno-deprecated-declarations -Wno-cast-qual -Wno-write-strings"}
@@ -21,7 +21,7 @@ OPENCOLORIO_BUILDOPTS="-DOCIO_BUILD_APPS=OFF -DOCIO_BUILD_NUKE=OFF \
                        -DOCIO_BUILD_GPU_TESTS=OFF \
                        -DOCIO_BUILD_PYTHON=OFF -DOCIO_BUILD_PYGLUE=OFF \
                        -DOCIO_BUILD_JAVA=OFF \
-                       -DOCIO_BUILD_STATIC=${OCIO_BUILD_STATIC:=OFF}"
+                       -DBUILD_SHARED_LIBS=${OPENCOLORIO_BUILD_SHARED_LIBS:=ON}"
 BASEDIR=`pwd`
 pwd
 echo "OpenColorIO install dir will be: ${OPENCOLORIO_INSTALL_DIR}"
@@ -30,20 +30,20 @@ mkdir -p ${LOCAL_DEPS_DIR}
 pushd ${LOCAL_DEPS_DIR}
 
 # Clone OpenColorIO project from GitHub and build
-if [[ ! -e OpenColorIO ]] ; then
-    echo "git clone ${OPENCOLORIO_REPO} OpenColorIO"
-    git clone ${OPENCOLORIO_REPO} OpenColorIO
+if [[ ! -e ${OPENCOLORIO_SOURCE_DIR} ]] ; then
+    echo "git clone ${OPENCOLORIO_REPO} ${OPENCOLORIO_SOURCE_DIR}"
+    git clone ${OPENCOLORIO_REPO} ${OPENCOLORIO_SOURCE_DIR}
 fi
-cd OpenColorIO
+cd ${OPENCOLORIO_SOURCE_DIR}
 
 echo "git checkout ${OPENCOLORIO_VERSION} --force"
 git checkout ${OPENCOLORIO_VERSION} --force
-mkdir -p build
-cd build
+mkdir -p ${OPENCOLORIO_BUILD_DIR}
+cd ${OPENCOLORIO_BUILD_DIR}
 time cmake -DCMAKE_BUILD_TYPE=Release \
            -DCMAKE_INSTALL_PREFIX=${OPENCOLORIO_INSTALL_DIR} \
            -DCMAKE_CXX_FLAGS="${OPENCOLORIO_CXX_FLAGS}" \
-           ${OPENCOLORIO_BUILDOPTS} ..
+           ${OPENCOLORIO_BUILDOPTS} ${OPENCOLORIO_SOURCE_DIR}
 time cmake --build . --config Release --target install
 popd
 
