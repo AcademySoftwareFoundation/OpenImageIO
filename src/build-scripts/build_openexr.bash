@@ -15,7 +15,6 @@ OPENEXR_SOURCE_DIR=${OPENEXR_SOURCE_DIR:=${LOCAL_DEPS_DIR}/openexr}
 OPENEXR_BUILD_DIR=${OPENEXR_BUILD_DIR:=${LOCAL_DEPS_DIR}/openexr-build}
 OPENEXR_INSTALL_DIR=${OPENEXR_INSTALL_DIR:=${LOCAL_DEPS_DIR}/dist}
 OPENEXR_BUILD_TYPE=${OPENEXR_BUILD_TYPE:=Release}
-CMAKE_GENERATOR=${CMAKE_GENERATOR:="Unix Makefiles"}
 OPENEXR_CMAKE_FLAGS=${OPENEXR_CMAKE_FLAGS:=""}
 OPENEXR_CXX_FLAGS=${OPENEXR_CXX_FLAGS:=""}
 BASEDIR=$PWD
@@ -24,19 +23,14 @@ pwd
 echo "Building OpenEXR ${OPENEXR_VERSION}"
 echo "OpenEXR build dir will be: ${OPENEXR_BUILD_DIR}"
 echo "OpenEXR install dir will be: ${OPENEXR_INSTALL_DIR}"
-echo "CMAKE_PREFIX_PATH is ${CMAKE_PREFIX_PATH}"
 echo "OpenEXR Build type is ${OPENEXR_BUILD_TYPE}"
-
-if [[ "$CMAKE_GENERATOR" == "" ]] ; then
-    OPENEXR_GENERATOR_CMD="-G \"$CMAKE_GENERATOR\""
-fi
+echo "CMAKE_PREFIX_PATH is ${CMAKE_PREFIX_PATH}"
 
 # Clone OpenEXR project (including IlmBase) from GitHub and build
 if [[ ! -e ${OPENEXR_SOURCE_DIR} ]] ; then
     echo "git clone ${OPENEXR_REPO} ${OPENEXR_SOURCE_DIR}"
     git clone ${OPENEXR_REPO} ${OPENEXR_SOURCE_DIR}
 fi
-
 mkdir -p ${OPENEXR_INSTALL_DIR} && true
 mkdir -p ${OPENEXR_BUILD_DIR} && true
 
@@ -46,7 +40,7 @@ git checkout ${OPENEXR_VERSION} --force
 if [[ ${OPENEXR_VERSION} == "v2.3.0" ]] ; then
     # Simplified setup for 2.3+
     cd ${OPENEXR_BUILD_DIR}
-    cmake -DCMAKE_BUILD_TYPE=${OPENEXR_BUILD_TYPE} -G "$CMAKE_GENERATOR" \
+    cmake -DCMAKE_BUILD_TYPE=${OPENEXR_BUILD_TYPE} \
             -DCMAKE_INSTALL_PREFIX="${OPENEXR_INSTALL_DIR}" \
             -DCMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH}" \
             -DILMBASE_PACKAGE_PREFIX="${OPENEXR_INSTALL_DIR}" \
@@ -59,7 +53,7 @@ if [[ ${OPENEXR_VERSION} == "v2.3.0" ]] ; then
 else
     # Simplified setup for 2.4+
     cd ${OPENEXR_BUILD_DIR}
-    cmake -DCMAKE_BUILD_TYPE=${OPENEXR_BUILD_TYPE} -G "$CMAKE_GENERATOR" \
+    cmake -DCMAKE_BUILD_TYPE=${OPENEXR_BUILD_TYPE} \
             -DCMAKE_INSTALL_PREFIX="${OPENEXR_INSTALL_DIR}" \
             -DCMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH}" \
             -DILMBASE_PACKAGE_PREFIX="${OPENEXR_INSTALL_DIR}" \
