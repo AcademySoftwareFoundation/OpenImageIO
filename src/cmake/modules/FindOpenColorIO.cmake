@@ -14,10 +14,31 @@
 # OPENCOLORIO_LIBRARIES   - list of libraries to link against when using OpenColorIO
 # OPENCOLORIO_DEFINITIONS - Definitions needed when using OpenColorIO
 #
+# Hints and overrides:
+#
+#   - OPENCOLORIO_INTERFACE_LINK_LIBRARIES - override for interface link
+#     libraries on the OpenColorIO::OpenColorIO target.
+#   - OPENCOLORIO_NO_CONFIG - if ON, this module will be used even if an
+#     OCIO >= 2.1 cmake config is found. If OFF (the default), a config file
+#     will be perferred if found.
+#
 # OpenColorIO 2.1 exports proper cmake config files on its own.
 # Once OCIO 2.1 is our new minimum, this FindOpenColorIO.cmake will
 # eventually be deprecated and disappear.
 #
+
+if (NOT OPENCOLORIO_NO_CONFIG)
+    find_package(OpenColorIO CONFIG)
+endif ()
+
+if (TARGET OpenColorIO::OpenColorIO)
+    if (OPENCOLORIO_INTERFACE_LINK_LIBRARIES)
+        set_target_properties(OpenColorIO::OpenColorIO PROPERTIES
+            INTERFACE_LINK_LIBRARIES "${OPENCOLORIO_INTERFACE_LINK_LIBRARIES}")
+    endif ()
+
+else ()
+# vvvv the rest is if no OCIO exported config file is found
 
 include (FindPackageHandleStandardArgs)
 include (FindPackageMessage)
@@ -76,6 +97,10 @@ if (OpenColorIO_FOUND)
 
         set_property(TARGET OpenColorIO::OpenColorIO APPEND PROPERTY
             IMPORTED_LOCATION "${OPENCOLORIO_LIBRARIES}")
+        if (OPENCOLORIO_INTERFACE_LINK_LIBRARIES)
+            set_target_properties(OpenColorIO::OpenColorIO PROPERTIES
+                INTERFACE_LINK_LIBRARIES "${OPENCOLORIO_INTERFACE_LINK_LIBRARIES}")
+        endif ()
         if (LINKSTATIC)
             target_compile_definitions(OpenColorIO::OpenColorIO
                 INTERFACE "-DOpenColorIO_STATIC")
@@ -105,3 +130,4 @@ if (OpenColorIO_FOUND AND LINKSTATIC)
     endif ()
 endif ()
 
+endif()
