@@ -187,26 +187,13 @@ set_target_properties(OpenImageIO
                          OUTPUT_NAME OpenImageIO${OIIO_LIBNAME_SUFFIX}
                          POSITION_INDEPENDENT_CODE ON
                      )
-if (VISIBILITY_MAP_COMMAND)
-    set_property (TARGET OpenImageIO
-                  APPEND PROPERTY LINK_FLAGS ${VISIBILITY_MAP_COMMAND})
-endif ()
 
-# For consistency with the linux SpComp2s, create Mac OS X SpComp2s
-# with a .so suffix instead of a .dylib suffix.
-if (DEFINED OVERRIDE_SHARED_LIBRARY_SUFFIX)
-  if (VERBOSE)
-      message(STATUS "Setting SUFFIX to: ${OVERRIDE_SHARED_LIBRARY_SUFFIX}")
-  endif ()
-  set_target_properties(OpenImageIO
-                           PROPERTIES
-                           SUFFIX ${OVERRIDE_SHARED_LIBRARY_SUFFIX}
-                       )
+set (OpenImageIO_LINK_FLAGS "${VISIBILITY_MAP_COMMAND} ${EXTRA_DSO_LINK_ARGS}")
+if (UNIX AND NOT APPLE)
+    # Hide symbols from any static dependent libraries embedded here.
+    set (OpenImageIO_LINK_FLAGS "${OpenImageIO_LINK_FLAGS} -Wl,--exclude-libs,ALL")
 endif ()
-
-if (EXTRA_DSO_LINK_ARGS)
-    set_target_properties (OpenImageIO PROPERTIES LINK_FLAGS ${EXTRA_DSO_LINK_ARGS})
-endif()
+set_target_properties (OpenImageIO PROPERTIES LINK_FLAGS ${OpenImageIO_LINK_FLAGS})
 
 install_targets (OpenImageIO)
 
