@@ -50,15 +50,16 @@ public:
     virtual bool get_thumbnail(ImageBuf& thumb, int subimage) override;
 
 private:
-    std::string m_filename;          ///< Stash the filename
-    tga_header m_tga;                ///< Targa header
-    tga_footer m_foot;               ///< Targa 2.0 footer
-    tga_alpha_type m_alpha_type;     ///< Alpha type
-    int64_t m_ofs_thumb       = 0;   ///< Offset of thumbnail info
-    int64_t m_ofs_palette     = 0;   ///< Offset of palette
-    int64_t m_ofs_colcorr_tbl = 0;   ///< Offset to colour correction table
-    bool m_keep_unassociated_alpha;  ///< Do not convert unassociated alpha
-    std::unique_ptr<uint8_t> m_buf;  ///< Buffer the image pixels
+    std::string m_filename;            // Stash the filename
+    tga_header m_tga;                  // Targa header
+    tga_footer m_foot;                 // Targa 2.0 footer
+    tga_alpha_type m_alpha_type;       // Alpha type
+    int64_t m_ofs_thumb       = 0;     // Offset of thumbnail info
+    int64_t m_ofs_palette     = 0;     // Offset of palette
+    int64_t m_ofs_colcorr_tbl = 0;     // Offset to colour correction table
+    bool m_keep_unassociated_alpha;    // Do not convert unassociated alpha
+    short m_tga_version = 1;           // TGA version (1 or 2)
+    std::unique_ptr<uint8_t[]> m_buf;  // Buffer the image pixels
 
     // Is this a palette image, i.e. it has a color map?
     bool is_palette() const { return m_tga.cmap_type != 0; }
@@ -73,6 +74,7 @@ private:
         m_ofs_colcorr_tbl         = 0;
         m_alpha_type              = TGA_ALPHA_NONE;
         m_keep_unassociated_alpha = false;
+        m_tga_version             = 1;
         ioproxy_clear();
     }
 
@@ -162,24 +164,24 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
     if (m_tga.type == TYPE_NODATA) {
-        errorf("Image with no data");
+        errorfmt("Image with no data");
         return false;
     }
     if (m_tga.type != TYPE_PALETTED && m_tga.type != TYPE_RGB
         && m_tga.type != TYPE_GRAY && m_tga.type != TYPE_PALETTED_RLE
         && m_tga.type != TYPE_RGB_RLE && m_tga.type != TYPE_GRAY_RLE) {
-        errorf("Illegal image type: %d", m_tga.type);
+        errorfmt("Illegal image type: {}", m_tga.type);
         return false;
     }
     if (m_tga.bpp != 8 && m_tga.bpp != 15 && m_tga.bpp != 16 && m_tga.bpp != 24
         && m_tga.bpp != 32) {
-        errorf("Illegal pixel size: %d bits per pixel", m_tga.bpp);
+        errorfmt("Illegal pixel size: {} bits per pixel", m_tga.bpp);
         return false;
     }
 
     if ((m_tga.type == TYPE_PALETTED || m_tga.type == TYPE_PALETTED_RLE)
         && !is_palette()) {
-        errorf("Palette image with no palette");
+        errorfmt("Palette image with no palette");
         return false;
     }
 
@@ -187,14 +189,14 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
         && (m_tga.type == TYPE_GRAY || m_tga.type == TYPE_GRAY_RLE)) {
         // it should be an error for TYPE_RGB* as well, but apparently some
         // *very* old TGAs can be this way, so we'll hack around it
-        errorf("Palette defined for grayscale image");
+        errorfmt("Palette defined for grayscale image");
         return false;
     }
 
     if (is_palette()
         && (m_tga.cmap_size != 15 && m_tga.cmap_size != 16
             && m_tga.cmap_size != 24 && m_tga.cmap_size != 32)) {
-        errorf("Illegal palette entry size: %d bits", m_tga.cmap_size);
+        errorfmt("Illegal palette entry size: {} bits", m_tga.cmap_size);
         return false;
     }
 
@@ -257,6 +259,8 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
         && ioread(&m_foot.signature, sizeof(m_foot.signature), 1)
         && !strncmp(m_foot.signature, "TRUEVISION-XFILE.", 17)) {
         //std::cerr << "[tga] this is a TGA 2.0 file\n";
+        m_spec.attribute("targa:version", 2);
+        m_tga_version = 2;
 
         // read the extension area
         if (!ioseek(m_foot.ofs_ext)) {
@@ -382,7 +386,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
                     m_spec.attribute("oiio:ColorSpace", "linear");
                 } else {
                     m_spec.attribute("oiio:ColorSpace",
-                                     Strutil::sprintf("Gamma%.2g", gamma));
+                                     Strutil::fmt::format("Gamma{:.2g}", gamma));
                     m_spec.attribute("oiio:Gamma", gamma);
                 }
             }
@@ -411,7 +415,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
                 return false;
             m_alpha_type = (tga_alpha_type)buf.c[0];
             if (m_alpha_type)
-                m_spec.attribute("tga:alpha_type", m_alpha_type);
+                m_spec.attribute("targa:alpha_type", m_alpha_type);
 
             // Check for presence of a thumbnail and set the metadata that
             // says its dimensions, but don't read and decode it unless
@@ -435,11 +439,14 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
         // FIXME: provide access to the developer area; according to Larry,
         // it's probably safe to ignore it altogether until someone complains
         // that it's missing :)
+    } else {
+        m_tga_version = 1;
+        m_spec.attribute("targa:version", 1);
     }
 
-    if (m_spec.alpha_channel != -1 && m_alpha_type == TGA_ALPHA_USEFUL)
-        if (m_keep_unassociated_alpha)
-            m_spec.attribute("oiio:UnassociatedAlpha", 1);
+    if (m_spec.alpha_channel != -1 && m_alpha_type == TGA_ALPHA_USEFUL
+        && m_keep_unassociated_alpha)
+        m_spec.attribute("oiio:UnassociatedAlpha", 1);
 
     // Reposition back to where the palette starts
     if (!ioseek(ofs)) {
@@ -662,7 +669,6 @@ associateAlpha(T* data, int64_t size, int channels, int alpha_channel,
 bool
 TGAInput::readimg()
 {
-    DBG("TGA readimg {}\n", m_filename);
     // how many bytes we actually read
     // for 15-bit read 2 bytes and ignore the 16th bit
     int bytespp    = (m_tga.bpp == 15) ? 2 : (m_tga.bpp / 8);
@@ -671,10 +677,8 @@ TGAInput::readimg()
     if (alphabits == 0 && m_tga.bpp == 32)
         alphabits = 8;
 
-    /*std::cerr << "[tga] bytespp = " << bytespp
-              << " palbytespp = " << palbytespp
-              << " alphabits = " << alphabits
-              << "\n";*/
+    DBG("TGA readimg {}, bytespp = {} palbytespp = {} alphabits = {}\n",
+        m_filename, bytespp, palbytespp, alphabits);
 
     try {
         DBG("TGA {} allocating for {}x{} {}-chan image = {}\n", m_filename,
@@ -695,9 +699,10 @@ TGAInput::readimg()
             return false;
     }
 
-    unsigned char pixel[4];
+    unsigned char pixel[4] = { 0, 0, 0, 0 };
     if (m_tga.type < TYPE_PALETTED_RLE) {
         // uncompressed image data
+        DBG("TGA readimg, reading uncompressed image data\n");
         unsigned char in[4];
         for (int64_t y = m_spec.height - 1; y >= 0; y--) {
             for (int64_t x = 0; x < m_spec.width; x++) {
@@ -712,6 +717,7 @@ TGAInput::readimg()
     } else {
         // Run Length Encoded image
         unsigned char in[5];
+        DBG("TGA readimg, reading RLE image data\n");
         int packet_size;
         for (int64_t y = m_spec.height - 1; y >= 0; y--) {
             for (int64_t x = 0; x < m_spec.width; x++) {
@@ -722,8 +728,8 @@ TGAInput::readimg()
                 packet_size = 1 + (in[0] & 0x7f);
                 decode_pixel(&in[1], pixel, palette.get(), bytespp, palbytespp);
                 if (in[0] & 0x80) {  // run length packet
-                    // std::cerr << "[tga] run length packet "
-                    //           << packet_size << "\n";
+                    // DBG("[tga] run length packet size {} @ ({},{})\n",
+                    //     packet_size, x, y);
                     for (int i = 0; i < packet_size; i++) {
                         memcpy(m_buf.get() + y * m_spec.width * m_spec.nchannels
                                    + x * m_spec.nchannels,
@@ -741,8 +747,9 @@ TGAInput::readimg()
                         }
                     }
                 } else {  // non-rle packet
-                    // std::cerr << "[tga] non-run length packet "
-                    //           << packet_size << "\n";
+                    // DBG("[tga] non-run length packet size {} @ ({},{}): [{:d} {:d} {:d} {:d}]\n",
+                    //     packet_size, x, y, pixel[0], pixel[1], pixel[2],
+                    //     pixel[3]);
                     for (int i = 0; i < packet_size; i++) {
                         memcpy(m_buf.get() + y * m_spec.width * m_spec.nchannels
                                    + x * m_spec.nchannels,
@@ -764,6 +771,8 @@ TGAInput::readimg()
                             }
                             decode_pixel(&in[1], pixel, palette.get(), bytespp,
                                          palbytespp);
+                            // DBG("\t\t@ ({},{}): [{:d} {:d} {:d} {:d}]\n", x, y,
+                            //     pixel[0], pixel[1], pixel[2], pixel[3]);
                         }
                     }
                 }
@@ -808,12 +817,22 @@ TGAInput::readimg()
         }
     }
 
-    if (m_alpha_type != TGA_ALPHA_PREMULTIPLIED) {
-        // Convert to associated unless we were requested not to do so
-        if (m_spec.alpha_channel != -1 && !m_keep_unassociated_alpha) {
-            int64_t size = m_spec.image_pixels();
-            float gamma  = m_spec.get_float_attribute("oiio:Gamma", 1.0f);
-
+    // Convert to associated unless we were requested not to do so.
+    if (m_spec.alpha_channel != -1 && !m_keep_unassociated_alpha
+        && m_alpha_type != TGA_ALPHA_PREMULTIPLIED) {
+        // TGA 1.0 files don't have a way to indicate that the alpha is not
+        // premultiplied. We presume unpremultiplied, but if alpha is zero
+        // everywhere, ugh, it's probably meaningless.
+        bool alpha0_everywhere = (m_tga_version == 1);
+        int64_t size           = m_spec.image_pixels();
+        for (int64_t i = 0; i < size; ++i) {
+            if (m_buf[i * m_spec.nchannels + m_spec.alpha_channel]) {
+                alpha0_everywhere = false;
+                break;
+            }
+        }
+        if (!alpha0_everywhere) {
+            float gamma = m_spec.get_float_attribute("oiio:Gamma", 1.0f);
             associateAlpha((unsigned char*)m_buf.get(), size, m_spec.nchannels,
                            m_spec.alpha_channel, gamma);
         }
