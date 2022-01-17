@@ -215,8 +215,9 @@ and contains one or more of the following substrings:
 `<v>`      vtile
 `<U>`      utile + 1
 `<V>`      vtile + 1
+`<UVTILE>` equivalent to `<U>_<V>`
 `_u##v##`  utile, vtile
-`%(UDIM)d` 1001 + utile + vtile*10
+`%(UDIM)d` synonym for `<UDIM>`
 ========== ========================
 
 where the tile numbers are derived from the input u,v texture
