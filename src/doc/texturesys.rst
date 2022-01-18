@@ -209,16 +209,18 @@ UDIM tiled texture atlases. The substitutions will occur if the texture
 filename initially passed to `texture()` does not exist as a concrete file
 and contains one or more of the following substrings:
 
-========== ========================
-`<UDIM>`   1001 + utile + vtile*10
-`<u>`      utile
-`<v>`      vtile
-`<U>`      utile + 1
-`<V>`      vtile + 1
-`<UVTILE>` equivalent to `<U>_<V>`
-`_u##v##`  utile, vtile
-`%(UDIM)d` synonym for `<UDIM>`
-========== ========================
+========== ======================== =================================
+Pattern    Numbering scheme         Example expansion if u=0.5, v=2.5
+========== ======================== =================================
+`<UDIM>`   1001 + utile + vtile*10  `1021`
+`<u>`      utile                    `u0`
+`<v>`      vtile                    `v2`
+`<U>`      utile + 1                `u1`
+`<V>`      vtile + 1                `v3`
+`<UVTILE>` equivalent to `<U>_<V>`  `u1_v3`
+`_u##v##`  utile, vtile             `_u00v02`
+`%(UDIM)d` synonym for `<UDIM>`     `1021`
+========== ======================== =================================
 
 where the tile numbers are derived from the input u,v texture
 coordinates as follows::
