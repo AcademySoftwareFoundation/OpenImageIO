@@ -671,7 +671,8 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
 
     // ExtraSamples tag
     if ((m_spec.alpha_channel >= 0 || m_spec.nchannels > 3)
-        && m_photometric != PHOTOMETRIC_SEPARATED) {
+        && m_photometric != PHOTOMETRIC_SEPARATED
+        && m_spec.get_int_attribute("tiff:write_extrasamples", 1)) {
         bool unass = m_spec.get_int_attribute("oiio:UnassociatedAlpha", 0);
         int defaultchans = m_spec.nchannels >= 3 ? 3 : 1;
         short e          = m_spec.nchannels - defaultchans;
