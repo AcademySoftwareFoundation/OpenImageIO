@@ -1095,8 +1095,7 @@ TIFFInput::readspec(bool read_meta)
 
     unsigned short* sampleinfo  = NULL;
     unsigned short extrasamples = 0;
-    TIFFGetFieldDefaulted(m_tif, TIFFTAG_EXTRASAMPLES, &extrasamples,
-                          &sampleinfo);
+    TIFFGetField(m_tif, TIFFTAG_EXTRASAMPLES, &extrasamples, &sampleinfo);
     // std::cerr << "Extra samples = " << extrasamples << "\n";
     bool alpha_is_unassociated = false;  // basic assumption
     if (extrasamples) {
