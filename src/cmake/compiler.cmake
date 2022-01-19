@@ -28,10 +28,12 @@ message (STATUS "CMAKE_CXX_COMPILER_ID  = ${CMAKE_CXX_COMPILER_ID}")
 # C++ language standard
 #
 set (CMAKE_CXX_STANDARD 14 CACHE STRING
-     "C++ standard to prefer (14, 17, 20, etc.)")
+     "C++ standard to build with (14, 17, 20, etc.)")
+set (DOWNSTREAM_CXX_STANDARD 14 CACHE STRING
+     "C++ minimum standard to impose on downstream clients")
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
-message (STATUS "Building for C++${CMAKE_CXX_STANDARD}")
+message (STATUS "Building with C++${CMAKE_CXX_STANDARD}, downstream minimum C++${DOWNSTREAM_CXX_STANDARD}")
 
 
 ###########################################################################
