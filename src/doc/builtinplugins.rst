@@ -2349,6 +2349,10 @@ aspects of the writing itself:
      - int
      - If nonzero, forces use of "bigtiff," a nonstandard extension that
        allows files to be more than 4 GB (default: 0).
+   * - ``tiff:write_extrasamples``
+     - int
+     - If zero, do NOT write the "EXTRASAMPLES" tag to the TIFF header.
+       (The default is 1, which means write the tag.)
 
 
 **TIFF compression modes**
