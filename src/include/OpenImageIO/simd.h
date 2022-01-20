@@ -65,7 +65,9 @@
 // OIIO_SIMD_HAS_SIMD8 : nonzero if vfloat8, vint8, vbool8 are defined
 // OIIO_SIMD_HAS_SIMD16 : nonzero if vfloat16, vint16, vbool16 are defined
 
-#if defined(_WIN32)
+#if defined(__CUDA_ARCH__)
+    // Cuda -- don't include any of these headers
+#elif defined(_WIN32)
 #  include <intrin.h>
 #elif defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__)) || defined(__e2k__)
 #  include <x86intrin.h>
