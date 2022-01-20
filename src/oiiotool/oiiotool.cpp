@@ -2931,8 +2931,8 @@ OiioTool::decode_channel_set(const ImageSpec& spec, string_view chanlist,
             }
             if (oldname.size()) {
                 for (int i = 0; i < spec.nchannels; ++i)
-                    if (spec.channelnames[i]
-                        == oldname) {  // name of a known channel?
+                    if (spec.channelnames[i] == oldname) {
+                        // name of a known channel
                         chan = i;
                         break;
                     }
@@ -2942,6 +2942,11 @@ OiioTool::decode_channel_set(const ImageSpec& spec, string_view chanlist,
                             chan = i;
                             break;
                         }
+                }
+                if (chan < 0) {
+                    ot.warningfmt("--ch",
+                                  "Unknown channel name \"{}\", filling with 0",
+                                  oldname);
                 }
                 if (newname.empty() && chan >= 0)
                     newname = spec.channelnames[chan];
