@@ -82,6 +82,11 @@
 #define OIIO_NO_SSE 1
 #endif
 
+// Make sure to disable SSE intrinsics when compiling for Cuda.
+#if defined(__CUDA_ARCH__) && !defined(OIIO_NO_SSE)
+#define OIIO_NO_SSE 1
+#endif
+
 #if (defined(__SSE2__) || (_MSC_VER >= 1300 && !_M_CEE_PURE)) && !defined(OIIO_NO_SSE)
 #  if (defined(__SSE4_1__) || defined(__SSE4_2__))
 #    define OIIO_SIMD_SSE 4
@@ -3075,7 +3080,7 @@ vfloat16 nmsub (const vfloat16& a, const vfloat16& b, const vfloat16& c); // -a*
 // able, otherwise false (because it's not available on that platform,
 // or because it's gcc 4.8 which has a bug that lacks this intrinsic).
 inline bool set_flush_zero_mode (bool on) {
-#if (defined(__x86_64__) || defined(__i386__)) && (OIIO_GNUC_VERSION == 0 || OIIO_GNUC_VERSION > 40900)
+#if (defined(__x86_64__) || defined(__i386__)) && (OIIO_GNUC_VERSION == 0 || OIIO_GNUC_VERSION > 40900) && !defined(__CUDA_ARCH__)
     _MM_SET_FLUSH_ZERO_MODE (on ? _MM_FLUSH_ZERO_ON : _MM_FLUSH_ZERO_OFF);
     return true;
 #endif
@@ -3086,7 +3091,7 @@ inline bool set_flush_zero_mode (bool on) {
 // able, otherwise false (because it's not available on that platform,
 // or because it's gcc 4.8 which has a bug that lacks this intrinsic).
 inline bool set_denorms_zero_mode (bool on) {
-#if (defined(__x86_64__) || defined(__i386__)) && (OIIO_GNUC_VERSION == 0 || OIIO_GNUC_VERSION > 40900)
+#if (defined(__x86_64__) || defined(__i386__)) && (OIIO_GNUC_VERSION == 0 || OIIO_GNUC_VERSION > 40900) && !defined(__CUDA_ARCH__)
     _MM_SET_DENORMALS_ZERO_MODE (on ? _MM_DENORMALS_ZERO_ON : _MM_DENORMALS_ZERO_OFF);
     return true;
 #endif
@@ -3095,7 +3100,7 @@ inline bool set_denorms_zero_mode (bool on) {
 
 // Get the flush_zero_mode CPU flag on x86.
 inline bool get_flush_zero_mode () {
-#if (defined(__x86_64__) || defined(__i386__)) && (OIIO_GNUC_VERSION == 0 || OIIO_GNUC_VERSION > 40900)
+#if (defined(__x86_64__) || defined(__i386__)) && (OIIO_GNUC_VERSION == 0 || OIIO_GNUC_VERSION > 40900) && !defined(__CUDA_ARCH__)
     return _MM_GET_FLUSH_ZERO_MODE() == _MM_FLUSH_ZERO_ON;
 #endif
     return false;
@@ -3103,7 +3108,7 @@ inline bool get_flush_zero_mode () {
 
 // Get the denorms_zero_mode CPU flag on x86.
 inline bool get_denorms_zero_mode () {
-#if (defined(__x86_64__) || defined(__i386__)) && (OIIO_GNUC_VERSION == 0 || OIIO_GNUC_VERSION > 40900)
+#if (defined(__x86_64__) || defined(__i386__)) && (OIIO_GNUC_VERSION == 0 || OIIO_GNUC_VERSION > 40900) && !defined(__CUDA_ARCH__)
     return _MM_GET_DENORMALS_ZERO_MODE() == _MM_DENORMALS_ZERO_ON;
 #endif
     return false;
