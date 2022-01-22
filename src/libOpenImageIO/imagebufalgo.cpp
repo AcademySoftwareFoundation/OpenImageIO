@@ -5,6 +5,7 @@
 #include <cmath>
 #include <memory>
 
+#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filter.h>
 #include <OpenImageIO/imagebuf.h>

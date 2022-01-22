@@ -15,6 +15,7 @@
 #    include <io.h>
 #endif
 
+#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/hash.h>

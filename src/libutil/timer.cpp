@@ -5,8 +5,6 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include <OpenImageIO/strutil.h>
-#include <OpenImageIO/thread.h>
 #include <OpenImageIO/timer.h>
 
 

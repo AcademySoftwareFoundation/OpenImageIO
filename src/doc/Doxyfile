@@ -2173,7 +2173,10 @@ PREDEFINED             = DOXYGEN_SHOULD_SKIP_THIS \
                          OIIO_NODISCARD=[[nodiscard]] \
                          OIIO_DEPRECATED:=[[deprecated]] \
                          OIIO_FORMAT_DEPRECATED:= \
-                         OIIO_FORCEINLINE=inline
+                         OIIO_FORCEINLINE=inline \
+                         IMATH_HALF_H_=1 \
+                         INCLUDED_IMATHVEC_H=1 \
+                         INCLUDED_IMATHMATRIX_H=1 \
 
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then this

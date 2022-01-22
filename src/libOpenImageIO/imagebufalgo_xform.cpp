@@ -10,6 +10,7 @@
 #include <memory>
 
 #include "imageio_pvt.h"
+#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filter.h>
 #include <OpenImageIO/imagebuf.h>

@@ -10,6 +10,8 @@
 #include <sstream>
 #include <string>
 
+#include <OpenImageIO/Imath.h>
+
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filter.h>
 #include <OpenImageIO/fmath.h>

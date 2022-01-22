@@ -10,6 +10,8 @@
 
 #include <boost/container/flat_map.hpp>
 
+#include <OpenImageIO/Imath.h>
+
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imagebufalgo.h>

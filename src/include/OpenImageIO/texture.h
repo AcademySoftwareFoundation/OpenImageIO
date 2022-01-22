@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/simd.h>
 #include <OpenImageIO/ustring.h>

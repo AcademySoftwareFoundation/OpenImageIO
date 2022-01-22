@@ -29,9 +29,9 @@
 #pragma once
 
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 
-#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/platform.h>
 
@@ -242,6 +242,11 @@
 #    undef False
 #endif
 
+// For the "no SIMD" case, we leverage Imath::Matrix44 and force it to be
+// included here.
+#if OIIO_SIMD == 0
+#    include <OpenImageIO/Imath.h>
+#endif
 
 
 OIIO_NAMESPACE_BEGIN
@@ -1830,6 +1835,7 @@ public:
     const value_t* data () const { return (const value_t*)this; }
     value_t* data () { return (value_t*)this; }
 
+#ifdef INCLUDED_IMATHVEC_H
     /// Construct from a Imath::V3f
     explicit vfloat4 (const Imath::V3f &v) { load (v[0], v[1], v[2]); }
 
@@ -1841,6 +1847,7 @@ public:
 
     /// Cast to a Imath::V4f
     const Imath::V4f& V4f () const { return *(const Imath::V4f*)this; }
+#endif
 
     /// Construct from a pointer to 4 unsigned short values
     explicit vfloat4 (const unsigned short *vals) { load(vals); }
@@ -1881,11 +1888,13 @@ public:
     /// Set all components to 0.0
     void clear ();
 
+#ifdef INCLUDED_IMATHVEC_H
     /// Assign from a Imath::V4f
     const vfloat4 & operator= (const Imath::V4f &v);
 
     /// Assign from a Imath::V3f
     const vfloat4 & operator= (const Imath::V3f &v);
+#endif
 
     /// Component access (get)
     float operator[] (int i) const;
@@ -2175,11 +2184,13 @@ public:
     explicit vfloat3 (const simd_t& m) : vfloat4(m) { }
 #endif
 
+#ifdef INCLUDED_IMATHVEC_H
     /// Construct from a Imath::V3f
     vfloat3 (const Imath::V3f &v) : vfloat4(v) { }
 
     /// Cast to a Imath::V3f
     const Imath::V3f& V3f () const { return *(const Imath::V3f*)this; }
+#endif
 
     /// Construct from a pointer to 4 unsigned short values
     explicit vfloat3 (const unsigned short *vals) { load(vals); }
@@ -2245,8 +2256,10 @@ public:
     void store (half *values) const;
 #endif
 
+#ifdef INCLUDED_IMATHVEC_H
     /// Store into an Imath::V3f reference.
     void store (Imath::V3f &vec) const;
+#endif
 
     // Math operators -- define in terms of vfloat3.
     friend vfloat3 operator+ (const vfloat3& a, const vfloat3& b);
@@ -2295,59 +2308,41 @@ vfloat3 round (const vfloat3& a);
 class matrix44 {
 public:
     // Uninitialized
-    OIIO_FORCEINLINE matrix44 ()
-#ifndef OIIO_SIMD_SSE
-        : m_mat(Imath::UNINITIALIZED)
-#endif
-    { }
+    OIIO_FORCEINLINE matrix44() { }
 
+#ifdef INCLUDED_IMATHMATRIX_H
     /// Construct from a reference to an Imath::M44f
     OIIO_FORCEINLINE explicit matrix44 (const Imath::M44f &M) {
-#if OIIO_SIMD_SSE
         m_row[0].load (M[0]);
         m_row[1].load (M[1]);
         m_row[2].load (M[2]);
         m_row[3].load (M[3]);
-#else
-        m_mat = M;
-#endif
     }
+#endif
 
     /// Construct from a float array
     OIIO_FORCEINLINE explicit matrix44 (const float *f) {
-#if OIIO_SIMD_SSE
         m_row[0].load (f+0);
         m_row[1].load (f+4);
         m_row[2].load (f+8);
         m_row[3].load (f+12);
-#else
-        m_mat = *(const Imath::M44f*)f;
-#endif
     }
 
     /// Construct from 4 vfloat4 rows
     OIIO_FORCEINLINE explicit matrix44 (const vfloat4& a, const vfloat4& b,
                                         const vfloat4& c, const vfloat4& d) {
-#if OIIO_SIMD_SSE
-        m_row[0] = a; m_row[1] = b; m_row[2] = c; m_row[3] = d;
-#else
-        a.store (m_mat[0]);
-        b.store (m_mat[1]);
-        c.store (m_mat[2]);
-        d.store (m_mat[3]);
-#endif
+        m_row[0] = a;
+        m_row[1] = b;
+        m_row[2] = c;
+        m_row[3] = d;
     }
     /// Construct from 4 float[4] rows
     OIIO_FORCEINLINE explicit matrix44 (const float *a, const float *b,
                                         const float *c, const float *d) {
-#if OIIO_SIMD_SSE
-        m_row[0].load(a); m_row[1].load(b); m_row[2].load(c); m_row[3].load(d);
-#else
-        memcpy (m_mat[0], a, 4*sizeof(float));
-        memcpy (m_mat[1], b, 4*sizeof(float));
-        memcpy (m_mat[2], c, 4*sizeof(float));
-        memcpy (m_mat[3], d, 4*sizeof(float));
-#endif
+        m_row[0].load(a);
+        m_row[1].load(b);
+        m_row[2].load(c);
+        m_row[3].load(d);
     }
 
     /// Construct from 16 floats
@@ -2356,21 +2351,16 @@ public:
                                float f20, float f21, float f22, float f23,
                                float f30, float f31, float f32, float f33)
     {
-#if OIIO_SIMD_SSE
         m_row[0].load (f00, f01, f02, f03);
         m_row[1].load (f10, f11, f12, f13);
         m_row[2].load (f20, f21, f22, f23);
         m_row[3].load (f30, f31, f32, f33);
-#else
-        m_mat[0][0] = f00; m_mat[0][1] = f01; m_mat[0][2] = f02; m_mat[0][3] = f03;
-        m_mat[1][0] = f10; m_mat[1][1] = f11; m_mat[1][2] = f12; m_mat[1][3] = f13;
-        m_mat[2][0] = f20; m_mat[2][1] = f21; m_mat[2][2] = f22; m_mat[2][3] = f23;
-        m_mat[3][0] = f30; m_mat[3][1] = f31; m_mat[3][2] = f32; m_mat[3][3] = f33;
-#endif
     }
 
+#ifdef INCLUDED_IMATHMATRIX_H
     /// Present as an Imath::M44f
     const Imath::M44f& M44f() const;
+#endif
 
     /// Return one row
     vfloat4 operator[] (int i) const;
@@ -2392,13 +2382,14 @@ public:
 
     bool operator== (const matrix44& m) const;
 
-    bool operator== (const Imath::M44f& m) const ;
-    friend bool operator== (const Imath::M44f& a, const matrix44 &b);
-
     bool operator!= (const matrix44& m) const;
 
+#ifdef INCLUDED_IMATHMATRIX_H
+    bool operator== (const Imath::M44f& m) const ;
+    friend bool operator== (const Imath::M44f& a, const matrix44 &b);
     bool operator!= (const Imath::M44f& m) const;
     friend bool operator!= (const Imath::M44f& a, const matrix44 &b);
+#endif
 
     /// Return the inverse of the matrix.
     matrix44 inverse() const;
@@ -2407,25 +2398,23 @@ public:
     friend inline std::ostream& operator<< (std::ostream& cout, const matrix44 &M);
 
 private:
-#if OIIO_SIMD_SSE
     vfloat4 m_row[4];
-#else
-    Imath::M44f m_mat;
-#endif
 };
 
 /// Transform 3-point V by 4x4 matrix M.
 vfloat3 transformp (const matrix44 &M, const vfloat3 &V);
-vfloat3 transformp (const Imath::M44f &M, const vfloat3 &V);
 
 /// Transform 3-vector V by 4x4 matrix M.
 vfloat3 transformv (const matrix44 &M, const vfloat3 &V);
-vfloat3 transformv (const Imath::M44f &M, const vfloat3 &V);
 
 // Transform 3-vector by the transpose of 4x4 matrix M.
 vfloat3 transformvT (const matrix44 &M, const vfloat3 &V);
-vfloat3 transformvT (const Imath::M44f &M, const vfloat3 &V);
 
+#ifdef INCLUDED_IMATHMATRIX_H
+vfloat3 transformp (const Imath::M44f &M, const vfloat3 &V);
+vfloat3 transformv (const Imath::M44f &M, const vfloat3 &V);
+vfloat3 transformvT (const Imath::M44f &M, const vfloat3 &V);
+#endif
 
 
 
@@ -6558,6 +6547,7 @@ OIIO_FORCEINLINE void vfloat4::clear () {
 #endif
 }
 
+#ifdef INCLUDED_IMATHVECTOR_H
 OIIO_FORCEINLINE const vfloat4 & vfloat4::operator= (const Imath::V4f &v) {
     load ((const float *)&v);
     return *this;
@@ -6567,6 +6557,7 @@ OIIO_FORCEINLINE const vfloat4 & vfloat4::operator= (const Imath::V3f &v) {
     load (v[0], v[1], v[2], 0.0f);
     return *this;
 }
+#endif
 
 OIIO_FORCEINLINE float& vfloat4::operator[] (int i) {
     OIIO_DASSERT(i<elements);
@@ -7931,9 +7922,11 @@ OIIO_FORCEINLINE void vfloat3::store (half *values) const {
 }
 #endif
 
+#ifdef INCLUDED_IMATHVECTOR_H
 OIIO_FORCEINLINE void vfloat3::store (Imath::V3f &vec) const {
     store ((float *)&vec);
 }
+#endif
 
 OIIO_FORCEINLINE vfloat3 operator+ (const vfloat3& a, const vfloat3& b) {
     return vfloat3 (vfloat4(a) + vfloat4(b));
@@ -8124,29 +8117,27 @@ OIIO_FORCEINLINE vfloat3 vfloat3::normalized_fast () const
 // matrix44 implementation
 
 
+#ifdef INCLUDED_IMATHMATRIX_H
 OIIO_FORCEINLINE const Imath::M44f& matrix44::M44f() const {
     return *(Imath::M44f*)this;
 }
+#endif
 
 
 OIIO_FORCEINLINE vfloat4 matrix44::operator[] (int i) const {
-#if OIIO_SIMD_SSE
     return m_row[i];
-#else
-    return vfloat4 (m_mat[i]);
-#endif
 }
 
 
 OIIO_FORCEINLINE matrix44 matrix44::transposed () const {
-    matrix44 T;
 #if OIIO_SIMD_SSE
+    matrix44 T;
     simd::transpose (m_row[0], m_row[1], m_row[2], m_row[3],
                      T.m_row[0], T.m_row[1], T.m_row[2], T.m_row[3]);
-#else
-    T.m_mat = m_mat.transposed();
-#endif
     return T;
+#else
+    return matrix44(((Imath::M44f*)this)->transposed());
+#endif
 }
 
 OIIO_FORCEINLINE vfloat3 matrix44::transformp (const vfloat3 &V) const {
@@ -8157,7 +8148,7 @@ OIIO_FORCEINLINE vfloat3 matrix44::transformp (const vfloat3 &V) const {
     return vfloat3 (R.xyz0());
 #else
     Imath::V3f R;
-    m_mat.multVecMatrix (*(Imath::V3f *)&V, R);
+    ((Imath::M44f*)this)->multVecMatrix (*(Imath::V3f *)&V, R);
     return vfloat3(R);
 #endif
 }
@@ -8169,7 +8160,7 @@ OIIO_FORCEINLINE vfloat3 matrix44::transformv (const vfloat3 &V) const {
     return vfloat3 (R.xyz0());
 #else
     Imath::V3f R;
-    m_mat.multDirMatrix (*(Imath::V3f *)&V, R);
+    ((Imath::M44f*)this)->multDirMatrix (*(Imath::V3f *)&V, R);
     return vfloat3(R);
 #endif
 }
@@ -8182,7 +8173,7 @@ OIIO_FORCEINLINE vfloat3 matrix44::transformvT (const vfloat3 &V) const {
     return vfloat3 (R.xyz0());
 #else
     Imath::V3f R;
-    m_mat.transposed().multDirMatrix (*(Imath::V3f *)&V, R);
+    ((Imath::M44f*)this)->transposed().multDirMatrix (*(Imath::V3f *)&V, R);
     return vfloat3(R);
 #endif
 }
@@ -8232,14 +8223,6 @@ OIIO_FORCEINLINE bool matrix44::operator== (const matrix44& m) const {
 #endif
 }
 
-OIIO_FORCEINLINE bool matrix44::operator== (const Imath::M44f& m) const {
-    return memcmp(this, &m, 16*sizeof(float)) == 0;
-}
-
-OIIO_FORCEINLINE bool operator== (const Imath::M44f& a, const matrix44 &b) {
-    return (b == a);
-}
-
 OIIO_FORCEINLINE bool matrix44::operator!= (const matrix44& m) const {
 #if OIIO_SIMD_SSE
     vbool4 b0 = (m_row[0] != m[0]);
@@ -8252,6 +8235,15 @@ OIIO_FORCEINLINE bool matrix44::operator!= (const matrix44& m) const {
 #endif
 }
 
+#ifdef INCLUDED_IMATHMATRIX_H
+OIIO_FORCEINLINE bool matrix44::operator== (const Imath::M44f& m) const {
+    return memcmp(this, &m, 16*sizeof(float)) == 0;
+}
+
+OIIO_FORCEINLINE bool operator== (const Imath::M44f& a, const matrix44 &b) {
+    return (b == a);
+}
+
 OIIO_FORCEINLINE bool matrix44::operator!= (const Imath::M44f& m) const {
     return memcmp(this, &m, 16*sizeof(float)) != 0;
 }
@@ -8259,6 +8251,7 @@ OIIO_FORCEINLINE bool matrix44::operator!= (const Imath::M44f& m) const {
 OIIO_FORCEINLINE bool operator!= (const Imath::M44f& a, const matrix44 &b) {
     return (b != a);
 }
+#endif
 
 OIIO_FORCEINLINE matrix44 matrix44::inverse() const {
 #if OIIO_SIMD_SSE
@@ -8338,7 +8331,7 @@ OIIO_FORCEINLINE matrix44 matrix44::inverse() const {
     det = shuffle<0>(det);
     return matrix44 (det*minor0, det*minor1, det*minor2, det*minor3);
 #else
-    return matrix44 (m_mat.inverse());
+    return matrix44 (((Imath::M44f*)this)->inverse());
 #endif
 }
 
@@ -8357,6 +8350,17 @@ OIIO_FORCEINLINE vfloat3 transformp (const matrix44 &M, const vfloat3 &V) {
     return M.transformp (V);
 }
 
+OIIO_FORCEINLINE vfloat3 transformv (const matrix44 &M, const vfloat3 &V) {
+    return M.transformv (V);
+}
+
+OIIO_FORCEINLINE vfloat3 transformvT (const matrix44 &M, const vfloat3 &V)
+{
+    return M.transformvT (V);
+}
+
+
+#ifdef INCLUDED_IMATHMATRIX_H
 OIIO_FORCEINLINE vfloat3 transformp (const Imath::M44f &M, const vfloat3 &V)
 {
 #if OIIO_SIMD
@@ -8366,11 +8370,6 @@ OIIO_FORCEINLINE vfloat3 transformp (const Imath::M44f &M, const vfloat3 &V)
     M.multVecMatrix (*(const Imath::V3f *)&V, R);
     return vfloat3(R);
 #endif
-}
-
-
-OIIO_FORCEINLINE vfloat3 transformv (const matrix44 &M, const vfloat3 &V) {
-    return M.transformv (V);
 }
 
 OIIO_FORCEINLINE vfloat3 transformv (const Imath::M44f &M, const vfloat3 &V)
@@ -8384,11 +8383,6 @@ OIIO_FORCEINLINE vfloat3 transformv (const Imath::M44f &M, const vfloat3 &V)
 #endif
 }
 
-OIIO_FORCEINLINE vfloat3 transformvT (const matrix44 &M, const vfloat3 &V)
-{
-    return M.transformvT (V);
-}
-
 OIIO_FORCEINLINE vfloat3 transformvT (const Imath::M44f &M, const vfloat3 &V)
 {
 #if OIIO_SIMD
@@ -8397,6 +8391,7 @@ OIIO_FORCEINLINE vfloat3 transformvT (const Imath::M44f &M, const vfloat3 &V)
     return transformv (M.transposed(), V);
 #endif
 }
+#endif
 
 
 

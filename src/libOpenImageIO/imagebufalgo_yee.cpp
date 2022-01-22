@@ -9,6 +9,7 @@
 #include <cmath>
 #include <iostream>
 
+#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagebuf.h>

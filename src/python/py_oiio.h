@@ -29,6 +29,7 @@
 #    undef copysign
 #endif
 
+#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagecache.h>
