@@ -2082,9 +2082,20 @@ http://www.dca.fee.unicamp.br/~martino/disciplinas/ea978/tgaffs.pdf
      - string
      - values of ``none`` and ``rle`` are supported.  The writer will use
        RLE compression if any unknown compression methods are requested.
+   * - ``targa:alpha_type``
+     - int
+     - Meaning of any alpha channel (0 = none; 1 = undefined, ignore;
+       2 = undefined, preserve; 3 = useful unassociated alpha;
+       4 = useful associated alpha / premultiplied color).
    * - ``targa:ImageID``
      - string
      - Image ID
+   * - ``targa:JobTime``
+     - string
+     - Job time
+   * - ``targa:version``
+     - int
+     - TGA file format version (1 or 2)
    * - ``PixelAspectRatio``
      - float
      - pixel aspect ratio
@@ -2121,6 +2132,12 @@ attributes are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+   * - ``oiio:UnassociatedAlpha``
+     - int
+     - If nonzero, and the file contains unassociated alpha, this will
+       cause the reader to leave alpha unassociated (versus the default of
+       premultiplying color channels by alpha if the alpha channel is
+       unassociated).
 
 **Configuration settings for Targa output**
 
