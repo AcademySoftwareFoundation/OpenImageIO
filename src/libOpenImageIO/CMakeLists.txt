@@ -107,8 +107,7 @@ source_group ("libtexture" REGULAR_EXPRESSION ".+/libtexture/.+")
 
 target_include_directories (OpenImageIO
                             PUBLIC
-                                ${CMAKE_INSTALL_FULL_INCLUDEDIR}
-                                ${IMATH_INCLUDES} ${OPENEXR_INCLUDES}
+                                $<INSTALL_INTERFACE:include>
                             PRIVATE
                                 ${ROBINMAP_INCLUDES}
                                 ${FREETYPE_INCLUDE_DIRS}
