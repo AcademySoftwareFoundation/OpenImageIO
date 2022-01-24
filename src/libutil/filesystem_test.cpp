@@ -80,6 +80,11 @@ test_filename_searchpath_find()
 
     std::cout << "Testing searchpath_split\n";
     std::vector<std::string> dirs;
+
+    Filesystem::searchpath_split("", dirs, false);
+    OIIO_CHECK_EQUAL(dirs.size(), 0);
+
+    dirs.clear();
     Filesystem::searchpath_split(pathlist, dirs);
     OIIO_CHECK_EQUAL(dirs.size(), 3);
     OIIO_CHECK_EQUAL(dirs[0], ".." DIRSEP "..");
