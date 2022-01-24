@@ -120,7 +120,8 @@ if (NOT BUILD_SHARED_LIBS)
 endif ()
 
 # Propagate C++ minimum to downstream
-target_compile_features (OpenImageIO PUBLIC cxx_std_14)
+target_compile_features (OpenImageIO
+                         INTERFACE cxx_std_${DOWNSTREAM_CXX_STANDARD})
 
 target_link_libraries (OpenImageIO
         PUBLIC
