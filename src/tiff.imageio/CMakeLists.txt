@@ -4,5 +4,4 @@
 
 add_oiio_plugin (tiffinput.cpp tiffoutput.cpp
                  INCLUDE_DIRS ${TIFF_INCLUDE_DIR}
-                 LINK_LIBRARIES ${TIFF_LIBRARIES} ${JPEG_LIBRARIES}
-                                ZLIB::ZLIB)
+                 LINK_LIBRARIES TIFF::TIFF JPEG::JPEG ZLIB::ZLIB)

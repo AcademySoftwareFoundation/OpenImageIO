@@ -4,4 +4,4 @@
 
 add_oiio_plugin (jpeginput.cpp jpegoutput.cpp
                  INCLUDE_DIRS ${JPEG_INCLUDE_DIRS}
-                 LINK_LIBRARIES ${JPEG_LIBRARIES})
+                 LINK_LIBRARIES JPEG::JPEG)

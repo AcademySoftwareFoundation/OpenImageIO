@@ -24,8 +24,10 @@ target_link_libraries (OpenImageIO_Util
             ${ILMBASE_LIBRARIES}
             ${GCC_ATOMIC_LIBRARIES}
         PRIVATE
+            Boost::filesystem
+            Boost::system
+            Boost::thread
             ${SANITIZE_LIBRARIES}
-            ${Boost_LIBRARIES}
             ${CMAKE_DL_LIBS}
         )
 

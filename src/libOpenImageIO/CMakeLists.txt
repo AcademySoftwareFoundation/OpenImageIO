@@ -151,7 +151,9 @@ target_link_libraries (OpenImageIO
             $<TARGET_NAME_IF_EXISTS:pugixml::pugixml>
             ${BZIP2_LIBRARIES}
             ZLIB::ZLIB
-            ${Boost_LIBRARIES}
+            Boost::filesystem
+            Boost::system
+            Boost::thread
             ${CMAKE_DL_LIBS}
         )
 
