@@ -13,6 +13,7 @@ Reading ../oiio-images/targa/CBW8.TGA
     thumbnail_width: 64
     oiio:BitsPerSample: 8
     targa:ImageID: "Truevision(R) Sample Image"
+    targa:version: 2
 Comparing "../oiio-images/targa/CBW8.TGA" and "CBW8.TGA"
 PASS
 Reading ../oiio-images/targa/CCM8.TGA
@@ -30,6 +31,7 @@ Reading ../oiio-images/targa/CCM8.TGA
     thumbnail_width: 64
     oiio:BitsPerSample: 2
     targa:ImageID: "Truevision(R) Sample Image"
+    targa:version: 2
 Comparing "../oiio-images/targa/CCM8.TGA" and "CCM8.TGA"
 PASS
 Reading ../oiio-images/targa/CTC16.TGA
@@ -46,8 +48,9 @@ Reading ../oiio-images/targa/CTC16.TGA
     thumbnail_nchannels: 3
     thumbnail_width: 64
     oiio:BitsPerSample: 5
+    targa:alpha_type: 2
     targa:ImageID: "Truevision(R) Sample Image"
-    tga:alpha_type: 2
+    targa:version: 2
 Comparing "../oiio-images/targa/CTC16.TGA" and "CTC16.TGA"
 PASS
 Reading ../oiio-images/targa/CTC24.TGA
@@ -65,6 +68,7 @@ Reading ../oiio-images/targa/CTC24.TGA
     thumbnail_width: 64
     oiio:BitsPerSample: 8
     targa:ImageID: "Truevision(R) Sample Image"
+    targa:version: 2
 Comparing "../oiio-images/targa/CTC24.TGA" and "CTC24.TGA"
 PASS
 Reading ../oiio-images/targa/CTC32.TGA
@@ -81,8 +85,9 @@ Reading ../oiio-images/targa/CTC32.TGA
     thumbnail_nchannels: 4
     thumbnail_width: 64
     oiio:BitsPerSample: 8
+    targa:alpha_type: 2
     targa:ImageID: "Truevision(R) Sample Image"
-    tga:alpha_type: 2
+    targa:version: 2
 Comparing "../oiio-images/targa/CTC32.TGA" and "CTC32.TGA"
 PASS
 Reading ../oiio-images/targa/UBW8.TGA
@@ -99,6 +104,7 @@ Reading ../oiio-images/targa/UBW8.TGA
     thumbnail_width: 64
     oiio:BitsPerSample: 8
     targa:ImageID: "Truevision(R) Sample Image"
+    targa:version: 2
 Comparing "../oiio-images/targa/UBW8.TGA" and "UBW8.TGA"
 PASS
 Reading ../oiio-images/targa/UCM8.TGA
@@ -115,6 +121,7 @@ Reading ../oiio-images/targa/UCM8.TGA
     thumbnail_width: 64
     oiio:BitsPerSample: 2
     targa:ImageID: "Truevision(R) Sample Image"
+    targa:version: 2
 Comparing "../oiio-images/targa/UCM8.TGA" and "UCM8.TGA"
 PASS
 Reading ../oiio-images/targa/UTC16.TGA
@@ -130,8 +137,9 @@ Reading ../oiio-images/targa/UTC16.TGA
     thumbnail_nchannels: 3
     thumbnail_width: 64
     oiio:BitsPerSample: 5
+    targa:alpha_type: 2
     targa:ImageID: "Truevision(R) Sample Image"
-    tga:alpha_type: 2
+    targa:version: 2
 Comparing "../oiio-images/targa/UTC16.TGA" and "UTC16.TGA"
 PASS
 Reading ../oiio-images/targa/UTC24.TGA
@@ -148,6 +156,7 @@ Reading ../oiio-images/targa/UTC24.TGA
     thumbnail_width: 64
     oiio:BitsPerSample: 8
     targa:ImageID: "Truevision(R) Sample Image"
+    targa:version: 2
 Comparing "../oiio-images/targa/UTC24.TGA" and "UTC24.TGA"
 PASS
 Reading ../oiio-images/targa/UTC32.TGA
@@ -163,8 +172,9 @@ Reading ../oiio-images/targa/UTC32.TGA
     thumbnail_nchannels: 4
     thumbnail_width: 64
     oiio:BitsPerSample: 8
+    targa:alpha_type: 2
     targa:ImageID: "Truevision(R) Sample Image"
-    tga:alpha_type: 2
+    targa:version: 2
 Comparing "../oiio-images/targa/UTC32.TGA" and "UTC32.TGA"
 PASS
 Reading ../oiio-images/targa/round_grill.tga
@@ -173,6 +183,7 @@ Reading ../oiio-images/targa/round_grill.tga
     channel list: R, G, B, A
     Software: "COREL 0.0"
     oiio:BitsPerSample: 8
+    targa:version: 2
 Comparing "../oiio-images/targa/round_grill.tga" and "round_grill.tga"
 PASS
 Converting src/crash1.tga to crash1.exr

@@ -1995,9 +1995,20 @@ http://www.dca.fee.unicamp.br/~martino/disciplinas/ea978/tgaffs.pdf
      - string
      - values of ``none`` and ``rle`` are supported.  The writer will use
        RLE compression if any unknown compression methods are requested.
+   * - ``targa:alpha_type``
+     - int
+     - Meaning of any alpha channel (0 = none; 1 = undefined, ignore;
+       2 = undefined, preserve; 3 = useful unassociated alpha;
+       4 = useful associated alpha / premultiplied color).
    * - ``targa:ImageID``
      - string
      - Image ID
+   * - ``targa:JobTime``
+     - string
+     - Job time
+   * - ``targa:version``
+     - int
+     - TGA file format version (1 or 2)
    * - ``PixelAspectRatio``
      - float
      - pixel aspect ratio
@@ -2016,6 +2027,30 @@ attributes ``"thumbnail_width"``, ``"thumbnail_height"``, and
 ``"thumbnail_nchannels"``, and the thumbnail pixels themselves will be
 retrievable via `ImageInput::get_thumbnail()` or `ImageBuf::thumbnail()` or
 `ImageCache::get_thumbnail()`.
+
+**Configuration settings for Targa input**
+
+When opening an Targa ImageInput with a *configuration* (see
+Section :ref:`sec-input-with-config`), the following special configuration
+attributes are supported:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
+   * - ``oiio:UnassociatedAlpha``
+     - int
+     - If nonzero, and the file contains unassociated alpha, this will
+       cause the reader to leave alpha unassociated (versus the default of
+       premultiplying color channels by alpha if the alpha channel is
+       unassociated).
 
 **Configuration settings for Targa output**
 
