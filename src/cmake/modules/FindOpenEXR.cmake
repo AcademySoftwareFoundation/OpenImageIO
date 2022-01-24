@@ -46,7 +46,7 @@ if (TARGET OpenEXR::OpenEXR AND TARGET Imath::Imath)
     # OpenEXR 3.x if both of these targets are found
     set (FOUND_OPENEXR_WITH_CONFIG 1)
     if (NOT OpenEXR_FIND_QUIETLY)
-        message (STATUS "Found CONFIG for OpenEXR 3 (OPENEXR_VERSION=${OpenEXR_VERSION})")
+        message (STATUS "Found CONFIG for OpenEXR 3 (OpenEXR_VERSION=${OpenEXR_VERSION})")
     endif ()
 
     # Mimic old style variables
@@ -76,7 +76,7 @@ elseif (TARGET OpenEXR::IlmImf AND TARGET IlmBase::Imath AND
     # OpenEXR 2.4 or 2.5 with exported config
     set (FOUND_OPENEXR_WITH_CONFIG 1)
     if (NOT OpenEXR_FIND_QUIETLY)
-        message (STATUS "Found CONFIG for OpenEXR 2 (OPENEXR_VERSION=${OpenEXR_VERSION})")
+        message (STATUS "Found CONFIG for OpenEXR 2 (OpenEXR_VERSION=${OpenEXR_VERSION})")
     endif ()
 
     # Mimic old style variables
@@ -166,21 +166,23 @@ find_path (OPENEXR_INCLUDE_PATH OpenEXR/OpenEXRConfig.h
 # Try to figure out version number
 if (DEFINED _OPENEXR_VERSION AND NOT "${_OPENEXR_VERSION}" STREQUAL "")
     set (OPENEXR_VERSION "${_OPENEXR_VERSION}")
-    string (REGEX REPLACE "([0-9]+)\\.[0-9\\.]+" "\\1" OPENEXR_VERSION_MAJOR "${_OPENEXR_VERSION}")
-    string (REGEX REPLACE "[0-9]+\\.([0-9]+)(\\.[0-9]+)?" "\\1" OPENEXR_VERSION_MINOR "${_OPENEXR_VERSION}")
+    set (OpenEXR_VERSION "${_OPENEXR_VERSION}")
+    string (REGEX REPLACE "([0-9]+)\\.[0-9\\.]+" "\\1" OpenEXR_VERSION_MAJOR "${_OPENEXR_VERSION}")
+    string (REGEX REPLACE "[0-9]+\\.([0-9]+)(\\.[0-9]+)?" "\\1" OpenEXR_VERSION_MINOR "${_OPENEXR_VERSION}")
 elseif (EXISTS "${OPENEXR_INCLUDE_PATH}/OpenEXR/ImfMultiPartInputFile.h")
     # Must be at least 2.0
     file(STRINGS "${OPENEXR_INCLUDE_PATH}/OpenEXR/OpenEXRConfig.h" TMP REGEX "^#define OPENEXR_VERSION_STRING .*$")
-    string (REGEX MATCHALL "[0-9]+[.0-9]+" OPENEXR_VERSION ${TMP})
+    string (REGEX MATCHALL "[0-9]+[.0-9]+" OpenEXR_VERSION ${TMP})
     file(STRINGS "${OPENEXR_INCLUDE_PATH}/OpenEXR/OpenEXRConfig.h" TMP REGEX "^#define OPENEXR_VERSION_MAJOR .*$")
-    string (REGEX MATCHALL "[0-9]+" OPENEXR_VERSION_MAJOR ${TMP})
+    string (REGEX MATCHALL "[0-9]+" OpenEXR_VERSION_MAJOR ${TMP})
     file(STRINGS "${OPENEXR_INCLUDE_PATH}/OpenEXR/OpenEXRConfig.h" TMP REGEX "^#define OPENEXR_VERSION_MINOR .*$")
-    string (REGEX MATCHALL "[0-9]+" OPENEXR_VERSION_MINOR ${TMP})
+    string (REGEX MATCHALL "[0-9]+" OpenEXR_VERSION_MINOR ${TMP})
 else ()
     # Assume an old one, predates 2.x that had versions
     set (OPENEXR_VERSION 1.6.1)
-    set (OPENEXR_MAJOR 1)
-    set (OPENEXR_MINOR 6)
+    set (OpenEXR_VERSION 1.6.1)
+    set (OpenEXR_VERSION_MAJOR 1)
+    set (OpenEXR_VERSION_MINOR 6)
 endif ()
 
 
@@ -222,9 +224,9 @@ foreach (COMPONENT ${_openexr_components})
     string (TOUPPER ${COMPONENT} UPPERCOMPONENT)
     # First try with the version embedded
     find_library (OPENEXR_${UPPERCOMPONENT}_LIBRARY
-                  NAMES ${COMPONENT}-${OPENEXR_VERSION_MAJOR}_${OPENEXR_VERSION_MINOR}
+                  NAMES ${COMPONENT}-${OpenEXR_VERSION_MAJOR}_${OpenEXR_VERSION_MINOR}
                         ${COMPONENT}
-                        ${COMPONENT}-${OPENEXR_VERSION_MAJOR}_${OPENEXR_VERSION_MINOR}_d
+                        ${COMPONENT}-${OpenEXR_VERSION_MAJOR}_${OpenEXR_VERSION_MINOR}_d
                         ${COMPONENT}_d
                   HINTS ${OPENEXR_LIBRARY_DIR} $ENV{OPENEXR_LIBRARY_DIR}
                         ${GENERIC_LIBRARY_PATHS} )
@@ -237,7 +239,10 @@ find_package_handle_standard_args (OpenEXR
     )
 
 if (OPENEXR_FOUND)
-    set (OpenEXR_VERSION ${OPENEXR_VERSION})
+    set (OPENEXR_VERSION_MAJOR ${OpenEXR_VERSION_MAJOR})
+    set (OPENEXR_VERSION_MINOR ${OpenEXR_VERSION_MINOR})
+    set (Imath_VERSION_MAJOR ${OpenEXR_VERSION_MAJOR})
+    set (Imath_VERSION_MINOR ${OpenEXR_VERSION_MINOR})
     set (ILMBASE_FOUND TRUE)
     set (ILMBASE_INCLUDES ${ILMBASE_INCLUDE_PATH})
     set (IMATH_INCLUDES ${ILMBASE_INCLUDE_PATH})
