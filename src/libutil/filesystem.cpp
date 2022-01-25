@@ -190,6 +190,8 @@ Filesystem::searchpath_split(string_view searchpath, bool validonly)
         size_t len = path.size();
         while (len > 1 && (path.back() == '/' || path.back() == '\\'))
             path.erase(--len);
+        if (path.empty())
+            continue;
         // If it's a valid directory, or if validonly is false, add it
         // to the list
         if (!validonly || Filesystem::is_directory(path))
