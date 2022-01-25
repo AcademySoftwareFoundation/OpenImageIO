@@ -80,6 +80,25 @@ test_filename_searchpath_find()
 
     std::cout << "Testing searchpath_split\n";
     std::vector<std::string> dirs;
+
+    // Split of empty string should make an empty path vector
+    dirs.clear();
+    Filesystem::searchpath_split("", dirs, false);
+    OIIO_CHECK_EQUAL(dirs.size(), 0);
+
+    // Test that empty paths don't show up in the result vector
+    dirs.clear();
+    Filesystem::searchpath_split(":", dirs, false);
+    OIIO_CHECK_EQUAL(dirs.size(), 0);
+    Filesystem::searchpath_split("::", dirs, false);
+    OIIO_CHECK_EQUAL(dirs.size(), 0);
+    dirs.clear();
+    Filesystem::searchpath_split(":abc::def:", dirs, false);
+    OIIO_CHECK_EQUAL(dirs.size(), 2);
+    OIIO_CHECK_EQUAL(dirs[0], "abc");
+    OIIO_CHECK_EQUAL(dirs[1], "def");
+
+    dirs.clear();
     Filesystem::searchpath_split(pathlist, dirs);
     OIIO_CHECK_EQUAL(dirs.size(), 3);
     OIIO_CHECK_EQUAL(dirs[0], ".." DIRSEP "..");
