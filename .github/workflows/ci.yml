@@ -64,7 +64,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/CMake*.{txt,log}
+            build/*.cmake
+            build/CMake*
             build/testsuite/*/*.*
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
@@ -116,7 +117,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/CMake*.{txt,log}
+            build/*.cmake
+            build/CMake*
             build/testsuite/*/*.*
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
@@ -168,7 +170,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/CMake*.{txt,log}
+            build/*.cmake
+            build/CMake*
             build/testsuite/*/*.*
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
@@ -219,7 +222,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/CMake*.{txt,log}
+            build/*.cmake
+            build/CMake*
             build/testsuite/*/*.*
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
@@ -268,7 +272,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/CMake*.{txt,log}
+            build/*.cmake
+            build/CMake*
             build/testsuite/*/*.*
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
@@ -316,7 +321,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/CMake*.{txt,log}
+            build/*.cmake
+            build/CMake*
             build/testsuite/*/*.*
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
@@ -376,7 +382,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/CMake*.{txt,log}
+            build/*.cmake
+            build/CMake*
             build/testsuite/*/*.*
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
@@ -438,7 +445,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/CMake*.{txt,log}
+            build/*.cmake
+            build/CMake*
             build/testsuite/*/*.*
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
@@ -496,7 +504,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/CMake*.{txt,log}
+            build/*.cmake
+            build/CMake*
             build/testsuite/*/*.*
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
@@ -543,7 +552,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/CMake*.{txt,log}
+            build/*.cmake
+            build/CMake*
             build/testsuite/*/*.*
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
@@ -590,7 +600,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/CMake*.{txt,log}
+            build/*.cmake
+            build/CMake*
             build/testsuite/*/*.*
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
@@ -631,7 +642,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/CMake*.{txt,log}
+            build/*.cmake
+            build/CMake*
             build/testsuite/*/*.*
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
@@ -671,7 +683,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/CMake*.{txt,log}
+            build/*.cmake
+            build/CMake*
             build/testsuite/*/*.*
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
@@ -722,7 +735,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/CMake*.{txt,log}
+            build/*.cmake
+            build/CMake*
             build/testsuite/*/*.*
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
@@ -772,7 +786,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/CMake*.{txt,log}
+            build/*.cmake
+            build/CMake*
             build/testsuite/*/*.*
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
@@ -822,7 +837,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/CMake*.{txt,log}
+            build/*.cmake
+            build/CMake*
             build/testsuite/*/*.*
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
@@ -872,7 +888,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/CMake*.{txt,log}
+            build/*.cmake
+            build/CMake*
             build/testsuite/*/*.*
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
