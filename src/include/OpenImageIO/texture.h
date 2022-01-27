@@ -760,19 +760,25 @@ public:
     /// any internals.
     class TextureHandle;
 
-    /// Retrieve an opaque handle for fast texture lookups.  The opaque
-    /// pointer `thread_info` is thread-specific information returned by
-    /// `get_perthread_info()`.  Return nullptr if something has gone
-    /// horribly wrong.
-    virtual TextureHandle * get_texture_handle (ustring filename,
+    /// Retrieve an opaque handle for fast texture lookups.  The filename is
+    /// presumed to be UTF-8 encoded. The opaque pointer `thread_info` is
+    /// thread-specific information returned by `get_perthread_info()`.
+    /// Return nullptr if something has gone horribly wrong.
+    virtual TextureHandle* get_texture_handle (ustring filename,
                                             Perthread *thread_info=nullptr) = 0;
+    /// Get a TextureHandle using a UTF-16 encoded wstring filename.
+    TextureHandle* get_texture_handle (const std::wstring& filename,
+                                       Perthread *thread_info=nullptr) {
+        return get_texture_handle (ustring(Strutil::utf16_to_utf8(filename)),
+                                   thread_info);
+    }
 
     /// Return true if the texture handle (previously returned by
     /// `get_image_handle()`) is a valid texture that can be subsequently
     /// read.
     virtual bool good(TextureHandle* texture_handle) = 0;
 
-    /// Given a handle, return the filename for that texture.
+    /// Given a handle, return the UTF-8 encoded filename for that texture.
     ///
     /// This method was added in OpenImageIO 2.3.
     virtual ustring filename_from_handle(TextureHandle* handle) = 0;
@@ -801,7 +807,7 @@ public:
     /// receive an antialiased texture lookup.
     ///
     /// @param  filename
-    ///             The name of the texture.
+    ///             The name of the texture, as a UTF-8 encoded ustring.
     /// @param  options
     ///     Fields within `options` that are honored for 2D texture lookups
     ///     include the following:
@@ -889,7 +895,7 @@ public:
     /// the volume file itself.
     ///
     /// @param  filename
-    ///             The name of the texture.
+    ///             The name of the texture, as a UTF-8 encoded ustring.
     /// @param  options
     ///     Fields within `options` that are honored for 3D texture lookups
     ///     include the following:
@@ -996,7 +1002,7 @@ public:
     /// stored in `result[]`.
     ///
     /// @param  filename
-    ///             The name of the texture.
+    ///             The name of the texture, as a UTF-8 encode ustring.
     /// @param  options
     ///     Fields within `options` that are honored for environment lookups
     ///     include the following:
@@ -1078,7 +1084,7 @@ public:
     /// required).
     ///
     /// @param  filename
-    ///             The name of the texture.
+    ///             The name of the texture, as a UTF-8 encode ustring.
     /// @param  options
     ///             A TextureOptBatch containing texture lookup options.
     ///             This is conceptually the same as a TextureOpt, but the
@@ -1166,7 +1172,7 @@ public:
     /// batch values for channel 1, etc.
     ///
     /// @param  filename
-    ///             The name of the texture.
+    ///             The name of the texture, as a UTF-8 encode ustring.
     /// @param  options
     ///             A TextureOptBatch containing texture lookup options.
     ///             This is conceptually the same as a TextureOpt, but the
@@ -1258,7 +1264,7 @@ public:
     /// batch values for channel 1, etc.
     ///
     /// @param  filename
-    ///             The name of the texture.
+    ///             The name of the texture, as a UTF-8 encode ustring.
     /// @param  options
     ///             A TextureOptBatch containing texture lookup options.
     ///             This is conceptually the same as a TextureOpt, but the
@@ -1366,8 +1372,8 @@ public:
     /// @name   Texture metadata and raw texels
     ///
 
-    /// Given possibly-relative 'filename', resolve it using the search
-    /// path rules and return the full resolved filename.
+    /// Given possibly-relative 'filename' (UTF-8 encoded), resolve it using
+    /// the search path rules and return the full resolved filename.
     virtual std::string resolve_filename (const std::string &filename) const=0;
 
     /// Get information or metadata about the named texture and store it in
@@ -1531,7 +1537,7 @@ public:
     ///
     ///
     /// @param  filename
-    ///             The name of the texture.
+    ///             The name of the texture, as a UTF-8 encode ustring.
     /// @param  subimage
     ///             The subimage to query. (The metadata retrieved is for
     ///             the highest-resolution MIP level of that subimage.)
@@ -1567,7 +1573,7 @@ public:
     /// subimage by default, or as set by `subimage`).
     ///
     /// @param  filename
-    ///             The name of the image.
+    ///             The name of the texture, as a UTF-8 encode ustring.
     /// @param  subimage
     ///             The subimage to query. (The spec retrieved is for the
     ///             highest-resolution MIP level of that subimage.)
@@ -1601,7 +1607,7 @@ public:
     /// underlying ImageCache.
     ///
     /// @param  filename
-    ///             The name of the image.
+    ///             The name of the texture, as a UTF-8 encode ustring.
     /// @param  subimage
     ///             The subimage to query.  (The spec retrieved is for the
     ///             highest-resolution MIP level of that subimage.)
@@ -1629,7 +1635,7 @@ public:
     /// `options.fill` value.
     ///
     /// @param  filename
-    ///             The name of the image.
+    ///             The name of the texture, as a UTF-8 encode ustring.
     /// @param  options
     ///             A TextureOpt describing access options, including wrap
     ///             modes, fill value, and subimage, that will be used when
@@ -1679,7 +1685,7 @@ public:
     /// @name Methods for UDIM patterns
     ///
 
-    /// Is the filename a UDIM pattern?
+    /// Is the UTF-8 encoded filename a UDIM pattern?
     ///
     /// This method was added in OpenImageIO 2.3.
     virtual bool is_udim(ustring filename) = 0;
@@ -1689,10 +1695,10 @@ public:
     /// This method was added in OpenImageIO 2.3.
     virtual bool is_udim(TextureHandle* udimfile) = 0;
 
-    /// For a UDIM filename pattern and texture coordinates, return the
-    /// TextureHandle pointer for the concrete tile file it refers to, or
-    /// nullptr if there is no corresponding tile (udim sets are allowed to
-    /// be sparse).
+    /// For a UDIM filename pattern (UTF-8 encoded) and texture coordinates,
+    /// return the TextureHandle pointer for the concrete tile file it refers
+    /// to, or nullptr if there is no corresponding tile (udim sets are
+    /// allowed to be sparse).
     ///
     /// This method was added in OpenImageIO 2.3.
     virtual TextureHandle* resolve_udim(ustring udimpattern,
@@ -1708,13 +1714,14 @@ public:
                                         float s, float t) = 0;
 
     /// Produce a full inventory of the set of concrete files comprising the
-    /// UDIM set specified by `udimpattern`.  The apparent number of texture
-    /// atlas tiles in the u and v directions will be written to `nutiles`
-    /// and `nvtiles`, respectively. The vector `filenames` will be sized
-    /// to `ntiles * nvtiles` and filled with the the names of the concrete
-    /// files comprising the atlas, with an empty ustring corresponding to
-    /// any unpopulated tiles (the UDIM set is allowed to be sparse). The
-    /// filename list is indexed as `utile + vtile * nvtiles`.
+    /// UDIM set specified by UTF-8 encoded `udimpattern`.  The apparent
+    /// number of texture atlas tiles in the u and v directions will be
+    /// written to `nutiles` and `nvtiles`, respectively. The vector
+    /// `filenames` will be sized to `ntiles * nvtiles` and filled with the
+    /// the names of the concrete files comprising the atlas, with an empty
+    /// ustring corresponding to any unpopulated tiles (the UDIM set is
+    /// allowed to be sparse). The filename list is indexed as `utile + vtile
+    /// * nvtiles`.
     ///
     /// This method was added in OpenImageIO 2.3.
     virtual void inventory_udim(ustring udimpattern,
@@ -1736,23 +1743,22 @@ public:
     /// @name Controlling the cache
     ///
 
-    /// Invalidate any cached information about the named file, including
-    /// loaded texture tiles from that texture, and close any open file
-    /// handle associated with the file. This calls
-    /// `ImageCache::invalidate(filename,force)` on the underlying
-    /// ImageCache.
+    /// Invalidate any cached information about the named file (UTF-8
+    /// encoded), including loaded texture tiles from that texture, and close
+    /// any open file handle associated with the file. This calls
+    /// `ImageCache::invalidate(filename,force)` on the underlying ImageCache.
     virtual void invalidate (ustring filename, bool force = true) = 0;
 
     /// Invalidate all cached data for all textures.  This calls
     /// `ImageCache::invalidate_all(force)` on the underlying ImageCache.
     virtual void invalidate_all (bool force=false) = 0;
 
-    /// Close any open file handles associated with a named file, but do not
-    /// invalidate any image spec information or pixels associated with the
-    /// files.  A client might do this in order to release OS file handle
-    /// resources, or to make it safe for other processes to modify textures
-    /// on disk.  This calls `ImageCache::close(force)` on the underlying
-    /// ImageCache.
+    /// Close any open file handles associated with a UTF-8 encoded filename,
+    /// but do not invalidate any image spec information or pixels associated
+    /// with the files.  A client might do this in order to release OS file
+    /// handle resources, or to make it safe for other processes to modify
+    /// textures on disk.  This calls `ImageCache::close(force)` on the
+    /// underlying ImageCache.
     virtual void close (ustring filename) = 0;
 
     /// `close()` all files known to the cache.

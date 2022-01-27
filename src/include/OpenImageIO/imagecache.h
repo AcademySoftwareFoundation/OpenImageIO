@@ -458,12 +458,19 @@ public:
     /// internals.
     typedef pvt::ImageCacheFile ImageHandle;
 
-    /// Retrieve an opaque handle for fast image lookups.  The opaque
-    /// `pointer thread_info` is thread-specific information returned by
-    /// `get_perthread_info()`.  Return NULL if something has gone horribly
-    /// wrong.
+    /// Retrieve an opaque handle for fast image lookups. The filename is
+    /// presumed to be UTF-8 encoded. The opaque `pointer thread_info` is
+    /// thread-specific information returned by `get_perthread_info()`.
+    /// Return NULL if something has gone horribly wrong.
     virtual ImageHandle* get_image_handle (ustring filename,
-                                            Perthread *thread_info=NULL) = 0;
+                                           Perthread *thread_info=NULL) = 0;
+
+    /// Get an ImageHandle using a UTF-16 encoded wstring filename.
+    ImageHandle* get_image_handle (const std::wstring& filename,
+                                   Perthread *thread_info=NULL) {
+        return get_image_handle (ustring(Strutil::utf16_to_utf8(filename)),
+                                 thread_info);
+    }
 
     /// Return true if the image handle (previously returned by
     /// `get_image_handle()`) is a valid image that can be subsequently read.
@@ -481,8 +488,8 @@ public:
     /// @name   Getting information about images
     ///
 
-    /// Given possibly-relative `filename`, resolve it and use the true path
-    /// to the file, with searchpath logic applied.
+    /// Given possibly-relative `filename` (UTF-8 encoded), resolve it and use
+    /// the true path to the file, with searchpath logic applied.
     virtual std::string resolve_filename(const std::string& filename) const = 0;
 
     /// Get information or metadata about the named image and store it in
@@ -627,7 +634,7 @@ public:
     ///
     ///
     /// @param  filename
-    ///             The name of the image.
+    ///             The name of the image, as a UTF-8 encoded ustring.
     /// @param  subimage/miplevel
     ///             The subimage and MIP level to query.
     /// @param  dataname
@@ -662,7 +669,7 @@ public:
     /// `miplevel`).
     ///
     /// @param  filename
-    ///             The name of the image.
+    ///             The name of the image, as a UTF-8 encoded ustring.
     /// @param  spec
     ///             ImageSpec into which will be copied the spec for the
     ///             requested image.
@@ -704,7 +711,7 @@ public:
     /// `invalidate_all()`, or destroys the ImageCache.
     ///
     /// @param  filename
-    ///             The name of the image.
+    ///             The name of the image, as a UTF-8 encoded ustring.
     /// @param  subimage/miplevel
     ///             The subimage and MIP level to query.
     /// @param  native
@@ -732,7 +739,7 @@ public:
     /// image (for the first subimage by default, or as set by `subimage`).
     ///
     /// @param  filename
-    ///             The name of the image.
+    ///             The name of the image, as a UTF-8 encoded ustring.
     /// @param  thumbnail
     ///             ImageBuf into which will be copied the thumbnail, if it
     ///             exists. If no thumbnail can be retrieved, `thumb` will
@@ -765,7 +772,7 @@ public:
     /// region of the image file will be filled with zero values.
     ///
     /// @param  filename
-    ///             The name of the image.
+    ///             The name of the image, as a UTF-8 encoded ustring.
     /// @param  subimage/miplevel
     ///             The subimage and MIP level to retrieve pixels from.
     /// @param  xbegin/xend/ybegin/yend/zbegin/zend
@@ -838,18 +845,18 @@ public:
     ///
 
     /// Invalidate any loaded tiles or open file handles associated with the
-    /// filename, so that any subsequent queries will be forced to re-open
-    /// the file or re-load any tiles (even those that were previously
-    /// loaded and would ordinarily be reused).  A client might do this if,
-    /// for example, they are aware that an image being held in the cache
-    /// has been updated on disk.  This is safe to do even if other
-    /// procedures are currently holding reference-counted tile pointers
-    /// from the named image, but those procedures will not get updated
-    /// pixels until they release the tiles they are holding.
+    /// filename (UTF-8 encoded), so that any subsequent queries will be
+    /// forced to re-open the file or re-load any tiles (even those that were
+    /// previously loaded and would ordinarily be reused).  A client might do
+    /// this if, for example, they are aware that an image being held in the
+    /// cache has been updated on disk.  This is safe to do even if other
+    /// procedures are currently holding reference-counted tile pointers from
+    /// the named image, but those procedures will not get updated pixels
+    /// until they release the tiles they are holding.
     ///
-    /// If `force` is true, this invalidation will happen unconditionally;
-    /// if false, the file will only be invalidated if it has been changed
-    /// since it was first opened by the ImageCache.
+    /// If `force` is true, this invalidation will happen unconditionally; if
+    /// false, the file will only be invalidated if it has been changed since
+    /// it was first opened by the ImageCache.
     virtual void invalidate(ustring filename, bool force = true) = 0;
 
     /// A more efficient variety of `invalidate()` for cases where you
@@ -868,11 +875,11 @@ public:
     /// since they were first opened.
     virtual void invalidate_all(bool force = false) = 0;
 
-    /// Close any open file handles associated with a named file, but do not
-    /// invalidate any image spec information or pixels associated with the
-    /// files.  A client might do this in order to release OS file handle
-    /// resources, or to make it safe for other processes to modify image
-    /// files on disk.
+    /// Close any open file handles associated with a named file (UTF-8
+    /// encoded), but do not invalidate any image spec information or pixels
+    /// associated with the files.  A client might do this in order to release
+    /// OS file handle resources, or to make it safe for other processes to
+    /// modify image files on disk.
     virtual void close (ustring filename) = 0;
 
     /// `close()` all files known to the cache.
@@ -882,15 +889,14 @@ public:
     /// without exposing any internals.
     typedef pvt::ImageCacheTile Tile;
 
-    /// Find the tile specified by an image filename, subimage & miplevel,
-    /// the coordinates of a pixel, and optionally a channel range.   An
-    /// opaque pointer to the tile will be returned, or `nullptr` if no such
-    /// file (or tile within the file) exists or can be read.  The tile will
-    /// not be purged from the cache until after `release_tile()` is called
-    /// on the tile pointer the same number of times that `get_tile()` was
-    /// called (reference counting). This is thread-safe! If `chend <
-    /// chbegin`, it will retrieve a tile containing all channels in the
-    /// file.
+    /// Find the tile specified by an image filename (UTF-8 encoded), subimage
+    /// & miplevel, the coordinates of a pixel, and optionally a channel
+    /// range.   An opaque pointer to the tile will be returned, or `nullptr`
+    /// if no such file (or tile within the file) exists or can be read.  The
+    /// tile will not be purged from the cache until after `release_tile()` is
+    /// called on the tile pointer the same number of times that `get_tile()`
+    /// was called (reference counting). This is thread-safe! If `chend <
+    /// chbegin`, it will retrieve a tile containing all channels in the file.
     virtual Tile * get_tile (ustring filename, int subimage, int miplevel,
                              int x, int y, int z,
                              int chbegin = 0, int chend = -1) = 0;

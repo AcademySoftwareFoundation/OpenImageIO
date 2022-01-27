@@ -214,7 +214,10 @@ declare_imageinput(py::module& m)
             },
             "filename"_a, "config"_a)
         .def("format_name", &ImageInput::format_name)
-        .def("valid_file", &ImageInput::valid_file)
+        .def("valid_file",
+             [](ImageInput& self, const std::string& filename) {
+                 return self.valid_file(filename);
+             })
         .def("spec", [](ImageInput& self) { return self.spec(); })
         .def(
             "spec",
