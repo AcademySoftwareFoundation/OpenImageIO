@@ -24,6 +24,9 @@ if (NOT @FOUND_OPENEXR_WITH_CONFIG@)
     list (APPEND @PROJECT_NAME@_INCLUDES ${IMATH_INCLUDES} ${OPENEXR_INCLUDES})
 endif ()
 
+set (OIIO_USING_IMATH_VERSION_MAJOR @Imath_VERSION_MAJOR@)
+set (OIIO_USING_IMATH_VERSION_MINOR @Imath_VERSION_MINOR@)
+
 #...logic to determine installedPrefix from the own location...
 #set (@PROJECT_NAME@_CONFIG_DIR  "${installedPrefix}/@CONFIG_INSTALL_DIR@")
 
