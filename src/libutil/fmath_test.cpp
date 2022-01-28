@@ -8,6 +8,7 @@
 #include <iostream>
 #include <vector>
 
+#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/fmath.h>
@@ -17,11 +18,6 @@
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/unittest.h>
 
-#if OIIO_USING_IMATH >= 3
-#    include <Imath/ImathFun.h>
-#else
-#    include <OpenEXR/ImathFun.h>
-#endif
 
 using namespace OIIO;
 

@@ -20,7 +20,6 @@
 #include <utility>
 #include <vector>
 
-#include <OpenImageIO/span.h>
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/string_view.h>
@@ -31,6 +30,7 @@
 #    include <OpenImageIO/fmath.h>
 #endif
 
+#include <OpenImageIO/span.h>
 
 
 OIIO_NAMESPACE_BEGIN

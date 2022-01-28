@@ -37,7 +37,6 @@
 #include <typeinfo>
 #include <type_traits>
 
-#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/span.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/oiioversion.h>
@@ -46,6 +45,15 @@
 
 
 OIIO_NAMESPACE_BEGIN
+
+/// If the caller defines OIIO_FMATH_HEADER_ONLY to nonzero, then 100% of the
+/// implementation of fmath functions will be defined direcly in this header
+/// file.  If it is not defined, or set to 0, then there are a few functions
+/// for which this header will only provide the definition.
+#ifndef OIIO_FMATH_HEADER_ONLY
+#    define OIIO_FMATH_HEADER_ONLY 0
+#endif
+
 
 /// Occasionally there may be a tradeoff where the best/fastest
 /// implementation of a math function in an ordinary scalar context does
@@ -1042,32 +1050,6 @@ inline void convert_type<uint16_t,float> (const uint16_t *src,
 }
 
 
-#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
-template<>
-inline void convert_type<half,float> (const half *src,
-                                      float *dst, size_t n,
-                                      float /*_min*/, float /*_max*/)
-{
-#if OIIO_SIMD >= 8 && OIIO_F16C_ENABLED
-    // If f16c ops are enabled, it's worth doing this by 8's
-    for ( ; n >= 8; n -= 8, src += 8, dst += 8) {
-        simd::vfloat8 s_simd (src);
-        s_simd.store (dst);
-    }
-#endif
-#if OIIO_SIMD >= 4
-    for ( ; n >= 4; n -= 4, src += 4, dst += 4) {
-        simd::vfloat4 s_simd (src);
-        s_simd.store (dst);
-    }
-#endif
-    while (n--)
-        *dst++ = (*src++);
-}
-#endif
-
-
-
 template<>
 inline void
 convert_type<float,uint16_t> (const float *src, uint16_t *dst, size_t n,
@@ -1112,7 +1094,39 @@ convert_type<float,uint8_t> (const float *src, uint8_t *dst, size_t n,
 
 #if defined(_HALF_H_) || defined(IMATH_HALF_H_)
 template<>
-inline void
+OIIO_UTIL_API
+void convert_type<half,float> (const half *src, float *dst, size_t n,
+                               float /*_min*/, float /*_max*/);
+template<>
+OIIO_UTIL_API
+void convert_type<float,half> (const float *src, half *dst, size_t n,
+                               half /*_min*/, half /*_max*/);
+
+#if OIIO_FMATH_HEADER_ONLY
+// Not just the declarations, give the definitions here.
+template<>
+void convert_type<half,float> (const half *src, float *dst, size_t n,
+                               float /*_min*/, float /*_max*/)
+{
+#if OIIO_SIMD >= 8 && OIIO_F16C_ENABLED
+    // If f16c ops are enabled, it's worth doing this by 8's
+    for ( ; n >= 8; n -= 8, src += 8, dst += 8) {
+        simd::vfloat8 s_simd (src);
+        s_simd.store (dst);
+    }
+#endif
+#if OIIO_SIMD >= 4
+    for ( ; n >= 4; n -= 4, src += 4, dst += 4) {
+        simd::vfloat4 s_simd (src);
+        s_simd.store (dst);
+    }
+#endif
+    while (n--)
+        *dst++ = (*src++);
+}
+
+template<>
+void
 convert_type<float,half> (const float *src, half *dst, size_t n,
                           half /*_min*/, half /*_max*/)
 {
@@ -1132,8 +1146,10 @@ convert_type<float,half> (const float *src, half *dst, size_t n,
     while (n--)
         *dst++ = *src++;
 }
-#endif
-#endif
+#endif /* if OIIO_FMATH_HEADER_ONLY */
+#endif /* if defined(IMATH_HALF_H_) */
+
+#endif /* ifndef __CUDA_ARCH__ */
 
 
 

@@ -7,11 +7,12 @@
 #include <sstream>
 #include <type_traits>
 
+#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
+#include <OpenImageIO/simd.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
-#include <OpenImageIO/simd.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/timer.h>
 #include <OpenImageIO/typedesc.h>

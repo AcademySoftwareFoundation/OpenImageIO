@@ -14,7 +14,7 @@
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/platform.h>
-#include <OpenImageIO/refcnt.h>
+// #include <OpenImageIO/refcnt.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/ustring.h>
 

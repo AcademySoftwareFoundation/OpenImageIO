@@ -11,6 +11,7 @@
 #include <memory>
 #include <sstream>
 
+#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/dassert.h>

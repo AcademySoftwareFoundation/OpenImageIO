@@ -7,6 +7,7 @@
 #include <iostream>
 #include <memory>
 
+#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/platform.h>

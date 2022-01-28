@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/hash.h>

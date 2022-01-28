@@ -1,6 +1,6 @@
 set (libOpenImageIO_Util_srcs argparse.cpp benchmark.cpp
-                  errorhandler.cpp filesystem.cpp
-                  farmhash.cpp filter.cpp hashes.cpp paramlist.cpp
+                  errorhandler.cpp farmhash.cpp filesystem.cpp
+                  fmath.cpp filter.cpp hashes.cpp paramlist.cpp
                   plugin.cpp SHA1.cpp
                   strutil.cpp sysutil.cpp thread.cpp timer.cpp
                   typedesc.cpp ustring.cpp xxhash.cpp)

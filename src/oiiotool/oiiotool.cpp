@@ -18,6 +18,7 @@
 #include <vector>
 
 #include <OpenEXR/ImfTimeCode.h>
+#include <OpenImageIO/Imath.h>
 
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/color.h>

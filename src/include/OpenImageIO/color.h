@@ -265,8 +265,10 @@ public:
     ///
     /// Created ColorProcessors are cached, so asking for the same color
     /// space transformation multiple times shouldn't be very expensive.
+#ifdef INCLUDED_IMATHMATRIX_H
     ColorProcessorHandle createMatrixTransform(const Imath::M44f& M,
                                                bool inverse = false) const;
+#endif
 
     /// Given a filepath, ask OCIO what color space it thinks the file
     /// should be, based on how the name matches file naming rules in the
