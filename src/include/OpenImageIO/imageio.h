@@ -2789,7 +2789,8 @@ inline bool attribute (string_view name, float val) {
 }
 /// Shortcut attribute() for setting a single string.
 inline bool attribute (string_view name, string_view val) {
-    const char *s = val.c_str();
+    std::string valstr = val;
+    const char *s = valstr.c_str();
     return attribute (name, TypeString, &s);
 }
 

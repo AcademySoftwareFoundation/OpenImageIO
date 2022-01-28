@@ -814,7 +814,7 @@ ImageViewer::saveAs()
         return;
     QString name;
     name = QFileDialog::getSaveFileName(this, tr("Save Image"),
-                                        QString(img->name().c_str()),
+                                        QString(img->uname().c_str()),
                                         tr(s_file_filters));
     if (name.isEmpty())
         return;
@@ -835,7 +835,7 @@ ImageViewer::saveWindowAs()
         return;
     QString name;
     name = QFileDialog::getSaveFileName(this, tr("Save Window"),
-                                        QString(img->name().c_str()));
+                                        QString(img->uname().c_str()));
     if (name.isEmpty())
         return;
     img->write(name.toStdString(), TypeUnknown, "", image_progress_callback,
@@ -852,7 +852,7 @@ ImageViewer::saveSelectionAs()
         return;
     QString name;
     name = QFileDialog::getSaveFileName(this, tr("Save Selection"),
-                                        QString(img->name().c_str()));
+                                        QString(img->uname().c_str()));
     if (name.isEmpty())
         return;
     img->write(name.toStdString(), TypeUnknown, "", image_progress_callback,
@@ -953,7 +953,7 @@ ImageViewer::loadCurrentImage(int subimage, int miplevel)
         // opengl's capabilities.
         if (!img->init_spec(img->name(), subimage, miplevel)) {
             statusImgInfo->setText(
-                tr("Could not display image: %1.").arg(img->name().c_str()));
+                tr("Could not display image: %1.").arg(img->uname().c_str()));
             statusViewInfo->setText(tr(""));
             return false;
         }
@@ -1021,7 +1021,7 @@ ImageViewer::loadCurrentImage(int subimage, int miplevel)
             return true;
         } else {
             statusImgInfo->setText(
-                tr("Could not display image: %1.").arg(img->name().c_str()));
+                tr("Could not display image: %1.").arg(img->uname().c_str()));
             statusViewInfo->setText(tr(""));
             return false;
         }
@@ -1086,7 +1086,7 @@ ImageViewer::deleteCurrentImage()
 {
     IvImage* img = cur();
     if (img) {
-        const char* filename = img->name().c_str();
+        const char* filename = img->uname().c_str();
         QString message("Are you sure you want to remove <b>");
         message = message + QString(filename) + QString("</b> file from disk?");
         QMessageBox::StandardButton button;
