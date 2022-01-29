@@ -90,7 +90,7 @@ inline const char*
 nextToken(std::istream& file, std::string& current_line, const char*& pos)
 {
     while (1) {
-        while (isspace(*pos))
+        while (Strutil::isspace(*pos))
             pos++;
         if (*pos)
             break;
@@ -360,7 +360,7 @@ PNMInput::read_file_header()
                 m_max_val = 1;
 
             //Space before content
-            if (!(isspace(m_file.get()) && m_file.good()))
+            if (!(Strutil::isspace(m_file.get()) && m_file.good()))
                 return false;
             m_header_end_pos = m_file.tellg();  // remember file pos
 
@@ -393,7 +393,7 @@ PNMInput::read_file_header()
             }
 
             //Space before content
-            if (!(isspace(m_file.get()) && m_file.good()))
+            if (!(Strutil::isspace(m_file.get()) && m_file.good()))
                 return false;
             m_header_end_pos = m_file.tellg();  // remember file pos
 

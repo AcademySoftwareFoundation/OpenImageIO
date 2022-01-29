@@ -216,7 +216,7 @@ int RGBE_ReadHeader(FILE *fp, int *width, int *height, rgbe_header_info *info,
   else if (info) {
     info->valid |= RGBE_VALID_PROGRAMTYPE;
     for(i=0;i<(int)sizeof(info->programtype)-1;i++) {
-      if ((buf[i+2] == 0) || isspace(buf[i+2]))
+      if ((buf[i+2] == 0) || Strutil::isspace(buf[i+2]))
 	break;
       info->programtype[i] = buf[i+2];
     }
