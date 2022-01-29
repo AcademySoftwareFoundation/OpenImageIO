@@ -849,7 +849,7 @@ public:
     /// will be tried until one is found that will open the file.
     ///
     /// @param filename
-    ///         The name of the file to open.
+    ///         The name of the file to open, UTF-8 encoded.
     ///
     /// @param config
     ///         Optional pointer to an ImageSpec whose metadata contains
@@ -867,6 +867,13 @@ public:
     static unique_ptr open (const std::string& filename,
                             const ImageSpec *config = nullptr,
                             Filesystem::IOProxy* ioproxy = nullptr);
+
+    /// Create and open an ImageInput using a UTF-16 encoded wstring filename.
+    static unique_ptr open (const std::wstring& filename,
+                            const ImageSpec *config = nullptr,
+                            Filesystem::IOProxy* ioproxy = nullptr) {
+        return open(Strutil::utf16_to_utf8(filename), config, ioproxy);
+    }
 
     /// Create and return an ImageInput implementation that is able to read
     /// the given file or format.  If `do_open` is true (and the `filename`
@@ -899,7 +906,7 @@ public:
     ///
     /// @param filename
     ///         The name of an image file, or a file extension, or the name
-    ///         of a file format.
+    ///         of a file format. The filename is UTF-8 encoded.
     ///
     /// @param do_open
     ///         If `true`, not only create but also open the file.
@@ -927,6 +934,15 @@ public:
                               const ImageSpec *config=nullptr,
                               Filesystem::IOProxy* ioproxy = nullptr,
                               string_view plugin_searchpath = "");
+
+    /// Create an ImageInput using a UTF-16 encoded wstring filename.
+    static unique_ptr create (const std::wstring& filename, bool do_open=false,
+                              const ImageSpec *config=nullptr,
+                              Filesystem::IOProxy* ioproxy = nullptr,
+                              string_view plugin_searchpath = "") {
+        return create(Strutil::utf16_to_utf8(filename), do_open, config,
+                      ioproxy, plugin_searchpath);
+    }
 
     // DEPRECATED(2.2): back compatible version
     static unique_ptr create (const std::string& filename, bool do_open,
@@ -995,11 +1011,16 @@ public:
     /// file can appear to be of the right type (i.e., `valid_file()`
     /// returning `true`) but still fail a subsequent call to `open()`, such
     /// as if the contents of the file are truncated, nonsensical, or
-    /// otherwise corrupted.
+    /// otherwise corrupted. The filename is UTF-8 encoded.
     ///
     /// @returns
     ///         `true` upon success, or `false` upon failure.
     virtual bool valid_file (const std::string& filename) const;
+
+    /// Check valid vile using a UTF-16 encoded wstring filename.
+    bool valid_file (const std::wstring& filename) const {
+        return valid_file(Strutil::utf16_to_utf8(filename));
+    }
 
     /// Opens the file with given name and seek to the first subimage in the
     /// file.  Various file attributes are put in `newspec` and a copy
@@ -1009,7 +1030,7 @@ public:
     /// data format, and other metadata about the image.
     ///
     /// @param name
-    ///         Filename to open.
+    ///         Filename to open, UTF-8 encoded.
     ///
     /// @param newspec
     ///         Reference to an ImageSpec in which to deposit a full
@@ -1020,6 +1041,11 @@ public:
     ///         `true` if the file was found and opened successfully.
     virtual bool open (const std::string& name, ImageSpec &newspec) = 0;
 
+    /// Open the ImageInput using a UTF-16 encoded wstring filename.
+    virtual bool open (const std::wstring& name, ImageSpec &newspec) {
+        return open(Strutil::utf16_to_utf8(name), newspec);
+    }
+
     /// Open file with given name, similar to `open(name,newspec)`. The
     /// `config` is an ImageSpec giving requests or special instructions.
     /// ImageInput implementations are free to not respond to any such
@@ -1027,7 +1053,7 @@ public:
     /// call regular `open(name,newspec)`.
     ///
     /// @param name
-    ///         Filename to open.
+    ///         Filename to open, UTF-8 encoded.
     ///
     /// @param newspec
     ///         Reference to an ImageSpec in which to deposit a full
@@ -1042,6 +1068,11 @@ public:
     ///         `true` if the file was found and opened successfully.
     virtual bool open (const std::string& name, ImageSpec &newspec,
                        const ImageSpec& config OIIO_MAYBE_UNUSED) {
+        return open(name,newspec);
+    }
+    /// Open the ImageInput using a UTF-16 encoded wstring filename.
+    bool open (const std::wstring& name, ImageSpec &newspec,
+               const ImageSpec& config OIIO_MAYBE_UNUSED) {
         return open(name,newspec);
     }
 
@@ -1799,7 +1830,7 @@ public:
     ///         The name of the file format (e.g., "openexr"), a file
     ///         extension (e.g., "exr"), or a filename from which the the
     ///         file format can be inferred from its extension (e.g.,
-    ///         "hawaii.exr").
+    ///         "hawaii.exr"). The filename is UTF-8 encoded.
     ///
     /// @param plugin_searchpath
     ///         An optional colon-separated list of directories to search
@@ -1817,6 +1848,15 @@ public:
     static unique_ptr create (string_view filename,
                               Filesystem::IOProxy* ioproxy = nullptr,
                               string_view plugin_searchpath = "");
+
+    /// Create an ImageOutput using a UTF-16 encoded wstring filename and
+    /// plugin searchpath.
+    static unique_ptr create (const std::wstring& filename,
+                              Filesystem::IOProxy* ioproxy = nullptr,
+                              const std::wstring& plugin_searchpath = {}) {
+        return create(Strutil::utf16_to_utf8(filename), ioproxy,
+                      Strutil::utf16_to_utf8(plugin_searchpath));
+    }
 
     // DEPRECATED(2.2)
     static unique_ptr create (const std::string &filename,
@@ -1979,7 +2019,7 @@ public:
     /// appending a subimage, or a MIP level to the current subimage,
     /// respectively.
     ///
-    /// @param  name        The name of the image file to open.
+    /// @param  filename    The name of the image file to open, UTF-8 encoded.
     /// @param  newspec     The ImageSpec describing the resolution, data
     ///                     types, etc.
     /// @param  mode        Specifies whether the purpose of the `open` is
@@ -1987,8 +2027,14 @@ public:
     ///                     append another subimage (`AppendSubimage`), or
     ///                     append another MIP level (`AppendMIPLevel`).
     /// @returns            `true` upon success, or `false` upon failure.
-    virtual bool open (const std::string &name, const ImageSpec &newspec,
+    virtual bool open (const std::string &filename, const ImageSpec &newspec,
                        OpenMode mode=Create) = 0;
+
+    /// Open an ImageOutput using a UTF-16 encoded wstring filename.
+    bool open (const std::wstring &filename, const ImageSpec &newspec,
+               OpenMode mode=Create) {
+        return open(Strutil::utf16_to_utf8(filename), newspec, mode);
+    }
 
     /// Open a multi-subimage file with given name and specifications for
     /// each of the subimages.  Upon success, the first subimage will be
@@ -2005,19 +2051,26 @@ public:
     /// The individual specs passed to the appending open() calls for
     /// subsequent subimages *must* match the ones originally passed.
     ///
-    /// @param  name        The name of the image file to open.
+    /// @param  filename    The name of the image file to open, UTF-8 encoded.
     /// @param  subimages   The number of subimages (and therefore the
     ///                     length of the `specs[]` array.
     /// @param  specs[]
     ///                      Pointer to an array of `ImageSpec` objects
     ///                      describing each of the expected subimages.
     /// @returns            `true` upon success, or `false` upon failure.
-    virtual bool open (const std::string &name,
+    virtual bool open (const std::string &filename,
                        int subimages OIIO_MAYBE_UNUSED,
                        const ImageSpec *specs) {
         // Default implementation: just a regular open, assume that
         // appending will work.
-        return open (name, specs[0]);
+        return open (filename, specs[0]);
+    }
+
+    bool open (const std::wstring &filename, int subimages OIIO_MAYBE_UNUSED,
+               const ImageSpec *specs) {
+        // Default implementation: just a regular open, assume that
+        // appending will work.
+        return open (Strutil::utf16_to_utf8(filename), specs[0]);
     }
 
     /// Return a reference to the image format specification of the current
@@ -2042,7 +2095,7 @@ public:
     ///   `TypeUnknown`, then rather than converting from `format`, it will
     ///   just copy pixels assumed to already be in the file's native data
     ///   layout (including, possibly, per-channel data formats as specified
-    ///   by the ImageSpec's `channelfomats` field).
+    ///   by the ImageSpec's `channelformats` field).
     ///
     /// * The `stride` values describe the layout of the `data` buffer:
     ///   `xstride` is the distance in bytes between successive pixels
