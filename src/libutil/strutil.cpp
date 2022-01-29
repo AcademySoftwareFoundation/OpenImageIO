@@ -598,16 +598,16 @@ split_whitespace(string_view str, std::vector<string_view>& result,
     // Implementation inspired by Pystring
     string_view::size_type i, j, len = str.size();
     for (i = j = 0; i < len;) {
-        while (i < len && ::isspace(str[i]))
+        while (i < len && Strutil::isspace(str[i]))
             i++;
         j = i;
-        while (i < len && !::isspace(str[i]))
+        while (i < len && !Strutil::isspace(str[i]))
             i++;
         if (j < i) {
             if (--maxsplit <= 0)
                 break;
             result.push_back(str.substr(j, i - j));
-            while (i < len && ::isspace(str[i]))
+            while (i < len && Strutil::isspace(str[i]))
                 i++;
             j = i;
         }
@@ -823,7 +823,7 @@ Strutil::safe_strcpy(char* dst, string_view src, size_t size) noexcept
 void
 Strutil::skip_whitespace(string_view& str) noexcept
 {
-    while (str.size() && isspace(str.front()))
+    while (str.size() && Strutil::isspace(str.front()))
         str.remove_prefix(1);
 }
 
@@ -832,7 +832,7 @@ Strutil::skip_whitespace(string_view& str) noexcept
 void
 Strutil::remove_trailing_whitespace(string_view& str) noexcept
 {
-    while (str.size() && isspace(str.back()))
+    while (str.size() && Strutil::isspace(str.back()))
         str.remove_suffix(1);
 }
 
@@ -937,7 +937,7 @@ Strutil::parse_string(string_view& str, string_view& val, bool eat,
     const char *begin = p.begin(), *end = p.begin();
     bool escaped = false;  // was the prior character a backslash
     while (end != p.end()) {
-        if (isspace(*end) && !quoted)
+        if (Strutil::isspace(*end) && !quoted)
             break;  // not quoted and we hit whitespace: we're done
         if (quoted && *end == lead_char && !escaped)
             break;  // closing quote -- we're done (beware embedded quote)

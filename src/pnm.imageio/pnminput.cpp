@@ -295,7 +295,7 @@ PNMInput::read_file_header()
             m_max_val = 1;
 
         //Space before content
-        if (!(m_remaining.size() && isspace(m_remaining.front())))
+        if (!(m_remaining.size() && Strutil::isspace(m_remaining.front())))
             return false;
         m_remaining.remove_prefix(1);
         m_after_header = m_remaining;
@@ -314,7 +314,7 @@ PNMInput::read_file_header()
             return false;
 
         //Space before content
-        if (!(m_remaining.size() && isspace(m_remaining.front())))
+        if (!(m_remaining.size() && Strutil::isspace(m_remaining.front())))
             return false;
         m_remaining.remove_prefix(1);
         m_after_header = m_remaining;
