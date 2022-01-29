@@ -1021,11 +1021,10 @@ ColorConfig::createColorProcessor(ustring inputColorSpace,
             outputColorSpace = name;
         }
 
-        OCIO::ConstConfigRcPtr config   = getImpl()->config_;
-        OCIO::ConstContextRcPtr context = config->getCurrentContext();
-        std::vector<string_view> keys, values;
-        Strutil::split(context_key, keys, ",");
-        Strutil::split(context_value, values, ",");
+        auto config  = getImpl()->config_;
+        auto context = config->getCurrentContext();
+        auto keys    = Strutil::splits(context_key, ",");
+        auto values  = Strutil::splits(context_value, ",");
         if (keys.size() && values.size() && keys.size() == values.size()) {
             OCIO::ContextRcPtr ctx = context->createEditableCopy();
             for (size_t i = 0; i < keys.size(); ++i)
@@ -1177,10 +1176,9 @@ ColorConfig::createLookTransform(ustring looks, ustring inputColorSpace,
             transform->setDst(outputColorSpace.c_str());
             dir = OCIO::TRANSFORM_DIR_FORWARD;
         }
-        OCIO::ConstContextRcPtr context = config->getCurrentContext();
-        std::vector<string_view> keys, values;
-        Strutil::split(context_key, keys, ",");
-        Strutil::split(context_value, values, ",");
+        auto context = config->getCurrentContext();
+        auto keys    = Strutil::splits(context_key, ",");
+        auto values  = Strutil::splits(context_value, ",");
         if (keys.size() && values.size() && keys.size() == values.size()) {
             OCIO::ContextRcPtr ctx = context->createEditableCopy();
             for (size_t i = 0; i < keys.size(); ++i)

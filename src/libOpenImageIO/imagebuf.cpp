@@ -1439,7 +1439,7 @@ ImageBuf::write(string_view _filename, TypeDesc dtype, string_view _fileformat,
         }
     }
 
-    if (!out->open(filename.c_str(), newspec)) {
+    if (!out->open(filename, newspec)) {
         error(out->geterror());
         return false;
     }

@@ -162,7 +162,7 @@ template<typename... Args>
 OIIO_FORMAT_DEPRECATED
 inline std::string format (string_view fmt, const Args&... args)
 {
-    return format (fmt.c_str(), args...);
+    return format ({ fmt.data(), fmt.size() }, args...);
 }
 } // namespace old
 
