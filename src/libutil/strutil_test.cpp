@@ -950,8 +950,14 @@ void
 test_string_view()
 {
     std::cout << "Testing string_view methods\n";
-    std::string s("0123401234");
+    const char* cstr = "0123401234";
+    std::string s(cstr);
     string_view sr(s);
+
+    OIIO_CHECK_EQUAL(string_view(), "");  // Default ctr should be empty
+    OIIO_CHECK_EQUAL(string_view(cstr), cstr);  // Test ctr from char*
+    OIIO_CHECK_EQUAL(string_view(s), cstr);  // test ctr from std::string
+    OIIO_CHECK_EQUAL(sr, cstr);  // These better be the same
 
     OIIO_CHECK_EQUAL(sr.substr(0), sr); // whole string
     OIIO_CHECK_EQUAL(sr.substr(2), "23401234"); // nonzero pos, default n
