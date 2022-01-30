@@ -2063,7 +2063,7 @@ set_origin(int argc, const char* argv[])
         ImageSpec& spec(*A->spec(s));
         int x = spec.x, y = spec.y, z = spec.z;
         int w = spec.width, h = spec.height, d = spec.depth;
-        ot.adjust_geometry(command, w, h, x, y, origin.c_str());
+        ot.adjust_geometry(command, w, h, x, y, origin);
         if (spec.width != w || spec.height != h || spec.depth != d)
             ot.warning(command,
                        "can't be used to change the size, only the origin");
@@ -2110,7 +2110,7 @@ offset_origin(int argc, const char* argv[])
         ImageSpec& spec(*A->spec(s));
         int x = 0, y = 0, z = 0;  // OFFSETS, not set values
         int w = spec.width, h = spec.height;
-        ot.adjust_geometry(command, w, h, x, y, origin.c_str(), false, false);
+        ot.adjust_geometry(command, w, h, x, y, origin, false, false);
         if (x != 0 || y != 0) {
             ImageBuf& ib = (*A)(s);
             if (ib.storage() == ImageBuf::IMAGECACHE) {
@@ -2154,7 +2154,7 @@ set_fullsize(int argc, const char* argv[])
         ImageSpec& spec(*A->spec(s));
         int x = spec.full_x, y = spec.full_y;
         int w = spec.full_width, h = spec.full_height;
-        ot.adjust_geometry(argv[0], w, h, x, y, size.c_str());
+        ot.adjust_geometry(argv[0], w, h, x, y, size);
         if (spec.full_x != x || spec.full_y != y || spec.full_width != w
             || spec.full_height != h) {
             spec.full_x      = x;
@@ -3316,8 +3316,7 @@ action_create(int argc, const char* argv[])
     }
     ImageSpec spec(64, 64, nchans,
                    TypeDesc(options["type"].as_string("float")));
-    ot.adjust_geometry(argv[0], spec.width, spec.height, spec.x, spec.y,
-                       size.c_str());
+    ot.adjust_geometry(argv[0], spec.width, spec.height, spec.x, spec.y, size);
     spec.full_x      = spec.x;
     spec.full_y      = spec.y;
     spec.full_z      = spec.z;
@@ -3353,8 +3352,7 @@ action_pattern(int argc, const char* argv[])
     }
     ImageSpec spec(64, 64, nchans,
                    TypeDesc(options["type"].as_string("float")));
-    ot.adjust_geometry(argv[0], spec.width, spec.height, spec.x, spec.y,
-                       size.c_str());
+    ot.adjust_geometry(argv[0], spec.width, spec.height, spec.x, spec.y, size);
     spec.full_x      = spec.x;
     spec.full_y      = spec.y;
     spec.full_z      = spec.z;
@@ -3505,7 +3503,7 @@ action_crop(int argc, const char* argv[])
         ImageSpec& spec(*A->spec(s, 0));
         int w = spec.width, h = spec.height, d = spec.depth;
         int x = spec.x, y = spec.y, z = spec.z;
-        ot.adjust_geometry(argv[0], w, h, x, y, size.c_str());
+        ot.adjust_geometry(argv[0], w, h, x, y, size);
         crops_needed |= (w != spec.width || h != spec.height || d != spec.depth
                          || x != spec.x || y != spec.y || z != spec.z);
     }
@@ -3518,7 +3516,7 @@ action_crop(int argc, const char* argv[])
             ImageSpec& spec(*A->spec(s, 0));
             int w = spec.width, h = spec.height, d = spec.depth;
             int x = spec.x, y = spec.y, z = spec.z;
-            ot.adjust_geometry(argv[0], w, h, x, y, size.c_str());
+            ot.adjust_geometry(argv[0], w, h, x, y, size);
             const ImageBuf& Aib((*A)(s, 0));
             ImageBuf& Rib((*R)(s, 0));
             ROI roi = Aib.roi();
@@ -3674,7 +3672,7 @@ action_cut(int argc, const char* argv[])
         ImageSpec& newspec(newspecs[s]);
         newspec = *A->spec(s, 0);
         ot.adjust_geometry(argv[0], newspec.width, newspec.height, newspec.x,
-                           newspec.y, size.c_str());
+                           newspec.y, size);
     }
 
     // Make a new ImageRec sized according to the new set of specs
@@ -3716,8 +3714,8 @@ public:
             ImageSpec& newspec(newspecs[s]);
             newspec = Aspec;
             ot.adjust_geometry(args(0), newspec.full_width, newspec.full_height,
-                               newspec.full_x, newspec.full_y,
-                               args(1).c_str() /*size*/, true);
+                               newspec.full_x, newspec.full_y, args(1) /*size*/,
+                               true);
             if (newspec.full_width == Aspec.full_width
                 && newspec.full_height == Aspec.full_height) {
                 continue;
@@ -3773,8 +3771,8 @@ public:
             ImageSpec& newspec(newspecs[s]);
             newspec = Aspec;
             ot.adjust_geometry(args(0), newspec.full_width, newspec.full_height,
-                               newspec.full_x, newspec.full_y,
-                               args(1).c_str() /*size*/, true);
+                               newspec.full_x, newspec.full_y, args(1) /*size*/,
+                               true);
             if (newspec.full_width == Aspec.full_width
                 && newspec.full_height == Aspec.full_height) {
                 continue;
@@ -3845,7 +3843,7 @@ action_fit(cspan<const char*> argv)
     int fit_full_x      = Aspec->full_x;
     int fit_full_y      = Aspec->full_y;
     ot.adjust_geometry(argv[0], fit_full_width, fit_full_height, fit_full_x,
-                       fit_full_y, size.c_str(), false);
+                       fit_full_y, size, false);
 
     auto options           = ot.extract_options(command);
     bool allsubimages      = options.get_int("allsubimages", ot.allsubimages);
@@ -4377,7 +4375,7 @@ action_fill(int argc, const char* argv[])
         const ImageSpec& Rspec = Rib.spec();
         int w = Rib.spec().width, h = Rib.spec().height;
         int x = Rib.spec().x, y = Rib.spec().y;
-        if (!ot.adjust_geometry(argv[0], w, h, x, y, size.c_str(), true))
+        if (!ot.adjust_geometry(argv[0], w, h, x, y, size, true))
             continue;
         std::vector<float> topleft(Rspec.nchannels, 1.0f);
         std::vector<float> topright(Rspec.nchannels, 1.0f);
@@ -4758,7 +4756,7 @@ input_file(int argc, const char* argv[])
 
         if (autocc) {
             // Try to deduce the color space it's in
-            string_view colorspace(
+            std::string colorspace(
                 ot.colorconfig.getColorSpaceFromFilepath(filename));
             if (colorspace.size() && ot.debug)
                 std::cout << "  From " << filename
@@ -4773,7 +4771,7 @@ input_file(int argc, const char* argv[])
                               << " indicates color space \"" << colorspace
                               << "\"\n";
             }
-            string_view linearspace = ot.colorconfig.getColorSpaceNameByRole(
+            std::string linearspace = ot.colorconfig.getColorSpaceNameByRole(
                 "linear");
             if (linearspace.empty())
                 linearspace = string_view("Linear");
@@ -4896,7 +4894,7 @@ output_file(int /*argc*/, const char* argv[])
 {
     ot.total_writetime.start();
     string_view command  = ot.express(argv[0]);
-    string_view filename = ot.express(argv[1]);
+    std::string filename = ot.express(argv[1]);
     OTScopedTimer timer(ot, command);
 
     auto fileoptions = ot.extract_options(command);
@@ -4983,12 +4981,12 @@ output_file(int /*argc*/, const char* argv[])
     if ((ir->spec()->nchannels > 4 && !out->supports("nchannels"))
         || (ir->spec()->nchannels > 3 && !out->supports("alpha"))) {
         bool alpha = (ir->spec()->nchannels > 3 && out->supports("alpha"));
-        string_view chanlist = alpha ? "R,G,B,A" : "R,G,B";
+        const char* chanlist = alpha ? "R,G,B,A" : "R,G,B";
         std::vector<int> channels;
         bool found = parse_channels(*ir->spec(), chanlist, channels);
         if (!found)
             chanlist = alpha ? "0,1,2,3" : "0,1,2";
-        const char* argv[] = { "channels:allsubimages=1", chanlist.c_str() };
+        const char* argv[] = { "channels:allsubimages=1", chanlist };
         int action_channels(int argc, const char* argv[]);  // forward decl
         action_channels(2, argv);
         ot.warningf(command, "Can't save %d channels to %s... saving only %s",
@@ -5038,7 +5036,7 @@ output_file(int /*argc*/, const char* argv[])
     // automatically set -d based on the name if --autocc is used.
     bool autocc          = fileoptions.get_int("autocc", ot.autocc);
     bool autoccunpremult = fileoptions.get_int("unpremult", ot.autoccunpremult);
-    string_view outcolorspace = ot.colorconfig.getColorSpaceFromFilepath(
+    std::string outcolorspace = ot.colorconfig.getColorSpaceFromFilepath(
         filename);
     if (autocc && outcolorspace.size()) {
         TypeDesc type;
@@ -5065,7 +5063,7 @@ output_file(int /*argc*/, const char* argv[])
             "linear");
         if (linearspace.empty())
             linearspace = string_view("Linear");
-        string_view currentspace
+        std::string currentspace
             = ir->spec()->get_string_attribute("oiio:ColorSpace", linearspace);
         // Special cases where we know formats should be particular color
         // spaces
