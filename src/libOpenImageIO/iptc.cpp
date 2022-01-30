@@ -142,7 +142,8 @@ decode_iptc_iim(const void* iptc, int length, ImageSpec& spec)
                     } else {
                         spec.attribute(iimtag[i].name, s);
                     }
-                    if (iimtag[i].anothername)
+                    if (iimtag[i].anothername
+                        && !spec.extra_attribs.contains(iimtag[i].anothername))
                         spec.attribute(iimtag[i].anothername, s);
                     break;
                 }
