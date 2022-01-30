@@ -56,10 +56,10 @@ IvInfoWindow::update(IvImage* img)
 {
     std::string newtitle;
     if (img) {
-        newtitle = Strutil::sprintf("%s - iv Info", img->name().c_str());
+        newtitle = Strutil::sprintf("%s - iv Info", img->name());
         infoLabel->setText(img->longinfo().c_str());
     } else {
-        newtitle = Strutil::sprintf("iv Info");
+        newtitle = "iv Info";
         infoLabel->setText(tr("No image loaded."));
     }
     setWindowTitle(newtitle.c_str());

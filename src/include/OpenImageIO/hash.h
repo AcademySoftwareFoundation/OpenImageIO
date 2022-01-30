@@ -576,6 +576,11 @@ public:
     /// Append more data
     void append (const void *data, size_t size);
 
+    /// Append more data from a string_view
+    void append (string_view s) {
+        append(s.data(), s.size());
+    }
+
     /// Append more data from a span, without thinking about sizes.
     template<class T> void append (span<T> v) {
         append (v.data(), v.size()*sizeof(T));
