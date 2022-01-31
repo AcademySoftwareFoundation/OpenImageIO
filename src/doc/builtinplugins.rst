@@ -2370,6 +2370,10 @@ aspects of the writing itself:
      - int
      - If zero, do NOT write the "EXTRASAMPLES" tag to the TIFF header.
        (The default is 1, which means write the tag.)
+   * - ``tiff:write_iptc``
+     - int
+     - If nonzero, write an IPTC data block to the TIFF file.
+       (The default is 0, which means not to write an IPTC block.)
 
 
 **TIFF compression modes**
