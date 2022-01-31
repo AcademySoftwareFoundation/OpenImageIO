@@ -8,5 +8,5 @@ if (OpenVDB_FOUND)
                      LINK_LIBRARIES ${OPENVDB_LIBRARIES}
                                     ${TBB_tbb_LIBRARY}
                                     $<TARGET_NAME_IF_EXISTS:TBB::tbb>
-                                    ${BOOST_LIBRARIES})
+    )
 endif()

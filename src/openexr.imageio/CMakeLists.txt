@@ -12,7 +12,8 @@ endif()
 
 add_oiio_plugin (${openexr_src}
     INCLUDE_DIRS ${OPENEXR_INCLUDES} ${IMATH_INCLUDE_DIR}/OpenEXR
-    LINK_LIBRARIES ${OPENEXR_LIBRARIES}
-                   $<TARGET_NAME_IF_EXISTS:OpenEXR::OpenEXRCore>
+    LINK_LIBRARIES
+        $<TARGET_NAME_IF_EXISTS:OpenEXR::OpenEXR>
+        $<TARGET_NAME_IF_EXISTS:OpenEXR::OpenEXRCore>
     DEFINITIONS ${openexr_defs}
     )

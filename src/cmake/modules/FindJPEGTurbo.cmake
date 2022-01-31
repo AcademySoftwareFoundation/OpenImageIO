@@ -43,6 +43,12 @@ FIND_PACKAGE_HANDLE_STANDARD_ARGS(JPEG DEFAULT_MSG JPEG_LIBRARIES JPEG_INCLUDE_D
 
 if (JPEG_FOUND)
     set (JPEGTURBO_FOUND true)
+
+    # Use an intermediary target named "JPEG::JPEG" to match libjpeg's export
+    if(NOT TARGET JPEG::JPEG)
+      add_library(JPEG::JPEG INTERFACE IMPORTED)
+      target_link_libraries(JPEG::JPEG INTERFACE ${JPEG_LIBRARY})
+    endif()
 endif ()
 
 mark_as_advanced(JPEG_LIBRARIES JPEG_INCLUDE_DIRS )

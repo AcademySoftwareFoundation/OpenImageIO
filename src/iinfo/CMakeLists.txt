@@ -2,6 +2,4 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # https://github.com/OpenImageIO/oiio
 
-fancy_add_executable (LINK_LIBRARIES OpenImageIO
-                                     ${Boost_LIBRARIES} # because regex
-                      )
+fancy_add_executable (LINK_LIBRARIES OpenImageIO)

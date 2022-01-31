@@ -8,8 +8,7 @@ set (libOpenImageIO_Util_srcs argparse.cpp benchmark.cpp
 add_library (OpenImageIO_Util ${libOpenImageIO_Util_srcs})
 target_include_directories (OpenImageIO_Util
         PUBLIC
-            ${CMAKE_INSTALL_FULL_INCLUDEDIR}
-            ${IMATH_INCLUDES} ${OPENEXR_INCLUDES}
+            $<INSTALL_INTERFACE:include>
         )
 target_link_libraries (OpenImageIO_Util
         PUBLIC
@@ -25,8 +24,10 @@ target_link_libraries (OpenImageIO_Util
             ${ILMBASE_LIBRARIES}
             ${GCC_ATOMIC_LIBRARIES}
         PRIVATE
+            Boost::filesystem
+            Boost::system
+            Boost::thread
             ${SANITIZE_LIBRARIES}
-            ${Boost_LIBRARIES}
             ${CMAKE_DL_LIBS}
         )
 
