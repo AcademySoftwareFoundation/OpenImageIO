@@ -1,5 +1,43 @@
-Release 2.3.12 (1 Feb? 2022) -- compared to 2.3.11
+Release 2.3.12 (1 Feb 2022) -- compared to 2.3.11
 --------------------------------------------------
+* oiiotool: Don't give spurious warnings about no output when the --colorcount
+  or --rangecheck commands are used. #3262
+* `oiiotool --pattern checker` fixed behavior so that if only the checker
+  width was specified but not the height, height will be equal to width. #3255
+* `oiiotool --point` lets you set individual pixels. #3256
+* Python: A new ImageBuf constructor was added that takes only a NumPy
+  ndarray, and deduces the resolution, channels, and format (pixel data type)
+  from the shape of the array. #3246
+* Python: Implement `ROI.copy()`. #3253
+* Python: ImageSpec and ParamValueList now support `'key' in spec`,
+  `del spec['key']`, and `spec.get('key', defaultval)` to more fully emulate
+  Python `dict` syntax for manipulating metadata. #3252 (2.3.12/2.4.0)
+* Python bug fix: fix `clamp()` when the min or max are just a float. Now
+  it uses that one value for all channels, instead of using it only for
+  the first channel. #3265
+* ImageSpec gained an additional constructor that takes a string
+  representation of the pixel data type (where it used to insist on a
+  TypeDesc), such as `ImageSpec(640, 480, 3, "uint8")`. This is especially
+  helpful for new/casual users, or when you want code to be maximally
+  readable. #3245
+* `Imagepec::getattribute()` new query token `"format"` can retrieve the pixel
+  data type. #3247
+* `IBA::make_texture()`: ensure that "maketx:ignore_unassoc" is honored. #3269
+* Support an additional UDIM pattern `<UVTILE>`, which is specified by
+  MaterialX. #3280
+* TIFF: support 16-bit palette images. #3260
+* TIFF: Gracefully handle missing ExtraSamples tag. #3287
+* Targa: Better interpretation of TGA 1.0 files with alpha that is zero
+  everywhere. Be more consistent with Targa attributes all being called
+  "targa:foo". Add "targa:version" to reveal whether the file was TGA 1.0
+  or 2.0 version of the format. #3279
+* simd.h: Better guards to make it safe to include from Cuda. #3291 #3292
+* Fix bugs in the build_opencolorio.bash script, did not correctly handle
+  installation into custom directories. #3278
+* Fixes to FindOpenColorIO.cmake module, now it prefers an OCIO exported cmake
+  config (for OCIO 2.1+) unless OPENCOLORIO_NO_CONFIG=ON is set. #3278
+* Docs: The ImageBufAlgo chapter now has examples for C++, Python, and
+  oiiotool for almost every operation. #3263
 
 Release 2.3.11 (1 Jan 2022) -- compared to 2.3.10
 --------------------------------------------------
@@ -39,7 +77,7 @@ Release 2.3.10.1 (7 Dec 2021) -- compared to 2.3.10.0
 * Build/test: Gracefully handle failing to find git for test data download.
   #3212
 * fmath.h: bit_cast specialization should take refs, like the template.
-  This made warnings for some compilrs. #3213
+  This made warnings for some compilers. #3213
 * Build: make sure to properly use the tbb target if it exists. #3214
 
 Release 2.3.10 (1 Dec 2021) -- compared to 2.3.9
@@ -722,6 +760,16 @@ Notable documentation changes:
 * Starting to use "sphinx_tabs" as a clear way to present how things should
   be done for different language bindings. #2768 (2.3.1.0)
 
+
+
+Release 2.2.20 (1 Feb 2022) -- compared to 2.2.19
+--------------------------------------------------
+* Fix some address sanitizer failures. #3160
+* Build/CI: Deal with OpenColor renaming its master branch to main. #3169
+* Windows: Fix error when compiling with MSVC. #3168
+* Fix excessive memory usage when saving EXR with many channels. #3176
+* TIFF: now works for 16-bit palette images. #3260
+* Fix ImageBuf::read bug for images of mixed per-channel data types. #3088
 
 Release 2.2.19 (1 Nov 2021) -- compared to 2.2.18
 --------------------------------------------------
