@@ -1,3 +1,7 @@
+Release 2.3.13 (1 Mar? 2022) -- compared to 2.3.12
+--------------------------------------------------
+
+
 Release 2.3.12 (1 Feb 2022) -- compared to 2.3.11
 --------------------------------------------------
 * oiiotool: Don't give spurious warnings about no output when the --colorcount
