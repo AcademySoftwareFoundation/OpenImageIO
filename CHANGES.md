@@ -1,5 +1,11 @@
-Release 2.2.20 (?? 2021) -- compared to 2.2.19
+Release 2.2.20 (1 Feb 2022) -- compared to 2.2.19
 --------------------------------------------------
+* Fix some address sanitizer failures. #3160
+* Build/CI: Deal with OpenColor renaming its master branch to main. #3169
+* Windows: Fix error when compiling with MSVC. #3168
+* Fix excessive memory usage when saving EXR with many channels. #3176
+* TIFF: now works for 16-bit palette images. #3260
+* Fix ImageBuf::read bug for images of mixed per-channel data types. #3088
 
 Release 2.2.19 (1 Nov 2021) -- compared to 2.2.18
 --------------------------------------------------
