@@ -1042,7 +1042,7 @@ public:
     virtual bool open (const std::string& name, ImageSpec &newspec) = 0;
 
     /// Open the ImageInput using a UTF-16 encoded wstring filename.
-    virtual bool open (const std::wstring& name, ImageSpec &newspec) {
+    bool open (const std::wstring& name, ImageSpec &newspec) {
         return open(Strutil::utf16_to_utf8(name), newspec);
     }
 
