@@ -82,6 +82,20 @@ declare_colorconfig(py::module& m)
                 return self.getDefaultViewName(display);
             },
             "display"_a = "")
+        .def(
+            "getDisplayViewColorSpaceName",
+            [](const ColorConfig& self, const std::string& display,
+               const std::string& view) {
+                return self.getDisplayViewColorSpaceName(display, view);
+            },
+            "display"_a, "view"_a)
+        .def(
+            "getDisplayViewLooks",
+            [](const ColorConfig& self, const std::string& display,
+               const std::string& view) {
+                return self.getDisplayViewLooks(display, view);
+            },
+            "display"_a, "view"_a)
         .def("getColorSpaceFromFilepath",
              [](const ColorConfig& self, const std::string& str) {
                  return std::string(self.getColorSpaceFromFilepath(str));

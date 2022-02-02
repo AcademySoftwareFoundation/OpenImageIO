@@ -210,6 +210,17 @@ public:
     /// display is empty or not specified, the default display will be used.
     const char* getDefaultViewName(string_view display = "") const;
 
+    /// Returns the colorspace attribute of the (display, view) pair. (Note
+    /// that this may be either a color space or a display color space.)
+    /// Returns nullptr for failure.
+    const char* getDisplayViewColorSpaceName(const std::string& display,
+                                             const std::string& view) const;
+
+    /// Returns the looks attribute of a (display, view) pair. Returns nullptr
+    /// for failure.
+    const char* getDisplayViewLooks(const std::string& display,
+                                    const std::string& view) const;
+
     /// Construct a processor to transform from the given color space
     /// to the color space of the given display and view. You may optionally
     /// override the looks that are, by default, used with the display/view
