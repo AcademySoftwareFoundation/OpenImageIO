@@ -1911,7 +1911,7 @@ awaiting a call to `reset()` or `copy()` before it is useful.
 
 
 
-.. py:method:: ImageBuf.set_full (roi)
+.. py:method:: ImageBuf.set_full (xbegin, xend, ybegin, yend, zbegin, zend)
 
     Changes the "full" (a.k.a. "display") window to the specified ROI.
     
@@ -1919,8 +1919,7 @@ awaiting a call to `reset()` or `copy()` before it is useful.
 
     .. code-block:: python
 
-        newroi = ROI (0, 1024, 0, 768)
-        buf.set_full (newroi)
+        buf.set_full (0, 1024, 0, 768, 0, 1)
 
 
 
