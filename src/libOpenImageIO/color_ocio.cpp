@@ -653,6 +653,44 @@ ColorConfig::getDefaultViewName(string_view display) const
 
 
 
+const char*
+ColorConfig::getDisplayViewColorSpaceName(const std::string& display,
+                                          const std::string& view) const
+{
+#ifdef USE_OCIO
+    if (getImpl()->config_)
+#    if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 0, 0)
+        return getImpl()->config_->getDisplayViewColorSpaceName(display.c_str(),
+                                                                view.c_str());
+#    else
+        return getImpl()->config_->getDisplayColorSpaceName(display.c_str(),
+                                                            view.c_str());
+#    endif
+#endif
+    return nullptr;
+}
+
+
+
+const char*
+ColorConfig::getDisplayViewLooks(const std::string& display,
+                                 const std::string& view) const
+{
+#ifdef USE_OCIO
+    if (getImpl()->config_)
+#    if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 0, 0)
+        return getImpl()->config_->getDisplayViewLooks(display.c_str(),
+                                                       view.c_str());
+#    else
+        return getImpl()->config_->getDisplayLooks(display.c_str(),
+                                                   view.c_str());
+#    endif
+#endif
+    return nullptr;
+}
+
+
+
 std::string
 ColorConfig::configname() const
 {
