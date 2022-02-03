@@ -353,6 +353,10 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
                 m_spec.attribute("Software", (char*)buf.c);
             }
 
+            // software version
+            if (!ioread(buf.c, 3, 1))
+                return false;
+
             // background (key) colour
             if (!ioread(buf.c, 4, 1))
                 return false;
