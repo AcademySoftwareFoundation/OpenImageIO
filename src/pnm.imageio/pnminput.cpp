@@ -323,7 +323,7 @@ PNMInput::read_file_header()
                            TypeDesc::FLOAT);
         m_spec.attribute("pnm:bigendian", m_scaling_factor < 0 ? 0 : 1);
     }
-    m_spec.attribute("oiio:ColorSpace", "Gamma2.2");
+    m_spec.attribute("oiio:ColorSpace", "Rec709");
     return true;
 }
 
