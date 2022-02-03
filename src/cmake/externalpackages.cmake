@@ -29,6 +29,8 @@ include (ExternalProject)
 
 option (BUILD_MISSING_DEPS "Try to download and build any missing dependencies" OFF)
 
+include (FindThreads)
+
 
 ###########################################################################
 # Boost setup
@@ -106,13 +108,32 @@ include_directories(BEFORE ${IMATH_INCLUDES} ${OPENEXR_INCLUDES})
 if (MSVC AND NOT LINKSTATIC)
     add_definitions (-DOPENEXR_DLL) # Is this needed for new versions?
 endif ()
-
 if (OPENEXR_VERSION VERSION_GREATER_EQUAL 3.0)
     set (OIIO_USING_IMATH 3)
 else ()
     set (OIIO_USING_IMATH 2)
 endif ()
-
+set (OPENIMAGEIO_IMATH_TARGETS
+            # For OpenEXR/Imath 3.x:
+            $<TARGET_NAME_IF_EXISTS:Imath::Imath>
+            $<TARGET_NAME_IF_EXISTS:Imath::Half>
+            # For OpenEXR >= 2.4/2.5 with reliable exported targets
+            $<TARGET_NAME_IF_EXISTS:IlmBase::Imath>
+            $<TARGET_NAME_IF_EXISTS:IlmBase::Half>
+            $<TARGET_NAME_IF_EXISTS:IlmBase::Iex>
+            # For OpenEXR <= 2.3:
+            ${ILMBASE_LIBRARIES} )
+set (OPENIMAGEIO_OPENEXR_TARGETS
+            # For OpenEXR/Imath 3.x:
+            $<TARGET_NAME_IF_EXISTS:OpenEXR::OpenEXR>
+            # For OpenEXR >= 2.4/2.5 with reliable exported targets
+            $<TARGET_NAME_IF_EXISTS:OpenEXR::IlmImf>
+            $<TARGET_NAME_IF_EXISTS:IlmBase::IlmThread>
+            $<TARGET_NAME_IF_EXISTS:IlmBase::Iex>
+            # For OpenEXR <= 2.3:
+            ${OPENEXR_LIBRARIES} )
+set (OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY "PUBLIC" CACHE STRING
+     "Should we expose Imath library dependency as PUBLIC or PRIVATE")
 
 # JPEG -- prefer Turbo-JPEG to regular libjpeg
 checked_find_package (JPEGTurbo
