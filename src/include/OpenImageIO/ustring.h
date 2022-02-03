@@ -55,6 +55,13 @@ OIIO_NAMESPACE_BEGIN
 /// algorthms that would work on a "const std::string &" will also work
 /// on a ustring.
 ///
+/// Note that like a `char*`, but unlike a `std::string`, a ustring is not
+/// allowed to contain any embedded NUL ('\0') characters. When constructing
+/// ustrings from a std::string or a string_view, the contents will be
+/// truncated at the point of any NUL character. This is done to ensure that
+/// ustring::c_str() refers to the same C-style character sequence as the
+/// ustring itself or ustring::string().
+///
 /// Usage guidelines:
 ///
 /// Compared to standard strings, ustrings have several advantages:

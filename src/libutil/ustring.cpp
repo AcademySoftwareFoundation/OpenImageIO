@@ -427,7 +427,7 @@ const char*
 ustring::make_unique(string_view strref)
 {
     UstringTable& table(ustring_table());
-    // Eliminate NULLs
+    // Eliminate nullptr-referred string views
     if (!strref.data())
         strref = string_view("", 0);
 
@@ -442,6 +442,18 @@ ustring::make_unique(string_view strref)
     const char* result = table.lookup(strref, hash);
     if (result)
         return result;
+    auto nul = strref.find('\0');
+    if (nul != string_view::npos) {
+        // Strutil::print("ustring::make_unique: string contains nulls @{}/{}: \"{}\"\n",
+        //                strref.find('\0'), strref.size(), strref);
+        // OIIO_ASSERT(strref.find('\0') == string_view::npos &&
+        //             "ustring::make_unique() does not support embedded nulls");
+        strref = strref.substr(0, nul);
+        hash   = Strutil::strhash(strref);
+        result = table.lookup(strref, hash);
+        if (result)
+            return result;
+    }
     // Strutil::print("ADDED ustring \"{}\" {:08x}\n", strref, hash);
     return table.insert(strref, hash);
 
@@ -453,6 +465,21 @@ ustring::make_unique(string_view strref)
     const char* result = table.lookup(strref, hash);
     if (result)
         return result;
+
+    // ustring doesn't allow strings with embedded nul characters. Before we
+    // go any further, trim beyond any nul and rehash.
+    auto nul = strref.find('\0');
+    if (nul != string_view::npos) {
+        // Strutil::print("ustring::make_unique: string contains nulls @{}/{}: \"{}\"\n",
+        //                strref.find('\0'), strref.size(), strref);
+        // OIIO_ASSERT(strref.find('\0') == string_view::npos &&
+        //             "ustring::make_unique() does not support embedded nulls");
+        strref = strref.substr(0, nul);
+        hash   = Strutil::strhash(strref);
+        result = table.lookup(strref, hash);
+        if (result)
+            return result;
+    }
 
     // We did not find it. There are two possibilities: (1) the string is in
     // the table but has a different hash because it collided; or (2) the

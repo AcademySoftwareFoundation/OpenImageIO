@@ -319,7 +319,7 @@ strhash (size_t len, const char *s)
 /// Hash a string_view. This is OIIO's default favorite string hasher.
 /// Currently, it uses farmhash, is constexpr (for C++14), and works in
 /// Cuda. This is rigged, though, so that empty strings hash always hash to
-/// 0 (that isn't would a raw farmhash would give you, but it's a useful
+/// 0 (that isn't what a raw farmhash would give you, but it's a useful
 /// property, especially for trivial initialization).
 inline OIIO_CONSTEXPR14 size_t
 strhash (string_view s)
