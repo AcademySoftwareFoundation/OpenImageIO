@@ -26,29 +26,10 @@
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/string_view.h>
 
+#include <OpenImageIO/detail/fmt.h>
 #include <OpenImageIO/detail/farmhash.h>
 
-#if OIIO_GNUC_VERSION >= 70000
-#    pragma GCC diagnostic push
-#    pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-#endif
-#ifndef FMT_HEADER_ONLY
-#    define FMT_HEADER_ONLY
-#endif
-#ifndef FMT_EXCEPTIONS
-#    define FMT_EXCEPTIONS 0
-#endif
-#ifndef FMT_USE_GRISU
-#    define FMT_USE_GRISU 1
-#endif
-#include "detail/fmt/ostream.h"
-#include "detail/fmt/format.h"
-#include "detail/fmt/printf.h"
-#if OIIO_GNUC_VERSION >= 70000
-#    pragma GCC diagnostic pop
-#endif
-
-// Allow client software to know if this version of OIIO as Strutil::sprintf
+// Allow client software to know if this version of OIIO has Strutil::sprintf
 #define OIIO_HAS_SPRINTF 1
 
 // Allow client software to know (and to determine, by setting this value
