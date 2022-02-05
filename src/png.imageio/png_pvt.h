@@ -214,24 +214,24 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     }
 
     int srgb_intent;
+    double gamma = 0.0;
     if (png_get_sRGB(sp, ip, &srgb_intent)) {
         spec.attribute("oiio:ColorSpace", "sRGB");
+    } else if (png_get_gAMA(sp, ip, &gamma) && gamma > 0.0) {
+        // Round gamma to the nearest hundredth to prevent stupid
+        // precision choices and make it easier for apps to make
+        // decisions based on known gamma values. For example, you want
+        // 2.2, not 2.19998.
+        float g = float(1.0 / gamma);
+        g       = roundf(100.0 * g) / 100.0f;
+        spec.attribute("oiio:Gamma", g);
+        if (g == 1.0f)
+            spec.attribute("oiio:ColorSpace", "linear");
+        else
+            spec.attribute("oiio:ColorSpace", Strutil::sprintf("Gamma%.2g", g));
     } else {
-        double gamma;
-        if (png_get_gAMA(sp, ip, &gamma)) {
-            // Round gamma to the nearest hundredth to prevent stupid
-            // precision choices and make it easier for apps to make
-            // decisions based on known gamma values. For example, you want
-            // 2.2, not 2.19998.
-            float g = float(1.0 / gamma);
-            g       = roundf(100.0 * g) / 100.0f;
-            spec.attribute("oiio:Gamma", g);
-            if (g == 1.0f)
-                spec.attribute("oiio:ColorSpace", "linear");
-            else
-                spec.attribute("oiio:ColorSpace",
-                               Strutil::sprintf("Gamma%.2g", g));
-        }
+        // If there's no info at all, assume sRGB.
+        spec.attribute("oiio:ColorSpace", "sRGB");
     }
 
     if (png_get_valid(sp, ip, PNG_INFO_iCCP)) {

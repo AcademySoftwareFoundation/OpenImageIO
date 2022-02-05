@@ -5531,6 +5531,10 @@ output_file(int /*argc*/, const char* argv[])
                 || Strutil::iends_with(filename, ".gif")
                 || Strutil::iends_with(filename, ".webp")))
             outcolorspace = string_view("sRGB");
+        if (outcolorspace.empty()
+            && (Strutil::iends_with(filename, ".ppm")
+                || Strutil::iends_with(filename, ".pnm")))
+            outcolorspace = string_view("Rec709");
         if (outcolorspace.size() && currentspace != outcolorspace) {
             if (ot.debug)
                 std::cout << "  Converting from " << currentspace << " to "
