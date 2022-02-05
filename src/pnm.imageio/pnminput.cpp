@@ -410,6 +410,7 @@ PNMInput::read_file_header()
             } else {
                 m_spec.attribute("pnm:bigendian", 1);
             }
+            m_spec.attribute("oiio:ColorSpace", "Rec709");
 
             return true;
         }

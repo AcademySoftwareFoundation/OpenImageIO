@@ -213,24 +213,24 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     }
 
     int srgb_intent;
+    double gamma = 0.0;
     if (png_get_sRGB(sp, ip, &srgb_intent)) {
         spec.attribute("oiio:ColorSpace", "sRGB");
+    } else if (png_get_gAMA(sp, ip, &gamma) && gamma > 0.0) {
+        // Round gamma to the nearest hundredth to prevent stupid
+        // precision choices and make it easier for apps to make
+        // decisions based on known gamma values. For example, you want
+        // 2.2, not 2.19998.
+        float g = float(1.0 / gamma);
+        g       = roundf(100.0 * g) / 100.0f;
+        spec.attribute("oiio:Gamma", g);
+        if (g == 1.0f)
+            spec.attribute("oiio:ColorSpace", "linear");
+        else
+            spec.attribute("oiio:ColorSpace", Strutil::sprintf("Gamma%.2g", g));
     } else {
-        double gamma;
-        if (png_get_gAMA(sp, ip, &gamma)) {
-            // Round gamma to the nearest hundredth to prevent stupid
-            // precision choices and make it easier for apps to make
-            // decisions based on known gamma values. For example, you want
-            // 2.2, not 2.19998.
-            float g = float(1.0 / gamma);
-            g       = roundf(100.0 * g) / 100.0f;
-            spec.attribute("oiio:Gamma", g);
-            if (g == 1.0f)
-                spec.attribute("oiio:ColorSpace", "linear");
-            else
-                spec.attribute("oiio:ColorSpace",
-                               Strutil::sprintf("GammaCorrected%.2g", g));
-        }
+        // If there's no info at all, assume sRGB.
+        spec.attribute("oiio:ColorSpace", "sRGB");
     }
 
     if (png_get_valid(sp, ip, PNG_INFO_iCCP)) {
@@ -576,11 +576,12 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
 
     gamma = spec.get_float_attribute("oiio:Gamma", 1.0);
 
-    std::string colorspace = spec.get_string_attribute("oiio:ColorSpace");
+    string_view colorspace = spec.get_string_attribute("oiio:ColorSpace");
     if (Strutil::iequals(colorspace, "Linear")) {
         png_set_gAMA(sp, ip, 1.0);
-    } else if (Strutil::istarts_with(colorspace, "GammaCorrected")) {
-        float g = Strutil::from_string<float>(colorspace.c_str() + 14);
+    } else if (Strutil::istarts_with(colorspace, "Gamma")) {
+        Strutil::parse_word(colorspace);
+        float g = Strutil::from_string<float>(colorspace);
         if (g >= 0.01f && g <= 10.0f /* sanity check */)
             gamma = g;
         png_set_gAMA(sp, ip, 1.0f / gamma);
