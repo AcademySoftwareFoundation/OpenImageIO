@@ -21,13 +21,15 @@ SPDX-License-Identifier: BSD-3-Clause
   OIIO, but since some elements are derived from that, we still acknowledge
   the original copyright here.
 
-* Open Shading Language. Copyright Sony Pictures Imageworks Inc.
+* Open Shading Language. Copyright contributors to the OSL project.
+  https://github.com/AcademySoftwareFoundation/OpenShadingLanguage
 
   A few parts here and there, notably parts of fmath.h and many of the CMake
   files, contain code that was originally developed for Open Shading
   Language but subsequently moved to OIIO.
 
-* OpenColorIO
+* OpenColorIO (c) Copyright contributors to the OpenColorIO Project.
+  https://github.com/AcademySoftwareFoundation/OpenColorIO
 
   The sample OpenColorIO configurations in our testsuite are borrowed from
   this ASWF project, also BSD-3-Clause licensed.
