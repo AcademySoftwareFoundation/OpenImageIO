@@ -1532,8 +1532,8 @@ ImageBufAlgo::colorconvert(const ImageBuf& src, string_view from,
 
 bool
 ImageBufAlgo::colormatrixtransform(ImageBuf& dst, const ImageBuf& src,
-                                   const Imath::M44f& M, bool unpremult,
-                                   ROI roi, int nthreads)
+                                   M44fParam M, bool unpremult, ROI roi,
+                                   int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::colormatrixtransform");
     ColorProcessorHandle processor;
@@ -1553,7 +1553,7 @@ ImageBufAlgo::colormatrixtransform(ImageBuf& dst, const ImageBuf& src,
 
 
 ImageBuf
-ImageBufAlgo::colormatrixtransform(const ImageBuf& src, const Imath::M44f& M,
+ImageBufAlgo::colormatrixtransform(const ImageBuf& src, M44fParam M,
                                    bool unpremult, ROI roi, int nthreads)
 {
     ImageBuf result;

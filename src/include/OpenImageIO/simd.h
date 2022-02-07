@@ -27,6 +27,7 @@
 // clang-format off
 
 #pragma once
+#define OIIO_SIMD_H 1
 
 #include <algorithm>
 #include <cmath>
@@ -34,6 +35,7 @@
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/platform.h>
+#include <OpenImageIO/vecparam.h>
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -272,7 +274,16 @@ typedef vfloat3 float3;
 typedef vfloat4 float4;
 typedef vfloat8 float8;
 
+} // namespace simd
 
+
+// Force has_subscript to understand that our simd::vfloat3 counts as a
+// 3-vector, even though its padding to 4 values makes it look the wrong size.
+template<> struct has_subscript<simd::vfloat3, float, 3> : public std::true_type { };
+
+
+
+namespace simd {
 
 //////////////////////////////////////////////////////////////////////////
 // Template magic to determine the raw SIMD types involved, and other
@@ -2160,11 +2171,23 @@ public:
     /// Construct from a single value (store it in all slots)
     vfloat3 (float a) { load(a); }
 
-    /// Construct from 3 or 4 values
+    /// Construct from 3 values
     vfloat3 (float a, float b, float c) { vfloat4::load(a,b,c); }
 
-    /// Construct from a pointer to 4 values
+    /// Construct from a pointer to 3 values
     vfloat3 (const float *f) { load (f); }
+
+    /// Construct from something that looks like a generic 3-vector class,
+    /// having .x, .y, .z float elements and nothing more. This should be able
+    /// to capture from an Imath::V3f or an OIIO::V3fParam.
+    template<typename V, OIIO_ENABLE_IF(has_xyz<V, float>::value)>
+    vfloat3(const V& v) : vfloat3(v.x, v.y, v.z) { }
+
+    /// Construct from something that looks like a generic 3-vector class,
+    /// having an operator[] that returns a float and is the size of 3 floats.
+    template<typename V, OIIO_ENABLE_IF(has_subscript<V, float, 3>::value
+                                        && !has_xyz<V, float>::value)>
+    vfloat3(const V& v) : vfloat3(v[0], v[1], v[2]) { }
 
     /// Copy construct from another vfloat3
     vfloat3 (const vfloat3 &other);
@@ -2183,7 +2206,7 @@ public:
 
 #ifdef INCLUDED_IMATHVEC_H
     /// Construct from a Imath::V3f
-    vfloat3 (const Imath::V3f &v) : vfloat4(v) { }
+    // vfloat3 (const Imath::V3f &v) : vfloat4(v) { }
 
     /// Cast to a Imath::V3f
     const Imath::V3f& V3f () const { return *(const Imath::V3f*)this; }
@@ -2336,6 +2359,9 @@ public:
         m_row[2].load (f+8);
         m_row[3].load (f+12);
     }
+
+    /// Construct from an OIIO::M44fParam (including an Imath::M44f)
+    OIIO_FORCEINLINE matrix44(M44fParam M) : matrix44(M.data()) { }
 
     /// Construct from 4 vfloat4 rows
     OIIO_FORCEINLINE explicit matrix44 (const vfloat4& a, const vfloat4& b,

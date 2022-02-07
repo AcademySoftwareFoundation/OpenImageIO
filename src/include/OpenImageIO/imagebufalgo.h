@@ -19,6 +19,7 @@
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/parallel.h>
 #include <OpenImageIO/span.h>
+#include <OpenImageIO/vecparam.h>
 
 #include <limits>
 
@@ -767,31 +768,25 @@ bool OIIO_API fit (ImageBuf &dst, const ImageBuf &src, Filter2D *filter,
 /// filter is used to weight the `src` pixels falling underneath it for each
 /// `dst` pixel; the filter's size is expressed in pixel units of the `dst`
 /// image.
-///
-/// Note: C++ users must include `ImathMatrix.h` (or `OpenImageIO/Imath.h`)
-/// prior to including `imagebufalgo.h` to see define the Imath::M33f class,
-/// or else the `warp()` function declaration will not be visible.
 
-#ifdef INCLUDED_IMATHMATRIX_H
-ImageBuf OIIO_API warp (const ImageBuf &src, const Imath::M33f &M,
+ImageBuf OIIO_API warp (const ImageBuf &src, M33fParam M,
                         string_view filtername = string_view(),
                         float filterwidth = 0.0f, bool recompute_roi = false,
                         ImageBuf::WrapMode wrap = ImageBuf::WrapDefault,
                         ROI roi={}, int nthreads=0);
-ImageBuf OIIO_API warp (const ImageBuf &src, const Imath::M33f &M,
+ImageBuf OIIO_API warp (const ImageBuf &src, M33fParam M,
                         const Filter2D *filter, bool recompute_roi = false,
                         ImageBuf::WrapMode wrap = ImageBuf::WrapDefault,
                         ROI roi = {}, int nthreads=0);
-bool OIIO_API warp (ImageBuf &dst, const ImageBuf &src, const Imath::M33f &M,
+bool OIIO_API warp (ImageBuf &dst, const ImageBuf &src, M33fParam M,
                     string_view filtername = string_view(),
                     float filterwidth = 0.0f, bool recompute_roi = false,
                     ImageBuf::WrapMode wrap = ImageBuf::WrapDefault,
                     ROI roi={}, int nthreads=0);
-bool OIIO_API warp (ImageBuf &dst, const ImageBuf &src, const Imath::M33f &M,
+bool OIIO_API warp (ImageBuf &dst, const ImageBuf &src, M33fParam M,
                     const Filter2D *filter, bool recompute_roi = false,
                     ImageBuf::WrapMode wrap = ImageBuf::WrapDefault,
                     ROI roi = {}, int nthreads=0);
-#endif
 /// @}
 
 
@@ -1803,20 +1798,13 @@ inline bool colorconvert (float *color, int nchannels,
 ///
 /// @version 2.1+
 ///
-/// Note: C++ users must include `ImathMatrix.h` (or `OpenImageIO/Imath.h`)
-/// prior to including `imagebufalgo.h` to see define the Imath::M44f class,
-/// or else the `colormatrixtransform()` function declaration will not be
-/// visible.
-
-#ifdef INCLUDED_IMATHMATRIX_H
 ImageBuf OIIO_API colormatrixtransform (const ImageBuf &src,
-                                    const Imath::M44f& M, bool unpremult=true,
-                                    ROI roi={}, int nthreads=0);
+                                        M44fParam M, bool unpremult=true,
+                                        ROI roi={}, int nthreads=0);
 /// Write to an existing image `dst` (allocating if it is uninitialized).
 bool OIIO_API colormatrixtransform (ImageBuf &dst, const ImageBuf &src,
-                                    const Imath::M44f& M, bool unpremult=true,
+                                    M44fParam M, bool unpremult=true,
                                     ROI roi={}, int nthreads=0);
-#endif
 
 
 /// Return a copy of the pixels of `src` within the ROI, applying an

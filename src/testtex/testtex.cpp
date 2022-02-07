@@ -11,6 +11,7 @@
 #include <iostream>
 #include <iterator>
 
+#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/filesystem.h>

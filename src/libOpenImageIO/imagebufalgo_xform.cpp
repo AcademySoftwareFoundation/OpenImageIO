@@ -9,8 +9,9 @@
 #include <cmath>
 #include <memory>
 
-#include "imageio_pvt.h"
 #include <OpenImageIO/Imath.h>
+
+#include "imageio_pvt.h"
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filter.h>
 #include <OpenImageIO/imagebuf.h>
@@ -274,7 +275,7 @@ warp_impl(ImageBuf& dst, const ImageBuf& src, const Imath::M33f& M,
 
 
 bool
-ImageBufAlgo::warp(ImageBuf& dst, const ImageBuf& src, const Imath::M33f& M,
+ImageBufAlgo::warp(ImageBuf& dst, const ImageBuf& src, M33fParam M,
                    const Filter2D* filter, bool recompute_roi,
                    ImageBuf::WrapMode wrap, ROI roi, int nthreads)
 {
@@ -285,7 +286,7 @@ ImageBufAlgo::warp(ImageBuf& dst, const ImageBuf& src, const Imath::M33f& M,
 
 
 bool
-ImageBufAlgo::warp(ImageBuf& dst, const ImageBuf& src, const Imath::M33f& M,
+ImageBufAlgo::warp(ImageBuf& dst, const ImageBuf& src, M33fParam M,
                    string_view filtername_, float filterwidth,
                    bool recompute_roi, ImageBuf::WrapMode wrap, ROI roi,
                    int nthreads)
@@ -315,9 +316,9 @@ ImageBufAlgo::warp(ImageBuf& dst, const ImageBuf& src, const Imath::M33f& M,
 
 
 ImageBuf
-ImageBufAlgo::warp(const ImageBuf& src, const Imath::M33f& M,
-                   const Filter2D* filter, bool recompute_roi,
-                   ImageBuf::WrapMode wrap, ROI roi, int nthreads)
+ImageBufAlgo::warp(const ImageBuf& src, M33fParam M, const Filter2D* filter,
+                   bool recompute_roi, ImageBuf::WrapMode wrap, ROI roi,
+                   int nthreads)
 {
     ImageBuf result;
     bool ok = warp(result, src, M, filter, recompute_roi, wrap, roi, nthreads);
@@ -329,10 +330,9 @@ ImageBufAlgo::warp(const ImageBuf& src, const Imath::M33f& M,
 
 
 ImageBuf
-ImageBufAlgo::warp(const ImageBuf& src, const Imath::M33f& M,
-                   string_view filtername, float filterwidth,
-                   bool recompute_roi, ImageBuf::WrapMode wrap, ROI roi,
-                   int nthreads)
+ImageBufAlgo::warp(const ImageBuf& src, M33fParam M, string_view filtername,
+                   float filterwidth, bool recompute_roi,
+                   ImageBuf::WrapMode wrap, ROI roi, int nthreads)
 {
     ImageBuf result;
     bool ok = warp(result, src, M, filtername, filterwidth, recompute_roi, wrap,

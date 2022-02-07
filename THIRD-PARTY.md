@@ -34,6 +34,11 @@ SPDX-License-Identifier: BSD-3-Clause
   The sample OpenColorIO configurations in our testsuite are borrowed from
   this ASWF project, also BSD-3-Clause licensed.
 
+* OpenEXR/Imath (c) Copyright contributors to the OpenEXR Project.
+  https://github.com/AcademySoftwareFoundation/Imath
+
+  Some templates in vecparam.h were first developed for Imath.
+
 * DPX reader/writer (c) Copyright 2009 Patrick A. Palmer.
   https://github.com/patrickpalmer/dpx
 
