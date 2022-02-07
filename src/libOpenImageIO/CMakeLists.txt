@@ -126,24 +126,10 @@ target_compile_features (OpenImageIO
 target_link_libraries (OpenImageIO
         PUBLIC
             OpenImageIO_Util
-            # For OpenEXR/Imath 3.x:
-            $<TARGET_NAME_IF_EXISTS:Imath::Imath>
-            $<TARGET_NAME_IF_EXISTS:Imath::Half>
-            # For OpenEXR >= 2.4/2.5 with reliable exported targets
-            $<TARGET_NAME_IF_EXISTS:IlmBase::Imath>
-            $<TARGET_NAME_IF_EXISTS:IlmBase::Half>
-            # For OpenEXR <= 2.3:
-            ${ILMBASE_LIBRARIES}
-            ${GCC_ATOMIC_LIBRARIES}
+        ${OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY}
+            ${OPENIMAGEIO_IMATH_TARGETS}
         PRIVATE
-            # For OpenEXR/Imath 3.x:
-            $<TARGET_NAME_IF_EXISTS:OpenEXR::OpenEXR>
-            # For OpenEXR >= 2.4/2.5 with reliable exported targets
-            $<TARGET_NAME_IF_EXISTS:OpenEXR::IlmImf>
-            $<TARGET_NAME_IF_EXISTS:IlmBase::IlmThread>
-            $<TARGET_NAME_IF_EXISTS:IlmBase::Iex>
-            # For OpenEXR <= 2.3:
-            ${OPENEXR_LIBRARIES}
+            ${OPENIMAGEIO_OPENEXR_TARGETS}
             ${OpenCV_LIBRARIES}
             ${SANITIZE_LIBRARIES}
             ${format_plugin_libs} # Add all the target link libraries from the plugins

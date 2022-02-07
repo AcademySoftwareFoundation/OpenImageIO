@@ -5,7 +5,8 @@
 // clang-format off
 
 #pragma once
-
+#ifndef OIIO_IMATH_H_INCLUDED
+#define OIIO_IMATH_H_INCLUDED 1
 
 // Determine which Imath we're dealing with and include the appropriate
 // headers.
@@ -23,3 +24,5 @@
 #   include <OpenEXR/ImathVec.h>
 #   include <OpenEXR/half.h>
 #endif
+
+#endif // !defined(OIIO_IMATH_H_INCLUDED)
