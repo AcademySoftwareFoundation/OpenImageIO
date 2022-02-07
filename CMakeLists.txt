@@ -264,7 +264,6 @@ write_basic_package_version_file (
 export (EXPORT OIIO_EXPORTED_TARGETS FILE "${CMAKE_BINARY_DIR}/${OIIO_TARGETS_EXPORT_NAME}")
 
 # generate the config file from the template in the binary dir
-include(GNUInstallDirs) # Needed to populate the package config with CMAKE_INSTALL_INCLUDEDIR, CMAKE_INSTALL_LIBDIR
 configure_package_config_file ("${PROJECT_SOURCE_DIR}/src/cmake/Config.cmake.in"
         "${OIIO_PROJECT_CONFIG}"
         INSTALL_DESTINATION "${OIIO_CONFIG_INSTALL_DIR}")
