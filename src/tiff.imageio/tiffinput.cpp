@@ -1288,6 +1288,12 @@ TIFFInput::readspec(bool read_meta)
         m_spec.attribute("oiio:SHA-1", sha);
         updatedDesc = true;
     }
+    std::string handed = Strutil::excise_string_after_head(desc,
+                                                           "oiio:handed=");
+    if (handed.size() && (handed == "left" || handed == "right")) {
+        m_spec.attribute("handed", handed);
+        updatedDesc = true;
+    }
 
     if (updatedDesc) {
         string_view d(desc);

@@ -5314,6 +5314,8 @@ prep_texture_config(ImageSpec& configspec, ParamValueList& fileoptions)
                          fileoptions.get_string("bumpformat", "auto"));
     configspec.attribute("maketx:uvslopes_scale",
                          fileoptions.get_float("uvslopes_scale", 0.0f));
+    if (fileoptions.contains("handed"))
+        configspec.attribute("handed", fileoptions.get_string("handed"));
 
     // The default values here should match the initialized values
     // in src/maketx/maketx.cpp

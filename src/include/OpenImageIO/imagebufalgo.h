@@ -2037,6 +2037,8 @@ enum MakeTextureMode {
 ///    - `worldtoscreen` (matrix) : World-to-screen space matrix of the view.
 ///    - `worldtoNDC` (matrix) :    World-to-NDC space matrix of the view.
 ///    - `wrapmodes` (string) :     Default: "black,black"
+///    - `handed` (string) :        "left" or "right" reveals the handedness of
+///                                 the coordinates for normal maps. ("")
 ///    - `maketx:verbose` (int) :   How much detail should go to outstream (0).
 ///    - `maketx:runstats` (int) :  If nonzero, print run stats to outstream (0).
 ///    - `maketx:resize` (int) :    If nonzero, resize to power of 2. (0)
