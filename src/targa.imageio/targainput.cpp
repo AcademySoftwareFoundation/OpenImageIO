@@ -342,20 +342,16 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
             // software
             if (!ioread(buf.c, 41, 1))
                 return false;
+            uint16_t n;
+            char l;
+            if (!read(n) || !read(l))
+                return false;
             if (buf.c[0]) {
                 // tack on the version number and letter
-                uint16_t n;
-                char l;
-                if (!read(n) || !read(l))
-                    return false;
                 sprintf((char*)&buf.c[strlen((char*)buf.c)], " %u.%u%c",
                         n / 100, n % 100, l != ' ' ? l : 0);
                 m_spec.attribute("Software", (char*)buf.c);
             }
-
-            // software version
-            if (!ioread(buf.c, 3, 1))
-                return false;
 
             // background (key) colour
             if (!ioread(buf.c, 4, 1))
