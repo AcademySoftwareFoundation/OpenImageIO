@@ -1827,6 +1827,19 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
             outstream << "  AverageColor: " << avgstr << std::endl;
     }
 
+    string_view handed = configspec.get_string_attribute("handed");
+    if (handed == "right" || handed == "left") {
+        if (out->supports("arbitrary_metadata")) {
+            dstspec.attribute("handed", handed);
+        } else {
+            desc += Strutil::fmt::format("{}oiio:handed={}",
+                                         desc.length() ? " " : "", handed);
+            updatedDesc = true;
+        }
+        if (verbose)
+            outstream << "  Handed: " << handed << std::endl;
+    }
+
     if (updatedDesc) {
         dstspec.attribute("ImageDescription", desc);
     }

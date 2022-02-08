@@ -1469,6 +1469,10 @@ Writing images
       `:cdfbits=` *int*
         In conjunction with `cdf=1`, specifies the number of bits to use for
         the size of the CDF table (default: 8, meaning 256 bins).
+      `:handed=` *string*
+        Specifies the handedness of a vector displacement map or normal map
+        when using tangent space coordinates. Valid values are "left" or
+        "right" (default: none).
 
     Examples::
 

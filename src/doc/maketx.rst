@@ -490,6 +490,14 @@ Command-line arguments are:
 
    These options were first added in OpenImageIO 2.3.10.
 
+.. option:: --handed <value>
+
+   Adds a "handed" metadata to the resulting texture, which reveals the
+   handedness of vector displacement maps or normal maps, when expressed in
+   tangent space. Possible values are `left` or `right`.
+
+   This option was first added in OpenImageIO 2.4.0.2.
+
 
 .. sec-oiiotooltex:
 

@@ -186,6 +186,7 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
     std::string colorconfigname;
     std::string channelnames;
     std::string bumpformat = "auto";
+    std::string handed;
     std::vector<std::string> string_attrib_names, string_attrib_values;
     std::vector<std::string> any_attrib_names, any_attrib_values;
     filenames.clear();
@@ -311,6 +312,8 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
     ap.arg("--bumpformat %s:NAME", &bumpformat)
       .help("Specify the interpretation of a 3-channel input image for --bumpslopes: \"height\", \"normal\" or \"auto\" (default).");
 //                  "--envcube", &envcubemode, "Create cubic env map (file order: px, nx, py, ny, pz, nz) (UNIMP)",
+    ap.arg("--handed %s:STRING", &handed)
+      .help("Specify the handedness of a vector or normal map: \"left\", \"right\", or \"\" (default).");
 
     ap.separator(colortitle_help_string());
     ap.arg("--colorconfig %s:FILENAME", &colorconfigname)
@@ -437,6 +440,8 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
         configspec.attribute("maketx:mipimages", Strutil::join(mipimages, ";"));
     if (bumpslopesmode)
         configspec.attribute("maketx:bumpformat", bumpformat);
+    if (handed.size())
+        configspec.attribute("handed", handed);
     configspec.attribute("maketx:cdf", cdf);
     configspec.attribute("maketx:cdfsigma", cdfsigma);
     configspec.attribute("maketx:cdfbits", cdfbits);
