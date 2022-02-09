@@ -3971,7 +3971,7 @@ quality of 50 (pretty severe compression):
 .. code-block:: python
 
     img = ImageBuf ("scan.tif")
-    img.set_write_tiles (16, 16)
+    img.set_write_tiles (64, 64)
     write_image (img, "tile.tif")
 
     img = ImageBuf ("tile.tif")
