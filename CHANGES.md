@@ -8,6 +8,25 @@ New minimum dependencies and compatibility changes:
   been migrated to OpenVDB. #3151 (2.4.0)
 
 New major features and public API changes:
+* Imath header and class hiding:
+    - Header includes have been shuffled around so that Imath headers are not
+      included from OIIO headers where they are not needed, and some OIIO
+      headers that need Imath types only for few function parameters now guard
+      those functions with `#if` so that Imath-taking functions are not
+      visible unless the calling app has previously had an `#include` of
+      Imath. If your app uses Imath types but did not include the right Imath
+      headers (relying on the accidental fact of other OIIO headers
+      transitively including them), you may need to adjust your includes.
+      #3301 #3332 (2.4.0.2)
+    - `OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY` is a new CMake cache variable
+      at OIIO build time that controls whether the Imath library dependencies
+      will be declared as PUBLIC (default) or PRIVATE target dependencies of
+      libOpenImageIO and libOpenImageIO_Util. #3322 (4.2.0.2)
+    - For *downstream projects* that consume OIIO's exported cmake config
+      files, setting CMake variable `OPENIMAGEIO_CONFIG_DO_NOT_FIND_IMATH` to
+      true will skip the find_depencency() calls for Imath and OpenEXR. To
+      clarify, this is not a variable that has any effect when building OIIO,
+      it's something set in the downstream project itself.  #3322 (4.2.0.2)
 * The dithering that happens when saving high bit depth image data to low bit
   depth formats has been improved in several ways. It now applies when writing
   >8 bit data to <= 8 bit files, not just when the source is float or half.
@@ -83,6 +102,18 @@ New major features and public API changes:
   an input image is a simple gamma-corrected space will now call the color
   space "GammaX.Y" (previously we sometimes used this, but sometimes called it
   "GammaCorrectedX.Y"). #3202 (2.4.0)
+* `oiioversion.h` now defines symbols `OIIO_USING_IMATH_VERSION_MAJOR` and
+  `OIIO_USING_IMATH_VERSION_MINOR` that reveal which Imath version was used
+  internally to OIIO when it was build (which may be different than the
+  version found when the downstream app is being compiled). #3305 (2.4.0.1)
+* Most of the major APIs (including ImageInput, ImageOutput, and ImageBuf)
+  that took a std::string or string_view to indicate a filename (assumed to
+  support UTF-8 encoding of Unicode filenames) now have additional versions
+  that directly take a `std::wstring`, thus supporting UTF-16 Unicode
+  filenames as "wide strings". #3312 #3318 (2.4.0.1)
+* The ColorConfig API adds new calls `getDisplayViewColorSpaceName()` and
+  `getDisplayViewLooks()` that expose the underlying OpenColorIO
+  functionality. #3319 (2.4.0.2)
 
 Performance improvements:
 * Raise the default ImageCache default tile cache from 256MB to 1GB. This
@@ -113,6 +144,8 @@ Fixes and feature enhancements:
     - IBA functions taking a `cspan<>` now more flexibly can be passed
       an init list like `{ 0.2f, 0.4f, 0.5f }` instead of needing to wrap it
       in a `cspan<float>()` constructor. #3257 (2.3.12/2.4.0)
+    - `make_texture()`: ensure that "maketx:ignore_unassoc" is honored.
+      #3269 (2.4.0.1/2.3.12)
 * ImageCache / TextureSystem / maketx:
     - When textures are created with the "monochrome_detect" feature enabled,
       which turns RGB textures where all channels are always equal into true
@@ -126,11 +159,19 @@ Fixes and feature enhancements:
       for tile-reading errors encountered during ImageBuf iterator use, and
       ImageCache errors encountered when using the TextureSystem. #3233
       (2.4.0)
+    - Support an additional UDIM pattern `<UVTILE>`, which is specified by
+      MaterialX. #3280 #3285 (2.3.12/2.4.0.1)
+    - The `maketx --handed` option, or `oiiotool -attrib -otex:handed=...`, or
+      adding "handed" metadata to the configuration ImageSpec being passed to
+      `IBA::make_texture()` is now supported for communicating the handedness
+      of a vector displacement or normal map. #3331 (2.4.0.2)
 * oiiotool:
     - `--ch` now has virtually no expense if the arguments require no change
       to the channel order or naming (previously, it would always incur an
       image allocation and copy even if no real work needed to be done). #3068
       (2.4.0/2.3.8)
+    - `--ch` now warns if you specify a channel name that was not present
+      in the input image. #3290 (2.4.0.1)
     - `--runstats` timing report has been improved and now more accurately
       attributes time to each operation. In particular, input I/O is now
       credited to "-i" rather than being incorrectly attributed to the other
@@ -195,6 +236,12 @@ Fixes and feature enhancements:
       3.1.3, the default zip compression has been changed from 6 to 4, which
       writes compressed files significantly (tens of percent) faster, but only
       increases compressed file size by 1-2%. #3157 (2.4.0/2.3.10)
+* PNG:
+    - Assume sRGB color space as default when no color space attribute is
+      in the file. #3321 (2.4.0.2/2.3.13)
+* PPM:
+    - Mark all PPM files as Rec709 color space, which they are by
+      specification. #3321 (2.4.0.2/2.3.13)
 * PSD:
     - IOProxy support. #3220 (2.4.0)
 * RAW:
@@ -208,6 +255,12 @@ Fixes and feature enhancements:
       (2.4.0/2.3.9.1) #3162 (2.4.0/2.3.10)
     - Fixed bug when reading x-flipped images. #3162 (2.4.0/2.3.10)
     - IOProxy support. #3221 (2.4.0)
+    - Better interpretation of TGA 1.0 files with alpha that is zero
+      everywhere. Be more consistent with Targa attributes all being called
+      "targa:foo". Add "targa:version" to reveal whether the file was TGA 1.0
+      or 2.0 version of the format. #3279 (2.4.0.1/2.3.12)
+    - Fix parsing of TGA 2.0 extension area when the software name was
+      missing form the header. #3323 (2.4.0.2/2.3.13)
 * TIFF:
     - IOProxy is now supported for TIFF output. #3075 (2.4.0/2.3.8)
     - Honor zip compression quality request when writing TIFF. #3110
@@ -216,6 +269,16 @@ Fixes and feature enhancements:
       #3158 (2.4.0)
     - Support for palette images with 16 bit palette indices. #3262
       (2.4.0/2.3.12)
+    - Gracefully handle missing ExtraSamples tag. #3287 (2.4.0.1/2.3.12)
+    - New output configuration hint: "tiff:write_extrasamples" (default: 1),
+      if set to 0, will cause the TIFF output to NOT include the required
+      EXTRASAMPLES tag in the header. This is not recommended, but fixes
+      a specific problem in some circumstances where PhotoShop misbehaves
+      when the extrasamples tag is present. #3289 (2.4.0.1)
+    - No longer write IPTC blocks to the TIFF header by default, it caused
+      trouble and was sometimes corrupted. You can force it to write an IPTC
+      block by using the output open configuration hint "tiff:write_iptc" set
+      to nonzero. #3302 (2.4.0.1)
 * WebP:
     - Fix previous failure to properly set the "oiio:LoopCount" metadata
       when reading animated webp images. #3183 (2.4.0/2.3.10)
@@ -250,6 +313,7 @@ Developer goodies / internals:
     - A new version of `searchpath_split` returns the vector of strings rather
       than needing to be passed a reference. #3154 (2.4.0/2.3.10)
     - New `write_binary_file()` utility function. #3199 (2.4.0/2.3.10)
+    - `searchpath_split()` fixes to better handle empty paths. #3306 (2.4.0.1)
 * fmath.h:
     - Added `round_down_to_multiple()`. Also, more correctly handle
       `round_to_multiple()` results when the value is < 0. #3104
@@ -263,9 +327,20 @@ Developer goodies / internals:
       meant for II and IO subclass implementations to use, not users of these
       classes) for helping to implement IOProxy support in format readers and
       writers. #3203 #3222 (2.4.0)
+* simd.h:
+    - simd.h: Better guards to make it safe to include from Cuda. #3291 #3292
+      (2.4.0.1/2.3.12)
 * strutil.h:
     - New utility functions: parse_values(), scan_values(), scan_datetime()
       #3173 #3177 (2.4.0/2.3.10), edit_distance() #3229 (2.4.0/2.3.11)
+    - The `utf8_to_utf16()` and `ut16_to_utf8()` utilities are now exposed on
+      all platforms, not just windows (and their internals have been
+      modernized). #3307 (2.4.0.1)
+    - `Strutil::isspace()` is a safe alternative to C isspace(), that works
+      even for signed characters. #3310 (2.4.1.0)
+* sysutil.h:
+    - The `Term` class now recognizes a wider set of terminal emulators as
+      supporting color output. #3185 (2.4.0)
 * timer.h:
     - `Timer::add_seconds()` and `Timer::add_ticks()` allows add/subtract
       directly to a timer's elapsed value. #3070 (2.4.0/2.3.8)
@@ -274,11 +349,10 @@ Developer goodies / internals:
       friendly. #3188 (2.4.0/2.3.10)
     - TypeDesc constructor from a string now accepts "box2f" and "box3f"
       as synonyms for "box2" and "box3", respectively. #3183 (2.4.0/2.3.10)
-* sysutil.h:
-    - The `Term` class now recognizes a wider set of terminal emulators as
-      supporting color output. #3185 (2.4.0)
 * oiiotool internals have all been converted to use the new fmt style for
   error messages and warnings. #3240 (2.4.0)
+* Internals are working toward removing all uses of string_view::c_str(),
+  since that isn't part of C++17 std::string_view. #3315 (2.4.0.1)
 
 Build/test system improvements and platform ports:
 * CMake build system and scripts:
@@ -307,6 +381,17 @@ Build/test system improvements and platform ports:
       rather than the confusingly generic "CI" #3211 (2.4.0/2.3.11)
     - If CMake variable `BUILD_TESTING` is OFF, don't do any automatic
       downloading of missing test data. #3227 (2.3.11/2.4.0)
+    - Fixes to FindOpenColorIO.cmake module, now it prefers an OCIO exported
+      cmake config (for OCIO 2.1+) unless OPENCOLORIO_NO_CONFIG=ON is set.
+      #3278 (2.4.0.1/2.3.12)
+    - Fix problems with FindOpenEXR build script for Windows. #3281
+      (2.4.0.1/2.3.12)
+    - New CMake cache variable `DOWNSTREAM_CXX_STANDARD` specifies which C++
+      standard is the minimum for downstream projects (currently 14), which
+      may be less than the `CMAKE_CXX_STANDARD` that specifies which C++
+      standard we are using to build OIIO itself. #3288 (2.4.0.1)
+    - The exported cmake configs now use relative paths so they are
+      relocatable. #3302 (2.4.0.1)
 * Dependency version support:
     - When using C++17, use std::gcd instead of boost. #3076 (2.4.0)
     - When using C++17, use `inline constexpr` instead of certain statics.
@@ -319,6 +404,9 @@ Build/test system improvements and platform ports:
     - Deal with the fact that OpenColorIO has changed its default branch
       name to "main". #3169 (2.4.0/2.3.10/2.2.20)
     - pybind11 v2.9.0 incorporated into our testing and CI. #3248
+    - Fix clang10 compile warnings. #3272 (2.4.0.1/2.3.12)
+    - Fixes to deal with changes in fmtlib master. #3327 (2.4.0.2/2.3.13)
+    - Support for ffmpeg 5.0. #3282 (2.4.0.2/2.3.13)
 * Testing and Continuous integration (CI) systems:
     - Properly test against all the versions of VFX Platform 2022. #3074
       (2.4.0)
@@ -331,11 +419,17 @@ Build/test system improvements and platform ports:
       named format, as well as to preserve the temp files for inspection.
       #3201 (2.4.0/2.3.10)
     - Add an HDR test (we never had one before). #3218 (2.4.0)
+    - Fix bugs in the build_opencolorio.bash script, did not correctly handle
+      installation into custom directories. #3278 (2.4.0.1/2.3.12)
+    - Failed build artifact storage is revised to save more cmake-related
+      artifacts to help debugging. #3311 (2.4.0.1)
 * Platform support:
     - Fix when building with Clang on big-endian architectures. #3133
       (2.4.0/2.3.9)
     - Improvements to NetBSD and OpenBSD support. #3137. (2.4.0/2.3.9)
     - Fixes for MSVS compile. #3168 (2.4.0/2.3.10)
+    - Fix problems on Windows with MSVC for Debug builds, where crashes were
+      occurring inside `isspace()` calls. #3310
 
 Notable documentation changes:
 * Add an oiiotool example of putting a border around an image. #3138
@@ -349,8 +443,51 @@ Notable documentation changes:
 * More code examples in both C++ and Python (especially for the ImageInput,
   ImageOutput, and ImageBufAlgo chapters). #3238 #3244 #3250 (2.3.11/2.4.0)
   #3263 (2.3.12/2.4.0)
+* Pretty much anyplace where a parameter that represents a filename, and it is
+  supporting UTF-8 encoding of Unicode filenames, the docs for that function
+  explicitly say that the string is assumed to be UTF-8. #3312 (2.4.0.1)
 
 
+Release 2.3.12 (1 Feb 2022) -- compared to 2.3.11
+--------------------------------------------------
+* oiiotool: Don't give spurious warnings about no output when the --colorcount
+  or --rangecheck commands are used. #3262
+* `oiiotool --pattern checker` fixed behavior so that if only the checker
+  width was specified but not the height, height will be equal to width. #3255
+* `oiiotool --point` lets you set individual pixels. #3256
+* Python: A new ImageBuf constructor was added that takes only a NumPy
+  ndarray, and deduces the resolution, channels, and format (pixel data type)
+  from the shape of the array. #3246
+* Python: Implement `ROI.copy()`. #3253
+* Python: ImageSpec and ParamValueList now support `'key' in spec`,
+  `del spec['key']`, and `spec.get('key', defaultval)` to more fully emulate
+  Python `dict` syntax for manipulating metadata. #3252 (2.3.12/2.4.0)
+* Python bug fix: fix `clamp()` when the min or max are just a float. Now
+  it uses that one value for all channels, instead of using it only for
+  the first channel. #3265
+* ImageSpec gained an additional constructor that takes a string
+  representation of the pixel data type (where it used to insist on a
+  TypeDesc), such as `ImageSpec(640, 480, 3, "uint8")`. This is especially
+  helpful for new/casual users, or when you want code to be maximally
+  readable. #3245
+* `Imagepec::getattribute()` new query token `"format"` can retrieve the pixel
+  data type. #3247
+* `IBA::make_texture()`: ensure that "maketx:ignore_unassoc" is honored. #3269
+* Support an additional UDIM pattern `<UVTILE>`, which is specified by
+  MaterialX. #3280
+* TIFF: support 16-bit palette images. #3260
+* TIFF: Gracefully handle missing ExtraSamples tag. #3287
+* Targa: Better interpretation of TGA 1.0 files with alpha that is zero
+  everywhere. Be more consistent with Targa attributes all being called
+  "targa:foo". Add "targa:version" to reveal whether the file was TGA 1.0
+  or 2.0 version of the format. #3279
+* simd.h: Better guards to make it safe to include from Cuda. #3291 #3292
+* Fix bugs in the build_opencolorio.bash script, did not correctly handle
+  installation into custom directories. #3278
+* Fixes to FindOpenColorIO.cmake module, now it prefers an OCIO exported cmake
+  config (for OCIO 2.1+) unless OPENCOLORIO_NO_CONFIG=ON is set. #3278
+* Docs: The ImageBufAlgo chapter now has examples for C++, Python, and
+  oiiotool for almost every operation. #3263
 
 Release 2.3.11 (1 Jan 2022) -- compared to 2.3.10
 --------------------------------------------------
@@ -938,6 +1075,9 @@ Developer goodies / internals:
       hashses collided.  #2786 (2.2.11/2.3.2.0)
     - ustring now guarantees that no two ustrings will return the exact same
       value for `hash()`. #2870 (2.3.3)
+    - ustring now explicitly disallows embedded NUL (0) characters in the
+      middle of a string. A ustring constructed from such a thing will
+      truncate the string after the first NUL. #3326 (2.4.0.2)
 
 Build/test system improvements and platform ports:
 * CMake build system and scripts:
@@ -1074,6 +1214,16 @@ Notable documentation changes:
 * Starting to use "sphinx_tabs" as a clear way to present how things should
   be done for different language bindings. #2768 (2.3.1.0)
 
+
+
+Release 2.2.20 (1 Feb 2022) -- compared to 2.2.19
+--------------------------------------------------
+* Fix some address sanitizer failures. #3160
+* Build/CI: Deal with OpenColor renaming its master branch to main. #3169
+* Windows: Fix error when compiling with MSVC. #3168
+* Fix excessive memory usage when saving EXR with many channels. #3176
+* TIFF: now works for 16-bit palette images. #3260
+* Fix ImageBuf::read bug for images of mixed per-channel data types. #3088
 
 Release 2.2.19 (1 Nov 2021) -- compared to 2.2.18
 --------------------------------------------------

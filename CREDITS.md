@@ -4,6 +4,7 @@ by first name.
 If you know of somebody that I missed or have corrections, please email:
 lg@openimageio.org
 
+* Adam Mains
 * Akihiro Yamasaki
 * Alan Jones
 * Alejandro Conty
@@ -116,6 +117,7 @@ lg@openimageio.org
 * Matteo F. Vescovi
 * Matthew E. Levine
 * Max Liani
+* Merwan Achibet
 * Michel Lerenard
 * Michel Normand
 * Mikael Sundell
@@ -129,10 +131,12 @@ lg@openimageio.org
 * Nixon Kwok
 * Northon Patrick
 * Nuno Cardoso
+* Ole Gulbrandsen
 * Ott Tinn
 * Pascal Lecocq
 * Patrick Hodoul
 * Patrick Piché
+* Paul Melis
 * Paul Molodowitch
 * Pavel Karneliuk
 * Pete Larabell
@@ -142,6 +146,7 @@ lg@openimageio.org
 * Radu Arjocu
 * Ramon Montoya
 * Ray Molenkamp
+* Rémi Achard
 * Richard Shaw
 * Robert Matusewicz
 * Roeland Schoukens
@@ -153,6 +158,7 @@ lg@openimageio.org
 * Samuel Nicholas
 * Scott Wilson
 * Sebastian Elsner
+* SebTV
 * Seifeddine Dridi
 * Sergey Sharybin
 * Shane Ambler
