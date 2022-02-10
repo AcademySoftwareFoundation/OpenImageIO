@@ -237,7 +237,6 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
         return false;
     }
 
-    static std::once_flag init_flag;
     const char* file_name = name.c_str();
     av_log_set_level(AV_LOG_FATAL);
     if (avformat_open_input(&m_format_context, file_name, NULL, NULL) != 0) {
@@ -607,8 +606,7 @@ FFmpegInput::read_frame(int frame)
             finished = receive_frame(m_codec_context, m_frame, &pkt);
 
             double pts = 0;
-            if (static_cast<int64_t>(m_frame->pts)
-                != int64_t(AV_NOPTS_VALUE)) {
+            if (static_cast<int64_t>(m_frame->pts) != int64_t(AV_NOPTS_VALUE)) {
                 pts = av_q2d(
                           m_format_context->streams[m_video_stream]->time_base)
                       * m_frame->pts;
@@ -619,8 +617,7 @@ FFmpegInput::read_frame(int frame)
             m_last_search_pos = current_frame;
 
             if (current_frame == frame && finished) {
-                avpicture_fill(m_rgb_frame,
-                               &m_rgb_buffer[0], m_dst_pix_format,
+                avpicture_fill(m_rgb_frame, &m_rgb_buffer[0], m_dst_pix_format,
                                m_codec_context->width, m_codec_context->height);
                 sws_scale(m_sws_rgb_context,
                           static_cast<uint8_t const* const*>(m_frame->data),
