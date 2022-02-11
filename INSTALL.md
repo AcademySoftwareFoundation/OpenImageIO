@@ -35,7 +35,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
        ACES support and much better recognition of camera metadata; if
        building with C++17 or higher, LibRaw >= 0.20 is necessary)
  * If you want support for a wide variety of video formats:
-     * ffmpeg >= 2.6 (tested through 4.4)
+     * ffmpeg >= 2.6 (tested through 5.0)
  * If you want support for jpeg 2000 images:
      * **OpenJpeg >= 2.0** (tested through 2.4)
  * If you want support for Field3D files:
