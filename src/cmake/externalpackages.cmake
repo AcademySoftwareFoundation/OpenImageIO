@@ -134,6 +134,8 @@ set (OPENIMAGEIO_OPENEXR_TARGETS
             ${OPENEXR_LIBRARIES} )
 set (OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY "PUBLIC" CACHE STRING
      "Should we expose Imath library dependency as PUBLIC or PRIVATE")
+set (OPENIMAGEIO_CONFIG_DO_NOT_FIND_IMATH OFF CACHE BOOL
+     "Exclude find_dependency(Imath) from the exported OpenImageIOConfig.cmake")
 
 # JPEG -- prefer Turbo-JPEG to regular libjpeg
 checked_find_package (JPEGTurbo
