@@ -455,7 +455,8 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
                 // Need to do it by hand for some reason.  Future expansion in which
                 // only a subset of channels are copied, or some such.
                 std::vector<char> pixels((size_t)outspec.image_bytes(true));
-                ok = in->read_image(outspec.format, &pixels[0]);
+                ok = in->read_image(subimage, miplevel, 0, outspec.nchannels,
+                                    outspec.format, &pixels[0]);
                 if (!ok) {
                     std::cerr << "iconvert ERROR reading \"" << in_filename
                               << "\" : " << in->geterror() << "\n";

@@ -40,42 +40,43 @@ static bool compute_stats = false;
 
 
 static void
-print_sha1(ImageInput* input)
+print_sha1(ImageInput* input, int subimage, int miplevel)
 {
-    using Strutil::printf;
+    using Strutil::print;
     SHA1 sha;
-    const ImageSpec& spec(input->spec());
+    ImageSpec spec = input->spec_dimensions(subimage, miplevel);
     if (spec.deep) {
         // Special handling of deep data
         DeepData dd;
-        if (!input->read_native_deep_image(dd)) {
+        if (!input->read_native_deep_image(subimage, miplevel, dd)) {
             std::string err = input->geterror();
             if (err.empty())
                 err = "could not read image";
-            printf("    SHA-1: %s\n", err);
+            print("    SHA-1: {}\n", err);
             return;
         }
         // Hash both the sample counts and the data block
         sha.append(dd.all_samples());
         sha.append(dd.all_data());
     } else {
-        imagesize_t size = input->spec().image_bytes(true /*native*/);
+        imagesize_t size = spec.image_bytes(true /*native*/);
         if (size >= std::numeric_limits<size_t>::max()) {
-            printf("    SHA-1: unable to compute, image is too big\n");
+            print("    SHA-1: unable to compute, image is too big\n");
             return;
         }
         std::unique_ptr<char[]> buf(new char[size]);
-        if (!input->read_image(TypeDesc::UNKNOWN /*native*/, &buf[0])) {
+        if (!input->read_image(subimage, miplevel, 0, spec.nchannels,
+                               TypeUnknown /*native*/, buf.get())) {
             std::string err = input->geterror();
             if (err.empty())
                 err = "could not read image";
-            printf("    SHA-1: %s\n", err);
+            print("    SHA-1: {}\n", err);
             return;
         }
         sha.append(&buf[0], size);
     }
 
-    printf("    SHA-1: %s\n", sha.digest().c_str());
+    print("    SHA-1: {}\n", sha.digest());
 }
 
 
@@ -90,8 +91,7 @@ read_input(const std::string& filename, ImageBuf& img, int subimage = 0,
     if (img.subimage() >= 0 && img.subimage() == subimage)
         return true;
 
-    if (img.init_spec(filename, subimage, miplevel)
-        && img.read(subimage, miplevel, false, TypeDesc::FLOAT))
+    if (img.read(subimage, miplevel, false, TypeDesc::FLOAT))
         return true;
 
     std::cerr << "iinfo ERROR: Could not read " << filename << ":\n\t"
@@ -487,7 +487,7 @@ print_info_subimage(int current_subimage, int max_subimages, ImageSpec& spec,
         // Before sha-1, be sure to point back to the highest-res MIP level
         ImageSpec tmpspec;
         input->seek_subimage(current_subimage, 0, tmpspec);
-        print_sha1(input);
+        print_sha1(input, current_subimage, 0);
     }
 
     if (verbose)

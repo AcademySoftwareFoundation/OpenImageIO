@@ -1292,10 +1292,12 @@ public:
     // eventually be removed. Try to replace these calls with ones to the
     // new variety of read_scanlines that takes an explicit subimage and
     // miplevel. These old versions are NOT THREAD-SAFE.
+    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
     bool read_scanlines (int ybegin, int yend, int z,
                          TypeDesc format, void *data,
                          stride_t xstride=AutoStride,
                          stride_t ystride=AutoStride);
+    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
     bool read_scanlines (int ybegin, int yend, int z,
                          int chbegin, int chend,
                          TypeDesc format, void *data,
@@ -1397,10 +1399,12 @@ public:
     // eventually be removed. Try to replace these calls with ones to the
     // new variety of read_tiles that takes an explicit subimage and
     // miplevel. These old versions are NOT THREAD-SAFE.
+    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
     bool read_tiles (int xbegin, int xend, int ybegin, int yend,
                      int zbegin, int zend, TypeDesc format, void *data,
                      stride_t xstride=AutoStride, stride_t ystride=AutoStride,
                      stride_t zstride=AutoStride);
+    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
     bool read_tiles (int xbegin, int xend, int ybegin, int yend,
                      int zbegin, int zend, int chbegin, int chend,
                      TypeDesc format, void *data, stride_t xstride=AutoStride,
@@ -1432,7 +1436,8 @@ public:
     /// @param  miplevel    The MIP level to read (0 is the highest
     ///                     resolution level).
     /// @param  chbegin/chend
-    ///                     The channel range to read.
+    ///                     The channel range to read. If chend is -1, it
+    ///                     will be set to spec.nchannels.
     /// @param  format      A TypeDesc describing the type of `data`.
     /// @param  data        Pointer to the pixel data.
     /// @param  xstride/ystride/zstride
@@ -1455,12 +1460,14 @@ public:
     // eventually be removed. Try to replace these calls with ones to the
     // new variety of read_image that takes an explicit subimage and
     // miplevel. These old versions are NOT THREAD-SAFE.
+    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
     virtual bool read_image (TypeDesc format, void *data,
                              stride_t xstride=AutoStride,
                              stride_t ystride=AutoStride,
                              stride_t zstride=AutoStride,
                              ProgressCallback progress_callback=NULL,
                              void *progress_callback_data=NULL);
+    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
     virtual bool read_image (int chbegin, int chend,
                              TypeDesc format, void *data,
                              stride_t xstride=AutoStride,
@@ -1468,8 +1475,10 @@ public:
                              stride_t zstride=AutoStride,
                              ProgressCallback progress_callback=NULL,
                              void *progress_callback_data=NULL);
+    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
     bool read_image (float *data) {
-        return read_image (TypeDesc::FLOAT, data);
+        return read_image (current_subimage(), current_miplevel(),
+                           0, -1, TypeFloat, data);
     }
 #endif
 
@@ -1533,12 +1542,14 @@ public:
 
 #ifndef OIIO_DOXYGEN
     // DEPRECATED(1.9), Now just used for back compatibility:
+    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
     bool read_native_deep_scanlines (int ybegin, int yend, int z,
                              int chbegin, int chend, DeepData &deepdata) {
         return read_native_deep_scanlines (current_subimage(), current_miplevel(),
                                            ybegin, yend, z,
                                            chbegin, chend, deepdata);
     }
+    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
     bool read_native_deep_tiles (int xbegin, int xend, int ybegin, int yend,
                                  int zbegin, int zend, int chbegin, int chend,
                                  DeepData &deepdata) {
@@ -1546,6 +1557,7 @@ public:
                                        xbegin, xend, ybegin, yend,
                                        zbegin, zend, chbegin, chend, deepdata);
     }
+    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
     bool read_native_deep_image (DeepData &deepdata) {
         return read_native_deep_image (current_subimage(), current_miplevel(),
                                        deepdata);

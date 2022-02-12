@@ -2376,16 +2376,19 @@ bool OIIO_API deep_holdout (ImageBuf &dst, const ImageBuf &src,
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
+//OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
 inline bool fill (ImageBuf &dst, const float *values,
                   ROI roi={}, int nthreads=0) {
     int nc (roi.defined() ? roi.nchannels() : dst.nchannels());
     return fill (dst, {values, nc}, roi, nthreads);
 }
+//OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
 inline bool fill (ImageBuf &dst, const float *top, const float *bottom,
                   ROI roi={}, int nthreads=0) {
     int nc (roi.defined() ? roi.nchannels() : dst.nchannels());
     return fill (dst, {top, nc}, {bottom, nc}, roi, nthreads);
 }
+//OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
 inline bool fill (ImageBuf &dst, const float *topleft, const float *topright,
                   const float *bottomleft, const float *bottomright,
                   ROI roi={}, int nthreads=0) {
@@ -2394,6 +2397,7 @@ inline bool fill (ImageBuf &dst, const float *topleft, const float *topright,
                  {bottomright, nc}, roi, nthreads);
 }
 
+//OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
 inline bool checker (ImageBuf &dst, int width, int height, int depth,
                      const float *color1, const float *color2,
                      int xoffset=0, int yoffset=0, int zoffset=0,
@@ -2403,44 +2407,54 @@ inline bool checker (ImageBuf &dst, int width, int height, int depth,
                     xoffset, yoffset, zoffset, roi, nthreads);
 }
 
+//OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
 inline bool add (ImageBuf &dst, const ImageBuf &A, const float *B,
                  ROI roi={}, int nthreads=0) {
     return add (dst, A, {B,A.nchannels()}, roi, nthreads);
 }
+//OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
 inline bool sub (ImageBuf &dst, const ImageBuf &A, const float *B,
                  ROI roi={}, int nthreads=0) {
     return sub (dst, A, {B,A.nchannels()}, roi, nthreads);
 }
+//OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
 inline bool absdiff (ImageBuf &dst, const ImageBuf &A, const float *B,
                      ROI roi={}, int nthreads=0) {
     return absdiff (dst, A, cspan<float>(B,A.nchannels()), roi, nthreads);
 }
+//OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
 inline bool mul (ImageBuf &dst, const ImageBuf &A, const float *B,
                  ROI roi={}, int nthreads=0) {
     return mul (dst, A, {B, A.nchannels()}, roi, nthreads);
 }
+//OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
 inline bool div (ImageBuf &dst, const ImageBuf &A, const float *B,
                  ROI roi={}, int nthreads=0) {
     return div (dst, A, {B, A.nchannels()}, roi, nthreads);
 }
+//OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
 inline bool mad (ImageBuf &dst, const ImageBuf &A, const float *B,
                  const ImageBuf &C, ROI roi={}, int nthreads=0) {
     return mad (dst, A, {B, A.nchannels()}, C, roi, nthreads);
 }
+//OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
 inline bool mad (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                  const float *C, ROI roi={}, int nthreads=0) {
     return mad (dst, A, C, B, roi, nthreads);
 }
+//OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
 inline bool mad (ImageBuf &dst, const ImageBuf &A, const float *B,
                  const float *C, ROI roi={}, int nthreads=0) {
     return mad (dst, A, {B, A.nchannels()}, {C, A.nchannels()}, roi, nthreads);
 }
 
+//OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
 inline bool pow (ImageBuf &dst, const ImageBuf &A, const float *B,
                  ROI roi={}, int nthreads=0) {
     return pow (dst, A, {B, A.nchannels()}, roi, nthreads);
 }
 
+//OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
 inline bool channel_sum (ImageBuf &dst, const ImageBuf &src,
                          const float *weights=nullptr, ROI roi={},
                          int nthreads=0) {
@@ -2448,6 +2462,7 @@ inline bool channel_sum (ImageBuf &dst, const ImageBuf &src,
                         roi, nthreads);
 }
 
+//OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
 inline bool channels (ImageBuf &dst, const ImageBuf &src,
                       int nchannels, const int *channelorder,
                       const float *channelvalues=nullptr,
@@ -2460,6 +2475,7 @@ inline bool channels (ImageBuf &dst, const ImageBuf &src,
                      shuffle_channel_names, nthreads);
 }
 
+//OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
 inline bool clamp (ImageBuf &dst, const ImageBuf &src,
                    const float *min=nullptr, const float *max=nullptr,
                    bool clampalpha01 = false,
@@ -2469,12 +2485,14 @@ inline bool clamp (ImageBuf &dst, const ImageBuf &src,
                   roi, nthreads);
 }
 
+//OIIO_DEPRECATED("use version that takes span<> instead of raw pointer (2.0)")
 inline bool isConstantColor (const ImageBuf &src, float *color,
                              ROI roi={}, int nthreads=0) {
     int nc = roi.defined() ? std::min(roi.chend,src.nchannels()) : src.nchannels();
     return isConstantColor (src, {color, color ? nc : 0}, roi, nthreads);
 }
 
+//OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
 inline bool color_count (const ImageBuf &src, imagesize_t *count,
                          int ncolors, const float *color,
                          const float *eps=nullptr,
@@ -2485,6 +2503,7 @@ inline bool color_count (const ImageBuf &src, imagesize_t *count,
                         roi, nthreads);
 }
 
+//OIIO_DEPRECATED("use version that takes span<> instead of raw pointer (2.0)")
 inline bool color_range_check (const ImageBuf &src, imagesize_t *lowcount,
                                imagesize_t *highcount, imagesize_t *inrangecount,
                                const float *low, const float *high,
@@ -2494,6 +2513,7 @@ inline bool color_range_check (const ImageBuf &src, imagesize_t *lowcount,
                               roi, nthreads);
 }
 
+//OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
 inline bool render_text (ImageBuf &dst, int x, int y, string_view text,
                          int fontsize, string_view fontname,
                          const float *textcolor) {

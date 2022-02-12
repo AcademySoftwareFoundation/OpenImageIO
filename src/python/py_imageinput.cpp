@@ -115,24 +115,6 @@ ImageInput_read_tiles(ImageInput& self, int subimage, int miplevel, int xbegin,
 
 
 py::object
-ImageInput_read_native_deep_scanlines_old(ImageInput& self, int ybegin,
-                                          int yend, int z, int chbegin,
-                                          int chend)
-{
-    std::unique_ptr<DeepData> dd;
-    bool ok = true;
-    {
-        py::gil_scoped_release gil;
-        dd.reset(new DeepData);
-        ok = self.read_native_deep_scanlines(ybegin, yend, z, chbegin, chend,
-                                             *dd);
-    }
-    return ok ? py::cast(dd.release()) : py::none();
-}
-
-
-
-py::object
 ImageInput_read_native_deep_scanlines(ImageInput& self, int subimage,
                                       int miplevel, int ybegin, int yend, int z,
                                       int chbegin, int chend)
@@ -342,10 +324,12 @@ declare_imageinput(py::module& m)
             "read_native_deep_scanlines",  // DEPRECATED(1.9), keep for back compatibility
             [](ImageInput& self, int ybegin, int yend, int z, int chbegin,
                int chend) {
-                return ImageInput_read_native_deep_scanlines_old(self, ybegin,
-                                                                 yend, z,
-                                                                 chbegin,
-                                                                 chend);
+                int subimage = self.current_subimage();
+                int miplevel = self.current_miplevel();
+                return ImageInput_read_native_deep_scanlines(self, subimage,
+                                                             miplevel, ybegin,
+                                                             yend, z, chbegin,
+                                                             chend);
             },
             "ybegin"_a, "yend"_a, "z"_a, "chbegin"_a, "chend"_a)
         .def("read_native_deep_tiles", &ImageInput_read_native_deep_tiles,

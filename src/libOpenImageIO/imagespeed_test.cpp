@@ -120,15 +120,16 @@ time_read_64_scanlines_at_a_time()
     for (ustring filename : input_filename) {
         auto in = ImageInput::open(filename.c_str());
         OIIO_ASSERT(in);
-        const ImageSpec& spec(in->spec());
+        ImageSpec spec   = in->spec_dimensions(0);
         size_t pixelsize = spec.nchannels * conversion.size();
         if (!pixelsize)
             pixelsize = spec.pixel_bytes(true);  // UNKNOWN -> native
         imagesize_t scanlinesize = spec.width * pixelsize;
         for (int y = 0; y < spec.height; y += 64) {
-            in->read_scanlines(0, 0, y + spec.y,
+            in->read_scanlines(/*subimage=*/0, /*miplevel=*/0, y + spec.y,
                                std::min(y + spec.y + 64, spec.y + spec.height),
-                               0, conversion, &buffer[scanlinesize * y]);
+                               0, 0, spec.nchannels, conversion,
+                               &buffer[scanlinesize * y]);
         }
         in->close();
     }
@@ -552,8 +553,8 @@ main(int argc, char** argv)
         // Use the first image
         auto in = ImageInput::open(input_filename[0].c_str());
         OIIO_ASSERT(in);
-        bufspec = in->spec();
-        in->read_image(conversion, &buffer[0]);
+        bufspec = in->spec(0, 0);
+        in->read_image(0, 0, 0, bufspec.nchannels, conversion, &buffer[0]);
         in->close();
         in.reset();
         std::cout << "Timing ways of writing images:\n";

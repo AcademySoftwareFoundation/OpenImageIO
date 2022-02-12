@@ -38,7 +38,7 @@ static std::string
 compute_sha1(Oiiotool& ot, ImageInput* input, int subimage)
 {
     SHA1 sha;
-    const ImageSpec& spec(input->spec());
+    ImageSpec spec = input->spec_dimensions(subimage);
     if (spec.deep) {
         // Special handling of deep data
         DeepData dd;
@@ -53,13 +53,14 @@ compute_sha1(Oiiotool& ot, ImageInput* input, int subimage)
         sha.append(dd.all_samples());
         sha.append(dd.all_data());
     } else {
-        imagesize_t size = input->spec().image_bytes(true /*native*/);
+        imagesize_t size = spec.image_bytes(true /*native*/);
         if (size >= std::numeric_limits<size_t>::max()) {
             ot.error("-info", "SHA-1: unable to compute, image is too big");
             return std::string();
         } else if (size != 0) {
             std::unique_ptr<char[]> buf(new char[size]);
-            if (!input->read_image(TypeDesc::UNKNOWN /*native*/, &buf[0])) {
+            if (!input->read_image(subimage, 0, 0, spec.nchannels,
+                                   TypeDesc::UNKNOWN /*native*/, &buf[0])) {
                 std::string err = input->geterror();
                 if (err.empty())
                     err = "could not read image";
@@ -110,11 +111,12 @@ print_nums(std::ostream& out, int n, const T* val, string_view sep = " ",
 template<typename T>
 static bool
 dump_flat_data(std::ostream& out, ImageInput* input,
-               const print_info_options& opt)
+               const print_info_options& opt, int subimage)
 {
-    const ImageSpec& spec(input->spec());
+    ImageSpec spec = input->spec_dimensions(subimage);
     std::vector<T> buf(spec.image_pixels() * spec.nchannels);
-    if (!input->read_image(BaseTypeFromC<T>::value, &buf[0])) {
+    if (!input->read_image(subimage, 0, 0, spec.nchannels,
+                           BaseTypeFromC<T>::value, &buf[0])) {
         Strutil::print(out, "    dump data Error: could not read image: {}\n",
                        input->geterror());
         return false;
@@ -193,14 +195,15 @@ dump_flat_data(std::ostream& out, ImageInput* input,
 
 
 static void
-dump_data(std::ostream& out, ImageInput* input, const print_info_options& opt)
+dump_data(std::ostream& out, ImageInput* input, const print_info_options& opt,
+          int subimage)
 {
     using Strutil::print;
-    const ImageSpec& spec(input->spec());
+    ImageSpec spec = input->spec_dimensions(subimage);
     if (spec.deep) {
         // Special handling of deep data
         DeepData dd;
-        if (!input->read_native_deep_image(dd)) {
+        if (!input->read_native_deep_image(subimage, 0, dd)) {
             print(out, "    dump data: could not read image\n");
             return;
         }
@@ -239,7 +242,7 @@ dump_data(std::ostream& out, ImageInput* input, const print_info_options& opt)
     } else {
         OIIO_UNUSED_OK bool ok = true;
         OIIO_DISPATCH_TYPES(ok, "dump_flat_data", dump_flat_data, spec.format,
-                            out, input, opt);
+                            out, input, opt, subimage);
     }
 }
 
@@ -740,7 +743,7 @@ print_info_subimage(std::ostream& out, Oiiotool& ot, int current_subimage,
     if (input && opt.dumpdata) {
         ImageSpec tmp;
         input->seek_subimage(current_subimage, 0, tmp);
-        dump_data(out, input, opt);
+        dump_data(out, input, opt, current_subimage);
     }
 
     if (opt.compute_stats
