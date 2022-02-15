@@ -11,5 +11,5 @@ file (GLOB python_srcs *.cpp)
 setup_python_module (TARGET    PyOpenImageIO
                      MODULE    OpenImageIO
                      SOURCES   ${python_srcs}
-                     LIBS      OpenImageIO
+                     LIBS      OpenImageIO ${OPENIMAGEIO_IMATH_TARGETS}
                      )

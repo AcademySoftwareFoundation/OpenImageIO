@@ -64,7 +64,7 @@ endmacro()
 # pybind11
 
 macro (setup_python_module)
-    cmake_parse_arguments (lib "" "TARGET;MODULE;LIBS" "SOURCES" ${ARGN})
+    cmake_parse_arguments (lib "" "TARGET;MODULE" "SOURCES;LIBS" ${ARGN})
     # Arguments: <prefix> <options> <one_value_keywords> <multi_value_keywords> args...
 
     set (target_name ${lib_TARGET})
@@ -83,9 +83,12 @@ macro (setup_python_module)
     target_link_libraries (${target_name}
                            PRIVATE ${lib_LIBS} ${SANITIZE_LIBRARIES})
 
-#    if (APPLE)
-#        set_target_properties (${target_name} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
-#    endif ()
+    set (_module_LINK_FLAGS "${VISIBILITY_MAP_COMMAND} ${EXTRA_DSO_LINK_ARGS}")
+    if (UNIX AND NOT APPLE)
+        # Hide symbols from any static dependent libraries embedded here.
+        set (_module_LINK_FLAGS "${_module_LINK_FLAGS} -Wl,--exclude-libs,ALL")
+    endif ()
+    set_target_properties (${target_name} PROPERTIES LINK_FLAGS ${_module_LINK_FLAGS})
 
 
     # Exclude the 'lib' prefix from the name
