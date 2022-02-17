@@ -216,7 +216,7 @@ static OIIO::pvt::UnitTestFailureCounter unit_test_failures;
             (void)++unit_test_failures))
 
 #define OIIO_CHECK_SIMD_EQUAL_THRESH(x, y, eps)                               \
-    (all(abs((x) - (y)) < (eps))                                              \
+    (all(abs((x) - (y)) <= (eps))                                             \
          ? ((void)0)                                                          \
          : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")     \
                        << __FILE__ << ":" << __LINE__ << ":\n"                \
