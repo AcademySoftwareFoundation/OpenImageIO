@@ -3645,10 +3645,11 @@ OIIOTOOL_OP(warp, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     std::string filtername = op.options()["filter"];
     bool highlightcomp     = op.options().get_int("highlightcomp");
     bool recompute_roi     = op.options().get_int("recompute_roi");
+    std::string wrapname   = op.options().get_string("wrap", "default");
     std::vector<float> M(9);
     if (Strutil::extract_from_list_string(M, op.args(1)) != 9) {
         ot.error(op.opname(),
-                 "expected 9 comma-separatd floats to form a 3x3 matrix");
+                 "expected 9 comma-separated floats to form a 3x3 matrix");
         return false;
     }
     bool ok = true;
@@ -3661,8 +3662,9 @@ OIIOTOOL_OP(warp, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
         ok &= ImageBufAlgo::rangecompress(tmpimg, *src);
         src = &tmpimg;
     }
+    ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string(wrapname);
     ok &= ImageBufAlgo::warp(*img[0], *src, *(Imath::M33f*)&M[0], filtername,
-                             0.0f, recompute_roi, ImageBuf::WrapDefault);
+                             0.0f, recompute_roi, wrap);
     if (highlightcomp && ok) {
         // re-expand the range in place
         ok &= ImageBufAlgo::rangeexpand(*img[0], *img[0]);
