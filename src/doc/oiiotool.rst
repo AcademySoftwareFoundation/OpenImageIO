@@ -3129,8 +3129,8 @@ current top image.
       match on aspect ratio and centering (partial pixel shift if
       necessary), whereas the default (0) will only preserve aspect ratio
       and centering to the precision of a whole pixel.
-    - `wrap=` *w* : For "exact" aspect ratio fitting, this determines the
-      wrap mode used for the resizing kernel (default: `black`, other
+    - `wrap=` *wrapmode* : For "exact" aspect ratio fitting, this determines
+      the wrap mode used for the resizing kernel (default: `black`, other
       choices include `clamp`, `periodic`, `mirror`).
 
     Examples::
@@ -3255,6 +3255,10 @@ current top image.
       `:recompute_roi=` *val*
         If nonzero, recompute the pixel data window to exactly hold the
         transformed image (default=0).
+
+      `:wrap=` *wrapmode*
+        The wrap mode to use when sampling the image for the warp. The default
+        is `black`; other choices include `clamp`, `periodic`, `mirror`.
 
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
