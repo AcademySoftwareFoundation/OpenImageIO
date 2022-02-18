@@ -3940,6 +3940,7 @@ action_pixelaspect(int argc, const char* argv[])
     std::string filtername = options["filter"];
 
     if (ot.debug) {
+        std::cout << "Performing '" << command << "'\n";
         std::cout << "  Scaling "
                   << format_resolution(Aspec->full_width, Aspec->full_height,
                                        Aspec->full_x, Aspec->full_y)
@@ -3962,11 +3963,12 @@ action_pixelaspect(int argc, const char* argv[])
             = scale_full_width;
         A->spec(0, 0)->full_height = (*A)(0, 0).specmod().full_height
             = scale_full_height;
-        A->spec(0, 0)->attribute("PixelAspectRatio", new_paspect);
+        (*A)(0, 0).specmod().attribute("PixelAspectRatio", new_paspect);
         if (xres)
-            A->spec(0, 0)->attribute("XResolution", scale_xres);
+            (*A)(0, 0).specmod().attribute("XResolution", scale_xres);
         if (yres)
-            A->spec(0, 0)->attribute("YResolution", scale_yres);
+            (*A)(0, 0).specmod().attribute("YResolution", scale_yres);
+        A->update_spec_from_imagebuf(0, 0);
         // Now A,Aspec are for the NEW resized top of stack
     }
 
