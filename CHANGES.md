@@ -21,7 +21,7 @@ New major features and public API changes:
     - `OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY` is a new CMake cache variable
       at OIIO build time that controls whether the Imath library dependencies
       will be declared as PUBLIC (default) or PRIVATE target dependencies of
-      libOpenImageIO and libOpenImageIO_Util. #3322 (4.2.0.2)
+      libOpenImageIO and libOpenImageIO_Util. #3322 (4.2.0.2) #3339 (4.2.0.3)
     - For *downstream projects* that consume OIIO's exported cmake config
       files, setting CMake variable `OPENIMAGEIO_CONFIG_DO_NOT_FIND_IMATH` to
       true will skip the find_depencency() calls for Imath and OpenEXR. To
@@ -72,6 +72,9 @@ New major features and public API changes:
     the original for that pixel. #3198 (2.4.0/2.3.10)
   - `--point` lets you color one or more pixels in an image (analogous to
     IBA::render_point). #3256 (2.4.0)
+  - `--warp` now takes an optional modifier `:wrap=...` that lets you set
+    which wrap mode to use when sampling past the edge of the source image.
+    #3341 (2.4.0.3)
 * ImageSpec :
   - New constructors to accept a string for the data type. #3245 (2.4.0/2.3.12)
 * ImageBuf/ImageBufAlgo :
@@ -146,6 +149,9 @@ Fixes and feature enhancements:
       in a `cspan<float>()` constructor. #3257 (2.3.12/2.4.0)
     - `make_texture()`: ensure that "maketx:ignore_unassoc" is honored.
       #3269 (2.4.0.1/2.3.12)
+    - `--pixelaspect` fixes setting of the "PixelAspectRatio", "XResolution",
+      and "YResolution" metadata, they were not set properly before. #3340
+      (2.4.0.3)
 * ImageCache / TextureSystem / maketx:
     - When textures are created with the "monochrome_detect" feature enabled,
       which turns RGB textures where all channels are always equal into true
@@ -349,6 +355,9 @@ Developer goodies / internals:
       friendly. #3188 (2.4.0/2.3.10)
     - TypeDesc constructor from a string now accepts "box2f" and "box3f"
       as synonyms for "box2" and "box3", respectively. #3183 (2.4.0/2.3.10)
+* unittest.h:
+    - Changes `OIIO_CHECK_SIMD_EQUAL_THRESH` macro to compare `<= eps`
+      instead of `<`. #3333 (2.4.0.3)
 * oiiotool internals have all been converted to use the new fmt style for
   error messages and warnings. #3240 (2.4.0)
 * Internals are working toward removing all uses of string_view::c_str(),
@@ -392,6 +401,9 @@ Build/test system improvements and platform ports:
       standard we are using to build OIIO itself. #3288 (2.4.0.1)
     - The exported cmake configs now use relative paths so they are
       relocatable. #3302 (2.4.0.1)
+    - CMake variable `OPENIMAGEIO_CONFIG_DO_NOT_FIND_IMATH`, if set to ON,
+      will make our generated config file not do a find_dependency(Imath).
+      (Use with caution.) #3335 (2.4.0.3)
 * Dependency version support:
     - When using C++17, use std::gcd instead of boost. #3076 (2.4.0)
     - When using C++17, use `inline constexpr` instead of certain statics.
