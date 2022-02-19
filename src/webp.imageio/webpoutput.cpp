@@ -34,7 +34,7 @@ private:
     WebPPicture m_webp_picture;
     WebPConfig m_webp_config;
     std::string m_filename;
-    int m_scanline_size;
+    imagesize_t m_scanline_size;
     unsigned int m_dither;
     std::vector<uint8_t> m_uncompressed_image;
 
@@ -124,9 +124,8 @@ WebpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     m_spec.set_format(TypeDesc::UINT8);
     m_dither = m_spec.get_int_attribute("oiio:dither", 0);
 
-    m_scanline_size        = m_spec.width * m_spec.nchannels;
-    const int image_buffer = m_spec.height * m_scanline_size;
-    m_uncompressed_image.resize(image_buffer, 0);
+    m_scanline_size = m_spec.scanline_bytes();
+    m_uncompressed_image.resize(m_spec.image_bytes(), 0);
     return true;
 }
 

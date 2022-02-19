@@ -406,12 +406,12 @@ private:
     {
         OIIO_DASSERT (m_compression == COMPRESSION_ADOBE_DEFLATE /*||
                       m_compression == COMPRESSION_NONE*/);
+        size_t nvals = size_t(width) * size_t(height) * size_t(channels);
         if (m_compression == COMPRESSION_NONE) {
             // just copy if there's no compression
             memcpy(uncompressed_buf, compressed_buf, csize);
             if (m_is_byte_swapped && m_spec.format == TypeUInt16)
-                TIFFSwabArrayOfShort((unsigned short*)uncompressed_buf,
-                                     width * height * channels);
+                TIFFSwabArrayOfShort((unsigned short*)uncompressed_buf, nvals);
             return;
         }
         uLong uncompressed_size = (uLong)strip_bytes;
@@ -422,8 +422,7 @@ private:
             return;
         }
         if (m_is_byte_swapped && m_spec.format == TypeUInt16)
-            TIFFSwabArrayOfShort((unsigned short*)uncompressed_buf,
-                                 width * height * channels);
+            TIFFSwabArrayOfShort((unsigned short*)uncompressed_buf, nvals);
         if (m_predictor == PREDICTOR_HORIZONTAL) {
             if (m_spec.format == TypeUInt8)
                 undo_horizontal_predictor((unsigned char*)uncompressed_buf,
@@ -1589,9 +1588,10 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         // libtiff has no way to read just one scanline as RGBA. So we
         // buffer the whole image.
         if (!m_rgbadata.size()) {  // first time through: allocate & read
-            m_rgbadata.resize(m_spec.width * m_spec.height * m_spec.depth);
+            m_rgbadata.resize(m_spec.image_pixels());
             bool ok = TIFFReadRGBAImageOriented(m_tif, m_spec.width,
-                                                m_spec.height, &m_rgbadata[0],
+                                                m_spec.height,
+                                                m_rgbadata.data(),
                                                 ORIENTATION_TOPLEFT, 0);
             if (!ok) {
                 errorf("Unknown error trying to read TIFF as RGBA");
@@ -1599,7 +1599,7 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
             }
         }
         copy_image(m_spec.nchannels, m_spec.width, 1, 1,
-                   &m_rgbadata[y * m_spec.width], m_spec.nchannels, 4,
+                   &m_rgbadata[y * size_t(m_spec.width)], m_spec.nchannels, 4,
                    4 * m_spec.width, AutoStride, data, m_spec.nchannels,
                    m_spec.width * m_spec.nchannels, AutoStride);
         return true;
@@ -1675,8 +1675,8 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     }
     // Not palette...
 
-    int plane_bytes = m_spec.width * m_spec.format.size();
-    int input_bytes = plane_bytes * m_inputchannels;
+    size_t plane_bytes = m_spec.width * m_spec.format.size();
+    size_t input_bytes = plane_bytes * m_inputchannels;
     // Where to read?  Directly into user data if no channel shuffling, bit
     // shifting, or CMYK conversion is needed, otherwise into scratch space.
     unsigned char* readbuf = (unsigned char*)data;
@@ -1987,7 +1987,8 @@ TIFFInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
                    &m_rgbadata[vert_offset * m_spec.tile_width
                                + (th - 1) * m_spec.tile_width],
                    m_spec.nchannels, 4, -m_spec.tile_width * 4, AutoStride,
-                   data, m_spec.nchannels, m_spec.nchannels * m_spec.tile_width,
+                   data, m_spec.nchannels,
+                   m_spec.nchannels * imagesize_t(m_spec.tile_width),
                    AutoStride);
         return true;
     }

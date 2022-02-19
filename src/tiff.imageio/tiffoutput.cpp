@@ -1114,7 +1114,7 @@ TIFFOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     std::vector<unsigned char> cmyk;
     if (m_photometric == PHOTOMETRIC_SEPARATED && m_convert_rgb_to_cmyk)
         data = convert_to_cmyk(spec().width, data, cmyk);
-    size_t scanline_vals = spec().width * m_outputchans;
+    size_t scanline_vals = size_t(spec().width) * m_outputchans;
 
     // Handle weird bit depths
     if (spec().format.size() * 8 != m_bitspersample) {
