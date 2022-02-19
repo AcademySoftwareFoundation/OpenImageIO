@@ -860,8 +860,9 @@ ImageInput::read_image(TypeDesc format, void* data, stride_t xstride,
                        ProgressCallback progress_callback,
                        void* progress_callback_data)
 {
-    return read_image(0, -1, format, data, xstride, ystride, zstride,
-                      progress_callback, progress_callback_data);
+    return read_image(current_subimage(), current_miplevel(), 0, -1, format,
+                      data, xstride, ystride, zstride, progress_callback,
+                      progress_callback_data);
 }
 
 

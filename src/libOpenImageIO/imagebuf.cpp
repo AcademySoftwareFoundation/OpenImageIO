@@ -1134,20 +1134,12 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
         }
         auto in = ImageInput::open(m_name.string(), m_configspec.get(),
                                    m_rioproxy);
-        bool ok = true;
         if (in) {
             in->threads(threads());  // Pass on our thread policy
-            if (subimage || miplevel) {
-                ImageSpec newspec;
-                ok &= in->seek_subimage(subimage, miplevel, newspec);
-            }
-            if (ok) {
-                ok &= in->read_image(chbegin, chend, m_spec.format,
-                                     m_localpixels, AutoStride, AutoStride,
-                                     AutoStride, progress_callback,
+            bool ok = in->read_image(subimage, miplevel, chbegin, chend,
+                                     m_spec.format, m_localpixels, AutoStride,
+                                     AutoStride, AutoStride, progress_callback,
                                      progress_callback_data);
-            }
-
             in->close();
             if (ok) {
                 m_pixels_valid = true;
