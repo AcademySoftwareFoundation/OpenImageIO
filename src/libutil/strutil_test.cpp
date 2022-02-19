@@ -959,6 +959,24 @@ test_string_view()
     OIIO_CHECK_EQUAL(string_view(s), cstr);  // test ctr from std::string
     OIIO_CHECK_EQUAL(sr, cstr);  // These better be the same
 
+#ifdef OIIO_STD_STRING_VIEW_AVAILABLE
+    {
+        std::cout << "  Testing OIIO::string_view <-> std::string_view\n";
+        std::string_view ssv = sr;
+        OIIO::string_view osv = ssv;
+        OIIO_CHECK_EQUAL(osv, sr);
+    }
+#endif
+
+#ifdef OIIO_EXPERIMENTAL_STRING_VIEW_AVAILABLE
+    {
+        std::cout << "  Testing OIIO::string_view <-> std::experimental::string_view\n";
+        std::experimental::string_view ssv = sr;
+        OIIO::string_view osv = ssv;
+        OIIO_CHECK_EQUAL(osv, sr);
+    }
+#endif
+
     OIIO_CHECK_EQUAL(sr.substr(0), sr); // whole string
     OIIO_CHECK_EQUAL(sr.substr(2), "23401234"); // nonzero pos, default n
     OIIO_CHECK_EQUAL(sr.substr(2, 3), "234"); // true substrng

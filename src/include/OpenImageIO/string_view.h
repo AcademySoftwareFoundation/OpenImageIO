@@ -17,6 +17,19 @@
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/platform.h>
+#include <OpenImageIO/detail/fmt.h>
+
+// Some compilers already have a string_view pre-C++17
+// N.B. This logic is taken from fmtlib.
+#if (__has_include(<string_view>) &&                                    \
+     (__cplusplus > 201402L || defined(_LIBCPP_VERSION))) ||            \
+    (defined(_MSVC_LANG) && _MSVC_LANG > 201402L && _MSC_VER >= 1910)
+#    include <string_view>
+#    define OIIO_STD_STRING_VIEW_AVAILABLE
+#elif __has_include("experimental/string_view")
+#    include <experimental/string_view>
+#    define OIIO_EXPERIMENTAL_STRING_VIEW_AVAILABLE
+#endif
 
 
 OIIO_NAMESPACE_BEGIN
@@ -103,6 +116,18 @@ public:
         : m_chars(str.data()), m_len(str.size()) { }
     // N.B. std::string::size() is constexpr starting with C++20.
 
+#if defined(OIIO_STD_STRING_VIEW_AVAILABLE) || defined(OIIO_DOXYGEN)
+    // Construct from a std::string_view.
+    constexpr string_view(const std::string_view& sv) noexcept
+        : m_chars(sv.data()), m_len(sv.size()) { }
+#endif
+
+#ifdef OIIO_EXPERIMENTAL_STRING_VIEW_AVAILABLE
+    // Construct from a std::experimental::string_view.
+    constexpr string_view(const std::experimental::string_view& sv) noexcept
+        : m_chars(sv.data()), m_len(sv.size()) { }
+#endif
+
     /// Convert a string_view to a `std::string`.
     std::string str() const
     {
@@ -135,6 +160,22 @@ public:
 
     /// Convert a string_view to a `std::string`.
     operator std::string() const { return str(); }
+
+#if defined(OIIO_STD_STRING_VIEW_AVAILABLE) || defined(OIIO_DOXYGEN)
+    // Convert an OIIO::string_view to a std::string_view.
+    constexpr operator std::string_view() const { return { data(), size() }; }
+#endif
+
+#ifdef OIIO_EXPERIMENTAL_STRING_VIEW_AVAILABLE
+    // Convert an OIIO::string_view to a std::experimental::string_view.
+    constexpr operator std::experimental::string_view() const noexcept { return { data(), size() }; }
+#endif
+
+#ifdef FMT_VERSION
+    // Convert an OIIO::string_view to a fmt::string_view. This enables
+    // fmt::format() and friends to accept an OIIO::string_view.
+    constexpr operator fmt::string_view() const noexcept { return { data(), size() }; }
+#endif
 
     // iterators
     constexpr iterator begin() const noexcept { return m_chars; }

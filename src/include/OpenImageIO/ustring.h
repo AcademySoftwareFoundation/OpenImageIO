@@ -187,11 +187,8 @@ public:
     /// ustring destructor.
     ~ustring() noexcept {}
 
-    /// Conversion to string_view
-    operator string_view() const noexcept
-    {
-        return string_view(c_str(), length());
-    }
+    /// Conversion to an OIIO::string_view.
+    operator string_view() const noexcept { return { c_str(), length() }; }
 
     /// Conversion to std::string (explicit only!).
     explicit operator std::string() const noexcept { return string(); }
