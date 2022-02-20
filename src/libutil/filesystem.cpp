@@ -453,7 +453,7 @@ Filesystem::fopen(string_view path, string_view mode)
     return ::_wfopen(wpath.c_str(), wmode.c_str());
 #else
     // on Unix platforms passing in UTF-8 works
-    return ::fopen(path.str().c_str(), mode.str().c_str());
+    return ::fopen(std::string(path).c_str(), std::string(mode).c_str());
 #endif
 }
 
@@ -526,7 +526,7 @@ Filesystem::open(string_view path, int flags)
     return ::_wopen(wpath.c_str(), flags);
 #else
     // on Unix platforms passing in UTF-8 works
-    return ::open(path.str().c_str(), flags);
+    return ::open(std::string(path).c_str(), flags);
 #endif
 }
 

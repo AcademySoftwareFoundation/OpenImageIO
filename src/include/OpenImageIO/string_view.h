@@ -128,12 +128,10 @@ public:
         : m_chars(sv.data()), m_len(sv.size()) { }
 #endif
 
-    /// Convert a string_view to a `std::string`.
-    std::string str() const
-    {
-        return (m_chars ? std::string(m_chars, m_len) : std::string());
-        // N.B. std::string ctr from chars+len is constexpr in C++20.
-    }
+    /// Convert a string_view to a `std::string`.  NOTE: this is not a feature
+    /// of std::string_view. Avoid this method if you want 100%
+    /// interchangeability with std::string_view.
+    std::string str() const { return *this; }
 
     /// Explicitly request a 0-terminated string. USUALLY, this turns out to
     /// be just data(), with no significant added expense (because most uses
@@ -159,7 +157,9 @@ public:
     OIIO_CONSTEXPR14 string_view& operator=(const string_view& copy) noexcept = default;
 
     /// Convert a string_view to a `std::string`.
-    operator std::string() const { return str(); }
+    operator std::string() const {
+        return (m_chars ? std::string(m_chars, m_len) : std::string());
+    }
 
 #if defined(OIIO_STD_STRING_VIEW_AVAILABLE) || defined(OIIO_DOXYGEN)
     // Convert an OIIO::string_view to a std::string_view.
