@@ -17,17 +17,19 @@ OIIO_NAMESPACE_BEGIN
 
 void
 ParamValue::init_noclear(ustring _name, TypeDesc _type, int _nvalues,
-                         const void* _value, bool _copy) noexcept
+                         const void* _value, Copy _copy,
+                         FromUstring _from_ustring) noexcept
 {
-    init_noclear(_name, _type, _nvalues, INTERP_CONSTANT, _value, _copy);
+    init_noclear(_name, _type, _nvalues, INTERP_CONSTANT, _value, _copy,
+                 _from_ustring);
 }
 
 
 
 void
 ParamValue::init_noclear(ustring _name, TypeDesc _type, int _nvalues,
-                         Interp _interp, const void* _value,
-                         bool _copy) noexcept
+                         Interp _interp, const void* _value, Copy _copy,
+                         FromUstring _from_ustring) noexcept
 {
     m_name      = _name;
     m_type      = _type;
@@ -54,10 +56,9 @@ ParamValue::init_noclear(ustring _name, TypeDesc _type, int _nvalues,
             m_copy     = true;
             m_nonlocal = true;
         }
-        if (m_type.basetype == TypeDesc::STRING) {
-            ustring* u = (ustring*)data();
-            for (size_t i = 0; i < n; ++i)
-                if (u)
+        if (m_type.basetype == TypeDesc::STRING && !_from_ustring) {
+            if (ustring* u = (ustring*)data())
+                for (size_t i = 0; i < n; ++i)
                     u[i] = ustring(u[i].c_str());
         }
     } else {
@@ -67,6 +68,35 @@ ParamValue::init_noclear(ustring _name, TypeDesc _type, int _nvalues,
         m_copy     = false;
         m_nonlocal = true;
     }
+}
+
+
+
+const ParamValue&
+ParamValue::operator=(const ParamValue& p) noexcept
+{
+    if (this != &p) {
+        clear_value();
+        init_noclear(p.name(), p.type(), p.nvalues(), p.interp(), p.data(),
+                     Copy(p.m_copy), FromUstring(true));
+    }
+    return *this;
+}
+
+
+
+const ParamValue&
+ParamValue::operator=(ParamValue&& p) noexcept
+{
+    if (this != &p) {
+        clear_value();
+        init_noclear(p.name(), p.type(), p.nvalues(), p.interp(), p.data(),
+                     Copy(false), FromUstring(true));
+        m_copy       = p.m_copy;
+        m_nonlocal   = p.m_nonlocal;
+        p.m_data.ptr = nullptr;  // make sure the old one won't free
+    }
+    return *this;
 }
 
 

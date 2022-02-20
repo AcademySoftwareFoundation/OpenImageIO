@@ -486,17 +486,16 @@ public:
     }
 
     /// Add a string attribute to `extra_attribs`.
-    void attribute (string_view name, string_view value) {
-        std::string str(value);
-        const char *s = str.c_str();
-        attribute (name, TypeDesc::STRING, &s);
-    }
+    void attribute (string_view name, string_view value);
+
+    /// Add a string attribute (passed as a ustring) to `extra_attribs`.
+    void attribute (string_view name, ustring value);
 
     /// Parse a string containing a textual representation of a value of
     /// the given `type`, and add that as an attribute to `extra_attribs`.
     /// Example:
     ///
-    ///     spec.attribute ("temperature", TypeString, "-273.15");
+    ///     spec.attribute ("temperature", TypeFloat, "-273.15");
     ///
     void attribute (string_view name, TypeDesc type, string_view value);
 
