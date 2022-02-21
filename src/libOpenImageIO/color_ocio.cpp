@@ -343,7 +343,8 @@ ColorConfig::reset(string_view filename)
     } else {
         // Either filename passed, or taken from $OCIO, and it seems to exist
         try {
-            getImpl()->config_ = OCIO::Config::CreateFromFile(filename.c_str());
+            getImpl()->config_ = OCIO::Config::CreateFromFile(
+                filename.str().c_str());
             getImpl()->configname(filename);
         } catch (OCIO::Exception& e) {
             getImpl()->error("Error reading OCIO config \"{}\": {}", filename,
@@ -409,7 +410,7 @@ ColorConfig::getColorSpaceFamilyByName(string_view name) const
 #ifdef USE_OCIO
     if (getImpl()->config_) {
         OCIO::ConstColorSpaceRcPtr c = getImpl()->config_->getColorSpace(
-            name.c_str());
+            name.str().c_str());
         if (c)
             return c->getFamily();
     }
@@ -502,7 +503,7 @@ ColorConfig::getColorSpaceNameByRole(string_view role) const
 #ifdef USE_OCIO
     if (getImpl()->config_) {
         OCIO::ConstColorSpaceRcPtr c = getImpl()->config_->getColorSpace(
-            role.c_str());
+            role.str().c_str());
         // Catch special case of obvious name synonyms
         if (!c
             && (Strutil::iequals(role, "RGB")
@@ -532,7 +533,7 @@ ColorConfig::getColorSpaceDataType(string_view name, int* bits) const
 {
 #ifdef USE_OCIO
     OCIO::ConstColorSpaceRcPtr c = getImpl()->config_->getColorSpace(
-        name.c_str());
+        name.str().c_str());
     if (c) {
         OCIO::BitDepth b = c->getBitDepth();
         switch (b) {
@@ -595,7 +596,7 @@ ColorConfig::getNumViews(string_view display) const
     if (display.empty())
         display = getDefaultDisplayName();
     if (getImpl()->config_)
-        return getImpl()->config_->getNumViews(display.c_str());
+        return getImpl()->config_->getNumViews(display.str().c_str());
 #endif
     return 0;
 }
@@ -609,7 +610,7 @@ ColorConfig::getViewNameByIndex(string_view display, int index) const
     if (display.empty())
         display = getDefaultDisplayName();
     if (getImpl()->config_)
-        return getImpl()->config_->getView(display.c_str(), index);
+        return getImpl()->config_->getView(display.str().c_str(), index);
 #endif
     return NULL;
 }
@@ -646,7 +647,7 @@ ColorConfig::getDefaultViewName(string_view display) const
 {
 #ifdef USE_OCIO
     if (getImpl()->config_)
-        return getImpl()->config_->getDefaultView(display.c_str());
+        return getImpl()->config_->getDefaultView(display.str().c_str());
 #endif
     return NULL;
 }
@@ -1404,9 +1405,10 @@ ColorConfig::getColorSpaceFromFilepath(string_view str) const
 {
 #if defined(USE_OCIO) && (OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 1, 0))
     if (getImpl() && getImpl()->config_) {
+        std::string s(str);
         string_view r = getImpl()->config_->getColorSpaceFromFilepath(
-            str.c_str());
-        if (!getImpl()->config_->filepathOnlyMatchesDefaultRule(str.c_str()))
+            s.c_str());
+        if (!getImpl()->config_->filepathOnlyMatchesDefaultRule(s.c_str()))
             return r;
     }
 #endif

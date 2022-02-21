@@ -861,7 +861,7 @@ static xml_node
 add_node(xml_node& node, string_view node_name, const char* val)
 {
     xml_node newnode = node.append_child();
-    newnode.set_name(node_name.c_str());
+    newnode.set_name(node_name.str().c_str());
     newnode.append_child(node_pcdata).set_value(val);
     return newnode;
 }

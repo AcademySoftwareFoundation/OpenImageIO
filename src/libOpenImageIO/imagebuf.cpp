@@ -1339,7 +1339,7 @@ ImageBuf::write(string_view _filename, TypeDesc dtype, string_view _fileformat,
                 ProgressCallback progress_callback,
                 void* progress_callback_data) const
 {
-    string_view filename   = _filename.size() ? _filename : name();
+    string_view filename   = _filename.size() ? _filename : string_view(name());
     string_view fileformat = _fileformat.size() ? _fileformat : filename;
     if (filename.size() == 0) {
         errorfmt("ImageBuf::write() called with no filename");
@@ -1612,6 +1612,13 @@ ImageBuf::get_thumbnail() const
 
 string_view
 ImageBuf::name(void) const
+{
+    return m_impl->m_name;
+}
+
+
+ustring
+ImageBuf::uname(void) const
 {
     return m_impl->m_name;
 }

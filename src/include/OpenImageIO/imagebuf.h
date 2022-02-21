@@ -881,6 +881,9 @@ public:
     /// read from disk).
     string_view name(void) const;
 
+    /// Return the name of the buffer as a ustring.
+    ustring uname(void) const;
+
     /// Return the name of the image file format of the file this ImageBuf
     /// refers to (for example `"openexr"`).  Returns an empty string for an
     /// ImageBuf that was not constructed as a direct reference to a file.
