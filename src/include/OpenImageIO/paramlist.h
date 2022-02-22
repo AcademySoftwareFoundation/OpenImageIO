@@ -16,6 +16,7 @@
 
 #include <OpenImageIO/attrdelegate.h>
 #include <OpenImageIO/export.h>
+#include <OpenImageIO/strongparam.h>
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/ustring.h>
 
@@ -40,27 +41,58 @@ public:
         INTERP_VERTEX   = 3   ///< Interpolated like vertices
     };
 
+    OIIO_STRONG_PARAM_TYPE(Copy, bool);
+    OIIO_STRONG_PARAM_TYPE(FromUstring, bool);
+
     ParamValue() noexcept { m_data.ptr = nullptr; }
+
+#if OIIO_VERSION_LESS(3, 0, 0) && !defined(OIIO_DOXYGEN)
+    // DEPRECATED(2.4): Use the ones with strongly typed bool parameters
     ParamValue(const ustring& _name, TypeDesc _type, int _nvalues,
-               const void* _value, bool _copy = true) noexcept
+               const void* _value, bool _copy) noexcept
+    {
+        init_noclear(_name, _type, _nvalues, _value, Copy(_copy));
+    }
+    ParamValue(const ustring& _name, TypeDesc _type, int _nvalues,
+               Interp _interp, const void* _value, bool _copy) noexcept
+    {
+        init_noclear(_name, _type, _nvalues, _interp, _value, Copy(_copy));
+    }
+    ParamValue(string_view _name, TypeDesc _type, int _nvalues,
+               const void* _value, bool _copy) noexcept
+    {
+        init_noclear(ustring(_name), _type, _nvalues, _value, Copy(_copy));
+    }
+    ParamValue(string_view _name, TypeDesc _type, int _nvalues, Interp _interp,
+               const void* _value, bool _copy) noexcept
+    {
+        init_noclear(ustring(_name), _type, _nvalues, _interp, _value,
+                     Copy(_copy));
+    }
+#endif
+
+    ParamValue(const ustring& _name, TypeDesc _type, int _nvalues,
+               const void* _value, Copy _copy = Copy(true)) noexcept
     {
         init_noclear(_name, _type, _nvalues, _value, _copy);
     }
     ParamValue(const ustring& _name, TypeDesc _type, int _nvalues,
-               Interp _interp, const void* _value, bool _copy = true) noexcept
+               Interp _interp, const void* _value,
+               Copy _copy = Copy(true)) noexcept
     {
         init_noclear(_name, _type, _nvalues, _interp, _value, _copy);
     }
     ParamValue(string_view _name, TypeDesc _type, int _nvalues,
-               const void* _value, bool _copy = true) noexcept
+               const void* _value, Copy _copy = Copy(true)) noexcept
     {
         init_noclear(ustring(_name), _type, _nvalues, _value, _copy);
     }
     ParamValue(string_view _name, TypeDesc _type, int _nvalues, Interp _interp,
-               const void* _value, bool _copy = true) noexcept
+               const void* _value, Copy _copy = Copy(true)) noexcept
     {
         init_noclear(ustring(_name), _type, _nvalues, _interp, _value, _copy);
     }
+
     ParamValue(string_view _name, int value) noexcept
     {
         init_noclear(ustring(_name), TypeDesc::INT, 1, &value);
@@ -71,12 +103,12 @@ public:
     }
     ParamValue(string_view _name, ustring value) noexcept
     {
-        init_noclear(ustring(_name), TypeDesc::STRING, 1, &value);
+        init_noclear(ustring(_name), TypeDesc::STRING, 1, &value, Copy(true),
+                     FromUstring(true));
     }
     ParamValue(string_view _name, string_view value) noexcept
+        : ParamValue(_name, ustring(value))
     {
-        ustring u(value);
-        init_noclear(ustring(_name), TypeDesc::STRING, 1, &u);
     }
 
     // Set from string -- parse
@@ -86,19 +118,19 @@ public:
     ParamValue(const ParamValue& p) noexcept
     {
         init_noclear(p.name(), p.type(), p.nvalues(), p.interp(), p.data(),
-                     true);
+                     Copy(true), FromUstring(true));
     }
-    ParamValue(const ParamValue& p, bool _copy) noexcept
+    ParamValue(const ParamValue& p, Copy _copy) noexcept
     {
         init_noclear(p.name(), p.type(), p.nvalues(), p.interp(), p.data(),
-                     _copy);
+                     _copy, FromUstring(true));
     }
 
     // Rvalue (move) constructor
     ParamValue(ParamValue&& p) noexcept
     {
         init_noclear(p.name(), p.type(), p.nvalues(), p.interp(), p.data(),
-                     false);
+                     Copy(false), FromUstring(true));
         m_copy       = p.m_copy;
         m_nonlocal   = p.m_nonlocal;
         p.m_data.ptr = nullptr;  // make sure the old one won't free
@@ -106,46 +138,56 @@ public:
 
     ~ParamValue() noexcept { clear_value(); }
 
+#if OIIO_VERSION_LESS(3, 0, 0) && !defined(OIIO_DOXYGEN)
+    // DEPRECATED(2.4): Use the ones with strongly typed bool parameters
     void init(ustring _name, TypeDesc _type, int _nvalues, Interp _interp,
-              const void* _value, bool _copy = true) noexcept
+              const void* _value, bool _copy) noexcept
+    {
+        clear_value();
+        init_noclear(_name, _type, _nvalues, _interp, _value, Copy(_copy));
+    }
+    void init(ustring _name, TypeDesc _type, int _nvalues, const void* _value,
+              bool _copy) noexcept
+    {
+        init(_name, _type, _nvalues, INTERP_CONSTANT, _value, Copy(_copy));
+    }
+    void init(string_view _name, TypeDesc _type, int _nvalues,
+              const void* _value, bool _copy) noexcept
+    {
+        init(ustring(_name), _type, _nvalues, _value, Copy(_copy));
+    }
+    void init(string_view _name, TypeDesc _type, int _nvalues, Interp _interp,
+              const void* _value, bool _copy) noexcept
+    {
+        init(ustring(_name), _type, _nvalues, _interp, _value, Copy(_copy));
+    }
+#endif
+
+    void init(ustring _name, TypeDesc _type, int _nvalues, Interp _interp,
+              const void* _value, Copy _copy) noexcept
     {
         clear_value();
         init_noclear(_name, _type, _nvalues, _interp, _value, _copy);
     }
     void init(ustring _name, TypeDesc _type, int _nvalues, const void* _value,
-              bool _copy = true) noexcept
+              Copy _copy = Copy(true)) noexcept
     {
         init(_name, _type, _nvalues, INTERP_CONSTANT, _value, _copy);
     }
     void init(string_view _name, TypeDesc _type, int _nvalues,
-              const void* _value, bool _copy = true) noexcept
+              const void* _value, Copy _copy = Copy(true)) noexcept
     {
         init(ustring(_name), _type, _nvalues, _value, _copy);
     }
     void init(string_view _name, TypeDesc _type, int _nvalues, Interp _interp,
-              const void* _value, bool _copy = true) noexcept
+              const void* _value, Copy _copy = Copy(true)) noexcept
     {
         init(ustring(_name), _type, _nvalues, _interp, _value, _copy);
     }
 
     // Assignment
-    const ParamValue& operator=(const ParamValue& p) noexcept
-    {
-        if (this != &p)
-            init(p.name(), p.type(), p.nvalues(), p.interp(), p.data(),
-                 p.m_copy);
-        return *this;
-    }
-    const ParamValue& operator=(ParamValue&& p) noexcept
-    {
-        if (this != &p) {
-            init(p.name(), p.type(), p.nvalues(), p.interp(), p.data(), false);
-            m_copy       = p.m_copy;
-            m_nonlocal   = p.m_nonlocal;
-            p.m_data.ptr = nullptr;
-        }
-        return *this;
-    }
+    const ParamValue& operator=(const ParamValue& p) noexcept;
+    const ParamValue& operator=(ParamValue&& p) noexcept;
 
     // FIXME -- some time in the future (after more cleanup), we should make
     // name() return a string_view, and use uname() for the rare time when
@@ -222,10 +264,12 @@ private:
     bool m_nonlocal        = false;
 
     void init_noclear(ustring _name, TypeDesc _type, int _nvalues,
-                      const void* _value, bool _copy = true) noexcept;
+                      const void* _value, Copy _copy = Copy(true),
+                      FromUstring _from_ustring = FromUstring(false)) noexcept;
     void init_noclear(ustring _name, TypeDesc _type, int _nvalues,
                       Interp _interp, const void* _value,
-                      bool _copy = true) noexcept;
+                      Copy _copy                = Copy(true),
+                      FromUstring _from_ustring = FromUstring(false)) noexcept;
     void clear_value() noexcept;
 };
 
@@ -348,6 +392,12 @@ public:
     {
         ustring v(value);
         attribute(name, TypeString, 1, &v);
+    }
+
+    void attribute(string_view name, ustring value)
+    {
+        if (!name.empty())
+            add_or_replace(ParamValue(name, value));
     }
 
     /// Search list for named item, return its type or TypeUnknown if not

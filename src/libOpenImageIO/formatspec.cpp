@@ -345,6 +345,38 @@ ImageSpec::attribute(string_view name, TypeDesc type, string_view value)
 
 
 void
+ImageSpec::attribute(string_view name, string_view value)
+{
+    if (name.empty())  // Guard against bogus empty names
+        return;
+    // Don't allow duplicates
+    ParamValue* f = find_attribute(name);
+    if (f) {
+        *f = ParamValue(name, value);
+    } else {
+        extra_attribs.emplace_back(name, value);
+    }
+}
+
+
+
+void
+ImageSpec::attribute(string_view name, ustring value)
+{
+    if (name.empty())  // Guard against bogus empty names
+        return;
+    // Don't allow duplicates
+    ParamValue* f = find_attribute(name);
+    if (f) {
+        *f = ParamValue(name, value);
+    } else {
+        extra_attribs.emplace_back(name, value);
+    }
+}
+
+
+
+void
 ImageSpec::erase_attribute(string_view name, TypeDesc searchtype,
                            bool casesensitive)
 {
