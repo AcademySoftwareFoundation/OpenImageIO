@@ -99,7 +99,7 @@ string_view::c_str() const
     if (m_len == 0)  // empty string
         return "";
 
-    // This clause attempts to find out if there's a string-teriminating
+    // This clause attempts to find out if there's a string-terminating
     // '\0' character just beyond the boundary of the string_view, in which
     // case, simply returning m_chars (with no ustring creation) is a valid
     // C string.
@@ -131,24 +131,26 @@ string_view::c_str() const
 
 
 void
-Strutil::sync_output(FILE* file, string_view str)
+Strutil::sync_output(FILE* file, string_view str, bool flush)
 {
     if (str.size() && file) {
         std::unique_lock<std::mutex> lock(output_mutex);
         fwrite(str.data(), 1, str.size(), file);
-        fflush(file);
+        if (flush)
+            fflush(file);
     }
 }
 
 
 
 void
-Strutil::sync_output(std::ostream& file, string_view str)
+Strutil::sync_output(std::ostream& file, string_view str, bool flush)
 {
     if (str.size()) {
         std::unique_lock<std::mutex> lock(output_mutex);
         file << str;
-        file.flush();
+        if (flush)
+            file.flush();
     }
 }
 
