@@ -132,6 +132,11 @@ def test_multiimage () :
         return
     out.close ()
 
+# Print floating point tuple contents with slightly less than full precision
+# in order to mask LSB differences between platforms.
+def ftupstr(tup) :
+    return "(" + ", ".join(["{:.5}".format(x) for x in tup]) + ")"
+
 
 
 ######################################################################
@@ -197,10 +202,10 @@ try:
     print ("Pixel 0,0 is", b.getpixel(0,0,0))
     print ("Pixel 1,0 is", b.getpixel(1,0))   # test 2D lookup
     print ("Pixel 0,1 is", b.getpixel(0,1))
-    print ("Interpolating 1,0.5 ->", b.interppixel(1,0.5))
-    print ("Interpolating NDC 0.25,0.5 ->", b.interppixel_NDC(0.25,0.5))
-    print ("Interpolating bicubic 0.25,0.5 ->", b.interppixel_bicubic(1.0,0.5))
-    print ("Interpolating NDC bicubic 0.25,0.5 ->", b.interppixel_bicubic_NDC(0.25,0.5))
+    print ("Interpolating 1,0.5 ->", ftupstr(b.interppixel(1,0.5)))
+    print ("Interpolating NDC 0.25,0.5 ->", ftupstr(b.interppixel_NDC(0.25,0.5)))
+    print ("Interpolating bicubic 0.25,0.5 ->", ftupstr(b.interppixel_bicubic(1.0,0.5)))
+    print ("Interpolating NDC bicubic 0.25,0.5 ->", ftupstr(b.interppixel_bicubic_NDC(0.25,0.5)))
     print ("The whole image is: ", b.get_pixels(oiio.TypeDesc.TypeFloat))
     print ("")
     print ("Saving file...")
