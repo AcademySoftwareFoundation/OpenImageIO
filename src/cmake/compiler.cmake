@@ -82,10 +82,14 @@ endif ()
 ###########################################################################
 # Turn on more detailed warnings and optionally consider warnings as errors
 #
-if (${PROJECT_NAME}_SUPPORTED_RELEASE)
-    option (STOP_ON_WARNING "Stop building if there are any compiler warnings" OFF)
-else ()
+if (NOT ${PROJECT_NAME}_SUPPORTED_RELEASE OR DEFINED ENV{${PROJECT_NAME}_CI})
+    # For development branches (i.e., not a supported release), or when
+    # running CI, default to treating all warnings as errors.
     option (STOP_ON_WARNING "Stop building if there are any compiler warnings" ON)
+else ()
+    # For release branches not doing a CI build default to just printing
+    # warnings but not letting them stop the build.
+    option (STOP_ON_WARNING "Stop building if there are any compiler warnings" OFF)
 endif()
 option (EXTRA_WARNINGS "Enable lots of extra pedantic warnings" OFF)
 if (NOT MSVC)
@@ -93,11 +97,8 @@ if (NOT MSVC)
     if (EXTRA_WARNINGS)
         add_compile_options ("-Wextra")
     endif ()
-    if (STOP_ON_WARNING OR DEFINED ENV{${PROJECT_NAME}_CI})
+    if (STOP_ON_WARNING)
         add_compile_options ("-Werror")
-        # N.B. Force CI builds to use -Werror, even if STOP_ON_WARNING has
-        # been switched off by default, which we may do in release
-        # branches.
     endif ()
 endif ()
 
