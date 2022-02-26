@@ -45,7 +45,7 @@ tmpdir = "."
 tmpdir = os.path.abspath (tmpdir)
 redirect = " >> out.txt "
 
-def oiio_relpath (path, start=os.curdir):
+def make_relpath (path, start=os.curdir):
     "Wrapper around os.path.relpath which always uses '/' as the separator."
     p = os.path.relpath (path, start)
     return p if platform.system() != 'Windows' else p.replace ('\\', '/')
@@ -60,14 +60,14 @@ if OIIO_TESTSUITE_ROOT == '' :
         OIIO_TESTSUITE_ROOT = '../../../testsuite'
     elif os.path.exists('../../../../testsuite') :
         OIIO_TESTSUITE_ROOT = '../../../../testsuite'
-OIIO_TESTSUITE_ROOT = oiio_relpath(OIIO_TESTSUITE_ROOT)
-OIIO_PROJECT_ROOT = oiio_relpath(OIIO_TESTSUITE_ROOT + "/..")
+OIIO_TESTSUITE_ROOT = make_relpath(OIIO_TESTSUITE_ROOT)
+OIIO_PROJECT_ROOT = make_relpath(OIIO_TESTSUITE_ROOT + "/..")
 
 OIIO_TESTSUITE_IMAGEDIR = os.getenv('OIIO_TESTSUITE_IMAGEDIR', '')
 if OIIO_TESTSUITE_IMAGEDIR == '' :
     if os.path.exists('../oiio-images'):
         OIIO_TESTSUITE_IMAGEDIR = '../oiio-images'
-OIIO_TESTSUITE_IMAGEDIR = oiio_relpath(OIIO_TESTSUITE_IMAGEDIR)
+OIIO_TESTSUITE_IMAGEDIR = make_relpath(OIIO_TESTSUITE_IMAGEDIR)
 # Set it back so tests can use it (python-imagebufalgo)
 os.putenv('OIIO_TESTSUITE_IMAGEDIR', OIIO_TESTSUITE_IMAGEDIR)
 
@@ -80,7 +80,7 @@ test_source_dir = os.getenv('OIIO_TESTSUITE_SRC',
                             os.path.join(OIIO_TESTSUITE_ROOT, mytest))
 colorconfig_file = os.getenv('OIIO_TESTSUITE_OCIOCONFIG',
                              '../common/OpenColorIO/nuke-default/config.ocio')
-colorconfig_file = oiio_relpath(colorconfig_file)
+colorconfig_file = make_relpath(colorconfig_file)
 
 
 command = ""
@@ -206,7 +206,7 @@ def info_command (file, extraargs="", safematch=False, hash=True,
     if hash :
         args += " --hash"
     return (oiio_app("oiiotool") + args + " " + extraargs
-            + " " + oiio_relpath(file,tmpdir) + redirect + ";\n")
+            + " " + make_relpath(file,tmpdir) + redirect + ";\n")
 
 
 # Construct a command that will compare two images, appending output to
@@ -220,8 +220,8 @@ def diff_command (fileA, fileB, extraargs="", silent=False, concat=True) :
                + " -hardfail " + str(hardfail)
                + " -warn " + str(2*failthresh)
                + " -warnpercent " + str(failpercent)
-               + " " + extraargs + " " + oiio_relpath(fileA,tmpdir) 
-               + " " + oiio_relpath(fileB,tmpdir))
+               + " " + extraargs + " " + make_relpath(fileA,tmpdir)
+               + " " + make_relpath(fileB,tmpdir))
     if not silent :
         command += redirect
     if concat:
@@ -234,10 +234,10 @@ def diff_command (fileA, fileB, extraargs="", silent=False, concat=True) :
 def maketx_command (infile, outfile, extraargs="",
                     showinfo=False, showinfo_extra="",
                     silent=False, concat=True) :
-    command = (oiio_app("maketx") 
-               + " " + oiio_relpath(infile,tmpdir) 
+    command = (oiio_app("maketx")
+               + " " + make_relpath(infile,tmpdir)
                + " " + extraargs
-               + " -o " + oiio_relpath(outfile,tmpdir) )
+               + " -o " + make_relpath(outfile,tmpdir))
     if not silent :
         command += redirect
     if concat:
@@ -257,7 +257,7 @@ def maketx_command (infile, outfile, extraargs="",
 def rw_command (dir, filename, testwrite=True, use_oiiotool=False, extraargs="",
                 preargs="", idiffextraargs="", output_filename="",
                 safematch=False, printinfo=True) :
-    fn = oiio_relpath (dir + "/" + filename, tmpdir)
+    fn = make_relpath (dir + "/" + filename, tmpdir)
     if printinfo :
         cmd = info_command (fn, safematch=safematch)
     else :
