@@ -1,6 +1,24 @@
-Release 2.3.13 (1 Mar? 2022) -- compared to 2.3.12
+Release 2.3.13 (1 Mar 2022) -- compared to 2.3.12
 --------------------------------------------------
-
+* Filesystm::searchpath_split better handling of empty paths. #3306
+* New Strutil::isspace() is an isspace replacement that is safe for char
+  values that are < 0. #3310
+* Expose the Strutil::utf8_to_utf16() and utf16_to_utf8() utilities on
+  non-Windows platforms (and also modernize their internals). #3307
+* For the most important ImageInput, ImageOutput, and ImageBuf methods that
+  take a filename, add new flavors that can accept a `wstring` as the
+  filename. #3312 #3318
+* PPM: properly report color space as Rec709 (as dictated by PPM spec). #3321
+* PNG: more robust reporting of color space as sRGB in the absence of header
+  fields contradicting this. #3321
+* strutil.h: Split the including of fmt.h and some related logic into a
+  separate detail/fmt.h. This is still included by strutil.h, so users
+  should not notice any change. #3327
+* Targa: Fix parsing of TGA 2.0 extension area. #3323
+* Support building against FFmpeg 5.0. #3282
+* oiiotool --pixelaspect : fix setting of "PixelAspectRatio", "XResolution",
+  and "YResolution" attributes in the output file (were not set properly
+  before). #3340
 
 Release 2.3.12 (1 Feb 2022) -- compared to 2.3.11
 --------------------------------------------------
