@@ -3,7 +3,7 @@
 # https://github.com/OpenImageIO/oiio
 
 cmake_minimum_required (VERSION 3.12)
-project (OpenImageIO VERSION 2.3.13.0
+project (OpenImageIO VERSION 2.3.14.0
          HOMEPAGE_URL "https://openimageio.org"
          LANGUAGES CXX C)
 set (PROJ_NAME OIIO)    # short name, caps
