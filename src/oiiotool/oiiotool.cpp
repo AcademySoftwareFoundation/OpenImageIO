@@ -6992,7 +6992,6 @@ main(int argc, char* argv[])
     // for our app. We only need to do this if using sse instructions and
     // the f16c hardware half<->float ops are not enabled. This does not
     // seem to be a problem in libopenjpeg > 1.5.
-    // And, oy, just to mess with us, this doesn't work in gcc 4.8.
     simd::set_denorms_zero_mode(false);
 #endif
     {
