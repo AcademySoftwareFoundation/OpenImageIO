@@ -89,7 +89,7 @@ val(ImageBufAlgo::PixelStats& p, int c, float value)
     }
     ++p.finitecount[c];
     p.sum[c] += value;
-    p.sum2[c] += value * value;
+    p.sum2[c] += double(value) * double(value);
     p.min[c] = std::min(value, p.min[c]);
     p.max[c] = std::max(value, p.max[c]);
 }
