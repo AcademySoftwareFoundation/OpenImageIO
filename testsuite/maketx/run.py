@@ -5,7 +5,7 @@ oiio_images = OIIO_TESTSUITE_IMAGEDIR
 
 # Just for simplicity, make a checkerboard with a solid alpha
 command += oiiotool (" --pattern checker 128x128 4 --ch R,G,B,=1.0"
-            + " -d uint8 -o " + oiio_relpath("checker.tif") )
+            + " -d uint8 -o " + make_relpath("checker.tif") )
 
 # Basic test - recreate the grid texture
 command += maketx_command (oiio_images + "/grid.tif", "grid.tx", showinfo=True)
@@ -53,13 +53,13 @@ command += maketx_command ("checker.tif", "checker-opaque.tx",
 
 # Test --monochrome-detect (first create a monochrome image)
 command += oiiotool (" --pattern constant:color=.25,.25,.25 256x256 3 "
-                    + " -d uint8 -o " + oiio_relpath("gray.tif"))
+                    + " -d uint8 -o " + make_relpath("gray.tif"))
 command += maketx_command ("gray.tif", "gray-mono.tx",
                            "--monochrome-detect", showinfo=True)
 
 # Test --monochrome-detect on something that is NOT monochrome
 command += oiiotool (" --pattern constant:color=.25,.2,.15 256x256 3 "
-                    + " -d uint8 -o " + oiio_relpath("pink.tif"))
+                    + " -d uint8 -o " + make_relpath("pink.tif"))
 command += maketx_command ("pink.tif", "pink-mono.tx",
                            "--monochrome-detect", showinfo=True)
 
@@ -85,7 +85,7 @@ command += maketx_command ("checker.tif", "checker-exr.pdq",
 # hint in the ImageDescription of the input file.
 command += oiiotool (" --pattern constant:color=1,0,0 64x64 3 "
             + " --caption \"foo SHA-1=1234abcd ConstantColor=[0.0,0,-0.0] bar\""
-            + " -d uint8 -o " + oiio_relpath("small.tif") )
+            + " -d uint8 -o " + make_relpath("small.tif") )
 command += info_command ("small.tif", safematch=1);
 command += maketx_command ("small.tif", "small.tx",
                            "--oiio --constant-color-detect", showinfo=True)
@@ -108,14 +108,14 @@ command += info_command ("grid-lanczos3-hicomp.tx",
 # all-white image, turning it into an env map, and calculating its
 # statistics (should be 1.0 everywhere).
 command += oiiotool (" --pattern constant:color=1,1,1 4x2 3 "
-            + " -d half -o " + oiio_relpath("white.exr"))
+            + " -d half -o " + make_relpath("white.exr"))
 command += maketx_command ("white.exr", "whiteenv.exr",
                            "--envlatl")
 command += oiiotool ("--stats -a whiteenv.exr")
 
 #Test --bumpslopes to export a 6 channels height map with gradients
 command += oiiotool (" --pattern noise 64x64 1"
-           + " -d half -o " + oiio_relpath("bump.exr"))
+           + " -d half -o " + make_relpath("bump.exr"))
 command += maketx_command ("bump.exr", "bumpslope.exr",
                            "--bumpslopes -d half", showinfo=True)
 
