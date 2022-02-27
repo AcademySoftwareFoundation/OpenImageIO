@@ -170,7 +170,7 @@ print_stats(const std::string& filename, const ImageSpec& originalspec,
 {
     const char* indent = indentmip ? "      " : "    ";
 
-    ImageBuf input;
+    ImageBuf input(filename);
     if (!read_input(filename, input, subimage, miplevel)) {
         // Note: read_input prints an error message if one occurs
         return;
