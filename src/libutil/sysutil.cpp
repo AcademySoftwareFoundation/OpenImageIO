@@ -78,6 +78,8 @@
 #    include <boost/thread.hpp>
 #endif
 
+OIIO_INTEL_PRAGMA(warning disable 2196)
+
 
 OIIO_NAMESPACE_BEGIN
 

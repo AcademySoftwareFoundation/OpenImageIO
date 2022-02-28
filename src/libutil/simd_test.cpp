@@ -968,6 +968,7 @@ void test_arithmetic ()
     typedef typename VEC::value_t ELEM;
     test_heading ("arithmetic ", VEC::type_name());
 
+    ELEM eps = static_cast<ELEM>(1.0e-6);
     VEC a = VEC::Iota (1, 3);
     VEC b = VEC::Iota (1, 1);
     VEC add(ELEM(0)), sub(ELEM(0)), mul(ELEM(0)), div(ELEM(0));
@@ -982,13 +983,13 @@ void test_arithmetic ()
     OIIO_CHECK_SIMD_EQUAL (a+b, add);
     OIIO_CHECK_SIMD_EQUAL (a-b, sub);
     OIIO_CHECK_SIMD_EQUAL (a*b, mul);
-    OIIO_CHECK_SIMD_EQUAL (a/b, div);
+    OIIO_CHECK_SIMD_EQUAL_THRESH (a/b, div, eps);
     OIIO_CHECK_SIMD_EQUAL (a*ELEM(2), a*VEC(ELEM(2)));
     OIIO_CHECK_SIMD_EQUAL (ELEM(2)*a, a*VEC(ELEM(2)));
     { VEC r = a; r += b; OIIO_CHECK_SIMD_EQUAL (r, add); }
     { VEC r = a; r -= b; OIIO_CHECK_SIMD_EQUAL (r, sub); }
     { VEC r = a; r *= b; OIIO_CHECK_SIMD_EQUAL (r, mul); }
-    { VEC r = a; r /= b; OIIO_CHECK_SIMD_EQUAL (r, div); }
+    { VEC r = a; r /= b; OIIO_CHECK_SIMD_EQUAL_THRESH (r, div, eps); }
     { VEC r = a; r *= ELEM(2); OIIO_CHECK_SIMD_EQUAL (r, a*ELEM(2)); }
     // Test to make sure * works for negative 32 bit ints on all SIMD levels,
     // because it's a different code path for sse2.
@@ -1590,15 +1591,15 @@ void test_mathfuncs ()
     OIIO_CHECK_SIMD_EQUAL_THRESH (log(expA), A, 1e-6f);
     OIIO_CHECK_SIMD_EQUAL (fast_exp(A),
                 mkvec<VEC>(fast_exp(A[0]), fast_exp(A[1]), fast_exp(A[2]), fast_exp(A[3])));
-    OIIO_CHECK_SIMD_EQUAL (fast_log(expA),
-                mkvec<VEC>(fast_log(expA[0]), fast_log(expA[1]), fast_log(expA[2]), fast_log(expA[3])));
+    OIIO_CHECK_SIMD_EQUAL_THRESH (fast_log(expA),
+                mkvec<VEC>(fast_log(expA[0]), fast_log(expA[1]), fast_log(expA[2]), fast_log(expA[3])), 0.00001f);
     OIIO_CHECK_SIMD_EQUAL_THRESH (fast_pow_pos(VEC(2.0f), A),
                            mkvec<VEC>(0.5f, 1.0f, 2.0f, 22.62741699796952f), 0.0001f);
 
     OIIO_CHECK_SIMD_EQUAL (safe_div(mkvec<VEC>(1.0f,2.0f,3.0f,4.0f), mkvec<VEC>(2.0f,0.0f,2.0f,0.0f)),
                            mkvec<VEC>(0.5f,0.0f,1.5f,0.0f));
-    OIIO_CHECK_SIMD_EQUAL (sqrt(mkvec<VEC>(1.0f,4.0f,9.0f,16.0f)), mkvec<VEC>(1.0f,2.0f,3.0f,4.0f));
-    OIIO_CHECK_SIMD_EQUAL (rsqrt(mkvec<VEC>(1.0f,4.0f,9.0f,16.0f)), VEC(1.0f)/mkvec<VEC>(1.0f,2.0f,3.0f,4.0f));
+    OIIO_CHECK_SIMD_EQUAL_THRESH (sqrt(mkvec<VEC>(1.0f,4.0f,9.0f,16.0f)), mkvec<VEC>(1.0f,2.0f,3.0f,4.0f), 0.00001);
+    OIIO_CHECK_SIMD_EQUAL_THRESH (rsqrt(mkvec<VEC>(1.0f,4.0f,9.0f,16.0f)), VEC(1.0f)/mkvec<VEC>(1.0f,2.0f,3.0f,4.0f), 0.00001);
     OIIO_CHECK_SIMD_EQUAL_THRESH (rsqrt_fast(mkvec<VEC>(1.0f,4.0f,9.0f,16.0f)),
                                   VEC(1.0f)/mkvec<VEC>(1.0f,2.0f,3.0f,4.0f), 0.0005f);
     OIIO_CHECK_SIMD_EQUAL_THRESH (rcp_fast(VEC::Iota(1.0f)),

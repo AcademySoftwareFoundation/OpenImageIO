@@ -1905,7 +1905,7 @@ OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_atan2 (float y, float x) {
 template<typename T>
 OIIO_FORCEINLINE OIIO_HOSTDEVICE T fast_log2 (const T& xval) {
     using namespace simd;
-    typedef typename T::int_t intN;
+    typedef typename T::vint_t intN;
     // See float fast_log2 for explanations
     T x = clamp (xval, T(std::numeric_limits<float>::min()), T(std::numeric_limits<float>::max()));
     intN bits = bitcast_to_int(x);
@@ -2013,7 +2013,7 @@ OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_log1p (float x) {
 template<typename T>
 OIIO_FORCEINLINE OIIO_HOSTDEVICE T fast_exp2 (const T& xval) {
     using namespace simd;
-    typedef typename T::int_t intN;
+    typedef typename T::vint_t intN;
 #if OIIO_SIMD_SSE
     // See float specialization for explanations
     T x = clamp (xval, T(-126.0f), T(126.0f));

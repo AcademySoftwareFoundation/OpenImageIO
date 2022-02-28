@@ -69,7 +69,7 @@ macro (setup_python_module)
 
     set (target_name ${lib_TARGET})
 
-    if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" AND NOT ${CMAKE_COMPILER_ID} STREQUAL "Intel")
         # Seems to be a problem on some systems, with pybind11 and python headers
         set_property (SOURCE ${lib_SOURCES} APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-macro-redefined ")
     endif ()

@@ -281,7 +281,6 @@ public:
     }
     openvdb::io::File* operator->() { return m_file.get(); };
     operator bool() const { return m_file.get() != nullptr; }
-    void reset() { m_file.reset(); }
 };
 
 
