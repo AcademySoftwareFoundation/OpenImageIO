@@ -564,17 +564,18 @@ private:
 
 /// Helper: shuffle/swizzle with constant (templated) indices.
 /// Example: shuffle<1,1,2,2>(vbool4(a,b,c,d)) returns (b,b,c,c)
-template<int i0, int i1, int i2, int i3> vbool4 shuffle (const vbool4& a);
+template<int i0, int i1, int i2, int i3>
+OIIO_FORCEINLINE vbool4 shuffle (const vbool4& a);
 
 /// shuffle<i>(a) is the same as shuffle<i,i,i,i>(a)
-template<int i> vbool4 shuffle (const vbool4& a);
+template<int i> OIIO_FORCEINLINE vbool4 shuffle (const vbool4& a);
 
 /// Helper: as rapid as possible extraction of one component, when the
 /// index is fixed.
-template<int i> bool extract (const vbool4& a);
+template<int i> OIIO_FORCEINLINE bool extract (const vbool4& a);
 
 /// Helper: substitute val for a[i]
-template<int i> vbool4 insert (const vbool4& a, bool val);
+template<int i> OIIO_FORCEINLINE vbool4 insert (const vbool4& a, bool val);
 
 /// Logical reduction across all components.
 bool reduce_and (const vbool4& v);
@@ -714,17 +715,17 @@ private:
 /// Helper: shuffle/swizzle with constant (templated) indices.
 /// Example: shuffle<1,1,2,2>(vbool4(a,b,c,d)) returns (b,b,c,c)
 template<int i0, int i1, int i2, int i3, int i4, int i5, int i6, int i7>
-vbool8 shuffle (const vbool8& a);
+OIIO_FORCEINLINE vbool8 shuffle (const vbool8& a);
 
 /// shuffle<i>(a) is the same as shuffle<i,i,i,i>(a)
-template<int i> vbool8 shuffle (const vbool8& a);
+template<int i> OIIO_FORCEINLINE vbool8 shuffle (const vbool8& a);
 
 /// Helper: as rapid as possible extraction of one component, when the
 /// index is fixed.
-template<int i> bool extract (const vbool8& a);
+template<int i> OIIO_FORCEINLINE bool extract (const vbool8& a);
 
 /// Helper: substitute val for a[i]
-template<int i> vbool8 insert (const vbool8& a, bool val);
+template<int i> OIIO_FORCEINLINE vbool8 insert (const vbool8& a, bool val);
 
 /// Logical reduction across all components.
 bool reduce_and (const vbool8& v);
@@ -866,10 +867,10 @@ private:
 
 /// Helper: as rapid as possible extraction of one component, when the
 /// index is fixed.
-template<int i> bool extract (const vbool16& a);
+template<int i> OIIO_FORCEINLINE bool extract (const vbool16& a);
 
 /// Helper: substitute val for a[i]
-template<int i> vbool16 insert (const vbool16& a, bool val);
+template<int i> OIIO_FORCEINLINE vbool16 insert (const vbool16& a, bool val);
 
 /// Logical reduction across all components.
 bool reduce_and (const vbool16& v);
@@ -1106,14 +1107,15 @@ vint4 srl (const vint4& val, const unsigned int bits);
 
 /// Helper: shuffle/swizzle with constant (templated) indices.
 /// Example: shuffle<1,1,2,2>(vbool4(a,b,c,d)) returns (b,b,c,c)
-template<int i0, int i1, int i2, int i3> vint4 shuffle (const vint4& a);
+template<int i0, int i1, int i2, int i3>
+OIIO_FORCEINLINE vint4 shuffle (const vint4& a);
 
 /// shuffle<i>(a) is the same as shuffle<i,i,i,i>(a)
-template<int i> vint4 shuffle (const vint4& a);
+template<int i> OIIO_FORCEINLINE vint4 shuffle (const vint4& a);
 
 /// Helper: as rapid as possible extraction of one component, when the
 /// index is fixed.
-template<int i> int extract (const vint4& v);
+template<int i> OIIO_FORCEINLINE int extract (const vint4& v);
 
 /// The sum of all components, returned in all components.
 vint4 vreduce_add (const vint4& v);
@@ -1405,18 +1407,18 @@ vint8 srl (const vint8& val, const unsigned int bits);
 
 /// Helper: shuffle/swizzle with constant (templated) indices.
 /// Example: shuffle<1,1,2,2>(vbool4(a,b,c,d)) returns (b,b,c,c)
-template<int i0, int i1, int i2, int i3,
-         int i4, int i5, int i6, int i7> vint8 shuffle (const vint8& a);
+template<int i0, int i1, int i2, int i3, int i4, int i5, int i6, int i7>
+OIIO_FORCEINLINE vint8 shuffle (const vint8& a);
 
 /// shuffle<i>(a) is the same as shuffle<i,i,i,i>(a)
-template<int i> vint8 shuffle (const vint8& a);
+template<int i> OIIO_FORCEINLINE vint8 shuffle (const vint8& a);
 
 /// Helper: as rapid as possible extraction of one component, when the
 /// index is fixed.
-template<int i> int extract (const vint8& v);
+template<int i> OIIO_FORCEINLINE int extract (const vint8& v);
 
 /// Helper: substitute val for a[i]
-template<int i> vint8 insert (const vint8& a, int val);
+template<int i> OIIO_FORCEINLINE vint8 insert (const vint8& a, int val);
 
 /// The sum of all components, returned in all components.
 vint8 vreduce_add (const vint8& v);
@@ -1723,10 +1725,10 @@ template<int i> vint16 shuffle (const vint16& a);
 
 /// Helper: as rapid as possible extraction of one component, when the
 /// index is fixed.
-template<int i> int extract (const vint16& v);
+template<int i> OIIO_FORCEINLINE int extract (const vint16& v);
 
 /// Helper: substitute val for a[i]
-template<int i> vint16 insert (const vint16& a, int val);
+template<int i> OIIO_FORCEINLINE vint16 insert (const vint16& a, int val);
 
 /// The sum of all components, returned in all components.
 vint16 vreduce_add (const vint16& v);
@@ -2027,17 +2029,18 @@ protected:
 
 /// Helper: shuffle/swizzle with constant (templated) indices.
 /// Example: shuffle<1,1,2,2>(vbool4(a,b,c,d)) returns (b,b,c,c)
-template<int i0, int i1, int i2, int i3> vfloat4 shuffle (const vfloat4& a);
+template<int i0, int i1, int i2, int i3>
+OIIO_FORCEINLINE vfloat4 shuffle (const vfloat4& a);
 
 /// shuffle<i>(a) is the same as shuffle<i,i,i,i>(a)
-template<int i> vfloat4 shuffle (const vfloat4& a);
+template<int i> OIIO_FORCEINLINE vfloat4 shuffle (const vfloat4& a);
 
 /// Helper: as rapid as possible extraction of one component, when the
 /// index is fixed.
-template<int i> float extract (const vfloat4& a);
+template<int i> OIIO_FORCEINLINE float extract (const vfloat4& a);
 
 /// Helper: substitute val for a[i]
-template<int i> vfloat4 insert (const vfloat4& a, float val);
+template<int i> OIIO_FORCEINLINE vfloat4 insert (const vfloat4& a, float val);
 
 /// The sum of all components, returned in all components.
 vfloat4 vreduce_add (const vfloat4& v);
@@ -2115,8 +2118,8 @@ vfloat4 rsqrt (const vfloat4 &a);   ///< Fully accurate 1/sqrt
 vfloat4 rsqrt_fast (const vfloat4 &a);  ///< Fast, approximate 1/sqrt
 vfloat4 min (const vfloat4& a, const vfloat4& b); ///< Per-element min
 vfloat4 max (const vfloat4& a, const vfloat4& b); ///< Per-element max
-template <typename T> T exp (const T& v);  // template for all SIMD variants
-template <typename T> T log (const T& v);
+template <typename T> OIIO_FORCEINLINE T exp (const T& v);  // template for all SIMD variants
+template <typename T> OIIO_FORCEINLINE T log (const T& v);
 
 /// andnot(a,b) returns ((~a) & b)
 vfloat4 andnot (const vfloat4& a, const vfloat4& b);
@@ -2652,17 +2655,17 @@ protected:
 /// Helper: shuffle/swizzle with constant (templated) indices.
 /// Example: shuffle<1,1,2,2>(vbool4(a,b,c,d)) returns (b,b,c,c)
 template<int i0, int i1, int i2, int i3, int i4, int i5, int i6, int i7>
-vfloat8 shuffle (const vfloat8& a);
+OIIO_FORCEINLINE vfloat8 shuffle (const vfloat8& a);
 
 /// shuffle<i>(a) is the same as shuffle<i,i,i,i,...>(a)
-template<int i> vfloat8 shuffle (const vfloat8& a);
+template<int i> OIIO_FORCEINLINE vfloat8 shuffle (const vfloat8& a);
 
 /// Helper: as rapid as possible extraction of one component, when the
 /// index is fixed.
-template<int i> float extract (const vfloat8& a);
+template<int i> OIIO_FORCEINLINE float extract (const vfloat8& a);
 
 /// Helper: substitute val for a[i]
-template<int i> vfloat8 insert (const vfloat8& a, float val);
+template<int i> OIIO_FORCEINLINE vfloat8 insert (const vfloat8& a, float val);
 
 /// The sum of all components, returned in all components.
 vfloat8 vreduce_add (const vfloat8& v);
@@ -2982,24 +2985,24 @@ protected:
 
 /// Shuffle groups of 4
 template<int i0, int i1, int i2, int i3>
-vfloat16 shuffle4 (const vfloat16& a);
+OIIO_FORCEINLINE vfloat16 shuffle4 (const vfloat16& a);
 
 /// shuffle4<i>(a) is the same as shuffle4<i,i,i,i>(a)
-template<int i> vfloat16 shuffle4 (const vfloat16& a);
+template<int i> OIIO_FORCEINLINE vfloat16 shuffle4 (const vfloat16& a);
 
 /// Shuffle within each group of 4
 template<int i0, int i1, int i2, int i3>
-vfloat16 shuffle (const vfloat16& a);
+OIIO_FORCEINLINE vfloat16 shuffle (const vfloat16& a);
 
 /// shuffle<i>(a) is the same as shuffle<i,i,i,i>(a)
 template<int i> vfloat16 shuffle (const vfloat16& a);
 
 /// Helper: as rapid as possible extraction of one component, when the
 /// index is fixed.
-template<int i> float extract (const vfloat16& a);
+template<int i> OIIO_FORCEINLINE float extract (const vfloat16& a);
 
 /// Helper: substitute val for a[i]
-template<int i> vfloat16 insert (const vfloat16& a, float val);
+template<int i> OIIO_FORCEINLINE vfloat16 insert (const vfloat16& a, float val);
 
 /// The sum of all components, returned in all components.
 vfloat16 vreduce_add (const vfloat16& v);
