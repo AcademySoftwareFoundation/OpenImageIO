@@ -595,6 +595,15 @@ main(int argc, char* argv[])
     ntrials = 1;
 #endif
 
+#if OIIO_SIMD_SSE && !OIIO_F16C_ENABLED
+    // Some rogue libraries (and icc runtime libs?) will turn on the cpu mode
+    // that causes floating point denormals get crushed to 0.0 in certain ops,
+    // and leave it that way! This can give us the wrong results for the
+    // particular sequence of SSE intrinsics we use to convert half->float for
+    // exr files containing pixels with denorm values.
+    simd::set_denorms_zero_mode(false);
+#endif
+
     getargs(argc, argv);
 
     test_int_helpers();

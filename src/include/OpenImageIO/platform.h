@@ -210,6 +210,7 @@
 // OIIO_GCC_PRAGMA(x) -- pragma on gcc/clang/icc only
 // OIIO_CLANG_PRAGMA(x) -- pragma on clang only (not gcc or icc)
 // OIIO_MSVS_PRAGMA(x) -- pragma on MSVS only
+// OSL_INTEL_PRAGMA(x) -- pragma on Intel compiler only
 
 // Generic pragma definition
 #if defined(_MSC_VER)
@@ -233,6 +234,11 @@
 #        define OIIO_CLANG_PRAGMA(UnQuotedPragma)
 #        define OIIO_GCC_ONLY_PRAGMA(UnQuotedPragma) OIIO_PRAGMA(UnQuotedPragma)
 #    endif
+#    if defined(__INTEL_COMPILER)
+#        define OIIO_INTEL_PRAGMA(UnQuotedPragma) OIIO_PRAGMA(UnQuotedPragma)
+#    else
+#        define OIIO_INTEL_PRAGMA(UnQuotedPragma)
+#    endif
 #    define OIIO_MSVS_PRAGMA(UnQuotedPragma)
 #elif defined(_MSC_VER)
 #    define OIIO_PRAGMA_WARNING_PUSH __pragma(warning(push))
@@ -242,6 +248,7 @@
 #    define OIIO_GCC_PRAGMA(UnQuotedPragma)
 #    define OIIO_GCC_ONLY_PRAGMA(UnQuotedPragma)
 #    define OIIO_CLANG_PRAGMA(UnQuotedPragma)
+#    define OIIO_INTEL_PRAGMA(UnQuotedPragma)
 #    define OIIO_MSVS_PRAGMA(UnQuotedPragma) OIIO_PRAGMA(UnQuotedPragma)
 #else
 #    define OIIO_PRAGMA_WARNING_PUSH
@@ -251,6 +258,7 @@
 #    define OIIO_GCC_PRAGMA(UnQuotedPragma)
 #    define OIIO_GCC_ONLY_PRAGMA(UnQuotedPragma)
 #    define OIIO_CLANG_PRAGMA(UnQuotedPragma)
+#    define OIIO_INTEL_PRAGMA(UnQuotedPragma)
 #    define OIIO_MSVS_PRAGMA(UnQuotedPragma)
 #endif
 
@@ -439,7 +447,8 @@
 // false positives that you can't easily get rid of.
 // This should work for any clang >= 3.3 and gcc >= 4.8, which are
 // guaranteed by our minimum requirements.
-#if defined(__clang__) || defined(__GNUC__) || __has_attribute(no_sanitize_address)
+#if defined(__clang__) || (defined(__GNUC__) && !defined(__INTEL_COMPILER)) \
+                       || __has_attribute(no_sanitize_address)
 #    define OIIO_NO_SANITIZE_ADDRESS __attribute__((no_sanitize_address))
 #else
 #    define OIIO_NO_SANITIZE_ADDRESS
@@ -570,7 +579,10 @@ template <typename T, class... Args>
 inline T* aligned_new(Args&&... args) {
     static_assert(alignof(T) > alignof(void*), "Type doesn't seem to be over-aligned, aligned_new is not required");
     void* ptr = aligned_malloc(sizeof(T), alignof(T));
+    OIIO_PRAGMA_WARNING_PUSH
+    OIIO_INTEL_PRAGMA(warning disable 873)
     return ptr ? new (ptr) T(std::forward<Args>(args)...) : nullptr;
+    OIIO_PRAGMA_WARNING_POP
 }
 
 template <typename T>

@@ -845,6 +845,61 @@ jobs:
             !build/testsuite/fits-images
             !build/testsuite/j2kp4files_v1_5
 
+  linux-icc:
+    name: "Linux icc VFX2022: icc/C++17 py3.9 boost1.76 exr3.1 ocio2.1 qt5.15"
+    runs-on: ubuntu-latest
+    container:
+      image: aswf/ci-osl:2022-clang11
+    env:
+      USE_ICC: icc
+      CXX: g++
+      CC: gcc
+      CMAKE_CXX_STANDARD: 17
+      FMT_VERSION: 7.1.3
+      # icc MUST use this older FMT version
+      PYBIND11_VERSION: v2.9.0
+      PYTHON_VERSION: 3.9
+      # USE_SIMD: avx2,f16c
+      USE_OPENVDB: 0
+    steps:
+      - uses: actions/checkout@v2
+      - name: Prepare ccache timestamp
+        id: ccache_cache_keys
+        run: |
+          echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
+      - name: ccache
+        id: ccache
+        uses: actions/cache@v2
+        with:
+          path: /tmp/ccache
+          key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
+          restore-keys: |
+            ${{ github.job }}-
+      - name: Build setup
+        run: |
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: |
+            build/*.cmake
+            build/CMake*
+            build/testsuite/*/*.*
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
+            !build/testsuite/j2kp4files_v1_5
+
   linux-static:
     # Test building static libs.
     name: "Linux static libs: gcc7 C++14 exr2.4"

@@ -55,6 +55,7 @@ public:
             return level[lev].getchannel(x, y, 0, 1);
     }
 
+#if 0 /* unused */
     ImageBuf& operator[](int lev)
     {
         OIIO_DASSERT(lev < PYRAMID_MAX_LEVELS);
@@ -66,6 +67,7 @@ public:
         OIIO_DASSERT(lev < PYRAMID_MAX_LEVELS);
         return level[lev].getchannel(x, y, 0, 1);
     }
+#endif
 
 private:
     ImageBuf level[PYRAMID_MAX_LEVELS];

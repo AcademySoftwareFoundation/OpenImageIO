@@ -20,6 +20,15 @@ if [[ "$ASWF_ORG" != ""  ]] ; then
     if [[ "${EXTRA_DEP_PACKAGES}" != "" ]] ; then
         time sudo yum install -y ${EXTRA_DEP_PACKAGES}
     fi
+
+    if [[ "$CXX" == "icpc" || "$CC" == "icc" || "$USE_ICC" != "" ]] ; then
+        sudo cp src/build-scripts/oneAPI.repo /etc/yum.repos.d
+        # sudo yum install -y intel-hpckit
+        time sudo yum install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
+        set +e; source /opt/intel/oneapi/setvars.sh; set -e
+        icpc --version
+    fi
+
 else
     # Using native Ubuntu runner
 
@@ -75,6 +84,16 @@ else
         time sudo apt-get install -y g++-10
     elif [[ "$CXX" == "g++-11" ]] ; then
         time sudo apt-get install -y g++-11
+    fi
+
+    if [[ "$CXX" == "icpc" || "$CC" == "icc" || "$USE_ICC" != "" ]] ; then
+        wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+        sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+        echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
+        time sudo apt-get update
+        time sudo apt-get install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
+        set +e; source /opt/intel/oneapi/setvars.sh; set -e
+        icpc --version
     fi
 
 fi
@@ -133,6 +152,12 @@ fi
 
 src/build-scripts/install_test_images.bash
 
+if [[ "$USE_ICC" != "" ]] ; then
+    # We used gcc for the prior dependency builds, but use icc for OSL itself
+    echo "which icpc:" $(which icpc)
+    export CXX=icpc
+    export CC=icc
+fi
 
 # Save the env for use by other stages
 src/build-scripts/save-env.bash
