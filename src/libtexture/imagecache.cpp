@@ -3516,6 +3516,7 @@ ImageCacheFile::udim_setup()
                   || Strutil::rcontains(m_filename, "%(UDIM)d"));
     bool udim2_0 = (Strutil::rcontains(m_filename, "<u>")
                     || Strutil::rcontains(m_filename, "<v>")
+                    || Strutil::rcontains(m_filename, "<uvtile>")
                     || Strutil::rcontains(m_filename, "_u##v##"));
     bool udim2_1 = (Strutil::rcontains(m_filename, "<U>")
                     || Strutil::rcontains(m_filename, "<V>")
@@ -3605,6 +3606,9 @@ ImageCacheFile::udim_to_concrete(int utile, int vtile)
                               Strutil::fmt::format("_u{:02d}v{:02d}", utile,
                                                    vtile),
                               true);
+    result = Strutil::replace(result, "<uvtile>",
+                              Strutil::fmt::format("u{}_v{}", utile, vtile),
+                              true);
     result = Strutil::replace(result, "<UVTILE>",
                               Strutil::fmt::format("u{}_v{}", utile + 1,
                                                    vtile + 1),
@@ -3631,6 +3635,7 @@ ImageCacheFile::udim_to_wildcard(string_view udimpattern)
     result = Strutil::replace(result, "<U>", "u([0-9]+)", true);
     result = Strutil::replace(result, "<V>", "v([0-9]+)", true);
     result = Strutil::replace(result, "_u##v##", "_u([0-9]+)v([0-9]+)", true);
+    result = Strutil::replace(result, "<uvtile>", "u([0-9]+)_v([0-9]+)", true);
     result = Strutil::replace(result, "<UVTILE>", "u([0-9]+)_v([0-9]+)", true);
     // Ugh, "%(UDIM)d" is tricky because we already backslashed it!
     result = Strutil::replace(result, "%\\(UDIM\\)d", "([0-9]{4})", true);
