@@ -88,17 +88,11 @@ typedef std::lock_guard<recursive_mutex> recursive_lock_guard;
 
 
 /// Yield the processor for the rest of the timeslice.
-///
+/// DEPRECATED(2.4): Use std::this_thread::yield() instead.
 inline void
 yield() noexcept
 {
-#if defined(__GNUC__)
-    sched_yield();
-#elif defined(_MSC_VER)
-    SwitchToThread();
-#else
-#    error No yield on this platform.
-#endif
+    std::this_thread::yield();
 }
 
 
@@ -148,7 +142,7 @@ public:
             pause(m_count);
             m_count *= 2;
         } else {
-            yield();
+            std::this_thread::yield();
         }
     }
 
