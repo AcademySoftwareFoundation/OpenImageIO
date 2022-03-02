@@ -3600,8 +3600,7 @@ ImageCacheFile::udim_to_concrete(int utile, int vtile)
                                                    vtile),
                               true);
     result = Strutil::replace(result, "<uvtile>",
-                              Strutil::fmt::format("u{}_v{}", utile,
-                                                   vtile),
+                              Strutil::fmt::format("u{}_v{}", utile, vtile),
                               true);
     result = Strutil::replace(result, "<UVTILE>",
                               Strutil::fmt::format("u{}_v{}", utile + 1,
