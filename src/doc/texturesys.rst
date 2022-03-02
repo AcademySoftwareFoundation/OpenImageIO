@@ -217,6 +217,7 @@ Pattern    Numbering scheme         Example expansion if u=0.5, v=2.5
 `<v>`      vtile                    `v2`
 `<U>`      utile + 1                `u1`
 `<V>`      vtile + 1                `v3`
+`<uvtile>` equivalent to `<u>_<v>`  `u0_v2`
 `<UVTILE>` equivalent to `<U>_<V>`  `u1_v3`
 `_u##v##`  utile, vtile             `_u00v02`
 `%(UDIM)d` synonym for `<UDIM>`     `1021`

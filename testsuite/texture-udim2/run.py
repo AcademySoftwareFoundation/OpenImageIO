@@ -48,4 +48,9 @@ command += testtex_command ("\"file0.<UVTILE>.tx\"",
 command += testtex_command ("\"file0.<UVTILE>.tx\" --gettextureinfo Make --iters 0")
 command += testtex_command ("\"file0.<UVTILE>.tx\" --gettextureinfo Model --iters 0")
 
-outputs = [ "out.tif", "out2.tif", "out3.tif", "out4.tif", "out.txt" ]
+command += testtex_command ("\"file0.<uvtile>.tx\"",
+                            "-nowarp -scalest 2 2 --iters 100 -res 128 128 -d uint8 -o out5.tif")
+command += testtex_command ("\"file0.<uvtile>.tx\" --gettextureinfo Make --iters 0")
+command += testtex_command ("\"file0.<uvtile>.tx\" --gettextureinfo Model --iters 0")
+
+outputs = [ "out.tif", "out2.tif", "out3.tif", "out4.tif", "out5.tif", "out.txt" ]

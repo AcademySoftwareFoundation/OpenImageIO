@@ -70,3 +70,19 @@ Comparing "out3.tif" and "ref/out3-freetype2.7.tif"
 PASS
 Comparing "out4.tif" and "ref/out4-freetype2.7.tif"
 PASS
+
+Testing 2d texture file0.<uvtile>.tx, output = out5.tif
+Created texture system
+Image "file0.<uvtile>.tx" attrib "Make" = "pet"
+Created texture system
+Image "file0.<uvtile>.tx" attrib "Model" -> not found
+Comparing "out.tif" and "ref/out-freetype2.7.tif"
+PASS
+Comparing "out2.tif" and "ref/out2-freetype2.7.tif"
+PASS
+Comparing "out3.tif" and "ref/out3-freetype2.7.tif"
+PASS
+Comparing "out4.tif" and "ref/out4-freetype2.7.tif"
+PASS
+Comparing "out5.tif" and "ref/out5-freetype2.7.tif"
+PASS
