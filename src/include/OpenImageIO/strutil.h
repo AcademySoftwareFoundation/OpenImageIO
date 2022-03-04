@@ -49,6 +49,11 @@
 #    define OIIO_FORMAT_DEPRECATED
 #endif
 
+// If OIIO_PRINT_IS_SYNCHRONIZED is not defined, assume unsynchronized.
+#ifndef OIIO_PRINT_IS_SYNCHRONIZED
+#    define OIIO_PRINT_IS_SYNCHRONIZED 0
+#endif
+
 // Allow client software to know that at this moment, the fmt-based string
 // formatting is locale-independent. This was 0 in older versions when fmt
 // was locale dependent.
@@ -62,13 +67,16 @@ OIIO_NAMESPACE_BEGIN
 /// @brief     String-related utilities.
 namespace Strutil {
 
-/// Output the string to the file/stream in a synchronized fashion, so that
-/// buffers are flushed and internal mutex is used to prevent threads from
-/// clobbering each other -- output strings coming from concurrent threads
-/// may be interleaved, but each string is "atomic" and will never splice
-/// each other character-by-character.
-void OIIO_UTIL_API sync_output (FILE *file, string_view str);
-void OIIO_UTIL_API sync_output (std::ostream &file, string_view str);
+/// Output the string to the file/stream in a synchronized fashion, with an
+/// internal mutex used to prevent threads from clobbering each other --
+/// output strings coming from concurrent threads may be interleaved, but each
+/// string is "atomic" and will never splice each other
+/// character-by-character. If `flush` is true, the underlying stream will be
+/// flushed after the string is output.
+void OIIO_UTIL_API sync_output (FILE* file, string_view str,
+                                bool flush = true);
+void OIIO_UTIL_API sync_output (std::ostream& file, string_view str,
+                                bool flush = true);
 
 
 /// Construct a std::string in a printf-like fashion.  For example:
@@ -81,10 +89,7 @@ void OIIO_UTIL_API sync_output (std::ostream &file, string_view str);
 /// conventions (in particular, '.' as decimal separator for float values).
 #ifdef OIIO_DOXYGEN
 template<typename Str, typename... Args>
-inline std::string sprintf(const Str& fmt, Args&&... args)
-{
-    return ::fmt::sprintf(fmt, args...);
-}
+std::string sprintf(const Str& fmt, Args&&... args);
 #else
 using ::fmt::sprintf;
 #endif
@@ -188,35 +193,73 @@ inline void fprintf (std::ostream &file, const char* fmt, const Args&... args)
 
 
 
-/// Strutil::print (fmt, ...)
-/// Strutil::print (FILE*, fmt, ...)
-/// Strutil::print (ostream& fmt, ...)
-///
-/// Output formatted strings to stdout, a FILE*, or a stream, respectively.
-/// All use "Python-like" formatting description (as {fmt} does, and some
-/// day, std::format), are type-safe, are thread-safe (the outputs are
-/// "atomic", at least versus other calls to Strutil::*printf), and
-/// automatically flush their outputs. They are all locale-independent by
-/// default (use {:n} for locale-aware formatting).
+namespace sync {
 
-template<typename... Args>
-inline void print (const char* fmt, const Args&... args)
-{
-    sync_output (stdout, Strutil::fmt::format(fmt, args...));
-}
+/// Strutil::sync::print (fmt, ...)
+/// Strutil::sync::print (FILE*, fmt, ...)
+/// Strutil::sync::print (ostream& fmt, ...)
+///
+/// Output formatted strings to stdout, a FILE*, or a stream, using a
+/// "Python-like/std::format" type-safe formatting description. Results are
+/// locale-independent (use `{:n}` locale-aware formatting).
+///
+/// Output is fully thread-safe (the outputs are "atomic" to the file or
+/// stream), and if the stream is buffered, it is flushed after the output).
 
 template<typename... Args>
 inline void print (FILE *file, const char* fmt, const Args&... args)
 {
-    sync_output (file, Strutil::fmt::format(fmt, args...));
+    sync_output (file, ::fmt::format(fmt, args...));
+}
+
+template<typename... Args>
+inline void print (const char* fmt, const Args&... args)
+{
+    print(stdout, fmt, args...);
 }
 
 template<typename... Args>
 inline void print (std::ostream &file, const char* fmt, const Args&... args)
 {
-    sync_output (file, Strutil::fmt::format(fmt, args...));
+    sync_output (file, ::fmt::format(fmt, args...));
 }
+} // namespace sync
 
+
+
+/// Strutil::print (fmt, ...)
+/// Strutil::print (FILE*, fmt, ...)
+/// Strutil::print (ostream& fmt, ...)
+///
+/// Output formatted strings to stdout, a FILE*, or a stream, using a
+/// "Python-like/std::format" type-safe formatting description. Results are
+/// locale-independent (use `{:n}` locale-aware formatting).
+///
+/// As wrappers around fmt::print (https://fmt.dev), these appear currently to
+/// be thread-safe and "atomic" (multiple concurrent calls using the same
+/// stream should not interleave their characters within the output strings).
+/// But we can't 100% guarantee that on all platforms and all versions of fmt.
+/// See the `Strutil::sync::print()` for similar functionality that is
+/// guaranteed to be thread-safe and atomic, as well as flush their outputs
+/// fully after each call (but are, as expected, slower). If
+/// `OIIO_PRINT_IS_SYNCHRONIZED` is defined to be 1 prior to including
+/// `<OpenImageIO/strutil.h>`, then print will be also be thread-safe and
+/// atomic, like `sync::print`.
+#ifdef OIIO_DOXYGEN
+template<typename... Args>
+void print (const char* fmt, const Args&... args);
+
+template<typename... Args>
+void print (FILE *file, const char* fmt, const Args&... args);
+
+template<typename... Args>
+void print (std::ostream &file, const char* fmt, const Args&... args);
+
+#elif FMT_VERSION >= 70000 && !OIIO_PRINT_IS_SYNCHRONIZED
+using ::fmt::print;
+#else
+using sync::print;
+#endif
 
 
 
