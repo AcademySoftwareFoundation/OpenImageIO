@@ -392,7 +392,8 @@ void OIIO_UTIL_API use_char_ptr (char const volatile *);
 }
 
 
-#if ((OIIO_GNUC_VERSION && NDEBUG) || OIIO_CLANG_VERSION >= 30500 || OIIO_APPLE_CLANG_VERSION >= 70000 || defined(__INTEL_COMPILER)) && (defined(__x86_64__) || defined(__i386__))
+#if ((OIIO_GNUC_VERSION && NDEBUG) || OIIO_CLANG_VERSION >= 30500 || OIIO_APPLE_CLANG_VERSION >= 70000 || defined(__INTEL_COMPILER)  || defined(__INTEL_LLVM_COMPILER)) \
+     && (defined(__x86_64__) || defined(__i386__))
 
 // Major non-MS compilers on x86/x86_64: use asm trick to indicate that
 // the value is needed.
