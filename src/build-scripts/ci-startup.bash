@@ -26,6 +26,7 @@ export PYTHON_VERSION=${PYTHON_VERSION:="2.7"}
 export PYTHONPATH=$OpenImageIO_ROOT/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH
 export BUILD_MISSING_DEPS=${BUILD_MISSING_DEPS:=1}
 export COMPILER=${COMPILER:=gcc}
+export CC=${CC:=gcc}
 export CXX=${CXX:=g++}
 export OpenImageIO_CI=true
 export USE_NINJA=${USE_NINJA:=1}
