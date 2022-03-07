@@ -499,7 +499,7 @@ task_set::wait_for_task(size_t taskindex, bool block)
         if (!m_pool->run_one_task(m_submitter_thread)) {
             // We tried to do a task ourselves, but there weren't any
             // left, so just wait for the rest to finish.
-            yield();
+            std::this_thread::yield();
         }
     }
 }
@@ -540,7 +540,7 @@ task_set::wait(bool block)
                 // We tried to do a task ourselves, but there weren't any
                 // left, so just wait for the rest to finish.
 #if 1
-                yield();
+                std::this_thread::yield();
 #else
                 // FIXME -- as currently written, if we see an empty queue
                 // but we're still waiting for the tasks in our set to end,
