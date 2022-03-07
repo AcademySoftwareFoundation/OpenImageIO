@@ -1047,6 +1047,11 @@ test_string_view()
     OIIO_CHECK_EQUAL(sr.find_last_not_of("234", 5), 1);
     OIIO_CHECK_EQUAL(sr.find_last_not_of("xyz"), 9);
     OIIO_CHECK_EQUAL(sr.find_last_not_of("01234"), string_view::npos);
+
+    // Just force template expansion of wchar_t variety to make sure it's
+    // not horribly broken.
+    wstring_view wsv;
+    OIIO_CHECK_ASSERT(wsv == wsv);
 }
 
 
