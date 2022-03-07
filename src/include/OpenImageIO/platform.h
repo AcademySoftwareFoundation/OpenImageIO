@@ -134,6 +134,7 @@
 //   __clang__ is defined for all clang varieties (generic and Apple)
 //   __apple_build_version__ is only defined for Apple clang
 //   __INTEL_COMPILER is defined only for icc
+//   __INTEL_LLVM_COMPILER is defined only for icx
 //   _MSC_VER is defined for MSVS compiler (not gcc/clang/icc even on Windows)
 //   _WIN32 is defined on Windows regardless of compiler
 //   __CUDACC__ is defined for nvcc and clang during Cuda compilation.
@@ -151,7 +152,7 @@
 // 30402 for clang 3.4.2), or 0 if not a generic Clang release.
 // N.B. This will be 0 for the clang Apple distributes (which has different
 // version numbers entirely).
-#if defined(__clang__) && !defined(__apple_build_version__)
+#if defined(__clang__) && !defined(__apple_build_version__) && !defined(__INTEL_LLVM_COMPILER)
 #  define OIIO_CLANG_VERSION (10000*__clang_major__ + 100*__clang_minor__ + __clang_patchlevel__)
 #else
 #  define OIIO_CLANG_VERSION 0
@@ -160,6 +161,12 @@
 // Define OIIO_APPLE_CLANG_VERSION to hold an encoded Apple Clang version
 // (e.g. 70002 for clang 7.0.2), or 0 if not an Apple Clang release.
 #if defined(__clang__) && defined(__apple_build_version__)
+#  if defined(__INTEL_LLVM_COMPILER)
+#    error Not expected for __INTEL_LLVM_COMPILER to be defined with an __apple_build_version__
+     // The classic Intel(r) C++ Compiler on OSX may still define __clang__.
+     // Combine with testing OIIO_INTEL_COMPILER to further differentiate if
+     // needed.
+#  endif
 #  define OIIO_APPLE_CLANG_VERSION (10000*__clang_major__ + 100*__clang_minor__ + __clang_patchlevel__)
 #else
 #  define OIIO_APPLE_CLANG_VERSION 0
@@ -173,12 +180,33 @@
 #  define OIIO_INTEL_COMPILER_VERSION 0
 #endif
 
-// Intel's compiler on OSX may still define __clang__ and we have need to
-// know when using a true clang compiler.
+// DEPRECATED(2.4) phase out OIIO_NON_INTEL_CLANG for OIIO_INTEL_LLVM_COMPILER.
+// We're keeping the old one for a while for back compatibility.
 #if !defined(__INTEL_COMPILER) && defined(__clang__)
 #  define OIIO_NON_INTEL_CLANG  __clang__
 #else
 #  define OIIO_NON_INTEL_CLANG  0
+#endif
+
+// Define OIIO_INTEL_LLVM_COMPILER to hold an encoded Intel(r) LLVM Compiler
+// version (e.g. 20220000), or 0 if not an Intel(r) LLVM Compiler.
+// Define OIIO_INTEL_CLANG_VERSION to hold the encoded Clang version the
+// Intel(r) LLVM Compiler is based on (e.g. 140000), or 0 if not an Intel(r)
+// LLVM compiler.
+#if defined(__INTEL_LLVM_COMPILER)
+#  define OIIO_INTEL_LLVM_COMPILER __INTEL_LLVM_COMPILER
+#  define OIIO_INTEL_CLANG_VERSION (10000*__clang_major__ + 100*__clang_minor__ + __clang_patchlevel__)
+#else
+#  define OIIO_INTEL_LLVM_COMPILER 0
+#  define OIIO_INTEL_CLANG_VERSION 0
+#endif
+
+// Define OIIO_ANY_CLANG to 0 or 1 to indicate if any Clang based compiler is
+// in use.
+#if defined(__clang__)
+#  define OIIO_ANY_CLANG 1
+#else
+#  define OIIO_ANY_CLANG 0
 #endif
 
 // Tests for MSVS versions, always 0 if not MSVS at all.
@@ -210,7 +238,8 @@
 // OIIO_GCC_PRAGMA(x) -- pragma on gcc/clang/icc only
 // OIIO_CLANG_PRAGMA(x) -- pragma on clang only (not gcc or icc)
 // OIIO_MSVS_PRAGMA(x) -- pragma on MSVS only
-// OSL_INTEL_PRAGMA(x) -- pragma on Intel compiler only
+// OIIO_INTEL_PRAGMA(x) -- pragma on Intel icc compiler only
+// OIIO_INTEL_LLVM_PRAGMA(x) -- pragma on Intel icx compiler only
 
 // Generic pragma definition
 #if defined(_MSC_VER)
@@ -221,7 +250,7 @@
     #define OIIO_PRAGMA(UnQuotedPragma) _Pragma(#UnQuotedPragma)
 #endif
 
-#if defined(__GNUC__) /* gcc, clang, icc */
+#if defined(__GNUC__) /* gcc, clang, icc, icx */
 #    define OIIO_PRAGMA_WARNING_PUSH    OIIO_PRAGMA(GCC diagnostic push)
 #    define OIIO_PRAGMA_WARNING_POP     OIIO_PRAGMA(GCC diagnostic pop)
 #    define OIIO_PRAGMA_VISIBILITY_PUSH OIIO_PRAGMA(GCC visibility push(default))
@@ -239,6 +268,11 @@
 #    else
 #        define OIIO_INTEL_PRAGMA(UnQuotedPragma)
 #    endif
+#    if defined(__INTEL_LLVM_COMPILER)
+#        define OIIO_INTEL_LLVM_PRAGMA(UnQuotedPragma) OIIO_PRAGMA(UnQuotedPragma)
+#    else
+#        define OIIO_INTEL_LLVM_PRAGMA(UnQuotedPragma)
+#    endif
 #    define OIIO_MSVS_PRAGMA(UnQuotedPragma)
 #elif defined(_MSC_VER)
 #    define OIIO_PRAGMA_WARNING_PUSH __pragma(warning(push))
@@ -249,6 +283,7 @@
 #    define OIIO_GCC_ONLY_PRAGMA(UnQuotedPragma)
 #    define OIIO_CLANG_PRAGMA(UnQuotedPragma)
 #    define OIIO_INTEL_PRAGMA(UnQuotedPragma)
+#    define OIIO_INTEL_LLVM_PRAGMA(UnQuotedPragma)
 #    define OIIO_MSVS_PRAGMA(UnQuotedPragma) OIIO_PRAGMA(UnQuotedPragma)
 #else
 #    define OIIO_PRAGMA_WARNING_PUSH
@@ -259,6 +294,7 @@
 #    define OIIO_GCC_ONLY_PRAGMA(UnQuotedPragma)
 #    define OIIO_CLANG_PRAGMA(UnQuotedPragma)
 #    define OIIO_INTEL_PRAGMA(UnQuotedPragma)
+#    define OIIO_INTEL_LLVM_PRAGMA(UnQuotedPragma)
 #    define OIIO_MSVS_PRAGMA(UnQuotedPragma)
 #endif
 
