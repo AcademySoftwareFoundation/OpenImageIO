@@ -29,15 +29,16 @@
 #    define FMT_DEPRECATED_OSTREAM 1
 #endif
 
+OIIO_PRAGMA_WARNING_PUSH
 #if OIIO_GNUC_VERSION >= 70000
-#    pragma GCC diagnostic push
 #    pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+#if OIIO_INTEL_LLVM_COMPILER
+#    pragma GCC diagnostic ignored "-Wtautological-constant-compare"
 #endif
 
 #include <OpenImageIO/detail/fmt/format.h>
 #include <OpenImageIO/detail/fmt/ostream.h>
 #include <OpenImageIO/detail/fmt/printf.h>
 
-#if OIIO_GNUC_VERSION >= 70000
-#    pragma GCC diagnostic pop
-#endif
+OIIO_PRAGMA_WARNING_POP

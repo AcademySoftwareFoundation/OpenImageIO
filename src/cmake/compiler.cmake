@@ -51,7 +51,8 @@ else ()
     set (GCC_VERSION 0)
 endif ()
 
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER MATCHES "[Cc]lang")
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER MATCHES "[Cc]lang"
+    OR CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
     # If using any flavor of clang, set CMAKE_COMPILER_IS_CLANG. If it's
     # Apple's variety, set CMAKE_COMPILER_IS_APPLECLANG and
     # APPLECLANG_VERSION_STRING, otherwise for generic clang set
@@ -64,6 +65,12 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER MATCHES "[Cc]lan
         string (REGEX REPLACE ".* version ([0-9]+\\.[0-9]+).*" "\\1" APPLECLANG_VERSION_STRING ${clang_full_version_string})
         if (VERBOSE)
             message (STATUS "The compiler is Clang: ${CMAKE_CXX_COMPILER_ID} version ${APPLECLANG_VERSION_STRING}")
+        endif ()
+    elseif (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
+        set (CMAKE_COMPILER_IS_INTELCLANG 1)
+        string (REGEX REPLACE ".* version ([0-9]+\\.[0-9]+).*" "\\1" CLANG_VERSION_STRING ${clang_full_version_string})
+        if (VERBOSE)
+            message (STATUS "The compiler is Intel Clang: ${CMAKE_CXX_COMPILER_ID} version ${CLANG_VERSION_STRING}")
         endif ()
     else ()
         string (REGEX REPLACE ".* version ([0-9]+\\.[0-9]+).*" "\\1" CLANG_VERSION_STRING ${clang_full_version_string})
@@ -171,8 +178,6 @@ if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG)
     # Ensure this macro is set for stdint.h
     add_definitions ("-D__STDC_LIMIT_MACROS")
     add_definitions ("-D__STDC_CONSTANT_MACROS")
-    # this allows native instructions to be used for sqrtf instead of a function call
-    add_compile_options ("-fno-math-errno")
 endif ()
 
 if (MSVC)
@@ -189,6 +194,28 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD"
     AND ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "i386")
     # For FreeBSD, minimum arch of i586 is needed for atomic cpu instructions
     add_compile_options (-march=i586)
+endif ()
+
+# Fast-math mode may go faster, but it breaks IEEE and also makes inconsistent
+# results on different compilers/platforms, so we don't use it by default.
+option (ENABLE_FAST_MATH "Use fast math (may break IEEE fp rules)" OFF)
+if (ENABLE_FAST_MATH)
+    if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG)
+        add_compile_options ("-ffast-math")
+    elseif (MSVC)
+        add_compile_options ("/fp:fast")
+    endif ()
+else ()
+    if (CMAKE_COMPILER_IS_INTELCLANG)
+        # Intel icx is fast-math by default, so if we don't want that, we need
+        # to explicitly disable it.
+        add_compile_options ("-fno-fast-math")
+    endif ()
+endif ()
+
+if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG)
+    # this allows native instructions to be used for sqrtf instead of a function call
+    add_compile_options ("-fno-math-errno")
 endif ()
 
 

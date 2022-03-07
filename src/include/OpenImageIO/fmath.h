@@ -2061,7 +2061,7 @@ OIIO_FORCEINLINE OIIO_HOSTDEVICE T fast_exp2 (const T& xval) {
 
 template<>
 OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_exp2 (const float& xval) {
-#if OIIO_NON_INTEL_CLANG && OIIO_FMATH_SIMD_FRIENDLY
+#if OIIO_ANY_CLANG && !OIIO_INTEL_LLVM_COMPILER && OIIO_FMATH_SIMD_FRIENDLY
     // Clang was unhappy using the bitcast/memcpy/reinter_cast/union inside
     // an explicit SIMD loop, so revert to calling the standard version.
     return std::exp2(xval);

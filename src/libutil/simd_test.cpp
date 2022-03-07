@@ -791,7 +791,6 @@ void
 test_component_access<vbool4>()
 {
     typedef vbool4 VEC;
-    typedef VEC::value_t ELEM;
     test_heading("component_access ", VEC::type_name());
 
     for (int bit = 0; bit < VEC::elements; ++bit) {
@@ -829,7 +828,6 @@ void
 test_component_access<vbool8>()
 {
     typedef vbool8 VEC;
-    typedef VEC::value_t ELEM;
     test_heading("component_access ", VEC::type_name());
 
     for (int bit = 0; bit < VEC::elements; ++bit) {
@@ -880,7 +878,6 @@ void
 test_component_access<vbool16>()
 {
     typedef vbool16 VEC;
-    typedef VEC::value_t ELEM;
     test_heading("component_access ", VEC::type_name());
 
     for (int bit = 0; bit < VEC::elements; ++bit) {

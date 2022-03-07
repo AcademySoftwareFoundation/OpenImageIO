@@ -100,6 +100,15 @@ jobs:
             # icc MUST use this older FMT version
             pybind11_ver: v2.9.0
             setenvs: export USE_ICC=1 USE_OPENVDB=0
+          - desc: icx/C++17 py3.9 boost1.76 exr3.1 ocio2.1 qt5.15
+            nametag: linux-vfx2022-icx
+            os: ubuntu-latest
+            vfxyear: 2022
+            cxxstd: 17
+            python_ver: 3.9
+            simd: "avx2,f16c"
+            pybind11_ver: v2.9.0
+            setenvs: export CC=icx CXX=icpx USE_ICX=1 USE_OPENVDB=0
           - desc: sanitizers
             nametag: sanitizer
             os: ubuntu-latest
