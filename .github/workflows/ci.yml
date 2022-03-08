@@ -31,7 +31,7 @@ jobs:
             nametag: linux-vfx2019
             os: ubuntu-latest
             vfxyear: 2019
-            cxxstd: 14
+            cxx_std: 14
             python_ver: 2.7
             simd: sse4.2
             fmt_ver: 6.1.2
@@ -41,7 +41,7 @@ jobs:
             nametag: linux-vfx2020
             os: ubuntu-latest
             vfxyear: 2020
-            cxxstd: 14
+            cxx_std: 14
             python_ver: 3.7
             simd: avx
             fmt_ver: 7.0.1
@@ -51,7 +51,7 @@ jobs:
             nametag: linux-vfx2021
             os: ubuntu-latest
             vfxyear: 2021
-            cxxstd: 17
+            cxx_std: 17
             python_ver: 3.7
             simd: "avx2,f16c"
             fmt_ver: 7.1.0
@@ -62,18 +62,19 @@ jobs:
             os: ubuntu-latest
             vfxyear: 2021
             vfxsuffix: -clang10
-            cxxstd: 14
+            cc_compiler: clang
+            cxx_compiler: clang++
+            cxx_std: 14
             pybind11_ver: v2.6.2
             python_ver: 3.7
             simd: "avx2,f16c"
             fmt_ver: 8.1.1
-            setenvs: export CC=clang CXX=clang++
           - desc: gcc9/C++17 py39 boost1.76 exr3.1 ocio2.1
             nametag: linux-vfx2022
             os: ubuntu-latest
             vfxyear: 2022
             vfxsuffix: -clang11
-            cxxstd: 17
+            cxx_std: 17
             python_ver: 3.9
             simd: "avx2,f16c"
             fmt_ver: 8.1.1
@@ -83,17 +84,18 @@ jobs:
             os: ubuntu-latest
             vfxyear: 2022
             vfxsuffix: -clang13
-            cxxstd: 17
+            cc_compiler: clang
+            cxx_compiler: clang++
+            cxx_std: 17
             python_ver: 3.9
             simd: "avx2,f16c"
             fmt_ver: 8.1.1
             pybind11_ver: v2.8.1
-            setenvs: export CC=clang CXX=clang++
           - desc: icc/C++17 py3.9 boost1.76 exr3.1 ocio2.1 qt5.15
             nametag: linux-vfx2022-icc
             os: ubuntu-latest
             vfxyear: 2022
-            cxxstd: 17
+            cxx_std: 17
             python_ver: 3.9
             # simd: "avx2,f16c"
             fmt_ver: 7.1.3
@@ -104,16 +106,18 @@ jobs:
             nametag: linux-vfx2022-icx
             os: ubuntu-latest
             vfxyear: 2022
-            cxxstd: 17
+            cc_compiler: icx
+            cxx_compiler: icpx
+            cxx_std: 17
             python_ver: 3.9
             simd: "avx2,f16c"
             pybind11_ver: v2.9.0
-            setenvs: export CC=icx CXX=icpx USE_ICX=1 USE_OPENVDB=0
+            setenvs: export USE_OPENVDB=0
           - desc: sanitizers
             nametag: sanitizer
             os: ubuntu-latest
             vfxyear: 2022
-            cxxstd: 17
+            cxx_std: 17
             python_ver: 3.9
             setenvs: export SANITIZE=address USE_PYTHON=0
           - desc: oldest/hobbled gcc6.3/C++14 py2.7 boost-1.66 exr-2.3 no-sse no-ocio
@@ -122,7 +126,7 @@ jobs:
             nametag: linux-oldest
             os: ubuntu-latest
             vfxyear: 2019
-            cxxstd: 14
+            cxx_std: 14
             fmt_ver: 6.1.2
             openexr_ver: v2.3.0
             pybind11_ver: v2.4.2
@@ -140,9 +144,9 @@ jobs:
     container:
       image: aswf/ci-osl:${{matrix.vfxyear}}${{matrix.vfxsuffix}}
     env:
-      CXX: g++
-      CC: gcc
-      CMAKE_CXX_STANDARD: ${{matrix.cxxstd}}
+      CXX: ${{matrix.cxx_compiler}}
+      CC: ${{matrix.cc_compiler}}
+      CMAKE_CXX_STANDARD: ${{matrix.cxx_std}}
       USE_SIMD: ${{matrix.simd}}
       FMT_VERSION: ${{matrix.fmt_ver}}
       OPENEXR_VERSION: ${{matrix.openexr_ver}}
@@ -171,6 +175,7 @@ jobs:
       - name: Build
         run: src/build-scripts/ci-build.bash
       - name: Testsuite
+        if: matrix.skip_tests != '1'
         run: src/build-scripts/ci-test.bash
       - uses: actions/upload-artifact@v2
         if: failure()
@@ -195,14 +200,14 @@ jobs:
           - desc: latest releases gcc10 C++17 avx2 exr3.1 ocio2.1
             nametag: linux-latest-releases
             os: ubuntu-20.04
-            cxxstd: 17
+            cxx_compiler: g++-10
+            cxx_std: 17
             fmt_ver: 8.1.1
             openexr_ver: v3.1.4
             pybind11_ver: v2.9.0
             python_ver: 3.8
             simd: avx2,f16c
-            setenvs: export CXX=g++-10
-                            LIBRAW_VERSION=0.20.2
+            setenvs: export LIBRAW_VERSION=0.20.2
                             LIBTIFF_VERSION=v4.3.0
                             OPENCOLORIO_VERSION=v2.1.1
                             OPENIMAGEIO_OPTIONS="openexr:core=1"
@@ -213,16 +218,16 @@ jobs:
                             WEBP_VERSION=v1.2.1
                             # The installed OpenVDB has a TLS conflict with Python 3.8
           - desc: bleeding edge gcc11 C++20 py38 OCIO/libtiff/exr-master boost1.71 avx2
-            nametag: linux-latest-releases
+            nametag: linux-bleeding-edge
             os: ubuntu-20.04
-            cxxstd: 20
+            cxx_compiler: g++-11
+            cxx_std: 20
             fmt_ver: master
             openexr_ver: main
             pybind11_ver: master
             python_ver: 3.8
             simd: avx2,f16c
-            setenvs: export CXX=g++-11
-                            LIBRAW_VERSION=master
+            setenvs: export LIBRAW_VERSION=master
                             LIBTIFF_VERSION=master
                             OPENCOLORIO_VERSION=main
                             OPENIMAGEIO_OPTIONS="openexr:core=1"
@@ -235,34 +240,38 @@ jobs:
           - desc: debug gcc7/C++14, sse4.2, exr2.4
             nametag: linux-gcc7-cpp14-debug
             os: ubuntu-18.04
-            cxxstd: 14
+            cxx_compiler: g++-7
+            cxx_std: 14
             python_ver: 2.7
             simd: sse4.2
             openexr_ver: v2.4.3
             pybind11_ver: v2.6.2
-            setenvs: export CMAKE_BUILD_TYPE=Debug CXX=g++-7 PUGIXML_VERSION=v1.9
+            setenvs: export CMAKE_BUILD_TYPE=Debug PUGIXML_VERSION=v1.9
           - desc: gcc8 C++17 avx exr2.5
             nametag: linux-gcc8
             os: ubuntu-18.04
-            cxxstd: 17
+            cxx_compiler: g++-8
+            cxx_std: 17
             openexr_ver: v2.5.6
             pybind11_ver: v2.5.0
             simd: avx
-            setenvs: export CXX=g++-8
           - desc: static libs gcc7 C++14 exr2.4
             nametag: linux-static
             os: ubuntu-18.04
-            cxxstd: 14
+            cxx_compiler: g++-7
+            cxx_std: 14
             openexr_ver: v2.4.3
             pybind11_ver: v2.6.2
-            setenvs: export CXX=g++-7 BUILD_SHARED_LIBS=OFF
+            setenvs: export BUILD_SHARED_LIBS=OFF
             depcmds: |
               sudo rm -rf /usr/local/include/OpenEXR
               sudo rm -rf /usr/local/lib64/cmake/{IlmBase,OpenEXR}
 
     runs-on: ${{ matrix.os }}
     env:
-      CMAKE_CXX_STANDARD: ${{matrix.cxxstd}}
+      CXX: ${{matrix.cxx_compiler}}
+      CC: ${{matrix.cc_compiler}}
+      CMAKE_CXX_STANDARD: ${{matrix.cxx_std}}
       USE_SIMD: ${{matrix.simd}}
       FMT_VERSION: ${{matrix.fmt_ver}}
       OPENEXR_VERSION: ${{matrix.openexr_ver}}
@@ -291,6 +300,7 @@ jobs:
       - name: Build
         run: src/build-scripts/ci-build.bash
       - name: Testsuite
+        if: matrix.skip_tests != '1'
         run: src/build-scripts/ci-test.bash
       - uses: actions/upload-artifact@v2
         if: failure()
@@ -307,25 +317,23 @@ jobs:
 
 
   macos:
-    name: "${{matrix.os}} appleclang${{matrix.aclang}}/C++${{matrix.cxxstd}} py${{matrix.python_ver}} boost1.76 exr3.1 ocio2.1"
+    name: "${{matrix.os}} appleclang${{matrix.aclang}}/C++${{matrix.cxx_std}} py${{matrix.python_ver}} boost1.76 exr3.1 ocio2.1"
     strategy:
       matrix:
-        #os: [windows-2016, windows-2019]
         include:
           - os: macos-10.15
-            generator: "Visual Studio 15 2017 Win64"
-            cxxstd: 14
+            cxx_std: 14
             python_ver: 3.8
             aclang: 12
           - os: macos-11
-            generator: "Visual Studio 15 2017 Win64"
-            cxxstd: 17
+            cxx_std: 17
             python_ver: 3.9
             aclang: 13
     runs-on: ${{ matrix.os }}
     env:
+      CC: clang
       CXX: clang++
-      CMAKE_CXX_STANDARD: ${{ matrix.cxxstd }}
+      CMAKE_CXX_STANDARD: ${{ matrix.cxx_std }}
       PYTHON_VERSION: ${{ matrix.python_ver }}
     steps:
       - uses: actions/checkout@v2
@@ -354,7 +362,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
-          name: ${{ github.job }}
+          name: oiio-${{github.job}}
           path: |
             build/*.cmake
             build/CMake*
@@ -407,7 +415,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
-          name: ${{github.job}}-VS${{matrix.vsver}}
+          name: oiio-${{github.job}}-VS${{matrix.vsver}}
           path: |
             build/*.cmake
             build/CMake*
