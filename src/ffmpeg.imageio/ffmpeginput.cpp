@@ -208,7 +208,7 @@ FFmpegInput::valid_file(const std::string& name) const
     // Quick/naive test -- just make sure the extension is valid for one of
     // the supported file types supported by this reader.
     for (int i = 0; ffmpeg_input_extensions[i]; ++i)
-        if (Strutil::ends_with(name, ffmpeg_input_extensions[i]))
+        if (Strutil::iends_with(name, ffmpeg_input_extensions[i]))
             return true;
     return false;
 }
@@ -228,7 +228,7 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
     // does the job.
     bool valid_extension = false;
     for (int i = 0; ffmpeg_input_extensions[i]; ++i)
-        if (Strutil::ends_with(name, ffmpeg_input_extensions[i])) {
+        if (Strutil::iends_with(name, ffmpeg_input_extensions[i])) {
             valid_extension = true;
             break;
         }
