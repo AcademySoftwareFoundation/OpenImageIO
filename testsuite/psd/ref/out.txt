@@ -8,7 +8,7 @@ Reading ../oiio-images/psd_123.psd
     ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    ResolutionUnit: 2 (inches)
+    ResolutionUnit: "in"
     Software: "Adobe Photoshop CS5.1 Windows"
     thumbnail_height: 78
     thumbnail_nchannels: 3
@@ -41,7 +41,7 @@ Reading ../oiio-images/psd_123.psd
     ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    ResolutionUnit: 2 (inches)
+    ResolutionUnit: "in"
     Software: "Adobe Photoshop CS5.1 Windows"
     XResolution: 72
     YResolution: 72
@@ -72,7 +72,7 @@ Reading ../oiio-images/psd_123.psd
     ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    ResolutionUnit: 2 (inches)
+    ResolutionUnit: "in"
     Software: "Adobe Photoshop CS5.1 Windows"
     XResolution: 72
     YResolution: 72
@@ -103,7 +103,7 @@ Reading ../oiio-images/psd_123.psd
     ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    ResolutionUnit: 2 (inches)
+    ResolutionUnit: "in"
     Software: "Adobe Photoshop CS5.1 Windows"
     XResolution: 72
     YResolution: 72
@@ -136,7 +136,7 @@ Reading ../oiio-images/psd_123_nomaxcompat.psd
     ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    ResolutionUnit: 2 (inches)
+    ResolutionUnit: "in"
     Software: "Adobe Photoshop CS5.1 Windows"
     thumbnail_height: 78
     thumbnail_nchannels: 3
@@ -170,7 +170,7 @@ Reading ../oiio-images/psd_123_nomaxcompat.psd
     ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    ResolutionUnit: 2 (inches)
+    ResolutionUnit: "in"
     Software: "Adobe Photoshop CS5.1 Windows"
     XResolution: 72
     YResolution: 72
@@ -202,7 +202,7 @@ Reading ../oiio-images/psd_123_nomaxcompat.psd
     ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    ResolutionUnit: 2 (inches)
+    ResolutionUnit: "in"
     Software: "Adobe Photoshop CS5.1 Windows"
     XResolution: 72
     YResolution: 72
@@ -234,7 +234,7 @@ Reading ../oiio-images/psd_123_nomaxcompat.psd
     ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    ResolutionUnit: 2 (inches)
+    ResolutionUnit: "in"
     Software: "Adobe Photoshop CS5.1 Windows"
     XResolution: 72
     YResolution: 72
@@ -270,7 +270,7 @@ Reading ../oiio-images/psd_bitmap.psd
     Model: "Canon PowerShot A640"
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    ResolutionUnit: 2 (inches)
+    ResolutionUnit: "in"
     Software: "Adobe Photoshop CS5.1 Windows"
     thumbnail_height: 120
     thumbnail_nchannels: 3
@@ -339,7 +339,7 @@ Reading ../oiio-images/psd_indexed_trans.psd
     Model: "Canon PowerShot A640"
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    ResolutionUnit: 2 (inches)
+    ResolutionUnit: "in"
     Software: "Adobe Photoshop CS5.1 Windows"
     thumbnail_height: 120
     thumbnail_nchannels: 3
@@ -410,7 +410,7 @@ Reading ../oiio-images/psd_rgb_8.psd
     Model: "Canon PowerShot A640"
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    ResolutionUnit: 2 (inches)
+    ResolutionUnit: "in"
     Software: "Adobe Photoshop CS5.1 Windows"
     thumbnail_height: 120
     thumbnail_nchannels: 3
@@ -481,7 +481,7 @@ Reading ../oiio-images/psd_rgb_16.psd
     Model: "Canon PowerShot A640"
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    ResolutionUnit: 2 (inches)
+    ResolutionUnit: "in"
     Software: "Adobe Photoshop CS5.1 Windows"
     thumbnail_height: 120
     thumbnail_nchannels: 3
@@ -552,7 +552,7 @@ Reading ../oiio-images/psd_rgb_32.psd
     Model: "Canon PowerShot A640"
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    ResolutionUnit: 2 (inches)
+    ResolutionUnit: "in"
     Software: "Adobe Photoshop CS5.1 Windows"
     thumbnail_height: 120
     thumbnail_nchannels: 3
@@ -619,7 +619,7 @@ Reading ../oiio-images/psd_rgba_8.psd
     ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    ResolutionUnit: 2 (inches)
+    ResolutionUnit: "in"
     Software: "Adobe Photoshop CS5.1 Windows"
     thumbnail_height: 120
     thumbnail_nchannels: 3
@@ -650,7 +650,7 @@ Reading ../oiio-images/psd_rgba_8.psd
     ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    ResolutionUnit: 2 (inches)
+    ResolutionUnit: "in"
     Software: "Adobe Photoshop CS5.1 Windows"
     XResolution: 72
     YResolution: 72
@@ -682,7 +682,7 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    ResolutionUnit: 2 (inches)
+    ResolutionUnit: "in"
     Software: "Adobe Photoshop CC 2015.5 (Windows)"
     XResolution: 72
     YResolution: 72
@@ -710,7 +710,7 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    ResolutionUnit: 2 (inches)
+    ResolutionUnit: "in"
     Software: "Adobe Photoshop CC 2015.5 (Windows)"
     XResolution: 72
     YResolution: 72
@@ -740,7 +740,7 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    ResolutionUnit: 2 (inches)
+    ResolutionUnit: "in"
     Software: "Adobe Photoshop CC 2015.5 (Windows)"
     XResolution: 72
     YResolution: 72
@@ -770,7 +770,7 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    ResolutionUnit: 2 (inches)
+    ResolutionUnit: "in"
     Software: "Adobe Photoshop CC 2015.5 (Windows)"
     XResolution: 72
     YResolution: 72
@@ -801,7 +801,7 @@ src/layer-mask.psd   :   10 x   10, 4 channel, uint8 psd
     DateTime: "2017-07-13T10:26:10+09:00"
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    ResolutionUnit: 2 (inches)
+    ResolutionUnit: "in"
     Software: "Adobe Photoshop CC 2017 (Windows)"
     XResolution: 72
     YResolution: 72
@@ -827,7 +827,7 @@ src/layer-mask.psd   :   10 x   10, 4 channel, uint8 psd
     DateTime: "2017-07-13T10:26:10+09:00"
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    ResolutionUnit: 2 (inches)
+    ResolutionUnit: "in"
     Software: "Adobe Photoshop CC 2017 (Windows)"
     XResolution: 72
     YResolution: 72
@@ -854,7 +854,7 @@ src/layer-mask.psd   :   10 x   10, 4 channel, uint8 psd
     DateTime: "2017-07-13T10:26:10+09:00"
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    ResolutionUnit: 2 (inches)
+    ResolutionUnit: "in"
     Software: "Adobe Photoshop CC 2017 (Windows)"
     XResolution: 72
     YResolution: 72
