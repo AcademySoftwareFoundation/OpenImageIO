@@ -277,9 +277,9 @@ typedef vfloat8 float8;
 } // namespace simd
 
 
-// Force has_subscript to understand that our simd::vfloat3 counts as a
+// Force has_subscript_N to understand that our simd::vfloat3 counts as a
 // 3-vector, even though its padding to 4 values makes it look the wrong size.
-template<> struct has_subscript<simd::vfloat3, float, 3> : public std::true_type { };
+template<> struct has_subscript_N<simd::vfloat3, float, 3> : public std::true_type { };
 
 
 
@@ -2185,7 +2185,7 @@ public:
 
     /// Construct from something that looks like a generic 3-vector class,
     /// having an operator[] that returns a float and is the size of 3 floats.
-    template<typename V, OIIO_ENABLE_IF(has_subscript<V, float, 3>::value
+    template<typename V, OIIO_ENABLE_IF(has_subscript_N<V, float, 3>::value
                                         && !has_xyz<V, float>::value)>
     vfloat3(const V& v) : vfloat3(v[0], v[1], v[2]) { }
 

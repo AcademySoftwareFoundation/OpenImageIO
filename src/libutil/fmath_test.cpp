@@ -672,8 +672,8 @@ test_vecparam()
     OIIO_CHECK_EQUAL(v3ffunc(vf3), iv3f);
 
     OIIO_CHECK_ASSERT((has_xyz<XYZVector, float>::value));
-    OIIO_CHECK_ASSERT((has_subscript<Arr3Vector, float, 3>::value));
-    OIIO_CHECK_ASSERT((has_subscript<simd::vfloat3, float, 3>::value));
+    OIIO_CHECK_ASSERT((has_subscript_N<Arr3Vector, float, 3>::value));
+    OIIO_CHECK_ASSERT((has_subscript_N<simd::vfloat3, float, 3>::value));
 
     Imath::M44f m44f(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
     OIIO_CHECK_EQUAL(m44func(m44f), m44f);

@@ -31,7 +31,7 @@ OIIO_NAMESPACE_BEGIN
 /// `Base` and seems to be the right size to hold exactly those members and
 /// nothing more.
 ///
-/// `has_subscript<T,Base,Nelem>` detects if class `T` can perform `T[int]`
+/// `has_subscript_N<T,Base,Nelem>` detects if class `T` can perform `T[int]`
 /// to yield a `Base`, and that it seems to be exactly the right size to
 /// hold `Nelem` of those elements.
 ///
@@ -139,10 +139,10 @@ public:
 
 
 
-/// `has_subscript<T,Base,Nelem>::value` will be true if type `T` has
+/// `has_subscript_N<T,Base,Nelem>::value` will be true if type `T` has
 /// subscripting syntax, a `T[int]` returns a `Base`, and the size of a `T`
 /// is exactly big enough to hold `Nelem` `Base` values.
-template<typename T, typename Base, int Nelem> struct has_subscript {
+template<typename T, typename Base, int Nelem> struct has_subscript_N {
 private:
     typedef char Yes[1];
     typedef char No[2];
@@ -166,18 +166,18 @@ public:
 
 
 
-/// C arrays of just the right length also are qualified for has_subscript.
+/// C arrays of just the right length also are qualified for has_subscript_N.
 template<typename Base, int Nelem>
-struct has_subscript<Base[Nelem], Base, Nelem> : public std::true_type {
+struct has_subscript_N<Base[Nelem], Base, Nelem> : public std::true_type {
 };
 
 
 
-/// `has_double_subscript<T,Base,Rows,Cols>::value` will be true if type `T`
+/// `has_double_subscript_RC<T,Base,Rows,Cols>::value` will be true if type `T`
 /// has 2-level subscripting syntax, a `T[int][int]` returns a `Base`, and
 /// the size of a `T` is exactly big enough to hold `R*C` `Base` values.
 template<typename T, typename Base, int Rows, int Cols>
-struct has_double_subscript {
+struct has_double_subscript_RC {
 private:
     typedef char Yes[1];
     typedef char No[2];
@@ -200,9 +200,9 @@ public:
 };
 
 
-/// C arrays of just the right length also are qualified for has_double_subscript.
+/// C arrays of just the right length also are qualified for has_double_subscript_RC.
 template<typename Base, int Rows, int Cols>
-struct has_double_subscript<Base[Rows][Cols], Base, Rows, Cols>
+struct has_double_subscript_RC<Base[Rows][Cols], Base, Rows, Cols>
     : public std::true_type {
 };
 
@@ -249,7 +249,7 @@ public:
     /// Construct from anything that looks like a 3-vector, having `[]`
     /// component access returning a `T`, and has exactly the size of a
     /// `T[3]`.
-    template<typename V, OIIO_ENABLE_IF(has_subscript<V, T, 3>::value
+    template<typename V, OIIO_ENABLE_IF(has_subscript_N<V, T, 3>::value
                                         && !has_xyz<V, T>::value)>
     OIIO_HOSTDEVICE constexpr Vec3Param(const V& v) noexcept
         : x(v[0])
@@ -310,7 +310,7 @@ public:
     /// We can construct a MatrixParam out of anything that has the size
     /// of a `T[S][S]` and presents a `[][]` subscript operator.
     template<typename M,
-             OIIO_ENABLE_IF(has_double_subscript<M, T, Size, Size>::value)>
+             OIIO_ENABLE_IF(has_double_subscript_RC<M, T, Size, Size>::value)>
     OIIO_HOSTDEVICE constexpr MatrixParam(const M& m) noexcept
         : m_ptr((const T*)&m)
     {
