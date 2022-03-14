@@ -10,11 +10,11 @@
 
 #pragma once
 
-#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/simd.h>
 #include <OpenImageIO/ustring.h>
 #include <OpenImageIO/varyingref.h>
+#include <OpenImageIO/vecparam.h>
 
 
 // Define symbols that let client applications determine if newly added
@@ -22,6 +22,15 @@
 #define OIIO_TEXTURESYSTEM_SUPPORTS_CLOSE 1
 
 #define OIIO_TEXTURESYSTEM_SUPPORTS_STOCHASTIC 1
+
+#ifndef INCLUDED_IMATHVEC_H
+// Placeholder declaration for Imath::V3f if no Imath headers have been
+// included.
+namespace Imath {
+template <class T> class Vec3;
+using V3f = Vec3<float>;
+}
+#endif
 
 
 OIIO_NAMESPACE_BEGIN
@@ -963,8 +972,8 @@ public:
     ///             plugin.
     ///
     virtual bool texture3d (ustring filename, TextureOpt &options,
-                            const Imath::V3f &P, const Imath::V3f &dPdx,
-                            const Imath::V3f &dPdy, const Imath::V3f &dPdz,
+                            V3fParam P, V3fParam dPdx,
+                            V3fParam dPdy, V3fParam dPdz,
                             int nchannels, float *result,
                             float *dresultds=nullptr, float *dresultdt=nullptr,
                             float *dresultdr=nullptr) = 0;
@@ -973,8 +982,8 @@ public:
     /// a texture handle and per-thread info.
     virtual bool texture3d (TextureHandle *texture_handle,
                             Perthread *thread_info, TextureOpt &options,
-                            const Imath::V3f &P, const Imath::V3f &dPdx,
-                            const Imath::V3f &dPdy, const Imath::V3f &dPdz,
+                            V3fParam P, V3fParam dPdx,
+                            V3fParam dPdy, V3fParam dPdz,
                             int nchannels, float *result,
                             float *dresultds=nullptr, float *dresultdt=nullptr,
                             float *dresultdr=nullptr) = 0;
@@ -985,16 +994,16 @@ public:
     // Return true if the file is found and could be opened by an
     // available ImageIO plugin, otherwise return false.
     virtual bool shadow (ustring filename, TextureOpt &options,
-                         const Imath::V3f &P, const Imath::V3f &dPdx,
-                         const Imath::V3f &dPdy, float *result,
+                         V3fParam P, V3fParam dPdx,
+                         V3fParam dPdy, float *result,
                          float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
 
     // Slightly faster version of texture3d() lookup if the app already
     // has a texture handle and per-thread info.
     virtual bool shadow (TextureHandle *texture_handle, Perthread *thread_info,
                          TextureOpt &options,
-                         const Imath::V3f &P, const Imath::V3f &dPdx,
-                         const Imath::V3f &dPdy, float *result,
+                         V3fParam P, V3fParam dPdx,
+                         V3fParam dPdy, float *result,
                          float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
 
     /// Perform a filtered directional environment map lookup in the
@@ -1054,16 +1063,16 @@ public:
     ///             found or could not be opened by any available ImageIO
     ///             plugin.
     virtual bool environment (ustring filename, TextureOpt &options,
-                              const Imath::V3f &R, const Imath::V3f &dRdx,
-                              const Imath::V3f &dRdy, int nchannels, float *result,
+                              V3fParam R, V3fParam dRdx,
+                              V3fParam dRdy, int nchannels, float *result,
                               float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
 
     /// Slightly faster version of environment() if the app already has a
     /// texture handle and per-thread info.
     virtual bool environment (TextureHandle *texture_handle,
                               Perthread *thread_info, TextureOpt &options,
-                              const Imath::V3f &R, const Imath::V3f &dRdx,
-                              const Imath::V3f &dRdy, int nchannels, float *result,
+                              V3fParam R, V3fParam dRdx,
+                              V3fParam dRdy, int nchannels, float *result,
                               float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
 
     /// @}

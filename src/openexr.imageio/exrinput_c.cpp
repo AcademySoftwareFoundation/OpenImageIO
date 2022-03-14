@@ -11,6 +11,7 @@
 #include <memory>
 #include <numeric>
 
+#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/platform.h>
 
 #include <boost/version.hpp>

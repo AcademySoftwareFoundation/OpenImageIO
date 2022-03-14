@@ -6,6 +6,7 @@
 #include <iostream>
 #include <limits>
 
+#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/imagebuf.h>

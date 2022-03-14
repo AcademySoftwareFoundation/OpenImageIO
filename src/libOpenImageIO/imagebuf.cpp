@@ -6,6 +6,7 @@
 #include <iostream>
 #include <memory>
 
+#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/fmath.h>

@@ -8,6 +8,8 @@
 #include <sstream>
 #include <string>
 
+#include <OpenImageIO/Imath.h>
+
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagecache.h>
@@ -52,9 +54,8 @@ namespace pvt {  // namespace pvt
 
 
 bool
-TextureSystemImpl::texture3d(ustring filename, TextureOpt& options,
-                             const Imath::V3f& P, const Imath::V3f& dPdx,
-                             const Imath::V3f& dPdy, const Imath::V3f& dPdz,
+TextureSystemImpl::texture3d(ustring filename, TextureOpt& options, V3fParam P,
+                             V3fParam dPdx, V3fParam dPdy, V3fParam dPdz,
                              int nchannels, float* result, float* dresultds,
                              float* dresultdt, float* dresultdr)
 {
@@ -70,10 +71,10 @@ TextureSystemImpl::texture3d(ustring filename, TextureOpt& options,
 bool
 TextureSystemImpl::texture3d(TextureHandle* texture_handle_,
                              Perthread* thread_info_, TextureOpt& options,
-                             const Imath::V3f& P, const Imath::V3f& dPdx,
-                             const Imath::V3f& dPdy, const Imath::V3f& dPdz,
-                             int nchannels, float* result, float* dresultds,
-                             float* dresultdt, float* dresultdr)
+                             V3fParam P, V3fParam dPdx, V3fParam dPdy,
+                             V3fParam dPdz, int nchannels, float* result,
+                             float* dresultds, float* dresultdt,
+                             float* dresultdr)
 {
     // Handle >4 channel lookups by recursion.
     if (nchannels > 4) {
@@ -174,7 +175,7 @@ TextureSystemImpl::texture3d(TextureHandle* texture_handle_,
     if (si.Mlocal) {
         // See if there is a world-to-local transform stored in the cache
         // entry. If so, use it to transform the input point.
-        si.Mlocal->multVecMatrix(P, Plocal);
+        si.Mlocal->multVecMatrix(Imath::V3f(P), Plocal);
     } else {
         // If no world-to-local matrix could be discerned, just use the
         // input point directly.

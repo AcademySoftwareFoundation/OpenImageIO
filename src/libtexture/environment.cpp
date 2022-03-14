@@ -8,6 +8,8 @@
 #include <sstream>
 #include <string>
 
+#include <OpenImageIO/Imath.h>
+
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filter.h>
 #include <OpenImageIO/fmath.h>
@@ -288,9 +290,8 @@ vector_to_latlong(const Imath::V3f& R, bool y_is_up, float& s, float& t)
 
 bool
 TextureSystemImpl::environment(ustring filename, TextureOpt& options,
-                               const Imath::V3f& R, const Imath::V3f& dRdx,
-                               const Imath::V3f& dRdy, int nchannels,
-                               float* result, float* dresultds,
+                               V3fParam R, V3fParam dRdx, V3fParam dRdy,
+                               int nchannels, float* result, float* dresultds,
                                float* dresultdt)
 {
     PerThreadInfo* thread_info = m_imagecache->get_perthread_info();
@@ -305,9 +306,8 @@ TextureSystemImpl::environment(ustring filename, TextureOpt& options,
 bool
 TextureSystemImpl::environment(TextureHandle* texture_handle_,
                                Perthread* thread_info_, TextureOpt& options,
-                               const Imath::V3f& _R, const Imath::V3f& _dRdx,
-                               const Imath::V3f& _dRdy, int nchannels,
-                               float* result, float* dresultds,
+                               V3fParam _R, V3fParam _dRdx, V3fParam _dRdy,
+                               int nchannels, float* result, float* dresultds,
                                float* dresultdt)
 {
     // Handle >4 channel lookups by recursion.
@@ -394,9 +394,9 @@ TextureSystemImpl::environment(TextureHandle* texture_handle_,
     // These define the ellipse we're filtering over.
     Imath::V3f R = _R;
     R.normalize();  // center
-    Imath::V3f Rx = _R + _dRdx;
+    Imath::V3f Rx = Imath::V3f(_R) + Imath::V3f(_dRdx);
     Rx.normalize();  // x axis of the ellipse
-    Imath::V3f Ry = _R + _dRdy;
+    Imath::V3f Ry = Imath::V3f(_R) + Imath::V3f(_dRdy);
     Ry.normalize();  // y axis of the ellipse
     // angles formed by the ellipse axes.
     float xfilt_noblur = std::max(safe_acos(R.dot(Rx)), 1e-8f);

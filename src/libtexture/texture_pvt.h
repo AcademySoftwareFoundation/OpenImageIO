@@ -168,17 +168,15 @@ public:
                          VaryingRef<float> dtdy, int nchannels, float* result,
                          float* dresultds = NULL, float* dresultdt = NULL);
 
-    virtual bool texture3d(ustring filename, TextureOpt& options,
-                           const Imath::V3f& P, const Imath::V3f& dPdx,
-                           const Imath::V3f& dPdy, const Imath::V3f& dPdz,
+    virtual bool texture3d(ustring filename, TextureOpt& options, V3fParam P,
+                           V3fParam dPdx, V3fParam dPdy, V3fParam dPdz,
                            int nchannels, float* result,
                            float* dresultds = NULL, float* dresultdt = NULL,
                            float* dresultdr = NULL);
     virtual bool texture3d(TextureHandle* texture_handle,
                            Perthread* thread_info, TextureOpt& options,
-                           const Imath::V3f& P, const Imath::V3f& dPdx,
-                           const Imath::V3f& dPdy, const Imath::V3f& dPdz,
-                           int nchannels, float* result,
+                           V3fParam P, V3fParam dPdx, V3fParam dPdy,
+                           V3fParam dPdz, int nchannels, float* result,
                            float* dresultds = NULL, float* dresultdt = NULL,
                            float* dresultdr = NULL);
     virtual bool texture3d(ustring filename, TextureOptBatch& options,
@@ -213,17 +211,17 @@ public:
                            float* dresultdt = NULL, float* dresultdr = NULL);
 
     virtual bool shadow(ustring /*filename*/, TextureOpt& /*options*/,
-                        const Imath::V3f& /*P*/, const Imath::V3f& /*dPdx*/,
-                        const Imath::V3f& /*dPdy*/, float* /*result*/,
-                        float* /*dresultds*/, float* /*dresultdt*/)
+                        V3fParam /*P*/, V3fParam /*dPdx*/, V3fParam /*dPdy*/,
+                        float* /*result*/, float* /*dresultds*/,
+                        float* /*dresultdt*/)
     {
         return false;
     }
     virtual bool shadow(TextureHandle* /*texture_handle*/,
                         Perthread* /*thread_info*/, TextureOpt& /*options*/,
-                        const Imath::V3f& /*P*/, const Imath::V3f& /*dPdx*/,
-                        const Imath::V3f& /*dPdy*/, float* /*result*/,
-                        float* /*dresultds*/, float* /*dresultdt*/)
+                        V3fParam /*P*/, V3fParam /*dPdx*/, V3fParam /*dPdy*/,
+                        float* /*result*/, float* /*dresultds*/,
+                        float* /*dresultdt*/)
     {
         return false;
     }
@@ -265,17 +263,15 @@ public:
     }
 
 
-    virtual bool environment(ustring filename, TextureOpt& options,
-                             const Imath::V3f& R, const Imath::V3f& dRdx,
-                             const Imath::V3f& dRdy, int nchannels,
+    virtual bool environment(ustring filename, TextureOpt& options, V3fParam R,
+                             V3fParam dRdx, V3fParam dRdy, int nchannels,
                              float* result, float* dresultds = NULL,
                              float* dresultdt = NULL);
     virtual bool environment(TextureHandle* texture_handle,
                              Perthread* thread_info, TextureOpt& options,
-                             const Imath::V3f& R, const Imath::V3f& dRdx,
-                             const Imath::V3f& dRdy, int nchannels,
-                             float* result, float* dresultds = NULL,
-                             float* dresultdt = NULL);
+                             V3fParam R, V3fParam dRdx, V3fParam dRdy,
+                             int nchannels, float* result,
+                             float* dresultds = NULL, float* dresultdt = NULL);
     virtual bool environment(ustring filename, TextureOptBatch& options,
                              Tex::RunMask mask, const float* R,
                              const float* dRdx, const float* dRdy,

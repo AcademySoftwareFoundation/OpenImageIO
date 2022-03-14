@@ -17,6 +17,7 @@
 #include <OpenImageIO/timer.h>
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/unittest.h>
+#include <OpenImageIO/vecparam.h>
 
 
 using namespace OIIO;
@@ -584,6 +585,102 @@ test_swap_endian()
 
 
 
+// Minimal vector class having x, y, z struct members.
+struct XYZVector {
+    float x, y, z;
+    XYZVector() {}
+    XYZVector(float x, float y, float z)
+        : x(x)
+        , y(y)
+        , z(z)
+    {
+    }
+};
+
+// Minimal vector class enclosing an array[3].
+struct Arr3Vector {
+    float xyz[3];
+    Arr3Vector() {}
+    Arr3Vector(float x, float y, float z)
+    {
+        xyz[0] = x;
+        xyz[1] = y;
+        xyz[2] = z;
+    }
+    float operator[](int i) const { return xyz[i]; }
+};
+
+
+
+// Function that takes a V3fParam, and must implicitly convert it to an
+// Imath::V3f.
+Imath::V3f
+v3ffunc(V3fParam p)
+{
+    return p;
+}
+
+
+// Function that takes a M33Param, and must implicitly convert it to an
+// Imath::M33f.
+Imath::M33f
+M33func(M33fParam p)
+{
+    return p;
+}
+
+
+// Function that takes a M44Param, and must implicitly convert it to an
+// Imath::M44f.
+Imath::M44f
+m44func(M44fParam p)
+{
+    return p;
+}
+
+
+static void
+test_vecparam()
+{
+    Strutil::print("Testing vec proxy passing\n");
+
+    // Can we pass an Imath::V3f as a V3fParam?
+    Imath::V3f iv3f(1.0f, 2.0f, 3.0f);
+    OIIO_CHECK_EQUAL(v3ffunc(iv3f), iv3f);
+
+    // Can we pass a raw float[3] array as a V3fParam?
+    float arr[3] = { 1.0, 2.0, 3.0 };
+    OIIO_CHECK_EQUAL(v3ffunc(arr), iv3f);
+
+    // Can we pass a std::array<float,3> as a V3fParam?
+    std::array<float, 3> stdarr { 1.0, 2.0, 3.0 };
+    OIIO_CHECK_EQUAL(v3ffunc(stdarr), iv3f);
+
+    // Can we pass an initializer list as a V3fParam?
+    OIIO_CHECK_EQUAL(v3ffunc({ 1.0f, 2.0f, 3.0f }), iv3f);
+
+    // Can we pass a custom vector class with xyz components as a V3fParam?
+    XYZVector xyzv(1.0f, 2.0f, 3.0f);
+    OIIO_CHECK_EQUAL(v3ffunc(xyzv), iv3f);
+
+    // Can we pass a custom vector class with array components as a V3fParam?
+    Arr3Vector av(1.0f, 2.0f, 3.0f);
+    OIIO_CHECK_EQUAL(v3ffunc(av), iv3f);
+
+    // Can we pass our simd::vfloat3 as a V3fParam?
+    simd::vfloat3 vf3(1.0f, 2.0f, 3.0f);
+    OIIO_CHECK_EQUAL(v3ffunc(vf3), iv3f);
+
+    OIIO_CHECK_ASSERT((has_xyz<XYZVector, float>::value));
+    OIIO_CHECK_ASSERT((has_subscript_N<Arr3Vector, float, 3>::value));
+    OIIO_CHECK_ASSERT((has_subscript_N<simd::vfloat3, float, 3>::value));
+
+    Imath::M44f m44f(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+    OIIO_CHECK_EQUAL(m44func(m44f), m44f);
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -656,6 +753,8 @@ main(int argc, char* argv[])
     test_swap_endian();
 
     test_interpolate_linear();
+
+    test_vecparam();
 
     return unit_test_failures != 0;
 }
