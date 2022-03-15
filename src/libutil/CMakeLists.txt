@@ -162,4 +162,10 @@ if (OIIO_BUILD_TESTS)
     set_target_properties (typedesc_test PROPERTIES FOLDER "Unit Tests")
     add_test (unit_typedesc ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/typedesc_test)
 
+    add_executable (type_traits_test type_traits_test.cpp)
+    target_link_libraries (type_traits_test PRIVATE OpenImageIO_Util
+                           ${OPENIMAGEIO_OPENEXR_TARGETS})
+    set_target_properties (type_traits_test PROPERTIES FOLDER "Unit Tests")
+    add_test (unit_type_traits ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/type_traits_test)
+
 endif ()
