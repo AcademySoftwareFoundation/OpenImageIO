@@ -3,7 +3,7 @@
 // https://github.com/OpenImageIO/oiio
 
 #pragma once
-#define OIIO_VECPROXY_H 1
+#define OIIO_VECPARAM_H 1
 
 #include <algorithm>
 #include <cstring>
