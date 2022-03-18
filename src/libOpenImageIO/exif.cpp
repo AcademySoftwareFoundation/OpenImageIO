@@ -878,7 +878,7 @@ read_exif_tag(ImageSpec& spec, const TIFFDirEntry* dirp, cspan<uint8_t> buf,
     } else {
         // Everything else -- use our table to handle the general case
         const TagInfo* taginfo = tagmap.find(dir.tdir_tag);
-        if (taginfo) {
+        if (taginfo && !spec.extra_attribs.contains(taginfo->name)) {
             if (taginfo->handler)
                 taginfo->handler(*taginfo, dir, buf, spec, swab,
                                  offset_adjustment);
