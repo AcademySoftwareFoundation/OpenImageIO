@@ -73,13 +73,13 @@
 // We also define the old name for backwards compatibility purposes.
 #define OPENIMAGEIO_VERSION OIIO_VERSION
 
-// Magic macros to make OIIO_VERSION_STRING that looks like "1.2.3"
-#define OIIO_MAKE_VERSION_STRING2(a,b,c,d) #a "." #b "." #c #d
-#define OIIO_MAKE_VERSION_STRING(a,b,c,d) OIIO_MAKE_VERSION_STRING2(a,b,c,d)
+// Magic macros to make OIIO_VERSION_STRING that looks like "1.2.3.0"
+#define OIIO_MAKE_VERSION_STRING2(a,b,c,d,e) #a "." #b "." #c "." #d #e
+#define OIIO_MAKE_VERSION_STRING(a,b,c,d,e) OIIO_MAKE_VERSION_STRING2(a,b,c,d,e)
 #define OIIO_VERSION_STRING \
     OIIO_MAKE_VERSION_STRING(OIIO_VERSION_MAJOR, \
                              OIIO_VERSION_MINOR, OIIO_VERSION_PATCH, \
-                             OIIO_VERSION_RELEASE_TYPE)
+                             OIIO_VERSION_TWEAK, OIIO_VERSION_RELEASE_TYPE)
 #define OIIO_INTRO_STRING "OpenImageIO " OIIO_VERSION_STRING " http://www.openimageio.org"
 
 
