@@ -307,22 +307,32 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
     // decoded, in case it contains useful information.
     float xdensity = m_spec.get_float_attribute("XResolution");
     float ydensity = m_spec.get_float_attribute("YResolution");
-    if (!xdensity || !ydensity) {
+    if (m_cinfo.X_density && m_cinfo.Y_density) {
         xdensity = float(m_cinfo.X_density);
         ydensity = float(m_cinfo.Y_density);
-        if (xdensity && ydensity) {
+        if (xdensity > 1 && ydensity > 1) {
             m_spec.attribute("XResolution", xdensity);
             m_spec.attribute("YResolution", ydensity);
+            // We're kind of assuming that if either cinfo.X_density or
+            // Y_density is 1, then those fields are only used to indicate
+            // pixel aspect ratio, but don't override [XY]Resolution that may
+            // have come from the Exif.
         }
     }
     if (xdensity && ydensity) {
-        float aspect = ydensity / xdensity;
+        // Pixel aspect ratio SHOULD be computed like this:
+        //     float aspect = ydensity / xdensity;
+        // But Nuke and Photoshop do it backwards, and so we do, too, because
+        // we are lemmings.
+        float aspect = xdensity / ydensity;
         if (aspect != 1.0f)
             m_spec.attribute("PixelAspectRatio", aspect);
-        switch (m_cinfo.density_unit) {
-        case 0: m_spec.attribute("ResolutionUnit", "none"); break;
-        case 1: m_spec.attribute("ResolutionUnit", "in"); break;
-        case 2: m_spec.attribute("ResolutionUnit", "cm"); break;
+        if (m_spec.extra_attribs.contains("XResolution")) {
+            switch (m_cinfo.density_unit) {
+            case 0: m_spec.attribute("ResolutionUnit", "none"); break;
+            case 1: m_spec.attribute("ResolutionUnit", "in"); break;
+            case 2: m_spec.attribute("ResolutionUnit", "cm"); break;
+            }
         }
     }
 

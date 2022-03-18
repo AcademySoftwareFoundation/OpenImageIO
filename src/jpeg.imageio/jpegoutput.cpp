@@ -328,6 +328,11 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
 void
 JpgOutput::resmeta_to_density()
 {
+    // Clear cruft from Exif that might confuse us
+    m_spec.erase_attribute("exif:XResolution");
+    m_spec.erase_attribute("exif:YResolution");
+    m_spec.erase_attribute("exif:ResolutionUnit");
+
     string_view resunit = m_spec.get_string_attribute("ResolutionUnit");
     if (Strutil::iequals(resunit, "none"))
         m_cinfo.density_unit = 0;
@@ -338,13 +343,42 @@ JpgOutput::resmeta_to_density()
     else
         m_cinfo.density_unit = 0;
 
-    int X_density = int(m_spec.get_float_attribute("XResolution"));
-    int Y_density = int(m_spec.get_float_attribute("YResolution", X_density));
-    const float aspect = m_spec.get_float_attribute("PixelAspectRatio", 1.0f);
-    if (aspect != 1.0f && X_density <= 1 && Y_density <= 1) {
-        // No useful [XY]Resolution, but there is an aspect ratio requested.
-        // Arbitrarily pick 72 dots per undefined unit, and jigger it to
-        // honor it as best as we can.
+    // We want to use the metadata to set the X_density and Y_density fields in
+    // the JPEG header, but the problem is over-constrained. What are the
+    // possibilities?
+    //
+    // what is set?   xres yres par
+    //                                assume 72,72 par=1
+    //                  *             set yres = xres (par = 1.0)
+    //                       *        set xres=yres (par = 1.0)
+    //                  *    *        keep (par is implied)
+    //                           *    set yres=72, xres based on par
+    //                  *        *    set yres based on par
+    //                       *   *    set xres based on par
+    //                  *    *   *    par wins if they don't match
+    //
+    float XRes   = m_spec.get_float_attribute("XResolution");
+    float YRes   = m_spec.get_float_attribute("YResolution");
+    float aspect = m_spec.get_float_attribute("PixelAspectRatio");
+    if (aspect <= 0.0f) {
+        // PixelAspectRatio was not set in the ImageSpec. So just use the
+        // "resolution" values and pass them without judgment. If only one was
+        // set, make them equal and assume 1.0 aspect ratio. If neither were
+        // set, punt and set the fields to 0.
+        if (XRes <= 0.0f && YRes <= 0.0f) {
+            // No clue, set the fields to 1,1 to be valid and 1.0 aspect.
+            m_cinfo.X_density = 1;
+            m_cinfo.Y_density = 1;
+            return;
+        }
+        if (XRes <= 0.0f)
+            XRes = YRes;
+        if (YRes <= 0.0f)
+            YRes = XRes;
+        aspect = YRes / XRes;
+    } else {
+        // PixelAspectRatio was set in the ImageSpec. Let that trump the
+        // "resolution" fields, if they contradict.
         //
         // Here's where things get tricky. By logic and reason, as well as
         // the JFIF spec and ITU T.871, the pixel aspect ratio is clearly
@@ -353,18 +387,38 @@ JpgOutput::resmeta_to_density()
         // apps get this exactly backwards, and these include PhotoShop,
         // Nuke, and RV. So, alas, we must replicate the mistake, or else
         // all these common applications will misunderstand the JPEG files
-        // written by OIIO and vice versa.
-        Y_density = 72;
-        X_density = int(Y_density * aspect + 0.5f);
-        m_spec.attribute("XResolution", float(Y_density * aspect + 0.5f));
-        m_spec.attribute("YResolution", float(Y_density));
+        // written by OIIO and vice versa. In other words, we must reverse
+        // the sense of how aspect ratio relates to density, contradicting
+        // the JFIF spec but conforming to Nuke/etc's behavior. Sigh.
+        if (XRes <= 0.0f && XRes <= 0.0f) {
+            // resolutions were not set
+            if (aspect >= 1.0f) {
+                XRes = 72.0f;
+                YRes = XRes * aspect;
+            } else {
+                YRes = 72.0f;
+                XRes = YRes * aspect;
+            }
+        } else if (XRes <= 0.0f) {
+            // Xres not set, but Yres was and we know aspect
+            // e.g., yres = 100, aspect = 2.0
+            // This SHOULD be the right answer:
+            //     XRes = YRes / aspect;
+            // But because of the note above, reverse it:
+            //     XRes = YRes * aspect;
+            XRes = YRes * aspect;
+        } else {
+            // All other cases -- XRes is set, so reset Yres to conform to
+            // the requested PixelAspectRatio.
+            // This SHOULD be the right answer:
+            //     YRes = XRes * aspect;
+            // But because of the note above, reverse it:
+            //     YRes = XRes / aspect;
+            YRes = XRes / aspect;
+        }
     }
-    while (X_density > 65535 || Y_density > 65535) {
-        // JPEG header can store only UINT16 density values. If we
-        // overflow that limit, punt and knock it down to <= 16 bits.
-        X_density /= 2;
-        Y_density /= 2;
-    }
+    int X_density     = clamp(int(XRes + 0.5f), 1, 65535);
+    int Y_density     = clamp(int(YRes + 0.5f), 1, 65535);
     m_cinfo.X_density = X_density;
     m_cinfo.Y_density = Y_density;
 }
