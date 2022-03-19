@@ -5626,9 +5626,6 @@ output_file(int /*argc*/, const char* argv[])
             adjust_output_options(filename, spec, ir->nativespec(s), ot,
                                   supports_tiles, fileoptions,
                                   (*ir)[s].was_direct_read());
-            // For deep files, must copy the native deep channelformats
-            if (spec.deep)
-                spec.channelformats = (*ir)(s, 0).nativespec().channelformats;
             // If it's not tiled and MIP-mapped, remove any "textureformat"
             if (!spec.tile_pixels() || ir->miplevels(s) <= 1)
                 spec.erase_attribute("textureformat");

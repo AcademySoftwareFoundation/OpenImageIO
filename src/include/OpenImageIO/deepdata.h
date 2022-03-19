@@ -30,7 +30,13 @@ public:
     DeepData(const ImageSpec& spec);
 
     /// Copy constructor
-    DeepData(const DeepData& d);
+    DeepData(const DeepData& src);
+
+    /// Copy constructor with change of channel types
+    DeepData(const DeepData& src, cspan<TypeDesc> channeltypes);
+
+    /// Move constructor
+    DeepData(DeepData&& src);
 
     ~DeepData();
 
@@ -92,6 +98,9 @@ public:
     size_t channelsize(int c) const;
     /// Return the size (in bytes) for all channels of one sample.
     size_t samplesize() const;
+
+    /// Does this DeepData have the same channel types as `other`?
+    bool same_channeltypes(const DeepData& other) const;
 
     /// Retrieve the number of samples for the given pixel index.
     int samples(int64_t pixel) const;
@@ -194,9 +203,9 @@ public:
 
 private:
     class Impl;
-    Impl* m_impl;  // holds all the nontrivial stuff
-    int64_t m_npixels;
-    int m_nchannels;
+    Impl* m_impl      = nullptr;  // holds all the nontrivial stuff
+    int64_t m_npixels = 0;
+    int m_nchannels   = 0;
 };
 
 

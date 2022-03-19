@@ -164,14 +164,48 @@ DeepData::~DeepData() { delete m_impl; }
 
 
 
-DeepData::DeepData(const DeepData& d)
+DeepData::DeepData(const DeepData& src)
     : m_impl(NULL)
 {
-    m_npixels   = d.m_npixels;
-    m_nchannels = d.m_nchannels;
-    if (d.m_impl) {
+    m_npixels   = src.m_npixels;
+    m_nchannels = src.m_nchannels;
+    if (src.m_impl) {
         m_impl  = new Impl;
-        *m_impl = *(d.m_impl);
+        *m_impl = *(src.m_impl);
+    }
+}
+
+
+
+DeepData::DeepData(DeepData&& src)
+{
+    // Move constructor just transfers the impl from src to this
+    m_npixels   = src.m_npixels;
+    m_nchannels = src.m_nchannels;
+    m_impl      = src.m_impl;
+    src.m_impl  = nullptr;
+}
+
+
+
+DeepData::DeepData(const DeepData& src, cspan<TypeDesc> channeltypes)
+{
+    if (!src.initialized() /* copying from uninitialized DD */
+        || !channeltypes.size() /* no requested channel type change */) {
+        // Trivial copy case
+        *this = src;
+        return;
+    }
+
+    // Initialize this DD to the same number of pixels and channels as src,
+    // but with the requested channel types.
+    init(src.pixels(), src.channels(), channeltypes,
+         src.m_impl->m_channelnames);
+    // Set our per-pixel sample counts to be the same as src
+    set_all_samples(src.all_samples());
+    // Copy the data from src to this
+    for (int64_t p = 0, np = pixels(); p < np; ++p) {
+        copy_deep_pixel(p, src, p);
     }
 }
 
@@ -858,6 +892,21 @@ DeepData::copy_deep_sample(int64_t pixel, int sample, const DeepData& src,
 
 
 bool
+DeepData::same_channeltypes(const DeepData& other) const
+{
+    if (m_nchannels != other.m_nchannels)
+        return false;  // different number of channels
+    if (samplesize() != other.samplesize())
+        return false;  // diffent sample size -- MUST differ in types
+    for (int c = 0; c < m_nchannels; ++c)
+        if (channeltype(c) != other.channeltype(c))
+            return false;
+    return true;
+}
+
+
+
+bool
 DeepData::copy_deep_pixel(int64_t pixel, const DeepData& src, int64_t srcpixel)
 {
     if (pixel < 0 || pixel >= pixels()) {
@@ -880,11 +929,7 @@ DeepData::copy_deep_pixel(int64_t pixel, const DeepData& src, int64_t srcpixel)
     set_samples(pixel, nsamples);
     if (nsamples == 0)
         return true;
-    bool sametypes = samplesize() == src.samplesize();
-    if (sametypes)
-        for (int c = 0; c < nchans; ++c)
-            sametypes &= (channeltype(c) == src.channeltype(c));
-    if (sametypes)
+    if (same_channeltypes(src))
         memcpy(data_ptr(pixel, 0, 0), src.data_ptr(srcpixel, 0, 0),
                samplesize() * nsamples);
     else {
