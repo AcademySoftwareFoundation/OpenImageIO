@@ -642,7 +642,8 @@ inline void aligned_delete(T* t) {
 // An enable_if helper to be used in template parameters which results in
 // much shorter symbols: https://godbolt.org/z/sWw4vP
 // Borrowed from fmtlib.
-#define OIIO_ENABLE_IF(...) OIIO::enable_if_t<(__VA_ARGS__), int> = 0
-
+#ifndef OIIO_ENABLE_IF
+#   define OIIO_ENABLE_IF(...) OIIO::enable_if_t<(__VA_ARGS__), int> = 0
+#endif
 
 OIIO_NAMESPACE_END

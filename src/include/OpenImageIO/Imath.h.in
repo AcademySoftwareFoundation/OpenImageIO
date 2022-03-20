@@ -5,6 +5,9 @@
 // clang-format off
 
 #pragma once
+
+#include <OpenImageIO/detail/fmt.h>
+
 #ifndef OIIO_IMATH_H_INCLUDED
 #define OIIO_IMATH_H_INCLUDED 1
 
@@ -24,5 +27,25 @@
 #   include <OpenEXR/ImathVec.h>
 #   include <OpenEXR/half.h>
 #endif
+
+
+/// Custom fmtlib formatters for Imath types.
+
+namespace fmt {
+template<> struct formatter<Imath::V2f>
+    : OIIO::pvt::array_formatter<Imath::V2f, float, 2> {};
+template<> struct formatter<Imath::V3f>
+    : OIIO::pvt::array_formatter<Imath::V3f, float, 3> {};
+template<> struct formatter<Imath::V4f>
+    : OIIO::pvt::array_formatter<Imath::V4f, float, 4> {};
+#if OIIO_USING_IMATH >= 3
+template<> struct formatter<Imath::M22f>
+    : OIIO::pvt::array_formatter<Imath::M22f, float, 4> {};
+#endif
+template<> struct formatter<Imath::M33f>
+    : OIIO::pvt::array_formatter<Imath::M33f, float, 9> {};
+template<> struct formatter<Imath::M44f>
+    : OIIO::pvt::array_formatter<Imath::M44f, float, 16> {};
+} // namespace fmt
 
 #endif // !defined(OIIO_IMATH_H_INCLUDED)

@@ -37,6 +37,8 @@
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/vecparam.h>
 
+#include <OpenImageIO/detail/fmt.h>
+
 
 //////////////////////////////////////////////////////////////////////////
 // Sort out which SIMD capabilities we have and set definitions
@@ -368,6 +370,20 @@ template<> struct SimdTypeName<vfloat16>  { static const char *name() { return "
 template<> struct SimdTypeName<vint16>    { static const char *name() { return "vint16"; } };
 template<> struct SimdTypeName<vbool16>   { static const char *name() { return "vbool16"; } };
 
+/// Is a type T one of our SIMD-based types?
+template<typename T> struct is_simd : std::false_type {};
+template<> struct is_simd<vint4>    : std::true_type {};
+template<> struct is_simd<vfloat4>  : std::true_type {};
+template<> struct is_simd<vfloat3>  : std::true_type {};
+template<> struct is_simd<vbool4>   : std::true_type {};
+template<> struct is_simd<vint8>    : std::true_type {};
+template<> struct is_simd<vfloat8>  : std::true_type {};
+template<> struct is_simd<vbool8>   : std::true_type {};
+template<> struct is_simd<vint16>   : std::true_type {};
+template<> struct is_simd<vfloat16> : std::true_type {};
+template<> struct is_simd<vbool16>  : std::true_type {};
+template<> struct is_simd<matrix44> : std::true_type {};
+
 
 //////////////////////////////////////////////////////////////////////////
 // Macros helpful for making static constants in code.
@@ -472,6 +488,7 @@ public:
     enum { paddedelements = 4 }; ///< Number of scalar elements for full pad
     enum { bits = elements*32 }; ///< Total number of bits
     typedef simd_bool_t<4>::type simd_t;  ///< the native SIMD type used
+    static constexpr size_t size() noexcept { return elements; }
 
     /// Default constructor (contents undefined)
     vbool4 () { }
@@ -613,6 +630,7 @@ public:
     enum { paddedelements = 8 }; ///< Number of scalar elements for full pad
     enum { bits = elements*32 }; ///< Total number of bits
     typedef simd_bool_t<8>::type simd_t;  ///< the native SIMD type used
+    static constexpr size_t size() noexcept { return elements; }
 
     /// Default constructor (contents undefined)
     vbool8 () { }
@@ -761,6 +779,7 @@ public:
     enum { paddedelements = 16 }; ///< Number of scalar elements for full pad
     enum { bits = 16 };           ///< Total number of bits
     typedef simd_bool_t<16>::type simd_t;  ///< the native SIMD type used
+    static constexpr size_t size() noexcept { return elements; }
 
     /// Default constructor (contents undefined)
     vbool16 () { }
@@ -912,6 +931,7 @@ public:
     typedef vbool4 bool_t;   // old name (deprecated 1.8)
     OIIO_DEPRECATED("use vfloat_t (1.8)")
     typedef vfloat4 float_t; // old name (deprecated 1.8)
+    static constexpr size_t size() noexcept { return elements; }
 
     /// Default constructor (contents undefined)
     vint4 () { }
@@ -1202,6 +1222,7 @@ public:
     typedef vbool8 bool_t;   // old name (deprecated 1.8)
     OIIO_DEPRECATED("use vfloat_t (1.8)")
     typedef vfloat8 float_t; // old name (deprecated 1.8)
+    static constexpr size_t size() noexcept { return elements; }
 
     /// Default constructor (contents undefined)
     vint8 () { }
@@ -1500,6 +1521,7 @@ public:
     typedef vbool16 bool_t;   // old name (deprecated 1.8)
     OIIO_DEPRECATED("use vfloat_t (1.8)")
     typedef vfloat16 float_t; // old name (deprecated 1.8)
+    static constexpr size_t size() noexcept { return elements; }
 
     /// Default constructor (contents undefined)
     vint16 () { }
@@ -1811,6 +1833,7 @@ public:
     typedef vint4 int_t;      // old name (deprecated 1.8)
     OIIO_DEPRECATED("use vfloat_t (1.8)")
     typedef vbool4 bool_t;    // old name (deprecated 1.8)
+    static constexpr size_t size() noexcept { return elements; }
 
     /// Default constructor (contents undefined)
     vfloat4 () { }
@@ -2164,6 +2187,7 @@ public:
     static const char* type_name() { return "vfloat3"; }
     enum { elements = 3 };    ///< Number of scalar elements
     enum { paddedelements = 4 }; ///< Number of scalar elements for full pad
+    static constexpr size_t size() noexcept { return elements; }
 
     /// Default constructor (contents undefined)
     vfloat3 () { }
@@ -2330,6 +2354,7 @@ public:
     static const char* type_name() { return "matrix44"; }
     typedef float value_t;    ///< Underlying equivalent scalar value type
     enum { rows = 4, cols = 4 };
+    static constexpr int elements = 16;
 
     // Uninitialized
     OIIO_FORCEINLINE matrix44() { }
@@ -2476,6 +2501,7 @@ public:
     typedef vint8 int_t;      // old name (deprecated 1.8)
     OIIO_DEPRECATED("use vbool_t (1.8)")
     typedef vbool8 bool_t;    // old name (deprecated 1.8)
+    static constexpr size_t size() noexcept { return elements; }
 
     /// Default constructor (contents undefined)
     vfloat8 () { }
@@ -2796,6 +2822,7 @@ public:
     typedef vint16 int_t;      // old name (deprecated 1.8)
     OIIO_DEPRECATED("use vbool_t (1.8)")
     typedef vbool16 bool_t;    // old name (deprecated 1.8)
+    static constexpr size_t size() noexcept { return elements; }
 
     /// Default constructor (contents undefined)
     vfloat16 () { }
@@ -10171,6 +10198,27 @@ OIIO_FORCEINLINE vfloat16 nmsub (const simd::vfloat16& a, const simd::vfloat16& 
 
 OIIO_NAMESPACE_END
 
+
+/// Custom fmtlib formatters for our SIMD types.
+
+namespace fmt {
+template<> struct formatter<OIIO::simd::vfloat3>
+    : OIIO::pvt::index_formatter<OIIO::simd::vfloat3> {};
+template<> struct formatter<OIIO::simd::vfloat4>
+    : OIIO::pvt::index_formatter<OIIO::simd::vfloat4> {};
+template<> struct formatter<OIIO::simd::vfloat8>
+    : OIIO::pvt::index_formatter<OIIO::simd::vfloat8> {};
+template<> struct formatter<OIIO::simd::vfloat16>
+    : OIIO::pvt::index_formatter<OIIO::simd::vfloat16> {};
+template<> struct formatter<OIIO::simd::vint4>
+    : OIIO::pvt::index_formatter<OIIO::simd::vint4> {};
+template<> struct formatter<OIIO::simd::vint8>
+    : OIIO::pvt::index_formatter<OIIO::simd::vint8> {};
+template<> struct formatter<OIIO::simd::vint16>
+    : OIIO::pvt::index_formatter<OIIO::simd::vint16> {};
+template<> struct formatter<OIIO::simd::matrix44>
+    : OIIO::pvt::array_formatter<OIIO::simd::matrix44, float, 16> {};
+} // namespace fmt
 
 #undef SIMD_DO
 #undef SIMD_CONSTRUCT

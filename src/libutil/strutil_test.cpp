@@ -7,6 +7,7 @@
 
 #include <OpenImageIO/Imath.h>
 #include <OpenImageIO/benchmark.h>
+#include <OpenImageIO/simd.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/unittest.h>
 #include <OpenImageIO/ustring.h>
@@ -95,6 +96,95 @@ test_format()
     bench ("Strutil::fmt::format(\"{} {} {} {} {} {}\")", [&](){
                DoNotOptimize (Strutil::fmt::format("{} {} {} {} {} {}", 123.45f, 1234, "foobar", 42, "kablooey", 3.14159f));
            });
+}
+
+
+
+void
+test_format_custom()
+{
+    std::cout << "testing format() custom formatters" << std::endl;
+
+    simd::vfloat3 vf3iota = simd::vfloat3::Iota(1.5f);
+    Strutil::print("vfloat3 {{}}  '{}'\n", vf3iota);
+    Strutil::print("vfloat3 {{:.3f}}  '{:.3f}'\n", vf3iota);
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("X|{}|Y", vf3iota),
+                     "X|1.5 2.5 3.5|Y");
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("X|{:.3f}|Y", vf3iota),
+                     "X|1.500 2.500 3.500|Y");
+
+    simd::vfloat4 vf4iota = simd::vfloat4::Iota(1.5f);
+    Strutil::print("vfloat4 {{}}  '{}'\n", vf4iota);
+    Strutil::print("vfloat4 {{:.3f}}  '{:.3f}'\n", vf4iota);
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("X|{}|Y", vf4iota),
+                     "X|1.5 2.5 3.5 4.5|Y");
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("X|{:.3f}|Y", vf4iota),
+                     "X|1.500 2.500 3.500 4.500|Y");
+
+    simd::vfloat8 vf8iota = simd::vfloat8::Iota(1.5f);
+    Strutil::print("vfloat8 {{}}  '{}'\n", vf8iota);
+    Strutil::print("vfloat8 {{:.3f}}  '{:.3f}'\n", vf8iota);
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("X|{}|Y", vf8iota),
+                     "X|1.5 2.5 3.5 4.5 5.5 6.5 7.5 8.5|Y");
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("X|{:.3f}|Y", vf8iota),
+                     "X|1.500 2.500 3.500 4.500 5.500 6.500 7.500 8.500|Y");
+
+    simd::vfloat16 vf16iota = simd::vfloat16::Iota(1.5f);
+    Strutil::print("vfloat16 {{}}  '{}'\n", vf16iota);
+    Strutil::print("vfloat16 {{:.3f}}  '{:.3f}'\n", vf16iota);
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("X|{}|Y", vf16iota),
+                     "X|1.5 2.5 3.5 4.5 5.5 6.5 7.5 8.5 9.5 10.5 11.5 12.5 13.5 14.5 15.5 16.5|Y");
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("X|{:.3f}|Y", vf16iota),
+                     "X|1.500 2.500 3.500 4.500 5.500 6.500 7.500 8.500 9.500 10.500 11.500 12.500 13.500 14.500 15.500 16.500|Y");
+
+
+    simd::vint4 vi4iota = simd::vint4::Iota(1);
+    Strutil::print("vint4 {{}}  '{}'\n", vi4iota);
+    Strutil::print("vint4 {{:03d}}  '{:03d}'\n", vi4iota);
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("X|{}|Y", vi4iota),
+                     "X|1 2 3 4|Y");
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("X|{:03d}|Y", vi4iota),
+                     "X|001 002 003 004|Y");
+
+    simd::vint8 vi8iota = simd::vint8::Iota(1);
+    Strutil::print("vint8 {{}}  '{}'\n", vi8iota);
+    Strutil::print("vint8 {{:03d}}  '{:03d}'\n", vi8iota);
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("X|{}|Y", vi8iota),
+                     "X|1 2 3 4 5 6 7 8|Y");
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("X|{:03d}|Y", vi8iota),
+                     "X|001 002 003 004 005 006 007 008|Y");
+
+    simd::vint16 vi16iota = simd::vint16::Iota(1);
+    Strutil::print("vint16 {{}}  '{}'\n", vi16iota);
+    Strutil::print("vint16 {{:03d}}  '{:03d}'\n", vi16iota);
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("X|{}|Y", vi16iota),
+                     "X|1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16|Y");
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("X|{:03d}|Y", vi16iota),
+                     "X|001 002 003 004 005 006 007 008 009 010 011 012 013 014 015 016|Y");
+
+    simd::matrix44 m44iota(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+    Strutil::print("matrix44 {{}}  '{}'\n", m44iota);
+    Strutil::print("matrix44 {{:.3f}}  '{:.3f}'\n", m44iota);
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("{}", m44iota),
+                     Strutil::fmt::format("{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}",
+                                          m44iota[0][0], m44iota[0][1], m44iota[0][2], m44iota[0][3],
+                                          m44iota[1][0], m44iota[1][1], m44iota[1][2], m44iota[1][3],
+                                          m44iota[2][0], m44iota[2][1], m44iota[2][2], m44iota[2][3],
+                                          m44iota[3][0], m44iota[3][1], m44iota[3][2], m44iota[3][3]));
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("X|{:.3f}|Y", m44iota),
+                     "X|0.000 1.000 2.000 3.000 4.000 5.000 6.000 7.000 8.000 9.000 10.000 11.000 12.000 13.000 14.000 15.000|Y");
+
+    Imath::V3f ivf3iota(1.5f, 2.5f, 3.5f);
+    Strutil::print("Imath::V3f {{}}  '{}'\n", ivf3iota);
+    Strutil::print("Imath::V3f {{:.3f}}  '{:.3f}'\n", ivf3iota);
+    Strutil::print("Imath::V3f {{:,.3f}}  '{:,.3f}'\n", ivf3iota);
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("X|{}|Y", ivf3iota),
+                     "X|1.5 2.5 3.5|Y");
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("X|{:.3f}|Y", ivf3iota),
+                     "X|1.500 2.500 3.500|Y");
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("X|({:,.3f})|Y", ivf3iota),
+                     "X|(1.500, 2.500, 3.500)|Y");
+    Strutil::print("\n");
 }
 
 
@@ -1376,6 +1466,7 @@ int
 main(int /*argc*/, char* /*argv*/[])
 {
     test_format();
+    test_format_custom();
     test_memformat();
     test_timeintervalformat();
     test_get_rest_arguments();
