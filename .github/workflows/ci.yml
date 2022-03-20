@@ -252,7 +252,7 @@ jobs:
             os: ubuntu-18.04
             cxx_compiler: g++-8
             cxx_std: 17
-            openexr_ver: v2.5.6
+            openexr_ver: v2.5.8
             pybind11_ver: v2.5.0
             simd: avx
           - desc: static libs gcc7 C++14 exr2.4
@@ -376,19 +376,22 @@ jobs:
   windows:
     name: "${{matrix.os}} VS${{matrix.vsver}}"
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - os: windows-2016
-            vsver: 2017
-            generator: "Visual Studio 15 2017 Win64"
-            openexr_ver: v2.5.6
-            python_ver: 3.7
           - os: windows-2019
             vsver: 2019
             generator: "Visual Studio 16 2019"
-            openexr_ver: v2.5.6
+            openexr_ver: v2.5.8
             python_ver: 3.7
             simd: sse4.2
+          # - os: windows-2022
+          #   vsver: 2022
+          #   generator: "Visual Studio 17 2022"
+          #   openexr_ver: main
+          #   # v3.1.4
+          #   python_ver: 3.7
+          #   simd: sse4.2
     runs-on: ${{ matrix.os }}
     env:
       PYTHON_VERSION: ${{matrix.python_ver}}
