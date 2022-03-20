@@ -4750,7 +4750,7 @@ OIIO_FORCEINLINE vint4 vreduce_add (const vint4& v) {
 OIIO_FORCEINLINE int reduce_add (const vint4& v) {
 #if OIIO_SIMD_SSE
     return extract<0> (vreduce_add(v));
-#elif OIIO_SIMD_NEON
+#elif OIIO_SIMD_NEON && defined(__aarch64__)
     return vaddvq_s32(v);
 #else
     SIMD_RETURN_REDUCE (int, 0, r += v[i]);
@@ -7012,7 +7012,7 @@ OIIO_FORCEINLINE const vfloat4 & vfloat4::operator*= (float val) {
 OIIO_FORCEINLINE vfloat4 operator/ (const vfloat4& a, const vfloat4& b) {
 #if OIIO_SIMD_SSE
     return _mm_div_ps (a.m_simd, b.m_simd);
-#elif OIIO_SIMD_NEON
+#elif OIIO_SIMD_NEON && defined(__aarch64__)
     return vdivq_f32 (a.m_simd, b.m_simd);
 #else
     SIMD_RETURN (vfloat4, a[i] / b[i]);
@@ -7022,7 +7022,7 @@ OIIO_FORCEINLINE vfloat4 operator/ (const vfloat4& a, const vfloat4& b) {
 OIIO_FORCEINLINE const vfloat4 & vfloat4::operator/= (const vfloat4& a) {
 #if OIIO_SIMD_SSE
     m_simd = _mm_div_ps (m_simd, a.m_simd);
-#elif OIIO_SIMD_NEON
+#elif OIIO_SIMD_NEON && defined(__aarch64__)
     m_simd = vdivq_f32 (m_simd, a.m_simd);
 #else
     SIMD_DO (m_val[i] /= a[i]);
@@ -7033,7 +7033,7 @@ OIIO_FORCEINLINE const vfloat4 & vfloat4::operator/= (const vfloat4& a) {
 OIIO_FORCEINLINE const vfloat4 & vfloat4::operator/= (float val) {
 #if OIIO_SIMD_SSE
     m_simd = _mm_div_ps (m_simd, _mm_set1_ps(val));
-#elif OIIO_SIMD_NEON
+#elif OIIO_SIMD_NEON && defined(__aarch64__)
     m_simd = vdivq_f32 (m_simd, vfloat4(val));
 #else
     SIMD_DO (m_val[i] /= val);
@@ -7275,7 +7275,7 @@ OIIO_FORCEINLINE vfloat4 vreduce_add (const vfloat4& v) {
 OIIO_FORCEINLINE float reduce_add (const vfloat4& v) {
 #if OIIO_SIMD_SSE
     return _mm_cvtss_f32(vreduce_add (v));
-#elif OIIO_SIMD_NEON
+#elif OIIO_SIMD_NEON && defined(__aarch64__)
     return vaddvq_f32(v);
 #else
     return v[0] + v[1] + v[2] + v[3];
