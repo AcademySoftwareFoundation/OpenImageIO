@@ -27,9 +27,13 @@ export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$DEP_DIR/lib:$VCPKG_INSTALLATION_ROOT/i
 
 if [[ "$PYTHON_VERSION" == "3.6" ]] ; then
     export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;/c/hostedtoolcache/windows/Python/3.6.8/x64"
-else
+elif [[ "$PYTHON_VERSION" == "3.7" ]] ; then
     export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;/c/hostedtoolcache/windows/Python/3.7.9/x64"
     export Python_EXECUTABLE="/c/hostedtoolcache/windows/Python/3.7.9/x64/python.exe"
+    export PYTHONPATH=$OpenImageIO_ROOT/lib/python${PYTHON_VERSION}/site-packages
+elif [[ "$PYTHON_VERSION" == "3.9" ]] ; then
+    export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;/c/hostedtoolcache/windows/Python/3.9.10/x64"
+    export Python_EXECUTABLE="/c/hostedtoolcache/windows/Python/3.9.10/x64/python3.exe"
     export PYTHONPATH=$OpenImageIO_ROOT/lib/python${PYTHON_VERSION}/site-packages
 fi
 pip install numpy
