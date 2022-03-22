@@ -1144,4 +1144,261 @@ ImageBufAlgo::rotate(const ImageBuf& src, float angle, string_view filtername,
 }
 
 
+
+template<typename DSTTYPE, typename SRCTYPE, typename STTYPE>
+static bool
+st_warp_(ImageBuf& dst, const ImageBuf& src, const ImageBuf& stbuf, int chan_s,
+         int chan_t, bool flip_s, bool flip_t, Filter2D* filter, ROI roi,
+         int nthreads)
+{
+    OIIO_DASSERT(filter);
+    OIIO_DASSERT(dst.spec().nchannels >= roi.chend);
+
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        const ImageSpec& srcspec(src.spec());
+        const ImageSpec& dstspec(dst.spec());
+        const int src_width  = srcspec.full_width;
+        const int src_height = srcspec.full_height;
+
+        const float xscale = float(dstspec.full_width) / src_width;
+        const float yscale = float(dstspec.full_height) / src_height;
+
+        const int xbegin = src.xbegin();
+        const int xend   = src.xend();
+        const int ybegin = src.ybegin();
+        const int yend   = src.yend();
+
+        // The horizontal and vertical filter radii, in source pixels.
+        // We will sample and filter the source over
+        //   [x-filterrad_x, x+filterrad_x] X [y-filterrad_y,y+filterrad_y].
+        const int filterrad_x = (int)ceilf(filter->width() / 2.0f / xscale);
+        const int filterrad_y = (int)ceilf(filter->height() / 2.0f / yscale);
+
+        ImageBuf::ConstIterator<SRCTYPE> src_iter(src);
+        ImageBuf::ConstIterator<STTYPE> st_iter(stbuf, roi);
+        ImageBuf::Iterator<DSTTYPE> out_iter(dst, roi);
+
+        // Accumulation buffer for filter samples, typed to maintain the
+        // necessary precision.
+        typedef typename Accum_t<DSTTYPE>::type Acc_t;
+        const int nchannels = roi.chend - roi.chbegin;
+        Acc_t* sample_accum = OIIO_ALLOCA(Acc_t, nchannels);
+
+        // The ST buffer defines the output dimensions, and thus the bounds of
+        // the outer loop.
+        // XXX: Sampling of the source buffer can be entirely random, so there
+        // are probably some opportunities for optimization in here...
+        for (; !st_iter.done(); ++st_iter) {
+            // Look up source coordinates from ST channels.
+            // We don't care about faithfully maintaining `STTYPE`: Half will be
+            // promoted accurately, and double isn't really useful, since filter
+            // lookups don't support that (excessive) level of precision.
+            float src_s = st_iter[chan_s];
+            float src_t = st_iter[chan_t];
+
+            if (flip_s) {
+                src_s = 1.0f - src_s;
+            }
+            if (flip_t) {
+                src_t = 1.0f - src_t;
+            }
+
+            const float src_x = src_s * src_width;
+            const float src_y = src_t * src_height;
+
+            // Set up source iterator range
+            const int x_min = clamp((int)floorf(src_x - filterrad_x), xbegin,
+                                    xend);
+            const int x_max = clamp((int)ceilf(src_x + filterrad_x), xbegin,
+                                    xend);
+            const int y_min = clamp((int)floorf(src_y - filterrad_y), ybegin,
+                                    yend);
+            const int y_max = clamp((int)ceilf(src_y + filterrad_y), ybegin,
+                                    yend);
+
+            src_iter.rerange(x_min, x_max + 1, y_min, y_max + 1, 0, 1);
+
+            memset(sample_accum, 0, nchannels * sizeof(Acc_t));
+            float total_weight = 0.0f;
+            for (; !src_iter.done(); ++src_iter) {
+                const float weight = (*filter)(src_iter.x() - src_x + 0.5f,
+                                               src_iter.y() - src_y + 0.5f);
+                total_weight += weight;
+                for (int idx = 0, chan = roi.chbegin; chan < roi.chend;
+                     ++chan, ++idx) {
+                    sample_accum[idx] += src_iter[chan] * weight;
+                }
+            }
+
+            if (total_weight > 0.0f) {
+                for (int idx = 0, chan = roi.chbegin; chan < roi.chend;
+                     ++chan, ++idx) {
+                    out_iter[chan] = sample_accum[idx] / total_weight;
+                }
+            } else {
+                for (int chan = roi.chbegin; chan < roi.chend; ++chan) {
+                    out_iter[chan] = 0;
+                }
+            }
+            ++out_iter;
+        }
+    });  // end of parallel_image
+    return true;
+}
+
+
+
+static bool
+check_st_warp_args(ImageBuf& dst, const ImageBuf& src, const ImageBuf& stbuf,
+                   int chan_s, int chan_t, ROI& roi)
+{
+    // Validate ST buffer
+    if (!stbuf.initialized()) {
+        dst.error("ImageBufAlgo::st_warp : Uninitialized ST buffer");
+        return false;
+    }
+
+    const ImageSpec& stSpec(stbuf.spec());
+    // XXX: Wanted to use `uint32_t` for channel indices, but I don't want to
+    // break from the rest of the API and introduce a bunch of compile warnings.
+    if (chan_s >= stSpec.nchannels) {
+        dst.errorfmt("ImageBufAlgo::st_warp : Out-of-range S channel index: {}",
+                     chan_s);
+        return false;
+    }
+    if (chan_t >= stSpec.nchannels) {
+        dst.errorfmt("ImageBufAlgo::st_warp : Out-of-range T channel index: {}",
+                     chan_t);
+        return false;
+    }
+    // N.B. We currently require floating-point ST channels
+    if (!stSpec.format.is_floating_point()) {
+        dst.error("ImageBufAlgo::st_warp : ST buffer must be holding floating-"
+                  "point data");
+        return false;
+    }
+
+    if (dst.initialized()) {
+        // XXX: Currently requiring the pixel scales of ST and a preallocated
+        // output buffer to match.
+        if (dst.spec().full_width != stSpec.full_width
+            || dst.spec().full_height != stSpec.full_height) {
+            dst.error("ImageBufAlgo::st_warp : Output and ST buffers must have "
+                      "the same full width and height");
+            return false;
+        }
+    }
+
+    // Prep the dest spec using the channels from `src`, and the intersection of
+    // `roi` and the ROI from the ST buffer (since the ST warp is only defined
+    // for pixels in the ST buffer). We grab a copy of the input ROI before
+    // `IBAprep`, since we want to intersect it ourselves.
+    ROI inputROI(roi);
+    bool res
+        = ImageBufAlgo::IBAprep(roi, &dst, &src,
+                                ImageBufAlgo::IBAprep_NO_SUPPORT_VOLUME
+                                    | ImageBufAlgo::IBAprep_NO_COPY_ROI_FULL);
+    if (res) {
+        roi         = roi_intersection(inputROI, stSpec.roi());
+        roi.chbegin = std::max(roi.chbegin, 0);
+        roi.chend   = std::min(roi.chend, src.spec().nchannels);
+
+        ImageSpec destSpec(dst.spec());
+        destSpec.set_roi(roi);
+        destSpec.set_roi_full(stSpec.roi_full());
+        // XXX: It would be nice to be able to tell `IBAprep` to skip the buffer
+        // initialization. Worth adding a new prep flag?
+        dst.reset(destSpec);
+    }
+    return res;
+}
+
+
+
+bool
+ImageBufAlgo::st_warp(ImageBuf& dst, const ImageBuf& src, const ImageBuf& stbuf,
+                      Filter2D* filter, int chan_s, int chan_t, bool flip_s,
+                      bool flip_t, ROI roi, int nthreads)
+{
+    pvt::LoggedTimer logtime("IBA::st_warp");
+
+    if (!check_st_warp_args(dst, src, stbuf, chan_s, chan_t, roi)) {
+        return false;
+    }
+
+    bool ok;
+    OIIO_DISPATCH_COMMON_TYPES3(ok, "st_warp", st_warp_, dst.spec().format,
+                                src.spec().format, stbuf.spec().format, dst,
+                                src, stbuf, chan_s, chan_t, flip_s, flip_t,
+                                filter, roi, nthreads);
+    return ok;
+}
+
+
+
+bool
+ImageBufAlgo::st_warp(ImageBuf& dst, const ImageBuf& src, const ImageBuf& stbuf,
+                      string_view filtername, float filterwidth, int chan_s,
+                      int chan_t, bool flip_s, bool flip_t, ROI roi,
+                      int nthreads)
+{
+    pvt::LoggedTimer logtime("IBA::st_warp");
+
+    // XXX: As with other IBA functions that take a filter name and width, we
+    // will end up validating the arguments twice on this code path, but we want
+    // to know the scale factor between the source and ST/dest buffers so we can
+    // use `get_resize_filter`, and the overhead should be negligible.
+    if (!check_st_warp_args(dst, src, stbuf, chan_s, chan_t, roi)) {
+        return false;
+    }
+
+    // Resize ratios
+    float wratio = float(dst.spec().full_width) / src.spec().full_width;
+    float hratio = float(dst.spec().full_height) / src.spec().full_height;
+
+    auto filter = get_resize_filter(filtername, filterwidth, dst, wratio,
+                                    hratio);
+    if (!filter) {
+        return false;  // Error in `get_resize_filter`.
+    }
+
+    logtime.stop();  // Timing will be resumed by next call.
+    return st_warp(dst, src, stbuf, filter.get(), chan_s, chan_t, flip_s,
+                   flip_t, roi, nthreads);
+}
+
+
+
+ImageBuf
+ImageBufAlgo::st_warp(const ImageBuf& src, const ImageBuf& stbuf,
+                      Filter2D* filter, int chan_s, int chan_t, bool flip_s,
+                      bool flip_t, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = st_warp(result, src, stbuf, filter, chan_s, chan_t, flip_s,
+                      flip_t, roi, nthreads);
+    if (!ok && !result.has_error()) {
+        result.error("ImageBufAlgo::st_warp : Unknown error");
+    }
+    return result;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::st_warp(const ImageBuf& src, const ImageBuf& stbuf,
+                      string_view filtername, float filterwidth, int chan_s,
+                      int chan_t, bool flip_s, bool flip_t, ROI roi,
+                      int nthreads)
+{
+    ImageBuf result;
+    bool ok = st_warp(result, src, stbuf, filtername, filterwidth, chan_s,
+                      chan_t, flip_s, flip_t, roi, nthreads);
+    if (!ok && !result.has_error()) {
+        result.error("ImageBufAlgo::st_warp : Unknown error");
+    }
+    return result;
+}
+
+
 OIIO_NAMESPACE_END

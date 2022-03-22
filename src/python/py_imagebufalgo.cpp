@@ -1622,6 +1622,29 @@ IBA_resample_ret(const ImageBuf& src, bool interpolate, ROI roi, int nthreads)
 }
 
 
+bool
+IBA_st_warp(ImageBuf& dst, const ImageBuf& src, const ImageBuf& stbuf,
+            const std::string& filtername = "", float filterwidth = 0.0f,
+            int chan_s = 0, int chan_t = 1, bool flip_s = false,
+            bool flip_t = false, ROI roi = ROI::All(), int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::st_warp(dst, src, stbuf, filtername, filterwidth,
+                                 chan_s, chan_t, flip_s, flip_t, roi, nthreads);
+}
+
+ImageBuf
+IBA_st_warp_ret(const ImageBuf& src, const ImageBuf& stbuf,
+                const std::string& filtername = "", float filterwidth = 0.0f,
+                int chan_s = 0, int chan_t = 1, bool flip_s = false,
+                bool flip_t = false, ROI roi = ROI::All(), int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::st_warp(src, stbuf, filtername, filterwidth, chan_s,
+                                 chan_t, flip_s, flip_t, roi, nthreads);
+}
+
+
 
 bool
 IBA_fit(ImageBuf& dst, const ImageBuf& src, const std::string& filtername = "",
@@ -2934,6 +2957,15 @@ declare_imagebufalgo(py::module& m)
         .def_static("resample", &IBA_resample_ret, "src"_a,
                     "interpolate"_a = true, "roi"_a = ROI::All(),
                     "nthreads"_a = 0)
+
+        .def_static("st_warp", &IBA_st_warp, "dst"_a, "src"_a, "stbuf"_a,
+                    "filtername"_a = "", "filterwidth"_a = 0.0f, "chan_s"_a = 0,
+                    "chan_t"_a = 1, "flip_s"_a = false, "flip_t"_a = false,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("st_warp", &IBA_st_warp_ret, "src"_a, "stbuf"_a,
+                    "filtername"_a = "", "filterwidth"_a = 0.0f, "chan_s"_a = 0,
+                    "chan_t"_a = 1, "flip_s"_a = false, "flip_t"_a = false,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
 
         .def_static("fit", &IBA_fit, "dst"_a, "src"_a, "filtername"_a = "",
                     "filterwidth"_a = 0.0f, "fillmode"_a = "letterbox",
