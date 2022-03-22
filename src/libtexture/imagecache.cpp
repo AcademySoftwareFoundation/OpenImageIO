@@ -1853,6 +1853,8 @@ ImageCacheImpl::getstats(int level) const
         INTOPT(deduplicate);
         INTOPT(unassociatedalpha);
         INTOPT(failure_retries);
+        opt += Strutil::fmt::format("openexr:core={} ",
+                                    OIIO::get_int_attribute("openexr:core"));
 #undef BOOLOPT
 #undef INTOPT
 #undef STROPT
