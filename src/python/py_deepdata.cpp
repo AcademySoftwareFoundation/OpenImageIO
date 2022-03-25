@@ -112,6 +112,7 @@ declare_deepdata(py::module& m)
         .def("channeltype", &DeepData::channeltype)
         .def("channelsize",
              [](const DeepData& dd, int c) { return (int)dd.channelsize(c); })
+        .def("same_channeltypes", &DeepData::same_channeltypes)
         .def("samplesize", &DeepData::samplesize)
         .def("deep_value", &DeepData::deep_value, "pixel"_a, "channel"_a,
              "sample"_a)

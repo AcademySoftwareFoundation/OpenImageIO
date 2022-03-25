@@ -41,7 +41,7 @@ allhalf.exr          :  160 x  120, 2 channel, deep half openexr
         8- 15 :     1063 ( 5.5%)
        16- 22 :       91 ( 0.5%)
     Minimum depth was 3.03125 at (159, 56)
-    Maximum depth was 5 at (136, 57)
+    Maximum depth was 5.0 at (136, 57)
 Reading swaptypes.exr
 swaptypes.exr        :  160 x  120, 2 channel, deep float/half openexr
     SHA-1: A26C8B55734B7AE342FA3B37198327B0C00C0BC2
@@ -85,7 +85,7 @@ swaptypes.exr        :  160 x  120, 2 channel, deep float/half openexr
         8- 15 :     1063 ( 5.5%)
        16- 22 :       91 ( 0.5%)
     Minimum depth was 3.03125 at (159, 56)
-    Maximum depth was 5 at (136, 57)
+    Maximum depth was 5.0 at (136, 57)
 Computing diff of "src/deep-nosamples.exr" vs "src/deep-onesample.exr"
   Mean error = 42
   RMS error = 42

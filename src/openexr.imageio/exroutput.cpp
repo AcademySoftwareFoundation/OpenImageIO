@@ -204,6 +204,9 @@ private:
     // spec a bit.
     bool spec_to_header(ImageSpec& spec, int subimage, Imf::Header& header);
 
+    // Compute an OpenEXR PixelType from an OIIO TypeDesc
+    Imf::PixelType imfpixeltype(TypeDesc type);
+
     // Fill in m_pixeltype based on the spec
     void compute_pixeltypes(const ImageSpec& spec);
 
@@ -614,24 +617,31 @@ OpenEXROutput::open(const std::string& name, int subimages,
 
 
 
+Imf::PixelType
+OpenEXROutput::imfpixeltype(TypeDesc type)
+{
+    Imf::PixelType ptype;
+    switch (type.basetype) {
+    case TypeDesc::UINT: ptype = Imf::UINT; break;
+    case TypeDesc::FLOAT:
+    case TypeDesc::DOUBLE: ptype = Imf::FLOAT; break;
+    default:
+        // Everything else defaults to half
+        ptype = Imf::HALF;
+        break;
+    }
+    return ptype;
+}
+
+
+
 void
 OpenEXROutput::compute_pixeltypes(const ImageSpec& spec)
 {
     m_pixeltype.clear();
     m_pixeltype.reserve(spec.nchannels);
     for (int c = 0; c < spec.nchannels; ++c) {
-        TypeDesc format = spec.channelformat(c);
-        Imf::PixelType ptype;
-        switch (format.basetype) {
-        case TypeDesc::UINT: ptype = Imf::UINT; break;
-        case TypeDesc::FLOAT:
-        case TypeDesc::DOUBLE: ptype = Imf::FLOAT; break;
-        default:
-            // Everything else defaults to half
-            ptype = Imf::HALF;
-            break;
-        }
-        m_pixeltype.push_back(ptype);
+        m_pixeltype.push_back(imfpixeltype(spec.channelformat(c)));
     }
     OIIO_ASSERT(m_pixeltype.size() == size_t(spec.nchannels));
 }
@@ -1600,27 +1610,44 @@ OpenEXROutput::write_deep_scanlines(int ybegin, int yend, int /*z*/,
         return false;
     }
 
-    int nchans = m_spec.nchannels;
+    int nchans         = m_spec.nchannels;
+    const DeepData* dd = &deepdata;
+    std::unique_ptr<DeepData> dd_local;  // In case we need a copy
+    bool same_chantypes = true;
+    for (int c = 0; c < nchans; ++c)
+        same_chantypes &= (m_spec.channelformat(c) == deepdata.channeltype(c));
+    if (!same_chantypes) {
+        // If the channel types don't match, we need to make a copy of the
+        // DeepData and convert the channels to the spec's channel types.
+        std::vector<TypeDesc> chantypes;
+        if (m_spec.channelformats.size() == size_t(nchans))
+            chantypes = m_spec.channelformats;
+        else
+            chantypes.resize(nchans, m_spec.format);
+        dd_local.reset(new DeepData(deepdata, chantypes));
+        dd = dd_local.get();
+    }
+
     try {
         // Set up the count and pointers arrays and the Imf framebuffer
         Imf::DeepFrameBuffer frameBuffer;
         Imf::Slice countslice(Imf::UINT,
-                              (char*)(deepdata.all_samples().data() - m_spec.x
+                              (char*)(dd->all_samples().data() - m_spec.x
                                       - ybegin * m_spec.width),
                               sizeof(unsigned int),
                               sizeof(unsigned int) * m_spec.width);
         frameBuffer.insertSampleCountSlice(countslice);
         std::vector<void*> pointerbuf;
-        deepdata.get_pointers(pointerbuf);
+        dd->get_pointers(pointerbuf);
         for (int c = 0; c < nchans; ++c) {
-            Imf::DeepSlice slice(
-                m_pixeltype[c],
-                (char*)(&pointerbuf[c] - m_spec.x * nchans
-                        - ybegin * m_spec.width * nchans),
-                sizeof(void*) * nchans,  // xstride of pointer array
-                sizeof(void*) * nchans
-                    * m_spec.width,      // ystride of pointer array
-                deepdata.samplesize());  // stride of data sample
+            Imf::DeepSlice slice(m_pixeltype[c],
+                                 (char*)(&pointerbuf[c] - m_spec.x * nchans
+                                         - ybegin * m_spec.width * nchans),
+                                 sizeof(void*)
+                                     * nchans,  // xstride of pointer array
+                                 sizeof(void*) * nchans
+                                     * m_spec.width,  // ystride of pointer array
+                                 dd->samplesize());   // stride of data sample
             frameBuffer.insert(m_spec.channelnames[c].c_str(), slice);
         }
         m_deep_scanline_output_part->setFrameBuffer(frameBuffer);
@@ -1655,28 +1682,46 @@ OpenEXROutput::write_deep_tiles(int xbegin, int xend, int ybegin, int yend,
         return false;
     }
 
-    int nchans = m_spec.nchannels;
+    int nchans         = m_spec.nchannels;
+    const DeepData* dd = &deepdata;
+    std::unique_ptr<DeepData> dd_local;  // In case we need a copy
+    bool same_chantypes = true;
+    for (int c = 0; c < nchans; ++c)
+        same_chantypes &= (m_spec.channelformat(c) == deepdata.channeltype(c));
+    if (!same_chantypes) {
+        // If the channel types don't match, we need to make a copy of the
+        // DeepData and convert the channels to the spec's channel types.
+        std::vector<TypeDesc> chantypes;
+        if (m_spec.channelformats.size() == size_t(nchans))
+            chantypes = m_spec.channelformats;
+        else
+            chantypes.resize(nchans, m_spec.format);
+        dd_local.reset(new DeepData(deepdata, chantypes));
+        dd = dd_local.get();
+    }
+
     try {
         size_t width = (xend - xbegin);
 
         // Set up the count and pointers arrays and the Imf framebuffer
         Imf::DeepFrameBuffer frameBuffer;
         Imf::Slice countslice(Imf::UINT,
-                              (char*)(deepdata.all_samples().data() - xbegin
+                              (char*)(dd->all_samples().data() - xbegin
                                       - ybegin * width),
                               sizeof(unsigned int),
                               sizeof(unsigned int) * width);
         frameBuffer.insertSampleCountSlice(countslice);
         std::vector<void*> pointerbuf;
-        deepdata.get_pointers(pointerbuf);
+        dd->get_pointers(pointerbuf);
         for (int c = 0; c < nchans; ++c) {
-            Imf::DeepSlice slice(
-                m_pixeltype[c],
-                (char*)(&pointerbuf[c] - xbegin * nchans
-                        - ybegin * width * nchans),
-                sizeof(void*) * nchans,          // xstride of pointer array
-                sizeof(void*) * nchans * width,  // ystride of pointer array
-                deepdata.samplesize());          // stride of data sample
+            Imf::DeepSlice slice(m_pixeltype[c],
+                                 (char*)(&pointerbuf[c] - xbegin * nchans
+                                         - ybegin * width * nchans),
+                                 sizeof(void*)
+                                     * nchans,  // xstride of pointer array
+                                 sizeof(void*) * nchans
+                                     * width,        // ystride of pointer array
+                                 dd->samplesize());  // stride of data sample
             frameBuffer.insert(m_spec.channelnames[c].c_str(), slice);
         }
         m_deep_tiled_output_part->setFrameBuffer(frameBuffer);
