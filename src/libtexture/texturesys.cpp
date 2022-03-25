@@ -361,6 +361,8 @@ TextureSystemImpl::~TextureSystemImpl()
 std::string
 TextureSystemImpl::getstats(int level, bool icstats) const
 {
+    using Strutil::print;
+
     // Merge all the threads
     ImageCacheStatistics stats;
     m_imagecache->mergestats(stats);
@@ -377,43 +379,41 @@ TextureSystemImpl::getstats(int level, bool icstats) const
 #define BOOLOPT(name) \
     if (m_##name)     \
     opt += #name " "
-#define INTOPT(name) opt += Strutil::sprintf(#name "=%d ", m_##name)
+#define INTOPT(name) opt += Strutil::fmt::format(#name "={} ", m_##name)
 #define STROPT(name)     \
     if (m_##name.size()) \
-    opt += Strutil::sprintf(#name "=\"%s\" ", m_##name)
+    opt += Strutil::fmt::format(#name "=\"{}\" ", m_##name)
         INTOPT(gray_to_rgb);
         INTOPT(flip_t);
         INTOPT(max_tile_channels);
 #undef BOOLOPT
 #undef INTOPT
 #undef STROPT
-        out << "  Options:  " << Strutil::wordwrap(opt, 75, 12) << "\n";
+        print(out, "  Options:  {}\n", Strutil::wordwrap(opt, 75, 12));
 
-        out << "  Queries/batches : \n";
-        out << "    texture     :  " << stats.texture_queries << " queries in "
-            << stats.texture_batches << " batches\n";
-        out << "    texture 3d  :  " << stats.texture3d_queries
-            << " queries in " << stats.texture3d_batches << " batches\n";
-        out << "    shadow      :  " << stats.shadow_queries << " queries in "
-            << stats.shadow_batches << " batches\n";
-        out << "    environment :  " << stats.environment_queries
-            << " queries in " << stats.environment_batches << " batches\n";
-        out << "    gettextureinfo :  " << stats.imageinfo_queries
-            << " queries\n";
-        out << "  Interpolations :\n";
-        out << "    closest  : " << stats.closest_interps << "\n";
-        out << "    bilinear : " << stats.bilinear_interps << "\n";
-        out << "    bicubic  : " << stats.cubic_interps << "\n";
+        print(out, "  Queries/batches : \n");
+        print(out, "    texture     :  {} queries in {} batches\n",
+              stats.texture_queries, stats.texture_batches);
+        print(out, "    texture 3d  :  {} queries in {} batches\n",
+              stats.texture3d_queries, stats.texture3d_batches);
+        print(out, "    shadow      :  {} queries in {} batches\n",
+              stats.shadow_queries, stats.shadow_batches);
+        print(out, "    environment :  {} queries in {} batches\n",
+              stats.environment_queries, stats.environment_batches);
+        print(out, "    gettextureinfo :  {} queries\n",
+              stats.imageinfo_queries);
+        print(out, "  Interpolations :\n");
+        print(out, "    closest  : {}\n", stats.closest_interps);
+        print(out, "    bilinear : {}\n", stats.bilinear_interps);
+        print(out, "    bicubic  : {}\n", stats.cubic_interps);
         if (stats.aniso_queries)
-            out << Strutil::sprintf("  Average anisotropic probes : %.3g\n",
-                                    (double)stats.aniso_probes
-                                        / (double)stats.aniso_queries);
+            print(out, "  Average anisotropic probes : {:.3g}\n",
+                  (double)stats.aniso_probes / (double)stats.aniso_queries);
         else
-            out << Strutil::sprintf("  Average anisotropic probes : 0\n");
-        out << Strutil::sprintf("  Max anisotropy in the wild : %.3g\n",
-                                stats.max_aniso);
+            print(out, "  Average anisotropic probes : 0\n");
+        print(out, "  Max anisotropy in the wild : {:.3g}\n", stats.max_aniso);
         if (icstats)
-            out << "\n";
+            print(out, "\n");
     }
     if (icstats)
         out << m_imagecache->getstats(level);
@@ -3033,8 +3033,8 @@ TextureSystemImpl::unit_test_texture()
         dtdx = 1.5f * (rnd(gen) - 0.5f);
         dsdy = 1.5f * (rnd(gen) - 0.5f);
         dtdy = 1.5f * (rnd(gen) - 0.5f);
-        visualize_ellipse(Strutil::sprintf("%04d.tif", 100 + i), dsdx, dtdx,
-                          dsdy, dtdy, sblur, tblur);
+        visualize_ellipse(Strutil::fmt::format("{:04d}.tif", 100 + i), dsdx,
+                          dtdx, dsdy, dtdy, sblur, tblur);
     }
 }
 

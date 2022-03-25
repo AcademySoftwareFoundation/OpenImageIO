@@ -1689,6 +1689,8 @@ std::string
 ImageCacheImpl::onefile_stat_line(const ImageCacheFileRef& file, int i,
                                   bool includestats) const
 {
+    using Strutil::print;
+
     // FIXME -- make meaningful stat printouts for multi-image textures
     std::ostringstream out;
     out.imbue(std::locale::classic());  // Force "C" locale with '.' decimal
@@ -1709,39 +1711,35 @@ ImageCacheImpl::onefile_stat_line(const ImageCacheFileRef& file, int i,
     default: break;
     }
     if (i >= 0)
-        out << Strutil::sprintf("%7d ", i);
+        print(out, "{:7} ", i);
     if (includestats) {
         unsigned long long redund_tiles = file->redundant_tiles();
         if (redund_tiles)
-            out << Strutil::sprintf(
-                "%4llu  %7llu   %8.1f   (%5llu %6.1f) %9s  ",
-                (unsigned long long)file->timesopened(),
-                (unsigned long long)file->tilesread(),
-                file->bytesread() / 1024.0 / 1024.0, redund_tiles,
-                file->redundant_bytesread() / 1024.0 / 1024.0,
-                Strutil::timeintervalformat(file->iotime()));
+            print(out, "{:4}  {:7}   {:8.1f}   ({:5} {:6.1f}) {:9}  ",
+                  file->timesopened(), file->tilesread(),
+                  file->bytesread() / 1024.0 / 1024.0, redund_tiles,
+                  file->redundant_bytesread() / 1024.0 / 1024.0,
+                  Strutil::timeintervalformat(file->iotime()));
         else
-            out << Strutil::sprintf(
-                "%4llu  %7llu   %8.1f                  %9s  ",
-                (unsigned long long)file->timesopened(),
-                (unsigned long long)file->tilesread(),
-                file->bytesread() / 1024.0 / 1024.0,
-                Strutil::timeintervalformat(file->iotime()));
+            print(out, "{:4}  {:7}   {:8.1f}                  {:9}  ",
+                  file->timesopened(), file->tilesread(),
+                  file->bytesread() / 1024.0 / 1024.0,
+                  Strutil::timeintervalformat(file->iotime()));
     }
     if (file->subimages() > 1)
-        out << Strutil::sprintf("%3d face x%d.%s", file->subimages(),
-                                spec.nchannels, formatcode);
+        print(out, "{:3} face x{}.{}", file->subimages(), spec.nchannels,
+              formatcode);
     else
-        out << Strutil::sprintf("%4dx%4dx%d.%s", spec.width, spec.height,
-                                spec.nchannels, formatcode);
-    out << "  " << file->filename() << " ";
+        print(out, "{:4}x{:4}x{}.{}", spec.width, spec.height, spec.nchannels,
+              formatcode);
+    print(out, "  {} ", file->filename());
     if (file->duplicate()) {
-        out << " DUPLICATES " << file->duplicate()->filename();
+        print(out, " DUPLICATES {}", file->duplicate()->filename());
         return out.str();
     }
     for (int s = 0; s < file->subimages(); ++s)
         if (file->subimageinfo(s).untiled) {
-            out << " UNTILED";
+            print(out, " UNTILED");
             break;
         }
     if (automip()) {
@@ -1749,23 +1747,23 @@ ImageCacheImpl::onefile_stat_line(const ImageCacheFileRef& file, int i,
         // this file.  This is a little inexact.
         for (int s = 0; s < file->subimages(); ++s)
             if (file->subimageinfo(s).unmipped) {
-                out << " UNMIPPED";
+                print(out, " UNMIPPED");
                 break;
             }
     }
     if (!file->mipused()) {
         for (int s = 0; s < file->subimages(); ++s)
             if (!file->subimageinfo(s).unmipped) {
-                out << " MIP-UNUSED";
+                print(out, " MIP-UNUSED");
                 break;
             }
     }
     if (file->mipreadcount().size() > 1) {
-        out << " MIP-COUNT[";
+        print(out, " MIP-COUNT[");
         int nmip = (int)file->mipreadcount().size();
         for (int c = 0; c < nmip; c++)
-            out << (c ? "," : "") << file->mipreadcount()[c];
-        out << "]";
+            print(out, "{}{}", (c ? "," : ""), file->mipreadcount()[c]);
+        print(out, "]");
     }
 
     return out.str();
@@ -1776,6 +1774,8 @@ ImageCacheImpl::onefile_stat_line(const ImageCacheFileRef& file, int i,
 std::string
 ImageCacheImpl::getstats(int level) const
 {
+    using Strutil::print;
+
     // Merge all the threads
     ImageCacheStatistics stats;
     mergestats(stats);
@@ -1837,12 +1837,12 @@ ImageCacheImpl::getstats(int level) const
 #define BOOLOPT(name) \
     if (m_##name)     \
     opt += #name " "
-#define INTOPT(name) opt += Strutil::sprintf(#name "=%d ", m_##name)
+#define INTOPT(name) opt += Strutil::fmt::format(#name "={} ", m_##name)
 #define STROPT(name)     \
     if (m_##name.size()) \
-    opt += Strutil::sprintf(#name "=\"%s\" ", m_##name)
-        opt += Strutil::sprintf("max_memory_MB=%0.1f ",
-                                m_max_memory_bytes / (1024.0 * 1024.0));
+    opt += Strutil::fmt::format(#name "=\"{}\" ", m_##name)
+        opt += Strutil::fmt::format("max_memory_MB={:0.1f} ",
+                                    m_max_memory_bytes / (1024.0 * 1024.0));
         INTOPT(max_open_files);
         INTOPT(autotile);
         INTOPT(autoscanline);
@@ -1856,86 +1856,85 @@ ImageCacheImpl::getstats(int level) const
 #undef BOOLOPT
 #undef INTOPT
 #undef STROPT
-        out << "  Options:  " << Strutil::wordwrap(opt, 75, 12) << "\n";
+        print(out, "  Options:  {}\n", Strutil::wordwrap(opt, 75, 12));
 
         if (stats.unique_files) {
-            out << "  Images : " << stats.unique_files << " unique\n";
-            out << "    ImageInputs : " << m_stat_open_files_created
-                << " created, " << m_stat_open_files_current << " current, "
-                << m_stat_open_files_peak << " peak\n";
-            out << "    Total pixel data size of all images referenced : "
-                << Strutil::memformat(stats.files_totalsize) << "\n";
-            out << "    Total actual file size of all images referenced : "
-                << Strutil::memformat(stats.files_totalsize_ondisk) << "\n";
-            out << "    Pixel data read : "
-                << Strutil::memformat(stats.bytes_read) << "\n";
+            print(out, "  Images : {} unique\n", stats.unique_files);
+            print(out, "    ImageInputs : {} created, {} current, {} peak\n",
+                  m_stat_open_files_created, m_stat_open_files_current,
+                  m_stat_open_files_peak);
+            print(out,
+                  "    Total pixel data size of all images referenced : {}\n",
+                  Strutil::memformat(stats.files_totalsize));
+            print(out,
+                  "    Total actual file size of all images referenced : {}\n",
+                  Strutil::memformat(stats.files_totalsize_ondisk));
+            print(out, "    Pixel data read : {}\n",
+                  Strutil::memformat(stats.bytes_read));
         } else {
-            out << "  No images opened\n";
+            print(out, "  No images opened\n");
         }
         if (stats.find_file_time > 0.001)
-            out << "    Find file time : "
-                << Strutil::timeintervalformat(stats.find_file_time) << "\n";
+            print(out, "    Find file time : {}\n",
+                  Strutil::timeintervalformat(stats.find_file_time));
         if (stats.fileio_time > 0.001) {
-            out << "    File I/O time : "
-                << Strutil::timeintervalformat(stats.fileio_time);
+            print(out, "    File I/O time : {}",
+                  Strutil::timeintervalformat(stats.fileio_time));
             {
                 spin_lock lock(m_perthread_info_mutex);
                 size_t nthreads = m_all_perthread_info.size();
                 if (nthreads > 1) {
                     double perthreadtime = stats.fileio_time / (float)nthreads;
-                    out << " (" << Strutil::timeintervalformat(perthreadtime)
-                        << " average per thread, for " << nthreads
-                        << " threads)";
+                    print(out, " ({} average per thread, for {} threads)",
+                          Strutil::timeintervalformat(perthreadtime), nthreads);
                 }
             }
-            out << "\n";
-            out << "    File open time only : "
-                << Strutil::timeintervalformat(stats.fileopen_time) << "\n";
+            print(out, "\n");
+            print(out, "    File open time only : {}\n",
+                  Strutil::timeintervalformat(stats.fileopen_time));
         }
         if (stats.file_locking_time > 0.001)
-            out << "    File mutex locking time : "
-                << Strutil::timeintervalformat(stats.file_locking_time) << "\n";
+            print(out, "    File mutex locking time : {}\n",
+                  Strutil::timeintervalformat(stats.file_locking_time));
         if (total_input_mutex_wait_time > 0.001)
-            out << "    ImageInput mutex locking time : "
-                << Strutil::timeintervalformat(total_input_mutex_wait_time)
-                << "\n";
+            print(out, "    ImageInput mutex locking time : {}\n",
+                  Strutil::timeintervalformat(total_input_mutex_wait_time));
         if (m_stat_tiles_created > 0) {
-            out << "  Tiles: " << m_stat_tiles_created << " created, "
-                << m_stat_tiles_current << " current, " << m_stat_tiles_peak
-                << " peak\n";
-            out << "    total tile requests : " << stats.find_tile_calls
-                << "\n";
-            out << "    micro-cache misses : "
-                << stats.find_tile_microcache_misses << " ("
-                << 100.0 * (double)stats.find_tile_microcache_misses
-                       / (double)stats.find_tile_calls
-                << "%)\n";
-            out << "    main cache misses : " << stats.find_tile_cache_misses
-                << " ("
-                << 100.0 * (double)stats.find_tile_cache_misses
-                       / (double)stats.find_tile_calls
-                << "%)\n";
-            out << "    redundant reads: "
-                << (unsigned long long)total_redundant_tiles << " tiles, "
-                << Strutil::memformat(total_redundant_bytes) << "\n";
+            print(out, "  Tiles: {} created, {} current, {} peak\n",
+                  m_stat_tiles_created, m_stat_tiles_current,
+                  m_stat_tiles_peak);
+            print(out, "    total tile requests : {}\n", stats.find_tile_calls);
+            print(out, "    micro-cache misses : {} ({:.1f}%)\n",
+                  stats.find_tile_microcache_misses,
+                  100.0 * stats.find_tile_microcache_misses
+                      / (double)stats.find_tile_calls);
+            print(out, "    main cache misses : {} ({:.1f}%)\n",
+                  stats.find_tile_cache_misses,
+                  100.0 * stats.find_tile_cache_misses
+                      / (double)stats.find_tile_calls);
+            print(out, "    redundant reads: {} tiles, {}\n",
+                  total_redundant_tiles,
+                  Strutil::memformat(total_redundant_bytes));
         }
-        out << "    Peak cache memory : " << Strutil::memformat(m_mem_used)
-            << "\n";
+        print(out, "    Peak cache memory : {}\n",
+              Strutil::memformat(m_mem_used));
         if (stats.tile_locking_time > 0.001)
-            out << "    Tile mutex locking time : "
-                << Strutil::timeintervalformat(stats.tile_locking_time) << "\n";
+            print(out, "    Tile mutex locking time : {}\n",
+                  Strutil::timeintervalformat(stats.tile_locking_time));
         if (stats.find_tile_time > 0.001)
-            out << "    Find tile time : "
-                << Strutil::timeintervalformat(stats.find_tile_time) << "\n";
+            print(out, "    Find tile time : {}\n",
+                  Strutil::timeintervalformat(stats.find_tile_time));
         if (stats.file_retry_success || stats.tile_retry_success)
-            out << "    Failure reads followed by unexplained success: "
-                << stats.file_retry_success << " files, "
-                << stats.tile_retry_success << " tiles\n";
+            print(out,
+                  "    Failure reads followed by unexplained success:"
+                  " {} files, {} tiles\n",
+                  stats.file_retry_success, stats.tile_retry_success);
     }
 
     if (level >= 2 && files.size()) {
-        out << "  Image file statistics:\n";
-        out << "        opens   tiles    MB read   --redundant--   I/O time  res              File\n";
+        print(out, "  Image file statistics:\n");
+        print(out, "        opens   tiles    MB read   --redundant--   "
+                   "I/O time  res              File\n");
         std::sort(files.begin(), files.end(), filename_compare);
         for (size_t i = 0; i < files.size(); ++i) {
             const ImageCacheFileRef& file(files[i]);
@@ -1943,77 +1942,70 @@ ImageCacheImpl::getstats(int level) const
             if (file->is_udim())
                 continue;
             if (file->broken() || file->subimages() == 0) {
-                out << "  BROKEN                                                                      "
-                    << file->filename() << "\n";
+                print(out, "  {:76}{}\n", "BROKEN", file->filename());
                 continue;
             }
-            out << onefile_stat_line(file, i + 1) << "\n";
+            print(out, "{}\n", onefile_stat_line(file, i + 1));
         }
-        out << Strutil::sprintf(
-            "\n  Tot:  %4llu  %7llu   %8.1f   (%5llu %6.1f) %9s\n",
-            (unsigned long long)total_opens, (unsigned long long)total_tiles,
-            total_bytes / 1024.0 / 1024.0,
-            (unsigned long long)total_redundant_tiles,
-            total_redundant_bytes / 1024.0 / 1024.0,
-            Strutil::timeintervalformat(total_iotime));
+        print(out, "\n  Tot:  {:4}  {:7}   {:8.1f}   ({:5} {:6.1f}) {:9}\n",
+              total_opens, total_tiles, total_bytes / 1024.0 / 1024.0,
+              total_redundant_tiles, total_redundant_bytes / 1024.0 / 1024.0,
+              Strutil::timeintervalformat(total_iotime));
     }
 
     // Try to point out hot spots
     if (level > 0) {
         if (total_duplicates)
-            out << "  " << total_duplicates
-                << " were exact duplicates of other images\n";
+            print(out, "  {} were exact duplicates of other images\n",
+                  total_duplicates);
         if (total_untiled || (total_unmipped && automip())) {
-            out << "  " << total_untiled << " not tiled, " << total_unmipped
-                << " not MIP-mapped\n";
+            print(out, "  {} not tiled, {} not MIP-mapped\n", total_untiled,
+                  total_unmipped);
 #if 0
             if (files.size() >= 50) {
-                out << "  Untiled/unmipped files were:\n";
+                print(out, "  Untiled/unmipped files were:\n");
                 for (size_t i = 0;  i < files.size();  ++i) {
                     const ImageCacheFileRef &file (files[i]);
                     if (file->untiled() || (file->unmipped() && automip()))
-                        out << onefile_stat_line (file, -1) << "\n";
+                        print(out, "{}\n", onefile_stat_line (file, -1));
                 }
             }
 #endif
         }
         if (total_constant)
-            out << "  " << total_constant
-                << (total_constant == 1 ? " was" : " were")
-                << " constant-valued in all pixels\n";
+            print(out, "  {} {} constant-valued in all pixels\n",
+                  total_constant, (total_constant == 1 ? "was" : "were"));
         if (files.size() >= 50) {
             const int topN = 3;
             int nprinted;
             std::sort(files.begin(), files.end(), bytesread_compare);
-            out << "  Top files by bytes read:\n";
+            print(out, "  Top files by bytes read:\n");
             nprinted = 0;
             for (const ImageCacheFileRef& file : files) {
                 if (nprinted++ >= topN)
                     break;
                 if (file->broken() || !file->validspec())
                     continue;
-                out << Strutil::sprintf(
-                    "    %d   %6.1f MB (%4.1f%%)  ", nprinted,
-                    file->bytesread() / 1024.0 / 1024.0,
-                    100.0 * (file->bytesread() / (double)total_bytes));
-                out << onefile_stat_line(file, -1, false) << "\n";
+                print(out, "    {}   {:6.1f} MB ({:4.1f}%)  {}\n", nprinted,
+                      file->bytesread() / 1024.0 / 1024.0,
+                      100.0 * file->bytesread() / (double)total_bytes,
+                      onefile_stat_line(file, -1, false));
             }
             std::sort(files.begin(), files.end(), iotime_compare);
-            out << "  Top files by I/O time:\n";
+            print(out, "  Top files by I/O time:\n");
             nprinted = 0;
             for (const ImageCacheFileRef& file : files) {
                 if (nprinted++ >= topN)
                     break;
                 if (file->broken() || !file->validspec())
                     continue;
-                out << Strutil::sprintf(
-                    "    %d   %9s (%4.1f%%)   ", nprinted,
-                    Strutil::timeintervalformat(file->iotime()).c_str(),
-                    100.0 * file->iotime() / total_iotime);
-                out << onefile_stat_line(file, -1, false) << "\n";
+                print(out, "    {}   {:9} ({:4.1f}%)   {}\n", nprinted,
+                      Strutil::timeintervalformat(file->iotime()),
+                      100.0 * file->iotime() / total_iotime,
+                      onefile_stat_line(file, -1, false));
             }
             std::sort(files.begin(), files.end(), iorate_compare);
-            out << "  Files with slowest I/O rates:\n";
+            print(out, "  Files with slowest I/O rates:\n");
             nprinted = 0;
             for (const ImageCacheFileRef& file : files) {
                 if (file->broken() || !file->validspec())
@@ -2024,31 +2016,29 @@ ImageCacheImpl::getstats(int level) const
                     break;
                 double mb = file->bytesread() / (1024.0 * 1024.0);
                 double r  = mb / file->iotime();
-                out << Strutil::sprintf("    %d   %6.2f MB/s (%.2fMB/%.2fs)   ",
-                                        nprinted, r, mb, file->iotime());
-                out << onefile_stat_line(file, -1, false) << "\n";
+                print(out, "    {}   {:6.2f} MB/s ({:.2f}MB/{:.2f}s)   {}\n",
+                      nprinted, r, mb, file->iotime(),
+                      onefile_stat_line(file, -1, false));
             }
             if (nprinted == 0)
-                out << "    (nothing took more than 0.25s)\n";
+                print(out, "    (nothing took more than 0.25s)\n");
             double fast = files.back()->bytesread() / (1024.0 * 1024.0)
                           / files.back()->iotime();
-            out << Strutil::sprintf("    (fastest was %.1f MB/s)\n", fast);
+            print(out, "    (fastest was {:.1f} MB/s)\n", fast);
             if (total_redundant_tiles > 0) {
                 std::sort(files.begin(), files.end(), redundantbytes_compare);
-                out << "  Top files by redundant I/O:\n";
+                print(out, "  Top files by redundant I/O:\n");
                 nprinted = 0;
                 for (const ImageCacheFileRef& file : files) {
                     if (nprinted++ >= topN)
                         break;
                     if (file->broken() || !file->validspec())
                         continue;
-                    out << Strutil::sprintf(
-                        "    %d   %6.1f MB (%4.1f%%)  ", nprinted,
-                        file->redundant_bytesread() / 1024.0 / 1024.0,
-                        100.0
-                            * (file->redundant_bytesread()
-                               / (double)total_redundant_bytes));
-                    out << onefile_stat_line(file, -1, false) << "\n";
+                    print(out, "    {}   {:6.1f} MB ({:4.1f}%)  {}\n", nprinted,
+                          file->redundant_bytesread() / 1024.0 / 1024.0,
+                          100.0 * file->redundant_bytesread()
+                              / (double)total_redundant_bytes,
+                          onefile_stat_line(file, -1, false));
                 }
             }
         }
@@ -2057,15 +2047,14 @@ ImageCacheImpl::getstats(int level) const
             if (file->broken())
                 ++nbroken;
         }
-        out << "  Broken or invalid files: " << nbroken << "\n";
+        print(out, "  Broken or invalid files: {}\n", nbroken);
         if (nbroken) {
             std::sort(files.begin(), files.end(), filename_compare);
             int nprinted = 0;
             for (const ImageCacheFileRef& file : files) {
                 if (file->broken()) {
                     ++nprinted;
-                    out << Strutil::sprintf("   %4d  %s\n", nprinted,
-                                            file->filename());
+                    print(out, "   {:4}  {}\n", nprinted, file->filename());
                 }
             }
         }
