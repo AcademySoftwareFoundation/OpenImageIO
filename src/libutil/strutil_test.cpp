@@ -190,6 +190,14 @@ test_get_rest_arguments()
     OIIO_CHECK_EQUAL(base, "atext");
     OIIO_CHECK_EQUAL(result["arg1"], "value1");
     OIIO_CHECK_EQUAL(result["arg2"], "somevalue");
+
+    // Test windows long filename syntax
+    result.clear();
+    url = "\\\\?\\UNC\\server\\foo?arg1=value1";
+    ret = Strutil::get_rest_arguments(url, base, result);
+    OIIO_CHECK_EQUAL(ret, true);
+    OIIO_CHECK_EQUAL(base, "\\\\?\\UNC\\server\\foo");
+    OIIO_CHECK_EQUAL(result["arg1"], "value1");
 }
 
 
