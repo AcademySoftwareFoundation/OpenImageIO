@@ -857,6 +857,10 @@ Section :ref:`sec-imageinput-deepdata`, is replicated for Python.
 
     Retrieve the packed size (in bytes) of all channels of one sample.
 
+.. py:method:: DeepData.same_channeltypes (other)
+
+    Returns `True` if this DeepData has the same channel types as `other`.
+
 .. py:method:: DeepData.set_samples (pixel, nsamples)
 
     Set the number of samples for a given pixel (specified by integer
