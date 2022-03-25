@@ -269,7 +269,11 @@ bool
 Strutil::get_rest_arguments(const std::string& str, std::string& base,
                             std::map<std::string, std::string>& result)
 {
-    std::string::size_type mark_pos = str.find_first_of("?");
+    // Look for `?` as the start of REST arguments, but not if it's part
+    // of a `\\?\` special windows filename notation.
+    // See: https://docs.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation
+    size_t start  = starts_with(str, "\\\\?\\") ? 4 : 0;
+    auto mark_pos = str.find_first_of("?", start);
     if (mark_pos == std::string::npos) {
         base = str;
         return true;
@@ -277,9 +281,8 @@ Strutil::get_rest_arguments(const std::string& str, std::string& base,
 
     base             = str.substr(0, mark_pos);
     std::string rest = str.substr(mark_pos + 1);
-    std::vector<std::string> rest_tokens;
-    Strutil::split(rest, rest_tokens, "&");
-    for (const std::string& keyval : rest_tokens) {
+    auto rest_tokens = Strutil::splitsv(rest, "&");
+    for (auto keyval : rest_tokens) {
         mark_pos = keyval.find_first_of("=");
         if (mark_pos == std::string::npos)
             return false;
