@@ -134,11 +134,20 @@ BmpInput::open(const std::string& name, ImageSpec& newspec,
         close();
         return false;
     }
+    // Strutil::print(
+    //     "Header: magic={:x} {}{} fsize={} res1={} res2={} offset={}\n",
+    //     m_bmp_header.magic, char(m_bmp_header.magic & 0xff),
+    //     char(m_bmp_header.magic >> 8), m_bmp_header.fsize, m_bmp_header.res1,
+    //     m_bmp_header.res2, m_bmp_header.offset);
     if (!m_dib_header.read_header(ioproxy())) {
         errorfmt("\"{}\": wrong bitmap header size", name);
         close();
         return false;
     }
+    // Strutil::print(
+    //     "Header: size={}(0x{:02x}) width={} height={} cplanes={} bpp={}\n",
+    //     m_dib_header.size, m_dib_header.size, m_dib_header.width,
+    //     m_dib_header.height, m_dib_header.cplanes, m_dib_header.bpp);
 
     const int nchannels = (m_dib_header.bpp == 32) ? 4 : 3;
     const int height    = (m_dib_header.height >= 0) ? m_dib_header.height

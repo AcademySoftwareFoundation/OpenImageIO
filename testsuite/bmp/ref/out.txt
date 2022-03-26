@@ -231,6 +231,15 @@ src/PRINTER.BMP      :  160 x  120, 3 channel, uint8 bmp
     bmp:version: 1
 Comparing "src/PRINTER.BMP" and "PRINTER.BMP"
 PASS
+Reading ../oiio-images/bmp/gracehopper.bmp
+../oiio-images/bmp/gracehopper.bmp :  256 x  256, 4 channel, uint8 bmp
+    SHA-1: D4C5C625347E8B963DD04AFCE1C25D6EFEDF7CFF
+    channel list: R, G, B, A
+    ResolutionUnit: "m"
+    XResolution: 2835
+    YResolution: 2835
+Comparing "../oiio-images/bmp/gracehopper.bmp" and "gracehopper.bmp"
+PASS
 oiiotool ERROR: read : "src/decodecolormap-corrupt.bmp": Possible corrupted header, invalid palette size
 Full command line was:
 > oiiotool --info -v -a --hash src/decodecolormap-corrupt.bmp
