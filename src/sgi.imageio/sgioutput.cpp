@@ -42,7 +42,7 @@ SgiOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     m_spec     = spec;
 
     if (m_spec.width >= 65535 || m_spec.height >= 65535) {
-        error("Exceeds the maximum resolution (65535)");
+        errorfmt("Exceeds the maximum resolution (65535)");
         return false;
     }
 

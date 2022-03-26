@@ -341,7 +341,7 @@ public:
         if (!err.size())
             err = "unknown error";
         if (!Strutil::contains(err, filename))
-            err = Strutil::sprintf("\"%s\": %s", filename, err);
+            err = Strutil::fmt::format("\"{}\": {}", filename, err);
         return err;
     }
 

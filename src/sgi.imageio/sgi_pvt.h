@@ -108,7 +108,7 @@ private:
     {
         size_t n = ::fread(buf, itemsize, nitems, m_fd);
         if (n != nitems)
-            error("Read error");
+            errorfmt("Read error");
         return n == nitems;
     }
 };

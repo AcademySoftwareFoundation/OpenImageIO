@@ -224,7 +224,7 @@ OIIO_EXPORT int raw_imageio_version = OIIO_PLUGIN_VERSION;
 OIIO_EXPORT const char*
 raw_imageio_library_version()
 {
-    return ustring::sprintf("libraw %s", libraw_version()).c_str();
+    return ustring::fmtformat("libraw {}", libraw_version()).c_str();
 }
 
 OIIO_EXPORT ImageInput*

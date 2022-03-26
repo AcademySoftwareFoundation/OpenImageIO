@@ -91,7 +91,7 @@ SgiInput::open(const std::string& name, ImageSpec& spec)
 
     if (m_sgi_header.colormap == sgi_pvt::COLORMAP
         || m_sgi_header.colormap == sgi_pvt::SCREEN) {
-        error("COLORMAP and SCREEN color map types aren't supported");
+        errorfmt("COLORMAP and SCREEN color map types aren't supported");
         close();
         return false;
     }
@@ -251,7 +251,7 @@ SgiInput::uncompress_rle_channel(int scanline_off, int scanline_len,
         return false;
     }
     if (i != scanline_len || limit != 0) {
-        error("Corrupt RLE data");
+        errorfmt("Corrupt RLE data");
         return false;
     }
 

@@ -209,7 +209,7 @@ ImageSpec::default_channel_names() noexcept
         alpha_channel = 3;
     }
     for (int c = 4; c < nchannels; ++c)
-        channelnames.push_back(Strutil::sprintf("channel%d", c));
+        channelnames.push_back(Strutil::fmt::format("channel{}", c));
 }
 
 
@@ -629,9 +629,9 @@ explain_shutterapex(const ParamValue& p, const void* /*extradata*/)
     if (p.type() == TypeDesc::FLOAT) {
         double val = pow(2.0, -(double)*(float*)p.data());
         if (val > 1)
-            return Strutil::sprintf("%g s", val);
+            return Strutil::fmt::format("{:g} s", val);
         else
-            return Strutil::sprintf("1/%g s", floor(1.0 / val));
+            return Strutil::fmt::format("1/{:g} s", floor(1.0 / val));
     }
     return std::string();
 }
