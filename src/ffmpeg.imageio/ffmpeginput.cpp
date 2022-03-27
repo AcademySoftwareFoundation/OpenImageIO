@@ -117,14 +117,14 @@ private:
     std::string m_filename;
     int m_subimage;
     int64_t m_nsubimages;
-    AVFormatContext* m_format_context;
-    AVCodecContext* m_codec_context;
-    const AVCodec* m_codec;
-    AVFrame* m_frame;
-    AVFrame* m_rgb_frame;
+    AVFormatContext* m_format_context = nullptr;
+    AVCodecContext* m_codec_context   = nullptr;
+    const AVCodec* m_codec            = nullptr;
+    AVFrame* m_frame                  = nullptr;
+    AVFrame* m_rgb_frame              = nullptr;
     size_t m_stride;  // scanline width in bytes, a.k.a. scanline stride
     AVPixelFormat m_dst_pix_format;
-    SwsContext* m_sws_rgb_context;
+    SwsContext* m_sws_rgb_context = nullptr;
     AVRational m_frame_rate;
     std::vector<uint8_t> m_rgb_buffer;
     std::vector<int> m_video_indexes;
@@ -141,12 +141,12 @@ private:
     void init(void)
     {
         m_filename.clear();
-        m_format_context  = 0;
-        m_codec_context   = 0;
-        m_codec           = 0;
-        m_frame           = 0;
-        m_rgb_frame       = 0;
-        m_sws_rgb_context = 0;
+        m_format_context  = nullptr;
+        m_codec_context   = nullptr;
+        m_codec           = nullptr;
+        m_frame           = nullptr;
+        m_rgb_frame       = nullptr;
+        m_sws_rgb_context = nullptr;
         m_stride          = 0;
         m_rgb_buffer.clear();
         m_video_indexes.clear();
@@ -571,12 +571,16 @@ FFmpegInput::close(void)
 {
     if (m_codec_context)
         avcodec_close(m_codec_context);
-    if (m_format_context)
+    if (m_format_context) {
         avformat_close_input(&m_format_context);
-    av_free(m_format_context);  // will free m_codec and m_codec_context
-    av_frame_free(&m_frame);    // free after close input
-    av_frame_free(&m_rgb_frame);
-    sws_freeContext(m_sws_rgb_context);
+        av_free(m_format_context);  // will free m_codec and m_codec_context
+    }
+    if (m_frame)
+        av_frame_free(&m_frame);  // free after close input
+    if (m_rgb_frame)
+        av_frame_free(&m_rgb_frame);
+    if (m_sws_rgb_context)
+        sws_freeContext(m_sws_rgb_context);
     init();
     return true;
 }
