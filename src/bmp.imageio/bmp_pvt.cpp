@@ -92,7 +92,8 @@ DibInformationHeader::read_header(Filesystem::IOProxy* fd)
     if (!fread(fd, &size))
         return false;
 
-    if (size == WINDOWS_V3 || size == WINDOWS_V4 || size == WINDOWS_V5) {
+    if (size == WINDOWS_V3 || size == WINDOWS_V4 || size == WINDOWS_V5
+        || size == UNDOCHEADER52 || size == UNDOCHEADER56) {
         if (!fread(fd, &width) || !fread(fd, &height) || !fread(fd, &cplanes)
             || !fread(fd, &bpp) || !fread(fd, &compression)
             || !fread(fd, &isize) || !fread(fd, &hres) || !fread(fd, &vres)
@@ -100,16 +101,24 @@ DibInformationHeader::read_header(Filesystem::IOProxy* fd)
             return false;
         }
 
+        if (size == WINDOWS_V4 || size == WINDOWS_V5 || size == UNDOCHEADER52
+            || size == UNDOCHEADER56) {
+            if (!fread(fd, &red_mask) || !fread(fd, &green_mask)
+                || !fread(fd, &blue_mask)) {
+                return false;
+            }
+            if (size != UNDOCHEADER52 && !fread(fd, &alpha_mask)) {
+                return false;
+            }
+        }
+
         if (size == WINDOWS_V4 || size == WINDOWS_V5) {
-            if (!fread(fd, &red_mask) || !fread(fd, &blue_mask)
-                || !fread(fd, &green_mask) || !fread(fd, &alpha_mask)
-                || !fread(fd, &cs_type) || !fread(fd, &red_x)
-                || !fread(fd, &red_y) || !fread(fd, &red_z)
-                || !fread(fd, &green_x) || !fread(fd, &green_y)
-                || !fread(fd, &green_z) || !fread(fd, &blue_x)
-                || !fread(fd, &blue_y) || !fread(fd, &blue_z)
-                || !fread(fd, &gamma_x) || !fread(fd, &gamma_y)
-                || !fread(fd, &gamma_z)) {
+            if (!fread(fd, &cs_type) || !fread(fd, &red_x) || !fread(fd, &red_y)
+                || !fread(fd, &red_z) || !fread(fd, &green_x)
+                || !fread(fd, &green_y) || !fread(fd, &green_z)
+                || !fread(fd, &blue_x) || !fread(fd, &blue_y)
+                || !fread(fd, &blue_z) || !fread(fd, &gamma_x)
+                || !fread(fd, &gamma_y) || !fread(fd, &gamma_z)) {
                 return false;
             }
         }
