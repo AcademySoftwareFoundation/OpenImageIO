@@ -133,6 +133,8 @@ template<> struct PyTypeForCType<int> { typedef py::int_ type; };
 template<> struct PyTypeForCType<unsigned int> { typedef py::int_ type; };
 template<> struct PyTypeForCType<short> { typedef py::int_ type; };
 template<> struct PyTypeForCType<unsigned short> { typedef py::int_ type; };
+template<> struct PyTypeForCType<char> { typedef py::int_ type; };
+template<> struct PyTypeForCType<unsigned char> { typedef py::int_ type; };
 template<> struct PyTypeForCType<int64_t> { typedef py::int_ type; };
 template<> struct PyTypeForCType<float> { typedef py::float_ type; };
 template<> struct PyTypeForCType<half> { typedef py::float_ type; };
@@ -324,6 +326,12 @@ py_buffer_to_stdvector(std::vector<T>& vals, const py::buffer& obj)
         } else if (std::is_same<T, unsigned int>::value
                    && binfo.format.basetype == TypeDesc::UINT) {
             vals.emplace_back(T(binfo.dataval<unsigned int>(i)));
+        } else if (std::is_same<T, unsigned char>::value
+                   && binfo.format.basetype == TypeDesc::UINT8) {
+            vals.emplace_back(T(binfo.dataval<unsigned char>(i)));
+        } else if (std::is_same<T, unsigned short>::value
+                   && binfo.format.basetype == TypeDesc::UINT16) {
+            vals.emplace_back(T(binfo.dataval<unsigned short>(i)));
         } else {
             // FIXME? Other cases?
             vals.emplace_back(T(42));
@@ -369,7 +377,7 @@ py_to_stdvector(std::vector<T>& vals, const py::object& obj)
         return py_indexable_pod_to_stdvector(vals, obj.cast<py::list>());
     }
     // Apparently a str can masquerade as a buffer object, so make sure to
-    // exclude that from teh buffer case.
+    // exclude that from the buffer case.
     if (py::isinstance<py::buffer>(obj) && !py::isinstance<py::str>(obj)) {
         return py_buffer_to_stdvector(vals, obj.cast<py::buffer>());
     }
@@ -399,6 +407,18 @@ C_to_tuple(const T* vals, size_t size)
     py::tuple result(size);
     for (size_t i = 0; i < size; ++i)
         result[i] = typename PyTypeForCType<T>::type(vals[i]);
+    return result;
+}
+
+
+template<>
+inline py::tuple
+C_to_tuple(cspan<unsigned char> vals)
+{
+    size_t size = vals.size();
+    py::tuple result(size);
+    for (size_t i = 0; i < size; ++i)
+        result[i] = static_cast<unsigned char>(vals[i]);
     return result;
 }
 
@@ -453,6 +473,14 @@ attribute_typed(T& myobj, string_view name, TypeDesc type, const POBJ& dataobj)
             myobj.attribute(name, type, &vals[0]);
         return ok;
     }
+    if (type.basetype == TypeDesc::UINT8) {
+        std::vector<unsigned char> vals;
+        bool ok = py_to_stdvector(vals, dataobj);
+        ok &= (vals.size() == type.numelements() * type.aggregate);
+        if (ok)
+            myobj.attribute(name, type, &vals[0]);
+        return ok;
+    }
     if (type.basetype == TypeDesc::FLOAT) {
         std::vector<float> vals;
         bool ok = py_to_stdvector(vals, dataobj);
@@ -497,6 +525,8 @@ getattribute_typed(const T& obj, const std::string& name,
         return C_to_val_or_tuple((const short*)data, type);
     if (type.basetype == TypeDesc::UINT16)
         return C_to_val_or_tuple((const unsigned short*)data, type);
+    if (type.basetype == TypeDesc::UINT8)
+        return C_to_val_or_tuple((const unsigned char*)data, type);
     if (type.basetype == TypeDesc::FLOAT)
         return C_to_val_or_tuple((const float*)data, type);
     if (type.basetype == TypeDesc::DOUBLE)
@@ -597,7 +627,7 @@ case TypeDesc::TYPE:                                                       \
                              nvals)
 
     switch (t.basetype) {
-        // ParamValue_convert_dispatch(UCHAR);
+        ParamValue_convert_dispatch(UCHAR);
         // ParamValue_convert_dispatch(CHAR);
         ParamValue_convert_dispatch(USHORT);
         ParamValue_convert_dispatch(SHORT);
