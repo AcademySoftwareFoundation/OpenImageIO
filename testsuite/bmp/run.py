@@ -26,5 +26,8 @@ command += rw_command ("src", "g01bg2-v5.bmp")
 # See https://github.com/OpenImageIO/oiio/issues/2898
 command += rw_command ("src", "PRINTER.BMP")
 
+# Test BMP of the 56-byte DIB header variety
+command += rw_command ("../oiio-images/bmp", "gracehopper.bmp")
+
 # See if we handle this corrupt file with a useful error message
 command += info_command ("src/decodecolormap-corrupt.bmp")

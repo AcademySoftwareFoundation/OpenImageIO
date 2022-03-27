@@ -7,16 +7,23 @@
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
+// Docs reminders:
+// https://en.wikipedia.org/wiki/BMP_file_format
+// https://web.archive.org/web/20150127132443/https://forums.adobe.com/message/3272950
+
+
 namespace bmp_pvt {
 
 // size of the BMP file header (the first header that occur in BMP file)
 const int BMP_HEADER_SIZE = 14;
 
 // sizes of various DIB haders
-const int OS2_V1     = 12;
-const int WINDOWS_V3 = 40;
-const int WINDOWS_V4 = 108;
-const int WINDOWS_V5 = 124;
+const int OS2_V1        = 12;
+const int WINDOWS_V3    = 40;
+const int UNDOCHEADER52 = 52;  // 0x34
+const int UNDOCHEADER56 = 56;  // 0x38
+const int WINDOWS_V4    = 108;
+const int WINDOWS_V5    = 124;
 
 // bmp magic numbers
 const int16_t MAGIC_BM = 0x4D42;
