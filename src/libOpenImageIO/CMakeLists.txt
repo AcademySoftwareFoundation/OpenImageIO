@@ -159,6 +159,7 @@ endif()
 
 
 
+file (GLOB iba_sources "imagebufalgo_*.cpp")
 if (MSVC)
     # In some MSVC setups, the IBA functions with huge template expansions
     # can run into trouble if the /bigobj flag is not used. Turn it on for
@@ -166,9 +167,32 @@ if (MSVC)
     # FIXME: Does anybody know if there is an advantage to limiting it to
     # just the files that most need it? Or is it better to make it totally
     # foolproof by using /bigobj for all our modules on Windows?
-    file (GLOB iba_sources "imagebufalgo_*.cpp")
     set_property (SOURCE imagebuf.cpp ${iba_sources}
                   APPEND_STRING PROPERTY COMPILE_FLAGS " /bigobj ")
+endif ()
+
+if (CMAKE_UNITY_BUILD)
+    # If doing a unity build in group mode, make each plugin dir one group (and
+    # the texture library one group), and make the rest of the non-IBA module one
+    # group together. Regardless, leave IBA modules to compile indidividually
+    # because they tend to be very expensive.
+    set_source_files_properties (
+        # ${libOpenImageIO_srcs}
+            deepdata.cpp exif.cpp exif-canon.cpp formatspec.cpp imagebuf.cpp
+            imageinput.cpp imageio.cpp imageioplugin.cpp imageoutput.cpp
+            iptc.cpp xmp.cpp color_ocio.cpp maketexture.cpp bluenoise.cpp
+        PROPERTIES
+            UNITY_GROUP oiiolib)
+    foreach (plugin_dir ${all_format_plugin_dirs} ../libtexture)
+        file (GLOB plugin_dir_sources ${plugin_dir}/*.cpp ${plugin_dir}/*/*.cpp)
+        get_filename_component (_group_name ${plugin_dir} NAME_WE)
+        set_source_files_properties (${plugin_dir_sources} PROPERTIES
+                                     UNITY_GROUP ${_group_name})
+        if (VERBOSE)
+            message (STATUS "Unity group ${_group_name} = ${plugin_dir_sources}")
+        endif ()
+    endforeach ()
+    set_property (SOURCE ${iba_sources} APPEND PROPERTY SKIP_UNITY_BUILD_INCLUSION TRUE)
 endif ()
 
 set_target_properties(OpenImageIO
@@ -177,6 +201,7 @@ set_target_properties(OpenImageIO
                          SOVERSION   ${SOVERSION}
                          OUTPUT_NAME OpenImageIO${OIIO_LIBNAME_SUFFIX}
                          POSITION_INDEPENDENT_CODE ON
+                        # UNITY_BUILD_BATCH_SIZE 4
                      )
 
 set (OpenImageIO_LINK_FLAGS "${VISIBILITY_MAP_COMMAND} ${EXTRA_DSO_LINK_ARGS}")
