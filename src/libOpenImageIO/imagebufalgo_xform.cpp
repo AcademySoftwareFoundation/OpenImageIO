@@ -205,6 +205,30 @@ filtered_sample(const ImageBuf& src, float s, float t, float dsdx, float dtdx,
 
 
 
+static std::shared_ptr<Filter2D>
+get_warp_filter(string_view filtername_, float filterwidth, ImageBuf& dst)
+{
+    // Set up a shared pointer with custom deleter to make sure any
+    // filter we allocate here is properly destroyed.
+    std::shared_ptr<Filter2D> filter((Filter2D*)nullptr, Filter2D::destroy);
+    std::string filtername = filtername_.size() ? filtername_ : "lanczos3";
+    for (int i = 0, e = Filter2D::num_filters(); i < e; ++i) {
+        FilterDesc fd;
+        Filter2D::get_filterdesc(i, &fd);
+        if (fd.name == filtername) {
+            float w = filterwidth > 0.0f ? filterwidth : fd.width;
+            filter.reset(Filter2D::create(filtername, w, w));
+            break;
+        }
+    }
+    if (!filter) {
+        dst.errorfmt("Filter \"{}\" not recognized", filtername);
+    }
+    return filter;
+}
+
+
+
 template<typename DSTTYPE, typename SRCTYPE>
 static bool
 warp_(ImageBuf& dst, const ImageBuf& src, const Imath::M33f& M,
@@ -287,29 +311,16 @@ ImageBufAlgo::warp(ImageBuf& dst, const ImageBuf& src, M33fParam M,
 
 bool
 ImageBufAlgo::warp(ImageBuf& dst, const ImageBuf& src, M33fParam M,
-                   string_view filtername_, float filterwidth,
+                   string_view filtername, float filterwidth,
                    bool recompute_roi, ImageBuf::WrapMode wrap, ROI roi,
                    int nthreads)
 {
     // Set up a shared pointer with custom deleter to make sure any
     // filter we allocate here is properly destroyed.
-    std::shared_ptr<Filter2D> filter((Filter2D*)NULL, Filter2D::destroy);
-    std::string filtername = filtername_.size() ? filtername_ : "lanczos3";
-    for (int i = 0, e = Filter2D::num_filters(); i < e; ++i) {
-        FilterDesc fd;
-        Filter2D::get_filterdesc(i, &fd);
-        if (fd.name == filtername) {
-            float w = filterwidth > 0.0f ? filterwidth : fd.width;
-            float h = filterwidth > 0.0f ? filterwidth : fd.width;
-            filter.reset(Filter2D::create(filtername, w, h));
-            break;
-        }
-    }
+    auto filter = get_warp_filter(filtername, filterwidth, dst);
     if (!filter) {
-        dst.errorfmt("Filter \"{}\" not recognized", filtername);
-        return false;
+        return false;  // error issued in get_warp_filter
     }
-
     return warp(dst, src, M, filter.get(), recompute_roi, wrap, roi, nthreads);
 }
 
@@ -1326,6 +1337,15 @@ ImageBufAlgo::st_warp(ImageBuf& dst, const ImageBuf& src, const ImageBuf& stbuf,
         return false;
     }
 
+    // Set up a shared pointer with custom deleter to make sure any
+    // filter we allocate here is properly destroyed.
+    std::shared_ptr<Filter2D> filterptr((Filter2D*)nullptr, Filter2D::destroy);
+    if (!filter) {
+        // If a null filter was provided, fall back to a reasonable default.
+        filterptr.reset(Filter2D::create("lanczos3", 6.0f, 6.0f));
+        filter = filterptr.get();
+    }
+
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES3(ok, "st_warp", st_warp_, dst.spec().format,
                                 src.spec().format, stbuf.spec().format, dst,
@@ -1342,27 +1362,12 @@ ImageBufAlgo::st_warp(ImageBuf& dst, const ImageBuf& src, const ImageBuf& stbuf,
                       int chan_t, bool flip_s, bool flip_t, ROI roi,
                       int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::st_warp");
-
-    // XXX: As with other IBA functions that take a filter name and width, we
-    // will end up validating the arguments twice on this code path, but we want
-    // to know the scale factor between the source and ST/dest buffers so we can
-    // use `get_resize_filter`, and the overhead should be negligible.
-    if (!check_st_warp_args(dst, src, stbuf, chan_s, chan_t, roi)) {
-        return false;
-    }
-
-    // Resize ratios
-    float wratio = float(dst.spec().full_width) / src.spec().full_width;
-    float hratio = float(dst.spec().full_height) / src.spec().full_height;
-
-    auto filter = get_resize_filter(filtername, filterwidth, dst, wratio,
-                                    hratio);
+    // Set up a shared pointer with custom deleter to make sure any
+    // filter we allocate here is properly destroyed.
+    auto filter = get_warp_filter(filtername, filterwidth, dst);
     if (!filter) {
-        return false;  // Error in `get_resize_filter`.
+        return false;  // Error issued in `get_warp_filter`.
     }
-
-    logtime.stop();  // Timing will be resumed by next call.
     return st_warp(dst, src, stbuf, filter.get(), chan_s, chan_t, flip_s,
                    flip_t, roi, nthreads);
 }
