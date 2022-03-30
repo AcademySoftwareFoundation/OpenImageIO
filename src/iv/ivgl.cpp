@@ -16,6 +16,13 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/timer.h>
 
+OIIO_PRAGMA_WARNING_PUSH
+#if defined(__APPLE__)
+// Apple deprecates OpenGL calls, ugh
+OIIO_CLANG_PRAGMA(GCC diagnostic ignored "-Wdeprecated-declarations")
+#endif
+
+
 
 static const char*
 gl_err_to_string(GLenum err)
@@ -1509,3 +1516,6 @@ IvGL::is_too_big(float width, float height)
                                         * ceilf(height / m_max_texture_size));
     return tiles > m_texbufs.size();
 }
+
+
+OIIO_PRAGMA_WARNING_POP
