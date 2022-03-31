@@ -26,7 +26,7 @@ Opened "../oiio-images/tahoe-gps.jpg" as a jpeg
   Exif:PixelXDimension = 2048
   Exif:PixelYDimension = 1536
   Exif:WhiteBalance = 0
-  GPS:VersionID = None
+  GPS:VersionID = (2, 2, 0, 0)
   GPS:LatitudeRef = "N"
   GPS:Latitude = (39.0, 18.0, 24.399999618530273)
   GPS:LongitudeRef = "W"
