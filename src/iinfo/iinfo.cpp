@@ -400,10 +400,10 @@ extended_format_name(TypeDesc type, int bits)
         // file than the data type we are passing.
         if (type == TypeDesc::UINT8 || type == TypeDesc::UINT16
             || type == TypeDesc::UINT32 || type == TypeDesc::UINT64)
-            return ustring::sprintf("uint%d", bits).c_str();
+            return ustring::fmtformat("uint{}", bits).c_str();
         if (type == TypeDesc::INT8 || type == TypeDesc::INT16
             || type == TypeDesc::INT32 || type == TypeDesc::INT64)
-            return ustring::sprintf("int%d", bits).c_str();
+            return ustring::fmtformat("int{}", bits).c_str();
     }
     return type.c_str();  // use the name implied by type
 }
@@ -420,11 +420,11 @@ brief_format_name(TypeDesc type, int bits = 0)
             return "f";
         if (type.basetype == TypeDesc::HALF)
             return "h";
-        return ustring::sprintf("f%d", bits).c_str();
+        return ustring::fmtformat("f{}", bits).c_str();
     } else if (type.is_signed()) {
-        return ustring::sprintf("i%d", bits).c_str();
+        return ustring::fmtformat("i{}", bits).c_str();
     } else {
-        return ustring::sprintf("u%d", bits).c_str();
+        return ustring::fmtformat("u{}", bits).c_str();
     }
     return type.c_str();  // use the name implied by type
 }

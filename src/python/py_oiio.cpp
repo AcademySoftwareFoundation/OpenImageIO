@@ -96,8 +96,8 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
         || pybuf.size
                != int64_t(width) * int64_t(height) * int64_t(depth * nchans)) {
         format = TypeUnknown;  // Something went wrong
-        error  = Strutil::sprintf(
-            "buffer is wrong size (expected %dx%dx%dx%d, got total %d)", depth,
+        error  = Strutil::fmt::format(
+            "buffer is wrong size (expected {}x{}x{}x{}, got total {})", depth,
             height, width, nchans, pybuf.size);
         return;
     }
@@ -140,8 +140,8 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
                 xstride = pybuf.strides[0] * nchans;
             } else {
                 format = TypeUnknown;  // error
-                error  = Strutil::sprintf(
-                    "Can't figure out array shape (pixeldims=%d, pydim=%d)",
+                error  = Strutil::fmt::format(
+                    "Can't figure out array shape (pixeldims={}, pydim={})",
                     pixeldims, pybuf.ndim);
             }
         } else if (pybuf.ndim == 1
@@ -150,8 +150,8 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
             // just rely on autostride
         } else {
             format = TypeUnknown;  // No idea what's going on -- error
-            error  = Strutil::sprintf(
-                "Can't figure out array shape (pixeldims=%d, pydim=%d)",
+            error  = Strutil::fmt::format(
+                "Can't figure out array shape (pixeldims={}, pydim={})",
                 pixeldims, pybuf.ndim);
         }
     } else if (pixeldims == 1) {
@@ -165,13 +165,13 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
             xstride = pybuf.strides[0] * nchans;
         } else {
             format = TypeUnknown;  // No idea what's going on -- error
-            error  = Strutil::sprintf(
-                "Can't figure out array shape (pixeldims=%d, pydim=%d)",
+            error  = Strutil::fmt::format(
+                "Can't figure out array shape (pixeldims={}, pydim={})",
                 pixeldims, pybuf.ndim);
         }
     } else {
-        error = Strutil::sprintf(
-            "Can't figure out array shape (pixeldims=%d, pydim=%d)", pixeldims,
+        error = Strutil::fmt::format(
+            "Can't figure out array shape (pixeldims={}, pydim={})", pixeldims,
             pybuf.ndim);
     }
 

@@ -192,7 +192,7 @@ Oiiotool::clear_input_config()
 static std::string
 format_resolution(int w, int h, int x, int y)
 {
-    return Strutil::sprintf("%dx%d%+d%+d", w, h, x, y);
+    return Strutil::fmt::format("{}x{}{:+d}{:+d}", w, h, x, y);
 }
 
 
@@ -200,7 +200,7 @@ format_resolution(int w, int h, int x, int y)
 static std::string
 format_resolution(int w, int h, int d, int x, int y, int z)
 {
-    return Strutil::sprintf("%dx%dx%d%+d%+d%+d", w, h, d, x, y, z);
+    return Strutil::fmt::format("{}x{}x{}{:+d}{:+d}{:+d}", w, h, d, x, y, z);
 }
 
 
@@ -1837,10 +1837,10 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
         result = Strutil::to_string(ot.frame_number);
     } else if (Strutil::parse_identifier_if(s, "FRAME_NUMBER_PAD")) {
         std::string fmt = ot.frame_padding == 0
-                              ? std::string("%d")
-                              : Strutil::sprintf("\"%%0%dd\"",
-                                                 ot.frame_padding);
-        result          = Strutil::sprintf(fmt.c_str(), ot.frame_number);
+                              ? std::string("{}")
+                              : Strutil::fmt::format("\"{{:0{}d}}\"",
+                                                     ot.frame_padding);
+        result          = Strutil::fmt::format(fmt, ot.frame_number);
     } else {
         string_view id = Strutil::parse_identifier(s, false);
         if (id.size() && ot.uservars.contains(id)) {

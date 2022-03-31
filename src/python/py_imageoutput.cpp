@@ -219,7 +219,7 @@ declare_imageoutput(py::module& m)
                     mode = ImageOutput::AppendMIPLevel;
                 else if (!Strutil::iequals(modestr, "Create"))
                     throw std::invalid_argument(
-                        Strutil::sprintf("Unknown open mode '%s'", modestr));
+                        Strutil::fmt::format("Unknown open mode '{}'", modestr));
                 return self.open(name, newspec, mode);
             },
             "filename"_a, "spec"_a, "mode"_a = "Create")
