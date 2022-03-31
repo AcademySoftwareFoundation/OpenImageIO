@@ -17,6 +17,8 @@
 #include <utility>
 #include <vector>
 
+#include "oiiotool.h"
+
 #include <OpenEXR/ImfTimeCode.h>
 #include <OpenImageIO/Imath.h>
 
@@ -33,8 +35,6 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/timer.h>
-
-#include "oiiotool.h"
 
 using namespace OIIO;
 using namespace OiioTool;

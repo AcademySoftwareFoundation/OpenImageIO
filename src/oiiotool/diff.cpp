@@ -13,13 +13,13 @@
 #include <string>
 #include <vector>
 
+#include "oiiotool.h"
+
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/filter.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imageio.h>
-
-#include "oiiotool.h"
 
 using namespace OIIO;
 using namespace OiioTool;
