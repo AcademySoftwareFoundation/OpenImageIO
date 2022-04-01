@@ -1,5 +1,23 @@
-Release 2.3.14 (1 Apr? 2022) -- compared to 2.3.13
+Release 2.3.14 (1 Apr 2022) -- compared to 2.3.13
 --------------------------------------------------
+* Add support for UDIM pattern `<uvtile>` (used by Clarisse & V-Ray). #3358
+* BMP: Support for additional (not exactly fully documented) varieties used by
+  some Adobe apps. #3375
+* Python: support uint8 array attributes in and out. This enables the proper
+  Python access to "ICCProfile" metadata. #3378
+* Improved precision in IBA::computePixelStats(). #3353
+* ffmpeg reader not uses case-insensitive tests on file extensions. #3364
+* Fix writing deep exrs when buffer datatype doesn't match the file. #3369
+* Fix conflict between RESTful and Windows long path notations. #3372
+* ffmpeg reader: take care against possible double-free of allocated memory
+  crash upon destruction. #3376
+* simd.h fixes for armv7 and aarch32. #3361
+* Fix compiler warnings related to discrepancies between template declaration
+  and redeclaration in simd.h and benchmark.h. #3350
+* Suppress MacOS warnings about OpenGL depreation. #3380
+* Now doing CI builds for Intel icc and icx compilers. #3355 #3363
+* CI: Overhaul of yml file to be more clear and compact by using GHA
+  "strategy" feature. #3356 #3365
 
 Release 2.3.13 (1 Mar 2022) -- compared to 2.3.12
 --------------------------------------------------
