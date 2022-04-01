@@ -1,3 +1,6 @@
+Release 2.3.15 (1 May? 2022) -- compared to 2.3.14
+--------------------------------------------------
+
 Release 2.3.14 (1 Apr 2022) -- compared to 2.3.13
 --------------------------------------------------
 * Add support for UDIM pattern `<uvtile>` (used by Clarisse & V-Ray). #3358
