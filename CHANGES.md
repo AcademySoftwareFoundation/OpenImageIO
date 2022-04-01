@@ -18,6 +18,12 @@ New major features and public API changes:
       headers (relying on the accidental fact of other OIIO headers
       transitively including them), you may need to adjust your includes.
       #3301 #3332 (2.4.0.2)
+    - New `V3fParam`, `M33fParam`, and `M44Param` (defined in vecparam.h) are
+      used just for parameter passing in public APIs, instead of Imath::V3f,
+      M33f, or M44f, in order to more fully hide Imath types from our public
+      interfaces. These are only parameter-passing classes, and are not useful
+      as vector or matrix classes in their own right. But they seamlessly cast
+      to and from other vector- and matrix-like classes. #3330 (2.4.1.0)
     - `OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY` is a new CMake cache variable
       at OIIO build time that controls whether the Imath library dependencies
       will be declared as PUBLIC (default) or PRIVATE target dependencies of
@@ -91,6 +97,8 @@ New major features and public API changes:
   - ImageSpec and ParamValueList now support `'key' in spec`,
     `del spec['key']`, and `spec.get('key', defaultval)` to more fully emulate
     Python `dict` syntax for manipulating metadata. #3252 (2.3.12/2.4.0)
+  - Support uint8 array attributes in and out. This enables the proper Python
+    access to "ICCProfile" metadata. #3378 (2.4.1.0/2.3.14)
 * New global OIIO attributes:
   - `"try_all_readers"` can be set to 0 if you want to override the default
     behavior and specifically NOT try any format readers that don't match the
@@ -117,6 +125,9 @@ New major features and public API changes:
 * The ColorConfig API adds new calls `getDisplayViewColorSpaceName()` and
   `getDisplayViewLooks()` that expose the underlying OpenColorIO
   functionality. #3319 (2.4.0.2)
+* Many long-deprecated functions in imageio.h and imagbufalgo.h are now
+  marked as OIIO_DEPRECATED, and therefore may start to generate warnings
+  if used by downstream software. #3328 (2.4.1.0)
 
 Performance improvements:
 * Raise the default ImageCache default tile cache from 256MB to 1GB. This
@@ -149,9 +160,7 @@ Fixes and feature enhancements:
       in a `cspan<float>()` constructor. #3257 (2.3.12/2.4.0)
     - `make_texture()`: ensure that "maketx:ignore_unassoc" is honored.
       #3269 (2.4.0.1/2.3.12)
-    - `--pixelaspect` fixes setting of the "PixelAspectRatio", "XResolution",
-      and "YResolution" metadata, they were not set properly before. #3340
-      (2.4.0.3)
+    - `IBA::computePixelStats()` improved precision. #3353 (2.4.1.0/2.3.14)
 * ImageCache / TextureSystem / maketx:
     - When textures are created with the "monochrome_detect" feature enabled,
       which turns RGB textures where all channels are always equal into true
@@ -167,6 +176,8 @@ Fixes and feature enhancements:
       (2.4.0)
     - Support an additional UDIM pattern `<UVTILE>`, which is specified by
       MaterialX. #3280 #3285 (2.3.12/2.4.0.1)
+    - Add support for UDIM pattern `<uvtile>` (used by Clarisse & V-Ray). #3358
+      (2.4.1.0/2.3.14)
     - The `maketx --handed` option, or `oiiotool -attrib -otex:handed=...`, or
       adding "handed" metadata to the configuration ImageSpec being passed to
       `IBA::make_texture()` is now supported for communicating the handedness
@@ -204,6 +215,9 @@ Fixes and feature enhancements:
     - `--pattern checker` behavior has changed slightly: if the optional
       modifier `:width=` is specified but `:height=` is not, the height will
       be equal to the width. #3255 (2.4.0)
+    - `--pixelaspect` fixes setting of the "PixelAspectRatio", "XResolution",
+      and "YResolution" metadata, they were not set properly before. #3340
+      (2.4.0.3)
 * Python bindings:
     - Subtle/asymptomatic bugs fixed in `ImageBufAlgo.color_range_check()` and
       `histogram()` due to incorrect release of the GIL. #3074 (2.4.0)
@@ -212,11 +226,18 @@ Fixes and feature enhancements:
       channels. #3265 (2.3.12/2.4.0)
 * BMP:
     - IOProxy support. #3223 (2.4.0)
+    - Support for additional (not exactly fully documented) varieties used by
+      some Adobe apps. #3375 (2.4.1.0/2.3.14)
 * DDS:
     - Don't set "texturetype" metadata, it should always have been only
       "textureformat". Also, add unit testing of DDS to the testsuite. #3200
       (2.4.0/2.3.10)
     - IOProxy support. #3217 (2.4.0)
+* FFMpeg
+    - Now uses case-insensitive tests on file extensions, so does not get
+      confused on Windows with all-caps filenames. #3364 (2.4.1.0/2.3.14)
+    - Take care against possible double-free of allocated memory crash upon
+      destruction. #3376 (2.4.1.0/2.3.14)
 * GIF
     - IOProxy support. #3181 (2.4.0/2.3.10)
 * HDR:
@@ -225,6 +246,7 @@ Fixes and feature enhancements:
     - Handle images with unassociated alpha. #3146 (2.4.0/2.3.9)
 * JPEG:
     - IOProxy support. #3182 (2.4.0/2.3.10)
+    - Better handling of PixelAspectRatio. #3366 (2.4.1.0)
 * JPEG2000:
     - Enable multithreading for decoding (if using OpenJPEG >= 2.2) and
       encoding (if using OpenJPEG >= 2.4). This speeds up JPEG-2000 I/O by
@@ -242,6 +264,8 @@ Fixes and feature enhancements:
       3.1.3, the default zip compression has been changed from 6 to 4, which
       writes compressed files significantly (tens of percent) faster, but only
       increases compressed file size by 1-2%. #3157 (2.4.0/2.3.10)
+    - Fix writing deep exrs when buffer datatype doesn't match the file. #3369
+      (2.4.1.0/2.3.14)
 * PNG:
     - Assume sRGB color space as default when no color space attribute is
       in the file. #3321 (2.4.0.2/2.3.13)
@@ -313,6 +337,7 @@ Fixes and feature enhancements:
   if they know that a legitimate input image exceeds these limits. Currently,
   only the TIFF reader checks these limits, but others will be modified to
   honor the limits over time. #3230 (2.3.11/2.4.0)
+* Fix integer overflow warnings. #3329 (2.4.1.0)
 
 Developer goodies / internals:
 * filesystem.h:
@@ -333,9 +358,31 @@ Developer goodies / internals:
       meant for II and IO subclass implementations to use, not users of these
       classes) for helping to implement IOProxy support in format readers and
       writers. #3203 #3222 (2.4.0)
+* Imath.h:
+    - In addition to including the right Imath headers for the version that
+      OIIO is built with, this defines custom formatters for the Imath types
+      for use with fmt::format/print or Strutil::format/print. #3367 (2.4.1.0)
+* oiioversion.h
+    - `OIIO_MAKE_VERSION_STRING` and `OIIO_VERSION_STRING` now print all 4
+      version parts. #3368 (2.4.1.0)
+* paramlist.h
+    - Various internal fixes that reduce the amount of ustring construction
+      that happens when constructing ParamValue and ParamList, and making
+      certain ImageSpec::attribute() calls. #3342 (2.4.1.0)
 * simd.h:
-    - simd.h: Better guards to make it safe to include from Cuda. #3291 #3292
+    - Better guards to make it safe to include from Cuda. #3291 #3292
       (2.4.0.1/2.3.12)
+    - Fix compiler warnings related to discrepancies between template
+      declaration and redeclaration in simd.h. #3350 (2.4.1.0/2.3.14)
+    - The vector types all now have a `size()` method giving its length.
+      #3367 (2.4.1.0)
+    - Defines custom formatters for the vector and matrix types, for use
+      with fmt::format/print or Strutil::format/print. #3367 (2.4.1.0)
+* string_view.h
+    - Auto-conversion between our string_view, std::string_view (when
+      available), and fmt::string_view. #3337 (2.4.1.0)
+    - OIIO::string_view is now fully templated, to match std::string_view.
+      #3344 (2.4.1.0)
 * strutil.h:
     - New utility functions: parse_values(), scan_values(), scan_datetime()
       #3173 #3177 (2.4.0/2.3.10), edit_distance() #3229 (2.4.0/2.3.11)
@@ -344,6 +391,11 @@ Developer goodies / internals:
       modernized). #3307 (2.4.0.1)
     - `Strutil::isspace()` is a safe alternative to C isspace(), that works
       even for signed characters. #3310 (2.4.1.0)
+    - `Strutil::print()` now is buffered (and much more efficient, and
+      directly wraps fmt::print). A new `Strutil::sync::print()` is a version
+      that does a flush after every call. #3348 (2.4.1.0)
+    - `get_rest_arguments()` fixes conflict between RESTful and Windows long
+      path notations. #3372 (2.4.1.0/2.3.14)
 * sysutil.h:
     - The `Term` class now recognizes a wider set of terminal emulators as
       supporting color output. #3185 (2.4.0)
@@ -355,11 +407,23 @@ Developer goodies / internals:
       friendly. #3188 (2.4.0/2.3.10)
     - TypeDesc constructor from a string now accepts "box2f" and "box3f"
       as synonyms for "box2" and "box3", respectively. #3183 (2.4.0/2.3.10)
+* type_traits.h:
+    - This new header contains a variety of type traits used by other OIIO
+      headers. They aren't really part of the public API, but they are sometimes
+      used by public headers. #3367 (2.4.1.0)
 * unittest.h:
     - Changes `OIIO_CHECK_SIMD_EQUAL_THRESH` macro to compare `<= eps`
       instead of `<`. #3333 (2.4.0.3)
-* oiiotool internals have all been converted to use the new fmt style for
-  error messages and warnings. #3240 (2.4.0)
+* vecparam.h:
+    - New `V3fParam`, `M33fParam`, and `M44Param` (defined in vecparam.h) are
+      used just for parameter passing in public APIs, instead of Imath::V3f,
+      M33f, or M44f, in order to more fully hide Imath types from our public
+      interfaces. These are only parameter-passing classes, and are not useful
+      as vector or matrix classes in their own right. But they seamlessly cast
+      to and from other vector- and matrix-like classes. #3330 (2.4.1.0)
+* More internals conversion to use the new fmt style for string formatting,
+  console output, error messages, and warnings: oiiotool internals #3240
+  (2.4.0); TS/IC stats output #3374 (2.4.1.0); misc #3777 (2.4.1.0)
 * Internals are working toward removing all uses of string_view::c_str(),
   since that isn't part of C++17 std::string_view. #3315 (2.4.0.1)
 
@@ -435,6 +499,12 @@ Build/test system improvements and platform ports:
       installation into custom directories. #3278 (2.4.0.1/2.3.12)
     - Failed build artifact storage is revised to save more cmake-related
       artifacts to help debugging. #3311 (2.4.0.1)
+    - Now doing CI builds for Intel icc and icx compilers. #3355 #3363
+      (2.4.1.0/2.3.13)
+    - Overhaul of ci.yml file to be more clear and compact by using GHA
+      "strategy" feature. #3356 #3365 (2.4.1.0/2.3.13)
+    - Removed CI for windows-2016 GHA instance which will soon be removed.
+      #3370 (2.4.1.0)
 * Platform support:
     - Fix when building with Clang on big-endian architectures. #3133
       (2.4.0/2.3.9)
@@ -442,6 +512,8 @@ Build/test system improvements and platform ports:
     - Fixes for MSVS compile. #3168 (2.4.0/2.3.10)
     - Fix problems on Windows with MSVC for Debug builds, where crashes were
       occurring inside `isspace()` calls. #3310
+    - Improved simd.h support for armv7 and aarch32. #3361 (2.4.1.0/2.3.14)
+    - Suppress MacOS wasnings about OpenGL deprecation. #3380 (2.4.1.0/2.3.14)
 
 Notable documentation changes:
 * Add an oiiotool example of putting a border around an image. #3138
@@ -459,6 +531,49 @@ Notable documentation changes:
   supporting UTF-8 encoding of Unicode filenames, the docs for that function
   explicitly say that the string is assumed to be UTF-8. #3312 (2.4.0.1)
 
+
+Release 2.3.14 (1 Apr 2022) -- compared to 2.3.13
+--------------------------------------------------
+* Add support for UDIM pattern `<uvtile>` (used by Clarisse & V-Ray). #3358
+* BMP: Support for additional (not exactly fully documented) varieties used by
+  some Adobe apps. #3375
+* Python: support uint8 array attributes in and out. This enables the proper
+  Python access to "ICCProfile" metadata. #3378
+* Improved precision in IBA::computePixelStats(). #3353
+* ffmpeg reader noww uses case-insensitive tests on file extensions. #3364
+* Fix writing deep exrs when buffer datatype doesn't match the file. #3369
+* Fix conflict between RESTful and Windows long path notations. #3372
+* ffmpeg reader: take care against possible double-free of allocated memory
+  crash upon destruction. #3376
+* simd.h fixes for armv7 and aarch32. #3361
+* Fix compiler warnings related to discrepancies between template declaration
+  and redeclaration in simd.h and benchmark.h. #3350
+* Suppress MacOS warnings about OpenGL depreation. #3380
+* Now doing CI builds for Intel icc and icx compilers. #3355 #3363
+* CI: Overhaul of yml file to be more clear and compact by using GHA
+  "strategy" feature. #3356 #3365
+
+Release 2.3.13 (1 Mar 2022) -- compared to 2.3.12
+--------------------------------------------------
+* Filesystm::searchpath_split better handling of empty paths. #3306
+* New Strutil::isspace() is an isspace replacement that is safe for char
+  values that are < 0. #3310
+* Expose the Strutil::utf8_to_utf16() and utf16_to_utf8() utilities on
+  non-Windows platforms (and also modernize their internals). #3307
+* For the most important ImageInput, ImageOutput, and ImageBuf methods that
+  take a filename, add new flavors that can accept a `wstring` as the
+  filename. #3312 #3318
+* PPM: properly report color space as Rec709 (as dictated by PPM spec). #3321
+* PNG: more robust reporting of color space as sRGB in the absence of header
+  fields contradicting this. #3321
+* strutil.h: Split the including of fmt.h and some related logic into a
+  separate detail/fmt.h. This is still included by strutil.h, so users
+  should not notice any change. #3327
+* Targa: Fix parsing of TGA 2.0 extension area. #3323
+* Support building against FFmpeg 5.0. #3282
+* oiiotool --pixelaspect : fix setting of "PixelAspectRatio", "XResolution",
+  and "YResolution" attributes in the output file (were not set properly
+  before). #3340
 
 Release 2.3.12 (1 Feb 2022) -- compared to 2.3.11
 --------------------------------------------------

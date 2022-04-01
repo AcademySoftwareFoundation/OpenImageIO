@@ -19,10 +19,12 @@ lg@openimageio.org
 * Aman Shah
 * Ananth Garre
 * Anders Langlands
+* Anthony Nemoff
 * Arkady Shapkin
 * Basileios Anastasatos
 * Bastien Montagne
 * Ben De Luca
+* Bernhard Rosenkraenzer
 * Biswapriyo Nath
 * Blair Tennessy
 * Blazej Floch
