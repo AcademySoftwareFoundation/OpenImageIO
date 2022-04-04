@@ -872,6 +872,52 @@ test_IBAprep()
 
 
 
+// Test extra validation checks done by `st_warp`
+void
+test_validate_st_warp_checks()
+{
+    // using namespace ImageBufAlgo;
+    std::cout << "test st_warp validation checks" << std::endl;
+
+    const int size = 16;
+    ImageSpec srcSpec(size, size, 3, TypeDesc::FLOAT);
+    ImageBuf SRC(srcSpec);
+    ImageBufAlgo::zero(SRC);
+
+    {
+        ImageSpec stSpec_uint8(size, size, 2, TypeDesc::UINT8);
+        ImageBuf ST(stSpec_uint8);
+        ImageBufAlgo::zero(ST);
+        ImageBuf DST;
+        // Fail: non-float ST buffer
+        OIIO_CHECK_ASSERT(!ImageBufAlgo::st_warp(DST, SRC, ST));
+    }
+
+
+    ImageBuf ST;
+    ImageBuf DST;
+    // Fail: Uninitialized ST buffer
+    OIIO_CHECK_ASSERT(!ImageBufAlgo::st_warp(DST, SRC, ST));
+
+    ImageSpec stSpec_half(size, size, 2, TypeDesc::HALF);
+    ST.reset(stSpec_half);
+
+    ImageSpec destSpecBad(size + 2, size + 2, 3, TypeDesc::FLOAT);
+    DST.reset(destSpecBad);
+    // Fail: Mismatch between dst and st full sizes
+    OIIO_CHECK_ASSERT(!ImageBufAlgo::st_warp(DST, SRC, ST));
+
+
+    DST.reset();
+    // Fail: Out-of-range chan_s
+    OIIO_CHECK_ASSERT(!ImageBufAlgo::st_warp(DST, SRC, ST, nullptr, 2));
+    // Fail: Out-of-range chan_t
+    OIIO_CHECK_ASSERT(!ImageBufAlgo::st_warp(DST, SRC, ST, nullptr, 0, 2));
+    // Success
+    OIIO_CHECK_ASSERT(ImageBufAlgo::st_warp(DST, SRC, ST, nullptr));
+}
+
+
 void
 benchmark_parallel_image(int res, int iters)
 {
@@ -987,6 +1033,7 @@ main(int argc, char** argv)
     test_computePixelStats();
     histogram_computation_test();
     test_maketx_from_imagebuf();
+    test_validate_st_warp_checks();
     test_IBAprep();
     test_opencv();
 
