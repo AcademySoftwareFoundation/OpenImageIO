@@ -3114,7 +3114,7 @@ action_chappend(int argc, const char* argv[])
             }
             return ok;
         });
-        ok &= op();
+        ok &= op() != 0;
     }
     return ok;
 }
