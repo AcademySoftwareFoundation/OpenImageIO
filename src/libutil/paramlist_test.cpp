@@ -108,7 +108,7 @@ test_value_types()
     }
 
     {
-        const int* ptr = (const int*)0xdeadbeef;
+        const void* ptr = reinterpret_cast<const void*>(size_t(0xdeadbeef));
         ParamValue p("name", TypeDesc::PTR, 1, &ptr);
         OIIO_CHECK_EQUAL(p.get<void*>(), ptr);
         OIIO_CHECK_EQUAL(p.get_string(), "0xdeadbeef");
