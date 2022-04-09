@@ -439,7 +439,7 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
     // 3. It probably won't do the right thing for a multi-subimage file,
     //    since (like with compression) it can't possibly know the total
     //    file size upon first opening it.
-    m_bigtiff |= m_spec.get_int_attribute("tiff:bigtiff");
+    m_bigtiff |= m_spec.get_int_attribute("tiff:bigtiff") != 0;
     m_bigtiff |= m_spec.image_bytes() > (4000LL * 1024LL * 1024LL);
     const char* openmode = m_bigtiff ? (mode == AppendSubimage ? "a8" : "w8")
                                      : (mode == AppendSubimage ? "a" : "w");

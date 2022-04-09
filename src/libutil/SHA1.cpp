@@ -10,7 +10,6 @@
 // clang-format off
 
 #define DO_NOT_UNDEFINE_SHA1
-#define _CRT_SECURE_NO_WARNINGS
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/hash.h>
 #include <OpenImageIO/strutil.h>

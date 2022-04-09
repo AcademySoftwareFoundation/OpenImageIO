@@ -1839,14 +1839,11 @@ PSDInput::read_channel_row(const ChannelInfo& channel_info, uint32_t row,
     if (row >= channel_info.row_pos.size())
         return false;
 
-    bool ok = true;
-    uint32_t rle_length;
-    channel_info.row_pos[row];
-    ok &= ioseek(channel_info.row_pos[row]);
+    bool ok = ioseek(channel_info.row_pos[row]);
     switch (channel_info.compression) {
     case Compression_Raw: ok &= ioread(data, channel_info.row_length); break;
     case Compression_RLE:
-        rle_length = channel_info.rle_lengths[row];
+        uint32_t rle_length = channel_info.rle_lengths[row];
         if (m_rle_buffer.size() < rle_length)
             m_rle_buffer.resize(rle_length);
 
