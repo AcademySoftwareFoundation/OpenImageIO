@@ -1767,8 +1767,14 @@ current top image.
 
     Optional appended modifiers include:
 
-    - `type=` *typename* : Specify the metadata type.
-    
+      `:subimages=` *indices-or-names*
+        Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+        Only included subimages will have the attribute changed. If subimages
+        are not set, only the first subimage will be changed, or all subimages
+        if the `-a` command line flag was used.
+
+      `:type=` *typename* : Specify the metadata type.
+
     If the optional `type=` specifier is used, that provides an explicit
     type for the metadata. If not provided, it will try to infer the type of
     the metadata from the value: if the value contains only numerals (with
@@ -1780,23 +1786,42 @@ current top image.
 
     Examples::
 
+        # Set the IPTC:City attribute to "Berkeley"
         oiiotool in.jpg --attrib "IPTC:City" "Berkeley" -o out.jpg
     
+        # Set a name attribute to "0", but force it to be a string
         oiiotool in.jpg --attrib:type=string "Name" "0" -o out.jpg
     
+        # Another way to force a string attribute using --sattrib:
+        oiiotool in.jpg --sattrib "Name" "0" -o out.jpg
+    
+        # Set the worldcam attribute to be a matrix
         oiiotool in.exr --attrib:type=matrix worldtocam \
                 "1,0,0,0,0,1,0,0,0,0,1,0,2.3,2.1,0,1" -o out.exr
-    
-        oiiotool in.exr --attrib:type=timecode smpte:TimeCode "11:34:04:00" \
-                -o out.exr
 
+        # Set an attribute to be a timecode    
+        oiiotool in.exr --attrib:type=timecode smpte:TimeCode "11:34:04:00" -o out.exr
+
+        # Set an attribute in all subimages
+        oiiotool multipart.exr --attrib:subimages=all "Foo" "bar" -o out.exr
+
+        # Set an attribute just in subimages 0 and 3
+        oiiotool multipart.exr --attrib:subimages=0,3 "Foo" "bar" -o out.exr
 
 .. option:: --caption <text>
 
     Sets the image metadata `"ImageDescription"`. This has no effect if the
     output image format does not support some kind of title, caption, or
-    description metadata field. Be careful to enclose *text in quotes if you
+    description metadata field. Be careful to enclose *text* in quotes if you
     want your caption to include spaces or certain punctuation!
+
+    Optional appended modifiers include:
+
+      `:subimages=` *indices-or-names*
+        Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+        Only included subimages will have the attribute changed. If subimages
+        are not set, only the first subimage will be changed, or all subimages
+        if the `-a` command line flag was used.
 
 .. option:: --keyword <text>
 
@@ -1806,7 +1831,7 @@ current top image.
     effect if the output image format does not support some kind of keyword
     field.
 
-    Be careful to enclose *text in quotes if you want your keyword to
+    Be careful to enclose *text* in quotes if you want your keyword to
     include spaces or certain punctuation.  For image formats that have only
     a single field for keywords, OpenImageIO will concatenate the keywords,
     separated by semicolon (`;`), so don't use semicolons within your
@@ -1815,6 +1840,14 @@ current top image.
 .. option:: --clear-keywords
 
     Clears all existing keywords in the current image.
+
+    Optional appended modifiers include:
+
+      `:subimages=` *indices-or-names*
+        Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+        Only included subimages will have the attribute changed. If subimages
+        are not set, only the first subimage will be changed, or all subimages
+        if the `-a` command line flag was used.
 
 .. option:: --nosoftwareattrib
 
@@ -1832,6 +1865,14 @@ current top image.
     Removes any metadata whose name matches the regular expression *pattern*.
     The pattern will be case insensitive.
 
+    Optional appended modifiers include:
+
+      `:subimages=` *indices-or-names*
+        Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+        Only included subimages will have the attribute changed. If subimages
+        are not set, only the first subimage will be changed, or all subimages
+        if the `-a` command line flag was used.
+
     Examples::
 
         # Remove one item only
@@ -1841,7 +1882,7 @@ current top image.
         oiiotool in.jpg --eraseattrib "GPS:.*" -o no_gps_metadata.jpg
     
         # Remove all metadata
-        oiiotool in.exr --eraseattrib ".*" -o no_metadata.exr
+        oiiotool in.exr --eraseattrib:subimages=all ".*" -o no_metadata.exr
 
 
 .. option:: --orientation <orient>
@@ -1851,6 +1892,14 @@ current top image.
     only changes the metadata field that specifies how the image should be
     displayed, it does NOT alter the pixels themselves, and so has no effect
     for image formats that don't support some kind of orientation metadata.
+
+    Optional appended modifiers include:
+
+      `:subimages=` *indices-or-names*
+        Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+        Only included subimages will have the attribute changed. If subimages
+        are not set, only the first subimage will be changed, or all subimages
+        if the `-a` command line flag was used.
 
 .. option:: --orientcw
             --orientccw
