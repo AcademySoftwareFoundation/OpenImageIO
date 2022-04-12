@@ -39,20 +39,24 @@ macro (add_oiio_plugin)
     get_filename_component (_plugin_name ${CMAKE_CURRENT_SOURCE_DIR} NAME_WE)
     if (NOT _plugin_NAME)
         # If NAME is not supplied, infer target name (and therefore the
-        # executable name) from the directory name.
+        # library name) from the directory name.
         get_filename_component (_plugin_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
     endif ()
-    # if (NOT _plugin_SRC)
-    #     # If SRC is not supplied, assume local cpp files are its source.
-    #     file (GLOB _plugin_SRC *.cpp)
-    # endif ()
+    # If SRC is supplied, use it. Otherwise, assume any unparsed arguments are the
+    # source files. If there are none, then glob *.cpp of the current directory.
+    if (NOT _plugin_SRC)
+        set (_plugin_SRC ${_plugin_UNPARSED_ARGUMENTS})
+    endif ()
+    if (NOT _plugin_SRC)
+        file (GLOB _plugin_SRC *.cpp)
+    endif ()
     check_is_enabled (${_plugin_name} _enable_plugin)
     if (_enable_plugin)
         if (EMBEDPLUGINS)
             # Add each source file to the libOpenImageIO_srcs, but it takes some
             # bending over backwards to change it in the parent scope.
             set (_plugin_all_source ${libOpenImageIO_srcs})
-            foreach (_plugin_source_file ${_plugin_UNPARSED_ARGUMENTS} )
+            foreach (_plugin_source_file ${_plugin_SRC})
                 list (APPEND _plugin_all_source "${CMAKE_CURRENT_SOURCE_DIR}/${_plugin_source_file}")
             endforeach ()
             set (libOpenImageIO_srcs "${_plugin_all_source}" PARENT_SCOPE)
@@ -60,17 +64,17 @@ macro (add_oiio_plugin)
             set (format_plugin_include_dirs ${format_plugin_include_dirs} ${_plugin_INCLUDE_DIRS} PARENT_SCOPE)
             set (format_plugin_libs ${format_plugin_libs} ${_plugin_LINK_LIBRARIES} PARENT_SCOPE)
         else ()
-            # Get the name of the current directory and use it as the target name.
-            get_filename_component (_plugin_name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
-            add_library (${_plugin_name} MODULE ${_plugin_UNPARSED_ARGUMENTS})
-            target_compile_definitions (${_plugin_name} PRIVATE
+            # # Get the name of the current directory and use it as the target name.
+            # get_filename_component (_plugin_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+            add_library (${_plugin_NAME} MODULE ${_plugin_SRC})
+            target_compile_definitions (${_plugin_NAME} PRIVATE
                                         ${_plugin_DEFINITIONS}
                                         OpenImageIO_EXPORTS)
-            target_include_directories (${_plugin_name} PRIVATE ${_plugin_INCLUDE_DIRS})
-            target_link_libraries (${_plugin_name} PUBLIC OpenImageIO
+            target_include_directories (${_plugin_NAME} PRIVATE ${_plugin_INCLUDE_DIRS})
+            target_link_libraries (${_plugin_NAME} PUBLIC OpenImageIO
                                                    PRIVATE ${_plugin_LINK_LIBRARIES})
-            set_target_properties (${_plugin_name} PROPERTIES PREFIX "" FOLDER "Plugins")
-            install_targets (${_plugin_name})
+            set_target_properties (${_plugin_NAME} PROPERTIES PREFIX "" FOLDER "Plugins")
+            install_targets (${_plugin_NAME})
         endif ()
     else ()
         message (STATUS "${ColorRed}Disabling ${_plugin_name} ${ColorReset}")

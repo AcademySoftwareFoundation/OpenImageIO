@@ -187,6 +187,10 @@ MY_CMAKE_FLAGS += -G Ninja
 BUILDSENTINEL := build.ninja
 endif
 
+ifneq (${UNITY},)
+  MY_CMAKE_FLAGS += -DCMAKE_UNITY_BUILD=ON -DCMAKE_UNITY_BUILD_MODE=${UNITY}
+endif
+
 ifeq (${CODECOV},1)
   CMAKE_BUILD_TYPE=Debug
   MY_CMAKE_FLAGS += -DCODECOV:BOOL=${CODECOV}
@@ -362,6 +366,7 @@ help:
 	@echo "      EXTRA_CPP_ARGS=          Additional args to the C++ command"
 	@echo "      USE_NINJA=1              Set up Ninja build (instead of make)"
 	@echo "      USE_CCACHE=0             Disable ccache (even if available)"
+	@echo "      UNITY=BATCH              Do a 'Unity' build (BATCH or GROUP or nothing)"
 	@echo "      CODECOV=1                Enable code coverage tests"
 	@echo "      SANITIZE=name1,...       Enable sanitizers (address, leak, thread)"
 	@echo "      CLANG_TIDY=1             Run clang-tidy on all source (can be modified"
