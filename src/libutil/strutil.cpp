@@ -399,13 +399,37 @@ Strutil::wordwrap(string_view src, int columns, int prefix, string_view sep,
 
 
 
-// DEPRECATED(2.0) -- for link compatibility
 namespace Strutil {
-std::string
-wordwrap(string_view src, int columns, int prefix)
+
+// Define a locale-independent, case-insensitive comparison for all platforms.
+
+inline int
+strcasecmp(const char* a, const char* b)
 {
-    return wordwrap(src, columns, prefix, " ", "");
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) \
+    || defined(__FreeBSD_kernel__) || defined(__GLIBC__)
+    return strcasecmp_l(a, b, c_loc);
+#elif defined(_WIN32)
+    return _stricmp_l(a, b, c_loc);
+#else
+#    error("need equivalent of strcasecmp_l on this platform");
+#endif
 }
+
+
+inline int
+strncasecmp(const char* a, const char* b, size_t size)
+{
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) \
+    || defined(__FreeBSD_kernel__) || defined(__GLIBC__)
+    return strncasecmp_l(a, b, size, c_loc);
+#elif defined(_WIN32)
+    return _strnicmp_l(a, b, size, c_loc);
+#else
+#    error("need equivalent of strncasecmp_l on this platform");
+#endif
+}
+
 }  // namespace Strutil
 
 
@@ -413,43 +437,71 @@ wordwrap(string_view src, int columns, int prefix)
 bool
 Strutil::iequals(string_view a, string_view b)
 {
-    return boost::algorithm::iequals(a, b, std::locale::classic());
+    int asize = a.size();
+    int bsize = b.size();
+    if (asize != bsize)
+        return false;
+    return Strutil::strncasecmp(a.data(), b.data(), bsize) == 0;
 }
 
 
 bool
 Strutil::iless(string_view a, string_view b)
 {
-    return boost::algorithm::ilexicographical_compare(a, b,
-                                                      std::locale::classic());
+    size_t asize = a.size();
+    size_t bsize = b.size();
+    size_t size  = std::min(asize, bsize);
+    int c        = Strutil::strncasecmp(a.data(), b.data(), size);
+    // If c != 0, we could tell if a<b from the initial characters. But if c==0,
+    // the strings were equal up to the position of the lesser length, so
+    // whichever is smaller is "less" than the other.
+    return (c != 0) ? (c < 0) : (asize < bsize);
 }
 
 
 bool
 Strutil::starts_with(string_view a, string_view b)
 {
-    return boost::algorithm::starts_with(a, b);
+    size_t asize = a.size();
+    size_t bsize = b.size();
+    if (asize < bsize)
+        return false;
+    return strncmp(a.data(), b.data(), bsize) == 0;
 }
 
 
 bool
 Strutil::istarts_with(string_view a, string_view b)
 {
-    return boost::algorithm::istarts_with(a, b, std::locale::classic());
+    size_t asize = a.size();
+    size_t bsize = b.size();
+    if (asize < bsize)  // a can't start with b if a is smaller
+        return false;
+    return Strutil::strncasecmp(a.data(), b.data(), bsize) == 0;
 }
 
 
 bool
 Strutil::ends_with(string_view a, string_view b)
 {
-    return boost::algorithm::ends_with(a, b);
+    size_t asize = a.size();
+    size_t bsize = b.size();
+    if (asize < bsize)  // a can't start with b if a is smaller
+        return false;
+    return strncmp(a.data() + asize - bsize, b.data(), bsize) == 0;
+    // return boost::algorithm::ends_with(a, b);
 }
 
 
 bool
 Strutil::iends_with(string_view a, string_view b)
 {
-    return boost::algorithm::iends_with(a, b, std::locale::classic());
+    size_t asize = a.size();
+    size_t bsize = b.size();
+    if (asize < bsize)  // a can't start with b if a is smaller
+        return false;
+    return strncasecmp(a.data() + asize - bsize, b.data(), bsize) == 0;
+    // return boost::algorithm::iends_with(a, b, std::locale::classic());
 }
 
 
@@ -545,15 +597,17 @@ Strutil::to_upper(std::string& a)
 bool
 Strutil::StringIEqual::operator()(const char* a, const char* b) const noexcept
 {
-    return boost::algorithm::iequals(a, b, std::locale::classic());
+    return Strutil::strcasecmp(a, b) == 0;
+    // return boost::algorithm::iequals(a, b, std::locale::classic());
 }
 
 
 bool
 Strutil::StringILess::operator()(const char* a, const char* b) const noexcept
 {
-    return boost::algorithm::ilexicographical_compare(a, b,
-                                                      std::locale::classic());
+    return Strutil::strcasecmp(a, b) < 0;
+    // return boost::algorithm::ilexicographical_compare(a, b,
+    //                                                   std::locale::classic());
 }
 
 
