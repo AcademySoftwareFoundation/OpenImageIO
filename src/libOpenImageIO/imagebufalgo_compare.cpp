@@ -382,18 +382,45 @@ static bool
 isConstantColor_(const ImageBuf& src, float threshold, span<float> color,
                  ROI roi, int nthreads)
 {
-    atomic_int result(true);
-    if (threshold == 0.0f) {
+    // Single flag that will be set to false by any of the threads if they
+    // discover that the image is non-constant, so the others can abort early. It
+    // does NOT need to be atomic, because the timing is not critical and we
+    // don't want to slow things down by locking.
+    bool result = true;
+
+    imagesize_t npixels = roi.npixels();
+    if (npixels == 0) {
+        // Empty ROI? Just fail.
+        return false;
+    }
+
+    // Record the value of the first pixel. That's what we'll compare against.
+    std::vector<T> constval(roi.nchannels());
+    ImageBuf::ConstIterator<T, T> s(src, roi);
+    for (int c = roi.chbegin; c < roi.chend; ++c)
+        constval[c] = s[c];
+
+    if (npixels > 2) {
+        // Just check the second pixel. If it doesn't match the first (which
+        // is a pretty common case for non-constant images), then we're
+        // already done and don't need to even launch the threads that will
+        // traverse the rest of the image to check it.
+        ++s;
+        for (int c = roi.chbegin; c < roi.chend; ++c)
+            if (s[c] != constval[c])
+                return false;
+    }
+
+    if (npixels == 1) {
+        // One pixel? Yes, it's a constant color! Skip the image scan.
+    } else if (threshold == 0.0f) {
         // For 0.0 threshold, use shortcut of avoiding the conversion
         // to float, just compare original type values.
-        std::vector<T> constval(roi.nchannels());
-        ImageBuf::ConstIterator<T, T> s(src, roi);
-        for (int c = roi.chbegin; c < roi.chend; ++c)
-            constval[c] = s[c];
         ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
             if (!result)
                 return;  // another parallel bucket already failed, don't bother
-            for (ImageBuf::ConstIterator<T, T> s(src, roi); !s.done(); ++s) {
+            for (ImageBuf::ConstIterator<T, T> s(src, roi); result && !s.done();
+                 ++s) {
                 for (int c = roi.chbegin; c < roi.chend; ++c)
                     if (s[c] != constval[c]) {
                         result = false;
@@ -403,14 +430,11 @@ isConstantColor_(const ImageBuf& src, float threshold, span<float> color,
         });
     } else {
         // Nonzero threshold case
-        std::vector<T> constval(roi.nchannels());
-        ImageBuf::ConstIterator<T> s(src, roi);
-        for (int c = roi.chbegin; c < roi.chend; ++c)
-            constval[c] = s[c];
         ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
             if (!result)
                 return;  // another parallel bucket already failed, don't bother
-            for (ImageBuf::ConstIterator<T> s(src, roi); !s.done(); ++s) {
+            for (ImageBuf::ConstIterator<T> s(src, roi); result && !s.done();
+                 ++s) {
                 for (int c = roi.chbegin; c < roi.chend; ++c)
                     if (std::abs(s[c] - constval[c]) > threshold) {
                         result = false;
