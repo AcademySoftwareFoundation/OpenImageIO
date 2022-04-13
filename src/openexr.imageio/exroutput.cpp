@@ -716,7 +716,7 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
 
     string_view comp;
     int qual;
-    std::tie(comp, qual) = spec.decode_compression_metadata("zip", 4);
+    std::tie(comp, qual) = spec.decode_compression_metadata("zip", -1);
     // It seems that zips is the only compression that can reliably work
     // on deep files (but allow "none" as well)
     if (spec.deep && comp != "none")
@@ -734,8 +734,8 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
     }
     spec.attribute("compression", comp);
 #if OPENEXR_CODED_VERSION >= 30103
-    if (Strutil::istarts_with(comp, "zip") && qual >= 1 && qual <= 9) {
-        header.zipCompressionLevel() = qual;
+    if (Strutil::istarts_with(comp, "zip")) {
+        header.zipCompressionLevel() = (qual >= 1 && qual <= 9) ? qual : 4;
     }
 #endif
 
