@@ -346,6 +346,11 @@ test_comparisons()
     OIIO_CHECK_EQUAL(Strutil::iequals("abc", "abc"), true);
     OIIO_CHECK_EQUAL(Strutil::iequals("Abc", "aBc"), true);
     OIIO_CHECK_EQUAL(Strutil::iequals("abc", "adc"), false);
+    OIIO_CHECK_EQUAL(Strutil::iequals("abc", "abcd"), false);
+    OIIO_CHECK_EQUAL(Strutil::iequals("abcd", "abc"), false);
+    OIIO_CHECK_EQUAL(Strutil::iequals("", "abc"), false);
+    OIIO_CHECK_EQUAL(Strutil::iequals("abc", ""), false);
+    OIIO_CHECK_EQUAL(Strutil::iequals("", ""), true);
 
     OIIO_CHECK_EQUAL(Strutil::starts_with("abcd", "ab"), true);
     OIIO_CHECK_EQUAL(Strutil::starts_with("aBcd", "Ab"), false);
@@ -472,8 +477,17 @@ test_comparisons()
     bench.indent (2);
     bench.units (Benchmarker::Unit::ns);
     std::string abc = "abcdefghijklmnopqrstuvwxyz";
+    std::string abcmore = "abcdefghijklmnopqrstuvwxyz1";
+    std::string abcnope = "1abcdefghijklmnopqrstuvwxyz";
     std::string haystack = std::string("begin") + abc + "oiio"
                          + Strutil::repeat(abc, 10) + "123" + abc + "end";
+    bench ("string== success", [&](){ DoNotOptimize(abc == abc); });
+    bench ("string== failure", [&](){ DoNotOptimize(abc == abcmore); });
+    bench ("iequals success", [&](){ DoNotOptimize(Strutil::iequals(abc, abc)); });
+    bench ("iless easy", [&](){ DoNotOptimize(Strutil::iless(abc, abcnope)); });
+    bench ("iless hard", [&](){ DoNotOptimize(Strutil::iless(abc, abc)); });
+    bench ("StringILess easy", [&](){ DoNotOptimize(iless(abc, abcnope)); });
+    bench ("StringILess hard", [&](){ DoNotOptimize(iless(abc, abc)); });
     bench ("contains early small", [&](){ DoNotOptimize(Strutil::contains(abc, "def")); });
     bench ("contains early big", [&](){ DoNotOptimize(Strutil::contains(haystack, "oiio")); });
     bench ("contains late small", [&](){ DoNotOptimize(Strutil::contains(abc, "uvw")); });
@@ -521,8 +535,12 @@ test_comparisons()
 
     bench ("starts_with success", [&](){ DoNotOptimize(Strutil::starts_with(abc, "abc")); });
     bench ("starts_with fail", [&](){ DoNotOptimize(Strutil::starts_with(abc, "def")); });
+    bench ("istarts_with success", [&](){ DoNotOptimize(Strutil::istarts_with(abc, "abc")); });
+    bench ("istarts_with fail", [&](){ DoNotOptimize(Strutil::istarts_with(abc, "def")); });
     bench ("ends_with success", [&](){ DoNotOptimize(Strutil::ends_with(abc, "xyz")); });
     bench ("ends_with fail", [&](){ DoNotOptimize(Strutil::ends_with(abc, "def")); });
+    bench ("iends_with success", [&](){ DoNotOptimize(Strutil::iends_with(abc, "xyz")); });
+    bench ("iends_with fail", [&](){ DoNotOptimize(Strutil::iends_with(abc, "def")); });
 }
 
 
