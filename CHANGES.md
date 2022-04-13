@@ -136,6 +136,10 @@ Performance improvements:
 * Performance of JPEG-2000 I/O is improved by 2-3x due to multithreading,
   but only if you are using a sufficiently new version of OpenJPEG (2.2
   for encoding, 2.4 for decoding). #2225 (2.3.11/2.4.0)
+* Dramatically speed up (50-100x) the implementation of Strutil iequals,
+  iless, starts_with, istarts_with, ends_with, iends_with. This in turn speeds
+  up ParamValueList find/get related methods, ImageSpec find/get methods, and
+  TS::get_texture_info. #3388 (2.4.1.1)
 
 Fixes and feature enhancements:
 * ImageSpec:
@@ -161,6 +165,9 @@ Fixes and feature enhancements:
     - `make_texture()`: ensure that "maketx:ignore_unassoc" is honored.
       #3269 (2.4.0.1/2.3.12)
     - `IBA::computePixelStats()` improved precision. #3353 (2.4.1.0/2.3.14)
+    - `IBA::isConstantColor()` is faster -- now if one thread finds its
+      portion not constant, it can signal the other threads to stop
+      immediately instead of completing their regions. #3383 (2.4.1.1)
 * ImageCache / TextureSystem / maketx:
     - When textures are created with the "monochrome_detect" feature enabled,
       which turns RGB textures where all channels are always equal into true
@@ -263,7 +270,8 @@ Fixes and feature enhancements:
       "compression" metadata as "zip:4"). Also note than when using OpenEXR >=
       3.1.3, the default zip compression has been changed from 6 to 4, which
       writes compressed files significantly (tens of percent) faster, but only
-      increases compressed file size by 1-2%. #3157 (2.4.0/2.3.10)
+      increases compressed file size by 1-2%. #3157 (2.4.0/2.3.10) Fixes in
+      #3387 (2.4.1.1)
     - Fix writing deep exrs when buffer datatype doesn't match the file. #3369
       (2.4.1.0/2.3.14)
 * PNG:
@@ -396,6 +404,8 @@ Developer goodies / internals:
       that does a flush after every call. #3348 (2.4.1.0)
     - `get_rest_arguments()` fixes conflict between RESTful and Windows long
       path notations. #3372 (2.4.1.0/2.3.14)
+    - Dramatically speed up (50-100x) Strutil iequals, iless, starts_with,
+      istarts_with, ends_with, iends_with. #3388 (2.4.1.1)
 * sysutil.h:
     - The `Term` class now recognizes a wider set of terminal emulators as
       supporting color output. #3185 (2.4.0)
@@ -468,6 +478,8 @@ Build/test system improvements and platform ports:
     - CMake variable `OPENIMAGEIO_CONFIG_DO_NOT_FIND_IMATH`, if set to ON,
       will make our generated config file not do a find_dependency(Imath).
       (Use with caution.) #3335 (2.4.0.3)
+    - (In progress) Working towards the ability to do unity/jumbo builds.
+      Don't use this yet. #3381 (2.4.1.1)
 * Dependency version support:
     - When using C++17, use std::gcd instead of boost. #3076 (2.4.0)
     - When using C++17, use `inline constexpr` instead of certain statics.
@@ -514,6 +526,7 @@ Build/test system improvements and platform ports:
       occurring inside `isspace()` calls. #3310
     - Improved simd.h support for armv7 and aarch32. #3361 (2.4.1.0/2.3.14)
     - Suppress MacOS wasnings about OpenGL deprecation. #3380 (2.4.1.0/2.3.14)
+    - Fix MSVS/Windows errors. #3382 (2.4.1.1)
 
 Notable documentation changes:
 * Add an oiiotool example of putting a border around an image. #3138
