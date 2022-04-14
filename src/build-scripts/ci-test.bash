@@ -4,7 +4,7 @@
 # any command in it fails. This is crucial for CI tests.
 set -ex
 
-$OpenImageIO_ROOT/bin/oiiotool --help || true
+$OpenImageIO_ROOT/bin/oiiotool --help
 
 echo "Parallel test " ${CTEST_PARALLEL_LEVEL}
 pushd build
