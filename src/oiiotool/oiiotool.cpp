@@ -3679,8 +3679,8 @@ OIIOTOOL_OP(st_warp, 2, [](OiiotoolOp& op, span<ImageBuf*> img) {
     std::string filtername = op.options()["filter"];
     int chan_s             = op.options().get_int("chan_s");
     int chan_t             = op.options().get_int("chan_t", 1);
-    bool flip_s            = op.options().get_int("flip_s");
-    bool flip_t            = op.options().get_int("flip_t");
+    bool flip_s            = static_cast<bool>(op.options().get_int("flip_s"));
+    bool flip_t            = static_cast<bool>(op.options().get_int("flip_t"));
     return ImageBufAlgo::st_warp(*img[0], *img[1], *img[2], filtername, 0.0f,
                                  chan_s, chan_t, flip_s, flip_t);
 });

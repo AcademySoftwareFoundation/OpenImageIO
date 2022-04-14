@@ -1159,7 +1159,7 @@ ImageBufAlgo::rotate(const ImageBuf& src, float angle, string_view filtername,
 template<typename DSTTYPE, typename SRCTYPE, typename STTYPE>
 static bool
 st_warp_(ImageBuf& dst, const ImageBuf& src, const ImageBuf& stbuf, int chan_s,
-         int chan_t, bool flip_s, bool flip_t, Filter2D* filter, ROI roi,
+         int chan_t, bool flip_s, bool flip_t, const Filter2D* filter, ROI roi,
          int nthreads)
 {
     OIIO_DASSERT(filter);
@@ -1199,11 +1199,8 @@ st_warp_(ImageBuf& dst, const ImageBuf& src, const ImageBuf& stbuf, int chan_s,
         // the outer loop.
         // XXX: Sampling of the source buffer can be entirely random, so there
         // are probably some opportunities for optimization in here...
-        for (; !st_iter.done(); ++st_iter) {
+        for (; !st_iter.done(); ++st_iter, ++out_iter) {
             // Look up source coordinates from ST channels.
-            // We don't care about faithfully maintaining `STTYPE`: Half will be
-            // promoted accurately, and double isn't really useful, since filter
-            // lookups don't support that (excessive) level of precision.
             float src_s = st_iter[chan_s];
             float src_t = st_iter[chan_t];
 
@@ -1251,7 +1248,6 @@ st_warp_(ImageBuf& dst, const ImageBuf& src, const ImageBuf& stbuf, int chan_s,
                     out_iter[chan] = 0;
                 }
             }
-            ++out_iter;
         }
     });  // end of parallel_image
     return true;
@@ -1269,7 +1265,7 @@ check_st_warp_args(ImageBuf& dst, const ImageBuf& src, const ImageBuf& stbuf,
         return false;
     }
 
-    const ImageSpec& stSpec(stbuf.spec());
+    const ImageSpec& stSpec = stbuf.spec();
     // XXX: Wanted to use `uint32_t` for channel indices, but I don't want to
     // break from the rest of the API and introduce a bunch of compile warnings.
     if (chan_s >= stSpec.nchannels) {
@@ -1282,44 +1278,25 @@ check_st_warp_args(ImageBuf& dst, const ImageBuf& src, const ImageBuf& stbuf,
                      chan_t);
         return false;
     }
-    // N.B. We currently require floating-point ST channels
-    if (!stSpec.format.is_floating_point()) {
-        dst.error("ImageBufAlgo::st_warp : ST buffer must be holding floating-"
-                  "point data");
-        return false;
-    }
 
-    if (dst.initialized()) {
-        // XXX: Currently requiring the pixel scales of ST and a preallocated
-        // output buffer to match.
-        if (dst.spec().full_width != stSpec.full_width
-            || dst.spec().full_height != stSpec.full_height) {
-            dst.error("ImageBufAlgo::st_warp : Output and ST buffers must have "
-                      "the same full width and height");
-            return false;
-        }
-    }
-
-    // Prep the dest spec using the channels from `src`, and the intersection of
-    // `roi` and the ROI from the ST buffer (since the ST warp is only defined
-    // for pixels in the ST buffer). We grab a copy of the input ROI before
-    // `IBAprep`, since we want to intersect it ourselves.
-    ROI inputROI(roi);
+    // Prep the output buffer, and then intersect the resulting ROI with the ST
+    // buffer's ROI, since the ST warp is only defined for pixels in the latter.
     bool res
         = ImageBufAlgo::IBAprep(roi, &dst, &src,
                                 ImageBufAlgo::IBAprep_NO_SUPPORT_VOLUME
                                     | ImageBufAlgo::IBAprep_NO_COPY_ROI_FULL);
     if (res) {
-        roi         = roi_intersection(inputROI, stSpec.roi());
-        roi.chbegin = std::max(roi.chbegin, 0);
-        roi.chend   = std::min(roi.chend, src.spec().nchannels);
-
-        ImageSpec destSpec(dst.spec());
-        destSpec.set_roi(roi);
-        destSpec.set_roi_full(stSpec.roi_full());
-        // XXX: It would be nice to be able to tell `IBAprep` to skip the buffer
-        // initialization. Worth adding a new prep flag?
-        dst.reset(destSpec);
+        const int chbegin = roi.chbegin;
+        const int chend   = roi.chend;
+        roi               = roi_intersection(roi, stSpec.roi());
+        if (roi.npixels() <= 0) {
+            dst.errorfmt("ImageBufAlgo::st_warp : Output ROI does not "
+                         "intersect ST buffer.");
+            return false;
+        }
+        // Make sure to preserve the channel range determined by `IBAprep`.
+        roi.chbegin = chbegin;
+        roi.chend   = chend;
     }
     return res;
 }
@@ -1328,8 +1305,8 @@ check_st_warp_args(ImageBuf& dst, const ImageBuf& src, const ImageBuf& stbuf,
 
 bool
 ImageBufAlgo::st_warp(ImageBuf& dst, const ImageBuf& src, const ImageBuf& stbuf,
-                      Filter2D* filter, int chan_s, int chan_t, bool flip_s,
-                      bool flip_t, ROI roi, int nthreads)
+                      const Filter2D* filter, int chan_s, int chan_t,
+                      bool flip_s, bool flip_t, ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::st_warp");
 
@@ -1376,8 +1353,8 @@ ImageBufAlgo::st_warp(ImageBuf& dst, const ImageBuf& src, const ImageBuf& stbuf,
 
 ImageBuf
 ImageBufAlgo::st_warp(const ImageBuf& src, const ImageBuf& stbuf,
-                      Filter2D* filter, int chan_s, int chan_t, bool flip_s,
-                      bool flip_t, ROI roi, int nthreads)
+                      const Filter2D* filter, int chan_s, int chan_t,
+                      bool flip_s, bool flip_t, ROI roi, int nthreads)
 {
     ImageBuf result;
     bool ok = st_warp(result, src, stbuf, filter, chan_s, chan_t, flip_s,

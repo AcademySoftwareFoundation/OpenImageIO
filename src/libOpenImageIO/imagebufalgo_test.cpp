@@ -882,31 +882,22 @@ test_validate_st_warp_checks()
     const int size = 16;
     ImageSpec srcSpec(size, size, 3, TypeDesc::FLOAT);
     ImageBuf SRC(srcSpec);
-    ImageBufAlgo::zero(SRC);
-
-    {
-        ImageSpec stSpec_uint8(size, size, 2, TypeDesc::UINT8);
-        ImageBuf ST(stSpec_uint8);
-        ImageBufAlgo::zero(ST);
-        ImageBuf DST;
-        // Fail: non-float ST buffer
-        OIIO_CHECK_ASSERT(!ImageBufAlgo::st_warp(DST, SRC, ST));
-    }
-
-
     ImageBuf ST;
     ImageBuf DST;
+
+    ImageBufAlgo::zero(SRC);
+
     // Fail: Uninitialized ST buffer
     OIIO_CHECK_ASSERT(!ImageBufAlgo::st_warp(DST, SRC, ST));
 
-    ImageSpec stSpec_half(size, size, 2, TypeDesc::HALF);
-    ST.reset(stSpec_half);
-
-    ImageSpec destSpecBad(size + 2, size + 2, 3, TypeDesc::FLOAT);
-    DST.reset(destSpecBad);
-    // Fail: Mismatch between dst and st full sizes
+    ROI disjointROI(size, size, size * 2, size * 2, 0, 1, 0, 2);
+    ImageSpec stSpec(disjointROI, TypeDesc::HALF);
+    ST.reset(stSpec);
+    // Fail: Non-intersecting ST and output ROIs
     OIIO_CHECK_ASSERT(!ImageBufAlgo::st_warp(DST, SRC, ST));
 
+    stSpec = ImageSpec(size, size, 2, TypeDesc::HALF);
+    ST.reset(stSpec);
 
     DST.reset();
     // Fail: Out-of-range chan_s
@@ -1033,8 +1024,8 @@ main(int argc, char** argv)
     test_computePixelStats();
     histogram_computation_test();
     test_maketx_from_imagebuf();
-    test_validate_st_warp_checks();
     test_IBAprep();
+    test_validate_st_warp_checks();
     test_opencv();
 
     benchmark_parallel_image(64, iterations * 64);

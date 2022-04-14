@@ -836,7 +836,7 @@ ImageBuf OIIO_API st_warp (const ImageBuf &src, const ImageBuf& stbuf,
                            bool flip_s=false, bool flip_t=false, ROI roi={},
                            int nthreads=0);
 ImageBuf OIIO_API st_warp (const ImageBuf &src, const ImageBuf& stbuf,
-                           Filter2D *filter, int chan_s=0, int chan_t=1,
+                           const Filter2D *filter, int chan_s=0, int chan_t=1,
                            bool flip_s=false, bool flip_t=false, ROI roi={},
                            int nthreads=0);
 bool OIIO_API st_warp (ImageBuf &dst, const ImageBuf &src,
@@ -846,9 +846,9 @@ bool OIIO_API st_warp (ImageBuf &dst, const ImageBuf &src,
                        bool flip_s=false, bool flip_t=false, ROI roi={},
                        int nthreads=0);
 bool OIIO_API st_warp (ImageBuf &dst, const ImageBuf &src,
-                       const ImageBuf& stbuf, Filter2D *filter, int chan_s=0,
-                       int chan_t=1, bool flip_s=false, bool flip_t=false,
-                       ROI roi={}, int nthreads=0);
+                       const ImageBuf& stbuf, const Filter2D *filter,
+                       int chan_s=0, int chan_t=1, bool flip_s=false,
+                       bool flip_t=false, ROI roi={}, int nthreads=0);
 /// @}
 
 
