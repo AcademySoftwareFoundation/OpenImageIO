@@ -51,6 +51,7 @@ macro (fancy_add_executable)
             target_link_libraries (${_target_NAME} PRIVATE ${_target_LINK_LIBRARIES})
         endif ()
         set_target_properties (${_target_NAME} PROPERTIES FOLDER "Tools")
+        check_is_enabled (INSTALL_${_target_NAME} _target_NAME_INSTALL_enabled)
         if (CMAKE_UNITY_BUILD)
             set_source_files_properties(${_target_SRC} PROPERTIES
                                         UNITY_GROUP ${_target_NAME})
