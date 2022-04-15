@@ -872,6 +872,43 @@ test_IBAprep()
 
 
 
+// Test extra validation checks done by `st_warp`
+void
+test_validate_st_warp_checks()
+{
+    // using namespace ImageBufAlgo;
+    std::cout << "test st_warp validation checks" << std::endl;
+
+    const int size = 16;
+    ImageSpec srcSpec(size, size, 3, TypeDesc::FLOAT);
+    ImageBuf SRC(srcSpec);
+    ImageBuf ST;
+    ImageBuf DST;
+
+    ImageBufAlgo::zero(SRC);
+
+    // Fail: Uninitialized ST buffer
+    OIIO_CHECK_ASSERT(!ImageBufAlgo::st_warp(DST, SRC, ST));
+
+    ROI disjointROI(size, size, size * 2, size * 2, 0, 1, 0, 2);
+    ImageSpec stSpec(disjointROI, TypeDesc::HALF);
+    ST.reset(stSpec);
+    // Fail: Non-intersecting ST and output ROIs
+    OIIO_CHECK_ASSERT(!ImageBufAlgo::st_warp(DST, SRC, ST));
+
+    stSpec = ImageSpec(size, size, 2, TypeDesc::HALF);
+    ST.reset(stSpec);
+
+    DST.reset();
+    // Fail: Out-of-range chan_s
+    OIIO_CHECK_ASSERT(!ImageBufAlgo::st_warp(DST, SRC, ST, nullptr, 2));
+    // Fail: Out-of-range chan_t
+    OIIO_CHECK_ASSERT(!ImageBufAlgo::st_warp(DST, SRC, ST, nullptr, 0, 2));
+    // Success
+    OIIO_CHECK_ASSERT(ImageBufAlgo::st_warp(DST, SRC, ST, nullptr));
+}
+
+
 void
 benchmark_parallel_image(int res, int iters)
 {
@@ -988,6 +1025,7 @@ main(int argc, char** argv)
     histogram_computation_test();
     test_maketx_from_imagebuf();
     test_IBAprep();
+    test_validate_st_warp_checks();
     test_opencv();
 
     benchmark_parallel_image(64, iterations * 64);
