@@ -2173,6 +2173,7 @@ PREDEFINED             = DOXYGEN_SHOULD_SKIP_THIS \
                          OIIO_NODISCARD=[[nodiscard]] \
                          OIIO_DEPRECATED:=[[deprecated]] \
                          OIIO_FORMAT_DEPRECATED:= \
+                         OIIO_ERRORHANDLER_PRINTF_DEPRECATED:= \
                          OIIO_FORCEINLINE=inline \
                          IMATH_HALF_H_=1 \
                          INCLUDED_IMATHVEC_H=1 \
