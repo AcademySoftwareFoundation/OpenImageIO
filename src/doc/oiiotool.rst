@@ -3268,6 +3268,41 @@ current top image.
         oiiotool mandrill.tif --warp "0.707,0.707,0,-0.707,0.707,0,128,-53.02,1" -o warped.tif
 
 
+.. option:: --st_warp
+
+    Use the top image as a set of normalized `st` image coordinates to warp the
+    second image in the stack.
+
+    Optional appended modifiers include:
+
+      `filter=` *name*
+        Filter name. The default is `lanczos3`.
+
+      `chan_s=` *index*
+        The index of the `s` channel in the `st` image (default=0).
+
+      `chan_t=` *index*
+        The index of the `t` channel in the `st` image (default=1).
+
+      `flip_s=` *bool*
+        If nonzero, mirror the `s` coordinates along the horizontal axis. Useful
+        for coordinates authored in terms of an origin other than the upper-left
+        corner (default=0).
+
+      `flip_t=` *bool*
+        If nonzero, mirror the `t` coordinates along the vertical axis. Useful
+        for coordinates authored in terms of an origin other than the upper-left
+        corner (default=0).
+
+    Examples::
+
+        oiiotool mandrill.tif distortion_st.tif --st_warp -o mandrill_distorted.tif
+
+        # Using an `st` map authored in terms of a lower-left origin (e.g. by
+        # Nuke), so flip the vertical (`t`) coordinate.
+        oiiotool mandrill.tif st_from_nuke.tif --st_warp:filter=triangle:flip_t=1 -o mandrill_distorted.tif
+
+
 .. option:: --convolve
 
     Use the top image as a kernel to convolve the next image farther down

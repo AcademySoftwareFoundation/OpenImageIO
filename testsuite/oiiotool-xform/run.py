@@ -82,6 +82,12 @@ command += oiiotool ("resize.tif --rotate 45 --rotate 90 --rotate 90 --rotate 90
 # test warp
 command += oiiotool ("resize.tif --warp 0.7071068,0.7071068,0,-0.7071068,0.7071068,0,128,-53.01933,1 -o warped.tif")
 
+# test st_warp
+# We use an identity ST pattern with a bit of gamma to simulate some warping.
+command += oiiotool ("resize.tif "
+                     "--pattern fill:topleft=0,0,0:topright=1,0,0:bottomleft=0,1,0:bottomright=1,1,0 256x256 3 "
+                     "--powc 1.2 --st_warp -o st_warped.tif")
+
 # test flip
 command += oiiotool ("image.tif --flip -o flip.tif")
 command += oiiotool ("image.tif --crop 180x140+30+30 --flip -o flip-crop.tif")
@@ -142,6 +148,7 @@ outputs = [
             "fith-height-300x300.exr",
             "pixelaspect.tif",
             "warped.tif",
+            "st_warped.tif",
             "rotated.tif", "rotated-offcenter.tif", "rotated360.tif",
             "flip.tif", "flip-crop.tif",
             "flop.tif", "flop-crop.tif",

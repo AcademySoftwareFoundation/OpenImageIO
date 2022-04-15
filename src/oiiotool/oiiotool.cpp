@@ -3674,6 +3674,19 @@ OIIOTOOL_OP(warp, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
 
 
 
+// --st_warp
+OIIOTOOL_OP(st_warp, 2, [](OiiotoolOp& op, span<ImageBuf*> img) {
+    std::string filtername = op.options()["filter"];
+    int chan_s             = op.options().get_int("chan_s");
+    int chan_t             = op.options().get_int("chan_t", 1);
+    bool flip_s            = static_cast<bool>(op.options().get_int("flip_s"));
+    bool flip_t            = static_cast<bool>(op.options().get_int("flip_t"));
+    return ImageBufAlgo::st_warp(*img[0], *img[1], *img[2], filtername, 0.0f,
+                                 chan_s, chan_t, flip_s, flip_t);
+});
+
+
+
 // --cshift
 OIIOTOOL_OP(cshift, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     int xyz[3] = { 0, 0, 0 };
@@ -6574,6 +6587,9 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--warp %s:MATRIX")
       .help("Warp pixels (argument is a 3x3 matrix, separated by commas) (options: filter=%s, recompute_roi=%d, highlightcomp=%d)")
       .action(action_warp);
+    ap.arg("--st_warp")
+      .help("Warp the first image using normalized \"st\" coordinates from the second image (options: filter=%s, chan_s=0, chan_t=1, flip_s=0, flip_t=0)")
+      .action(action_st_warp);
     ap.arg("--convolve")
       .help("Convolve with a kernel")
       .action(action_convolve);

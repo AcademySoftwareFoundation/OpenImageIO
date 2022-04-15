@@ -790,6 +790,68 @@ bool OIIO_API warp (ImageBuf &dst, const ImageBuf &src, M33fParam M,
 /// @}
 
 
+/// @defgroup st_warp (st_warp: warp an image using per-pixel st coordinates)
+/// @{
+///
+/// Warp the `src` image using "st" coordinates from a secondary `stbuf` image.
+///
+/// Each pixel in the `stbuf` image is used as a normalized image-space
+/// coordinate in the `src` image, which is then sampled at that position using
+/// the given reconstruction filter to produce an output pixel.
+///
+/// The transform is only defined over the area of the `stbuf` image, and thus
+/// the given `roi` argument will be intersected with its geometry.
+///
+/// \b NOTE: The current behavior of this transform is modeled to match Nuke's
+/// STMap node.
+///
+/// @param dst
+///             The output ImageBuf. If an initialized buffer is provided, its
+///             full-size dimensions must match those of `stbuf`.
+/// @param src
+///             The source ImageBuf to warp.
+/// @param stbuf
+///             The ImageBuf holding the st coordinates. This must be holding
+///             a floating-point pixel data type.
+/// @param chan_s
+///             The index of the "s" channel in the `stbuf` image. This defaults
+///             to its first channel.
+/// @param chan_t
+///             The index of the "t" channel in the `stbuf` image. This defaults
+///             to its second channel.
+/// @param flip_s
+///             Whether to mirror the "s" coordinate along the horizontal axis
+///             when computing source pixel positions. This is useful if the
+///             coordinates are defined in terms of a different image origin 
+///             than OpenImageIO's.
+/// @param flip_t
+///             Whether to mirror the "t" coordinate along the vertical axis
+///             when computing source pixel positions. This is useful if the
+///             coordinates are defined in terms of a different image origin 
+///             than OpenImageIO's.
+
+ImageBuf OIIO_API st_warp (const ImageBuf &src, const ImageBuf& stbuf,
+                           string_view filtername=string_view(),
+                           float filterwidth=0.0f, int chan_s=0, int chan_t=1,
+                           bool flip_s=false, bool flip_t=false, ROI roi={},
+                           int nthreads=0);
+ImageBuf OIIO_API st_warp (const ImageBuf &src, const ImageBuf& stbuf,
+                           const Filter2D *filter, int chan_s=0, int chan_t=1,
+                           bool flip_s=false, bool flip_t=false, ROI roi={},
+                           int nthreads=0);
+bool OIIO_API st_warp (ImageBuf &dst, const ImageBuf &src,
+                       const ImageBuf& stbuf,
+                       string_view filtername=string_view(),
+                       float filterwidth=0.0f, int chan_s=0, int chan_t=1,
+                       bool flip_s=false, bool flip_t=false, ROI roi={},
+                       int nthreads=0);
+bool OIIO_API st_warp (ImageBuf &dst, const ImageBuf &src,
+                       const ImageBuf& stbuf, const Filter2D *filter,
+                       int chan_s=0, int chan_t=1, bool flip_s=false,
+                       bool flip_t=false, ROI roi={}, int nthreads=0);
+/// @}
+
+
 /// Compute per-pixel sum `A + B`, returning the result image.
 ///
 /// `A` and `B` may each either be an `ImageBuf&`, or a `cspan<float>`
