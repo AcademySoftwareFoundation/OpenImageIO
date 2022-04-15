@@ -1185,15 +1185,15 @@ st_warp_(ImageBuf& dst, const ImageBuf& src, const ImageBuf& stbuf, int chan_s,
         const int filterrad_x = (int)ceilf(filter->width() / 2.0f / xscale);
         const int filterrad_y = (int)ceilf(filter->height() / 2.0f / yscale);
 
-        ImageBuf::ConstIterator<SRCTYPE> src_iter(src);
-        ImageBuf::ConstIterator<STTYPE> st_iter(stbuf, roi);
-        ImageBuf::Iterator<DSTTYPE> out_iter(dst, roi);
-
         // Accumulation buffer for filter samples, typed to maintain the
         // necessary precision.
         typedef typename Accum_t<DSTTYPE>::type Acc_t;
         const int nchannels = roi.chend - roi.chbegin;
         Acc_t* sample_accum = OIIO_ALLOCA(Acc_t, nchannels);
+
+        ImageBuf::ConstIterator<SRCTYPE, Acc_t> src_iter(src);
+        ImageBuf::ConstIterator<STTYPE> st_iter(stbuf, roi);
+        ImageBuf::Iterator<DSTTYPE, Acc_t> out_iter(dst, roi);
 
         // The ST buffer defines the output dimensions, and thus the bounds of
         // the outer loop.
