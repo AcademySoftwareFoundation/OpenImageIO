@@ -15,6 +15,8 @@
 #    include <io.h>
 #endif
 
+#include "oiiotool.h"
+
 #include <OpenImageIO/Imath.h>
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/deepdata.h>
@@ -25,8 +27,6 @@
 #include <OpenImageIO/span.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
-
-#include "oiiotool.h"
 
 using namespace OIIO;
 using namespace OiioTool;
