@@ -10,6 +10,9 @@
 
 #include <boost/container/flat_set.hpp>
 
+#include <OpenImageIO/Imath.h>
+
+#include <OpenImageIO/argparse.h>
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagecache.h>
