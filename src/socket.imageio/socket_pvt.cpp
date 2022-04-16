@@ -13,7 +13,6 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace boost;
 using namespace boost::asio;
 
 namespace socket_pvt {

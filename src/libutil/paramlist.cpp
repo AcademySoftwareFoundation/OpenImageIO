@@ -307,24 +307,6 @@ formatType(const ParamValue& p, int beginindex, int endindex,
     }
 }
 
-
-// From OpenEXR
-inline unsigned int
-bitField(unsigned int value, int minBit, int maxBit)
-{
-    int shift         = minBit;
-    unsigned int mask = (~(~0U << (maxBit - minBit + 1)) << minBit);
-    return (value & mask) >> shift;
-}
-
-
-// From OpenEXR
-inline int
-bcdToBinary(unsigned int bcd)
-{
-    return int((bcd & 0x0f) + 10 * ((bcd >> 4) & 0x0f));
-}
-
 }  // namespace
 
 
@@ -379,15 +361,7 @@ ParamValue::get_string_indexed(int index) const
             const int* val = (const int*)data() + 2 * index;
             out            = Strutil::sprintf("%d/%d", val[0], val[1]);
         } else if (type() == TypeTimeCode) {
-            // Replicating the logic in OpenEXR, but this prevents us from
-            // needing to link to libIlmImf just to do this.
-            unsigned int t = get<unsigned int>(0);
-            int hours      = bcdToBinary(bitField(t, 24, 29));
-            int minutes    = bcdToBinary(bitField(t, 16, 22));
-            int seconds    = bcdToBinary(bitField(t, 8, 14));
-            int frame      = bcdToBinary(bitField(t, 0, 5));
-            out += Strutil::sprintf("%02d:%02d:%02d:%02d", hours, minutes,
-                                    seconds, frame);
+            out += tostring(TypeTimeCode, data());
         } else {
             formatType<unsigned int>(*this, index, index + 1, "%u", out);
         }

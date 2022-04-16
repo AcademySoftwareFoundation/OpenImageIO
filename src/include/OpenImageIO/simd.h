@@ -33,6 +33,10 @@
 #include <cmath>
 #include <cstring>
 
+#ifdef OIIO_INTERNAL
+#   include <OpenImageIO/Imath.h>
+#endif
+
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/vecparam.h>

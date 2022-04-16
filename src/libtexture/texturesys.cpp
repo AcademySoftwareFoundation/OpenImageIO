@@ -52,7 +52,6 @@ static spin_mutex shared_texturesys_mutex;
 static bool do_unit_test_texture    = false;
 static float unit_test_texture_blur = 0.0f;
 
-static EightBitConverter<float> uchar2float;
 static vfloat4 u8scale(1.0f / 255.0f);
 static vfloat4 u16scale(1.0f / 65535.0f);
 
@@ -67,13 +66,6 @@ OIIO_FORCEINLINE vfloat4
 ushort2float4(const unsigned short* s)
 {
     return vfloat4(s) * u16scale;
-}
-
-
-OIIO_FORCEINLINE vfloat4
-half2float4(const half* h)
-{
-    return vfloat4(h);
 }
 
 
@@ -144,6 +136,9 @@ TextureSystem::destroy(TextureSystem* x, bool teardown_imagecache)
 
 
 namespace pvt {  // namespace pvt
+
+
+EightBitConverter<float> TextureSystemImpl::uchar2float;
 
 
 
@@ -2093,7 +2088,7 @@ TextureSystemImpl::sample_closest(
         } else if (pixeltype == TypeDesc::UINT16) {
             texel_simd = ushort2float4(tile->ushortdata() + offset);
         } else if (pixeltype == TypeDesc::HALF) {
-            texel_simd = half2float4(tile->halfdata() + offset);
+            texel_simd = vfloat4(tile->halfdata() + offset);
         } else {
             OIIO_DASSERT(pixeltype == TypeDesc::FLOAT);
             texel_simd.load(tile->floatdata() + offset);
@@ -2284,11 +2279,11 @@ TextureSystemImpl::sample_bilinear(
                 texel_simd[1][0] = ushort2float4((uint16_t*)p);
                 texel_simd[1][1] = ushort2float4((uint16_t*)(p + pixelsize));
             } else if (pixeltype == TypeDesc::HALF) {
-                texel_simd[0][0] = half2float4((half*)p);
-                texel_simd[0][1] = half2float4((half*)(p + pixelsize));
+                texel_simd[0][0] = vfloat4((half*)p);
+                texel_simd[0][1] = vfloat4((half*)(p + pixelsize));
                 p += pixelsize * spec.tile_width;
-                texel_simd[1][0] = half2float4((half*)p);
-                texel_simd[1][1] = half2float4((half*)(p + pixelsize));
+                texel_simd[1][0] = vfloat4((half*)p);
+                texel_simd[1][1] = vfloat4((half*)(p + pixelsize));
             } else {
                 OIIO_DASSERT(pixeltype == TypeDesc::FLOAT);
                 texel_simd[0][0].load((const float*)p);
@@ -2339,7 +2334,7 @@ TextureSystemImpl::sample_bilinear(
                         texel_simd[j][i] = ushort2float4(
                             (const unsigned short*)(tile->bytedata() + offset));
                     else if (pixeltype == TypeDesc::HALF)
-                        texel_simd[j][i] = half2float4(
+                        texel_simd[j][i] = vfloat4(
                             (const half*)(tile->bytedata() + offset));
                     else {
                         OIIO_DASSERT(pixeltype == TypeDesc::FLOAT);
@@ -2655,7 +2650,7 @@ TextureSystemImpl::sample_bicubic(
                      ++j, j_offset += pixelsize * spec.tile_width)
                     for (int i = 0, i_offset = j_offset; i < 4;
                          ++i, i_offset += pixelsize)
-                        texel_simd[j][i] = half2float4(
+                        texel_simd[j][i] = vfloat4(
                             (const half*)(base + i_offset));
             } else {
                 for (int j = 0, j_offset = 0; j < 4;
@@ -2713,7 +2708,7 @@ TextureSystemImpl::sample_bicubic(
                         texel_simd[j][i] = ushort2float4(
                             (const uint16_t*)(tile->bytedata() + offset));
                     else if (pixeltype == TypeDesc::HALF)
-                        texel_simd[j][i] = half2float4(
+                        texel_simd[j][i] = vfloat4(
                             (const half*)(tile->bytedata() + offset));
                     else
                         texel_simd[j][i].load(

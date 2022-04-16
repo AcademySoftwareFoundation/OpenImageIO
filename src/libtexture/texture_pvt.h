@@ -577,6 +577,8 @@ private:
     bool m_flip_t;            ///< Flip direction of t coord?
     int m_max_tile_channels;  ///< narrow tile ID channel range when
                               ///<   the file has more channels
+    static EightBitConverter<float> uchar2float;
+
     /// Saved error string, per-thread
     ///
     mutable thread_specific_ptr<std::string> m_errormessage;
