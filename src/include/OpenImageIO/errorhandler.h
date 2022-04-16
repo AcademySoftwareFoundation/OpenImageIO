@@ -10,6 +10,19 @@
 #include <OpenImageIO/strutil.h>
 
 
+// If OIIO_ERRORHANDLER_HIDE_PRINTF is defined, mark the old-style printf-like
+// format functions as deprecated. (This is a debugging aid for downstream
+// projects who want to root out any places where they might be using the old
+// one).
+#if defined(OIIO_ERRORHANDLER_HIDE_PRINTF) || defined(OIIO_INTERNAL)
+#    define OIIO_ERRORHANDLER_PRINTF_DEPRECATED \
+        OIIO_DEPRECATED(                        \
+            "old style (printf-like) formatting version of this function is deprecated")
+#else
+#    define OIIO_ERRORHANDLER_PRINTF_DEPRECATED
+#endif
+
+
 OIIO_NAMESPACE_BEGIN
 
 /// ErrorHandler is a simple class that accepts error messages
@@ -145,41 +158,47 @@ public:
     // in some future OIIO release.
     //
     template<typename... Args>
-    void infof(const char* format, const Args&... args)
+    OIIO_ERRORHANDLER_PRINTF_DEPRECATED void infof(const char* format,
+                                                   const Args&... args)
     {
         if (verbosity() >= VERBOSE)
             info(Strutil::sprintf(format, args...));
     }
 
     template<typename... Args>
-    void warningf(const char* format, const Args&... args)
+    OIIO_ERRORHANDLER_PRINTF_DEPRECATED void warningf(const char* format,
+                                                      const Args&... args)
     {
         if (verbosity() >= NORMAL)
             warning(Strutil::sprintf(format, args...));
     }
 
     template<typename... Args>
-    void errorf(const char* format, const Args&... args)
+    OIIO_ERRORHANDLER_PRINTF_DEPRECATED void errorf(const char* format,
+                                                    const Args&... args)
     {
         error(Strutil::sprintf(format, args...));
     }
 
     template<typename... Args>
-    void severef(const char* format, const Args&... args)
+    OIIO_ERRORHANDLER_PRINTF_DEPRECATED void severef(const char* format,
+                                                     const Args&... args)
     {
         severe(Strutil::sprintf(format, args...));
     }
 
     template<typename... Args>
-    void messagef(const char* format, const Args&... args)
+    OIIO_ERRORHANDLER_PRINTF_DEPRECATED void messagef(const char* format,
+                                                      const Args&... args)
     {
         if (verbosity() > QUIET)
             message(Strutil::sprintf(format, args...));
     }
 
     template<typename... Args>
-    void debugf(const char* format OIIO_MAYBE_UNUSED,
-                const Args&... args OIIO_MAYBE_UNUSED)
+    OIIO_ERRORHANDLER_PRINTF_DEPRECATED void
+    debugf(const char* format OIIO_MAYBE_UNUSED,
+           const Args&... args OIIO_MAYBE_UNUSED)
     {
 #ifndef NDEBUG
         debug(Strutil::sprintf(format, args...));

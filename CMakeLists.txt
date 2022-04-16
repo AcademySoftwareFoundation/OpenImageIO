@@ -124,6 +124,9 @@ if (${PROJ_NAME}_NAMESPACE_INCLUDE_PATCH)
 endif ()
 message(STATUS "Setting Namespace to: ${PROJ_NAMESPACE_V}")
 
+# Define OIIO_INTERNAL symbol only when building OIIO itself, will not be
+# defined for downstream projects using OIIO.
+add_definitions (-DOIIO_INTERNAL=1)
 
 list (APPEND CMAKE_MODULE_PATH
       "${PROJECT_SOURCE_DIR}/src/cmake/modules"
