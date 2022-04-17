@@ -28,24 +28,11 @@ using namespace pvt;
 
 namespace {  // anonymous
 
-static EightBitConverter<float> uchar2float;
-
-// OIIO_FORCEINLINE float uchar2float (unsigned char val) {
-//     return float(val) * (1.0f/255.0f);
-// }
-
 OIIO_FORCEINLINE float
 ushort2float(unsigned short val)
 {
     return float(val) * (1.0f / 65535.0f);
 }
-
-OIIO_FORCEINLINE float
-half2float(half val)
-{
-    return float(val);
-}
-
 
 }  // end anonymous namespace
 
@@ -377,7 +364,7 @@ TextureSystemImpl::accum3d_sample_closest(
     } else if (pixeltype == TypeDesc::HALF) {
         const half* texel = tile->halfdata() + offset;
         for (int c = 0; c < actualchannels; ++c)
-            accum[c] += weight * half2float(texel[c]);
+            accum[c] += weight * float(texel[c]);
     } else {
         OIIO_DASSERT(pixeltype == TypeDesc::FLOAT);
         const float* texel = tile->floatdata() + offset;
@@ -687,14 +674,14 @@ TextureSystemImpl::accum3d_sample_bilinear(
     } else if (pixeltype == TypeDesc::HALF) {
         for (int c = 0; c < actualchannels; ++c)
             accum[c] += weight
-                        * trilerp(half2float(((const half*)texel[0][0][0])[c]),
-                                  half2float(((const half*)texel[0][0][1])[c]),
-                                  half2float(((const half*)texel[0][1][0])[c]),
-                                  half2float(((const half*)texel[0][1][1])[c]),
-                                  half2float(((const half*)texel[1][0][0])[c]),
-                                  half2float(((const half*)texel[1][0][1])[c]),
-                                  half2float(((const half*)texel[1][1][0])[c]),
-                                  half2float(((const half*)texel[1][1][1])[c]),
+                        * trilerp(float(((const half*)texel[0][0][0])[c]),
+                                  float(((const half*)texel[0][0][1])[c]),
+                                  float(((const half*)texel[0][1][0])[c]),
+                                  float(((const half*)texel[0][1][1])[c]),
+                                  float(((const half*)texel[1][0][0])[c]),
+                                  float(((const half*)texel[1][0][1])[c]),
+                                  float(((const half*)texel[1][1][0])[c]),
+                                  float(((const half*)texel[1][1][1])[c]),
                                   sfrac, tfrac, rfrac);
         if (daccumds) {
             float scalex = weight * spec.full_width;
@@ -702,34 +689,34 @@ TextureSystemImpl::accum3d_sample_bilinear(
             float scalez = weight * spec.full_depth;
             for (int c = 0; c < actualchannels; ++c) {
                 daccumds[c] += scalex * bilerp(
-                             half2float(((const half*)texel[0][0][1])[c])
-                                 - half2float(((const half*)texel[0][0][0])[c]),
-                             half2float(((const half*)texel[0][1][1])[c])
-                                 - half2float(((const half*)texel[0][1][0])[c]),
-                             half2float(((const half*)texel[1][0][1])[c])
-                                 - half2float(((const half*)texel[1][0][0])[c]),
-                             half2float(((const half*)texel[1][1][1])[c])
-                                 - half2float(((const half*)texel[1][1][0])[c]),
+                             float(((const half*)texel[0][0][1])[c])
+                                 - float(((const half*)texel[0][0][0])[c]),
+                             float(((const half*)texel[0][1][1])[c])
+                                 - float(((const half*)texel[0][1][0])[c]),
+                             float(((const half*)texel[1][0][1])[c])
+                                 - float(((const half*)texel[1][0][0])[c]),
+                             float(((const half*)texel[1][1][1])[c])
+                                 - float(((const half*)texel[1][1][0])[c]),
                              tfrac, rfrac);
                 daccumdt[c] += scaley * bilerp(
-                             half2float(((const half*)texel[0][1][0])[c])
-                                 - half2float(((const half*)texel[0][0][0])[c]),
-                             half2float(((const half*)texel[0][1][1])[c])
-                                 - half2float(((const half*)texel[0][0][1])[c]),
-                             half2float(((const half*)texel[1][1][0])[c])
-                                 - half2float(((const half*)texel[1][0][0])[c]),
-                             half2float(((const half*)texel[1][1][1])[c])
-                                 - half2float(((const half*)texel[1][0][1])[c]),
+                             float(((const half*)texel[0][1][0])[c])
+                                 - float(((const half*)texel[0][0][0])[c]),
+                             float(((const half*)texel[0][1][1])[c])
+                                 - float(((const half*)texel[0][0][1])[c]),
+                             float(((const half*)texel[1][1][0])[c])
+                                 - float(((const half*)texel[1][0][0])[c]),
+                             float(((const half*)texel[1][1][1])[c])
+                                 - float(((const half*)texel[1][0][1])[c]),
                              sfrac, rfrac);
                 daccumdr[c] += scalez * bilerp(
-                             half2float(((const half*)texel[0][1][0])[c])
-                                 - half2float(((const half*)texel[1][1][0])[c]),
-                             half2float(((const half*)texel[0][1][1])[c])
-                                 - half2float(((const half*)texel[1][1][1])[c]),
-                             half2float(((const half*)texel[0][0][1])[c])
-                                 - half2float(((const half*)texel[1][0][0])[c]),
-                             half2float(((const half*)texel[0][1][1])[c])
-                                 - half2float(((const half*)texel[1][1][1])[c]),
+                             float(((const half*)texel[0][1][0])[c])
+                                 - float(((const half*)texel[1][1][0])[c]),
+                             float(((const half*)texel[0][1][1])[c])
+                                 - float(((const half*)texel[1][1][1])[c]),
+                             float(((const half*)texel[0][0][1])[c])
+                                 - float(((const half*)texel[1][0][0])[c]),
+                             float(((const half*)texel[0][1][1])[c])
+                                 - float(((const half*)texel[1][1][1])[c]),
                              sfrac, tfrac);
             }
         }

@@ -204,14 +204,7 @@ OIIO_NAMESPACE_BEGIN
 using namespace pvt;
 using namespace simd;
 
-namespace {  // anonymous
-
-static EightBitConverter<float> uchar2float;
-
-}  // end anonymous namespace
-
-namespace pvt {  // namespace pvt
-
+namespace pvt {
 
 
 bool
