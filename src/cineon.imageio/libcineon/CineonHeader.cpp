@@ -82,7 +82,7 @@ cineon::GenericHeader::GenericHeader()
 void cineon::GenericHeader::Reset()
 {
 	// File Information
-	this->magicNumber = MAGIC_COOKIE;
+	this->magicNumber = CINEON_MAGIC_COOKIE;
 	this->imageOffset = ~0;
 	EmptyString(this->version);
 	OIIO::Strutil::safe_strcpy(this->version, SPEC_VERSION, sizeof(this->version));
@@ -254,7 +254,7 @@ bool cineon::Header::WriteOffsetData(OutStream *io)
 	//const long IMAGE_STRUCTURE = 72;	// sizeof the image data structure
 
 	/*int i;
-	for (i = 0; i < MAX_ELEMENTS; i++)
+	for (i = 0; i < CINEON_MAX_ELEMENTS; i++)
 	{
 			// only write if there is a defined image description
 			if (this->chan[i].descriptor == kUndefinedDescriptor)
@@ -276,7 +276,7 @@ bool cineon::Header::WriteOffsetData(OutStream *io)
 
 bool cineon::Header::ValidMagicCookie(const U32 magic)
 {
-	U32 mc = MAGIC_COOKIE;
+	U32 mc = CINEON_MAGIC_COOKIE;
 
 	if (magic == mc)
 		return true;
@@ -289,7 +289,7 @@ bool cineon::Header::ValidMagicCookie(const U32 magic)
 
 bool cineon::Header::DetermineByteSwap(const U32 magic) const
 {
-	U32 mc = MAGIC_COOKIE;
+	U32 mc = CINEON_MAGIC_COOKIE;
 
 	bool byteSwap = false;
 
@@ -317,7 +317,7 @@ bool cineon::Header::Validate()
 		SwapBytes(this->fileSize);
 
 		// Image information
-		for (int i = 0; i < MAX_ELEMENTS; i++)
+		for (int i = 0; i < CINEON_MAX_ELEMENTS; i++)
 		{
 			SwapBytes(this->chan[i].pixelsPerLine);
 			SwapBytes(this->chan[i].linesPerElement);
@@ -372,7 +372,7 @@ int cineon::GenericHeader::ImageElementCount() const
 {
 	int i = 0;
 
-	while (i < MAX_ELEMENTS )
+	while (i < CINEON_MAX_ELEMENTS )
 	{
 		if (this->ImageDescriptor(i) == kUndefinedDescriptor)
 			break;
@@ -398,7 +398,7 @@ void cineon::Header::CalculateOffsets()
 {
 	int i;
 
-	for (i = 0; i < MAX_ELEMENTS; i++)
+	for (i = 0; i < CINEON_MAX_ELEMENTS; i++)
 	{
 		// only write if there is a defined image description
 		if (this->chan[i].designator[1] == kUndefinedDescriptor)
@@ -411,7 +411,7 @@ void cineon::Header::CalculateOffsets()
 
 cineon::DataSize cineon::GenericHeader::ComponentDataSize(const int element) const
 {
-	if (element < 0 || element >= MAX_ELEMENTS)
+	if (element < 0 || element >= CINEON_MAX_ELEMENTS)
 		return kByte;
 
 	cineon::DataSize ret;
@@ -444,7 +444,7 @@ cineon::DataSize cineon::GenericHeader::ComponentDataSize(const int element) con
 
 int cineon::GenericHeader::ComponentByteCount(const int element) const
 {
-	if (element < 0 || element >= MAX_ELEMENTS)
+	if (element < 0 || element >= CINEON_MAX_ELEMENTS)
 		return kByte;
 
 	int ret;

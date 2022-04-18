@@ -33,7 +33,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-
+#pragma once
 #ifndef _DPX_H
 #define _DPX_H 1
 
@@ -250,14 +250,10 @@ namespace dpx
 	protected:			
 		InStream *fd;
 		
-		Codec *codex[MAX_ELEMENTS];
+		Codec *codex[DPX_MAX_ELEMENTS];
 		ElementReadStream *rio;
 	};
 	
-	
-	
-	
-
 
 
 

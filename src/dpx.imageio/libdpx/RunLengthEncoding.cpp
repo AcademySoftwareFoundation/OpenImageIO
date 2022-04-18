@@ -113,7 +113,7 @@ bool dpx::RunLengthEncoding::Read(const Header &dpxHeader, ElementReadStream *fd
 		U32 endOffset = 0xffffffff;
 		U32 currentOffset = startOffset;
 		
-		for (i = 0; i < MAX_ELEMENTS; i++)
+		for (i = 0; i < DPX_MAX_ELEMENTS; i++)
 		{
 			if (i == element)
 				continue;
