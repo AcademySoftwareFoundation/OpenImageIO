@@ -10,36 +10,20 @@
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 
-#if defined(OPJ_VERSION_MAJOR)
+#ifndef OIIO_OPJ_VERSION
+#    if defined(OPJ_VERSION_MAJOR)
 // OpenJPEG >= 2.1 defines these symbols
-#    define OIIO_OPJ_VERSION                                 \
-        (OPJ_VERSION_MAJOR * 10000 + OPJ_VERSION_MINOR * 100 \
-         + OPJ_VERSION_BUILD)
-#else
+#        define OIIO_OPJ_VERSION                                 \
+            (OPJ_VERSION_MAJOR * 10000 + OPJ_VERSION_MINOR * 100 \
+             + OPJ_VERSION_BUILD)
+#    else
 // Older, assume it's the minimum of 2.0
-#    define OIIO_OPJ_VERSION 20000
+#        define OIIO_OPJ_VERSION 20000
+#    endif
 #endif
 
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
-
-
-static void
-openjpeg_error_callback(const char* msg, void* data)
-{
-    if (ImageOutput* input = (ImageOutput*)data) {
-        if (!msg || !msg[0])
-            msg = "Unknown OpenJpeg error";
-        input->errorf("%s", msg);
-    }
-}
-
-
-static void
-openjpeg_dummy_callback(const char* /*msg*/, void* /*data*/)
-{
-}
-
 
 
 class Jpeg2000Output final : public ImageOutput {
@@ -134,6 +118,16 @@ private:
     }
 
     static void StreamFree(void* p_user_data) {}
+
+    static void openjpeg_error_callback(const char* msg, void* data)
+    {
+        if (ImageOutput* output = (ImageOutput*)data) {
+            output->errorfmt("{}",
+                             msg && msg[0] ? msg : "Unknown OpenJpeg error");
+        }
+    }
+
+    static void openjpeg_dummy_callback(const char* /*msg*/, void* /*data*/) {}
 };
 
 
@@ -385,8 +379,8 @@ Jpeg2000Output::create_jpeg2000_image()
              || m_spec.format == TypeDesc::INT8)
         precision = 8;
 
-    const int MAX_COMPONENTS = 4;
-    opj_image_cmptparm_t component_params[MAX_COMPONENTS];
+    const int MAX_J2K_COMPONENTS = 4;
+    opj_image_cmptparm_t component_params[MAX_J2K_COMPONENTS];
     init_components(component_params, precision);
 
     m_image = opj_image_create(m_spec.nchannels, &component_params[0],

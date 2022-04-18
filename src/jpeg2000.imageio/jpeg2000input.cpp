@@ -12,14 +12,16 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/sysutil.h>
 
-#if defined(OPJ_VERSION_MAJOR)
+#ifndef OIIO_OPJ_VERSION
+#    if defined(OPJ_VERSION_MAJOR)
 // OpenJPEG >= 2.1 defines these symbols
-#    define OIIO_OPJ_VERSION                                 \
-        (OPJ_VERSION_MAJOR * 10000 + OPJ_VERSION_MINOR * 100 \
-         + OPJ_VERSION_BUILD)
-#else
+#        define OIIO_OPJ_VERSION                                 \
+            (OPJ_VERSION_MAJOR * 10000 + OPJ_VERSION_MINOR * 100 \
+             + OPJ_VERSION_BUILD)
+#    else
 // Older, assume it's the minimum of 2.0
-#    define OIIO_OPJ_VERSION 20000
+#        define OIIO_OPJ_VERSION 20000
+#    endif
 #endif
 
 
@@ -27,27 +29,13 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 namespace {
 
-static void
-openjpeg_error_callback(const char* msg, void* data)
-{
-    if (ImageInput* input = (ImageInput*)data) {
-        input->errorfmt("{}", msg && msg[0] ? msg : "Unknown OpenJpeg error");
-    }
-}
-
-
-static void
-openjpeg_dummy_callback(const char* /*msg*/, void* /*data*/)
-{
-}
-
-
 
 // TODO(sergey): This actually a straight duplication from the png reader,
 // consider de-duplicating the code somehow?
 template<class T>
 void
-associateAlpha(T* data, int size, int channels, int alpha_channel, float gamma)
+j2k_associateAlpha(T* data, int size, int channels, int alpha_channel,
+                   float gamma)
 {
     T max = std::numeric_limits<T>::max();
     if (gamma == 1) {
@@ -175,6 +163,16 @@ private:
     }
 
     static void StreamFree(void* p_user_data) {}
+
+    static void openjpeg_error_callback(const char* msg, void* data)
+    {
+        if (ImageInput* input = (ImageInput*)data) {
+            input->errorfmt("{}",
+                            msg && msg[0] ? msg : "Unknown OpenJpeg error");
+        }
+    }
+
+    static void openjpeg_dummy_callback(const char* /*msg*/, void* /*data*/) {}
 };
 
 
@@ -353,11 +351,11 @@ Jpeg2000Input::read_native_scanline(int subimage, int miplevel, int y, int z,
     if (m_spec.alpha_channel != -1 && !m_keep_unassociated_alpha) {
         float gamma = m_spec.get_float_attribute("oiio:Gamma", 2.2f);
         if (m_spec.format == TypeDesc::UINT16)
-            associateAlpha((unsigned short*)data, m_spec.width,
-                           m_spec.nchannels, m_spec.alpha_channel, gamma);
+            j2k_associateAlpha((unsigned short*)data, m_spec.width,
+                               m_spec.nchannels, m_spec.alpha_channel, gamma);
         else
-            associateAlpha((unsigned char*)data, m_spec.width, m_spec.nchannels,
-                           m_spec.alpha_channel, gamma);
+            j2k_associateAlpha((unsigned char*)data, m_spec.width,
+                               m_spec.nchannels, m_spec.alpha_channel, gamma);
     }
 
     return true;
