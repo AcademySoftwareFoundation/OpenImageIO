@@ -223,6 +223,14 @@ declare_imagespec(py::module& m)
                     std::string(spec.get_string_attribute(name, def)));
             },
             "name"_a, "defaultval"_a = "")
+        .def(
+            "get_bytes_attribute",
+            [](const ImageSpec& spec, const std::string& name,
+               const std::string& def) {
+                return py::bytes(
+                    std::string(spec.get_string_attribute(name, def)));
+            },
+            "name"_a, "defaultval"_a = "")
         .def("getattribute", &ImageSpec_getattribute_typed, "name"_a,
              "type"_a = TypeUnknown)
         .def(
