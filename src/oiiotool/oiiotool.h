@@ -660,16 +660,6 @@ print_stats(std::ostream& out, Oiiotool& ot, const std::string& filename,
             ROI roi = {});
 
 
-// Set an attribute of the given image.  The type should be one of
-// TypeDesc::INT (decode the value as an int), FLOAT, STRING, or UNKNOWN
-// (look at the string and try to discern whether it's an int, float, or
-// string).  If the 'value' string is empty, it will delete the
-// attribute.  If allsubimages is true, apply the attribute to all
-// subimages, otherwise just the first subimage.
-bool
-set_attribute(ImageRecRef img, string_view attribname, TypeDesc type,
-              string_view value, bool allsubimages);
-
 inline bool
 same_size(const ImageBuf& A, const ImageBuf& B)
 {
@@ -820,6 +810,13 @@ public:
         : OiiotoolOp(ot, opname, argc, argv, ninputs, {}, impl_func)
     {
     }
+    OiiotoolOp(Oiiotool& ot, string_view opname, cspan<const char*> argv,
+               int ninputs, setup_func_t setup_func = nullptr,
+               impl_func_t impl_func = nullptr)
+        : OiiotoolOp(ot, opname, (int)argv.size(), (const char**)argv.data(),
+                     ninputs, setup_func, impl_func)
+    {
+    }
     virtual ~OiiotoolOp() {}
 
     // The operator(), function-call mode, does most of the work. Although
@@ -857,7 +854,14 @@ public:
             // Read the inputs
             subimages = compute_subimages();
             // Initialize the output image
-            m_ir[0] = new_output_imagerec();
+            if (inplace() && nimages() >= 2) {
+                // If instructed to operate in place, just make the output
+                // another reference to the first input image.
+                m_ir[0] = m_ir[1];
+            } else {
+                // Not in-place, so make a new output image.
+                m_ir[0] = new_output_imagerec();
+            }
             ot.push(m_ir[0]);
         }
 
@@ -1055,6 +1059,7 @@ public:
     string_view args(int i) const { return m_args[i]; }
     int nimages() const { return m_nimages; }
     string_view opname() const { return m_opname; }
+    ParamValueList& options() { return m_options; }
     const ParamValueList& options() const { return m_options; }
     ImageBuf* img(int i) const { return m_img[i]; }
 
@@ -1084,6 +1089,11 @@ public:
     void skip_impl(bool val) { m_skip_impl = val; }
     bool skip_impl() const { return m_skip_impl; }
 
+    // Call inplace(true) if the operation should work on the single top
+    // image *in place*, i.e. not copying to form a new image.
+    void inplace(bool val) { m_inplace = val; }
+    bool inplace() const { return m_inplace; }
+
 protected:
     Oiiotool& ot;
     std::string m_opname;
@@ -1091,6 +1101,7 @@ protected:
     int m_nimages;
     bool m_preserve_miplevels = false;
     bool m_skip_impl          = false;
+    bool m_inplace            = false;
     std::vector<ImageRecRef> m_ir;
     std::vector<ImageBuf*> m_img;
     std::vector<string_view> m_args;

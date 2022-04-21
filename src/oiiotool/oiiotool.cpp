@@ -1264,6 +1264,86 @@ control_endfor(int argc, const char* argv[])
 
 
 
+// Centralized logic to set attribute `attribname` on object `obj` to `value`.
+// The value is expressed as a string, with the type specified by `type`, or
+// if TypeUnknown, inferred from the apparent formatting of the value.
+template<typename T>
+static void
+set_attribute_helper(T& obj, string_view attribname, string_view value,
+                     TypeDesc type)
+{
+    // First, handle the cases where we're told what to expect
+    if (type.basetype == TypeDesc::FLOAT) {
+        size_t n = type.numelements() * type.aggregate;
+        std::vector<float> vals(n, 0.0f);
+        for (size_t i = 0; i < n && value.size(); ++i) {
+            Strutil::parse_float(value, vals[i]);
+            Strutil::parse_char(value, ',');
+        }
+        obj.attribute(attribname, type, &vals[0]);
+        return;
+    }
+    if (type == TypeTimeCode && value.find(':') != value.npos) {
+        // Special case: They are specifying a TimeCode as a "HH:MM:SS:FF"
+        // string, we need to re-encode as a uint32[2].
+        int hmsf[4] = { 0, 0, 0, 0 };  // hour, min, sec, frame
+        Strutil::scan_values(value, "", hmsf, ":");
+        Imf::TimeCode tc(hmsf[0], hmsf[1], hmsf[2], hmsf[3]);
+        obj.attribute(attribname, type, &tc);
+        return;
+    }
+    if (type == TypeRational && value.find('/') != value.npos) {
+        // Special case: They are specifying a rational as "a/b", so we need
+        // to re-encode as a int32[2].
+        int v[2];
+        Strutil::parse_int(value, v[0]);
+        Strutil::parse_char(value, '/');
+        Strutil::parse_int(value, v[1]);
+        obj.attribute(attribname, type, v);
+        return;
+    }
+    if (type.basetype == TypeDesc::INT) {
+        size_t n = type.numelements() * type.aggregate;
+        std::vector<int> vals(n, 0);
+        for (size_t i = 0; i < n && value.size(); ++i) {
+            Strutil::parse_int(value, vals[i]);
+            Strutil::parse_char(value, ',');
+        }
+        obj.attribute(attribname, type, &vals[0]);
+        return;
+    }
+    if (type.basetype == TypeDesc::STRING) {
+        size_t n = type.numelements() * type.aggregate;
+        std::vector<ustring> vals(n, ustring());
+        if (n == 1)
+            vals[0] = ustring(value);
+        else {
+            for (size_t i = 0; i < n && value.size(); ++i) {
+                string_view s;
+                Strutil::parse_string(value, s);
+                vals[i] = ustring(s);
+                Strutil::parse_char(value, ',');
+            }
+        }
+        obj.attribute(attribname, type, &vals[0]);
+        return;
+    }
+
+    // No explicit type... guess based on the appearance of the value string.
+    if (Strutil::string_is_int(value)) {
+        // Does it seem to be an int?
+        obj.attribute(attribname, Strutil::stoi(value));
+    } else if (Strutil::string_is_float(value)) {
+        // Does it seem to be a float?
+        obj.attribute(attribname, Strutil::stof(value));
+    } else {
+        // Otherwise, set it as a string attribute
+        obj.attribute(attribname, value);
+    }
+}
+
+
+
 // --set
 static int
 set_user_variable(int argc, const char* argv[])
@@ -1276,73 +1356,17 @@ set_user_variable(int argc, const char* argv[])
     auto options        = ot.extract_options(command);
     TypeDesc type(options["type"].as_string());
 
-    // First, handle the cases where we're told what to expect
-    if (type.basetype == TypeDesc::FLOAT) {
-        size_t n = type.numelements() * type.aggregate;
-        std::vector<float> vals(n, 0.0f);
-        for (size_t i = 0; i < n && value.size(); ++i) {
-            Strutil::parse_float(value, vals[i]);
-            Strutil::parse_char(value, ',');
-        }
-        ot.uservars.attribute(name, type, vals.data());
-        return 1;
-    }
-    if (type.basetype == TypeDesc::INT) {
-        size_t n = type.numelements() * type.aggregate;
-        std::vector<int> vals(n, 0);
-        for (size_t i = 0; i < n && value.size(); ++i) {
-            Strutil::parse_int(value, vals[i]);
-            Strutil::parse_char(value, ',');
-        }
-        ot.uservars.attribute(name, type, vals.data());
-        return 1;
-    }
-    if (type.basetype == TypeDesc::STRING) {
-        size_t n = type.numelements() * type.aggregate;
-        std::vector<ustring> vals(n, ustring());
-        if (n == 1)
-            vals[0] = ustring(value);
-        else {
-            for (size_t i = 0; i < n && value.size(); ++i) {
-                string_view s;
-                Strutil::parse_string(value, s);
-                vals[i] = ustring(s);
-                Strutil::parse_char(value, ',');
-            }
-        }
-        ot.uservars.attribute(name, type, vals.data());
-        return 1;
-    }
-
-    if (type == TypeInt
-        || (type == TypeUnknown && Strutil::string_is_int(value))) {
-        // Does it seem to be an int, or did the caller explicitly request
-        // that it be set as an int?
-        ot.uservars.attribute(name, Strutil::stoi(value));
-        return 1;
-    } else if (type == TypeFloat
-               || (type == TypeUnknown && Strutil::string_is_float(value))) {
-        // Does it seem to be a float, or did the caller explicitly request
-        // that it be set as a float?
-        ot.uservars.attribute(name, Strutil::stof(value));
-        return 1;
-    } else {
-        // Otherwise, set it as a string attribute
-        ot.uservars.attribute(name, value);
-        return 1;
-    }
-    ot.warningfmt(argv[0], "Don't know how to set {} to \"{}\" ({})", name,
-                  value, type);
-    return 0;
+    set_attribute_helper(ot.uservars, name, value, type);
+    return 1;
 }
 
 
 
 // --oiioattrib
-static int
-set_oiio_attribute(int argc, const char* argv[])
+static void
+set_oiio_attribute(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 3);
+    OIIO_DASSERT(argv.size() == 3);
 
     string_view command    = ot.express(argv[0]);
     string_view attribname = ot.express(argv[1]);
@@ -1350,137 +1374,106 @@ set_oiio_attribute(int argc, const char* argv[])
     auto options           = ot.extract_options(command);
     TypeDesc type(options["type"].as_string());
 
-    // First, handle the cases where we're told what to expect
-    if (type.basetype == TypeDesc::FLOAT) {
-        size_t n = type.numelements() * type.aggregate;
-        std::vector<float> vals(n, 0.0f);
-        for (size_t i = 0; i < n && value.size(); ++i) {
-            Strutil::parse_float(value, vals[i]);
-            Strutil::parse_char(value, ',');
-        }
-        OIIO::attribute(attribname, type, vals.data());
-        return 1;
-    }
-    if (type.basetype == TypeDesc::INT) {
-        size_t n = type.numelements() * type.aggregate;
-        std::vector<int> vals(n, 0);
-        for (size_t i = 0; i < n && value.size(); ++i) {
-            Strutil::parse_int(value, vals[i]);
-            Strutil::parse_char(value, ',');
-        }
-        OIIO::attribute(attribname, type, vals.data());
-        return 1;
-    }
-    if (type.basetype == TypeDesc::STRING) {
-        size_t n = type.numelements() * type.aggregate;
-        std::vector<ustring> vals(n, ustring());
-        if (n == 1)
-            vals[0] = ustring(value);
-        else {
-            for (size_t i = 0; i < n && value.size(); ++i) {
-                string_view s;
-                Strutil::parse_string(value, s);
-                vals[i] = ustring(s);
-                Strutil::parse_char(value, ',');
-            }
-        }
-        OIIO::attribute(attribname, type, vals.data());
-        return 1;
-    }
-
-    if (type == TypeInt
-        || (type == TypeUnknown && Strutil::string_is_int(value))) {
-        // Does it seem to be an int, or did the caller explicitly request
-        // that it be set as an int?
-        return OIIO::attribute(attribname, Strutil::stoi(value));
-    } else if (type == TypeFloat
-               || (type == TypeUnknown && Strutil::string_is_float(value))) {
-        // Does it seem to be a float, or did the caller explicitly request
-        // that it be set as a float?
-        return OIIO::attribute(attribname, Strutil::stof(value));
-    } else {
-        // Otherwise, set it as a string attribute
-        return OIIO::attribute(attribname, value);
-    }
-    return 0;
+    // Rather than duplicate the logic of set_attribute_helper for the case of
+    // the global attribute that doesn't have an object to go with it, cheat
+    // by putting the attrib into a temporary ParamValueList with
+    // set_attribute_helper, then transfer to OIIO global attribs. This
+    // doesn't happen often enough to care about the perf hit of the extra
+    // copy.
+    ParamValueList pl;
+    set_attribute_helper(pl, attribname, value, type);
+    for (const auto& p : pl)
+        OIIO::attribute(p.name(), p.type(), p.data());
 }
 
 
 
-static int
-set_string_attribute(int argc, const char* argv[])
+// Special OiiotoolOp whose purpose is to set attributes on the top image.
+class OpAttribSetter final : public OiiotoolOp {
+public:
+    OpAttribSetter(Oiiotool& ot, string_view opname, cspan<const char*> argv)
+        : OiiotoolOp(ot, opname, argv, 1)
+    {
+        inplace(true);  // This action operates in-place
+        attribname = args(1);
+        value      = (nargs() > 2 ? args(2) : "");
+    }
+    OpAttribSetter(Oiiotool& ot, string_view opname, int argc,
+                   const char* argv[])
+        : OiiotoolOp(ot, opname, argc, argv, 1)
+    {
+        inplace(true);  // This action operates in-place
+        attribname = args(1);
+        value      = (nargs() > 2 ? args(2) : "");
+    }
+    virtual bool setup() override
+    {
+        ir(0)->metadata_modified(true);
+        return true;
+    }
+    virtual bool impl(span<ImageBuf*> img) override
+    {
+        // Because this is an in-place operation, img[0] is the same as
+        // img[1].
+        if (value.empty()) {
+            img[0]->specmod().erase_attribute(attribname);
+        } else {
+            TypeDesc type(options()["type"].as_string());
+            set_attribute_helper(img[0]->specmod(), attribname, value, type);
+        }
+        return true;
+    }
+
+private:
+    string_view attribname;
+    string_view value;
+};
+
+
+
+// Common helper for attrib setting commands
+static void
+action_attrib_helper(string_view command, cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 3);
     if (!ot.curimg.get()) {
-        ot.warning(argv[0], "no current image available to modify");
-        return 0;
+        ot.warning(command, "no current image available to modify");
+        return;
     }
-
-    string_view command = ot.express(argv[0]);
-    auto options        = ot.extract_options(command);
-    bool allsubimages   = options.get_int("allsubimages", ot.allsubimages);
-    set_attribute(ot.curimg, argv[1], TypeString, argv[2], allsubimages);
-    // N.B. set_attribute does expression expansion on its args
-    return 0;
+    OpAttribSetter op(ot, command, argv);
+    op();
 }
 
 
 
-static int
-set_any_attribute(int argc, const char* argv[])
+// --attrib
+static void
+action_attrib(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 3);
-    if (!ot.curimg.get()) {
-        ot.warning(argv[0], "no current image available to modify");
-        return 0;
-    }
-
-    string_view command = ot.express(argv[0]);
-    auto options        = ot.extract_options(command);
-    bool allsubimages   = options.get_int("allsubimages", ot.allsubimages);
-    TypeDesc type(options["type"].as_string());
-
-    set_attribute(ot.curimg, argv[1], type, argv[2], allsubimages);
-    // N.B. set_attribute does expression expansion on its args
-    return 0;
+    OIIO_DASSERT(argv.size() == 3);
+    action_attrib_helper(argv[0], argv);
 }
 
 
 
-static bool
-do_erase_attribute(ImageSpec& spec, string_view attribname)
+// --sattrib
+static void
+action_sattrib(cspan<const char*> argv)
 {
-    spec.erase_attribute(attribname);
-    return true;
+    // Lean on action_attrib, but force it to think it's a string
+    action_attrib_helper(
+        argv[0], { Strutil::fmt::format("{}:type=string", argv[0]).c_str(),
+                   argv[1], argv[2] });
 }
 
 
 
 // --eraseattrib
-static int
-erase_attribute(int argc, const char* argv[])
+static void
+erase_attribute(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 2);
-    if (!ot.curimg.get()) {
-        ot.warning(argv[0], "no current image available to modify");
-        return 0;
-    }
-    string_view command = ot.express(argv[0]);
-    auto options        = ot.extract_options(command);
-    bool allsubimages   = options.get_int("allsubimages", ot.allsubimages);
-    string_view pattern = ot.express(argv[1]);
-    return apply_spec_mod(ot, ot.curimg, do_erase_attribute, pattern,
-                          allsubimages);
-}
-
-
-
-template<class T>
-static bool
-do_set_any_attribute(ImageSpec& spec, const std::pair<std::string, T>& x)
-{
-    spec.attribute(x.first, x.second);
-    return true;
+    // action_attrib already has the property of erasing the attrib if no
+    // value is in the args.
+    action_attrib_helper(argv[0], argv);
 }
 
 
@@ -2155,159 +2148,11 @@ set_input_attribute(int argc, const char* argv[])
 
 
 
-bool
-OiioTool::set_attribute(ImageRecRef img, string_view attribname, TypeDesc type,
-                        string_view value, bool allsubimages)
-{
-    // Expression substitution
-    attribname = ot.express(attribname);
-    value      = ot.express(value);
-
-    ot.read(img);
-    img->metadata_modified(true);
-    if (!value.size()) {
-        // If the value is the empty string, clear the attribute
-        return apply_spec_mod(ot, img, do_erase_attribute, attribname,
-                              allsubimages);
-    }
-
-    // First, handle the cases where we're told what to expect
-    if (type.basetype == TypeDesc::FLOAT) {
-        size_t n = type.numelements() * type.aggregate;
-        std::vector<float> vals(n, 0.0f);
-        for (size_t i = 0; i < n && value.size(); ++i) {
-            Strutil::parse_float(value, vals[i]);
-            Strutil::parse_char(value, ',');
-        }
-        for (int s = 0, send = img->subimages(); s < send; ++s) {
-            for (int m = 0, mend = img->miplevels(s); m < mend; ++m) {
-                ((*img)(s, m).specmod()).attribute(attribname, type, &vals[0]);
-                img->update_spec_from_imagebuf(s, m);
-                if (!allsubimages)
-                    break;
-            }
-            if (!allsubimages)
-                break;
-        }
-        return true;
-    }
-    if (type == TypeTimeCode && value.find(':') != value.npos) {
-        // Special case: They are specifying a TimeCode as a "HH:MM:SS:FF"
-        // string, we need to re-encode as a uint32[2].
-        int hmsf[4] = { 0, 0, 0, 0 };  // hour, min, sec, frame
-        Strutil::scan_values(value, "", hmsf, ":");
-        Imf::TimeCode tc(hmsf[0], hmsf[1], hmsf[2], hmsf[3]);
-        for (int s = 0, send = img->subimages(); s < send; ++s) {
-            for (int m = 0, mend = img->miplevels(s); m < mend; ++m) {
-                ((*img)(s, m).specmod()).attribute(attribname, type, &tc);
-                img->update_spec_from_imagebuf(s, m);
-                if (!allsubimages)
-                    break;
-            }
-            if (!allsubimages)
-                break;
-        }
-        return true;
-    }
-    if (type == TypeRational && value.find('/') != value.npos) {
-        // Special case: They are specifying a rational as "a/b", so we need
-        // to re-encode as a int32[2].
-        int v[2];
-        Strutil::parse_int(value, v[0]);
-        Strutil::parse_char(value, '/');
-        Strutil::parse_int(value, v[1]);
-        for (int s = 0, send = img->subimages(); s < send; ++s) {
-            for (int m = 0, mend = img->miplevels(s); m < mend; ++m) {
-                ((*img)(s, m).specmod()).attribute(attribname, type, v);
-                img->update_spec_from_imagebuf(s, m);
-                if (!allsubimages)
-                    break;
-            }
-            if (!allsubimages)
-                break;
-        }
-        return true;
-    }
-    if (type.basetype == TypeDesc::INT) {
-        size_t n = type.numelements() * type.aggregate;
-        std::vector<int> vals(n, 0);
-        for (size_t i = 0; i < n && value.size(); ++i) {
-            Strutil::parse_int(value, vals[i]);
-            Strutil::parse_char(value, ',');
-        }
-        for (int s = 0, send = img->subimages(); s < send; ++s) {
-            for (int m = 0, mend = img->miplevels(s); m < mend; ++m) {
-                ((*img)(s, m).specmod()).attribute(attribname, type, &vals[0]);
-                img->update_spec_from_imagebuf(s, m);
-                if (!allsubimages)
-                    break;
-            }
-            if (!allsubimages)
-                break;
-        }
-        return true;
-    }
-    if (type.basetype == TypeDesc::STRING) {
-        size_t n = type.numelements() * type.aggregate;
-        std::vector<ustring> vals(n, ustring());
-        if (n == 1)
-            vals[0] = ustring(value);
-        else {
-            for (size_t i = 0; i < n && value.size(); ++i) {
-                string_view s;
-                Strutil::parse_string(value, s);
-                vals[i] = ustring(s);
-                Strutil::parse_char(value, ',');
-            }
-        }
-        for (int s = 0, send = img->subimages(); s < send; ++s) {
-            for (int m = 0, mend = img->miplevels(s); m < mend; ++m) {
-                ((*img)(s, m).specmod()).attribute(attribname, type, &vals[0]);
-                img->update_spec_from_imagebuf(s, m);
-                if (!allsubimages)
-                    break;
-            }
-            if (!allsubimages)
-                break;
-        }
-        return true;
-    }
-
-    if (type == TypeInt
-        || (type == TypeUnknown && Strutil::string_is_int(value))) {
-        // Does it seem to be an int, or did the caller explicitly request
-        // that it be set as an int?
-        int v = Strutil::stoi(value);
-        return apply_spec_mod(ot, img, do_set_any_attribute<int>,
-                              std::pair<std::string, int>(attribname, v),
-                              allsubimages);
-    } else if (type == TypeFloat
-               || (type == TypeUnknown && Strutil::string_is_float(value))) {
-        // Does it seem to be a float, or did the caller explicitly request
-        // that it be set as a float?
-        float v = Strutil::stof(value);
-        return apply_spec_mod(ot, img, do_set_any_attribute<float>,
-                              std::pair<std::string, float>(attribname, v),
-                              allsubimages);
-    } else {
-        // Otherwise, set it as a string attribute
-        return apply_spec_mod(ot, img, do_set_any_attribute<std::string>,
-                              std::pair<std::string, std::string>(attribname,
-                                                                  value),
-                              allsubimages);
-    }
-}
-
-
-
 // --caption
-static int
-set_caption(int argc, const char* argv[])
+static void
+set_caption(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 2);
-    const char* newargs[3] = { argv[0], "ImageDescription", argv[1] };
-    return set_string_attribute(3, newargs);
-    // N.B. set_string_attribute does expression expansion on its args
+    action_sattrib({ argv[0], "ImageDescription", argv[1] });
 }
 
 
@@ -2353,36 +2198,21 @@ set_keyword(int argc, const char* argv[])
 
 
 // --clear-keywords
-static int
-clear_keywords(int argc, const char* argv[])
+static void
+clear_keywords(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 1);
-    const char* newargs[3];
-    newargs[0] = argv[0];
-    newargs[1] = "Keywords";
-    newargs[2] = "";
-    return set_string_attribute(3, newargs);
+    action_sattrib({ argv[0], "Keywords", "" });
 }
 
 
 
 // --orientation
-static int
-set_orientation(int argc, const char* argv[])
+static void
+set_orientation(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 2);
-    if (!ot.curimg.get()) {
-        ot.warning(argv[0], "no current image available to modify");
-        return 0;
-    }
-
-    string_view command = ot.express(argv[0]);
-    auto options        = ot.extract_options(command);
-    bool allsubimages   = options.get_int("allsubimages", ot.allsubimages);
-
-    return set_attribute(ot.curimg, "Orientation", TypeDesc::INT, argv[1],
-                         allsubimages);
-    // N.B. set_attribute does expression expansion on its args
+    action_attrib_helper(argv[0],
+                         { Strutil::fmt::format("{}:type=int", argv[0]).c_str(),
+                           "Orientation", argv[1] });
 }
 
 
@@ -2621,13 +2451,10 @@ set_colorconfig(int argc, const char* argv[])
 
 
 // --iscolorspace
-static int
-set_colorspace(int argc, const char* argv[])
+static void
+set_colorspace(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 2);
-    const char* args[3] = { argv[0], "oiio:ColorSpace", argv[1] };
-    return set_string_attribute(3, args);
-    // N.B. set_string_attribute does expression expansion on its args
+    action_sattrib({ argv[0], "oiio:ColorSpace", argv[1] });
 }
 
 
@@ -6356,10 +6183,10 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.separator("Options that change current image metadata (but not pixel values):");
     ap.arg("--attrib %s:NAME %s:VALUE")
       .help("Sets metadata attribute (options: type=...)")
-      .action(set_any_attribute);
+      .action(action_attrib);
     ap.arg("--sattrib %s:NAME %s:VALUE")
       .help("Sets string metadata attribute")
-      .action(set_string_attribute);
+      .action(action_sattrib);
     ap.arg("--eraseattrib %s:REGEX")
       .help("Erase attributes matching regex")
       .action(erase_attribute);
