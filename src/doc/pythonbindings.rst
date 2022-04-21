@@ -587,10 +587,15 @@ Section :ref:`sec-ImageSpec`, is replicated for Python.
 .. py:method:: ImageSpec.get_int_attribute (name, defaultval=0)
                   ImageSpec.get_float_attribute (name, defaultval=0.0)
                   ImageSpec.get_string_attribute (name, defaultval="")
+                  ImageSpec.get_bytes_attribute (name, defaultval="")
 
     Retrieves a named metadata value from `extra_attribs`, if it is
     found and is of the given type; returns the default value (or a passed
     value) if not found.
+
+    For an attribute of type STRING, get_bytes_attribute in Python3 skips
+    decoding the underlying C string as UTF-8 and returns a `bytes` object
+    containing the raw byte string.
 
     Example:
 
@@ -3816,6 +3821,7 @@ details.
                get_int_attribute (name, defaultval=0)
                get_float_attribute (name, defaultval=0.0)
                get_string_attribute (name, defaultval="")
+               get_bytes_attribute (name, defaultval="")
 
     Retrieves an attribute value from the named set of global OIIO options.
     (See Section :ref:`sec-globalattribs`.) The `getattribute()` function
@@ -3823,6 +3829,10 @@ details.
     not exist.  The typed variety will only succeed if the attribute is
     actually of that type specified. Type varity with the type in the name
     also takes a default value.
+
+    For an attribute of type STRING, get_bytes_attribute in Python3 skips
+    decoding the underlying C string as UTF-8 and returns a `bytes` object
+    containing the raw byte string.
 
     Example:
 
