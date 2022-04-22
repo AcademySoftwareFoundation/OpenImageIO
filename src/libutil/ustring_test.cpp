@@ -94,6 +94,7 @@ main(int argc, char* argv[])
     ustring longstring(Strutil::repeat("01234567890", 100));
     OIIO_CHECK_EQUAL(ustring::concat(longstring, longstring),
                      ustring::sprintf("%s%s", longstring, longstring));
+    OIIO_CHECK_EQUAL(ustring::from_hash(foo.hash()), foo);
 
     const int nhw_threads = Sysutil::hardware_concurrency();
     std::cout << "hw threads = " << nhw_threads << "\n";

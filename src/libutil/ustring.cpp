@@ -93,6 +93,30 @@ template<unsigned BASE_CAPACITY, unsigned POOL_SIZE> struct TableRepMap {
         }
     }
 
+    // Look up based on hash only. Return nullptr if not found. Note that if
+    // the hash is not unique, this will return the first entry that matches
+    // the hash.
+    const char* lookup(size_t hash)
+    {
+        ustring_read_lock_t lock(mutex);
+#ifdef USTRING_TRACK_NUM_LOOKUPS
+        // NOTE: this simple increment adds a substantial amount of overhead
+        // so keep it off by default, unless the user really wants it
+        // NOTE2: note that in debug, asserts like the one in ustring::from_unique
+        // can skew the number of lookups compared to release builds
+        ++num_lookups;
+#endif
+        size_t pos = hash & mask, dist = 0;
+        for (;;) {
+            if (entries[pos] == 0)
+                return 0;
+            if (entries[pos]->hashed == hash)
+                return entries[pos]->c_str();
+            ++dist;
+            pos = (pos + dist) & mask;  // quadratic probing
+        }
+    }
+
     const char* insert(string_view str, size_t hash)
     {
         ustring_write_lock_t lock(mutex);
@@ -199,6 +223,8 @@ struct UstringTable {
     {
         return whichbin(hash).lookup(str, hash);
     }
+
+    const char* lookup(size_t hash) { return whichbin(hash).lookup(hash); }
 
     const char* insert(string_view str, size_t hash)
     {
@@ -538,6 +564,15 @@ ustring::make_unique(string_view strref)
 
     return result;
 #endif
+}
+
+
+
+ustring
+ustring::from_hash(size_t hash)
+{
+    UstringTable& table(ustring_table());
+    return from_unique(table.lookup(hash));
 }
 
 
