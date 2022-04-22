@@ -310,7 +310,8 @@ OIIO_DECLARE_PYMODULE(PYMODULE_NAME)
     m.def(
         "get_bytes_attribute",
         [](const std::string& name, const std::string& def) {
-            return py::bytes(std::string(OIIO::get_string_attribute(name, def)));
+            return py::bytes(
+                std::string(OIIO::get_string_attribute(name, def)));
         },
         py::arg("name"), py::arg("defaultval") = "");
     m.def("getattribute", &oiio_getattribute_typed);
