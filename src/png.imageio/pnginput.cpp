@@ -206,7 +206,8 @@ PNGInput::close()
 
 template<class T>
 static void
-associateAlpha(T* data, int size, int channels, int alpha_channel, float gamma)
+png_associateAlpha(T* data, int size, int channels, int alpha_channel,
+                   float gamma)
 {
     T max = std::numeric_limits<T>::max();
     if (gamma == 1) {
@@ -291,11 +292,11 @@ PNGInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     if (m_spec.alpha_channel != -1 && !m_keep_unassociated_alpha) {
         float gamma = m_spec.get_float_attribute("oiio:Gamma", 1.0f);
         if (m_spec.format == TypeDesc::UINT16)
-            associateAlpha((unsigned short*)data, m_spec.width,
-                           m_spec.nchannels, m_spec.alpha_channel, gamma);
+            png_associateAlpha((unsigned short*)data, m_spec.width,
+                               m_spec.nchannels, m_spec.alpha_channel, gamma);
         else
-            associateAlpha((unsigned char*)data, m_spec.width, m_spec.nchannels,
-                           m_spec.alpha_channel, gamma);
+            png_associateAlpha((unsigned char*)data, m_spec.width,
+                               m_spec.nchannels, m_spec.alpha_channel, gamma);
     }
 
     return true;

@@ -78,6 +78,10 @@ private:
         OIIO_DASSERT(pngoutput);
         pngoutput->ioproxy()->flush();
     }
+
+    template<class T>
+    void deassociateAlpha(T* data, int size, int channels, int alpha_channel,
+                          float gamma);
 };
 
 
@@ -241,9 +245,9 @@ PNGOutput::close()
 
 
 template<class T>
-static void
-deassociateAlpha(T* data, int size, int channels, int alpha_channel,
-                 float gamma)
+void
+PNGOutput::deassociateAlpha(T* data, int size, int channels, int alpha_channel,
+                            float gamma)
 {
     unsigned int max = std::numeric_limits<T>::max();
     if (gamma == 1) {
