@@ -725,6 +725,12 @@ public:
         return u;
     }
 
+    /// Return the ustring corresponding to the given hash, or the empty
+    /// ustring() if there is no registered ustring with that hash. Note that
+    /// if there are multiple ustrings with the same hash, this will return
+    /// the first one it finds in the table.
+    OIIO_NODISCARD static ustring from_hash(size_t hash);
+
 private:
     // Individual ustring internal representation -- the unique characters.
     //
