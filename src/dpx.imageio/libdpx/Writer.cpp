@@ -99,12 +99,12 @@ void dpx::Writer::SetImageInfo(const U32 width, const U32 height)
 }
 
 		
-// returns next available or MAX_ELEMENTS if full
+// returns next available or DPX_MAX_ELEMENTS if full
 int dpx::Writer::NextAvailElement() const
 {
 	unsigned int i;
 	
-	for (i = 0; i < MAX_ELEMENTS; i++)
+	for (i = 0; i < DPX_MAX_ELEMENTS; i++)
 	{
 		if (this->header.ImageDescriptor(i) == kUndefinedDescriptor)
 			break;
@@ -160,7 +160,7 @@ void dpx::Writer::SetElement(const int num, const Descriptor desc, const U8 bitD
 			const U32 eolnPadding, const U32 eoimPadding)
 {
 	// make sure the range is good
-	if (num < 0 || num >= MAX_ELEMENTS)
+	if (num < 0 || num >= DPX_MAX_ELEMENTS)
 		return;
 
 	// set values
@@ -201,7 +201,7 @@ dpx::Writer::WritePadData(const int alignment)
 bool dpx::Writer::WriteElement(const int element, void *data, const long count)
 {
 	// make sure the range is good
-	if (element < 0 || element >= MAX_ELEMENTS)
+	if (element < 0 || element >= DPX_MAX_ELEMENTS)
 		return false;
 
 	// make sure the entry is valid
@@ -225,7 +225,7 @@ bool dpx::Writer::WriteElement(const int element, void *data, const long count)
 bool dpx::Writer::WriteElement(const int element, void *data)
 {
 	// make sure the range is good
-	if (element < 0 || element >= MAX_ELEMENTS)
+	if (element < 0 || element >= DPX_MAX_ELEMENTS)
 		return false;
 
 	// make sure the entry is valid
@@ -240,7 +240,7 @@ bool dpx::Writer::WriteElement(const int element, void *data, const DataSize siz
 	bool status = true;	
 	
 	// make sure the range is good
-	if (element < 0 || element >= MAX_ELEMENTS)
+	if (element < 0 || element >= DPX_MAX_ELEMENTS)
 		return false;
 
 	// make sure the entry is valid

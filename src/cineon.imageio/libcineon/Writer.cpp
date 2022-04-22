@@ -82,12 +82,12 @@ void cineon::Writer::SetImageInfo(const U32 width, const U32 height)
 }
 
 
-// returns next available or MAX_ELEMENTS if full
+// returns next available or CINEON_MAX_ELEMENTS if full
 int cineon::Writer::NextAvailElement() const
 {
 	unsigned int i;
 
-	for (i = 0; i < MAX_ELEMENTS; i++)
+	for (i = 0; i < CINEON_MAX_ELEMENTS; i++)
 	{
 		if (this->header.ImageDescriptor(i) == kUndefinedDescriptor)
 			break;
@@ -139,7 +139,7 @@ void cineon::Writer::SetElement(const int num, const Descriptor desc, const U8 b
 			const R32 highData, const R32 highQuantity)
 {
 	// make sure the range is good
-	if (num < 0 || num >= MAX_ELEMENTS)
+	if (num < 0 || num >= CINEON_MAX_ELEMENTS)
 		return;
 
 	// set values
@@ -160,7 +160,7 @@ void cineon::Writer::SetElement(const int num, const Descriptor desc, const U8 b
 bool cineon::Writer::WriteElement(const int element, void *data, const long count)
 {
 	// make sure the range is good
-	if (element < 0 || element >= MAX_ELEMENTS)
+	if (element < 0 || element >= CINEON_MAX_ELEMENTS)
 		return false;
 
 	// make sure the entry is valid
@@ -180,7 +180,7 @@ bool cineon::Writer::WriteElement(const int element, void *data, const long coun
 bool cineon::Writer::WriteElement(const int element, void *data)
 {
 	// make sure the range is good
-	if (element < 0 || element >= MAX_ELEMENTS)
+	if (element < 0 || element >= CINEON_MAX_ELEMENTS)
 		return false;
 
 	// make sure the entry is valid
@@ -197,7 +197,7 @@ bool cineon::Writer::WriteElement(const int element, void *data, const DataSize 
 	bool status = true;
 
 	// make sure the range is good
-	if (element < 0 || element >= MAX_ELEMENTS)
+	if (element < 0 || element >= CINEON_MAX_ELEMENTS)
 		return false;
 
 	// make sure the entry is valid

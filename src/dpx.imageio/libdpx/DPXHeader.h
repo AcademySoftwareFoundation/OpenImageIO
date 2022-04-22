@@ -37,7 +37,7 @@
  
 // SMPTE DPX graphic file format v2.0
 
-
+#pragma once
 #ifndef _DPX_DPXHEADER_H
 #define _DPX_DPXHEADER_H 1
 
@@ -54,23 +54,16 @@
 #define SMPTE_VERSION		"V2.0"
 
 /*!
- * \def MAX_ELEMENTS
+ * \def DPX_MAX_ELEMENTS
  * \brief Maximum number of image elements
  */
-#define MAX_ELEMENTS		8
+#    define DPX_MAX_ELEMENTS 8
 
 /*!
- * \def MAX_COMPONENTS
- * \brief Maximum number of components per image element
- */
-#define MAX_COMPONENTS		8
-
-
-/*!
- * \def MAGIC_COOKIE
+ * \def DPX_MAGIC_COOKIE
  * \brief HEX value of "SDPX"
  */
-#define MAGIC_COOKIE		0x53445058
+#define DPX_MAGIC_COOKIE		0x53445058
 
 
 
@@ -325,8 +318,8 @@ namespace dpx
 		U16					numberOfElements;			//!< Number of elements (1-8)
 		U32					pixelsPerLine;				//!< Pixels per line
 		U32					linesPerElement;			//!< Lines per element
-		ImageElement		chan[MAX_ELEMENTS];			//!< Image element data structures
-		ASCII				reserved2[52];				//!< Reserved
+        ImageElement        chan[DPX_MAX_ELEMENTS];     //!< Image element data structures
+        ASCII				reserved2[52];				//!< Reserved
 		/* end of group */
 		//@}
 		
@@ -1685,150 +1678,150 @@ namespace dpx
 	
 	inline U32 GenericHeader::DataSign(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xffffffff;
-		return this->chan[i].dataSign;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return 0xffffffff;
+        return this->chan[i].dataSign;
 	}
 
 	inline void GenericHeader::SetDataSign(const int i, const U32 sign)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].dataSign = sign;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        this->chan[i].dataSign = sign;
 	}
 
 	inline U32 GenericHeader::LowData(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xffffffff;
-		return this->chan[i].lowData;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return 0xffffffff;
+        return this->chan[i].lowData;
 	}
 
 	inline void GenericHeader::SetLowData(const int i, const U32 data)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].lowData = data;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        this->chan[i].lowData = data;
 	}
 
 	inline R32 GenericHeader::LowQuantity(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return R32(0xffffffff);
-		return this->chan[i].lowQuantity;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return R32(0xffffffff);
+        return this->chan[i].lowQuantity;
 	}
 
 	inline void GenericHeader::SetLowQuantity(const int i, const R32 quant)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].lowQuantity = quant;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        this->chan[i].lowQuantity = quant;
 	}
 
 	inline U32 GenericHeader::HighData(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xffffffff;
-		return this->chan[i].highData;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return 0xffffffff;
+        return this->chan[i].highData;
 	}
 
 	inline void GenericHeader::SetHighData(const int i, const U32 data)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].highData = data;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        this->chan[i].highData = data;
 	}
 
 	inline R32 GenericHeader::HighQuantity(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return R32(0xffffffff);
-		return this->chan[i].highQuantity;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return R32(0xffffffff);
+        return this->chan[i].highQuantity;
 	}
 
 	inline void GenericHeader::SetHighQuantity(const int i, const R32 quant)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].highQuantity = quant;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        this->chan[i].highQuantity = quant;
 	}
 
 	inline Descriptor GenericHeader::ImageDescriptor(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return Descriptor(0xff);
-		return Descriptor(this->chan[i].descriptor);
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return Descriptor(0xff);
+        return Descriptor(this->chan[i].descriptor);
 	}
 
 	inline void GenericHeader::SetImageDescriptor(const int i, const Descriptor desc)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].descriptor = desc;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        this->chan[i].descriptor = desc;
 	}
 
 	inline Characteristic GenericHeader::Transfer(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return Characteristic(0xff);
-		return Characteristic(this->chan[i].transfer);
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return Characteristic(0xff);
+        return Characteristic(this->chan[i].transfer);
 	}
 
 	inline void GenericHeader::SetTransfer(const int i, const Characteristic ch)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].transfer = ch;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        this->chan[i].transfer = ch;
 	}
 
 	inline Characteristic GenericHeader::Colorimetric(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return Characteristic(0xff);
-		return Characteristic(this->chan[i].colorimetric);
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return Characteristic(0xff);
+        return Characteristic(this->chan[i].colorimetric);
 	}
 
 	inline void GenericHeader::SetColorimetric(const int i, const Characteristic c)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].colorimetric = c;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        this->chan[i].colorimetric = c;
 	}
 
 	inline U8 GenericHeader::BitDepth(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xff;
-		return this->chan[i].bitDepth;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return 0xff;
+        return this->chan[i].bitDepth;
 	}
 
 	inline void GenericHeader::SetBitDepth(const int i, const U8 depth)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].bitDepth = depth;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        this->chan[i].bitDepth = depth;
 	}
 
 	inline Packing GenericHeader::ImagePacking(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return Packing(0xff);
-		return Packing(this->chan[i].packing);
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return Packing(0xff);
+        return Packing(this->chan[i].packing);
 	}
 
 	inline void GenericHeader::SetImagePacking(const int i, const Packing pack)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].packing = pack;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        this->chan[i].packing = pack;
 	}
 
 	inline Encoding GenericHeader::ImageEncoding(const int i) const
 	{
 		Encoding e = kNone;
-		
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return kNone;
+
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return kNone;
 	
 		if (this->chan[i].encoding == 1)
 			e = kRLE;
@@ -1838,70 +1831,70 @@ namespace dpx
 
 	inline void GenericHeader::SetImageEncoding(const int i, const Encoding enc)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-	
-		this->chan[i].encoding = (enc == kNone ? 0 : 1);
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+
+        this->chan[i].encoding = (enc == kNone ? 0 : 1);
 	}
 
 	inline U32 GenericHeader::DataOffset(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xffffffff;
-		return this->chan[i].dataOffset;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return 0xffffffff;
+        return this->chan[i].dataOffset;
 	}
 
 	inline void GenericHeader::SetDataOffset(const int i, const U32 offset)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].dataOffset = offset;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        this->chan[i].dataOffset = offset;
 	}
 
 	inline U32 GenericHeader::EndOfLinePadding(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xffffffff;
-		if (this->chan[i].endOfLinePadding == 0xffffffff)
-				return 0;
-		return this->chan[i].endOfLinePadding;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return 0xffffffff;
+        if (this->chan[i].endOfLinePadding == 0xffffffff)
+            return 0;
+        return this->chan[i].endOfLinePadding;
 	}
 
 	inline void GenericHeader::SetEndOfLinePadding(const int i, const U32 eolp)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].endOfLinePadding = eolp;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        this->chan[i].endOfLinePadding = eolp;
 	}
 
 	inline U32 GenericHeader::EndOfImagePadding(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xffffffff;
-		if (this->chan[i].endOfImagePadding == 0xffffffff)
-			return 0;	
-		return this->chan[i].endOfImagePadding;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return 0xffffffff;
+        if (this->chan[i].endOfImagePadding == 0xffffffff)
+            return 0;
+        return this->chan[i].endOfImagePadding;
 	}
 
 	inline void GenericHeader::SetEndOfImagePadding(const int i, const U32 eoip)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].endOfImagePadding = eoip;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        this->chan[i].endOfImagePadding = eoip;
 	}
 
 	inline void GenericHeader::Description(const int i, char *desc) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		OIIO::Strutil::safe_strcpy(desc, this->chan[i].description, 32);
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        OIIO::Strutil::safe_strcpy(desc, this->chan[i].description, 32);
 	}
 
 	inline void GenericHeader::SetDescription(const int i, const char *desc)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		OIIO::Strutil::safe_strcpy(this->chan[i].description, desc, 32);
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        OIIO::Strutil::safe_strcpy(this->chan[i].description, desc, 32);
 	}
 	
 	

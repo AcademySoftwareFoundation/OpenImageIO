@@ -64,24 +64,17 @@
  */
 #define SPEC_VERSION		"V4.5"
 
-/*!
- * \def MAX_ELEMENTS
+   /*!
+ * \def CINEON_MAX_ELEMENTS
  * \brief Maximum number of image elements
  */
-#define MAX_ELEMENTS		8
+#define CINEON_MAX_ELEMENTS 8
 
-/*!
- * \def MAX_COMPONENTS
- * \brief Maximum number of components per image element
- */
-#define MAX_COMPONENTS		8
-
-
-/*!
- * \def MAGIC_COOKIE
+   /*!
+ * \def CINEON_MAGIC_COOKIE
  * \brief HEX value of 0x802A5FD7
  */
-#define MAGIC_COOKIE		0x802A5FD7
+#define CINEON_MAGIC_COOKIE		0x802A5FD7
 
 
 
@@ -275,8 +268,8 @@ namespace cineon
 		U8					imageOrientation;			//!< Image orientation \see Orientation
 		U8					numberOfElements;			//!< Number of elements (1-8)
 		U8					unused1[2];					//!< Unused (word alignment)
-		ImageElement		chan[MAX_ELEMENTS];			//!< Image element data structures
-		R32					whitePoint[2];				//!< White point (x, y pair)
+        ImageElement        chan[CINEON_MAX_ELEMENTS];  //!< Image element data structures
+        R32					whitePoint[2];				//!< White point (x, y pair)
 		R32					redPrimary[2];				//!< Red primary chromaticity (x, y pair)
 		R32					greenPrimary[2];			//!< Green primary chromaticity (x, y pair)
 		R32					bluePrimary[2];				//!< Blue primary chromaticity (x, y pair)
@@ -1242,30 +1235,30 @@ namespace cineon
 
 	inline U32 GenericHeader::PixelsPerLine(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xffffffff;
-		return this->chan[i].pixelsPerLine;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return 0xffffffff;
+        return this->chan[i].pixelsPerLine;
 	}
 
 	inline void GenericHeader::SetPixelsPerLine(const int i, const U32 ppl)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].pixelsPerLine = ppl;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return;
+        this->chan[i].pixelsPerLine = ppl;
 	}
 
 	inline U32 GenericHeader::LinesPerElement(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xffffffff;
-		return this->chan[i].linesPerElement;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return 0xffffffff;
+        return this->chan[i].linesPerElement;
 	}
 
 	inline void GenericHeader::SetLinesPerElement(const int i, const U32 lpe)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].linesPerElement = lpe;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return;
+        this->chan[i].linesPerElement = lpe;
 	}
 
 	inline U8 GenericHeader::DataSign() const
@@ -1280,100 +1273,100 @@ namespace cineon
 
 	inline R32 GenericHeader::LowData(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return std::numeric_limits<R32>::infinity();
-		return this->chan[i].lowData;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return std::numeric_limits<R32>::infinity();
+        return this->chan[i].lowData;
 	}
 
 	inline void GenericHeader::SetLowData(const int i, const R32 data)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].lowData = data;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return;
+        this->chan[i].lowData = data;
 	}
 
 	inline R32 GenericHeader::LowQuantity(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return std::numeric_limits<R32>::max();
-		return this->chan[i].lowQuantity;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return std::numeric_limits<R32>::max();
+        return this->chan[i].lowQuantity;
 	}
 
 	inline void GenericHeader::SetLowQuantity(const int i, const R32 quant)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].lowQuantity = quant;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return;
+        this->chan[i].lowQuantity = quant;
 	}
 
 	inline R32 GenericHeader::HighData(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return std::numeric_limits<R32>::max();
-		return this->chan[i].highData;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return std::numeric_limits<R32>::max();
+        return this->chan[i].highData;
 	}
 
 	inline void GenericHeader::SetHighData(const int i, const R32 data)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].highData = data;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return;
+        this->chan[i].highData = data;
 	}
 
 	inline R32 GenericHeader::HighQuantity(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return std::numeric_limits<R32>::max();
-		return this->chan[i].highQuantity;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return std::numeric_limits<R32>::max();
+        return this->chan[i].highQuantity;
 	}
 
 	inline void GenericHeader::SetHighQuantity(const int i, const R32 quant)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].highQuantity = quant;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return;
+        this->chan[i].highQuantity = quant;
 	}
 
 	inline U8 GenericHeader::Metric(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xff;
-		return this->chan[i].designator[0];
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return 0xff;
+        return this->chan[i].designator[0];
 	}
 
 	inline void GenericHeader::SetMetric(const int i, const U8 m)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].designator[0] = m;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return;
+        this->chan[i].designator[0] = m;
 	}
 
 	inline Descriptor GenericHeader::ImageDescriptor(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return Descriptor(0xff);
-		return Descriptor(this->chan[i].designator[1]);
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return Descriptor(0xff);
+        return Descriptor(this->chan[i].designator[1]);
 	}
 
 	inline void GenericHeader::SetImageDescriptor(const int i, const Descriptor desc)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].designator[1] = (U8)desc;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return;
+        this->chan[i].designator[1] = (U8)desc;
 	}
 
 	inline U8 GenericHeader::BitDepth(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xff;
-		return this->chan[i].bitDepth;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return 0xff;
+        return this->chan[i].bitDepth;
 	}
 
 	inline void GenericHeader::SetBitDepth(const int i, const U8 depth)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].bitDepth = depth;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return;
+        this->chan[i].bitDepth = depth;
 	}
 
 	inline Interleave GenericHeader::ImageInterleave() const

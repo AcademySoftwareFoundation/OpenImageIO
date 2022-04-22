@@ -78,7 +78,7 @@ dpx::GenericHeader::GenericHeader()
 void dpx::GenericHeader::Reset()
 {
 	// File Information
-	this->magicNumber = MAGIC_COOKIE;
+	this->magicNumber = DPX_MAGIC_COOKIE;
 	this->imageOffset = ~0;
 	EmptyString(this->version, sizeof(this->version));
 	OIIO::Strutil::safe_strcpy(this->version, SMPTE_VERSION, sizeof(this->version));
@@ -285,7 +285,7 @@ bool dpx::Header::WriteOffsetData(OutStream *io)
 	const long IMAGE_STRUCTURE = 72;	// sizeof the image data structure
 	
 	int i;
-	for (i = 0; i < MAX_ELEMENTS; i++)
+	for (i = 0; i < DPX_MAX_ELEMENTS; i++)
 	{
 			// only write if there is a defined image description
 			if (this->chan[i].descriptor == kUndefinedDescriptor)
@@ -311,7 +311,7 @@ bool dpx::Header::WriteOffsetData(OutStream *io)
 
 bool dpx::Header::ValidMagicCookie(const U32 magic)
 {
-	U32 mc = MAGIC_COOKIE;
+	U32 mc = DPX_MAGIC_COOKIE;
 	
 	if (magic == mc)
 		return true;
@@ -324,7 +324,7 @@ bool dpx::Header::ValidMagicCookie(const U32 magic)
 
 bool dpx::Header::DetermineByteSwap(const U32 magic) const
 {
-	U32 mc = MAGIC_COOKIE;
+	U32 mc = DPX_MAGIC_COOKIE;
 	
 	bool byteSwap = false;
 	
@@ -358,7 +358,7 @@ bool dpx::Header::Validate()
 		SwapBytes(this->numberOfElements);
 		SwapBytes(this->pixelsPerLine);
 		SwapBytes(this->linesPerElement);
-		for (int i = 0; i < MAX_ELEMENTS; i++) 
+		for (int i = 0; i < DPX_MAX_ELEMENTS; i++) 
 		{
 			SwapBytes(this->chan[i].dataSign);
 			SwapBytes(this->chan[i].lowData);
@@ -498,7 +498,7 @@ int dpx::GenericHeader::ImageElementComponentCount(const int element) const
 
 int dpx::GenericHeader::ImageElementCount() const
 {
-	if(this->numberOfElements>0 && this->numberOfElements<=MAX_ELEMENTS)
+	if(this->numberOfElements>0 && this->numberOfElements<=DPX_MAX_ELEMENTS)
 		return this->numberOfElements;
 	
 	// If the image header does not list a valid number of elements,
@@ -506,7 +506,7 @@ int dpx::GenericHeader::ImageElementCount() const
 	
 	int i = 0;
 	
-	while (i < MAX_ELEMENTS )
+	while (i < DPX_MAX_ELEMENTS )
 	{
 		if (this->ImageDescriptor(i) == kUndefinedDescriptor)
 			break;
@@ -533,7 +533,7 @@ void dpx::Header::CalculateOffsets()
 {
 	int i;
 
-	for (i = 0; i < MAX_ELEMENTS; i++)
+	for (i = 0; i < DPX_MAX_ELEMENTS; i++)
 	{
 		// only write if there is a defined image description
 		if (this->chan[i].descriptor == kUndefinedDescriptor)
@@ -546,7 +546,7 @@ void dpx::Header::CalculateOffsets()
 
 dpx::DataSize dpx::GenericHeader::ComponentDataSize(const int element) const
 {
-	if (element < 0 || element >= MAX_ELEMENTS)
+	if (element < 0 || element >= DPX_MAX_ELEMENTS)
 		return kByte;
 		
 	dpx::DataSize ret;
@@ -579,7 +579,7 @@ dpx::DataSize dpx::GenericHeader::ComponentDataSize(const int element) const
 
 int dpx::GenericHeader::ComponentByteCount(const int element) const
 {
-	if (element < 0 || element >= MAX_ELEMENTS)
+	if (element < 0 || element >= DPX_MAX_ELEMENTS)
 		return kByte;
 		
 	int ret;
