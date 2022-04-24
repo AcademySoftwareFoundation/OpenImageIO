@@ -3081,25 +3081,26 @@ typedef bool (*wrap_impl) (int &coord, int origin, int width);
 OIIO_API void debug (string_view str);
 
 /// debug output with `std::format` conventions.
-template<typename T1, typename... Args>
-void debugfmt (const char* fmt, const T1& v1, const Args&... args)
+template<typename... Args>
+void debugfmt (const char* fmt, const Args&... args)
 {
-    debug (Strutil::fmt::format(fmt, v1, args...));
+    debug (Strutil::fmt::format(fmt, args...));
 }
 
 // (Unfortunate old synonym)
-template<typename T1, typename... Args>
+template<typename... Args>
 OIIO_DEPRECATED("use `debugfmt` instead")
-void fmtdebug (const char* fmt, const T1& v1, const Args&... args)
+void fmtdebug (const char* fmt, const Args&... args)
 {
-    debug (Strutil::fmt::format(fmt, v1, args...));
+    debug (Strutil::fmt::format(fmt, args...));
 }
 
 /// debug output with printf conventions.
-template<typename T1, typename... Args>
-void debugf (const char* fmt, const T1& v1, const Args&... args)
+template<typename... Args>
+OIIO_FORMAT_DEPRECATED
+void debugf (const char* fmt, const Args&... args)
 {
-    debug (Strutil::sprintf(fmt, v1, args...));
+    debug (Strutil::sprintf(fmt, args...));
 }
 
 /// debug output with the same conventions as Strutil::format. Beware, this
