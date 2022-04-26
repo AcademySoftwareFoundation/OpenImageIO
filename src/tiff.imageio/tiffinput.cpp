@@ -518,7 +518,7 @@ oiio_tiff_set_error_handler()
 
 
 static tsize_t
-readproc(thandle_t handle, tdata_t data, tsize_t size)
+reader_readproc(thandle_t handle, tdata_t data, tsize_t size)
 {
     auto io = static_cast<Filesystem::IOProxy*>(handle);
     // Strutil::print("iop read {} {} @ {}\n",
@@ -532,13 +532,13 @@ readproc(thandle_t handle, tdata_t data, tsize_t size)
 }
 
 static tsize_t
-writeproc(thandle_t, tdata_t, tsize_t size)
+reader_writeproc(thandle_t, tdata_t, tsize_t size)
 {
     return tsize_t(0);
 }
 
 static toff_t
-seekproc(thandle_t handle, toff_t offset, int origin)
+reader_seekproc(thandle_t handle, toff_t offset, int origin)
 {
     auto io = static_cast<Filesystem::IOProxy*>(handle);
     // Strutil::print("iop seek {} {} ({})\n",
@@ -547,7 +547,7 @@ seekproc(thandle_t handle, toff_t offset, int origin)
 }
 
 static int
-closeproc(thandle_t handle)
+reader_closeproc(thandle_t handle)
 {
     // auto io = static_cast<Filesystem::IOProxy*>(handle);
     // if (io && io->opened()) {
@@ -560,7 +560,7 @@ closeproc(thandle_t handle)
 }
 
 static toff_t
-sizeproc(thandle_t handle)
+reader_sizeproc(thandle_t handle)
 {
     auto io = static_cast<Filesystem::IOProxy*>(handle);
     // Strutil::print("iop size\n");
@@ -568,23 +568,18 @@ sizeproc(thandle_t handle)
 }
 
 static int
-mapproc(thandle_t, tdata_t*, toff_t*)
+reader_mapproc(thandle_t, tdata_t*, toff_t*)
 {
     return 0;
 }
 
-static void unmapproc(thandle_t, tdata_t, toff_t) {}
+static void reader_unmapproc(thandle_t, tdata_t, toff_t) {}
 
 
-
-struct CompressionCode {
-    int code;
-    const char* name;
-};
 
 // clang-format off
 
-static CompressionCode tiff_compressions[] = {
+static std::pair<int, const char*>  tiff_input_compressions[] = {
     { COMPRESSION_NONE,          "none" },        // no compression
     { COMPRESSION_LZW,           "lzw" },         // LZW
     { COMPRESSION_ADOBE_DEFLATE, "zip" },         // deflate / zip
@@ -617,7 +612,6 @@ static CompressionCode tiff_compressions[] = {
     { COMPRESSION_T43,           "T43" },         // TIFF/FX T.43 color layered JBIG
     { COMPRESSION_LZMA,          "lzma" },        // LZMA2
 #endif
-    { -1, NULL }
 };
 
 // clang-format on
@@ -625,10 +619,10 @@ static CompressionCode tiff_compressions[] = {
 static const char*
 tiff_compression_name(int code)
 {
-    for (int i = 0; tiff_compressions[i].name; ++i)
-        if (code == tiff_compressions[i].code)
-            return tiff_compressions[i].name;
-    return NULL;
+    for (const auto& c : tiff_input_compressions)
+        if (c.first == code)
+            return c.second;
+    return nullptr;
 }
 
 
@@ -753,9 +747,11 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
                           "thandle_t must be same size as void*");
             // Strutil::print("\n\nOpening client \"{}\"\n", m_filename);
             m_io->seek(0);
-            m_tif = TIFFClientOpen(m_filename.c_str(), "rm", m_io, readproc,
-                                   writeproc, seekproc, closeproc, sizeproc,
-                                   mapproc, unmapproc);
+            m_tif = TIFFClientOpen(m_filename.c_str(), "rm", m_io,
+                                   reader_readproc, reader_writeproc,
+                                   reader_seekproc, reader_closeproc,
+                                   reader_sizeproc, reader_mapproc,
+                                   reader_unmapproc);
         } else {
 #ifdef _WIN32
             std::wstring wfilename = Strutil::utf8_to_utf16(m_filename);

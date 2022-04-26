@@ -48,13 +48,13 @@ fclose(OIIO::Filesystem::IOProxy* f)
     return 0;
 }
 
-namespace {
-#define GIF_TEMP_MALLOC malloc
-#define GIF_TEMP_FREE free
-#define GIF_MALLOC malloc
-#define GIF_FREE free
+// namespace {
+// #define GIF_TEMP_MALLOC malloc
+// #define GIF_TEMP_FREE free
+// #define GIF_MALLOC malloc
+// #define GIF_FREE free
 #include "gif.h"
-}  // namespace
+// }  // namespace
 
 
 OIIO_PLUGIN_NAMESPACE_BEGIN

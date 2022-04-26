@@ -31,20 +31,7 @@ using boost::math::gcd;
 #include <OpenEXR/ImfTestFile.h>
 #include <OpenEXR/ImfTiledInputFile.h>
 
-#ifdef OPENEXR_VERSION_MAJOR
-#    define OPENEXR_CODED_VERSION                                    \
-        (OPENEXR_VERSION_MAJOR * 10000 + OPENEXR_VERSION_MINOR * 100 \
-         + OPENEXR_VERSION_PATCH)
-#else
-#    define OPENEXR_CODED_VERSION 20000
-#endif
-
-#if OPENEXR_CODED_VERSION >= 20400 \
-    || __has_include(<OpenEXR/ImfFloatVectorAttribute.h>)
-#    define OPENEXR_HAS_FLOATVECTOR 1
-#else
-#    define OPENEXR_HAS_FLOATVECTOR 0
-#endif
+#include "exr_pvt.h"
 
 // The way that OpenEXR uses dynamic casting for attributes requires
 // temporarily suspending "hidden" symbol visibility mode.
@@ -309,65 +296,43 @@ OIIO_EXPORT const char* openexr_input_extensions[] = { "exr", "sxr", "mxr",
 OIIO_PLUGIN_EXPORTS_END
 
 
+static std::map<std::string, std::string> exr_tag_to_oiio_std {
+    // Ones whose name we change to our convention
+    { "cameraTransform", "worldtocamera" },
+    { "capDate", "DateTime" },
+    { "comments", "ImageDescription" },
+    { "owner", "Copyright" },
+    { "pixelAspectRatio", "PixelAspectRatio" },
+    { "xDensity", "XResolution" },
+    { "expTime", "ExposureTime" },
+    // Ones we don't rename -- OpenEXR convention matches ours
+    { "wrapmodes", "wrapmodes" },
+    { "aperture", "FNumber" },
+    // Ones to prefix with openexr:
+    { "chunkCount", "openexr:chunkCount" },
+    { "maxSamplesPerPixel", "openexr:maxSamplesPerPixel" },
+    { "dwaCompressionLevel", "openexr:dwaCompressionLevel" },
+    // Ones to skip because we handle specially or consider them irrelevant
+    { "channels", "" },
+    { "compression", "" },
+    { "dataWindow", "" },
+    { "displayWindow", "" },
+    { "envmap", "" },
+    { "tiledesc", "" },
+    { "tiles", "" },
+    { "openexr:lineOrder", "" },
+    { "type", "" },
 
-class StringMap {
-    typedef std::map<std::string, std::string> map_t;
-
-public:
-    StringMap(void) { init(); }
-
-    const std::string& operator[](const std::string& s) const
-    {
-        map_t::const_iterator i;
-        i = m_map.find(s);
-        return i == m_map.end() ? s : i->second;
-    }
-
-private:
-    map_t m_map;
-
-    void init(void)
-    {
-        // Ones whose name we change to our convention
-        m_map["cameraTransform"]  = "worldtocamera";
-        m_map["capDate"]          = "DateTime";
-        m_map["comments"]         = "ImageDescription";
-        m_map["owner"]            = "Copyright";
-        m_map["pixelAspectRatio"] = "PixelAspectRatio";
-        m_map["xDensity"]         = "XResolution";
-        m_map["expTime"]          = "ExposureTime";
-        // Ones we don't rename -- OpenEXR convention matches ours
-        m_map["wrapmodes"] = "wrapmodes";
-        m_map["aperture"]  = "FNumber";
-        // Ones to prefix with openexr:
-        m_map["chunkCount"]          = "openexr:chunkCount";
-        m_map["maxSamplesPerPixel"]  = "openexr:maxSamplesPerPixel";
-        m_map["dwaCompressionLevel"] = "openexr:dwaCompressionLevel";
-        // Ones to skip because we handle specially
-        m_map["channels"]          = "";
-        m_map["compression"]       = "";
-        m_map["dataWindow"]        = "";
-        m_map["displayWindow"]     = "";
-        m_map["envmap"]            = "";
-        m_map["tiledesc"]          = "";
-        m_map["tiles"]             = "";
-        m_map["openexr:lineOrder"] = "";
-        m_map["type"]              = "";
-        // Ones to skip because we consider them irrelevant
-
-        //        m_map[""] = "";
-        // FIXME: Things to consider in the future:
-        // preview
-        // screenWindowCenter
-        // adoptedNeutral
-        // renderingTransform, lookModTransform
-        // utcOffset
-        // longitude latitude altitude
-        // focus isoSpeed
-    }
+    // FIXME: Things to consider in the future:
+    // preview
+    // screenWindowCenter
+    // adoptedNeutral
+    // renderingTransform, lookModTransform
+    // utcOffset
+    // longitude latitude altitude
+    // focus isoSpeed
 };
 
-static StringMap exr_tag_to_oiio_std;
 
 
 namespace pvt {
@@ -671,8 +636,10 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
         const Imf::V3dAttribute* v3dattr;
         const Imf::M33dAttribute* m33dattr;
         const Imf::M44dAttribute* m44dattr;
-        const char* name  = hit.name();
-        std::string oname = exr_tag_to_oiio_std[name];
+        const char* name = hit.name();
+        auto found       = exr_tag_to_oiio_std.find(name);
+        std::string oname(found != exr_tag_to_oiio_std.end() ? found->second
+                                                             : name);
         if (oname.empty())  // Empty string means skip this attrib
             continue;
         //        if (oname == name)
@@ -883,22 +850,6 @@ TypeDesc_from_ImfPixelType(Imf::PixelType ptype)
 
 
 
-// Split a full channel name into layer and suffix.
-static void
-split_name(string_view fullname, string_view& layer, string_view& suffix)
-{
-    size_t dot = fullname.find_last_of('.');
-    if (dot == string_view::npos) {
-        suffix = fullname;
-        layer  = string_view();
-    } else {
-        layer  = string_view(fullname.data(), dot + 1);
-        suffix = string_view(fullname.data() + dot + 1,
-                             fullname.size() - dot - 1);
-    }
-}
-
-
 // Used to hold channel information for sorting into canonical order
 struct ChanNameHolder {
     string_view fullname;    // layer.suffix
@@ -977,7 +928,7 @@ struct ChanNameHolder {
 
 // Is the channel name (suffix only) in the list?
 static bool
-suffixfound(string_view name, cspan<ChanNameHolder> chans)
+suffixfound(string_view name, span<ChanNameHolder> chans)
 {
     for (auto& c : chans)
         if (Strutil::iequals(name, c.suffix))
