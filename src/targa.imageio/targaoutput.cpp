@@ -113,6 +113,10 @@ private:
         size_t slen = std::min(s.length(), paddedlen - 1);
         return iowrite(s.data(), slen) && pad(paddedlen - slen);
     }
+
+    template<class T>
+    static void deassociateAlpha(T* data, int size, int channels,
+                                 int alpha_channel, float gamma);
 };
 
 
@@ -523,9 +527,9 @@ TGAOutput::flush_rawp(unsigned char*& src, int size, int start)
 
 
 template<class T>
-static void
-deassociateAlpha(T* data, int size, int channels, int alpha_channel,
-                 float gamma)
+void
+TGAOutput::deassociateAlpha(T* data, int size, int channels, int alpha_channel,
+                            float gamma)
 {
     unsigned int max = std::numeric_limits<T>::max();
     if (gamma == 1) {
