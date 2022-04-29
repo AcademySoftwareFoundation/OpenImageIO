@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <OpenImageIO/half.h>
 #include <OpenImageIO/detail/fmt.h>
 
 #ifndef OIIO_IMATH_H_INCLUDED
@@ -20,12 +21,10 @@
 #   include <Imath/ImathColor.h>
 #   include <Imath/ImathMatrix.h>
 #   include <Imath/ImathVec.h>
-#   include <Imath/half.h>
 #else
 #   include <OpenEXR/ImathColor.h>
 #   include <OpenEXR/ImathMatrix.h>
 #   include <OpenEXR/ImathVec.h>
-#   include <OpenEXR/half.h>
 #endif
 
 

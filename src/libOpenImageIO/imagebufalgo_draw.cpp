@@ -6,7 +6,8 @@
 #include <cmath>
 #include <limits>
 
-#include <OpenImageIO/Imath.h>
+#include <OpenImageIO/half.h>
+
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/filter.h>

@@ -7,7 +7,8 @@
 #include <regex>
 #include <sstream>
 
-#include <OpenImageIO/Imath.h>
+#include <OpenImageIO/half.h>
+
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagebuf.h>
