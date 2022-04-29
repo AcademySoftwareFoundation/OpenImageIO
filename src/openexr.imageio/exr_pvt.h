@@ -32,6 +32,22 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
+#if OIIO_CPLUSPLUS_VERSION >= 17 || defined(__cpp_lib_gcd_lcm)
+using std::gcd;
+#else
+template<class M, class N, class T = std::common_type_t<M, N>>
+inline T
+gcd(M a, N b)
+{
+    while (b) {
+        T t = b;
+        b   = a % b;
+        a   = t;
+    }
+    return a;
+}
+#endif
+
 
 // Split a full channel name into layer and suffix.
 inline void

@@ -16,16 +16,6 @@
 
 #include <boost/version.hpp>
 
-#if OIIO_CPLUSPLUS_VERSION >= 17
-using std::gcd;
-#elif BOOST_VERSION >= 106900
-#    include <boost/integer/common_factor_rt.hpp>
-using boost::integer::gcd;
-#else
-#    include <boost/math/common_factor_rt.hpp>
-using boost::math::gcd;
-#endif
-
 #include "exr_pvt.h"
 
 #include <OpenEXR/openexr.h>
