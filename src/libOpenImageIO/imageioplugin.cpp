@@ -27,25 +27,25 @@ typedef const char* (*PluginLibVersionFunc)();
 
 namespace {
 
-// Map format name to ImageInput creation
+// Map format name (and extension) to ImageInput creation
 static InputPluginMap input_formats;
-// Map format name to ImageOutput creation
+// Map format name (and extensions) to ImageOutput creation
 static OutputPluginMap output_formats;
-// Map file extension to ImageInput creation
-static InputPluginMap input_extensions;
-// Map file extension to ImageOutput creation
-static OutputPluginMap output_extensions;
 // Map format name to plugin handle
 static std::map<std::string, Plugin::Handle> plugin_handles;
 // Map format name to full path
 static std::map<std::string, std::string> plugin_filepaths;
 // Map format name to underlying implementation library
 static std::map<std::string, std::string> format_library_versions;
+// Map extension name to format name
+static std::map<std::string, std::string> extension_to_format_map;
 
-static std::vector<ustring> format_list_vector;  // Vector separated format_list
-static recursive_mutex format_list_vector_mutex;
 
-// Which plugin names are procedural (not reading from files)
+// Vector of all format names, in "priority" order (most common formats first).
+// This should be guarded by imageio_mutex.
+static std::vector<ustring> format_list_vector;
+
+// Which format names and extensions are procedural (not reading from files)
 static std::set<std::string> procedural_plugins;
 
 static std::string pattern = Strutil::sprintf(".imageio.%s",
@@ -72,12 +72,13 @@ declare_imageio_format(const std::string& format_name,
                        ImageOutput::Creator output_creator,
                        const char** output_extensions, const char* lib_version)
 {
+    recursive_lock_guard lock(pvt::imageio_mutex);
+
     std::vector<std::string> all_extensions;
     // Look for input creator and list of supported extensions
     if (input_creator) {
         for (const char** e = input_extensions; e && *e; ++e) {
-            std::string ext(*e);
-            Strutil::to_lower(ext);
+            std::string ext = Strutil::lower(*e);
             if (input_formats.find(ext) == input_formats.end()) {
                 input_formats[ext] = input_creator;
                 add_if_missing(all_extensions, ext);
@@ -90,8 +91,7 @@ declare_imageio_format(const std::string& format_name,
     // Look for output creator and list of supported extensions
     if (output_creator) {
         for (const char** e = output_extensions; e && *e; ++e) {
-            std::string ext(*e);
-            Strutil::to_lower(ext);
+            std::string ext = Strutil::lower(*e);
             if (output_formats.find(ext) == output_formats.end()) {
                 output_formats[ext] = output_creator;
                 add_if_missing(all_extensions, ext);
@@ -101,13 +101,21 @@ declare_imageio_format(const std::string& format_name,
             output_formats[format_name] = output_creator;
     }
 
+    // Populate the extension -> format name map
+    for (const char** e = input_extensions; e && *e; ++e) {
+        std::string ext = Strutil::lower(*e);
+        if (extension_to_format_map.find(ext) == extension_to_format_map.end())
+            extension_to_format_map[ext] = format_name;
+    }
+    for (const char** e = output_extensions; e && *e; ++e) {
+        std::string ext = Strutil::lower(*e);
+        if (extension_to_format_map.find(ext) == extension_to_format_map.end())
+            extension_to_format_map[ext] = format_name;
+    }
+
     // Add the name to the master list of format_names, and extensions to
     // their master list.
-    {
-        recursive_lock_guard lock(format_list_vector_mutex);
-        format_list_vector.emplace_back(Strutil::lower(format_name));
-    }
-    recursive_lock_guard lock(pvt::imageio_mutex);
+    format_list_vector.emplace_back(Strutil::lower(format_name));
     if (format_list.length())
         format_list += std::string(",");
     format_list += format_name;
@@ -140,7 +148,7 @@ bool
 is_imageio_format_name(string_view name)
 {
     ustring namelower(Strutil::lower(name));
-    recursive_lock_guard lock(format_list_vector_mutex);
+    recursive_lock_guard lock(imageio_mutex);
     // If we were called before any plugins were loaded at all, catalog now
     if (!format_list_vector.size())
         pvt::catalog_all_plugins(pvt::plugin_searchpath.string());
@@ -165,10 +173,10 @@ catalog_plugin(const std::string& format_name,
             // It's ok if they're both the same file; just skip it.
             return;
         }
-        OIIO::debugf("OpenImageIO WARNING: %s had multiple plugins:\n"
-                     "\t\"%s\"\n    as well as\n\t\"%s\"\n"
-                     "    Ignoring all but the first one.\n",
-                     format_name, found_path->second, plugin_fullpath);
+        OIIO::debugfmt("OpenImageIO WARNING: {} had multiple plugins:\n"
+                       "\t\"{}\"\n    as well as\n\t\"{}\"\n"
+                       "    Ignoring all but the first one.\n",
+                       format_name, found_path->second, plugin_fullpath);
         return;
     }
 
@@ -274,12 +282,11 @@ PLUGENTRY(zfile);
 
 
 namespace {
-
-/// Add all the built-in plugins, those compiled right into libOpenImageIO,
-/// to the catalogs.  This does nothing if EMBED_PLUGINS is not defined,
-/// in which case they'll be registered only when read from external
-/// DSO/DLL's.
 // clang-format off
+
+// Add all the built-in plugins, those compiled right into libOpenImageIO, to
+// the catalogs.  This does nothing if EMBED_PLUGINS is not defined, in which
+// case they'll be registered only when read from external DSO/DLL's.
 static void
 catalog_builtin_plugins()
 {
@@ -303,6 +310,19 @@ catalog_builtin_plugins()
             name##_output_extensions,                                    \
             name##_imageio_library_version())
 
+// Declare the most commonly used formats we encounter first, so that they are
+// tried right away any time we have to try each format in turn.
+#if !defined(DISABLE_OPENEXR)
+    DECLAREPLUG (openexr);
+#endif
+#if !defined(DISABLE_TIFF)
+    DECLAREPLUG (tiff);
+#endif
+#if !defined(DISABLE_JPEG)
+    DECLAREPLUG (jpeg);
+#endif
+
+// Now all the less common formats, in alphabetical order.
 #if !defined(DISABLE_BMP)
     DECLAREPLUG (bmp);
 #endif
@@ -312,31 +332,23 @@ catalog_builtin_plugins()
 #if !defined(DISABLE_DDS)
     DECLAREPLUG_RO (dds);
 #endif
-#ifdef USE_DCMTK
-#if !defined(DISABLE_DICOM)
+#if defined(USE_DCMTK) && !defined(DISABLE_DICOM)
     DECLAREPLUG_RO (dicom);
-#endif
 #endif
 #if !defined(DISABLE_DPX)
     DECLAREPLUG (dpx);
 #endif
-#ifdef USE_FFMPEG
-#if !defined(DISABLE_FFMPEG)
+#if defined(USE_FFMPEG) && !defined(DISABLE_FFMPEG)
     DECLAREPLUG_RO (ffmpeg);
-#endif
 #endif
 #if !defined(DISABLE_FITS)
     DECLAREPLUG (fits);
 #endif
-#ifdef USE_GIF
-#if !defined(DISABLE_GIF)
+#if defined(USE_GIF) && !defined(DISABLE_GIF)
     DECLAREPLUG (gif);
 #endif
-#endif
-#ifdef USE_HEIF
-#if !defined(DISABLE_HEIF)
+#if defined(USE_HEIF) && !defined(DISABLE_HEIF)
     DECLAREPLUG (heif);
-#endif
 #endif
 #if !defined(DISABLE_HDR)
     DECLAREPLUG (hdr);
@@ -347,24 +359,14 @@ catalog_builtin_plugins()
 #if !defined(DISABLE_IFF)
     DECLAREPLUG (iff);
 #endif
-#if !defined(DISABLE_JPEG)
-    DECLAREPLUG (jpeg);
-#endif
-#ifdef USE_OPENJPEG
-#if !defined(DISABLE_JPEG2000)
+#if defined(USE_OPENJPEG) && !defined(DISABLE_JPEG2000)
     DECLAREPLUG (jpeg2000);
-#endif
 #endif
 #if !defined(DISABLE_NULL)
     DECLAREPLUG (null);
 #endif
-#if !defined(DISABLE_OPENEXR)
-    DECLAREPLUG (openexr);
-#endif
-#ifdef USE_OPENVDB
-#if !defined(DISABLE_OPENVDB)
+#if defined(USE_OPENVDB) && !defined(DISABLE_OPENVDB)
     DECLAREPLUG_RO (openvdb);
-#endif
 #endif
 #if !defined(DISABLE_PNG)
     DECLAREPLUG (png);
@@ -375,15 +377,11 @@ catalog_builtin_plugins()
 #if !defined(DISABLE_PSD)
     DECLAREPLUG_RO (psd);
 #endif
-#ifdef USE_PTEX
-#if !defined(DISABLE_PTEX)
+#if defined(USE_PTEX) && !defined(DISABLE_PTEX)
     DECLAREPLUG_RO (ptex);
 #endif
-#endif
-#ifdef USE_LIBRAW
-#if !defined(DISABLE_RAW)
+#if defined(USE_LIBRAW) && !defined(DISABLE_RAW)
     DECLAREPLUG_RO (raw);
-#endif
 #endif
 #if !defined(DISABLE_RLA)
     DECLAREPLUG (rla);
@@ -391,16 +389,11 @@ catalog_builtin_plugins()
 #if !defined(DISABLE_SGI)
     DECLAREPLUG (sgi);
 #endif
-#ifdef USE_BOOST_ASIO
-#if !defined(DISABLE_SOCKET)
+#if defined(USE_BOOST_ASIO) && !defined(DISABLE_SOCKET)
     DECLAREPLUG (socket);
-#endif
 #endif
 #if !defined(DISABLE_SOFTIMAGE)
     DECLAREPLUG_RO (softimage);
-#endif
-#if !defined(DISABLE_TIFF)
-    DECLAREPLUG (tiff);
 #endif
 #if !defined(DISABLE_TARGA)
     DECLAREPLUG (targa);
@@ -408,10 +401,8 @@ catalog_builtin_plugins()
 #if !defined(DISABLE_TERM)
     DECLAREPLUG_WO (term);
 #endif
-#ifdef USE_WEBP
-#if !defined(DISABLE_WEBP)
+#if defined(USE_WEBP) && !defined(DISABLE_WEBP)
     DECLAREPLUG (webp);
-#endif
 #endif
 #if !defined(DISABLE_ZFILE)
     DECLAREPLUG (zfile);
@@ -705,10 +696,15 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
             // opened with this II.  Clear create_function to force
             // the code below to check every plugin we know.
             create_function = nullptr;
-            if (in)
+            if (in) {
                 specific_error = in->geterror();
+                if (pvt::oiio_print_debug > 1)
+                    OIIO::debugfmt(
+                        "ImageInput::create: \"{}\" did not open using format \"{}\".\n",
+                        filename, in->format_name());
+            }
+            in.reset();
         }
-        in.reset();
     }
 
     if (!create_function && pvt::oiio_try_all_readers) {
@@ -723,17 +719,20 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
             myconfig = *config;
         myconfig.attribute("nowait", (int)1);
         recursive_lock_guard lock(imageio_mutex);  // Ensure thread safety
-        for (auto&& plugin : input_formats) {
+        for (auto f : format_list_vector) {
+            auto plugin = input_formats.find(f.string());
+            if (plugin == input_formats.end() || !plugin->second)
+                continue;  // format that's output only
             // If we already tried this create function, don't do it again
             if (std::find(formats_tried.begin(), formats_tried.end(),
-                          plugin.second)
+                          plugin->second)
                 != formats_tried.end())
                 continue;
-            formats_tried.push_back(plugin.second);  // remember
+            formats_tried.push_back(plugin->second);  // remember
 
             ImageSpec tmpspec;
             try {
-                ImageInput::Creator create_function = plugin.second;
+                ImageInput::Creator create_function = plugin->second;
                 in = std::unique_ptr<ImageInput>(create_function());
             } catch (...) {
                 // Safety in case the ctr throws an exception
@@ -743,6 +742,10 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
             if (!do_open && !ioproxy && !in->valid_file(filename)) {
                 // Since we didn't need to open it, we just checked whether
                 // it was a valid file, and it's not.  Try the next one.
+                if (pvt::oiio_print_debug > 1)
+                    OIIO::debugfmt(
+                        "ImageInput::create: \"{}\" did not open using format \"{}\" {} [valid_file was fals].\n",
+                        filename, plugin->first, in->format_name());
                 in.reset();
                 continue;
             }
@@ -753,8 +756,16 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
             if (ok) {
                 if (!do_open)
                     in->close();
+                if (pvt::oiio_print_debug > 1)
+                    OIIO::debugfmt(
+                        "ImageInput::create: \"{}\" succeeded using format \"{}\".\n",
+                        filename, plugin->first);
                 return in;
             }
+            if (pvt::oiio_print_debug > 1)
+                OIIO::debugfmt(
+                    "ImageInput::create: \"{}\" did not open using format \"{}\" {}.\n",
+                    filename, plugin->first, in->format_name());
             in.reset();
         }
     }
