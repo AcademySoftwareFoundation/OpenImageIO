@@ -317,15 +317,17 @@ jobs:
 
 
   macos:
-    name: "${{matrix.os}} appleclang${{matrix.aclang}}/C++${{matrix.cxx_std}} py${{matrix.python_ver}} boost1.76 exr3.1 ocio2.1"
+    name: "${{matrix.os}} appleclang${{matrix.aclang}}/C++${{matrix.cxx_std}} py${{matrix.python_ver}} ${{matrix.desc}} boost1.76 exr3.1 ocio2.1"
     strategy:
       matrix:
         include:
-          - os: macos-10.15
+          - desc: MacOS-10.15
+            os: macos-10.15
             cxx_std: 14
             python_ver: 3.8
             aclang: 12
-          - os: macos-11
+          - desc: MacOS-11
+            os: macos-11
             cxx_std: 17
             python_ver: 3.9
             aclang: 13
@@ -348,11 +350,14 @@ jobs:
           key: ${{github.job}}-${{matrix.os}}-${{steps.ccache_cache_keys.outputs.date}}
           restore-keys: ${{github.job}}-
       - name: Build setup
-        run: src/build-scripts/ci-startup.bash
+        run: |
+            ${{matrix.setenvs}}
+            src/build-scripts/ci-startup.bash
       - name: Dependencies
         run: |
             src/build-scripts/install_homebrew_deps.bash
             src/build-scripts/install_test_images.bash
+            ${{matrix.depcmds}}
       - name: Build
         run: |
             export PYTHONPATH=/usr/local/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH
@@ -374,18 +379,20 @@ jobs:
 
 
   windows:
-    name: "${{matrix.os}} VS${{matrix.vsver}}"
+    name: "${{matrix.desc}} VS${{matrix.vsver}}"
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: windows-2019
+          - desc: windows-2019
+            os: windows-2019
             vsver: 2019
             generator: "Visual Studio 16 2019"
             openexr_ver: v2.5.8
             python_ver: 3.7
             simd: sse4.2
-          # - os: windows-2022
+          # - desc: windows-2022
+          #   os: windows-2022
           #   vsver: 2022
           #   generator: "Visual Studio 17 2022"
           #   openexr_ver: main
@@ -405,7 +412,9 @@ jobs:
         uses: nuget/setup-nuget@v1
       - name: Build setup
         shell: bash
-        run: src/build-scripts/ci-startup.bash
+        run: |
+            ${{matrix.setenvs}}
+            src/build-scripts/ci-startup.bash
       - name: Dependencies
         shell: bash
         run: src/build-scripts/gh-win-installdeps.bash
