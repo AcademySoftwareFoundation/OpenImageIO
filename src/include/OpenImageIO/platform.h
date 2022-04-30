@@ -137,7 +137,11 @@
 //   __INTEL_LLVM_COMPILER is defined only for icx
 //   _MSC_VER is defined for MSVS compiler (not gcc/clang/icc even on Windows)
 //   _WIN32 is defined on Windows regardless of compiler
-//   __CUDACC__ is defined for nvcc and clang during Cuda compilation.
+//   __CUDACC__   is defined any time we are compiling a module for Cuda
+//                (both for the host pass and the device pass). "Do this
+//                when using nvcc or clang with ptx target."
+//   __CUDA_ARCH__  is only defined when doing the device pass. "Do this only
+//                for code that will actually run on the GPU."
 
 
 // Define OIIO_GNUC_VERSION to hold an encoded gcc version (e.g. 40802 for
