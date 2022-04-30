@@ -2247,10 +2247,15 @@ TextureSystemImpl::sample_bilinear(
             tile_st &= tilewhmask;
         else
             tile_st %= tilewh;
+        OIIO_PRAGMA_WARNING_PUSH
+#if OIIO_CLANG_VERSION >= 140000
+        OIIO_CLANG_PRAGMA(GCC diagnostic ignored "-Wbitwise-instead-of-logical")
+#endif
         bool s_onetile = (tile_st[S0] != tilewhmask[S0])
                          & (sttex[S0] + 1 == sttex[S1]);
         bool t_onetile = (tile_st[T0] != tilewhmask[T0])
                          & (sttex[T0] + 1 == sttex[T1]);
+        OIIO_PRAGMA_WARNING_POP
         bool onetile = (s_onetile & t_onetile);
         if (onetile && all(stvalid)) {
             // Shortcut if all the texels we need are on the same tile
