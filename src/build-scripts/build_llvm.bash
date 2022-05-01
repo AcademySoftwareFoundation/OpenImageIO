@@ -10,7 +10,7 @@ uname
 
 
 if [[ `uname` == "Linux" ]] ; then
-    LLVM_VERSION=${LLVM_VERSION:=8.0.0}
+    LLVM_VERSION=${LLVM_VERSION:=13.0.0}
     LLVM_INSTALL_DIR=${LLVM_INSTALL_DIR:=${PWD}/llvm-install}
     if [[ "$GITHUB_WORKFLOW" != "" ]] ; then
         LLVM_DISTRO_NAME=${LLVM_DISTRO_NAME:=ubuntu-18.04}
@@ -23,14 +23,18 @@ if [[ `uname` == "Linux" ]] ; then
     else
         LLVM_DISTRO_NAME=${LLVM_DISTRO_NAME:=error}
     fi
-    if [ "$LLVM_VERSION" == "5.0.0" ] ; then
-        LLVMTAR=clang+llvm-${LLVM_VERSION}-linux-x86_64-${LLVM_DISTRO_NAME}.tar.xz
-    else
-        LLVMTAR=clang+llvm-${LLVM_VERSION}-x86_64-linux-gnu-${LLVM_DISTRO_NAME}.tar.xz
-    fi
+    LLVMTAR=clang+llvm-${LLVM_VERSION}-x86_64-linux-gnu-${LLVM_DISTRO_NAME}.tar.xz
     echo LLVMTAR = $LLVMTAR
-    curl --location http://releases.llvm.org/${LLVM_VERSION}/${LLVMTAR} -o $LLVMTAR
-    # ls -l $LLVMTAR
+    if [[ "$LLVM_VERSION" == "10.0.0" ]] || [[ "$LLVM_VERSION" == "11.0.0" ]] \
+      || [[ "$LLVM_VERSION" == "11.1.0" ]] || [[ "$LLVM_VERSION" == "12.0.0" ]] \
+      || [[ "$LLVM_VERSION" == "13.0.0" ]]  || [[ "$LLVM_VERSION" == "14.0.0" ]] ;
+    then
+        # new
+        curl --location https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/${LLVMTAR} -o $LLVMTAR
+    else
+        curl --location http://releases.llvm.org/${LLVM_VERSION}/${LLVMTAR} -o $LLVMTAR
+    fi
+    ls -l $LLVMTAR
     tar xf $LLVMTAR
     rm -f $LLVMTAR
     echo "Installed ${LLVM_VERSION} in ${LLVM_INSTALL_DIR}"
