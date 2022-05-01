@@ -1,5 +1,17 @@
-Release 2.3.15 (1 May? 2022) -- compared to 2.3.14
+Release 2.3.15 (1 May 2022) -- compared to 2.3.14
 --------------------------------------------------
+* JPEG: Better handling of PixelAspectRatio. #3366
+* OpenEXR: Fix DWAA compression default level. #3387
+* Perf: Huge speed-up of case-insensitive string comparisons (Strutil iequals,
+  iless, starts_with, istarts_with, ends_with, iends_with), which also speeds
+  up searches for attributes by name in ImageSpec and ParamValueList. #3388
+* New `ImageBufAlgo::st_warp()` (and `oiiotool --st_warp`) perform warping of
+  an image where a second image gives the (s,t) coordinates to look up from at
+  every pixel. #3379
+* Python: Add ImageSpec and ParamValueList method `get_bytes_attribute()`,
+  which is like `get_string_attribute()`, but returns the string as a Python
+  bytes object. In Python 3, strings are UTF-8, so this can be useful if you
+  know that a string attribute might contain non-UTF8 data. #3396
 
 Release 2.3.14 (1 Apr 2022) -- compared to 2.3.13
 --------------------------------------------------

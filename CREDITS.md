@@ -87,6 +87,7 @@ lg@openimageio.org
 * Jim Hourihan
 * John Burnett
 * John Haddon
+* Jonathan Hearn
 * Jonathan Scruggs
 * Joseph Goldstone
 * Julien Enche
