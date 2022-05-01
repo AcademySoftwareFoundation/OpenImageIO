@@ -80,7 +80,7 @@ jobs:
             fmt_ver: 8.1.1
             pybind11_ver: v2.9.0
           - desc: clang13/C++17 py39 avx2 exr3.1 ocio2.1
-            nametag: linux-clang10-cpp14
+            nametag: linux-clang13-cpp17
             os: ubuntu-latest
             vfxyear: 2022
             vfxsuffix: -clang13
@@ -236,6 +236,22 @@ jobs:
                             PUGIXML_VERSION=master
                             USE_OPENVDB=0
                             WEBP_VERSION=master
+                            # The installed OpenVDB has a TLS conflict with Python 3.8
+          - desc: clang14 C++20 avx2 exr3.1 ocio2.1
+            nametag: linux-clang14
+            os: ubuntu-20.04
+            cxx_compiler: clang++
+            cc_compiler: clang
+            cxx_std: 20
+            fmt_ver: 8.1.1
+            openexr_ver: v3.1.5
+            pybind11_ver: v2.9.2
+            python_ver: 3.8
+            simd: avx2,f16c
+            setenvs: export LLVM_VERSION=14.0.0
+                            OPENCOLORIO_VERSION=v2.1.1
+                            OPENIMAGEIO_OPTIONS="openexr:core=1"
+                            USE_OPENVDB=0
                             # The installed OpenVDB has a TLS conflict with Python 3.8
           - desc: debug gcc7/C++14, sse4.2, exr2.4
             nametag: linux-gcc7-cpp14-debug

@@ -14,7 +14,7 @@ fi
 
 # On GHA, we can reduce build time with "unity" builds.
 if [[ ${GITHUB_ACTIONS} == true ]] ; then
-    MY_CMAKE_FLAGS+=" -DCMAKE_UNITY_BUILD=ON -DCMAKE_UNITY_BUILD_MODE=BATCH"
+    MY_CMAKE_FLAGS+=" -DCMAKE_UNITY_BUILD=${CMAKE_UNITY_BUILD:=ON} -DCMAKE_UNITY_BUILD_MODE=${CMAKE_UNITY_BUILD_MODE:=BATCH}"
 fi
 
 pushd build

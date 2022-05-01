@@ -187,7 +187,8 @@ public:
     bool running() const
     {
         return control_stack.empty()
-               || (control_stack.top().running & control_stack.top().condition);
+               || (control_stack.top().running
+                   && control_stack.top().condition);
     }
 
     void push_control(string_view command, int start, bool cond)

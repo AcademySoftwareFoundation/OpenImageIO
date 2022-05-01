@@ -10,8 +10,6 @@ set -ex
 if [[ "$ASWF_ORG" != ""  ]] ; then
     # Using ASWF CentOS container
 
-    export PATH=/opt/rh/devtoolset-6/root/usr/bin:/usr/local/bin:$PATH
-
     #ls /etc/yum.repos.d
 
     sudo yum install -y giflib giflib-devel && true
@@ -19,6 +17,25 @@ if [[ "$ASWF_ORG" != ""  ]] ; then
     sudo yum install -y ffmpeg ffmpeg-devel && true
     if [[ "${EXTRA_DEP_PACKAGES}" != "" ]] ; then
         time sudo yum install -y ${EXTRA_DEP_PACKAGES}
+    fi
+
+    if [[ "${CONAN_LLVM_VERSION}" != "" ]] ; then
+        mkdir conan
+        pushd conan
+        # Simple way to conan install just one package:
+        #   conan install clang/${CONAN_LLVM_VERSION}@aswftesting/ci_common1 -g deploy -g virtualenv
+        # But the below method can accommodate multiple requirements:
+        echo "[imports]" >> conanfile.txt
+        echo "., * -> ." >> conanfile.txt
+        echo "[requires]" >> conanfile.txt
+        echo "clang/${CONAN_LLVM_VERSION}@aswftesting/ci_common1" >> conanfile.txt
+        time conan install .
+        echo "--ls--"
+        ls -R .
+        export PATH=$PWD/bin:$PATH
+        export LD_LIBRARY_PATH=$PWD/lib:$LD_LIBRARY_PATH
+        export LLVM_ROOT=$PWD
+        popd
     fi
 
     if [[ "$CXX" == "icpc" || "$CC" == "icc" || "$USE_ICC" != "" || "$CXX" == "icpx" || "$CC" == "icx" || "$USE_ICX" != "" ]] ; then
