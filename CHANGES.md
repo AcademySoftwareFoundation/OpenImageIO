@@ -1,3 +1,7 @@
+Release 2.3.16 (1 Jun? 2022) -- compared to 2.3.15
+--------------------------------------------------
+
+
 Release 2.3.15 (1 May 2022) -- compared to 2.3.14
 --------------------------------------------------
 * JPEG: Better handling of PixelAspectRatio. #3366
