@@ -511,7 +511,7 @@ test_half_convert_accuracy()
     const int nhalfs = 1 << 16;
     std::vector<half> H(nhalfs, 0.0f);
     for (auto i = 0; i < nhalfs; ++i)
-        H[i] = bit_cast<unsigned short, half>((unsigned short)i);
+        H[i] = bitcast<half, uint16_t>((uint16_t)i);
 
     // Convert the whole array to float equivalents in one shot (which will
     // use SIMD ops if available).
@@ -529,9 +529,8 @@ test_half_convert_accuracy()
         float f = H[i];  // single assignment uses table from Imath
         half h  = (half)f;
         if ((f != F[i] || f != H2[i] || f != h || H[i] != H2[i]
-             || bit_cast<half, unsigned short>(h)
-                    != bit_cast<half, unsigned short>(H[i])
-             || bit_cast<half, unsigned short>(h) != i)
+             || bitcast<uint16_t, half>(h) != bitcast<uint16_t, half>(H[i])
+             || bitcast<uint16_t, half>(h) != i)
             && Imath::finitef(H[i])) {
             ++nwrong;
             Strutil::printf("wrong %d 0b%s  h=%g, f=%g %s\n", i, bin16(i), H[i],
@@ -545,6 +544,22 @@ test_half_convert_accuracy()
     std::cout << "test_half_convert_accuracy: " << nwrong << " mismatches\n";
     std::cout << term.ansi("default");
     OIIO_CHECK_ASSERT(nwrong == 0);
+}
+
+
+
+static void
+test_bitcast()
+{
+    OIIO_CHECK_EQUAL((bitcast<uint16_t, half>(half(0.0f))), 0);
+    OIIO_CHECK_EQUAL((bitcast<uint32_t, float>(0.0f)), 0);
+    OIIO_CHECK_EQUAL((bitcast<int32_t, float>(0.0f)), 0);
+    OIIO_CHECK_EQUAL((bitcast<float, uint32_t>(0)), 0.0f);
+    OIIO_CHECK_EQUAL((bitcast<float, int32_t>(0)), 0.0f);
+    OIIO_CHECK_EQUAL((bitcast<uint64_t, double>(0.0)), 0);
+    OIIO_CHECK_EQUAL((bitcast<int64_t, double>(0.0)), 0);
+    OIIO_CHECK_EQUAL((bitcast<double, uint64_t>(0)), 0.0);
+    OIIO_CHECK_EQUAL((bitcast<double, int64_t>(0)), 0.0);
 }
 
 
@@ -750,6 +765,7 @@ main(int argc, char* argv[])
 
     test_bit_range_convert();
     test_packbits();
+    test_bitcast();
     test_swap_endian();
 
     test_interpolate_linear();

@@ -757,9 +757,12 @@ inline OIIO_HOSTDEVICE float sign (float x)
 //
 // Type and range conversion helper functions and classes.
 
-
-template <typename IN_TYPE, typename OUT_TYPE>
-OIIO_FORCEINLINE OIIO_HOSTDEVICE OUT_TYPE bit_cast (const IN_TYPE& in) {
+/// Standards-compliant bit cast of two equally sized types. This is used
+/// equivalently to C++20 std::bit_cast, but it works prior to C++20 and
+/// it has the right decorators to work with Cuda.
+/// @version 2.4.1
+template <typename OUT_TYPE, typename IN_TYPE>
+OIIO_FORCEINLINE OIIO_HOSTDEVICE OUT_TYPE bitcast (const IN_TYPE& in) noexcept {
     // NOTE: this is the only standards compliant way of doing this type of casting,
     // luckily the compilers we care about know how to optimize away this idiom.
     static_assert(sizeof(IN_TYPE) == sizeof(OUT_TYPE),
@@ -769,45 +772,64 @@ OIIO_FORCEINLINE OIIO_HOSTDEVICE OUT_TYPE bit_cast (const IN_TYPE& in) {
     return out;
 }
 
-#if defined(__INTEL_COMPILER)
-    // On x86/x86_64 for certain compilers we can use Intel CPU intrinsics
-    // for some common bit_cast cases that might be even more understandable
-    // to the compiler and generate better code without its getting confused
-    // about the memcpy in the general case.
-    // FIXME: The intrinsics are not in clang <= 9 nor gcc <= 9.1. Check
-    // future releases.
-    template<> OIIO_FORCEINLINE uint32_t bit_cast<float, uint32_t>(const float& val) {
-          return static_cast<uint32_t>(_castf32_u32(val));
-    }
-    template<> OIIO_FORCEINLINE int32_t bit_cast<float, int32_t>(const float& val) {
-          return static_cast<int32_t>(_castf32_u32(val));
-    }
-    template<> OIIO_FORCEINLINE float bit_cast<uint32_t, float>(const uint32_t& val) {
-          return _castu32_f32(val);
-    }
-    template<> OIIO_FORCEINLINE float bit_cast<int32_t, float>(const int32_t& val) {
-          return _castu32_f32(val);
-    }
-    template<> OIIO_FORCEINLINE uint64_t bit_cast<double, uint64_t>(const double& val) {
-          return static_cast<uint64_t>(_castf64_u64(val));
-    }
-    template<> OIIO_FORCEINLINE int64_t bit_cast<double, int64_t>(const double& val) {
-          return static_cast<int64_t>(_castf64_u64(val));
-    }
-    template<> OIIO_FORCEINLINE double bit_cast<uint64_t, double>(const uint64_t& val) {
-          return _castu64_f64(val);
-    }
-    template<> OIIO_FORCEINLINE double bit_cast<int64_t, double>(const int64_t& val) {
-          return _castu64_f64(val);
-    }
+#if OIIO_VERSION_LESS(3, 0, 0)
+/// Note: The C++20 std::bit_cast has the reverse order of the template
+/// arguments of our original bit_cast! That is unfortunate. For now, we
+/// prefer using OIIO::bitcast. We'll keep this old one for backward
+/// compatibility, but will eventually deprecate for OIIO 2.5 and remove it
+/// for 3.0.
+template <typename IN_TYPE, typename OUT_TYPE>
+#if OIIO_VERSION_GREATER_EQUAL(2, 5, 0)
+OIIO_DEPRECATED("Use OIIO::bitcast<To, From> instead")
+#endif
+OIIO_FORCEINLINE OIIO_HOSTDEVICE OUT_TYPE bit_cast (const IN_TYPE& in) {
+    return bitcast<OUT_TYPE, IN_TYPE>(in);
+}
+#endif
+
+#if defined(__x86_64__) && !defined(__CUDA_ARCH__) && \
+    (defined(__INTEL_COMPILER) || defined(__INTEL_LLVM_COMPILER) \
+     || OIIO_CLANG_VERSION >= 100000 || OIIO_APPLE_CLANG_VERSION >= 130000 \
+     || OIIO_GCC_VERSION >= 90300)
+// On x86/x86_64 for certain compilers we can use Intel CPU intrinsics for
+// some common bitcast cases that might be even more understandable to the
+// compiler and generate better code without its getting confused about the
+// memcpy in the general case. We're a bit conservative with the compiler
+// version checks here, it may be that some earlier versions support these
+// intrinsics.
+
+template<> OIIO_FORCEINLINE uint32_t bitcast<uint32_t, float>(const float& val) noexcept {
+    return static_cast<uint32_t>(_castf32_u32(val));
+}
+template<> OIIO_FORCEINLINE int32_t bitcast<int32_t, float>(const float& val) noexcept {
+    return static_cast<int32_t>(_castf32_u32(val));
+}
+template<> OIIO_FORCEINLINE float bitcast<float, uint32_t>(const uint32_t& val) noexcept {
+    return _castu32_f32(val);
+}
+template<> OIIO_FORCEINLINE float bitcast<float, int32_t>(const int32_t& val) noexcept {
+    return _castu32_f32(val);
+}
+template<> OIIO_FORCEINLINE uint64_t bitcast<uint64_t, double>(const double& val) noexcept {
+    return static_cast<uint64_t>(_castf64_u64(val));
+}
+template<> OIIO_FORCEINLINE int64_t bitcast<int64_t, double>(const double& val) noexcept {
+    return static_cast<int64_t>(_castf64_u64(val));
+}
+template<> OIIO_FORCEINLINE double bitcast<double, uint64_t>(const uint64_t& val) noexcept {
+    return _castu64_f64(val);
+}
+template<> OIIO_FORCEINLINE double bitcast<double, int64_t>(const int64_t& val) noexcept {
+    return _castu64_f64(val);
+}
 #endif
 
 
 OIIO_FORCEINLINE OIIO_HOSTDEVICE int bitcast_to_int (float x) {
-    return bit_cast<float,int>(x);
+    return bitcast<int, float>(x);
 }
 OIIO_FORCEINLINE OIIO_HOSTDEVICE float bitcast_to_float (int x) {
-    return bit_cast<int,float>(x);
+    return bitcast<float, int>(x);
 }
 
 
@@ -1909,7 +1931,7 @@ OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_atan2 (float y, float x) {
     if (b_is_greater_than_a)
         r = 1.570796326794896557998982f - r; // account for arg reduction
     // TODO:  investigate if testing x < 0.0f is more efficient
-    if (bit_cast<float, unsigned>(x) & 0x80000000u) // test sign bit of x
+    if (bitcast<unsigned int, float>(x) & 0x80000000u) // test sign bit of x
         r = float(M_PI) - r;
     return copysignf(r, y);
 #else
@@ -1945,9 +1967,9 @@ OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_log2 (const float& xval) {
     // NOTE: clamp to avoid special cases and make result "safe" from large negative values/nans
     float x = clamp (xval, std::numeric_limits<float>::min(), std::numeric_limits<float>::max());
     // based on https://github.com/LiraNuna/glsl-sse2/blob/master/source/vec4.h
-    unsigned bits = bit_cast<float, unsigned>(x);
+    unsigned int bits = bitcast<unsigned int, float>(x);
     int exponent = int(bits >> 23) - 127;
-    float f = bit_cast<unsigned, float>((bits & 0x007FFFFF) | 0x3f800000) - 1.0f;
+    float f = bitcast<float, unsigned int>((bits & 0x007FFFFF) | 0x3f800000) - 1.0f;
     // Examined 2130706432 values of log2 on [1.17549435e-38,3.40282347e+38]: 0.0797524457 avg ulp diff, 3713596 max ulp, 7.62939e-06 max error
     // ulp histogram:
     //  0  = 97.46%
@@ -2004,7 +2026,7 @@ OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_logb (float x) {
     x = fabsf(x);
     if (x < std::numeric_limits<float>::min()) x = std::numeric_limits<float>::min();
     if (x > std::numeric_limits<float>::max()) x = std::numeric_limits<float>::max();
-    unsigned bits = bit_cast<float, unsigned>(x);
+    unsigned int bits = bitcast<unsigned int, float>(x);
     return float (int(bits >> 23) - 127);
 #else
     return logbf(x);
@@ -2084,7 +2106,7 @@ OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_exp2 (const float& xval) {
     r = madd(x, r, 1.0f);
     // multiply by 2 ^ m by adding in the exponent
     // NOTE: left-shift of negative number is undefined behavior
-    return bit_cast<unsigned, float>(bit_cast<float, unsigned>(r) + (unsigned(m) << 23));
+    return bitcast<float, unsigned int>(bitcast<unsigned int, float>(r) + (unsigned(m) << 23));
     // Clang: loop not vectorized: unsafe dependent memory operations in loop.
     // This is why we special case the OIIO_FMATH_SIMD_FRIENDLY above.
     // FIXME: as clang releases continue to improve, periodically check if
@@ -2207,7 +2229,7 @@ OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_safe_pow (float x, float y) {
     if (OIIO_UNLIKELY(x < 0.0f)) {
         // if x is negative, only deal with integer powers
         // powf returns NaN for non-integers, we will return 0 instead
-        int ybits = bit_cast<float, int>(y) & 0x7fffffff;
+        int ybits = bitcast<int, float>(y) & 0x7fffffff;
         if (ybits >= 0x4b800000) {
             // always even int, keep positive
         } else if (ybits >= 0x3f800000) {
@@ -2215,7 +2237,7 @@ OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_safe_pow (float x, float y) {
             int k = (ybits >> 23) - 127;  // get exponent
             int j =  ybits >> (23 - k);   // shift out possible fractional bits
             if ((j << (23 - k)) == ybits) // rebuild number and check for a match
-                sign = bit_cast<int, float>(0x3f800000 | (j << 31)); // +1 for even, -1 for odd
+                sign = bitcast<float, int>(0x3f800000 | (j << 31)); // +1 for even, -1 for odd
             else
                 return 0.0f; // not integer
         } else {
@@ -2238,7 +2260,7 @@ OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_cbrt (float x) {
 #ifndef __CUDA_ARCH__
     float x0 = fabsf(x);
     // from hacker's delight
-    float a = bit_cast<int, float>(0x2a5137a0 + bit_cast<float, int>(x0) / 3); // Initial guess.
+    float a = bitcast<float, int>(0x2a5137a0 + bitcast<int, float>(x0) / 3); // Initial guess.
     // Examined 14272478 values of cbrt on [-9.99999935e-39,9.99999935e-39]: 8.14687e-14 max error
     // Examined 2131958802 values of cbrt on [9.99999935e-39,3.40282347e+38]: 2.46930719 avg ulp diff, 12 max ulp
     a = 0.333333333f * (2.0f * a + x0 / (a * a));  // Newton step.
