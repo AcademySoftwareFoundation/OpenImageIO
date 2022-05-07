@@ -155,7 +155,7 @@
 // Define OIIO_CLANG_VERSION to hold an encoded generic Clang version (e.g.
 // 30402 for clang 3.4.2), or 0 if not a generic Clang release.
 // N.B. This will be 0 for the clang Apple distributes (which has different
-// version numbers entirely).
+// version numbers entirely) and for the Intel clang-based compiler.
 #if defined(__clang__) && !defined(__apple_build_version__) && !defined(__INTEL_LLVM_COMPILER)
 #  define OIIO_CLANG_VERSION (10000*__clang_major__ + 100*__clang_minor__ + __clang_patchlevel__)
 #else
@@ -221,6 +221,7 @@
 #  define OIIO_MSVS_BEFORE_2015   (_MSC_VER <  1900)
 #  define OIIO_MSVS_AT_LEAST_2017 (_MSC_VER >= 1910)
 #  define OIIO_MSVS_BEFORE_2017   (_MSC_VER <  1910)
+#  define OIIO_MSVS_VERSION       _MSC_VER
 #  if OIIO_MSVS_BEFORE_2017
 #    error "This version of OIIO is meant to work only with Visual Studio 2017 or later"
 #  endif
@@ -231,6 +232,7 @@
 #  define OIIO_MSVS_BEFORE_2015   0
 #  define OIIO_MSVS_AT_LEAST_2017 0
 #  define OIIO_MSVS_BEFORE_2017   0
+#  define OIIO_MSVS_VERSION       0
 #endif
 
 
