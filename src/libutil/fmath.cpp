@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // https://github.com/OpenImageIO/oiio
 
-#include <OpenImageIO/Imath.h>
+#include <OpenImageIO/half.h>
 
 // Force the full implementation of all fmath functions, which will compile
 // some callable versions here.

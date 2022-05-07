@@ -1393,9 +1393,10 @@ ColorConfig::createFileTransform(ustring name, bool inverse) const
 
 
 ColorProcessorHandle
-ColorConfig::createMatrixTransform(const Imath::M44f& M, bool inverse) const
+ColorConfig::createMatrixTransform(M44fParam M, bool inverse) const
 {
-    return ColorProcessorHandle(new ColorProcessor_Matrix(M, inverse));
+    return ColorProcessorHandle(
+        new ColorProcessor_Matrix(*(const Imath::M44f*)M.data(), inverse));
 }
 
 

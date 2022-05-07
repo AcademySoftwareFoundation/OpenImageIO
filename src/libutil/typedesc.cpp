@@ -7,8 +7,8 @@
 #include <cstdlib>
 #include <string>
 
-#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/dassert.h>
+#include <OpenImageIO/half.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/ustring.h>

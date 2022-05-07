@@ -10,7 +10,8 @@
 #include <cmath>
 #include <iostream>
 
-#include <OpenImageIO/Imath.h>
+#include <OpenImageIO/half.h>
+
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>

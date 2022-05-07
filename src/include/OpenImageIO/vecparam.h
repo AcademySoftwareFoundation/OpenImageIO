@@ -49,14 +49,14 @@ OIIO_NAMESPACE_BEGIN
 /// stating that `mytype` should be considered a subscriptable 3-vector:
 ///
 ///     template<>
-///     struct OIIO::has_subscript<mytype, float, 3> : public std::true_type { };
+///     struct OIIO::has_subscript_N<mytype, float, 3> : public std::true_type { };
 ///
 /// And similarly, user code may correct a potential false positive (that
 /// is, a `mytype` looks like it should be a 3-vector, but we don't want any
 /// implicit conversions to happen):
 ///
 ///     template<typename B, int N>
-///     struct OIIO::has_subscript<mytype, B, N> : public std::false_type { };
+///     struct OIIO::has_subscript_N<mytype, B, N> : public std::false_type { };
 ///
 
 
@@ -274,7 +274,23 @@ public:
     }
 #endif
 
-private:
+    // Return a reference to the contiguous values comprising the matrix.
+    template<typename V, OIIO_ENABLE_IF(sizeof(V) == 3 * sizeof(T))>
+    constexpr const V& cast() const noexcept
+    {
+        const char* p = (const char*)this;
+        return *(const V*)p;
+    }
+
+    /// Implicitly convert a `Vec3Param<T>` to a `const V&` for a V that looks
+    /// like a 3-vector.
+    template<typename V, OIIO_ENABLE_IF(has_subscript_N<V, T, 3>::value
+                                        || has_xyz<V, T>::value)>
+    OIIO_HOSTDEVICE constexpr operator const V&() const noexcept
+    {
+        return cast<V>();
+    }
+
     // The internal representation is just the 3 values.
     T x, y, z;
 };

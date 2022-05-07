@@ -8,7 +8,7 @@
 
 #include <functional>
 
-#include <OpenImageIO/Imath.h>
+#include <OpenImageIO/half.h>
 #include <OpenImageIO/parallel.h>
 #include <OpenImageIO/imagebufalgo.h>
 

@@ -47,7 +47,7 @@
 OIIO_NAMESPACE_BEGIN
 
 /// If the caller defines OIIO_FMATH_HEADER_ONLY to nonzero, then 100% of the
-/// implementation of fmath functions will be defined direcly in this header
+/// implementation of fmath functions will be defined directly in this header
 /// file.  If it is not defined, or set to 0, then there are a few functions
 /// for which this header will only provide the definition.
 #ifndef OIIO_FMATH_HEADER_ONLY

@@ -10,7 +10,8 @@
 #include <iostream>
 #include <limits>
 
-#include <OpenImageIO/Imath.h>
+#include <OpenImageIO/half.h>
+
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/hash.h>
 #include <OpenImageIO/imagebuf.h>

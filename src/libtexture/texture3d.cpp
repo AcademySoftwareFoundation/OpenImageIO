@@ -162,11 +162,11 @@ TextureSystemImpl::texture3d(TextureHandle* texture_handle_,
     if (si.Mlocal) {
         // See if there is a world-to-local transform stored in the cache
         // entry. If so, use it to transform the input point.
-        si.Mlocal->multVecMatrix(Imath::V3f(P), Plocal);
+        si.Mlocal->multVecMatrix(P.cast<Imath::V3f>(), Plocal);
     } else {
         // If no world-to-local matrix could be discerned, just use the
         // input point directly.
-        Plocal = P;
+        Plocal = P.cast<Imath::V3f>();
     }
 
     // FIXME: we don't bother with this for dPdx, dPdy, and dPdz only

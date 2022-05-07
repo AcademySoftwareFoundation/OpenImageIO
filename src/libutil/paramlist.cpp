@@ -6,8 +6,8 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/dassert.h>
+#include <OpenImageIO/half.h>
 #include <OpenImageIO/paramlist.h>
 #include <OpenImageIO/ustring.h>
 

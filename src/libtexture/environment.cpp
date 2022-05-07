@@ -385,11 +385,11 @@ TextureSystemImpl::environment(TextureHandle* texture_handle_,
 
     // Calculate unit-length vectors in the direction of R, R+dRdx, R+dRdy.
     // These define the ellipse we're filtering over.
-    Imath::V3f R = _R;
+    Imath::V3f R = _R.cast<Imath::V3f>();
     R.normalize();  // center
-    Imath::V3f Rx = Imath::V3f(_R) + Imath::V3f(_dRdx);
+    Imath::V3f Rx = _R.cast<Imath::V3f>() + _dRdx.cast<Imath::V3f>();
     Rx.normalize();  // x axis of the ellipse
-    Imath::V3f Ry = Imath::V3f(_R) + Imath::V3f(_dRdy);
+    Imath::V3f Ry = _R.cast<Imath::V3f>() + _dRdy.cast<Imath::V3f>();
     Ry.normalize();  // y axis of the ellipse
     // angles formed by the ellipse axes.
     float xfilt_noblur = std::max(safe_acos(R.dot(Rx)), 1e-8f);
