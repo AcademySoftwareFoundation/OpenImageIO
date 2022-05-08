@@ -85,10 +85,23 @@ colorconfig_file = make_relpath(colorconfig_file)
 
 command = ""
 outputs = [ "out.txt" ]    # default
+
+# The image comparison thresholds are tricky to remember. Here's the key:
+# A test fails if more than `failpercent` of pixel values differ by more
+# than `failthresh`, or if even one pixel differs by more than `hardfail`.
+failthresh = 0.004         # "Failure" threshold for any pixel value
+failpercent = 0.02         # Ok fo this percentage of pixels to "fail"
+hardfail = 0.012           # Even one pixel this wrong => hard failure
+
+# Some tests are designed for the app running to "fail" (in the sense of
+# terminating with an error return code), for example, a test that is designed
+# to present an error condition to check that it issues the right error. That
+# "failure" is a success of the test! For those cases, set `failureok = 1` to
+# indicate that the app having an error is fine, and the full test will pass
+# or fail based on comparing the output files.
 failureok = 0
-failthresh = 0.004
-hardfail = 0.012
-failpercent = 0.02
+
+
 anymatch = False
 cleanup_on_success = False
 if int(os.getenv('TESTSUITE_CLEANUP_ON_SUCCESS', '0')) :

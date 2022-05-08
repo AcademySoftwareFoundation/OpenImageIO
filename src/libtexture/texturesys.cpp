@@ -2252,6 +2252,9 @@ TextureSystemImpl::sample_bilinear(
             tile_st &= tilewhmask;
         else
             tile_st %= tilewh;
+#if OIIO_CLANG_VERSION >= 140000 || OIIO_INTEL_CLANG_VERSION >= 140000
+        OIIO_CLANG_PRAGMA(GCC diagnostic ignored "-Wbitwise-instead-of-logical")
+#endif
         bool s_onetile = (tile_st[S0] != tilewhmask[S0])
                          & (sttex[S0] + 1 == sttex[S1]);
         bool t_onetile = (tile_st[T0] != tilewhmask[T0])
