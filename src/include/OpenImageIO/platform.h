@@ -176,12 +176,12 @@
 #  define OIIO_APPLE_CLANG_VERSION 0
 #endif
 
-// Define OIIO_INTEL_COMPILER_VERSION to hold an encoded Intel compiler
-// version (e.g. 1900), or 0 if not an Intel compiler.
+// Define OIIO_INTEL_CLASSIC_COMPILER_VERSION to hold an encoded Intel
+// compiler version (e.g. 1900), or 0 if not an Intel compiler.
 #if defined(__INTEL_COMPILER)
-#  define OIIO_INTEL_COMPILER_VERSION __INTEL_COMPILER
+#  define OIIO_INTEL_CLASSIC_COMPILER_VERSION __INTEL_COMPILER
 #else
-#  define OIIO_INTEL_COMPILER_VERSION 0
+#  define OIIO_INTEL_CLASSIC_COMPILER_VERSION 0
 #endif
 
 // DEPRECATED(2.4) phase out OIIO_NON_INTEL_CLANG for OIIO_INTEL_LLVM_COMPILER.
@@ -215,24 +215,24 @@
 
 // Tests for MSVS versions, always 0 if not MSVS at all.
 #if defined(_MSC_VER)
+#  define OIIO_MSVS_VERSION       _MSC_VER
 #  define OIIO_MSVS_AT_LEAST_2013 (_MSC_VER >= 1800)
 #  define OIIO_MSVS_BEFORE_2013   (_MSC_VER <  1800)
 #  define OIIO_MSVS_AT_LEAST_2015 (_MSC_VER >= 1900)
 #  define OIIO_MSVS_BEFORE_2015   (_MSC_VER <  1900)
 #  define OIIO_MSVS_AT_LEAST_2017 (_MSC_VER >= 1910)
 #  define OIIO_MSVS_BEFORE_2017   (_MSC_VER <  1910)
-#  define OIIO_MSVS_VERSION       _MSC_VER
 #  if OIIO_MSVS_BEFORE_2017
 #    error "This version of OIIO is meant to work only with Visual Studio 2017 or later"
 #  endif
 #else
+#  define OIIO_MSVS_VERSION       0
 #  define OIIO_MSVS_AT_LEAST_2013 0
 #  define OIIO_MSVS_BEFORE_2013   0
 #  define OIIO_MSVS_AT_LEAST_2015 0
 #  define OIIO_MSVS_BEFORE_2015   0
 #  define OIIO_MSVS_AT_LEAST_2017 0
 #  define OIIO_MSVS_BEFORE_2017   0
-#  define OIIO_MSVS_VERSION       0
 #endif
 
 
