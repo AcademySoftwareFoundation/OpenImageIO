@@ -827,7 +827,7 @@ swap_endian (T *f, int len=1)
 }
 
 
-#if (OIIO_GNUC_VERSION || OIIO_CLANG_VERSION || OIIO_APPLE_CLANG_VERSION || OIIO_INTEL_COMPILER_VERSION) && !defined(__CUDACC__)
+#if (OIIO_GNUC_VERSION || OIIO_ANY_CLANG || OIIO_INTEL_CLASSIC_COMPILER_VERSION) && !defined(__CUDACC__)
 // CPU gcc and compatible can use these intrinsics, 8-15x faster
 
 template<> inline void swap_endian(uint16_t* f, int len) {
