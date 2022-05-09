@@ -182,8 +182,7 @@ jobs:
         with:
           name: oiio-${{github.job}}-${{matrix.nametag}}
           path: |
-            build/*.cmake
-            build/CMake*
+            build/cmake-save
             build/testsuite/*/*.*
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
@@ -323,8 +322,7 @@ jobs:
         with:
           name: oiio-${{github.job}}-${{matrix.nametag}}
           path: |
-            build/*.cmake
-            build/CMake*
+            build/cmake-save
             build/testsuite/*/*.*
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
@@ -380,8 +378,7 @@ jobs:
         with:
           name: oiio-${{github.job}}
           path: |
-            build/*.cmake
-            build/CMake*
+            build/cmake-save
             build/testsuite/*/*.*
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
@@ -436,8 +433,7 @@ jobs:
         with:
           name: oiio-${{github.job}}-VS${{matrix.vsver}}
           path: |
-            build/*.cmake
-            build/CMake*
+            build/cmake-save
             build/testsuite/*/*.*
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
