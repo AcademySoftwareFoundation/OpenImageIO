@@ -52,7 +52,7 @@ macro (fancy_add_executable)
         endif ()
         set_target_properties (${_target_NAME} PROPERTIES FOLDER "Tools")
         check_is_enabled (INSTALL_${_target_NAME} _target_NAME_INSTALL_enabled)
-        if (CMAKE_UNITY_BUILD)
+        if (CMAKE_UNITY_BUILD AND UNITY_BUILD_MODE STREQUAL GROUP)
             set_source_files_properties(${_target_SRC} PROPERTIES
                                         UNITY_GROUP ${_target_NAME})
             if (VERBOSE)

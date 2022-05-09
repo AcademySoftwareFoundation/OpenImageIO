@@ -89,7 +89,7 @@ command += oiiotool (  "-a --create 320x240 3 -fill:color=.1,.5,.1 120x80+50+70 
                      + "--siappend -trim -origin +0+0 -fullpixels -d uint8 -o trimsubimages.tif")
 
 # test channel shuffling
-command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif"
+command += oiiotool ("../common/grid.tif"
             + " --ch =0.25,B,G -o chanshuffle.tif")
 
 # test --ch to separate RGBA from an RGBAZ file
@@ -142,7 +142,7 @@ command += oiiotool ("--pattern fill:topleft=0,0,0.8:topright=1,0,0.8:bottomleft
                         " --minchan -d uint8 -o minchan.tif")
 
 # test clamping
-command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif --resize 50%"
+command += oiiotool ("../common/grid.tif --resize 50%"
             + " --clamp:min=0.2:max=,,0.5,1 -o grid-clamped.tif")
 
 # test kernel

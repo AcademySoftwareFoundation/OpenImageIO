@@ -138,9 +138,6 @@ echo "DEP_DIR $DEP_DIR :"
 ls -R -l "$DEP_DIR"
 
 
-src/build-scripts/install_test_images.bash
-
-
 # source src/build-scripts/build_openexr.bash
 # export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;$ILMBASE_ROOT;$OPENEXR_ROOT"
 # source src/build-scripts/build_opencolorio.bash

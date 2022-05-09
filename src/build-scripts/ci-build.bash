@@ -25,6 +25,7 @@ cmake .. -G "$CMAKE_GENERATOR" \
         -DPYTHON_VERSION="$PYTHON_VERSION" \
         -DCMAKE_INSTALL_LIBDIR="$OpenImageIO_ROOT/lib" \
         -DCMAKE_CXX_STANDARD="$CMAKE_CXX_STANDARD" \
+        -DOIIO_DOWNLOAD_MISSING_TESTDATA=ON \
         $MY_CMAKE_FLAGS -DVERBOSE=1
 if [[ "$BUILDTARGET" != "none" ]] ; then
     echo "Parallel build " ${CMAKE_BUILD_PARALLEL_LEVEL}

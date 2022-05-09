@@ -35,14 +35,14 @@ shutil.copy (oiiotoolsrcdir + "/image.tif", "./image.tif")
 
 
 # test resample
-command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif --resample 128x128 -o resample.tif")
+command += oiiotool ("../common/grid.tif --resample 128x128 -o resample.tif")
 
 # test resize
-command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif --resize 256x256 -o resize.tif")
-command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif --resize 25% -o resize2.tif")
+command += oiiotool ("../common/grid.tif --resize 256x256 -o resize.tif")
+command += oiiotool ("../common/grid.tif --resize 25% -o resize2.tif")
 
 # test extreme resize
-command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif --resize 64x64 -o resize64.tif")
+command += oiiotool ("../common/grid.tif --resize 64x64 -o resize64.tif")
 command += oiiotool ("resize64.tif --resize 512x512 -o resize512.tif")
 
 # test resize with nonzero origin. Save to exr to make extra sure we have
@@ -51,8 +51,8 @@ command += oiiotool ("--pattern fill:topleft=1,0,0:topright=0,1,0:bottomleft=0,0
                      "--origin +100+100 --fullsize 256x256+0+0 " +
                      "--resize 128x128 -d half -o resized-offset.exr")
 # test fit
-command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif --fit 360x240 -d uint8 -o fit.tif")
-command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif --fit 240x360 -d uint8 -o fit2.tif")
+command += oiiotool ("../common/grid.tif --fit 360x240 -d uint8 -o fit.tif")
+command += oiiotool ("../common/grid.tif --fit 240x360 -d uint8 -o fit2.tif")
 # regression test: --fit without needing resize used to be problematic
 command += oiiotool ("../common/tahoe-tiny.tif --fit 128x128 -d uint8 -o fit3.tif")
 # test --fit:exact=1 when we can't get a precise whole-pixel fit of aspect
