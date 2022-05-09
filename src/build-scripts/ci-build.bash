@@ -26,6 +26,11 @@ cmake .. -G "$CMAKE_GENERATOR" \
         -DCMAKE_INSTALL_LIBDIR="$OpenImageIO_ROOT/lib" \
         -DCMAKE_CXX_STANDARD="$CMAKE_CXX_STANDARD" \
         $MY_CMAKE_FLAGS -DVERBOSE=1
+
+# Save a copy of the generated files for debugging broken CI builds.
+mkdir cmake-save || /bin/true
+cp -r CMake* *.cmake cmake-save
+
 if [[ "$BUILDTARGET" != "none" ]] ; then
     echo "Parallel build " ${CMAKE_BUILD_PARALLEL_LEVEL}
     time cmake --build . --target ${BUILDTARGET:=install} --config ${CMAKE_BUILD_TYPE}
