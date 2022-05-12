@@ -153,33 +153,22 @@ endmacro ()
 # directories with plugins are included.
 #
 macro (oiio_add_all_tests)
-    #   Tests that require oiio-images:
-    oiio_add_tests (gpsread
-                    oiiotool oiiotool-attribs oiiotool-copy
-                    oiiotool-xform
-                    maketx oiiotool-maketx
-                    misnamed-file
-                    texture-crop texture-cropover
-                    texture-filtersize
-                    texture-filtersize-stochastic
-                    texture-overscan
-                    texture-wrapfill
-                    texture-res texture-maxres
-                    IMAGEDIR oiio-images URL "Recent checkout of oiio-images"
-                   )
 
-    #   Remaining freestanding tests:
+    # Freestanding tests:
     oiio_add_tests (
                     cmake-consumer
                     nonwhole-tiles
-                    oiiotool-composite oiiotool-control
+                    oiiotool
+                    oiiotool-composite oiiotool-control oiiotool-copy
                     oiiotool-fixnan
                     oiiotool-pattern
                     oiiotool-readerror
-                    oiiotool-subimage oiiotool-text
+                    oiiotool-subimage oiiotool-text oiiotool-xform
                     diff
                     dither dup-channels
                     jpeg-corrupt
+                    maketx oiiotool-maketx
+                    misnamed-file
                     missingcolor
                     null
                     rational
@@ -187,6 +176,7 @@ macro (oiio_add_all_tests)
                     texture-flipt texture-gettexels texture-gray
                     texture-interp-bicubic
                     texture-blurtube
+                    texture-crop texture-cropover
                     texture-half texture-uint16
                     texture-interp-bilinear
                     texture-interp-closest
@@ -195,30 +185,46 @@ macro (oiio_add_all_tests)
                     texture-mip-stochastictrilinear
                     texture-mip-stochasticaniso
                     texture-missing
+                    texture-overscan
                     texture-pointsample
                     texture-udim texture-udim2
                     texture-uint8
                     texture-width0blur
+                    texture-wrapfill
                     texture-fat texture-skinny
                    )
 
-    # Add tests that require the Python bindings if we built the Python
-    # bindings. This is mostly the test that are specifically about testing
-    # the Python bindings themselves, but also a handful of tests that are
-    # mainly about other things but happen to use Python in order to perform
-    # thee test.
+    # Tests that require oiio-images:
+    oiio_add_tests (gpsread
+                    oiiotool-attribs
+                    texture-filtersize
+                    texture-filtersize-stochastic
+                    texture-res texture-maxres
+                    IMAGEDIR oiio-images URL "Recent checkout of oiio-images"
+                   )
+
+    # Add tests that require the Python bindings.
+    #
     # We also exclude these tests if this is a sanitizer build on Linux,
     # because the Python interpreter itself won't be linked with the right asan
     # libraries to run correctly.
     if (USE_PYTHON AND NOT BUILD_OIIOUTIL_ONLY AND NOT SANITIZE_ON_LINUX)
         oiio_add_tests (
-                python-typedesc python-paramlist
-                python-imagespec python-roi python-deep python-colorconfig
-                python-imageinput python-imageoutput
-                python-imagebuf python-imagebufalgo
-                python-texturesys
-                IMAGEDIR oiio-images
-                )
+            python-colorconfig
+            python-deep 
+            python-imagebuf
+            python-imageoutput
+            python-imagespec
+            python-paramlist
+            python-roi
+            python-texturesys
+            python-typedesc
+            )
+        # These Python tests also need access to oiio-images
+        oiio_add_tests (
+            python-imageinput python-imagebufalgo
+            IMAGEDIR oiio-images
+            )
     endif ()
 
     oiio_add_tests (oiiotool-color
@@ -319,7 +325,7 @@ endmacro()
 
 set (OIIO_LOCAL_TESTDATA_ROOT "${CMAKE_SOURCE_DIR}/.." CACHE PATH
      "Directory to check for local copies of testsuite data")
-option (OIIO_DOWNLOAD_MISSING_TESTDATA "Try to download any missing test data" ON)
+option (OIIO_DOWNLOAD_MISSING_TESTDATA "Try to download any missing test data" OFF)
 
 function (oiio_get_test_data name)
     cmake_parse_arguments (_ogtd "" "REPO;BRANCH" "" ${ARGN})
@@ -340,24 +346,22 @@ function (oiio_get_test_data name)
         endif ()
     elseif (IS_DIRECTORY "${CMAKE_BINARY_DIR}/testsuite/${name}")
         message (STATUS "Test data for ${name} already present in testsuite")
-    elseif (OIIO_DOWNLOAD_MISSING_TESTDATA)
+    elseif (OIIO_DOWNLOAD_MISSING_TESTDATA AND _ogtd_REPO)
         # Test data directory didn't exist -- fetch it
-        if (_ogtd_REPO)
-            message (STATUS "Cloning ${name} from ${_ogtd_REPO}")
-            if (NOT _ogtd_BRANCH)
-                set (_ogtd_BRANCH master)
-            endif ()
-            find_package (Git)
-            if (Git_FOUND AND GIT_EXECUTABLE)
-                execute_process(COMMAND ${GIT_EXECUTABLE} clone --depth 1
-                                        ${_ogtd_REPO} -b ${_ogtd_BRANCH}
-                                        ${CMAKE_BINARY_DIR}/testsuite/${name})
-            else ()
-                message (WARNING "Could not find Git executable, could not download test data from ${_ogtd_REPO}")
-            endif ()
+        message (STATUS "Cloning ${name} from ${_ogtd_REPO}")
+        if (NOT _ogtd_BRANCH)
+            set (_ogtd_BRANCH master)
+        endif ()
+        find_package (Git)
+        if (Git_FOUND AND GIT_EXECUTABLE)
+            execute_process(COMMAND ${GIT_EXECUTABLE} clone --depth 1
+                                    ${_ogtd_REPO} -b ${_ogtd_BRANCH}
+                                    ${CMAKE_BINARY_DIR}/testsuite/${name})
+        else ()
+            message (WARNING "${ColorRed}Could not find Git executable, could not download test data from ${_ogtd_REPO}${ColorReset}")
         endif ()
     else ()
-        message (STATUS "Missing test data ${name}")
+        message (STATUS "${ColorRed}Missing test data ${name}${ColorReset}")
     endif ()
 endfunction()
 

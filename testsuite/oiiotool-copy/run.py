@@ -25,13 +25,13 @@ command += oiiotool ("-pattern checker 128x128 3 uint8.tif -add -o tmp.tif " +
                      "-echo \"combining images result: \" -metamatch \"width|tile\" -i:info=2 tmp.tif -echo \"\"")
 
 # test --crop
-command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif --crop 100x400+50+200 -o crop.tif")
+command += oiiotool ("../common/grid.tif --crop 100x400+50+200 -o crop.tif")
 
 # test --cut
-command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif --cut 100x400+50+200 -o cut.tif")
+command += oiiotool ("../common/grid.tif --cut 100x400+50+200 -o cut.tif")
 
 # test --paste
-command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif "
+command += oiiotool ("../common/grid.tif "
             + "--pattern checker 256x256 3 --paste +150+75 -o pasted.tif")
 
 # test --pastemeta

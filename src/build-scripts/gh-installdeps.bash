@@ -164,8 +164,6 @@ if [[ "$PTEX_VERSION" != "" ]] ; then
     source src/build-scripts/build_Ptex.bash
 fi
 
-src/build-scripts/install_test_images.bash
-
 if [[ "$USE_ICC" != "" ]] ; then
     # We used gcc for the prior dependency builds, but use icc for OIIO itself
     echo "which icpc:" $(which icpc)

@@ -10,7 +10,7 @@
 #    surrounded by the red check border, surrounded by black. The grid
 #    itself should be the "middle half" of the image.
 
-command += oiiotool(OIIO_TESTSUITE_IMAGEDIR + "/grid.tif"
+command += oiiotool("../common/grid.tif"
             + " -resize 512x512 "
             + " -pattern checker:color1=1,0,0:color2=.25,0,0 640x640 3 "
             + "-origin -64-64 -paste +0+0 -fullsize 512x512+0+0 -o overscan-src.exr")
