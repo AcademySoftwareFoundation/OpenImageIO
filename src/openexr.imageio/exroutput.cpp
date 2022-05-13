@@ -702,12 +702,12 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
         // methods may optimize image quality by adjusting pixel data
         // quantization according to this hint.
         // Note: This is not the same as data having come from a linear
-        // colorspace.  It is meant for data that is percieved by humans
+        // colorspace.  It is meant for data that is perceived by humans
         // in a linear fashion.
         // e.g Cb & Cr components in YCbCr images
         //     a* & b* components in L*a*b* images
         //     H & S components in HLS images
-        // We ignore this for now, but we shoudl fix it if we ever commonly
+        // We ignore this for now, but we should fix it if we ever commonly
         // work with non-perceptual/non-color image data.
         bool pLinear = false;
         header.channels().insert(spec.channelnames[c].c_str(),
