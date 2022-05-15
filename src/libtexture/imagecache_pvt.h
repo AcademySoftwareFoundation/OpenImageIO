@@ -111,19 +111,31 @@ struct ImageCacheStatistics {
 
 struct UdimInfo {
     ustring filename;
-    ImageCacheFile* icfile = nullptr;
+    std::atomic<ImageCacheFile*> icfile { nullptr };
     int u, v;
 
-    UdimInfo()
-        : icfile(nullptr)
-    {
-    }
+    UdimInfo() {}
     UdimInfo(ustring filename, ImageCacheFile* icfile, int u, int v)
         : filename(filename)
         , icfile(icfile)
         , u(u)
         , v(v)
     {
+    }
+    UdimInfo(const UdimInfo& other)
+        : filename(other.filename)
+        , icfile(other.icfile.load())
+        , u(other.u)
+        , v(other.v)
+    {
+    }
+    const UdimInfo& operator=(const UdimInfo& other)
+    {
+        filename = other.filename;
+        icfile   = other.icfile.load();
+        u        = other.u;
+        v        = other.v;
+        return *this;
     }
 };
 
