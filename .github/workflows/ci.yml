@@ -473,4 +473,6 @@ jobs:
         if: failure()
         with:
           name: ${{ github.job }}
-          path: src/*/*.{cpp,h}
+          path: |
+            src/*/*.cpp
+            src/*/*.h
