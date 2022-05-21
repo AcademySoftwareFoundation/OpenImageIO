@@ -1,13 +1,13 @@
 Created texture system
-Result of get_texture_info resolution = 1 256x256
-Result of get_texture_info channels = 1 3
-Result of get_texture_info channels = 1 3
-Result of get_texture_info data format = 1 uint8
-Result of get_texture_info datetime = 0 
+Result of get_texture_info resolution = true 256x256
+Result of get_texture_info channels = true 3
+Result of get_texture_info channels = true 3
+Result of get_texture_info data format = true uint8
+Result of get_texture_info datetime = false 
 Result of get_texture_info averagecolor = no
 Result of get_texture_info averagealpha = no
 Result of get_texture_info constantcolor = no
-Texture type is 1 Plain Texture
+Texture type is true Plain Texture
 
 Testing 2d texture file.<UDIM>.tx, output = out.tif
 Created texture system
@@ -15,15 +15,15 @@ Image "file.<UDIM>.tx" attrib "Make" = "pet"
 Created texture system
 Image "file.<UDIM>.tx" attrib "Model" -> not found
 Created texture system
-Result of get_texture_info resolution = 1 256x256
-Result of get_texture_info channels = 1 3
-Result of get_texture_info channels = 1 3
-Result of get_texture_info data format = 1 uint8
-Result of get_texture_info datetime = 0 
+Result of get_texture_info resolution = true 256x256
+Result of get_texture_info channels = true 3
+Result of get_texture_info channels = true 3
+Result of get_texture_info data format = true uint8
+Result of get_texture_info datetime = false 
 Result of get_texture_info averagecolor = no
 Result of get_texture_info averagealpha = no
 Result of get_texture_info constantcolor = no
-Texture type is 1 Plain Texture
+Texture type is true Plain Texture
 
 Testing 2d texture file.%(UDIM)d.tx, output = out2.tif
 Created texture system
