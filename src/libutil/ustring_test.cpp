@@ -38,7 +38,7 @@ create_lotso_ustrings(int iterations)
 {
     OIIO_DASSERT(size_t(iterations) <= strings.size());
     if (verbose)
-        Strutil::printf("thread %d\n", std::this_thread::get_id());
+        Strutil::print("thread {}\n", std::this_thread::get_id());
     size_t h = 0;
     for (int i = 0; i < iterations; ++i) {
         ustring s(strings[i].data());
@@ -93,7 +93,7 @@ main(int argc, char* argv[])
     OIIO_CHECK_EQUAL(ustring::concat("", foo), "foo");
     ustring longstring(Strutil::repeat("01234567890", 100));
     OIIO_CHECK_EQUAL(ustring::concat(longstring, longstring),
-                     ustring::sprintf("%s%s", longstring, longstring));
+                     ustring::fmtformat("{}{}", longstring, longstring));
     OIIO_CHECK_EQUAL(ustring::from_hash(foo.hash()), foo);
 
     const int nhw_threads = Sysutil::hardware_concurrency();
