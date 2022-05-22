@@ -1151,7 +1151,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         }
     }
     stat_readtime += alltime.lap();
-    STATUS(Strutil::sprintf("read \"%s\"", src->name()), stat_readtime);
+    STATUS(Strutil::fmt::format("read \"{}\"", src->name()), stat_readtime);
 
     if (mode == ImageBufAlgo::MakeTxEnvLatlFromLightProbe) {
         ImageSpec newspec = src->spec();

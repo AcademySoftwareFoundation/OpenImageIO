@@ -206,7 +206,7 @@ ImageRec::read_nativespec()
     ustring uname(name());
     if (!m_imagecache->get_image_info(uname, 0, 0, u_subimages, TypeInt,
                                       &subimages)) {
-        errorf("file not found: \"%s\"", name());
+        errorf("file not found: \"%s\"", name().str());
         return false;  // Image not found
     }
     m_subimages.resize(subimages);
@@ -245,7 +245,7 @@ ImageRec::read(ReadPolicy readpolicy, string_view channel_set)
     ustring uname(name());
     if (!m_imagecache->get_image_info(uname, 0, 0, u_subimages, TypeInt,
                                       &subimages)) {
-        errorf("file not found: \"%s\"", name());
+        errorf("file not found: \"%s\"", name().str());
         return false;  // Image not found
     }
     m_subimages.resize(subimages);

@@ -62,7 +62,9 @@ declare_roi(py::module& m)
 
         // Conversion to string
         .def("__str__",
-             [](const ROI& roi) { return PY_STR(Strutil::sprintf("%s", roi)); })
+             [](const ROI& roi) {
+                 return PY_STR(Strutil::fmt::format("{}", roi));
+             })
 
         // Copy
         .def("copy", [](const ROI& self) -> ROI { return self; })

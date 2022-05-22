@@ -276,7 +276,7 @@ debug(string_view message)
             if (!oiio_debug_file)
                 return;
         }
-        Strutil::fprintf(oiio_debug_file, "OIIO DEBUG: %s", message);
+        Strutil::print(oiio_debug_file, "OIIO DEBUG: {}", message);
     }
 }
 

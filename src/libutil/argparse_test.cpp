@@ -243,12 +243,12 @@ test_new()
     OIIO_CHECK_EQUAL(ap["filename"].type(), TypeDesc("string[2]"));
     std::cout << "\nAll args:\n";
     for (auto& a : ap.params())
-        Strutil::printf("  %s = %s   [%s]\n", a.name(), a.get_string(),
-                        a.type());
+        Strutil::print("  {} = {}   [{}]\n", a.name(), a.get_string(),
+                       a.type());
     std::cout << "Extracting filenames:\n";
     auto fn = ap["filename"].as_vec<std::string>();
     for (auto& f : fn)
-        Strutil::printf("  \"%s\"\n", f);
+        Strutil::print("  \"{}\"\n", f);
 }
 
 

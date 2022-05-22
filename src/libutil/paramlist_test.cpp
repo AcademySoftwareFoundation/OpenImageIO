@@ -359,10 +359,10 @@ test_delegates()
     string_view sv = pl["foo"].get();
     OIIO_CHECK_EQUAL(sv, "42");
 
-    Strutil::printf("Delegate-loaded array is\n");
+    Strutil::print("Delegate-loaded array is\n");
     for (auto&& p : pl)
-        Strutil::printf(" %16s : %s\n", p.name(), p.get_string());
-    Strutil::printf("\n");
+        Strutil::print(" {:16} : {}\n", p.name(), p.get_string());
+    Strutil::print("\n");
 }
 
 

@@ -1010,10 +1010,10 @@ test_getimagespec_gettexels(ustring filename)
     ImageSpec spec;
     int miplevel = 0;
     if (!texsys->get_imagespec(filename, 0, spec)) {
-        Strutil::fprintf(std::cerr, "Could not get spec for %s\n", filename);
+        Strutil::print(std::cerr, "Could not get spec for {}\n", filename);
         std::string e = texsys->geterror();
         if (!e.empty())
-            Strutil::fprintf(std::cerr, "ERROR: %s\n", e);
+            Strutil::print(std::cerr, "ERROR: {}\n", e);
         return;
     }
 
@@ -1683,8 +1683,8 @@ main(int argc, const char* argv[])
             texsys->get_texture_info(all_filenames[i], 0,
                                      ustring("stat:file_size"), TypeDesc::INT64,
                                      &file_size);
-            std::cout << Strutil::sprintf(
-                "  %d: %s  opens=%d, read=%s, time=%s, data=%s, file=%s\n", i,
+            Strutil::print(
+                "  {}: {}  opens={}, read={}, time={}, data={}, file={}\n", i,
                 all_filenames[i], timesopened, Strutil::memformat(bytesread),
                 Strutil::timeintervalformat(iotime, 2),
                 Strutil::memformat(data_size), Strutil::memformat(file_size));

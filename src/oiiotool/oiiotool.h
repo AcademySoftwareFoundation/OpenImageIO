@@ -316,7 +316,7 @@ public:
         if (!err.size())
             err = "unknown error";
         if (!Strutil::contains(err, filename))
-            err = Strutil::sprintf("\"%s\": %s", filename, err);
+            err = Strutil::fmt::format("\"{}\": {}", filename, err);
         return err;
     }
 
@@ -846,10 +846,10 @@ public:
         cleanup();
 
         if (ot.debug) {
-            Strutil::printf("    %s took %s  (total time %s, mem %s)\n",
-                            opname(), Strutil::timeintervalformat(timer(), 2),
-                            Strutil::timeintervalformat(ot.total_runtime(), 2),
-                            Strutil::memformat(Sysutil::memory_used()));
+            Strutil::print("    {} took {}  (total time {}, mem {})\n",
+                           opname(), Strutil::timeintervalformat(timer(), 2),
+                           Strutil::timeintervalformat(ot.total_runtime(), 2),
+                           Strutil::memformat(Sysutil::memory_used()));
         }
         return 0;
     }

@@ -1189,7 +1189,7 @@ Oiiotool::get_position(string_view command, string_view geom, int& x, int& y)
     bool ok = Strutil::parse_int(geom, x) && Strutil::parse_char(geom, ',')
               && Strutil::parse_int(geom, y);
     if (!ok)
-        errorf(command, "Unrecognized position \"%s\"", orig_geom);
+        errorfmt(command, "Unrecognized position \"{}\"", orig_geom);
     return ok;
 }
 
@@ -1268,7 +1268,7 @@ Oiiotool::adjust_geometry(string_view command, int& w, int& h, int& x, int& y,
         w = (int)(w * scaleX + 0.5f);
         h = (int)(h * scaleX + 0.5f);
     } else {
-        errorf(command, "Unrecognized geometry \"%s\"", geom);
+        errorfmt(command, "Unrecognized geometry \"{}\"", geom);
         return false;
     }
     // printf ("geom %dx%d, %+d%+d\n", w, h, x, y);
@@ -1282,7 +1282,7 @@ Oiiotool::express_error(const string_view expr, const string_view s,
                         string_view explanation)
 {
     int offset = expr.rfind(s) + 1;
-    errorf("expression", "%s at char %d of `%s'", explanation, offset, expr);
+    errorfmt("expression", "{} at char {} of `{}'", explanation, offset, expr);
 }
 
 
@@ -1458,8 +1458,8 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
                     result.pop_back();
             } else {
                 express_error(expr, s,
-                              Strutil::sprintf("unknown attribute name `%s'",
-                                               metadata));
+                              Strutil::fmt::format("unknown attribute name '{}'",
+                                                   metadata));
                 result = orig;
                 return false;
             }
@@ -1679,8 +1679,8 @@ Oiiotool::express(string_view str)
     expr.remove_prefix(1);
     expr.remove_suffix(1);
     // eg. expr="cde"
-    ustring result = ustring::sprintf("%s%s%s", prefix, express_impl(expr),
-                                      express(s));
+    ustring result = ustring::fmtformat("{}{}{}", prefix, express_impl(expr),
+                                        express(s));
     if (ot.debug)
         std::cout << "Expanding expression \"" << str << "\" -> \"" << result
                   << "\"\n";
@@ -2614,8 +2614,8 @@ action_channels(int argc, const char* argv[])
         bool ok = decode_channel_set(*A->spec(s, 0), chanlist, newchannelnames,
                                      channels, values);
         if (!ok) {
-            ot.errorf(command, "Invalid or unknown channel selection \"%s\"",
-                      chanlist);
+            ot.errorfmt(command, "Invalid or unknown channel selection \"{}\"",
+                        chanlist);
             ot.push(A);
             return 0;
         }
@@ -2770,9 +2770,9 @@ action_select_subimage(int argc, const char* argv[])
     if (Strutil::parse_int(w, subimage) && w.empty()) {
         // Subimage specification was an integer: treat as an index
         if (subimage < 0 || subimage >= ot.curimg->subimages()) {
-            ot.errorf(command, "Invalid -subimage (%d): %s has %d subimage%s",
-                      subimage, ot.curimg->name(), ot.curimg->subimages(),
-                      ot.curimg->subimages() == 1 ? "" : "s");
+            ot.errorfmt(command, "Invalid -subimage ({}): {} has {} subimage{}",
+                        subimage, ot.curimg->name(), ot.curimg->subimages(),
+                        ot.curimg->subimages() == 1 ? "" : "s");
             return 0;
         }
     } else {
@@ -2953,7 +2953,7 @@ action_colorcount(cspan<const char*> argv)
                                         &colorvalues[0], &eps[0]);
     if (ok) {
         for (int col = 0; col < ncolors; ++col)
-            Strutil::printf("%8d  %s\n", count[col], colorstrings[col]);
+            Strutil::print("{:8}  {}\n", count[col], colorstrings[col]);
     } else {
         ot.error(command, (*ot.curimg)(0, 0).geterror());
     }
@@ -2988,9 +2988,9 @@ action_rangecheck(cspan<const char*> argv)
                                               &highcount, &inrangecount,
                                               &low[0], &high[0]);
     if (ok) {
-        Strutil::printf("%8d  < %s\n", lowcount, lowarg);
-        Strutil::printf("%8d  > %s\n", highcount, higharg);
-        Strutil::printf("%8d  within range\n", inrangecount);
+        Strutil::print("{:8}  < {}\n", lowcount, lowarg);
+        Strutil::print("{:8}  > {}\n", highcount, higharg);
+        Strutil::print("{:8}  within range\n", inrangecount);
     } else {
         ot.error(command, (*ot.curimg)(0, 0).geterror());
     }
@@ -3265,7 +3265,7 @@ OIIOTOOL_OP(cshift, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     int xyz[3] = { 0, 0, 0 };
     if (!(Strutil::scan_values(op.args(1), "", span<int>(xyz, 3))
           || Strutil::scan_values(op.args(1), "", span<int>(xyz, 2)))) {
-        ot.errorf(op.opname(), "Invalid shift offset '%s'", op.args(1));
+        ot.errorfmt(op.opname(), "Invalid shift offset '{}'", op.args(1));
         return false;
     }
     return ImageBufAlgo::circular_shift(*img[0], *img[1], xyz[0], xyz[1],
@@ -3465,7 +3465,7 @@ OIIOTOOL_OP(kernel, 0, [](OiiotoolOp& op, span<ImageBuf*> img) {
     float w = 1.0f;
     float h = 1.0f;
     if (!scan_resolution(kernelsize, w, h))
-        ot.errorf(op.opname(), "Unknown size %s", kernelsize);
+        ot.errorfmt(op.opname(), "Unknown size {}", kernelsize);
     *img[0] = ImageBufAlgo::make_kernel(kernelname, w, h);
     return !img[0]->has_error();
 });
@@ -4002,7 +4002,7 @@ OIIOTOOL_OP(blur, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     float w             = 1.0f;
     float h             = 1.0f;
     if (!scan_resolution(op.args(1), w, h))
-        ot.errorf(op.opname(), "Unknown size %s", op.args(1));
+        ot.errorfmt(op.opname(), "Unknown size {}", op.args(1));
     ImageBuf Kernel = ImageBufAlgo::make_kernel(kernopt, w, h);
     if (Kernel.has_error()) {
         ot.error(op.opname(), Kernel.geterror());
@@ -4019,7 +4019,7 @@ OIIOTOOL_OP(median, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     int w = 3;
     int h = 3;
     if (!scan_resolution(size, w, h))
-        ot.errorf(op.opname(), "Unknown size %s", size);
+        ot.errorfmt(op.opname(), "Unknown size {}", size);
     return ImageBufAlgo::median_filter(*img[0], *img[1], w, h);
 });
 
@@ -4031,7 +4031,7 @@ OIIOTOOL_OP(dilate, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     int w = 3;
     int h = 3;
     if (!scan_resolution(size, w, h))
-        ot.errorf(op.opname(), "Unknown size %s", size);
+        ot.errorfmt(op.opname(), "Unknown size {}", size);
     return ImageBufAlgo::dilate(*img[0], *img[1], w, h);
 });
 
@@ -4043,7 +4043,7 @@ OIIOTOOL_OP(erode, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     int w = 3;
     int h = 3;
     if (!scan_resolution(size, w, h))
-        ot.errorf(op.opname(), "Unknown size %s", size);
+        ot.errorfmt(op.opname(), "Unknown size {}", size);
     return ImageBufAlgo::erode(*img[0], *img[1], w, h);
 });
 
@@ -4090,9 +4090,9 @@ action_fixnan(int argc, const char* argv[])
     else if (modename == "error")
         mode = NONFINITE_ERROR;
     else {
-        ot.warningf(argv[0],
-                    "\"%s\" not recognized. Valid choices: black, box3, error",
-                    modename);
+        ot.warningfmt(argv[0],
+                      "\"{}\" not recognized. Valid choices: black, box3, error",
+                      modename);
     }
     ot.read();
     ImageRecRef A = ot.pop();
@@ -4188,7 +4188,7 @@ action_paste(int argc, const char* argv[])
     if (position == "-" || position == "auto") {
         // Come back to this
     } else if (!scan_offset(position, x, y)) {
-        ot.errorf(command, "Invalid offset '%s'", position);
+        ot.errorfmt(command, "Invalid offset '{}'", position);
         return 0;
     }
 
@@ -4265,7 +4265,7 @@ action_mosaic(int /*argc*/, const char* argv[])
     int ximages = 0, yimages = 0;
     if (!scan_resolution(size, ximages, yimages) || ximages < 1
         || yimages < 1) {
-        ot.errorf(command, "Invalid size '%s'", size);
+        ot.errorfmt(command, "Invalid size '{}'", size);
         return 0;
     }
     int nimages = ximages * yimages;
@@ -4688,7 +4688,7 @@ input_file(int argc, const char* argv[])
         if (!exists) {
             // Try to get a more precise error message to report
             if (!Filesystem::exists(filename))
-                ot.errorf("read", "File does not exist: \"%s\"", filename);
+                ot.errorfmt("read", "File does not exist: \"{}\"", filename);
             else {
                 auto in         = ImageInput::open(filename);
                 std::string err = in ? in->geterror() : OIIO::geterror();
@@ -5627,10 +5627,11 @@ print_help_end(std::ostream& out)
         = Strutil::sprintf("OIIO %s built for C++%d/%d %s", OIIO_VERSION_STRING,
                            OIIO_CPLUSPLUS_VERSION, __cplusplus, buildsimd);
     out << Strutil::wordwrap(buildinfo, columns, 4) << std::endl;
-    auto hwinfo = Strutil::sprintf("Running on %d cores %.1fGB %s",
-                                   Sysutil::hardware_concurrency(),
-                                   Sysutil::physical_memory() / float(1 << 30),
-                                   OIIO::get_string_attribute("hw:simd"));
+    auto hwinfo = Strutil::fmt::format("Running on {} cores {:.1f}GB {}",
+                                       Sysutil::hardware_concurrency(),
+                                       Sysutil::physical_memory()
+                                           / float(1 << 30),
+                                       OIIO::get_string_attribute("hw:simd"));
     out << Strutil::wordwrap(hwinfo, columns, 4) << std::endl;
 
     // Print the path to the docs. If found, use the one installed in the

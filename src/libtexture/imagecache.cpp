@@ -2058,8 +2058,8 @@ ImageCacheImpl::getstats(int level) const
             for (const ImageCacheFileRef& file : files) {
                 if (file->broken()) {
                     ++nprinted;
-                    out << Strutil::sprintf("   %4d  %s\n", nprinted,
-                                            file->filename());
+                    Strutil::print(out, "   {:4}  {}\n", nprinted,
+                                   file->filename());
                 }
             }
         }
