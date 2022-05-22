@@ -832,3 +832,19 @@ to_string(const ustring& value)
 }  // end namespace Strutil
 
 OIIO_NAMESPACE_END
+
+
+// Supply a fmtlib compatible custom formatter for ustring.
+FMT_BEGIN_NAMESPACE
+
+template<> struct formatter<OIIO::ustring> : formatter<fmt::string_view, char> {
+    template<typename FormatContext>
+    auto format(const OIIO::ustring& t, FormatContext& ctx)
+        -> decltype(ctx.out()) const
+    {
+        return formatter<fmt::string_view, char>::format({ t.data(), t.size() },
+                                                         ctx);
+    }
+};
+
+FMT_END_NAMESPACE

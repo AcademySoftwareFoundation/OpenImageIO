@@ -97,7 +97,7 @@ benchmark(string_view funcname, FUNC func, T x, size_t work = 0)
         r = func(x); DoNotOptimize (r); clobber_all_memory();
     };
     float time = time_trial(repeat_func, ntrials, iterations / 8);
-    Strutil::printf("  %s: %7.1f Mvals/sec, (%.1f Mcalls/sec)\n",
+    Strutil::print("  {}: {:7.1f} Mvals/sec, ({:.1f} Mcalls/sec)\n",
                                  funcname, ((iterations * work) / 1.0e6) / time,
                                  (iterations / 1.0e6) / time);
 }
@@ -121,7 +121,7 @@ benchmark2(string_view funcname, FUNC func, T x, U y, size_t work = 0)
         r = func(x, y); DoNotOptimize (r); clobber_all_memory();
     };
     float time = time_trial(repeat_func, ntrials, iterations / 8);
-    Strutil::printf("  %s: %7.1f Mvals/sec, (%.1f Mcalls/sec)\n",
+    Strutil::print("  {}: {:7.1f} Mvals/sec, ({:.1f} Mcalls/sec)\n",
                                  funcname, ((iterations * work) / 1.0e6) / time,
                                  (iterations / 1.0e6) / time);
 }
@@ -1364,11 +1364,11 @@ test_shift()
         VEC vhard(hard);
         OIIO_CHECK_SIMD_EQUAL (vhard >> 1, VEC(hard>>1));
         OIIO_CHECK_SIMD_EQUAL (srl(vhard,1), VEC(unsigned(hard)>>1));
-        Strutil::printf("  [%x] >>  1 == [%x]\n", vhard, vhard>>1);
-        Strutil::printf("  [%x] srl 1 == [%x]\n", vhard, srl(vhard,1));
+        Strutil::print("  [{:x}] >>  1 == [{:x}]\n", vhard, vhard>>1);
+        Strutil::print("  [{:x}] srl 1 == [{:x}]\n", vhard, srl(vhard,1));
         OIIO_CHECK_SIMD_EQUAL (srl(vhard,4), VEC(unsigned(hard)>>4));
-        Strutil::printf("  [%x] >>  4 == [%x]\n", vhard, vhard>>4);
-        Strutil::printf("  [%x] srl 4 == [%x]\n", vhard, srl(vhard,4));
+        Strutil::print("  [{:x}] >>  4 == [{:x}]\n", vhard, vhard>>4);
+        Strutil::print("  [{:x}] srl 4 == [{:x}]\n", vhard, srl(vhard,4));
     }
 
     // Test <<= and >>=

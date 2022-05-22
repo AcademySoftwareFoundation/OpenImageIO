@@ -1672,8 +1672,8 @@ main(int argc, const char* argv[])
             texsys->get_texture_info(all_filenames[i], 0,
                                      ustring("stat:file_size"), TypeDesc::INT64,
                                      &file_size);
-            std::cout << Strutil::sprintf(
-                "  %d: %s  opens=%d, read=%s, time=%s, data=%s, file=%s\n", i,
+            Strutil::print(
+                "  {}: {}  opens={}, read={}, time={}, data={}, file={}\n", i,
                 all_filenames[i], timesopened, Strutil::memformat(bytesread),
                 Strutil::timeintervalformat(iotime, 2),
                 Strutil::memformat(data_size), Strutil::memformat(file_size));
