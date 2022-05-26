@@ -3474,15 +3474,6 @@ ImageCacheImpl::close_all()
 
 
 
-namespace {
-    // Mutex to protect all the UDIM table access.
-    static mutex_pool<spin_rw_mutex, ustring, ustringHash, 8>
-        udim_lookup_mutex_pool;
-    // static spin_rw_mutex udim_lookup_mutex;
-}  // namespace
-
-
-
 void
 ImageCacheFile::udim_setup()
 {
@@ -3658,22 +3649,9 @@ ImageCacheImpl::resolve_udim(ImageCacheFile* udimfile, Perthread* thread_info,
     if (udiminfo.filename.empty())
         return nullptr;
 
-    // Which is our mutex from the pool? Use a hash baseed on the filename.
-    spin_rw_mutex& udim_lookup_mutex(
-        udim_lookup_mutex_pool[udimfile->filename()]);
-
-    // First, try a read lock and see if we already have an entry
-    ImageCacheFile* realfile = nullptr;
-    {
-        spin_rw_mutex::read_lock_guard rlock(udim_lookup_mutex);
-        realfile = udiminfo.icfile;
-    }
-    // If that didn't work, get a write lock and we'll make the entry for
-    // the first time.
+    ImageCacheFile* realfile = udiminfo.icfile;
     if (!realfile) {
-        realfile = find_file(udiminfo.filename, thread_info);
-        // Grab the actual write lock to change the `ImageCacheFile*`.
-        spin_rw_mutex::write_lock_guard rlock(udim_lookup_mutex);
+        realfile        = find_file(udiminfo.filename, thread_info);
         udiminfo.icfile = realfile;
     }
     return realfile;
