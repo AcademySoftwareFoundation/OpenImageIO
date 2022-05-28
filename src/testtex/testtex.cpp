@@ -36,6 +36,7 @@ static std::vector<ustring> filenames;
 static std::string output_filename = "out.exr";
 static bool verbose                = false;
 static int nthreads                = 0;
+static int minthreads              = 1;
 static int threadtimes             = 0;
 static int output_xres = 512, output_yres = 512;
 static int nchannels_override     = 0;
@@ -77,6 +78,7 @@ static bool resetstats             = false;
 static bool testhash               = false;
 static bool wedge                  = false;
 static int ntrials                 = 1;
+static int lowtrials               = 10;
 static int testicwrite             = 0;
 static bool test_derivs            = false;
 static bool test_statquery         = false;
@@ -216,8 +218,12 @@ getargs(int argc, const char* argv[])
       .help("Do thread timings (arg = workload profile)");
     ap.arg("--trials %d:N", &ntrials)
       .help("Number of trials for timings");
+    ap.arg("--lowtrials %d:N", &lowtrials)
+      .help("Optional lower number of trials for <= 2 thread timings");
     ap.arg("--wedge", &wedge)
       .help("Wedge test");
+    ap.arg("--minthreads %d:N", &minthreads)
+      .help("Minimum number of threads for wedges (default: 1)");
     ap.arg("--noinvalidate %!", &invalidate_before_iter)
       .help("Don't invalidate the cache before each --threadtimes trial");
     ap.arg("--closebeforeiter", &close_before_iter)
@@ -1686,16 +1692,18 @@ main(int argc, const char* argv[])
                                       24, 32, 64, 128, 1024, 1 << 30 };
         float single_thread_time  = 0.0f;
         for (int i = 0; threadcounts[i] <= nthreads; ++i) {
-            int nt  = wedge ? threadcounts[i] : nthreads;
-            int its = iters > 1 ? (std::max(1, iters / nt))
-                                : iterations;  // / nt;
+            if (threadcounts[i] < minthreads)
+                continue;
+            int nt    = wedge ? threadcounts[i] : nthreads;
+            int its   = iters > 1 ? (std::max(1, iters / nt)) : iterations;
+            int tries = nt <= 2 ? std::min(lowtrials, ntrials) : ntrials;
             double range;
-            double t = time_trial(std::bind(launch_tex_threads, nt, its),
-                                  ntrials, &range);
-            if (nt == 1)
-                single_thread_time = (float)t;
-            float speedup    = (single_thread_time /*/nt*/) / (float)t;
-            float efficiency = (single_thread_time / nt) / float(t);
+            float t = (float)time_trial(std::bind(launch_tex_threads, nt, its),
+                                        tries, &range);
+            if (single_thread_time == 0.0f)
+                single_thread_time = t * nt;
+            float speedup    = single_thread_time / t;
+            float efficiency = speedup / nt;
             Strutil::print(
                 "{:3}     {:8.2f}   {:6.1f}x  {:6.1f}%    range {:.2f}\t({} iters/thread)\n",
                 nt, t, speedup, efficiency * 100.0f, range, its);
@@ -1704,7 +1712,6 @@ main(int argc, const char* argv[])
                 break;  // don't loop if we're not wedging
         }
         Strutil::print("\n");
-
     } else if (iters > 0 && filenames.size()) {
         ustring filename(filenames[0]);
         test_gettextureinfo(filenames[0]);
@@ -1800,7 +1807,7 @@ main(int argc, const char* argv[])
     if (runstats || verbose) {
         Strutil::print("Memory use: {}\n",
                        Strutil::memformat(Sysutil::memory_used(true)));
-        Strutil::print("{}\n", texsys->getstats(verbose ? 2 : 0));
+        Strutil::print("{}\n", texsys->getstats(verbose ? 2 : 1));
     }
     TextureSystem::destroy(texsys);
 
