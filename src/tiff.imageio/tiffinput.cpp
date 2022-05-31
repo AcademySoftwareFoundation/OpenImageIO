@@ -129,10 +129,10 @@ private:
     std::string m_filename;                 ///< Stash the filename
     std::vector<unsigned char> m_scratch;   ///< Scratch space for us to use
     std::vector<unsigned char> m_scratch2;  ///< More scratch
-    int m_subimage;                  ///< What subimage are we looking at?
-    int m_next_scanline;             ///< Next scanline we'll read
-    bool m_no_random_access;         ///< Should we avoid random access?
-    bool m_emulate_mipmap;           ///< Should we emulate mip with subimage?
+    int m_subimage;           ///< What subimage are we looking at?
+    int m_next_scanline;      ///< Next scanline we'll read, relative to ymin
+    bool m_no_random_access;  ///< Should we avoid random access?
+    bool m_emulate_mipmap;    ///< Should we emulate mip with subimage?
     bool m_keep_unassociated_alpha;  ///< If the image is unassociated, please
                                      ///<   try to keep it that way!
     bool m_raw_color;                ///< If the image is not RGB, don't
@@ -1833,7 +1833,7 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         // and more than one, or no point parallelizing
         nstrips > 1
         // only if we are reading scanlines in order
-        && ybegin == m_next_scanline
+        && ybegin == (m_next_scanline + m_spec.y)
         // only if we're threading and don't enter the thread pool recursively!
         && pool->size() > 1
         && !pool->is_worker()
@@ -1939,7 +1939,7 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     }
 
     // If we have left over scanlines, read them serially
-    m_next_scanline = y;
+    m_next_scanline = y - m_spec.y;
     for (; y < yend; ++y) {
         bool ok = read_native_scanline(subimage, miplevel, y, z, data);
         if (!ok)
