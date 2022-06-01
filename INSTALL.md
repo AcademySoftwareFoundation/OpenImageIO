@@ -21,7 +21,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
    **Intel icc 17+**, **Intel OneAPI C++ compiler 2022+**.
  * CMake >= 3.12 (tested through 3.23)
  * OpenEXR/Imath >= 2.3 (recommended: 2.4 or higher; tested through 3.1)
- * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.3)
+ * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.4)
  * libjpeg >= 8, or libjpeg-turbo >= 1.1 (tested through jpeg9d and jpeg-turbo
    2.1)
  * Boost >= 1.53 (recommended: at least 1.66; tested through 1.78)
