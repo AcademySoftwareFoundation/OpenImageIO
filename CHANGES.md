@@ -1,6 +1,10 @@
-Release 2.3.16 (1 Jun? 2022) -- compared to 2.3.15
+Release 2.3.16 (1 Jun 2022) -- compared to 2.3.15
 --------------------------------------------------
-
+* Support for Intel llvm-based compiler 2022.1.0. #3407
+* Internals: custom fmt formatters for vector types. #3367
+* Fix compiler breaks when using some changes in fmtlib master (not yet
+  released). #3416
+* UDIM textures have been sped up by 5-8%. #3417
 
 Release 2.3.15 (1 May 2022) -- compared to 2.3.14
 --------------------------------------------------
