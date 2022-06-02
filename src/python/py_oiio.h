@@ -658,6 +658,8 @@ delegate_setitem(C& self, const std::string& key, py::object obj)
         self[key] = int(obj.template cast<py::int_>());
     else if (py::isinstance<py::str>(obj))
         self[key] = std::string(obj.template cast<py::str>());
+    else if (py::isinstance<py::bytes>(obj))
+        self[key] = std::string(obj.template cast<py::bytes>());
     else
         throw std::invalid_argument("Bad type for __setitem__");
 }
