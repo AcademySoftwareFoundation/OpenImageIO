@@ -180,8 +180,8 @@ checked_find_package (OpenColorIO
                       DEFINITIONS  -DUSE_OCIO=1 -DUSE_OPENCOLORIO=1
                       # PREFER_CONFIG
                       )
-if (NOT OPENCOLORIO_FOUND)
-    set (OPENCOLORIO_FOUND 0)
+if (NOT OpenColorIO_FOUND)
+    set (OpenColorIO_FOUND 0)
 endif ()
 checked_find_package (OpenCV 3.0
                    DEFINITIONS  -DUSE_OPENCV=1)
