@@ -228,7 +228,7 @@ macro (oiio_add_all_tests)
     endif ()
 
     oiio_add_tests (oiiotool-color
-                    FOUNDVAR OPENCOLORIO_FOUND)
+                    FOUNDVAR OpenColorIO_FOUND)
 
     if (NOT DEFINED ENV{${PROJECT_NAME}_CI})
         oiio_add_tests (texture-icwrite)

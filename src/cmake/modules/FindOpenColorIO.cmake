@@ -9,7 +9,7 @@
 #
 # Old style CMake, this module also defines the following variables:
 #
-# OPENCOLORIO_FOUND       - True if OpenColorIO was found.
+# OpenColorIO_FOUND       - True if OpenColorIO was found.
 # OPENCOLORIO_INCLUDES    - where to find OpenColorIO.h
 # OPENCOLORIO_LIBRARIES   - list of libraries to link against when using OpenColorIO
 # OPENCOLORIO_DEFINITIONS - Definitions needed when using OpenColorIO
@@ -82,7 +82,7 @@ find_library (OPENCOLORIO_LIBRARY
 
 find_package_handle_standard_args (OpenColorIO
     REQUIRED_VARS   OPENCOLORIO_INCLUDE_DIR OPENCOLORIO_LIBRARY
-    FOUND_VAR       OPENCOLORIO_FOUND
+    FOUND_VAR       OpenColorIO_FOUND
     VERSION_VAR     OPENCOLORIO_VERSION
     )
 

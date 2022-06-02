@@ -44,4 +44,4 @@ include ("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake")
 check_required_components ("@PROJECT_NAME@")
 
 # Set a CMake variable that says if this OpenImageIO build has OCIO support
-set (@PROJECT_NAME@_HAS_OpenColorIO @OPENCOLORIO_FOUND@)
+set (@PROJECT_NAME@_HAS_OpenColorIO @OpenColorIO_FOUND@)
