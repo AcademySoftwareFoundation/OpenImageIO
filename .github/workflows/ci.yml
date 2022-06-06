@@ -208,7 +208,7 @@ jobs:
             simd: avx2,f16c
             setenvs: export LIBRAW_VERSION=0.20.2
                             LIBTIFF_VERSION=v4.4.0
-                            OPENCOLORIO_VERSION=v2.1.1
+                            OPENCOLORIO_VERSION=v2.1.2
                             OPENIMAGEIO_OPTIONS="openexr:core=1"
                             OPENJPEG_VERSION=v2.4.0
                             PTEX_VERSION=v2.4.0
@@ -248,7 +248,7 @@ jobs:
             python_ver: 3.8
             simd: avx2,f16c
             setenvs: export LLVM_VERSION=14.0.0
-                            OPENCOLORIO_VERSION=v2.1.1
+                            OPENCOLORIO_VERSION=v2.1.2
                             OPENIMAGEIO_OPTIONS="openexr:core=1"
                             USE_OPENVDB=0
                             # The installed OpenVDB has a TLS conflict with Python 3.8
