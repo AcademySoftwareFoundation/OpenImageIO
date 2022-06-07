@@ -29,7 +29,7 @@
 
 #include "squish.h"
 #include "maths.h"
-#include "simd.h"
+#include "squish-simd.h"
 #include "colourfit.h"
 
 namespace squish {
