@@ -336,6 +336,7 @@ test_hash()
     OIIO_CHECK_EQUAL(strhash("foo"), 6150913649986995171);
     OIIO_CHECK_EQUAL(strhash(std::string("foo")), 6150913649986995171);
     OIIO_CHECK_EQUAL(strhash(string_view("foo")), 6150913649986995171);
+    OIIO_CHECK_EQUAL(strhash(""), 0);  // empty string hashes to 0
 }
 
 
