@@ -159,6 +159,15 @@ BmpInput::open(const std::string& name, ImageSpec& newspec,
         m_spec.attribute("YResolution", (int)m_dib_header.vres);
         m_spec.attribute("ResolutionUnit", "m");
     }
+    if (m_spec.width < 1 || m_spec.height < 1 || m_spec.nchannels < 1
+        || m_spec.image_bytes() < 1
+        || m_spec.image_pixels() > std::numeric_limits<uint32_t>::max()) {
+        errorfmt(
+            "Invalid image size {} x {} ({} chans, {}), is likely corrupted",
+            m_spec.width, m_spec.height, m_spec.nchannels, m_spec.format);
+        close();
+        return false;
+    }
 
     // computing size of one scanline - this is the size of one scanline that
     // is stored in the file, not in the memory
@@ -194,6 +203,9 @@ BmpInput::open(const std::string& name, ImageSpec& newspec,
         if (!read_color_table())
             return false;
         break;
+    default:
+        errorfmt("Unsupported BMP bit depth: {}", m_dib_header.bpp);
+        return false;
     }
     if (m_dib_header.bpp <= 16)
         m_spec.attribute("bmp:bitsperpixel", m_dib_header.bpp);
@@ -212,13 +224,6 @@ BmpInput::open(const std::string& name, ImageSpec& newspec,
             close();
             return false;
         }
-    }
-
-    if (m_spec.width < 1 || m_spec.height < 1 || m_spec.nchannels < 1
-        || m_spec.image_bytes() < 1) {
-        errorfmt("Invalid image size {} x {} ({} chans, {})", m_spec.width,
-                 m_spec.height, m_spec.nchannels, m_spec.format);
-        return false;
     }
 
     newspec = m_spec;
