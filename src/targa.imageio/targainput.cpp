@@ -156,6 +156,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
           && read(m_tga.cmap_size) && read(m_tga.x_origin)
           && read(m_tga.y_origin) && read(m_tga.width) && read(m_tga.height)
           && read(m_tga.bpp) && read(m_tga.attr))) {
+        errorfmt("Could not read full header");
         return false;
     }
 
@@ -251,11 +252,12 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
 
     // now try and see if it's a TGA 2.0 image
     // TGA 2.0 files are identified by a nifty "TRUEVISION-XFILE.\0" signature
-    if (!ioseek(-26, SEEK_END)) {
+    bool check_for_tga2 = (ioproxy()->size() > 26 + 18);
+    if (check_for_tga2 && !ioseek(-26, SEEK_END)) {
         errorfmt("Could not seek to find the TGA 2.0 signature.");
         return false;
     }
-    if (read(m_foot.ofs_ext) && read(m_foot.ofs_dev)
+    if (check_for_tga2 && read(m_foot.ofs_ext) && read(m_foot.ofs_dev)
         && ioread(&m_foot.signature, sizeof(m_foot.signature), 1)
         && !strncmp(m_foot.signature, "TRUEVISION-XFILE.", 17)) {
         //std::cerr << "[tga] this is a TGA 2.0 file\n";

@@ -31,4 +31,7 @@ command += oiiotool("--oiioattrib try_all_readers 0 src/crash3.tga -o crash3.exr
 command += oiiotool("--oiioattrib try_all_readers 0 src/crash4.tga -o crash4.exr", failureok = True)
 command += oiiotool("--oiioattrib try_all_readers 0 src/crash5.tga -o crash5.exr", failureok = True)
 
+# Test odds and ends, unusual files
+command += rw_command("src", "1x1.tga")
+
 outputs += [ 'out.txt', 'out.err.txt' ]

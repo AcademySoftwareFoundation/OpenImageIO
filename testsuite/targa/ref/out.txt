@@ -187,6 +187,14 @@ Reading ../oiio-images/targa/round_grill.tga
 Comparing "../oiio-images/targa/round_grill.tga" and "round_grill.tga"
 PASS
 Converting src/crash1.tga to crash1.exr
+Reading src/1x1.tga
+src/1x1.tga          :    1 x    1, 3 channel, uint2 targa
+    SHA-1: DB9237F28F9622F7B7E73B783A8822B63BDB3708
+    channel list: R, G, B
+    oiio:BitsPerSample: 2
+    targa:version: 1
+Comparing "src/1x1.tga" and "1x1.tga"
+PASS
 Comparing "CBW8.TGA.tif" and "ref/CBW8.TGA.tif"
 PASS
 Comparing "CCM8.TGA.tif" and "ref/CCM8.TGA.tif"
