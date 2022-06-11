@@ -54,6 +54,12 @@ private:
     bool read_color_table();
     bool color_table_is_all_gray();
     bool read_rle_image();
+
+    // Safe, clamped access to color table
+    const bmp_pvt::color_table& colortable(int i)
+    {
+        return m_colortable[clamp(i, 0, int(m_colortable.size() - 1))];
+    }
 };
 
 
@@ -318,9 +324,10 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         || m_dib_header.compression == RLE8_COMPRESSION) {
         for (int x = 0; x < m_spec.width; ++x) {
             int p = m_uncompressed[(m_spec.height - 1 - y) * m_spec.width + x];
-            mscanline[3 * x]     = m_colortable[p].r;
-            mscanline[3 * x + 1] = m_colortable[p].g;
-            mscanline[3 * x + 2] = m_colortable[p].b;
+            auto& c              = colortable(p);
+            mscanline[3 * x]     = c.r;
+            mscanline[3 * x + 1] = c.g;
+            mscanline[3 * x + 2] = c.b;
         }
         return true;
     }
@@ -367,29 +374,36 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         if (m_allgray) {
             // Keep it as 1-channel image because all colors are gray
             for (unsigned int i = 0; i < scanline_bytes; ++i) {
-                mscanline[i] = m_colortable[fscanline[i]].r;
+                mscanline[i] = colortable(fscanline[i]).r;
             }
         } else {
             // Expand palette image into 3-channel RGB (existing code)
             for (unsigned int i = 0, j = 0; j < scanline_bytes; ++i, j += 3) {
-                mscanline[j]     = m_colortable[fscanline[i]].r;
-                mscanline[j + 1] = m_colortable[fscanline[i]].g;
-                mscanline[j + 2] = m_colortable[fscanline[i]].b;
+                auto& c          = colortable(fscanline[i]);
+                mscanline[j]     = c.r;
+                mscanline[j + 1] = c.g;
+                mscanline[j + 2] = c.b;
             }
         }
     }
     if (m_dib_header.bpp == 4) {
         for (unsigned int i = 0, j = 0; j < scanline_bytes; ++i, j += 6) {
-            uint8_t mask     = 0xF0;
-            mscanline[j]     = m_colortable[(fscanline[i] & mask) >> 4].r;
-            mscanline[j + 1] = m_colortable[(fscanline[i] & mask) >> 4].g;
-            mscanline[j + 2] = m_colortable[(fscanline[i] & mask) >> 4].b;
+            uint8_t mask = 0xF0;
+            {
+                auto& c          = colortable((fscanline[i] & mask) >> 4);
+                mscanline[j]     = c.r;
+                mscanline[j + 1] = c.g;
+                mscanline[j + 2] = c.b;
+            }
             if (j + 3 >= scanline_bytes)
                 break;
-            mask             = 0x0F;
-            mscanline[j + 3] = m_colortable[fscanline[i] & mask].r;
-            mscanline[j + 4] = m_colortable[fscanline[i] & mask].g;
-            mscanline[j + 5] = m_colortable[fscanline[i] & mask].b;
+            mask = 0x0F;
+            {
+                auto& c          = colortable(fscanline[i] & mask);
+                mscanline[j + 3] = c.r;
+                mscanline[j + 4] = c.g;
+                mscanline[j + 5] = c.b;
+            }
         }
     }
     if (m_dib_header.bpp == 1) {
@@ -400,9 +414,10 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                 int index = 0;
                 if (fscanline[i] & (1 << j))
                     index = 1;
-                mscanline[k]     = m_colortable[index].r;
-                mscanline[k + 1] = m_colortable[index].g;
-                mscanline[k + 2] = m_colortable[index].b;
+                auto& c          = colortable(index);
+                mscanline[k]     = c.r;
+                mscanline[k + 1] = c.g;
+                mscanline[k + 2] = c.b;
             }
         }
     }
