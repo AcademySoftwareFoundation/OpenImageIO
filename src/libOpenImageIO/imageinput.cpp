@@ -97,6 +97,7 @@ ImageInput::valid_file(const std::string& filename) const
     bool ok = const_cast<ImageInput*>(this)->open(filename, tmpspec);
     if (ok)
         const_cast<ImageInput*>(this)->close();
+    (void)geterror();  // Clear any errors
     return ok;
 }
 

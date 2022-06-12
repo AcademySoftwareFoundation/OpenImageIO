@@ -268,6 +268,9 @@ macro (oiio_add_all_tests)
                     IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
     oiio_add_tests (jpeg2000
                     FOUNDVAR OPENJPEG_FOUND
+                    IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
+    oiio_add_tests (jpeg2000-j2kp4files
+                    FOUNDVAR OPENJPEG_FOUND
                     IMAGEDIR j2kp4files_v1_5
                     URL http://www.itu.int/net/ITU-T/sigdb/speimage/ImageForm-s.aspx?val=10100803)
     oiio_add_tests (openexr-suite openexr-multires openexr-chroma
