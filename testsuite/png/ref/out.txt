@@ -22,3 +22,14 @@ Reading ../oiio-images/oiio-logo-with-alpha.png
     oiio:ColorSpace: "sRGB"
 Comparing "../oiio-images/oiio-logo-with-alpha.png" and "oiio-logo-with-alpha.png"
 PASS
+libpng error: IDAT: Read error: hit end of file
+iconvert ERROR copying "../oiio-images/png/broken/invalid_gray_alpha_sbit.png" to "invalid_gray_alpha_sbit.png" :
+	Read error: hit end of file
+PNG read error: IDAT: Read error: hit end of file
+libpng error: No IDATs written into file
+libpng error: tEXt: Read error: hit end of file
+libpng error: tEXt: Read error: hit end of file
+Comparing "../oiio-images/png/broken/invalid_gray_alpha_sbit.png" and "invalid_gray_alpha_sbit.png"
+idiff ERROR: Could not read invalid_gray_alpha_sbit.png:
+	Invalid image file "invalid_gray_alpha_sbit.png": Read error: hit end of file
+PNG read error: tEXt: Read error: hit end of file

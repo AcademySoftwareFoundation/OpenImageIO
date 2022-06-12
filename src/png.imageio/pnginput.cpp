@@ -77,8 +77,10 @@ private:
     {
         PNGInput* pnginput = (PNGInput*)png_get_io_ptr(png_ptr);
         OIIO_DASSERT(pnginput);
-        if (!pnginput->ioread(data, length))
+        if (!pnginput->ioread(data, length)) {
             pnginput->m_err = true;
+            png_chunk_error(png_ptr, pnginput->geterror(false).c_str());
+        }
     }
 };
 
@@ -135,14 +137,16 @@ PNGInput::open(const std::string& name, ImageSpec& newspec)
     unsigned char sig[8];
     if (ioproxy()->pread(sig, sizeof(sig), 0) != sizeof(sig)
         || png_sig_cmp(sig, 0, 7)) {
-        errorf("Not a PNG file");
+        if (!has_error())
+            errorf("Not a PNG file");
         return false;  // Read failed
     }
 
     std::string s = PNG_pvt::create_read_struct(m_png, m_info, this);
     if (s.length()) {
         close();
-        errorf("%s", s);
+        if (!has_error())
+            errorfmt("{}", s);
         return false;
     }
 
@@ -183,9 +187,10 @@ bool
 PNGInput::readimg()
 {
     std::string s = PNG_pvt::read_into_buffer(m_png, m_info, m_spec, m_buf);
-    if (s.length()) {
+    if (s.length() || m_err || has_error()) {
         close();
-        errorf("%s", s);
+        if (!has_error())
+            errorfmt("{}", s);
         return false;
     }
 
@@ -253,8 +258,10 @@ PNGInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
 
     if (m_interlace_type != 0) {
         // Interlaced.  Punt and read the whole image
-        if (m_buf.empty())
-            readimg();
+        if (m_buf.empty()) {
+            if (has_error() || !readimg())
+                return false;
+        }
         size_t size = spec().scanline_bytes();
         memcpy(data, &m_buf[0] + y * size, size);
     } else {
