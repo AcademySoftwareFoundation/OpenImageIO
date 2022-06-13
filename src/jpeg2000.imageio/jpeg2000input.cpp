@@ -254,15 +254,25 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
     // opj_stream_set_write_function(m_stream, StreamWrite);
 
     OIIO_ASSERT(m_image == nullptr);
-    if (!opj_read_header(m_stream, m_codec, &m_image)) {
-        errorfmt("Could not read Jpeg2000 header");
-        close();
-        return false;
+    if (!opj_read_header(m_stream, m_codec, &m_image) || !m_image
+        || has_error()) {
+        if (!has_error())
+            errorfmt("Could not read Jpeg2000 header");
     }
-    opj_decode(m_codec, m_stream, m_image);
+    if (!has_error()) {
+        if (!opj_decode(m_codec, m_stream, m_image)) {
+            if (!has_error())
+                errorfmt("Could not decode Jpeg2000 data");
+        }
+    }
 
     destroy_decompressor();
     destroy_stream();
+
+    if (has_error()) {
+        close();
+        return false;
+    }
 
     // we support only one, three or four components in image
     const int channelCount = m_image->numcomps;
@@ -271,6 +281,16 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
             "Only images with one, three or four components are supported");
         close();
         return false;
+    }
+
+    for (int c = 0; c < channelCount; ++c) {
+        const opj_image_comp_t& comp(m_image->comps[c]);
+        if (!comp.data) {
+            errorfmt("Could not read Jpeg2000 component, no channel data {}",
+                     c);
+            close();
+            return false;
+        }
     }
 
     unsigned int maxPrecision = 0;
@@ -296,9 +316,7 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
     // std::cout << "overall x0=" << m_image->x0 << " y0=" << m_image->y0
     //           << " x1=" << m_image->x1 << " y1=" << m_image->y1 << "\n";
     // std::cout << "color_space=" << m_image->color_space << "\n";
-    const TypeDesc format = (maxPrecision <= 8) ? TypeDesc::UINT8
-                                                : TypeDesc::UINT16;
-
+    TypeDesc format = (maxPrecision <= 8) ? TypeDesc::UINT8 : TypeDesc::UINT16;
     m_spec   = ImageSpec(datawindow.width(), datawindow.height(), channelCount,
                        format);
     m_spec.x = datawindow.xbegin;
