@@ -182,8 +182,12 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
           bool keep_unassociated_alpha)
 {
     // Must call this setjmp in every function that does PNG reads
-    if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+    if (setjmp(png_jmpbuf(sp))) {  // NOLINT(cert-err52-cpp)
+        ImageInput* pnginput = (ImageInput*)png_get_io_ptr(sp);
+        if (!pnginput->has_error())
+            pnginput->errorfmt("Could not read info from file");
         return false;
+    }
 
     bool ok = true;
     png_read_info(sp, ip);

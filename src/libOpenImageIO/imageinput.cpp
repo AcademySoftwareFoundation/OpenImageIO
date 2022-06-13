@@ -1069,9 +1069,11 @@ ImageInput::append_error(string_view message) const
     OIIO_DASSERT(
         errptr->size() < 1024 * 1024 * 16
         && "Accumulated error messages > 16MB. Try checking return codes!");
-    if (errptr->size() && errptr->back() != '\n')
-        *errptr += '\n';
-    *errptr += message;
+    if (errptr->size() < 1024 * 1024 * 16) {
+        if (errptr->size() && errptr->back() != '\n')
+            *errptr += '\n';
+        *errptr += message;
+    }
 }
 
 
@@ -1218,8 +1220,7 @@ ImageInput::ioread(void* buf, size_t itemsize, size_t nitems)
     size_t n    = m_io->read(buf, size);
     if (n != size) {
         if (size_t(m_io->tell()) >= m_io->size())
-            ImageInput::errorfmt("Read error on \"{}\": hit end of file",
-                                 m_io->filename());
+            ImageInput::errorfmt("Read error: hit end of file");
         else
             ImageInput::errorfmt(
                 "Read error at position {}, could only read {}/{} bytes {}",
