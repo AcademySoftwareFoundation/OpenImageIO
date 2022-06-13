@@ -10,9 +10,9 @@
 
 OIIO_NAMESPACE_BEGIN
 
-// Defaults based on a microsecond resolution timer: gettimeofday()
-double Timer::seconds_per_tick         = 1.0e-6;
-Timer::ticks_t Timer::ticks_per_second = 1000000;
+double Timer::seconds_per_tick;
+Timer::ticks_t Timer::ticks_per_second;
+
 
 
 class TimerSetupOnce {
@@ -38,6 +38,14 @@ public:
                                   / static_cast<double>(time_info.denom);
         Timer::ticks_per_second = Timer::ticks_t(1.0f
                                                  / Timer::seconds_per_tick);
+#elif OIIO_TIMER_LINUX_USE_clock_gettime
+        // Defaults based on a nanosecond resolution timer: clock_gettime()
+        Timer::seconds_per_tick = 1.0e-9;
+        Timer::ticks_per_second = 1000000000;
+#else
+        // Defaults based on a microsecond resolution timer: gettimeofday()
+        Timer::seconds_per_tick = 1.0e-6;
+        Timer::ticks_per_second = 1000000;
 #endif
         // Note: For anything but Windows and Mac, we rely on gettimeofday,
         // which is microsecond timing, so there's nothing to set up.
