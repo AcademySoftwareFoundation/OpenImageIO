@@ -15,6 +15,15 @@
 #include <OpenImageIO/timer.h>
 
 
+#if (((OIIO_GNUC_VERSION && NDEBUG) || OIIO_CLANG_VERSION >= 30500 || OIIO_APPLE_CLANG_VERSION >= 70000 || defined(__INTEL_COMPILER)  || defined(__INTEL_LLVM_COMPILER)) \
+      && (defined(__x86_64__) || defined(__i386__))) \
+    || defined(_MSC_VER)
+#define OIIO_DONOTOPT_FORECINLINE OIIO_FORCEINLINE
+#else
+#define OIIO_DONOTOPT_FORECINLINE inline
+#endif
+
+
 OIIO_NAMESPACE_BEGIN
 
 /// DoNotOptimize(val) is a helper function for timing benchmarks that fools
@@ -23,10 +32,10 @@ OIIO_NAMESPACE_BEGIN
 /// May not work on all platforms. References:
 /// * Chandler Carruth's CppCon 2015 talk
 /// * Folly https://github.com/facebook/folly/blob/master/folly/Benchmark.h
-/// * Google Benchmark https://github.com/google/benchmark/blob/master/include/benchmark/benchmark_api.h
+/// * Google Benchmark https://github.com/google/benchmark/blob/main/include/benchmark/benchmark.h
 
 template <class T>
-OIIO_FORCEINLINE T const& DoNotOptimize (T const &val);
+OIIO_DONOTOPT_FORECINLINE T const& DoNotOptimize (T const &val);
 
 
 /// clobber_all_memory() is a helper function for timing benchmarks that
