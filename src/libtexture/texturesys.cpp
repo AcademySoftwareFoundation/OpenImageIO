@@ -462,7 +462,7 @@ TextureSystemImpl::attribute(string_view name, TypeDesc type, const void* val)
         m_flip_t = *(const int*)val;
         return true;
     }
-    if (name == "m_max_tile_channels" && type == TypeInt) {
+    if (name == "max_tile_channels" && type == TypeInt) {
         m_max_tile_channels = *(const int*)val;
         return true;
     }
@@ -507,7 +507,7 @@ TextureSystemImpl::getattribute(string_view name, TypeDesc type,
         *(int*)val = m_flip_t;
         return true;
     }
-    if (name == "m_max_tile_channels" && type == TypeInt) {
+    if (name == "max_tile_channels" && type == TypeInt) {
         *(int*)val = m_max_tile_channels;
         return true;
     }
