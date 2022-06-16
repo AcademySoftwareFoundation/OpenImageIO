@@ -582,7 +582,7 @@ private:
     /// Saved error string, per-thread
     ///
     mutable thread_specific_ptr<std::string> m_errormessage;
-    Filter1D* hq_filter;  ///< Better filter for magnification
+    std::unique_ptr<Filter1D> hq_filter;  // Better filter for magnification
     int m_statslevel;
     friend class TextureSystem;
 };
