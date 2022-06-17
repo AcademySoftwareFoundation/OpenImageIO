@@ -313,7 +313,6 @@ texture_type_name(TexFormat f)
 
 
 TextureSystemImpl::TextureSystemImpl(ImageCache* imagecache)
-    : hq_filter(NULL)
 {
     m_imagecache = (ImageCacheImpl*)imagecache;
     init();
@@ -328,8 +327,7 @@ TextureSystemImpl::init()
     m_gray_to_rgb       = false;
     m_flip_t            = false;
     m_max_tile_channels = 6;
-    delete hq_filter;
-    hq_filter    = Filter1D::create("b-spline", 4);
+    hq_filter.reset(Filter1D::create("b-spline", 4));
     m_statslevel = 0;
 
     // Allow environment variable to override default options
@@ -343,11 +341,7 @@ TextureSystemImpl::init()
 
 
 
-TextureSystemImpl::~TextureSystemImpl()
-{
-    printstats();
-    delete hq_filter;
-}
+TextureSystemImpl::~TextureSystemImpl() { printstats(); }
 
 
 
