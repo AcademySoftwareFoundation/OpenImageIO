@@ -27,6 +27,10 @@
 
 OIIO_NAMESPACE_BEGIN
 
+class ustringhash;  // forward declaration
+
+
+
 /// A ustring is an alternative to char* or std::string for storing
 /// strings, in which the character sequence is unique (allowing many
 /// speed advantages for assignment, equality testing, and inequality
@@ -49,10 +53,10 @@ OIIO_NAMESPACE_BEGIN
 ///
 /// We try very hard to completely mimic the API of std::string,
 /// including all the constructors, comparisons, iterations, etc.  Of
-/// course, the charaters of a ustring are non-modifiable, so we do not
+/// course, the characters of a ustring are non-modifiable, so we do not
 /// replicate any of the non-const methods of std::string.  But in most
 /// other ways it looks and acts like a std::string and so most templated
-/// algorthms that would work on a "const std::string &" will also work
+/// algorithms that would work on a "const std::string &" will also work
 /// on a ustring.
 ///
 /// Usage guidelines:
@@ -117,7 +121,7 @@ public:
     typedef std::string::const_reverse_iterator const_reverse_iterator;
 
     /// Default ctr for ustring -- make an empty string.
-    ustring(void) noexcept
+    constexpr ustring(void) noexcept
         : m_chars(nullptr)
     {
     }
@@ -261,11 +265,7 @@ public:
     /// Assign a single char to a ustring.
     const ustring& operator=(char c)
     {
-        char s[2];
-        s[0]  = c;
-        s[1]  = 0;
-        *this = ustring(s);
-        return *this;
+        return *this = ustring(string_view(&c, 1));
     }
 
     /// Return a C string representation of a ustring.
@@ -304,6 +304,9 @@ public:
         const TableRep* rep = ((const TableRep*)m_chars) - 1;
         return rep->hashed;
     }
+
+    /// Return a hashed version of the string
+    ustringhash uhash(void) const noexcept;
 
     /// Return the number of characters in the string.
     size_t size(void) const noexcept { return length(); }
@@ -354,8 +357,6 @@ public:
     {
         return ustring(*this, pos, n);
     }
-
-    // FIXME: implement compare.
 
     size_type find(const ustring& str, size_type pos = 0) const noexcept
     {
@@ -754,6 +755,214 @@ private:
 
 
 
+/// A ustringhash holds the hash of a ustring in a type-safe way.
+///
+/// It has a nearly identical interface to a ustring, and still refers to a
+/// string in the internal ustring table. But whereas the representation of a
+/// ustring is the pointer to the characters, the representation of a
+/// ustringhash is the hash of the string.
+///
+/// For some uses where you don't need access to the characters in any
+/// performance-critical paths, this may be a more convenient representation.
+/// In particular, it's well suited to a GPU that doesn't have access to the
+/// character memory. Another interesting difference is that from run to run,
+/// a ustring may have a different literal value, since there's no reason to
+/// expect that the pointer to a string like "foo" will refer to the same
+/// memory location every time the program executes, but in contrast, the hash
+/// is guaranteed to be identical from run to run.
+///
+class OIIO_UTIL_API ustringhash {
+public:
+    // Default constructor
+    OIIO_HOSTDEVICE constexpr ustringhash(void) noexcept
+        : m_hash(0)
+    {
+    }
+
+    /// ustringhash destructor.
+    ~ustringhash() noexcept = default;
+
+    /// Copy construct a ustringhash from another ustringhash.
+    OIIO_HOSTDEVICE constexpr ustringhash(const ustringhash& str) noexcept
+        : m_hash(str.m_hash)
+    {
+    }
+
+    /// Construct from a ustring
+    ustringhash(const ustring& str) noexcept
+        : m_hash(str.hash())
+    {
+    }
+
+    /// Construct a ustringhash from a null-terminated C string (char *).
+    OIIO_HOSTDEVICE explicit ustringhash(const char* str)
+    {
+#ifdef __CUDA_ARCH__
+        m_hash = Strutil::strhash(str);  // GPU: just compute the hash
+#else
+        m_hash = ustring(str).hash();  // CPU: make ustring, get its hash
+#endif
+    }
+
+    /// Construct a ustringhash from a string_view, which can be
+    /// auto-converted from either a std::string.
+    OIIO_HOSTDEVICE explicit ustringhash(string_view str)
+    {
+#ifdef __CUDA_ARCH__
+        m_hash = Strutil::strhash(str);  // GPU: just compute the hash
+#else
+        m_hash = ustring(str).hash();  // CPU: make ustring, get its hash
+#endif
+    }
+
+    /// Conversion to an OIIO::string_view.
+    operator string_view() const noexcept { return ustring::from_hash(m_hash); }
+
+    /// Conversion to std::string (explicit only!).
+    explicit operator std::string() const noexcept
+    {
+        return ustring::from_hash(m_hash).string();
+    }
+
+    /// Assign from a ustringhash
+    OIIO_HOSTDEVICE constexpr const ustringhash&
+    operator=(const ustringhash& str)
+    {
+        m_hash = str.m_hash;
+        return *this;
+    }
+
+    /// Assign from a ustring
+    const ustringhash& operator=(const ustring& str)
+    {
+        m_hash = str.hash();
+        return *this;
+    }
+
+    /// Reset to an empty string.
+    OIIO_HOSTDEVICE void clear(void) noexcept { m_hash = 0; }
+
+#ifndef __CUDA_ARCH__
+    /// Return a pointer to the characters.
+    const char* c_str() const noexcept
+    {
+        return ustring::from_hash(m_hash).c_str();
+    }
+
+    /// Return a C string representation of a ustring.
+    const char* data() const noexcept { return c_str(); }
+
+    /// Return a C++ std::string representation of a ustring.
+    const std::string& string() const noexcept
+    {
+        return ustring::from_hash(m_hash).string();
+    }
+
+    /// Return the number of characters in the string.
+    size_t length(void) const noexcept
+    {
+        return ustring::from_hash(m_hash).length();
+    }
+#endif
+
+    /// Return a hashed version of the string
+    OIIO_HOSTDEVICE constexpr size_t hash(void) const noexcept
+    {
+        return m_hash;
+    }
+
+#ifndef __CUDA_ARCH__
+    /// Return the number of characters in the string.
+    size_t size(void) const noexcept { return length(); }
+#endif
+
+    /// Is the string empty -- i.e., is it nullptr or does it point to an
+    /// empty string? (Empty strings always have a hash of 0.)
+    OIIO_HOSTDEVICE constexpr bool empty(void) const noexcept
+    {
+        return m_hash == 0;
+    }
+
+    /// Test for equality with another ustringhash.
+    OIIO_HOSTDEVICE constexpr bool
+    operator==(const ustringhash& str) const noexcept
+    {
+        return m_hash == str.m_hash;
+    }
+
+    /// Test for inequality with another ustringhash.
+    OIIO_HOSTDEVICE constexpr bool
+    operator!=(const ustringhash& str) const noexcept
+    {
+        return m_hash != str.m_hash;
+    }
+
+    /// Test for equality with a char*.
+    bool operator==(const char* str) const noexcept
+    {
+        return m_hash == Strutil::strhash(str);
+    }
+
+    /// Test for inequality with a char*.
+    bool operator!=(const char* str) const noexcept
+    {
+        return m_hash != Strutil::strhash(str);
+    }
+
+#ifndef __CUDA_ARCH__
+    /// Test for equality with a ustring.
+    bool operator==(const ustring& str) const noexcept
+    {
+        return m_hash == str.hash();
+    }
+
+    friend bool operator==(const ustring& a, const ustringhash& b) noexcept
+    {
+        return b == a;
+    }
+
+    /// Test for inequality with a ustring.
+    bool operator!=(const ustring& str) const noexcept
+    {
+        return m_hash != str.hash();
+    }
+
+    friend bool operator!=(const ustring& a, const ustringhash& b) noexcept
+    {
+        return b != a;
+    }
+
+    /// Generic stream output of a ustring.
+    friend std::ostream& operator<<(std::ostream& out, const ustringhash& str)
+    {
+        return (out << str.hash());
+    }
+#endif
+
+private:
+    // Individual ustringhash internal representation -- the hash value.
+    size_t m_hash;
+
+    // Construct from a raw hash value. It's protected so that it's only
+    // callable by its friend, ustring.
+    OIIO_HOSTDEVICE ustringhash(size_t hashval)
+        : m_hash(hashval)
+    {
+    }
+
+    friend class ustring;
+};
+
+
+
+inline ustringhash
+ustring::uhash() const noexcept
+{
+    return ustringhash(hash());
+}
+
+
+
 /// Functor class to use as a hasher when you want to make a hash_map or
 /// hash_set using ustring as a key.
 class ustringHash {
@@ -822,6 +1031,13 @@ inline std::string
 to_string(const ustring& value)
 {
     return value.string();
+}
+
+template<>
+inline std::string
+to_string(const ustringhash& value)
+{
+    return ustring(value).string();
 }
 
 }  // end namespace Strutil
