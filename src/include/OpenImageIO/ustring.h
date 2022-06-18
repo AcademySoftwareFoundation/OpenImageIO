@@ -27,6 +27,10 @@
 
 OIIO_NAMESPACE_BEGIN
 
+// Feature tests
+#define OIIO_USTRING_HAS_USTRINGHASH 1
+
+
 class ustringhash;  // forward declaration
 
 
