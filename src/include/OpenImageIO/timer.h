@@ -28,6 +28,8 @@
 #    include <sys/time.h>
 #endif
 
+#define OIIO_TIMER_LINUX_USE_clock_gettime 1
+
 
 OIIO_NAMESPACE_BEGIN
 
@@ -60,7 +62,7 @@ OIIO_NAMESPACE_BEGIN
 ///
 class OIIO_UTIL_API Timer {
 public:
-    typedef long long ticks_t;
+    typedef int64_t ticks_t;
     enum StartNowVal { DontStartNow, StartNow };
     enum PrintDtrVal { DontPrintDtr, PrintDtr };
 
@@ -204,10 +206,14 @@ private:
         return n.QuadPart;
 #elif defined(__APPLE__)
         return mach_absolute_time();
+#elif OIIO_TIMER_LINUX_USE_clock_gettime
+        struct timespec t;
+        clock_gettime(CLOCK_MONOTONIC, &t);
+        return int64_t(t.tv_sec) * int64_t(1000000000) + t.tv_nsec;
 #else
         struct timeval t;
         gettimeofday(&t, NULL);
-        return (long long)t.tv_sec * 1000000ll + t.tv_usec;
+        return int64_t(t.tv_sec) * int64_t(1000000) + t.tv_usec;
 #endif
     }
 
