@@ -550,10 +550,10 @@ ImageOutput::create(string_view filename, Filesystem::IOProxy* ioproxy,
     }
     if (out && ioproxy) {
         if (!out->supports("ioproxy")) {
-            out.reset();
             OIIO::pvt::errorfmt(
                 "ImageOutput::create called with IOProxy, but format {} does not support IOProxy",
                 out->format_name());
+            out.reset();
         } else {
             out->set_ioproxy(ioproxy);
         }
