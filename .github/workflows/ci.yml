@@ -18,6 +18,8 @@ on:
     # Full nightly build
     - cron: "0 8 * * *"
 
+permissions: read-all
+
 
 jobs:
 
@@ -153,13 +155,20 @@ jobs:
       PYBIND11_VERSION: ${{matrix.pybind11_ver}}
       PYTHON_VERSION: ${{matrix.python_ver}}
     steps:
-      - uses: actions/checkout@v2
+      # We would like to use harden-runner, but it flags too many false
+      # positives, every time we download a dependency. We should use it only
+      # on CI runs where we are producing artifacts that users might rely on.
+      # - name: Harden Runner
+      #   uses: step-security/harden-runner@248ae51c2e8cc9622ecf50685c8bf7150c6e8813 # v1.4.3
+      #   with:
+      #     egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.2
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
         run: echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
       - name: ccache
         id: ccache
-        uses: actions/cache@v2
+        uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d # v3.0.4
         with:
           path: /tmp/ccache
           key: ${{github.job}}-${{matrix.nametag}}-${{steps.ccache_cache_keys.outputs.date}}
@@ -177,7 +186,7 @@ jobs:
       - name: Testsuite
         if: matrix.skip_tests != '1'
         run: src/build-scripts/ci-test.bash
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
         if: failure()
         with:
           name: oiio-${{github.job}}-${{matrix.nametag}}
@@ -293,13 +302,20 @@ jobs:
       PYBIND11_VERSION: ${{matrix.pybind11_ver}}
       PYTHON_VERSION: ${{matrix.python_ver}}
     steps:
-      - uses: actions/checkout@v2
+      # We would like to use harden-runner, but it flags too many false
+      # positives, every time we download a dependency. We should use it only
+      # on CI runs where we are producing artifacts that users might rely on.
+      # - name: Harden Runner
+      #   uses: step-security/harden-runner@248ae51c2e8cc9622ecf50685c8bf7150c6e8813 # v1.4.3
+      #   with:
+      #     egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.2
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
         run: echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
       - name: ccache
         id: ccache
-        uses: actions/cache@v2
+        uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d # v3.0.4
         with:
           path: /tmp/ccache
           key: ${{github.job}}-${{matrix.nametag}}-${{ steps.ccache_cache_keys.outputs.date }}
@@ -317,7 +333,7 @@ jobs:
       - name: Testsuite
         if: matrix.skip_tests != '1'
         run: src/build-scripts/ci-test.bash
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
         if: failure()
         with:
           name: oiio-${{github.job}}-${{matrix.nametag}}
@@ -352,13 +368,13 @@ jobs:
       CMAKE_CXX_STANDARD: ${{ matrix.cxx_std }}
       PYTHON_VERSION: ${{ matrix.python_ver }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.2
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
         run: echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
       - name: ccache
         id: ccache
-        uses: actions/cache@v2
+        uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d # v3.0.4
         with:
           path: /Users/runner/.ccache
           key: ${{github.job}}-${{matrix.os}}-${{steps.ccache_cache_keys.outputs.date}}
@@ -377,7 +393,7 @@ jobs:
             src/build-scripts/ci-build.bash
       - name: Testsuite
         run: src/build-scripts/ci-test.bash
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
         if: failure()
         with:
           name: oiio-${{github.job}}
@@ -419,9 +435,9 @@ jobs:
       USE_SIMD: ${{matrix.simd}}
       CTEST_ARGS: "--timeout 120 --repeat after-timeout:6"
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.2
       - name: Setup Nuget.exe
-        uses: nuget/setup-nuget@v1
+        uses: nuget/setup-nuget@b2bc17b761a1d88cab755a776c7922eb26eefbfa # v1.0.6
       - name: Build setup
         shell: bash
         run: |
@@ -436,7 +452,7 @@ jobs:
       - name: Testsuite
         shell: bash
         run: src/build-scripts/ci-test.bash
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
         if: failure()
         with:
           name: oiio-${{github.job}}-VS${{matrix.vsver}}
@@ -462,14 +478,14 @@ jobs:
       BUILDTARGET: clang-format
       PYTHON_VERSION: 3.9
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.2
       - name: Build setup
         run: src/build-scripts/ci-startup.bash
       - name: Dependencies
         run: src/build-scripts/gh-installdeps.bash
       - name: Build
         run: src/build-scripts/ci-build.bash
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
         if: failure()
         with:
           name: ${{ github.job }}
