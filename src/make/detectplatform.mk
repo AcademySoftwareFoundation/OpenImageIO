@@ -26,7 +26,9 @@ ifneq (${hw},x86)
     ifneq (${hw},i386)
       ifneq (${hw},i686)
         ifneq (${hw},aarch64)
-          $(error "ERROR: Unknown hardware architecture")
+          ifneq (${hw},arm64)
+            $(error "ERROR: Unknown hardware architecture")
+          endif
         endif
       endif
     endif
