@@ -577,7 +577,15 @@ private:
     bool m_flip_t;            ///< Flip direction of t coord?
     int m_max_tile_channels;  ///< narrow tile ID channel range when
                               ///<   the file has more channels
+    int m_stochastic;
     static EightBitConverter<float> uchar2float;
+
+    enum StochasticStrategyBits {
+        StochasticStrategy_None  = 0,
+        StochasticStrategy_MIP   = 1,  // select MIP level
+        StochasticStrategy_Aniso = 2,  // single anisotropic probe
+        StochasticStrategy_Texel = 4   // single FIS texel probe
+    };
 
     /// Saved error string, per-thread
     ///

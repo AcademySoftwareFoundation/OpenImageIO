@@ -160,7 +160,8 @@ declare_textureopt(py::module& m)
         .def_property("missingcolor", &TextureOptWrap::get_missingcolor,
                       &TextureOptWrap::set_missingcolor)
         .def_readwrite("time", &TextureOptWrap::time)
-        .def_readwrite("bias", &TextureOptWrap::bias)
+        .def_readwrite("bias", &TextureOptWrap::bias)  // DEPRECATED(2.4)
+        .def_readwrite("rnd", &TextureOptWrap::rnd)
         .def_readwrite("samples", &TextureOptWrap::samples)
         .def_property(
             "rwrap",

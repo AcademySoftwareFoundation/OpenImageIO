@@ -58,17 +58,19 @@ static bool test_getimagespec = false;
 static bool filtertest        = false;
 static TextureSystem* texsys  = NULL;
 static std::string searchpath;
-static bool batch        = false;
-static bool nowarp       = false;
-static bool tube         = false;
-static bool use_handle   = false;
-static float cachesize   = -1;
-static int maxfiles      = -1;
-static int mipmode       = TextureOpt::MipModeDefault;
-static int interpmode    = TextureOpt::InterpSmartBicubic;
-static float missing[4]  = { -1, 0, 0, 1 };
-static float fill        = -1;  // -1 signifies unset
-static float scalefactor = 1.0f;
+static bool batch         = false;
+static bool nowarp        = false;
+static bool tube          = false;
+static bool use_handle    = false;
+static bool use_bluenoise = false;
+static float cachesize    = -1;
+static int maxfiles       = -1;
+static int mipmode        = TextureOpt::MipModeDefault;
+static int interpmode     = TextureOpt::InterpSmartBicubic;
+static int stochastic     = 0;
+static float missing[4]   = { -1, 0, 0, 1 };
+static float fill         = -1;  // -1 signifies unset
+static float scalefactor  = 1.0f;
 static Imath::V3f texoffset(0, 0, 0);
 static bool nountiled              = false;
 static bool nounmipped             = false;
@@ -95,6 +97,7 @@ static std::vector<std::string> filenames_to_delete;
 const int pieces_per_udim = 20;
 static std::vector<TextureSystem::TextureHandle*> texture_handles;
 void* dummyptr;
+static const ImageBuf& bluenoiseimg(ImageBufAlgo::bluenoise_image());
 
 typedef void (*Mapping2D)(const int&, const int&, float&, float&, float&,
                           float&, float&, float&);
@@ -162,6 +165,8 @@ getargs(int argc, const char* argv[])
       .help("Set mip mode (default: 0 = aniso)");
     ap.arg("--interpmode %d:MODE", &interpmode)
       .help("Set interp mode (default: 3 = smart bicubic)");
+    ap.arg("--stochastic %d:MODE", &stochastic)
+      .help("Set stochastic sampling mode (default: 0 = none)");
     ap.arg("--missing %f:R %f:G %f:B", &missing[0], &missing[1], &missing[2])
       .help("Specify missing texture color");
     ap.arg("--autotile %d:TILESIZE", &autotile)
@@ -238,6 +243,8 @@ getargs(int argc, const char* argv[])
       .help("Make tests from a template (e.g., \"tmp/test{:04}.exr\")");
     ap.arg("--udim", &udim_tests)
       .help("Do udim-oriented tests");
+    ap.arg("--bluenoise", &use_bluenoise)
+      .help("Use blue noise for stochastic choices");
 
     // clang-format on
     ap.parse(argc, argv);
@@ -601,12 +608,16 @@ plain_tex_region(ImageBuf& image, ustring filename, Mapping2D mapping,
             opt.swidth = OIIO::lerp(width, widthramp, s);
             opt.twidth = opt.swidth;
         }
-        if (mipmode == TextureOpt::MipModeStochasticTrilinear
-            || mipmode == TextureOpt::MipModeStochasticAniso) {
+        if (stochastic) {
             // Hash the pixel coords to get a pseudo-random variant
-            constexpr float inv = 1.0f
-                                  / float(std::numeric_limits<uint32_t>::max());
-            opt.rnd = bjhash::bjfinal(p.x(), p.y()) * inv;
+            if (use_bluenoise) {
+                opt.rnd = bluenoiseimg.getchannel(p.x(), p.y(), 0, 0,
+                                                  ImageBuf::WrapPeriodic);
+            } else {
+                constexpr float inv
+                    = 1.0f / float(std::numeric_limits<uint32_t>::max());
+                opt.rnd = bjhash::bjfinal(p.x(), p.y()) * inv;
+            }
         }
 
         // Call the texture system to do the filtering.
@@ -732,14 +743,19 @@ plain_tex_region_batch(ImageBuf& image, ustring filename, Mapping2DWide mapping,
                     opt.twidth[i] = opt.swidth[i];
                 }
             }
-            if (mipmode == TextureOpt::MipModeStochasticTrilinear
-                || mipmode == TextureOpt::MipModeStochasticAniso) {
+            if (stochastic) {
                 // Hash the pixel coords to get a pseudo-random variant
 #if OIIO_VERSION_GREATER_EQUAL(2, 4, 0)
                 constexpr float inv
                     = 1.0f / float(std::numeric_limits<uint32_t>::max());
-                for (int i = 0; i < BatchWidth; ++i)
-                    opt.rnd[i] = bjhash::bjfinal(x + i, y) * inv;
+                for (int i = 0; i < BatchWidth; ++i) {
+                    if (use_bluenoise)
+                        opt.rnd[i]
+                            = bluenoiseimg.getchannel(x + i, y, 0, 0,
+                                                      ImageBuf::WrapPeriodic);
+                    else
+                        opt.rnd[i] = bjhash::bjfinal(x + i, y) * inv;
+                }
 #endif
             }
 
@@ -1599,6 +1615,7 @@ main(int argc, const char* argv[])
         texsys->attribute("accept_unmipped", 0);
     texsys->attribute("gray_to_rgb", gray_to_rgb);
     texsys->attribute("flip_t", flip_t);
+    texsys->attribute("stochastic", stochastic);
 
     if (test_construction) {
         Timer t;

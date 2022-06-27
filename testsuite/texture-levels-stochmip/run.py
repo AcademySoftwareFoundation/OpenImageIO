@@ -6,6 +6,6 @@ hardfail = 0.16
 failpercent = 0.001
 allowfailures = 1
 
-command = testtex_command ("../common/textures/grid.tx",
-                           extraargs = "-stochastic 1 -d uint8 -o out.tif")
+command = testtex_command ("../oiio-images/miplevels.tx",
+                           extraargs = "-stochastic 1 -bluenoise -d uint8 -o out.tif")
 outputs = [ "out.tif" ]

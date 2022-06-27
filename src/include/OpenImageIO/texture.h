@@ -105,8 +105,8 @@ enum class MipMode {
     OneLevel,   ///< Use just one mipmap level
     Trilinear,  ///< Use two MIPmap levels (trilinear)
     Aniso,      ///< Use two MIPmap levels w/ anisotropic
-    StochasticTrilinear, ///< Stochastic trilinear
-    StochasticAniso, ///< Stochastic anisotropic
+    StochasticTrilinear, ///< DEPRECATED Stochastic trilinear
+    StochasticAniso, ///< DEPRECATED Stochastic anisotropic
 };
 
 /// Interp mode determines how we sample within a mipmap level
@@ -204,8 +204,8 @@ public:
         MipModeOneLevel,   ///< Use just one mipmap level
         MipModeTrilinear,  ///< Use two MIPmap levels (trilinear)
         MipModeAniso,      ///< Use two MIPmap levels w/ anisotropic
-        MipModeStochasticTrilinear, ///< Stochastic trilinear
-        MipModeStochasticAniso, ///< Stochastic anisotropic
+        MipModeStochasticTrilinear, ///< DEPRECATED Stochastic trilinear
+        MipModeStochasticAniso, ///< DEPRECATED Stochastic anisotropic
     };
 
     /// Interp mode determines how we sample within a mipmap level
@@ -227,7 +227,7 @@ public:
         anisotropic(32), conservative_filter(true),
         sblur(0.0f), tblur(0.0f), swidth(1.0f), twidth(1.0f),
         fill(0.0f), missingcolor(nullptr),
-        time(0.0f), rnd(0.0f), samples(1),
+        time(0.0f), rnd(-1.0f), samples(1),
         rwrap(WrapDefault), rblur(0.0f), rwidth(1.0f),
         envlayout(0)
     { }
@@ -251,7 +251,7 @@ public:
     const float* missingcolor;  ///< Color for missing texture
     float time;                 ///< Time (for time-dependent texture lookups)
     union {
-        float bias;                 ///< Bias for shadows (DEPRECATED?)
+        float bias;                 ///< Bias for shadows (DEPRECATED)
         float rnd;                  ///< Stratified sample value
     };
     int samples;                ///< Number of samples for shadows
@@ -297,7 +297,10 @@ class OIIO_API TextureOptBatch {
 public:
     /// Create a TextureOptBatch with all fields initialized to reasonable
     /// defaults.
-    TextureOptBatch () {}   // use inline initializers
+    TextureOptBatch () {
+        for (int i = 0; i < Tex::BatchWidth; ++i)
+            rnd[i] = -1.0f;
+    }
 
     // Options that may be different for each point we're texturing
     alignas(Tex::BatchAlign) float sblur[Tex::BatchWidth];    ///< Blur amount
@@ -592,6 +595,11 @@ public:
     /// - `int flip_t` :
     ///             If nonzero, `t` coordinates will be flipped `1-t` for
     ///             all texture lookups. The default is 0.
+    /// - `int stochastic` :
+    ///             Bit field determining how to use stochastic sampling for
+    ///             MipModeStochasticAniso and/or MipModeStochasticTrilinear.
+    ///             Bit 1 = sample MIP level, bit 2 = sample anisotropy
+    ///             (default=0).
     ///
     /// - `string options`
     ///             This catch-all is simply a comma-separated list of

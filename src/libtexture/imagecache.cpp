@@ -672,8 +672,15 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
             inp.reset();
             return {};
         }
+        si.n_mip_levels = nmip;
         // Make sure we didn't set the subimage's mip_mip_level past the end
         si.min_mip_level = std::min(si.min_mip_level, nmip - 1);
+        // Precompute the min(width,height) for each mip levels without
+        // needing to rifle through the imagespecs each time.
+        si.minwh.reset(new int[nmip + 1]);
+        for (int m = 0; m < nmip; ++m)
+            si.minwh[m] = std::min(si.spec(m).width, si.spec(m).height);
+        si.minwh[nmip] = 0;  // One past the end, set to 0
         ++nsubimages;
     } while (inp->seek_subimage(nsubimages, 0, nativespec));
     OIIO_DASSERT((size_t)nsubimages == m_subimages.size());
