@@ -27,9 +27,9 @@ iconvert ERROR copying "../oiio-images/png/broken/invalid_gray_alpha_sbit.png" t
 	Read error: hit end of file
 PNG read error: IDAT: Read error: hit end of file
 libpng error: No IDATs written into file
-libpng error: tEXt: Read error: hit end of file
-libpng error: tEXt: Read error: hit end of file
 Comparing "../oiio-images/png/broken/invalid_gray_alpha_sbit.png" and "invalid_gray_alpha_sbit.png"
+libpng error: tEXt: Read error: hit end of file
+libpng error: tEXt: Read error: hit end of file
 idiff ERROR: Could not read invalid_gray_alpha_sbit.png:
 	Invalid image file "invalid_gray_alpha_sbit.png": Read error: hit end of file
 PNG read error: tEXt: Read error: hit end of file
