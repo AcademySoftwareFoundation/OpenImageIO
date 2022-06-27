@@ -92,6 +92,7 @@ outputs = [ "out.txt" ]    # default
 failthresh = 0.004         # "Failure" threshold for any pixel value
 failpercent = 0.02         # Ok fo this percentage of pixels to "fail"
 hardfail = 0.012           # Even one pixel this wrong => hard failure
+allowfailures = 0          # Freebie failures
 
 # Some tests are designed for the app running to "fail" (in the sense of
 # terminating with an error return code), for example, a test that is designed
@@ -231,6 +232,7 @@ def diff_command (fileA, fileB, extraargs="", silent=False, concat=True) :
                + " -fail " + str(failthresh)
                + " -failpercent " + str(failpercent)
                + " -hardfail " + str(hardfail)
+               + " -allowfailures " + str(allowfailures)
                + " -warn " + str(2*failthresh)
                + " -warnpercent " + str(failpercent)
                + " " + extraargs + " " + make_relpath(fileA,tmpdir)
@@ -288,6 +290,7 @@ def rw_command (dir, filename, testwrite=True, use_oiiotool=False, extraargs="",
                + " -fail " + str(failthresh)
                + " -failpercent " + str(failpercent)
                + " -hardfail " + str(hardfail)
+               + " -allowfailures " + str(allowfailures)
                + " -warn " + str(2*failthresh)
                + " " + idiffextraargs + " " + output_filename + redirect + ";\n")
     return cmd

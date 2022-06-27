@@ -22,6 +22,7 @@
 
 
 using namespace OIIO;
+using OIIO::Strutil::print;
 
 
 enum idiffErrors {
@@ -68,6 +69,10 @@ getargs(int argc, char* argv[])
       .help("Fail if any one pixel exceeds this error")
       .metavar("VAL")
       .defaultval(std::numeric_limits<float>::infinity());
+    ap.arg("-allowfailures")
+      .help("OK for this number of pixels to fail by any amount")
+      .metavar("N")
+      .defaultval(0);
     ap.arg("-warn")
       .help("Warning threshold difference")
       .metavar("VAL")
@@ -116,8 +121,8 @@ read_input(const std::string& filename, ImageBuf& img, ImageCache* cache,
     if (img.read(subimage, miplevel, false, TypeFloat))
         return true;
 
-    std::cerr << "idiff ERROR: Could not read " << filename << ":\n\t"
-              << img.geterror() << "\n";
+    print(stderr, "idiff ERROR: Could not read {}:\n\t{}\n", filename,
+          img.geterror());
     return false;
 }
 
@@ -130,12 +135,11 @@ inline void
 safe_double_print(double val)
 {
     if (OIIO::isnan(val))
-        std::cout << "nan";
+        print("nan\n");
     else if (OIIO::isinf(val))
-        std::cout << "inf";
+        print("inf\n");
     else
-        std::cout << val;
-    std::cout << '\n';
+        print("{:g}\n", val);
 }
 
 
@@ -144,15 +148,15 @@ inline void
 print_subimage(ImageBuf& img0, int subimage, int miplevel)
 {
     if (img0.nsubimages() > 1)
-        std::cout << "Subimage " << subimage << ' ';
+        print("Subimage {} ", subimage);
     if (img0.nmiplevels() > 1)
-        std::cout << " MIP level " << miplevel << ' ';
+        print(" MIP level {} ", miplevel);
     if (img0.nsubimages() > 1 || img0.nmiplevels() > 1)
-        std::cout << ": ";
-    std::cout << img0.spec().width << " x " << img0.spec().height;
+        print(": ");
+    print("{} x {}", img0.spec().width, img0.spec().height);
     if (img0.spec().depth > 1)
-        std::cout << " x " << img0.spec().depth;
-    std::cout << ", " << img0.spec().nchannels << " channel\n";
+        print(" x {}", img0.spec().depth);
+    print(", {} channels\n", img0.spec().nchannels);
 }
 
 
@@ -169,8 +173,8 @@ main(int argc, char* argv[])
 
     std::vector<std::string> filenames = ap["filename"].as_vec<std::string>();
     if (filenames.size() != 2) {
-        std::cerr << "idiff: Must have two input filenames.\n";
-        std::cout << "> " << Strutil::join(filenames, ", ") << "\n";
+        print(stderr, "idiff: Must have two input filenames.\n");
+        print(stderr, "> {}\n", Strutil::join(filenames, ", "));
         ap.usage();
         return EXIT_FAILURE;
     }
@@ -188,10 +192,12 @@ main(int argc, char* argv[])
     float warnthresh      = ap["warn"].get<float>();
     float warnpercent     = ap["warnpercent"].get<float>();
     float hardwarn        = ap["hardwarn"].get<float>();
+    int allowfailures     = ap["allowfailures"].get<int>();
 
-    if (!quiet)
-        std::cout << "Comparing \"" << filenames[0] << "\" and \""
-                  << filenames[1] << "\"\n";
+    if (!quiet) {
+        print("Comparing \"{}\" and \"{}\"\n", filenames[0], filenames[1]);
+        fflush(stdout);
+    }
 
     // Create a private ImageCache so we can customize its cache size
     // and instruct it store everything internally as floats.
@@ -221,22 +227,21 @@ main(int argc, char* argv[])
 
         if (!read_input(filenames[0], img0, imagecache, subimage)
             || !read_input(filenames[1], img1, imagecache, subimage)) {
-            std::cerr << "Failed to read subimage " << subimage << "\n";
+            print(stderr, "Failed to read subimage {}\n", subimage);
             return ErrFile;
         }
 
         if (img0.nmiplevels() != img1.nmiplevels()) {
             if (!quiet)
-                std::cout
-                    << "Files do not match in their number of MIPmap levels\n";
+                print("Files do not match in their number of MIPmap levels\n");
         }
 
         for (int m = 0; m < img0.nmiplevels(); ++m) {
             if (m > 0 && !compareall)
                 break;
             if (m > 0 && img0.nmiplevels() != img1.nmiplevels()) {
-                std::cerr
-                    << "Files do not match in their number of MIPmap levels\n";
+                print(stderr,
+                      "Files do not match in their number of MIPmap levels\n");
                 ret = ErrDifferentSize;
                 break;
             }
@@ -246,8 +251,8 @@ main(int argc, char* argv[])
                 return ErrFile;
 
             if (img0.deep() != img1.deep()) {
-                std::cerr
-                    << "One image contains deep data, the other does not\n";
+                print(stderr,
+                      "One image contains deep data, the other does not\n");
                 ret = ErrDifferentSize;
                 break;
             }
@@ -268,9 +273,12 @@ main(int argc, char* argv[])
                 yee_failures = ImageBufAlgo::compare_Yee(img0, img1, cr);
             }
 
-            if (cr.nfail > (failpercent / 100.0 * npels)
-                || cr.maxerror > hardfail
-                || yee_failures > (failpercent / 100.0 * npels)) {
+            if (cr.nfail <= imagesize_t(allowfailures)) {
+                // Pass if users set allowfailures and we are within that
+                // limit.
+            } else if (cr.nfail > (failpercent / 100.0 * npels)
+                       || cr.maxerror > hardfail
+                       || yee_failures > (failpercent / 100.0 * npels)) {
                 ret = ErrFail;
             } else if (cr.nwarn > (warnpercent / 100.0 * npels)
                        || cr.maxerror > hardwarn) {
@@ -283,60 +291,50 @@ main(int argc, char* argv[])
             if (verbose || (ret != ErrOK && !quiet)) {
                 if (compareall)
                     print_subimage(img0, subimage, m);
-                std::cout << "  Mean error = ";
+                print("  Mean error = ");
                 safe_double_print(cr.meanerror);
-                std::cout << "  RMS error = ";
+                print("  RMS error = ");
                 safe_double_print(cr.rms_error);
-                std::cout << "  Peak SNR = ";
+                print("  Peak SNR = ");
                 safe_double_print(cr.PSNR);
-                std::cout << "  Max error  = " << cr.maxerror;
+                print("  Max error  = {:g}", cr.maxerror);
                 if (cr.maxerror != 0) {
-                    std::cout << " @ (" << cr.maxx << ", " << cr.maxy;
+                    print(" @ ({}, {}", cr.maxx, cr.maxy);
                     if (img0.spec().depth > 1)
-                        std::cout << ", " << cr.maxz;
+                        print(", {}", cr.maxz);
                     if (cr.maxc < (int)img0.spec().channelnames.size())
-                        std::cout << ", " << img0.spec().channelnames[cr.maxc]
-                                  << ')';
+                        print(", {})", img0.spec().channelnames[cr.maxc]);
                     else if (cr.maxc < (int)img1.spec().channelnames.size())
-                        std::cout << ", " << img1.spec().channelnames[cr.maxc]
-                                  << ')';
+                        print(", {})", img1.spec().channelnames[cr.maxc]);
                     else
-                        std::cout << ", channel " << cr.maxc << ')';
+                        print(", channel {})", cr.maxc);
                     if (!img0.deep()) {
-                        std::cout << "  values are ";
+                        print("  values are ");
                         for (int c = 0; c < img0.spec().nchannels; ++c)
-                            std::cout
-                                << (c ? ", " : "")
-                                << img0.getchannel(cr.maxx, cr.maxy, 0, c);
-                        std::cout << " vs ";
+                            print("{}{}", (c ? ", " : ""),
+                                  img0.getchannel(cr.maxx, cr.maxy, 0, c));
+                        ;
+                        print(" vs ");
                         for (int c = 0; c < img1.spec().nchannels; ++c)
-                            std::cout
-                                << (c ? ", " : "")
-                                << img1.getchannel(cr.maxx, cr.maxy, 0, c);
+                            print("{}{}", (c ? ", " : ""),
+                                  img1.getchannel(cr.maxx, cr.maxy, 0, c));
+                        ;
                     }
                 }
-                std::cout << "\n";
+                print("\n");
 #if OIIO_MSVS_BEFORE_2015
                 // When older Visual Studio is used, float values in
-                // scientific foramt are printed with three digit exponent.
+                // scientific format are printed with three digit exponent.
                 // We change this behaviour to fit Linux way.
                 _set_output_format(_TWO_DIGIT_EXPONENT);
 #endif
-                std::streamsize precis = std::cout.precision();
-                std::cout << "  " << cr.nwarn << " pixels ("
-                          << std::setprecision(3) << (100.0 * cr.nwarn / npels)
-                          << std::setprecision(precis) << "%) over "
-                          << warnthresh << "\n";
-                std::cout << "  " << cr.nfail << " pixels ("
-                          << std::setprecision(3) << (100.0 * cr.nfail / npels)
-                          << std::setprecision(precis) << "%) over "
-                          << failthresh << "\n";
+                print("  {} pixels ({:1.3g}%) over {}\n", cr.nwarn,
+                      (100.0 * cr.nwarn / npels), warnthresh);
+                print("  {} pixels ({:1.3g}%) over {}\n", cr.nfail,
+                      (100.0 * cr.nfail / npels), failthresh);
                 if (perceptual)
-                    std::cout << "  " << yee_failures << " pixels ("
-                              << std::setprecision(3)
-                              << (100.0 * yee_failures / npels)
-                              << std::setprecision(precis)
-                              << "%) failed the perceptual test\n";
+                    print("  {} pixels ({:3g}%) failed the perceptual test\n",
+                          yee_failures, (100.0 * yee_failures / npels));
             }
 
             // If the user requested that a difference image be output,
@@ -362,29 +360,29 @@ main(int argc, char* argv[])
 
     if (compareall && img0.nsubimages() != img1.nsubimages()) {
         if (!quiet)
-            std::cerr << "Images had differing numbers of subimages ("
-                      << img0.nsubimages() << " vs " << img1.nsubimages()
-                      << ")\n";
+            print(stderr,
+                  "Images had differing numbers of subimages ({} vs {})\n",
+                  img0.nsubimages(), img1.nsubimages());
         ret = ErrFail;
     }
     if (!compareall && (img0.nsubimages() > 1 || img1.nsubimages() > 1)) {
         if (!quiet)
-            std::cout << "Only compared the first subimage (of "
-                      << img0.nsubimages() << " and " << img1.nsubimages()
-                      << ", respectively)\n";
+            print(
+                "Only compared the first subimage (of {} and {}, respectively)\n",
+                img0.nsubimages(), img1.nsubimages());
     }
 
     if (ret == ErrOK) {
         if (!quiet)
-            std::cout << "PASS\n";
+            print("PASS\n");
     } else if (ret == ErrWarn) {
         if (!quiet)
-            std::cout << "WARNING\n";
+            print("WARNING\n");
     } else if (ret) {
         if (quiet)
-            std::cerr << "FAILURE\n";
+            print(stderr, "FAILURE\n");
         else
-            std::cout << "FAILURE\n";
+            print("FAILURE\n");
     }
 
     imagecache->invalidate_all(true);
