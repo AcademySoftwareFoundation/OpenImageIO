@@ -58,9 +58,6 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * libheif >= 1.3 (1.7 required for AVIF support, tested through 1.12)
      * libheif must be built with an AV1 encoder/decoder for AVIF support.
      * Avoid libheif 1.10 on Mac, it is very broken. Libheif 1.11 is fine.
- * If you want support for DDS files:
-     * libsquish >= 1.13 (tested through 1.15)
-     * But... if not found on the system, an embedded version will be used.
  * If you want support for DICOM medical image files:
      * DCMTK >= 3.6.1 (tested through 3.6.5)
  * If you want support for WebP images:

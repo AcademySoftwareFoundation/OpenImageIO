@@ -483,7 +483,7 @@ if (PROJECT_IS_TOP_LEVEL)
     set (CLANG_FORMAT_EXCLUDES "*pugixml*" "*SHA1*" "*/farmhash.cpp"
                                "src/dpx.imageio/libdpx/*"
                                "src/cineon.imageio/libcineon/*"
-                               "src/dds.imageio/squish/*"
+                               "src/dds.imageio/bcdec.h"
                                "src/gif.imageio/gif.h"
                                "src/libutil/stb_sprintf.h"
          CACHE STRING "Glob patterns to exclude for clang-format")

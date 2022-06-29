@@ -10,14 +10,34 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 namespace DDS_pvt {
 
-// IneQuation was here
-
 #define DDS_MAKE4CC(a, b, c, d) (a | b << 8 | c << 16 | d << 24)
 #define DDS_4CC_DXT1 DDS_MAKE4CC('D', 'X', 'T', '1')
 #define DDS_4CC_DXT2 DDS_MAKE4CC('D', 'X', 'T', '2')
 #define DDS_4CC_DXT3 DDS_MAKE4CC('D', 'X', 'T', '3')
 #define DDS_4CC_DXT4 DDS_MAKE4CC('D', 'X', 'T', '4')
 #define DDS_4CC_DXT5 DDS_MAKE4CC('D', 'X', 'T', '5')
+#define DDS_4CC_ATI1 DDS_MAKE4CC('A', 'T', 'I', '1')
+#define DDS_4CC_ATI2 DDS_MAKE4CC('A', 'T', 'I', '2')
+#define DDS_4CC_DX10 DDS_MAKE4CC('D', 'X', '1', '0')
+#define DDS_FORMAT_BC4_UNORM 80
+#define DDS_FORMAT_BC5_UNORM 83
+#define DDS_FORMAT_BC6H_UF16 95
+#define DDS_FORMAT_BC6H_SF16 96
+#define DDS_FORMAT_BC7_UNORM 98
+
+enum class Compression {
+    None,
+    DXT1,  // aka BC1
+    DXT2,
+    DXT3,  // aka BC2
+    DXT4,
+    DXT5,  // aka BC3
+    BC4,   // aka ATI1
+    BC5,   // aka ATI2
+    BC6HU,
+    BC6HS,
+    BC7
+};
 
 /// DDS pixel format flags. Channel flags are only applicable for uncompressed
 /// images.
@@ -66,8 +86,10 @@ enum {
 /// DDS caps structure.
 ///
 typedef struct {
-    uint32_t flags1;  ///< flags to indicate certain surface properties
-    uint32_t flags2;  ///< flags to indicate certain surface properties
+    uint32_t flags1;
+    uint32_t flags2;
+    uint32_t flags3;
+    uint32_t flags4;
 } dds_caps;
 
 /// DDS global flags - indicate valid header fields.
@@ -84,8 +106,6 @@ enum {
 };
 
 /// DDS file header.
-/// Please note that this layout is not identical to the one found in a file.
-///
 typedef struct {
     uint32_t fourCC;   ///< file four-character code
     uint32_t size;     ///< structure size, must be 124
@@ -95,10 +115,20 @@ typedef struct {
     uint32_t pitch;    ///< bytes per scanline (uncmp.)/total byte size (cmp.)
     uint32_t depth;    ///< image depth (for 3D textures)
     uint32_t mipmaps;  ///< number of mipmaps
-    // 11 reserved 4-byte fields come in here
+    uint32_t unused0[11];
     dds_pixformat fmt;  ///< pixel format
     dds_caps caps;      ///< DirectDraw Surface caps
+    uint32_t unused1;
 } dds_header;
+
+/// Optional header for images in DX10+ formats.
+typedef struct {
+    uint32_t dxgiFormat;
+    uint32_t resourceDimension;
+    uint32_t miscFlag;
+    uint32_t arraySize;
+    uint32_t miscFlag2;
+} dds_header_dx10;
 
 
 }  // namespace DDS_pvt

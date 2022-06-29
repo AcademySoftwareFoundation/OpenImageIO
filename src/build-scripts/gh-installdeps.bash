@@ -57,7 +57,7 @@ else
         libtbb-dev \
         libtiff-dev libgif-dev libpng-dev libraw-dev libwebp-dev \
         libavcodec-dev libavformat-dev libswscale-dev libavutil-dev \
-        dcmtk libsquish-dev libopenvdb-dev \
+        dcmtk libopenvdb-dev \
         libfreetype6-dev \
         locales wget \
         libopencolorio-dev \

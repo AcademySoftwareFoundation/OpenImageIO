@@ -224,7 +224,6 @@ relevant parts of the source code.
 OpenImageIO incorporates, distributes, or contains derived works of:
 
 * The SHA-1 implemenation we use is public domain by Dominik Reichl  http://www.dominik-reichl.de/
-* Squish © 2006 Simon Brown, MIT license. http://sjbrown.co.uk/?code=squish
 * PugiXML © 2006-2009 by Arseny Kapoulkine (based on work © 2003 Kristen Wegner), MIT license. http://pugixml.org/
 * DPX reader/writer © 2009 Patrick A. Palmer, BSD 3-clause license. https://github.com/patrickpalmer/dpx}
 * lookup3 code by Bob Jenkins, Public Domain. http://burtleburtle.net/bob/c/lookup3.c
@@ -241,6 +240,7 @@ OpenImageIO incorporates, distributes, or contains derived works of:
 * UTF-8 decoder © 2008-2009 Bjoern Hoehrmann, MIT license. http://bjoern.hoehrmann.de/utf-8/decoder/dfa
 * Base-64 encoder © René Nyffenegger, Zlib license. http://www.adp-gmbh.ch/cpp/common/base64.html
 * stb_sprintf © 2017 Sean Barrett, public domain (or MIT license where that   may not apply). https://github.com/nothings/stb
+* bcdec.h bySergii "iOrange" Kudlai, MIT or Unlicense. https://github.com/iOrange/bcdec
 
 OpenImageIO Has the following build-time dependencies (using
 system installs, referencing as git submodules, or downloading as part of

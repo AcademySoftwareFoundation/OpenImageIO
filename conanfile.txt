@@ -23,7 +23,6 @@ tbb/2020.0
 # openvdb
 # ptex
 # qt5
-# libsquish
 
 
 [generators]
