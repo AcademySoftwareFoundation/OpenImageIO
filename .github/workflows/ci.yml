@@ -448,13 +448,13 @@ jobs:
       LIBRAW_VERSION: master
       LIBTIFF_VERSION: master
       OPENCOLORIO_VERSION: main
-      OPENEXR_VERSION: master
+      OPENEXR_VERSION: main
       PUGIXML_VERSION: master
       PTEX_VERSION: main
       PYBIND11_VERSION: master
       PYTHON_VERSION: 3.8
       WEBP_VERSION: master
-      MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=master
+      MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=8.1.1
       USE_OPENVDB: 0
       # The old installed OpenVDB has a TLS conflict with Python 3.8
     steps:
