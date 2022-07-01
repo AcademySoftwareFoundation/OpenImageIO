@@ -1,6 +1,21 @@
 Release 2.2.21 (1 Jul 2022) -- compared to 2.2.20
 --------------------------------------------------
-
+* BMP: gain the ability to read some very old varieties of BMP files. #3375
+* BMP: better detection of corrupted files with nonsensical image dimensions
+  or total size. #3434
+* BMP: protect against corrupted files that have palette indices out of bound.
+  #3435
+* ffmpeg: Support for ffmpeg 5.0. #3282
+* ffmpeg: protect against possible double-free. #3376
+* ffmpeg: make the supported file extension check be case-insensitive. This
+  prevents movie files from being incorrectly unable to recognize their format
+  if they have the wrong capitalization of the file extension. #3364
+* hdr/rgbe files: Avoid possible Windows crash when dealing with characters
+  with the high bit set. #3310
+* TIFF: fix read problems with TIFF files with non-zero y offset. #3419
+* Dev goodies: ustring has added a from_hash() static method #3397, and a
+  ustringhash helper class #3436.
+* sime.h fixes for armv7 and aarch32. #3361
 
 Release 2.2.20 (1 Feb 2022) -- compared to 2.2.19
 --------------------------------------------------
