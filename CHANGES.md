@@ -15,7 +15,7 @@ Release 2.2.21 (1 Jul 2022) -- compared to 2.2.20
 * TIFF: fix read problems with TIFF files with non-zero y offset. #3419
 * Dev goodies: ustring has added a from_hash() static method #3397, and a
   ustringhash helper class #3436.
-* sime.h fixes for armv7 and aarch32. #3361
+* simd.h fixes for armv7 and aarch32. #3361
 
 Release 2.2.20 (1 Feb 2022) -- compared to 2.2.19
 --------------------------------------------------
