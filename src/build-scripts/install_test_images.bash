@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 if [[ ! -e ../oiio-images ]] ; then
-    git clone https://github.com/OpenImageIO/oiio-images.git ../oiio-images
+    git clone -b RB-2.2 https://github.com/OpenImageIO/oiio-images.git ../oiio-images
 fi
 
 if [[ ! -e ../libtiffpic ]] ; then
