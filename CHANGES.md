@@ -1,3 +1,7 @@
+Release 2.3.18 (1 Aug?? 2022) -- compared to 2.3.16
+---------------------------------------------------
+
+
 Release 2.3.17 (1 Jul 2022) -- compared to 2.3.16
 --------------------------------------------------
 * TIFF: fix read problems with TIFF files with non-zero y offset. #3419
