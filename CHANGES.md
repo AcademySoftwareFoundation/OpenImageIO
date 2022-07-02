@@ -1,5 +1,22 @@
 Release 2.3.17 (1 Jul 2022) -- compared to 2.3.16
 --------------------------------------------------
+* TIFF: fix read problems with TIFF files with non-zero y offset. #3419
+* Targa: Fix reading of tiny 1x1 2-bpp Targa 1.0 images. #3433 (2.3.17/2.2.21)
+  (2.3.17/2.2.21)
+* BMP: better detection of corrupted files with nonsensical image dimensions
+  or total size. #3434 (2.3.17/2.2.21)
+* BMP: protect against corrupted files that have palette indices out of bound.
+  #3435 (2.3.17/2.2.21)
+* TextureSystem: Fix typo that prevented "max_tile_channels" attribute from
+  being set or retrieved. (2.3.17)
+* ustring.h: ustring has added a from_hash() static method #3397, and a
+  ustringhash helper class #3436. (2.3.17/2.2.21)
+* benchmark.h: Alter the declaration of DoNotOptimize() so that it doesn't
+  have compilation problems on some platforms. #3444 (2.3.17)
+* Fix crash when ioproxy is passed to an image writer that doesn't support it.
+  #3453 (2.3.17)
+* Fix the "Makefile" wrapper to correctly recognize arm64 ("Apple silicon").
+  #3456 (2.3.17)
 
 Release 2.3.16 (1 Jun 2022) -- compared to 2.3.15
 --------------------------------------------------
@@ -830,6 +847,25 @@ Notable documentation changes:
   be done for different language bindings. #2768 (2.3.1.0)
 
 
+
+Release 2.2.21 (1 Jul 2022) -- compared to 2.2.20
+--------------------------------------------------
+* BMP: gain the ability to read some very old varieties of BMP files. #3375
+* BMP: better detection of corrupted files with nonsensical image dimensions
+  or total size. #3434
+* BMP: protect against corrupted files that have palette indices out of bound.
+  #3435
+* ffmpeg: Support for ffmpeg 5.0. #3282
+* ffmpeg: protect against possible double-free. #3376
+* ffmpeg: make the supported file extension check be case-insensitive. This
+  prevents movie files from being incorrectly unable to recognize their format
+  if they have the wrong capitalization of the file extension. #3364
+* hdr/rgbe files: Avoid possible Windows crash when dealing with characters
+  with the high bit set. #3310
+* TIFF: fix read problems with TIFF files with non-zero y offset. #3419
+* Dev goodies: ustring has added a from_hash() static method #3397, and a
+  ustringhash helper class #3436.
+* simd.h fixes for armv7 and aarch32. #3361
 
 Release 2.2.20 (1 Feb 2022) -- compared to 2.2.19
 --------------------------------------------------
