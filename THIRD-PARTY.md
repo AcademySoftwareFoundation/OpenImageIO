@@ -114,10 +114,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 MIT License
 SPDX-License-Identifier: MIT
 
-* Squish
-  Copyright 2006 Simon Brown si@sjbrown.co.uk
-  http://sjbrown.co.uk/?code=squish
-
 * PugiXML http://pugixml.org/ https://github.com/zeux/pugixml
   Copyright (c) 2006-2018 Arseny Kapoulkine
 
@@ -253,6 +249,9 @@ SPDX-License-Identifier: Unlicense
 
 * gif.h by Charlie Tangora. Public domain / Unlicense.
   https://github.com/ginsweater/gif-h
+
+* bcdec.h by Sergii "iOrange" Kudlai. MIT or Unlicense.
+  https://github.com/iOrange/bcdec
 
 
 This is free and unencumbered software released into the public domain.

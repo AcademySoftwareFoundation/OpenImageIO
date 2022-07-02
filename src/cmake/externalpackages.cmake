@@ -306,16 +306,6 @@ endmacro()
 
 
 ###########################################################################
-# libsquish
-
-option (USE_EMBEDDED_LIBSQUISH
-        "Force use of embedded Libsquish, even if external is found" OFF)
-if (NOT USE_EMBEDDED_LIBSQUISH)
-    checked_find_package (Libsquish)
-endif ()
-
-
-###########################################################################
 # fmtlib
 
 option (BUILD_FMT_FORCE "Force local download/build of fmt even if installed" OFF)

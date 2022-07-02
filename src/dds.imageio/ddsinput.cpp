@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <stdint.h>
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filesystem.h>
@@ -13,11 +14,14 @@
 #include <OpenImageIO/typedesc.h>
 
 #include "dds_pvt.h"
-#include "squish.h"
+#define BCDEC_IMPLEMENTATION
+#include "bcdec.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 using namespace DDS_pvt;
+
+constexpr int kBlockSize = 4;
 
 // uncomment the following define to enable 3x2 cube map layout
 //#define DDS_3X2_CUBE_MAP_LAYOUT
@@ -63,7 +67,9 @@ private:
     int m_greenL, m_greenR;  ///< Bit shifts to extract green channel
     int m_blueL, m_blueR;    ///< Bit shifts to extract blue channel
     int m_alphaL, m_alphaR;  ///< Bit shifts to extract alpha channel
-    dds_header m_dds;        ///< DDS header
+    Compression m_compression = Compression::None;
+    dds_header m_dds;  ///< DDS header
+    dds_header_dx10 m_dx10;
 
     /// Reset everything to initial state
     ///
@@ -96,6 +102,124 @@ private:
     bool internal_readimg(unsigned char* dst, int w, int h, int d);
 };
 
+static TypeDesc::BASETYPE
+GetBaseType(Compression cmp)
+{
+    if (cmp == Compression::BC6HU || cmp == Compression::BC6HS)
+        return TypeDesc::HALF;
+    return TypeDesc::UINT8;
+}
+
+static int
+GetChannelCount(Compression cmp)
+{
+    if (cmp == Compression::BC4)
+        return 1;
+    if (cmp == Compression::BC5)
+        return 2;
+    if (cmp == Compression::BC6HU || cmp == Compression::BC6HS)
+        return 3;
+    return 4;
+}
+
+static size_t
+GetBlockSize(Compression cmp)
+{
+    return cmp == Compression::DXT1 || cmp == Compression::BC4 ? 8 : 16;
+}
+
+static size_t
+GetStorageRequirements(size_t width, size_t height, Compression cmp)
+{
+    size_t blockCount = ((width + kBlockSize - 1) / kBlockSize)
+                        * ((height + kBlockSize - 1) / kBlockSize);
+    return blockCount * GetBlockSize(cmp);
+}
+
+static void
+DecompressImage(uint8_t* rgba, int width, int height, void const* blocks,
+                Compression cmp)
+{
+    uint8_t rgbai[kBlockSize * kBlockSize * 4];
+    uint16_t rgbh[kBlockSize * kBlockSize * 3];
+    const uint8_t* sourceBlock = reinterpret_cast<const uint8_t*>(blocks);
+    const size_t blockSize     = GetBlockSize(cmp);
+    const int channelCount     = GetChannelCount(cmp);
+    for (int y = 0; y < height; y += kBlockSize) {
+        for (int x = 0; x < width; x += kBlockSize) {
+            // decompress the BCn block
+            switch (cmp) {
+            case Compression::DXT1:
+                bcdec_bc1(sourceBlock, rgbai, kBlockSize * 4);
+                break;
+            case Compression::DXT2:
+            case Compression::DXT3:
+                bcdec_bc2(sourceBlock, rgbai, kBlockSize * 4);
+                break;
+            case Compression::DXT4:
+            case Compression::DXT5:
+                bcdec_bc3(sourceBlock, rgbai, kBlockSize * 4);
+                break;
+            case Compression::BC4:
+                bcdec_bc4(sourceBlock, rgbai, kBlockSize);
+                break;
+            case Compression::BC5:
+                bcdec_bc5(sourceBlock, rgbai, kBlockSize * 2);
+                break;
+            case Compression::BC6HU:
+            case Compression::BC6HS:
+                bcdec_bc6h_half(sourceBlock, rgbh, kBlockSize * 3,
+                                cmp == Compression::BC6HS);
+                break;
+            case Compression::BC7:
+                bcdec_bc7(sourceBlock, rgbai, kBlockSize * 4);
+                break;
+            default: return;
+            }
+            sourceBlock += blockSize;
+
+            // write the pixels into the destination image location
+            if (cmp == Compression::BC6HU || cmp == Compression::BC6HS) {
+                // HDR formats: half
+                const uint16_t* pix = rgbh;
+                for (int py = 0; py < kBlockSize; ++py) {
+                    int sy        = y + py;
+                    uint16_t* dst = (uint16_t*)rgba
+                                    + channelCount * size_t(width) * sy;
+                    for (int px = 0; px < kBlockSize; ++px) {
+                        int sx = x + px;
+                        if (sx < width && sy < height) {
+                            // write the rgb value
+                            for (int ch = 0; ch < channelCount; ++ch)
+                                dst[sx * channelCount + ch] = *pix++;
+                        } else {
+                            // outside the image: skip
+                            pix += channelCount;
+                        }
+                    }
+                }
+            } else {
+                // LDR formats: uint8
+                const uint8_t* pix = rgbai;
+                for (int py = 0; py < kBlockSize; ++py) {
+                    int sy       = y + py;
+                    uint8_t* dst = rgba + channelCount * size_t(width) * sy;
+                    for (int px = 0; px < kBlockSize; ++px) {
+                        int sx = x + px;
+                        if (sx < width && sy < height) {
+                            // write the rgba value
+                            for (int ch = 0; ch < channelCount; ++ch)
+                                dst[sx * channelCount + ch] = *pix++;
+                        } else {
+                            // outside the image: skip
+                            pix += channelCount;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 
 // Obligatory material to make this a recognizeable imageio plugin:
@@ -139,42 +263,10 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
     if (!ioproxy_use_or_open(name))
         return false;
 
-// due to struct packing, we may get a corrupt header if we just load the
-// struct from file; to address that, read every member individually
-// save some typing
-#define RH(memb)                                     \
-    if (!ioread(&m_dds.memb, sizeof(m_dds.memb), 1)) \
-    return false
+    static_assert(sizeof(dds_header) == 128, "dds header size does not match");
+    if (!ioread(&m_dds, sizeof(m_dds), 1))
+        return false;
 
-    RH(fourCC);
-    RH(size);
-    RH(flags);
-    RH(height);
-    RH(width);
-    RH(pitch);
-    RH(depth);
-    RH(mipmaps);
-
-    // advance the file pointer by 44 bytes (reserved fields)
-    ioseek(44, SEEK_CUR);
-
-    // pixel format struct
-    RH(fmt.size);
-    RH(fmt.flags);
-    RH(fmt.fourCC);
-    RH(fmt.bpp);
-    RH(fmt.rmask);
-    RH(fmt.gmask);
-    RH(fmt.bmask);
-    RH(fmt.amask);
-
-    // caps
-    RH(caps.flags1);
-    RH(caps.flags2);
-
-    // advance the file pointer by 8 bytes (reserved fields)
-    ioseek(8, SEEK_CUR);
-#undef RH
     if (bigendian()) {
         // DDS files are little-endian
         // only swap values which are not flags or bitmasks
@@ -241,23 +333,46 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
+    // read optional DX10 header
+    if (m_dds.fmt.fourCC == DDS_4CC_DX10) {
+        if (!ioread(&m_dx10, sizeof(m_dx10), 1))
+            return false;
+    }
+
     // validate the pixel format
-    // TODO: support DXGI and the "wackier" uncompressed formats
-    if (m_dds.fmt.flags & DDS_PF_FOURCC && m_dds.fmt.fourCC != DDS_4CC_DXT1
-        && m_dds.fmt.fourCC != DDS_4CC_DXT2 && m_dds.fmt.fourCC != DDS_4CC_DXT3
-        && m_dds.fmt.fourCC != DDS_4CC_DXT4
-        && m_dds.fmt.fourCC != DDS_4CC_DXT5) {
-        errorf("Unsupported compression type");
-        return false;
+    if (m_dds.fmt.flags & DDS_PF_FOURCC) {
+        m_compression = Compression::None;
+        switch (m_dds.fmt.fourCC) {
+        case DDS_4CC_DXT1: m_compression = Compression::DXT1; break;
+        case DDS_4CC_DXT2: m_compression = Compression::DXT2; break;
+        case DDS_4CC_DXT3: m_compression = Compression::DXT3; break;
+        case DDS_4CC_DXT4: m_compression = Compression::DXT4; break;
+        case DDS_4CC_DXT5: m_compression = Compression::DXT5; break;
+        case DDS_4CC_ATI1: m_compression = Compression::BC4; break;
+        case DDS_4CC_ATI2: m_compression = Compression::BC5; break;
+        case DDS_4CC_DX10: {
+            switch (m_dx10.dxgiFormat) {
+            case DDS_FORMAT_BC4_UNORM: m_compression = Compression::BC4; break;
+            case DDS_FORMAT_BC5_UNORM: m_compression = Compression::BC5; break;
+            case DDS_FORMAT_BC6H_UF16:
+                m_compression = Compression::BC6HU;
+                break;
+            case DDS_FORMAT_BC6H_SF16:
+                m_compression = Compression::BC6HS;
+                break;
+            case DDS_FORMAT_BC7_UNORM: m_compression = Compression::BC7; break;
+            }
+        } break;
+        }
+        if (m_compression == Compression::None) {
+            errorf("Unsupported compression type");
+            return false;
+        }
     }
 
     // determine the number of channels we have
-    if (m_dds.fmt.flags & DDS_PF_FOURCC) {
-        // squish decompresses everything to RGBA anyway
-        /*if (m_dds.fmt.fourCC == DDS_4CC_DXT1)
-            m_nchans = 3; // no alpha in DXT1
-        else*/
-        m_nchans = 4;
+    if (m_compression != Compression::None) {
+        m_nchans = GetChannelCount(m_compression);
     } else {
         m_nchans = ((m_dds.fmt.flags & DDS_PF_LUMINANCE) ? 1 : 3)
                    + ((m_dds.fmt.flags & DDS_PF_ALPHA) ? 1 : 0);
@@ -335,7 +450,9 @@ DDSInput::internal_seek_subimage(int cubeface, int miplevel, unsigned int& w,
     // we can easily calculate the offsets because both compressed and
     // uncompressed images have predictable length
     // calculate the offset; start with after the header
-    unsigned int ofs = 128;
+    unsigned int ofs = sizeof(dds_header);
+    if (m_dds.fmt.fourCC == DDS_4CC_DX10)
+        ofs += sizeof(dds_header_dx10);
     unsigned int len;
     // this loop is used to iterate over cube map sides, or run once in the
     // case of ordinary 2D or 3D images
@@ -348,14 +465,8 @@ DDSInput::internal_seek_subimage(int cubeface, int miplevel, unsigned int& w,
         // don't skip at all, so just add the offset and continue
         if (m_dds.mipmaps < 2) {
             if (j > 0) {
-                if (m_dds.fmt.flags & DDS_PF_FOURCC)
-                    // only check for DXT1 - all other formats have same block
-                    // size
-                    len = squish::GetStorageRequirements(w, h,
-                                                         m_dds.fmt.fourCC
-                                                                 == DDS_4CC_DXT1
-                                                             ? squish::kDxt1
-                                                             : squish::kDxt5);
+                if (m_compression != Compression::None)
+                    len = GetStorageRequirements(w, h, m_compression);
                 else
                     len = w * h * d * m_Bpp;
                 ofs += len;
@@ -363,13 +474,8 @@ DDSInput::internal_seek_subimage(int cubeface, int miplevel, unsigned int& w,
             continue;
         }
         for (int i = 0; i < miplevel; i++) {
-            if (m_dds.fmt.flags & DDS_PF_FOURCC)
-                // only check for DXT1 - all other formats have same block size
-                len = squish::GetStorageRequirements(w, h,
-                                                     m_dds.fmt.fourCC
-                                                             == DDS_4CC_DXT1
-                                                         ? squish::kDxt1
-                                                         : squish::kDxt5);
+            if (m_compression != Compression::None)
+                len = GetStorageRequirements(w, h, m_compression);
             else
                 len = w * h * d * m_Bpp;
             ofs += len;
@@ -413,6 +519,7 @@ DDSInput::seek_subimage(int subimage, int miplevel)
 
     // for cube maps, the seek will be performed when reading a tile instead
     unsigned int w = 0, h = 0, d = 0;
+    TypeDesc::BASETYPE basetype = GetBaseType(m_compression);
     if (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP) {
         // calc sizes separately for cube maps
         w = m_dds.width;
@@ -431,9 +538,9 @@ DDSInput::seek_subimage(int subimage, int miplevel)
         }
         // create imagespec for the 3x2 cube map layout
 #ifdef DDS_3X2_CUBE_MAP_LAYOUT
-        m_spec = ImageSpec(w * 3, h * 2, m_nchans, TypeDesc::UINT8);
+        m_spec = ImageSpec(w * 3, h * 2, m_nchans, basetype);
 #else   // 1x6 layout
-        m_spec = ImageSpec(w, h * 6, m_nchans, TypeDesc::UINT8);
+        m_spec = ImageSpec(w, h * 6, m_nchans, basetype);
 #endif  // DDS_3X2_CUBE_MAP_LAYOUT
         m_spec.depth      = d;
         m_spec.tile_width = m_spec.full_width = w;
@@ -442,21 +549,34 @@ DDSInput::seek_subimage(int subimage, int miplevel)
     } else {
         internal_seek_subimage(0, miplevel, w, h, d);
         // create imagespec
-        m_spec       = ImageSpec(w, h, m_nchans, TypeDesc::UINT8);
+        m_spec       = ImageSpec(w, h, m_nchans, basetype);
         m_spec.depth = d;
     }
 
     // fill the imagespec
-    if (m_dds.fmt.flags & DDS_PF_FOURCC) {
-        std::string tempstr = "";
-        tempstr += ((char*)&m_dds.fmt.fourCC)[0];
-        tempstr += ((char*)&m_dds.fmt.fourCC)[1];
-        tempstr += ((char*)&m_dds.fmt.fourCC)[2];
-        tempstr += ((char*)&m_dds.fmt.fourCC)[3];
-        m_spec.attribute("compression", tempstr);
+    if (m_compression != Compression::None) {
+        const char* str = nullptr;
+        switch (m_compression) {
+        case Compression::None: break;
+        case Compression::DXT1: str = "DXT1"; break;
+        case Compression::DXT2: str = "DXT2"; break;
+        case Compression::DXT3: str = "DXT3"; break;
+        case Compression::DXT4: str = "DXT4"; break;
+        case Compression::DXT5: str = "DXT5"; break;
+        case Compression::BC4: str = "BC4"; break;
+        case Compression::BC5: str = "BC5"; break;
+        case Compression::BC6HU: str = "BC6HU"; break;
+        case Compression::BC6HS: str = "BC6HS"; break;
+        case Compression::BC7: str = "BC7"; break;
+        }
+        if (str != nullptr)
+            m_spec.attribute("compression", str);
     }
     if (m_dds.fmt.bpp)
         m_spec.attribute("oiio:BitsPerSample", m_dds.fmt.bpp);
+    // linear color space for HDR-ish images
+    if (basetype == TypeDesc::HALF || basetype == TypeDesc::FLOAT)
+        m_spec.attribute("oiio:ColorSpace", "linear");
     m_spec.default_channel_names();
 
     // detect texture type
@@ -508,30 +628,19 @@ DDSInput::seek_subimage(int subimage, int miplevel)
 bool
 DDSInput::internal_readimg(unsigned char* dst, int w, int h, int d)
 {
-    if (m_dds.fmt.flags & DDS_PF_FOURCC) {
+    if (m_compression != Compression::None) {
         // compressed image
-        int flags = 0;
-        switch (m_dds.fmt.fourCC) {
-        case DDS_4CC_DXT1: flags = squish::kDxt1; break;
-        // DXT2 and 3 are the same, only 2 has pre-multiplied alpha
-        case DDS_4CC_DXT2:
-        case DDS_4CC_DXT3: flags = squish::kDxt3; break;
-        // DXT4 and 5 are the same, only 4 has pre-multiplied alpha
-        case DDS_4CC_DXT4:
-        case DDS_4CC_DXT5: flags = squish::kDxt5; break;
-        }
         // create source buffer
-        std::vector<squish::u8> tmp(
-            squish::GetStorageRequirements(w, h, flags));
+        std::vector<uint8_t> tmp(GetStorageRequirements(w, h, m_compression));
         // load image into buffer
         if (!ioread(&tmp[0], tmp.size(), 1))
             return false;
         // decompress image
-        squish::DecompressImage(dst, w, h, &tmp[0], flags);
+        DecompressImage(dst, w, h, &tmp[0], m_compression);
         tmp.clear();
         // correct pre-multiplied alpha, if necessary
-        if (m_dds.fmt.fourCC == DDS_4CC_DXT2
-            || m_dds.fmt.fourCC == DDS_4CC_DXT4) {
+        if (m_compression == Compression::DXT2
+            || m_compression == Compression::DXT4) {
             int k;
             for (int y = 0; y < h; y++) {
                 for (int x = 0; x < w; x++) {
