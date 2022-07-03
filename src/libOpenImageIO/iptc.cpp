@@ -94,10 +94,10 @@ decode_iptc_iim(const void* iptc, int length, ImageSpec& spec)
 
 #if DEBUG_IPTC_READ
     std::cerr << "IPTC dump:\n";
-    for (int i = 0; i < 100; ++i) {
-        if (buf[i] >= ' ')
+    for (int i = 0; i < std::min(length, 100); ++i) {
+        if (buf[i] >= ' ' && buf[i] < 128)
             std::cerr << (char)buf[i] << ' ';
-        std::cerr << "(" << (int)(unsigned char)buf[i] << ") ";
+        std::cerr << "(" << int(buf[i]) << ") ";
     }
     std::cerr << "\n";
 #endif
@@ -108,15 +108,17 @@ decode_iptc_iim(const void* iptc, int length, ImageSpec& spec)
     // repeats until we've used up the whole segment buffer, or I guess
     // until we don't find another 1C 02 tag start.
     // N.B. I don't know why, but Picasa sometimes uses 1C 01 !
-    while (length > 0 && buf[0] == 0x1c && (buf[1] == 0x02 || buf[1] == 0x01)) {
+    while (length >= 5 && buf[0] == 0x1c
+           && (buf[1] == 0x02 || buf[1] == 0x01)) {
         int secondbyte = buf[1];
         int tagtype    = buf[2];
         int tagsize    = (buf[3] << 8) + buf[4];
         buf += 5;
         length -= 5;
+        tagsize = std::min(tagsize, length);
 
 #if DEBUG_IPTC_READ
-        std::cerr << "iptc tag " << tagtype << ":\n";
+        std::cerr << "iptc tag " << tagtype << ", size=" << tagsize << ":\n";
         for (int i = 0; i < tagsize; ++i) {
             if (buf[i] >= ' ')
                 std::cerr << (char)buf[i] << ' ';

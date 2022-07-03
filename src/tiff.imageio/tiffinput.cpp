@@ -222,7 +222,7 @@ private:
 #endif
 
     OIIO_NODISCARD
-    TypeDesc tiffgetfieldtype(string_view name OIIO_MAYBE_UNUSED, int tag)
+    TypeDesc tiffgetfieldtype(int tag)
     {
         auto field = find_field(tag);
         if (!field)
@@ -239,7 +239,7 @@ private:
     bool safe_tiffgetfield(string_view name OIIO_MAYBE_UNUSED, int tag,
                            TypeDesc expected, void* dest)
     {
-        TypeDesc type = tiffgetfieldtype(name, tag);
+        TypeDesc type = tiffgetfieldtype(tag);
         // Caller expects a specific type and the tag doesn't match? Punt.
         if (expected != TypeUnknown && !equivalent(expected, type))
             return false;
@@ -1218,13 +1218,23 @@ TIFFInput::readspec(bool read_meta)
     // Search for IPTC metadata in IIM form -- but older versions of
     // libtiff botch the size, so ignore it for very old libtiff.
     int iptcsize         = 0;
-    const void* iptcdata = NULL;
-    if (TIFFGetField(m_tif, TIFFTAG_RICHTIFFIPTC, &iptcsize, &iptcdata)) {
-        std::vector<uint32_t> iptc((uint32_t*)iptcdata,
-                                   (uint32_t*)iptcdata + iptcsize);
-        if (TIFFIsByteSwapped(m_tif))
-            TIFFSwabArrayOfLong((uint32_t*)&iptc[0], iptcsize);
-        decode_iptc_iim(&iptc[0], iptcsize * 4, m_spec);
+    const char* iptcdata = nullptr;
+    TypeDesc iptctype    = tiffgetfieldtype(TIFFTAG_RICHTIFFIPTC);
+    if (TIFFGetField(m_tif, TIFFTAG_RICHTIFFIPTC, &iptcsize, &iptcdata)
+        && iptcsize > 0) {
+        std::vector<char> iptc;
+        if (iptctype.size() == 4) {
+            // Some TIFF files in the wild inexplicably think their IPTC
+            // data are strored as longs, and we have to undo any byte
+            // swapping that may have occurred.
+            iptcsize *= 4;
+            iptc.assign(iptcdata, iptcdata + iptcsize);
+            if (TIFFIsByteSwapped(m_tif))
+                TIFFSwabArrayOfLong((uint32_t*)&iptc[0], iptcsize / 4);
+        } else {
+            iptc.assign(iptcdata, iptcdata + iptcsize);
+        }
+        decode_iptc_iim(&iptc[0], iptcsize, m_spec);
     }
 #endif
 
