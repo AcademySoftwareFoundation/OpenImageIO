@@ -20,6 +20,7 @@ lg@openimageio.org
 * Ananth Garre
 * Anders Langlands
 * Anthony Nemoff
+* Aras Pranckevičius
 * Arkady Shapkin
 * Basileios Anastasatos
 * Bastien Montagne
@@ -88,6 +89,7 @@ lg@openimageio.org
 * Jim Hourihan
 * John Burnett
 * John Haddon
+* Jonathan Hearn
 * Jonathan Scruggs
 * Joseph Goldstone
 * Julien Enche

@@ -17,7 +17,7 @@ New major features and public API changes:
       Imath. If your app uses Imath types but did not include the right Imath
       headers (relying on the accidental fact of other OIIO headers
       transitively including them), you may need to adjust your includes.
-      #3301 #3332 (2.4.0.2)
+      #3301 #3332 (2.4.0.2) #3406 (2.4.2)
     - New `V3fParam`, `M33fParam`, and `M44Param` (defined in vecparam.h) are
       used just for parameter passing in public APIs, instead of Imath::V3f,
       M33f, or M44f, in order to more fully hide Imath types from our public
@@ -81,6 +81,16 @@ New major features and public API changes:
   - `--warp` now takes an optional modifier `:wrap=...` that lets you set
     which wrap mode to use when sampling past the edge of the source image.
     #3341 (2.4.0.3)
+  - New `--st_warp` performs warping of an image where a second image gives
+    the (s,t) coordinates to look up from at every pixel. #3379 (2.4.2/2.3.14)
+  - Many attribute actions now take optional modifier `:subimages=` that
+    instructs oiiotool to apply to a particular subset of subimges in
+    multi-subimage files (such as multi-part exr). The commands so enabled
+    include `--attrib`, `--sattrib`, `--eraseattrib`, `--caption`,
+    `--orientation`, `--clear-keywords`, `--iscolorspace`. The default, if
+    subimages are not specified, is to only change the attributes of the first
+    subimage, unless `-a` is used, in which case the default is to change the
+    attributes of all subimages. #3384 (2.4.2)
 * ImageSpec :
   - New constructors to accept a string for the data type. #3245 (2.4.0/2.3.12)
 * ImageBuf/ImageBufAlgo :
@@ -89,6 +99,9 @@ New major features and public API changes:
   - `IBA::maxchan()` and `minchan()` turn an N-channel image into a 1-channel
     images that for each pixel, contains the maximum value in any channel of
     the original for that pixel. #3198 (2.4.0/2.3.10)
+  - New `IBA::st_warp()` performs warping of an image where a second image
+    gives the (s,t) coordinates to look up from at every pixel. #3379
+    (2.4.2/2.3.14)
 * Python bindings:
   - New ImageBuf constructor and reset() from a NumPy array only -- it
     deduces the resolution, channels, and data type from the array
@@ -99,6 +112,9 @@ New major features and public API changes:
     Python `dict` syntax for manipulating metadata. #3252 (2.3.12/2.4.0)
   - Support uint8 array attributes in and out. This enables the proper Python
     access to "ICCProfile" metadata. #3378 (2.4.1.0/2.3.14)
+  - New `ImageSpec.get_bytes_attribute()` method is for string attributes, but
+    in Python3, skips decoding the underlying C string as UTF-8 and returns a
+    `bytes` object containing the raw byte string. #3396 (2.4.2)
 * New global OIIO attributes:
   - `"try_all_readers"` can be set to 0 if you want to override the default
     behavior and specifically NOT try any format readers that don't match the
@@ -149,6 +165,8 @@ Fixes and feature enhancements:
 * ImageInput / ImageOutput:
     - Protected methods that make it easier to implement support for IOProxy
       in image readers and writers. #3231 (2.4.0)
+    - Fix crash when ioproxy is passed to a plugin that doesn't suppport it.
+      #3453 (2.4.2)
 * ImageBuf / ImageBufAlgo:
     - Fix ImageBuf::read bug for images of mixed per-channel data types. #3088
       (2.4.0/2.3.8)
@@ -189,6 +207,9 @@ Fixes and feature enhancements:
       adding "handed" metadata to the configuration ImageSpec being passed to
       `IBA::make_texture()` is now supported for communicating the handedness
       of a vector displacement or normal map. #3331 (2.4.0.2)
+    - Speed up UDIM lookups by eliminating internal mutex. #3417 (2.4.0)
+    - TextureSystem: Fix typo that prevented "max_tile_channels" attribute from
+      being set or retrieved. (2.4.2/2.3.17)
 * oiiotool:
     - `--ch` now has virtually no expense if the arguments require no change
       to the channel order or naming (previously, it would always incur an
@@ -231,15 +252,23 @@ Fixes and feature enhancements:
     - Bug fix for `ImageBufAlgo.clamp()`: when just a float was passed for
       the min or max, it only clamped the first channel instead of all
       channels. #3265 (2.3.12/2.4.0)
+* idiff:
+    - `--allowfailures` allows that number of failed pixels of any magnitude.
+      #3455 (2.4.2)
 * BMP:
     - IOProxy support. #3223 (2.4.0)
     - Support for additional (not exactly fully documented) varieties used by
       some Adobe apps. #3375 (2.4.1.0/2.3.14)
+    - Better detection of corrupted files with nonsensical image dimensions or
+      total size. #3434 (2.4.2/2.3.17/2.2.21)
+    - Protect against corrupted files that have palette indices out of bound.
+      #3435 (2.4.2/2.3.17/2.2.21)
 * DDS:
     - Don't set "texturetype" metadata, it should always have been only
       "textureformat". Also, add unit testing of DDS to the testsuite. #3200
       (2.4.0/2.3.10)
     - IOProxy support. #3217 (2.4.0)
+    - Add support for BC4-BC7 compression methods. #3459 (2.4.2)
 * FFMpeg
     - Now uses case-insensitive tests on file extensions, so does not get
       confused on Windows with all-caps filenames. #3364 (2.4.1.0/2.3.14)
@@ -259,6 +288,8 @@ Fixes and feature enhancements:
       encoding (if using OpenJPEG >= 2.4). This speeds up JPEG-2000 I/O by
       3-4x. #2225 (2.3.11/2.4.0)
     - IOProxy support. #3226 (2.4.0)
+    - Better detection and error reporting of failure to open the file.
+      #3440 (2.4.2)
 * OpenEXR:
     - When building against OpenEXR 3.1+ and when the global OIIO attribute
       "openexr:core" is set to nonzero, do more efficient multithreaded
@@ -277,6 +308,8 @@ Fixes and feature enhancements:
 * PNG:
     - Assume sRGB color space as default when no color space attribute is
       in the file. #3321 (2.4.0.2/2.3.13)
+    - Improve error detection and propagation for corrupt/broken files. #3442
+      (2.4.2)
 * PPM:
     - Mark all PPM files as Rec709 color space, which they are by
       specification. #3321 (2.4.0.2/2.3.13)
@@ -299,6 +332,7 @@ Fixes and feature enhancements:
       or 2.0 version of the format. #3279 (2.4.0.1/2.3.12)
     - Fix parsing of TGA 2.0 extension area when the software name was
       missing form the header. #3323 (2.4.0.2/2.3.13)
+    - Fix reading of tiny 1x1 2-bpp Targa 1.0 images. #3433 (2.3.17/2.2.21)
 * TIFF:
     - IOProxy is now supported for TIFF output. #3075 (2.4.0/2.3.8)
     - Honor zip compression quality request when writing TIFF. #3110
@@ -317,6 +351,8 @@ Fixes and feature enhancements:
       trouble and was sometimes corrupted. You can force it to write an IPTC
       block by using the output open configuration hint "tiff:write_iptc" set
       to nonzero. #3302 (2.4.0.1)
+    - Fix read problems with TIFF files with non-zero y offset. #3419
+      (2.3.17/2.4.2)
 * WebP:
     - Fix previous failure to properly set the "oiio:LoopCount" metadata
       when reading animated webp images. #3183 (2.4.0/2.3.10)
@@ -346,8 +382,14 @@ Fixes and feature enhancements:
   only the TIFF reader checks these limits, but others will be modified to
   honor the limits over time. #3230 (2.3.11/2.4.0)
 * Fix integer overflow warnings. #3329 (2.4.1.0)
+* Improved behavior when opening a file whose format doesn't correctly match
+  its extension: try common formats first, rather than alphabetically; and
+  improve error messages. #3400 (2.4.2)
 
 Developer goodies / internals:
+* benchmark.h:
+    - Alter the declaration of DoNotOptimize() so that it doesn't have
+      compilation problems on some platforms. #3444 (2.4.2/2.3.17)
 * filesystem.h:
     - A new version of `searchpath_split` returns the vector of strings rather
       than needing to be passed a reference. #3154 (2.4.0/2.3.10)
@@ -412,6 +454,8 @@ Developer goodies / internals:
 * timer.h:
     - `Timer::add_seconds()` and `Timer::add_ticks()` allows add/subtract
       directly to a timer's elapsed value. #3070 (2.4.0/2.3.8)
+    - For Linux, switch from using gettimeofday to clock_gettime, for
+      potentially higher resolution. #3443 (2.4.2)
 * typedesc.h:
     - Add Cuda host/device decorations to TypeDesc methods to make them GPU
       friendly. #3188 (2.4.0/2.3.10)
@@ -424,6 +468,12 @@ Developer goodies / internals:
 * unittest.h:
     - Changes `OIIO_CHECK_SIMD_EQUAL_THRESH` macro to compare `<= eps`
       instead of `<`. #3333 (2.4.0.3)
+* ustring.h:
+    - New static method `from_hash()` creates a ustring from the known hash
+      value. #3397 (2.4.2)
+    - New `ustringhash` class is just like a ustring, except that the "local"
+      representation is the hash, rather than the unique string pointer. #3436
+      (2.4.2)
 * vecparam.h:
     - New `V3fParam`, `M33fParam`, and `M44Param` (defined in vecparam.h) are
       used just for parameter passing in public APIs, instead of Imath::V3f,
@@ -433,9 +483,13 @@ Developer goodies / internals:
       to and from other vector- and matrix-like classes. #3330 (2.4.1.0)
 * More internals conversion to use the new fmt style for string formatting,
   console output, error messages, and warnings: oiiotool internals #3240
-  (2.4.0); TS/IC stats output #3374 (2.4.1.0); misc #3777 (2.4.1.0)
+  (2.4.0); TS/IC stats output #3374 (2.4.1.0); misc #3777 (2.4.1.0); testshade
+  #3415 (2.4.2)
 * Internals are working toward removing all uses of string_view::c_str(),
   since that isn't part of C++17 std::string_view. #3315 (2.4.0.1)
+* New testtex options: `--minthreads` sets the minimum numer of threads that
+  will be used for thread wedges, `--lowtrials` is an optional maximum number
+  of trials just for the 1 or 2 thread cse. #3418 (2.4.2)
 
 Build/test system improvements and platform ports:
 * CMake build system and scripts:
@@ -478,8 +532,13 @@ Build/test system improvements and platform ports:
     - CMake variable `OPENIMAGEIO_CONFIG_DO_NOT_FIND_IMATH`, if set to ON,
       will make our generated config file not do a find_dependency(Imath).
       (Use with caution.) #3335 (2.4.0.3)
-    - (In progress) Working towards the ability to do unity/jumbo builds.
-      Don't use this yet. #3381 (2.4.1.1)
+    - Can now do unity/jumbo builds. This isn't helpful when building with
+      many cores/threads, but in thread-limited situtations (such as CI), it
+      can speed up builds a lot to use `-DCMAKE_UNITY_BUILD=ON`. #3381 #3389
+      #3392 #3393 #3398 #3402 (2.4.2.0)
+    - Do not auto-download test images by default. To auto download test
+      images, build with `-DOIIO_DOWNLOAD_MISSING_TESTDATA=ON`. #3409 (2.4.0)
+    - Allow using the Makefile wrapper on arm64 systems. #3456 (2.4.2)
 * Dependency version support:
     - When using C++17, use std::gcd instead of boost. #3076 (2.4.0)
     - When using C++17, use `inline constexpr` instead of certain statics.
@@ -512,11 +571,13 @@ Build/test system improvements and platform ports:
     - Failed build artifact storage is revised to save more cmake-related
       artifacts to help debugging. #3311 (2.4.0.1)
     - Now doing CI builds for Intel icc and icx compilers. #3355 #3363
-      (2.4.1.0/2.3.13)
+      (2.4.1.0/2.3.13) #3407 (2.4.0)
     - Overhaul of ci.yml file to be more clear and compact by using GHA
       "strategy" feature. #3356 #3365 (2.4.1.0/2.3.13)
     - Removed CI for windows-2016 GHA instance which will soon be removed.
       #3370 (2.4.1.0)
+    - Test against clang 14. #3404
+    - Various guards against supply chain attacks durig CI. #3454 (2.4.2)
 * Platform support:
     - Fix when building with Clang on big-endian architectures. #3133
       (2.4.0/2.3.9)
@@ -545,6 +606,48 @@ Notable documentation changes:
   explicitly say that the string is assumed to be UTF-8. #3312 (2.4.0.1)
 
 
+Release 2.3.17 (1 Jul 2022) -- compared to 2.3.16
+--------------------------------------------------
+* TIFF: fix read problems with TIFF files with non-zero y offset. #3419
+* Targa: Fix reading of tiny 1x1 2-bpp Targa 1.0 images. #3433 (2.3.17/2.2.21)
+* BMP: better detection of corrupted files with nonsensical image dimensions
+  or total size. #3434 (2.3.17/2.2.21)
+* BMP: protect against corrupted files that have palette indices out of bound.
+  #3435 (2.3.17/2.2.21)
+* TextureSystem: Fix typo that prevented "max_tile_channels" attribute from
+  being set or retrieved. (2.3.17)
+* ustring.h: ustring has added a from_hash() static method #3397, and a
+  ustringhash helper class #3436. (2.3.17/2.2.21)
+* benchmark.h: Alter the declaration of DoNotOptimize() so that it doesn't
+  have compilation problems on some platforms. #3444 (2.3.17)
+* Fix crash when ioproxy is passed to an image writer that doesn't support it.
+  #3453 (2.3.17)
+* Fix the "Makefile" wrapper to correctly recognize arm64 ("Apple silicon").
+  #3456 (2.3.17)
+
+Release 2.3.16 (1 Jun 2022) -- compared to 2.3.15
+--------------------------------------------------
+* Support for Intel llvm-based compiler 2022.1.0. #3407
+* Internals: custom fmt formatters for vector types. #3367
+* Fix compiler breaks when using some changes in fmtlib master (not yet
+  released). #3416
+* UDIM textures have been sped up by 5-8%. #3417
+
+Release 2.3.15 (1 May 2022) -- compared to 2.3.14
+--------------------------------------------------
+* JPEG: Better handling of PixelAspectRatio. #3366
+* OpenEXR: Fix DWAA compression default level. #3387
+* Perf: Huge speed-up of case-insensitive string comparisons (Strutil iequals,
+  iless, starts_with, istarts_with, ends_with, iends_with), which also speeds
+  up searches for attributes by name in ImageSpec and ParamValueList. #3388
+* New `ImageBufAlgo::st_warp()` (and `oiiotool --st_warp`) perform warping of
+  an image where a second image gives the (s,t) coordinates to look up from at
+  every pixel. #3379
+* Python: Add ImageSpec and ParamValueList method `get_bytes_attribute()`,
+  which is like `get_string_attribute()`, but returns the string as a Python
+  bytes object. In Python 3, strings are UTF-8, so this can be useful if you
+  know that a string attribute might contain non-UTF8 data. #3396
+
 Release 2.3.14 (1 Apr 2022) -- compared to 2.3.13
 --------------------------------------------------
 * Add support for UDIM pattern `<uvtile>` (used by Clarisse & V-Ray). #3358
@@ -553,7 +656,7 @@ Release 2.3.14 (1 Apr 2022) -- compared to 2.3.13
 * Python: support uint8 array attributes in and out. This enables the proper
   Python access to "ICCProfile" metadata. #3378
 * Improved precision in IBA::computePixelStats(). #3353
-* ffmpeg reader noww uses case-insensitive tests on file extensions. #3364
+* ffmpeg reader not uses case-insensitive tests on file extensions. #3364
 * Fix writing deep exrs when buffer datatype doesn't match the file. #3369
 * Fix conflict between RESTful and Windows long path notations. #3372
 * ffmpeg reader: take care against possible double-free of allocated memory
@@ -1355,6 +1458,25 @@ Notable documentation changes:
   be done for different language bindings. #2768 (2.3.1.0)
 
 
+
+Release 2.2.21 (1 Jul 2022) -- compared to 2.2.20
+--------------------------------------------------
+* BMP: gain the ability to read some very old varieties of BMP files. #3375
+* BMP: better detection of corrupted files with nonsensical image dimensions
+  or total size. #3434
+* BMP: protect against corrupted files that have palette indices out of bound.
+  #3435
+* ffmpeg: Support for ffmpeg 5.0. #3282
+* ffmpeg: protect against possible double-free. #3376
+* ffmpeg: make the supported file extension check be case-insensitive. This
+  prevents movie files from being incorrectly unable to recognize their format
+  if they have the wrong capitalization of the file extension. #3364
+* hdr/rgbe files: Avoid possible Windows crash when dealing with characters
+  with the high bit set. #3310
+* TIFF: fix read problems with TIFF files with non-zero y offset. #3419
+* Dev goodies: ustring has added a from_hash() static method #3397, and a
+  ustringhash helper class #3436.
+* simd.h fixes for armv7 and aarch32. #3361
 
 Release 2.2.20 (1 Feb 2022) -- compared to 2.2.19
 --------------------------------------------------
