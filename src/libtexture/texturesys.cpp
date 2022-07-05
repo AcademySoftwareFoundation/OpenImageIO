@@ -1537,7 +1537,8 @@ compute_miplevels(TextureSystemImpl::TextureFile& texturefile,
         float blend = levelweight[1];
         if (options.rnd >= blend) {
             miplevel[1] = miplevel[0];
-            options.rnd = (options.rnd - blend) / (1.0f - blend);
+            options.rnd = OIIO::clamp((options.rnd - blend) / (1.0f - blend),
+                                      0.0f, 1.0f);
         } else {
             miplevel[0] = miplevel[1];
             options.rnd = OIIO::clamp(options.rnd / blend, 0.0f, 1.0f);
