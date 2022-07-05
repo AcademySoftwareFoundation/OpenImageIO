@@ -210,7 +210,7 @@ jobs:
             os: ubuntu-20.04
             cxx_compiler: g++-10
             cxx_std: 17
-            fmt_ver: 8.1.1
+            fmt_ver: 9.0.0
             openexr_ver: v3.1.5
             pybind11_ver: v2.9.2
             python_ver: 3.8
@@ -251,7 +251,7 @@ jobs:
             cxx_compiler: clang++
             cc_compiler: clang
             cxx_std: 20
-            fmt_ver: 8.1.1
+            fmt_ver: 9.0.0
             openexr_ver: v3.1.5
             pybind11_ver: v2.9.2
             python_ver: 3.8
