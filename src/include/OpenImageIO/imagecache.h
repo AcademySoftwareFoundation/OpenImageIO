@@ -664,6 +664,13 @@ public:
                          int subimage, int miplevel,
                          ustring dataname, TypeDesc datatype, void *data) = 0;
 
+
+    //Output the TypeDesc of a given attribute (if found). If not found
+    //we return unknown.
+    virtual bool get_image_info_type (ImageHandle *file, Perthread *thread_info,
+                         int subimage, int miplevel,
+                         ustring dataname, TypeDesc &datatype) = 0;
+
     /// Copy the ImageSpec associated with the named image (the first
     /// subimage & miplevel by default, or as set by `subimage` and
     /// `miplevel`).

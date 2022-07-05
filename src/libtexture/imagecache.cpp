@@ -2823,6 +2823,48 @@ ImageCacheImpl::get_image_info(ImageCacheFile* file,
 #undef ATTR_DECODE
 }
 
+bool
+ImageCacheImpl::get_image_info_type(ustring filename, int subimage,
+                                    int miplevel, ustring dataname,
+                                    TypeDesc& datatype)
+{
+    ImageCachePerThreadInfo* thread_info = get_perthread_info();
+    ImageCacheFile* file = find_file(filename, thread_info, nullptr);
+    if (!file && dataname != s_exists) {
+        error("Invalid image file \"{}\"", filename);
+        return false;
+    }
+    return get_image_info_type(file, thread_info, subimage, miplevel, dataname,
+                               datatype);
+}
+
+bool
+ImageCacheImpl::get_image_info_type(ImageCacheFile* file,
+                                    ImageCachePerThreadInfo* thread_info,
+                                    int subimage, int miplevel,
+                                    ustring dataname, TypeDesc& datatype)
+{
+    // Output the TypeDesc of a given attribute (if found). If not found
+    // we set it to UNKNOWN.
+
+    ImageCacheStatistics& stats(thread_info->m_stats);
+    ++stats.imageinfo_queries;
+    file = verify_file(file, thread_info, true);
+
+    const ImageSpec& spec(file->spec(subimage, miplevel));
+    ParamValue tmpparam;
+    const ParamValue* p = spec.find_attribute(dataname, tmpparam);
+
+    if (p) {
+        datatype = p->type();
+        return true;
+    }
+
+    // Does it make sense to set the type here, or should we just return
+    // false?
+    datatype.basetype = TypeDesc::UNKNOWN;
+    return false;
+}
 
 
 bool

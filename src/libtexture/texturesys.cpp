@@ -558,6 +558,35 @@ TextureSystemImpl::get_texture_info(TextureHandle* texture_handle,
 }
 
 
+bool
+TextureSystemImpl::get_texture_info_type(ustring filename, int subimage,
+                                         ustring dataname, TypeDesc& datatype)
+{
+    bool ok = m_imagecache->get_image_info_type(filename, subimage, 0, dataname,
+                                                datatype);
+    if (!ok) {
+        std::string err = m_imagecache->geterror();
+        if (!err.empty())
+            error("{}", err);
+    }
+    return ok;
+}
+bool
+TextureSystemImpl::get_texture_info_type(TextureHandle* texture_handle,
+                                         Perthread* thread_info, int subimage,
+                                         ustring dataname, TypeDesc& datatype)
+{
+    // This lets us ask for the datatype of a specific attribute
+    bool ok = m_imagecache->get_image_info_type(
+        (ImageCache::ImageHandle*)texture_handle,
+        (ImageCache::Perthread*)thread_info, subimage, 0, dataname, datatype);
+    if (!ok) {
+        std::string err = m_imagecache->geterror();
+        if (!err.empty())
+            error("{}", err);
+    }
+    return ok;
+}
 
 bool
 TextureSystemImpl::get_imagespec(ustring filename, int subimage,
