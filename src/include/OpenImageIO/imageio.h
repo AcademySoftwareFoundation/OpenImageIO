@@ -2374,8 +2374,14 @@ public:
     /// followed by `out->write_image()`, and avoids any unintended pixel
     /// alterations, especially for formats that use lossy compression.
     ///
-    /// Note: this method is NOT thread-safe, since it depends on persistent
-    /// state in the ImageInput.
+    /// If the function fails and returns `false`, an error message can be
+    /// retrieved from `this->geterror()`, even if the actual error was
+    /// related to reading from `in` (i.e., reading errors are automatically
+    /// transferrred to `*this`).
+    ///
+    /// Note: this method is NOT thread-safe (against other threads that may
+    /// also be using `in`), since it depends on persistent state in the
+    /// ImageInput.
     ///
     /// @param  in          A pointer to the open `ImageInput` to read from.
     /// @returns            `true` upon success, or `false` upon failure.
