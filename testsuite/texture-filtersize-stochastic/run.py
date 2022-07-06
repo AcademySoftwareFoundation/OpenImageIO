@@ -8,5 +8,5 @@
 
 
 command = testtex_command (OIIO_TESTSUITE_IMAGEDIR + "/miplevels.tx",
-                           " -nowarp -res 256 256 -mipmode 6 -widthramp 4 -d uint8 -o out.tif")
+                           " -nowarp -res 256 256 -stochastic 1 -widthramp 4 -d uint8 -o out.tif")
 outputs = [ "out.tif" ]

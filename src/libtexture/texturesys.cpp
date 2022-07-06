@@ -329,6 +329,7 @@ TextureSystemImpl::init()
     m_gray_to_rgb       = false;
     m_flip_t            = false;
     m_max_tile_channels = 6;
+    m_stochastic        = StochasticStrategy_None;
     hq_filter.reset(Filter1D::create("b-spline", 4));
     m_statslevel = 0;
 
@@ -375,6 +376,7 @@ TextureSystemImpl::getstats(int level, bool icstats) const
         INTOPT(gray_to_rgb);
         INTOPT(flip_t);
         INTOPT(max_tile_channels);
+        INTOPT(stochastic);
 #undef BOOLOPT
 #undef INTOPT
 #undef STROPT
@@ -460,6 +462,10 @@ TextureSystemImpl::attribute(string_view name, TypeDesc type, const void* val)
         m_max_tile_channels = *(const int*)val;
         return true;
     }
+    if (name == "stochastic" && type == TypeInt) {
+        m_stochastic = *(const int*)val;
+        return true;
+    }
     if (name == "statistics:level" && type == TypeInt) {
         m_statslevel = *(const int*)val;
         // DO NOT RETURN! pass the same message to the image cache
@@ -503,6 +509,10 @@ TextureSystemImpl::getattribute(string_view name, TypeDesc type,
     }
     if (name == "max_tile_channels" && type == TypeInt) {
         *(int*)val = m_max_tile_channels;
+        return true;
+    }
+    if (name == "stochastic" && type == TypeInt) {
+        *(int*)val = m_stochastic;
         return true;
     }
 
@@ -1416,11 +1426,7 @@ adjust_blur(float& majorlength, float& minorlength, float& theta, float sblur,
         // to all four derivatives blurs too much at some angles.
         OIIO_DASSERT(majorlength > 0.0f && minorlength > 0.0f);
         float sintheta, costheta;
-#ifdef TEX_FAST_MATH
         fast_sincos(theta, &sintheta, &costheta);
-#else
-        sincos(theta, &sintheta, &costheta);
-#endif
         sintheta = fabsf(sintheta);
         costheta = fabsf(costheta);
         majorlength += sblur * costheta + tblur * sintheta;
@@ -1460,25 +1466,20 @@ adjust_blur(float& majorlength, float& minorlength, float& theta, float sblur,
 // given the MIPmap levels we have available.
 inline void
 compute_miplevels(TextureSystemImpl::TextureFile& texturefile,
-                  TextureOpt& options, float majorlength, float minorlength,
-                  float& aspect, int* miplevel, float* levelweight)
+                  TextureOpt& options, bool stochastic, float majorlength,
+                  float minorlength, float& aspect, int* miplevel,
+                  float* levelweight)
 {
     ImageCacheFile::SubimageInfo& subinfo(
         texturefile.subimageinfo(options.subimage));
-    float levelblend  = 0.0f;
-    int nmiplevels    = (int)subinfo.levels.size();
+    int nmiplevels    = subinfo.n_mip_levels;
     int min_mip_level = subinfo.min_mip_level;
     for (int m = min_mip_level; m < nmiplevels; ++m) {
         // Compute the filter size (minor axis) in raster space at this
         // MIP level.  We use the smaller of the two texture resolutions,
         // which is better than just using one, but a more principled
         // approach is desired but remains elusive.  FIXME.
-        float filtwidth_ras = minorlength
-                              * std::min(subinfo.spec(m).width,
-                                         subinfo.spec(m).height);
-        // FIXME: We should store the min(width,height) of each level directly
-        // in an array in subinfo, so we're not rifling through the specs
-        // and taking mins in this loop every single time.
+        float filtwidth_ras = minorlength * subinfo.minwh[m];
 
         // Once the filter width is smaller than one texel at this level,
         // we've gone too far, so we know that we want to interpolate the
@@ -1487,7 +1488,9 @@ compute_miplevels(TextureSystemImpl::TextureFile& texturefile,
         if (filtwidth_ras <= 1.0f) {
             miplevel[0] = m - 1;
             miplevel[1] = m;
-            levelblend  = OIIO::clamp(2.0f * filtwidth_ras - 1.0f, 0.0f, 1.0f);
+            float blend = OIIO::clamp(2.0f * filtwidth_ras - 1.0f, 0.0f, 1.0f);
+            levelweight[0] = 1.0f - blend;
+            levelweight[1] = blend;
             break;
         }
     }
@@ -1495,15 +1498,20 @@ compute_miplevels(TextureSystemImpl::TextureFile& texturefile,
     if (miplevel[1] < 0) {
         // We'd like to blur even more, but make due with the coarsest
         // MIP level.
-        miplevel[0] = nmiplevels - 1;
-        miplevel[1] = miplevel[0];
-        levelblend  = 0;
-    } else if (miplevel[0] < min_mip_level) {
+        miplevel[0]    = nmiplevels - 1;
+        miplevel[1]    = nmiplevels - 1;
+        levelweight[0] = 1.0f;
+        levelweight[1] = 0.0f;
+        return;
+    }
+    if (miplevel[0] < min_mip_level
+        || options.mipmode == TextureOpt::MipModeNoMIP) {
         // We wish we had even more resolution than the finest MIP level,
         // but tough for us.
-        miplevel[0] = min_mip_level;
-        miplevel[1] = min_mip_level;
-        levelblend  = 0;
+        miplevel[0]    = min_mip_level;
+        miplevel[1]    = min_mip_level;
+        levelweight[0] = 1.0f;
+        levelweight[1] = 0.0f;
         // It's possible that minorlength is degenerate, giving an aspect
         // ratio that implies a huge nsamples, which is pointless if those
         // samples are too close.  So if minorlength is less than 1/2 texel
@@ -1514,25 +1522,30 @@ compute_miplevels(TextureSystemImpl::TextureFile& texturefile,
             aspect = OIIO::clamp(majorlength * r * 2.0f, 1.0f,
                                  float(options.anisotropic));
         }
+        return;
     }
     if (options.mipmode == TextureOpt::MipModeOneLevel) {
-        miplevel[0] = miplevel[1];
-        levelblend  = 0;
+        miplevel[0]    = miplevel[1];
+        levelweight[0] = 1.0f;
+        levelweight[1] = 0.0f;
+        return;
     }
-    if (options.mipmode == TextureOpt::MipModeStochasticTrilinear
-        || options.mipmode == TextureOpt::MipModeStochasticAniso) {
+    if (stochastic) {
         // If using stochastic sampling, the random deviate is a threshold
-        // versus the levelblend to determine which ONE of the two MIP
-        // levels to use.
-        if (options.rnd > levelblend) {
+        // versus the blend to determine which ONE of the two MIP levels to
+        // use. Then rescale options.rnd so we can use it again.
+        float blend = levelweight[1];
+        if (options.rnd >= blend) {
             miplevel[1] = miplevel[0];
+            options.rnd = OIIO::clamp((options.rnd - blend) / (1.0f - blend),
+                                      0.0f, 1.0f);
         } else {
             miplevel[0] = miplevel[1];
+            options.rnd = OIIO::clamp(options.rnd / blend, 0.0f, 1.0f);
         }
-        levelblend = 0;
+        levelweight[0] = 1.0f;
+        levelweight[1] = 0.0f;
     }
-    levelweight[0] = 1.0f - levelblend;
-    levelweight[1] = levelblend;
 }
 
 
@@ -1552,6 +1565,9 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap(
         ((simd::vfloat4*)dresultdt)->clear();
     }
 
+    bool stoch_mip = (options.rnd >= 0.0f
+                      && (m_stochastic & StochasticStrategy_MIP));
+
     adjust_width(dsdx, dtdx, dsdy, dtdy, options.swidth, options.twidth);
 
     // Determine the MIP-map level(s) we need: we will blend
@@ -1565,8 +1581,8 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap(
     // account for blur
     filtwidth += std::max(options.sblur, options.tblur);
     float aspect = 1.0f;
-    compute_miplevels(texturefile, options, filtwidth, filtwidth, aspect,
-                      miplevel, levelweight);
+    compute_miplevels(texturefile, options, stoch_mip, filtwidth, filtwidth,
+                      aspect, miplevel, levelweight);
 
     static const sampler_prototype sample_functions[] = {
         // Must be in the same order as InterpMode enum
@@ -1656,14 +1672,10 @@ ellipse_axes(float dsdx, float dtdx, float dsdy, float dtdy, float& majorlength,
     minorlength = std::min(safe_sqrt (float(F / Cprime)), 1000.0f);
 #else
     // Wolfram says that this is equivalent to:
-    majorlength = std::min(safe_sqrt(float(Cprime)), 1000.0f);
-    minorlength = std::min(safe_sqrt(float(Aprime)), 1000.0f);
+    majorlength  = std::min(safe_sqrt(float(Cprime)), 1000.0f);
+    minorlength  = std::min(safe_sqrt(float(Aprime)), 1000.0f);
 #endif
-#ifdef TEX_FAST_MATH
     theta = fast_atan2(B, A - C) * 0.5f + float(M_PI_2);
-#else
-    theta = atan2(B, A - C) * 0.5 + M_PI_2;
-#endif
     if (ABCF) {
         // Optionally store the ellipse equation parameters, the ellipse
         // is given by: A*u^2 + B*u*v + C*v^2 < 1
@@ -1696,14 +1708,27 @@ ellipse_axes(float dsdx, float dtdx, float dsdy, float dtdy, float& majorlength,
 inline int
 compute_ellipse_sampling(float aspect, float theta, float majorlength,
                          float minorlength, float& smajor, float& tmajor,
-                         float& invsamples, float* weights = NULL)
+                         float& invsamples, float* weights, float* samplepos,
+                         bool stochastic, float rnd)
 {
     // Compute the sin and cos of the sampling direction, given major
     // axis angle
     sincos(theta, &tmajor, &smajor);
-    float L = 2.0f * (majorlength - minorlength);
-    smajor *= L;
-    tmajor *= L;
+    float LL = 2.0f * (majorlength - minorlength);
+    smajor *= LL;
+    tmajor *= LL;
+    if (stochastic) {
+        // If we're doing stochastic anisotropy, we just need one sample.
+        weights[0] = 1.0f;
+        invsamples = 1.0f;
+        // For window half width w, standard deviation s, uniform random
+        // number r, warping to a windowed Gaussian PDF is:
+        //   M_SQRT2 * s * ierf((2 * r - 1) * erf(w / (M_SQRT2 * s)))
+        samplepos[0] = float(M_SQRT2)
+                       * fast_ierf((2.0f * rnd - 1.0f)
+                                   * fast_erf(1.0f / float(M_SQRT2)));
+        return 1;
+    }
 #if 1
     // This is the theoretically correct number of samples.
     int nsamples = std::max(1, int(2.0f * aspect - 1.0f));
@@ -1713,29 +1738,27 @@ compute_ellipse_sampling(float aspect, float theta, float majorlength,
     // artifacts.
 #endif
     invsamples = 1.0f / nsamples;
-    if (weights) {
-        if (nsamples == 1) {
-            weights[0] = 1.0f;
-        } else if (nsamples == 2) {
-            weights[0] = 0.5f;
-            weights[1] = 0.5f;
-        } else {
-            float scale = majorlength / L;  // 1/(L/major)
-            for (int i = 0, e = (nsamples + 1) / 2; i < e; ++i) {
-                float x = (2.0f * (i + 0.5f) * invsamples - 1.0f) * scale;
-#ifdef TEX_FAST_MATH
-                float w = fast_exp(-2.0f * x * x);
-#else
-                float w = expf(-2.0f * x * x);
-#endif
-                weights[nsamples - i - 1] = weights[i] = w;
-            }
-            float sumw = 0.0f;
-            for (int i = 0; i < nsamples; ++i)
-                sumw += weights[i];
-            for (int i = 0; i < nsamples; ++i)
-                weights[i] /= sumw;
+    if (nsamples == 1) {
+        weights[0]   = 1.0f;
+        samplepos[0] = 0.0f;
+    } else if (nsamples == 2) {
+        weights[0]   = 0.5f;
+        weights[1]   = 0.5f;
+        samplepos[0] = -0.5f;
+        samplepos[1] = 0.5f;
+    } else {
+        float scale = majorlength / LL;  // 1/(L/major)
+        float sumw  = 0.0f;
+        for (int i = 0; i < nsamples; ++i) {
+            float sp   = 2.0f * (i + 0.5f) * invsamples - 1.0f;
+            float x    = sp * scale;
+            float w    = fast_exp(-2.0f * x * x);
+            weights[i] = w;
+            sumw += w;
+            samplepos[i] = sp;
         }
+        for (int i = 0; i < nsamples; ++i)
+            weights[i] /= sumw;
     }
     return nsamples;
 }
@@ -1761,6 +1784,9 @@ TextureSystemImpl::texture_lookup(TextureFile& texturefile,
     int naturalsres    = (int)(1.0f / sfilt_noblur);
     int naturaltres    = (int)(1.0f / tfilt_noblur);
 
+    bool stoch       = (options.rnd >= 0.0f);
+    bool stoch_mip   = stoch && (m_stochastic & StochasticStrategy_MIP);
+    bool stoch_aniso = stoch && (m_stochastic & StochasticStrategy_Aniso);
     // Scale by 'width'
     adjust_width(dsdx, dtdx, dsdy, dtdy, options.swidth, options.twidth);
 
@@ -1784,16 +1810,19 @@ TextureSystemImpl::texture_lookup(TextureFile& texturefile,
 
     int miplevel[2]      = { -1, -1 };
     float levelweight[2] = { 0, 0 };
-    compute_miplevels(texturefile, options, majorlength, minorlength, aspect,
-                      miplevel, levelweight);
+    compute_miplevels(texturefile, options, stoch_mip, majorlength, minorlength,
+                      aspect, miplevel, levelweight);
 
-    float* lineweight
-        = OIIO_ALLOCA(float,
-                      round_to_multiple_of_pow2(2 * options.anisotropic, 4));
+    int maxsamples    = round_to_multiple_of_pow2(2 * options.anisotropic, 4);
+    float* lineweight = OIIO_ALLOCA(float, 4 * maxsamples);
+    float* samplepos  = lineweight + maxsamples;
+    float* sval       = lineweight + 2 * maxsamples;
+    float* tval       = lineweight + 3 * maxsamples;
     float invsamples;
     int nsamples = compute_ellipse_sampling(aspect, theta, majorlength,
                                             minorlength, smajor, tmajor,
-                                            invsamples, lineweight);
+                                            invsamples, lineweight, samplepos,
+                                            stoch_aniso, options.rnd);
     // All the computations were done assuming full diametric axes of
     // the ellipse, but our derivatives are pixel-to-pixel, yielding
     // semi-major and semi-minor lengths, so we need to scale everything
@@ -1804,27 +1833,22 @@ TextureSystemImpl::texture_lookup(TextureFile& texturefile,
     bool ok           = true;
     int npointson     = 0;
     int closestprobes = 0, bilinearprobes = 0, bicubicprobes = 0;
-    int nsamples_padded = round_to_multiple_of_pow2(nsamples, 4);
-    float* sval         = OIIO_ALLOCA(float, nsamples_padded);
-    float* tval         = OIIO_ALLOCA(float, nsamples_padded);
 
     // Compute the s and t positions of the samples along the major axis.
+
 #if OIIO_SIMD
     // Do the computations in batches of 4, with SIMD ops.
-    static OIIO_SIMD4_ALIGN float iota_start[4] = { 0.5f, 1.5f, 2.5f, 3.5f };
-    vfloat4 iota                                = *(const vfloat4*)iota_start;
     for (int sample = 0; sample < nsamples; sample += 4) {
-        vfloat4 pos = 2.0f * (iota * invsamples - 0.5f);
-        vfloat4 ss  = s + pos * smajor;
-        vfloat4 tt  = t + pos * tmajor;
+        vfloat4 pos(samplepos + sample);
+        vfloat4 ss = s + pos * smajor;
+        vfloat4 tt = t + pos * tmajor;
         ss.store(sval + sample);
         tt.store(tval + sample);
-        iota += 4.0f;
     }
 #else
     // Non-SIMD, reference code
     for (int sample = 0; sample < nsamples; ++sample) {
-        float pos = 2.0f * ((sample + 0.5f) * invsamples - 0.5f);
+        float pos    = samplepos[sample];
         sval[sample] = s + pos * smajor;
         tval[sample] = t + pos * tmajor;
     }
@@ -2445,7 +2469,7 @@ namespace {
         OIIO_SIMD_FLOAT4_CONST4(om1m1o, 1.0f, -1.0f, -1.0f, 1.0f);
         OIIO_SIMD_FLOAT4_CONST4(z22z, 0.0f, 2.0f, 2.0f, 0.0f);
         simd::vfloat4 one_frac = vfloat4::One() - fraction;
-        simd::vfloat4 ofof = AxBxAyBy(one_frac,
+        simd::vfloat4 ofof     = AxBxAyBy(one_frac,
                                       fraction);  // 1-frac, frac, 1-frac, frac
         simd::vfloat4 C = (*(vfloat4*)&om1m1o) * ofof + (*(vfloat4*)&z22z);
         return (*(vfloat4*)&A) + (*(vfloat4*)&B) * ofof * ofof * C;
@@ -2904,11 +2928,21 @@ TextureSystemImpl::visualize_ellipse(const std::string& name, float dsdx,
     float aspect      = TextureSystemImpl::anisotropic_aspect(majorlength,
                                                          minorlength, options,
                                                          trueaspect);
-    float* lineweight = OIIO_ALLOCA(float, 2 * options.anisotropic);
+    bool stoch_aniso  = (m_stochastic & StochasticStrategy_Aniso);
+    int maxsamples    = round_to_multiple_of_pow2(2 * options.anisotropic, 4);
+    float* lineweight = OIIO_ALLOCA(float, 4 * maxsamples);
+    float* samplepos  = lineweight + maxsamples;
     float smajor, tmajor, invsamples;
     int nsamples = compute_ellipse_sampling(aspect, theta, majorlength,
                                             minorlength, smajor, tmajor,
-                                            invsamples, lineweight);
+                                            invsamples, lineweight, samplepos,
+                                            stoch_aniso, 0.5f);
+    // All the computations were done assuming full diametric axes of
+    // the ellipse, but our derivatives are pixel-to-pixel, yielding
+    // semi-major and semi-minor lengths, so we need to scale everything
+    // by 1/2.
+    smajor *= 0.5f;
+    tmajor *= 0.5f;
 
     // Make an ImageBuf to hold our visualization image, set it to grey
     float scale = 100;
@@ -2956,7 +2990,8 @@ TextureSystemImpl::visualize_ellipse(const std::string& name, float dsdx,
     // Plop white dots at the sample positions
     int rad = int(scale * minorlength);
     for (int sample = 0; sample < nsamples; ++sample) {
-        float pos = 1.0f * (sample + 0.5f) * invsamples - 0.5f;
+        float pos = samplepos[sample];
+        // Strutil::print("samples:  {}\n", sample, pos);
         float x = pos * smajor, y = pos * tmajor;
         int xx = w / 2 + int(x * scale), yy = h / 2 - int(y * scale);
         int size = int(5 * lineweight[sample] / bigweight);

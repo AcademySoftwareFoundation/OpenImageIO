@@ -280,10 +280,9 @@ public:
         bool unmipped            = false;  ///< Not really MIP-mapped
         bool volume              = false;  ///< It's a volume image
         bool autotiled           = false;  ///< We are autotiling this image
-        bool full_pixel_range
-            = false;  ///< pixel data window matches image window
-        bool is_constant_image = false;    ///< Is the image a constant color?
-        bool has_average_color = false;    ///< We have an average color
+        bool full_pixel_range    = false;  ///< data window matches image window
+        bool is_constant_image   = false;  ///< Is the image a constant color?
+        bool has_average_color   = false;  ///< We have an average color
         std::vector<float> average_color;  ///< Average color
         spin_mutex average_color_mutex;    ///< protect average_color
         std::unique_ptr<Imath::M44f> Mlocal;  ///< shadows/volumes: world-to-local
@@ -292,7 +291,9 @@ public:
         // 0-1 relative to the "pixel window".
         float sscale = 1.0f, soffset = 0.0f;
         float tscale = 1.0f, toffset = 0.0f;
-        int min_mip_level = 0;  // Start with this MIP
+        int n_mip_levels  = 0;         // Number of MIP levels
+        int min_mip_level = 0;         // Start with this MIP
+        std::unique_ptr<int[]> minwh;  // min(width,height) for each MIP level
         ustring subimagename;
 
         SubimageInfo() {}

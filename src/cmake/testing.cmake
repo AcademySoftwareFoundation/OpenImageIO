@@ -180,6 +180,8 @@ macro (oiio_add_all_tests)
                     texture-half texture-uint16
                     texture-interp-bilinear
                     texture-interp-closest
+                    texture-levels-stochaniso
+                    texture-levels-stochmip
                     texture-mip-nomip texture-mip-onelevel
                     texture-mip-trilinear
                     texture-mip-stochastictrilinear

@@ -38,13 +38,23 @@ New major features and public API changes:
   >8 bit data to <= 8 bit files, not just when the source is float or half.
   The dither pattern is now based on blue noise, and this dramatically
   improves the visual appearance. #3141 (2.4.0/2.3.10)
-* TextureSystem now supports stochastic MIPmap interpolation -- new mip modes
-  StochasticTrilinear and StochasticAniso work like Trilinear and Aniso,
-  respectively, but instead of blending between two surrounding MIP levels,
-  they choose one of them, based on the stochastic sample value in the new
-  TextureOpt field `rnd`. We measure this speeding up texture lookups by
-  24-40%, though with more visual noise (which should be resolved cleanly by a
-  renderer that uses many samples per pixel). #3127 (2.4.0/2.3.10)
+* TextureSystem now supports stochastic sampling. The new TextureOpt field
+  `rnd` (which now defaults to -1.0) is set to a value >= 0, the filtered
+  texture lookup can use stochastic sampling to save work. The shading system
+  attribute "stochastic" is set to the stochastic strategy: 0 = no stochastic
+  sampling; 1 = for trilinear or anisotropic MIP modes, choose one MIP level
+  stochastically instead of blending between two levels; 2 = for anisotropic
+  mode, use just one anisotropic sample, chosen across the filter axis. (This
+  is a bit field, so 3 combines both strategies.) We measure this speeding up
+  texture lookups by 24-40%, though with more visual noise (which should be
+  resolved cleanly by a renderer that uses many samples per pixel). This
+  should only used for texture lookups where many samples per pixel will be
+  combined, such as for surface or light shading. It should not be used for
+  texture lookups that must return a single correct value (such as for
+  displacement, when each grid position is sampled only once). Even when the
+  "stochastic" attribute is nonzero, any individual texture call may be made
+  non-stochastic by setting TextureOpt.rnd to a negative value. #3127
+  (2.4.0/2.3.10)
 * maketx/make_texture() now supports options to store Gaussian forward and
   inverse transform lookup tables in image metadata (must be OpenEXR textures
   for this to work) to aid writing shaders that use histogram-preserving
