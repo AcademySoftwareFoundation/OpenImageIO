@@ -780,16 +780,14 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
                       m_spec.extra_attribs[p].data());
 
     if (m_spec.get_int_attribute("tiff:write_iptc")) {
-        // Disable this by default. It seems buggy, and I don't know why. Our
-        // code? Something in libtiff? Since nobody is depending on it and
-        // none of our testsuite appears to fail when disabled, only write the
-        // IPTC block if the user explicitly asks for it.
+        // Enable IPTC block writing only if "tiff_write_iptc" hint is explicity
+        // enabled. This was to avoid writing bad IPTC blocks, but I think that
+        // was because of a size mixup on our part that has since been fixed.
+        // Should we re-enable it by default in the future?
         std::vector<char> iptc;
         encode_iptc_iim(m_spec, iptc);
         if (iptc.size()) {
-            iptc.resize((iptc.size() + 3) & (0xffff - 3));  // round up
-            TIFFSetField(m_tif, TIFFTAG_RICHTIFFIPTC, iptc.size() / 4,
-                         &iptc[0]);
+            TIFFSetField(m_tif, TIFFTAG_RICHTIFFIPTC, iptc.size(), &iptc[0]);
         }
     }
 
