@@ -722,8 +722,11 @@ PSDInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         return false;
 
     y -= m_spec.y;
-    if (y < 0 || y > m_spec.height)
+    if (y < 0 || y > m_spec.height) {
+        errorfmt("Requested scanline {} out of range [0-{}]", y,
+                 m_spec.height - 1);
         return false;
+    }
 
     if (m_channel_buffers.size() < m_channels[m_subimage].size())
         m_channel_buffers.resize(m_channels[m_subimage].size());
@@ -790,6 +793,7 @@ PSDInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
             return false;
     } else {
         OIIO_ASSERT(0 && "unknown color mode");
+        errorfmt("Unknown color mode: {:d}", m_header.color_mode);
         return false;
     }
 
@@ -914,11 +918,11 @@ PSDInput::validate_header()
         // PSB (Large Document Format)
         // width/height range: [1,300000]
         if (m_header.height < 1 || m_header.height > 300000) {
-            errorfmt("[Header] invalid image height");
+            errorfmt("[Header] invalid image height {}", m_header.height);
             return false;
         }
         if (m_header.width < 1 || m_header.width > 300000) {
-            errorfmt("[Header] invalid image width");
+            errorfmt("[Header] invalid image width {}", m_header.width);
             return false;
         }
         break;
@@ -926,7 +930,7 @@ PSDInput::validate_header()
     // Valid depths are 1,8,16,32
     if (m_header.depth != 1 && m_header.depth != 8 && m_header.depth != 16
         && m_header.depth != 32) {
-        errorfmt("[Header] invalid depth");
+        errorfmt("[Header] invalid depth {}", m_header.depth);
         return false;
     }
     if (m_WantRaw)
@@ -942,9 +946,11 @@ PSDInput::validate_header()
     case ColorMode_Multichannel: break;
     case ColorMode_Duotone:
     case ColorMode_Lab:
-        errorfmt("[Header] unsupported color mode");
+        errorfmt("[Header] unsupported color mode {:d}", m_header.color_mode);
         return false;
-    default: errorfmt("[Header] unrecognized color mode"); return false;
+    default:
+        errorfmt("[Header] unrecognized color mode {:d}", m_header.color_mode);
+        return false;
     }
     return true;
 }
@@ -1175,7 +1181,8 @@ bool PSDInput::load_resource_1047(uint32_t /*length*/)
     if (!read_bige<int16_t>(m_transparency_index))
         return false;
     if (m_transparency_index < 0 || m_transparency_index >= 768) {
-        errorfmt("[Image Resource] [Transparency Index] index is out of range");
+        errorfmt("[Image Resource] Transparency index {} is out of range",
+                 m_transparency_index);
         return false;
     }
     return true;
@@ -1572,9 +1579,9 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
     case Compression_ZIP:
     case Compression_ZIP_Predict:
     default:
-        errorfmt("[Layer Channel] unsupported compression");
+        errorfmt("[Layer Channel] unsupported compression {}",
+                 channel_info.compression);
         return false;
-        ;
     }
     return ioseek(channel_info.data_length, SEEK_CUR);
 }
@@ -1694,7 +1701,8 @@ PSDInput::load_image_data()
         return false;
 
     if (compression != Compression_Raw && compression != Compression_RLE) {
-        errorfmt("[Image Data Section] unsupported compression");
+        errorfmt("[Image Data Section] unsupported compression {:d}",
+                 compression);
         return false;
     }
     m_image_data.channel_info.resize(m_header.channel_count);
@@ -1836,8 +1844,11 @@ bool
 PSDInput::read_channel_row(const ChannelInfo& channel_info, uint32_t row,
                            char* data)
 {
-    if (row >= channel_info.row_pos.size())
+    if (row >= channel_info.row_pos.size()) {
+        errorfmt("Reading channel row out of range ({}, should be < {})", row,
+                 channel_info.row_pos.size());
         return false;
+    }
 
     bool ok = ioseek(channel_info.row_pos[row]);
     switch (channel_info.compression) {
@@ -2010,8 +2021,10 @@ PSDInput::decompress_packbits(const char* src, char* dst,
             length = 1 + header;
             src_remaining -= length;
             dst_remaining -= length;
-            if (src_remaining < 0 || dst_remaining < 0)
+            if (src_remaining < 0 || dst_remaining < 0) {
+                errorfmt("unable to decode packbits");
                 return false;
+            }
 
             std::memcpy(dst, src, length);
             src += length;
@@ -2021,8 +2034,10 @@ PSDInput::decompress_packbits(const char* src, char* dst,
             length = 1 - header;
             src_remaining--;
             dst_remaining -= length;
-            if (src_remaining < 0 || dst_remaining < 0)
+            if (src_remaining < 0 || dst_remaining < 0) {
+                errorfmt("unable to decode packbits");
                 return false;
+            }
 
             std::memset(dst, *src, length);
             src++;
