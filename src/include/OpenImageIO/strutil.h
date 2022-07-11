@@ -836,6 +836,14 @@ std::string OIIO_UTIL_API utf16_to_utf8(const std::wstring& utf16str) noexcept;
 OIIO_UTIL_API char * safe_strcpy (char *dst, string_view src, size_t size) noexcept;
 
 
+/// Append `src` to the end of the C-string buffer dst, plus a terminating
+/// null, assuming that dst can hold at most `size` characters (including
+/// terminating 0 character). Returns dst. Note that this behavior is similar
+/// to strcat, but guarantees that the resulting string fits into `size` bytes
+/// and is null-terminated.
+OIIO_UTIL_API char* safe_strcat(char *dst, string_view src, size_t size) noexcept;
+
+
 /// Is the character a whitespace character (space, linefeed, tab, carrage
 /// return)? Note: this is safer than C isspace(), which has undefined
 /// behavior for negative char values. Also note that it differs from C

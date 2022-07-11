@@ -1062,6 +1062,56 @@ test_safe_strcpy()
 
 
 
+void
+test_safe_strcat()
+{
+    std::cout << "Testing safe_strcat\n";
+    const size_t len = 8;
+    {  // test in-bounds copy
+        char result[len + 1] = { 100, 101, 102, 103, 104, 105, 106, 107, 108 };
+        Strutil::safe_strcpy(result, "123", len);
+        Strutil::safe_strcat(result, "ABC", len);
+        OIIO_CHECK_EQUAL(std::string(result), "123ABC");
+        OIIO_CHECK_EQUAL(result[6], 0);
+        OIIO_CHECK_EQUAL(result[7], 0);
+        OIIO_CHECK_EQUAL(result[8], 108);
+    }
+    {  // test over-bounds copy
+        char result[len + 1] = { 100, 101, 102, 103, 104, 105, 106, 107, 108 };
+        Strutil::safe_strcpy(result, "123", len);
+        Strutil::safe_strcat(result, "ABCDEF", len);
+        OIIO_CHECK_EQUAL(std::string(result), "123ABCD");
+        OIIO_CHECK_EQUAL(result[7], 0);
+        OIIO_CHECK_EQUAL(result[8], 108);
+    }
+    {  // test empty string copy
+        char result[len + 1] = { 100, 101, 102, 103, 104, 105, 106, 107, 108 };
+        Strutil::safe_strcpy(result, "123", len);
+        Strutil::safe_strcat(result, "", len);
+        OIIO_CHECK_EQUAL(std::string(result), "123");
+        OIIO_CHECK_EQUAL(result[3], 0);
+        OIIO_CHECK_EQUAL(result[4], 0);
+        OIIO_CHECK_EQUAL(result[5], 0);
+        OIIO_CHECK_EQUAL(result[6], 0);
+        OIIO_CHECK_EQUAL(result[7], 0);
+        OIIO_CHECK_EQUAL(result[8], 108);
+    }
+    {  // test NULL case
+        char result[len + 1] = { 100, 101, 102, 103, 104, 105, 106, 107, 108 };
+        Strutil::safe_strcpy(result, "123", len);
+        Strutil::safe_strcat(result, nullptr, len);
+        OIIO_CHECK_EQUAL(std::string(result), "123");
+        OIIO_CHECK_EQUAL(result[3], 0);
+        OIIO_CHECK_EQUAL(result[4], 0);
+        OIIO_CHECK_EQUAL(result[5], 0);
+        OIIO_CHECK_EQUAL(result[6], 0);
+        OIIO_CHECK_EQUAL(result[7], 0);
+        OIIO_CHECK_EQUAL(result[8], 108);
+    }
+}
+
+
+
 // test some of the trickier methods in string_view.
 void
 test_string_view()
@@ -1514,6 +1564,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_to_string();
     test_extract();
     test_safe_strcpy();
+    test_safe_strcat();
     test_string_view();
     test_parse();
     test_locale();
