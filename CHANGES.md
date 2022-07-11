@@ -46,7 +46,7 @@ New major features and public API changes:
   stochastically instead of blending between two levels; 2 = for anisotropic
   mode, use just one anisotropic sample, chosen across the filter axis. (This
   is a bit field, so 3 combines both strategies.) We measure this speeding up
-  texture lookups by 24-40%, though with more visual noise (which should be
+  texture lookups by 25-40%, though with more visual noise (which should be
   resolved cleanly by a renderer that uses many samples per pixel). This
   should only used for texture lookups where many samples per pixel will be
   combined, such as for surface or light shading. It should not be used for
@@ -54,7 +54,7 @@ New major features and public API changes:
   displacement, when each grid position is sampled only once). Even when the
   "stochastic" attribute is nonzero, any individual texture call may be made
   non-stochastic by setting TextureOpt.rnd to a negative value. #3127
-  (2.4.0/2.3.10)
+  (2.4.0/2.3.10) #3457 (2.4.2)
 * maketx/make_texture() now supports options to store Gaussian forward and
   inverse transform lookup tables in image metadata (must be OpenEXR textures
   for this to work) to aid writing shaders that use histogram-preserving
@@ -125,6 +125,10 @@ New major features and public API changes:
   - New `ImageSpec.get_bytes_attribute()` method is for string attributes, but
     in Python3, skips decoding the underlying C string as UTF-8 and returns a
     `bytes` object containing the raw byte string. #3396 (2.4.2)
+  - Fixes for Python 3.8+ to ensure that it can find the OpenImageIO module as
+    long as it's somewhere in the PATH. This behavior can be disabled by
+    setting environment variable `OIIO_LOAD_DLLS_FROM_PATH=0`. #3470
+    (2.4.0/2.3.18)
 * New global OIIO attributes:
   - `"try_all_readers"` can be set to 0 if you want to override the default
     behavior and specifically NOT try any format readers that don't match the
@@ -166,6 +170,9 @@ Performance improvements:
   iless, starts_with, istarts_with, ends_with, iends_with. This in turn speeds
   up ParamValueList find/get related methods, ImageSpec find/get methods, and
   TS::get_texture_info. #3388 (2.4.1.1)
+* Renderer users of the TextureSystem might see up to a ~40% speedup if
+  using the new stochastic sampling features. #3127 #3457
+* Speed up reading of uncompressed DDS images by about 3x. #3463 (2.4.2.0)
 
 Fixes and feature enhancements:
 * ImageSpec:
@@ -279,6 +286,8 @@ Fixes and feature enhancements:
       (2.4.0/2.3.10)
     - IOProxy support. #3217 (2.4.0)
     - Add support for BC4-BC7 compression methods. #3459 (2.4.2)
+    - Speed up reading of uncompressed DDS images (by about 3x). #3463
+    - Better handling of cube maps with MIPmap levels. #3467 (2.4.0)
 * FFMpeg
     - Now uses case-insensitive tests on file extensions, so does not get
       confused on Windows with all-caps filenames. #3364 (2.4.1.0/2.3.14)
@@ -325,6 +334,8 @@ Fixes and feature enhancements:
       specification. #3321 (2.4.0.2/2.3.13)
 * PSD:
     - IOProxy support. #3220 (2.4.0)
+    - Better error messages for corrupted files and other failures. #3469
+      (2.4.0)
 * RAW:
     - When using libraw 0.21+, now support new color space names "DCE-P3",
       "Rec2020", and "sRGB-linear", and "ProPhoto-linear". Fix incorrect gamma
@@ -363,6 +374,8 @@ Fixes and feature enhancements:
       to nonzero. #3302 (2.4.0.1)
     - Fix read problems with TIFF files with non-zero y offset. #3419
       (2.3.17/2.4.2)
+    - Fixed some longstanding issues with IPTC data in the headers. #3465
+      (2.4.0)
 * WebP:
     - Fix previous failure to properly set the "oiio:LoopCount" metadata
       when reading animated webp images. #3183 (2.4.0/2.3.10)
@@ -458,6 +471,8 @@ Developer goodies / internals:
       path notations. #3372 (2.4.1.0/2.3.14)
     - Dramatically speed up (50-100x) Strutil iequals, iless, starts_with,
       istarts_with, ends_with, iends_with. #3388 (2.4.1.1)
+    - New `safe_strcat` is a buffer-length-aware safe replcement for strcat.
+      #3471 (2.4.0/2.3.18)
 * sysutil.h:
     - The `Term` class now recognizes a wider set of terminal emulators as
       supporting color output. #3185 (2.4.0)
@@ -562,8 +577,8 @@ Build/test system improvements and platform ports:
       name to "main". #3169 (2.4.0/2.3.10/2.2.20)
     - pybind11 v2.9.0 incorporated into our testing and CI. #3248
     - Fix clang10 compile warnings. #3272 (2.4.0.1/2.3.12)
-    - Fixes to deal with changes in fmtlib master. #3327 (2.4.0.2/2.3.13)
     - Support for ffmpeg 5.0. #3282 (2.4.0.2/2.3.13)
+    - Support for fmtlib 9.0.0. #3327 (2.4.0.2/2.3.13) #3466 (2.4.2/2.3.18)
 * Testing and Continuous integration (CI) systems:
     - Properly test against all the versions of VFX Platform 2022. #3074
       (2.4.0)

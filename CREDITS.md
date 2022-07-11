@@ -182,6 +182,7 @@ lg@openimageio.org
 * Vishal Agrawal
 * Vitor Franchi
 * Will Rosecrans
+* William Krick
 * Wormszer
 * Xo Wang
 * Yang Yang
