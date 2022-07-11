@@ -878,6 +878,21 @@ Strutil::safe_strcpy(char* dst, string_view src, size_t size) noexcept
 
 
 
+char*
+Strutil::safe_strcat(char* dst, string_view src, size_t size) noexcept
+{
+    if (src.size()) {
+        size_t dstsize = strlen(dst);
+        size_t end     = std::min(size - dstsize - 1, src.size());
+        for (size_t i = 0; i < end; ++i)
+            dst[dstsize + i] = src[i];
+        dst[dstsize + end] = 0;
+    }
+    return dst;
+}
+
+
+
 void
 Strutil::skip_whitespace(string_view& str) noexcept
 {
