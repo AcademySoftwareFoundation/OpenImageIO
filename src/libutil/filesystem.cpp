@@ -23,7 +23,11 @@
 #    include <direct.h>
 #    include <io.h>
 #    include <shellapi.h>
+#    include <sys/types.h>
+#    include <sys/utime.h>
 #else
+#    include <sys/stat.h>
+#    include <sys/types.h>
 #    include <unistd.h>
 #endif
 
@@ -586,9 +590,20 @@ Filesystem::read_bytes(string_view path, void* buffer, size_t n, size_t pos)
 std::time_t
 Filesystem::last_write_time(string_view path) noexcept
 {
-    error_code ec;
-    std::time_t t = filesystem::last_write_time(u8path(path), ec);
-    return ec ? 0 : t;
+#ifdef _WIN32
+    struct __stat64 st;
+    auto r = _wstat64(u8path(path).c_str(), &st);
+#else
+    struct stat st;
+    auto r = stat(u8path(path).c_str(), &st);
+#endif
+    if (r == 0) {
+        // success
+        return st.st_mtime;
+    } else {
+        // failure
+        return 0;
+    }
 }
 
 
@@ -596,8 +611,19 @@ Filesystem::last_write_time(string_view path) noexcept
 void
 Filesystem::last_write_time(string_view path, std::time_t time) noexcept
 {
-    error_code ec;
-    filesystem::last_write_time(u8path(path), time, ec);
+#ifdef _WIN32
+    struct _utimbuf times;
+    times.actime  = time;
+    times.modtime = time;
+    _wutime(u8path(path).c_str(), &times);
+#else
+    struct timespec times[2];
+    times[0].tv_sec  = 0;
+    times[0].tv_nsec = UTIME_OMIT;
+    times[1].tv_sec  = time;
+    times[1].tv_nsec = 0;
+    utimensat((int)AT_FDCWD, u8path(path).c_str(), times, AT_SYMLINK_NOFOLLOW);
+#endif
 }
 
 

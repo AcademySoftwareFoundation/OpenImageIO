@@ -541,6 +541,19 @@ test_mem_proxies()
 
 
 
+void
+test_last_write_time()
+{
+    Filesystem::write_text_file("oiio-testtime.txt", "test");
+    time_t t = Filesystem::last_write_time("oiio-testtime.txt");
+    std::cout << "Last write time of oiio-testtime.txt is " << t << "\n";
+    Filesystem::last_write_time("oiio-testtime.txt", t - 42);
+    OIIO_CHECK_EQUAL(Filesystem::last_write_time("oiio-testtime.txt"), t - 42);
+    Filesystem::remove("oiio-testtime.txt");
+}
+
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -550,6 +563,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_frame_sequences();
     test_scan_sequences();
     test_mem_proxies();
+    test_last_write_time();
 
     return unit_test_failures;
 }
