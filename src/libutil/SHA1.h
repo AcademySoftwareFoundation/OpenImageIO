@@ -148,8 +148,11 @@
 // #define SHA1_NO_WIPE_VARIABLES. If you don't define anything, it
 // defaults to wiping.
 #if !defined(SHA1_WIPE_VARIABLES) && !defined(SHA1_NO_WIPE_VARIABLES)
-#define SHA1_WIPE_VARIABLES
+// #define SHA1_WIPE_VARIABLES
 #endif
+// NOTE: OpenImageIO does not define SHA1_WIPE_VARIABLES, it's not necessary,
+// because we're only using SHA-1 as an image hash, not for cryptography, so
+// we just aren't concerned with whether it leaves data in memory.
 
 #if defined(SHA1_HAS_TCHAR)
 #include <tchar.h>
