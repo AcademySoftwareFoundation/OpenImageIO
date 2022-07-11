@@ -50,7 +50,7 @@ macro (find_python)
     set (PythonInterp_FIND_VERSION_MAJOR ${Python_VERSION_MAJOR})
 
     if (NOT DEFINED PYTHON_SITE_DIR)
-        set (PYTHON_SITE_DIR "${CMAKE_INSTALL_LIBDIR}/python${PYTHON_VERSION_FOUND}/site-packages")
+        set (PYTHON_SITE_DIR "${CMAKE_INSTALL_LIBDIR}/python${PYTHON_VERSION_FOUND}/site-packages/OpenImageIO")
     endif ()
     if (VERBOSE)
         message (STATUS "    Python site packages dir ${PYTHON_SITE_DIR}")
@@ -139,6 +139,8 @@ macro (setup_python_module)
     install (TARGETS ${target_name}
              RUNTIME DESTINATION ${PYTHON_SITE_DIR} COMPONENT user
              LIBRARY DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
+
+    install(FILES __init__.py DESTINATION ${PYTHON_SITE_DIR})
 
 endmacro ()
 
