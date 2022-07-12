@@ -49,13 +49,13 @@ namespace ImageBufAlgo {
 ///     ROI roi = get_roi (R.spec());
 ///     parallel_image (bind(my_image_op,ref(R), cref(A),3.14,_1), roi);
 inline void
-parallel_image (ROI roi, parallel_options opt,
+parallel_image (ROI roi, paropt opt,
                 std::function<void(ROI)> f)
 {
     opt.resolve ();
     // Try not to assign a thread less than 16k pixels, or it's not worth
     // the thread startup/teardown cost.
-    opt.maxthreads = std::min (opt.maxthreads, 1 + int(roi.npixels() / opt.minitems));
+    opt.maxthreads(std::min (opt.maxthreads(), 1 + int(roi.npixels() / opt.minitems())));
     if (opt.singlethread()) {
         // Just one thread, or a small image region, or if recursive use of
         // parallel_image is disallowed: use this thread only
@@ -64,7 +64,7 @@ parallel_image (ROI roi, parallel_options opt,
     }
 
     // If splitdir was not explicit, find the longest edge.
-    SplitDir splitdir = opt.splitdir;
+    SplitDir splitdir = opt.splitdir();
     if (splitdir == Split_Biggest)
         splitdir = roi.width() > roi.height() ? Split_X : Split_Y;
 
@@ -76,13 +76,13 @@ parallel_image (ROI roi, parallel_options opt,
         ychunk = roi.height();
         // ychunk = std::max (64, minitems/xchunk);
     } else if (splitdir == Split_Tile) {
-        int64_t n = std::min<imagesize_t>(opt.minitems, roi.npixels());
+        int64_t n = std::min<imagesize_t>(opt.minitems(), roi.npixels());
         xchunk = ychunk = std::max (1, int(std::sqrt(n))/4);
     } else {
-        xchunk = ychunk = std::max (int64_t(1), int64_t(std::sqrt(opt.maxthreads))/2);
+        xchunk = ychunk = std::max (int64_t(1), int64_t(std::sqrt(opt.maxthreads()))/2);
     }
 
-    auto task = [&](int /*id*/, int64_t xbegin, int64_t xend,
+    auto task = [&](int64_t xbegin, int64_t xend,
                     int64_t ybegin, int64_t yend) {
         f (ROI (xbegin, xend, ybegin, yend, roi.zbegin, roi.zend,
                 roi.chbegin, roi.chend));
@@ -95,7 +95,7 @@ parallel_image (ROI roi, parallel_options opt,
 inline void
 parallel_image (ROI roi, std::function<void(ROI)> f)
 {
-    parallel_image (roi, parallel_options(), f);
+    parallel_image (roi, paropt(), f);
 }
 
 
@@ -106,7 +106,7 @@ OIIO_DEPRECATED("switch to new parallel_image (1.8)")
 void
 parallel_image (Func f, ROI roi, int nthreads=0, SplitDir splitdir=Split_Y)
 {
-    parallel_image (roi, parallel_options(nthreads, splitdir), f);
+    parallel_image (roi, paropt(nthreads, splitdir), f);
 }
 
 

@@ -137,7 +137,7 @@ computePixelStats_(const ImageBuf& src, ImageBufAlgo::PixelStats& stats,
     parallel_options opt(nthreads);
     if (src.deep()) {
         parallel_for_chunked(roi.ybegin, roi.yend, 64,
-                             [&](int /*id*/, int64_t ybegin, int64_t yend) {
+                             [&](int64_t ybegin, int64_t yend) {
             ROI subroi(roi.xbegin, roi.xend, ybegin, yend, roi.zbegin,
                        roi.zend, roi.chbegin, roi.chend);
             ImageBufAlgo::PixelStats tmp(nchannels);
@@ -159,7 +159,7 @@ computePixelStats_(const ImageBuf& src, ImageBufAlgo::PixelStats& stats,
 
     } else {  // Non-deep case
         parallel_for_chunked(roi.ybegin, roi.yend, 64,
-                             [&](int /*id*/, int64_t ybegin, int64_t yend) {
+                             [&](int64_t ybegin, int64_t yend) {
             ROI subroi(roi.xbegin, roi.xend, ybegin, yend, roi.zbegin,
                        roi.zend, roi.chbegin, roi.chend);
             ImageBufAlgo::PixelStats tmp(nchannels);

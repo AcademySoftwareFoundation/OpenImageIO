@@ -14,8 +14,9 @@ target_link_libraries (OpenImageIO_Util
         PUBLIC
             $<TARGET_NAME_IF_EXISTS:Threads::Threads>
             ${GCC_ATOMIC_LIBRARIES}
-        ${OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY}
+            ${OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY}
             ${OPENIMAGEIO_IMATH_TARGETS}
+            $<TARGET_NAME_IF_EXISTS:TBB::tbb>
         PRIVATE
             Boost::filesystem
             Boost::system

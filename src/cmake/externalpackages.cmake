@@ -189,7 +189,7 @@ checked_find_package (OpenCV 3.0
 # Intel TBB
 set (TBB_USE_DEBUG_BUILD OFF)
 checked_find_package (TBB 2017
-                      DEFINITIONS  -DUSE_TBB=1
+                      SETVARIABLES OIIO_TBB
                       PREFER_CONFIG)
 
 checked_find_package (DCMTK VERSION_MIN 3.6.1)  # For DICOM images
