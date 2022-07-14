@@ -76,7 +76,7 @@ public:
 
 /// Encapsulation of options that control parallel_for() and
 /// parallel_image().
-class paropt {
+class OIIO_UTIL_API paropt {
 public:
     enum class ParStrategy { Default = 0, TryTBB, OIIOpool };
 
@@ -114,7 +114,7 @@ public:
     // * If no max thread count was specified, use the pool size.
     // * If the calling thread is itself in the pool and the recursive flag
     //   was not turned on, just use one thread.
-    OIIO_API void resolve();
+    void resolve();
 
     constexpr bool singlethread() const noexcept { return m_maxthreads == 1; }
 
@@ -174,7 +174,7 @@ struct dim3 {
 /// a number of chunks equal to the twice number of threads in the queue.
 /// (We do this to offer better load balancing than if we used exactly the
 /// thread count.)
-OIIO_API void
+OIIO_UTIL_API void
 parallel_for_chunked(int64_t begin, int64_t end, int64_t chunksize,
                      std::function<void(int64_t, int64_t)>&& task,
                      paropt opt = paropt(0, Split_Y, 1));
@@ -193,19 +193,19 @@ parallel_for_chunked(int64_t begin, int64_t end, int64_t chunksize,
 /// actually each thread will iterate over some chunk of adjacent indices
 /// (to aid data coherence and minimize the amount of thread queue
 /// diddling). The chunk size is chosen automatically.
-OIIO_API void
+OIIO_UTIL_API void
 parallel_for(int32_t begin, int32_t end,
              function_view<void(int32_t)> task, paropt opt = 0);
 
-OIIO_API void
+OIIO_UTIL_API void
 parallel_for(int64_t begin, int64_t end,
              function_view<void(int64_t)> task, paropt opt = 0);
 
-OIIO_API void
+OIIO_UTIL_API void
 parallel_for(uint32_t begin, uint32_t end,
              function_view<void(uint32_t)> task, paropt opt = 0);
 
-OIIO_API void
+OIIO_UTIL_API void
 parallel_for(uint64_t begin, uint64_t end,
              function_view<void(uint64_t)> task, paropt opt = 0);
 
@@ -220,22 +220,22 @@ parallel_for(uint64_t begin, uint64_t end,
 ///
 /// The chunk sizes will be chosen automatically, and are not guaranteed
 /// to all be the same size.
-OIIO_API void
+OIIO_UTIL_API void
 parallel_for_range(int32_t begin, int32_t end,
                    std::function<void(int32_t, int32_t)>&& task,
                    paropt opt = 0);
 
-OIIO_API void
+OIIO_UTIL_API void
 parallel_for_range(int64_t begin, int64_t end,
                    std::function<void(int64_t, int64_t)>&& task,
                    paropt opt = 0);
 
-OIIO_API void
+OIIO_UTIL_API void
 parallel_for_range(uint32_t begin, uint32_t end,
                    std::function<void(uint32_t, uint32_t)>&& task,
                    paropt opt = 0);
 
-OIIO_API void
+OIIO_UTIL_API void
 parallel_for_range(uint64_t begin, uint64_t end,
                    std::function<void(uint64_t, uint64_t)>&& task,
                    paropt opt = 0);
@@ -255,7 +255,7 @@ parallel_for_range(uint64_t begin, uint64_t end,
 /// a number of chunks equal to the twice number of threads in the queue.
 /// (We do this to offer better load balancing than if we used exactly the
 /// thread count.)
-OIIO_API void
+OIIO_UTIL_API void
 parallel_for_chunked_2D (int64_t xbegin, int64_t xend, int64_t xchunksize,
                          int64_t ybegin, int64_t yend, int64_t ychunksize,
                          std::function<void(int64_t xbeg, int64_t xend,
@@ -273,7 +273,7 @@ parallel_for_chunked_2D (int64_t xbegin, int64_t xend, int64_t xchunksize,
 ///    task (xend-1, ybegin+1);
 ///    ...
 ///    task (xend-1, yend-1);
-OIIO_API void
+OIIO_UTIL_API void
 parallel_for_2D (int64_t xbegin, int64_t xend,
                  int64_t ybegin, int64_t yend,
                  std::function<void(int64_t x, int64_t y)>&& task,
@@ -289,19 +289,19 @@ parallel_for_2D (int64_t xbegin, int64_t xend,
 // starting with OIIO 3.0.
 
 // OIIO_DEPRECATED("Use tasks that don't take a thread ID (2.3)")
-OIIO_API void
+OIIO_UTIL_API void
 parallel_for_chunked(int64_t begin, int64_t end, int64_t chunksize,
                      std::function<void(int id, int64_t b, int64_t e)>&& task,
                      paropt opt = paropt(0, Split_Y, 1));
 
 // OIIO_DEPRECATED("Use tasks that don't take a thread ID (2.3)")
-OIIO_API void
+OIIO_UTIL_API void
 parallel_for(int64_t begin, int64_t end,
              std::function<void(int id, int64_t index)>&& task,
              paropt opt = paropt(0,Split_Y,1));
 
 // OIIO_DEPRECATED("Use tasks that don't take a thread ID (2.3)")
-OIIO_API void
+OIIO_UTIL_API void
 parallel_for_chunked_2D (int64_t xbegin, int64_t xend, int64_t xchunksize,
                          int64_t ybegin, int64_t yend, int64_t ychunksize,
                          std::function<void(int id, int64_t, int64_t,

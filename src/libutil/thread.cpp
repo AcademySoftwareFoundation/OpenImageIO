@@ -29,7 +29,8 @@
 #include <OpenImageIO/thread.h>
 
 #if OIIO_TBB
-#    include <tbb/tbb.h>
+#    include <tbb/parallel_for.h>
+#    include <tbb/task_arena.h>
 #endif
 
 #include <boost/container/flat_map.hpp>
@@ -657,7 +658,7 @@ parallel_for_chunked(int64_t begin, int64_t end, int64_t chunksize,
 void
 parallel_for_chunked(int64_t begin, int64_t end, int64_t chunksize,
                      std::function<void(int id, int64_t b, int64_t e)>&& task,
-                     paropt opt)
+                     parallel_options opt)
 {
     parallel_for_chunked_id(begin, end, chunksize, std::move(task), opt);
 }
@@ -861,7 +862,7 @@ parallel_for_chunked_2D(
     int64_t xbegin, int64_t xend, int64_t xchunksize, int64_t ybegin,
     int64_t yend, int64_t ychunksize,
     std::function<void(int id, int64_t, int64_t, int64_t, int64_t)>&& task,
-    paropt opt)
+    parallel_options opt)
 {
     parallel_for_chunked_2D_id(xbegin, xend, xchunksize, ybegin, yend,
                                ychunksize, std::move(task), opt);
