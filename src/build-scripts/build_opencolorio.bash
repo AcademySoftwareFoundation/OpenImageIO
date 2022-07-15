@@ -7,7 +7,7 @@ set -ex
 
 # Which OCIO to retrieve, how to build it
 OPENCOLORIO_REPO=${OPENCOLORIO_REPO:=https://github.com/AcademySoftwareFoundation/OpenColorIO.git}
-OPENCOLORIO_VERSION=${OPENCOLORIO_VERSION:=v2.0.1}
+OPENCOLORIO_VERSION=${OPENCOLORIO_VERSION:=v2.1.2}
 
 # Where to install the final results
 LOCAL_DEPS_DIR=${LOCAL_DEPS_DIR:=${PWD}/ext}
