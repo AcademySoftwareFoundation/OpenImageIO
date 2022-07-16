@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <fcntl.h>
 #include <iostream>
+#include <random>
 #include <regex>
 #include <string>
 
@@ -31,10 +32,15 @@
 #    include <unistd.h>
 #endif
 
-#include <boost/filesystem.hpp>
+#if defined(USE_STD_FILESYSTEM)
+#    include <filesystem>
+namespace filesystem = std::filesystem;
+using std::error_code;
+#else
+#    include <boost/filesystem.hpp>
 namespace filesystem = boost::filesystem;
-using error_code     = boost::system::error_code;
-// FIXME: use std::filesystem when available
+using boost::system::error_code;
+#endif
 
 
 
@@ -227,7 +233,7 @@ Filesystem::searchpath_find(const std::string& filename_utf8,
         const filesystem::path d(u8path(d_utf8));
         filesystem::path f = d / filename;
         error_code ec;
-        if (filesystem::is_regular(f, ec)) {
+        if (filesystem::is_regular_file(f, ec)) {
             return pathstr(f);
         }
 
@@ -429,9 +435,38 @@ Filesystem::temp_directory_path()
 std::string
 Filesystem::unique_path(string_view model)
 {
+#ifdef USE_BOOST_FILESYSTEM
+    // Boost filesystem has unique_path().
     error_code ec;
     filesystem::path p = filesystem::unique_path(u8path(model), ec);
     return ec ? std::string() : pathstr(p);
+#else
+    // std::filesystem does not have unique_path(). Punt!
+#    if defined(_WIN32)
+    // boost internally doesn't use MultiByteToWideChar (CP_UTF8,...
+    // to convert char* to wchar_t* because they do not know the encoding
+    // See boost/filesystem/path.hpp
+    // The only correct way to do this is to do the conversion ourselves
+    std::wstring modelStr    = Strutil::utf8_to_utf16(model);
+#    else
+    std::string modelStr = model.str();
+#    endif
+    static const char chrs[] = "0123456789abcdef";
+    static std::mt19937 rg { std::random_device {}() };
+    static std::uniform_int_distribution<size_t> pick(0, 15);
+    static std::mutex mutex;
+    std::lock_guard<std::mutex> lock(mutex);
+    std::string name;
+    while (true) {
+        name = model.str();
+        for (size_t i = 0, e = model.size(); i < e; ++i)
+            if (name[i] == '%')
+                name[i] = chrs[pick(rg)];
+        if (!exists(name))
+            break;
+    }
+    return name;
+#endif
 }
 
 
@@ -947,7 +982,7 @@ Filesystem::scan_for_matching_filenames(const std::string& pattern_,
              !ec && it != end_it; ++it) {
             std::string itpath = Filesystem::generic_filepath(
                 it->path().string());
-            if (filesystem::is_regular(itpath, ec)) {
+            if (filesystem::is_regular_file(itpath, ec)) {
                 const std::string f = pathstr(itpath);
                 std::match_results<std::string::const_iterator> frame_match;
                 if (regex_match(f, frame_match, pattern_re)) {

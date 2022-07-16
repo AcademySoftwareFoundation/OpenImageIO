@@ -338,6 +338,7 @@ if (NOT VERBOSE)
     set (CMAKE_REQUIRED_QUIET 1)
 endif ()
 include (CMakePushCheckState)
+include (CheckCXXSourceCompiles)
 include (CheckCXXSourceRuns)
 include (CheckLibraryExists)
 
@@ -372,6 +373,29 @@ if (NOT MSVC AND NOT APPLE)
         endif ()
     endif ()
 endif ()
+
+
+###########################################################################
+# Check if we need have std::filesystem on this platform.
+#
+cmake_push_check_state ()
+set (CMAKE_REQUIRED_DEFINITIONS ${CSTD_FLAGS})
+check_cxx_source_compiles("#include <filesystem>
+      int main() { std::filesystem::path p; return 0; }"
+      USE_STD_FILESYSTEM)
+if (USE_STD_FILESYSTEM AND GCC_VERSION AND GCC_VERSION VERSION_LESS 9.0)
+    message (STATUS "Excluding USE_STD_FILESYSTEM because gcc is ${GCC_VERSION}")
+    set (USE_STD_FILESYSTEM OFF)
+endif ()
+if (USE_STD_FILESYSTEM)
+    # Note: std::filesystem seems unreliable for gcc until 9
+    message (STATUS "Compiler supports std::filesystem")
+    add_definitions (-DUSE_STD_FILESYSTEM)
+else ()
+    message (STATUS "Using Boost::filesystem")
+    add_definitions (-DUSE_BOOST_FILESYSTEM)
+endif ()
+cmake_pop_check_state ()
 
 
 ###########################################################################

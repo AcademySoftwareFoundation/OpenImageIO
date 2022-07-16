@@ -52,24 +52,23 @@ if (MSVC)
     endif ()
 endif ()
 
-if (BOOST_CUSTOM)
-    set (Boost_FOUND true)
-    # N.B. For a custom version, the caller had better set up the variables
-    # Boost_VERSION, Boost_INCLUDE_DIRS, Boost_LIBRARY_DIRS, Boost_LIBRARIES.
-else ()
-    set (Boost_COMPONENTS filesystem system thread)
-    # The FindBoost.cmake interface is broken if it uses boost's installed
-    # cmake output (e.g. boost 1.70.0, cmake <= 3.14). Specifically it fails
-    # to set the expected variables printed below. So until that's fixed
-    # force FindBoost.cmake to use the original brute force path.
-    set (Boost_NO_BOOST_CMAKE ON)
-    checked_find_package (Boost REQUIRED
-                          VERSION_MIN 1.53
-                          COMPONENTS ${Boost_COMPONENTS}
-                          RECOMMEND_MIN 1.66
-                          RECOMMEND_MIN_REASON "Boost 1.66 is the oldest version our CI tests against"
-                          PRINT Boost_INCLUDE_DIRS Boost_LIBRARIES )
+set (Boost_COMPONENTS system thread)
+# if (NOT USE_STD_FILESYSTEM AND NOT USE_EXP_FILESYSTEM)
+if (NOT USE_STD_FILESYSTEM)
+    list (APPEND Boost_COMPONENTS filesystem)
 endif ()
+message (STATUS "Boost_COMPONENTS = ${Boost_COMPONENTS}")
+# The FindBoost.cmake interface is broken if it uses boost's installed
+# cmake output (e.g. boost 1.70.0, cmake <= 3.14). Specifically it fails
+# to set the expected variables printed below. So until that's fixed
+# force FindBoost.cmake to use the original brute force path.
+set (Boost_NO_BOOST_CMAKE ON)
+checked_find_package (Boost REQUIRED
+                      VERSION_MIN 1.53
+                      COMPONENTS ${Boost_COMPONENTS}
+                      RECOMMEND_MIN 1.66
+                      RECOMMEND_MIN_REASON "Boost 1.66 is the oldest version our CI tests against"
+                      PRINT Boost_INCLUDE_DIRS Boost_LIBRARIES )
 
 # On Linux, Boost 1.55 and higher seems to need to link against -lrt
 if (CMAKE_SYSTEM_NAME MATCHES "Linux"

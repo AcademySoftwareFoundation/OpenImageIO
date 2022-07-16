@@ -204,6 +204,11 @@ OIIO_UTIL_API std::string temp_directory_path ();
 
 /// Return a unique filename suitable for making a temporary file or
 /// directory.  The file names are all UTF-8 encoded.
+/// NOTE: this function is not recommended, because it's a known security
+/// and stability issue, since another process *could* create a file of the
+/// same name after the path is retrieved but before it is created. So in
+/// the long run, we want to wean ourselves off this. But in practice, it's
+/// not an emergency. We'll replace this with something else eventually.
 OIIO_UTIL_API std::string unique_path (string_view model="%%%%-%%%%-%%%%-%%%%");
 
 /// Version of fopen that can handle UTF-8 paths even on Windows.
