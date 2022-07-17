@@ -20,11 +20,13 @@
 OIIO_NAMESPACE_BEGIN
 
 /// Split strategies
+/// DEPRECATED(2.4)
 enum SplitDir { Split_X, Split_Y, Split_Z, Split_Biggest, Split_Tile };
 
 
 /// Encapsulation of options that control parallel_for() and
 /// parallel_image().
+/// DEPRECATED(2.4)
 class parallel_options {
 public:
     parallel_options(int maxthreads = 0, SplitDir splitdir = Split_Y,
@@ -76,17 +78,18 @@ public:
 /// parallel_image().
 class OIIO_UTIL_API paropt {
 public:
-    enum class ParStrategy { Default = 0, TryTBB, OIIOpool };
+    enum class ParStrategy : short { Default = 0, TryTBB, OIIOpool };
+    enum class SplitDir : short { X, Y, Z, Biggest, Tile };
 
-    constexpr paropt(int maxthreads = 0, SplitDir splitdir = Split_Y,
+    constexpr paropt(int maxthreads = 0, SplitDir splitdir = SplitDir::Y,
                      size_t minitems = 1024) noexcept
         : m_maxthreads(maxthreads)
         , m_splitdir(splitdir)
         , m_minitems(minitems)
     {
     }
-    paropt(string_view name, int maxthreads = 0, SplitDir splitdir = Split_Y,
-           size_t minitems = 1024) noexcept
+    paropt(string_view name, int maxthreads = 0,
+           SplitDir splitdir = SplitDir::Y, size_t minitems = 1024) noexcept
         : paropt(maxthreads, splitdir, minitems)
     {
         // m_name = name;
@@ -105,7 +108,7 @@ public:
 
     // For back compatibility
     paropt(const parallel_options& po) noexcept
-        : paropt(po.name, po.maxthreads, po.splitdir, po.minitems)
+        : paropt(po.name, po.maxthreads, SplitDir(po.splitdir), po.minitems)
     {
         m_recursive = po.recursive;
         m_pool      = po.pool;
@@ -163,12 +166,12 @@ public:
     }
 
 private:
-    int m_maxthreads       = 0;        // Max threads (0 = use all)
-    SplitDir m_splitdir    = Split_Y;  // Primary split direction
-    size_t m_minitems      = 16384;    // Min items per task
-    thread_pool* m_pool    = nullptr;  // If non-NULL, custom thread pool
+    int m_maxthreads       = 0;  // Max threads (0 = use all)
     ParStrategy m_strategy = ParStrategy::Default;
-    bool m_recursive       = false;  // Allow thread pool recursion
+    SplitDir m_splitdir    = SplitDir::Y;  // Primary split direction
+    size_t m_minitems      = 16384;        // Min items per task
+    thread_pool* m_pool    = nullptr;      // If non-NULL, custom thread pool
+    bool m_recursive       = false;        // Allow thread pool recursion
 };
 
 
@@ -191,7 +194,7 @@ private:
 OIIO_UTIL_API void
 parallel_for_chunked(int64_t begin, int64_t end, int64_t chunksize,
                      std::function<void(int64_t, int64_t)>&& task,
-                     paropt opt = paropt(0, Split_Y, 1));
+                     paropt opt = paropt(0, paropt::SplitDir::Y, 1));
 
 
 
@@ -305,13 +308,13 @@ parallel_for_2D(int64_t xbegin, int64_t xend, int64_t ybegin, int64_t yend,
 OIIO_UTIL_API void
 parallel_for_chunked(int64_t begin, int64_t end, int64_t chunksize,
                      std::function<void(int id, int64_t b, int64_t e)>&& task,
-                     paropt opt = paropt(0, Split_Y, 1));
+                     paropt opt = paropt(0, paropt::SplitDir::Y, 1));
 
 // OIIO_DEPRECATED("Use tasks that don't take a thread ID (2.3)")
 OIIO_UTIL_API void
 parallel_for(int64_t begin, int64_t end,
              std::function<void(int id, int64_t index)>&& task,
-             paropt opt = paropt(0, Split_Y, 1));
+             paropt opt = paropt(0, paropt::SplitDir::Y, 1));
 
 // OIIO_DEPRECATED("Use tasks that don't take a thread ID (2.3)")
 OIIO_UTIL_API void
@@ -346,7 +349,7 @@ template<class InputIt, class UnaryFunction>
 // OIIO_DEPRECATED("Don't use this (2.3)")
 UnaryFunction
 parallel_for_each(InputIt begin, InputIt end, UnaryFunction f,
-                  paropt opt = paropt(0, Split_Y, 1))
+                  paropt opt = paropt(0, paropt::SplitDir::Y, 1))
 {
     return std::for_each(begin, end, f);
 }
