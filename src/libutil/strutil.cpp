@@ -28,6 +28,7 @@
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/string_view.h>
 #include <OpenImageIO/strutil.h>
+#include <OpenImageIO/thread.h>
 #include <OpenImageIO/ustring.h>
 
 #ifdef _WIN32
@@ -150,6 +151,40 @@ Strutil::sync_output(std::ostream& file, string_view str, bool flush)
         file << str;
         if (flush)
             file.flush();
+    }
+}
+
+
+
+namespace pvt {
+static const char* oiio_debug_env = getenv("OPENIMAGEIO_DEBUG");
+#ifdef NDEBUG
+OIIO_UTIL_API int
+    oiio_print_debug(oiio_debug_env ? Strutil::stoi(oiio_debug_env) : 0);
+#else
+OIIO_UTIL_API int
+    oiio_print_debug(oiio_debug_env ? Strutil::stoi(oiio_debug_env) : 1);
+#endif
+}  // namespace pvt
+
+
+void
+Strutil::pvt::debug(string_view message)
+{
+    if (OIIO::pvt::oiio_print_debug) {
+        static mutex debug_mutex;
+        lock_guard lock(debug_mutex);
+        static FILE* oiio_debug_file = nullptr;
+        if (!oiio_debug_file) {
+            const char* filename = getenv("OPENIMAGEIO_DEBUG_FILE");
+            oiio_debug_file = filename && filename[0] ? fopen(filename, "a")
+                                                      : stderr;
+            OIIO_ASSERT(oiio_debug_file);
+            if (!oiio_debug_file)
+                oiio_debug_file = stderr;
+        }
+        print(oiio_debug_file, "OIIO DEBUG: {}", message);
+        fflush(oiio_debug_file);
     }
 }
 

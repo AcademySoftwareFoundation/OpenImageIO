@@ -52,14 +52,7 @@ std::string input_format_list;   // comma-separated list of readable formats
 std::string output_format_list;  // comma-separated list of writable formats
 std::string extension_list;      // list of all extensions for all formats
 std::string library_list;        // list of all libraries for all formats
-static const char* oiio_debug_env = getenv("OPENIMAGEIO_DEBUG");
-#ifdef NDEBUG
-int oiio_print_debug(oiio_debug_env ? Strutil::stoi(oiio_debug_env) : 0);
-#else
-int oiio_print_debug(oiio_debug_env ? Strutil::stoi(oiio_debug_env) : 1);
-#endif
-int oiio_log_times = Strutil::from_string<int>(
-    Sysutil::getenv("OPENIMAGEIO_LOG_TIMES"));
+int oiio_log_times = Strutil::stoi(Sysutil::getenv("OPENIMAGEIO_LOG_TIMES"));
 std::vector<float> oiio_missingcolor;
 }  // namespace pvt
 
@@ -69,8 +62,7 @@ using namespace pvt;
 namespace {
 // Hidden global OIIO data.
 static spin_mutex attrib_mutex;
-static const int maxthreads  = 512;  // reasonable maximum for sanity check
-static FILE* oiio_debug_file = NULL;
+static const int maxthreads = 512;  // reasonable maximum for sanity check
 
 class TimingLog {
 public:
@@ -268,18 +260,7 @@ geterror(bool clear)
 void
 debug(string_view message)
 {
-    recursive_lock_guard lock(pvt::imageio_mutex);
-    if (oiio_print_debug) {
-        if (!oiio_debug_file) {
-            const char* filename = getenv("OPENIMAGEIO_DEBUG_FILE");
-            oiio_debug_file = filename && filename[0] ? fopen(filename, "a")
-                                                      : stderr;
-            OIIO_ASSERT(oiio_debug_file);
-            if (!oiio_debug_file)
-                return;
-        }
-        Strutil::fprintf(oiio_debug_file, "OIIO DEBUG: %s", message);
-    }
+    Strutil::pvt::debug(message);
 }
 
 
