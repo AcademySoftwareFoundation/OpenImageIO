@@ -253,6 +253,10 @@ void CSHA1::Final()
 #endif
 }
 
+
+#define HASH_TEMP_BUFFER_SIZE 84
+
+
 #ifdef SHA1_UTILITY_FUNCTIONS
 bool CSHA1::ReportHash(TCHAR* tszReport, REPORT_TYPE rtReportType) const
 {
@@ -263,24 +267,24 @@ bool CSHA1::ReportHash(TCHAR* tszReport, REPORT_TYPE rtReportType) const
 	if((rtReportType == REPORT_HEX) || (rtReportType == REPORT_HEX_SHORT))
 	{
 		_sntprintf(tszTemp, 15, _T("%02X"), m_digest[0]);
-		_tcscpy(tszReport, tszTemp);
+		Strutil::safe_strcpy(tszReport, tszTemp, HASH_TEMP_BUFFER_SIZE - 1);
 
 		const TCHAR* lpFmt = ((rtReportType == REPORT_HEX) ? _T(" %02X") : _T("%02X"));
 		for(size_t i = 1; i < 20; ++i)
 		{
 			_sntprintf(tszTemp, 15, lpFmt, m_digest[i]);
-			_tcscat(tszReport, tszTemp);
+			Strutil::safe_strcat(tszReport, tszTemp, HASH_TEMP_BUFFER_SIZE - 1);
 		}
 	}
 	else if(rtReportType == REPORT_DIGIT)
 	{
 		_sntprintf(tszTemp, 15, _T("%u"), m_digest[0]);
-		_tcscpy(tszReport, tszTemp);
+		Strutil::safe_strcpy(tszReport, tszTemp, HASH_TEMP_BUFFER_SIZE - 1);
 
 		for(size_t i = 1; i < 20; ++i)
 		{
 			_sntprintf(tszTemp, 15, _T(" %u"), m_digest[i]);
-			_tcscat(tszReport, tszTemp);
+			Strutil::safe_strcat(tszReport, tszTemp, HASH_TEMP_BUFFER_SIZE - 1);
 		}
 	}
 	else return false;
@@ -292,7 +296,7 @@ bool CSHA1::ReportHash(TCHAR* tszReport, REPORT_TYPE rtReportType) const
 #ifdef SHA1_STL_FUNCTIONS
 bool CSHA1::ReportHashStl(std::basic_string<TCHAR>& strOut, REPORT_TYPE rtReportType) const
 {
-	TCHAR tszOut[84];
+	TCHAR tszOut[HASH_TEMP_BUFFER_SIZE];
 	const bool bResult = ReportHash(tszOut, rtReportType);
 	if(bResult) strOut = tszOut;
 	return bResult;
