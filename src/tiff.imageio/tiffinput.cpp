@@ -72,7 +72,7 @@ struct TIFF_tag_info {
 class TIFFInput final : public ImageInput {
 public:
     TIFFInput();
-    virtual ~TIFFInput();
+    virtual ~TIFFInput() override;
     virtual const char* format_name(void) const override { return "tiff"; }
     virtual bool valid_file(const std::string& filename) const override;
     virtual int supports(string_view feature) const override

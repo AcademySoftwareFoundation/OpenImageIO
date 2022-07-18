@@ -18,7 +18,7 @@ using namespace bmp_pvt;
 class BmpOutput final : public ImageOutput {
 public:
     BmpOutput() { init(); }
-    virtual ~BmpOutput() { close(); }
+    virtual ~BmpOutput() override { close(); }
     virtual const char* format_name(void) const override { return "bmp"; }
     virtual int supports(string_view feature) const override;
     virtual bool open(const std::string& name, const ImageSpec& spec,

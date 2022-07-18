@@ -36,7 +36,7 @@ using namespace boost::asio;
 class SocketOutput final : public ImageOutput {
 public:
     SocketOutput();
-    virtual ~SocketOutput() { close(); }
+    virtual ~SocketOutput() override { close(); }
     virtual const char* format_name(void) const override { return "socket"; }
     virtual int supports(string_view property) const override;
     virtual bool open(const std::string& name, const ImageSpec& spec,
@@ -64,7 +64,7 @@ private:
 class SocketInput final : public ImageInput {
 public:
     SocketInput();
-    virtual ~SocketInput() { close(); }
+    virtual ~SocketInput() override { close(); }
     virtual const char* format_name(void) const override { return "socket"; }
     virtual bool valid_file(const std::string& filename) const override;
     virtual bool open(const std::string& name, ImageSpec& spec) override;

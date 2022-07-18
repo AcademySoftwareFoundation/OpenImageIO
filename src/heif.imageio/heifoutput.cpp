@@ -15,7 +15,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class HeifOutput final : public ImageOutput {
 public:
     HeifOutput() {}
-    virtual ~HeifOutput() { close(); }
+    virtual ~HeifOutput() override { close(); }
     virtual const char* format_name(void) const override { return "heif"; }
     virtual int supports(string_view feature) const override
     {

@@ -65,7 +65,7 @@ enum ColorMap {
 class SgiInput final : public ImageInput {
 public:
     SgiInput() { init(); }
-    virtual ~SgiInput() { close(); }
+    virtual ~SgiInput() override { close(); }
     virtual const char* format_name(void) const override { return "sgi"; }
     virtual bool valid_file(const std::string& filename) const override;
     virtual bool open(const std::string& name, ImageSpec& spec) override;
@@ -118,7 +118,7 @@ private:
 class SgiOutput final : public ImageOutput {
 public:
     SgiOutput() {}
-    virtual ~SgiOutput() { close(); }
+    virtual ~SgiOutput() override { close(); }
     virtual const char* format_name(void) const override { return "sgi"; }
     virtual int supports(string_view feature) const override;
     virtual bool open(const std::string& name, const ImageSpec& spec,

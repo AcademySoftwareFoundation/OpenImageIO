@@ -29,7 +29,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class Jpeg2000Output final : public ImageOutput {
 public:
     Jpeg2000Output() { init(); }
-    virtual ~Jpeg2000Output() { close(); }
+    virtual ~Jpeg2000Output() override { close(); }
     virtual const char* format_name(void) const override { return "jpeg2000"; }
     virtual int supports(string_view feature) const override
     {

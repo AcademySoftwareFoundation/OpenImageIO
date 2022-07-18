@@ -31,7 +31,7 @@ using namespace psd_pvt;
 class PSDInput final : public ImageInput {
 public:
     PSDInput();
-    virtual ~PSDInput() { close(); }
+    virtual ~PSDInput() override { close(); }
     virtual const char* format_name(void) const override { return "psd"; }
     virtual int supports(string_view feature) const override
     {

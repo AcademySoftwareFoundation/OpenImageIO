@@ -62,7 +62,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class GIFOutput final : public ImageOutput {
 public:
     GIFOutput() { init(); }
-    virtual ~GIFOutput() { close(); }
+    virtual ~GIFOutput() override { close(); }
     virtual const char* format_name(void) const override { return "gif"; }
     virtual int supports(string_view feature) const override
     {

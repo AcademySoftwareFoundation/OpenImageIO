@@ -57,7 +57,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class RawInput final : public ImageInput {
 public:
     RawInput() {}
-    virtual ~RawInput() { close(); }
+    virtual ~RawInput() override { close(); }
     virtual const char* format_name(void) const override { return "raw"; }
     virtual int supports(string_view feature) const override
     {

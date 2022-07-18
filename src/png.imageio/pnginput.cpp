@@ -14,7 +14,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class PNGInput final : public ImageInput {
 public:
     PNGInput() { init(); }
-    virtual ~PNGInput() { close(); }
+    virtual ~PNGInput() override { close(); }
     virtual const char* format_name(void) const override { return "png"; }
     virtual int supports(string_view feature) const override
     {

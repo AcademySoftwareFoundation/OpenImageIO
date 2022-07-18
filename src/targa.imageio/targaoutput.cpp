@@ -25,7 +25,7 @@ using namespace TGA_pvt;
 class TGAOutput final : public ImageOutput {
 public:
     TGAOutput();
-    virtual ~TGAOutput();
+    virtual ~TGAOutput() override;
     virtual const char* format_name(void) const override { return "targa"; }
     virtual int supports(string_view feature) const override
     {

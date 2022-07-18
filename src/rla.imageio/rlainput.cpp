@@ -22,7 +22,7 @@ using namespace RLA_pvt;
 class RLAInput final : public ImageInput {
 public:
     RLAInput() { init(); }
-    virtual ~RLAInput() { close(); }
+    virtual ~RLAInput() override { close(); }
     virtual const char* format_name(void) const override { return "rla"; }
     virtual bool open(const std::string& name, ImageSpec& newspec) override;
     virtual int current_subimage(void) const override

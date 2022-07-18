@@ -35,7 +35,7 @@ static bool tgadebug = Strutil::stoi(Sysutil::getenv("OIIO_TARGA_DEBUG"));
 class TGAInput final : public ImageInput {
 public:
     TGAInput() { init(); }
-    virtual ~TGAInput() { close(); }
+    virtual ~TGAInput() override { close(); }
     virtual const char* format_name(void) const override { return "targa"; }
     virtual int supports(string_view feature) const override
     {

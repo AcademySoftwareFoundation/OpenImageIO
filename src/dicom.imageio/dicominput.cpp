@@ -35,7 +35,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class DICOMInput final : public ImageInput {
 public:
     DICOMInput() {}
-    virtual ~DICOMInput() { close(); }
+    virtual ~DICOMInput() override { close(); }
     virtual const char* format_name(void) const override { return "dicom"; }
     virtual int supports(string_view /*feature*/) const override
     {

@@ -22,7 +22,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class NullOutput final : public ImageOutput {
 public:
     NullOutput() {}
-    virtual ~NullOutput() {}
+    virtual ~NullOutput() override {}
     virtual const char* format_name(void) const override { return "null"; }
     virtual int supports(string_view /*feature*/) const override
     {
@@ -58,7 +58,7 @@ public:
 class NullInput final : public ImageInput {
 public:
     NullInput() { init(); }
-    virtual ~NullInput() {}
+    virtual ~NullInput() override {}
     virtual const char* format_name(void) const override { return "null"; }
     virtual bool valid_file(const std::string& filename) const override;
     virtual int supports(string_view /*feature*/) const override

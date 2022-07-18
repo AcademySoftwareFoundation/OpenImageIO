@@ -55,7 +55,7 @@ open_gz(const std::string& filename, const char* mode)
 class ZfileInput final : public ImageInput {
 public:
     ZfileInput() { init(); }
-    virtual ~ZfileInput() { close(); }
+    virtual ~ZfileInput() override { close(); }
     virtual const char* format_name(void) const override { return "zfile"; }
     virtual bool valid_file(const std::string& filename) const override;
     virtual bool open(const std::string& name, ImageSpec& newspec) override;
@@ -84,7 +84,7 @@ private:
 class ZfileOutput final : public ImageOutput {
 public:
     ZfileOutput() { init(); }
-    virtual ~ZfileOutput() { close(); }
+    virtual ~ZfileOutput() override { close(); }
     virtual const char* format_name(void) const override { return "zfile"; }
     virtual bool open(const std::string& name, const ImageSpec& spec,
                       OpenMode mode = Create) override;

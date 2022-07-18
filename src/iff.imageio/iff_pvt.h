@@ -133,7 +133,7 @@ tile_height_size(uint32_t height)
 class IffInput final : public ImageInput {
 public:
     IffInput() { init(); }
-    virtual ~IffInput() { close(); }
+    virtual ~IffInput() override { close(); }
     virtual const char* format_name(void) const override { return "iff"; }
     virtual bool open(const std::string& name, ImageSpec& spec) override;
     virtual bool close(void) override;
@@ -209,7 +209,7 @@ private:
 class IffOutput final : public ImageOutput {
 public:
     IffOutput() { init(); }
-    virtual ~IffOutput() { close(); }
+    virtual ~IffOutput() override { close(); }
     virtual const char* format_name(void) const override { return "iff"; }
     virtual int supports(string_view feature) const override;
     virtual bool open(const std::string& name, const ImageSpec& spec,

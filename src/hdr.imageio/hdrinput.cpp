@@ -35,7 +35,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class HdrInput final : public ImageInput {
 public:
     HdrInput() { init(); }
-    virtual ~HdrInput() { close(); }
+    virtual ~HdrInput() override { close(); }
     virtual const char* format_name(void) const override { return "hdr"; }
     virtual int supports(string_view feature) const override
     {

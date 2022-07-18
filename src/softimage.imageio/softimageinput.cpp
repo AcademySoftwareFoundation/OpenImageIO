@@ -13,7 +13,7 @@ using namespace softimage_pvt;
 class SoftimageInput final : public ImageInput {
 public:
     SoftimageInput() { init(); }
-    virtual ~SoftimageInput() { close(); }
+    virtual ~SoftimageInput() override { close(); }
     virtual const char* format_name(void) const override { return "softimage"; }
     virtual bool open(const std::string& name, ImageSpec& spec) override;
     virtual bool close() override;
