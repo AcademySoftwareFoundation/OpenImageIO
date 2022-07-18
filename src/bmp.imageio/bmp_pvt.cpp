@@ -130,7 +130,7 @@ DibInformationHeader::read_header(Filesystem::IOProxy* fd)
             }
         }
     } else if (size == OS2_V1) {
-        // some of theses fields are smaller than in WINDOWS_Vx headers,
+        // some of these fields are smaller than in WINDOWS_Vx headers,
         // so we read into 16 bit ints and copy.
         uint16_t width16  = 0;
         uint16_t height16 = 0;

@@ -474,7 +474,7 @@ template<> struct is_simd<matrix44> : std::true_type {};
 //
 // No implementations are given inline except for the briefest, completely
 // generic methods that don't have any architecture-specific overloads.
-// After the class defintions, there will be an immense pile of full
+// After the class definitions, there will be an immense pile of full
 // implementation definitions, which casual users are not expected to
 // understand.
 //////////////////////////////////////////////////////////////////////////
@@ -3186,10 +3186,10 @@ inline bool get_denorms_zero_mode () {
 //
 // Gory implementation details follow.
 //
-// ^^^ All declarations and documention is above ^^^
+// ^^^ All declarations and documentation is above ^^^
 //
 // vvv Below is the implementation, often considerably cluttered with
-//     #if's for each architeture, and unapologitic use of intrinsics and
+//     #if's for each architecture, and unapologitic use of intrinsics and
 //     every manner of dirty trick we can think of to make things fast.
 //     Some of this isn't pretty. We won't recapitulate comments or
 //     documentation of what the functions are supposed to do, please

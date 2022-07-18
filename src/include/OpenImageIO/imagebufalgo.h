@@ -106,7 +106,7 @@ class Filter2D;
 /// `dst` parameter that is an uninitialized ImageBuf, the ROI (if set)
 /// determines the size of the result image. If the ROI is the default
 /// `All`, the result image size will be the union of the pixel data windows
-/// of the input images and have a data type determind by the data types of
+/// of the input images and have a data type determined by the data types of
 /// the input images.
 ///
 /// Most ImageBufAlgo functions also respect the `chbegin` and `chend`
@@ -1442,7 +1442,7 @@ bool OIIO_API color_range_check (const ImageBuf &src,
 OIIO_API ROI nonzero_region (const ImageBuf &src, ROI roi={}, int nthreads=0);
 
 
-/// Compute the SHA-1 byte hash for all the pixels in the specifed region of
+/// Compute the SHA-1 byte hash for all the pixels in the specified region of
 /// the image.  If `blocksize` > 0, the function will compute separate SHA-1
 /// hashes of each `blocksize` batch of scanlines, then return a hash of the
 /// individual hashes.  This is just as strong a hash, but will NOT match a
@@ -1781,7 +1781,7 @@ bool OIIO_API erode (ImageBuf &dst, const ImageBuf &src,
 ///             establish a context (for example, a shot-specific transform).
 /// @param  processor
 ///             For the varieties of `colorconvert()` that have a
-///             `processor` paramater, it is a raw `ColorProcessor*` object
+///             `processor` parameter, it is a raw `ColorProcessor*` object
 ///             that implements the color transformation. This is a special
 ///             object created by a `ColorConfig` (see `OpenImageIO/color.h`
 ///             for details).

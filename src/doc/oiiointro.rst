@@ -223,7 +223,7 @@ relevant parts of the source code.
 
 OpenImageIO incorporates, distributes, or contains derived works of:
 
-* The SHA-1 implemenation we use is public domain by Dominik Reichl  http://www.dominik-reichl.de/
+* The SHA-1 implementation we use is public domain by Dominik Reichl  http://www.dominik-reichl.de/
 * PugiXML © 2006-2009 by Arseny Kapoulkine (based on work © 2003 Kristen Wegner), MIT license. http://pugixml.org/
 * DPX reader/writer © 2009 Patrick A. Palmer, BSD 3-clause license. https://github.com/patrickpalmer/dpx}
 * lookup3 code by Bob Jenkins, Public Domain. http://burtleburtle.net/bob/c/lookup3.c

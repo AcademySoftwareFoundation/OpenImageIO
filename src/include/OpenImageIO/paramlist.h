@@ -224,15 +224,15 @@ public:
         return (reinterpret_cast<const T*>(data()))[i];
     }
 
-    /// Retrive an integer, with converstions from a wide variety of type
-    /// cases, including unsigned, short, byte. Not float. It will retrive
+    /// Retrieve an integer, with conversions from a wide variety of type
+    /// cases, including unsigned, short, byte. Not float. It will retrieve
     /// from a string, but only if the string is entirely a valid int
     /// format. Unconvertible types return the default value.
     int get_int(int defaultval = 0) const;
     int get_int_indexed(int index, int defaultval = 0) const;
 
-    /// Retrive a float, with converstions from a wide variety of type
-    /// cases, including integers. It will retrive from a string, but only
+    /// Retrieve a float, with conversions from a wide variety of type
+    /// cases, including integers. It will retrieve from a string, but only
     /// if the string is entirely a valid float format. Unconvertible types
     /// return the default value.
     float get_float(float defaultval = 0) const;
@@ -320,14 +320,14 @@ public:
 
     /// Case insensitive search for an integer, with default if not found.
     /// Automatically will return an int even if the data is really
-    /// unsigned, short, or byte, but not float. It will retrive from a
+    /// unsigned, short, or byte, but not float. It will retrieve from a
     /// string, but only if the string is entirely a valid int format.
     int get_int(string_view name, int defaultval = 0,
                 bool casesensitive = false, bool convert = true) const;
 
     /// Case insensitive search for a float, with default if not found.
     /// Automatically will return a float even if the data is really double
-    /// or half. It will retrive from a string, but only if the string is
+    /// or half. It will retrieve from a string, but only if the string is
     /// entirely a valid float format.
     float get_float(string_view name, float defaultval = 0,
                     bool casesensitive = false, bool convert = true) const;

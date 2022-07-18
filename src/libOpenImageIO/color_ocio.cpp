@@ -339,7 +339,7 @@ ColorConfig::reset(string_view filename)
         filename = Sysutil::getenv("OCIO");
 
     if (filename.size() && !Filesystem::exists(filename)) {
-        getImpl()->error("Requested non-existant OCIO config \"{}\"", filename);
+        getImpl()->error("Requested non-existent OCIO config \"{}\"", filename);
     } else {
         // Either filename passed, or taken from $OCIO, and it seems to exist
         try {

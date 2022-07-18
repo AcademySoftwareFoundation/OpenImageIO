@@ -131,10 +131,10 @@ public:
     /// Default ctr: assume ANSI escape sequences are ok.
     Term() noexcept {}
     /// Construct from a FILE*: ANSI codes ok if the file describes a
-    /// live console, otherwise they will be supressed.
+    /// live console, otherwise they will be suppressed.
     Term(FILE* file);
     /// Construct from a stream: ANSI codes ok if the file describes a
-    /// live console, otherwise they will be supressed.
+    /// live console, otherwise they will be suppressed.
     Term(const std::ostream& stream);
 
     /// ansi("appearance") returns the ANSI escape sequence for the named

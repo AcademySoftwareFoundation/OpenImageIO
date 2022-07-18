@@ -286,7 +286,7 @@ Public domain
 * lookup3 code by Bob Jenkins, Public Domain.
   http://burtleburtle.net/bob/c/lookup3.c
 
-* The SHA-1 implemenation we use is public domain by Dominik Reichl.
+* The SHA-1 implementation we use is public domain by Dominik Reichl.
   http://www.dominik-reichl.de
 
 -------------------------------------------------------------------------

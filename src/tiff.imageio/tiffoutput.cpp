@@ -184,7 +184,7 @@ private:
 
 
 
-// Obligatory material to make this a recognizeable imageio plugin:
+// Obligatory material to make this a recognizable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageOutput*
@@ -780,7 +780,7 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
                       m_spec.extra_attribs[p].data());
 
     if (m_spec.get_int_attribute("tiff:write_iptc")) {
-        // Enable IPTC block writing only if "tiff_write_iptc" hint is explicity
+        // Enable IPTC block writing only if "tiff_write_iptc" hint is explicitly
         // enabled. This was to avoid writing bad IPTC blocks, but I think that
         // was because of a size mixup on our part that has since been fixed.
         // Should we re-enable it by default in the future?
@@ -1236,7 +1236,7 @@ TIFFOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
                                     OIIO::get_int_attribute("tiff:multithread"));
 
     // If we're not parallelizing, just call the parent class default
-    // implementaiton of write_scanlines, which will loop over the scanlines
+    // implementation of write_scanlines, which will loop over the scanlines
     // and write each one individually.
     if (!parallelize) {
         return ImageOutput::write_scanlines(ybegin, yend, z, format, data,
@@ -1464,7 +1464,7 @@ TIFFOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
                                     OIIO::get_int_attribute("tiff:multithread"));
 
     // If we're not parallelizing, just call the parent class default
-    // implementaiton of write_tiles, which will loop over the tiles and
+    // implementation of write_tiles, which will loop over the tiles and
     // write each one individually.
     if (!parallelize) {
         return ImageOutput::write_tiles(xbegin, xend, ybegin, yend, zbegin,

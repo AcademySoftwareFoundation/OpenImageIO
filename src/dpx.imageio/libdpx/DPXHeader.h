@@ -647,14 +647,14 @@ namespace dpx
 		inline void			SetHighQuantity(const int i, const R32 quant);
 		
 		/*!
-		 * \brief Get the component defintion
+		 * \brief Get the component definition
 		 * \param i element index (0-7)
 		 * \return component descriptor 
 		 */	
 		inline Descriptor	ImageDescriptor(const int i) const;
 		
 		/*!
-		 * \brief Set the component defintion
+		 * \brief Set the component definition
 		 * \param i element index (0-7)
 		 * \param desc component descriptor 
 		 */	

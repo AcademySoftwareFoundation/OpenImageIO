@@ -826,7 +826,7 @@ public:
     using unique_ptr = std::unique_ptr<ImageInput>;
 
     /// @{
-    /// @name Creating an ImageIntput
+    /// @name Creating an ImageInput
 
     /// Create an ImageInput subclass instance that is able to read the
     /// given file and open it, returning a `unique_ptr` to the ImageInput
@@ -1592,7 +1592,7 @@ public:
     // varieties are special cases, for example if the particular format is
     // able to efficiently read multiple scanlines or tiles at once, and if
     // the subclass does not provide overloads, the base class
-    // implementaiton will be used instead, which is implemented by reducing
+    // implementation will be used instead, which is implemented by reducing
     // the operation to multiple calls to read_scanline or read_tile.
 
     /// Read a single scanline (all channels) of native data into contiguous
@@ -1617,7 +1617,7 @@ public:
     virtual bool read_native_tile (int subimage, int miplevel,
                                    int x, int y, int z, void *data);
 
-    /// Read multiple tiles (all channels) of native data into contigious
+    /// Read multiple tiles (all channels) of native data into contiguous
     /// memory. A format reader that supports reading multiple tiles at once
     /// (in a way that's more efficient than reading the tiles one at a
     /// time) is advised (but not required) to overload this virtual method.
@@ -1629,7 +1629,7 @@ public:
                                     int zbegin, int zend, void *data);
 
     /// Read multiple tiles (potentially a subset of channels) of native
-    /// data into contigious memory. A format reader that supports reading
+    /// data into contiguous memory. A format reader that supports reading
     /// multiple tiles at once, and can handle a channel subset while doing
     /// so, is advised (but not required) to overload this virtual method.
     /// If an ImageInput subclass does not overload this, the default
@@ -1764,7 +1764,7 @@ protected:
     Filesystem::IOProxy* ioproxy();
     const Filesystem::IOProxy* ioproxy() const;
 
-    /// Is this file currenty opened (active proxy)?
+    /// Is this file currently opened (active proxy)?
     bool ioproxy_opened() const;
 
     /// Clear the proxy ptr, and close/destroy any "local" proxy.
@@ -2549,7 +2549,7 @@ protected:
     Filesystem::IOProxy* ioproxy();
     const Filesystem::IOProxy* ioproxy() const;
 
-    /// Is this file currenty opened (active proxy)?
+    /// Is this file currently opened (active proxy)?
     bool ioproxy_opened() const;
 
     /// Clear the proxy ptr, and close/destroy any "local" proxy.
@@ -2957,7 +2957,7 @@ get_extension_map()
 ///
 /// The conversion is of normalized (pixel-like) values -- for example
 /// 'UINT8' 255 will convert to float 1.0 and vice versa, not float 255.0.
-/// If you want a straight C-like data cast convertion (e.g., uint8 255 ->
+/// If you want a straight C-like data cast conversion (e.g., uint8 255 ->
 /// float 255.0), then you should prefer the un-normalized convert_type()
 /// utility function found in typedesc.h.
 OIIO_API bool convert_pixel_values (TypeDesc src_type, const void *src,

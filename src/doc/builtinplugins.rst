@@ -572,7 +572,7 @@ despite its technical limitations.
      - Frames per second
    * - ``oiio:Movie``
      - int
-     - If nonzero, indicates that it's a multi-subimage file indended to represent an animation.
+     - If nonzero, indicates that it's a multi-subimage file intended to represent an animation.
    * - ``oiio:LoopCount``
      - int
      - Number of times the animation should be played (0-65535, 0 stands for infinity).
@@ -1684,7 +1684,7 @@ options are supported:
        example by reading from memory rather than the file system.
 
 Currently, the PSD format reader supports color modes RGB, CMYK,
-multichannel, grayscale, indexed, and bitmap. It does NOT currenty support
+multichannel, grayscale, indexed, and bitmap. It does NOT currently support
 Lab or duotone modes.
 
 **Custom I/O Overrides**
@@ -1878,7 +1878,7 @@ software developed at Wavefront.  RLA files commonly use the file extension
      - whether the image is a field-rendered (interlaced) one ``0`` for false, non-zero for true.
    * - ``rla:FileName``
      - string
-     - name under which the file was orignally saved.
+     - name under which the file was originally saved.
    * - ``ImageDescription``
      - string
      - RLA "Description" of the image.
@@ -2249,7 +2249,7 @@ TIFF
 
 TIFF (Tagged Image File Format) is a flexible file format created by Aldus,
 now controlled by Adobe.  TIFF supports nearly everything anybody could want
-in an image format (and has extactly the complexity you would expect from
+in an image format (and has exactly the complexity you would expect from
 such a requirement). TIFF files commonly use the file extensions
 :file:`.tif` or, :file:`.tiff`. Additionally, OpenImageIO associates the
 following extensions with TIFF files by default: :file:`.tx`, :file:`.env`,
@@ -2573,7 +2573,7 @@ open standard for lossy-compressed images for use on the web.
      - WebP header data or explanation
    * - ``oiio:Movie``
      - int
-     - If nonzero, indicates that it's a multi-subimage file indended to
+     - If nonzero, indicates that it's a multi-subimage file intended to
        represent an animation.
    * - ``oiio:LoopCount``
      - int

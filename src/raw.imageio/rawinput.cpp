@@ -546,7 +546,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
         m_processor->imgdata.params.gamm[1]      = 12.92;
     } else if (Strutil::iequals(cs, "sRGB-linear")
                || Strutil::iequals(cs, "linear") /* DEPRECATED */) {
-        // Request "sRGB" primaries, linear reponse
+        // Request "sRGB" primaries, linear response
         m_processor->imgdata.params.output_color = 1;
         m_processor->imgdata.params.gamm[0]      = 1.0;
         m_processor->imgdata.params.gamm[1]      = 1.0;

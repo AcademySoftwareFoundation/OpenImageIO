@@ -248,7 +248,7 @@
     Exif:ExposureBiasValue: 0/100 (0)
     Exif:ExposureMode: 0 (auto)
     Exif:ExposureProgram: 4 (shutter priority)
-    Exif:Flash: 9 (flash fired, compulsary flash)
+    Exif:Flash: 9 (flash fired, compulsory flash)
     Exif:FlashPixVersion: ""
     Exif:FocalLength: 8.5 (8.5 mm)
     Exif:FocalPlaneResolutionUnit: 3 (cm)
@@ -391,7 +391,7 @@
     Exif:ExposureBiasValue: 0/10 (0)
     Exif:ExposureMode: 0 (auto)
     Exif:ExposureProgram: 3 (aperture priority)
-    Exif:Flash: 8 (no flash, compulsary flash)
+    Exif:Flash: 8 (no flash, compulsory flash)
     Exif:FlashPixVersion: ""
     Exif:FocalLength: 50 (50 mm)
     Exif:GainControl: 1 (low gain up)
@@ -520,7 +520,7 @@
     Exif:ExposureBiasValue: 0/10 (0)
     Exif:ExposureMode: 0 (auto)
     Exif:ExposureProgram: 3 (aperture priority)
-    Exif:Flash: 9 (flash fired, compulsary flash)
+    Exif:Flash: 9 (flash fired, compulsory flash)
     Exif:FlashPixVersion: ""
     Exif:FocalLength: 35 (35 mm)
     Exif:FocalLengthIn35mmFilm: 52

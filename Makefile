@@ -374,7 +374,7 @@ help:
 	@echo "      CLANG_FORMAT_INCLUDES=... CLANG_FORMAT_EXCLUDES=..."
 	@echo "                               Customize files for 'make clang-format'"
 	@echo "  Linking and libraries:"
-	@echo "      SOVERSION=nn             Include the specifed major version number "
+	@echo "      SOVERSION=nn             Include the specified major version number "
 	@echo "                                  in the shared object metadata"
 	@echo "      OIIO_LIBNAME_SUFFIX=name Optional name appended to library names"
 	@echo "      BUILD_SHARED_LIBS=0      Build static library instead of shared"

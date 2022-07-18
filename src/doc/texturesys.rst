@@ -24,7 +24,7 @@ Helper Classes
 Imath
 -------------------------------------------------
 
-The texture functinality of OpenImageIO uses the excellent open source
+The texture functionality of OpenImageIO uses the excellent open source
 ``Imath`` types when it requires 3D vectors and
 transformation matrixes.  Specifically, we use ``Imath::V3f`` for 3D
 positions and directions, and ``Imath::M44f`` for 4x4 transformation
@@ -246,7 +246,7 @@ Handles of udim files
 ---------------------
 
 Calls to `get_texture_handle()`, when passing a UDIM pattern filename, will
-always succeed. But withing knowing a specific u and v, it has no way to
+always succeed. But without knowing a specific u and v, it has no way to
 know that the concrete file you will eventually ask for would not succeed,
 so this handle is for the overall
 "virtual" texture atlas.

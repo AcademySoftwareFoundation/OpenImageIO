@@ -295,7 +295,7 @@ compare_(const ImageBuf& A, const ImageBuf& B, float failthresh,
     ImageBuf::ConstIterator<Atype> a(A, roi, ImageBuf::WrapBlack);
     ImageBuf::ConstIterator<Btype> b(B, roi, ImageBuf::WrapBlack);
     bool deep = A.deep();
-    // Break up into batches to reduce cancelation errors as the error
+    // Break up into batches to reduce cancellation errors as the error
     // sums become too much larger than the error for individual pixels.
     const int batchsize = 4096;  // As good a guess as any
     for (; !a.done();) {

@@ -295,7 +295,7 @@ openVDB(const std::string& filename, const ImageInput* errReport)
     if (!f)
         return nullptr;
 
-    // Endianess of OPENVDB_MAGIC isn't clear, so just leave as is
+    // Endianness of OPENVDB_MAGIC isn't clear, so just leave as is
     int32_t magic;
     static_assert(sizeof(magic) == sizeof(OPENVDB_MAGIC),
                   "Magic type not the same size");
@@ -577,7 +577,7 @@ OpenVDBInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
 
 
 
-// Obligatory material to make this a recognizeable imageio plugin:
+// Obligatory material to make this a recognizable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageInput*

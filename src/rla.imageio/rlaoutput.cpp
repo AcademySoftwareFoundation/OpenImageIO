@@ -92,7 +92,7 @@ private:
 
 
 
-// Obligatory material to make this a recognizeable imageio plugin:
+// Obligatory material to make this a recognizable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageOutput*
@@ -175,7 +175,7 @@ RLAOutput::open(const std::string& name, const ImageSpec& userspec,
     }
     if (m_spec.width > 65535 || m_spec.height > 65535) {
         errorf(
-            "Image resolution %d x %d too large for RLA (maxiumum 65535x65535)",
+            "Image resolution %d x %d too large for RLA (maximum 65535x65535)",
             m_spec.width, m_spec.height);
         return false;
     }
@@ -210,7 +210,7 @@ RLAOutput::open(const std::string& name, const ImageSpec& userspec,
     int remaining = m_spec.nchannels;
     if (m_spec.channelformats.size()) {
         int streak;
-        // accomodate first 3 channels of the same type as colour ones
+        // accommodate first 3 channels of the same type as colour ones
         for (streak = 1; streak <= 3 && remaining > 0; ++streak, --remaining)
             if (m_spec.channelformats[streak] != m_spec.channelformats[0]
                 || m_spec.alpha_channel == streak || m_spec.z_channel == streak)

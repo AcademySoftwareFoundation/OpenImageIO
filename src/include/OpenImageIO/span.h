@@ -57,7 +57,7 @@ OIIO_INLINE_CONSTEXPR oiio_span_size_type dynamic_extent = -1;
 /// `span<const T>`.
 ///
 /// A `span` may be initialized explicitly from a pointer and length, by
-/// initializing with a `std::vector<T>`, or by initalizing with a constant
+/// initializing with a `std::vector<T>`, or by initializing with a constant
 /// (treated as an array of length 1). For all of these cases, no extra
 /// allocations are performed, and no extra copies of the array contents are
 /// made.

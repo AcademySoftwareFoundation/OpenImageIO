@@ -17,7 +17,7 @@ namespace bmp_pvt {
 // size of the BMP file header (the first header that occur in BMP file)
 const int BMP_HEADER_SIZE = 14;
 
-// sizes of various DIB haders
+// sizes of various DIB headers
 const int OS2_V1        = 12;
 const int WINDOWS_V3    = 40;
 const int UNDOCHEADER52 = 52;  // 0x34
@@ -38,10 +38,10 @@ const int32_t RLE4_COMPRESSION = 2;  // BI_RLE4
 
 
 
-// store informations about BMP file
+// store information about BMP file
 class BmpFileHeader {
 public:
-    // reads informations about BMP file
+    // reads information about BMP file
     bool read_header(Filesystem::IOProxy* fd);
 
     // writes information about bmp file to given file
@@ -62,10 +62,10 @@ private:
 // stores information about bitmap
 class DibInformationHeader {
 public:
-    // reads informations about bitmap
+    // reads information about bitmap
     bool read_header(Filesystem::IOProxy* fd);
 
-    // writes informations about bitmap
+    // writes information about bitmap
     bool write_header(Filesystem::IOProxy* fd);
 
     int32_t size;     // size of the header

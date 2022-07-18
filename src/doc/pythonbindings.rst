@@ -231,7 +231,7 @@ ROI
 ===
 
 The ROI class that describes an image extent or region of interest,
-explained in deail in Section :ref:`sec-ROI`, is replicated for Python.
+explained in detail in Section :ref:`sec-ROI`, is replicated for Python.
 
 .. py:method:: ROI()
                ROI(xbegin, xend, ybegin, yend, zbegin=0, zend=1, chbegin=0, chend=1000)
@@ -333,7 +333,7 @@ explained in deail in Section :ref:`sec-ROI`, is replicated for Python.
 ImageSpec
 =========
 
-The ImageSpec class that describes an image, explained in deail in
+The ImageSpec class that describes an image, explained in detail in
 Section :ref:`sec-ImageSpec`, is replicated for Python.
 
 .. py:method:: ImageSpec ()
@@ -799,7 +799,7 @@ DeepData
 ========
 
 The DeepData class describing "deep" image data (multiple depth
-sample per pixel), which is explained in deail in
+sample per pixel), which is explained in detail in
 Section :ref:`sec-imageinput-deepdata`, is replicated for Python.
 
 .. py:method:: DeepData ()
@@ -827,12 +827,12 @@ Section :ref:`sec-imageinput-deepdata`, is replicated for Python.
 
 .. py:attribute:: DeepData.pixels
 
-    This `int` field constains the total number of pixels in this collection
+    This `int` field contains the total number of pixels in this collection
     of deep data.
 
 .. py:attribute:: DeepData.channels
 
-    This `int` field constains the number of channels.
+    This `int` field contains the number of channels.
 
 .. py:attribute:: DeepData.A_channel
                   DeepData.AR_channel
@@ -2243,7 +2243,7 @@ in those cases, we will keep our descriptions of the Python bindings minimal
 and refer you to Chapter :ref:`chap-imagebufalgo`, saving the extended
 descriptions for those functions that differ from the C++ counterparts.
 
-A few things about the paramters of the ImageBufAlgo function calls are
+A few things about the parameters of the ImageBufAlgo function calls are
 identical among the functions, so we will explain once here rather than
 separately for each function:
 
@@ -2251,7 +2251,7 @@ separately for each function:
   uninitialized ImageBuf, but it must be an ImageBuf).
 * `src` parameter is an initialized ImageBuf, which will not be modified
   (unless it happens to refer to the same image as `dst`.
-* `roi`, if supplied, is an `roi` specifying a region of interst over which
+* `roi`, if supplied, is an `roi` specifying a region of interest over which
   to operate. If omitted, the region will be the entire size of the source
   image(s).
 * `nthreads` is the maximum number of threads to use. If not supplied, it
@@ -3394,7 +3394,7 @@ Convolutions
         Freq = ImageBufAlgo.fft (Src)
     
         # At this point, Freq is a 2-channel float image (real, imag)
-        # Convert it back from frequency domain to a spatial iamge
+        # Convert it back from frequency domain to a spatial image
         Spatial = ImageBufAlgo.ifft (Freq)
 
 
@@ -3416,7 +3416,7 @@ Convolutions
         Complex = ImageBufAlgo.polar_to_complex (Polar)
     
         # At this point, Complex is a 2-channel complex image (real, imag)
-        # Convert it back from frequency domain to a spatial iamge
+        # Convert it back from frequency domain to a spatial image
         Spatial = ImageBufAlgo.ifft (Complex)
 
 
@@ -3827,7 +3827,7 @@ details.
     (See Section :ref:`sec-globalattribs`.) The `getattribute()` function
     returns the value regardless of type, or `None` if the attribute does
     not exist.  The typed variety will only succeed if the attribute is
-    actually of that type specified. Type varity with the type in the name
+    actually of that type specified. Type variety with the type in the name
     also takes a default value.
 
     For an attribute of type STRING, get_bytes_attribute in Python3 skips

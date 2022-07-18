@@ -8,7 +8,7 @@
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/type_traits.h>
 
-// We want the header-only implemention of fmt
+// We want the header-only implementation of fmt
 #ifndef FMT_HEADER_ONLY
 #    define FMT_HEADER_ONLY
 #endif

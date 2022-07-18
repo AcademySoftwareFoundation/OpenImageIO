@@ -329,7 +329,7 @@ values in the file.
 Data Strides
 --------------------------------
 
-In the preceeding examples, we have assumed that the buffer passed to
+In the preceding examples, we have assumed that the buffer passed to
 the ``read`` functions (i.e., the place where you want your pixels
 to be stored) is *contiguous*, that is:
 
