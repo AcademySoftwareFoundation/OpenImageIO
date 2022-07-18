@@ -127,7 +127,7 @@ target_compile_features (OpenImageIO
 target_link_libraries (OpenImageIO
         PUBLIC
             OpenImageIO_Util
-        ${OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY}
+            ${OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY}
             ${OPENIMAGEIO_IMATH_TARGETS}
         PRIVATE
             ${OPENIMAGEIO_OPENEXR_TARGETS}
@@ -139,9 +139,7 @@ target_link_libraries (OpenImageIO
             $<TARGET_NAME_IF_EXISTS:pugixml::pugixml>
             ${BZIP2_LIBRARIES}
             ZLIB::ZLIB
-            Boost::filesystem
-            Boost::system
-            Boost::thread
+            $<TARGET_NAME_IF_EXISTS:Boost::thread>
             ${CMAKE_DL_LIBS}
         )
 

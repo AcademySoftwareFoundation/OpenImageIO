@@ -154,6 +154,7 @@ jobs:
       OPENEXR_VERSION: ${{matrix.openexr_ver}}
       PYBIND11_VERSION: ${{matrix.pybind11_ver}}
       PYTHON_VERSION: ${{matrix.python_ver}}
+      DEBUG_CI: 1
     steps:
       # We would like to use harden-runner, but it flags too many false
       # positives, every time we download a dependency. We should use it only
@@ -274,6 +275,7 @@ jobs:
           - desc: gcc8 C++17 avx exr2.5
             nametag: linux-gcc8
             os: ubuntu-18.04
+            cc_compiler: gcc-8
             cxx_compiler: g++-8
             cxx_std: 17
             openexr_ver: v2.5.8
@@ -301,6 +303,7 @@ jobs:
       OPENEXR_VERSION: ${{matrix.openexr_ver}}
       PYBIND11_VERSION: ${{matrix.pybind11_ver}}
       PYTHON_VERSION: ${{matrix.python_ver}}
+      DEBUG_CI: 1
     steps:
       # We would like to use harden-runner, but it flags too many false
       # positives, every time we download a dependency. We should use it only
