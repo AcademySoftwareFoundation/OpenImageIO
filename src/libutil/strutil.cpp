@@ -313,7 +313,7 @@ Strutil::escape_chars(string_view unescaped)
             case '\f': c = 'f'; break;
             case '\a': c = 'a'; break;
             }
-            s.insert(i, &c, 1);
+            s.insert(i, 1, c);
         }
     }
     return s;

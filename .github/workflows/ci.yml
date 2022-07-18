@@ -206,10 +206,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - desc: latest releases gcc10 C++17 avx2 exr3.1 ocio2.1
+          - desc: latest releases gcc11 C++17 avx2 exr3.1 ocio2.1
             nametag: linux-latest-releases
             os: ubuntu-20.04
-            cxx_compiler: g++-10
+            cc_compiler: gcc-11
+            cxx_compiler: g++-11
             cxx_std: 17
             fmt_ver: 9.0.0
             openexr_ver: v3.1.5
@@ -226,15 +227,16 @@ jobs:
                             USE_OPENVDB=0
                             WEBP_VERSION=v1.2.1
                             # The installed OpenVDB has a TLS conflict with Python 3.8
-          - desc: bleeding edge gcc11 C++20 py38 OCIO/libtiff/exr-master boost1.71 avx2
+          - desc: bleeding edge gcc12 C++20 py3.10 OCIO/libtiff/exr-master boost1.74 avx2
             nametag: linux-bleeding-edge
-            os: ubuntu-20.04
-            cxx_compiler: g++-11
+            os: ubuntu-22.04
+            cc_compiler: gcc-12
+            cxx_compiler: g++-12
             cxx_std: 20
             fmt_ver: master
             openexr_ver: main
             pybind11_ver: master
-            python_ver: 3.8
+            python_ver: "3.10"
             simd: avx2,f16c
             setenvs: export LIBRAW_VERSION=master
                             LIBTIFF_VERSION=master
@@ -364,6 +366,12 @@ jobs:
             cxx_std: 17
             python_ver: 3.9
             aclang: 13
+          - desc: MacOS-12
+            os: macos-12
+            cxx_std: 20
+            python_ver: 3.9
+            aclang: 13
+            setenvs: export CTEST_TEST_TIMEOUT=300
     runs-on: ${{ matrix.os }}
     env:
       CC: clang
