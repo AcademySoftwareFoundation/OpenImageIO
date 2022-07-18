@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-if (Libheif_FOUND)
+if (Libheif_FOUND OR libheif_FOUND)
     if (LINKSTATIC)
         set (_static_suffixes .lib .a)    
         set (_static_libraries_found 0)
@@ -26,8 +26,8 @@ if (Libheif_FOUND)
     endif()
 
     add_oiio_plugin (heifinput.cpp heifoutput.cpp
-                     INCLUDE_DIRS ${LIBHEIF_INCLUDES}
-                     LINK_LIBRARIES ${LIBHEIF_LIBRARIES}
+                     INCLUDE_DIRS ${LIBHEIF_INCLUDES} ${libheif_INCLUDES}
+                     LINK_LIBRARIES libheif::heif ${LIBHEIF_LIBRARIES} ${libheif_LIBRARIES}
                      DEFINITIONS "-DUSE_HEIF=1")
 else ()
     message (WARNING "heif plugin will not be built")

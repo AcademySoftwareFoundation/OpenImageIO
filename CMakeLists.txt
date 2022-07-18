@@ -40,17 +40,6 @@ if (CMAKE_VERSION VERSION_LESS 3.21)
     endif ()
 endif ()
 
-# If the user wants to use Conan to build dependencies, they will have done
-# this prior to the cmake config:
-#   cd <build area>
-#   conan install <source area>
-# and that will leave a conanbuildinfo.cmake in the build area for us.
-if (EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-    include (${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-    message (STATUS "Using Conan for dependencies")
-    conan_basic_setup()
-endif()
-
 if (NOT CMAKE_BUILD_TYPE)
     set (CMAKE_BUILD_TYPE "Release")
 endif ()
@@ -150,6 +139,7 @@ message(STATUS "Setting Namespace to: ${PROJ_NAMESPACE_V}")
 add_definitions (-DOIIO_INTERNAL=1)
 
 list (APPEND CMAKE_MODULE_PATH
+      "${PROJECT_SOURCE_DIR}/build"
       "${PROJECT_SOURCE_DIR}/src/cmake/modules"
       "${PROJECT_SOURCE_DIR}/src/cmake")
 
@@ -164,6 +154,18 @@ include (add_oiio_plugin)
 
 # All the C++ and compiler related options and adjustments
 include (compiler)
+
+# If the user wants to use Conan to build dependencies, they will have done
+# this prior to the cmake config:
+#   cd <build area>
+#   conan install <source area>
+# and that will leave a conanbuildinfo.cmake in the build area for us.
+if (EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+    include (${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+    message (STATUS "Using Conan for dependencies")
+    conan_basic_setup()
+endif()
+
 
 # Utilities and options related to finding python and making python bindings
 include (pythonutils)
@@ -242,7 +244,7 @@ if (NOT EMBEDPLUGINS AND NOT BUILD_OIIOUTIL_ONLY)
     endforeach ()
 endif ()
 
-if (USE_PYTHON AND Python_Development_FOUND AND NOT BUILD_OIIOUTIL_ONLY)
+if (USE_PYTHON AND Python_FOUND AND NOT BUILD_OIIOUTIL_ONLY)
     add_subdirectory (src/python)
 endif ()
 

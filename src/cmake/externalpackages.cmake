@@ -220,15 +220,18 @@ checked_find_package (GIF
 checked_find_package (Libheif VERSION_MIN 1.3
                       RECOMMEND_MIN 1.16
                       RECOMMEND_MIN_REASON "for orientation support")
+
 if (APPLE AND LIBHEIF_VERSION VERSION_GREATER_EQUAL 1.10 AND LIBHEIF_VERSION VERSION_LESS 1.11)
     message (WARNING "Libheif 1.10 on Apple is known to be broken, disabling libheif support")
-    set (Libheif_FOUND 0)
+    set (libheif_FOUND 0)
 endif ()
 
-checked_find_package (LibRaw
+checked_find_package (libraw
                       VERSION_MIN 0.18
+                      RECOMMEND_MIN 0.18
+                      RECOMMEND_MIN_REASON "for ACES support and better camera metadata"
                       PRINT LibRaw_r_LIBRARIES)
-if (LibRaw_FOUND AND LibRaw_VERSION VERSION_LESS 0.20 AND CMAKE_CXX_STANDARD VERSION_GREATER_EQUAL 17)
+if (libraw_FOUND AND libraw_VERSION VERSION_LESS 0.20 AND CMAKE_CXX_STANDARD VERSION_GREATER_EQUAL 17)
     message (STATUS "${ColorYellow}WARNING When building for C++17, LibRaw should be 0.20 or higher (found ${LibRaw_VERSION}). You may get errors, depending on the compiler.${ColorReset}")
     # Currently, we issue the above warning and let them take their chances.
     # If we wish to disable the LibRaw<0.20/C++17 combination that may fail,
@@ -252,12 +255,12 @@ if (OpenVDB_FOUND AND OpenVDB_VERSION VERSION_GREATER_EQUAL 10.1 AND CMAKE_CXX_S
     set (OpenVDB_FOUND 0)
 endif ()
 
-checked_find_package (Ptex PREFER_CONFIG)
-if (NOT Ptex_FOUND OR NOT Ptex_VERSION)
+checked_find_package (ptex PREFER_CONFIG)
+if (NOT ptex_FOUND OR NOT ptex_VERSION)
     # Fallback for inadequate Ptex exported configs. This will eventually
     # disappear when we can 100% trust Ptex's exports.
-    unset (Ptex_FOUND)
-    checked_find_package (Ptex)
+    unset (ptex_FOUND)
+    checked_find_package (ptex)
 endif ()
 
 checked_find_package (WebP)

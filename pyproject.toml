@@ -44,5 +44,10 @@ oiiotool = "OpenImageIO._commands:oiiotool"
 testtex = "OpenImageIO._commands:testtex"
 
 [build-system]
-requires = ["scikit-build-core"]
+requires = [
+    "scikit-build-core",
+    "cmake>=3.12",
+    "ninja",
+    "numpy"
+]
 build-backend = "scikit_build_core.build"

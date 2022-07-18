@@ -21,3 +21,5 @@ _coverage/
 /*.jxl
 /*.tx
 /*.log
+*.egg-info/
+*.whl

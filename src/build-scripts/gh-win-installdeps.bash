@@ -123,7 +123,6 @@ source src/build-scripts/build_pybind11.bash
 echo "CMAKE_PREFIX_PATH = $CMAKE_PREFIX_PATH"
 
 
-OPENEXR_CXX_FLAGS=" /W1 /EHsc /DWIN32=1 "
 #OPENEXR_BUILD_TYPE=$CMAKE_BUILD_TYPE
 OPENEXR_INSTALL_DIR=$DEP_DIR
 source src/build-scripts/build_openexr.bash

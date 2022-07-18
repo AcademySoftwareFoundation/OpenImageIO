@@ -1,18 +1,24 @@
 [requires]
-zlib/1.2.11
-libtiff/4.0.9
+boost/1.79.0
+zlib/1.2.12
+libtiff/4.3.0
 libpng/1.6.37
-openexr/2.4.0
-boost/1.70.0
-libjpeg/9c
-libjpeg-turbo/2.0.2
-giflib/5.1.4
-freetype/2.10.0
-#opencv/4.1.1@conan/stable
-openjpeg/2.3.1
-libwebp/1.0.3
-tsl-robin-map/0.6.1@tessil/stable
+giflib/5.2.1
+freetype/2.12.1
+#opencv/4.5.5
+libjpeg/9d
+openjpeg/2.5.0
+libwebp/1.2.3
+#tsl-robin-map/0.6.1@tessil/stable
 tbb/2020.0
+ffmpeg/5.0
+libheif/1.12.0
+lcms/2.13.1
+libraw/0.20.2
+ptex/2.4.0
+yaml-cpp/0.6.3
+pystring/1.1.3
+expat/2.4.8
 # To do:
 # opencolorio? not on conan?
 # pybind11/2.4.3 - conan doesn't have this minimum version
@@ -26,7 +32,47 @@ tbb/2020.0
 
 
 [generators]
-cmake
+cmake_find_package
 
 [options]
-#libpng:shared=False
+*:shared=False
+*:fPIC=True
+ffmpeg:with_vulkan=False # Should not be set on non linux system.
+ffmpeg:with_asm=False
+ffmpeg:with_pulse=False # Should not be set on non linux system.
+ffmpeg:with_vaapi=False # This links against the system library
+ffmpeg:with_vdpau=False # This links against the system library
+ffmpeg:with_xcb=False # This links against the system library
+libx265:assembly=False
+boost:without_atomic=False
+boost:without_chrono=False
+boost:without_container=False
+boost:without_date_time=False
+boost:without_exception=False
+boost:without_system=False
+boost:without_filesystem=False
+boost:without_thread=False
+boost:with_stacktrace_backtrace=True
+boost:without_context=True
+boost:without_contract=True
+boost:without_coroutine=True
+boost:without_fiber=True
+boost:without_graph=True
+boost:without_graph_parallel=True
+boost:without_iostreams=True
+boost:without_json=True
+boost:without_locale=True
+boost:without_log=True
+boost:without_math=True
+boost:without_mpi=True
+boost:without_nowide=True
+boost:without_program_options=True
+boost:without_python=True
+boost:without_random=True
+boost:without_regex=True
+boost:without_serialization=True
+boost:without_stacktrace=True
+boost:without_test=True
+boost:without_timer=True
+boost:without_type_erasure=True
+boost:without_wave=True

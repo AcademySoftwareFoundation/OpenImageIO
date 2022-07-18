@@ -140,7 +140,11 @@ target_include_directories (OpenImageIO
 target_include_directories (OpenImageIO SYSTEM PUBLIC ${OpenCV_INCLUDES})
 
 if (NOT BUILD_SHARED_LIBS)
-    target_compile_definitions (OpenImageIO PUBLIC OIIO_STATIC_DEFINE=1)
+    target_compile_definitions (OpenImageIO
+                                PUBLIC
+                                    OIIO_STATIC_DEFINE=1
+                                    $<$<AND:$<PLATFORM_ID:Windows>,$<BOOL:${LINKSTATIC}>,$<TARGET_EXISTS:OpenColorIO::OpenColorIO>>:OpenColorIO_SKIP_IMPORTS=1>
+                               )
 endif ()
 
 # Propagate C++ minimum to downstream
