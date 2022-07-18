@@ -17,14 +17,14 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * **C++14** (also builds with C++17, and C++20)
      * The default build mode is C++14. This can be controlled by via the
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=17`, etc.
- * Compilers: **gcc 6.1 - 11.2**, **clang 3.4 - 14**, **MSVS 2017 - 2019**,
+ * Compilers: **gcc 6.1 - 12.1**, **clang 3.4 - 14**, **MSVS 2017 - 2019**,
    **Intel icc 17+**, **Intel OneAPI C++ compiler 2022+**.
  * CMake >= 3.12 (tested through 3.23)
  * OpenEXR/Imath >= 2.3 (recommended: 2.4 or higher; tested through 3.1)
  * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.4)
  * libjpeg >= 8, or libjpeg-turbo >= 1.1 (tested through jpeg9d and jpeg-turbo
    2.1)
- * Boost >= 1.53 (recommended: at least 1.66; tested through 1.78)
+ * Boost >= 1.53 (recommended: at least 1.66; tested through 1.79)
  * [fmtlib](https://github.com/fmtlib/fmt) >= 6.1.2 (tested through 9.0). If
    not found at build time, this will be automatically downloaded unless the
    build sets `-DBUILD_MISSING_FMT=OFF`.
@@ -35,7 +35,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * Qt >= 5.6 (tested through 5.15)
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
-     * Python >= 2.7 (tested against 2.7, 3.7, 3.8, 3.9)
+     * Python >= 2.7 (tested against 2.7, 3.7, 3.8, 3.9, 3.10)
      * pybind11 >= 2.4.2 (Tested through 2.10. Note that pybind11 v2.10+ does
        not support Python < 3.6.)
      * NumPy

@@ -62,8 +62,9 @@ else
         locales wget \
         libopencolorio-dev \
         libopencv-dev \
-        qt5-default \
         libhdf5-dev
+    time sudo apt-get -q install -y \
+        qt5-default || /bin/true
     if [[ "${EXTRA_DEP_PACKAGES}" != "" ]] ; then
         time sudo apt-get -q install -y ${EXTRA_DEP_PACKAGES}
     fi
@@ -99,6 +100,8 @@ else
         time sudo apt-get install -y g++-10
     elif [[ "$CXX" == "g++-11" ]] ; then
         time sudo apt-get install -y g++-11
+    elif [[ "$CXX" == "g++-12" ]] ; then
+        time sudo apt-get install -y g++-12
     fi
 
     if [[ "$CXX" == "icpc" || "$CC" == "icc" || "$USE_ICC" != "" || "$USE_ICX" != "" ]] ; then
