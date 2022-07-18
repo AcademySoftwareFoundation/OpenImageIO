@@ -66,7 +66,7 @@ if [[ "$ASWF_ORG" != ""  ]] ; then
         icpx --version
     fi
 
-else
+elif [[ "$USE_CONAN" != "1" ]] ; then
     # Using native Ubuntu runner
 
     if [[ "${SKIP_APT_GET_UPDATE}" != "1" ]] ; then
@@ -107,11 +107,12 @@ else
     fi
 
     if [[ "$USE_LIBHEIF" != "0" ]] ; then
-       sudo add-apt-repository ppa:strukturag/libde265 || true
-       sudo add-apt-repository ppa:strukturag/libheif || true
+       sudo add-apt-repository ppa:strukturag/libde265 -y
+       sudo add-apt-repository ppa:strukturag/libheif -y
+       time sudo apt-get update
        time sudo apt-get -q install -y libheif-plugin-aomdec \
             libheif-plugin-aomenc libheif-plugin-libde265 \
-            libheif-plugin-x265 libheif-dev || true
+            libheif-plugin-x265 libheif-dev -y
     fi
 
     export CMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu:$CMAKE_PREFIX_PATH
@@ -203,6 +204,17 @@ fi
 if [[ "$LIBJPEGTURBO_VERSION" != "" ]] ; then
     source src/build-scripts/build_libjpeg-turbo.bash
 fi
+
+if [[ "$LIBAOM_VERSION" != "" ]] ; then
+    source src/build-scripts/build_libaom.bash
+fi
+
+if [[ "$LIBDE265_VERSION" != "" ]] ; then
+    source src/build-scripts/build_libde265.bash
+fi
+
+if [[ "$LIBHEIF_VERSION" != "" ]] ; then
+    source src/build-scripts/build_libheif.bash
 
 if [[ "$USE_ICC" != "" ]] ; then
     # We used gcc for the prior dependency builds, but use icc for OIIO itself

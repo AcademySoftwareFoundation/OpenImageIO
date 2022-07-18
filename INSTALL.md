@@ -237,7 +237,7 @@ Additionally, a few helpful modifiers alter some build-time options:
 | make STOP_ON_WARNING=0    |  Do not stop building if compiler warns        |
 | make EMBEDPLUGINS=0 ...   |  Don't compile the plugins into libOpenImageIO |
 | make USE_OPENGL=0 ...     |  Skip anything that needs OpenGL               |
-| make USE_QT=0 ...         |  Skip anything that needs Qt                   |
+| make USE_QT5=0 ...        |  Skip anything that needs Qt                   |
 | make MYCC=xx MYCXX=yy ... |  Use custom compilers                          |
 | make USE_PYTHON=0 ...     |  Don't build the Python binding                |
 | make BUILD_SHARED_LIBS=0  |  Build static library instead of shared        |

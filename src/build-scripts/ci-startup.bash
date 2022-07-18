@@ -30,9 +30,11 @@ export UBSAN_OPTIONS=suppressions=$PWD/src/build-scripts/ubsan-suppressions.txt
 export PYTHON_VERSION=${PYTHON_VERSION:="3.7"}
 export PYTHONPATH=$OpenImageIO_ROOT/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH
 export BUILD_MISSING_DEPS=${BUILD_MISSING_DEPS:=1}
-export COMPILER=${COMPILER:=gcc}
-export CC=${CC:=gcc}
-export CXX=${CXX:=g++}
+if [[ "$OSTYPE" != "msys" ]]; then
+    export COMPILER=${COMPILER:=gcc}
+    export CC=${CC:=gcc}
+    export CXX=${CXX:=g++}
+fi
 export OpenImageIO_CI=true
 export USE_NINJA=${USE_NINJA:=1}
 export CMAKE_GENERATOR=${CMAKE_GENERATOR:=Ninja}
