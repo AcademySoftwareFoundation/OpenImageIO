@@ -307,9 +307,9 @@ private:
     void displayCurrentImage(bool update = true);
     void updateTitle();
     void updateStatusBar();
-    void keyPressEvent(QKeyEvent* event);
-    void resizeEvent(QResizeEvent* event);
-    void closeEvent(QCloseEvent* event);
+    void keyPressEvent(QKeyEvent* event) override;
+    void resizeEvent(QResizeEvent* event) override;
+    void closeEvent(QCloseEvent* event) override;
 
     QTimer* slideTimer;     ///< Timer to use for slide show mode
     long slideDuration_ms;  ///< Slide show mode duration (in ms)
@@ -411,7 +411,7 @@ public:
     void update(IvImage* img);
 
 protected:
-    void keyPressEvent(QKeyEvent* event);
+    void keyPressEvent(QKeyEvent* event) override;
 
 private:
     QPushButton* closeButton;
@@ -430,7 +430,7 @@ public:
     IvPreferenceWindow(ImageViewer& viewer);
 
 protected:
-    void keyPressEvent(QKeyEvent* event);
+    void keyPressEvent(QKeyEvent* event) override;
 
 private:
     QVBoxLayout* layout;

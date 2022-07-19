@@ -458,16 +458,16 @@ public:
     // Construct from an already-open FILE* that is owned by the caller.
     // Caller is responsible for closing the FILE* after the proxy is gone.
     IOFile(FILE* file, Mode mode);
-    virtual ~IOFile();
-    virtual const char* proxytype() const { return "file"; }
-    virtual void close();
-    virtual bool seek(int64_t offset);
-    virtual size_t read(void* buf, size_t size);
-    virtual size_t write(const void* buf, size_t size);
-    virtual size_t pread(void* buf, size_t size, int64_t offset);
-    virtual size_t pwrite(const void* buf, size_t size, int64_t offset);
-    virtual size_t size() const;
-    virtual void flush() const;
+    virtual ~IOFile() override;
+    virtual const char* proxytype() const override { return "file"; }
+    virtual void close() override;
+    virtual bool seek(int64_t offset) override;
+    virtual size_t read(void* buf, size_t size) override;
+    virtual size_t write(const void* buf, size_t size) override;
+    virtual size_t pread(void* buf, size_t size, int64_t offset) override;
+    virtual size_t pwrite(const void* buf, size_t size, int64_t offset) override;
+    virtual size_t size() const override;
+    virtual void flush() const override;
 
     // Access the FILE*
     FILE* handle() const { return m_file; }
@@ -496,10 +496,10 @@ public:
         , m_buf(buf)
     {
     }
-    virtual const char* proxytype() const { return "vecoutput"; }
-    virtual size_t write(const void* buf, size_t size);
-    virtual size_t pwrite(const void* buf, size_t size, int64_t offset);
-    virtual size_t size() const { return m_buf.size(); }
+    virtual const char* proxytype() const override { return "vecoutput"; }
+    virtual size_t write(const void* buf, size_t size) override;
+    virtual size_t pwrite(const void* buf, size_t size, int64_t offset) override;
+    virtual size_t size() const override { return m_buf.size(); }
 
     // Access the buffer
     std::vector<unsigned char>& buffer() const { return m_buf; }
@@ -525,15 +525,15 @@ public:
         , m_buf(buf.data(), buf.size())
     {
     }
-    virtual const char* proxytype() const { return "memreader"; }
-    virtual bool seek(int64_t offset)
+    virtual const char* proxytype() const override { return "memreader"; }
+    virtual bool seek(int64_t offset) override
     {
         m_pos = offset;
         return true;
     }
-    virtual size_t read(void* buf, size_t size);
-    virtual size_t pread(void* buf, size_t size, int64_t offset);
-    virtual size_t size() const { return m_buf.size(); }
+    virtual size_t read(void* buf, size_t size) override;
+    virtual size_t pread(void* buf, size_t size, int64_t offset) override;
+    virtual size_t size() const override { return m_buf.size(); }
 
     // Access the buffer (caveat emptor)
     cspan<unsigned char> buffer() const noexcept { return m_buf; }

@@ -50,7 +50,7 @@ public:
         : m_ioproxy(ioproxy)
     {
     }
-    virtual heif_error write(const void* data, size_t size)
+    virtual heif_error write(const void* data, size_t size) override
     {
         heif_error herr { heif_error_Ok, heif_suberror_Unspecified, "" };
         if (m_ioproxy && m_ioproxy->mode() == Filesystem::IOProxy::Write

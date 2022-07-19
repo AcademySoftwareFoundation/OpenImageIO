@@ -1376,7 +1376,7 @@ public:
         newspec = spec();
         return ok;
     }
-    virtual bool close() { return true; }
+    virtual bool close() override { return true; }
     virtual int current_miplevel(void) const final { return m_miplevel; }
     virtual bool seek_subimage(int subimage, int miplevel) final
     {

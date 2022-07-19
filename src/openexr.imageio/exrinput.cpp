@@ -91,7 +91,7 @@ public:
         if (!io || io->mode() != Filesystem::IOProxy::Read)
             throw Iex::IoExc("File intput failed.");
     }
-    virtual bool read(char c[], int n)
+    virtual bool read(char c[], int n) override
     {
         OIIO_DASSERT(m_io);
         if (m_io->read(c, n) != size_t(n))
@@ -99,21 +99,21 @@ public:
         return n;
     }
 #if OIIO_USING_IMATH >= 3
-    virtual uint64_t tellg() { return m_io->tell(); }
-    virtual void seekg(uint64_t pos)
+    virtual uint64_t tellg() override { return m_io->tell(); }
+    virtual void seekg(uint64_t pos) override
     {
         if (!m_io->seek(pos))
             throw Iex::IoExc("File input failed.");
     }
 #else
-    virtual Imath::Int64 tellg() { return m_io->tell(); }
-    virtual void seekg(Imath::Int64 pos)
+    virtual Imath::Int64 tellg() override { return m_io->tell(); }
+    virtual void seekg(Imath::Int64 pos) override
     {
         if (!m_io->seek(pos))
             throw Iex::IoExc("File input failed.");
     }
 #endif
-    virtual void clear() {}
+    virtual void clear() override {}
 
 private:
     Filesystem::IOProxy* m_io = nullptr;

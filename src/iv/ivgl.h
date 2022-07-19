@@ -144,15 +144,15 @@ protected:
     bool m_mouse_activation;  ///< Can we expect the window to be activated by mouse?
 
 
-    virtual void initializeGL();
-    virtual void resizeGL(int w, int h);
-    virtual void paintGL();
+    virtual void initializeGL() override;
+    virtual void resizeGL(int w, int h) override;
+    virtual void paintGL() override;
 
-    virtual void mousePressEvent(QMouseEvent* event);
-    virtual void mouseReleaseEvent(QMouseEvent* event);
-    virtual void mouseMoveEvent(QMouseEvent* event);
-    virtual void wheelEvent(QWheelEvent* event);
-    virtual void focusOutEvent(QFocusEvent* event);
+    virtual void mousePressEvent(QMouseEvent* event) override;
+    virtual void mouseReleaseEvent(QMouseEvent* event) override;
+    virtual void mouseMoveEvent(QMouseEvent* event) override;
+    virtual void wheelEvent(QWheelEvent* event) override;
+    virtual void focusOutEvent(QFocusEvent* event) override;
 
     void paint_pixelview();
     void glSquare(float xmin, float ymin, float xmax, float ymax, float z = 0);
