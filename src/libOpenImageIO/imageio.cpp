@@ -69,7 +69,9 @@ using namespace pvt;
 namespace {
 // Hidden global OIIO data.
 static spin_mutex attrib_mutex;
-static const int maxthreads  = 256;  // reasonable maximum for sanity check
+static const int maxthreads = 256;  // reasonable maximum for sanity check
+
+mutex oiio_debug_mutex;
 static FILE* oiio_debug_file = NULL;
 
 class TimingLog {
@@ -268,7 +270,7 @@ geterror(bool clear)
 void
 debug(string_view message)
 {
-    recursive_lock_guard lock(pvt::imageio_mutex);
+    lock_guard lock(oiio_debug_mutex);
     if (oiio_print_debug) {
         if (!oiio_debug_file) {
             const char* filename = getenv("OPENIMAGEIO_DEBUG_FILE");
