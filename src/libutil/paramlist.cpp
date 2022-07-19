@@ -314,19 +314,20 @@ formatType(const ParamValue& p, int beginindex, int endindex,
 std::string
 ParamValue::get_string(int maxsize) const
 {
-    int nfull  = int(type().numelements()) * nvalues();
+    int nfull  = int(type().basevalues()) * nvalues();
     int n      = std::min(nfull, maxsize);
     TypeDesc t = type();
-    if (nvalues() > 1 || n < nfull)
-        t.arraylen = n;
+    if (nvalues() > 1 || n < nfull) {
+        t.aggregate = TypeDesc::SCALAR;
+        t.arraylen  = n;
+    }
     static const tostring_formatting fmt = { "%d", "%g", "\"%s\"", "%p",
                                              "",   "",   ", ",     "",
                                              "",   ", ", true,     "%u" };
     std::string out                      = tostring(t, data(), fmt);
     if (n < nfull)
-        out += Strutil::sprintf(
-            ", ... [%d x %s]", nfull,
-            TypeDesc(TypeDesc::BASETYPE(type().basetype)).c_str());
+        out += Strutil::fmt::format(", ... [{} x {}]", nfull,
+                                    type().scalartype());
     return out;
 }
 

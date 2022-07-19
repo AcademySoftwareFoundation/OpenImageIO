@@ -517,6 +517,8 @@ bcdToBinary(unsigned int bcd)
 std::string
 tostring(TypeDesc type, const void* data, const tostring_formatting& fmt)
 {
+    if (!data)
+        return std::string();
     // Perhaps there is a way to use CType<> with a dynamic argument?
     switch (type.basetype) {
     case TypeDesc::UNKNOWN:
@@ -612,7 +614,7 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt)
     case TypeDesc::STRING:
         if (!type.is_array()
             && !(fmt.flags & tostring_formatting::quote_single_string))
-            return *(const char**)data;
+            return *(const char**)data ? *(const char**)data : "";
         return fmt.use_sprintf
                    ? sprint_type(type, fmt.string_fmt, fmt, (const char**)data)
                    : format_type(type, fmt.string_fmt, fmt, (const char**)data);
