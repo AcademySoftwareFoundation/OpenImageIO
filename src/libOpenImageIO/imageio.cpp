@@ -69,7 +69,7 @@ using namespace pvt;
 namespace {
 // Hidden global OIIO data.
 static spin_mutex attrib_mutex;
-static const int maxthreads  = 256;  // reasonable maximum for sanity check
+static const int maxthreads  = 512;  // reasonable maximum for sanity check
 static FILE* oiio_debug_file = NULL;
 
 class TimingLog {
