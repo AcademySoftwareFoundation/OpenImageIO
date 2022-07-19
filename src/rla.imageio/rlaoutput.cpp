@@ -27,7 +27,7 @@ using namespace RLA_pvt;
 class RLAOutput final : public ImageOutput {
 public:
     RLAOutput();
-    virtual ~RLAOutput();
+    virtual ~RLAOutput() override;
     virtual const char* format_name(void) const override { return "rla"; }
     virtual int supports(string_view feature) const override;
     virtual bool open(const std::string& name, const ImageSpec& spec,

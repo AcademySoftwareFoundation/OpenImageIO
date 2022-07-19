@@ -19,7 +19,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class CineonInput final : public ImageInput {
 public:
     CineonInput() { init(); }
-    virtual ~CineonInput() { close(); }
+    virtual ~CineonInput() override { close(); }
     virtual const char* format_name(void) const override { return "cineon"; }
     virtual bool open(const std::string& name, ImageSpec& newspec) override;
     virtual bool close() override;

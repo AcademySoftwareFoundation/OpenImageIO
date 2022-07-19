@@ -29,7 +29,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class JpgOutput final : public ImageOutput {
 public:
     JpgOutput() { init(); }
-    virtual ~JpgOutput() { close(); }
+    virtual ~JpgOutput() override { close(); }
     virtual const char* format_name(void) const override { return "jpeg"; }
     virtual int supports(string_view feature) const override
     {

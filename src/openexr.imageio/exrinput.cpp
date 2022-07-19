@@ -124,7 +124,7 @@ private:
 class OpenEXRInput final : public ImageInput {
 public:
     OpenEXRInput();
-    virtual ~OpenEXRInput() { close(); }
+    virtual ~OpenEXRInput() override { close(); }
     virtual const char* format_name(void) const override { return "openexr"; }
     virtual int supports(string_view feature) const override
     {

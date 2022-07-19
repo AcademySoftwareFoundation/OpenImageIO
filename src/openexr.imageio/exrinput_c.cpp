@@ -101,7 +101,7 @@ oiio_exr_read_func(exr_const_context_t ctxt, void* userdata, void* buffer,
 class OpenEXRCoreInput final : public ImageInput {
 public:
     OpenEXRCoreInput();
-    virtual ~OpenEXRCoreInput() { close(); }
+    virtual ~OpenEXRCoreInput() override { close(); }
     virtual const char* format_name(void) const override { return "openexr"; }
     virtual int supports(string_view feature) const override
     {

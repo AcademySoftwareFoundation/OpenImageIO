@@ -23,7 +23,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class HeifInput final : public ImageInput {
 public:
     HeifInput() {}
-    virtual ~HeifInput() { close(); }
+    virtual ~HeifInput() override { close(); }
     virtual const char* format_name(void) const override { return "heif"; }
     virtual int supports(string_view feature) const override
     {

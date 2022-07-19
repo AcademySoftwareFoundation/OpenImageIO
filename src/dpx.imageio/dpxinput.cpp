@@ -23,7 +23,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class DPXInput final : public ImageInput {
 public:
     DPXInput() { init(); }
-    virtual ~DPXInput() { close(); }
+    virtual ~DPXInput() override { close(); }
     virtual const char* format_name(void) const override { return "dpx"; }
     virtual int supports(string_view feature) const override
     {

@@ -18,7 +18,7 @@ namespace webp_pvt {
 class WebpOutput final : public ImageOutput {
 public:
     WebpOutput() { init(); }
-    virtual ~WebpOutput() { close(); }
+    virtual ~WebpOutput() override { close(); }
     virtual const char* format_name() const override { return "webp"; }
     virtual bool open(const std::string& name, const ImageSpec& spec,
                       OpenMode mode = Create) override;

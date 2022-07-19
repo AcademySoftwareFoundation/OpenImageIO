@@ -18,7 +18,7 @@ public:
     {
         init();
     }
-    virtual ~PtexInput() { close(); }
+    virtual ~PtexInput() override { close(); }
     virtual const char* format_name(void) const override { return "ptex"; }
     virtual int supports(string_view feature) const override
     {

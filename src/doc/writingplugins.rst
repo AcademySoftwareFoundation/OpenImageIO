@@ -144,7 +144,7 @@ plug-in.
         class JpgInput final : public ImageInput {
          public:
             JpgInput () { init(); }
-            virtual ~JpgInput () { close(); }
+            virtual ~JpgInput () override { close(); }
             virtual const char * format_name (void) const override { return "jpeg"; }
             virtual bool open (const std::string &name, ImageSpec &spec) override;
             virtual bool read_native_scanline (int y, int z, void *data) override;
@@ -289,7 +289,7 @@ plug-in.
       class JpgOutput final : public ImageOutput {
        public:
           JpgOutput () { init(); }
-          virtual ~JpgOutput () { close(); }
+          virtual ~JpgOutput () override { close(); }
           virtual const char * format_name (void) const override { return "jpeg"; }
           virtual int supports (string_view property) const override { return false; }
           virtual bool open (const std::string &name, const ImageSpec &spec,

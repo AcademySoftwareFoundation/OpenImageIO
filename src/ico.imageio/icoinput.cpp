@@ -23,7 +23,7 @@ using namespace ICO_pvt;
 class ICOInput final : public ImageInput {
 public:
     ICOInput() { init(); }
-    virtual ~ICOInput() { close(); }
+    virtual ~ICOInput() override { close(); }
     virtual const char* format_name(void) const override { return "ico"; }
     virtual bool open(const std::string& name, ImageSpec& newspec) override;
     virtual bool close() override;

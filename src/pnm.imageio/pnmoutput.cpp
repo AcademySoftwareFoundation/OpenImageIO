@@ -13,7 +13,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class PNMOutput final : public ImageOutput {
 public:
     PNMOutput() { init(); }
-    virtual ~PNMOutput() { close(); }
+    virtual ~PNMOutput() override { close(); }
     virtual const char* format_name(void) const override { return "pnm"; }
     virtual int supports(string_view feature) const override
     {

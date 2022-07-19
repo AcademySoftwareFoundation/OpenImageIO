@@ -24,7 +24,7 @@ using namespace ICO_pvt;
 class ICOOutput final : public ImageOutput {
 public:
     ICOOutput();
-    virtual ~ICOOutput();
+    virtual ~ICOOutput() override;
     virtual const char* format_name(void) const override { return "ico"; }
     virtual int supports(string_view feature) const override;
     virtual bool open(const std::string& name, const ImageSpec& spec,

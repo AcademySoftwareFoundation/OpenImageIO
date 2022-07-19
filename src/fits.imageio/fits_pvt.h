@@ -39,7 +39,7 @@ struct Subimage {
 class FitsInput final : public ImageInput {
 public:
     FitsInput() { init(); }
-    virtual ~FitsInput() { close(); }
+    virtual ~FitsInput() override { close(); }
     virtual const char* format_name(void) const override { return "fits"; }
     virtual int supports(string_view feature) const override
     {
@@ -116,7 +116,7 @@ private:
 class FitsOutput final : public ImageOutput {
 public:
     FitsOutput() { init(); }
-    virtual ~FitsOutput() { close(); }
+    virtual ~FitsOutput() override { close(); }
     virtual const char* format_name(void) const override { return "fits"; }
     virtual int supports(string_view feature) const override;
     virtual bool open(const std::string& name, const ImageSpec& spec,

@@ -122,7 +122,7 @@ private:
 class OpenEXROutput final : public ImageOutput {
 public:
     OpenEXROutput();
-    virtual ~OpenEXROutput();
+    virtual ~OpenEXROutput() override;
     virtual const char* format_name(void) const override { return "openexr"; }
     virtual int supports(string_view feature) const override;
     virtual bool open(const std::string& name, const ImageSpec& spec,

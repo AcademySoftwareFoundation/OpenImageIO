@@ -56,7 +56,7 @@ static const int JPEG_411_COMP[6] = { 4, 1, 1, 1, 1, 1 };
 class JpgInput final : public ImageInput {
 public:
     JpgInput() { init(); }
-    virtual ~JpgInput() { close(); }
+    virtual ~JpgInput() override { close(); }
     virtual const char* format_name(void) const override { return "jpeg"; }
     virtual int supports(string_view feature) const override
     {

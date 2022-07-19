@@ -24,7 +24,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class PNMInput final : public ImageInput {
 public:
     PNMInput() { init(); }
-    virtual ~PNMInput() { close(); }
+    virtual ~PNMInput() override { close(); }
     virtual const char* format_name(void) const override { return "pnm"; }
     virtual int supports(string_view feature) const override
     {

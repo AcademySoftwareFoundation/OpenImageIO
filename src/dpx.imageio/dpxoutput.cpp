@@ -27,7 +27,7 @@ static const int MAX_DPX_IMAGE_ELEMENTS = 8;  // max subimages in DPX spec
 class DPXOutput final : public ImageOutput {
 public:
     DPXOutput();
-    virtual ~DPXOutput();
+    virtual ~DPXOutput() override;
     virtual const char* format_name(void) const override { return "dpx"; }
     virtual int supports(string_view feature) const override
     {

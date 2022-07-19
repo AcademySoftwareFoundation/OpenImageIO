@@ -65,7 +65,7 @@ class OpenVDBInput final : public ImageInput {
 
 public:
     OpenVDBInput() { init(); }
-    virtual ~OpenVDBInput() { close(); }
+    virtual ~OpenVDBInput() override { close(); }
 
     virtual const char* format_name(void) const override { return "openvdb"; }
     virtual int supports(string_view feature) const override

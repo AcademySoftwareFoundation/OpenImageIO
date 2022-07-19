@@ -71,7 +71,7 @@ j2k_associateAlpha(T* data, int size, int channels, int alpha_channel,
 class Jpeg2000Input final : public ImageInput {
 public:
     Jpeg2000Input() { init(); }
-    virtual ~Jpeg2000Input() { close(); }
+    virtual ~Jpeg2000Input() override { close(); }
     virtual const char* format_name(void) const override { return "jpeg2000"; }
     virtual int supports(string_view feature) const override
     {

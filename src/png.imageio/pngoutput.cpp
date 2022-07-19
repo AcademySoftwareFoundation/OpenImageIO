@@ -17,7 +17,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class PNGOutput final : public ImageOutput {
 public:
     PNGOutput();
-    virtual ~PNGOutput();
+    virtual ~PNGOutput() override;
     virtual const char* format_name(void) const override { return "png"; }
     virtual int supports(string_view feature) const override
     {

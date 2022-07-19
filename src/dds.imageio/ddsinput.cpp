@@ -29,7 +29,7 @@ constexpr int kBlockSize = 4;
 class DDSInput final : public ImageInput {
 public:
     DDSInput() { init(); }
-    virtual ~DDSInput() { close(); }
+    virtual ~DDSInput() override { close(); }
     virtual const char* format_name(void) const override { return "dds"; }
     virtual int supports(string_view feature) const override
     {

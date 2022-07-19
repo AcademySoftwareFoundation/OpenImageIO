@@ -18,7 +18,7 @@ namespace webp_pvt {
 class WebpInput final : public ImageInput {
 public:
     WebpInput() {}
-    virtual ~WebpInput() { close(); }
+    virtual ~WebpInput() override { close(); }
     virtual const char* format_name() const override { return "webp"; }
     virtual int supports(string_view feature) const override
     {

@@ -88,7 +88,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class FFmpegInput final : public ImageInput {
 public:
     FFmpegInput();
-    virtual ~FFmpegInput();
+    virtual ~FFmpegInput() override;
     virtual const char* format_name(void) const override
     {
         return "FFmpeg movie";

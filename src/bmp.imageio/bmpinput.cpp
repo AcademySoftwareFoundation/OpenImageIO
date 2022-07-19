@@ -17,7 +17,7 @@ using namespace bmp_pvt;
 class BmpInput final : public ImageInput {
 public:
     BmpInput() { init(); }
-    virtual ~BmpInput() { close(); }
+    virtual ~BmpInput() override { close(); }
     virtual const char* format_name(void) const override { return "bmp"; }
     int supports(string_view feature) const override
     {
