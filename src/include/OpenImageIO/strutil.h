@@ -18,6 +18,7 @@
 #include <map>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <OpenImageIO/export.h>
@@ -260,6 +261,21 @@ using ::fmt::print;
 #else
 using sync::print;
 #endif
+
+
+namespace pvt {
+OIIO_UTIL_API void debug(string_view str);
+}
+
+/// `debug(format, ...)` prints debugging message when attribute "debug" is
+/// nonzero, which it is by default for DEBUG compiles or when the environment
+/// variable OPENIMAGEIO_DEBUG is set. This is preferred to raw output to
+/// stderr for debugging statements.
+template<typename... Args>
+void debug(const char* fmt, Args&&... args)
+{
+    pvt::debug(fmt::format(fmt, std::forward<Args>(args)...));
+}
 
 
 

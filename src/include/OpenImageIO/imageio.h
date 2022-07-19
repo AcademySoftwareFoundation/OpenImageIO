@@ -3087,10 +3087,11 @@ typedef bool (*wrap_impl) (int &coord, int origin, int width);
 OIIO_API void debug (string_view str);
 
 /// debug output with `std::format` conventions.
+/// This is just a wrapped synonym for Strutil::debug().
 template<typename... Args>
-void debugfmt (const char* fmt, const Args&... args)
+void debugfmt (const char* fmt, Args&&... args)
 {
-    debug (Strutil::fmt::format(fmt, args...));
+    Strutil::debug(fmt, std::forward<Args>(args)...);
 }
 
 // (Unfortunate old synonym)
