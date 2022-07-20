@@ -455,7 +455,7 @@ public:
         Bin& bin(m_bins[b]);
         if (do_lock)
             bin.lock();
-        bin.map.erase(key, hash);
+        bin.map.erase(key);
         --m_size;
         if (do_lock)
             bin.unlock();
