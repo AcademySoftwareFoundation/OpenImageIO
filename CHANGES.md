@@ -17,7 +17,7 @@ New major features and public API changes:
       Imath. If your app uses Imath types but did not include the right Imath
       headers (relying on the accidental fact of other OIIO headers
       transitively including them), you may need to adjust your includes.
-      #3301 #3332 (2.4.0.2) #3406 (2.4.2)
+      #3301 #3332 (2.4.0.2) #3406 #3474 (2.4.2)
     - New `V3fParam`, `M33fParam`, and `M44Param` (defined in vecparam.h) are
       used just for parameter passing in public APIs, instead of Imath::V3f,
       M33f, or M44f, in order to more fully hide Imath types from our public
@@ -376,6 +376,8 @@ Fixes and feature enhancements:
       (2.3.17/2.4.2)
     - Fixed some longstanding issues with IPTC data in the headers. #3465
       (2.4.0)
+    - Protect against crashes with certain empty string attributes. #3491
+      (2.4.2.1)
 * WebP:
     - Fix previous failure to properly set the "oiio:LoopCount" metadata
       when reading animated webp images. #3183 (2.4.0/2.3.10)
@@ -408,6 +410,8 @@ Fixes and feature enhancements:
 * Improved behavior when opening a file whose format doesn't correctly match
   its extension: try common formats first, rather than alphabetically; and
   improve error messages. #3400 (2.4.2)
+* The maximum number of threads you can set with option "oiio:threads"
+  has been increased from 256 to 512. #3484 (2.4.2.1)
 
 Developer goodies / internals:
 * benchmark.h:
@@ -473,6 +477,8 @@ Developer goodies / internals:
       istarts_with, ends_with, iends_with. #3388 (2.4.1.1)
     - New `safe_strcat` is a buffer-length-aware safe replcement for strcat.
       #3471 (2.4.0/2.3.18)
+    - `Strutil::debug()` is the new OIIO::debug(), moving it from
+      libOpenImageIO to libOpenImageIO_Util. #3486 (2.4.2.1)
 * sysutil.h:
     - The `Term` class now recognizes a wider set of terminal emulators as
       supporting color output. #3185 (2.4.0)
@@ -515,6 +521,8 @@ Developer goodies / internals:
 * New testtex options: `--minthreads` sets the minimum numer of threads that
   will be used for thread wedges, `--lowtrials` is an optional maximum number
   of trials just for the 1 or 2 thread cse. #3418 (2.4.2)
+* Internals: internal classes with vertual methods now mark all their
+  overridden destructors correctly as `override`. #3481 (2.4.2.1)
 
 Build/test system improvements and platform ports:
 * CMake build system and scripts:
@@ -564,6 +572,9 @@ Build/test system improvements and platform ports:
     - Do not auto-download test images by default. To auto download test
       images, build with `-DOIIO_DOWNLOAD_MISSING_TESTDATA=ON`. #3409 (2.4.0)
     - Allow using the Makefile wrapper on arm64 systems. #3456 (2.4.2)
+    - The export OpenImageIOConfig.cmake fixes `OpenImageIO_INCLUDE_DIR` to
+      work correctly on Debian systems where there are multiple filesystem
+      components to the path. #3487 (2.4.2.1)
 * Dependency version support:
     - When using C++17, use std::gcd instead of boost. #3076 (2.4.0)
     - When using C++17, use `inline constexpr` instead of certain statics.
@@ -579,6 +590,10 @@ Build/test system improvements and platform ports:
     - Fix clang10 compile warnings. #3272 (2.4.0.1/2.3.12)
     - Support for ffmpeg 5.0. #3282 (2.4.0.2/2.3.13)
     - Support for fmtlib 9.0.0. #3327 (2.4.0.2/2.3.13) #3466 (2.4.2/2.3.18)
+    - `build_opencolorio.bash` helper script bumped its default build of
+      OpenColorIO to 2.1.2. #3475 (2.4.2.1)
+    - When building with C++17 or higher, Boost.filesystem is no longer
+      needed or used. #3472 #3477 (2.4.2.1)
 * Testing and Continuous integration (CI) systems:
     - Properly test against all the versions of VFX Platform 2022. #3074
       (2.4.0)
@@ -603,6 +618,7 @@ Build/test system improvements and platform ports:
       #3370 (2.4.1.0)
     - Test against clang 14. #3404
     - Various guards against supply chain attacks durig CI. #3454 (2.4.2)
+    - Test against pybind11 v2.10. #3478 (2.4.2.1)
 * Platform support:
     - Fix when building with Clang on big-endian architectures. #3133
       (2.4.0/2.3.9)
@@ -613,6 +629,7 @@ Build/test system improvements and platform ports:
     - Improved simd.h support for armv7 and aarch32. #3361 (2.4.1.0/2.3.14)
     - Suppress MacOS wasnings about OpenGL deprecation. #3380 (2.4.1.0/2.3.14)
     - Fix MSVS/Windows errors. #3382 (2.4.1.1)
+    - Support for gcc 12.1. #3480 (2.4.2.1)
 
 Notable documentation changes:
 * Add an oiiotool example of putting a border around an image. #3138
