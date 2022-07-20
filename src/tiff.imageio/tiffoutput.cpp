@@ -813,6 +813,10 @@ bool
 TIFFOutput::put_parameter(const std::string& name, TypeDesc type,
                           const void* data)
 {
+    if (!data || (type == TypeString && *(char**)data == nullptr)) {
+        // we got a null pointer, don't set the field
+        return false;
+    }
     if (Strutil::iequals(name, "Artist") && type == TypeDesc::STRING) {
         TIFFSetField(m_tif, TIFFTAG_ARTIST, *(char**)data);
         return true;
