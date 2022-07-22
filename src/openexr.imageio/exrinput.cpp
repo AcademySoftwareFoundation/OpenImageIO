@@ -638,11 +638,13 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
         const Imf::Attribute& attrib = hit.attribute();
         std::string type             = attrib.typeName();
         if (type == "string"
-            && (sattr = header->findTypedAttribute<Imf::StringAttribute>(name)))
-            spec.attribute(oname, sattr->value().c_str());
-        else if (type == "int"
-                 && (iattr = header->findTypedAttribute<Imf::IntAttribute>(
-                         name)))
+            && (sattr = header->findTypedAttribute<Imf::StringAttribute>(
+                    name))) {
+            if (sattr->value().size())
+                spec.attribute(oname, sattr->value().c_str());
+        } else if (type == "int"
+                   && (iattr = header->findTypedAttribute<Imf::IntAttribute>(
+                           name)))
             spec.attribute(oname, iattr->value());
         else if (type == "float"
                  && (fattr = header->findTypedAttribute<Imf::FloatAttribute>(

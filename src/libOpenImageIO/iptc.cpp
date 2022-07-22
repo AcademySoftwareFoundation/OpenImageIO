@@ -170,11 +170,13 @@ encode_iptc_iim_one_tag(int tag, const char* /*name*/, TypeDesc type,
         iptc.push_back((char)0x02);
         iptc.push_back((char)tag);
         const char* str = ((const char**)data)[0];
-        int tagsize     = strlen(str);
-        tagsize = std::min(tagsize, 0xffff - 1);  // Prevent 16 bit overflow
-        iptc.push_back((char)(tagsize >> 8));
-        iptc.push_back((char)(tagsize & 0xff));
-        iptc.insert(iptc.end(), str, str + tagsize);
+        if (str) {
+            int tagsize = strlen(str);
+            tagsize = std::min(tagsize, 0xffff - 1);  // Prevent 16 bit overflow
+            iptc.push_back((char)(tagsize >> 8));
+            iptc.push_back((char)(tagsize & 0xff));
+            iptc.insert(iptc.end(), str, str + tagsize);
+        }
     }
 }
 

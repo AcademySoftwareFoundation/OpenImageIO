@@ -944,9 +944,11 @@ encode_exif_entry(const ParamValue& p, int tag, std::vector<TIFFDirEntry>& dirs,
     case TIFF_ASCII:
         if (p.type() == TypeDesc::STRING) {
             const char* s = *(const char**)p.data();
-            int len       = strlen(s) + 1;
-            append_tiff_dir_entry(dirs, data, tag, type, len, s,
-                                  offset_correction, 0, endianreq);
+            if (s) {
+                int len = strlen(s) + 1;
+                append_tiff_dir_entry(dirs, data, tag, type, len, s,
+                                      offset_correction, 0, endianreq);
+            }
             return;
         }
         break;

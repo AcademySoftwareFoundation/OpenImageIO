@@ -11,7 +11,6 @@ chname.exr           :   38 x   38, 5 channel, float openexr
     full/display size: 40 x 40
     full/display origin: 0, 0
     compression: "zips"
-    nuke/node_hash: ""
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
@@ -25,7 +24,6 @@ allhalf.exr          :   38 x   38, 5 channel, half openexr
     full/display size: 40 x 40
     full/display origin: 0, 0
     compression: "zips"
-    nuke/node_hash: ""
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
@@ -39,7 +37,6 @@ rgbahalf-zfloat.exr  :   38 x   38, 5 channel, half/half/half/half/float openexr
     full/display size: 40 x 40
     full/display origin: 0, 0
     compression: "zips"
-    nuke/node_hash: ""
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
