@@ -221,11 +221,10 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
     m_next_scanline = 0;  // next scanline we'll write
 
     // Write JPEG comment, if sent an 'ImageDescription'
-    ParamValue* comment = m_spec.find_attribute("ImageDescription",
-                                                TypeDesc::STRING);
-    if (comment && comment->data()) {
-        const char** c = (const char**)comment->data();
-        jpeg_write_marker(&m_cinfo, JPEG_COM, (JOCTET*)*c, strlen(*c) + 1);
+    std::string comment = m_spec.get_string_attribute("ImageDescription");
+    if (comment.size()) {
+        jpeg_write_marker(&m_cinfo, JPEG_COM, (JOCTET*)comment.c_str(),
+                          comment.size() + 1);
     }
 
     if (Strutil::iequals(m_spec.get_string_attribute("oiio:ColorSpace"), "sRGB"))
@@ -242,7 +241,8 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
     exif.push_back(0);
     exif.push_back(0);
     encode_exif(m_spec, exif);
-    jpeg_write_marker(&m_cinfo, JPEG_APP0 + 1, (JOCTET*)&exif[0], exif.size());
+    jpeg_write_marker(&m_cinfo, JPEG_APP0 + 1, (JOCTET*)exif.data(),
+                      exif.size());
 
     // Write IPTC IIM metadata tags, if we have anything
     std::vector<char> iptc;
@@ -261,7 +261,7 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
         head.push_back((char)(iptc.size() >> 8));  // size of block
         head.push_back((char)(iptc.size() & 0xff));
         iptc.insert(iptc.begin(), head.begin(), head.end());
-        jpeg_write_marker(&m_cinfo, JPEG_APP0 + 13, (JOCTET*)&iptc[0],
+        jpeg_write_marker(&m_cinfo, JPEG_APP0 + 13, (JOCTET*)iptc.data(),
                           iptc.size());
     }
 

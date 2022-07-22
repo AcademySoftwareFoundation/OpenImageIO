@@ -309,9 +309,10 @@ private:
     {
         string_view s;
         if (tiff_get_string_field(tag, name, s)) {
-            m_spec.attribute(name, s);
-            // TODO: If the length is 0, erase the attrib rather than
-            // setting it to the empty string.
+            if (s.size())
+                m_spec.attribute(name, s);
+            else
+                m_spec.erase_attribute(name);
         }
     }
 

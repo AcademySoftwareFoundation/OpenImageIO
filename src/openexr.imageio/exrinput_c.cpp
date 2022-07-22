@@ -679,7 +679,10 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
             break;
         }
 
-        case EXR_ATTR_STRING: spec.attribute(oname, attr->string->str); break;
+        case EXR_ATTR_STRING:
+            if (attr->string && attr->string->str && attr->string->str[0])
+                spec.attribute(oname, attr->string->str);
+            break;
         case EXR_ATTR_STRING_VECTOR: {
             std::vector<ustring> ustrvec(attr->stringvector->n_strings);
             for (int32_t i = 0, e = attr->stringvector->n_strings; i < e; ++i)
