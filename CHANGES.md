@@ -522,7 +522,10 @@ Developer goodies / internals:
   will be used for thread wedges, `--lowtrials` is an optional maximum number
   of trials just for the 1 or 2 thread cse. #3418 (2.4.2)
 * Internals: internal classes with vertual methods now mark all their
-  overridden destructors correctly as `override`. #3481 (2.4.2.1)
+  overridden destructors correctly as `override`. #3481 (2.4.2.1) #3488
+  (2.4.2.2)
+* Various protections against string metadata found in file that has zero
+  length. #3493 (2.4.2.2)
 
 Build/test system improvements and platform ports:
 * CMake build system and scripts:
