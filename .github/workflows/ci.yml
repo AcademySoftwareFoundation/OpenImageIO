@@ -223,7 +223,7 @@ jobs:
                             OPENIMAGEIO_OPTIONS="openexr:core=1"
                             OPENJPEG_VERSION=v2.4.0
                             PTEX_VERSION=v2.4.0
-                            PUGIXML_VERSION=v1.11.4
+                            PUGIXML_VERSION=v1.12.1
                             USE_OPENVDB=0
                             WEBP_VERSION=v1.2.1
                             # The installed OpenVDB has a TLS conflict with Python 3.8
