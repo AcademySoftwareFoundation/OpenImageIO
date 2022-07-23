@@ -612,7 +612,7 @@ print_info_subimage(std::ostream& out, Oiiotool& ot, int current_subimage,
         std::string sha = compute_sha1(ot, input, current_subimage);
         if (serformat == ImageSpec::SerialText)
             lines.insert(lines.begin() + 1, format("    SHA-1: {}", sha));
-        else if (serformat == ImageSpec::SerialText)
+        else if (serformat == ImageSpec::SerialXML)
             lines.insert(lines.begin() + 1, format("<SHA1>{}</SHA1>", sha));
     }
 
