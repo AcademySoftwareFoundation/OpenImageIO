@@ -410,10 +410,21 @@ public:
     // Write `size` bytes from `buf[]` at the current position, returning the
     // number of bytes successfully written.
     virtual size_t write (const void *buf, size_t size);
-    // pread(), pwrite() are stateless, do not alter the current file
-    // position, and are thread-safe (against each other).
+
+    /// Read `size` bytes starting at the `offset` position into `buf[]`,
+    /// returning the number of bytes successfully read. This function does
+    /// not alter the current file position. This function is thread-safe against
+    /// all other concurrent calls to pread() and pwrite(), but not against any
+    /// other function of IOProxy.
     virtual size_t pread (void *buf, size_t size, int64_t offset);
+
+    /// Write `size` bytes from `buf[]` to file starting at the `offset` position,
+    /// returning the number of bytes successfully written. This function does
+    /// not alter the current file position. This function is thread-safe against
+    /// all other concurrent calls to pread() and pwrite(), but not against any
+    /// other function of IOProxy.
     virtual size_t pwrite (const void *buf, size_t size, int64_t offset);
+
     // Return the total size of the proxy data, in bytes.
     virtual size_t size () const { return 0; }
     virtual void flush () const { }
