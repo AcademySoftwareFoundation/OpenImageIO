@@ -74,7 +74,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
    tree, but if you want to use an external, system-installed version (as
    may be required by some software distributions with policies against
    embedding other projects), then just build with `-DUSE_EXTERNAL_PUGIXML=1`.
-   Any PugiXML >= 1.8 should be fine (we have tested through 1.11).
+   Any PugiXML >= 1.8 should be fine (we have tested through 1.12).
 
 
 
