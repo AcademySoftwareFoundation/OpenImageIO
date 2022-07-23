@@ -78,7 +78,7 @@ SocketInput::open(const std::string& name, ImageSpec& newspec,
     if (!(accept_connection(name) && get_spec_from_client(newspec))) {
         return false;
     }
-    // Also send information about endianess etc.
+    // Also send information about endianness etc.
 
     m_spec = newspec;
 

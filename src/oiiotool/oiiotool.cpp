@@ -2048,7 +2048,7 @@ Oiiotool::express(string_view str)
     // eg. s="ab{cde}fg"
     size_t openbrace = s.find('{');
     if (openbrace == s.npos)
-        return str;  // No open brace found -- no expresion substitution
+        return str;  // No open brace found -- no expression substitution
 
     string_view prefix = s.substr(0, openbrace);
     s.remove_prefix(openbrace);

@@ -68,7 +68,7 @@ command += oiiotool ("--autocc " + "../common/tahoe-tiny.tif"+
                      + "-d uint8 -o tahoe-ccmatrix.tif")
 
 # test various behaviors and misbehaviors related to OCIO configs.
-command += oiiotool ("--nostderr --colorconfig missing.ocio -echo 'Nonexistant config'", failureok=True)
+command += oiiotool ("--nostderr --colorconfig missing.ocio -echo 'Nonexistent config'", failureok=True)
 
 #   What happens when we read an OCIOv2 config? In particular, when building
 #   against OCIOv1, we should at worst have an error message, not crash with

@@ -18,7 +18,7 @@ Release 0.10.4 (November 20, 2011)
   very small derivatives.  The previous bug/misunderstanding had the
   result of some filter footprints with very small (but valid)
   derivatives inappropriately using the highest-resolution MIPmap level
-  and maximum anisotropy, resulting in terrible performance, alising,
+  and maximum anisotropy, resulting in terrible performance, aliasing,
   and in some cases visible seams on the boundary between where this
   happened and where it didn't.  Be aware that the fixed code will make
   some areas of texture look less sharp, but that's only because it was
@@ -169,7 +169,7 @@ Major new features:
   ImageOutput::open, as well as some minor methods of ImageCache and
   ImageBuf.  (r1655,1656,1664,1671)
 * Support for per-channel data formats via the new ImageSpec::channelformats
-  vector and interpreting read_foo/write_foo format parameter of UKNOWN
+  vector and interpreting read_foo/write_foo format parameter of UNKNOWN
   as a request for the true native format.  (r1674)
 * Full support of TextureSystem environment() for lat-long maps.
 
@@ -301,7 +301,7 @@ Fixes, minor enhancements, and performance improvements:
 * ImageCache bug: previously couldn't designate a cache > 2GB (because of
   integer overflow issues).
 * ImageCache::get_image_info and TextureSystem::get_texture_info now respond
-  to a new "exists" query that merely tests for existance of the file. (0.8.1)
+  to a new "exists" query that merely tests for existence of the file. (0.8.1)
 * ImageCache/TextureSystem fix for a threading logic bug that could potentially
   lead to a deadlock (and definitely led to hitting a DASSERT when compiled
   for DEBUG mode). (0.8.1)
@@ -414,7 +414,7 @@ Fixes, minor enhancements, and performance improvements:
   windows or overscan).  (r1332)
 * IC/TS: Correctly invalidate files afected by recently changed "automip"
   setting. (r1337)
-* IC/TS: fix crash that could occur with non-existant textures in combination
+* IC/TS: fix crash that could occur with non-existent textures in combination
   with invalidate_all(). (r1338)
 * Make create() error messages more helpful. (0.7.1)
 
@@ -597,7 +597,7 @@ Features:
 * API changes: 
     - Replaced ParamBaseType/ParamType with TypeDesc.  
     - ImageSpec: add full_{x,y,z} fields.
-    - Changed ImageInput/ImageOutput create(), open(), and suports() to
+    - Changed ImageInput/ImageOutput create(), open(), and supports() to
       take std::string instead of char* (r297)
     - Added ImageOutput::copy_image (r428)
     - TypeDesc - distinguish COLOR from NOXFORM. (r466)

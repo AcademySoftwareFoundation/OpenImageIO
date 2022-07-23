@@ -58,7 +58,7 @@ Example::
 
 .. describe:: -l
 
-    Simply list the matching files by name, surpressing the normal output
+    Simply list the matching files by name, suppressing the normal output
     that would include the metadata name and values that matched. For
     example::
 

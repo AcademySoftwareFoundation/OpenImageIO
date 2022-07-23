@@ -127,7 +127,7 @@ private:
 
 
 
-// Obligatory material to make this a recognizeable imageio plugin:
+// Obligatory material to make this a recognizable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageInput*
@@ -221,7 +221,7 @@ RLAInput::seek_subimage(int subimage, int miplevel)
         return true;  // already on the right level
 
     // RLA images allow multiple subimages; they are simply concatenated
-    // together, wth image N's header field NextOffset giving the
+    // together, with image N's header field NextOffset giving the
     // absolute offset of the start of image N+1.
     int diff = subimage - current_subimage();
     if (subimage - current_subimage() < 0) {

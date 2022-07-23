@@ -182,7 +182,7 @@ Fixes and feature enhancements:
 * ImageInput / ImageOutput:
     - Protected methods that make it easier to implement support for IOProxy
       in image readers and writers. #3231 (2.4.0)
-    - Fix crash when ioproxy is passed to a plugin that doesn't suppport it.
+    - Fix crash when ioproxy is passed to a plugin that doesn't support it.
       #3453 (2.4.2)
 * ImageBuf / ImageBufAlgo:
     - Fix ImageBuf::read bug for images of mixed per-channel data types. #3088
@@ -860,7 +860,7 @@ New (non-compatibility-breaking) features:
   which looks MUCH better (beware slightly changed appearance); `IBA::noise()`
   and `oiiotool --noise` now take "blue" as a noise name, giving a blue noise
   pattern; `IBA::bluenoise_image()` returns a reference to a stored periodic
-  blue noise iamge; `oiiotool -d` now lets you ask for "uint6", "uint4",
+  blue noise image; `oiiotool -d` now lets you ask for "uint6", "uint4",
   "uint2", and "uint1" bit depths, for formats that support them. #3141
 * New global OIIO attribute `"try_all_readers"` can be set to 0 if you want to
   override the default behavior and specifically NOT try any format readers
@@ -1216,7 +1216,7 @@ Fixes and feature enhancements:
       #2989 (2.3.5/2.2.16)
 * GIF
     - Support UTF-8 filenames on Windows for GIF files. #2777 (2.3.2.0)
-    - Fix error checking for non-existant GIF files. #2886 (2.3.3)
+    - Fix error checking for non-existent GIF files. #2886 (2.3.3)
 * HEIC
     - Fix error decoding Apple HEIF files. #2794/#2809 (2.3.2.0)
     - Better valid_file() check for HEIF. #2810 (2.3.2.0)
@@ -1638,7 +1638,7 @@ Release 2.2.14 (1 May 2021) -- compared to 2.2.13
 Release 2.2.13 (1 Apr 2021) -- compared to 2.2.12
 --------------------------------------------------
 * Get ready for upcoming Imath/OpenEXR 3.0 release. #2883 #2894 #2897
-* GIF: Fix error checking for non-existant GIF files. #2886
+* GIF: Fix error checking for non-existent GIF files. #2886
 * Fix crash related to ImageBuf:set_write_format() when used in conjunction
   with a file format that doesn't support per-channel data types. #2885
 * Make RAW files handle Unicode filenames on Windows. #2888
@@ -2473,7 +2473,7 @@ Public API changes:
 
   See the documentation about "Attribute Delegates" for more information,
   or the new header `attrdelegate.h`. #2204 (2.1.1) #2297 (2.1.3)
-* ImageSpec::find_attribute now will retrive "datawindow" and "displaywindow"
+* ImageSpec::find_attribute now will retrieve "datawindow" and "displaywindow"
   (type int[4] for images int[6] for volumes) giving the OpenEXR-like bounds
   even though there is no such named metadata for OIIO (the results will
   assembled from x, y, width, height, etc.). #2110 (2.1.0/2.0.4)
@@ -3181,7 +3181,7 @@ Release 2.0.4 (Jan 5, 2019) -- compared to 2.0.3
 * IBA::channel_append() previously always forced its result to be float, if
   it wasn't previously initialized. Now it uses the uaual type-merging
   logic, making the result the "widest" type of the inputs. #2095
-* ImageSpec::find_attribute now will retrive "datawindow" and "displaywindow"
+* ImageSpec::find_attribute now will retrieve "datawindow" and "displaywindow"
   (type int[4] for images int[6] for volumes) giving the OpenEXR-like bounds
   even though there is no such named metadata for OIIO (the results will
   assembled from x, y, width, height, etc.). #2110
@@ -3470,7 +3470,7 @@ Fixes and feature enhancements:
       enough to trigger a loop over those frame numbers, even if no other
       arguments appear to have wildcard structure. #1894 (1.8.10/1.9.2)
     * `--info -v` now prints metadata in sorted order, making it easier to
-      spot the existance of particular metadata. #1982 (1.9.4)
+      spot the existence of particular metadata. #1982 (1.9.4)
     * `--no-autopremult` fixed, it wasn't working properly for cases that
       were read directly rather than backed by ImageCache. #1984 (1.9.4)
     * New `--contrast` allows for contrast remapping (linear or sigmoidal).
@@ -3660,7 +3660,7 @@ Build/test system improvements and platform ports:
     * TextureSystem stats are printed as well as ImageCache. #1840 (1.9.2)
 * iv no longer requires GLEW, using QOpenGLFunctions instead. #1840 (1.9.2)
 * DICOM: Fix dcmtk build errors on some platforms. Also, the minimum dcmtk
-  version we suport is 3.6.1. #1843 (1.9.2/1.8.8)
+  version we support is 3.6.1. #1843 (1.9.2/1.8.8)
 * Build fixes for Hurd OS. #1850 (1.9.2/1.8.8)
 * Clean up leak sanitizer errors. #1855 (1.9.2)
 * On Unix/Linux, add explicit DL library dependency to libOpenImageIO.so
@@ -3810,7 +3810,7 @@ Developer goodies / internals:
     * `parse_string()` - fix bugs that would fail for escaped quotes within
       the string. #2386 (2.1.8)
 * thread.h:
-    * Reimplementaiton of `spin_rw_mutex` has much better performance when
+    * Reimplementation of `spin_rw_mutex` has much better performance when
       many threads are accessing at once, especially if most of them are
       reader threads. #1787 (1.9.0)
     * task_set: add wait_for_task() method that waits for just one task in

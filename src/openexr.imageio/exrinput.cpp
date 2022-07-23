@@ -89,7 +89,7 @@ public:
         , m_io(io)
     {
         if (!io || io->mode() != Filesystem::IOProxy::Read)
-            throw Iex::IoExc("File intput failed.");
+            throw Iex::IoExc("File input failed.");
     }
     virtual bool read(char c[], int n) override
     {
@@ -263,7 +263,7 @@ private:
 
 
 
-// Obligatory material to make this a recognizeable imageio plugin:
+// Obligatory material to make this a recognizable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageInput*
@@ -378,7 +378,7 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
     if (param)
         m_io = param->get<Filesystem::IOProxy*>();
 
-    // Quick check to immediately reject nonexistant or non-exr files.
+    // Quick check to immediately reject nonexistent or non-exr files.
     if (!m_io && !Filesystem::is_regular(name)) {
         errorf("Could not open file \"%s\"", name);
         return false;

@@ -83,7 +83,7 @@ private:
 
 
 
-// Obligatory material to make this a recognizeable imageio plugin:
+// Obligatory material to make this a recognizable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageInput*
@@ -464,13 +464,13 @@ DPXInput::seek_subimage(int subimage, int miplevel)
                                      m_dpx.header.userBits };
         m_spec.attribute("smpte:TimeCode", TypeTimeCode, timecode);
 
-        // This attribute is dpx specific and is left in for backwards compatability.
+        // This attribute is dpx specific and is left in for backwards compatibility.
         // Users should utilise the new smpte:TimeCode attribute instead
         Imf::TimeCode tc(m_dpx.header.timeCode, m_dpx.header.userBits);
         m_spec.attribute("dpx:TimeCode", get_timecode_string(tc));
     }
 
-    // This attribute is dpx specific and is left in for backwards compatability.
+    // This attribute is dpx specific and is left in for backwards compatibility.
     // Users should utilise the new smpte:TimeCode attribute instead
     if (m_dpx.header.userBits != 0xFFFFFFFF)
         m_spec.attribute("dpx:UserBits", m_dpx.header.userBits);

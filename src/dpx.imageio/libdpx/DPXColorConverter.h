@@ -116,7 +116,7 @@ namespace dpx
 	* \param compSize component data storage data type of the target pixel format
 	* \param cmetr colorimetric of the target pixel format
 	* \param input input buffer data; can be same as output if \ref QueryNativeBufferSize returns a negative number
-	* \param output output buffer data; can be same as intput if \ref QueryNativeBufferSize returns a negative number
+	* \param output output buffer data; can be same as input if \ref QueryNativeBufferSize returns a negative number
 	* \param block image area (used only for calculating the amount of pixels,
 	* not an offset into the buffer)
 	* \return success true/false

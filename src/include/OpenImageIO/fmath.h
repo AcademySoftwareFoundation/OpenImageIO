@@ -349,7 +349,7 @@ clamp (const T& a, const T& low, const T& high)
 {
 #if 1
     // This looks clunky, but it generates minimal code. For float, it
-    // should result in just a max and min instruction, thats it.
+    // should result in just a max and min instruction, that's it.
     // This implementation is courtesy of Alex Wells, Intel, via OSL.
     T val = a;
     if (!(low <= val))  // Forces clamp(NaN,low,high) to return low
@@ -410,7 +410,7 @@ clamp (const simd::vint16& a, const simd::vint16& low, const simd::vint16& high)
 
 
 
-// For the multply+add (or sub) operations below, note that the results may
+// For the multiply+add (or sub) operations below, note that the results may
 // differ slightly on different hardware, depending on whether true fused
 // multiply and add is available or if the code generated just does an old
 // fashioned multiply followed by a separate add. So please interpret these
@@ -1254,7 +1254,7 @@ bit_range_convert(unsigned int in, unsigned int FROM_BITS, unsigned int TO_BITS)
 
 
 
-/// Append the `n` LSB bits of `val` into a bit sting `T out[]`, where the
+/// Append the `n` LSB bits of `val` into a bit string `T out[]`, where the
 /// `filled` MSB bits of `*out` are already filled in. Increment `out` and
 /// adjust `filled` as required. Type `T` should be uint8_t, uint16_t, or
 /// uint32_t.
@@ -1671,7 +1671,7 @@ OIIO_FORCEINLINE OIIO_HOSTDEVICE int fast_rint (float x) {
     // single roundps instruction on SSE4.1+ (for gcc/clang at least)
     return static_cast<int>(std::rint(x));
 #else
-    // emulate rounding by adding/substracting 0.5
+    // emulate rounding by adding/subtracting 0.5
     return static_cast<int>(x + copysignf(0.5f, x));
 #endif
 }

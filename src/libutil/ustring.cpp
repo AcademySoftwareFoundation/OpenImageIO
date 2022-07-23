@@ -181,7 +181,7 @@ private:
 
     char* pool_alloc(size_t len)
     {
-        // round up to nearest multiple of pointer size to guarentee proper alignment of TableRep objects
+        // round up to nearest multiple of pointer size to guarantee proper alignment of TableRep objects
         len = (len + alignof(ustring::TableRep) - 1)
               & ~(alignof(ustring::TableRep) - 1);
 
@@ -259,7 +259,7 @@ struct UstringTable {
 
 private:
     enum {
-        // NOTE: this guarentees NUM_BINS is a power of 2
+        // NOTE: this guarantees NUM_BINS is a power of 2
         BIN_SHIFT = 12,
         NUM_BINS  = 1 << BIN_SHIFT,
         TOP_SHIFT = 8 * sizeof(size_t) - BIN_SHIFT
@@ -388,7 +388,7 @@ ustring::TableRep::TableRep(string_view strref, size_t hash)
     // It turns out that the first field of a gcc std::string is a pointer
     // to the characters within the basic_string::_Rep.  We merely redirect
     // that pointer, though for std::string to function properly, the chars
-    // must be preceeded immediately in memory by the rest of
+    // must be preceded immediately in memory by the rest of
     // basic_string::_Rep, consisting of length, capacity and refcount
     // fields.  And we have designed our TableRep to do just that!  So now
     // we redirect the std::string's pointer to our own characters and its
@@ -417,7 +417,7 @@ ustring::TableRep::TableRep(string_view strref, size_t hash)
     // allocations to be had for short strings, so we just let those behave
     // as normal.  But if it's going to make a long string (we can tell from
     // the length), we construct it ourselves, forcing the pointer to point
-    // to the charcters in the TableRep we allocated.
+    // to the characters in the TableRep we allocated.
     if (length >= libcpp_string__min_cap /* it'll be a "long string" */) {
         ((libcpp_string__long*)&str)->__cap_ = libcpp_string__long_mask
                                                | (length + 1);
@@ -543,7 +543,7 @@ ustring::make_unique(string_view strref)
             result = rev->second;
             break;
         }
-        // Rehash, but keep the bin bits identical so we alwasy rehash into
+        // Rehash, but keep the bin bits identical so we always rehash into
         // the same (locked) bin.
         hash = (hash & binmask)
                | (farmhash::Fingerprint(hash) & rm.nobin_mask());

@@ -154,7 +154,7 @@ TermOutput::output()
     // Try to figure out how big an image we can display
     int w = m_buf.spec().width;
     int h = m_buf.spec().height;
-    // iTerm2 is special, see bellow
+    // iTerm2 is special, see below
     int maxw     = (method == "iterm2") ? Sysutil::terminal_columns() * 16
                                         : Sysutil::terminal_columns();
     float yscale = (method == "iterm2" || method == "24bit") ? 1.0f : 0.5f;

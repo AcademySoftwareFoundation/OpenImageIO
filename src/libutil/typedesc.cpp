@@ -231,9 +231,9 @@ TypeDesc::c_str() const
 
 
 
-// Copy src into dst until you hit the end, find a delimiter charcter,
+// Copy src into dst until you hit the end, find a delimiter character,
 // or have copied maxlen-1 characters, whichever comes first.  Add a
-// terminating null charcter.  Return the number of characters copied.
+// terminating null character.  Return the number of characters copied.
 inline size_t
 copy_until(const char* src, const char* delim, char* dst, size_t maxlen)
 {
@@ -788,7 +788,7 @@ convert_type(TypeDesc srctype, const void* src, TypeDesc dsttype, void* dst,
     }
     if (dsttype == TypeInt && srctype == TypeString) {
         // Only succeed for a string if it exactly holds something that
-        // excatly parses to an int value.
+        // exactly parses to an int value.
         string_view str(((const char**)src)[0]);
         int val = 0;
         if (Strutil::parse_int(str, val) && str.empty()) {
@@ -817,7 +817,7 @@ convert_type(TypeDesc srctype, const void* src, TypeDesc dsttype, void* dst,
     }
     if (dsttype == TypeFloat && srctype == TypeString) {
         // Only succeed for a string if it exactly holds something that
-        // excatly parses to a float value.
+        // exactly parses to a float value.
         string_view str(((const char**)src)[0]);
         float val = 0;
         if (Strutil::parse_float(str, val) && str.empty()) {

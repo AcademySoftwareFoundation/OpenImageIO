@@ -751,7 +751,7 @@ main(int argc, char* argv[])
     benchmark_convert_type<half, float>();
     benchmark_convert_type<float, half>();
     benchmark_convert_type<float, float>();
-    // convertion to a type smaller in bytes causes error
+    // conversion to a type smaller in bytes causes error
     //    std::cout << "round trip convert float/short/float\n";
     //    test_convert_type<float,short> ();
     //    std::cout << "round trip convert unsigned float/char/float\n";

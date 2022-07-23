@@ -29,7 +29,7 @@ const uint32_t RGBA    = RGB | ALPHA;
 const uint32_t ZBUFFER = 0x00000004;
 const uint32_t BLACK   = 0x00000010;
 
-// store informations about IFF file
+// store information about IFF file
 class IffFileHeader {
 public:
     // reads information about IFF file

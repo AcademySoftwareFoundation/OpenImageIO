@@ -50,11 +50,11 @@ integrating OIIO into their applications.  But we like them, feel that
 they are pretty useful, and so distribute them so that OIIO users may
 rely on them in their own apps.
 
-\li \ref argparse.h : The ArgParse class that privides a really
+\li \ref argparse.h : The ArgParse class that provides a really
     simple way to parse command-line arguments.
 \li \ref dassert.h : Handy assertion macros.
 \li errorhandler.h : An ErrorHandler class.
-\li \ref filesystem.h : Platform-independent utilties for handling file
+\li \ref filesystem.h : Platform-independent utilities for handling file
     names, etc.
 \li \ref fmath.h : Lots of numeric utilities.
 \li \ref hash.h : Definitions helpful for using hash maps and hash functions.

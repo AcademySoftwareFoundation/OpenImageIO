@@ -296,7 +296,7 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
     ap.arg("--cdfsigma %f:N", &cdfsigma)
       .help("Specify the Gaussian sigma parameter when writing the forward and inverse Gaussian CDF data. The default vale is 1/6 (0.1667)");
     ap.arg("--cdfbits %d:N", &cdfbits)
-      .help("Specify the number of bits used to store the forward and inverse Guassian CDF. The default value is 8 bits");
+      .help("Specify the number of bits used to store the forward and inverse Gaussian CDF. The default value is 8 bits");
 
     ap.separator("Basic modes (default is plain texture):");
     ap.arg("--shadow", &shadowmode)

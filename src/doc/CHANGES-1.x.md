@@ -109,7 +109,7 @@ Release 1.8.8 (1 Feb 2018) -- compared to 1.8.7
 * zfile: more careful gzopen on Windows that could crash when given bogus
   filename. #1839
 * DICOM: Fix dcmtk build errors on some platforms. Also, the minimum dcmtk
-  version we suport is 3.6.1. #1843
+  version we support is 3.6.1. #1843
 * simd.h: Minor fixes especially for avx512. #1846
 * iv: Drop GLEW and obsolete GL stuff from iv in favor of QOpenGLFunctions,
   and fix broken pixelview text rendering. #1834
@@ -296,7 +296,7 @@ Fixes, minor enhancements, and performance improvements:
      exit with a non-zero shell status. #1540 (1.8.0)
    * `--colorconvert`, `--ociodisplay`, and `--ociolook` can now take
      multiple context key/value pairs (by allowing `key=` and `value=`
-     optional paramters be comma-separated lists). #1504 (1.8.0)
+     optional parameters be comma-separated lists). #1504 (1.8.0)
    * Handle 'oiiotool --colorconvert X X' (transform from and to spaces that
      are the same) without considering it an error. #1550 (1.8.0/1.7.8)
    * Expression substitution now recognizes the following new metadata
@@ -363,7 +363,7 @@ Fixes, minor enhancements, and performance improvements:
      subimage name, if available. #1498 (1.8.0/1.7.8)
    * `colorconvert()`, `ociodisplay()`, and `ociolook()` can now take
      multiple context key/value pairs (by allowing they `context_key` and
-     `context_value` paramters be comma-separated lists). #1504 (1.8.0)
+     `context_value` parameters be comma-separated lists). #1504 (1.8.0)
    * `draw_rectangle()` (and `oiiotool --box`) wasn't drawing properly for
      the degenerate case of a rectangle that takes up just one
      pixel. #1601 (1.8.2)
@@ -620,8 +620,8 @@ Developer goodies / internals:
      incorrect results for exact negative integer values. Also added
      simd vector-based versions of `floorfrac`. #1766 (1.8.5)
 * paramlist.h:
-   * ParamValueList has been refactored and now inherets from, rather than
-     containts, a `std::vector<ParamValue>`. This removes most of the
+   * ParamValueList has been refactored and now inherits from, rather than
+     contains, a `std::vector<ParamValue>`. This removes most of the
      additional code from the class. #1677 (1.8.4)
    * ParamValue new methods: `get<>()`, `get_int()`, `get_float()`,
      `get_string()`, `get_ustring()` retrieve and convert. #1686 (1.8.4)
@@ -632,7 +632,7 @@ Developer goodies / internals:
      `ImageIOParameterList` in favor of `ParamValue` and `ParamValueList`,
      respectively. #1690 (1.8.4)
 * platform.h:
-   * More `cpu_has_...()` tests for newer CPU capabilties. #1719 (1.8.5)
+   * More `cpu_has_...()` tests for newer CPU capabilities. #1719 (1.8.5)
    * Remove deprecated OIIO_NOTHROW macro, which should now simply be
      C++11 `noexcept`. #1736 (1.8.5)
 * strutil.h / Strutil:
@@ -724,7 +724,7 @@ Release 1.7.16 (1 Aug 2017) -- compared to 1.7.15
   wrong order. #1717
 * TIFF: images with fewer than 4 channels, but one of those channels was
   alpha, were not correctly marking their spec.alpha_channel. #1718
-* Several minor updates to simd.h backported from mater.
+* Several minor updates to simd.h backported from master.
 
 Release 1.7.15 (1 Jun 2017) -- compared to 1.7.14
 -------------------------------------------------
@@ -973,7 +973,7 @@ Fixes, minor enhancements, and performance improvements:
       reporting of pixels where all channels are black. Also fixed errors
       for dumpdata of deep, but non-float, files. #1355 (1.7.2/1.6.11)
     * '--attrib:type=t name value' lets you explicitly name the top of
-      the attribute you're seting. This helps for ambiguous cases, and also
+      the attribute you're setting. This helps for ambiguous cases, and also
       lets you create aggregate types (such as 'matrix' or 'int[2]' --
       the value can be a comma-separated list in those cases). #1351 (1.7.2)
     * --fixnan can now take option "error", meaning that upon finding a
@@ -1152,7 +1152,7 @@ Fixes, minor enhancements, and performance improvements:
       if they are identical to existing ImageDescription and Software
       metadata, respectively. (1.7.0/1.6.9)
     * Output: "tiff:zipquality" attribute controls time-vs-quality for
-      ZIP compression (1-9, defualt 6, higher means more compression).
+      ZIP compression (1-9, default 6, higher means more compression).
       #1295 (1.7.1)
     * Fix typo that made TIFF files incorrectly name color space metadata
       "oiio::ColorSpace" instead of "oiio:ColorSpace". #1394 (1.7.2)
@@ -1192,7 +1192,7 @@ Build/test system improvements:
    can optionally allow skipping the IB iteration tests, and can set the
    IC tile cache size. #1323 (1.7.1)
  * Fix build breaks for gcc 6. #1339 (1.7.2/1.6.11) #1436 (1.7.3/1.6.15)
- * Fix errors in finding the correct locaiton of pugixml.hpp when using
+ * Fix errors in finding the correct location of pugixml.hpp when using
    USE_EXTERNAL_PUGIXML=1. #1339 (1.7.2/1.6.11)
  * Rewrite of FindOpenEXR.cmake. Solves many problems and is simpler.
    No more FindIlmbase.cmake at all. #1346 (1.7.2/1.6.11)
@@ -1276,7 +1276,7 @@ Developer goodies / internals:
    #1451 (1.7.4/1.6.16); terminal_columns() now has a correct implementation
    on Windows #1460 (1.7.5); max_open_files() retrieves the maximum number
    of files the process may open simultaneously #1457 (1.7.5).
- * platform.h: better distinguishing beteen Apple and Generic clang,
+ * platform.h: better distinguishing between Apple and Generic clang,
    separately set OIIO_CLANG_VERSION and OIIO_APPLE_CLANG_VERSION. Also change
    OIIO_GNUC_VERSION to 0 for clang, only nonzero for true gcc. #1380 (1.7.2)
  * ImageCache: remove unused shadow matrix fields, save space. #1424 (1.7.3)
@@ -1377,7 +1377,7 @@ Release 1.6.11 (released 1 Mar 2016 -- compared to 1.6.10)
   to end up with NaNs due to numerical imprecision. #1333
 * Less unnecessary pausing after read errors when falure_retries == 0.
   #1336
-* Fix errors in finding the correct locaiton of pugixml.hpp when using
+* Fix errors in finding the correct location of pugixml.hpp when using
   USE_EXTERNAL_PUGIXML=1. #1339
 * Fix build breaks for gcc 6. #1339
 * GIF reader failed to set spec full_width, full_height. #1348
@@ -1459,7 +1459,7 @@ Major new features and improvements:
       considered depcrected. #1030 (1.6.0)
     * --pattern supports new patterns: "fill" makes a solid, vertical or
        horizontal gradient, or four-corner interpolated image (just like
-       the --fill commmand) (1.6.0); "noise" can generate uniform, gaussian,
+       the --fill command) (1.6.0); "noise" can generate uniform, gaussian,
        or salt & pepper noise (1.6.2).
     * --fill, in addition to taking optional parameter color=... to give a
       solid color for the fill region, now also takes top=...:bottom=... to
@@ -1693,7 +1693,7 @@ Fixes, minor enhancements, and performance improvements:
     * colorconvert() has been parallelized, and thus on most systems will
       now run much faster. (1.6.3)
     * render_text() handles UTF-8 input. #1121 (1.6.3)
-    * colorconvert(), ociodisplay(), and ociolook() have new varities that
+    * colorconvert(), ociodisplay(), and ociolook() have new varieties that
       accept an optional ColorConfig, rather than having no choice but to
       construct a new one internally. (1.6.3)
     * nonempty_region() and crop() have been extended to handle "deep"
@@ -2758,7 +2758,7 @@ Fixes, minor enhancements, and performance improvements:
   and copy construction. (#829) (1.4.5/1.3.13)
 * Fix ImageBufAlgo::circular_shift (and oiiotool --cshift) that did not
   wrap correctly for negative shifts. (#832) (1.4.5/1.3.13)
-* The "gaussian" flter incorrectly had default width 2 (correct = 3),
+* The "gaussian" fllter incorrectly had default width 2 (correct = 3),
   and the "mitchell" filter incorrect had default width 3 (correct = 4).
   These were bugs/typos, the new way is correct. If you were using those
   filters in ways that used the default width value, appearance may change
@@ -3057,7 +3057,7 @@ Fixes, minor enhancements, and performance improvements:
 * PSD: fix handling of associated vs unassociated alpha. (1.2.3)
 * maketx fixed to handle inputs that are a mixture of cropped and
   overscanned. (1.3.5)
-* Fix segfault if OCIO is set to a non-existant file. (1.3.6)
+* Fix segfault if OCIO is set to a non-existent file. (1.3.6)
 * Slight performance increase when writing images to disk (1.3.6)
 * Many fixes to make OIIO compile with libc++ (clang's new C++ library,
   and the default on OSX Mavericks). (1.2.3/1.3.6, 1.3.7)
@@ -3231,7 +3231,7 @@ Major new features and improvements:
 * Field3D writer (it could read f3d files before, but not write them).
 * idiff can now compare that are not the same size (treating pixels
   beyond the pixel data window is being 0 valued).
-* maketx --lightprobe turns a "lightprobe" iamge into a latlong environment
+* maketx --lightprobe turns a "lightprobe" image into a latlong environment
   map.
 * Significant improvements and fixes to EXIF, IPTC, and XMP metadata
   reading and writing.
@@ -3769,7 +3769,7 @@ Fixes, minor enhancements, and performance improvements:
     unassociated alpha.
   - Option --monochrome-detect was buggy for images with alpha.
   - Option --constant-color-detect didn't do anything; now it works.
-  - New option: --compression allows you to override the default compresion.
+  - New option: --compression allows you to override the default compression.
 * oiiotool & info: the --hash command had a bug wherein when applied to
   images there were MIP-mapped, would hash the lowest-res MIP level rather
   than the highest-res.  This could result in two different images, if
@@ -3979,7 +3979,7 @@ API changes:
    windows, "negativeorigin" queries whether data origin or full/display
    origin may be negative.
  * TextureSystem and ImageCache now accept attribute "options", that is a
-   comma-separated list of name=value setings (e.g.
+   comma-separated list of name=value settings (e.g.
    "max_memory_MB=256,max_files=1000").  Also, upon startup, the environment
    variables OPENIMAGEIO_TEXTURE_OPTIONS and OPENIMAGEIO_IMAGECACHE_OPTIONS
    are parsed for these startup values.

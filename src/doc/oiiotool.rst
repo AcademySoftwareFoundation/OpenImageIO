@@ -1169,7 +1169,7 @@ These are all non-positional flags that affect how all images are read in the
         channel, the image will first be unpremultiplied by alpha, then
         color transformed, then re-premultipled by alpha, so that the
         color transformation is done with unassociated color values. The
-        default is 0, meanining that the color transformation will be done
+        default is 0, meaning that the color transformation will be done
         directly on the associated color values.
 
     Example:
@@ -1177,7 +1177,7 @@ These are all non-positional flags that affect how all images are read in the
         If the input file `in_lg10.dpx` is in the `lg10` color space,
         and you want to read it in, brighten the RGB uniformly by 10% (in a linear
         space, of course), and then save it as a 16 bit integer TIFF file encoded
-        in the `vd16` color space, you could specifiy the conversions
+        in the `vd16` color space, you could specify the conversions
         explicitly::
 
             oiiotool in_lg10.dpx --colorconvert lg10 linear \
@@ -2287,7 +2287,7 @@ current top image.
     
     For `--addc`, if a single constant value is given, it will be added to
     all color channels. Alternatively, a series of comma-separated constant
-    values (with no spaces!) may be used to specifiy a different value to
+    values (with no spaces!) may be used to specify a different value to
     add to each channel in the image.
 
     Optional appended modifiers include:
@@ -2321,7 +2321,7 @@ current top image.
     
     For `--subc`, if a single constant value is given, it will be subtracted
     from all color channels. Alternatively, a series of comma-separated
-    constant values (with no spaces!) may be used to specifiy a different
+    constant values (with no spaces!) may be used to specify a different
     value to subtract from each channel in the image.
 
     Optional appended modifiers include:
@@ -2340,7 +2340,7 @@ current top image.
     
     For `--mulc`, if a single constant value is given, it will be multiplied
     to all color channels. Alternatively, a series of comma-separated
-    constant values (with no spaces!) may be used to specifiy a different
+    constant values (with no spaces!) may be used to specify a different
     value to multiply with each channel in the image.
     
     Optional appended modifiers include:
@@ -2374,7 +2374,7 @@ current top image.
     For `--divc`, if a single constant value is given, all color channels
     will have their values divided by the same value.  Alternatively, a
     series of comma-separated constant values (with no spaces!) may be used
-    to specifiy a different multiplier for each channel in the image,
+    to specify a different multiplier for each channel in the image,
     respectively.
 
     Optional appended modifiers include:
@@ -2461,7 +2461,7 @@ current top image.
     Raise all the pixel values in the top image to a constant power value.
     If a single constant value is given, all color channels will have their
     values raised to this power.  Alternatively, a series of comma-separated
-    constant values (with no spaces!) may be used to specifiy a different
+    constant values (with no spaces!) may be used to specify a different
     exponent for each channel in the image, respectively.
 
     Optional appended modifiers include:
@@ -2480,7 +2480,7 @@ current top image.
     values given by options `:min=` and `:max=` (defaults: 0 and 0.1); (3)
     `blue` is also uniformly distributed between `:min=` and `:max=`
     (defaults: 0 and 0.1), but rather than independent values, low frequencies
-    are supressed; (4) `salt` for "salt and pepper" noise where a portion of
+    are suppressed; (4) `salt` for "salt and pepper" noise where a portion of
     pixels given by  option `portion=` (default: 0.1) is replaced with value
     given by option `value=` (default: 0).
     
@@ -2697,7 +2697,7 @@ current top image.
 
     Takes two images -- the first is the "foreground" and the second is the
     "background" -- and uses the pixels of the foreground to replace those
-    of the backgroud, with foreground pixel (0,0) being pasted to the
+    of the background, with foreground pixel (0,0) being pasted to the
     background at the *location* specified (expressed as `+xpos+ypos`, e.g.,
     `+100+50`, or of course using `-` for negative offsets). Only pixels
     within the actual data region of the foreground image are pasted in this
@@ -3628,7 +3628,7 @@ current top image.
 
     For `--maxc` and `--minc`, if a single constant value is given, it will
     be used for all color channels. Alternatively, a series of
-    comma-separated constant values (with no spaces) may be used to specifiy
+    comma-separated constant values (with no spaces) may be used to specify
     a different value to add to each channel in the image.
 
     Optional appended modifiers include:
@@ -3640,7 +3640,7 @@ current top image.
 
         oiiotool imageA.tif imageB.tif --min -o minimum.tif
 
-        # Clamp all channels to a mimimum of 0 (all negative values are
+        # Clamp all channels to a minimum of 0 (all negative values are
         # changed to 0).
         oiiotool input.exr --minc 0.0 -o nonegatives.exr
 
@@ -3668,7 +3668,7 @@ current top image.
     
     Examples:
     
-    - `--clamp:min=0` : Clamp all channels to a mimimum of 0 (all negative
+    - `--clamp:min=0` : Clamp all channels to a minimum of 0 (all negative
       values are changed to 0).
     - `--clamp:min=0:max=1` : Clamp all channels to [0,1].
     - `--clamp:clampalpha=1` : Clamp the designated alpha channel to [0,1].
@@ -4289,7 +4289,7 @@ General commands that also work for deep images
 
 .. option:: --paste <position>
 
-    Replace one image's pixels with another's (at an arbitary offset).
+    Replace one image's pixels with another's (at an arbitrary offset).
 
     (This functionality was extended to deep images in OIIO 2.1.)
 

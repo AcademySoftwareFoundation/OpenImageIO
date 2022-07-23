@@ -849,7 +849,7 @@ namespace cineon
 		inline void			SetXDevicePitch(const R32 size);
 
 		/*!
-		 * \brief Get the veritcal pitch of the device
+		 * \brief Get the vertical pitch of the device
 		 * \return pitch in samples/mm
 		 */
 		inline R32			YDevicePitch() const;

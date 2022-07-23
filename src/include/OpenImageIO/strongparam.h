@@ -17,7 +17,7 @@ OIIO_NAMESPACE_BEGIN
 /// the basetype, but requires explicit conversion FROM the basetype.
 ///
 /// The problem this is meant to address is that you may have a function
-/// that has multiple bool, int, or float paramters, particularly if they
+/// that has multiple bool, int, or float parameters, particularly if they
 /// are adjacent in the call signature. This is extremely error prone. For
 /// example, suppose you have
 ///

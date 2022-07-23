@@ -445,7 +445,7 @@ handle_orientation(int orientation, int width, int height, float& scale_x,
         point_x = width - point_x;
         if (pixel)
             // We want to access the pixel at (point_x,pointy), so we have to
-            // substract 1 to get the right index.
+            // subtract 1 to get the right index.
             --point_x;
         break;
     case 3:  // bottom up, right to left (rotated 180).

@@ -20,7 +20,7 @@
 #     libraries on the OpenColorIO::OpenColorIO target.
 #   - OPENCOLORIO_NO_CONFIG - if ON, this module will be used even if an
 #     OCIO >= 2.1 cmake config is found. If OFF (the default), a config file
-#     will be perferred if found.
+#     will be preferred if found.
 #
 # OpenColorIO 2.1 exports proper cmake config files on its own.
 # Once OCIO 2.1 is our new minimum, this FindOpenColorIO.cmake will

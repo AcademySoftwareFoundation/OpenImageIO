@@ -235,7 +235,7 @@ WebpInput::read_subimage(int subimage, bool read)
     if (!read)
         return iter_to_subimage(subimage);
 
-    // If we're pointing to (and have read) the imediately previous frame,
+    // If we're pointing to (and have read) the immediately previous frame,
     // catch up.
     if (m_subimage == subimage - 1 && m_subimage_read == subimage - 1) {
         if (!iter_to_subimage(subimage))
@@ -370,7 +370,7 @@ WebpInput::close()
 
 }  // namespace webp_pvt
 
-// Obligatory material to make this a recognizeable imageio plugin
+// Obligatory material to make this a recognizable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT int webp_imageio_version = OIIO_PLUGIN_VERSION;

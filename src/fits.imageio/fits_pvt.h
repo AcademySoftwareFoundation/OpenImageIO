@@ -25,7 +25,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 namespace fits_pvt {
 
-// struct in which we store information about one subimage. This informations
+// struct in which we store information about one subimage. This information
 // allow us to set up pointer at the beginning of given subimage
 struct Subimage {
     int number;
@@ -63,10 +63,10 @@ private:
     int m_naxes;               // number of axes of the image (e.g dimensions)
     std::vector<int> m_naxis;  // axis sizes of each dimension
     fpos_t m_filepos;          // current position in the file
-    // here we store informations how many times COMMENT, HISTORY, HIERARCH
+    // here we store information how many times COMMENT, HISTORY, HIERARCH
     // keywords have occurred
     std::map<std::string, int> keys;
-    // here we store informations about subimages,
+    // here we store information about subimages,
     // eg. subimage number and subimage offset
     std::vector<fits_pvt::Subimage> m_subimages;
     // here we stores content of COMMENT, HISTORY, HIERARCH keywords. Each line

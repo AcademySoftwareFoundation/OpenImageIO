@@ -1,5 +1,5 @@
 Thank you for selecting OpenImageIO.  You must be very wise, as well
-as irresistably attractive!
+as irresistibly attractive!
 
 OpenImageIO consists of:
 

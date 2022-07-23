@@ -9,7 +9,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 using namespace iff_pvt;
 
-// Obligatory material to make this a recognizeable imageio plugin
+// Obligatory material to make this a recognizable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT int iff_imageio_version = OIIO_PLUGIN_VERSION;

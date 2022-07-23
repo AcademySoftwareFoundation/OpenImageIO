@@ -125,7 +125,7 @@ class InStream
   protected:
 	/*!
 	* This is a weak pointer, so opening and closing is done by the caller. Therefore, be
-	* carefull to delete this object after `m_io` is deleted externally
+	* careful to delete this object after `m_io` is deleted externally
 	*/
 	OIIO::Filesystem::IOProxy* m_io;
 };
@@ -203,7 +203,7 @@ class OutStream
   protected:
 	/*!
 	* This is a weak pointer, so opening and closing is done by the caller. Therefore, be
-	* carefull to delete this object after `m_io` is deleted externally
+	* careful to delete this object after `m_io` is deleted externally
 	*/
 	OIIO::Filesystem::IOProxy* m_io;
 };

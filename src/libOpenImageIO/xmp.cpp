@@ -469,7 +469,7 @@ decode_xmp_node(pugi::xml_node node, ImageSpec& spec, int level = 1,
             // This tag is nothing but trouble. Some images can have
             // literally MBs in them, placed there by Photoshop as the
             // result of certain cut-and-paste operations, but serving no
-            // discernable purpose. Just skip it.  See also:
+            // discernible purpose. Just skip it.  See also:
             // https://prepression.blogspot.com/2017/06/metadata-bloat-photoshopdocumentancestors.html
             // https://feedback.photoshop.com/conversations/photoshop/photoshop-corrupt-ancestors-tag-in-xmp-causing-giant-file-sizes/5f5f45f74b561a3d426ba97f
             continue;

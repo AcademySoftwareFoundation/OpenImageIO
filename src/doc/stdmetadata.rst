@@ -134,7 +134,7 @@ Color information
 
 .. option:: "oiio:ColorSpace" : string
 
-    The name of the color space of the color channels.  Values incude:
+    The name of the color space of the color channels.  Values include:
     
     - `"Linear"` :  Color pixel values are known to be scene-linear and
       using facility-default color primaries (presumed sRGB/Rec709 color
@@ -540,8 +540,8 @@ A sum of:
     0    no strobe return detection function
     4    strobe return light was not detected
     6    strobe return light was detected
-    8    compulsary flash firing
-    16   compulsary flash suppression
+    8    compulsory flash firing
+    16   compulsory flash suppression
     24   auto-flash mode
     32   no flash function (0 if flash function present)
     64   red-eye reduction supported (0 if no red-eye reduction mode)
@@ -734,7 +734,7 @@ A sum of:
 
 .. option:: "Exif:ImageUniqueID" : string
 
-    A unique identifier for the image, as 16 ASCII hexidecimal digits
+    A unique identifier for the image, as 16 ASCII hexadecimal digits
     representing a 128-bit number.
 
 
@@ -1056,7 +1056,7 @@ Extension conventions
 =====================
 
 To avoid conflicts with other plugins, or with any additional standard
-metadata names that may be added in future verions of OpenImageIO, it is
+metadata names that may be added in future versions of OpenImageIO, it is
 strongly advised that writers of new plugins should prefix their metadata
 with the name of the format, much like the `"Exif:"` and `"IPTC:"` metadata.
 

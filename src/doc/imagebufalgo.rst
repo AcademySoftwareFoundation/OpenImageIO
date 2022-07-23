@@ -113,7 +113,7 @@ For ImageBufAlgo functions that return an ImageBuf directly, or if their
 `dst` parameter is an uninitialized ImageBuf, the ROI (if set) determines
 the size of the result image. If the ROI is the default `All`, the result
 image size will be the union of the pixel data windows of the input images
-and have a data type determind by the data types of the input images.
+and have a data type determined by the data types of the input images.
 
 Most ImageBufAlgo functions also respect the `chbegin` and `chend` members
 of the ROI, thus restricting the channel range on which the operation is
@@ -1545,7 +1545,7 @@ Image arithmetic
 
           # Invert all channels of A, including alpha.
           # Because oiiotool --invert by default includes only the first
-          # 3 channels, we have to use optional modifers to include alpha.
+          # 3 channels, we have to use optional modifiers to include alpha.
           oiiotool a.exr --invert:chbegin=0:chend=3 -o inverse.exr
 
           # In this example, invert only the RGB channels (which is the default

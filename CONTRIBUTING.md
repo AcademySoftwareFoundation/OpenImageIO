@@ -113,7 +113,7 @@ the pull request URL and discussing any issues you think are important.
 
 6. All pull requests automatically launch CI jobs on GitHub Actions to
 ensure that the build completes and that the tests suite runs correctly, for
-a varity of platform, compiler, library, and flag combinations. The status
+a variety of platform, compiler, library, and flag combinations. The status
 of the CI tests for your PR will be displayed on the GitHub PR page. We will
 not accept PRs that don't build cleanly or pass the existing testsuite.
 

@@ -1027,7 +1027,7 @@ DeepData::split(int64_t pixel, float depth)
 
 namespace {
 
-// Comparitor functor for depth sorting sample indices of a deep pixel.
+// Comparator functor for depth sorting sample indices of a deep pixel.
 class SampleComparator {
 public:
     SampleComparator(const DeepData& dd, int pixel, int zchan, int zbackchan)

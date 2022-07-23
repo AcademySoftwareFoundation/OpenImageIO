@@ -403,7 +403,7 @@
 
 // OIIO_PURE_FUNC is a function attribute that assures the compiler that the
 // function does not write to any non-local memory other than its return
-// value and has no side effects. This can ebable additional compiler
+// value and has no side effects. This can enable additional compiler
 // optimizations by knowing that calling the function cannot possibly alter
 // any other memory. This declaration goes after the function declaration:
 //   int blah (int arg) OIIO_PURE_FUNC;

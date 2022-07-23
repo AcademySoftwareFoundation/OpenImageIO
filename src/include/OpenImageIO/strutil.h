@@ -725,7 +725,7 @@ int extract_from_list_string (std::vector<T, Allocator> &vals,
         if (nvals == 0)
             vals.push_back (v);
         else if (valuestrings[i].size()) {
-            if (vals.size() > i)  // don't replace non-existant entries
+            if (vals.size() > i)  // don't replace non-existent entries
                 vals[i] = from_string<T> (valuestrings[i]);
         }
         /* Otherwise, empty space between commas, so leave default alone */

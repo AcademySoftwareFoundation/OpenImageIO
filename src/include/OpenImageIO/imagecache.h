@@ -922,7 +922,7 @@ public:
     /// tile.
     virtual ROI tile_roi(const Tile* tile) const = 0;
 
-    /// For a tile retrived by `get_tile()`, return a pointer to the pixel
+    /// For a tile retrieved by `get_tile()`, return a pointer to the pixel
     /// data itself, and also store in `format` the data type that the
     /// pixels are internally stored in (which may be different than the
     /// data type of the pixels in the disk file).   This method should only

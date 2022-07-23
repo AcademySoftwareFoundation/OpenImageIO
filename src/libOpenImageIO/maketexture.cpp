@@ -1193,8 +1193,8 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
 
     if (configspec.get_int_attribute("maketx:cdf")) {
         // Writes Gaussian CDF and Inverse Gaussian CDF as per-channel
-        // metadata. We provide both the inverse transfrom and forward
-        // transfrom, so in theory we're free to change the distribution.
+        // metadata. We provide both the inverse transform and forward
+        // transform, so in theory we're free to change the distribution.
         //
         // References:
         //
@@ -1236,12 +1236,12 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
             }
 
             // Store the inverse CDF as a lookup-table which we'll use to
-            // transform the image data to a Guassian distribution. As
+            // transform the image data to a Gaussian distribution. As
             // mentioned in Burley [2019] we're combining two steps here when
             // using the invCDF lookup table: we first "look up" the image
             // value through its CDF (the normalized histogram) which gives us
             // a uniformly distributed value, which we're then feeding in to
-            // the Gaussian inverse CDF to transfrom the unifrom distribution
+            // the Gaussian inverse CDF to transform the uniform distribution
             // to Gaussian.
             for (uint64_t j = 0; j < bins; j++) {
                 float u = float(hist[j]) / hist[bins - 1];
@@ -1472,7 +1472,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     dstspec.tile_height = configspec.tile_height ? configspec.tile_height : 64;
     dstspec.tile_depth  = configspec.tile_depth ? configspec.tile_depth : 1;
 
-    // Try to force zip (still can be overriden by configspec
+    // Try to force zip (still can be overridden by configspec
     dstspec.attribute("compression", "zip");
     // Always prefer contiguous channels, unless overridden by configspec
     dstspec.attribute("planarconfig", "contig");
@@ -1574,7 +1574,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
 
     // Color convert the pixels, if needed, in place.  If a color
     // conversion is required we will promote the src to floating point
-    // (or there wont be enough precision potentially).  Also,
+    // (or there won't be enough precision potentially).  Also,
     // independently color convert the constant color metadata
     std::string colorconfigname = configspec.get_string_attribute(
         "maketx:colorconfig");

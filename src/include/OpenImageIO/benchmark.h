@@ -129,7 +129,7 @@ OIIO_FORCEINLINE void clobber (T& p, Ts&... ps)
 /// * Beware of the compiler constant folding operations in your code --
 ///   do not pass constants unless you want to benchmark its performance on
 ///   known constants, and it is probably smart to ensure that all variables
-///   acccessed by your code should be passed to clobber() before running
+///   accessed by your code should be passed to clobber() before running
 ///   the benchmark, to confuse the compiler into not assuming its value.
 
 class OIIO_UTIL_API Benchmarker {

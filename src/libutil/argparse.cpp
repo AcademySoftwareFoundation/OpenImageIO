@@ -100,7 +100,7 @@ private:
     std::string m_flag;          // just the -flag_foo part
     std::string m_name;          // just the 'flat_foo' part
     std::string m_dest;          // destination parameter name
-    std::string m_code;          // paramter types, eg "df"
+    std::string m_code;          // parameter types, eg "df"
     std::string m_help;
     OptionType m_type = None;
     int m_count       = 0;               // number of parameters

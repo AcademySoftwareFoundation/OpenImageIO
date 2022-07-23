@@ -653,7 +653,7 @@ explain_ExifFlash(const ParamValue& p, const void* /*extradata*/)
                            (val & 1) ? "flash fired" : "no flash",
                            (val & 6) == 4 ? ", no strobe return" : "",
                            (val & 6) == 6 ? ", strobe return" : "",
-                           (val & 24) == 8 ? ", compulsary flash" : "",
+                           (val & 24) == 8 ? ", compulsory flash" : "",
                            (val & 24) == 16 ? ", flash suppression" : "",
                            (val & 24) == 24 ? ", auto flash" : "",
                            (val & 32) ? ", no flash available" : "",

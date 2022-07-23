@@ -453,7 +453,7 @@ private:
 
 
 
-// Obligatory material to make this a recognizeable imageio plugin:
+// Obligatory material to make this a recognizable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageInput*
@@ -953,7 +953,7 @@ TIFFInput::readspec(bool read_meta)
 
     // Start by assuming the "full" (aka display) window is the same as the
     // data window. That's what we'll stick to if there is no further
-    // information in the file. But if the file has tags for hte "full"
+    // information in the file. But if the file has tags for the "full"
     // size, assume a display window with origin (0,0) and those dimensions.
     // (Unfortunately, there are no TIFF tags for "full" origin.)
     m_spec.full_x      = m_spec.x;
@@ -1226,7 +1226,7 @@ TIFFInput::readspec(bool read_meta)
         std::vector<char> iptc;
         if (iptctype.size() == 4) {
             // Some TIFF files in the wild inexplicably think their IPTC
-            // data are strored as longs, and we have to undo any byte
+            // data are stored as longs, and we have to undo any byte
             // swapping that may have occurred.
             iptcsize *= 4;
             iptc.assign(iptcdata, iptcdata + iptcsize);
@@ -2125,7 +2125,7 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
                                     OIIO::get_int_attribute("tiff:multithread"));
 
     // If we're not parallelizing, just call the parent class default
-    // implementaiton of read_native_tiles, which will loop over the tiles
+    // implementation of read_native_tiles, which will loop over the tiles
     // and read each one individually.
     if (!parallelize) {
         return ImageInput::read_native_tiles(subimage, miplevel, xbegin, xend,

@@ -97,7 +97,7 @@ private:
 
 
 
-// Obligatory material to make this a recognizeable imageio plugin:
+// Obligatory material to make this a recognizable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageOutput*
@@ -351,7 +351,7 @@ NullInput::seek_subimage(int subimage, int miplevel)
     m_subimage = subimage;
 
     if (miplevel > 0 && !m_mip)
-        return false;  // Asked for MIP levels but we aren't makign them
+        return false;  // Asked for MIP levels but we aren't making them
 
     m_spec = m_topspec;
     for (m_miplevel = 0; m_miplevel < miplevel; ++m_miplevel) {

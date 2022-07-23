@@ -169,7 +169,7 @@ public:
             delete _f;  // empty the queue
     }
 
-    // pops a functional wraper to the original function
+    // pops a functional wrapper to the original function
     std::function<void(int)> pop()
     {
         std::function<void(int id)>* _f = nullptr;
@@ -184,7 +184,7 @@ public:
 
 
     // wait for all computing threads to finish and stop all threads
-    // may be called asyncronously to not pause the calling thread while waiting
+    // may be called asynchronously to not pause the calling thread while waiting
     // if isWait == true, all the functions in the queue are run, otherwise the queue is cleared without running the functions
     void stop(bool isWait = false)
     {

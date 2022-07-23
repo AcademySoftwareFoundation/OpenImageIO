@@ -86,7 +86,7 @@ private:
 
 
 
-// Obligatory material to make this a recognizeable imageio plugin:
+// Obligatory material to make this a recognizable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageOutput*
@@ -176,7 +176,7 @@ PNGOutput::open(const std::string& name, const ImageSpec& userspec,
     // The official advice is to PNG_NO_FILTER for palette or < 8 bpp
     // images, but we and one of the others may be fine for >= 8 bit
     // greyscale or color images (they aren't very prescriptive, noting that
-    // different flters may be better for different images.
+    // different filters may be better for different images.
     // We have found the tradeoff complex, in fact as seen in
     // https://github.com/OpenImageIO/oiio/issues/2645
     // where we showed that across several images, 8 (PNG_FILTER_NONE --

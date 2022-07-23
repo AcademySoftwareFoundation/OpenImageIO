@@ -489,7 +489,7 @@ have a parameter that works in a corresponding manner.
 Data Strides
 ------------
 
-In the preceeding examples, we have assumed that the block of data being
+In the preceding examples, we have assumed that the block of data being
 passed to the "write" functions are *contiguous*, that is:
 
 * each pixel in memory consists of a number of data values equal to
@@ -1456,7 +1456,7 @@ to the output as efficiently as possible with without altering pixel values,
 if at all possible.
 
 Not all format plugins will provide an implementation of ``copy_image()``
-(in fact, most will not), but the default implemenatation simply copies
+(in fact, most will not), but the default implementation simply copies
 pixels one scanline or tile at a time (with decompression/recompression) so
 it's still safe to call.  Furthermore, even a provided ``copy_image()`` is
 expected to fall back on the default implementation if the input and output
@@ -1561,7 +1561,7 @@ hints are supported by each writer, as well as writer-specific settings) are:
        combat the appearance of banding.
    * - ``oiio:RawColor``
      - int
-     - If nonzero, when writing images to certain formats that suppport or
+     - If nonzero, when writing images to certain formats that support or
        dictate non-RGB color models (such as YCbCr), this indicates that the
        input passed by the app will already be in this color model, and should
        not be automatically converted from RGB to the designated color space

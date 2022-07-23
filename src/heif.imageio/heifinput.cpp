@@ -269,7 +269,7 @@ HeifInput::seek_subimage(int subimage, int miplevel)
         }
     }
 
-    // Erase the orientation metadata becaue libheif appears to be doing
+    // Erase the orientation metadata because libheif appears to be doing
     // the rotation-to-canonical-direction for us.
     m_spec.erase_attribute("Orientation");
 

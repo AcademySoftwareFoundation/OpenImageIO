@@ -2448,7 +2448,7 @@ namespace {
         }
     }
 
-    // Evaluate the 4 Bspline weights (no derivs), returing them as a vfloat4.
+    // Evaluate the 4 Bspline weights (no derivs), returning them as a vfloat4.
     // The fraction also comes in as a vfloat4 (assuming the same value in all 4
     // slots).
     inline vfloat4 evalBSplineWeights(const vfloat4& fraction)

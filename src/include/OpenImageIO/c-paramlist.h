@@ -104,8 +104,8 @@ OIIO_ParamValue_interp(const OIIO_ParamValue* pv);
 OIIOC_API bool
 OIIO_ParamValue_is_nonlocal(const OIIO_ParamValue* pv);
 
-/// Retrive an integer, with converstions from a wide variety of type
-/// cases, including unsigned, short, byte. Not float. It will retrive
+/// Retrieve an integer, with conversions from a wide variety of type
+/// cases, including unsigned, short, byte. Not float. It will retrieve
 /// from a string, but only if the string is entirely a valid int
 /// format. Unconvertible types return the default value.
 ///
@@ -114,8 +114,8 @@ OIIO_ParamValue_is_nonlocal(const OIIO_ParamValue* pv);
 OIIOC_API int
 OIIO_ParamValue_get_int(const OIIO_ParamValue* pv, int defaultval);
 
-/// Retrive an integer, with converstions from a wide variety of type
-/// cases, including unsigned, short, byte. Not float. It will retrive
+/// Retrieve an integer, with conversions from a wide variety of type
+/// cases, including unsigned, short, byte. Not float. It will retrieve
 /// from a string, but only if the string is entirely a valid int
 /// format. Unconvertible types return the default value.
 ///
@@ -125,8 +125,8 @@ OIIOC_API int
 OIIO_ParamValue_get_int_indexed(const OIIO_ParamValue* pv, int index,
                                 int defaultval);
 
-/// Retrive a float, with converstions from a wide variety of type
-/// cases, including integers. It will retrive from a string, but only
+/// Retrieve a float, with conversions from a wide variety of type
+/// cases, including integers. It will retrieve from a string, but only
 /// if the string is entirely a valid float format. Unconvertible types
 /// return the default value.
 ///
@@ -135,8 +135,8 @@ OIIO_ParamValue_get_int_indexed(const OIIO_ParamValue* pv, int index,
 OIIOC_API float
 OIIO_ParamValue_get_float(const OIIO_ParamValue* pv, float defaultval);
 
-/// Retrive a float, with converstions from a wide variety of type
-/// cases, including integers. It will retrive from a string, but only
+/// Retrieve a float, with conversions from a wide variety of type
+/// cases, including integers. It will retrieve from a string, but only
 /// if the string is entirely a valid float format. Unconvertible types
 /// return the default value.
 ///

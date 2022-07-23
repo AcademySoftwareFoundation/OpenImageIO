@@ -1302,7 +1302,7 @@ do_tex_thread_workout(int iterations, int mythread)
             }
             break;
         default:
-            OIIO_ASSERT_MSG(0, "Unkonwn thread work pattern %d", threadtimes);
+            OIIO_ASSERT_MSG(0, "Unknown thread work pattern %d", threadtimes);
         }
         if (!ok && spec0.width && spec0.height) {
             s = (((2 * pixel) % spec0.width) + 0.5f) / spec0.width;
@@ -1447,7 +1447,7 @@ test_icwrite(int testicwrite)
     // TextureSystem uses.
     ImageCache* ic = ImageCache::create();
 
-    // Set up the fake file ane add it
+    // Set up the fake file and add it
     int tw = 64, th = 64;  // tile width and height
     int nc = nchannels_override ? nchannels_override : 3;  // channels
     ImageSpec spec(512, 512, nc, TypeDesc::FLOAT);
