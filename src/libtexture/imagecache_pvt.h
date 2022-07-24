@@ -894,13 +894,11 @@ public:
     imagespec(ImageCacheFile* file, ImageCachePerThreadInfo* thread_info = NULL,
               int subimage = 0, int miplevel = 0, bool native = false) override;
 
-    virtual ImageCacheFile* resolve_udim(ImageCacheFile* udimfile,
-                                         Perthread* thread_info, int utile,
-                                         int vtile);
-    virtual void inventory_udim(ImageCacheFile* udimfile,
-                                Perthread* thread_info,
-                                std::vector<ustring>& filenames, int& nutiles,
-                                int& nvtiles);
+    ImageCacheFile* resolve_udim(ImageCacheFile* udimfile,
+                                 Perthread* thread_info, int utile, int vtile);
+    void inventory_udim(ImageCacheFile* udimfile, Perthread* thread_info,
+                        std::vector<ustring>& filenames, int& nutiles,
+                        int& nvtiles);
 
     virtual bool get_thumbnail(ustring filename, ImageBuf& thumbnail,
                                int subimage = 0) override;
