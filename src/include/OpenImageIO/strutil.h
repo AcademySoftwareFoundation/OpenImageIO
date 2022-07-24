@@ -860,6 +860,11 @@ OIIO_UTIL_API char * safe_strcpy (char *dst, string_view src, size_t size) noexc
 OIIO_UTIL_API char* safe_strcat(char *dst, string_view src, size_t size) noexcept;
 
 
+/// Return the length of null-terminated string `str`, up to maximum `size`.
+/// If str is nullptr, return 0. This is equivalent to C11 strnlen_s.
+OIIO_UTIL_API size_t safe_strlen(const char* str, size_t size) noexcept;
+
+
 /// Is the character a whitespace character (space, linefeed, tab, carrage
 /// return)? Note: this is safer than C isspace(), which has undefined
 /// behavior for negative char values. Also note that it differs from C
