@@ -304,9 +304,9 @@ TextureSystemImpl::accum3d_sample_closest(
         texturefile.levelinfo(options.subimage, miplevel));
     TypeDesc::BASETYPE pixeltype = texturefile.pixeltype(options.subimage);
     // As passed in, (s,t) map the texture to (0,1).  Remap to texel coords.
-    float s = P[0] * spec.full_width + spec.full_x;
-    float t = P[1] * spec.full_height + spec.full_y;
-    float r = P[2] * spec.full_depth + spec.full_z;
+    float s = P.x * spec.full_width + spec.full_x;
+    float t = P.y * spec.full_height + spec.full_y;
+    float r = P.z * spec.full_depth + spec.full_z;
     int stex, ttex, rtex;       // Texel coordinates
     (void)floorfrac(s, &stex);  // don't need fractional result
     (void)floorfrac(t, &ttex);
@@ -405,9 +405,9 @@ TextureSystemImpl::accum3d_sample_bilinear(
     TypeDesc::BASETYPE pixeltype = texturefile.pixeltype(options.subimage);
     // As passed in, (s,t) map the texture to (0,1).  Remap to texel coords
     // and subtract 0.5 because samples are at texel centers.
-    float s = P[0] * spec.full_width + spec.full_x - 0.5f;
-    float t = P[1] * spec.full_height + spec.full_y - 0.5f;
-    float r = P[2] * spec.full_depth + spec.full_z - 0.5f;
+    float s = P.x * spec.full_width + spec.full_x - 0.5f;
+    float t = P.y * spec.full_height + spec.full_y - 0.5f;
+    float r = P.z * spec.full_depth + spec.full_z - 0.5f;
     int sint, tint, rint;
     float sfrac = floorfrac(s, &sint);
     float tfrac = floorfrac(t, &tint);

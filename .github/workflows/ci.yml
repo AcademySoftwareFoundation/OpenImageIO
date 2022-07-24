@@ -104,6 +104,9 @@ jobs:
             # icc MUST use this older FMT version
             pybind11_ver: v2.9.0
             setenvs: export USE_ICC=1 USE_OPENVDB=0
+                            OIIO_EXTRA_CPP_ARGS="-fp-model=precise"
+            # For icc, use fp-model precise to eliminate needless LSB errors
+            # that make test results differ from other platforms.
           - desc: icx/C++17 py3.9 boost1.76 exr3.1 ocio2.1 qt5.15
             nametag: linux-vfx2022-icx
             os: ubuntu-latest

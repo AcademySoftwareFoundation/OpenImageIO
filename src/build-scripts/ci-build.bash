@@ -26,6 +26,7 @@ cmake .. -G "$CMAKE_GENERATOR" \
         -DCMAKE_INSTALL_LIBDIR="$OpenImageIO_ROOT/lib" \
         -DCMAKE_CXX_STANDARD="$CMAKE_CXX_STANDARD" \
         -DOIIO_DOWNLOAD_MISSING_TESTDATA=ON \
+        -DEXTRA_CPP_ARGS="${OIIO_EXTRA_CPP_ARGS}" \
         $MY_CMAKE_FLAGS -DVERBOSE=1
 
 # Save a copy of the generated files for debugging broken CI builds.
