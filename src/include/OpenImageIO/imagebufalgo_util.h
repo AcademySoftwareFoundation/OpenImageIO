@@ -2,22 +2,21 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // https://github.com/OpenImageIO/oiio
 
-// clang-format off
 
 #pragma once
 
 #include <functional>
 
-#include <OpenImageIO/parallel.h>
 #include <OpenImageIO/imagebufalgo.h>
+#include <OpenImageIO/parallel.h>
 
 
 
 OIIO_NAMESPACE_BEGIN
 
 using std::bind;
-using std::ref;
 using std::cref;
+using std::ref;
 using namespace std::placeholders;
 using std::placeholders::_1;
 
@@ -27,86 +26,77 @@ namespace ImageBufAlgo {
 
 
 /// Helper template for generalized multithreading for image processing
-/// functions.  Some function/functor f is applied to every pixel the
-/// region of interest roi, dividing the region into multiple threads if
-/// threads != 1.  Note that threads == 0 indicates that the number of
-/// threads should be as set by the global OIIO "threads" attribute.
+/// functions.  Some function/functor or lambda `f` is applied to every pixel
+/// the region of interest roi, dividing the region into multiple threads if
+/// threads != 1.  Note that threads == 0 indicates that the number of threads
+/// should be as set by the global OIIO "threads" attribute.
 ///
-/// The optional splitdir determines along which axis the split will be
-/// made. The default is Split_Y (vertical splits), which generally seems
-/// the fastest (due to cache layout issues?), but perhaps there are
-/// algorithms where it's better to split in X, Z, or along the longest
-/// axis.
+/// The `opt.splitdir` determines along which axis the split will be made. The
+/// default is SplitDir::Y (vertical splits), which generally seems the
+/// fastest (due to cache layout issues?), but perhaps there are algorithms
+/// where it's better to split in X, Z, or along the longest axis.
 ///
-/// Most image operations will require additional arguments, including
-/// additional input and output images or other parameters.  The
-/// parallel_image template can still be used by employing the
-/// std::bind. For example, suppose you have an image operation defined as:
-///     void my_image_op (ImageBuf &out, const ImageBuf &in,
-///                       float scale, ROI roi);
-/// Then you can parallelize it as follows:
-///     ImageBuf R, A;   // result, input
-///     ROI roi = get_roi (R.spec());
-///     parallel_image (bind(my_image_op,ref(R), cref(A),3.14,_1), roi);
 inline void
-parallel_image (ROI roi, parallel_options opt,
-                std::function<void(ROI)> f)
+parallel_image(ROI roi, paropt opt, std::function<void(ROI)> f)
 {
-    opt.resolve ();
+    opt.resolve();
     // Try not to assign a thread less than 16k pixels, or it's not worth
     // the thread startup/teardown cost.
-    opt.maxthreads = std::min (opt.maxthreads, 1 + int(roi.npixels() / opt.minitems));
+    opt.maxthreads(
+        std::min(opt.maxthreads(), 1 + int(roi.npixels() / opt.minitems())));
     if (opt.singlethread()) {
         // Just one thread, or a small image region, or if recursive use of
         // parallel_image is disallowed: use this thread only
-        f (roi);
+        f(roi);
         return;
     }
 
     // If splitdir was not explicit, find the longest edge.
-    SplitDir splitdir = opt.splitdir;
-    if (splitdir == Split_Biggest)
-        splitdir = roi.width() > roi.height() ? Split_X : Split_Y;
+    paropt::SplitDir splitdir = opt.splitdir();
+    if (splitdir == paropt::SplitDir::Biggest)
+        splitdir = roi.width() > roi.height() ? paropt::SplitDir::X
+                                              : paropt::SplitDir::Y;
 
     int64_t xchunk = 0, ychunk = 0;
-    if (splitdir == Split_Y) {
+    if (splitdir == paropt::SplitDir::Y) {
         xchunk = roi.width();
         // ychunk = std::max (64, minitems/xchunk);
-    } else if (splitdir == Split_X) {
+    } else if (splitdir == paropt::SplitDir::X) {
         ychunk = roi.height();
         // ychunk = std::max (64, minitems/xchunk);
-    } else if (splitdir == Split_Tile) {
-        int64_t n = std::min<imagesize_t>(opt.minitems, roi.npixels());
-        xchunk = ychunk = std::max (1, int(std::sqrt(n))/4);
+    } else if (splitdir == paropt::SplitDir::Tile) {
+        int64_t n = std::min<imagesize_t>(opt.minitems(), roi.npixels());
+        xchunk = ychunk = std::max(1, int(std::sqrt(n)) / 4);
     } else {
-        xchunk = ychunk = std::max (int64_t(1), int64_t(std::sqrt(opt.maxthreads))/2);
+        xchunk = ychunk = std::max(int64_t(1),
+                                   int64_t(std::sqrt(opt.maxthreads())) / 2);
     }
 
-    auto task = [&](int /*id*/, int64_t xbegin, int64_t xend,
-                    int64_t ybegin, int64_t yend) {
-        f (ROI (xbegin, xend, ybegin, yend, roi.zbegin, roi.zend,
-                roi.chbegin, roi.chend));
+    auto task = [&](int64_t xbegin, int64_t xend, int64_t ybegin,
+                    int64_t yend) {
+        f(ROI(xbegin, xend, ybegin, yend, roi.zbegin, roi.zend, roi.chbegin,
+              roi.chend));
     };
-    parallel_for_chunked_2D (roi.xbegin, roi.xend, xchunk,
-                             roi.ybegin, roi.yend, ychunk, task, opt);
+    parallel_for_chunked_2D(roi.xbegin, roi.xend, xchunk, roi.ybegin, roi.yend,
+                            ychunk, task, opt);
 }
 
 
 inline void
-parallel_image (ROI roi, std::function<void(ROI)> f)
+parallel_image(ROI roi, std::function<void(ROI)> f)
 {
-    parallel_image (roi, parallel_options(), f);
+    parallel_image(roi, paropt(), f);
 }
 
 
 
 // DEPRECATED(1.8) -- eventually enable the OIIO_DEPRECATION
-template <class Func>
+template<class Func>
 OIIO_DEPRECATED("switch to new parallel_image (1.8)")
-void
-parallel_image (Func f, ROI roi, int nthreads=0, SplitDir splitdir=Split_Y)
+void parallel_image(Func f, ROI roi, int nthreads = 0,
+                    SplitDir splitdir = Split_Y)
 {
-    parallel_image (roi, parallel_options(nthreads, splitdir), f);
+    parallel_image(roi, paropt(nthreads, paropt::SplitDir(splitdir)), f);
 }
 
 
@@ -123,22 +113,31 @@ parallel_image (Func f, ROI roi, int nthreads=0, SplitDir splitdir=Split_Y)
 /// If all is ok, return true.  Some additional checks and behaviors may be
 /// specified by the 'prepflags', which is a bit field defined by
 /// IBAprep_flags.
-bool OIIO_API IBAprep (ROI &roi, ImageBuf *dst, const ImageBuf *A=NULL,
-                       const ImageBuf *B=NULL, const ImageBuf *C=NULL,
-                       ImageSpec *force_spec=NULL, int prepflags=0);
-inline bool IBAprep (ROI &roi, ImageBuf *dst, const ImageBuf *A,
-                     const ImageBuf *B, ImageSpec *force_spec,
-                     int prepflags=0) {
-    return IBAprep (roi, dst, A, B, NULL, force_spec, prepflags);
+bool OIIO_API
+IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A = NULL,
+        const ImageBuf* B = NULL, const ImageBuf* C = NULL,
+        ImageSpec* force_spec = NULL, int prepflags = 0);
+inline bool
+IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A, const ImageBuf* B,
+        ImageSpec* force_spec, int prepflags = 0)
+{
+    return IBAprep(roi, dst, A, B, NULL, force_spec, prepflags);
 }
-inline bool IBAprep (ROI &roi, ImageBuf *dst,
-                     const ImageBuf *A, const ImageBuf *B, int prepflags) {
-    return IBAprep (roi, dst, A, B, NULL, NULL, prepflags);
+inline bool
+IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A, const ImageBuf* B,
+        int prepflags)
+{
+    return IBAprep(roi, dst, A, B, NULL, NULL, prepflags);
 }
-inline bool IBAprep (ROI &roi, ImageBuf *dst,
-                     const ImageBuf *A, int prepflags) {
-    return IBAprep (roi, dst, A, NULL, NULL, NULL, prepflags);
+inline bool
+IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A, int prepflags)
+{
+    return IBAprep(roi, dst, A, NULL, NULL, NULL, prepflags);
 }
+
+
+// clang-format off
+
 
 enum IBAprep_flags {
     IBAprep_DEFAULT = 0,
@@ -514,5 +513,6 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
 
 }  // end namespace ImageBufAlgo
 
+// clang-format on
 
 OIIO_NAMESPACE_END

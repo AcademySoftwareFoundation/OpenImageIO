@@ -38,6 +38,7 @@ extern int oiio_log_times;
 extern int openexr_core;
 extern int limit_channels;
 extern int limit_imagesize_MB;
+extern OIIO_UTIL_API int oiio_use_tbb; // This lives in libOpenImageIO_Util
 
 
 // For internal use - use error() below for a nicer interface.

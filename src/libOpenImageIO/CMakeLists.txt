@@ -137,6 +137,7 @@ target_link_libraries (OpenImageIO
             $<TARGET_NAME_IF_EXISTS:OpenColorIO::OpenColorIO>
             $<TARGET_NAME_IF_EXISTS:OpenColorIO::OpenColorIOHeaders>
             $<TARGET_NAME_IF_EXISTS:pugixml::pugixml>
+            $<TARGET_NAME_IF_EXISTS:TBB::tbb>
             ${BZIP2_LIBRARIES}
             ZLIB::ZLIB
             $<TARGET_NAME_IF_EXISTS:Boost::thread>

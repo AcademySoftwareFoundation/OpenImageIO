@@ -161,5 +161,9 @@ namespace @PROJ_NAME@ = @PROJ_NAMESPACE_V@;
 #define OIIO_BUILD_CPP17 (@CMAKE_CXX_STANDARD@ >= 17)
 #define OIIO_BUILD_CPP20 (@CMAKE_CXX_STANDARD@ >= 20)
 
-#endif
 
+// Was the project built with TBB support?
+#cmakedefine01 OIIO_TBB
+
+
+#endif  /* defined(OPENIMAGEIO_VERSION_H) */

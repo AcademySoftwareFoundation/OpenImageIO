@@ -2683,6 +2683,14 @@ OIIO_API std::string geterror(bool clear = true);
 ///    Colon-separated (or semicolon-separated) list of directories to search
 ///    if fonts are needed. (Such as for `ImageBufAlgo::render_text()`.)
 ///
+/// - `int use_tbb`
+///
+///    If nonzero and TBB was found and support configured when OIIO was
+///    compiled, parallel processing within OIIO (including inside the
+///    parallel.h utilities) will try to use TBB by default where possible.
+///    If zero, they will try to use OIIO's native thread pool even if TBB
+///    is available.
+///
 /// - `string plugin_searchpath`
 ///
 ///    Colon-separated (or semicolon-separated) list of directories to search

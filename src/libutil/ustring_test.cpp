@@ -251,7 +251,7 @@ void
 verify_no_collisions()
 {
     // Try to force a hash collision
-    parallel_for(0LL, 1000000LL * int64_t(collide),
+    parallel_for(int64_t(0), int64_t(1000000LL * int64_t(collide)),
                  [](int64_t i) { ustring u = ustring::fmtformat("{:x}", i); });
     std::vector<ustring> collisions;
     size_t ncollisions = ustring::hash_collisions(&collisions);
