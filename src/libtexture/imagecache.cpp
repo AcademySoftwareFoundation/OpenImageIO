@@ -3666,10 +3666,11 @@ ImageCacheImpl::inventory_udim(ImageCacheFile* udimfile, Perthread* thread_info,
                                std::vector<ustring>& filenames, int& nutiles,
                                int& nvtiles)
 {
-    filenames.clear();
     if (!udimfile || !udimfile->is_udim()) {
+        filenames.clear();
         nutiles = 0;
         nvtiles = 0;
+        return;
     }
     nutiles = udimfile->m_udim_nutiles;
     nvtiles = udimfile->m_udim_nvtiles;
