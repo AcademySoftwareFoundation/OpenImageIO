@@ -352,11 +352,8 @@ attribute(string_view name, TypeDesc type, const void* val)
     }
     if (name == "missingcolor" && type.basetype == TypeDesc::FLOAT) {
         // missingcolor as float array
-        oiio_missingcolor.clear();
-        oiio_missingcolor.reserve(type.basevalues());
-        int n = type.basevalues();
-        for (int i = 0; i < n; ++i)
-            oiio_missingcolor[i] = ((const float*)val)[i];
+        oiio_missingcolor.assign((const float*)val,
+                                 (const float*)val + type.numelements());
         return true;
     }
     if (name == "missingcolor" && type == TypeString) {
