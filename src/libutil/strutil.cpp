@@ -898,6 +898,7 @@ Strutil::utf16_to_utf8(const std::wstring& str) noexcept
 char*
 Strutil::safe_strcpy(char* dst, string_view src, size_t size) noexcept
 {
+    OIIO_DASSERT(dst);
     if (src.size()) {
         size_t end = std::min(size - 1, src.size());
         for (size_t i = 0; i < end; ++i)
@@ -916,14 +917,23 @@ Strutil::safe_strcpy(char* dst, string_view src, size_t size) noexcept
 char*
 Strutil::safe_strcat(char* dst, string_view src, size_t size) noexcept
 {
+    OIIO_DASSERT(dst);
     if (src.size()) {
-        size_t dstsize = strlen(dst);
+        size_t dstsize = strnlen(dst, size);
         size_t end     = std::min(size - dstsize - 1, src.size());
         for (size_t i = 0; i < end; ++i)
             dst[dstsize + i] = src[i];
         dst[dstsize + end] = 0;
     }
     return dst;
+}
+
+
+
+size_t
+Strutil::safe_strlen(const char* str, size_t size) noexcept
+{
+    return str ? strnlen(str, size) : 0;
 }
 
 
