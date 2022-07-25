@@ -407,7 +407,7 @@ JpgOutput::resmeta_to_density()
         // written by OIIO and vice versa. In other words, we must reverse
         // the sense of how aspect ratio relates to density, contradicting
         // the JFIF spec but conforming to Nuke/etc's behavior. Sigh.
-        if (XRes <= 0.0f && XRes <= 0.0f) {
+        if (XRes <= 0.0f && YRes <= 0.0f) {
             // resolutions were not set
             if (aspect >= 1.0f) {
                 XRes = 72.0f;
