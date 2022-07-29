@@ -99,7 +99,8 @@ SgiInput::open(const std::string& name, ImageSpec& spec)
     m_spec = ImageSpec(m_sgi_header.xsize, height, nchannels,
                        m_sgi_header.bpc == 1 ? TypeDesc::UINT8
                                              : TypeDesc::UINT16);
-    if (strlen(m_sgi_header.imagename))
+    if (Strutil::safe_strlen(m_sgi_header.imagename,
+                             sizeof(m_sgi_header.imagename)))
         m_spec.attribute("ImageDescription", m_sgi_header.imagename);
 
     if (m_sgi_header.storage == sgi_pvt::RLE) {

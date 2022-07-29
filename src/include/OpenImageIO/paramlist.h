@@ -242,12 +242,16 @@ public:
     /// elements is also passed. In the case of a single string, just the
     /// string directly is returned. But for an array of strings, the array
     /// is returned as one string that's a comma-separated list of double-
-    /// quoted, escaped strings.
+    /// quoted, escaped strings. For an array or aggregate, at most `maxsize`
+    /// elements are returned (if `maxsize` is 0, all elements are returned,
+    /// no matter how large it is).
     std::string get_string(int maxsize = 64) const;
     std::string get_string_indexed(int index) const;
     /// Convert any type to a ustring value. An optional maximum number of
-    /// elements is also passed. Same behavior as get_string, but returning
-    /// a ustring.
+    /// elements is also passed. Same behavior as get_string, but returning a
+    /// ustring. For an array or aggregate, at most `maxsize` elements are
+    /// returned (if `maxsize` is 0, all elements are returned, no matter how
+    /// large it is).
     ustring get_ustring(int maxsize = 64) const;
     ustring get_ustring_indexed(int index) const;
 

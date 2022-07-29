@@ -162,21 +162,18 @@ decode_iptc_iim(const void* iptc, int length, ImageSpec& spec)
 
 
 static void
-encode_iptc_iim_one_tag(int tag, const char* /*name*/, TypeDesc type,
-                        const void* data, std::vector<char>& iptc)
+encode_iptc_iim_one_tag(int tag, string_view data, std::vector<char>& iptc)
 {
-    if (type == TypeDesc::STRING) {
-        iptc.push_back((char)0x1c);
-        iptc.push_back((char)0x02);
-        iptc.push_back((char)tag);
-        const char* str = ((const char**)data)[0];
-        if (str) {
-            int tagsize = strlen(str);
-            tagsize = std::min(tagsize, 0xffff - 1);  // Prevent 16 bit overflow
-            iptc.push_back((char)(tagsize >> 8));
-            iptc.push_back((char)(tagsize & 0xff));
-            iptc.insert(iptc.end(), str, str + tagsize);
-        }
+    OIIO_DASSERT(data != nullptr);
+    iptc.push_back((char)0x1c);
+    iptc.push_back((char)0x02);
+    iptc.push_back((char)tag);
+    if (data.size()) {
+        int tagsize = std::min(int(data.size()),
+                               0xffff - 1);  // Prevent 16 bit overflow
+        iptc.push_back((char)(tagsize >> 8));
+        iptc.push_back((char)(tagsize & 0xff));
+        iptc.insert(iptc.end(), data.data(), data.data() + tagsize);
     }
 }
 
@@ -191,27 +188,22 @@ encode_iptc_iim(const ImageSpec& spec, std::vector<char>& iptc)
     for (int i = 0; iimtag[i].name; ++i) {
         if ((p = spec.find_attribute(iimtag[i].name))) {
             if (iimtag[i].repeatable) {
-                std::string allvals(*(const char**)p->data());
+                std::string allvals = p->get_string(0);
                 std::vector<std::string> tokens;
                 Strutil::split(allvals, tokens, ";");
                 for (auto& token : tokens) {
                     token = Strutil::strip(token);
-                    if (token.size()) {
-                        const char* tok = &token[0];
-                        encode_iptc_iim_one_tag(iimtag[i].tag, iimtag[i].name,
-                                                p->type(), &tok, iptc);
-                    }
+                    if (token.size())
+                        encode_iptc_iim_one_tag(iimtag[i].tag, token, iptc);
                 }
             } else {
                 // Regular, non-repeating
-                encode_iptc_iim_one_tag(iimtag[i].tag, iimtag[i].name,
-                                        p->type(), p->data(), iptc);
+                encode_iptc_iim_one_tag(iimtag[i].tag, p->get_string(0), iptc);
             }
         }
         if (iimtag[i].anothername) {
             if ((p = spec.find_attribute(iimtag[i].anothername)))
-                encode_iptc_iim_one_tag(iimtag[i].tag, iimtag[i].anothername,
-                                        p->type(), p->data(), iptc);
+                encode_iptc_iim_one_tag(iimtag[i].tag, p->get_string(0), iptc);
         }
     }
 }

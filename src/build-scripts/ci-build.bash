@@ -12,6 +12,10 @@ if [[ -n "$FMT_VERSION" ]] ; then
     MY_CMAKE_FLAGS="$MY_CMAKE_FLAGS -DBUILD_FMT_VERSION=$FMT_VERSION"
 fi
 
+if [[ -n "$CODECOV" ]] ; then
+    MY_CMAKE_FLAGS="$MY_CMAKE_FLAGS -DCODECOV=${CODECOV}"
+fi
+
 # On GHA, we can reduce build time with "unity" builds.
 if [[ ${GITHUB_ACTIONS} == true ]] ; then
     MY_CMAKE_FLAGS+=" -DCMAKE_UNITY_BUILD=${CMAKE_UNITY_BUILD:=ON} -DCMAKE_UNITY_BUILD_MODE=${CMAKE_UNITY_BUILD_MODE:=BATCH}"
@@ -35,7 +39,7 @@ cp -r CMake* *.cmake cmake-save
 
 if [[ "$BUILDTARGET" != "none" ]] ; then
     echo "Parallel build " ${CMAKE_BUILD_PARALLEL_LEVEL}
-    time cmake --build . --target ${BUILDTARGET:=install} --config ${CMAKE_BUILD_TYPE}
+    time ${OIIO_CMAKE_BUILD_WRAPPER} cmake --build . --target ${BUILDTARGET:=install} --config ${CMAKE_BUILD_TYPE}
 fi
 popd
 

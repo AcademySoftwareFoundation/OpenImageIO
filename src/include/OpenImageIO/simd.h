@@ -2469,6 +2469,8 @@ public:
     /// Stream output
     friend inline std::ostream& operator<< (std::ostream& cout, const matrix44 &M);
 
+    const float* data() const { return m_vals[0]; }
+
 private:
     union {
         vfloat4 m_row[rows];
@@ -8318,7 +8320,7 @@ OIIO_FORCEINLINE bool matrix44::operator!= (const matrix44& m) const {
 
 
 OIIO_FORCEINLINE bool matrix44::operator== (M44fParam m) const {
-    return memcmp(this, m.data(), 16*sizeof(float)) == 0;
+    return memcmp(data(), m.data(), 16*sizeof(float)) == 0;
 }
 
 OIIO_FORCEINLINE bool operator== (M44fParam a, const matrix44 &b) {
@@ -8326,7 +8328,7 @@ OIIO_FORCEINLINE bool operator== (M44fParam a, const matrix44 &b) {
 }
 
 OIIO_FORCEINLINE bool matrix44::operator!= (M44fParam m) const {
-    return memcmp(this, m.data(), 16*sizeof(float)) != 0;
+    return memcmp(data(), m.data(), 16*sizeof(float)) != 0;
 }
 
 OIIO_FORCEINLINE bool operator!= (M44fParam a, const matrix44 &b) {
