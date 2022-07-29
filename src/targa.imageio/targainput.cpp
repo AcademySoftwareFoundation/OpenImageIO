@@ -78,8 +78,10 @@ private:
         ioproxy_clear();
     }
 
-    /// Helper function: read the image.
-    ///
+    // Helper: read the tga 2.0 specific parts of the header
+    bool read_tga2_header();
+
+    // Helper function: read the image.
     bool readimg();
 
     /// Helper function: decode a pixel.
@@ -261,190 +263,13 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
         && ioread(&m_foot.signature, sizeof(m_foot.signature), 1)
         && !strncmp(m_foot.signature, "TRUEVISION-XFILE.", 17)) {
         //std::cerr << "[tga] this is a TGA 2.0 file\n";
-        m_spec.attribute("targa:version", 2);
         m_tga_version = 2;
-
-        // read the extension area
-        if (!ioseek(m_foot.ofs_ext)) {
+        if (!read_tga2_header())
             return false;
-        }
-        // check if this is a TGA 2.0 extension area
-        // according to the 2.0 spec, the size for valid 2.0 files is exactly
-        // 495 bytes, and the reader should only read as much as it understands
-        // for < 495, we ignore this section of the file altogether
-        // for > 495, we only read what we know
-        uint16_t s;
-        if (!read(s))
-            return false;
-        //std::cerr << "[tga] extension area size: " << s << "\n";
-        if (s >= 495) {
-            union {
-                unsigned char c[324];  // so as to accommodate the comments
-                uint16_t s[6];
-                uint32_t l;
-            } buf;
-
-            // load image author
-            if (!ioread(buf.c, 41, 1))
-                return false;
-            if (buf.c[0])
-                m_spec.attribute("Artist", (char*)buf.c);
-
-            // load image comments
-            if (!ioread(buf.c, 324, 1))
-                return false;
-
-            // concatenate the lines into a single string
-            std::string tmpstr((const char*)buf.c);
-            if (buf.c[81]) {
-                tmpstr += "\n";
-                tmpstr += (const char*)&buf.c[81];
-            }
-            if (buf.c[162]) {
-                tmpstr += "\n";
-                tmpstr += (const char*)&buf.c[162];
-            }
-            if (buf.c[243]) {
-                tmpstr += "\n";
-                tmpstr += (const char*)&buf.c[243];
-            }
-            if (tmpstr.length() > 0)
-                m_spec.attribute("ImageDescription", tmpstr);
-
-            // timestamp
-            if (!ioread(buf.s, 2, 6))
-                return false;
-            if (buf.s[0] || buf.s[1] || buf.s[2] || buf.s[3] || buf.s[4]
-                || buf.s[5]) {
-                if (bigendian())
-                    swap_endian(&buf.s[0], 6);
-                sprintf((char*)&buf.c[12], "%04u:%02u:%02u %02u:%02u:%02u",
-                        buf.s[2], buf.s[0], buf.s[1], buf.s[3], buf.s[4],
-                        buf.s[5]);
-                m_spec.attribute("DateTime", (char*)&buf.c[12]);
-            }
-
-            // job name/ID
-            if (!ioread(buf.c, 41, 1))
-                return false;
-            if (buf.c[0])
-                m_spec.attribute("DocumentName", (char*)buf.c);
-
-            // job time
-            if (!ioread(buf.s, 2, 3))
-                return false;
-            if (buf.s[0] || buf.s[1] || buf.s[2]) {
-                if (bigendian())
-                    swap_endian(&buf.s[0], 3);
-                sprintf((char*)&buf.c[6], "%u:%02u:%02u", buf.s[0], buf.s[1],
-                        buf.s[2]);
-                m_spec.attribute("targa:JobTime", (char*)&buf.c[6]);
-            }
-
-            // software
-            if (!ioread(buf.c, 41, 1))
-                return false;
-            uint16_t n;
-            char l;
-            if (!read(n) || !read(l))
-                return false;
-            if (buf.c[0]) {
-                // tack on the version number and letter
-                sprintf((char*)&buf.c[strlen((char*)buf.c)], " %u.%u%c",
-                        n / 100, n % 100, l != ' ' ? l : 0);
-                m_spec.attribute("Software", (char*)buf.c);
-            }
-
-            // background (key) colour
-            if (!ioread(buf.c, 4, 1))
-                return false;
-            // FIXME: what do we do with it?
-
-            // aspect ratio
-            if (!ioread(buf.s, 2, 2))
-                return false;
-            // if the denominator is zero, it's unused
-            if (buf.s[1]) {
-                if (bigendian())
-                    swap_endian(&buf.s[0], 2);
-                m_spec.attribute("PixelAspectRatio",
-                                 (float)buf.s[0] / (float)buf.s[1]);
-            }
-
-            // gamma
-            if (!ioread(buf.s, 2, 2))
-                return false;
-            // if the denominator is zero, it's unused
-            if (buf.s[1]) {
-                if (bigendian())
-                    swap_endian(&buf.s[0], 2);
-                float gamma = (float)buf.s[0] / (float)buf.s[1];
-                // Round gamma to the nearest hundredth to prevent stupid
-                // precision choices and make it easier for apps to make
-                // decisions based on known gamma values. For example, you want
-                // 2.2, not 2.19998.
-                gamma = roundf(100.0 * gamma) / 100.0f;
-                if (gamma == 1.f) {
-                    m_spec.attribute("oiio:ColorSpace", "linear");
-                } else {
-                    m_spec.attribute("oiio:ColorSpace",
-                                     Strutil::fmt::format("Gamma{:.2g}", gamma));
-                    m_spec.attribute("oiio:Gamma", gamma);
-                }
-            }
-
-            // offset to colour correction table
-            if (!read(buf.l))
-                return false;
-            m_ofs_colcorr_tbl = buf.l;
-            /*std::cerr << "[tga] colour correction table offset: "
-                      << (int)m_ofs_colcorr_tbl << "\n";*/
-
-            // offset to thumbnail
-            if (!read(buf.l))
-                return false;
-            m_ofs_thumb = buf.l;
-
-            // offset to scan-line table
-            if (!read(buf.l))
-                return false;
-            // TODO: can we find any use for this? we can't advertise random
-            // access anyway, because not all RLE-compressed files will have
-            // this table
-
-            // alpha type
-            if (!ioread(buf.c, 1, 1))
-                return false;
-            m_alpha_type = (tga_alpha_type)buf.c[0];
-            if (m_alpha_type)
-                m_spec.attribute("targa:alpha_type", m_alpha_type);
-
-            // Check for presence of a thumbnail and set the metadata that
-            // says its dimensions, but don't read and decode it unless
-            // thumbnail() is called.
-            if (m_ofs_thumb > 0) {
-                if (!ioseek(m_ofs_thumb)) {
-                    return false;
-                }
-                // Read the thumbnail dimensions -- sometimes it's 0x0 to
-                // indicate no thumbnail.
-                unsigned char res[2];
-                if (!ioread(&res, 2, 1))
-                    return false;
-                if (res[0] > 0 && res[1] > 0) {
-                    m_spec.attribute("thumbnail_width", (int)res[0]);
-                    m_spec.attribute("thumbnail_height", (int)res[1]);
-                    m_spec.attribute("thumbnail_nchannels", m_spec.nchannels);
-                }
-            }
-        }
-        // FIXME: provide access to the developer area; according to Larry,
-        // it's probably safe to ignore it altogether until someone complains
-        // that it's missing :)
     } else {
         m_tga_version = 1;
-        m_spec.attribute("targa:version", 1);
     }
+    m_spec.attribute("targa:version", int(m_tga_version));
 
     if (m_spec.alpha_channel != -1 && m_alpha_type == TGA_ALPHA_USEFUL
         && m_keep_unassociated_alpha)
@@ -471,6 +296,195 @@ TGAInput::open(const std::string& name, ImageSpec& newspec,
         m_keep_unassociated_alpha = true;
     ioproxy_retrieve_from_config(config);
     return open(name, newspec);
+}
+
+
+
+bool
+TGAInput::read_tga2_header()
+{
+    // read the extension area
+    if (!ioseek(m_foot.ofs_ext)) {
+        return false;
+    }
+    // check if this is a TGA 2.0 extension area
+    // according to the 2.0 spec, the size for valid 2.0 files is exactly
+    // 495 bytes, and the reader should only read as much as it understands
+    // for < 495, we ignore this section of the file altogether
+    // for > 495, we only read what we know
+    uint16_t s;
+    if (!read(s))
+        return false;
+    //std::cerr << "[tga] extension area size: " << s << "\n";
+    if (s >= 495) {
+        union {
+            unsigned char c[324];  // so as to accommodate the comments
+            uint16_t s[6];
+            uint32_t l;
+        } buf;
+
+        // load image author
+        if (!ioread(buf.c, 41, 1))
+            return false;
+        if (buf.c[0])
+            m_spec.attribute("Artist", (char*)buf.c);
+
+        // load image comments
+        if (!ioread(buf.c, 324, 1))
+            return false;
+
+        // concatenate the lines into a single string
+        std::string tmpstr((const char*)buf.c);
+        if (buf.c[81]) {
+            tmpstr += "\n";
+            tmpstr += (const char*)&buf.c[81];
+        }
+        if (buf.c[162]) {
+            tmpstr += "\n";
+            tmpstr += (const char*)&buf.c[162];
+        }
+        if (buf.c[243]) {
+            tmpstr += "\n";
+            tmpstr += (const char*)&buf.c[243];
+        }
+        if (tmpstr.length() > 0)
+            m_spec.attribute("ImageDescription", tmpstr);
+
+        // timestamp
+        if (!ioread(buf.s, 2, 6))
+            return false;
+        if (buf.s[0] || buf.s[1] || buf.s[2] || buf.s[3] || buf.s[4]
+            || buf.s[5]) {
+            if (bigendian())
+                swap_endian(&buf.s[0], 6);
+            m_spec.attribute(
+                "DateTime",
+                Strutil::fmt::format("{:04}:{:02}:{:02} {:02}:{:02}:{:02}",
+                                     buf.s[2], buf.s[0], buf.s[1], buf.s[3],
+                                     buf.s[4], buf.s[5]));
+        }
+
+        // job name/ID
+        if (!ioread(buf.c, 41, 1))
+            return false;
+        if (buf.c[0])
+            m_spec.attribute("DocumentName", (char*)buf.c);
+
+        // job time
+        if (!ioread(buf.s, 2, 3))
+            return false;
+        if (buf.s[0] || buf.s[1] || buf.s[2]) {
+            if (bigendian())
+                swap_endian(&buf.s[0], 3);
+            m_spec.attribute("targa:JobTime",
+                             Strutil::fmt::format("{}:{:02}:{:02}", buf.s[0],
+                                                  buf.s[1], buf.s[2]));
+        }
+
+        // software
+        if (!ioread(buf.c, 41, 1))
+            return false;
+        uint16_t n;
+        char l;
+        if (!read(n) || !read(l))
+            return false;
+        if (buf.c[0]) {
+            // tack on the version number and letter
+            std::string soft((const char*)buf.c);
+            soft += Strutil::fmt::format(" {}.{}", n / 100, n % 100);
+            if (l != ' ')
+                soft += l;
+            m_spec.attribute("Software", soft);
+        }
+
+        // background (key) colour
+        if (!ioread(buf.c, 4, 1))
+            return false;
+        // FIXME: what do we do with it?
+
+        // aspect ratio
+        if (!ioread(buf.s, 2, 2))
+            return false;
+        // if the denominator is zero, it's unused
+        if (buf.s[1]) {
+            if (bigendian())
+                swap_endian(&buf.s[0], 2);
+            m_spec.attribute("PixelAspectRatio",
+                             (float)buf.s[0] / (float)buf.s[1]);
+        }
+
+        // gamma
+        if (!ioread(buf.s, 2, 2))
+            return false;
+        // if the denominator is zero, it's unused
+        if (buf.s[1]) {
+            if (bigendian())
+                swap_endian(&buf.s[0], 2);
+            float gamma = (float)buf.s[0] / (float)buf.s[1];
+            // Round gamma to the nearest hundredth to prevent stupid
+            // precision choices and make it easier for apps to make
+            // decisions based on known gamma values. For example, you want
+            // 2.2, not 2.19998.
+            gamma = roundf(100.0 * gamma) / 100.0f;
+            if (gamma == 1.f) {
+                m_spec.attribute("oiio:ColorSpace", "linear");
+            } else {
+                m_spec.attribute("oiio:ColorSpace",
+                                 Strutil::fmt::format("Gamma{:.2g}", gamma));
+                m_spec.attribute("oiio:Gamma", gamma);
+            }
+        }
+
+        // offset to colour correction table
+        if (!read(buf.l))
+            return false;
+        m_ofs_colcorr_tbl = buf.l;
+        /*std::cerr << "[tga] colour correction table offset: "
+                      << (int)m_ofs_colcorr_tbl << "\n";*/
+
+        // offset to thumbnail
+        if (!read(buf.l))
+            return false;
+        m_ofs_thumb = buf.l;
+
+        // offset to scan-line table
+        if (!read(buf.l))
+            return false;
+        // TODO: can we find any use for this? we can't advertise random
+        // access anyway, because not all RLE-compressed files will have
+        // this table
+
+        // alpha type
+        if (!ioread(buf.c, 1, 1))
+            return false;
+        m_alpha_type = (tga_alpha_type)buf.c[0];
+        if (m_alpha_type)
+            m_spec.attribute("targa:alpha_type", m_alpha_type);
+
+        // Check for presence of a thumbnail and set the metadata that
+        // says its dimensions, but don't read and decode it unless
+        // thumbnail() is called.
+        if (m_ofs_thumb > 0) {
+            if (!ioseek(m_ofs_thumb)) {
+                return false;
+            }
+            // Read the thumbnail dimensions -- sometimes it's 0x0 to
+            // indicate no thumbnail.
+            unsigned char res[2];
+            if (!ioread(&res, 2, 1))
+                return false;
+            if (res[0] > 0 && res[1] > 0) {
+                m_spec.attribute("thumbnail_width", (int)res[0]);
+                m_spec.attribute("thumbnail_height", (int)res[1]);
+                m_spec.attribute("thumbnail_nchannels", m_spec.nchannels);
+            }
+        }
+    }
+    // FIXME: provide access to the developer area; according to Larry,
+    // it's probably safe to ignore it altogether until someone complains
+    // that it's missing :)
+
+    return true;
 }
 
 
