@@ -543,7 +543,7 @@ endif ()
 set (EXTRA_CPP_ARGS "" CACHE STRING "Extra C++ command line definitions")
 if (EXTRA_CPP_ARGS)
     message (STATUS "Extra C++ args: ${EXTRA_CPP_ARGS}")
-    add_compile_options ("${EXTRA_CPP_ARGS}")
+    add_compile_options (${EXTRA_CPP_ARGS})
 endif()
 set (EXTRA_DSO_LINK_ARGS "" CACHE STRING "Extra command line definitions when building DSOs")
 

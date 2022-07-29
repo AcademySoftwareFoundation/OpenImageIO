@@ -266,11 +266,11 @@ inline void
 vector_to_latlong(const Imath::V3f& R, bool y_is_up, float& s, float& t)
 {
     if (y_is_up) {
-        s = atan2f(-R[0], R[2]) / (2.0f * (float)M_PI) + 0.5f;
-        t = 0.5f - atan2f(R[1], hypotf(R[2], -R[0])) / (float)M_PI;
+        s = atan2f(-R.x, R.z) / (2.0f * (float)M_PI) + 0.5f;
+        t = 0.5f - atan2f(R.y, hypotf(R.z, -R.x)) / (float)M_PI;
     } else {
-        s = atan2f(R[1], R[0]) / (2.0f * (float)M_PI) + 0.5f;
-        t = 0.5f - atan2f(R[2], hypotf(R[0], R[1])) / (float)M_PI;
+        s = atan2f(R.y, R.x) / (2.0f * (float)M_PI) + 0.5f;
+        t = 0.5f - atan2f(R.z, hypotf(R.x, R.y)) / (float)M_PI;
     }
     // learned from experience, beware NaNs
     if (isnan(s))

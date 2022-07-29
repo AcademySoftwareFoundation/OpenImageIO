@@ -193,7 +193,7 @@ getargs(int argc, const char* argv[])
       .help("Test TextureSystem::get_imagespec");
     ap.arg("--gettextureinfo %s:NAME", &gtiname)
       .help("Test gettextureinfo, retrieving attrib 'NAME'");
-    ap.arg("--offset %f:SOFF %f:TOFF %f:ROFF", &texoffset[0], &texoffset[1], &texoffset[2])
+    ap.arg("--offset %f:SOFF %f:TOFF %f:ROFF", &texoffset.x, &texoffset.y, &texoffset.z)
       .help("Offset texture coordinates");
     ap.arg("--scalest %f:SSCALE %f:TSCALE", &sscale, &tscale)
       .help("Scale texture lookups (s, t)");
@@ -408,8 +408,8 @@ void
 map_default(const Int& x, const Int& y, Float& s, Float& t, Float& dsdx,
             Float& dtdx, Float& dsdy, Float& dtdy)
 {
-    s    = (Float(x) + 0.5f) / output_xres * sscale + texoffset[0];
-    t    = (Float(y) + 0.5f) / output_yres * tscale + texoffset[1];
+    s    = (Float(x) + 0.5f) / output_xres * sscale + texoffset.x;
+    t    = (Float(y) + 0.5f) / output_yres * tscale + texoffset.y;
     dsdx = 1.0f / output_xres * sscale;
     dtdx = 0.0f;
     dsdy = 0.0f;
@@ -423,19 +423,18 @@ static void
 map_warp(const Int& x, const Int& y, Float& s, Float& t, Float& dsdx,
          Float& dtdx, Float& dsdy, Float& dtdy)
 {
-    const Imath::Vec2<Float> coord  = warp_coord(Float(x) + 0.5f,
-                                                Float(y) + 0.5f);
-    const Imath::Vec2<Float> coordx = warp_coord(Float(x) + 1.5f,
-                                                 Float(y) + 0.5f);
-    const Imath::Vec2<Float> coordy = warp_coord(Float(x) + 0.5f,
-                                                 Float(y) + 1.5f);
+    Imath::Vec2<Float> coord  = warp_coord(Float(x) + 0.5f, Float(y) + 0.5f);
+    Imath::Vec2<Float> coordx = warp_coord(Float(x) + 1.5f, Float(y) + 0.5f)
+                                - coord;
+    Imath::Vec2<Float> coordy = warp_coord(Float(x) + 0.5f, Float(y) + 1.5f)
+                                - coord;
 
-    s    = coord[0];
-    t    = coord[1];
-    dsdx = coordx[0] - coord[0];
-    dtdx = coordx[1] - coord[1];
-    dsdy = coordy[0] - coord[0];
-    dtdy = coordy[1] - coord[1];
+    s    = coord.x;
+    t    = coord.y;
+    dsdx = coordx.x;
+    dtdx = coordx.y;
+    dsdy = coordy.x;
+    dtdy = coordy.y;
 }
 
 
@@ -536,16 +535,16 @@ map_default_3D(const Int& x, const Int& y, Imath::Vec3<Float>& P,
                Imath::Vec3<Float>& dPdx, Imath::Vec3<Float>& dPdy,
                Imath::Vec3<Float>& dPdz)
 {
-    P[0] = (Float(x) + 0.5f) / output_xres * sscale;
-    P[1] = (Float(y) + 0.5f) / output_yres * tscale;
-    P[2] = 0.5f * sscale;
+    P.x = (Float(x) + 0.5f) / output_xres * sscale;
+    P.y = (Float(y) + 0.5f) / output_yres * tscale;
+    P.z = 0.5f * sscale;
     P += texoffset;
-    dPdx[0] = 1.0f / output_xres * sscale;
-    dPdx[1] = 0;
-    dPdx[2] = 0;
-    dPdy[0] = 0;
-    dPdy[1] = 1.0f / output_yres * tscale;
-    dPdy[2] = 0;
+    dPdx.x = 1.0f / output_xres * sscale;
+    dPdx.y = 0;
+    dPdx.z = 0;
+    dPdy.x = 0;
+    dPdy.y = 1.0f / output_yres * tscale;
+    dPdy.z = 0;
     dPdz.setValue(0, 0, 0);
 }
 
@@ -1059,7 +1058,7 @@ test_getimagespec_gettexels(ustring filename)
     for (int i = 0; i < iters; ++i) {
         bool ok = texsys->get_texels(filename, opt, miplevel, x, x + w, y,
                                      y + h, 0, 1, 0, nchannels,
-                                     postagespec.format, &tmp[0]);
+                                     postagespec.format, tmp.data());
         if (!ok)
             Strutil::print(std::cerr, "ERROR: {}\n", texsys->geterror());
     }
