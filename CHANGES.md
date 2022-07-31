@@ -1,6 +1,15 @@
-Release 2.3.18 (1 Aug?? 2022) -- compared to 2.3.16
+Release 2.3.18 (1 Aug 2022) -- compared to 2.3.17
 ---------------------------------------------------
-
+* Windows: Allow loading of dlls from PATH on Python 3.8+. #3470
+* JPEG: Fix a race condition in read_native_scanline. #3495
+* JPEG: Fix aspect ratio logic. #3500
+* Bug fix: incorrect assignment of oiio_missingcolor attribute. #3497
+* Bug fix: possible null pointer dereference in inventory_udim(). #3498
+* Bug fix: print_info_subimage botched condition. #3499
+* CI: Test against fmt 9.0.0. #3466
+* CI: Test against pybind11 v2.10. #3478
+* Strutil: safe_strcat() #3471 and safe_strlen() #3501
+* Change build_opencolorio.bash to default to OCIO 2.1.2. #3475
 
 Release 2.3.17 (1 Jul 2022) -- compared to 2.3.16
 --------------------------------------------------
