@@ -1,3 +1,6 @@
+Release 2.3.19 (1 Sep?? 2022) -- compared to 2.3.18
+---------------------------------------------------
+
 Release 2.3.18 (1 Aug 2022) -- compared to 2.3.17
 ---------------------------------------------------
 * Windows: Allow loading of dlls from PATH on Python 3.8+. #3470
