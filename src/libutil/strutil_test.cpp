@@ -1433,7 +1433,7 @@ test_float_formatting()
         sstream.precision(9);
         sstream << *f;
         char buffer[64];
-        std::sprintf(buffer, "%.9g", *f);
+        std::snprintf(buffer, sizeof(buffer), "%.9g", *f);
         std::string tiny = Strutil::sprintf("%.9g", *f);
         if (sstream.str() != tiny || tiny != buffer)
             Strutil::printf(

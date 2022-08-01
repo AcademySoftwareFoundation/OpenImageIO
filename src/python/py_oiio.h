@@ -444,6 +444,7 @@ template<typename T>
 inline py::object
 C_to_val_or_tuple(const T* vals, TypeDesc type, int nvalues = 1)
 {
+    OIIO_DASSERT(vals && nvalues);
     size_t n = type.numelements() * type.aggregate * nvalues;
     if (n == 1 && !type.arraylen)
         return typename PyTypeForCType<T>::type(vals[0]);

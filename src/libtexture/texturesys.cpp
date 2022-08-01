@@ -909,6 +909,7 @@ TextureSystemImpl::missing_texture(TextureOpt& options, int nchannels,
                                    float* result, float* dresultds,
                                    float* dresultdt, float* dresultdr)
 {
+    OIIO_DASSERT(result != nullptr);
     for (int c = 0; c < nchannels; ++c) {
         if (options.missingcolor)
             result[c] = options.missingcolor[c];
@@ -937,6 +938,7 @@ TextureSystemImpl::fill_gray_channels(const ImageSpec& spec, int nchannels,
                                       float* result, float* dresultds,
                                       float* dresultdt, float* dresultdr)
 {
+    OIIO_DASSERT(result != nullptr);
     int specchans = spec.nchannels;
     if (specchans == 1 && nchannels >= 3) {
         // Asked for RGB or RGBA, texture was just R...

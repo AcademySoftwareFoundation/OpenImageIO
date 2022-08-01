@@ -289,7 +289,7 @@ private:
         } else if (tiffdatatype == TIFF_ASCII) {
             ok = TIFFGetField(m_tif, tag, &s);
             if (ok && s && *s)
-                count = strlen(s);
+                count = Strutil::safe_strlen(s, 64 * 1024);
         } else {
             // Some other type, we should not have been asking for this
             // as ASCII, or maybe the tag is just the wrong data type in

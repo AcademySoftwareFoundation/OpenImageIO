@@ -939,14 +939,15 @@ encode_exif_entry(const ParamValue& p, int tag, std::vector<TIFFDirEntry>& dirs,
     TIFFDataType type = tagmap.tifftype(tag);
     size_t count      = (size_t)tagmap.tiffcount(tag);
     TypeDesc element  = p.type().elementtype();
+    OIIO_DASSERT(p.data() != nullptr);
 
     switch (type) {
     case TIFF_ASCII:
         if (p.type() == TypeDesc::STRING) {
-            const char* s = *(const char**)p.data();
-            if (s) {
-                int len = strlen(s) + 1;
-                append_tiff_dir_entry(dirs, data, tag, type, len, s,
+            ustring s = *(const ustring*)p.data();
+            if (s.size()) {
+                int len = size_t(s.size()) + 1;
+                append_tiff_dir_entry(dirs, data, tag, type, len, s.data(),
                                       offset_correction, 0, endianreq);
             }
             return;

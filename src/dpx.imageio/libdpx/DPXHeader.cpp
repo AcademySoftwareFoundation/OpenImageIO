@@ -710,7 +710,7 @@ void dpx::IndustryHeader::UserBits(char *str) const
 dpx::U32 dpx::IndustryHeader::TCFromString(const char *str) const
 {
 	// make sure the string is the correct length
-	if (::strlen(str) != 11)
+	if (OIIO::Strutil::safe_strlen(str, 12) != 11)
 		return U32(~0);
 
 	U32 tc = 0;

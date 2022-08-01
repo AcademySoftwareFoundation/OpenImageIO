@@ -110,7 +110,7 @@ private:
             uint16_t s[2];
             uint32_t i;
         } u;
-        read(&u.c, 4);  // because it's char, it didn't swap endian
+        read((char*)&u.c, 4);  // because it's char, it didn't swap endian
         uint16_t s[2] = { u.s[0], u.s[1] };
         uint32_t i    = u.i;
         if (littleendian()) {

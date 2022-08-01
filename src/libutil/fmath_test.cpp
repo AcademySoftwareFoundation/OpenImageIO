@@ -317,7 +317,7 @@ test_convert_type(double tolerance = 1e-6)
             }
         }
     } else {
-        for (float i = 0.0f; i <= 1.0f; i += 0.001) {  // NOLINT
+        for (float i = 0.0f; i <= 1.0f; i += 0.001) {  // NOLINT //NOSONAR
             T in  = (T)i;
             F f   = convert_type<T, F>(in);
             T out = convert_type<F, T>(f);

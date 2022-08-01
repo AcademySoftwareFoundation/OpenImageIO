@@ -77,8 +77,7 @@ template<typename Ret, typename... Params> class function_view<Ret(Params...)> {
     template<typename Callable>
     static Ret callback_fn(intptr_t callable, Params... params)
     {
-        return (*reinterpret_cast<Callable*>(callable))(
-            std::forward<Params>(params)...);
+        return (*reinterpret_cast<Callable*>(callable))(params...);
     }
 
 public:
@@ -98,7 +97,7 @@ public:
 
     Ret operator()(Params... params) const
     {
-        return callback(callable, std::forward<Params>(params)...);
+        return callback(callable, params...);
     }
 
     operator bool() const { return callback; }

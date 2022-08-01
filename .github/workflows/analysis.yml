@@ -1,0 +1,177 @@
+# Copyright 2008-present Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: BSD-3-Clause
+# https://github.com/OpenImageIO/oiio
+
+name: Analysis
+
+on:
+  push:
+    # Only run analysis on a push if it's a special branch name or if this
+    # yaml file itself was changed.
+    branches:
+    branches: [ "analysis", "scorecard", "sonar" ]
+    paths:
+      - .github/workflows/analysis.yml
+  pull_request:
+    # Only run analysis on individual PRs if is's a special branch name or if
+    # this yaml file itself was changed.
+    branches: [ "analysis", "scorecard", "sonar" ]
+    paths:
+      - .github/workflows/analysis.yml
+  schedule:
+    # Run unconditionally once weekly
+    - cron: "0 0 * * 0"
+
+permissions: read-all
+
+
+jobs:
+
+  aswf:
+    name: "SonarCloud Analysis"
+    if: |
+      github.repository == 'OpenImageIO/oiio'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - desc: sonar gcc9/C++14 py39 boost1.76 exr3.1 ocio2.1
+            nametag: static-analysis-sonar
+            os: ubuntu-latest
+            vfxyear: 2022
+            vfxsuffix: -clang11
+            cxx_std: 14
+            python_ver: 3.9
+            simd: "avx2,f16c"
+            fmt_ver: 8.1.1
+            pybind11_ver: v2.9.0
+            coverage: 1
+            # skip_tests: 1
+            sonar: 1
+            setenvs: export SONAR_SCANNER_VERSION=4.7.0.2747
+                            SONAR_SERVER_URL="https://sonarcloud.io"
+                            BUILD_WRAPPER_OUT_DIR=bw_output
+                            OIIO_CMAKE_BUILD_WRAPPER="build-wrapper-linux-x86-64 --out-dir bw_output"
+                            CMAKE_BUILD_TYPE=Debug
+                            CMAKE_UNITY_BUILD=OFF
+                            CODECOV=1
+
+    runs-on: ${{ matrix.os }}
+    container:
+      image: aswf/ci-osl:${{matrix.vfxyear}}${{matrix.vfxsuffix}}
+    env:
+      CXX: ${{matrix.cxx_compiler}}
+      CC: ${{matrix.cc_compiler}}
+      CMAKE_CXX_STANDARD: ${{matrix.cxx_std}}
+      USE_SIMD: ${{matrix.simd}}
+      FMT_VERSION: ${{matrix.fmt_ver}}
+      OPENEXR_VERSION: ${{matrix.openexr_ver}}
+      PYBIND11_VERSION: ${{matrix.pybind11_ver}}
+      PYTHON_VERSION: ${{matrix.python_ver}}
+      # DEBUG_CI: 1
+    steps:
+      # We would like to use harden-runner, but it flags too many false
+      # positives, every time we download a dependency. We should use it only
+      # on CI runs where we are producing artifacts that users might rely on.
+      # - name: Harden Runner
+      #   uses: step-security/harden-runner@248ae51c2e8cc9622ecf50685c8bf7150c6e8813 # v1.4.3
+      #   with:
+      #     egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.2
+        with:
+          fetch-depth: '0'
+      - name: Prepare ccache timestamp
+        id: ccache_cache_keys
+        run: echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
+      - name: ccache
+        id: ccache
+        uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d # v3.0.4
+        with:
+          path: /tmp/ccache
+          key: ${{github.job}}-${{matrix.nametag}}-${{steps.ccache_cache_keys.outputs.date}}
+          restore-keys: ${{github.job}}-
+      - name: Build setup
+        run: |
+            ${{matrix.setenvs}}
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            ${{matrix.depcmds}}
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: src/build-scripts/ci-build.bash
+      - name: Testsuite
+        if: matrix.skip_tests != '1'
+        run: src/build-scripts/ci-test.bash
+      - name: Code coverage
+        if: matrix.coverage == '1'
+        run: src/build-scripts/ci-coverage.bash
+      - name: Sonar-scanner
+        if: matrix.sonar == 1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+            sonar-scanner --define sonar.host.url="${{ env.SONAR_SERVER_URL }}" --define sonar.cfamily.build-wrapper-output="build/bw_output" --define sonar.cfamily.gcov.reportsPath="_coverage"
+      # - uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
+      #   if: failure()
+      #   with:
+      #     name: oiio-${{github.job}}-${{matrix.nametag}}
+      #     path: |
+      #       build/cmake-save
+      #       build/testsuite/*/*.*
+      #       !build/testsuite/oiio-images
+      #       !build/testsuite/openexr-images
+      #       !build/testsuite/fits-images
+      #       !build/testsuite/j2kp4files_v1_5
+
+
+  scorecard:
+    # Only run on main repo
+    if: |
+      github.repository == 'OpenImageIO/oiio'
+    name: Scorecards analysis
+    runs-on: ubuntu-latest
+    permissions:
+      # Needed to upload the results to code-scanning dashboard.
+      security-events: write
+      # Used to receive a badge. (Upcoming feature)
+      id-token: write
+      # Needs for private repositories.
+      contents: read
+      actions: read
+    
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@a12a3943b4bdde767164f792f33f40b04645d846 # v3.0.0
+        with:
+          persist-credentials: false
+      - name: "Run scorecard analysis"
+        uses: ossf/scorecard-action@3e15ea8318eee9b333819ec77a36aca8d39df13e # v1.1.1
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          # (Optional) Read-only PAT token. Uncomment the `repo_token` line below if:
+          # - you want to enable the Branch-Protection check on a *public* repository, or
+          # - you are installing Scorecards on a *private* repository
+          # To create the PAT, follow the steps in https://github.com/ossf/scorecard-action#authentication-with-pat.
+          # repo_token: ${{ secrets.SCORECARD_READ_TOKEN }}
+
+          # Publish the results for public repositories to enable scorecard badges. For more details, see
+          # https://github.com/ossf/scorecard-action#publishing-results. 
+          # For private repositories, `publish_results` will automatically be set to `false`, regardless 
+          # of the value entered here.
+          publish_results: true
+      # Upload the results as artifacts (optional). Commenting out will disable uploads of run results in SARIF
+      # format to the repository Actions tab.
+      - name: "Upload artifact"
+        uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535 # v3.0.0
+        with:
+          name: SARIF file
+          path: results.sarif
+          retention-days: 5
+      # Upload the results to GitHub's code scanning dashboard.
+      - name: "Upload to code-scanning"
+        uses: github/codeql-action/upload-sarif@5f532563584d71fdef14ee64d17bafb34f751ce5 # v1.0.26
+        with:
+          sarif_file: results.sarif

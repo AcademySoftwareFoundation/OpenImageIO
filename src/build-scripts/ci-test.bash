@@ -11,8 +11,3 @@ pushd build
 time ctest -C ${CMAKE_BUILD_TYPE} -E broken --force-new-ctest-process \
     --output-on-failure --timeout ${CTEST_TEST_TIMEOUT:=180} ${CTEST_ARGS}
 popd
-
-
-# if [[ "$CODECOV" == 1 ]] ; then
-#     bash <(curl -s https://codecov.io/bash)
-# fi

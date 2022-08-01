@@ -907,9 +907,8 @@ add_node(xml_node& node, string_view node_name, const char* val)
 static xml_node
 add_node(xml_node& node, string_view node_name, const int val)
 {
-    char buf[64];
-    sprintf(buf, "%d", val);
-    return add_node(node, node_name, buf);
+    std::string buf = Strutil::to_string(val);
+    return add_node(node, node_name, buf.c_str());
 }
 
 

@@ -70,8 +70,8 @@ BmpFileHeader::isBmp() const
     case MAGIC_CI:
     case MAGIC_CP:
     case MAGIC_PT: return true;
+    default: return false;
     }
-    return false;
 }
 
 

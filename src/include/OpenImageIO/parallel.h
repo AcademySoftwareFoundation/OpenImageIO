@@ -362,9 +362,7 @@ parallel_for_2D(int64_t xbegin, int64_t xend, int64_t /*xchunksize*/,
                 int64_t ybegin, int64_t yend, int64_t /*ychunksize*/,
                 std::function<void(int id, int64_t i, int64_t j)>&& task)
 {
-    parallel_for_2D(xbegin, xend, ybegin, yend,
-                    std::forward<std::function<void(int, int64_t, int64_t)>>(
-                        task));
+    parallel_for_2D(xbegin, xend, ybegin, yend, std::move(task));
 }
 
 #endif /* Deprecated functions */

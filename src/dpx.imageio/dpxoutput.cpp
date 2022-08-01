@@ -719,42 +719,32 @@ DPXOutput::set_keycode_values(int* array)
 {
     // Manufacturer code
     {
-        std::stringstream ss;
-        ss << std::setfill('0');
-        ss << std::setw(2) << array[0];
-        memcpy(m_dpx.header.filmManufacturingIdCode, ss.str().c_str(), 2);
+        std::string ss = Strutil::fmt::format("{:02d}", array[0]);
+        memcpy(m_dpx.header.filmManufacturingIdCode, ss.c_str(), 2);
     }
 
     // Film type
     {
-        std::stringstream ss;
-        ss << std::setfill('0');
-        ss << std::setw(2) << array[1];
-        memcpy(m_dpx.header.filmType, ss.str().c_str(), 2);
+        std::string ss = Strutil::fmt::format("{:02d}", array[1]);
+        memcpy(m_dpx.header.filmType, ss.c_str(), 2);
     }
 
     // Prefix
     {
-        std::stringstream ss;
-        ss << std::setfill('0');
-        ss << std::setw(6) << array[2];
-        memcpy(m_dpx.header.prefix, ss.str().c_str(), 6);
+        std::string ss = Strutil::fmt::format("{:06d}", array[2]);
+        memcpy(m_dpx.header.prefix, ss.c_str(), 6);
     }
 
     // Count
     {
-        std::stringstream ss;
-        ss << std::setfill('0');
-        ss << std::setw(4) << array[3];
-        memcpy(m_dpx.header.count, ss.str().c_str(), 4);
+        std::string ss = Strutil::fmt::format("{:04d}", array[3]);
+        memcpy(m_dpx.header.count, ss.c_str(), 4);
     }
 
     // Perforation Offset
     {
-        std::stringstream ss;
-        ss << std::setfill('0');
-        ss << std::setw(2) << array[4];
-        memcpy(m_dpx.header.perfsOffset, ss.str().c_str(), 2);
+        std::string ss = Strutil::fmt::format("{:02d}", array[4]);
+        memcpy(m_dpx.header.perfsOffset, ss.c_str(), 2);
     }
 
     // Format

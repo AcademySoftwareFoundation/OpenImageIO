@@ -315,7 +315,7 @@ std::string
 ParamValue::get_string(int maxsize) const
 {
     int nfull  = int(type().basevalues()) * nvalues();
-    int n      = std::min(nfull, maxsize);
+    int n      = maxsize ? std::min(nfull, maxsize) : nfull;
     TypeDesc t = type();
     if (nvalues() > 1 || n < nfull) {
         t.aggregate = TypeDesc::SCALAR;
@@ -342,7 +342,7 @@ ParamValue::get_string_indexed(int index) const
     if (index < 0 || index >= n)
         return out;
     if (element.basetype == TypeDesc::STRING) {
-        return get<const char*>(index);
+        return get<ustring>(index).string();
     } else if (element.basetype == TypeDesc::FLOAT) {
         formatType<float>(*this, index, index + 1, "%g", out);
     } else if (element.basetype == TypeDesc::DOUBLE) {

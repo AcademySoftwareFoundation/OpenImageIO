@@ -404,11 +404,9 @@ cmake_pop_check_state ()
 option (CODECOV "Build code coverage tests" OFF)
 if (CODECOV AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
     message (STATUS "Compiling for code coverage analysis")
-    add_compile_options ("-ftest-coverage -fprofile-arcs -O0")
+    add_compile_options (-ftest-coverage -fprofile-arcs)
     add_definitions ("-D${PROJ_NAME}_CODE_COVERAGE=1")
-    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -ftest-coverage -fprofile-arcs")
-    set (CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -ftest-coverage -fprofile-arcs")
-    set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -ftest-coverage -fprofile-arcs")
+    link_libraries(gcov)
 endif ()
 
 
