@@ -1296,6 +1296,27 @@ struct CompareResults {
 };
 
 /// Numerically compare two images.  The difference threshold (for any
+/// individual color channel in any pixel) for a "failure" is `failthresh`,
+/// and for a "warning" is `warnthresh`.  If nonzero, then `failrelative` and
+/// `warnrelative` are alternate thresholds as a portion the mean of the
+/// absolute values of the two images. It only warns or fails if both criteria
+/// are met. More formally, a value comparison will fail if
+///
+///     abs(A-B) > failthresh && abs(A-B)/((abs(A)+abs(B))/2) > failrelative
+///
+/// and analogously for warning.
+///
+/// The results are stored in `result`.  If `roi` is defined, pixels will be
+/// compared for the pixel and channel range that is specified.  If `roi` is
+/// not defined, the comparison will be for all channels, on the union of the
+/// defined pixel windows of the two images (for either image, undefined
+/// pixels will be assumed to be black).
+CompareResults OIIO_API compare (const ImageBuf &A, const ImageBuf &B,
+                                 float failthresh, float warnthresh,
+                                 float failrelative, float warnrelative,
+                                 ROI roi={}, int nthreads=0);
+
+/// Numerically compare two images.  The difference threshold (for any
 /// individual color channel in any pixel) for a "failure" is
 /// failthresh, and for a "warning" is warnthresh.  The results are
 /// stored in result.  If roi is defined, pixels will be compared for

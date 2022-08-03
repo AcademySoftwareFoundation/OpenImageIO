@@ -584,6 +584,32 @@ test_compare()
     OIIO_CHECK_EQUAL(comp.maxx, 9);
     OIIO_CHECK_EQUAL(comp.maxy, 0);
     OIIO_CHECK_EQUAL_THRESH(comp.meanerror, 0.0045f, 1.0e-8f);
+
+    // Relative comparison: warn at 5% of the difference, fail at 10% of the
+    // difference. In row 0, we have:
+    //    A:  0.50  0.50  0.50  0.50  0.50  0.50  0.50  0.50  0.50  0.50
+    //    B:  0.50  0.51  0.52  0.53  0.54  0.55  0.56  0.57  0.58  0.59
+    // mean:  0.50  0.505 0.51  0.515 0.52  0.525 0.53  0.535 0.54  0.545
+    // diff:  0.0   0.01  0.02  0.03  0.04  0.05  0.06  0.07  0.08  0.09
+    // fail?                                       x     x     x     x
+    // warn?                     x     x     x     x     x     x     x
+    comp = ImageBufAlgo::compare(A, B, 0.0f, 0.0f, 0.1f, 0.05f);
+    // We expect 4 pixels to exceed the fail threshold, 7 pixels to
+    // exceed the warn threshold, the maximum difference to be 0.09,
+    // and the maximally different pixel to be (9,0).
+    // The total error should be 3 chans * sum{0.01,...,0.09} / (pixels*chans)
+    //   = 3 * 0.45 / (100*3) = 0.0045
+    std::cout << "Testing relative comparison: " << comp.nfail << " failed, "
+              << comp.nwarn << " warned, max diff = " << comp.maxerror << " @ ("
+              << comp.maxx << ',' << comp.maxy << ")\n";
+    std::cout << "   mean err " << comp.meanerror << ", RMS err "
+              << comp.rms_error << ", PSNR = " << comp.PSNR << "\n";
+    OIIO_CHECK_EQUAL(comp.nfail, 4);
+    OIIO_CHECK_EQUAL(comp.nwarn, 7);
+    OIIO_CHECK_EQUAL_THRESH(comp.maxerror, 0.09f, 1e-6f);
+    OIIO_CHECK_EQUAL(comp.maxx, 9);
+    OIIO_CHECK_EQUAL(comp.maxy, 0);
+    OIIO_CHECK_EQUAL_THRESH(comp.meanerror, 0.0045f, 1.0e-8f);
 }
 
 

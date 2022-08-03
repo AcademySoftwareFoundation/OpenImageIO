@@ -220,12 +220,13 @@ ImageBufAlgo::computePixelStats(PixelStats& stats, const ImageBuf& src, ROI roi,
 
 
 
-template<class BUFT>
+template<class BUFT, class VALT>
 inline void
-compare_value(ImageBuf::ConstIterator<BUFT, float>& a, int chan, float aval,
-              float bval, ImageBufAlgo::CompareResults& result, float& maxval,
+compare_value(ImageBuf::ConstIterator<BUFT, float>& a, int chan, VALT aval,
+              VALT bval, ImageBufAlgo::CompareResults& result, float& maxval,
               double& batcherror, double& batch_sqrerror, bool& failed,
-              bool& warned, float failthresh, float warnthresh)
+              bool& warned, float failthresh, float warnthresh,
+              float failrelative, float warnrelative)
 {
     if (!isfinite(aval) || !isfinite(bval)) {
         if (isnan(aval) == isnan(bval) && isinf(aval) == isinf(bval))
@@ -240,8 +241,13 @@ compare_value(ImageBuf::ConstIterator<BUFT, float>& a, int chan, float aval,
             return;
         }
     }
-    maxval   = std::max(maxval, std::max(aval, bval));
-    double f = fabs(aval - bval);
+    auto aabs    = std::abs(aval);
+    auto babs    = std::abs(bval);
+    auto meanabs = lerp(aabs, babs, 0.5);
+    auto maxabs  = std::max(aabs, babs);
+    maxval       = std::max(maxval, maxabs);
+    double f     = std::abs(aval - bval);
+    double rel   = meanabs > 0.0 ? f / meanabs : 0.0;
     batcherror += f;
     batch_sqrerror += f * f;
     // We use the awkward '!(a<=threshold)' construct so that we have
@@ -254,11 +260,11 @@ compare_value(ImageBuf::ConstIterator<BUFT, float>& a, int chan, float aval,
         result.maxz     = a.z();
         result.maxc     = chan;
     }
-    if (!warned && !(f <= warnthresh)) {
+    if (!warned && !(f <= warnthresh) && !(rel <= warnrelative)) {
         ++result.nwarn;
         warned = true;
     }
-    if (!failed && !(f <= failthresh)) {
+    if (!failed && !(f <= failthresh) && !(rel <= failrelative)) {
         ++result.nfail;
         failed = true;
     }
@@ -269,8 +275,8 @@ compare_value(ImageBuf::ConstIterator<BUFT, float>& a, int chan, float aval,
 template<class Atype, class Btype>
 static bool
 compare_(const ImageBuf& A, const ImageBuf& B, float failthresh,
-         float warnthresh, ImageBufAlgo::CompareResults& result, ROI roi,
-         int /*nthreads*/)
+         float warnthresh, float failrelative, float warnrelative,
+         ImageBufAlgo::CompareResults& result, ROI roi, int /*nthreads*/)
 {
     imagesize_t npels = roi.npixels();
     imagesize_t nvals = npels * roi.nchannels();
@@ -288,9 +294,9 @@ compare_(const ImageBuf& A, const ImageBuf& B, float failthresh,
     // N.B. [PSNR](https://en.wikipedia.org/wiki/Peak_signal-to-noise_ratio)
     // formula requires the max possible value. We assume a normalized 1.0,
     // but for an HDR image with potentially values > 1.0, there is no true
-    // max value, so we punt and use the highest value found in either
-    // image. The compare_value() function we call on every pixel value will
-    // check and adjust our max as needed.
+    // max value, so we punt and use the highest absolute value found in
+    // either image. The compare_value() function we call on every pixel value
+    // will check and adjust our max as needed.
 
     ImageBuf::ConstIterator<Atype> a(A, roi, ImageBuf::WrapBlack);
     ImageBuf::ConstIterator<Btype> b(B, roi, ImageBuf::WrapBlack);
@@ -310,7 +316,8 @@ compare_(const ImageBuf& A, const ImageBuf& B, float failthresh,
                         compare_value(a, c, a.deep_value(c, s),
                                       b.deep_value(c, s), result, maxval,
                                       batcherror, batch_sqrerror, failed,
-                                      warned, failthresh, warnthresh);
+                                      warned, failthresh, warnthresh,
+                                      failrelative, warnrelative);
                     }
             }
         } else {  // non-deep
@@ -320,7 +327,8 @@ compare_(const ImageBuf& A, const ImageBuf& B, float failthresh,
                     compare_value(a, c, c < Achannels ? a[c] : 0.0f,
                                   c < Bchannels ? b[c] : 0.0f, result, maxval,
                                   batcherror, batch_sqrerror, failed, warned,
-                                  failthresh, warnthresh);
+                                  failthresh, warnthresh, failrelative,
+                                  warnrelative);
             }
         }
         totalerror += batcherror;
@@ -337,6 +345,17 @@ compare_(const ImageBuf& A, const ImageBuf& B, float failthresh,
 ImageBufAlgo::CompareResults
 ImageBufAlgo::compare(const ImageBuf& A, const ImageBuf& B, float failthresh,
                       float warnthresh, ROI roi, int nthreads)
+{
+    // equivalent to compare with the relative thresholds equal to 0
+    return compare(A, B, failthresh, warnthresh, 0.0f, 0.0f, roi, nthreads);
+}
+
+
+
+ImageBufAlgo::CompareResults
+ImageBufAlgo::compare(const ImageBuf& A, const ImageBuf& B, float failthresh,
+                      float warnthresh, float failrelative, float warnrelative,
+                      ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtimer("IBA::compare");
     ImageBufAlgo::CompareResults result;
@@ -357,7 +376,8 @@ ImageBufAlgo::compare(const ImageBuf& A, const ImageBuf& B, float failthresh,
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES2_CONST(ok, "compare", compare_, A.spec().format,
                                       B.spec().format, A, B, failthresh,
-                                      warnthresh, result, roi, nthreads);
+                                      warnthresh, failrelative, warnrelative,
+                                      result, roi, nthreads);
     // FIXME - The nthreads argument is for symmetry with the rest of
     // ImageBufAlgo and for future expansion. But for right now, we
     // don't actually split by threads.  Maybe later.

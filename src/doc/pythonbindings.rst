@@ -3171,12 +3171,14 @@ Image comparison and statistics
 
 
 
-.. py:method:: CompareResults ImageBufAlgo.compare (A, B, failthresh, warnthresh, roi=ROI.All, nthreads=0)
+.. py:method:: CompareResults ImageBufAlgo.compare (A, B, failthresh, warnthresh, failrelative=0.0, warnrelative=0.0, roi=ROI.All, nthreads=0)
 
     Numerically compare two ImageBuf's, `A` and `B`. The `failthresh` and
-    `warnthresh` supply failure and warning difference thresholds. The
-    return value is a `CompareResults` object, which is defined as a class
-    having the following members:
+    `warnthresh` supply absolute failure and warning difference thresholds,
+    and `failrelative` and `warnrelative` supply failure and warning
+    thresholds relative to the values in each image. The return value is a
+    `CompareResults` object, which is defined as a class having the following
+    members:
 
     .. code-block:: python
 

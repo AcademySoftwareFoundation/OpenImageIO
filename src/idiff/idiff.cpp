@@ -58,9 +58,13 @@ getargs(int argc, char* argv[])
 
     ap.separator("Thresholding and comparison options");
     ap.arg("-fail")
-      .help("Failure threshold difference")
+      .help("Failure absolute difference threshold")
       .metavar("VAL")
       .defaultval(1.0e-6f);
+    ap.arg("-failrelative")
+      .help("Failure relative threshold")
+      .metavar("VAL")
+      .defaultval(0.0f);
     ap.arg("-failpercent")
       .help("Allow this percentage of failures")
       .metavar("PERCENT")
@@ -74,9 +78,13 @@ getargs(int argc, char* argv[])
       .metavar("N")
       .defaultval(0);
     ap.arg("-warn")
-      .help("Warning threshold difference")
+      .help("Warning absolute difference threshold")
       .metavar("VAL")
       .defaultval(1.0e-6f);
+    ap.arg("-warnrelative")
+      .help("Warning relative threshold")
+      .metavar("VAL")
+      .defaultval(0.0f);
     ap.arg("-warnpercent")
       .help("Allow this percentage of warnings")
       .metavar("PERCENT")
@@ -187,9 +195,11 @@ main(int argc, char* argv[])
     std::string diffimage = ap["o"].get();
     float diffscale       = ap["scale"].get<float>();
     float failthresh      = ap["fail"].get<float>();
+    float failrelative    = ap["failrelative"].get<float>();
     float failpercent     = ap["failpercent"].get<float>();
     float hardfail        = ap["hardfail"].get<float>();
     float warnthresh      = ap["warn"].get<float>();
+    float warnrelative    = ap["warnrelative"].get<float>();
     float warnpercent     = ap["warnpercent"].get<float>();
     float hardwarn        = ap["hardwarn"].get<float>();
     int allowfailures     = ap["allowfailures"].get<int>();
@@ -265,7 +275,8 @@ main(int argc, char* argv[])
 
             // Compare the two images.
             //
-            auto cr = ImageBufAlgo::compare(img0, img1, failthresh, warnthresh);
+            auto cr = ImageBufAlgo::compare(img0, img1, failthresh, warnthresh,
+                                            failrelative, warnrelative);
 
             int yee_failures = 0;
             if (perceptual && !img0.deep()) {

@@ -1462,7 +1462,17 @@ IBA_computePixelStats(const ImageBuf& src, ImageBufAlgo::PixelStats& stats,
 
 ImageBufAlgo::CompareResults
 IBA_compare_ret(const ImageBuf& A, const ImageBuf& B, float failthresh,
-                float warnthresh, ROI roi, int nthreads)
+                float warnthresh, float failrelative, float warnrelative,
+                ROI roi, int nthreads)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::compare(A, B, failthresh, warnthresh, failrelative,
+                                 warnrelative, roi, nthreads);
+}
+
+ImageBufAlgo::CompareResults
+IBA_compare_ret_old(const ImageBuf& A, const ImageBuf& B, float failthresh,
+                    float warnthresh, ROI roi, int nthreads)
 {
     py::gil_scoped_release gil;
     return ImageBufAlgo::compare(A, B, failthresh, warnthresh, roi, nthreads);
@@ -2888,7 +2898,12 @@ declare_imagebufalgo(py::module& m)
                     "warnthresh"_a, "result"_a, "roi"_a = ROI::All(),
                     "nthreads"_a = 0)
         .def_static("compare", &IBA_compare_ret, "A"_a, "B"_a, "failthresh"_a,
-                    "warnthresh"_a, "roi"_a = ROI::All(), "nthreads"_a = 0)
+                    "warnthresh"_a, "failrelative"_a = 0.0f,
+                    "warnrelative"_a = 0.0f, "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
+        .def_static("compare", &IBA_compare_ret_old, "A"_a, "B"_a,
+                    "failthresh"_a, "warnthresh"_a, "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
 
         .def_static("compare_Yee", &IBA_compare_Yee, "A"_a, "B"_a, "result"_a,
                     "luminance"_a = 100, "fov"_a = 45, "roi"_a = ROI::All(),
