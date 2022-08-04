@@ -8,8 +8,7 @@ on:
   push:
     # Only run analysis on a push if it's a special branch name or if this
     # yaml file itself was changed.
-    branches:
-    branches: [ "analysis", "scorecard", "sonar" ]
+    branches: [ "analysis", "scorecard", "sonar", "master" ]
     paths:
       - .github/workflows/analysis.yml
   pull_request:
