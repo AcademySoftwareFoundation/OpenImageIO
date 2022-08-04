@@ -326,6 +326,7 @@ try:
     print ("  infcount    = ", stats.infcount)
     print ("  finitecount = ", stats.finitecount)
 
+    # Absolute compare
     compresults = ImageBufAlgo.compare (ImageBuf("flip.tif"), ImageBuf("flop.tif"),
                                         1.0e-6, 1.0e-6)
     print ("Comparison: of flip.tif and flop.tif")
@@ -334,6 +335,12 @@ try:
     print ("  PSNR = %.5g" % compresults.PSNR)
     print ("  max  = %.5g" % compresults.maxerror)
     print ("  max @", (compresults.maxx, compresults.maxy, compresults.maxz, compresults.maxc))
+    print ("  warns", compresults.nwarn, "fails", compresults.nfail)
+
+    # Relative compare
+    compresults = ImageBufAlgo.compare (ImageBuf("flip.tif"), ImageBuf("flop.tif"),
+                                        0.0, 0.0, 0.1, 0.05)
+    print ("Relative comparison: of flip.tif and flop.tif")
     print ("  warns", compresults.nwarn, "fails", compresults.nfail)
 
     # compare_Yee,
