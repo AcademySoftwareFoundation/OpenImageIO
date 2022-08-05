@@ -482,7 +482,7 @@ test_comparisons()
     std::string abcnope = "1abcdefghijklmnopqrstuvwxyz";
     std::string haystack = std::string("begin") + abc + "oiio"
                          + Strutil::repeat(abc, 10) + "123" + abc + "end";
-    bench ("string== success", [&](){ DoNotOptimize(abc == abc); });
+    bench ("string== success", [&](){ DoNotOptimize(abc == abc); }); // NOSONAR
     bench ("string== failure", [&](){ DoNotOptimize(abc == abcmore); });
     bench ("iequals success", [&](){ DoNotOptimize(Strutil::iequals(abc, abc)); });
     bench ("iless easy", [&](){ DoNotOptimize(Strutil::iless(abc, abcnope)); });

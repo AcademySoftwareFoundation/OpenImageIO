@@ -73,8 +73,8 @@ declare_roi(py::module& m)
         // set_roi(spec,newroi), set_roi_full(newroi)
 
         // overloaded operators
-        .def(py::self == py::self)  // operator==
-        .def(py::self != py::self)  // operator!=
+        .def(py::self == py::self)  // operator==   // NOSONAR
+        .def(py::self != py::self)  // operator!=   // NOSONAR
         ;
 
     m.def("union", &roi_union);

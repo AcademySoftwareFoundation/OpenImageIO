@@ -80,11 +80,9 @@ private:
 inline Color3f
 AdobeRGBToXYZ_color(const Color3f& rgb)
 {
-    return Color3f(rgb[0] * 0.576700f + rgb[1] * 0.185556f + rgb[2] * 0.188212f,
-                   rgb[0] * 0.297361f + rgb[1] * 0.627355f
-                       + rgb[2] * 0.0752847f,
-                   rgb[0] * 0.0270328f + rgb[1] * 0.0706879f
-                       + rgb[2] * 0.991248f);
+    return Color3f(rgb.x * 0.576700f + rgb.y * 0.185556f + rgb.z * 0.188212f,
+                   rgb.x * 0.297361f + rgb.y * 0.627355f + rgb.z * 0.0752847f,
+                   rgb.x * 0.0270328f + rgb.y * 0.0706879f + rgb.z * 0.991248f);
 }
 
 
@@ -96,9 +94,9 @@ AdobeRGBToXYZ(ImageBuf& A, ROI roi, int nthreads)
         for (ImageBuf::Iterator<float> a(A, roi); !a.done(); ++a) {
             Color3f rgb(a[0], a[1], a[2]);
             Color3f XYZ = AdobeRGBToXYZ_color(rgb);
-            a[0]        = XYZ[0];
-            a[1]        = XYZ[1];
-            a[2]        = XYZ[2];
+            a[0]        = XYZ.x;
+            a[1]        = XYZ.y;
+            a[2]        = XYZ.z;
         }
     });
     return true;
@@ -121,14 +119,15 @@ XYZToLAB_color(const Color3f xyz)
     Color3f r = xyz / white;
     Color3f f;
     for (int i = 0; i < 3; i++) {
-        if (r[i] > epsilon)
-            f[i] = powf(r[i], 1.0f / 3.0f);
+        float ri = r[i];  // NOSONAR
+        if (ri > epsilon)
+            f[i] = powf(ri, 1.0f / 3.0f);
         else
-            f[i] = (kappa * r[i] + 16.0f) / 116.0f;
+            f[i] = (kappa * ri + 16.0f) / 116.0f;
     }
-    return Color3f(116.0f * f[1] - 16.0f,    // L
-                   500.0f * (f[0] - f[1]),   // A
-                   200.0f * (f[1] - f[2]));  // B
+    return Color3f(116.0f * f.y - 16.0f,   // L
+                   500.0f * (f.x - f.y),   // A
+                   200.0f * (f.y - f.z));  // B
 }
 
 

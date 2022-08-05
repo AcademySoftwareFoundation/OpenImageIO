@@ -300,7 +300,7 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
                                (unsigned int)MAX_DATA_BYTES_IN_MARKER);
                 icc_profile_length -= length;
                 // Write the JPEG marker header (APP2 code and marker length)
-                strncpy((char*)&profile[0], "ICC_PROFILE", profile_size);
+                strcpy((char*)profile.data(), "ICC_PROFILE");  // NOSONAR
                 profile[11] = 0;
                 profile[12] = curr_marker;
                 profile[13] = (unsigned char)num_markers;

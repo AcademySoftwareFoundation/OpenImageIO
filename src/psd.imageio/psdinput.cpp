@@ -1622,7 +1622,7 @@ PSDInput::load_global_mask_info()
 
     ok &= read_bige<uint32_t>(length);
     int64_t start = iotell();
-    int64_t end   = start + length;
+    int64_t end   = start + length;  // NOSONAR
     if (!ok)
         return false;
 

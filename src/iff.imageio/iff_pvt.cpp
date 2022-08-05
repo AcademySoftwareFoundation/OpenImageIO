@@ -288,7 +288,7 @@ IffOutput::write_header(IffFileHeader& header)
         return false;
 
     // write prnum and prden (pixel aspect ratio? -- FIXME)
-    if (!write_short(1) || !write_short(1))
+    if (!write_short(1) || !write_short(1))  //NOSONAR
         return false;
 
     // write flags and channels
