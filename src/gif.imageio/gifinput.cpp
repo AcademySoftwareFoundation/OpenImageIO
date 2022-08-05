@@ -37,26 +37,26 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class GIFInput final : public ImageInput {
 public:
     GIFInput() { init(); }
-    virtual ~GIFInput() override { close(); }
-    virtual const char* format_name(void) const override { return "gif"; }
-    virtual int supports(string_view feature) const override
+    ~GIFInput() override { close(); }
+    const char* format_name(void) const override { return "gif"; }
+    int supports(string_view feature) const override
     {
         return feature == "ioproxy";
     }
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool open(const std::string& name, ImageSpec& newspec,
-                      const ImageSpec& config) override;
-    virtual bool close(void) override;
-    virtual bool seek_subimage(int subimage, int miplevel) override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool open(const std::string& name, ImageSpec& newspec,
+              const ImageSpec& config) override;
+    bool close(void) override;
+    bool seek_subimage(int subimage, int miplevel) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
 
-    virtual int current_subimage(void) const override
+    int current_subimage(void) const override
     {
         lock_guard lock(*this);
         return m_subimage;
     }
-    virtual int current_miplevel(void) const override
+    int current_miplevel(void) const override
     {
         // No mipmap support
         return 0;

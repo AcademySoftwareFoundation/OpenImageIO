@@ -24,19 +24,19 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class PNMInput final : public ImageInput {
 public:
     PNMInput() { init(); }
-    virtual ~PNMInput() override { close(); }
-    virtual const char* format_name(void) const override { return "pnm"; }
-    virtual int supports(string_view feature) const override
+    ~PNMInput() override { close(); }
+    const char* format_name(void) const override { return "pnm"; }
+    int supports(string_view feature) const override
     {
         return feature == "ioproxy";
     }
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool open(const std::string& name, ImageSpec& spec,
-                      const ImageSpec& config) override;
-    virtual bool close() override;
-    virtual int current_subimage(void) const override { return 0; }
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool open(const std::string& name, ImageSpec& spec,
+              const ImageSpec& config) override;
+    bool close() override;
+    int current_subimage(void) const override { return 0; }
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
 
 private:
     enum PNMType { P1, P2, P3, P4, P5, P6, Pf, PF };

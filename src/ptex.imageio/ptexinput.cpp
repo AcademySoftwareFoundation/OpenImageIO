@@ -18,31 +18,31 @@ public:
     {
         init();
     }
-    virtual ~PtexInput() override { close(); }
-    virtual const char* format_name(void) const override { return "ptex"; }
-    virtual int supports(string_view feature) const override
+    ~PtexInput() override { close(); }
+    const char* format_name(void) const override { return "ptex"; }
+    int supports(string_view feature) const override
     {
         return (feature == "arbitrary_metadata"
                 || feature == "exif"    // Because of arbitrary_metadata
                 || feature == "iptc");  // Because of arbitrary_metadata
     }
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool close() override;
-    virtual int current_subimage(void) const override
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool close() override;
+    int current_subimage(void) const override
     {
         lock_guard lock(*this);
         return m_subimage;
     }
-    virtual int current_miplevel(void) const override
+    int current_miplevel(void) const override
     {
         lock_guard lock(*this);
         return m_miplevel;
     }
-    virtual bool seek_subimage(int subimage, int miplevel) override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
-    virtual bool read_native_tile(int subimage, int miplevel, int x, int y,
-                                  int z, void* data) override;
+    bool seek_subimage(int subimage, int miplevel) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
+    bool read_native_tile(int subimage, int miplevel, int x, int y, int z,
+                          void* data) override;
 
 private:
     PtexTexture* m_ptex;

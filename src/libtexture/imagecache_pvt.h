@@ -785,41 +785,40 @@ public:
 class ImageCacheImpl final : public ImageCache {
 public:
     ImageCacheImpl();
-    virtual ~ImageCacheImpl();
+    ~ImageCacheImpl() override;
 
-    virtual bool attribute(string_view name, TypeDesc type,
-                           const void* val) override;
-    virtual bool attribute(string_view name, int val) override
+    bool attribute(string_view name, TypeDesc type, const void* val) override;
+    bool attribute(string_view name, int val) override
     {
         return attribute(name, TypeDesc::INT, &val);
     }
-    virtual bool attribute(string_view name, float val) override
+    bool attribute(string_view name, float val) override
     {
         return attribute(name, TypeDesc::FLOAT, &val);
     }
-    virtual bool attribute(string_view name, double val) override
+    bool attribute(string_view name, double val) override
     {
         float f = (float)val;
         return attribute(name, TypeDesc::FLOAT, &f);
     }
-    virtual bool attribute(string_view name, string_view val) override
+    bool attribute(string_view name, string_view val) override
     {
         std::string valstr(val);
         const char* s = valstr.c_str();
         return attribute(name, TypeDesc::STRING, &s);
     }
 
-    virtual bool getattribute(string_view name, TypeDesc type,
-                              void* val) const override;
-    virtual bool getattribute(string_view name, int& val) const override
+    bool getattribute(string_view name, TypeDesc type,
+                      void* val) const override;
+    bool getattribute(string_view name, int& val) const override
     {
         return getattribute(name, TypeDesc::INT, &val);
     }
-    virtual bool getattribute(string_view name, float& val) const override
+    bool getattribute(string_view name, float& val) const override
     {
         return getattribute(name, TypeDesc::FLOAT, &val);
     }
-    virtual bool getattribute(string_view name, double& val) const override
+    bool getattribute(string_view name, double& val) const override
     {
         float f;
         bool ok = getattribute(name, TypeDesc::FLOAT, &f);
@@ -827,11 +826,11 @@ public:
             val = f;
         return ok;
     }
-    virtual bool getattribute(string_view name, char** val) const override
+    bool getattribute(string_view name, char** val) const override
     {
         return getattribute(name, TypeDesc::STRING, val);
     }
-    virtual bool getattribute(string_view name, std::string& val) const override
+    bool getattribute(string_view name, std::string& val) const override
     {
         ustring s;
         bool ok = getattribute(name, TypeDesc::STRING, &s);
@@ -858,41 +857,39 @@ public:
     void get_commontoworld(Imath::M44f& result) const { result = m_Mc2w; }
     int max_errors_per_file() const { return m_max_errors_per_file; }
 
-    virtual std::string
-    resolve_filename(const std::string& filename) const override;
+    std::string resolve_filename(const std::string& filename) const override;
 
     // Set m_max_open_files, with logic to try to clamp reasonably.
     void set_max_open_files(int m);
 
     /// Get information about the given image.
     ///
-    virtual bool get_image_info(ustring filename, int subimage, int miplevel,
-                                ustring dataname, TypeDesc datatype,
-                                void* data) override;
-    virtual bool get_image_info(ImageCacheFile* file,
-                                ImageCachePerThreadInfo* thread_info,
-                                int subimage, int miplevel, ustring dataname,
-                                TypeDesc datatype, void* data) override;
+    bool get_image_info(ustring filename, int subimage, int miplevel,
+                        ustring dataname, TypeDesc datatype,
+                        void* data) override;
+    bool get_image_info(ImageCacheFile* file,
+                        ImageCachePerThreadInfo* thread_info, int subimage,
+                        int miplevel, ustring dataname, TypeDesc datatype,
+                        void* data) override;
 
     /// Get the ImageSpec associated with the named image.  If the file
     /// is found and is an image format that can be read, store a copy
     /// of its specification in spec and return true.  Return false if
     /// the file was not found or could not be opened as an image file
     /// by any available ImageIO plugin.
-    virtual bool get_imagespec(ustring filename, ImageSpec& spec,
+    bool get_imagespec(ustring filename, ImageSpec& spec, int subimage = 0,
+                       int miplevel = 0, bool native = false) override;
+    bool get_imagespec(ImageCacheFile* file,
+                       ImageCachePerThreadInfo* thread_info, ImageSpec& spec,
+                       int subimage = 0, int miplevel = 0,
+                       bool native = false) override;
+
+    const ImageSpec* imagespec(ustring filename, int subimage = 0,
+                               int miplevel = 0, bool native = false) override;
+    const ImageSpec* imagespec(ImageCacheFile* file,
+                               ImageCachePerThreadInfo* thread_info = NULL,
                                int subimage = 0, int miplevel = 0,
                                bool native = false) override;
-    virtual bool get_imagespec(ImageCacheFile* file,
-                               ImageCachePerThreadInfo* thread_info,
-                               ImageSpec& spec, int subimage = 0,
-                               int miplevel = 0, bool native = false) override;
-
-    virtual const ImageSpec* imagespec(ustring filename, int subimage = 0,
-                                       int miplevel = 0,
-                                       bool native  = false) override;
-    virtual const ImageSpec*
-    imagespec(ImageCacheFile* file, ImageCachePerThreadInfo* thread_info = NULL,
-              int subimage = 0, int miplevel = 0, bool native = false) override;
 
     ImageCacheFile* resolve_udim(ImageCacheFile* udimfile,
                                  Perthread* thread_info, int utile, int vtile);
@@ -900,35 +897,34 @@ public:
                         std::vector<ustring>& filenames, int& nutiles,
                         int& nvtiles);
 
-    virtual bool get_thumbnail(ustring filename, ImageBuf& thumbnail,
-                               int subimage = 0) override;
-    virtual bool get_thumbnail(ImageHandle* file, Perthread* thread_info,
-                               ImageBuf& thumbnail, int subimage = 0) override;
+    bool get_thumbnail(ustring filename, ImageBuf& thumbnail,
+                       int subimage = 0) override;
+    bool get_thumbnail(ImageHandle* file, Perthread* thread_info,
+                       ImageBuf& thumbnail, int subimage = 0) override;
 
     // Retrieve a rectangle of raw unfiltered pixels.
-    virtual bool get_pixels(ustring filename, int subimage, int miplevel,
-                            int xbegin, int xend, int ybegin, int yend,
-                            int zbegin, int zend, TypeDesc format,
-                            void* result) override;
-    virtual bool get_pixels(ImageCacheFile* file,
-                            ImageCachePerThreadInfo* thread_info, int subimage,
-                            int miplevel, int xbegin, int xend, int ybegin,
-                            int yend, int zbegin, int zend, TypeDesc format,
-                            void* result) override;
-    virtual bool
-    get_pixels(ustring filename, int subimage, int miplevel, int xbegin,
-               int xend, int ybegin, int yend, int zbegin, int zend,
-               int chbegin, int chend, TypeDesc format, void* result,
-               stride_t xstride = AutoStride, stride_t ystride = AutoStride,
-               stride_t zstride = AutoStride, int cache_chbegin = 0,
-               int cache_chend = -1) override;
-    virtual bool
-    get_pixels(ImageCacheFile* file, ImageCachePerThreadInfo* thread_info,
-               int subimage, int miplevel, int xbegin, int xend, int ybegin,
-               int yend, int zbegin, int zend, int chbegin, int chend,
-               TypeDesc format, void* result, stride_t xstride = AutoStride,
-               stride_t ystride = AutoStride, stride_t zstride = AutoStride,
-               int cache_chbegin = 0, int cache_chend = -1) override;
+    bool get_pixels(ustring filename, int subimage, int miplevel, int xbegin,
+                    int xend, int ybegin, int yend, int zbegin, int zend,
+                    TypeDesc format, void* result) override;
+    bool get_pixels(ImageCacheFile* file, ImageCachePerThreadInfo* thread_info,
+                    int subimage, int miplevel, int xbegin, int xend,
+                    int ybegin, int yend, int zbegin, int zend, TypeDesc format,
+                    void* result) override;
+    bool get_pixels(ustring filename, int subimage, int miplevel, int xbegin,
+                    int xend, int ybegin, int yend, int zbegin, int zend,
+                    int chbegin, int chend, TypeDesc format, void* result,
+                    stride_t xstride = AutoStride,
+                    stride_t ystride = AutoStride,
+                    stride_t zstride = AutoStride, int cache_chbegin = 0,
+                    int cache_chend = -1) override;
+    bool get_pixels(ImageCacheFile* file, ImageCachePerThreadInfo* thread_info,
+                    int subimage, int miplevel, int xbegin, int xend,
+                    int ybegin, int yend, int zbegin, int zend, int chbegin,
+                    int chend, TypeDesc format, void* result,
+                    stride_t xstride = AutoStride,
+                    stride_t ystride = AutoStride,
+                    stride_t zstride = AutoStride, int cache_chbegin = 0,
+                    int cache_chend = -1) override;
 
     // Find the ImageCacheFile record for the named image, adding an entry
     // if it is not already in the cache. This returns a plain old pointer,
@@ -958,7 +954,7 @@ public:
                                 ImageCachePerThreadInfo* thread_info,
                                 bool header_only = false);
 
-    virtual ImageCacheFile*
+    ImageCacheFile*
     get_image_handle(ustring filename,
                      ImageCachePerThreadInfo* thread_info = NULL) override
     {
@@ -968,12 +964,12 @@ public:
         return verify_file(file, thread_info);
     }
 
-    virtual bool good(ImageCacheFile* handle) override
+    bool good(ImageCacheFile* handle) override
     {
         return handle && !handle->broken();
     }
 
-    virtual ustring filename_from_handle(ImageCacheFile* handle) override
+    ustring filename_from_handle(ImageCacheFile* handle) override
     {
         return handle ? handle->filename() : ustring();
     }
@@ -1023,38 +1019,36 @@ public:
         // N.B. find_tile_main_cache marks the tile as used
     }
 
-    virtual Tile* get_tile(ustring filename, int subimage, int miplevel, int x,
-                           int y, int z, int chbegin, int chend) override;
-    virtual Tile* get_tile(ImageHandle* file, Perthread* thread_info,
-                           int subimage, int miplevel, int x, int y, int z,
-                           int chbegin, int chend) override;
-    virtual void release_tile(Tile* tile) const override;
-    virtual TypeDesc tile_format(const Tile* tile) const override;
-    virtual ROI tile_roi(const Tile* tile) const override;
-    virtual const void* tile_pixels(Tile* tile,
-                                    TypeDesc& format) const override;
-    virtual bool add_file(ustring filename, ImageInput::Creator creator,
-                          const ImageSpec* config, bool replace) override;
-    virtual bool add_tile(ustring filename, int subimage, int miplevel, int x,
-                          int y, int z, int chbegin, int chend, TypeDesc format,
-                          const void* buffer, stride_t xstride,
-                          stride_t ystride, stride_t zstride,
-                          bool copy) override;
+    Tile* get_tile(ustring filename, int subimage, int miplevel, int x, int y,
+                   int z, int chbegin, int chend) override;
+    Tile* get_tile(ImageHandle* file, Perthread* thread_info, int subimage,
+                   int miplevel, int x, int y, int z, int chbegin,
+                   int chend) override;
+    void release_tile(Tile* tile) const override;
+    TypeDesc tile_format(const Tile* tile) const override;
+    ROI tile_roi(const Tile* tile) const override;
+    const void* tile_pixels(Tile* tile, TypeDesc& format) const override;
+    bool add_file(ustring filename, ImageInput::Creator creator,
+                  const ImageSpec* config, bool replace) override;
+    bool add_tile(ustring filename, int subimage, int miplevel, int x, int y,
+                  int z, int chbegin, int chend, TypeDesc format,
+                  const void* buffer, stride_t xstride, stride_t ystride,
+                  stride_t zstride, bool copy) override;
 
     /// Return the numerical subimage index for the given subimage name,
     /// as stored in the "oiio:subimagename" metadata.  Return -1 if no
     /// subimage matches its name.
     int subimage_from_name(ImageCacheFile* file, ustring subimagename);
 
-    virtual bool has_error() const override;
-    virtual std::string geterror(bool clear = true) const override;
-    virtual std::string getstats(int level = 1) const override;
-    virtual void reset_stats() override;
-    virtual void invalidate(ustring filename, bool force) override;
-    virtual void invalidate(ImageHandle* file, bool force) override;
-    virtual void invalidate_all(bool force = false) override;
-    virtual void close(ustring filename) override;
-    virtual void close_all() override;
+    bool has_error() const override;
+    std::string geterror(bool clear = true) const override;
+    std::string getstats(int level = 1) const override;
+    void reset_stats() override;
+    void invalidate(ustring filename, bool force) override;
+    void invalidate(ImageHandle* file, bool force) override;
+    void invalidate_all(bool force = false) override;
+    void close(ustring filename) override;
+    void close_all() override;
 
     /// Merge all the per-thread statistics into one set of stats.
     ///
@@ -1107,10 +1101,9 @@ public:
     /// Append a string to the current error message
     void append_error(string_view message) const;
 
-    virtual Perthread*
-    get_perthread_info(Perthread* thread_info = NULL) override;
-    virtual Perthread* create_thread_info() override;
-    virtual void destroy_thread_info(Perthread* thread_info) override;
+    Perthread* get_perthread_info(Perthread* thread_info = NULL) override;
+    Perthread* create_thread_info() override;
+    void destroy_thread_info(Perthread* thread_info) override;
 
     /// Called when the IC is destroyed.  We have a list of all the
     /// perthread pointers -- go through and delete the ones for which we

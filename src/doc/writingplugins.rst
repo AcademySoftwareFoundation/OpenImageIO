@@ -144,11 +144,11 @@ plug-in.
         class JpgInput final : public ImageInput {
          public:
             JpgInput () { init(); }
-            virtual ~JpgInput () override { close(); }
-            virtual const char * format_name (void) const override { return "jpeg"; }
-            virtual bool open (const std::string &name, ImageSpec &spec) override;
-            virtual bool read_native_scanline (int y, int z, void *data) override;
-            virtual bool close () override;
+            ~JpgInput () override { close(); }
+            const char * format_name (void) const override { return "jpeg"; }
+            bool open (const std::string &name, ImageSpec &spec) override;
+            bool read_native_scanline (int y, int z, void *data) override;
+            bool close () override;
          private:
             FILE *m_fd;
             bool m_first_scanline;
@@ -289,13 +289,13 @@ plug-in.
       class JpgOutput final : public ImageOutput {
        public:
           JpgOutput () { init(); }
-          virtual ~JpgOutput () override { close(); }
-          virtual const char * format_name (void) const override { return "jpeg"; }
-          virtual int supports (string_view property) const override { return false; }
-          virtual bool open (const std::string &name, const ImageSpec &spec,
-                             bool append=false) override;
-          virtual bool write_scanline (int y, int z, TypeDesc format,
-                                       const void *data, stride_t xstride) override;
+          ~JpgOutput () override { close(); }
+          const char * format_name (void) const override { return "jpeg"; }
+          int supports (string_view property) const override { return false; }
+          bool open (const std::string &name, const ImageSpec &spec,
+                     bool append=false) override;
+          bool write_scanline (int y, int z, TypeDesc format,
+                               const void *data, stride_t xstride) override;
           bool close ();
        private:
           FILE *m_fd;

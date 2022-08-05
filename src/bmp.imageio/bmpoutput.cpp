@@ -18,17 +18,17 @@ using namespace bmp_pvt;
 class BmpOutput final : public ImageOutput {
 public:
     BmpOutput() { init(); }
-    virtual ~BmpOutput() override { close(); }
-    virtual const char* format_name(void) const override { return "bmp"; }
-    virtual int supports(string_view feature) const override;
-    virtual bool open(const std::string& name, const ImageSpec& spec,
-                      OpenMode mode) override;
-    virtual bool close(void) override;
-    virtual bool write_scanline(int y, int z, TypeDesc format, const void* data,
-                                stride_t xstride) override;
-    virtual bool write_tile(int x, int y, int z, TypeDesc format,
-                            const void* data, stride_t xstride,
-                            stride_t ystride, stride_t zstride) override;
+    ~BmpOutput() override { close(); }
+    const char* format_name(void) const override { return "bmp"; }
+    int supports(string_view feature) const override;
+    bool open(const std::string& name, const ImageSpec& spec,
+              OpenMode mode) override;
+    bool close(void) override;
+    bool write_scanline(int y, int z, TypeDesc format, const void* data,
+                        stride_t xstride) override;
+    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
+                    stride_t xstride, stride_t ystride,
+                    stride_t zstride) override;
 
 private:
     int64_t m_padded_scanline_size;

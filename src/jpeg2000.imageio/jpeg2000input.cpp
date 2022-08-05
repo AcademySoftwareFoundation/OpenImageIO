@@ -71,19 +71,19 @@ j2k_associateAlpha(T* data, int size, int channels, int alpha_channel,
 class Jpeg2000Input final : public ImageInput {
 public:
     Jpeg2000Input() { init(); }
-    virtual ~Jpeg2000Input() override { close(); }
-    virtual const char* format_name(void) const override { return "jpeg2000"; }
-    virtual int supports(string_view feature) const override
+    ~Jpeg2000Input() override { close(); }
+    const char* format_name(void) const override { return "jpeg2000"; }
+    int supports(string_view feature) const override
     {
         return feature == "ioproxy";
         // FIXME: we should support Exif/IPTC, but currently don't.
     }
-    virtual bool open(const std::string& name, ImageSpec& spec) override;
-    virtual bool open(const std::string& name, ImageSpec& newspec,
-                      const ImageSpec& config) override;
-    virtual bool close(void) override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
+    bool open(const std::string& name, ImageSpec& spec) override;
+    bool open(const std::string& name, ImageSpec& newspec,
+              const ImageSpec& config) override;
+    bool close(void) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
 
 private:
     std::string m_filename;

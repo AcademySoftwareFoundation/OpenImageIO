@@ -17,19 +17,19 @@ using namespace bmp_pvt;
 class BmpInput final : public ImageInput {
 public:
     BmpInput() { init(); }
-    virtual ~BmpInput() override { close(); }
-    virtual const char* format_name(void) const override { return "bmp"; }
+    ~BmpInput() override { close(); }
+    const char* format_name(void) const override { return "bmp"; }
     int supports(string_view feature) const override
     {
         return feature == "ioproxy";
     }
-    virtual bool valid_file(const std::string& filename) const override;
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool open(const std::string& name, ImageSpec& newspec,
-                      const ImageSpec& config) override;
-    virtual bool close(void) override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
+    bool valid_file(const std::string& filename) const override;
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool open(const std::string& name, ImageSpec& newspec,
+              const ImageSpec& config) override;
+    bool close(void) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
 
 private:
     int64_t m_padded_scanline_size;

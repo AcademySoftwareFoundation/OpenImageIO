@@ -72,57 +72,55 @@ struct TIFF_tag_info {
 class TIFFInput final : public ImageInput {
 public:
     TIFFInput();
-    virtual ~TIFFInput() override;
-    virtual const char* format_name(void) const override { return "tiff"; }
-    virtual bool valid_file(const std::string& filename) const override;
-    virtual int supports(string_view feature) const override
+    ~TIFFInput() override;
+    const char* format_name(void) const override { return "tiff"; }
+    bool valid_file(const std::string& filename) const override;
+    int supports(string_view feature) const override
     {
         return (feature == "exif" || feature == "iptc" || feature == "ioproxy");
         // N.B. No support for arbitrary metadata.
     }
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool open(const std::string& name, ImageSpec& newspec,
-                      const ImageSpec& config) override;
-    virtual bool close() override;
-    virtual int current_subimage(void) const override
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool open(const std::string& name, ImageSpec& newspec,
+              const ImageSpec& config) override;
+    bool close() override;
+    int current_subimage(void) const override
     {
         // If m_emulate_mipmap is true, pretend subimages are mipmap levels
         lock_guard lock(*this);
         return m_emulate_mipmap ? 0 : m_subimage;
     }
-    virtual int current_miplevel(void) const override
+    int current_miplevel(void) const override
     {
         // If m_emulate_mipmap is true, pretend subimages are mipmap levels
         lock_guard lock(*this);
         return m_emulate_mipmap ? m_subimage : 0;
     }
-    virtual bool seek_subimage(int subimage, int miplevel) override;
-    virtual ImageSpec spec(int subimage, int miplevel) override;
-    virtual ImageSpec spec_dimensions(int subimage, int miplevel) override;
+    bool seek_subimage(int subimage, int miplevel) override;
+    ImageSpec spec(int subimage, int miplevel) override;
+    ImageSpec spec_dimensions(int subimage, int miplevel) override;
     const ImageSpec& spec(void) const override { return m_spec; }
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
-    virtual bool read_native_scanlines(int subimage, int miplevel, int ybegin,
-                                       int yend, int z, void* data) override;
-    virtual bool read_native_tile(int subimage, int miplevel, int x, int y,
-                                  int z, void* data) override;
-    virtual bool read_native_tiles(int subimage, int miplevel, int xbegin,
-                                   int xend, int ybegin, int yend, int zbegin,
-                                   int zend, void* data) override;
-    virtual bool read_scanline(int y, int z, TypeDesc format, void* data,
-                               stride_t xstride) override;
-    virtual bool read_scanlines(int subimage, int miplevel, int ybegin,
-                                int yend, int z, int chbegin, int chend,
-                                TypeDesc format, void* data, stride_t xstride,
-                                stride_t ystride) override;
-    virtual bool read_tile(int x, int y, int z, TypeDesc format, void* data,
-                           stride_t xstride, stride_t ystride,
-                           stride_t zstride) override;
-    virtual bool read_tiles(int subimage, int miplevel, int xbegin, int xend,
-                            int ybegin, int yend, int zbegin, int zend,
-                            int chbegin, int chend, TypeDesc format, void* data,
-                            stride_t xstride, stride_t ystride,
-                            stride_t zstride) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
+    bool read_native_scanlines(int subimage, int miplevel, int ybegin, int yend,
+                               int z, void* data) override;
+    bool read_native_tile(int subimage, int miplevel, int x, int y, int z,
+                          void* data) override;
+    bool read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
+                           int ybegin, int yend, int zbegin, int zend,
+                           void* data) override;
+    bool read_scanline(int y, int z, TypeDesc format, void* data,
+                       stride_t xstride) override;
+    bool read_scanlines(int subimage, int miplevel, int ybegin, int yend, int z,
+                        int chbegin, int chend, TypeDesc format, void* data,
+                        stride_t xstride, stride_t ystride) override;
+    bool read_tile(int x, int y, int z, TypeDesc format, void* data,
+                   stride_t xstride, stride_t ystride,
+                   stride_t zstride) override;
+    bool read_tiles(int subimage, int miplevel, int xbegin, int xend,
+                    int ybegin, int yend, int zbegin, int zend, int chbegin,
+                    int chend, TypeDesc format, void* data, stride_t xstride,
+                    stride_t ystride, stride_t zstride) override;
 
 private:
     TIFF* m_tif;                            ///< libtiff handle

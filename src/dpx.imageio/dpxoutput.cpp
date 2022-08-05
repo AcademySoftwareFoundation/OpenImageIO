@@ -27,9 +27,9 @@ static const int MAX_DPX_IMAGE_ELEMENTS = 8;  // max subimages in DPX spec
 class DPXOutput final : public ImageOutput {
 public:
     DPXOutput();
-    virtual ~DPXOutput() override;
-    virtual const char* format_name(void) const override { return "dpx"; }
-    virtual int supports(string_view feature) const override
+    ~DPXOutput() override;
+    const char* format_name(void) const override { return "dpx"; }
+    int supports(string_view feature) const override
     {
         if (feature == "multiimage" || feature == "alpha"
             || feature == "nchannels" || feature == "random_access"
@@ -38,16 +38,16 @@ public:
             return true;
         return false;
     }
-    virtual bool open(const std::string& name, const ImageSpec& spec,
-                      OpenMode mode = Create) override;
-    virtual bool open(const std::string& name, int subimages,
-                      const ImageSpec* specs) override;
-    virtual bool close() override;
-    virtual bool write_scanline(int y, int z, TypeDesc format, const void* data,
-                                stride_t xstride) override;
-    virtual bool write_tile(int x, int y, int z, TypeDesc format,
-                            const void* data, stride_t xstride,
-                            stride_t ystride, stride_t zstride) override;
+    bool open(const std::string& name, const ImageSpec& spec,
+              OpenMode mode = Create) override;
+    bool open(const std::string& name, int subimages,
+              const ImageSpec* specs) override;
+    bool close() override;
+    bool write_scanline(int y, int z, TypeDesc format, const void* data,
+                        stride_t xstride) override;
+    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
+                    stride_t xstride, stride_t ystride,
+                    stride_t zstride) override;
 
 private:
     OutStream* m_stream = nullptr;

@@ -65,23 +65,23 @@ class OpenVDBInput final : public ImageInput {
 
 public:
     OpenVDBInput() { init(); }
-    virtual ~OpenVDBInput() override { close(); }
+    ~OpenVDBInput() override { close(); }
 
-    virtual const char* format_name(void) const override { return "openvdb"; }
-    virtual int supports(string_view feature) const override
+    const char* format_name(void) const override { return "openvdb"; }
+    int supports(string_view feature) const override
     {
         return (feature == "arbitrary_metadata");
     }
-    virtual bool valid_file(const std::string& filename) const override;
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool close() override;
-    virtual int current_subimage(void) const override;
-    virtual bool seek_subimage(int subimage, int miplevel) override;
-    virtual bool seek_subimage_nolock(int subimage, int miplevel);
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
-    virtual bool read_native_tile(int subimage, int miplevel, int x, int y,
-                                  int z, void* data) override;
+    bool valid_file(const std::string& filename) const override;
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool close() override;
+    int current_subimage(void) const override;
+    bool seek_subimage(int subimage, int miplevel) override;
+    bool seek_subimage_nolock(int subimage, int miplevel);
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
+    bool read_native_tile(int subimage, int miplevel, int x, int y, int z,
+                          void* data) override;
 
     ImageSpec spec(int subimage, int miplevel) override;
     ImageSpec spec_dimensions(int subimage, int miplevel) override;

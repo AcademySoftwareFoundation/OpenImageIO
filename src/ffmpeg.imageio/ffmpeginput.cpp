@@ -88,22 +88,19 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class FFmpegInput final : public ImageInput {
 public:
     FFmpegInput();
-    virtual ~FFmpegInput() override;
-    virtual const char* format_name(void) const override
-    {
-        return "FFmpeg movie";
-    }
-    virtual bool valid_file(const std::string& name) const override;
-    virtual bool open(const std::string& name, ImageSpec& spec) override;
-    virtual bool close(void) override;
-    virtual int current_subimage(void) const override
+    ~FFmpegInput() override;
+    const char* format_name(void) const override { return "FFmpeg movie"; }
+    bool valid_file(const std::string& name) const override;
+    bool open(const std::string& name, ImageSpec& spec) override;
+    bool close(void) override;
+    int current_subimage(void) const override
     {
         lock_guard lock(*this);
         return m_subimage;
     }
-    virtual bool seek_subimage(int subimage, int miplevel) override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
+    bool seek_subimage(int subimage, int miplevel) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
     void read_frame(int pos);
 #if 0
     const char *metadata (const char * key);

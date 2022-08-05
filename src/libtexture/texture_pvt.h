@@ -38,41 +38,40 @@ public:
     typedef ImageCacheFile TextureFile;
 
     TextureSystemImpl(ImageCache* imagecache);
-    virtual ~TextureSystemImpl();
+    ~TextureSystemImpl() override;
 
-    virtual bool attribute(string_view name, TypeDesc type,
-                           const void* val) override;
-    virtual bool attribute(string_view name, int val) override
+    bool attribute(string_view name, TypeDesc type, const void* val) override;
+    bool attribute(string_view name, int val) override
     {
         return attribute(name, TypeDesc::INT, &val);
     }
-    virtual bool attribute(string_view name, float val) override
+    bool attribute(string_view name, float val) override
     {
         return attribute(name, TypeDesc::FLOAT, &val);
     }
-    virtual bool attribute(string_view name, double val) override
+    bool attribute(string_view name, double val) override
     {
         float f = (float)val;
         return attribute(name, TypeDesc::FLOAT, &f);
     }
-    virtual bool attribute(string_view name, string_view val) override
+    bool attribute(string_view name, string_view val) override
     {
         std::string valstr(val);
         const char* s = valstr.c_str();
         return attribute(name, TypeDesc::STRING, &s);
     }
 
-    virtual bool getattribute(string_view name, TypeDesc type,
-                              void* val) const override;
-    virtual bool getattribute(string_view name, int& val) const override
+    bool getattribute(string_view name, TypeDesc type,
+                      void* val) const override;
+    bool getattribute(string_view name, int& val) const override
     {
         return getattribute(name, TypeDesc::INT, &val);
     }
-    virtual bool getattribute(string_view name, float& val) const override
+    bool getattribute(string_view name, float& val) const override
     {
         return getattribute(name, TypeDesc::FLOAT, &val);
     }
-    virtual bool getattribute(string_view name, double& val) const override
+    bool getattribute(string_view name, double& val) const override
     {
         float f;
         bool ok = getattribute(name, TypeDesc::FLOAT, &f);
@@ -80,11 +79,11 @@ public:
             val = f;
         return ok;
     }
-    virtual bool getattribute(string_view name, char** val) const override
+    bool getattribute(string_view name, char** val) const override
     {
         return getattribute(name, TypeDesc::STRING, val);
     }
-    virtual bool getattribute(string_view name, std::string& val) const override
+    bool getattribute(string_view name, std::string& val) const override
     {
         const char* s;
         bool ok = getattribute(name, TypeDesc::STRING, &s);
@@ -97,24 +96,24 @@ public:
     // Retrieve options
     void get_commontoworld(Imath::M44f& result) const { result = m_Mc2w; }
 
-    virtual Perthread* get_perthread_info(Perthread* thread_info = NULL) override
+    Perthread* get_perthread_info(Perthread* thread_info = NULL) override
     {
         return (Perthread*)m_imagecache->get_perthread_info(
             (ImageCachePerThreadInfo*)thread_info);
     }
-    virtual Perthread* create_thread_info() override
+    Perthread* create_thread_info() override
     {
         OIIO_ASSERT(m_imagecache);
         return (Perthread*)m_imagecache->create_thread_info();
     }
-    virtual void destroy_thread_info(Perthread* threadinfo) override
+    void destroy_thread_info(Perthread* threadinfo) override
     {
         OIIO_ASSERT(m_imagecache);
         m_imagecache->destroy_thread_info((ImageCachePerThreadInfo*)threadinfo);
     }
 
-    virtual TextureHandle* get_texture_handle(ustring filename,
-                                              Perthread* thread) override
+    TextureHandle* get_texture_handle(ustring filename,
+                                      Perthread* thread) override
     {
         PerThreadInfo* thread_info = thread
                                          ? ((PerThreadInfo*)thread)
@@ -122,245 +121,208 @@ public:
         return (TextureHandle*)find_texturefile(filename, thread_info);
     }
 
-    virtual bool good(TextureHandle* texture_handle) override
+    bool good(TextureHandle* texture_handle) override
     {
         return texture_handle && !((TextureFile*)texture_handle)->broken();
     }
 
-    virtual ustring filename_from_handle(TextureHandle* handle) override
+    ustring filename_from_handle(TextureHandle* handle) override
     {
         return handle ? ((ImageCache::ImageHandle*)handle)->filename()
                       : ustring();
     }
 
-    virtual bool texture(ustring filename, TextureOpt& options, float s,
-                         float t, float dsdx, float dtdx, float dsdy,
-                         float dtdy, int nchannels, float* result,
-                         float* dresultds = NULL,
-                         float* dresultdt = NULL) override;
-    virtual bool texture(TextureHandle* texture_handle, Perthread* thread_info,
-                         TextureOpt& options, float s, float t, float dsdx,
-                         float dtdx, float dsdy, float dtdy, int nchannels,
-                         float* result, float* dresultds = NULL,
-                         float* dresultdt = NULL) override;
-    virtual bool texture(ustring filename, TextureOptBatch& options,
-                         Tex::RunMask mask, const float* s, const float* t,
-                         const float* dsdx, const float* dtdx,
-                         const float* dsdy, const float* dtdy, int nchannels,
-                         float* result, float* dresultds = nullptr,
-                         float* dresultdt = nullptr) override;
-    virtual bool texture(TextureHandle* texture_handle, Perthread* thread_info,
-                         TextureOptBatch& options, Tex::RunMask mask,
-                         const float* s, const float* t, const float* dsdx,
-                         const float* dtdx, const float* dsdy,
-                         const float* dtdy, int nchannels, float* result,
-                         float* dresultds = nullptr,
-                         float* dresultdt = nullptr) override;
-    virtual bool texture(ustring filename, TextureOptions& options,
-                         Runflag* runflags, int beginactive, int endactive,
-                         VaryingRef<float> s, VaryingRef<float> t,
-                         VaryingRef<float> dsdx, VaryingRef<float> dtdx,
-                         VaryingRef<float> dsdy, VaryingRef<float> dtdy,
-                         int nchannels, float* result, float* dresultds = NULL,
-                         float* dresultdt = NULL) override;
-    virtual bool texture(TextureHandle* texture_handle, Perthread* thread_info,
-                         TextureOptions& options, Runflag* runflags,
-                         int beginactive, int endactive, VaryingRef<float> s,
-                         VaryingRef<float> t, VaryingRef<float> dsdx,
-                         VaryingRef<float> dtdx, VaryingRef<float> dsdy,
-                         VaryingRef<float> dtdy, int nchannels, float* result,
-                         float* dresultds = NULL,
-                         float* dresultdt = NULL) override;
+    bool texture(ustring filename, TextureOpt& options, float s, float t,
+                 float dsdx, float dtdx, float dsdy, float dtdy, int nchannels,
+                 float* result, float* dresultds = NULL,
+                 float* dresultdt = NULL) override;
+    bool texture(TextureHandle* texture_handle, Perthread* thread_info,
+                 TextureOpt& options, float s, float t, float dsdx, float dtdx,
+                 float dsdy, float dtdy, int nchannels, float* result,
+                 float* dresultds = NULL, float* dresultdt = NULL) override;
+    bool texture(ustring filename, TextureOptBatch& options, Tex::RunMask mask,
+                 const float* s, const float* t, const float* dsdx,
+                 const float* dtdx, const float* dsdy, const float* dtdy,
+                 int nchannels, float* result, float* dresultds = nullptr,
+                 float* dresultdt = nullptr) override;
+    bool texture(TextureHandle* texture_handle, Perthread* thread_info,
+                 TextureOptBatch& options, Tex::RunMask mask, const float* s,
+                 const float* t, const float* dsdx, const float* dtdx,
+                 const float* dsdy, const float* dtdy, int nchannels,
+                 float* result, float* dresultds = nullptr,
+                 float* dresultdt = nullptr) override;
+    bool texture(ustring filename, TextureOptions& options, Runflag* runflags,
+                 int beginactive, int endactive, VaryingRef<float> s,
+                 VaryingRef<float> t, VaryingRef<float> dsdx,
+                 VaryingRef<float> dtdx, VaryingRef<float> dsdy,
+                 VaryingRef<float> dtdy, int nchannels, float* result,
+                 float* dresultds = NULL, float* dresultdt = NULL) override;
+    bool texture(TextureHandle* texture_handle, Perthread* thread_info,
+                 TextureOptions& options, Runflag* runflags, int beginactive,
+                 int endactive, VaryingRef<float> s, VaryingRef<float> t,
+                 VaryingRef<float> dsdx, VaryingRef<float> dtdx,
+                 VaryingRef<float> dsdy, VaryingRef<float> dtdy, int nchannels,
+                 float* result, float* dresultds = NULL,
+                 float* dresultdt = NULL) override;
 
-    virtual bool texture3d(ustring filename, TextureOpt& options, V3fParam P,
-                           V3fParam dPdx, V3fParam dPdy, V3fParam dPdz,
-                           int nchannels, float* result,
-                           float* dresultds = NULL, float* dresultdt = NULL,
-                           float* dresultdr = NULL) override;
-    virtual bool texture3d(TextureHandle* texture_handle,
-                           Perthread* thread_info, TextureOpt& options,
-                           V3fParam P, V3fParam dPdx, V3fParam dPdy,
-                           V3fParam dPdz, int nchannels, float* result,
-                           float* dresultds = NULL, float* dresultdt = NULL,
-                           float* dresultdr = NULL) override;
-    virtual bool texture3d(ustring filename, TextureOptBatch& options,
-                           Tex::RunMask mask, const float* P, const float* dPdx,
-                           const float* dPdy, const float* dPdz, int nchannels,
-                           float* result, float* dresultds = nullptr,
-                           float* dresultdt = nullptr,
-                           float* dresultdr = nullptr) override;
-    virtual bool texture3d(TextureHandle* texture_handle,
-                           Perthread* thread_info, TextureOptBatch& options,
-                           Tex::RunMask mask, const float* P, const float* dPdx,
-                           const float* dPdy, const float* dPdz, int nchannels,
-                           float* result, float* dresultds = nullptr,
-                           float* dresultdt = nullptr,
-                           float* dresultdr = nullptr) override;
-    virtual bool
-    texture3d(ustring filename, TextureOptions& options, Runflag* runflags,
-              int beginactive, int endactive, VaryingRef<Imath::V3f> P,
-              VaryingRef<Imath::V3f> dPdx, VaryingRef<Imath::V3f> dPdy,
-              VaryingRef<Imath::V3f> dPdz, int nchannels, float* result,
-              float* dresultds = NULL, float* dresultdt = NULL,
-              float* dresultdr = NULL) override;
-    virtual bool
-    texture3d(TextureHandle* texture_handle, Perthread* thread_info,
-              TextureOptions& options, Runflag* runflags, int beginactive,
-              int endactive, VaryingRef<Imath::V3f> P,
-              VaryingRef<Imath::V3f> dPdx, VaryingRef<Imath::V3f> dPdy,
-              VaryingRef<Imath::V3f> dPdz, int nchannels, float* result,
-              float* dresultds = NULL, float* dresultdt = NULL,
-              float* dresultdr = NULL) override;
+    bool texture3d(ustring filename, TextureOpt& options, V3fParam P,
+                   V3fParam dPdx, V3fParam dPdy, V3fParam dPdz, int nchannels,
+                   float* result, float* dresultds = NULL,
+                   float* dresultdt = NULL, float* dresultdr = NULL) override;
+    bool texture3d(TextureHandle* texture_handle, Perthread* thread_info,
+                   TextureOpt& options, V3fParam P, V3fParam dPdx,
+                   V3fParam dPdy, V3fParam dPdz, int nchannels, float* result,
+                   float* dresultds = NULL, float* dresultdt = NULL,
+                   float* dresultdr = NULL) override;
+    bool texture3d(ustring filename, TextureOptBatch& options,
+                   Tex::RunMask mask, const float* P, const float* dPdx,
+                   const float* dPdy, const float* dPdz, int nchannels,
+                   float* result, float* dresultds = nullptr,
+                   float* dresultdt = nullptr,
+                   float* dresultdr = nullptr) override;
+    bool texture3d(TextureHandle* texture_handle, Perthread* thread_info,
+                   TextureOptBatch& options, Tex::RunMask mask, const float* P,
+                   const float* dPdx, const float* dPdy, const float* dPdz,
+                   int nchannels, float* result, float* dresultds = nullptr,
+                   float* dresultdt = nullptr,
+                   float* dresultdr = nullptr) override;
+    bool texture3d(ustring filename, TextureOptions& options, Runflag* runflags,
+                   int beginactive, int endactive, VaryingRef<Imath::V3f> P,
+                   VaryingRef<Imath::V3f> dPdx, VaryingRef<Imath::V3f> dPdy,
+                   VaryingRef<Imath::V3f> dPdz, int nchannels, float* result,
+                   float* dresultds = NULL, float* dresultdt = NULL,
+                   float* dresultdr = NULL) override;
+    bool texture3d(TextureHandle* texture_handle, Perthread* thread_info,
+                   TextureOptions& options, Runflag* runflags, int beginactive,
+                   int endactive, VaryingRef<Imath::V3f> P,
+                   VaryingRef<Imath::V3f> dPdx, VaryingRef<Imath::V3f> dPdy,
+                   VaryingRef<Imath::V3f> dPdz, int nchannels, float* result,
+                   float* dresultds = NULL, float* dresultdt = NULL,
+                   float* dresultdr = NULL) override;
 
-    virtual bool shadow(ustring /*filename*/, TextureOpt& /*options*/,
-                        V3fParam /*P*/, V3fParam /*dPdx*/, V3fParam /*dPdy*/,
-                        float* /*result*/, float* /*dresultds*/,
-                        float* /*dresultdt*/) override
+    bool shadow(ustring /*filename*/, TextureOpt& /*options*/, V3fParam /*P*/,
+                V3fParam /*dPdx*/, V3fParam /*dPdy*/, float* /*result*/,
+                float* /*dresultds*/, float* /*dresultdt*/) override
     {
         return false;
     }
-    virtual bool shadow(TextureHandle* /*texture_handle*/,
-                        Perthread* /*thread_info*/, TextureOpt& /*options*/,
-                        V3fParam /*P*/, V3fParam /*dPdx*/, V3fParam /*dPdy*/,
-                        float* /*result*/, float* /*dresultds*/,
-                        float* /*dresultdt*/) override
+    bool shadow(TextureHandle* /*texture_handle*/, Perthread* /*thread_info*/,
+                TextureOpt& /*options*/, V3fParam /*P*/, V3fParam /*dPdx*/,
+                V3fParam /*dPdy*/, float* /*result*/, float* /*dresultds*/,
+                float* /*dresultdt*/) override
     {
         return false;
     }
-    virtual bool shadow(ustring /*filename*/, TextureOptBatch& /*options*/,
-                        Tex::RunMask /*mask*/, const float* /*P*/,
-                        const float* /*dPdx*/, const float* /*dPdy*/,
-                        float* /*result*/, float* /*dresultds*/,
-                        float* /*dresultdt*/) override
+    bool shadow(ustring /*filename*/, TextureOptBatch& /*options*/,
+                Tex::RunMask /*mask*/, const float* /*P*/,
+                const float* /*dPdx*/, const float* /*dPdy*/, float* /*result*/,
+                float* /*dresultds*/, float* /*dresultdt*/) override
     {
         return false;
     }
-    virtual bool shadow(TextureHandle* /*texture_handle*/,
-                        Perthread* /*thread_info*/,
-                        TextureOptBatch& /*options*/, Tex::RunMask /*mask*/,
-                        const float* /*P*/, const float* /*dPdx*/,
-                        const float* /*dPdy*/, float* /*result*/,
-                        float* /*dresultds*/, float* /*dresultdt*/) override
+    bool shadow(TextureHandle* /*texture_handle*/, Perthread* /*thread_info*/,
+                TextureOptBatch& /*options*/, Tex::RunMask /*mask*/,
+                const float* /*P*/, const float* /*dPdx*/,
+                const float* /*dPdy*/, float* /*result*/, float* /*dresultds*/,
+                float* /*dresultdt*/) override
     {
         return false;
     }
-    virtual bool shadow(ustring /*filename*/, TextureOptions& /*options*/,
-                        Runflag* /*runflags*/, int /*beginactive*/,
-                        int /*endactive*/, VaryingRef<Imath::V3f> /*P*/,
-                        VaryingRef<Imath::V3f> /*dPdx*/,
-                        VaryingRef<Imath::V3f> /*dPdy*/, float* /*result*/,
-                        float* /*dresultds*/, float* /*dresultdt*/) override
+    bool shadow(ustring /*filename*/, TextureOptions& /*options*/,
+                Runflag* /*runflags*/, int /*beginactive*/, int /*endactive*/,
+                VaryingRef<Imath::V3f> /*P*/, VaryingRef<Imath::V3f> /*dPdx*/,
+                VaryingRef<Imath::V3f> /*dPdy*/, float* /*result*/,
+                float* /*dresultds*/, float* /*dresultdt*/) override
     {
         return false;
     }
-    virtual bool shadow(TextureHandle* /*texture_handle*/,
-                        Perthread* /*thread_info*/, TextureOptions& /*options*/,
-                        Runflag* /*runflags*/, int /*beginactive*/,
-                        int /*endactive*/, VaryingRef<Imath::V3f> /*P*/,
-                        VaryingRef<Imath::V3f> /*dPdx*/,
-                        VaryingRef<Imath::V3f> /*dPdy*/, float* /*result*/,
-                        float* /*dresultds*/, float* /*dresultdt*/) override
+    bool shadow(TextureHandle* /*texture_handle*/, Perthread* /*thread_info*/,
+                TextureOptions& /*options*/, Runflag* /*runflags*/,
+                int /*beginactive*/, int /*endactive*/,
+                VaryingRef<Imath::V3f> /*P*/, VaryingRef<Imath::V3f> /*dPdx*/,
+                VaryingRef<Imath::V3f> /*dPdy*/, float* /*result*/,
+                float* /*dresultds*/, float* /*dresultdt*/) override
     {
         return false;
     }
 
 
-    virtual bool environment(ustring filename, TextureOpt& options, V3fParam R,
-                             V3fParam dRdx, V3fParam dRdy, int nchannels,
-                             float* result, float* dresultds = NULL,
-                             float* dresultdt = NULL) override;
-    virtual bool environment(TextureHandle* texture_handle,
-                             Perthread* thread_info, TextureOpt& options,
-                             V3fParam R, V3fParam dRdx, V3fParam dRdy,
-                             int nchannels, float* result,
-                             float* dresultds = NULL,
-                             float* dresultdt = NULL) override;
-    virtual bool environment(ustring filename, TextureOptBatch& options,
-                             Tex::RunMask mask, const float* R,
-                             const float* dRdx, const float* dRdy,
-                             int nchannels, float* result,
-                             float* dresultds = nullptr,
-                             float* dresultdt = nullptr) override;
-    virtual bool environment(TextureHandle* texture_handle,
-                             Perthread* thread_info, TextureOptBatch& options,
-                             Tex::RunMask mask, const float* R,
-                             const float* dRdx, const float* dRdy,
-                             int nchannels, float* result,
-                             float* dresultds = nullptr,
-                             float* dresultdt = nullptr) override;
-    virtual bool environment(ustring filename, TextureOptions& options,
-                             Runflag* runflags, int beginactive, int endactive,
-                             VaryingRef<Imath::V3f> R,
-                             VaryingRef<Imath::V3f> dRdx,
-                             VaryingRef<Imath::V3f> dRdy, int nchannels,
-                             float* result, float* dresultds = NULL,
-                             float* dresultdt = NULL) override;
-    virtual bool environment(TextureHandle* texture_handle,
-                             Perthread* thread_info, TextureOptions& options,
-                             Runflag* runflags, int beginactive, int endactive,
-                             VaryingRef<Imath::V3f> R,
-                             VaryingRef<Imath::V3f> dRdx,
-                             VaryingRef<Imath::V3f> dRdy, int nchannels,
-                             float* result, float* dresultds = NULL,
-                             float* dresultdt = NULL) override;
+    bool environment(ustring filename, TextureOpt& options, V3fParam R,
+                     V3fParam dRdx, V3fParam dRdy, int nchannels, float* result,
+                     float* dresultds = NULL, float* dresultdt = NULL) override;
+    bool environment(TextureHandle* texture_handle, Perthread* thread_info,
+                     TextureOpt& options, V3fParam R, V3fParam dRdx,
+                     V3fParam dRdy, int nchannels, float* result,
+                     float* dresultds = NULL, float* dresultdt = NULL) override;
+    bool environment(ustring filename, TextureOptBatch& options,
+                     Tex::RunMask mask, const float* R, const float* dRdx,
+                     const float* dRdy, int nchannels, float* result,
+                     float* dresultds = nullptr,
+                     float* dresultdt = nullptr) override;
+    bool environment(TextureHandle* texture_handle, Perthread* thread_info,
+                     TextureOptBatch& options, Tex::RunMask mask,
+                     const float* R, const float* dRdx, const float* dRdy,
+                     int nchannels, float* result, float* dresultds = nullptr,
+                     float* dresultdt = nullptr) override;
+    bool environment(ustring filename, TextureOptions& options,
+                     Runflag* runflags, int beginactive, int endactive,
+                     VaryingRef<Imath::V3f> R, VaryingRef<Imath::V3f> dRdx,
+                     VaryingRef<Imath::V3f> dRdy, int nchannels, float* result,
+                     float* dresultds = NULL, float* dresultdt = NULL) override;
+    bool environment(TextureHandle* texture_handle, Perthread* thread_info,
+                     TextureOptions& options, Runflag* runflags,
+                     int beginactive, int endactive, VaryingRef<Imath::V3f> R,
+                     VaryingRef<Imath::V3f> dRdx, VaryingRef<Imath::V3f> dRdy,
+                     int nchannels, float* result, float* dresultds = NULL,
+                     float* dresultdt = NULL) override;
 
-    virtual std::string
-    resolve_filename(const std::string& filename) const override;
+    std::string resolve_filename(const std::string& filename) const override;
 
-    virtual bool get_texture_info(ustring filename, int subimage,
-                                  ustring dataname, TypeDesc datatype,
-                                  void* data) override;
-    virtual bool get_texture_info(TextureHandle* texture_handle,
-                                  Perthread* thread_info, int subimage,
-                                  ustring dataname, TypeDesc datatype,
-                                  void* data) override;
+    bool get_texture_info(ustring filename, int subimage, ustring dataname,
+                          TypeDesc datatype, void* data) override;
+    bool get_texture_info(TextureHandle* texture_handle, Perthread* thread_info,
+                          int subimage, ustring dataname, TypeDesc datatype,
+                          void* data) override;
 
-    virtual bool get_imagespec(ustring filename, int subimage,
-                               ImageSpec& spec) override;
-    virtual bool get_imagespec(TextureHandle* texture_handle,
-                               Perthread* thread_info, int subimage,
-                               ImageSpec& spec) override;
+    bool get_imagespec(ustring filename, int subimage,
+                       ImageSpec& spec) override;
+    bool get_imagespec(TextureHandle* texture_handle, Perthread* thread_info,
+                       int subimage, ImageSpec& spec) override;
 
-    virtual const ImageSpec* imagespec(ustring filename,
-                                       int subimage = 0) override;
-    virtual const ImageSpec* imagespec(TextureHandle* texture_handle,
-                                       Perthread* thread_info = NULL,
-                                       int subimage           = 0) override;
+    const ImageSpec* imagespec(ustring filename, int subimage = 0) override;
+    const ImageSpec* imagespec(TextureHandle* texture_handle,
+                               Perthread* thread_info = NULL,
+                               int subimage           = 0) override;
 
-    virtual bool get_texels(ustring filename, TextureOpt& options, int miplevel,
-                            int xbegin, int xend, int ybegin, int yend,
-                            int zbegin, int zend, int chbegin, int chend,
-                            TypeDesc format, void* result) override;
-    virtual bool get_texels(TextureHandle* texture_handle,
-                            Perthread* thread_info, TextureOpt& options,
-                            int miplevel, int xbegin, int xend, int ybegin,
-                            int yend, int zbegin, int zend, int chbegin,
-                            int chend, TypeDesc format, void* result) override;
+    bool get_texels(ustring filename, TextureOpt& options, int miplevel,
+                    int xbegin, int xend, int ybegin, int yend, int zbegin,
+                    int zend, int chbegin, int chend, TypeDesc format,
+                    void* result) override;
+    bool get_texels(TextureHandle* texture_handle, Perthread* thread_info,
+                    TextureOpt& options, int miplevel, int xbegin, int xend,
+                    int ybegin, int yend, int zbegin, int zend, int chbegin,
+                    int chend, TypeDesc format, void* result) override;
 
-    virtual bool is_udim(ustring filename) override;
-    virtual bool is_udim(TextureHandle* udimfile) override;
-    virtual TextureHandle* resolve_udim(ustring filename, float s,
-                                        float t) override;
-    virtual TextureHandle* resolve_udim(TextureHandle* udimfile,
-                                        Perthread* thread_info, float s,
-                                        float t) override;
-    virtual void inventory_udim(ustring udimpattern,
-                                std::vector<ustring>& filenames, int& nutiles,
-                                int& nvtiles) override;
-    virtual void inventory_udim(TextureHandle* udimfile, Perthread* thread_info,
-                                std::vector<ustring>& filenames, int& nutiles,
-                                int& nvtiles) override;
+    bool is_udim(ustring filename) override;
+    bool is_udim(TextureHandle* udimfile) override;
+    TextureHandle* resolve_udim(ustring filename, float s, float t) override;
+    TextureHandle* resolve_udim(TextureHandle* udimfile, Perthread* thread_info,
+                                float s, float t) override;
+    void inventory_udim(ustring udimpattern, std::vector<ustring>& filenames,
+                        int& nutiles, int& nvtiles) override;
+    void inventory_udim(TextureHandle* udimfile, Perthread* thread_info,
+                        std::vector<ustring>& filenames, int& nutiles,
+                        int& nvtiles) override;
 
-    virtual bool has_error() const override;
-    virtual std::string geterror(bool clear = true) const override;
-    virtual std::string getstats(int level    = 1,
-                                 bool icstats = true) const override;
-    virtual void reset_stats() override;
+    bool has_error() const override;
+    std::string geterror(bool clear = true) const override;
+    std::string getstats(int level = 1, bool icstats = true) const override;
+    void reset_stats() override;
 
-    virtual void invalidate(ustring filename, bool force) override;
-    virtual void invalidate_all(bool force = false) override;
-    virtual void close(ustring filename) override;
-    virtual void close_all() override;
+    void invalidate(ustring filename, bool force) override;
+    void invalidate_all(bool force = false) override;
+    void close(ustring filename) override;
+    void close_all() override;
 
     void operator delete(void* todel) { ::delete ((char*)todel); }
 
@@ -368,7 +330,7 @@ public:
 
     /// Return an opaque, non-owning pointer to the underlying ImageCache
     /// (if there is one).
-    virtual ImageCache* imagecache() const override { return m_imagecache; }
+    ImageCache* imagecache() const override { return m_imagecache; }
 
 private:
     typedef ImageCacheTileRef TileRef;

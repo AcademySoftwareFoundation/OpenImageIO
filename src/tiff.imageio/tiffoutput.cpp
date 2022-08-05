@@ -39,25 +39,25 @@ static int MIN_SCANLINES_OR_TILES_PER_CHECKPOINT  = 64;
 class TIFFOutput final : public ImageOutput {
 public:
     TIFFOutput();
-    virtual ~TIFFOutput() override;
-    virtual const char* format_name(void) const override { return "tiff"; }
-    virtual int supports(string_view feature) const override;
-    virtual bool open(const std::string& name, const ImageSpec& spec,
-                      OpenMode mode = Create) override;
-    virtual bool close() override;
-    virtual bool write_scanline(int y, int z, TypeDesc format, const void* data,
-                                stride_t xstride) override;
-    virtual bool write_scanlines(int ybegin, int yend, int z, TypeDesc format,
-                                 const void* data, stride_t xstride,
-                                 stride_t ystride) override;
-    virtual bool write_tile(int x, int y, int z, TypeDesc format,
-                            const void* data, stride_t xstride,
-                            stride_t ystride, stride_t zstride) override;
-    virtual bool write_tiles(int xbegin, int xend, int ybegin, int yend,
-                             int zbegin, int zend, TypeDesc format,
-                             const void* data, stride_t xstride = AutoStride,
-                             stride_t ystride = AutoStride,
-                             stride_t zstride = AutoStride) override;
+    ~TIFFOutput() override;
+    const char* format_name(void) const override { return "tiff"; }
+    int supports(string_view feature) const override;
+    bool open(const std::string& name, const ImageSpec& spec,
+              OpenMode mode = Create) override;
+    bool close() override;
+    bool write_scanline(int y, int z, TypeDesc format, const void* data,
+                        stride_t xstride) override;
+    bool write_scanlines(int ybegin, int yend, int z, TypeDesc format,
+                         const void* data, stride_t xstride,
+                         stride_t ystride) override;
+    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
+                    stride_t xstride, stride_t ystride,
+                    stride_t zstride) override;
+    bool write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
+                     int zend, TypeDesc format, const void* data,
+                     stride_t xstride = AutoStride,
+                     stride_t ystride = AutoStride,
+                     stride_t zstride = AutoStride) override;
 
 private:
     TIFF* m_tif = nullptr;

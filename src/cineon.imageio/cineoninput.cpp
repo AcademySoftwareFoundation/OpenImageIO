@@ -19,12 +19,12 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class CineonInput final : public ImageInput {
 public:
     CineonInput() { init(); }
-    virtual ~CineonInput() override { close(); }
-    virtual const char* format_name(void) const override { return "cineon"; }
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool close() override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
+    ~CineonInput() override { close(); }
+    const char* format_name(void) const override { return "cineon"; }
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool close() override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
 
 private:
     InStream* m_stream = nullptr;

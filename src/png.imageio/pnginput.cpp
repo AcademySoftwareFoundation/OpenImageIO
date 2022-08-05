@@ -14,24 +14,24 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class PNGInput final : public ImageInput {
 public:
     PNGInput() { init(); }
-    virtual ~PNGInput() override { close(); }
-    virtual const char* format_name(void) const override { return "png"; }
-    virtual int supports(string_view feature) const override
+    ~PNGInput() override { close(); }
+    const char* format_name(void) const override { return "png"; }
+    int supports(string_view feature) const override
     {
         return (feature == "ioproxy" || feature == "exif");
     }
-    virtual bool valid_file(const std::string& filename) const override;
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool open(const std::string& name, ImageSpec& newspec,
-                      const ImageSpec& config) override;
-    virtual bool close() override;
-    virtual int current_subimage(void) const override
+    bool valid_file(const std::string& filename) const override;
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool open(const std::string& name, ImageSpec& newspec,
+              const ImageSpec& config) override;
+    bool close() override;
+    int current_subimage(void) const override
     {
         lock_guard lock(*this);
         return m_subimage;
     }
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
 
 private:
     std::string m_filename;            ///< Stash the filename

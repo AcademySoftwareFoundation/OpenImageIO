@@ -55,13 +55,13 @@ open_gz(const std::string& filename, const char* mode)
 class ZfileInput final : public ImageInput {
 public:
     ZfileInput() { init(); }
-    virtual ~ZfileInput() override { close(); }
-    virtual const char* format_name(void) const override { return "zfile"; }
-    virtual bool valid_file(const std::string& filename) const override;
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool close() override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
+    ~ZfileInput() override { close(); }
+    const char* format_name(void) const override { return "zfile"; }
+    bool valid_file(const std::string& filename) const override;
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool close() override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
 
 private:
     std::string m_filename;  ///< Stash the filename
@@ -84,16 +84,16 @@ private:
 class ZfileOutput final : public ImageOutput {
 public:
     ZfileOutput() { init(); }
-    virtual ~ZfileOutput() override { close(); }
-    virtual const char* format_name(void) const override { return "zfile"; }
-    virtual bool open(const std::string& name, const ImageSpec& spec,
-                      OpenMode mode = Create) override;
-    virtual bool close() override;
-    virtual bool write_scanline(int y, int z, TypeDesc format, const void* data,
-                                stride_t xstride) override;
-    virtual bool write_tile(int x, int y, int z, TypeDesc format,
-                            const void* data, stride_t xstride,
-                            stride_t ystride, stride_t zstride) override;
+    ~ZfileOutput() override { close(); }
+    const char* format_name(void) const override { return "zfile"; }
+    bool open(const std::string& name, const ImageSpec& spec,
+              OpenMode mode = Create) override;
+    bool close() override;
+    bool write_scanline(int y, int z, TypeDesc format, const void* data,
+                        stride_t xstride) override;
+    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
+                    stride_t xstride, stride_t ystride,
+                    stride_t zstride) override;
 
 private:
     std::string m_filename;  ///< Stash the filename

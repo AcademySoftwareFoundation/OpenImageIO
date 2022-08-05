@@ -737,16 +737,16 @@ public:
 #    endif
     {
     }
-    virtual ~ColorProcessor_OCIO() override {}
+    ~ColorProcessor_OCIO() override {}
 
-    virtual bool isNoOp() const override { return m_p->isNoOp(); }
-    virtual bool hasChannelCrosstalk() const override
+    bool isNoOp() const override { return m_p->isNoOp(); }
+    bool hasChannelCrosstalk() const override
     {
         return m_p->hasChannelCrosstalk();
     }
-    virtual void apply(float* data, int width, int height, int channels,
-                       stride_t chanstride, stride_t xstride,
-                       stride_t ystride) const override
+    void apply(float* data, int width, int height, int channels,
+               stride_t chanstride, stride_t xstride,
+               stride_t ystride) const override
     {
 #    if OCIO_VERSION_HEX >= 0x02000000
         OCIO::PackedImageDesc pid(data, width, height, channels,
@@ -777,9 +777,9 @@ public:
         : ColorProcessor() {};
     ~ColorProcessor_sRGB_to_linear() override {}
 
-    virtual void apply(float* data, int width, int height, int channels,
-                       stride_t chanstride, stride_t xstride,
-                       stride_t ystride) const override
+    void apply(float* data, int width, int height, int channels,
+               stride_t chanstride, stride_t xstride,
+               stride_t ystride) const override
     {
         if (channels > 3)
             channels = 3;
@@ -814,9 +814,9 @@ public:
         : ColorProcessor() {};
     ~ColorProcessor_linear_to_sRGB() override {}
 
-    virtual void apply(float* data, int width, int height, int channels,
-                       stride_t chanstride, stride_t xstride,
-                       stride_t ystride) const override
+    void apply(float* data, int width, int height, int channels,
+               stride_t chanstride, stride_t xstride,
+               stride_t ystride) const override
     {
         if (channels > 3)
             channels = 3;
@@ -852,9 +852,9 @@ public:
         : ColorProcessor() {};
     ~ColorProcessor_Rec709_to_linear() override {}
 
-    virtual void apply(float* data, int width, int height, int channels,
-                       stride_t chanstride, stride_t xstride,
-                       stride_t ystride) const override
+    void apply(float* data, int width, int height, int channels,
+               stride_t chanstride, stride_t xstride,
+               stride_t ystride) const override
     {
         if (channels > 3)
             channels = 3;
@@ -877,9 +877,9 @@ public:
         : ColorProcessor() {};
     ~ColorProcessor_linear_to_Rec709() override {}
 
-    virtual void apply(float* data, int width, int height, int channels,
-                       stride_t chanstride, stride_t xstride,
-                       stride_t ystride) const override
+    void apply(float* data, int width, int height, int channels,
+               stride_t chanstride, stride_t xstride,
+               stride_t ystride) const override
     {
         if (channels > 3)
             channels = 3;
@@ -904,9 +904,9 @@ public:
         , m_gamma(gamma) {};
     ~ColorProcessor_gamma() override {}
 
-    virtual void apply(float* data, int width, int height, int channels,
-                       stride_t chanstride, stride_t xstride,
-                       stride_t ystride) const override
+    void apply(float* data, int width, int height, int channels,
+               stride_t chanstride, stride_t xstride,
+               stride_t ystride) const override
     {
         if (channels > 3)
             channels = 3;
@@ -946,10 +946,9 @@ public:
     {
     }
     ~ColorProcessor_Ident() override {}
-    virtual void apply(float* /*data*/, int /*width*/, int /*height*/,
-                       int /*channels*/, stride_t /*chanstride*/,
-                       stride_t /*xstride*/,
-                       stride_t /*ystride*/) const override
+    void apply(float* /*data*/, int /*width*/, int /*height*/, int /*channels*/,
+               stride_t /*chanstride*/, stride_t /*xstride*/,
+               stride_t /*ystride*/) const override
     {
     }
 };
@@ -968,9 +967,9 @@ public:
     }
     ~ColorProcessor_Matrix() override {}
 
-    virtual void apply(float* data, int width, int height, int channels,
-                       stride_t chanstride, stride_t xstride,
-                       stride_t ystride) const override
+    void apply(float* data, int width, int height, int channels,
+               stride_t chanstride, stride_t xstride,
+               stride_t ystride) const override
     {
         using namespace simd;
         if (channels == 3 && chanstride == sizeof(float)) {

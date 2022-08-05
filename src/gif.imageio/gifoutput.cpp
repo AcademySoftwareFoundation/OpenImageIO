@@ -62,21 +62,21 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class GIFOutput final : public ImageOutput {
 public:
     GIFOutput() { init(); }
-    virtual ~GIFOutput() override { close(); }
-    virtual const char* format_name(void) const override { return "gif"; }
-    virtual int supports(string_view feature) const override
+    ~GIFOutput() override { close(); }
+    const char* format_name(void) const override { return "gif"; }
+    int supports(string_view feature) const override
     {
         return (feature == "alpha" || feature == "random_access"
                 || feature == "multiimage" || feature == "appendsubimage"
                 || feature == "ioproxy");
     }
-    virtual bool open(const std::string& name, const ImageSpec& spec,
-                      OpenMode mode = Create) override;
-    virtual bool open(const std::string& name, int subimages,
-                      const ImageSpec* specs) override;
-    virtual bool write_scanline(int y, int z, TypeDesc format, const void* data,
-                                stride_t xstride) override;
-    virtual bool close() override;
+    bool open(const std::string& name, const ImageSpec& spec,
+              OpenMode mode = Create) override;
+    bool open(const std::string& name, int subimages,
+              const ImageSpec* specs) override;
+    bool write_scanline(int y, int z, TypeDesc format, const void* data,
+                        stride_t xstride) override;
+    bool close() override;
 
 private:
     std::string m_filename;

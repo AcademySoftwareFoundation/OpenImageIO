@@ -23,18 +23,18 @@ using namespace ICO_pvt;
 class ICOInput final : public ImageInput {
 public:
     ICOInput() { init(); }
-    virtual ~ICOInput() override { close(); }
-    virtual const char* format_name(void) const override { return "ico"; }
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool close() override;
-    virtual int current_subimage(void) const override
+    ~ICOInput() override { close(); }
+    const char* format_name(void) const override { return "ico"; }
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool close() override;
+    int current_subimage(void) const override
     {
         lock_guard lock(*this);
         return m_subimage;
     }
-    virtual bool seek_subimage(int subimage, int miplevel) override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
+    bool seek_subimage(int subimage, int miplevel) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
 
 private:
     std::string m_filename;            ///< Stash the filename

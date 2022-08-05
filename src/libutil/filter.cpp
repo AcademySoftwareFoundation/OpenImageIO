@@ -726,7 +726,7 @@ public:
         // return (a + 2.0f) * x*x*x - (a + 3.0f) * x*x + 1.0f;
     }
 
-    virtual string_view name() const override { return "cubic"; }
+    string_view name() const override { return "cubic"; }
 
 protected:
     float m_a;
@@ -759,7 +759,7 @@ public:
     {
         return FilterCubic1D::cubic(y * m_hrad_inv, m_a);
     }
-    virtual string_view name() const override { return "cubic"; }
+    string_view name() const override { return "cubic"; }
 
 protected:
     float m_a;
@@ -776,7 +776,7 @@ public:
         m_a = -0.5f;
     }
     ~FilterKeys1D() override {}
-    virtual string_view name() const override { return "keys"; }
+    string_view name() const override { return "keys"; }
 };
 
 
@@ -788,7 +788,7 @@ public:
         m_a = -0.5f;
     }
     ~FilterKeys2D() override {}
-    virtual string_view name() const override { return "keys"; }
+    string_view name() const override { return "keys"; }
 };
 
 
@@ -801,7 +801,7 @@ public:
         m_a = -0.75f;
     }
     ~FilterSimon1D() override {}
-    virtual string_view name() const override { return "simon"; }
+    string_view name() const override { return "simon"; }
 };
 
 
@@ -813,7 +813,7 @@ public:
         m_a = -0.75f;
     }
     ~FilterSimon2D() override {}
-    virtual string_view name() const override { return "simon"; }
+    string_view name() const override { return "simon"; }
 };
 
 
@@ -826,7 +826,7 @@ public:
         m_a = -1.0f;
     }
     ~FilterRifman1D() override {}
-    virtual string_view name() const override { return "rifman"; }
+    string_view name() const override { return "rifman"; }
 };
 
 
@@ -838,7 +838,7 @@ public:
         m_a = -1.0f;
     }
     ~FilterRifman2D() override {}
-    virtual string_view name() const override { return "rifman"; }
+    string_view name() const override { return "rifman"; }
 };
 
 
