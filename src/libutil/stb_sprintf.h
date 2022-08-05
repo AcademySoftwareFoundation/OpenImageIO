@@ -1006,7 +1006,7 @@ STBSP__PUBLICDEF int STB_SPRINTF_DECORATE(vsprintfcb)(STBSP_SPRINTFCB *callback,
       case 'X': // upper hex
       case 'x': // lower hex
          h = (f[0] == 'X') ? hexu : hex;
-         l = (4 << 4) | (4 << 8);
+         l = (4 << 4) | (4 << 8);  // NOSONAR
          lead[0] = 0;
          if (fl & STBSP__LEADING_0X) {
             lead[0] = 2;

@@ -162,7 +162,7 @@ DibInformationHeader::write_header(Filesystem::IOProxy* fd)
         return false;
     }
 
-    return (true);
+    return true;
 }
 
 

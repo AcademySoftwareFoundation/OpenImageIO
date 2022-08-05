@@ -355,7 +355,7 @@ public:
             s[0] = 0;
             return 0;
         }
-        char* c = strncpy(s, c_str() + pos, n);
+        char* c = strncpy(s, c_str() + pos, n);  // NOSONAR
         return (size_type)(c - s);
     }
 

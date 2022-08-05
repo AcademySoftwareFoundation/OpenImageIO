@@ -952,7 +952,7 @@ inline OIIO_HOSTDEVICE D
 scaled_conversion(const S& src, F scale, F min, F max)
 {
     if (std::numeric_limits<S>::is_signed) {
-        F s = src * scale;
+        F s = src * scale;  //NOSONAR
         s += (s < 0 ? (F)-0.5 : (F)0.5);
         return (D)clamp(s, min, max);
     } else {

@@ -231,7 +231,7 @@ scan_res_offset(string_view str, int& w, int& h, int& x, int& y)
            && (str.size() && (str[0] == '+' || str[0] == '-'))
            && Strutil::parse_value(str, x)
            && (str.size() && (str[0] == '+' || str[0] == '-'))
-           && Strutil::parse_value(str, y);
+           && Strutil::parse_value(str, y);  // NOSONAR
 }
 
 
@@ -240,7 +240,7 @@ scan_scale_percent(string_view str, float& x, float& y)
 {
     return Strutil::parse_value(str, x) && Strutil::parse_char(str, '%')
            && Strutil::parse_char(str, 'x') && Strutil::parse_value(str, y)
-           && Strutil::parse_char(str, '%');
+           && Strutil::parse_char(str, '%');  // NOSONAR
 }
 
 static bool

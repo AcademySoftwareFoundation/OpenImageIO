@@ -1765,7 +1765,7 @@ Strutil::scan_datetime(string_view str, int& year, int& month, int& day,
                   || parse_char(str, '/', false))
               && parse_int(str, day) && parse_int(str, hour)
               && parse_char(str, ':', false) && parse_int(str, min)
-              && parse_char(str, ':', false) && parse_int(str, sec);
+              && parse_char(str, ':', false) && parse_int(str, sec);  //NOSONAR
     return ok && month >= 1 && month <= 12 && day >= 1 && day <= 31 && hour >= 0
            && hour <= 23 && min >= 0 && min <= 59 && sec >= 0 && sec <= 59;
 }

@@ -121,8 +121,8 @@ declare_typedesc(py::module& m)
         .def("is_box3", &TypeDesc::is_box3)
 
         // overloaded operators
-        .def(py::self == py::self)  // operator==
-        .def(py::self != py::self)  // operator!=
+        .def(py::self == py::self)  // operator==   //NOSONAR
+        .def(py::self != py::self)  // operator!=   //NOSONAR
 
         // Conversion to string
         .def("__str__", [](TypeDesc t) { return PY_STR(t.c_str()); })

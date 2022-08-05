@@ -2031,7 +2031,7 @@ interppixel_(const ImageBuf& img, float x, float y, float* pixel,
                                   0, 1, wrap);
     for (int i = 0; i < 4; ++i, ++it)
         for (int c = 0; c < n; ++c)
-            p[i][c] = it[c];
+            p[i][c] = it[c];  //NOSONAR
     bilerp(p[0], p[1], p[2], p[3], xfrac, yfrac, n, pixel);
     return true;
 }
