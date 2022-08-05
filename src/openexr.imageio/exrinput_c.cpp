@@ -101,54 +101,52 @@ oiio_exr_read_func(exr_const_context_t ctxt, void* userdata, void* buffer,
 class OpenEXRCoreInput final : public ImageInput {
 public:
     OpenEXRCoreInput();
-    virtual ~OpenEXRCoreInput() override { close(); }
-    virtual const char* format_name(void) const override { return "openexr"; }
-    virtual int supports(string_view feature) const override
+    ~OpenEXRCoreInput() override { close(); }
+    const char* format_name(void) const override { return "openexr"; }
+    int supports(string_view feature) const override
     {
         return (feature == "arbitrary_metadata"
                 || feature == "exif"  // Because of arbitrary_metadata
                 || feature == "iptc"  // Because of arbitrary_metadata
                 || feature == "ioproxy");
     }
-    virtual bool valid_file(const std::string& filename) const override;
-    virtual bool open(const std::string& name, ImageSpec& newspec,
-                      const ImageSpec& config) override;
-    virtual bool open(const std::string& name, ImageSpec& newspec) override
+    bool valid_file(const std::string& filename) const override;
+    bool open(const std::string& name, ImageSpec& newspec,
+              const ImageSpec& config) override;
+    bool open(const std::string& name, ImageSpec& newspec) override
     {
         return open(name, newspec, ImageSpec());
     }
-    virtual bool close() override;
-    virtual int current_subimage(void) const override { return m_subimage; }
-    virtual int current_miplevel(void) const override { return m_miplevel; }
-    virtual bool seek_subimage(int subimage, int miplevel) override;
-    virtual ImageSpec spec(int subimage, int miplevel) override;
-    virtual ImageSpec spec_dimensions(int subimage, int miplevel) override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
-    virtual bool read_native_scanlines(int subimage, int miplevel, int ybegin,
-                                       int yend, int z, void* data) override;
-    virtual bool read_native_scanlines(int subimage, int miplevel, int ybegin,
-                                       int yend, int z, int chbegin, int chend,
-                                       void* data) override;
-    virtual bool read_native_tile(int subimage, int miplevel, int x, int y,
-                                  int z, void* data) override;
-    virtual bool read_native_tiles(int subimage, int miplevel, int xbegin,
-                                   int xend, int ybegin, int yend, int zbegin,
-                                   int zend, void* data) override;
-    virtual bool read_native_tiles(int subimage, int miplevel, int xbegin,
-                                   int xend, int ybegin, int yend, int zbegin,
-                                   int zend, int chbegin, int chend,
-                                   void* data) override;
-    virtual bool read_native_deep_scanlines(int subimage, int miplevel,
-                                            int ybegin, int yend, int z,
-                                            int chbegin, int chend,
-                                            DeepData& deepdata) override;
-    virtual bool read_native_deep_tiles(int subimage, int miplevel, int xbegin,
-                                        int xend, int ybegin, int yend,
-                                        int zbegin, int zend, int chbegin,
-                                        int chend, DeepData& deepdata) override;
+    bool close() override;
+    int current_subimage(void) const override { return m_subimage; }
+    int current_miplevel(void) const override { return m_miplevel; }
+    bool seek_subimage(int subimage, int miplevel) override;
+    ImageSpec spec(int subimage, int miplevel) override;
+    ImageSpec spec_dimensions(int subimage, int miplevel) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
+    bool read_native_scanlines(int subimage, int miplevel, int ybegin, int yend,
+                               int z, void* data) override;
+    bool read_native_scanlines(int subimage, int miplevel, int ybegin, int yend,
+                               int z, int chbegin, int chend,
+                               void* data) override;
+    bool read_native_tile(int subimage, int miplevel, int x, int y, int z,
+                          void* data) override;
+    bool read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
+                           int ybegin, int yend, int zbegin, int zend,
+                           void* data) override;
+    bool read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
+                           int ybegin, int yend, int zbegin, int zend,
+                           int chbegin, int chend, void* data) override;
+    bool read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
+                                    int yend, int z, int chbegin, int chend,
+                                    DeepData& deepdata) override;
+    bool read_native_deep_tiles(int subimage, int miplevel, int xbegin,
+                                int xend, int ybegin, int yend, int zbegin,
+                                int zend, int chbegin, int chend,
+                                DeepData& deepdata) override;
 
-    virtual bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
+    bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
     {
         OIIO_ASSERT(!m_exr_context);
         m_userdata.m_io = ioproxy;

@@ -29,31 +29,31 @@ constexpr int kBlockSize = 4;
 class DDSInput final : public ImageInput {
 public:
     DDSInput() { init(); }
-    virtual ~DDSInput() override { close(); }
-    virtual const char* format_name(void) const override { return "dds"; }
-    virtual int supports(string_view feature) const override
+    ~DDSInput() override { close(); }
+    const char* format_name(void) const override { return "dds"; }
+    int supports(string_view feature) const override
     {
         return feature == "ioproxy";
     }
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool open(const std::string& name, ImageSpec& spec,
-                      const ImageSpec& config) override;
-    virtual bool close() override;
-    virtual int current_subimage(void) const override
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool open(const std::string& name, ImageSpec& spec,
+              const ImageSpec& config) override;
+    bool close() override;
+    int current_subimage(void) const override
     {
         lock_guard lock(*this);
         return m_subimage;
     }
-    virtual int current_miplevel(void) const override
+    int current_miplevel(void) const override
     {
         lock_guard lock(*this);
         return m_miplevel;
     }
-    virtual bool seek_subimage(int subimage, int miplevel) override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
-    virtual bool read_native_tile(int subimage, int miplevel, int x, int y,
-                                  int z, void* data) override;
+    bool seek_subimage(int subimage, int miplevel) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
+    bool read_native_tile(int subimage, int miplevel, int x, int y, int z,
+                          void* data) override;
 
 private:
     std::string m_filename;            ///< Stash the filename

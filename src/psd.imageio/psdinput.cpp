@@ -31,22 +31,22 @@ using namespace psd_pvt;
 class PSDInput final : public ImageInput {
 public:
     PSDInput();
-    virtual ~PSDInput() override { close(); }
-    virtual const char* format_name(void) const override { return "psd"; }
-    virtual int supports(string_view feature) const override
+    ~PSDInput() override { close(); }
+    const char* format_name(void) const override { return "psd"; }
+    int supports(string_view feature) const override
     {
         return (feature == "exif" || feature == "iptc" || feature == "thumbnail"
                 || feature == "ioproxy");
     }
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool open(const std::string& name, ImageSpec& newspec,
-                      const ImageSpec& config) override;
-    virtual bool close() override;
-    virtual int current_subimage() const override { return m_subimage; }
-    virtual bool seek_subimage(int subimage, int miplevel) override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
-    virtual bool get_thumbnail(ImageBuf& thumb, int subimage) override
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool open(const std::string& name, ImageSpec& newspec,
+              const ImageSpec& config) override;
+    bool close() override;
+    int current_subimage() const override { return m_subimage; }
+    bool seek_subimage(int subimage, int miplevel) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
+    bool get_thumbnail(ImageBuf& thumb, int subimage) override
     {
         thumb = m_thumbnail;
         return m_thumbnail.initialized();

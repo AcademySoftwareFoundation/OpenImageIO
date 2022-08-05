@@ -22,29 +22,24 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class NullOutput final : public ImageOutput {
 public:
     NullOutput() {}
-    virtual ~NullOutput() override {}
-    virtual const char* format_name(void) const override { return "null"; }
-    virtual int supports(string_view /*feature*/) const override
-    {
-        return true;
-    }
-    virtual bool open(const std::string& /*name*/, const ImageSpec& spec,
-                      OpenMode /*mode*/) override
+    ~NullOutput() override {}
+    const char* format_name(void) const override { return "null"; }
+    int supports(string_view /*feature*/) const override { return true; }
+    bool open(const std::string& /*name*/, const ImageSpec& spec,
+              OpenMode /*mode*/) override
     {
         m_spec = spec;
         return true;
     }
-    virtual bool close() override { return true; }
-    virtual bool write_scanline(int /*y*/, int /*z*/, TypeDesc /*format*/,
-                                const void* /*data*/,
-                                stride_t /*xstride*/) override
+    bool close() override { return true; }
+    bool write_scanline(int /*y*/, int /*z*/, TypeDesc /*format*/,
+                        const void* /*data*/, stride_t /*xstride*/) override
     {
         return true;
     }
-    virtual bool write_tile(int /*x*/, int /*y*/, int /*z*/,
-                            TypeDesc /*format*/, const void* /*data*/,
-                            stride_t /*xstride*/, stride_t /*ystride*/,
-                            stride_t /*zstride*/) override
+    bool write_tile(int /*x*/, int /*y*/, int /*z*/, TypeDesc /*format*/,
+                    const void* /*data*/, stride_t /*xstride*/,
+                    stride_t /*ystride*/, stride_t /*zstride*/) override
     {
         return true;
     }
@@ -58,24 +53,21 @@ public:
 class NullInput final : public ImageInput {
 public:
     NullInput() { init(); }
-    virtual ~NullInput() override {}
-    virtual const char* format_name(void) const override { return "null"; }
-    virtual bool valid_file(const std::string& filename) const override;
-    virtual int supports(string_view /*feature*/) const override
-    {
-        return true;
-    }
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool open(const std::string& name, ImageSpec& newspec,
-                      const ImageSpec& config) override;
-    virtual bool close() override { return true; }
-    virtual int current_subimage(void) const override { return m_subimage; }
-    virtual int current_miplevel(void) const override { return m_miplevel; }
-    virtual bool seek_subimage(int subimage, int miplevel) override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
-    virtual bool read_native_tile(int subimage, int miplevel, int x, int y,
-                                  int z, void* data) override;
+    ~NullInput() override {}
+    const char* format_name(void) const override { return "null"; }
+    bool valid_file(const std::string& filename) const override;
+    int supports(string_view /*feature*/) const override { return true; }
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool open(const std::string& name, ImageSpec& newspec,
+              const ImageSpec& config) override;
+    bool close() override { return true; }
+    int current_subimage(void) const override { return m_subimage; }
+    int current_miplevel(void) const override { return m_miplevel; }
+    bool seek_subimage(int subimage, int miplevel) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
+    bool read_native_tile(int subimage, int miplevel, int x, int y, int z,
+                          void* data) override;
 
 private:
     std::string m_filename;        ///< Stash the filename

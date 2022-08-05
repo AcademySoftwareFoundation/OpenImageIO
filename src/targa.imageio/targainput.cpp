@@ -35,19 +35,19 @@ static bool tgadebug = Strutil::stoi(Sysutil::getenv("OIIO_TARGA_DEBUG"));
 class TGAInput final : public ImageInput {
 public:
     TGAInput() { init(); }
-    virtual ~TGAInput() override { close(); }
-    virtual const char* format_name(void) const override { return "targa"; }
-    virtual int supports(string_view feature) const override
+    ~TGAInput() override { close(); }
+    const char* format_name(void) const override { return "targa"; }
+    int supports(string_view feature) const override
     {
         return (feature == "thumbnail" || feature == "ioproxy");
     }
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool open(const std::string& name, ImageSpec& newspec,
-                      const ImageSpec& config) override;
-    virtual bool close() override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
-    virtual bool get_thumbnail(ImageBuf& thumb, int subimage) override;
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool open(const std::string& name, ImageSpec& newspec,
+              const ImageSpec& config) override;
+    bool close() override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
+    bool get_thumbnail(ImageBuf& thumb, int subimage) override;
 
 private:
     std::string m_filename;            // Stash the filename

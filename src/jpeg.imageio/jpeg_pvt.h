@@ -56,22 +56,22 @@ static const int JPEG_411_COMP[6] = { 4, 1, 1, 1, 1, 1 };
 class JpgInput final : public ImageInput {
 public:
     JpgInput() { init(); }
-    virtual ~JpgInput() override { close(); }
-    virtual const char* format_name(void) const override { return "jpeg"; }
-    virtual int supports(string_view feature) const override
+    ~JpgInput() override { close(); }
+    const char* format_name(void) const override { return "jpeg"; }
+    int supports(string_view feature) const override
     {
         return (feature == "exif" || feature == "iptc" || feature == "ioproxy");
     }
-    virtual bool valid_file(const std::string& filename) const override
+    bool valid_file(const std::string& filename) const override
     {
         return valid_file(filename, nullptr);
     }
-    virtual bool open(const std::string& name, ImageSpec& spec) override;
-    virtual bool open(const std::string& name, ImageSpec& spec,
-                      const ImageSpec& config) override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
-    virtual bool close() override;
+    bool open(const std::string& name, ImageSpec& spec) override;
+    bool open(const std::string& name, ImageSpec& spec,
+              const ImageSpec& config) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
+    bool close() override;
 
     const std::string& filename() const { return m_filename; }
     void* coeffs() const { return m_coeffs; }

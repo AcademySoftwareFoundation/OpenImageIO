@@ -57,19 +57,19 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class RawInput final : public ImageInput {
 public:
     RawInput() {}
-    virtual ~RawInput() override { close(); }
-    virtual const char* format_name(void) const override { return "raw"; }
-    virtual int supports(string_view feature) const override
+    ~RawInput() override { close(); }
+    const char* format_name(void) const override { return "raw"; }
+    int supports(string_view feature) const override
     {
         return (feature == "exif"
                 /* not yet? || feature == "iptc"*/);
     }
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool open(const std::string& name, ImageSpec& newspec,
-                      const ImageSpec& config) override;
-    virtual bool close() override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool open(const std::string& name, ImageSpec& newspec,
+              const ImageSpec& config) override;
+    bool close() override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
 
 private:
     bool process();

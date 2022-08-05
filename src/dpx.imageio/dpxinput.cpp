@@ -23,23 +23,23 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class DPXInput final : public ImageInput {
 public:
     DPXInput() { init(); }
-    virtual ~DPXInput() override { close(); }
-    virtual const char* format_name(void) const override { return "dpx"; }
-    virtual int supports(string_view feature) const override
+    ~DPXInput() override { close(); }
+    const char* format_name(void) const override { return "dpx"; }
+    int supports(string_view feature) const override
     {
         return (feature == "ioproxy");
     }
-    virtual bool valid_file(const std::string& filename) const override;
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool open(const std::string& name, ImageSpec& newspec,
-                      const ImageSpec& config) override;
-    virtual bool close() override;
-    virtual int current_subimage(void) const override { return m_subimage; }
-    virtual bool seek_subimage(int subimage, int miplevel) override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
-    virtual bool read_native_scanlines(int subimage, int miplevel, int ybegin,
-                                       int yend, int z, void* data) override;
+    bool valid_file(const std::string& filename) const override;
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool open(const std::string& name, ImageSpec& newspec,
+              const ImageSpec& config) override;
+    bool close() override;
+    int current_subimage(void) const override { return m_subimage; }
+    bool seek_subimage(int subimage, int miplevel) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
+    bool read_native_scanlines(int subimage, int miplevel, int ybegin, int yend,
+                               int z, void* data) override;
 
 private:
     int m_subimage;

@@ -29,21 +29,21 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class Jpeg2000Output final : public ImageOutput {
 public:
     Jpeg2000Output() { init(); }
-    virtual ~Jpeg2000Output() override { close(); }
-    virtual const char* format_name(void) const override { return "jpeg2000"; }
-    virtual int supports(string_view feature) const override
+    ~Jpeg2000Output() override { close(); }
+    const char* format_name(void) const override { return "jpeg2000"; }
+    int supports(string_view feature) const override
     {
         return feature == "alpha" || feature == "ioproxy";
         // FIXME: we should support Exif/IPTC, but currently don't.
     }
-    virtual bool open(const std::string& name, const ImageSpec& spec,
-                      OpenMode mode = Create) override;
-    virtual bool close() override;
-    virtual bool write_scanline(int y, int z, TypeDesc format, const void* data,
-                                stride_t xstride) override;
-    virtual bool write_tile(int x, int y, int z, TypeDesc format,
-                            const void* data, stride_t xstride,
-                            stride_t ystride, stride_t zstride) override;
+    bool open(const std::string& name, const ImageSpec& spec,
+              OpenMode mode = Create) override;
+    bool close() override;
+    bool write_scanline(int y, int z, TypeDesc format, const void* data,
+                        stride_t xstride) override;
+    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
+                    stride_t xstride, stride_t ystride,
+                    stride_t zstride) override;
 
 private:
     std::string m_filename;

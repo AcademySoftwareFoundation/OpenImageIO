@@ -1406,12 +1406,12 @@ public:
         attribname = args(1);
         value      = (nargs() > 2 ? args(2) : "");
     }
-    virtual bool setup() override
+    bool setup() override
     {
         ir(0)->metadata_modified(true);
         return true;
     }
-    virtual bool impl(span<ImageBuf*> img) override
+    bool impl(span<ImageBuf*> img) override
     {
         // Because this is an in-place operation, img[0] is the same as
         // img[1].
@@ -2469,7 +2469,7 @@ public:
         fromspace = args(1);
         tospace   = args(2);
     }
-    virtual bool setup() override
+    bool setup() override
     {
         if (fromspace == tospace) {
             // The whole thing is a no-op. Get rid of the empty result we
@@ -2481,7 +2481,7 @@ public:
         }
         return true;
     }
-    virtual bool impl(span<ImageBuf*> img) override
+    bool impl(span<ImageBuf*> img) override
     {
         std::string contextkey   = options()["key"];
         std::string contextvalue = options()["value"];
@@ -2660,8 +2660,8 @@ public:
     }
     // Custom creation of new ImageRec result: don't copy, just change in
     // place.
-    virtual ImageRecRef new_output_imagerec() override { return ir(1); }
-    virtual bool impl(span<ImageBuf*> img) override
+    ImageRecRef new_output_imagerec() override { return ir(1); }
+    bool impl(span<ImageBuf*> img) override
     {
         string_view channelarg = ot.express(args(1));
         auto newchannelnames   = Strutil::splits(channelarg, ",");
@@ -3970,7 +3970,7 @@ public:
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
-    virtual bool setup() override
+    bool setup() override
     {
         int subimages = compute_subimages();
         bool nochange = true;
@@ -4009,7 +4009,7 @@ public:
             (*ir(0))(s).reset(newspecs[s]);
         return true;
     }
-    virtual bool impl(span<ImageBuf*> img) override
+    bool impl(span<ImageBuf*> img) override
     {
         bool interp = options().get_int("interp", 1);
         return ImageBufAlgo::resample(*img[0], *img[1], interp);
@@ -4027,7 +4027,7 @@ public:
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
-    virtual bool setup() override
+    bool setup() override
     {
         int subimages = compute_subimages();
         bool nochange = true;
@@ -4066,7 +4066,7 @@ public:
             (*ir(0))(s).reset(newspecs[s]);
         return true;
     }
-    virtual bool impl(span<ImageBuf*> img) override
+    bool impl(span<ImageBuf*> img) override
     {
         std::string filtername = options()["filter"];
         bool highlightcomp     = options().get_int("highlightcomp");

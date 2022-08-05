@@ -92,21 +92,21 @@ public:
         if (!io || io->mode() != Filesystem::IOProxy::Write)
             throw Iex::IoExc("File output failed.");
     }
-    virtual void write(const char c[], int n) override
+    void write(const char c[], int n) override
     {
         if (m_io->write(c, n) != size_t(n))
             throw Iex::IoExc("File output failed.");
     }
 #if OIIO_USING_IMATH >= 3
-    virtual uint64_t tellp() override { return m_io->tell(); }
-    virtual void seekp(uint64_t pos) override
+    uint64_t tellp() override { return m_io->tell(); }
+    void seekp(uint64_t pos) override
     {
         if (!m_io->seek(pos))
             throw Iex::IoExc("File output failed.");
     }
 #else
-    virtual Imath::Int64 tellp() override { return m_io->tell(); }
-    virtual void seekp(Imath::Int64 pos) override
+    Imath::Int64 tellp() override { return m_io->tell(); }
+    void seekp(Imath::Int64 pos) override
     {
         if (!m_io->seek(pos))
             throw Iex::IoExc("File output failed.");
@@ -122,32 +122,32 @@ private:
 class OpenEXROutput final : public ImageOutput {
 public:
     OpenEXROutput();
-    virtual ~OpenEXROutput() override;
-    virtual const char* format_name(void) const override { return "openexr"; }
-    virtual int supports(string_view feature) const override;
-    virtual bool open(const std::string& name, const ImageSpec& spec,
-                      OpenMode mode = Create) override;
-    virtual bool open(const std::string& name, int subimages,
-                      const ImageSpec* specs) override;
-    virtual bool close() override;
-    virtual bool write_scanline(int y, int z, TypeDesc format, const void* data,
-                                stride_t xstride) override;
-    virtual bool write_scanlines(int ybegin, int yend, int z, TypeDesc format,
-                                 const void* data, stride_t xstride,
-                                 stride_t ystride) override;
-    virtual bool write_tile(int x, int y, int z, TypeDesc format,
-                            const void* data, stride_t xstride,
-                            stride_t ystride, stride_t zstride) override;
-    virtual bool write_tiles(int xbegin, int xend, int ybegin, int yend,
-                             int zbegin, int zend, TypeDesc format,
-                             const void* data, stride_t xstride,
-                             stride_t ystride, stride_t zstride) override;
-    virtual bool write_deep_scanlines(int ybegin, int yend, int z,
-                                      const DeepData& deepdata) override;
-    virtual bool write_deep_tiles(int xbegin, int xend, int ybegin, int yend,
-                                  int zbegin, int zend,
-                                  const DeepData& deepdata) override;
-    virtual bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
+    ~OpenEXROutput() override;
+    const char* format_name(void) const override { return "openexr"; }
+    int supports(string_view feature) const override;
+    bool open(const std::string& name, const ImageSpec& spec,
+              OpenMode mode = Create) override;
+    bool open(const std::string& name, int subimages,
+              const ImageSpec* specs) override;
+    bool close() override;
+    bool write_scanline(int y, int z, TypeDesc format, const void* data,
+                        stride_t xstride) override;
+    bool write_scanlines(int ybegin, int yend, int z, TypeDesc format,
+                         const void* data, stride_t xstride,
+                         stride_t ystride) override;
+    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
+                    stride_t xstride, stride_t ystride,
+                    stride_t zstride) override;
+    bool write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
+                     int zend, TypeDesc format, const void* data,
+                     stride_t xstride, stride_t ystride,
+                     stride_t zstride) override;
+    bool write_deep_scanlines(int ybegin, int yend, int z,
+                              const DeepData& deepdata) override;
+    bool write_deep_tiles(int xbegin, int xend, int ybegin, int yend,
+                          int zbegin, int zend,
+                          const DeepData& deepdata) override;
+    bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
     {
         m_io = ioproxy;
         return true;

@@ -18,20 +18,20 @@ namespace webp_pvt {
 class WebpInput final : public ImageInput {
 public:
     WebpInput() {}
-    virtual ~WebpInput() override { close(); }
-    virtual const char* format_name() const override { return "webp"; }
-    virtual int supports(string_view feature) const override
+    ~WebpInput() override { close(); }
+    const char* format_name() const override { return "webp"; }
+    int supports(string_view feature) const override
     {
         return feature == "exif" || feature == "ioproxy";
     }
-    virtual bool open(const std::string& name, ImageSpec& spec) override;
-    virtual bool open(const std::string& name, ImageSpec& newspec,
-                      const ImageSpec& config) override;
-    virtual bool seek_subimage(int subimage, int miplevel) override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
-    virtual bool close() override;
-    virtual int current_subimage(void) const override { return m_subimage; }
+    bool open(const std::string& name, ImageSpec& spec) override;
+    bool open(const std::string& name, ImageSpec& newspec,
+              const ImageSpec& config) override;
+    bool seek_subimage(int subimage, int miplevel) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
+    bool close() override;
+    int current_subimage(void) const override { return m_subimage; }
 
 private:
     std::string m_filename;

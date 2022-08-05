@@ -22,18 +22,18 @@ using namespace RLA_pvt;
 class RLAInput final : public ImageInput {
 public:
     RLAInput() { init(); }
-    virtual ~RLAInput() override { close(); }
-    virtual const char* format_name(void) const override { return "rla"; }
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual int current_subimage(void) const override
+    ~RLAInput() override { close(); }
+    const char* format_name(void) const override { return "rla"; }
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    int current_subimage(void) const override
     {
         lock_guard lock(*this);
         return m_subimage;
     }
-    virtual bool seek_subimage(int subimage, int miplevel) override;
-    virtual bool close() override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
+    bool seek_subimage(int subimage, int miplevel) override;
+    bool close() override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
 
 private:
     std::string m_filename;            ///< Stash the filename

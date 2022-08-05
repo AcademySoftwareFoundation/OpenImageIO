@@ -24,17 +24,17 @@ using namespace ICO_pvt;
 class ICOOutput final : public ImageOutput {
 public:
     ICOOutput();
-    virtual ~ICOOutput() override;
-    virtual const char* format_name(void) const override { return "ico"; }
-    virtual int supports(string_view feature) const override;
-    virtual bool open(const std::string& name, const ImageSpec& spec,
-                      OpenMode mode = Create) override;
-    virtual bool close() override;
-    virtual bool write_scanline(int y, int z, TypeDesc format, const void* data,
-                                stride_t xstride) override;
-    virtual bool write_tile(int x, int y, int z, TypeDesc format,
-                            const void* data, stride_t xstride,
-                            stride_t ystride, stride_t zstride) override;
+    ~ICOOutput() override;
+    const char* format_name(void) const override { return "ico"; }
+    int supports(string_view feature) const override;
+    bool open(const std::string& name, const ImageSpec& spec,
+              OpenMode mode = Create) override;
+    bool close() override;
+    bool write_scanline(int y, int z, TypeDesc format, const void* data,
+                        stride_t xstride) override;
+    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
+                    stride_t xstride, stride_t ystride,
+                    stride_t zstride) override;
 
 private:
     std::string m_filename;                ///< Stash the filename

@@ -25,22 +25,22 @@ using namespace TGA_pvt;
 class TGAOutput final : public ImageOutput {
 public:
     TGAOutput();
-    virtual ~TGAOutput() override;
-    virtual const char* format_name(void) const override { return "targa"; }
-    virtual int supports(string_view feature) const override
+    ~TGAOutput() override;
+    const char* format_name(void) const override { return "targa"; }
+    int supports(string_view feature) const override
     {
         return (feature == "alpha" || feature == "thumbnail"
                 || feature == "thumbnail_after_write" || feature == "ioproxy");
     }
-    virtual bool open(const std::string& name, const ImageSpec& spec,
-                      OpenMode mode = Create) override;
-    virtual bool close() override;
-    virtual bool write_scanline(int y, int z, TypeDesc format, const void* data,
-                                stride_t xstride) override;
-    virtual bool write_tile(int x, int y, int z, TypeDesc format,
-                            const void* data, stride_t xstride,
-                            stride_t ystride, stride_t zstride) override;
-    virtual bool set_thumbnail(const ImageBuf& thumb) override;
+    bool open(const std::string& name, const ImageSpec& spec,
+              OpenMode mode = Create) override;
+    bool close() override;
+    bool write_scanline(int y, int z, TypeDesc format, const void* data,
+                        stride_t xstride) override;
+    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
+                    stride_t xstride, stride_t ystride,
+                    stride_t zstride) override;
+    bool set_thumbnail(const ImageBuf& thumb) override;
 
 private:
     std::string m_filename;  ///< Stash the filename

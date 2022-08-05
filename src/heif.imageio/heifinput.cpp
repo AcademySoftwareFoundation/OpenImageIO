@@ -23,24 +23,24 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class HeifInput final : public ImageInput {
 public:
     HeifInput() {}
-    virtual ~HeifInput() override { close(); }
-    virtual const char* format_name(void) const override { return "heif"; }
-    virtual int supports(string_view feature) const override
+    ~HeifInput() override { close(); }
+    const char* format_name(void) const override { return "heif"; }
+    int supports(string_view feature) const override
     {
         return feature == "exif";
     }
 #if LIBHEIF_HAVE_VERSION(1, 4, 0)
-    virtual bool valid_file(const std::string& filename) const override;
+    bool valid_file(const std::string& filename) const override;
 #endif
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool open(const std::string& name, ImageSpec& newspec,
-                      const ImageSpec& config) override;
-    virtual bool close() override;
-    virtual bool seek_subimage(int subimage, int miplevel) override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
-    virtual bool read_scanline(int y, int z, TypeDesc format, void* data,
-                               stride_t xstride) override;
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool open(const std::string& name, ImageSpec& newspec,
+              const ImageSpec& config) override;
+    bool close() override;
+    bool seek_subimage(int subimage, int miplevel) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
+    bool read_scanline(int y, int z, TypeDesc format, void* data,
+                       stride_t xstride) override;
 
 private:
     std::string m_filename;

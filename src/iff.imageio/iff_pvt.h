@@ -133,14 +133,14 @@ tile_height_size(uint32_t height)
 class IffInput final : public ImageInput {
 public:
     IffInput() { init(); }
-    virtual ~IffInput() override { close(); }
-    virtual const char* format_name(void) const override { return "iff"; }
-    virtual bool open(const std::string& name, ImageSpec& spec) override;
-    virtual bool close(void) override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
-    virtual bool read_native_tile(int subimage, int miplevel, int x, int y,
-                                  int z, void* data) override;
+    ~IffInput() override { close(); }
+    const char* format_name(void) const override { return "iff"; }
+    bool open(const std::string& name, ImageSpec& spec) override;
+    bool close(void) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
+    bool read_native_tile(int subimage, int miplevel, int x, int y, int z,
+                          void* data) override;
 
 private:
     FILE* m_fd;
@@ -209,17 +209,17 @@ private:
 class IffOutput final : public ImageOutput {
 public:
     IffOutput() { init(); }
-    virtual ~IffOutput() override { close(); }
-    virtual const char* format_name(void) const override { return "iff"; }
-    virtual int supports(string_view feature) const override;
-    virtual bool open(const std::string& name, const ImageSpec& spec,
-                      OpenMode mode) override;
-    virtual bool close(void) override;
-    virtual bool write_scanline(int y, int z, TypeDesc format, const void* data,
-                                stride_t xstride) override;
-    virtual bool write_tile(int x, int y, int z, TypeDesc format,
-                            const void* data, stride_t xstride,
-                            stride_t ystride, stride_t zstride) override;
+    ~IffOutput() override { close(); }
+    const char* format_name(void) const override { return "iff"; }
+    int supports(string_view feature) const override;
+    bool open(const std::string& name, const ImageSpec& spec,
+              OpenMode mode) override;
+    bool close(void) override;
+    bool write_scanline(int y, int z, TypeDesc format, const void* data,
+                        stride_t xstride) override;
+    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
+                    stride_t xstride, stride_t ystride,
+                    stride_t zstride) override;
 
 private:
     FILE* m_fd;

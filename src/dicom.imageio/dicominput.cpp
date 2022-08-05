@@ -35,19 +35,19 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class DICOMInput final : public ImageInput {
 public:
     DICOMInput() {}
-    virtual ~DICOMInput() override { close(); }
-    virtual const char* format_name(void) const override { return "dicom"; }
-    virtual int supports(string_view /*feature*/) const override
+    ~DICOMInput() override { close(); }
+    const char* format_name(void) const override { return "dicom"; }
+    int supports(string_view /*feature*/) const override
     {
         return false;  // we don't support any optional features
     }
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool open(const std::string& name, ImageSpec& newspec,
-                      const ImageSpec& config) override;
-    virtual bool close() override;
-    virtual bool seek_subimage(int subimage, int miplevel) override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool open(const std::string& name, ImageSpec& newspec,
+              const ImageSpec& config) override;
+    bool close() override;
+    bool seek_subimage(int subimage, int miplevel) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
 
 private:
     std::unique_ptr<DicomImage> m_img;

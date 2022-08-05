@@ -1363,21 +1363,21 @@ public:
         : m_miplevel(-1)
     {
     }
-    virtual ~GridImageInput() override { close(); }
-    virtual const char* format_name(void) const final { return "grid"; }
-    virtual bool valid_file(const std::string& /*filename*/) const final
+    ~GridImageInput() override { close(); }
+    const char* format_name(void) const final { return "grid"; }
+    bool valid_file(const std::string& /*filename*/) const final
     {
         return true;
     }
-    virtual bool open(const std::string& /*name*/, ImageSpec& newspec) final
+    bool open(const std::string& /*name*/, ImageSpec& newspec) final
     {
         bool ok = seek_subimage(0, 0);
         newspec = spec();
         return ok;
     }
-    virtual bool close() override { return true; }
-    virtual int current_miplevel(void) const final { return m_miplevel; }
-    virtual bool seek_subimage(int subimage, int miplevel) final
+    bool close() override { return true; }
+    int current_miplevel(void) const final { return m_miplevel; }
+    bool seek_subimage(int subimage, int miplevel) final
     {
         if (subimage > 0)
             return false;
@@ -1396,14 +1396,13 @@ public:
         m_miplevel         = miplevel;
         return true;
     }
-    virtual bool read_native_scanline(int /*subimage*/, int /*miplevel*/,
-                                      int /*y*/, int /*z*/,
-                                      void* /*data*/) final
+    bool read_native_scanline(int /*subimage*/, int /*miplevel*/, int /*y*/,
+                              int /*z*/, void* /*data*/) final
     {
         return false;
     }
-    virtual bool read_native_tile(int subimage, int miplevel, int xbegin,
-                                  int ybegin, int zbegin, void* data) final
+    bool read_native_tile(int subimage, int miplevel, int xbegin, int ybegin,
+                          int zbegin, void* data) final
     {
         lock_guard lock(*this);
         if (!seek_subimage(subimage, miplevel))

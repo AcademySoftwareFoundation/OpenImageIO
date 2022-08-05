@@ -35,20 +35,20 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class HdrInput final : public ImageInput {
 public:
     HdrInput() { init(); }
-    virtual ~HdrInput() override { close(); }
-    virtual const char* format_name(void) const override { return "hdr"; }
-    virtual int supports(string_view feature) const override
+    ~HdrInput() override { close(); }
+    const char* format_name(void) const override { return "hdr"; }
+    int supports(string_view feature) const override
     {
         return feature == "ioproxy";
     }
-    virtual bool open(const std::string& name, ImageSpec& spec) override;
-    virtual bool open(const std::string& name, ImageSpec& newspec,
-                      const ImageSpec& config) override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
-    virtual bool close() override;
-    virtual int current_subimage(void) const override { return m_subimage; }
-    virtual bool seek_subimage(int subimage, int miplevel) override;
+    bool open(const std::string& name, ImageSpec& spec) override;
+    bool open(const std::string& name, ImageSpec& newspec,
+              const ImageSpec& config) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
+    bool close() override;
+    int current_subimage(void) const override { return m_subimage; }
+    bool seek_subimage(int subimage, int miplevel) override;
 
 private:
     std::string m_filename;  // File name

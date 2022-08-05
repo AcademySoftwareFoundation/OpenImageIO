@@ -13,12 +13,12 @@ using namespace softimage_pvt;
 class SoftimageInput final : public ImageInput {
 public:
     SoftimageInput() { init(); }
-    virtual ~SoftimageInput() override { close(); }
-    virtual const char* format_name(void) const override { return "softimage"; }
-    virtual bool open(const std::string& name, ImageSpec& spec) override;
-    virtual bool close() override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
+    ~SoftimageInput() override { close(); }
+    const char* format_name(void) const override { return "softimage"; }
+    bool open(const std::string& name, ImageSpec& spec) override;
+    bool close() override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
 
 private:
     /// Resets the core data members to defaults.

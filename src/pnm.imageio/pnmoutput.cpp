@@ -13,20 +13,20 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class PNMOutput final : public ImageOutput {
 public:
     PNMOutput() { init(); }
-    virtual ~PNMOutput() override { close(); }
-    virtual const char* format_name(void) const override { return "pnm"; }
-    virtual int supports(string_view feature) const override
+    ~PNMOutput() override { close(); }
+    const char* format_name(void) const override { return "pnm"; }
+    int supports(string_view feature) const override
     {
         return feature == "ioproxy";
     }
-    virtual bool open(const std::string& name, const ImageSpec& spec,
-                      OpenMode mode = Create) override;
-    virtual bool close() override;
-    virtual bool write_scanline(int y, int z, TypeDesc format, const void* data,
-                                stride_t xstride) override;
-    virtual bool write_tile(int x, int y, int z, TypeDesc format,
-                            const void* data, stride_t xstride,
-                            stride_t ystride, stride_t zstride) override;
+    bool open(const std::string& name, const ImageSpec& spec,
+              OpenMode mode = Create) override;
+    bool close() override;
+    bool write_scanline(int y, int z, TypeDesc format, const void* data,
+                        stride_t xstride) override;
+    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
+                    stride_t xstride, stride_t ystride,
+                    stride_t zstride) override;
 
 private:
     std::string m_filename;  // Stash the filename

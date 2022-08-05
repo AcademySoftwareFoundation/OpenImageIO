@@ -36,18 +36,18 @@ using namespace boost::asio;
 class SocketOutput final : public ImageOutput {
 public:
     SocketOutput();
-    virtual ~SocketOutput() override { close(); }
-    virtual const char* format_name(void) const override { return "socket"; }
-    virtual int supports(string_view property) const override;
-    virtual bool open(const std::string& name, const ImageSpec& spec,
-                      OpenMode mode = Create) override;
-    virtual bool write_scanline(int y, int z, TypeDesc format, const void* data,
-                                stride_t xstride) override;
-    virtual bool write_tile(int x, int y, int z, TypeDesc format,
-                            const void* data, stride_t xstride,
-                            stride_t ystride, stride_t zstride) override;
-    virtual bool close() override;
-    virtual bool copy_image(ImageInput* in) override;
+    ~SocketOutput() override { close(); }
+    const char* format_name(void) const override { return "socket"; }
+    int supports(string_view property) const override;
+    bool open(const std::string& name, const ImageSpec& spec,
+              OpenMode mode = Create) override;
+    bool write_scanline(int y, int z, TypeDesc format, const void* data,
+                        stride_t xstride) override;
+    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
+                    stride_t xstride, stride_t ystride,
+                    stride_t zstride) override;
+    bool close() override;
+    bool copy_image(ImageInput* in) override;
 
 private:
     int m_next_scanline;  // Which scanline is the next to write?
@@ -64,17 +64,17 @@ private:
 class SocketInput final : public ImageInput {
 public:
     SocketInput();
-    virtual ~SocketInput() override { close(); }
-    virtual const char* format_name(void) const override { return "socket"; }
-    virtual bool valid_file(const std::string& filename) const override;
-    virtual bool open(const std::string& name, ImageSpec& spec) override;
-    virtual bool open(const std::string& name, ImageSpec& spec,
-                      const ImageSpec& config) override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
-    virtual bool read_native_tile(int subimage, int miplevel, int x, int y,
-                                  int z, void* data) override;
-    virtual bool close() override;
+    ~SocketInput() override { close(); }
+    const char* format_name(void) const override { return "socket"; }
+    bool valid_file(const std::string& filename) const override;
+    bool open(const std::string& name, ImageSpec& spec) override;
+    bool open(const std::string& name, ImageSpec& spec,
+              const ImageSpec& config) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
+    bool read_native_tile(int subimage, int miplevel, int x, int y, int z,
+                          void* data) override;
+    bool close() override;
 
 private:
     int m_next_scanline;  // Which scanline is the next to read?
