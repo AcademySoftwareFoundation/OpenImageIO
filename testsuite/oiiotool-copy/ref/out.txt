@@ -1,3 +1,7 @@
+oiiotool WARNING: --ch : Unknown channel name "Z", filling with 0 (actual channels: "R,G,B")
+oiiotool WARNING: --ch : Unknown channel name "R", filling with 0 (actual channels: "Z")
+oiiotool WARNING: --ch : Unknown channel name "G", filling with 0 (actual channels: "Z")
+oiiotool WARNING: --ch : Unknown channel name "B", filling with 0 (actual channels: "Z")
 explicit -d uint save result: 
 uint8.tif            :  128 x  128, 3 channel, uint8 tiff
     tile size: 16 x 16
@@ -66,6 +70,12 @@ metamerge.exr        :   64 x   64, 6 channel, float openexr
     screenWindowWidth: 1
     oiio:ColorSpace: "Linear"
     oiio:subimages: 1
+Comparing "rgonly.exr" and "ref/rgonly.exr"
+PASS
+Comparing "ch-err.exr" and "ref/ch-err.exr"
+PASS
+Comparing "ch-err2.exr" and "ref/ch-err2.exr"
+PASS
 Comparing "crop.tif" and "ref/crop.tif"
 PASS
 Comparing "cut.tif" and "ref/cut.tif"
