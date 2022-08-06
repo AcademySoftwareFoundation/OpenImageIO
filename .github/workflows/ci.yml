@@ -357,13 +357,15 @@ jobs:
   macos:
     name: "${{matrix.os}} appleclang${{matrix.aclang}}/C++${{matrix.cxx_std}} py${{matrix.python_ver}} ${{matrix.desc}} boost1.76 exr3.1 ocio2.1"
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - desc: MacOS-10.15
-            os: macos-10.15
-            cxx_std: 14
-            python_ver: 3.8
-            aclang: 12
+          # Deprecating
+          # - desc: MacOS-10.15
+          #   os: macos-10.15
+          #   cxx_std: 14
+          #   python_ver: 3.8
+          #   aclang: 12
           - desc: MacOS-11
             os: macos-11
             cxx_std: 17
