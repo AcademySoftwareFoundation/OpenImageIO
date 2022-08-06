@@ -1381,17 +1381,28 @@ ImageCacheImpl::check_max_files(ImageCachePerThreadInfo* /*thread_info*/)
     }
 #endif
 
-    // Early out if we aren't exceeding the open file handle limit
-    if (m_stat_open_files_current < m_max_open_files)
+    int open_files = m_stat_open_files_current;
+    if (open_files < m_max_open_files) {
+        // Early out if we aren't exceeding the open file handle limit
         return;
-
-    // Try to grab the file_sweep_mutex lock. If somebody else holds it,
-    // just return -- leave the handle limit enforcement to whomever is
-    // already in this function, no need for two threads to do it at
-    // once.  If this means we may ephemerally be over the handle limit,
-    // so be it.
-    if (!m_file_sweep_mutex.try_lock())
-        return;
+    } else if (open_files < m_max_open_files + 16) {
+        // If we're only exceeding the open files limit by a little bit, try
+        // to grab the file_sweep_mutex lock. If we get it, we do the cleanup.
+        // But if somebody else holds it, just return rather than blocking,
+        // leaving the handle limit enforcement to whomever is already in this
+        // function or gets here next. No need for two threads to do it at
+        // once or to block. If this means we may ephemerally be over the
+        // handle limit, so be it.
+        if (!m_file_sweep_mutex.try_lock())
+            return;
+    } else {
+        // But if we're already quite a bit over the limit, we don't want to
+        // keep deferring, because if there are a large number of threads and
+        // a low max_open_files, we may go significantly over the limit if we
+        // are too quick to shirk our duty. So grab the lock unconditionally
+        // and do the work to close some of those handles.
+        m_file_sweep_mutex.lock();
+    }
 
     // Now, what we want to do is have a "clock hand" that sweeps across
     // the cache, releasing files that haven't been used for a long
