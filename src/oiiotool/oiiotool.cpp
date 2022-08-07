@@ -2772,9 +2772,10 @@ OiioTool::decode_channel_set(const ImageSpec& spec, string_view chanlist,
                         }
                 }
                 if (chan < 0) {
-                    ot.warningfmt("--ch",
-                                  "Unknown channel name \"{}\", filling with 0",
-                                  oldname);
+                    ot.warningfmt(
+                        "--ch",
+                        "Unknown channel name \"{}\", filling with 0 (actual channels: \"{}\")",
+                        oldname, Strutil::join(spec.channelnames, ","));
                 }
                 if (newname.empty() && chan >= 0)
                     newname = spec.channelnames[chan];

@@ -5,6 +5,22 @@
 # copying pixels from one image to another.
 ####################################################################
 
+# Capture error output
+redirect = " >> out.txt 2>&1 "
+
+# Create some test images we need
+command += oiiotool("-pattern constant:color=.25,.5,.75 64x64 3 -d half -o rgb64.exr")
+command += oiiotool("-pattern constant:color=.25,.5,.75 64x64 3 -pattern constant:color=42 64x64 1 --chnames Z --siappend -d half -o rgb-z-parts64.exr")
+
+
+# Test -i to read specific channels
+# Note: this used to crash until PR #3513
+command += oiiotool("-i:ch=R,G rgb64.exr -o rgonly.exr")
+# Test -i to read nonexistent channels
+command += oiiotool("-i:ch=Z rgb64.exr -d half -o ch-err.exr")
+# Test -i to read nonexistent channels in one subimage of a multi-subimage file
+command += oiiotool("-i:ch=R,G,B rgb-z-parts64.exr -d half -o ch-err2.exr")
+
 
 # Some tests to verify that we are transferring data formats properly.
 #
@@ -73,6 +89,7 @@ command += oiiotool ("--pattern constant:color=0.5 64x64 1 --text R --chnames R 
 
 # Outputs to check against references
 outputs = [
+            "rgonly.exr", "ch-err.exr", "ch-err2.exr",
             "crop.tif", "cut.tif", "pasted.tif",
             "mosaic.tif", "mosaicfit.tif",
             "greenmeta.exr",

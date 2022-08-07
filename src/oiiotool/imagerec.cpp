@@ -326,7 +326,7 @@ ImageRec::read(ReadPolicy readpolicy, string_view channel_set)
 
             bool ok = ib->read(s, m, chbegin, chend, forceread, convert);
             if (ok && post_channel_set_action) {
-                ImageBufRef allchan_buf;
+                ImageBufRef allchan_buf(new ImageBuf);
                 std::swap(allchan_buf, ib);
                 ok = ImageBufAlgo::channels(*ib, *allchan_buf,
                                             (int)channel_set_channels.size(),
