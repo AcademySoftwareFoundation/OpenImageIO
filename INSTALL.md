@@ -19,7 +19,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=17`, etc.
  * Compilers: **gcc 6.1 - 12.1**, **clang 3.4 - 14**, **MSVS 2017 - 2019**,
    **Intel icc 17+**, **Intel OneAPI C++ compiler 2022+**.
- * CMake >= 3.12 (tested through 3.23)
+ * CMake >= 3.12 (tested through 3.24)
  * OpenEXR/Imath >= 2.3 (recommended: 2.4 or higher; tested through 3.1)
  * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.4)
  * libjpeg >= 8, or libjpeg-turbo >= 1.1 (tested through jpeg9d and jpeg-turbo
@@ -44,14 +44,14 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
        ACES support and much better recognition of camera metadata; if
        building with C++17 or higher, LibRaw >= 0.20 is necessary)
  * If you want support for a wide variety of video formats:
-     * **ffmpeg >= 3.0** (tested through 5.0)
+     * **ffmpeg >= 3.0** (tested through 5.1)
  * If you want support for jpeg 2000 images:
-     * **OpenJpeg >= 2.0** (tested through 2.4; we recommend 2.4 or higher
+     * **OpenJpeg >= 2.0** (tested through 2.5; we recommend 2.4 or higher
        for multithreading support)
  * If you want support for OpenVDB files:
-     * OpenVDB >= 5.0 (tested through 9) and Intel TBB >= 2018 (tested
-       through 2021)
-     * Note that OpenVDB 8.0+ requires C++14 or higher.
+     * OpenVDB >= 5.0 (tested through 9)
+ * If you want to use TBB as the thread pool:
+     * TBB >= 2018 (tested through 2021)
  * If you want support for converting to and from OpenCV data structures,
    or for capturing images from a camera:
      * **OpenCV 3.x, or 4.x** (tested through 4.5)
@@ -63,13 +63,13 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * libheif must be built with an AV1 encoder/decoder for AVIF support.
      * Avoid libheif 1.10 on Mac, it is very broken. Libheif 1.11 is fine.
  * If you want support for DICOM medical image files:
-     * DCMTK >= 3.6.1 (tested through 3.6.5)
+     * DCMTK >= 3.6.1 (tested through 3.6.6)
  * If you want support for WebP images:
      * WebP >= 0.6.1 (tested through 1.2.1)
  * If you want support for OpenColorIO color transformations:
      * OpenColorIO >= 1.1 (tested through 2.1; 2.0+ is recommended)
  * If you want support for Ptex:
-     * Ptex >= 2.3.1 (probably works for older; tested through 2.4.0)
+     * Ptex >= 2.3.1 (probably works for older; tested through 2.4.2)
  * We use PugiXML for XML parsing. There is a version embedded in the OIIO
    tree, but if you want to use an external, system-installed version (as
    may be required by some software distributions with policies against
