@@ -321,7 +321,7 @@ HdrInput::RGBE_ReadPixels_RLE(float* data, int y, int scanline_width,
 {
     if ((scanline_width < 8) || (scanline_width > 0x7fff))
         /* run length encoding is not allowed so read flat*/
-        return RGBE_ReadPixels(data, y, scanline_width * num_scanlines);
+        return RGBE_ReadPixels(data, y, (uint64_t)scanline_width * num_scanlines);
 
     unsigned char rgbe[4], *ptr, *ptr_end;
     int i, count;
@@ -340,18 +340,18 @@ HdrInput::RGBE_ReadPixels_RLE(float* data, int y, int scanline_width,
             /* this file is not run length encoded */
             rgbe2float(data[0], data[1], data[2], rgbe);
             data += 3;
-            return RGBE_ReadPixels(data, y, scanline_width * num_scanlines - 1);
+            return RGBE_ReadPixels(data, y, (uint64_t)scanline_width * num_scanlines - 1);
         }
         if ((((int)rgbe[2]) << 8 | rgbe[3]) != scanline_width) {
             errorfmt("wrong scanline width for scanline {}", y);
             return false;
         }
-        scanline_buffer.resize(4 * scanline_width);
+        scanline_buffer.resize(4 * (uint64_t)scanline_width);
 
-        ptr = &scanline_buffer[0];
+        ptr = scanline_buffer.data();
         /* read each of the four channels for the scanline into the buffer */
         for (i = 0; i < 4; i++) {
-            ptr_end = &scanline_buffer[(i + 1) * scanline_width];
+            ptr_end = scanline_buffer.data() + (i + 1) * (uint64_t)scanline_width;
             while (ptr < ptr_end) {
                 if (m_io->pread(buf, 2, m_io_pos) < 2) {
                     errorfmt("Read error on scanline {}", y);
@@ -390,9 +390,9 @@ HdrInput::RGBE_ReadPixels_RLE(float* data, int y, int scanline_width,
         /* now convert data from buffer into floats */
         for (i = 0; i < scanline_width; i++) {
             rgbe[0] = scanline_buffer[i];
-            rgbe[1] = scanline_buffer[i + scanline_width];
-            rgbe[2] = scanline_buffer[i + 2 * scanline_width];
-            rgbe[3] = scanline_buffer[i + 3 * scanline_width];
+            rgbe[1] = scanline_buffer[i + (uint64_t)scanline_width];
+            rgbe[2] = scanline_buffer[i + 2 * (uint64_t)scanline_width];
+            rgbe[3] = scanline_buffer[i + 3 * (uint64_t)scanline_width];
             rgbe2float(data[0], data[1], data[2], rgbe);
             data += 3;
         }
