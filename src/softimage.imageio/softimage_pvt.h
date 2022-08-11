@@ -39,13 +39,13 @@ private:
 class ChannelPacket {
 public:
     //channel packet contains info on the image data
-    ChannelPacket() { chained = 0; }
+    ChannelPacket() = default;
     // !brief  get a list of the channels contained in this channel packet
     std::vector<int> channels() const;
-    uint8_t chained;      // 0 if this is the last channel packet
-    uint8_t size;         // Number of bits per pixel per channel
-    uint8_t type;         // Data encoding and type
-    uint8_t channelCode;  // bitset for channels
+    uint8_t chained     = 0;  // 0 if this is the last channel packet
+    uint8_t size        = 0;  // Number of bits per pixel per channel
+    uint8_t type        = 0;  // Data encoding and type
+    uint8_t channelCode = 0;  // bitset for channels
 };
 
 

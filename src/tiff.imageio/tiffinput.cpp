@@ -931,8 +931,8 @@ TIFFInput::readspec(bool read_meta)
             if (Strutil::parse_int(software, major)
                 && Strutil::parse_char(software, '.')
                 && Strutil::parse_int(software, minor)
-                && Strutil::parse_char(software, '.')  // NOSONAR
-                && Strutil::parse_int(software, patch)) {
+                && Strutil::parse_char(software, '.')
+                && Strutil::parse_int(software, patch)) {  // NOSONAR
                 oiio_write_version = major * 10000 + minor * 100 + patch;
             }
         }

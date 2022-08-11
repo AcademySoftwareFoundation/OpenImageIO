@@ -16,8 +16,10 @@ on:
     # paths:
     #   - .github/workflows/analysis.yml
   schedule:
+    # Run nightly while we're still working our way through the warnings
+    - cron: "0 8 * * *"
     # Run unconditionally once weekly
-    - cron: "0 0 * * 0"
+    # - cron: "0 0 * * 0"
 
 permissions: read-all
 

@@ -8,6 +8,7 @@
 
 #include <zlib.h>
 
+#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
@@ -25,8 +26,8 @@ struct ZfileHeader {
     int magic;
     short width;
     short height;
-    float worldtoscreen[16];
-    float worldtocamera[16];
+    Imath::M44f worldtoscreen;
+    Imath::M44f worldtocamera;
 };
 
 static const int zfile_magic        = 0x2f0867ab;
@@ -295,15 +296,14 @@ ZfileOutput::open(const std::string& name, const ImageSpec& userspec,
     header.height = (int)m_spec.height;
 
     ParamValue* p;
-    static float ident[16] = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
     if ((p = m_spec.find_attribute("worldtocamera", TypeMatrix)))
-        memcpy(header.worldtocamera, p->data(), 16 * sizeof(float));
+        header.worldtocamera = p->get<Imath::M44f>();
     else
-        memcpy(header.worldtocamera, ident, 16 * sizeof(float));
+        header.worldtocamera = Imath::M44f();  // assigns ident
     if ((p = m_spec.find_attribute("worldtoscreen", TypeMatrix)))
-        memcpy(header.worldtoscreen, p->data(), 16 * sizeof(float));
+        header.worldtoscreen = p->get<Imath::M44f>();
     else
-        memcpy(header.worldtoscreen, ident, 16 * sizeof(float));
+        header.worldtoscreen = Imath::M44f();  // assigns ident
 
     if (m_spec.get_string_attribute("compression", "none")
         != std::string("none")) {
