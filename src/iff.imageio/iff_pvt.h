@@ -133,7 +133,14 @@ tile_height_size(uint32_t height)
 class IffInput final : public ImageInput {
 public:
     IffInput() { init(); }
-    ~IffInput() override { close(); }
+    ~IffInput() override
+    {
+        try {
+            close();
+        } catch (...) {
+            // We're destroying anyway, so just ignore errors
+        }
+    }
     const char* format_name(void) const override { return "iff"; }
     bool open(const std::string& name, ImageSpec& spec) override;
     bool close(void) override;
