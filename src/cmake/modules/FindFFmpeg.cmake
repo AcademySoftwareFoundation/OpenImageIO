@@ -59,7 +59,11 @@ else ()
 endif ()
 
 if (FFMPEG_INCLUDES)
-  file(STRINGS "${FFMPEG_INCLUDES}/libavcodec/version.h" TMP
+  set (_libavcodec_version_major_h "${FFMPEG_INCLUDES}/libavcodec/version_major.h")
+  if (NOT EXISTS "${_libavcodec_version_major_h}")
+    set (_libavcodec_version_major_h "${FFMPEG_INCLUDES}/libavcodec/version.h")
+  endif()
+  file(STRINGS "${_libavcodec_version_major_h}" TMP
        REGEX "^#define LIBAVCODEC_VERSION_MAJOR .*$")
   string (REGEX MATCHALL "[0-9]+[.0-9]+" LIBAVCODEC_VERSION_MAJOR "${TMP}")
   file(STRINGS "${FFMPEG_INCLUDES}/libavcodec/version.h" TMP
@@ -69,7 +73,9 @@ if (FFMPEG_INCLUDES)
        REGEX "^#define LIBAVCODEC_VERSION_MICRO .*$")
   string (REGEX MATCHALL "[0-9]+[.0-9]+" LIBAVCODEC_VERSION_MICRO "${TMP}")
   set (LIBAVCODEC_VERSION "${LIBAVCODEC_VERSION_MAJOR}.${LIBAVCODEC_VERSION_MINOR}.${LIBAVCODEC_VERSION_MICRO}")
-  if (LIBAVCODEC_VERSION VERSION_GREATER_EQUAL 59.18.100)
+  if (LIBAVCODEC_VERSION VERSION_GREATER_EQUAL 59.37.100)
+      set (FFMPEG_VERSION 5.1)
+  elseif (LIBAVCODEC_VERSION VERSION_GREATER_EQUAL 59.18.100)
       set (FFMPEG_VERSION 5.0)
   elseif (LIBAVCODEC_VERSION VERSION_GREATER_EQUAL 58.134.100)
       set (FFMPEG_VERSION 4.4)
