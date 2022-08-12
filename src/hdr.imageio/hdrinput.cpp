@@ -67,7 +67,7 @@ private:
 
     bool RGBE_ReadHeader();
     bool RGBE_ReadPixels(float* data, int y, uint64_t numpixels);
-    bool RGBE_ReadPixels_RLE(float* data, int y, int scanline_width,
+    bool RGBE_ReadPixels_RLE(float* data, int y, uint64_t scanline_width,
                              int num_scanlines);
 
     // helper: fgets reads a "line" from the proxy, akin to std fgets. The
@@ -316,7 +316,7 @@ HdrInput::RGBE_ReadPixels(float* data, int y, uint64_t numpixels)
 
 
 bool
-HdrInput::RGBE_ReadPixels_RLE(float* data, int y, int scanline_width,
+HdrInput::RGBE_ReadPixels_RLE(float* data, int y, uint64_t scanline_width,
                               int num_scanlines)
 {
     if ((scanline_width < 8) || (scanline_width > 0x7fff))
@@ -324,7 +324,7 @@ HdrInput::RGBE_ReadPixels_RLE(float* data, int y, int scanline_width,
         return RGBE_ReadPixels(data, y, scanline_width * num_scanlines);
 
     unsigned char rgbe[4], *ptr, *ptr_end;
-    int i, count;
+    int count;
     unsigned char buf[2];
     std::vector<unsigned char> scanline_buffer;
     Filesystem::IOProxy* m_io = ioproxy();
@@ -342,16 +342,16 @@ HdrInput::RGBE_ReadPixels_RLE(float* data, int y, int scanline_width,
             data += 3;
             return RGBE_ReadPixels(data, y, scanline_width * num_scanlines - 1);
         }
-        if ((((int)rgbe[2]) << 8 | rgbe[3]) != scanline_width) {
+        if ((((uint64_t)rgbe[2]) << 8 | rgbe[3]) != scanline_width) {
             errorfmt("wrong scanline width for scanline {}", y);
             return false;
         }
         scanline_buffer.resize(4 * scanline_width);
 
-        ptr = &scanline_buffer[0];
+        ptr = scanline_buffer.data();
         /* read each of the four channels for the scanline into the buffer */
-        for (i = 0; i < 4; i++) {
-            ptr_end = &scanline_buffer[(i + 1) * scanline_width];
+        for (int i = 0; i < 4; i++) {
+            ptr_end = scanline_buffer.data() + (i + 1) * scanline_width;
             while (ptr < ptr_end) {
                 if (m_io->pread(buf, 2, m_io_pos) < 2) {
                     errorfmt("Read error on scanline {}", y);
@@ -388,7 +388,7 @@ HdrInput::RGBE_ReadPixels_RLE(float* data, int y, int scanline_width,
             }
         }
         /* now convert data from buffer into floats */
-        for (i = 0; i < scanline_width; i++) {
+        for (uint64_t i = 0; i < scanline_width; i++) {
             rgbe[0] = scanline_buffer[i];
             rgbe[1] = scanline_buffer[i + scanline_width];
             rgbe[2] = scanline_buffer[i + 2 * scanline_width];
