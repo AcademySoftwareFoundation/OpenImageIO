@@ -36,7 +36,14 @@ using namespace boost::asio;
 class SocketOutput final : public ImageOutput {
 public:
     SocketOutput();
-    ~SocketOutput() override { close(); }
+    ~SocketOutput() override
+    {
+        try {
+            close();
+        } catch (...) {
+            // We're destroying anyway, so just ignore errors
+        }
+    }
     const char* format_name(void) const override { return "socket"; }
     int supports(string_view property) const override;
     bool open(const std::string& name, const ImageSpec& spec,
@@ -64,7 +71,14 @@ private:
 class SocketInput final : public ImageInput {
 public:
     SocketInput();
-    ~SocketInput() override { close(); }
+    ~SocketInput() override
+    {
+        try {
+            close();
+        } catch (...) {
+            // We're destroying anyway, so just ignore errors
+        }
+    }
     const char* format_name(void) const override { return "socket"; }
     bool valid_file(const std::string& filename) const override;
     bool open(const std::string& name, ImageSpec& spec) override;
