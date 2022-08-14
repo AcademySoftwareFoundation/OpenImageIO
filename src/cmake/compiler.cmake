@@ -608,7 +608,7 @@ endif ()
 ###########################################################################
 # Rpath handling at the install step
 #
-set (MACOSX_RPATH ON)
+# set (MACOSX_RPATH ON)
 if (CMAKE_SKIP_RPATH)
     # We need to disallow the user from truly setting CMAKE_SKIP_RPATH, since
     # we want to run the generated executables from the build tree in order to
