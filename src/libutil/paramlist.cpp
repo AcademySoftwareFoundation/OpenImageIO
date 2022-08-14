@@ -48,11 +48,12 @@ ParamValue::init_noclear(ustring _name, TypeDesc _type, int _nvalues,
             m_copy     = false;
             m_nonlocal = false;
         } else {
-            m_data.ptr = malloc(size);
+            void* ptr = malloc(size);
             if (_value)
-                memcpy((char*)m_data.ptr, _value, size);
+                memcpy(ptr, _value, size);
             else
-                memset((char*)m_data.ptr, 0, size);
+                memset(ptr, 0, size);
+            m_data.ptr = ptr;
             m_copy     = true;
             m_nonlocal = true;
         }

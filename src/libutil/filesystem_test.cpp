@@ -221,7 +221,7 @@ test_seq(const char* str, const char* expected)
 
 
 static void
-test_file_seq(const char* pattern, const char* override,
+test_file_seq(const char* pattern, string_view overrideval,
               const std::string& expected)
 {
     std::vector<int> numbers;
@@ -230,23 +230,21 @@ test_file_seq(const char* pattern, const char* override,
     std::string frame_range;
 
     Filesystem::parse_pattern(pattern, 0, normalized_pattern, frame_range);
-    if (override && strlen(override) > 0)
-        frame_range = override;
+    if (overrideval.size())
+        frame_range = overrideval;
     Filesystem::enumerate_sequence(frame_range, numbers);
     Filesystem::enumerate_file_sequence(normalized_pattern, numbers, names);
     std::string joined = Strutil::join(names, " ");
-    std::cout << "  " << pattern;
-    if (override)
-        std::cout << " + " << override;
-    std::cout << " -> " << joined << "\n";
+    Strutil::print(" {}{}{} -> {}\n", pattern, overrideval.size() ? " + " : "",
+                   overrideval, joined);
     OIIO_CHECK_EQUAL(joined, expected);
 }
 
 
 
 static void
-test_file_seq_with_view(const char* pattern, const char* override,
-                        const char* view, const std::string& expected)
+test_file_seq_with_view(const char* pattern, string_view overrideval,
+                        string_view view, const std::string& expected)
 {
     std::vector<int> numbers;
     std::vector<string_view> views;
@@ -255,11 +253,11 @@ test_file_seq_with_view(const char* pattern, const char* override,
     std::string frame_range;
 
     Filesystem::parse_pattern(pattern, 0, normalized_pattern, frame_range);
-    if (override && strlen(override) > 0)
-        frame_range = override;
-    Filesystem::enumerate_sequence(frame_range.c_str(), numbers);
+    if (overrideval.size())
+        frame_range = overrideval;
+    Filesystem::enumerate_sequence(frame_range, numbers);
 
-    if (view) {
+    if (view.size()) {
         for (size_t i = 0, e = numbers.size(); i < e; ++i)
             views.emplace_back(view);
     }
@@ -267,10 +265,8 @@ test_file_seq_with_view(const char* pattern, const char* override,
     Filesystem::enumerate_file_sequence(normalized_pattern, numbers, views,
                                         names);
     std::string joined = Strutil::join(names, " ");
-    std::cout << "  " << pattern;
-    if (override)
-        std::cout << " + " << override;
-    std::cout << " -> " << joined << "\n";
+    Strutil::print(" {}{}{} -> {}\n", pattern, overrideval.size() ? " + " : "",
+                   overrideval, joined);
     OIIO_CHECK_EQUAL(joined, expected);
 }
 

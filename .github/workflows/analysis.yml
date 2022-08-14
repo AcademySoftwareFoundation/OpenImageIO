@@ -6,20 +6,13 @@ name: Analysis
 
 on:
   push:
-    # Only run analysis on a push if it's a special branch name or if this
-    # yaml file itself was changed.
-    branches: [ "master", "*analysis*" ]
-  pull_request:
-    # Only run analysis on individual PRs if is's a special branch name or if
-    # this yaml file itself was changed.
-    branches: [ "*analysis*" ]
-    # paths:
-    #   - .github/workflows/analysis.yml
   schedule:
     # Run nightly while we're still working our way through the warnings
     - cron: "0 8 * * *"
     # Run unconditionally once weekly
     # - cron: "0 0 * * 0"
+  # Allow manual kicking off of the workflow from github.com
+  workflow_dispatch:
 
 permissions: read-all
 

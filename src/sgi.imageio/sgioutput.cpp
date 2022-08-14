@@ -172,13 +172,9 @@ SgiOutput::create_and_write_header()
     sgi_header.pixmax = (sgi_header.bpc == 1) ? 255 : 65535;
     sgi_header.dummy  = 0;
 
-    ParamValue* ip = m_spec.find_attribute("ImageDescription",
-                                           TypeDesc::STRING);
-    if (ip && ip->data()) {
-        const char** img_descr = (const char**)ip->data();
-        strncpy(sgi_header.imagename, *img_descr, 80);
-        sgi_header.imagename[79] = 0;
-    }
+    auto imagename = m_spec.get_string_attribute("ImageDescription");
+    if (imagename.size())
+        Strutil::safe_strcpy(sgi_header.imagename, imagename, 80);
 
     sgi_header.colormap = sgi_pvt::NORMAL;
 

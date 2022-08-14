@@ -290,7 +290,7 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
             if ((unsigned int)(num_markers * MAX_DATA_BYTES_IN_MARKER)
                 != icc_profile_length)
                 num_markers++;
-            int curr_marker     = 1; /* per spec, count strarts at 1*/
+            int curr_marker     = 1; /* per spec, count starts at 1*/
             size_t profile_size = MAX_DATA_BYTES_IN_MARKER + ICC_HEADER_SIZE;
             std::vector<unsigned char> profile(profile_size);
             while (icc_profile_length > 0) {
@@ -304,7 +304,7 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
                 profile[11] = 0;
                 profile[12] = curr_marker;
                 profile[13] = (unsigned char)num_markers;
-                memcpy(&profile[0] + ICC_HEADER_SIZE,
+                memcpy(profile.data() + ICC_HEADER_SIZE,
                        icc_profile + length * (curr_marker - 1), length);
                 jpeg_write_marker(&m_cinfo, JPEG_APP0 + 2, &profile[0],
                                   ICC_HEADER_SIZE + length);
