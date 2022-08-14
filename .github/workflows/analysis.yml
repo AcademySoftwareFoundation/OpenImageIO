@@ -5,7 +5,6 @@
 name: Analysis
 
 on:
-  push:
   schedule:
     # Run nightly while we're still working our way through the warnings
     - cron: "0 8 * * *"
