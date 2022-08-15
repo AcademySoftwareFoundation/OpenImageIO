@@ -136,12 +136,10 @@ detailed instructions.
 Web Resources
 -------------
 
-Main web page:      http://www.openimageio.org
+* Main web page:      http://www.openimageio.org
 
-GitHub page:        http://github.com/OpenImageIO/oiio
+* GitHub page:        http://github.com/OpenImageIO/oiio
 
-Mail list subscriptions and archives:
+* Developer mail list subscriptions and archives:
+  http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org
 
-* Developer mail list: http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org
-
-* Just release announcements: http://lists.openimageio.org/listinfo.cgi/oiio-announce-openimageio.org
