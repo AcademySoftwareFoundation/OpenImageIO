@@ -556,6 +556,10 @@ bool
 OpenVDBInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
                                void* data)
 {
+    OIIO_PRAGMA_WARNING_PUSH
+#if OIIO_GNUC_VERSION >= 120100
+    OIIO_GCC_ONLY_PRAGMA(GCC diagnostic ignored "-Wstringop-overflow")
+#endif
     lock_guard lock(*this);
     if (!seek_subimage_nolock(subimage, miplevel))
         return false;
@@ -573,6 +577,7 @@ OpenVDBInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
     default: break;
     }
     return false;
+    OIIO_PRAGMA_WARNING_POP
 }
 
 

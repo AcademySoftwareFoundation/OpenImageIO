@@ -799,8 +799,8 @@ Strutil::repeat(string_view str, int n)
     size_t sl  = str.size();
     size_t len = sl * std::max(0, n);
     std::unique_ptr<char[]> heap_buf;
-    char local_buf[256];
-    char* buf = local_buf;
+    char local_buf[256] = "";
+    char* buf           = local_buf;
     if (len > sizeof(local_buf)) {
         heap_buf.reset(new char[len]);
         buf = heap_buf.get();

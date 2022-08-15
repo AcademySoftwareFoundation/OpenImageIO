@@ -325,7 +325,9 @@ RLAInput::seek_subimage(int subimage, int miplevel)
             && (aux_type == TypeDesc::FLOAT || aux_type == TypeDesc::INT32
                 || aux_type == TypeDesc::UINT32)) {
             z_channel = m_rla.NumOfColorChannels + m_rla.NumOfMatteChannels;
-            m_spec.z_channel               = z_channel;
+            m_spec.z_channel = z_channel;
+            if (m_spec.channelnames.size() < size_t(z_channel + 1))
+                m_spec.channelnames.resize(z_channel + 1);
             m_spec.channelnames[z_channel] = "Z";
         }
     }
