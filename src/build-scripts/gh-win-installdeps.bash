@@ -50,7 +50,6 @@ echo "---------------"
 # vcpkg update
 # 
 
-time vcpkg install boost-asio:x64-windows
 time vcpkg install boost-container:x64-windows
 time vcpkg install boost-filesystem:x64-windows
 time vcpkg install boost-math:x64-windows

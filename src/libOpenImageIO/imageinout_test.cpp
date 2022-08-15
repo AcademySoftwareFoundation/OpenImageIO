@@ -307,8 +307,7 @@ test_all_formats()
         auto fmtexts           = Strutil::splitsv(e, ":");
         string_view formatname = fmtexts[0];
         // Skip "formats" that aren't amenable to this kind of testing
-        if (formatname == "null" || formatname == "socket"
-            || formatname == "term")
+        if (formatname == "null" || formatname == "term")
             continue;
 
         if (onlyformat.size() && formatname != onlyformat)
