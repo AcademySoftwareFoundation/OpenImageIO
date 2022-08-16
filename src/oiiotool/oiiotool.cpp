@@ -5397,6 +5397,7 @@ crash_me()
     OIIO_PRAGMA_WARNING_PUSH
 #if OIIO_GNUC_VERSION >= 110000
     OIIO_GCC_ONLY_PRAGMA(GCC diagnostic ignored "-Wstringop-overflow")
+    OIIO_GCC_ONLY_PRAGMA(GCC diagnostic ignored "-Warray-bounds")
 #endif
     *addr = 0;  // This should crash
     OIIO_PRAGMA_WARNING_POP
