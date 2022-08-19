@@ -35,6 +35,13 @@ test_filename_decomposition()
                      ".ext");
     OIIO_CHECK_EQUAL(Filesystem::extension("/directory/filename"), "");
     OIIO_CHECK_EQUAL(Filesystem::extension("/directory/filename."), ".");
+    OIIO_CHECK_EQUAL(Filesystem::extension("a.foo"), ".foo");
+    OIIO_CHECK_EQUAL(Filesystem::extension("a.foo", false), "foo");
+    OIIO_CHECK_EQUAL(Filesystem::extension("foo"), "");
+    OIIO_CHECK_EQUAL(Filesystem::extension("foo", false), "");
+    OIIO_CHECK_EQUAL(Filesystem::extension(".foo"), "");
+    OIIO_CHECK_EQUAL(Filesystem::extension(".foo", false), "");
+
     OIIO_CHECK_EQUAL(Filesystem::parent_path(test), "/directoryA/directory");
 
     std::cout << "Testing path_is_absolute\n";
