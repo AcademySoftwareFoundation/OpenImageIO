@@ -360,21 +360,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Deprecating
-          # - desc: MacOS-10.15
-          #   os: macos-10.15
-          #   cxx_std: 14
-          #   python_ver: 3.8
-          #   aclang: 12
           - desc: MacOS-11
             os: macos-11
             cxx_std: 17
-            python_ver: 3.9
+            python_ver: "3.9"
             aclang: 13
           - desc: MacOS-12
             os: macos-12
             cxx_std: 20
-            python_ver: 3.9
+            python_ver: "3.10"
             aclang: 13
             setenvs: export CTEST_TEST_TIMEOUT=300
     runs-on: ${{ matrix.os }}
