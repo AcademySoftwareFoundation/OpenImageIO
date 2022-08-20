@@ -290,7 +290,6 @@ PLUGENTRY_RO(ptex);
 PLUGENTRY_RO(raw);
 PLUGENTRY(rla);
 PLUGENTRY(sgi);
-PLUGENTRY(socket);
 PLUGENTRY_RO(softimage);
 PLUGENTRY_WO(term);
 PLUGENTRY(tiff);
@@ -409,9 +408,6 @@ catalog_builtin_plugins()
 #endif
 #if !defined(DISABLE_SGI)
     DECLAREPLUG (sgi);
-#endif
-#if defined(USE_BOOST_ASIO) && !defined(DISABLE_SOCKET)
-    DECLAREPLUG (socket);
 #endif
 #if !defined(DISABLE_SOFTIMAGE)
     DECLAREPLUG_RO (softimage);
