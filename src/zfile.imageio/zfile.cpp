@@ -191,7 +191,7 @@ ZfileInput::open(const std::string& name, ImageSpec& newspec)
     m_spec = ImageSpec(header.width, header.height, 1, TypeDesc::FLOAT);
     if (m_spec.channelnames.size() == 0)
         m_spec.channelnames.resize(1);
-    m_spec.channelnames[0] = "z";
+    m_spec.channelnames[0] = std::string("z");
     m_spec.z_channel       = 0;
 
     m_spec.attribute("worldtoscreen", TypeMatrix,
