@@ -899,6 +899,8 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
     // Translate
     if (name.empty())
         return false;
+    if (!data)
+        return false;
     std::string xname = name;
     TypeDesc exrtype  = TypeUnknown;
 
@@ -1045,9 +1047,10 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
                                   Imf::FloatAttribute((float)*(half*)data));
                     return true;
                 }
-                if (type == TypeString && data && *(char**)data) {
+                if (type == TypeString && *(const char**)data) {
                     header.insert(xname.c_str(),
-                                  Imf::StringAttribute(*(char**)data));
+                                  Imf::StringAttribute(
+                                      *(const char**)data));  //NOSONAR
                     return true;
                 }
                 if (type == TypeDesc::DOUBLE) {

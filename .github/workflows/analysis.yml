@@ -10,6 +10,10 @@ on:
     - cron: "0 8 * * *"
     # Run unconditionally once weekly
     # - cron: "0 0 * * 0"
+  push:
+    branches:
+      - master
+      - '*analysis*'
   # Allow manual kicking off of the workflow from github.com
   workflow_dispatch:
 

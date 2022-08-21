@@ -1711,7 +1711,7 @@ colorconvert_impl_float_rgba(ImageBuf& R, const ImageBuf& A,
                     }
                 }
                 memcpy(R.pixeladdr(roi.xbegin, j, k), scanline,
-                       width * 4 * sizeof(float));  // NOSONAR
+                       width * 4 * sizeof(float));  //NOSONAR
             }
         }
     });

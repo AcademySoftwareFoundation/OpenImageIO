@@ -667,7 +667,7 @@ add_exif_item_to_spec(ImageSpec& spec, const char* name,
         for (int i = 0; i < n; ++i) {
             unsigned int num, den;
             num = ((const unsigned int*)dataptr)[2 * i + 0];
-            den = ((const unsigned int*)dataptr)[2 * i + 1];
+            den = ((const unsigned int*)dataptr)[2 * i + 1];  //NOSONAR
             if (swab) {
                 swap_endian(&num);
                 swap_endian(&den);
@@ -686,7 +686,7 @@ add_exif_item_to_spec(ImageSpec& spec, const char* name,
         for (int i = 0; i < n; ++i) {
             int num, den;
             num = ((const int*)dataptr)[2 * i + 0];
-            den = ((const int*)dataptr)[2 * i + 1];
+            den = ((const int*)dataptr)[2 * i + 1];  //NOSONAR
             if (swab) {
                 swap_endian(&num);
                 swap_endian(&den);

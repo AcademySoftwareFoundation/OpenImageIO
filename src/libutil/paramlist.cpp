@@ -50,7 +50,7 @@ ParamValue::init_noclear(ustring _name, TypeDesc _type, int _nvalues,
         } else {
             void* ptr = malloc(size);
             if (_value)
-                memcpy(ptr, _value, size);
+                memcpy(ptr, _value, size);  //NOSONAR
             else
                 memset(ptr, 0, size);
             m_data.ptr = ptr;
