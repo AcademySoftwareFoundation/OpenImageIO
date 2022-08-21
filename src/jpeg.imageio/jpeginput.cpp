@@ -289,7 +289,7 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
                         m_spec);
         } else if (m->marker == (JPEG_APP0 + 1)
                    && !strcmp((const char*)m->data,
-                              "http://ns.adobe.com/xap/1.0/")) {
+                              "http://ns.adobe.com/xap/1.0/")) {  //NOSONAR
             std::string xml((const char*)m->data, m->data_length);
             decode_xmp(xml, m_spec);
         } else if (m->marker == (JPEG_APP0 + 13)

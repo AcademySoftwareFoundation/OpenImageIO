@@ -7,10 +7,13 @@
 // Format reference: Affine Toolkit (Thomas E. Burge), riff.h and riff.c
 //                   Autodesk Maya documentation, ilib.h
 
+#include <cstdio>
+
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
-#include <cstdio>
+
+#include "imageio_pvt.h"
 
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -137,8 +140,8 @@ public:
     {
         try {
             close();
-        } catch (...) {
-            // We're destroying anyway, so just ignore errors
+        } catch (std::exception& e) {
+            OIIO::pvt::errorfmt("{}", e.what());
         }
     }
     const char* format_name(void) const override { return "iff"; }

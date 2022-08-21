@@ -787,68 +787,68 @@ encode_xmp(const ImageSpec& spec, bool minimal)
     // This stuff seems to work
     xmp += encode_xmp_category(list, "photoshop", "photoshop:", NULL, NULL,
                                "http://ns.adobe.com/photoshop/1.0/", minimal,
-                               XMP_attribs);
+                               XMP_attribs);  //NOSONAR
     xmp += encode_xmp_category(list, "xmp", "xmp:Rating", NULL, NULL,
                                "http://ns.adobe.com/xap/1.0/", minimal,
-                               XMP_attribs);
+                               XMP_attribs);  //NOSONAR
     xmp += encode_xmp_category(list, "xmp", "xmp:CreateDate", NULL, NULL,
                                "http://ns.adobe.com/xap/1.0/", false,
-                               XMP_attribs);
+                               XMP_attribs);  //NOSONAR
     xmp += encode_xmp_category(list, "xmp", "xmp:ModifyDate", NULL, NULL,
                                "http://ns.adobe.com/xap/1.0/", false,
-                               XMP_attribs);
+                               XMP_attribs);  //NOSONAR
     xmp += encode_xmp_category(list, "xmp", "xmp:MetadataDate", NULL, NULL,
                                "http://ns.adobe.com/xap/1.0/", false,
-                               XMP_attribs);
+                               XMP_attribs);  //NOSONAR
     xmp += encode_xmp_category(list, "xmpRights", "xmpRights:UsageTerms", NULL,
                                "xmpRights:UsageTerms",
                                "http://ns.adobe.com/xap/1.0/rights/", minimal,
-                               XMP_AltList);
+                               XMP_AltList);  //NOSONAR
     xmp += encode_xmp_category(list, "xmpRights", "xmpRights:", NULL, NULL,
                                "http://ns.adobe.com/xap/1.0/rights/", minimal,
-                               XMP_attribs);
+                               XMP_attribs);  //NOSONAR
     xmp += encode_xmp_category(list, "dc", "dc:subject", NULL, "dc:subject",
                                "http://purl.org/dc/elements/1.1/", minimal,
-                               XMP_BagList);
+                               XMP_BagList);  //NOSONAR
     xmp += encode_xmp_category(list, "Iptc4xmpCore", "Iptc4xmpCore:SubjectCode",
                                NULL, "Iptc4xmpCore:SubjectCode",
                                "http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/",
-                               false, XMP_BagList);
+                               false, XMP_BagList);  //NOSONAR
     xmp += encode_xmp_category(list, "Iptc4xmpCore",
                                "Iptc4xmpCore:", "Iptc4xmpCore:Ci", NULL,
                                "http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/",
-                               minimal, XMP_attribs);
+                               minimal, XMP_attribs);  //NOSONAR
     xmp += encode_xmp_category(list, "Iptc4xmpCore", "Iptc4xmpCore:Ci", NULL,
                                "Iptc4xmpCore:CreatorContactInfo",
                                "http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/",
-                               minimal, XMP_attribs);
+                               minimal, XMP_attribs);  //NOSONAR
     xmp += encode_xmp_category(list, "Iptc4xmpCore", "Iptc4xmpCore:Scene", NULL,
                                "Iptc4xmpCore:Scene",
                                "http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/",
-                               minimal, XMP_BagList);
+                               minimal, XMP_BagList);  //NOSONAR
 
     xmp += encode_xmp_category(list, "xmpMM", "xmpMM:", NULL, NULL,
                                "http://ns.adobe.com/xap/1.0/mm/", minimal,
-                               XMP_attribs);
+                               XMP_attribs);  //NOSONAR
     xmp += encode_xmp_category(list, "GPano", "GPano:", NULL, NULL,
                                "http://ns.google.com/photos/1.0/panorama/",
-                               minimal, XMP_attribs);
+                               minimal, XMP_attribs);  //NOSONAR
     xmp += encode_xmp_category(list, "crs", "crs:", NULL, NULL,
                                "http://ns.adobe.com/camera-raw-settings/1.0/",
-                               minimal, XMP_attribs);
+                               minimal, XMP_attribs);  //NOSONAR
 #endif
 
     xmp += encode_xmp_category(list, "xmp", "xmp:", NULL, NULL,
                                "http://ns.adobe.com/xap/1.0/", minimal,
-                               XMP_nodes);
+                               XMP_nodes);  //NOSONAR
 
     xmp += encode_xmp_category(list, "tiff", "tiff:", NULL, NULL,
                                "http://ns.adobe.com/tiff/1.0/", minimal,
-                               XMP_attribs);
+                               XMP_attribs);  //NOSONAR
 #if 0
     // Doesn't work yet
     xmp += encode_xmp_category (list, "xapRights", "xapRights:", NULL, NULL,
-                                "http://ns.adobe.com/xap/1.0/rights/", minimal, XMP_attribs);
+                                "http://ns.adobe.com/xap/1.0/rights/", minimal, XMP_attribs);  //NOSONAR
 //    xmp += encode_xmp_category (list, "dc", "dc:", NULL, NULL,
 //                                "http://purl.org/dc/elements/1.1/", minimal, XMP_attribs);
 

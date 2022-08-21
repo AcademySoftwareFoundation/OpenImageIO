@@ -268,7 +268,7 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
     // Write XMP packet, if we have anything
     std::string xmp = encode_xmp(m_spec, true);
     if (!xmp.empty()) {
-        static char prefix[] = "http://ns.adobe.com/xap/1.0/";
+        static char prefix[] = "http://ns.adobe.com/xap/1.0/";  //NOSONAR
         std::vector<char> block(prefix, prefix + strlen(prefix) + 1);
         block.insert(block.end(), xmp.c_str(), xmp.c_str() + xmp.length());
         jpeg_write_marker(&m_cinfo, JPEG_APP0 + 1, (JOCTET*)&block[0],
@@ -305,7 +305,8 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
                 profile[12] = curr_marker;
                 profile[13] = (unsigned char)num_markers;
                 memcpy(profile.data() + ICC_HEADER_SIZE,
-                       icc_profile + length * (curr_marker - 1), length);
+                       icc_profile + length * (curr_marker - 1),
+                       length);  //NOSONAR
                 jpeg_write_marker(&m_cinfo, JPEG_APP0 + 2, &profile[0],
                                   ICC_HEADER_SIZE + length);
                 curr_marker++;
