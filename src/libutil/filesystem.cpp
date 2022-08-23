@@ -109,6 +109,15 @@ std::string
 Filesystem::extension(string_view filepath, bool include_dot) noexcept
 {
     std::string s;
+#if !defined(USE_STD_FILESYSTEM)
+    if (filepath.find('.') == 0 && filepath.rfind('.') == 0) {
+        // Work around bug in boost::filesystem::path::extension(), where
+        // ".foo" thinks the extension is foo. But we know, and
+        // std::filesystem::path::extension() knows, that a file called ".foo"
+        // has no extension, that's just the base filename.
+        return s;
+    }
+#endif
     try {
         s = pathstr(u8path(filepath).extension());
     } catch (...) {
