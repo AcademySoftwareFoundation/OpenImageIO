@@ -163,12 +163,25 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
     m_cinfo.image_height = m_spec.height;
 
     // JFIF can only handle grayscale and RGB. Do the best we can with this
-    // limited format by truncating to 3 channels if > 3 are requested,
-    // truncating to 1 channel if 2 are requested.
+    // limited format by switching to 1 or 3 channels.
     if (m_spec.nchannels >= 3) {
+        // For 3 or more channels, write the first 3 as RGB and drop any
+        // additional channels.
         m_cinfo.input_components = 3;
         m_cinfo.in_color_space   = JCS_RGB;
+    } else if (m_spec.nchannels == 2) {
+        // Two channels are tricky. If the first channel name is "Y", assume
+        // it's a luminance image and write it as a single-channel grayscale.
+        // Otherwise, punt, write it as an RGB image with third channel black.
+        if (m_spec.channel_name(0) == "Y") {
+            m_cinfo.input_components = 1;
+            m_cinfo.in_color_space   = JCS_GRAYSCALE;
+        } else {
+            m_cinfo.input_components = 3;
+            m_cinfo.in_color_space   = JCS_RGB;
+        }
     } else {
+        // One channel, assume it's grayscale
         m_cinfo.input_components = 1;
         m_cinfo.in_color_space   = JCS_GRAYSCALE;
     }
@@ -455,7 +468,18 @@ JpgOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     int save_nchannels = m_spec.nchannels;
     m_spec.nchannels   = m_cinfo.input_components;
 
-    data = to_native_scanline(format, data, xstride, m_scratch, m_dither, y, z);
+    if (save_nchannels == 2 && m_spec.nchannels == 3) {
+        // Edge case: expanding 2 channels to 3
+        uint8_t* tmp = OIIO_ALLOCA(uint8_t, m_spec.width * 3);
+        memset(tmp, 0, m_spec.width * 3);
+        convert_image(2, m_spec.width, 1, 1, data, format, xstride, AutoStride,
+                      AutoStride, tmp, TypeDesc::UINT8, 3 * sizeof(uint8_t),
+                      AutoStride, AutoStride);
+        data = tmp;
+    } else {
+        data = to_native_scanline(format, data, xstride, m_scratch, m_dither, y,
+                                  z);
+    }
     m_spec.nchannels = save_nchannels;
 
     jpeg_write_scanlines(&m_cinfo, (JSAMPLE**)&data, 1);
