@@ -46,7 +46,8 @@ enum {
     DDS_PF_ALPHA     = 0x00000001,  ///< image has alpha channel
     DDS_PF_FOURCC    = 0x00000004,  ///< image is compressed
     DDS_PF_LUMINANCE = 0x00020000,  ///< image has luminance data
-    DDS_PF_RGB       = 0x00000040   ///< image has RGB data
+    DDS_PF_RGB       = 0x00000040,  ///< image has RGB data
+    DDS_PF_YUV       = 0x00000200   ///< image has YUV data
 };
 
 /// DDS pixel format structure.

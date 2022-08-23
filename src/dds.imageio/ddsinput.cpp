@@ -575,12 +575,22 @@ DDSInput::seek_subimage(int subimage, int miplevel)
         if (str != nullptr)
             m_spec.attribute("compression", str);
     }
-    if (m_dds.fmt.bpp)
+
+    if (m_dds.fmt.bpp
+        && (m_dds.fmt.flags & (DDS_PF_RGB | DDS_PF_LUMINANCE | DDS_PF_YUV)))
         m_spec.attribute("oiio:BitsPerSample", m_dds.fmt.bpp);
+
     // linear color space for HDR-ish images
     if (basetype == TypeDesc::HALF || basetype == TypeDesc::FLOAT)
         m_spec.attribute("oiio:ColorSpace", "linear");
+
     m_spec.default_channel_names();
+    // Special case: if a 2-channel DDS RG or YA?
+    if (m_nchans == 2 && (m_dds.fmt.flags & DDS_PF_LUMINANCE)
+        && (m_dds.fmt.flags & DDS_PF_ALPHA)) {
+        m_spec.channelnames[0] = "Y";
+        m_spec.channelnames[1] = "A";
+    }
 
     // detect texture type
     if (m_dds.caps.flags2 & DDS_CAPS2_VOLUME) {
