@@ -835,6 +835,10 @@ output each one to a different file, with names `sub0001.tif`,
     about image formats supported, known color spaces, filters, OIIO build
     options and library dependencies.
 
+.. option:: --version
+
+    Prints the version designation of the OIIO library.
+
 .. option:: -v
 
     Verbose status messages --- print out more information about what

@@ -134,7 +134,8 @@ main(int argc, const char* argv[])
     ArgParse ap;
     ap.intro("igrep -- search images for matching metadata\n"
              OIIO_INTRO_STRING)
-      .usage("igrep [options] pattern filename...");
+      .usage("igrep [options] pattern filename...")
+      .add_version(OIIO_VERSION_STRING);
     ap.arg("filename")
       .hidden()
       .action(parse_files);

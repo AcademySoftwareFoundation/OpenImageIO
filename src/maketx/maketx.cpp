@@ -194,8 +194,9 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
     // clang-format off
     ArgParse ap;
     ap.intro("maketx -- convert images to tiled, MIP-mapped textures\n"
-             OIIO_INTRO_STRING);
-    ap.usage("maketx [options] file...");
+             OIIO_INTRO_STRING)
+      .usage("maketx [options] file...")
+      .add_version(OIIO_VERSION_STRING);
 
     ap.arg("filename")
       .hidden()

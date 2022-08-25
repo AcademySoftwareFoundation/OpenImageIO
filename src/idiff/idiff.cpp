@@ -44,6 +44,7 @@ getargs(int argc, char* argv[])
     ap.intro("idiff -- compare two images\n"
              OIIO_INTRO_STRING)
       .usage("idiff [options] image1 image2")
+      .add_version(OIIO_VERSION_STRING)
       .print_defaults(true);
 
     ap.arg("filename")

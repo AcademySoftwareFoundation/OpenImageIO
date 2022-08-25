@@ -39,7 +39,8 @@ getargs(int argc, char* argv[])
     // clang-format off
     ap.intro("iv -- image viewer\n"
              OIIO_INTRO_STRING)
-      .usage("iv [options] [filename...]");
+      .usage("iv [options] [filename...]")
+      .add_version(OIIO_VERSION_STRING);
 
     ap.arg("filename")
       .action(ArgParse::append())

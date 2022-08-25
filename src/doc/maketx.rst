@@ -59,6 +59,10 @@ Command-line arguments are:
 
     Prints usage information to the terminal.
 
+.. option:: --version
+
+    Prints the version designation of the OIIO library.
+
 .. option:: -v
 
     Verbose status messages, including runtime statistics and timing.

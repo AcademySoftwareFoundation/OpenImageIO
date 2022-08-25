@@ -145,6 +145,7 @@ public:
     callback_t m_preoption_help  = [](const ArgParse&, std::ostream&) {};
     callback_t m_postoption_help = [](const ArgParse&, std::ostream&) {};
     ParamValueList m_params;
+    std::string m_version;
 
     Impl(ArgParse& parent, int argc, const char** argv)
         : m_argparse(parent)
@@ -444,6 +445,22 @@ ArgParse::Impl::parse_args(int xargc, const char** xargv)
     m_argc    = xargc;
     m_argv    = xargv;
     m_running = true;
+
+    // Add version option if requested
+    if (m_version.size() && !find_option("--version")) {
+        m_option.emplace(m_option.begin(),
+                         new ArgOption(m_argparse, "--version"));
+        m_option[0]->m_help   = "Print version and exit";
+        m_option[0]->m_action = [&](Arg& arg, cspan<const char*> myarg) {
+            Strutil::print("{}\n", m_version);
+            if (m_exit_on_error)
+                exit(EXIT_SUCCESS);
+            else {
+                m_argparse.abort();
+            }
+        };
+        m_option[0]->initialize();
+    }
 
     // Add help option if requested
     if (m_add_help && !find_option("--help")) {
@@ -934,6 +951,15 @@ ArgParse&
 ArgParse::add_help(bool add_help)
 {
     m_impl->m_add_help = add_help;
+    return *this;
+}
+
+
+
+ArgParse&
+ArgParse::add_version(string_view version)
+{
+    m_impl->m_version = version;
     return *this;
 }
 

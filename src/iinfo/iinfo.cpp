@@ -624,9 +624,9 @@ main(int argc, const char* argv[])
     Filesystem::convert_native_arguments(argc, (const char**)argv);
     ArgParse ap;
     // clang-format off
-    ap.intro("iinfo -- print information about images\n"
-             OIIO_INTRO_STRING);
-    ap.usage("iinfo [options] filename...");
+    ap.intro("iinfo -- print information about images\n" OIIO_INTRO_STRING)
+      .usage("iinfo [options] filename...")
+      .add_version(OIIO_VERSION_STRING);
     ap.arg("filename")
       .hidden()
       .action([&](cspan<const char*> argv){ filenames.emplace_back(argv[0]); });
