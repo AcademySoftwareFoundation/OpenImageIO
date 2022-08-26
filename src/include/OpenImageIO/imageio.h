@@ -2817,6 +2817,10 @@ inline bool attribute (string_view name, string_view val) {
 /// documented as settable by the `OIIO::attribute()` call, `getattribute()`
 /// can also retrieve the following read-only attributes:
 ///
+/// - `string version`
+///
+///   The version designation of the OpenImageIO library, as a string.
+///
 /// - `string format_list`
 /// - `string input_format_list`
 /// - `string output_format_list`

@@ -366,6 +366,10 @@ getattribute(string_view name, TypeDesc type, void* val)
         *(int*)val = oiio_threads;
         return true;
     }
+    if (name == "version" && type == TypeString) {
+        *(ustring*)val = ustring(OIIO_VERSION_STRING);
+        return true;
+    }
     spin_lock lock(attrib_mutex);
     if (name == "read_chunk" && type == TypeInt) {
         *(int*)val = oiio_read_chunk;

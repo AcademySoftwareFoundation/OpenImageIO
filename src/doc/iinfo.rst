@@ -138,6 +138,10 @@ subimages::
 
     Prints usage information to the terminal.
 
+.. option:: --version
+
+    Prints the version designation of the OIIO library.
+
 .. describe:: -v
 
     Verbose output --- prints all metadata of the image files.

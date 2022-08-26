@@ -82,6 +82,12 @@
                              OIIO_VERSION_TWEAK, OIIO_VERSION_RELEASE_TYPE)
 #define OIIO_INTRO_STRING "OpenImageIO " OIIO_VERSION_STRING " http://www.openimageio.org"
 
+// Only major.minor.patch.tweak, omit any release type
+#define OIIO_VERSION_STRING_MMPT \
+    OIIO_MAKE_VERSION_STRING(OIIO_VERSION_MAJOR, \
+                             OIIO_VERSION_MINOR, OIIO_VERSION_PATCH, \
+                             OIIO_VERSION_TWEAK, "")
+
 
 // Establish the name spaces
 namespace @PROJ_NAMESPACE_V@ { }
