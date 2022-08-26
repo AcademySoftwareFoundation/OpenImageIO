@@ -236,6 +236,10 @@ public:
     /// like any other argument.
     ArgParse& add_help(bool add_help);
 
+    /// Calling `add_version()` adds a `--version` argument, which will print
+    /// the version string supplied.
+    ArgParse& add_version(string_view version_string);
+
     /// By default, if the command line arguments do not conform to what is
     /// declared to ArgParse (for example, if unknown commands are
     /// encountered, required arguments are not found, etc.), the ArgParse

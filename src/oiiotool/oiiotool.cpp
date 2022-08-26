@@ -5694,6 +5694,12 @@ getargs(int argc, char* argv[])
     ap.separator("Options (general flags, usually not positional):");
     ap.arg("--help", &help)
       .help("Print help message");
+    ap.arg("--version")
+      .help("Print version")
+      .action([](cspan<const char*>){
+            Strutil::print("{}\n", OIIO_VERSION_STRING);
+            ot.printed_info = true;
+        });
     ap.arg("-v", &ot.verbose)
       .help("Verbose status messages");
     ap.arg("-q %!", &ot.verbose)

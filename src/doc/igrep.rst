@@ -36,6 +36,10 @@ Example::
 
     Prints usage information to the terminal.
 
+.. option:: --version
+
+    Prints the version designation of the OIIO library.
+
 .. describe:: -d
 
     Print directory names as it recurses.  This only happens if the `-r`
