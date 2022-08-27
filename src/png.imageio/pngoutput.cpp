@@ -197,8 +197,14 @@ PNGOutput::open(const std::string& name, const ImageSpec& userspec,
     png_set_option(m_png, PNG_SKIP_sRGB_CHECK_PROFILE, PNG_OPTION_ON);
 #endif
 
-    PNG_pvt::write_info(m_png, m_info, m_color_type, m_spec, m_pngtext,
-                        m_convert_alpha, m_gamma);
+    s = PNG_pvt::write_info(m_png, m_info, m_color_type, m_spec, m_pngtext,
+                            m_convert_alpha, m_gamma);
+
+    if (s.length()) {
+        close();
+        errorfmt("{}", s);
+        return false;
+    }
 
     m_dither = (m_spec.format == TypeDesc::UINT8)
                    ? m_spec.get_int_attribute("oiio:dither", 0)
