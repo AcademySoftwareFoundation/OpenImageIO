@@ -215,7 +215,7 @@ jobs:
             cc_compiler: gcc-11
             cxx_compiler: g++-11
             cxx_std: 17
-            fmt_ver: 9.0.0
+            fmt_ver: 9.1.0
             openexr_ver: v3.1.5
             pybind11_ver: v2.10.0
             python_ver: 3.8
