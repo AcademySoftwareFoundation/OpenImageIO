@@ -558,8 +558,9 @@ put_parameter(png_structp& sp, png_infop& ip, const std::string& _name,
 
 
 /// Writes PNG header according to the ImageSpec.
+/// \return empty string on success, error message on failure.
 ///
-inline void
+inline const std::string
 write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
            std::vector<png_text>& text, bool& convert_alpha, float& gamma)
 {
@@ -569,10 +570,14 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
     else
         spec.set_format(TypeDesc::UINT16);  // best precision available
 
+    if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+        return "Could not set PNG IHDR chunk";
     png_set_IHDR(sp, ip, spec.width, spec.height, spec.format.size() * 8,
                  color_type, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
                  PNG_FILTER_TYPE_DEFAULT);
 
+    if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+        return "Could not set PNG oFFs chunk";
     png_set_oFFs(sp, ip, spec.x, spec.y, PNG_OFFSET_PIXEL);
 
     // PNG specifically dictates unassociated (un-"premultiplied") alpha
@@ -583,14 +588,20 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
 
     string_view colorspace = spec.get_string_attribute("oiio:ColorSpace");
     if (Strutil::iequals(colorspace, "Linear")) {
+        if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+            return "Could not set PNG gAMA chunk";
         png_set_gAMA(sp, ip, 1.0);
     } else if (Strutil::istarts_with(colorspace, "Gamma")) {
         Strutil::parse_word(colorspace);
         float g = Strutil::from_string<float>(colorspace);
         if (g >= 0.01f && g <= 10.0f /* sanity check */)
             gamma = g;
+        if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+            return "Could not set PNG gAMA chunk";
         png_set_gAMA(sp, ip, 1.0f / gamma);
     } else if (Strutil::iequals(colorspace, "sRGB")) {
+        if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+            return "Could not set PNG gAMA and cHRM chunk";
         png_set_sRGB_gAMA_and_cHRM(sp, ip, PNG_sRGB_INTENT_ABSOLUTE);
     }
 
@@ -599,6 +610,8 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
         ICC_PROFILE_ATTR);
     if (icc_profile_parameter != NULL) {
         unsigned int length = icc_profile_parameter->type().size();
+        if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+            return "Could not set PNG iCCP chunk";
 #if OIIO_LIBPNG_VERSION > 10500 /* PNG function signatures changed */
         unsigned char* icc_profile
             = (unsigned char*)icc_profile_parameter->data();
@@ -658,6 +671,8 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
         } else if (yres == 0.0f) {
             yres = xres * (paspect ? paspect : 1.0f);
         }
+        if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+            return "Could not set PNG pHYs chunk";
         png_set_pHYs(sp, ip, (png_uint_32)(xres * scale),
                      (png_uint_32)(yres * scale), unittype);
     }
@@ -673,6 +688,8 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
 
     png_write_info(sp, ip);
     png_set_packing(sp);  // Pack 1, 2, 4 bit into bytes
+
+    return "";
 }
 
 
