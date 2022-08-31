@@ -1,3 +1,7 @@
+Release 2.3.20 (?? 2022) -- compared to 2.3.19
+------------------------------------------------
+
+
 Release 2.3.19 (1 Sep 2022) -- compared to 2.3.18
 ---------------------------------------------------
 * idiff: `--allowfailures` allows the specified number of pixels to differ by
