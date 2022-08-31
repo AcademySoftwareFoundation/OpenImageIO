@@ -168,6 +168,13 @@ Thresholds and comparison options
     than 0% (any) pixels differ by more than 0.00001 (1e-6), and *H* is
     infinite.
 
+.. describe:: --allowfailures N
+
+    Allows up to *N* pixels to differ by any amount, and still consider it
+    a matching image.
+
+    This option was added in OIIO 2.3.19.
+
 .. describe:: -p
 
     Does an additional test on the images to attempt to see if they are

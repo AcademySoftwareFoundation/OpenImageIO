@@ -1,5 +1,21 @@
-Release 2.3.19 (1 Sep?? 2022) -- compared to 2.3.18
+Release 2.3.19 (1 Sep 2022) -- compared to 2.3.18
 ---------------------------------------------------
+* idiff: `--allowfailures` allows the specified number of pixels to differ by
+  any amount, and still consider the images to compare successfully. #3455
+* idiff: `--failrelative` and `--warnrelative` allows the failure and warning
+  threshold to use a symmetric mean relative error (rather than the absolute
+  error implied by the existing `--fail` and `--warn` arguments). #3508
+* A new flavor of `ImageBufAlgo::compare()` allows relative as well as
+  absolute error thresholds. #3508
+* Build: Fixes for ffmpeg 5.1 detection. #3516
+* Build: suppress incorrect warnings for gcc 12. #3524
+* CI: New test on MacOS 12, remove test on MacOS 10.15 (GitHub Actions is
+  imminently removing MacOS 10.15). #3528
+* oiiotool, maketx, iinfo, igrep, and iv now all take a `--version` command
+  line argument, which just prints the OIIO version and exits. #3534
+* `OIIO::getattribute("version")` now retrieves the version string. #3534
+* Developer goodies: `ArgParse::add_version(str)` tells ArgParse the version
+  string, which will automatically add an option `--version`. #3534
 
 Release 2.3.18 (1 Aug 2022) -- compared to 2.3.17
 ---------------------------------------------------
