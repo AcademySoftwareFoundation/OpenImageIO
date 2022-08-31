@@ -1,3 +1,11 @@
+Release 2.5 (summer 2023?) -- compared to 2.4
+-------------------------------------------------
+
+
+
+
+
+
 Release 2.4 (15 Sept 2022?) -- compared to 2.3
 ----------------------------------------------
 New minimum dependencies and compatibility changes:
