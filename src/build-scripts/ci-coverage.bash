@@ -12,11 +12,6 @@ pushd _coverage
 
 ls -R ../build/src/
 
-# The sed command below converts from:
-#   ../build/src/libOpenImageIO/CMakeFiles/OpenImageIO.dir/foo.gcno
-# to:
-#   ../src/libOpenImageIO/foo.cpp
-
 # Remove files or directories we want to exclude from code coverage analysis,
 # generally because we don't expect to execute any of their code during our
 # CI. (Because it's only used interactively, or is fallback code only used
@@ -27,6 +22,11 @@ rm -f ../build/src/iv/CMakeFiles/iv.dir/*.cpp.{gcno,gcda}
 rm -f ../build/src/iv/CMakeFiles/iv.dir/iv_autogen/*.cpp.{gcno,gcda}
 rm -f ../build/src/libOpenImageIO/CMakeFiles/OpenImageIO.dir/__/include/OpenImageIO/detail/pugixml/*.cpp.{gcno,gcda}
 
+
+# The sed command below converts from:
+#   ../build/src/libOpenImageIO/CMakeFiles/OpenImageIO.dir/foo.gcno
+# to:
+#   ../src/libOpenImageIO/foo.cpp
 
 for g in $(find ../build -name "*.gcno" -type f); do
     echo "Processing $g"

@@ -24,8 +24,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.4)
  * libjpeg >= 8, or libjpeg-turbo >= 1.1 (tested through jpeg9d and jpeg-turbo
    2.1)
- * Boost >= 1.53 (recommended: at least 1.66; tested through 1.79)
- * [fmtlib](https://github.com/fmtlib/fmt) >= 6.1.2 (tested through 9.0). If
+ * Boost >= 1.53 (recommended: at least 1.66; tested through 1.80)
+ * [fmtlib](https://github.com/fmtlib/fmt) >= 6.1.2 (tested through 9.1). If
    not found at build time, this will be automatically downloaded unless the
    build sets `-DBUILD_MISSING_FMT=OFF`.
 
@@ -86,7 +86,7 @@ installed on your system, you can get it from http://www.cmake.org
 
 If certain dependencies (robin-map and fmtlib) are not found, their sources
 will be retrieved and built into libraries, as part of the build process. The 
-sources of those dependences are cloned from their Git repo, hence `git` must 
+sources of those dependencies are cloned from their Git repo, hence `git` must 
 be available as a command.
 
 After you build OpenImageIO, if you compiled with the `EMBEDPLUGINS=0` flag
@@ -106,6 +106,8 @@ build options), maybe one of these packages managers will do it for you:
     * https://github.com/Microsoft/vcpkg/tree/master/ports/openimageio
     * `vcpkg install openimageio [tools]`
     * For a full list of supported build features: `vcpkg search openimageio`
+    * Instructions for building a Python wheel on Windows: 
+      https://github.com/Correct-Syntax/py-oiio
 * homebrew (https://github.com/Homebrew/brew)
     * https://formulae.brew.sh/formula/openimageio
     * `brew install openimageio`

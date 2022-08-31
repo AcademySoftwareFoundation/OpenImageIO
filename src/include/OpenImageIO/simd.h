@@ -16,6 +16,7 @@
 ///   Syrah:     https://github.com/boulos/syrah
 ///   Embree:    https://github.com/embree
 ///   Vectorial: https://github.com/scoopr/vectorial
+///   Anger Fog: https://github.com/vectorclass/version2
 ///
 /// To find out which CPU features you have:
 ///   Linux: cat /proc/cpuinfo
@@ -23,6 +24,7 @@
 ///
 /// Additional web resources:
 ///   http://www.codersnotes.com/notes/maths-lib-2016/
+///   https://www.agner.org/optimize/
 
 // clang-format off
 

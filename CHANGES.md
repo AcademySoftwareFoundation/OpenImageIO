@@ -1,4 +1,4 @@
-Release 2.4 (?? 2022?) -- compared to 2.3
+Release 2.4 (15 Sept 2022?) -- compared to 2.3
 ----------------------------------------------
 New minimum dependencies and compatibility changes:
 * OpenEXR minimum is now 2.3 (raised from 2.0). #3109 (2.4.0)
@@ -30,7 +30,7 @@ New major features and public API changes:
       libOpenImageIO and libOpenImageIO_Util. #3322 (4.2.0.2) #3339 (4.2.0.3)
     - For *downstream projects* that consume OIIO's exported cmake config
       files, setting CMake variable `OPENIMAGEIO_CONFIG_DO_NOT_FIND_IMATH` to
-      true will skip the find_depencency() calls for Imath and OpenEXR. To
+      ON will skip the find_depencency() calls for Imath and OpenEXR. To
       clarify, this is not a variable that has any effect when building OIIO,
       it's something set in the downstream project itself.  #3322 (4.2.0.2)
 * The dithering that happens when saving high bit depth image data to low bit
@@ -38,7 +38,7 @@ New major features and public API changes:
   >8 bit data to <= 8 bit files, not just when the source is float or half.
   The dither pattern is now based on blue noise, and this dramatically
   improves the visual appearance. #3141 (2.4.0/2.3.10)
-* TextureSystem now supports stochastic sampling. The new TextureOpt field
+* TextureSystem now supports stochastic sampling. If the new TextureOpt field
   `rnd` (which now defaults to -1.0) is set to a value >= 0, the filtered
   texture lookup can use stochastic sampling to save work. The shading system
   attribute "stochastic" is set to the stochastic strategy: 0 = no stochastic
@@ -63,79 +63,88 @@ New major features and public API changes:
   hints `maketx:cdf`, `maketx:cdfsigma`, and `maketx:cdfbits`. #3159 #3206
   (2.4.0/2.3.10)
 * oiiotool new commands and features:
-  - Control flow via `--if`, `--else`, `--endif`, `--while`, `--endwhile`,
-    `--for`, `--endfor` let you prototypes conditional execution and loops
-    in the command sequence. #3242 (2.4.0)
-  - `--set` can set variables and their values can be retrieved in
-    expressions. #3242 (2.4.0)
-  - Expressions now support: numerical comparisons via `<`, `>`, `<=`, `>=`,
-     `==`, `!=`, `<=>`; logical operators `&&`, `||`, `!`, `not()`; string
-     comparison functions `eq(a,b)` and `neq()`. #3242 #3243 (2.4.0)
-  - `--oiioattrib` can set "global" OIIO control attributes for an oiiotool
-    run (equivalent of calling `OIIO::attribute()`). #3171 (2.4.0/2.3.10)
-  - `--repremult` exposes the previously existing `IBA::repremult()`. The
-    guidance here is that `--premult` should be used for one-time conversion
-    of "unassociated alpha/unpremultiplied color" to associated/premultiplied,
-    but when you are starting with a premultiplied image and have a sequence
-    of unpremultiply, doing some adjustment in unpremultiplied space, then
-    re-premultiplying, it's `--repremult` you want as the last step, because
-    it preserves alpha = 0, color > 0 data without crushing it to black. #3192
-    (2.4.0/2.3.10)
-  - `--saturate` can adjust saturation level of a color image. #3190
-    (2.4.0/2.3.10)
-  - `--maxchan` and `--minchan` turn an N-channel image into a 1-channel
-    images that for each pixel, contains the maximum value in any channel of
-    the original for that pixel. #3198 (2.4.0/2.3.10)
-  - `--point` lets you color one or more pixels in an image (analogous to
-    IBA::render_point). #3256 (2.4.0)
-  - `--warp` now takes an optional modifier `:wrap=...` that lets you set
-    which wrap mode to use when sampling past the edge of the source image.
-    #3341 (2.4.0.3)
-  - New `--st_warp` performs warping of an image where a second image gives
-    the (s,t) coordinates to look up from at every pixel. #3379 (2.4.2/2.3.14)
-  - Many attribute actions now take optional modifier `:subimages=` that
-    instructs oiiotool to apply to a particular subset of subimges in
-    multi-subimage files (such as multi-part exr). The commands so enabled
-    include `--attrib`, `--sattrib`, `--eraseattrib`, `--caption`,
-    `--orientation`, `--clear-keywords`, `--iscolorspace`. The default, if
-    subimages are not specified, is to only change the attributes of the first
-    subimage, unless `-a` is used, in which case the default is to change the
-    attributes of all subimages. #3384 (2.4.2)
+    - Control flow via `--if`, `--else`, `--endif`, `--while`, `--endwhile`,
+      `--for`, `--endfor` let you prototypes conditional execution and loops
+      in the command sequence. #3242 (2.4.0)
+    - `--set` can set variables and their values can be retrieved in
+      expressions. #3242 (2.4.0)
+    - Expressions now support: numerical comparisons via `<`, `>`, `<=`, `>=`,
+       `==`, `!=`, `<=>`; logical operators `&&`, `||`, `!`, `not()`; string
+       comparison functions `eq(a,b)` and `neq()`. #3242 #3243 (2.4.0)
+    - `--oiioattrib` can set "global" OIIO control attributes for an oiiotool
+      run (equivalent of calling `OIIO::attribute()`). #3171 (2.4.0/2.3.10)
+    - `--repremult` exposes the previously existing `IBA::repremult()`. The
+      guidance here is that `--premult` should be used for one-time conversion
+      of "unassociated alpha/unpremultiplied color" to
+      associated/premultiplied, but when you are starting with a premultiplied
+      image and have a sequence of unpremultiply, doing some adjustment in
+      unpremultiplied space, then re-premultiplying, it's `--repremult` you
+      want as the last step, because it preserves alpha = 0, color > 0 data
+      without crushing it to black. #3192 (2.4.0/2.3.10)
+    - `--saturate` can adjust saturation level of a color image. #3190
+      (2.4.0/2.3.10)
+    - `--maxchan` and `--minchan` turn an N-channel image into a 1-channel
+      images that for each pixel, contains the maximum value in any channel of
+      the original for that pixel. #3198 (2.4.0/2.3.10)
+    - `--point` lets you color one or more pixels in an image (analogous to
+      IBA::render_point). #3256 (2.4.0)
+    - `--warp` now takes an optional modifier `:wrap=...` that lets you set
+      which wrap mode to use when sampling past the edge of the source image.
+      #3341 (2.4.0.3)
+    - New `--st_warp` performs warping of an image where a second image gives
+      the (s,t) coordinates to look up from at every pixel. #3379
+      (2.4.2/2.3.14)
+    - Many attribute actions now take optional modifier `:subimages=` that
+      instructs oiiotool to apply to a particular subset of subimges in
+      multi-subimage files (such as multi-part exr). The commands so enabled
+      include `--attrib`, `--sattrib`, `--eraseattrib`, `--caption`,
+      `--orientation`, `--clear-keywords`, `--iscolorspace`. The default, if
+      subimages are not specified, is to only change the attributes of the
+      first subimage, unless `-a` is used, in which case the default is to
+      change the attributes of all subimages. #3384 (2.4.2)
 * ImageSpec :
-  - New constructors to accept a string for the data type. #3245 (2.4.0/2.3.12)
+    - New constructors to accept a string for the data type. #3245
+      (2.4.0/2.3.12)
 * ImageBuf/ImageBufAlgo :
-  - `IBA::saturate()` can adjust saturation level of a color image. #3190
-    (2.4.0/2.3.10)
-  - `IBA::maxchan()` and `minchan()` turn an N-channel image into a 1-channel
-    images that for each pixel, contains the maximum value in any channel of
-    the original for that pixel. #3198 (2.4.0/2.3.10)
-  - New `IBA::st_warp()` performs warping of an image where a second image
-    gives the (s,t) coordinates to look up from at every pixel. #3379
-    (2.4.2/2.3.14)
+    - `IBA::saturate()` can adjust saturation level of a color image. #3190
+      (2.4.0/2.3.10)
+    - `IBA::maxchan()` and `minchan()` turn an N-channel image into a
+      1-channel images that for each pixel, contains the maximum value in any
+      channel of the original for that pixel. #3198 (2.4.0/2.3.10)
+    - New `IBA::st_warp()` performs warping of an image where a second image
+      gives the (s,t) coordinates to look up from at every pixel. #3379
+      (2.4.2/2.3.14)
+    - `IBA::bluenoise_image()` returns a reference to a periodic blue noise
+      image. #3141 #3254 (2.4.0/2.3.10)
 * Python bindings:
-  - New ImageBuf constructor and reset() from a NumPy array only -- it
-    deduces the resolution, channels, and data type from the array
-    dimensions and type. #3246 (2.4.0/2.3.12)
-  - ROI now has a working `copy()` method. #3253 (2.4.0/2.3.12)
-  - ImageSpec and ParamValueList now support `'key' in spec`,
-    `del spec['key']`, and `spec.get('key', defaultval)` to more fully emulate
-    Python `dict` syntax for manipulating metadata. #3252 (2.3.12/2.4.0)
-  - Support uint8 array attributes in and out. This enables the proper Python
-    access to "ICCProfile" metadata. #3378 (2.4.1.0/2.3.14)
-  - New `ImageSpec.get_bytes_attribute()` method is for string attributes, but
-    in Python3, skips decoding the underlying C string as UTF-8 and returns a
-    `bytes` object containing the raw byte string. #3396 (2.4.2)
-  - Fixes for Python 3.8+ to ensure that it can find the OpenImageIO module as
-    long as it's somewhere in the PATH. This behavior can be disabled by
-    setting environment variable `OIIO_LOAD_DLLS_FROM_PATH=0`. #3470
-    (2.4.0/2.3.18)
+    - New ImageBuf constructor and reset() from a NumPy array only -- it
+      deduces the resolution, channels, and data type from the array
+      dimensions and type. #3246 (2.4.0/2.3.12)
+    - ROI now has a working `copy()` method. #3253 (2.4.0/2.3.12)
+    - ImageSpec and ParamValueList now support `'key' in spec`, `del
+      spec['key']`, and `spec.get('key', defaultval)` to more fully emulate
+      Python `dict` syntax for manipulating metadata. #3252 (2.3.12/2.4.0)
+    - Support uint8 array attributes in and out. This enables the proper
+      Python access to "ICCProfile" metadata. #3378 (2.4.1.0/2.3.14)
+    - New `ImageSpec.get_bytes_attribute()` method is for string attributes,
+      but in Python3, skips decoding the underlying C string as UTF-8 and
+      returns a `bytes` object containing the raw byte string. #3396 (2.4.2)
+    - Fixes for Python 3.8+ to ensure that it can find the OpenImageIO module
+      as long as it's somewhere in the PATH. This behavior can be disabled by
+      setting environment variable `OIIO_LOAD_DLLS_FROM_PATH=0`. #3470
+      (2.4.0/2.3.18)
 * New global OIIO attributes:
-  - `"try_all_readers"` can be set to 0 if you want to override the default
-    behavior and specifically NOT try any format readers that don't match the
-    file extension of an input image (usually, it will try that one first, but
-    it if fails to open the file, all known file readers will be tried in case
-    the file is just misnamed, but sometimes you don't want it to do that).
-    #3172  (2.4.0/2.3.10)
+    - `"try_all_readers"` can be set to 0 if you want to override the default
+      behavior and specifically NOT try any format readers that don't match
+      the file extension of an input image (usually, it will try that one
+      first, but it if fails to open the file, all known file readers will be
+      tried in case the file is just misnamed, but sometimes you don't want it
+      to do that). #3172  (2.4.0/2.3.10)
+    - `"use_tbb"` if nonzero, and if OIIO was built with TBB enabled and
+      found, then will use the TBB thread pool instead of the OIIO internal
+      thread pool. #3473 (2.4.2.2)
+    - `"version"` (read only) now retrieves the version string. #3534
+      (2.3.19.0/2.4.2.2)
 * Full IOProxy support has been added to TIFF #3075 (2.4.0/2.3.8), JPEG, GIF
   #3181 #3182 (2.4.0/2.3.10), DDS #3217, PNM #3219, PSD #3220, Targa #3221,
   WebP #3224, BMP #3223, JPEG-2000 #3226 (2.4.0).
@@ -187,8 +196,6 @@ Fixes and feature enhancements:
 * ImageBuf / ImageBufAlgo:
     - Fix ImageBuf::read bug for images of mixed per-channel data types. #3088
       (2.4.0/2.3.8)
-    - `IBA::bluenoise_image()` returns a reference to a periodic blue noise
-      image. #3141 #3254 (2.4.0/2.3.10)
     - `IBA::noise()` now takes "blue" as a noise name. Also, "white" is now
       the preferred name for what used to be "uniform" (which still works as a
       synonym). #3141 (2.4.0/2.3.10)
@@ -203,6 +210,8 @@ Fixes and feature enhancements:
     - `IBA::isConstantColor()` is faster -- now if one thread finds its
       portion not constant, it can signal the other threads to stop
       immediately instead of completing their regions. #3383 (2.4.1.1)
+    - A new flavor of `IBA::compare()` allows relative as well as absolute
+      error thresholds. #3508 (2.3.19.0/2.4.2.2)
 * ImageCache / TextureSystem / maketx:
     - When textures are created with the "monochrome_detect" feature enabled,
       which turns RGB textures where all channels are always equal into true
@@ -254,24 +263,33 @@ Fixes and feature enhancements:
       window is in the negative coordinate region. #3164 (2.4.0/2.3.10)
     - Improved detection of file reading failures. #3165 (2.4.0/2.3.10)
     - All commands that do filtering (--rotate, --warp, --reize, --fit, and
-      --pixelaspect) now accept optional modifier `:highlightcomp=1` to
-      enable "highlight compensation" to avoid ringing artifacts in HDR
-      images with very high-contrast regions. #3239 (2.4.0)
+      --pixelaspect) now accept optional modifier `:highlightcomp=1` to enable
+      "highlight compensation" to avoid ringing artifacts in HDR images with
+      very high-contrast regions. #3239 (2.4.0)
     - `--pattern checker` behavior has changed slightly: if the optional
       modifier `:width=` is specified but `:height=` is not, the height will
       be equal to the width. #3255 (2.4.0)
     - `--pixelaspect` fixes setting of the "PixelAspectRatio", "XResolution",
       and "YResolution" metadata, they were not set properly before. #3340
       (2.4.0.3)
+    - Fix bug that prevented metadata from being able to print as XML. #3499
+      (2.4.2.2)
+    - `i:ch=...` fixes crashes, and also improves the warning message in cases
+      where the requested channels don't exist in the source image. #3513
+      (2.4.2.2)
 * Python bindings:
     - Subtle/asymptomatic bugs fixed in `ImageBufAlgo.color_range_check()` and
       `histogram()` due to incorrect release of the GIL. #3074 (2.4.0)
-    - Bug fix for `ImageBufAlgo.clamp()`: when just a float was passed for
-      the min or max, it only clamped the first channel instead of all
-      channels. #3265 (2.3.12/2.4.0)
+    - Bug fix for `ImageBufAlgo.clamp()`: when just a float was passed for the
+      min or max, it only clamped the first channel instead of all channels.
+      #3265 (2.3.12/2.4.0)
 * idiff:
     - `--allowfailures` allows that number of failed pixels of any magnitude.
       #3455 (2.4.2)
+    - `--failrelative` and `--warnrelative` allows the failure and warning
+      threshold to use a symmetric mean relative error (rather than the
+      absolute error implied by the existing `--fail` and `--warn` arguments).
+      #3508 (2.3.19.0, 2.4.2.2)
 * BMP:
     - IOProxy support. #3223 (2.4.0)
     - Support for additional (not exactly fully documented) varieties used by
@@ -288,6 +306,11 @@ Fixes and feature enhancements:
     - Add support for BC4-BC7 compression methods. #3459 (2.4.2)
     - Speed up reading of uncompressed DDS images (by about 3x). #3463
     - Better handling of cube maps with MIPmap levels. #3467 (2.4.0)
+    - For 2-channel DDS files, label them as Y,A if the flags indicate
+      luminance and/or alpha, otherwise label them as R,G. #3530 (2.4.2.2)
+    - Do not set "oiio:BitsPerSample" for cases where the dds.fmt.bpp field is
+      not assumed to be valid. MS docs say it's valid only if the flags field
+      indicates RGB, LUMINANCE, or YUV types. #3530 (2.4.2.2)
 * FFMpeg
     - Now uses case-insensitive tests on file extensions, so does not get
       confused on Windows with all-caps filenames. #3364 (2.4.1.0/2.3.14)
@@ -302,6 +325,13 @@ Fixes and feature enhancements:
 * JPEG:
     - IOProxy support. #3182 (2.4.0/2.3.10)
     - Better handling of PixelAspectRatio. #3366 (2.4.1.0)
+    - Fix multithreaded race condition in read_native_scanline. #3495
+      (2.4.2.2)
+    - Fix bug in XRes,YRes aspect ratio logic. #3500 (2.4.2.2)
+    - When asked to output 2-channel images (which JPEG doesn't support), use
+      the channel names to decide whether to drop the second channel (if it
+      seems to be a luminance/alpha image) or add a third black channel (other
+      cases). #3531 (2.4.2.2)
 * JPEG2000:
     - Enable multithreading for decoding (if using OpenJPEG >= 2.2) and
       encoding (if using OpenJPEG >= 2.4). This speeds up JPEG-2000 I/O by
@@ -329,6 +359,8 @@ Fixes and feature enhancements:
       in the file. #3321 (2.4.0.2/2.3.13)
     - Improve error detection and propagation for corrupt/broken files. #3442
       (2.4.2)
+    - Improve error detection and messages when writing PNG files, for various
+      kinds of errors involving metadata. #3535 (2.4.2.2)
 * PPM:
     - Mark all PPM files as Rec709 color space, which they are by
       specification. #3321 (2.4.0.2/2.3.13)
@@ -354,6 +386,8 @@ Fixes and feature enhancements:
     - Fix parsing of TGA 2.0 extension area when the software name was
       missing form the header. #3323 (2.4.0.2/2.3.13)
     - Fix reading of tiny 1x1 2-bpp Targa 1.0 images. #3433 (2.3.17/2.2.21)
+* Socket imageio plugin has been removed entirely, it never was completed or
+  did anything useful. #3527 (2.3.2.2)
 * TIFF:
     - IOProxy is now supported for TIFF output. #3075 (2.4.0/2.3.8)
     - Honor zip compression quality request when writing TIFF. #3110
@@ -412,6 +446,12 @@ Fixes and feature enhancements:
   improve error messages. #3400 (2.4.2)
 * The maximum number of threads you can set with option "oiio:threads"
   has been increased from 256 to 512. #3484 (2.4.2.1)
+* Make access to the internal imageio_mutex not be recursive. #3489 (2.4.2.2)
+* Various protections against string metadata found in file that has zero
+  length. #3493 (2.4.2.2)
+* Fix possible null pointer dereference in inventory_udim. #3498 (2.4.2.2)
+* oiiotool, maketx, iinfo, igrep, and iv now all take a `--version` command
+  line argument, which just prints the OIIO version and exits. #3534
 
 Developer goodies / internals:
 * benchmark.h:
@@ -442,6 +482,12 @@ Developer goodies / internals:
 * oiioversion.h
     - `OIIO_MAKE_VERSION_STRING` and `OIIO_VERSION_STRING` now print all 4
       version parts. #3368 (2.4.1.0)
+* parallel.h
+    - Refactoring of the entry points (back compatible for API), and add
+      support for using TBB for the thread pool (which seems slightly faster
+      than our internal thread pool). By default it still uses the internal
+      pool, but if OIIO::attribute("use_tbb") is set to nonzero, it will use
+      the TBB thread pool if built against TBB. #3473 (2.4.2.2)
 * paramlist.h
     - Various internal fixes that reduce the amount of ustring construction
       that happens when constructing ParamValue and ParamList, and making
@@ -479,6 +525,8 @@ Developer goodies / internals:
       #3471 (2.4.0/2.3.18)
     - `Strutil::debug()` is the new OIIO::debug(), moving it from
       libOpenImageIO to libOpenImageIO_Util. #3486 (2.4.2.1)
+    - New `Strutil::safe_strlen()` is a portable safe strlen replacement.
+      #3501 (2.4.2.2)
 * sysutil.h:
     - The `Term` class now recognizes a wider set of terminal emulators as
       supporting color output. #3185 (2.4.0)
@@ -499,6 +547,7 @@ Developer goodies / internals:
 * unittest.h:
     - Changes `OIIO_CHECK_SIMD_EQUAL_THRESH` macro to compare `<= eps`
       instead of `<`. #3333 (2.4.0.3)
+* unordered_map_concurrent.h: Fix bug in `erase()` method. #3485 (2.4.2.2)
 * ustring.h:
     - New static method `from_hash()` creates a ustring from the known hash
       value. #3397 (2.4.2)
@@ -522,10 +571,8 @@ Developer goodies / internals:
   will be used for thread wedges, `--lowtrials` is an optional maximum number
   of trials just for the 1 or 2 thread cse. #3418 (2.4.2)
 * Internals: internal classes with vertual methods now mark all their
-  overridden destructors correctly as `override`. #3481 (2.4.2.1) #3488
+  overridden destructors correctly as `override`. #3481 (2.4.2.1) #3488 #3511
   (2.4.2.2)
-* Various protections against string metadata found in file that has zero
-  length. #3493 (2.4.2.2)
 
 Build/test system improvements and platform ports:
 * CMake build system and scripts:
@@ -578,6 +625,7 @@ Build/test system improvements and platform ports:
     - The export OpenImageIOConfig.cmake fixes `OpenImageIO_INCLUDE_DIR` to
       work correctly on Debian systems where there are multiple filesystem
       components to the path. #3487 (2.4.2.1)
+    - On MacOS, do not force MACOS_RPATH on. #3523 (2.4.2.2)
 * Dependency version support:
     - When using C++17, use std::gcd instead of boost. #3076 (2.4.0)
     - When using C++17, use `inline constexpr` instead of certain statics.
@@ -597,13 +645,19 @@ Build/test system improvements and platform ports:
       OpenColorIO to 2.1.2. #3475 (2.4.2.1)
     - When building with C++17 or higher, Boost.filesystem is no longer
       needed or used. #3472 #3477 (2.4.2.1)
+    - Upgrade the internal fallback implemention of PugiXML to the latest
+      version. #3494 (2.4.2.2)
+    - Fixes for ffmpeg 5.1 detection. #3516 (2.3.19.0/2.4.2.2)
+    - Support for gcc 12.1. #3480 (2.4.2.1)
 * Testing and Continuous integration (CI) systems:
     - Properly test against all the versions of VFX Platform 2022. #3074
       (2.4.0)
     - The helper script `build_libtiff.bash` now allows you to override the
       build type (by setting `LIBTIFF_BUILD_TYPE`) and also bumps the default
       libtiff that it downloads and builds from 4.1.0 to 4.3.0. #3161 (2.4.0)
-    - CI test for MacOS 11. #3193 (2.4.0/2.3.10)
+    - New tests on MacOS 11 #3193 (2.4.0/2.3.10) and MacOS 12, remove test on
+      MacOS 10.15 (GitHub Actions is imminently removing MacOS 10.15). #3528
+      (2.3.19.0/2.4.2.2)
     - Add a DDS test (we never had one before). #3200 (2.4.0/2.3.10)
     - `imageinout_test` now has options to make it easy to unit test just one
       named format, as well as to preserve the temp files for inspection.
@@ -622,6 +676,8 @@ Build/test system improvements and platform ports:
     - Test against clang 14. #3404
     - Various guards against supply chain attacks durig CI. #3454 (2.4.2)
     - Test against pybind11 v2.10. #3478 (2.4.2.1)
+    - Run SonarCloud nightly for static analysis and coverage analysis. #3505
+      (2.4.2.2)
 * Platform support:
     - Fix when building with Clang on big-endian architectures. #3133
       (2.4.0/2.3.9)
@@ -632,7 +688,6 @@ Build/test system improvements and platform ports:
     - Improved simd.h support for armv7 and aarch32. #3361 (2.4.1.0/2.3.14)
     - Suppress MacOS wasnings about OpenGL deprecation. #3380 (2.4.1.0/2.3.14)
     - Fix MSVS/Windows errors. #3382 (2.4.1.1)
-    - Support for gcc 12.1. #3480 (2.4.2.1)
 
 Notable documentation changes:
 * Add an oiiotool example of putting a border around an image. #3138
@@ -649,7 +704,39 @@ Notable documentation changes:
 * Pretty much anyplace where a parameter that represents a filename, and it is
   supporting UTF-8 encoding of Unicode filenames, the docs for that function
   explicitly say that the string is assumed to be UTF-8. #3312 (2.4.0.1)
+* Fix many typos in docs. #3492 (2.4.2.2)
 
+
+
+Release 2.3.19 (1 Sep 2022) -- compared to 2.3.18
+---------------------------------------------------
+* idiff: `--allowfailures` allows the specified number of pixels to differ by
+  any amount, and still consider the images to compare successfully. #3455
+* idiff: `--failrelative` and `--warnrelative` allows the failure and warning
+  threshold to use a symmetric mean relative error (rather than the absolute
+  error implied by the existing `--fail` and `--warn` arguments). #3508
+* Build: Fixes for ffmpeg 5.1 detection. #3516
+* Build: suppress incorrect warnings for gcc 12. #3524
+* CI: New test on MacOS 12, remove test on MacOS 10.15 (GitHub Actions is
+  imminently removing MacOS 10.15). #3528
+* oiiotool, maketx, iinfo, igrep, and iv now all take a `--version` command
+  line argument, which just prints the OIIO version and exits. #3534
+* `OIIO::getattribute("version")` now retrieves the version string. #3534
+* Developer goodies: `ArgParse::add_version(str)` tells ArgParse the version
+  string, which will automatically add an option `--version`. #3534
+
+Release 2.3.18 (1 Aug 2022) -- compared to 2.3.17
+---------------------------------------------------
+* Windows: Allow loading of dlls from PATH on Python 3.8+. #3470
+* JPEG: Fix a race condition in read_native_scanline. #3495
+* JPEG: Fix aspect ratio logic. #3500
+* Bug fix: incorrect assignment of oiio_missingcolor attribute. #3497
+* Bug fix: possible null pointer dereference in inventory_udim(). #3498
+* Bug fix: print_info_subimage botched condition. #3499
+* CI: Test against fmt 9.0.0. #3466
+* CI: Test against pybind11 v2.10. #3478
+* Strutil: safe_strcat() #3471 and safe_strlen() #3501
+* Change build_opencolorio.bash to default to OCIO 2.1.2. #3475
 
 Release 2.3.17 (1 Jul 2022) -- compared to 2.3.16
 --------------------------------------------------
