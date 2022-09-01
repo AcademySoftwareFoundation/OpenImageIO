@@ -3,18 +3,18 @@
 # https://github.com/OpenImageIO/oiio
 
 cmake_minimum_required (VERSION 3.12)
-project (OpenImageIO VERSION 2.4.2.2
+project (OpenImageIO VERSION 2.4.3.0
          HOMEPAGE_URL "https://openimageio.org"
          LANGUAGES CXX C)
 set (PROJ_NAME OIIO)    # short name, caps
 string (TOLOWER ${PROJ_NAME} PROJ_NAME_LOWER)  # short name lower case
 string (TOUPPER ${PROJ_NAME} PROJ_NAME_UPPER)  # short name upper case
-set (PROJECT_VERSION_RELEASE_TYPE "dev" CACHE STRING
+set (PROJECT_VERSION_RELEASE_TYPE "beta" CACHE STRING
     "Build type, for example: dev, beta2, RC1 (empty string for normal release)")
 set (${PROJECT_NAME}_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
 set (PROJECT_AUTHORS "Contributors to the OpenImageIO project")
 option (${PROJECT_NAME}_SUPPORTED_RELEASE
-       "Set ON for supported release branch, OFF for master" OFF)
+       "Set ON for supported release branch, OFF for master" ON)
 if (${PROJECT_NAME}_SUPPORTED_RELEASE)
     set (${PROJECT_NAME}_DEV_RELEASE OFF)
 else ()
