@@ -4,21 +4,23 @@
 # any command in it fails. This is crucial for CI tests.
 set -ex
 
+OIIO_CMAKE_FLAGS="$MY_CMAKE_FLAGS $OIIO_CMAKE_FLAGS"
+
 if [[ "$USE_SIMD" != "" ]] ; then
-    MY_CMAKE_FLAGS="$MY_CMAKE_FLAGS -DUSE_SIMD=$USE_SIMD"
+    OIIO_CMAKE_FLAGS="$OIIO_CMAKE_FLAGS -DUSE_SIMD=$USE_SIMD"
 fi
 
 if [[ -n "$FMT_VERSION" ]] ; then
-    MY_CMAKE_FLAGS="$MY_CMAKE_FLAGS -DBUILD_FMT_VERSION=$FMT_VERSION"
+    OIIO_CMAKE_FLAGS="$OIIO_CMAKE_FLAGS -DBUILD_FMT_VERSION=$FMT_VERSION"
 fi
 
 if [[ -n "$CODECOV" ]] ; then
-    MY_CMAKE_FLAGS="$MY_CMAKE_FLAGS -DCODECOV=${CODECOV}"
+    OIIO_CMAKE_FLAGS="$OIIO_CMAKE_FLAGS -DCODECOV=${CODECOV}"
 fi
 
 # On GHA, we can reduce build time with "unity" builds.
 if [[ ${GITHUB_ACTIONS} == true ]] ; then
-    MY_CMAKE_FLAGS+=" -DCMAKE_UNITY_BUILD=${CMAKE_UNITY_BUILD:=ON} -DCMAKE_UNITY_BUILD_MODE=${CMAKE_UNITY_BUILD_MODE:=BATCH}"
+    OIIO_CMAKE_FLAGS+=" -DCMAKE_UNITY_BUILD=${CMAKE_UNITY_BUILD:=ON} -DCMAKE_UNITY_BUILD_MODE=${CMAKE_UNITY_BUILD_MODE:=BATCH}"
 fi
 
 pushd build
@@ -31,7 +33,7 @@ cmake .. -G "$CMAKE_GENERATOR" \
         -DCMAKE_CXX_STANDARD="$CMAKE_CXX_STANDARD" \
         -DOIIO_DOWNLOAD_MISSING_TESTDATA=ON \
         -DEXTRA_CPP_ARGS="${OIIO_EXTRA_CPP_ARGS}" \
-        $MY_CMAKE_FLAGS -DVERBOSE=1
+        $OIIO_CMAKE_FLAGS -DVERBOSE=1
 
 # Save a copy of the generated files for debugging broken CI builds.
 mkdir cmake-save || /bin/true

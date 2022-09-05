@@ -8,3 +8,4 @@ leak:g_malloc0
 leak:ArgParse::options
 leak:LibRaw::copy_fuji_uncropped
 leak:libtbb
+leak:libjpeg
