@@ -708,7 +708,7 @@ TGAInput::readimg()
     }
 
     // read palette, if there is any
-    std::unique_ptr<unsigned char> palette;
+    std::unique_ptr<unsigned char[]> palette;
     if (is_palette()) {
         palette.reset(new unsigned char[palbytespp * m_tga.cmap_length]);
         if (!ioread(palette.get(), palbytespp, m_tga.cmap_length))
