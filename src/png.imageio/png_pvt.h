@@ -266,27 +266,22 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
 
     png_textp text_ptr;
     int num_comments = png_get_text(sp, ip, &text_ptr, NULL);
-    if (num_comments) {
-        std::string comments;
-        for (int i = 0; i < num_comments; ++i) {
-            if (Strutil::iequals(text_ptr[i].key, "Description"))
-                spec.attribute("ImageDescription", text_ptr[i].text);
-            else if (Strutil::iequals(text_ptr[i].key, "Author"))
-                spec.attribute("Artist", text_ptr[i].text);
-            else if (Strutil::iequals(text_ptr[i].key, "Title"))
-                spec.attribute("DocumentName", text_ptr[i].text);
-            else if (Strutil::iequals(text_ptr[i].key, "XML:com.adobe.xmp"))
-                decode_xmp(text_ptr[i].text, spec);
-            else if (Strutil::iequals(text_ptr[i].key,
-                                      "Raw profile type exif")) {
-                // Most PNG files seem to encode Exif by cramming it into a
-                // text field, with the key "Raw profile type exif" and then
-                // a special text encoding that we handle with the following
-                // function:
-                decode_png_text_exif(text_ptr[i].text, spec);
-            } else {
-                spec.attribute(text_ptr[i].key, text_ptr[i].text);
-            }
+    for (int i = 0; i < num_comments; ++i) {
+        if (Strutil::iequals(text_ptr[i].key, "Description"))
+            spec.attribute("ImageDescription", text_ptr[i].text);
+        else if (Strutil::iequals(text_ptr[i].key, "Author"))
+            spec.attribute("Artist", text_ptr[i].text);
+        else if (Strutil::iequals(text_ptr[i].key, "Title"))
+            spec.attribute("DocumentName", text_ptr[i].text);
+        else if (Strutil::iequals(text_ptr[i].key, "XML:com.adobe.xmp"))
+            decode_xmp(text_ptr[i].text, spec);
+        else if (Strutil::iequals(text_ptr[i].key, "Raw profile type exif")) {
+            // Most PNG files seem to encode Exif by cramming it into a text
+            // field, with the key "Raw profile type exif" and then a special
+            // text encoding that we handle with the following function:
+            decode_png_text_exif(text_ptr[i].text, spec);
+        } else {
+            spec.attribute(text_ptr[i].key, text_ptr[i].text);
         }
     }
     spec.x = png_get_x_offset_pixels(sp, ip);
@@ -711,20 +706,27 @@ write_row(png_structp& sp, png_byte* data)
 
 
 
-/// Helper function - finalizes writing the image and destroy the write
-/// struct.
+/// Helper function - error-catching wrapper for png_write_end
 inline void
-finish_image(png_structp& sp, png_infop& ip)
+write_end(png_structp& sp, png_infop& ip)
 {
     // Must call this setjmp in every function that does PNG writes
     if (setjmp(png_jmpbuf(sp))) {  // NOLINT(cert-err52-cpp)
-        //error ("PNG library error");
         return;
     }
     png_write_end(sp, ip);
+}
+
+
+/// Helper function - error-catching wrapper for png_destroy_write_struct
+inline void
+destroy_write_struct(png_structp& sp, png_infop& ip)
+{
+    // Must call this setjmp in every function that does PNG writes
+    if (setjmp(png_jmpbuf(sp))) {  // NOLINT(cert-err52-cpp)
+        return;
+    }
     png_destroy_write_struct(&sp, &ip);
-    sp = nullptr;
-    ip = nullptr;
 }
 
 
