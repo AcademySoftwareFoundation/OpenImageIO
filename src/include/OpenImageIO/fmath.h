@@ -2419,13 +2419,7 @@ inline OIIO_HOSTDEVICE float
 interpolate_linear (float x, span_strided<const float> y)
 {
 #ifndef __CUDA_ARCH__
-#ifdef OIIO_SPAN_SIZE_IS_UNSIGNED
-    // using oiio_span_size_type = size_t; => %zu is suitable
-    DASSERT_MSG (y.size() >= 2, "interpolate_linear needs at least 2 knot values (%zu)", y.size());
-#else
-    // using oiio_span_size_type = ptrdiff_t; => %td is suitable
-    DASSERT_MSG (y.size() >= 2, "interpolate_linear needs at least 2 knot values (%td)", y.size());
-#endif
+    OIIO_DASSERT_MSG (y.size() >= 2, "interpolate_linear needs at least 2 knot values (has %d)", int(y.size()));
 #endif
     x = clamp (x, float(0.0), float(1.0));
     int nsegs = int(y.size()) - 1;
