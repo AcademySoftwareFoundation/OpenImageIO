@@ -1,4 +1,9 @@
-Release 2.4 (15 Sept 2022) -- compared to 2.3
+Release 2.4.4 (1 Oct? 2022) -- compared to 2.4.3
+------------------------------------------------
+
+
+
+Release 2.4 (15 Sept 2022?) -- compared to 2.3
 ----------------------------------------------
 New minimum dependencies and compatibility changes:
 * OpenEXR minimum is now 2.3 (raised from 2.0). #3109 (2.4.0)
