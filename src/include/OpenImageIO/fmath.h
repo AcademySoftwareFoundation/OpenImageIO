@@ -2419,7 +2419,7 @@ inline OIIO_HOSTDEVICE float
 interpolate_linear (float x, span_strided<const float> y)
 {
 #ifndef __CUDA_ARCH__
-    DASSERT_MSG (y.size() >= 2, "interpolate_linear needs at least 2 knot values (%zd)", y.size());
+    OIIO_DASSERT_MSG (y.size() >= 2, "interpolate_linear needs at least 2 knot values (has %d)", int(y.size()));
 #endif
     x = clamp (x, float(0.0), float(1.0));
     int nsegs = int(y.size()) - 1;
