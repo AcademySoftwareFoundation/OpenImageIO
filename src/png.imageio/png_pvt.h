@@ -349,6 +349,10 @@ inline const std::string
 read_into_buffer(png_structp& sp, png_infop& ip, ImageSpec& spec,
                  std::vector<unsigned char>& buffer)
 {
+    // Temp space for the row pointers. Must be declared before the setjmp
+    // to ensure it's destroyed if the jump is taken.
+    std::vector<unsigned char*> row_pointers(spec.height);
+
     // Must call this setjmp in every function that does PNG reads
     if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
         return "PNG library error";
@@ -364,12 +368,10 @@ read_into_buffer(png_structp& sp, png_infop& ip, ImageSpec& spec,
 
     OIIO_DASSERT(spec.scanline_bytes() == png_get_rowbytes(sp, ip));
     buffer.resize(spec.image_bytes());
-
-    std::vector<unsigned char*> row_pointers(spec.height);
     for (int i = 0; i < spec.height; ++i)
-        row_pointers[i] = &buffer[0] + i * spec.scanline_bytes();
+        row_pointers[i] = buffer.data() + i * spec.scanline_bytes();
 
-    png_read_image(sp, &row_pointers[0]);
+    png_read_image(sp, row_pointers.data());
     png_read_end(sp, NULL);
 
     // success
