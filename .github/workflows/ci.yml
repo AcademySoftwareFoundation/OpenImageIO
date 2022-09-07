@@ -377,7 +377,7 @@ jobs:
             cxx_std: 20
             python_ver: "3.10"
             aclang: 13
-            setenvs: export CTEST_TEST_TIMEOUT=300
+            setenvs: export CTEST_TEST_TIMEOUT=600
     runs-on: ${{ matrix.os }}
     env:
       CC: clang
