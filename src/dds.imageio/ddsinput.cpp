@@ -682,8 +682,9 @@ DDSInput::internal_readimg(unsigned char* dst, int w, int h, int d)
                     return false;
                 size_t k = (z * h * w + y * w) * m_spec.nchannels;
                 for (int x = 0; x < w; x++, k += m_spec.nchannels) {
-                    uint32_t pixel;
-                    memcpy(&pixel, tmp.data() + x * m_Bpp, 4);
+                    uint32_t pixel = 0;
+                    OIIO_DASSERT(tmp.size() >= size_t(x * m_Bpp + m_Bpp));
+                    memcpy(&pixel, tmp.data() + x * m_Bpp, m_Bpp);
                     dst[k + 0] = ((pixel & m_dds.fmt.rmask) >> m_redR)
                                  << m_redL;
                     dst[k + 1] = ((pixel & m_dds.fmt.gmask) >> m_greenR)
