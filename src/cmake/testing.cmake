@@ -288,7 +288,7 @@ macro (oiio_add_all_tests)
     endif ()
     oiio_add_tests (openvdb texture-texture3d
                     FOUNDVAR OpenVDB_FOUND ENABLEVAR ENABLE_OpenVDB)
-    oiio_add_tests (png
+    oiio_add_tests (png png-damaged
                     ENABLEVAR ENABLE_PNG
                     IMAGEDIR oiio-images)
     oiio_add_tests (pnm
