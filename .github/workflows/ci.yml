@@ -122,9 +122,16 @@ jobs:
             nametag: sanitizer
             os: ubuntu-latest
             vfxyear: 2022
+            vfxsuffix: -clang13
+            cc_compiler: clang
+            cxx_compiler: clang++
             cxx_std: 17
             python_ver: 3.9
-            setenvs: export SANITIZE=address USE_PYTHON=0
+            setenvs: export SANITIZE=address
+                            OIIO_CMAKE_FLAGS="-DSANITIZE=address -DUSE_PYTHON=0"
+                            CMAKE_BUILD_TYPE=Debug
+                            CTEST_TEST_TIMEOUT=300
+                            CTEST_EXCLUSIONS="broken|cmake-consumer|png-damaged"
           - desc: oldest/hobbled gcc6.3/C++14 py2.7 boost-1.66 exr-2.3 no-sse no-ocio
             # Oldest versions of the dependencies that we can muster, and various
             # things disabled (no SSE, OCIO, or OpenCV, don't embed plugins).
@@ -370,7 +377,7 @@ jobs:
             cxx_std: 20
             python_ver: "3.10"
             aclang: 13
-            setenvs: export CTEST_TEST_TIMEOUT=300
+            setenvs: export CTEST_TEST_TIMEOUT=600
     runs-on: ${{ matrix.os }}
     env:
       CC: clang

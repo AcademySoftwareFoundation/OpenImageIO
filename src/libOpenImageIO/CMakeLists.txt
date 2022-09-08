@@ -132,7 +132,6 @@ target_link_libraries (OpenImageIO
         PRIVATE
             ${OPENIMAGEIO_OPENEXR_TARGETS}
             ${OpenCV_LIBRARIES}
-            ${SANITIZE_LIBRARIES}
             ${format_plugin_libs} # Add all the target link libraries from the plugins
             $<TARGET_NAME_IF_EXISTS:OpenColorIO::OpenColorIO>
             $<TARGET_NAME_IF_EXISTS:OpenColorIO::OpenColorIOHeaders>

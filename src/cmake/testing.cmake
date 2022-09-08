@@ -207,10 +207,10 @@ macro (oiio_add_all_tests)
 
     # Add tests that require the Python bindings.
     #
-    # We also exclude these tests if this is a sanitizer build on Linux,
-    # because the Python interpreter itself won't be linked with the right asan
+    # We also exclude these tests if this is a sanitizer build, because the
+    # Python interpreter itself won't be linked with the right asan
     # libraries to run correctly.
-    if (USE_PYTHON AND NOT BUILD_OIIOUTIL_ONLY AND NOT SANITIZE_ON_LINUX)
+    if (USE_PYTHON AND NOT BUILD_OIIOUTIL_ONLY AND NOT SANITIZE)
         oiio_add_tests (
             python-colorconfig
             python-deep 
