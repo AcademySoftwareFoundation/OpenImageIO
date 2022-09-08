@@ -81,7 +81,7 @@ macro (setup_python_module)
 #
     # Declare the libraries it should link against
     target_link_libraries (${target_name}
-                           PRIVATE ${lib_LIBS} ${SANITIZE_LIBRARIES})
+                           PRIVATE ${lib_LIBS})
 
     set (_module_LINK_FLAGS "${VISIBILITY_MAP_COMMAND} ${EXTRA_DSO_LINK_ARGS}")
     if (UNIX AND NOT APPLE)
