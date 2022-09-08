@@ -20,7 +20,6 @@ target_link_libraries (OpenImageIO_Util
         PRIVATE
             $<TARGET_NAME_IF_EXISTS:Boost::filesystem>
             $<TARGET_NAME_IF_EXISTS:Boost::thread>
-            ${SANITIZE_LIBRARIES}
             ${CMAKE_DL_LIBS}
         )
 
