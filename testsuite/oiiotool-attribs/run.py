@@ -25,3 +25,13 @@ command += info_command ("attrib2.exr", safematch=True)
 command += oiiotool ("attrib2.exr " +
                      "--eraseattrib:allsubimages=1 foo -d half -o attrib0.exr")
 command += info_command ("attrib0.exr", safematch=True)
+
+# Test adding and extracting ICC profiles
+command += oiiotool ("../common/tahoe-tiny.tif --iccread ref/test.icc -o tahoe-icc.jpg")
+command += info_command ("tahoe-icc.jpg", safematch=True)
+command += oiiotool ("tahoe-icc.jpg --iccwrite test.icc")
+
+outputs = [
+            "test.icc",
+            "out.txt"
+]

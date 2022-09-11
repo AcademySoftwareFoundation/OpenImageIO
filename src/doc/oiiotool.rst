@@ -4200,6 +4200,21 @@ bottom you will see the list of all color spaces, looks, and displays that
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
 
+.. option:: --iccread <filename>
+
+    The `--iccread` command adds an `"ICCProfile"` attribute to the top image,
+    as a byte array consisting of the entire contents of the named file.
+
+    This was added to OpenImageIO 2.5.
+
+.. option:: --iccwrite <filename>
+
+    Extract the `"ICCProfile"` attribute from the top image and writing it to
+    the named file.
+
+    This was added to OpenImageIO 2.5.
+
+
 |
 
 :program:`oiiotool` commands for deep images
