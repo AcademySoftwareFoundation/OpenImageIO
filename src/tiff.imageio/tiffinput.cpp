@@ -742,7 +742,7 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
                                    reader_unmapproc);
         } else {
 #ifdef _WIN32
-            std::wstring wfilename = Strutil::utf8_to_utf16(m_filename);
+            std::wstring wfilename = Strutil::utf8_to_utf16wstring(m_filename);
             m_tif                  = TIFFOpenW(wfilename.c_str(), "rm");
 #else
             m_tif = TIFFOpen(m_filename.c_str(), "rm");
