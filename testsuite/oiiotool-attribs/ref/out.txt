@@ -109,3 +109,16 @@ attrib0.exr          :   64 x   64, 3 channel, half openexr
     oiio:subimagename: "subimage01"
     oiio:subimages: 2
     openexr:chunkCount: 4
+Reading tahoe-icc.jpg
+tahoe-icc.jpg        :  128 x   96, 3 channel, uint8 jpeg
+    SHA-1: BC4C6090E793819E1A2869AAA8FBEE3587CC6947
+    channel list: R, G, B
+    ICCProfile: 0, 0, 2, 48, 65, 68, 66, 69, 2, 16, 0, 0, 109, 110, 116, 114, ... [560 x uint8]
+    Orientation: 1 (normal)
+    ResolutionUnit: "in"
+    XResolution: 72
+    YResolution: 72
+    Exif:ExifVersion: "0230"
+    Exif:FlashPixVersion: "0100"
+    jpeg:subsampling: "4:2:0"
+    oiio:ColorSpace: "sRGB"
