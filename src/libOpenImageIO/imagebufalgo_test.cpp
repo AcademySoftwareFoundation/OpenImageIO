@@ -841,7 +841,7 @@ test_IBAprep()
 
     // Test REQUIRE_Z
     ImageSpec rgbaz_spec(256, 256, 5);
-    rgbaz_spec.channelnames[4] = "Z";
+    rgbaz_spec.channelnames[4] = std::string("Z");
     rgbaz_spec.z_channel       = 4;
     ImageBuf rgbaz(rgbaz_spec);
     CHECK(roi, &dst, &rgbaz, IBAprep_REQUIRE_Z);
