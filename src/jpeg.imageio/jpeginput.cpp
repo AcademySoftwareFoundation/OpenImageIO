@@ -348,7 +348,7 @@ bool
 JpgInput::read_icc_profile(j_decompress_ptr cinfo, ImageSpec& spec)
 {
     int num_markers = 0;
-    std::vector<unsigned char> icc_buf;
+    std::vector<uint8_t> icc_buf;
     unsigned int total_length = 0;
     const int MAX_SEQ_NO      = 255;
     unsigned char marker_present
@@ -395,12 +395,21 @@ JpgInput::read_icc_profile(j_decompress_ptr cinfo, ImageSpec& spec)
         if (m->marker == (JPEG_APP0 + 2)
             && !strcmp((const char*)m->data, "ICC_PROFILE")) {
             int seq_no = GETJOCTET(m->data[12]);
-            memcpy(&icc_buf[0] + data_offset[seq_no], m->data + ICC_HEADER_SIZE,
-                   data_length[seq_no]);
+            memcpy(icc_buf.data() + data_offset[seq_no],
+                   m->data + ICC_HEADER_SIZE, data_length[seq_no]);
         }
     }
-    spec.attribute(ICC_PROFILE_ATTR, TypeDesc(TypeDesc::UINT8, total_length),
-                   &icc_buf[0]);
+    spec.attribute("ICCProfile", TypeDesc(TypeDesc::UINT8, total_length),
+                   icc_buf.data());
+
+    std::string errormsg;
+    bool ok = decode_icc_profile(icc_buf, spec, errormsg);
+    if (!ok) {
+        // errorfmt("Could not decode ICC profile: {}\n", errormsg);
+        // return false;
+        // Nah, just skip an ICC specific error?
+    }
+
     return true;
 }
 

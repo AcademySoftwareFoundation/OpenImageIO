@@ -249,10 +249,20 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
         int compression_type;
         png_get_iCCP(sp, ip, &profile_name, &compression_type, &profile_data,
                      &profile_length);
-        if (profile_length && profile_data)
-            spec.attribute(ICC_PROFILE_ATTR,
+        if (profile_length && profile_data) {
+            spec.attribute("ICCProfile",
                            TypeDesc(TypeDesc::UINT8, profile_length),
                            profile_data);
+            std::string errormsg;
+            bool ok = decode_icc_profile(
+                cspan<uint8_t>((const uint8_t*)profile_data, profile_length),
+                spec, errormsg);
+            if (!ok) {
+                // errorfmt("Could not decode ICC profile: {}\n", errormsg);
+                // return false;
+                // Nah, just skip an ICC specific error?
+            }
+        }
     }
 
     png_timep mod_time;
