@@ -41,7 +41,7 @@ gzFile
 open_gz(const std::string& filename, const char* mode)
 {
 #ifdef _WIN32
-    std::wstring wpath = Strutil::utf8_to_utf16(filename);
+    std::wstring wpath = Strutil::utf8_to_utf16wstring(filename);
     gzFile gz          = gzopen_w(wpath.c_str(), mode);
 #else
     gzFile gz = gzopen(filename.c_str(), mode);

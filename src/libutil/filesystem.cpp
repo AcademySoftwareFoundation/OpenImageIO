@@ -56,7 +56,7 @@ inline filesystem::path
 u8path(string_view name)
 {
 #ifdef _WIN32
-    return filesystem::path(Strutil::utf8_to_utf16(name));
+    return filesystem::path(Strutil::utf8_to_utf16wstring(name));
 #else
     return filesystem::path(name.begin(), name.end());
 #endif
@@ -66,7 +66,7 @@ inline filesystem::path
 u8path(const std::string& name)
 {
 #ifdef _WIN32
-    return filesystem::path(Strutil::utf8_to_utf16(name));
+    return filesystem::path(Strutil::utf8_to_utf16wstring(name));
 #else
     return filesystem::path(name);
 #endif
@@ -456,7 +456,7 @@ Filesystem::unique_path(string_view model)
     // to convert char* to wchar_t* because they do not know the encoding
     // See boost/filesystem/path.hpp
     // The only correct way to do this is to do the conversion ourselves
-    std::wstring modelStr    = Strutil::utf8_to_utf16(model);
+    std::wstring modelStr    = Strutil::utf8_to_utf16wstring(model);
 #    else
     std::string modelStr = model.str();
 #    endif
@@ -495,9 +495,8 @@ Filesystem::fopen(string_view path, string_view mode)
 {
 #ifdef _WIN32
     // on Windows fopen does not accept UTF-8 paths, so we convert to wide char
-    std::wstring wpath = Strutil::utf8_to_utf16(path);
-    std::wstring wmode = Strutil::utf8_to_utf16(mode);
-
+    std::wstring wpath = Strutil::utf8_to_utf16wstring(path);
+    std::wstring wmode = Strutil::utf8_to_utf16wstring(mode);
     return ::_wfopen(wpath.c_str(), wmode.c_str());
 #else
     // on Unix platforms passing in UTF-8 works
@@ -538,7 +537,7 @@ Filesystem::open(OIIO::ifstream& stream, string_view path,
 #ifdef _WIN32
     // Windows std::ifstream accepts non-standard wchar_t*
     // On MingW, we use our own OIIO::ifstream
-    std::wstring wpath = Strutil::utf8_to_utf16(path);
+    std::wstring wpath = Strutil::utf8_to_utf16wstring(path);
     stream.open(wpath.c_str(), mode);
     stream.seekg(0, std::ios_base::beg);  // force seek, otherwise broken
 #else
@@ -555,7 +554,7 @@ Filesystem::open(OIIO::ofstream& stream, string_view path,
 #ifdef _WIN32
     // Windows std::ofstream accepts non-standard wchar_t*
     // On MingW, we use our own OIIO::ofstream
-    std::wstring wpath = Strutil::utf8_to_utf16(path);
+    std::wstring wpath = Strutil::utf8_to_utf16wstring(path);
     stream.open(wpath.c_str(), mode);
 #else
     stream.open(path, mode);
@@ -570,7 +569,7 @@ Filesystem::open(string_view path, int flags)
 #ifdef _WIN32
     // on Windows _open does not accept UTF-8 paths, so we convert to wide
     // char and use _wopen.
-    std::wstring wpath = Strutil::utf8_to_utf16(path);
+    std::wstring wpath = Strutil::utf8_to_utf16wstring(path);
     return ::_wopen(wpath.c_str(), flags);
 #else
     // on Unix platforms passing in UTF-8 works

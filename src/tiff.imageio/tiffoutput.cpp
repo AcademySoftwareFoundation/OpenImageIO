@@ -448,7 +448,8 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
                                writer_unmapproc);
     } else {
 #ifdef _WIN32
-        m_tif = TIFFOpenW(Strutil::utf8_to_utf16(name).c_str(), openmode);
+        m_tif = TIFFOpenW(Strutil::utf8_to_utf16wstring(name).c_str(),
+                          openmode);
 #else
         m_tif = TIFFOpen(name.c_str(), openmode);
 #endif
