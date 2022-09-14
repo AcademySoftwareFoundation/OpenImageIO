@@ -48,7 +48,7 @@ Plugin::plugin_extension(void)
 Handle
 dlopen(const char* plugin_filename, int)
 {
-    std::wstring w = Strutil::utf8_to_utf16(plugin_filename);
+    std::wstring w = Strutil::utf8_to_utf16wstring(plugin_filename);
     return LoadLibraryW(w.c_str());
 }
 

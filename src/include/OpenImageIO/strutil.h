@@ -834,14 +834,28 @@ struct OIIO_UTIL_API StringILess {
 
 
 /// Conversion of normal char-based strings (presumed to be UTF-8 encoding)
-/// to wide char string, wstring.
+/// to a UTF-16 encoded wide char string, wstring.
+std::wstring OIIO_UTIL_API utf8_to_utf16wstring (string_view utf8str) noexcept;
+
+#if OPENIMAGEIO_VERSION < 30000
+/// Old name for utf8_to_utf16wstring. Will be deprecated for OIIO 2.5+ and
+/// removed for OIIO 3.0. Use utf8_to_utf16wstring which is more clear that
+/// this particular conversion from utf8 to utf16 returns a std::wstring and
+/// not a std::u16string.
+#if OPENIMAGEIO_VERSION >= 20500
+OIIO_DEPRECATED("Use utf8_to_utf16wstring instead")
+#endif
 std::wstring OIIO_UTIL_API utf8_to_utf16 (string_view utf8str) noexcept;
+#endif
 
 /// Conversion from wstring UTF-16 to a UTF-8 std::string.  This is the
 /// standard way to convert from Windows wide character strings used for
 /// filenames into the UTF-8 strings OIIO expects for filenames when passed to
 /// functions like ImageInput::open().
 std::string OIIO_UTIL_API utf16_to_utf8(const std::wstring& utf16str) noexcept;
+
+/// Conversion from UTF-16 std::u16string to a UTF-8 std::string.
+std::string OIIO_UTIL_API utf16_to_utf8(const std::u16string& utf16str) noexcept;
 
 
 
