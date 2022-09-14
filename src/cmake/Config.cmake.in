@@ -17,6 +17,19 @@ if (NOT @OPENIMAGEIO_CONFIG_DO_NOT_FIND_IMATH@ AND NOT OPENIMAGEIO_CONFIG_DO_NOT
     endif ()
 endif ()
 
+if (NOT @BUILD_SHARED_LIBS@)
+    # This is required in static library builds, as e.g. PNG::PNG appears among
+    # INTERFACE_LINK_LIBRARIES. If the project does not know about PNG target, it will cause
+    # configuration error about unknown targets being linked in.
+    find_dependency(TIFF)
+    if (@JPEG_FOUND@)
+        find_dependency(JPEG)
+    endif()
+    if (@PNG_FOUND@)
+        find_dependency(PNG)
+    endif()
+endif ()
+
 # Compute the installation prefix relative to this file. Note that cmake files are installed
 # to ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME} (see OIIO_CONFIG_INSTALL_DIR)
 get_filename_component(_CURR_INSTALL_LIBDIR "${CMAKE_CURRENT_LIST_DIR}/../../" ABSOLUTE)
