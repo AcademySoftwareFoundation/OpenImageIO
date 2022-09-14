@@ -411,7 +411,8 @@ RawInput::open_raw(bool unpack, const std::string& name,
 
 #ifdef _WIN32
     // Convert to wide chars, just on Windows.
-    int ret = m_processor->open_file(Strutil::utf8_to_utf16(name).c_str());
+    int ret = m_processor->open_file(
+        Strutil::utf8_to_utf16wstring(name).c_str());
 #else
     int ret = m_processor->open_file(name.c_str());
 #endif
