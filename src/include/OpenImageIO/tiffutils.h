@@ -218,6 +218,16 @@ OIIO_API bool decode_xmp (const std::string& xml, ImageSpec &spec);
 OIIO_API std::string encode_xmp (const ImageSpec &spec, bool minimal=false);
 
 
+/// Add metadata to spec based on ICC data in a byte array.  Return true if
+/// all is ok, false if the ICC was somehow malformed (and in that case, set
+/// the contents of `error` to something useful).  This is a utility function
+/// to make it easy for multiple format plugins to support embedding ICC
+/// metadata without having to duplicate functionality within each plugin.
+OIIO_API bool decode_icc_profile(cspan<uint8_t> iccdata, ImageSpec& spec,
+                                 std::string& error);
+
+
+
 /// Handy structure to hold information mapping TIFF/EXIF tags to their
 /// names and actions.
 struct TagInfo {
