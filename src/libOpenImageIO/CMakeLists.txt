@@ -57,7 +57,8 @@ set (libOpenImageIO_srcs
                           imagebufalgo_xform.cpp
                           imagebufalgo_yee.cpp imagebufalgo_opencv.cpp
                           deepdata.cpp exif.cpp exif-canon.cpp
-                          formatspec.cpp imagebuf.cpp
+                          formatspec.cpp
+                          icc.cpp imagebuf.cpp
                           imageinput.cpp imageio.cpp imageioplugin.cpp
                           imageoutput.cpp
                           iptc.cpp xmp.cpp

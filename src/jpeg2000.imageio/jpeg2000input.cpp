@@ -11,6 +11,7 @@
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/sysutil.h>
+#include <OpenImageIO/tiffutils.h>
 
 #ifndef OIIO_OPJ_VERSION
 #    if defined(OPJ_VERSION_MAJOR)
@@ -328,10 +329,22 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
 
     m_spec.attribute("oiio:BitsPerSample", maxPrecision);
     m_spec.attribute("oiio:ColorSpace", "sRGB");
-    if (m_image->icc_profile_len && m_image->icc_profile_buf)
+
+    if (m_image->icc_profile_len && m_image->icc_profile_buf) {
         m_spec.attribute("ICCProfile",
                          TypeDesc(TypeDesc::UINT8, m_image->icc_profile_len),
                          m_image->icc_profile_buf);
+        std::string errormsg;
+        bool ok = decode_icc_profile(
+            cspan<uint8_t>((const uint8_t*)m_image->icc_profile_buf,
+                           m_image->icc_profile_len),
+            m_spec, errormsg);
+        if (!ok) {
+            // errorfmt("Could not decode ICC profile: {}\n", errormsg);
+            // return false;
+            // Nah, just skip an ICC specific error?
+        }
+    }
 
     p_spec = m_spec;
     return true;

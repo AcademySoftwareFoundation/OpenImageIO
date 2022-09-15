@@ -120,5 +120,21 @@ tahoe-icc.jpg        :  128 x   96, 3 channel, uint8 jpeg
     YResolution: 72
     Exif:ExifVersion: "0230"
     Exif:FlashPixVersion: "0100"
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1094992453
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright 1999 Adobe Systems Incorporated"
+    ICCProfile:creation_date: "1999:06:03 00:00:00"
+    ICCProfile:creator_signature: "41444245"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "6e6f6e65"
+    ICCProfile:model: "0"
+    ICCProfile:platform_signature: "Apple Computer, Inc."
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "Adobe RGB (1998)"
+    ICCProfile:profile_size: 560
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Perceptual"
     jpeg:subsampling: "4:2:0"
     oiio:ColorSpace: "sRGB"

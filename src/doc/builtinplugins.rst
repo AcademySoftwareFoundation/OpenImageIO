@@ -945,7 +945,8 @@ anywhere near the acceptance of the original JPEG/JFIF format.
        meaning lossless.
    * - ``ICCProfile``
      - uint8[]
-     - The ICC color profile
+     - The ICC color profile. A variety of other ``ICCProfile:*`` attributes
+       may also be present, extracted from the main profile.
    * - ``jpeg:subsampling``
      - string
      - Describes the chroma subsampling, e.g., ``"4:2:0"`` (the default),
@@ -1055,7 +1056,8 @@ metadata robustly.
      - Color space (see Section :ref:`sec-metadata-color`).
    * - ``ICCProfile``
      - uint8[]
-     - The ICC color profile
+     - The ICC color profile. A variety of other ``ICCProfile:*`` attributes
+       may also be present, extracted from the main profile.
 
 
 **Configuration settings for JPEG-2000 input**
@@ -1490,7 +1492,8 @@ files use the file extension :file:`.png`.
      - the gamma correction value (if specified).
    * - ``ICCProfile``
      - uint8[]
-     - The ICC color profile
+     - The ICC color profile. A variety of other ``ICCProfile:*`` attributes
+       may also be present, extracted from the main profile.
 
 **Configuration settings for PNG input**
 
@@ -1676,6 +1679,20 @@ PSD is the file format used for storing Adobe PhotoShop images. OpenImageIO
 provides limited read abilities for PSD, but not currently the ability to
 write PSD files.
 
+**Attributes**
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - ImageSpec Attribute
+     - Type
+     - JPEG header data or explanation
+   * - ``ICCProfile``
+     - uint8[]
+     - The ICC color profile. A variety of other ``ICCProfile:*`` attributes
+       may also be present, extracted from the main profile.
+
 **Configuration settings for PSD input**
 
 When opening an ImageInput with a *configuration* (see
@@ -1694,6 +1711,11 @@ options are supported:
      - If nonzero, reading images with non-RGB color models (such as YCbCr
        or CMYK) will return unaltered pixel values (versus the default OIIO
        behavior of automatically converting to RGB).
+   * - ``oiio:UnassociatedAlpha``
+     - int
+     - If nonzero, will leave alpha unassociated (versus the default of
+       premultiplying color channels by alpha if the alpha channel is
+       unassociated).
    * - ``oiio:ioproxy``
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
@@ -2511,7 +2533,8 @@ aware of:
      - Orientation
    * - ``ICCProfile``
      - uint8[]
-     - The ICC color profile
+     - The ICC color profile. A variety of other ``ICCProfile:*`` attributes
+       may also be present, extracted from the main profile.
    * - ``textureformat``
      - string
      - PIXAR_TEXTUREFORMAT
