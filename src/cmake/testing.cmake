@@ -215,6 +215,7 @@ macro (oiio_add_all_tests)
             python-colorconfig
             python-deep 
             python-imagebuf
+            python-imagecache
             python-imageoutput
             python-imagespec
             python-paramlist

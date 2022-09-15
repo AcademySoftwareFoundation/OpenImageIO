@@ -1,0 +1,6 @@
+stat:cache_memory_used 0
+stat:image_size 4036864
+total_files 2
+all_filenames ('../common/grid.tif', '../common/tahoe-tiny.tif')
+
+Done.
