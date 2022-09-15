@@ -163,9 +163,19 @@ Color information
     the default is black (0 in all channels).
 
 .. option:: "ICCProfile" : uint8[]
+            "ICCProfile:...various..." : ...various types...
 
-    The ICC color profile takes the form of an array of bytes (unsigned 8
-    bit chars). The length of the array is the length of the profile blob.
+    The ICC color profile takes the form of an array of bytes (unsigned 8 bit
+    chars) whose contents and format is as dictated by the ICC specification.
+    The length of the array is the length of the profile blob.
+
+    When reading images containing ICC profiles, there may be a number of
+    other attributes extracted from the ICC profile (such as
+    `ICCProfile:device_class`). These are for informational convenience only,
+    as they replicate information which is also in the ICCProfile byte array.
+    Be aware that *setting* these attributes will not result in modifying the
+    ICC profile byte array (`"ICCProfile"`), which is considered the sole
+    piece of durable ICC profile information.
 
 
 

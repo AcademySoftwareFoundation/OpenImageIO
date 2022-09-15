@@ -1103,7 +1103,6 @@ bool PSDInput::load_resource_1005(uint32_t /*length*/)
         return false;
     }
     common_attribute("XResolution", resinfo.hRes);
-    common_attribute("XResolution", resinfo.hRes);
     common_attribute("YResolution", resinfo.vRes);
     switch (resinfo.hResUnit) {
     case ResolutionInfo::PixelsPerInch:
@@ -1167,12 +1166,15 @@ PSDInput::load_resource_1036(uint32_t length)
 bool
 PSDInput::load_resource_1039(uint32_t length)
 {
-    std::unique_ptr<char[]> icc_buf(new char[length]);
+    std::unique_ptr<uint8_t[]> icc_buf(new uint8_t[length]);
     if (!ioread(icc_buf.get(), length))
         return false;
 
     TypeDesc type(TypeDesc::UINT8, length);
     common_attribute("ICCProfile", type, icc_buf.get());
+    std::string errormsg;
+    decode_icc_profile(cspan<uint8_t>(icc_buf.get(), length), m_common_attribs,
+                       errormsg);
     return true;
 }
 

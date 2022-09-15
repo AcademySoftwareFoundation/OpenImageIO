@@ -1179,11 +1179,15 @@ TIFFInput::readspec(bool read_meta)
 
     /// read color profile
     unsigned int icc_datasize = 0;
-    unsigned char* icc_buf    = NULL;
+    uint8_t* icc_buf          = NULL;
     TIFFGetField(m_tif, TIFFTAG_ICCPROFILE, &icc_datasize, &icc_buf);
-    if (icc_datasize && icc_buf)
+    if (icc_datasize && icc_buf) {
         m_spec.attribute(ICC_PROFILE_ATTR,
                          TypeDesc(TypeDesc::UINT8, icc_datasize), icc_buf);
+        std::string errormsg;
+        decode_icc_profile(cspan<uint8_t>(icc_buf, icc_datasize), m_spec,
+                           errormsg);
+    }
 
 #if TIFFLIB_VERSION > 20050912 /* compat with old TIFF libs - skip Exif */
     // Search for an EXIF IFD in the TIFF file, and if found, rummage

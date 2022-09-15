@@ -988,6 +988,13 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
             return false;
     }
 
+    // The main "ICCProfile" byte array should translate, but the individual
+    // "ICCProfile:*" attributes are suppressed because they merely duplicate
+    // what's in the byte array.
+    if (Strutil::istarts_with(xname, "ICCProfile:")) {
+        return false;
+    }
+
     if (!xname.length())
         return false;  // Skip suppressed names
 
