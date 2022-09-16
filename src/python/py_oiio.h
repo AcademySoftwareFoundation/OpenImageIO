@@ -136,6 +136,7 @@ template<> struct PyTypeForCType<unsigned short> { typedef py::int_ type; };
 template<> struct PyTypeForCType<char> { typedef py::int_ type; };
 template<> struct PyTypeForCType<unsigned char> { typedef py::int_ type; };
 template<> struct PyTypeForCType<int64_t> { typedef py::int_ type; };
+template<> struct PyTypeForCType<uint64_t> { typedef py::int_ type; };
 template<> struct PyTypeForCType<float> { typedef py::float_ type; };
 template<> struct PyTypeForCType<half> { typedef py::float_ type; };
 template<> struct PyTypeForCType<double> { typedef py::float_ type; };
@@ -536,6 +537,10 @@ getattribute_typed(const T& obj, const std::string& name,
         return C_to_val_or_tuple((const half*)data, type);
     if (type.basetype == TypeDesc::STRING)
         return C_to_val_or_tuple((const char**)data, type);
+    if (type.basetype == TypeDesc::INT64)
+        return C_to_val_or_tuple((const int64_t*)data, type);
+    if (type.basetype == TypeDesc::UINT64)
+        return C_to_val_or_tuple((const uint64_t*)data, type);
     return py::none();
 }
 
