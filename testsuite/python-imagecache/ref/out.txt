@@ -1,6 +1,14 @@
-stat:cache_memory_used 0
-stat:image_size 4036864
-total_files 2
-all_filenames ('../common/grid.tif', '../common/tahoe-tiny.tif')
+full getattribute stat:cache_memory_used 0
+full getattribute stat:image_size 4036864
+full getattribute total_files 2
+full getattribute all_filenames ('../common/grid.tif', '../common/tahoe-tiny.tif')
+getattributetype stat:cache_memory_used int64
+getattributetype stat:image_size int64
+getattributetype total_files int
+getattributetype all_filenames string[2]
+untyped getattribute stat:cache_memory_used 0
+untyped getattribute stat:image_size 4036864
+untyped getattribute total_files 2
+untyped getattribute all_filenames ('../common/grid.tif', '../common/tahoe-tiny.tif')
 
 Done.

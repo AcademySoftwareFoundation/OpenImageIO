@@ -485,6 +485,37 @@ TextureSystemImpl::attribute(string_view name, TypeDesc type, const void* val)
 
 
 
+TypeDesc
+TextureSystemImpl::getattributetype(string_view name) const
+{
+    // clang-format off
+    static std::unordered_map<std::string, TypeDesc> attr_types {
+        { "worldtocommon", TypeMatrix },
+        { "commontoworld", TypeMatrix },
+        { "gray_to_rgb", TypeInt },
+        { "grey_to_rgb", TypeInt },
+        { "flip_t", TypeInt },
+        { "max_tile_channels", TypeInt },
+        { "stochastic", TypeInt },
+    };
+    // clang-format on
+
+    // For all the easy cases, if the attribute is in the table and has a
+    // simple type, use that.
+    const auto found = attr_types.find(name);
+    if (found != attr_types.end())
+        return found->second;
+
+    // Maybe it's an ImageCache attribute
+    TypeDesc ict = m_imagecache->getattributetype(name);
+    if (ict != TypeUnknown)
+        return ict;
+
+    return TypeUnknown;
+}
+
+
+
 bool
 TextureSystemImpl::getattribute(string_view name, TypeDesc type,
                                 void* val) const

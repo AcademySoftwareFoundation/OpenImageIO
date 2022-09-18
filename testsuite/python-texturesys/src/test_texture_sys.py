@@ -15,6 +15,10 @@ texture_opt = oiio.TextureOpt()
 texture_opt.swrap = oiio.Wrap.Periodic
 texture_opt.twrap = oiio.Wrap.Periodic
 
+
+# Test getattribute
+
+
 print ("checker middle, top mip, channels: 1 =", texture_sys.texture(checker, texture_opt, 0.5, 0.5, 0, 0, 0, 0, 1))
 print ("checker middle, top mip, channels: 2 =", texture_sys.texture(checker, texture_opt, 0.5, 0.5, 0, 0, 0, 0, 2))
 print ("checker middle, top mip, channels: 3 =", texture_sys.texture(checker, texture_opt, 0.5, 0.5, 0, 0, 0, 0, 3))
@@ -56,5 +60,17 @@ udname = 'file.<UDIM>.tx'
 (utiles, vtiles, tilenames) = texture_sys.inventory_udim(udname)
 print("udim {} -> {}x{} {}".format(udname, utiles, vtiles, tilenames))
 
+
+# Test getattribute() and getattributetype()
+print ("getattributetype stat:image_size", texture_sys.getattributetype("stat:image_size"))
+print ("getattributetype total_files", texture_sys.getattributetype("total_files"))
+print ("getattributetype max_memory_MB", texture_sys.getattributetype("max_memory_MB"))
+print ("getattributetype worldtocommon", texture_sys.getattributetype("worldtocommon"))
+
+# Test getattribute(name) with the type inferred from the attribute
+print ("untyped getattribute stat:image_size", texture_sys.getattribute("stat:image_size"))
+print ("untyped getattribute total_files", texture_sys.getattribute("total_files"))
+print ("untyped getattribute max_memory_MB", texture_sys.getattribute("max_memory_MB"))
+print ("untyped getattribute worldtocommon", texture_sys.getattribute("worldtocommon"))
 
 print("Done.")
