@@ -248,7 +248,7 @@ make_pyobject(const void* data, TypeDesc type, int nvalues,
         // Have to make a copy of the data, because make_numpy_array will
         // take possession of it.
         uint8_t* ucdata(new uint8_t[type.arraylen * nvalues]);
-        memcpy(ucdata, data, type.arraylen * nvalues);
+        std::memcpy(ucdata, data, type.arraylen * nvalues);
         return make_numpy_array(ucdata, 1, 1, size_t(type.arraylen),
                                 size_t(nvalues));
     }
