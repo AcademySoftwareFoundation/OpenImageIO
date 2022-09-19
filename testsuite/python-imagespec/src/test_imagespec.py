@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 from __future__ import absolute_import
+import numpy
 import OpenImageIO as oiio
 
 
@@ -91,6 +92,7 @@ try:
     s.attribute ("foo_matrix", oiio.TypeDesc.TypeMatrix,
                  (1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 1, 2, 3, 1))
     s.attribute ("smpte:TimeCode", oiio.TypeDesc.TypeTimeCode, (18356486, 4294967295))
+    s.attribute ("ucarr", "uint8[10]", numpy.array([49, 50, 51, 0, 0, 97, 98, 99, 1, 88], dtype='B'))
     s["delfoo_str"] =  "egg"
     s["delfoo_int"] = 29
     s["delfoo_float"] = 99.5
@@ -111,8 +113,14 @@ try:
     print ("getattribute('foo_matrix') retrieves", s.getattribute("foo_matrix"))
     print ("getattribute('foo_no') retrieves", s.getattribute("foo_no"))
     print ("getattribute('smpte:TimeCode') retrieves", s.getattribute("smpte:TimeCode"))
+    print ("getattribute('ucarr') retrieves", s.getattribute("ucarr"))
     print ("getattribute('unknown') retrieves", s.getattribute("unknown"))
     print ("s.get('foo_int') =", s.get('foo_int'))
+    print ("s.get('ucarr') retrieves", s.get("ucarr"))
+    try :
+        print ("s['ucarr'] retrieves", s['ucarr'])
+    except KeyError :
+        print ("s['ucarr'] not found")
     print ("s.get('unknown') =", s.get('unknown'))
     print ("s.get('unknown', 123) =", s.get('unknown'))
     print ("s['delfoo_float'] =", s['delfoo_float'])

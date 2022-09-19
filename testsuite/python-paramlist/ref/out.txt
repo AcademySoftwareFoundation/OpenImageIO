@@ -6,14 +6,17 @@ Testing individual ParamValue:
   item e float (1.0, 3.0, 5.0, 7.0)
   item f point (3.5, 4.5, 5.5)
   item g color (0.25, 0.5, 0.75)
+  item ucarr uint8[10] [49 50 51  0  0 97 98 99  1 88]
+  item bts uint8[10] [49 50 51  0  0 97 98 99  1 88]
 
 Testing ParamValueList:
-pl length is 8
+pl length is 9
   item i int 1
   item s string Bob
   item e float 2.71828
   item P point (2.0, 42.0, 1.0)
   item pressure float (98.0, 98.5, 99.0, 99.5)
+  item ucarr uint8[10] [49 50 51  0  0 97 98 99  1 88]
   item j int 42
   item foo string bar
   item pi float 3.14159
@@ -23,8 +26,9 @@ pl[1] = s string Bob
 pl['e'] = 2.71828
 pl['pi'] = 3.14159
 pl['foo'] = bar
+pl['ucarr'] = [49 50 51  0  0 97 98 99  1 88]
 'e' in pl = True
-after removing 'e', len= 7 pl.contains('e')= False
+after removing 'e', len= 8 pl.contains('e')= False
 after adding 'x', then 'x' in pl = True
 after removing 'x', then 'x' in pl = False
 pl['unknown'] raised a KeyError (as expected)
@@ -36,6 +40,7 @@ After merge, pl =
   item s string Bob
   item P point (2.0, 42.0, 1.0)
   item pressure float (98.0, 98.5, 99.0, 99.5)
+  item ucarr uint8[10] [49 50 51  0  0 97 98 99  1 88]
   item j int 42
   item foo string bar
   item pi float 3.14159
@@ -51,4 +56,5 @@ after sorting:
   item pi float 3.14159
   item pressure float (98.0, 98.5, 99.0, 99.5)
   item s string Bob
+  item ucarr uint8[10] [49 50 51  0  0 97 98 99  1 88]
 Done.

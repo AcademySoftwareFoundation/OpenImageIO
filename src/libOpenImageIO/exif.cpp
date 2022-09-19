@@ -341,9 +341,11 @@ version4uint8_handler(const TagInfo& taginfo, const TIFFDirEntry& dir,
                       bool /*swapendian*/ = false, int offset_adjustment = 0)
 {
     const char* data = (const char*)dataptr(dir, buf, offset_adjustment);
-    if (tiff_data_size(dir) == 4 && data != nullptr)  // sanity check
-        spec.attribute(taginfo.name, TypeDesc(TypeDesc::UINT8, 4),
-                       (const char*)data);
+    if (tiff_data_size(dir) == 4 && data != nullptr) {  // sanity check
+        int val[4] = { (unsigned char)data[0], (unsigned char)data[1],
+                       (unsigned char)data[2], (unsigned char)data[3] };
+        spec.attribute(taginfo.name, TypeDesc(TypeDesc::INT, 4), val);
+    }
 }
 
 

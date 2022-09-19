@@ -50,24 +50,7 @@ ImageSpec_getattribute_typed(const ImageSpec& spec, const std::string& name,
     const ParamValue* p = spec.find_attribute(name, tmpparam, type);
     if (!p)
         return py::none();
-    type = p->type();
-    if (type.basetype == TypeDesc::INT)
-        return C_to_val_or_tuple((const int*)p->data(), type);
-    if (type.basetype == TypeDesc::UINT)
-        return C_to_val_or_tuple((const unsigned int*)p->data(), type);
-    if (type.basetype == TypeDesc::INT16)
-        return C_to_val_or_tuple((const short*)p->data(), type);
-    if (type.basetype == TypeDesc::UINT16)
-        return C_to_val_or_tuple((const unsigned short*)p->data(), type);
-    if (type.basetype == TypeDesc::FLOAT)
-        return C_to_val_or_tuple((const float*)p->data(), type);
-    if (type.basetype == TypeDesc::DOUBLE)
-        return C_to_val_or_tuple((const double*)p->data(), type);
-    if (type.basetype == TypeDesc::HALF)
-        return C_to_val_or_tuple((const half*)p->data(), type);
-    if (type.basetype == TypeDesc::STRING)
-        return C_to_val_or_tuple((const char**)p->data(), type);
-    return py::none();
+    return make_pyobject(p->data(), p->type(), p->nvalues());
 }
 
 
@@ -238,7 +221,7 @@ declare_imagespec(py::module& m)
             [](const ImageSpec& self, const std::string& key, py::object def) {
                 ParamValue tmpparam;
                 auto p = self.find_attribute(key, tmpparam);
-                return p ? ParamValue_getitem(*p, false, def) : def;
+                return p ? make_pyobject(p->data(), p->type(), 1, def) : def;
             },
             "key"_a, "default"_a = py::none())
         .def(
@@ -285,7 +268,7 @@ declare_imagespec(py::module& m)
                  auto p = self.find_attribute(key, tmpparam);
                  if (p == nullptr)
                      throw py::key_error("key '" + key + "' does not exist");
-                 return ParamValue_getitem(*p);
+                 return make_pyobject(p->data(), p->type());
              })
         // __setitem__ is the dict-like `ImageSpec[key] = value` assignment
         .def("__setitem__",
