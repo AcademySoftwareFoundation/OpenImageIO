@@ -508,6 +508,14 @@ attribute_typed(T& myobj, string_view name, TypeDesc type, const POBJ& dataobj)
 
 
 
+// `data` points to values of `type`. Make a python object that represents
+// them.
+py::object
+make_pyobject(const void* data, TypeDesc type, int nvalues = 1,
+              py::object defaultvalue = py::none());
+
+
+
 template<typename T>
 py::object
 getattribute_typed(const T& obj, const std::string& name,
@@ -519,29 +527,7 @@ getattribute_typed(const T& obj, const std::string& name,
     bool ok    = obj.getattribute(name, type, data);
     if (!ok)
         return py::none();  // None
-    if (type.basetype == TypeDesc::INT)
-        return C_to_val_or_tuple((const int*)data, type);
-    if (type.basetype == TypeDesc::UINT)
-        return C_to_val_or_tuple((const unsigned int*)data, type);
-    if (type.basetype == TypeDesc::INT16)
-        return C_to_val_or_tuple((const short*)data, type);
-    if (type.basetype == TypeDesc::UINT16)
-        return C_to_val_or_tuple((const unsigned short*)data, type);
-    if (type.basetype == TypeDesc::UINT8)
-        return C_to_val_or_tuple((const unsigned char*)data, type);
-    if (type.basetype == TypeDesc::FLOAT)
-        return C_to_val_or_tuple((const float*)data, type);
-    if (type.basetype == TypeDesc::DOUBLE)
-        return C_to_val_or_tuple((const double*)data, type);
-    if (type.basetype == TypeDesc::HALF)
-        return C_to_val_or_tuple((const half*)data, type);
-    if (type.basetype == TypeDesc::STRING)
-        return C_to_val_or_tuple((const char**)data, type);
-    if (type.basetype == TypeDesc::INT64)
-        return C_to_val_or_tuple((const int64_t*)data, type);
-    if (type.basetype == TypeDesc::UINT64)
-        return C_to_val_or_tuple((const uint64_t*)data, type);
-    return py::none();
+    return make_pyobject(data, type);
 }
 
 
@@ -616,40 +602,6 @@ make_numpy_array(TypeDesc format, void* data, int dims, size_t chans,
         return make_numpy_array((int*)data, dims, chans, width, height, depth);
     delete[](char*) data;
     return py::none();
-}
-
-
-
-inline py::object
-ParamValue_getitem(const ParamValue& self, bool allitems = false,
-                   py::object defaultvalue = py::none())
-{
-    TypeDesc t = self.type();
-    int nvals  = allitems ? self.nvalues() : 1;
-
-#define ParamValue_convert_dispatch(TYPE)                                  \
-case TypeDesc::TYPE:                                                       \
-    return C_to_val_or_tuple((CType<TypeDesc::TYPE>::type*)self.data(), t, \
-                             nvals)
-
-    switch (t.basetype) {
-        ParamValue_convert_dispatch(UCHAR);
-        // ParamValue_convert_dispatch(CHAR);
-        ParamValue_convert_dispatch(USHORT);
-        ParamValue_convert_dispatch(SHORT);
-        ParamValue_convert_dispatch(UINT);
-        ParamValue_convert_dispatch(INT);
-        // ParamValue_convert_dispatch(ULONGLONG);
-        // ParamValue_convert_dispatch(LONGLONG);
-        ParamValue_convert_dispatch(HALF);
-        ParamValue_convert_dispatch(FLOAT);
-        ParamValue_convert_dispatch(DOUBLE);
-    case TypeDesc::STRING:
-        return C_to_val_or_tuple((const char**)self.data(), t, nvals);
-    default: return defaultvalue;
-    }
-
-#undef ParamValue_convert_dispatch
 }
 
 

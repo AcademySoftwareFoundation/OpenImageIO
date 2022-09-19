@@ -219,6 +219,47 @@ oiio_attribute_typed(const std::string& name, TypeDesc type,
 
 
 
+py::object
+make_pyobject(const void* data, TypeDesc type, int nvalues,
+              py::object defaultvalue)
+{
+    if (type.basetype == TypeDesc::INT32)
+        return C_to_val_or_tuple((const int*)data, type, nvalues);
+    if (type.basetype == TypeDesc::FLOAT)
+        return C_to_val_or_tuple((const float*)data, type, nvalues);
+    if (type.basetype == TypeDesc::STRING)
+        return C_to_val_or_tuple((const char**)data, type, nvalues);
+    if (type.basetype == TypeDesc::UINT32)
+        return C_to_val_or_tuple((const unsigned int*)data, type, nvalues);
+    if (type.basetype == TypeDesc::INT16)
+        return C_to_val_or_tuple((const short*)data, type, nvalues);
+    if (type.basetype == TypeDesc::UINT16)
+        return C_to_val_or_tuple((const unsigned short*)data, type, nvalues);
+    if (type.basetype == TypeDesc::INT64)
+        return C_to_val_or_tuple((const int64_t*)data, type, nvalues);
+    if (type.basetype == TypeDesc::UINT64)
+        return C_to_val_or_tuple((const uint64_t*)data, type, nvalues);
+    if (type.basetype == TypeDesc::DOUBLE)
+        return C_to_val_or_tuple((const double*)data, type, nvalues);
+    if (type.basetype == TypeDesc::HALF)
+        return C_to_val_or_tuple((const half*)data, type, nvalues);
+    if (type.basetype == TypeDesc::UINT8 && type.arraylen > 0) {
+        // Array of uint8 bytes
+        // Have to make a copy of the data, because make_numpy_array will
+        // take possession of it.
+        uint8_t* ucdata(new uint8_t[type.arraylen * nvalues]);
+        std::memcpy(ucdata, data, type.arraylen * nvalues);
+        return make_numpy_array(ucdata, 1, 1, size_t(type.arraylen),
+                                size_t(nvalues));
+    }
+    if (type.basetype == TypeDesc::UINT8)
+        return C_to_val_or_tuple((const unsigned char*)data, type, nvalues);
+    debugfmt("Don't know how to handle type {}\n", type);
+    return defaultvalue;
+}
+
+
+
 static py::object
 oiio_getattribute_typed(const std::string& name, TypeDesc type = TypeUnknown)
 {
@@ -227,13 +268,7 @@ oiio_getattribute_typed(const std::string& name, TypeDesc type = TypeUnknown)
     char* data = OIIO_ALLOCA(char, type.size());
     if (!OIIO::getattribute(name, type, data))
         return py::none();
-    if (type.basetype == TypeDesc::INT)
-        return C_to_val_or_tuple((const int*)data, type);
-    if (type.basetype == TypeDesc::FLOAT)
-        return C_to_val_or_tuple((const float*)data, type);
-    if (type.basetype == TypeDesc::STRING)
-        return C_to_val_or_tuple((const char**)data, type);
-    return py::none();
+    return make_pyobject(data, type);
 }
 
 
