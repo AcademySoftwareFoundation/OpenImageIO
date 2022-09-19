@@ -45,6 +45,28 @@ ParamValue_from_pyobject(string_view name, TypeDesc type, int nvalues,
             pv.init(name, type, nvalues, interp, &u[0]);
             return pv;
         }
+    } else if (type.basetype == TypeDesc::UINT8 && type.arraylen
+               && py::isinstance<py::bytes>(obj)) {
+        // Special case: converting a "bytes" object to a byte array
+        std::string s = obj.cast<py::bytes>();
+        if (type.arraylen < 0)  // convert un-specified length to real length
+            type.arraylen = int(s.size()) / nvalues;
+        if (type.arraylen * nvalues == int(s.size())) {
+            std::vector<uint8_t> vals((const uint8_t*)s.data(),
+                                      (const uint8_t*)s.data() + s.size());
+            pv.init(name, type, nvalues, interp, vals.data());
+            return pv;
+        }
+    } else if (type.basetype == TypeDesc::UINT8) {
+        std::vector<uint8_t> vals;
+        py_to_stdvector(vals, obj);
+        if (vals.size() >= expected_size) {
+            pv.init(name, type, nvalues, interp, vals.data());
+            return pv;
+        }
+    } else {
+        Strutil::print("ParamValue_from_pyobject not sure how to handle {} {}\n",
+                       name, type);
     }
 
     // I think this is what we should do here when not enough data is
@@ -143,7 +165,9 @@ declare_paramvalue(py::module& m)
 #endif
         .def_property_readonly("value",
                                [](const ParamValue& self) {
-                                   return ParamValue_getitem(self, true);
+                                   return make_pyobject(self.data(),
+                                                        self.type(),
+                                                        self.nvalues());
                                })
         .def_property_readonly("__len__", &ParamValue::nvalues)
         .def(py::init<const std::string&, int>())
@@ -180,7 +204,7 @@ declare_paramvalue(py::module& m)
                 auto p = self.find(key);
                 if (p == self.end())
                     throw py::key_error("key '" + key + "' does not exist");
-                return ParamValue_getitem(*p);
+                return make_pyobject(p->data(), p->type());
             },
             py::return_value_policy::reference_internal)
         // __setitem__ is the dict-like `pvl[key] = value` assignment
