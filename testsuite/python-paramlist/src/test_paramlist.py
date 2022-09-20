@@ -43,6 +43,12 @@ try:
     pv = oiio.ParamValue("g", "color",
                          numpy.array([0.25, 0.5, 0.75], dtype='f'))
     print_param_value(pv)
+    # Construct from numpy byte array
+    pv = oiio.ParamValue("ucarr", "uint8[10]", numpy.array([49, 50, 51, 0, 0, 97, 98, 99, 1, 88], dtype='B'))
+    print_param_value(pv)
+    # Construct from bytes
+    pv = oiio.ParamValue("bts", "uint8[10]", b'123\x00\x00abc\x01X')
+    print_param_value(pv)
 
     print ("")
 
@@ -53,6 +59,7 @@ try:
     pl.attribute ("e", 2.718281828459045)
     pl.attribute ("P", "point", (2.0, 42.0, 1.0))
     pl.attribute ("pressure", "float", 4, [98.0, 98.5, 99.0, 99.5])
+    pl.attribute ("ucarr", "uint8[10]", numpy.array([49, 50, 51, 0, 0, 97, 98, 99, 1, 88], dtype='B'))
     pl["j"] = 42
     pl["foo"] = "bar"
     pl["pi"] = 3.141592653589793
@@ -66,6 +73,7 @@ try:
     print ("pl['e'] = {:.6}".format(pl['e']))
     print ("pl['pi'] = {:.6}".format(pl['pi']))
     print ("pl['foo'] =", pl['foo'])
+    print ("pl['ucarr'] =", pl['ucarr'])
     print ("'e' in pl =", 'e' in pl)
 
     pl.remove('e')
