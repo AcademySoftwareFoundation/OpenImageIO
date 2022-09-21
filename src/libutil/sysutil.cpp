@@ -33,6 +33,7 @@
 #endif
 
 #ifdef __APPLE__
+#    include <TargetConditionals.h>
 #    include <mach-o/dyld.h>
 #    include <mach/mach_init.h>
 #    include <mach/task.h>
@@ -570,7 +571,7 @@ Sysutil::put_in_background(int argc, char* argv[])
     return daemon(1, 1) == 0;
 #endif
 
-#ifdef __APPLE__
+#if defined(__APPLE__) && TARGET_OS_OSX
     std::string newcmd = std::string(argv[0]) + " -F";
     for (int i = 1; i < argc; ++i) {
         newcmd += " \"";
