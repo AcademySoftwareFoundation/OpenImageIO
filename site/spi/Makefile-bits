@@ -222,12 +222,15 @@ else ifeq (${platform}, macosx)
         MY_CMAKE_FLAGS += \
            -DCMAKE_C_COMPILER=gcc-11 -DCMAKE_CXX_COMPILER=g++-11
         USE_LIBCPLUSPLUS := 0
-    else ifeq (${COMPILER},clang9)
-        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=/usr/local/opt/llvm@9/bin/clang \
-        				  -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm@9/bin/clang++
-    else ifeq (${COMPILER},clang11)
-        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=/usr/local/opt/llvm@11/bin/clang \
-        				  -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm@11/bin/clang++
+    else ifeq (${COMPILER},clang13)
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=/usr/local/opt/llvm@13/bin/clang \
+        				  -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm@13/bin/clang++
+    else ifeq (${COMPILER},clang14)
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=/usr/local/opt/llvm@14/bin/clang \
+                          -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm@14/bin/clang++
+    else ifeq (${COMPILER},clang15)
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=/usr/local/opt/llvm@15/bin/clang \
+                          -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm@15/bin/clang++
     else ifeq (${COMPILER},clang)
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
     else ifeq (${COMPILER},gcc)

@@ -529,15 +529,11 @@ task_set::wait(bool block)
         int tries = 0;
         while (1) {
             bool all_finished = true;
-            int nfutures = 0, finished = 0;
             for (auto&& f : m_futures) {
                 // Asking future.wait_for for 0 time just checks the status.
-                ++nfutures;
                 auto status = f.wait_for(wait_time);
                 if (status != std::future_status::ready)
                     all_finished = false;
-                else
-                    ++finished;
             }
             if (all_finished)  // All futures are ready? We're done.
                 break;
