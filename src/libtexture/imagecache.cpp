@@ -2301,7 +2301,7 @@ ImageCacheImpl::getattributetype(string_view name) const
     if (found != attr_types.end())
         return found->second;
 
-    // The cases that don't fit in the tabke
+    // The cases that don't fit in the table
     if (name == "all_filenames") {
         // all_filenames is an array, but the length depends on the actual
         // number of files we've encountered.
