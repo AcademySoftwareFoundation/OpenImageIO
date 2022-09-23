@@ -963,7 +963,7 @@ parse_channels(const ImageSpec& spec, string_view chanlist,
 {
     bool ok = true;
     channels.clear();
-    for (int c = 0; chanlist.length(); ++c) {
+    while (chanlist.length()) {
         int chan = -1;
         Strutil::skip_whitespace(chanlist);
         string_view name = Strutil::parse_until(chanlist, ",");
