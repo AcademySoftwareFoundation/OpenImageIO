@@ -87,6 +87,7 @@ lg@openimageio.org
 * Jeremy Rose
 * Jeremy Selan
 * Jim Hourihan
+* Johannes Unterguggenberger
 * John Burnett
 * John Haddon
 * Jonathan Hearn
@@ -122,6 +123,8 @@ lg@openimageio.org
 * Matthew E. Levine
 * Max Liani
 * Merwan Achibet
+* Michael Cho
+* Michael Oliver
 * Michel Lerenard
 * Michel Normand
 * Mikael Sundell
@@ -146,6 +149,7 @@ lg@openimageio.org
 * Pete Larabell
 * Philip Nemec
 * Pino Toscano
+* Povilas Kanapickas
 * Puneet Jain
 * Radu Arjocu
 * Ramon Montoya
