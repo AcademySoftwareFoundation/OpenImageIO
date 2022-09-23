@@ -61,6 +61,8 @@ public:
         return attribute(name, TypeDesc::STRING, &s);
     }
 
+    TypeDesc getattributetype(string_view name) const override;
+
     bool getattribute(string_view name, TypeDesc type,
                       void* val) const override;
     bool getattribute(string_view name, int& val) const override

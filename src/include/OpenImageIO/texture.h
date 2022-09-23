@@ -21,6 +21,9 @@
 // features are supported.
 #define OIIO_TEXTURESYSTEM_SUPPORTS_CLOSE 1
 
+// Is the getattributetype() method present? (Added in 2.5)
+#define OIIO_TEXTURESYSTEM_SUPPORTS_GETATTRIBUTETYPE 1
+
 #define OIIO_TEXTURESYSTEM_SUPPORTS_STOCHASTIC 1
 
 #ifndef INCLUDED_IMATHVEC_H
@@ -714,6 +717,12 @@ public:
     /// Specialized `attribute()` for retrieving a single `string` value
     /// as a `std::string`.
     virtual bool getattribute(string_view name, std::string& val) const = 0;
+
+    /// If the named attribute is known, return its data type. If no such
+    /// attribute exists, return `TypeUnknown`.
+    ///
+    /// This was added in version 2.5.
+    virtual TypeDesc getattributetype (string_view name) const = 0;
 
     /// @}
 
