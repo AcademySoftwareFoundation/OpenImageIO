@@ -523,11 +523,9 @@ TextureSystemImpl::environment(TextureHandle* texture_handle_,
 
         float levelweight[2] = { 1.0f - levelblend, levelblend };
 
-        int npointson = 0;
         for (int level = 0; level < 2; ++level) {
             if (!levelweight[level])
                 continue;
-            ++npointson;
             int lev = miplevel[level];
             if (options.interpmode == TextureOpt::InterpSmartBicubic) {
                 if (lev == 0
