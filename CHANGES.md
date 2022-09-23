@@ -1,12 +1,58 @@
 Release 2.5 (summer 2023?) -- compared to 2.4
 -------------------------------------------------
+New minimum dependencies and compatibility changes:
+
+New major features and public API changes:
+* oiiotool new commands and features:
+    - New `--iccread` and `--iccwrite` add an ICC profile from an external
+      file to the metadata of an image, or extract the ICC profile metadata
+      and save it as a separate file. #3550 (2.5.0.0)
+
+Performance improvements:
+
+Fixes and feature enhancements:
+* Python bindings:
+    - Now has the ability to getattribute() of int64 and uint64 metadata.
+      #3555 (2.5.0.0)
+    - Fixed ability to add and retrieve `uint8[]` metadata, which on the
+      python side will be numpy arrays of type uint8 (dtype='B'). This is
+      important for being able to set and retrieve "ICCProfile" metadata.
+      #3556 (2.5.0.0)
+* ICC Profiles found in JPEG, JPEG-2000, PSN, PSD, and TIFF files are now
+  examined and several key fields are extracted as separate metadata. #3554
+  (2.5.0.0)
+* DDS:
+    - Fix heap overflow in DDS input. #3542 (2.5.0.0)
+* PNG:
+    - Fix memory leaks for error conditions. #3543 #3544 (2.5.0.0)
+* Targa:
+    - Fix incorrect unique_ptr allocation. #3541 (2.5.0.0)
+
+Developer goodies / internals:
+* strutil.h:
+    - Add a new flavor of `utf16_to_utf8()` to convert between std::u16string
+      and std::string (UTF-8 encoded). Note the contrast between this and the
+      existing flavor that takes a `std::wstring` with UTF-16 encoding
+      (`std::wchar/wstring` is not guaranteed to 16 bits on all platforms, but
+      `u16char/u16string` is). #3553 (2.5.0.0)
+* tiffutils.h:
+    - `decode_icc_profile` extracts several fields from an ICC profile binary
+      blob and adds them as metadata to an ImageSpec. #3554 (2.5.0.0)
+
+Build/test system improvements and platform ports:
+* CMake build system and scripts:
+    - It is now possible to `-DOpenImageIO_VERSION` to override the version
+      number being built (use with extreme caution). #3549 (2.5.0.0)
+* Dependency version support:
+* Testing and Continuous integration (CI) systems:
+    - Restored sanitizer tests which had been inadvertently disabled. #3545
+      (2.5.0.0)
+* Platform support:
+
+Notable documentation changes:
 
 
-
-
-
-
-Release 2.4 (15 Sept 2022?) -- compared to 2.3
+Release 2.4 (1 Oct 2022) -- compared to 2.3
 ----------------------------------------------
 New minimum dependencies and compatibility changes:
 * OpenEXR minimum is now 2.3 (raised from 2.0). #3109 (2.4.0)
@@ -124,6 +170,9 @@ New major features and public API changes:
       (2.4.2/2.3.14)
     - `IBA::bluenoise_image()` returns a reference to a periodic blue noise
       image. #3141 #3254 (2.4.0/2.3.10)
+* ImageCache / TextureSystem :
+    - IC/TS both have added a `getattributetype()` method, which retrieves
+      just the type of a named attribute. #3559 (2.4.4.0)
 * Python bindings:
     - New ImageBuf constructor and reset() from a NumPy array only -- it
       deduces the resolution, channels, and data type from the array
@@ -291,6 +340,8 @@ Fixes and feature enhancements:
     - Bug fix for `ImageBufAlgo.clamp()`: when just a float was passed for the
       min or max, it only clamped the first channel instead of all channels.
       #3265 (2.3.12/2.4.0)
+    - Fix the ability to `getattribute()` of int64 and uint64 metadata or
+      attributes. #3555 (2.4.4.0)
 * idiff:
     - `--allowfailures` allows that number of failed pixels of any magnitude.
       #3455 (2.4.2)
@@ -634,6 +685,8 @@ Build/test system improvements and platform ports:
       work correctly on Debian systems where there are multiple filesystem
       components to the path. #3487 (2.4.2.1)
     - On MacOS, do not force MACOS_RPATH on. #3523 (2.4.2.2)
+    - Improvements to the generated cmake config files when building static
+      libraries. #3552 #3557 (2.4.4.0)
 * Dependency version support:
     - When using C++17, use std::gcd instead of boost. #3076 (2.4.0)
     - When using C++17, use `inline constexpr` instead of certain statics.
@@ -656,7 +709,8 @@ Build/test system improvements and platform ports:
     - Upgrade the internal fallback implemention of PugiXML to the latest
       version. #3494 (2.4.2.2)
     - Fixes for ffmpeg 5.1 detection. #3516 (2.3.19.0/2.4.2.2)
-    - Support for gcc 12.1. #3480 (2.4.2.1)
+    - Support for gcc 12.1. #3480 (2.4.2.1) #3551 (2.4.4.0)
+    - Support building with clang 15.0. #3563 (2.4.4.0)
 * Testing and Continuous integration (CI) systems:
     - Properly test against all the versions of VFX Platform 2022. #3074
       (2.4.0)
@@ -696,6 +750,9 @@ Build/test system improvements and platform ports:
     - Improved simd.h support for armv7 and aarch32. #3361 (2.4.1.0/2.3.14)
     - Suppress MacOS wasnings about OpenGL deprecation. #3380 (2.4.1.0/2.3.14)
     - Fix MSVS/Windows errors. #3382 (2.4.1.1)
+    - Fix cross-compiling on Android failing due to `-latomic` check. #3560
+      (2.4.4.0)
+    - Fix building on iOS. #3562 (2.4.4.0)
 
 Notable documentation changes:
 * Add an oiiotool example of putting a border around an image. #3138
