@@ -2241,6 +2241,78 @@ ImageCacheImpl::attribute(string_view name, TypeDesc type, const void* val)
 
 
 
+TypeDesc
+ImageCacheImpl::getattributetype(string_view name) const
+{
+    static std::unordered_map<std::string, TypeDesc> attr_types {
+        { "max_open_files", TypeInt },
+        { "max_memory_MB", TypeFloat },
+        { "statistics:level", TypeInt },
+        { "max_errors_per_file", TypeInt },
+        { "autotile", TypeInt },
+        { "autoscanline", TypeInt },
+        { "automip", TypeInt },
+        { "forcefloat", TypeInt },
+        { "accept_untiled", TypeInt },
+        { "accept_unmipped", TypeInt },
+        { "deduplicate", TypeInt },
+        { "unassociatedalpha", TypeInt },
+        { "trust_file_extensions", TypeInt },
+        { "failure_retries", TypeInt },
+        { "total_files", TypeInt },
+        { "max_mip_res", TypeInt },
+        { "searchpath", TypeString },
+        { "plugin_searchpath", TypeString },
+        { "worldtocommon", TypeMatrix },
+        { "commontoworld", TypeMatrix },
+        { "latlong_up", TypeString },
+        { "substitute_image", TypeString },
+        { "stat:cache_memory_used", TypeInt64 },
+        { "stat:tiles_created", TypeInt },
+        { "stat:tiles_current", TypeInt },
+        { "stat:tiles_peak", TypeInt },
+        { "stat:open_files_created", TypeInt },
+        { "stat:open_files_current", TypeInt },
+        { "stat:open_files_peak", TypeInt },
+        { "stat:find_tile_calls", TypeInt64 },
+        { "stat:find_tile_microcache_misses", TypeInt64 },
+        { "stat:find_tile_cache_misses", TypeInt },
+        { "stat:files_totalsize", TypeInt64 },
+        { "stat:image_size", TypeInt64 },
+        { "stat:file_size", TypeInt64 },
+        { "stat:bytes_read", TypeInt64 },
+        { "stat:unique_files", TypeInt },
+        { "stat:fileio_time", TypeFloat },
+        { "stat:fileopen_time", TypeFloat },
+        { "stat:file_locking_time", TypeFloat },
+        { "stat:tile_locking_time", TypeFloat },
+        { "stat:find_file_time", TypeFloat },
+        { "stat:find_tile_time", TypeFloat },
+        { "stat:texture_queries", TypeInt64 },
+        { "stat:texture3d_queries", TypeInt64 },
+        { "stat:environment_queries", TypeInt64 },
+        { "stat:getimageinfo_queries", TypeInt64 },
+        { "stat:gettextureinfo_queries", TypeInt64 },
+    };
+
+    // For all the easy cases, if the attribute is in the table and has a
+    // simple type, use that.
+    const auto found = attr_types.find(name);
+    if (found != attr_types.end())
+        return found->second;
+
+    // The cases that don't fit in the table
+    if (name == "all_filenames") {
+        // all_filenames is an array, but the length depends on the actual
+        // number of files we've encountered.
+        return TypeDesc(TypeDesc::STRING, int(m_files.size()));
+    }
+
+    return TypeUnknown;
+}
+
+
+
 bool
 ImageCacheImpl::getattribute(string_view name, TypeDesc type, void* val) const
 {

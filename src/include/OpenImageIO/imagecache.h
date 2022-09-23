@@ -18,6 +18,9 @@
 // Is the close() method present?
 #define OIIO_IMAGECACHE_SUPPORTS_CLOSE 1
 
+// Is the getattributetype() method present? (Added in 2.5)
+#define OIIO_IMAGECACHE_SUPPORTS_GETATTRIBUTETYPE 1
+
 // Does invalidate() support the optional `force` flag?
 #define OIIO_IMAGECACHE_INVALIDATE_FORCE 1
 
@@ -394,6 +397,12 @@ public:
     /// Specialized `attribute()` for retrieving a single `string` value
     /// as a `std::string`.
     virtual bool getattribute (string_view name, std::string &val) const = 0;
+
+    /// If the named attribute is known, return its data type. If no such
+    /// attribute exists, return `TypeUnknown`.
+    ///
+    /// This was added in version 2.5.
+    virtual TypeDesc getattributetype(string_view name) const = 0;
 
     /// @}
 

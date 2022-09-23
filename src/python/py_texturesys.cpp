@@ -206,9 +206,17 @@ declare_texturesystem(py::module& m)
                      attribute_typed(*ts.m_texsys, name, type, obj);
              })
         .def(
+            "getattributetype",
+            [](const TextureSystemWrap& ts, const std::string& name) {
+                return ts.m_texsys->getattributetype(name);
+            },
+            "name"_a)
+        .def(
             "getattribute",
             [](const TextureSystemWrap& ts, const std::string& name,
                TypeDesc type) {
+                if (type == TypeUnknown)
+                    type = ts.m_texsys->getattributetype(name);
                 return getattribute_typed(*ts.m_texsys, name, type);
             },
             "name"_a, "type"_a = TypeUnknown)

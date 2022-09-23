@@ -103,9 +103,17 @@ declare_imagecache(py::module& m)
             "getattribute",
             [](const ImageCacheWrap& ic, const std::string& name,
                TypeDesc type) {
+                if (type == TypeUnknown)
+                    type = ic.m_cache->getattributetype(name);
                 return getattribute_typed(*ic.m_cache, name, type);
             },
             "name"_a, "type"_a = TypeUnknown)
+        .def(
+            "getattributetype",
+            [](const ImageCacheWrap& ic, const std::string& name) {
+                return ic.m_cache->getattributetype(name);
+            },
+            "name"_a)
         .def("resolve_filename",
              [](ImageCacheWrap& ic, const std::string& filename) {
                  py::gil_scoped_release gil;
