@@ -311,6 +311,11 @@ macro (oiio_add_all_tests)
     oiio_add_tests (targa
                     ENABLEVAR ENABLE_TARGA
                     IMAGEDIR oiio-images)
+    if (USE_PYTHON AND NOT SANITIZE)
+        oiio_add_tests (targa-thumbnail
+                    ENABLEVAR ENABLE_TARGA
+                    IMAGEDIR oiio-images)
+    endif()
     oiio_add_tests (tiff-suite tiff-depths tiff-misc
                     IMAGEDIR oiio-images/libtiffpic)
     oiio_add_tests (webp

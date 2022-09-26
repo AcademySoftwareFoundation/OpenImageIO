@@ -2157,6 +2157,7 @@ INCLUDE_FILE_PATTERNS  = *.h
 PREDEFINED             = DOXYGEN_SHOULD_SKIP_THIS \
                          OIIO_DOXYGEN:=1 \
                          OIIO_NO_SANITIZE_ADDRESS:= \
+                         OIIO_NO_SANITIZE_UNDEFINED:= \
                          OIIO_API:= \
                          OIIO_UTIL_API:= \
                          OIIOC_API:= \
