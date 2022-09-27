@@ -46,6 +46,11 @@
 #    define STBI__ASAN OIIO_NO_SANITIZE_ADDRESS
 #endif
 #define stbsp__uintptr std::uintptr_t
+
+#ifdef OpenImageIO_SANITIZE
+#    define STB_SPRINTF_NOUNALIGNED
+#endif
+
 #include "stb_sprintf.h"
 
 
@@ -776,16 +781,15 @@ Strutil::split(string_view str, std::vector<string_view>& result,
 std::string
 Strutil::concat(string_view s, string_view t)
 {
-    size_t sl  = s.size();
-    size_t tl  = t.size();
+    size_t sl = s.size();
+    size_t tl = t.size();
+    if (sl == 0)
+        return t;
+    if (tl == 0)
+        return s;
     size_t len = sl + tl;
-    std::unique_ptr<char[]> heap_buf;
-    char local_buf[256];
-    char* buf = local_buf;
-    if (len > sizeof(local_buf)) {
-        heap_buf.reset(new char[len]);
-        buf = heap_buf.get();
-    }
+    char* buf;
+    OIIO_ALLOCATE_STACK_OR_HEAP(buf, char, len);
     memcpy(buf, s.data(), sl);
     memcpy(buf + sl, t.data(), tl);
     return std::string(buf, len);

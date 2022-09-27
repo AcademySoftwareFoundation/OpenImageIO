@@ -489,11 +489,22 @@
 // false positives that you can't easily get rid of.
 // This should work for any clang >= 3.3 and gcc >= 4.8, which are
 // guaranteed by our minimum requirements.
-#if defined(__clang__) || (defined(__GNUC__) && !defined(__INTEL_COMPILER)) \
+#if defined(__clang__) || (OIIO_GNUC_VERSION > 90000 && !defined(__INTEL_COMPILER)) \
                        || __has_attribute(no_sanitize_address)
 #    define OIIO_NO_SANITIZE_ADDRESS __attribute__((no_sanitize_address))
 #else
 #    define OIIO_NO_SANITIZE_ADDRESS
+#endif
+
+
+// OIIO_NO_SANITIZE_UNDEFINED can be used to mark a function that you don't
+// want undefined behavior sanitizer to catch. Only use this if you know there
+// are false positives that you can't easily get rid of.
+#if defined(__clang__) || (OIIO_GNUC_VERSION > 90000 && !defined(__INTEL_COMPILER)) \
+                       || __has_attribute(no_sanitize)
+#    define OIIO_NO_SANITIZE_UNDEFINED __attribute__((no_sanitize("undefined")))
+#else
+#    define OIIO_NO_SANITIZE_UNDEFINED
 #endif
 
 
