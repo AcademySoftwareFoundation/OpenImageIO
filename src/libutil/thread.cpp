@@ -866,6 +866,20 @@ parallel_for_chunked_2D(
 
 
 
+// DEPRECATED(2.3)
+void
+parallel_for_chunked_2D(
+    int64_t xbegin, int64_t xend, int64_t xchunksize, int64_t ybegin,
+    int64_t yend, int64_t ychunksize,
+    std::function<void(int id, int64_t, int64_t, int64_t, int64_t)>&& task,
+    paropt opt)
+{
+    parallel_for_chunked_2D_id(xbegin, xend, xchunksize, ybegin, yend,
+                               ychunksize, std::move(task), opt);
+}
+
+
+
 void
 parallel_for_chunked_2D(
     int64_t xbegin, int64_t xend, int64_t xchunksize, int64_t ybegin,
