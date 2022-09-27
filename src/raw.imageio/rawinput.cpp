@@ -1411,10 +1411,22 @@ void
 RawInput::get_colorinfo()
 {
 #if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 18, 0)
-    add("raw", "pre_mul", cspan<float>(&(m_processor->imgdata.color.pre_mul[0]), &(m_processor->imgdata.color.pre_mul[4])), false, 0.f);
-    add("raw", "cam_mul", cspan<float>(&(m_processor->imgdata.color.cam_mul[0]), &(m_processor->imgdata.color.cam_mul[4])), false, 0.f);
-    add("raw", "rgb_cam", cspan<float>(&(m_processor->imgdata.color.rgb_cam[0][0]), &(m_processor->imgdata.color.rgb_cam[2][4])), false, 0.f);
-    add("raw", "cam_xyz", cspan<float>(&(m_processor->imgdata.color.cam_xyz[0][0]), &(m_processor->imgdata.color.cam_xyz[3][3])), false, 0.f);
+    add("raw", "pre_mul",
+        cspan<float>(&(m_processor->imgdata.color.pre_mul[0]),
+                     &(m_processor->imgdata.color.pre_mul[4])),
+        false, 0.f);
+    add("raw", "cam_mul",
+        cspan<float>(&(m_processor->imgdata.color.cam_mul[0]),
+                     &(m_processor->imgdata.color.cam_mul[4])),
+        false, 0.f);
+    add("raw", "rgb_cam",
+        cspan<float>(&(m_processor->imgdata.color.rgb_cam[0][0]),
+                     &(m_processor->imgdata.color.rgb_cam[2][4])),
+        false, 0.f);
+    add("raw", "cam_xyz",
+        cspan<float>(&(m_processor->imgdata.color.cam_xyz[0][0]),
+                     &(m_processor->imgdata.color.cam_xyz[3][3])),
+        false, 0.f);
 #endif
 }
 
