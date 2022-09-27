@@ -29,6 +29,8 @@ OIIO_NAMESPACE_BEGIN
 
 // Feature tests
 #define OIIO_USTRING_HAS_USTRINGHASH 1
+#define OIIO_USTRING_HAS_USTRINGHASHER 1
+#define OIIO_USTRING_HAS_CTR_FROM_USTRINGHASH 1
 
 
 class ustringhash;  // forward declaration
@@ -191,6 +193,9 @@ public:
         sref    = sref.substr(pos, n);
         m_chars = make_unique(sref);
     }
+
+    /// Construct from a known ustringhash
+    inline explicit ustring(ustringhash hash);
 
     /// ustring destructor.
     ~ustring() noexcept {}
@@ -972,12 +977,35 @@ ustring::uhash() const noexcept
 
 
 
+#ifndef __CUDA_ARCH__
+inline ustring::ustring(ustringhash hash)
+{
+    // The ustring constructor from a ustringhash is just a pretty
+    // wrapper around an awkward construct.
+    m_chars = ustring::from_hash(hash.hash()).c_str();
+}
+#endif
+
+
+
 /// Functor class to use as a hasher when you want to make a hash_map or
 /// hash_set using ustring as a key.
+class ustringHasher {
+public:
+    size_t operator()(const ustring& s) const noexcept { return s.hash(); }
+};
+
+#if OIIO_VERSION_LESS(3, 0, 0)
+/// Deprecated name for ustringHasher. This is too easy to confuse with the
+/// ustringhash class. This will be removed in OIIO 3.0.
+#    if OIIO_VERSION_GREATER_EQUAL(2, 6, 0)
+OIIO_DEPRECATED("Use ustringHasher instead of ustringHash")
+#    endif
 class ustringHash {
 public:
     size_t operator()(const ustring& s) const noexcept { return s.hash(); }
 };
+#endif
 
 
 

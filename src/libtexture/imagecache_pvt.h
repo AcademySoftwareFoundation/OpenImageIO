@@ -473,10 +473,10 @@ typedef intrusive_ptr<ImageCacheFile> ImageCacheFileRef;
 
 /// Map file names to file references
 typedef unordered_map_concurrent<
-    ustring, ImageCacheFileRef, ustringHash, std::equal_to<ustring>,
-    FILE_CACHE_SHARDS, tsl::robin_map<ustring, ImageCacheFileRef, ustringHash>>
+    ustring, ImageCacheFileRef, ustringHasher, std::equal_to<ustring>,
+    FILE_CACHE_SHARDS, tsl::robin_map<ustring, ImageCacheFileRef, ustringHasher>>
     FilenameMap;
-typedef tsl::robin_map<ustring, ImageCacheFileRef, ustringHash> FingerprintMap;
+typedef tsl::robin_map<ustring, ImageCacheFileRef, ustringHasher> FingerprintMap;
 
 
 
@@ -741,7 +741,7 @@ public:
     // This is safe because no ImageCacheFile is ever truly deleted from
     // the shared map, so this map isn't the owner.
     using ThreadFilenameMap
-        = tsl::robin_map<ustring, ImageCacheFile*, ustringHash>;
+        = tsl::robin_map<ustring, ImageCacheFile*, ustringHasher>;
     ThreadFilenameMap m_thread_files;
 
     // We have a two-tile "microcache", storing the last two tiles needed.

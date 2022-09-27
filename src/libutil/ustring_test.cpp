@@ -178,6 +178,9 @@ test_ustringhash()
     // Ask a ustring for its ustringhash
     OIIO_CHECK_EQUAL(hfoo, foo.uhash());
 
+    // ustring constructed from a ustringhash
+    OIIO_CHECK_EQUAL(hfoo_from_foo, foo);
+
     // string_view and string from ustringhash
     string_view foo_sv = hfoo;
     OIIO_CHECK_EQUAL(foo_sv, "foo");
