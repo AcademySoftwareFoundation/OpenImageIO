@@ -127,10 +127,10 @@ jobs:
             cxx_compiler: clang++
             cxx_std: 17
             python_ver: 3.9
-            setenvs: export SANITIZE=address
-                            OIIO_CMAKE_FLAGS="-DSANITIZE=address -DUSE_PYTHON=0"
+            setenvs: export SANITIZE=address,undefined
+                            OIIO_CMAKE_FLAGS="-DSANITIZE=address,undefined -DUSE_PYTHON=0"
                             CMAKE_BUILD_TYPE=Debug
-                            CTEST_TEST_TIMEOUT=300
+                            CTEST_TEST_TIMEOUT=600
                             CTEST_EXCLUSIONS="broken|cmake-consumer|png-damaged"
           - desc: oldest/hobbled gcc6.3/C++14 py2.7 boost-1.66 exr-2.3 no-sse no-ocio
             # Oldest versions of the dependencies that we can muster, and various
