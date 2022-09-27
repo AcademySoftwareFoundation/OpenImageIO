@@ -76,8 +76,12 @@
     Exif:WhiteBalance: 0 (auto)
     oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
+    raw:cam_mul: 2076, 1024, 1584, 1024
+    raw:cam_xyz: 0.6844, -0.0996, -0.0856, -0.3876, 1.1761, 0.2396, -0.0593, 0.1772, 0.6198, 0, 0, 0
     raw:Demosaic: "AHD"
     raw:HighlightMode: 0
+    raw:pre_mul: 2.18485, 0.93582, 1.25676, 0
+    raw:rgb_cam: 1.9205, -1.04135, 0.120857, 0, -0.246968, 1.75935, -0.512386, 0, -0.00695494, -0.489552, 1.49651, 0
 ../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
     channel list: R, G, B
     Artist: "                                    "
@@ -162,9 +166,13 @@
     Nikon:VRMode: 0
     oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
+    raw:cam_mul: 463, 256, 396, 256
+    raw:cam_xyz: 0.7171, -0.1986, -0.0648, -0.8085, 1.5555, 0.2718, -0.217, 0.2512, 0.7457, 0, 0, 0
     raw:Demosaic: "AHD"
     raw:flip: 5
     raw:HighlightMode: 0
+    raw:pre_mul: 2.42468, 0.92337, 1.16701, 0
+    raw:rgb_cam: 1.63112, -0.49571, -0.135412, 0, -0.0198918, 1.37117, -0.351275, 0, 0.0569094, -0.396354, 1.33944, 0
 ../oiio-images/raw/RAW_FUJI_F700.RAF : 2035 x 1533, 3 channel, uint16 raw
     channel list: R, G, B
     DateTime: "2007-01-06 14:20:22"
@@ -230,8 +238,12 @@
     Fujifilm:WB_Preset: 0
     oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
+    raw:cam_mul: 146, 80, 110, 80
+    raw:cam_xyz: 1.0004, -0.3219, -0.1201, -0.7036, 1.5047, 0.2107, -0.1863, 0.2565, 0.7736, 0, 0, 0
     raw:Demosaic: "AHD"
     raw:HighlightMode: 0
+    raw:pre_mul: 2.0073, 0.938645, 1.0849, 0
+    raw:rgb_cam: 1.47494, -0.398506, -0.0764295, 0, -0.0661386, 1.3549, -0.288761, 0, 0.034221, -0.397378, 1.36316, 0
 ../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
     channel list: R, G, B
     Artist: "                                    "
@@ -316,9 +328,13 @@
     Nikon:VRMode: 0
     oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
+    raw:cam_mul: 463, 256, 396, 256
+    raw:cam_xyz: 0.7171, -0.1986, -0.0648, -0.8085, 1.5555, 0.2718, -0.217, 0.2512, 0.7457, 0, 0, 0
     raw:Demosaic: "AHD"
     raw:flip: 5
     raw:HighlightMode: 0
+    raw:pre_mul: 2.42468, 0.92337, 1.16701, 0
+    raw:rgb_cam: 1.63112, -0.49571, -0.135412, 0, -0.0198918, 1.37117, -0.351275, 0, 0.0569094, -0.396354, 1.33944, 0
 ../oiio-images/raw/RAW_OLYMPUS_E3.ORF : 3720 x 2800, 3 channel, uint16 raw
     channel list: R, G, B
     DateTime: "2008-12-19 12:29:40"
@@ -384,8 +400,12 @@
     Olympus:OlympusCropID: -1
     Olympus:OlympusFrame: 0, 0, 0, 0
     Olympus:OlympusSensorCalibration: 0, 0
+    raw:cam_mul: 1.92969, 1, 1.51562, 0
+    raw:cam_xyz: 0.9487, -0.2875, -0.1115, -0.7533, 1.5606, 0.201, -0.1618, 0.21, 0.7389, 0, 0, 0
     raw:Demosaic: "AHD"
     raw:HighlightMode: 0
+    raw:pre_mul: 2.02919, 0.940322, 1.16178, 0
+    raw:rgb_cam: 1.51654, -0.430227, -0.0863105, 0, -0.0494907, 1.30045, -0.250959, 0, 0.0301381, -0.345784, 1.31565, 0
 ../oiio-images/raw/RAW_PENTAX_K200D.PEF : 2616 x 3896, 3 channel, uint16 raw
     channel list: R, G, B
     DateTime: "2008-08-02 16:46:42"
@@ -444,9 +464,13 @@
     Pentax:MinAp4CurFocal: 32
     Pentax:MinAp4MinFocal: 32
     Pentax:MinFocusDistance: 16
+    raw:cam_mul: 16320, 8192, 10880, 8096
+    raw:cam_xyz: 0.9186, -0.2678, -0.0907, -0.8693, 1.6517, 0.226, -0.1129, 0.1094, 0.8524, 0, 0, 0
     raw:Demosaic: "AHD"
     raw:flip: 5
     raw:HighlightMode: 0
+    raw:pre_mul: 1.97416, 0.933243, 1.07503, 0
+    raw:rgb_cam: 1.57863, -0.445627, -0.133005, 0, 0.00253742, 1.23613, -0.23867, 0, 0.0130546, -0.219968, 1.20691, 0
 ../oiio-images/raw/RAW_SONY_A300.ARW : 3880 x 2608, 3 channel, uint16 raw
     channel list: R, G, B
     DateTime: "2008-08-10 23:16:11"
@@ -488,8 +512,12 @@
     Exif:WhiteBalance: 0 (auto)
     oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
+    raw:cam_mul: 1972, 1024, 1632, 1024
+    raw:cam_xyz: 0.9847, -0.3091, -0.0928, -0.8485, 1.6345, 0.2225, -0.0715, 0.0595, 0.7103, 0, 0, 0
     raw:Demosaic: "AHD"
     raw:HighlightMode: 0
+    raw:pre_mul: 1.90192, 0.934325, 1.3073, 0
+    raw:rgb_cam: 1.55293, -0.400994, -0.151933, 0, -0.00496778, 1.23841, -0.233446, 0, 0.0079905, -0.190766, 1.18278, 0
     Sony:AFMicroAdjOn: 0
     Sony:AFMicroAdjValue: 0
     Sony:AFPoint: -1
