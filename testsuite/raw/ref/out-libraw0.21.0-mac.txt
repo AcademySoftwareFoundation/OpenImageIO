@@ -233,12 +233,12 @@
     Fujifilm:WB_Preset: 0
     oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
-    raw:cam_mul: 131.532, 80, 97.3451, 80
+    raw:cam_mul: 131, 80, 97, 80
     raw:cam_xyz: 1.0004, -0.3219, -0.1201, -0.7036, 1.5047, 0.2107, -0.1863, 0.2565, 0.7736, 0, 0, 0
     raw:Demosaic: "AHD"
     raw:HighlightMode: 0
     raw:pre_mul: 2.0073, 0.938645, 1.0849, 0
-    raw:rgb_cam: 1.47494, -0.398506, -0.0764295, 0, -0.0661386, 1.3549, -0.288761, 0, 0.034221, -0.397378, 1.36316, 0
+    raw:rgb_cam: 1.47494, -0.398506, -0.0764295, 0, -0.0661385, 1.3549, -0.288761, 0, 0.034221, -0.397378, 1.36316, 0
 ../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
     channel list: R, G, B
     Artist: "                                    "
@@ -432,6 +432,8 @@
     Panasonic:ImageStabilization: -1
     Panasonic:LensID: 18446744073709551615
     Panasonic:LensMount: 44
+    raw:cam_mul: 584, 263, 355, 0
+    raw:cam_xyz: 0.8199, -0.2065, -0.1056, -0.8124, 1.6156, 0.2033, -0.2458, 0.3022, 0.722, 0, 0, 0
     raw:Demosaic: "AHD"
     raw:HighlightMode: 0
     raw:pre_mul: 2.18431, 0.939146, 1.16999, 0
@@ -546,6 +548,8 @@
     raw:cam_xyz: 0.9847, -0.3091, -0.0928, -0.8485, 1.6345, 0.2225, -0.0715, 0.0595, 0.7103, 0, 0, 0
     raw:Demosaic: "AHD"
     raw:HighlightMode: 0
+    raw:pre_mul: 1.90192, 0.934325, 1.3073, 0
+    raw:rgb_cam: 1.55293, -0.400994, -0.151933, 0, -0.00496778, 1.23841, -0.233446, 0, 0.0079905, -0.190766, 1.18278, 0
     Sony:AFMicroAdjOn: -1
     Sony:AFMicroAdjRegisteredLenses: 255
     Sony:AFMicroAdjValue: 127
