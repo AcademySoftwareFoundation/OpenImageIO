@@ -152,6 +152,21 @@ jobs:
                              WEBP_VERSION=v1.0.0
             depcmds: sudo rm -rf /usr/local/include/OpenEXR
 
+          # Test formatting. This test entry doesn't do a full build, it
+          # just runs clang-format on everything, and passes if nothing is
+          # misformatted. Upon failure, the build artifact will be the full
+          # source code with the formatting fixed (diffs will also appear in
+          # the console output).
+          - desc: "clang-format"
+            nametag: clang-format
+            os: ubuntu-latest
+            vfxyear: 2022
+            vfxsuffix: -clang12
+            cxx_std: 17
+            skip_tests: 1
+            setenvs: export BUILDTARGET=clang-format
+                            OIIO_CMAKE_FLAGS=-DUSE_PYTHON=0
+
     runs-on: ${{ matrix.os }}
     container:
       image: aswf/ci-osl:${{matrix.vfxyear}}${{matrix.vfxsuffix}}
@@ -164,7 +179,6 @@ jobs:
       OPENEXR_VERSION: ${{matrix.openexr_ver}}
       PYBIND11_VERSION: ${{matrix.pybind11_ver}}
       PYTHON_VERSION: ${{matrix.python_ver}}
-      DEBUG_CI: 1
     steps:
       # We would like to use harden-runner, but it flags too many false
       # positives, every time we download a dependency. We should use it only
@@ -315,7 +329,6 @@ jobs:
       OPENEXR_VERSION: ${{matrix.openexr_ver}}
       PYBIND11_VERSION: ${{matrix.pybind11_ver}}
       PYTHON_VERSION: ${{matrix.python_ver}}
-      DEBUG_CI: 1
     steps:
       # We would like to use harden-runner, but it flags too many false
       # positives, every time we download a dependency. We should use it only
@@ -369,11 +382,13 @@ jobs:
         include:
           - desc: MacOS-11
             os: macos-11
+            nametag: macos11-py39
             cxx_std: 17
             python_ver: "3.9"
             aclang: 13
           - desc: MacOS-12
             os: macos-12
+            nametag: macos12-py310
             cxx_std: 20
             python_ver: "3.10"
             aclang: 13
@@ -394,7 +409,7 @@ jobs:
         uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d # v3.0.4
         with:
           path: /Users/runner/.ccache
-          key: ${{github.job}}-${{matrix.os}}-${{steps.ccache_cache_keys.outputs.date}}
+          key: ${{github.job}}-${{matrix.nametag}}-${{ steps.ccache_cache_keys.outputs.date }}
           restore-keys: ${{github.job}}-
       - name: Build setup
         run: |
@@ -413,7 +428,7 @@ jobs:
       - uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
         if: failure()
         with:
-          name: oiio-${{github.job}}
+          name: oiio-${{github.job}}-${{matrix.nametag}}
           path: |
             build/cmake-save
             build/testsuite/*/*.*
@@ -480,32 +495,3 @@ jobs:
             !build/testsuite/openexr-images
             !build/testsuite/fits-images
             !build/testsuite/j2kp4files_v1_5
-
-
-  clang-format:
-    # Test formatting. This test entry doesn't do a full build, it just runs
-    # clang-format on everything, and passes if nothing is misformatted.
-    # Upon failure, the build artifact will be the full source code with the
-    # formatting fixed (diffs will also appear in the console output).
-    name: "clang-format verification"
-    runs-on: ubuntu-20.04
-    container:
-      image: aswf/ci-osl:2022-clang12
-    env:
-      BUILDTARGET: clang-format
-      PYTHON_VERSION: 3.9
-    steps:
-      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.2
-      - name: Build setup
-        run: src/build-scripts/ci-startup.bash
-      - name: Dependencies
-        run: src/build-scripts/gh-installdeps.bash
-      - name: Build
-        run: src/build-scripts/ci-build.bash
-      - uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
-        if: failure()
-        with:
-          name: ${{ github.job }}
-          path: |
-            src/*/*.cpp
-            src/*/*.h

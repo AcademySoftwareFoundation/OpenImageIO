@@ -39,9 +39,10 @@ cmake .. -G "$CMAKE_GENERATOR" \
 mkdir cmake-save || /bin/true
 cp -r CMake* *.cmake cmake-save
 
+: ${BUILDTARGET:=install}
 if [[ "$BUILDTARGET" != "none" ]] ; then
-    echo "Parallel build " ${CMAKE_BUILD_PARALLEL_LEVEL}
-    time ${OIIO_CMAKE_BUILD_WRAPPER} cmake --build . --target ${BUILDTARGET:=install} --config ${CMAKE_BUILD_TYPE}
+    echo "Parallel build ${CMAKE_BUILD_PARALLEL_LEVEL} of target ${BUILDTARGET}"
+    time ${OIIO_CMAKE_BUILD_WRAPPER} cmake --build . --target ${BUILDTARGET} --config ${CMAKE_BUILD_TYPE}
 fi
 popd
 
