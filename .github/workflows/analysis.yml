@@ -11,11 +11,14 @@ on:
     # Run unconditionally once weekly
     # - cron: "0 0 * * 0"
   push:
+    # Run on pushes only to master or if the branch name contains "analysis"
     branches:
       - master
       - '*analysis*'
   # Allow manual kicking off of the workflow from github.com
   workflow_dispatch:
+  # Uncomment the following line if we want to run analysis on all PRs:
+  # pull_request:
 
 permissions: read-all
 
@@ -24,8 +27,9 @@ jobs:
 
   aswf:
     name: "SonarCloud Analysis"
-    if: |
-      github.repository == 'OpenImageIO/oiio'
+    # Exclude runs on forks, since only the main org has the SonarCloud
+    # account credentials.
+    if: github.repository == 'OpenImageIO/oiio'
     strategy:
       fail-fast: false
       matrix:
