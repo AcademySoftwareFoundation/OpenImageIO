@@ -3,14 +3,13 @@ on:
   # Only the default branch is supported.
   branch_protection_rule:
   push:
+    # Run on pushes to master, but only the main repo, not forks
     branches: [ "master" ]
+    if: github.event.pull_request.head.repo.full_name == github.repository
   pull_request:
     # Only run on individual PRs if the workflow file itself is changed.
     paths:
       - .github/workflows/scorecard.yml
-  schedule:
-    # Run unconditionally once weekly
-    - cron: "0 0 * * 0"
 
 # Declare default permissions as read only.
 permissions: read-all
