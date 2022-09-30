@@ -1,4 +1,4 @@
-Release 2.4 (1 Oct 2022?) -- compared to 2.3
+Release 2.4 (1 Oct 2022) -- compared to 2.3
 ----------------------------------------------
 New minimum dependencies and compatibility changes:
 * OpenEXR minimum is now 2.3 (raised from 2.0). #3109 (2.4.0)
@@ -492,7 +492,8 @@ Developer goodies / internals:
       support for using TBB for the thread pool (which seems slightly faster
       than our internal thread pool). By default it still uses the internal
       pool, but if OIIO::attribute("use_tbb") is set to nonzero, it will use
-      the TBB thread pool if built against TBB. #3473 (2.4.2.2)
+      the TBB thread pool if built against TBB. #3473 (2.4.2.2) #3566
+      (2.4.4.0)
 * paramlist.h
     - Various internal fixes that reduce the amount of ustring construction
       that happens when constructing ParamValue and ParamList, and making
@@ -718,6 +719,12 @@ Notable documentation changes:
 * Fix many typos in docs. #3492 (2.4.2.2)
 
 
+
+Release 2.3.20 (1 Oct 2022) -- compared to 2.3.19
+-------------------------------------------------
+* Fixes to compile with gcc 12. #3551
+* Fixes to compile with clang 15. #3563
+* PNG: better error handling when errors are encountered while writing. #3535
 
 Release 2.3.19 (1 Sep 2022) -- compared to 2.3.18
 ---------------------------------------------------
