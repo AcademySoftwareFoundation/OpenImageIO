@@ -1,6 +1,8 @@
-Release 2.3.20 (?? 2022) -- compared to 2.3.19
-------------------------------------------------
-
+Release 2.3.20 (1 Oct 2022) -- compared to 2.3.19
+-------------------------------------------------
+* Fixes to compile with gcc 12. #3551
+* Fixes to compile with clang 15. #3563
+* PNG: better error handling when errors are encountered while writing. #3535
 
 Release 2.3.19 (1 Sep 2022) -- compared to 2.3.18
 ---------------------------------------------------
