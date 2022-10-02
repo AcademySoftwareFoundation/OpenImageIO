@@ -2750,6 +2750,11 @@ OIIO_API std::string geterror(bool clear = true);
 ///    may not read these correctly, but OIIO will. That's why the default
 ///    is not to support it.
 ///
+/// - `int dds:bc5normal`
+///
+///    When nonzero, treats BC5/ATI2 format files as normal maps (loads as
+///    3 channels, computes blue from red and green). Default is 0.
+///
 /// - `int openexr:core`
 ///
 ///    When nonzero, use the new "OpenEXR core C library" when available,

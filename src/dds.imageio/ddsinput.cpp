@@ -60,13 +60,11 @@ private:
     std::vector<unsigned char> m_buf;  ///< Buffer the image pixels
     int m_subimage;
     int m_miplevel;
-    int m_nchans;            ///< Number of colour channels in image
-    int m_nfaces;            ///< Number of cube map sides in image
-    int m_Bpp;               ///< Number of bytes per pixel
-    int m_redL, m_redR;      ///< Bit shifts to extract red channel
-    int m_greenL, m_greenR;  ///< Bit shifts to extract green channel
-    int m_blueL, m_blueR;    ///< Bit shifts to extract blue channel
-    int m_alphaL, m_alphaR;  ///< Bit shifts to extract alpha channel
+    int m_nchans;               ///< Number of colour channels in image
+    int m_nfaces;               ///< Number of cube map sides in image
+    int m_Bpp;                  ///< Number of bytes per pixel
+    uint32_t m_BitCounts[4];    ///< Bit counts in r,g,b,a channels
+    uint32_t m_RightShifts[4];  ///< Shifts to extract r,g,b,a channels
     Compression m_compression = Compression::None;
     dds_header m_dds;  ///< DDS header
     dds_header_dx10 m_dx10;
@@ -91,7 +89,8 @@ private:
 
     /// Helper function: calculate bit shifts to properly extract channel data
     ///
-    inline void calc_shifts(int mask, int& left, int& right);
+    inline static void calc_shifts(uint32_t mask, uint32_t& count,
+                                   uint32_t& right);
 
     /// Helper function: performs the actual file seeking.
     ///
@@ -111,8 +110,10 @@ GetBaseType(Compression cmp)
 }
 
 static int
-GetChannelCount(Compression cmp)
+GetChannelCount(Compression cmp, bool isNormal)
 {
+    if (isNormal)
+        return 3;
     if (cmp == Compression::BC4)
         return 1;
     if (cmp == Compression::BC5)
@@ -136,15 +137,61 @@ GetStorageRequirements(size_t width, size_t height, Compression cmp)
     return blockCount * GetBlockSize(cmp);
 }
 
+static uint8_t
+ComputeNormalZ(uint8_t x, uint8_t y)
+{
+    float nx  = 2 * (x / 255.0f) - 1;
+    float ny  = 2 * (y / 255.0f) - 1;
+    float nz  = 0.0f;
+    float nz2 = 1 - nx * nx - ny * ny;
+    if (nz2 > 0) {
+        nz = sqrtf(nz2);
+    }
+    int z = int(255.0f * (nz + 1) / 2.0f);
+    if (z < 0)
+        z = 0;
+    if (z > 255)
+        z = 255;
+    return z;
+}
+
+static void
+ComputeNormalRG(uint8_t rgba[kBlockSize * kBlockSize * 4])
+{
+    // expand from RG into RGB, computing B from RG
+    for (int i = kBlockSize * kBlockSize - 1; i >= 0; --i) {
+        uint8_t x       = rgba[i * 2 + 0];
+        uint8_t y       = rgba[i * 2 + 1];
+        rgba[i * 3 + 0] = x;
+        rgba[i * 3 + 1] = y;
+        rgba[i * 3 + 2] = ComputeNormalZ(x, y);
+    }
+}
+
+static void
+ComputeNormalAG(uint8_t rgba[kBlockSize * kBlockSize * 4])
+{
+    // contract from RGBA (R & B unused) to RGB, computing B from GA
+    for (int i = 0; i < kBlockSize * kBlockSize; ++i) {
+        uint8_t x       = rgba[i * 4 + 3];
+        uint8_t y       = rgba[i * 4 + 1];
+        rgba[i * 3 + 0] = x;
+        rgba[i * 3 + 1] = y;
+        rgba[i * 3 + 2] = ComputeNormalZ(x, y);
+    }
+}
+
+
 static void
 DecompressImage(uint8_t* rgba, int width, int height, void const* blocks,
-                Compression cmp)
+                Compression cmp, const dds_pixformat& pixelFormat)
 {
     uint8_t rgbai[kBlockSize * kBlockSize * 4];
     uint16_t rgbh[kBlockSize * kBlockSize * 3];
     const uint8_t* sourceBlock = reinterpret_cast<const uint8_t*>(blocks);
     const size_t blockSize     = GetBlockSize(cmp);
-    const int channelCount     = GetChannelCount(cmp);
+    const int channelCount     = GetChannelCount(cmp,
+                                             pixelFormat.flags & DDS_PF_NORMAL);
     for (int y = 0; y < height; y += kBlockSize) {
         for (int x = 0; x < width; x += kBlockSize) {
             // decompress the BCn block
@@ -177,6 +224,25 @@ DecompressImage(uint8_t* rgba, int width, int height, void const* blocks,
             default: return;
             }
             sourceBlock += blockSize;
+
+            /* Swap R & A for RXGB format case. */
+            if (cmp == Compression::DXT5
+                && pixelFormat.fourCC == DDS_4CC_RXGB) {
+                for (int i = 0; i < 16; ++i) {
+                    uint8_t r        = rgbai[i * 4 + 0];
+                    uint8_t a        = rgbai[i * 4 + 3];
+                    rgbai[i * 4 + 0] = a;
+                    rgbai[i * 4 + 3] = r;
+                }
+            }
+            /* Convert into full normal map if needed. */
+            else if (pixelFormat.flags & DDS_PF_NORMAL) {
+                if (cmp == Compression::BC5) {
+                    ComputeNormalRG(rgbai);
+                } else if (cmp == Compression::DXT5) {
+                    ComputeNormalAG(rgbai);
+                }
+            }
 
             // write the pixels into the destination image location
             if (cmp == Compression::BC6HU || cmp == Compression::BC6HS) {
@@ -326,9 +392,9 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
         || !(m_dds.flags & DDS_HEIGHT) || !m_dds.height
         || ((m_dds.flags & DDS_DEPTH) && !m_dds.depth)
         || (!(m_dds.fmt.flags & DDS_PF_FOURCC)
-            && !((m_dds.fmt.flags & DDS_PF_RGB)
-                 | (m_dds.fmt.flags & DDS_PF_LUMINANCE)
-                 | (m_dds.fmt.flags & DDS_PF_ALPHA)))) {
+            && !(m_dds.fmt.flags
+                 & (DDS_PF_RGB | DDS_PF_LUMINANCE | DDS_PF_ALPHA
+                    | DDS_PF_ALPHAONLY)))) {
         errorf("Image with no data");
         return false;
     }
@@ -348,8 +414,14 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
         case DDS_4CC_DXT3: m_compression = Compression::DXT3; break;
         case DDS_4CC_DXT4: m_compression = Compression::DXT4; break;
         case DDS_4CC_DXT5: m_compression = Compression::DXT5; break;
+        case DDS_4CC_RXGB:
+            m_compression = Compression::DXT5;
+            m_dds.fmt.flags &= ~DDS_PF_NORMAL;
+            break;
         case DDS_4CC_ATI1: m_compression = Compression::BC4; break;
         case DDS_4CC_ATI2: m_compression = Compression::BC5; break;
+        case DDS_4CC_BC4U: m_compression = Compression::BC4; break;
+        case DDS_4CC_BC5U: m_compression = Compression::BC5; break;
         case DDS_4CC_DX10: {
             switch (m_dx10.dxgiFormat) {
             case DDS_FORMAT_BC4_UNORM: m_compression = Compression::BC4; break;
@@ -370,19 +442,27 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
         }
     }
 
+    // treat BC5 as normal maps if global attribute is set
+    if ((m_compression == Compression::BC5)
+        && OIIO::get_int_attribute("dds:bc5normal")) {
+        m_dds.fmt.flags |= DDS_PF_NORMAL;
+    }
+
     // determine the number of channels we have
     if (m_compression != Compression::None) {
-        m_nchans = GetChannelCount(m_compression);
+        m_nchans = GetChannelCount(m_compression,
+                                   m_dds.fmt.flags & DDS_PF_NORMAL);
     } else {
-        m_nchans = ((m_dds.fmt.flags & DDS_PF_LUMINANCE) ? 1 : 3)
+        m_nchans = ((m_dds.fmt.flags & (DDS_PF_LUMINANCE | DDS_PF_ALPHAONLY))
+                        ? 1
+                        : 3)
                    + ((m_dds.fmt.flags & DDS_PF_ALPHA) ? 1 : 0);
         // also calculate bytes per pixel and the bit shifts
         m_Bpp = (m_dds.fmt.bpp + 7) >> 3;
         if (!(m_dds.fmt.flags & DDS_PF_LUMINANCE)) {
-            calc_shifts(m_dds.fmt.rmask, m_redL, m_redR);
-            calc_shifts(m_dds.fmt.gmask, m_greenL, m_greenR);
-            calc_shifts(m_dds.fmt.bmask, m_blueL, m_blueR);
-            calc_shifts(m_dds.fmt.amask, m_alphaL, m_alphaR);
+            for (int i = 0; i < 4; ++i)
+                calc_shifts(m_dds.fmt.masks[i], m_BitCounts[i],
+                            m_RightShifts[i]);
         }
     }
 
@@ -412,25 +492,25 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
 
 
 inline void
-DDSInput::calc_shifts(int mask, int& left, int& right)
+DDSInput::calc_shifts(uint32_t mask, uint32_t& count, uint32_t& right)
 {
     if (mask == 0) {
-        left = right = 0;
+        count = right = 0;
         return;
     }
 
-    int i, tmp = mask;
-    for (i = 0; i < 32; i++, tmp >>= 1) {
-        if (tmp & 1)
+    int i;
+    for (i = 0; i < 32; i++, mask >>= 1) {
+        if (mask & 1)
             break;
     }
     right = i;
 
-    for (i = 0; i < 8; i++, tmp >>= 1) {
-        if (!(tmp & 1))
+    for (i = 0; i < 32; i++, mask >>= 1) {
+        if (!(mask & 1))
             break;
     }
-    left = 8 - i;
+    count = i;
 }
 
 
@@ -577,7 +657,8 @@ DDSInput::seek_subimage(int subimage, int miplevel)
     }
 
     if (m_dds.fmt.bpp
-        && (m_dds.fmt.flags & (DDS_PF_RGB | DDS_PF_LUMINANCE | DDS_PF_YUV)))
+        && (m_dds.fmt.flags
+            & (DDS_PF_RGB | DDS_PF_LUMINANCE | DDS_PF_YUV | DDS_PF_ALPHAONLY)))
         m_spec.attribute("oiio:BitsPerSample", m_dds.fmt.bpp);
 
     // linear color space for HDR-ish images
@@ -636,8 +717,6 @@ DDSInput::seek_subimage(int subimage, int miplevel)
     return true;
 }
 
-
-
 bool
 DDSInput::internal_readimg(unsigned char* dst, int w, int h, int d)
 {
@@ -649,7 +728,7 @@ DDSInput::internal_readimg(unsigned char* dst, int w, int h, int d)
         if (!ioread(&tmp[0], tmp.size(), 1))
             return false;
         // decompress image
-        DecompressImage(dst, w, h, &tmp[0], m_compression);
+        DecompressImage(dst, w, h, &tmp[0], m_compression, m_dds.fmt);
         tmp.clear();
         // correct pre-multiplied alpha, if necessary
         if (m_compression == Compression::DXT2
@@ -685,15 +764,12 @@ DDSInput::internal_readimg(unsigned char* dst, int w, int h, int d)
                     uint32_t pixel = 0;
                     OIIO_DASSERT(tmp.size() >= size_t(x * m_Bpp + m_Bpp));
                     memcpy(&pixel, tmp.data() + x * m_Bpp, m_Bpp);
-                    dst[k + 0] = ((pixel & m_dds.fmt.rmask) >> m_redR)
-                                 << m_redL;
-                    dst[k + 1] = ((pixel & m_dds.fmt.gmask) >> m_greenR)
-                                 << m_greenL;
-                    dst[k + 2] = ((pixel & m_dds.fmt.bmask) >> m_blueR)
-                                 << m_blueL;
-                    if (m_dds.fmt.flags & DDS_PF_ALPHA)
-                        dst[k + 3] = ((pixel & m_dds.fmt.amask) >> m_alphaR)
-                                     << m_alphaL;
+                    for (int ch = 0; ch < m_spec.nchannels; ++ch) {
+                        dst[k + ch]
+                            = bit_range_convert((pixel & m_dds.fmt.masks[ch])
+                                                    >> m_RightShifts[ch],
+                                                m_BitCounts[ch], 8);
+                    }
                 }
             }
         }

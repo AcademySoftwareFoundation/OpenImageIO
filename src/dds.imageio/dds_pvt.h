@@ -19,6 +19,10 @@ namespace DDS_pvt {
 #define DDS_4CC_ATI1 DDS_MAKE4CC('A', 'T', 'I', '1')
 #define DDS_4CC_ATI2 DDS_MAKE4CC('A', 'T', 'I', '2')
 #define DDS_4CC_DX10 DDS_MAKE4CC('D', 'X', '1', '0')
+#define DDS_4CC_RXGB DDS_MAKE4CC('R', 'X', 'G', 'B')
+#define DDS_4CC_BC4U DDS_MAKE4CC('B', 'C', '4', 'U')
+#define DDS_4CC_BC5U DDS_MAKE4CC('B', 'C', '5', 'U')
+
 #define DDS_FORMAT_BC4_UNORM 80
 #define DDS_FORMAT_BC5_UNORM 83
 #define DDS_FORMAT_BC6H_UF16 95
@@ -43,24 +47,23 @@ enum class Compression {
 /// images.
 ///
 enum {
-    DDS_PF_ALPHA     = 0x00000001,  ///< image has alpha channel
-    DDS_PF_FOURCC    = 0x00000004,  ///< image is compressed
-    DDS_PF_LUMINANCE = 0x00020000,  ///< image has luminance data
-    DDS_PF_RGB       = 0x00000040,  ///< image has RGB data
-    DDS_PF_YUV       = 0x00000200   ///< image has YUV data
+    DDS_PF_ALPHA     = 0x00000001,   ///< image has alpha channel
+    DDS_PF_ALPHAONLY = 0x00000002,   ///< image has only the alpha channel
+    DDS_PF_FOURCC    = 0x00000004,   ///< image is compressed
+    DDS_PF_LUMINANCE = 0x00020000,   ///< image has luminance data
+    DDS_PF_RGB       = 0x00000040,   ///< image has RGB data
+    DDS_PF_YUV       = 0x00000200,   ///< image has YUV data
+    DDS_PF_NORMAL    = 0x80000000u,  ///< image is a tangent space normal map
 };
 
 /// DDS pixel format structure.
 ///
 typedef struct {
-    uint32_t size;    ///< structure size, must be 32
-    uint32_t flags;   ///< flags to indicate valid fields
-    uint32_t fourCC;  ///< compression four-character code
-    uint32_t bpp;     ///< bits per pixel
-    uint32_t rmask;   ///< bitmask for the red channel
-    uint32_t gmask;   ///< bitmask for the green channel
-    uint32_t bmask;   ///< bitmask for the blue channel
-    uint32_t amask;   ///< bitmask for the alpha channel
+    uint32_t size;      ///< structure size, must be 32
+    uint32_t flags;     ///< flags to indicate valid fields
+    uint32_t fourCC;    ///< compression four-character code
+    uint32_t bpp;       ///< bits per pixel
+    uint32_t masks[4];  ///< bitmasks for the r,g,b,a channels
 } dds_pixformat;
 
 /// DDS caps flags, field 1.
