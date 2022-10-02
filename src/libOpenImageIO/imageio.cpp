@@ -43,6 +43,7 @@ atomic_int oiio_try_all_readers(1);
 int openexr_core(0);  // Should we use "Exr core C library"?
 int tiff_half(0);
 int tiff_multithread(1);
+int dds_bc5normal(0);
 int limit_channels(1024);
 int limit_imagesize_MB(32 * 1024);
 ustring font_searchpath;
@@ -317,6 +318,10 @@ attribute(string_view name, TypeDesc type, const void* val)
         tiff_multithread = *(const int*)val;
         return true;
     }
+    if (name == "dds:bc5normal" && type == TypeInt) {
+        dds_bc5normal = *(const int*)val;
+        return true;
+    }
     if (name == "limits:channels" && type == TypeInt) {
         limit_channels = *(const int*)val;
         return true;
@@ -427,6 +432,10 @@ getattribute(string_view name, TypeDesc type, void* val)
     }
     if (name == "tiff:multithread" && type == TypeInt) {
         *(int*)val = tiff_multithread;
+        return true;
+    }
+    if (name == "dds:bc5normal" && type == TypeInt) {
+        *(int*)val = dds_bc5normal;
         return true;
     }
     if (name == "use_tbb" && type == TypeInt) {

@@ -95,7 +95,7 @@ Reading ../oiio-images/dds/dds_npot_rgba8_mips.dds
     oiio:BitsPerSample: 32
 Reading ../oiio-images/dds/dds_r5g6b5.dds
 ../oiio-images/dds/dds_r5g6b5.dds :   16 x    8, 3 channel, uint8 dds
-    SHA-1: 40E37C4CC12C783830F4BAB614E9CD294D614A9D
+    SHA-1: 37A3BFD2B8A52006B4F07065A90BE774F276B751
     channel list: R, G, B
     textureformat: "Plain Texture"
     oiio:BitsPerSample: 16
@@ -107,7 +107,7 @@ Reading ../oiio-images/dds/dds_rgb8.dds
     oiio:BitsPerSample: 24
 Reading ../oiio-images/dds/dds_rgba4.dds
 ../oiio-images/dds/dds_rgba4.dds :   16 x    8, 4 channel, uint8 dds
-    SHA-1: 913C5D7FE99BAF1950475406D2BE94ABA5BA010D
+    SHA-1: E49AB2BCE799274DE4E12DCDF1B93363F34E0FA1
     channel list: R, G, B, A
     textureformat: "Plain Texture"
     oiio:BitsPerSample: 16

@@ -141,12 +141,21 @@ DDS
 DDS (Direct Draw Surface) is an image file format designed by Microsoft
 for use in Direct3D graphics.  DDS files use the extension :file:`.dds`.
 
-DDS is an awful format, with several compression modes that are all so
-lossy as to be completely useless for high-end graphics.  Nevertheless,
-they are widely used in games and graphics hardware directly supports
-these compression modes.  Alas.
+DDS is primarily meant for images that are directly usable by the GPU.
+It supports 2D, cube and volume images with or without MIPmaps; using
+either uncompressed pixel formats or one of the lossy compression
+schemes supported by the graphics hardware (BC1-BC7).
 
 OpenImageIO currently only supports reading DDS files, not writing them.
+
+DDS files containing a "normal map" (`0x80000000`) pixel format flag
+will be interpreted as a tangent space normal map. When reading such files,
+the resulting image will be a 3-channel image with red & green channels
+coming from file data, and the blue channel computed as if it were the
+Z component of a normal map. This applies to images using DXT5 compression
+(normal X & Y components are assumed to be in alpha & green channels)
+and images using BC5/ATI2 compression (normal X & Y components are in
+red & green channels).
 
 .. list-table::
    :widths: 30 10 65
@@ -187,7 +196,14 @@ attributes are supported:
    * - ``oiio:ioproxy``
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
-       example by reading from memory rather than the file system.
+       example by reading from memory rather than the file system.    
+
+Additionally, an integer ``dds:bc5normal`` global attribute is supported
+to control behaviour of images compressed in BC5/ATI2 compression format.
+When the attribute value is set to non-zero (default is zero), any input
+image using BC5/ATI2 compression format is assumed to be a normal map,
+even if pixel format "normal map" flag is not set.
+
 
 **Configuration settings for DDS output**
 
