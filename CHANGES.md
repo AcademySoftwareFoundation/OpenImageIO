@@ -1,3 +1,8 @@
+Release 2.4.4.1 (3 Oct 2022) -- compared to 2.4.4.0
+---------------------------------------------------
+
+
+
 Release 2.4 (1 Oct 2022) -- compared to 2.3
 ----------------------------------------------
 New minimum dependencies and compatibility changes:
