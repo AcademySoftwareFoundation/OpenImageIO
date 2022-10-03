@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
 if [[ ! -e ../oiio-images ]] ; then
-    git clone https://github.com/OpenImageIO/oiio-images.git ../oiio-images
+    git clone https://github.com/OpenImageIO/oiio-images.git -b master --depth 1 ../oiio-images
+    # NOTE: on release branches, this should include `-b RB-x.y`` so that
+    # updates to the master oiio-images don't break tests in release branches.
 fi
 
 # if [[ ! -e ../libtiffpic ]] ; then
@@ -10,7 +12,7 @@ fi
 # fi
 
 if [[ ! -e ../openexr-images ]] ; then
-    git clone https://github.com/openexr/openexr-images.git ../openexr-images
+    git clone https://github.com/openexr/openexr-images.git --depth 1 ../openexr-images
 fi
 
 # if [[ ! -e ../bmpsuite ]] ; then
