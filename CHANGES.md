@@ -1,7 +1,9 @@
-Release 2.4.4.1 (3 Oct 2022) -- compared to 2.4.4.0
+Release 2.4.4.2 (3 Oct 2022) -- compared to 2.4.4.1
 ---------------------------------------------------
-
-
+* DDS: Improved support for DTX5, ATI2/BC5 normal maps, R10G10B10A2
+  format, RXGB, BC4U, BC5U, A8, improved low bit expansion to 8 bits.
+  #3573 (2.4.4.2)
+* DDS: Fix possible heap overflow on input. #3542 (2.4.4.2)
 
 Release 2.4 (1 Oct 2022) -- compared to 2.3
 ----------------------------------------------
