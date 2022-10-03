@@ -29,6 +29,8 @@ OIIO_NAMESPACE_BEGIN
 
 // Feature tests
 #define OIIO_USTRING_HAS_USTRINGHASH 1
+#define OIIO_USTRING_HAS_CTR_FROM_USTRINGHASH 1
+#define OIIO_USTRING_HAS_STDHASH 1
 
 
 class ustringhash;  // forward declaration
@@ -132,7 +134,7 @@ public:
     typedef std::string::const_reverse_iterator const_reverse_iterator;
 
     /// Default ctr for ustring -- make an empty string.
-    constexpr ustring(void) noexcept
+    constexpr ustring() noexcept
         : m_chars(nullptr)
     {
     }
@@ -191,6 +193,9 @@ public:
         sref    = sref.substr(pos, n);
         m_chars = make_unique(sref);
     }
+
+    /// Construct from a known ustringhash
+    inline explicit ustring(ustringhash hash);
 
     /// ustring destructor.
     ~ustring() noexcept {}
@@ -293,10 +298,10 @@ public:
     }
 
     /// Reset to an empty string.
-    void clear(void) noexcept { m_chars = nullptr; }
+    void clear() noexcept { m_chars = nullptr; }
 
     /// Return the number of characters in the string.
-    size_t length(void) const noexcept
+    size_t length() const noexcept
     {
         if (!m_chars)
             return 0;
@@ -305,7 +310,7 @@ public:
     }
 
     /// Return a hashed version of the string
-    size_t hash(void) const noexcept
+    size_t hash() const noexcept
     {
         if (!m_chars)
             return 0;
@@ -314,14 +319,14 @@ public:
     }
 
     /// Return a hashed version of the string
-    ustringhash uhash(void) const noexcept;
+    ustringhash uhash() const noexcept;
 
     /// Return the number of characters in the string.
-    size_t size(void) const noexcept { return length(); }
+    size_t size() const noexcept { return length(); }
 
     /// Is the string empty -- i.e., is it nullptr or does it point to an
     /// empty string?
-    bool empty(void) const noexcept { return (size() == 0); }
+    bool empty() const noexcept { return (size() == 0); }
 
     /// Return a const_iterator that references the first character of
     /// the string.
@@ -783,7 +788,7 @@ private:
 class OIIO_UTIL_API ustringhash {
 public:
     // Default constructor
-    OIIO_HOSTDEVICE constexpr ustringhash(void) noexcept
+    OIIO_HOSTDEVICE constexpr ustringhash() noexcept
         : m_hash(0)
     {
     }
@@ -849,7 +854,7 @@ public:
     }
 
     /// Reset to an empty string.
-    OIIO_HOSTDEVICE void clear(void) noexcept { m_hash = 0; }
+    OIIO_HOSTDEVICE void clear() noexcept { m_hash = 0; }
 
 #ifndef __CUDA_ARCH__
     /// Return a pointer to the characters.
@@ -868,26 +873,23 @@ public:
     }
 
     /// Return the number of characters in the string.
-    size_t length(void) const noexcept
+    size_t length() const noexcept
     {
         return ustring::from_hash(m_hash).length();
     }
 #endif
 
     /// Return a hashed version of the string
-    OIIO_HOSTDEVICE constexpr size_t hash(void) const noexcept
-    {
-        return m_hash;
-    }
+    OIIO_HOSTDEVICE constexpr size_t hash() const noexcept { return m_hash; }
 
 #ifndef __CUDA_ARCH__
     /// Return the number of characters in the string.
-    size_t size(void) const noexcept { return length(); }
+    size_t size() const noexcept { return length(); }
 #endif
 
     /// Is the string empty -- i.e., is it nullptr or does it point to an
     /// empty string? (Empty strings always have a hash of 0.)
-    OIIO_HOSTDEVICE constexpr bool empty(void) const noexcept
+    OIIO_HOSTDEVICE constexpr bool empty() const noexcept
     {
         return m_hash == 0;
     }
@@ -941,12 +943,26 @@ public:
         return b != a;
     }
 
+    OIIO_HOSTDEVICE constexpr bool operator<(const ustringhash& x) const noexcept
+    {
+        return hash() < x.hash();
+    }
+
     /// Generic stream output of a ustring.
     friend std::ostream& operator<<(std::ostream& out, const ustringhash& str)
     {
         return (out << str.hash());
     }
 #endif
+
+    /// Return the ustringhash corresponding to the given hash. Caveat emptor:
+    /// results are undefined if it's not the valud hash of a ustring.
+    OIIO_NODISCARD static constexpr ustringhash from_hash(size_t hash)
+    {
+        ustringhash u;
+        u.m_hash = hash;
+        return u;
+    }
 
 private:
     // Individual ustringhash internal representation -- the hash value.
@@ -972,12 +988,27 @@ ustring::uhash() const noexcept
 
 
 
-/// Functor class to use as a hasher when you want to make a hash_map or
-/// hash_set using ustring as a key.
-class ustringHash {
-public:
-    size_t operator()(const ustring& s) const noexcept { return s.hash(); }
-};
+#ifndef __CUDA_ARCH__
+inline ustring::ustring(ustringhash hash)
+{
+    // The ustring constructor from a ustringhash is just a pretty
+    // wrapper around an awkward construct.
+    m_chars = ustring::from_hash(hash.hash()).c_str();
+}
+#endif
+
+
+
+#if OIIO_VERSION_LESS(3, 0, 0)
+/// Deprecated -- This is too easy to confuse with the ustringhash class. And
+/// also it is unnecessary if you use std::hash<ustring>. This will be removed
+/// in OIIO 3.0.
+#    if OIIO_VERSION_GREATER_EQUAL(2, 6, 0)
+OIIO_DEPRECATED("Use std::hash<ustring> instead of ustringHash")
+#    endif
+
+using ustringHash = std::hash<ustring>;
+#endif
 
 
 
@@ -1052,6 +1083,24 @@ to_string(const ustringhash& value)
 }  // end namespace Strutil
 
 OIIO_NAMESPACE_END
+
+
+namespace std {  // not necessary in C++17, then we can just say std::hash
+// std::hash specialization for ustring
+template<> struct hash<OIIO::ustring> {
+    std::size_t operator()(OIIO::ustring u) const noexcept { return u.hash(); }
+};
+
+
+// std::hash specialization for ustringhash
+template<> struct hash<OIIO::ustringhash> {
+    std::size_t operator()(OIIO::ustringhash u) const noexcept
+    {
+        return u.hash();
+    }
+};
+}  // namespace std
+
 
 
 // Supply a fmtlib compatible custom formatter for ustring.
