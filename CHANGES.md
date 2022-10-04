@@ -1,3 +1,6 @@
+Release 2.4.5 (1 Nov?? 2022) -- compared to 2.4.4.2
+---------------------------------------------------
+
 Release 2.4.4.2 (3 Oct 2022) -- compared to 2.4.4.1
 ---------------------------------------------------
 * DDS: Improved support for DTX5, ATI2/BC5 normal maps, R10G10B10A2
