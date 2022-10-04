@@ -453,17 +453,29 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
         m_nchans = GetChannelCount(m_compression,
                                    m_dds.fmt.flags & DDS_PF_NORMAL);
     } else {
-        m_nchans = ((m_dds.fmt.flags & (DDS_PF_LUMINANCE | DDS_PF_ALPHAONLY))
-                        ? 1
-                        : 3)
-                   + ((m_dds.fmt.flags & DDS_PF_ALPHA) ? 1 : 0);
         // also calculate bytes per pixel and the bit shifts
         m_Bpp = (m_dds.fmt.bpp + 7) >> 3;
-        if (!(m_dds.fmt.flags & DDS_PF_LUMINANCE)) {
-            for (int i = 0; i < 4; ++i)
-                calc_shifts(m_dds.fmt.masks[i], m_BitCounts[i],
-                            m_RightShifts[i]);
+        for (int i = 0; i < 4; ++i)
+            calc_shifts(m_dds.fmt.masks[i], m_BitCounts[i], m_RightShifts[i]);
+        m_nchans = 3;
+        if (m_dds.fmt.flags & DDS_PF_LUMINANCE) {
+            // we treat luminance as one channel;
+            // move next channel (possible alpha) info
+            // after it
+            m_nchans           = 1;
+            m_dds.fmt.masks[1] = m_dds.fmt.masks[3];
+            m_BitCounts[1]     = m_BitCounts[3];
+            m_RightShifts[1]   = m_RightShifts[3];
+        } else if (m_dds.fmt.flags & DDS_PF_ALPHAONLY) {
+            // alpha-only image; move alpha info
+            // into the first slot
+            m_nchans           = 1;
+            m_dds.fmt.masks[0] = m_dds.fmt.masks[3];
+            m_BitCounts[0]     = m_BitCounts[3];
+            m_RightShifts[0]   = m_RightShifts[3];
         }
+        if (m_dds.fmt.flags & DDS_PF_ALPHA)
+            m_nchans++;
     }
 
     // fix depth, pitch and mipmaps for later use, if needed
@@ -747,10 +759,21 @@ DDSInput::internal_readimg(unsigned char* dst, int w, int h, int d)
             }
         }
     } else {
-        // uncompressed image
-
-        // HACK: shortcut for luminance
-        if (m_dds.fmt.flags & DDS_PF_LUMINANCE) {
+        // uncompressed image:
+        // check if we can just directly copy pixels without any processing
+        bool direct = false;
+        if (m_spec.nchannels == m_Bpp) {
+            direct = true;
+            for (int ch = 0; ch < m_spec.nchannels; ++ch) {
+                if ((m_dds.fmt.masks[ch] != (0xFFu << (ch * 8)))
+                    || (m_RightShifts[ch] != uint32_t(ch * 8))
+                    || (m_BitCounts[ch] != 8u)) {
+                    direct = false;
+                    break;
+                }
+            }
+        }
+        if (direct) {
             return ioread(dst, w * m_Bpp, h);
         }
 
