@@ -271,6 +271,7 @@ jobs:
                             PUGIXML_VERSION=master
                             USE_OPENVDB=0
                             WEBP_VERSION=master
+                            OIIO_CMAKE_FLAGS="-DFORTIFY_SOURCE=2"
                             # The installed OpenVDB has a TLS conflict with Python 3.8
           - desc: clang14 C++20 avx2 exr3.1 ocio2.1
             nametag: linux-clang14
