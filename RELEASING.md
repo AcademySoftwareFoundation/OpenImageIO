@@ -189,7 +189,14 @@ have a heading added at the top for the *next* version.
    - The `${PROJECT_NAME}_SUPPORTED_RELEASE` variable should be `ON` for any
      release branch, `OFF` for master.
 
-5. Make sure everything passes the usual CI workflow. Also check the daily or
+5. In the https://github.com/OpenImageIO/oiio-images project, create a branch
+   `RB-x.y` for the major/minor branch, and in the main oiio repo, update
+   src/build-scripts/install_test_images.bash to specify `-b RB-x.y` in the
+   checkout of oiio-images to ensure CI tests are against the set of test
+   images corresponding to that major/minor release (just in the branch, not
+   in master!).
+
+6. Make sure everything passes the usual CI workflow. Also check the daily or
    weekly "analysis" workflows to make sure there aren't any important
    warnings that should be fixed.
 
@@ -330,10 +337,11 @@ Odds and ends to do after the tag is pushed and the announcements are sent:
 - Re-read RELEASING.md and ensure that the instructions match what you
   have done. Update as necessary.
 
-- Go to readthedocs.org, and ensure that the new release is built and visible.
-  I tend to keep the latest patch of each minor release available for
-  reference indefinitely, but hide the docs for earlier patch releases within
-  that minor release series.
+- Go to readthedocs.org, and ensure that the new release is built and visible
+  and is the default release shown (specified in the Admin section). I tend to
+  keep the latest patch of each minor release available for reference
+  indefinitely, but hide the docs for earlier patch releases within that minor
+  release series.
 
 - Edit the top-level CMakeList.txt to update the version to the *next*
   anticipated release on the branch, in order to ensure that anybody building
