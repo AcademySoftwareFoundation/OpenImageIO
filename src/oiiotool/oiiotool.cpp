@@ -19,6 +19,7 @@
 
 #include "oiiotool.h"
 
+#include <OpenEXR/IlmThreadPool.h>
 #include <OpenEXR/ImfTimeCode.h>
 
 #include <OpenImageIO/argparse.h>
@@ -6601,6 +6602,12 @@ main(int argc, char* argv[])
     // an occasional problem with static destructor order fiasco with
     // field3d when building with EMBEDPLUGINS=0 on MacOS.
     ot.imagecache->close_all();
+
+    // Force the OpenEXR threadpool to shutdown because their destruction
+    // might cause us to hang on Windows when it tries to communicate with
+    // threads that would have already been terminated without releasing any
+    // held mutexes.
+    IlmThread::ThreadPool::globalThreadPool().setNumThreads(0);
 
     return ot.return_value;
 }
