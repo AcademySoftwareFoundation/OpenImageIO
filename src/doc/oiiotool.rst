@@ -1535,10 +1535,22 @@ Writing images
     Sets the compression method, and optionally a quality setting, for the
     output image.  Each ImageOutput plugin will have its own set of methods
     that it supports.
+
+    Optional appended modifiers include:
+
+      `:subimages=` *indices-or-names*
+        Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+        Only included subimages will have the attribute changed. If subimages
+        are not set, only the first subimage will be changed, or all subimages
+        if the `-a` command line flag was used.
+
+    Examples::
+
+        # Set the EXR compression to piz
+        oiiotool in.exr --compression piz -o out.exr
     
-    Sets the compression method, and optionally a quality setting, for the
-    output image.  Each ImageOutput plugin will have its own set of methods
-    that it supports.
+        # Set the compression to zip only in subimage 1
+        oiiotool in.exr --compression:subimages=1 zip -o out.exr
 
 .. option:: --quality <q>
 
