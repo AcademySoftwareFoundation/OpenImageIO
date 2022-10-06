@@ -186,7 +186,7 @@ ComputeNormalAG(uint8_t rgba[kBlockSize * kBlockSize * 4])
 
 static void
 DecompressImage(uint8_t* rgba, int width, int height, const uint8_t* blocks,
-                Compression cmp, const dds_pixformat& pixelFormat)
+                Compression cmp, const dds_pixformat& pixelFormat, int nthreads)
 {
     const size_t blockSize = GetBlockSize(cmp);
     const int channelCount = GetChannelCount(cmp,
@@ -194,7 +194,7 @@ DecompressImage(uint8_t* rgba, int width, int height, const uint8_t* blocks,
 
     const int widthInBlocks  = (width + kBlockSize - 1) / kBlockSize;
     const int heightInBlocks = (height + kBlockSize - 1) / kBlockSize;
-    paropt opt               = paropt(0, paropt::SplitDir::Y, 8);
+    paropt opt               = paropt(nthreads, paropt::SplitDir::Y, 8);
     parallel_for_chunked(
         0, heightInBlocks, 0,
         [&](int64_t ybb, int64_t ybe) {
@@ -746,7 +746,8 @@ DDSInput::internal_readimg(unsigned char* dst, int w, int h, int d)
         if (!ioread(tmp.get(), bufsize, 1))
             return false;
         // decompress image
-        DecompressImage(dst, w, h, tmp.get(), m_compression, m_dds.fmt);
+        DecompressImage(dst, w, h, tmp.get(), m_compression, m_dds.fmt,
+                        threads());
         tmp.reset();
         // correct pre-multiplied alpha, if necessary
         if (m_compression == Compression::DXT2
