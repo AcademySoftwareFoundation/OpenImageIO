@@ -39,6 +39,7 @@ if [[ -z $DEP_DOWNLOAD_ONLY ]]; then
     time cmake -DCMAKE_BUILD_TYPE=${LIBTIFF_BUILD_TYPE} \
                -DCMAKE_INSTALL_PREFIX=${LIBTIFF_INSTALL_DIR} \
                -DCMAKE_CXX_FLAGS="${LIBTIFF_CXX_FLAGS}" \
+               -DBUILD_SHARED_LIBS=${LIBTIFF_BUILD_SHARED_LIBS:-ON} \
                ${LIBTIFF_BUILDOPTS} ..
     time cmake --build . --target install
 fi
