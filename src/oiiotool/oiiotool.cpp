@@ -151,7 +151,7 @@ Oiiotool::clear_options()
     output_scanline           = false;
     output_tilewidth          = 0;
     output_tileheight         = 0;
-    output_compression        = "";
+
     output_quality            = -1;
     output_planarconfig       = "default";
     output_adjust_time        = false;
@@ -880,10 +880,6 @@ adjust_output_options(string_view filename, ImageSpec& spec,
         spec.tile_width = spec.tile_height = spec.tile_depth = 0;
     }
 
-    if (!ot.output_compression.empty()) {
-        // Note: may be in the form "name:quality"
-        spec.attribute("compression", ot.output_compression);
-    }
     if (ot.output_quality > 0)
         spec.attribute("CompressionQuality", ot.output_quality);
 
@@ -5696,6 +5692,15 @@ do_echo(cspan<const char*> argv)
 }
 
 
+// --compression
+OIIOTOOL_OP(compression, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
+    string_view compression = op.args(1);
+    *img[0] = *img[1];
+    img[0]->specmod().attribute("compression", compression);
+    return true;
+});
+
+
 
 // --printstats
 static void
@@ -6238,8 +6243,9 @@ Oiiotool::getargs(int argc, char* argv[])
       .action(output_tiles);
     ap.arg("--force-tiles", &ot.output_force_tiles)
       .hidden(); // undocumented
-    ap.arg("--compression %s:NAME", &ot.output_compression)
-      .help("Set the compression method (in the form \"name\" or \"name:quality\")");
+    ap.arg("--compression %s:NAME")
+      .help("Set the compression method (in the form \"name\" or \"name:quality\")")
+      .action(action_compression);
     ap.arg("--quality %d:QUALITY", &ot.output_quality)
       .hidden(); // DEPRECATED(2.1)
     ap.arg("--dither", &ot.output_dither)

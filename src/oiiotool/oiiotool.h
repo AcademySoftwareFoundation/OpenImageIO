@@ -129,7 +129,6 @@ public:
     // Output options
     TypeDesc output_dataformat;  // Requested output data format
     std::map<std::string, std::string> output_channelformats;
-    std::string output_compression;
     std::string output_planarconfig;
     int output_bitspersample;
     int output_tilewidth, output_tileheight;
