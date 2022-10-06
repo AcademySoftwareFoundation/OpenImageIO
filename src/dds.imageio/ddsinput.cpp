@@ -5,12 +5,14 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <memory>
 #include <stdint.h>
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/parallel.h>
 #include <OpenImageIO/typedesc.h>
 
 #include "dds_pvt.h"
@@ -183,108 +185,111 @@ ComputeNormalAG(uint8_t rgba[kBlockSize * kBlockSize * 4])
 
 
 static void
-DecompressImage(uint8_t* rgba, int width, int height, void const* blocks,
+DecompressImage(uint8_t* rgba, int width, int height, const uint8_t* blocks,
                 Compression cmp, const dds_pixformat& pixelFormat)
 {
-    uint8_t rgbai[kBlockSize * kBlockSize * 4];
-    uint16_t rgbh[kBlockSize * kBlockSize * 3];
-    const uint8_t* sourceBlock = reinterpret_cast<const uint8_t*>(blocks);
-    const size_t blockSize     = GetBlockSize(cmp);
-    const int channelCount     = GetChannelCount(cmp,
+    const size_t blockSize = GetBlockSize(cmp);
+    const int channelCount = GetChannelCount(cmp,
                                              pixelFormat.flags & DDS_PF_NORMAL);
-    for (int y = 0; y < height; y += kBlockSize) {
-        for (int x = 0; x < width; x += kBlockSize) {
-            // decompress the BCn block
-            switch (cmp) {
-            case Compression::DXT1:
-                bcdec_bc1(sourceBlock, rgbai, kBlockSize * 4);
-                break;
-            case Compression::DXT2:
-            case Compression::DXT3:
-                bcdec_bc2(sourceBlock, rgbai, kBlockSize * 4);
-                break;
-            case Compression::DXT4:
-            case Compression::DXT5:
-                bcdec_bc3(sourceBlock, rgbai, kBlockSize * 4);
-                break;
-            case Compression::BC4:
-                bcdec_bc4(sourceBlock, rgbai, kBlockSize);
-                break;
-            case Compression::BC5:
-                bcdec_bc5(sourceBlock, rgbai, kBlockSize * 2);
-                break;
-            case Compression::BC6HU:
-            case Compression::BC6HS:
-                bcdec_bc6h_half(sourceBlock, rgbh, kBlockSize * 3,
-                                cmp == Compression::BC6HS);
-                break;
-            case Compression::BC7:
-                bcdec_bc7(sourceBlock, rgbai, kBlockSize * 4);
-                break;
-            default: return;
-            }
-            sourceBlock += blockSize;
 
-            /* Swap R & A for RXGB format case. */
-            if (cmp == Compression::DXT5
-                && pixelFormat.fourCC == DDS_4CC_RXGB) {
-                for (int i = 0; i < 16; ++i) {
-                    uint8_t r        = rgbai[i * 4 + 0];
-                    uint8_t a        = rgbai[i * 4 + 3];
-                    rgbai[i * 4 + 0] = a;
-                    rgbai[i * 4 + 3] = r;
-                }
-            }
-            /* Convert into full normal map if needed. */
-            else if (pixelFormat.flags & DDS_PF_NORMAL) {
-                if (cmp == Compression::BC5) {
-                    ComputeNormalRG(rgbai);
-                } else if (cmp == Compression::DXT5) {
-                    ComputeNormalAG(rgbai);
-                }
-            }
+    const int widthInBlocks  = (width + kBlockSize - 1) / kBlockSize;
+    const int heightInBlocks = (height + kBlockSize - 1) / kBlockSize;
+    paropt opt               = paropt(0, paropt::SplitDir::Y, 8);
+    parallel_for_chunked(
+        0, heightInBlocks, 0,
+        [&](int64_t ybb, int64_t ybe) {
+            uint8_t rgbai[kBlockSize * kBlockSize * 4];
+            uint16_t rgbh[kBlockSize * kBlockSize * 3];
+            const int ybegin         = int(ybb) * kBlockSize;
+            const int yend           = std::min(int(ybe) * kBlockSize, height);
+            const uint8_t* srcBlocks = blocks + ybb * widthInBlocks * blockSize;
+            for (int y = ybegin; y < yend; y += kBlockSize) {
+                for (int x = 0; x < width; x += kBlockSize) {
+                    // decompress the BCn block
+                    switch (cmp) {
+                    case Compression::DXT1:
+                        bcdec_bc1(srcBlocks, rgbai, kBlockSize * 4);
+                        break;
+                    case Compression::DXT2:
+                    case Compression::DXT3:
+                        bcdec_bc2(srcBlocks, rgbai, kBlockSize * 4);
+                        break;
+                    case Compression::DXT4:
+                    case Compression::DXT5:
+                        bcdec_bc3(srcBlocks, rgbai, kBlockSize * 4);
+                        break;
+                    case Compression::BC4:
+                        bcdec_bc4(srcBlocks, rgbai, kBlockSize);
+                        break;
+                    case Compression::BC5:
+                        bcdec_bc5(srcBlocks, rgbai, kBlockSize * 2);
+                        break;
+                    case Compression::BC6HU:
+                    case Compression::BC6HS:
+                        bcdec_bc6h_half(srcBlocks, rgbh, kBlockSize * 3,
+                                        cmp == Compression::BC6HS);
+                        break;
+                    case Compression::BC7:
+                        bcdec_bc7(srcBlocks, rgbai, kBlockSize * 4);
+                        break;
+                    default: return;
+                    }
+                    srcBlocks += blockSize;
 
-            // write the pixels into the destination image location
-            if (cmp == Compression::BC6HU || cmp == Compression::BC6HS) {
-                // HDR formats: half
-                const uint16_t* pix = rgbh;
-                for (int py = 0; py < kBlockSize; ++py) {
-                    int sy        = y + py;
-                    uint16_t* dst = (uint16_t*)rgba
-                                    + channelCount * size_t(width) * sy;
-                    for (int px = 0; px < kBlockSize; ++px) {
-                        int sx = x + px;
-                        if (sx < width && sy < height) {
-                            // write the rgb value
-                            for (int ch = 0; ch < channelCount; ++ch)
-                                dst[sx * channelCount + ch] = *pix++;
-                        } else {
-                            // outside the image: skip
-                            pix += channelCount;
+                    // Swap R & A for RXGB format case
+                    if (cmp == Compression::DXT5
+                        && pixelFormat.fourCC == DDS_4CC_RXGB) {
+                        for (int i = 0; i < 16; ++i) {
+                            uint8_t r        = rgbai[i * 4 + 0];
+                            uint8_t a        = rgbai[i * 4 + 3];
+                            rgbai[i * 4 + 0] = a;
+                            rgbai[i * 4 + 3] = r;
+                        }
+                    }
+                    // Convert into full normal map if needed
+                    else if (pixelFormat.flags & DDS_PF_NORMAL) {
+                        if (cmp == Compression::BC5) {
+                            ComputeNormalRG(rgbai);
+                        } else if (cmp == Compression::DXT5) {
+                            ComputeNormalAG(rgbai);
+                        }
+                    }
+
+                    // Write the pixels into the destination image location,
+                    // making sure to not go outside of image boundaries (BCn
+                    // blocks always decode to 4x4 pixels, but output image
+                    // might not be multiple of 4).
+                    if (cmp == Compression::BC6HU
+                        || cmp == Compression::BC6HS) {
+                        // HDR formats: half
+                        const uint16_t* src = rgbh;
+                        uint16_t* dst       = (uint16_t*)rgba
+                                        + channelCount
+                                              * (size_t(width) * y + x);
+                        for (int py = 0; py < kBlockSize && y + py < yend;
+                             py++) {
+                            int cols = std::min(kBlockSize, width - x);
+                            memcpy(dst, src, cols * channelCount * 2);
+                            src += kBlockSize * channelCount;
+                            dst += channelCount * width;
+                        }
+                    } else {
+                        // LDR formats: uint8
+                        const uint8_t* src = rgbai;
+                        uint8_t* dst       = rgba
+                                       + channelCount * (size_t(width) * y + x);
+                        for (int py = 0; py < kBlockSize && y + py < yend;
+                             py++) {
+                            int cols = std::min(kBlockSize, width - x);
+                            memcpy(dst, src, cols * channelCount);
+                            src += kBlockSize * channelCount;
+                            dst += channelCount * width;
                         }
                     }
                 }
-            } else {
-                // LDR formats: uint8
-                const uint8_t* pix = rgbai;
-                for (int py = 0; py < kBlockSize; ++py) {
-                    int sy       = y + py;
-                    uint8_t* dst = rgba + channelCount * size_t(width) * sy;
-                    for (int px = 0; px < kBlockSize; ++px) {
-                        int sx = x + px;
-                        if (sx < width && sy < height) {
-                            // write the rgba value
-                            for (int ch = 0; ch < channelCount; ++ch)
-                                dst[sx * channelCount + ch] = *pix++;
-                        } else {
-                            // outside the image: skip
-                            pix += channelCount;
-                        }
-                    }
-                }
             }
-        }
-    }
+        },
+        opt);
 }
 
 
@@ -735,13 +740,14 @@ DDSInput::internal_readimg(unsigned char* dst, int w, int h, int d)
     if (m_compression != Compression::None) {
         // compressed image
         // create source buffer
-        std::vector<uint8_t> tmp(GetStorageRequirements(w, h, m_compression));
+        size_t bufsize = GetStorageRequirements(w, h, m_compression);
+        std::unique_ptr<uint8_t[]> tmp(new uint8_t[bufsize]);
         // load image into buffer
-        if (!ioread(&tmp[0], tmp.size(), 1))
+        if (!ioread(tmp.get(), bufsize, 1))
             return false;
         // decompress image
-        DecompressImage(dst, w, h, &tmp[0], m_compression, m_dds.fmt);
-        tmp.clear();
+        DecompressImage(dst, w, h, tmp.get(), m_compression, m_dds.fmt);
+        tmp.reset();
         // correct pre-multiplied alpha, if necessary
         if (m_compression == Compression::DXT2
             || m_compression == Compression::DXT4) {
@@ -777,16 +783,15 @@ DDSInput::internal_readimg(unsigned char* dst, int w, int h, int d)
             return ioread(dst, w * m_Bpp, h);
         }
 
-        std::vector<uint8_t> tmp(w * m_Bpp);
+        std::unique_ptr<uint8_t[]> tmp(new uint8_t[w * m_Bpp]);
         for (int z = 0; z < d; z++) {
             for (int y = 0; y < h; y++) {
-                if (!ioread(tmp.data(), w, m_Bpp))
+                if (!ioread(tmp.get(), w, m_Bpp))
                     return false;
                 size_t k = (z * h * w + y * w) * m_spec.nchannels;
                 for (int x = 0; x < w; x++, k += m_spec.nchannels) {
                     uint32_t pixel = 0;
-                    OIIO_DASSERT(tmp.size() >= size_t(x * m_Bpp + m_Bpp));
-                    memcpy(&pixel, tmp.data() + x * m_Bpp, m_Bpp);
+                    memcpy(&pixel, tmp.get() + x * m_Bpp, m_Bpp);
                     for (int ch = 0; ch < m_spec.nchannels; ++ch) {
                         dst[k + ch]
                             = bit_range_convert((pixel & m_dds.fmt.masks[ch])
