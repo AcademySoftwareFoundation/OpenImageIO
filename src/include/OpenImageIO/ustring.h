@@ -1094,7 +1094,8 @@ template<> struct hash<OIIO::ustring> {
 
 // std::hash specialization for ustringhash
 template<> struct hash<OIIO::ustringhash> {
-    std::size_t operator()(OIIO::ustringhash u) const noexcept
+    OIIO_HOSTDEVICE constexpr std::size_t
+    operator()(OIIO::ustringhash u) const noexcept
     {
         return u.hash();
     }
