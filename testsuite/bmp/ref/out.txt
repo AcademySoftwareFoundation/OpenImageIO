@@ -206,12 +206,32 @@ Reading ../oiio-images/bmpsuite/g32def.bmp
     bmp:version: 3
 Comparing "../oiio-images/bmpsuite/g32def.bmp" and "g32def.bmp"
 PASS
-Reading ../oiio-images/bmpsuite/g32bf.bmp
-../oiio-images/bmpsuite/g32bf.bmp :  127 x   64, 4 channel, uint8 bmp
-    SHA-1: D8807C680B17C70CB33B43AC072E0A9121C551B4
-    channel list: R, G, B, A
+Reading ../oiio-images/bmpsuite/g16bf555.bmp
+../oiio-images/bmpsuite/g16bf555.bmp :  127 x   64, 3 channel, uint5 bmp
+    SHA-1: F040412A98C1F9B55F377BA74418D79FEA149DD5
+    channel list: R, G, B
+    bmp:bitsperpixel: 16
     bmp:version: 3
-Comparing "../oiio-images/bmpsuite/g32bf.bmp" and "g32bf.bmp"
+    oiio:BitsPerSample: 5
+Comparing "../oiio-images/bmpsuite/g16bf555.bmp" and "g16bf555.bmp"
+PASS
+Reading ../oiio-images/bmpsuite/g16bf565.bmp
+../oiio-images/bmpsuite/g16bf565.bmp :  127 x   64, 3 channel, uint5 bmp
+    SHA-1: 61E14F82A64F3E6A57A7CABC61FD47E52E031B16
+    channel list: R, G, B
+    bmp:bitsperpixel: 16
+    bmp:version: 3
+    oiio:BitsPerSample: 5
+Comparing "../oiio-images/bmpsuite/g16bf565.bmp" and "g16bf565.bmp"
+PASS
+Reading ../oiio-images/bmpsuite/g16def555.bmp
+../oiio-images/bmpsuite/g16def555.bmp :  127 x   64, 3 channel, uint5 bmp
+    SHA-1: F040412A98C1F9B55F377BA74418D79FEA149DD5
+    channel list: R, G, B
+    bmp:bitsperpixel: 16
+    bmp:version: 3
+    oiio:BitsPerSample: 5
+Comparing "../oiio-images/bmpsuite/g16def555.bmp" and "g16def555.bmp"
 PASS
 Reading src/g01bg2-v5.bmp
 src/g01bg2-v5.bmp    :  127 x   64, 3 channel, uint8 bmp
