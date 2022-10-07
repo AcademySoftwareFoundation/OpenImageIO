@@ -7018,6 +7018,14 @@ main(int argc, char* argv[])
         std::cout << "\n" << ot.imagecache->getstats(2) << "\n";
     }
 
+    // Release references of images that might hold onto a shared
+    // image cache. Otherwise they would get released at static destruction
+    // time, at which point due to undefined destruction order the shared
+    // cache might be already gone.
+    ot.curimg = nullptr;
+    ot.image_stack.clear();
+    ot.image_labels.clear();
+
     // Force the OpenEXR threadpool to shutdown because their destruction
     // might cause us to hang on Windows when it tries to communicate with
     // threads that would have already been terminated without releasing any
