@@ -2013,7 +2013,8 @@ PSDInput::decompress_packbits(const char* src, char* dst,
     int length;
 
     while (src_remaining > 0 && dst_remaining > 0) {
-        header = *src++;
+        header = *reinterpret_cast<const signed char*>(src);
+        src++;
         src_remaining--;
 
         if (header == 128)
