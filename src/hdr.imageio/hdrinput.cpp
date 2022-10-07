@@ -55,7 +55,6 @@ private:
     int m_subimage;          // What subimage are we looking at?
     int m_next_scanline;     // Next scanline to read
     std::vector<int64_t> m_scanline_offsets;  // Cached scanline offsets
-    int64_t m_io_pos = 0;                     // current position
 
     void init()
     {
@@ -77,16 +76,17 @@ private:
     string_view fgets(span<char> buf)
     {
         Filesystem::IOProxy* m_io = ioproxy();
-        auto rdsize = m_io->pread(buf.data(), buf.size(), m_io_pos);
+        int64_t pos               = m_io->tell();
+        auto rdsize               = m_io->read(buf.data(), buf.size());
         string_view sv(buf.data(), rdsize);
         if (sv.size() == 0) {
             errorfmt(
                 "RGBE read error -- early end of file at position {}, asked for {}, got {} bytes, file size {}",
-                m_io_pos, buf.size(), rdsize, m_io->size());
+                pos, buf.size(), rdsize, m_io->size());
             return sv;
         }
         sv = Strutil::parse_line(sv);
-        m_io_pos += sv.size();
+        m_io->seek(pos + sv.size());
         return sv;
     }
 };
@@ -152,8 +152,7 @@ HdrInput::open(const std::string& name, ImageSpec& newspec)
 
     if (!ioproxy_use_or_open(name))
         return false;
-
-    m_io_pos = iotell();
+    ioseek(0);
 
     // hdr always makes a 3 channel float image.
     // RGBE_ReadHeader will set the width and height.
@@ -171,7 +170,7 @@ HdrInput::open(const std::string& name, ImageSpec& newspec)
 
     m_next_scanline = 0;
     m_scanline_offsets.clear();
-    m_scanline_offsets.push_back(m_io_pos);
+    m_scanline_offsets.push_back(iotell());
 
     m_subimage = 0;
     newspec    = spec();
@@ -303,11 +302,10 @@ HdrInput::RGBE_ReadPixels(float* data, int y, uint64_t numpixels)
     size_t size = 4 * numpixels;
     unsigned char* rgbe;
     OIIO_ALLOCATE_STACK_OR_HEAP(rgbe, unsigned char, size);
-    if (ioproxy()->pread(rgbe, size, m_io_pos) != size) {
+    if (ioproxy()->read(rgbe, size) != size) {
         errorfmt("Read error reading pixels on scanline {}", y);
         return false;
     }
-    m_io_pos += size;
     for (uint64_t i = 0; i < numpixels; ++i)
         rgbe2float(data[3 * i], data[3 * i + 1], data[3 * i + 2], &rgbe[4 * i]);
     return true;
@@ -331,11 +329,10 @@ HdrInput::RGBE_ReadPixels_RLE(float* data, int y, uint64_t scanline_width,
 
     /* read in each successive scanline */
     while (num_scanlines > 0) {
-        if (m_io->pread(rgbe, sizeof(rgbe), m_io_pos) < sizeof(rgbe)) {
+        if (m_io->read(rgbe, sizeof(rgbe)) < sizeof(rgbe)) {
             errorfmt("Read error on scanline {}", y);
             return false;
         }
-        m_io_pos += sizeof(rgbe);
         if ((rgbe[0] != 2) || (rgbe[1] != 2) || (rgbe[2] & 0x80)) {
             /* this file is not run length encoded */
             rgbe2float(data[0], data[1], data[2], rgbe);
@@ -353,11 +350,10 @@ HdrInput::RGBE_ReadPixels_RLE(float* data, int y, uint64_t scanline_width,
         for (int i = 0; i < 4; i++) {
             ptr_end = scanline_buffer.data() + (i + 1) * scanline_width;
             while (ptr < ptr_end) {
-                if (m_io->pread(buf, 2, m_io_pos) < 2) {
+                if (m_io->read(buf, 2) < 2) {
                     errorfmt("Read error on scanline {}", y);
                     return false;
                 }
-                m_io_pos += 2;
                 if (buf[0] > 128) {
                     /* a run of the same value */
                     count = buf[0] - 128;
@@ -376,12 +372,10 @@ HdrInput::RGBE_ReadPixels_RLE(float* data, int y, uint64_t scanline_width,
                     }
                     *ptr++ = buf[1];
                     if (--count > 0) {
-                        if (m_io->pread(ptr, count, m_io_pos)
-                            < uint64_t(count)) {
+                        if (m_io->read(ptr, count) < uint64_t(count)) {
                             errorfmt("Read error on scanline {}", y);
                             return false;
                         }
-                        m_io_pos += count;
                         ptr += count;
                     }
                 }
@@ -415,7 +409,7 @@ HdrInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         // For random access, use cached file offsets of scanlines. This avoids
         // re-reading the same pixels many times over.
         m_next_scanline = std::min((size_t)y, m_scanline_offsets.size() - 1);
-        m_io_pos        = m_scanline_offsets[m_next_scanline];
+        ioseek(m_scanline_offsets[m_next_scanline]);
     }
 
     while (m_next_scanline <= y) {
@@ -423,7 +417,7 @@ HdrInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         bool ok = RGBE_ReadPixels_RLE((float*)data, y, m_spec.width, 1);
         ++m_next_scanline;
         if ((size_t)m_next_scanline == m_scanline_offsets.size()) {
-            m_scanline_offsets.push_back(m_io_pos);
+            m_scanline_offsets.push_back(iotell());
         }
         if (!ok)
             return false;
