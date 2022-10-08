@@ -101,7 +101,8 @@ DibInformationHeader::read_header(Filesystem::IOProxy* fd)
             return false;
         }
 
-        if (size == WINDOWS_V4 || size == WINDOWS_V5 || size == UNDOCHEADER52
+        if ((size == WINDOWS_V3 && bpp == 16 && compression == 3)
+            || size == WINDOWS_V4 || size == WINDOWS_V5 || size == UNDOCHEADER52
             || size == UNDOCHEADER56) {
             if (!fread(fd, &red_mask) || !fread(fd, &green_mask)
                 || !fread(fd, &blue_mask)) {

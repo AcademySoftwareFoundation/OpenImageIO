@@ -11,13 +11,10 @@ files = [ "g01bg.bmp", "g01bw.bmp", "g01p1.bmp", "g01wb.bmp",
           "g08res11.bmp", "g08res21.bmp", "g08res22.bmp",
           "g08s0.bmp", "g08w124.bmp", "g08w125.bmp", "g08w126.bmp",
           "g08rle.bmp", "g08offs.bmp",
-          "g24.bmp", "g32bf.bmp", "g32def.bmp", "g32bf.bmp"
-           ]
+          "g24.bmp", "g32bf.bmp", "g32def.bmp",
+          "g16bf555.bmp", "g16bf565.bmp", "g16def555.bmp" ]
 for f in files :
     command += rw_command (OIIO_TESTSUITE_IMAGEDIR, f)
-
-# TODO: seems broken: g16bf555.bmp,
-#                     g16bf565.bmp, g16def555.bmp
 
 # Test BMR version 5
 command += rw_command ("src", "g01bg2-v5.bmp")
