@@ -85,10 +85,10 @@ public:
                               // in most cases ignored
 
     // added in Version 4 of the format
-    int32_t red_mask;
-    int32_t blue_mask;
-    int32_t green_mask;
-    int32_t alpha_mask;
+    int32_t red_mask   = 0;
+    int32_t blue_mask  = 0;
+    int32_t green_mask = 0;
+    int32_t alpha_mask = 0;
     int32_t cs_type;  //color space type
     int32_t red_x;
     int32_t red_y;

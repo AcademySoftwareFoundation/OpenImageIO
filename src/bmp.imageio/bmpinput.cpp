@@ -40,6 +40,8 @@ private:
     std::vector<bmp_pvt::color_table> m_colortable;
     std::vector<unsigned char> fscanline;       // temp space: read from file
     std::vector<unsigned char> m_uncompressed;  // uncompressed palette image
+    uint32_t m_right_shifts[3];
+    uint32_t m_bit_counts[3];
     bool m_allgray;
 
     void init(void)
@@ -108,6 +110,28 @@ BmpInput::open(const std::string& name, ImageSpec& newspec)
     return open(name, newspec, emptyconfig);
 }
 
+inline void
+calc_shifts(uint32_t mask, uint32_t& count, uint32_t& right)
+{
+    if (mask == 0) {
+        count = right = 0;
+        return;
+    }
+
+    uint32_t i;
+    for (i = 0; i < 32; i++, mask >>= 1) {
+        if (mask & 1)
+            break;
+    }
+    right = i;
+
+    for (i = 0; i < 32; i++, mask >>= 1) {
+        if (!(mask & 1))
+            break;
+    }
+    count = i;
+}
+
 
 
 bool
@@ -174,6 +198,17 @@ BmpInput::open(const std::string& name, ImageSpec& newspec,
         return false;
     }
 
+    // Compute channel shifts & masks (only relevant for 16bpp case)
+    if (m_dib_header.red_mask == 0 || m_dib_header.green_mask == 0
+        || m_dib_header.blue_mask == 0) {
+        m_dib_header.red_mask   = 0b111110000000000;
+        m_dib_header.green_mask = 0b000001111100000;
+        m_dib_header.blue_mask  = 0b000000000011111;
+    }
+    calc_shifts(m_dib_header.red_mask, m_bit_counts[0], m_right_shifts[0]);
+    calc_shifts(m_dib_header.green_mask, m_bit_counts[1], m_right_shifts[1]);
+    calc_shifts(m_dib_header.blue_mask, m_bit_counts[2], m_right_shifts[2]);
+
     // computing size of one scanline - this is the size of one scanline that
     // is stored in the file, not in the memory
     int swidth = 0;
@@ -184,7 +219,7 @@ BmpInput::open(const std::string& name, ImageSpec& newspec,
         break;
     case 16:
         m_padded_scanline_size = ((m_spec.width << 1) + 3) & ~3;
-        m_spec.attribute("oiio:BitsPerSample", 4);
+        m_spec.attribute("oiio:BitsPerSample", m_bit_counts[0]);
         break;
     case 8:
         m_padded_scanline_size = (m_spec.width + 3) & ~3;
@@ -354,14 +389,20 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     }
 
     if (m_dib_header.bpp == 16) {
-        const uint16_t RED   = 0x7C00;
-        const uint16_t GREEN = 0x03E0;
-        const uint16_t BLUE  = 0x001F;
         for (unsigned int i = 0, j = 0; j < scanline_bytes; i += 2, j += 3) {
-            uint16_t pixel   = (uint16_t) * (&fscanline[i]);
-            mscanline[j]     = (uint8_t)((pixel & RED) >> 8);
-            mscanline[j + 1] = (uint8_t)((pixel & GREEN) >> 4);
-            mscanline[j + 2] = (uint8_t)(pixel & BLUE);
+            uint16_t pixel = *(uint16_t*)&fscanline[i];
+            mscanline[j + 0]
+                = (uint8_t)bit_range_convert((pixel & m_dib_header.red_mask)
+                                                 >> m_right_shifts[0],
+                                             m_bit_counts[0], 8);
+            mscanline[j + 1]
+                = (uint8_t)bit_range_convert((pixel & m_dib_header.green_mask)
+                                                 >> m_right_shifts[1],
+                                             m_bit_counts[1], 8);
+            mscanline[j + 2]
+                = (uint8_t)bit_range_convert((pixel & m_dib_header.blue_mask)
+                                                 >> m_right_shifts[2],
+                                             m_bit_counts[2], 8);
         }
     }
     if (m_dib_header.bpp == 8) {
