@@ -124,14 +124,15 @@ class ustringhash;  // forward declaration
 ///
 class OIIO_UTIL_API ustring {
 public:
-    typedef char value_type;
-    typedef value_type* pointer;
-    typedef value_type& reference;
-    typedef const value_type& const_reference;
-    typedef size_t size_type;
-    static const size_type npos = static_cast<size_type>(-1);
-    typedef std::string::const_iterator const_iterator;
-    typedef std::string::const_reverse_iterator const_reverse_iterator;
+    using rep_t      = const char*;  ///< The underlying representation type
+    using value_type = char;
+    using pointer    = value_type*;
+    using reference  = value_type&;
+    using const_reference        = const value_type&;
+    using size_type              = size_t;
+    static const size_type npos  = static_cast<size_type>(-1);
+    using const_iterator         = std::string::const_iterator;
+    using const_reverse_iterator = std::string::const_reverse_iterator;
 
     /// Default ctr for ustring -- make an empty string.
     constexpr ustring() noexcept
@@ -744,7 +745,7 @@ public:
 private:
     // Individual ustring internal representation -- the unique characters.
     //
-    const char* m_chars;
+    rep_t m_chars;
 
 public:
     // Representation within the hidden string table -- DON'T EVER CREATE
@@ -787,6 +788,8 @@ private:
 ///
 class OIIO_UTIL_API ustringhash {
 public:
+    using rep_t = size_t;  ///< The underlying representation type
+
     // Default constructor
     OIIO_HOSTDEVICE constexpr ustringhash() noexcept
         : m_hash(0)
@@ -966,7 +969,7 @@ public:
 
 private:
     // Individual ustringhash internal representation -- the hash value.
-    size_t m_hash;
+    rep_t m_hash;
 
     // Construct from a raw hash value. It's protected so that it's only
     // callable by its friend, ustring.
@@ -977,6 +980,13 @@ private:
 
     friend class ustring;
 };
+
+
+
+static_assert(sizeof(ustringhash) == sizeof(size_t),
+              "ustringhash should be the same size as a size_t");
+static_assert(sizeof(ustring) == sizeof(const char*),
+              "ustring should be the same size as a const char*");
 
 
 
