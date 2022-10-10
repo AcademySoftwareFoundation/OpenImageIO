@@ -48,6 +48,9 @@
 #    ifndef NOMINMAX
 #        define NOMINMAX
 #    endif
+#    ifndef NOGDI
+#        define NOGDI
+#    endif
 #    include <windows.h>
 #endif
 
