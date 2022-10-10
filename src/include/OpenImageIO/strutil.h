@@ -349,7 +349,7 @@ std::string OIIO_UTIL_API wordwrap (string_view src, int columns = 80,
 
 /// Our favorite "string" hash of a length of bytes. Currently, it is just
 /// a wrapper for an inlined, constexpr (if C++ >= 14), Cuda-safe farmhash.
-inline OIIO_CONSTEXPR14 size_t
+inline constexpr size_t
 strhash (size_t len, const char *s)
 {
     return OIIO::farmhash::inlined::Hash(s, len);
@@ -361,7 +361,7 @@ strhash (size_t len, const char *s)
 /// Cuda. This is rigged, though, so that empty strings hash always hash to
 /// 0 (that isn't what a raw farmhash would give you, but it's a useful
 /// property, especially for trivial initialization).
-inline OIIO_CONSTEXPR14 size_t
+inline constexpr size_t
 strhash (string_view s)
 {
     return s.length() ? strhash(s.length(), s.data()) : 0;

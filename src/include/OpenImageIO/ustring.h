@@ -912,13 +912,13 @@ public:
     }
 
     /// Test for equality with a char*.
-    bool operator==(const char* str) const noexcept
+    OIIO_CONSTEXPR17 bool operator==(const char* str) const noexcept
     {
         return m_hash == Strutil::strhash(str);
     }
 
     /// Test for inequality with a char*.
-    bool operator!=(const char* str) const noexcept
+    OIIO_CONSTEXPR17 bool operator!=(const char* str) const noexcept
     {
         return m_hash != Strutil::strhash(str);
     }
