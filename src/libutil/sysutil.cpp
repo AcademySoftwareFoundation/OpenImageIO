@@ -46,6 +46,10 @@
 
 #ifdef _WIN32
 #    define WIN32_LEAN_AND_MEAN
+#    define VC_EXTRALEAN
+#    define NOMINMAX
+#    include <windows.h>
+
 #    define DEFINE_CONSOLEV2_PROPERTIES
 #    include <cstdio>
 #    include <io.h>

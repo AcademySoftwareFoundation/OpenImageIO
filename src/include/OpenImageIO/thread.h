@@ -111,11 +111,19 @@ pause(int delay) noexcept
 
 #elif defined(_MSC_VER)
     for (int i = 0; i < delay; ++i) {
-#    if defined(_WIN64)
-        YieldProcessor();
-#    else
+        // A reimplementation of winnt.h YieldProcessor,
+        // to avoid including windows headers.
+        #if defined(_M_AMD64)
+        _mm_pause();
+        #elif defined(_M_ARM64) || defined(_M_HYBRID_X86_ARM64)
+        __dmb(_ARM64_BARRIER_ISHST);
+        __yield();
+        #elif defined(_M_ARM)
+        __dmb(_ARM_BARRIER_ISHST);
+        __yield();
+        #else
         _asm pause
-#    endif /* _WIN64 */
+        #endif
     }
 
 #else

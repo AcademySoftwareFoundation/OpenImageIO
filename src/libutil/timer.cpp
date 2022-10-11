@@ -7,13 +7,18 @@
 
 #include <OpenImageIO/timer.h>
 
+#ifdef _WIN32
+#    define WIN32_LEAN_AND_MEAN
+#    define VC_EXTRALEAN
+#    define NOMINMAX
+#    include <windows.h>
+#endif
+
 
 OIIO_NAMESPACE_BEGIN
 
 double Timer::seconds_per_tick;
 Timer::ticks_t Timer::ticks_per_second;
-
-
 
 class TimerSetupOnce {
 public:
@@ -54,6 +59,16 @@ public:
 
 static TimerSetupOnce once;
 
-
+#ifdef _WIN32
+// a non-inline function on Windows, to avoid
+// including windows headers from OIIO public header.
+Timer::ticks_t
+Timer::now(void) const
+{
+    LARGE_INTEGER n;
+    QueryPerformanceCounter(&n);
+    return n.QuadPart;
+}
+#endif
 
 OIIO_NAMESPACE_END
