@@ -146,6 +146,9 @@ test_ustring()
     OIIO_CHECK_EQUAL(ustring::is_unique(foostr), true);
     OIIO_CHECK_EQUAL(ustring::is_unique("foo"), false);
     OIIO_CHECK_EQUAL(ustring::from_unique(foostr), foo);
+
+    // std::hash
+    OIIO_CHECK_EQUAL(std::hash<ustring> {}(foo), foo.hash());
 }
 
 
@@ -178,6 +181,9 @@ test_ustringhash()
     // Ask a ustring for its ustringhash
     OIIO_CHECK_EQUAL(hfoo, foo.uhash());
 
+    // ustring constructed from a ustringhash
+    OIIO_CHECK_EQUAL(hfoo_from_foo, foo);
+
     // string_view and string from ustringhash
     string_view foo_sv = hfoo;
     OIIO_CHECK_EQUAL(foo_sv, "foo");
@@ -203,6 +209,12 @@ test_ustringhash()
 
     // Conversion to string
     OIIO_CHECK_EQUAL(Strutil::to_string(hfoo), "foo");
+
+    // from_hash
+    OIIO_CHECK_EQUAL(ustringhash::from_hash(hfoo.hash()), hfoo);
+
+    // std::hash
+    OIIO_CHECK_EQUAL(std::hash<ustringhash> {}(hfoo), hfoo.hash());
 }
 
 
