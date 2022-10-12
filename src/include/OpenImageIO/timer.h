@@ -21,7 +21,6 @@
 #include <OpenImageIO/strutil.h>
 
 #ifdef _WIN32
-//# include <windows.h>  // Already done by platform.h
 #elif defined(__APPLE__)
 #    include <mach/mach_time.h>
 #else
@@ -199,23 +198,23 @@ private:
     /// Platform-dependent grab of current time, expressed as ticks_t.
     ///
     ticks_t now(void) const
-    {
 #ifdef _WIN32
-        LARGE_INTEGER n;
-        QueryPerformanceCounter(&n);  // From MSDN web site
-        return n.QuadPart;
-#elif defined(__APPLE__)
+        ;  // a non-inline function on Windows
+#else
+    {
+#    if defined(__APPLE__)
         return mach_absolute_time();
-#elif OIIO_TIMER_LINUX_USE_clock_gettime
+#    elif OIIO_TIMER_LINUX_USE_clock_gettime
         struct timespec t;
         clock_gettime(CLOCK_MONOTONIC, &t);
         return int64_t(t.tv_sec) * int64_t(1000000000) + t.tv_nsec;
-#else
+#    else
         struct timeval t;
         gettimeofday(&t, NULL);
         return int64_t(t.tv_sec) * int64_t(1000000) + t.tv_usec;
-#endif
+#    endif
     }
+#endif
 
     /// Difference between two times, expressed in (platform-dependent)
     /// ticks.
