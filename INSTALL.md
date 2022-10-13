@@ -268,8 +268,92 @@ Building on Windows
 
 **Method 1 - from source**
 
-I really need someone to write correct, modern docs about how to build
-from source on Windows.
+You will need to have Git, CMake and Visual Studio installed.
+
+The minimal set of dependencies for OIIO is: Boost, zlib, libTIFF, OpenEXR, and libjpeg or libjpeg-turbo. If you have them built somewhere then you skip
+the section below, and will only have to point OIIO build process so their locations.
+
+* Boost: get the boost source archive, extract into `{BOOST_ROOT}`.
+  ```
+  cd {BOOST_ROOT}
+  bootstrap
+  b2
+  ```
+* zlib: this will build it, and then delete the non-static library, so they don't get picked up:
+  ```
+  cd {ZLIB_ROOT}
+  git clone https://github.com/madler/zlib .
+  mkdir build
+  cd build
+  cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=. ..
+  cmake --build . --config Release --target install
+  del lib\zlib.lib
+  ```
+* libTIFF:
+  ```
+  cd {TIFF_ROOT}
+  git clone https://gitlab.com/libtiff/libtiff.git .
+  cd build
+  cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=. ..
+  cmake --build . --target install
+  ```
+* libjpeg-turbo:
+  ```
+  cd {JPEG_ROOT}
+  git clone https://github.com/libjpeg-turbo/libjpeg-turbo .
+  mkdir build
+  cd build
+  cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_SHARED=OFF -DCMAKE_INSTALL_PREFIX=. ..
+  cmake --build . --config Release --target install
+  ```
+* OpenEXR: you'll have to point it to your `{ZLIB_ROOT}` location from the above. If copy-pasting the multi-line command (with lines ending in `^`) into
+  cmd.exe prompt, make sure to copy all the lines at once.
+  ```
+  cd {EXR_ROOT}
+  git clone https://github.com/AcademySoftwareFoundation/openexr .
+  cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=dist ^
+    -DBUILD_TESTING=OFF -DBUILD_SHARED_LIBS=OFF -DOPENEXR_BUILD_TOOLS=OFF ^
+    -DOPENEXR_INSTALL_TOOLS=OFF -DOPENEXR_INSTALL_EXAMPLES=OFF ^
+    -DZLIB_ROOT={ZLIB_ROOT}\build ..
+  cmake --build . --target install --config Release
+  ```
+
+Now get the OIIO source and do one-time CMake configuration step. Replace `{*_ROOT}` below with folders where you have put the 3rd party
+dependencies.
+```
+cd {OIIO_ROOT}
+git clone https://github.com/OpenImageIO/oiio .
+mkdir build
+cd build
+cmake -DVERBOSE=ON -DCMAKE_BUILD_TYPE=Release ^
+  -DBoost_USE_STATIC_LIBS=ON -DBoost_NO_WARN_NEW_VERSIONS=ON -DBoost_ROOT={BOOST_ROOT} ^
+  -DZLIB_ROOT={ZLIB_ROOT}\build ^
+  -DTIFF_ROOT={TIFF_ROOT}\build ^
+  -DOpenEXR_ROOT={EXR_ROOT}\build\dist ^
+  -DImath_DIR={EXR_ROOT}\build\dist\lib\cmake\Imath ^
+  -DJPEG_ROOT={JPEG_ROOT}\build ^
+  -DUSE_PYTHON=0 -DUSE_QT=0 -DBUILD_SHARED_LIBS=0 -DLINKSTATIC=1 ..
+```
+
+This will produce `{OIIO_ROOT}/build/OpenImageIO.sln` that can be opened in Visual Studio IDE. Note that the solution will be
+only for the Intel x64 architecture only; and will only target "min-spec" (SSE2) SIMD instruction set.
+
+Optional packages that OIIO can use (e.g. libpng, Qt) can be build and pointed to OIIO build process in a similar way.
+
+In Visual Studio, open `{OIIO_ROOT}/build/OpenImageIO.sln` and pick Release build configuration. If you pick Debug, you
+might need to re-run the CMake command above with `-DCMAKE_BUILD_TYPE=Debug` and also have all the dependencies above built
+with `Debug` config too.
+
+The main project that builds the library is `OpenImageIO`. The library is built into `{OIIO_ROOT}/build/lib/{CONFIG}` folder.
+The various OIIO command line tools (`oiiotool`, `iconvert` etc.) are projects under Tools subfolder in VS IDE solution explorer.
+They all build into `{OIIO_ROOT}/build/bin/{CONFIG}` folder.
+
+There's a `CMakePredefinedTargets/INSTALL` project that you can build to produce a `{OIIO_ROOT}/dist` folder with `bin`, `include`,
+`lib`, `share` folders as an OIIO distribution.
+
+The instructions above use options for building statically-linked OIIO library and tools. Adjust options passed to CMake to
+produce a dynamic-linked version.
+
 
 **Method 2 - Using vcpkg**
 
