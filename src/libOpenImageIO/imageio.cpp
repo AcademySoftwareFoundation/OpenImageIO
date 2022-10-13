@@ -194,6 +194,7 @@ oiio_simd_caps()
     if (OIIO_AVX512CD_ENABLED)   caps.emplace_back ("avx512cd");
     if (OIIO_AVX512BW_ENABLED)   caps.emplace_back ("avx512bw");
     if (OIIO_AVX512VL_ENABLED)   caps.emplace_back ("avx512vl");
+    if (OIIO_SIMD_NEON)          caps.emplace_back ("neon");
     if (OIIO_FMA_ENABLED)        caps.emplace_back ("fma");
     if (OIIO_F16C_ENABLED)       caps.emplace_back ("f16c");
     // if (OIIO_POPCOUNT_ENABLED)   caps.emplace_back ("popcnt");
