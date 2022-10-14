@@ -346,4 +346,3 @@ macro (find_or_download_fmt)
 endmacro()
 
 find_or_download_fmt()
-include_directories (${FMT_INCLUDES})

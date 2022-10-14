@@ -82,7 +82,6 @@ else ()
         file (WRITE "${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/${f}"
                     "#include <fmt/${f}>")
     endforeach ()
-    include_directories (${FMT_INCLUDES})
 endif ()
 install (FILES ${fmt_headers}
          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/detail/fmt
