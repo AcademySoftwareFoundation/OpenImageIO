@@ -1,0 +1,31 @@
+Reading ../oiio-images/cineon/test.cin
+../oiio-images/cineon/test.cin :  800 x  600, 3 channel, uint8 cineon
+    SHA-1: 7AC3FF4F83F4EB4BDCD903E3378BDFD697E5BEF9
+    channel list: I, I2, I3
+    DateTime: "2020:02:09 15:33:48UTC"
+    Orientation: 1 (normal)
+    cineon:BitDepth: 8, 8, 8
+    cineon:BluePrimary: 0.15, 0.06
+    cineon:FilmEdgeCode: "0000000000000000"
+    cineon:FramePosition: 0
+    cineon:FrameRate: 0
+    cineon:GreenPrimary: 0.3, 0.6
+    cineon:HighData: 255, 255, 255
+    cineon:HighQuantity: 2.048, 2.048, 2.048
+    cineon:ImageDescriptor: "Grayscale", "Grayscale", "Grayscale"
+    cineon:LinesPerElement: 600, 600, 600
+    cineon:LowData: 0, 0, 0
+    cineon:LowQuantity: 0, 0, 0
+    cineon:Metric: 0, 0, 0
+    cineon:Packing: "32-bit boundary, left justified, at most one pixel per cell"
+    cineon:PixelsPerLine: 800, 800, 800
+    cineon:RedPrimary: 0.64, 0.33
+    cineon:SourceImageFileName: "abydos.cin"
+    cineon:Version: "V4.5"
+    cineon:WhitePoint: 0.3127, 0.329
+    cineon:XDevicePitch: 0
+    cineon:XOffset: 0
+    cineon:YDevicePitch: 0
+    cineon:YOffset: 0
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "KodakLog"
