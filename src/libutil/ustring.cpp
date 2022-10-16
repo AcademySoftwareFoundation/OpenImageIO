@@ -69,7 +69,7 @@ template<unsigned BASE_CAPACITY, unsigned POOL_SIZE> struct TableRepMap {
     }
 #endif
 
-    const char* lookup(string_view str, size_t hash)
+    const char* lookup(string_view str, uint64_t hash)
     {
         ustring_read_lock_t lock(mutex);
 #ifdef USTRING_TRACK_NUM_LOOKUPS
@@ -96,7 +96,7 @@ template<unsigned BASE_CAPACITY, unsigned POOL_SIZE> struct TableRepMap {
     // Look up based on hash only. Return nullptr if not found. Note that if
     // the hash is not unique, this will return the first entry that matches
     // the hash.
-    const char* lookup(size_t hash)
+    const char* lookup(uint64_t hash)
     {
         ustring_read_lock_t lock(mutex);
 #ifdef USTRING_TRACK_NUM_LOOKUPS
@@ -117,7 +117,7 @@ template<unsigned BASE_CAPACITY, unsigned POOL_SIZE> struct TableRepMap {
         }
     }
 
-    const char* insert(string_view str, size_t hash)
+    const char* insert(string_view str, uint64_t hash)
     {
         ustring_write_lock_t lock(mutex);
         size_t pos = hash & mask, dist = 0;
@@ -173,7 +173,7 @@ private:
         mask    = new_mask;
     }
 
-    ustring::TableRep* make_rep(string_view str, size_t hash)
+    ustring::TableRep* make_rep(string_view str, uint64_t hash)
     {
         char* repmem = pool_alloc(sizeof(ustring::TableRep) + str.length() + 1);
         return new (repmem) ustring::TableRep(str, hash);
@@ -219,14 +219,16 @@ typedef TableRepMap<1 << 20, 16 << 20> UstringTable;
 // Optimized map broken up into chunks by the top bits of the hash.
 // This helps reduce the amount of contention for locks.
 struct UstringTable {
-    const char* lookup(string_view str, size_t hash)
+    using hash_t = ustring::hash_t;
+
+    const char* lookup(string_view str, hash_t hash)
     {
         return whichbin(hash).lookup(str, hash);
     }
 
-    const char* lookup(size_t hash) { return whichbin(hash).lookup(hash); }
+    const char* lookup(hash_t hash) { return whichbin(hash).lookup(hash); }
 
-    const char* insert(string_view str, size_t hash)
+    const char* insert(string_view str, uint64_t hash)
     {
         return whichbin(hash).insert(str, hash);
     }
@@ -269,7 +271,7 @@ private:
 
     Bin bins[NUM_BINS];
 
-    Bin& whichbin(size_t hash)
+    Bin& whichbin(uint64_t hash)
     {
         // use the top bits of the hash to pick a bin
         // (lower bits choose position within the table)
@@ -283,8 +285,8 @@ std::string ustring::empty_std_string;
 
 // The reverse map that lets you look up a string by its initial hash.
 using ReverseMap
-    = unordered_map_concurrent<size_t, const char*, identity<size_t>,
-                               std::equal_to<size_t>, 256 /*bins*/>;
+    = unordered_map_concurrent<uint64_t, const char*, identity<uint64_t>,
+                               std::equal_to<uint64_t>, 256 /*bins*/>;
 
 
 namespace {  // anonymous
@@ -306,7 +308,7 @@ reverse_map()
 
 
 // Keep track of any collisions
-static std::vector<std::pair<const char*, size_t>> all_hash_collisions;
+static std::vector<std::pair<const char*, uint64_t>> all_hash_collisions;
 OIIO_CACHE_ALIGN static std::mutex collision_mutex;
 
 }  // end anonymous namespace
@@ -365,7 +367,7 @@ enum {
 
 
 
-ustring::TableRep::TableRep(string_view strref, size_t hash)
+ustring::TableRep::TableRep(string_view strref, ustring::hash_t hash)
     : hashed(hash)
 {
     length = strref.length();
@@ -457,9 +459,9 @@ ustring::make_unique(string_view strref)
     if (!strref.data())
         strref = string_view("", 0);
 
-    size_t hash = Strutil::strhash(strref);
+    hash_t hash = Strutil::strhash64(strref);
     // This line, if uncommented, lets you force lots of hash collisions:
-    // hash &= ~size_t(0xffffff);
+    // hash &= ~hash_t(0xffffff);
 
 #if !PREVENT_HASH_COLLISIONS
     // Check the ustring table to see if this string already exists.  If so,
@@ -475,7 +477,7 @@ ustring::make_unique(string_view strref)
         // OIIO_ASSERT(strref.find('\0') == string_view::npos &&
         //             "ustring::make_unique() does not support embedded nulls");
         strref = strref.substr(0, nul);
-        hash   = Strutil::strhash(strref);
+        hash   = Strutil::strhash64(strref);
         result = table.lookup(strref, hash);
         if (result)
             return result;
@@ -501,7 +503,7 @@ ustring::make_unique(string_view strref)
         // OIIO_ASSERT(strref.find('\0') == string_view::npos &&
         //             "ustring::make_unique() does not support embedded nulls");
         strref = strref.substr(0, nul);
-        hash   = Strutil::strhash(strref);
+        hash   = Strutil::strhash64(strref);
         result = table.lookup(strref, hash);
         if (result)
             return result;
@@ -519,7 +521,7 @@ ustring::make_unique(string_view strref)
     auto& rm(reverse_map());
     size_t bin = rm.lock_bin(hash);
 
-    size_t orighash     = hash;
+    hash_t orighash     = hash;
     size_t binmask      = orighash & (~rm.nobin_mask());
     size_t num_rehashes = 0;
 
@@ -569,7 +571,7 @@ ustring::make_unique(string_view strref)
 
 
 ustring
-ustring::from_hash(size_t hash)
+ustring::from_hash(hash_t hash)
 {
     UstringTable& table(ustring_table());
     return from_unique(table.lookup(hash));
