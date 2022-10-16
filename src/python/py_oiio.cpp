@@ -223,6 +223,8 @@ py::object
 make_pyobject(const void* data, TypeDesc type, int nvalues,
               py::object defaultvalue)
 {
+    if (!data || !nvalues)
+        return defaultvalue;
     if (type.basetype == TypeDesc::INT32)
         return C_to_val_or_tuple((const int*)data, type, nvalues);
     if (type.basetype == TypeDesc::FLOAT)
@@ -247,8 +249,11 @@ make_pyobject(const void* data, TypeDesc type, int nvalues,
         // Array of uint8 bytes
         // Have to make a copy of the data, because make_numpy_array will
         // take possession of it.
-        uint8_t* ucdata(new uint8_t[type.arraylen * nvalues]);
-        std::memcpy(ucdata, data, type.arraylen * nvalues);
+        int n = type.arraylen * nvalues;
+        if (n <= 0)
+            return defaultvalue;
+        uint8_t* ucdata(new uint8_t[n]);
+        std::memcpy(ucdata, data, n);
         return make_numpy_array(ucdata, 1, 1, size_t(type.arraylen),
                                 size_t(nvalues));
     }
