@@ -22,28 +22,6 @@ set(OIIO_TESTSUITE_IMAGEDIR "${PROJECT_BINARY_DIR}/testsuite" CACHE PATH
 
 
 
-# oiio_set_testenv() - add environment variables to a test
-#
-# Usage:
-#   oiio_set_testenv ( testname
-#                      testsuite  - The root of all tests ${CMAKE_SOURCE_DIR}/testsuite
-#                      testsrcdir - Current test directory in ${CMAKE_SOURCE_DIR}
-#                      testdir    - Current test sandbox in ${CMAKE_BINARY_DIR}
-#                      IMAGEDIR   - Optional path to image reference/compare directory)
-#
-macro (oiio_set_testenv testname testsuite testsrcdir testdir IMAGEDIR)
-    set_property(TEST ${testname} PROPERTY ENVIRONMENT
-                "OIIO_TESTSUITE_ROOT=${testsuite}"
-                ";OIIO_TESTSUITE_SRC=${testsrcdir}"
-                ";OIIO_TESTSUITE_CUR=${testdir}")
-    if (NOT ${IMAGEDIR} STREQUAL "")
-        set_property(TEST ${testname} APPEND PROPERTY ENVIRONMENT
-                     "OIIO_TESTSUITE_IMAGEDIR=${IMAGEDIR}")
-    endif()
-endmacro ()
-
-
-
 # oiio_add_tests() - add a set of test cases.
 #
 # Usage:
@@ -52,6 +30,8 @@ endmacro ()
 #                    [ URL http://find.reference.cases.here.com ]
 #                    [ FOUNDVAR variable_name ... ]
 #                    [ ENABLEVAR variable_name ... ]
+#                    [ SUFFIX suffix ]
+#                    [ ENVIRONMENT "VAR=value" ... ]
 #                  )
 #
 # The optional argument IMAGEDIR is used to check whether external test images
@@ -65,8 +45,13 @@ endmacro ()
 # The optional ENABLEVAR introduces variables (typically ENABLE_Foo) that
 # if existing and yet false, will skip the test.
 #
+# The optional SUFFIX is appended to the test name.
+#
+# The optinonal ENVIRONMENT is a list of environment variables to set for the
+# test.
+#
 macro (oiio_add_tests)
-    cmake_parse_arguments (_ats "" "" "URL;IMAGEDIR;LABEL;FOUNDVAR;ENABLEVAR;TESTNAME" ${ARGN})
+    cmake_parse_arguments (_ats "" "SUFFIX;TESTNAME" "URL;IMAGEDIR;LABEL;FOUNDVAR;ENABLEVAR;ENVIRONMENT" ${ARGN})
        # Arguments: <prefix> <options> <one_value_keywords> <multi_value_keywords> args...
     set (_ats_testdir "${OIIO_TESTSUITE_IMAGEDIR}/${_ats_IMAGEDIR}")
     # If there was a FOUNDVAR param specified and that variable name is
@@ -95,12 +80,15 @@ macro (oiio_add_tests)
     else ()
         # Add the tests if all is well.
         set (_has_generator_expr TRUE)
+        set (_testsuite "${CMAKE_SOURCE_DIR}/testsuite")
         foreach (_testname ${_ats_UNPARSED_ARGUMENTS})
-            set (_testsuite "${CMAKE_SOURCE_DIR}/testsuite")
             set (_testsrcdir "${_testsuite}/${_testname}")
-            set (_testdir "${CMAKE_BINARY_DIR}/testsuite/${_testname}")
+            set (_testdir "${CMAKE_BINARY_DIR}/testsuite/${_testname}${_ats_SUFFIX}")
             if (_ats_TESTNAME)
                 set (_testname "${_ats_TESTNAME}")
+            endif ()
+            if (_ats_SUFFIX)
+                set (_testname "${_testname}${_ats_SUFFIX}")
             endif ()
             if (_ats_LABEL MATCHES "broken")
                 set (_testname "${_testname}-broken")
@@ -114,32 +102,17 @@ macro (oiio_add_tests)
 
             file (MAKE_DIRECTORY "${_testdir}")
 
-            add_test ( NAME ${_testname}
-                       COMMAND ${_runtest} )
+            add_test ( NAME ${_testname} COMMAND ${_runtest} )
+            set_property(TEST ${_testname} APPEND PROPERTY ENVIRONMENT
+                             "OIIO_TESTSUITE_ROOT=${_testsuite}"
+                             "OIIO_TESTSUITE_SRC=${_testsrcdir}"
+                             "OIIO_TESTSUITE_CUR=${_testdir}"
+                             ${_ats_ENVIRONMENT})
+            if (NOT ${_ats_testdir} STREQUAL "")
+                set_property(TEST ${_testname} APPEND PROPERTY ENVIRONMENT
+                             "OIIO_TESTSUITE_IMAGEDIR=${_ats_testdir}")
+            endif()
 
-            oiio_set_testenv("${_testname}" "${_testsuite}"
-                             "${_testsrcdir}" "${_testdir}" "${_ats_testdir}")
-
-            # For texture tests, add a second test using batch mode as well.
-            if (_testname MATCHES "texture")
-                set (_testname ${_testname}.batch)
-                set (_testdir ${_testdir}.batch)
-                set (_runtest ${Python_EXECUTABLE} "${CMAKE_SOURCE_DIR}/testsuite/runtest.py" ${_testdir})
-                if (MSVC_IDE)
-                    set (_runtest ${_runtest} --devenv-config $<CONFIGURATION>
-                                          --solution-path "${CMAKE_BINARY_DIR}" )
-                endif ()
-                file (MAKE_DIRECTORY "${_testdir}")
-                add_test ( NAME "${_testname}"
-                           COMMAND env TESTTEX_BATCH=1 ${_runtest} )
-
-                oiio_set_testenv("${_testname}" "${_testsuite}"
-                                 "${_testsrcdir}" "${_testdir}.batch" "${_ats_testdir}")
-            endif ()
-
-            #if (VERBOSE)
-            #    message (STATUS "TEST ${_testname}: ${_runtest}")
-            #endif ()
         endforeach ()
         if (VERBOSE)
            message (STATUS "TESTS: ${_ats_UNPARSED_ARGUMENTS}")
@@ -172,6 +145,9 @@ macro (oiio_add_all_tests)
                     missingcolor
                     null
                     rational
+                   )
+
+    set (all_texture_tests
                     texture-derivs texture-fill
                     texture-flipt texture-gettexels texture-gray
                     texture-interp-bicubic
@@ -195,6 +171,11 @@ macro (oiio_add_all_tests)
                     texture-wrapfill
                     texture-fat texture-skinny
                    )
+    oiio_add_tests (${all_texture_tests})
+    # Duplicate texture tests with batch mode
+    oiio_add_tests (${all_texture_tests}
+                    SUFFIX ".batch"
+                    ENVIRONMENT TESTTEX_BATCH=1)
 
     # Tests that require oiio-images:
     oiio_add_tests (gpsread
@@ -276,17 +257,31 @@ macro (oiio_add_all_tests)
                     FOUNDVAR OPENJPEG_FOUND
                     IMAGEDIR j2kp4files_v1_5
                     URL http://www.itu.int/net/ITU-T/sigdb/speimage/ImageForm-s.aspx?val=10100803)
-    oiio_add_tests (openexr-suite openexr-multires openexr-chroma
-                    openexr-v2 openexr-window perchannel
-                    oiiotool-deep
+    set (all_openexr_tests
+         openexr-suite openexr-multires openexr-chroma
+         openexr-v2 openexr-window perchannel oiiotool-deep)
+    oiio_add_tests (${all_openexr_tests}
+                    ENVIRONMENT OPENIMAGEIO_OPTIONS="openexr:core=0"
                     IMAGEDIR openexr-images
                     URL http://github.com/AcademySoftwareFoundation/openexr-images)
-    if (NOT DEFINED ENV{${PROJECT_NAME}_CI})
-        oiio_add_tests (openexr-damaged
+    if (OpenEXR_VERSION VERSION_GREATER_EQUAL 3.1)
+        # For OpenEXR >= 3.1, be sure to test with the core option on
+        oiio_add_tests (${all_openexr_tests}
+                        SUFFIX ".core"
+                        ENVIRONMENT OPENIMAGEIO_OPTIONS="openexr:core=1"
                         IMAGEDIR openexr-images
                         URL http://github.com/AcademySoftwareFoundation/openexr-images)
     endif ()
+    # if (NOT DEFINED ENV{${PROJECT_NAME}_CI})
+    #     oiio_add_tests (openexr-damaged
+    #                     IMAGEDIR openexr-images
+    #                     URL http://github.com/AcademySoftwareFoundation/openexr-images)
+    # endif ()
     oiio_add_tests (openvdb texture-texture3d
+                    FOUNDVAR OpenVDB_FOUND ENABLEVAR ENABLE_OpenVDB)
+    oiio_add_tests (openvdb texture-texture3d
+                    SUFFIX ".batch"
+                    ENVIRONMENT TESTTEX_BATCH=1
                     FOUNDVAR OpenVDB_FOUND ENABLEVAR ENABLE_OpenVDB)
     oiio_add_tests (png png-damaged
                     ENABLEVAR ENABLE_PNG
