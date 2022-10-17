@@ -211,15 +211,17 @@ def oiio_app (app):
 # the file "out.txt".  If 'safematch' is nonzero, it will exclude printing
 # of fields that tend to change from run to run or release to release.
 def info_command (file, extraargs="", safematch=False, hash=True,
-                  verbose=True) :
-    args = "--info"
+                  verbose=True, info_program="oiiotool") :
+    args = ""
+    if info_program == "oiiotool" :
+        args += " --info"
     if verbose :
         args += " -v -a"
     if safematch :
         args += " --no-metamatch \"DateTime|Software|OriginatingProgram|ImageHistory\""
     if hash :
         args += " --hash"
-    return (oiio_app("oiiotool") + args + " " + extraargs
+    return (oiio_app(info_program) + args + " " + extraargs
             + " " + make_relpath(file,tmpdir) + redirect + ";\n")
 
 
