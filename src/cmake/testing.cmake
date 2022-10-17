@@ -265,14 +265,14 @@ macro (oiio_add_all_tests)
          openexr-suite openexr-multires openexr-chroma
          openexr-v2 openexr-window perchannel oiiotool-deep)
     oiio_add_tests (${all_openexr_tests}
-                    ENVIRONMENT OPENIMAGEIO_OPTIONS="openexr:core=0"
+                    ENVIRONMENT OPENIMAGEIO_OPTIONS=openexr:core=0
                     IMAGEDIR openexr-images
                     URL http://github.com/AcademySoftwareFoundation/openexr-images)
     if (OpenEXR_VERSION VERSION_GREATER_EQUAL 3.1)
         # For OpenEXR >= 3.1, be sure to test with the core option on
         oiio_add_tests (${all_openexr_tests}
                         SUFFIX ".core"
-                        ENVIRONMENT OPENIMAGEIO_OPTIONS="openexr:core=1"
+                        ENVIRONMENT OPENIMAGEIO_OPTIONS=openexr:core=1
                         IMAGEDIR openexr-images
                         URL http://github.com/AcademySoftwareFoundation/openexr-images)
     endif ()
