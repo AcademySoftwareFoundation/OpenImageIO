@@ -1,5 +1,5 @@
 #!/usr/bin/env python
 
-files = [ "test.cin" ]
+files = [ "checker.cin" ]
 for f in files:
     command += info_command ("../oiio-images/cineon/" + f)
