@@ -360,10 +360,12 @@ DPXInput::seek_subimage(int subimage, int miplevel)
     }
     if (m_dpx.header.ImageEncoding(subimage) == dpx::kRLE)
         m_spec.attribute("compression", "rle");
-    char buf[32 + 1];
-    m_dpx.header.Description(subimage, buf);
-    if (buf[0] && buf[0] != char(-1))
-        m_spec.attribute("ImageDescription", buf);
+    {
+        char desc[32 + 1];
+        m_dpx.header.Description(subimage, desc);
+        if (desc[0] && desc[0] != char(-1))
+            m_spec.attribute("ImageDescription", desc);
+    }
     m_spec.attribute("PixelAspectRatio",
                      m_dpx.header.AspectRatio(1)
                          ? (m_dpx.header.AspectRatio(0)
@@ -484,9 +486,12 @@ DPXInput::seek_subimage(int subimage, int miplevel)
         date[19] = 0;
         m_spec.attribute("dpx:SourceDateTime", date);
     }
-    m_dpx.header.FilmEdgeCode(buf);
-    if (buf[0])
-        m_spec.attribute("dpx:FilmEdgeCode", buf);
+    {
+        char filmedge[17];
+        m_dpx.header.FilmEdgeCode(filmedge);
+        if (filmedge[0])
+            m_spec.attribute("dpx:FilmEdgeCode", filmedge);
+    }
 
     tmpstr.clear();
     switch (m_dpx.header.Signal()) {
