@@ -1,0 +1,17 @@
+../common/tahoe-small.tif :  512 x  384, 3 channel, uint8 tiff
+    SHA-1: 55B55C41EB65BF7B741671DBFFA29CA970D4877C
+    channel list: R, G, B
+    compression: "lzw"
+    DateTime: "2013:04:16 10:20:35"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    planarconfig: "contig"
+    ResolutionUnit: "in"
+    Software: "OpenImageIO 1.2.0 : oiiotool tahoe-small.jpg --colorconvert sRGB linear -o tahoe-small.tif"
+    XResolution: 72
+    YResolution: 72
+    oiio:BitsPerSample: 8
+    tiff:Compression: 5
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+    tiff:RowsPerStrip: 32
