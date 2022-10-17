@@ -108,7 +108,6 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     // fill channel names
     m_spec.channelnames.clear();
     int gscount = 0, rcount = 0, gcount = 0, bcount = 0;
-    char buf[3];
     for (int i = 0; i < m_cin.header.NumberOfElements(); i++) {
         switch (m_cin.header.ImageDescriptor(i)) {
         case cineon::kGrayscale:
@@ -337,9 +336,12 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
                                               m_cin.header.sourceTime));
         // FIXME: do something about the time zone
     }
-    m_cin.header.FilmEdgeCode(buf);
-    if (buf[0])
-        m_spec.attribute("cineon:FilmEdgeCode", buf);
+    {
+        char filmedge[17];
+        m_cin.header.FilmEdgeCode(filmedge);
+        if (filmedge[0])
+            m_spec.attribute("cineon:FilmEdgeCode", filmedge);
+    }
 
     // read in user data
     if (m_cin.header.UserSize() != 0 && m_cin.header.UserSize() != 0xFFFFFFFF) {
