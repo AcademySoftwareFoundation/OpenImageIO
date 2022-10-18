@@ -1,17 +1,134 @@
-../common/tahoe-small.tif :  512 x  384, 3 channel, uint8 tiff
-    SHA-1: 55B55C41EB65BF7B741671DBFFA29CA970D4877C
-    channel list: R, G, B
-    compression: "lzw"
-    DateTime: "2013:04:16 10:20:35"
+../common/textures/grid.tx : 1024 x 1024, 4 channel, uint8 tiff
+    MIP-map levels: 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 7DB3F1E464C5F38CAAECE8ABC8684EC66FC9FA68
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    compression: "zip"
+    DateTime: "2014:11:29 23:20:23"
+    DocumentName: "g.tif"
+    fovcot: 1
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     planarconfig: "contig"
     ResolutionUnit: "in"
-    Software: "OpenImageIO 1.2.0 : oiiotool tahoe-small.jpg --colorconvert sRGB linear -o tahoe-small.tif"
+    Software: "OpenImageIO 1.5.7dev : maketx -filter lanczos3 --resize grid.tif -o grid.tx"
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
     XResolution: 72
     YResolution: 72
+    oiio:AverageColor: "0.608983,0.608434,0.608728,1"
     oiio:BitsPerSample: 8
-    tiff:Compression: 5
+    oiio:SHA-1: "233A1D3412A54A5F49814AB7BFFD04F56F46D3D7"
+    tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
-    tiff:RowsPerStrip: 32
+    MIP 0 of 11 (1024 x 1024):
+      Stats Min: 0 0 0 255 (of 255)
+      Stats Max: 255 255 255 255 (of 255)
+      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
+      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats NanCount: 0 0 0 0 
+      Stats InfCount: 0 0 0 0 
+      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Constant: No
+      Monochrome: No
+    MIP 1 of 11 (512 x 512):
+      Stats Min: 0 0 0 255 (of 255)
+      Stats Max: 255 255 255 255 (of 255)
+      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
+      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats NanCount: 0 0 0 0 
+      Stats InfCount: 0 0 0 0 
+      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Constant: No
+      Monochrome: No
+    MIP 2 of 11 (256 x 256):
+      Stats Min: 0 0 0 255 (of 255)
+      Stats Max: 255 255 255 255 (of 255)
+      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
+      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats NanCount: 0 0 0 0 
+      Stats InfCount: 0 0 0 0 
+      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Constant: No
+      Monochrome: No
+    MIP 3 of 11 (128 x 128):
+      Stats Min: 0 0 0 255 (of 255)
+      Stats Max: 255 255 255 255 (of 255)
+      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
+      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats NanCount: 0 0 0 0 
+      Stats InfCount: 0 0 0 0 
+      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Constant: No
+      Monochrome: No
+    MIP 4 of 11 (64 x 64):
+      Stats Min: 0 0 0 255 (of 255)
+      Stats Max: 255 255 255 255 (of 255)
+      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
+      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats NanCount: 0 0 0 0 
+      Stats InfCount: 0 0 0 0 
+      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Constant: No
+      Monochrome: No
+    MIP 5 of 11 (32 x 32):
+      Stats Min: 0 0 0 255 (of 255)
+      Stats Max: 255 255 255 255 (of 255)
+      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
+      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats NanCount: 0 0 0 0 
+      Stats InfCount: 0 0 0 0 
+      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Constant: No
+      Monochrome: No
+    MIP 6 of 11 (16 x 16):
+      Stats Min: 0 0 0 255 (of 255)
+      Stats Max: 255 255 255 255 (of 255)
+      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
+      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats NanCount: 0 0 0 0 
+      Stats InfCount: 0 0 0 0 
+      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Constant: No
+      Monochrome: No
+    MIP 7 of 11 (8 x 8):
+      Stats Min: 0 0 0 255 (of 255)
+      Stats Max: 255 255 255 255 (of 255)
+      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
+      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats NanCount: 0 0 0 0 
+      Stats InfCount: 0 0 0 0 
+      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Constant: No
+      Monochrome: No
+    MIP 8 of 11 (4 x 4):
+      Stats Min: 0 0 0 255 (of 255)
+      Stats Max: 255 255 255 255 (of 255)
+      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
+      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats NanCount: 0 0 0 0 
+      Stats InfCount: 0 0 0 0 
+      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Constant: No
+      Monochrome: No
+    MIP 9 of 11 (2 x 2):
+      Stats Min: 0 0 0 255 (of 255)
+      Stats Max: 255 255 255 255 (of 255)
+      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
+      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats NanCount: 0 0 0 0 
+      Stats InfCount: 0 0 0 0 
+      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Constant: No
+      Monochrome: No
+    MIP 10 of 11 (1 x 1):
+      Stats Min: 0 0 0 255 (of 255)
+      Stats Max: 255 255 255 255 (of 255)
+      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
+      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats NanCount: 0 0 0 0 
+      Stats InfCount: 0 0 0 0 
+      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Constant: No
+      Monochrome: No
