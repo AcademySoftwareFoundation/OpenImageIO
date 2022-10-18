@@ -126,6 +126,7 @@ class OIIO_UTIL_API ustring {
 public:
     using rep_t      = const char*;  ///< The underlying representation type
     using value_type = char;
+    using hash_t     = uint64_t;  ///< The hash type
     using pointer    = value_type*;
     using reference  = value_type&;
     using const_reference        = const value_type&;
@@ -311,7 +312,7 @@ public:
     }
 
     /// Return a hashed version of the string
-    size_t hash() const noexcept
+    hash_t hash() const noexcept
     {
         if (!m_chars)
             return 0;
@@ -740,7 +741,7 @@ public:
     /// ustring() if there is no registered ustring with that hash. Note that
     /// if there are multiple ustrings with the same hash, this will return
     /// the first one it finds in the table.
-    OIIO_NODISCARD static ustring from_hash(size_t hash);
+    OIIO_NODISCARD static ustring from_hash(hash_t hash);
 
 private:
     // Individual ustring internal representation -- the unique characters.
@@ -754,12 +755,12 @@ public:
     // if you know the rep, the chars are at (char *)(rep+1), and if you
     // know the chars, the rep is at ((TableRep *)chars - 1).
     struct TableRep {
-        size_t hashed;    // precomputed Hash value
+        hash_t hashed;    // precomputed Hash value
         std::string str;  // String representation
         size_t length;    // Length of the string; must be right before cap
         size_t dummy_capacity;  // Dummy field! must be right before refcount
         int dummy_refcount;     // Dummy field! must be right before chars
-        TableRep(string_view strref, size_t hash);
+        TableRep(string_view strref, hash_t hash);
         ~TableRep();
         const char* c_str() const noexcept { return (const char*)(this + 1); }
     };
@@ -788,7 +789,8 @@ private:
 ///
 class OIIO_UTIL_API ustringhash {
 public:
-    using rep_t = size_t;  ///< The underlying representation type
+    using rep_t  = ustring::hash_t;  ///< The underlying representation type
+    using hash_t = ustring::hash_t;  ///< The hash type
 
     // Default constructor
     OIIO_HOSTDEVICE constexpr ustringhash() noexcept
@@ -883,7 +885,7 @@ public:
 #endif
 
     /// Return a hashed version of the string
-    OIIO_HOSTDEVICE constexpr size_t hash() const noexcept { return m_hash; }
+    OIIO_HOSTDEVICE constexpr hash_t hash() const noexcept { return m_hash; }
 
 #ifndef __CUDA_ARCH__
     /// Return the number of characters in the string.
@@ -960,7 +962,7 @@ public:
 
     /// Return the ustringhash corresponding to the given hash. Caveat emptor:
     /// results are undefined if it's not the valud hash of a ustring.
-    OIIO_NODISCARD static constexpr ustringhash from_hash(size_t hash)
+    OIIO_NODISCARD static constexpr ustringhash from_hash(hash_t hash)
     {
         ustringhash u;
         u.m_hash = hash;
@@ -973,7 +975,7 @@ private:
 
     // Construct from a raw hash value. It's protected so that it's only
     // callable by its friend, ustring.
-    OIIO_HOSTDEVICE ustringhash(size_t hashval)
+    OIIO_HOSTDEVICE ustringhash(hash_t hashval)
         : m_hash(hashval)
     {
     }
@@ -983,8 +985,8 @@ private:
 
 
 
-static_assert(sizeof(ustringhash) == sizeof(size_t),
-              "ustringhash should be the same size as a size_t");
+static_assert(sizeof(ustringhash) == sizeof(uint64_t),
+              "ustringhash should be the same size as a uint64_t");
 static_assert(sizeof(ustring) == sizeof(const char*),
               "ustring should be the same size as a const char*");
 
@@ -1098,7 +1100,10 @@ OIIO_NAMESPACE_END
 namespace std {  // not necessary in C++17, then we can just say std::hash
 // std::hash specialization for ustring
 template<> struct hash<OIIO::ustring> {
-    std::size_t operator()(OIIO::ustring u) const noexcept { return u.hash(); }
+    std::size_t operator()(OIIO::ustring u) const noexcept
+    {
+        return static_cast<std::size_t>(u.hash());
+    }
 };
 
 
@@ -1107,7 +1112,7 @@ template<> struct hash<OIIO::ustringhash> {
     OIIO_HOSTDEVICE constexpr std::size_t
     operator()(OIIO::ustringhash u) const noexcept
     {
-        return u.hash();
+        return static_cast<std::size_t>(u.hash());
     }
 };
 }  // namespace std
