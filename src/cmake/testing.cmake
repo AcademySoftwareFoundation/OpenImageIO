@@ -171,6 +171,7 @@ macro (oiio_add_all_tests)
                     texture-width0blur
                     texture-wrapfill
                     texture-fat texture-skinny
+                    texture-stats
                    )
     oiio_add_tests (${all_texture_tests})
     # Duplicate texture tests with batch mode
