@@ -183,6 +183,8 @@ try:
     b = ImageBufAlgo.sub (make_constimage(64,64,3,oiio.HALF,(.1,.2,.3)),
                           make_constimage(64,64,3,oiio.HALF,(.1,.1,.1),20,20))
     write (b, "sub.exr")
+    b = ImageBufAlgo.sub (gray128, (0.125, 0.5, 0.25))
+    write (b, "csub2.exr")
 
     # Test --absdiff and --abs
     # First, make a test image that's 0.5 on the left, -0.5 on the right
