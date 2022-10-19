@@ -7,7 +7,8 @@ set -ex
 : ${CTEST_EXCLUSIONS:="broken"}
 : ${CTEST_TEST_TIMEOUT:=180}
 
-$OpenImageIO_ROOT/bin/oiiotool --help || /bin/true
+$OpenImageIO_ROOT/bin/oiiotool --version --help || /bin/true
+$OpenImageIO_ROOT/bin/oiiotool --unittest --list-formats --runstats || /bin/true
 
 echo "Parallel test ${CTEST_PARALLEL_LEVEL}"
 echo "Default timeout ${CTEST_TEST_TIMEOUT}"
