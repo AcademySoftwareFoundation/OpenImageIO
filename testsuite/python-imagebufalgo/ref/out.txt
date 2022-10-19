@@ -100,6 +100,8 @@ Comparing "add.exr" and "../../../testsuite/oiiotool/ref/add.exr"
 PASS
 Comparing "sub.exr" and "../../../testsuite/oiiotool/ref/sub.exr"
 PASS
+Comparing "csub2.exr" and "ref/csub2.exr"
+PASS
 Comparing "abs.exr" and "../../../testsuite/oiiotool/ref/abs.exr"
 PASS
 Comparing "absdiff.exr" and "../../../testsuite/oiiotool/ref/absdiff.exr"
