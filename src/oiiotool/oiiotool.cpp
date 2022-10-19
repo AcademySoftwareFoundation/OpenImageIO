@@ -44,6 +44,10 @@ using namespace ImageBufAlgo;
 
 static Oiiotool ot;
 
+#ifndef NDEBUG
+#    define OIIO_UNIT_TESTS 1
+#endif
+
 
 
 // Macro to fully set up the "action" function that straightforwardly calls
@@ -254,8 +258,9 @@ scan_scale_percent(string_view str, float& x)
 static bool
 scan_box(string_view str, int& xmin, int& ymin, int& xmax, int& ymax)
 {
+    Strutil::trim_whitespace(str);
     float f[4];
-    if (Strutil::scan_values(str, "", f, ",")) {
+    if (Strutil::parse_values(str, "", f, ",") && str.empty()) {
         xmin = f[0];
         ymin = f[1];
         xmax = f[2];
@@ -264,6 +269,19 @@ scan_box(string_view str, int& xmin, int& ymin, int& xmax, int& ymax)
     }
     return false;
 }
+
+#ifdef OIIO_UNIT_TESTS
+static void
+unit_test_scan_box()
+{
+    Strutil::print("unit test scan_box...\n");
+    int xmin = -1, ymin = -1, xmax = -1, ymax = -1;
+    OIIO_ASSERT(scan_box("11,12,13,14", xmin, ymin, xmax, ymax) && xmin == 11
+                && ymin == 12 && xmax == 13 && ymax == 14);
+    OIIO_ASSERT(scan_box("1,2,3", xmin, ymin, xmax, ymax) == false);
+    OIIO_ASSERT(scan_box("1,2,3,4,5", xmin, ymin, xmax, ymax) == false);
+}
+#endif
 
 
 
@@ -660,52 +678,39 @@ action_label(int argc OIIO_MAYBE_UNUSED, const char* argv[])
 static void
 string_to_dataformat(const std::string& s, TypeDesc& dataformat, int& bits)
 {
-    if (s == "uint8") {
-        dataformat = TypeDesc::UINT8;
-        bits       = 0;
-    } else if (s == "int8") {
-        dataformat = TypeDesc::INT8;
-        bits       = 0;
-    } else if (s == "uint10") {
-        dataformat = TypeDesc::UINT16;
-        bits       = 10;
-    } else if (s == "uint12") {
-        dataformat = TypeDesc::UINT16;
-        bits       = 12;
-    } else if (s == "uint16") {
-        dataformat = TypeDesc::UINT16;
-        bits       = 0;
-    } else if (s == "int16") {
-        dataformat = TypeDesc::INT16;
-        bits       = 0;
-    } else if (s == "uint32") {
-        dataformat = TypeDesc::UINT32;
-        bits       = 0;
-    } else if (s == "int32") {
-        dataformat = TypeDesc::INT32;
-        bits       = 0;
-    } else if (s == "half") {
-        dataformat = TypeDesc::HALF;
-        bits       = 0;
-    } else if (s == "float") {
-        dataformat = TypeDesc::FLOAT;
-        bits       = 0;
-    } else if (s == "double") {
-        dataformat = TypeDesc::DOUBLE;
-        bits       = 0;
-    } else if (s == "uint6") {
-        dataformat = TypeDesc::UINT8;
-        bits       = 6;
-    } else if (s == "uint4") {
-        dataformat = TypeDesc::UINT8;
-        bits       = 4;
-    } else if (s == "uint2") {
-        dataformat = TypeDesc::UINT8;
-        bits       = 2;
-    } else if (s == "uint1") {
-        dataformat = TypeDesc::UINT8;
-        bits       = 1;
+    struct DataFormat {
+        const char* name;
+        TypeDesc format;
+        int bits;
+    };
+    // clang-format off
+    static DataFormat formats[] = {
+        { "uint8",  TypeDesc::UINT8,   8 },
+        { "int8",   TypeDesc::INT8,    8 },
+        { "uint10", TypeDesc::UINT16, 10 },
+        { "uint12", TypeDesc::UINT16, 12 },
+        { "uint16", TypeDesc::UINT16, 16 },
+        { "int16",  TypeDesc::INT16,  16 },
+        { "uint32", TypeDesc::UINT32, 32 },
+        { "int32",  TypeDesc::INT32,  32 },
+        { "half",   TypeDesc::HALF,   16 },
+        { "float",  TypeDesc::FLOAT,  32 },
+        { "double", TypeDesc::DOUBLE, 64 },
+        { "uint6",  TypeDesc::UINT8,   6 },
+        { "uint4",  TypeDesc::UINT8,   4 },
+        { "uint2",  TypeDesc::UINT8,   2 },
+        { "uint1",  TypeDesc::UINT8,   1 },
+    };
+    // clang-format on
+    for (auto& f : formats) {
+        if (s == f.name) {
+            dataformat = f.format;
+            bits       = f.bits;
+            return;
+        }
     }
+    dataformat = TypeUnknown;
+    bits       = 0;
 }
 
 
@@ -6041,6 +6046,19 @@ static void list_formats(cspan<const char*>)
 
 
 
+static void
+oiiotool_unit_tests()
+{
+#ifdef OIIO_UNIT_TESTS
+    using Strutil::print;
+    print("Running unit tests...\n");
+    unit_test_scan_box();
+    print("...end of unit tests\n");
+#endif
+}
+
+
+
 void
 Oiiotool::getargs(int argc, char* argv[])
 {
@@ -6073,6 +6091,11 @@ Oiiotool::getargs(int argc, char* argv[])
             Strutil::print("{}\n", OIIO_VERSION_STRING);
             ot.printed_info = true;
         });
+    ap.arg("--unittest")
+      .hidden()
+      .action([](cspan<const char*>){
+            oiiotool_unit_tests();
+      });
     ap.arg("-v", &ot.verbose)
       .help("Verbose status messages");
     ap.arg("-q %!", &ot.verbose)
