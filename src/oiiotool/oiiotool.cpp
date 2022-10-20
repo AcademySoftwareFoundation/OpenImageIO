@@ -1737,8 +1737,11 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
             result = orig;
             return false;
         }
-        if (!Strutil::parse_char(s, '.')) {
-            express_error(expr, s, "expected `.'");
+        bool using_bracket = false;
+        if (Strutil::parse_char(s, '[')) {
+            using_bracket = true;
+        } else if (!Strutil::parse_char(s, '.')) {
+            express_error(expr, s, "expected `.` or `[`");
             result = orig;
             return false;
         }
@@ -1749,7 +1752,13 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
             Strutil::parse_string(s, metadata);
         else
             metadata = Strutil::parse_identifier(s, ":");
-
+        if (using_bracket) {
+            if (!Strutil::parse_char(s, ']')) {
+                express_error(expr, s, "expected `]`");
+                result = orig;
+                return false;
+            }
+        }
         if (metadata.size()) {
             read(img);
             ParamValue tmpparam;
@@ -1815,6 +1824,10 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
                 result = out.str();
                 if (result.size() && result.back() == '\n')
                     result.pop_back();
+            } else if (using_bracket) {
+                // For the TOP[meta] syntax, if the metadata doesn't exist,
+                // return the empty string, and do not make an error.
+                result = "";
             } else {
                 express_error(expr, s,
                               Strutil::fmt::format("unknown attribute name '{}'",
