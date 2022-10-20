@@ -283,8 +283,17 @@ BmpInput::read_rle_image()
     bool ok = true;
     int y = 0, x = 0;
     while (ok) {
+        // Strutil::print("currently at {},{}\n", x, y);
         unsigned char rle_pair[2];
         if (!ioread(rle_pair, 2)) {
+            ok = false;
+            // Strutil::print("hit end of file at {},{}\n", x, y);
+            break;
+        }
+        if (y >= m_spec.height) {  // out of y bounds
+            errorfmt(
+                "BMP might be corrupted, it is referencing an out-of-bounds pixel coordinte ({},{})",
+                x, y);
             ok = false;
             break;
         }
@@ -294,8 +303,10 @@ BmpInput::read_rle_image()
             // [0,0] is end of line marker
             x = 0;
             ++y;
+            // Strutil::print("end of line, moving to {},{}\n", x, y);
         } else if (npixels == 0 && value == 1) {
             // [0,1] is end of bitmap marker
+            // Strutil::print("end of bitmap\n");
             break;
         } else if (npixels == 0 && value == 2) {
             // [0,2] is a "delta" -- two more bytes reposition the
@@ -304,14 +315,17 @@ BmpInput::read_rle_image()
             ok &= ioread(offset, 2);
             x += offset[0];
             y += offset[1];
+            // Strutil::print("offset by {:d},{:d} to {},{}\n", offset[0],
+            //                offset[1], x, y);
         } else if (npixels == 0) {
             // [0,n>2] is an "absolute" run of pixel data.
             // n is the number of pixel indices that follow, but note
             // that it pads to word size.
-            int npixels = value;
-            int nbytes  = (rletype == 4)
-                              ? round_to_multiple((npixels + 1) / 2, 2)
-                              : round_to_multiple(npixels, 2);
+            npixels    = value;
+            int nbytes = (rletype == 4)
+                             ? round_to_multiple((npixels + 1) / 2, 2)
+                             : round_to_multiple(npixels, 2);
+            // Strutil::print("rle of {} pixels at {},{}\n", npixels, x, y);
             unsigned char absolute[256];
             ok &= ioread(absolute, nbytes);
             for (int i = 0; i < npixels; ++i, ++x) {
@@ -325,6 +339,7 @@ BmpInput::read_rle_image()
             }
         } else {
             // [n>0,p] is a run of n pixels.
+            // Strutil::print("direct read {} pixels at {},{}\n", npixels, x, y);
             for (int i = 0; i < npixels; ++i, ++x) {
                 int v;
                 if (rletype == 4)
