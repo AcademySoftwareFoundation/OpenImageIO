@@ -5,51 +5,52 @@
 # command += oiiotool ("--pattern constant:color=0.5,0.5,0.5 128x128 3 -d half -o grey128.exr")
 # command += oiiotool ("--pattern constant:color=0.5,0.5,0.5 64x64 3 -d half -o grey64.exr")
 # command += oiiotool ("--create 256x256 3 --fill:color=1,.5,.5 256x256 --fill:color=0,1,0 80x80+100+100 -d uint8 -o filled.tif")
-
+# wrapper_cmd = "time"
+# redirect = "2>&1"
 
 # test expression substitution
-command += oiiotool ('-echo "42+2 = {42+2}"')
-command += oiiotool ('-echo "42-2 = {42-2}"')
-command += oiiotool ('-echo "42*2 = {42*2}"')
-command += oiiotool ('-echo "42/2 = {42/2}"')
+command += oiiotool ('-echo "42+2 = {42+2}" ' +
+                     '-echo "42-2 = {42-2}" ' +
+                     '-echo "42*2 = {42*2}" ' +
+                     '-echo "42/2 = {42/2}"')
 
-command += oiiotool ('-echo "42<41 = {42<41}"')
-command += oiiotool ('-echo "42<42 = {42<42}"')
-command += oiiotool ('-echo "42<43 = {42<43}"')
-command += oiiotool ('-echo "42<=41 = {42<=41}"')
-command += oiiotool ('-echo "42<=42 = {42<=42}"')
-command += oiiotool ('-echo "42<=43 = {42<=43}"')
-command += oiiotool ('-echo "42>41 = {42>41}"')
-command += oiiotool ('-echo "42>42 = {42>42}"')
-command += oiiotool ('-echo "42>43 = {42>43}"')
-command += oiiotool ('-echo "42>=41 = {42>=41}"')
-command += oiiotool ('-echo "42>=42 = {42>=42}"')
-command += oiiotool ('-echo "42>=43 = {42>=43}"')
-command += oiiotool ('-echo "42==41 = {42==41}"')
-command += oiiotool ('-echo "42==42 = {42==42}"')
-command += oiiotool ('-echo "42==43 = {42==43}"')
-command += oiiotool ('-echo "42!=41 = {42!=41}"')
-command += oiiotool ('-echo "42!=42 = {42!=42}"')
-command += oiiotool ('-echo "42!=43 = {42!=43}"')
-command += oiiotool ('-echo "42<=>41 = {42<=>41}"')
-command += oiiotool ('-echo "42<=>42 = {42<=>42}"')
-command += oiiotool ('-echo "42<=>43 = {42<=>43}"')
+command += oiiotool ('-echo "42<41 = {42<41}" ' +
+                     '-echo "42<42 = {42<42}" ' +
+                     '-echo "42<43 = {42<43}" ' +
+                     '-echo "42<=41 = {42<=41}" ' +
+                     '-echo "42<=42 = {42<=42}" ' +
+                     '-echo "42<=43 = {42<=43}" ' +
+                     '-echo "42>41 = {42>41}" ' +
+                     '-echo "42>42 = {42>42}" ' +
+                     '-echo "42>43 = {42>43}" ' +
+                     '-echo "42>=41 = {42>=41}" ' +
+                     '-echo "42>=42 = {42>=42}" ' +
+                     '-echo "42>=43 = {42>=43}" ' +
+                     '-echo "42==41 = {42==41}" ' +
+                     '-echo "42==42 = {42==42}" ' +
+                     '-echo "42==43 = {42==43}" ' +
+                     '-echo "42!=41 = {42!=41}" ' +
+                     '-echo "42!=42 = {42!=42}" ' +
+                     '-echo "42!=43 = {42!=43}" ' +
+                     '-echo "42<=>41 = {42<=>41}" ' +
+                     '-echo "42<=>42 = {42<=>42}" ' +
+                     '-echo "42<=>43 = {42<=>43}" ')
 
-command += oiiotool ('-echo "(1==2)&&(2==2) = {(1==2)&&(2==2)}"')
-command += oiiotool ('-echo "(1==1)&&(2==2) = {(1==1)&&(2==2)}"')
-command += oiiotool ('-echo "(1==2)&&(1==2) = {(1==2)&&(1==2)}"')
-command += oiiotool ('-echo "(1==2)||(2==2) = {(1==2)||(2==2)}"')
-command += oiiotool ('-echo "(1==1)||(2==2) = {(1==1)||(2==2)}"')
-command += oiiotool ('-echo "(1==2)||(1==2) = {(1==2)||(1==2)}"')
-command += oiiotool ('-echo "not(1==1) = {not(1==1)}"')
-command += oiiotool ('-echo "not(1==2) = {not(1==2)}"')
-command += oiiotool ('-echo "!(1==1) = {!(1==1)}"')
-command += oiiotool ('-echo "!(1==2) = {!(1==2)}"')
+command += oiiotool ('-echo "(1==2)&&(2==2) = {(1==2)&&(2==2)}" ' +
+                     '-echo "(1==1)&&(2==2) = {(1==1)&&(2==2)}" ' +
+                     '-echo "(1==2)&&(1==2) = {(1==2)&&(1==2)}" ' +
+                     '-echo "(1==2)||(2==2) = {(1==2)||(2==2)}" ' +
+                     '-echo "(1==1)||(2==2) = {(1==1)||(2==2)}" ' +
+                     '-echo "(1==2)||(1==2) = {(1==2)||(1==2)}" ' +
+                     '-echo "not(1==1) = {not(1==1)}" ' +
+                     '-echo "not(1==2) = {not(1==2)}" ' +
+                     '-echo "!(1==1) = {!(1==1)}" ' +
+                     '-echo "!(1==2) = {!(1==2)}"')
 
-command += oiiotool ('-echo "eq(foo,foo) = {eq(\'foo\',\'foo\')}"')
-command += oiiotool ('-echo "eq(foo,bar) = {eq(\'foo\',\'bar\')}"')
-command += oiiotool ('-echo "neq(foo,foo) = {neq(\'foo\',\'foo\')}"')
-command += oiiotool ('-echo "neq(foo,bar) = {neq(\'foo\',\'bar\')}"')
+command += oiiotool ('-echo "eq(foo,foo) = {eq(\'foo\',\'foo\')}" ' +
+                     '-echo "eq(foo,bar) = {eq(\'foo\',\'bar\')}" ' +
+                     '-echo "neq(foo,foo) = {neq(\'foo\',\'foo\')}" ' +
+                     '-echo "neq(foo,bar) = {neq(\'foo\',\'bar\')}"')
 
 command += oiiotool ('-echo "16+5={16+5}" -echo "16-5={16-5}" -echo "16*5={16*5}"')
 command += oiiotool ('-echo "16/5={16/5}" -echo "16//5={16//5}" -echo "16%5={16%5}"')
