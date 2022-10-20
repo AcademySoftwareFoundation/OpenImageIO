@@ -431,6 +431,14 @@ getattribute(string_view name, TypeDesc type, void* val)
         *(int*)val = tiff_half;
         return true;
     }
+    if (name == "limits:channels" && type == TypeInt) {
+        *(int*)val = limit_channels;
+        return true;
+    }
+    if (name == "limits:imagesize_MB" && type == TypeInt) {
+        *(int*)val = limit_imagesize_MB;
+        return true;
+    }
     if (name == "tiff:multithread" && type == TypeInt) {
         *(int*)val = tiff_multithread;
         return true;
