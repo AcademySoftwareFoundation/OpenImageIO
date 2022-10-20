@@ -44,6 +44,7 @@ OIIO_BUILD_ROOT = path
 tmpdir = "."
 tmpdir = os.path.abspath (tmpdir)
 redirect = " >> out.txt "
+wrapper_cmd = ""
 
 def make_relpath (path, start=os.curdir):
     "Wrapper around os.path.relpath which always uses '/' as the separator."
@@ -202,9 +203,12 @@ def run_app(app, silent=False, concat=True):
 
 def oiio_app (app):
     if (platform.system () != 'Windows' or options.devenv_config == ""):
-        return os.path.join(OIIO_BUILD_ROOT, "bin", app) + " "
+        cmd = os.path.join(OIIO_BUILD_ROOT, "bin", app) + " "
     else:
-        return os.path.join(OIIO_BUILD_ROOT, "bin", options.devenv_config, app) + " "
+        cmd = os.path.join(OIIO_BUILD_ROOT, "bin", options.devenv_config, app) + " "
+    if wrapper_cmd != "":
+        cmd = wrapper_cmd + " " + cmd
+    return cmd
 
 
 # Construct a command that will print info for an image, appending output to
