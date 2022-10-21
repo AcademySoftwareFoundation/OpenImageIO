@@ -115,6 +115,9 @@ contents of an expression may be any of:
 
   The named metadata of an image.
   
+  If there is no metadata whose name matches, the expression will not have any
+  substitution made and an error will be issued.
+  
   The *imagename* may be one of: `TOP` (the top or current image), `IMG[i]`
   describing the i-th image on the stack (thus `TOP` is a synonym for
   `IMG[0]`, the next image on the stack is `IMG[1]`, etc.), or `IMG[name]`
@@ -156,6 +159,16 @@ contents of an expression may be any of:
 
   Without the quotes, it might try to retrieve `TOP.foo` (which doesn't
   exist) and divide it by `bar`.
+
+* *imagename.[metadata]*
+
+  Another way to retrieve metadata, but with this notation, the result will
+  be the empty string if the metadata does not exist (that is not an error).
+
+  .. code-block::
+
+      {TOP[foo]}
+      {TOP['bar:baz']}
 
 * Arithmetic
 
