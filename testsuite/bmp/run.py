@@ -26,5 +26,6 @@ command += rw_command ("src", "PRINTER.BMP")
 # Test BMP of the 56-byte DIB header variety
 command += rw_command ("../oiio-images/bmp", "gracehopper.bmp")
 
-# See if we handle this corrupt file with a useful error message
+# See if we handle these corrupt files with useful error messages
 command += info_command ("src/decodecolormap-corrupt.bmp")
+command += info_command ("src/bad-y.bmp")
