@@ -199,3 +199,12 @@ Reading ../oiio-images/dds/broken/dds_bc7_not_enough_data.dds
     channel list: R, G, B, A
     compression: "BC7"
     textureformat: "Plain Texture"
+Reading src/crash-1634.dds
+src/crash-1634.dds   :   16 x    8, 1 channel, uint8 dds
+    SHA-1: CB82FD0F9EF1B69F3F3FF14077564AC2D6C11540
+    channel list: Y
+    textureformat: "Plain Texture"
+    oiio:BitsPerSample: 16
+oiiotool ERROR: read : "src/crash-1635.dds": Unsupported DDS bit depth: 1048576 (maybe it's a corrupted file?)
+Full command line was:
+> oiiotool --info -v -a --hash src/crash-1635.dds
