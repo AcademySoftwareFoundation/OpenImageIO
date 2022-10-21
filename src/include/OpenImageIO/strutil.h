@@ -899,6 +899,22 @@ OIIO_UTIL_API char* safe_strcat(char *dst, string_view src, size_t size) noexcep
 OIIO_UTIL_API size_t safe_strlen(const char* str, size_t size) noexcept;
 
 
+/// Return a string_view that is a substring of the given C string, ending at
+/// the first null character or after size characters, whichever comes first.
+inline string_view safe_string_view(const char* str, size_t size) noexcept
+{
+    return string_view(str, safe_strlen(str, size));
+}
+
+/// Return a std::string that is a substring of the given C string, ending at
+/// the first null character or after size characters, whichever comes first.
+inline std::string safe_string(const char* str, size_t size)
+{
+    return safe_string_view(str, size);
+}
+
+
+
 /// Is the character a whitespace character (space, linefeed, tab, carrage
 /// return)? Note: this is safer than C isspace(), which has undefined
 /// behavior for negative char values. Also note that it differs from C
