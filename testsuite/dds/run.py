@@ -43,3 +43,7 @@ files = [
     "broken/dds_bc7_not_enough_data.dds" ]
 for f in files:
     command += info_command (OIIO_TESTSUITE_IMAGEDIR + "/" + f)
+
+# Test more corrupted files or those that used to crash
+command += info_command ("src/crash-1634.dds", hash=True)
+command += info_command ("src/crash-1635.dds", hash=True)
