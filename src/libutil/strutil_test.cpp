@@ -1112,6 +1112,36 @@ test_safe_strcat()
 
 
 
+// test safe_strlen and closely related safe_string_view, safe_string
+void
+test_safe_strlen()
+{
+    char a[] = "012";  // expected
+    char b[] = "012" "\0" "456789";  // nul embedded in the string
+    char c[] = "0123456789001234567890";  // long string
+    char d[] = "";  // empty string
+
+    Strutil::print("Testing safe_strlen\n");
+    OIIO_CHECK_EQUAL(Strutil::safe_strlen(a, 10), 3);
+    OIIO_CHECK_EQUAL(Strutil::safe_strlen(b, 10), 3);
+    OIIO_CHECK_EQUAL(Strutil::safe_strlen(c, 10), 10);
+    OIIO_CHECK_EQUAL(Strutil::safe_strlen(d, 10), 0);
+
+    std::cout << "Testing safe_string_view\n";
+    OIIO_CHECK_EQUAL(Strutil::safe_string_view(a, 10), string_view("012"));
+    OIIO_CHECK_EQUAL(Strutil::safe_string_view(b, 10), string_view("012"));
+    OIIO_CHECK_EQUAL(Strutil::safe_string_view(c, 10), string_view("0123456789"));
+    OIIO_CHECK_EQUAL(Strutil::safe_string_view(d, 10), string_view(""));
+
+    std::cout << "Testing safe_string\n";
+    OIIO_CHECK_EQUAL(Strutil::safe_string(a, 10), std::string("012"));
+    OIIO_CHECK_EQUAL(Strutil::safe_string(b, 10), std::string("012"));
+    OIIO_CHECK_EQUAL(Strutil::safe_string(c, 10), std::string("0123456789"));
+    OIIO_CHECK_EQUAL(Strutil::safe_string(d, 10), std::string(""));
+}
+
+
+
 // test some of the trickier methods in string_view.
 void
 test_string_view()
@@ -1565,6 +1595,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_extract();
     test_safe_strcpy();
     test_safe_strcat();
+    test_safe_strlen();
     test_string_view();
     test_parse();
     test_locale();

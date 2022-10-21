@@ -334,18 +334,18 @@ TGAInput::read_tga2_header()
             return false;
 
         // concatenate the lines into a single string
-        std::string tmpstr((const char*)buf.c);
+        std::string tmpstr = Strutil::safe_string((const char*)buf.c, 81);
         if (buf.c[81]) {
             tmpstr += "\n";
-            tmpstr += (const char*)&buf.c[81];
+            tmpstr += Strutil::safe_string((const char*)&buf.c[81], 81);
         }
         if (buf.c[162]) {
             tmpstr += "\n";
-            tmpstr += (const char*)&buf.c[162];
+            tmpstr += Strutil::safe_string((const char*)&buf.c[162], 81);
         }
         if (buf.c[243]) {
             tmpstr += "\n";
-            tmpstr += (const char*)&buf.c[243];
+            tmpstr += Strutil::safe_string((const char*)&buf.c[243], 81);
         }
         if (tmpstr.length() > 0)
             m_spec.attribute("ImageDescription", tmpstr);
