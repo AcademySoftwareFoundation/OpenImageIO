@@ -157,7 +157,7 @@ tiff_data_size(TIFFDataType tifftype)
     // Sizes of TIFFDataType members
     static size_t sizes[]    = { 0, 1, 1, 2, 4, 8, 1, 1, 2, 4, 8, 4, 8, 4 };
     const int num_data_sizes = sizeof(sizes) / sizeof(*sizes);
-    int dir_index            = (int)tifftype;
+    int dir_index            = bitcast<int>(tifftype);
     if (dir_index < 0 || dir_index >= num_data_sizes) {
         // Inform caller about corrupted entry.
         return -1;
@@ -360,9 +360,8 @@ makernote_handler(const TagInfo& /*taginfo*/, const TIFFDirEntry& dir,
     if (spec.get_string_attribute("Make") == "Canon") {
         std::vector<size_t> ifdoffsets { 0 };
         std::set<size_t> offsets_seen;
-        decode_ifd((unsigned char*)buf.data() + dir.tdir_offset, buf, spec,
-                   pvt::canon_maker_tagmap_ref(), offsets_seen, swapendian,
-                   offset_adjustment);
+        decode_ifd(buf, dir.tdir_offset, spec, pvt::canon_maker_tagmap_ref(),
+                   offsets_seen, swapendian, offset_adjustment);
     } else {
         // Maybe we just haven't parsed the Maker metadata yet?
         // Allow a second try later by just stashing the maker note offset.
@@ -668,8 +667,10 @@ add_exif_item_to_spec(ImageSpec& spec, const char* name,
         float* f = OIIO_ALLOCA(float, n);
         for (int i = 0; i < n; ++i) {
             unsigned int num, den;
-            num = ((const unsigned int*)dataptr)[2 * i + 0];
-            den = ((const unsigned int*)dataptr)[2 * i + 1];  //NOSONAR
+            memcpy(&num, dataptr + (2 * i) * sizeof(unsigned int),
+                   sizeof(unsigned int));
+            memcpy(&den, dataptr + (2 * i + 1) * sizeof(unsigned int),
+                   sizeof(unsigned int));  //NOSONAR
             if (swab) {
                 swap_endian(&num);
                 swap_endian(&den);
@@ -687,8 +688,9 @@ add_exif_item_to_spec(ImageSpec& spec, const char* name,
         float* f = OIIO_ALLOCA(float, n);
         for (int i = 0; i < n; ++i) {
             int num, den;
-            num = ((const int*)dataptr)[2 * i + 0];
-            den = ((const int*)dataptr)[2 * i + 1];  //NOSONAR
+            memcpy(&num, dataptr + (2 * i) * sizeof(int), sizeof(int));
+            memcpy(&den, dataptr + (2 * i + 1) * sizeof(int),
+                   sizeof(int));  //NOSONAR
             if (swab) {
                 swap_endian(&num);
                 swap_endian(&den);
@@ -767,7 +769,9 @@ read_exif_tag(ImageSpec& spec, const TIFFDirEntry* dirp, cspan<uint8_t> buf,
 
     // Make a copy of the pointed-to TIFF directory, swab the components
     // if necessary.
-    TIFFDirEntry dir = *dirp;
+    TIFFDirEntry dir;
+    memcpy(&dir, dirp, sizeof(TIFFDirEntry));
+    unsigned int unswapped_tdir_offset = dir.tdir_offset;
     if (swab) {
         swap_endian(&dir.tdir_tag);
         swap_endian(&dir.tdir_type);
@@ -785,7 +789,7 @@ read_exif_tag(ImageSpec& spec, const TIFFDirEntry* dirp, cspan<uint8_t> buf,
     if (dir.tdir_tag == TIFFTAG_EXIFIFD || dir.tdir_tag == TIFFTAG_GPSIFD) {
         // Special case: It's a pointer to a private EXIF directory.
         // Handle the whole thing recursively.
-        unsigned int offset = dirp->tdir_offset;  // int stored in offset itself
+        auto offset = unswapped_tdir_offset;  // int stored in offset itself
         if (swab)
             swap_endian(&offset);
         if (offset >= size_t(buf.size())) {
@@ -840,7 +844,7 @@ read_exif_tag(ImageSpec& spec, const TIFFDirEntry* dirp, cspan<uint8_t> buf,
     } else if (dir.tdir_tag == TIFFTAG_INTEROPERABILITYIFD) {
         // Special case: It's a pointer to a private EXIF directory.
         // Handle the whole thing recursively.
-        unsigned int offset = dirp->tdir_offset;  // int stored in offset itself
+        auto offset = unswapped_tdir_offset;  // int stored in offset itself
         if (swab)
             swap_endian(&offset);
         if (offset >= size_t(buf.size())) {
@@ -1004,23 +1008,32 @@ encode_exif_entry(const ParamValue& p, int tag, std::vector<TIFFDirEntry>& dirs,
 
 
 
-// Decode a raw Exif data block and save all the metadata in an
-// ImageSpec.  Return true if all is ok, false if the exif block was
+// Decode a raw Exif data block and save all the metadata in an ImageSpec. The
+// data is all inside buf. The ifd itself is at the position `ifd_offset`
+// within the buf. Return true if all is ok, false if the exif block was
 // somehow malformed.
-void
-pvt::decode_ifd(const unsigned char* ifd, cspan<uint8_t> buf, ImageSpec& spec,
+bool
+pvt::decode_ifd(cspan<uint8_t> buf, size_t ifd_offset, ImageSpec& spec,
                 const TagMap& tag_map, std::set<size_t>& ifd_offsets_seen,
                 bool swab, int offset_adjustment)
 {
     // Read the directory that the header pointed to.  It should contain
     // some number of directory entries containing tags to process.
-    unsigned short ndirs = *(const unsigned short*)ifd;
+    if (ifd_offset + 2 > std::size(buf)) {
+        return false;  // asking us to read beyond the buffer
+    }
+    auto ifd             = buf.data() + ifd_offset;
+    unsigned short ndirs = *(const unsigned short*)(buf.data() + ifd_offset);
     if (swab)
         swap_endian(&ndirs);
+    if (ifd_offset + 2 + ndirs * sizeof(TIFFDirEntry) > std::size(buf)) {
+        return false;  // asking us to read beyond the buffer
+    }
     for (int d = 0; d < ndirs; ++d)
         read_exif_tag(spec,
                       (const TIFFDirEntry*)(ifd + 2 + d * sizeof(TIFFDirEntry)),
                       buf, swab, offset_adjustment, ifd_offsets_seen, tag_map);
+    return true;
 }
 
 
@@ -1140,12 +1153,12 @@ decode_exif(cspan<uint8_t> exif, ImageSpec& spec)
     if (swab)
         swap_endian(&head.tiff_diroff);
 
-    const unsigned char* ifd = ((const unsigned char*)exif.data()
-                                + head.tiff_diroff);
     // keep track of IFD offsets we've already seen to avoid infinite
     // recursion if there are circular references.
     std::set<size_t> ifd_offsets_seen;
-    decode_ifd(ifd, exif, spec, exif_tagmap_ref(), ifd_offsets_seen, swab);
+    if (!decode_ifd(exif, head.tiff_diroff, spec, exif_tagmap_ref(),
+                    ifd_offsets_seen, swab))
+        return false;
 
     // A few tidbits to look for
     ParamValue* p;
@@ -1172,9 +1185,10 @@ decode_exif(cspan<uint8_t> exif, ImageSpec& spec)
     int makernote_offset = spec.get_int_attribute("oiio:MakerNoteOffset");
     if (makernote_offset > 0) {
         if (Strutil::iequals(spec.get_string_attribute("Make"), "Canon")) {
-            decode_ifd((unsigned char*)exif.data() + makernote_offset, exif,
-                       spec, pvt::canon_maker_tagmap_ref(), ifd_offsets_seen,
-                       swab);
+            if (!decode_ifd(exif, makernote_offset, spec,
+                            pvt::canon_maker_tagmap_ref(), ifd_offsets_seen,
+                            swab))
+                return false;
         }
         // Now we can erase the attrib we used to pass the message about
         // the maker note offset.

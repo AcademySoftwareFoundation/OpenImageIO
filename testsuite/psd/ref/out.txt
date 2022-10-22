@@ -1064,3 +1064,7 @@ src/layer-mask.psd   :   10 x   10, 4 channel, uint8 psd
     stEvt:instanceID: "xmp.iid:a64763c8-be7b-ff48-b857-0f1ee8e5da2b; xmp.iid:9847e4c5-ca7e-fa42-9c7f-5fe6373d31de; xmp.iid:ddf40b95-b12c-744e-a1a9-5e7724fe4ca9"
     stEvt:softwareAgent: "Adobe Photoshop CC 2017 (Windows)"
     stEvt:when: "2017-07-13T10:26:10+09:00; 2017-07-13T10:32:41+09:00; 2017-07-13T11:42:54+09:00"
+oiiotool ERROR: read : Failed to decode Exif data
+failed to open "src/crash-psd-exif-1632.psd": failed load_resources
+Full command line was:
+> oiiotool --info -v -a --hash src/crash-psd-exif-1632.psd
