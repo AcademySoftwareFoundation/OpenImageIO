@@ -18,6 +18,13 @@ command += info_command ("nogps.jpg", safematch=True)
 command += oiiotool (OIIO_TESTSUITE_IMAGEDIR+"/tahoe-gps.jpg --eraseattrib \".*\" -o noattribs.jpg")
 command += info_command ("noattribs.jpg", safematch=True)
 
+# Test keywords
+command += oiiotool ("../common/tahoe-tiny.tif --echo \"initial keywords={TOP[keywords]}\" " +
+                     "--keyword foo --keyword bar " +
+                     "--echo \"after adding, keywords={TOP[keywords]}\" " +
+                     "--clear-keywords " +
+                     "--echo \"after clearing, keywords={TOP[keywords]}\" ")
+
 # Test adding and erasing attribs to multiple subimages
 command += oiiotool ("--create 64x64 3 -dup --siappend " +
                      "--attrib:allsubimages=1 foo bar -d half -o attrib2.exr")

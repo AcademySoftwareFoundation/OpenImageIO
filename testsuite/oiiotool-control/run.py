@@ -69,7 +69,11 @@ command += oiiotool ("-create 16x16 3 -attrib smpte:TimeCode \"01:02:03:04\" -ec
 command += oiiotool ("-echo \"{1+1}\" --evaloff -echo \"{3+4}\" --evalon -echo \"{2*2}\"")
 
 # Test user variables
-command += oiiotool ('-echo "Testing --set:" -set i 1 -echo "  i = {i}" -set i "{i+41}" -echo "  now i = {i}"')
+command += oiiotool ('-echo "Testing --set, expr i:" -set i 1 -echo "  i = {i}" -set i "{i+41}" -echo "  now i = {i}"')
+command += oiiotool ('-echo "Testing --set, expr var(i):" -set i 1 -echo "  i = {var(i)}" -set i "{i+41}" -echo "  now i = {var(i)}"')
+
+# Test getattribute in an expression
+command += oiiotool ('-echo "Expr getattribute(\"limits:channels\") = {getattribute(\"limits:channels\")}"')
 
 # Test --if --else --endif
 command += oiiotool ('-echo "Testing if with true cond (expect output):" -set i 42 -if "{i}" -echo "  inside if clause, i={i}" -endif -echo "  done" -echo " "')
@@ -97,6 +101,14 @@ command += oiiotool ("../common/tahoe-tiny.tif --echo \"\\nBrief: {TOP.METABRIEF
 command += oiiotool ("../common/tahoe-tiny.tif --echo \"\\nMeta: {TOP.META}\"")
 command += oiiotool ("../common/tahoe-tiny.tif --echo \"\\nStats:\\n{TOP.STATS}\\n\"")
 
+# Test IMG[]
+command += oiiotool ("../common/tahoe-tiny.tif ../common/tahoe-small.tif " +
+                     "--echo \"Stack holds [0] = {IMG[0].filename}, [1] = {IMG[1].filename}\"")
+
+# Test some special attribute evaluation names
+command += oiiotool ("../common/tahoe-tiny.tif " +
+                     "--echo \"filename={TOP.filename} file_extension={TOP.file_extension} file_noextension={TOP.file_noextension}\" " +
+                     "--echo \"MINCOLOR={TOP.MINCOLOR} MAXCOLOR={TOP.MAXCOLOR} AVGCOLOR={TOP.AVGCOLOR}\"")
 
 
 # To add more tests, just append more lines like the above and also add
