@@ -16,5 +16,6 @@ command += oiiotool (OIIO_TESTSUITE_IMAGEDIR +
 # Test corrupted files
 command += oiiotool(OIIO_TESTSUITE_IMAGEDIR + "/rla/crash1.rla -o crash1.exr", failureok = True)
 command += oiiotool(OIIO_TESTSUITE_IMAGEDIR + "/rla/crash2.rla -o crash2.exr", failureok = True)
+command += oiiotool("src/crash-1629.rla -o crash3.exr", failureok = True)
 
 outputs = [ "rlacrop.rla", 'out.txt', 'out.err.txt' ]
