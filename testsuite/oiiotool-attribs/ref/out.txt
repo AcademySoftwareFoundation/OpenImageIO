@@ -53,6 +53,9 @@ noattribs.jpg        : 2048 x 1536, 3 channel, uint8 jpeg
     Exif:FlashPixVersion: "0100"
     jpeg:subsampling: "4:2:0"
     oiio:ColorSpace: "sRGB"
+initial keywords=
+after adding, keywords=foo; bar
+after clearing, keywords=
 Reading attrib2.exr
 attrib2.exr          :   64 x   64, 3 channel, half openexr
     2 subimages: 64x64 [h,h,h], 64x64 [h,h,h]

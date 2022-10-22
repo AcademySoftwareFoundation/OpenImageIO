@@ -48,9 +48,13 @@ timecode is 01:02:03:04
 2
 {3+4}
 4
-Testing --set:
+Testing --set, expr i:
   i = 1
   now i = 42
+Testing --set, expr var(i):
+  i = 1
+  now i = 42
+Expr getattribute(limits:channels) = 1024
 Testing if with true cond (expect output):
   inside if clause, i=42
   done
@@ -151,6 +155,9 @@ Stats FiniteCount: 12288 12288 12288
 Constant: No
 Monochrome: No
 
+Stack holds [0] = ../common/tahoe-small.tif, [1] = ../common/tahoe-tiny.tif
+filename=../common/tahoe-tiny.tif file_extension=.tif file_noextension=../common/tahoe-tiny
+MINCOLOR=0,0,0 MAXCOLOR=0.745098,1,1 AVGCOLOR=0.101942,0.216695,0.425293
 Comparing "exprgradient.tif" and "ref/exprgradient.tif"
 PASS
 Comparing "exprcropped.tif" and "ref/exprcropped.tif"
