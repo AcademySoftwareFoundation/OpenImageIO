@@ -309,8 +309,9 @@ private:
     // Convert from photoshop native alpha to
     // associated/premultiplied
     template<class T>
-    void removeBackground(T* data, int size, int nchannels, int alpha_channel,
-                          double* background)
+    OIIO_NO_SANITIZE_UNDEFINED void
+    removeBackground(T* data, int size, int nchannels, int alpha_channel,
+                     double* background)
     {
         // RGB = CompRGB - (1 - alpha) * Background;
         double scale = std::numeric_limits<T>::is_integer

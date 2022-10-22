@@ -215,7 +215,8 @@ def oiio_app (app):
 # the file "out.txt".  If 'safematch' is nonzero, it will exclude printing
 # of fields that tend to change from run to run or release to release.
 def info_command (file, extraargs="", safematch=False, hash=True,
-                  verbose=True, info_program="oiiotool") :
+                  verbose=True, silent=False, concat=True, failureok=False,
+                  info_program="oiiotool") :
     args = ""
     if info_program == "oiiotool" :
         args += " --info"
@@ -225,8 +226,15 @@ def info_command (file, extraargs="", safematch=False, hash=True,
         args += " --no-metamatch \"DateTime|Software|OriginatingProgram|ImageHistory\""
     if hash :
         args += " --hash"
-    return (oiio_app(info_program) + args + " " + extraargs
-            + " " + make_relpath(file,tmpdir) + redirect + ";\n")
+    cmd = (oiio_app(info_program) + args + " " + extraargs
+            + " " + make_relpath(file,tmpdir))
+    if not silent :
+        cmd += redirect
+    if failureok :
+        cmd += " || true "
+    if concat:
+        cmd += " ;\n"
+    return cmd
 
 
 # Construct a command that will compare two images, appending output to
