@@ -215,6 +215,9 @@ test_ustringhash()
 
     // std::hash
     OIIO_CHECK_EQUAL(std::hash<ustringhash> {}(hfoo), hfoo.hash());
+
+    // formatting string
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("{}", hfoo), "foo");
 }
 
 
