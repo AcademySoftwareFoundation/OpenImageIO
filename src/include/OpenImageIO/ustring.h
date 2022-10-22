@@ -31,6 +31,7 @@ OIIO_NAMESPACE_BEGIN
 #define OIIO_USTRING_HAS_USTRINGHASH 1
 #define OIIO_USTRING_HAS_CTR_FROM_USTRINGHASH 1
 #define OIIO_USTRING_HAS_STDHASH 1
+#define OIIO_HAS_USTRINGHASH_FORMATTER 1
 
 
 class ustringhash;  // forward declaration
@@ -951,10 +952,11 @@ public:
         return hash() < x.hash();
     }
 
-    /// Generic stream output of a ustring.
+    /// Generic stream output of a ustringhash outputs the string it refers
+    /// to.
     friend std::ostream& operator<<(std::ostream& out, const ustringhash& str)
     {
-        return (out << str.hash());
+        return (out << ustring(str));
     }
 #endif
 
@@ -1114,15 +1116,27 @@ template<> struct hash<OIIO::ustringhash> {
 
 
 
-// Supply a fmtlib compatible custom formatter for ustring.
+// Supply a fmtlib compatible custom formatter for ustring and ustringhash.
 FMT_BEGIN_NAMESPACE
 
 template<> struct formatter<OIIO::ustring> : formatter<fmt::string_view, char> {
     template<typename FormatContext>
-    auto format(const OIIO::ustring& t, FormatContext& ctx)
+    auto format(const OIIO::ustring& u, FormatContext& ctx)
         -> decltype(ctx.out()) const
     {
-        return formatter<fmt::string_view, char>::format({ t.data(), t.size() },
+        return formatter<fmt::string_view, char>::format({ u.data(), u.size() },
+                                                         ctx);
+    }
+};
+
+template<>
+struct formatter<OIIO::ustringhash> : formatter<fmt::string_view, char> {
+    template<typename FormatContext>
+    auto format(const OIIO::ustringhash& h, FormatContext& ctx)
+        -> decltype(ctx.out()) const
+    {
+        OIIO::ustring u(h);
+        return formatter<fmt::string_view, char>::format({ u.data(), u.size() },
                                                          ctx);
     }
 };
