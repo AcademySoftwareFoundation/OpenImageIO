@@ -489,7 +489,8 @@ RLAInput::decode_rle_span(unsigned char* buf, int n, int stride,
         signed char count = (signed char)encoded[e++];
         if (count >= 0) {
             // run count positive: value repeated count+1 times
-            for (int i = 0; i <= count && n; ++i, buf += stride, --n)
+            for (int i = 0; i <= count && n && e < elen;
+                 ++i, buf += stride, --n)
                 *buf = encoded[e];
             ++e;
         } else {
