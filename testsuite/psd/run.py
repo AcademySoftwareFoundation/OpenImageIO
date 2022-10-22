@@ -13,3 +13,5 @@ command += info_command ("src/layer-mask.psd")
 
 # This file has a corrupted Exif block
 command += info_command ("src/crash-psd-exif-1632.psd", failureok = 1)
+# Corrupted thumbnail clobbered memory
+command += info_command ("src/crash-thumb-1626.psd", failureok = 1)
