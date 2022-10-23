@@ -302,10 +302,7 @@ private:
             // the file. Punt.
         }
         if (ok && s && *s) {
-            result = string_view(s, count);
-            // Strip off sometimes-errant extra null characters
-            while (result.size() && result.back() == '\0')
-                result.remove_suffix(1);
+            result = Strutil::safe_string_view(s, count);
         }
         return ok;
     }
