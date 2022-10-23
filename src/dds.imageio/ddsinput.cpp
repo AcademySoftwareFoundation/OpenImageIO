@@ -501,7 +501,8 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
     } else
         m_nfaces = 1;
 
-    seek_subimage(0, 0);
+    if (!seek_subimage(0, 0))
+        return false;
     newspec = spec();
     return true;
 }
@@ -675,8 +676,16 @@ DDSInput::seek_subimage(int subimage, int miplevel)
 
     if (m_dds.fmt.bpp
         && (m_dds.fmt.flags
-            & (DDS_PF_RGB | DDS_PF_LUMINANCE | DDS_PF_YUV | DDS_PF_ALPHAONLY)))
+            & (DDS_PF_RGB | DDS_PF_LUMINANCE | DDS_PF_YUV | DDS_PF_ALPHAONLY))) {
+        if (m_dds.fmt.bpp != 8 && m_dds.fmt.bpp != 16 && m_dds.fmt.bpp != 24
+            && m_dds.fmt.bpp != 32) {
+            errorfmt(
+                "Unsupported DDS bit depth: {} (maybe it's a corrupted file?)",
+                m_dds.fmt.bpp);
+            return false;
+        }
         m_spec.attribute("oiio:BitsPerSample", m_dds.fmt.bpp);
+    }
 
     // linear color space for HDR-ish images
     if (basetype == TypeDesc::HALF || basetype == TypeDesc::FLOAT)
@@ -826,8 +835,7 @@ bool
 DDSInput::readimg_tiles()
 {
     // resize destination buffer
-    m_buf.resize(m_spec.tile_bytes());
-
+    OIIO_ASSERT(m_buf.size() >= m_spec.tile_bytes());
     return internal_readimg(&m_buf[0], m_spec.tile_width, m_spec.tile_height,
                             m_spec.tile_depth);
 }
@@ -891,11 +899,11 @@ DDSInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
         internal_seek_subimage(((x / m_spec.tile_width) << 1)
                                    + y / m_spec.tile_height,
                                m_miplevel, w, h, d);
-#else   // 1x6 layout
+#else                                       // 1x6 layout
         internal_seek_subimage(y / m_spec.tile_height, m_miplevel, w, h, d);
-#endif  // DDS_3X2_CUBE_MAP_LAYOUT
-        if (!w && !h && !d)
-            // face not present in file, black-pad the image
+#endif                                      // DDS_3X2_CUBE_MAP_LAYOUT
+        m_buf.resize(m_spec.tile_bytes());  // resize destination buffer
+        if (!w && !h && !d)  // face not present in file, black-pad the image
             memset(&m_buf[0], 0, m_spec.tile_bytes());
         else
             readimg_tiles();
