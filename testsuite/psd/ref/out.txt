@@ -1068,3 +1068,7 @@ oiiotool ERROR: read : Failed to decode Exif data
 failed to open "src/crash-psd-exif-1632.psd": failed load_resources
 Full command line was:
 > oiiotool --info -v -a --hash src/crash-psd-exif-1632.psd
+oiiotool ERROR: read : Corrupt thumbnail: 262304w * 24bpp does not match 480 width bytes
+failed to open "src/crash-thumb-1626.psd": failed load_resources
+Full command line was:
+> oiiotool --info -v -a --hash src/crash-thumb-1626.psd
