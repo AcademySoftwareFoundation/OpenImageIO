@@ -14,7 +14,9 @@ command += oiiotool("--pattern checker 128x128 4 --tile 64 64 --planarconfig sep
 # to force compression in order to properly test:
 command += rw_command ("src", "separate.tif")
 
-# Test bug we had until OIIO 2.4 for this corrupt file
+# Test bugs we had until OIIO 2.4 for these corrupt file
 command += oiiotool ("--oiioattrib try_all_readers 0 --info -v src/corrupt1.tif", failureok = True)
+command += oiiotool ("--oiioattrib try_all_readers 0 --info -v src/crash-1633.tif", failureok = True)
+command += oiiotool ("--oiioattrib try_all_readers 0 --info -v src/crash-1643.tif", failureok = True)
 
 outputs = [ "check1.tif", "out.txt" ]
