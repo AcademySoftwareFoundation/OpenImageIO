@@ -396,7 +396,7 @@ private:
             }
     }
 
-    void uncompress_one_strip(void* compressed_buf, unsigned long csize,
+    void uncompress_one_strip(const void* compressed_buf, unsigned long csize,
                               void* uncompressed_buf, size_t strip_bytes,
                               int channels, int width, int height, bool* ok)
     {
@@ -1120,7 +1120,13 @@ TIFFInput::readspec(bool read_meta)
                 }
             }
         }
-        if (m_spec.alpha_channel >= 0) {
+        if (m_photometric == PHOTOMETRIC_SEPARATED)
+            m_spec.alpha_channel = -1;  // ignore alpha in CMYK
+        if (m_spec.alpha_channel >= 0
+            && m_spec.alpha_channel < m_spec.nchannels) {
+            while (m_spec.channelnames.size() < size_t(m_spec.nchannels))
+                m_spec.channelnames.push_back(
+                    Strutil::fmt::format("channel{}", m_spec.nchannels));
             m_spec.channelnames[m_spec.alpha_channel] = "A";
             // Special case: "R","A" should really be named "Y","A", since
             // the first channel is luminance, not red.
@@ -1972,8 +1978,8 @@ TIFFInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
         // We punted and used the RGBA image interface
         // libtiff has a call to read just one tile as RGBA. So that's all
         // we need to do, not buffer the whole image.
-        m_rgbadata.resize(m_spec.tile_pixels() * 4);
-        bool ok = TIFFReadRGBATile(m_tif, x, y, &m_rgbadata[0]);
+        m_rgbadata.resize(m_spec.tile_pixels());
+        bool ok = TIFFReadRGBATile(m_tif, x, y, m_rgbadata.data());
         if (!ok) {
             errorf("Unknown error trying to read TIFF as RGBA");
             return false;
@@ -2000,11 +2006,11 @@ TIFFInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
     }
 
     imagesize_t tile_pixels = m_spec.tile_pixels();
-    imagesize_t nvals       = tile_pixels * m_spec.nchannels;
+    imagesize_t nvals       = tile_pixels * m_inputchannels;
     if (m_photometric == PHOTOMETRIC_PALETTE && m_bitspersample > 8)
         m_scratch.resize(nvals * 2);  // special case for 16 bit palette
     else
-        m_scratch.resize(m_spec.tile_bytes());
+        m_scratch.resize(nvals * m_spec.format.size());
     bool no_bit_convert = (m_bitspersample == 8 || m_bitspersample == 16
                            || m_bitspersample == 32);
     if (m_photometric == PHOTOMETRIC_PALETTE) {
@@ -2021,7 +2027,7 @@ TIFFInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
     } else {
         // Not palette
         imagesize_t plane_bytes = m_spec.tile_pixels() * m_spec.format.size();
-        int planes              = m_separate ? m_spec.nchannels : 1;
+        int planes              = m_separate ? m_inputchannels : 1;
         std::vector<unsigned char> scratch2(m_separate ? m_spec.tile_bytes()
                                                        : 0);
         // Where to read?  Directly into user data if no channel shuffling
