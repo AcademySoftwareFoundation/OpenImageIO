@@ -750,6 +750,26 @@ inline OIIO_HOSTDEVICE float sign (float x)
 // Type and range conversion helper functions and classes.
 
 
+/// Standards-compliant bit cast of two equally sized types. This is used
+/// equivalently to C++20 std::bit_cast, but it works prior to C++20 and
+/// it has the right decorators to work with Cuda.
+/// @version 2.4.1
+template <typename OUT_TYPE, typename IN_TYPE>
+OIIO_FORCEINLINE OIIO_HOSTDEVICE OUT_TYPE bitcast (const IN_TYPE& in) noexcept {
+    // NOTE: this is the only standards compliant way of doing this type of casting,
+    // luckily the compilers we care about know how to optimize away this idiom.
+    static_assert(sizeof(IN_TYPE) == sizeof(OUT_TYPE),
+                  "bit_cast must be between objects of the same size");
+    OUT_TYPE out;
+    memcpy ((void *)&out, &in, sizeof(IN_TYPE));
+    return out;
+}
+
+/// Note: The C++20 std::bit_cast has the reverse order of the template
+/// arguments of our original bit_cast! That is unfortunate. For now, we
+/// prefer using OIIO::bitcast. We'll keep this old one for backward
+/// compatibility, but will eventually deprecate for OIIO 2.5 and remove it
+/// for 3.0.
 template <typename IN_TYPE, typename OUT_TYPE>
 OIIO_FORCEINLINE OIIO_HOSTDEVICE OUT_TYPE bit_cast (const IN_TYPE& in) {
     // NOTE: this is the only standards compliant way of doing this type of casting,
