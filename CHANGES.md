@@ -1,6 +1,14 @@
-Release 2.3.20 (1 Nov? 2022) -- compared to 2.3.20
+Release 2.3.21 (1 Nov 2022) -- compared to 2.3.20
 --------------------------------------------------
-
+* oiiotool: protect against OpenEXR thread deadlock on Windows. #3582
+* oiiotool: work around static destruction order issue. #3591
+* Fix PSD import on ARM. #3589
+* Docs: write Windows build instructions in INSTALL.md. #3602
+* RLA: fix potential buffer overrun. (TALOS-2022-1629, CVE-2022-36354) #3624
+* TIFF: guard against corrupt files with buffer overflows. (TALOS-2022-1627,
+  CVE-2022-41977) #3628
+* TIFF: guard against buffer overflow for certain CMYK files.
+  (TALOS-2022-1633, CVE-2022-41639) (TALOS-2022-1643, CVE-2022-41988) #3632
 
 Release 2.3.20 (1 Oct 2022) -- compared to 2.3.19
 -------------------------------------------------
