@@ -87,6 +87,7 @@ lg@openimageio.org
 * Jeremy Rose
 * Jeremy Selan
 * Jim Hourihan
+* Joachim Reichel
 * Johannes Unterguggenberger
 * John Burnett
 * John Haddon

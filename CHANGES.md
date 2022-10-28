@@ -1,5 +1,67 @@
-Release 2.4.5 (1 Nov?? 2022) -- compared to 2.4.4.2
+Release 2.4.5 (1 Nov 2022) -- compared to 2.4.4.2
 ---------------------------------------------------
+* oiiotool: new commands `--iccread`  reads a named file and adds its contents
+  as the ICCProfile metadata of the top image, `--iccwrite` saves the
+  ICCProfile metadata of the top file to a named file. #3550
+* TIFF, JPEG, JPEG-2000, PNG, and PSD files containing ICC profiles now
+  extract and report extra metadata related to aspects of those profiles.
+  #3554
+* Python: support `int8[]` metadata and retrieving the `ICCPorofile` metadata.
+  #3556
+* oiiotool: New expression syntax for retrieving metadata `{TOP[foo]}` is
+  similar to the existing `{TOP.foo}`, if there is no `foo` metadata found,
+  the former evaluates to an empty string, whereas the latter is an error.
+  #3619
+* Strutil: new `utf16_to_utf8(const std::u16string&)` and
+  `Strutil::utf8_to_utf16wstring()`. #3553
+* ustring: make `std::hash` work for ustring, add `operator<` for ustringhash,
+  add `from_hash()` to ustringhash, make ustringhash `==` and `!=` be
+  constexpr for C++17 and beyond. #3577  Custom fmt formatter for ustringhash
+  that prints the string rather than the hash. #3614
+* Build: the version number is now a CMake cache variable that can be
+  overridden (caveat emptor). #3549
+* Build/security: New CMake cache variable `FORTIFY_SOURCE`, if enabled,
+  builds with the specified gcc `_FORTIFY_SOURCE` option defined. This may be
+  desirable for people deploying OIIO in security-sensitive environments.
+  #3575
+* CI: testing now includes using undefined behavior sanitizer. #3565
+* Windows: protect against OpenEXR thread deadlock on shutdown. #3582
+* Windows: Work around a static destruction order issue. #3591
+* Windows: define `NOGDI` to keep the inclusion of windows.h from adding as
+  many unneeded symbols. #3596
+* MinGW: fix incorrect symbol visibility issue for ImageBuf iterators. #3578
+* ARM: improve SIMD operations for ARM NEON. #3599
+* Docs: New RELEASING.md documents our releasing procedures. #3564 #3580
+* Docs: Better Windows build instructions in INSTALL.md. #3602
+* Fix missing OIIO::getattribute support for `limits:channels` and
+  `limits:imagesize_MB`. #3617
+* BMP: fix reading 16bpp images. #3592
+* BMP: protect against corrupt pixel coordinates. (TALOS-2022-1630,
+  CVE-2022-38143) #3620
+* DDS: fix alpha/luminance files, better testing. #3581
+* DDS: optimize loading of compressed images, improves 3-5x. #3583 #3584
+* DDS: Fix crashes for cubemap files when a cube face was not present, and
+  check for invalid bits per pixel. (TALOS-2022-1634, CVE-2022-41838)
+  (TALOS-2022-1635, CVE-2022-41999) #3625
+* HDR: fix a 8x (!) read performance regression for HDR files that was
+  introduced in OIIO in 2.4. #3588  On top of that, speed up by another 4x
+  beyond what we ever did before by speeding up the RGBE->float conversion.
+  #3590
+* PNG: fix memory leaks when errors take an early exit. #3543 #3544
+* PSD: fix a PSD read error on ARM architecture. #3589
+* PSD: protect against corrupted embedded thumbnails. (TALOS-2022-1626,
+  CVE-2022-41794) #3629
+* RAW: additional color metadata is now recognized: `pre_mul`, `cam_mul`,
+  `cam_xyz`, `rgb_cam`. #3561 #3569 #3572
+* RLA: fix potential buffer overrun. (TALOS-2022-1629, CVE-2022-36354) #3624
+* Targa: string overflow safety. (TALOS-2022-1628, CVE-2022-4198) #3622
+* TIFF/JPEG/PSD: Fix EXIF bugs where corrupted exif blocks could overrun
+  memory. (TALOS-2022-1626, CVE-2022-41794) (TALOS-2022-1632, CVE-2022-41684)
+  #3627
+* TIFF: guard against corrupt files with buffer overflows. (TALOS-2022-1627,
+  CVE-2022-41977) #3628
+* TIFF: guard against buffer overflow for certain CMYK files.
+  (TALOS-2022-1633, CVE-2022-41639) (TALOS-2022-1643, CVE-2022-41988) #3632
 
 Release 2.4.4.2 (3 Oct 2022) -- compared to 2.4.4.1
 ---------------------------------------------------
@@ -729,6 +791,18 @@ Notable documentation changes:
 * Fix many typos in docs. #3492 (2.4.2.2)
 
 
+
+Release 2.3.21 (1 Nov 2022) -- compared to 2.3.20
+--------------------------------------------------
+* oiiotool: protect against OpenEXR thread deadlock on Windows. #3582
+* oiiotool: work around static destruction order issue. #3591
+* Fix PSD import on ARM. #3589
+* Docs: write Windows build instructions in INSTALL.md. #3602
+* RLA: fix potential buffer overrun. (TALOS-2022-1629, CVE-2022-36354) #3624
+* TIFF: guard against corrupt files with buffer overflows. (TALOS-2022-1627,
+  CVE-2022-41977) #3628
+* TIFF: guard against buffer overflow for certain CMYK files.
+  (TALOS-2022-1633, CVE-2022-41639) (TALOS-2022-1643, CVE-2022-41988) #3632
 
 Release 2.3.20 (1 Oct 2022) -- compared to 2.3.19
 -------------------------------------------------
