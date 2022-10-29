@@ -586,21 +586,87 @@ Filesystem::open(string_view path, int flags)
 /// Read the entire contents of the named file and place it in str,
 /// returning true on success, false on failure.
 bool
-Filesystem::read_text_file(string_view filename, std::string& str)
+Filesystem::read_text_file(string_view filename, std::string& str, size_t size)
 {
-    // For info on why this is the fastest method:
-    // http://insanecoding.blogspot.com/2011/11/how-to-read-in-file-in-c.html
+    if (size == 0)  // 0 means "no limit"
+        size = size_t(-1);
+    size_t filesize = Filesystem::file_size(filename);
     OIIO::ifstream in;
     Filesystem::open(in, filename);
-
-    // N.B. for binary read: open(in, filename, std::ios::in|std::ios::binary);
-    if (in) {
-        std::ostringstream contents;
+    if (!in)
+        return false;
+    std::ostringstream contents;
+    if (filesize <= size) {
+        // Simple case, read it as efficiently as possible in one gulp.
+        // For info on why this is the fastest method:
+        // http://insanecoding.blogspot.com/2011/11/how-to-read-in-file-in-c.html
+        // N.B. for binary read: open(in, filename, std::ios::in|std::ios::binary);
         contents << in.rdbuf();
-        str = contents.str();
-        return true;
+    } else {
+        // Caller has asked to limit the size of the resulting string to
+        // something smaller than the size of the file. Read the file in
+        // 1MB chunks.
+        size_t bufsize = std::min(size_t(1UL << 20), filesize);
+        std::unique_ptr<char[]> buf(new char[bufsize]);
+        while (size > 0) {
+            size_t chunksize = std::min(bufsize, size);
+            in.read(buf.get(), chunksize);
+            contents.write(buf.get(), chunksize);
+            size -= chunksize;
+        }
     }
-    return false;
+    str = contents.str();
+    return true;
+}
+
+#if OIIO_VERSION_LESS(2, 6, 0)
+// Backwards link compatibility with the old 2-argument version
+namespace Filesystem {
+bool
+read_text_file(string_view filename, std::string& str)
+{
+    return read_text_file(filename, str, 0);
+}
+}  // namespace Filesystem
+#endif
+
+
+
+/// Read the entire contents of the named file and place it in str,
+/// returning true on success, false on failure.
+bool
+Filesystem::read_text_from_command(string_view command, std::string& str,
+                                   size_t size)
+{
+    if (size == 0)  // 0 means "no limit"
+        size = size_t(-1);
+
+#ifdef _WIN32
+    FILE* in = _wpopen(Strutil::utf8_to_utf16wstring(command).c_str(),
+                       Strutil::utf8_to_utf16wstring("r").c_str());
+#else
+    FILE* in = popen(std::string(command).c_str(), "r");
+#endif
+    if (!in)
+        return false;
+    std::ostringstream contents;
+    size_t bufsize = std::min(size_t(1UL << 20), size);
+    std::unique_ptr<char[]> buf(new char[bufsize]);
+    while (!feof(in) && size > 0) {
+        size_t chunksize = fread(buf.get(), 1, bufsize, in);
+        if (chunksize)
+            contents.write(buf.get(), chunksize);
+        else
+            break;
+        size -= chunksize;
+    }
+#ifdef _WIN32
+    _pclose(in);
+#else
+    pclose(in);
+#endif
+    str = contents.str();
+    return true;
 }
 
 

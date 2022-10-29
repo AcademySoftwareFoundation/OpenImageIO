@@ -245,8 +245,19 @@ OIIO_UTIL_API int open (string_view path, int flags);
 
 /// Read the entire contents of the named text file (as a UTF-8 encoded
 /// filename) and place it in str, returning true on success, false on
-/// failure.
-OIIO_UTIL_API bool read_text_file (string_view filename, std::string &str);
+/// failure.  The optional size parameter gives the maximum amount to read
+/// (for memory safety) and defaults to 16MB. Set size to 0 for no limit
+/// (use at your own risk).
+OIIO_UTIL_API bool read_text_file(string_view filename, std::string &str,
+                                  size_t size = (1UL << 24));
+
+/// Run a command line process and capture its console output in `str`,
+/// returning true on success, false on failure.  The optional size parameter
+/// gives the maximum amount to read (for memory safety) and defaults to 16MB.
+/// Set size to 0 for no limit (use at your own risk).
+OIIO_UTIL_API bool read_text_from_command(string_view command,
+                                          std::string &str,
+                                          size_t size = (1UL << 24));
 
 /// Write the entire contents of the string `str` to the named file (UTF-8
 /// encoded), overwriting any prior contents of the file (if it existed),
