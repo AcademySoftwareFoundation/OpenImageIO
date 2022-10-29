@@ -54,6 +54,10 @@ Testing --set, expr i:
 Testing --set, expr var(i):
   i = 1
   now i = 42
+Testing --set of implied types:
+  i = 42, f = 3.5, s = hello world
+Testing --set of various explicit types:
+  i = 42, f = 3.5, s = hello world, tc = 01:02:03:04, rat = 1/2
 Expr getattribute(limits:channels) = 1024
 Testing if with true cond (expect output):
   inside if clause, i=42

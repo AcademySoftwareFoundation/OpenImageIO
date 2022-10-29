@@ -56,6 +56,8 @@ noattribs.jpg        : 2048 x 1536, 3 channel, uint8 jpeg
 initial keywords=
 after adding, keywords=foo; bar
 after clearing, keywords=
+after --origin, 64x64+10+20
+after --originoffset, 64x64+110+220
 Reading attrib2.exr
 attrib2.exr          :   64 x   64, 3 channel, half openexr
     2 subimages: 64x64 [h,h,h], 64x64 [h,h,h]

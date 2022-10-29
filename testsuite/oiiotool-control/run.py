@@ -71,6 +71,16 @@ command += oiiotool ("-echo \"{1+1}\" --evaloff -echo \"{3+4}\" --evalon -echo \
 # Test user variables
 command += oiiotool ('-echo "Testing --set, expr i:" -set i 1 -echo "  i = {i}" -set i "{i+41}" -echo "  now i = {i}"')
 command += oiiotool ('-echo "Testing --set, expr var(i):" -set i 1 -echo "  i = {var(i)}" -set i "{i+41}" -echo "  now i = {var(i)}"')
+command += oiiotool ('-echo "Testing --set of implied types:" ' +
+                     '-set i 42 -set f 3.5 ' +
+                     '-set s "hello world" ' +
+                     '-echo "  i = {i}, f = {f}, s = {s}"')
+command += oiiotool ('-echo "Testing --set of various explicit types:" ' +
+                     '-set:type=int i 42 -set:type=float f 3.5 ' +
+                     '-set:type=string s "hello world" ' +
+                     '-set:type=timecode tc 01:02:03:04 ' +
+                     '-set:type=rational rat 1/2 ' +
+                     '-echo "  i = {i}, f = {f}, s = {s}, tc = {tc}, rat = {rat}"')
 
 # Test getattribute in an expression
 command += oiiotool ('-echo "Expr getattribute(\"limits:channels\") = {getattribute(\"limits:channels\")}"')
