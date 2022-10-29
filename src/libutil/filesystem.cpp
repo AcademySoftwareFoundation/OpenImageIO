@@ -17,6 +17,7 @@
 #include <OpenImageIO/platform.h>
 // #include <OpenImageIO/refcnt.h>
 #include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/ustring.h>
 
 #ifdef _WIN32
@@ -170,18 +171,6 @@ Filesystem::generic_filepath(string_view filepath) noexcept
 
 
 
-#if OIIO_VERSION_LESS(2, 4, 0)
-// For older versions, preserve this link-compatible entry point
-void
-Filesystem::searchpath_split(const std::string& searchpath,
-                             std::vector<std::string>& dirs, bool validonly)
-{
-    dirs = searchpath_split(searchpath, validonly);
-}
-#endif
-
-
-
 std::vector<std::string>
 Filesystem::searchpath_split(string_view searchpath, bool validonly)
 {
@@ -266,6 +255,41 @@ Filesystem::searchpath_find(const std::string& filename_utf8,
             if (found.size())
                 return found;
         }
+    }
+    return std::string();
+}
+
+
+
+std::string
+Filesystem::find_program(string_view program)
+{
+    const filesystem::path filename(u8path(program));
+    bool abs = filename.is_absolute();
+
+    // If it's an absolute path, we are only checking if it's executable
+    if (abs)
+        return Filesystem::is_executable(program) ? std::string(program)
+                                                  : std::string();
+
+    // If it's found without searching, and it's executable, return its
+    // absolute path.
+    if (Filesystem::is_executable(program))
+        return pathstr(filesystem::absolute(filename));
+
+    // Relative filename, not yet found -- try each $PATH directory in turn
+    for (auto&& d_utf8 : searchpath_split(OIIO::Sysutil::getenv("PATH"))) {
+        const filesystem::path d(u8path(d_utf8));
+        filesystem::path f = d / filename;
+        // Strutil::print("\tPath = {}\n", f);
+        auto p = pathstr(filesystem::absolute(f));
+        if (is_executable(p))
+            return p;
+#ifdef _WIN32
+        if (!Strutil::iends_with(p, ".exe")
+            && is_executable(Strutil::concat(p, ".exe")))
+            return Strutil::concat(p, ".exe");
+#endif
     }
     return std::string();
 }
@@ -358,6 +382,30 @@ Filesystem::is_regular(string_view path) noexcept
 {
     error_code ec;
     return filesystem::is_regular_file(u8path(path), ec);
+}
+
+
+
+bool
+Filesystem::is_executable(string_view path) noexcept
+{
+    if (!is_regular(path))
+        return false;
+    error_code ec;
+    auto stat = filesystem::status(u8path(path), ec);
+    auto perm = stat.permissions();
+#ifdef USE_STD_FILESYSTEM
+    return (perm & filesystem::perms::owner_exec) != filesystem::perms::none
+           || (perm & filesystem::perms::group_exec) != filesystem::perms::none
+           || (perm & filesystem::perms::others_exec)
+                  != filesystem::perms::none;
+#else
+    return (perm & filesystem::perms::owner_exe) != filesystem::perms::no_perms
+           || (perm & filesystem::perms::group_exe)
+                  != filesystem::perms::no_perms
+           || (perm & filesystem::perms::others_exe)
+                  != filesystem::perms::no_perms;
+#endif
 }
 
 

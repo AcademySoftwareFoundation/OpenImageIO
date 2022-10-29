@@ -128,6 +128,10 @@ test_filename_searchpath_find()
                                                  true),
                      ".." DIRSEP ".." DIRSEP "include" DIRSEP
                      "OpenImageIO" DIRSEP "oiioversion.h");
+
+    // Test find_program
+    OIIO_CHECK_ASSERT(
+        Filesystem::is_executable(Filesystem::find_program("bash")));
 }
 
 
@@ -217,13 +221,17 @@ test_file_status()
     OIIO_CHECK_ASSERT(Filesystem::exists("testfile"));
     OIIO_CHECK_ASSERT(Filesystem::exists("testdir"));
     OIIO_CHECK_ASSERT(!Filesystem::exists("noexist"));
-    std::cout << "Testing is_directory, is_regular\n";
+    std::cout << "Testing is_directory, is_regular, is_executable\n";
     OIIO_CHECK_ASSERT(Filesystem::is_regular("testfile"));
     OIIO_CHECK_ASSERT(!Filesystem::is_directory("testfile"));
+    OIIO_CHECK_ASSERT(!Filesystem::is_executable("testfile"));
     OIIO_CHECK_ASSERT(!Filesystem::is_regular("testdir"));
     OIIO_CHECK_ASSERT(Filesystem::is_directory("testdir"));
+    OIIO_CHECK_ASSERT(!Filesystem::is_executable("testdir"));
     OIIO_CHECK_ASSERT(!Filesystem::is_regular("noexist"));
     OIIO_CHECK_ASSERT(!Filesystem::is_directory("noexist"));
+    OIIO_CHECK_ASSERT(!Filesystem::is_executable("noexist"));
+    OIIO_CHECK_ASSERT(Filesystem::is_executable(Sysutil::this_program_path()));
 
     std::cout << "Testing copy, rename, remove\n";
     OIIO_CHECK_ASSERT(!Filesystem::exists("testfile2"));
