@@ -918,6 +918,14 @@ inline void trim_whitespace (string_view &str) noexcept {
     remove_trailing_whitespace(str);
 }
 
+/// Return the portion of str that is trimmed of any whitespace (space, tab,
+/// linefeed, cr) from both the front and back.
+inline string_view trimmed_whitespace (string_view str) noexcept {
+    skip_whitespace(str);
+    remove_trailing_whitespace(str);
+    return str;
+}
+
 /// If str's first character is c (or first non-whitespace char is c, if
 /// skip_whitespace is true), return true and additionally modify str to
 /// skip over that first character if eat is also true. Otherwise, if str
