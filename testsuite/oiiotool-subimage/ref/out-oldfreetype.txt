@@ -53,6 +53,29 @@ gpgr.exr             :   64 x   64, 3 channel, half openexr
     oiio:subimagename: "layerD"
     oiio:subimages: 4
     openexr:chunkCount: 4
+Reading mip4.tif
+mip4.tif             :   64 x   64, 4 channel, uint8 tiff
+    SHA-1: 36CE573A20E682720B020FC689E2067579DE5B37
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    compression: "zip"
+    DocumentName: "g.tif"
+    fovcot: 1
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    planarconfig: "contig"
+    ResolutionUnit: "in"
+    wrapmodes: "black,black"
+    XResolution: 72
+    YResolution: 72
+    oiio:BitsPerSample: 8
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+../common/textures/grid.tx : 1024 x 1024, 4 channel, uint8 tiff (+mipmap)
+    SHA-1: 7DB3F1E464C5F38CAAECE8ABC8684EC66FC9FA68
+unmip.tif            : 1024 x 1024, 4 channel, uint8 tiff
+    SHA-1: 7DB3F1E464C5F38CAAECE8ABC8684EC66FC9FA68
 Comparing "subimages-2.exr" and "ref/subimages-2.exr"
 PASS
 Comparing "subimages-4.exr" and "ref/subimages-4-freetype2.7.exr"
@@ -64,4 +87,6 @@ PASS
 Comparing "subimageD3.exr" and "ref/subimageD3-freetype2.7.exr"
 PASS
 Comparing "subimageB1.exr" and "ref/subimageB1-freetype2.7.exr"
+PASS
+Comparing "mip4.tif" and "ref/mip4.tif"
 PASS

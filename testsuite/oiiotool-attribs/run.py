@@ -25,6 +25,12 @@ command += oiiotool ("../common/tahoe-tiny.tif --echo \"initial keywords={TOP[ke
                      "--clear-keywords " +
                      "--echo \"after clearing, keywords={TOP[keywords]}\" ")
 
+# Test --origin and --originoffset
+command += oiiotool ('--create 64x64 3 --origin +10+20 ' +
+                     '--echo "after --origin, {TOP.geom}" ' +
+                     '--originoffset +100+200 ' +
+                     '--echo "after --originoffset, {TOP.geom}"')
+
 # Test adding and erasing attribs to multiple subimages
 command += oiiotool ("--create 64x64 3 -dup --siappend " +
                      "--attrib:allsubimages=1 foo bar -d half -o attrib2.exr")
