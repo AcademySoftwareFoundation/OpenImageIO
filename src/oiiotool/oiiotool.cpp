@@ -1484,6 +1484,7 @@ erase_attribute(cspan<const char*> argv)
 
 
 
+#if 0 /* apparently unused */
 bool
 Oiiotool::get_position(string_view command, string_view geom, int& x, int& y)
 {
@@ -1494,6 +1495,7 @@ Oiiotool::get_position(string_view command, string_view geom, int& x, int& y)
         errorfmt(command, "Unrecognized position \"{}\"", orig_geom);
     return ok;
 }
+#endif
 
 
 
@@ -1576,6 +1578,57 @@ Oiiotool::adjust_geometry(string_view command, int& w, int& h, int& x, int& y,
     // Strutil::print("geom {}x{}, {}d{}d\n", w, h, x, y);
     return true;
 }
+
+#ifdef OIIO_UNIT_TESTS
+static void
+unit_test_adjust_geometry()
+{
+    int w, h, x, y;
+    w = h = x = y = -42;
+    OIIO_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "10,20,130,145")
+                && x == 10 && y == 20 && w == 121 && h == 126);
+    w = h = x = y = -42;
+    OIIO_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "10x20+100+200")
+                && x == 100 && y == 200 && w == 10 && h == 20);
+    w = h = x = y = -42;
+    OIIO_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "10x20-100-200")
+                && x == -100 && y == -200 && w == 10 && h == 20);
+    w = h = x = y = -42;
+    OIIO_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "10x20") && x == -42
+                && y == -42 && w == 10 && h == 20);
+    w = h = 100;
+    x = y = -42;
+    OIIO_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "200%x50%", true)
+                && x == -42 && y == -42 && w == 200 && h == 50);
+    w = h = 100;
+    x = y = -42;
+    OIIO_ASSERT(!ot.adjust_geometry("foo", w, h, x, y, "200%x50%"));
+    w = 640;
+    h = 480;
+    x = y = -42;
+    OIIO_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "200%", true) && x == -42
+                && y == -42 && w == 1280 && h == 960);
+    OIIO_ASSERT(!ot.adjust_geometry("foo", w, h, x, y, "200%"));
+    w = h = x = y = -42;
+    OIIO_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "+100+200") && x == 100
+                && y == 200 && w == -42 && h == -42);
+    w = 640;
+    h = 480;
+    x = y = -42;
+    OIIO_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "2", true) && x == -42
+                && y == -42 && w == 1280 && h == 960);
+    OIIO_ASSERT(!ot.adjust_geometry("foo", w, h, x, y, "2"));
+    w = 640;
+    h = 480;
+    x = y = -42;
+    OIIO_ASSERT(ot.adjust_geometry("foo", w, h, x, y, "0.5", true) && x == -42
+                && y == -42 && w == 320 && h == 240);
+    OIIO_ASSERT(!ot.adjust_geometry("foo", w, h, x, y, "0.5"));
+    w = h = x = y = -42;
+    OIIO_ASSERT(!ot.adjust_geometry("foo", w, h, x, y, "invalid") && x == -42
+                && y == -42 && w == -42 && h == -42);
+}
+#endif
 
 
 
@@ -6066,6 +6119,7 @@ oiiotool_unit_tests()
     using Strutil::print;
     print("Running unit tests...\n");
     unit_test_scan_box();
+    unit_test_adjust_geometry();
     print("...end of unit tests\n");
 #endif
 }

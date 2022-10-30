@@ -214,7 +214,11 @@ command += oiiotool ("../common/tahoe-tiny.tif --echo \"--printstats:\" --prints
 command += oiiotool ("../common/tahoe-tiny.tif --printstats:window=10x10+50+50 --echo \" \"")
 
 # test --iconfig
-command += oiiotool ("--info -v -metamatch Debug --iconfig oiio:DebugOpenConfig! 1 black.tif")
+command += oiiotool ("--info -v -metamatch Debug --iconfig oiio:DebugOpenConfig! 1 " +
+                     "--iconfig:type=float oiio:DebugOpenConfigInt! 2 " +
+                     "--iconfig:type=float oiio:DebugOpenConfigFloat! 3 " +
+                     "--iconfig:type=string oiio:DebugOpenConfigStr! 4 " +
+                     "black.tif")
 
 # test -i:ch=...
 command += oiiotool ("--pattern fill:color=.6,.5,.4,.3,.2 64x64 5 -d uint8 -o const5.tif")

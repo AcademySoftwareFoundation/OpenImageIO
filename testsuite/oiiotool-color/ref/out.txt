@@ -20,6 +20,8 @@ Comparing "contrast-threshold.tif" and "ref/contrast-threshold.tif"
 PASS
 Comparing "contrast-sigmoid5.tif" and "ref/contrast-sigmoid5.tif"
 PASS
+Comparing "display-sRGB.tif" and "ref/display-sRGB.tif"
+PASS
 Comparing "rgbfromtga.png" and "ref/rgbfromtga.png"
 PASS
 Comparing "greyalpha_sRGB.tif" and "ref/greyalpha_sRGB.tif"

@@ -67,6 +67,12 @@ command += oiiotool ("--autocc " + "../common/tahoe-tiny.tif"+
                      + "--ccmatrix 0.805,0.506,-0.311,0,-0.311,0.805,0.506,0,0.506,-0.311,0.805,0,0,0,0,1 "
                      + "-d uint8 -o tahoe-ccmatrix.tif")
 
+# Apply a display
+command += oiiotool ("greyalpha_linear.tif --ociodisplay default sRGB -o display-sRGB.tif")
+
+# TODO: should test applying a look
+# TODO: should test applying a file transform
+
 # test various behaviors and misbehaviors related to OCIO configs.
 command += oiiotool ("--nostderr --colorconfig missing.ocio -echo 'Nonexistent config'", failureok=True)
 
@@ -90,6 +96,7 @@ outputs = [
             "contrast-inverse.tif",
             "contrast-threshold.tif",
             "contrast-sigmoid5.tif",
+            "display-sRGB.tif",
             "rgbfromtga.png",
             "greyalpha_sRGB.tif",
             "greyalpha_Cineon.tif",

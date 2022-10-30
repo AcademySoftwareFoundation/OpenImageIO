@@ -21,11 +21,19 @@ command += oiiotool ("subimages-2.exr --sisplit -o:all=1 subimage%d.exr")
 command += oiiotool ("subimages-4.exr --attrib:subimages=0 Beatle John --attrib:subimages=1 Beatle Paul --attrib:subimages=2 Beatle George --attrib:subimages=3 Beatle Ringo -o gpgr.exr")
 command += info_command ("-a -v gpgr.exr", safematch=1)
 
+# Test extraction of MIP levels
+command += oiiotool ("../common/textures/grid.tx --selectmip 4 -o mip4.tif")
+command += info_command ("mip4.tif", safematch=True)
+command += oiiotool ("../common/textures/grid.tx --unmip -o unmip.tif")
+command += info_command ("../common/textures/grid.tx", verbose=False)
+command += info_command ("unmip.tif", verbose=False)
+
 # Outputs to check against references
 outputs = [ 
             "subimages-2.exr", "subimages-4.exr",
             "subimage1.exr", "subimage2.exr",
             "subimageD3.exr", "subimageB1.exr",
+            "mip4.tif",
             "out.txt"
           ]
 
