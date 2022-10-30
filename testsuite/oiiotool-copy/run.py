@@ -32,6 +32,13 @@ command += oiiotool ("uint8.tif -o tmp.tif " +
 # Copy with explicit data request should change data type
 command += oiiotool ("uint8.tif -d uint16 -o copy_uint16.tif " +
                      "-echo \"copy with explicit -d uint16 result: \" -metamatch \"width|tile\" -i:info=2 copy_uint16.tif -echo \"\"")
+# Copy with data request in the -o
+command += oiiotool ("uint8.tif -o:type=uint16 copy_uint16-o.tif " +
+                     "-i copy_uint16-o.tif " +
+                     "-echo \"copy with -o:type=uint16 result: \" -printinfo:native=1:verbose=0")
+command += oiiotool ("uint8.tif -o:datatype=uint16 copy_uint16-o.tif " +
+                     "-i copy_uint16-o.tif " +
+                     "-echo \"copy with -o:datatype=uint16 result: \" -printinfo:native=1:verbose=0")
 # Subimage concatenation should preserve data type
 command += oiiotool ("uint8.tif copy_uint16.tif -siappend -o tmp.tif " +
                      "-echo \"siappend result: \" -metamatch \"width|tile\" -i:info=2 tmp.tif -echo \"\"")

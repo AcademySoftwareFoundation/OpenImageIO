@@ -107,9 +107,11 @@ command += oiiotool ("--frames -5-5 --echo \"Sequence -5-5:  {FRAME_NUMBER}\"")
 command += oiiotool ("--frames -5--2 --echo \"Sequence -5--2:  {FRAME_NUMBER}\"")
 
 # Test stats and metadata expression substitution
-command += oiiotool ("../common/tahoe-tiny.tif --echo \"\\nBrief: {TOP.METABRIEF}\"")
-command += oiiotool ("../common/tahoe-tiny.tif --echo \"\\nMeta: {TOP.META}\"")
-command += oiiotool ("../common/tahoe-tiny.tif --echo \"\\nStats:\\n{TOP.STATS}\\n\"")
+command += oiiotool ("../common/tahoe-tiny.tif"
+                     + " --echo \"\\nBrief: {TOP.METABRIEF}\""
+                     + " --echo \"\\nBrief native: {TOP.METANATIVEBRIEF}\""
+                     + " --echo \"\\nMeta native: {TOP.METANATIVE}\""
+                     + " --echo \"\\nStats:\\n{TOP.STATS}\\n\"")
 
 # Test IMG[]
 command += oiiotool ("../common/tahoe-tiny.tif ../common/tahoe-small.tif " +
@@ -120,6 +122,10 @@ command += oiiotool ("../common/tahoe-tiny.tif " +
                      "--echo \"filename={TOP.filename} file_extension={TOP.file_extension} file_noextension={TOP.file_noextension}\" " +
                      "--echo \"MINCOLOR={TOP.MINCOLOR} MAXCOLOR={TOP.MAXCOLOR} AVGCOLOR={TOP.AVGCOLOR}\"")
 
+# Test "postpone_callback" with an "image -BINOP image" operation instead of
+# "image image -BINOP".
+command += oiiotool ("../common/tahoe-tiny.tif -sub ../common/tahoe-tiny.tif "
+                     + "-echo \"postponed sub:\" --printinfo:stats=1:verbose=0")
 
 # To add more tests, just append more lines like the above and also add
 # the new 'feature.tif' (or whatever you call it) to the outputs list,
