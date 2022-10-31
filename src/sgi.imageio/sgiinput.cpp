@@ -1,11 +1,61 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
 // https://github.com/OpenImageIO/oiio
-#include "sgi_pvt.h"
+
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/fmath.h>
 
+#include "sgi_pvt.h"
+
 OIIO_PLUGIN_NAMESPACE_BEGIN
+
+class SgiInput final : public ImageInput {
+public:
+    SgiInput() { init(); }
+    ~SgiInput() override { close(); }
+    const char* format_name(void) const override { return "sgi"; }
+    int supports(string_view feature) const override
+    {
+        return feature == "ioproxy";
+    }
+    bool valid_file(const std::string& filename) const override;
+    bool open(const std::string& name, ImageSpec& spec) override;
+    bool open(const std::string& name, ImageSpec& newspec,
+              const ImageSpec& config) override;
+    bool close(void) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
+
+private:
+    std::string m_filename;
+    sgi_pvt::SgiHeader m_sgi_header;
+    std::vector<uint32_t> start_tab;
+    std::vector<uint32_t> length_tab;
+
+    void init()
+    {
+        memset(&m_sgi_header, 0, sizeof(m_sgi_header));
+        ioproxy_clear();
+    }
+
+    // reads SGI file header (512 bytes) into m_sgi_header
+    // Return true if ok, false if there was a read error.
+    bool read_header();
+
+    // reads RLE scanline start offset and RLE scanline length tables
+    // RLE scanline start offset is stored in start_tab
+    // RLE scanline length is stored in length_tab
+    // Return true if ok, false if there was a read error.
+    bool read_offset_tables();
+
+    // read channel scanline data from file, uncompress it and save the data to
+    // 'out' buffer; 'out' should be allocate before call to this method.
+    // Return true if ok, false if there was a read error.
+    bool uncompress_rle_channel(int scanline_off, int scanline_len,
+                                unsigned char* out);
+};
+
+
 
 // Obligatory material to make this a recognizable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
@@ -47,16 +97,25 @@ SgiInput::valid_file(const std::string& filename) const
 
 
 bool
+SgiInput::open(const std::string& name, ImageSpec& newspec,
+               const ImageSpec& config)
+{
+    // Check 'config' for any special requests
+    ioproxy_retrieve_from_config(config);
+    return open(name, newspec);
+}
+
+
+
+bool
 SgiInput::open(const std::string& name, ImageSpec& spec)
 {
     // saving name for later use
     m_filename = name;
 
-    m_fd = Filesystem::fopen(m_filename, "rb");
-    if (!m_fd) {
-        errorfmt("Could not open file \"{}\"", name);
+    if (!ioproxy_use_or_open(name))
         return false;
-    }
+    ioseek(0);
 
     if (!read_header())
         return false;
@@ -148,9 +207,9 @@ SgiInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
             ptrdiff_t off             = y + c * m_spec.height;
             ptrdiff_t scanline_offset = sgi_pvt::SGI_HEADER_LEN
                                         + off * m_spec.width * bpc;
-            Filesystem::fseek(m_fd, scanline_offset, SEEK_SET);
+            ioseek(scanline_offset);
             channeldata[c].resize(m_spec.width * bpc);
-            if (!fread(&(channeldata[c][0]), 1, m_spec.width * bpc))
+            if (!ioread(&(channeldata[c][0]), 1, m_spec.width * bpc))
                 return false;
         }
     }
@@ -185,8 +244,8 @@ SgiInput::uncompress_rle_channel(int scanline_off, int scanline_len,
     int bpc = m_sgi_header.bpc;
     std::unique_ptr<unsigned char[]> rle_scanline(
         new unsigned char[scanline_len]);
-    Filesystem::fseek(m_fd, scanline_off, SEEK_SET);
-    if (!fread(&rle_scanline[0], 1, scanline_len))
+    ioseek(scanline_off);
+    if (!ioread(&rle_scanline[0], 1, scanline_len))
         return false;
     int limit = m_spec.width;
     int i     = 0;
@@ -264,8 +323,6 @@ SgiInput::uncompress_rle_channel(int scanline_off, int scanline_len,
 bool
 SgiInput::close()
 {
-    if (m_fd)
-        fclose(m_fd);
     init();
     return true;
 }
@@ -275,25 +332,25 @@ SgiInput::close()
 bool
 SgiInput::read_header()
 {
-    if (!fread(&m_sgi_header.magic, sizeof(m_sgi_header.magic), 1)
-        || !fread(&m_sgi_header.storage, sizeof(m_sgi_header.storage), 1)
-        || !fread(&m_sgi_header.bpc, sizeof(m_sgi_header.bpc), 1)
-        || !fread(&m_sgi_header.dimension, sizeof(m_sgi_header.dimension), 1)
-        || !fread(&m_sgi_header.xsize, sizeof(m_sgi_header.xsize), 1)
-        || !fread(&m_sgi_header.ysize, sizeof(m_sgi_header.ysize), 1)
-        || !fread(&m_sgi_header.zsize, sizeof(m_sgi_header.zsize), 1)
-        || !fread(&m_sgi_header.pixmin, sizeof(m_sgi_header.pixmin), 1)
-        || !fread(&m_sgi_header.pixmax, sizeof(m_sgi_header.pixmax), 1)
-        || !fread(&m_sgi_header.dummy, sizeof(m_sgi_header.dummy), 1)
-        || !fread(&m_sgi_header.imagename, sizeof(m_sgi_header.imagename), 1))
+    if (!ioread(&m_sgi_header.magic, sizeof(m_sgi_header.magic), 1)
+        || !ioread(&m_sgi_header.storage, sizeof(m_sgi_header.storage), 1)
+        || !ioread(&m_sgi_header.bpc, sizeof(m_sgi_header.bpc), 1)
+        || !ioread(&m_sgi_header.dimension, sizeof(m_sgi_header.dimension), 1)
+        || !ioread(&m_sgi_header.xsize, sizeof(m_sgi_header.xsize), 1)
+        || !ioread(&m_sgi_header.ysize, sizeof(m_sgi_header.ysize), 1)
+        || !ioread(&m_sgi_header.zsize, sizeof(m_sgi_header.zsize), 1)
+        || !ioread(&m_sgi_header.pixmin, sizeof(m_sgi_header.pixmin), 1)
+        || !ioread(&m_sgi_header.pixmax, sizeof(m_sgi_header.pixmax), 1)
+        || !ioread(&m_sgi_header.dummy, sizeof(m_sgi_header.dummy), 1)
+        || !ioread(&m_sgi_header.imagename, sizeof(m_sgi_header.imagename), 1))
         return false;
 
     m_sgi_header.imagename[79] = '\0';
-    if (!fread(&m_sgi_header.colormap, sizeof(m_sgi_header.colormap), 1))
+    if (!ioread(&m_sgi_header.colormap, sizeof(m_sgi_header.colormap), 1))
         return false;
 
     //don't read dummy bytes
-    Filesystem::fseek(m_fd, 404, SEEK_CUR);
+    ioseek(404, SEEK_CUR);
 
     if (littleendian()) {
         swap_endian(&m_sgi_header.magic);
@@ -316,8 +373,8 @@ SgiInput::read_offset_tables()
     int tables_size = m_sgi_header.ysize * m_sgi_header.zsize;
     start_tab.resize(tables_size);
     length_tab.resize(tables_size);
-    if (!fread(&start_tab[0], sizeof(uint32_t), tables_size)
-        || !fread(&length_tab[0], sizeof(uint32_t), tables_size))
+    if (!ioread(&start_tab[0], sizeof(uint32_t), tables_size)
+        || !ioread(&length_tab[0], sizeof(uint32_t), tables_size))
         return false;
 
     if (littleendian()) {

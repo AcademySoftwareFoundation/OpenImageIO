@@ -157,6 +157,8 @@ Z component of a normal map. This applies to images using DXT5 compression
 and images using BC5/ATI2 compression (normal X & Y components are in
 red & green channels).
 
+**Attributes**
+
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -204,27 +206,9 @@ When the attribute value is set to non-zero (default is zero), any input
 image using BC5/ATI2 compression format is assumed to be a normal map,
 even if pixel format "normal map" flag is not set.
 
-
-**Configuration settings for DDS output**
-
-When opening an DDS ImageOutput, the following special metadata tokens
-control aspects of the writing itself:
-
-.. list-table::
-   :widths: 30 10 65
-   :header-rows: 1
-
-   * - Output Configuration Attribute
-     - Type
-     - Meaning
-   * - ``oiio:ioproxy``
-     - ptr
-     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
-       example by writing to a memory buffer.
-
 **Custom I/O Overrides**
 
-DDS supports the "custom I/O" feature via the
+DDS input supports the "custom I/O" feature via the
 special ``"oiio:ioproxy"`` attributes (see Sections
 :ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
 the `set_ioproxy()` methods.
@@ -315,15 +299,15 @@ control aspects of the writing itself:
        will keep unaltered pixel values (versus the default OIIO behavior
        of automatically converting from RGB to the designated color space
        as the pixels are written).
-   * - ``oiio:ioproxy``
-     - ptr
-     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
-       example by writing to memory rather than the file system.
    * - ``oiio:dither``
      - int
      - If nonzero and outputting UINT8 values in the file from a source of
        higher bit depth, will add a small amount of random dither to combat
        the appearance of banding.
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by writing to memory rather than the file system.
 
 **Custom I/O Overrides**
 
@@ -636,7 +620,7 @@ control aspects of the writing itself:
 
 **Custom I/O Overrides**
 
-GIF supports the "custom I/O" feature via the
+GIF input and output support the "custom I/O" feature via the
 special ``"oiio:ioproxy"`` attributes (see Sections
 :ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
 the `set_ioproxy()` methods.
@@ -671,6 +655,7 @@ applications and to distribute HDR environment maps. But newer formats with
 native HDR support, such as OpenEXR, are vastly superior and should be
 preferred except when legacy file access is required.
 
+**Attributes**
 
 .. list-table::
    :widths: 30 10 65
@@ -727,7 +712,7 @@ control aspects of the writing itself:
 
 **Custom I/O Overrides**
 
-HDR supports the "custom I/O" feature via the
+HDR input and output support the "custom I/O" feature via the
 special ``"oiio:ioproxy"`` attributes (see Sections
 :ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
 the `set_ioproxy()` methods.
@@ -854,6 +839,8 @@ IFF
 ===============================================
 
 IFF files are used by Autodesk Maya and use the file extension :file:`.iff`.
+
+**Attributes**
 
 .. list-table::
    :widths: 30 10 65
@@ -1004,7 +991,7 @@ control aspects of the writing itself:
 
 **Custom I/O Overrides**
 
-JPEG supports the "custom I/O" feature
+JPEG input and output support the "custom I/O" feature
 via the `ImageInput::set_ioproxy()` method and the special
 ``"oiio:ioproxy"`` attributes (see Section :ref:`sec-imageinput-ioproxy`).
 
@@ -1420,6 +1407,8 @@ coordinate mapping.  Layers may be scalar (1 channel) or vector (3 channel)
 fields, and the voxel data are always `float`. OpenVDB files always
 report as tiled, using the leaf dimension size.
 
+**Attributes**
+
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -1727,7 +1716,7 @@ Lab or duotone modes.
 
 **Custom I/O Overrides**
 
-PSD supports the "custom I/O" feature via the special ``"oiio:ioproxy"``
+PSD output supports the "custom I/O" feature via the special ``"oiio:ioproxy"``
 attributes (see Sections :ref:`sec-imageoutput-ioproxy` and
 :ref:`sec-imageinput-ioproxy`) as well as the `set_ioproxy()` methods.
 
@@ -1748,6 +1737,7 @@ Ptex files, but the TextureSystem doesn't properly filter across face
 boundaries when using it as a texture.  OpenImageIO currently does not write
 Ptex files at all.
 
+**Attributes**
 
 .. list-table::
    :widths: 30 10 65
@@ -2023,6 +2013,24 @@ otherwise: no support for tiles, no MIPmaps, no multi-subimage, only 8- and
      - string
      - Image name.
 
+**Configuration settings for SGI input**
+
+When opening a SGI ImageInput with a *configuration* (see
+Section :ref:`sec-input-with-config`), the following special configuration
+options are supported:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
+
 **Configuration settings for SGI output**
 
 When opening an SGI ImageOutput, the following special metadata tokens
@@ -2040,7 +2048,18 @@ control aspects of the writing itself:
      - If nonzero and outputting UINT8 values in the file from a source of
        higher bit depth, will add a small amount of random dither to combat
        the appearance of banding.
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
 
+
+**Custom I/O Overrides**
+
+SGI input and output support the "custom I/O" feature via the
+special ``"oiio:ioproxy"`` attributes (see Sections
+:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+the `set_ioproxy()` methods.
 
 |
 
@@ -2056,6 +2075,8 @@ files use the file extension :file:`.pic`.
 The Softimage PIC format is sometimes used for legacy apps, but has little
 merit otherwise, so currently OpenImageIO only reads Softimage files and is
 unable to write them.
+
+**Attributes**
 
 .. list-table::
    :widths: 30 10 65
@@ -2201,7 +2222,7 @@ control aspects of the writing itself:
 
 **Custom I/O Overrides**
 
-DDS supports the "custom I/O" feature via the
+Targa input and output support the "custom I/O" feature via the
 special ``"oiio:ioproxy"`` attributes (see Sections
 :ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
 the `set_ioproxy()` methods.
