@@ -98,6 +98,7 @@ public:
     bool eval_enable;              // Enable evaluation of expressions
     bool skip_bad_frames = false;  // Just skip a bad frame, don't exit
     bool nostderr        = false;  // If true, use stdout for errors
+    bool noerrexit       = false;  // Don't exit on error
     std::string dumpdata_C_name;
     std::string full_command_line;
     std::string printinfo_metamatch;

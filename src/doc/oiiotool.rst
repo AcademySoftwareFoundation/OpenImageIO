@@ -870,6 +870,11 @@ output each one to a different file, with names `sub0001.tif`,
     sequence will do and what it costs, but without producing any saved
     output files.
 
+.. option:: --no-error-exit
+
+    If an error is encountered, try to continue executing any remaining
+    commands, rather than exiting immediately. Use with caution!
+
 .. option:: --debug
 
     Debug mode --- print lots of information about what operations are being

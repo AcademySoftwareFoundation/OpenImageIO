@@ -8,7 +8,10 @@ set -ex
 : ${CTEST_TEST_TIMEOUT:=180}
 
 $OpenImageIO_ROOT/bin/oiiotool --version --help || /bin/true
-$OpenImageIO_ROOT/bin/oiiotool --unittest --list-formats --runstats || /bin/true
+
+# Catch-all of some unit tests and args that aren't used elsewhere
+$OpenImageIO_ROOT/bin/oiiotool --unittest --list-formats --threads 0 \
+                 --cache 1000 --autotile --autopremult --runstats || /bin/true
 
 echo "Parallel test ${CTEST_PARALLEL_LEVEL}"
 echo "Default timeout ${CTEST_TEST_TIMEOUT}"
