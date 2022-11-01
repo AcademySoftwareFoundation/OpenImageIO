@@ -2851,8 +2851,14 @@ inline bool attribute (string_view name, string_view val) {
 ///
 ///        "tiff:LIBTIFF 4.0.4;gif:gif_lib 4.2.3;openexr:OpenEXR 2.2.0"
 ///
-/// - string "timing_report"
-///         A string containing the report of all the log_times.
+/// - `string font_list`
+/// - `string font_file_list`
+/// - `string font_dir_list`
+///
+///   A semicolon-separated list of, respectively, all the fonts that
+///   OpenImageIO can find, all the font files that OpenImageIO can find (with
+///   full paths), and all the directories that OpenImageIO will search for
+///   fonts.  (Added in OpenImageIO 2.5)
 ///
 /// - `string hw:simd`
 /// - `string oiio:simd` (read-only)

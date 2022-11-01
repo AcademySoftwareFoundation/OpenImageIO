@@ -46,7 +46,7 @@ int tiff_multithread(1);
 int dds_bc5normal(0);
 int limit_channels(1024);
 int limit_imagesize_MB(32 * 1024);
-ustring font_searchpath;
+ustring font_searchpath(Sysutil::getenv("OPENIMAGEIO_FONTS"));
 ustring plugin_searchpath(OIIO_DEFAULT_PLUGIN_SEARCHPATH);
 std::string format_list;         // comma-separated list of all formats
 std::string input_format_list;   // comma-separated list of readable formats
@@ -417,6 +417,18 @@ getattribute(string_view name, TypeDesc type, void* val)
         if (library_list.empty())
             pvt::catalog_all_plugins(plugin_searchpath.string());
         *(ustring*)val = ustring(library_list);
+        return true;
+    }
+    if (name == "font_dir_list" && type == TypeString) {
+        *(ustring*)val = ustring(Strutil::join(font_dirs(), ";"));
+        return true;
+    }
+    if (name == "font_file_list" && type == TypeString) {
+        *(ustring*)val = ustring(Strutil::join(font_file_list(), ";"));
+        return true;
+    }
+    if (name == "font_list" && type == TypeString) {
+        *(ustring*)val = ustring(Strutil::join(font_list(), ";"));
         return true;
     }
     if (name == "exr_threads" && type == TypeInt) {
