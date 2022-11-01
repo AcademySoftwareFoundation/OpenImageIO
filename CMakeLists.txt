@@ -3,7 +3,7 @@
 # https://github.com/OpenImageIO/oiio
 
 cmake_minimum_required (VERSION 3.12)
-set (OpenImageIO_VERSION "2.4.5.0" CACHE STRING "Version")
+set (OpenImageIO_VERSION "2.4.6.0" CACHE STRING "Version")
 set (PROJECT_VERSION_RELEASE_TYPE "" CACHE STRING
     "Build type, for example: dev, beta2, RC1 (empty string for normal release)")
 option (${PROJECT_NAME}_SUPPORTED_RELEASE

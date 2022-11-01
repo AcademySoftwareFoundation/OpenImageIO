@@ -1,3 +1,7 @@
+Release 2.4.6 (1 Dec? 2022) -- compared to 2.4.5.0
+---------------------------------------------------
+
+
 Release 2.4.5 (1 Nov 2022) -- compared to 2.4.4.2
 ---------------------------------------------------
 * oiiotool: new commands `--iccread`  reads a named file and adds its contents
