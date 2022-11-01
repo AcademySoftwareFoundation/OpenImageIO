@@ -131,18 +131,24 @@ contents of an expression may be any of:
     `ImageDescription`, or `width`)
   * `filename` : the name of the file (e.g., `foo.tif`)
   * `file_extension` : the extension of the file (e.g., `tif`)
-  * `geom` : the pixel data size in the form `640x480+0+0`)
   * `full_geom` : the "full" or "display" size)
+  * `full_geom` : the "full" or "display" size)
+  * `geom` : the pixel data size in the form `640x480+0+0`)
+  * `nativeformat` : the pixel data type from the file.
   * `MINCOLOR` : the minimum value in each channel (channels are
     comma-separated)
   * `MAXCOLOR` : the maximum value in each channel (channels are
     comma-separated)
   * `AVGCOLOR` : the average pixel value of the image (channels are
     comma-separated)
-  * `METABRIEF` : a string containing the brief one-line description that
-    would be printed with `oiiotool -info`.
-  * `META` : a multi-line string containing the full metadata that would
-    be printed with `oiiotool -info -v`.
+  * `META` : a multi-line string containing the full metadata of the image,
+    similar to what would be printed with `oiiotool -info -v`.
+  * `METABRIEF` : a string containing the brief one-line description,
+    similar to what would be printed that with `oiiotool -info`.
+  * `METANATIVE` : like `META`, but for the "native" original information from
+    when the file was read from disk.
+  * `METANATIVEBRIEF` : like `METABRIEF`, but for the "native" original
+    information from when the file was read from disk.
   * `STATS` : a multi-line string containing the image statistics that would
     be printed with `oiiotool -stats`.
 
@@ -1364,7 +1370,7 @@ Writing images
     
       `:type=` *name*
         Set the pixel data type (like `-d`) for this output image (e.g.,
-        `:uint8`, `uint16`, `half`, `float`, etc.).
+        `uint8`, `uint16`, `half`, `float`, etc.).
       `:bits=` *int*
         Set the bits per pixel (if nonstandard for the datatype) for this
         output image.
@@ -1654,11 +1660,40 @@ Writing images
 
 .. option:: --printinfo
 
-    Prints information and all metadata about the current image.
+    Prints information and all metadata about the current (top) image. This
+    behavior is similar to invoking oiiotool with :option:`--info -v`, but it
+    applies immediately to the current top image, even if it is a "computed"
+    image (whereas :option:`--info` only applies to images as they are read
+    from disk).
+
+    Optional appended modifiers include:
+
+    - `:allsubimages=` *int*
+        If nonzero, stats will be printed about all subimages of the current
+        image. (The default is given by whether or not the `-a` option was
+        used.)
+
+    - `:native=1`
+        Print metadata reflecting the "native" image as it was originally
+        read from disk. This may have a data type, tile size, or other
+        items that differ from the current in-memory representation of
+        the image.
+
+    - `:stats=1`
+        Print statistics about the image (much like the :option:`--stats`
+        command).
+
+    - `:verbose=0`
+        Overrides the default verbosity (1, on) with a less verbose output.
+
 
 .. option:: --printstats
 
-    Prints detailed statistical information about the current image.
+    Prints detailed statistical information about the current image. This
+    behavior is similar to invoking oiiotool with :option:`--stats`, but it
+    applies immediately to the current top image, even if it is a "computed"
+    image (whereas :option:`--stats` only applies to images as they are read
+    from disk).
 
     Optional appended modifiers include:
 
@@ -1674,8 +1709,8 @@ Writing images
 
     - `:allsubimages=` *int*
         If nonzero, stats will be printed about all subimages of the current
-        image. (The default is zero, meaning that stats will only be printed for
-        the first subimage of the current image.)
+        image. (The default is given by whether or not the `-a` option was
+        used.)
 
 .. option:: --colorcount r1,g1,b1,...:r2,g2,b2,...:...
 

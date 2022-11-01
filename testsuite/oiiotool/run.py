@@ -210,8 +210,8 @@ command += oiiotool ("subimages-2.exr --sisplit -o subimage2.exr " +
 command += oiiotool ("subimages-4.exr -cmul:subimages=0,2 0.5 -o subimage-individual.exr")
 
 # Test --printstats
-command += oiiotool ("../common/tahoe-tiny.tif --echo \"--printstats:\" --printstats")
-command += oiiotool ("../common/tahoe-tiny.tif --printstats:window=10x10+50+50 --echo \" \"")
+command += oiiotool ("../common/tahoe-tiny.tif --echo \"--printstats:\" --printstats:native=1")
+command += oiiotool ("../common/tahoe-tiny.tif --printstats:natve=1:window=10x10+50+50 --echo \" \"")
 
 # test --iconfig
 command += oiiotool ("--info -v -metamatch Debug --iconfig oiio:DebugOpenConfig! 1 " +

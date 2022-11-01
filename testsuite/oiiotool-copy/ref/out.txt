@@ -14,6 +14,10 @@ copy with explicit -d uint16 result:
 copy_uint16.tif      :  128 x  128, 3 channel, uint16 tiff
     tile size: 16 x 16
 
+copy with -o:type=uint16 result: 
+ 128 x  128, 3 channel, uint16 tiff
+copy with -o:datatype=uint16 result: 
+ 128 x  128, 3 channel, uint16 tiff
 siappend result: 
 tmp.tif              :  128 x  128, 3 channel, uint8 tiff
     tile size: 16 x 16

@@ -131,7 +131,9 @@ Sequence -5--2:  -2
 
 Brief:  128 x   96, 3 channel, float tiff
 
-Meta:  128 x   96, 3 channel, float tiff
+Brief native:  128 x   96, 3 channel, uint8 tiff
+
+Meta native:  128 x   96, 3 channel, uint8 tiff
     channel list: R, G, B
     compression: "lzw"
     DateTime: "2013:04:16 10:20:35"
@@ -162,6 +164,18 @@ Monochrome: No
 Stack holds [0] = ../common/tahoe-small.tif, [1] = ../common/tahoe-tiny.tif
 filename=../common/tahoe-tiny.tif file_extension=.tif file_noextension=../common/tahoe-tiny
 MINCOLOR=0,0,0 MAXCOLOR=0.745098,1,1 AVGCOLOR=0.101942,0.216695,0.425293
+postponed sub:
+ 128 x   96, 3 channel, float 
+    Stats Min: 0.000000 0.000000 0.000000 (float)
+    Stats Max: 0.000000 0.000000 0.000000 (float)
+    Stats Avg: 0.000000 0.000000 0.000000 (float)
+    Stats StdDev: 0.000000 0.000000 0.000000 (float)
+    Stats NanCount: 0 0 0 
+    Stats InfCount: 0 0 0 
+    Stats FiniteCount: 12288 12288 12288 
+    Constant: Yes
+    Constant Color: 0.000000 0.000000 0.000000 (float)
+    Monochrome: Yes
 Comparing "exprgradient.tif" and "ref/exprgradient.tif"
 PASS
 Comparing "exprcropped.tif" and "ref/exprcropped.tif"

@@ -56,6 +56,7 @@ struct print_info_options {
     bool dumpdata           = false;
     bool dumpdata_showempty = true;
     bool dumpdata_C         = false;
+    bool native             = false;
     std::string dumpdata_C_name;
     std::string metamatch;
     std::string nometamatch;

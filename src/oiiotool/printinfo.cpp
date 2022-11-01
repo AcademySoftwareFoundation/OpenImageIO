@@ -818,11 +818,11 @@ OiioTool::print_info(std::ostream& out, Oiiotool& ot, ImageRec* img,
         }
     }
 
-    // checking how many subimages and mipmap levels are stored in the file
     for (int s = 0, nsubimages = img->subimages(); s < nsubimages; ++s) {
         print_info_subimage(out, ot, s, nsubimages, img->miplevels(s),
-                            *img->spec(s), img, nullptr, "", opt, field_re,
-                            field_exclude_re, serformat, verbose);
+                            opt.native ? *img->nativespec(s) : *img->spec(s),
+                            img, nullptr, "", opt, field_re, field_exclude_re,
+                            serformat, verbose);
         // If opt.subimages is not set, we print info about first subimage
         // only.
         if (!opt.subimages)

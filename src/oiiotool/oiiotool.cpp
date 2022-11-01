@@ -1815,9 +1815,10 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
         if (metadata.size()) {
             read(img);
             ParamValue tmpparam;
-            const ParamValue* p = img->spec(0, 0)->find_attribute(metadata,
-                                                                  tmpparam);
-            if (p) {
+            if (metadata == "nativeformat") {
+                result = img->nativespec(0, 0)->format.c_str();
+            } else if (auto p = img->spec(0, 0)->find_attribute(metadata,
+                                                                tmpparam)) {
                 std::string val = ImageSpec::metadata_val(*p);
                 if (p->type().basetype == TypeDesc::STRING) {
                     // metadata_val returns strings double quoted, strip
@@ -1851,21 +1852,24 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
                 for (size_t i = 0; i < pixstat.avg.size(); ++i)
                     out << (i ? "," : "") << pixstat.avg[i];
                 result = out.str();
-            } else if (metadata == "META") {
+            } else if (metadata == "META" || metadata == "METANATIVE") {
                 std::stringstream out;
                 print_info_options opt;
                 opt.verbose   = true;
                 opt.subimages = true;
+                opt.native    = (metadata == "METANATIVE");
                 std::string error;
                 OiioTool::print_info(out, *this, img.get(), opt, error);
                 result = out.str();
                 if (result.size() && result.back() == '\n')
                     result.pop_back();
-            } else if (metadata == "METABRIEF") {
+            } else if (metadata == "METABRIEF"
+                       || metadata == "METANATIVEBRIEF") {
                 std::stringstream out;
                 print_info_options opt;
                 opt.verbose   = false;
                 opt.subimages = false;
+                opt.native    = (metadata == "METANATIVEBRIEF");
                 std::string error;
                 OiioTool::print_info(out, *this, img.get(), opt, error);
                 result = out.str();
@@ -5814,13 +5818,18 @@ action_printinfo(cspan<const char*> argv)
     OTScopedTimer timer(ot, command);
     auto options      = ot.extract_options(command);
     bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
+    bool stats        = options.get_int("stats", ot.printstats);
+    bool verb         = options.get_int("verbose", 1);
+    bool native       = options.get_int("native", 0);
 
     ot.read();
     ImageRecRef top = ot.top();
 
     print_info_options opt(ot);
-    opt.verbose   = true;
-    opt.subimages = allsubimages;
+    opt.verbose       = verb;
+    opt.subimages     = allsubimages;
+    opt.compute_stats = stats;
+    opt.native        = native;
     std::string errstring;
     print_info(std::cout, ot, top.get(), opt, errstring);
 
@@ -6348,10 +6357,10 @@ Oiiotool::getargs(int argc, char* argv[])
       .help("Echo message to console (options: newline=0)")
       .action(do_echo);
     ap.arg("--printinfo")
-      .help("Print info and metadata of the current top image")
+      .help("Print info and metadata of the current top image (options: allsubimages=, native=1, stats=1, verbose=0)")
       .action(action_printinfo);
     ap.arg("--printstats")
-      .help("Print pixel statistics of the current top image (options: roi=<geom>)")
+      .help("Print pixel statistics of the current top image (options: allsubimages=, window=<geom>)")
       .action(action_printstats);
     ap.arg("--colorcount %s:COLORLIST")
        .help("Count of how many pixels have the given color (argument: color;color;...) (options: eps=color)")
