@@ -1747,7 +1747,15 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     std::string desc = dstspec.get_string_attribute("ImageDescription");
     bool updatedDesc = false;
 
-    // Eliminate any SHA-1 or ConstantColor hints in the ImageDescription.
+    // Clear a bunch of special attributes that we don't want to propagate
+    // from an input file to the output file, unless we explicitly set it
+    // farther below.
+    dstspec.erase_attribute("oiio:ConstantColor=");
+    dstspec.erase_attribute("ConstantColor=");
+    dstspec.erase_attribute("oiio:AverageColor=");
+    dstspec.erase_attribute("AverageColor=");
+    dstspec.erase_attribute("oiio:SHA-1=");
+    dstspec.erase_attribute("SHA-1=");
     if (desc.size()) {
         Strutil::excise_string_after_head(desc, "oiio:ConstantColor=");
         Strutil::excise_string_after_head(desc, "ConstantColor=");
