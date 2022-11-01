@@ -44,7 +44,9 @@ public:
             std::cout << Sysutil::Term(std::cout).ansi("red", "ERRORS!\n");
             std::exit(m_failures != 0);
         } else {
+#ifndef OIIO_UNIT_TEST_QUIET_SUCCESS
             std::cout << Sysutil::Term(std::cout).ansi("green", "OK\n");
+#endif
         }
     }
     const UnitTestFailureCounter& operator++() noexcept  // prefix
