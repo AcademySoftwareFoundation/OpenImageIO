@@ -14,9 +14,16 @@ on:
 # Declare default permissions as read only.
 permissions: read-all
 
+# Allow subsequent pushes to the same PR or REF to cancel any previous jobs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+
 jobs:
   analysis:
     name: Scorecards analysis
+    if: github.repository == 'OpenImageIO/oiio'
     runs-on: ubuntu-latest
     permissions:
       # Needed to upload the results to code-scanning dashboard.

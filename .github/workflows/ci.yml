@@ -17,6 +17,7 @@ on:
   schedule:
     # Full nightly build
     - cron: "0 8 * * *"
+      if: github.repository == 'OpenImageIO/oiio'
 
 permissions: read-all
 
