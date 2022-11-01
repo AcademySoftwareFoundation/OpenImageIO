@@ -814,7 +814,8 @@ read_exif_tag(ImageSpec& spec, const TIFFDirEntry* dirp, cspan<uint8_t> buf,
         std::cerr << "Now we've seen offset " << offset << "\n";
 #endif
         const unsigned char* ifd = ((const unsigned char*)buf.data() + offset);
-        unsigned short ndirs     = *(const unsigned short*)ifd;
+        unsigned short ndirs;
+        memcpy(&ndirs, ifd, sizeof(ndirs));  // hoop jumping for ubsan
         if (swab)
             swap_endian(&ndirs);
         if (dir.tdir_tag == TIFFTAG_GPSIFD && ndirs > 32) {
@@ -1022,8 +1023,9 @@ pvt::decode_ifd(cspan<uint8_t> buf, size_t ifd_offset, ImageSpec& spec,
     if (ifd_offset + 2 > std::size(buf)) {
         return false;  // asking us to read beyond the buffer
     }
-    auto ifd             = buf.data() + ifd_offset;
-    unsigned short ndirs = *(const unsigned short*)(buf.data() + ifd_offset);
+    auto ifd = buf.data() + ifd_offset;
+    unsigned short ndirs;
+    memcpy(&ndirs, ifd, sizeof(ndirs));  // hoop jumping for ubsan
     if (swab)
         swap_endian(&ndirs);
     if (ifd_offset + 2 + ndirs * sizeof(TIFFDirEntry) > std::size(buf)) {
@@ -1457,11 +1459,13 @@ encode_exif(const ImageSpec& spec, std::vector<char>& blob,
     }
 
     // Now go back and patch the header with the offset of the first TIFF
-    // directory.
-    uint32_t* diroff = &(((TIFFHeader*)(blob.data() + tiffstart))->tiff_diroff);
-    *diroff          = tiffdirstart - tiffstart;
+    // directory. Some hoop jumping is necessary to avoid triggering ubsan
+    // by having an unaligned acces.
+    uint32_t diroff = tiffdirstart - tiffstart;
     if (endianreq != endian::native)
-        swap_endian(diroff);
+        swap_endian(&diroff);
+    memcpy(blob.data() + tiffstart + offsetof(TIFFHeader, tiff_diroff), &diroff,
+           sizeof(diroff));
 
 #if DEBUG_EXIF_WRITE
     std::cerr << "resulting exif block is a total of " << blob.size() << "\n";
