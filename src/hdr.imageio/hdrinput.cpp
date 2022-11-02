@@ -498,11 +498,6 @@ HdrInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
 bool
 HdrInput::close()
 {
-    // if (m_io_local) {
-    //     // If we allocated our own ioproxy, close it.
-    //     ioproxy_clear();
-    // }
-
     init();  // Reset to initial state
     return true;
 }
