@@ -143,7 +143,7 @@ checked_read(ImageInput* in, string_view filename,
 
 
 
-// Helper for test_all_formats: write the pixels in buf to an in-memrory
+// Helper for test_all_formats: write the pixels in buf to an in-memory
 // IOProxy, make sure it matches byte for byte the file named by disk_filename.
 static bool
 test_write_proxy(string_view formatname, string_view extension,
