@@ -60,12 +60,24 @@ ImageRec::ImageRec(ImageRec& img, int subimage_to_copy, int miplevel_to_copy,
     , m_imagecache(img.m_imagecache)
 {
     img.read();
-    int first_subimage = std::max(0, subimage_to_copy);
+    if (subimage_to_copy >= img.subimages()) {
+        errorfmt("Selecting subimage {}, but there are only {} subimages",
+                 subimage_to_copy, img.subimages());
+        subimage_to_copy = img.subimages() - 1;
+    }
+    int first_subimage = clamp(subimage_to_copy, 0, img.subimages() - 1);
     int subimages      = (subimage_to_copy < 0) ? img.subimages() : 1;
     m_subimages.resize(subimages);
     for (int s = 0; s < subimages; ++s) {
-        int srcsub         = s + first_subimage;
-        int first_miplevel = std::max(0, miplevel_to_copy);
+        int srcsub = s + first_subimage;
+        if (miplevel_to_copy >= img.miplevels(srcsub)) {
+            errorfmt(
+                "Selecting MIP level {} of subimage {}, which has only {} MIP levels",
+                miplevel_to_copy, srcsub, img.miplevels(srcsub));
+            miplevel_to_copy = img.miplevels(srcsub) - 1;
+        }
+        int first_miplevel = clamp(miplevel_to_copy, 0,
+                                   img.miplevels(srcsub) - 1);
         int miplevels      = (miplevel_to_copy < 0) ? img.miplevels(srcsub) : 1;
         m_subimages[s].m_miplevels.resize(miplevels);
         m_subimages[s].m_specs.resize(miplevels);

@@ -76,6 +76,14 @@ mip4.tif             :   64 x   64, 4 channel, uint8 tiff
     SHA-1: 7DB3F1E464C5F38CAAECE8ABC8684EC66FC9FA68
 unmip.tif            : 1024 x 1024, 4 channel, uint8 tiff
     SHA-1: 7DB3F1E464C5F38CAAECE8ABC8684EC66FC9FA68
+Select nonexistent subimage
+oiiotool ERROR: --subimage : Invalid -subimage (13): subimages-4.exr has 4 subimages
+Full command line was:
+> oiiotool -colorconfig ../common/OpenColorIO/nuke-default/config.ocio -echo "Select nonexistent subimage" subimages-4.exr --subimage 13 -o subimage13.exr
+Select nonexistent MIP level
+oiiotool ERROR: --selectmip : Selecting MIP level 14 of subimage 0, which has only 11 MIP levels
+Full command line was:
+> oiiotool -colorconfig ../common/OpenColorIO/nuke-default/config.ocio -echo "Select nonexistent MIP level" ../common/textures/grid.tx --selectmip 14 -o mip14.tif
 Comparing "subimages-2.exr" and "ref/subimages-2.exr"
 PASS
 Comparing "subimages-4.exr" and "ref/subimages-4-freetype2.7.exr"

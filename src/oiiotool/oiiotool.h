@@ -74,6 +74,7 @@ class Oiiotool {
 public:
     // General options
     bool verbose;
+    bool quiet;
     bool debug;
     bool dryrun;
     bool runstats;
