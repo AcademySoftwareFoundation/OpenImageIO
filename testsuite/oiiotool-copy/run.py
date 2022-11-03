@@ -86,6 +86,9 @@ command += oiiotool ("--pattern constant:color=0.5 64x64 1 --text R --chnames R 
                      "--chappend:n=3 -d half -o chappend-3images.exr")
 
 
+# Interesting error cases
+command += oiiotool ("-echo \"Testing -o with no image\" -o out.tif")
+
 
 # Outputs to check against references
 outputs = [

@@ -4,6 +4,9 @@
 # with changed freetype versions.
 failpercent *= 2.0
 
+redirect = " >> out.txt 2>&1 "
+failureok = 1
+
 # test subimages
 command += oiiotool ("--pattern constant:color=0.5,0.0,0.0 64x64 3 " +
                      "--pattern constant:color=0.0,0.5,0.0 64x64 3 " +
@@ -27,6 +30,12 @@ command += info_command ("mip4.tif", safematch=True)
 command += oiiotool ("../common/textures/grid.tx --unmip -o unmip.tif")
 command += info_command ("../common/textures/grid.tx", verbose=False)
 command += info_command ("unmip.tif", verbose=False)
+
+# Error cases
+command += oiiotool ("-echo \"Select nonexistent subimage\""
+                     + " subimages-4.exr --subimage 13 -o subimage13.exr")
+command += oiiotool ("-echo \"Select nonexistent MIP level\""
+                     + " ../common/textures/grid.tx --selectmip 14 -o mip14.tif")
 
 # Outputs to check against references
 outputs = [ 

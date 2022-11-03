@@ -70,6 +70,8 @@ metamerge.exr        :   64 x   64, 6 channel, float openexr
     screenWindowWidth: 1
     oiio:ColorSpace: "Linear"
     oiio:subimages: 1
+Testing -o with no image
+oiiotool WARNING: -o : out.tif did not have any current image to output.
 Comparing "rgonly.exr" and "ref/rgonly.exr"
 PASS
 Comparing "ch-err.exr" and "ref/ch-err.exr"

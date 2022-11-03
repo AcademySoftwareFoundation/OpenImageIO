@@ -118,6 +118,76 @@ Testing for i 5,10,2,8 (bad range):
 oiiotool ERROR: --for : Invalid range "5,10,2,8"
 Full command line was:
 > oiiotool -colorconfig ../common/OpenColorIO/nuke-default/config.ocio -echo "Testing for i 5,10,2,8 (bad range):" --for i 5,10,2,8 --echo "  i = {i}" --endfor -echo " "
+SEQUENCE 0
+  copyA.#.jpg -> ./copyA.0001.jpg
+  copyB.#.jpg -> copyB.0001.jpg
+Reading ./copyA.0001.jpg
+Output: copyB.0001.jpg
+Writing copyB.0001.jpg
+
+SEQUENCE 1
+  copyA.#.jpg -> ./copyA.0002.jpg
+  copyB.#.jpg -> copyB.0002.jpg
+Reading ./copyA.0002.jpg
+Output: copyB.0002.jpg
+Writing copyB.0002.jpg
+
+SEQUENCE 2
+  copyA.#.jpg -> ./copyA.0003.jpg
+  copyB.#.jpg -> copyB.0003.jpg
+Reading ./copyA.0003.jpg
+Output: copyB.0003.jpg
+Writing copyB.0003.jpg
+
+SEQUENCE 3
+  copyA.#.jpg -> ./copyA.0004.jpg
+  copyB.#.jpg -> copyB.0004.jpg
+Reading ./copyA.0004.jpg
+Output: copyB.0004.jpg
+Writing copyB.0004.jpg
+
+SEQUENCE 4
+  copyA.#.jpg -> ./copyA.0005.jpg
+  copyB.#.jpg -> copyB.0005.jpg
+Reading ./copyA.0005.jpg
+Output: copyB.0005.jpg
+Writing copyB.0005.jpg
+
+SEQUENCE 5
+  copyA.#.jpg -> ./copyA.0006.jpg
+  copyB.#.jpg -> copyB.0006.jpg
+Reading ./copyA.0006.jpg
+Output: copyB.0006.jpg
+Writing copyB.0006.jpg
+
+SEQUENCE 6
+  copyA.#.jpg -> ./copyA.0007.jpg
+  copyB.#.jpg -> copyB.0007.jpg
+Reading ./copyA.0007.jpg
+Output: copyB.0007.jpg
+Writing copyB.0007.jpg
+
+SEQUENCE 7
+  copyA.#.jpg -> ./copyA.0008.jpg
+  copyB.#.jpg -> copyB.0008.jpg
+Reading ./copyA.0008.jpg
+Output: copyB.0008.jpg
+Writing copyB.0008.jpg
+
+SEQUENCE 8
+  copyA.#.jpg -> ./copyA.0009.jpg
+  copyB.#.jpg -> copyB.0009.jpg
+Reading ./copyA.0009.jpg
+Output: copyB.0009.jpg
+Writing copyB.0009.jpg
+
+SEQUENCE 9
+  copyA.#.jpg -> ./copyA.0010.jpg
+  copyB.#.jpg -> copyB.0010.jpg
+Reading ./copyA.0010.jpg
+Output: copyB.0010.jpg
+Writing copyB.0010.jpg
+
 copyA.0001.jpg       :  128 x   96, 3 channel, uint8 jpeg
 copyA.0002.jpg       :  128 x   96, 3 channel, uint8 jpeg
 copyA.0003.jpg       :  128 x   96, 3 channel, uint8 jpeg
@@ -148,6 +218,10 @@ Sequence -5--2:  -5
 Sequence -5--2:  -4
 Sequence -5--2:  -3
 Sequence -5--2:  -2
+oiiotool WARNING : oiiotool produced no output. Did you forget -o?
+oiiotool ERROR : Not all sequence specifications matched: copyA.#.jpg (10 frames) vs. copyC.1-5#.jpg (5 frames)
+Full command line was:
+> 
 
 Brief:  128 x   96, 3 channel, float tiff
 
