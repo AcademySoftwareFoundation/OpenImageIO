@@ -1983,15 +1983,15 @@ IBA_ociolook_colorconfig_ret(const ImageBuf& src, const std::string& looks,
 bool
 IBA_ociodisplay(ImageBuf& dst, const ImageBuf& src, const std::string& display,
                 const std::string& view, const std::string& from,
-                const std::string& looks, bool unpremult,
+                const std::string& looks, bool unpremult, bool inverse,
                 const std::string& context_key,
                 const std::string& context_value, ROI roi = ROI::All(),
                 int nthreads = 0)
 {
     py::gil_scoped_release gil;
     return ImageBufAlgo::ociodisplay(dst, src, display, view, from, looks,
-                                     unpremult, context_key, context_value,
-                                     NULL, roi, nthreads);
+                                     unpremult, inverse, context_key,
+                                     context_value, NULL, roi, nthreads);
 }
 
 
@@ -1999,7 +1999,8 @@ bool
 IBA_ociodisplay_colorconfig(ImageBuf& dst, const ImageBuf& src,
                             const std::string& display, const std::string& view,
                             const std::string& from, const std::string& looks,
-                            bool unpremult, const std::string& context_key,
+                            bool unpremult, bool inverse,
+                            const std::string& context_key,
                             const std::string& context_value,
                             const std::string& colorconfig = "",
                             ROI roi = ROI::All(), int nthreads = 0)
@@ -2007,8 +2008,8 @@ IBA_ociodisplay_colorconfig(ImageBuf& dst, const ImageBuf& src,
     ColorConfig config(colorconfig);
     py::gil_scoped_release gil;
     return ImageBufAlgo::ociodisplay(dst, src, display, view, from, looks,
-                                     unpremult, context_key, context_value,
-                                     &config, roi, nthreads);
+                                     unpremult, inverse, context_key,
+                                     context_value, &config, roi, nthreads);
 }
 
 
@@ -2016,20 +2017,86 @@ IBA_ociodisplay_colorconfig(ImageBuf& dst, const ImageBuf& src,
 ImageBuf
 IBA_ociodisplay_ret(const ImageBuf& src, const std::string& display,
                     const std::string& view, const std::string& from,
-                    const std::string& looks, bool unpremult,
+                    const std::string& looks, bool unpremult, bool inverse,
                     const std::string& context_key,
                     const std::string& context_value, ROI roi = ROI::All(),
                     int nthreads = 0)
 {
     py::gil_scoped_release gil;
     return ImageBufAlgo::ociodisplay(src, display, view, from, looks, unpremult,
-                                     context_key, context_value, NULL, roi,
-                                     nthreads);
+                                     inverse, context_key, context_value, NULL,
+                                     roi, nthreads);
 }
 
 
 ImageBuf
-IBA_ociodisplay_colorconfig_ret(
+IBA_ociodisplay_colorconfig_ret(const ImageBuf& src, const std::string& display,
+                                const std::string& view,
+                                const std::string& from,
+                                const std::string& looks, bool unpremult,
+                                bool inverse, const std::string& context_key,
+                                const std::string& context_value,
+                                const std::string& colorconfig = "",
+                                ROI roi = ROI::All(), int nthreads = 0)
+{
+    ColorConfig config(colorconfig);
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::ociodisplay(src, display, view, from, looks, unpremult,
+                                     inverse, context_key, context_value,
+                                     &config, roi, nthreads);
+}
+
+
+
+bool
+IBA_ociodisplay_dep(ImageBuf& dst, const ImageBuf& src,
+                    const std::string& display, const std::string& view,
+                    const std::string& from, const std::string& looks,
+                    bool unpremult, const std::string& context_key,
+                    const std::string& context_value, ROI roi = ROI::All(),
+                    int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::ociodisplay(dst, src, display, view, from, looks,
+                                     unpremult, false, context_key,
+                                     context_value, NULL, roi, nthreads);
+}
+
+
+bool
+IBA_ociodisplay_dep_colorconfig(
+    ImageBuf& dst, const ImageBuf& src, const std::string& display,
+    const std::string& view, const std::string& from, const std::string& looks,
+    bool unpremult, const std::string& context_key,
+    const std::string& context_value, const std::string& colorconfig = "",
+    ROI roi = ROI::All(), int nthreads = 0)
+{
+    ColorConfig config(colorconfig);
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::ociodisplay(dst, src, display, view, from, looks,
+                                     unpremult, false, context_key,
+                                     context_value, &config, roi, nthreads);
+}
+
+
+
+ImageBuf
+IBA_ociodisplay_dep_ret(const ImageBuf& src, const std::string& display,
+                        const std::string& view, const std::string& from,
+                        const std::string& looks, bool unpremult,
+                        const std::string& context_key,
+                        const std::string& context_value, ROI roi = ROI::All(),
+                        int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::ociodisplay(src, display, view, from, looks, unpremult,
+                                     false, context_key, context_value, NULL,
+                                     roi, nthreads);
+}
+
+
+ImageBuf
+IBA_ociodisplay_dep_colorconfig_ret(
     const ImageBuf& src, const std::string& display, const std::string& view,
     const std::string& from, const std::string& looks, bool unpremult,
     const std::string& context_key, const std::string& context_value,
@@ -2038,8 +2105,8 @@ IBA_ociodisplay_colorconfig_ret(
     ColorConfig config(colorconfig);
     py::gil_scoped_release gil;
     return ImageBufAlgo::ociodisplay(src, display, view, from, looks, unpremult,
-                                     context_key, context_value, &config, roi,
-                                     nthreads);
+                                     false, context_key, context_value, &config,
+                                     roi, nthreads);
 }
 
 
@@ -2737,24 +2804,46 @@ declare_imagebufalgo(py::module& m)
 
         .def_static("ociodisplay", &IBA_ociodisplay, "dst"_a, "src"_a,
                     "display"_a, "view"_a, "fromspace"_a = "", "looks"_a = "",
-                    "unpremult"_a = true, "context_key"_a = "",
-                    "context_value"_a = "", "roi"_a = ROI::All(),
-                    "nthreads"_a = 0)
+                    "unpremult"_a = true, "inverse"_a = false,
+                    "context_key"_a = "", "context_value"_a = "",
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
         .def_static("ociodisplay", &IBA_ociodisplay_colorconfig, "dst"_a,
                     "src"_a, "display"_a, "view"_a, "fromspace"_a = "",
-                    "looks"_a = "", "unpremult"_a = true, "context_key"_a = "",
-                    "context_value"_a = "", "colorconfig"_a = "",
-                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+                    "looks"_a = "", "unpremult"_a = true, "inverse"_a = false,
+                    "context_key"_a = "", "context_value"_a = "",
+                    "colorconfig"_a = "", "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
         .def_static("ociodisplay", &IBA_ociodisplay_ret, "src"_a, "display"_a,
                     "view"_a, "fromspace"_a = "", "looks"_a = "",
-                    "unpremult"_a = true, "context_key"_a = "",
-                    "context_value"_a = "", "roi"_a = ROI::All(),
-                    "nthreads"_a = 0)
+                    "unpremult"_a = true, "inverse"_a = false,
+                    "context_key"_a = "", "context_value"_a = "",
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
         .def_static("ociodisplay", &IBA_ociodisplay_colorconfig_ret, "src"_a,
                     "display"_a, "view"_a, "fromspace"_a = "", "looks"_a = "",
-                    "unpremult"_a = true, "context_key"_a = "",
-                    "context_value"_a = "", "colorconfig"_a = "",
+                    "unpremult"_a = true, "inverse"_a = false,
+                    "context_key"_a = "", "context_value"_a = "",
+                    "colorconfig"_a = "", "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
+
+        // DEPRECATED
+        .def_static("ociodisplay", &IBA_ociodisplay_dep, "dst"_a, "src"_a,
+                    "display"_a, "view"_a, "fromspace"_a, "looks"_a,
+                    "unpremult"_a, "context_key"_a, "context_value"_a = "",
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("ociodisplay", &IBA_ociodisplay_dep_colorconfig, "dst"_a,
+                    "src"_a, "display"_a, "view"_a, "fromspace"_a, "looks"_a,
+                    "unpremult"_a, "context_key"_a, "context_value"_a,
+                    "colorconfig"_a = "", "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
+        .def_static("ociodisplay", &IBA_ociodisplay_dep_ret, "src"_a,
+                    "display"_a, "view"_a, "fromspace"_a, "looks"_a,
+                    "unpremult"_a, "context_key"_a, "context_value"_a = "",
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("ociodisplay", &IBA_ociodisplay_dep_colorconfig_ret,
+                    "src"_a, "display"_a, "view"_a, "fromspace"_a, "looks"_a,
+                    "unpremult"_a, "context_key"_a, "context_value"_a = "",
+                    "colorconfig"_a = "", "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
 
         .def_static("ociofiletransform", &IBA_ociofiletransform, "dst"_a,
                     "src"_a, "name"_a, "unpremult"_a = true,

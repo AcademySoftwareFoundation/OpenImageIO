@@ -3572,8 +3572,8 @@ Color manipulation
 
 
 
-.. py:method:: ImageBuf ImageBufAlgo.ociodisplay (src, display, view, fromspace="", looks="", unpremult=True, context_key="", context_value="", colorconfig="", roi=ROI.All, nthreads=0)
-               bool ImageBufAlgo.ociodisplay (dst, src, display, view, fromspace="", looks="", unpremult=True, context_key="", context_value="", colorconfig="", roi=ROI.All, nthreads=0)
+.. py:method:: ImageBuf ImageBufAlgo.ociodisplay (src, display, view, fromspace="", looks="", unpremult=True, inverse=False, context_key="", context_value="", colorconfig="", roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.ociodisplay (dst, src, display, view, fromspace="", looks="", unpremult=True, inverse=False, context_key="", context_value="", colorconfig="", roi=ROI.All, nthreads=0)
 
     Apply an OpenColorIO "display" transform to the pixel values.
 

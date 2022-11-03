@@ -2778,12 +2778,13 @@ OIIOTOOL_OP(ociodisplay, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     std::string contextvalue = op.options()["value"];
     std::string looks        = op.options()["looks"];
     bool unpremult           = op.options().get_int("unpremult");
+    bool inverse             = op.options().get_int("inverse");
     if (fromspace == "current" || fromspace == "")
         fromspace = img[1]->spec().get_string_attribute("oiio:Colorspace",
                                                         "Linear");
     return ImageBufAlgo::ociodisplay(*img[0], *img[1], displayname, viewname,
-                                     fromspace, looks, unpremult, contextkey,
-                                     contextvalue, &ot.colorconfig);
+                                     fromspace, looks, unpremult, inverse,
+                                     contextkey, contextvalue, &ot.colorconfig);
 });
 
 
@@ -6807,7 +6808,7 @@ Oiiotool::getargs(int argc, char* argv[])
       .help("Apply the named OCIO look (options: from=, to=, inverse=, key=, value=, unpremult=)")
       .action(action_ociolook);
     ap.arg("--ociodisplay %s:DISPLAY %s:VIEW")
-      .help("Apply the named OCIO display and view (options: from=, looks=, key=, value=, unpremult=)")
+      .help("Apply the named OCIO display and view (options: from=, looks=, key=, value=, unpremult=, inverse=)")
       .action(action_ociodisplay);
     ap.arg("--ociofiletransform %s:FILENAME")
       .help("Apply the named OCIO filetransform (options: inverse=, unpremult=)")

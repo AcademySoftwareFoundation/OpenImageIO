@@ -4188,6 +4188,10 @@ bottom you will see the list of all color spaces, looks, and displays that
         is 0, meaning the color transformation not will be automatically
         bracketed by divide-by-alpha / mult-by-alpha operations.
     
+      `inverse=` *val* :
+
+        If *val* is nonzero, inverts the color transformation.
+
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 

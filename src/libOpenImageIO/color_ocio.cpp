@@ -1252,12 +1252,14 @@ ColorConfig::createLookTransform(ustring looks, ustring inputColorSpace,
 ColorProcessorHandle
 ColorConfig::createDisplayTransform(string_view display, string_view view,
                                     string_view inputColorSpace,
-                                    string_view looks, string_view context_key,
+                                    string_view looks, bool inverse,
+                                    string_view context_key,
                                     string_view context_value) const
 {
     return createDisplayTransform(ustring(display), ustring(view),
                                   ustring(inputColorSpace), ustring(looks),
-                                  ustring(context_key), ustring(context_value));
+                                  inverse, ustring(context_key),
+                                  ustring(context_value));
 }
 
 
@@ -1265,7 +1267,7 @@ ColorConfig::createDisplayTransform(string_view display, string_view view,
 ColorProcessorHandle
 ColorConfig::createDisplayTransform(ustring display, ustring view,
                                     ustring inputColorSpace, ustring looks,
-                                    ustring context_key,
+                                    bool inverse, ustring context_key,
                                     ustring context_value) const
 {
     if (display.empty())
@@ -1275,7 +1277,8 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
     // First, look up the requested processor in the cache. If it already
     // exists, just return it.
     ColorProcCacheKey prockey(inputColorSpace, ustring() /*outputColorSpace*/,
-                              context_key, context_value, looks, display, view);
+                              context_key, context_value, looks, display, view,
+                              ustring() /*file*/, inverse);
     ColorProcessorHandle handle = getImpl()->findproc(prockey);
     if (handle)
         return handle;
@@ -1302,6 +1305,8 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
             transform->setLooksOverrideEnabled(false);
         }
 #    endif
+        OCIO::TransformDirection dir = inverse ? OCIO::TRANSFORM_DIR_INVERSE
+                                               : OCIO::TRANSFORM_DIR_FORWARD;
         transform->setDisplay(display.c_str());
         transform->setView(view.c_str());
         auto context = config->getCurrentContext();
@@ -1317,8 +1322,7 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
         OCIO::ConstProcessorRcPtr p;
         try {
             // Get the processor corresponding to this transform.
-            p = getImpl()->config_->getProcessor(context, transform,
-                                                 OCIO::TRANSFORM_DIR_FORWARD);
+            p = getImpl()->config_->getProcessor(context, transform, dir);
             getImpl()->clear_error();
             handle = ColorProcessorHandle(new ColorProcessor_OCIO(p));
         } catch (OCIO::Exception& e) {
@@ -1331,6 +1335,30 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
 #endif
 
     return getImpl()->addproc(prockey, handle);
+}
+
+
+
+ColorProcessorHandle
+ColorConfig::createDisplayTransform(string_view display, string_view view,
+                                    string_view inputColorSpace,
+                                    string_view looks, string_view context_key,
+                                    string_view context_value) const
+{
+    return createDisplayTransform(ustring(display), ustring(view),
+                                  ustring(inputColorSpace), ustring(looks),
+                                  false, ustring(context_key),
+                                  ustring(context_value));
+}
+
+ColorProcessorHandle
+ColorConfig::createDisplayTransform(ustring display, ustring view,
+                                    ustring inputColorSpace, ustring looks,
+                                    ustring context_key,
+                                    ustring context_value) const
+{
+    return createDisplayTransform(display, view, inputColorSpace, looks, false,
+                                  context_key, context_value);
 }
 
 
@@ -1850,7 +1878,7 @@ bool
 ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
                           string_view display, string_view view,
                           string_view from, string_view looks, bool unpremult,
-                          string_view key, string_view value,
+                          bool inverse, string_view key, string_view value,
                           ColorConfig* colorconfig, ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::ociodisplay");
@@ -1871,7 +1899,8 @@ ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
             return false;
         }
         processor = colorconfig->createDisplayTransform(display, view, from,
-                                                        looks, key, value);
+                                                        looks, inverse, key,
+                                                        value);
         if (!processor) {
             if (colorconfig->error())
                 dst.errorfmt("{}", colorconfig->geterror());
@@ -1891,15 +1920,43 @@ ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
 ImageBuf
 ImageBufAlgo::ociodisplay(const ImageBuf& src, string_view display,
                           string_view view, string_view from, string_view looks,
-                          bool unpremult, string_view key, string_view value,
-                          ColorConfig* colorconfig, ROI roi, int nthreads)
+                          bool unpremult, bool inverse, string_view key,
+                          string_view value, ColorConfig* colorconfig, ROI roi,
+                          int nthreads)
 {
     ImageBuf result;
     bool ok = ociodisplay(result, src, display, view, from, looks, unpremult,
-                          key, value, colorconfig, roi, nthreads);
+                          inverse, key, value, colorconfig, roi, nthreads);
     if (!ok && !result.has_error())
         result.errorfmt("ImageBufAlgo::ociodisplay() error");
     return result;
+}
+
+
+
+// DEPRECATED(2.5)
+bool
+ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
+                          string_view display, string_view view,
+                          string_view from, string_view looks, bool unpremult,
+                          string_view key, string_view value,
+                          ColorConfig* colorconfig, ROI roi, int nthreads)
+{
+    return ociodisplay(dst, src, display, view, from, looks, unpremult, false,
+                       key, value, colorconfig, roi, nthreads);
+}
+
+
+
+// DEPRECATED(2.5)
+ImageBuf
+ImageBufAlgo::ociodisplay(const ImageBuf& src, string_view display,
+                          string_view view, string_view from, string_view looks,
+                          bool unpremult, string_view key, string_view value,
+                          ColorConfig* colorconfig, ROI roi, int nthreads)
+{
+    return ociodisplay(src, display, view, from, looks, unpremult, false, key,
+                       value, colorconfig, roi, nthreads);
 }
 
 

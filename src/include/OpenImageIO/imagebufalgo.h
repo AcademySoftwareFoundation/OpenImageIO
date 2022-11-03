@@ -1980,7 +1980,7 @@ bool OIIO_API ociolook (ImageBuf &dst, const ImageBuf &src, string_view looks,
 ImageBuf OIIO_API ociodisplay (const ImageBuf &src,
                                string_view display, string_view view,
                                string_view fromspace="", string_view looks="",
-                               bool unpremult=true,
+                               bool unpremult=true, bool inverse=false,
                                string_view context_key="", string_view context_value="",
                                ColorConfig *colorconfig=nullptr,
                                ROI roi={}, int nthreads=0);
@@ -1988,10 +1988,29 @@ ImageBuf OIIO_API ociodisplay (const ImageBuf &src,
 bool OIIO_API ociodisplay (ImageBuf &dst, const ImageBuf &src,
                            string_view display, string_view view,
                            string_view fromspace="", string_view looks="",
-                           bool unpremult=true,
+                           bool unpremult=true, bool inverse=false,
                            string_view context_key="", string_view context_value="",
                            ColorConfig *colorconfig=nullptr,
                            ROI roi={}, int nthreads=0);
+
+#ifndef OIIO_DOXYGEN
+// OIIO_DEPRECATED("prefer the kind that takes an `inverse` parameter (2.5)")
+ImageBuf OIIO_API ociodisplay (const ImageBuf &src,
+                               string_view display, string_view view,
+                               string_view fromspace, string_view looks,
+                               bool unpremult,
+                               string_view context_key, string_view context_value="",
+                               ColorConfig *colorconfig=nullptr,
+                               ROI roi={}, int nthreads=0);
+// OIIO_DEPRECATED("prefer the kind that takes an `inverse` parameter (2.5)")
+bool OIIO_API ociodisplay (ImageBuf &dst, const ImageBuf &src,
+                           string_view display, string_view view,
+                           string_view fromspace, string_view looks,
+                           bool unpremult,
+                           string_view context_key, string_view context_value="",
+                           ColorConfig *colorconfig=nullptr,
+                           ROI roi={}, int nthreads=0);
+#endif
 
 
 /// Return the pixels of `src` within the ROI, applying an OpenColorIO
