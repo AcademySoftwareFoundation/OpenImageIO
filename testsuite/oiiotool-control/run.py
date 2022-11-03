@@ -108,10 +108,17 @@ command += oiiotool ('-echo "Testing for i 5,10,2,8 (bad range):" --for i 5,10,2
 
 # test sequences
 command += oiiotool ("../common/tahoe-tiny.tif -o copyA.1-10#.jpg")
+command += oiiotool ("--debug copyA.#.jpg -o copyB.#.jpg")
 command += oiiotool (" --info  " +  " ".join(["copyA.{0:04}.jpg".format(x) for x in range(1,11)]))
 command += oiiotool ("--frames 1-5 --echo \"Sequence 1-5:  {FRAME_NUMBER}\"")
 command += oiiotool ("--frames -5-5 --echo \"Sequence -5-5:  {FRAME_NUMBER}\"")
 command += oiiotool ("--frames -5--2 --echo \"Sequence -5--2:  {FRAME_NUMBER}\"")
+
+# Sequence errors:
+# No matching files found
+command += oiiotool ("notfound.#.jpg -o alsonotfound.#.jpg")
+# Ranges don't match
+command += oiiotool ("copyA.#.jpg -o copyC.1-5#.jpg")
 
 # Test stats and metadata expression substitution
 command += oiiotool ("../common/tahoe-tiny.tif"

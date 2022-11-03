@@ -7,12 +7,26 @@ set -ex
 : ${CTEST_EXCLUSIONS:="broken"}
 : ${CTEST_TEST_TIMEOUT:=180}
 
-$OpenImageIO_ROOT/bin/oiiotool --version --help || /bin/true
-
-# Catch-all of some unit tests and args that aren't used elsewhere
+#
+# Try a few command line options to test them and also get some important
+# debugging info in the CI logs.
+#
+echo ; echo "Results of oiiotool --version:"
+$OpenImageIO_ROOT/bin/oiiotool --version || true
+echo ; echo "Results of oiiotool --help:"
+$OpenImageIO_ROOT/bin/oiiotool --help || true
+echo ; echo "Results of oiiotool with no args (should get short help message):"
+$OpenImageIO_ROOT/bin/oiiotool || true
+echo ; echo "Run unit tests and simple stats:"
 $OpenImageIO_ROOT/bin/oiiotool --unittest --list-formats --threads 0 \
-                 --cache 1000 --autotile --autopremult --runstats || /bin/true
+                 --cache 1000 --autotile --autopremult --runstats || true
+echo ; echo "Try unknown command:"
+$OpenImageIO_ROOT/bin/oiiotool -q --unknown || true
 
+
+#
+# Full test suite
+#
 echo "Parallel test ${CTEST_PARALLEL_LEVEL}"
 echo "Default timeout ${CTEST_TEST_TIMEOUT}"
 echo "Test exclusions '${CTEST_EXCLUSIONS}'"

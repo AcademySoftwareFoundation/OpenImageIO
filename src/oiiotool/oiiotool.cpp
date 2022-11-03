@@ -121,6 +121,7 @@ void
 Oiiotool::clear_options()
 {
     verbose            = false;
+    quiet              = false;
     debug              = false;
     dryrun             = false;
     runstats           = false;
@@ -3158,6 +3159,10 @@ action_selectmip(int argc, const char* argv[])
     }
 
     ImageRecRef newimg(new ImageRec(*ot.curimg, -1, miplevel, true, true));
+    if (newimg->has_error()) {
+        ot.error(command, newimg->geterror());
+        return 0;
+    }
     ot.curimg = newimg;
     return 0;
 }
@@ -5777,7 +5782,7 @@ output_file(int /*argc*/, const char* argv[])
     double optime = timer();
     ot.num_outputs += 1;
 
-    if (ot.debug)
+    if (ot.debug && ot.runstats)
         Strutil::print("    output took {}  (total time {}, mem {})\n",
                        Strutil::timeintervalformat(optime, 2),
                        Strutil::timeintervalformat(ot.total_runtime(), 2),
@@ -6213,8 +6218,9 @@ Oiiotool::getargs(int argc, char* argv[])
       });
     ap.arg("-v", &ot.verbose)
       .help("Verbose status messages");
-    ap.arg("-q %!", &ot.verbose)
-      .help("Quiet mode (turn verbose off)");
+    ap.arg("-q")
+      .help("Quiet mode (turn verbose off and reduce printed output)")
+      .action([](cspan<const char*>){ ot.verbose = false; ot.quiet = true; });
     ap.arg("-n", &ot.dryrun)
       .help("No saved output (dry run)");
     ap.arg("--no-error-exit", ot.noerrexit)
@@ -6826,7 +6832,8 @@ Oiiotool::getargs(int argc, char* argv[])
     if (ap.parse_args(argc, (const char**)argv) < 0) {
         auto& errstream(ot.nostderr ? std::cout : std::cerr);
         errstream << ap.geterror() << std::endl;
-        print_help(ap);
+        if (!ot.quiet)
+            print_help(ap);
         // Repeat the command line, so if oiiotool is being called from a
         // script, it's easy to debug how the command was mangled.
         errstream << "\nFull command line was:\n> " << ot.full_command_line
@@ -6841,8 +6848,10 @@ Oiiotool::getargs(int argc, char* argv[])
         // exit(EXIT_SUCCESS);
     }
     if (argc <= 1) {
-        ap.briefusage();
-        std::cout << "\nFor detailed help: oiiotool --help\n";
+        if (!ot.quiet) {
+            ap.briefusage();
+            std::cout << "\nFor detailed help: oiiotool --help\n";
+        }
         ap.abort();
         // exit(EXIT_SUCCESS);
     }
