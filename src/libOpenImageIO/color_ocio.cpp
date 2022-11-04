@@ -532,20 +532,22 @@ TypeDesc
 ColorConfig::getColorSpaceDataType(string_view name, int* bits) const
 {
 #ifdef USE_OCIO
-    OCIO::ConstColorSpaceRcPtr c = getImpl()->config_->getColorSpace(
-        std::string(name).c_str());
-    if (c) {
-        OCIO::BitDepth b = c->getBitDepth();
-        switch (b) {
-        case OCIO::BIT_DEPTH_UNKNOWN: return TypeDesc::UNKNOWN;
-        case OCIO::BIT_DEPTH_UINT8: *bits = 8; return TypeDesc::UINT8;
-        case OCIO::BIT_DEPTH_UINT10: *bits = 10; return TypeDesc::UINT16;
-        case OCIO::BIT_DEPTH_UINT12: *bits = 12; return TypeDesc::UINT16;
-        case OCIO::BIT_DEPTH_UINT14: *bits = 14; return TypeDesc::UINT16;
-        case OCIO::BIT_DEPTH_UINT16: *bits = 16; return TypeDesc::UINT16;
-        case OCIO::BIT_DEPTH_UINT32: *bits = 32; return TypeDesc::UINT32;
-        case OCIO::BIT_DEPTH_F16: *bits = 16; return TypeDesc::HALF;
-        case OCIO::BIT_DEPTH_F32: *bits = 32; return TypeDesc::FLOAT;
+    if (getImpl()->config_) {
+        OCIO::ConstColorSpaceRcPtr c = getImpl()->config_->getColorSpace(
+            std::string(name).c_str());
+        if (c) {
+            OCIO::BitDepth b = c->getBitDepth();
+            switch (b) {
+            case OCIO::BIT_DEPTH_UNKNOWN: return TypeDesc::UNKNOWN;
+            case OCIO::BIT_DEPTH_UINT8: *bits = 8; return TypeDesc::UINT8;
+            case OCIO::BIT_DEPTH_UINT10: *bits = 10; return TypeDesc::UINT16;
+            case OCIO::BIT_DEPTH_UINT12: *bits = 12; return TypeDesc::UINT16;
+            case OCIO::BIT_DEPTH_UINT14: *bits = 14; return TypeDesc::UINT16;
+            case OCIO::BIT_DEPTH_UINT16: *bits = 16; return TypeDesc::UINT16;
+            case OCIO::BIT_DEPTH_UINT32: *bits = 32; return TypeDesc::UINT32;
+            case OCIO::BIT_DEPTH_F16: *bits = 16; return TypeDesc::HALF;
+            case OCIO::BIT_DEPTH_F32: *bits = 32; return TypeDesc::FLOAT;
+            }
         }
     }
 #endif
@@ -1375,7 +1377,7 @@ ColorConfig::createFileTransform(ustring name, bool inverse) const
         OCIO::ConstProcessorRcPtr p;
         try {
             // Get the processor corresponding to this transform.
-            p = getImpl()->config_->getProcessor(context, transform, dir);
+            p = config->getProcessor(context, transform, dir);
             getImpl()->clear_error();
             handle = ColorProcessorHandle(new ColorProcessor_OCIO(p));
         } catch (OCIO::Exception& e) {
