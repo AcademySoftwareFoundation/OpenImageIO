@@ -2,4 +2,4 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # https://github.com/OpenImageIO/oiio
 
-add_oiio_plugin (iffinput.cpp iffoutput.cpp iff_pvt.cpp)
+add_oiio_plugin (iffinput.cpp iffoutput.cpp)

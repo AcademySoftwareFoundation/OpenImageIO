@@ -862,6 +862,24 @@ IFF files are used by Autodesk Maya and use the file extension :file:`.iff`.
      - int
      - the true bits per sample of the IFF file.
 
+**Configuration settings for RLA input**
+
+When opening a IFF ImageInput with a *configuration* (see
+Section :ref:`sec-input-with-config`), the following special configuration
+options are supported:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
+
 **Configuration settings for IFF output**
 
 When opening an IFF ImageOutput, the following special metadata tokens
@@ -879,6 +897,17 @@ control aspects of the writing itself:
      - If nonzero and outputting UINT8 values in the file from a source of
        higher bit depth, will add a small amount of random dither to combat
        the appearance of banding.
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
+
+**Custom I/O Overrides**
+
+RLA input and output support the "custom I/O" feature via the
+special ``"oiio:ioproxy"`` attributes (see Sections
+:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+the `set_ioproxy()` methods.
 
 
 

@@ -9,6 +9,85 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 using namespace iff_pvt;
 
 
+class IffOutput final : public ImageOutput {
+public:
+    IffOutput() { init(); }
+    ~IffOutput() override { close(); }
+    const char* format_name(void) const override { return "iff"; }
+    int supports(string_view feature) const override;
+    bool open(const std::string& name, const ImageSpec& spec,
+              OpenMode mode) override;
+    bool close(void) override;
+    bool write_scanline(int y, int z, TypeDesc format, const void* data,
+                        stride_t xstride) override;
+    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
+                    stride_t xstride, stride_t ystride,
+                    stride_t zstride) override;
+
+private:
+    std::string m_filename;
+    iff_pvt::IffFileHeader m_iff_header;
+    std::vector<uint8_t> m_buf;
+    unsigned int m_dither;
+    std::vector<uint8_t> scratch;
+
+    void init(void)
+    {
+        ioproxy_clear();
+        m_filename.clear();
+    }
+
+    // writes information about iff file to give file
+    bool write_header(iff_pvt::IffFileHeader& header);
+
+    /// Helper: write buf[0..nitems-1], swap endianness if necessary
+    template<typename T> bool write(const T* buf, size_t nitems = 1)
+    {
+        if (littleendian()
+            && (is_same<T, uint16_t>::value || is_same<T, int16_t>::value
+                || is_same<T, uint32_t>::value || is_same<T, int32_t>::value)) {
+            T* newbuf = OIIO_ALLOCA(T, nitems);
+            memcpy(newbuf, buf, nitems * sizeof(T));
+            swap_endian(newbuf, nitems);
+            buf = newbuf;
+        }
+        return iowrite(buf, sizeof(T), nitems);
+    }
+
+    bool write_short(uint16_t val) { return write(&val); }
+    bool write_int(uint32_t val) { return write(&val); }
+
+    bool write_str(string_view val, size_t round = 4)
+    {
+        bool ok = iowrite(val.data(), val.size());
+        if (size_t extra = round_to_multiple(val.size(), round) - val.size()) {
+            static const uint8_t pad[4] = { 0, 0, 0, 0 };
+            ok &= iowrite(pad, extra);
+        }
+        return ok;
+    }
+
+    bool write_meta_string(string_view name, string_view val,
+                           bool write_if_empty = false)
+    {
+        if (val.empty() && !write_if_empty)
+            return true;
+        return write_str(name) && write_int(uint32_t(val.size()))
+               && (val.size() == 0 || write_str(val));
+    }
+
+    // helper to compress verbatim
+    void compress_verbatim(const uint8_t*& in, uint8_t*& out, int size);
+
+    // helper to compress duplicate
+    void compress_duplicate(const uint8_t*& in, uint8_t*& out, int size);
+
+    // helper to compress a rle channel
+    size_t compress_rle_channel(const uint8_t* in, uint8_t* out, int size);
+};
+
+
+
 // Obligatory material to make this a recognizable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
@@ -27,7 +106,8 @@ OIIO_PLUGIN_EXPORTS_END
 int
 IffOutput::supports(string_view feature) const
 {
-    return (feature == "tiles" || feature == "alpha" || feature == "nchannels");
+    return (feature == "tiles" || feature == "alpha" || feature == "nchannels"
+            || feature == "ioproxy");
 }
 
 
@@ -58,11 +138,11 @@ IffOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     //       ...
 
     if (mode != Create) {
-        errorf("%s does not support subimages or MIP levels", format_name());
+        errorfmt("{} does not support subimages or MIP levels", format_name());
         return false;
     }
 
-    close();  // Close any already-opened file
+    // close();  // Close any already-opened file
     // saving 'name' and 'spec' for later use
     m_filename = name;
     m_spec     = spec;
@@ -72,11 +152,9 @@ IffOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     m_spec.tile_height = tile_height();
     m_spec.tile_depth  = 1;
 
-    m_fd = Filesystem::fopen(m_filename, "wb");
-    if (!m_fd) {
-        errorf("Could not open \"%s\"", m_filename);
+    ioproxy_retrieve_from_config(m_spec);
+    if (!ioproxy_use_or_open(name))
         return false;
-    }
 
     // IFF image files only supports UINT8 and UINT16.  If something
     // else was requested, revert to the one most likely to be readable
@@ -97,8 +175,8 @@ IffOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     uint64_t xtiles = tile_width_size(m_spec.width);
     uint64_t ytiles = tile_height_size(m_spec.height);
     if (xtiles * ytiles >= (1 << 16)) {  // The format can't store it!
-        errorf(
-            "Too high a resolution (%dx%d), exceeds maximum of 64k tiles in the image\n",
+        errorfmt(
+            "Too high a resolution ({}x{}), exceeds maximum of 64k tiles in the image\n",
             m_spec.width, m_spec.height);
         close();
         return false;
@@ -116,12 +194,76 @@ IffOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     m_iff_header.date           = m_spec.get_string_attribute("DateTime");
 
     if (!write_header(m_iff_header)) {
-        errorf("\"%s\": could not write iff header", m_filename);
+        errorfmt("\"{}\": could not write iff header", m_filename);
         close();
         return false;
     }
 
     m_buf.resize(m_spec.image_bytes());
+
+    return true;
+}
+
+
+
+bool
+IffOutput::write_header(IffFileHeader& header)
+{
+    // write 'FOR4' type, with 0 length for now (to reserve it)
+    if (!(write_str("FOR4") && write_int(0)))
+        return false;
+
+    // write 'CIMG' type
+    if (!write_str("CIMG"))
+        return false;
+
+    // write 'TBHD' type
+    if (!write_str("TBHD"))
+        return false;
+
+    // 'TBHD' length, 32 bytes
+    if (!write_int(32))
+        return false;
+
+    if (!write_int(header.width) || !write_int(header.height))
+        return false;
+
+    // write prnum and prden (pixel aspect ratio? -- FIXME)
+    if (!write_short(1) || !write_short(1))  //NOSONAR
+        return false;
+
+    // write flags and channels
+    if (!write_int(header.pixel_channels == 3 ? RGB : RGBA)
+        || !write_short(header.pixel_bits == 8 ? 0 : 1)
+        || !write_short(header.tiles))
+        return false;
+
+    // write compression
+    // 0 no compression
+    // 1 RLE compression
+    // 2 QRL (not supported)
+    // 3 QR4 (not supported)
+    if (!write_int(header.compression))
+        return false;
+
+    // write x and y
+    if (!write_int(header.x) || !write_int(header.y))
+        return false;
+
+    // Write metadata
+    write_meta_string("AUTH", header.author);
+    write_meta_string("DATE", header.date);
+
+    // for4 position for later user in close
+    header.for4_start = iotell();
+
+    // write 'FOR4' type, with 0 length to reserve it for now
+    if (!write_str("FOR4") || !write_int(0))
+        return false;
+
+    // write 'TBMP' type
+    if (!write_str("TBMP"))
+        return false;
 
     return true;
 }
@@ -186,7 +328,7 @@ IffOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
 inline bool
 IffOutput::close(void)
 {
-    if (m_fd && m_buf.size()) {
+    if (ioproxy_opened() && m_buf.size()) {
         // flip buffer to make write tile easier,
         // from tga.imageio:
 
@@ -226,8 +368,7 @@ IffOutput::close(void)
                 uint32_t th = ymax - ymin + 1;
 
                 // write 'RGBA' type
-                std::string tmpstr = "RGBA";
-                if (!fwrite(tmpstr.c_str(), tmpstr.length(), 1, m_fd))
+                if (!iowritefmt("RGBA"))
                     return false;
 
                 // length.
@@ -440,9 +581,8 @@ IffOutput::close(void)
                                         = in_dy + px * m_spec.pixel_bytes()
                                           + c * m_spec.channel_bytes();
                                     memcpy(&pixel, in_dx, 2);
-                                    if (littleendian()) {
+                                    if (littleendian())
                                         swap_endian(&pixel);
-                                    }
                                     // set pixel
                                     *out_p++ = pixel & 0xff;
                                     *out_p++ = pixel >> 8;
@@ -453,71 +593,45 @@ IffOutput::close(void)
                 }
 
                 // write 'RGBA' length
-                if (littleendian())
-                    swap_endian(&length);
-
-                if (!fwrite(&length, sizeof(length), 1, m_fd))
+                if (!write(&length))
                     return false;
 
                 // write xmin, xmax, ymin and ymax
-                if (littleendian()) {
-                    swap_endian(&xmin);
-                    swap_endian(&ymin);
-                    swap_endian(&xmax);
-                    swap_endian(&ymax);
-                }
-
-                if (!fwrite(&xmin, sizeof(xmin), 1, m_fd)
-                    || !fwrite(&ymin, sizeof(ymin), 1, m_fd)
-                    || !fwrite(&xmax, sizeof(xmax), 1, m_fd)
-                    || !fwrite(&ymax, sizeof(ymax), 1, m_fd))
+                if (!write(&xmin) || !write(&ymin) || !write(&xmax)
+                    || !write(&ymax))
                     return false;
 
                 // write tile
-                if (!fwrite(&scratch[0], tile_length, 1, m_fd))
+                if (!iowrite(scratch.data(), tile_length))
                     return false;
             }
         }
 
         // set sizes
-        uint32_t pos, tmppos;
-        pos = ftell(m_fd);
+        uint32_t pos(iotell());
 
         uint32_t p0 = pos - 8;
         uint32_t p1 = p0 - m_iff_header.for4_start;
 
         // set pos
-        tmppos = 4;
-        fseek(m_fd, tmppos, SEEK_SET);
+        ioseek(4);
 
         // write FOR4 <size> CIMG
-        if (littleendian()) {
-            swap_endian(&p0);
-        }
-
-        if (!fwrite(&p0, sizeof(p0), 1, m_fd))
+        if (!write(&p0))
             return false;
 
         // set pos
-        tmppos = m_iff_header.for4_start + 4;
-        fseek(m_fd, tmppos, SEEK_SET);
+        ioseek(m_iff_header.for4_start + 4);
 
         // write FOR4 <size> TBMP
-        if (littleendian()) {
-            swap_endian(&p1);
-        }
-
-        if (!fwrite(&p1, sizeof(p1), 1, m_fd))
+        if (!write(&p1))
             return false;
 
         m_buf.resize(0);
         m_buf.shrink_to_fit();
     }
-    if (m_fd) {
-        // close the stream
-        fclose(m_fd);
-        m_fd = NULL;
-    }
+
+    init();
     return true;
 }
 

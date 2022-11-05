@@ -9,6 +9,92 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 using namespace iff_pvt;
 
+class IffInput final : public ImageInput {
+public:
+    IffInput() { init(); }
+    ~IffInput() override { close(); }
+    const char* format_name(void) const override { return "iff"; }
+    int supports(string_view feature) const override
+    {
+        return feature == "ioproxy";
+    }
+    bool open(const std::string& name, ImageSpec& spec) override;
+    bool open(const std::string& name, ImageSpec& newspec,
+              const ImageSpec& config) override;
+    bool close(void) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
+    bool read_native_tile(int subimage, int miplevel, int x, int y, int z,
+                          void* data) override;
+
+private:
+    std::string m_filename;
+    iff_pvt::IffFileHeader m_iff_header;
+    std::vector<uint8_t> m_buf;
+
+    uint32_t m_tbmp_start;
+
+    // init to initialize state
+    void init(void)
+    {
+        ioproxy_clear();
+        m_filename.clear();
+        m_buf.clear();
+    }
+
+    // Reads information about IFF file. If errors are encountereed,
+    // read_header wil. issue error messages and return false.
+    bool read_header();
+
+    // helper to read an image
+    bool readimg(void);
+
+    // helper to uncompress a rle channel
+    size_t uncompress_rle_channel(const uint8_t* in, uint8_t* out, int size);
+
+    /// Helper: read buf[0..nitems-1], swap endianness if necessary
+    template<typename T> bool read(T* buf, size_t nitems = 1)
+    {
+        if (!ioread(buf, sizeof(T), nitems))
+            return false;
+        if (littleendian()
+            && (is_same<T, uint16_t>::value || is_same<T, int16_t>::value
+                || is_same<T, uint32_t>::value || is_same<T, int32_t>::value)) {
+            swap_endian(buf, nitems);
+        }
+        return true;
+    }
+
+    bool read_str(std::string& val, uint32_t len, uint32_t round = 4)
+    {
+        const uint32_t big = 1024;
+        char strbuf[big];
+        len     = std::min(len, big);
+        bool ok = ioread(strbuf, len);
+        val.assign(strbuf, len);
+        ok &= ioseek(len % round, SEEK_CUR);
+        return ok;
+    }
+
+    bool read_type_len(std::string& type, uint32_t& len)
+    {
+        return read_str(type, 4) && read(&len);
+    }
+
+    bool read_meta_string(std::string& name, std::string& val)
+    {
+        uint32_t len = 0;
+        return read_type_len(name, len) && read_str(val, len);
+    }
+
+    bool read_typesize(uint8_t type[4], uint32_t& size)
+    {
+        return ioread(type, 1, 4) && read(&size);
+    }
+};
+
+
+
 // Obligatory material to make this a recognizable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
@@ -29,6 +115,17 @@ iff_input_imageio_create()
 OIIO_EXPORT const char* iff_input_extensions[] = { "iff", "z", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
+
+
+
+bool
+IffInput::open(const std::string& name, ImageSpec& newspec,
+               const ImageSpec& config)
+{
+    // Check 'config' for any special requests
+    ioproxy_retrieve_from_config(config);
+    return open(name, newspec);
+}
 
 
 
@@ -60,17 +157,12 @@ IffInput::open(const std::string& name, ImageSpec& spec)
     // saving 'name' for later use
     m_filename = name;
 
-    m_fd = Filesystem::fopen(m_filename, "rb");
-    if (!m_fd) {
-        errorf("Could not open file \"%s\"", name);
+    if (!ioproxy_use_or_open(name))
         return false;
-    }
+    ioseek(0);
 
     // we read header of the file that we think is IFF file
-    std::string err;
-    if (!m_iff_header.read_header(m_fd, err)) {
-        errorf("\"%s\": could not read iff header (%s)", m_filename,
-               err.size() ? err : std::string("unknown"));
+    if (!read_header()) {
         close();
         return false;
     }
@@ -95,7 +187,7 @@ IffInput::open(const std::string& name, ImageSpec& spec)
         // only 1 subimage for IFF
         m_spec.tile_depth = 1;
     } else {
-        errorf("\"%s\": wrong tile size", m_filename);
+        errorfmt("\"{}\": wrong tile size", m_filename);
         close();
         return false;
     }
@@ -123,6 +215,216 @@ IffInput::open(const std::string& name, ImageSpec& spec)
 
     spec = m_spec;
     return true;
+}
+
+
+
+bool
+IffInput::read_header()
+{
+    uint8_t type[4];
+    uint32_t size;
+    uint32_t chunksize;
+    uint32_t tbhdsize;
+    uint32_t flags;
+    uint16_t bytes;
+    uint16_t prnum;
+    uint16_t prden;
+
+    // read FOR4 <size> CIMG.
+    for (;;) {
+        // get type and length
+        if (!read_typesize(type, size))
+            return false;
+
+        chunksize = align_size(size, 4);
+
+        if (type[0] == 'F' && type[1] == 'O' && type[2] == 'R'
+            && type[3] == '4') {
+            // get type
+            if (!ioread(&type, 1, sizeof(type)))
+                return false;
+
+            // check if CIMG
+            if (type[0] == 'C' && type[1] == 'I' && type[2] == 'M'
+                && type[3] == 'G') {
+                // read TBHD.
+                for (;;) {
+                    if (!read_typesize(type, size))
+                        return false;
+
+                    chunksize = align_size(size, 4);
+
+                    if (type[0] == 'T' && type[1] == 'B' && type[2] == 'H'
+                        && type[3] == 'D') {
+                        tbhdsize = size;
+
+                        // test if table header size is correct
+                        if (tbhdsize != 24 && tbhdsize != 32) {
+                            errorfmt("Bad table ehader size {}", tbhdsize);
+                            return false;  // bad table header
+                        }
+
+                        // get width and height
+                        if (!read(&m_iff_header.width)
+                            || !read(&m_iff_header.height) || !read(&prnum)
+                            || !read(&prden) || !read(&flags) || !read(&bytes)
+                            || !read(&m_iff_header.tiles)
+                            || !read(&m_iff_header.compression)) {
+                            return false;
+                        }
+
+                        // get xy
+                        if (tbhdsize == 32) {
+                            if (!read(&m_iff_header.x)
+                                || !read(&m_iff_header.y)) {
+                                return false;
+                            }
+                        } else {
+                            m_iff_header.x = 0;
+                            m_iff_header.y = 0;
+                        }
+
+                        // tiles
+                        if (m_iff_header.tiles == 0) {
+                            errorfmt("non-tiles are not supported");
+                            return false;
+                        }
+
+                        // 0 no compression
+                        // 1 RLE compression
+                        // 2 QRL (not supported)
+                        // 3 QR4 (not supported)
+                        if (m_iff_header.compression > 1) {
+                            errorfmt("only RLE compression is supported");
+                            return false;
+                        }
+
+                        // test format.
+                        if (flags & RGBA) {
+                            // test if black is set
+                            OIIO_DASSERT(!(flags & BLACK));
+
+                            // test for RGB channels.
+                            if (flags & RGB)
+                                m_iff_header.pixel_channels = 3;
+
+                            // test for alpha channel
+                            if (flags & ALPHA)
+                                m_iff_header.pixel_channels++;
+
+                            // test pixel bits
+                            m_iff_header.pixel_bits = bytes ? 16 : 8;
+                        }
+
+                        // Z format.
+                        else if (flags & ZBUFFER) {
+                            m_iff_header.pixel_channels = 1;
+                            m_iff_header.pixel_bits     = 32;  // 32bit
+                            // NOTE: Z_F32 support - not supported
+                            OIIO_DASSERT(bytes == 0);
+                        }
+
+                        // read AUTH, DATE or FOR4
+
+                        for (;;) {
+                            // get type
+                            if (!read_typesize(type, size))
+                                return false;
+
+                            chunksize = align_size(size, 4);
+
+                            if (type[0] == 'A' && type[1] == 'U'
+                                && type[2] == 'T' && type[3] == 'H') {
+                                std::vector<char> str(chunksize);
+                                if (!ioread(&str[0], 1, chunksize))
+                                    return false;
+                                m_iff_header.author = std::string(&str[0],
+                                                                  size);
+                            } else if (type[0] == 'D' && type[1] == 'A'
+                                       && type[2] == 'T' && type[3] == 'E') {
+                                std::vector<char> str(chunksize);
+                                if (!ioread(&str[0], 1, chunksize))
+                                    return false;
+                                m_iff_header.date = std::string(&str[0], size);
+                            } else if (type[0] == 'F' && type[1] == 'O'
+                                       && type[2] == 'R' && type[3] == '4') {
+                                if (!ioread(&type, 1, sizeof(type)))
+                                    return false;
+
+                                // check if CIMG
+                                if (type[0] == 'T' && type[1] == 'B'
+                                    && type[2] == 'M' && type[3] == 'P') {
+                                    // tbmp position for later user in in
+                                    // read_native_tile
+
+                                    m_iff_header.tbmp_start = iotell();
+
+                                    // read first RGBA block to detect tile size.
+
+                                    for (unsigned int t = 0;
+                                         t < m_iff_header.tiles; t++) {
+                                        if (!read_typesize(type, size))
+                                            return false;
+                                        chunksize = align_size(size, 4);
+
+                                        // check if RGBA
+                                        if (type[0] == 'R' && type[1] == 'G'
+                                            && type[2] == 'B'
+                                            && type[3] == 'A') {
+                                            // get tile coordinates.
+                                            uint16_t xmin, xmax, ymin, ymax;
+                                            if (!read(&xmin) || !read(&ymin)
+                                                || !read(&xmax) || !read(&ymax))
+                                                return false;
+
+                                            // check tile
+                                            if (xmin > xmax || ymin > ymax
+                                                || xmax >= m_iff_header.width
+                                                || ymax >= m_iff_header.height)
+                                                return false;
+
+                                            // set tile width and height
+                                            m_iff_header.tile_width
+                                                = xmax - xmin + 1;
+                                            m_iff_header.tile_height
+                                                = ymax - ymin + 1;
+
+                                            // done, return
+                                            return true;
+                                        }
+
+                                        // skip to the next block.
+                                        if (!ioseek(chunksize, SEEK_CUR))
+                                            return false;
+                                    }
+                                } else {
+                                    // skip to the next block.
+                                    if (!ioseek(chunksize, SEEK_CUR))
+                                        return false;
+                                }
+                            } else {
+                                // skip to the next block.
+                                if (!ioseek(chunksize, SEEK_CUR))
+                                    return false;
+                            }
+                        }
+                        // TBHD done, break
+                        break;
+                    }
+
+                    // skip to the next block.
+                    if (!ioseek(chunksize, SEEK_CUR))
+                        return false;
+                }
+            }
+        }
+        // skip to the next block.
+        if (!ioseek(chunksize, SEEK_CUR))
+            return false;
+    }
+    errorfmt("unknown error reading header");
+    return false;
 }
 
 
@@ -173,10 +475,6 @@ IffInput::read_native_tile(int subimage, int miplevel, int x, int y, int /*z*/,
 
 bool inline IffInput::close(void)
 {
-    if (m_fd) {
-        fclose(m_fd);
-        m_fd = NULL;
-    }
     init();
     return true;
 }
@@ -192,20 +490,15 @@ IffInput::readimg()
 
     // seek pos
     // set position tile may be called randomly
-    fseek(m_fd, m_tbmp_start, SEEK_SET);
+    ioseek(m_tbmp_start);
 
     // resize buffer
     m_buf.resize(m_spec.image_bytes());
 
     for (unsigned int t = 0; t < m_iff_header.tiles;) {
-        // get type
-        if (!fread(&type, 1, sizeof(type), m_fd) ||
-            // get length
-            !fread(&size, 1, sizeof(size), m_fd))
+        // get type and length
+        if (!ioread(&type, 1, sizeof(type)) || !read(&size))
             return false;
-
-        if (littleendian())
-            swap_endian(&size);
 
         chunksize = align_size(size, 4);
 
@@ -214,19 +507,8 @@ IffInput::readimg()
             && type[3] == 'A') {
             // get tile coordinates.
             uint16_t xmin, xmax, ymin, ymax;
-            if (!fread(&xmin, 1, sizeof(xmin), m_fd)
-                || !fread(&ymin, 1, sizeof(ymin), m_fd)
-                || !fread(&xmax, 1, sizeof(xmax), m_fd)
-                || !fread(&ymax, 1, sizeof(ymax), m_fd))
+            if (!read(&xmin) || !read(&ymin) || !read(&xmax) || !read(&ymax))
                 return false;
-
-            // swap endianness
-            if (littleendian()) {
-                swap_endian(&xmin);
-                swap_endian(&ymin);
-                swap_endian(&xmax);
-                swap_endian(&ymax);
-            }
 
             // get tile width/height
             uint32_t tw = xmax - xmin + 1;
@@ -268,7 +550,7 @@ IffInput::readimg()
                 // set bytes.
                 scratch.resize(image_size);
 
-                if (!fread(&scratch[0], 1, scratch.size(), m_fd))
+                if (!ioread(scratch.data(), 1, scratch.size()))
                     return false;
 
                 // set tile data
@@ -330,7 +612,7 @@ IffInput::readimg()
                 // set bytes.
                 scratch.resize(image_size);
 
-                if (!fread(&scratch[0], 1, scratch.size(), m_fd))
+                if (!ioread(scratch.data(), 1, scratch.size()))
                     return false;
 
                 // set tile data
@@ -421,8 +703,8 @@ IffInput::readimg()
                 }
 
             } else {
-                errorf("\"%s\": unsupported number of bits per pixel for tile",
-                       m_filename);
+                errorfmt("\"{}\": unsupported number of bits per pixel for tile",
+                         m_filename);
                 return false;
             }
 
@@ -431,7 +713,7 @@ IffInput::readimg()
 
         } else {
             // skip to the next block
-            if (fseek(m_fd, chunksize, SEEK_CUR))
+            if (!ioseek(chunksize))
                 return false;
         }
     }
