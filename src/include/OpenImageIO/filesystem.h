@@ -97,18 +97,12 @@ OIIO_UTIL_API std::string generic_filepath (string_view filepath) noexcept;
 OIIO_UTIL_API std::vector<std::string>
 searchpath_split(string_view searchpath, bool validonly = false);
 
-#if OIIO_VERSION_GREATER_EQUAL(2, 4, 0)
 inline void searchpath_split (string_view searchpath,
                               std::vector<std::string> &dirs,
                               bool validonly = false)
 {
     dirs = searchpath_split(searchpath, validonly);
 }
-#else
-OIIO_UTIL_API void searchpath_split (const std::string &searchpath,
-                                std::vector<std::string> &dirs,
-                                bool validonly = false);
-#endif
 
 /// Find the first instance of a filename existing in a vector of
 /// directories, returning the full path as a string.  If the file is
@@ -124,6 +118,10 @@ OIIO_UTIL_API std::string searchpath_find (const std::string &filename,
                                       const std::vector<std::string> &dirs,
                                       bool testcwd = true,
                                       bool recursive = false);
+
+/// Find the given program in the `$PATH` searchpath and return its full path.
+/// If the program is not found, return an empty string.
+OIIO_UTIL_API std::string find_program(string_view program);
 
 /// Fill a vector-of-strings with the names of all files contained by
 /// directory dirname.  If recursive is true, it will return all files below
@@ -154,6 +152,10 @@ OIIO_UTIL_API bool is_directory (string_view path) noexcept;
 /// Return true if the UTF-8 encoded path exists and is a regular file.
 ///
 OIIO_UTIL_API bool is_regular (string_view path) noexcept;
+
+/// Return true if the UTF-8 encoded path is an executable file (by any of
+/// user, group, or owner).
+OIIO_UTIL_API bool is_executable(string_view path) noexcept;
 
 /// Create the directory, whose name is UTF-8 encoded. Return true for
 /// success, false for failure and place an error message in err.
