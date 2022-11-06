@@ -358,10 +358,6 @@ public:
     /// Return the error message that explains why the file is broken.
     string_view broken_error_message() const { return m_broken_message; }
 
-    // For udim only, turn the udim spec filename into a concrete filename
-    // for the given u and v tile indices.
-    std::string udim_to_concrete(int utile, int vtile);
-
     // Return the regex wildcard matching pattern for a udim spec.
     static std::string udim_to_wildcard(string_view udimpattern);
 
@@ -937,11 +933,6 @@ public:
                               ImageInput::Creator creator = nullptr,
                               const ImageSpec* config     = nullptr,
                               bool replace                = false);
-
-    // Return the ImageCacheFile* of the file if it's already in the cache,
-    // otherwise return nullptr and don't open or add the file.
-    ImageCacheFile* find_file_no_add(ustring filename,
-                                     ImageCachePerThreadInfo* thread_info);
 
     /// Verify & prep the ImageCacheFile record for the named image,
     /// return the pointer (which may have changed for deduplication),
