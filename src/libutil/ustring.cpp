@@ -602,15 +602,15 @@ ustring::concat(string_view s, string_view t)
 std::string
 ustring::getstats(bool verbose)
 {
-    UstringTable& table(ustring_table());
     std::ostringstream out;
     out.imbue(std::locale::classic());  // Force "C" locale with '.' decimal
-    size_t n_e = table.get_num_entries();
-    size_t mem = table.get_memory_usage();
+    size_t n_e = total_ustrings();
+    size_t mem = memory();
     if (verbose) {
         out << "ustring statistics:\n";
 #ifdef USTRING_TRACK_NUM_LOOKUPS
-        out << "  ustring requests: " << table.get_num_lookups() << "\n";
+        out << "  ustring requests: " << ustring_table().get_num_lookups()
+            << "\n";
 #endif
         out << "  unique strings: " << n_e << "\n";
         out << "  ustring memory: " << Strutil::memformat(mem) << "\n";
@@ -625,7 +625,7 @@ ustring::getstats(bool verbose)
 #endif
     } else {
 #ifdef USTRING_TRACK_NUM_LOOKUPS
-        out << "requests: " << table.get_num_lookups() << ", ";
+        out << "requests: " << ustring_table().get_num_lookups() << ", ";
 #endif
         out << "unique " << n_e << ", " << Strutil::memformat(mem);
     }

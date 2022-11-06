@@ -305,8 +305,9 @@ test_escape(string_view raw, string_view escaped)
 void
 test_escape_sequences()
 {
-    test_escape ("\\ \n \r \t", "\\\\ \\n \\r \\t");
+    test_escape ("\\ \n \r \t \v \b \f \a", "\\\\ \\n \\r \\t \\v \\b \\f \\a");
     test_escape (" \"quoted\" ",  " \\\"quoted\\\" ");
+    OIIO_CHECK_EQUAL(Strutil::unescape_chars("A\\023B"), "A\023B");
 }
 
 
@@ -852,6 +853,7 @@ test_numeric_conversion()
                      std::numeric_limits<int>::max());
     OIIO_CHECK_EQUAL(Strutil::stoi("-12345678901234567890"),
                      std::numeric_limits<int>::min());
+    OIIO_CHECK_EQUAL(Strutil::stoi("0x100", nullptr, 16), 256);  // hex
 
     OIIO_CHECK_EQUAL(Strutil::stoui("hi"), 0);
     OIIO_CHECK_EQUAL(Strutil::stoui("  "), 0);
@@ -920,6 +922,22 @@ test_numeric_conversion()
     // stress case!
     OIIO_CHECK_EQUAL (Strutil::stof("100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001E-200"), 1.0f);
     OIIO_CHECK_EQUAL (Strutil::stof("0.00000000000000000001"), 1.0e-20f);
+
+    OIIO_CHECK_EQUAL(Strutil::strtod("314.25"), 314.25);
+    OIIO_CHECK_EQUAL(Strutil::strtod("hi"), 0.0);
+
+    pos = 100;
+    OIIO_CHECK_EQUAL(Strutil::stod(string_view("314.25"), &pos), 314.25);
+    OIIO_CHECK_EQUAL(pos, 6);
+    pos = 100;
+    OIIO_CHECK_EQUAL(Strutil::stod("hi", &pos), 0.0);
+    OIIO_CHECK_EQUAL(pos, 0);
+    pos = 100;
+    OIIO_CHECK_EQUAL(Strutil::stod("", &pos), 0.0);
+    OIIO_CHECK_EQUAL(pos, 0);
+    pos = 100;
+    OIIO_CHECK_EQUAL(Strutil::stod(nullptr, &pos), 0.0);
+    OIIO_CHECK_EQUAL(pos, 0);
 
     // Note: we don't test from_strings<> separately because it's just
     // implemented directly as calls to stoi, stoui, stof.
@@ -1249,6 +1267,17 @@ test_string_view()
     // not horribly broken.
     wstring_view wsv;
     OIIO_CHECK_ASSERT(wsv == wsv);
+
+    // Test the freestanding OIIO::c_str() function
+    OIIO_CHECK_EQUAL(OIIO::c_str(""), std::string());
+    OIIO_CHECK_EQUAL(OIIO::c_str(cstr), cstr);
+    OIIO_CHECK_EQUAL(OIIO::c_str(s), s);
+    OIIO_CHECK_EQUAL(OIIO::c_str(ustring(cstr)), ustring(cstr));
+    OIIO_CHECK_EQUAL(OIIO::c_str(sr), sr);
+    OIIO_CHECK_EQUAL(OIIO::c_str(string_view(sr.data(), 2)), std::string("01"));
+    Strutil::print("addr cstr={:p}, s={:p}, ustring={:p}, sr={:p}, c_str(sr)={:p}\n",
+                     (void*)cstr, (void*)s.c_str(), (void*)ustring(cstr).c_str(), (void*)sr.data(),
+                     (void*)c_str(sr));
 }
 
 
@@ -1412,8 +1441,16 @@ void test_parse ()
 
     s = "[a([b]c)]x]"; ss = parse_nested (s);
     OIIO_CHECK_EQUAL (ss, "[a([b]c)]"); OIIO_CHECK_EQUAL (s, "x]");
-    s = "[a([b]c)]x]"; ss = parse_nested (s, false);
+    s = "[a([b]c)]x]"; ss = parse_nested (s, false);  // no eating
     OIIO_CHECK_EQUAL (ss, "[a([b]c)]"); OIIO_CHECK_EQUAL (s, "[a([b]c)]x]");
+    s = "([a([b]c)])x]"; ss = parse_nested (s);
+    OIIO_CHECK_EQUAL (ss, "([a([b]c)])"); OIIO_CHECK_EQUAL (s, "x]");
+    s = "blah[a([b]c)]x]"; ss = parse_nested (s);
+    OIIO_CHECK_EQUAL (ss, ""); OIIO_CHECK_EQUAL (s, "blah[a([b]c)]x]");
+    s = ""; ss = parse_nested (s);
+    OIIO_CHECK_EQUAL (ss, ""); OIIO_CHECK_EQUAL (s, "");
+    s = "(blah"; ss = parse_nested (s);
+    OIIO_CHECK_EQUAL (ss, ""); OIIO_CHECK_EQUAL (s, "(blah");
 }
 
 
@@ -1581,6 +1618,14 @@ test_edit_distance()
 
 
 
+void
+test_base64_encode()
+{
+    OIIO_CHECK_EQUAL(Strutil::base64_encode("foo123,()"), "Zm9vMTIzLCgp");
+}
+
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -1615,6 +1660,9 @@ main(int /*argc*/, char* /*argv*/[])
     test_string_compare_function();
     test_datetime();
     test_edit_distance();
+    test_base64_encode();
+
+    Strutil::debug("debug message\n");
 
     return unit_test_failures;
 }

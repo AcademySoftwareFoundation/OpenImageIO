@@ -143,6 +143,7 @@ test_ustring()
     // make_unique, is_unique, from_unique
     const char* foostr = foo.c_str();
     OIIO_CHECK_EQUAL(ustring::make_unique("foo"), foostr);
+    OIIO_CHECK_EQUAL(ustring::make_unique(string_view()), ustring());
     OIIO_CHECK_EQUAL(ustring::is_unique(foostr), true);
     OIIO_CHECK_EQUAL(ustring::is_unique("foo"), false);
     OIIO_CHECK_EQUAL(ustring::from_unique(foostr), foo);
@@ -292,8 +293,7 @@ main(int argc, char* argv[])
     benchmark_threaded_ustring_creation();
     verify_no_collisions();
 
-    if (verbose)
-        std::cout << "\n" << ustring::getstats() << "\n";
+    std::cout << "\n" << ustring::getstats(true) << "\n";
 
     return unit_test_failures;
 }

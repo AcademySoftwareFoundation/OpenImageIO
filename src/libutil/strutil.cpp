@@ -357,6 +357,7 @@ Strutil::escape_chars(string_view unescaped)
             case '\r': c = 'r'; break;
             case '\f': c = 'f'; break;
             case '\a': c = 'a'; break;
+            default: break;
             }
             s.insert(i, 1, c);
         }
@@ -384,10 +385,8 @@ Strutil::unescape_chars(string_view escaped)
                 case 'b': s[i] = '\b'; break;
                 case 'r': s[i] = '\r'; break;
                 case 'f': s[i] = '\f'; break;
-                case 'a':
-                    s[i] = '\a';
-                    break;
-                    // default case: the deletion is enough (backslash and quote)
+                case 'a': s[i] = '\a'; break;
+                default: break;  // the deletion is enough (backslash and quote)
                 }
             } else if (c >= '0' && c < '8') {
                 // up to 3 octal digits
@@ -1620,7 +1619,6 @@ Strutil::strtod(const char* nptr, char** endptr) noexcept
     // Can use strtod_l on platforms that support it
 #if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) \
     || defined(__FreeBSD_kernel__) || defined(__GLIBC__)
-    // static initialization inside function is thread-safe by C++11 rules!
     return strtod_l(nptr, endptr, c_loc);
 #elif defined(_WIN32)
     // Windows has _strtod_l
@@ -1700,7 +1698,7 @@ Strutil::stof(string_view s, size_t* pos)
     // will use the "short string optimization", meaning that this string
     // creation will NOT need an allocation/free for most strings we expect
     // to hold a text representation of a float.
-    return Strutil::stof(std::string(s).c_str(), pos);
+    return Strutil::stof(std::string(s), pos);
 }
 
 
