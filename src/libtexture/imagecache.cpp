@@ -1174,36 +1174,6 @@ ImageCacheFile::mark_broken(string_view error)
 
 
 ImageCacheFile*
-ImageCacheImpl::find_file_no_add(ustring filename,
-                                 ImageCachePerThreadInfo* thread_info)
-{
-    // Shortcut - check the per-thread microcache before grabbing a more
-    // expensive lock on the shared file cache.
-    ImageCacheFile* tf = thread_info->find_file(filename);
-
-    // Check the main file cache. For this part, we need to lock the file cache.
-    if (!tf) {  // was not found in microcache
-#if IMAGECACHE_TIME_STATS
-        Timer timer;
-#endif
-        size_t bin                  = m_files.lock_bin(filename);
-        FilenameMap::iterator found = m_files.find(filename, false);
-        if (found) {
-            tf = found->second.get();
-        }
-        m_files.unlock_bin(bin);
-        if (tf)  // add to the microcache
-            thread_info->remember_filename(filename, tf);
-#if IMAGECACHE_TIME_STATS
-        thread_info->m_stats.find_file_time += timer();
-#endif
-    }
-    return tf;
-}
-
-
-
-ImageCacheFile*
 ImageCacheImpl::find_file(ustring filename,
                           ImageCachePerThreadInfo* thread_info,
                           ImageInput::Creator creator, const ImageSpec* config,
@@ -1697,8 +1667,9 @@ ImageCacheImpl::mergestats(ImageCacheStatistics& stats) const
 {
     stats.init();
     spin_lock lock(m_perthread_info_mutex);
-    for (size_t i = 0; i < m_all_perthread_info.size(); ++i)
-        stats.merge(m_all_perthread_info[i]->m_stats);
+    for (auto p : m_all_perthread_info)
+        if (p)
+            stats.merge(p->m_stats);
 }
 
 
@@ -1894,16 +1865,16 @@ ImageCacheImpl::getstats(int level) const
         } else {
             print(out, "  No images opened\n");
         }
-        if (stats.find_file_time > 0.001)
+        if (stats.find_file_time > 0.001 || level > 2)
             print(out, "    Find file time : {}\n",
                   Strutil::timeintervalformat(stats.find_file_time));
-        if (stats.fileio_time > 0.001) {
+        if (stats.fileio_time > 0.001 || level > 2) {
             print(out, "    File I/O time : {}",
                   Strutil::timeintervalformat(stats.fileio_time));
             {
                 spin_lock lock(m_perthread_info_mutex);
                 size_t nthreads = m_all_perthread_info.size();
-                if (nthreads > 1) {
+                if (nthreads > 1 || level > 2) {
                     double perthreadtime = stats.fileio_time / (float)nthreads;
                     print(out, " ({} average per thread, for {} threads)",
                           Strutil::timeintervalformat(perthreadtime), nthreads);
@@ -1913,13 +1884,13 @@ ImageCacheImpl::getstats(int level) const
             print(out, "    File open time only : {}\n",
                   Strutil::timeintervalformat(stats.fileopen_time));
         }
-        if (stats.file_locking_time > 0.001)
+        if (stats.file_locking_time > 0.001 || level > 2)
             print(out, "    File mutex locking time : {}\n",
                   Strutil::timeintervalformat(stats.file_locking_time));
-        if (total_input_mutex_wait_time > 0.001)
+        if (total_input_mutex_wait_time > 0.001 || level > 2)
             print(out, "    ImageInput mutex locking time : {}\n",
                   Strutil::timeintervalformat(total_input_mutex_wait_time));
-        if (m_stat_tiles_created > 0) {
+        if (m_stat_tiles_created > 0 || level > 2) {
             print(out, "  Tiles: {} created, {} current, {} peak\n",
                   m_stat_tiles_created, m_stat_tiles_current,
                   m_stat_tiles_peak);
@@ -1938,10 +1909,10 @@ ImageCacheImpl::getstats(int level) const
         }
         print(out, "    Peak cache memory : {}\n",
               Strutil::memformat(m_mem_used));
-        if (stats.tile_locking_time > 0.001)
+        if (stats.tile_locking_time > 0.001 || level > 2)
             print(out, "    Tile mutex locking time : {}\n",
                   Strutil::timeintervalformat(stats.tile_locking_time));
-        if (stats.find_tile_time > 0.001)
+        if (stats.find_tile_time > 0.001 || level > 2)
             print(out, "    Find tile time : {}\n",
                   Strutil::timeintervalformat(stats.find_tile_time));
         if (stats.file_retry_success || stats.tile_retry_success)
@@ -1975,10 +1946,10 @@ ImageCacheImpl::getstats(int level) const
 
     // Try to point out hot spots
     if (level > 0) {
-        if (total_duplicates)
+        if (total_duplicates || level > 2)
             print(out, "  {} were exact duplicates of other images\n",
                   total_duplicates);
-        if (total_untiled || (total_unmipped && automip())) {
+        if (total_untiled || (total_unmipped && automip()) || level > 2) {
             print(out, "  {} not tiled, {} not MIP-mapped\n", total_untiled,
                   total_unmipped);
 #if 0
@@ -1992,20 +1963,20 @@ ImageCacheImpl::getstats(int level) const
             }
 #endif
         }
-        if (total_constant)
+        if (total_constant || level > 2)
             print(out, "  {} {} constant-valued in all pixels\n",
                   total_constant, (total_constant == 1 ? "was" : "were"));
-        if (files.size() >= 50) {
+        if (files.size() >= 50 || level > 2) {
             const int topN = 3;
             int nprinted;
             std::sort(files.begin(), files.end(), bytesread_compare);
             print(out, "  Top files by bytes read:\n");
             nprinted = 0;
             for (const ImageCacheFileRef& file : files) {
-                if (nprinted++ >= topN)
-                    break;
                 if (file->broken() || !file->validspec())
                     continue;
+                if (nprinted++ >= topN)
+                    break;
                 print(out, "    {}   {:6.1f} MB ({:4.1f}%)  {}\n", nprinted,
                       file->bytesread() / 1024.0 / 1024.0,
                       100.0 * file->bytesread() / (double)total_bytes,
@@ -2015,10 +1986,10 @@ ImageCacheImpl::getstats(int level) const
             print(out, "  Top files by I/O time:\n");
             nprinted = 0;
             for (const ImageCacheFileRef& file : files) {
-                if (nprinted++ >= topN)
-                    break;
                 if (file->broken() || !file->validspec())
                     continue;
+                if (nprinted++ >= topN)
+                    break;
                 print(out, "    {}   {:9} ({:4.1f}%)   {}\n", nprinted,
                       Strutil::timeintervalformat(file->iotime()),
                       100.0 * file->iotime() / total_iotime,
@@ -2030,7 +2001,7 @@ ImageCacheImpl::getstats(int level) const
             for (const ImageCacheFileRef& file : files) {
                 if (file->broken() || !file->validspec())
                     continue;
-                if (file->iotime() < 0.25)
+                if (file->iotime() < 0.25 && level <= 2)
                     continue;
                 if (nprinted++ >= topN)
                     break;
@@ -2050,10 +2021,10 @@ ImageCacheImpl::getstats(int level) const
                 print(out, "  Top files by redundant I/O:\n");
                 nprinted = 0;
                 for (const ImageCacheFileRef& file : files) {
-                    if (nprinted++ >= topN)
-                        break;
                     if (file->broken() || !file->validspec())
                         continue;
+                    if (nprinted++ >= topN)
+                        break;
                     print(out, "    {}   {:6.1f} MB ({:4.1f}%)  {}\n", nprinted,
                           file->redundant_bytesread() / 1024.0 / 1024.0,
                           100.0 * file->redundant_bytesread()
@@ -2101,7 +2072,8 @@ ImageCacheImpl::reset_stats()
     {
         spin_lock lock(m_perthread_info_mutex);
         for (size_t i = 0; i < m_all_perthread_info.size(); ++i)
-            m_all_perthread_info[i]->m_stats.init();
+            if (m_all_perthread_info[i])
+                m_all_perthread_info[i]->m_stats.init();
     }
 
     {
@@ -2900,8 +2872,8 @@ ImageCacheImpl::get_image_info(ImageCacheFile* file,
             return true;
         }
         // If the real data is int but user asks for float, translate it
-        if (p->type().basetype == TypeDesc::FLOAT
-            && datatype.basetype == TypeDesc::INT) {
+        if (p->type().basetype == TypeDesc::INT
+            && datatype.basetype == TypeDesc::FLOAT) {
             for (int i = 0; i < int(p->type().basevalues()); ++i)
                 ((float*)data)[i] = ((int*)p->data())[i];
             return true;
@@ -3275,7 +3247,10 @@ ImageCacheImpl::get_tile(ImageHandle* file, Perthread* thread_info,
         thread_info = get_perthread_info();
     file = verify_file(file, thread_info);
     if (!file || file->broken() || file->is_udim())
-        return NULL;
+        return nullptr;
+    if (subimage < 0 || subimage >= file->subimages() || miplevel < 0
+        || miplevel >= file->miplevels(subimage))
+        return nullptr;
     const ImageSpec& spec(file->spec(subimage, miplevel));
     // Snap x,y,z to the corner of the tile
     int xtile = (x - spec.x) / spec.tile_width;
@@ -3355,9 +3330,7 @@ ImageCacheImpl::add_file(ustring filename, ImageInput::Creator creator,
     ImageCacheFile* file = find_file(filename, thread_info, creator, config,
                                      replace);
     file                 = verify_file(file, thread_info);
-    if (!file || file->broken() || file->is_udim())
-        return false;
-    return true;
+    return file && !file->broken() && !file->is_udim();
 }
 
 
@@ -3651,43 +3624,6 @@ ImageCacheFile::udim_setup()
     for (auto& ud : udim_list) {
         m_udim_lookup[ud.v * m_udim_nutiles + ud.u] = ud;
     }
-}
-
-
-
-std::string
-ImageCacheFile::udim_to_concrete(int utile, int vtile)
-{
-    OIIO_ASSERT(is_udim());
-    std::string result = filename().string();
-    int udim_tile      = 1001 + utile + 10 * vtile;
-
-    // This is a lot of string manipulation, but we only call this function
-    // the first time we need a particular udim tile.
-    result = Strutil::replace(result, "<UDIM>",
-                              Strutil::fmt::format("{:04d}", udim_tile), true);
-    result = Strutil::replace(result, "<u>", Strutil::fmt::format("u{}", utile),
-                              true);
-    result = Strutil::replace(result, "<v>", Strutil::fmt::format("v{}", vtile),
-                              true);
-    result = Strutil::replace(result, "<U>",
-                              Strutil::fmt::format("u{}", utile + 1), true);
-    result = Strutil::replace(result, "<V>",
-                              Strutil::fmt::format("v{}", vtile + 1), true);
-    result = Strutil::replace(result, "_u##v##",
-                              Strutil::fmt::format("_u{:02d}v{:02d}", utile,
-                                                   vtile),
-                              true);
-    result = Strutil::replace(result, "<uvtile>",
-                              Strutil::fmt::format("u{}_v{}", utile, vtile),
-                              true);
-    result = Strutil::replace(result, "<UVTILE>",
-                              Strutil::fmt::format("u{}_v{}", utile + 1,
-                                                   vtile + 1),
-                              true);
-    result = Strutil::replace(result, "%(UDIM)d",
-                              Strutil::fmt::format("{:04d}", udim_tile), true);
-    return result;
 }
 
 

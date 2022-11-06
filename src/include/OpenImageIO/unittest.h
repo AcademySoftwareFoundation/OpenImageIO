@@ -119,6 +119,8 @@ static OIIO::pvt::UnitTestFailureCounter unit_test_failures;
                        << "'\n"),                                             \
             (void)++unit_test_failures))
 
+#define OIIO_CHECK_FALSE(x) OIIO_CHECK_EQUAL(x, false)
+
 #define OIIO_CHECK_EQUAL_THRESH(x, y, eps)                                    \
     ((std::abs((x) - (y)) <= eps)                                             \
          ? ((void)0)                                                          \

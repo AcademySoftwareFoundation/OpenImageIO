@@ -1,12 +1,18 @@
 Created texture system
-Result of get_texture_info resolution = true 256x256
+Result of get_texture_info resolution (as int[2]) = true 256x256
+Result of get_texture_info resolution (as int[3]) = true 256x256x1
 Result of get_texture_info channels = true 3
 Result of get_texture_info channels = true 3
 Result of get_texture_info data format = true uint8
+Result of get_texture_info datawindow (as int[4]) = true [0 0 255 255]
+Result of get_texture_info datawindow (as int[6]) = true [0 0 0 255 255 0]
+Result of get_texture_info displaywindow (as int[4]) = true [0 0 255 255]
+Result of get_texture_info displaywindow (as int[6]) = true [0 0 0 255 255 0]
 Result of get_texture_info datetime = false 
 Result of get_texture_info averagecolor = no
 Result of get_texture_info averagealpha = no
 Result of get_texture_info constantcolor = no
+Result of get_texture_info constantalpha = no
 Texture type is true Plain Texture
 
 Testing BATCHED 2d texture file_<U><V>.tx, output = out.tif
@@ -15,14 +21,20 @@ Image "file_<U><V>.tx" attrib "Make" = "pet"
 Created texture system
 Image "file_<U><V>.tx" attrib "Model" -> not found
 Created texture system
-Result of get_texture_info resolution = true 256x256
+Result of get_texture_info resolution (as int[2]) = true 256x256
+Result of get_texture_info resolution (as int[3]) = true 256x256x1
 Result of get_texture_info channels = true 3
 Result of get_texture_info channels = true 3
 Result of get_texture_info data format = true uint8
+Result of get_texture_info datawindow (as int[4]) = true [0 0 255 255]
+Result of get_texture_info datawindow (as int[6]) = true [0 0 0 255 255 0]
+Result of get_texture_info displaywindow (as int[4]) = true [0 0 255 255]
+Result of get_texture_info displaywindow (as int[6]) = true [0 0 0 255 255 0]
 Result of get_texture_info datetime = false 
 Result of get_texture_info averagecolor = no
 Result of get_texture_info averagealpha = no
 Result of get_texture_info constantcolor = no
+Result of get_texture_info constantalpha = no
 Texture type is true Plain Texture
 
 Testing BATCHED 2d texture file0_u##v##.tx, output = out2.tif
@@ -31,14 +43,20 @@ Image "file0_u##v##.tx" attrib "Make" = "pet"
 Created texture system
 Image "file0_u##v##.tx" attrib "Model" -> not found
 Created texture system
-Result of get_texture_info resolution = true 256x256
+Result of get_texture_info resolution (as int[2]) = true 256x256
+Result of get_texture_info resolution (as int[3]) = true 256x256x1
 Result of get_texture_info channels = true 3
 Result of get_texture_info channels = true 3
 Result of get_texture_info data format = true uint8
+Result of get_texture_info datawindow (as int[4]) = true [0 0 255 255]
+Result of get_texture_info datawindow (as int[6]) = true [0 0 0 255 255 0]
+Result of get_texture_info displaywindow (as int[4]) = true [0 0 255 255]
+Result of get_texture_info displaywindow (as int[6]) = true [0 0 0 255 255 0]
 Result of get_texture_info datetime = false 
 Result of get_texture_info averagecolor = no
 Result of get_texture_info averagealpha = no
 Result of get_texture_info constantcolor = no
+Result of get_texture_info constantalpha = no
 Texture type is true Plain Texture
 
 Testing BATCHED 2d texture file0_<u><v>.tx, output = out3.tif
@@ -47,14 +65,20 @@ Image "file0_<u><v>.tx" attrib "Make" = "pet"
 Created texture system
 Image "file0_<u><v>.tx" attrib "Model" -> not found
 Created texture system
-Result of get_texture_info resolution = true 256x256
+Result of get_texture_info resolution (as int[2]) = true 256x256
+Result of get_texture_info resolution (as int[3]) = true 256x256x1
 Result of get_texture_info channels = true 3
 Result of get_texture_info channels = true 3
 Result of get_texture_info data format = true uint8
+Result of get_texture_info datawindow (as int[4]) = true [0 0 255 255]
+Result of get_texture_info datawindow (as int[6]) = true [0 0 0 255 255 0]
+Result of get_texture_info displaywindow (as int[4]) = true [0 0 255 255]
+Result of get_texture_info displaywindow (as int[6]) = true [0 0 0 255 255 0]
 Result of get_texture_info datetime = false 
 Result of get_texture_info averagecolor = no
 Result of get_texture_info averagealpha = no
 Result of get_texture_info constantcolor = no
+Result of get_texture_info constantalpha = no
 Texture type is true Plain Texture
 
 Testing BATCHED 2d texture file0.<UVTILE>.tx, output = out4.tif
@@ -63,14 +87,20 @@ Image "file0.<UVTILE>.tx" attrib "Make" = "pet"
 Created texture system
 Image "file0.<UVTILE>.tx" attrib "Model" -> not found
 Created texture system
-Result of get_texture_info resolution = true 256x256
+Result of get_texture_info resolution (as int[2]) = true 256x256
+Result of get_texture_info resolution (as int[3]) = true 256x256x1
 Result of get_texture_info channels = true 3
 Result of get_texture_info channels = true 3
 Result of get_texture_info data format = true uint8
+Result of get_texture_info datawindow (as int[4]) = true [0 0 255 255]
+Result of get_texture_info datawindow (as int[6]) = true [0 0 0 255 255 0]
+Result of get_texture_info displaywindow (as int[4]) = true [0 0 255 255]
+Result of get_texture_info displaywindow (as int[6]) = true [0 0 0 255 255 0]
 Result of get_texture_info datetime = false 
 Result of get_texture_info averagecolor = no
 Result of get_texture_info averagealpha = no
 Result of get_texture_info constantcolor = no
+Result of get_texture_info constantalpha = no
 Texture type is true Plain Texture
 
 Testing BATCHED 2d texture file1.<uvtile>.tx, output = out5.tif

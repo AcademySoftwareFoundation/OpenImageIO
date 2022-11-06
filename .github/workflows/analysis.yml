@@ -15,6 +15,7 @@ on:
     branches:
       - master
       - '*analysis*'
+      - '*sonar*'
   # Allow manual kicking off of the workflow from github.com
   workflow_dispatch:
   # Uncomment the following line if we want to run analysis on all PRs:
@@ -59,6 +60,7 @@ jobs:
                             CMAKE_BUILD_TYPE=Debug
                             CMAKE_UNITY_BUILD=OFF
                             CODECOV=1
+                            CTEST_TEST_TIMEOUT=1200
 
     runs-on: ${{ matrix.os }}
     container:

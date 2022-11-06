@@ -92,6 +92,8 @@ static Imath::M33f xform;
 static std::string texoptions;
 static std::string gtiname;
 static std::string maketest_template;
+static int maketest_res   = 2048;
+static int maketest_chans = 4;
 static int num_test_files = 0;
 static std::vector<std::string> filenames_to_delete;
 const int pieces_per_udim = 20;
@@ -241,6 +243,10 @@ getargs(int argc, const char* argv[])
       .help("Print runtime statistics");
     ap.arg("--maketests %d:NUMFILES %s:TEMPLATE", &num_test_files,  &maketest_template)
       .help("Make tests from a template (e.g., \"tmp/test{:04}.exr\")");
+    ap.arg("--maketest-res %d:RES", &maketest_res)
+      .help("Resolution for maketests (default: 2048)");
+    ap.arg("--maketest-chans %d:NCHANS", &maketest_chans)
+      .help("Channels for maketests (default: 4)");
     ap.arg("--udim", &udim_tests)
       .help("Do udim-oriented tests");
     ap.arg("--bluenoise", &use_bluenoise)
@@ -310,19 +316,28 @@ test_gettextureinfo(ustring filename)
 {
     bool ok;
 
-    int res[2] = { 0 };
-    ok         = texsys->get_texture_info(filename, 0, ustring("resolution"),
+    int res[3] = { 0 };
+
+    ok = texsys->get_texture_info(filename, 0, ustring("resolution"),
                                   TypeDesc(TypeDesc::INT, 2), res);
-    Strutil::print("Result of get_texture_info resolution = {} {}x{}\n", ok,
-                   res[0], res[1]);
+    Strutil::print(
+        "Result of get_texture_info resolution (as int[2]) = {} {}x{}\n", ok,
+        res[0], res[1]);
+    ok = texsys->get_texture_info(filename, 0, ustring("resolution"),
+                                  TypeDesc(TypeDesc::INT, 3), res);
+    Strutil::print(
+        "Result of get_texture_info resolution (as int[3]) = {} {}x{}x{}\n", ok,
+        res[0], res[1], res[2]);
 
     int chan = 0;
-    ok       = texsys->get_texture_info(filename, 0, ustring("channels"),
+
+    ok = texsys->get_texture_info(filename, 0, ustring("channels"),
                                   TypeDesc::INT, &chan);
     Strutil::print("Result of get_texture_info channels = {} {}\n", ok, chan);
 
     float fchan = 0;
-    ok          = texsys->get_texture_info(filename, 0, ustring("channels"),
+
+    ok = texsys->get_texture_info(filename, 0, ustring("channels"),
                                   TypeDesc::FLOAT, &fchan);
     Strutil::print("Result of get_texture_info channels = {} {:g}\n", ok,
                    fchan);
@@ -332,6 +347,29 @@ test_gettextureinfo(ustring filename)
                                   &dataformat);
     Strutil::print("Result of get_texture_info data format = {} {}\n", ok,
                    TypeDesc((TypeDesc::BASETYPE)dataformat).c_str());
+
+    int window[6];
+    ok = texsys->get_texture_info(filename, 0, ustring("datawindow"),
+                                  TypeDesc("int[4]"), window);
+    Strutil::print(
+        "Result of get_texture_info datawindow (as int[4]) = {} [{} {} {} {}]\n",
+        ok, window[0], window[1], window[2], window[3]);
+    ok = texsys->get_texture_info(filename, 0, ustring("datawindow"),
+                                  TypeDesc("int[6]"), window);
+    Strutil::print(
+        "Result of get_texture_info datawindow (as int[6]) = {} [{} {} {} {} {} {}]\n",
+        ok, window[0], window[1], window[2], window[3], window[4], window[5]);
+
+    ok = texsys->get_texture_info(filename, 0, ustring("displaywindow"),
+                                  TypeDesc("int[4]"), window);
+    Strutil::print(
+        "Result of get_texture_info displaywindow (as int[4]) = {} [{} {} {} {}]\n",
+        ok, window[0], window[1], window[2], window[3]);
+    ok = texsys->get_texture_info(filename, 0, ustring("displaywindow"),
+                                  TypeDesc("int[6]"), window);
+    Strutil::print(
+        "Result of get_texture_info displaywindow (as int[6]) = {} [{} {} {} {} {} {}]\n",
+        ok, window[0], window[1], window[2], window[3], window[4], window[5]);
 
     const char* datetime = NULL;
     ok = texsys->get_texture_info(filename, 0, ustring("DateTime"),
@@ -345,19 +383,27 @@ test_gettextureinfo(ustring filename)
     Strutil::print("Result of get_texture_info averagecolor = {}",
                    ok ? "yes" : "no\n");
     if (ok)
-        Strutil::print(" {} {} {} {}\n", avg[0], avg[1], avg[2], avg[3]);
+        Strutil::print(" {:g} {:g} {:g} {:g}\n", avg[0], avg[1], avg[2],
+                       avg[3]);
     ok = texsys->get_texture_info(filename, 0, ustring("averagealpha"),
                                   TypeFloat, avg);
     Strutil::print("Result of get_texture_info averagealpha = {}",
                    ok ? "yes" : "no\n");
     if (ok)
-        Strutil::print(" {}\n", avg[0]);
+        Strutil::print(" {:g}\n", avg[0]);
     ok = texsys->get_texture_info(filename, 0, ustring("constantcolor"),
                                   TypeDesc(TypeDesc::FLOAT, 4), avg);
     Strutil::print("Result of get_texture_info constantcolor = {}",
                    ok ? "yes" : "no\n");
     if (ok)
-        Strutil::print(" {} {} {} {}\n", avg[0], avg[1], avg[2], avg[3]);
+        Strutil::print(" {:g} {:g} {:g} {:g}\n", avg[0], avg[1], avg[2],
+                       avg[3]);
+    ok = texsys->get_texture_info(filename, 0, ustring("constantalpha"),
+                                  TypeFloat, avg);
+    Strutil::print("Result of get_texture_info constantalpha = {}",
+                   ok ? "yes" : "no\n");
+    if (ok)
+        Strutil::print(" {:g}\n", avg[0]);
 
     const char* texturetype = NULL;
     ok = texsys->get_texture_info(filename, 0, ustring("textureformat"),
@@ -1511,7 +1557,7 @@ hashrand(int x, int y, int z, int c, int seed)
 static void
 make_temp_noise_file(string_view filename, int seed)
 {
-    ImageSpec spec(2048, 2048, 4,
+    ImageSpec spec(maketest_res, maketest_res, maketest_chans,
                    Filesystem::extension(filename) == ".exr" ? TypeHalf
                                                              : TypeUInt16);
     ImageBuf buf(spec);
@@ -1541,7 +1587,8 @@ static void
 make_test_files()
 {
     Timer timer;
-    int n = 0;
+    int n      = 0;
+    int pieces = udim_tests ? pieces_per_udim : 1;
     for (int i = 0; n < num_test_files; ++i) {
         std::string filename = Strutil::fmt::format(maketest_template, i);
         bool do_print
@@ -1551,29 +1598,22 @@ make_test_files()
             Strutil::print("Temp file {}: {}\n", i, filename);
             fflush(stdout);
         }
-        if (udim_tests) {
-            // Strutil::print("UDIM {}\n", filename);
-            for (int u = 0; u < pieces_per_udim && n < num_test_files; ++u) {
-                std::string udim_filename
-                    = Strutil::replace(filename, "<UDIM>",
-                                       Strutil::fmt::format("{:04d}", u + 1001));
-                if (do_print)
-                    Strutil::print("    {}\n", udim_filename);
-                if (!Filesystem::exists(udim_filename))
-                    make_temp_noise_file(udim_filename, i + u * 19);
-                ++n;
-            }
-            filenames.emplace_back(filename);
-        } else {
-            if (!Filesystem::exists(filename))
-                make_temp_noise_file(filename, i);
+        for (int u = 0; u < pieces && n < num_test_files; ++u) {
+            std::string fn
+                = Strutil::replace(filename, "<UDIM>",
+                                   Strutil::fmt::format("{:04d}", u + 1001));
+            if (udim_tests && do_print)
+                Strutil::print("    {}\n", fn);
+            if (!Filesystem::exists(fn))
+                make_temp_noise_file(fn, i + u * 19);
             ++n;
-            filenames.emplace_back(filename);
         }
+        filenames.emplace_back(filename);
     }
-    Strutil::print("Created {} test files in {}\n\n",
-                   filenames_to_delete.size(),
-                   Strutil::timeintervalformat(timer()));
+    if (runstats)
+        Strutil::print("Created {} test files in {}\n\n",
+                       filenames_to_delete.size(),
+                       Strutil::timeintervalformat(timer()));
     fflush(stdout);
 }
 
