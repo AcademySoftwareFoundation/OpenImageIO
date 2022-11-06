@@ -22,4 +22,9 @@ command += testtex_command ("\"file.%(UDIM)d.tx\"",
 command += testtex_command ("\"file.%(UDIM)d.tx\" --gettextureinfo Make --iters 0")
 command += testtex_command ("\"file.%(UDIM)d.tx\" --gettextureinfo Model --iters 0")
 
-outputs = [ "out.tif", "out2.tif", "out.txt" ]
+# Exercise making making temp files, and having low file and tile limits
+command += testtex_command ("--udim --maketests 10 \"mktest_{:04}.<UDIM>.tx\""
+                            + " --maketest-res 1024 --cachesize 1 --maxfiles 5"
+                            + " --res 256 256 -d uint8 -o out3.tif")
+
+outputs = [ "out.tif", "out2.tif", "out3.tif", "out.txt" ]
