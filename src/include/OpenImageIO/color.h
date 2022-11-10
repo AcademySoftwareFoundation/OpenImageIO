@@ -161,7 +161,7 @@ public:
     /// inverse==true, request the inverse transformation.  The
     /// context_key and context_value can optionally be used to establish
     /// extra key/value pairs in the OCIO context if they are comma-
-    /// separated lists of ontext keys and values, respectively.
+    /// separated lists of context keys and values, respectively.
     ///
     /// The handle is actually a shared_ptr, so when you're done with a
     /// ColorProcess, just discard it. ColorProcessor(s) remain valid even
@@ -245,13 +245,25 @@ public:
     ColorProcessorHandle
     createDisplayTransform(string_view display, string_view view,
                            string_view inputColorSpace, string_view looks = "",
-                           string_view context_key   = "",
+                           bool inverse = false, string_view context_key = "",
                            string_view context_value = "") const;
     ColorProcessorHandle
     createDisplayTransform(ustring display, ustring view,
                            ustring inputColorSpace, ustring looks = ustring(),
+                           bool inverse          = false,
                            ustring context_key   = ustring(),
                            ustring context_value = ustring()) const;
+
+    // OIIO_DEPRECATED("prefer the kind that takes an `inverse` parameter (2.5)")
+    ColorProcessorHandle
+    createDisplayTransform(string_view display, string_view view,
+                           string_view inputColorSpace, string_view looks,
+                           string_view context_key,
+                           string_view context_value = "") const;
+    // OIIO_DEPRECATED("prefer the kind that takes an `inverse` parameter (2.5)")
+    ColorProcessorHandle createDisplayTransform(
+        ustring display, ustring view, ustring inputColorSpace, ustring looks,
+        ustring context_key, ustring context_value = ustring()) const;
 
     /// Construct a processor to perform color transforms determined by an
     /// OpenColorIO FileTransform. It is possible that this will return an
