@@ -79,9 +79,34 @@ if str(mytest).endswith('.batch') :
     mytest = mytest.split('.')[0]
 test_source_dir = os.getenv('OIIO_TESTSUITE_SRC',
                             os.path.join(OIIO_TESTSUITE_ROOT, mytest))
-colorconfig_file = os.getenv('OIIO_TESTSUITE_OCIOCONFIG',
-                             '../common/OpenColorIO/nuke-default/config.ocio')
-colorconfig_file = make_relpath(colorconfig_file)
+
+def oiio_app (app):
+    if (platform.system () != 'Windows' or options.devenv_config == ""):
+        cmd = os.path.join(OIIO_BUILD_ROOT, "bin", app) + " "
+    else:
+        cmd = os.path.join(OIIO_BUILD_ROOT, "bin", options.devenv_config, app) + " "
+    if wrapper_cmd != "":
+        cmd = wrapper_cmd + " " + cmd
+    return cmd
+
+
+# Ask oiiotool what version of OpenColorIO it has emedded
+ociover = subprocess.check_output([oiio_app('oiiotool').strip(),
+                                   '--echo', '{getattribute(opencolorio_version)}'])
+ociover = ociover.strip().decode('utf-8')[0:3]
+ociover = os.getenv('OCIO_VERSION_OVERRIDE', ociover)
+#print(f"OpenColorIO version = '{ociover}'")
+
+OCIO_env = os.getenv('OCIO')
+if OCIO_env is None:
+    os.environ['OCIO'] = 'ocio:://default'
+    if ociover == '2.2' or ociover == '2.3' :
+        colorconfig_file = os.getenv('OIIO_TESTSUITE_OCIOCONFIG', 'ocio://default')
+    else :
+        colorconfig_file = os.getenv('OIIO_TESTSUITE_OCIOCONFIG',
+                                     '../common/OpenColorIO/nuke-default/config.ocio')
+    if not colorconfig_file.startswith('ocio://') :
+        colorconfig_file = make_relpath(colorconfig_file)
 
 
 command = ""
@@ -200,15 +225,6 @@ def run_app(app, silent=False, concat=True):
     if concat:
         command += " ;\n"
     return command
-
-def oiio_app (app):
-    if (platform.system () != 'Windows' or options.devenv_config == ""):
-        cmd = os.path.join(OIIO_BUILD_ROOT, "bin", app) + " "
-    else:
-        cmd = os.path.join(OIIO_BUILD_ROOT, "bin", options.devenv_config, app) + " "
-    if wrapper_cmd != "":
-        cmd = wrapper_cmd + " " + cmd
-    return cmd
 
 
 # Construct a command that will print info for an image, appending output to
@@ -335,8 +351,8 @@ def iconvert (args, silent=False, concat=True, failureok=False) :
 # Construct a command that will run oiiotool and append its output to out.txt
 def oiiotool (args, silent=False, concat=True, failureok=False) :
     cmd = (oiio_app("oiiotool") + " "
-           + "-colorconfig " + colorconfig_file + " "
            + args)
+    #       + "-colorconfig " + colorconfig_file + " "
     if not silent :
         cmd += redirect
     if failureok :

@@ -7,6 +7,7 @@
 
 #include <OpenImageIO/half.h>
 
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/hash.h>
@@ -505,6 +506,12 @@ getattribute(string_view name, TypeDesc type, void* val)
     }
     if (name == "try_all_readers" && type == TypeInt) {
         *(int*)val = oiio_try_all_readers;
+        return true;
+    }
+    if (name == "opencolorio_version" && type == TypeString) {
+        int v          = ColorConfig::OpenColorIO_version_hex();
+        *(ustring*)val = ustring::fmtformat("{}.{}.{}", v >> 24,
+                                            (v >> 16) & 0xff, (v >> 8) & 0xff);
         return true;
     }
     return false;

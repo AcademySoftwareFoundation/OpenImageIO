@@ -77,11 +77,11 @@ Testing if/else with false cond:
 Testing else without if:
 oiiotool ERROR: -else : else without matching if
 Full command line was:
-> oiiotool -colorconfig ../common/OpenColorIO/nuke-default/config.ocio -echo "Testing else without if:" -else -echo bad -endif -echo " "
+> oiiotool -echo "Testing else without if:" -else -echo bad -endif -echo " "
 Testing endif without if:
 oiiotool ERROR: -endif : endif without matching if
 Full command line was:
-> oiiotool -colorconfig ../common/OpenColorIO/nuke-default/config.ocio -echo "Testing endif without if:" -endif -echo " "
+> oiiotool -echo "Testing endif without if:" -endif -echo " "
 Testing while (expect output 0..2):
   i = 0
   i = 1
@@ -90,7 +90,7 @@ Testing while (expect output 0..2):
 Testing endwhile without while:
 oiiotool ERROR: -endwhile : endwhile without matching while
 Full command line was:
-> oiiotool -colorconfig ../common/OpenColorIO/nuke-default/config.ocio -echo "Testing endwhile without while:" -endwhile -echo " "
+> oiiotool -echo "Testing endwhile without while:" -endwhile -echo " "
 Testing for i 5 (expect output 0..4):
   i = 0
   i = 1
@@ -113,11 +113,11 @@ Testing for i 5,10,2 (expect output 5,7,9):
 Testing endfor without for:
 oiiotool ERROR: -endfor : endfor without matching for
 Full command line was:
-> oiiotool -colorconfig ../common/OpenColorIO/nuke-default/config.ocio -echo "Testing endfor without for:" -endfor -echo " "
+> oiiotool -echo "Testing endfor without for:" -endfor -echo " "
 Testing for i 5,10,2,8 (bad range):
 oiiotool ERROR: --for : Invalid range "5,10,2,8"
 Full command line was:
-> oiiotool -colorconfig ../common/OpenColorIO/nuke-default/config.ocio -echo "Testing for i 5,10,2,8 (bad range):" --for i 5,10,2,8 --echo "  i = {i}" --endfor -echo " "
+> oiiotool -echo "Testing for i 5,10,2,8 (bad range):" --for i 5,10,2,8 --echo "  i = {i}" --endfor -echo " "
 SEQUENCE 0
   copyA.#.jpg -> ./copyA.0001.jpg
   copyB.#.jpg -> copyB.0001.jpg

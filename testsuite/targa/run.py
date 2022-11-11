@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-redirect = " >> out.txt 2>> out.err.txt"
+redirect = " >> out.txt 2>&1"
 
 imagedir = OIIO_TESTSUITE_IMAGEDIR + "/targa"
 
@@ -22,4 +22,4 @@ command += oiiotool("--oiioattrib try_all_readers 0 src/crash6.tga -o crash6.exr
 # Test odds and ends, unusual files
 command += rw_command("src", "1x1.tga")
 
-outputs += [ 'out.txt', 'out.err.txt' ]
+outputs += [ 'out.txt' ]

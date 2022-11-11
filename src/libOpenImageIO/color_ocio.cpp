@@ -28,24 +28,27 @@
 #    include <OpenColorIO/OpenColorIO.h>
 #    if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 0, 0)
 #        define OCIO_v2 1
-// NOTE: these 3 header files were part of the pre-release OCIO 2.0 but
-// eventually were removed. After OCIO v2 is released and we are fairly
-// confident nobody will encounter them, we can remove these includes
-// entirely.
-#        if __has_include(<OpenColorIO/apphelpers/ColorSpaceHelpers.h>)
-#            include <OpenColorIO/apphelpers/ColorSpaceHelpers.h>
-#        endif
-#        if __has_include(<OpenColorIO/apphelpers/DisplayViewHelpers.h>)
-#            include <OpenColorIO/apphelpers/DisplayViewHelpers.h>
-#        endif
-#        if __has_include(<OpenColorIO/apphelpers/ViewingPipeline.h>)
-#            include <OpenColorIO/apphelpers/ViewingPipeline.h>
-#        endif
+#    endif
+#    if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 2, 0)
+#        define OCIO_HAS_BUILTIN_CONFIGS 1
 #    endif
 namespace OCIO = OCIO_NAMESPACE;
+#else
+#    define OCIO_VERSION_HEX 0
 #endif
 
+
 OIIO_NAMESPACE_BEGIN
+
+
+#if 0 /* allow color configuration debugging */
+static bool colordebug = Strutil::stoi(Sysutil::getenv("OIIO_COLOR_DEBUG"));
+#    define DBG(...)    \
+        if (colordebug) \
+        Strutil::print(__VA_ARGS__)
+#else
+#    define DBG(...)
+#endif
 
 
 static std::shared_ptr<ColorConfig> default_colorconfig;  // default color config
@@ -84,42 +87,12 @@ public:
     friend bool operator<(const ColorProcCacheKey& a,
                           const ColorProcCacheKey& b)
     {
-        if (a.hash < b.hash)
-            return true;
-        if (b.hash < a.hash)
-            return false;
-        // They hash the same, so now compare for real. Note that we just to
-        // impose an order, any order -- does not need to be alphabetical --
-        // so we just compare the pointers.
-        if (a.inputColorSpace.c_str() < b.inputColorSpace.c_str())
-            return true;
-        if (b.inputColorSpace.c_str() < a.inputColorSpace.c_str())
-            return false;
-        if (a.outputColorSpace.c_str() < b.outputColorSpace.c_str())
-            return true;
-        if (b.outputColorSpace.c_str() < a.outputColorSpace.c_str())
-            return false;
-        if (a.context_key.c_str() < b.context_key.c_str())
-            return true;
-        if (b.context_key.c_str() < a.context_key.c_str())
-            return false;
-        if (a.looks.c_str() < b.looks.c_str())
-            return true;
-        if (b.looks.c_str() < a.looks.c_str())
-            return false;
-        if (a.display.c_str() < b.display.c_str())
-            return true;
-        if (b.display.c_str() < a.display.c_str())
-            return false;
-        if (a.view.c_str() < b.view.c_str())
-            return true;
-        if (b.view.c_str() < a.view.c_str())
-            return false;
-        if (a.file.c_str() < b.view.c_str())
-            return true;
-        if (b.view.c_str() < a.view.c_str())
-            return false;
-        return int(a.inverse) < int(b.inverse);
+        return std::tie(a.hash, a.inputColorSpace, a.outputColorSpace,
+                        a.context_key, a.context_value, a.looks, a.display,
+                        a.view, a.file, a.inverse)
+               < std::tie(b.hash, b.inputColorSpace, b.outputColorSpace,
+                          b.context_key, b.context_value, b.looks, b.display,
+                          b.view, b.file, b.inverse);
     }
 
     ustring inputColorSpace;
@@ -156,11 +129,7 @@ ColorConfig::supportsOpenColorIO()
 int
 ColorConfig::OpenColorIO_version_hex()
 {
-#ifdef USE_OCIO
     return OCIO_VERSION_HEX;
-#else
-    return 0;
-#endif
 }
 
 
@@ -190,12 +159,13 @@ public:
         // Debugging the cache -- make sure we're creating a small number
         // compared to repeated requests.
         if (colorprocs_requested)
-            Strutil::printf ("ColorConfig::Impl : color procs requested: %d, created: %d\n",
-                             colorprocs_requested, colorprocs_created);
+            DBG("ColorConfig::Impl : color procs requested: {}, created: {}\n",
+                           colorprocs_requested, colorprocs_created);
 #endif
     }
 
     void inventory();
+
     void add(const std::string& name, int index)
     {
         colorspaces.emplace_back(name, index);
@@ -244,11 +214,10 @@ public:
     std::string geterror(bool clear = true)
     {
         std::string err;
+        spin_rw_write_lock lock(m_mutex);
         if (clear) {
-            spin_rw_write_lock lock(m_mutex);
             std::swap(err, m_error);
         } else {
-            spin_rw_read_lock lock(m_mutex);
             err = m_error;
         }
         return err;
@@ -337,8 +306,11 @@ ColorConfig::reset(string_view filename)
     // If no filename was specified, use env $OCIO
     if (filename.empty())
         filename = Sysutil::getenv("OCIO");
-
-    if (filename.size() && !Filesystem::exists(filename)) {
+    if (filename.size() && !Filesystem::exists(filename)
+#    ifdef OCIO_HAS_BUILTIN_CONFIGS
+        && !Strutil::istarts_with(filename, "ocio://")
+#    endif
+    ) {
         getImpl()->error("Requested non-existent OCIO config \"{}\"", filename);
     } else {
         // Either filename passed, or taken from $OCIO, and it seems to exist
@@ -492,6 +464,42 @@ ColorConfig::getLookNames() const
     std::vector<std::string> result;
     for (int i = 0, e = getNumLooks(); i != e; ++i)
         result.emplace_back(getLookNameByIndex(i));
+    return result;
+}
+
+
+
+bool
+ColorConfig::isColorSpaceLinear(string_view name) const
+{
+#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 2, 0)
+    if (getImpl()->config_) {
+        return getImpl()->config_->isColorSpaceLinear(
+                   c_str(name), OCIO::REFERENCE_SPACE_SCENE)
+               || getImpl()->config_->isColorSpaceLinear(
+                   c_str(name), OCIO::REFERENCE_SPACE_DISPLAY);
+    }
+#endif
+    return Strutil::iequals(name, "linear")
+           || Strutil::iequals(name, "scene_linear");
+}
+
+
+
+std::vector<std::string>
+ColorConfig::getAliases(string_view color_space) const
+{
+    std::vector<std::string> result;
+#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 0, 0)
+    auto config = getImpl()->config_;
+    if (config) {
+        auto cs = config->getColorSpace(c_str(color_space));
+        if (cs) {
+            for (int i = 0, e = cs->getNumAliases(); i < e; ++i)
+                result.emplace_back(cs->getAlias(i));
+        }
+    }
+#endif
     return result;
 }
 
@@ -1457,7 +1465,7 @@ ColorConfig::parseColorSpaceFromString(string_view str) const
         return getImpl()->config_->parseColorSpaceFromString(str.c_str());
 #endif
 
-    // Reproduce the logic in OCIO v1 parseColorSpaceFromSring
+    // Reproduce the logic in OCIO v1 parseColorSpaceFromString
 
     if (str.empty())
         return "";
@@ -1475,7 +1483,7 @@ ColorConfig::parseColorSpaceFromString(string_view str) const
     size_t rightMostColorPos = std::string::npos;
     std::string rightMostColorspace;
 
-    // Find the right-most occcurance within the string for each colorspace.
+    // Find the right-most occurrence within the string for each colorspace.
     for (auto&& csname : names) {
         // find right-most extension matched in filename
         size_t pos = Strutil::irfind(str, csname);
