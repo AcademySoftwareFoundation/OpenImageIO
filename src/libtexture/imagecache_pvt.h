@@ -372,7 +372,7 @@ private:
         // Note that m_input, the shared pointer itself, is NOT safe to
         // access directly. ALWAYS retrieve its value with get_imageinput
         // (it's thread-safe to use that result) and set its value with
-        // get_imageinput -- those are guaranteed thread-safe.
+        // set_imageinput -- those are guaranteed thread-safe.
     std::vector<SubimageInfo> m_subimages;  ///< Info on each subimage
     TexFormat m_texformat;                  ///< Which texture format
     TextureOpt::Wrap m_swrap;               ///< Default wrap modes
