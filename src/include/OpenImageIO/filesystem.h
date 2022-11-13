@@ -539,7 +539,7 @@ protected:
 /// IOProxy subclass for reading that wraps an cspan<char>.
 class OIIO_UTIL_API IOMemReader : public IOProxy {
 public:
-    IOMemReader(void* buf, size_t size)
+    IOMemReader(const void* buf, size_t size)
         : IOProxy("", Read)
         , m_buf((const unsigned char*)buf, size)
     {
