@@ -103,11 +103,16 @@ private:
     std::vector<unsigned char> m_scratch;
     std::vector<unsigned char> m_tilebuffer;
 
+    bool opened() const { return m_file || m_gz; }
+
     // Initialize private members to pre-opened state
     void init(void)
     {
         m_file = nullptr;
         m_gz   = 0;
+        m_filename.clear();
+        m_scratch.clear();
+        m_tilebuffer.clear();
     }
 };
 
@@ -167,7 +172,7 @@ ZfileInput::open(const std::string& name, ImageSpec& newspec)
     m_filename = name;
     m_gz       = open_gz(name, "rb");
     if (!m_gz) {
-        errorf("Could not open \"%s\"", name);
+        errorfmt("Could not open \"{}\"", name);
         return false;
     }
 
@@ -176,7 +181,7 @@ ZfileInput::open(const std::string& name, ImageSpec& newspec)
     gzread(m_gz, &header, sizeof(header));
 
     if (header.magic != zfile_magic && header.magic != zfile_magic_endian) {
-        errorf("Not a valid Zfile");
+        errorfmt("Not a valid Zfile");
         return false;
     }
 
@@ -254,7 +259,7 @@ ZfileOutput::open(const std::string& name, const ImageSpec& userspec,
                   OpenMode mode)
 {
     if (mode != Create) {
-        errorf("%s does not support subimages or MIP levels", format_name());
+        errorfmt("{} does not support subimages or MIP levels", format_name());
         return false;
     }
 
@@ -265,24 +270,26 @@ ZfileOutput::open(const std::string& name, const ImageSpec& userspec,
 
     // Check for things this format doesn't support
     if (m_spec.width < 1 || m_spec.height < 1) {
-        errorf("Image resolution must be at least 1x1, you asked for %d x %d",
-               m_spec.width, m_spec.height);
+        errorfmt("Image resolution must be at least 1x1, you asked for {} x {}",
+                 m_spec.width, m_spec.height);
         return false;
     }
     if (m_spec.width > 32767 || m_spec.height > 32767) {
-        errorf("zfile image resolution maximum is 32767, you asked for %d x %d",
-               m_spec.width, m_spec.height);
+        errorfmt(
+            "zfile image resolution maximum is 32767, you asked for {} x {}",
+            m_spec.width, m_spec.height);
         return false;
     }
     if (m_spec.depth < 1)
         m_spec.depth = 1;
     if (m_spec.depth > 1) {
-        errorf("%s does not support volume images (depth > 1)", format_name());
+        errorfmt("{} does not support volume images (depth > 1)",
+                 format_name());
         return false;
     }
 
     if (m_spec.nchannels != 1) {
-        errorf("Zfile only supports 1 channel, not %d", m_spec.nchannels);
+        errorfmt("Zfile only supports 1 channel, not {}", m_spec.nchannels);
         return false;
     }
 
@@ -311,7 +318,7 @@ ZfileOutput::open(const std::string& name, const ImageSpec& userspec,
         m_file = Filesystem::fopen(name, "wb");
     }
     if (!m_file && !m_gz) {
-        errorf("Could not open \"%s\"", name);
+        errorfmt("Could not open \"{}\"", name);
         return false;
     }
 
@@ -322,7 +329,8 @@ ZfileOutput::open(const std::string& name, const ImageSpec& userspec,
         b = fwrite(&header, sizeof(header), 1, m_file);
     }
     if (!b) {
-        errorf("Failed write zfile::open (err: %d)", b);
+        errorfmt("Failed write zfile::open (err: {})", b);
+        close();
         return false;
     }
 
@@ -339,13 +347,18 @@ ZfileOutput::open(const std::string& name, const ImageSpec& userspec,
 bool
 ZfileOutput::close()
 {
+    if (!opened()) {
+        init();
+        return true;
+    }
+
     bool ok = true;
-    if (m_spec.tile_width) {
+    if (m_spec.tile_width && m_tilebuffer.size()) {
         // We've been emulating tiles; now dump as scanlines.
-        OIIO_DASSERT(m_tilebuffer.size());
         ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
-                              m_spec.format, &m_tilebuffer[0]);
-        std::vector<unsigned char>().swap(m_tilebuffer);
+                              m_spec.format, m_tilebuffer.data());
+        m_tilebuffer.clear();
+        m_tilebuffer.shrink_to_fit();
     }
 
     if (m_gz) {
@@ -367,6 +380,11 @@ bool
 ZfileOutput::write_scanline(int y, int /*z*/, TypeDesc format, const void* data,
                             stride_t xstride)
 {
+    if (!opened()) {
+        errorfmt("File not open");
+        return false;
+    }
+
     y -= m_spec.y;
     m_spec.auto_stride(xstride, format, spec().nchannels);
     const void* origdata = data;
@@ -382,7 +400,7 @@ ZfileOutput::write_scanline(int y, int /*z*/, TypeDesc format, const void* data,
     else {
         size_t b = fwrite(data, sizeof(float), m_spec.width, m_file);
         if (b != (size_t)m_spec.width) {
-            errorf("Failed write zfile::open (err: %d)", b);
+            errorfmt("Failed write zfile::open (err: {})", b);
             return false;
         }
     }
@@ -396,9 +414,14 @@ bool
 ZfileOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
                         stride_t xstride, stride_t ystride, stride_t zstride)
 {
+    if (!opened()) {
+        errorfmt("File not open");
+        return false;
+    }
     // Emulate tiles by buffering the whole image
+    OIIO_ASSERT(m_tilebuffer.data());
     return copy_tile_to_image_buffer(x, y, z, format, data, xstride, ystride,
-                                     zstride, &m_tilebuffer[0]);
+                                     zstride, m_tilebuffer.data());
 }
 
 
