@@ -47,7 +47,6 @@ if [[ "$ASWF_ORG" != ""  ]] ; then
 else
     # Using native Ubuntu runner
 
-    sudo add-apt-repository ppa:ubuntu-toolchain-r/test
     time sudo apt-get update
 
     time sudo apt-get -q install -y \
