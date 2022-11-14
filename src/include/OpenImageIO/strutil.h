@@ -1141,4 +1141,8 @@ edit_distance(string_view a, string_view b,
 
 }  // namespace Strutil
 
+
+// Bring the ever-useful Strutil::print into the OIIO namespace.
+using Strutil::print;
+
 OIIO_NAMESPACE_END
