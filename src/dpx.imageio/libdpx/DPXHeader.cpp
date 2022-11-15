@@ -568,7 +568,7 @@ dpx::DataSize dpx::GenericHeader::ComponentDataSize(const int element) const
 		ret = kDouble;
 		break;
 	default:
-		assert(0 && "Unknown bit depth");
+		// assert(0 && "Unknown bit depth");
 		ret = kDouble;
 		break;
 	}
@@ -601,7 +601,7 @@ int dpx::GenericHeader::ComponentByteCount(const int element) const
 		ret = sizeof(R64);
 		break;
 	default:
-		assert(0 && "Unknown bit depth");
+		// assert(0 && "Unknown bit depth");
 		ret = sizeof(R64);
 		break;
 	}
@@ -633,7 +633,7 @@ int dpx::GenericHeader::DataSizeByteCount(const DataSize ds)
 		ret = sizeof(R64);
 		break;
 	default:
-		assert(0 && "Unknown data size");
+		// assert(0 && "Unknown data size");
 		ret = sizeof(R64);
 		break;
 	}
