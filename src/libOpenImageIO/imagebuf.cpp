@@ -701,9 +701,13 @@ ImageBuf::storage() const
 void
 ImageBufImpl::clear()
 {
-    if (storage() == ImageBuf::IMAGECACHE && m_imagecache && !m_name.empty()) {
+    if (m_imagecache && !m_name.empty()
+        && (storage() == ImageBuf::IMAGECACHE || m_rioproxy)) {
+        // If we were backed by an ImageCache, invalidate any IC entries we
+        // might have made. Also do so if we were using an IOProxy, because
+        // the proxy may not survive long after the ImageBuf is destroyed.
         m_imagecache->close(m_name);
-        invalidate(m_name, false);
+        m_imagecache->invalidate(m_name, false);
     }
     free_pixels();
     m_name.clear();
@@ -926,7 +930,6 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
     // info for the file just in case it has changed on disk.
     if (!m_imagecache)
         m_imagecache = ImageCache::create(true /* shared cache */);
-    invalidate(m_name, false);
 
     m_pixels_valid = false;
     m_nsubimages   = 0;
@@ -939,6 +942,9 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
         m_imagecache->invalidate(m_name, true);
         m_imagecache->add_file(m_name, nullptr, m_configspec.get(),
                                /*replace=*/true);
+    } else {
+        // If no configspec, just do a regular soft invalidate
+        invalidate(m_name, false);
     }
     m_imagecache->get_image_info(m_name, subimage, miplevel, s_subimages,
                                  TypeInt, &m_nsubimages);
@@ -1153,6 +1159,25 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
             m_pixels_valid = false;
             error(OIIO::geterror());
         }
+        // Since we have read in the entire image now, if we are using an
+        // IOProxy, we invalidate any cache entry to avoid lifetime issues
+        // related to the IOProxy. This helps to eliminate trouble emerging
+        // from the following idiom that looks totally reasonable to the user
+        // but is actually a recipe for disaster:
+        //      IOProxy proxy(...);   // temporary proxy
+        //      ImageBuf A ("foo.exr", 0, 0, proxy);
+        //          // ^^ now theres an IC entry that knows the proxy.
+        //      A.read (0, 0, true);
+        //          // ^^ looks like a forced immediate read, user thinks
+        //          //    they are done with the ImageBuf, but there's
+        //          //    STILL a cache entry that knows the proxy.
+        //      proxy.close();
+        //          // ^^ now the proxy is gone, which seemed safe because
+        //          //    the user thinks the forced immediate read was the
+        //          //    last it'll be needed. But the cache entry still
+        //          //    has a pointer to it! Oh no!
+        if (m_rioproxy)
+            m_imagecache->invalidate(m_name);
         return m_pixels_valid;
     }
 
@@ -1246,7 +1271,7 @@ ImageBuf::write(ImageOutput* out, ProgressCallback progress_callback,
     ok &= m_impl->validate_pixels();
     if (out->supports("thumbnail") && has_thumbnail()) {
         auto thumb = get_thumbnail();
-        Strutil::print("IB::write: has thumbnail ROI {}\n", thumb->roi());
+        // Strutil::print("IB::write: has thumbnail ROI {}\n", thumb->roi());
         out->set_thumbnail(*thumb);
     }
     const ImageSpec& bufspec(m_impl->m_spec);
