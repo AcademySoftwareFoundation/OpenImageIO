@@ -16,12 +16,12 @@ Comparing "src/separate.tif" and "separate.tif"
 PASS
 oiiotool ERROR: read : No support for data format of "src/corrupt1.tif"
 Full command line was:
-> oiiotool -colorconfig ../common/OpenColorIO/nuke-default/config.ocio --oiioattrib try_all_readers 0 --info -v src/corrupt1.tif
+> oiiotool --oiioattrib try_all_readers 0 --info -v src/corrupt1.tif
 oiiotool ERROR: read : File does not exist: "src/crash-1633.tif"
 Full command line was:
-> oiiotool -colorconfig ../common/OpenColorIO/nuke-default/config.ocio --oiioattrib try_all_readers 0 --info -v src/crash-1633.tif
+> oiiotool --oiioattrib try_all_readers 0 --info -v src/crash-1633.tif
 oiiotool ERROR: read : File does not exist: "src/crash-1643.tif"
 Full command line was:
-> oiiotool -colorconfig ../common/OpenColorIO/nuke-default/config.ocio --oiioattrib try_all_readers 0 --info -v src/crash-1643.tif
+> oiiotool --oiioattrib try_all_readers 0 --info -v src/crash-1643.tif
 Comparing "check1.tif" and "ref/check1.tif"
 PASS

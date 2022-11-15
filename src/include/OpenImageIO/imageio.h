@@ -2854,6 +2854,12 @@ inline bool attribute (string_view name, string_view val) {
 /// - string "timing_report"
 ///         A string containing the report of all the log_times.
 ///
+/// - `string opencolorio_version`
+///
+///   Returns the version (such as "2.2.0") of OpenColorIO that is used by
+///   OpenImageiO, or "0.0.0" if no OpenColorIO support has been enabled.
+///   (Added in OpenImageIO 2.4.6)
+///
 /// - `string hw:simd`
 /// - `string oiio:simd` (read-only)
 ///
