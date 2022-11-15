@@ -189,7 +189,8 @@ public:
     ///             to the opening and reading of the file.
     /// @param ioproxy
     ///         Optional pointer to an IOProxy to use when reading from the
-    ///         file. The caller retains ownership of the proxy.
+    ///         file. The caller retains ownership of the proxy, and must
+    ///         ensure that it remains valid for the lifetime of the ImageBuf.
     ///
     explicit ImageBuf(string_view name, int subimage = 0, int miplevel = 0,
                       ImageCache* imagecache       = nullptr,
@@ -300,8 +301,8 @@ public:
     void reset(const ImageSpec& spec,
                InitializePixels zero = InitializePixels::Yes);
 
-    // Deprecated/useless synonym for `reset(spec, spec, zero)` and also
-    // give it an internal name.
+    // Deprecated/useless synonym for `reset(spec, zero)` and also give it an
+    // internal name.
     void reset(string_view name, const ImageSpec& spec,
                InitializePixels zero = InitializePixels::Yes);
 
