@@ -96,6 +96,12 @@ declare_colorconfig(py::module& m)
                 return self.getDisplayViewLooks(display, view);
             },
             "display"_a, "view"_a)
+
+        .def("getAliases",
+             [](const ColorConfig& self, const std::string& color_space) {
+                 return self.getAliases(color_space);
+             })
+
         .def("getColorSpaceFromFilepath",
              [](const ColorConfig& self, const std::string& str) {
                  return std::string(self.getColorSpaceFromFilepath(str));

@@ -2860,6 +2860,12 @@ inline bool attribute (string_view name, string_view val) {
 ///   full paths), and all the directories that OpenImageIO will search for
 ///   fonts.  (Added in OpenImageIO 2.5)
 ///
+/// - `string opencolorio_version`
+///
+///   Returns the version (such as "2.2.0") of OpenColorIO that is used by
+///   OpenImageiO, or "0.0.0" if no OpenColorIO support has been enabled.
+///   (Added in OpenImageIO 2.4.6)
+///
 /// - `string hw:simd`
 /// - `string oiio:simd` (read-only)
 ///

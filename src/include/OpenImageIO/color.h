@@ -136,6 +136,13 @@ public:
     /// Retrieve the full list of known look names, as a vector of strings.
     std::vector<std::string> getLookNames() const;
 
+    /// Is the color space known to be linear? This is very conservative, and
+    /// will return false if it's not sure.
+    bool isColorSpaceLinear(string_view name) const;
+
+    /// Retrieve the full list of aliases for the named color space.
+    std::vector<std::string> getAliases(string_view color_space) const;
+
     /// Given the specified input and output ColorSpace, request a handle to
     /// a ColorProcessor.  It is possible that this will return an empty
     /// handle, if the inputColorSpace doesn't exist, the outputColorSpace

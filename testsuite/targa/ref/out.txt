@@ -187,6 +187,17 @@ Reading ../oiio-images/targa/round_grill.tga
 Comparing "../oiio-images/targa/round_grill.tga" and "round_grill.tga"
 PASS
 Converting src/crash1.tga to crash1.exr
+iconvert ERROR copying "src/crash1.tga" to "crash1.exr" :
+	Read error: hit end of file
+oiiotool ERROR: read : "src/crash2.tga": Palette image with no palette
+Full command line was:
+> oiiotool --oiioattrib try_all_readers 0 src/crash2.tga -o crash2.exr
+oiiotool ERROR: read : "src/crash3.tga": Palette image with no palette
+Full command line was:
+> oiiotool --oiioattrib try_all_readers 0 src/crash3.tga -o crash3.exr
+oiiotool ERROR: read : "src/crash6.tga": Read error: hit end of file
+Full command line was:
+> oiiotool --oiioattrib try_all_readers 0 src/crash6.tga -o crash6.exr
 Reading src/1x1.tga
 src/1x1.tga          :    1 x    1, 3 channel, uint2 targa
     SHA-1: DB9237F28F9622F7B7E73B783A8822B63BDB3708
