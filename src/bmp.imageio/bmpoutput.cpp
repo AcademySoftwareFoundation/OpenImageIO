@@ -97,6 +97,12 @@ BmpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
         return false;
     }
 
+    if (m_spec.x || m_spec.y || m_spec.z) {
+        errorfmt("{} does not support images with non-zero image origin offset",
+                 format_name());
+        return false;
+    }
+
     // Only support 8 bit channels for now.
     m_spec.set_format(TypeDesc::UINT8);
     m_dither = m_spec.get_int_attribute("oiio:dither", 0);
@@ -133,12 +139,18 @@ bool
 BmpOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
                           stride_t xstride)
 {
-    if (y > m_spec.height) {
+    if (!ioproxy_opened()) {
+        errorfmt("write_scanline called but file is not open.");
+        return false;
+    }
+
+    if (y > m_spec.y + m_spec.height) {
         errorfmt("Attempt to write too many scanlines to {}", m_filename);
         close();
         return false;
     }
 
+    y -= m_spec.y;
     if (m_spec.width >= 0)
         y = (m_spec.height - y - 1);
     int64_t scanline_off = y * m_padded_scanline_size;
@@ -165,9 +177,14 @@ bool
 BmpOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
                       stride_t xstride, stride_t ystride, stride_t zstride)
 {
+    if (!ioproxy_opened()) {
+        errorfmt("write_tile called but file is not open.");
+        return false;
+    }
+
     // Emulate tiles by buffering the whole image
     return copy_tile_to_image_buffer(x, y, z, format, data, xstride, ystride,
-                                     zstride, &m_tilebuffer[0]);
+                                     zstride, m_tilebuffer.data());
 }
 
 
@@ -181,11 +198,11 @@ BmpOutput::close(void)
     }
 
     bool ok = true;
-    if (m_spec.tile_width) {
+    if (m_spec.tile_width && m_tilebuffer.size()) {
         // Handle tile emulation -- output the buffered pixels
         OIIO_DASSERT(m_tilebuffer.size());
         ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
-                              m_spec.format, &m_tilebuffer[0]);
+                              m_spec.format, m_tilebuffer.data());
         std::vector<unsigned char>().swap(m_tilebuffer);
     }
 
