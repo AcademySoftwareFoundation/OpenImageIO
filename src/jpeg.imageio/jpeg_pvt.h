@@ -86,7 +86,6 @@ public:
     void jpegerror(my_error_ptr myerr, bool fatal = false);
 
 private:
-    FILE* m_fd;
     std::string m_filename;
     int m_next_scanline;   // Which scanline is the next to read?
     bool m_raw;            // Read raw coefficients, not scanlines
@@ -101,7 +100,6 @@ private:
 
     void init()
     {
-        m_fd            = NULL;
         m_raw           = false;
         m_cmyk          = false;
         m_fatalerr      = false;
