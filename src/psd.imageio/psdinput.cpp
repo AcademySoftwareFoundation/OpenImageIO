@@ -20,7 +20,7 @@
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/tiffutils.h>
 
-#include "jpeg_memory_src.h"
+// #include "jpeg_memory_src.h"
 #include "psd_pvt.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -265,13 +265,6 @@ private:
 
     //Load thumbnail resource, used for resources 1033 and 1036
     bool load_resource_thumbnail(uint32_t length, bool isBGR);
-    //For thumbnail loading
-    struct thumbnail_error_mgr {
-        jpeg_error_mgr pub;
-        jmp_buf setjmp_buffer;
-    };
-    METHODDEF(void)
-    thumbnail_error_exit(j_common_ptr cinfo);
 
     //Layers
     bool load_layers();
@@ -1270,9 +1263,6 @@ PSDInput::load_resource_thumbnail(uint32_t length, bool isBGR)
     uint32_t compressed_size;
     uint16_t bpp;
     uint16_t planes;
-    int stride;
-    jpeg_decompress_struct cinfo;
-    thumbnail_error_mgr jerr;
     uint32_t jpeg_length = length - 28;
 
     bool ok = read_bige<uint32_t>(format) && read_bige<uint32_t>(width)
@@ -1312,40 +1302,13 @@ PSDInput::load_resource_thumbnail(uint32_t length, bool isBGR)
         return false;
     }
 
-    cinfo.err           = jpeg_std_error(&jerr.pub);
-    jerr.pub.error_exit = thumbnail_error_exit;
-    if (setjmp(jerr.setjmp_buffer)) {
-        jpeg_destroy_decompress(&cinfo);
-        errorfmt("[Image Resource] [JPEG Thumbnail] libjpeg error");
-        return false;
-    }
     std::string jpeg_data(jpeg_length, '\0');
     if (!ioread(&jpeg_data[0], jpeg_length))
         return false;
 
-    jpeg_create_decompress(&cinfo);
-    jpeg_memory_src(&cinfo, (unsigned char*)&jpeg_data[0], jpeg_length);
-    jpeg_read_header(&cinfo, TRUE);
-    jpeg_start_decompress(&cinfo);
-    stride = cinfo.output_width * cinfo.output_components;
-    ImageSpec thumbspec(cinfo.output_width, cinfo.output_height, 3, TypeUInt8);
-    m_thumbnail.reset(thumbspec);
-    // jpeg_destroy_decompress will deallocate this
-    JSAMPLE** buffer = (*cinfo.mem->alloc_sarray)((j_common_ptr)&cinfo,
-                                                  JPOOL_IMAGE, stride, 1);
-    while (cinfo.output_scanline < cinfo.output_height) {
-        if (jpeg_read_scanlines(&cinfo, buffer, 1) != 1) {
-            jpeg_finish_decompress(&cinfo);
-            jpeg_destroy_decompress(&cinfo);
-            errorfmt("[Image Resource] [JPEG Thumbnail] libjpeg error");
-            return false;
-        }
-        m_thumbnail.get_pixels(ROI(0, width, cinfo.output_scanline,
-                                   cinfo.output_scanline + 1, 0, 1, 0, 3),
-                               TypeUInt8, buffer[0]);
-    }
-    jpeg_finish_decompress(&cinfo);
-    jpeg_destroy_decompress(&cinfo);
+    Filesystem::IOMemReader thumbblob(jpeg_data.data(), jpeg_length);
+    m_thumbnail = ImageBuf("thumbnail.jpg", 0, 0, nullptr, nullptr, &thumbblob);
+    m_thumbnail.read(0, 0, true);
 
     // Set these attributes for the merged composite only (subimage 0)
     composite_attribute("thumbnail_width", (int)width);
@@ -1354,15 +1317,6 @@ PSDInput::load_resource_thumbnail(uint32_t length, bool isBGR)
     if (isBGR)
         m_thumbnail = ImageBufAlgo::channels(m_thumbnail, 3, { 2, 1, 0 });
     return true;
-}
-
-
-
-void
-PSDInput::thumbnail_error_exit(j_common_ptr cinfo)
-{
-    thumbnail_error_mgr* mgr = (thumbnail_error_mgr*)cinfo->err;
-    longjmp(mgr->setjmp_buffer, 1);
 }
 
 
