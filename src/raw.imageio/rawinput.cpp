@@ -409,7 +409,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
     // Force flip value if needed. If user_flip is -1, libraw ignores it
     m_processor->imgdata.params.user_flip
         = config.get_int_attribute("raw:user_flip", -1);
-    
+
 #ifdef _WIN32
     // Convert to wide chars, just on Windows.
     int ret = m_processor->open_file(
