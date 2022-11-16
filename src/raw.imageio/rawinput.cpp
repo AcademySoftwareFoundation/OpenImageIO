@@ -947,8 +947,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
     // If user flip is set to 1, it means we ignore the flip
     // Let's set the orientation exif flags to the original flip
     // value so that it is still displayed correctly
-    if (config.get_int_attribute("raw:user_flip", -1) == 1)
-    {
+    if (config.get_int_attribute("raw:user_flip", -1) == 1) {
         m_spec.attribute("Orientation", original_flip);
     }
 
