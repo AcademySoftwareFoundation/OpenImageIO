@@ -409,7 +409,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
     // Force flip value if needed. If user_flip is -1, libraw ignores it
     m_processor->imgdata.params.user_flip
         = config.get_int_attribute("raw:user_flip", -1);
-
+    
 #ifdef _WIN32
     // Convert to wide chars, just on Windows.
     int ret = m_processor->open_file(
@@ -433,6 +433,8 @@ RawInput::open_raw(bool unpack, const std::string& name,
         m_unpacked = true;
     }
 
+    //Store flip before it is potentially overwritten
+    int original_flip = m_processor->imgdata.sizes.flip;
     m_processor->adjust_sizes_info_only();
 
     // Process image at half size if "raw:half_size" is not 0
@@ -941,6 +943,13 @@ RawInput::open_raw(bool unpack, const std::string& name,
     if (ori > 1)
         m_spec.attribute("raw:Orientation", ori);
     m_spec.attribute("Orientation", 1);
+
+    // If user flip is set to 1, it means we ignore the flip
+    // Let's set the orientation exif flags to the original flip
+    // value so that it is still displayed correctly
+    if (config.get_int_attribute("raw:user_flip", -1) == 1) {
+        m_spec.attribute("Orientation", original_flip);
+    }
 
     // FIXME -- thumbnail possibly in m_processor->imgdata.thumbnail
 
