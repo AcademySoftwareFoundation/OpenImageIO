@@ -249,7 +249,7 @@ public:
     OIIO_CONSTEXPR17 int compare (basic_string_view x) const noexcept {
         // N.B. char_traits<char>::compare is constexpr for C++17
         const int cmp = traits_type::compare (m_chars, x.m_chars, (std::min)(m_len, x.m_len));
-        return cmp != 0 ? cmp : int(m_len - x.m_len);
+        return cmp != 0 ? cmp : int(m_len) - int(x.m_len);
         // Equivalent to:
         //  cmp != 0 ? cmp : (m_len == x.m_len ? 0 : (m_len < x.m_len ? -1 : 1));
     }
