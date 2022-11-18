@@ -330,7 +330,7 @@ RLAInput::seek_subimage(int subimage, int miplevel)
             m_spec.z_channel = z_channel;
             if (m_spec.channelnames.size() < size_t(z_channel + 1))
                 m_spec.channelnames.resize(z_channel + 1);
-            m_spec.channelnames[z_channel] = "Z";
+            m_spec.channelnames[z_channel] = std::string("Z");
         }
     }
     m_stride += m_rla.NumOfAuxChannels * aux_type.size();
