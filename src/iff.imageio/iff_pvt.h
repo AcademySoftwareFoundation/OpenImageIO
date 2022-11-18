@@ -77,19 +77,17 @@ align_size(uint32_t size, uint32_t alignment)
 }
 
 // tile width
-inline const int&
+constexpr uint32_t
 tile_width()
 {
-    static int tile_w = 64;
-    return tile_w;
+    return 64;
 }
 
 // tile height
-inline const int&
+constexpr uint32_t
 tile_height()
 {
-    static int tile_h = 64;
-    return tile_h;
+    return 64;
 }
 
 // tile width size
