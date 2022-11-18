@@ -1282,7 +1282,7 @@ PSDInput::load_resource_thumbnail(uint32_t length, bool isBGR)
             bpp);
         return false;
     }
-    if ((bpp / 8) * width != widthbytes) {
+    if ((bpp / 8) * width > widthbytes || (bpp / 8) * width + 3 < widthbytes) {
         errorfmt("Corrupt thumbnail: {}w * {}bpp does not match {} width bytes",
                  width, bpp, widthbytes);
         return false;
@@ -1311,9 +1311,10 @@ PSDInput::load_resource_thumbnail(uint32_t length, bool isBGR)
     m_thumbnail.read(0, 0, true);
 
     // Set these attributes for the merged composite only (subimage 0)
-    composite_attribute("thumbnail_width", (int)width);
-    composite_attribute("thumbnail_height", (int)height);
-    composite_attribute("thumbnail_nchannels", 3);
+    composite_attribute("thumbnail_width", (int)m_thumbnail.spec().width);
+    composite_attribute("thumbnail_height", (int)m_thumbnail.spec().height);
+    composite_attribute("thumbnail_nchannels",
+                        (int)m_thumbnail.spec().nchannels);
     if (isBGR)
         m_thumbnail = ImageBufAlgo::channels(m_thumbnail, 3, { 2, 1, 0 });
     return true;
