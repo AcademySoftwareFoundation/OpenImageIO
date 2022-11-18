@@ -107,7 +107,7 @@ int
 IffOutput::supports(string_view feature) const
 {
     return (feature == "tiles" || feature == "alpha" || feature == "nchannels"
-            || feature == "ioproxy");
+            || feature == "ioproxy" || feature == "origin");
 }
 
 
@@ -142,15 +142,36 @@ IffOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
         return false;
     }
 
-    // close();  // Close any already-opened file
     // saving 'name' and 'spec' for later use
     m_filename = name;
     m_spec     = spec;
+
+    // Maya docs say 8k is the limit
+    if (m_spec.width < 1 || m_spec.width > 8192 || m_spec.height < 1
+        || m_spec.height > 8192) {
+        errorfmt("Image resolution {} x {} is not valid for an IFF file",
+                 m_spec.width, m_spec.height);
+        return false;
+    }
+    // This implementation only supports writing RGB and RGBA images as IFF
+    if (m_spec.nchannels < 3 || m_spec.nchannels > 4) {
+        errorfmt("Cannot write IFF file with {} channels", m_spec.nchannels);
+        return false;
+    }
 
     // tiles
     m_spec.tile_width  = tile_width();
     m_spec.tile_height = tile_height();
     m_spec.tile_depth  = 1;
+
+    uint64_t xtiles = tile_width_size(m_spec.width);
+    uint64_t ytiles = tile_height_size(m_spec.height);
+    if (xtiles * ytiles >= (1 << 16)) {  // The format can't store it!
+        errorfmt(
+            "Too high a resolution ({}x{}), exceeds maximum of 64k tiles in the image\n",
+            m_spec.width, m_spec.height);
+        return false;
+    }
 
     ioproxy_retrieve_from_config(m_spec);
     if (!ioproxy_use_or_open(name))
@@ -171,16 +192,6 @@ IffOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     // as Maya does not handle non-compressed IFF's very well.
     m_iff_header.compression
         = (m_spec.get_string_attribute("compression") == "none") ? NONE : RLE;
-
-    uint64_t xtiles = tile_width_size(m_spec.width);
-    uint64_t ytiles = tile_height_size(m_spec.height);
-    if (xtiles * ytiles >= (1 << 16)) {  // The format can't store it!
-        errorfmt(
-            "Too high a resolution ({}x{}), exceeds maximum of 64k tiles in the image\n",
-            m_spec.width, m_spec.height);
-        close();
-        return false;
-    }
 
     // we write the header of the file
     m_iff_header.x              = m_spec.x;
@@ -274,6 +285,11 @@ bool
 IffOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
                           stride_t xstride)
 {
+    if (!ioproxy_opened()) {
+        errorfmt("write_scanline called but file is not open.");
+        return false;
+    }
+
     // scanline not used for Maya IFF, uses tiles instead.
     // Emulate by copying the scanline to the buffer we're accumulating.
     std::vector<unsigned char> scratch;
@@ -291,6 +307,11 @@ bool
 IffOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
                       stride_t xstride, stride_t ystride, stride_t zstride)
 {
+    if (!ioproxy_opened()) {
+        errorfmt("write_tile called but file is not open.");
+        return false;
+    }
+
     // auto stride
     m_spec.auto_stride(xstride, ystride, zstride, format, spec().nchannels,
                        spec().tile_width, spec().tile_height);
@@ -353,15 +374,13 @@ IffOutput::close(void)
                 uint8_t channels = m_iff_header.pixel_channels;
 
                 // set tile coordinates
-                uint16_t xmin, xmax, ymin, ymax;
-
-                // set xmin and xmax
-                xmin = tx * tile_width();
-                xmax = std::min(xmin + tile_width(), m_spec.width) - 1;
-
-                // set ymin and ymax
-                ymin = ty * tile_height();
-                ymax = std::min(ymin + tile_height(), m_spec.height) - 1;
+                uint32_t xmin = tx * tile_width();
+                uint32_t xmax
+                    = std::min(xmin + tile_width(), uint32_t(m_spec.width)) - 1;
+                uint32_t ymin = ty * tile_height();
+                uint32_t ymax = std::min(ymin + tile_height(),
+                                         uint32_t(m_spec.height))
+                                - 1;
 
                 // set width and height
                 uint32_t tw = xmax - xmin + 1;
@@ -408,13 +427,11 @@ IffOutput::close(void)
                             uint8_t* in_p = &in[0];
 
                             // set tile
-                            for (uint16_t py = ymin; py <= ymax; py++) {
+                            for (uint32_t py = ymin; py <= ymax; py++) {
                                 const uint8_t* in_dy
-                                    = &m_buf[0]
-                                      + (py * m_spec.width)
-                                            * m_spec.pixel_bytes();
+                                    = &m_buf[0] + py * m_spec.scanline_bytes();
 
-                                for (uint16_t px = xmin; px <= xmax; px++) {
+                                for (uint32_t px = xmin; px <= xmax; px++) {
                                     // get pixel
                                     uint8_t pixel;
                                     const uint8_t* in_dx
@@ -445,6 +462,8 @@ IffOutput::close(void)
                             // set length
                             uint32_t align = align_size(length, 4);
                             if (align > length) {
+                                if (scratch.size() < index + align - length)
+                                    scratch.resize(index + align - length);
                                 out_p = &scratch[0] + index;
                                 // Pad.
                                 for (uint32_t i = 0; i < align - length; i++) {
@@ -457,12 +476,12 @@ IffOutput::close(void)
                         }
                     }
                     if (!tile_compress) {
-                        for (uint16_t py = ymin; py <= ymax; py++) {
+                        for (uint32_t py = ymin; py <= ymax; py++) {
                             const uint8_t* in_dy = &m_buf[0]
                                                    + (py * m_spec.width)
                                                          * m_spec.pixel_bytes();
 
-                            for (uint16_t px = xmin; px <= xmax; px++) {
+                            for (uint32_t px = xmin; px <= xmax; px++) {
                                 // Map: RGB(A)8 RGBA to BGRA
                                 for (int c = channels - 1; c >= 0; --c) {
                                     // get pixel
@@ -517,13 +536,11 @@ IffOutput::close(void)
                             uint8_t* in_p = &in[0];
 
                             // set tile
-                            for (uint16_t py = ymin; py <= ymax; py++) {
+                            for (uint32_t py = ymin; py <= ymax; py++) {
                                 const uint8_t* in_dy
-                                    = &m_buf[0]
-                                      + (py * m_spec.width)
-                                            * m_spec.pixel_bytes();
+                                    = &m_buf[0] + py * m_spec.scanline_bytes();
 
-                                for (uint16_t px = xmin; px <= xmax; px++) {
+                                for (uint32_t px = xmin; px <= xmax; px++) {
                                     // get pixel
                                     uint8_t pixel;
                                     const uint8_t* in_dx
@@ -555,6 +572,8 @@ IffOutput::close(void)
                             // set length
                             uint32_t align = align_size(length, 4);
                             if (align > length) {
+                                if (scratch.size() < index + align - length)
+                                    scratch.resize(index + align - length);
                                 out_p = &scratch[0] + index;
                                 // Pad.
                                 for (uint32_t i = 0; i < align - length; i++) {
@@ -568,12 +587,12 @@ IffOutput::close(void)
                     }
 
                     if (!tile_compress) {
-                        for (uint16_t py = ymin; py <= ymax; py++) {
+                        for (uint32_t py = ymin; py <= ymax; py++) {
                             const uint8_t* in_dy = &m_buf[0]
                                                    + (py * m_spec.width)
                                                          * m_spec.pixel_bytes();
 
-                            for (uint16_t px = xmin; px <= xmax; px++) {
+                            for (uint32_t px = xmin; px <= xmax; px++) {
                                 // map: RGB(A) to BGRA
                                 for (int c = channels - 1; c >= 0; --c) {
                                     uint16_t pixel;
@@ -597,8 +616,8 @@ IffOutput::close(void)
                     return false;
 
                 // write xmin, xmax, ymin and ymax
-                if (!write(&xmin) || !write(&ymin) || !write(&xmax)
-                    || !write(&ymax))
+                if (!write_short(xmin) || !write_short(ymin)
+                    || !write_short(xmax) || !write_short(ymax))
                     return false;
 
                 // write tile
