@@ -544,6 +544,9 @@ DPXOutput::prep_subimage(int s, bool allocate)
         m_bytes    = spec_s.scanline_bytes();
         m_rawcolor = true;
     } else {
+        OIIO_ASSERT(0 && "Unsupported color space");
+        return false;
+#if 0  /* NOT USED IN OIIO */
         m_bytes = dpx::QueryNativeBufferSize(m_desc, m_datasize, spec_s.width,
                                              1);
         if (m_bytes == 0 && !m_rawcolor) {
@@ -556,6 +559,7 @@ DPXOutput::prep_subimage(int s, bool allocate)
             else
                 m_bytes = -m_bytes;
         }
+#endif /* NOT USED IN OIIO */
     }
     if (m_bytes < 0)
         m_bytes = -m_bytes;
