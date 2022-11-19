@@ -12,7 +12,13 @@ using namespace iff_pvt;
 class IffOutput final : public ImageOutput {
 public:
     IffOutput() { init(); }
-    ~IffOutput() override { close(); }
+    ~IffOutput() override
+    {
+        try {
+            close();
+        } catch (...) {
+        }
+    }
     const char* format_name(void) const override { return "iff"; }
     int supports(string_view feature) const override;
     bool open(const std::string& name, const ImageSpec& spec,
