@@ -2010,6 +2010,10 @@ public:
     ///        thumbnail must be supplied immediately after `open()`, prior
     ///        to any of the `write_*()` calls.)
     ///
+    ///  - `"noimage"` :
+    ///        Does this format allow 0x0 sized images, i.e. an image file
+    ///        with metadata only and no pixels?
+    ///
     /// This list of queries may be extended in future releases. Since this
     /// can be done simply by recognizing new query strings, and does not
     /// require any new API entry points, addition of support for new
@@ -2481,6 +2485,96 @@ public:
     typedef ImageOutput* (*Creator)();
 
 protected:
+    /// @{
+    /// @name Helper functions for ImageOutput implementations.
+    ///
+    /// This set of utility functions are not meant to be called by user code.
+    /// They are protected methods of ImageOutput, and are used internally by
+    /// the ImageOutput implementation to help it properly implement support
+    /// of IOProxy.
+    ///
+
+    /// Helper: convenience boilerplate for several checks and operations that
+    /// every implementation of ImageOutput::open() will need to do.
+    ///
+    /// 1. Check if the open `mode` is one allowed by `supports("multiimage")`
+    ///    and `supports("mipmap")`.
+    /// 2. Copy the passed spec to the internal m_spec.
+    /// 3. Do all possible validity checks based on `supports()` (for example,
+    ///    is the request to write volumetric data but the format writer
+    ///    doesn't support it).
+    ///
+    /// Returns true if ok, false if the open request can't be satisfied.
+    ///
+    /// Having a central helper method for this is beneficial:
+    ///
+    /// * Less repeated code in the many open() implementations, which also
+    ///   means less opportunity for bugs.
+    /// * Ensures that all image writers perform the full set of possible
+    ///   validity checks.
+    /// * Ensures that error messages are consistent across all writers and
+    ///   can be improved in a single location.
+    /// * Better code coverage for testing, because the error handling that is
+    ///   done centrally means we don't need to separately test every possible
+    ///   error condition in every writer.
+    ///
+    /// @param mode
+    ///     The mode in which the file is to be opened (`Create`,
+    ///     `AppendSubimage`, or `AppendMIPLevel`).
+    ///
+    /// @param spec
+    ///     The ImageSpec that we are validating.
+    ///
+    /// @param range
+    ///     An ROI that describes the allowable pixel coordinates and channel
+    ///     indices as half-open intervals.  For example, the default value
+    ///     `{0, 65535, 0, 65535, 0, 1, 0, 4}` means that pixel coordinates
+    ///     must be non-negative and the width and height be representable by
+    ///     a uint16 value, up to 4 channels are allowed, and volumes are not
+    ///     permitted (z coordinate may only be 0). File formats that can
+    ///     handle larger resolutions, or volumes, or >4 channels must
+    ///     override these limits!
+    ///
+    /// @param flags
+    ///     A bitfield flag (bits defined by `enum OpenChecks`) that can
+    ///     indicate additional checks to perform, or checks that should be
+    ///     skipped.
+    ///
+    /// Checks performed include:
+    /// 
+    /// * Whether the open `mode` is one allowed by `supports("multiimage")`
+    ///   and `supports("mipmap")`.
+    /// * Whether the resolution and channel count is within the range
+    ///   implied by `range`. If `spec.depth < 1`, it will be set to 1.
+    /// * Whether the request for volumes or deep images can be accommodated
+    ///   by the format (according to its `supports()` queries).
+    /// * If per-channel data types are supplied (and not all the same), but
+    ///   but the file format does not not `supports("channelformats")`. If
+    ///   `spec.channelformats` is used but all formats are equal, then
+    ///   the `channelformats` vector will be cleared and only `spec.format`
+    ///   will be used.
+    /// * If any of the "full" size fields are negative or zero, they will be
+    ///   set to the corresponding pixel data size fields.
+    /// * Whether the pixel origin offset (`spec.x`, `spec.y`, `spec.z`) is
+    ///   allowed to be non-zero (according to `supports("origin")` or
+    ///   negative (`supports("negativeorigin")`) -- if it is not allowed,
+    ///   it is an error if flags includes `Strict`, otherwise it will simply
+    ///   be adjusted to 0.
+    /// * Whether the `extra_attribs` contains a request to use an IOProxy,
+    ///   but the format writer does not report `supports("ioproxy")`.
+    bool check_open(OpenMode mode, const ImageSpec &spec,
+                    ROI range = {0, 65535, 0, 65535, 0, 1, 0, 4},
+                    uint64_t flags = 0);
+
+    /// Bit field definitions for the `flags` argument to `check_open()`.
+    enum class OpenChecks : uint64_t {
+        Defaults = 0,
+        Disallow1Channel = 1,
+        Disallow2Channel = 2,
+        Disallow1or2Channel = Disallow1Channel | Disallow2Channel,
+        Strict = (uint64_t(1) << 32)
+    };
+
     /// Helper routines used by write_* implementations: convert data (in
     /// the given format and stride) to the "native" format of the file
     /// (described by the 'spec' member variable), in contiguous order. This
@@ -2536,13 +2630,15 @@ protected:
                                     void *image_buffer,
                                     TypeDesc buf_format = TypeDesc::UNKNOWN);
 
+    /// @}
+
     /// @{
-    /// @name IOProxy aids for ImageInput implementations.
+    /// @name IOProxy aids for ImageOutput implementations.
     ///
     /// This set of utility functions are not meant to be called by user code.
-    /// They are protected methods of ImageInput, and are used internally by
-    /// the ImageInput implementation to help it properly implement support of
-    /// IOProxy.
+    /// They are protected methods of ImageOutput, and are used internally by
+    /// the ImageOutput implementation to help it properly implement support
+    /// of IOProxy.
     ///
 
     /// Get the IOProxy being used underneath.
@@ -2581,8 +2677,8 @@ protected:
     /// Helper: retrieve the current position of the proxy, akin to ftell.
     int64_t iotell() const;
 
-    // Write a formatted string to the output proxy. Return true on success,
-    // false upon failure and issue an error message.
+    /// Write a formatted string to the output proxy. Return true on success,
+    /// false upon failure and issue an error message.
     template<typename Str, typename... Args>
     inline bool iowritefmt(const Str& fmt, Args&&... args)
     {

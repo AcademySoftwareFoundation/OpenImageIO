@@ -57,18 +57,9 @@ TermOutput::supports(string_view feature) const
 bool
 TermOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 {
-    if (mode != Create) {
-        errorfmt("{} does not support subimages or MIP levels", format_name());
+    if (!check_open(mode, spec, { 0, 255, 0, 255, 0, 1, 0, 4 },
+                    uint64_t(OpenChecks::Disallow1or2Channel)))
         return false;
-    }
-
-    if (spec.nchannels != 3 && spec.nchannels != 4) {
-        errorfmt("{} does not support {}-channel images\n", format_name(),
-                 m_spec.nchannels);
-        return false;
-    }
-
-    m_spec = spec;
 
     // Retrieve config hints giving special instructions
     m_method = Strutil::lower(m_spec["term:method"].get());

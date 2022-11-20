@@ -97,7 +97,7 @@ private:
         ioproxy_clear();
     }
 
-    bool start_subimage();
+    bool start_subimage(const ImageSpec& spec);
     bool finish_subimage();
 };
 
@@ -126,7 +126,7 @@ GIFOutput::open(const std::string& name, const ImageSpec& newspec,
     }
 
     if (mode == AppendMIPLevel) {
-        errorf("%s does not support MIP levels", format_name());
+        errorfmt("{} does not support MIP levels", format_name());
         return false;
     }
 
@@ -134,8 +134,7 @@ GIFOutput::open(const std::string& name, const ImageSpec& newspec,
         if (m_pending_write)
             finish_subimage();
         ++m_subimage;
-        m_spec = newspec;
-        return start_subimage();
+        return start_subimage(newspec);
     }
 
     OIIO_ASSERT_MSG(0, "Unknown open mode %d", int(mode));
@@ -148,7 +147,7 @@ bool
 GIFOutput::open(const std::string& name, int subimages, const ImageSpec* specs)
 {
     if (subimages < 1) {
-        errorf("%s does not support %d subimages.", format_name(), subimages);
+        errorfmt("{} does not support {} subimages.", format_name(), subimages);
         return false;
     }
 
@@ -156,7 +155,6 @@ GIFOutput::open(const std::string& name, int subimages, const ImageSpec* specs)
     m_subimage   = 0;
     m_nsubimages = subimages;
     m_subimagespecs.assign(specs, specs + subimages);
-    m_spec    = specs[0];
     float fps = m_spec.get_float_attribute("FramesPerSecond", 1.0f);
     m_delay   = (fps == 0.0f ? 0 : (int)(100.0f / fps));
 
@@ -164,7 +162,7 @@ GIFOutput::open(const std::string& name, int subimages, const ImageSpec* specs)
     if (!ioproxy_use_or_open(name))
         return false;
 
-    return start_subimage();
+    return start_subimage(specs[0]);
 }
 
 
@@ -184,25 +182,11 @@ GIFOutput::close()
 
 
 bool
-GIFOutput::start_subimage()
+GIFOutput::start_subimage(const ImageSpec& spec)
 {
-    // Check for things this format doesn't support
-    if (m_spec.width < 1 || m_spec.height < 1) {
-        errorf("Image resolution must be at least 1x1, you asked for %d x %d",
-               m_spec.width, m_spec.height);
+    if (!check_open(Create, spec, { 0, 65535, 0, 65535, 0, 1, 0, 4 },
+                    uint64_t(OpenChecks::Disallow1or2Channel)))
         return false;
-    }
-    if (m_spec.depth < 1)
-        m_spec.depth = 1;
-    if (m_spec.depth > 1) {
-        errorf("%s does not support volume images (depth > 1)", format_name());
-        return false;
-    }
-    if (m_spec.nchannels != 3 && m_spec.nchannels != 4) {
-        errorf("%s does not support %d-channel images", format_name(),
-               m_spec.nchannels);
-        return false;
-    }
 
     m_spec.set_format(TypeDesc::UINT8);  // GIF is only 8 bit
 
@@ -212,7 +196,7 @@ GIFOutput::start_subimage()
                            m_spec.height, m_delay, 8 /*bit depth*/,
                            true /*dither*/);
         if (!ok) {
-            errorf("Could not open \"%s\"", m_filename);
+            errorfmt("Could not open \"{}\"", m_filename);
             return false;
         }
     }

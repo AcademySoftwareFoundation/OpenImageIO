@@ -381,39 +381,22 @@ bool
 TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
                  OpenMode mode)
 {
-    if (mode == AppendMIPLevel) {
-        errorf("%s does not support MIP levels", format_name());
-        return false;
-    }
-
     closetif();
-    m_spec = userspec;  // Stash the spec
+
+    if (!check_open(mode, userspec,
+                    { 0, 1 << 20, 0, 1 << 20, 0, 1 << 16, 0, 1 << 16 }))
+        return false;
 
     // Check for things this format doesn't support
-    if (m_spec.width < 1 || m_spec.height < 1) {
-        errorf("Image resolution must be at least 1x1, you asked for %d x %d",
-               m_spec.width, m_spec.height);
-        return false;
-    }
     if (m_spec.tile_width) {
         if (m_spec.tile_width % 16 != 0 || m_spec.tile_height % 16 != 0
             || m_spec.tile_height == 0) {
-            errorf("Tile size must be a multiple of 16, you asked for %d x %d",
-                   m_spec.tile_width, m_spec.tile_height);
+            errorfmt("Tile size must be a multiple of 16, you asked for {} x {}",
+                     m_spec.tile_width, m_spec.tile_height);
             return false;
         }
     }
-    if (m_spec.depth < 1)
-        m_spec.depth = 1;
-    if (m_spec.channelformats.size()) {
-        if (allval(m_spec.channelformats, m_spec.format))
-            m_spec.channelformats.clear();
-        else {
-            errorf("%s does not support per-channel data formats",
-                   format_name());
-            return false;
-        }
-    }
+
     ioproxy_retrieve_from_config(m_spec);
 
     // Classic/standard TIFF files use 32 bit offsets, and so are limited to

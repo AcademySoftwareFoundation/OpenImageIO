@@ -139,43 +139,19 @@ bool
 RLAOutput::open(const std::string& name, const ImageSpec& userspec,
                 OpenMode mode)
 {
-    if (mode != Create) {
-        errorfmt("{} does not support subimages or MIP levels", format_name());
+    if (!check_open(mode, userspec, { 0, 65535, 0, 65535, 0, 1, 0, 256 }))
         return false;
-        // FIXME -- the RLA format supports subimages, but our writer
-        // doesn't.  I'm not sure if it's worth worrying about for an
-        // old format that is so rarely used.  We'll come back to it if
-        // anybody actually encounters a multi-subimage RLA in the wild.
-    }
+    // FIXME -- the RLA format supports subimages, but our writer doesn't.
+    // I'm not sure if it's worth worrying about for an old format that is so
+    // rarely used.  We'll come back to it if anybody actually encounters a
+    // multi-subimage RLA in the wild.
 
-    m_spec = userspec;  // Stash the spec
     if (m_spec.format == TypeDesc::UNKNOWN)
         m_spec.format = TypeDesc::UINT8;  // Default to uint8 if unknown
 
     ioproxy_retrieve_from_config(m_spec);
     if (!ioproxy_use_or_open(name))
         return false;
-
-    // Check for things this format doesn't support
-    if (m_spec.width < 1 || m_spec.height < 1) {
-        errorfmt("Image resolution must be at least 1x1, you asked for {} x {}",
-                 m_spec.width, m_spec.height);
-        return false;
-    }
-    if (m_spec.width > 65535 || m_spec.height > 65535) {
-        errorfmt(
-            "Image resolution {} x {} too large for RLA (maximum 65535x65535)",
-            m_spec.width, m_spec.height);
-        return false;
-    }
-
-    if (m_spec.depth < 1)
-        m_spec.depth = 1;
-    else if (m_spec.depth > 1) {
-        errorfmt("{} does not support volume images (depth > 1)",
-                 format_name());
-        return false;
-    }
 
     m_dither = (m_spec.format == TypeDesc::UINT8)
                    ? m_spec.get_int_attribute("oiio:dither", 0)

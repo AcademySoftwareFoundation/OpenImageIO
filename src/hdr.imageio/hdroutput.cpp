@@ -204,33 +204,11 @@ bool
 HdrOutput::open(const std::string& name, const ImageSpec& newspec,
                 OpenMode mode)
 {
-    if (mode != Create) {
-        errorf("%s does not support subimages or MIP levels", format_name());
+    if (!check_open(mode, newspec, { 0, 1 << 20, 0, 1 << 20, 0, 1, 0, 3 },
+                    uint64_t(OpenChecks::Disallow1or2Channel)))
         return false;
-    }
 
-    // Save spec for later use
-    m_spec = newspec;
     // HDR always behaves like floating point
-    m_spec.set_format(TypeDesc::FLOAT);
-
-    // Check for things HDR can't support
-    if (m_spec.nchannels != 3) {
-        errorf("HDR can only support 3-channel images");
-        return false;
-    }
-    if (m_spec.width < 1 || m_spec.height < 1) {
-        errorf("Image resolution must be at least 1x1, you asked for %d x %d",
-               m_spec.width, m_spec.height);
-        return false;
-    }
-    if (m_spec.depth < 1)
-        m_spec.depth = 1;
-    if (m_spec.depth > 1) {
-        errorf("%s does not support volume images (depth > 1)", format_name());
-        return false;
-    }
-
     m_spec.set_format(TypeDesc::FLOAT);  // Native rgbe is float32 only
 
     ioproxy_retrieve_from_config(m_spec);

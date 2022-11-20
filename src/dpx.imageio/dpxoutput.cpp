@@ -142,8 +142,8 @@ bool
 DPXOutput::open(const std::string& name, int subimages, const ImageSpec* specs)
 {
     if (subimages > MAX_DPX_IMAGE_ELEMENTS) {
-        errorf("DPX does not support more than %d subimages",
-               MAX_DPX_IMAGE_ELEMENTS);
+        errorfmt("DPX does not support more than {} subimages",
+                 MAX_DPX_IMAGE_ELEMENTS);
         return false;
     };
     m_subimages_to_write = subimages;
@@ -158,14 +158,7 @@ bool
 DPXOutput::open(const std::string& name, const ImageSpec& userspec,
                 OpenMode mode)
 {
-    if (mode == Create) {
-        m_subimage = 0;
-        if (m_subimage_specs.size() < 1) {
-            m_subimage_specs.resize(1);
-            m_subimage_specs[0]  = userspec;
-            m_subimages_to_write = 1;
-        }
-    } else if (mode == AppendSubimage) {
+    if (mode == AppendSubimage) {
         if (!is_opened()) {
             errorfmt("open() with AppendSubimage called but file is not open.");
             return false;
@@ -174,27 +167,34 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
             write_buffer();
         ++m_subimage;
         if (m_subimage >= m_subimages_to_write) {
-            errorf("Exceeded the pre-declared number of subimages (%d)",
-                   m_subimages_to_write);
+            errorfmt("Exceeded the pre-declared number of subimages ({})",
+                     m_subimages_to_write);
             return false;
         }
         return prep_subimage(m_subimage, true);
         // Nothing else to do, the header taken care of when we opened with
         // Create.
-    } else if (mode == AppendMIPLevel) {
-        errorf("DPX does not support MIP-maps");
-        return false;
     }
-
-    // From here out, all the heavy lifting is done for Create
-    OIIO_DASSERT(mode == Create);
 
     if (is_opened())
         close();  // Close any already-opened file
 
-    ioproxy_retrieve_from_config(userspec);
+    if (!check_open(mode, userspec, { 0, 1 << 20, 0, 1 << 20, 0, 1, 0, 256 }))
+        return false;
+
+    // From here out, all the heavy lifting is done for Create
+    OIIO_DASSERT(mode == Create);
+
+    ioproxy_retrieve_from_config(m_spec);
     if (!ioproxy_use_or_open(name))
         return false;
+
+    m_subimage = 0;
+    if (m_subimage_specs.empty()) {
+        m_subimage_specs.resize(1);
+        m_subimage_specs[0]  = m_spec;
+        m_subimages_to_write = 1;
+    }
 
     m_stream = new OutStream(ioproxy());
     m_dpx.SetOutStream(m_stream);
@@ -202,20 +202,6 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
     m_subimage = 0;
 
     ImageSpec& spec0(m_subimage_specs[m_subimage]);  // alias the spec
-
-    // Check for things this format doesn't support
-    if (spec0.width < 1 || spec0.height < 1) {
-        errorf("Image resolution must be at least 1x1, you asked for %d x %d",
-               spec0.width, spec0.height);
-        return false;
-    }
-
-    if (spec0.depth < 1)
-        spec0.depth = 1;
-    else if (spec0.depth > 1) {
-        errorf("DPX does not support volume images (depth > 1)");
-        return false;
-    }
 
     // some metadata
     std::string software  = spec0.get_string_attribute("Software", "");

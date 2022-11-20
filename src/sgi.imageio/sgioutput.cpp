@@ -67,19 +67,10 @@ SgiOutput::supports(string_view feature) const
 bool
 SgiOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 {
-    if (mode != Create) {
-        errorfmt("{} does not support subimages or MIP levels", format_name());
+    if (!check_open(mode, spec, { 0, 65535, 0, 65535, 0, 1, 0, 256 }))
         return false;
-    }
 
-    // saving 'name' and 'spec' for later use
     m_filename = name;
-    m_spec     = spec;
-
-    if (m_spec.width >= 65535 || m_spec.height >= 65535) {
-        errorfmt("Exceeds the maximum resolution (65535)");
-        return false;
-    }
 
     ioproxy_retrieve_from_config(m_spec);
     if (!ioproxy_use_or_open(name))
@@ -111,7 +102,7 @@ SgiOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     y    = m_spec.height - y - 1;
     data = to_native_scanline(format, data, xstride, m_scratch, m_dither, y, z);
 
-    // In SGI format all channels are saved to file separately: firsty all
+    // In SGI format all channels are saved to file separately: first, all
     // channel 1 scanlines are saved, then all channel2 scanlines are saved
     // and so on.
     //

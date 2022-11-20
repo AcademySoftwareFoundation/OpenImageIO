@@ -69,20 +69,11 @@ WebpImageWriter(const uint8_t* img_data, size_t data_size,
 bool
 WebpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 {
-    if (mode != Create) {
-        errorfmt("{} does not support subimages or MIP levels", format_name());
+    if (!check_open(mode, spec, { 0, 1 << 20, 0, 1 << 20, 0, 1, 0, 4 },
+                    uint64_t(OpenChecks::Disallow1or2Channel)))
         return false;
-    }
 
-    // saving 'name' and 'spec' for later use
     m_filename = name;
-    m_spec     = spec;
-
-    if (m_spec.nchannels != 3 && m_spec.nchannels != 4) {
-        errorfmt("{} does not support {}-channel images\n", format_name(),
-                 m_spec.nchannels);
-        return false;
-    }
 
     ioproxy_retrieve_from_config(m_spec);
     if (!ioproxy_use_or_open(name))

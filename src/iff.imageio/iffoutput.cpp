@@ -143,32 +143,23 @@ IffOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     //       RGBA <size> tile pixels
     //       ...
 
-    if (mode != Create) {
-        errorfmt("{} does not support subimages or MIP levels", format_name());
-        return false;
-    }
-
     // saving 'name' and 'spec' for later use
     m_filename = name;
-    m_spec     = spec;
 
-    // Maya docs say 8k is the limit
-    if (m_spec.width < 1 || m_spec.width > 8192 || m_spec.height < 1
-        || m_spec.height > 8192) {
-        errorfmt("Image resolution {} x {} is not valid for an IFF file",
-                 m_spec.width, m_spec.height);
+    if (!check_open(mode, spec, { 0, 8192, 0, 8192, 0, 1, 0, 4 }))
         return false;
-    }
+    // Maya docs say 8k is the limit
+
+    // tiles always
+    m_spec.tile_width  = tile_width();
+    m_spec.tile_height = tile_height();
+    m_spec.tile_depth  = 1;
+
     // This implementation only supports writing RGB and RGBA images as IFF
     if (m_spec.nchannels < 3 || m_spec.nchannels > 4) {
         errorfmt("Cannot write IFF file with {} channels", m_spec.nchannels);
         return false;
     }
-
-    // tiles
-    m_spec.tile_width  = tile_width();
-    m_spec.tile_height = tile_height();
-    m_spec.tile_depth  = 1;
 
     uint64_t xtiles = tile_width_size(m_spec.width);
     uint64_t ytiles = tile_height_size(m_spec.height);

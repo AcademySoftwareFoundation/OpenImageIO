@@ -33,7 +33,7 @@ public:
     const char* format_name(void) const override { return "jpeg2000"; }
     int supports(string_view feature) const override
     {
-        return feature == "alpha" || feature == "ioproxy";
+        return feature == "alpha" || feature == "ioproxy" || feature == "tiles";
         // FIXME: we should support Exif/IPTC, but currently don't.
     }
     bool open(const std::string& name, const ImageSpec& spec,
@@ -150,33 +150,11 @@ bool
 Jpeg2000Output::open(const std::string& name, const ImageSpec& spec,
                      OpenMode mode)
 {
-    if (mode != Create) {
-        errorf("%s does not support subimages or MIP levels", format_name());
+    if (!check_open(mode, spec, { 0, 1 << 20, 0, 1 << 20, 0, 1, 0, 4 },
+                    uint64_t(OpenChecks::Disallow2Channel)))
         return false;
-    }
 
     m_filename = name;
-    m_spec     = spec;
-
-    // Check for things this format doesn't support
-    if (m_spec.width < 1 || m_spec.height < 1) {
-        errorf("Image resolution must be at least 1x1, you asked for %d x %d",
-               m_spec.width, m_spec.height);
-        return false;
-    }
-    if (m_spec.depth < 1)
-        m_spec.depth = 1;
-    if (m_spec.depth > 1) {
-        errorf("%s does not support volume images (depth > 1)", format_name());
-        return false;
-    }
-
-    if (m_spec.nchannels != 1 && m_spec.nchannels != 3
-        && m_spec.nchannels != 4) {
-        errorf("%s does not support %d-channel images\n", format_name(),
-               m_spec.nchannels);
-        return false;
-    }
 
     // If not uint8 or uint16, default to uint8
     if (m_spec.format != TypeDesc::UINT8 && m_spec.format != TypeDesc::UINT16)
