@@ -102,7 +102,7 @@ struct index_formatter : format_parser_with_separator {
     {
         std::string vspec = elem_fmt.size() ? fmt::format("{{:{}}}", elem_fmt)
                                             : std::string("{}");
-        for (size_t i = 0; i < v.size(); ++i) {
+        for (size_t i = 0; i < size_t(v.size()); ++i) {
             if (i)
                 fmt::format_to(ctx.out(), "{}", sep == ',' ? ", " : " ");
 #if FMT_VERSION >= 80000
