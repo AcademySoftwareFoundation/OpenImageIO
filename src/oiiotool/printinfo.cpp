@@ -199,7 +199,7 @@ dump_data(std::ostream& out, ImageInput* input, const print_info_options& opt,
           int subimage)
 {
     using Strutil::print;
-    ImageSpec spec = input->spec_dimensions(subimage);
+    ImageSpec spec = input->spec(subimage);
     if (spec.deep) {
         // Special handling of deep data
         DeepData dd;
@@ -226,7 +226,7 @@ dump_data(std::ostream& out, ImageInput* input, const print_info_options& opt,
                         if (s)
                             print(out, " / ");
                         for (int c = 0; c < nc; ++c) {
-                            print(out, " {}=", spec.channelnames[c]);
+                            print(out, " {}=", spec.channel_name(c));
                             if (dd.channeltype(c) == TypeDesc::UINT)
                                 print(out, "{}",
                                       dd.deep_value_uint(pixel, c, s));
