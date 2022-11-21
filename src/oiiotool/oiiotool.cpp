@@ -5060,7 +5060,7 @@ OIIOTOOL_OP(point, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     const ImageSpec& Rspec(img[0]->spec());
     std::vector<int> points;
     Strutil::extract_from_list_string(points, op.args(1));
-    std::vector<float> color(Rspec.nchannels + 1, 1.0f);
+    std::vector<float> color(Rspec.nchannels, 1.0f);
     Strutil::extract_from_list_string(color, op.options().get_string("color"));
     bool ok = true;
     for (size_t i = 0, e = points.size() - 1; i < e; i += 2)
