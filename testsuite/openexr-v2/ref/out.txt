@@ -140,8 +140,8 @@ Reading ../openexr-images/v2/Stereo/Balls.exr
         0     :   677019 (62.2%)
         1     :   252006 (23.1%)
         2     :   159966 (14.7%)
-    Minimum depth was 127.87268 at (999, 1030)
-    Maximum depth was 738.56067 at (930, 413)
+    Minimum depth was 127.873 at (999, 1030)
+    Maximum depth was 738.561 at (930, 413)
 Comparing "../openexr-images/v2/Stereo/Balls.exr" and "Balls.exr"
 PASS
 Reading ../openexr-images/v2/Stereo/Leaves.exr
@@ -197,7 +197,7 @@ Reading ../openexr-images/v2/Stereo/Leaves.exr
         1     :   773945 (37.3%)
         2     :   125696 ( 6.1%)
     Minimum depth was 72.4937 at (0, 1079)
-    Maximum depth was 954.3927 at (716, 324)
+    Maximum depth was 954.393 at (716, 324)
 Comparing "../openexr-images/v2/Stereo/Leaves.exr" and "Leaves.exr"
 PASS
 Reading ../openexr-images/Beachball/multipart.0001.exr

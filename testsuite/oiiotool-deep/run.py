@@ -46,6 +46,11 @@ command += oiiotool (exrdir+"/Balls.exr -cut 512x288+0+0 " +
 # --resample
 command += oiiotool (exrdir+"/Balls.exr -resample 128x72 -o resampled-balls.exr")
 
+# --info --dumpdata --hash
+command += oiiotool ("-pattern constant:color=1e38,0 4x4 2 --chnames Z,A"
+                     " --point:color=10.0,1.0 2,2 --deepen -o tinydeep.exr")
+command += info_command ("-v --info --hash --stats --dumpdata tinydeep.exr",
+                         safematch=True)
 
 
 # Regression test: it used to be that comparing deep image, it would loop

@@ -20,6 +20,8 @@
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/timer.h>
 
+#include "imageio_pvt.h"
+
 
 OIIO_NAMESPACE_BEGIN
 namespace OiioTool {
@@ -42,30 +44,6 @@ enum ReadPolicy {
                             //<   but still subject to format conversion.
     ReadNativeNoCache = 3,  //< No cache, no conversion. Do it all now.
                             //<   You better know what you're doing.
-};
-
-
-
-struct print_info_options {
-    bool verbose            = false;
-    bool filenameprefix     = false;
-    bool sum                = false;
-    bool subimages          = false;
-    bool compute_sha1       = false;
-    bool compute_stats      = false;
-    bool dumpdata           = false;
-    bool dumpdata_showempty = true;
-    bool dumpdata_C         = false;
-    bool native             = false;
-    std::string dumpdata_C_name;
-    std::string metamatch;
-    std::string nometamatch;
-    std::string infoformat;
-    size_t namefieldlength = 20;
-    ROI roi;
-
-    print_info_options() {}
-    print_info_options(const Oiiotool& ot);
 };
 
 
@@ -355,6 +333,24 @@ public:
     int do_action_diff(ImageRecRef ir0, ImageRecRef ir1, Oiiotool& options,
                        int perceptual = 0);
 
+    using print_info_options = pvt::print_info_options;
+
+    print_info_options info_opts()
+    {
+        print_info_options opt;
+        opt.verbose            = verbose || printinfo_verbose;
+        opt.subimages          = allsubimages;
+        opt.compute_sha1       = hash;
+        opt.compute_stats      = printstats;
+        opt.dumpdata           = dumpdata;
+        opt.dumpdata_showempty = dumpdata_showempty;
+        opt.dumpdata_C         = dumpdata_C;
+        opt.dumpdata_C_name    = dumpdata_C_name;
+        opt.metamatch          = printinfo_metamatch;
+        opt.nometamatch        = printinfo_nometamatch;
+        return opt;
+    }
+
 private:
     CallbackFunction m_pending_callback;
     ArgParse::Action m_pending_action;
@@ -624,22 +620,6 @@ private:
 
 
 
-inline print_info_options::print_info_options(const Oiiotool& ot)
-    : verbose(ot.verbose || ot.printinfo_verbose)
-    , subimages(ot.allsubimages)
-    , compute_sha1(ot.hash)
-    , compute_stats(ot.printstats)
-    , dumpdata(ot.dumpdata)
-    , dumpdata_showempty(ot.dumpdata_showempty)
-    , dumpdata_C(ot.dumpdata_C)
-    , dumpdata_C_name(ot.dumpdata_C_name)
-    , metamatch(ot.printinfo_metamatch)
-    , nometamatch(ot.printinfo_nometamatch)
-{
-}
-
-
-
 // For either an ImageRec `img`, or a file on disk named by `filename`,
 // print info about the named file to stream `out`, using
 // print_info_options opt for guidance on what to print and how to do it.
@@ -649,15 +629,12 @@ inline print_info_options::print_info_options(const Oiiotool& ot)
 // `error`).
 bool
 print_info(std::ostream& out, Oiiotool& ot, const std::string& filename,
-           const print_info_options& opt, std::string& error);
+           const pvt::print_info_options& opt, std::string& error);
 bool
 print_info(std::ostream& out, Oiiotool& ot, ImageRec* img,
-           const print_info_options& opt, std::string& error);
+           const pvt::print_info_options& opt, std::string& error);
 
-// For an ImageBuf or a filename, print the stats into output stream `out`.
-void
-print_stats(std::ostream& out, Oiiotool& ot, const ImageBuf& input,
-            string_view indent = "", ROI roi = {});
+// Print the stats into output stream `out`.
 void
 print_stats(std::ostream& out, Oiiotool& ot, const std::string& filename,
             int subimage = 0, int miplevel = 0, string_view indent = "",

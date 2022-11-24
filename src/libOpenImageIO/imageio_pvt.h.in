@@ -18,6 +18,11 @@
 
 OIIO_NAMESPACE_BEGIN
 
+namespace ImageBufAlgo {
+struct PixelStats;
+}
+
+
 namespace pvt {
 
 // Mutex allowing thread safety of the ImageIO internals below
@@ -172,6 +177,32 @@ bluenoise_4chan_ptr(int x, int y, int z, int ch = 0, int seed = 0)
     return bluenoise_table[y][x];
 }
 
+
+
+struct print_info_options {
+    bool verbose            = false;
+    bool filenameprefix     = false;
+    bool sum                = false;
+    bool subimages          = false;
+    bool compute_sha1       = false;
+    bool compute_stats      = false;
+    bool dumpdata           = false;
+    bool dumpdata_showempty = true;
+    bool dumpdata_C         = false;
+    bool native             = false;
+    std::string dumpdata_C_name;
+    std::string metamatch;
+    std::string nometamatch;
+    std::string infoformat;
+    size_t namefieldlength = 20;
+    ROI roi;
+};
+
+OIIO_API std::string
+compute_sha1(ImageInput* input, int subimage, int miplevel, std::string& err);
+OIIO_API bool
+print_stats(std::ostream& out, string_view indent, const ImageBuf& input,
+            const ImageSpec& spec, ROI roi, std::string& err);
 
 }  // namespace pvt
 
