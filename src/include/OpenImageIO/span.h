@@ -17,6 +17,7 @@
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/platform.h>
+#include <OpenImageIO/detail/fmt.h>
 
 OIIO_NAMESPACE_BEGIN
 
@@ -219,8 +220,8 @@ private:
 
 
 /// cspan<T> is a synonym for a non-mutable span<const T>.
-template <typename T>
-using cspan = span<const T>;
+template <typename T, oiio_span_size_type Extent = dynamic_extent>
+using cspan = span<const T, Extent>;
 
 
 
@@ -345,8 +346,8 @@ private:
 
 
 /// cspan_strided<T> is a synonym for a non-mutable span_strided<const T>.
-template <typename T>
-using cspan_strided = span_strided<const T>;
+template <typename T, oiio_span_size_type Extent = dynamic_extent>
+using cspan_strided = span_strided<const T, Extent>;
 
 
 
@@ -405,3 +406,15 @@ constexpr ptrdiff_t ssize(const OIIO::span_strided<T, E>& c) {
 #define OIIO_SPAN_HAS_STD_SIZE 1
 
 } // namespace std
+
+// clang-format on
+
+
+
+/// Custom fmtlib formatters for span/cspan types.
+namespace fmt {
+template<typename T, OIIO::oiio_span_size_type Extent>
+struct formatter<OIIO::span<T, Extent>>
+    : OIIO::pvt::index_formatter<OIIO::span<T, Extent>> {
+};
+}  // namespace fmt
