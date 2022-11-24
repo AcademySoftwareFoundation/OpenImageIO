@@ -185,6 +185,18 @@ test_format_custom()
     OIIO_CHECK_EQUAL(Strutil::fmt::format("X|({:,.3f})|Y", ivf3iota),
                      "X|(1.500, 2.500, 3.500)|Y");
     Strutil::print("\n");
+
+    // Test custom formatting of spans
+    float farray[] = { 1.5f, 2.5f, 3.5f, 4.5f };
+    Strutil::print("cspan<float> {{}}  '{}'\n", cspan<float>(farray));
+    Strutil::print("cspan<float> {{:.3f}}  '{:.3f}'\n", cspan<float>(farray));
+    Strutil::print("cspan<float> {{:,.3f}}  '{:,.3f}'\n", cspan<float>(farray));
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("X|{}|Y", cspan<float>(farray)),
+                     "X|1.5 2.5 3.5 4.5|Y");
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("X|{:.3f}|Y", cspan<float>(farray)),
+                     "X|1.500 2.500 3.500 4.500|Y");
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("X|({:,.3f})|Y", cspan<float>(farray)),
+                     "X|(1.500, 2.500, 3.500, 4.500)|Y");
 }
 
 
