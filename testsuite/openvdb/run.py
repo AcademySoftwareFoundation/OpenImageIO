@@ -7,3 +7,7 @@ for f in [ "sphere.vdb", "sphereCd.vdb" ]:
     exrfile = os.path.splitext(f)[0] + '.exr'
     command += "%s --nowarp --offset -1 -1 -1 --scalest 2 2 %s -o %s\n" % (oiio_app("testtex"), vdbfile, exrfile)
     outputs.append(exrfile)
+
+command += oiiotool ("-echo \"info openvdb\" --info -v --dumpdata:empty=0 src/sphere.vdb")
+
+# outputs.append("out.txt")

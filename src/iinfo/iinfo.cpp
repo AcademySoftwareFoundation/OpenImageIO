@@ -22,6 +22,8 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 
+#include "imageio_pvt.h"
+
 using namespace OIIO;
 using namespace ImageBufAlgo;
 
@@ -37,46 +39,16 @@ static bool subimages     = false;
 static bool compute_sha1  = false;
 static bool compute_stats = false;
 
+using OIIO::print;
+
 
 
 static void
 print_sha1(ImageInput* input, int subimage, int miplevel)
 {
-    using Strutil::print;
-    SHA1 sha;
-    ImageSpec spec = input->spec_dimensions(subimage, miplevel);
-    if (spec.deep) {
-        // Special handling of deep data
-        DeepData dd;
-        if (!input->read_native_deep_image(subimage, miplevel, dd)) {
-            std::string err = input->geterror();
-            if (err.empty())
-                err = "could not read image";
-            print("    SHA-1: {}\n", err);
-            return;
-        }
-        // Hash both the sample counts and the data block
-        sha.append(dd.all_samples());
-        sha.append(dd.all_data());
-    } else {
-        imagesize_t size = spec.image_bytes(true /*native*/);
-        if (size >= std::numeric_limits<size_t>::max()) {
-            print("    SHA-1: unable to compute, image is too big\n");
-            return;
-        }
-        std::unique_ptr<char[]> buf(new char[size]);
-        if (!input->read_image(subimage, miplevel, 0, spec.nchannels,
-                               TypeUnknown /*native*/, buf.get())) {
-            std::string err = input->geterror();
-            if (err.empty())
-                err = "could not read image";
-            print("    SHA-1: {}\n", err);
-            return;
-        }
-        sha.append(&buf[0], size);
-    }
-
-    print("    SHA-1: {}\n", sha.digest());
+    std::string err;
+    std::string s1 = pvt::compute_sha1(input, subimage, miplevel, err);
+    print("    SHA-1: {}\n", err.size() ? err : s1);
 }
 
 
@@ -102,69 +74,6 @@ read_input(const std::string& filename, ImageBuf& img, int subimage = 0,
 
 
 static void
-print_stats_num(float val, int maxval, bool round)
-{
-    if (maxval == 0) {
-        printf("%f", val);
-    } else {
-        float fval = val * static_cast<float>(maxval);
-        if (round) {
-            int v = static_cast<int>(roundf(fval));
-            printf("%d", v);
-        } else {
-            printf("%0.2f", fval);
-        }
-    }
-}
-
-
-// First check oiio:BitsPerSample int attribute.  If not set,
-// fall back on the TypeDesc. return 0 for float types
-// or those that exceed the int range (long long, etc)
-static unsigned long long
-get_intsample_maxval(const ImageSpec& spec)
-{
-    TypeDesc type = spec.format;
-    int bits      = spec.get_int_attribute("oiio:BitsPerSample");
-    if (bits > 0) {
-        if (type.basetype == TypeDesc::UINT8
-            || type.basetype == TypeDesc::UINT16
-            || type.basetype == TypeDesc::UINT32)
-            return ((1LL) << bits) - 1;
-        if (type.basetype == TypeDesc::INT8 || type.basetype == TypeDesc::INT16
-            || type.basetype == TypeDesc::INT32)
-            return ((1LL) << (bits - 1)) - 1;
-    }
-
-    // These correspond to all the int enums in typedesc.h <= int
-    if (type.basetype == TypeDesc::UCHAR)
-        return 0xff;
-    if (type.basetype == TypeDesc::CHAR)
-        return 0x7f;
-    if (type.basetype == TypeDesc::USHORT)
-        return 0xffff;
-    if (type.basetype == TypeDesc::SHORT)
-        return 0x7fff;
-    if (type.basetype == TypeDesc::UINT)
-        return 0xffffffff;
-    if (type.basetype == TypeDesc::INT)
-        return 0x7fffffff;
-
-    return 0;
-}
-
-
-static void
-print_stats_footer(unsigned int maxval)
-{
-    if (maxval == 0)
-        printf("(float)");
-    else
-        printf("(of %u)", maxval);
-}
-
-
-static void
 print_stats(const std::string& filename, const ImageSpec& originalspec,
             int subimage = 0, int miplevel = 0, bool indentmip = false)
 {
@@ -176,115 +85,12 @@ print_stats(const std::string& filename, const ImageSpec& originalspec,
         return;
     }
 
-    PixelStats stats = computePixelStats(input);
-    if (!stats.min.size()) {
-        printf("%sStats: (unable to compute)\n", indent);
-        if (input.has_error())
-            std::cerr << "Error: " << input.geterror() << "\n";
+    std::string err;
+    if (!pvt::print_stats(std::cout, indent, input, originalspec, ROI(), err)) {
+        print("{}Stats: (unable to compute)\n", indent);
+        if (err.size())
+            std::cerr << "Error: " << err << "\n";
         return;
-    }
-
-    // The original spec is used, otherwise the bit depth will
-    // be reported incorrectly (as FLOAT)
-    unsigned int maxval = (unsigned int)get_intsample_maxval(originalspec);
-
-    printf("%sStats Min: ", indent);
-    for (unsigned int i = 0; i < stats.min.size(); ++i) {
-        print_stats_num(stats.min[i], maxval, true);
-        printf(" ");
-    }
-    print_stats_footer(maxval);
-    printf("\n");
-
-    printf("%sStats Max: ", indent);
-    for (unsigned int i = 0; i < stats.max.size(); ++i) {
-        print_stats_num(stats.max[i], maxval, true);
-        printf(" ");
-    }
-    print_stats_footer(maxval);
-    printf("\n");
-
-    printf("%sStats Avg: ", indent);
-    for (unsigned int i = 0; i < stats.avg.size(); ++i) {
-        print_stats_num(stats.avg[i], maxval, false);
-        printf(" ");
-    }
-    print_stats_footer(maxval);
-    printf("\n");
-
-    printf("%sStats StdDev: ", indent);
-    for (unsigned int i = 0; i < stats.stddev.size(); ++i) {
-        print_stats_num(stats.stddev[i], maxval, false);
-        printf(" ");
-    }
-    print_stats_footer(maxval);
-    printf("\n");
-
-    printf("%sStats NanCount: ", indent);
-    for (unsigned int i = 0; i < stats.nancount.size(); ++i) {
-        printf("%llu ", (unsigned long long)stats.nancount[i]);
-    }
-    printf("\n");
-
-    printf("%sStats InfCount: ", indent);
-    for (unsigned int i = 0; i < stats.infcount.size(); ++i) {
-        printf("%llu ", (unsigned long long)stats.infcount[i]);
-    }
-    printf("\n");
-
-    printf("%sStats FiniteCount: ", indent);
-    for (unsigned int i = 0; i < stats.finitecount.size(); ++i) {
-        printf("%llu ", (unsigned long long)stats.finitecount[i]);
-    }
-    printf("\n");
-
-    if (input.deep()) {
-        const DeepData* dd(input.deepdata());
-        size_t npixels      = dd->pixels();
-        size_t totalsamples = 0, emptypixels = 0;
-        size_t maxsamples = 0, minsamples = std::numeric_limits<size_t>::max();
-        for (size_t p = 0; p < npixels; ++p) {
-            size_t c = dd->samples(p);
-            totalsamples += c;
-            if (c > maxsamples)
-                maxsamples = c;
-            if (c < minsamples)
-                minsamples = c;
-            if (c == 0)
-                ++emptypixels;
-        }
-        printf("%sMin deep samples in any pixel : %llu\n", indent,
-               (unsigned long long)minsamples);
-        printf("%sMax deep samples in any pixel : %llu\n", indent,
-               (unsigned long long)maxsamples);
-        printf("%sAverage deep samples per pixel: %.2f\n", indent,
-               double(totalsamples) / double(npixels));
-        printf("%sTotal deep samples in all pixels: %llu\n", indent,
-               (unsigned long long)totalsamples);
-        printf("%sPixels with deep samples   : %llu\n", indent,
-               (unsigned long long)(npixels - emptypixels));
-        printf("%sPixels with no deep samples: %llu\n", indent,
-               (unsigned long long)emptypixels);
-    } else {
-        std::vector<float> constantValues(input.spec().nchannels);
-        if (isConstantColor(input, &constantValues[0])) {
-            printf("%sConstant: Yes\n", indent);
-            printf("%sConstant Color: ", indent);
-            for (unsigned int i = 0; i < constantValues.size(); ++i) {
-                print_stats_num(constantValues[i], maxval, false);
-                printf(" ");
-            }
-            print_stats_footer(maxval);
-            printf("\n");
-        } else {
-            printf("%sConstant: No\n", indent);
-        }
-
-        if (isMonochrome(input)) {
-            printf("%sMonochrome: Yes\n", indent);
-        } else {
-            printf("%sMonochrome: No\n", indent);
-        }
     }
 }
 
@@ -297,30 +103,30 @@ print_metadata(const ImageSpec& spec, const std::string& filename)
     if (metamatch.empty() || std::regex_search("channels", field_re)
         || std::regex_search("channel list", field_re)) {
         if (filenameprefix)
-            printf("%s : ", filename.c_str());
-        printf("    channel list: ");
+            print("{} : ", filename);
+        print("    channel list: ");
         for (int i = 0; i < spec.nchannels; ++i) {
             if (i < (int)spec.channelnames.size())
-                printf("%s", spec.channelnames[i].c_str());
+                print("{}", spec.channelnames[i]);
             else
-                printf("unknown");
+                print("unknown");
             if (i < (int)spec.channelformats.size())
-                printf(" (%s)", spec.channelformats[i].c_str());
+                print(" ({})", spec.channelformats[i]);
             if (i < spec.nchannels - 1)
-                printf(", ");
+                print(", ");
         }
-        printf("\n");
+        print("\n");
         printed = true;
     }
     if (spec.x || spec.y || spec.z) {
         if (metamatch.empty()
             || std::regex_search("pixel data origin", field_re)) {
             if (filenameprefix)
-                printf("%s : ", filename.c_str());
-            printf("    pixel data origin: x=%d, y=%d", spec.x, spec.y);
+                print("{} : ", filename);
+            print("    pixel data origin: x={}, y={}", spec.x, spec.y);
             if (spec.depth > 1)
-                printf(", z=%d", spec.z);
-            printf("\n");
+                print(", z={}", spec.z);
+            print("\n");
             printed = true;
         }
     }
@@ -331,33 +137,33 @@ print_metadata(const ImageSpec& spec, const std::string& filename)
         if (metamatch.empty()
             || std::regex_search("full/display size", field_re)) {
             if (filenameprefix)
-                printf("%s : ", filename.c_str());
-            printf("    full/display size: %d x %d", spec.full_width,
-                   spec.full_height);
+                print("{} : ", filename);
+            print("    full/display size: {} x {}", spec.full_width,
+                  spec.full_height);
             if (spec.depth > 1)
-                printf(" x %d", spec.full_depth);
-            printf("\n");
+                print(" x {}", spec.full_depth);
+            print("\n");
             printed = true;
         }
         if (metamatch.empty()
             || std::regex_search("full/display origin", field_re)) {
             if (filenameprefix)
-                printf("%s : ", filename.c_str());
-            printf("    full/display origin: %d, %d", spec.full_x, spec.full_y);
+                print("{} : ", filename);
+            print("    full/display origin: {}, {}", spec.full_x, spec.full_y);
             if (spec.depth > 1)
-                printf(", %d", spec.full_z);
-            printf("\n");
+                print(", {}", spec.full_z);
+            print("\n");
             printed = true;
         }
     }
     if (spec.tile_width) {
         if (metamatch.empty() || std::regex_search("tile", field_re)) {
             if (filenameprefix)
-                printf("%s : ", filename.c_str());
-            printf("    tile size: %d x %d", spec.tile_width, spec.tile_height);
+                print("{} : ", filename);
+            print("    tile size: {} x {}", spec.tile_width, spec.tile_height);
             if (spec.depth > 1)
-                printf(" x %d", spec.tile_depth);
-            printf("\n");
+                print(" x {}", spec.tile_depth);
+            print("\n");
             printed = true;
         }
     }
@@ -373,20 +179,20 @@ print_metadata(const ImageSpec& spec, const std::string& filename)
             continue;
         std::string s = spec.metadata_val(p, true);
         if (filenameprefix)
-            printf("%s : ", filename.c_str());
-        printf("    %s: ", p.name().c_str());
-        if (!strcmp(s.c_str(), "1.#INF"))
-            printf("inf");
+            print("{} : ", filename);
+        print("    {}: ", p.name());
+        if (s == "1.#INF")
+            print("inf");
         else
-            printf("%s", s.c_str());
-        printf("\n");
+            print("{}", s);
+        print("\n");
         printed = true;
     }
 
     if (!printed && !metamatch.empty()) {
         if (filenameprefix)
-            printf("%s : ", filename.c_str());
-        printf("    %s: <unknown>\n", metamatch.c_str());
+            print("{} : ", filename);
+        print("    {}: <unknown>\n", metamatch);
     }
 }
 
@@ -456,34 +262,34 @@ print_info_subimage(int current_subimage, int max_subimages, ImageSpec& spec,
               || std::regex_search("resolution, width, height, depth, channels",
                                    field_re));
     if (printres && max_subimages > 1 && subimages) {
-        printf(" subimage %2d: ", current_subimage);
-        printf("%4d x %4d", spec.width, spec.height);
+        print(" subimage {:2}: ", current_subimage);
+        print("{:4} x {:4}", spec.width, spec.height);
         if (spec.depth > 1)
-            printf(" x %4d", spec.depth);
+            print(" x {:4}", spec.depth);
         int bits = spec.get_int_attribute("oiio:BitsPerSample", 0);
-        printf(", %d channel, %s%s%s", spec.nchannels, spec.deep ? "deep " : "",
-               spec.depth > 1 ? "volume " : "",
-               extended_format_name(spec.format, bits));
-        printf(" %s", input->format_name());
-        printf("\n");
+        print(", {} channel, {}{}{}", spec.nchannels, spec.deep ? "deep " : "",
+              spec.depth > 1 ? "volume " : "",
+              extended_format_name(spec.format, bits));
+        print(" {}", input->format_name());
+        print("\n");
     }
     // Count MIP levels
     ImageSpec mipspec;
     while (input->seek_subimage(current_subimage, nmip, mipspec)) {
         if (printres) {
             if (nmip == 1)
-                printf("    MIP-map levels: %dx%d", spec.width, spec.height);
-            printf(" %dx%d", mipspec.width, mipspec.height);
+                print("    MIP-map levels: {}x{}", spec.width, spec.height);
+            print(" {}x{}", mipspec.width, mipspec.height);
         }
         ++nmip;
     }
     if (printres && nmip > 1)
-        printf("\n");
+        print("\n");
 
     if (compute_sha1
         && (metamatch.empty() || std::regex_search("sha-1", field_re))) {
         if (filenameprefix)
-            printf("%s : ", filename.c_str());
+            print("{} : ", filename);
         // Before sha-1, be sure to point back to the highest-res MIP level
         ImageSpec tmpspec;
         input->seek_subimage(current_subimage, 0, tmpspec);
@@ -499,10 +305,10 @@ print_info_subimage(int current_subimage, int max_subimages, ImageSpec& spec,
             ImageSpec mipspec;
             input->seek_subimage(current_subimage, m, mipspec);
             if (filenameprefix)
-                printf("%s : ", filename.c_str());
+                print("{} : ", filename);
             if (nmip > 1 && (subimages || m == 0)) {
-                printf("    MIP %d of %d (%d x %d):\n", m, nmip, mipspec.width,
-                       mipspec.height);
+                print("    MIP {} of {} ({} x {}):\n", m, nmip, mipspec.width,
+                      mipspec.height);
             }
             print_stats(filename, spec, current_subimage, m, nmip > 1);
         }
@@ -549,58 +355,57 @@ print_info(const std::string& filename, size_t namefieldlength,
     if (metamatch.empty()
         || std::regex_search("resolution, width, height, depth, channels",
                              field_re)) {
-        printf("%s%s : %4d x %4d", filename.c_str(), padding.c_str(),
-               spec.width, spec.height);
+        print("{}{} : {:4} x {:4}", filename, padding, spec.width, spec.height);
         if (spec.depth > 1)
-            printf(" x %4d", spec.depth);
-        printf(", %d channel, %s%s", spec.nchannels, spec.deep ? "deep " : "",
-               spec.depth > 1 ? "volume " : "");
+            print(" x {:4}", spec.depth);
+        print(", {} channel, {}{}", spec.nchannels, spec.deep ? "deep " : "",
+              spec.depth > 1 ? "volume " : "");
         if (spec.channelformats.size()) {
             for (size_t c = 0; c < spec.channelformats.size(); ++c)
-                printf("%s%s", c ? "/" : "", spec.channelformats[c].c_str());
+                print("{}{}", c ? "/" : "", spec.channelformat(c));
         } else {
             int bits = spec.get_int_attribute("oiio:BitsPerSample", 0);
-            printf("%s", extended_format_name(spec.format, bits));
+            print("{}", extended_format_name(spec.format, bits));
         }
-        printf(" %s", input->format_name());
+        print(" {}", input->format_name());
         if (sum) {
             imagesize_t imagebytes = spec.image_bytes(true);
             totalsize += imagebytes;
-            printf(" (%.2f MB)", (float)imagebytes / (1024.0 * 1024.0));
+            print(" ({:.2f} MB)", (float)imagebytes / (1024.0 * 1024.0));
         }
         // we print info about how many subimages are stored in file
         // only when we have more then one subimage
         if (!verbose && num_of_subimages != 1)
-            printf(" (%d subimages%s)", num_of_subimages,
-                   any_mipmapping ? " +mipmap)" : "");
+            print(" ({} subimages{})", num_of_subimages,
+                  any_mipmapping ? " +mipmap)" : "");
         if (!verbose && num_of_subimages == 1 && any_mipmapping)
-            printf(" (+mipmap)");
-        printf("\n");
+            print(" (+mipmap)");
+        print("\n");
     }
 
     int movie = spec.get_int_attribute("oiio:Movie");
     if (verbose && num_of_subimages != 1) {
         // info about num of subimages and their resolutions
-        printf("    %d subimages: ", num_of_subimages);
+        print("    {} subimages: ", num_of_subimages);
         for (int i = 0; i < num_of_subimages; ++i) {
             input->seek_subimage(i, 0, spec);
             int bits = spec.get_int_attribute("oiio:BitsPerSample",
                                               spec.format.size() * 8);
             if (i)
-                printf(", ");
+                print(", ");
             if (spec.depth > 1)
-                printf("%dx%dx%d ", spec.width, spec.height, spec.depth);
+                print("{}x{}x{} ", spec.width, spec.height, spec.depth);
             else
-                printf("%dx%d ", spec.width, spec.height);
-            // printf ("[");
+                print("{}x{} ", spec.width, spec.height);
+            // print("[");
             for (int c = 0; c < spec.nchannels; ++c)
-                printf("%c%s", c ? ',' : '[',
-                       brief_format_name(spec.channelformat(c), bits));
-            printf("]");
+                print("{:c}{}", c ? ',' : '[',
+                      brief_format_name(spec.channelformat(c), bits));
+            print("]");
             if (movie)
                 break;
         }
-        printf("\n");
+        print("\n");
     }
 
     // if the '-a' flag is not set we print info
@@ -670,9 +475,8 @@ main(int argc, const char* argv[])
         auto in = ImageInput::open(s);
         if (!in) {
             std::string err = geterror();
-            if (err.empty())
-                err = Strutil::sprintf("Could not open file.");
-            std::cerr << "iinfo ERROR: \"" << s << "\" : " << err << "\n";
+            print(std::cerr, "iinfo ERROR: \"{}\" : {}\n", s,
+                  err.size() ? err : std::string("Could not open file."));
             returncode = EXIT_FAILURE;
             continue;
         }
@@ -680,13 +484,8 @@ main(int argc, const char* argv[])
         print_info(s, longestname, in.get(), spec, verbose, sum, totalsize);
     }
 
-    if (sum) {
-        double t = (double)totalsize / (1024.0 * 1024.0);
-        if (t > 1024.0)
-            printf("Total size: %.2f GB\n", t / 1024.0);
-        else
-            printf("Total size: %.2f MB\n", t);
-    }
+    if (sum)
+        print("Total size: {}\n", Strutil::memformat(totalsize));
 
     return returncode;
 }

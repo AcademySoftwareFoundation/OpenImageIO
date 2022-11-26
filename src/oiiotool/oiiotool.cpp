@@ -45,7 +45,7 @@
 using namespace OIIO;
 using namespace OiioTool;
 using namespace ImageBufAlgo;
-
+using pvt::print_info_options;
 
 static Oiiotool ot;
 
@@ -1914,7 +1914,13 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
                     result.pop_back();
             } else if (metadata == "STATS") {
                 std::stringstream out;
-                OiioTool::print_stats(out, *this, (*img)());
+                // OiioTool::print_stats(out, *this, (*img)());
+
+                std::string err;
+                if (!pvt::print_stats(out, "", (*img)(), (*img)().nativespec(),
+                                      ROI(), err))
+                    errorfmt("stats", "unable to compute: {}", err);
+
                 result = out.str();
                 if (result.size() && result.back() == '\n')
                     result.pop_back();
@@ -5229,7 +5235,7 @@ input_file(int argc, const char* argv[])
         }
         if ((printinfo || ot.printstats || ot.dumpdata || ot.hash)
             && !substitute) {
-            print_info_options pio(ot);
+            print_info_options pio = ot.info_opts();
             pio.verbose |= printinfo > 1;
             pio.subimages |= printinfo > 1;
             pio.infoformat = infoformat;
@@ -5829,7 +5835,8 @@ action_printstats(cspan<const char*> argv)
     ot.read();
     ImageRecRef top = ot.top();
 
-    print_info_options opt(ot);
+    print_info_options opt = ot.info_opts();
+
     opt.subimages     = allsubimages;
     opt.compute_stats = true;
     opt.roi           = top->spec(0, 0)->roi();
@@ -5867,7 +5874,8 @@ action_printinfo(cspan<const char*> argv)
     ot.read();
     ImageRecRef top = ot.top();
 
-    print_info_options opt(ot);
+    print_info_options opt = ot.info_opts();
+
     opt.verbose       = verb;
     opt.subimages     = allsubimages;
     opt.compute_stats = stats;
