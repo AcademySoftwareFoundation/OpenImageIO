@@ -92,6 +92,11 @@
 #define OIIO_NO_SSE 1
 #endif
 
+//Disable SSE for ARM64 targets
+#if defined(_M_ARM64) || defined(__aarch64) || defined(__aarch64__)
+#define OIIO_NO_SSE 1
+#endif
+
 // Make sure to disable SSE intrinsics when compiling for Cuda.
 #if defined(__CUDA_ARCH__) && !defined(OIIO_NO_SSE)
 #define OIIO_NO_SSE 1
@@ -6750,11 +6755,17 @@ OIIO_FORCEINLINE void vfloat4::load (const float *values, int n) {
         break;
     }
 #elif OIIO_SIMD_NEON
+    //switch (n) {
+    //case 1: m_simd = vdupq_n_f32(0); m_simd[0] = values[0]; break;
+    //case 2: load (values[0], values[1], 0.0f, 0.0f);      break;
+    //case 3: load (values[0], values[1], values[2], 0.0f); break;
+    //case 4: m_simd = vld1q_f32 (values);                   break;
+    //default: break;
+    m_simd = vld1q_f32(values);
     switch (n) {
-    case 1: m_simd = vdupq_n_f32(0); m_simd[0] = values[0]; break;
-    case 2: load (values[0], values[1], 0.0f, 0.0f);      break;
-    case 3: load (values[0], values[1], values[2], 0.0f); break;
-    case 4: m_simd = vld1q_f32 (values);                   break;
+    case 1: m_simd = vsetq_lane_f32(0.0f, m_simd, 1);
+    case 2: m_simd = vsetq_lane_f32(0.0f, m_simd, 2);
+    case 3: m_simd = vsetq_lane_f32(0.0f, m_simd, 3);
     default: break;
     }
 #else

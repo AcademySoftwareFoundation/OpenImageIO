@@ -42,6 +42,11 @@
 #    include <intrin.h>
 #endif
 
+//Avoid min and max being defined
+#if defined(_WIN32)
+#define NOMINMAX
+#endif
+
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/export.h>
 
@@ -568,7 +573,7 @@ inline void cpuid (int info[4], int infoType, int extra)
 {
     // Implementation cribbed from Halide (http://halide-lang.org), which
     // cribbed it from ISPC (https://github.com/ispc/ispc).
-#if (defined(_WIN32) || defined(__i386__) || defined(__x86_64__))
+#if (defined(_M_X64) || defined(_M_IX86) || defined(_M_AMD64) || defined(__i386__) || defined(__x86_64__))
 # ifdef _MSC_VER
     __cpuidex(info, infoType, extra);
 # elif defined(__x86_64__)
@@ -584,6 +589,9 @@ inline void cpuid (int info[4], int infoType, int extra)
         : "=a" (info[0]), "=r" (info[1]), "=c" (info[2]), "=d" (info[3])
         : "0" (infoType), "2" (extra));
 # endif
+#elif (defined(_M_ARM64) || defined (__aarch64__) || defined(__aarch64))
+    info[0] = 0; info[1] = 0; info[2] = 0; info[3] = 0;
+    #define __ARM_NEON__
 #else
     info[0] = 0; info[1] = 0; info[2] = 0; info[3] = 0;
 #endif
