@@ -489,7 +489,7 @@ struct TileID {
     /// Initialize a TileID based on full elaboration of image file,
     /// subimage, and tile x,y,z indices.
     TileID(ImageCacheFile& file, int subimage, int miplevel, int x, int y,
-           int z = 0, int chbegin = 0, int chend = -1)
+           int z, int chbegin, int chend)
         : m_x(x)
         , m_y(y)
         , m_z(z)
@@ -499,9 +499,10 @@ struct TileID {
         , m_chend(chend)
         , m_file(&file)
     {
-        int nc = file.spec(subimage, miplevel).nchannels;
-        if (chend < chbegin || chend > nc)
+        if (chend < chbegin) {
+            int nc  = file.spec(subimage, miplevel).nchannels;
             m_chend = nc;
+        }
     }
 
     /// Destructor is trivial, because we don't hold any resources

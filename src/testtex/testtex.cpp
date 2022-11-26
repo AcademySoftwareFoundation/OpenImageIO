@@ -88,6 +88,9 @@ static bool invalidate_before_iter = true;
 static bool close_before_iter      = false;
 static bool runstats               = false;
 static bool udim_tests             = false;
+static bool do_gettextureinfo      = true;
+static int subimage                = -1;
+static std::string subimagename;
 static Imath::M33f xform;
 static std::string texoptions;
 static std::string gtiname;
@@ -106,6 +109,9 @@ typedef void (*Mapping2D)(const int&, const int&, float&, float&, float&,
 typedef void (*Mapping3D)(const int&, const int&, Imath::V3f&, Imath::V3f&,
                           Imath::V3f&, Imath::V3f&);
 
+typedef void (*MappingEnv)(const int&, const int&, Imath::V3f&, Imath::V3f&,
+                           Imath::V3f&);
+
 typedef void (*Mapping2DWide)(const Tex::IntWide&, const Tex::IntWide&,
                               Tex::FloatWide&, Tex::FloatWide&, Tex::FloatWide&,
                               Tex::FloatWide&, Tex::FloatWide&,
@@ -115,6 +121,11 @@ typedef void (*Mapping3DWide)(const Tex::IntWide&, const Tex::IntWide&,
                               Imath::Vec3<Tex::FloatWide>&,
                               Imath::Vec3<Tex::FloatWide>&,
                               Imath::Vec3<Tex::FloatWide>&);
+
+typedef void (*MappingEnvWide)(const Tex::IntWide&, const Tex::IntWide&,
+                               Imath::Vec3<Tex::FloatWide>&,
+                               Imath::Vec3<Tex::FloatWide>&,
+                               Imath::Vec3<Tex::FloatWide>&);
 
 
 
@@ -251,6 +262,12 @@ getargs(int argc, const char* argv[])
       .help("Do udim-oriented tests");
     ap.arg("--bluenoise", &use_bluenoise)
       .help("Use blue noise for stochastic choices");
+    ap.arg("--no-gettextureinfo %!", &do_gettextureinfo)
+      .help("Do not test gettextureinfo");
+    ap.arg("--subimage %d:INDEX", &subimage)
+      .help("Use the specified subimage (by index)");
+    ap.arg("--subimagename %s:NAME", &subimagename)
+      .help("Use the specified subimage (by name)");
 
     // clang-format on
     ap.parse(argc, argv);
@@ -282,6 +299,10 @@ initialize_opt(TextureOpt& opt)
     opt.anisotropic = anisomax;
     opt.mipmode     = (TextureOpt::MipMode)mipmode;
     opt.interpmode  = (TextureOpt::InterpMode)interpmode;
+    if (subimage >= 0)
+        opt.subimage = subimage;
+    else if (!subimagename.empty())
+        opt.subimagename = ustring(subimagename);
 }
 
 
@@ -307,6 +328,10 @@ initialize_opt(TextureOptBatch& opt)
     opt.anisotropic = anisomax;
     opt.mipmode     = MipMode(mipmode);
     opt.interpmode  = InterpMode(interpmode);
+    if (subimage >= 0)
+        opt.subimage = subimage;
+    else if (!subimagename.empty())
+        opt.subimagename = ustring(subimagename);
 }
 
 
@@ -624,6 +649,64 @@ map_warp_3D(const Int& x, const Int& y, Imath::Vec3<Float>& P,
     dPdx = coordx - coord;
     dPdy = coordy - coord;
     dPdz.setValue(0, 0, 0);
+}
+
+
+
+// Just map pixels to environment direction
+void
+map_env_latlong(const int& x, const int& y, Imath::Vec3<float>& R,
+                Imath::Vec3<float>& dRdx, Imath::Vec3<float>& dRdy)
+{
+    float u         = (x + 0.5f) / output_xres;
+    float v         = (y + 0.5f) / output_yres;
+    float du_dx     = float(1.0f / output_xres);  // du_dy = 0
+    float dv_dy     = float(1.0f / output_yres);  // dv_dx = 0
+    float theta     = float(2.0 * M_PI) * u;
+    float dtheta_dx = float(2.0 * M_PI) * du_dx;  // dtheta_dy = 0
+    float phi       = float(M_PI) * v;
+    float dphi_dy   = float(M_PI) * dv_dy;  // dphi_dx = 0
+
+    R    = Imath::Vec3<float>(fast_sin(phi) * fast_sin(theta), fast_cos(phi),
+                           -fast_sin(phi) * fast_cos(theta));
+    dRdx = Imath::Vec3<float>(fast_sin(phi) * fast_cos(theta) * dtheta_dx,
+                              float(0.0f),
+                              fast_sin(phi) * fast_sin(theta) * dtheta_dx);
+    dRdy = Imath::Vec3<float>(-fast_cos(phi) * fast_sin(theta) * dphi_dy,
+                              -fast_sin(phi) * dphi_dy,
+                              -fast_cos(phi) * fast_cos(theta) * dphi_dy);
+}
+
+
+
+// Turn v3f[lanes] into simd[3]
+inline Imath::Vec3<Tex::FloatWide>
+soa(const Imath::V3f v[])
+{
+    Imath::Vec3<Tex::FloatWide> result;
+    for (int i = 0; i < Tex::BatchWidth; ++i) {
+        result[0][i] = v[i].x;
+        result[1][i] = v[i].y;
+        result[2][i] = v[i].z;
+    }
+    return result;
+}
+
+
+
+// FIXME -- templatize map_env_latlong. For now, just loop over scalar version.
+void
+map_env_latlong(const Tex::IntWide& x, const Tex::IntWide& y,
+                Imath::Vec3<Tex::FloatWide>& R,
+                Imath::Vec3<Tex::FloatWide>& dRdx,
+                Imath::Vec3<Tex::FloatWide>& dRdy)
+{
+    Imath::V3f r[Tex::BatchWidth], drdx[Tex::BatchWidth], drdy[Tex::BatchWidth];
+    for (int i = 0; i < Tex::BatchWidth; ++i)
+        map_env_latlong(x[i], y[i], r[i], drdx[i], drdy[i]);
+    R    = soa(r);
+    dRdx = soa(drdx);
+    dRdy = soa(drdy);
 }
 
 
@@ -1071,7 +1154,224 @@ static void test_shadow(ustring /*filename*/) {}
 
 
 
-static void test_environment(ustring /*filename*/) {}
+void
+env_region(ImageBuf& image, ustring filename, MappingEnv mapping,
+           ImageBuf* image_ds, ImageBuf* image_dt, ROI roi)
+{
+    TextureSystem::Perthread* perthread_info     = texsys->get_perthread_info();
+    TextureSystem::TextureHandle* texture_handle = texsys->get_texture_handle(
+        filename);
+    int nchannels = nchannels_override ? nchannels_override : image.nchannels();
+
+    TextureOpt opt;
+    initialize_opt(opt);
+
+    float* result    = OIIO_ALLOCA(float, nchannels);
+    float* dresultds = test_derivs ? OIIO_ALLOCA(float, nchannels) : NULL;
+    float* dresultdt = test_derivs ? OIIO_ALLOCA(float, nchannels) : NULL;
+    for (ImageBuf::Iterator<float> p(image, roi); !p.done(); ++p) {
+        Imath::V3f R, dRdx, dRdy;
+        mapping(p.x(), p.y(), R, dRdx, dRdy);
+        // if (p.x() == 0 && p.y() == 0)
+        //     Strutil::print("R = {}\n", R);
+        // Call the texture system to do the filtering.
+        bool ok = use_handle
+                      ? texsys->environment(texture_handle, perthread_info, opt,
+                                            R, dRdx, dRdy, nchannels, result,
+                                            dresultds, dresultdt)
+                      : texsys->environment(filename, opt, R, dRdx, dRdy,
+                                            nchannels, result, dresultds,
+                                            dresultdt);
+        if (!ok) {
+            std::string e = texsys->geterror();
+            if (!e.empty())
+                Strutil::print(std::cerr, "ERROR: {}\n", e);
+        }
+
+        // Save filtered pixels back to the image.
+        for (int i = 0; i < nchannels; ++i)
+            result[i] *= scalefactor;
+        image.setpixel(p.x(), p.y(), result);
+        if (image_ds)
+            image_ds->setpixel(p.x(), p.y(), dresultds);
+        if (image_dt)
+            image_dt->setpixel(p.x(), p.y(), dresultdt);
+    }
+}
+
+
+
+void
+env_region_batch(ImageBuf& image, ustring filename, MappingEnvWide mapping,
+                 ImageBuf* image_ds, ImageBuf* image_dt, ROI roi)
+{
+    using namespace Tex;
+    TextureSystem::Perthread* perthread_info     = texsys->get_perthread_info();
+    TextureSystem::TextureHandle* texture_handle = texsys->get_texture_handle(
+        filename);
+    int nchannels_img = image.nchannels();
+    int nchannels = nchannels_override ? nchannels_override : image.nchannels();
+
+    TextureOptBatch opt;
+    initialize_opt(opt);
+
+    FloatWide* result    = OIIO_ALLOCA(FloatWide, nchannels);
+    FloatWide* dresultds = test_derivs ? OIIO_ALLOCA(FloatWide, nchannels)
+                                       : nullptr;
+    FloatWide* dresultdt = test_derivs ? OIIO_ALLOCA(FloatWide, nchannels)
+                                       : nullptr;
+    for (int y = roi.ybegin; y < roi.yend; ++y) {
+        for (int x = roi.xbegin; x < roi.xend; x += BatchWidth) {
+            Imath::Vec3<FloatWide> R, dRdx, dRdy;
+            mapping(IntWide::Iota(x), y, R, dRdx, dRdy);
+            int npoints  = std::min(BatchWidth, roi.xend - x);
+            RunMask mask = RunMaskOn >> (BatchWidth - npoints);
+
+            // Call the texture system to do the filtering.
+            // if (y == 0 && x == 0)
+            //     Strutil::print("R = {}\n", R);
+            bool ok
+                = use_handle
+                      ? texsys->environment(texture_handle, perthread_info, opt,
+                                            mask, (const float*)&R,
+                                            (const float*)&dRdx,
+                                            (const float*)&dRdy, nchannels,
+                                            (float*)result, (float*)dresultds,
+                                            (float*)dresultdt)
+                      : texsys->environment(filename, opt, mask,
+                                            (const float*)&R,
+                                            (const float*)&dRdx,
+                                            (const float*)&dRdy, nchannels,
+                                            (float*)result, (float*)dresultds,
+                                            (float*)dresultdt);
+
+            if (!ok) {
+                std::string e = texsys->geterror();
+                if (!e.empty())
+                    Strutil::print(std::cerr, "ERROR: {}\n", e);
+            }
+
+            // Save filtered pixels back to the image.
+            for (int i = 0; i < nchannels; ++i)
+                result[i] *= scalefactor;
+            float* resultptr = (float*)image.pixeladdr(x, y);
+            // FIXME: simplify by using SIMD scatter
+            for (int i = 0; i < npoints; ++i)
+                for (int c = 0; c < nchannels; ++c)
+                    resultptr[c + i * nchannels_img] = result[c][i];
+            if (test_derivs) {
+                float* resultdsptr = (float*)image_ds->pixeladdr(x, y);
+                float* resultdtptr = (float*)image_dt->pixeladdr(x, y);
+                for (int c = 0; c < nchannels; ++c) {
+                    for (int i = 0; i < npoints; ++i) {
+                        resultdsptr[c + i * nchannels_img] = dresultds[c][i];
+                        resultdtptr[c + i * nchannels_img] = dresultdt[c][i];
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
+static void
+test_environment(ustring filename, MappingEnv mapping)
+{
+    Strutil::print("Testing environment {}, output = {}\n", filename,
+                   output_filename);
+    int nchannels = nchannels_override ? nchannels_override : 4;
+    ImageSpec outspec(output_xres, output_yres, nchannels, TypeDesc::FLOAT);
+    ImageBuf image(outspec);
+    TypeDesc fmt(dataformatname);
+    image.set_write_format(fmt);
+    OIIO::ImageBufAlgo::zero(image);
+    ImageBuf image_ds, image_dt;
+    if (test_derivs) {
+        image_ds.reset(outspec);
+        image_ds.set_write_format(fmt);
+        OIIO::ImageBufAlgo::zero(image_ds);
+        image_dt.reset(outspec);
+        image_dt.set_write_format(fmt);
+        OIIO::ImageBufAlgo::zero(image_dt);
+    }
+
+    for (int iter = 0; iter < iters; ++iter) {
+        // Trick: switch to second texture, if given, for second iteration
+        if (iter && filenames.size() > 1)
+            filename = filenames[1];
+        if (close_before_iter)
+            texsys->close_all();
+        ImageBufAlgo::parallel_image(
+            get_roi(image.spec()), nthreads, [&](ROI roi) {
+                env_region(image, filename, mapping,
+                           test_derivs ? &image_ds : nullptr,
+                           test_derivs ? &image_dt : nullptr, roi);
+            });
+    }
+
+    if (!image.write(output_filename))
+        Strutil::print(std::cerr, "Error writing {} : {}\n", output_filename,
+                       image.geterror());
+    if (test_derivs) {
+        if (!image_ds.write(output_filename + "-ds.exr"))
+            Strutil::print(std::cerr, "Error writing {} : {}\n",
+                           (output_filename + "-ds.exr"), image_ds.geterror());
+        if (!image_dt.write(output_filename + "-dt.exr"))
+            Strutil::print(std::cerr, "Error writing {} : {}\n",
+                           (output_filename + "-dt.exr"), image_dt.geterror());
+    }
+}
+
+
+
+static void
+test_environment_batch(ustring filename, MappingEnvWide mapping)
+{
+    Strutil::print("Testing BATCHED environment {}, output = {}\n", filename,
+                   output_filename);
+    int nchannels = nchannels_override ? nchannels_override : 4;
+    ImageSpec outspec(output_xres, output_yres, nchannels, TypeDesc::FLOAT);
+    ImageBuf image(outspec);
+    TypeDesc fmt(dataformatname);
+    image.set_write_format(fmt);
+    OIIO::ImageBufAlgo::zero(image);
+    ImageBuf image_ds, image_dt;
+    if (test_derivs) {
+        image_ds.reset(outspec);
+        image_ds.set_write_format(fmt);
+        OIIO::ImageBufAlgo::zero(image_ds);
+        image_dt.reset(outspec);
+        image_dt.set_write_format(fmt);
+        OIIO::ImageBufAlgo::zero(image_dt);
+    }
+
+    for (int iter = 0; iter < iters; ++iter) {
+        // Trick: switch to second texture, if given, for second iteration
+        if (iter && filenames.size() > 1)
+            filename = filenames[1];
+        if (close_before_iter)
+            texsys->close_all();
+        ImageBufAlgo::parallel_image(
+            get_roi(image.spec()), nthreads, [&](ROI roi) {
+                env_region_batch(image, filename, mapping,
+                                 test_derivs ? &image_ds : nullptr,
+                                 test_derivs ? &image_dt : nullptr, roi);
+            });
+    }
+
+    if (!image.write(output_filename))
+        Strutil::print(std::cerr, "Error writing {} : {}\n", output_filename,
+                       image.geterror());
+    if (test_derivs) {
+        if (!image_ds.write(output_filename + "-ds.exr"))
+            Strutil::print(std::cerr, "Error writing {} : {}\n",
+                           (output_filename + "-ds.exr"), image_ds.geterror());
+        if (!image_dt.write(output_filename + "-dt.exr"))
+            Strutil::print(std::cerr, "Error writing {} : {}\n",
+                           (output_filename + "-dt.exr"), image_dt.geterror());
+    }
+}
 
 
 
@@ -1121,6 +1421,7 @@ test_getimagespec_gettexels(ustring filename)
 
 
 
+#ifndef CODECOV
 static void
 test_hash()
 {
@@ -1155,7 +1456,7 @@ test_hash()
     for (int f = 0; f < nfiles; ++f) {
         for (int y = 0; y < res; y += tilesize) {
             for (int x = 0; x < res; x += tilesize, ++i) {
-                OIIO::pvt::TileID id(*icf[f], 0, 0, x, y, 0);
+                OIIO::pvt::TileID id(*icf[f], 0, 0, x, y, 0, 0, 1);
                 size_t h = id.hash();
                 hh += h;
             }
@@ -1173,7 +1474,7 @@ test_hash()
     for (int f = 0; f < nfiles; ++f) {
         for (int y = 0; y < res; y += tilesize) {
             for (int x = 0; x < res; x += tilesize, ++i) {
-                OIIO::pvt::TileID id(*icf[f], 0, 0, x, y, 0);
+                OIIO::pvt::TileID id(*icf[f], 0, 0, x, y, 0, 0, 1);
                 size_t h = id.hash();
                 ++fourbits[h & 0xf];
                 ++eightbits[h & 0xff];
@@ -1229,6 +1530,7 @@ test_hash()
 
     ImageCache::destroy(imagecache);
 }
+#endif
 
 
 
@@ -1710,9 +2012,11 @@ main(int argc, const char* argv[])
         iters = 0;
     }
 
+#ifndef CODECOV
     if (testhash) {
         test_hash();
     }
+#endif
 
     Imath::M33f scale;
     scale.scale(Imath::V2f(0.3, 0.3));
@@ -1769,7 +2073,8 @@ main(int argc, const char* argv[])
         Strutil::print("\n");
     } else if (iters > 0 && filenames.size()) {
         ustring filename(filenames[0]);
-        test_gettextureinfo(filenames[0]);
+        if (do_gettextureinfo)
+            test_gettextureinfo(filenames[0]);
         const char* texturetype = "Plain Texture";
         texsys->get_texture_info(filename, 0, ustring("texturetype"),
                                  TypeDesc::STRING, &texturetype);
@@ -1813,10 +2118,13 @@ main(int argc, const char* argv[])
             test_shadow(filename);
         }
         if (!strcmp(texturetype, "Environment")) {
-            test_environment(filename);
+            if (batch) {
+                test_environment_batch(filename, map_env_latlong);
+            } else {
+                test_environment(filename, map_env_latlong);
+            }
         }
-        if (!udim_tests)
-            test_getimagespec_gettexels(filename);
+        test_getimagespec_gettexels(filename);
         if (runstats || verbose)
             Strutil::print("Time: {}\n", Strutil::timeintervalformat(timer()));
     }

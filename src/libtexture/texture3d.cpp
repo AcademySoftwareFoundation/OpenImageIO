@@ -197,11 +197,15 @@ TextureSystemImpl::texture3d(ustring filename, TextureOptions& options,
                              float* result, float* dresultds, float* dresultdt,
                              float* dresultdr)
 {
+#ifdef OIIO_TEX_NO_IMPLEMENT_VARYINGREF
+    return false;
+#else
     Perthread* thread_info        = get_perthread_info();
     TextureHandle* texture_handle = get_texture_handle(filename, thread_info);
     return texture3d(texture_handle, thread_info, options, runflags,
                      beginactive, endactive, P, dPdx, dPdy, dPdz, nchannels,
                      result, dresultds, dresultdt, dresultdr);
+#endif
 }
 
 
@@ -214,6 +218,9 @@ TextureSystemImpl::texture3d(
     VaryingRef<Imath::V3f> dPdy, VaryingRef<Imath::V3f> dPdz, int nchannels,
     float* result, float* dresultds, float* dresultdt, float* dresultdr)
 {
+#ifdef OIIO_TEX_NO_IMPLEMENT_VARYINGREF
+    return false;
+#else
     bool ok = true;
     result += beginactive * nchannels;
     if (dresultds) {
@@ -235,6 +242,7 @@ TextureSystemImpl::texture3d(
         }
     }
     return ok;
+#endif
 }
 
 

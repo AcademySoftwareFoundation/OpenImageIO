@@ -263,6 +263,7 @@ checker-prman.tx     :  128 x  128, 4 channel, int16 tiff
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 2
+make_texture ERROR: maketx ERROR: Nan/Inf at 2 pixels
 Reading nan.exr
 nan.exr              :   64 x   64, 3 channel, half openexr
     SHA-1: 47A8E8F3E8B2C3B6B032FCC8C39D3C5FC1AAA390
