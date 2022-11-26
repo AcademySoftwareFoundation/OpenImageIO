@@ -65,6 +65,7 @@ set (libOpenImageIO_srcs
                           color_ocio.cpp
                           maketexture.cpp
                           bluenoise.cpp
+                          printinfo.cpp
                           ../libtexture/texturesys.cpp
                           ../libtexture/texture3d.cpp
                           ../libtexture/environment.cpp
