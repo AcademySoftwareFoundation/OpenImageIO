@@ -1485,11 +1485,16 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     // Put a DateTime in the out file, either now, or matching the date
     // stamp of the input file (if update mode).
     time_t date;
-    if (updatemode && from_filename)
-        date = in_time;  // update mode: use the time stamp of the input
-    else
+    if (updatemode && from_filename) {
+        // update mode from a file: Set DateTime to the time stamp of the
+        // input file.
+        date = in_time;
+        dstspec.attribute("DateTime", datestring(date));
+    } else if (!dstspec.extra_attribs.contains("DateTime")) {
+        // Otherwise, if there's no DateTime, set it to now.
         time(&date);  // not update: get the time now
-    dstspec.attribute("DateTime", datestring(date));
+        dstspec.attribute("DateTime", datestring(date));
+    }
 
     std::string cmdline = configspec.get_string_attribute(
         "maketx:full_command_line");
