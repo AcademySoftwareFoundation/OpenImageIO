@@ -250,7 +250,7 @@ jobs:
                             PTEX_VERSION=v2.4.0
                             PUGIXML_VERSION=v1.12.1
                             USE_OPENVDB=0
-                            WEBP_VERSION=v1.2.1
+                            WEBP_VERSION=v1.2.4
                             # The installed OpenVDB has a TLS conflict with Python 3.8
           - desc: bleeding edge gcc12 C++20 py3.10 OCIO/libtiff/exr-master boost1.74 avx2
             nametag: linux-bleeding-edge
@@ -271,7 +271,7 @@ jobs:
                             PTEX_VERSION=main
                             PUGIXML_VERSION=master
                             USE_OPENVDB=0
-                            WEBP_VERSION=master
+                            WEBP_VERSION=main
                             OIIO_CMAKE_FLAGS="-DFORTIFY_SOURCE=2"
                             # The installed OpenVDB has a TLS conflict with Python 3.8
           - desc: clang14 C++20 avx2 exr3.1 ocio2.1
