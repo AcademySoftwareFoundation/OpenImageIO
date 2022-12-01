@@ -1,6 +1,33 @@
-Release 2.4.6 (1 Dec? 2022) -- compared to 2.4.5.0
+Release 2.4.6 (1 Dec 2022) -- compared to 2.4.5.0
 ---------------------------------------------------
-
+* make_texture / maketx : ensure proper setting of certain metadata when
+  using a texture as a source to build another texture. #3634
+* Build: Make sure use of `${PROJECT_NAME}` doesn't occur before the call to
+  `project()`. #3651
+* Fix null pointer dereference when OCIO no configuration is found. #3652
+* Support for building against OpenColorIO 2.2. #3662
+* Fixes to subtle bugs when ImageBuf is used with IOProxy. #3666
+* oiiotool: Fix problems with `--point` when there is no alpha channel. #3684
+* oiiotool: `--dumpdata` fix channel name output. #3687
+* BMP: Fix possible write errors, fixes TALOS-2022-1653 / CVE-2022-43594,
+  CVE-2022-43595. #3673
+* DPX: Fix possible write errors, fixes TALOS-2022-1651 / CVE-2022-43592 and
+  TALOS-2022-1652 / CVE-2022-43593. #3672
+* IFF files: Add IOProxy support. #3647
+* IFF: Fix possible write errors, fixes TALOS-2022-1654 / CVE-2022-43596,
+  TALOS-2022-1655 / CVE-2022-43597 CVE-2022-43598, TALOS-2022-1656 /
+  CVE-2022-43599 CVE-2022-43602  #3676
+* PSD: Fix thumbnail extraction. #3668
+* PSD: when reading, don't reject padded thumbnails. #3677
+* Raw: Update Exif orientation if user flip is set. #3669
+* Zfile write safety, fixes TALOS-2022-1657 / CVE-2022-43603. #3670
+* filesystem.h: new `Filesystem::is_executable()` and `find_program()`. #3638
+* filesystem.h: Change IOMemReader constructor to take a const buffer
+  pointer. #3665
+* strutil.h: new `trimmed_whitspace()`. #3636
+* New `OIIO::print()` exposes `Strutil::print()` in the main OIIO namespace.
+  #3667
+* Testing: improved testing of oiiotool #3637 #3643 #3649, Strutil #3655
 
 Release 2.4.5 (1 Nov 2022) -- compared to 2.4.4.2
 ---------------------------------------------------
