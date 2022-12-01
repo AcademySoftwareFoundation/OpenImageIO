@@ -862,7 +862,7 @@ IFF files are used by Autodesk Maya and use the file extension :file:`.iff`.
      - int
      - the true bits per sample of the IFF file.
 
-**Configuration settings for RLA input**
+**Configuration settings for IFF input**
 
 When opening a IFF ImageInput with a *configuration* (see
 Section :ref:`sec-input-with-config`), the following special configuration
