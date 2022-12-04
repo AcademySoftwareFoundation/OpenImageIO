@@ -122,6 +122,10 @@ set (TEX_BATCH_SIZE "" CACHE STRING "Force TextureSystem SIMD batch size (e.g. 1
 if (TEX_BATCH_SIZE)
     add_definitions ("-DOIIO_TEXTURE_SIMD_BATCH_WIDTH=${TEX_BATCH_SIZE}")
 endif ()
+option (OIIO_TEX_IMPLEMENT_VARYINGREF "Implement the deprecated batch texture functions taking VaryingRef params" ON)
+if (NOT OIIO_TEX_IMPLEMENT_VARYINGREF)
+    add_definitions (-DOIIO_TEX_NO_IMPLEMENT_VARYINGREF=1)
+endif ()
 
 # Set the default namespace
 set (${PROJ_NAME}_NAMESPACE ${PROJECT_NAME} CACHE STRING

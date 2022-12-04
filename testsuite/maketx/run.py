@@ -1,5 +1,8 @@
 #!/usr/bin/env python 
 
+failureok = 1
+
+
 # Just for simplicity, make a checkerboard with a solid alpha
 command += oiiotool (" --pattern checker 128x128 4 --ch R,G,B,=1.0"
             + " -d uint8 -o " + make_relpath("checker.tif") )
@@ -66,10 +69,13 @@ command += maketx_command ("pink.tif", "pink-mono.tx",
 command += maketx_command ("checker.tif", "checker-prman.tx",
                            "-d uint16 --prman", showinfo=True)
 
+# Test --checknan : take advantage of the bad.exr images in 
+# testsuite/oiiotool-fixnan.  (Use --nomipmap to cut down on stats output)
+command += maketx_command (OIIO_TESTSUITE_ROOT+"/oiiotool-fixnan/src/bad.exr",
+                           "nan.exr", "--checknan --nomipmap")
+
 # Test --fixnan : take advantage of the bad.exr images in 
 # testsuite/oiiotool-fixnan.  (Use --nomipmap to cut down on stats output)
-# FIXME: would also like to test --checknan, but the problem with that is
-# that is actually FAILS if there's a nan.
 command += maketx_command (OIIO_TESTSUITE_ROOT+"/oiiotool-fixnan/src/bad.exr",
                            "nan.exr", "--fixnan box3 --nomipmap",
                            showinfo=True, showinfo_extra="--stats")
@@ -121,7 +127,7 @@ outputs = [ "out.txt" ]
 
 
 
-# To do:  --filter --checknan --fullpixels
+# To do:  --filter --fullpixels
 #         --prman-metadata --ignore-unassoc
 #         --mipimage 
 #         --envlatl TIFF, --envlatl EXR
