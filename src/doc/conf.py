@@ -43,7 +43,7 @@ author = 'Larry Gritz'
 version = '0.0'
 release = '0.0.0'
 import re
-version_regex = re.compile(r'project .* VERSION ((\d+\.\d+)\.\d+)')
+version_regex = re.compile(r'set \(OpenImageIO_VERSION \"?((\d+\.\d+)\.\d+)\.\d+\"?\)')
 f = open('../../CMakeLists.txt')
 for l in f:
     aa=re.search(version_regex, l)
