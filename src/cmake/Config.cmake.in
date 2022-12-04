@@ -17,6 +17,10 @@ if (NOT @OPENIMAGEIO_CONFIG_DO_NOT_FIND_IMATH@ AND NOT OPENIMAGEIO_CONFIG_DO_NOT
     endif ()
 endif ()
 
+if (NOT @OIIO_USING_FMT_LOCAL@)
+    find_dependency(fmt)
+endif ()
+
 if (NOT @BUILD_SHARED_LIBS@)
     # This is required in static library builds, as e.g. PNG::PNG appears among
     # INTERFACE_LINK_LIBRARIES. If the project does not know about PNG target, it will cause
