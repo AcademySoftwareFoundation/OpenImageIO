@@ -153,43 +153,15 @@ bool
 TGAOutput::open(const std::string& name, const ImageSpec& userspec,
                 OpenMode mode)
 {
-    if (mode != Create) {
-        errorf("%s does not support subimages or MIP levels", format_name());
+    if (!check_open(mode, userspec, { 0, 65535, 0, 65535, 0, 1, 0, 4 }))
         return false;
-    }
-
-    m_spec = userspec;  // Stash the spec
-
-    // Check for things this format doesn't support
-    if (m_spec.width < 1 || m_spec.height < 1) {
-        errorf("Image resolution must be at least 1x1, you asked for %d x %d",
-               m_spec.width, m_spec.height);
-        return false;
-    }
-    if (m_spec.width > 65535 || m_spec.height > 65535) {
-        errorf("TGA image resolution maximum is 65535, you asked for %d x %d",
-               m_spec.width, m_spec.height);
-        return false;
-    }
-
-    if (m_spec.depth < 1)
-        m_spec.depth = 1;
-    else if (m_spec.depth > 1) {
-        errorf("TGA does not support volume images (depth > 1)");
-        return false;
-    }
-
-    if (m_spec.nchannels < 1 || m_spec.nchannels > 4) {
-        errorf("TGA only supports 1-4 channels, not %d", m_spec.nchannels);
-        return false;
-    }
 
     // Offsets within the file are 32 bits. Guard against creating a TGA
     // file that (even counting the file footer or header) might exceed
     // this.
     if (m_spec.image_bytes() + sizeof(tga_header) + sizeof(tga_footer)
         >= (int64_t(1) << 32)) {
-        errorf("Too large a TGA file");
+        errorfmt("Too large a TGA file");
         return false;
     }
 

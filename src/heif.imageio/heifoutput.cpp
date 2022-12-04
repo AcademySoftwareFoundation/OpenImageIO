@@ -19,7 +19,7 @@ public:
     const char* format_name(void) const override { return "heif"; }
     int supports(string_view feature) const override
     {
-        return feature == "alpha" || feature == "exif";
+        return feature == "alpha" || feature == "exif" || feature == "tiles";
     }
     bool open(const std::string& name, const ImageSpec& spec,
               OpenMode mode) override;
@@ -91,34 +91,11 @@ bool
 HeifOutput::open(const std::string& name, const ImageSpec& newspec,
                  OpenMode mode)
 {
-    if (mode != Create) {
-        errorf("%s does not support subimages or MIP levels", format_name());
+    if (!check_open(mode, newspec, { 0, 1 << 20, 0, 1 << 20, 0, 1, 0, 4 },
+                    uint64_t(OpenChecks::Disallow2Channel)))
         return false;
-    }
 
     m_filename = name;
-    // Save spec for later used
-    m_spec = newspec;
-    // heif always behaves like floating point
-    m_spec.set_format(TypeDesc::FLOAT);
-
-    // Check for things heif can't support
-    if (m_spec.nchannels != 1 && m_spec.nchannels != 3
-        && m_spec.nchannels != 4) {
-        errorf("heif can only support 1-, 3- or 4-channel images");
-        return false;
-    }
-    if (m_spec.width < 1 || m_spec.height < 1) {
-        errorf("Image resolution must be at least 1x1, you asked for %d x %d",
-               m_spec.width, m_spec.height);
-        return false;
-    }
-    if (m_spec.depth < 1)
-        m_spec.depth = 1;
-    if (m_spec.depth > 1) {
-        errorf("%s does not support volume images (depth > 1)", format_name());
-        return false;
-    }
 
     m_spec.set_format(TypeUInt8);  // Only uint8 for now
 
@@ -145,11 +122,11 @@ HeifOutput::open(const std::string& name, const ImageSpec& newspec,
 #endif
     } catch (const heif::Error& err) {
         std::string e = err.get_message();
-        errorf("%s", e.empty() ? "unknown exception" : e.c_str());
+        errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
         return false;
     } catch (const std::exception& err) {
         std::string e = err.what();
-        errorf("%s", e.empty() ? "unknown exception" : e.c_str());
+        errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
         return false;
     }
 
@@ -227,13 +204,13 @@ HeifOutput::close()
         } catch (const heif::Error& err) {
 #ifdef DEBUG
             std::string e = err.get_message();
-            Strutil::printf("%s", e.empty() ? "unknown exception" : e.c_str());
+            Strutil::print("{}", e.empty() ? "unknown exception" : e.c_str());
 #endif
         }
         m_ctx->set_primary_image(m_ihandle);
         Filesystem::IOFile ioproxy(m_filename, Filesystem::IOProxy::Write);
         if (ioproxy.mode() != Filesystem::IOProxy::Write) {
-            errorf("Could not open \"%s\"", m_filename);
+            errorfmt("Could not open \"{}\"", m_filename);
             ok = false;
         } else {
             MyHeifWriter writer(&ioproxy);
@@ -241,11 +218,11 @@ HeifOutput::close()
         }
     } catch (const heif::Error& err) {
         std::string e = err.get_message();
-        errorf("%s", e.empty() ? "unknown exception" : e.c_str());
+        errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
         return false;
     } catch (const std::exception& err) {
         std::string e = err.what();
-        errorf("%s", e.empty() ? "unknown exception" : e.c_str());
+        errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
         return false;
     }
 

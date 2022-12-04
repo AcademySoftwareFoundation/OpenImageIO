@@ -144,23 +144,15 @@ bool
 PNMOutput::open(const std::string& name, const ImageSpec& userspec,
                 OpenMode mode)
 {
-    if (mode != Create) {
-        errorf("%s does not support subimages or MIP levels", format_name());
+    if (!check_open(mode, userspec, { 0, 65535, 0, 65535, 0, 1, 0, 3 },
+                    uint64_t(OpenChecks::Disallow2Channel)))
         return false;
-    }
 
-    m_spec = userspec;                   // Stash the spec
     m_spec.set_format(TypeDesc::UINT8);  // Force 8 bit output
     int bits_per_sample = m_spec.get_int_attribute("oiio:BitsPerSample", 8);
     m_dither            = (m_spec.format == TypeDesc::UINT8)
                               ? m_spec.get_int_attribute("oiio:dither", 0)
                               : 0;
-
-    if (m_spec.nchannels != 1 && m_spec.nchannels != 3) {
-        errorf("%s does not support %d-channel images\n", format_name(),
-               m_spec.nchannels);
-        return false;
-    }
 
     if (bits_per_sample == 1)
         m_pnm_type = 4;

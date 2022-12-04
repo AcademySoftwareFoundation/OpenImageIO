@@ -221,6 +221,19 @@ private:
     // Helper: if the channel names are nonsensical, fix them to keep the
     // app from shooting itself in the foot.
     void sanity_check_channelnames();
+
+    bool copy_and_check_spec(const ImageSpec& srcspec, ImageSpec& dstspec)
+    {
+        // Arbitrarily limit res to 1M x 1M and 4k channels, assuming anything
+        // beyond that is more likely to be a mistake than a legit request. We
+        // may have to come back to this if these assumptions are wrong.
+        if (!check_open(Create, srcspec,
+                        { 0, 1 << 20, 0, 1 << 20, 0, 1, 0, 1 << 12 }))
+            return false;
+        if (&dstspec != &m_spec)
+            dstspec = m_spec;
+        return true;
+    }
 };
 
 
@@ -367,7 +380,7 @@ OpenEXROutput::open(const std::string& name, const ImageSpec& userspec,
         m_nmiplevels = 1;
         m_miplevel   = 0;
         m_headers.resize(1);
-        m_spec = userspec;  // Stash the spec
+        copy_and_check_spec(userspec, m_spec);
         sanity_check_channelnames();
         const ParamValue* param = m_spec.find_attribute("oiio:ioproxy",
                                                         TypeDesc::PTR);
@@ -527,7 +540,11 @@ OpenEXROutput::open(const std::string& name, int subimages,
     m_subimage   = 0;
     m_nmiplevels = 1;
     m_miplevel   = 0;
-    m_subimagespecs.assign(specs, specs + subimages);
+    m_subimagespecs.resize(subimages);
+    for (int i = 0; i < subimages; ++i)
+        if (!copy_and_check_spec(specs[i], m_subimagespecs[i]))
+            return false;
+
     m_headers.resize(subimages);
     std::string filetype;
     if (specs[0].deep)
@@ -652,23 +669,6 @@ bool
 OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
                               Imf::Header& header)
 {
-    if (spec.width < 1 || spec.height < 1) {
-        errorf("Image resolution must be at least 1x1, you asked for %d x %d",
-               spec.width, spec.height);
-        return false;
-    }
-    if (spec.depth < 1)
-        spec.depth = 1;
-    if (spec.depth > 1) {
-        errorf("%s does not support volume images (depth > 1)", format_name());
-        return false;
-    }
-
-    if (spec.full_width <= 0)
-        spec.full_width = spec.width;
-    if (spec.full_height <= 0)
-        spec.full_height = spec.height;
-
     // Force use of one of the three data types that OpenEXR supports
     switch (spec.format.basetype) {
     case TypeDesc::UINT: spec.format = TypeDesc::UINT; break;

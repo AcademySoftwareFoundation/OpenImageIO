@@ -258,40 +258,12 @@ bool
 ZfileOutput::open(const std::string& name, const ImageSpec& userspec,
                   OpenMode mode)
 {
-    if (mode != Create) {
-        errorfmt("{} does not support subimages or MIP levels", format_name());
-        return false;
-    }
-
     close();  // Close any already-opened file
     m_gz   = 0;
     m_file = NULL;
-    m_spec = userspec;  // Stash the spec
 
-    // Check for things this format doesn't support
-    if (m_spec.width < 1 || m_spec.height < 1) {
-        errorfmt("Image resolution must be at least 1x1, you asked for {} x {}",
-                 m_spec.width, m_spec.height);
+    if (!check_open(mode, userspec, { 0, 32767, 0, 32767, 0, 1, 0, 1 }))
         return false;
-    }
-    if (m_spec.width > 32767 || m_spec.height > 32767) {
-        errorfmt(
-            "zfile image resolution maximum is 32767, you asked for {} x {}",
-            m_spec.width, m_spec.height);
-        return false;
-    }
-    if (m_spec.depth < 1)
-        m_spec.depth = 1;
-    if (m_spec.depth > 1) {
-        errorfmt("{} does not support volume images (depth > 1)",
-                 format_name());
-        return false;
-    }
-
-    if (m_spec.nchannels != 1) {
-        errorfmt("Zfile only supports 1 channel, not {}", m_spec.nchannels);
-        return false;
-    }
 
     // Force float
     m_spec.format = TypeDesc::FLOAT;

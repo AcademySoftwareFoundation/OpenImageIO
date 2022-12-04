@@ -119,12 +119,8 @@ bool
 PNGOutput::open(const std::string& name, const ImageSpec& userspec,
                 OpenMode mode)
 {
-    if (mode != Create) {
-        errorf("%s does not support subimages or MIP levels", format_name());
+    if (!check_open(mode, userspec, { 0, 65535, 0, 65535, 0, 1, 0, 256 }))
         return false;
-    }
-
-    m_spec = userspec;  // Stash the spec
 
     // If not uint8 or uint16, default to uint8
     if (m_spec.format != TypeDesc::UINT8 && m_spec.format != TypeDesc::UINT16)
@@ -140,7 +136,7 @@ PNGOutput::open(const std::string& name, const ImageSpec& userspec,
                                                  m_spec, this);
     if (s.length()) {
         close();
-        errorf("%s", s);
+        errorfmt("{}", s);
         return false;
     }
 
@@ -314,7 +310,7 @@ PNGOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
         swap_endian((unsigned short*)data, m_spec.width * m_spec.nchannels);
 
     if (!PNG_pvt::write_row(m_png, (png_byte*)data)) {
-        errorf("PNG library error");
+        errorfmt("PNG library error");
         return false;
     }
 

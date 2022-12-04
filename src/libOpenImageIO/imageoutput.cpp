@@ -817,4 +817,179 @@ ImageOutput::iotell() const
 }
 
 
+
+bool
+ImageOutput::check_open(OpenMode mode, const ImageSpec& userspec, ROI range,
+                        uint64_t flags)
+{
+    // Make sure this format supports the open mode requested
+    if (mode == AppendSubimage && !supports("multiimage")) {
+        errorfmt("{} does not support subimages", format_name());
+        return false;
+    }
+    if (mode == AppendMIPLevel && !supports("mipmap")) {
+        errorfmt("{} does not support MIP-mapping", format_name());
+        return false;
+    }
+    if (mode != Create && mode != AppendSubimage && mode != AppendMIPLevel) {
+        errorfmt("Unknown open mode {}", int(mode));
+        return false;
+    }
+
+    // Note: we only overwrite m_spec if the requested mode was valid.
+    m_spec = userspec;
+
+    // Check for sensible resolutions, etc.
+    if (m_spec.width > range.width() || m_spec.height > range.height()) {
+        errorfmt("{} image resolution may not exceed {}x{}, you asked for {}x{}",
+                 format_name(), range.width(), range.height(), m_spec.width,
+                 m_spec.height);
+        return false;
+    }
+    if (m_spec.width <= 0 || m_spec.height <= 0) {
+        if (m_spec.width == 0 && m_spec.height == 0 && supports("noimage")) {
+            // ok
+        } else {
+            errorfmt(
+                "{} image resolution must be at least 1x1, you asked for {}x{}",
+                format_name(), m_spec.width, m_spec.height);
+            return false;
+        }
+    }
+    if (m_spec.depth > 1 && !supports("volumes")) {
+        errorfmt("{} does not support volume images (depth > 1)",
+                 format_name());
+        return false;
+    }
+    if (m_spec.depth > range.depth()) {
+        errorfmt(
+            "{} volumetric slices may not exceed {}, you asked for {}x{}x{}",
+            format_name(), range.depth(), m_spec.width, m_spec.height,
+            m_spec.depth);
+        return false;
+    }
+    if (m_spec.depth < 1)
+        m_spec.depth = 1;
+
+    if (m_spec.nchannels < 0 || m_spec.nchannels > range.nchannels()
+        || (m_spec.nchannels == 1
+            && (flags & uint64_t(OpenChecks::Disallow1Channel)))
+        || (m_spec.nchannels == 2
+            && (flags & uint64_t(OpenChecks::Disallow2Channel)))) {
+        errorfmt("{} does not support {}-channel images", format_name(),
+                 m_spec.nchannels);
+        return false;
+    }
+    // Nix unsupported per-channel formats
+    if (m_spec.channelformats.size()) {
+        if (std::all_of(m_spec.channelformats.begin(),
+                        m_spec.channelformats.end(), [&](const auto& val) {
+                            return val == m_spec.format;
+                        })) {
+            m_spec.channelformats.clear();
+        } else if (!supports("channelformats")) {
+            errorfmt("{} does not support per-channel data formats",
+                     format_name());
+            return false;
+        }
+    }
+
+    // If any full_size are < 0, just set full (displaywindow) to res (pixel
+    // data window).
+    if (m_spec.full_width <= 0) {
+        m_spec.full_width = m_spec.width;
+        m_spec.full_x     = m_spec.x;
+    }
+    if (m_spec.full_height <= 0) {
+        m_spec.full_height = m_spec.height;
+        m_spec.full_y      = m_spec.y;
+    }
+    if (m_spec.full_depth <= 0) {
+        m_spec.full_depth = m_spec.depth;
+        m_spec.full_z     = m_spec.z;
+    }
+    // Skip these checks -- displaywindow is just metadata.
+    // if (!supports("displaywindow")
+    //     && (m_spec.full_width != m_spec.width || m_spec.full_height != m_spec.height
+    //         || m_spec.full_depth != m_spec.depth || m_spec.full_x != m_spec.x
+    //         || m_spec.full_y != m_spec.y || m_spec.full_z != m_spec.z)) {
+    //     errorfmt(
+    //         "{} does not support a display/full window different from the pixel/data window",
+    //         format_name());
+    //     return false;
+    // }
+
+    if (m_spec.deep && !supports("deepdata")) {
+        errorfmt("{} does not support 'deep' images", format_name());
+        return false;
+    }
+
+    if (m_spec.tile_width || m_spec.tile_height) {
+        if (!supports("tiles")) {
+            errorfmt("{} does not support tiled images", format_name());
+            return false;
+        }
+        if (m_spec.tile_width < 1 || m_spec.tile_height < 1
+            || m_spec.tile_depth < 1) {
+            errorfmt("{} does not support tiles of size {}x{}x{}",
+                     format_name(), m_spec.tile_width, m_spec.tile_height,
+                     m_spec.tile_depth);
+            return false;
+        }
+    }
+
+    if (m_spec.x || m_spec.y || m_spec.z) {
+        if (!supports("origin")) {
+            if (flags & uint64_t(OpenChecks::Strict)) {
+                errorfmt("{} does not support non-zero image origin",
+                         format_name());
+                return false;
+            } else {
+                m_spec.x = 0;
+                m_spec.y = 0;
+                m_spec.z = 0;
+            }
+        }
+        if ((m_spec.x < 0 || m_spec.y < 0 || m_spec.z < 0)
+            && !supports("negativeorigin")) {
+            if (flags & uint64_t(OpenChecks::Strict)) {
+                errorfmt("{} does not support negative image origin",
+                         format_name());
+                return false;
+            } else {
+                m_spec.x = 0;
+                m_spec.y = 0;
+                m_spec.z = 0;
+            }
+        }
+        if (m_spec.x < range.xbegin || m_spec.x + m_spec.width >= range.xend
+            || m_spec.y < range.ybegin || m_spec.y + m_spec.height >= range.yend
+            || m_spec.z < range.zbegin
+            || m_spec.z + m_spec.depth >= range.zend) {
+            if (m_spec.depth == 1)
+                errorfmt(
+                    "{} requested pixel data window ({}, {}] x ({}, {}] exceeds the allowable range of ({}, {}] x ({}, {}]",
+                    format_name(), m_spec.x, m_spec.x + m_spec.width, m_spec.y,
+                    m_spec.y + m_spec.height, range.xbegin, range.xend,
+                    range.ybegin, range.yend);
+            else
+                errorfmt(
+                    "{} requested pixel data window ({}, {}] x ({}, {}] x ({}, {}] exceeds the allowable range of ({}, {}] x ({}, {}] x ({}, {}]",
+                    format_name(), m_spec.x, m_spec.x + m_spec.width, m_spec.y,
+                    m_spec.y + m_spec.height, m_spec.z, m_spec.z + m_spec.depth,
+                    range.xbegin, range.xend, range.ybegin, range.yend,
+                    range.zbegin, range.zend);
+        }
+    }
+
+    if (m_spec.extra_attribs.contains("ioproxy") && !supports("ioproxy")) {
+        errorfmt("{} does not support the IOProxy", format_name());
+        return false;
+    }
+
+    return true;  // all is ok
+}
+
+
+
 OIIO_NAMESPACE_END
