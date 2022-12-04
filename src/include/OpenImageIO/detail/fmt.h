@@ -75,7 +75,7 @@ protected:
 // fmtlib custom formatter that formats a type `T` that has array-like
 // semantics (must have a valid operator[] and size() method) by printing each
 // element according to the format spec. For example, if the object has 3
-// float elements and the spec is "{.3f}", then the output might be "1.234
+// float elements and the spec is "{:.3f}", then the output might be "1.234
 // 2.345 3.456".
 //
 // In addition to the usual formatting spec, we also recognize the following

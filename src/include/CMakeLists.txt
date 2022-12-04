@@ -64,14 +64,25 @@ install (FILES ${detail_headers}
          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/detail
          COMPONENT developer)
 
-set (fmt_headers
-        ${FMT_INCLUDES}/fmt/core.h
-        ${FMT_INCLUDES}/fmt/format-inl.h
-        ${FMT_INCLUDES}/fmt/format.h
-        ${FMT_INCLUDES}/fmt/ostream.h
-        ${FMT_INCLUDES}/fmt/printf.h )
-file (COPY ${fmt_headers}
-      DESTINATION ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt)
+if (INTERNALIZE_FMT OR OIIO_USING_FMT_LOCAL)
+    set (fmt_headers
+         ${FMT_INCLUDES}/fmt/core.h
+         ${FMT_INCLUDES}/fmt/format-inl.h
+         ${FMT_INCLUDES}/fmt/format.h
+         ${FMT_INCLUDES}/fmt/ostream.h
+         ${FMT_INCLUDES}/fmt/printf.h )
+    file (COPY ${fmt_headers}
+          DESTINATION ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt)
+else ()
+    set (fmt_headers
+         ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/format.h
+         ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/ostream.h
+         ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/printf.h )
+    foreach (f format.h ostream.h printf.h)
+        file (WRITE "${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/${f}"
+                    "#include <fmt/${f}>")
+    endforeach ()
+endif ()
 install (FILES ${fmt_headers}
          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/detail/fmt
          COMPONENT developer)
