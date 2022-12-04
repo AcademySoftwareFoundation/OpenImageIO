@@ -4,7 +4,7 @@
 
 cmake_minimum_required (VERSION 3.12)
 
-set (OpenImageIO_VERSION "2.4.6.0" CACHE STRING "Version")
+set (OpenImageIO_VERSION "2.4.6.1" CACHE STRING "Version")
 project (OpenImageIO VERSION ${OpenImageIO_VERSION}
          HOMEPAGE_URL "https://openimageio.org"
          LANGUAGES CXX C)
