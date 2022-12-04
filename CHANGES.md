@@ -1,3 +1,8 @@
+Release 2.4.7.0 (1 Jan? 2022) -- compared to 2.4.6.0
+----------------------------------------------------
+
+
+
 Release 2.4.6 (1 Dec 2022) -- compared to 2.4.5.0
 ---------------------------------------------------
 * make_texture / maketx : ensure proper setting of certain metadata when
