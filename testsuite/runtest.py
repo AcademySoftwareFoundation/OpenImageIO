@@ -382,10 +382,11 @@ def checkref (name, refdirlist) :
             pattern = "*.*"
         else :
             pattern = prefix+"-*"+extension+"*"
+        print("comparisons are", ([defaulttest] + glob.glob (os.path.join (ref, pattern))))
         for testfile in ([defaulttest] + glob.glob (os.path.join (ref, pattern))) :
             if not os.path.exists(testfile) :
                 continue
-            # print ("comparing " + name + " to " + testfile)
+            print ("comparing " + name + " to " + testfile)
             if extension in image_extensions :
                 # images -- use idiff
                 cmpcommand = diff_command (name, testfile, concat=False, silent=True)

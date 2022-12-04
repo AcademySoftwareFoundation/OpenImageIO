@@ -216,11 +216,15 @@ TextureSystemImpl::environment(ustring filename, TextureOptions& options,
                                float* result, float* dresultds,
                                float* dresultdt)
 {
+#ifdef OIIO_TEX_NO_IMPLEMENT_VARYINGREF
+    return false;
+#else
     Perthread* thread_info        = get_perthread_info();
     TextureHandle* texture_handle = get_texture_handle(filename, thread_info);
     return environment(texture_handle, thread_info, options, runflags,
                        beginactive, endactive, R, dRdx, dRdy, nchannels, result,
                        dresultds, dresultdt);
+#endif
 }
 
 
@@ -235,6 +239,9 @@ TextureSystemImpl::environment(TextureHandle* texture_handle,
                                float* result, float* dresultds,
                                float* dresultdt)
 {
+#ifdef OIIO_TEX_NO_IMPLEMENT_VARYINGREF
+    return false;
+#else
     if (!texture_handle)
         return false;
     bool ok = true;
@@ -256,6 +263,7 @@ TextureSystemImpl::environment(TextureHandle* texture_handle,
         }
     }
     return ok;
+#endif
 }
 
 
@@ -597,8 +605,10 @@ TextureSystemImpl::environment(TextureHandle* texture_handle,
 
     bool ok          = true;
     Tex::RunMask bit = 1;
+    float* r         = OIIO_ALLOCA(float, 3 * nchannels * Tex::BatchWidth);
+    float* drds      = r + nchannels * Tex::BatchWidth;
+    float* drdt      = r + 2 * nchannels * Tex::BatchWidth;
     for (int i = 0; i < Tex::BatchWidth; ++i, bit <<= 1) {
-        float r[4], drds[4], drdt[4];  // temp result
         if (mask & bit) {
             opt.sblur  = options.sblur[i];
             opt.tblur  = options.tblur[i];

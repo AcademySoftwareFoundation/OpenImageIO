@@ -1024,11 +1024,15 @@ TextureSystemImpl::texture(ustring filename, TextureOptions& options,
                            int nchannels, float* result, float* dresultds,
                            float* dresultdt)
 {
+#ifdef OIIO_TEX_NO_IMPLEMENT_VARYINGREF
+    return false;
+#else
     Perthread* thread_info        = get_perthread_info();
     TextureHandle* texture_handle = get_texture_handle(filename, thread_info);
     return texture(texture_handle, thread_info, options, runflags, beginactive,
                    endactive, s, t, dsdx, dtdx, dsdy, dtdy, nchannels, result,
                    dresultds, dresultdt);
+#endif
 }
 
 
@@ -1043,6 +1047,9 @@ TextureSystemImpl::texture(TextureHandle* texture_handle,
                            int nchannels, float* result, float* dresultds,
                            float* dresultdt)
 {
+#ifdef OIIO_TEX_NO_IMPLEMENT_VARYINGREF
+    return false;
+#else
     if (!texture_handle)
         return false;
     bool ok = true;
@@ -1065,6 +1072,7 @@ TextureSystemImpl::texture(TextureHandle* texture_handle,
         }
     }
     return ok;
+#endif
 }
 
 
