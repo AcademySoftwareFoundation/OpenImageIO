@@ -34,6 +34,18 @@ ushort2float(unsigned short val)
     return float(val) * (1.0f / 65535.0f);
 }
 
+OIIO_FORCEINLINE float
+half2float(half val)
+{
+    return val;
+}
+
+OIIO_FORCEINLINE float
+float2float(float val)
+{
+    return val;
+}
+
 }  // end anonymous namespace
 
 namespace pvt {  // namespace pvt
@@ -63,6 +75,7 @@ TextureSystemImpl::texture3d(TextureHandle* texture_handle_,
                              float* dresultds, float* dresultdt,
                              float* dresultdr)
 {
+#if 0
     // Handle >4 channel lookups by recursion.
     if (nchannels > 4) {
         int save_firstchannel = options.firstchannel;
@@ -86,6 +99,7 @@ TextureSystemImpl::texture3d(TextureHandle* texture_handle_,
         options.firstchannel = save_firstchannel;  // restore what we changed
         return true;
     }
+#endif
 
 #if 0
     // FIXME: currently, no support of actual MIPmapping.
@@ -400,6 +414,69 @@ TextureSystemImpl::accum3d_sample_closest(
 
 
 
+template<class T, class Converter = void>
+void
+trilerp_accum(float* accum, float* daccumds, float* daccumdt, float* daccumdr,
+              const unsigned char* texel[2][2][2], float sfrac, float tfrac,
+              float rfrac, int actualchannels, float weight,
+              const ImageSpec& spec, const Converter& convert)
+{
+    for (int c = 0; c < actualchannels; ++c) {
+        accum[c] += weight
+                    * trilerp(convert(((const T*)texel[0][0][0])[c]),
+                              convert(((const T*)texel[0][0][1])[c]),
+                              convert(((const T*)texel[0][1][0])[c]),
+                              convert(((const T*)texel[0][1][1])[c]),
+                              convert(((const T*)texel[1][0][0])[c]),
+                              convert(((const T*)texel[1][0][1])[c]),
+                              convert(((const T*)texel[1][1][0])[c]),
+                              convert(((const T*)texel[1][1][1])[c]), sfrac,
+                              tfrac, rfrac);
+    }
+    if (daccumds) {
+        float scalex = weight * spec.full_width;
+        float scaley = weight * spec.full_height;
+        float scalez = weight * spec.full_depth;
+        for (int c = 0; c < actualchannels; ++c) {
+            daccumds[c]
+                += scalex
+                   * bilerp(convert(((const T*)texel[0][0][1])[c])
+                                - convert(((const T*)texel[0][0][0])[c]),
+                            convert(((const T*)texel[0][1][1])[c])
+                                - convert(((const T*)texel[0][1][0])[c]),
+                            convert(((const T*)texel[1][0][1])[c])
+                                - convert(((const T*)texel[1][0][0])[c]),
+                            convert(((const T*)texel[1][1][1])[c])
+                                - convert(((const T*)texel[1][1][0])[c]),
+                            tfrac, rfrac);
+            daccumdt[c]
+                += scaley
+                   * bilerp(convert(((const T*)texel[0][1][0])[c])
+                                - convert(((const T*)texel[0][0][0])[c]),
+                            convert(((const T*)texel[0][1][1])[c])
+                                - convert(((const T*)texel[0][0][1])[c]),
+                            convert(((const T*)texel[1][1][0])[c])
+                                - convert(((const T*)texel[1][0][0])[c]),
+                            convert(((const T*)texel[1][1][1])[c])
+                                - convert(((const T*)texel[1][0][1])[c]),
+                            sfrac, rfrac);
+            daccumdr[c]
+                += scalez
+                   * bilerp(convert(((const T*)texel[0][1][0])[c])
+                                - convert(((const T*)texel[1][1][0])[c]),
+                            convert(((const T*)texel[0][1][1])[c])
+                                - convert(((const T*)texel[1][1][1])[c]),
+                            convert(((const T*)texel[0][0][1])[c])
+                                - convert(((const T*)texel[1][0][0])[c]),
+                            convert(((const T*)texel[0][1][1])[c])
+                                - convert(((const T*)texel[1][1][1])[c]),
+                            sfrac, tfrac);
+        }
+    }
+}
+
+
+
 bool
 TextureSystemImpl::accum3d_sample_bilinear(
     const Imath::V3f& P, int miplevel, TextureFile& texturefile,
@@ -472,6 +549,27 @@ TextureSystemImpl::accum3d_sample_bilinear(
     if (valid_storage.ivalid == none_valid)
         return true;  // All texels we need were out of range and using 'black' wrap
 
+    if (nchannels_result > actualchannels && options.fill) {
+        // Add appropriate amount of "fill" color to extra channels in
+        // non-"black"-wrapped regions.
+        float f = trilerp(1.0f * (rvalid[0] * tvalid[0] * svalid[0]),
+                          1.0f * (rvalid[0] * tvalid[0] * svalid[1]),
+                          1.0f * (rvalid[0] * tvalid[1] * svalid[0]),
+                          1.0f * (rvalid[0] * tvalid[1] * svalid[1]),
+                          1.0f * (rvalid[1] * tvalid[0] * svalid[0]),
+                          1.0f * (rvalid[1] * tvalid[0] * svalid[1]),
+                          1.0f * (rvalid[1] * tvalid[1] * svalid[0]),
+                          1.0f * (rvalid[1] * tvalid[1] * svalid[1]), sfrac,
+                          tfrac, rfrac);
+        f *= weight * options.fill;
+        for (int c = actualchannels; c < nchannels_result; ++c)
+            accum[c] += f;
+    }
+    if (actualchannels < 0) {
+        // nothing more to do here
+        return true;
+    }
+
     int tilewidthmask  = spec.tile_width - 1;  // e.g. 63
     int tileheightmask = spec.tile_height - 1;
     int tiledepthmask  = spec.tile_depth - 1;
@@ -496,6 +594,7 @@ TextureSystemImpl::accum3d_sample_bilinear(
     TileID id(texturefile, options.subimage, miplevel, 0, 0, 0, tile_chbegin,
               tile_chend);
     int startchan_in_tile = options.firstchannel - id.chbegin();
+
     if (onetile && valid_storage.ivalid == all_valid) {
         // Shortcut if all the texels we need are on the same tile
         id.xyz(stex[0] - tile_s, ttex[0] - tile_t, rtex[0] - tile_r);
@@ -567,230 +666,25 @@ TextureSystemImpl::accum3d_sample_bilinear(
     }
     // FIXME -- optimize the above loop by unrolling
 
-    // clang-format off
     if (pixeltype == TypeDesc::UINT8) {
-        for (int c = 0; c < actualchannels; ++c)
-            accum[c] += weight
-                        * trilerp(uchar2float(texel[0][0][0][c]),
-                                  uchar2float(texel[0][0][1][c]),
-                                  uchar2float(texel[0][1][0][c]),
-                                  uchar2float(texel[0][1][1][c]),
-                                  uchar2float(texel[1][0][0][c]),
-                                  uchar2float(texel[1][0][1][c]),
-                                  uchar2float(texel[1][1][0][c]),
-                                  uchar2float(texel[1][1][1][c]), sfrac, tfrac,
-                                  rfrac);
-        if (daccumds) {
-            float scalex = weight * spec.full_width;
-            float scaley = weight * spec.full_height;
-            float scalez = weight * spec.full_depth;
-            for (int c = 0; c < actualchannels; ++c) {
-                daccumds[c] += scalex
-                               * bilerp(uchar2float(texel[0][0][1][c])
-                                            - uchar2float(texel[0][0][0][c]),
-                                        uchar2float(texel[0][1][1][c])
-                                            - uchar2float(texel[0][1][0][c]),
-                                        uchar2float(texel[1][0][1][c])
-                                            - uchar2float(texel[1][0][0][c]),
-                                        uchar2float(texel[1][1][1][c])
-                                            - uchar2float(texel[1][1][0][c]),
-                                        tfrac, rfrac);
-                daccumdt[c] += scaley
-                               * bilerp(uchar2float(texel[0][1][0][c])
-                                            - uchar2float(texel[0][0][0][c]),
-                                        uchar2float(texel[0][1][1][c])
-                                            - uchar2float(texel[0][0][1][c]),
-                                        uchar2float(texel[1][1][0][c])
-                                            - uchar2float(texel[1][0][0][c]),
-                                        uchar2float(texel[1][1][1][c])
-                                            - uchar2float(texel[1][0][1][c]),
-                                        sfrac, rfrac);
-                daccumdr[c] += scalez
-                               * bilerp(uchar2float(texel[0][1][0][c])
-                                            - uchar2float(texel[1][1][0][c]),
-                                        uchar2float(texel[0][1][1][c])
-                                            - uchar2float(texel[1][1][1][c]),
-                                        uchar2float(texel[0][0][1][c])
-                                            - uchar2float(texel[1][0][0][c]),
-                                        uchar2float(texel[0][1][1][c])
-                                            - uchar2float(texel[1][1][1][c]),
-                                        sfrac, tfrac);
-            }
-        }
+        trilerp_accum<uint8_t>(accum, daccumds, daccumdt, daccumdr, texel,
+                               sfrac, tfrac, rfrac, actualchannels, weight,
+                               spec, uchar2float);
     } else if (pixeltype == TypeDesc::UINT16) {
-        for (int c = 0; c < actualchannels; ++c)
-            accum[c]
-                += weight
-                   * trilerp(ushort2float(((const uint16_t*)texel[0][0][0])[c]),
-                             ushort2float(((const uint16_t*)texel[0][0][1])[c]),
-                             ushort2float(((const uint16_t*)texel[0][1][0])[c]),
-                             ushort2float(((const uint16_t*)texel[0][1][1])[c]),
-                             ushort2float(((const uint16_t*)texel[1][0][0])[c]),
-                             ushort2float(((const uint16_t*)texel[1][0][1])[c]),
-                             ushort2float(((const uint16_t*)texel[1][1][0])[c]),
-                             ushort2float(((const uint16_t*)texel[1][1][1])[c]),
-                             sfrac, tfrac, rfrac);
-        if (daccumds) {
-            float scalex = weight * spec.full_width;
-            float scaley = weight * spec.full_height;
-            float scalez = weight * spec.full_depth;
-            for (int c = 0; c < actualchannels; ++c) {
-                daccumds[c] += scalex * bilerp(
-                             ushort2float(((const uint16_t*)texel[0][0][1])[c])
-                                 - ushort2float(
-                                       ((const uint16_t*)texel[0][0][0])[c]),
-                             ushort2float(((const uint16_t*)texel[0][1][1])[c])
-                                 - ushort2float(
-                                       ((const uint16_t*)texel[0][1][0])[c]),
-                             ushort2float(((const uint16_t*)texel[1][0][1])[c])
-                                 - ushort2float(
-                                       ((const uint16_t*)texel[1][0][0])[c]),
-                             ushort2float(((const uint16_t*)texel[1][1][1])[c])
-                                 - ushort2float(
-                                       ((const uint16_t*)texel[1][1][0])[c]),
-                             tfrac, rfrac);
-                daccumdt[c] += scaley * bilerp(
-                             ushort2float(((const uint16_t*)texel[0][1][0])[c])
-                                 - ushort2float(
-                                       ((const uint16_t*)texel[0][0][0])[c]),
-                             ushort2float(((const uint16_t*)texel[0][1][1])[c])
-                                 - ushort2float(
-                                       ((const uint16_t*)texel[0][0][1])[c]),
-                             ushort2float(((const uint16_t*)texel[1][1][0])[c])
-                                 - ushort2float(
-                                       ((const uint16_t*)texel[1][0][0])[c]),
-                             ushort2float(((const uint16_t*)texel[1][1][1])[c])
-                                 - ushort2float(
-                                       ((const uint16_t*)texel[1][0][1])[c]),
-                             sfrac, rfrac);
-                daccumdr[c] += scalez * bilerp(
-                             ushort2float(((const uint16_t*)texel[0][1][0])[c])
-                                 - ushort2float(
-                                       ((const uint16_t*)texel[1][1][0])[c]),
-                             ushort2float(((const uint16_t*)texel[0][1][1])[c])
-                                 - ushort2float(
-                                       ((const uint16_t*)texel[1][1][1])[c]),
-                             ushort2float(((const uint16_t*)texel[0][0][1])[c])
-                                 - ushort2float(
-                                       ((const uint16_t*)texel[1][0][0])[c]),
-                             ushort2float(((const uint16_t*)texel[0][1][1])[c])
-                                 - ushort2float(
-                                       ((const uint16_t*)texel[1][1][1])[c]),
-                             sfrac, tfrac);
-            }
-        }
+        trilerp_accum<uint16_t>(accum, daccumds, daccumdt, daccumdr, texel,
+                                sfrac, tfrac, rfrac, actualchannels, weight,
+                                spec, ushort2float);
     } else if (pixeltype == TypeDesc::HALF) {
-        for (int c = 0; c < actualchannels; ++c)
-            accum[c] += weight
-                        * trilerp(float(((const half*)texel[0][0][0])[c]),
-                                  float(((const half*)texel[0][0][1])[c]),
-                                  float(((const half*)texel[0][1][0])[c]),
-                                  float(((const half*)texel[0][1][1])[c]),
-                                  float(((const half*)texel[1][0][0])[c]),
-                                  float(((const half*)texel[1][0][1])[c]),
-                                  float(((const half*)texel[1][1][0])[c]),
-                                  float(((const half*)texel[1][1][1])[c]),
-                                  sfrac, tfrac, rfrac);
-        if (daccumds) {
-            float scalex = weight * spec.full_width;
-            float scaley = weight * spec.full_height;
-            float scalez = weight * spec.full_depth;
-            for (int c = 0; c < actualchannels; ++c) {
-                daccumds[c] += scalex * bilerp(
-                             float(((const half*)texel[0][0][1])[c])
-                                 - float(((const half*)texel[0][0][0])[c]),
-                             float(((const half*)texel[0][1][1])[c])
-                                 - float(((const half*)texel[0][1][0])[c]),
-                             float(((const half*)texel[1][0][1])[c])
-                                 - float(((const half*)texel[1][0][0])[c]),
-                             float(((const half*)texel[1][1][1])[c])
-                                 - float(((const half*)texel[1][1][0])[c]),
-                             tfrac, rfrac);
-                daccumdt[c] += scaley * bilerp(
-                             float(((const half*)texel[0][1][0])[c])
-                                 - float(((const half*)texel[0][0][0])[c]),
-                             float(((const half*)texel[0][1][1])[c])
-                                 - float(((const half*)texel[0][0][1])[c]),
-                             float(((const half*)texel[1][1][0])[c])
-                                 - float(((const half*)texel[1][0][0])[c]),
-                             float(((const half*)texel[1][1][1])[c])
-                                 - float(((const half*)texel[1][0][1])[c]),
-                             sfrac, rfrac);
-                daccumdr[c] += scalez * bilerp(
-                             float(((const half*)texel[0][1][0])[c])
-                                 - float(((const half*)texel[1][1][0])[c]),
-                             float(((const half*)texel[0][1][1])[c])
-                                 - float(((const half*)texel[1][1][1])[c]),
-                             float(((const half*)texel[0][0][1])[c])
-                                 - float(((const half*)texel[1][0][0])[c]),
-                             float(((const half*)texel[0][1][1])[c])
-                                 - float(((const half*)texel[1][1][1])[c]),
-                             sfrac, tfrac);
-            }
-        }
+        trilerp_accum<half>(accum, daccumds, daccumdt, daccumdr, texel, sfrac,
+                            tfrac, rfrac, actualchannels, weight, spec,
+                            half2float);
     } else {
         // General case for float tiles
-        trilerp_mad((const float*)texel[0][0][0], (const float*)texel[0][0][1],
-                    (const float*)texel[0][1][0], (const float*)texel[0][1][1],
-                    (const float*)texel[1][0][0], (const float*)texel[1][0][1],
-                    (const float*)texel[1][1][0], (const float*)texel[1][1][1],
-                    sfrac, tfrac, rfrac, weight, actualchannels, accum);
-        if (daccumds) {
-            float scalex = weight * spec.full_width;
-            float scaley = weight * spec.full_height;
-            float scalez = weight * spec.full_depth;
-            for (int c = 0; c < actualchannels; ++c) {
-                daccumds[c] += scalex
-                               * bilerp(((const float*)texel[0][0][1])[c]
-                                            - ((const float*)texel[0][0][0])[c],
-                                        ((const float*)texel[0][1][1])[c]
-                                            - ((const float*)texel[0][1][0])[c],
-                                        ((const float*)texel[1][0][1])[c]
-                                            - ((const float*)texel[1][0][0])[c],
-                                        ((const float*)texel[1][1][1])[c]
-                                            - ((const float*)texel[1][1][0])[c],
-                                        tfrac, rfrac);
-                daccumdt[c] += scaley
-                               * bilerp(((const float*)texel[0][1][0])[c]
-                                            - ((const float*)texel[0][0][0])[c],
-                                        ((const float*)texel[0][1][1])[c]
-                                            - ((const float*)texel[0][0][1])[c],
-                                        ((const float*)texel[1][1][0])[c]
-                                            - ((const float*)texel[1][0][0])[c],
-                                        ((const float*)texel[1][1][1])[c]
-                                            - ((const float*)texel[1][0][1])[c],
-                                        sfrac, rfrac);
-                daccumdr[c] += scalez
-                               * bilerp(((const float*)texel[0][1][0])[c]
-                                            - ((const float*)texel[1][1][0])[c],
-                                        ((const float*)texel[0][1][1])[c]
-                                            - ((const float*)texel[1][1][1])[c],
-                                        ((const float*)texel[0][0][1])[c]
-                                            - ((const float*)texel[1][0][0])[c],
-                                        ((const float*)texel[0][1][1])[c]
-                                            - ((const float*)texel[1][1][1])[c],
-                                        sfrac, tfrac);
-            }
-        }
+        trilerp_accum<float>(accum, daccumds, daccumdt, daccumdr, texel, sfrac,
+                             tfrac, rfrac, actualchannels, weight, spec,
+                             float2float);
     }
-    // clang-format on
 
-    // Add appropriate amount of "fill" color to extra channels in
-    // non-"black"-wrapped regions.
-    if (nchannels_result > actualchannels && options.fill) {
-        float f = trilerp(1.0f * (rvalid[0] * tvalid[0] * svalid[0]),
-                          1.0f * (rvalid[0] * tvalid[0] * svalid[1]),
-                          1.0f * (rvalid[0] * tvalid[1] * svalid[0]),
-                          1.0f * (rvalid[0] * tvalid[1] * svalid[1]),
-                          1.0f * (rvalid[1] * tvalid[0] * svalid[0]),
-                          1.0f * (rvalid[1] * tvalid[0] * svalid[1]),
-                          1.0f * (rvalid[1] * tvalid[1] * svalid[0]),
-                          1.0f * (rvalid[1] * tvalid[1] * svalid[1]), sfrac,
-                          tfrac, rfrac);
-        f *= weight * options.fill;
-        for (int c = actualchannels; c < nchannels_result; ++c)
-            accum[c] += f;
-    }
     return true;
 }
 
@@ -822,8 +716,11 @@ TextureSystemImpl::texture3d(TextureHandle* texture_handle,
 
     bool ok          = true;
     Tex::RunMask bit = 1;
+    float* r         = OIIO_ALLOCA(float, 4 * nchannels * Tex::BatchWidth);
+    float* drds      = r + 1 * nchannels * Tex::BatchWidth;
+    float* drdt      = r + 2 * nchannels * Tex::BatchWidth;
+    float* drdr      = r + 3 * nchannels * Tex::BatchWidth;
     for (int i = 0; i < Tex::BatchWidth; ++i, bit <<= 1) {
-        float r[4], drds[4], drdt[4], drdr[4];  // temp result
         if (mask & bit) {
             opt.sblur  = options.sblur[i];
             opt.tblur  = options.tblur[i];

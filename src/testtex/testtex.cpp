@@ -1012,9 +1012,14 @@ tex3d_region(ImageBuf& image, ustring filename, Mapping3D mapping, ROI roi)
         mapping(p.x(), p.y(), P, dPdx, dPdy, dPdz);
 
         // Call the texture system to do the filtering.
-        bool ok = texsys->texture3d(texture_handle, perthread_info, opt, P,
-                                    dPdx, dPdy, dPdz, nchannels, result,
-                                    dresultds, dresultdt, dresultdr);
+        bool ok = use_handle
+                      ? texsys->texture3d(texture_handle, perthread_info, opt,
+                                          P, dPdx, dPdy, dPdz, nchannels,
+                                          result, dresultds, dresultdt,
+                                          dresultdr)
+                      : texsys->texture3d(filename, opt, P, dPdx, dPdy, dPdz,
+                                          nchannels, result, dresultds,
+                                          dresultdt, dresultdr);
         if (!ok) {
             std::string e = texsys->geterror();
             if (!e.empty())
@@ -1061,13 +1066,19 @@ tex3d_region_batch(ImageBuf& image, ustring filename, Mapping3DWide mapping,
             RunMask mask = RunMaskOn >> (BatchWidth - npoints);
 
             // Call the texture system to do the filtering.
-            if (y == 0 && x == 0)
-                Strutil::print("P = {}\n", P);
-            bool ok = texsys->texture3d(texture_handle, perthread_info, opt,
-                                        mask, (float*)&P, (float*)&dPdx,
-                                        (float*)&dPdy, (float*)&dPdz, nchannels,
-                                        (float*)result, (float*)dresultds,
-                                        (float*)dresultdt, (float*)dresultdr);
+            bool ok
+                = use_handle
+                      ? texsys->texture3d(texture_handle, perthread_info, opt,
+                                          mask, (float*)&P, (float*)&dPdx,
+                                          (float*)&dPdy, (float*)&dPdz,
+                                          nchannels, (float*)result,
+                                          (float*)dresultds, (float*)dresultdt,
+                                          (float*)dresultdr)
+                      : texsys->texture3d(filename, opt, mask, (float*)&P,
+                                          (float*)&dPdx, (float*)&dPdy,
+                                          (float*)&dPdz, nchannels,
+                                          (float*)result, (float*)dresultds,
+                                          (float*)dresultdt, (float*)dresultdr);
             if (!ok) {
                 std::string e = texsys->geterror();
                 if (!e.empty())
@@ -1091,7 +1102,7 @@ tex3d_region_batch(ImageBuf& image, ustring filename, Mapping3DWide mapping,
 void
 test_texture3d(ustring filename, Mapping3D mapping)
 {
-    Strutil::print("Testing 3d texture {}, output = {}\n", filename,
+    Strutil::print("Testing texture3d {}, output = {}\n", filename,
                    output_filename);
     int nchannels = nchannels_override ? nchannels_override : 4;
     ImageSpec outspec(output_xres, output_yres, nchannels, TypeDesc::FLOAT);
@@ -1121,7 +1132,7 @@ test_texture3d(ustring filename, Mapping3D mapping)
 void
 test_texture3d_batch(ustring filename, Mapping3DWide mapping)
 {
-    Strutil::print("Testing 3d texture {}, output = {}\n", filename,
+    Strutil::print("Testing BATCHED texture3d {}, output = {}\n", filename,
                    output_filename);
     int nchannels = nchannels_override ? nchannels_override : 4;
     ImageSpec outspec(output_xres, output_yres, nchannels, TypeDesc::FLOAT);
