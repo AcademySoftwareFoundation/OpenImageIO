@@ -15,23 +15,23 @@ Result of get_texture_info constantcolor = no
 Result of get_texture_info constantalpha = no
 Texture type is true Volume Texture
 
-Testing texture3d ../openvdb/src/sphere.vdb, output = out.exr
+Testing BATCHED texture3d ../openvdb/src/sphere.vdb, output = out.exr
 Created texture system
-Testing texture3d ../openvdb/src/sphere.vdb, output = out-handle.exr
+Testing BATCHED texture3d ../openvdb/src/sphere.vdb, output = out-handle.exr
 Created texture system
-Testing texture3d ../openvdb/src/sphere.vdb, output = out-5chan.exr
+Testing BATCHED texture3d ../openvdb/src/sphere.vdb, output = out-5chan.exr
 Created texture system
-Testing texture3d ../openvdb/src/sphere.vdb, output = out-subimage0.exr
+Testing BATCHED texture3d ../openvdb/src/sphere.vdb, output = out-subimage0.exr
 Created texture system
-Testing texture3d ../openvdb/src/sphere.vdb, output = out-subimagedensity.exr
+Testing BATCHED texture3d ../openvdb/src/sphere.vdb, output = out-subimagedensity.exr
 Created texture system
-Testing texture3d ../openvdb/src/sphere.vdb, output = out-subimagemissing.exr
+Testing BATCHED texture3d ../openvdb/src/sphere.vdb, output = out-subimagemissing.exr
 ERROR: Unknown subimage "missing" in texture "../openvdb/src/sphere.vdb"
+Unknown subimage "missing" in texture "../openvdb/src/sphere.vdb"
 ERROR: Unknown subimage "missing" in texture "../openvdb/src/sphere.vdb"
-ERROR: Unknown subimage "missing" in texture "../openvdb/src/sphere.vdb"
-ERROR: Unknown subimage "missing" in texture "../openvdb/src/sphere.vdb"
+Unknown subimage "missing" in texture "../openvdb/src/sphere.vdb"
 Created texture system
-Testing texture3d ../openvdb/src/sphere.vdb, output = closest.exr
+Testing BATCHED texture3d ../openvdb/src/sphere.vdb, output = closest.exr
 Comparing "out.exr" and "ref/out.exr"
 PASS
 Comparing "out-handle.exr" and "ref/out-handle.exr"
