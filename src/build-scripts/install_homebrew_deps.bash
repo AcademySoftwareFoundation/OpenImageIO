@@ -25,7 +25,6 @@ brew list --versions
 brew install --display-times -q gcc ccache cmake ninja boost || true
 brew link --overwrite gcc
 brew install --display-times -q python@${PYTHON_VERSION} || true
-brew unlink python@2.7 || true
 brew unlink python@3.8 || true
 brew unlink python@3.9 || true
 brew unlink python@3.10 || true
@@ -47,11 +46,7 @@ echo "After brew installs:"
 brew list --versions
 
 # Needed on some systems
-if [[ $PYTHON_VERSION != "2.7" ]] ; then
-    pip3 install numpy
-else
-    pip install numpy
-fi
+pip${PYTHON_VERSION} install numpy
 
 # Set up paths. These will only affect the caller if this script is
 # run with 'source' rather than in a separate shell.
