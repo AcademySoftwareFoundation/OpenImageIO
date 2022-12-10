@@ -256,6 +256,25 @@ BmpInput::open(const std::string& name, ImageSpec& newspec,
     case WINDOWS_V5: m_spec.attribute("bmp:version", 5); break;
     }
 
+    // Default presumption is that a BMP file is meant to look reasonable on a
+    // display, so assume it's sRGB. This is not really correct -- see the
+    // comments below.
+    m_spec.attribute("oiio:ColorSpace", "sRGB");
+#if 0
+    if (m_dib_header.size >= WINDOWS_V4
+        && m_dib_header.cs_type == CSType::CalibratedRGB) {
+        // FIXME: V4 and newer BMP files have color primary information, but
+        // we currently ignore it and presume sRGB. I don't know how
+        // frequently the color primaries are reliable or if anybody cares for
+        // this ancient format. We may come back to this later.
+    }
+    if (m_dib_header.size >= WINDOWS_V4
+        && m_dib_header.cs_type == CSType::DeviceDependentCMYK) {
+        // FIXME: I've never encountered a BMP file that holds CMYK data. If
+        // this is a problem for people, we can return to fix this later.
+    }
+#endif
+
     // Bite the bullet and uncompress now, for simplicity
     if (m_dib_header.compression == RLE4_COMPRESSION
         || m_dib_header.compression == RLE8_COMPRESSION) {

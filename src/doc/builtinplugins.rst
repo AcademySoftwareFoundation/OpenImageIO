@@ -54,6 +54,9 @@ tiles.
    * - ``bmp:version``
      - int
      - Version of the BMP file format
+   * - ``oiio:ColorSpace``
+     - string
+     - currently, it is always ``"sRGB"`` (we presume all BMP files are sRGB)
 
 **Configuration settings for BMP input**
 
@@ -117,6 +120,10 @@ BMP input and output both support the "custom I/O" feature via the special
   of the file format itself.
 * BMP only supports uint8 pixel data types. Requests for other pixel data
   types will automatically be converted to uint8.
+* OIIO's current implementation only supports RGB BMP files and presumes that
+  the pixel data are in sRGB color space.  It does not currently support CMYK
+  files or the color primary header information. (Though if this is important
+  to anyone, support can be added in the future.)
 
 |
 
