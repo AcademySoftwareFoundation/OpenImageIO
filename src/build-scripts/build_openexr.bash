@@ -7,7 +7,7 @@ set -ex
 
 # Which OpenEXR to retrieve, how to build it
 OPENEXR_REPO=${OPENEXR_REPO:=https://github.com/AcademySoftwareFoundation/openexr.git}
-OPENEXR_VERSION=${OPENEXR_VERSION:=v2.4.1}
+OPENEXR_VERSION=${OPENEXR_VERSION:=v3.1.5}
 
 # Where to install the final results
 LOCAL_DEPS_DIR=${LOCAL_DEPS_DIR:=${PWD}/ext}
