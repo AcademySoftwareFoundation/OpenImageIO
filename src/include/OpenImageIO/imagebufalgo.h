@@ -1824,7 +1824,7 @@ bool OIIO_API erode (ImageBuf &dst, const ImageBuf &src,
 ImageBuf OIIO_API colorconvert (const ImageBuf &src,
                       string_view fromspace, string_view tospace, bool unpremult=true,
                       string_view context_key="", string_view context_value="",
-                      ColorConfig *colorconfig=nullptr,
+                      const ColorConfig* colorconfig = nullptr,
                       ROI roi={}, int nthreads=0);
 
 /// Transform using a ColorProcessor, returning an ImageBuf result.
@@ -1835,7 +1835,7 @@ ImageBuf OIIO_API colorconvert (const ImageBuf &src,
 bool OIIO_API colorconvert (ImageBuf &dst, const ImageBuf &src,
                   string_view fromspace, string_view tospace, bool unpremult=true,
                   string_view context_key="", string_view context_value="",
-                  ColorConfig *colorconfig=nullptr,
+                  const ColorConfig* colorconfig = nullptr,
                   ROI roi={}, int nthreads=0);
 
 /// Transform using a ColorProcessor, storing reults into an existing ImageBuf.
@@ -1925,14 +1925,14 @@ ImageBuf OIIO_API ociolook (const ImageBuf &src, string_view looks,
                             string_view fromspace, string_view tospace,
                             bool unpremult=true, bool inverse=false,
                             string_view context_key="", string_view context_value="",
-                            ColorConfig *colorconfig=nullptr,
+                            const ColorConfig* colorconfig = nullptr,
                             ROI roi={}, int nthreads=0);
 /// Write to an existing image `dst` (allocating if it is uninitialized).
 bool OIIO_API ociolook (ImageBuf &dst, const ImageBuf &src, string_view looks,
                         string_view fromspace, string_view tospace,
                         bool unpremult=true, bool inverse=false,
                         string_view context_key="", string_view context_value="",
-                        ColorConfig *colorconfig=nullptr,
+                        const ColorConfig* colorconfig = nullptr,
                         ROI roi={}, int nthreads=0);
 
 
@@ -1982,7 +1982,7 @@ ImageBuf OIIO_API ociodisplay (const ImageBuf &src,
                                string_view fromspace="", string_view looks="",
                                bool unpremult=true, bool inverse=false,
                                string_view context_key="", string_view context_value="",
-                               ColorConfig *colorconfig=nullptr,
+                               const ColorConfig* colorconfig = nullptr,
                                ROI roi={}, int nthreads=0);
 /// Write to an existing image `dst` (allocating if it is uninitialized).
 bool OIIO_API ociodisplay (ImageBuf &dst, const ImageBuf &src,
@@ -1990,7 +1990,7 @@ bool OIIO_API ociodisplay (ImageBuf &dst, const ImageBuf &src,
                            string_view fromspace="", string_view looks="",
                            bool unpremult=true, bool inverse=false,
                            string_view context_key="", string_view context_value="",
-                           ColorConfig *colorconfig=nullptr,
+                           const ColorConfig* colorconfig = nullptr,
                            ROI roi={}, int nthreads=0);
 
 #ifndef OIIO_DOXYGEN
@@ -2000,7 +2000,7 @@ ImageBuf OIIO_API ociodisplay (const ImageBuf &src,
                                string_view fromspace, string_view looks,
                                bool unpremult,
                                string_view context_key, string_view context_value="",
-                               ColorConfig *colorconfig=nullptr,
+                               const ColorConfig* colorconfig = nullptr,
                                ROI roi={}, int nthreads=0);
 // OIIO_DEPRECATED("prefer the kind that takes an `inverse` parameter (2.5)")
 bool OIIO_API ociodisplay (ImageBuf &dst, const ImageBuf &src,
@@ -2008,7 +2008,7 @@ bool OIIO_API ociodisplay (ImageBuf &dst, const ImageBuf &src,
                            string_view fromspace, string_view looks,
                            bool unpremult,
                            string_view context_key, string_view context_value="",
-                           ColorConfig *colorconfig=nullptr,
+                           const ColorConfig* colorconfig = nullptr,
                            ROI roi={}, int nthreads=0);
 #endif
 
@@ -2039,13 +2039,13 @@ bool OIIO_API ociodisplay (ImageBuf &dst, const ImageBuf &src,
 ImageBuf OIIO_API ociofiletransform (const ImageBuf &src,
                                      string_view name,
                                      bool unpremult=true, bool inverse=false,
-                                     ColorConfig *colorconfig=nullptr,
+                                     const ColorConfig* colorconfig = nullptr,
                                      ROI roi={}, int nthreads=0);
 /// Write to an existing image `dst` (allocating if it is uninitialized).
 bool OIIO_API ociofiletransform (ImageBuf &dst, const ImageBuf &src,
                                  string_view name,
                                  bool unpremult=true, bool inverse=false,
-                                 ColorConfig *colorconfig=nullptr,
+                                 const ColorConfig* colorconfig = nullptr,
                                  ROI roi={}, int nthreads=0);
 
 

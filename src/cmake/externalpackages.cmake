@@ -178,9 +178,16 @@ checked_find_package (OpenColorIO
                       DEFINITIONS  -DUSE_OCIO=1 -DUSE_OPENCOLORIO=1
                       # PREFER_CONFIG
                       )
-if (NOT OpenColorIO_FOUND)
+if (OpenColorIO_FOUND)
+    option (OIIO_DISABLE_BUILTIN_OCIO_CONFIGS
+           "For deveoper debugging/testing ONLY! Disable OCIO 2.2 builtin configs." OFF)
+    if (OIIO_DISABLE_BUILTIN_OCIO_CONFIGS OR "$ENV{OIIO_DISABLE_BUILTIN_OCIO_CONFIGS}")
+        add_compile_definitions(OIIO_DISABLE_BUILTIN_OCIO_CONFIGS)
+    endif ()
+else ()
     set (OpenColorIO_FOUND 0)
 endif ()
+
 checked_find_package (OpenCV 3.0
                    DEFINITIONS  -DUSE_OPENCV=1)
 

@@ -90,7 +90,7 @@ def oiio_app (app):
     return cmd
 
 
-# Ask oiiotool what version of OpenColorIO it has emedded
+# Ask oiiotool what version of OpenColorIO it has embedded
 ociover = subprocess.check_output([oiio_app('oiiotool').strip(),
                                    '--echo', '{getattribute(opencolorio_version)}'])
 ociover = ociover.strip().decode('utf-8')[0:3]
@@ -99,7 +99,7 @@ ociover = os.getenv('OCIO_VERSION_OVERRIDE', ociover)
 
 OCIO_env = os.getenv('OCIO')
 if OCIO_env is None:
-    os.environ['OCIO'] = 'ocio:://default'
+    os.environ['OCIO'] = 'ocio://default'
     if ociover == '2.2' or ociover == '2.3' :
         colorconfig_file = os.getenv('OIIO_TESTSUITE_OCIOCONFIG', 'ocio://default')
     else :

@@ -15,6 +15,8 @@ echo ; echo "Results of oiiotool --version:"
 $OpenImageIO_ROOT/bin/oiiotool --version || true
 echo ; echo "Results of oiiotool --help:"
 $OpenImageIO_ROOT/bin/oiiotool --help || true
+echo ; echo "Results of oiiotool --colorconfiginfo:"
+$OpenImageIO_ROOT/bin/oiiotool --colorconfiginfo
 echo ; echo "Results of oiiotool with no args (should get short help message):"
 $OpenImageIO_ROOT/bin/oiiotool || true
 echo ; echo "Run unit tests and simple stats:"

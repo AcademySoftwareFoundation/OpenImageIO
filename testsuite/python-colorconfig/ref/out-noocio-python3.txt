@@ -1,5 +1,5 @@
 getNumColorSpaces = 6
-getColorSpaceNames = [u'linear', u'default', u'rgb', u'RGB', u'sRGB', u'Rec709']
+getColorSpaceNames = ['linear', 'default', 'rgb', 'RGB', 'sRGB', 'Rec709']
 getNumLooks = 0
 getLookNames = []
 getNumDisplays = 0

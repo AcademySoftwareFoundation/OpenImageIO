@@ -94,7 +94,7 @@ public:
     /// This routine will return the error string (and by default, clear any
     /// error flags).  If no error has occurred since the last time
     /// geterror() was called, it will return an empty string.
-    std::string geterror(bool clear = true);
+    std::string geterror(bool clear = true) const;
 
     /// Get the number of ColorSpace(s) defined in this configuration
     int getNumColorSpaces() const;
@@ -309,6 +309,15 @@ public:
     /// is found.
     string_view parseColorSpaceFromString(string_view str) const;
 
+    /// Turn the name, which could be a color space, an alias, a role, or
+    /// an OIIO-understood universal name (like "sRGB") into a canonical
+    /// color space name. If the name is not recognized, return "".
+    string_view resolve(string_view name) const;
+
+    /// Are the two color space names/aliases/roles equivalent?
+    bool equivalent(string_view color_space,
+                    string_view other_color_space) const;
+
     /// Return a filename or other identifier for the config we're using.
     std::string configname() const;
 
@@ -325,6 +334,13 @@ public:
     /// OCIO support is available.
     static int OpenColorIO_version_hex();
 
+    /// Return a default ColorConfig, which is a singleton that will be
+    /// created the first time it is needed.  It will be initialized with the
+    /// OCIO environment variable, if it exists, or the OCIO built-in config
+    /// (for OCIO >= 2.2).  If neither of those is possible, it will be
+    /// initialized with a built-in minimal config.
+    static const ColorConfig& default_colorconfig();
+
 private:
     ColorConfig(const ColorConfig&) = delete;
     ColorConfig& operator=(const ColorConfig&) = delete;
@@ -336,7 +352,8 @@ private:
 
 
 
-/// Utility -- convert sRGB value to linear
+/// Utility -- convert sRGB value to linear transfer function, without
+/// any change in color primaries.
 ///    http://en.wikipedia.org/wiki/SRGB
 inline float
 sRGB_to_linear(float x)
@@ -356,7 +373,8 @@ sRGB_to_linear(const simd::vfloat4& x)
 }
 #endif
 
-/// Utility -- convert linear value to sRGB
+/// Utility -- convert linear value to sRGB transfer function, without
+/// any change in color primaries.
 inline float
 linear_to_sRGB(float x)
 {
@@ -366,7 +384,8 @@ linear_to_sRGB(float x)
 
 
 #ifndef __CUDA_ARCH__
-/// Utility -- convert linear value to sRGB
+/// Utility -- convert linear value to sRGB transfer function, without
+/// any change in color primaries.
 inline simd::vfloat4
 linear_to_sRGB(const simd::vfloat4& x)
 {
@@ -377,7 +396,8 @@ linear_to_sRGB(const simd::vfloat4& x)
 #endif
 
 
-/// Utility -- convert Rec709 value to linear
+/// Utility -- convert Rec709 value to linear transfer function, without
+/// any change in color primaries.
 ///    http://en.wikipedia.org/wiki/Rec._709
 inline float
 Rec709_to_linear(float x)
@@ -388,7 +408,8 @@ Rec709_to_linear(float x)
         return powf((x + 0.099f) * (1.0f / 1.099f), (1.0f / 0.45f));
 }
 
-/// Utility -- convert linear value to Rec709
+/// Utility -- convert linear value to Rec709 transfer function, without
+/// any change in color primaries.
 inline float
 linear_to_Rec709(float x)
 {
