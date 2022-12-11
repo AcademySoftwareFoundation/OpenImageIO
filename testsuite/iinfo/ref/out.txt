@@ -133,22 +133,22 @@
       Constant: No
       Monochrome: No
 Total size: 4.0 MB
-data/tiny-az.exr :    4 x    4, 3 channel, float openexr
-data/tiny-az.exr :     SHA-1: 2556575B7F2398D97FCF2C5CFCBAB741050AC155
-data/tiny-az.exr :     channel list: R, G, B
-data/tiny-az.exr :     pixel data origin: x=2, y=2
-data/tiny-az.exr :     full/display size: 20 x 20
-data/tiny-az.exr :     full/display origin: 1, 1
-data/tiny-az.exr :     compression: "zip"
-data/tiny-az.exr :     DateTime: "2022:11:23 15:17:24"
-data/tiny-az.exr :     PixelAspectRatio: 1
-data/tiny-az.exr :     screenWindowCenter: 0, 0
-data/tiny-az.exr :     screenWindowWidth: 1
-data/tiny-az.exr :     Software: "OpenImageIO 2.5.0.0spi : oiiotool -pattern constant:color=0.25,0.5,0.75 4x4 3 --origin +2+2 --fullsize 20x20+1+1 -o tiny-az.exr"
-data/tiny-az.exr :     Exif:ImageHistory: "oiiotool -pattern constant:color=0.25,0.5,0.75 4x4 3 --origin +2+2 --fullsize 20x20+1+1 -o tiny-az.exr"
-data/tiny-az.exr :     oiio:ColorSpace: "Linear"
-data/tiny-az.exr :     oiio:subimages: 1
-data/tiny-az.exr :     Stats Min: 0.250000 0.500000 0.750000 (float)
+src/tiny-az.exr :    4 x    4, 3 channel, float openexr
+src/tiny-az.exr :     SHA-1: 2556575B7F2398D97FCF2C5CFCBAB741050AC155
+src/tiny-az.exr :     channel list: R, G, B
+src/tiny-az.exr :     pixel data origin: x=2, y=2
+src/tiny-az.exr :     full/display size: 20 x 20
+src/tiny-az.exr :     full/display origin: 1, 1
+src/tiny-az.exr :     compression: "zip"
+src/tiny-az.exr :     DateTime: "2022:11:23 15:17:24"
+src/tiny-az.exr :     PixelAspectRatio: 1
+src/tiny-az.exr :     screenWindowCenter: 0, 0
+src/tiny-az.exr :     screenWindowWidth: 1
+src/tiny-az.exr :     Software: "OpenImageIO 2.5.0.0spi : oiiotool -pattern constant:color=0.25,0.5,0.75 4x4 3 --origin +2+2 --fullsize 20x20+1+1 -o tiny-az.exr"
+src/tiny-az.exr :     Exif:ImageHistory: "oiiotool -pattern constant:color=0.25,0.5,0.75 4x4 3 --origin +2+2 --fullsize 20x20+1+1 -o tiny-az.exr"
+src/tiny-az.exr :     oiio:ColorSpace: "Linear"
+src/tiny-az.exr :     oiio:subimages: 1
+src/tiny-az.exr :     Stats Min: 0.250000 0.500000 0.750000 (float)
     Stats Max: 0.250000 0.500000 0.750000 (float)
     Stats Avg: 0.250000 0.500000 0.750000 (float)
     Stats StdDev: 0.000000 0.000000 0.000000 (float)
@@ -159,8 +159,8 @@ data/tiny-az.exr :     Stats Min: 0.250000 0.500000 0.750000 (float)
     Constant Color: 0.250000 0.500000 0.750000 (float)
     Monochrome: No
 info from oiiotool:
-Reading data/tiny-az.exr
-data/tiny-az.exr     :    4 x    4, 3 channel, float openexr
+Reading src/tiny-az.exr
+src/tiny-az.exr      :    4 x    4, 3 channel, float openexr
     SHA-1: 2556575B7F2398D97FCF2C5CFCBAB741050AC155
     channel list: R, G, B
     pixel data origin: x=2, y=2
@@ -201,7 +201,7 @@ data/tiny-az.exr     :    4 x    4, 3 channel, float openexr
     Constant: Yes
     Constant Color: 0.250000 0.500000 0.750000 (float)
     Monochrome: No
-data/tinydeep.exr :    4 x    4, 2 channel, deep float openexr
+src/tinydeep.exr :    4 x    4, 2 channel, deep float openexr
     SHA-1: 941FD2E69D58EB30EE29AD3F71720C3831AAD914
     channel list: A, Z
     compression: "zips"
@@ -235,8 +235,8 @@ data/tinydeep.exr :    4 x    4, 2 channel, deep float openexr
     Minimum depth was 10 at (2, 2)
     Maximum depth was 10 at (2, 2)
 info from oiiotool:
-Reading data/tinydeep.exr
-data/tinydeep.exr    :    4 x    4, 2 channel, deep float openexr
+Reading src/tinydeep.exr
+src/tinydeep.exr     :    4 x    4, 2 channel, deep float openexr
     SHA-1: 941FD2E69D58EB30EE29AD3F71720C3831AAD914
     channel list: A, Z
     compression: "zips"
@@ -348,7 +348,7 @@ Reading tmp.tif
 <attrib name="compression" type="string">zip</attrib>
 <attrib name="tiff:RowsPerStrip" type="int">32</attrib>
 </ImageSpec>
-data/subimage.tif :    2 x    2, 3 channel, uint8 tiff
+src/subimage.tif :    2 x    2, 3 channel, uint8 tiff
     3 subimages: 2x2 [u8,u8,u8], 2x2 [u8,u8,u8], 2x2 [u8,u8,u8]
  subimage  0:    2 x    2, 3 channel, uint8 tiff
     SHA-1: 39754B9B5BF224DA2869627680D5853D787E794F
@@ -419,7 +419,7 @@ data/subimage.tif :    2 x    2, 3 channel, uint8 tiff
     Constant: Yes
     Constant Color: 64.00 128.00 191.00 (of 255)
     Monochrome: No
-data/mip.tif :    2 x    2, 3 channel, uint8 tiff
+src/mip.tif :    2 x    2, 3 channel, uint8 tiff
     MIP-map levels: 2x2 1x1
     SHA-1: 39754B9B5BF224DA2869627680D5853D787E794F
     channel list: R, G, B
