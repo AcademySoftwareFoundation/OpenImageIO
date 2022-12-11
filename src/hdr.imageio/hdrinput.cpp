@@ -254,11 +254,6 @@ HdrInput::seek_subimage(int subimage, int miplevel)
     if (subimage != 0 || miplevel != 0)
         return false;
 
-    // Skip the hard work if we're already on the requested subimage
-    if (subimage == current_subimage()) {
-        return true;
-    }
-
     return true;
 }
 
