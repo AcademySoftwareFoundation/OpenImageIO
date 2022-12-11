@@ -338,7 +338,7 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     }
     {
         char filmedge[17];
-        m_cin.header.FilmEdgeCode(filmedge);
+        m_cin.header.FilmEdgeCode(filmedge, sizeof(filmedge));
         if (filmedge[0])
             m_spec.attribute("cineon:FilmEdgeCode", filmedge);
     }
