@@ -500,21 +500,18 @@ int cineon::GenericHeader::DataSizeByteCount(const DataSize ds)
 }
 
 
-void cineon::IndustryHeader::FilmEdgeCode(char *edge) const
+void cineon::IndustryHeader::FilmEdgeCode(char *edge, size_t size) const
 {
-	if (this->filmManufacturingIdCode == 0xff
-		&& this->filmType == 0xff
-		&& this->perfsOffset == 0xff
-		&& this->prefix == 0xffffffff
-		&& this->count == 0xffffffff)
-		*edge = 0;
-	else
-		sprintf(edge, "%02u%02u%02u%06u%04u",
-			(unsigned int)this->filmManufacturingIdCode,
-			(unsigned int)this->filmType,
-			(unsigned int)this->perfsOffset,
-			this->prefix,
-			this->count);
+        if (this->filmManufacturingIdCode == 0xff && this->filmType == 0xff
+            && this->perfsOffset == 0xff && this->prefix == 0xffffffff
+            && this->count == 0xffffffff)
+                *edge = 0;
+        else
+                snprintf(edge, size, "%02u%02u%02u%06u%04u",
+                         (unsigned int)this->filmManufacturingIdCode,
+                         (unsigned int)this->filmType,
+                         (unsigned int)this->perfsOffset, this->prefix,
+                         this->count);
 }
 
 

@@ -955,7 +955,7 @@ namespace cineon
 		 * \brief Get the film edge code information that is machine readable
 		 * \param edge buffer to write film edge code information (16+1 chars)
 		 */
-		void				FilmEdgeCode(char *edge) const;
+		void				FilmEdgeCode(char *edge, size_t size) const;
 
 		/*!
 		 * \brief Set the film edge code information that is machine readable
