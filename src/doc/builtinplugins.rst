@@ -676,7 +676,8 @@ preferred except when legacy file access is required.
      - encodes the orientation (see Section :ref:`sec-metadata-orientation`)
    * - ``oiio:ColorSpace``
      - string
-     - Color space (see Section :ref:`sec-metadata-color`).
+     - Color space (see Section :ref:`sec-metadata-color`). We currently
+       assume that any RGBE files encountered are linear with sRGB primaries.
    * - ``oiio:Gamma``
      - float
      - the gamma correction specified in the RGBE header (if it's gamma corrected).

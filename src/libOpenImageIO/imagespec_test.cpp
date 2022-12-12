@@ -37,7 +37,7 @@ const char* imagespec_xml_string = R"EOF(
 <alpha_channel>3</alpha_channel>
 <z_channel>-1</z_channel>
 <deep>0</deep>
-<attrib name="oiio:ColorSpace" type="string">Linear</attrib>
+<attrib name="oiio:ColorSpace" type="string">scene_linear</attrib>
 <attrib name="compression" type="string">none</attrib>
 <attrib name="acesImageContainerFlag" type="int">1</attrib>
 <attrib name="chromaticities" type="float[8]">0.7347, 0.2653, 0, 1, 0.0001, -0.077, 0.32168, 0.33767</attrib>
@@ -322,7 +322,8 @@ test_imagespec_from_xml()
     OIIO_CHECK_EQUAL(spec.full_height, 1080);
     OIIO_CHECK_EQUAL(spec.full_depth, 1);
     OIIO_CHECK_EQUAL(spec.format, TypeFloat);
-    OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace"), "Linear");
+    OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace"),
+                     "scene_linear");
 }
 
 

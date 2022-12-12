@@ -906,25 +906,26 @@ The color space hints only describe color channels.  You should always pass
 alpha, depth, or other non-color channels with linear values.
 
 Here is a simple example of setting up the ``ImageSpec`` when you know that
-the pixel values you are writing are linear:
+the pixel values you are writing are in your default linear scene-referred
+color space:
 
 .. tabs::
 
    .. code-tab:: c++
 
       ImageSpec spec (width, length, channels, format);
-      spec.attribute ("oiio:ColorSpace", "Linear");
+      spec.attribute ("oiio:ColorSpace", "scene_linear");
 
    .. code-tab:: py
 
       spec = ImageSpec(width, length, channels, format)
-      spec.attribute ("oiio:ColorSpace", "Linear")
+      spec.attribute ("oiio:ColorSpace", "scene_linear")
 
 If a particular ``ImageOutput`` implementation is required (by the rules of
-the file format it writes) to have pixels in a particular color space,
+the file format it writes) to have pixels in a fixed color space,
 then it should try to convert the color values of your image to the right color
 space if it is not already in that space.  For example, JPEG images
-must be in sRGB space, so if you declare your pixels to be ``"Linear"``,
+must be in sRGB space, so if you declare your pixels to be ``"scene_linear"``,
 the JPEG ``ImageOutput`` will convert to sRGB.
 
 If you leave the ``"oiio:ColorSpace"`` unset, the values will not be

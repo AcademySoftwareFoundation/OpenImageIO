@@ -291,7 +291,7 @@ public:
 
 
 // ColorConfig utility to take inventory of the color spaces available.
-// It sets up knowledge of "linear", "sRGB", "Rec709",
+// It sets up knowledge of "linear", "sRGB", "Rec709", etc,
 // even if the underlying OCIO configuration lacks them.
 void
 ColorConfig::Impl::inventory()
@@ -324,9 +324,11 @@ ColorConfig::Impl::inventory()
     // If there was no configuration, or we didn't compile with OCIO
     // support at all, register a few basic names we know about.
     add("linear", 0);
+    add("scene_linear", 0);
     add("default", 0);
     add("rgb", 0);
     add("RGB", 0);
+    add("lin_srgb", 0);
     add("sRGB", 1);
     add("Rec709", 2);
     for (auto&& cs : colorspaces)
@@ -657,7 +659,10 @@ ColorConfig::isColorSpaceLinear(string_view name) const
     }
 #endif
     return Strutil::iequals(name, "linear")
-           || Strutil::iequals(name, "scene_linear");
+           || Strutil::istarts_with(name, "linear_")
+           || Strutil::istarts_with(name, "lin_")
+           || Strutil::iends_with(name, "_linear")
+           || Strutil::iends_with(name, "_lin");
 }
 
 
@@ -1303,7 +1308,6 @@ ColorConfig::createColorProcessor(ustring inputColorSpace,
                                   ustring outputColorSpace, ustring context_key,
                                   ustring context_value) const
 {
-    ustring inputrole, outputrole;
     std::string pending_error;
 
     // First, look up the requested processor in the cache. If it already
@@ -1321,18 +1325,9 @@ ColorConfig::createColorProcessor(ustring inputColorSpace,
     // transformation.
     OCIO::ConstProcessorRcPtr p;
     if (getImpl()->config_ && !disable_ocio) {
-        // If the names are roles, convert them to color space names
-        string_view name;
-        name = getColorSpaceNameByRole(inputColorSpace);
-        if (!name.empty()) {
-            inputrole       = inputColorSpace;
-            inputColorSpace = name;
-        }
-        name = getColorSpaceNameByRole(outputColorSpace);
-        if (!name.empty()) {
-            outputrole       = outputColorSpace;
-            outputColorSpace = name;
-        }
+        // Canonicalize the names
+        inputColorSpace  = ustring(resolve(inputColorSpace));
+        outputColorSpace = ustring(resolve(outputColorSpace));
         // DBG("after role substitution, {} -> {}\n", inputColorSpace,
         //                outputColorSpace);
         auto config  = getImpl()->config_;
@@ -1390,31 +1385,36 @@ ColorConfig::createColorProcessor(ustring inputColorSpace,
         if (iequals(inputColorSpace, outputColorSpace)) {
             handle = ColorProcessorHandle(new ColorProcessor_Ident);
         } else if ((iequals(inputColorSpace, "linear")
-                    || iequals(inputrole, "linear")
+                    || iequals(inputColorSpace, "scene_linear")
+                    || iequals(inputColorSpace, "lin_srgb")
                     || iequals(inputColorSpace, "lnf")
                     || iequals(inputColorSpace, "lnh"))
                    && iequals(outputColorSpace, "sRGB")) {
             handle = ColorProcessorHandle(new ColorProcessor_linear_to_sRGB);
         } else if (iequals(inputColorSpace, "sRGB")
                    && (iequals(outputColorSpace, "linear")
-                       || iequals(outputrole, "linear")
+                       || iequals(outputColorSpace, "scene_linear")
+                       || iequals(outputColorSpace, "lin_srgb")
                        || iequals(outputColorSpace, "lnf")
                        || iequals(outputColorSpace, "lnh"))) {
             handle = ColorProcessorHandle(new ColorProcessor_sRGB_to_linear);
         } else if ((iequals(inputColorSpace, "linear")
-                    || iequals(inputrole, "linear")
+                    || iequals(inputColorSpace, "scene_linear")
+                    || iequals(inputColorSpace, "lin_srgb")
                     || iequals(inputColorSpace, "lnf")
                     || iequals(inputColorSpace, "lnh"))
                    && iequals(outputColorSpace, "Rec709")) {
             handle = ColorProcessorHandle(new ColorProcessor_linear_to_Rec709);
         } else if (iequals(inputColorSpace, "Rec709")
                    && (iequals(outputColorSpace, "linear")
-                       || iequals(outputrole, "linear")
+                       || iequals(outputColorSpace, "scene_linear")
+                       || iequals(outputColorSpace, "lin_srgb")
                        || iequals(outputColorSpace, "lnf")
                        || iequals(outputColorSpace, "lnh"))) {
             handle = ColorProcessorHandle(new ColorProcessor_Rec709_to_linear);
         } else if ((iequals(inputColorSpace, "linear")
-                    || iequals(inputrole, "linear")
+                    || iequals(inputColorSpace, "scene_linear")
+                    || iequals(inputColorSpace, "lin_srgb")
                     || iequals(inputColorSpace, "lnf")
                     || iequals(inputColorSpace, "lnh"))
                    && istarts_with(outputColorSpace, "Gamma")) {
@@ -1424,7 +1424,8 @@ ColorConfig::createColorProcessor(ustring inputColorSpace,
             handle  = ColorProcessorHandle(new ColorProcessor_gamma(1.0f / g));
         } else if (istarts_with(inputColorSpace, "Gamma")
                    && (iequals(outputColorSpace, "linear")
-                       || iequals(outputrole, "linear")
+                       || iequals(outputColorSpace, "scene_linear")
+                       || iequals(outputColorSpace, "lin_srgb")
                        || iequals(outputColorSpace, "lnf")
                        || iequals(outputColorSpace, "lnh"))) {
             string_view gamstr = inputColorSpace;

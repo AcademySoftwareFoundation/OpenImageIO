@@ -1027,13 +1027,13 @@ test_color_management()
 
     // Test the IBA::colorconvert version that works on a color at a time
     {
-        auto processor = config.createColorProcessor("linear", "sRGB");
+        auto processor = config.createColorProcessor("lin_srgb", "srgb");
         float rgb[3]   = { 0.5f, 0.5f, 0.5f };
         ImageBufAlgo::colorconvert(rgb, processor.get(), false);
         OIIO_CHECK_EQUAL_THRESH(rgb[1], 0.735356983052449f, 1.0e-5);
     }
     {
-        auto processor = config.createColorProcessor("linear", "sRGB");
+        auto processor = config.createColorProcessor("lin_srgb", "srgb");
         float rgb[4]   = { 0.5f, 0.5f, 0.5f, 1.0f };
         ImageBufAlgo::colorconvert(rgb, processor.get(), true);
         OIIO_CHECK_EQUAL_THRESH(rgb[1], 0.735356983052449f, 1.0e-5);

@@ -136,12 +136,18 @@ Color information
 
     The name of the color space of the color channels.  Values include:
     
-    - `"Linear"` :  Color pixel values are known to be scene-linear and
-      using facility-default color primaries (presumed sRGB/Rec709 color
-      primaries if otherwise unknown.
+    - `"scene_linear"` :  Color pixel values are known to be scene-linear and
+      using facility-default color primaries as defined by the OpenColorIO
+      configuration. Note that `"linear"` is treated as a synonym. (Note: when
+      no color config is found, this are presumed to use sRGB/Rec709 color
+      primaries when built against OpenColorIO 2.1 or earlier, or when no OCIO
+      support is available, but is presumed to be ACEScg when built against
+      OCIO 2.2 or higher and using its built-in config.)
+    - `"lin_srgb"` :  Color pixel values are known to be linear and
+      using sRGB/Rec709 color primaries.
     - `"sRGB"` :  Using standard sRGB response and primaries.
     - `"Rec709"` :  Using standard Rec709 response and primaries.
-    - `"ACES"` :  ACES color space encoding.
+    - `"ACEScg"` :  ACEScg color space encoding.
     - `"AdobeRGB"` :  Adobe RGB color space.
     - `"KodakLog"` :  Kodak logarithmic color space.
     - `"GammaX.Y"` :  Color values have been gamma corrected
