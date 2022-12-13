@@ -141,7 +141,7 @@ macro (oiio_add_all_tests)
     # Freestanding tests:
     oiio_add_tests (
                     cmake-consumer
-                    iinfo
+                    iinfo igrep
                     nonwhole-tiles
                     oiiotool
                     oiiotool-composite oiiotool-control oiiotool-copy
