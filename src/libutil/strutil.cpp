@@ -908,7 +908,10 @@ std::string
 Strutil::utf16_to_utf8(const std::wstring& str) noexcept
 {
     try {
+        OIIO_PRAGMA_WARNING_PUSH
+        OIIO_CLANG_PRAGMA(GCC diagnostic ignored "-Wdeprecated-declarations")
         std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> conv;
+        OIIO_PRAGMA_WARNING_POP
         return conv.to_bytes(str);
     } catch (const std::exception&) {
         return std::string();
@@ -921,7 +924,10 @@ std::string
 Strutil::utf16_to_utf8(const std::u16string& str) noexcept
 {
     try {
+        OIIO_PRAGMA_WARNING_PUSH
+        OIIO_CLANG_PRAGMA(GCC diagnostic ignored "-Wdeprecated-declarations")
         std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> conv;
+        OIIO_PRAGMA_WARNING_POP
         return conv.to_bytes(str);
     } catch (const std::exception&) {
         return std::string();
