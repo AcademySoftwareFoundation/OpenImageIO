@@ -881,7 +881,10 @@ std::wstring
 Strutil::utf8_to_utf16wstring(string_view str) noexcept
 {
     try {
+        OIIO_PRAGMA_WARNING_PUSH
+        OIIO_CLANG_PRAGMA(GCC diagnostic ignored "-Wdeprecated-declarations")
         std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> conv;
+        OIIO_PRAGMA_WARNING_POP
         return conv.from_bytes(str.data(), str.data() + str.size());
     } catch (const std::exception&) {
         return std::wstring();
