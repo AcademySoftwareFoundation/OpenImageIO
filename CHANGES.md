@@ -93,7 +93,7 @@ Release 2.4.5 (1 Nov 2022) -- compared to 2.4.4.2
 * Targa: string overflow safety. (TALOS-2022-1628, CVE-2022-4198) #3622
 * TIFF/JPEG/PSD: Fix EXIF bugs where corrupted exif blocks could overrun
   memory. (TALOS-2022-1626, CVE-2022-41794) (TALOS-2022-1632, CVE-2022-41684)
-  #3627
+  (TALOS-2022-1636 CVE-2022-41837) #3627
 * TIFF: guard against corrupt files with buffer overflows. (TALOS-2022-1627,
   CVE-2022-41977) #3628
 * TIFF: guard against buffer overflow for certain CMYK files.
