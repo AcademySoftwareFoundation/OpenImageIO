@@ -277,7 +277,10 @@ HdrInput::RGBE_ReadHeader()
     if (!line.size())
         return false;
 
-    m_spec.attribute("oiio:ColorSpace", "linear");  // presume linear
+    m_spec.attribute("oiio:ColorSpace", "lin_srgb");
+    // presume linear w/ srgb primaries -- seems like the safest assumption
+    // for this old file format.
+
     bool found_FORMAT_line = false;
     for (int nlines = 0; nlines < 100 /* safety */; ++nlines) {
         if (line.size() == 0 || line[0] == '\n')  // stop at blank line

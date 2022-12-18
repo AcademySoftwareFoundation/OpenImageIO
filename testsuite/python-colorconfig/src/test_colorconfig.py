@@ -25,6 +25,18 @@ try:
     print ("getNumRoles =", config.getNumRoles())
     print ("getRoles =", config.getRoles())
 
+    print ("aliases of 'scene_linear' are", config.getAliases("scene_linear"))
+
+    print ("resolve('foo'):", config.resolve("foo"))
+    print ("resolve('linear'):", config.resolve("linear"))
+    print ("resolve('scene_linear'):", config.resolve("scene_linear"))
+    print ("resolve('lin_srgb'):", config.resolve("lin_srgb"))
+    print ("resolve('srgb'):", config.resolve("srgb"))
+    print ("equivalent('lin_srgb', 'srgb'):", config.equivalent("lin_srgb", "srgb"))
+    print ("equivalent('scene_linear', 'srgb'):", config.equivalent("scene_linear", "srgb"))
+    print ("equivalent('scene_linear', 'lin_srgb'):", config.equivalent("scene_linear", "lin_srgb"))
+    print ("equivalent('ACEScg', 'scene_linear'):", config.equivalent("ACEScg", "scene_linear"))
+    print ("equivalent('lnf', 'scene_linear'):", config.equivalent("lnf", "scene_linear"))
     print ("")
 
     print ("Done.")

@@ -4004,7 +4004,23 @@ versa).
 
 If you ask for :program:`oiiotool` help (`oiiotool --help`), at the very
 bottom you will see the list of all color spaces, looks, and displays that
-:program:`oiiotool` knows about.
+:program:`oiiotool` knows about. That information (including even more detail)
+will be printed with the command `oiiotool --colorconfiginfo`.
+
+.. option:: --colorconfiginfo
+
+    Print to the console extensive information about the color management
+    configuration, including the list of all known color spaces (and their
+    aliases), looks, displays (and their views), as well as which version
+    of OpenColorIO is being used, and the path to the configuration file.
+
+    This command was added in OIIO 2.4.6.
+
+.. option:: --colorconfig <filename>
+
+    Instruct :program:`oiiotool` to read an OCIO configuration from a custom
+    location. Without this, the default is to use the `$OCIO` environment
+    variable as a guide for the location of the configuration file.
 
 .. option:: --iscolorspace <colorspace>
 
@@ -4012,12 +4028,6 @@ bottom you will see the list of all color spaces, looks, and displays that
     in the named color space.  This does not alter the pixels of the image,
     it only changes :program:`oiiotool`'s understanding of what color space
     those those pixels are in.
-
-.. option:: --colorconfig <filename>
-
-    Instruct :program:`oiiotool` to read an OCIO configuration from a custom
-    location. Without this, the default is to use the `$OCIO` environment
-    variable as a guide for the location of the configuration file.
 
 .. option:: --colorconvert <fromspace> <tospace>
 

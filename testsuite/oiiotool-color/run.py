@@ -3,12 +3,15 @@
 from __future__ import absolute_import
 import os
 
+# print("ociover =", ociover)
 
 # Make test pattern with increasing intensity left to right, decreasing
 # alpha going down. Carefully done so that the first pixel is 0.0, last
 # pixel is 1.0 (correcting for the half pixel offset).
 command += oiiotool ("-pattern fill:topleft=0,0,0,1:topright=1,1,1,1:bottomleft=0,0,0,0:bottomright=1,1,1,0 256x256 4 "
-                     + " -d uint8 -o greyalpha_linear.tif")
+                     + " -d uint8 -o greyalpha_lin_srgb.tif")
+command += oiiotool ("-pattern fill:topleft=0,0,0:topright=1,1,1:bottomleft=0,0,0:bottomright=1,1,1 256x256 3 "
+                     + " -d uint8 -o grey_lin_srgb.tif")
 
 
 # test --colormap
@@ -54,13 +57,19 @@ command += oiiotool ("--autocc " + "../common/tahoe-tiny.tif" +
 #
 
 # colorconvert without unpremult
-command += oiiotool ("greyalpha_linear.tif --colorconvert:unpremult=0 linear sRGB -o greyalpha_sRGB.tif")
-command += oiiotool ("greyalpha_linear.tif --colorconvert:unpremult=0 linear Cineon -o greyalpha_Cineon.tif")
-
-# colorconvert with unpremult
-command += oiiotool ("greyalpha_linear.tif --colorconvert:unpremult=1 linear sRGB -o greyalpha_sRGB_un.tif")
-command += oiiotool ("greyalpha_linear.tif --colorconvert:unpremult=1 linear Cineon -o greyalpha_Cineon_un.tif")
-
+if float(ociover) >= 2.2 :
+    command += oiiotool ("greyalpha_lin_srgb.tif --colorconvert:unpremult=0 lin_srgb sRGB -o greyalpha_sRGB.tif")
+    command += oiiotool ("greyalpha_lin_srgb.tif --colorconvert:unpremult=1 lin_srgb sRGB -o greyalpha_sRGB_un.tif")
+    command += oiiotool ("grey_lin_srgb.tif --colorconvert:unpremult=0 lin_srgb sRGB -o grey_sRGB.tif")
+    command += oiiotool ("grey_lin_srgb.tif --colorconvert:unpremult=1 lin_srgb sRGB -o grey_sRGB_un.tif")
+else:
+    command += oiiotool ("greyalpha_lin_srgb.tif --colorconvert:unpremult=0 linear sRGB -o greyalpha_sRGB.tif")
+    command += oiiotool ("greyalpha_lin_srgb.tif --colorconvert:unpremult=0 linear Cineon -o greyalpha_Cineon.tif")
+    command += oiiotool ("greyalpha_lin_srgb.tif --colorconvert:unpremult=1 linear sRGB -o greyalpha_sRGB_un.tif")
+    command += oiiotool ("greyalpha_lin_srgb.tif --colorconvert:unpremult=1 linear Cineon -o greyalpha_Cineon_un.tif")
+    command += oiiotool ("grey_lin_srgb.tif --colorconvert:unpremult=0 linear sRGB -o grey_sRGB.tif")
+    command += oiiotool ("grey_lin_srgb.tif --colorconvert:unpremult=1 linear sRGB -o grey_sRGB_un.tif")
+ 
 # test color convert by matrix
 command += oiiotool ("--autocc " + "../common/tahoe-tiny.tif"+
                      " "
@@ -68,9 +77,15 @@ command += oiiotool ("--autocc " + "../common/tahoe-tiny.tif"+
                      + "-d uint8 -o tahoe-ccmatrix.tif")
 
 # Apply a display
-command += oiiotool ("greyalpha_linear.tif --ociodisplay default sRGB -o display-sRGB.tif")
+if float(ociover) >= 2.2 :
+    command += oiiotool ("greyalpha_lin_srgb.tif --iscolorspace lin_srgb --ociodisplay \"sRGB - Display\" Un-tone-mapped -o display-sRGB.tif")
+else :
+    command += oiiotool ("greyalpha_lin_srgb.tif --ociodisplay default sRGB -o display-sRGB.tif")
 
-# TODO: should test applying a look
+# Applying a look
+if float(ociover) >= 2.2 :
+    command += oiiotool ("--autocc ../common/tahoe-tiny.tif --ociolook \"ACES 1.3 Reference Gamut Compression\" -o look-default.tif")
+
 # TODO: should test applying a file transform
 
 # test various behaviors and misbehaviors related to OCIO configs.
@@ -99,10 +114,18 @@ outputs = [
             "display-sRGB.tif",
             "rgbfromtga.png",
             "greyalpha_sRGB.tif",
-            "greyalpha_Cineon.tif",
             "greyalpha_sRGB_un.tif",
-            "greyalpha_Cineon_un.tif",
+            "grey_sRGB.tif",
+            "grey_sRGB_un.tif",
             "tahoe-ccmatrix.tif",
             "tahoe-sat0.tif",
-            "tahoe-sat2.tif",
-            "out.txt" ]
+            "tahoe-sat2.tif"
+    ]
+if float(ociover) >= 2.2 :
+    outputs += [ "look-default.tif" ]
+else :
+    outputs += [ 
+            "greyalpha_Cineon.tif",
+            "greyalpha_Cineon_un.tif",
+    ]
+outputs += [ "out.txt" ]

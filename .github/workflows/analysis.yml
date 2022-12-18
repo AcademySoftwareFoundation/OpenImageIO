@@ -40,7 +40,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - desc: sonar gcc9/C++14 py39 boost1.76 exr3.1 ocio2.1
+          - desc: sonar gcc9/C++14 py39 boost1.76 exr3.1 ocio2.2
             nametag: static-analysis-sonar
             os: ubuntu-latest
             vfxyear: 2022
@@ -62,6 +62,7 @@ jobs:
                             CODECOV=1
                             CTEST_TEST_TIMEOUT=1200
                             OIIO_CMAKE_FLAGS="-DOIIO_TEX_IMPLEMENT_VARYINGREF=OFF"
+                            OPENCOLORIO_VERSION=v2.2.0
 
     runs-on: ${{ matrix.os }}
     container:

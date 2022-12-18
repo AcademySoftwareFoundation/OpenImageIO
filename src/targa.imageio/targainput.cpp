@@ -427,7 +427,8 @@ TGAInput::read_tga2_header()
             // 2.2, not 2.19998.
             gamma = roundf(100.0 * gamma) / 100.0f;
             if (gamma == 1.f) {
-                m_spec.attribute("oiio:ColorSpace", "linear");
+                m_spec.attribute("oiio:ColorSpace", "lin_srgb");
+                // Presume that Targa files are sRGB primaries
             } else {
                 m_spec.attribute("oiio:ColorSpace",
                                  Strutil::fmt::format("Gamma{:.2g}", gamma));

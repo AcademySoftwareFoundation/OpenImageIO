@@ -2763,11 +2763,9 @@ OIIOTOOL_OP(ociolook, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     bool inverse             = op.options().get_int("inverse");
     bool unpremult           = op.options().get_int("unpremult");
     if (fromspace == "current" || fromspace == "")
-        fromspace = img[1]->spec().get_string_attribute("oiio:Colorspace",
-                                                        "Linear");
+        fromspace = img[1]->spec().get_string_attribute("oiio:Colorspace");
     if (tospace == "current" || tospace == "")
-        tospace = img[1]->spec().get_string_attribute("oiio:Colorspace",
-                                                      "Linear");
+        tospace = img[1]->spec().get_string_attribute("oiio:Colorspace");
     return ImageBufAlgo::ociolook(*img[0], *img[1], lookname, fromspace,
                                   tospace, unpremult, inverse, contextkey,
                                   contextvalue, &ot.colorconfig);
@@ -2786,8 +2784,7 @@ OIIOTOOL_OP(ociodisplay, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     bool unpremult           = op.options().get_int("unpremult");
     bool inverse             = op.options().get_int("inverse");
     if (fromspace == "current" || fromspace == "")
-        fromspace = img[1]->spec().get_string_attribute("oiio:Colorspace",
-                                                        "Linear");
+        fromspace = img[1]->spec().get_string_attribute("oiio:Colorspace");
     return ImageBufAlgo::ociodisplay(*img[0], *img[1], displayname, viewname,
                                      fromspace, looks, unpremult, inverse,
                                      contextkey, contextvalue, &ot.colorconfig);
@@ -5275,12 +5272,9 @@ input_file(int argc, const char* argv[])
                               << " indicates color space \"" << colorspace
                               << "\"\n";
             }
-            std::string linearspace = ot.colorconfig.getColorSpaceNameByRole(
-                "linear");
-            if (linearspace.empty())
-                linearspace = string_view("Linear");
+            std::string linearspace = ot.colorconfig.resolve("linear");
             if (colorspace.size()
-                && !Strutil::iequals(colorspace, linearspace)) {
+                && ot.colorconfig.equivalent(colorspace, linearspace)) {
                 std::string cmd = "colorconvert:strict=0";
                 if (autoccunpremult)
                     cmd += ":unpremult=1";
@@ -5566,10 +5560,7 @@ output_file(int /*argc*/, const char* argv[])
         }
     }
     if (autocc) {
-        string_view linearspace = ot.colorconfig.getColorSpaceNameByRole(
-            "linear");
-        if (linearspace.empty())
-            linearspace = string_view("Linear");
+        string_view linearspace = ot.colorconfig.resolve("linear");
         std::string currentspace
             = ir->spec()->get_string_attribute("oiio:ColorSpace", linearspace);
         // Special cases where we know formats should be particular color
@@ -6023,103 +6014,160 @@ print_usage_tips()
 
 
 
-static void
-print_help_end(std::ostream& out)
+inline bool
+has_space(string_view s)
 {
-    out << "\n";
-    int columns = Sysutil::terminal_columns() - 2;
+    return s.find(' ') != string_view::npos;
+}
 
-    out << formatted_format_list("Input", "input_format_list") << "\n";
-    out << formatted_format_list("Output", "output_format_list") << "\n";
 
-    // debugging color space names
+
+inline std::string
+quote_if_spaces(string_view s)
+{
+    return has_space(s) ? Strutil::fmt::format("\"{}\"", s) : std::string(s);
+}
+
+
+
+template<class Sequence>
+inline std::string
+join_with_quotes(const Sequence& seq, string_view sep = "")
+{
+    std::ostringstream out;
+    out.imbue(std::locale::classic());  // Force "C" locale
+    bool first = true;
+    for (auto&& s : seq) {
+        if (!first && sep.size())
+            out << sep;
+        out << quote_if_spaces(s);
+        first = false;
+    }
+    return out.str();
+}
+
+
+static void
+print_ocio_info(std::ostream& out)
+{
+    using Strutil::print;
+    int columns = Sysutil::terminal_columns() - 1;
+
     int ociover = ot.colorconfig.OpenColorIO_version_hex();
     if (ociover)
         out << "OpenColorIO " << (ociover >> 24) << '.'
             << ((ociover >> 16) & 0xff) << '.' << ((ociover >> 8) & 0xff);
     else
         out << "No OpenColorIO";
-    out << ", color config: " << ot.colorconfig.configname() << "\n";
-    std::stringstream s;
-    s << "Known color spaces: ";
+    out << "\nColor config: " << ot.colorconfig.configname() << "\n";
+    out << "Known color spaces: \n";
     const char* linear = ot.colorconfig.getColorSpaceNameByRole("linear");
     for (int i = 0, e = ot.colorconfig.getNumColorSpaces(); i < e; ++i) {
         const char* n = ot.colorconfig.getColorSpaceNameByIndex(i);
-        s << "\"" << n << "\"";
-        if (linear && !Strutil::iequals(n, "linear")
-            && Strutil::iequals(n, linear))
-            s << " (linear)";
-        if (i < e - 1)
-            s << ", ";
+        out << "    - " << quote_if_spaces(n);
+        if ((linear && !ot.colorconfig.equivalent(n, "linear")
+             && ot.colorconfig.equivalent(n, linear))
+            || ot.colorconfig.isColorSpaceLinear(n))
+            out << " (linear)";
+        out << "\n";
+        auto aliases = ot.colorconfig.getAliases(n);
+        if (aliases.size()) {
+            std::stringstream s;
+            s << "      aliases: " << join_with_quotes(aliases, ", ");
+            out << Strutil::wordwrap(s.str(), columns, 6) << "\n";
+        }
     }
-    out << Strutil::wordwrap(s.str(), columns, 4) << "\n";
+
+    int roles = ot.colorconfig.getNumRoles();
+    if (roles) {
+        print(out, "Known roles:\n");
+        for (int i = 0; i < roles; ++i) {
+            const char* r = ot.colorconfig.getRoleByIndex(i);
+            print(out, "    - {} -> {}\n", quote_if_spaces(r),
+                  quote_if_spaces(ot.colorconfig.getColorSpaceNameByRole(r)));
+        }
+    }
 
     int nlooks = ot.colorconfig.getNumLooks();
     if (nlooks) {
-        std::stringstream s;
-        s << "Known looks: ";
-        for (int i = 0; i < nlooks; ++i) {
-            const char* n = ot.colorconfig.getLookNameByIndex(i);
-            s << "\"" << n << "\"";
-            if (i < nlooks - 1)
-                s << ", ";
-        }
-        out << Strutil::wordwrap(s.str(), columns, 4) << "\n";
+        print(out, "Known looks:\n");
+        for (int i = 0; i < nlooks; ++i)
+            print(out, "    - {}\n",
+                  quote_if_spaces(ot.colorconfig.getLookNameByIndex(i)));
     }
 
     const char* default_display = ot.colorconfig.getDefaultDisplayName();
     int ndisplays               = ot.colorconfig.getNumDisplays();
     if (ndisplays) {
-        std::stringstream s;
-        s << "Known displays: ";
+        out << "Known displays: (* indicates default)\n";
         for (int i = 0; i < ndisplays; ++i) {
             const char* d = ot.colorconfig.getDisplayNameByIndex(i);
-            s << "\"" << d << "\"";
+            out << "    - " << quote_if_spaces(d);
             if (!strcmp(d, default_display))
-                s << "*";
+                out << " (*)";
             const char* default_view = ot.colorconfig.getDefaultViewName(d);
             int nviews               = ot.colorconfig.getNumViews(d);
             if (nviews) {
-                s << " (views: ";
+                out << "\n      ";
+                std::stringstream s;
+                s << "views: ";
                 for (int i = 0; i < nviews; ++i) {
                     const char* v = ot.colorconfig.getViewNameByIndex(d, i);
-                    s << "\"" << v << "\"";
+                    s << quote_if_spaces(v);
                     if (!strcmp(v, default_view))
-                        s << "*";
+                        s << " (*)";
                     if (i < nviews - 1)
                         s << ", ";
                 }
-                s << ")";
+                out << Strutil::wordwrap(s.str(), columns, 6, " ") /*<< "\n"*/;
             }
-            if (i < ndisplays - 1)
-                s << ", ";
+            out << "\n";
         }
-        s << " (* = default)";
-        out << Strutil::wordwrap(s.str(), columns, 4) << "\n";
     }
     if (!ot.colorconfig.supportsOpenColorIO())
         out << "No OpenColorIO support was enabled at build time.\n";
+}
+
+
+
+static void
+print_help_end(std::ostream& out)
+{
+    using Strutil::print;
+    print(out, "\n");
+    int columns = Sysutil::terminal_columns() - 2;
+
+    out << formatted_format_list("Input", "input_format_list") << "\n";
+    out << formatted_format_list("Output", "output_format_list") << "\n";
+
+    if (int ociover = ot.colorconfig.OpenColorIO_version_hex())
+        print(out, "OpenColorIO {}.{}.{}\n", (ociover >> 24),
+              ((ociover >> 16) & 0xff), ((ociover >> 8) & 0xff));
+    else
+        print(out, "No OpenColorIO\n");
+    print(out, "    Color config: {}\n", ot.colorconfig.configname());
+    print(out, "    Run `oiiotool --colorconfiginfo` for a "
+               "full color management inventory.\n");
 
     std::vector<string_view> filternames;
     for (int i = 0, e = Filter2D::num_filters(); i < e; ++i)
         filternames.emplace_back(Filter2D::get_filterdesc(i).name);
-    out << Strutil::wordwrap("Filters available: "
-                                 + Strutil::join(filternames, ", "),
-                             columns, 4)
-        << "\n";
+    print(out, "{}\n",
+          Strutil::wordwrap("Filters available: "
+                                + Strutil::join(filternames, ", "),
+                            columns, 4));
 
     std::string libs = OIIO::get_string_attribute("library_list");
     if (libs.size()) {
-        std::vector<string_view> libvec;
-        Strutil::split(libs, libvec, ";");
+        auto libvec = Strutil::splitsv(libs, ";");
         for (auto& lib : libvec) {
             size_t pos = lib.find(':');
             lib.remove_prefix(pos + 1);
         }
-        out << Strutil::wordwrap("Dependent libraries: "
-                                     + Strutil::join(libvec, ", "),
-                                 columns, 4)
-            << std::endl;
+        print(out, "{}\n",
+              Strutil::wordwrap("Dependent libraries: "
+                                    + Strutil::join(libvec, ", "),
+                                columns, 4));
     }
 
     // Print the HW info
@@ -6130,19 +6178,19 @@ print_help_end(std::ostream& out)
                                           OIIO_VERSION_STRING,
                                           OIIO_CPLUSPLUS_VERSION, __cplusplus,
                                           buildsimd);
-    out << Strutil::wordwrap(buildinfo, columns, 4) << std::endl;
+    print("{}\n", Strutil::wordwrap(buildinfo, columns, 4));
     auto hwinfo = Strutil::fmt::format("Running on {} cores {:.1f}GB {}",
                                        Sysutil::hardware_concurrency(),
                                        Sysutil::physical_memory()
                                            / float(1 << 30),
                                        OIIO::get_string_attribute("hw:simd"));
-    out << Strutil::wordwrap(hwinfo, columns, 4) << std::endl;
+    print(out, "{}\n", Strutil::wordwrap(hwinfo, columns, 4));
 
     // Print the path to the docs. If found, use the one installed in the
     // same area is this executable, otherwise just point to the copy on
     // GitHub corresponding to our version of the softare.
-    out << "Full OIIO documentation can be found at\n";
-    out << "    https://openimageio.readthedocs.io\n";
+    print(out, "Full OIIO documentation can be found at\n");
+    print(out, "    https://openimageio.readthedocs.io\n");
 }
 
 
@@ -6797,6 +6845,12 @@ Oiiotool::getargs(int argc, char* argv[])
       .action(action_label);
 
     ap.separator("Color management:");
+    ap.arg("--colorconfiginfo")
+      .help("Print extensive details about the color management configuration")
+      .action([](cspan<const char*>){
+            print_ocio_info(std::cout);
+            ot.printed_info = true;
+        });
     ap.arg("--colorconfig %s:FILENAME")
       .help("Explicitly specify an OCIO configuration file")
       .action(set_colorconfig);

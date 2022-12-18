@@ -20,6 +20,7 @@
 
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
@@ -1019,6 +1020,28 @@ test_opencv()
 
 
 
+void
+test_color_management()
+{
+    ColorConfig config;
+
+    // Test the IBA::colorconvert version that works on a color at a time
+    {
+        auto processor = config.createColorProcessor("lin_srgb", "srgb");
+        float rgb[3]   = { 0.5f, 0.5f, 0.5f };
+        ImageBufAlgo::colorconvert(rgb, processor.get(), false);
+        OIIO_CHECK_EQUAL_THRESH(rgb[1], 0.735356983052449f, 1.0e-5);
+    }
+    {
+        auto processor = config.createColorProcessor("lin_srgb", "srgb");
+        float rgb[4]   = { 0.5f, 0.5f, 0.5f, 1.0f };
+        ImageBufAlgo::colorconvert(rgb, processor.get(), true);
+        OIIO_CHECK_EQUAL_THRESH(rgb[1], 0.735356983052449f, 1.0e-5);
+    }
+}
+
+
+
 int
 main(int argc, char** argv)
 {
@@ -1053,6 +1076,7 @@ main(int argc, char** argv)
     test_IBAprep();
     test_validate_st_warp_checks();
     test_opencv();
+    test_color_management();
 
     benchmark_parallel_image(64, iterations * 64);
     benchmark_parallel_image(512, iterations * 16);

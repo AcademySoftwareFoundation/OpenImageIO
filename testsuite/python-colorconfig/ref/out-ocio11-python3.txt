@@ -5,10 +5,21 @@ getLookNames = []
 getNumDisplays = 1
 getDisplayNames = ['default']
 getDefaultDisplayName = default
-getNumViews = 1
-getViewNames = ['sRGB']
-getDefaultViewName = 
+getNumViews = 3
+getViewNames = ['None', 'sRGB', 'rec709']
+getDefaultViewName = sRGB
 getNumRoles = 9
 getRoles = ['color_picking', 'color_timing', 'compositing_log', 'data', 'default', 'matte_paint', 'reference', 'scene_linear', 'texture_paint']
+aliases of 'scene_linear' are []
+resolve('foo'): foo
+resolve('linear'): linear
+resolve('scene_linear'): linear
+resolve('lin_srgb'): lin_srgb
+resolve('srgb'): sRGB
+equivalent('lin_srgb', 'srgb'): False
+equivalent('scene_linear', 'srgb'): False
+equivalent('scene_linear', 'lin_srgb'): False
+equivalent('ACEScg', 'scene_linear'): False
+equivalent('lnf', 'scene_linear'): False
 
 Done.

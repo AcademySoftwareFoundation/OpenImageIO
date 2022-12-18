@@ -3532,7 +3532,7 @@ Color manipulation
     .. code-block:: python
 
         Src = ImageBuf ("tahoe.jpg")
-        Dst = ImageBufAlgo.colorconvert (Src, "sRGB", "linear")
+        Dst = ImageBufAlgo.colorconvert (Src, "sRGB", "scene_linear")
 
 
 

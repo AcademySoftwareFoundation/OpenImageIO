@@ -1,9 +1,7 @@
 oiiotool ERROR: --colorconfig : Requested non-existent OCIO config "missing.ocio"
 Full command line was:
 > oiiotool --nostderr --colorconfig missing.ocio -echo "Nonexistent config"
-oiiotool ERROR: --colorconfig : Error reading OCIO config "../common/OpenColorIO/ocio-v2_demo.ocio": Error: Loading the OCIO profile '../common/OpenColorIO/ocio-v2_demo.ocio' failed. Unsupported transform type !<BuiltinTransform> in OCIO profile. 
-Full command line was:
-> oiiotool --nostderr --colorconfig ../common/OpenColorIO/ocio-v2_demo.ocio -echo "OCIOv2 config Ok"
+OCIOv2 config Ok
 Comparing "colormap-inferno.tif" and "ref/colormap-inferno.tif"
 PASS
 Comparing "colormap-custom.tif" and "ref/colormap-custom.tif"
@@ -28,7 +26,7 @@ Comparing "rgbfromtga.png" and "ref/rgbfromtga.png"
 PASS
 Comparing "greyalpha_sRGB.tif" and "ref/greyalpha_sRGB.tif"
 PASS
-Comparing "greyalpha_sRGB_un.tif" and "ref/greyalpha_sRGB_un.tif"
+Comparing "greyalpha_sRGB_un.tif" and "ref/greyalpha_sRGB_un-ocio22.tif"
 PASS
 Comparing "grey_sRGB.tif" and "ref/grey_sRGB.tif"
 PASS
@@ -40,7 +38,5 @@ Comparing "tahoe-sat0.tif" and "ref/tahoe-sat0.tif"
 PASS
 Comparing "tahoe-sat2.tif" and "ref/tahoe-sat2.tif"
 PASS
-Comparing "greyalpha_Cineon.tif" and "ref/greyalpha_Cineon.tif"
-PASS
-Comparing "greyalpha_Cineon_un.tif" and "ref/greyalpha_Cineon_un.tif"
+Comparing "look-default.tif" and "ref/look-default.tif"
 PASS
