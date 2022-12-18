@@ -470,7 +470,7 @@ jobs:
       CMAKE_GENERATOR: ${{matrix.generator}}
       OPENEXR_VERSION: ${{matrix.openexr_ver}}
       USE_SIMD: ${{matrix.simd}}
-      CTEST_ARGS: "--timeout 120 --repeat after-timeout:6"
+      CTEST_ARGS: "--timeout 180 --repeat after-timeout:6"
     steps:
       - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.2
       - name: Setup Nuget.exe
