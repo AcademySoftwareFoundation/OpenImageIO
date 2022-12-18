@@ -328,6 +328,13 @@ macro (oiio_add_all_tests)
                     ENABLEVAR ENABLE_TARGA
                     IMAGEDIR oiio-images)
     endif()
+    if (NOT WIN32)
+        oiio_add_tests (term
+                        ENABLEVAR ENABLE_TERM)
+        # I just could not get this test to work on Windows CI. The test fails
+        # when comparing the output, but the saved artifacts compare just fine
+        # on my system. Maybe someone will come back to this.
+        endif ()
     oiio_add_tests (tiff-suite tiff-depths tiff-misc
                     IMAGEDIR oiio-images/libtiffpic)
     oiio_add_tests (webp

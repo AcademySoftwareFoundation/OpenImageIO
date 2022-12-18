@@ -34,9 +34,14 @@ public:
 private:
     ImageBuf m_buf;
     std::string m_method;
+    std::string m_filename;
     bool m_fit = true;  // automatically fit to window size
 
-    void init() { m_buf.clear(); }
+    void init()
+    {
+        m_buf.clear();
+        m_filename.clear();
+    }
 
     // Actually output the stored buffer to the console
     bool output();
@@ -62,8 +67,9 @@ TermOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
         return false;
 
     // Retrieve config hints giving special instructions
-    m_method = Strutil::lower(m_spec["term:method"].get());
-    m_fit    = m_spec["term:fit"].get<int>(1);
+    m_method   = Strutil::lower(m_spec["term:method"].get());
+    m_fit      = m_spec["term:fit"].get<int>(1);
+    m_filename = m_spec["term:filename"];
 
     // Store temp buffer in HALF format
     ImageSpec spec2 = m_spec;
@@ -125,13 +131,12 @@ TermOutput::output()
     std::string cspace = m_buf.spec()["oiio:colorspace"].get();
     ImageBufAlgo::colorconvert(m_buf, m_buf, cspace, "sRGB");
 
-    string_view TERM(Sysutil::getenv("TERM"));
-    string_view TERM_PROGRAM(Sysutil::getenv("TERM_PROGRAM"));
-    string_view TERM_PROGRAM_VERSION(Sysutil::getenv("TERM_PROGRAM_VERSION"));
-    Sysutil::Term term(std::cout);
-
     string_view method(m_method);
     if (method.empty()) {
+        string_view TERM(Sysutil::getenv("TERM"));
+        string_view TERM_PROGRAM(Sysutil::getenv("TERM_PROGRAM"));
+        string_view TERM_PROGRAM_VERSION(
+            Sysutil::getenv("TERM_PROGRAM_VERSION"));
         if (TERM_PROGRAM == "iTerm.app"
             && Strutil::from_string<float>(TERM_PROGRAM_VERSION) >= 2.9) {
             method = "iterm2";
@@ -141,6 +146,13 @@ TermOutput::output()
             method = "256color";
         }
     }
+
+    FILE* outfile = m_filename.size() ? Filesystem::fopen(m_filename, "wb")
+                                      : stdout;
+    if (!outfile)
+        outfile = stdout;
+
+    Sysutil::Term term;
 
     // Try to figure out how big an image we can display
     int w = m_buf.spec().width;
@@ -162,27 +174,20 @@ TermOutput::output()
         // special escape sequence that lets you transmit a base64-encoded
         // image file, so we convert to just a simple PPM and do so.
         std::ostringstream s;
-        s << "P3\n" << m_buf.spec().width << ' ' << m_buf.spec().height << "\n";
-        s << "255\n";
+        print(s, "P3\n{} {}\n255\n", m_buf.spec().width, m_buf.spec().height);
         for (int y = m_buf.ybegin(), ye = m_buf.yend(); y < ye; y += 1) {
             for (int x = m_buf.xbegin(), xe = m_buf.xend(); x < xe; ++x) {
                 unsigned char rgb[3];
                 m_buf.get_pixels(ROI(x, x + 1, y, y + 1, 0, 1, 0, 3),
                                  TypeDesc::UINT8, &rgb);
-                s << int(rgb[0]) << ' ' << int(rgb[1]) << ' ' << int(rgb[2])
-                  << '\n';
+                print(s, "{} {} {}\n", int(rgb[0]), int(rgb[1]), int(rgb[2]));
             }
         }
-        std::cout << "\033]"
-                  << "1337;"
-                  << "File=inline=1"
-                  << ";width=auto"
-                  << ":" << Strutil::base64_encode(s.str()) << '\007'
-                  << std::endl;
-        return true;
+        print(outfile, "\033]1337;File=inline=1;width=auto:{}\007\n",
+              Strutil::base64_encode(s.str()));
     }
 
-    if (method == "24bit") {
+    else if (method == "24bit") {
         // Print two vertical pixels per character cell using the Unicode
         // "upper half block" glyph U+2580, with fg color set to the 24 bit
         // RGB value of the upper pixel, and bg color set to the 24-bit RGB
@@ -193,17 +198,16 @@ TermOutput::output()
                 unsigned char rgb[2][3];
                 m_buf.get_pixels(ROI(x, x + 1, y, y + 2, z, z + 1, 0, 3),
                                  TypeDesc::UINT8, &rgb);
-                std::cout << term.ansi_fgcolor(rgb[0][0], rgb[0][1], rgb[0][2]);
-                std::cout
-                    << term.ansi_bgcolor(rgb[1][0], rgb[1][1], rgb[1][2])
-                    << "\x5C\x75\x32\x35\x38\x30";  // utf8 encoding of "\u2580"
+                print(outfile, "{}{}\x5C\x75\x32\x35\x38\x30",
+                      term.ansi_fgcolor(rgb[0][0], rgb[0][1], rgb[0][2]),
+                      term.ansi_bgcolor(rgb[1][0], rgb[1][1], rgb[1][2]));
+                // the \x5C\x75\x32\x35\x38\x30 is utf8 encoding of "\u2580"
             }
-            std::cout << term.ansi("default") << "\n";
+            print(outfile, "{}\n", term.ansi("default"));
         }
-        return true;
     }
 
-    if (method == "24bit-space") {
+    else if (method == "24bit-space") {
         // Print as space, with bg color set to the 24-bit RGB value of each
         // pixel.
         int z = m_buf.spec().z;
@@ -212,14 +216,14 @@ TermOutput::output()
                 unsigned char rgb[3];
                 m_buf.get_pixels(ROI(x, x + 1, y, y + 1, z, z + 1, 0, 3),
                                  TypeDesc::UINT8, &rgb);
-                std::cout << term.ansi_bgcolor(rgb[0], rgb[1], rgb[2]) << " ";
+                print(outfile, "{} ",
+                      term.ansi_bgcolor(rgb[0], rgb[1], rgb[2]));
             }
-            std::cout << term.ansi("default") << "\n";
+            print(outfile, "{}\n", term.ansi("default"));
         }
-        return true;
     }
 
-    if (method == "dither") {
+    else if (method == "dither") {
         // Print as space, with bg color set to the 6x6x6 RGB value of each
         // pixels. Try to make it better with horizontal dithering. But...
         // it still looks bad. Room for future improvement?
@@ -236,15 +240,14 @@ TermOutput::output()
                 OIIO_MAYBE_UNUSED simd::vfloat4 frac = floorfrac(rgb, &rgbi);
                 leftover = rgborig - 0.2f * simd::vfloat4(rgbi);
                 rgbi     = clamp(rgbi, simd::vint4(0), simd::vint4(5));
-                std::cout << "\033[48;5;"
-                          << (0x10 + 36 * rgbi[0] + 6 * rgbi[1] + rgbi[2])
-                          << "m ";
+                print(outfile, "\033[48;5;{}m ",
+                      (0x10 + 36 * rgbi[0] + 6 * rgbi[1] + rgbi[2]));
             }
-            std::cout << term.ansi("default") << "\n";
+            print(outfile, "{}\n", term.ansi("default"));
         }
-        return true;
     }
-    {
+
+    else {
         // Print as space, with bg color set to the 6x6x6 RGB value of each
         // pixels. This looks awful!
         int z = m_buf.spec().z;
@@ -257,16 +260,17 @@ TermOutput::output()
                 simd::vint4 rgbi;
                 OIIO_MAYBE_UNUSED simd::vfloat4 frac = floorfrac(rgb, &rgbi);
                 rgbi = clamp(rgbi, simd::vint4(0), simd::vint4(5));
-                std::cout << "\033[48;5;"
-                          << (0x10 + 36 * rgbi[0] + 6 * rgbi[1] + rgbi[2])
-                          << "m ";
+                print(outfile, "\033[48;5;{}m ",
+                      (0x10 + 36 * rgbi[0] + 6 * rgbi[1] + rgbi[2]));
             }
-            std::cout << term.ansi("default") << "\n";
+            print(outfile, "{}\n", term.ansi("default"));
         }
-        return true;
     }
 
-    return false;
+    if (outfile != stdout)
+        fclose(outfile);
+
+    return true;
 }
 
 
