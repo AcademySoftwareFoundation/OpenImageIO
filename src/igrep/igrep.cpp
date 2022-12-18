@@ -65,7 +65,13 @@ grep_file(const std::string& filename, std::regex& re,
     ImageSpec spec = in->spec();
 
     if (file_match) {
-        bool match = std::regex_search(filename, re);
+        bool match = false;
+        try {
+            match = std::regex_search(filename, re);
+        } catch (const std::regex_error& e) {
+            std::cerr << "igrep: " << e.what() << "\n";
+            return false;
+        }
         if (match && !invert_match) {
             std::cout << filename << "\n";
             return true;
@@ -82,8 +88,14 @@ grep_file(const std::string& filename, std::regex& re,
             if (t.elementtype() == TypeDesc::STRING) {
                 int n = t.numelements();
                 for (int i = 0; i < n; ++i) {
-                    bool match = std::regex_search(((const char**)p.data())[i],
-                                                   re);
+                    bool match = false;
+                    try {
+                        match = std::regex_search(((const char**)p.data())[i],
+                                                  re);
+                    } catch (const std::regex_error& e) {
+                        std::cerr << "igrep: " << e.what() << "\n";
+                        return false;
+                    }
                     found |= match;
                     if (match && !invert_match) {
                         if (list_files) {
@@ -169,9 +181,13 @@ main(int argc, const char* argv[])
         flag = std::regex_constants::extended;
     if (ap["i"].get<int>())
         flag |= std::regex_constants::icase;
-    std::regex re(pattern, flag);
-    for (auto&& s : filenames)
-        grep_file(s, re);
-
+    try {
+        std::regex re(pattern, flag);
+        for (auto&& s : filenames)
+            grep_file(s, re);
+    } catch (const std::regex_error& e) {
+        std::cerr << "igrep: " << e.what() << "\n";
+        return EXIT_FAILURE;
+    }
     return 0;
 }
