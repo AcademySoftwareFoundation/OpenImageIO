@@ -1303,7 +1303,9 @@ Filesystem::IOFile::pread(void* buf, size_t size, int64_t offset)
     return r;
 #else /* Non-Windows: assume POSIX pread is available */
     int fd = fileno(m_file);
-    return ::pread(fd, buf, size, offset);
+    auto r = ::pread(fd, buf, size, offset);
+    // FIXME: the system pread returns ssize_t and is -1 on error.
+    return r < 0 ? size_t(0) : size_t(r);
 #endif
 }
 
@@ -1332,8 +1334,10 @@ Filesystem::IOFile::pwrite(const void* buf, size_t size, int64_t offset)
     seek(origpos);
     return r;
 #else /* Non-Windows: assume POSIX pwrite is available */
-    int fd   = fileno(m_file);
-    size_t r = ::pwrite(fd, buf, size, offset);
+    int fd = fileno(m_file);
+    auto r = ::pwrite(fd, buf, size, offset);
+    // FIXME: the system pwrite returns ssize_t and is -1 on error.
+    return r < 0 ? size_t(0) : size_t(r);
 #endif
     offset += r;
     if (m_pos > int64_t(m_size))
@@ -1400,8 +1404,17 @@ size_t
 Filesystem::IOMemReader::pread(void* buf, size_t size, int64_t offset)
 {
     // N.B. No lock necessary
-    if (size + size_t(offset) > size_t(m_buf.size()))
+    if (!m_buf.size() || !size)
+        return 0;
+    if (size + size_t(offset) > size_t(m_buf.size())) {
+        if (offset < 0 || offset >= m_buf.size()) {
+            error(Strutil::fmt::format(
+                "Invalid pread offset {} for an IOMemReader buffer of size {}",
+                offset, m_buf.size()));
+            return 0;
+        }
         size = m_buf.size() - size_t(offset);
+    }
     memcpy(buf, m_buf.data() + offset, size);
     return size;
 }
