@@ -24,6 +24,31 @@
 #include <OpenImageIO/timer.h>
 
 
+// clang-format off
+#ifdef TIFFLIB_MAJOR_VERSION
+// libtiff >= 4.5 defines versions by number -- use them.
+#    define OIIO_TIFFLIB_VERSION (TIFFLIB_MAJOR_VERSION * 10000 \
+                                  + TIFFLIB_MINOR_VERSION * 100 \
+                                  + TIFFLIB_MICRO_VERSION)
+// For older libtiff, we need to figure it out by date.
+#elif TIFFLIB_VERSION >= 20220520
+#    define OIIO_TIFFLIB_VERSION 40400
+#elif TIFFLIB_VERSION >= 20210416
+#    define OIIO_TIFFLIB_VERSION 40300
+#elif TIFFLIB_VERSION >= 20201219
+#    define OIIO_TIFFLIB_VERSION 40200
+#elif TIFFLIB_VERSION >= 20191103
+#    define OIIO_TIFFLIB_VERSION 40100
+#elif TIFFLIB_VERSION >= 20111221
+#    define OIIO_TIFFLIB_VERSION 40000
+#elif TIFFLIB_VERSION >= 20090820
+#    define OIIO_TIFFLIB_VERSION 30900
+#else
+#    error "libtiff 3.9.0 or later is required"
+#endif
+// clang-format on
+
+
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 namespace {
@@ -180,6 +205,39 @@ private:
                              (const unsigned char*)data + nbytes);
         return m_scratch.data();
     }
+
+#if OIIO_TIFFLIB_VERSION >= 40500
+    std::string m_last_error;
+    spin_mutex m_last_error_mutex;
+
+    std::string oiio_tiff_last_error()
+    {
+        spin_lock lock(m_last_error_mutex);
+        return m_last_error;
+    }
+
+    // TIFF 4.5+ has a mechanism for per-file thread-safe error handlers.
+    // Use it.
+    static int my_error_handler(TIFF* tif, void* user_data,
+                                const char* /*module*/, const char* fmt,
+                                va_list ap)
+    {
+        TIFFOutput* self = (TIFFOutput*)user_data;
+        spin_lock lock(self->m_last_error_mutex);
+        self->m_last_error = Strutil::vsprintf(fmt, ap);
+        return 1;
+    }
+
+    static int my_warning_handler(TIFF* tif, void* user_data,
+                                  const char* /*module*/, const char* fmt,
+                                  va_list ap)
+    {
+        TIFFOutput* self = (TIFFOutput*)user_data;
+        spin_lock lock(self->m_last_error_mutex);
+        self->m_last_error = Strutil::vsprintf(fmt, ap);
+        return 1;
+    }
+#endif
 };
 
 
@@ -211,10 +269,12 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 
+#if OIIO_TIFFLIB_VERSION < 40500
 extern std::string&
 oiio_tiff_last_error();
 extern void
 oiio_tiff_set_error_handler();
+#endif
 
 
 
@@ -269,7 +329,9 @@ tiff_compression_code(string_view name)
 
 TIFFOutput::TIFFOutput()
 {
+#if OIIO_TIFFLIB_VERSION < 40500
     oiio_tiff_set_error_handler();
+#endif
     init();
 }
 
@@ -422,23 +484,48 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
                                      : (mode == AppendSubimage ? "a" : "w");
 
     // Open the file
+#if OIIO_TIFFLIB_VERSION >= 40500
+    auto openopts = TIFFOpenOptionsAlloc();
+    TIFFOpenOptionsSetErrorHandlerExtR(openopts, my_error_handler, this);
+    TIFFOpenOptionsSetWarningHandlerExtR(openopts, my_warning_handler, this);
+#endif
     if (ioproxy_opened()) {
         ioseek(0);
+#if OIIO_TIFFLIB_VERSION >= 40500
+        m_tif = TIFFClientOpenExt(name.c_str(), openmode, ioproxy(),
+                                  writer_readproc, writer_writeproc,
+                                  writer_seekproc, writer_closeproc,
+                                  writer_sizeproc, writer_mapproc,
+                                  writer_unmapproc, openopts);
+#else
         m_tif = TIFFClientOpen(name.c_str(), openmode, ioproxy(),
                                writer_readproc, writer_writeproc,
                                writer_seekproc, writer_closeproc,
                                writer_sizeproc, writer_mapproc,
                                writer_unmapproc);
+#endif
     } else {
 #ifdef _WIN32
+#    if OIIO_TIFFLIB_VERSION >= 40500
+        m_tif = TIFFOpenWExt(Strutil::utf8_to_utf16wstring(name).c_str(),
+                             openmode, openopts);
+#    else
         m_tif = TIFFOpenW(Strutil::utf8_to_utf16wstring(name).c_str(),
                           openmode);
+#    endif
 #else
+#    if OIIO_TIFFLIB_VERSION >= 40500
+        m_tif = TIFFOpenExt(name.c_str(), openmode, openopts);
+#    else
         m_tif = TIFFOpen(name.c_str(), openmode);
+#    endif
 #endif
     }
+#if OIIO_TIFFLIB_VERSION >= 40500
+    TIFFOpenOptionsFree(openopts);
+#endif
     if (!m_tif) {
-        errorf("Could not open \"%s\"", name);
+        errorfmt("Could not open \"{}\"", name);
         return false;
     }
 
@@ -954,13 +1041,13 @@ TIFFOutput::write_exif_data()
 
     // First, finish writing the current directory
     if (!TIFFWriteDirectory(m_tif)) {
-        errorf("failed TIFFWriteDirectory()");
+        errorfmt("failed TIFFWriteDirectory()");
         return false;
     }
 
     // Create an Exif directory
     if (TIFFCreateEXIFDirectory(m_tif) != 0) {
-        errorf("failed TIFFCreateEXIFDirectory()");
+        errorfmt("failed TIFFCreateEXIFDirectory()");
         return false;
     }
 
@@ -1001,7 +1088,7 @@ TIFFOutput::write_exif_data()
     uint64_t dir_offset = 0;
 #    endif
     if (!TIFFWriteCustomDirectory(m_tif, &dir_offset)) {
-        errorf("failed TIFFWriteCustomDirectory() of the Exif data");
+        errorfmt("failed TIFFWriteCustomDirectory() of the Exif data");
         return false;
     }
     // Go back to the first directory, and add the EXIFIFD pointer.
@@ -1119,8 +1206,8 @@ TIFFOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
                                   c)
                 < 0) {
                 std::string err = oiio_tiff_last_error();
-                errorf("TIFFWriteScanline failed writing line y=%d,z=%d (%s)",
-                       y, z, err.size() ? err.c_str() : "unknown error");
+                errorfmt("TIFFWriteScanline failed writing line y={},z={} ({})",
+                         y, z, err.size() ? err.c_str() : "unknown error");
                 return false;
             }
         }
@@ -1131,8 +1218,8 @@ TIFFOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
         data = move_to_scratch(data, scanline_vals * m_spec.format.size());
         if (TIFFWriteScanline(m_tif, (tdata_t)data, y) < 0) {
             std::string err = oiio_tiff_last_error();
-            errorf("TIFFWriteScanline failed writing line y=%d,z=%d (%s)", y, z,
-                   err.size() ? err.c_str() : "unknown error");
+            errorfmt("TIFFWriteScanline failed writing line y={},z={} ({})", y,
+                     z, err.size() ? err.c_str() : "unknown error");
             return false;
         }
     }
@@ -1286,15 +1373,15 @@ TIFFOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
         // it needs is not yet done.
         tasks.wait_for_task(stripidx);
         if (!ok) {
-            errorf("Compression error");
+            errorfmt("Compression error");
             return false;
         }
         if (TIFFWriteRawStrip(m_tif, stripnum, (tdata_t)cbuf,
                               tmsize_t(compressed_len[stripidx]))
             < 0) {
             std::string err = oiio_tiff_last_error();
-            errorf("TIFFWriteRawStrip failed writing line y=%d,z=%d: %s", y, z,
-                   err.size() ? err.c_str() : "unknown error");
+            errorfmt("TIFFWriteRawStrip failed writing line y={},z={}: {}", y,
+                     z, err.size() ? err.c_str() : "unknown error");
             return false;
         }
     }
@@ -1367,9 +1454,9 @@ TIFFOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
                               z, c)
                 < 0) {
                 std::string err = oiio_tiff_last_error();
-                errorf("TIFFWriteTile failed writing tile x=%d,y=%d,z=%d (%s)",
-                       x + m_spec.x, y + m_spec.y, z + m_spec.z,
-                       err.size() ? err.c_str() : "unknown error");
+                errorfmt("TIFFWriteTile failed writing tile x={},y={},z={} ({})",
+                         x + m_spec.x, y + m_spec.y, z + m_spec.z,
+                         err.size() ? err.c_str() : "unknown error");
                 return false;
             }
         }
@@ -1380,9 +1467,9 @@ TIFFOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
         data = move_to_scratch(data, tile_vals * m_spec.format.size());
         if (TIFFWriteTile(m_tif, (tdata_t)data, x, y, z, 0) < 0) {
             std::string err = oiio_tiff_last_error();
-            errorf("TIFFWriteTile failed writing tile x=%d,y=%d,z=%d (%s)",
-                   x + m_spec.x, y + m_spec.y, z + m_spec.z,
-                   err.size() ? err.c_str() : "unknown error");
+            errorfmt("TIFFWriteTile failed writing tile x={},y={},z={} ({})",
+                     x + m_spec.x, y + m_spec.y, z + m_spec.z,
+                     err.size() ? err.c_str() : "unknown error");
             return false;
         }
     }
@@ -1540,15 +1627,15 @@ TIFFOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
                 tasks.wait_for_task(tileno);
                 char* cbuf = compressed_scratch.get() + tileno * cbound;
                 if (!ok) {
-                    errorf("Compression error");
+                    errorfmt("Compression error");
                     return false;
                 }
                 if (TIFFWriteRawTile(m_tif, uint32_t(tile_index(x, y, z)), cbuf,
                                      compressed_len[tileno])
                     < 0) {
                     std::string err = oiio_tiff_last_error();
-                    errorf(
-                        "TIFFWriteRawTile failed writing tile %d (x=%d,y=%d,z=%d): %s",
+                    errorfmt(
+                        "TIFFWriteRawTile failed writing tile {} (x={},y={},z={}): %s",
                         tile_index(x, y, z), x, y, z,
                         err.size() ? err.c_str() : "unknown error");
                     return false;
