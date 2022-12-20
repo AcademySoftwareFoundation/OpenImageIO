@@ -197,8 +197,10 @@ public:
         m_chars = make_unique(sref);
     }
 
+#ifndef __CUDA_ARCH__
     /// Construct from a known ustringhash
     inline explicit ustring(ustringhash hash);
+#endif
 
     /// ustring destructor.
     ~ustring() noexcept {}
@@ -1074,6 +1076,8 @@ iequals(const std::string& a, ustring b)
 // ustring variant stof from OpenImageIO/strutil.h
 namespace Strutil {
 
+#ifndef __CUDA_ARCH__
+
 inline float
 stof(ustring s)
 {
@@ -1093,6 +1097,8 @@ to_string(const ustringhash& value)
 {
     return ustring(value).string();
 }
+
+#endif
 
 }  // end namespace Strutil
 
