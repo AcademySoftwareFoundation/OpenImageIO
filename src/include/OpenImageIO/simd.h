@@ -3261,7 +3261,9 @@ OIIO_FORCEINLINE void vbool4::load (bool a, bool b, bool c, bool d) {
     m_simd = _mm_castsi128_ps(_mm_set_epi32(-int(d), -int(c), -int(b), -int(a)));
 #elif OIIO_SIMD_NEON
     int values[4] = { -int(a), -int(b), -int(c), -int(d) };
-    m_simd = vld1q_s32 (values);
+    m_simd = vld1q_u32((const uint32_t*)values);
+    // this if we were using int:
+    // m_simd = vld1q_s32(values);
 #else
     m_val[0] = -int(a);
     m_val[1] = -int(b);
@@ -3501,7 +3503,9 @@ OIIO_FORCEINLINE bool extract (const vbool4& a) {
 #if OIIO_SIMD_SSE >= 4
     return _mm_extract_epi32(_mm_castps_si128(a.simd()), i);  // SSE4.1 only
 #elif OIIO_SIMD_NEON
-    return vgetq_lane_s32(a, i);
+    return vgetq_lane_u32(a, i);
+    // this if we were using int:
+    // return vgetq_lane_s32(a, i);
 #else
     return a[i];
 #endif
@@ -3514,8 +3518,11 @@ OIIO_FORCEINLINE vbool4 insert (const vbool4& a, bool val) {
     int ival = -int(val);
     return _mm_castsi128_ps (_mm_insert_epi32 (_mm_castps_si128(a), ival, i));
 #elif OIIO_SIMD_NEON
-    int ival = -int(val);
-    return vld1q_lane_s32(&ival, a, i);
+    uint32_t ival = uint32_t(val ? -1 : 0);
+    return vld1q_lane_u32(&ival, a, i);
+    // this if we were using int:
+    // int ival = -int(val);
+    // return vld1q_lane_s32(&ival, a, i);
 #else
     vbool4 tmp = a;
     tmp[i] = -int(val);
