@@ -106,28 +106,28 @@ AdobeRGBToXYZ(ImageBuf& A, ROI roi, int nthreads)
 
 /// Convert a color in XYZ space to LAB space.
 ///
-static Color3f
-XYZToLAB_color(const Color3f xyz)
+inline Color3f
+XYZToLAB_color(const Color3f& xyz)
 {
     // Reference white point
-    static const Color3f white(0.576700f + 0.185556f + 0.188212f,
-                               0.297361f + 0.627355f + 0.0752847f,
-                               0.0270328f + 0.0706879f + 0.991248f);
-    const float epsilon = 216.0f / 24389.0f;
-    const float kappa   = 24389.0f / 27.0f;
+    static const float white[3] = { 0.576700f + 0.185556f + 0.188212f,
+                                    0.297361f + 0.627355f + 0.0752847f,
+                                    0.0270328f + 0.0706879f + 0.991248f };
+    const float epsilon         = 216.0f / 24389.0f;
+    const float kappa           = 24389.0f / 27.0f;
 
-    Color3f r = xyz / white;
-    Color3f f;
+    float r[3] = { xyz.x / white[0], xyz.y / white[1], xyz.z / white[2] };
+    float f[3];
     for (int i = 0; i < 3; i++) {
         float ri = r[i];  // NOSONAR
         if (ri > epsilon)
-            f[i] = powf(ri, 1.0f / 3.0f);
+            f[i] = fast_cbrt(ri);  // powf(ri, 1.0f / 3.0f);
         else
             f[i] = (kappa * ri + 16.0f) / 116.0f;
     }
-    return Color3f(116.0f * f.y - 16.0f,   // L
-                   500.0f * (f.x - f.y),   // A
-                   200.0f * (f.y - f.z));  // B
+    return Color3f(116.0f * f[1] - 16.0f,    // L
+                   500.0f * (f[0] - f[1]),   // A
+                   200.0f * (f[1] - f[2]));  // B
 }
 
 

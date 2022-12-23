@@ -16,7 +16,7 @@ Computing diff of "img1.exr" vs "img2.exr"
   121 pixels (2.95%) over 1e-06
 FAILURE
 Computing perceptual diff of "img1.exr" vs "img2.exr"
-  Max error  = 1 @ (5, 17, R)  values are 0.1, 0.1, 0.1 vs 0.1, 0.6, 0.1
+  Max error  = 1.0 @ (5, 17, R)  values are 0.1, 0.1, 0.1 vs 0.1, 0.6, 0.1
   121 pixels (2.95%) failed the perceptual test
 FAILURE
 Computing perceptual diff of "img1.exr" vs "img1.exr"
