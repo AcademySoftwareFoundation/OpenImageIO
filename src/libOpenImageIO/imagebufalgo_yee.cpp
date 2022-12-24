@@ -139,9 +139,9 @@ XYZToLAB(ImageBuf& A, ROI roi, int nthreads)
         for (ImageBuf::Iterator<float> a(A, roi); !a.done(); ++a) {
             Color3f XYZ(a[0], a[1], a[2]);
             Color3f LAB = XYZToLAB_color(XYZ);
-            a[0]        = LAB[0];
-            a[1]        = LAB[1];
-            a[2]        = LAB[2];
+            a[0]        = LAB.x;
+            a[1]        = LAB.y;
+            a[2]        = LAB.z;
         }
     });
     return true;
