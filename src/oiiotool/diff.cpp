@@ -27,37 +27,20 @@ using namespace ImageBufAlgo;
 
 
 
-// function that standardize printing NaN and Inf values on
-// Windows (where they are in 1.#INF, 1.#NAN format) and all
-// others platform
-inline void
-safe_double_print(double val)
-{
-    if (OIIO::isnan(val))
-        std::cout << "nan";
-    else if (OIIO::isinf(val))
-        std::cout << "inf";
-    else
-        std::cout << val;
-    std::cout << '\n';
-}
-
-
-
 inline void
 print_subimage(ImageRec& img0, int subimage, int miplevel)
 {
     if (img0.subimages() > 1)
-        std::cout << "Subimage " << subimage << ' ';
+        print("Subimage {} ", subimage);
     if (img0.miplevels(subimage) > 1)
-        std::cout << " MIP level " << miplevel << ' ';
+        print(" MIP level {} ", miplevel);
     if (img0.subimages() > 1 || img0.miplevels(subimage) > 1)
-        std::cout << ": ";
+        print(": ");
     const ImageSpec& spec(*img0.spec(subimage));
-    std::cout << spec.width << " x " << spec.height;
+    print("{} x {}", spec.width, spec.height);
     if (spec.depth > 1)
-        std::cout << " x " << spec.depth;
-    std::cout << ", " << spec.nchannels << " channel\n";
+        print(" x {}", spec.depth);
+    print(", {} channel\n", spec.nchannels);
 }
 
 
@@ -66,9 +49,8 @@ int
 Oiiotool::do_action_diff(ImageRecRef ir0, ImageRecRef ir1, Oiiotool& ot,
                          int perceptual)
 {
-    std::cout << "Computing " << (perceptual ? "perceptual " : "")
-              << "diff of \"" << ir0->name() << "\" vs \"" << ir1->name()
-              << "\"\n";
+    print("Computing {}diff of \"{}\" vs \"{}\"\n",
+          perceptual ? "perceptual " : "", ir0->name(), ir1->name());
     read(ir0);
     read(ir1);
 
@@ -83,8 +65,7 @@ Oiiotool::do_action_diff(ImageRecRef ir0, ImageRecRef ir1, Oiiotool& ot,
             if (m > 0 && !ot.allsubimages)
                 break;
             if (m > 0 && ir0->miplevels(subimage) != ir1->miplevels(subimage)) {
-                std::cout
-                    << "Files do not match in their number of MIPmap levels\n";
+                print("Files do not match in their number of MIPmap levels\n");
                 ret = DiffErrDifferentSize;
                 break;
             }
@@ -126,76 +107,65 @@ Oiiotool::do_action_diff(ImageRecRef ir0, ImageRecRef ir1, Oiiotool& ot,
             if (ot.verbose || ot.debug || ret != DiffErrOK) {
                 if (ot.allsubimages)
                     print_subimage(*ir0, subimage, m);
-                std::cout << "  Mean error = ";
-                safe_double_print(cr.meanerror);
-                std::cout << "  RMS error = ";
-                safe_double_print(cr.rms_error);
-                std::cout << "  Peak SNR = ";
-                safe_double_print(cr.PSNR);
-                std::cout << "  Max error  = " << cr.maxerror;
+                if (!perceptual) {
+                    print("  Mean error = {:.6g}\n", cr.meanerror);
+                    print("  RMS error = {:.6g}\n", cr.rms_error);
+                    print("  Peak SNR = {:.6g}\n", cr.PSNR);
+                }
+                print("  Max error  = {}", cr.maxerror);
                 if (cr.maxerror != 0) {
-                    std::cout << " @ (" << cr.maxx << ", " << cr.maxy;
+                    print(" @ ({}, {}", cr.maxx, cr.maxy);
                     if (img0.spec().depth > 1)
-                        std::cout << ", " << cr.maxz;
+                        print(", {}", cr.maxz);
                     if (cr.maxc < (int)img0.spec().channelnames.size())
-                        std::cout << ", " << img0.spec().channelnames[cr.maxc]
-                                  << ')';
+                        print(", {})", img0.spec().channelnames[cr.maxc]);
                     else if (cr.maxc < (int)img1.spec().channelnames.size())
-                        std::cout << ", " << img1.spec().channelnames[cr.maxc]
-                                  << ')';
+                        print(", {})", img1.spec().channelnames[cr.maxc]);
                     else
-                        std::cout << ", channel " << cr.maxc << ')';
+                        print(", channel {})", cr.maxc);
                     if (!img0.deep()) {
-                        std::cout << "  values are ";
+                        print("  values are ");
                         for (int c = 0; c < img0.spec().nchannels; ++c)
-                            std::cout
-                                << (c ? ", " : "")
-                                << img0.getchannel(cr.maxx, cr.maxy, 0, c);
-                        std::cout << " vs ";
+                            print("{}{}", (c ? ", " : ""),
+                                  img0.getchannel(cr.maxx, cr.maxy, 0, c));
+                        print(" vs ");
                         for (int c = 0; c < img1.spec().nchannels; ++c)
-                            std::cout
-                                << (c ? ", " : "")
-                                << img1.getchannel(cr.maxx, cr.maxy, 0, c);
+                            print("{}{}", (c ? ", " : ""),
+                                  img1.getchannel(cr.maxx, cr.maxy, 0, c));
                     }
                 }
-                std::cout << "\n";
-
-                std::streamsize precis = std::cout.precision();
-                std::cout << "  " << cr.nwarn << " pixels ("
-                          << std::setprecision(3) << (100.0 * cr.nwarn / npels)
-                          << std::setprecision(precis) << "%) over "
-                          << ot.diff_warnthresh << "\n";
-                std::cout << "  " << cr.nfail << " pixels ("
-                          << std::setprecision(3) << (100.0 * cr.nfail / npels)
-                          << std::setprecision(precis) << "%) over "
-                          << ot.diff_failthresh << "\n";
-                if (perceptual == 1)
-                    std::cout << "  " << yee_failures << " pixels ("
-                              << std::setprecision(3)
-                              << (100.0 * yee_failures / npels)
-                              << std::setprecision(precis)
-                              << "%) failed the perceptual test\n";
+                print("\n");
+                if (perceptual == 1) {
+                    print("  {} pixels ({:.3g}%) failed the perceptual test\n",
+                          yee_failures, 100.0 * yee_failures / npels);
+                } else {
+                    print("  {} pixels ({:.3g}%) over {}\n", cr.nwarn,
+                          (100.0 * cr.nwarn / npels), ot.diff_warnthresh);
+                    print("  {} pixels ({:.3g}%) over {}\n", cr.nfail,
+                          (100.0 * cr.nfail / npels), ot.diff_failthresh);
+                }
             }
         }
     }
 
     if (ot.allsubimages && ir0->subimages() != ir1->subimages()) {
-        std::cout << "Images had differing numbers of subimages ("
-                  << ir0->subimages() << " vs " << ir1->subimages() << ")\n";
+        print("Images had differing numbers of subimages ({} vs {})\n",
+              ir0->subimages(), ir1->subimages());
         ret = DiffErrFail;
     }
     if (!ot.allsubimages && (ir0->subimages() > 1 || ir1->subimages() > 1)) {
-        std::cout << "Only compared the first subimage (of " << ir0->subimages()
-                  << " and " << ir1->subimages() << ", respectively)\n";
+        print("Only compared the first subimage (of {} and {}, respectively)\n",
+              ir0->subimages(), ir1->subimages());
     }
 
     if (ret == DiffErrOK)
-        std::cout << "PASS\n";
+        print("PASS\n");
     else if (ret == DiffErrWarn)
-        std::cout << "WARNING\n";
+        print("WARNING\n");
     else {
-        std::cout << "FAILURE\n";
+        print("FAILURE\n");
         ot.return_value = ret;
     }
+    fflush(stdout);
     return ret;
 }

@@ -3456,6 +3456,7 @@ action_pdiff(int argc, const char* argv[])
     if (ret != DiffErrOK && ret != DiffErrWarn && ret != DiffErrFail)
         ot.error(command, "Diff failed");
 
+    ot.printed_info = true;  // because taking the diff has output
     return 0;
 }
 
