@@ -261,17 +261,19 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
         if (prepflags & IBAprep_CLAMP_MUTUAL_NCHANNELS)
             roi.chend = std::min(roi.chend, minchans);
         roi.chend = std::min(roi.chend, spec.nchannels);
-        if (roi.chbegin > 0) {
-            ROI r     = roi;
-            r.chbegin = 0;
-            r.chend   = roi.chbegin;
-            ImageBufAlgo::zero(*dst, r, 1);
-        }
-        if (roi.chend < dst->nchannels()) {
-            ROI r     = roi;
-            r.chbegin = roi.chend;
-            r.chend   = dst->nchannels();
-            ImageBufAlgo::zero(*dst, r, 1);
+        if (!dst->deep()) {
+            if (roi.chbegin > 0) {
+                ROI r     = roi;
+                r.chbegin = 0;
+                r.chend   = roi.chbegin;
+                ImageBufAlgo::zero(*dst, r, 1);
+            }
+            if (roi.chend < dst->nchannels()) {
+                ROI r     = roi;
+                r.chbegin = roi.chend;
+                r.chend   = dst->nchannels();
+                ImageBufAlgo::zero(*dst, r, 1);
+            }
         }
     }
     if (prepflags & IBAprep_CLAMP_MUTUAL_NCHANNELS)
