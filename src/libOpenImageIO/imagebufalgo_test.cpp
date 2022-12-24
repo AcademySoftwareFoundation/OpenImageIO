@@ -1042,6 +1042,24 @@ test_color_management()
 
 
 
+static void
+test_yee()
+{
+    print("Testing Yee comparison\n");
+    ImageSpec spec(1, 1, 3, TypeDesc::FLOAT);
+    ImageBuf img1(spec);
+    ImageBufAlgo::fill(img1, { 0.1f, 0.1f, 0.1f });
+    ImageBuf img2(spec);
+    ImageBufAlgo::fill(img2, { 0.1f, 0.6f, 0.1f });
+    ImageBufAlgo::CompareResults cr;
+    int n = ImageBufAlgo::compare_Yee(img1, img2, cr);
+    OIIO_CHECK_EQUAL(n, 1);
+    OIIO_CHECK_EQUAL(cr.maxx, 0);
+    OIIO_CHECK_EQUAL(cr.maxy, 0);
+}
+
+
+
 int
 main(int argc, char** argv)
 {
@@ -1077,6 +1095,7 @@ main(int argc, char** argv)
     test_validate_st_warp_checks();
     test_opencv();
     test_color_management();
+    test_yee();
 
     benchmark_parallel_image(64, iterations * 64);
     benchmark_parallel_image(512, iterations * 16);
