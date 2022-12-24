@@ -3,10 +3,56 @@ Release 2.5 (summer 2023?) -- compared to 2.4
 New minimum dependencies and compatibility changes:
 
 New major features and public API changes:
+* ImageBufAlgo additions:
+    - A new flavor of `ociodisplay()` now contains an inverse parameter.
+      #3650 (2.5.0.0)
 * oiiotool new commands and features:
     - New `--iccread` and `--iccwrite` add an ICC profile from an external
       file to the metadata of an image, or extract the ICC profile metadata
       and save it as a separate file. #3550 (2.5.0.0)
+    - New expression syntax for retrieving metadata `{TOP[foo]}` is similar to
+      the existing `{TOP.foo}`, if there is no `foo` metadata found, the
+      former evaluates to an empty string, whereas the latter is an error.
+      #3619 (2.4.5/2.5.0.0)
+    - New `--no-error-exit` causes an error to not exit immediately, but
+      rather to try to execute the remaining command line operations. This is
+      intended primarily for unit tests and debugging. #3643 (2.5.0.0)
+    - New `--colorconfiginfo` prints the full inventory of color management
+      information, including color space aliases, roles, and with improved
+      readability of output for larger configs. #3707 (2.5.0.0)
+* OIIO::getattribute() new queries:
+    - `font_list`, `font_file_list`, `font_dir_list` return, respectively, the
+      list of fonts that OIIO found, the list of full paths to font files, and
+      the list of directories searched for fonts. All return a single string
+      that is a semicolon-separated list of the items. #3633 (2.5.0.0)
+    - `opencolorio_version` returns the human-readable (e.g. "2.2.0") version
+      of OpenColorIO that is being used. #3662 (2.5.0.0)
+* IOProxy support for additional file formats: SGI #3641, RLA #3642, IFF #3647
+  (2.5.0.0)
+* New `OIIO::print()` exposes `Strutil::print()` in the main OIIO namespace.
+  #3667 (2.4.6/2.5.0.0)
+* Extensive support for OpenColorIO 2.2 functionality:
+    - When building against OCIO 2.2, you can specify/use the new "built-in"
+      configs, including using `ocio://default`, which will automatically be
+      usd if no config is specified and the `$OCIO` variable is not set #3662
+      #3707 (2.5.0.0)
+    - OIIO tries to find and honor the common color space aliases
+      "scene_linear", "srgb", "lin_srgb", and "ACEScg". When building against
+      OCIO 2.2+, it will know which of any config's color spaces are
+      equivalent to these, even if they are named something totally different,
+      thanks to the magic of OCIO 2.2 built-in configs. For older OCIO (2.1 or
+      older), it is less robust and may have to make best guesses based on the
+      name of the color spaces it finds. #3707 (2.5.0.0)
+    - New ColorConfig methods: `getAliases()` #3662; `isColorSpaceLinear()`
+      #3662; `resolve(name)` turns any color space name, alias, role, or OIIO
+      name (like "sRGB") into a canonical color space name;
+      `equivalent(n1,n2)` returns true if it can tell that the two names
+      refer, ultimately, to equivalent color spaces #3707 (2.5.0.0)
+
+* New `ImageOutput::check_open()` can be used by format writers authors to
+  centralize certain validity tests so they don't need to be implemented
+  separately for each file type. This is not meant to be called by client
+  application code, only by format writer authors. #3686 (2.5.0.0)
 
 Performance improvements:
 
@@ -18,39 +64,315 @@ Fixes and feature enhancements:
       python side will be numpy arrays of type uint8 (dtype='B'). This is
       important for being able to set and retrieve "ICCProfile" metadata.
       #3556 (2.5.0.0)
+* ImageBuf improvements:
+    - Fixes to subtle bugs when ImageBuf is used with IOProxy. #3666
+      (2.4.6/2.5.0.0)
+* make_texture() / maketx / TextureSystem / ImageCache:
+    - Ensure proper setting of certain metadata when using a texture as a
+      source to build another texture. #3634 (2.4.5/2.5.0.0)
+    - Minor improvements in statistics printing for IC. #3654 (2.5.0.0)
+    - When creating a texture, don't overwrite an existing DateTime metadata
+      in the source file. #3692 (2.5.0.0)
+    - Fix environment mapping in batch mode when >4 channels are requested in
+      a lookup. #3694 (2.5.0.0)
+* oiiotool improvements:
+    - `--printinfo` now takes new optional modifiers: `:native=1` ensures
+      that the metadata printed is of the file, not changed by the way the
+      image is stored in memory (for example, it may have been converted to
+      a more convenient in-memory data type); `:verbose=1` prints verbose
+      stats even if `-v` is not used; `:stats=1` prints full pixel stats,
+      even if `--stats` is not used. #3639 (2.5.0.0)
+    - Expression substitution recognizes new metadata names: `nativeformat` is
+      the pixel data format of the file, whereas the existing `format` has
+      always returned the data type used in memory. Also, `METANATIVE` and
+      `METANATIVEBRIEF` are the full metadata keywords for native file
+      metadata, comapred to the previously existing `META` and `METABRIEF`
+      which we now clarify reflect the in-memory representation. #3639
+      (2.5.0.0)
+    - When `-q` (quiet mode) is used, and when an error occurs, only print the
+      error message and not the full help message. #3649 (2.5.0.0)
+    - `--ociodisplay` now takes an optional `:inverse=1` modifier. #3650
+      (2.5.0.0)
+   - Fix problems with `--point` when there is no alpha channel. #3684
+     (2.4.6/2.5.0.0)
+   - `--dumpdata` fix channel name output. #3687 (2.4.6/2.5.0.0)
+   - `--help` now prints a much abbreviated color management section (just the
+     OCIO version and config file). Use the new `--colorconfiginfo` argument
+     to print the full color management information, which is both more
+     readable and more detailed than what `--help` used to print. #3707
+     (2.5.0.0)
 * ICC Profiles found in JPEG, JPEG-2000, PSN, PSD, and TIFF files are now
   examined and several key fields are extracted as separate metadata. #3554
   (2.5.0.0)
+* BMP:
+    - Fix reading 16bpp images. #3592 (2.4.5/2.5.0.0)
+    - Protect against corrupt pixel coordinates. (TALOS-2022-1630,
+      CVE-2022-38143) #3620 (2.4.5/2.5.0.0)
+    - Fix possible write errors, fixes TALOS-2022-1653 / CVE-2022-43594,
+      CVE-2022-43595. #3673 (2.4.6/2.5.0.0)
+    - Mark color space as sRGB, which seems likely to be true of any BMP
+      files anybody encounters. #3701 (2.5.0.0)
 * DDS:
     - Fix heap overflow in DDS input. #3542 (2.5.0.0)
+    - Improved support for DTX5, ATI2/BC5 normal maps, R10G10B10A2
+      format, RXGB, BC4U, BC5U, A8, improved low bit expansion to 8 bits.
+      #3573 (2.4.4.2/2.5.0.0)
+    - Fix alpha/luminance files, better testing. #3581 (2.4.5/2.5.0.0)
+    - Optimize loading of compressed images, improves 3-5x. #3583 #3584
+      (2.4.5/2.5.0.0)
+    - Fix crashes for cubemap files when a cube face was not present, and
+      check for invalid bits per pixel. (TALOS-2022-1634, CVE-2022-41838)
+      (TALOS-2022-1635, CVE-2022-41999) #3625 (2.4.5/2.5.0.0)
+* DPX:
+    - Fix possible write errors, fixes TALOS-2022-1651 / CVE-2022-43592 and
+      TALOS-2022-1652 / CVE-2022-43593. #3672 (2.4.6/2.5.0.0)
+* HDR:
+    - Fix a 8x (!) read performance regression for HDR files that was
+      introduced in OIIO in 2.4. On top of that, speed up by another 4x beyond
+      what we ever did before by speeding up the RGBE->float conversion. #3588
+      #3590 (2.4.5/2.5.0.0)
+* IFF:
+    - Protect against 0-sized allocations. #3603 (2.5.0.0)
+    - IOProxy support. #3647 (2.4.6/2.5.0.0)
+    - Fix possible write errors, fixes TALOS-2022-1654 / CVE-2022-43596,
+      TALOS-2022-1655 / CVE-2022-43597 CVE-2022-43598, TALOS-2022-1656 /
+      CVE-2022-43599 CVE-2022-43602  #3676 (2.4.6/2.5.0.0)
 * PNG:
     - Fix memory leaks for error conditions. #3543 #3544 (2.5.0.0)
+* PSD:
+    - Fix a PSD read error on ARM architecture. #3589 (2.4.5/2.5.0.0)
+    - Protect against corrupted embedded thumbnails. (TALOS-2022-1626,
+      CVE-2022-41794) #3629 (2.4.5/2.5.0.0)
+    - Fix thumbnail extraction. #3668 (2.4.6/2.5.0.0)
+    - When reading, don't reject padded thumbnails. #3677 (2.4.6/2.5.0.0)
+* RAW:
+    - Add color metadata: pre_mul, cam_mul, cam_xyz, rgb_cam. #3561 #3569
+      #3572 (2.5.0.0)
+    - Update Exif orientation if user flip is set. #3669 (2.4.6/2.5.0.0)
+* RLA:
+    - Fix potential buffer overrun. (TALOS-2022-1629, CVE-2022-36354) #3624
+      (2.4.5/2.5.0.0)
+    - IOProxy support. #3642 (2.5.0.0)
+* SGI:
+    - IOProxy support. #3641 (2.5.0.0)
 * Targa:
     - Fix incorrect unique_ptr allocation. #3541 (2.5.0.0)
+    - Fix string overflow safety. (TALOS-2022-1628, CVE-2022-4198) #3622
+      (2.4.5/2.5.0.0)
+* TIFF:
+    - Guard against corrupt files with buffer overflows. (TALOS-2022-1627,
+      CVE-2022-41977) #3628 (2.4.5/2.5.0.0)
+    - Guard against buffer overflow for certain CMYK files. (TALOS-2022-1633,
+      CVE-2022-41639) (TALOS-2022-1643, CVE-2022-41988) #3632 (2.4.5/2.5.0.0)
+* Zfile:
+    - Zfile write safety, fixes TALOS-2022-1657 / CVE-2022-43603. #3670
+      (2.4.6/2.5.0.0)
+* Exif / TIFF/JPEG/PSD: Fix EXIF bugs where corrupted exif blocks could
+  overrun memory. (TALOS-2022-1626, CVE-2022-41794) (TALOS-2022-1632,
+  CVE-2022-41684) (TALOS-2022-1636 CVE-2022-41837) #3627 (2.4.5/2.5.0.0)
+* Fix missing OIIO::getattribute support for `limits:channels` and
+  `limits:imagesize_MB`. #3617 (2.4.5/2.5.0.0)
+* IBA::render_text and `oiiotool --text` now can find ".ttc" font files. #3633
+  (2.5.0.0)
 
 Developer goodies / internals:
+* filesystem.h:
+    - Add an optional size parameter to `read_text_file()` to limit the
+      maximum size that will be allocated and read (default to a limit of
+      16MB). New `read_text_from_command()` is similar to `read_text_file`,
+      but reads from the console output of a shell command. #3635 (2.5.0.0)
+    - New `Filesystem::is_executable()` and `find_program()`. #3638
+      (2.4.6/2.5.0.0)
+    - Change IOMemReader constructor to take a const buffer pointer. #3665
+      (2.4.6/2.5.0.0)
+    - IOMemReader::pread now detects and correctly handles out-of-range
+      read positions. #3712 (2.4.7/2.5.0.0)
+* span.h:
+    - `cspan<>` template now allows for Extent template argument (as `span<>`
+      already did). #3685 (2.5.0.0)
+    - New custom fmt formatter can print spans. #3685 (2.5.0.0)
 * strutil.h:
     - Add a new flavor of `utf16_to_utf8()` to convert between std::u16string
       and std::string (UTF-8 encoded). Note the contrast between this and the
       existing flavor that takes a `std::wstring` with UTF-16 encoding
       (`std::wchar/wstring` is not guaranteed to 16 bits on all platforms, but
       `u16char/u16string` is). #3553 (2.5.0.0)
+    - New `trimmed_whitspace()`. #3636 (2.4.5/2.5.0.0)
 * tiffutils.h:
     - `decode_icc_profile` extracts several fields from an ICC profile binary
       blob and adds them as metadata to an ImageSpec. #3554 (2.5.0.0)
+* ustring.h:
+    - Make `std::hash` work for ustring, add `operator<` for ustringhash, add
+      `from_hash()` to ustringhash, make ustringhash `==` and `!=` be
+      constexpr for C++17 and beyond. #3577 (2.4.5/2.5.0.0)
+    - Custom fmt formatter for ustringhash that prints the string rather than
+      the hash. #3614 (2.4.5/2.5.0.0)
+    - Ensure that ustring hashes are always 64 bits, even on 32-bit
+      architectures. #3606 (2.5.0.0)
+    - Ensure safe use of this header from Cuda. #3718 (2.4.7/2.5.0.0)
+* Safety: excise the last instances of unsafe sprintf. #3705 (2.5.0.0)
 
 Build/test system improvements and platform ports:
 * CMake build system and scripts:
     - It is now possible to `-DOpenImageIO_VERSION` to override the version
-      number being built (use with extreme caution). #3549 (2.5.0.0)
+      number being built (use with extreme caution). #3549 #3653 (2.5.0.0)
+    - Perform parallel builds with MSVS. #3571 (2.5.0.0)
+    - New CMake cache variable `FORTIFY_SOURCE`, if enabled, builds with the
+      specified gcc `_FORTIFY_SOURCE` option defined. This  may be desirable
+      for people deploying OIIO in security-sensitive environments. #3575
+      (2.4.5/2.5.0.0)
 * Dependency version support:
+    - Support for OpenColorIO 2.2. #3644 (2.5.0.0)
+    - New CMake option `INTERNALIZE_FMT` (default ON), if set to OFF, will
+      force OIIO clients to use the system fmt library and will not copy the
+      necessary fmt headers into the OIIO include area. #3598 (2.4.7/2.5.0.0)
+    - build_libtiff.bash changed to build shared library by default. #3586
+      (2.5.0.0)
+    - build_openexr.bash changed to build v3.1.5 by default. #3703
+      (2.5.0.0)
 * Testing and Continuous integration (CI) systems:
     - Restored sanitizer tests which had been inadvertently disabled. #3545
       (2.5.0.0)
+    - Added tests for undefined behavior sanitizer. #3565 (2.5.0.0)
+    - Added tests or improved test coverage for Cineon files #3607, iinfo
+      #3605 #3613 #3688 #3706, texture statistics #3612, oiiotool unit tests
+      #3616, oiiotool expression substitution #3636, various oiiotool #3637
+      #3643 #3649, oiiotool control flow #3643, oiiotool sequence errors and
+      selecting out of range subimages or mip levels #3649, Strutil
+      functionality #3655, ImageCache #3654, environment mapping #3694,
+      texture3d #3699, term output #3714, igrep #3715, oiiotool --pdiff #3723
+      (2.5.0.0)
+    - Make testsuite/oiiotool-control run much faster by combining commands
+      into fewer oiiotool invocations (speeds up testsuite) #3618 (2.5.0.0)
+    - CI color related tests use the OCIO buit-in configs, when OCIO 2.2+ is
+      available. #3662 (2.5.0.0)
 * Platform support:
+    - MinGW: fix incorrect symbol visibility issue for ImageBuf iterators.
+      #3578 (2.4.5/2.5.0.0)
+    - Windows: protect against OpenEXR thread deadlock on shutdown. #3582
+      (2.4.5/2.5.0.0)
+    - Windows: Work around a static destruction order issue. #3591
+      (2.4.5/2.5.0.0)
+    - Windows: define `NOGDI` to keep the inclusion of windows.h from adding
+      as many unneeded symbols. #3596 (2.4.5/2.5.0.0)
+    - Windows: Stop including Windows.h from public OIIO headers. #3597
+      (2.5.0.0)
+    - ARM: improve SIMD operations for ARM NEON. #3599 (2.4.5/2.5.0.0)
+    - Windows on ARM64 build fixes. #3690 (2.4.6/2.5.0.0)
+    - Mac: Suppress warnings about deprecated std::codecvt on newest Apple
+      clang. #3709 #3710 (2.4.7/2.5.0.0)
+    - ARM: Fix signed/unsigned mismatch compiler errors in vbool4 methods.
+      #3722 (2.4.7/2.5.0.0)
 
 Notable documentation changes:
+* Added RELEASING.md documenting our versioning and release procedures #3564
+  #3580
+* Docs: Better Windows build instructions in INSTALL.md. #3602 (2.4.5/2.5.0.0)
 
+
+
+Release 2.4.6 (1 Dec 2022) -- compared to 2.4.5.0
+---------------------------------------------------
+* make_texture / maketx : ensure proper setting of certain metadata when
+  using a texture as a source to build another texture. #3634
+* Build: Make sure use of `${PROJECT_NAME}` doesn't occur before the call to
+  `project()`. #3651
+* Fix null pointer dereference when OCIO no configuration is found. #3652
+* Support for building against OpenColorIO 2.2. #3662
+* Fixes to subtle bugs when ImageBuf is used with IOProxy. #3666
+* oiiotool: Fix problems with `--point` when there is no alpha channel. #3684
+* oiiotool: `--dumpdata` fix channel name output. #3687
+* BMP: Fix possible write errors, fixes TALOS-2022-1653 / CVE-2022-43594,
+  CVE-2022-43595. #3673
+* DPX: Fix possible write errors, fixes TALOS-2022-1651 / CVE-2022-43592 and
+  TALOS-2022-1652 / CVE-2022-43593. #3672
+* IFF files: Add IOProxy support. #3647
+* IFF: Fix possible write errors, fixes TALOS-2022-1654 / CVE-2022-43596,
+  TALOS-2022-1655 / CVE-2022-43597 CVE-2022-43598, TALOS-2022-1656 /
+  CVE-2022-43599 CVE-2022-43602  #3676
+* PSD: Fix thumbnail extraction. #3668
+* PSD: when reading, don't reject padded thumbnails. #3677
+* Raw: Update Exif orientation if user flip is set. #3669
+* Zfile write safety, fixes TALOS-2022-1657 / CVE-2022-43603. #3670
+* filesystem.h: new `Filesystem::is_executable()` and `find_program()`. #3638
+* filesystem.h: Change IOMemReader constructor to take a const buffer
+  pointer. #3665
+* strutil.h: new `trimmed_whitspace()`. #3636
+* New `OIIO::print()` exposes `Strutil::print()` in the main OIIO namespace.
+  #3667
+* Testing: improved testing of oiiotool #3637 #3643 #3649, Strutil #3655
+
+Release 2.4.5 (1 Nov 2022) -- compared to 2.4.4.2
+---------------------------------------------------
+* oiiotool: new commands `--iccread`  reads a named file and adds its contents
+  as the ICCProfile metadata of the top image, `--iccwrite` saves the
+  ICCProfile metadata of the top file to a named file. #3550
+* TIFF, JPEG, JPEG-2000, PNG, and PSD files containing ICC profiles now
+  extract and report extra metadata related to aspects of those profiles.
+  #3554
+* Python: support `int8[]` metadata and retrieving the `ICCPorofile` metadata.
+  #3556
+* oiiotool: New expression syntax for retrieving metadata `{TOP[foo]}` is
+  similar to the existing `{TOP.foo}`, if there is no `foo` metadata found,
+  the former evaluates to an empty string, whereas the latter is an error.
+  #3619
+* Strutil: new `utf16_to_utf8(const std::u16string&)` and
+  `Strutil::utf8_to_utf16wstring()`. #3553
+* ustring: make `std::hash` work for ustring, add `operator<` for ustringhash,
+  add `from_hash()` to ustringhash, make ustringhash `==` and `!=` be
+  constexpr for C++17 and beyond. #3577  Custom fmt formatter for ustringhash
+  that prints the string rather than the hash. #3614
+* Build: the version number is now a CMake cache variable that can be
+  overridden (caveat emptor). #3549
+* Build/security: New CMake cache variable `FORTIFY_SOURCE`, if enabled,
+  builds with the specified gcc `_FORTIFY_SOURCE` option defined. This may be
+  desirable for people deploying OIIO in security-sensitive environments.
+  #3575
+* CI: testing now includes using undefined behavior sanitizer. #3565
+* Windows: protect against OpenEXR thread deadlock on shutdown. #3582
+* Windows: Work around a static destruction order issue. #3591
+* Windows: define `NOGDI` to keep the inclusion of windows.h from adding as
+  many unneeded symbols. #3596
+* MinGW: fix incorrect symbol visibility issue for ImageBuf iterators. #3578
+* ARM: improve SIMD operations for ARM NEON. #3599
+* Docs: New RELEASING.md documents our releasing procedures. #3564 #3580
+* Docs: Better Windows build instructions in INSTALL.md. #3602
+* Fix missing OIIO::getattribute support for `limits:channels` and
+  `limits:imagesize_MB`. #3617
+* BMP: fix reading 16bpp images. #3592
+* BMP: protect against corrupt pixel coordinates. (TALOS-2022-1630,
+  CVE-2022-38143) #3620
+* DDS: fix alpha/luminance files, better testing. #3581
+* DDS: optimize loading of compressed images, improves 3-5x. #3583 #3584
+* DDS: Fix crashes for cubemap files when a cube face was not present, and
+  check for invalid bits per pixel. (TALOS-2022-1634, CVE-2022-41838)
+  (TALOS-2022-1635, CVE-2022-41999) #3625
+* HDR: fix a 8x (!) read performance regression for HDR files that was
+  introduced in OIIO in 2.4. #3588  On top of that, speed up by another 4x
+  beyond what we ever did before by speeding up the RGBE->float conversion.
+  #3590
+* PNG: fix memory leaks when errors take an early exit. #3543 #3544
+* PSD: fix a PSD read error on ARM architecture. #3589
+* PSD: protect against corrupted embedded thumbnails. (TALOS-2022-1626,
+  CVE-2022-41794) #3629
+* RAW: additional color metadata is now recognized: `pre_mul`, `cam_mul`,
+  `cam_xyz`, `rgb_cam`. #3561 #3569 #3572
+* RLA: fix potential buffer overrun. (TALOS-2022-1629, CVE-2022-36354) #3624
+* Targa: string overflow safety. (TALOS-2022-1628, CVE-2022-4198) #3622
+* TIFF/JPEG/PSD: Fix EXIF bugs where corrupted exif blocks could overrun
+  memory. (TALOS-2022-1626, CVE-2022-41794) (TALOS-2022-1632, CVE-2022-41684)
+  (TALOS-2022-1636 CVE-2022-41837) #3627
+* TIFF: guard against corrupt files with buffer overflows. (TALOS-2022-1627,
+  CVE-2022-41977) #3628
+* TIFF: guard against buffer overflow for certain CMYK files.
+  (TALOS-2022-1633, CVE-2022-41639) (TALOS-2022-1643, CVE-2022-41988) #3632
+
+Release 2.4.4.2 (3 Oct 2022) -- compared to 2.4.4.1
+---------------------------------------------------
+* DDS: Improved support for DTX5, ATI2/BC5 normal maps, R10G10B10A2
+  format, RXGB, BC4U, BC5U, A8, improved low bit expansion to 8 bits.
+  #3573 (2.4.4.2)
+* DDS: Fix possible heap overflow on input. #3542 (2.4.4.2)
 
 Release 2.4 (1 Oct 2022) -- compared to 2.3
 ----------------------------------------------
@@ -72,7 +394,7 @@ New major features and public API changes:
       headers (relying on the accidental fact of other OIIO headers
       transitively including them), you may need to adjust your includes.
       #3301 #3332 (2.4.0.2) #3406 #3474 (2.4.2)
-    - New `V3fParam`, `M33fParam`, and `M44Param` (defined in vecparam.h) are
+    - New `V3fParam`, `M33fParam`, and `M44fParam` (defined in vecparam.h) are
       used just for parameter passing in public APIs, instead of Imath::V3f,
       M33f, or M44f, in order to more fully hide Imath types from our public
       interfaces. These are only parameter-passing classes, and are not useful
@@ -211,7 +533,7 @@ New major features and public API changes:
   "GammaCorrectedX.Y"). #3202 (2.4.0)
 * `oiioversion.h` now defines symbols `OIIO_USING_IMATH_VERSION_MAJOR` and
   `OIIO_USING_IMATH_VERSION_MINOR` that reveal which Imath version was used
-  internally to OIIO when it was build (which may be different than the
+  internally to OIIO when it was built (which may be different than the
   version found when the downstream app is being compiled). #3305 (2.4.0.1)
 * Most of the major APIs (including ImageInput, ImageOutput, and ImageBuf)
   that took a std::string or string_view to indicate a filename (assumed to
@@ -546,7 +868,8 @@ Developer goodies / internals:
       support for using TBB for the thread pool (which seems slightly faster
       than our internal thread pool). By default it still uses the internal
       pool, but if OIIO::attribute("use_tbb") is set to nonzero, it will use
-      the TBB thread pool if built against TBB. #3473 (2.4.2.2)
+      the TBB thread pool if built against TBB. #3473 (2.4.2.2) #3566
+      (2.4.4.0)
 * paramlist.h
     - Various internal fixes that reduce the amount of ustring construction
       that happens when constructing ParamValue and ParamList, and making
@@ -614,7 +937,7 @@ Developer goodies / internals:
       representation is the hash, rather than the unique string pointer. #3436
       (2.4.2)
 * vecparam.h:
-    - New `V3fParam`, `M33fParam`, and `M44Param` (defined in vecparam.h) are
+    - New `V3fParam`, `M33fParam`, and `M44fParam` (defined in vecparam.h) are
       used just for parameter passing in public APIs, instead of Imath::V3f,
       M33f, or M44f, in order to more fully hide Imath types from our public
       interfaces. These are only parameter-passing classes, and are not useful
@@ -772,6 +1095,12 @@ Notable documentation changes:
 * Fix many typos in docs. #3492 (2.4.2.2)
 
 
+
+Release 2.3.20 (1 Oct 2022) -- compared to 2.3.19
+-------------------------------------------------
+* Fixes to compile with gcc 12. #3551
+* Fixes to compile with clang 15. #3563
+* PNG: better error handling when errors are encountered while writing. #3535
 
 Release 2.3.19 (1 Sep 2022) -- compared to 2.3.18
 ---------------------------------------------------
