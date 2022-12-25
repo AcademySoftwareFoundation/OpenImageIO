@@ -175,7 +175,7 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
 
 
 
-// Macro to call a type-specialzed version func<type>(R,...)
+// Macro to call a type-specialized version func<type>(R,...)
 #define OIIO_DISPATCH_TYPES(ret,name,func,type,R,...)                   \
     switch (type.basetype) {                                            \
     case TypeDesc::FLOAT :                                              \
@@ -227,7 +227,7 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
         ret = false;                                                    \
     }
 
-// Macro to call a type-specialzed version func<Rtype,Atype>(R,...).
+// Macro to call a type-specialized version func<Rtype,Atype>(R,...).
 #define OIIO_DISPATCH_TYPES2(ret,name,func,Rtype,Atype,R,...)           \
     switch (Rtype.basetype) {                                           \
     case TypeDesc::FLOAT :                                              \
@@ -263,7 +263,7 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
     }
 
 
-// Macro to call a type-specialzed version func<type>(R,...) for
+// Macro to call a type-specialized version func<type>(R,...) for
 // the most common types, will auto-convert the rest to float.
 #define OIIO_DISPATCH_COMMON_TYPES(ret,name,func,type,R,...)            \
     switch (type.basetype) {                                            \
@@ -307,7 +307,7 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
         }                                                               \
     }
 
-// Macro to call a type-specialzed version func<Rtype,Atype>(R,A,...) for
+// Macro to call a type-specialized version func<Rtype,Atype>(R,A,...) for
 // the most common types, and even for uncommon types when src and dst types
 // are identical. It will auto-convert remaining rare cases to float.
 #define OIIO_DISPATCH_COMMON_TYPES2(ret,name,func,Rtype,Atype,R,A,...)  \
@@ -366,7 +366,7 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
     }
 
 
-// Macro to call a type-specialzed version func<Rtype,Atype>(R,A,...) for
+// Macro to call a type-specialized version func<Rtype,Atype>(R,A,...) for
 // the most common types. It will auto-convert other cases to/from float.
 // This is the case for when we don't actually write to the read-only R image.
 #define OIIO_DISPATCH_COMMON_TYPES2_CONST(ret,name,func,Rtype,Atype,R,A,...)  \
@@ -439,7 +439,7 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
         }                                                               \
     }
 
-// Macro to call a type-specialzed version func<Rtype,Atype,Btype>(R,A,B,...)
+// Macro to call a type-specialized version func<Rtype,Atype,Btype>(R,A,B,...)
 // the most common types, and for all types when all three images have
 // the same type. Remaining rare cases will auto-convert to float.
 #define OIIO_DISPATCH_COMMON_TYPES3(ret,name,func,Rtype,Atype,Btype,R,A,B,...)  \

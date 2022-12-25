@@ -34,7 +34,7 @@ ImageOutput_write_scanline(ImageOutput& self, int y, int z, py::buffer& buffer)
 {
     const ImageSpec& spec(self.spec());
     if (spec.tile_width != 0) {
-        self.errorfmt("Cannot write scanlines to a filed file.");
+        self.errorfmt("Cannot write scanlines to a tiled file.");
         return false;
     }
     oiio_bufinfo buf(buffer.request(), spec.nchannels, spec.width, 1, 1, 1);
