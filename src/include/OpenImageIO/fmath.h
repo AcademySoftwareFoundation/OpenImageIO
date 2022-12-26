@@ -787,42 +787,6 @@ OIIO_FORCEINLINE OIIO_HOSTDEVICE OUT_TYPE bit_cast (const IN_TYPE& in) {
 }
 #endif
 
-#if defined(__x86_64__) && !defined(__CUDA_ARCH__) && \
-    (defined(__INTEL_COMPILER) || defined(__INTEL_LLVM_COMPILER) \
-     || OIIO_CLANG_VERSION >= 100000 || OIIO_APPLE_CLANG_VERSION >= 130000 \
-     || OIIO_GCC_VERSION >= 90300)
-// On x86/x86_64 for certain compilers we can use Intel CPU intrinsics for
-// some common bitcast cases that might be even more understandable to the
-// compiler and generate better code without its getting confused about the
-// memcpy in the general case. We're a bit conservative with the compiler
-// version checks here, it may be that some earlier versions support these
-// intrinsics.
-
-template<> OIIO_FORCEINLINE uint32_t bitcast<uint32_t, float>(const float& val) noexcept {
-    return static_cast<uint32_t>(_castf32_u32(val));
-}
-template<> OIIO_FORCEINLINE int32_t bitcast<int32_t, float>(const float& val) noexcept {
-    return static_cast<int32_t>(_castf32_u32(val));
-}
-template<> OIIO_FORCEINLINE float bitcast<float, uint32_t>(const uint32_t& val) noexcept {
-    return _castu32_f32(val);
-}
-template<> OIIO_FORCEINLINE float bitcast<float, int32_t>(const int32_t& val) noexcept {
-    return _castu32_f32(val);
-}
-template<> OIIO_FORCEINLINE uint64_t bitcast<uint64_t, double>(const double& val) noexcept {
-    return static_cast<uint64_t>(_castf64_u64(val));
-}
-template<> OIIO_FORCEINLINE int64_t bitcast<int64_t, double>(const double& val) noexcept {
-    return static_cast<int64_t>(_castf64_u64(val));
-}
-template<> OIIO_FORCEINLINE double bitcast<double, uint64_t>(const uint64_t& val) noexcept {
-    return _castu64_f64(val);
-}
-template<> OIIO_FORCEINLINE double bitcast<double, int64_t>(const int64_t& val) noexcept {
-    return _castu64_f64(val);
-}
-#endif
 
 
 OIIO_FORCEINLINE OIIO_HOSTDEVICE int bitcast_to_int (float x) {
