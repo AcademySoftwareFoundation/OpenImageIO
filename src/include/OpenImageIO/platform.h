@@ -214,6 +214,10 @@
 #  define OIIO_MSVS_BEFORE_2015   (_MSC_VER <  1900)
 #  define OIIO_MSVS_AT_LEAST_2017 (_MSC_VER >= 1910)
 #  define OIIO_MSVS_BEFORE_2017   (_MSC_VER <  1910)
+#  define OIIO_MSVS_AT_LEAST_2019 (_MSC_VER >= 1920)
+#  define OIIO_MSVS_BEFORE_2019   (_MSC_VER <  1920)
+#  define OIIO_MSVS_AT_LEAST_2022 (_MSC_VER >= 1930)
+#  define OIIO_MSVS_BEFORE_2022   (_MSC_VER <  1930)
 #  if OIIO_MSVS_BEFORE_2017
 #    error "This version of OIIO is meant to work only with Visual Studio 2017 or later"
 #  endif
@@ -225,6 +229,10 @@
 #  define OIIO_MSVS_BEFORE_2015   0
 #  define OIIO_MSVS_AT_LEAST_2017 0
 #  define OIIO_MSVS_BEFORE_2017   0
+#  define OIIO_MSVS_AT_LEAST_2019 0
+#  define OIIO_MSVS_BEFORE_2019   0
+#  define OIIO_MSVS_AT_LEAST_2022 0
+#  define OIIO_MSVS_BEFORE_2022   0
 #endif
 
 
