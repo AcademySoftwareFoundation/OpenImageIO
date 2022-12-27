@@ -14,6 +14,14 @@ import OpenImageIO as oiio
 try:
     ic = oiio.ImageCache()
 
+    # Set some attributes
+    ic.attribute("max_open_files", 90)
+    ic.attribute("max_memory_MB", 900.0)
+    ic.attribute("searchpath", "../common")
+    print ("getattribute(\"max_open_files\")", ic.getattribute("max_open_files"))
+    print ("getattribute(\"max_memory_MB\")", ic.getattribute("max_memory_MB"))
+    print ("getattribute(\"searchpath\")", ic.getattribute("searchpath"))
+
     # Force a file to be touched by the IC
     ib = oiio.ImageBuf("../common/tahoe-tiny.tif")
     ib = oiio.ImageBuf("../common/grid.tif")
@@ -36,6 +44,23 @@ try:
     print ("untyped getattribute stat:image_size", ic.getattribute("stat:image_size"))
     print ("untyped getattribute total_files", ic.getattribute("total_files"))
     print ("untyped getattribute all_filenames", ic.getattribute("all_filenames"))
+
+    # Test getpixels()
+    print ("getpixels from grid.tif:", ic.get_pixels("../common/grid.tif", 0, 0,
+                                                     3, 5, 3, 5, 0, 1, "float"))
+    print ("  has_error?", ic.has_error)
+    print ("  geterror?", ic.geterror())
+    print ("getpixels from broken.tif:", ic.get_pixels("broken.tif", 0, 0,
+                                                     3, 5, 3, 5, 0, 1, "float"))
+    print ("  has_error?", ic.has_error)
+    print ("  geterror?", ic.geterror())
+
+    print ("getstats beginning:")
+    print (ic.getstats().split()[0:3])
+
+    # invalidate some things
+    ic.invalidate("../common/tahoe-tiny.tif")
+    ic.invalidate_all(True)
 
     print ("\nDone.")
 except Exception as detail:

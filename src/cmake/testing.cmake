@@ -184,6 +184,7 @@ macro (oiio_add_all_tests)
                     texture-wrapfill
                     texture-fat texture-skinny
                     texture-stats
+                    texture-threadtimes
                     texture-env
                    )
     oiio_add_tests (${all_texture_tests})

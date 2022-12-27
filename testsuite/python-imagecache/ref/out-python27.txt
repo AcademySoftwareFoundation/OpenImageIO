@@ -13,11 +13,11 @@ untyped getattribute stat:cache_memory_used 0
 untyped getattribute stat:image_size 4036864
 untyped getattribute total_files 2
 untyped getattribute all_filenames ('../common/grid.tif', '../common/tahoe-tiny.tif')
-getpixels from grid.tif: [[[1.         0.49803925 0.49803925 1.        ]
-  [1.         0.49803925 0.49803925 1.        ]]
+getpixels from grid.tif: [[[ 1.          0.49803925  0.49803925  1.        ]
+  [ 1.          0.49803925  0.49803925  1.        ]]
 
- [[1.         0.49803925 0.49803925 1.        ]
-  [1.         0.49803925 0.49803925 1.        ]]]
+ [[ 1.          0.49803925  0.49803925  1.        ]
+  [ 1.          0.49803925  0.49803925  1.        ]]]
   has_error? False
   geterror? 
 getpixels from broken.tif: None

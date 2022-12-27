@@ -316,11 +316,12 @@ test: build
 	      lcov --remove cov.info "/Library/Developer/*" -o cov.info ; \
 	      lcov --remove cov.info "*/detail/pugixml/*" -o cov.info ; \
 	      lcov --remove cov.info "*/detail/fmt/*" -o cov.info ; \
+	      lcov --remove cov.info "*/detail/farmhash.h" -o cov.info ; \
 	      lcov --remove cov.info "*/v1/*" -o cov.info ; \
 	      lcov --remove cov.info "*/ext/robin-map/*" -o cov.info ; \
 	      lcov --remove cov.info "*/kissfft.hh" -o cov.info ; \
 	      lcov --remove cov.info "*/stb_sprintf.h" -o cov.info ; \
-	      genhtml -o ./cov -t "Test coverage" --num-spaces 4 cov.info ; \
+	      genhtml -o ../_coverage -t "Test coverage" --num-spaces 4 cov.info ; \
 	  fi )
 
 # 'make testall' does a full build and then runs all tests (even the ones

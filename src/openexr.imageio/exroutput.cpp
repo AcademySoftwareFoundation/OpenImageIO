@@ -1346,9 +1346,12 @@ OpenEXROutput::close()
 
 
 bool
-OpenEXROutput::write_scanline(int y, int /*z*/, TypeDesc format,
-                              const void* data, stride_t xstride)
+OpenEXROutput::write_scanline(int y, int z, TypeDesc format, const void* data,
+                              stride_t xstride)
 {
+#if 1
+    return write_scanlines(y, y + 1, z, format, data, xstride, AutoStride);
+#else
     if (!(m_output_scanline || m_scanline_output_part)) {
         errorf("called OpenEXROutput::write_scanline without an open file");
         return false;
@@ -1400,6 +1403,7 @@ OpenEXROutput::write_scanline(int y, int /*z*/, TypeDesc format,
     // FIXME -- can we checkpoint the file?
 
     return true;
+#endif
 }
 
 

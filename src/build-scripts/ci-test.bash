@@ -16,7 +16,9 @@ fi
 #
 echo ; echo "Results of oiiotool --version:"
 $OpenImageIO_ROOT/bin/oiiotool --version || true
-echo ; echo "Results of oiiotool --help:"
+echo ; echo "Results of oiiotool brief help:"
+$OpenImageIO_ROOT/bin/oiiotool || true
+echo ; echo "Results of oiiotool full --help:"
 $OpenImageIO_ROOT/bin/oiiotool --help || true
 echo ; echo "Results of oiiotool --colorconfiginfo:"
 $OpenImageIO_ROOT/bin/oiiotool --colorconfiginfo

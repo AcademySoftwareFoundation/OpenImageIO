@@ -445,16 +445,6 @@ warp(const Float& x, const Float& y, const Imath::M33f& xform)
 
 
 template<typename Float = float>
-inline Imath::Vec3<Float>
-warp(const Float& x, const Float& y, const Float& z, const Imath::M33f& xform)
-{
-    Imath::Vec3<Float> coord(x, y, z);
-    coord *= xform;
-    return coord;
-}
-
-
-template<typename Float = float>
 inline Imath::Vec2<Float>
 warp_coord(const Float& x, const Float& y)
 {
@@ -610,38 +600,6 @@ map_default_3D(const Int& x, const Int& y, Imath::Vec3<Float>& P,
     dPdy.x = 0;
     dPdy.y = 1.0f / output_yres * tscale;
     dPdy.z = 0;
-    dPdz.setValue(0, 0, 0);
-}
-
-
-
-template<typename Float = float, typename Int = int>
-void
-map_warp_3D(const Int& x, const Int& y, Imath::Vec3<Float>& P,
-            Imath::Vec3<Float>& dPdx, Imath::Vec3<Float>& dPdy,
-            Imath::Vec3<Float>& dPdz)
-{
-    Imath::Vec3<Float> coord = warp((Float(x) / output_xres),
-                                    (Float(y) / output_yres), Float(0.5),
-                                    xform);
-    coord.x *= sscale;
-    coord.y *= tscale;
-    coord += texoffset;
-    Imath::Vec3<Float> coordx = warp((Float(x + 1) / output_xres),
-                                     (Float(y) / output_yres), Float(0.5),
-                                     xform);
-    coordx.x *= sscale;
-    coordx.y *= tscale;
-    coordx += texoffset;
-    Imath::Vec3<Float> coordy = warp((Float(x) / output_xres),
-                                     (Float(y + 1) / output_yres), Float(0.5),
-                                     xform);
-    coordy.x *= sscale;
-    coordy.y *= tscale;
-    coordy += texoffset;
-    P    = coord;
-    dPdx = coordx - coord;
-    dPdy = coordy - coord;
     dPdz.setValue(0, 0, 0);
 }
 
@@ -1426,7 +1384,7 @@ test_getimagespec_gettexels(ustring filename)
 
 
 
-#ifndef CODECOV
+#ifndef OIIO_CODE_COVERAGE
 static void
 test_hash()
 {
@@ -2017,7 +1975,7 @@ main(int argc, const char* argv[])
         iters = 0;
     }
 
-#ifndef CODECOV
+#ifndef OIIO_CODE_COVERAGE
     if (testhash) {
         test_hash();
     }
@@ -2108,15 +2066,9 @@ main(int argc, const char* argv[])
         }
         if (!strcmp(texturetype, "Volume Texture")) {
             if (batch) {
-                if (nowarp)
-                    test_texture3d_batch(filename, map_default_3D);
-                else
-                    test_texture3d_batch(filename, map_warp_3D);
+                test_texture3d_batch(filename, map_default_3D);
             } else {
-                if (nowarp)
-                    test_texture3d(filename, map_default_3D);
-                else
-                    test_texture3d(filename, map_warp_3D);
+                test_texture3d(filename, map_default_3D);
             }
         }
         if (!strcmp(texturetype, "Shadow")) {

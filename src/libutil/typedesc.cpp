@@ -537,7 +537,7 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt)
     case TypeDesc::CHAR:
         return fmt.use_sprintf
                    ? sprint_type(type, fmt.int_fmt, fmt, (char*)data)
-                   : format_type(type, fmt.int_fmt, fmt, (char*)data);
+                   : format_type(type, "{:d}", fmt, (char*)data);
     case TypeDesc::USHORT:
         return fmt.use_sprintf
                    ? sprint_type(type, fmt.uint_fmt ? fmt.uint_fmt : "%u", fmt,
