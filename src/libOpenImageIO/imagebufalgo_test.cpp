@@ -95,6 +95,38 @@ test_type_merge()
 
 
 
+// Helper: make an IB filled with a constant value, with a spec that
+// describes the image shape.
+static ImageBuf
+filled_image(cspan<float> value, const ImageSpec& spec)
+{
+    ImageBuf buf(spec);
+    ImageBufAlgo::fill(buf, value);
+    return buf;
+}
+
+// Helper: make an IB filled with a constant value, with given resolution and
+// data type (defaulting to 4x4 float), with number of channels determined by
+// the size of the value array).
+static ImageBuf
+filled_image(cspan<float> value, int width = 4, int height = 4,
+             TypeDesc dtype = TypeDesc::FLOAT)
+{
+    ImageSpec spec(width, height, std::ssize(value), dtype);
+    return filled_image(value, spec);
+}
+
+// Helper: make a 4x4 IB filled with a constant value, with given data type
+// (defaulting to float), with number of channels determined by the size of
+// the value array).
+inline ImageBuf
+filled_image(cspan<float> value, TypeDesc dtype)
+{
+    return filled_image(value, 4, 4, dtype);
+}
+
+
+
 // Test ImageBuf::zero and ImageBuf::fill
 void
 test_zero_fill()
@@ -363,29 +395,22 @@ void
 test_add()
 {
     std::cout << "test add\n";
-    const int WIDTH = 4, HEIGHT = 4, CHANNELS = 4;
-    ImageSpec spec(WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
 
     // Create buffers
-    ImageBuf A(spec);
-    const float Aval[CHANNELS] = { 0.1f, 0.2f, 0.3f, 0.4f };
-    ImageBufAlgo::fill(A, Aval);
-    ImageBuf B(spec);
-    const float Bval[CHANNELS] = { 0.01f, 0.02f, 0.03f, 0.04f };
-    ImageBufAlgo::fill(B, Bval);
+    const float Aval[] = { 0.1f, 0.2f, 0.3f, 0.4f };
+    const float Bval[] = { 0.01f, 0.02f, 0.03f, 0.04f };
+    ImageBuf A         = filled_image(Aval);
+    ImageBuf B         = filled_image(Bval);
 
     // Test addition of images
-    ImageBuf R(spec);
-    ImageBufAlgo::add(R, A, B);
-    for (int j = 0; j < spec.height; ++j)
-        for (int i = 0; i < spec.width; ++i)
-            for (int c = 0; c < spec.nchannels; ++c)
-                OIIO_CHECK_EQUAL(R.getchannel(i, j, 0, c), Aval[c] + Bval[c]);
+    ImageBuf R = ImageBufAlgo::add(A, B);
+    for (ImageBuf::ConstIterator<float> r(R); !r.done(); ++r)
+        for (int c = 0, nc = R.nchannels(); c < nc; ++c)
+            OIIO_CHECK_EQUAL(r[c], Aval[c] + Bval[c]);
 
     // Test addition of image and constant color
-    ImageBuf D(spec);
-    ImageBufAlgo::add(D, A, Bval);
-    auto comp = ImageBufAlgo::compare(R, D, 1e-6f, 1e-6f);
+    ImageBuf D = ImageBufAlgo::add(A, Bval);
+    auto comp  = ImageBufAlgo::compare(R, D, 1e-6f, 1e-6f);
     OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
 }
 
@@ -396,29 +421,22 @@ void
 test_sub()
 {
     std::cout << "test sub\n";
-    const int WIDTH = 4, HEIGHT = 4, CHANNELS = 4;
-    ImageSpec spec(WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
 
     // Create buffers
-    ImageBuf A(spec);
-    const float Aval[CHANNELS] = { 0.1f, 0.2f, 0.3f, 0.4f };
-    ImageBufAlgo::fill(A, Aval);
-    ImageBuf B(spec);
-    const float Bval[CHANNELS] = { 0.01f, 0.02f, 0.03f, 0.04f };
-    ImageBufAlgo::fill(B, Bval);
+    const float Aval[] = { 0.1f, 0.2f, 0.3f, 0.4f };
+    const float Bval[] = { 0.01f, 0.02f, 0.03f, 0.04f };
+    ImageBuf A         = filled_image(Aval);
+    ImageBuf B         = filled_image(Bval);
 
     // Test subtraction of images
-    ImageBuf R(spec);
-    ImageBufAlgo::sub(R, A, B);
-    for (int j = 0; j < spec.height; ++j)
-        for (int i = 0; i < spec.width; ++i)
-            for (int c = 0; c < spec.nchannels; ++c)
-                OIIO_CHECK_EQUAL(R.getchannel(i, j, 0, c), Aval[c] - Bval[c]);
+    ImageBuf R = ImageBufAlgo::sub(A, B);
+    for (ImageBuf::ConstIterator<float> r(R); !r.done(); ++r)
+        for (int c = 0, nc = R.nchannels(); c < nc; ++c)
+            OIIO_CHECK_EQUAL(r[c], Aval[c] - Bval[c]);
 
     // Test subtraction of image and constant color
-    ImageBuf D(spec);
-    ImageBufAlgo::sub(D, A, Bval);
-    auto comp = ImageBufAlgo::compare(R, D, 1e-6f, 1e-6f);
+    ImageBuf D = ImageBufAlgo::sub(A, Bval);
+    auto comp  = ImageBufAlgo::compare(R, D, 1e-6f, 1e-6f);
     OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
 }
 
@@ -429,29 +447,23 @@ void
 test_mul()
 {
     std::cout << "test mul\n";
-    const int WIDTH = 4, HEIGHT = 4, CHANNELS = 4;
-    ImageSpec spec(WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
 
     // Create buffers
-    ImageBuf A(spec);
-    const float Aval[CHANNELS] = { 0.1f, 0.2f, 0.3f, 0.4f };
-    ImageBufAlgo::fill(A, Aval);
-    ImageBuf B(spec);
-    const float Bval[CHANNELS] = { 0.01f, 0.02f, 0.03f, 0.04f };
-    ImageBufAlgo::fill(B, Bval);
+    // Create buffers
+    const float Aval[] = { 0.1f, 0.2f, 0.3f, 0.4f };
+    const float Bval[] = { 0.01f, 0.02f, 0.03f, 0.04f };
+    ImageBuf A         = filled_image(Aval);
+    ImageBuf B         = filled_image(Bval);
 
     // Test multiplication of images
-    ImageBuf R(spec);
-    ImageBufAlgo::mul(R, A, B);
-    for (int j = 0; j < spec.height; ++j)
-        for (int i = 0; i < spec.width; ++i)
-            for (int c = 0; c < spec.nchannels; ++c)
-                OIIO_CHECK_EQUAL(R.getchannel(i, j, 0, c), Aval[c] * Bval[c]);
+    ImageBuf R = ImageBufAlgo::mul(A, B);
+    for (ImageBuf::ConstIterator<float> r(R); !r.done(); ++r)
+        for (int c = 0, nc = R.nchannels(); c < nc; ++c)
+            OIIO_CHECK_EQUAL(r[c], Aval[c] * Bval[c]);
 
     // Test multiplication of image and constant color
-    ImageBuf D(spec);
-    ImageBufAlgo::mul(D, A, Bval);
-    auto comp = ImageBufAlgo::compare(R, D, 1e-6f, 1e-6f);
+    ImageBuf D = ImageBufAlgo::mul(A, Bval);
+    auto comp  = ImageBufAlgo::compare(R, D, 1e-6f, 1e-6f);
     OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
 }
 
@@ -494,51 +506,132 @@ test_mad()
 
 
 
+// Tests ImageBufAlgo::min
+void
+test_min()
+{
+    std::cout << "test min\n";
+
+    // Create buffers
+    const float Aval[] = { 0.1f, 0.02f, 0.3f, 0.04f };
+    const float Bval[] = { 0.01f, 0.2f, 0.03f, 0.4f };
+    ImageBuf A         = filled_image(Aval);
+    ImageBuf B         = filled_image(Bval);
+
+    // Test min of images
+    ImageBuf R = ImageBufAlgo::min(A, B);
+    for (ImageBuf::ConstIterator<float> r(R); !r.done(); ++r)
+        for (int c = 0, nc = R.nchannels(); c < nc; ++c)
+            OIIO_CHECK_EQUAL(r[c], std::min(Aval[c], Bval[c]));
+
+    // Test min of image and constant color
+    ImageBuf D = ImageBufAlgo::min(A, Bval);
+    auto comp  = ImageBufAlgo::compare(R, D, 1e-6f, 1e-6f);
+    OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
+}
+
+
+
+// Tests ImageBufAlgo::max
+void
+test_max()
+{
+    std::cout << "test max\n";
+
+    // Create buffers
+    const float Aval[] = { 0.1f, 0.02f, 0.3f, 0.04f };
+    const float Bval[] = { 0.01f, 0.2f, 0.03f, 0.4f };
+    ImageBuf A         = filled_image(Aval);
+    ImageBuf B         = filled_image(Bval);
+
+    // Test max of images
+    ImageBuf R = ImageBufAlgo::max(A, B);
+    for (ImageBuf::ConstIterator<float> r(R); !r.done(); ++r)
+        for (int c = 0, nc = R.nchannels(); c < nc; ++c)
+            OIIO_CHECK_EQUAL(r[c], std::max(Aval[c], Bval[c]));
+
+    // Test max of image and constant color
+    ImageBuf D = ImageBufAlgo::max(A, Bval);
+    auto comp  = ImageBufAlgo::compare(R, D, 1e-6f, 1e-6f);
+    OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
+}
+
+
+
 // Test ImageBuf::over
 void
-test_over()
+test_over(TypeDesc dtype = TypeFloat)
 {
-    std::cout << "test over\n";
+    std::cout << "test over " << dtype << "\n";
 
-    const int WIDTH = 4, HEIGHT = 4, CHANNELS = 4;
-    ImageSpec spec(WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
     ROI roi(2, 4, 1, 3);  // region with fg
 
     // Create buffers
-    ImageBuf BG(spec);
-    const float BGval[CHANNELS] = { 0.5f, 0.0f, 0.0f, 0.5f };
-    ImageBufAlgo::fill(BG, BGval);
+    const float BGval[] = { 0.5f, 0.0f, 0.0f, 0.5f };
+    ImageBuf BG         = filled_image(BGval, dtype);
 
-    ImageBuf FG(spec);
-    ImageBufAlgo::zero(FG);
-    const float FGval[CHANNELS] = { 0.0f, 0.5f, 0.0f, 0.5f };
+    ImageBuf FG         = filled_image({ 0.0f, 0.0f, 0.0f, 0.0f }, dtype);
+    const float FGval[] = { 0.0f, 0.5f, 0.0f, 0.5f };
     ImageBufAlgo::fill(FG, FGval, roi);
 
     // value it should be where composited
-    const float comp_val[CHANNELS] = { 0.25f, 0.5f, 0.0f, 0.75f };
+    const float comp_val[] = { 0.25f, 0.5f, 0.0f, 0.75f };
 
     // Test over
-    ImageBuf R(spec);
-    ImageBufAlgo::over(R, FG, BG);
+    ImageBuf R = ImageBufAlgo::over(FG, BG);
+    int nc     = R.nchannels();
     for (ImageBuf::ConstIterator<float> r(R); !r.done(); ++r) {
         if (roi.contains(r.x(), r.y()))
-            for (int c = 0; c < CHANNELS; ++c)
-                OIIO_CHECK_EQUAL(r[c], comp_val[c]);
+            for (int c = 0; c < nc; ++c)
+                OIIO_CHECK_EQUAL(R.getchannel(r.x(), r.y(), 0, c), comp_val[c]);
         else
-            for (int c = 0; c < CHANNELS; ++c)
-                OIIO_CHECK_EQUAL(r[c], BGval[c]);
+            for (int c = 0; c < nc; ++c)
+                OIIO_CHECK_EQUAL(R.getchannel(r.x(), r.y(), 0, c), BGval[c]);
     }
 
     // Timing
     Benchmarker bench;
     ImageSpec onekfloat(1000, 1000, 4, TypeFloat);
-    BG.reset(onekfloat);
-    ImageBufAlgo::fill(BG, BGval);
-    FG.reset(onekfloat);
-    ImageBufAlgo::zero(FG);
+    BG = filled_image(BGval, 1000, 1000);
+    FG = filled_image({ 0.0f, 0.0f, 0.0f, 0.0f }, 1000, 1000);
     ImageBufAlgo::fill(FG, FGval, ROI(250, 750, 100, 900));
     R.reset(onekfloat);
     bench("  IBA::over ", [&]() { ImageBufAlgo::over(R, FG, BG); });
+}
+
+
+
+// Test ImageBuf::zover
+void
+test_zover()
+{
+    std::cout << "test zover\n";
+
+    ImageSpec spec(4, 4, 5, TypeFloat);
+    spec.channelnames.assign({ "R", "G", "B", "A", "Z" });
+    spec.z_channel = 4;
+
+    ROI roi(2, 4, 1, 3);  // region with fg
+
+    // Create buffers
+    const float Aval[] = { 0.5f, 0.5, 0.5, 1.0f, 10.0f };  // z == 10
+    ImageBuf A         = filled_image(Aval, spec);
+
+    ImageBuf B         = filled_image({ 0.0f, 0.0f, 0.0f, 1.0f, 15.0f }, spec);
+    const float Bval[] = { 1.0f, 1.0f, 1.0f, 1.0f, 5.0f };
+    ImageBufAlgo::fill(B, Bval, roi);
+
+    // Test zover
+    ImageBuf R = ImageBufAlgo::zover(A, B, true);
+    int nc     = R.nchannels();
+    for (ImageBuf::ConstIterator<float> r(R); !r.done(); ++r) {
+        if (roi.contains(r.x(), r.y()))
+            for (int c = 0; c < nc; ++c)
+                OIIO_CHECK_EQUAL(R.getchannel(r.x(), r.y(), 0, c), Bval[c]);
+        else
+            for (int c = 0; c < nc; ++c)
+                OIIO_CHECK_EQUAL(R.getchannel(r.x(), r.y(), 0, c), Aval[c]);
+    }
 }
 
 
@@ -1083,7 +1176,11 @@ main(int argc, char** argv)
     test_sub();
     test_mul();
     test_mad();
-    test_over();
+    test_min();
+    test_max();
+    test_over(TypeFloat);
+    test_over(TypeHalf);
+    test_zover();
     test_compare();
     test_isConstantColor();
     test_isConstantChannel();
