@@ -1,3 +1,53 @@
+Reading src/bw-ascii.pbm
+src/bw-ascii.pbm     :   16 x   16, 1 channel, uint1 pnm
+    SHA-1: 73AF19248E1B09BA9DDA7AC88B8A2E045645BA16
+    channel list: Y
+    oiio:BitsPerSample: 1
+    oiio:ColorSpace: "Rec709"
+    pnm:binary: 0
+Comparing "src/bw-ascii.pbm" and "bw-ascii.pbm"
+PASS
+Reading src/bw-binary.pbm
+src/bw-binary.pbm    :   32 x   32, 1 channel, uint1 pnm
+    SHA-1: 9760D82E4D9D6B8AD0C7FEB55DE02B710F95D954
+    channel list: Y
+    oiio:BitsPerSample: 1
+    oiio:ColorSpace: "Rec709"
+    pnm:binary: 1
+Comparing "src/bw-binary.pbm" and "bw-binary.pbm"
+PASS
+Reading src/grey-ascii.pgm
+src/grey-ascii.pgm   :   16 x   16, 1 channel, uint8 pnm
+    SHA-1: 87E59F779B4AD2157ED2FE5A278EBCE3604DE4CD
+    channel list: Y
+    oiio:ColorSpace: "Rec709"
+    pnm:binary: 0
+Comparing "src/grey-ascii.pgm" and "grey-ascii.pgm"
+PASS
+Reading src/grey-binary.pgm
+src/grey-binary.pgm  :   32 x   32, 1 channel, uint8 pnm
+    SHA-1: 8244B6CFD7C6FF251D9AC84A7F01CE6F69B0C1E8
+    channel list: Y
+    oiio:ColorSpace: "Rec709"
+    pnm:binary: 1
+Comparing "src/grey-binary.pgm" and "grey-binary.pgm"
+PASS
+Reading src/rgb-ascii.ppm
+src/rgb-ascii.ppm    :   16 x   16, 3 channel, uint8 pnm
+    SHA-1: 42CFBAACB3650C1FAD753A27DAE934DD96640ECC
+    channel list: R, G, B
+    oiio:ColorSpace: "Rec709"
+    pnm:binary: 0
+Comparing "src/rgb-ascii.ppm" and "rgb-ascii.ppm"
+PASS
+Reading src/rgb-binary.ppm
+src/rgb-binary.ppm   :   32 x   32, 3 channel, uint8 pnm
+    SHA-1: 38F36B1237AF6A57059F5E0DB167D4D786F252C8
+    channel list: R, G, B
+    oiio:ColorSpace: "Rec709"
+    pnm:binary: 0
+Comparing "src/rgb-binary.ppm" and "rgb-binary.ppm"
+PASS
 Reading ../oiio-images/pnm/test-1.pfm
 ../oiio-images/pnm/test-1.pfm :   64 x   64, 3 channel, float pnm
     SHA-1: ACEB5CA4B88F78E3344D79E7C8E16200FF434085
