@@ -243,7 +243,7 @@ jobs:
             python_ver: 3.8
             simd: avx2,f16c
             setenvs: export LIBRAW_VERSION=0.20.2
-                            LIBTIFF_VERSION=v4.4.0
+                            LIBTIFF_VERSION=v4.5.0
                             OPENCOLORIO_VERSION=v2.2.0
                             OPENIMAGEIO_OPTIONS="openexr:core=1"
                             OPENJPEG_VERSION=v2.4.0

@@ -40,6 +40,9 @@ if [[ -z $DEP_DOWNLOAD_ONLY ]]; then
                -DCMAKE_INSTALL_PREFIX=${LIBTIFF_INSTALL_DIR} \
                -DCMAKE_CXX_FLAGS="${LIBTIFF_CXX_FLAGS}" \
                -DBUILD_SHARED_LIBS=${LIBTIFF_BUILD_SHARED_LIBS:-ON} \
+               -Dtiff-tests=${LIBTIFF_BUILD_TESTS:-OFF} \
+               -Dtiff-docs=${LIBTIFF_BUILD_TESTS:-OFF} \
+               -Dlibdeflate=ON \
                ${LIBTIFF_BUILDOPTS} ..
     time cmake --build . --target install
 fi
