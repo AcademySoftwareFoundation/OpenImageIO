@@ -406,8 +406,8 @@ option (CODECOV "Build code coverage tests" OFF)
 if (CODECOV AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
     message (STATUS "Compiling for code coverage analysis")
     add_compile_options (-ftest-coverage -fprofile-arcs)
+    add_link_options (-ftest-coverage -fprofile-arcs)
     add_definitions ("-D${PROJ_NAME}_CODE_COVERAGE=1")
-    link_libraries(gcov)
 endif ()
 
 

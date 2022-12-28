@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Run code coverage analysis
-# This assumes that the build occurred with CODECOV=1 andtests have already
+# This assumes that the build occurred with CODECOV=1 and tests have already
 # fully run.
 
 set -ex

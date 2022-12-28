@@ -38,5 +38,21 @@ Comparing "tahoe-sat0.tif" and "ref/tahoe-sat0.tif"
 PASS
 Comparing "tahoe-sat2.tif" and "ref/tahoe-sat2.tif"
 PASS
+Comparing "cmap-magma.tif" and "ref/cmap-magma.tif"
+PASS
+Comparing "cmap-inferno.tif" and "ref/cmap-inferno.tif"
+PASS
+Comparing "cmap-plasma.tif" and "ref/cmap-plasma.tif"
+PASS
+Comparing "cmap-viridis.tif" and "ref/cmap-viridis.tif"
+PASS
+Comparing "cmap-turbo.tif" and "ref/cmap-turbo.tif"
+PASS
+Comparing "cmap-blue-red.tif" and "ref/cmap-blue-red.tif"
+PASS
+Comparing "cmap-spectrum.tif" and "ref/cmap-spectrum.tif"
+PASS
+Comparing "cmap-heat.tif" and "ref/cmap-heat.tif"
+PASS
 Comparing "look-default.tif" and "ref/look-default.tif"
 PASS

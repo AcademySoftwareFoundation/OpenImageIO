@@ -9,6 +9,7 @@
 namespace PyOpenImageIO {
 
 
+#if 0 /* unused */
 const char*
 python_array_code(TypeDesc format)
 {
@@ -28,7 +29,7 @@ python_array_code(TypeDesc format)
         return "B";
     }
 }
-
+#endif
 
 
 TypeDesc
@@ -185,40 +186,6 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
 
 
 
-bool
-oiio_attribute_typed(const std::string& name, TypeDesc type,
-                     const py::object& obj)
-{
-    if (type.basetype == TypeDesc::INT) {
-        std::vector<int> vals;
-        py_to_stdvector(vals, obj);
-        if (vals.size() == type.numelements() * type.aggregate)
-            return OIIO::attribute(name, type, &vals[0]);
-        return false;
-    }
-    if (type.basetype == TypeDesc::FLOAT) {
-        std::vector<float> vals;
-        py_to_stdvector(vals, obj);
-        if (vals.size() == type.numelements() * type.aggregate)
-            return OIIO::attribute(name, type, &vals[0]);
-        return false;
-    }
-    if (type.basetype == TypeDesc::STRING) {
-        std::vector<std::string> vals;
-        py_to_stdvector(vals, obj);
-        if (vals.size() == type.numelements() * type.aggregate) {
-            std::vector<ustring> u;
-            for (auto& val : vals)
-                u.emplace_back(val);
-            return OIIO::attribute(name, type, &u[0]);
-        }
-        return false;
-    }
-    return false;
-}
-
-
-
 py::object
 make_pyobject(const void* data, TypeDesc type, int nvalues,
               py::object defaultvalue)
@@ -277,6 +244,15 @@ oiio_getattribute_typed(const std::string& name, TypeDesc type = TypeUnknown)
 }
 
 
+// Wrapper to let attribute_typed work for global attributes.
+struct oiio_global_attrib_wrapper {
+    bool attribute(string_view name, TypeDesc type, const void* data)
+    {
+        return OIIO::attribute(name, type, data);
+    }
+};
+
+
 
 // This OIIO_DECLARE_PYMODULE mojo is necessary if we want to pass in the
 // MODULE name as a #define. Google for Argument-Prescan for additional
@@ -326,7 +302,8 @@ OIIO_DECLARE_PYMODULE(PYMODULE_NAME)
     });
     m.def("attribute",
           [](const std::string& name, TypeDesc type, const py::object& obj) {
-              oiio_attribute_typed(name, type, obj);
+              oiio_global_attrib_wrapper wrapper;
+              attribute_typed(wrapper, name, type, obj);
           });
 
     m.def(

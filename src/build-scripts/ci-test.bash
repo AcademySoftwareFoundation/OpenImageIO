@@ -2,7 +2,10 @@
 
 # Important: set -ex causes this whole script to terminate with error if
 # any command in it fails. This is crucial for CI tests.
-set -ex
+# (Though we let it run all the way through for code coverage workflows.)
+if [[ "${CODECOV}" == "" ]]; then
+    set -ex
+fi
 
 : ${CTEST_EXCLUSIONS:="broken"}
 : ${CTEST_TEST_TIMEOUT:=180}

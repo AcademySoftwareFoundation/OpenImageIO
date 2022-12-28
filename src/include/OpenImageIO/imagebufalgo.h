@@ -167,6 +167,9 @@ public:
     Image_or_Const (const float *v, size_t s) : m_type(VAL), m_val(v,s) {}
     Image_or_Const (const float *v, int s) : m_type(VAL), m_val(v,s) {}
 
+    template<size_t N>
+    Image_or_Const(const float (&array)[N]) : Image_or_Const(cspan<float>(array)) {}
+
     bool is_img () const { return m_type == IMG; }
     bool is_val () const { return m_type == VAL; }
     bool is_empty () const { return m_type == NONE; }

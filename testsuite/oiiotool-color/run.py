@@ -22,6 +22,12 @@ command += oiiotool ("--autocc " + "../common/tahoe-tiny.tif" +
                      " --colormap .25,.25,.25,0,.5,0,1,0,0 " +
                      "-d uint8 -o colormap-custom.tif")
 
+colormaps = [ "magma", "inferno", "plasma", "viridis", "turbo", "blue-red", "spectrum", "heat" ]
+for c in colormaps :
+    command += oiiotool ("--pattern fill:left=0,0,0:right=1,1,1 64x64 3" +
+                         " --colormap " + c +
+                         " -d uint8 -o cmap-" + c + ".tif")
+
 # test unpremult/premult
 command += oiiotool ("--pattern constant:color=.1,.1,.1,1 100x100 4 " 
             + " --fill:color=.2,.2,.2,.5 30x30+50+50 "
@@ -121,6 +127,8 @@ outputs = [
             "tahoe-sat0.tif",
             "tahoe-sat2.tif"
     ]
+for c in colormaps :
+    outputs += [ "cmap-" + c + ".tif" ]
 if float(ociover) >= 2.2 :
     outputs += [ "look-default.tif" ]
 else :
