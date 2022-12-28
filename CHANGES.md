@@ -1,7 +1,22 @@
-Release 2.4.7.0 (1 Jan? 2022) -- compared to 2.4.6.0
+Release 2.4.7.0 (1 Jan 2022) -- compared to 2.4.6.0
 ----------------------------------------------------
-
-
+* IOMemReader detects and errors for out-of-range read positions. #3712
+* Build/Mac: Suppress some deprecation warnings when building wth the newest
+  Apple clang. #3709 #3710
+* ARM: Fix signed/unsigned SIMD mismatch in vbool4::load. #3722
+* Build: New CMake variable `INTERNALIZE_FMT`, when set to OFF will ensure
+  that the fmt headers are not internalized (copied to the installed part
+  of OIIO). The default is ON, matching old behavior. #3598
+* Testing: Improved testing of iinfo #3688 #3706, 'term' output #3714, igrep
+  #3715.
+* build_openexr.bash: bump default version of OpenEXR/Imath retrieved to be
+  3.1.5. #3703
+* span.h: Make sure the cspan alias also allows the Extent template
+  argument; add a custom formatter to print spans. #3685
+* ustring.h: `#if` guards to let the header be Cuda-safe. #3718
+* Internals: refactoring to remove duplicated code for iinfo and
+  `oiiotool --info`. #3688
+* Internals: remove the last instances of unsafe std::sprintf. #3705
 
 Release 2.4.6 (1 Dec 2022) -- compared to 2.4.5.0
 ---------------------------------------------------
