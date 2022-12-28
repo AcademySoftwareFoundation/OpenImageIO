@@ -449,8 +449,17 @@ template<size_t S> struct BaseTypeFromC<const char[S]> { static const TypeDesc::
 /// The default for simple types is just the TypeDesc based on BaseTypeFromC.
 /// But we can specialize more complex types.
 template<typename T> struct TypeDescFromC { static const constexpr TypeDesc value() { return TypeDesc(BaseTypeFromC<T>::value); } };
-template<> struct TypeDescFromC<int> { static const constexpr TypeDesc value() { return TypeDesc::INT; } };
+template<> struct TypeDescFromC<int32_t> { static const constexpr TypeDesc value() { return TypeDesc::INT32; } };
+template<> struct TypeDescFromC<uint32_t> { static const constexpr TypeDesc value() { return TypeDesc::UINT32; } };
+template<> struct TypeDescFromC<int16_t> { static const constexpr TypeDesc value() { return TypeDesc::INT16; } };
+template<> struct TypeDescFromC<uint16_t> { static const constexpr TypeDesc value() { return TypeDesc::UINT16; } };
+template<> struct TypeDescFromC<int8_t> { static const constexpr TypeDesc value() { return TypeDesc::INT8; } };
+template<> struct TypeDescFromC<uint8_t> { static const constexpr TypeDesc value() { return TypeDesc::UINT8; } };
 template<> struct TypeDescFromC<float> { static const constexpr TypeDesc value() { return TypeDesc::FLOAT; } };
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
+template<> struct TypeDescFromC<half> { static const constexpr TypeDesc value() { return TypeDesc::HALF; } };
+#endif
+template<> struct TypeDescFromC<double> { static const constexpr TypeDesc value() { return TypeDesc::DOUBLE; } };
 template<size_t S> struct TypeDescFromC<char[S]> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
 template<size_t S> struct TypeDescFromC<const char[S]> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
 #ifdef INCLUDED_IMATHVEC_H
