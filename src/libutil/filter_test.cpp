@@ -52,18 +52,10 @@ getargs(int argc, char* argv[])
 
 
 
-int
-main(int argc, char* argv[])
+void
+test_1d()
 {
-#if !defined(NDEBUG) || defined(OIIO_CI) || defined(OIIO_CODE_COVERAGE)
-    // For the sake of test time, reduce the default iterations for DEBUG,
-    // CI, and code coverage builds. Explicit use of --iters or --trials
-    // will override this, since it comes before the getargs() call.
-    iterations /= 10;
-    ntrials = 1;
-#endif
-
-    getargs(argc, argv);
+    print("Testing 1D filters\n");
 
     Benchmarker bench;
     bench.iterations(iterations);
@@ -83,11 +75,14 @@ main(int argc, char* argv[])
         FilterDesc filtdesc;
         Filter1D::get_filterdesc(i, &filtdesc);
         Filter1D* f = Filter1D::create(filtdesc.name, filtdesc.width);
-        float scale = normalize ? 1.0f / (*f)(0.0f) : 1.0f;
         // Graph it
-        float color[3] = { 0.25f * (i & 3), 0.25f * ((i >> 2) & 3),
+        float scale          = normalize ? 1.0f / (*f)(0.0f) : 1.0f;
+        float color[3]       = { 0.25f * (i & 3), 0.25f * ((i >> 2) & 3),
                            0.25f * ((i >> 4) & 3) };
-        ImageBufAlgo::render_text(graph, 10, 20 + i * 20, filtdesc.name, 16,
+        std::string filtname = filtdesc.name;
+        if (filtdesc.name != f->name())
+            filtname = Strutil::fmt::format("{} ({})", filtname, f->name());
+        ImageBufAlgo::render_text(graph, 10, 20 + i * 20, filtname, 16,
                                   "" /*font name*/, color);
         for (int x = 0; x < graphxres; ++x) {
             float xx = float(x - graphxzero) / graphunit;
@@ -100,18 +95,83 @@ main(int argc, char* argv[])
         }
 
         // Time it
-        const size_t ncalls = 100000;
-        bench.work(ncalls);
-        float ninv = (filtdesc.width / 2.0f) / ncalls;
-        bench(filtdesc.name, [=]() {
-            for (size_t i = 0; i < ncalls; ++i)
-                DoNotOptimize((*f)(i * ninv));
-        });
+        bench(filtdesc.name, [=]() { DoNotOptimize((*f)(0.25f)); });
 
         Filter1D::destroy(f);
     }
 
     graph.write("filters.tif");
+}
 
-    return unit_test_failures != 0;
+
+
+void
+test_2d()
+{
+    print("\nTesting 2D filters\n");
+
+    Benchmarker bench;
+    bench.iterations(iterations);
+    bench.trials(ntrials);
+    // bench.units (Benchmarker::Unit::ms);
+
+    ImageBuf graph(ImageSpec(graphxres, graphyres, 3, TypeDesc::UINT8));
+    float white[3] = { 1, 1, 1 };
+    float black[3] = { 0, 0, 0 };
+    ImageBufAlgo::fill(graph, white);
+    ImageBufAlgo::render_line(graph, 0, graphyzero, graphxres - 1, graphyzero,
+                              black);
+    ImageBufAlgo::render_line(graph, graphxzero, 0, graphxzero, graphyres - 1,
+                              black);
+    int lastx = 0, lasty = 0;
+    for (int i = 0, e = Filter2D::num_filters(); i < e; ++i) {
+        FilterDesc filtdesc;
+        Filter2D::get_filterdesc(i, &filtdesc);
+        Filter2D* f = Filter2D::create(filtdesc.name, filtdesc.width,
+                                       filtdesc.width);
+        // Graph it
+        float scale          = normalize ? 1.0f / (*f)(0.0f, 0.0f) : 1.0f;
+        float color[3]       = { 0.25f * (i & 3), 0.25f * ((i >> 2) & 3),
+                           0.25f * ((i >> 4) & 3) };
+        std::string filtname = filtdesc.name;
+        if (filtdesc.name != f->name())
+            filtname = Strutil::fmt::format("{} ({})", filtname, f->name());
+        ImageBufAlgo::render_text(graph, 10, 20 + i * 20, filtname, 16,
+                                  "" /*font name*/, color);
+        for (int x = 0; x < graphxres; ++x) {
+            float xx = float(x - graphxzero) / graphunit;
+            float yy = (*f)(xx, 0.0f) * scale;
+            int y    = int(graphyzero - yy * graphunit);
+            if (x > 0)
+                ImageBufAlgo::render_line(graph, lastx, lasty, x, y, color);
+            lastx = x;
+            lasty = y;
+        }
+
+        // Time it
+        bench(filtdesc.name, [=]() { DoNotOptimize((*f)(0.25f, 0.25f)); });
+
+        Filter2D::destroy(f);
+    }
+
+    graph.write("filters2d.tif");
+}
+
+
+
+int
+main(int argc, char* argv[])
+{
+#if !defined(NDEBUG) || defined(OIIO_CI) || defined(OIIO_CODE_COVERAGE)
+    // For the sake of test time, reduce the default iterations for DEBUG,
+    // CI, and code coverage builds. Explicit use of --iters or --trials
+    // will override this, since it comes before the getargs() call.
+    iterations /= 10;
+    ntrials = 1;
+#endif
+
+    getargs(argc, argv);
+
+    test_1d();
+    test_2d();
 }

@@ -312,6 +312,14 @@ test: build
 	      cd ${build_dir} ; \
 	      lcov -b . -d . -c -o cov.info ; \
 	      lcov --remove cov.info "/usr*" -o cov.info ; \
+	      lcov --remove cov.info "*/usr/incude" -o cov.info ; \
+	      lcov --remove cov.info "/Library/Developer/*" -o cov.info ; \
+	      lcov --remove cov.info "*/detail/pugixml/*" -o cov.info ; \
+	      lcov --remove cov.info "*/detail/fmt/*" -o cov.info ; \
+	      lcov --remove cov.info "*/v1/*" -o cov.info ; \
+	      lcov --remove cov.info "*/ext/robin-map/*" -o cov.info ; \
+	      lcov --remove cov.info "*/kissfft.hh" -o cov.info ; \
+	      lcov --remove cov.info "*/stb_sprintf.h" -o cov.info ; \
 	      genhtml -o ./cov -t "Test coverage" --num-spaces 4 cov.info ; \
 	  fi )
 
