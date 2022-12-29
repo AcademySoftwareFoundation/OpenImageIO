@@ -2,6 +2,7 @@
 
 failureok = 1
 
+outputs = [ ]
 
 # Just for simplicity, make a checkerboard with a solid alpha
 command += oiiotool (" --pattern checker 128x128 4 --ch R,G,B,=1.0"
@@ -116,6 +117,11 @@ command += maketx_command ("white.exr", "whiteenv.exr",
                            "--envlatl")
 command += oiiotool ("--stats -a whiteenv.exr")
 
+# Test --lightprobe
+command += maketx_command ("src/uffizi_probe-128.exr", "uffizi_latlong_env-128.exr",
+                           "--lightprobe -d half")
+outputs += [ "uffizi_latlong_env-128.exr" ]
+
 #Test --bumpslopes to export a 6 channels height map with gradients
 command += oiiotool (" --pattern noise 64x64 1"
            + " -d half -o " + make_relpath("bump.exr"))
@@ -123,12 +129,11 @@ command += maketx_command ("bump.exr", "bumpslope.exr",
                            "--bumpslopes -d half", showinfo=True)
 
 
-outputs = [ "out.txt" ]
+outputs += [ "out.txt" ]
 
 
 
-# To do:  --filter --fullpixels
+# To do:  --fullpixels
 #         --prman-metadata --ignore-unassoc
 #         --mipimage 
-#         --envlatl TIFF, --envlatl EXR
 #         --colorconvert --unpremult -u --fovcot
