@@ -166,6 +166,7 @@ macro (oiio_add_all_tests)
                     texture-blurtube
                     texture-crop texture-cropover
                     texture-half texture-uint16
+                    texture-icwrite
                     texture-interp-bilinear
                     texture-interp-closest
                     texture-levels-stochaniso
@@ -227,10 +228,6 @@ macro (oiio_add_all_tests)
 
     oiio_add_tests (oiiotool-color
                     FOUNDVAR OpenColorIO_FOUND)
-
-    if (NOT DEFINED ENV{${PROJECT_NAME}_CI})
-        oiio_add_tests (texture-icwrite)
-    endif ()
 
     # List testsuites for specific formats or features which might be not found
     # or be intentionally disabled, or which need special external reference
