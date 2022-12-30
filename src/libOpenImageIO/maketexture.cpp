@@ -369,6 +369,7 @@ latlong_to_dir(float s, float t, bool y_is_up = true)
 
 
 
+template<class SRCTYPE>
 static bool
 lightprobe_to_envlatl(ImageBuf& dst, const ImageBuf& src, bool y_is_up,
                       ROI roi = ROI::All(), int nthreads = 0)
@@ -392,8 +393,8 @@ lightprobe_to_envlatl(ImageBuf& dst, const ImageBuf& src, bool y_is_up,
             float r      = M_1_PI * acosf(V[2]) / hypotf(V[0], V[1]);
             float u      = (V[0] * r + 1.0f) * 0.5f;
             float v      = (V[1] * r + 1.0f) * 0.5f;
-            interppixel_NDC_clamped<float>(src, float(u), float(v), pixel,
-                                           false);
+            interppixel_NDC_clamped<SRCTYPE>(src, float(u), float(v), pixel,
+                                             false);
             for (int c = roi.chbegin; c < roi.chend; ++c)
                 d[c] = pixel[c];
         }
@@ -1163,7 +1164,11 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         std::shared_ptr<ImageBuf> latlong(new ImageBuf(newspec));
         // Now lightprobe holds the original lightprobe, src is a blank
         // image that will be the unwrapped latlong version of it.
-        lightprobe_to_envlatl(*latlong, *src, true);
+        bool ok = true;
+        OIIO_DISPATCH_COMMON_TYPES(ok, "lightprobe_to_envlatl",
+                                   lightprobe_to_envlatl, src->spec().format,
+                                   *latlong, *src, true);
+        // lightprobe_to_envlatl(*latlong, *src, true);
         // Carry on with the lat-long environment map from here on out
         mode = ImageBufAlgo::MakeTxEnvLatl;
         src  = latlong;

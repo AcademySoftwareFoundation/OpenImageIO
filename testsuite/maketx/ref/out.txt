@@ -401,3 +401,5 @@ bumpslope.exr        :   64 x   64, 6 channel, half openexr
     oiio:SHA-1: "49B533110A914CE89BE0B14753A6A4CC037C964F"
     oiio:subimages: 1
     openexr:roundingmode: 0
+Comparing "uffizi_latlong_env-128.exr" and "ref/uffizi_latlong_env-128.exr"
+PASS
