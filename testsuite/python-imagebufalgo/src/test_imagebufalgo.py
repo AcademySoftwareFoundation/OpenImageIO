@@ -29,14 +29,17 @@ def write (image, filename, format=oiio.UNKNOWN) :
 def dumpimg (image, fmt="{:.3f}", msg="") :
     spec = image.spec()
     print (msg, end="")
-    for y in range(spec.y, spec.y+spec.height) :
-        for x in range(spec.x, spec.x+spec.width) :
-            p = image.getpixel (x, y)
-            print ("[", end="")
-            for c in range(spec.nchannels) :
-                print (fmt.format(p[c]), end=" ")
-            print ("] ", end="")
-        print ("")
+    if image.has_error :
+        print ("Error({})".format(image.geterror()))
+    else :
+        for y in range(spec.y, spec.y+spec.height) :
+            for x in range(spec.x, spec.x+spec.width) :
+                p = image.getpixel (x, y)
+                print ("[", end="")
+                for c in range(spec.nchannels) :
+                    print (fmt.format(p[c]), end=" ")
+                print ("] ", end="")
+            print ("")
 
 
 

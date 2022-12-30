@@ -16,8 +16,10 @@ resolve('linear'): linear
 resolve('scene_linear'): linear
 resolve('lin_srgb'): linear
 resolve('srgb'): sRGB
+resolve('ACEScg'): ACEScg
 equivalent('lin_srgb', 'srgb'): False
 equivalent('scene_linear', 'srgb'): False
+equivalent('linear', 'lin_srgb'): True
 equivalent('scene_linear', 'lin_srgb'): True
 equivalent('ACEScg', 'scene_linear'): False
 equivalent('lnf', 'scene_linear'): False
