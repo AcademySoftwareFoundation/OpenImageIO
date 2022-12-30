@@ -576,24 +576,10 @@ fix_latl_edges(ImageBuf& buf)
 
 
 
-static std::string
-formatres(const ImageSpec& spec, bool extended = false)
+inline std::string
+formatres(const ImageSpec& spec)
 {
-    std::string s;
-    s = Strutil::sprintf("%dx%d", spec.width, spec.height);
-    if (extended) {
-        if (spec.x || spec.y)
-            s += Strutil::sprintf("%+d%+d", spec.x, spec.y);
-        if (spec.width != spec.full_width || spec.height != spec.full_height
-            || spec.x != spec.full_x || spec.y != spec.full_y) {
-            s += " (full/display window is ";
-            s += Strutil::sprintf("%dx%d", spec.full_width, spec.full_height);
-            if (spec.full_x || spec.full_y)
-                s += Strutil::sprintf("%+d%+d", spec.full_x, spec.full_y);
-            s += ")";
-        }
-    }
-    return s;
+    return Strutil::fmt::format("{}x{}", spec.width, spec.height);
 }
 
 
@@ -705,9 +691,10 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
 
     // Write out the image
     if (verbose) {
-        outstream << "  Writing file: " << outputfilename << std::endl;
-        outstream << "  Filter \"" << filtername << "\"\n";
-        outstream << "  Top level is " << formatres(outspec) << std::endl;
+        print(outstream, "  Writing file: {}\n", outputfilename);
+        print(outstream, "  Filter \"{}\"\n", filtername);
+        print(outstream, "  Top level is {}x{}\n", outspec.width,
+              outspec.height);
     }
 
     if (clamp_half) {
