@@ -71,7 +71,8 @@ private:
         return Strutil::parse_value(m_remaining, val);
     }
 
-    template<class T> bool ascii_to_raw(T* write, imagesize_t nvals, T max);
+    template<class T>
+    bool ascii_to_raw(T* write, imagesize_t nvals, T max, bool invert = false);
 };
 
 
@@ -111,9 +112,9 @@ invert(const T* read, T* write, imagesize_t nvals)
 
 template<class T>
 bool
-PNMInput::ascii_to_raw(T* write, imagesize_t nvals, T max)
+PNMInput::ascii_to_raw(T* write, imagesize_t nvals, T max, bool invert)
 {
-    if (max)
+    if (max) {
         for (imagesize_t i = 0; i < nvals; i++) {
             int tmp;
             if (!nextVal(tmp))
@@ -121,9 +122,13 @@ PNMInput::ascii_to_raw(T* write, imagesize_t nvals, T max)
             write[i] = std::min((int)max, tmp) * std::numeric_limits<T>::max()
                        / max;
         }
-    else
+        if (invert)
+            for (imagesize_t i = 0; i < nvals; i++)
+                write[i] = std::numeric_limits<T>::max() - write[i];
+    } else {
         for (imagesize_t i = 0; i < nvals; i++)
             write[i] = std::numeric_limits<T>::max();
+    }
     return true;
 }
 
@@ -221,8 +226,7 @@ PNMInput::read_file_scanline(void* data, int y)
         //Ascii
         case P1:
             good &= ascii_to_raw((unsigned char*)data, nsamples,
-                                 (unsigned char)m_max_val);
-            invert((unsigned char*)data, (unsigned char*)data, nsamples);
+                                 (unsigned char)m_max_val, true);
             break;
         case P2:
         case P3:
@@ -306,8 +310,9 @@ PNMInput::read_file_header()
                                              : TypeDesc::UINT8);
         m_spec.attribute("pnm:binary",
                          (m_pnm_type >= P1 && m_pnm_type <= P3) ? 0 : 1);
-        m_spec.attribute("oiio:BitsPerSample",
-                         ceilf(logf(m_max_val + 1) / logf(2)));
+        int bps = int(ceilf(logf(m_max_val + 1) / logf(2)));
+        if (bps < 8)
+            m_spec.attribute("oiio:BitsPerSample", bps);
     } else {
         //Read scaling factor
         if (!nextVal(m_scaling_factor))
