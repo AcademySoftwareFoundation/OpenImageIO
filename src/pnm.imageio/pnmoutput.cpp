@@ -68,7 +68,7 @@ bool
 PNMOutput::write_ascii_binary(const unsigned char* data, const stride_t stride)
 {
     for (int x = 0; x < m_spec.width; x++)
-        if (!iowritefmt("{}\n", data[x * stride] ? '1' : '0'))
+        if (!iowritefmt("{}\n", data[x * stride] ? '0' : '1'))
             return false;
     return true;
 }
@@ -81,7 +81,7 @@ PNMOutput::write_raw_binary(const unsigned char* data, const stride_t stride)
     for (int x = 0; x < m_spec.width;) {
         unsigned char val = 0;
         for (int bit = 7; bit >= 0 && x < m_spec.width; x++, bit--)
-            val += (data[x * stride] ? (1 << bit) : 0);
+            val += (data[x * stride] ? 0 : (1 << bit));
         if (!iowrite(&val, sizeof(val)))
             return false;
     }
