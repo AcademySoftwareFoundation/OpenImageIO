@@ -67,6 +67,9 @@ Fixes and feature enhancements:
 * ImageBuf improvements:
     - Fixes to subtle bugs when ImageBuf is used with IOProxy. #3666
       (2.4.6/2.5.0.0)
+* ImageBufAlgo improvements:
+    - IBAPrep should not zero out deep images when creating a new destination
+      image. #3724 (2.5.0.0/2.4.8.0)
 * make_texture() / maketx / TextureSystem / ImageCache:
     - Ensure proper setting of certain metadata when using a texture as a
       source to build another texture. #3634 (2.4.5/2.5.0.0)
@@ -75,6 +78,8 @@ Fixes and feature enhancements:
       in the source file. #3692 (2.5.0.0)
     - Fix environment mapping in batch mode when >4 channels are requested in
       a lookup. #3694 (2.5.0.0)
+    - Fixed `maketx --lightprobe`, which never worked properly for images
+      that weren't `float` pixel data type. #3732 (2.5.0.0/2.4.7.0)
 * oiiotool improvements:
     - `--printinfo` now takes new optional modifiers: `:native=1` ensures
       that the metadata printed is of the file, not changed by the way the
@@ -137,6 +142,9 @@ Fixes and feature enhancements:
     - Fix possible write errors, fixes TALOS-2022-1654 / CVE-2022-43596,
       TALOS-2022-1655 / CVE-2022-43597 CVE-2022-43598, TALOS-2022-1656 /
       CVE-2022-43599 CVE-2022-43602  #3676 (2.4.6/2.5.0.0)
+* PBM:
+    - Fix accidental inversion for 1-bit bipmap pbm files. #3731
+      (2.5.0.0/2.4.8.0)
 * PNG:
     - Fix memory leaks for error conditions. #3543 #3544 (2.5.0.0)
 * PSD:
@@ -164,6 +172,8 @@ Fixes and feature enhancements:
       CVE-2022-41977) #3628 (2.4.5/2.5.0.0)
     - Guard against buffer overflow for certain CMYK files. (TALOS-2022-1633,
       CVE-2022-41639) (TALOS-2022-1643, CVE-2022-41988) #3632 (2.4.5/2.5.0.0)
+    - While building against the new libtiff 4.5, use its new per-tiff error
+      handlers to ensure better thread safety. #3719 (2.5.0.0/2.4.8.0)
 * Zfile:
     - Zfile write safety, fixes TALOS-2022-1657 / CVE-2022-43603. #3670
       (2.4.6/2.5.0.0)
@@ -187,6 +197,10 @@ Developer goodies / internals:
       (2.4.6/2.5.0.0)
     - IOMemReader::pread now detects and correctly handles out-of-range
       read positions. #3712 (2.4.7/2.5.0.0)
+* fmath.h:
+    - Remove useless bitcast specializations. (2.5.0.0/2.4.8.0)
+* platform.h:
+    - New macros for detecting MSVS 2019 and 2022. #3727 (2.5.0.0/2.4.8.0)
 * span.h:
     - `cspan<>` template now allows for Extent template argument (as `span<>`
       already did). #3685 (2.5.0.0)
@@ -201,6 +215,9 @@ Developer goodies / internals:
 * tiffutils.h:
     - `decode_icc_profile` extracts several fields from an ICC profile binary
       blob and adds them as metadata to an ImageSpec. #3554 (2.5.0.0)
+* typedesc.h:
+    - Extend TypeDescFromC template to the full set of pixel types. #3726
+      (2.5.0.0/2.4.8.0)
 * ustring.h:
     - Make `std::hash` work for ustring, add `operator<` for ustringhash, add
       `from_hash()` to ustringhash, make ustringhash `==` and `!=` be
@@ -240,8 +257,9 @@ Build/test system improvements and platform ports:
       #3643 #3649, oiiotool control flow #3643, oiiotool sequence errors and
       selecting out of range subimages or mip levels #3649, Strutil
       functionality #3655, ImageCache #3654, environment mapping #3694,
-      texture3d #3699, term output #3714, igrep #3715, oiiotool --pdiff #3723
-      (2.5.0.0)
+      texture3d #3699, term output #3714, igrep #3715, oiiotool --pdiff #3723,
+      zover, fixnan for deep images, 2D filters #3730, pbm files #3731,
+      maketx --lightprobe #3732. (2.5.0.0)
     - Make testsuite/oiiotool-control run much faster by combining commands
       into fewer oiiotool invocations (speeds up testsuite) #3618 (2.5.0.0)
     - CI color related tests use the OCIO buit-in configs, when OCIO 2.2+ is
@@ -270,6 +288,26 @@ Notable documentation changes:
 * Docs: Better Windows build instructions in INSTALL.md. #3602 (2.4.5/2.5.0.0)
 
 
+
+Release 2.4.7.0 (1 Jan 2022) -- compared to 2.4.6.0
+----------------------------------------------------
+* IOMemReader detects and errors for out-of-range read positions. #3712
+* Build/Mac: Suppress some deprecation warnings when building wth the newest
+  Apple clang. #3709 #3710
+* ARM: Fix signed/unsigned SIMD mismatch in vbool4::load. #3722
+* Build: New CMake variable `INTERNALIZE_FMT`, when set to OFF will ensure
+  that the fmt headers are not internalized (copied to the installed part
+  of OIIO). The default is ON, matching old behavior. #3598
+* Testing: Improved testing of iinfo #3688 #3706, 'term' output #3714, igrep
+  #3715.
+* build_openexr.bash: bump default version of OpenEXR/Imath retrieved to be
+  3.1.5. #3703
+* span.h: Make sure the cspan alias also allows the Extent template
+  argument; add a custom formatter to print spans. #3685
+* ustring.h: `#if` guards to let the header be Cuda-safe. #3718
+* Internals: refactoring to remove duplicated code for iinfo and
+  `oiiotool --info`. #3688
+* Internals: remove the last instances of unsafe std::sprintf. #3705
 
 Release 2.4.6 (1 Dec 2022) -- compared to 2.4.5.0
 ---------------------------------------------------
