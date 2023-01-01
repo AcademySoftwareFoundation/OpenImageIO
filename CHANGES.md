@@ -1,4 +1,4 @@
-Release 2.4.7.0 (1 Jan 2022) -- compared to 2.4.6.0
+Release 2.4.7.0 (1 Jan 2023) -- compared to 2.4.6.0
 ----------------------------------------------------
 * IOMemReader detects and errors for out-of-range read positions. #3712
 * Build/Mac: Suppress some deprecation warnings when building wth the newest
