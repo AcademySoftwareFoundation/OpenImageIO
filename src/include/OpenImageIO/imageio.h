@@ -776,6 +776,15 @@ public:
         deep = other.deep;
     }
 
+    /// Set the metadata to presume that color space is `name` (or to assume
+    /// nothing about the color space if `name` is empty). The core operation
+    /// is to set the "oiio:ColorSpace" attribute, but it also removes or
+    /// alters several other attributes that may hint color space in ways that
+    /// might be contradictory or no longer true.
+    ///
+    /// @version 2.5
+    void set_colorspace(string_view name);
+
     /// Returns `true` for a newly initialized (undefined) `ImageSpec`.
     /// (Designated by no channels and undefined data type -- true of the
     /// uninitialized state of an ImageSpec, and presumably not for any

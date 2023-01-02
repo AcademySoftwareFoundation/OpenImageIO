@@ -160,6 +160,13 @@ try:
     sroi = oiio.ImageSpec (oiio.ROI(0,640,0,480,0,1,0,3), oiio.FLOAT);
     print_imagespec (sroi)
 
+    print ("\nTesting set_colorspace:")
+    s = oiio.ImageSpec()
+    s.set_colorspace("sRGB")
+    print ("  after set_colorspace('sRGB'):", s.get_string_attribute("oiio:ColorSpace"))
+    s.set_colorspace("")
+    print ("  after set_colorspace(''):", s.get_string_attribute("oiio:ColorSpace"))
+
     # Also test global OIIO functions here
     print ("\nTesting global attribute store/retrieve:")
     oiio.attribute ("plugin_searchpath", "perfect")
