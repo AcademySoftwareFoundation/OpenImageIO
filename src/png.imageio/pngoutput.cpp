@@ -21,7 +21,11 @@ public:
     const char* format_name(void) const override { return "png"; }
     int supports(string_view feature) const override
     {
-        return (feature == "alpha" || feature == "ioproxy");
+        return (feature == "alpha" || feature == "ioproxy"
+#ifdef PNG_eXIf_SUPPORTED
+                || feature == "exif"
+#endif
+        );
     }
     bool open(const std::string& name, const ImageSpec& spec,
               OpenMode mode = Create) override;

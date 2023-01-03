@@ -684,6 +684,13 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
                      (png_uint_32)(yres * scale), unittype);
     }
 
+#ifdef PNG_eXIf_SUPPORTED
+    std::vector<char> exifBlob;
+    encode_exif(spec, exifBlob, endian::big);
+    png_set_eXIf_1(sp, ip, static_cast<png_uint_32>(exifBlob.size()),
+                   reinterpret_cast<png_bytep>(exifBlob.data()));
+#endif
+
     // Deal with all other params
     for (size_t p = 0; p < spec.extra_attribs.size(); ++p)
         put_parameter(sp, ip, spec.extra_attribs[p].name().string(),
