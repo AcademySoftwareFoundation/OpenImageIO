@@ -341,10 +341,10 @@ Reading tmp.tif
 <deep>0</deep>
 <attrib name="oiio:BitsPerSample" type="int">8</attrib>
 <attrib name="Orientation" type="int" description="normal">1</attrib>
+<attrib name="tiff:Compression" type="int">8</attrib>
 <attrib name="tiff:PhotometricInterpretation" type="int">2</attrib>
 <attrib name="tiff:PlanarConfiguration" type="int">1</attrib>
 <attrib name="planarconfig" type="string">contig</attrib>
-<attrib name="tiff:Compression" type="int">8</attrib>
 <attrib name="compression" type="string">zip</attrib>
 <attrib name="tiff:RowsPerStrip" type="int">32</attrib>
 </ImageSpec>

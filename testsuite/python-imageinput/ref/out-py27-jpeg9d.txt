@@ -56,10 +56,10 @@ Opened "grid.tx" as a tiff
   textureformat = "Plain Texture"
   wrapmodes = "black,black"
   fovcot = 1.0
+  tiff:Compression = 8
   tiff:PhotometricInterpretation = 2
   tiff:PlanarConfiguration = 1
   planarconfig = "contig"
-  tiff:Compression = 8
   compression = "zip"
   PixelAspectRatio = 1.0
   oiio:AverageColor = "0.608983,0.608434,0.608728,1"
