@@ -75,6 +75,12 @@
 // OIIO_SIMD_HAS_SIMD8 : nonzero if vfloat8, vint8, vbool8 are defined
 // OIIO_SIMD_HAS_SIMD16 : nonzero if vfloat16, vint16, vbool16 are defined
 
+#if defined(_M_ARM64) || defined(__aarch64__) || defined(__aarch64)
+#  ifndef __ARM_NEON__
+#      define __ARM_NEON__
+#  endif
+#endif
+
 #if defined(__CUDA_ARCH__)
     // Cuda -- don't include any of these headers
 #elif defined(_WIN32)
