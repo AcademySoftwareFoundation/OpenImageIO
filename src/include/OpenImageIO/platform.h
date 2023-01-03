@@ -597,9 +597,6 @@ inline void cpuid (int info[4], int infoType, int extra)
         : "=a" (info[0]), "=r" (info[1]), "=c" (info[2]), "=d" (info[3])
         : "0" (infoType), "2" (extra));
 # endif
-#elif (defined(_M_ARM64) || defined (__aarch64__) || defined(__aarch64))
-    info[0] = 0; info[1] = 0; info[2] = 0; info[3] = 0;
-    #define __ARM_NEON__
 #else
     info[0] = 0; info[1] = 0; info[2] = 0; info[3] = 0;
 #endif
