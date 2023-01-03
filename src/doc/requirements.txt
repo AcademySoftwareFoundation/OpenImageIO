@@ -1,3 +1,4 @@
-sphinx >= 3.0
-breathe == 4.27.0
+sphinx >= 5.0
+breathe == 4.34.0
 sphinx-tabs
+furo==2022.6.21

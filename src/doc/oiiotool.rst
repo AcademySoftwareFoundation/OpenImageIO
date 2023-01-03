@@ -246,7 +246,7 @@ The usual programming constructs are supported:
 
 * Conditionals : `--if` *condition* `--then` *commands...* `--else` *commands...* `--endif`
 
-* General looping: `--while` *condition* *commands...*
+* General looping: `--while` *condition* *commands...* `--endwhile`
 
 * Iteration : `--for` *variable* *range* *commands...* `--endfor`
 
@@ -2369,8 +2369,8 @@ current top image.
 
 
 .. option:: --sub
-            -- subc <value>
-            -- subc <value0,value1,value2...>
+            --subc <value>
+            --subc <value0,value1,value2...>
 
     Replace the *two* top images with a new image that is the pixel-by-pixel
     difference between the first and second images (`--sub`), or subtract a
@@ -2388,8 +2388,8 @@ current top image.
 
 
 .. option:: --mul
-            -- mulc <value>
-            -- mulc <value0,value1,value2...>
+            --mulc <value>
+            --mulc <value0,value1,value2...>
 
     Replace the *two* top images with a new image that is the pixel-by-pixel
     multiplicative product of those images (`--mul`), or multiply all pixels
@@ -2419,8 +2419,8 @@ current top image.
 
 
 .. option:: --div
-            -- divc <value>
-            -- divc <value0,value1,value2...>
+            --divc <value>
+            --divc <value0,value1,value2...>
 
     Replace the *two* top images with a new image that is the
     pixel-by-pixel, channel-by-channel result of the first image divided by

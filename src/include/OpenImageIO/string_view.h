@@ -40,6 +40,8 @@ OIIO_NAMESPACE_BEGIN
 /// and a length. This is analogous to C++17 std::string_view, but supports
 /// C++14.
 ///
+/// Note: `string_view` is an alias for `basic_string_view<char>`.
+///
 /// A function that takes a string input (but does not need to alter the
 /// string in place) may use a string_view parameter and accept input that
 /// is any of char* (C string), string literal (constant char array), a

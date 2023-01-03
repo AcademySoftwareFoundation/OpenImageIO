@@ -850,8 +850,8 @@ Shuffling channels
        .. code-tab:: py
   
           # Paste fg.exr on top of bg.exr, offset by (100,100)
-          Bg ImageBuf("bg.exr")
-          Fg ImageBuf("fg.exr")
+          Bg = ImageBuf("bg.exr")
+          Fg = ImageBuf("fg.exr")
           ImageBufAlgo.paste (Bg, 100, 100, 0, 0, Fg)
 
        .. code-tab:: bash oiiotool
