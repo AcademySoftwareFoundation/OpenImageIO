@@ -1,3 +1,8 @@
+Release 2.4.7.1 (3 Jan 2023) -- compared to 2.4.7.0
+----------------------------------------------------
+* Fix build break for Mac ARM. #3735
+* CMake config should not include a find of fmt if it's internalized. #3739
+
 Release 2.4.7.0 (1 Jan 2023) -- compared to 2.4.6.0
 ----------------------------------------------------
 * IOMemReader detects and errors for out-of-range read positions. #3712
