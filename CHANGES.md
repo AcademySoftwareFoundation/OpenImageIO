@@ -198,7 +198,7 @@ Developer goodies / internals:
     - IOMemReader::pread now detects and correctly handles out-of-range
       read positions. #3712 (2.4.7/2.5.0.0)
 * fmath.h:
-    - Remove useless bitcast specializations. (2.5.0.0/2.4.8.0)
+    - Remove useless bitcast specializations. #3728 (2.5.0.0/2.4.8.0)
 * platform.h:
     - New macros for detecting MSVS 2019 and 2022. #3727 (2.5.0.0/2.4.8.0)
 * span.h:
@@ -238,6 +238,8 @@ Build/test system improvements and platform ports:
       specified gcc `_FORTIFY_SOURCE` option defined. This  may be desirable
       for people deploying OIIO in security-sensitive environments. #3575
       (2.4.5/2.5.0.0)
+    - CMake config should not include a find of fmt if it's internalized.
+      #3739 (2.4.7.1/2.5.0.0)
 * Dependency version support:
     - Support for OpenColorIO 2.2. #3644 (2.5.0.0)
     - New CMake option `INTERNALIZE_FMT` (default ON), if set to OFF, will
@@ -281,6 +283,7 @@ Build/test system improvements and platform ports:
       clang. #3709 #3710 (2.4.7/2.5.0.0)
     - ARM: Fix signed/unsigned mismatch compiler errors in vbool4 methods.
       #3722 (2.4.7/2.5.0.0)
+    - ARM Mac: Fix build break. #3735 (2.5.0.0/2.4.7.1)
 
 Notable documentation changes:
 * Added RELEASING.md documenting our versioning and release procedures #3564
@@ -288,6 +291,11 @@ Notable documentation changes:
 * Docs: Better Windows build instructions in INSTALL.md. #3602 (2.4.5/2.5.0.0)
 
 
+
+Release 2.4.7.1 (3 Jan 2023) -- compared to 2.4.7.0
+----------------------------------------------------
+* Fix build break for Mac ARM. #3735
+* CMake config should not include a find of fmt if it's internalized. #3739
 
 Release 2.4.7.0 (1 Jan 2023) -- compared to 2.4.6.0
 ----------------------------------------------------
