@@ -396,12 +396,6 @@ test_gettextureinfo(ustring filename)
         "Result of get_texture_info displaywindow (as int[6]) = {} [{} {} {} {} {} {}]\n",
         ok, window[0], window[1], window[2], window[3], window[4], window[5]);
 
-    const char* datetime = NULL;
-    ok = texsys->get_texture_info(filename, 0, ustring("DateTime"),
-                                  TypeDesc::STRING, &datetime);
-    Strutil::print("Result of get_texture_info datetime = {} {}\n", ok,
-                   (datetime ? datetime : ""));
-
     float avg[4];
     ok = texsys->get_texture_info(filename, 0, ustring("averagecolor"),
                                   TypeDesc(TypeDesc::FLOAT, 4), avg);
