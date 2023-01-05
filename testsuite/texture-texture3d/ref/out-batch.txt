@@ -8,7 +8,6 @@ Result of get_texture_info datawindow (as int[4]) = true [-16 -16 16 16]
 Result of get_texture_info datawindow (as int[6]) = true [-16 -16 -16 16 16 16]
 Result of get_texture_info displaywindow (as int[4]) = true [-12 -12 12 12]
 Result of get_texture_info displaywindow (as int[6]) = true [-12 -12 -12 12 12 12]
-Result of get_texture_info datetime = false 
 Result of get_texture_info averagecolor = no
 Result of get_texture_info averagealpha = no
 Result of get_texture_info constantcolor = no
