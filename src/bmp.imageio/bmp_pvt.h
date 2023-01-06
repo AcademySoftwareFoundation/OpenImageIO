@@ -36,6 +36,12 @@ const int32_t NO_COMPRESSION   = 0;  // BI_RGB
 const int32_t RLE8_COMPRESSION = 1;  // BI_RLE8
 const int32_t RLE4_COMPRESSION = 2;  // BI_RLE4
 
+enum class CSType {
+    CalibratedRGB       = 0,
+    DeviceDependentRGB  = 1,
+    DeviceDependentCMYK = 2
+};
+
 
 
 // store information about BMP file
@@ -89,19 +95,19 @@ public:
     int32_t blue_mask  = 0;
     int32_t green_mask = 0;
     int32_t alpha_mask = 0;
-    int32_t cs_type;  //color space type
-    int32_t red_x;
-    int32_t red_y;
-    int32_t red_z;
-    int32_t green_x;
-    int32_t green_y;
-    int32_t green_z;
-    int32_t blue_x;
-    int32_t blue_y;
-    int32_t blue_z;
-    int32_t gamma_x;
-    int32_t gamma_y;
-    int32_t gamma_z;
+    int32_t cs_type    = 0;  // color space type
+    int32_t red_x      = 0;
+    int32_t red_y      = 0;
+    int32_t red_z      = 0;
+    int32_t green_x    = 0;
+    int32_t green_y    = 0;
+    int32_t green_z    = 0;
+    int32_t blue_x     = 0;
+    int32_t blue_y     = 0;
+    int32_t blue_z     = 0;
+    int32_t gamma_x    = 0;
+    int32_t gamma_y    = 0;
+    int32_t gamma_z    = 0;
 
     // added in Version 5 of the format
     int32_t intent;
