@@ -2647,11 +2647,45 @@ set_colorconfig(int argc, const char* argv[])
 
 
 
+// Special OiiotoolOp whose purpose is to set attributes on the top image.
+class OpSetColorSpace final : public OiiotoolOp {
+public:
+    OpSetColorSpace(Oiiotool& ot, string_view opname, cspan<const char*> argv)
+        : OiiotoolOp(ot, opname, argv, 1)
+    {
+        inplace(true);  // This action operates in-place
+        colorspace = args(1);
+    }
+    OpSetColorSpace(Oiiotool& ot, string_view opname, int argc,
+                    const char* argv[])
+        : OpSetColorSpace(ot, opname, { argv, argc })
+    {
+    }
+    bool setup() override
+    {
+        ir(0)->metadata_modified(true);
+        return true;
+    }
+    bool impl(span<ImageBuf*> img) override
+    {
+        // Because this is an in-place operation, img[0] is the same as
+        // img[1].
+        img[0]->specmod().set_colorspace(colorspace);
+        return true;
+    }
+
+private:
+    string_view colorspace;
+};
+
+
+
 // --iscolorspace
 static void
-set_colorspace(cspan<const char*> argv)
+action_iscolorspace(cspan<const char*> argv)
 {
-    action_sattrib({ argv[0], "oiio:ColorSpace", argv[1] });
+    OpSetColorSpace op(ot, "iscolorspace", argv);
+    op();
 }
 
 
@@ -6857,7 +6891,7 @@ Oiiotool::getargs(int argc, char* argv[])
       .action(set_colorconfig);
     ap.arg("--iscolorspace %s:COLORSPACE")
       .help("Set the assumed color space (without altering pixels)")
-      .action(set_colorspace);
+      .action(action_iscolorspace);
     ap.arg("--tocolorspace %s:COLORSPACE")
       .help("Convert the current image's pixels to a named color space")
       .action(action_tocolorspace);
