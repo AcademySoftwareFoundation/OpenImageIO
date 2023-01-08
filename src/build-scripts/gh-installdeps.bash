@@ -38,7 +38,18 @@ if [[ "$ASWF_ORG" != ""  ]] ; then
         popd
     fi
 
-    if [[ "$CXX" == "icpc" || "$CC" == "icc" || "$USE_ICC" != "" || "$CXX" == "icpx" || "$CC" == "icx" || "$USE_ICX" != "" ]] ; then
+    if [[ "$CXX" == "icpc" || "$CC" == "icc" || "$USE_ICC" != "" ]] ; then
+        # The "current" version of icc 2023.x on the Intel site is build to
+        # link against a glibc too new for the ASWF CentOS7-based containers
+        # we run CI on. So we lock down to a specific version of icc 2022.1
+        # that is known to work.
+        sudo cp src/build-scripts/oneAPI.repo /etc/yum.repos.d
+        sudo /usr/bin/yum install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic-2022.1.0-3768
+        # Because multiple (possibly newer) versions of oneAPI may be installed,
+        # use a config file to specify compiler and tbb versions
+        # NOTE: oneAPI components have independent version numbering.
+        set +e; source /opt/intel/oneapi/setvars.sh --config oneapi_2022.1.0.cfg; set -e
+    elif [[ "$CXX" == "icpc" || "$CC" == "icc" || "$USE_ICC" != "" || "$CXX" == "icpx" || "$CC" == "icx" || "$USE_ICX" != "" ]] ; then
         sudo cp src/build-scripts/oneAPI.repo /etc/yum.repos.d
         sudo yum install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
