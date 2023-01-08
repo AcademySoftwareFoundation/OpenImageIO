@@ -69,7 +69,11 @@ and the documentation of individual ImageIO plugins for details).
 Non-owning string views: ``string_view``
 ==========================================
 
-.. doxygenclass:: OIIO::string_view
+.. cpp:type:: using string_view = basic_string_view<char>;
+
+    `string_view` is a synonym for a non-mutable `string_view<char>`.
+
+.. doxygenclass:: OIIO::basic_string_view
     :members:
 
 |

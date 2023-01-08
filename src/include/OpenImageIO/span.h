@@ -42,14 +42,14 @@ OIIO_INLINE_CONSTEXPR oiio_span_size_type dynamic_extent = -1;
 
 
 
-/// span<T> is a non-owning, non-copying, non-allocating reference to a
+/// `span<T>` is a non-owning, non-copying, non-allocating reference to a
 /// contiguous array of T objects known length. A 'span` encapsulates both a
 /// pointer and a length, and thus is a safer way of passing pointers around
 /// (because the function called knows how long the array is). A function
 /// that might ordinarily take a `T*` and a length could instead just take a
 /// `span<T>`.
 ///
-/// `A span<T>` is mutable (the values in the array may be modified).  A
+/// A `span<T>` is mutable (the values in the array may be modified).  A
 /// non-mutable (i.e., read-only) reference would be `span<const T>`. Thus,
 /// a function that might ordinarily take a `const T*` and a length could
 /// instead take a `span<const T>`.
