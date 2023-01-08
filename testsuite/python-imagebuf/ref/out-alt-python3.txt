@@ -15,6 +15,7 @@ Resetting to be a writable 640x480,3 Float:
   z channel =  -1
   deep =  False
 Constructing from a bare numpy array:
+ from 3D, shape is float 0 2 0 3 0 1 0 4
   resolution 2x3+0+0
   untiled
   4 channels: ('R', 'G', 'B', 'A')
@@ -23,6 +24,10 @@ Constructing from a bare numpy array:
   z channel =  -1
   deep =  False
   pixel (0,1) = 0.3 0 0.8 1
+
+ from 2D uint8, shape is uint8 0 2 0 3 0 1 0 1
+
+ from 4D, shape is float 0 2 0 2 0 2 0 4
 
 Testing read of ../common/textures/grid.tx:
 subimage: 0  /  1

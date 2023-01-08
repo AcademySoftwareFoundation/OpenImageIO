@@ -41,10 +41,6 @@ test_type(string_view textrep, TypeDesc constructed,
           TypeDesc named = TypeUnknown, const CType& value = CType(),
           string_view valuerep = "")
 {
-    static tostring_formatting fm;
-    fm.aggregate_sep = ", ";
-    fm.array_sep     = ", ";
-
     Strutil::print("Testing {}\n", textrep);
 
     // Make sure constructing by name from string matches the TypeDesc where
@@ -61,10 +57,29 @@ test_type(string_view textrep, TypeDesc constructed,
 
     // Verify that rendering the sample data `value` as a string matches
     // what we expect.
-    std::string s = tostring(constructed, &value, fm);
-    if (valuerep.size()) {
-        OIIO_CHECK_EQUAL(s, valuerep);
-        Strutil::print("  {}\n", s);
+    {
+        tostring_formatting fm;
+        fm.aggregate_sep = ", ";
+        fm.array_sep     = ", ";
+        std::string s    = tostring(constructed, &value, fm);
+        if (valuerep.size()) {
+            OIIO_CHECK_EQUAL(s, valuerep);
+            Strutil::print("  {}\n", s);
+        }
+    }
+
+    {
+        tostring_formatting fm(tostring_formatting::STDFORMAT);
+        fm.aggregate_sep = ", ";
+        fm.array_sep     = ", ";
+#if FMT_VERSION < 70100
+        fm.float_fmt = "{:g}";
+#endif
+        std::string s = tostring(constructed, &value, fm);
+        if (valuerep.size()) {
+            OIIO_CHECK_EQUAL(s, valuerep);
+            Strutil::print("  {}\n", s);
+        }
     }
 }
 

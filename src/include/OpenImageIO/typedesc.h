@@ -508,7 +508,7 @@ template<> struct CType<(int)TypeDesc::DOUBLE> { typedef double type; };
 /// that control exactly how all the data types that can be described as
 /// TypeDesc ought to be formatted as a string. Uses printf-like
 /// conventions. This will someday be deprecated.
-struct tostring_formatting {
+struct OIIO_UTIL_API tostring_formatting {
     // Printf-like formatting specs for int, float, string, pointer data.
     const char *int_fmt = "%d";
     const char *float_fmt = "%g";
