@@ -124,7 +124,9 @@ declare_imagecache(py::module& m)
         //      "subimage"_a=0),
         // .def("get_thumbnail", &ImageCacheWrap::get_thumbnail,
         //      "subimage"_a=0)
-        .def("get_pixels", &ImageCacheWrap::get_pixels)
+        .def("get_pixels", &ImageCacheWrap::get_pixels, "filename"_a,
+             "subimage"_a, "miplevel"_a, "xbegin"_a, "xend"_a, "ybegin"_a,
+             "yend"_a, "zbegin"_a = 0, "zend"_a = 1, "datatype"_a = TypeUnknown)
         // .def("get_tile", &ImageCacheWrap::get_tile)
         // .def("release_tile", &ImageCacheWrap::release_tile)
         // .def("tile_pixels", &ImageCacheWrap::tile_pixels)

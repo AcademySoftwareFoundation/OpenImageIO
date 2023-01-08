@@ -155,15 +155,29 @@ try:
     b = oiio.ImageBuf(numpy.array([[[0.1,0.0,0.9,1.0], [0.2,0.0,0.7,1.0]],
                                    [[0.3,0.0,0.8,1.0], [0.4,0.0,0.6,1.0]],
                                    [[0.5,0.0,0.7,1.0], [0.6,0.0,0.5,1.0]]], dtype="f"))
+    print (" from 3D, shape is", b.spec().format, b.roi)
     # should be width=2, height=3, channels=4, format=FLOAT
     print_imagespec (b.spec())
     print ("  pixel (0,1) = {:.3g} {:.3g} {:.3g} {:.3g}".format(b.getpixel (0,1)[0],
            b.getpixel (0,1)[1], b.getpixel (0,1)[2], b.getpixel(0,1)[3]))
     print ("")
+    b = oiio.ImageBuf(numpy.array([[1.0, 0.5],
+                                   [0.25, 0.125],
+                                   [1.0, 0.5]], dtype="uint8"))
+    print (" from 2D uint8, shape is", b.spec().format, b.roi)
+    print ("")
+    b = oiio.ImageBuf(numpy.array([[[[0.1,0.0,0.9,1.0], [0.2,0.0,0.7,1.0]],
+                                   [[0.3,0.0,0.8,1.0], [0.4,0.0,0.6,1.0]] ],
+                                  [[[0.3,0.0,0.8,1.0], [0.4,0.0,0.6,1.0]],
+                                   [[0.5,0.0,0.7,1.0], [0.6,0.0,0.5,1.0]]]], dtype="f"))
+    print (" from 4D, shape is", b.spec().format, b.roi)
+    print ("")
 
     # Test reading from disk
     print ("Testing read of ../common/textures/grid.tx:")
     b = oiio.ImageBuf ("../common/textures/grid.tx")
+    b.init_spec ("../common/textures/grid.tx")
+    b.read ()
     print ("subimage:", b.subimage, " / ", b.nsubimages)
     print ("miplevel:", b.miplevel, " / ", b.nmiplevels)
     print ("channels:", b.nchannels)

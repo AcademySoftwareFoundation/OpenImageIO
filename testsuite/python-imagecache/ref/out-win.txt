@@ -22,7 +22,7 @@ getpixels from grid.tif: [[[1.         0.49803925 0.49803925 1.        ]
   geterror? 
 getpixels from broken.tif: None
   has_error? True
-  geterror? Invalid image file "broken.tif": Could not open file: broken.tif: No such file or directory
+  geterror? Invalid image file "broken.tif": Could not open file: S: Cannot open
 getstats beginning:
 ['OpenImageIO', 'ImageCache', 'statistics']
 
