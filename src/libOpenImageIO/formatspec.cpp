@@ -1222,4 +1222,30 @@ pvt::check_texture_metadata_sanity(ImageSpec& spec)
 }
 
 
+
+void
+ImageSpec::set_colorspace(string_view colorspace)
+{
+    // If we're not changing color space, don't mess with anything
+    string_view oldspace = get_string_attribute("oiio:ColorSpace");
+    if (oldspace.size() && colorspace.size() && oldspace == colorspace)
+        return;
+
+    // Set or clear the main "oiio:ColorSpace" attribute
+    if (colorspace.empty()) {
+        erase_attribute("oiio:ColorSpace");
+    } else {
+        attribute("oiio:ColorSpace", colorspace);
+    }
+
+    // Clear a bunch of other metadata that might contradict the colorspace,
+    // including some format-specific things that we don't want to propagate
+    // from input to output if we know that color space transformations have
+    // occurred.
+    erase_attribute("Exif:ColorSpace");
+    erase_attribute("tiff:ColorSpace");
+    erase_attribute("tiff:PhotometricInterpretation");
+}
+
+
 OIIO_NAMESPACE_END

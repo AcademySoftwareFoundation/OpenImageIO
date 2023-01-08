@@ -1518,8 +1518,10 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src, string_view from,
 
     logtime.stop();  // transition to other colorconvert
     bool ok = colorconvert(dst, src, processor.get(), unpremult, roi, nthreads);
-    if (ok)
-        dst.specmod().attribute("oiio:ColorSpace", to);
+    if (ok) {
+        // DBG("done, setting output colorspace to {}\n", to);
+        dst.specmod().set_colorspace(to);
+    }
     return ok;
 }
 
@@ -1832,7 +1834,7 @@ ImageBufAlgo::ociolook(ImageBuf& dst, const ImageBuf& src, string_view looks,
     logtime.stop();  // transition to colorconvert
     bool ok = colorconvert(dst, src, processor.get(), unpremult, roi, nthreads);
     if (ok)
-        dst.specmod().attribute("oiio:ColorSpace", to);
+        dst.specmod().set_colorspace(to);
     return ok;
 }
 
@@ -1942,7 +1944,7 @@ ImageBufAlgo::ociofiletransform(ImageBuf& dst, const ImageBuf& src,
     logtime.stop();  // transition to colorconvert
     bool ok = colorconvert(dst, src, processor.get(), unpremult, roi, nthreads);
     if (ok)
-        dst.specmod().attribute("oiio:ColorSpace", name);
+        dst.specmod().set_colorspace(name);
     return ok;
 }
 

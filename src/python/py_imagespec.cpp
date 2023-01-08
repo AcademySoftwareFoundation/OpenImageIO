@@ -261,6 +261,12 @@ declare_imagespec(py::module& m)
         .def("valid_tile_range", &ImageSpec::valid_tile_range, "xbegin"_a,
              "xend"_a, "ybegin"_a, "yend"_a, "zbegin"_a, "zend"_a)
         .def("copy_dimensions", &ImageSpec::copy_dimensions, "other"_a)
+        .def(
+            "set_colorspace",
+            [](ImageSpec& self, const std::string& cs) {
+                self.set_colorspace(cs);
+            },
+            "name"_a)
         // __getitem__ is the dict-like `ImageSpec[key]` lookup
         .def("__getitem__",
              [](const ImageSpec& self, const std::string& key) {

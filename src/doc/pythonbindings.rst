@@ -712,6 +712,22 @@ Section :ref:`sec-ImageSpec`, is replicated for Python.
     data types, but not the arbitrary named metadata or channel names.
 
 
+.. py:method:: bool ImageSpec.set_colorspace (name)
+
+    Set metadata to indicate the presumed color space `name`, or clear all
+    such metadata if `name` is the empty string.
+
+    This function was added in version 2.5.
+
+    Example:
+
+    .. code-block:: python
+
+        spec = ImageSpec(...)
+        spec.set_colorspace ("sRGB")
+
+
+
 .. py:method:: ImageSpec.undefined ()
 
     Returns `True` for a newly initialized (undefined) ImageSpec.
