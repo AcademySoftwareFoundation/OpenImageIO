@@ -133,10 +133,10 @@ contents of an expression may be any of:
   * `file_extension` : the extension of the file (e.g., `tif`)
   * `geom` : the pixel data size in the form `640x480+0+0`)
   * `full_geom` : the "full" or "display" size)
-  * `MINCOLOR` : the minimum value in each channel (channels are
-    comma-separated)
-  * `MAXCOLOR` : the maximum value in each channel (channels are
-    comma-separated)
+  * `MINCOLOR` : the minimum value of each channel over the entire image
+    (channels are comma-separated)
+  * `MAXCOLOR` : the maximum value of each channel over the entire image
+    (channels are comma-separated)
   * `AVGCOLOR` : the average pixel value of the image (channels are
     comma-separated)
   * `METABRIEF` : a string containing the brief one-line description that
@@ -160,7 +160,7 @@ contents of an expression may be any of:
   Without the quotes, it might try to retrieve `TOP.foo` (which doesn't
   exist) and divide it by `bar`.
 
-* *imagename.[metadata]*
+* *imagename[metadata]*
 
   Another way to retrieve metadata, but with this notation, the result will
   be the empty string if the metadata does not exist (that is not an error).
@@ -219,7 +219,7 @@ original image::
     oiiotool input.exr -cut "{TOP.width-2*4}x{TOP.height-2*4}+{TOP.x+4}+{TOP.y+4}" \
         -o cropped_{TOP.filename}
 
-If you should come across filenames that contain braces (these are vary
+If you should come across filenames that contain curly braces (these are very
 rare, but have been known to happen), you temporarily disable expression
 evaluation with the `--evaloff` end `--evalon` flags. For example::
 
@@ -546,7 +546,7 @@ The following command writes its results as a JPEG file at a compression
 quality of 50 (pretty severe compression), illustrating how some compression
 methods allow a quality metric to be optionally appended to the name::
 
-    iconvert --compression jpeg:50 50 big.jpg small.jpg
+    oiiotool big.jpg --compression jpeg:50 -o small.jpg
 
 
 Converting between scanline and tiled images
@@ -748,7 +748,7 @@ Copy metadata from one image to another
 Suppose you have a (non-OIIO) application that consumes input Exr files and
 produces output Exr files, but along the way loses crucial metadata from
 the input files that you want carried along. This command will add all the
-metadata from the first image to the pixels of the second image:
+metadata from the first image to the pixels of the second image::
 
     oiiotool metaonly.exr pixelsonly.exr --pastemeta -o combined.exr
 
@@ -4128,9 +4128,9 @@ bottom you will see the list of all color spaces, looks, and displays that
 
     Replace the current image with a new image whose pixels are transformed
     using the named OpenColorIO "display" transformation given by the
-    *displayname* and *viewname*.  An empty string for *displayname*
-    means to use the default display, and an empty string for *viewname*
-    means to use the default view on that display.
+    *displayname* and *viewname*.  The word `"default"` (or the empty string
+    `""`) for *displayname* means to use the default display, and `"default"`
+    or `""` for *viewname* means to use the default view on that display.
 
     Optional appended modifiers include:
     
