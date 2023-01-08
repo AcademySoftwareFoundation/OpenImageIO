@@ -26,8 +26,4 @@ Reading exif.png
 exif.png             :   64 x   64, 3 channel, uint8 png
     SHA-1: 7CB41FEA50720B48BE0C145E1473982B23E9AB77
     channel list: R, G, B
-    Exif:ExifVersion: "0230"
-    Exif:FlashPixVersion: "0100"
-    Exif:FocalLength: 45.7 (45.7 mm)
-    Exif:WhiteBalance: 0 (auto)
     oiio:ColorSpace: "sRGB"
