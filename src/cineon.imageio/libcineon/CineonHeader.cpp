@@ -212,6 +212,8 @@ bool cineon::Header::Check()
 
 
 
+#ifdef OIIO_DOES_NOT_NEED_THIS
+
 bool cineon::Header::Write(OutStream *io)
 {
 	// write the header to the file
@@ -272,6 +274,7 @@ bool cineon::Header::WriteOffsetData(OutStream *io)
 
 	return true;
 }
+#endif  /* OIIO_DOES_NOT_NEED_THIS */
 
 
 bool cineon::Header::ValidMagicCookie(const U32 magic)
@@ -383,6 +386,7 @@ int cineon::GenericHeader::ImageElementCount() const
 }
 
 
+#ifdef OIIO_DOES_NOT_NEED_THIS
 void cineon::GenericHeader::CalculateNumberOfElements()
 {
 	int i = this->ImageElementCount();
@@ -407,6 +411,7 @@ void cineon::Header::CalculateOffsets()
 
 	}
 }
+#endif  /* OIIO_DOES_NOT_NEED_THIS */
 
 
 cineon::DataSize cineon::GenericHeader::ComponentDataSize(const int element) const
@@ -515,6 +520,7 @@ void cineon::IndustryHeader::FilmEdgeCode(char *edge, size_t size) const
 }
 
 
+#ifdef OIIO_DOES_NOT_NEED_THIS
 void cineon::IndustryHeader::SetFilmEdgeCode(const char *edge)
 {
 	this->filmManufacturingIdCode = OIIO::Strutil::stoi(OIIO::string_view(edge, 2));
@@ -523,6 +529,7 @@ void cineon::IndustryHeader::SetFilmEdgeCode(const char *edge)
 	this->prefix = OIIO::Strutil::stoi(OIIO::string_view(edge + 6, 6));
 	this->count = OIIO::Strutil::stoi(OIIO::string_view(edge + 12, 4));
 }
+#endif  /* OIIO_DOES_NOT_NEED_THIS */
 
 
 void cineon::GenericHeader::SetCreationTimeDate(const long sec)
