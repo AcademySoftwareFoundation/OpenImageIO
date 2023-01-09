@@ -1049,6 +1049,7 @@ namespace cineon
 		 */
 		bool				Read(InStream *);
 
+#ifdef OIIO_DOES_NOT_NEED_THIS
 		/*!
 		 * \brief Set the Output Stream object to write header to
 		 */
@@ -1056,6 +1057,7 @@ namespace cineon
 
 		// write the offset within the header
 		bool				WriteOffsetData(OutStream *);
+#endif
 
 		/*!
 		 * \brief Validate the header
