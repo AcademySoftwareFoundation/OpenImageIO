@@ -21,6 +21,43 @@ grid.tx              : 1000 x 1000, 4 channel, uint8 tiff
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
+Reading checker.tx
+checker.tx           :  128 x  128, 4 channel, uint8 tiff
+    MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 1C1A7D35CCED212B768B31F002B442EA947D89A6
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    compression: "zip"
+    fovcot: 1
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    oiio:AverageColor: "0.5,0.5,0.5,1"
+    oiio:BitsPerSample: 8
+    oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+maketx: no update required for "checker.tx"
+Reading checker.tx
+checker.tx           :  128 x  128, 4 channel, uint8 tiff
+    MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 1C1A7D35CCED212B768B31F002B442EA947D89A6
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    compression: "zip"
+    fovcot: 1
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    oiio:AverageColor: "0.5,0.5,0.5,1"
+    oiio:BitsPerSample: 8
+    oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
 Reading grid-resize.tx
 grid-resize.tx       : 1024 x 1024, 4 channel, uint8 tiff
     MIP-map levels: 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -264,6 +301,7 @@ checker-prman.tx     :  128 x  128, 4 channel, int16 tiff
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 2
 make_texture ERROR: maketx ERROR: Nan/Inf at 2 pixels
+make_texture ERROR: maketx ERROR: Nan/Inf at 2 pixels
 Reading nan.exr
 nan.exr              :   64 x   64, 3 channel, half openexr
     SHA-1: 47A8E8F3E8B2C3B6B032FCC8C39D3C5FC1AAA390
@@ -399,6 +437,27 @@ bumpslope.exr        :   64 x   64, 6 channel, half openexr
     oiio:AverageColor: "0.499779,-0.000457942,-4.17233e-05,0.00197116,0.00178894,3.45764e-05"
     oiio:ColorSpace: "Linear"
     oiio:SHA-1: "49B533110A914CE89BE0B14753A6A4CC037C964F"
+    oiio:subimages: 1
+    openexr:roundingmode: 0
+Reading cdf.exr
+cdf.exr              :   64 x   64, 1 channel, half openexr
+    MIP-map levels: 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 4125BD6CDB6F869433A2C4A3DF5A16AF92EC9641
+    channel list: Y
+    tile size: 64 x 64
+    CDF_0: 0.129412, 0.129412, 0.129412, 0.152941, 0.152941, 0.192157, 0.196078, 0.196078, 0.203922, 0.207843, 0.219608, 0.219608, 0.219608, 0.223529, 0.227451, 0.231373, ... [256 x float]
+    CDF_bits: 8
+    compression: "zip"
+    fovcot: 1
+    invCDF_0: 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... [256 x float]
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    oiio:AverageColor: "0.499779"
+    oiio:ColorSpace: "Linear"
+    oiio:SHA-1: "00DFB31D0260CC466CDCF9FE42446D4896E655FE"
     oiio:subimages: 1
     openexr:roundingmode: 0
 Comparing "uffizi_latlong_env-128.exr" and "ref/uffizi_latlong_env-128.exr"
