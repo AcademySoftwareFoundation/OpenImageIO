@@ -1751,9 +1751,13 @@ PSDInput::setup()
     // Composite spec
     m_specs.emplace_back(m_header.width, m_header.height, spec_channel_count,
                          m_type_desc);
-    m_specs.back().extra_attribs = m_composite_attribs.extra_attribs;
+    ImageSpec& spec    = m_specs.back();
+    spec.extra_attribs = m_composite_attribs.extra_attribs;
     if (m_WantRaw)
-        fill_channel_names(m_specs.back(), m_image_data.transparency);
+        fill_channel_names(spec, m_image_data.transparency);
+    if (spec.alpha_channel != -1)
+        if (m_keep_unassociated_alpha)
+            spec.attribute("oiio:UnassociatedAlpha", 1);
 
     // Composite channels
     m_channels.reserve(m_subimage_count);
@@ -1780,6 +1784,9 @@ PSDInput::setup()
         spec.extra_attribs = m_common_attribs.extra_attribs;
         if (m_WantRaw)
             fill_channel_names(spec, transparency);
+        if (spec.alpha_channel != -1)
+            if (m_keep_unassociated_alpha)
+                spec.attribute("oiio:UnassociatedAlpha", 1);
 
         m_channels.resize(m_channels.size() + 1);
         std::vector<ChannelInfo*>& channels = m_channels.back();
@@ -1793,10 +1800,6 @@ PSDInput::setup()
         if (layer.name.size())
             spec.attribute("oiio:subimagename", layer.name);
     }
-
-    if (m_specs.back().alpha_channel != -1)
-        if (m_keep_unassociated_alpha)
-            m_specs.back().attribute("oiio:UnassociatedAlpha", 1);
 }
 
 
