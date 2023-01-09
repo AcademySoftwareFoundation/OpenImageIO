@@ -291,7 +291,7 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
       .hidden(); // DEPRECATED 1.6
     ap.arg("--mipimage %L:FILENAME", &mipimages)
       .help("Specify an individual MIP level");
-    ap.arg("--cdf %d:N", &cdf)
+    ap.arg("--cdf", &cdf)
       .help("Store the forward and inverse Gaussian CDF as a lookup-table. The variance is set by cdfsigma (1/6 by default), and the number of buckets \
               in the lookup table is determined by cdfbits (8 bit - 256 buckets by default)");
     ap.arg("--cdfsigma %f:N", &cdfsigma)
@@ -531,7 +531,7 @@ main(int argc, char* argv[])
         mode = ImageBufAlgo::MakeTxBumpWithSlopes;
 
     bool ok = ImageBufAlgo::make_texture(mode, filenames[0], outputfilename,
-                                         configspec);
+                                         configspec, &std::cout);
     if (!ok)
         std::cout << "make_texture ERROR: " << OIIO::geterror() << "\n";
     if (runstats)

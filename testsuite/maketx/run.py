@@ -7,9 +7,17 @@ outputs = [ ]
 # Just for simplicity, make a checkerboard with a solid alpha
 command += oiiotool (" --pattern checker 128x128 4 --ch R,G,B,=1.0"
             + " -d uint8 -o " + make_relpath("checker.tif") )
+# Noise bump pattern
+command += oiiotool (" --pattern noise 64x64 1"
+           + " -d half -o " + make_relpath("noise.exr"))
 
 # Basic test - recreate the grid texture
 command += maketx_command ("../common/grid.tif", "grid.tx", showinfo=True)
+
+# Make tex twice using -u
+command += maketx_command ("checker.tif", "checker.tx", "-u", showinfo=True)
+command += maketx_command ("checker.tif", "checker.tx", "-u", showinfo=True)
+
 
 # Test --resize (to power of 2) with the grid, which is 1000x1000
 command += maketx_command ("../common/grid.tif", "grid-resize.tx",
@@ -122,11 +130,21 @@ command += maketx_command ("src/uffizi_probe-128.exr", "uffizi_latlong_env-128.e
                            "--lightprobe -d half")
 outputs += [ "uffizi_latlong_env-128.exr" ]
 
-#Test --bumpslopes to export a 6 channels height map with gradients
-command += oiiotool (" --pattern noise 64x64 1"
-           + " -d half -o " + make_relpath("bump.exr"))
-command += maketx_command ("bump.exr", "bumpslope.exr",
+# Test --bumpslopes to export a 6 channels height map with gradients
+command += maketx_command ("noise.exr", "bumpslope.exr",
                            "--bumpslopes -d half", showinfo=True)
+
+# Test --cdf
+command += maketx_command ("noise.exr", "cdf.exr",
+                           "--cdf -d half", showinfo=True)
+
+# Test --sattrib, --attrib
+command += maketx_command ("checker.tif", "checker-attribs.tx",
+                           "--sattrib sattr sname sval " +
+                           "--attrib iattr iname 42 " +
+                           "--attrib fattr iname 3.14159 " +
+                           "--attrib sattr2 sval2 ",
+                           showinfo = True)
 
 
 outputs += [ "out.txt" ]
