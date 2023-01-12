@@ -45,6 +45,11 @@ command += oiiotool ("../common/grid.tif --resize 25% -o resize2.tif")
 command += oiiotool ("../common/grid.tif --resize 64x64 -o resize64.tif")
 command += oiiotool ("resize64.tif --resize 512x512 -o resize512.tif")
 
+# test resize with non-default from/to/offset
+command += oiiotool ("../common/grid.tif --resize:from=200x200+300+300 64x64 -o resizefrom.tif")
+command += oiiotool ("../common/grid.tif --resize:from=200x200+300+300:to=32x32 64x64 -o resizefromto.tif")
+command += oiiotool ("../common/grid.tif --resize:from=200x200+300+300:to=32x32:offset=+5-5 64x64 -o resizefromtooffset.tif")
+
 # test resize with nonzero origin. Save to exr to make extra sure we have
 # the display and data windows correct.
 command += oiiotool ("--pattern fill:topleft=1,0,0:topright=0,1,0:bottomleft=0,0,1:bottomright=0,1,1 64x64 3 " +
@@ -133,6 +138,7 @@ outputs = [
             "resample.tif", "resize.tif", "resize2.tif",
             "resize64.tif", "resize512.tif",
             "resized-offset.exr",
+            "resizefrom.tif", "resizefromto.tif", "resizefromtooffset.tif",
             "fit.tif", "fit2.tif", "fit3.tif", "fit4.exr",
             "fitw-letterbox-200x200.exr",
             "fitw-width-200x200.exr",

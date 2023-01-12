@@ -679,6 +679,9 @@ bool OIIO_API resize (ImageBuf &dst, const ImageBuf &src, Filter2D *filter,
 /// For "deep" images, this function returns copies the closest source pixel
 /// needed, rather than attempting to interpolate deep pixels (regardless of
 /// the value of `interpolate`).
+///
+/// @see ImageBufAlgo::resize()
+
 ImageBuf OIIO_API resample (const ImageBuf &src, bool interpolate = true,
                         ROI roi={}, int nthreads=0);
 /// Write to an existing image `dst` (allocating if it is uninitialized).
@@ -790,6 +793,27 @@ bool OIIO_API warp (ImageBuf &dst, const ImageBuf &src, M33fParam M,
                     const Filter2D *filter, bool recompute_roi = false,
                     ImageBuf::WrapMode wrap = ImageBuf::WrapDefault,
                     ROI roi = {}, int nthreads=0);
+
+#ifdef OIIO_INTERNAL  /* experimental -- not part of public API yet */
+ImageBuf OIIO_API warp (const ImageBuf &src, M33fParam M,
+                        string_view filtername,
+                        float filterwidth, bool recompute_roi,
+                        ImageBuf::WrapMode wrap, bool edgeclamp,
+                        ROI roi={}, int nthreads=0);
+ImageBuf OIIO_API warp (const ImageBuf &src, M33fParam M,
+                        const Filter2D *filter, bool recompute_roi,
+                        ImageBuf::WrapMode wrap, bool edgeclamp,
+                        ROI roi = {}, int nthreads=0);
+bool OIIO_API warp (ImageBuf &dst, const ImageBuf &src, M33fParam M,
+                    string_view filtername,
+                    float filterwidth, bool recompute_roi,
+                    ImageBuf::WrapMode wrap, bool edgeclamp,
+                    ROI roi={}, int nthreads=0);
+bool OIIO_API warp (ImageBuf &dst, const ImageBuf &src, M33fParam M,
+                    const Filter2D *filter, bool recompute_roi,
+                    ImageBuf::WrapMode wrap, bool edgeclamp,
+                    ROI roi = {}, int nthreads=0);
+#endif  // OIIO_INTERNAL
 /// @}
 
 

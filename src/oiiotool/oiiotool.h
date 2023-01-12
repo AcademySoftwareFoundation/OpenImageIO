@@ -272,7 +272,8 @@ public:
     // S% (e.g. "50%") or just S (e.g., "1.2") will be accepted to scale the
     // existing width and height (rounding to the nearest whole number of
     // pixels.
-    bool adjust_geometry(string_view command, int& w, int& h, int& x, int& y,
+    template<typename T>
+    bool adjust_geometry(string_view command, T& w, T& h, T& x, T& y,
                          string_view geom, bool allow_scaling = false,
                          bool allow_size = true) const;
 
@@ -881,9 +882,11 @@ public:
         // For each subimage, find the ImageBuf's for input and output
         // images, and call impl().
         for (int s = 0; s < subimages; ++s) {
+            m_current_subimage = s;
             // Get pointers for the ImageBufs for this subimage
             m_img.resize(nimages());
             for (int m = 0, nmip = ir(0)->miplevels(); m < nmip; ++m) {
+                m_current_miplevel = m;
                 for (int i = 0; i < nimages(); ++i)
                     m_img[i] = &((*ir(i))(std::min(s, ir(i)->subimages() - 1),
                                           std::min(m, ir(i)->miplevels(s))));
@@ -1042,6 +1045,10 @@ public:
     string_view opname() const { return m_opname; }
     ParamValueList& options() { return m_options; }
     const ParamValueList& options() const { return m_options; }
+    AttrDelegate<const ParamValueList> options(string_view name) const
+    {
+        return m_options[name];
+    }
     ImageBuf* img(int i) const { return m_img[i]; }
 
     // Retrieve an ImageRec we're working on. (Note: [0] is the output.)
@@ -1075,6 +1082,9 @@ public:
     void inplace(bool val) { m_inplace = val; }
     bool inplace() const { return m_inplace; }
 
+    int current_subimage() const { return m_current_subimage; }
+    int current_miplevel() const { return m_current_miplevel; }
+
 protected:
     Oiiotool& ot;
     std::string m_opname;
@@ -1093,6 +1103,8 @@ protected:
     setup_func_t m_setup_func;
     impl_func_t m_impl_func;
     new_output_imagerec_func_t m_new_output_imagerec_func;
+    int m_current_subimage;  // for impl(), which subimage are we on?
+    int m_current_miplevel;  // for impl(), which miplevel are we on?
 };
 
 

@@ -3167,10 +3167,32 @@ current top image.
 
             *wscale% x hscale%*
 
-    if `width` or `height` is 0, that dimension will be
-    automatically computed so as to preserve the original aspect ratio.
+    If `width` or `height` is 0, that dimension will be automatically computed
+    so as to preserve the original aspect ratio.
+
+    By default, the scaling that occurs is to map the *full/display* window
+    area of the input image to the full/display window of the output image
+    (determined by the `size` argument). However, a more general warping
+    can be specified using any of the `:from=`, `:to=`, or `:offset=`
+    optional modifiers. (These modifiers were added in OpenmageIO 2.5.)
 
     Optional appended modifiers include:
+
+      `:from=` *size*
+        The region (specified in any of the same forms as the *size* argument,
+        with decimal / partial pixel sizes and offsets allowed) of the source
+        image that defines the transformational mapping. This defaults to the
+        full/display window of the source image.
+
+      `:to=` *size*
+        The region (specified in any of the same forms as the *size* argument,
+        with decimal / partial pixel sizes and offsets allowed) of the
+        destination image that defines the transformational mapping. This
+        defaults to the full/display window of the destination image.
+
+      `:offset=` [+-] *xoffset* [+-] *yoffset*
+        An additional offset (after the resize) to adjust the placement of the
+        result. Fractional pixel offsets are allowed.
 
       `:filter=` *name*
         Filter name. The default is `blackman-harris` when increasing
@@ -3182,6 +3204,11 @@ current top image.
         `--rangeexpand`, which can reduce visible ringing artifacts when a
         filter with negative lobes is used on a very high-contrast HDR image.
 
+      `:edgeclamp=` *bool*
+        If nonzero, clamp the image to the edge pixels before filtering.
+        This might help with certain edge ringing situations. The default is
+        0 (off).
+
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
@@ -3192,6 +3219,15 @@ current top image.
         --resize 300%             # increase resolution to 1920x1440
         --resize 400x0            # new resolution will be 400x300
 
+        # Create a 1024x768 image that is a resized and shifted version
+        # of the original, where the upper left 100x100 section of the
+        # original maps to a 200x200 region starting at the 50,50
+        # coordinates of the new image.
+        --resize:from=100x100:to=200x200+50+50 1024x768
+
+       # Resize to 320x240, but with an additional 1/2 pixel shift in
+       # each direction.
+       --resize:offset=+0.5+0.5 320x240
 
 .. option:: --fit <size>
 
