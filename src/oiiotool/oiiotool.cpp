@@ -102,13 +102,13 @@ static Oiiotool ot;
 
 // Macro to fully set up the "action" function that straightforwardly
 // calls a custom OiiotoolOp class.
-#define OP_CUSTOMCLASS(name, opclass, ninputs)                        \
-    static int action_##name(int argc, const char* argv[])            \
-    {                                                                 \
-        if (ot.postpone_callback(ninputs, action_##name, argc, argv)) \
-            return 0;                                                 \
-        opclass op(ot, #name, argc, argv);                            \
-        return op();                                                  \
+#define OP_CUSTOMCLASS(name, opclass, ninputs)                  \
+    static int action_##name(cspan<const char*> argv)           \
+    {                                                           \
+        if (ot.postpone_callback(ninputs, action_##name, argv)) \
+            return 0;                                           \
+        opclass op(ot, #name, argv);                            \
+        return op();                                            \
     }
 
 
@@ -209,6 +209,14 @@ format_resolution(int w, int h, int x, int y)
 
 
 static std::string
+format_resolution(float w, float h, float x, float y)
+{
+    return Strutil::fmt::format("{}x{}{:+g}{:+g}", w, h, x, y);
+}
+
+
+
+static std::string
 format_resolution(int w, int h, int d, int x, int y, int z)
 {
     return Strutil::fmt::format("{}x{}x{}{:+d}{:+d}{:+d}", w, h, d, x, y, z);
@@ -225,8 +233,9 @@ scan_resolution(string_view str, T& w, T& h)
 }
 
 
+template<typename T>
 static bool
-scan_offset(string_view str, int& x, int& y)
+scan_offset(string_view str, T& x, T& y)
 {
     return Strutil::parse_value(str, x)
            && (str.size() && (str[0] == '+' || str[0] == '-'))
@@ -234,8 +243,9 @@ scan_offset(string_view str, int& x, int& y)
 }
 
 
+template<typename T>
 static bool
-scan_res_offset(string_view str, int& w, int& h, int& x, int& y)
+scan_res_offset(string_view str, T& w, T& h, T& x, T& y)
 {
     return Strutil::parse_value(str, w) && Strutil::parse_char(str, 'x')
            && Strutil::parse_value(str, h)
@@ -261,11 +271,12 @@ scan_scale_percent(string_view str, float& x)
 }
 
 
+template<typename T>
 static bool
-scan_box(string_view str, int& xmin, int& ymin, int& xmax, int& ymax)
+scan_box(string_view str, T& xmin, T& ymin, T& xmax, T& ymax)
 {
     Strutil::trim_whitespace(str);
-    float f[4];
+    T f[4];
     if (Strutil::parse_values(str, "", f, ",") && str.empty()) {
         xmin = f[0];
         ymin = f[1];
@@ -281,11 +292,30 @@ static void
 unit_test_scan_box()
 {
     Strutil::print("unit test scan_box...\n");
-    int xmin = -1, ymin = -1, xmax = -1, ymax = -1;
-    OIIO_CHECK_ASSERT(scan_box("11,12,13,14", xmin, ymin, xmax, ymax)
-                      && xmin == 11 && ymin == 12 && xmax == 13 && ymax == 14);
-    OIIO_CHECK_ASSERT(scan_box("1,2,3", xmin, ymin, xmax, ymax) == false);
-    OIIO_CHECK_ASSERT(scan_box("1,2,3,4,5", xmin, ymin, xmax, ymax) == false);
+    {
+        int xmin = -1, ymin = -1, xmax = -1, ymax = -1;
+        OIIO_CHECK_ASSERT(scan_box("11,12,13,14", xmin, ymin, xmax, ymax)
+                          && xmin == 11 && ymin == 12 && xmax == 13
+                          && ymax == 14);
+        OIIO_CHECK_ASSERT(scan_box("1,2,3", xmin, ymin, xmax, ymax) == false);
+        OIIO_CHECK_ASSERT(scan_box("1,2,3,4,5", xmin, ymin, xmax, ymax)
+                          == false);
+        OIIO_CHECK_ASSERT(scan_box("1,2.5,3,4", xmin, ymin, xmax, ymax)
+                          == false);
+    }
+    {
+        float xmin = -1, ymin = -1, xmax = -1, ymax = -1;
+        OIIO_CHECK_ASSERT(scan_box("11,12,13,14", xmin, ymin, xmax, ymax)
+                          && xmin == 11 && ymin == 12 && xmax == 13
+                          && ymax == 14);
+        OIIO_CHECK_ASSERT(
+            scan_box("11.5,12.5,13.5,14.5", xmin, ymin, xmax, ymax)
+            && xmin == 11.5f && ymin == 12.5f && xmax == 13.5f
+            && ymax == 14.5f);
+        OIIO_CHECK_ASSERT(scan_box("1,2,3", xmin, ymin, xmax, ymax) == false);
+        OIIO_CHECK_ASSERT(scan_box("1,2,3,4,5", xmin, ymin, xmax, ymax)
+                          == false);
+    }
 }
 #endif
 
@@ -1507,21 +1537,50 @@ Oiiotool::get_position(string_view command, string_view geom, int& x, int& y)
 
 
 
+// Tround rounds x to the nearest T type.
+template<typename T>
+inline T
+Tround(float x);
+
+// Tround of float to float just returns the float, no round necessary.
+template<>
+inline float
+Tround<float>(float x)
+{
+    return x;
+}
+
+// Tround of float to int does a round to nearest int.
+template<>
+inline int
+Tround<int>(float x)
+{
+    return ifloor(x + 0.5f);
+}
+
+
+
+template<typename T>
 bool
-Oiiotool::adjust_geometry(string_view command, int& w, int& h, int& x, int& y,
+Oiiotool::adjust_geometry(string_view command, T& w, T& h, T& x, T& y,
                           string_view geom, bool allow_scaling,
                           bool allow_size) const
 {
     float scaleX = 1.0f;
     float scaleY = 1.0f;
-    int ww = w, hh = h;
-    int xx = x, yy = y;
-    int xmax, ymax;
+    T ww = w, hh = h;
+    T xx = x, yy = y;
+    T xmax, ymax;
     if (scan_box(geom, xx, yy, xmax, ymax)) {
         x = xx;
         y = yy;
-        w = std::max(0, xmax - xx + 1);
-        h = std::max(0, ymax - yy + 1);
+        if (std::is_integral<T>::value) {
+            w = std::max(T(0), xmax - xx + 1);
+            h = std::max(T(0), ymax - yy + 1);
+        } else {
+            w = std::max(T(0), xmax - xx);
+            h = std::max(T(0), ymax - yy);
+        }
     } else if (scan_res_offset(geom, ww, hh, xx, yy)) {
         if (!allow_size) {
             warning(command,
@@ -1529,9 +1588,9 @@ Oiiotool::adjust_geometry(string_view command, int& w, int& h, int& x, int& y,
             return false;
         }
         if (ww == 0 && h != 0)
-            ww = int(hh * float(w) / float(h) + 0.5f);
+            ww = Tround<T>(hh * float(w) / float(h));
         if (hh == 0 && w != 0)
-            hh = int(ww * float(h) / float(w) + 0.5f);
+            hh = Tround<T>(ww * float(h) / float(w));
         w = ww;
         h = hh;
         x = xx;
@@ -1543,9 +1602,9 @@ Oiiotool::adjust_geometry(string_view command, int& w, int& h, int& x, int& y,
             return false;
         }
         if (ww == 0 && h != 0)
-            ww = int(hh * float(w) / float(h) + 0.5f);
+            ww = Tround<T>(hh * float(w) / float(h));
         if (hh == 0 && w != 0)
-            hh = int(ww * float(h) / float(w) + 0.5f);
+            hh = Tround<T>(ww * float(h) / float(w));
         w = ww;
         h = hh;
     } else if (scan_scale_percent(geom, scaleX, scaleY)) {
@@ -1559,8 +1618,8 @@ Oiiotool::adjust_geometry(string_view command, int& w, int& h, int& x, int& y,
             scaleX = scaleY;
         if (scaleY == 0 && scaleX != 0)
             scaleY = scaleX;
-        w = (int)(w * scaleX + 0.5f);
-        h = (int)(h * scaleY + 0.5f);
+        w = Tround<T>(w * scaleX);
+        h = Tround<T>(h * scaleY);
     } else if (scan_offset(geom, xx, yy)) {
         x = xx;
         y = yy;
@@ -1570,15 +1629,15 @@ Oiiotool::adjust_geometry(string_view command, int& w, int& h, int& x, int& y,
             return false;
         }
         scaleX *= 0.01f;
-        w = (int)(w * scaleX + 0.5f);
-        h = (int)(h * scaleX + 0.5f);
+        w = Tround<T>(w * scaleX);
+        h = Tround<T>(h * scaleX);
     } else if (Strutil::parse_float(geom, scaleX, false)) {
         if (!allow_scaling) {
             warning(command, "can't be used to rescale the size");
             return false;
         }
-        w = (int)(w * scaleX + 0.5f);
-        h = (int)(h * scaleX + 0.5f);
+        w = Tround<T>(w * scaleX);
+        h = Tround<T>(h * scaleX);
     } else {
         errorfmt(command, "Unrecognized geometry \"{}\"", geom);
         return false;
@@ -2693,9 +2752,8 @@ action_iscolorspace(cspan<const char*> argv)
 // --colorconvert
 class OpColorConvert final : public OiiotoolOp {
 public:
-    OpColorConvert(Oiiotool& ot, string_view opname, int argc,
-                   const char* argv[])
-        : OiiotoolOp(ot, opname, argc, argv, 1)
+    OpColorConvert(Oiiotool& ot, string_view opname, cspan<const char*> argv)
+        : OiiotoolOp(ot, opname, argv, 1)
     {
         fromspace = args(1);
         tospace   = args(2);
@@ -2749,16 +2807,16 @@ OP_CUSTOMCLASS(colorconvert, OpColorConvert, 1);
 
 // --tocolorspace
 static int
-action_tocolorspace(int argc, const char* argv[])
+action_tocolorspace(cspan<const char*> argv)
 {
     // Don't time -- let it get accounted by colorconvert
-    OIIO_DASSERT(argc == 2);
+    OIIO_DASSERT(argv.size() == 2);
     if (!ot.curimg.get()) {
         ot.warning(argv[0], "no current image available to modify");
         return 0;
     }
     const char* args[3] = { argv[0], "current", argv[1] };
-    return action_colorconvert(3, args);
+    return action_colorconvert(args);
 }
 
 
@@ -4201,8 +4259,8 @@ action_cut(int argc, const char* argv[])
 // --resample
 class OpResample final : public OiiotoolOp {
 public:
-    OpResample(Oiiotool& ot, string_view opname, int argc, const char* argv[])
-        : OiiotoolOp(ot, opname, argc, argv, 1)
+    OpResample(Oiiotool& ot, string_view opname, cspan<const char*> argv)
+        : OiiotoolOp(ot, opname, argv, 1)
     {
     }
     bool setup() override
@@ -4258,63 +4316,66 @@ OP_CUSTOMCLASS(resample, OpResample, 1);
 // --resize
 class OpResize final : public OiiotoolOp {
 public:
-    OpResize(Oiiotool& ot, string_view opname, int argc, const char* argv[])
-        : OiiotoolOp(ot, opname, argc, argv, 1)
+    OpResize(Oiiotool& ot, string_view opname, cspan<const char*> argv)
+        : OiiotoolOp(ot, opname, argv, 1)
     {
     }
+
     bool setup() override
     {
+        from_geom = options("from");
+        to_geom   = options("to");
+        offset    = options("offset");
+
         int subimages = compute_subimages();
         bool nochange = true;
         std::vector<ImageSpec> newspecs(subimages);
+        M.resize(subimages);
+        do_warp.resize(subimages, false);
         for (int s = 0; s < subimages; ++s) {
-            // The size argument will be the resulting display (full) window.
             const ImageSpec& Aspec(*ir(1)->spec(s));
             ImageSpec& newspec(newspecs[s]);
-            newspec = Aspec;
-            ot.adjust_geometry(args(0), newspec.full_width, newspec.full_height,
-                               newspec.full_x, newspec.full_y, args(1) /*size*/,
-                               true);
-            if (newspec.full_width == Aspec.full_width
+            do_warp[s] = compute_warp(Aspec, newspec, M[s]);
+            if (!do_warp[s] && newspec.full_width == Aspec.full_width
                 && newspec.full_height == Aspec.full_height) {
+                // simple resize, but actually, there is no change
                 continue;
             }
             nochange = false;
-            // Compute corresponding data window.
-            float wratio = float(newspec.full_width) / float(Aspec.full_width);
-            float hratio = float(newspec.full_height)
-                           / float(Aspec.full_height);
-            newspec.x = newspec.full_x
-                        + int(floorf((Aspec.x - Aspec.full_x) * wratio));
-            newspec.y = newspec.full_y
-                        + int(floorf((Aspec.y - Aspec.full_y) * hratio));
-            newspec.width  = int(ceilf(Aspec.width * wratio));
-            newspec.height = int(ceilf(Aspec.height * hratio));
+            if (!do_warp[s]) {
+                // Not an identity transform
+                // Compute corresponding data window.
+                float wratio = float(newspec.full_width)
+                               / float(Aspec.full_width);
+                float hratio = float(newspec.full_height)
+                               / float(Aspec.full_height);
+                newspec.x = newspec.full_x
+                            + int(floorf((Aspec.x - Aspec.full_x) * wratio));
+                newspec.y = newspec.full_y
+                            + int(floorf((Aspec.y - Aspec.full_y) * hratio));
+                newspec.width  = int(ceilf(Aspec.width * wratio));
+                newspec.height = int(ceilf(Aspec.height * hratio));
+            }
         }
         if (nochange) {
-            // No change -- pop the temp result and restore the original
+            // No change necessary to any subimage -- pop the temp result and
+            // restore the original.
             ot.pop();
             ot.push(ir(1));
             return false;  // nothing more to do
         }
+        // If a change is necessary to any subimage, allocate the new images
         for (int s = 0; s < subimages; ++s)
             (*ir(0))(s).reset(newspecs[s]);
         return true;
     }
+
     bool impl(span<ImageBuf*> img) override
     {
         std::string filtername = options()["filter"];
         bool highlightcomp     = options().get_int("highlightcomp");
-        if (ot.debug) {
-            const ImageSpec& newspec(img[0]->spec());
-            const ImageSpec& Aspec(img[1]->spec());
-            std::cout << "  Resizing " << Aspec.width << "x" << Aspec.height
-                      << " to " << newspec.width << "x" << newspec.height
-                      << " using "
-                      << (filtername.size() ? filtername.c_str() : "default")
-                      << " filter\n";
-        }
-        bool ok = true;
+        bool edgeclamp         = options().get_int("edgeclamp");
+        bool ok                = true;
         ImageBuf tmpimg;
         ImageBuf* src = img[1];
         if (highlightcomp) {
@@ -4324,14 +4385,97 @@ public:
             ok &= ImageBufAlgo::rangecompress(tmpimg, *src);
             src = &tmpimg;
         }
-        ok &= ImageBufAlgo::resize(*img[0], *src, filtername, 0.0f,
-                                   img[0]->roi());
+        if (do_warp[current_subimage()])
+            ok &= ImageBufAlgo::warp(*img[0], *src, M[current_subimage()],
+                                     filtername, 0.0f, false,
+                                     ImageBuf::WrapDefault, edgeclamp);
+        else
+            ok &= ImageBufAlgo::resize(*img[0], *src, filtername, 0.0f,
+                                       img[0]->roi());
         if (highlightcomp && ok) {
             // re-expand the range in place
             ok &= ImageBufAlgo::rangeexpand(*img[0], *img[0]);
         }
         return ok;
     }
+
+    // Based on requested output size, and optional from/to/offset geometry,
+    // compute (a) newspec, the spec of the output, (b) M, the transformation
+    // matrix. Return true if the transformation requires a full warp, or
+    // false if a separable resize will do.
+    bool compute_warp(const ImageSpec& Aspec, ImageSpec& newspec,
+                      Imath::M33f& M)
+    {
+        newspec = Aspec;
+        ot.adjust_geometry(args(0), newspec.full_width, newspec.full_height,
+                           newspec.full_x, newspec.full_y, args(1) /*size*/,
+                           true);
+        newspec.x      = newspec.full_x;
+        newspec.y      = newspec.full_y;
+        newspec.width  = newspec.full_width;
+        newspec.height = newspec.full_height;
+
+        float from_x                   = Aspec.full_x;
+        float from_y                   = Aspec.full_y;
+        float from_w                   = Aspec.full_width;
+        float from_h                   = Aspec.full_height;
+        OIIO_MAYBE_UNUSED bool from_ok = true;
+        if (from_geom.size())
+            from_ok = ot.adjust_geometry(args(0), from_w, from_h, from_x,
+                                         from_y, from_geom, false);
+        float to_x                   = newspec.full_x;
+        float to_y                   = newspec.full_y;
+        float to_w                   = newspec.full_width;
+        float to_h                   = newspec.full_height;
+        OIIO_MAYBE_UNUSED bool to_ok = true;
+        if (to_geom.size())
+            to_ok = ot.adjust_geometry(args(0), to_w, to_h, to_x, to_y, to_geom,
+                                       false);
+
+        float offsetx = 0.0f, offsety = 0.0f;
+        if (offset.size())
+            scan_offset(offset, offsetx, offsety);
+
+        M.makeIdentity();
+        M.translate(Imath::V2f(to_x + offsetx, to_y + offsety));
+        M.scale(Imath::V2f(to_w / from_w, to_h / from_h));
+        M.translate(Imath::V2f(-from_x, -from_y));
+
+        bool do_warp = (from_x != Aspec.full_x || from_y != Aspec.full_y
+                        || from_w != Aspec.full_width
+                        || from_h != Aspec.full_height);
+        do_warp |= (to_x != newspec.full_x || to_y != newspec.full_y
+                    || to_w != newspec.full_width
+                    || to_h != newspec.full_height);
+        do_warp |= (offsetx != 0.0f || offsety != 0.0f);
+
+        // Safety valve: undocumented "forcewarp" lets you force a warp if
+        // it's 1, force a resize if it's 0 (default behavior if it's not set).
+        int forcewarp = options().get_int("forcewarp", -1);
+        if (forcewarp >= 0)
+            do_warp = (forcewarp > 0);
+
+        if (ot.debug) {
+            std::string filtername = options("filter");
+            print("  Resizing input {} full {}\n"
+                  "   -> output {} full {}\n"
+                  "     mapping {} to {}\n"
+                  "     using {} filter\n",
+                  Aspec.roi_full(), Aspec.roi(), newspec.roi(),
+                  newspec.roi_full(),
+                  format_resolution(from_w, from_h, from_x, from_y),
+                  format_resolution(to_w, to_h, to_x + offsetx, to_y + offsety),
+                  (filtername.size() ? filtername.c_str() : "default"));
+            print("  M = {}\n", M);
+            print("  implementing with {}\n", do_warp ? "warp" : "resize");
+        }
+        return do_warp;
+    }
+
+private:
+    std::string from_geom, to_geom, offset;
+    std::vector<Imath::M33f> M;
+    std::vector<bool> do_warp;
 };
 
 OP_CUSTOMCLASS(resize, OpResize, 1);
@@ -4491,7 +4635,7 @@ action_pixelaspect(int argc, const char* argv[])
         if (highlightcomp)
             command += ":highlightcomp=1";
         const char* newargv[2] = { command.c_str(), resize.c_str() };
-        action_resize(2, newargv);
+        action_resize(newargv);
         A                         = ot.top();
         A->spec(0, 0)->full_width = (*A)(0, 0).specmod().full_width
             = scale_full_width;
@@ -5318,7 +5462,7 @@ input_file(int argc, const char* argv[])
                 if (ot.debug)
                     std::cout << "  Converting " << filename << " from "
                               << colorspace << " to " << linearspace << "\n";
-                action_colorconvert(3, argv);
+                action_colorconvert(argv);
             }
         }
 
@@ -5620,7 +5764,7 @@ output_file(int /*argc*/, const char* argv[])
                 cmd += ":unpremult=1";
             const char* argv[] = { cmd.c_str(), currentspace.c_str(),
                                    outcolorspace.c_str() };
-            action_colorconvert(3, argv);
+            action_colorconvert(argv);
             ir = ot.curimg;
         }
     }
@@ -6728,7 +6872,7 @@ Oiiotool::getargs(int argc, char* argv[])
       .help("Resample (640x480, 50%) (options: interp=0)")
       .action(action_resample);
     ap.arg("--resize %s:GEOM")
-      .help("Resize (640x480, 50%) (options: filter=%s, highlightcomp=%d)")
+      .help("Resize (640x480, 50%) (options: from=<geom>, to=<geom>, offset=<+x+y> filter=%s, highlightcomp=%d, edgeclamp=%d)")
       .action(action_resize);
     ap.arg("--fit %s:GEOM")
       .help("Resize to fit within a window size (options: filter=%s, pad=%d, fillmode=%s, exact=%d, highlightcomp=%d)")

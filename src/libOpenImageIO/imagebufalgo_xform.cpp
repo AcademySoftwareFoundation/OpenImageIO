@@ -284,7 +284,7 @@ warp_impl(ImageBuf& dst, const ImageBuf& src, const Imath::M33f& M,
     // filter we allocate here is properly destroyed.
     std::shared_ptr<Filter2D> filterptr((Filter2D*)NULL, Filter2D::destroy);
     if (filter == NULL) {
-        // If no filter was provided, punt and just linearly interpolate.
+        // If no filter was provided, punt and use lanczos3
         filterptr.reset(Filter2D::create("lanczos3", 6.0f, 6.0f));
         filter = filterptr.get();
     }
@@ -348,6 +348,67 @@ ImageBufAlgo::warp(const ImageBuf& src, M33fParam M, string_view filtername,
     ImageBuf result;
     bool ok = warp(result, src, M, filtername, filterwidth, recompute_roi, wrap,
                    roi, nthreads);
+    if (!ok && !result.has_error())
+        result.errorfmt("ImageBufAlgo::warp() error");
+    return result;
+}
+
+
+
+bool
+ImageBufAlgo::warp(ImageBuf& dst, const ImageBuf& src, M33fParam M,
+                   const Filter2D* filter, bool recompute_roi,
+                   ImageBuf::WrapMode wrap, bool edgeclamp, ROI roi,
+                   int nthreads)
+{
+    return warp_impl(dst, src, M, filter, recompute_roi, wrap, edgeclamp, roi,
+                     nthreads);
+}
+
+
+
+bool
+ImageBufAlgo::warp(ImageBuf& dst, const ImageBuf& src, M33fParam M,
+                   string_view filtername, float filterwidth,
+                   bool recompute_roi, ImageBuf::WrapMode wrap, bool edgeclamp,
+                   ROI roi, int nthreads)
+{
+    // Set up a shared pointer with custom deleter to make sure any
+    // filter we allocate here is properly destroyed.
+    auto filter = get_warp_filter(filtername, filterwidth, dst);
+    if (!filter) {
+        return false;  // error issued in get_warp_filter
+    }
+    return warp(dst, src, M, filter.get(), recompute_roi, wrap, edgeclamp, roi,
+                nthreads);
+}
+
+
+
+ImageBuf
+ImageBufAlgo::warp(const ImageBuf& src, M33fParam M, const Filter2D* filter,
+                   bool recompute_roi, ImageBuf::WrapMode wrap, bool edgeclamp,
+                   ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = warp(result, src, M, filter, recompute_roi, wrap, edgeclamp, roi,
+                   nthreads);
+    if (!ok && !result.has_error())
+        result.errorfmt("ImageBufAlgo::warp() error");
+    return result;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::warp(const ImageBuf& src, M33fParam M, string_view filtername,
+                   float filterwidth, bool recompute_roi,
+                   ImageBuf::WrapMode wrap, bool edgeclamp, ROI roi,
+                   int nthreads)
+{
+    ImageBuf result;
+    bool ok = warp(result, src, M, filtername, filterwidth, recompute_roi, wrap,
+                   edgeclamp, roi, nthreads);
     if (!ok && !result.has_error())
         result.errorfmt("ImageBufAlgo::warp() error");
     return result;
