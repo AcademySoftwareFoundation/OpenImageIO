@@ -2474,9 +2474,13 @@ aspects of the writing itself:
        TIFF files despite their being legal.
    * - ``tiff:ColorSpace``
      - string
-     - Requests that the file be saved with a non-RGB color spaces. Choices
-       are ``RGB``, ``CMYK``.  (``YCbCr``, ``CIELAB``, ``ICCLAB``,
-       ``ITULAB`` are not yet supported.)
+     - Requests that the RGB image be converted and saved in the TIFF file in
+       a non-RGB color space. Choices are ``RGB``, ``CMYK``.  (Note that
+       ``YCbCr``, ``CIELAB``, ``ICCLAB``, ``ITULAB`` are not yet supported
+       for convertion. However, if the `oiio:ColorSpace` is one of those,
+       meaning that the image data is presumed to already be in that
+       space, the TIFF PhotometricInterpretation tag will be set to convey
+       this information.)
    * - ``tiff:zipquality``
      - int
      - A time-vs-space knob for ``zip`` compression, ranging from 1-9
@@ -2504,18 +2508,17 @@ aspects of the writing itself:
 **TIFF compression modes**
 
 The full list of possible TIFF compression mode values are as
-follows ($ ^*$ indicates that OpenImageIO can write that format, and is not
-part of the format name):
+follows.
 
-    ``none`` $ ^*$
-    ``lzw`` $ ^*$
-    ``zip`` $ ^*$
+    ``none`` :sup:`*`
+    ``lzw`` :sup:`*`
+    ``zip`` :sup:`*`
     ``ccitt_t4``
     ``ccitt_t6``
     ``ccittfax3``
     ``ccittfax4``
     ``ccittrle2``
-    ``ccittrle`` $ ^*$
+    ``ccittrle`` :sup:`*`
     ``dcs``
     ``isojbig``
     ``IT8BL``
@@ -2523,11 +2526,11 @@ part of the format name):
     ``IT8LW``
     ``IT8MP``
     ``jp2000``
-    ``jpeg`` $ ^*$
+    ``jpeg`` :sup:`*`
     ``lzma``
     ``next``
     ``ojpeg``
-    ``packbits`` $ ^*$
+    ``packbits`` :sup:`*`
     ``pixarfilm``
     ``pixarlog``
     ``sgilog24``
@@ -2535,6 +2538,10 @@ part of the format name):
     ``T43``
     ``T85``
     ``thunderscan``
+
+:sup:`*` indicates that OpenImageIO can write that format, and is not
+part of the format name. The compression types without the asterisk are
+supported for reading but not for writing.
 
 **Custom I/O Overrides**
 

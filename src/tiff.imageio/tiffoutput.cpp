@@ -625,6 +625,7 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
     }
     TIFFSetField(m_tif, TIFFTAG_BITSPERSAMPLE, m_bitspersample);
     TIFFSetField(m_tif, TIFFTAG_SAMPLEFORMAT, sampformat);
+    m_outputchans = m_spec.nchannels;
 
     m_photometric = (m_spec.nchannels >= 3 ? PHOTOMETRIC_RGB
                                            : PHOTOMETRIC_MINISBLACK);
@@ -639,7 +640,8 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
         qual = -1;
     }
     m_compression = tiff_compression_code(comp);
-    TIFFSetField(m_tif, TIFFTAG_COMPRESSION, m_compression);
+    // N.B. TIFFTAG_COMPRESSION is actually set farther below, because of some
+    // interaction with PhotometricInterpretation.
 
     // Use predictor when using compression
     m_predictor = PREDICTOR_NONE;
@@ -658,8 +660,6 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
             // predictors not supported for unusual bit depths (e.g. 10)
             m_predictor = PREDICTOR_HORIZONTAL;
         }
-        if (m_predictor != PREDICTOR_NONE)
-            TIFFSetField(m_tif, TIFFTAG_PREDICTOR, m_predictor);
         if (m_compression == COMPRESSION_ADOBE_DEFLATE) {
             qual = m_spec.get_int_attribute("tiff:zipquality", qual);
             if (qual == -1)
@@ -685,13 +685,14 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
             m_photometric = PHOTOMETRIC_YCBCR;
         }
     }
-    m_outputchans = m_spec.nchannels;
+
     if (m_photometric == PHOTOMETRIC_RGB) {
         // There are a few ways in which we allow allow the user to specify
         // translation to different photometric types.
-        string_view photo = m_spec.get_string_attribute("tiff:ColorSpace");
-        if (Strutil::iequals(photo, "CMYK")
-            || Strutil::iequals(photo, "color separated")) {
+        string_view tiffcs = m_spec.get_string_attribute("tiff:ColorSpace");
+        string_view oiiocs = m_spec.get_string_attribute("oiio:ColorSpace");
+        if (Strutil::iequals(oiiocs, "CMYK") || Strutil::iequals(tiffcs, "CMYK")
+            || Strutil::iequals(tiffcs, "color separated")) {
             // User has requested via the "tiff:ColorSpace" attribute that
             // the file be written as color separated channels.
             m_photometric = PHOTOMETRIC_SEPARATED;
@@ -731,10 +732,52 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
                              &inknames[0]);
                 TIFFSetField(m_tif, TIFFTAG_NUMBEROFINKS, m_spec.nchannels);
             }
+        } else if (Strutil::iequals(oiiocs, "YCbCr")) {
+            m_photometric = PHOTOMETRIC_YCBCR;
+        } else if (Strutil::iequals(oiiocs, "CIELAB")) {
+            m_photometric = PHOTOMETRIC_CIELAB;
+        } else if (Strutil::iequals(oiiocs, "ICCLAB")) {
+            m_photometric = PHOTOMETRIC_ICCLAB;
+        } else if (Strutil::iequals(oiiocs, "ITULAB")) {
+            m_photometric = PHOTOMETRIC_ITULAB;
+        } else if (Strutil::iequals(oiiocs, "LOGL")) {
+            m_photometric = PHOTOMETRIC_LOGL;
+        } else if (Strutil::iequals(oiiocs, "LOGLUV")) {
+            m_photometric = PHOTOMETRIC_LOGLUV;
         }
+    }
+    // Quirk: LOGL/LOGLUV photometric must use SGILOG/SGILOG24 compression,
+    // respectively, and vice versa.
+    if (m_photometric == PHOTOMETRIC_LOGL) {
+        m_compression = COMPRESSION_SGILOG;
+        m_predictor   = PREDICTOR_NONE;
+    } else if (m_compression == COMPRESSION_SGILOG) {
+        m_compression = COMPRESSION_ADOBE_DEFLATE;
+    }
+    if (m_photometric == PHOTOMETRIC_LOGLUV) {
+        m_compression = COMPRESSION_SGILOG24;
+        m_predictor   = PREDICTOR_NONE;
+    } else if (m_compression == COMPRESSION_SGILOG24) {
+        m_compression = COMPRESSION_ADOBE_DEFLATE;
+    }
+    if (m_photometric == PHOTOMETRIC_LOGL
+        || m_photometric == PHOTOMETRIC_LOGLUV) {
+        int datafmt = SGILOGDATAFMT_RAW;
+        switch (m_spec.format.basetype) {
+        case TypeDesc::INT16:
+        case TypeDesc::UINT16: datafmt = SGILOGDATAFMT_16BIT; break;
+        case TypeDesc::FLOAT: datafmt = SGILOGDATAFMT_FLOAT; break;
+        // case TypeDesc::UINT8:  /* NOT SUPPORTED BY LIBTIFF? */
+        //    datafmt = SGILOGDATAFMT_8BIT; break;
+        default: break;
+        }
+        TIFFSetField(m_tif, TIFFTAG_SGILOGDATAFMT, datafmt);
     }
 
     TIFFSetField(m_tif, TIFFTAG_PHOTOMETRIC, m_photometric);
+    TIFFSetField(m_tif, TIFFTAG_COMPRESSION, m_compression);
+    if (m_predictor != PREDICTOR_NONE)
+        TIFFSetField(m_tif, TIFFTAG_PREDICTOR, m_predictor);
 
     // ExtraSamples tag
     if ((m_spec.alpha_channel >= 0 || m_spec.nchannels > 3)

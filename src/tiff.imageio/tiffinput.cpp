@@ -835,30 +835,11 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
     if (subimage == m_subimage || TIFFSetDirectory(m_tif, subimage)) {
         m_subimage = subimage;
         readspec(read_meta);
-        // OK, some edge cases we just don't handle. For those, fall back on
-        // the TIFFRGBA interface.
-        bool is_jpeg         = (m_compression == COMPRESSION_JPEG
-                        || m_compression == COMPRESSION_OJPEG);
-        bool is_nonspectral  = (m_photometric == PHOTOMETRIC_YCBCR
-                               || m_photometric == PHOTOMETRIC_CIELAB
-                               || m_photometric == PHOTOMETRIC_ICCLAB
-                               || m_photometric == PHOTOMETRIC_ITULAB
-                               || m_photometric == PHOTOMETRIC_LOGL
-                               || m_photometric == PHOTOMETRIC_LOGLUV);
-        m_use_rgba_interface = false;
-        m_rgbadata.clear();
-        if ((is_jpeg && m_spec.nchannels != 3)
-            || (is_nonspectral && !m_raw_color)) {
-            char emsg[1024];
-            m_use_rgba_interface = true;
-            if (!TIFFRGBAImageOK(m_tif, emsg)) {
-                errorfmt("No support for this flavor of TIFF file ({})", emsg);
-                return false;
-            }
-            // This falls back to looking like uint8 images
-            m_spec.format = TypeDesc::UINT8;
-            m_spec.channelformats.clear();
-            m_photometric = PHOTOMETRIC_RGB;
+
+        char emsg[1024];
+        if (m_use_rgba_interface && !TIFFRGBAImageOK(m_tif, emsg)) {
+            errorfmt("No support for this flavor of TIFF file ({})", emsg);
+            return false;
         }
         if (size_t(subimage) >= m_subimage_specs.size())  // make room
             m_subimage_specs.resize(
@@ -1121,6 +1102,15 @@ TIFFInput::readspec(bool read_meta)
     // Now we need to get fields "by hand" for anything else that is less
     // straightforward...
 
+    m_compression = 0;
+    TIFFGetFieldDefaulted(m_tif, TIFFTAG_COMPRESSION, &m_compression);
+    m_spec.attribute("tiff:Compression", (int)m_compression);
+
+    m_photometric = (m_spec.nchannels == 1 ? PHOTOMETRIC_MINISBLACK
+                                           : PHOTOMETRIC_RGB);
+    TIFFGetField(m_tif, TIFFTAG_PHOTOMETRIC, &m_photometric);
+    m_spec.attribute("tiff:PhotometricInterpretation", (int)m_photometric);
+
     readspec_photometric();
 
     TIFFGetFieldDefaulted(m_tif, TIFFTAG_PLANARCONFIG, &m_planarconfig);
@@ -1133,9 +1123,6 @@ TIFFInput::readspec(bool read_meta)
     else
         m_spec.attribute("planarconfig", "contig");
 
-    m_compression = 0;
-    TIFFGetFieldDefaulted(m_tif, TIFFTAG_COMPRESSION, &m_compression);
-    m_spec.attribute("tiff:Compression", (int)m_compression);
     if (const char* compressname = tiff_compression_name(m_compression))
         m_spec.attribute("compression", compressname);
     m_predictor = PREDICTOR_NONE;
@@ -1400,10 +1387,6 @@ TIFFInput::readspec(bool read_meta)
 void
 TIFFInput::readspec_photometric()
 {
-    m_photometric = (m_spec.nchannels == 1 ? PHOTOMETRIC_MINISBLACK
-                                           : PHOTOMETRIC_RGB);
-    TIFFGetField(m_tif, TIFFTAG_PHOTOMETRIC, &m_photometric);
-    m_spec.attribute("tiff:PhotometricInterpretation", (int)m_photometric);
     switch (m_photometric) {
     case PHOTOMETRIC_SEPARATED: {
         // Photometric "separated" is "usually CMYK".
@@ -1500,6 +1483,36 @@ TIFFInput::readspec_photometric()
         // allowed?  And if so, ever encountered in the wild?
         break;
     }
+    }
+
+    // For some PhotometricInterpretation modes that are both rare and hairy
+    // to handle, we use libtiff's TIFFRGBA interface and have it give us 8
+    // bit RGB values.
+    bool is_jpeg         = (m_compression == COMPRESSION_JPEG
+                    || m_compression == COMPRESSION_OJPEG);
+    bool is_nonspectral  = (m_photometric == PHOTOMETRIC_YCBCR
+                           || m_photometric == PHOTOMETRIC_CIELAB
+                           || m_photometric == PHOTOMETRIC_ICCLAB
+                           || m_photometric == PHOTOMETRIC_ITULAB
+                           || m_photometric == PHOTOMETRIC_LOGL
+                           || m_photometric == PHOTOMETRIC_LOGLUV);
+    m_use_rgba_interface = false;
+    m_rgbadata.clear();
+    if ((is_jpeg && m_spec.nchannels != 3)
+        || (is_nonspectral && !m_raw_color)) {
+        m_use_rgba_interface = true;
+        // This falls back to looking like uint8 images
+        m_spec.format = TypeDesc::UINT8;
+        m_spec.channelformats.clear();
+        m_photometric = PHOTOMETRIC_RGB;
+    }
+
+    // If we're not using the RGBA interface, but we have one of these
+    // non-spectral color spaces, set the OIIO color space attribute to
+    // the tiff:colorspace value.
+    if (is_nonspectral && !m_use_rgba_interface) {
+        m_spec.attribute("oiio:ColorSpace",
+                         m_spec.get_string_attribute("tiff:ColorSpace"));
     }
 }
 
