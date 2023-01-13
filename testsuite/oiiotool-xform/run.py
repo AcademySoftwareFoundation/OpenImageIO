@@ -48,7 +48,7 @@ command += oiiotool ("resize64.tif --resize 512x512 -o resize512.tif")
 # test resize with non-default from/to/offset
 command += oiiotool ("../common/grid.tif --resize:from=200x200+300+300 64x64 -o resizefrom.tif")
 command += oiiotool ("../common/grid.tif --resize:from=200x200+300+300:to=32x32 64x64 -o resizefromto.tif")
-command += oiiotool ("../common/grid.tif --resize:from=200x200+300+300:to=32x32:offset=+5-5 64x64 -o resizefromtooffset.tif")
+command += oiiotool ("../common/grid.tif --resize:from=200x200+300+300:to=32x32+5-5 64x64 -o resizefromtooffset.tif")
 
 # test resize with nonzero origin. Save to exr to make extra sure we have
 # the display and data windows correct.
