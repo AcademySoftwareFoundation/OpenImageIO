@@ -3884,9 +3884,11 @@ action_create(int argc, const char* argv[])
     spec.full_height = spec.height;
     spec.full_depth  = spec.depth;
     ImageRecRef img(new ImageRec("new", spec, ot.imagecache));
-    bool ok = ImageBufAlgo::zero((*img)());
-    if (!ok)
-        ot.error(command, (*img)().geterror());
+    // No need to zero, the allocation of the IB in the call above it will
+    // automatically zero it.
+    // bool ok = ImageBufAlgo::zero((*img)());
+    // if (!ok)
+    //     ot.error(command, (*img)().geterror());
     if (ot.curimg)
         ot.image_stack.push_back(ot.curimg);
     ot.curimg = img;

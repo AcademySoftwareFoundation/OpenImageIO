@@ -134,6 +134,11 @@ IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A, int prepflags)
 {
     return IBAprep(roi, dst, A, NULL, NULL, NULL, prepflags);
 }
+inline bool
+IBAprep(ROI& roi, ImageBuf* dst, int prepflags)
+{
+    return IBAprep(roi, dst, nullptr, nullptr, nullptr, nullptr, prepflags);
+}
 
 
 // clang-format off
@@ -155,6 +160,7 @@ enum IBAprep_flags {
     IBAprep_MINIMIZE_NCHANNELS = 1<<14, // Multi-inputs get min(nchannels)
     IBAprep_REQUIRE_MATCHING_CHANNELS = 1<<15, // Channel names must match
     IBAprep_MERGE_METADATA = 1 << 16,   // Merge all inputs' metadata
+    IBAprep_FILL_ZERO_ALLOC = 1 << 17,  // Fill with 0 if we alloc space
 };
 
 
