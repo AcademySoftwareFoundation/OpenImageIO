@@ -80,18 +80,20 @@ public:
             std::cout << report();
     }
 
-    // Call like a function to record times (but only if oiio_log_times > 0)
-    void operator()(string_view key, const Timer& timer)
+    // Call like a function to record times (but only if oiio_log_times > 0).
+    // The `count` parameter is the number of times the operation was invoked,
+    // as tallied by the timer (defaulting to 1).
+    void operator()(string_view key, const Timer& timer, int count = 1)
     {
         if (oiio_log_times) {
             auto t = timer();
             spin_lock lock(mutex);
             auto entry = timing_map.find(key);
             if (entry == timing_map.end())
-                timing_map[key] = std::make_pair(t, size_t(1));
+                timing_map[key] = std::make_pair(t, size_t(count));
             else {
                 entry->second.first += t;
-                entry->second.second += 1;
+                entry->second.second += count;
             }
         }
     }
@@ -269,9 +271,9 @@ debug(string_view message)
 
 
 void
-pvt::log_time(string_view key, const Timer& timer)
+pvt::log_time(string_view key, const Timer& timer, int count)
 {
-    timing_log(key, timer);
+    timing_log(key, timer, count);
 }
 
 
