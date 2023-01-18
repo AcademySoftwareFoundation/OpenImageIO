@@ -254,7 +254,9 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
             }
         }
 
-        dst->reset(spec);
+        dst->reset(spec, (prepflags & IBAprep_FILL_ZERO_ALLOC)
+                             ? InitializePixels::Yes
+                             : InitializePixels::No);
 
         // If we just allocated more channels than the caller will write,
         // clear the extra channels.

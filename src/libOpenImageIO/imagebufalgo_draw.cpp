@@ -186,6 +186,22 @@ ImageBufAlgo::zero(ImageBuf& dst, ROI roi, int nthreads)
     pvt::LoggedTimer logtime("IBA::zero");
     if (!IBAprep(roi, &dst))
         return false;
+    OIIO_ASSERT(dst.localpixels());
+    if (dst.contiguous() && roi == dst.roi() && !dst.deep()) {
+        // Special case: we're zeroing out an entire contiguous buffer -- safe
+        // to use use memset.
+        ImageBufAlgo::parallel_image(roi, nthreads, [=, &dst](ROI roi) {
+            auto size = dst.spec().pixel_bytes() * imagesize_t(roi.width());
+            for (int z = roi.zbegin; z < roi.zend; ++z) {
+                for (int y = roi.ybegin; y < roi.yend; ++y) {
+                    memset(dst.pixeladdr(roi.xbegin, y, z), 0, size);
+                }
+            }
+        });
+        return true;
+    }
+
+    // More general case -- fall back on fill_const
     float* zero = OIIO_ALLOCA(float, roi.chend);
     memset(zero, 0, roi.chend * sizeof(float));
     bool ok;
