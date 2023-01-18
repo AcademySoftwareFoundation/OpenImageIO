@@ -63,27 +63,32 @@ class OIIO_UTIL_API Timer {
 public:
     typedef int64_t ticks_t;
     enum StartNowVal { DontStartNow, StartNow };
-    enum PrintDtrVal { DontPrintDtr, PrintDtr };
+    enum PrintDtrVal { DontPrintDtr, PrintDtr, PrintCtrDtr };
 
     /// Constructor -- reset at zero, and start timing unless optional
     /// 'startnow' argument is false.
-    Timer(StartNowVal startnow = StartNow, PrintDtrVal printdtr = DontPrintDtr,
+    Timer(StartNowVal startnow, PrintDtrVal printdtr = DontPrintDtr,
           const char* name = NULL)
         : m_ticking(false)
-        , m_printdtr(printdtr == PrintDtr)
+        , m_printdtr(printdtr == PrintDtr || printdtr == PrintCtrDtr)
         , m_starttime(0)
         , m_elapsed_ticks(0)
         , m_name(name)
     {
-        if (startnow == StartNow)
+        if (startnow == StartNow) {
             start();
+            if (printdtr == PrintCtrDtr) {
+                Strutil::print("Starting timer {}\n", (m_name ? m_name : ""),
+                               seconds(ticks()));
+            }
+        }
     }
 
     /// Constructor -- reset at zero, and start timing unless optional
     /// 'startnow' argument is false.
-    Timer(bool startnow)
+    Timer(bool startnow = true)
         : m_ticking(false)
-        , m_printdtr(DontPrintDtr)
+        , m_printdtr(false)
         , m_starttime(0)
         , m_elapsed_ticks(0)
         , m_name(NULL)
@@ -95,9 +100,9 @@ public:
     /// Destructor.
     ~Timer()
     {
-        if (m_printdtr == PrintDtr)
-            Strutil::printf("Timer %s: %gs\n", (m_name ? m_name : ""),
-                            seconds(ticks()));
+        if (m_printdtr)
+            Strutil::print("Timer {}: {:g}s\n", (m_name ? m_name : ""),
+                           seconds(ticks()));
     }
 
     /// Start (or restart) ticking, if we are not currently.

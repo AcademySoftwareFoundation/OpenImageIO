@@ -1819,7 +1819,7 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src, string_view from,
         }
     }
 
-    logtime.stop();  // transition to other colorconvert
+    logtime.stop(-1);  // transition to other colorconvert
     bool ok = colorconvert(dst, src, processor.get(), unpremult, roi, nthreads);
     if (ok) {
         // DBG("done, setting output colorspace to {}\n", to);

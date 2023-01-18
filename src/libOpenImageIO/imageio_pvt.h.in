@@ -113,7 +113,7 @@ OIIO_API bool check_texture_metadata_sanity (ImageSpec &spec);
 /// Internal function to log time recorded by an OIIO::timer(). It will only
 /// trigger a read of the time if the "log_times" attribute is set or the
 /// OPENIMAGEIO_LOG_TIMES env variable is set.
-OIIO_API void log_time (string_view key, const Timer& timer);
+OIIO_API void log_time(string_view key, const Timer& timer, int count = 1);
 
 /// Get the timing report from log_time entries.
 OIIO_API std::string timing_report ();
@@ -128,14 +128,21 @@ public:
     }
     ~LoggedTimer () {
         if (oiio_log_times)
-            log_time (m_name, m_timer);
+            log_time (m_name, m_timer, m_count);
     }
-    void stop () { m_timer.stop(); }
+    // Stop the timer. An optional count_offset will be added to the
+    // "invocations count" of the underlying timer, if a single invocation
+    // does not correctly describe the thing being timed.
+    void stop(int count_offset = 0) {
+        m_timer.stop();
+        m_count += count_offset;
+    }
     void start () { m_timer.start(); }
     void rename (string_view name) { m_name = name; }
 private:
     Timer m_timer;
     std::string m_name;
+    int m_count = 1;
 };
 
 
