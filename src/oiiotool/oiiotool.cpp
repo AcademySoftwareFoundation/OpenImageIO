@@ -4325,7 +4325,6 @@ public:
     {
         from_geom = options("from");
         to_geom   = options("to");
-        offset    = options("offset");
 
         int subimages = compute_subimages();
         bool nochange = true;
@@ -4399,7 +4398,7 @@ public:
         return ok;
     }
 
-    // Based on requested output size, and optional from/to/offset geometry,
+    // Based on requested output size, and optional from/to geometry,
     // compute (a) newspec, the spec of the output, (b) M, the transformation
     // matrix. Return true if the transformation requires a full warp, or
     // false if a separable resize will do.
@@ -4432,12 +4431,8 @@ public:
             to_ok = ot.adjust_geometry(args(0), to_w, to_h, to_x, to_y, to_geom,
                                        false);
 
-        float offsetx = 0.0f, offsety = 0.0f;
-        if (offset.size())
-            scan_offset(offset, offsetx, offsety);
-
         M.makeIdentity();
-        M.translate(Imath::V2f(to_x + offsetx, to_y + offsety));
+        M.translate(Imath::V2f(to_x, to_y));
         M.scale(Imath::V2f(to_w / from_w, to_h / from_h));
         M.translate(Imath::V2f(-from_x, -from_y));
 
@@ -4447,7 +4442,6 @@ public:
         do_warp |= (to_x != newspec.full_x || to_y != newspec.full_y
                     || to_w != newspec.full_width
                     || to_h != newspec.full_height);
-        do_warp |= (offsetx != 0.0f || offsety != 0.0f);
 
         // Safety valve: undocumented "forcewarp" lets you force a warp if
         // it's 1, force a resize if it's 0 (default behavior if it's not set).
@@ -4464,7 +4458,7 @@ public:
                   Aspec.roi_full(), Aspec.roi(), newspec.roi(),
                   newspec.roi_full(),
                   format_resolution(from_w, from_h, from_x, from_y),
-                  format_resolution(to_w, to_h, to_x + offsetx, to_y + offsety),
+                  format_resolution(to_w, to_h, to_x, to_y),
                   (filtername.size() ? filtername.c_str() : "default"));
             print("  M = {}\n", M);
             print("  implementing with {}\n", do_warp ? "warp" : "resize");
@@ -4473,7 +4467,7 @@ public:
     }
 
 private:
-    std::string from_geom, to_geom, offset;
+    std::string from_geom, to_geom;
     std::vector<Imath::M33f> M;
     std::vector<bool> do_warp;
 };
@@ -6872,7 +6866,7 @@ Oiiotool::getargs(int argc, char* argv[])
       .help("Resample (640x480, 50%) (options: interp=0)")
       .action(action_resample);
     ap.arg("--resize %s:GEOM")
-      .help("Resize (640x480, 50%) (options: from=<geom>, to=<geom>, offset=<+x+y> filter=%s, highlightcomp=%d, edgeclamp=%d)")
+      .help("Resize (640x480, 50%) (options: from=<geom>, to=<geom>, filter=%s, highlightcomp=%d, edgeclamp=%d)")
       .action(action_resize);
     ap.arg("--fit %s:GEOM")
       .help("Resize to fit within a window size (options: filter=%s, pad=%d, fillmode=%s, exact=%d, highlightcomp=%d)")

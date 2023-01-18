@@ -3190,10 +3190,6 @@ current top image.
         destination image that defines the transformational mapping. This
         defaults to the full/display window of the destination image.
 
-      `:offset=` [+-] *xoffset* [+-] *yoffset*
-        An additional offset (after the resize) to adjust the placement of the
-        result. Fractional pixel offsets are allowed.
-
       `:filter=` *name*
         Filter name. The default is `blackman-harris` when increasing
         resolution, `lanczos3` when decreasing resolution.
