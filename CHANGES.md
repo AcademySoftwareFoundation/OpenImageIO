@@ -141,7 +141,8 @@ Fixes and feature enhancements:
     - IOProxy support. #3647 (2.4.6/2.5.0.0)
     - Fix possible write errors, fixes TALOS-2022-1654 / CVE-2022-43596,
       TALOS-2022-1655 / CVE-2022-43597 CVE-2022-43598, TALOS-2022-1656 /
-      CVE-2022-43599 CVE-2022-43602  #3676 (2.4.6/2.5.0.0)
+      CVE-2022-43599 CVE-2022-43600 CVE-2022-43601 CVE-2022-43602  #3676
+      (2.4.6/2.5.0.0)
 * PBM:
     - Fix accidental inversion for 1-bit bipmap pbm files. #3731
       (2.5.0.0/2.4.8.0)
@@ -165,7 +166,7 @@ Fixes and feature enhancements:
     - IOProxy support. #3641 (2.5.0.0)
 * Targa:
     - Fix incorrect unique_ptr allocation. #3541 (2.5.0.0)
-    - Fix string overflow safety. (TALOS-2022-1628, CVE-2022-4198) #3622
+    - Fix string overflow safety. (TALOS-2022-1628, CVE-2022-41981) #3622
       (2.4.5/2.5.0.0)
 * TIFF:
     - Guard against corrupt files with buffer overflows. (TALOS-2022-1627,
@@ -335,7 +336,7 @@ Release 2.4.6 (1 Dec 2022) -- compared to 2.4.5.0
 * IFF files: Add IOProxy support. #3647
 * IFF: Fix possible write errors, fixes TALOS-2022-1654 / CVE-2022-43596,
   TALOS-2022-1655 / CVE-2022-43597 CVE-2022-43598, TALOS-2022-1656 /
-  CVE-2022-43599 CVE-2022-43602  #3676
+  CVE-2022-43599 CVE-2022-43600 CVE-2022-43601 CVE-2022-43602 #3676
 * PSD: Fix thumbnail extraction. #3668
 * PSD: when reading, don't reject padded thumbnails. #3677
 * Raw: Update Exif orientation if user flip is set. #3669
@@ -404,7 +405,7 @@ Release 2.4.5 (1 Nov 2022) -- compared to 2.4.4.2
 * RAW: additional color metadata is now recognized: `pre_mul`, `cam_mul`,
   `cam_xyz`, `rgb_cam`. #3561 #3569 #3572
 * RLA: fix potential buffer overrun. (TALOS-2022-1629, CVE-2022-36354) #3624
-* Targa: string overflow safety. (TALOS-2022-1628, CVE-2022-4198) #3622
+* Targa: string overflow safety. (TALOS-2022-1628, CVE-2022-41981) #3622
 * TIFF/JPEG/PSD: Fix EXIF bugs where corrupted exif blocks could overrun
   memory. (TALOS-2022-1626, CVE-2022-41794) (TALOS-2022-1631, CVE-2022-41649)
   (TALOS-2022-1632, CVE-2022-41684) (TALOS-2022-1636 CVE-2022-41837) #3627
