@@ -132,6 +132,14 @@ def test_multiimage () :
         return
     out.close ()
 
+
+# Test the functionality of uninitialized ImageBufs
+def test_uninitialized () :
+    print ("Testing uninitialized bufs")
+    empty = oiio.ImageBuf()
+    print ("  empty nchannels:", empty.nchannels)
+
+
 # Print floating point tuple contents with slightly less than full precision
 # in order to mask LSB differences between platforms.
 def ftupstr(tup) :
@@ -244,6 +252,7 @@ try:
     test_perchannel_formats ()
     test_deep ()
     test_multiimage ()
+    test_uninitialized ()
 
     print ("\nDone.")
 except Exception as detail:

@@ -148,6 +148,8 @@ Sample 2
 	c 3 : 0.000
 	c 4 : 43.000
 Writing multi-image file
+Testing uninitialized bufs
+  empty nchannels: 0
 
 Done.
 Comparing "out.tif" and "ref/out.tif"

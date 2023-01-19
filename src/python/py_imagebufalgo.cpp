@@ -14,6 +14,29 @@ class IBA_dummy {
 };  // dummy class to establish a scope
 
 
+
+// Helper: resize vector `values` to match the number of channels described by
+// `roi`, if it's defined, and otherwise the number of channels in ImagBuf
+// `buf`, if it's defined, or otherwise just leave it alone unless it's empty.
+// If it needs to grow, then fill it with `fillvalue`, or if `fill_from_back`
+// is true, then fill with whatever is the back value.
+template<typename T>
+inline void
+vecresize(std::vector<T>& values, const ROI& roi, const ImageBuf& buf,
+          bool fill_from_back = false, T fillvalue = T(0))
+{
+    size_t len = roi.defined()
+                     ? roi.nchannels()
+                     : (buf.initialized() ? buf.nchannels()
+                                          : std::max(values.size(), size_t(1)));
+    T val      = fill_from_back ? (values.size() ? values.back() : fillvalue)
+                                : fillvalue;
+    values.resize(len, val);
+    OIIO_ASSERT(values.size() > 0);
+}
+
+
+
 bool
 IBA_zero(ImageBuf& dst, ROI roi, int nthreads)
 {
@@ -36,13 +59,7 @@ IBA_fill(ImageBuf& dst, py::object values_tuple, ROI roi = ROI::All(),
 {
     std::vector<float> values;
     py_to_stdvector(values, values_tuple);
-    if (dst.initialized())
-        values.resize(dst.nchannels(), 0.0f);
-    else if (roi.defined())
-        values.resize(roi.nchannels(), values.size() ? values.back() : 0.0f);
-    else
-        return false;
-    OIIO_ASSERT(values.size() > 0);
+    vecresize(values, roi, dst, true /*fill_from_back*/);
     py::gil_scoped_release gil;
     return ImageBufAlgo::fill(dst, values, roi, nthreads);
 }
@@ -55,15 +72,8 @@ IBA_fill2(ImageBuf& dst, py::object top_tuple, py::object bottom_tuple,
     std::vector<float> top, bottom;
     py_to_stdvector(top, top_tuple);
     py_to_stdvector(bottom, bottom_tuple);
-    if (dst.initialized()) {
-        top.resize(dst.nchannels(), 0.0f);
-        bottom.resize(dst.nchannels(), 0.0f);
-    } else if (roi.defined()) {
-        top.resize(roi.nchannels(), 0.0f);
-        bottom.resize(roi.nchannels(), 0.0f);
-    } else
-        return false;
-    OIIO_ASSERT(top.size() > 0 && bottom.size() > 0);
+    vecresize(top, roi, dst);
+    vecresize(bottom, roi, dst);
     py::gil_scoped_release gil;
     return ImageBufAlgo::fill(dst, top, bottom, roi, nthreads);
 }
@@ -79,20 +89,10 @@ IBA_fill4(ImageBuf& dst, py::object top_left_tuple, py::object top_right_tuple,
     py_to_stdvector(top_right, top_right_tuple);
     py_to_stdvector(bottom_left, bottom_left_tuple);
     py_to_stdvector(bottom_right, bottom_right_tuple);
-    if (dst.initialized()) {
-        top_left.resize(dst.nchannels(), 0.0f);
-        top_right.resize(dst.nchannels(), 0.0f);
-        bottom_left.resize(dst.nchannels(), 0.0f);
-        bottom_right.resize(dst.nchannels(), 0.0f);
-    } else if (roi.defined()) {
-        top_left.resize(roi.nchannels(), 0.0f);
-        top_right.resize(roi.nchannels(), 0.0f);
-        bottom_left.resize(roi.nchannels(), 0.0f);
-        bottom_right.resize(roi.nchannels(), 0.0f);
-    } else
-        return false;
-    OIIO_ASSERT(top_left.size() > 0 && top_right.size() > 0
-                && bottom_left.size() > 0 && bottom_right.size() > 0);
+    vecresize(top_left, roi, dst);
+    vecresize(top_right, roi, dst);
+    vecresize(bottom_left, roi, dst);
+    vecresize(bottom_right, roi, dst);
     py::gil_scoped_release gil;
     return ImageBufAlgo::fill(dst, top_left, top_right, bottom_left,
                               bottom_right, roi, nthreads);
@@ -140,18 +140,8 @@ IBA_checker(ImageBuf& dst, int width, int height, int depth,
     std::vector<float> color1, color2;
     py_to_stdvector(color1, color1_tuple);
     py_to_stdvector(color2, color2_tuple);
-    if (dst.initialized())
-        color1.resize(dst.nchannels(), 0.0f);
-    else if (roi.defined())
-        color1.resize(roi.nchannels(), 0.0f);
-    else
-        return false;
-    if (dst.initialized())
-        color2.resize(dst.nchannels(), 0.0f);
-    else if (roi.defined())
-        color2.resize(roi.nchannels(), 0.0f);
-    else
-        return false;
+    vecresize(color1, roi, dst);
+    vecresize(color2, roi, dst);
     py::gil_scoped_release gil;
     return ImageBufAlgo::checker(dst, width, height, depth, color1, color2,
                                  xoffset, yoffset, zoffset, roi, nthreads);
@@ -538,13 +528,7 @@ IBA_add_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
 {
     std::vector<float> values;
     py_to_stdvector(values, values_tuple);
-    if (roi.defined())
-        values.resize(roi.nchannels(), values.size() ? values.back() : 0.0f);
-    else if (A.initialized())
-        values.resize(A.nchannels(), values.size() ? values.back() : 0.0f);
-    else
-        return false;
-    OIIO_ASSERT(values.size() > 0);
+    vecresize(values, roi, A, true /*fill_from_back*/);
     py::gil_scoped_release gil;
     return ImageBufAlgo::add(dst, A, &values[0], roi, nthreads);
 }
@@ -583,13 +567,7 @@ IBA_sub_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
 {
     std::vector<float> values;
     py_to_stdvector(values, values_tuple);
-    if (roi.defined())
-        values.resize(roi.nchannels(), values.size() ? values.back() : 0.0f);
-    else if (A.initialized())
-        values.resize(A.nchannels(), values.size() ? values.back() : 0.0f);
-    else
-        return false;
-    OIIO_ASSERT(values.size() > 0);
+    vecresize(values, roi, dst, true /*fill_from_back*/);
     py::gil_scoped_release gil;
     return ImageBufAlgo::sub(dst, A, &values[0], roi, nthreads);
 }
@@ -627,13 +605,7 @@ IBA_absdiff_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
 {
     std::vector<float> values;
     py_to_stdvector(values, values_tuple);
-    if (roi.defined())
-        values.resize(roi.nchannels(), values.size() ? values.back() : 0.0f);
-    else if (A.initialized())
-        values.resize(A.nchannels(), values.size() ? values.back() : 0.0f);
-    else
-        return false;
-    OIIO_ASSERT(values.size() > 0);
+    vecresize(values, roi, A, true);
     py::gil_scoped_release gil;
     return ImageBufAlgo::absdiff(dst, A, &values[0], roi, nthreads);
 }
@@ -690,13 +662,7 @@ IBA_mul_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
 {
     std::vector<float> values;
     py_to_stdvector(values, values_tuple);
-    if (roi.defined())
-        values.resize(roi.nchannels(), values.size() ? values.back() : 0.0f);
-    else if (A.initialized())
-        values.resize(A.nchannels(), values.size() ? values.back() : 0.0f);
-    else
-        return false;
-    OIIO_ASSERT(values.size() > 0);
+    vecresize(values, roi, A, true /*fill_from_back*/);
     py::gil_scoped_release gil;
     return ImageBufAlgo::mul(dst, A, &values[0], roi, nthreads);
 }
@@ -734,13 +700,7 @@ IBA_div_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
 {
     std::vector<float> values;
     py_to_stdvector(values, values_tuple);
-    if (roi.defined())
-        values.resize(roi.nchannels(), values.size() ? values.back() : 0.0f);
-    else if (A.initialized())
-        values.resize(A.nchannels(), values.size() ? values.back() : 0.0f);
-    else
-        return false;
-    OIIO_ASSERT(values.size() > 0);
+    vecresize(values, roi, A, true /*fill_from_back*/);
     py::gil_scoped_release gil;
     return ImageBufAlgo::div(dst, A, &values[0], roi, nthreads);
 }
@@ -780,20 +740,9 @@ IBA_mad_color(ImageBuf& dst, const ImageBuf& A, py::object Bvalues_tuple,
 {
     std::vector<float> Bvalues, Cvalues;
     py_to_stdvector(Bvalues, Bvalues_tuple);
-    if (roi.defined())
-        Bvalues.resize(roi.nchannels(), Bvalues.size() ? Bvalues.back() : 0.0f);
-    else if (A.initialized())
-        Bvalues.resize(A.nchannels(), Bvalues.size() ? Bvalues.back() : 0.0f);
-    else
-        return false;
+    vecresize(Bvalues, roi, A, true /*fill_from_back*/);
     py_to_stdvector(Cvalues, Cvalues_tuple);
-    if (roi.defined())
-        Cvalues.resize(roi.nchannels(), Cvalues.size() ? Cvalues.back() : 0.0f);
-    else if (A.initialized())
-        Cvalues.resize(A.nchannels(), Cvalues.size() ? Cvalues.back() : 0.0f);
-    else
-        return false;
-    OIIO_ASSERT(Bvalues.size() > 0 && Cvalues.size() > 0);
+    vecresize(Cvalues, roi, A, true /*fill_from_back*/);
     py::gil_scoped_release gil;
     return ImageBufAlgo::mad(dst, A, Bvalues, Cvalues, roi, nthreads);
 }
@@ -804,13 +753,7 @@ IBA_mad_ici(ImageBuf& dst, const ImageBuf& A, py::object Bvalues_tuple,
 {
     std::vector<float> Bvalues, Cvalues;
     py_to_stdvector(Bvalues, Bvalues_tuple);
-    if (roi.defined())
-        Bvalues.resize(roi.nchannels(), Bvalues.size() ? Bvalues.back() : 0.0f);
-    else if (A.initialized())
-        Bvalues.resize(A.nchannels(), Bvalues.size() ? Bvalues.back() : 0.0f);
-    else
-        return false;
-    OIIO_ASSERT(Bvalues.size() > 0);
+    vecresize(Bvalues, roi, A, true /*fill_from_back*/);
     py::gil_scoped_release gil;
     return ImageBufAlgo::mad(dst, A, Bvalues, C, roi, nthreads);
 }
@@ -892,13 +835,7 @@ IBA_pow_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
 {
     std::vector<float> values;
     py_to_stdvector(values, values_tuple);
-    if (roi.defined())
-        values.resize(roi.nchannels(), values.size() ? values.back() : 0.0f);
-    else if (A.initialized())
-        values.resize(A.nchannels(), values.size() ? values.back() : 0.0f);
-    else
-        return false;
-    OIIO_ASSERT(values.size() > 0);
+    vecresize(values, roi, A, true /*fill_from_back*/);
     py::gil_scoped_release gil;
     return ImageBufAlgo::pow(dst, A, values, roi, nthreads);
 }
@@ -921,13 +858,7 @@ IBA_min_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
 {
     std::vector<float> values;
     py_to_stdvector(values, values_tuple);
-    if (roi.defined())
-        values.resize(roi.nchannels(), values.size() ? values.back() : 0.0f);
-    else if (A.initialized())
-        values.resize(A.nchannels(), values.size() ? values.back() : 0.0f);
-    else
-        return false;
-    OIIO_ASSERT(values.size() > 0);
+    vecresize(values, roi, A, true /*fill_from_back*/);
     py::gil_scoped_release gil;
     return ImageBufAlgo::min(dst, A, values, roi, nthreads);
 }
@@ -966,13 +897,7 @@ IBA_max_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
 {
     std::vector<float> values;
     py_to_stdvector(values, values_tuple);
-    if (roi.defined())
-        values.resize(roi.nchannels(), values.size() ? values.back() : 0.0f);
-    else if (A.initialized())
-        values.resize(A.nchannels(), values.size() ? values.back() : 0.0f);
-    else
-        return false;
-    OIIO_ASSERT(values.size() > 0);
+    vecresize(values, roi, A, true /*fill_from_back*/);
     py::gil_scoped_release gil;
     return ImageBufAlgo::max(dst, A, values, roi, nthreads);
 }
@@ -1076,10 +1001,8 @@ IBA_channel_sum_weight(ImageBuf& dst, const ImageBuf& src,
         dst.errorfmt("Uninitialized source image for channel_sum");
         return false;
     }
-    if (weight.size() == 0)
-        weight.resize(src.nchannels(), 1.0f);  // no weights -> uniform
-    else
-        weight.resize(src.nchannels(), 0.0f);  // missing weights -> 0
+    // not enough weights -> uniform, missing weights -> 0
+    weight.resize(src.nchannels(), weight.size() ? 0.0 : 1.0f);
     py::gil_scoped_release gil;
     return ImageBufAlgo::channel_sum(dst, src, &weight[0], roi, nthreads);
 }
