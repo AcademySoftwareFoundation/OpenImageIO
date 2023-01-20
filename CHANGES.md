@@ -2648,7 +2648,7 @@ Release 2.1.11 (1 Feb 2020) -- compared to 2.1.10
   behind proper namespaces. #2473
 * Many docs fixes.
 
-Release 2.1.10.1 (10 Jan 2019)
+Release 2.1.10.1 (10 Jan 2020)
 ------------------------------
 * Automatically detect the need to link against libatomic (fixes build on
   some less common platforms, should not affect Windows, MacOS, or Linux on
