@@ -460,5 +460,23 @@ cdf.exr              :   64 x   64, 1 channel, half openexr
     oiio:SHA-1: "00DFB31D0260CC466CDCF9FE42446D4896E655FE"
     oiio:subimages: 1
     openexr:roundingmode: 0
+Reading checker-attribs.tx
+checker-attribs.tx   :  128 x  128, 4 channel, uint8 tiff
+    MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 1C1A7D35CCED212B768B31F002B442EA947D89A6
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    compression: "zip"
+    fovcot: 1
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    oiio:AverageColor: "0.5,0.5,0.5,1"
+    oiio:BitsPerSample: 8
+    oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
 Comparing "uffizi_latlong_env-128.exr" and "ref/uffizi_latlong_env-128.exr"
 PASS

@@ -16,8 +16,10 @@ resolve('linear'): ACEScg
 resolve('scene_linear'): ACEScg
 resolve('lin_srgb'): Linear Rec.709 (sRGB)
 resolve('srgb'): sRGB - Texture
+resolve('ACEScg'): ACEScg
 equivalent('lin_srgb', 'srgb'): False
 equivalent('scene_linear', 'srgb'): False
+equivalent('linear', 'lin_srgb'): False
 equivalent('scene_linear', 'lin_srgb'): False
 equivalent('ACEScg', 'scene_linear'): True
 equivalent('lnf', 'scene_linear'): False
