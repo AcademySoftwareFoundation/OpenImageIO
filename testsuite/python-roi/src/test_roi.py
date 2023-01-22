@@ -12,8 +12,11 @@ import OpenImageIO as oiio
 
 try:
     r = oiio.ROI()
-    print ("ROI() =", r)
+    print ("undefined ROI() =", r)
     print ("r.defined =", r.defined)
+    print ("r.nchannels =", r.nchannels)
+    print ("")
+
     r = oiio.ROI (0, 640, 100, 200)
     print ("ROI(0, 640, 100, 200) =", r)
     r = oiio.ROI (0, 640, 0, 480, 0, 1, 0, 4)
