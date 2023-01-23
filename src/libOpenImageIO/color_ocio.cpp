@@ -698,6 +698,22 @@ ColorConfig::getColorSpaceNameByIndex(int index) const
 
 
 
+int
+ColorConfig::getColorSpaceIndex(string_view name) const
+{
+    // Check for exact matches
+    for (int i = 0, e = (int)m_impl->colorspaces.size(); i < e; ++i)
+        if (Strutil::iequals(m_impl->colorspaces[i].name, name))
+            return i;
+    // Check for aliases and equivalents
+    for (int i = 0, e = (int)m_impl->colorspaces.size(); i < e; ++i)
+        if (equivalent(m_impl->colorspaces[i].name, name))
+            return i;
+    return -1;
+}
+
+
+
 const char*
 ColorConfig::getColorSpaceFamilyByName(string_view name) const
 {

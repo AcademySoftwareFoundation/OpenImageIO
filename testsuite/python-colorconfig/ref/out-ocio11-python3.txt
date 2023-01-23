@@ -1,5 +1,8 @@
 getNumColorSpaces = 14
 getColorSpaceNames = ['linear', 'sRGB', 'sRGBf', 'rec709', 'Cineon', 'Gamma1.8', 'Gamma2.2', 'Panalog', 'REDLog', 'ViperLog', 'AlexaV3LogC', 'PLogLin', 'SLog', 'raw']
+Index of 'lin_srgb' = 0
+Index of 'unknown' = -1
+Name of color space 2 = sRGBf
 getNumLooks = 0
 getLookNames = []
 getNumDisplays = 1

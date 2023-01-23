@@ -10,7 +10,9 @@ try:
     config = oiio.ColorConfig()
     print ("getNumColorSpaces =", config.getNumColorSpaces())
     print ("getColorSpaceNames =", config.getColorSpaceNames())
-
+    print ("Index of 'lin_srgb' =", config.getColorSpaceIndex('lin_srgb'))
+    print ("Index of 'unknown' =", config.getColorSpaceIndex('unknown'))
+    print ("Name of color space 2 =", config.getColorSpaceNameByIndex(2))
     print ("getNumLooks =", config.getNumLooks())
     print ("getLookNames =", config.getLookNames())
 
