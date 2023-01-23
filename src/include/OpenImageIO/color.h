@@ -102,6 +102,12 @@ public:
     /// Query the name of the specified ColorSpace.
     const char* getColorSpaceNameByIndex(int index) const;
 
+    /// Given a color space name, return the index of an equivalent color
+    /// space, or -1 if not found. It will first look for an exact match of
+    /// the name, but if not found, will match a color space that is
+    /// "equivalent" to the named color space.
+    int getColorSpaceIndex(string_view name) const;
+
     /// Get the name of the color space representing the named role,
     /// or NULL if none could be identified.
     const char* getColorSpaceNameByRole(string_view role) const;

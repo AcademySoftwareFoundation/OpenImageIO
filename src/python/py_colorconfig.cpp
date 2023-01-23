@@ -26,6 +26,12 @@ declare_colorconfig(py::module& m)
         .def("getColorSpaceNames", &ColorConfig::getColorSpaceNames)
         .def("getColorSpaceNameByIndex", &ColorConfig::getColorSpaceNameByIndex)
         .def(
+            "getColorSpaceIndex",
+            [](const ColorConfig& self, const std::string& name) {
+                return self.getColorSpaceIndex(name);
+            },
+            "name"_a)
+        .def(
             "getColorSpaceNameByRole",
             [](const ColorConfig& self, const std::string& role) {
                 return self.getColorSpaceNameByRole(role);

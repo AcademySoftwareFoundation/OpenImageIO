@@ -1,5 +1,8 @@
 getNumColorSpaces = 14
 getColorSpaceNames = ['ACES2065-1', 'ACEScc', 'ACEScct', 'ACEScg', 'Linear P3-D65', 'Linear Rec.2020', 'Linear Rec.709 (sRGB)', 'Gamma 1.8 Rec.709 - Texture', 'Gamma 2.2 AP1 - Texture', 'Gamma 2.2 Rec.709 - Texture', 'Gamma 2.4 Rec.709 - Texture', 'sRGB Encoded AP1 - Texture', 'sRGB - Texture', 'Raw']
+Index of 'lin_srgb' = 6
+Index of 'unknown' = -1
+Name of color space 2 = ACEScct
 getNumLooks = 1
 getLookNames = ['ACES 1.3 Reference Gamut Compression']
 getNumDisplays = 5

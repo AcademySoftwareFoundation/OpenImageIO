@@ -1,5 +1,8 @@
 getNumColorSpaces = 8
 getColorSpaceNames = ['linear', 'scene_linear', 'default', 'rgb', 'RGB', 'lin_srgb', 'sRGB', 'Rec709']
+Index of 'lin_srgb' = 5
+Index of 'unknown' = -1
+Name of color space 2 = default
 getNumLooks = 0
 getLookNames = []
 getNumDisplays = 0
