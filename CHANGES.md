@@ -1,3 +1,7 @@
+Release 2.4.9.0 (1? Mar? 2023) -- compared to 2.4.8.0
+-----------------------------------------------------
+
+
 Release 2.4.8.0 (1 Feb 2023) -- compared to 2.4.7.1
 ----------------------------------------------------
 * oiiotool --pdiff: test, be sure to count it as making output. #3723
