@@ -1,5 +1,23 @@
-Release 2.4.8.0 (1 Feb? 2023) -- compared to 2.4.7.1
+Release 2.4.8.0 (1 Feb 2023) -- compared to 2.4.7.1
 ----------------------------------------------------
+* oiiotool --pdiff: test, be sure to count it as making output. #3723
+* IBAprep should not zero out deep images when creating dst #3724
+* PBM: Fix for incorrect inverting of 1-bit pbm images. #3731
+* New `ImageSpec:set_colorspace()` sets color space metadata in a consistent
+  way. #3734
+* BMP: set colorspace to sRGB #3701
+* PNG: Add EXIF support when writing PNG files. #3735
+* PSD: Fix wrong oiio:UnassociatedAlpha metadata for PSD files. #3750
+* platform.h: set up macros for detecting MSVS 2019 and 2022 #3727
+* typedesc.h: Extend TypeDescFromC template to the full set of pixel types
+  #3726
+* Testing: many improvements for testing and code coverage. #3730 #3654 #3694
+  #3699 #3732 #3741 #3745 #3747
+* Testing: Fix long-broken ref images for texture-icwrite test #3733
+* Docs: Updated RTD docmentation style, looks much nicer. #3737
+* Docs: improve description of ociodisplay and others.
+* Docs: Fix old release notes to document all CVEs addressed in certain
+  prior releases.
 
 
 Release 2.4.7.1 (3 Jan 2023) -- compared to 2.4.7.0
