@@ -3,6 +3,26 @@ Release 2.5 (summer 2023?) -- compared to 2.4
 New minimum dependencies and compatibility changes:
 
 New major features and public API changes:
+* TextureSystem color management: #3761 (2.5.1.0)
+    - TextureOpt and TextureOptBatch have a new field, `colortransformid`,
+      which supplies an integer ID for a requested color space transformation
+      to be applied as texture tiles are read. The default value 0 means no
+      transformation because the texture is presumed to be in the working
+      color space (this is the old behavior, and most performant). Tiles from
+      the same texture file but using different color transformations are
+      allowed and will not interfere with each other in the cache.
+    - New `TextureSystem::get_colortransform_id(from, to)` maps from/to named
+      color spaces to a color transform ID that can be passed to texture
+      lookup calls.
+    - `ImageCache::get_image_handle` and `TextureSystem::get_texture_handle`
+      now take an optional `TextureOpt*` parameter that can supply additional
+      constraints (such as color transformation) that TS/IC implementations
+      may wish to split into separate handles. This is currently not used, but
+      is reserved so that the API doesn't need to be changed if we use it in
+      the future.
+    - texture.h defines symbol `OIIO_TEXTURESYSTEM_SUPPORTS_COLORSPACE` that
+      can be tested for existence to know if the new fields are in the
+      TextureOpt structure.
 * ImageBufAlgo additions:
     - A new flavor of `ociodisplay()` now contains an inverse parameter.
       #3650 (2.5.0.0)

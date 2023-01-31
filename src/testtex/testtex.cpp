@@ -47,16 +47,18 @@ static float width       = 1;
 static float widthramp   = 0;
 static float anisoaspect = 1.0;  // anisotropic aspect ratio
 static std::string wrapmodes("periodic");
-static int anisomax           = TextureOpt().anisotropic;
-static int iters              = 1;
-static int autotile           = 0;
-static bool automip           = false;
-static bool dedup             = true;
-static bool test_construction = false;
-static bool test_gettexels    = false;
-static bool test_getimagespec = false;
-static bool filtertest        = false;
-static TextureSystem* texsys  = NULL;
+static std::string texcolorspace;
+static int texcolortransform_id = 0;
+static int anisomax             = TextureOpt().anisotropic;
+static int iters                = 1;
+static int autotile             = 0;
+static bool automip             = false;
+static bool dedup               = true;
+static bool test_construction   = false;
+static bool test_gettexels      = false;
+static bool test_getimagespec   = false;
+static bool filtertest          = false;
+static TextureSystem* texsys    = NULL;
 static std::string searchpath;
 static bool batch         = false;
 static bool nowarp        = false;
@@ -170,6 +172,8 @@ getargs(int argc, const char* argv[])
       .help("Set fill value for missing channels");
     ap.arg("--wrap %s:MODE", &wrapmodes)
       .help("Set wrap mode (default, black, clamp, periodic, mirror, overscan)");
+    ap.arg("--texcolorspace %s:NAME", &texcolorspace)
+      .help("Set texture presumed color space");
     ap.arg("--anisoaspect %f:ASPECT", &anisoaspect)
       .help("Set anisotropic ellipse aspect ratio for threadtimes tests (default: 2.0)");
     ap.arg("--anisomax %d:MAX", &anisomax)
@@ -303,6 +307,7 @@ initialize_opt(TextureOpt& opt)
         opt.subimage = subimage;
     else if (!subimagename.empty())
         opt.subimagename = ustring(subimagename);
+    opt.colortransformid = texcolortransform_id;
 }
 
 
@@ -332,6 +337,7 @@ initialize_opt(TextureOptBatch& opt)
         opt.subimage = subimage;
     else if (!subimagename.empty())
         opt.subimagename = ustring(subimagename);
+    opt.colortransformid = texcolortransform_id;
 }
 
 
@@ -1919,6 +1925,11 @@ main(int argc, const char* argv[])
     texsys->attribute("gray_to_rgb", gray_to_rgb);
     texsys->attribute("flip_t", flip_t);
     texsys->attribute("stochastic", stochastic);
+    texcolortransform_id
+        = std::max(0, texsys->get_colortransform_id(ustring(texcolorspace),
+                                                    ustring("scene_linear")));
+    if (texcolortransform_id > 0)
+        print("Treating texture as if it is in colorspace {}\n", texcolorspace);
 
     if (test_construction) {
         Timer t;

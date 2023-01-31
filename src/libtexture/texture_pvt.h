@@ -114,13 +114,14 @@ public:
         m_imagecache->destroy_thread_info((ImageCachePerThreadInfo*)threadinfo);
     }
 
-    TextureHandle* get_texture_handle(ustring filename,
-                                      Perthread* thread) override
+    TextureHandle*
+    get_texture_handle(ustring filename, Perthread* thread,
+                       const TextureOpt* options = nullptr) override
     {
         PerThreadInfo* thread_info = thread
                                          ? ((PerThreadInfo*)thread)
                                          : m_imagecache->get_perthread_info();
-        return (TextureHandle*)find_texturefile(filename, thread_info);
+        return (TextureHandle*)find_texturefile(filename, thread_info, options);
     }
 
     bool good(TextureHandle* texture_handle) override
@@ -133,6 +134,11 @@ public:
         return handle ? ((ImageCache::ImageHandle*)handle)->filename()
                       : ustring();
     }
+
+    int get_colortransform_id(ustring fromspace,
+                              ustring tospace) const override;
+    int get_colortransform_id(ustringhash fromspace,
+                              ustringhash tospace) const override;
 
     bool texture(ustring filename, TextureOpt& options, float s, float t,
                  float dsdx, float dtdx, float dsdy, float dtdy, int nchannels,
@@ -342,10 +348,13 @@ private:
 
     /// Find the TextureFile record for the named texture, or NULL if no
     /// such file can be found.
-    TextureFile* find_texturefile(ustring filename, PerThreadInfo* thread_info)
+    TextureFile* find_texturefile(ustring filename, PerThreadInfo* thread_info,
+                                  const TextureOpt* options = nullptr)
     {
         return m_imagecache->find_file(filename, thread_info);
+        // FIXME(colorconvert)
     }
+
     TextureFile* verify_texturefile(TextureFile* texturefile,
                                     PerThreadInfo* thread_info)
     {

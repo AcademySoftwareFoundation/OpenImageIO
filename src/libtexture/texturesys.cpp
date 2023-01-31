@@ -12,6 +12,7 @@
 
 #include <OpenImageIO/Imath.h>
 
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filter.h>
 #include <OpenImageIO/fmath.h>
@@ -563,6 +564,36 @@ TextureSystemImpl::resolve_filename(const std::string& filename) const
 
 
 
+int
+TextureSystemImpl::get_colortransform_id(ustring fromspace,
+                                         ustring tospace) const
+{
+    const ColorConfig& cc(ColorConfig::default_colorconfig());
+    if (tospace.empty())
+        tospace = m_imagecache->colorspace();
+    if (fromspace.empty())
+        return 0;  // null transform
+    int from = cc.getColorSpaceIndex(fromspace);
+    int to   = cc.getColorSpaceIndex(tospace);
+    if (from < 0 || to < 0)
+        return -1;  // unknown color space
+    if (from == to || cc.equivalent(fromspace, tospace))
+        return 0;                          // null transform
+    return ((from + 1) << 16) | (to + 1);  // mash the indices together
+    // Note: we add 1 to the indices so that 0 can be the null transform
+}
+
+
+
+int
+TextureSystemImpl::get_colortransform_id(ustringhash fromspace,
+                                         ustringhash tospace) const
+{
+    return get_colortransform_id(ustring(fromspace), ustring(tospace));
+}
+
+
+
 bool
 TextureSystemImpl::get_texture_info(ustring filename, int subimage,
                                     ustring dataname, TypeDesc datatype,
@@ -799,7 +830,7 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
         tile_chend   = chbegin + actualchannels;
     }
     TileID tileid(*texfile, subimage, miplevel, 0, 0, 0, tile_chbegin,
-                  tile_chend);
+                  tile_chend, options.colortransformid);
     size_t formatchannelsize = format.size();
     size_t formatpixelsize   = nchannels * formatchannelsize;
     size_t scanlinesize      = (xend - xbegin) * formatpixelsize;
@@ -1186,7 +1217,8 @@ TextureSystemImpl::texture(TextureHandle* texture_handle_,
         options.twrap = TextureOpt::WrapPeriodicPow2;
 
     if (subinfo.is_constant_image && options.swrap != TextureOpt::WrapBlack
-        && options.twrap != TextureOpt::WrapBlack) {
+        && options.twrap != TextureOpt::WrapBlack
+        && options.colortransformid <= 0) {
         // Lookup of constant color texture, non-black wrap -- skip all the
         // hard stuff.
         for (int c = 0; c < actualchannels; ++c)
@@ -1306,6 +1338,7 @@ TextureSystemImpl::texture(TextureHandle* texture_handle,
     opt.conservative_filter = options.conservative_filter;
     opt.fill                = options.fill;
     opt.missingcolor        = options.missingcolor;
+    opt.colortransformid    = options.colortransformid;
     // rwrap not needed for 2D texture
 
     bool ok          = true;
@@ -2097,7 +2130,7 @@ TextureSystemImpl::sample_closest(
         tile_chend   = options.firstchannel + actualchannels;
     }
     TileID id(texturefile, options.subimage, miplevel, 0, 0, 0, tile_chbegin,
-              tile_chend);
+              tile_chend, options.colortransformid);
     for (int sample = 0; sample < nsamples; ++sample) {
         float s = s_[sample], t = t_[sample];
         float weight = weight_[sample];
@@ -2242,7 +2275,7 @@ TextureSystemImpl::sample_bilinear(
         tile_chend   = options.firstchannel + actualchannels;
     }
     TileID id(texturefile, options.subimage, miplevel, 0, 0, 0, tile_chbegin,
-              tile_chend);
+              tile_chend, options.colortransformid);
     float nonfill = 0.0f;  // The degree to which we DON'T need fill
     // N.B. What's up with "nofill"? We need to consider fill only when we
     // are inside the valid texture region. Outside, i.e. in the black wrap
@@ -2599,7 +2632,7 @@ TextureSystemImpl::sample_bicubic(
         tile_chend   = options.firstchannel + actualchannels;
     }
     TileID id(texturefile, options.subimage, miplevel, 0, 0, 0, tile_chbegin,
-              tile_chend);
+              tile_chend, options.colortransformid);
     int pixelsize                         = channelsize * id.nchannels();
     imagesize_t firstchannel_offset_bytes = channelsize
                                             * (firstchannel - id.chbegin());

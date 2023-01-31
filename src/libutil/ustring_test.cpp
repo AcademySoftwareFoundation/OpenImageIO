@@ -139,6 +139,8 @@ test_ustring()
 
     // from_hash
     OIIO_CHECK_EQUAL(ustring::from_hash(foo.hash()), foo);
+    OIIO_CHECK_EQUAL(empty.hash(), 0);
+    OIIO_CHECK_EQUAL(ustring().hash(), 0);
 
     // make_unique, is_unique, from_unique
     const char* foostr = foo.c_str();
@@ -213,6 +215,8 @@ test_ustringhash()
 
     // from_hash
     OIIO_CHECK_EQUAL(ustringhash::from_hash(hfoo.hash()), hfoo);
+    OIIO_CHECK_EQUAL(ustringhash("").hash(), 0);
+    OIIO_CHECK_EQUAL(ustringhash().hash(), 0);
 
     // std::hash
     OIIO_CHECK_EQUAL(std::hash<ustringhash> {}(hfoo), hfoo.hash());
