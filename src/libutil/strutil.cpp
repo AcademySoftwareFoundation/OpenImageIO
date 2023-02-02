@@ -926,9 +926,16 @@ Strutil::utf16_to_utf8(const std::u16string& str) noexcept
     try {
         OIIO_PRAGMA_WARNING_PUSH
         OIIO_CLANG_PRAGMA(GCC diagnostic ignored "-Wdeprecated-declarations")
+        // There is a bug in MSVS 2017 causing an unresolved symbol if char16_t is used (see https://stackoverflow.com/a/35103224)
+#if defined _MSC_VER && _MSC_VER >= 1900 && _MSC_VER < 1930
+        std::wstring_convert<std::codecvt_utf8_utf16<int16_t>, int16_t> convert;
+        auto p = reinterpret_cast<const int16_t*>(str.data());
+        return convert.to_bytes(p, p + str.size());
+#else
         std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> conv;
-        OIIO_PRAGMA_WARNING_POP
         return conv.to_bytes(str);
+#endif
+        OIIO_PRAGMA_WARNING_POP
     } catch (const std::exception&) {
         return std::string();
     }
