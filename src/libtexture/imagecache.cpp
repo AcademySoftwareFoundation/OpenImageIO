@@ -1876,7 +1876,8 @@ ImageCacheImpl::getstats(int level) const
                 spin_lock lock(m_perthread_info_mutex);
                 size_t nthreads = m_all_perthread_info.size();
                 if (nthreads > 1 || level > 2) {
-                    double perthreadtime = stats.fileio_time / (float)nthreads;
+                    double perthreadtime = stats.fileio_time
+                                           / std::max(size_t(1), nthreads);
                     print(out, " ({} average per thread, for {} threads)",
                           Strutil::timeintervalformat(perthreadtime), nthreads);
                 }
@@ -1896,14 +1897,16 @@ ImageCacheImpl::getstats(int level) const
                   m_stat_tiles_created, m_stat_tiles_current,
                   m_stat_tiles_peak);
             print(out, "    total tile requests : {}\n", stats.find_tile_calls);
-            print(out, "    micro-cache misses : {} ({:.1f}%)\n",
-                  stats.find_tile_microcache_misses,
-                  100.0 * stats.find_tile_microcache_misses
-                      / (double)stats.find_tile_calls);
-            print(out, "    main cache misses : {} ({:.1f}%)\n",
-                  stats.find_tile_cache_misses,
-                  100.0 * stats.find_tile_cache_misses
-                      / (double)stats.find_tile_calls);
+            if (stats.find_tile_microcache_misses)
+                print(out, "    micro-cache misses : {} ({:.1f}%)\n",
+                      stats.find_tile_microcache_misses,
+                      100.0 * stats.find_tile_microcache_misses
+                          / (double)stats.find_tile_calls);
+            if (stats.find_tile_cache_misses)
+                print(out, "    main cache misses : {} ({:.1f}%)\n",
+                      stats.find_tile_cache_misses,
+                      100.0 * stats.find_tile_cache_misses
+                          / (double)stats.find_tile_calls);
             print(out, "    redundant reads: {} tiles, {}\n",
                   total_redundant_tiles,
                   Strutil::memformat(total_redundant_bytes));
@@ -2012,11 +2015,13 @@ ImageCacheImpl::getstats(int level) const
                       nprinted, r, mb, file->iotime(),
                       onefile_stat_line(file, -1, false));
             }
-            if (nprinted == 0)
+            if (nprinted == 0) {
                 print(out, "    (nothing took more than 0.25s)\n");
-            double fast = files.back()->bytesread() / (1024.0 * 1024.0)
-                          / files.back()->iotime();
-            print(out, "    (fastest was {:.1f} MB/s)\n", fast);
+            } else {
+                double fast = files.back()->bytesread() / (1024.0 * 1024.0)
+                              / files.back()->iotime();
+                print(out, "    (fastest was {:.1f} MB/s)\n", fast);
+            }
             if (total_redundant_tiles > 0) {
                 std::sort(files.begin(), files.end(), redundantbytes_compare);
                 print(out, "  Top files by redundant I/O:\n");
