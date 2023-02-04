@@ -362,7 +362,8 @@ TextureSystemImpl::accum3d_sample_closest(
     int tile_t = (ttex - spec.y) % spec.tile_height;
     int tile_r = (rtex - spec.z) % spec.tile_depth;
     TileID id(texturefile, options.subimage, miplevel, stex - tile_s,
-              ttex - tile_t, rtex - tile_r, tile_chbegin, tile_chend);
+              ttex - tile_t, rtex - tile_r, tile_chbegin, tile_chend,
+              options.colortransformid);
     bool ok = find_tile(id, thread_info, true);
     if (!ok)
         error("{}", m_imagecache->geterror());
@@ -592,7 +593,7 @@ TextureSystemImpl::accum3d_sample_bilinear(
         tile_chend   = options.firstchannel + actualchannels;
     }
     TileID id(texturefile, options.subimage, miplevel, 0, 0, 0, tile_chbegin,
-              tile_chend);
+              tile_chend, options.colortransformid);
     int startchan_in_tile = options.firstchannel - id.chbegin();
 
     if (onetile && valid_storage.ivalid == all_valid) {
