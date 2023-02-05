@@ -191,8 +191,8 @@ private:
         m_deep_scanline_output_part.reset();
         m_deep_tiled_output_part.reset();
         m_levelmode = Imf::ONE_LEVEL;
-        m_subimage = -1;
-        m_miplevel = -1;
+        m_subimage  = -1;
+        m_miplevel  = -1;
         m_subimagespecs.clear();
         m_subimagespecs.shrink_to_fit();
         m_headers.clear();
