@@ -59,6 +59,7 @@ jobs:
                             CMAKE_BUILD_TYPE=Debug
                             CMAKE_UNITY_BUILD=OFF
                             CODECOV=1
+                            OPENIMAGEIO_OPTIONS=limits:imagebuf_write_getpixels_budget_MB=1
                             CTEST_TEST_TIMEOUT=1200
                             OIIO_CMAKE_FLAGS="-DOIIO_TEX_IMPLEMENT_VARYINGREF=OFF"
 

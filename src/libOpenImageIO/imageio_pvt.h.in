@@ -43,6 +43,7 @@ extern int oiio_log_times;
 extern int openexr_core;
 extern int limit_channels;
 extern int limit_imagesize_MB;
+extern int limit_imagebuf_write_getpixels_budget_MB;
 extern int opencv_version;
 extern int imagebuf_print_uncaught_errors;
 extern int imagebuf_use_imagecache;

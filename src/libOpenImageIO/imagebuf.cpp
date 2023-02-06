@@ -1375,8 +1375,9 @@ ImageBuf::write(ImageOutput* out, ProgressCallback progress_callback,
         // immediately writing out a file from disk, possibly with file
         // format or data format conversion, but without any ImageBufAlgo
         // functions having been applied.
-        const imagesize_t budget = 1024 * 1024 * 64;  // 64 MB
-        imagesize_t imagesize    = bufspec.image_bytes();
+        const imagesize_t budget = pvt::limit_imagebuf_write_getpixels_budget_MB
+                                   * imagesize_t(1024 * 1024);
+        imagesize_t imagesize = bufspec.image_bytes();
         if (imagesize <= budget) {
             // whole image can fit within our budget
             std::unique_ptr<char[]> tmp(new char[imagesize]);
