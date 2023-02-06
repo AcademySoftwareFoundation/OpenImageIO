@@ -321,6 +321,7 @@ test: build
 	      lcov --remove cov.info "*/ext/robin-map/*" -o cov.info ; \
 	      lcov --remove cov.info "*/kissfft.hh" -o cov.info ; \
 	      lcov --remove cov.info "*/stb_sprintf.h" -o cov.info ; \
+	      lcov --remove cov.info "*/src/iv/*" -o cov.info ; \
 	      genhtml -o ../_coverage -t "Test coverage" --num-spaces 4 cov.info ; \
 	  fi )
 
