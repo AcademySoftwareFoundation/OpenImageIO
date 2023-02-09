@@ -85,9 +85,9 @@ private:
     bool readimg();
 
     /// Helper function: decode a pixel.
-    inline void decode_pixel(unsigned char* in, unsigned char* out,
+    inline bool decode_pixel(unsigned char* in, unsigned char* out,
                              unsigned char* palette, int bytespp,
-                             int palbytespp);
+                             int palbytespp, size_t palette_alloc_size);
 
     // Read one byte
     bool read(uint8_t& buf) { return ioread(&buf, sizeof(buf), 1); }
@@ -111,6 +111,21 @@ private:
         if (bigendian())  // TGAs are always little-endian
             swap_endian(&buf);
         return ok;
+    }
+
+    // Read maxlen bytes from the file, if it doesn't start with 0, add the
+    // contents as attribute `name`. Return true if the read was successful,
+    // false if there was an error reading from the file. The attribute is
+    // only added if the string is non-empty.
+    bool read_bytes_for_string_attribute(string_view name, size_t maxlen)
+    {
+        char* buf = OIIO_ALLOCA(char, maxlen);
+        OIIO_DASSERT(buf != nullptr);
+        if (!ioread(buf, maxlen))
+            return false;
+        if (buf[0])
+            m_spec.attribute(name, Strutil::safe_string_view(buf, maxlen));
+        return true;
     }
 };
 
@@ -188,19 +203,18 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
-    if (is_palette()
-        && (m_tga.type == TYPE_GRAY || m_tga.type == TYPE_GRAY_RLE)) {
-        // it should be an error for TYPE_RGB* as well, but apparently some
-        // *very* old TGAs can be this way, so we'll hack around it
-        errorfmt("Palette defined for grayscale image");
-        return false;
-    }
-
-    if (is_palette()
-        && (m_tga.cmap_size != 15 && m_tga.cmap_size != 16
-            && m_tga.cmap_size != 24 && m_tga.cmap_size != 32)) {
-        errorfmt("Illegal palette entry size: {} bits", m_tga.cmap_size);
-        return false;
+    if (is_palette()) {
+        if (m_tga.type == TYPE_GRAY || m_tga.type == TYPE_GRAY_RLE) {
+            // it should be an error for TYPE_RGB* as well, but apparently some
+            // *very* old TGAs can be this way, so we'll hack around it
+            errorfmt("Palette defined for grayscale image");
+            return false;
+        }
+        if (m_tga.cmap_size != 15 && m_tga.cmap_size != 16
+            && m_tga.cmap_size != 24 && m_tga.cmap_size != 32) {
+            errorfmt("Illegal palette entry size: {} bits", m_tga.cmap_size);
+            return false;
+        }
     }
 
     m_alpha_type = TGA_ALPHA_NONE;
@@ -324,10 +338,8 @@ TGAInput::read_tga2_header()
         } buf;
 
         // load image author
-        if (!ioread(buf.c, 41, 1))
+        if (!read_bytes_for_string_attribute("Artist", 41))
             return false;
-        if (buf.c[0])
-            m_spec.attribute("Artist", (char*)buf.c);
 
         // load image comments
         if (!ioread(buf.c, 324, 1))
@@ -365,10 +377,8 @@ TGAInput::read_tga2_header()
         }
 
         // job name/ID
-        if (!ioread(buf.c, 41, 1))
+        if (!read_bytes_for_string_attribute("DocumentName", 41))
             return false;
-        if (buf.c[0])
-            m_spec.attribute("DocumentName", (char*)buf.c);
 
         // job time
         if (!ioread(buf.s, 2, 3))
@@ -390,7 +400,7 @@ TGAInput::read_tga2_header()
             return false;
         if (buf.c[0]) {
             // tack on the version number and letter
-            std::string soft((const char*)buf.c);
+            std::string soft = Strutil::safe_string((const char*)buf.c, 41);
             soft += Strutil::fmt::format(" {}.{}", n / 100, n % 100);
             if (l != ' ')
                 soft += l;
@@ -458,6 +468,10 @@ TGAInput::read_tga2_header()
         // alpha type
         if (!ioread(buf.c, 1, 1))
             return false;
+        if (buf.c[0] >= TGA_ALPHA_INVALID) {
+            errorfmt("Invalid alpha type {}. Corrupted header?", (int)buf.c[0]);
+            return false;
+        }
         m_alpha_type = (tga_alpha_type)buf.c[0];
         if (m_alpha_type)
             m_spec.attribute("targa:alpha_type", m_alpha_type);
@@ -522,11 +536,13 @@ TGAInput::get_thumbnail(ImageBuf& thumb, int subimage)
             alphabits = 8;
         // read palette, if there is any
         std::unique_ptr<unsigned char[]> palette;
+        size_t palette_alloc_size = 0;
         if (is_palette()) {
             if (!ioseek(m_ofs_palette)) {
                 return false;
             }
-            palette.reset(new unsigned char[palbytespp * m_tga.cmap_length]);
+            palette_alloc_size = palbytespp * m_tga.cmap_length;
+            palette.reset(new unsigned char[palette_alloc_size]);
             if (!ioread(palette.get(), palbytespp, m_tga.cmap_length))
                 return false;
             if (!ioseek(m_ofs_thumb + 2)) {
@@ -542,7 +558,9 @@ TGAInput::get_thumbnail(ImageBuf& thumb, int subimage)
                  x++, img += m_spec.nchannels) {
                 if (!ioread(in, bytespp, 1))
                     return false;
-                decode_pixel(in, pixel, palette.get(), bytespp, palbytespp);
+                if (!decode_pixel(in, pixel, palette.get(), bytespp, palbytespp,
+                                  palette_alloc_size))
+                    return false;
                 memcpy(img, pixel, m_spec.nchannels);
             }
         }
@@ -557,9 +575,10 @@ TGAInput::get_thumbnail(ImageBuf& thumb, int subimage)
 
 
 
-inline void
+inline bool
 TGAInput::decode_pixel(unsigned char* in, unsigned char* out,
-                       unsigned char* palette, int bytespp, int palbytespp)
+                       unsigned char* palette, int bytespp, int palbytespp,
+                       size_t palette_alloc_size)
 {
     unsigned int k = 0;
     // I hate nested switches...
@@ -569,6 +588,10 @@ TGAInput::decode_pixel(unsigned char* in, unsigned char* out,
         for (int i = 0; i < bytespp; ++i)
             k |= in[i] << (8 * i);  // Assemble it in little endian order
         k = (m_tga.cmap_first + k) * palbytespp;
+        if (k + palbytespp > palette_alloc_size) {
+            errorfmt("Corrupt palette index");
+            return false;
+        }
         switch (palbytespp) {
         case 2:
             // see the comment for 16bpp RGB below for an explanation of this
@@ -643,6 +666,7 @@ TGAInput::decode_pixel(unsigned char* in, unsigned char* out,
             memcpy(out, in, bytespp);
         break;
     }
+    return true;
 }
 
 
@@ -710,8 +734,10 @@ TGAInput::readimg()
 
     // read palette, if there is any
     std::unique_ptr<unsigned char[]> palette;
+    size_t palette_alloc_size = 0;
     if (is_palette()) {
-        palette.reset(new unsigned char[palbytespp * m_tga.cmap_length]);
+        palette_alloc_size = palbytespp * m_tga.cmap_length;
+        palette.reset(new unsigned char[palette_alloc_size]);
         if (!ioread(palette.get(), palbytespp, m_tga.cmap_length))
             return false;
     }
@@ -725,7 +751,9 @@ TGAInput::readimg()
             for (int64_t x = 0; x < m_spec.width; x++) {
                 if (!ioread(in, bytespp, 1))
                     return false;
-                decode_pixel(in, pixel, palette.get(), bytespp, palbytespp);
+                if (!decode_pixel(in, pixel, palette.get(), bytespp, palbytespp,
+                                  palette_alloc_size))
+                    return false;
                 memcpy(m_buf.get() + y * m_spec.width * m_spec.nchannels
                            + x * m_spec.nchannels,
                        pixel, m_spec.nchannels);
@@ -743,7 +771,9 @@ TGAInput::readimg()
                     return false;
                 }
                 packet_size = 1 + (in[0] & 0x7f);
-                decode_pixel(&in[1], pixel, palette.get(), bytespp, palbytespp);
+                if (!decode_pixel(&in[1], pixel, palette.get(), bytespp,
+                                  palbytespp, palette_alloc_size))
+                    return false;
                 if (in[0] & 0x80) {  // run length packet
                     // DBG("[tga] run length packet size {} @ ({},{})\n",
                     //     packet_size, x, y);
@@ -786,8 +816,10 @@ TGAInput::readimg()
                                 DBG("Failed on scanline {}\n", y);
                                 return false;
                             }
-                            decode_pixel(&in[1], pixel, palette.get(), bytespp,
-                                         palbytespp);
+                            if (!decode_pixel(&in[1], pixel, palette.get(),
+                                              bytespp, palbytespp,
+                                              palette_alloc_size))
+                                return false;
                             // DBG("\t\t@ ({},{}): [{:d} {:d} {:d} {:d}]\n", x, y,
                             //     pixel[0], pixel[1], pixel[2], pixel[3]);
                         }
