@@ -28,6 +28,9 @@
 
 OIIO_NAMESPACE_BEGIN
 
+// Forward declaration
+class TextureOpt;
+
 namespace pvt {
 // Forward declaration
 class ImageCacheImpl;
@@ -216,6 +219,11 @@ public:
     ///           enabled, this reduces the number of file opens, at the
     ///           expense of not being able to open files if their format do
     ///           not actually match their filename extension). Default: 0
+    /// - `string colorspace` :
+    ///           The working colorspace of the texture system. Default: none.
+    /// - `string colorconfig` :
+    ///           Name of the OCIO config to use. Default: "" (meaning to use
+    ///           the default color config).
     ///
     /// - `string options`
     ///           This catch-all is simply a comma-separated list of
@@ -467,18 +475,22 @@ public:
     /// internals.
     typedef pvt::ImageCacheFile ImageHandle;
 
-    /// Retrieve an opaque handle for fast image lookups. The filename is
-    /// presumed to be UTF-8 encoded. The opaque `pointer thread_info` is
-    /// thread-specific information returned by `get_perthread_info()`.
-    /// Return NULL if something has gone horribly wrong.
-    virtual ImageHandle* get_image_handle (ustring filename,
-                                           Perthread *thread_info=NULL) = 0;
+    /// Retrieve an opaque handle for fast texture lookups, or nullptr upon
+    /// failure.  The filename is presumed to be UTF-8 encoded. The `options`,
+    /// if not null, may be used to create a separate handle for certain
+    /// texture option choices. (Currently unused, but reserved for the future
+    /// or for alternate IC implementations.) The opaque pointer `thread_info`
+    /// is thread-specific information returned by `get_perthread_info()`.
+    virtual ImageHandle* get_image_handle(ustring filename,
+                                      Perthread* thread_info = nullptr,
+                                      const TextureOpt* options = nullptr) = 0;
 
     /// Get an ImageHandle using a UTF-16 encoded wstring filename.
-    ImageHandle* get_image_handle (const std::wstring& filename,
-                                   Perthread *thread_info=NULL) {
-        return get_image_handle (ustring(Strutil::utf16_to_utf8(filename)),
-                                 thread_info);
+    ImageHandle* get_image_handle(const std::wstring& filename,
+                                  Perthread* thread_info = nullptr,
+                                  const TextureOpt* options = nullptr) {
+        return get_image_handle(ustring(Strutil::utf16_to_utf8(filename)),
+                                thread_info, options);
     }
 
     /// Return true if the image handle (previously returned by

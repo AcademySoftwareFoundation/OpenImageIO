@@ -20,6 +20,7 @@
 // Define symbols that let client applications determine if newly added
 // features are supported.
 #define OIIO_TEXTURESYSTEM_SUPPORTS_CLOSE 1
+#define OIIO_TEXTURESYSTEM_SUPPORTS_COLORSPACE 1
 
 // Is the getattributetype() method present? (Added in 2.5)
 #define OIIO_TEXTURESYSTEM_SUPPORTS_GETATTRIBUTETYPE 1
@@ -232,6 +233,7 @@ public:
         fill(0.0f), missingcolor(nullptr),
         time(0.0f), rnd(-1.0f), samples(1),
         rwrap(WrapDefault), rblur(0.0f), rwidth(1.0f),
+        colortransformid(0),
         envlayout(0)
     { }
 
@@ -263,6 +265,8 @@ public:
     Wrap rwrap;    ///< Wrap mode in the r direction
     float rblur;   ///< Blur amount in the r direction
     float rwidth;  ///< Multiplier for derivatives in r direction
+
+    int colortransformid;       ///< Color space id of the texture
 
     /// Utility: Return the Wrap enum corresponding to a wrap name:
     /// "default", "black", "clamp", "periodic", "mirror".
@@ -313,9 +317,7 @@ public:
     alignas(Tex::BatchAlign) float twidth[Tex::BatchWidth];
     alignas(Tex::BatchAlign) float rwidth[Tex::BatchWidth];
     // Note: rblur,rwidth only used for volumetric lookups
-#if OIIO_VERSION_GREATER_EQUAL(2,4,0)
     alignas(Tex::BatchAlign) float rnd[Tex::BatchWidth];
-#endif
 
     // Options that must be the same for all points we're texturing at once
     int firstchannel = 0;                 ///< First channel of the lookup
@@ -330,6 +332,7 @@ public:
     int conservative_filter = 1;          ///< True: over-blur rather than alias
     float fill = 0.0f;                    ///< Fill value for missing channels
     const float *missingcolor = nullptr;  ///< Color for missing texture
+    int colortransformid = 0;             ///< Color space id of the texture
 
 private:
     // Options set INTERNALLY by libtexture after the options are passed
@@ -551,6 +554,10 @@ public:
     /// - `int max_errors_per_file` :
     ///             Limits how many errors to issue for each file. (default:
     ///             100)
+    /// - `string colorspace` :
+    ///             The working colorspace of the texture system.
+    /// - `string colorconfig` :
+    ///             Name of the OCIO config to use (default: "").
     ///
     /// Texture-specific settings:
     /// - `matrix44 worldtocommon` / `matrix44 commontoworld` :
@@ -788,16 +795,20 @@ public:
     class TextureHandle;
 
     /// Retrieve an opaque handle for fast texture lookups.  The filename is
-    /// presumed to be UTF-8 encoded. The opaque pointer `thread_info` is
-    /// thread-specific information returned by `get_perthread_info()`.
-    /// Return nullptr if something has gone horribly wrong.
-    virtual TextureHandle* get_texture_handle (ustring filename,
-                                            Perthread *thread_info=nullptr) = 0;
+    /// presumed to be UTF-8 encoded. The `options`, if not null, may be used
+    /// to create a separate handle for certain texture option choices
+    /// (currently: the colorspace). The opaque pointer `thread_info` is
+    /// thread-specific information returned by `get_perthread_info()`. Return
+    /// nullptr if something has gone horribly wrong.
+    virtual TextureHandle* get_texture_handle(ustring filename,
+                                      Perthread* thread_info = nullptr,
+                                      const TextureOpt* options = nullptr) = 0;
     /// Get a TextureHandle using a UTF-16 encoded wstring filename.
-    TextureHandle* get_texture_handle (const std::wstring& filename,
-                                       Perthread *thread_info=nullptr) {
-        return get_texture_handle (ustring(Strutil::utf16_to_utf8(filename)),
-                                   thread_info);
+    TextureHandle* get_texture_handle(const std::wstring& filename,
+                                      Perthread* thread_info = nullptr,
+                                      const TextureOpt* options = nullptr) {
+        return get_texture_handle(ustring(Strutil::utf16_to_utf8(filename)),
+                                  thread_info, options);
     }
 
     /// Return true if the texture handle (previously returned by
@@ -810,6 +821,14 @@ public:
     /// This method was added in OpenImageIO 2.3.
     virtual ustring filename_from_handle(TextureHandle* handle) = 0;
 
+    /// Retrieve an id for a color transformation by name. This ID can be used
+    /// as the value for TextureOpt::colortransformid. The returned value will
+    /// be -1 if either color space is unknown, and 0 for a null
+    /// transformation.
+    virtual int get_colortransform_id(ustring fromspace,
+                                      ustring tospace) const = 0;
+    virtual int get_colortransform_id(ustringhash fromspace,
+                                      ustringhash tospace) const = 0;
     /// @}
 
     /// @{

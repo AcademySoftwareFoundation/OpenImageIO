@@ -11,10 +11,13 @@
 #include <vector>
 
 #include <OpenImageIO/Imath.h>
+
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/optparser.h>
@@ -791,25 +794,24 @@ ImageCacheFile::init_from_spec()
 
 
 bool
-ImageCacheFile::read_tile(ImageCachePerThreadInfo* thread_info, int subimage,
-                          int miplevel, int x, int y, int z, int chbegin,
-                          int chend, TypeDesc format, void* data)
+ImageCacheFile::read_tile(ImageCachePerThreadInfo* thread_info,
+                          const TileID& id, void* data)
 {
-    OIIO_DASSERT(chend > chbegin);
+    OIIO_DASSERT(id.chend() > id.chbegin());
 
     // Mark if we ever use a mip level that's not the first
+    int miplevel = id.miplevel();
     if (miplevel > 0)
         m_mipused = true;
-
     // count how many times this mipmap level was read
     m_mipreadcount[miplevel]++;
 
+    int subimage = id.subimage();
     SubimageInfo& subinfo(subimageinfo(subimage));
 
     // Special case for un-MIP-mapped
     if (subinfo.unmipped && miplevel != 0)
-        return read_unmipped(thread_info, subimage, miplevel, x, y, z, chbegin,
-                             chend, format, data);
+        return read_unmipped(thread_info, id, data);
 
     std::shared_ptr<ImageInput> inp = open(thread_info);
     if (!inp)
@@ -817,10 +819,16 @@ ImageCacheFile::read_tile(ImageCachePerThreadInfo* thread_info, int subimage,
 
     // Special case for untiled images -- need to do tile emulation
     if (subinfo.untiled)
-        return read_untiled(thread_info, inp.get(), subimage, miplevel, x, y, z,
-                            chbegin, chend, format, data);
+        return read_untiled(thread_info, inp.get(), id, data);
 
     // Ordinary tiled
+    int x           = id.x();
+    int y           = id.y();
+    int z           = id.z();
+    int chbegin     = id.chbegin();
+    int chend       = id.chend();
+    TypeDesc format = id.file().datatype(subimage);
+
     bool ok = true;
     const ImageSpec& spec(this->spec(subimage, miplevel));
     for (int tries = 0; tries <= imagecache().failure_retries(); ++tries) {
@@ -852,6 +860,19 @@ ImageCacheFile::read_tile(ImageCachePerThreadInfo* thread_info, int subimage,
         thread_info->m_stats.bytes_read += b;
         m_bytesread += b;
         ++m_tilesread;
+        if (id.colortransformid() > 0) {
+            // print("CONVERT id {} {},{} to cs {}\n", filename(), id.x(), id.y(),
+            //       id.colortransformid());
+            ImageBuf wrapper(ImageSpec(spec.tile_width, spec.tile_height,
+                                       spec.nchannels, format),
+                             data);
+            ImageBufAlgo::colorconvert(
+                wrapper, wrapper,
+                ColorConfig::default_colorconfig().getColorSpaceNameByIndex(
+                    (id.colortransformid() >> 16) - 1),
+                m_imagecache.colorspace(), true, string_view(), string_view(),
+                nullptr, ROI(), 1);
+        }
     }
     return ok;
 }
@@ -860,9 +881,7 @@ ImageCacheFile::read_tile(ImageCachePerThreadInfo* thread_info, int subimage,
 
 bool
 ImageCacheFile::read_unmipped(ImageCachePerThreadInfo* thread_info,
-                              int subimage, int miplevel, int x, int y, int z,
-                              int chbegin, int chend, TypeDesc format,
-                              void* data)
+                              const TileID& id, void* data)
 {
     // We need a tile from an unmipmapped file, and it doesn't really
     // exist.  So generate it out of thin air by interpolating pixels
@@ -874,6 +893,15 @@ ImageCacheFile::read_unmipped(ImageCachePerThreadInfo* thread_info,
 
     // N.B. No need to lock the mutex, since this is only called
     // from read_tile, which already holds the lock.
+
+    int subimage = id.subimage();
+    int miplevel = id.miplevel();
+    int x        = id.x();
+    int y        = id.y();
+    // int z        = id.z();
+    int chbegin     = id.chbegin();
+    int chend       = id.chend();
+    TypeDesc format = id.file().datatype(id.subimage());
 
     // Figure out the size and strides for a single tile, make an ImageBuf
     // to hold it temporarily.
@@ -888,7 +916,7 @@ ImageCacheFile::read_unmipped(ImageCachePerThreadInfo* thread_info,
     // Figure out the range of texels we need for this tile
     x -= spec.x;
     y -= spec.y;
-    z -= spec.z;
+    // z -= spec.z;
     int x0 = x - (x % spec.tile_width);
     int x1 = std::min(x0 + spec.tile_width - 1, spec.full_width - 1);
     int y0 = y - (y % spec.tile_height);
@@ -956,10 +984,18 @@ ImageCacheFile::read_unmipped(ImageCachePerThreadInfo* thread_info,
 // of reading a "tile" from a file that's scanline-oriented.
 bool
 ImageCacheFile::read_untiled(ImageCachePerThreadInfo* thread_info,
-                             ImageInput* inp, int subimage, int miplevel, int x,
-                             int y, int z, int chbegin, int chend,
-                             TypeDesc format, void* data)
+                             ImageInput* inp, const TileID& id, void* data)
 {
+    int subimage         = id.subimage();
+    int miplevel         = id.miplevel();
+    int x                = id.x();
+    int y                = id.y();
+    int z                = id.z();
+    int chbegin          = id.chbegin();
+    int chend            = id.chend();
+    TypeDesc format      = id.file().datatype(id.subimage());
+    int colortransformid = id.colortransformid();
+
     // Strides for a single tile
     const ImageSpec& spec(this->spec(subimage, miplevel));
     int tw = spec.tile_width;
@@ -1021,7 +1057,7 @@ ImageCacheFile::read_untiled(ImageCachePerThreadInfo* thread_info,
                 // tile-row, so let's put it in the cache anyway so
                 // it'll be there when asked for.
                 TileID id(*this, subimage, miplevel, i + spec.x, y0, z, chbegin,
-                          chend);
+                          chend, colortransformid);
                 if (!imagecache().tile_in_cache(id, thread_info)) {
                     ImageCacheTileRef tile;
                     tile = new ImageCacheTile(id, &buf[i * pixelsize], format,
@@ -1520,10 +1556,7 @@ ImageCacheTile::read(ImageCachePerThreadInfo* thread_info)
     // Clear the end pad values so there aren't NaNs sucked up by simd loads
     memset(m_pixels.get() + size - OIIO_SIMD_MAX_SIZE_BYTES, 0,
            OIIO_SIMD_MAX_SIZE_BYTES);
-    m_valid = file.read_tile(thread_info, m_id.subimage(), m_id.miplevel(),
-                             m_id.x(), m_id.y(), m_id.z(), m_id.chbegin(),
-                             m_id.chend(), file.datatype(m_id.subimage()),
-                             &m_pixels[0]);
+    m_valid = file.read_tile(thread_info, m_id, &m_pixels[0]);
     file.imagecache().incr_mem(size);
     if (m_valid) {
         ImageCacheFile::LevelInfo& lev(
@@ -1636,6 +1669,7 @@ ImageCacheImpl::init()
     m_failure_retries      = 0;
     m_latlong_y_up_default = true;
     m_Mw2c.makeIdentity();
+    m_colorspace              = ustring("scene_linear");
     m_mem_used                = 0;
     m_statslevel              = 0;
     m_max_errors_per_file     = 100;
@@ -1875,7 +1909,8 @@ ImageCacheImpl::getstats(int level) const
                 spin_lock lock(m_perthread_info_mutex);
                 size_t nthreads = m_all_perthread_info.size();
                 if (nthreads > 1 || level > 2) {
-                    double perthreadtime = stats.fileio_time / (float)nthreads;
+                    double perthreadtime = stats.fileio_time
+                                           / std::max(size_t(1), nthreads);
                     print(out, " ({} average per thread, for {} threads)",
                           Strutil::timeintervalformat(perthreadtime), nthreads);
                 }
@@ -1895,14 +1930,16 @@ ImageCacheImpl::getstats(int level) const
                   m_stat_tiles_created, m_stat_tiles_current,
                   m_stat_tiles_peak);
             print(out, "    total tile requests : {}\n", stats.find_tile_calls);
-            print(out, "    micro-cache misses : {} ({:.1f}%)\n",
-                  stats.find_tile_microcache_misses,
-                  100.0 * stats.find_tile_microcache_misses
-                      / (double)stats.find_tile_calls);
-            print(out, "    main cache misses : {} ({:.1f}%)\n",
-                  stats.find_tile_cache_misses,
-                  100.0 * stats.find_tile_cache_misses
-                      / (double)stats.find_tile_calls);
+            if (stats.find_tile_microcache_misses)
+                print(out, "    micro-cache misses : {} ({:.1f}%)\n",
+                      stats.find_tile_microcache_misses,
+                      100.0 * stats.find_tile_microcache_misses
+                          / (double)stats.find_tile_calls);
+            if (stats.find_tile_cache_misses)
+                print(out, "    main cache misses : {} ({:.1f}%)\n",
+                      stats.find_tile_cache_misses,
+                      100.0 * stats.find_tile_cache_misses
+                          / (double)stats.find_tile_calls);
             print(out, "    redundant reads: {} tiles, {}\n",
                   total_redundant_tiles,
                   Strutil::memformat(total_redundant_bytes));
@@ -2011,11 +2048,13 @@ ImageCacheImpl::getstats(int level) const
                       nprinted, r, mb, file->iotime(),
                       onefile_stat_line(file, -1, false));
             }
-            if (nprinted == 0)
+            if (nprinted == 0) {
                 print(out, "    (nothing took more than 0.25s)\n");
-            double fast = files.back()->bytesread() / (1024.0 * 1024.0)
-                          / files.back()->iotime();
-            print(out, "    (fastest was {:.1f} MB/s)\n", fast);
+            } else {
+                double fast = files.back()->bytesread() / (1024.0 * 1024.0)
+                              / files.back()->iotime();
+                print(out, "    (fastest was {:.1f} MB/s)\n", fast);
+            }
             if (total_redundant_tiles > 0) {
                 std::sort(files.begin(), files.end(), redundantbytes_compare);
                 print(out, "  Top files by redundant I/O:\n");
@@ -2196,8 +2235,23 @@ ImageCacheImpl::attribute(string_view name, TypeDesc type, const void* val)
             do_invalidate          = true;
         }
     } else if (name == "substitute_image" && type == TypeDesc::STRING) {
-        m_substitute_image = ustring(*(const char**)val);
-        do_invalidate      = true;
+        ustring uval(*(const char**)val);
+        if (uval != m_substitute_image) {
+            m_substitute_image = uval;
+            do_invalidate      = true;
+        }
+    } else if (name == "colorconfig" && type == TypeDesc::STRING) {
+        ustring uval(*(const char**)val);
+        if (uval != m_colorconfigname) {
+            m_colorconfigname = uval;
+            do_invalidate     = true;
+        }
+    } else if (name == "colorspace" && type == TypeDesc::STRING) {
+        ustring uval(*(const char**)val);
+        if (uval != m_colorspace) {
+            m_colorspace  = uval;
+            do_invalidate = true;
+        }
     } else if (name == "max_mip_res" && type == TypeInt) {
         m_max_mip_res = *(const int*)val;
         do_invalidate = true;
@@ -2337,6 +2391,14 @@ ImageCacheImpl::getattribute(string_view name, TypeDesc type, void* val) const
     }
     if (name == "substitute_image" && type == TypeDesc::STRING) {
         *(const char**)val = m_substitute_image.c_str();
+        return true;
+    }
+    if (name == "colorconfig" && type == TypeDesc::STRING) {
+        *(const char**)val = m_colorconfigname.c_str();
+        return true;
+    }
+    if (name == "colorspace" && type == TypeDesc::STRING) {
+        *(const char**)val = m_colorspace.c_str();
         return true;
     }
     if (name == "all_filenames" && type.basetype == TypeDesc::STRING

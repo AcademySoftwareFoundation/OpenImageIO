@@ -186,6 +186,7 @@ macro (oiio_add_all_tests)
                     texture-stats
                     texture-threadtimes
                     texture-env
+                    texture-colorspace
                    )
     oiio_add_tests (${all_texture_tests})
     # Duplicate texture tests with batch mode

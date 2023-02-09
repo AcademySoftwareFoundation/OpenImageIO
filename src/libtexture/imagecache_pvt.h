@@ -44,6 +44,7 @@ namespace pvt {
 
 using boost::thread_specific_ptr;
 
+struct TileID;
 class ImageCacheImpl;
 class ImageCachePerThreadInfo;
 
@@ -193,9 +194,8 @@ public:
 
     /// Load new data tile
     ///
-    bool read_tile(ImageCachePerThreadInfo* thread_info, int subimage,
-                   int miplevel, int x, int y, int z, int chbegin, int chend,
-                   TypeDesc format, void* data);
+    bool read_tile(ImageCachePerThreadInfo* thread_info, const TileID& id,
+                   void* data);
 
     /// Mark the file as recently used.
     ///
@@ -435,15 +435,13 @@ private:
     /// Preconditions: the ImageInput is already opened, and we already did
     /// a seek_subimage to the right subimage and MIP level.
     bool read_untiled(ImageCachePerThreadInfo* thread_info, ImageInput* inp,
-                      int subimage, int miplevel, int x, int y, int z,
-                      int chbegin, int chend, TypeDesc format, void* data);
+                      const TileID& id, void* data);
 
     /// Load the requested tile, from a file that's not really MIPmapped.
     /// Preconditions: the ImageInput is already opened, and we already did
     /// a seek_subimage to the right subimage.
-    bool read_unmipped(ImageCachePerThreadInfo* thread_info, int subimage,
-                       int miplevel, int x, int y, int z, int chbegin,
-                       int chend, TypeDesc format, void* data);
+    bool read_unmipped(ImageCachePerThreadInfo* thread_info, const TileID& id,
+                       void* data);
 
     // Initialize a bunch of fields based on the ImageSpec.
     // FIXME -- this is actually deeply flawed, many of these things only
@@ -489,7 +487,7 @@ struct TileID {
     /// Initialize a TileID based on full elaboration of image file,
     /// subimage, and tile x,y,z indices.
     TileID(ImageCacheFile& file, int subimage, int miplevel, int x, int y,
-           int z, int chbegin, int chend)
+           int z, int chbegin, int chend, int colortransformid = 0)
         : m_x(x)
         , m_y(y)
         , m_z(z)
@@ -497,6 +495,7 @@ struct TileID {
         , m_miplevel(miplevel)
         , m_chbegin(chbegin)
         , m_chend(chend)
+        , m_colortransformid(colortransformid)
         , m_file(&file)
     {
         if (chend < chbegin) {
@@ -519,6 +518,7 @@ struct TileID {
     int chbegin() const { return m_chbegin; }
     int chend() const { return m_chend; }
     int nchannels() const { return m_chend - m_chbegin; }
+    int colortransformid() const { return m_colortransformid; }
 
     void x(int v) { m_x = v; }
     void y(int v) { m_y = v; }
@@ -547,7 +547,8 @@ struct TileID {
         return (a.m_x == b.m_x && a.m_y == b.m_y && a.m_z == b.m_z
                 && a.m_subimage == b.m_subimage && a.m_miplevel == b.m_miplevel
                 && (a.m_file == b.m_file) && a.m_chbegin == b.m_chbegin
-                && a.m_chend == b.m_chend);
+                && a.m_chend == b.m_chend
+                && a.m_colortransformid == b.m_colortransformid);
     }
 
     /// Do the two ID's refer to the same tile?
@@ -562,7 +563,8 @@ struct TileID {
         const uint64_t b = (uint64_t(m_z) << 32) + uint64_t(m_subimage);
         const uint64_t c = (uint64_t(m_miplevel) << 32)
                            + (uint64_t(m_chbegin) << 16) + uint64_t(m_chend);
-        const uint64_t d = m_file->filename().hash();
+        const uint64_t d = m_file->filename().hash()
+                           + uint64_t(m_colortransformid);
         return fasthash::fasthash64({ a, b, c, d });
     }
 
@@ -575,8 +577,8 @@ struct TileID {
     {
         return (o << "{xyz=" << id.m_x << ',' << id.m_y << ',' << id.m_z
                   << ", sub=" << id.m_subimage << ", mip=" << id.m_miplevel
-                  << ", chans=[" << id.chbegin() << "," << id.chend() << ")"
-                  << ' '
+                  << ", chans=[" << id.chbegin() << "," << id.chend()
+                  << ", cs=" << id.colortransformid() << ") "
                   << (id.m_file ? ustring("nofile") : id.m_file->filename())
                   << '}');
     }
@@ -586,6 +588,7 @@ private:
     int m_subimage;            ///< subimage
     int m_miplevel;            ///< MIP-map level
     short m_chbegin, m_chend;  ///< Channel range
+    int m_colortransformid;    ///< Colorspace id (0 == default)
     ImageCacheFile* m_file;    ///< Which ImageCacheFile we refer to
 };
 
@@ -947,9 +950,9 @@ public:
                                 ImageCachePerThreadInfo* thread_info,
                                 bool header_only = false);
 
-    ImageCacheFile*
-    get_image_handle(ustring filename,
-                     ImageCachePerThreadInfo* thread_info = NULL) override
+    ImageCacheFile* get_image_handle(ustring filename,
+                                     ImageCachePerThreadInfo* thread_info,
+                                     const TextureOpt* options) override
     {
         if (!thread_info)
             thread_info = get_perthread_info();
@@ -1120,6 +1123,8 @@ public:
 
     int max_mip_res() const noexcept { return m_max_mip_res; }
 
+    ustring colorspace() const noexcept { return m_colorspace; }
+
 private:
     void init();
 
@@ -1178,6 +1183,8 @@ private:
     Imath::M44f m_Mw2c;           ///< world-to-"common" matrix
     Imath::M44f m_Mc2w;           ///< common-to-world matrix
     ustring m_substitute_image;   ///< Substitute this image for all others
+    ustring m_colorspace;         ///< Working color space
+    ustring m_colorconfigname;    ///< Filename of color config to use
 
     mutable FilenameMap m_files;    ///< Map file names to ImageCacheFile's
     ustring m_file_sweep_name;      ///< Sweeper for "clock" paging algorithm
