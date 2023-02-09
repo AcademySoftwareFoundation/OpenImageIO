@@ -68,7 +68,8 @@ enum tga_alpha_type {
     TGA_ALPHA_UNDEFINED_IGNORE = 1,  ///< can ignore alpha
     TGA_ALPHA_UNDEFINED_RETAIN = 2,  ///< undefined, but should be retained
     TGA_ALPHA_USEFUL           = 3,  ///< useful alpha data is present
-    TGA_ALPHA_PREMULTIPLIED    = 4   ///< alpha is pre-multiplied (arrrgh!)
+    TGA_ALPHA_PREMULTIPLIED    = 4,  ///< alpha is pre-multiplied (arrrgh!)
+    TGA_ALPHA_INVALID                // one past the last valid value
     // values 5-127 are reserved
     // values 128-255 are unassigned
 };
