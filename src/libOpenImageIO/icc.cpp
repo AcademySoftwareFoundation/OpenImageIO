@@ -144,7 +144,6 @@ icc_color_space_name(string_view color_space)
     // return color_space_names[color_space];
     auto it = color_space_names.find(color_space);
     return (it != color_space_names.end()) ? it->second : nullptr;
-
 }
 
 static const char*
@@ -163,6 +162,7 @@ icc_primary_platform_name(const std::string& platform)
     // return primary_platforms[platform];
     auto it = primary_platforms.find(platform);
     return (it != primary_platforms.end()) ? it->second : nullptr;
+}
 
 static const char*
 icc_rendering_intent_name(uint32_t intent)
