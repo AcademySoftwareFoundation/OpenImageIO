@@ -105,15 +105,16 @@ struct ICCTag {
 static const char*
 icc_device_class_name(const std::string& device_class)
 {
-    static const std::unordered_map<std::string, const char*> device_class_names = {
-        { "scnr", "Input device profile" },
-        { "mntr", "Display device profile" },
-        { "prtr", "Output device profile" },
-        { "link", "DeviceLink profile" },
-        { "spac", "ColorSpace profile" },
-        { "abst", "Abstract profile" },
-        { "nmcl", "NamedColor profile" },
-    };
+    static const std::unordered_map<std::string, const char*> device_class_names
+        = {
+              { "scnr", "Input device profile" },
+              { "mntr", "Display device profile" },
+              { "prtr", "Output device profile" },
+              { "link", "DeviceLink profile" },
+              { "spac", "ColorSpace profile" },
+              { "abst", "Abstract profile" },
+              { "nmcl", "NamedColor profile" },
+          };
     // std::unordered_map::operator[](const Key& key) will add the key to the map if
     // it doesn't exist. This isn't what is intended and isn't thread safe.
     // Instead, just do the lookup and return the value or a nullptr.
@@ -126,6 +127,7 @@ icc_device_class_name(const std::string& device_class)
 static const char*
 icc_color_space_name(string_view color_space)
 {
+    // clang-format off
     static const std::unordered_map<std::string, const char*> color_space_names = {
         { "XYZ ", "XYZ" },      { "Lab ", "CIELAB" },   { "Luv ", "CIELUV" },
         { "YCbr", "YCbCr" },    { "Yxy ", "CIEYxy" },   { "RGB ", "RGB" },
@@ -137,6 +139,7 @@ icc_color_space_name(string_view color_space)
         { "BCLR", "12 color" }, { "CCLR", "13 color" }, { "DCLR", "14 color" },
         { "ECLR", "15 color" }, { "FCLR", "16 color" },
     };
+    // clang-format on
     // std::unordered_map::operator[](const Key& key) will add the key to the map if
     // it doesn't exist. This isn't what is intended and isn't thread safe.
     // Instead, just do the lookup and return the value or a nullptr.
@@ -149,12 +152,13 @@ icc_color_space_name(string_view color_space)
 static const char*
 icc_primary_platform_name(const std::string& platform)
 {
-    static const std::unordered_map<std::string, const char*> primary_platforms = {
-        { "APPL", "Apple Computer, Inc." },
-        { "MSFT", "Microsoft Corporation" },
-        { "SGI ", "Silicon Graphics, Inc." },
-        { "SUNW", "Sun Microsystems, Inc." },
-    };
+    static const std::unordered_map<std::string, const char*> primary_platforms
+        = {
+              { "APPL", "Apple Computer, Inc." },
+              { "MSFT", "Microsoft Corporation" },
+              { "SGI ", "Silicon Graphics, Inc." },
+              { "SUNW", "Sun Microsystems, Inc." },
+          };
     // std::unordered_map::operator[](const Key& key) will add the key to the map if
     // it doesn't exist. This isn't what is intended and isn't thread safe.
     // Instead, just do the lookup and return the value or a nullptr.
