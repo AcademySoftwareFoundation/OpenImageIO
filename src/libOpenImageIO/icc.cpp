@@ -105,22 +105,30 @@ struct ICCTag {
 static const char*
 icc_device_class_name(const std::string& device_class)
 {
-    static std::unordered_map<std::string, const char*> device_class_names = {
-        { "scnr", "Input device profile" },
-        { "mntr", "Display device profile" },
-        { "prtr", "Output device profile" },
-        { "link", "DeviceLink profile" },
-        { "spac", "ColorSpace profile" },
-        { "abst", "Abstract profile" },
-        { "nmcl", "NamedColor profile" },
-    };
-    return device_class_names[device_class];
+    static const std::unordered_map<std::string, const char*> device_class_names
+        = {
+              { "scnr", "Input device profile" },
+              { "mntr", "Display device profile" },
+              { "prtr", "Output device profile" },
+              { "link", "DeviceLink profile" },
+              { "spac", "ColorSpace profile" },
+              { "abst", "Abstract profile" },
+              { "nmcl", "NamedColor profile" },
+          };
+    // std::unordered_map::operator[](const Key& key) will add the key to the map if
+    // it doesn't exist. This isn't what is intended and isn't thread safe.
+    // Instead, just do the lookup and return the value or a nullptr.
+    //
+    // return device_class_names[device_class];
+    auto it = device_class_names.find(device_class);
+    return (it != device_class_names.end()) ? it->second : nullptr;
 }
 
 static const char*
 icc_color_space_name(string_view color_space)
 {
-    static std::unordered_map<std::string, const char*> color_space_names = {
+    // clang-format off
+    static const std::unordered_map<std::string, const char*> color_space_names = {
         { "XYZ ", "XYZ" },      { "Lab ", "CIELAB" },   { "Luv ", "CIELUV" },
         { "YCbr", "YCbCr" },    { "Yxy ", "CIEYxy" },   { "RGB ", "RGB" },
         { "GRAY", "Gray" },     { "HSV ", "HSV" },      { "HLS ", "HLS" },
@@ -131,19 +139,33 @@ icc_color_space_name(string_view color_space)
         { "BCLR", "12 color" }, { "CCLR", "13 color" }, { "DCLR", "14 color" },
         { "ECLR", "15 color" }, { "FCLR", "16 color" },
     };
-    return color_space_names[color_space];
+    // clang-format on
+    // std::unordered_map::operator[](const Key& key) will add the key to the map if
+    // it doesn't exist. This isn't what is intended and isn't thread safe.
+    // Instead, just do the lookup and return the value or a nullptr.
+    //
+    // return color_space_names[color_space];
+    auto it = color_space_names.find(color_space);
+    return (it != color_space_names.end()) ? it->second : nullptr;
 }
 
 static const char*
 icc_primary_platform_name(const std::string& platform)
 {
-    static std::unordered_map<std::string, const char*> primary_platforms = {
-        { "APPL", "Apple Computer, Inc." },
-        { "MSFT", "Microsoft Corporation" },
-        { "SGI ", "Silicon Graphics, Inc." },
-        { "SUNW", "Sun Microsystems, Inc." },
-    };
-    return primary_platforms[platform];
+    static const std::unordered_map<std::string, const char*> primary_platforms
+        = {
+              { "APPL", "Apple Computer, Inc." },
+              { "MSFT", "Microsoft Corporation" },
+              { "SGI ", "Silicon Graphics, Inc." },
+              { "SUNW", "Sun Microsystems, Inc." },
+          };
+    // std::unordered_map::operator[](const Key& key) will add the key to the map if
+    // it doesn't exist. This isn't what is intended and isn't thread safe.
+    // Instead, just do the lookup and return the value or a nullptr.
+    //
+    // return primary_platforms[platform];
+    auto it = primary_platforms.find(platform);
+    return (it != primary_platforms.end()) ? it->second : nullptr;
 }
 
 static const char*
@@ -158,7 +180,7 @@ icc_rendering_intent_name(uint32_t intent)
 static std::string
 icc_tag_name(const std::string& tag)
 {
-    static std::unordered_map<std::string, std::string> tagnames = {
+    static const std::unordered_map<std::string, std::string> tagnames = {
         { "targ", "characterization_target" },
         { "cprt", "copyright" },
         { "desc", "profile_description" },
@@ -166,7 +188,13 @@ icc_tag_name(const std::string& tag)
         { "dmnd", "device_manufacturer_description" },
         { "vued", "viewing_conditions_description" },
     };
-    return tagnames[tag];
+    // std::unordered_map::operator[](const Key& key) will add the key to the map if
+    // it doesn't exist. This isn't what is intended and isn't thread safe.
+    // Instead, just do the lookup and return the value or an empty string.
+    //
+    //return tagnames[tag];
+    auto it = tagnames.find(tag);
+    return (it != tagnames.end()) ? it->second : std::string();
 }
 
 
