@@ -81,6 +81,8 @@ private:
         m_cur_subimage = 0;
         m_bitpix       = 0;
         m_naxes        = 0;
+        m_naxis.clear();
+        keys.clear();
         m_subimages.clear();
         m_comment.clear();
         m_history.clear();
@@ -145,6 +147,7 @@ private:
         m_bitpix = 0;
         m_simple = true;
         m_scratch.clear();
+        m_tilebuffer.clear();
         m_sep = '\n';
     }
 
