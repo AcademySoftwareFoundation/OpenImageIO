@@ -14,7 +14,7 @@ src/separate.tif     :  128 x  128, 3 channel, uint8 tiff
     tiff:RowsPerStrip: 7
 Comparing "src/separate.tif" and "separate.tif"
 PASS
-oiiotool ERROR: read : "src/corrupt1.tif": Could not open file: IO error during reading of "StripOffsets"
+oiiotool ERROR: read : No support for data format of "src/corrupt1.tif"
 Full command line was:
 > oiiotool --oiioattrib try_all_readers 0 --info -v src/corrupt1.tif
 oiiotool ERROR: read : File does not exist: "src/crash-1633.tif"
