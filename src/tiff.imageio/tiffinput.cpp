@@ -2253,8 +2253,9 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
     //                  xbegin, xend, ybegin, yend, zbegin, zend);
     size_t tileidx = 0;
     for (int z = zbegin; z < zend; z += m_spec.tile_depth) {
-        for (int y = ybegin; y < yend; y += m_spec.tile_height) {
-            for (int x = xbegin; x < xend; x += m_spec.tile_width, ++tileidx) {
+        for (int y = ybegin; ok && y < yend; y += m_spec.tile_height) {
+            for (int x = xbegin; ok && x < xend;
+                 x += m_spec.tile_width, ++tileidx) {
                 char* cbuf = compressed_scratch.get() + tileidx * cbound;
                 char* ubuf = scratch.get() + tileidx * tile_bytes;
                 auto csize = TIFFReadRawTile(m_tif, tile_index(x, y, z), cbuf,
@@ -2264,7 +2265,8 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
                     errorfmt(
                         "TIFFReadRawTile failed reading tile x={},y={},z={}: {}",
                         x, y, z, err.size() ? err.c_str() : "unknown error");
-                    return false;
+                    ok = false;
+                    break;
                 }
                 // Push the rest of the work onto the thread pool queue
                 auto out = this;
@@ -2289,6 +2291,7 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
             }
         }
     }
+    tasks.wait();
     return ok;
 }
 
