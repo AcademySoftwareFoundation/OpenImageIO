@@ -1,6 +1,14 @@
-Release 2.4.9.0 (1? Mar? 2023) -- compared to 2.4.8.0
+Release 2.4.8.1 (13 Feb 2023) -- compared to 2.4.8.0
 -----------------------------------------------------
-
+* Fix(targa): guard against corrupted tga files Fixes TALOS-2023-1707 /
+  CVE-2023-24473, TALOS-2023-1708 / CVE-2023-22845. #3768
+* Fix: race condition in TIFF reader, fixes TALOS-2023-1709 / CVE-2023-24472.
+  #3772
+* Windows: Fix unresolved external symbol for MSVS 2017 #3763
+* Fix: Initialize OpenEXROutput::m_levelmode() in init(). #3764
+* Fix: improve thread safety for concurrent tiff loads. #3767
+* Fix(fits): Make sure to close if open fails to find right magic number.
+  #3771
 
 Release 2.4.8.0 (1 Feb 2023) -- compared to 2.4.7.1
 ----------------------------------------------------
