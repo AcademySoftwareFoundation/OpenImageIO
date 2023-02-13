@@ -24,6 +24,6 @@ oiiotool ERROR: read : File does not exist: "src/crash-1643.tif"
 Full command line was:
 > oiiotool --oiioattrib try_all_readers 0 --info src/crash-1643.tif -o out.exr
 iconvert ERROR copying "src/crash-1709.tif" to "crash-1709.exr" :
-	
+	Decoding error at scanline 0, incorrect header check
 Comparing "check1.tif" and "ref/check1.tif"
 PASS
