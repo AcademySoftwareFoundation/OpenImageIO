@@ -350,7 +350,7 @@ include (CheckLibraryExists)
 #
 if (NOT MSVC AND NOT APPLE AND NOT ANDROID)
     cmake_push_check_state ()
-    check_cxx_source_runs(
+    check_cxx_source_compiles(
        "#include <atomic>
         #include <cstdint>
         std::atomic<uint64_t> x {0};
