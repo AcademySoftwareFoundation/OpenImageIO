@@ -840,6 +840,7 @@ ImageCacheFile::read_tile(ImageCachePerThreadInfo* thread_info, int subimage,
         }
     }
     if (!ok) {
+        m_broken        = true;
         std::string err = inp->geterror();
         if (errors_should_issue()) {
             imagecache().error("{}",
