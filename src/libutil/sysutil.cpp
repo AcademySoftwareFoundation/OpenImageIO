@@ -75,7 +75,7 @@
 #        define _GNU_SOURCE
 #    endif
 #    if !defined(OIIO_DISABLE_BOOST_STACKTRACE)
-#       include <boost/stacktrace.hpp>
+#        include <boost/stacktrace.hpp>
 #    endif
 #endif
 
