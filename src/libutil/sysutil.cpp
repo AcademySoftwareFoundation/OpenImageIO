@@ -70,7 +70,9 @@
 #    ifndef _GNU_SOURCE
 #        define _GNU_SOURCE
 #    endif
-#    include <boost/stacktrace.hpp>
+#    if !defined(OIIO_DISABLE_BOOST_STACKTRACE)
+#        include <boost/stacktrace.hpp>
+#    endif
 #endif
 
 // clang 7.0 (rc2) has errors when including boost thread!
@@ -658,7 +660,7 @@ aligned_free(void* ptr)
 std::string
 Sysutil::stacktrace()
 {
-#if BOOST_VERSION >= 106500
+#if BOOST_VERSION >= 106500 && !defined(OIIO_DISABLE_BOOST_STACKTRACE)
     std::stringstream out;
     out << boost::stacktrace::stacktrace();
     return out.str();
@@ -669,7 +671,7 @@ Sysutil::stacktrace()
 
 
 
-#if BOOST_VERSION >= 106500
+#if BOOST_VERSION >= 106500 && !defined(OIIO_DISABLE_BOOST_STACKTRACE)
 
 static std::string stacktrace_filename;
 static std::mutex stacktrace_filename_mutex;
@@ -684,7 +686,7 @@ stacktrace_signal_handler(int signum)
         else if (stacktrace_filename == "stderr")
             std::cerr << Sysutil::stacktrace();
         else {
-#    if BOOST_VERSION >= 106500
+#    if BOOST_VERSION >= 106500 && !defined(OIIO_DISABLE_BOOST_STACKTRACE)
             boost::stacktrace::safe_dump_to(stacktrace_filename.c_str());
 #    endif
         }
@@ -699,7 +701,7 @@ stacktrace_signal_handler(int signum)
 bool
 Sysutil::setup_crash_stacktrace(string_view filename)
 {
-#if BOOST_VERSION >= 106500
+#if BOOST_VERSION >= 106500 && !defined(OIIO_DISABLE_BOOST_STACKTRACE)
     std::lock_guard<std::mutex> lock(stacktrace_filename_mutex);
     stacktrace_filename = filename;
     ::signal(SIGSEGV, &stacktrace_signal_handler);

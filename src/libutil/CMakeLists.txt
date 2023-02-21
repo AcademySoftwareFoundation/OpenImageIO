@@ -39,6 +39,10 @@ if (NOT BUILD_SHARED_LIBS)
     target_compile_definitions (OpenImageIO_Util PUBLIC OIIO_STATIC_DEFINE=1)
 endif ()
 
+if (OIIO_DISABLE_BOOST_STACKTRACE)
+    target_compile_definitions (OpenImageIO_Util PRIVATE OIIO_DISABLE_BOOST_STACKTRACE)
+endif ()
+
 # Propagate C++ minimum to downstream consumers
 target_compile_features (OpenImageIO_Util
                          INTERFACE cxx_std_${DOWNSTREAM_CXX_STANDARD})
