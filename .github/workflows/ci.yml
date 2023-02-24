@@ -233,14 +233,14 @@ jobs:
         include:
           - desc: latest releases gcc11 C++17 avx2 exr3.1 ocio2.2
             nametag: linux-latest-releases
-            os: ubuntu-20.04
+            os: ubuntu-22.04
             cc_compiler: gcc-11
             cxx_compiler: g++-11
             cxx_std: 17
             fmt_ver: 9.1.0
             openexr_ver: v3.1.5
             pybind11_ver: v2.10.0
-            python_ver: 3.8
+            python_ver: "3.10"
             simd: avx2,f16c
             setenvs: export LIBRAW_VERSION=0.20.2
                             LIBTIFF_VERSION=v4.5.0
@@ -391,6 +391,7 @@ jobs:
             cxx_std: 17
             python_ver: "3.9"
             aclang: 13
+            setenvs: export QT_VERSION=@5
           - desc: MacOS-12
             os: macos-12
             nametag: macos12-py310

@@ -9,12 +9,15 @@
 #endif
 #include <vector>
 
+#ifndef OIIO_QT_MAJOR
+#    error "Build problem? OIIO_QT_MAJOR not defined."
+#endif
+
 #include "imageviewer.h"
 #include "ivgl.h"
 
 #include <QApplication>
 #include <QComboBox>
-#include <QDesktopWidget>
 #include <QFileDialog>
 #include <QKeyEvent>
 #include <QLabel>
@@ -27,6 +30,10 @@
 #include <QSpinBox>
 #include <QStatusBar>
 #include <QTimer>
+
+#if OIIO_QT_MAJOR < 6
+#    include <QDesktopWidget>
+#endif
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filesystem.h>
@@ -1951,9 +1958,14 @@ ImageViewer::fitWindowToImage(bool zoomok, bool minsize)
     }
 
     if (!m_fullscreen) {
-        QDesktopWidget* desktop = QApplication::desktop();
-        QRect availgeom         = desktop->availableGeometry(this);
-        int availwidth          = availgeom.width() - extraw - 20;
+#if OIIO_QT_MAJOR >= 6
+        auto desktop    = this->screen();
+        QRect availgeom = desktop->availableGeometry();
+#else
+        auto desktop    = QApplication::desktop();
+        QRect availgeom = desktop->availableGeometry(this);
+#endif
+        int availwidth  = availgeom.width() - extraw - 20;
         int availheight = availgeom.height() - extrah - menuBar()->height()
                           - 20;
 #if 0

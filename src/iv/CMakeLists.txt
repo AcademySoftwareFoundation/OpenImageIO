@@ -3,23 +3,36 @@
 # https://github.com/OpenImageIO/oiio
 
 set (CMAKE_AUTOMOC ON)
-if (Qt5_POSITION_INDEPENDENT_CODE)
+if (Qt5_POSITION_INDEPENDENT_CODE OR Qt6_POSITION_INDEPENDENT_CODE)
     set (CMAKE_POSITION_INDEPENDENT_CODE ON)
 endif()
 
 check_is_enabled (iv iv_enabled)
-if (iv_enabled AND Qt5_FOUND AND OPENGL_FOUND)
+if (iv_enabled AND (Qt5_FOUND OR Qt6_FOUND) AND OPENGL_FOUND)
     fancy_add_executable (
         SYSTEM_INCLUDE_DIRS
             ${OPENGL_INCLUDE_DIR}
         LINK_LIBRARIES
             OpenImageIO
-            Qt5::Core Qt5::Gui Qt5::Widgets Qt5::OpenGL
+            $<TARGET_NAME_IF_EXISTS:Qt5::Core>
+            $<TARGET_NAME_IF_EXISTS:Qt5::Gui>
+            $<TARGET_NAME_IF_EXISTS:Qt5::Widgets>
+            $<TARGET_NAME_IF_EXISTS:Qt5::OpenGL>
+            $<TARGET_NAME_IF_EXISTS:Qt6::Core>
+            $<TARGET_NAME_IF_EXISTS:Qt6::Gui>
+            $<TARGET_NAME_IF_EXISTS:Qt6::Widgets>
+            $<TARGET_NAME_IF_EXISTS:Qt6::OpenGLWidgets>
             ${OPENGL_LIBRARIES}
         )
     if (iv_enabled AND FORCE_OPENGL_1)
         target_compile_definitions(iv PRIVATE FORCE_OPENGL_1)
     endif()
+    if (Qt5_FOUND)
+        target_compile_definitions(iv PRIVATE OIIO_QT_MAJOR=5)
+    endif ()
+    if (Qt6_FOUND)
+        target_compile_definitions(iv PRIVATE OIIO_QT_MAJOR=6)
+    endif ()
 else ()
     message (STATUS "\n\n   WARNING: Qt or OpenGL not found -- 'iv' will not be built!\n")
 endif ()

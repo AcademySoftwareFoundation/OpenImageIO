@@ -73,8 +73,12 @@ else
         libopencolorio-dev \
         libopencv-dev \
         libhdf5-dev
-    time sudo apt-get -q install -y \
-        qt5-default || /bin/true
+    if [[ "${QT_VERSION:-5}" == "5" ]] ; then
+        time sudo apt-get -q install -y \
+            qt5-default || /bin/true
+    elif [[ "${QT_VERSION}" == "6" ]] ; then
+        time sudo apt-get -q install -y qt6-base-dev || /bin/true
+    fi
     if [[ "${EXTRA_DEP_PACKAGES}" != "" ]] ; then
         time sudo apt-get -q install -y ${EXTRA_DEP_PACKAGES}
     fi
