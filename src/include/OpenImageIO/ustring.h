@@ -837,6 +837,13 @@ public:
 #endif
     }
 
+    /// Construct from a raw hash value. Beware: results are undefined if it's
+    /// not the valid hash of a ustring.
+    OIIO_HOSTDEVICE explicit constexpr ustringhash(hash_t hash) noexcept
+        : m_hash(hash)
+    {
+    }
+
     /// Conversion to an OIIO::string_view.
     operator string_view() const noexcept { return ustring::from_hash(m_hash); }
 
@@ -965,7 +972,7 @@ public:
 #endif
 
     /// Return the ustringhash corresponding to the given hash. Caveat emptor:
-    /// results are undefined if it's not the valud hash of a ustring.
+    /// results are undefined if it's not the valid hash of a ustring.
     OIIO_NODISCARD static constexpr ustringhash from_hash(hash_t hash)
     {
         ustringhash u;
@@ -976,13 +983,6 @@ public:
 private:
     // Individual ustringhash internal representation -- the hash value.
     rep_t m_hash;
-
-    // Construct from a raw hash value. It's protected so that it's only
-    // callable by its friend, ustring.
-    OIIO_HOSTDEVICE ustringhash(hash_t hashval)
-        : m_hash(hashval)
-    {
-    }
 
     friend class ustring;
 };
