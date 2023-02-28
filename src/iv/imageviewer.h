@@ -23,8 +23,13 @@
 #include <QAction>
 #include <QCheckBox>
 #include <QDialog>
-#include <QGLWidget>
 #include <QMainWindow>
+
+#if OIIO_QT_MAJOR < 6
+#    include <QGLWidget>
+#else
+#    include <QOpenGLWidget>
+#endif
 
 #ifndef QT_NO_PRINTER
 // #include <QPrinter>

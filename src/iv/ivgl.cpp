@@ -11,6 +11,10 @@
 #include <QLabel>
 #include <QMouseEvent>
 #include <QProgressBar>
+#if OIIO_QT_MAJOR >= 6
+#    include <QPainter>
+#    include <QPen>
+#endif
 
 #include "ivutils.h"
 #include <OpenImageIO/strutil.h>
