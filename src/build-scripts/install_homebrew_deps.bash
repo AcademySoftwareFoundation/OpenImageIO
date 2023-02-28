@@ -39,7 +39,7 @@ brew install --display-times -q ffmpeg libheif ptex || true
 brew install --display-times -q tbb || true
 brew install --display-times -q openvdb || true
 brew install --display-times -q opencv || true
-brew install --display-times -q qt@5
+brew install --display-times -q qt${QT_VERSION}
 
 echo ""
 echo "After brew installs:"
