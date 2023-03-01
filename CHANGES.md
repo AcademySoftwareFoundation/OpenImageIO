@@ -1,3 +1,7 @@
+Release 2.4.10.0 (1 Apr? 2023) -- compared to 2.4.9.0
+-----------------------------------------------------
+
+
 Release 2.4.9.0 (1 Mar 2023) -- compared to 2.4.8.1
 -----------------------------------------------------
 * Build: check need for libatomic with check_cxx_source_compiles instead of
