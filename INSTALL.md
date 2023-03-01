@@ -20,7 +20,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * Compilers: **gcc 6.1 - 12.1**, **clang 3.4 - 15**, **MSVS 2017 - 2019**,
    **Intel icc 17+**, **Intel OneAPI C++ compiler 2022+**.
  * CMake >= 3.12 (tested through 3.24)
- * OpenEXR/Imath >= 2.3 (recommended: 2.4 or higher; tested through 3.1)
+ * OpenEXR/Imath >= 2.3 (recommended: 2.4 or higher; tested through 3.2)
  * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.5)
  * libjpeg >= 8, or libjpeg-turbo >= 1.1 (tested through jpeg9d and jpeg-turbo
    2.1)
@@ -32,7 +32,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
 ### Optional dependencies -- features may be disabled if not found
  * If you are building the `iv` viewer (which will be disabled if any of
    these are not found):
-     * Qt >= 5.6 (tested through 5.15)
+     * Qt5 >= 5.6 (tested through 5.15) or Qt6 (tested through 6.4)
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
      * Python >= 2.7 (tested against 2.7, 3.7, 3.8, 3.9, 3.10)
@@ -40,7 +40,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
        not support Python < 3.6.)
      * NumPy
  * If you want support for camera "RAW" formats:
-     * LibRaw >= 0.15 (tested 0.15 - 0.20.2; LibRaw >= 0.18 is necessary for
+     * LibRaw >= 0.15 (tested 0.15 - 0.21.1; LibRaw >= 0.18 is necessary for
        ACES support and much better recognition of camera metadata; if
        building with C++17 or higher, LibRaw >= 0.20 is necessary)
  * If you want support for a wide variety of video formats:
@@ -49,9 +49,9 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * **OpenJpeg >= 2.0** (tested through 2.5; we recommend 2.4 or higher
        for multithreading support)
  * If you want support for OpenVDB files:
-     * OpenVDB >= 5.0 (tested through 9)
+     * OpenVDB >= 5.0 (tested through 10.0)
  * If you want to use TBB as the thread pool:
-     * TBB >= 2018 (tested through 2021)
+     * TBB >= 2018 (tested through 2021 and OneTBB)
  * If you want support for converting to and from OpenCV data structures,
    or for capturing images from a camera:
      * **OpenCV 3.x, or 4.x** (tested through 4.5)
@@ -59,11 +59,11 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * giflib >= 4.1 (tested through 5.2; 5.0+ is strongly recommended for
        stability and thread safety)
  * If you want support for HEIF/HEIC or AVIF images:
-     * libheif >= 1.3 (1.7 required for AVIF support, tested through 1.12)
+     * libheif >= 1.3 (1.7 required for AVIF support, tested through 1.15)
      * libheif must be built with an AV1 encoder/decoder for AVIF support.
-     * Avoid libheif 1.10 on Mac, it is very broken. Libheif 1.11 is fine.
+     * Avoid libheif 1.10 on Mac, it is very broken. Libheif 1.11+ is fine.
  * If you want support for DICOM medical image files:
-     * DCMTK >= 3.6.1 (tested through 3.6.6)
+     * DCMTK >= 3.6.1 (tested through 3.6.7)
  * If you want support for WebP images:
      * WebP >= 0.6.1 (tested through 1.2.1)
  * If you want support for OpenColorIO color transformations:
