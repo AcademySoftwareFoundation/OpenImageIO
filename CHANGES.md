@@ -1,6 +1,12 @@
-Release 2.4.9.0 (1 Mar? 2023) -- compared to 2.4.8.1
+Release 2.4.9.0 (1 Mar 2023) -- compared to 2.4.8.1
 -----------------------------------------------------
-
+* Build: check need for libatomic with check_cxx_source_compiles instead of
+  the more expensive check_cxx_source_runs. #3774
+* Fix(IC): Avoid bad IC stats when no files were read. #3765
+* Build: Add a cmake option OIIO_DISABLE_BOOST_STACKTRACE to disable use and
+  dependency of boost stacktrace. #3777
+* ustringhash: Make an explicit constructor from a hash value. #3778
+* Build: Add ability to build against Qt6. #3779
 
 Release 2.4.8.1 (13 Feb 2023) -- compared to 2.4.8.0
 -----------------------------------------------------
