@@ -914,7 +914,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
     add("Exif", "Pressure", common.exifPressure, false, 0.0f);
     add("Exif", "WaterDepth", common.exifWaterDepth, false, 0.0f);
     add("Exif", "Acceleration", common.exifAcceleration, false, 0.0f);
-    add("Exif", "CameraElevactionAngle", common.exifCameraElevationAngle, false,
+    add("Exif", "CameraElevationAngle", common.exifCameraElevationAngle, false,
         0.0f);
     // float real_ISO;
 #elif LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 19, 0)
@@ -931,7 +931,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
     add("Exif", "Pressure", other.exifPressure, false, 0.0f);
     add("Exif", "WaterDepth", other.exifWaterDepth, false, 0.0f);
     add("Exif", "Acceleration", other.exifAcceleration, false, 0.0f);
-    add("Exif", "CameraElevactionAngle", other.exifCameraElevationAngle, false,
+    add("Exif", "CameraElevationAngle", other.exifCameraElevationAngle, false,
         0.0f);
     // float real_ISO;
 #endif
