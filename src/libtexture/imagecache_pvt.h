@@ -396,8 +396,9 @@ private:
     mutable int m_errors_issued;         ///< Errors issued for this file
     std::vector<size_t> m_mipreadcount;  ///< Tile reads per mip level
     ImageCacheImpl& m_imagecache;        ///< Back pointer for ImageCache
-    mutable recursive_mutex m_input_mutex;  ///< Mutex protecting the ImageInput
-    std::time_t m_mod_time;                 ///< Time file was last updated
+    mutable std::recursive_timed_mutex
+        m_input_mutex;              ///< Mutex protecting the ImageInput
+    std::time_t m_mod_time;         ///< Time file was last updated
     ustring m_fingerprint;          ///< Optional cryptographic fingerprint
     ImageCacheFile* m_duplicate;    ///< Is this a duplicate?
     imagesize_t m_total_imagesize;  ///< Total size, uncompressed
@@ -1178,6 +1179,7 @@ private:
     bool m_unassociatedalpha;  ///< Keep unassociated alpha files as they are?
     bool m_latlong_y_up_default;  ///< Is +y the default "up" for latlong?
     bool m_trust_file_extensions = false;  ///< Assume file extensions don't lie?
+    bool m_max_open_files_strict = false;  ///< Be strict about open files limit?
     int m_failure_retries;                 ///< Times to re-try disk failures
     int m_max_mip_res = 1 << 30;  ///< Don't use MIP levels higher than this
     Imath::M44f m_Mw2c;           ///< world-to-"common" matrix

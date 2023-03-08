@@ -332,7 +332,7 @@ ImageCacheFile::get_imageinput(ImageCachePerThreadInfo* /*thread_info*/)
     // Older gcc libstdc++ does not properly support std::atomic
     // operations on std::shared_ptr, despite it being a C++11
     // feature. No choice but to lock.
-    recursive_lock_guard guard(m_input_mutex);
+    recursive_timed_lock_guard guard(m_input_mutex);
     return m_input;
 #else
     // True C++11: can atomically load a shared_ptr safely.
@@ -353,7 +353,7 @@ ImageCacheFile::set_imageinput(std::shared_ptr<ImageInput> newval)
     // feature. No choice but to lock.
     std::shared_ptr<ImageInput> oldval;
     {
-        recursive_lock_guard guard(m_input_mutex);
+        recursive_timed_lock_guard guard(m_input_mutex);
         oldval  = m_input;
         m_input = newval;
     }
@@ -466,7 +466,7 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
     // Now we do a lock and open it for real, to keep anybody else from
     // going through the whole opening process simultaneously.
     Timer input_mutex_timer;
-    recursive_lock_guard guard(m_input_mutex);
+    recursive_timed_lock_guard guard(m_input_mutex);
     m_mutex_wait_time += input_mutex_timer();
 
     // JUST IN CASE somebody else opened the file we want, between when we
@@ -1108,13 +1108,23 @@ ImageCacheFile::close()
 void
 ImageCacheFile::release()
 {
+    using namespace std::chrono_literals;
     Timer input_mutex_timer;
-    recursive_lock_guard guard(m_input_mutex);
+    bool locked = m_input_mutex.try_lock_for(100ms);
     m_mutex_wait_time += input_mutex_timer();
+    if (!locked) {
+        // Oh boy, somebody is holding this lock. Rather than sit here even
+        // longer (or even worse -- deadlock), just punt and return. The worst
+        // that can happen is that a file that should have had its handle
+        // reclaimed might get held open a little longer. If there's lots of
+        // pressure on the cache, it'll get freed next time around.
+        return;
+    }
     if (m_used)
         m_used = false;
     else if (m_allow_release)
         close();
+    m_input_mutex.unlock();
 }
 
 
@@ -1123,7 +1133,7 @@ void
 ImageCacheFile::invalidate()
 {
     Timer input_mutex_timer;
-    recursive_lock_guard guard(m_input_mutex);
+    recursive_timed_lock_guard guard(m_input_mutex);
     m_mutex_wait_time += input_mutex_timer();
     close();
     invalidate_spec();
@@ -1250,7 +1260,10 @@ ImageCacheImpl::find_file(ustring filename,
         }
 
         if (newfile) {
-            check_max_files(thread_info);
+            // We don't need to check_max_files here, because open() already
+            // does it, and we're only trying to limit the number of open
+            // files, not the number of entries in the cache.
+            // check_max_files(thread_info);
             if (!tf->duplicate())
                 ++thread_info->m_stats.unique_files;
         }
@@ -1288,7 +1301,7 @@ ImageCacheImpl::verify_file(ImageCacheFile* tf,
         if (!thread_info)
             thread_info = get_perthread_info();
         Timer input_mutex_timer;
-        recursive_lock_guard guard(tf->m_input_mutex);
+        recursive_timed_lock_guard guard(tf->m_input_mutex);
         tf->m_mutex_wait_time += input_mutex_timer();
         if (!tf->validspec()) {
             tf->open(thread_info);
@@ -1392,11 +1405,13 @@ ImageCacheImpl::check_max_files(ImageCachePerThreadInfo* /*thread_info*/)
     if (open_files < m_max_open_files) {
         // Early out if we aren't exceeding the open file handle limit
         return;
-    } else if (open_files < m_max_open_files + 16) {
-        // If we're only exceeding the open files limit by a little bit, try
-        // to grab the file_sweep_mutex lock. If we get it, we do the cleanup.
-        // But if somebody else holds it, just return rather than blocking,
-        // leaving the handle limit enforcement to whomever is already in this
+    }
+    if (!m_max_open_files_strict || open_files < m_max_open_files + 16) {
+        // If we're only exceeding the open files limit by a little bit (or by
+        // any amount if we aren't trying to be strict about), try to grab the
+        // file_sweep_mutex lock. If we get it, we do the cleanup. But if
+        // somebody else holds it, just return rather than blocking, leaving
+        // the handle limit enforcement to whomever is already in this
         // function or gets here next. No need for two threads to do it at
         // once or to block. If this means we may ephemerally be over the
         // handle limit, so be it.
@@ -1680,6 +1695,7 @@ ImageCacheImpl::init()
     m_stat_open_files_created = 0;
     m_stat_open_files_current = 0;
     m_stat_open_files_peak    = 0;
+    m_max_open_files_strict   = false;
 
     // Allow environment variable to override default options
     const char* options = getenv("OPENIMAGEIO_IMAGECACHE_OPTIONS");
@@ -1868,6 +1884,7 @@ ImageCacheImpl::getstats(int level) const
         opt += Strutil::fmt::format("max_memory_MB={:0.1f} ",
                                     m_max_memory_bytes / (1024.0 * 1024.0));
         INTOPT(max_open_files);
+        BOOLOPT(max_open_files_strict);
         INTOPT(autotile);
         INTOPT(autoscanline);
         INTOPT(automip);
@@ -2229,6 +2246,8 @@ ImageCacheImpl::attribute(string_view name, TypeDesc type, const void* val)
         m_failure_retries = *(const int*)val;
     } else if (name == "trust_file_extensions" && type == TypeDesc::INT) {
         m_trust_file_extensions = *(const int*)val;
+    } else if (name == "max_open_files_strict" && type == TypeDesc::INT) {
+        m_max_open_files_strict = *(const int*)val;
     } else if (name == "latlong_up" && type == TypeDesc::STRING) {
         bool y_up = !strcmp("y", *(const char**)val);
         if (y_up != m_latlong_y_up_default) {
@@ -2363,6 +2382,7 @@ ImageCacheImpl::getattribute(string_view name, TypeDesc type, void* val) const
     ATTR_DECODE("deduplicate", int, m_deduplicate);
     ATTR_DECODE("unassociatedalpha", int, m_unassociatedalpha);
     ATTR_DECODE("trust_file_extensions", int, m_trust_file_extensions);
+    ATTR_DECODE("max_open_files_strict", int, m_max_open_files_strict);
     ATTR_DECODE("failure_retries", int, m_failure_retries);
     ATTR_DECODE("total_files", int, m_files.size());
     ATTR_DECODE("max_mip_res", int, m_max_mip_res);
@@ -3457,7 +3477,7 @@ ImageCacheImpl::invalidate(ImageHandle* handle, bool force)
     if (!force) {
         // If not in force mode, we don't do anything if the modification
         // time of the file has not changed since we opened it.
-        recursive_lock_guard guard(file->m_input_mutex);
+        recursive_timed_lock_guard guard(file->m_input_mutex);
         if (file->mod_time() == Filesystem::last_write_time(file->filename())
             && !file->broken())
             return;
@@ -3529,7 +3549,7 @@ ImageCacheImpl::invalidate_all(bool force)
         const ImageCacheFileRef& f(fileit->second);
         ustring name = f->filename();
         Timer input_mutex_timer;
-        recursive_lock_guard guard(f->m_input_mutex);
+        recursive_timed_lock_guard guard(f->m_input_mutex);
         f->m_mutex_wait_time += input_mutex_timer();
         // If the file was broken when we opened it, or if it no longer
         // exists, definitely invalidate it.

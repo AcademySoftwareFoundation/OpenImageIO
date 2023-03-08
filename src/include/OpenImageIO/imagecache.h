@@ -101,11 +101,13 @@ public:
     /// attribute/getattribute:
     ///
     /// - `int max_open_files` :
-    ///           The maximum number of file handles that the image cache
-    ///           will hold open simultaneously.  (Default = 100)
+    ///           The approximate maximum number of file handles that the
+    ///           image cache will hold open simultaneously. This is not an
+    ///           iron-clad guarantee; the number of handles may momentarily
+    ///           exceed this by a small percentage. (Default = 100)
     /// - `float max_memory_MB` :
-    ///           The maximum amount of memory (measured in MB) used for the
-    ///           internal "tile cache." (Default: 256.0 MB)
+    ///           The approximate maximum amount of memory (measured in MB)
+    ///           used for the internal "tile cache." (Default: 256.0 MB)
     /// - `string searchpath` :
     ///           The search path for images: a colon-separated list of
     ///           directories that will be searched in order for any image
@@ -193,6 +195,10 @@ public:
     ///           reads.  The default is 1 (de-duplication turned on). The
     ///           only reason to set it to 0 is if you specifically want to
     ///           disable the de-duplication optimization.
+    /// - `int max_open_files_strict` :
+    ///             If nonzero, work harder to make sure that we have
+    ///             smaller possible overages to the max open files limit.
+    ///             (Default: 0)
     /// - `string substitute_image` :
     ///           When set to anything other than the empty string, the
     ///           ImageCache will use the named image in place of *all*
