@@ -41,7 +41,7 @@ atomic_int oiio_threads(threads_default());
 atomic_int oiio_exr_threads(threads_default());
 atomic_int oiio_read_chunk(256);
 atomic_int oiio_try_all_readers(1);
-int openexr_core(0);  // Should we use "Exr core C library"?
+int openexr_core(1);  // Should we use "Exr core C library"?
 int tiff_half(0);
 int tiff_multithread(1);
 int dds_bc5normal(0);
