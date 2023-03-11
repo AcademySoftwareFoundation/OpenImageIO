@@ -84,6 +84,7 @@ using std::recursive_mutex;
 using std::thread;
 typedef std::lock_guard<mutex> lock_guard;
 typedef std::lock_guard<recursive_mutex> recursive_lock_guard;
+typedef std::lock_guard<std::recursive_timed_mutex> recursive_timed_lock_guard;
 
 
 
