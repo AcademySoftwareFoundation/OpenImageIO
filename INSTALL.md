@@ -14,11 +14,11 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
 
 ### Required dependencies -- OIIO will not build at all without these
 
- * **C++14** (also builds with C++17, and C++20)
+ * C++14 or higher (also builds with C++17, and C++20)
      * The default build mode is C++14. This can be controlled by via the
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=17`, etc.
- * Compilers: **gcc 6.1 - 12.1**, **clang 3.4 - 15**, **MSVS 2017 - 2019**,
-   **Intel icc 17+**, **Intel OneAPI C++ compiler 2022+**.
+ * Compilers: gcc 6.1 - 12.1, clang 3.4 - 15, MSVS 2017 - 2019,
+   Intel icc 17+, Intel OneAPI C++ compiler 2022+.
  * CMake >= 3.12 (tested through 3.25)
  * OpenEXR/Imath >= 2.3 (recommended: 2.4 or higher; tested through 3.1 and main)
  * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.5)
@@ -44,9 +44,9 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
        ACES support and much better recognition of camera metadata; if
        building with C++17 or higher, LibRaw >= 0.20 is necessary)
  * If you want support for a wide variety of video formats:
-     * **ffmpeg >= 3.0** (tested through 5.1)
+     * ffmpeg >= 3.0 (tested through 5.1)
  * If you want support for jpeg 2000 images:
-     * **OpenJpeg >= 2.0** (tested through 2.5; we recommend 2.4 or higher
+     * OpenJpeg >= 2.0 (tested through 2.5; we recommend 2.4 or higher
        for multithreading support)
  * If you want support for OpenVDB files:
      * OpenVDB >= 5.0 (tested through 10.0)
@@ -54,7 +54,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * TBB >= 2018 (tested through 2021 and OneTBB)
  * If you want support for converting to and from OpenCV data structures,
    or for capturing images from a camera:
-     * **OpenCV 3.x, or 4.x** (tested through 4.5)
+     * OpenCV 3.x, or 4.x (tested through 4.5)
  * If you want support for GIF images:
      * giflib >= 4.1 (tested through 5.2; 5.0+ is strongly recommended for
        stability and thread safety)
