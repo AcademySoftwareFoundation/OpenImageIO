@@ -238,7 +238,7 @@ jobs:
             cxx_compiler: g++-11
             cxx_std: 17
             fmt_ver: 9.1.0
-            openexr_ver: v3.1.5
+            openexr_ver: v3.1.6
             pybind11_ver: v2.10.0
             python_ver: "3.10"
             simd: avx2,f16c
@@ -248,9 +248,9 @@ jobs:
                             OPENIMAGEIO_OPTIONS="openexr:core=1"
                             OPENJPEG_VERSION=v2.4.0
                             PTEX_VERSION=v2.4.0
-                            PUGIXML_VERSION=v1.12.1
+                            PUGIXML_VERSION=v1.13
                             USE_OPENVDB=0
-                            WEBP_VERSION=v1.2.4
+                            WEBP_VERSION=v1.3.0
                             # The installed OpenVDB has a TLS conflict with Python 3.8
           - desc: bleeding edge gcc12 C++20 py3.10 OCIO/libtiff/exr-master boost1.74 avx2
             nametag: linux-bleeding-edge
@@ -292,7 +292,9 @@ jobs:
                             # The installed OpenVDB has a TLS conflict with Python 3.8
           - desc: debug gcc7/C++14, sse4.2, exr2.4
             nametag: linux-gcc7-cpp14-debug
-            os: ubuntu-18.04
+            os: ubuntu-20.04
+            container:
+              image: ubuntu-18.04
             cxx_compiler: g++-7
             cxx_std: 14
             python_ver: 2.7
@@ -305,7 +307,9 @@ jobs:
 
           - desc: gcc8 C++17 avx exr2.5
             nametag: linux-gcc8
-            os: ubuntu-18.04
+            os: ubuntu-20.04
+            container:
+              image: ubuntu-18.04
             cc_compiler: gcc-8
             cxx_compiler: g++-8
             cxx_std: 17
@@ -314,7 +318,9 @@ jobs:
             simd: avx
           - desc: static libs gcc7 C++14 exr2.4
             nametag: linux-static
-            os: ubuntu-18.04
+            os: ubuntu-20.04
+            container:
+              image: ubuntu-18.04
             cxx_compiler: g++-7
             cxx_std: 14
             openexr_ver: v2.4.3
