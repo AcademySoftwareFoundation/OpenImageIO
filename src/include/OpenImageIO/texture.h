@@ -548,6 +548,9 @@ public:
     ///             How many times to retry a read failure.
     /// - `int deduplicate` :
     ///             If nonzero, detect duplicate textures (default=1).
+    /// - `int max_open_files_strict` :
+    ///             If nonzero, work harder to make sure that we have
+    ///             smaller possible overages to the max open files limit.
     /// - `string substitute_image` :
     ///             If supplied, an image to substatute for all texture
     ///             references.
