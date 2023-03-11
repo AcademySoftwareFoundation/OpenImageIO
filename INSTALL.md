@@ -19,12 +19,12 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=17`, etc.
  * Compilers: **gcc 6.1 - 12.1**, **clang 3.4 - 15**, **MSVS 2017 - 2019**,
    **Intel icc 17+**, **Intel OneAPI C++ compiler 2022+**.
- * CMake >= 3.12 (tested through 3.24)
- * OpenEXR/Imath >= 2.3 (recommended: 2.4 or higher; tested through 3.2)
+ * CMake >= 3.12 (tested through 3.25)
+ * OpenEXR/Imath >= 2.3 (recommended: 2.4 or higher; tested through 3.1 and main)
  * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.5)
  * libjpeg >= 8, or libjpeg-turbo >= 1.1 (tested through jpeg9d and jpeg-turbo
    2.1)
- * Boost >= 1.53 (recommended: at least 1.66; tested through 1.80)
+ * Boost >= 1.53 (recommended: at least 1.66; tested through 1.81)
  * [fmtlib](https://github.com/fmtlib/fmt) >= 6.1.2 (tested through 9.1). If
    not found at build time, this will be automatically downloaded unless the
    build sets `-DBUILD_MISSING_FMT=OFF`.
@@ -65,7 +65,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for DICOM medical image files:
      * DCMTK >= 3.6.1 (tested through 3.6.7)
  * If you want support for WebP images:
-     * WebP >= 0.6.1 (tested through 1.2.1)
+     * WebP >= 0.6.1 (tested through 1.3.1)
  * If you want support for OpenColorIO color transformations:
      * OpenColorIO >= 1.1 (tested through 2.2; 2.0+ is recommended)
  * If you want support for Ptex:
@@ -74,7 +74,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
    tree, but if you want to use an external, system-installed version (as
    may be required by some software distributions with policies against
    embedding other projects), then just build with `-DUSE_EXTERNAL_PUGIXML=1`.
-   Any PugiXML >= 1.8 should be fine (we have tested through 1.12).
+   Any PugiXML >= 1.8 should be fine (we have tested through 1.13).
 
 
 
