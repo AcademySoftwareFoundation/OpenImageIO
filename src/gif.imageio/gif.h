@@ -105,8 +105,8 @@ struct GifPalette
     // k-d tree over RGB space, organized in heap fashion
     // i.e. left child of node i is node i*2, right child is node i*2+1
     // nodes 256-511 are implicitly the leaves, containing a color
-    uint8_t treeSplitElt[255];
-    uint8_t treeSplit[255];
+    uint8_t treeSplitElt[256];
+    uint8_t treeSplit[256];
 };
 
 // max, min, and abs functions
