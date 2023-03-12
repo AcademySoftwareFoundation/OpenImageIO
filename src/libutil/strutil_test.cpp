@@ -756,6 +756,38 @@ test_concat()
     std::string longstring(Strutil::repeat("01234567890", 100));
     OIIO_CHECK_EQUAL(Strutil::concat(longstring, longstring),
                      Strutil::sprintf("%s%s", longstring, longstring));
+    OIIO_CHECK_EQUAL(Strutil::concat(longstring, longstring),
+                     Strutil::fmt::format("{}{}", longstring, longstring));
+
+    Benchmarker bench;
+    bench.indent (2);
+    bench.units (Benchmarker::Unit::ns);
+    std::string foostr("foo"), barstr("bar");
+    bench ("concat literal short+short", [&](){ return DoNotOptimize(Strutil::concat("foo", "bar")); });
+    bench ("concat literal long+short", [&](){ return DoNotOptimize(Strutil::concat(longstring, "bar")); });
+    bench ("concat literal long+long", [&](){ return DoNotOptimize(Strutil::concat(longstring, longstring)); });
+    bench ("format literal short+short", [&](){ return DoNotOptimize(Strutil::fmt::format("{}{}", "foo", "bar")); });
+    bench ("format literal long+short", [&](){ return DoNotOptimize(Strutil::fmt::format("{}{}", longstring, "bar")); });
+    bench ("format literal long+long", [&](){ return DoNotOptimize(Strutil::fmt::format("{}{}", longstring, longstring)); });
+    bench ("sprintf literal short+short", [&](){ return DoNotOptimize(Strutil::sprintf("%s%s", "foo", "bar")); });
+    bench ("sprintf literal long+short", [&](){ return DoNotOptimize(Strutil::sprintf("%s%s", longstring, "bar")); });
+    bench ("sprintf literal long+long", [&](){ return DoNotOptimize(Strutil::sprintf("%s%s", longstring, longstring)); });
+
+    bench ("concat str short+short", [&](){ return DoNotOptimize(Strutil::concat(foostr, barstr)); });
+    bench ("concat str long+short", [&](){ return DoNotOptimize(Strutil::concat(longstring, barstr)); });
+    bench ("concat str long+long", [&](){ return DoNotOptimize(Strutil::concat(longstring, longstring)); });
+    bench ("format str short+short", [&](){ return DoNotOptimize(Strutil::fmt::format("{}{}", foostr, barstr)); });
+    bench ("format str long+short", [&](){ return DoNotOptimize(Strutil::fmt::format("{}{}", longstring, barstr)); });
+    bench ("format str long+long", [&](){ return DoNotOptimize(Strutil::fmt::format("{}{}", longstring, longstring)); });
+    bench ("sprintf str short+short", [&](){ return DoNotOptimize(Strutil::sprintf("%s%s", foostr, barstr)); });
+    bench ("sprintf str long+short", [&](){ return DoNotOptimize(Strutil::sprintf("%s%s", longstring, barstr)); });
+    bench ("sprintf str long+long", [&](){ return DoNotOptimize(Strutil::sprintf("%s%s", longstring, longstring)); });
+    bench ("std::string + literal short+short", [&](){ return DoNotOptimize(std::string("foo") + std::string("bar")); });
+    bench ("std::string + literal long+short", [&](){ return DoNotOptimize(longstring + std::string("bar")); });
+    bench ("std::string + literal long+long", [&](){ return DoNotOptimize(longstring + longstring); });
+    bench ("std::string + str short+short", [&](){ return DoNotOptimize(foostr + barstr); });
+    bench ("std::string + str long+short", [&](){ return DoNotOptimize(longstring + barstr); });
+    bench ("std::string + str long+long", [&](){ return DoNotOptimize(longstring + longstring); });
 }
 
 
