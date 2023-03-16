@@ -39,6 +39,8 @@
 #    define OIIO_TIFFLIB_VERSION 40200
 #elif TIFFLIB_VERSION >= 20191103
 #    define OIIO_TIFFLIB_VERSION 40100
+#elif TIFFLIB_VERSION >= 20120922
+#    define OIIO_TIFFLIB_VERSION 40003
 #elif TIFFLIB_VERSION >= 20111221
 #    define OIIO_TIFFLIB_VERSION 40000
 #elif TIFFLIB_VERSION >= 20090820
@@ -47,6 +49,11 @@
 #    error "libtiff 3.9.0 or later is required"
 #endif
 // clang-format on
+
+
+// Switch to 1 to enable writing TIFF files with JPEG compression. It seems
+// very buggy and nobody seems to need it anyway, so we're disabling it.
+#define ENABLE_JPEG_COMPRESSION 0
 
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -287,12 +294,14 @@ static std::pair<int, const char*> tiff_output_compressions[] = {
     { COMPRESSION_ADOBE_DEFLATE, "zip" },  // deflate / zip
     { COMPRESSION_DEFLATE, "zip" },        // deflate / zip
     { COMPRESSION_CCITTRLE, "ccittrle" },  // CCITT RLE
-    //  { COMPRESSION_CCITTFAX3,     "ccittfax3" },   // CCITT group 3 fax
-    //  { COMPRESSION_CCITT_T4,      "ccitt_t4" },    // CCITT T.4
-    //  { COMPRESSION_CCITTFAX4,     "ccittfax4" },   // CCITT group 4 fax
-    //  { COMPRESSION_CCITT_T6,      "ccitt_t6" },    // CCITT T.6
-    //  { COMPRESSION_OJPEG,         "ojpeg" },       // old (pre-TIFF6.0) JPEG
+//  { COMPRESSION_CCITTFAX3,     "ccittfax3" },   // CCITT group 3 fax
+//  { COMPRESSION_CCITT_T4,      "ccitt_t4" },    // CCITT T.4
+//  { COMPRESSION_CCITTFAX4,     "ccittfax4" },   // CCITT group 4 fax
+//  { COMPRESSION_CCITT_T6,      "ccitt_t6" },    // CCITT T.6
+//  { COMPRESSION_OJPEG,         "ojpeg" },       // old (pre-TIFF6.0) JPEG
+#if ENABLE_JPEG_COMPRESSION
     { COMPRESSION_JPEG, "jpeg" },  // JPEG
+#endif
     //  { COMPRESSION_NEXT,          "next" },        // NeXT 2-bit RLE
     //  { COMPRESSION_CCITTRLEW,     "ccittrle2" },   // #1 w/ word alignment
     { COMPRESSION_PACKBITS, "packbits" },  // Macintosh RLE
@@ -308,7 +317,7 @@ static std::pair<int, const char*> tiff_output_compressions[] = {
 //  { COMPRESSION_SGILOG,        "sgilog" },      // SGI log luminance RLE
 //  { COMPRESSION_SGILOG24,      "sgilog24" },    // SGI log 24bit
 //  { COMPRESSION_JP2000,        "jp2000" },      // Leadtools JPEG2000
-#if defined(TIFF_VERSION_BIG) && TIFFLIB_VERSION >= 20120922
+#if defined(TIFF_VERSION_BIG) && OIIO_TIFFLIB_VERSION >= 40003
 // Others supported in more recent TIFF library versions.
 //  { COMPRESSION_T85,           "T85" },         // TIFF/FX T.85 JBIG
 //  { COMPRESSION_T43,           "T43" },         // TIFF/FX T.43 color layered JBIG
@@ -635,8 +644,12 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
     std::tie(comp, qual) = m_spec.decode_compression_metadata("zip");
 
     if (Strutil::iequals(comp, "jpeg")
-        && (m_spec.format != TypeDesc::UINT8 || m_spec.nchannels != 3)) {
-        comp = "zip";  // can't use JPEG for anything but 3xUINT8
+#if ENABLE_JPEG_COMPRESSION
+        && (m_spec.format != TypeDesc::UINT8 || m_spec.nchannels != 3)
+    // can't use JPEG for anything but 3xUINT8
+#endif
+    ) {
+        comp = "zip";
         qual = -1;
     }
     m_compression = tiff_compression_code(comp);
@@ -670,6 +683,7 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
                 m_zipquality = qual;
             }
         }
+#if ENABLE_JPEG_COMPRESSION
     } else if (m_compression == COMPRESSION_JPEG) {
         if (qual <= 0)
             qual = 95;
@@ -684,6 +698,7 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
             TIFFSetField(m_tif, TIFFTAG_JPEGCOLORMODE, JPEGCOLORMODE_RGB);
             m_photometric = PHOTOMETRIC_YCBCR;
         }
+#endif
     }
 
     if (m_photometric == PHOTOMETRIC_RGB) {
@@ -1047,7 +1062,7 @@ TIFFOutput::put_parameter(const std::string& name, TypeDesc type,
 bool
 TIFFOutput::write_exif_data()
 {
-#if defined(TIFF_VERSION_BIG) && TIFFLIB_VERSION >= 20120922
+#if defined(TIFF_VERSION_BIG) && OIIO_TIFFLIB_VERSION >= 40003
     // Older versions of libtiff do not support writing Exif directories
 
     if (m_spec.get_int_attribute("tiff:write_exif", 1) == 0) {
@@ -1076,11 +1091,13 @@ TIFFOutput::write_exif_data()
     if (!any_exif)
         return true;
 
+#    if ENABLE_JPEG_COMPRESSION
     if (m_compression == COMPRESSION_JPEG) {
         // For reasons we don't understand, JPEG-compressed TIFF seems
         // to not output properly without a directory checkpoint here.
         TIFFCheckpointDirectory(m_tif);
     }
+#    endif
 
     // First, finish writing the current directory
     if (!TIFFWriteDirectory(m_tif)) {
