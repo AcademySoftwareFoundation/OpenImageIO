@@ -460,6 +460,38 @@ cdf.exr              :   64 x   64, 1 channel, half openexr
     oiio:SHA-1: "00DFB31D0260CC466CDCF9FE42446D4896E655FE"
     oiio:subimages: 1
     openexr:roundingmode: 0
+Reading bumpslope-cdf.exr
+bumpslope-cdf.exr    :   64 x   64, 6 channel, half openexr
+    MIP-map levels: 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 8A309ED5DD4C7ADC8B752735651BAEE9FA326B82
+    channel list: b0_h, b1_dhds, b2_dhdt, b3_dhds2, b4_dhdt2, b5_dh2dsdt
+    tile size: 64 x 64
+    CDF_0: 0.129412, 0.129412, 0.129412, 0.152941, 0.152941, 0.192157, 0.196078, 0.196078, 0.203922, 0.207843, 0.219608, 0.219608, 0.219608, 0.223529, 0.227451, 0.231373, ... [256 x float]
+    CDF_1: 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... [256 x float]
+    CDF_2: 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... [256 x float]
+    CDF_3: 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... [256 x float]
+    CDF_4: 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... [256 x float]
+    CDF_5: 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... [256 x float]
+    CDF_bits: 8
+    compression: "zip"
+    fovcot: 1
+    invCDF_0: 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... [256 x float]
+    invCDF_1: 0.517528, 0.53162, 0.546259, 0.56181, 0.577352, 0.592173, 0.60564, 0.618653, 0.631182, 0.646287, 0.659294, 0.671961, 0.688381, 0.702118, 0.715025, 0.729895, ... [256 x float]
+    invCDF_2: 0.51671, 0.531827, 0.547741, 0.563119, 0.578032, 0.594433, 0.607763, 0.62409, 0.638233, 0.654072, 0.668873, 0.685519, 0.701694, 0.717385, 0.731219, 0.749014, ... [256 x float]
+    invCDF_3: 0.662209, 0.775653, 0.862829, 0.93215, 0.961514, 0.977621, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ... [256 x float]
+    invCDF_4: 0.680135, 0.789335, 0.863924, 0.929282, 0.966413, 0.991524, 0.991524, 1, 1, 1, 1, 1, 1, 1, 1, 1, ... [256 x float]
+    invCDF_5: 0.813865, 0.952769, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ... [256 x float]
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    textureformat: "Plain Texture"
+    uvslopes_scale: 0
+    wrapmodes: "black,black"
+    oiio:AverageColor: "0.499779,-0.000457942,-4.17233e-05,0.00197116,0.00178894,3.45764e-05"
+    oiio:ColorSpace: "Linear"
+    oiio:SHA-1: "49B533110A914CE89BE0B14753A6A4CC037C964F"
+    oiio:subimages: 1
+    openexr:roundingmode: 0
 Reading checker-attribs.tx
 checker-attribs.tx   :  128 x  128, 4 channel, uint8 tiff
     MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
