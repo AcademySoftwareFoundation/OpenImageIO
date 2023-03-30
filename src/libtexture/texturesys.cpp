@@ -927,7 +927,7 @@ TextureSystemImpl::append_error(string_view message) const
         && "Accumulated error messages > 16MB. Try checking return codes!");
     if (errptr->size() && errptr->back() != '\n')
         *errptr += '\n';
-    *errptr += message;
+    *errptr += std::string(message);
 }
 
 
