@@ -446,6 +446,8 @@ private:
 using string_view = basic_string_view<char>;
 using wstring_view = basic_string_view<wchar_t>;
 
+
+
 // DEPRECATED name equivalence
 OIIO_DEPRECATED("Use string_view (2.3)")
 typedef string_view string_ref;

@@ -670,15 +670,13 @@ template<> inline double from_string<double> (string_view s) {
 
 template<> inline int64_t from_string<int64_t>(string_view s) {
     // For conversion of string_view to unsigned int, fall back on strtoll.
-    std::string s2 = std::string(s);
-    auto r = strtoll(s2.c_str(), nullptr, 10);
+    auto r = strtoll(std::string(s).c_str(), nullptr, 10);
     return static_cast<int64_t>(r);
 }
 
 template<> inline uint64_t from_string<uint64_t>(string_view s) {
     // For conversion of string_view to unsigned int, fall back on strtoull.
-    std::string s2 = std::string(s);
-    auto r = strtoull(s2.c_str(), nullptr, 10);
+    auto r = strtoull(std::string(s).c_str(), nullptr, 10);
     return static_cast<uint64_t>(r);
 }
 #endif
