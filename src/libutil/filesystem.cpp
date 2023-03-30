@@ -35,6 +35,7 @@
 #    include <sys/stat.h>
 #    include <sys/types.h>
 #    include <unistd.h>
+#    include <utime.h>
 #endif
 
 #if defined(USE_STD_FILESYSTEM)
@@ -778,12 +779,10 @@ Filesystem::last_write_time(string_view path, std::time_t time) noexcept
     times.modtime = time;
     _wutime(u8path(path).c_str(), &times);
 #else
-    struct timespec times[2];
-    times[0].tv_sec  = 0;
-    times[0].tv_nsec = UTIME_OMIT;
-    times[1].tv_sec  = time;
-    times[1].tv_nsec = 0;
-    utimensat((int)AT_FDCWD, u8path(path).c_str(), times, AT_SYMLINK_NOFOLLOW);
+    struct utimbuf times;
+    times.actime  = time;
+    times.modtime = time;
+    utime(u8path(path).c_str(), &times);
 #endif
 }
 

@@ -1072,7 +1072,7 @@ ImageInput::append_error(string_view message) const
     if (errptr->size() < 1024 * 1024 * 16) {
         if (errptr->size() && errptr->back() != '\n')
             *errptr += '\n';
-        *errptr += message;
+        *errptr += std::string(message);
     }
 }
 
