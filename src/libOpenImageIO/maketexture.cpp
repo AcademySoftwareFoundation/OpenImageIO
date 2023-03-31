@@ -1161,7 +1161,8 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         src  = latlong;
     }
 
-    if (mode == ImageBufAlgo::MakeTxBumpWithSlopes) {
+    const bool is_bumpslopes = (mode == ImageBufAlgo::MakeTxBumpWithSlopes);
+    if (is_bumpslopes) {
         ImageSpec newspec  = src->spec();
         newspec.tile_width = newspec.tile_height = 0;
         newspec.set_format(TypeDesc::FLOAT);
@@ -1212,8 +1213,9 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         const float c_sigma_inv = fast_erf(1.0f / (2.0f * M_SQRT2 * cdf_sigma));
 
         // If there are channels other than R,G,B,A, we probably shouldn't do
-        // anything to them.
-        const int channels = std::min(4, src->spec().nchannels);
+        // anything to them, unless they are bumpslopes channels.
+        const int channels = is_bumpslopes ? 6
+                                           : std::min(4, src->spec().nchannels);
 
         std::vector<float> invCDF(bins);
         std::vector<float> CDF(bins);

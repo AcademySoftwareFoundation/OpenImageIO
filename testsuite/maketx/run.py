@@ -138,6 +138,9 @@ command += maketx_command ("noise.exr", "bumpslope.exr",
 command += maketx_command ("noise.exr", "cdf.exr",
                            "--cdf -d half", showinfo=True)
 
+command += maketx_command ("noise.exr", "bumpslope-cdf.exr",
+                           "--bumpslopes --cdf -d half", showinfo=True)
+
 # Test --sattrib, --attrib
 command += maketx_command ("checker.tif", "checker-attribs.tx",
                            "--sattrib sname sval " +
