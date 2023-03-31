@@ -233,12 +233,12 @@ pvt::append_error(string_view message)
     // a single newline.
     if (error_msg.size() && error_msg.back() != '\n')
         error_msg += '\n';
-    error_msg += message;
+    error_msg += std::string(message);
 
     // Remove a single trailing newline
     if (message.size() && message.back() == '\n')
         message.remove_suffix(1);
-    error_msg = message;
+    error_msg = std::string(message);
 }
 
 

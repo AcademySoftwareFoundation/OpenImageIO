@@ -413,5 +413,5 @@ ImageRec::append_error(string_view message) const
         && "Accumulated error messages > 16MB. Try checking return codes!");
     if (m_err.size() && m_err[m_err.size() - 1] != '\n')
         m_err += '\n';
-    m_err += message;
+    m_err += std::string(message);
 }
