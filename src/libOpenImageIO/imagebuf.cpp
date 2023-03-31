@@ -677,7 +677,7 @@ ImageBufImpl::error(string_view message) const
     // a single newline.
     if (m_err.size() && m_err.back() != '\n')
         m_err += '\n';
-    m_err += message;
+    m_err += std::string(message);
 }
 
 
