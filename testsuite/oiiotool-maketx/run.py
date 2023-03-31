@@ -143,6 +143,11 @@ command += omaketx_command ("bump.exr", "bumpslope.exr",
                             extraargs="-d half",
                             output_cmd="-obump", showinfo=False)
 command += oiiotool ("--stats -a bumpslope.exr")
+command += omaketx_command ("bump.exr", "bumpslope-cdf.exr",
+                            extraargs="-d half",
+                            output_cmd="-obump", options=":cdf=1", showinfo=False)
+command += oiiotool ("--stats -a bumpslope-cdf.exr")
+command += info_command ("bumpslope-cdf.exr", safematch=1)
 
 
 outputs = [ "out.txt" ]
