@@ -1,6 +1,21 @@
-Release 2.4.10.0 (1 Apr? 2023) -- compared to 2.4.9.0
+Release 2.4.10.0 (1 Apr 2023) -- compared to 2.4.9.0
 -----------------------------------------------------
-
+* Exif: Fix typo that prevented us from correctly naming Exif
+  "CameraElevationAngle" metadata. #3783
+* IC/TS: Fixes that avoid deadlock situations on the file handle cache
+  in certain scenarios with very high thread contention. #3784
+* Docs: Some retroactive edits to INSTALL.md to correctly document changed
+  dependencies of the 2.4 series.
+* GIF: Fix potential array overrun when writing GIF files. #3789
+* Build: Fixes to make a clean build on Mac using Apple Clang 11.0. #3795
+* FYI: This version of OIIO should build against Clang 16.
+* maketx: Fix a broken --cdf flag, which was set up to take an argument, but
+  should always simply have acted as a simple boolean flag on its own. The
+  incorrect way it was set up not only was useless, but also could lead to
+  occasional crashes. #3748
+* maketx and oiiotool --otex: Add support for CDFs of bumpslopes channels.
+  Previously, if you used both --bumpslopes and --cdf at the same time, the
+  CDFs were not produced for all channels. #3793
 
 Release 2.4.9.0 (1 Mar 2023) -- compared to 2.4.8.1
 -----------------------------------------------------
