@@ -17,9 +17,9 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * C++14 or higher (also builds with C++17, and C++20)
      * The default build mode is C++14. This can be controlled by via the
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=17`, etc.
- * Compilers: gcc 6.1 - 12.1, clang 3.4 - 15, MSVS 2017 - 2019,
+ * Compilers: gcc 6.1 - 12.1, clang 3.4 - 16, MSVS 2017 - 2019,
    Intel icc 17+, Intel OneAPI C++ compiler 2022+.
- * CMake >= 3.12 (tested through 3.25)
+ * CMake >= 3.12 (tested through 3.26)
  * OpenEXR/Imath >= 2.3 (recommended: 2.4 or higher; tested through 3.1 and main)
  * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.5)
  * libjpeg >= 8, or libjpeg-turbo >= 1.1 (tested through jpeg9d and jpeg-turbo

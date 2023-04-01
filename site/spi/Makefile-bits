@@ -231,6 +231,9 @@ else ifeq (${platform}, macosx)
     else ifeq (${COMPILER},clang15)
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=/usr/local/opt/llvm@15/bin/clang \
                           -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm@15/bin/clang++
+    else ifeq (${COMPILER},clang16)
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=/usr/local/opt/llvm@16/bin/clang \
+                          -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm@16/bin/clang++
     else ifeq (${COMPILER},clang)
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
     else ifeq (${COMPILER},gcc)
