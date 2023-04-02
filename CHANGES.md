@@ -1,3 +1,7 @@
+Release 2.4.11.0 (1 May? 2023) -- compared to 2.4.10.0
+------------------------------------------------------
+
+
 Release 2.4.10.0 (1 Apr 2023) -- compared to 2.4.9.0
 -----------------------------------------------------
 * Exif: Fix typo that prevented us from correctly naming Exif
