@@ -40,6 +40,11 @@ New major features and public API changes:
     - New `--colorconfiginfo` prints the full inventory of color management
       information, including color space aliases, roles, and with improved
       readability of output for larger configs. #3707 (2.5.0.0)
+    - The `--resize` command takes new optional `:from=`, `:to=`, and
+      `:edgeclamp=` modifiers to give more general and fine control over the
+      specific correspondence between display windows in the input image and
+      resized destination image (including allowing partial pixel offsets).
+      #3751 #3752 (2.5.0.1)
 * OIIO::getattribute() new queries:
     - `font_list`, `font_file_list`, `font_dir_list` return, respectively, the
       list of fonts that OIIO found, the list of full paths to font files, and
@@ -51,7 +56,8 @@ New major features and public API changes:
   (2.5.0.0)
 * New `OIIO::print()` exposes `Strutil::print()` in the main OIIO namespace.
   #3667 (2.4.6/2.5.0.0)
-* Extensive support for OpenColorIO 2.2 functionality:
+* Extensive support for OpenColorIO 2.2 functionality and improved color
+  management:
     - When building against OCIO 2.2, you can specify/use the new "built-in"
       configs, including using `ocio://default`, which will automatically be
       usd if no config is specified and the `$OCIO` variable is not set #3662
@@ -68,13 +74,27 @@ New major features and public API changes:
       name (like "sRGB") into a canonical color space name;
       `equivalent(n1,n2)` returns true if it can tell that the two names
       refer, ultimately, to equivalent color spaces #3707 (2.5.0.0)
-
+    - New `ImageSpec::set_colorspace()` method is a more thorough way to set
+      the color space data than simply setting the "oiio:ColorSpace" metadata
+      (though it also does that). #3734 (2.5.0.1)
+    - Improve OIIO's ability to guess which of the config's color space names
+      are aliases for common spaces such as srgb, lin_srgb, and acescg (quite
+      robustly if using OCIO >= 2.2, even for totally nonstandard names in the
+      config). #3755 (2.5.0.1)
+    - New `ColorConfig::getColorSpaceIndex()` looks up a color space index by
+      its name, alias, or role. #3758 (2.5.0.1)
 * New `ImageOutput::check_open()` can be used by format writers authors to
   centralize certain validity tests so they don't need to be implemented
   separately for each file type. This is not meant to be called by client
   application code, only by format writer authors. #3686 (2.5.0.0)
 
 Performance improvements:
+* Fixed some ImageBuf and IBA internals to avoid unnecessary/redundant zeroing
+  out of newly allocated buffer memory. #3754 (2.5.0.1)
+* Switched the default OpenEXR reading mode to use the "exrcore" APIs (if
+  building against OpenEXR >= 3.1). It had been possible but not enabled by
+  default for a while. This mode seems stable and results in better OpenEXR
+  read performance. #3788 (2.5.1.0)
 
 Fixes and feature enhancements:
 * Python bindings:
@@ -100,6 +120,15 @@ Fixes and feature enhancements:
       a lookup. #3694 (2.5.0.0)
     - Fixed `maketx --lightprobe`, which never worked properly for images
       that weren't `float` pixel data type. #3732 (2.5.0.0/2.4.7.0)
+    - Fix bad handling of `maketx --cdf`, which was trying to take an extra
+      command line argument that it didn't need. #3748 (2.5.0.1)
+    - Improve IC statistics appearance by omitting certain meaningless stats
+      when no files were read by the IC/TS. #3765 (2.4.9.0/2.5.0.1)
+    - Fixes that avoid deadlock situations on the file handle cache in certain
+      scenarios with very high thread contention. #3784 (2.4.10.0/2.5.0.3)
+    - maketx and oiiotool --otex: Add support for CDFs of bumpslopes channels.
+      Previously, if you used both --bumpslopes and --cdf at the same time,
+      the CDFs were not produced for all channels. #3793 (2.4.10.0/2.5.1.0)
 * oiiotool improvements:
     - `--printinfo` now takes new optional modifiers: `:native=1` ensures
       that the metadata printed is of the file, not changed by the way the
@@ -151,6 +180,12 @@ Fixes and feature enhancements:
 * DPX:
     - Fix possible write errors, fixes TALOS-2022-1651 / CVE-2022-43592 and
       TALOS-2022-1652 / CVE-2022-43593. #3672 (2.4.6/2.5.0.0)
+* FITS:
+    - Ensure that the file is closed if open fails to find the right magic
+      number. #3771 (2.5.1.0)
+* GIF:
+    - Fix potential array overrun when writing GIF files. #3789
+      (2.4.10.0/2.5.1.0)
 * HDR:
     - Fix a 8x (!) read performance regression for HDR files that was
       introduced in OIIO in 2.4. On top of that, speed up by another 4x beyond
@@ -159,21 +194,27 @@ Fixes and feature enhancements:
 * IFF:
     - Protect against 0-sized allocations. #3603 (2.5.0.0)
     - IOProxy support. #3647 (2.4.6/2.5.0.0)
+      FIXME Temporarily disable IOProxy support to avoid bugs in #3760
+      (2.5.0.1)
     - Fix possible write errors, fixes TALOS-2022-1654 / CVE-2022-43596,
       TALOS-2022-1655 / CVE-2022-43597 CVE-2022-43598, TALOS-2022-1656 /
       CVE-2022-43599 CVE-2022-43600 CVE-2022-43601 CVE-2022-43602  #3676
       (2.4.6/2.5.0.0)
+* OpenEXR:
+    - Fix potential use of uninitialized value when closing. #3764 (2.5.0.1)
 * PBM:
     - Fix accidental inversion for 1-bit bipmap pbm files. #3731
       (2.5.0.0/2.4.8.0)
 * PNG:
     - Fix memory leaks for error conditions. #3543 #3544 (2.5.0.0)
+    - Add EXIF write support to PNG output. #3736 (2.5.0.1)
 * PSD:
     - Fix a PSD read error on ARM architecture. #3589 (2.4.5/2.5.0.0)
     - Protect against corrupted embedded thumbnails. (TALOS-2022-1626,
       CVE-2022-41794) #3629 (2.4.5/2.5.0.0)
     - Fix thumbnail extraction. #3668 (2.4.6/2.5.0.0)
     - When reading, don't reject padded thumbnails. #3677 (2.4.6/2.5.0.0)
+    - Fix wrong "oiio:UnassociatedAlpha" metadata. #3750 (2.5.0.1)
 * RAW:
     - Add color metadata: pre_mul, cam_mul, cam_xyz, rgb_cam. #3561 #3569
       #3572 (2.5.0.0)
@@ -188,6 +229,8 @@ Fixes and feature enhancements:
     - Fix incorrect unique_ptr allocation. #3541 (2.5.0.0)
     - Fix string overflow safety. (TALOS-2022-1628, CVE-2022-41981) #3622
       (2.4.5/2.5.0.0)
+    - Guard against corrupted tga files Fixes TALOS-2023-1707 /
+      CVE-2023-24473, TALOS-2023-1708 / CVE-2023-22845. #3768 (2.5.1.0/2.4.8.1)
 * TIFF:
     - Guard against corrupt files with buffer overflows. (TALOS-2022-1627,
       CVE-2022-41977) #3628 (2.4.5/2.5.0.0)
@@ -195,16 +238,33 @@ Fixes and feature enhancements:
       CVE-2022-41639) (TALOS-2022-1643, CVE-2022-41988) #3632 (2.4.5/2.5.0.0)
     - While building against the new libtiff 4.5, use its new per-tiff error
       handlers to ensure better thread safety. #3719 (2.5.0.0/2.4.8.0)
+    - Better logic for making TIFF PhotometricInterpretation tag and
+      oiio:ColorSpace metadata correspond to each other correctly for TIFF
+      files. #3746 (2.5.0.1)
+    - Fix: race condition in TIFF reader, fixes TALOS-2023-1709 /
+      CVE-2023-24472. #3772 (2.5.1.0/2.4.8.1)
+    - Disable writing TIFF files with JPEG compression -- it never worked
+      properly and we can't seem to fix it. The fact that nobody noticed that
+      it never worked is taken as evidence that nobody needs it. If asked for,
+      it just uses the default ZIP compression instead. The TIFF reader can
+      still read JPEG-compressed TIFF files just fine, it's only writing that
+      appears problematic. #3791 (2.5.0.4)
 * Zfile:
     - Zfile write safety, fixes TALOS-2022-1657 / CVE-2022-43603. #3670
       (2.4.6/2.5.0.0)
 * Exif / TIFF/JPEG/PSD: Fix EXIF bugs where corrupted exif blocks could
   overrun memory. (TALOS-2022-1626, CVE-2022-41794) (TALOS-2022-1632,
   CVE-2022-41684) (TALOS-2022-1636 CVE-2022-41837) #3627 (2.4.5/2.5.0.0)
+* Exif / TIFF/JPEG/PSD: Fix typo that prevented us from correctly naming Exif
+  "CameraElevationAngle" metadata. #3783 (2.4.10.0/2.5.1.0)
 * Fix missing OIIO::getattribute support for `limits:channels` and
   `limits:imagesize_MB`. #3617 (2.4.5/2.5.0.0)
 * IBA::render_text and `oiiotool --text` now can find ".ttc" font files. #3633
   (2.5.0.0)
+* Fix ImageOutput::check_open error conditions. #3769 (2.5.1.0)
+* Fix thread safety issue when reading ICC profiles from multiple files
+  simultaneously. This could affect any files with ICC profiles. #3767
+  (2.5.1.0)
 
 Developer goodies / internals:
 * filesystem.h:
@@ -218,8 +278,6 @@ Developer goodies / internals:
       (2.4.6/2.5.0.0)
     - IOMemReader::pread now detects and correctly handles out-of-range
       read positions. #3712 (2.4.7/2.5.0.0)
-* fmath.h:
-    - Remove useless bitcast specializations. #3728 (2.5.0.0/2.4.8.0)
 * platform.h:
     - New macros for detecting MSVS 2019 and 2022. #3727 (2.5.0.0/2.4.8.0)
 * span.h:
@@ -233,6 +291,8 @@ Developer goodies / internals:
       (`std::wchar/wstring` is not guaranteed to 16 bits on all platforms, but
       `u16char/u16string` is). #3553 (2.5.0.0)
     - New `trimmed_whitspace()`. #3636 (2.4.5/2.5.0.0)
+* timer.h:
+    - Minor improvements to Timer and LoggedTimer classes. #3753 (2.5.0.1)
 * tiffutils.h:
     - `decode_icc_profile` extracts several fields from an ICC profile binary
       blob and adds them as metadata to an ImageSpec. #3554 (2.5.0.0)
@@ -248,6 +308,8 @@ Developer goodies / internals:
     - Ensure that ustring hashes are always 64 bits, even on 32-bit
       architectures. #3606 (2.5.0.0)
     - Ensure safe use of this header from Cuda. #3718 (2.4.7/2.5.0.0)
+    - ustringhash: Make an explicit constructor from a hash value. #3778
+      (2.4.9.0/2.5.1.0)
 * Safety: excise the last instances of unsafe sprintf. #3705 (2.5.0.0)
 
 Build/test system improvements and platform ports:
@@ -261,6 +323,11 @@ Build/test system improvements and platform ports:
       (2.4.5/2.5.0.0)
     - CMake config should not include a find of fmt if it's internalized.
       #3739 (2.4.7.1/2.5.0.0)
+    - New CMake cache variable `OIIO_DISABLE_BOOST_STACKTRACE` to disable the
+      stacktrace functionality for users who want to avoid the Boost
+      stacktrace library. #3777 (2.4.9.0/2.5.1.0)
+    - Check need for libatomic with check_cxx_source_compiles instead of the
+      more expensive check_cxx_source_runs. #3774 (2.4.9.0/2.5.1.0)
 * Dependency version support:
     - Support for OpenColorIO 2.2. #3644 (2.5.0.0)
     - New CMake option `INTERNALIZE_FMT` (default ON), if set to OFF, will
@@ -268,8 +335,8 @@ Build/test system improvements and platform ports:
       necessary fmt headers into the OIIO include area. #3598 (2.4.7/2.5.0.0)
     - build_libtiff.bash changed to build shared library by default. #3586
       (2.5.0.0)
-    - build_openexr.bash changed to build v3.1.5 by default. #3703
-      (2.5.0.0)
+    - build_openexr.bash changed to build v3.1.5 by default. #3703 (2.5.0.0)
+    - Qt6 support for iv. #3779 (2.4.9.0/2.5.1.0)
 * Testing and Continuous integration (CI) systems:
     - Restored sanitizer tests which had been inadvertently disabled. #3545
       (2.5.0.0)
@@ -282,7 +349,9 @@ Build/test system improvements and platform ports:
       functionality #3655, ImageCache #3654, environment mapping #3694,
       texture3d #3699, term output #3714, igrep #3715, oiiotool --pdiff #3723,
       zover, fixnan for deep images, 2D filters #3730, pbm files #3731,
-      maketx --lightprobe #3732. (2.5.0.0)
+      maketx --lightprobe #3732 (2.5.0.0), TypeDesc::tostring, python
+      ImageCache and ImageBuf #3745, maketx #3748 (2.5.0.1), ImageBufAlgo
+      python functions #3766 (2.5.1.0).
     - Make testsuite/oiiotool-control run much faster by combining commands
       into fewer oiiotool invocations (speeds up testsuite) #3618 (2.5.0.0)
     - CI color related tests use the OCIO buit-in configs, when OCIO 2.2+ is
@@ -305,6 +374,9 @@ Build/test system improvements and platform ports:
     - ARM: Fix signed/unsigned mismatch compiler errors in vbool4 methods.
       #3722 (2.4.7/2.5.0.0)
     - ARM Mac: Fix build break. #3735 (2.5.0.0/2.4.7.1)
+    - Windows: Fix unresolved external symbol for MSVS 2017. #3763 (2.5.0.1)
+    - Fixes to make a clean build on Mac using Apple Clang 11.0. #3795
+      (2.4.10.0/2.5.1.0)
 
 Notable documentation changes:
 * Added RELEASING.md documenting our versioning and release procedures #3564
@@ -312,6 +384,68 @@ Notable documentation changes:
 * Docs: Better Windows build instructions in INSTALL.md. #3602 (2.4.5/2.5.0.0)
 
 
+
+Release 2.4.10.0 (1 Apr 2023) -- compared to 2.4.9.0
+-----------------------------------------------------
+* Exif: Fix typo that prevented us from correctly naming Exif
+  "CameraElevationAngle" metadata. #3783
+* IC/TS: Fixes that avoid deadlock situations on the file handle cache
+  in certain scenarios with very high thread contention. #3784
+* Docs: Some retroactive edits to INSTALL.md to correctly document changed
+  dependencies of the 2.4 series.
+* GIF: Fix potential array overrun when writing GIF files. #3789
+* Build: Fixes to make a clean build on Mac using Apple Clang 11.0. #3795
+* FYI: This version of OIIO should build against Clang 16.
+* maketx: Fix a broken --cdf flag, which was set up to take an argument, but
+  should always simply have acted as a simple boolean flag on its own. The
+  incorrect way it was set up not only was useless, but also could lead to
+  occasional crashes. #3748
+* maketx and oiiotool --otex: Add support for CDFs of bumpslopes channels.
+  Previously, if you used both --bumpslopes and --cdf at the same time, the
+  CDFs were not produced for all channels. #3793
+
+Release 2.4.9.0 (1 Mar 2023) -- compared to 2.4.8.1
+-----------------------------------------------------
+* Build: check need for libatomic with check_cxx_source_compiles instead of
+  the more expensive check_cxx_source_runs. #3774
+* Fix(IC): Avoid bad IC stats when no files were read. #3765
+* Build: Add a cmake option OIIO_DISABLE_BOOST_STACKTRACE to disable use and
+  dependency of boost stacktrace. #3777
+* ustringhash: Make an explicit constructor from a hash value. #3778
+* Build: Add ability to build against Qt6. #3779
+
+Release 2.4.8.1 (13 Feb 2023) -- compared to 2.4.8.0
+-----------------------------------------------------
+* Fix(targa): guard against corrupted tga files Fixes TALOS-2023-1707 /
+  CVE-2023-24473, TALOS-2023-1708 / CVE-2023-22845. #3768
+* Fix: race condition in TIFF reader, fixes TALOS-2023-1709 / CVE-2023-24472.
+  #3772
+* Windows: Fix unresolved external symbol for MSVS 2017 #3763
+* Fix: Initialize OpenEXROutput::m_levelmode() in init(). #3764
+* Fix: improve thread safety for concurrent tiff loads. #3767
+* Fix(fits): Make sure to close if open fails to find right magic number.
+  #3771
+
+Release 2.4.8.0 (1 Feb 2023) -- compared to 2.4.7.1
+----------------------------------------------------
+* oiiotool --pdiff: test, be sure to count it as making output. #3723
+* IBAprep should not zero out deep images when creating dst #3724
+* PBM: Fix for incorrect inverting of 1-bit pbm images. #3731
+* New `ImageSpec:set_colorspace()` sets color space metadata in a consistent
+  way. #3734
+* BMP: set colorspace to sRGB #3701
+* PNG: Add EXIF support when writing PNG files. #3735
+* PSD: Fix wrong oiio:UnassociatedAlpha metadata for PSD files. #3750
+* platform.h: set up macros for detecting MSVS 2019 and 2022 #3727
+* typedesc.h: Extend TypeDescFromC template to the full set of pixel types
+  #3726
+* Testing: many improvements for testing and code coverage. #3730 #3654 #3694
+  #3699 #3732 #3741 #3745 #3747
+* Testing: Fix long-broken ref images for texture-icwrite test #3733
+* Docs: Updated RTD docmentation style, looks much nicer. #3737
+* Docs: improve description of ociodisplay and others.
+* Docs: Fix old release notes to document all CVEs addressed in certain
+  prior releases.
 
 Release 2.4.7.1 (3 Jan 2023) -- compared to 2.4.7.0
 ----------------------------------------------------

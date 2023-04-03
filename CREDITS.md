@@ -19,6 +19,7 @@ lg@openimageio.org
 * Aman Shah
 * Ananth Garre
 * Anders Langlands
+* Angus Davis
 * Anthony Nemoff
 * Aras Pranckevičius
 * Arkady Shapkin
@@ -67,6 +68,7 @@ lg@openimageio.org
 * Fredrik Averpil
 * Frédéric Devernay
 * Gaurav Bansal
+* Gerdya
 * Ghislain Antony Vaillant
 * Gonzalo Garramuño
 * Gregor Mueckl
@@ -81,6 +83,7 @@ lg@openimageio.org
 * Irena Damsky
 * Ismael Cortes
 * Jan Hettenkofer
+* Jan Honsbrok
 * Jens Lindgren
 * Jep Hill
 * Jeph Alapat
@@ -89,9 +92,11 @@ lg@openimageio.org
 * Jim Hourihan
 * Johannes Unterguggenberger
 * John Burnett
+* John Fea
 * John Haddon
 * Jonathan Hearn
 * Jonathan Scruggs
+* Joris Nijs
 * Joseph Goldstone
 * Julien Enche
 * Justin Israel
@@ -119,6 +124,7 @@ lg@openimageio.org
 * Mariusz Szczepanczyk
 * Mark Boorer
 * Mark Visser
+* Massimo Paladin
 * Matteo F. Vescovi
 * Matthew E. Levine
 * Max Liani
@@ -160,6 +166,7 @@ lg@openimageio.org
 * Roeland Schoukens
 * Roman Zulak
 * Rui Li
+* Russell Greene
 * Ryen
 * Saket Jalan
 * Sam Richards
@@ -181,10 +188,12 @@ lg@openimageio.org
 * Till Dechent
 * Tim D. Smith
 * Tim Grant
+* Tom Knowles
 * Troy James Sobotka
 * Vinod Khare
 * Vishal Agrawal
 * Vitor Franchi
+* Wayne Arnold
 * Will Rosecrans
 * William Krick
 * Wormszer
