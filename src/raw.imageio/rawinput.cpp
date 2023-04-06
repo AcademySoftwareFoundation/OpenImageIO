@@ -445,8 +445,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
     // Set file information
     m_spec = ImageSpec(m_processor->imgdata.sizes.iwidth / div,
                        m_processor->imgdata.sizes.iheight / div,
-                       3,  // LibRaw should only give us 3 channels
-                       TypeDesc::UINT16);
+                       m_processor->imgdata.idata.colors, TypeDesc::UINT16);
     // Move the exif attribs we already read into the spec we care about
     m_spec.extra_attribs.swap(exifspec.extra_attribs);
 
@@ -1492,9 +1491,8 @@ RawInput::process()
             errorf("LibRaw did not return expected image type");
             return false;
         }
-
-        if (m_image->colors != 3) {
-            errorf("LibRaw did not return 3 channel image");
+        if (m_image->colors != 1 && m_image->colors != 3) {
+            errorf("LibRaw did not return a 1 or 3 channel image");
             return false;
         }
     }
