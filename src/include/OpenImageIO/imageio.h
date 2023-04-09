@@ -2863,8 +2863,7 @@ OIIO_API std::string geterror(bool clear = true);
 /// - `int openexr:core`
 ///
 ///    When nonzero, use the new "OpenEXR core C library" when available,
-///    for OpenEXR >= 3.1. This currently defaults to 1. Set to 0 to disable
-///    use of the newer OpenEXR code path.
+///    for OpenEXR >= 3.1. This is experimental, and currently defaults to 0.
 ///
 /// - `int limits:channels` (1024)
 ///
