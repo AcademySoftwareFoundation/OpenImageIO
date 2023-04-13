@@ -131,7 +131,7 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
             xstride = pybuf.strides[1];
             ystride = pybuf.strides[0];
         } else if (pybuf.ndim == 2) {
-            // Somebody collapsed a dimsision. Is it [pixel][c] with x&y
+            // Somebody collapsed a dimension. Is it [pixel][c] with x&y
             // combined, or is it [y][xpixel] with channels mushed together?
             if (pybuf.shape[0] == width * height && pybuf.shape[1] == nchans)
                 xstride = pybuf.strides[0];
@@ -152,8 +152,8 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
         } else {
             format = TypeUnknown;  // No idea what's going on -- error
             error  = Strutil::fmt::format(
-                "Can't figure out array shape (pixeldims={}, pydim={})",
-                pixeldims, pybuf.ndim);
+                "Python array shape is [{:,}] but expecting h={}, w={}, ch={}",
+                cspan<ssize_t>(pybuf.shape), height, width, nchans);
         }
     } else if (pixeldims == 1) {
         // Reading a 1D scanline span
@@ -176,7 +176,8 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
             pybuf.ndim);
     }
 
-    if (nchans > 1 && size_t(pybuf.strides.back()) != format.size()) {
+    if (nchans > 1 && format.size()
+        && size_t(pybuf.strides.back()) != format.size()) {
         format = TypeUnknown;  // can't handle noncontig channels
         error  = "Can't handle numpy array with noncontiguous channels";
     }
