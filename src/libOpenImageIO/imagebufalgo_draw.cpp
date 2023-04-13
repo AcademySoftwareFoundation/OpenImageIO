@@ -744,10 +744,17 @@ static const char* font_extensions[]   = { "", ".ttf", ".ttc", ".pfa", ".pfb" };
 
 // Add one dir to font_search_dirs, if the dir exists.
 static void
-fontpath_add_one_dir(string_view dir)
+fontpath_add_one_dir(string_view dir, int recursion = 1)
 {
     if (dir.size() && Filesystem::is_directory(dir)) {
         font_search_dirs.emplace_back(dir);
+        if (recursion) {
+            std::vector<std::string> files;
+            if (Filesystem::get_directory_entries(dir, files, false)) {
+                for (auto&& subdir : files)
+                    fontpath_add_one_dir(subdir, recursion - 1);
+            }
+        }
     }
 }
 
