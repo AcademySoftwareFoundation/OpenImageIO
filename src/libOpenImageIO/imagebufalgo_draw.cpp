@@ -6,6 +6,7 @@
 #include <cmath>
 #include <limits>
 #include <set>
+#include <unordered_map>
 
 #include <OpenImageIO/half.h>
 
@@ -727,6 +728,9 @@ ImageBufAlgo::bluenoise_image()
 static std::vector<std::string> font_search_dirs;
 static std::vector<std::string> all_font_files;
 static std::vector<std::string> all_fonts;
+static std::unordered_map<std::string, std::string> font_file_map;
+static std::mutex font_search_mutex;
+static bool fonts_are_enumerated = false;
 static const char* font_dir_prefix_envvars[]
     = { "OPENIMAGEIO_FONTS", "HOME", "SystemRoot", "OpenImageIO_ROOT" };
 static const char* font_dir_prefixes[]
@@ -738,13 +742,13 @@ static const char* font_dir_suffixes[]
         "share/fonts", "share/Fonts", "share/fonts/OpenImageIO" };
 static const char* default_font_name[] = { "DroidSans", "cour", "Courier New",
                                            "FreeMono", nullptr };
-static const char* font_extensions[]   = { "", ".ttf", ".ttc", ".pfa", ".pfb" };
+// static const char* font_extensions[]   = { "", ".ttf", ".ttc", ".pfa", ".pfb" };
 
 
 
 // Add one dir to font_search_dirs, if the dir exists.
 static void
-fontpath_add_one_dir(string_view dir, int recursion = 1)
+fontpath_add_one_dir(string_view dir, int recursion = 0)
 {
     if (dir.size() && Filesystem::is_directory(dir)) {
         font_search_dirs.emplace_back(dir);
@@ -785,25 +789,72 @@ fontpath_add_from_dir(const std::string& dir)
 }
 
 
+static void
+enumerate_fonts()
+{
+    std::lock_guard<std::mutex> lock(font_search_mutex);
+    if (fonts_are_enumerated)
+        return;  // already done
+
+    // Find all the existing dirs from the font search path to populate
+    // font_search_dirs.
+    fontpath_add_from_searchpath(pvt::font_searchpath);
+    for (auto s : font_dir_prefix_envvars)
+        fontpath_add_from_searchpath(Sysutil::getenv(s));
+    for (auto s : font_dir_prefixes)
+        fontpath_add_from_dir(s);
+    std::string this_program = OIIO::Sysutil::this_program_path();
+    if (this_program.size()) {
+        std::string path = Filesystem::parent_path(this_program);
+        path             = Filesystem::parent_path(path);
+        fontpath_add_from_dir(path);
+    }
+
+    // Get list of directories one level deeper than the font_search_dirs
+    auto dirs = font_search_dirs;
+    for (auto& dir : font_search_dirs) {
+        std::vector<std::string> filenames;
+        Filesystem::get_directory_entries(dir, filenames, false);
+        for (auto& f : filenames)
+            if (f.size() && Filesystem::is_directory(f))
+                dirs.push_back(f);
+    }
+
+    // Look for all the font files in dirs, populate font_file_set and font_set
+    std::set<std::string> font_set;
+    std::set<std::string> font_file_set;
+    for (auto& dir : dirs) {
+        std::vector<std::string> filenames;
+        Filesystem::get_directory_entries(dir, filenames, false);
+        for (auto& f : filenames) {
+            if (Strutil::iends_with(f, ".ttf") || Strutil::iends_with(f, ".ttc")
+                || Strutil::iends_with(f, ".pfa")
+                || Strutil::iends_with(f, ".pfb")) {
+                std::string fontname
+                    = Filesystem::replace_extension(Filesystem::filename(f),
+                                                    "");
+                font_file_set.insert(f);
+                font_set.insert(fontname);
+                if (font_file_map.find(fontname) == font_file_map.end())
+                    font_file_map[fontname] = f;
+            }
+        }
+    }
+    for (auto& f : font_file_set)
+        all_font_files.push_back(f);
+    for (auto& f : font_set)
+        all_fonts.push_back(f);
+
+    // Don't need to do that again
+    fonts_are_enumerated = true;
+}
+
+
+
 const std::vector<std::string>&
 pvt::font_dirs()
 {
-    static std::mutex mutex;
-    std::lock_guard<std::mutex> lock(mutex);
-
-    if (font_search_dirs.size() == 0) {
-        fontpath_add_from_searchpath(pvt::font_searchpath);
-        for (auto s : font_dir_prefix_envvars)
-            fontpath_add_from_searchpath(Sysutil::getenv(s));
-        for (auto s : font_dir_prefixes)
-            fontpath_add_from_dir(s);
-        std::string this_program = OIIO::Sysutil::this_program_path();
-        if (this_program.size()) {
-            std::string path = Filesystem::parent_path(this_program);
-            path             = Filesystem::parent_path(path);
-            fontpath_add_from_dir(path);
-        }
-    }
+    enumerate_fonts();
     return font_search_dirs;
 }
 
@@ -812,32 +863,7 @@ pvt::font_dirs()
 const std::vector<std::string>&
 pvt::font_file_list()
 {
-    static std::mutex mutex;
-    std::lock_guard<std::mutex> lock(mutex);
-
-    std::set<std::string> font_set;
-    std::set<std::string> font_file_set;
-    if (all_font_files.size() == 0) {
-        for (auto& dir : pvt::font_dirs()) {
-            std::vector<std::string> filenames;
-            Filesystem::get_directory_entries(dir, filenames, false);
-            for (auto& f : filenames) {
-                if (Strutil::iends_with(f, ".ttf")
-                    || Strutil::iends_with(f, ".ttc")
-                    || Strutil::iends_with(f, ".pfa")
-                    || Strutil::iends_with(f, ".pfb")) {
-                    font_file_set.insert(f);
-                    font_set.insert(
-                        Filesystem::replace_extension(Filesystem::filename(f),
-                                                      ""));
-                }
-            }
-        }
-        for (auto& f : font_file_set)
-            all_font_files.push_back(f);
-        for (auto& f : font_set)
-            all_fonts.push_back(f);
-    }
+    enumerate_fonts();
     return all_font_files;
 }
 
@@ -846,7 +872,7 @@ pvt::font_file_list()
 const std::vector<std::string>&
 pvt::font_list()
 {
-    (void)font_file_list();  // force font finding
+    enumerate_fonts();
     return all_fonts;
 }
 
@@ -913,40 +939,30 @@ resolve_font(string_view font_, std::string& result)
         }
     }
 
-    // Try to find the font.  Experiment with several extensions
+    // Try to find the font.
+    enumerate_fonts();
     std::string font = font_;
     if (font.empty()) {
         // nothing specified -- look for something to use as a default.
-        for (int j = 0; default_font_name[j] && font.empty(); ++j) {
-            for (auto e : font_extensions) {
-                font = Filesystem::searchpath_find(
-                    Strutil::concat(default_font_name[j], e), pvt::font_dirs(),
-                    true, false);
-                if (font.size())
-                    break;
+        for (auto fontname : default_font_name) {
+            auto f = font_file_map.find(fontname);
+            if (f != font_file_map.end()) {
+                font = f->second;
+                break;
             }
         }
         if (font.empty()) {
             result = "Could not set default font face";
             return false;
         }
-    } else if (Filesystem::is_regular(font)) {
-        // directly specified a filename -- use it
-    } else {
+    }
+    if (!Filesystem::is_regular(font)) {
         // A font name was specified but it's not a full path, look for it
-        std::string f;
-        for (auto e : font_extensions) {
-            f = Filesystem::searchpath_find(font + e, pvt::font_dirs(), true,
-                                            false);
-            if (f.size())
-                break;
-        }
-        if (f.empty()) {
-            result = Strutil::fmt::format("Could not set font face to \"{}\"",
-                                          font);
-            return false;
-        }
-        font = f;
+        auto f = font_file_map.find(font);
+        if (f != font_file_map.end())
+            font = f->second;
+        else
+            font = std::string();
     }
 
     if (!Filesystem::is_regular(font)) {
