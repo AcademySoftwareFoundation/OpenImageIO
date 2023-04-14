@@ -2068,7 +2068,19 @@ OIIO_FORCEINLINE OIIO_HOSTDEVICE T fast_exp2 (const T& xval) {
     r = madd(x, r, kD);
     r = madd(x, r, kE);
     r = madd(x, r, one);
-    return bitcast_to_float (bitcast_to_int(r) + (m << 23));
+
+    // Original code was:
+    //     return bitcast_to_float (bitcast_to_int(r) + (m << 23));
+    // This was producing the wrong results when called via `sRGB_to_linear()`
+    // and `linear_to_sRGB()` on some Windows MSVC builds.
+    // We found that it was fixed by using a temporary intN, as below.
+    // Presumed to be an optimizer bug in MSVC versions 16.11.x
+    // and earlier.
+    // See PR #3804
+
+    intN i = bitcast_to_int(r);
+    T f = bitcast_to_float(i + (m << 23));
+    return f;
 #else
     T r;
     for (int i = 0; i < r.elements; ++i)
