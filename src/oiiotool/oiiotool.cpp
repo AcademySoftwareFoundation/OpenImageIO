@@ -19,7 +19,6 @@
 
 #include "oiiotool.h"
 
-#include <OpenEXR/IlmThreadPool.h>
 #include <OpenEXR/ImfTimeCode.h>
 #include <OpenImageIO/Imath.h>
 
@@ -7412,12 +7411,6 @@ main(int argc, char* argv[])
     ot.curimg = nullptr;
     ot.image_stack.clear();
     ot.image_labels.clear();
-
-    // Force the OpenEXR threadpool to shutdown because their destruction
-    // might cause us to hang on Windows when it tries to communicate with
-    // threads that would have already been terminated without releasing any
-    // held mutexes.
-    IlmThread::ThreadPool::globalThreadPool().setNumThreads(0);
 
     return ot.return_value;
 }
