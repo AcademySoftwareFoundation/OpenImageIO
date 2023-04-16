@@ -25,7 +25,7 @@ struct FileHeader {
 
 struct ColorModeData {
     uint32_t length;
-    std::string data;
+    std::unique_ptr<uint8_t[]> data;
 };
 
 

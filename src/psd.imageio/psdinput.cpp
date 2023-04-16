@@ -201,17 +201,12 @@ private:
     std::vector<std::vector<ChannelInfo*>> m_channels;
     //Alpha Channel Names, not currently used
     std::vector<std::string> m_alpha_names;
-    //Buffers for channel data
-    std::vector<std::string> m_channel_buffers;
-    //Buffer for RLE conversion
-    std::string m_rle_buffer;
     //Index of the transparent color, if any (for Indexed color mode only)
     int16_t m_transparency_index;
     //Background color
-    double m_background_color[4];
+    float m_background_color[4];
     ///< Do not convert unassociated alpha
     bool m_keep_unassociated_alpha;
-
 
     FileHeader m_header;
     ColorModeData m_color_data;
@@ -292,53 +287,55 @@ private:
                           char* data);
 
     // Interleave channels (RRRGGGBBB -> RGBRGBRGB) while copying from
-    // m_channel_buffers[0..nchans-1] to dst.
-    template<typename T> void interleave_row(T* dst, size_t nchans);
+    // channel_buffers[0..nchans-1] to dst.
+    template<typename T>
+    static void
+    interleave_row(T* dst, cspan<std::vector<unsigned char>> channel_buffers,
+                   int width, int nchans);
 
-    //Convert the channel data to RGB
-    bool indexed_to_rgb(char* dst);
-    bool bitmap_to_rgb(char* dst);
+    // Convert the channel data to RGB
+    bool indexed_to_rgb(span<unsigned char> dst, cspan<unsigned char> src,
+                        int width) const;
+    bool bitmap_to_rgb(span<unsigned char> dst, cspan<unsigned char> src,
+                       int width) const;
 
     // Convert from photoshop native alpha to
     // associated/premultiplied
     template<class T>
     OIIO_NO_SANITIZE_UNDEFINED void
     removeBackground(T* data, int size, int nchannels, int alpha_channel,
-                     double* background)
+                     const float* background) const
     {
         // RGB = CompRGB - (1 - alpha) * Background;
-        double scale = std::numeric_limits<T>::is_integer
-                           ? 1.0 / double(std::numeric_limits<T>::max())
-                           : 1.0;
-
+        float scale = std::numeric_limits<T>::is_integer
+                          ? 1.0f / float(std::numeric_limits<T>::max())
+                          : 1.0f;
         for (; size; --size, data += nchannels)
             for (int c = 0; c < nchannels; c++)
                 if (c != alpha_channel) {
-                    double alpha = data[alpha_channel] * scale;
-                    double f     = data[c];
-
-                    data[c] = T(f - (((1.0 - alpha) * background[c]) / scale));
+                    float alpha = data[alpha_channel] * scale;
+                    float f     = data[c];
+                    data[c] = T(f - (((1.0f - alpha) * background[c]) / scale));
                 }
     }
 
     template<class T>
-    void unassociateAlpha(T* data, int size, int nchannels, int alpha_channel,
-                          double* background)
+    static void unassociateAlpha(T* data, int size, int nchannels,
+                                 int alpha_channel, const float* background)
     {
         // RGB = (CompRGB - (1 - alpha) * Background) / alpha
-        double scale = std::numeric_limits<T>::is_integer
-                           ? 1.0 / double(std::numeric_limits<T>::max())
-                           : 1.0;
+        float scale = std::numeric_limits<T>::is_integer
+                          ? 1.0f / float(std::numeric_limits<T>::max())
+                          : 1.0f;
 
         for (; size; --size, data += nchannels)
             for (int c = 0; c < nchannels; c++)
                 if (c != alpha_channel) {
-                    double alpha = data[alpha_channel] * scale;
-                    double f     = data[c];
-
-                    if (alpha > 0.0)
+                    float alpha = data[alpha_channel] * scale;
+                    float f     = data[c];
+                    if (alpha > 0.0f)
                         data[c] = T(
-                            (f - (((1.0 - alpha) * background[c]) / scale))
+                            (f - (((1.0f - alpha) * background[c]) / scale))
                             / alpha);
                     else
                         data[c] = 0;
@@ -346,26 +343,30 @@ private:
     }
 
     template<class T>
-    void associateAlpha(T* data, int size, int nchannels, int alpha_channel)
+    static void associateAlpha(T* data, int size, int nchannels,
+                               int alpha_channel)
     {
-        double scale = std::numeric_limits<T>::is_integer
-                           ? 1.0 / double(std::numeric_limits<T>::max())
-                           : 1.0;
+        float scale = std::numeric_limits<T>::is_integer
+                          ? 1.0f / float(std::numeric_limits<T>::max())
+                          : 1.0f;
         for (; size; --size, data += nchannels)
             for (int c = 0; c < nchannels; c++)
                 if (c != alpha_channel) {
-                    double f = data[c];
-                    data[c]  = T(f * (data[alpha_channel] * scale));
+                    float f = data[c];
+                    data[c] = T(f * (data[alpha_channel] * scale));
                 }
     }
 
-    void background_to_assocalpha(int n, void* data);
-    void background_to_unassalpha(int n, void* data);
-    void unassalpha_to_assocalpha(int n, void* data);
+    void background_to_assocalpha(int n, void* data, int nchannels,
+                                  int alpha_channel, TypeDesc format) const;
+    void background_to_unassalpha(int n, void* data, int nchannels,
+                                  int alpha_channel, TypeDesc format) const;
+    void unassalpha_to_assocalpha(int n, void* data, int nchannels,
+                                  int alpha_channel, TypeDesc format) const;
 
     template<typename T>
-    void cmyk_to_rgb(int n, const T* cmyk, size_t cmyk_stride, T* rgb,
-                     size_t rgb_stride)
+    static void cmyk_to_rgb(int n, const T* cmyk, size_t cmyk_stride, T* rgb,
+                            size_t rgb_stride)
     {
         for (; n; --n, cmyk += cmyk_stride, rgb += rgb_stride) {
             float C = convert_type<T, float>(cmyk[0]);
@@ -631,24 +632,25 @@ PSDInput::seek_subimage(int subimage, int miplevel)
 
 
 void
-PSDInput::background_to_assocalpha(int n, void* data)
+PSDInput::background_to_assocalpha(int n, void* data, int nchannels,
+                                   int alpha_channel, TypeDesc format) const
 {
-    switch (m_spec.format.basetype) {
+    switch (format.basetype) {
     case TypeDesc::UINT8:
-        removeBackground((unsigned char*)data, n, m_spec.nchannels,
-                         m_spec.alpha_channel, m_background_color);
+        removeBackground((unsigned char*)data, n, nchannels, alpha_channel,
+                         m_background_color);
         break;
     case TypeDesc::UINT16:
-        removeBackground((unsigned short*)data, n, m_spec.nchannels,
-                         m_spec.alpha_channel, m_background_color);
+        removeBackground((unsigned short*)data, n, nchannels, alpha_channel,
+                         m_background_color);
         break;
     case TypeDesc::UINT32:
-        removeBackground((unsigned long*)data, n, m_spec.nchannels,
-                         m_spec.alpha_channel, m_background_color);
+        removeBackground((unsigned long*)data, n, nchannels, alpha_channel,
+                         m_background_color);
         break;
     case TypeDesc::FLOAT:
-        removeBackground((float*)data, n, m_spec.nchannels,
-                         m_spec.alpha_channel, m_background_color);
+        removeBackground((float*)data, n, nchannels, alpha_channel,
+                         m_background_color);
         break;
     default: break;
     }
@@ -657,24 +659,25 @@ PSDInput::background_to_assocalpha(int n, void* data)
 
 
 void
-PSDInput::background_to_unassalpha(int n, void* data)
+PSDInput::background_to_unassalpha(int n, void* data, int nchannels,
+                                   int alpha_channel, TypeDesc format) const
 {
-    switch (m_spec.format.basetype) {
+    switch (format.basetype) {
     case TypeDesc::UINT8:
-        unassociateAlpha((unsigned char*)data, n, m_spec.nchannels,
-                         m_spec.alpha_channel, m_background_color);
+        unassociateAlpha((unsigned char*)data, n, nchannels, alpha_channel,
+                         m_background_color);
         break;
     case TypeDesc::UINT16:
-        unassociateAlpha((unsigned short*)data, n, m_spec.nchannels,
-                         m_spec.alpha_channel, m_background_color);
+        unassociateAlpha((unsigned short*)data, n, nchannels, alpha_channel,
+                         m_background_color);
         break;
     case TypeDesc::UINT32:
-        unassociateAlpha((unsigned long*)data, n, m_spec.nchannels,
-                         m_spec.alpha_channel, m_background_color);
+        unassociateAlpha((unsigned long*)data, n, nchannels, alpha_channel,
+                         m_background_color);
         break;
     case TypeDesc::FLOAT:
-        unassociateAlpha((float*)data, n, m_spec.nchannels,
-                         m_spec.alpha_channel, m_background_color);
+        unassociateAlpha((float*)data, n, nchannels, alpha_channel,
+                         m_background_color);
         break;
     default: break;
     }
@@ -683,23 +686,21 @@ PSDInput::background_to_unassalpha(int n, void* data)
 
 
 void
-PSDInput::unassalpha_to_assocalpha(int n, void* data)
+PSDInput::unassalpha_to_assocalpha(int n, void* data, int nchannels,
+                                   int alpha_channel, TypeDesc format) const
 {
-    switch (m_spec.format.basetype) {
+    switch (format.basetype) {
     case TypeDesc::UINT8:
-        associateAlpha((unsigned char*)data, n, m_spec.nchannels,
-                       m_spec.alpha_channel);
+        associateAlpha((unsigned char*)data, n, nchannels, alpha_channel);
         break;
     case TypeDesc::UINT16:
-        associateAlpha((unsigned short*)data, n, m_spec.nchannels,
-                       m_spec.alpha_channel);
+        associateAlpha((unsigned short*)data, n, nchannels, alpha_channel);
         break;
     case TypeDesc::UINT32:
-        associateAlpha((unsigned long*)data, n, m_spec.nchannels,
-                       m_spec.alpha_channel);
+        associateAlpha((unsigned long*)data, n, nchannels, alpha_channel);
         break;
     case TypeDesc::FLOAT:
-        associateAlpha((float*)data, n, m_spec.nchannels, m_spec.alpha_channel);
+        associateAlpha((float*)data, n, nchannels, alpha_channel);
         break;
     default: break;
     }
@@ -711,83 +712,93 @@ bool
 PSDInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                void* data)
 {
+    if (subimage < 0 || subimage >= m_subimage_count || miplevel != 0)
+        return false;
+#if 0
+    // FIXME: is this lock or the seek_subimage necessary at all?
     lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
-
-    y -= m_spec.y;
-    if (y < 0 || y > m_spec.height) {
+#endif
+    // The subimage specs were fully read by open(), so we can access them
+    // here safely.
+    const ImageSpec& spec = m_specs[subimage];
+    y -= spec.y;
+    if (y < 0 || y > spec.height) {
         errorfmt("Requested scanline {} out of range [0-{}]", y,
-                 m_spec.height - 1);
+                 spec.height - 1);
         return false;
     }
 
-    if (m_channel_buffers.size() < m_channels[m_subimage].size())
-        m_channel_buffers.resize(m_channels[m_subimage].size());
+    // Buffers for channel data, one per channel
+    std::vector<std::vector<unsigned char>> channel_buffers;
+    channel_buffers.resize(m_channels[subimage].size());
 
     int bps = (m_header.depth + 7) / 8;  // bytes per sample
     OIIO_DASSERT(bps == 1 || bps == 2 || bps == 4);
-    std::vector<ChannelInfo*>& channels = m_channels[m_subimage];
+    std::vector<ChannelInfo*>& channels = m_channels[subimage];
     int channel_count                   = (int)channels.size();
     for (int c = 0; c < channel_count; ++c) {
-        std::string& buffer       = m_channel_buffers[c];
         ChannelInfo& channel_info = *channels[c];
-        if (buffer.size() < channel_info.row_length)
-            buffer.resize(channel_info.row_length);
-
-        if (!read_channel_row(channel_info, y, &buffer[0]))
+        channel_buffers[c].resize(channel_info.row_length);
+        if (!read_channel_row(channel_info, y, (char*)channel_buffers[c].data()))
             return false;
     }
+    // OIIO_ASSERT(m_channels[subimage].size() == size_t(spec.nchannels));
     char* dst = (char*)data;
     if (m_WantRaw || m_header.color_mode == ColorMode_RGB
         || m_header.color_mode == ColorMode_Multichannel
         || m_header.color_mode == ColorMode_Grayscale) {
         switch (bps) {
         case 4:
-            interleave_row((float*)dst, m_channels[m_subimage].size());
+            interleave_row((float*)dst, channel_buffers, spec.width,
+                           spec.nchannels);
             break;
         case 2:
-            interleave_row((unsigned short*)dst, m_channels[m_subimage].size());
+            interleave_row((unsigned short*)dst, channel_buffers, spec.width,
+                           spec.nchannels);
             break;
         default:
-            interleave_row((unsigned char*)dst, m_channels[m_subimage].size());
+            interleave_row((unsigned char*)dst, channel_buffers, spec.width,
+                           spec.nchannels);
             break;
         }
     } else if (m_header.color_mode == ColorMode_CMYK) {
         switch (bps) {
         case 4: {
-            std::unique_ptr<float[]> cmyk(new float[4 * m_spec.width]);
-            interleave_row(cmyk.get(), 4);
-            cmyk_to_rgb(m_spec.width, cmyk.get(), 4, (float*)dst,
-                        m_spec.nchannels);
+            std::unique_ptr<float[]> cmyk(new float[4 * spec.width]);
+            interleave_row(cmyk.get(), channel_buffers, spec.width, 4);
+            cmyk_to_rgb(spec.width, cmyk.get(), 4, (float*)dst, spec.nchannels);
             break;
         }
         case 2: {
             std::unique_ptr<unsigned short[]> cmyk(
-                new unsigned short[4 * m_spec.width]);
-            interleave_row(cmyk.get(), 4);
-            cmyk_to_rgb(m_spec.width, cmyk.get(), 4, (unsigned short*)dst,
-                        m_spec.nchannels);
+                new unsigned short[4 * spec.width]);
+            interleave_row(cmyk.get(), channel_buffers, spec.width, 4);
+            cmyk_to_rgb(spec.width, cmyk.get(), 4, (unsigned short*)dst,
+                        spec.nchannels);
             break;
         }
         default: {
             std::unique_ptr<unsigned char[]> cmyk(
-                new unsigned char[4 * m_spec.width]);
-            interleave_row(cmyk.get(), 4);
-            cmyk_to_rgb(m_spec.width, cmyk.get(), 4, (unsigned char*)dst,
-                        m_spec.nchannels);
+                new unsigned char[4 * spec.width]);
+            interleave_row(cmyk.get(), channel_buffers, spec.width, 4);
+            cmyk_to_rgb(spec.width, cmyk.get(), 4, (unsigned char*)dst,
+                        spec.nchannels);
             break;
         }
         }
     } else if (m_header.color_mode == ColorMode_Indexed) {
-        if (!indexed_to_rgb(dst))
+        if (!indexed_to_rgb({ (unsigned char*)dst, spec.width * spec.nchannels },
+                            channel_buffers[0], spec.width))
             return false;
     } else if (m_header.color_mode == ColorMode_Bitmap) {
-        if (!bitmap_to_rgb(dst))
+        if (!bitmap_to_rgb({ (unsigned char*)dst, spec.width * spec.nchannels },
+                           channel_buffers[0], spec.width))
             return false;
     } else {
-        OIIO_ASSERT(0 && "unknown color mode");
         errorfmt("Unknown color mode: {:d}", m_header.color_mode);
+        OIIO_ASSERT(0 && "unknown color mode");
         return false;
     }
 
@@ -806,18 +817,21 @@ PSDInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     // m_keep_unassociated_alpha false: convert to associated
     //
     //
-    if (m_spec.alpha_channel != -1) {
-        if (m_subimage == 0) {
+    if (spec.alpha_channel != -1) {
+        if (subimage == 0) {
             if (m_keep_unassociated_alpha) {
-                background_to_unassalpha(m_spec.width, data);
+                background_to_unassalpha(spec.width, data, spec.nchannels,
+                                         spec.alpha_channel, spec.format);
             } else {
-                background_to_assocalpha(m_spec.width, data);
+                background_to_assocalpha(spec.width, data, spec.nchannels,
+                                         spec.alpha_channel, spec.format);
             }
         } else {
             if (m_keep_unassociated_alpha) {
                 // do nothing - leave as it is
             } else {
-                unassalpha_to_assocalpha(m_spec.width, data);
+                unassalpha_to_assocalpha(spec.width, data, spec.nchannels,
+                                         spec.alpha_channel, spec.format);
             }
         }
     }
@@ -841,8 +855,6 @@ PSDInput::init()
     m_image_data.transparency = false;
     m_channels.clear();
     m_alpha_names.clear();
-    m_channel_buffers.clear();
-    m_rle_buffer.clear();
     m_transparency_index      = -1;
     m_keep_unassociated_alpha = false;
     m_background_color[0]     = 1.0;
@@ -961,9 +973,8 @@ PSDInput::load_color_data()
         return false;
 
     if (m_color_data.length) {
-        m_color_data.data.resize(m_color_data.length);
-        if (!ioread(&m_color_data.data[0], m_color_data.length))
-            return false;
+        m_color_data.data.reset(new uint8_t[m_color_data.length]);
+        return ioread(m_color_data.data.get(), m_color_data.length);
     }
     return true;
 }
@@ -1063,6 +1074,8 @@ PSDInput::handle_resources(ImageResourceMap& resources)
     return true;
 }
 
+
+
 bool PSDInput::load_resource_1005(uint32_t /*length*/)
 {
     ResolutionInfo resinfo;
@@ -1127,16 +1140,15 @@ PSDInput::load_resource_1006(uint32_t length)
 
 bool PSDInput::load_resource_1010(uint32_t /*length*/)
 {
-    const double int8_to_dbl = 1.0 / 0xFF;
-    int8_t color_id          = 0;
-    int32_t color            = 0;
+    int8_t color_id = 0;
+    int32_t color   = 0;
 
     bool ok = read_bige<int8_t>(color_id) && read_bige<int32_t>(color);
 
-    m_background_color[0] = ((color)&0xFF) * int8_to_dbl;
-    m_background_color[1] = ((color >> 8) & 0xFF) * int8_to_dbl;
-    m_background_color[2] = ((color >> 16) & 0xFF) * int8_to_dbl;
-    m_background_color[3] = ((color >> 24) & 0xFF) * int8_to_dbl;
+    m_background_color[0] = convert_type<uint8_t, float>(color & 0xFF);
+    m_background_color[1] = convert_type<uint8_t, float>((color >> 8) & 0xFF);
+    m_background_color[2] = convert_type<uint8_t, float>((color >> 16) & 0xFF);
+    m_background_color[3] = convert_type<uint8_t, float>((color >> 24) & 0xFF);
 
     return ok;
 }
@@ -1157,6 +1169,8 @@ PSDInput::load_resource_1036(uint32_t length)
     return load_resource_thumbnail(length, false);
 }
 
+
+
 bool
 PSDInput::load_resource_1039(uint32_t length)
 {
@@ -1171,6 +1185,8 @@ PSDInput::load_resource_1039(uint32_t length)
                        errormsg);
     return true;
 }
+
+
 
 bool PSDInput::load_resource_1047(uint32_t /*length*/)
 {
@@ -1832,26 +1848,24 @@ PSDInput::read_channel_row(const ChannelInfo& channel_info, uint32_t row,
         return false;
     }
 
-    bool ok = ioseek(channel_info.row_pos[row]);
+    if (!ioseek(channel_info.row_pos[row]))
+        return false;
     switch (channel_info.compression) {
-    case Compression_Raw: ok &= ioread(data, channel_info.row_length); break;
-    case Compression_RLE:
+    case Compression_Raw:
+        if (!ioread(data, channel_info.row_length))
+            return false;
+        break;
+    case Compression_RLE: {
         uint32_t rle_length = channel_info.rle_lengths[row];
-        if (m_rle_buffer.size() < rle_length)
-            m_rle_buffer.resize(rle_length);
-
-        ok &= ioread(&m_rle_buffer[0], rle_length);
-        if (!ok)
+        char* rle_buffer;
+        OIIO_ALLOCATE_STACK_OR_HEAP(rle_buffer, char, rle_length);
+        if (!ioread(rle_buffer, rle_length)
+            || !decompress_packbits(rle_buffer, data, rle_length,
+                                    channel_info.row_length))
             return false;
-
-        if (!decompress_packbits(&m_rle_buffer[0], data, rle_length,
-                                 channel_info.row_length))
-            return false;
-
         break;
     }
-    if (!ok)
-        return false;
+    }
 
     if (!bigendian()) {
         switch (m_header.depth) {
@@ -1874,12 +1888,13 @@ PSDInput::read_channel_row(const ChannelInfo& channel_info, uint32_t row,
 
 template<typename T>
 void
-PSDInput::interleave_row(T* dst, size_t nchans)
+PSDInput::interleave_row(T* dst,
+                         cspan<std::vector<unsigned char>> channel_buffers,
+                         int width, int nchans)
 {
-    OIIO_DASSERT(nchans <= m_channels[m_subimage].size());
-    for (size_t c = 0; c < nchans; ++c) {
-        const T* cbuf = (const T*)&(m_channel_buffers[c][0]);
-        for (int x = 0; x < m_spec.width; ++x)
+    for (int c = 0; c < nchans; ++c) {
+        const T* cbuf = reinterpret_cast<const T*>(channel_buffers[c].data());
+        for (int x = 0; x < width; ++x)
             dst[nchans * x + c] = cbuf[x];
     }
 }
@@ -1887,30 +1902,33 @@ PSDInput::interleave_row(T* dst, size_t nchans)
 
 
 bool
-PSDInput::indexed_to_rgb(char* dst)
+PSDInput::indexed_to_rgb(span<unsigned char> dst, cspan<unsigned char> src,
+                         int width) const
 {
-    char* src = &m_channel_buffers[m_subimage][0];
+    OIIO_ASSERT(src.size() && dst.size());
     // The color table is 768 bytes which is 256 * 3 channels (always RGB)
-    char* table = &m_color_data.data[0];
+    const auto& table(m_color_data.data);
     if (m_transparency_index >= 0) {
-        for (int i = 0; i < m_spec.width; ++i) {
-            unsigned char index = *src++;
+        for (int i = 0; i < width; ++i) {
+            int index = src[i];
             if (index == m_transparency_index) {
-                std::memset(dst, 0, 4);
-                dst += 4;
-                continue;
+                dst[4 * i + 0] = 0;
+                dst[4 * i + 1] = 0;
+                dst[4 * i + 2] = 0;
+                dst[4 * i + 3] = 0;
+            } else {
+                dst[4 * i + 0] = table[index];        // R
+                dst[4 * i + 1] = table[index + 256];  // G
+                dst[4 * i + 2] = table[index + 512];  // B
+                dst[4 * i + 3] = 0xff;                // A
             }
-            *dst++ = table[index];        // R
-            *dst++ = table[index + 256];  // G
-            *dst++ = table[index + 512];  // B
-            *dst++ = 0xff;                // A
         }
     } else {
-        for (int i = 0; i < m_spec.width; ++i) {
-            unsigned char index = *src++;
-            *dst++              = table[index];        // R
-            *dst++              = table[index + 256];  // G
-            *dst++              = table[index + 512];  // B
+        for (int i = 0; i < width; ++i) {
+            int index      = src[i];
+            dst[3 * i + 0] = table[index];        // R
+            dst[3 * i + 1] = table[index + 256];  // G
+            dst[3 * i + 2] = table[index + 512];  // B
         }
     }
     return true;
@@ -1919,20 +1937,16 @@ PSDInput::indexed_to_rgb(char* dst)
 
 
 bool
-PSDInput::bitmap_to_rgb(char* dst)
+PSDInput::bitmap_to_rgb(span<unsigned char> dst, cspan<unsigned char> src,
+                        int width) const
 {
-    for (int i = 0; i < m_spec.width; ++i) {
-        int byte = i / 8;
-        int bit  = 7 - i % 8;
-        char result;
-        char* src = &m_channel_buffers[m_subimage][byte];
-        if (*src & (1 << bit))
-            result = 0;
-        else
-            result = 0xff;
-
-        std::memset(dst, result, 3);
-        dst += 3;
+    for (int i = 0; i < width; ++i) {
+        int byte             = i / 8;
+        int bit              = 7 - i % 8;
+        unsigned char result = (src[byte] & (1 << bit)) ? 0 : 0xff;
+        dst[i * 3 + 0]       = result;
+        dst[i * 3 + 1]       = result;
+        dst[i * 3 + 2]       = result;
     }
     return true;
 }

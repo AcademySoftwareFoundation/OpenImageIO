@@ -2,7 +2,7 @@ Reading ../oiio-images/psd_123.psd
 ../oiio-images/psd_123.psd :  257 x  126, 4 channel, uint8 psd
     4 subimages: 257x126 [u8,u8,u8,u8], 33x98 [u8,u8,u8,u8], 63x100 [u8,u8,u8,u8], 61x102 [u8,u8,u8,u8]
  subimage  0:  257 x  126, 4 channel, uint8 psd
-    SHA-1: F7A1BCAC9115D886FC6D6C23639529955D74DD58
+    SHA-1: D48458E9AEDB9C8618DE4B7DAA25BD4D7421778A
     channel list: R, G, B, A
     DateTime: "2011-08-22T22:14:43-04:00"
     ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
@@ -442,7 +442,7 @@ Reading ../oiio-images/psd_bitmap.psd
     stRef:originalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
 Reading ../oiio-images/psd_indexed_trans.psd
 ../oiio-images/psd_indexed_trans.psd :  320 x  240, 4 channel, uint8 psd
-    SHA-1: 6181660E78F3583DBCC077F79715DA9804D68CF8
+    SHA-1: 5B548EAE1F69EC4B65D762F52D8C542CF18515D5
     channel list: R, G, B, A
     Artist: "Daniel Wyatt"
     DateTime: "2007-01-18T15:49:21"
@@ -727,7 +727,7 @@ Reading ../oiio-images/psd_rgba_8.psd
 ../oiio-images/psd_rgba_8.psd :  320 x  240, 4 channel, uint8 psd
     2 subimages: 320x240 [u8,u8,u8,u8], 320x240 [u8,u8,u8,u8]
  subimage  0:  320 x  240, 4 channel, uint8 psd
-    SHA-1: 9519DFB5CDF4D8BAC10A20EAE6433A9216885F9D
+    SHA-1: 81C22E59537BCDB081C12BF93E14DB2B5DDEEC13
     channel list: R, G, B, A
     DateTime: "2011-08-22T22:07:44-04:00"
     ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
@@ -758,7 +758,7 @@ Reading ../oiio-images/psd_rgba_8.psd
     stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
     stEvt:when: "2011-08-22T22:07:44-04:00; 2011-08-25T17:39:28-04:00"
  subimage  1:  320 x  240, 4 channel, uint8 psd
-    SHA-1: 131A372FD9B67B580B0380A4F754281D5F33E12E
+    SHA-1: 0C24F6EE3C3F1A14769F3A7272C35E684AB75AB3
     channel list: R, G, B, A
     DateTime: "2011-08-22T22:07:44-04:00"
     ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
@@ -809,7 +809,7 @@ Reading ../oiio-images/psd_123.psd
 ../oiio-images/psd_123.psd :  257 x  126, 4 channel, uint8 psd
     4 subimages: 257x126 [u8,u8,u8,u8], 33x98 [u8,u8,u8,u8], 63x100 [u8,u8,u8,u8], 61x102 [u8,u8,u8,u8]
  subimage  0:  257 x  126, 4 channel, uint8 psd
-    SHA-1: 8BF46474973B454FF5C30BA129A75ECA98A03132
+    SHA-1: B229DA843AD0DA7C6FF92ABC78C737E81FEB6CF2
     channel list: R, G, B, A
     DateTime: "2011-08-22T22:14:43-04:00"
     ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
@@ -1175,7 +1175,7 @@ Reading src/layer-mask.psd
 src/layer-mask.psd   :   10 x   10, 4 channel, uint8 psd
     3 subimages: 10x10 [u8,u8,u8,u8], 8x8 [u8,u8,u8,u8], 9x9 [u8,u8,u8,u8]
  subimage  0:   10 x   10, 4 channel, uint8 psd
-    SHA-1: 9C9176DD4E1E7E1DF656D39DB7E1506E1E1260F3
+    SHA-1: D74BDBDC714B652B6C62DE190A928EF79A0095ED
     channel list: R, G, B, A
     DateTime: "2017-07-13T10:26:10+09:00"
     Orientation: 1 (normal)
