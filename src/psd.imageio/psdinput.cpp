@@ -407,8 +407,8 @@ private:
 
     int read_pascal_string(std::string& s, uint16_t mod_padding);
 
-    bool decompress_packbits(const char* src, char* dst, uint16_t packed_length,
-                             uint16_t unpacked_length);
+    bool decompress_packbits(const char* src, char* dst, uint32_t packed_length,
+                             uint32_t unpacked_length);
 
     // These are AdditionalInfo entries that, for PSBs, have an 8-byte length
     static const char* additional_info_psb[];
@@ -1985,7 +1985,7 @@ PSDInput::read_pascal_string(std::string& s, uint16_t mod_padding)
 
 bool
 PSDInput::decompress_packbits(const char* src, char* dst,
-                              uint16_t packed_length, uint16_t unpacked_length)
+                              uint32_t packed_length, uint32_t unpacked_length)
 {
     int32_t src_remaining = packed_length;
     int32_t dst_remaining = unpacked_length;
@@ -2005,7 +2005,9 @@ PSDInput::decompress_packbits(const char* src, char* dst,
             src_remaining -= length;
             dst_remaining -= length;
             if (src_remaining < 0 || dst_remaining < 0) {
-                errorfmt("unable to decode packbits");
+                errorfmt(
+                    "unable to decode packbits (case 1, literal bytes: src_rem={}, dst_rem={}, len={})",
+                    src_remaining, dst_remaining, length);
                 return false;
             }
 
@@ -2018,7 +2020,9 @@ PSDInput::decompress_packbits(const char* src, char* dst,
             src_remaining--;
             dst_remaining -= length;
             if (src_remaining < 0 || dst_remaining < 0) {
-                errorfmt("unable to decode packbits");
+                errorfmt(
+                    "unable to decode packbits (case 2, repeating byte: src_rem={}, dst_rem={}, len={})",
+                    src_remaining, dst_remaining, length);
                 return false;
             }
 
