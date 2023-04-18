@@ -67,7 +67,8 @@ static std::mutex output_mutex;
 
 // On systems that support it, get a location independent locale.
 #if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) \
-    || defined(__FreeBSD_kernel__) || defined(__GLIBC__)
+    || defined(__FreeBSD_kernel__) || defined(__OpenBSD__)           \
+    || defined(__GLIBC__)
 static locale_t c_loc = newlocale(LC_ALL_MASK, "C", nullptr);
 #elif defined(_WIN32)
 static _locale_t c_loc = _create_locale(LC_ALL, "C");
@@ -451,7 +452,8 @@ inline int
 strcasecmp(const char* a, const char* b)
 {
 #if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) \
-    || defined(__FreeBSD_kernel__) || defined(__GLIBC__)
+    || defined(__FreeBSD_kernel__) || defined(__OpenBSD__)           \
+    || defined(__GLIBC__)
     return strcasecmp_l(a, b, c_loc);
 #elif defined(_WIN32)
     return _stricmp_l(a, b, c_loc);
@@ -465,7 +467,8 @@ inline int
 strncasecmp(const char* a, const char* b, size_t size)
 {
 #if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) \
-    || defined(__FreeBSD_kernel__) || defined(__GLIBC__)
+    || defined(__FreeBSD_kernel__) || defined(__OpenBSD__)           \
+    || defined(__GLIBC__)
     return strncasecmp_l(a, b, size, c_loc);
 #elif defined(_WIN32)
     return _strnicmp_l(a, b, size, c_loc);
