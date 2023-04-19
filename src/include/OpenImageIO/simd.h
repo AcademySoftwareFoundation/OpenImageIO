@@ -81,30 +81,38 @@
 #  endif
 #endif
 
+// Disable Intel SIMD intrinsics on non-Intel architectures (including
+// building for Cuda on an Intel host).
+#if defined(_M_ARM64) || defined(__aarch64) || defined(__aarch64__) \
+    || defined(__CUDA_ARCH__)
+#  ifndef OIIO_NO_SSE
+#    define OIIO_NO_SSE 1
+#  endif
+#  ifndef OIIO_NO_AVX
+#    define OIIO_NO_AVX 1
+#  endif
+#  ifndef OIIO_NO_AVX2
+#    define OIIO_NO_AVX2 1
+#  endif
+#  ifndef OIIO_NO_NEON
+#    define OIIO_NO_NEON 1
+#  endif
+#endif
+
 #if defined(__CUDA_ARCH__)
     // Cuda -- don't include any of these headers
 #elif defined(_WIN32)
 #  include <intrin.h>
 #elif defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__)) || defined(__e2k__)
 #  include <x86intrin.h>
-#elif defined(__GNUC__) && defined(__ARM_NEON__)
+#elif defined(__GNUC__) && defined(__ARM_NEON__) && !defined(OIIO_NO_NEON)
 #  include <arm_neon.h>
 #endif
 
-// Disable SSE for 32 bit Windows patforms, it's unreliable and hard for us
+// Disable SSE for 32 bit Windows platforms, it's unreliable and hard for us
 // to test thoroughly. We presume that anybody needing high performance
 // badly enough to want SIMD also is on a 64 bit CPU.
 #if defined(_WIN32) && defined(__i386__) && !defined(__x86_64__) && !defined(OIIO_NO_SSE)
-#define OIIO_NO_SSE 1
-#endif
-
-//Disable SSE for ARM64 targets
-#if defined(_M_ARM64) || defined(__aarch64) || defined(__aarch64__)
-#define OIIO_NO_SSE 1
-#endif
-
-// Make sure to disable SSE intrinsics when compiling for Cuda.
-#if defined(__CUDA_ARCH__) && !defined(OIIO_NO_SSE)
 #define OIIO_NO_SSE 1
 #endif
 
