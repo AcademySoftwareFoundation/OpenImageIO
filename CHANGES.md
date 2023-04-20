@@ -91,10 +91,6 @@ New major features and public API changes:
 Performance improvements:
 * Fixed some ImageBuf and IBA internals to avoid unnecessary/redundant zeroing
   out of newly allocated buffer memory. #3754 (2.5.0.1)
-* Switched the default OpenEXR reading mode to use the "exrcore" APIs (if
-  building against OpenEXR >= 3.1). It had been possible but not enabled by
-  default for a while. This mode seems stable and results in better OpenEXR
-  read performance. #3788 (2.5.1.0)
 
 Fixes and feature enhancements:
 * Python bindings:
@@ -104,6 +100,8 @@ Fixes and feature enhancements:
       python side will be numpy arrays of type uint8 (dtype='B'). This is
       important for being able to set and retrieve "ICCProfile" metadata.
       #3556 (2.5.0.0)
+    - Improve error messages for when passing incorrect python array sizes.
+      #3801 (2.5.1.0)
 * ImageBuf improvements:
     - Fixes to subtle bugs when ImageBuf is used with IOProxy. #3666
       (2.4.6/2.5.0.0)
@@ -215,10 +213,13 @@ Fixes and feature enhancements:
     - Fix thumbnail extraction. #3668 (2.4.6/2.5.0.0)
     - When reading, don't reject padded thumbnails. #3677 (2.4.6/2.5.0.0)
     - Fix wrong "oiio:UnassociatedAlpha" metadata. #3750 (2.5.0.1)
+    - Handle very wide images with more than 64k resolution in either
+      direction. #3806 (2.5.1.0/2.4.11)
 * RAW:
     - Add color metadata: pre_mul, cam_mul, cam_xyz, rgb_cam. #3561 #3569
       #3572 (2.5.0.0)
     - Update Exif orientation if user flip is set. #3669 (2.4.6/2.5.0.0)
+    - Correctly handle 1-channel raw images. #3798 (2.5.1.0/2.4.11.0)
 * RLA:
     - Fix potential buffer overrun. (TALOS-2022-1629, CVE-2022-36354) #3624
       (2.4.5/2.5.0.0)
@@ -265,6 +266,8 @@ Fixes and feature enhancements:
 * Fix thread safety issue when reading ICC profiles from multiple files
   simultaneously. This could affect any files with ICC profiles. #3767
   (2.5.1.0)
+* Improve searching for fonts for the text rendering functionality. #3802
+  #3803 (2.5.1.0)
 
 Developer goodies / internals:
 * filesystem.h:
@@ -278,8 +281,13 @@ Developer goodies / internals:
       (2.4.6/2.5.0.0)
     - IOMemReader::pread now detects and correctly handles out-of-range
       read positions. #3712 (2.4.7/2.5.0.0)
+* fmath.h:
+    - Fix a wrong result with `fast_exp2()` with MSVS and sse4.2. #3804
+      (2.5.1.0/2.4.11)
 * platform.h:
     - New macros for detecting MSVS 2019 and 2022. #3727 (2.5.0.0/2.4.8.0)
+* simd.h:
+    - Fixes to ensure safe compilation for Cuda. #3810 (2.5.1.0/2.4.11)
 * span.h:
     - `cspan<>` template now allows for Extent template argument (as `span<>`
       already did). #3685 (2.5.0.0)
@@ -377,6 +385,7 @@ Build/test system improvements and platform ports:
     - Windows: Fix unresolved external symbol for MSVS 2017. #3763 (2.5.0.1)
     - Fixes to make a clean build on Mac using Apple Clang 11.0. #3795
       (2.4.10.0/2.5.1.0)
+    - Fixes to build properly on OpenBSD. #3808 (2.5.1.0/2.4.11)
 
 Notable documentation changes:
 * Added RELEASING.md documenting our versioning and release procedures #3564
