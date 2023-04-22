@@ -14,6 +14,7 @@
 #include <OpenImageIO/Imath.h>
 #include <OpenImageIO/platform.h>
 
+#include <OpenEXR/IlmThreadPool.h>
 #include <OpenEXR/ImfChannelList.h>
 #include <OpenEXR/ImfEnvmap.h>
 #include <OpenEXR/ImfOutputFile.h>
@@ -290,6 +291,20 @@ set_exr_threads()
         exr_threads = oiio_threads;
         Imf::setGlobalThreadCount(exr_threads);
     }
+
+    // If we're ever in this function, which we would be any time we use
+    // openexr threads, also proactively ensure that we exit the application,
+    // we force the OpenEXR threadpool to shut down because their destruction
+    // might cause us to hang on Windows when it tries to communicate with
+    // threads that would have already been terminated without releasing any
+    // held mutexes.
+    static std::once_flag set_atexit_once;
+    std::call_once(set_atexit_once, []() {
+        std::atexit([]() {
+            // print("EXITING and setting ilmthreads = 0\n");
+            IlmThread::ThreadPool::globalThreadPool().setNumThreads(0);
+        });
+    });
 }
 
 }  // namespace pvt
