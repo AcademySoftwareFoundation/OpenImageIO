@@ -25,6 +25,7 @@
 /// Additional web resources:
 ///   http://www.codersnotes.com/notes/maths-lib-2016/
 ///   https://www.agner.org/optimize/
+///   https://www.corsix.org/content/converting-fp32-to-fp16
 
 // clang-format off
 
