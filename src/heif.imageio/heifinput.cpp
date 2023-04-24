@@ -76,7 +76,7 @@ heif_input_imageio_create()
     return new HeifInput;
 }
 
-OIIO_EXPORT const char* heif_input_extensions[] = { "heic",  "heif", 
+OIIO_EXPORT const char* heif_input_extensions[] = { "heic",  "heif",
                                                     "heics", "hif",
 #if LIBHEIF_HAVE_VERSION(1, 7, 0)
                                                     "avif",
