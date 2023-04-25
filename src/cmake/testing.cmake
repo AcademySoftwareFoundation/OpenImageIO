@@ -367,6 +367,10 @@ function (oiio_get_test_data name)
             file (CREATE_LINK "${OIIO_LOCAL_TESTDATA_ROOT}/${name}"
                               "${CMAKE_BINARY_DIR}/testsuite/${name}"
                               SYMBOLIC RESULT _ogtd_LINK_RESULT)
+            # Note: Using 'COPY_ON_ERROR' in the above command should have prevented the need to
+            # have the manual fall-back below. However, there's been at least one case where a user
+            # noticed that copying did not happen if creating the link failed (CMake 3.24). We can
+            # adjust this in the future if CMake behavior improves.
             message (STATUS "Link result ${_ogtd_LINK_RESULT}")
         endif ()
         if (NOT _ogtd_LINK_RESULT EQUAL 0)
