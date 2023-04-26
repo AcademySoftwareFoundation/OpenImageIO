@@ -136,6 +136,16 @@ command += oiiotool ("../common/tahoe-tiny.tif " +
                      "--echo \"filename={TOP.filename} file_extension={TOP.file_extension} file_noextension={TOP.file_noextension}\" " +
                      "--echo \"MINCOLOR={TOP.MINCOLOR} MAXCOLOR={TOP.MAXCOLOR} AVGCOLOR={TOP.AVGCOLOR}\"")
 
+command += oiiotool (
+    "--echo \"Testing NIMAGES:\" " +
+    "--echo \"  {NIMAGES}\" " +
+    "--create 16x16 3 " +
+    "--echo \"  {NIMAGES}\" " +
+    "--create 16x16 3 " +
+    "--echo \"  {NIMAGES}\" " +
+    "--create 16x16 3 " +
+    "--echo \"  {NIMAGES}\" ")
+
 # Test "postpone_callback" with an "image -BINOP image" operation instead of
 # "image image -BINOP".
 command += oiiotool ("../common/tahoe-tiny.tif -sub ../common/tahoe-tiny.tif "
