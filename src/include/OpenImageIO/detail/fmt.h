@@ -30,6 +30,13 @@
 #    define FMT_DEPRECATED_OSTREAM 1
 #endif
 
+// fmt 9 started using the __float128 type, which is not supported by the
+// nvptx backend for llvm, so we disable its usage on this target, which
+// can be identified by the combination of __CUDA_ARCH__ and __clang__
+#if defined(__CUDA_ARCH__) && defined(__clang__) && !defined(FMT_USE_FLOAT128)
+#    define FMT_USE_FLOAT128 0
+#endif
+
 OIIO_PRAGMA_WARNING_PUSH
 #if OIIO_GNUC_VERSION >= 70000
 #    pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
