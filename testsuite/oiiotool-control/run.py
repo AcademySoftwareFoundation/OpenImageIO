@@ -134,6 +134,20 @@ command += oiiotool ("../common/tahoe-tiny.tif " +
                      "--echo \"filename={TOP.filename} file_extension={TOP.file_extension} file_noextension={TOP.file_noextension}\" " +
                      "--echo \"MINCOLOR={TOP.MINCOLOR} MAXCOLOR={TOP.MAXCOLOR} AVGCOLOR={TOP.AVGCOLOR}\"")
 
+command += oiiotool (
+    "--echo \"Testing NIMAGES:\" " +
+    "--echo \"  {NIMAGES}\" " +
+    "--create 16x16 3 " +
+    "--echo \"  {NIMAGES}\" " +
+    "--create 16x16 3 " +
+    "--echo \"  {NIMAGES}\" " +
+    "--create 16x16 3 " +
+    "--echo \"  {NIMAGES}\" ")
+
+# Test "postpone_callback" with an "image -BINOP image" operation instead of
+# "image image -BINOP".
+command += oiiotool ("../common/tahoe-tiny.tif -sub ../common/tahoe-tiny.tif "
+                     + "-echo \"postponed sub:\" --printinfo:stats=1:verbose=0")
 
 # To add more tests, just append more lines like the above and also add
 # the new 'feature.tif' (or whatever you call it) to the outputs list,
