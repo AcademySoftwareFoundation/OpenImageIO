@@ -207,6 +207,8 @@ contents of an expression may be any of:
     wildcard expansion.
   * `FRAME_NUMBER_PAD` : like `FRAME_NUMBER`, but 0-padded based
     on the value set on the command line by `--framepadding`.
+  * `NIMAGES` : the number of images currently on the stack. (Added in OIIO
+     2.4.11.)
 
 * Functions
 

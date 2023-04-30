@@ -258,6 +258,11 @@ Monochrome: No
 Stack holds [0] = ../common/tahoe-small.tif, [1] = ../common/tahoe-tiny.tif
 filename=../common/tahoe-tiny.tif file_extension=.tif file_noextension=../common/tahoe-tiny
 MINCOLOR=0,0,0 MAXCOLOR=0.745098,1,1 AVGCOLOR=0.101942,0.216695,0.425293
+Testing NIMAGES:
+  0
+  1
+  2
+  3
 postponed sub:
  128 x   96, 3 channel, float 
     Stats Min: 0.000000 0.000000 0.000000 (float)

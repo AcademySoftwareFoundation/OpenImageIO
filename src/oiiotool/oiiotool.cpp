@@ -2011,6 +2011,8 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
                               : Strutil::fmt::format("\"{{:0{}d}}\"",
                                                      ot.frame_padding);
         result          = Strutil::fmt::format(fmt, ot.frame_number);
+    } else if (Strutil::parse_identifier_if(s, "NIMAGES")) {
+        result = Strutil::to_string(ot.image_stack_depth());
     } else {
         string_view id = Strutil::parse_identifier(s, false);
         if (id.size() && ot.uservars.contains(id)) {
