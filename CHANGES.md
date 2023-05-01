@@ -1,3 +1,7 @@
+Release 2.4.12.0 (1 June 2023) -- compared to 2.4.11.0
+------------------------------------------------------
+
+
 Release 2.4.11.0 (1 May 2023) -- compared to 2.4.10.0
 ------------------------------------------------------
 * oiiotool: For expression evaluation, `NIMAGES` now evaluates to the current
