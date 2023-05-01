@@ -1,6 +1,24 @@
-Release 2.4.11.0 (1 May? 2023) -- compared to 2.4.10.0
+Release 2.4.11.0 (1 May 2023) -- compared to 2.4.10.0
 ------------------------------------------------------
-
+* oiiotool: For expression evaluation, `NIMAGES` now evaluates to the current
+  image stack depth. #3822
+* Python: Improve error messages when passing wrong python array sizes. #3801
+* Raw: handle 1-channel raw images. #3798
+* HEIC: Support the ".hif" extension, which seems to be used by some Canon
+  cameras instead of .heif. #3813
+* PSD: Fix problems reading images with width > 64k pixels. #3806
+* Windows/fmath: Work around MSVS bug(?) that generated wrong code for
+  fast_exp2. #3804
+* Build: Fix building on OpenBSD. #3808
+* Build: Refactor simd.h to disable Intel intrinsics when not on Intel
+  (including Cuda compiles). #3814
+* Build: Fix building against new ffmpeg 6.0. #3812
+* Build: Work around problems with fmt library + NVPTX relating to unknown
+  float128 type. #3823
+* CI/test: Fix incorrect branch name when cloning openexr-images for the
+  testsuite. #3814
+* Test: Use copies instead of symlinks in a couple spots to help on Windows.
+  #3818
 
 Release 2.4.10.0 (1 Apr 2023) -- compared to 2.4.9.0
 -----------------------------------------------------
