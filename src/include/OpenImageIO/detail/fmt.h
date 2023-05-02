@@ -41,6 +41,9 @@ OIIO_PRAGMA_WARNING_PUSH
 #if OIIO_GNUC_VERSION >= 70000
 #    pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
+#if OIIO_GNUC_VERSION >= 130000
+#    pragma GCC diagnostic ignored "-Wdangling-reference"
+#endif
 #if OIIO_INTEL_LLVM_COMPILER
 #    pragma GCC diagnostic ignored "-Wtautological-constant-compare"
 #endif

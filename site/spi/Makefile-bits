@@ -222,6 +222,10 @@ else ifeq (${platform}, macosx)
         MY_CMAKE_FLAGS += \
            -DCMAKE_C_COMPILER=gcc-11 -DCMAKE_CXX_COMPILER=g++-11
         USE_LIBCPLUSPLUS := 0
+    else ifeq (${COMPILER}, gcc13)
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=gcc-13 -DCMAKE_CXX_COMPILER=g++-13
+        USE_LIBCPLUSPLUS := 0
     else ifeq (${COMPILER},clang13)
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=/usr/local/opt/llvm@13/bin/clang \
         				  -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm@13/bin/clang++
