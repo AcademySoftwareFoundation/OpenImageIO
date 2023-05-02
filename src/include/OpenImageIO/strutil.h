@@ -208,21 +208,21 @@ namespace sync {
 /// stream), and if the stream is buffered, it is flushed after the output).
 
 template<typename... Args>
-inline void print (FILE *file, const char* fmt, const Args&... args)
+inline void print (FILE *file, const char* fmt, Args&&... args)
 {
-    sync_output (file, ::fmt::format(fmt, args...));
+    sync_output (file, ::fmt::format(fmt, std::forward<Args>(args)...));
 }
 
 template<typename... Args>
-inline void print (const char* fmt, const Args&... args)
+inline void print (const char* fmt, Args&&... args)
 {
-    print(stdout, fmt, args...);
+    print(stdout, fmt, std::forward<Args>(args)...);
 }
 
 template<typename... Args>
-inline void print (std::ostream &file, const char* fmt, const Args&... args)
+inline void print (std::ostream &file, const char* fmt, Args&&... args)
 {
-    sync_output (file, ::fmt::format(fmt, args...));
+    sync_output (file, ::fmt::format(fmt, std::forward<Args>(args)...));
 }
 } // namespace sync
 
