@@ -100,7 +100,7 @@ public:
     TIFFInput();
     ~TIFFInput() override;
     const char* format_name(void) const override { return "tiff"; }
-    bool valid_file(Filesystem::IOProxy* io) const override;
+    bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     int supports(string_view feature) const override
     {
         return (feature == "exif" || feature == "iptc" || feature == "ioproxy");
@@ -684,13 +684,13 @@ TIFFInput::~TIFFInput()
 
 
 bool
-TIFFInput::valid_file(Filesystem::IOProxy* io) const
+TIFFInput::valid_file(Filesystem::IOProxy* ioproxy) const
 {
-    if (!io || io->mode() != Filesystem::IOProxy::Mode::Read)
+    if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Mode::Read)
         return false;
 
     uint16_t magic[2] {};
-    const size_t numRead = io->pread(magic, sizeof(magic), 0);
+    const size_t numRead = ioproxy->pread(magic, sizeof(magic), 0);
     if (numRead != sizeof(magic))  // read failed
         return false;
     if (magic[0] != TIFF_LITTLEENDIAN && magic[0] != TIFF_BIGENDIAN)

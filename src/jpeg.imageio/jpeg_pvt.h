@@ -62,7 +62,7 @@ public:
     {
         return (feature == "exif" || feature == "iptc" || feature == "ioproxy");
     }
-    bool valid_file(Filesystem::IOProxy* io) const override;
+    bool valid_file(Filesystem::IOProxy* ioproxy) const override;
 
     bool open(const std::string& name, ImageSpec& spec) override;
     bool open(const std::string& name, ImageSpec& spec,

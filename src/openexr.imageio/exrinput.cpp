@@ -133,7 +133,7 @@ public:
                 || feature == "iptc"  // Because of arbitrary_metadata
                 || feature == "ioproxy");
     }
-    bool valid_file(Filesystem::IOProxy* io) const override;
+    bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     bool open(const std::string& name, ImageSpec& newspec,
               const ImageSpec& config) override;
     bool open(const std::string& name, ImageSpec& newspec) override
@@ -336,13 +336,13 @@ OpenEXRInput::OpenEXRInput() { init(); }
 
 
 bool
-OpenEXRInput::valid_file(Filesystem::IOProxy* io) const
+OpenEXRInput::valid_file(Filesystem::IOProxy* ioproxy) const
 {
-    if (!io || io->mode() != Filesystem::IOProxy::Mode::Read)
+    if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Mode::Read)
         return false;
 
     try {
-        OpenEXRInputStream IStream("", io);
+        OpenEXRInputStream IStream("", ioproxy);
         return Imf::isOpenExrFile(IStream);
     } catch (const std::exception& e) {
         return false;

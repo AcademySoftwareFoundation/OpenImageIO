@@ -138,14 +138,14 @@ JpgInput::jpegerror(my_error_ptr /*myerr*/, bool fatal)
 
 
 bool
-JpgInput::valid_file(Filesystem::IOProxy* io) const
+JpgInput::valid_file(Filesystem::IOProxy* ioproxy) const
 {
     // Check magic number to assure this is a JPEG file
-    if (!io || io->mode() != Filesystem::IOProxy::Read)
+    if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Read)
         return false;
 
     uint8_t magic[2] {};
-    const size_t numRead = io->pread(magic, sizeof(magic), 0);
+    const size_t numRead = ioproxy->pread(magic, sizeof(magic), 0);
     return numRead == sizeof(magic) && magic[0] == JPEG_MAGIC1
            && magic[1] == JPEG_MAGIC2;
 }

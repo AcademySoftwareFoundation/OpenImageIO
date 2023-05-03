@@ -111,12 +111,12 @@ ImageInput::valid_file(const std::string& filename) const
 
 
 bool
-ImageInput::valid_file(Filesystem::IOProxy* io) const
+ImageInput::valid_file(Filesystem::IOProxy* ioproxy) const
 {
     ImageInput* self = const_cast<ImageInput*>(this);
 
     /* Open using the ioproxy if possible. */
-    if (!self->set_ioproxy(io))
+    if (!self->set_ioproxy(ioproxy))
         return false;
 
     ImageSpec config, tmpspec;

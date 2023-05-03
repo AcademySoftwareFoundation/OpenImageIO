@@ -29,7 +29,7 @@ public:
     {
         return (feature == "ioproxy");
     }
-    bool valid_file(Filesystem::IOProxy* io) const override;
+    bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     bool open(const std::string& name, ImageSpec& newspec) override;
     bool open(const std::string& name, ImageSpec& newspec,
               const ImageSpec& config) override;
@@ -107,12 +107,12 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 bool
-DPXInput::valid_file(Filesystem::IOProxy* io) const
+DPXInput::valid_file(Filesystem::IOProxy* ioproxy) const
 {
-    if (!io || io->mode() != Filesystem::IOProxy::Mode::Read)
+    if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Mode::Read)
         return false;
 
-    std::unique_ptr<InStream> stream_uptr(new InStream(io));
+    std::unique_ptr<InStream> stream_uptr(new InStream(ioproxy));
     if (!stream_uptr)
         return false;
 
