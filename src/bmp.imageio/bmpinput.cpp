@@ -23,7 +23,7 @@ public:
     {
         return feature == "ioproxy";
     }
-    bool valid_file(const std::string& filename) const override;
+    bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     bool open(const std::string& name, ImageSpec& newspec) override;
     bool open(const std::string& name, ImageSpec& newspec,
               const ImageSpec& config) override;
@@ -94,11 +94,13 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 bool
-BmpInput::valid_file(const std::string& filename) const
+BmpInput::valid_file(Filesystem::IOProxy* ioproxy) const
 {
+    if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Mode::Read)
+        return false;
+
     bmp_pvt::BmpFileHeader header;
-    Filesystem::IOFile file(filename, Filesystem::IOProxy::Read);
-    return file.opened() && header.read_header(&file) && header.isBmp();
+    return header.read_header(ioproxy) && header.isBmp();
 }
 
 

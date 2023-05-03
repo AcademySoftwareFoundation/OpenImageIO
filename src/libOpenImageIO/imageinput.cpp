@@ -93,10 +93,39 @@ ImageInput::~ImageInput() {}
 bool
 ImageInput::valid_file(const std::string& filename) const
 {
-    ImageSpec tmpspec;
-    bool ok = const_cast<ImageInput*>(this)->open(filename, tmpspec);
-    if (ok)
-        const_cast<ImageInput*>(this)->close();
+    ImageInput* self = const_cast<ImageInput*>(this);
+
+    if (self->supports("ioproxy")) {
+        Filesystem::IOFile io(filename, Filesystem::IOProxy::Read);
+        return valid_file(&io);
+    } else {
+        ImageSpec tmpspec;
+        bool ok = self->open(filename, tmpspec);
+        if (ok)
+            self->close();
+        (void)geterror();  // Clear any errors
+        return ok;
+    }
+}
+
+
+
+bool
+ImageInput::valid_file(Filesystem::IOProxy* ioproxy) const
+{
+    ImageInput* self = const_cast<ImageInput*>(this);
+
+    /* Open using the ioproxy if possible. */
+    if (!self->set_ioproxy(ioproxy))
+        return false;
+
+    ImageSpec config, tmpspec;
+    bool ok = self->open("", tmpspec, config);
+    if (ok) {
+        self->close();
+    }
+    self->ioproxy_clear();
+
     (void)geterror();  // Clear any errors
     return ok;
 }

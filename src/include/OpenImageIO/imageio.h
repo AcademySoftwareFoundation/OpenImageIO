@@ -1025,10 +1025,23 @@ public:
     ///         `true` upon success, or `false` upon failure.
     virtual bool valid_file (const std::string& filename) const;
 
-    /// Check valid vile using a UTF-16 encoded wstring filename.
+    /// Check valid file using a UTF-16 encoded wstring filename.
     bool valid_file (const std::wstring& filename) const {
         return valid_file(Strutil::utf16_to_utf8(filename));
     }
+
+    /// Return true if the `ioproxy` represents a file of the type for this
+    /// ImageInput.  The implementation will try to determine this as
+    /// efficiently as possible, in most cases much less expensively than
+    /// doing a full `open()`.  Note that there can be false positives: a
+    /// file can appear to be of the right type (i.e., `valid_file()`
+    /// returning `true`) but still fail a subsequent call to `open()`, such
+    /// as if the contents of the file are truncated, nonsensical, or
+    /// otherwise corrupted.
+    ///
+    /// @returns
+    ///         `true` upon success, or `false` upon failure.
+    virtual bool valid_file (Filesystem::IOProxy* ioproxy) const;
 
     /// Opens the file with given name and seek to the first subimage in the
     /// file.  Various file attributes are put in `newspec` and a copy

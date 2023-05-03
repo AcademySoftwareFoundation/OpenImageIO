@@ -18,7 +18,7 @@ public:
     {
         return feature == "ioproxy";
     }
-    bool valid_file(const std::string& filename) const override;
+    bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     bool open(const std::string& name, ImageSpec& spec) override;
     bool open(const std::string& name, ImageSpec& newspec,
               const ImageSpec& config) override;
@@ -82,16 +82,14 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 bool
-SgiInput::valid_file(const std::string& filename) const
+SgiInput::valid_file(Filesystem::IOProxy* ioproxy) const
 {
-    FILE* fd = Filesystem::fopen(filename, "rb");
-    if (!fd)
+    if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Read)
         return false;
-    int16_t magic;
-    bool ok = (::fread(&magic, sizeof(magic), 1, fd) == 1)
-              && (magic == sgi_pvt::SGI_MAGIC);
-    fclose(fd);
-    return ok;
+
+    int16_t magic {};
+    const size_t numRead = ioproxy->pread(&magic, sizeof(magic), 0);
+    return numRead == sizeof(magic) && magic == sgi_pvt::SGI_MAGIC;
 }
 
 

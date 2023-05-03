@@ -20,7 +20,7 @@ public:
     {
         return (feature == "ioproxy" || feature == "exif");
     }
-    bool valid_file(const std::string& filename) const override;
+    bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     bool open(const std::string& name, ImageSpec& newspec) override;
     bool open(const std::string& name, ImageSpec& newspec,
               const ImageSpec& config) override;
@@ -110,16 +110,14 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 bool
-PNGInput::valid_file(const std::string& filename) const
+PNGInput::valid_file(Filesystem::IOProxy* ioproxy) const
 {
-    FILE* fd = Filesystem::fopen(filename, "rb");
-    if (!fd)
+    if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Mode::Read)
         return false;
-    unsigned char sig[8];
-    bool ok = (fread(sig, 1, sizeof(sig), fd) == sizeof(sig)
-               && png_sig_cmp(sig, 0, 7) == 0);
-    fclose(fd);
-    return ok;
+
+    unsigned char sig[8] {};
+    const size_t numRead = ioproxy->pread(sig, sizeof(sig), 0);
+    return numRead == sizeof(sig) && png_sig_cmp(sig, 0, 8) == 0;
 }
 
 
@@ -136,7 +134,7 @@ PNGInput::open(const std::string& name, ImageSpec& newspec)
 
     unsigned char sig[8];
     if (ioproxy()->pread(sig, sizeof(sig), 0) != sizeof(sig)
-        || png_sig_cmp(sig, 0, 7)) {
+        || png_sig_cmp(sig, 0, 8)) {
         if (!has_error())
             errorf("Not a PNG file");
         return false;  // Read failed

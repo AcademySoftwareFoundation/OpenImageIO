@@ -138,26 +138,16 @@ JpgInput::jpegerror(my_error_ptr /*myerr*/, bool fatal)
 
 
 bool
-JpgInput::valid_file(const std::string& filename, Filesystem::IOProxy* io) const
+JpgInput::valid_file(Filesystem::IOProxy* ioproxy) const
 {
     // Check magic number to assure this is a JPEG file
-    uint8_t magic[2] = { 0, 0 };
-    bool ok          = true;
+    if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Read)
+        return false;
 
-    if (io) {
-        ok = (io->pread(magic, sizeof(magic), 0) == sizeof(magic));
-    } else {
-        FILE* fd = Filesystem::fopen(filename, "rb");
-        if (!fd)
-            return false;
-        ok = (::fread(magic, sizeof(magic), 1, fd) == 1);
-        fclose(fd);
-    }
-
-    if (magic[0] != JPEG_MAGIC1 || magic[1] != JPEG_MAGIC2) {
-        ok = false;
-    }
-    return ok;
+    uint8_t magic[2] {};
+    const size_t numRead = ioproxy->pread(magic, sizeof(magic), 0);
+    return numRead == sizeof(magic) && magic[0] == JPEG_MAGIC1
+           && magic[1] == JPEG_MAGIC2;
 }
 
 
