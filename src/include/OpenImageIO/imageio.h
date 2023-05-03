@@ -1024,9 +1024,11 @@ public:
     /// @returns
     ///         `true` upon success, or `false` upon failure.
     virtual bool valid_file (const std::string& filename) const;
+
+    /// Check valid file using an IOProxy.
     virtual bool valid_file (Filesystem::IOProxy* io) const;
 
-    /// Check valid vile using a UTF-16 encoded wstring filename.
+    /// Check valid file using a UTF-16 encoded wstring filename.
     bool valid_file (const std::wstring& filename) const {
         return valid_file(Strutil::utf16_to_utf8(filename));
     }
