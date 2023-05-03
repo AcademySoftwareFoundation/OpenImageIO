@@ -368,6 +368,15 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
         errorf("Could not open file \"%s\"", name);
         return false;
     }
+
+    // If we weren't given an IOProxy, create one now that just reads from
+    // the file.
+    if (!m_io) {
+        m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Read);
+        m_local_io.reset(m_io);
+    }
+    OIIO_ASSERT(m_io);
+
     if (!valid_file(m_io)) {
         errorf("\"%s\" is not an OpenEXR file", name);
         return false;
@@ -403,14 +412,8 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
     // Clear the spec with default constructor
     m_spec = ImageSpec();
 
-    // Establish an input stream. If we weren't given an IOProxy, create one
-    // now that just reads from the file.
+    // Establish an input stream.
     try {
-        if (!m_io) {
-            m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Read);
-            m_local_io.reset(m_io);
-        }
-        OIIO_ASSERT(m_io);
         if (m_io->mode() != Filesystem::IOProxy::Read) {
             // If the proxy couldn't be opened in write mode, try to
             // return an error.
