@@ -1024,6 +1024,7 @@ public:
     /// @returns
     ///         `true` upon success, or `false` upon failure.
     virtual bool valid_file (const std::string& filename) const;
+    virtual bool valid_file (Filesystem::IOProxy* io) const;
 
     /// Check valid vile using a UTF-16 encoded wstring filename.
     bool valid_file (const std::wstring& filename) const {

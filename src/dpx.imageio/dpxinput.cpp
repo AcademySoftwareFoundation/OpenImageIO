@@ -29,7 +29,7 @@ public:
     {
         return (feature == "ioproxy");
     }
-    bool valid_file(const std::string& filename) const override;
+    bool valid_file(Filesystem::IOProxy* io) const override;
     bool open(const std::string& name, ImageSpec& newspec) override;
     bool open(const std::string& name, ImageSpec& newspec,
               const ImageSpec& config) override;
@@ -107,11 +107,8 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 bool
-DPXInput::valid_file(const std::string& filename) const
+DPXInput::valid_file(Filesystem::IOProxy* io) const
 {
-    Filesystem::IOProxy* io
-        = new Filesystem::IOFile(filename, Filesystem::IOProxy::Mode::Read);
-    std::unique_ptr<Filesystem::IOProxy> io_uptr(io);
     if (!io || io->mode() != Filesystem::IOProxy::Mode::Read)
         return false;
 
@@ -121,7 +118,7 @@ DPXInput::valid_file(const std::string& filename) const
 
     dpx::Reader dpx;
     dpx.SetInStream(stream_uptr.get());
-    return dpx.ReadHeader();  // IOFile is automatically closed when destructed
+    return dpx.ReadHeader();
 }
 
 

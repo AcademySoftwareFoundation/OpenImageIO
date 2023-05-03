@@ -133,7 +133,7 @@ public:
                 || feature == "iptc"  // Because of arbitrary_metadata
                 || feature == "ioproxy");
     }
-    bool valid_file(const std::string& filename) const override;
+    bool valid_file(Filesystem::IOProxy* io) const override;
     bool open(const std::string& name, ImageSpec& newspec,
               const ImageSpec& config) override;
     bool open(const std::string& name, ImageSpec& newspec) override
@@ -245,8 +245,6 @@ private:
         m_missingcolor.clear();
     }
 
-    bool valid_file(const std::string& filename, Filesystem::IOProxy* io) const;
-
     bool read_native_tiles_individually(int subimage, int miplevel, int xbegin,
                                         int xend, int ybegin, int yend,
                                         int zbegin, int zend, int chbegin,
@@ -338,24 +336,13 @@ OpenEXRInput::OpenEXRInput() { init(); }
 
 
 bool
-OpenEXRInput::valid_file(const std::string& filename) const
+OpenEXRInput::valid_file(Filesystem::IOProxy* io) const
 {
-    return valid_file(filename, nullptr);
-}
+    if (!io || io->mode() != Filesystem::IOProxy::Mode::Read)
+        return false;
 
-
-
-bool
-OpenEXRInput::valid_file(const std::string& filename,
-                         Filesystem::IOProxy* io) const
-{
     try {
-        std::unique_ptr<Filesystem::IOProxy> local_io;
-        if (!io) {
-            io = new Filesystem::IOFile(filename, Filesystem::IOProxy::Read);
-            local_io.reset(io);
-        }
-        OpenEXRInputStream IStream(filename.c_str(), io);
+        OpenEXRInputStream IStream("", io);
         return Imf::isOpenExrFile(IStream);
     } catch (const std::exception& e) {
         return false;
@@ -381,7 +368,7 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
         errorf("Could not open file \"%s\"", name);
         return false;
     }
-    if (!valid_file(name, m_io)) {
+    if (!valid_file(m_io)) {
         errorf("\"%s\" is not an OpenEXR file", name);
         return false;
     }

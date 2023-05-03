@@ -100,7 +100,7 @@ public:
     TIFFInput();
     ~TIFFInput() override;
     const char* format_name(void) const override { return "tiff"; }
-    bool valid_file(const std::string& filename) const override;
+    bool valid_file(Filesystem::IOProxy* io) const override;
     int supports(string_view feature) const override
     {
         return (feature == "exif" || feature == "iptc" || feature == "ioproxy");
@@ -461,8 +461,6 @@ private:
         return xtile + ytile * nxtiles + ztile * nxtiles * nytiles;
     }
 
-    bool valid_file(const std::string& filename, Filesystem::IOProxy* io) const;
-
 #if OIIO_TIFFLIB_VERSION >= 40500
     std::string m_last_error;
     spin_mutex m_last_error_mutex;
@@ -613,7 +611,10 @@ reader_mapproc(thandle_t, tdata_t*, toff_t*)
     return 0;
 }
 
-static void reader_unmapproc(thandle_t, tdata_t, toff_t) {}
+static void
+reader_unmapproc(thandle_t, tdata_t, toff_t)
+{
+}
 
 
 
@@ -686,19 +687,14 @@ TIFFInput::~TIFFInput()
 
 
 bool
-TIFFInput::valid_file(const std::string& filename,
-                      Filesystem::IOProxy* io) const
+TIFFInput::valid_file(Filesystem::IOProxy* io) const
 {
-    std::unique_ptr<Filesystem::IOProxy> local_io;
-    if (!io) {
-        io = new Filesystem::IOFile(filename, Filesystem::IOProxy::Read);
-        local_io.reset(io);
-    }
-    if (!io || !io->opened())
-        return false;  // needs to be able to open
-    uint16_t magic[2] = { 0, 0 };
-    size_t numRead    = io->pread(magic, 2 * sizeof(uint16_t), 0);
-    if (numRead != 2 * sizeof(uint16_t))  // read failed
+    if (!io || io->mode() != Filesystem::IOProxy::Mode::Read)
+        return false;
+
+    uint16_t magic[2] {};
+    const size_t numRead = io->pread(magic, sizeof(magic), 0);
+    if (numRead != sizeof(magic))  // read failed
         return false;
     if (magic[0] != TIFF_LITTLEENDIAN && magic[0] != TIFF_BIGENDIAN)
         return false;  // not the right byte order
@@ -707,14 +703,6 @@ TIFFInput::valid_file(const std::string& filename,
     return (magic[1] == 42 /* Classic TIFF */ || magic[1] == 43 /* Big TIFF */);
     // local_io, if used, will automatically close and free. A passed in
     // proxy will remain in its prior state.
-}
-
-
-
-bool
-TIFFInput::valid_file(const std::string& filename) const
-{
-    return valid_file(filename, nullptr);
 }
 
 
@@ -1975,7 +1963,7 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
             char* cbuf        = compressed_scratch.get() + stripidx * cbound;
             tstrip_t stripnum = (y - m_spec.y) / m_rowsperstrip;
             tsize_t csize     = TIFFReadRawStrip(m_tif, stripnum, cbuf,
-                                             tmsize_t(cbound));
+                                                 tmsize_t(cbound));
             if (csize < 0) {
                 std::string err = oiio_tiff_last_error();
                 errorfmt("TIFFRead{}Strip failed reading line y={},z={}: {}",
