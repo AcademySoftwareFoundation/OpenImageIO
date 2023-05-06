@@ -289,7 +289,11 @@ class vbool16;
 class vint16;
 class vfloat16;
 
+#if OIIO_DISABLE_DEPRECATED >= OIIO_MAKE_VERSION(1,9,0) && !defined(OIIO_INTERNAL)
 // Deprecated names -- remove these in 1.9
+// These are removed from visibility for the OIIO codebase itself, or for any
+// downstream project that defines OIIO_DISABLE_DEPRECATED to exclude
+// declarations deprecated as of version 1.9 or later.
 typedef vbool4 mask4;    // old name
 typedef vbool4 bool4;
 typedef vbool8 bool8;
@@ -298,6 +302,7 @@ typedef vint8 int8;
 typedef vfloat3 float3;
 typedef vfloat4 float4;
 typedef vfloat8 float8;
+#endif
 
 } // namespace simd
 
