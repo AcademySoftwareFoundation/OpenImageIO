@@ -24,10 +24,10 @@ Reading ../oiio-images/psd_123.psd
     IPTC:ModifyDate: "2011-08-22T22:14:43-04:00"
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
-    photoshop:ColorMode: 3, 3
+    photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
-    photoshop:LayerName: 1, 2, 3, 1, 2, 3
-    photoshop:LayerText: 1, 2, 3, 1, 2, 3
+    photoshop:LayerName: 1, 2, 3
+    photoshop:LayerText: 1, 2, 3
     rdf:parseType: "Resource"
     stEvt:action: "created"
     stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
@@ -74,10 +74,10 @@ Reading ../oiio-images/psd_123.psd
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "1"
-    photoshop:ColorMode: 3, 3
+    photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
-    photoshop:LayerName: 1, 2, 3, 1, 2, 3
-    photoshop:LayerText: 1, 2, 3, 1, 2, 3
+    photoshop:LayerName: 1, 2, 3
+    photoshop:LayerText: 1, 2, 3
     rdf:parseType: "Resource"
     stEvt:action: "created"
     stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
@@ -124,10 +124,10 @@ Reading ../oiio-images/psd_123.psd
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "2"
-    photoshop:ColorMode: 3, 3
+    photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
-    photoshop:LayerName: 1, 2, 3, 1, 2, 3
-    photoshop:LayerText: 1, 2, 3, 1, 2, 3
+    photoshop:LayerName: 1, 2, 3
+    photoshop:LayerText: 1, 2, 3
     rdf:parseType: "Resource"
     stEvt:action: "created"
     stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
@@ -174,10 +174,10 @@ Reading ../oiio-images/psd_123.psd
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "3"
-    photoshop:ColorMode: 3, 3
+    photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
-    photoshop:LayerName: 1, 2, 3, 1, 2, 3
-    photoshop:LayerText: 1, 2, 3, 1, 2, 3
+    photoshop:LayerName: 1, 2, 3
+    photoshop:LayerText: 1, 2, 3
     rdf:parseType: "Resource"
     stEvt:action: "created"
     stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
@@ -209,10 +209,10 @@ Reading ../oiio-images/psd_123_nomaxcompat.psd
     IPTC:ModifyDate: "2011-08-29T12:10:28-04:00"
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
-    photoshop:ColorMode: 3, 3
+    photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
-    photoshop:LayerName: 1, 2, 3, 1, 2, 3
-    photoshop:LayerText: 1, 2, 3, 1, 2, 3
+    photoshop:LayerName: 1, 2, 3
+    photoshop:LayerText: 1, 2, 3
     rdf:parseType: "Resource"
     stEvt:action: "created; saved"
     stEvt:changed: "/"
@@ -260,10 +260,10 @@ Reading ../oiio-images/psd_123_nomaxcompat.psd
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "1"
-    photoshop:ColorMode: 3, 3
+    photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
-    photoshop:LayerName: 1, 2, 3, 1, 2, 3
-    photoshop:LayerText: 1, 2, 3, 1, 2, 3
+    photoshop:LayerName: 1, 2, 3
+    photoshop:LayerText: 1, 2, 3
     rdf:parseType: "Resource"
     stEvt:action: "created; saved"
     stEvt:changed: "/"
@@ -311,10 +311,10 @@ Reading ../oiio-images/psd_123_nomaxcompat.psd
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "2"
-    photoshop:ColorMode: 3, 3
+    photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
-    photoshop:LayerName: 1, 2, 3, 1, 2, 3
-    photoshop:LayerText: 1, 2, 3, 1, 2, 3
+    photoshop:LayerName: 1, 2, 3
+    photoshop:LayerText: 1, 2, 3
     rdf:parseType: "Resource"
     stEvt:action: "created; saved"
     stEvt:changed: "/"
@@ -362,10 +362,10 @@ Reading ../oiio-images/psd_123_nomaxcompat.psd
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "3"
-    photoshop:ColorMode: 3, 3
+    photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
-    photoshop:LayerName: 1, 2, 3, 1, 2, 3
-    photoshop:LayerText: 1, 2, 3, 1, 2, 3
+    photoshop:LayerName: 1, 2, 3
+    photoshop:LayerText: 1, 2, 3
     rdf:parseType: "Resource"
     stEvt:action: "created; saved"
     stEvt:changed: "/"
@@ -429,7 +429,7 @@ Reading ../oiio-images/psd_bitmap.psd
     IPTC:MetadataDate: "2011-08-25T17:40:47-04:00"
     IPTC:ModifyDate: "2011-08-25T17:40:47-04:00"
     IPTC:OriginalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
-    photoshop:ColorMode: 0, 0
+    photoshop:ColorMode: 0
     rdf:parseType: "Resource"
     stEvt:action: "saved; converted; derived"
     stEvt:changed: "/"
@@ -499,7 +499,7 @@ Reading ../oiio-images/psd_indexed_trans.psd
     IPTC:ModifyDate: "2011-08-29T11:54:09-04:00"
     IPTC:OriginalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
     oiio:ColorSpace: "sRGB"
-    photoshop:ColorMode: 2, 2
+    photoshop:ColorMode: 2
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
     stEvt:action: "saved; converted; derived"
@@ -570,7 +570,7 @@ Reading ../oiio-images/psd_rgb_8.psd
     IPTC:ModifyDate: "2011-08-25T17:40-04:00"
     IPTC:OriginalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
     oiio:ColorSpace: "sRGB"
-    photoshop:ColorMode: 3, 3
+    photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
     stEvt:action: "saved; converted; derived"
@@ -641,7 +641,7 @@ Reading ../oiio-images/psd_rgb_16.psd
     IPTC:ModifyDate: "2011-08-25T17:39:49-04:00"
     IPTC:OriginalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
     oiio:ColorSpace: "sRGB"
-    photoshop:ColorMode: 3, 3
+    photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
     stEvt:action: "saved; converted; derived"
@@ -711,7 +711,7 @@ Reading ../oiio-images/psd_rgb_32.psd
     IPTC:MetadataDate: "2011-08-25T17:39:38-04:00"
     IPTC:ModifyDate: "2011-08-25T17:39:38-04:00"
     IPTC:OriginalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
-    photoshop:ColorMode: 3, 3
+    photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1 (Linear RGB Profile)"
     rdf:parseType: "Resource"
     stEvt:action: "saved; converted; derived"
@@ -749,7 +749,7 @@ Reading ../oiio-images/psd_rgba_8.psd
     IPTC:ModifyDate: "2011-08-25T17:39:28-04:00"
     IPTC:OriginalDocumentID: "xmp.did:037A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
-    photoshop:ColorMode: 3, 3
+    photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
     stEvt:action: "created; saved"
@@ -797,7 +797,7 @@ Reading ../oiio-images/psd_rgba_8.psd
     IPTC:OriginalDocumentID: "xmp.did:037A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "Layer 1"
-    photoshop:ColorMode: 3, 3
+    photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
     stEvt:action: "created; saved"
@@ -832,10 +832,10 @@ Reading ../oiio-images/psd_123.psd
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
     oiio:UnassociatedAlpha: 1
-    photoshop:ColorMode: 3, 3
+    photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
-    photoshop:LayerName: 1, 2, 3, 1, 2, 3
-    photoshop:LayerText: 1, 2, 3, 1, 2, 3
+    photoshop:LayerName: 1, 2, 3
+    photoshop:LayerText: 1, 2, 3
     rdf:parseType: "Resource"
     stEvt:action: "created"
     stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
@@ -883,10 +883,10 @@ Reading ../oiio-images/psd_123.psd
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "1"
     oiio:UnassociatedAlpha: 1
-    photoshop:ColorMode: 3, 3
+    photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
-    photoshop:LayerName: 1, 2, 3, 1, 2, 3
-    photoshop:LayerText: 1, 2, 3, 1, 2, 3
+    photoshop:LayerName: 1, 2, 3
+    photoshop:LayerText: 1, 2, 3
     rdf:parseType: "Resource"
     stEvt:action: "created"
     stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
@@ -934,10 +934,10 @@ Reading ../oiio-images/psd_123.psd
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "2"
     oiio:UnassociatedAlpha: 1
-    photoshop:ColorMode: 3, 3
+    photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
-    photoshop:LayerName: 1, 2, 3, 1, 2, 3
-    photoshop:LayerText: 1, 2, 3, 1, 2, 3
+    photoshop:LayerName: 1, 2, 3
+    photoshop:LayerText: 1, 2, 3
     rdf:parseType: "Resource"
     stEvt:action: "created"
     stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
@@ -985,10 +985,10 @@ Reading ../oiio-images/psd_123.psd
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "3"
     oiio:UnassociatedAlpha: 1
-    photoshop:ColorMode: 3, 3
+    photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
-    photoshop:LayerName: 1, 2, 3, 1, 2, 3
-    photoshop:LayerText: 1, 2, 3, 1, 2, 3
+    photoshop:LayerName: 1, 2, 3
+    photoshop:LayerText: 1, 2, 3
     rdf:parseType: "Resource"
     stEvt:action: "created"
     stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
@@ -1017,7 +1017,7 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     IPTC:ModifyDate: "2017-01-10T17:55:32+09:00"
     IPTC:OriginalDocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
     oiio:ColorSpace: "sRGB"
-    photoshop:ColorMode: 3, 3
+    photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
     stEvt:action: "created; saved"
@@ -1065,7 +1065,7 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     IPTC:OriginalDocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "Layer 0"
-    photoshop:ColorMode: 3, 3
+    photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
     stEvt:action: "created; saved"
@@ -1114,7 +1114,7 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     IPTC:OriginalDocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "line1"
-    photoshop:ColorMode: 3, 3
+    photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
     stEvt:action: "created; saved"
@@ -1163,7 +1163,7 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     IPTC:OriginalDocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "line2"
-    photoshop:ColorMode: 3, 3
+    photoshop:ColorMode: 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
     stEvt:action: "created; saved"
@@ -1192,7 +1192,7 @@ src/layer-mask.psd   :   10 x   10, 4 channel, uint8 psd
     IPTC:MetadataDate: "2017-07-13T11:42:54+09:00"
     IPTC:ModifyDate: "2017-07-13T11:42:54+09:00"
     IPTC:OriginalDocumentID: "xmp.did:a64763c8-be7b-ff48-b857-0f1ee8e5da2b"
-    photoshop:ColorMode: 3, 3
+    photoshop:ColorMode: 3
     rdf:parseType: "Resource"
     stEvt:action: "created; saved"
     stEvt:changed: "/"
@@ -1219,7 +1219,7 @@ src/layer-mask.psd   :   10 x   10, 4 channel, uint8 psd
     IPTC:ModifyDate: "2017-07-13T11:42:54+09:00"
     IPTC:OriginalDocumentID: "xmp.did:a64763c8-be7b-ff48-b857-0f1ee8e5da2b"
     oiio:subimagename: "Vector mask feather"
-    photoshop:ColorMode: 3, 3
+    photoshop:ColorMode: 3
     rdf:parseType: "Resource"
     stEvt:action: "created; saved"
     stEvt:changed: "/"
@@ -1246,7 +1246,7 @@ src/layer-mask.psd   :   10 x   10, 4 channel, uint8 psd
     IPTC:ModifyDate: "2017-07-13T11:42:54+09:00"
     IPTC:OriginalDocumentID: "xmp.did:a64763c8-be7b-ff48-b857-0f1ee8e5da2b"
     oiio:subimagename: "Layer mask"
-    photoshop:ColorMode: 3, 3
+    photoshop:ColorMode: 3
     rdf:parseType: "Resource"
     stEvt:action: "created; saved"
     stEvt:changed: "/"

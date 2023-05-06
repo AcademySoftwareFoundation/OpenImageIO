@@ -539,6 +539,7 @@ PSDInput::valid_file(Filesystem::IOProxy* ioproxy) const
     const bool all_ok  = read_ok && self->validate_header(header);
 
     // Reset and clear any errors
+    ioproxy->seek(0);
     self->ioproxy_clear();
     (void)geterror();
 
