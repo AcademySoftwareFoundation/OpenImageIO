@@ -5533,6 +5533,9 @@ prep_texture_config(ImageSpec& configspec, ParamValueList& fileoptions)
                          fileoptions.get_float("uvslopes_scale", 0.0f));
     if (fileoptions.contains("handed"))
         configspec.attribute("handed", fileoptions.get_string("handed"));
+    if (fileoptions.contains("forcefloat"))
+        configspec.attribute("maketx:forcefloat",
+                             fileoptions.get_int("forcefloat"));
 
     // The default values here should match the initialized values
     // in src/maketx/maketx.cpp
@@ -5818,8 +5821,11 @@ output_file(int /*argc*/, const char* argv[])
             mode = ImageBufAlgo::MakeTxBumpWithSlopes;
         // if (lightprobemode)
         //     mode = ImageBufAlgo::MakeTxEnvLatlFromLightProbe;
-        ok = ImageBufAlgo::make_texture(mode, (*ir)(0, 0), filename,
-                                        configspec);
+        if (ot.verbose || ot.debug)
+            configspec.attribute("maketx:verbose", 1);
+        ok = ImageBufAlgo::make_texture(mode, (*ir)(0, 0), filename, configspec,
+                                        ot.verbose || ot.debug ? &std::cout
+                                                               : nullptr);
         if (!ok) {
             ot.errorfmt(command, "Could not make texture: {}",
                         OIIO::geterror());
