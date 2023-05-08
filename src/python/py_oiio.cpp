@@ -153,7 +153,7 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
             format = TypeUnknown;  // No idea what's going on -- error
             error  = Strutil::fmt::format(
                 "Python array shape is [{:,}] but expecting h={}, w={}, ch={}",
-                cspan<ssize_t>(pybuf.shape), height, width, nchans);
+                cspan<py::ssize_t>(pybuf.shape), height, width, nchans);
         }
     } else if (pixeldims == 1) {
         // Reading a 1D scanline span
