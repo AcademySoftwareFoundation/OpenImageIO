@@ -1852,6 +1852,9 @@ public:
 
     virtual ~TextureSystem () { }
 
+    // For testing -- do not use
+    static void unit_test_hash();
+
 protected:
     // User code should never directly construct or destruct a TextureSystem.
     // Always use TextureSystem::create() and TextureSystem::destroy().

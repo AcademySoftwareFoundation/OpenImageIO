@@ -121,11 +121,11 @@ endif ()
 # give more fine-grained control for hiding symbols, because sometimes
 # dependent libraries may not be well behaved and need extra hiding.
 #
-set (CXX_VISIBILITY_PRESET "hidden" CACHE STRING "Symbol visibility (hidden or default")
+set (CMAKE_CXX_VISIBILITY_PRESET "hidden" CACHE STRING "Symbol visibility (hidden or default")
 option (VISIBILITY_INLINES_HIDDEN "Hide symbol visibility of inline functions" ON)
 set (VISIBILITY_MAP_FILE "${PROJECT_SOURCE_DIR}/src/build-scripts/hidesymbols.map" CACHE FILEPATH "Visibility map file")
-set (C_VISIBILITY_PRESET ${CXX_VISIBILITY_PRESET})
-if (${CXX_VISIBILITY_PRESET} STREQUAL "hidden" AND VISIBILITY_MAP_FILE AND
+set (CMAKE_C_VISIBILITY_PRESET ${CMAKE_CXX_VISIBILITY_PRESET})
+if (${CMAKE_CXX_VISIBILITY_PRESET} STREQUAL "hidden" AND VISIBILITY_MAP_FILE AND
     (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG) AND
     (CMAKE_SYSTEM_NAME MATCHES "Linux|kFreeBSD" OR CMAKE_SYSTEM_NAME STREQUAL "GNU"))
     # Linux/FreeBSD/Hurd: also hide all the symbols of dependent libraries

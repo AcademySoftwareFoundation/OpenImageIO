@@ -3141,8 +3141,120 @@ TextureSystemImpl::unit_test_texture()
     }
 }
 
-
-
 }  // end namespace pvt
+
+
+
+void
+TextureSystem::unit_test_hash()
+{
+#ifndef OIIO_CODE_COVERAGE
+    std::vector<size_t> fourbits(1 << 4, 0);
+    std::vector<size_t> eightbits(1 << 8, 0);
+    std::vector<size_t> sixteenbits(1 << 16, 0);
+    std::vector<size_t> highereightbits(1 << 8, 0);
+
+    const size_t iters = 1000000;
+    const int res      = 4 * 1024;  // Simulate tiles from a 4k image
+    const int tilesize = 64;
+    const int nfiles   = iters / ((res / tilesize) * (res / tilesize));
+    Strutil::print("Testing hashing with {} files of {}x{} with {}x{} tiles:",
+                   nfiles, res, res, tilesize, tilesize);
+
+    ImageCache* imagecache = ImageCache::create();
+
+    // Set up the ImageCacheFiles outside of the timing loop
+    using OIIO::pvt::ImageCacheFile;
+    using OIIO::pvt::ImageCacheFileRef;
+    using OIIO::pvt::ImageCacheImpl;
+    std::vector<ImageCacheFileRef> icf;
+    for (int f = 0; f < nfiles; ++f) {
+        ustring filename = ustring::fmtformat("{:06}.tif", f);
+        icf.push_back(
+            new ImageCacheFile(*(ImageCacheImpl*)imagecache, NULL, filename));
+    }
+
+    // First, just try to do raw timings of the hash
+    Timer timer;
+    size_t i = 0, hh = 0;
+    for (int f = 0; f < nfiles; ++f) {
+        for (int y = 0; y < res; y += tilesize) {
+            for (int x = 0; x < res; x += tilesize, ++i) {
+                OIIO::pvt::TileID id(*icf[f], 0, 0, x, y, 0, 0, 1);
+                size_t h = id.hash();
+                hh += h;
+            }
+        }
+    }
+    Strutil::print("hh = {}\n", hh);
+    double time = timer();
+    double rate = (i / 1.0e6) / time;
+    Strutil::print("Hashing rate:` {:3.2f} Mhashes/sec\n", rate);
+
+    // Now, check the quality of the hash by looking at the low 4, 8, and
+    // 16 bits and making sure that they divide into hash buckets fairly
+    // evenly.
+    i = 0;
+    for (int f = 0; f < nfiles; ++f) {
+        for (int y = 0; y < res; y += tilesize) {
+            for (int x = 0; x < res; x += tilesize, ++i) {
+                OIIO::pvt::TileID id(*icf[f], 0, 0, x, y, 0, 0, 1);
+                size_t h = id.hash();
+                ++fourbits[h & 0xf];
+                ++eightbits[h & 0xff];
+                ++highereightbits[(h >> 24) & 0xff];
+                ++sixteenbits[h & 0xffff];
+                // if (i < 16) Strutil::print({:x}\n", h);
+            }
+        }
+    }
+
+    size_t min, max;
+    min = std::numeric_limits<size_t>::max();
+    max = 0;
+    for (int i = 0; i < 16; ++i) {
+        if (fourbits[i] < min)
+            min = fourbits[i];
+        if (fourbits[i] > max)
+            max = fourbits[i];
+    }
+    Strutil::print("4-bit hash buckets range from {} to {}\n", min, max);
+
+    min = std::numeric_limits<size_t>::max();
+    max = 0;
+    for (int i = 0; i < 256; ++i) {
+        if (eightbits[i] < min)
+            min = eightbits[i];
+        if (eightbits[i] > max)
+            max = eightbits[i];
+    }
+    Strutil::print("8-bit hash buckets range from {} to {}\n", min, max);
+
+    min = std::numeric_limits<size_t>::max();
+    max = 0;
+    for (int i = 0; i < 256; ++i) {
+        if (highereightbits[i] < min)
+            min = highereightbits[i];
+        if (highereightbits[i] > max)
+            max = highereightbits[i];
+    }
+    Strutil::print("higher 8-bit hash buckets range from {} to {}\n", min, max);
+
+    min = std::numeric_limits<size_t>::max();
+    max = 0;
+    for (int i = 0; i < (1 << 16); ++i) {
+        if (sixteenbits[i] < min)
+            min = sixteenbits[i];
+        if (sixteenbits[i] > max)
+            max = sixteenbits[i];
+    }
+    Strutil::print("16-bit hash buckets range from {} to {}\n", min, max);
+
+    Strutil::print("\n");
+
+    ImageCache::destroy(imagecache);
+#endif
+}
+
 
 OIIO_NAMESPACE_END
