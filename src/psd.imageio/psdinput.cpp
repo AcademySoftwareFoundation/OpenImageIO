@@ -38,7 +38,6 @@ public:
         return (feature == "exif" || feature == "iptc" || feature == "thumbnail"
                 || feature == "ioproxy");
     }
-    bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     bool open(const std::string& name, ImageSpec& newspec) override;
     bool open(const std::string& name, ImageSpec& newspec,
               const ImageSpec& config) override;
@@ -222,8 +221,8 @@ private:
 
     //File Header
     bool load_header();
-    bool read_header(FileHeader& header);
-    bool validate_header(FileHeader& header);
+    bool read_header();
+    bool validate_header();
 
     //Color Mode Data
     bool load_color_data();
@@ -896,7 +895,7 @@ PSDInput::init()
 bool
 PSDInput::load_header()
 {
-    if (!read_header(m_header) || !validate_header(m_header))
+    if (!read_header() || !validate_header())
         return false;
 
     return true;
@@ -905,42 +904,43 @@ PSDInput::load_header()
 
 
 bool
-PSDInput::read_header(FileHeader& header)
+PSDInput::read_header()
 {
-    return ioread(header.signature, 4) && read_bige<uint16_t>(header.version)
-           && ioseek(6, SEEK_CUR) && read_bige<uint16_t>(header.channel_count)
-           && read_bige<uint32_t>(header.height)
-           && read_bige<uint32_t>(header.width)
-           && read_bige<uint16_t>(header.depth)
-           && read_bige<uint16_t>(header.color_mode);
+    return ioread(m_header.signature, 4)
+           && read_bige<uint16_t>(m_header.version) && ioseek(6, SEEK_CUR)
+           && read_bige<uint16_t>(m_header.channel_count)
+           && read_bige<uint32_t>(m_header.height)
+           && read_bige<uint32_t>(m_header.width)
+           && read_bige<uint16_t>(m_header.depth)
+           && read_bige<uint16_t>(m_header.color_mode);
 }
 
 
 
 bool
-PSDInput::validate_header(FileHeader& header)
+PSDInput::validate_header()
 {
-    if (std::memcmp(header.signature, "8BPS", 4) != 0) {
+    if (std::memcmp(m_header.signature, "8BPS", 4) != 0) {
         errorfmt("[Header] invalid signature");
         return false;
     }
-    if (header.version != 1 && header.version != 2) {
+    if (m_header.version != 1 && m_header.version != 2) {
         errorfmt("[Header] invalid version");
         return false;
     }
-    if (header.channel_count < 1 || header.channel_count > 56) {
+    if (m_header.channel_count < 1 || m_header.channel_count > 56) {
         errorfmt("[Header] invalid channel count");
         return false;
     }
-    switch (header.version) {
+    switch (m_header.version) {
     case 1:
         // PSD
         // width/height range: [1,30000]
-        if (header.height < 1 || header.height > 30000) {
+        if (m_header.height < 1 || m_header.height > 30000) {
             errorfmt("[Header] invalid image height");
             return false;
         }
-        if (header.width < 1 || header.width > 30000) {
+        if (m_header.width < 1 || m_header.width > 30000) {
             errorfmt("[Header] invalid image width");
             return false;
         }
@@ -948,27 +948,27 @@ PSDInput::validate_header(FileHeader& header)
     case 2:
         // PSB (Large Document Format)
         // width/height range: [1,300000]
-        if (header.height < 1 || header.height > 300000) {
-            errorfmt("[Header] invalid image height {}", header.height);
+        if (m_header.height < 1 || m_header.height > 300000) {
+            errorfmt("[Header] invalid image height {}", m_header.height);
             return false;
         }
-        if (header.width < 1 || header.width > 300000) {
-            errorfmt("[Header] invalid image width {}", header.width);
+        if (m_header.width < 1 || m_header.width > 300000) {
+            errorfmt("[Header] invalid image width {}", m_header.width);
             return false;
         }
         break;
     }
     // Valid depths are 1,8,16,32
-    if (header.depth != 1 && header.depth != 8 && header.depth != 16
-        && header.depth != 32) {
-        errorfmt("[Header] invalid depth {}", header.depth);
+    if (m_header.depth != 1 && m_header.depth != 8 && m_header.depth != 16
+        && m_header.depth != 32) {
+        errorfmt("[Header] invalid depth {}", m_header.depth);
         return false;
     }
     if (m_WantRaw)
         return true;
 
     //There are other (undocumented) color modes not listed here
-    switch (header.color_mode) {
+    switch (m_header.color_mode) {
     case ColorMode_Bitmap:
     case ColorMode_Indexed:
     case ColorMode_RGB:
@@ -977,10 +977,10 @@ PSDInput::validate_header(FileHeader& header)
     case ColorMode_Multichannel: break;
     case ColorMode_Duotone:
     case ColorMode_Lab:
-        errorfmt("[Header] unsupported color mode {:d}", header.color_mode);
+        errorfmt("[Header] unsupported color mode {:d}", m_header.color_mode);
         return false;
     default:
-        errorfmt("[Header] unrecognized color mode {:d}", header.color_mode);
+        errorfmt("[Header] unrecognized color mode {:d}", m_header.color_mode);
         return false;
     }
     return true;

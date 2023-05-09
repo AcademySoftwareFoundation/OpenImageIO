@@ -37,8 +37,6 @@ public:
     {
         return feature == "ioproxy";
     }
-    bool valid_file(Filesystem::IOProxy* ioproxy) const override;
-
     bool open(const std::string& name, ImageSpec& newspec) override;
     bool open(const std::string& name, ImageSpec& spec,
               const ImageSpec& config) override;
@@ -82,12 +80,6 @@ private:
         m_buf.clear();
         ioproxy_clear();
     }
-
-    /// Helper funtion: load header and handle endianness (advances the ioproxy)
-    bool read_header(dds_header& header, Filesystem::IOProxy* ioproxy) const;
-
-    /// Helper funtion: validate (simple header checks)
-    bool validate_header(const dds_header& header) const;
 
     /// Helper function: read the image as scanlines (all but cubemaps).
     ///
@@ -325,25 +317,6 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 bool
-DDSInput::valid_file(Filesystem::IOProxy* ioproxy) const
-{
-    if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Mode::Read)
-        return false;
-
-    dds_header header;
-    const bool read_ok = read_header(header, ioproxy);
-    const bool all_ok  = read_ok && validate_header(header);
-
-    // Reset and clear any errors
-    ioproxy->seek(0);
-    (void)geterror();
-
-    return all_ok;
-}
-
-
-
-bool
 DDSInput::open(const std::string& name, ImageSpec& newspec,
                const ImageSpec& config)
 {
@@ -362,11 +335,74 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
         return false;
 
     static_assert(sizeof(dds_header) == 128, "dds header size does not match");
-    if (!read_header(m_dds, ioproxy()))
+    if (!ioread(&m_dds, sizeof(m_dds), 1))
         return false;
 
-    if (!validate_header(m_dds))
+    if (bigendian()) {
+        // DDS files are little-endian
+        // only swap values which are not flags or bitmasks
+        swap_endian(&m_dds.size);
+        swap_endian(&m_dds.height);
+        swap_endian(&m_dds.width);
+        swap_endian(&m_dds.pitch);
+        swap_endian(&m_dds.depth);
+        swap_endian(&m_dds.mipmaps);
+
+        swap_endian(&m_dds.fmt.size);
+        swap_endian(&m_dds.fmt.bpp);
+    }
+
+    /*std::cerr << "[dds] fourCC: " << ((char *)&m_dds.fourCC)[0]
+                                  << ((char *)&m_dds.fourCC)[1]
+                                  << ((char *)&m_dds.fourCC)[2]
+                                  << ((char *)&m_dds.fourCC)[3]
+                                  << " (" << m_dds.fourCC << ")\n";
+    std::cerr << "[dds] size: " << m_dds.size << "\n";
+    std::cerr << "[dds] flags: " << m_dds.flags << "\n";
+    std::cerr << "[dds] pitch: " << m_dds.pitch << "\n";
+    std::cerr << "[dds] width: " << m_dds.width << "\n";
+    std::cerr << "[dds] height: " << m_dds.height << "\n";
+    std::cerr << "[dds] depth: " << m_dds.depth << "\n";
+    std::cerr << "[dds] mipmaps: " << m_dds.mipmaps << "\n";
+    std::cerr << "[dds] fmt.size: " << m_dds.fmt.size << "\n";
+    std::cerr << "[dds] fmt.flags: " << m_dds.fmt.flags << "\n";
+    
+    std::cerr << "[dds] fmt.fourCC: " << ((char *)&m_dds.fmt.fourCC)[0]
+                                      << ((char *)&m_dds.fmt.fourCC)[1]
+                                      << ((char *)&m_dds.fmt.fourCC)[2]
+                                      << ((char *)&m_dds.fmt.fourCC)[3]
+                                      << " (" << m_dds.fmt.fourCC << ")\n";
+    std::cerr << "[dds] fmt.bpp: " << m_dds.fmt.bpp << "\n";
+    std::cerr << "[dds] caps.flags1: " << m_dds.caps.flags1 << "\n";
+    std::cerr << "[dds] caps.flags2: " << m_dds.caps.flags2 << "\n";*/
+
+    // sanity checks - valid 4CC, correct struct sizes and flags which should
+    // be always present, regardless of the image type, size etc., also check
+    // for impossible flag combinations
+    if (m_dds.fourCC != DDS_MAKE4CC('D', 'D', 'S', ' ') || m_dds.size != 124
+        || m_dds.fmt.size != 32 || !(m_dds.caps.flags1 & DDS_CAPS1_TEXTURE)
+        || !(m_dds.flags & DDS_CAPS) || !(m_dds.flags & DDS_PIXELFORMAT)
+        || (m_dds.caps.flags2 & DDS_CAPS2_VOLUME
+            && !(m_dds.caps.flags1 & DDS_CAPS1_COMPLEX
+                 && m_dds.flags & DDS_DEPTH))
+        || (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP
+            && !(m_dds.caps.flags1 & DDS_CAPS1_COMPLEX))) {
+        errorf("Invalid DDS header, possibly corrupt file");
         return false;
+    }
+
+    // make sure all dimensions are > 0 and that we have at least one channel
+    // (for uncompressed images)
+    if (!(m_dds.flags & DDS_WIDTH) || !m_dds.width
+        || !(m_dds.flags & DDS_HEIGHT) || !m_dds.height
+        || ((m_dds.flags & DDS_DEPTH) && !m_dds.depth)
+        || (!(m_dds.fmt.flags & DDS_PF_FOURCC)
+            && !(m_dds.fmt.flags
+                 & (DDS_PF_RGB | DDS_PF_LUMINANCE | DDS_PF_ALPHA
+                    | DDS_PF_ALPHAONLY)))) {
+        errorf("Image with no data");
+        return false;
+    }
 
     // read optional DX10 header
     if (m_dds.fmt.fourCC == DDS_4CC_DX10) {
@@ -776,93 +812,6 @@ DDSInput::internal_readimg(unsigned char* dst, int w, int h, int d)
             }
         }
     }
-    return true;
-}
-
-
-
-bool
-DDSInput::read_header(dds_header& header, Filesystem::IOProxy* ioproxy) const
-{
-    const size_t numRead = ioproxy->read(&header, sizeof(header));
-    if (numRead != sizeof(header)) {
-        return false;
-    }
-
-    if (bigendian()) {
-        // DDS files are little-endian
-        // only swap values which are not flags or bitmasks
-        swap_endian(&header.size);
-        swap_endian(&header.height);
-        swap_endian(&header.width);
-        swap_endian(&header.pitch);
-        swap_endian(&header.depth);
-        swap_endian(&header.mipmaps);
-
-        swap_endian(&header.fmt.size);
-        swap_endian(&header.fmt.bpp);
-    }
-
-    return true;
-}
-
-
-
-bool
-DDSInput::validate_header(const dds_header& header) const
-{
-    /*std::cerr << "[dds] fourCC: " << ((char *)&header.fourCC)[0]
-                                  << ((char *)&header.fourCC)[1]
-                                  << ((char *)&header.fourCC)[2]
-                                  << ((char *)&header.fourCC)[3]
-                                  << " (" << header.fourCC << ")\n";
-    std::cerr << "[dds] size: " << header.size << "\n";
-    std::cerr << "[dds] flags: " << header.flags << "\n";
-    std::cerr << "[dds] pitch: " << header.pitch << "\n";
-    std::cerr << "[dds] width: " << header.width << "\n";
-    std::cerr << "[dds] height: " << header.height << "\n";
-    std::cerr << "[dds] depth: " << header.depth << "\n";
-    std::cerr << "[dds] mipmaps: " << header.mipmaps << "\n";
-    std::cerr << "[dds] fmt.size: " << header.fmt.size << "\n";
-    std::cerr << "[dds] fmt.flags: " << header.fmt.flags << "\n";
-    
-    std::cerr << "[dds] fmt.fourCC: " << ((char *)&header.fmt.fourCC)[0]
-                                      << ((char *)&header.fmt.fourCC)[1]
-                                      << ((char *)&header.fmt.fourCC)[2]
-                                      << ((char *)&header.fmt.fourCC)[3]
-                                      << " (" << header.fmt.fourCC << ")\n";
-    std::cerr << "[dds] fmt.bpp: " << header.fmt.bpp << "\n";
-    std::cerr << "[dds] caps.flags1: " << header.caps.flags1 << "\n";
-    std::cerr << "[dds] caps.flags2: " << header.caps.flags2 << "\n";*/
-
-    // sanity checks - valid 4CC, correct struct sizes and flags which should
-    // be always present, regardless of the image type, size etc., also check
-    // for impossible flag combinations
-    if (header.fourCC != DDS_MAKE4CC('D', 'D', 'S', ' ') || header.size != 124
-        || header.fmt.size != 32 || !(header.caps.flags1 & DDS_CAPS1_TEXTURE)
-        || !(header.flags & DDS_CAPS) || !(header.flags & DDS_PIXELFORMAT)
-        || (header.caps.flags2 & DDS_CAPS2_VOLUME
-            && !(header.caps.flags1 & DDS_CAPS1_COMPLEX
-                 && header.flags & DDS_DEPTH))
-        || (header.caps.flags2 & DDS_CAPS2_CUBEMAP
-            && !(header.caps.flags1 & DDS_CAPS1_COMPLEX))) {
-        errorf("Invalid DDS header, possibly corrupt file");
-        return false;
-    }
-
-    // make sure all dimensions are > 0 and that we have at least one channel
-    // (for uncompressed images)
-    if (!(header.flags & DDS_WIDTH) || !header.width
-        || !(header.flags & DDS_HEIGHT) || !header.height
-        || ((header.flags & DDS_DEPTH) && !header.depth)
-        || (!(header.fmt.flags & DDS_PF_FOURCC)
-            && !(header.fmt.flags
-                 & (DDS_PF_RGB | DDS_PF_LUMINANCE | DDS_PF_ALPHA
-                    | DDS_PF_ALPHAONLY)))) {
-        errorf("Image with no data");
-        return false;
-    }
-
     return true;
 }
 
