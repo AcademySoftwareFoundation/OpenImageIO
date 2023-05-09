@@ -511,12 +511,14 @@ void cineon::IndustryHeader::FilmEdgeCode(char *edge, size_t size) const
             && this->perfsOffset == 0xff && this->prefix == 0xffffffff
             && this->count == 0xffffffff)
                 *edge = 0;
-        else
-                snprintf(edge, size, "%02u%02u%02u%06u%04u",
-                         (unsigned int)this->filmManufacturingIdCode,
-                         (unsigned int)this->filmType,
-                         (unsigned int)this->perfsOffset, this->prefix,
-                         this->count);
+        else {
+                std::string e = OIIO::Strutil::sprintf(
+                    "%02u%02u%02u%06u%04u",
+                    (unsigned int)this->filmManufacturingIdCode,
+                    (unsigned int)this->filmType,
+                    (unsigned int)this->perfsOffset, this->prefix, this->count);
+                OIIO::Strutil::safe_strcpy(edge, e, size);
+        }
 }
 
 
