@@ -38,6 +38,7 @@ public:
         return (feature == "exif" || feature == "iptc" || feature == "thumbnail"
                 || feature == "ioproxy");
     }
+    bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     bool open(const std::string& name, ImageSpec& newspec) override;
     bool open(const std::string& name, ImageSpec& newspec,
               const ImageSpec& config) override;
@@ -223,6 +224,7 @@ private:
     bool load_header();
     bool read_header();
     bool validate_header();
+    static bool validate_signature(const char signature[4]);
 
     //Color Mode Data
     bool load_color_data();
@@ -527,22 +529,9 @@ PSDInput::valid_file(Filesystem::IOProxy* ioproxy) const
     if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Mode::Read)
         return false;
 
-    // In order to reuse the methods for reading/validating
-    // the header, we'll have to set the IOProxy on this instance.
-    PSDInput* self = const_cast<PSDInput*>(this);
-    if (!self->set_ioproxy(ioproxy))
-        return false;
-
-    FileHeader header;
-    const bool read_ok = self->read_header(header);
-    const bool all_ok  = read_ok && self->validate_header(header);
-
-    // Reset and clear any errors
-    ioproxy->seek(0);
-    self->ioproxy_clear();
-    (void)geterror();
-
-    return all_ok;
+    char signature[4] {};
+    const size_t numRead = ioproxy->pread(signature, sizeof(signature), 0);
+    return numRead == sizeof(signature) && validate_signature(signature);
 }
 
 
@@ -918,9 +907,17 @@ PSDInput::read_header()
 
 
 bool
+PSDInput::validate_signature(const char signature[4])
+{
+    return std::memcmp(signature, "8BPS", 4) == 0;
+}
+
+
+
+bool
 PSDInput::validate_header()
 {
-    if (std::memcmp(m_header.signature, "8BPS", 4) != 0) {
+    if (!validate_signature(m_header.signature)) {
         errorfmt("[Header] invalid signature");
         return false;
     }

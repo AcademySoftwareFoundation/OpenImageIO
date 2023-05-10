@@ -41,6 +41,7 @@ public:
     {
         return feature == "ioproxy";
     }
+    bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     bool open(const std::string& name, ImageSpec& spec) override;
     bool open(const std::string& name, ImageSpec& newspec,
               const ImageSpec& config) override;
@@ -198,6 +199,19 @@ rgbe2float(float& red, float& green, float& blue, unsigned char rgbe[4])
     } else {
         red = green = blue = 0.0f;
     }
+}
+
+
+
+bool
+HdrInput::valid_file(Filesystem::IOProxy* ioproxy) const
+{
+    if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Mode::Read)
+        return false;
+
+    char magic[2] {};
+    const size_t numRead = ioproxy->pread(magic, sizeof(magic), 0);
+    return numRead == sizeof(magic) && memcmp(magic, "#?", sizeof(magic)) == 0;
 }
 
 
