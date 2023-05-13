@@ -415,7 +415,7 @@ Strutil::wordwrap(string_view src, int columns, int prefix, string_view sep,
         return src;  // give up, no way to make it wrap
     std::ostringstream out;
     columns -= prefix;  // now columns is the real width we have to work with
-    std::string allsep = Strutil::sprintf("%s%s", sep, presep);
+    std::string allsep = Strutil::concat(sep, presep);
     while ((int)src.length() > columns) {
         // Find the last `sep` break before the column limit.
         size_t breakpoint = src.find_last_of(allsep, columns);

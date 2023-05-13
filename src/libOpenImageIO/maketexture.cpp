@@ -958,7 +958,7 @@ stripdir_cmd_line(string_view cmdline)
         // Add the maybe-stripped string to the output, surrounding by
         // double quotes if it contains any spaces.
         if (stripped.find(' ') != std::string::npos)
-            out += Strutil::sprintf("\"%s\"", stripped);
+            out += Strutil::fmt::format("\"{}\"", stripped);
         else
             out += stripped;
         firstarg  = false;
@@ -1150,7 +1150,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         }
     }
     stat_readtime += alltime.lap();
-    STATUS(Strutil::sprintf("read \"%s\"", src->name()), stat_readtime);
+    STATUS(Strutil::fmt::format("read \"{}\"", src->name()), stat_readtime);
 
     if (mode == ImageBufAlgo::MakeTxEnvLatlFromLightProbe) {
         ImageSpec newspec = src->spec();
@@ -1833,8 +1833,8 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         if (out->supports("arbitrary_metadata")) {
             dstspec.attribute("oiio:ConstantColor", colstr);
         } else {
-            desc += Strutil::sprintf("%soiio:ConstantColor=%s",
-                                     desc.length() ? " " : "", colstr);
+            desc += Strutil::fmt::format("{}oiio:ConstantColor={}",
+                                         desc.length() ? " " : "", colstr);
             updatedDesc = true;
         }
         if (verbose)
@@ -1849,8 +1849,8 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         } else {
             // if arbitrary metadata is not supported, cram it into the
             // ImageDescription.
-            desc += Strutil::sprintf("%soiio:AverageColor=%s",
-                                     desc.length() ? " " : "", avgstr);
+            desc += Strutil::fmt::format("{}oiio:AverageColor={}",
+                                         desc.length() ? " " : "", avgstr);
             updatedDesc = true;
         }
         if (verbose)

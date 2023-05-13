@@ -307,7 +307,7 @@ test_get_rest_arguments()
 void
 test_escape(string_view raw, string_view escaped)
 {
-    Strutil::printf ("escape '%s' <-> '%s'\n", raw, escaped);
+    Strutil::print("escape '{}' <-> '{}'\n", raw, escaped);
     OIIO_CHECK_EQUAL(Strutil::escape_chars(raw), escaped);
     OIIO_CHECK_EQUAL(Strutil::unescape_chars(escaped), raw);
 }

@@ -7336,7 +7336,7 @@ main(int argc, char* argv[])
             Strutil::print(stderr,
                            "Bad half conversion, code {} {} -> {} "
                            "(suspect badly set DENORMS_ZERO_MODE)\n",
-                           bad[0], h[0], vf[0]);
+                           bad[0], float(h[0]), vf[0]);
     }
 
     // Helpful for debugging to make sure that any crashes dump a stack

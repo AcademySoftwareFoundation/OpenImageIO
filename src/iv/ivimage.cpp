@@ -90,13 +90,14 @@ std::string
 IvImage::shortinfo() const
 {
     if (m_shortinfo.empty()) {
-        m_shortinfo = Strutil::sprintf("%d x %d", spec().width, spec().height);
+        m_shortinfo = Strutil::fmt::format("{} x {}", spec().width,
+                                           spec().height);
         if (spec().depth > 1)
-            m_shortinfo += Strutil::sprintf(" x %d", spec().depth);
-        m_shortinfo += Strutil::sprintf(" x %d channel %s (%.2f MB)",
-                                        spec().nchannels, m_file_dataformat,
-                                        (float)spec().image_bytes()
-                                            / (1024.0 * 1024.0));
+            m_shortinfo += Strutil::fmt::format(" x {}", spec().depth);
+        m_shortinfo += Strutil::fmt::format(" x {} channel {} ({:.2f} MB)",
+                                            spec().nchannels, m_file_dataformat,
+                                            (float)spec().image_bytes()
+                                                / (1024.0 * 1024.0));
     }
     return m_shortinfo;
 }

@@ -1904,8 +1904,8 @@ ImageCacheImpl::getstats(int level) const
         if (stats.unique_files) {
             print(out, "  Images : {} unique\n", stats.unique_files);
             print(out, "    ImageInputs : {} created, {} current, {} peak\n",
-                  m_stat_open_files_created, m_stat_open_files_current,
-                  m_stat_open_files_peak);
+                  int(m_stat_open_files_created),
+                  int(m_stat_open_files_current), int(m_stat_open_files_peak));
             print(out,
                   "    Total pixel data size of all images referenced : {}\n",
                   Strutil::memformat(stats.files_totalsize));
@@ -1945,8 +1945,8 @@ ImageCacheImpl::getstats(int level) const
                   Strutil::timeintervalformat(total_input_mutex_wait_time));
         if (m_stat_tiles_created > 0 || level > 2) {
             print(out, "  Tiles: {} created, {} current, {} peak\n",
-                  m_stat_tiles_created, m_stat_tiles_current,
-                  m_stat_tiles_peak);
+                  int(m_stat_tiles_created), int(m_stat_tiles_current),
+                  int(m_stat_tiles_peak));
             print(out, "    total tile requests : {}\n", stats.find_tile_calls);
             if (stats.find_tile_microcache_misses)
                 print(out, "    micro-cache misses : {} ({:.1f}%)\n",
