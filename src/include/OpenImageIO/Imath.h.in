@@ -6,8 +6,9 @@
 
 #pragma once
 
-#include <OpenImageIO/half.h>
 #include <OpenImageIO/detail/fmt.h>
+
+#include <OpenImageIO/half.h>
 
 #ifndef OIIO_IMATH_H_INCLUDED
 #define OIIO_IMATH_H_INCLUDED 1
@@ -30,7 +31,7 @@
 
 /// Custom fmtlib formatters for Imath types.
 
-namespace fmt {
+FMT_BEGIN_NAMESPACE
 template<> struct formatter<Imath::V2f>
     : OIIO::pvt::array_formatter<Imath::V2f, float, 2> {};
 template<> struct formatter<Imath::V3f>
@@ -45,6 +46,6 @@ template<> struct formatter<Imath::M33f>
     : OIIO::pvt::array_formatter<Imath::M33f, float, 9> {};
 template<> struct formatter<Imath::M44f>
     : OIIO::pvt::array_formatter<Imath::M44f, float, 16> {};
-} // namespace fmt
+FMT_END_NAMESPACE
 
 #endif // !defined(OIIO_IMATH_H_INCLUDED)

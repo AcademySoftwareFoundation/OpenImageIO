@@ -7,6 +7,8 @@
 #include <cstdlib>
 #include <string>
 
+#include <OpenImageIO/detail/fmt.h>
+
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/half.h>
 #include <OpenImageIO/strutil.h>
@@ -372,7 +374,7 @@ tostring_formatting::tostring_formatting(
 
 
 
-template<class T>
+template<class T, class Cast = T>
 static std::string
 sprint_type(TypeDesc type, const char* format, const tostring_formatting& fmt,
             const T* v)
@@ -385,7 +387,7 @@ sprint_type(TypeDesc type, const char* format, const tostring_formatting& fmt,
         if (type.aggregate > 1)
             val += fmt.aggregate_begin;
         for (int j = 0; j < (int)type.aggregate; ++j, ++v) {
-            val += Strutil::sprintf(format, *v);
+            val += Strutil::sprintf(format, static_cast<Cast>(*v));
             if (type.aggregate > 1 && j < type.aggregate - 1)
                 val += fmt.aggregate_sep;
         }
@@ -601,7 +603,8 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt)
                    : format_type(type, fmt.int_fmt, fmt, (const int64_t*)data);
     case TypeDesc::HALF:
         return fmt.use_sprintf
-                   ? sprint_type(type, fmt.float_fmt, fmt, (const half*)data)
+                   ? sprint_type<half, float>(type, fmt.float_fmt, fmt,
+                                              (const half*)data)
                    : format_type(type, fmt.float_fmt, fmt, (const half*)data);
     case TypeDesc::FLOAT:
         return fmt.use_sprintf

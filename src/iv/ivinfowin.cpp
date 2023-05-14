@@ -56,7 +56,7 @@ IvInfoWindow::update(IvImage* img)
 {
     std::string newtitle;
     if (img) {
-        newtitle = Strutil::sprintf("%s - iv Info", img->name());
+        newtitle = Strutil::fmt::format("{} - iv Info", img->name());
         infoLabel->setText(img->longinfo().c_str());
     } else {
         newtitle = "iv Info";

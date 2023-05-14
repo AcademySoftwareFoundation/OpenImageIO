@@ -1241,8 +1241,8 @@ env_region_batch(ImageBuf& image, ustring filename, MappingEnvWide mapping,
 static void
 test_environment(ustring filename, MappingEnv mapping)
 {
-    Strutil::print("Testing environment {}, output = {}\n", filename,
-                   output_filename);
+    Strutil::sync::print("Testing environment {}, output = {}\n", filename,
+                         output_filename);
     int nchannels = nchannels_override ? nchannels_override : 4;
     ImageSpec outspec(output_xres, output_yres, nchannels, TypeDesc::FLOAT);
     ImageBuf image(outspec);
@@ -1291,8 +1291,8 @@ test_environment(ustring filename, MappingEnv mapping)
 static void
 test_environment_batch(ustring filename, MappingEnvWide mapping)
 {
-    Strutil::print("Testing BATCHED environment {}, output = {}\n", filename,
-                   output_filename);
+    Strutil::sync::print("Testing BATCHED environment {}, output = {}\n",
+                         filename, output_filename);
     int nchannels = nchannels_override ? nchannels_override : 4;
     ImageSpec outspec(output_xres, output_yres, nchannels, TypeDesc::FLOAT);
     ImageBuf image(outspec);
@@ -1898,7 +1898,7 @@ main(int argc, const char* argv[])
     OIIO::attribute("threads", nthreads);
 
     texsys = TextureSystem::create();
-    Strutil::print("Created texture system\n");
+    Strutil::sync::print("Created texture system\n");
     if (texoptions.size())
         texsys->attribute("options", texoptions);
     texsys->attribute("autotile", autotile);

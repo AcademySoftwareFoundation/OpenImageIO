@@ -233,8 +233,8 @@ ImageInput::read_scanline(int y, int z, TypeDesc format, void* data,
     }
 
     if (!ok)
-        errorf("ImageInput::read_scanline : no support for format %s",
-               m_spec.format);
+        errorfmt("ImageInput::read_scanline : no support for format {}",
+                 m_spec.format);
     return ok;
 }
 
@@ -375,8 +375,8 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
             }
         }
         if (!ok)
-            errorf("ImageInput::read_scanlines : no support for format %s",
-                   spec.format);
+            errorfmt("ImageInput::read_scanlines : no support for format {}",
+                     spec.format);
         data = (char*)data + ystride * nscanlines;
     }
     return ok;
@@ -524,8 +524,8 @@ ImageInput::read_tile(int x, int y, int z, TypeDesc format, void* data,
     }
 
     if (!ok)
-        errorf("ImageInput::read_tile : no support for format %s",
-               m_spec.format);
+        errorfmt("ImageInput::read_tile : no support for format {}",
+                 m_spec.format);
     return ok;
 }
 

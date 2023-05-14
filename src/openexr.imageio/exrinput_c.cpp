@@ -956,8 +956,8 @@ OpenEXRCoreInput::PartInfo::query_channels(OpenEXRCoreInput* in,
             spec.z_channel = c;
         if (cnh[c].xSampling != 1 || cnh[c].ySampling != 1) {
             ok = false;
-            in->errorf(
-                "Subsampled channels are not supported (channel \"%s\" has sampling %d,%d).",
+            in->errorfmt(
+                "Subsampled channels are not supported (channel \"{}\" has sampling {},{}).",
                 cnh[c].fullname, cnh[c].xSampling, cnh[c].ySampling);
             // FIXME: Some day, we should handle channel subsampling.
         }

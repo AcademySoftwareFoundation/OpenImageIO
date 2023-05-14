@@ -226,7 +226,7 @@ test_read_proxy(string_view formatname, string_view extension,
 
     // Read the in-memory file using an ioproxy, with ImageInput
     Filesystem::IOMemReader inproxy(readbuf);
-    std::string memname = Strutil::sprintf("mem.%s", extension);
+    std::string memname = Strutil::concat("mem.", extension);
     auto in             = ImageInput::open(memname, nullptr, &inproxy);
     OIIO_CHECK_ASSERT(in && "Failed to open input with proxy");
     if (in) {
@@ -274,7 +274,7 @@ test_write_unwritable(string_view extension, const ImageBuf& buf)
 {
     bool ok = true;
     Sysutil::Term term(stdout);
-    std::string bad_filename = Strutil::sprintf("bad/bad.%s", extension);
+    std::string bad_filename = Strutil::concat("bad/bad.", extension);
     std::cout << "    Writing bad to " << bad_filename << " ... ";
     auto badout = ImageOutput::create(bad_filename);
     if (badout) {
@@ -319,8 +319,8 @@ test_all_formats()
         //
         // Try writing the file
         //
-        std::string filename = Strutil::sprintf("imageinout_test-%s.%s",
-                                                formatname, extensions[0]);
+        std::string filename = Strutil::fmt::format("imageinout_test-{}.{}",
+                                                    formatname, extensions[0]);
         auto out             = ImageOutput::create(filename);
         if (!out) {
             std::cout << "  [skipping " << formatname << " -- no writer]\n";
