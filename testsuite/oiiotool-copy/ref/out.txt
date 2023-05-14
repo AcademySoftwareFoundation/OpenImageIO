@@ -28,6 +28,7 @@ combining images result:
 tmp.tif              :  128 x  128, 3 channel, uint8 tiff
     tile size: 16 x 16
 
+oiiotool WARNING: -o : Can't save 4 channels to png... saving only channels R,G,B
 Reading green.exr
 green.exr            :   64 x   64, 3 channel, half openexr
     SHA-1: 8B61993247469F3C208CA894D71856727B11606A

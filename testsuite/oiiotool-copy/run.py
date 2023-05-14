@@ -47,6 +47,10 @@ command += oiiotool ("uint8.tif copy_uint16.tif -siappend -o tmp.tif " +
 command += oiiotool ("-pattern checker 128x128 3 uint8.tif -add -o tmp.tif " +
                      "-echo \"combining images result: \" -metamatch \"width|tile\" -i:info=2 tmp.tif -echo \"\"")
 
+# Try to copy extra channels to a file that doesn't support it -- we should get
+# a warning message about only saving the first 3 channels.
+command += oiiotool ("--pattern constant:color=0.1,0.2,0.3,0.4 64x64 4 --chnames R,G,B,X -d uint8 -o rgbx.png")
+
 # test --crop
 command += oiiotool ("../common/grid.tif --crop 100x400+50+200 -o crop.tif")
 
