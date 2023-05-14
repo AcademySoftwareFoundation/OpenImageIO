@@ -350,14 +350,14 @@ benchmark_convert_type()
     const S testval(1.0);
     std::vector<S> svec(size, testval);
     std::vector<D> dvec(size);
-    Strutil::printf("Benchmark conversion of %6s -> %6s : ",
-                    TypeDesc(BaseTypeFromC<S>::value),
-                    TypeDesc(BaseTypeFromC<D>::value));
+    Strutil::print("Benchmark conversion of {:6} -> {:6} : ",
+                   TypeDesc(BaseTypeFromC<S>::value).c_str(),
+                   TypeDesc(BaseTypeFromC<D>::value).c_str());
     float time = time_trial(bind(do_convert_type<S, D>, std::cref(svec),
                                  std::ref(dvec)),
                             ntrials, repeats)
                  / repeats;
-    Strutil::printf("%7.1f Mvals/sec\n", (size / 1.0e6) / time);
+    Strutil::print("{:7.1f} Mvals/sec\n", (size / 1.0e6) / time);
     D r = convert_type<S, D>(testval);
     OIIO_CHECK_EQUAL(dvec[size - 1], r);
 }
@@ -533,8 +533,8 @@ test_half_convert_accuracy()
              || bitcast<uint16_t, half>(h) != i)
             && Imath::finitef(H[i])) {
             ++nwrong;
-            Strutil::printf("wrong %d 0b%s  h=%g, f=%g %s\n", i, bin16(i), H[i],
-                            F[i], isnan(f) ? "(nan)" : "");
+            Strutil::print("wrong {} 0b{}  h={}, f={} {}\n", i, bin16(i), H[i],
+                           F[i], isnan(f) ? "(nan)" : "");
         }
     }
 

@@ -600,9 +600,7 @@ std::string join (const Sequence& seq, string_view sep /*= ""*/, size_t len)
 }
 
 /// Concatenate two strings, returning a std::string, implemented carefully
-/// to not perform any redundant copies or allocations. This is
-/// semantically equivalent to `Strutil::sprintf("%s%s", s, t)`, but is
-/// more efficient.
+/// to not perform any redundant copies or allocations.
 std::string OIIO_UTIL_API concat(string_view s, string_view t);
 
 /// Repeat a string formed by concatenating str n times.

@@ -303,11 +303,29 @@ formatType(const ParamValue& p, int beginindex, int endindex,
         for (int c = 0; c < (int)element.aggregate; ++c, ++f) {
             if (c)
                 out += " ";
-            out += Strutil::sprintf(formatString, f[0]);
+            out += Strutil::fmt::format(formatString, f[0]);
         }
     }
 }
 
+
+template<>
+void
+formatType<half>(const ParamValue& p, int beginindex, int endindex,
+                 const char* formatString, std::string& out)
+{
+    TypeDesc element = p.type().elementtype();
+    const half* f    = (const half*)p.data() + beginindex * element.aggregate;
+    for (int i = beginindex; i < endindex; ++i) {
+        if (i > beginindex)
+            out += ", ";
+        for (int c = 0; c < (int)element.aggregate; ++c, ++f) {
+            if (c)
+                out += " ";
+            out += Strutil::fmt::format(formatString, float(f[0]));
+        }
+    }
+}
 }  // namespace
 
 
@@ -345,47 +363,47 @@ ParamValue::get_string_indexed(int index) const
     if (element.basetype == TypeDesc::STRING) {
         return get<ustring>(index).string();
     } else if (element.basetype == TypeDesc::FLOAT) {
-        formatType<float>(*this, index, index + 1, "%g", out);
+        formatType<float>(*this, index, index + 1, "{}", out);
     } else if (element.basetype == TypeDesc::DOUBLE) {
-        formatType<double>(*this, index, index + 1, "%g", out);
+        formatType<double>(*this, index, index + 1, "{}", out);
     } else if (element.basetype == TypeDesc::HALF) {
-        formatType<half>(*this, index, index + 1, "%g", out);
+        formatType<half>(*this, index, index + 1, "{}", out);
     } else if (element.basetype == TypeDesc::INT) {
         if (element == TypeRational) {
             const int* val = (const int*)data() + 2 * index;
-            out            = Strutil::sprintf("%d/%d", val[0], val[1]);
+            out            = Strutil::fmt::format("{}/{}", val[0], val[1]);
         } else {
-            formatType<int>(*this, index, index + 1, "%d", out);
+            formatType<int>(*this, index, index + 1, "{}", out);
         }
     } else if (element.basetype == TypeDesc::UINT) {
         if (element.vecsemantics == TypeDesc::RATIONAL
             && element.aggregate == TypeDesc::VEC2) {
             const int* val = (const int*)data() + 2 * index;
-            out            = Strutil::sprintf("%d/%d", val[0], val[1]);
+            out            = Strutil::fmt::format("{}/{}}", val[0], val[1]);
         } else if (type() == TypeTimeCode) {
             out += tostring(TypeTimeCode, data());
         } else {
-            formatType<unsigned int>(*this, index, index + 1, "%u", out);
+            formatType<unsigned int>(*this, index, index + 1, "{}", out);
         }
     } else if (element.basetype == TypeDesc::UINT16) {
-        formatType<unsigned short>(*this, index, index + 1, "%u", out);
+        formatType<unsigned short>(*this, index, index + 1, "{}", out);
     } else if (element.basetype == TypeDesc::INT16) {
-        formatType<short>(*this, index, index + 1, "%d", out);
+        formatType<short>(*this, index, index + 1, "{}", out);
     } else if (element.basetype == TypeDesc::UINT64) {
-        formatType<unsigned long long>(*this, index, index + 1, "%u", out);
+        formatType<unsigned long long>(*this, index, index + 1, "{}", out);
     } else if (element.basetype == TypeDesc::INT64) {
-        formatType<long long>(*this, index, index + 1, "%d", out);
+        formatType<long long>(*this, index, index + 1, "{}", out);
     } else if (element.basetype == TypeDesc::UINT8) {
-        formatType<unsigned char>(*this, index, index + 1, "%d", out);
+        formatType<unsigned char>(*this, index, index + 1, "{}", out);
     } else if (element.basetype == TypeDesc::INT8) {
-        formatType<char>(*this, index, index + 1, "%d", out);
+        formatType<char>(*this, index, index + 1, "{}", out);
     } else if (element.basetype == TypeDesc::PTR) {
         out += "ptr ";
-        formatType<void*>(*this, index, index + 1, "%p", out);
+        formatType<void*>(*this, index, index + 1, "{:p}", out);
     } else {
-        out += Strutil::sprintf("<unknown data type> (base %d, agg %d vec %d)",
-                                type().basetype, type().aggregate,
-                                type().vecsemantics);
+        out += Strutil::fmt::format(
+            "<unknown data type> (base {:d}, agg {:d} vec {:d})",
+            type().basetype, type().aggregate, type().vecsemantics);
     }
     return out;
 }

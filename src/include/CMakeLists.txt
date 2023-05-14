@@ -71,6 +71,9 @@ if (INTERNALIZE_FMT OR OIIO_USING_FMT_LOCAL)
          ${FMT_INCLUDES}/fmt/format.h
          ${FMT_INCLUDES}/fmt/ostream.h
          ${FMT_INCLUDES}/fmt/printf.h )
+    if (fmt_VERSION VERSION_GREATER_EQUAL 90000)
+        list (APPEND fmt_headers ${FMT_INCLUDES}/fmt/std.h)
+    endif ()
     file (COPY ${fmt_headers}
           DESTINATION ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt)
 else ()
@@ -82,6 +85,11 @@ else ()
         file (WRITE "${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/${f}"
                     "#include <fmt/${f}>")
     endforeach ()
+    if (fmt_VERSION VERSION_GREATER_EQUAL 90000)
+        list (APPEND fmt_headers ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/std.h)
+        file (WRITE "${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/std.h"
+                    "#include <fmt/std.h>")
+    endif ()
 endif ()
 install (FILES ${fmt_headers}
          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/detail/fmt
