@@ -877,7 +877,7 @@ ImageViewer::updateTitle()
         return;
     }
     std::string message;
-    message = Strutil::sprintf("%s - iv Image Viewer", img->name());
+    message = Strutil::fmt::format("{} - iv Image Viewer", img->name());
     setWindowTitle(QString::fromLocal8Bit(message.c_str()));
 }
 

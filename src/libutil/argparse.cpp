@@ -1063,8 +1063,8 @@ ArgParse::print_help() const
                     std::cout << "\n    " << std::string(maxlen + 2, ' ');
                 std::string h = opt->help();
                 if (m_impl->m_print_defaults && cparams().contains(opt->dest()))
-                    h += Strutil::sprintf(" (default: %s)",
-                                          cparams()[opt->dest()].get());
+                    h += Strutil::fmt::format(" (default: {})",
+                                              cparams()[opt->dest()].get());
                 std::cout << Strutil::wordwrap(h, columns - 2,
                                                (int)maxlen + 2 + 4 + 2);
                 std::cout << '\n';

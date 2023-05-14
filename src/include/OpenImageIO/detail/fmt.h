@@ -26,6 +26,7 @@
 
 // fmt 8.1 stopped automatically enabling formatting of anything that supports
 // ostream output. This breaks a lot! Re-enable this old behavior.
+// NOTE: fmt 10.0 removed this support entirely.
 #ifndef FMT_DEPRECATED_OSTREAM
 #    define FMT_DEPRECATED_OSTREAM 1
 #endif

@@ -3156,3 +3156,10 @@ void debug (const char* fmt, const T1& v1, const Args&... args)
 OIIO_API void _ImageIO_force_link ();
 
 OIIO_NAMESPACE_END
+
+
+#if FMT_VERSION >= 100000
+FMT_BEGIN_NAMESPACE
+template<> struct formatter<OIIO::ROI> : ostream_formatter {};
+FMT_END_NAMESPACE
+#endif

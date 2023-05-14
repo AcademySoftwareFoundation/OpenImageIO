@@ -590,6 +590,11 @@ OIIO_NAMESPACE_END
 
 
 // Supply a fmtlib compatible custom formatter for TypeDesc.
+#if FMT_VERSION >= 100000
+FMT_BEGIN_NAMESPACE
+template<> struct formatter<OIIO::TypeDesc> : ostream_formatter {};
+FMT_END_NAMESPACE
+#else
 FMT_BEGIN_NAMESPACE
 template <>
 struct formatter<OIIO::TypeDesc> {
@@ -615,3 +620,4 @@ struct formatter<OIIO::TypeDesc> {
     }
 };
 FMT_END_NAMESPACE
+#endif

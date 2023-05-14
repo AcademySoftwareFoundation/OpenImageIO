@@ -486,6 +486,18 @@ basic_string_view<char>::c_str() const {
 OIIO_NAMESPACE_END
 
 
+#if FMT_VERSION >= 100000
+FMT_BEGIN_NAMESPACE
+template <> struct formatter<OIIO::string_view> : formatter<string_view>
+{
+    auto format(OIIO::string_view c, format_context& ctx) const {
+        return formatter<string_view>::format(string_view(c), ctx);
+    }
+};
+FMT_END_NAMESPACE
+#endif
+
+
 
 // Declare std::size and std::ssize for our string_view.
 namespace std {
