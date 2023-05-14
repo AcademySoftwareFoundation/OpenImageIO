@@ -88,6 +88,21 @@
                              OIIO_VERSION_MINOR, OIIO_VERSION_PATCH, \
                              OIIO_VERSION_TWEAK, "")
 
+// OIIO_DISABLE_DEPRECATED encodes the version for which any declarations that
+// were deprecated as of that version may be hidden from view of software
+// including the OIIO headers.  For example, if a downstream project says
+//
+//     #define OIIO_DISABLE_DEPRECATED OIIO_MAKE_VERSION(2,2,0)
+//
+// before including any OpenImageIO header, then we will do our best to make
+// it a compile-time error if they try to use anything we consider deprecated
+// in version 2.2.0 or later. This is viewed as equivalent to the downstream
+// package considering their minimum OIIO to be 2.2 and they want to be sure
+// they aren't using any features that are slated for deprecation. The
+// default, 0, will not try to hide any deprecated features.
+#ifndef OIIO_DISABLE_DEPRECATED
+#    define OIIO_DISABLE_DEPRECATED 0
+#endif
 
 // Establish the name spaces
 namespace @PROJ_NAMESPACE_V@ { }

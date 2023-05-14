@@ -137,7 +137,7 @@ main(int argc, char** argv)
 
     float val = 0.5;
     clobber(val);
-    simd::float4 val4 = val;
+    simd::vfloat4 val4 = val;
     clobber(val4);
 
     bench("add", [&]() { DoNotOptimize(val + 1.5); });
