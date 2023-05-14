@@ -966,6 +966,7 @@ DateTime_to_time_t(string_view datetime, time_t& timet)
 
 
 
+#if 0
 // For a comma-separated list of channel names (e.g., "B,G,R,A"), compute
 // the vector of integer indices for those channels as found in the spec
 // (e.g., {2,1,0,3}), using -1 for any channels whose names were not found
@@ -1002,6 +1003,20 @@ parse_channels(const ImageSpec& spec, string_view chanlist,
             break;
     }
     return ok;
+}
+#endif
+
+
+static std::string
+first_n_channels(const ImageSpec& spec, int n)
+{
+    std::string s;
+    for (int i = 0; i < n; ++i) {
+        if (i)
+            s += ",";
+        s += spec.channel_name(i);
+    }
+    return s;
 }
 
 
@@ -2896,6 +2911,8 @@ public:
         auto newchannelnames   = Strutil::splits(channelarg, ",");
         ImageSpec& spec        = img[0]->specmod();
         spec.channelnames.resize(spec.nchannels);
+        spec.alpha_channel = -1;
+        spec.z_channel     = -1;
         for (int c = 0; c < spec.nchannels; ++c) {
             if (c < (int)newchannelnames.size() && newchannelnames[c].size()) {
                 std::string name = newchannelnames[c];
@@ -5519,21 +5536,32 @@ output_file(int /*argc*/, const char* argv[])
 
     timer.stop();  // resume after all these auto-transforms
 
-    // Automatically drop channels we can't support in output
-    if ((ir->spec()->nchannels > 4 && !out->supports("nchannels"))
-        || (ir->spec()->nchannels > 3 && !out->supports("alpha"))) {
-        bool alpha = (ir->spec()->nchannels > 3 && out->supports("alpha"));
-        const char* chanlist = alpha ? "R,G,B,A" : "R,G,B";
-        std::vector<int> channels;
-        bool found = parse_channels(*ir->spec(), chanlist, channels);
-        if (!found)
-            chanlist = alpha ? "0,1,2,3" : "0,1,2";
-        const char* argv[] = { "channels:allsubimages=1", chanlist };
-        int action_channels(int argc, const char* argv[]);  // forward decl
-        action_channels(2, argv);
-        ot.warningfmt(command, "Can't save {} channels to {}... saving only {}",
-                      ir->spec()->nchannels, out->format_name(), chanlist);
-        ir = ot.curimg;
+    // Automatically drop channels we can't support in output.
+    int nchans = ir->spec()->nchannels;
+    if (nchans > 3) {
+        int trimchans = nchans;
+        bool chan3_is_alpha
+            = (nchans > 3
+               && (ir->spec()->alpha_channel == 3
+                   || Strutil::iequals(ir->spec()->channel_name(3), "A")
+                   || Strutil::iequals(ir->spec()->channel_name(3), "Alpha")));
+        if (nchans > 4 && !out->supports("nchannels"))
+            trimchans = 4;
+        if ((chan3_is_alpha && !out->supports("alpha"))
+            || (!chan3_is_alpha && !out->supports("nchannels")))
+            trimchans = 3;
+        if (trimchans < nchans) {
+            std::string chanlist = first_n_channels(*ir->spec(), trimchans);
+            ot.warningfmt(
+                command,
+                "Can't save {} channels to {}... saving only channels {}",
+                ir->spec()->nchannels, out->format_name(), chanlist);
+            const char* argv[] = { "channels:allsubimages=1",
+                                   chanlist.c_str() };
+            int action_channels(int argc, const char* argv[]);  // forward decl
+            action_channels(2, argv);
+            ir = ot.curimg;
+        }
     }
 
     // Handle --autotrim
