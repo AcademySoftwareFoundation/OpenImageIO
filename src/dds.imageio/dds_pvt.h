@@ -5,6 +5,10 @@
 #pragma once
 
 
+// Some documentation for the DDS format:
+// https://learn.microsoft.com/en-us/windows/win32/direct3ddds/dx-graphics-dds-pguide
+// https://learn.microsoft.com/en-us/windows/win32/direct3ddds/dx-graphics-dds-reference
+
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
