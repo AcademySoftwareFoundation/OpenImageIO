@@ -36,7 +36,7 @@ threads_default()
 
 // Global private data
 namespace pvt {
-mutex imageio_mutex;
+std::recursive_mutex imageio_mutex;
 atomic_int oiio_threads(threads_default());
 atomic_int oiio_exr_threads(threads_default());
 atomic_int oiio_read_chunk(256);

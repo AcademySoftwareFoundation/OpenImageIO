@@ -26,7 +26,7 @@ struct PixelStats;
 namespace pvt {
 
 // Mutex allowing thread safety of the ImageIO internals below
-extern mutex imageio_mutex;
+extern std::recursive_mutex imageio_mutex;
 
 extern atomic_int oiio_threads;
 extern atomic_int oiio_read_chunk;
