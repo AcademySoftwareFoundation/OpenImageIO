@@ -329,10 +329,13 @@ bool
 GIFInput::read_subimage_data()
 {
     GifColorType* colormap = NULL;
+    int colormap_count;
     if (m_gif_file->Image.ColorMap) {  // local colormap
-        colormap = m_gif_file->Image.ColorMap->Colors;
+        colormap       = m_gif_file->Image.ColorMap->Colors;
+        colormap_count = m_gif_file->Image.ColorMap->ColorCount;
     } else if (m_gif_file->SColorMap) {  // global colormap
-        colormap = m_gif_file->SColorMap->Colors;
+        colormap       = m_gif_file->SColorMap->Colors;
+        colormap_count = m_gif_file->SColorMap->ColorCount;
     } else {
         errorf("Neither local nor global colormap present.");
         return false;
@@ -361,6 +364,12 @@ GIFInput::read_subimage_data()
                 + (interlacing ? decode_line_number(wy, window_height) : wy);
         if (0 <= y && y < m_spec.height) {
             for (int wx = 0; wx < window_width; wx++) {
+                if (fscanline[wx] >= colormap_count) {
+                    errorfmt(
+                        "Possible corruption: Encoded value {:d} @ ({},{}) exceeds palette size {}\n",
+                        fscanline[wx], wx, y, colormap_count);
+                    return false;
+                }
                 int x   = window_left + wx;
                 int idx = m_spec.nchannels * (y * m_spec.width + x);
                 if (0 <= x && x < m_spec.width
