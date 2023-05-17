@@ -151,7 +151,7 @@ declare_imageio_format(const std::string& format_name,
                        ImageOutput::Creator output_creator,
                        const char** output_extensions, const char* lib_version)
 {
-    lock_guard lock(pvt::imageio_mutex);
+    std::lock_guard<std::recursive_mutex> lock(pvt::imageio_mutex);
     declare_imageio_format_locked(format_name, input_creator, input_extensions,
                                   output_creator, output_extensions,
                                   lib_version);
@@ -164,7 +164,7 @@ is_imageio_format_name(string_view name)
 {
     ustring namelower(Strutil::lower(name));
 
-    std::unique_lock<std::mutex> lock(imageio_mutex);
+    std::unique_lock<std::recursive_mutex> lock(imageio_mutex);
     // If we were called before any plugins were loaded at all, catalog now
     if (!format_list_vector.size()) {
         lock.unlock();
@@ -459,7 +459,7 @@ pvt::catalog_all_plugins(std::string searchpath)
     static std::once_flag builtin_flag;
     std::call_once(builtin_flag, catalog_builtin_plugins);
 
-    std::unique_lock<std::mutex> lock(imageio_mutex);
+    std::unique_lock<std::recursive_mutex> lock(imageio_mutex);
     append_if_env_exists(searchpath, "OIIO_LIBRARY_PATH", true);
 #ifdef __APPLE__
     append_if_env_exists(searchpath, "DYLD_LIBRARY_PATH");
@@ -503,7 +503,7 @@ pvt::catalog_all_plugins(std::string searchpath)
 bool
 pvt::is_procedural_plugin(const std::string& name)
 {
-    std::unique_lock<std::mutex> lock(imageio_mutex);
+    std::unique_lock<std::recursive_mutex> lock(imageio_mutex);
 
     if (!format_list_vector.size()) {
         lock.unlock();
@@ -535,7 +535,7 @@ ImageOutput::create(string_view filename, Filesystem::IOProxy* ioproxy,
 
     ImageOutput::Creator create_function = nullptr;
     {  // scope the lock:
-        std::unique_lock<std::mutex> lock(imageio_mutex);
+        std::unique_lock<std::recursive_mutex> lock(imageio_mutex);
 
         // See if it's already in the table.  If not, scan all plugins we can
         // find to populate the table.
@@ -672,7 +672,7 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
 
     ImageInput::Creator create_function = nullptr;
     {  // scope the lock:
-        std::unique_lock<std::mutex> lock(imageio_mutex);
+        std::unique_lock<std::recursive_mutex> lock(imageio_mutex);
 
         // See if it's already in the table.  If not, scan all plugins we can
         // find to populate the table.
@@ -749,7 +749,7 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
         if (config)
             myconfig = *config;
         myconfig.attribute("nowait", (int)1);
-        std::lock_guard<std::mutex> lock(imageio_mutex);
+        std::lock_guard<std::recursive_mutex> lock(imageio_mutex);
         for (auto f : format_list_vector) {
             auto plugin = input_formats.find(f.string());
             if (plugin == input_formats.end() || !plugin->second)
@@ -802,7 +802,7 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
     }
 
     if (!create_function) {
-        std::lock_guard<std::mutex> lock(imageio_mutex);
+        std::lock_guard<std::recursive_mutex> lock(imageio_mutex);
         if (input_formats.empty()) {
             // This error is so fundamental, we echo it to stderr in
             // case the app is too dumb to do so.
