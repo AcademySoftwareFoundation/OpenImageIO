@@ -365,8 +365,9 @@ GIFInput::read_subimage_data()
         if (0 <= y && y < m_spec.height) {
             for (int wx = 0; wx < window_width; wx++) {
                 if (fscanline[wx] >= colormap_count) {
-                    errorfmt("Possible corruption: Encoded value {:d} @ ({},{}) exceeds palette size {}\n",
-                             fscanline[wx], wx, y, colormap_count);
+                    errorfmt(
+                        "Possible corruption: Encoded value {:d} @ ({},{}) exceeds palette size {}\n",
+                        fscanline[wx], wx, y, colormap_count);
                     return false;
                 }
                 int x   = window_left + wx;
