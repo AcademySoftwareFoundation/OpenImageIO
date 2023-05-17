@@ -12,6 +12,7 @@
 // But that seems not to be actively maintained.
 #include "libdpx/DPX.h"
 #include "libdpx/DPXColorConverter.h"
+#include "libdpx/DPXHeader.h"
 
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
@@ -112,13 +113,9 @@ DPXInput::valid_file(Filesystem::IOProxy* ioproxy) const
     if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Mode::Read)
         return false;
 
-    std::unique_ptr<InStream> stream_uptr(new InStream(ioproxy));
-    if (!stream_uptr)
-        return false;
-
-    dpx::Reader dpx;
-    dpx.SetInStream(stream_uptr.get());
-    return dpx.ReadHeader();
+    dpx::U32 magic {};
+    const size_t numRead = ioproxy->pread(&magic, sizeof(magic), 0);
+    return numRead == sizeof(magic) && dpx::Header::ValidMagicCookie(magic);
 }
 
 

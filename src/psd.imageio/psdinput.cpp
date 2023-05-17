@@ -38,6 +38,7 @@ public:
         return (feature == "exif" || feature == "iptc" || feature == "thumbnail"
                 || feature == "ioproxy");
     }
+    bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     bool open(const std::string& name, ImageSpec& newspec) override;
     bool open(const std::string& name, ImageSpec& newspec,
               const ImageSpec& config) override;
@@ -223,6 +224,7 @@ private:
     bool load_header();
     bool read_header();
     bool validate_header();
+    static bool validate_signature(const char signature[4]);
 
     //Color Mode Data
     bool load_color_data();
@@ -519,6 +521,18 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 PSDInput::PSDInput() { init(); }
+
+
+bool
+PSDInput::valid_file(Filesystem::IOProxy* ioproxy) const
+{
+    if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Mode::Read)
+        return false;
+
+    char signature[4] {};
+    const size_t numRead = ioproxy->pread(signature, sizeof(signature), 0);
+    return numRead == sizeof(signature) && validate_signature(signature);
+}
 
 
 
@@ -893,9 +907,17 @@ PSDInput::read_header()
 
 
 bool
+PSDInput::validate_signature(const char signature[4])
+{
+    return std::memcmp(signature, "8BPS", 4) == 0;
+}
+
+
+
+bool
 PSDInput::validate_header()
 {
-    if (std::memcmp(m_header.signature, "8BPS", 4) != 0) {
+    if (!validate_signature(m_header.signature)) {
         errorfmt("[Header] invalid signature");
         return false;
     }

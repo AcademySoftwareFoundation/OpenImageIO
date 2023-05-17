@@ -37,6 +37,7 @@ public:
     {
         return feature == "ioproxy";
     }
+    bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     bool open(const std::string& name, ImageSpec& newspec) override;
     bool open(const std::string& name, ImageSpec& spec,
               const ImageSpec& config) override;
@@ -101,6 +102,8 @@ private:
 
     /// Helper function: performs the actual pixel decoding.
     bool internal_readimg(unsigned char* dst, int w, int h, int d);
+
+    static bool validate_signature(uint32_t signature);
 };
 
 static TypeDesc::BASETYPE
@@ -317,6 +320,27 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 bool
+DDSInput::validate_signature(uint32_t signature)
+{
+    return signature == DDS_MAKE4CC('D', 'D', 'S', ' ');
+}
+
+
+
+bool
+DDSInput::valid_file(Filesystem::IOProxy* ioproxy) const
+{
+    if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Mode::Read)
+        return false;
+
+    uint32_t magic {};
+    const size_t numRead = ioproxy->pread(&magic, sizeof(magic), 0);
+    return numRead == sizeof(magic) && validate_signature(magic);
+}
+
+
+
+bool
 DDSInput::open(const std::string& name, ImageSpec& newspec,
                const ImageSpec& config)
 {
@@ -379,7 +403,7 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
     // sanity checks - valid 4CC, correct struct sizes and flags which should
     // be always present, regardless of the image type, size etc., also check
     // for impossible flag combinations
-    if (m_dds.fourCC != DDS_MAKE4CC('D', 'D', 'S', ' ') || m_dds.size != 124
+    if (!validate_signature(m_dds.fourCC) || m_dds.size != 124
         || m_dds.fmt.size != 32 || !(m_dds.caps.flags1 & DDS_CAPS1_TEXTURE)
         || !(m_dds.flags & DDS_CAPS) || !(m_dds.flags & DDS_PIXELFORMAT)
         || (m_dds.caps.flags2 & DDS_CAPS2_VOLUME

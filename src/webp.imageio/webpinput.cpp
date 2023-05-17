@@ -24,6 +24,7 @@ public:
     {
         return feature == "exif" || feature == "ioproxy";
     }
+    bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     bool open(const std::string& name, ImageSpec& spec) override;
     bool open(const std::string& name, ImageSpec& newspec,
               const ImageSpec& config) override;
@@ -79,6 +80,19 @@ private:
 
 
 bool
+WebpInput::valid_file(Filesystem::IOProxy* ioproxy) const
+{
+    if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Mode::Read)
+        return false;
+
+    uint8_t header[64] {};
+    const size_t numRead = ioproxy->pread(header, sizeof(header), 0);
+    return WebPGetInfo(header, numRead, nullptr, nullptr);
+}
+
+
+
+bool
 WebpInput::open(const std::string& name, ImageSpec& newspec)
 {
     return open(name, newspec, ImageSpec());
@@ -99,17 +113,8 @@ WebpInput::open(const std::string& name, ImageSpec& spec,
 
     // Get file size and check we've got enough data to decode WebP.
     m_image_size = io->size();
-    if (m_image_size == uint64_t(-1)) {
+    if (m_image_size == size_t(-1)) {
         errorfmt("Failed to get size for \"{}\"", m_filename);
-        return false;
-    }
-    if (m_image_size < 12) {
-        errorfmt("File size is less than WebP header for file \"{}\"",
-                 m_filename);
-        return false;
-    }
-    if (m_image_size > std::numeric_limits<size_t>::max()) {
-        errorfmt("Image size ({}) is too big to read", m_image_size);
         return false;
     }
 
@@ -121,8 +126,7 @@ WebpInput::open(const std::string& name, ImageSpec& spec,
         return false;
     }
 
-    int width = 0, height = 0;
-    if (!WebPGetInfo(&image_header[0], image_header.size(), &width, &height)) {
+    if (!valid_file(io)) {
         errorfmt("{} is not a WebP image file", m_filename);
         close();
         return false;
