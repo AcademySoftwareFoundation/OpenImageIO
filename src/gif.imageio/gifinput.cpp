@@ -331,10 +331,10 @@ GIFInput::read_subimage_data()
     GifColorType* colormap = NULL;
     int colormap_count;
     if (m_gif_file->Image.ColorMap) {  // local colormap
-        colormap = m_gif_file->Image.ColorMap->Colors;
+        colormap       = m_gif_file->Image.ColorMap->Colors;
         colormap_count = m_gif_file->Image.ColorMap->ColorCount;
     } else if (m_gif_file->SColorMap) {  // global colormap
-        colormap = m_gif_file->SColorMap->Colors;
+        colormap       = m_gif_file->SColorMap->Colors;
         colormap_count = m_gif_file->SColorMap->ColorCount;
     } else {
         errorf("Neither local nor global colormap present.");
