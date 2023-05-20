@@ -1,7 +1,7 @@
-oiiotool WARNING: --ch : Unknown channel name "Z", filling with 0 (actual channels: "R,G,B")
-oiiotool WARNING: --ch : Unknown channel name "R", filling with 0 (actual channels: "Z")
-oiiotool WARNING: --ch : Unknown channel name "G", filling with 0 (actual channels: "Z")
-oiiotool WARNING: --ch : Unknown channel name "B", filling with 0 (actual channels: "Z")
+WARNING: --ch: Unknown channel name "Z", filling with 0 (actual channels: "R,G,B")
+WARNING: --ch: Unknown channel name "R", filling with 0 (actual channels: "Z")
+WARNING: --ch: Unknown channel name "G", filling with 0 (actual channels: "Z")
+WARNING: --ch: Unknown channel name "B", filling with 0 (actual channels: "Z")
 explicit -d uint save result: 
 uint8.tif            :  128 x  128, 3 channel, uint8 tiff
     tile size: 16 x 16
