@@ -1068,6 +1068,30 @@ output each one to a different file, with names `sub0001.tif`,
     frame (rather than the default behavior of exiting immediately and not
     even attempting the other frames in the range).
 
+.. option:: --parallel-frames
+
+    When iterating over a frame range or views, if this option is used, the
+    frames will run *concurrently* and not necessarily in any deterministic
+    order.
+
+    Running the range of frames in parallel is helpful in cases where (a)
+    there are enough frames in the range to make it be better to parallelize
+    over the range rather than within each operation (rule of thumb: you
+    should probably have at least as many frames to process as cores
+    available); (b) it doesn't matter what order the frames are processed in
+    (e.g., no frames have a dependency on the computed results of earlier
+    frames); and (c) you have enough memory and I/O bandwidth to handle all
+    the parallel jobs (probably equal to the number of cores).
+
+    Without the `--parallel-frames` option, the frame range will be executed
+    in increasing numerical order and each frame in the range will run to
+    completion before the next one starts. Multithreading will be used for the
+    individual operations done to each frame. This mode is less efficient if
+    you have more frames than cores available, but it is guaranteed to be safe
+    even if there are order or data dependencies between your frames, and it
+
+    This feature was added to OpenImageIO 2.5.1.
+
 .. option:: --wildcardoff, --wildcardon
 
     These *positional* options turn off (or on) numeric wildcard expansion
