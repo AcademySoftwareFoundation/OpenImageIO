@@ -262,6 +262,7 @@ ImageRec::read(ReadPolicy readpolicy, string_view channel_set)
     }
     m_subimages.resize(subimages);
     bool allok = true;
+    ErrorHandler eh;
     for (int s = 0; s < subimages; ++s) {
         int miplevels = 0;
         m_imagecache->get_image_info(uname, s, 0, u_miplevels, TypeInt,
@@ -296,7 +297,7 @@ ImageRec::read(ReadPolicy readpolicy, string_view channel_set)
             if (channel_set.size()) {
                 decode_channel_set(ib->nativespec(), channel_set,
                                    newchannelnames, channel_set_channels,
-                                   channel_set_values);
+                                   channel_set_values, eh);
                 for (size_t c = 0, e = channel_set_channels.size(); c < e;
                      ++c) {
                     if (channel_set_channels[c] < 0)
