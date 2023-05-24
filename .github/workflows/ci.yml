@@ -94,20 +94,22 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 8.1.1
             pybind11_ver: v2.8.1
-          - desc: icc/C++17 py3.9 boost1.76 exr3.1 ocio2.1 qt5.15
-            nametag: linux-vfx2022-icc
-            os: ubuntu-latest
-            vfxyear: 2022
-            cxx_std: 17
-            python_ver: 3.9
-            # simd: "avx2,f16c"
-            fmt_ver: 7.1.3
-            # icc MUST use this older FMT version
-            pybind11_ver: v2.9.0
-            setenvs: export USE_ICC=1 USE_OPENVDB=0
-                            OIIO_EXTRA_CPP_ARGS="-fp-model=precise"
-            # For icc, use fp-model precise to eliminate needless LSB errors
-            # that make test results differ from other platforms.
+          # FIXME: Disable this test because we can't seem to find a freely
+          # installable icc that will run on these machine images.
+          # - desc: icc/C++17 py3.9 boost1.76 exr3.1 ocio2.1 qt5.15
+          #   nametag: linux-vfx2022-icc
+          #   os: ubuntu-latest
+          #   vfxyear: 2022
+          #   cxx_std: 17
+          #   python_ver: 3.9
+          #   # simd: "avx2,f16c"
+          #   fmt_ver: 7.1.3
+          #   # icc MUST use this older FMT version
+          #   pybind11_ver: v2.9.0
+          #   setenvs: export USE_ICC=1 USE_OPENVDB=0
+          #                   OIIO_EXTRA_CPP_ARGS="-fp-model=precise"
+          #   # For icc, use fp-model precise to eliminate needless LSB errors
+          #   # that make test results differ from other platforms.
           - desc: icx/C++17 py3.9 boost1.76 exr3.1 ocio2.1 qt5.15
             nametag: linux-vfx2022-icx
             os: ubuntu-latest
@@ -313,6 +315,20 @@ jobs:
             openexr_ver: v2.5.8
             pybind11_ver: v2.5.0
             simd: avx
+          - desc: icc/C++17 py3.10 boost1.74 exr3.1 ocio1.1 qt5.15
+            nametag: linux-icc
+            os: ubuntu-22.04
+            cxx_std: 17
+            # simd: avx2,f16c
+            # fmt_ver: 7.1.3
+            # icc MUST use this older FMT version
+            openexr_ver: v3.1.7
+            pybind11_ver: v2.10.0
+            python_ver: "3.10"
+            setenvs: export USE_ICC=1 USE_OPENVDB=0
+                            OIIO_EXTRA_CPP_ARGS="-fp-model=precise"
+            # For icc, use fp-model precise to eliminate needless LSB errors
+            # that make test results differ from other platforms.
           - desc: static libs gcc7 C++14 exr2.4
             nametag: linux-static
             os: ubuntu-20.04

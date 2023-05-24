@@ -39,16 +39,31 @@ if [[ "$ASWF_ORG" != ""  ]] ; then
     fi
 
     if [[ "$CXX" == "icpc" || "$CC" == "icc" || "$USE_ICC" != "" ]] ; then
-        # The "current" version of icc 2023.x on the Intel site is build to
-        # link against a glibc too new for the ASWF CentOS7-based containers
-        # we run CI on. So we lock down to a specific version of icc 2022.1
-        # that is known to work.
+        # This SHOULD work, but it doesn't, because the "current" version of
+        # icc 2023.x on the Intel site is built to link against a glibc too
+        # new for the ASWF CentOS7-based containers we run CI on.
         sudo cp src/build-scripts/oneAPI.repo /etc/yum.repos.d
-        sudo /usr/bin/yum install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic-2022.1.0-3768
-        # Because multiple (possibly newer) versions of oneAPI may be installed,
-        # use a config file to specify compiler and tbb versions
-        # NOTE: oneAPI components have independent version numbering.
-        set +e; source /opt/intel/oneapi/setvars.sh --config oneapi_2022.1.0.cfg; set -e
+        sudo yum install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
+        set +e; source /opt/intel/oneapi/setvars.sh; set -e
+
+        # This broke in January 2023 when Intel bumped the version of this
+        # package and the new package's icc (but curiously not icx) wouldn't
+        # run on the CentOS images and complained about
+        #
+        #     /opt/intel/oneapi/compiler/2023.1.0/linux/bin/intel64/icpc: /lib64/libstdc++.so.6: version `GLIBCXX_3.4.21' not found (required by /opt/intel/oneapi/compiler/2023.1.0/linux/bin/intel64/icpc)
+        #
+        # In https://github.com/OpenImageIO/oiio/pull/3744, we tried
+        # to combat this by locking down to a specific version of icc 2022.1
+        # that was known to work and that we used to use until the default
+        # version was bumped, by changing to:
+        #
+        #     sudo cp src/build-scripts/oneAPI.repo /etc/yum.repos.d
+        #     sudo /usr/bin/yum install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic-2022.1.0-3768
+        #     set +e; source /opt/intel/oneapi/setvars.sh --config oneapi_2022.1.0.cfg; set -e
+        #
+        # But in April 2023, the 2022.1.0-3768 package seemed to disappear from
+        # the repository entirely, so we're back to being unable to install icc
+        # and test against it.
     elif [[ "$CXX" == "icpc" || "$CC" == "icc" || "$USE_ICC" != "" || "$CXX" == "icpx" || "$CC" == "icx" || "$USE_ICX" != "" ]] ; then
         sudo cp src/build-scripts/oneAPI.repo /etc/yum.repos.d
         sudo yum install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
