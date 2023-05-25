@@ -144,8 +144,9 @@ Current voting members of the TSC are:
 * **Chief Architect**: Larry Gritz - Sony Pictures Imageworks
 * Anton Dukhovnikov - Wētā Digital / Unity
 * Joseph Goldstone - ARRI
+* Lewis Wakeland - Disney TV Animation
 * Luke Emrose - Animal Logic (interim?)
-* Robin Rowe
+* Robin Rowe - Heroic Robots
 * Thiago Ize - Autodesk
 
 
