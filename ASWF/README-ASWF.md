@@ -14,8 +14,9 @@ Summary of the current state of documents:
 | ---- | ------ | ----- |
 | CLA-corporate.md | Proposed / assumed final | This is the standard ASWF corporate CLA used for the other projects. |
 | CLA-individual.md | Proposed / assumed final | This is the standard ASWF individual CLA used for the other projects. |
-| Technical-Charter.md | placeholder | Proposed draft is not yet ready. |
-| project_intake.md | Draft / placeholder? | Copy of OSL project intake checklist to get us started. Will be updated with the real OpenImageIO project intake checklist when it is provided to us. We expect it to be substantially similar.
 | CODE_OF_CONDUCT.md | Assumed final | Links to the standard LF CoC. |
+| CONTRIBUTING.md | Proposed | Modified version of our existing CONTRIBUTING guidelines, lightly amended to reflect the changes that will come along with moving the repo, the new CLA/DCO rules, etc.
 | GOVERNANCE.md | Proposed | Copied and adapted from OSL. This is for us to decide and finalize. Please suggest any requested changes, **especially to the list of TSC members**. |
+| project_intake.md | Draft / placeholder? | Copy of OSL project intake checklist to get us started. Will be updated with the real OpenImageIO project intake checklist when it is provided to us. We expect it to be substantially similar.
+| Technical-Charter.md | placeholder | Proposed draft is not yet ready. |
 
