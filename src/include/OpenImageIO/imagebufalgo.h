@@ -2354,22 +2354,22 @@ bool OIIO_API make_texture (MakeTextureMode mode,
 /// @}
 
 
-/// Convert an OpenCV cv::Mat into an ImageBuf, copying the pixels
-/// (optionally converting to the pixel data type specified by `convert`, if
-/// not UNKNOWN, which means to preserve the original data type if
-/// possible).  Return true if ok, false if it couldn't figure out how to
-/// make the conversion from Mat to ImageBuf. If OpenImageIO was compiled
-/// without OpenCV support, this function will return an empty image with
-/// error message set.
+/// Convert an OpenCV cv::Mat into an ImageBuf, copying the pixels (optionally
+/// converting to the pixel data type specified by `convert`, if not UNKNOWN,
+/// which means to preserve the original data type if possible).  Return true
+/// if ok, false if it was not able to make the conversion from Mat to
+/// ImageBuf. Any error messages can be retrieved by calling `geterror()` on
+/// the returned ImageBuf. If OpenImageIO was compiled without OpenCV support,
+/// this function will return false.
 OIIO_API ImageBuf
 from_OpenCV (const cv::Mat& mat, TypeDesc convert = TypeUnknown,
              ROI roi={}, int nthreads=0);
 
 /// Construct an OpenCV cv::Mat containing the contents of ImageBuf src, and
-/// return true. If it is not possible, or if OpenImageIO was compiled
-/// without OpenCV support, then return false. Note that OpenCV only
-/// supports up to 4 channels, so >4 channel images will be truncated in the
-/// conversion.
+/// return true. If it is not possible, or if OpenImageIO was compiled without
+/// OpenCV support, then return false. Any error messages can be retrieved by
+/// calling OIIO::geterror(). Note that OpenCV only supports up to 4 channels,
+/// so >4 channel images will be truncated in the conversion.
 OIIO_API bool to_OpenCV (cv::Mat& dst, const ImageBuf& src,
                          ROI roi={}, int nthreads=0);
 

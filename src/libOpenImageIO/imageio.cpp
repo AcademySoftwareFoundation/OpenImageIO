@@ -516,6 +516,10 @@ getattribute(string_view name, TypeDesc type, void* val)
                                             (v >> 16) & 0xff, (v >> 8) & 0xff);
         return true;
     }
+    if (name == "opencv_version" && type == TypeInt) {
+        *(int*)val = OIIO::pvt::opencv_version;
+        return true;
+    }
     return false;
 }
 

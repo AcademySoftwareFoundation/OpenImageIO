@@ -51,6 +51,16 @@
 OIIO_NAMESPACE_BEGIN
 
 
+namespace pvt {
+#ifdef USE_OPENCV
+int opencv_version = OIIO_OPENCV_VERSION;
+#else
+int opencv_version = 0;
+#endif
+}  // namespace pvt
+
+
+
 namespace ImageBufAlgo {
 
 // Note: DEPRECATED(2.0)
@@ -119,7 +129,7 @@ from_IplImage(const IplImage* ipl, TypeDesc convert)
 
 #else
     dst.errorfmt(
-        "fromIplImage not supported -- no OpenCV support at compile time");
+        "from_IplImage not supported -- no OpenCV support at compile time");
 #endif
 
     return dst;
@@ -307,19 +317,27 @@ ImageBufAlgo::to_OpenCV(cv::Mat& dst, const ImageBuf& src, ROI roi,
         dstFormat     = CV_MAKETYPE(CV_16S, chans);
         dstSpecFormat = TypeInt16;
     } else if (spec.format == TypeDesc(TypeDesc::HALF)) {
+#    if OIIO_OPENCV_VERSION >= 40000
+        dstFormat = CV_MAKETYPE(CV_16F, chans);
+#    else
         dstFormat     = CV_MAKETYPE(CV_32F, chans);
         dstSpecFormat = TypeFloat;
+#    endif
     } else if (spec.format == TypeDesc(TypeDesc::FLOAT)) {
         dstFormat = CV_MAKETYPE(CV_32F, chans);
     } else if (spec.format == TypeDesc(TypeDesc::DOUBLE)) {
         dstFormat = CV_MAKETYPE(CV_64F, chans);
     } else {
-        OIIO_DASSERT(0 && "Unknown data format in ImageBuf.");
+        OIIO::pvt::errorfmt(
+            "to_OpenCV() doesn't know how to make a cv::Mat of {}",
+            spec.format);
         return false;
     }
     dst.create(roi.height(), roi.width(), dstFormat);
     if (dst.empty()) {
-        OIIO_DASSERT(0 && "Unable to create cv::Mat.");
+        OIIO::pvt::errorfmt(
+            "to_OpenCV() was unable to create cv::Mat of {}x{} {}", roi.width(),
+            roi.height(), dstSpecFormat);
         return false;
     }
 
@@ -332,7 +350,9 @@ ImageBufAlgo::to_OpenCV(cv::Mat& dst, const ImageBuf& src, ROI roi,
         dstSpecFormat, pixelsize, linestep, 0, -1, -1, nthreads);
 
     if (!converted) {
-        OIIO_DASSERT(0 && "convert_image failed.");
+        OIIO::pvt::errorfmt(
+            "to_OpenCV() was unable to convert source {} to cv::Mat of {}",
+            spec.format, dstSpecFormat);
         return false;
     }
 
@@ -345,6 +365,8 @@ ImageBufAlgo::to_OpenCV(cv::Mat& dst, const ImageBuf& src, ROI roi,
 
     return true;
 #else
+    OIIO::pvt::errorfmt(
+        "to_OpenCV() not supported -- no OpenCV support at compile time");
     return false;
 #endif
 }
