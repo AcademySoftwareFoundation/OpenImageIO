@@ -402,6 +402,13 @@ jobs:
             python_ver: "3.10"
             aclang: 13
             setenvs: export CTEST_TEST_TIMEOUT=600
+          - desc: MacOS-13
+            os: macos-13
+            nametag: macos13-py311
+            cxx_std: 20
+            python_ver: "3.11"
+            aclang: 14
+            setenvs: export CTEST_TEST_TIMEOUT=600
     runs-on: ${{ matrix.os }}
     env:
       CC: clang
