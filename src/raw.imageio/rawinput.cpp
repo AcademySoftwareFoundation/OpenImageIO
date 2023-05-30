@@ -438,9 +438,18 @@ RawInput::open_raw(bool unpack, const std::string& name,
     // so we need to convert it
     int original_flip                 = 1;
     int libraw_flip                   = m_processor->imgdata.sizes.flip;
-    static int libraw_to_exif_flip[8] = { 1, 2, 4, 3, 5, 8, 6, 7 };
-    if (libraw_flip >= 1 && libraw_flip <= 8) {
-        original_flip = libraw_to_exif_flip[libraw_flip - 1];
+    switch (libraw_flip) {
+        case 3:
+            original_flip             = 3;
+            break;
+        case 5:
+            original_flip             = 8;
+            break;
+        case 6:
+            original_flip             = 6;
+            break;
+        default:
+            break;
     }
     m_processor->adjust_sizes_info_only();
 
