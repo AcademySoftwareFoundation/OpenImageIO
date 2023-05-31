@@ -44,7 +44,7 @@ if [[ "$ASWF_ORG" != ""  ]] ; then
         # we run CI on. So we lock down to a specific version of icc 2022.1
         # that is known to work.
         sudo cp src/build-scripts/oneAPI.repo /etc/yum.repos.d
-        sudo /usr/bin/yum install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic-2022.1.0-3768
+        sudo /usr/bin/yum install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic-2022.1.0.x86_64
         # Because multiple (possibly newer) versions of oneAPI may be installed,
         # use a config file to specify compiler and tbb versions
         # NOTE: oneAPI components have independent version numbering.
