@@ -436,20 +436,13 @@ RawInput::open_raw(bool unpack, const std::string& name,
     // Store flip before it is potentially overwritten
     // LibRaw's convention for flip values differs from Exif orientation tags
     // so we need to convert it
-    int original_flip                 = 1;
-    int libraw_flip                   = m_processor->imgdata.sizes.flip;
+    int original_flip = 1;
+    int libraw_flip   = m_processor->imgdata.sizes.flip;
     switch (libraw_flip) {
-        case 3:
-            original_flip             = 3;
-            break;
-        case 5:
-            original_flip             = 8;
-            break;
-        case 6:
-            original_flip             = 6;
-            break;
-        default:
-            break;
+    case 3: original_flip = 3; break;
+    case 5: original_flip = 8; break;
+    case 6: original_flip = 6; break;
+    default: break;
     }
     m_processor->adjust_sizes_info_only();
 
