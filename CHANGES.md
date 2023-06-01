@@ -1,5 +1,17 @@
 Release 2.4.12.0 (1 June 2023) -- compared to 2.4.11.0
 ------------------------------------------------------
+- *oiiotool*: Don't propagate unsupported channels [#3838](https://github.com/OpenImageIO/oiio/pull/3838)
+- *fix*: Prevent possible deadlock when reading files with wrong extensions [#3845](https://github.com/OpenImageIO/oiio/pull/3845)
+- *gif*: Prevent possible heap buffer overflow [#3841](https://github.com/OpenImageIO/oiio/pull/3841)  (by xiaoxiaoafeifei)
+- *psd*: Improve memory efficiency of PSD read [#3807](https://github.com/OpenImageIO/oiio/pull/3807)
+- *raw*: Fix LibRaw flip to Exif orientation conversion [#3847](https://github.com/OpenImageIO/oiio/pull/3847)  (by Loïc Vital)
+- *raw*: Raw input fix user_flip usage [#3858](https://github.com/OpenImageIO/oiio/pull/3858)  (by Loïc Vital)
+- *strutil*: Use forward properly for sync::print(). [#3825](https://github.com/OpenImageIO/oiio/pull/3825)
+- *build*: Fixes for latest xcode on MacOS 13.3 Ventura [#3854](https://github.com/OpenImageIO/oiio/pull/3854)
+- *build*: Fmt 10.0 support [#3836](https://github.com/OpenImageIO/oiio/pull/3836)
+- *build*: Fix build error with MSVC [#3832](https://github.com/OpenImageIO/oiio/pull/3832)  (by Ray Molenkamp)
+- *ci*: Fix warnings [#3833](https://github.com/OpenImageIO/oiio/pull/3833)
+- *ci*: Fix package name for icc [#3860](https://github.com/OpenImageIO/oiio/pull/3860)
 
 
 Release 2.4.11.0 (1 May 2023) -- compared to 2.4.10.0
