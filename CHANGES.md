@@ -1,6 +1,11 @@
+Release 2.4.13.0 (1 July? 2023) -- compared to 2.4.12.0
+-------------------------------------------------------
+
+
 Release 2.4.12.0 (1 June 2023) -- compared to 2.4.11.1
 ------------------------------------------------------
 - *oiiotool*: Don't propagate unsupported channels [#3838](https://github.com/OpenImageIO/oiio/pull/3838)
+- *oiiotool*: Improvements to performance and memory when making very large textures [#3829](https://github.com/OpenImageIO/oiio/pull/3829)
 - *fix*: Prevent possible deadlock when reading files with wrong extensions [#3845](https://github.com/OpenImageIO/oiio/pull/3845)
 - *gif*: Prevent possible heap buffer overflow [#3841](https://github.com/OpenImageIO/oiio/pull/3841)  (by xiaoxiaoafeifei)
 - *psd*: Improve memory efficiency of PSD read [#3807](https://github.com/OpenImageIO/oiio/pull/3807)
