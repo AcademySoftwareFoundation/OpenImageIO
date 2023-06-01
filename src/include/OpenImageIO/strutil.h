@@ -217,7 +217,7 @@ inline void print (FILE *file, const Str& fmt, Args&&... args)
 template<typename Str, typename... Args>
 inline void print (const Str& fmt, Args&&... args)
 {
-    print(stdout, fmt, std::forward<Args>(args)...);
+    sync_output(stdout, ::fmt::vformat(fmt, ::fmt::make_format_args(args...)));
 }
 
 template<typename Str, typename... Args>
