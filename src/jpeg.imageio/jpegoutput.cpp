@@ -408,7 +408,7 @@ JpgOutput::resmeta_to_density()
             // resolutions were not set
             if (aspect >= 1.0f) {
                 XRes = 72.0f;
-                YRes = XRes * aspect;
+                YRes = XRes / aspect;
             } else {
                 YRes = 72.0f;
                 XRes = YRes * aspect;
