@@ -108,7 +108,7 @@ include_directories(BEFORE ${IMATH_INCLUDES} ${OPENEXR_INCLUDES})
 if (MSVC AND NOT LINKSTATIC)
     add_definitions (-DOPENEXR_DLL) # Is this needed for new versions?
 endif ()
-if (OPENEXR_VERSION VERSION_GREATER_EQUAL 3.0)
+if (OpenEXR_VERSION VERSION_GREATER_EQUAL 3.0)
     set (OIIO_USING_IMATH 3)
 else ()
     set (OIIO_USING_IMATH 2)
