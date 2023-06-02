@@ -43,6 +43,7 @@ extern int oiio_log_times;
 extern int openexr_core;
 extern int limit_channels;
 extern int limit_imagesize_MB;
+extern int opencv_version;
 extern OIIO_UTIL_API int oiio_use_tbb; // This lives in libOpenImageIO_Util
 OIIO_API const std::vector<std::string>& font_dirs();
 OIIO_API const std::vector<std::string>& font_file_list();
