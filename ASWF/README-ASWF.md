@@ -18,5 +18,5 @@ Summary of the current state of documents:
 | CONTRIBUTING.md | Proposed | Modified version of our existing CONTRIBUTING guidelines, lightly amended to reflect the changes that will come along with moving the repo, the new CLA/DCO rules, etc.
 | GOVERNANCE.md | Proposed | Copied and adapted from OSL. This is for us to decide and finalize. Please suggest any requested changes, **especially to the list of TSC members**. |
 | project_intake.md | Final | This is the latest ASWF project intake checklist. We will check off items as we get them done. |
-| Technical-Charter.md | placeholder | Proposed draft is not yet ready. |
+| Technical-Charter.md | Draft | We expect edits to reflect the license/relicense policy once we have decided and approved it. |
 

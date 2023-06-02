@@ -28,12 +28,12 @@ This is a checklist for TSC's to review as part of the intake process. The TSC s
   - [ ] Domain name	( create [issue with the LF IT staff](https://jira.linuxfoundation.org/plugins/servlet/theme/portal/2/group/19) to setup/transfer )
   - [ ] Zoom account access ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to get access to credentials )
   - [ ] Social media accounts or other project accounts	( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to transfer )
-  - [ ] Logo(s)	( create [issue on artwork repo](https://github.com/AcademySoftwareFoundation/artwork/issues/new) to add in SVG and PNG format and color/black/white )
-- New Project Goverance
+  - [X] Logo(s)	( create [issue on artwork repo](https://github.com/AcademySoftwareFoundation/artwork/issues/new) to add in SVG and PNG format and color/black/white )
+- New Project Governance
   - [X] TSC members identified
   - [X] First TSC meeting held
-  - [ ] TSC meeting cadence set and added to project calendar
-  - [ ] CLA Approved ( if used ) ( [CCLA](ccla.md) and [ICLA](icla.md) )
+  - [X] TSC meeting cadence set and added to project calendar
+  - [ ] CLA Approved ( if used ) ( [CCLA](CLA-corporate.md) and [ICLA](CLA-individual.md) )
   - Project charter	( [charter.md](charter.md) )
     - [ ] Approved by TSC
     - [ ] Filed ( create pull request against [foundation repo](https://github.com/AcademySoftwareFoundation/foundation) )
@@ -42,7 +42,7 @@ This is a checklist for TSC's to review as part of the intake process. The TSC s
   - [ ] New project announcement done ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to trigger )
   - [ ] Project added to ASWF website and ASWF landscape
 - Incubation Stage requirements
-  - [ ] Have achieved and maintained a [OpenSSF Best Practices Badge at the passing level](https://bestpractices.coreinfrastructure.org/en/criteria).
+  - [X] Have achieved and maintained a [OpenSSF Best Practices Badge at the passing level](https://bestpractices.coreinfrastructure.org/en/criteria).
   - [ ] Have had a successful license scan with any critical issues remedied.
   - [ ] Have a defined project mission and scope
   - [ ] An overview of the project’s architecture and features defined.
