@@ -16,8 +16,8 @@ security vulnerabilities.
 ## Reporting a Vulnerability
 
 If you think you've found a potential vulnerability in OpenImageIO, please
-report it by emailing security@openimageio.org. Only the project administrator
-has access to these messages. Include detailed steps to reproduce the issue,
+report it by emailing security@openimageio.org. Only the project administrators
+have access to these messages. Include detailed steps to reproduce the issue,
 and any other information that could aid an investigation. Our policy is to
 respond to vulnerability reports within 14 days.
 
