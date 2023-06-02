@@ -1,15 +1,15 @@
 Contributing to OpenImageIO
 ===========================
 
-Code contributions to OpenImageIO are always welcome, and [nearly 150
+Code contributions to OpenImageIO are always welcome, and [nearly 200
 people](CREDITS.md) have done so over the years.  Please review this
 document to get a briefing on our process.
 
 
-Mail Lists
-----------
+Mail List and Slack
+-------------------
 
-There are two mail lists associated with OpenImageIO development:
+Contributors should be reading the oiio-dev mail list:
 
 * [oiio-dev](http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org)
 For developers of the OpenImageIO code itself, or users who are really
@@ -17,40 +17,48 @@ interested in the OIIO internals. This is where we mostly discuss the code
 (including bug reports), but are also happy to answer user questions about
 use or working of OIIO.
 
-* [oiio-announce](http://lists.openimageio.org/listinfo.cgi/oiio-announce-openimageio.org)
-For announcements about major OIIO releases or other important news.
+You can sign up for the mail list on your own using the link above.
 
-You can sign up for these mail lists on your own using the links above.
+The [ASWF Slack](https://slack.aswf.io/) has an `openimageio` channel. Sign up
+for the Slack on your own, then under "channels", select "browse channels" and
+you should see the openimageio channel (among those of the other projects and
+working groups).
 
 
 How to Ask for Help
 -------------------
 
 If you have trouble installing, building, or using OpenImageIO, but there's
-not yet reason to suspect you've encountered a genuine bug, start by posting
-a question to the
-[oiio-dev](http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org)
-mailing list. This is the place for question such has "How do I...".
+not yet a solid reason to suspect you've encountered a genuine bug, start by
+posting a question to the [oiio-dev mailing
+list](http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org).
+This is the place for questions such has "How do I...".
 
 
 Bug Reports and Issue Tracking
 ------------------------------
 
-We use GitHub's issue tracking system for bugs and enhancements:
-https://github.com/OpenImageIO/oiio/issues
+We use GitHub's issue tracking system for reporting bugs and requesting
+enhancements: https://github.com/OpenImageIO/oiio/issues
+
+**If you are merely asking a question ("how do I...")**, please do not file an
+issue, but instead ask the question on the [oiio-dev mailing
+list](http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org).
 
 If you are submitting a bug report, please be sure to note which version of
 OIIO you are using, on what platform (OS/version, which compiler you used,
 and any special build flags or other unusual environmental issues). Please
-give a specific an account of
+give a specific, as-detailed-as-possible account of
 
-* what you tried
-* what happened
-* what you expected to happen instead
+* what you tried (command line, source code example)
+* what you expected to happen
+* what actually happened (crash? error message? ran but didn't give the
+  correct result?)
 
-with enough detail that others can reproduce the problem. Please quote the
-exact error message you received. If you are having trouble building, please
-post the full cmake output of a fresh VERBOSE=1 build.
+with enough detail that others can easily reproduce the problem just by
+following your instructions. Please quote the exact error message you
+received. If you are having trouble building, please post the full cmake
+output of a fresh VERBOSE=1 build.
 
 Suspected security vulnerabilities should be reported by the same process.
 
@@ -61,26 +69,30 @@ may contact us privately at [security@openimageio.org](security@openimageio.org)
 Contributor License Agreement (CLA) and Intellectual Property
 -------------------------------------------------------------
 
-To protect the project -- and the contributors! -- we do require a
-Contributor License Agreement (CLA) for anybody submitting substantial
-changes. Trivial changes (such as an alteration to the Makefiles, a one-line
-bug fix, etc.) may be accepted without a CLA, at the sole discretion of the
-project leader, but anything complex needs a CLA. This is for your own
-safety.
+To protect the project -- and the contributors! -- we do require a Contributor
+License Agreement (CLA) for anybody submitting substantial changes. Trivial
+changes (such as an alteration to the build system, short bug fixes to
+existing code, etc.) may be accepted without a CLA, at the sole discretion of
+the project leader, but anything complex needs a CLA. This is for your own
+safety, as it prevents any possible future disputes between code authors and
+their employers or anyone else who might think they might own the IP output of
+the author.
 
-* If you are an individual writing the code on your own time and you're SURE
-you are the sole owner of any intellectual property you contribute, use the
-[Individual CLA](https://github.com/OpenImageIO/oiio/blob/master/src/doc/CLA-INDIVIDUAL).
+* [Corporate CLA](https://github.com/OpenImageIO/oiio/blob/master/src/doc/CLA-CORPORATE) :
+  If you are writing the code as part of your job, or if there is any
+  possibility that your employers might think they own any intellectual
+  property you create. This needs to be executed by someone who has
+  signatory power for the company.
 
-* If you are writing the code as part of your job, or if there is any
-possibility that your employers might think they own any intellectual
-property you create, then you should use the [Corporate
-CLA](https://github.com/OpenImageIO/oiio/blob/master/src/doc/CLA-CORPORATE).
+* [Individual CLA](https://github.com/OpenImageIO/oiio/blob/master/src/doc/CLA-INDIVIDUAL) :
+  If you are an individual writing the code on your own time, using your own
+  equipment, and you're SURE you are the sole owner of any intellectual
+  property you contribute.
 
-Download the appropriate CLA from the links above (or find them in the
-src/doc directory of the software distribution), print, sign, and rescan it
-(or just add a digital signature directly), and email it back to us
-(info@openimageio.org).
+
+Download the appropriate CLA from the links above (or find them in the src/doc
+directory of the software distribution), print, sign, and rescan it (or just
+add a digital signature directly), and email it back to: info@openimageio.org
 
 Our CLA's are identical to those used by Apache and many other open source
 projects.
@@ -124,12 +136,33 @@ to me), the code should not be committed. Sometimes this takes a few rounds
 of give and take. Please don't take it hard if your first try is not
 accepted. It happens to all of us.
 
-8. After approval, one of the senior developers (with commit approval to the
+9. After approval, one of the senior developers (with commit approval to the
 official main repository) will merge your fixes into the master branch.
 
 
 Coding Style
 ------------
+
+#### File conventions
+
+C++ implementation should be named `*.cpp`. Headers should be named `.h`.
+All headers should contain
+
+    #pragma once
+
+All source files should begin with these three lines:
+
+    // Copyright Contributors to the OpenImageIO project.
+    // SPDX-License-Identifier: BSD-3-Clause
+    // https://github.com/OpenImageIO/oiio
+
+as a comment in the syntax of whatever source code is used in that file.
+
+Occasionally a file may contain substantial code from another project and will
+also list its original copyright and license information. Do NOT alter that
+notice or copy it to any new files, it really only applies to the particular
+file in which it appears.
+
 
 #### Formatting
 
@@ -151,28 +184,32 @@ it on your end and update the PR with the formatting fixes.
 
 If you don't have clang-format set up on your machine, and your patch is not
 very long, you may find that it's more convenient to just submit it and hope
-for the best, and if it doesn't pass the CI test, look at the diffs in
-the log and make the corrections by hand and then submit an update to the
-patch (i.e. relying on CI to run clang-format for you).
+for the best, and if it doesn't pass the CI test, look at the diffs in the log
+for the "clang-format" CI run and make the corrections by hand and then submit
+an update to the patch (i.e. relying on CI to run clang-format for you).
 
 Because the basic formatting is automated by clang-format, we won't
 enumerate the rules here.
 
+For the occasional non-clang-format regions of code, NEVER alter somebody
+else's code to reformat just because you found something that violates the
+rules. Let the group/author/leader know, and resist the temptation to change
+it yourself.
 
-#### File conventions
+Each line of text in your code, including comments, should be at most 80
+characters long. Exceptions are allowed for those rare cases where letting a
+line be longer (and wrapping on an 80-character window) is actually a better
+and clearer alternative than trying to split it into two lines. Sometimes this
+happens, but it's extremely rare.
 
-C++ implementation should be named `*.cpp`. Headers should be named `.h`.
-All headers should contain
-
-    #pragma once
-
-All source files should begin with the copyright and license, which can be
-found in the LICENSE.md file (or cut and pasted from any other other source
-file).
-
-For NEW source files, please change the copyright year to the present. DO
-NOT edit existing files only to update the copyright year, it just creates
-pointless deltas and offers no increased protection.
+We prefer three (3) consecutive empty lines between freestanding functions or
+class definitions, one blank line between method declarations within a class
+definition. Put a single blank line within a function if it helps to visually
+separate different sequential tasks, but don't put multiple blank lines in a
+row within a function, or blank lines right after an opening brace or right
+before a closing brace. The goal is to use just enough white space to help
+developers visually parse the code (for example, spotting at a glance where
+new functions begin), but not so much as to spread it out or be confusing.
 
 
 #### Identifiers
@@ -222,7 +259,7 @@ Feel free to use Boost classes you already see in the code base, but don't
 use any Boost you don't see us already using, without first checking with
 the project leader.
 
-Please do use IlmBase vector, matrix, and utility classes where applicable.
+Please do use Imath vector, matrix, and utility classes where applicable.
 Don't write your own vector or matrix code!
 
 Use these libraries for OIIO internals, but please DO NOT require them in
