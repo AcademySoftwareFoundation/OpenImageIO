@@ -146,6 +146,7 @@ Current voting members of the TSC are:
 * Joseph Goldstone - ARRI
 * Lewis Wakeland - Disney TV Animation
 * Luke Emrose - Animal Logic (interim?)
+* Martin Davies - LAIKA
 * Robin Rowe - Heroic Robots
 * Thiago Ize - Autodesk
 
