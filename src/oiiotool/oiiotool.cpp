@@ -6519,6 +6519,8 @@ Oiiotool::getargs(int argc, char* argv[])
       .help("Views for %V/%v wildcards (comma-separated, defaults to \"left,right\")");
     ap.arg("--skip-bad-frames", &ot.skip_bad_frames)
       .help("Skip to next frame in range if there's an error, rather than exiting");
+    ap.arg("--parallel-frames")
+      .help("Parallelize evaluation of frame range");
     ap.arg("--wildcardoff")
       .help("Disable numeric wildcard expansion for subsequent command line arguments");
     ap.arg("--wildcardon")
@@ -7055,6 +7057,96 @@ Oiiotool::getargs(int argc, char* argv[])
 
 
 
+void
+Oiiotool::merge_stats(const Oiiotool& ot)
+{
+    std::lock_guard<std::mutex> lock(m_stat_mutex);
+    total_readtime.add_ticks(ot.total_readtime.ticks());
+    total_writetime.add_ticks(ot.total_writetime.ticks());
+    total_imagecache_readtime += ot.total_imagecache_readtime;
+    for (auto& t : ot.function_times) {
+        function_times[t.first] += t.second;
+    }
+    peak_memory = std::max(peak_memory, ot.peak_memory);
+    if (ot.return_value != EXIT_SUCCESS)
+        return_value = ot.return_value;
+    num_outputs += ot.num_outputs;
+    printed_info |= ot.printed_info;
+}
+
+
+
+static void
+one_sequence_iteration(Oiiotool& otmain, size_t i, int frame_number,
+                       cspan<int>(sequence_args),
+                       cspan<std::vector<std::string>> filenames,
+                       cspan<const char*> argv_main)
+{
+    // If another iteration being processed asked us all to abort, don't
+    // launch this iteration.
+    if (otmain.ap.aborted())
+        return;
+
+    if (otmain.debug)
+        print("Begin sequence iteration {}\n", i);
+
+    // Prepare the arguments for this iteration
+    std::vector<const char*> seq_argv(argv_main.begin(), argv_main.end());
+    for (size_t a : sequence_args) {
+        seq_argv[a] = filenames[a][i].c_str();
+        if (otmain.debug)
+            print("  {} -> {}\n", argv_main[a], seq_argv[a]);
+    }
+
+    Oiiotool otit;  // Oiiotool for this iteration
+    otit.imagecache   = otmain.imagecache;
+    otit.frame_number = frame_number;
+    otit.getargs((int)seq_argv.size(), (char**)&seq_argv[0]);
+
+    if (otit.ap.aborted()) {
+        if (!otit.skip_bad_frames) {
+            // If we are allowing bad frames to be a full error, and not just
+            // skipping the bad frames only, propagate the abort signal to the
+            // main otmain.
+            otmain.ap.abort(false);
+        }
+    } else {
+        otmain.process_pending();
+        if (otmain.pending_callback())
+            otmain.warning(otmain.pending_callback_name(),
+                           "pending command never executed");
+        if (!otmain.control_stack.empty())
+            otmain.warningfmt(otmain.control_stack.top().command,
+                              "unterminated {}",
+                              otmain.control_stack.top().command);
+    }
+
+    // Merge this iteration's stats into the main OT
+    otmain.merge_stats(otit);
+
+    // A few settings that may have occurred in the iteration oiiotool must be
+    // propagated back up to the main, or certain end-of-run behaviors will be
+    // wrong.
+    if (otit.verbose)
+        otmain.verbose = true;
+    if (otit.debug)
+        otmain.debug = true;
+    if (otit.noerrexit)
+        otmain.noerrexit = true;
+    if (otit.runstats) {
+        std::lock_guard<std::mutex> lock(otmain.m_stat_mutex);
+        otmain.runstats = true;
+        print("End sequence iteration {}: {} (total {}) mem {}\n\n", i,
+              Strutil::timeintervalformat(otit.total_runtime(), 2),
+              Strutil::timeintervalformat(otmain.total_runtime(), 2),
+              Strutil::memformat(Sysutil::memory_used()));
+    } else if (otmain.debug) {
+        print("\n");
+    }
+}
+
+
+
 // Check if any of the command line arguments contains numeric ranges or
 // wildcards.  If not, just return 'false'.  But if they do, the
 // remainder of processing will happen here (and return 'true').
@@ -7116,6 +7208,9 @@ handle_sequence(Oiiotool& ot, int argc, const char** argv)
             Strutil::split(argv[++a], views, ",");
         } else if (strarg == "--wildcardoff" || strarg == "-wildcardoff") {
             wildcard_on = false;
+        } else if (strarg == "--parallel-frames"
+                   || strarg == "-parallel-frames") {
+            ot.parallel_frames = true;
         } else if (strarg == "--wildcardon" || strarg == "-wildcardon") {
             wildcard_on = true;
         } else if (wildcard_on && !is_output_all
@@ -7209,50 +7304,26 @@ handle_sequence(Oiiotool& ot, int argc, const char** argv)
     // substituting the i-th sequence entry for its respective argument
     // every time.
     // Note: nfilenames really means, number of frame number iterations.
-    std::vector<const char*> seq_argv(argv, argv + argc + 1);
-    for (size_t i = 0; i < nfilenames; ++i) {
+    if (ot.parallel_frames) {
+        // If --parframes was used, run the iterations in parallel.
         if (ot.debug)
-            std::cout << "SEQUENCE " << i << "\n";
-        for (size_t a : sequence_args) {
-            seq_argv[a] = filenames[a][i].c_str();
-            if (ot.debug)
-                std::cout << "  " << argv[a] << " -> " << seq_argv[a] << "\n";
+            print("Running {} frames in parallel\n", nfilenames);
+        parallel_for(
+            uint64_t(0), uint64_t(nfilenames),
+            [&](uint64_t i) {
+                one_sequence_iteration(ot, i, frame_numbers[0][i],
+                                       sequence_args, filenames,
+                                       { argv, argv + argc });
+            },
+            paropt().minitems(1));
+    } else {
+        // Fully serialized over the frame range, multithreaded for each frame
+        // individually.
+        for (size_t i = 0; i < nfilenames; ++i) {
+            one_sequence_iteration(ot, i, frame_numbers[0][i], sequence_args,
+                                   filenames, { argv, argv + argc });
         }
-
-        ot.clear_options();  // Careful to reset all command line options!
-        ot.frame_number = frame_numbers[0][i];
-        ot.getargs(argc, (char**)&seq_argv[0]);
-
-        if (ot.ap.aborted()) {
-            if (!ot.skip_bad_frames)
-                break;
-            else
-                ot.ap.abort(false);
-        } else {
-            ot.process_pending();
-            if (ot.pending_callback())
-                ot.warning(ot.pending_callback_name(),
-                           "pending command never executed");
-            if (!ot.control_stack.empty())
-                ot.warningfmt(ot.control_stack.top().command, "unterminated {}",
-                              ot.control_stack.top().command);
-        }
-
-        // Clear the stack at the end of each iteration
-        ot.curimg.reset();
-        ot.image_stack.clear();
-        while (ot.control_stack.size())
-            ot.control_stack.pop();
-
-        if (ot.runstats)
-            std::cout << "End iteration " << i << ": "
-                      << Strutil::timeintervalformat(ot.total_runtime(), 2)
-                      << "  " << Strutil::memformat(Sysutil::memory_used())
-                      << "\n";
-        if (ot.debug)
-            std::cout << "\n";
     }
-
     return true;
 }
 

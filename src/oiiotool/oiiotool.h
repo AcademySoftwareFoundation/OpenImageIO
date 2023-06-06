@@ -78,6 +78,7 @@ public:
     int autotile;
     int frame_padding;
     bool eval_enable;              // Enable evaluation of expressions
+    bool parallel_frames = false;  // Parallelize over frame iteration
     bool skip_bad_frames = false;  // Just skip a bad frame, don't exit
     bool nostderr        = false;  // If true, use stdout for errors
     bool noerrexit       = false;  // Don't exit on error
@@ -159,6 +160,9 @@ public:
     TypeDesc input_dataformat;
     int input_bitspersample = 0;
     std::map<std::string, std::string> input_channelformats;
+
+    // stat_mutex guards when we are merging another ot's stats into this one
+    std::mutex m_stat_mutex;
 
     Oiiotool();
 
@@ -350,6 +354,9 @@ public:
         opt.nometamatch        = printinfo_nometamatch;
         return opt;
     }
+
+    // Merge stats from another Oiiotool
+    void merge_stats(const Oiiotool& ot);
 
 private:
     CallbackFunction m_pending_callback;
