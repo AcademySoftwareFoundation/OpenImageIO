@@ -292,12 +292,16 @@ set_exr_threads()
         Imf::setGlobalThreadCount(exr_threads);
     }
 
+#if OPENEXR_CODED_VERSION < 30108 && defined(_WIN32)
     // If we're ever in this function, which we would be any time we use
     // openexr threads, also proactively ensure that we exit the application,
     // we force the OpenEXR threadpool to shut down because their destruction
     // might cause us to hang on Windows when it tries to communicate with
     // threads that would have already been terminated without releasing any
     // held mutexes.
+    // Addendum: But only for OpenEXR < 3.1.8 (beyond that we think it's
+    // fixed on the OpenEXR side), and also only on Windows (the only platform
+    // where we've seen this be symptomatic).
     static std::once_flag set_atexit_once;
     std::call_once(set_atexit_once, []() {
         std::atexit([]() {
@@ -305,6 +309,7 @@ set_exr_threads()
             IlmThread::ThreadPool::globalThreadPool().setNumThreads(0);
         });
     });
+#endif
 }
 
 }  // namespace pvt
