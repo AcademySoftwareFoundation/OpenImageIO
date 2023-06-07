@@ -38,14 +38,13 @@ memory, even if that's not the way they're stored in the file):
         import numpy as np
 
         inp = ImageInput.open(filename)
-        if inp is None :
-            return
-        spec = inp.spec()
-        xres = spec.width
-        yres = spec.height
-        channels = spec.nchannels
-        pixels = inp.read_image("uint8")
-        inp.close()
+        if inp :
+            spec = inp.spec()
+            xres = spec.width
+            yres = spec.height
+            channels = spec.nchannels
+            pixels = inp.read_image("uint8")
+            inp.close()
 
 Here is a breakdown of what work this code is doing:
 
