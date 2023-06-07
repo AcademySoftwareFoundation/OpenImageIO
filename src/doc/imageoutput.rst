@@ -44,12 +44,11 @@ to a file:
        pixels = np.zeros((yres, xres, channels), dtype=np.uint8)
 
        out = oiio.ImageOutput.create (filename)
-       if out is None:
-           return
-       spec = ImageSpec(xres, yres, channels, 'uint8')
-       out.open (filename, spec)
-       out.write_image (pixels)
-       out.close ()
+       if out:
+           spec = oiio.ImageSpec(xres, yres, channels, 'uint8')
+           out.open (filename, spec)
+           out.write_image (pixels)
+           out.close ()
 
 This little bit of code does a surprising amount of useful work:
 
