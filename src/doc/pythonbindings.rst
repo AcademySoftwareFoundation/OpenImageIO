@@ -25,8 +25,8 @@ of brevity, we will alias the package name as follows:
 .. code-block:: python
 
     import OpenImageIO as oiio
-    from OIIO import ImageInput, ImageOutput
-    from OIIO import ImageBuf, ImageSpec, ImageBufAlgo
+    from OpenImageIO import ImageInput, ImageOutput
+    from OpenImageIO import ImageBuf, ImageSpec, ImageBufAlgo
 
 
 .. _sec-pythontypedesc:
@@ -187,7 +187,7 @@ described in detail in Section :ref:`sec-typedesc`, is replicated for Python.
     .. code-block:: python
 
         t = TypeDesc("point[2]")
-        print "size =", t.size()
+        print ("size =", t.size())
         print ("elementtype =", t.elementtype())
         print ("elementsize =", t.elementsize())
 
@@ -465,7 +465,7 @@ Section :ref:`sec-ImageSpec`, is replicated for Python.
         for i in range(len(s.extra_attribs)) :
             print (i, s.extra_attribs[i].name, str(s.extra_attribs[i].type), " :")
             print ("\t", s.extra_attribs[i].value)
-        print
+        print ()
 
 
 
@@ -744,7 +744,7 @@ function that opens a file and prints all the relevant header information:
 .. code-block:: python
 
     #!/usr/bin/env python
-    import OpenImageIO as oiio
+    from OpenImageIO import ImageInput
 
     # Print the contents of an ImageSpec
     def print_imagespec (spec, subimage=0, mip=0) :
@@ -766,35 +766,35 @@ function that opens a file and prints all the relevant header information:
             print ("  tile size  %dx%dx%d" %
                    (spec.tile_width, spec.tile_height, spec.tile_depth))
         else :
-            print "  untiled"
+            print ("  untiled")
         if mip >= 1 :
             return
-        print "  " + str(spec.nchannels), "channels:", spec.channelnames
-        print "  format = ", str(spec.format)
+        print ("  " + str(spec.nchannels), "channels:", spec.channelnames)
+        print ("  format = ", str(spec.format))
         if len(spec.channelformats) > 0 :
-            print "  channelformats = ", spec.channelformats
-        print "  alpha channel = ", spec.alpha_channel
-        print "  z channel = ", spec.z_channel
-        print "  deep = ", spec.deep
-        for i in spec.extra_attribs) :
+            print ("  channelformats = ", spec.channelformats)
+        print ("  alpha channel = ", spec.alpha_channel)
+        print ("  z channel = ", spec.z_channel)
+        print ("  deep = ", spec.deep)
+        for i in spec.extra_attribs :
             if type(i.value) == str :
-                print " ", i.name, "= \"" + i.value + "\""
+                print (" ", i.name, "= \"" + i.value + "\"")
             else :
-                print " ", i.name, "=", i.value
+                print (" ", i.name, "=", i.value)
 
 
     def poor_mans_iinfo (filename) :
         input = ImageInput.open (filename)
         if not input :
-            print 'Could not open "' + filename + '"'
-            print "\tError: ", oiio.geterror()
+            print ('Could not open "' + filename + '"')
+            print ("\tError: ", oiio.geterror())
             return
-        print 'Opened "' + filename + '" as a ' + input.format_name()
+        print ('Opened "' + filename + '" as a ' + input.format_name())
         sub = 0
         mip = 0
         while True :
             if sub > 0 or mip > 0 :
-                print "Subimage", sub, "MIP level", mip, ":"
+                print ("Subimage", sub, "MIP level", mip, ":")
             print_imagespec (input.spec(), mip=mip)
             mip = mip + 1
             if input.seek_subimage (sub, mip) :
@@ -985,7 +985,7 @@ the Python versions allocate and return an array holding the pixel values
 
         input = ImageInput.open ("tahoe.jpg")
         if input == None :
-            print "Error:", oiio.geterror()
+            print ("Error:", oiio.geterror())
             return
 
 .. py:method:: ImageInput.close ()
@@ -1011,7 +1011,7 @@ the Python versions allocate and return an array holding the pixel values
 
         input = ImageInput.open (filename)
         if input :
-            print filename, "was a", input.format_name(), "file."
+            print (filename, "was a", input.format_name(), "file.")
             input.close ()
 
 
@@ -1026,7 +1026,7 @@ the Python versions allocate and return an array holding the pixel values
 
         input = ImageInput.open (filename)
         spec = input.spec()
-        print "resolution ", spec.width, "x", spec.height
+        print ("resolution ", spec.width, "x", spec.height)
 
 .. py:method:: ImageInput.spec (subimage, miplevel=0)
 
@@ -1065,7 +1065,7 @@ the Python versions allocate and return an array holding the pixel values
             if not ok :
                 break
             spec = input.spec()
-            print "MIP level", mip, "is", spec.width, "x", spec.height
+            print ("MIP level", mip, "is", spec.width, "x", spec.height)
 
 
 
@@ -1090,8 +1090,8 @@ the Python versions allocate and return an array holding the pixel values
         input = ImageInput.open (filename)
         spec = input.spec ()
         pixels = input.read_image ()
-        print "The first pixel is", pixels[0][0]
-        print "The second pixel is", pixels[0][1]
+        print ("The first pixel is", pixels[0][0])
+        print ("The second pixel is", pixels[0][1])
         input.close ()
 
 
@@ -1116,7 +1116,7 @@ the Python versions allocate and return an array holding the pixel values
                 pixels = input.read_scanline (y, spec.z, "float")
                 # process the scanline
         else :
-            print "It's a tiled file"
+            print ("It's a tiled file")
         input.close ()
 
 
@@ -1145,7 +1145,7 @@ the Python versions allocate and return an array holding the pixel values
                         pixels = input.read_tile (x, y, z, oiio.FLOAT)
                         # process the tile
         else :
-            print "It's a scanline file"
+            print ("It's a scanline file")
         input.close ()
 
 
@@ -1219,13 +1219,13 @@ the Python versions allocate and return an array holding the pixel values
 
         input = ImageInput.open (filename)
         if not input :
-            print "Open error:", oiio.geterror()
+            print ("Open error:", oiio.geterror())
             # N.B. error on open must be retrieved with the global geterror(),
             # since there is no ImageInput object!
         else :
             pixels = input.read_image (oiio.FLOAT)
             if not pixels :
-                print "Read_image error:", input.geterror()
+                print ("Read_image error:", input.geterror())
             input.close ()
 
 
@@ -1242,14 +1242,14 @@ Example: Reading pixel values from a file to find min/max
     def find_min_max (filename) :
         input = ImageInput.open (filename)
         if not input :
-            print 'Could not open "' + filename + '"'
-            print "\tError: ", oiio.geterror()
+            print ('Could not open "' + filename + '"')
+            print ("\tError: ", oiio.geterror())
             return
         spec = input.spec()
         nchans = spec.nchannels
         pixels = input.read_image()
         if not pixels :
-            print "Could not read:", input.geterror()
+            print ("Could not read:", input.geterror())
             return
         input.close()    # we're done with the file at this point
         minval = pixels[0][0]   # initialize to the first pixel value
@@ -1262,8 +1262,8 @@ Example: Reading pixel values from a file to find min/max
                         minval[c] = p[c]
                     if p[c] > maxval[c] :
                         maxval[c] = p[c]
-        print "Min values per channel were", minval
-        print "Max values per channel were", maxval
+        print ("Min values per channel were", minval)
+        print ("Max values per channel were", maxval)
 
 |
 
@@ -1293,7 +1293,7 @@ ImageOutput class APIs. The Python APIs are very similar.
         import OpenImageIO as oiio
         output = ImageOutput.create ("myfile.tif")
         if not output :
-            print "Error:", oiio.geterror()
+            print ("Error:", oiio.geterror())
 
 
 
@@ -1307,7 +1307,7 @@ ImageOutput class APIs. The Python APIs are very similar.
 
         output = ImageOutput.create (filename)
         if output :
-            print "Created output", filename, "as a", output.format_name()
+            print ("Created output", filename, "as a", output.format_name()
 
 
 
@@ -1324,11 +1324,11 @@ ImageOutput class APIs. The Python APIs are very similar.
 
         output = ImageOutput.create (filename)
         if output :
-            print output.format_name(), "supports..."
-            print "tiles?", output.supports("tiles")
-            print "multi-image?", output.supports("multiimage")
-            print "MIP maps?", output.supports("mipmap")
-            print "per-channel formats?", output.supports("channelformats")
+            print (output.format_name(), "supports...")
+            print ("tiles?", output.supports("tiles"))
+            print ("multi-image?", output.supports("multiimage"))
+            print ("MIP maps?", output.supports("mipmap"))
+            print ("per-channel formats?", output.supports("channelformats"))
 
 
 .. py:method:: ImageOutput.open (filename, spec, mode="Create")
@@ -1347,11 +1347,11 @@ ImageOutput class APIs. The Python APIs are very similar.
 
         output = ImageOutput.create (filename)
         if not output :
-            print "Error:", oiio.geterror()
+            print ("Error:", oiio.geterror())
         spec = ImageSpec (640, 480, 3, "uint8")
         ok = output.open (filename, spec)
         if not ok :
-            print "Could not open", filename, ":", output.geterror()
+            print ("Could not open", filename, ":", output.geterror())
 
 
 .. py:method:: ImageOutput.open (filename, (imagespec, ...))
@@ -1533,16 +1533,16 @@ ImageOutput class APIs. The Python APIs are very similar.
 
         output = ImageOutput.create (filename)
         if not output :
-            print "Create error:", oiio.geterror()
+            print ("Create error:", oiio.geterror())
             # N.B. error on create must be retrieved with the global geterror(),
             # since there is no ImageOutput object!
         else :
             ok = output.open (filename, spec)
             if not ok :
-                print "Open error:", output.geterror()
+                print ("Open error:", output.geterror())
             ok = output.write_image (pixels)
             if not ok :
-                print "Write error:", output.geterror()
+                print ("Write error:", output.geterror())
             output.close ()
 
 
@@ -1812,7 +1812,7 @@ awaiting a call to `reset()` or `copy()` before it is useful.
     .. code-block:: python
 
         buf = ImageBuf ("in.tif")
-        print "Resolution is", buf.spec().width, "x", buf.spec().height
+        print ("Resolution is", buf.spec().width, "x", buf.spec().height)
 
 
 
@@ -1918,7 +1918,7 @@ awaiting a call to `reset()` or `copy()` before it is useful.
     .. code-block:: python
 
         buf = ImageBuf ("tahoe.jpg")
-        print "Resolution is", buf.roi.width, "x", buf.roi.height
+        print ("Resolution is", buf.roi.width, "x", buf.roi.height)
 
 
 
@@ -2045,7 +2045,7 @@ awaiting a call to `reset()` or `copy()` before it is useful.
     
         buf = ImageBuf ("tahoe.jpg")
         p = buf.getpixel (50, 50)
-        print p
+        print (p)
     
         > (0.37, 0.615, 0.97)
 
@@ -2186,10 +2186,10 @@ awaiting a call to `reset()` or `copy()` before it is useful.
         buf = ImageBuf ("in.tif")
         buf.read ()   # force a read
         if buf.has_error :
-            print "Error reading the file:", buf.geterror()
+            print ("Error reading the file:", buf.geterror())
         buf.write ("out.jpg")
         if buf.has_error :
-            print "Could not convert the file:", buf.geterror()
+            print ("Could not convert the file:", buf.geterror())
 
 
 
@@ -3177,13 +3177,13 @@ Image comparison and statistics
 
         A = ImageBuf("a.exr")
         stats = ImageBufAlgo.computePixelStats (A)
-        print "   min = ", stats.min
-        print "   max = ", stats.max
-        print "   average = ", stats.avg
-        print "   standard deviation  = ", stats.stddev
-        print "   # NaN values    = ", stats.nancount
-        print "   # Inf values    = ", stats.infcount
-        print "   # finite values = ", stats.finitecount
+        print ("   min = ", stats.min)
+        print ("   max = ", stats.max)
+        print ("   average = ", stats.avg)
+        print ("   standard deviation  = ", stats.stddev)
+        print ("   # NaN values    = ", stats.nancount)
+        print ("   # Inf values    = ", stats.infcount)
+        print ("   # finite values = ", stats.finitecount)
 
 
 
@@ -3212,15 +3212,15 @@ Image comparison and statistics
         B = ImageBuf ("b.exr")
         comp = ImageBufAlgo.compare (A, B, 1.0/255.0, 0.0)
         if comp.nwarn == 0 and comp.nfail == 0 :
-            print "Images match within tolerance"
+            print ("Images match within tolerance")
         else :
-            print comp.nfail, "failures,", comp.nwarn, " warnings."
-            print "Average error was " , comp.meanerror
-            print "RMS error was" , comp.rms_error
-            print "PSNR was" , comp.PSNR
-            print "largest error was ", comp.maxerror
-            print "  on pixel", (comp.maxx, comp.maxy, comp.maxz)
-            print "  channel", comp.maxc
+            print (comp.nfail, "failures,", comp.nwarn, " warnings.")
+            print ("Average error was " , comp.meanerror)
+            print ("RMS error was" , comp.rms_error)
+            print ("PSNR was" , comp.PSNR)
+            print ("largest error was ", comp.maxerror)
+            print ("  on pixel", (comp.maxx, comp.maxy, comp.maxz))
+            print ("  channel", comp.maxc)
 
 
 
@@ -3237,9 +3237,9 @@ Image comparison and statistics
         A = ImageBuf ("a.exr")
         color = ImageBufAlgo.isConstantColor (A)
         if color != None :
-            print "The image has the same value in all pixels:", color
+            print ("The image has the same value in all pixels:", color)
         else :
-            print "The image is not a solid color."
+            print ("The image is not a solid color.")
 
 
 
@@ -3255,11 +3255,11 @@ Image comparison and statistics
         A = ImageBuf ("a.exr")
         alpha = A.spec.alpha_channel
         if alpha < 0 :
-            print "The image does not have an alpha channel"
+            print ("The image does not have an alpha channel")
         elif ImageBufAlgo.isConstantChannel (A, alpha, 1.0) :
-            print "The image has alpha = 1.0 everywhere"
+            print ("The image has alpha = 1.0 everywhere")
         else :
-            print "The image has alpha < 1 in at least one pixel"
+            print ("The image has alpha < 1 in at least one pixel")
 
 
 
@@ -3275,7 +3275,7 @@ Image comparison and statistics
         roi = A.roi
         roi.chend = min (3, roi.chend)  # only test RGB, not alpha
         if ImageBufAlgo.isMonochrome (A, roi) :
-            print "a.exr is really grayscale"
+            print ("a.exr is really grayscale")
 
 
 
@@ -3294,7 +3294,7 @@ Image comparison and statistics
 
         A = ImageBuf ("a.exr")
         counts = ImageBufAlgo.color_range_check (A, 0.5, 0.75)
-        print ('{} values < 0.5, {} values > 0.75'.format(counts[0], counts[1])
+        print ('{} values < 0.5, {} values > 0.75'.format(counts[0], counts[1]))
 
 
 
@@ -3927,7 +3927,7 @@ what to do with it next.
         if not image.has_error :
             image.write (filename, format)
         if image.has_error :
-            print "Error writing", filename, ":", image.geterror()
+            print ("Error writing", filename, ":", image.geterror())
 
 
 
@@ -3952,7 +3952,7 @@ what to do with it next.
     B = ImageBuf ("B.tif")
     compresults = ImageBufAlgo.compare (A, B, 1.0e-6, 1.0e-6)
     if compresults.nfail > 0 :
-        print "Images did not match, writing difference image diff.tif"
+        print ("Images did not match, writing difference image diff.tif")
         diff = ImageBufAlgo.absdiff (A, B)
         image_write (diff, "diff.tif")
 
