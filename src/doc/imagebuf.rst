@@ -469,7 +469,7 @@ Strategy 2: Template your iterating functions based on buffer type
 Consider the following alternate version of the `make_black` function
 from Section `Example: Set all pixels in a region to black`_ ::
 
-    template<type BUFT>
+    template<typename BUFT>
     static bool make_black_impl (ImageBuf &buf, ROI region)
     {
         // Clamp the region's channel range to the channels in the image
@@ -497,7 +497,7 @@ from Section `Example: Set all pixels in a region to black`_ ::
             return make_black_impl<unsigned short> (buf, region);
         else {
             buf.error ("Unsupported pixel data format %s", buf.spec().format);
-            retrn false;
+            return false;
         }
     }
 
@@ -512,7 +512,7 @@ chapter).  You could rewrite the example even more simply::
 
     #include <OpenImageIO/imagebufalgo_util.h>
     
-    template<type BUFT>
+    template<typename BUFT>
     static bool make_black_impl (ImageBuf &buf, ROI region)
     {
         ... same as before ...
