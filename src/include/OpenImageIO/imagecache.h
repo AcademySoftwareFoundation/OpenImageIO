@@ -107,7 +107,7 @@ public:
     ///           exceed this by a small percentage. (Default = 100)
     /// - `float max_memory_MB` :
     ///           The approximate maximum amount of memory (measured in MB)
-    ///           used for the internal "tile cache." (Default: 256.0 MB)
+    ///           used for the internal "tile cache." (Default: 1024.0 MB)
     /// - `string searchpath` :
     ///           The search path for images: a colon-separated list of
     ///           directories that will be searched in order for any image
