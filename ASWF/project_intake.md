@@ -13,18 +13,18 @@ This is a checklist for TSC's to review as part of the intake process. The TSC s
   - [X] A [GOVERNANCE.md](../GOVERNANCE.md) file that documents the project’s technical governance.
   - [ ] A [SUPPORT.md](../SUPPORT.md) file to let users and developers know about ways to get help with your project.
 - Infrastructure/Assets
-  - [ ] Technical Charter Approved
-  - [ ]	License scan completed and no issues found
-  - [ ]	Code repository imported to ASWF GitHub organization or ownership of current GitHub organization given to `thelinuxfoundation` user
+  - [ ] **(Awaiting final draft from LF)** Technical Charter Approved
+  - [ ] **(Awaiting scan from LF)** License scan completed and no issues found
+  - [ ] **(Awaiting final draft of project ownership transfer from LF)** Code repository imported to ASWF GitHub organization or ownership of current GitHub organization given to `thelinuxfoundation` user
   - [ ] Developer Certificate of Origin past commit signoff done and DCO Probot enabled.
   - [X] Issue/feature tracker established (JIRA, GitHub issues)
   - [ ] Mailing lists ( one of )
-    - [ ] Setup new lists ( -discuss@ and -tsc@ ) on [ASWF groups.io](https://lists.aswf.io) ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to setup )
-    - [ ] Move to [ASWF groups.io](https://lists.aswf.io) ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to transfer )
+    - [ ] **(Awaiting from LF)** Setup new lists ( -dev@ and -tsc@ ) on [ASWF groups.io](https://lists.aswf.io) ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to setup )
+    - [ ] **(ASAP from LF)** Move to [ASWF groups.io](https://lists.aswf.io) ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to transfer )
   - [X] Slack ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to setup project channel on [ASWF Slack](https://slack.aswf.io) )
   - [ ] Website
   - [X] CI/build environment
-  - [ ] Trademarks/mark ownership rights ( complete 'LF Projects - Form of Trademark and Account Assignment' - create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) - only needed if project using existing name )
+  - [ ] **(Awaiting final draft from LF)** Trademarks/mark ownership rights ( complete 'LF Projects - Form of Trademark and Account Assignment' - create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) - only needed if project using existing name )
   - [ ] Domain name	( create [issue with the LF IT staff](https://jira.linuxfoundation.org/plugins/servlet/theme/portal/2/group/19) to setup/transfer )
   - [ ] Zoom account access ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to get access to credentials )
   - [ ] Social media accounts or other project accounts	( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to transfer )
@@ -33,9 +33,9 @@ This is a checklist for TSC's to review as part of the intake process. The TSC s
   - [X] TSC members identified
   - [X] First TSC meeting held
   - [X] TSC meeting cadence set and added to project calendar
-  - [ ] CLA Approved ( if used ) ( [CCLA](CLA-corporate.md) and [ICLA](CLA-individual.md) )
+  - [ ] **(Awaiting TSC ratification)** CLA Approved ( if used ) ( [CCLA](CLA-corporate.md) and [ICLA](CLA-individual.md) )
   - Project charter	( [charter.md](charter.md) )
-    - [ ] Approved by TSC
+    - [ ] **(Awaiting final draft from LF)** Approved by TSC
     - [ ] Filed ( create pull request against [foundation repo](https://github.com/AcademySoftwareFoundation/foundation) )
   - [ ] [Core Infrastructure Initiative Best Practices Badge](https://bestpractices.coreinfrastructure.org/) achieved as the 'Passing' level.
 - Outreach
