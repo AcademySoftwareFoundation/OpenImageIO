@@ -23,7 +23,7 @@ message (STATUS "${ColorReset}")
 
 set (OIIO_LOCAL_DEPS_PATH "${CMAKE_SOURCE_DIR}/ext/dist" CACHE STRING
      "Local area for dependencies added to CMAKE_PREFIX_PATH")
-list (APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/ext/dist)
+list (APPEND CMAKE_PREFIX_PATH ${OIIO_LOCAL_DEPS_PATH})
 
 include (ExternalProject)
 
