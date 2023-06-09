@@ -95,11 +95,19 @@
 //     #define OIIO_DISABLE_DEPRECATED OIIO_MAKE_VERSION(2,2,0)
 //
 // before including any OpenImageIO header, then we will do our best to make
-// it a compile-time error if they try to use anything we consider deprecated
-// in version 2.2.0 or later. This is viewed as equivalent to the downstream
+// it a compile-time error if they try to use anything that was deprecated
+// in or before version 2.2.0. This is viewed as equivalent to the downstream
 // package considering their minimum OIIO to be 2.2 and they want to be sure
 // they aren't using any features that are slated for deprecation. The
 // default, 0, will not try to hide any deprecated features.
+//
+// To clarify, if version 2.2 is the first to deprecate a certain definition,
+// then it is considered good practice to guard it like this:
+//
+//     #if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2,2,0)
+//        ... deprecated definition here ...
+//     #endif
+//
 #ifndef OIIO_DISABLE_DEPRECATED
 #    define OIIO_DISABLE_DEPRECATED 0
 #endif
