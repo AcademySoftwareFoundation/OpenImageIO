@@ -308,6 +308,7 @@ ICOInput::readimg()
     std::vector<unsigned char> scanline(slb);
     ico_palette_entry* pe;
     int k;
+    int index;
     for (int y = m_spec.height - 1; y >= 0; y--) {
         if (!fread(&scanline[0], 1, slb))
             return false;
@@ -316,13 +317,23 @@ ICOInput::readimg()
             // fill the buffer
             switch (m_bpp) {
             case 1:
-                pe = &palette[(scanline[x / 8] & (1 << (7 - x % 8))) != 0];
+                index = ((scanline[x / 8] & (1 << (7 - x % 8))) != 0);
+                if (index >= m_palette_size) {
+                    errorfmt("Possible corruption: index exceeds palette size");
+                    return false;
+                }
+                pe           = &palette[index];
                 m_buf[k + 0] = pe->r;
                 m_buf[k + 1] = pe->g;
                 m_buf[k + 2] = pe->b;
                 break;
             case 4:
-                pe           = &palette[(scanline[x / 2] & 0xF0) >> 4];
+                index = ((scanline[x / 2] & 0xF0) >> 4);
+                if (index >= m_palette_size) {
+                    errorfmt("Possible corruption: index exceeds palette size");
+                    return false;
+                }
+                pe           = &palette[index];
                 m_buf[k + 0] = pe->r;
                 m_buf[k + 1] = pe->g;
                 m_buf[k + 2] = pe->b;
@@ -341,7 +352,12 @@ ICOInput::readimg()
                           << "\n";*/
                 break;
             case 8:
-                pe           = &palette[scanline[x]];
+                index = scanline[x];
+                if (index >= m_palette_size) {
+                    errorfmt("Possible corruption: index exceeds palette size");
+                    return false;
+                }
+                pe           = &palette[index];
                 m_buf[k + 0] = pe->r;
                 m_buf[k + 1] = pe->g;
                 m_buf[k + 2] = pe->b;
