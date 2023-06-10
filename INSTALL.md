@@ -35,7 +35,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * Qt5 >= 5.6 (tested through 5.15) or Qt6 (tested through 6.4)
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
-     * Python >= 2.7 (tested against 2.7, 3.7, 3.8, 3.9, 3.10)
+     * Python >= 2.7 (tested against 2.7, 3.7, 3.8, 3.9, 3.10, 3.11)
      * pybind11 >= 2.4.2 (Tested through 2.10. Note that pybind11 v2.10+ does
        not support Python < 3.6.)
      * NumPy
@@ -70,6 +70,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * OpenColorIO >= 1.1 (tested through 2.2; 2.0+ is recommended)
  * If you want support for Ptex:
      * Ptex >= 2.3.1 (probably works for older; tested through 2.4.2)
+ * If you want to be able to do font rendering into images:
+     * Freetype (minimum unknown, tested 2.8 through 2.13)
  * We use PugiXML for XML parsing. There is a version embedded in the OIIO
    tree, but if you want to use an external, system-installed version (as
    may be required by some software distributions with policies against

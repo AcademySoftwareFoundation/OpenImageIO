@@ -33,6 +33,7 @@ jobs:
           - desc: gcc6/C++14 py2.7 boost1.66 exr2.3 ocio1.1
             nametag: linux-vfx2019
             os: ubuntu-latest
+            container: aswf/ci-osl:2019
             vfxyear: 2019
             cxx_std: 14
             python_ver: 2.7
@@ -43,6 +44,7 @@ jobs:
           - desc: gcc6/C++14 py3.7 boost1.70 exr2.4 ocio1.1
             nametag: linux-vfx2020
             os: ubuntu-latest
+            container: aswf/ci-osl:2020
             vfxyear: 2020
             cxx_std: 14
             python_ver: 3.7
@@ -53,6 +55,7 @@ jobs:
           - desc: gcc9/C++17 py3.7 boost1.73 exr2.5 ocio2.0
             nametag: linux-vfx2021
             os: ubuntu-latest
+            container: aswf/ci-osl:2021
             vfxyear: 2021
             cxx_std: 17
             python_ver: 3.7
@@ -63,8 +66,8 @@ jobs:
           - desc: clang10/C++14 avx2 exr2.5 ocio2.0
             nametag: linux-clang10-cpp14
             os: ubuntu-latest
+            container: aswf/ci-osl:2021-clang10
             vfxyear: 2021
-            vfxsuffix: -clang10
             cc_compiler: clang
             cxx_compiler: clang++
             cxx_std: 14
@@ -75,18 +78,18 @@ jobs:
           - desc: gcc9/C++17 py39 boost1.76 exr3.1 ocio2.1
             nametag: linux-vfx2022
             os: ubuntu-latest
+            container: aswf/ci-osl:2022-clang11
             vfxyear: 2022
-            vfxsuffix: -clang11
             cxx_std: 17
             python_ver: 3.9
             simd: "avx2,f16c"
             fmt_ver: 8.1.1
             pybind11_ver: v2.9.0
           - desc: clang13/C++17 py39 avx2 exr3.1 ocio2.1
-            nametag: linux-clang13-cpp17
+            nametag: linux-vfx2022-clang13
             os: ubuntu-latest
+            container: aswf/ci-osl:2022-clang13
             vfxyear: 2022
-            vfxsuffix: -clang13
             cc_compiler: clang
             cxx_compiler: clang++
             cxx_std: 17
@@ -97,6 +100,7 @@ jobs:
           - desc: icc/C++17 py3.9 boost1.76 exr3.1 ocio2.1 qt5.15
             nametag: linux-vfx2022-icc
             os: ubuntu-latest
+            container: aswf/ci-osl:2022
             vfxyear: 2022
             cxx_std: 17
             python_ver: 3.9
@@ -111,6 +115,7 @@ jobs:
           - desc: icx/C++17 py3.9 boost1.76 exr3.1 ocio2.1 qt5.15
             nametag: linux-vfx2022-icx
             os: ubuntu-latest
+            container: aswf/ci-osl:2022
             vfxyear: 2022
             cc_compiler: icx
             cxx_compiler: icpx
@@ -122,8 +127,8 @@ jobs:
           - desc: sanitizers
             nametag: sanitizer
             os: ubuntu-latest
+            container: aswf/ci-osl:2022-clang13
             vfxyear: 2022
-            vfxsuffix: -clang13
             cc_compiler: clang
             cxx_compiler: clang++
             cxx_std: 17
@@ -133,11 +138,22 @@ jobs:
                             CMAKE_BUILD_TYPE=Debug
                             CTEST_TEST_TIMEOUT=1200
                             CTEST_EXCLUSIONS="broken|cmake-consumer|png-damaged"
+          - desc: gcc11/C++17 py3.10 boost1.80 exr3.1 ocio2.2
+            nametag: linux-vfx2023
+            os: ubuntu-latest
+            container: aswftesting/ci-osl:2023-clang15
+            vfxyear: 2023
+            cxx_std: 17
+            python_ver: "3.10"
+            simd: "avx2,f16c"
+            fmt_ver: 9.1.0
+            pybind11_ver: v2.10.0
           - desc: oldest/hobbled gcc6.3/C++14 py2.7 boost-1.66 exr-2.3 no-sse no-ocio
             # Oldest versions of the dependencies that we can muster, and various
             # things disabled (no SSE, OCIO, or OpenCV, don't embed plugins).
             nametag: linux-oldest
             os: ubuntu-latest
+            container: aswf/ci-osl:2019
             vfxyear: 2019
             cxx_std: 14
             fmt_ver: 6.1.2
@@ -161,8 +177,8 @@ jobs:
           - desc: "clang-format"
             nametag: clang-format
             os: ubuntu-latest
+            container: aswf/ci-osl:2022-clang12
             vfxyear: 2022
-            vfxsuffix: -clang12
             cxx_std: 17
             skip_tests: 1
             setenvs: export BUILDTARGET=clang-format
@@ -170,7 +186,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     container:
-      image: aswf/ci-osl:${{matrix.vfxyear}}${{matrix.vfxsuffix}}
+      image: ${{ matrix.container }}
     env:
       CXX: ${{matrix.cxx_compiler}}
       CC: ${{matrix.cc_compiler}}
