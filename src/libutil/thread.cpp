@@ -161,8 +161,7 @@ public:
                 std::vector<std::unique_ptr<std::thread>> terminating_threads;
                 for (int i = oldNThreads - 1; i >= nThreads; --i) {
                     *this->flags[i] = true;  // this thread will finish
-                    terminating_threads.push_back(
-                        std::move(this->threads[i]));
+                    terminating_threads.push_back(std::move(this->threads[i]));
                     this->threads.erase(this->threads.begin() + i);
                 }
                 {
