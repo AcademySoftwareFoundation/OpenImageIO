@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #include <cerrno>
 #include <cmath>
@@ -11,14 +11,10 @@
 #include <memory>
 #include <numeric>
 
+#include <OpenImageIO/Imath.h>
+#include <OpenImageIO/platform.h>
+
 #include <boost/version.hpp>
-#if BOOST_VERSION >= 106900
-#    include <boost/integer/common_factor_rt.hpp>
-using boost::integer::gcd;
-#else
-#    include <boost/math/common_factor_rt.hpp>
-using boost::math::gcd;
-#endif
 
 #include <OpenEXR/ImfChannelList.h>
 #include <OpenEXR/ImfEnvmap.h>
@@ -26,11 +22,13 @@ using boost::math::gcd;
 #include <OpenEXR/ImfTestFile.h>
 #include <OpenEXR/ImfTiledInputFile.h>
 
+#include "exr_pvt.h"
+
 // The way that OpenEXR uses dynamic casting for attributes requires
 // temporarily suspending "hidden" symbol visibility mode.
-#ifdef __GNUC__
-#    pragma GCC visibility push(default)
-#endif
+OIIO_PRAGMA_VISIBILITY_PUSH
+OIIO_PRAGMA_WARNING_PUSH
+OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wunused-parameter")
 #include <OpenEXR/IexBaseExc.h>
 #include <OpenEXR/IexThrowErrnoExc.h>
 #include <OpenEXR/ImfBoxAttribute.h>
@@ -42,6 +40,10 @@ using boost::math::gcd;
 #include <OpenEXR/ImfDoubleAttribute.h>
 #include <OpenEXR/ImfEnvmapAttribute.h>
 #include <OpenEXR/ImfFloatAttribute.h>
+#include <OpenEXR/ImfHeader.h>
+#if OPENEXR_HAS_FLOATVECTOR
+#    include <OpenEXR/ImfFloatVectorAttribute.h>
+#endif
 #include <OpenEXR/ImfInputPart.h>
 #include <OpenEXR/ImfIntAttribute.h>
 #include <OpenEXR/ImfKeyCodeAttribute.h>
@@ -54,18 +56,19 @@ using boost::math::gcd;
 #include <OpenEXR/ImfTiledInputPart.h>
 #include <OpenEXR/ImfTimeCodeAttribute.h>
 #include <OpenEXR/ImfVecAttribute.h>
-
-#ifdef __GNUC__
-#    pragma GCC visibility pop
-#endif
+OIIO_PRAGMA_WARNING_POP
+OIIO_PRAGMA_VISIBILITY_POP
 
 #include <OpenEXR/ImfCRgbaFile.h>
+
+#if OPENEXR_CODED_VERSION >= 30100 && defined(OIIO_USE_EXR_C_API)
+#    define USE_OPENEXR_CORE
+#endif
 
 #include "imageio_pvt.h"
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/filesystem.h>
-#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagebufalgo_util.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
@@ -79,29 +82,38 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 // Custom file input stream, copying code from the class StdIFStream in OpenEXR,
 // which would have been used if we just provided a filename. The difference is
 // that this can handle UTF-8 file paths on all platforms.
-class OpenEXRInputStream : public Imf::IStream {
+class OpenEXRInputStream final : public Imf::IStream {
 public:
     OpenEXRInputStream(const char* filename, Filesystem::IOProxy* io)
         : Imf::IStream(filename)
         , m_io(io)
     {
         if (!io || io->mode() != Filesystem::IOProxy::Read)
-            throw Iex::IoExc("File intput failed.");
+            throw Iex::IoExc("File input failed.");
     }
-    virtual bool read(char c[], int n)
+    bool read(char c[], int n) override
     {
-        ASSERT(m_io);
+        OIIO_DASSERT(m_io);
         if (m_io->read(c, n) != size_t(n))
             throw Iex::IoExc("Unexpected end of file.");
         return n;
     }
-    virtual Imath::Int64 tellg() { return m_io->tell(); }
-    virtual void seekg(Imath::Int64 pos)
+#if OIIO_USING_IMATH >= 3
+    uint64_t tellg() override { return m_io->tell(); }
+    void seekg(uint64_t pos) override
     {
         if (!m_io->seek(pos))
             throw Iex::IoExc("File input failed.");
     }
-    virtual void clear() {}
+#else
+    Imath::Int64 tellg() override { return m_io->tell(); }
+    void seekg(Imath::Int64 pos) override
+    {
+        if (!m_io->seek(pos))
+            throw Iex::IoExc("File input failed.");
+    }
+#endif
+    void clear() override {}
 
 private:
     Filesystem::IOProxy* m_io = nullptr;
@@ -112,52 +124,56 @@ private:
 class OpenEXRInput final : public ImageInput {
 public:
     OpenEXRInput();
-    virtual ~OpenEXRInput() { close(); }
-    virtual const char* format_name(void) const override { return "openexr"; }
-    virtual int supports(string_view feature) const override
+    ~OpenEXRInput() override { close(); }
+    const char* format_name(void) const override { return "openexr"; }
+    int supports(string_view feature) const override
     {
         return (feature == "arbitrary_metadata"
                 || feature == "exif"  // Because of arbitrary_metadata
                 || feature == "iptc"  // Because of arbitrary_metadata
                 || feature == "ioproxy");
     }
-    virtual bool valid_file(const std::string& filename) const override;
-    virtual bool open(const std::string& name, ImageSpec& newspec,
-                      const ImageSpec& config) override;
-    virtual bool open(const std::string& name, ImageSpec& newspec) override
+    bool valid_file(Filesystem::IOProxy* ioproxy) const override;
+    bool open(const std::string& name, ImageSpec& newspec,
+              const ImageSpec& config) override;
+    bool open(const std::string& name, ImageSpec& newspec) override
     {
         return open(name, newspec, ImageSpec());
     }
-    virtual bool close() override;
-    virtual int current_subimage(void) const override { return m_subimage; }
-    virtual int current_miplevel(void) const override { return m_miplevel; }
-    virtual bool seek_subimage(int subimage, int miplevel) override;
-    virtual ImageSpec spec(int subimage, int miplevel) override;
-    virtual ImageSpec spec_dimensions(int subimage, int miplevel) override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
-    virtual bool read_native_scanlines(int subimage, int miplevel, int ybegin,
-                                       int yend, int z, void* data) override;
-    virtual bool read_native_scanlines(int subimage, int miplevel, int ybegin,
-                                       int yend, int z, int chbegin, int chend,
-                                       void* data) override;
-    virtual bool read_native_tile(int subimage, int miplevel, int x, int y,
-                                  int z, void* data) override;
-    virtual bool read_native_tiles(int subimage, int miplevel, int xbegin,
-                                   int xend, int ybegin, int yend, int zbegin,
-                                   int zend, void* data) override;
-    virtual bool read_native_tiles(int subimage, int miplevel, int xbegin,
-                                   int xend, int ybegin, int yend, int zbegin,
-                                   int zend, int chbegin, int chend,
-                                   void* data) override;
-    virtual bool read_native_deep_scanlines(int subimage, int miplevel,
-                                            int ybegin, int yend, int z,
-                                            int chbegin, int chend,
-                                            DeepData& deepdata) override;
-    virtual bool read_native_deep_tiles(int subimage, int miplevel, int xbegin,
-                                        int xend, int ybegin, int yend,
-                                        int zbegin, int zend, int chbegin,
-                                        int chend, DeepData& deepdata) override;
+    bool close() override;
+    int current_subimage(void) const override { return m_subimage; }
+    int current_miplevel(void) const override { return m_miplevel; }
+    bool seek_subimage(int subimage, int miplevel) override;
+    ImageSpec spec(int subimage, int miplevel) override;
+    ImageSpec spec_dimensions(int subimage, int miplevel) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
+    bool read_native_scanlines(int subimage, int miplevel, int ybegin, int yend,
+                               int z, void* data) override;
+    bool read_native_scanlines(int subimage, int miplevel, int ybegin, int yend,
+                               int z, int chbegin, int chend,
+                               void* data) override;
+    bool read_native_tile(int subimage, int miplevel, int x, int y, int z,
+                          void* data) override;
+    bool read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
+                           int ybegin, int yend, int zbegin, int zend,
+                           void* data) override;
+    bool read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
+                           int ybegin, int yend, int zbegin, int zend,
+                           int chbegin, int chend, void* data) override;
+    bool read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
+                                    int yend, int z, int chbegin, int chend,
+                                    DeepData& deepdata) override;
+    bool read_native_deep_tiles(int subimage, int miplevel, int xbegin,
+                                int xend, int ybegin, int yend, int zbegin,
+                                int zend, int chbegin, int chend,
+                                DeepData& deepdata) override;
+
+    bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
+    {
+        m_io = ioproxy;
+        return true;
+    }
 
 private:
     struct PartInfo {
@@ -207,8 +223,6 @@ private:
     Imf::TiledInputPart* m_tiled_input_part;
     Imf::DeepScanLineInputPart* m_deep_scanline_input_part;
     Imf::DeepTiledInputPart* m_deep_tiled_input_part;
-    Imf::InputFile* m_input_scanline;    ///< Input for scanline files
-    Imf::TiledInputFile* m_input_tiled;  ///< Input for tiled files
     Filesystem::IOProxy* m_io = nullptr;
     std::unique_ptr<Filesystem::IOProxy> m_local_io;
     int m_subimage;                     ///< What subimage are we looking at?
@@ -224,16 +238,12 @@ private:
         m_tiled_input_part         = NULL;
         m_deep_scanline_input_part = NULL;
         m_deep_tiled_input_part    = NULL;
-        m_input_scanline           = NULL;
-        m_input_tiled              = NULL;
         m_subimage                 = -1;
         m_miplevel                 = -1;
         m_io                       = nullptr;
         m_local_io.reset();
         m_missingcolor.clear();
     }
-
-    bool valid_file(const std::string& filename, Filesystem::IOProxy* io) const;
 
     bool read_native_tiles_individually(int subimage, int miplevel, int xbegin,
                                         int xend, int ybegin, int yend,
@@ -249,12 +259,19 @@ private:
 
 
 
-// Obligatory material to make this a recognizeable imageio plugin:
+// Obligatory material to make this a recognizable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageInput*
 openexr_input_imageio_create()
 {
+#ifdef USE_OPENEXR_CORE
+    if (pvt::openexr_core) {
+        // Strutil::print("selecting core\n");
+        extern ImageInput* openexrcore_input_imageio_create();
+        return openexrcore_input_imageio_create();
+    }
+#endif
     return new OpenEXRInput;
 }
 
@@ -266,94 +283,49 @@ OIIO_EXPORT const char* openexr_input_extensions[] = { "exr", "sxr", "mxr",
 OIIO_PLUGIN_EXPORTS_END
 
 
+static std::map<std::string, std::string> exr_tag_to_oiio_std {
+    // Ones whose name we change to our convention
+    { "cameraTransform", "worldtocamera" },
+    { "capDate", "DateTime" },
+    { "comments", "ImageDescription" },
+    { "owner", "Copyright" },
+    { "pixelAspectRatio", "PixelAspectRatio" },
+    { "xDensity", "XResolution" },
+    { "expTime", "ExposureTime" },
+    // Ones we don't rename -- OpenEXR convention matches ours
+    { "wrapmodes", "wrapmodes" },
+    { "aperture", "FNumber" },
+    // Ones to prefix with openexr:
+    { "chunkCount", "openexr:chunkCount" },
+    { "maxSamplesPerPixel", "openexr:maxSamplesPerPixel" },
+    { "dwaCompressionLevel", "openexr:dwaCompressionLevel" },
+    // Ones to skip because we handle specially or consider them irrelevant
+    { "channels", "" },
+    { "compression", "" },
+    { "dataWindow", "" },
+    { "displayWindow", "" },
+    { "envmap", "" },
+    { "tiledesc", "" },
+    { "tiles", "" },
+    { "openexr:lineOrder", "" },
+    { "type", "" },
 
-class StringMap {
-    typedef std::map<std::string, std::string> map_t;
-
-public:
-    StringMap(void) { init(); }
-
-    const std::string& operator[](const std::string& s) const
-    {
-        map_t::const_iterator i;
-        i = m_map.find(s);
-        return i == m_map.end() ? s : i->second;
-    }
-
-private:
-    map_t m_map;
-
-    void init(void)
-    {
-        // Ones whose name we change to our convention
-        m_map["cameraTransform"]  = "worldtocamera";
-        m_map["worldToCamera"]    = "worldtocamera";
-        m_map["worldToNDC"]       = "worldtoscreen";
-        m_map["capDate"]          = "DateTime";
-        m_map["comments"]         = "ImageDescription";
-        m_map["owner"]            = "Copyright";
-        m_map["pixelAspectRatio"] = "PixelAspectRatio";
-        m_map["xDensity"]         = "XResolution";
-        m_map["expTime"]          = "ExposureTime";
-        // Ones we don't rename -- OpenEXR convention matches ours
-        m_map["wrapmodes"] = "wrapmodes";
-        m_map["aperture"]  = "FNumber";
-        // Ones to prefix with openexr:
-        m_map["version"]             = "openexr:version";
-        m_map["chunkCount"]          = "openexr:chunkCount";
-        m_map["maxSamplesPerPixel"]  = "openexr:maxSamplesPerPixel";
-        m_map["dwaCompressionLevel"] = "openexr:dwaCompressionLevel";
-        // Ones to skip because we handle specially
-        m_map["channels"]          = "";
-        m_map["compression"]       = "";
-        m_map["dataWindow"]        = "";
-        m_map["displayWindow"]     = "";
-        m_map["envmap"]            = "";
-        m_map["tiledesc"]          = "";
-        m_map["tiles"]             = "";
-        m_map["openexr:lineOrder"] = "";
-        m_map["type"]              = "";
-        // Ones to skip because we consider them irrelevant
-
-        //        m_map[""] = "";
-        // FIXME: Things to consider in the future:
-        // preview
-        // screenWindowCenter
-        // adoptedNeutral
-        // renderingTransform, lookModTransform
-        // utcOffset
-        // longitude latitude altitude
-        // focus isoSpeed
-    }
+    // FIXME: Things to consider in the future:
+    // preview
+    // screenWindowCenter
+    // adoptedNeutral
+    // renderingTransform, lookModTransform
+    // utcOffset
+    // longitude latitude altitude
+    // focus isoSpeed
 };
 
-static StringMap exr_tag_to_oiio_std;
 
 
 namespace pvt {
 
 void
-set_exr_threads()
-{
-    static int exr_threads = 0;  // lives in exrinput.cpp
-    static spin_mutex exr_threads_mutex;
-
-    int oiio_threads = 1;
-    OIIO::getattribute("exr_threads", oiio_threads);
-
-    // 0 means all threads in OIIO, but single-threaded in OpenEXR
-    // -1 means single-threaded in OIIO
-    if (oiio_threads == 0) {
-        oiio_threads = Sysutil::hardware_concurrency();
-    } else if (oiio_threads == -1) {
-        oiio_threads = 0;
-    }
-    spin_lock lock(exr_threads_mutex);
-    if (exr_threads != oiio_threads) {
-        exr_threads = oiio_threads;
-        Imf::setGlobalThreadCount(exr_threads);
-    }
-}
+set_exr_threads();
 
 }  // namespace pvt
 
@@ -364,24 +336,13 @@ OpenEXRInput::OpenEXRInput() { init(); }
 
 
 bool
-OpenEXRInput::valid_file(const std::string& filename) const
+OpenEXRInput::valid_file(Filesystem::IOProxy* ioproxy) const
 {
-    return valid_file(filename, nullptr);
-}
+    if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Mode::Read)
+        return false;
 
-
-
-bool
-OpenEXRInput::valid_file(const std::string& filename,
-                         Filesystem::IOProxy* io) const
-{
     try {
-        std::unique_ptr<Filesystem::IOProxy> local_io;
-        if (!io) {
-            io = new Filesystem::IOFile(filename, Filesystem::IOProxy::Read);
-            local_io.reset(io);
-        }
-        OpenEXRInputStream IStream(filename.c_str(), io);
+        OpenEXRInputStream IStream("", ioproxy);
         return Imf::isOpenExrFile(IStream);
     } catch (const std::exception& e) {
         return false;
@@ -394,21 +355,34 @@ bool
 OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
                    const ImageSpec& config)
 {
+    // First thing's first. See if we're been given an IOProxy. We have to
+    // do this before the check for non-exr files, that's why it's here and
+    // not where the rest of the configuration hints are handled.
     const ParamValue* param = config.find_attribute("oiio:ioproxy",
                                                     TypeDesc::PTR);
-    m_io = param ? param->get<Filesystem::IOProxy*>() : nullptr;
+    if (param)
+        m_io = param->get<Filesystem::IOProxy*>();
 
-    // Quick check to reject non-exr files. Don't perform these tests for
-    // the IOProxy case.
+    // Quick check to immediately reject nonexistent or non-exr files.
     if (!m_io && !Filesystem::is_regular(name)) {
         errorf("Could not open file \"%s\"", name);
         return false;
     }
-    if (!valid_file(name, m_io)) {
+
+    // If we weren't given an IOProxy, create one now that just reads from
+    // the file.
+    if (!m_io) {
+        m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Read);
+        m_local_io.reset(m_io);
+    }
+    OIIO_ASSERT(m_io);
+
+    if (!valid_file(m_io)) {
         errorf("\"%s\" is not an OpenEXR file", name);
         return false;
     }
-    pvt::set_exr_threads();
+
+    // Check any other configuration hints
 
     // "missingcolor" gives fill color for missing scanlines or tiles.
     if (const ParamValue* m = config.find_attribute("oiio:missingcolor")) {
@@ -431,12 +405,22 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
             m_missingcolor = Strutil::extract_from_list_string<float>(mc);
     }
 
-    m_spec = ImageSpec();  // Clear everything with default constructor
+    // Before engaging further with OpenEXR, make sure it is using the right
+    // number of threads.
+    pvt::set_exr_threads();
 
+    // Clear the spec with default constructor
+    m_spec = ImageSpec();
+
+    // Establish an input stream.
     try {
-        if (!m_io) {
-            m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Read);
-            m_local_io.reset(m_io);
+        if (m_io->mode() != Filesystem::IOProxy::Read) {
+            // If the proxy couldn't be opened in write mode, try to
+            // return an error.
+            std::string e = m_io->error();
+            errorf("Could not open \"%s\" (%s)", name,
+                   e.size() ? e : std::string("unknown error"));
+            return false;
         }
         m_io->seek(0);
         m_input_stream = new OpenEXRInputStream(name.c_str(), m_io);
@@ -450,6 +434,8 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
         return false;
     }
 
+    // Read the header by constructing a MultiPartInputFile from the input
+    // stream.
     try {
         m_input_multipart = new Imf::MultiPartInputFile(*m_input_stream);
     } catch (const std::exception& e) {
@@ -468,6 +454,8 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
     m_subimage = -1;
     m_miplevel = -1;
 
+    // Set up for the first subimage ("part"). This will trigger reading
+    // information about all the parts.
     bool ok = seek_subimage(0, 0);
     if (ok)
         newspec = m_spec;
@@ -502,8 +490,8 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
     if (initialized)
         return ok;
 
-    ImageInput::lock_guard lock(in->m_mutex);
-    ASSERT(header);
+    ImageInput::lock_guard lock(*in);
+    OIIO_DASSERT(header);
     spec = ImageSpec();
 
     top_datawindow    = header->dataWindow();
@@ -592,10 +580,7 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
         case Imf::B44_COMPRESSION: comp = "b44"; break;
         case Imf::B44A_COMPRESSION: comp = "b44a"; break;
 #endif
-#if defined(OPENEXR_VERSION_MAJOR)                                             \
-    && (OPENEXR_VERSION_MAJOR * 10000 + OPENEXR_VERSION_MINOR * 100            \
-        + OPENEXR_VERSION_PATCH)                                               \
-           >= 20200
+#if OPENEXR_CODED_VERSION >= 20200
         case Imf::DWAA_COMPRESSION: comp = "dwaa"; break;
         case Imf::DWAB_COMPRESSION: comp = "dwab"; break;
 #endif
@@ -621,14 +606,19 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
         const Imf::KeyCodeAttribute* kcattr;
         const Imf::ChromaticitiesAttribute* crattr;
         const Imf::RationalAttribute* rattr;
+#if OPENEXR_HAS_FLOATVECTOR
+        const Imf::FloatVectorAttribute* fvattr;
+#endif
         const Imf::StringVectorAttribute* svattr;
         const Imf::DoubleAttribute* dattr;
         const Imf::V2dAttribute* v2dattr;
         const Imf::V3dAttribute* v3dattr;
         const Imf::M33dAttribute* m33dattr;
         const Imf::M44dAttribute* m44dattr;
-        const char* name  = hit.name();
-        std::string oname = exr_tag_to_oiio_std[name];
+        const char* name = hit.name();
+        auto found       = exr_tag_to_oiio_std.find(name);
+        std::string oname(found != exr_tag_to_oiio_std.end() ? found->second
+                                                             : name);
         if (oname.empty())  // Empty string means skip this attrib
             continue;
         //        if (oname == name)
@@ -636,11 +626,13 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
         const Imf::Attribute& attrib = hit.attribute();
         std::string type             = attrib.typeName();
         if (type == "string"
-            && (sattr = header->findTypedAttribute<Imf::StringAttribute>(name)))
-            spec.attribute(oname, sattr->value().c_str());
-        else if (type == "int"
-                 && (iattr = header->findTypedAttribute<Imf::IntAttribute>(
-                         name)))
+            && (sattr = header->findTypedAttribute<Imf::StringAttribute>(
+                    name))) {
+            if (sattr->value().size())
+                spec.attribute(oname, sattr->value().c_str());
+        } else if (type == "int"
+                   && (iattr = header->findTypedAttribute<Imf::IntAttribute>(
+                           name)))
             spec.attribute(oname, iattr->value());
         else if (type == "float"
                  && (fattr = header->findTypedAttribute<Imf::FloatAttribute>(
@@ -683,6 +675,16 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
                 ustrvec[i] = strvec[i];
             TypeDesc sv(TypeDesc::STRING, ustrvec.size());
             spec.attribute(oname, sv, &ustrvec[0]);
+#if OPENEXR_HAS_FLOATVECTOR
+
+        } else if (type == "floatvector"
+                   && (fvattr
+                       = header->findTypedAttribute<Imf::FloatVectorAttribute>(
+                           name))) {
+            std::vector<float> fvec = fvattr->value();
+            TypeDesc fv(TypeDesc::FLOAT, fvec.size());
+            spec.attribute(oname, fv, &fvec[0]);
+#endif
         } else if (type == "double"
                    && (dattr = header->findTypedAttribute<Imf::DoubleAttribute>(
                            name))) {
@@ -767,18 +769,19 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
                 r[0] = n;
                 r[1] = static_cast<int>(d);
                 spec.attribute(oname, TypeRational, r);
-            } else if (int f = static_cast<int>(
-                                   gcd<long int>(rational[0], rational[1]))
-                               > 1) {
-                int r[2];
-                r[0] = n / f;
-                r[1] = static_cast<int>(d / f);
-                spec.attribute(oname, TypeRational, r);
             } else {
-                // TODO: find a way to allow the client to accept "close" rational values
-                OIIO::debug(
-                    "Don't know what to do with OpenEXR Rational attribute %s with value %d / %u that we cannot represent exactly",
-                    oname, n, d);
+                int f = static_cast<int>(gcd(int64_t(n), int64_t(d)));
+                if (f > 1) {
+                    int r[2];
+                    r[0] = n / f;
+                    r[1] = static_cast<int>(d / f);
+                    spec.attribute(oname, TypeRational, r);
+                } else {
+                    // TODO: find a way to allow the client to accept "close" rational values
+                    OIIO::debugf(
+                        "Don't know what to do with OpenEXR Rational attribute %s with value %d / %u that we cannot represent exactly",
+                        oname, n, d);
+                }
             }
         } else {
 #if 0
@@ -820,7 +823,9 @@ TypeDesc_from_ImfPixelType(Imf::PixelType ptype)
     case Imf::UINT: return TypeDesc::UINT; break;
     case Imf::HALF: return TypeDesc::HALF; break;
     case Imf::FLOAT: return TypeDesc::FLOAT; break;
-    default: ASSERT_MSG(0, "Unknown Imf::PixelType %d", int(ptype));
+    default:
+        OIIO_ASSERT_MSG(0, "Unknown Imf::PixelType %d", int(ptype));
+        return TypeUnknown;
     }
 }
 
@@ -828,11 +833,11 @@ TypeDesc_from_ImfPixelType(Imf::PixelType ptype)
 
 // Used to hold channel information for sorting into canonical order
 struct ChanNameHolder {
-    string_view fullname;
+    string_view fullname;    // layer.suffix
+    string_view layer;       // just layer
+    string_view suffix;      // just suffix (or the fillname, if no layer)
     int exr_channel_number;  // channel index in the exr (sorted by name)
-    string_view layer;
-    string_view suffix;
-    int special_index;
+    int special_index;       // sort order for special reserved names
     Imf::PixelType exr_data_type;
     TypeDesc datatype;
     int xSampling;
@@ -841,31 +846,51 @@ struct ChanNameHolder {
     ChanNameHolder(string_view fullname, int n, const Imf::Channel& exrchan)
         : fullname(fullname)
         , exr_channel_number(n)
+        , special_index(10000)
         , exr_data_type(exrchan.type)
         , datatype(TypeDesc_from_ImfPixelType(exrchan.type))
         , xSampling(exrchan.xSampling)
         , ySampling(exrchan.ySampling)
     {
-        size_t dot = fullname.find_last_of('.');
-        if (dot == string_view::npos) {
-            suffix = fullname;
-        } else {
-            layer  = string_view(fullname.data(), dot + 1);
-            suffix = string_view(fullname.data() + dot + 1,
-                                 fullname.size() - dot - 1);
-        }
+        split_name(fullname, layer, suffix);
+    }
+
+    // Compute canoninical channel list sort priority
+    void compute_special_index()
+    {
         static const char* special[]
             = { "R",    "Red",  "G",  "Green", "B",     "Blue",  "Y",
                 "real", "imag", "A",  "Alpha", "AR",    "RA",    "AG",
                 "GA",   "AB",   "BA", "Z",     "Depth", "Zback", nullptr };
-        special_index = 10000;
         for (int i = 0; special[i]; ++i)
             if (Strutil::iequals(suffix, special[i])) {
                 special_index = i;
-                break;
+                return;
             }
     }
 
+    // Compute alternate channel sort priority for layers that contain
+    // x,y,z.
+    void compute_special_index_xyz()
+    {
+        static const char* special[]
+            = { "R",  "Red", "G",  "Green", "B",    "Blue", /* "Y", */
+                "X",  "Y",   "Z",  "real",  "imag", "A",     "Alpha", "AR",
+                "RA", "AG",  "GA", "AB",    "BA",   "Depth", "Zback", nullptr };
+        for (int i = 0; special[i]; ++i)
+            if (Strutil::iequals(suffix, special[i])) {
+                special_index = i;
+                return;
+            }
+    }
+
+    // Partial sort on layer only
+    static bool compare_layer(const ChanNameHolder& a, const ChanNameHolder& b)
+    {
+        return (a.layer < b.layer);
+    }
+
+    // Full sort on layer name, special index, suffix
     static bool compare_cnh(const ChanNameHolder& a, const ChanNameHolder& b)
     {
         if (a.layer < b.layer)
@@ -881,6 +906,18 @@ struct ChanNameHolder {
     }
 };
 
+
+// Is the channel name (suffix only) in the list?
+static bool
+suffixfound(string_view name, span<ChanNameHolder> chans)
+{
+    for (auto& c : chans)
+        if (Strutil::iequals(name, c.suffix))
+            return true;
+    return false;
+}
+
+
 }  // namespace
 
 
@@ -889,7 +926,7 @@ bool
 OpenEXRInput::PartInfo::query_channels(OpenEXRInput* in,
                                        const Imf::Header* header)
 {
-    ASSERT(!initialized);
+    OIIO_DASSERT(!initialized);
     bool ok        = true;
     spec.nchannels = 0;
     const Imf::ChannelList& channels(header->channels());
@@ -899,17 +936,53 @@ OpenEXRInput::PartInfo::query_channels(OpenEXRInput* in,
     for (auto ci = channels.begin(); ci != channels.end(); ++c, ++ci)
         cnh.emplace_back(ci.name(), c, ci.channel());
     spec.nchannels = int(cnh.size());
-    std::sort(cnh.begin(), cnh.end(), ChanNameHolder::compare_cnh);
+    if (!spec.nchannels) {
+        in->errorf("No channels found");
+        return false;
+    }
+
+    // First, do a partial sort by layername. EXR should already be in that
+    // order, but take no chances.
+    std::sort(cnh.begin(), cnh.end(), ChanNameHolder::compare_layer);
+
+    // Now, within each layer, sort by channel name
+    for (auto layerbegin = cnh.begin(); layerbegin != cnh.end();) {
+        // Identify the subrange that comprises a layer
+        auto layerend = layerbegin + 1;
+        while (layerend != cnh.end() && layerbegin->layer == layerend->layer)
+            ++layerend;
+
+        span<ChanNameHolder> layerspan(&(*layerbegin), layerend - layerbegin);
+        // Strutil::printf("layerspan:\n");
+        // for (auto& c : layerspan)
+        //     Strutil::printf("  %s = %s . %s\n", c.fullname, c.layer, c.suffix);
+        if (suffixfound("X", layerspan)
+            && (suffixfound("Y", layerspan) || suffixfound("Z", layerspan))) {
+            // If "X", and at least one of "Y" and "Z", are found among the
+            // channel names of this layer, it must encode some kind of
+            // position or normal. The usual sort order will give a weird
+            // result. Choose a different sort order to reflect this.
+            for (auto& ch : layerspan)
+                ch.compute_special_index_xyz();
+        } else {
+            // Use the usual sort order.
+            for (auto& ch : layerspan)
+                ch.compute_special_index();
+        }
+        std::sort(layerbegin, layerend, ChanNameHolder::compare_cnh);
+
+        layerbegin = layerend;  // next set of layers
+    }
+
     // Now we should have cnh sorted into the order that we want to present
     // to the OIIO client.
+
     spec.format         = TypeDesc::UNKNOWN;
     bool all_one_format = true;
     for (int c = 0; c < spec.nchannels; ++c) {
         spec.channelnames.push_back(cnh[c].fullname);
         spec.channelformats.push_back(cnh[c].datatype);
-        spec.format = TypeDesc(ImageBufAlgo::type_merge(
-            TypeDesc::BASETYPE(spec.format.basetype),
-            TypeDesc::BASETYPE(cnh[c].datatype.basetype)));
+        spec.format = TypeDesc::basetype_merge(spec.format, cnh[c].datatype);
         pixeltype.push_back(cnh[c].exr_data_type);
         chanbytes.push_back(cnh[c].datatype.size());
         all_one_format &= (cnh[c].datatype == cnh[0].datatype);
@@ -923,14 +996,14 @@ OpenEXRInput::PartInfo::query_channels(OpenEXRInput* in,
             spec.z_channel = c;
         if (cnh[c].xSampling != 1 || cnh[c].ySampling != 1) {
             ok = false;
-            in->errorf(
-                "Subsampled channels are not supported (channel \"%s\" has sampling %d,%d).",
+            in->errorfmt(
+                "Subsampled channels are not supported (channel \"{}\" has sampling {},{}).",
                 cnh[c].fullname, cnh[c].xSampling, cnh[c].ySampling);
             // FIXME: Some day, we should handle channel subsampling.
         }
     }
-    ASSERT((int)spec.channelnames.size() == spec.nchannels);
-    ASSERT(spec.format != TypeDesc::UNKNOWN);
+    OIIO_DASSERT((int)spec.channelnames.size() == spec.nchannels);
+    OIIO_DASSERT(spec.format != TypeDesc::UNKNOWN);
     if (all_one_format)
         spec.channelformats.clear();
     return ok;
@@ -964,7 +1037,7 @@ OpenEXRInput::PartInfo::compute_mipres(int miplevel, ImageSpec& spec) const
     } else if (levelmode == Imf::RIPMAP_LEVELS) {
         // FIXME
     } else {
-        ASSERT_MSG(0, "Unknown levelmode %d", int(levelmode));
+        OIIO_ASSERT_MSG(0, "Unknown levelmode %d", int(levelmode));
     }
 
     spec.width  = w;
@@ -1089,7 +1162,7 @@ OpenEXRInput::spec(int subimage, int miplevel)
     if (!part.initialized) {
         // Only if this subimage hasn't yet been inventoried do we need
         // to lock and seek.
-        lock_guard lock(m_mutex);
+        lock_guard lock(*this);
         if (!part.initialized) {
             if (!seek_subimage(subimage, miplevel))
                 return ret;
@@ -1114,7 +1187,7 @@ OpenEXRInput::spec_dimensions(int subimage, int miplevel)
     if (!part.initialized) {
         // Only if this subimage hasn't yet been inventoried do we need
         // to lock and seek.
-        lock_guard lock(m_mutex);
+        lock_guard lock(*this);
         if (!seek_subimage(subimage, miplevel))
             return ret;
     }
@@ -1135,8 +1208,6 @@ OpenEXRInput::close()
     delete m_tiled_input_part;
     delete m_deep_scanline_input_part;
     delete m_deep_tiled_input_part;
-    delete m_input_scanline;
-    delete m_input_tiled;
     delete m_input_stream;
     init();  // Reset to initial state
     return true;
@@ -1166,16 +1237,16 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
 
 bool
 OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
-                                    int yend, int z, int chbegin, int chend,
+                                    int yend, int /*z*/, int chbegin, int chend,
                                     void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     chend = clamp(chend, chbegin + 1, m_spec.nchannels);
     //    std::cerr << "openexr rns " << ybegin << ' ' << yend << ", channels "
     //              << chbegin << "-" << (chend-1) << "\n";
-    if (m_input_scanline == NULL && m_scanline_input_part == NULL) {
+    if (!m_scanline_input_part) {
         errorf(
             "called OpenEXRInput::read_native_scanlines without an open file");
         return false;
@@ -1201,10 +1272,7 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                           pixelbytes, scanlinebytes));
             chanoffset += chanbytes;
         }
-        if (m_input_scanline) {
-            m_input_scanline->setFrameBuffer(frameBuffer);
-            m_input_scanline->readPixels(ybegin, yend - 1);
-        } else if (m_scanline_input_part) {
+        if (m_scanline_input_part) {
             m_scanline_input_part->setFrameBuffer(frameBuffer);
             m_scanline_input_part->readPixels(ybegin, yend - 1);
         } else {
@@ -1227,7 +1295,7 @@ bool
 OpenEXRInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
                                void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     return read_native_tiles(subimage, miplevel, x, x + m_spec.tile_width, y,
@@ -1242,7 +1310,7 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                                 int xend, int ybegin, int yend, int zbegin,
                                 int zend, void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     return read_native_tiles(subimage, miplevel, xbegin, xend, ybegin, yend,
@@ -1256,7 +1324,7 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                                 int xend, int ybegin, int yend, int zbegin,
                                 int zend, int chbegin, int chend, void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     chend = clamp(chend, chbegin + 1, m_spec.nchannels);
@@ -1265,7 +1333,7 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
               << ' ' << yend << ", chans " << chbegin
               << "-" << (chend-1) << "\n";
 #endif
-    if (!(m_input_tiled || m_tiled_input_part)
+    if (!m_tiled_input_part
         || !m_spec.valid_tile_range(xbegin, xend, ybegin, yend, zbegin, zend)) {
         errorf("called OpenEXRInput::read_native_tiles without an open file");
         return false;
@@ -1313,12 +1381,7 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                                               * nxtiles));
             chanoffset += chanbytes;
         }
-        if (m_input_tiled) {
-            m_input_tiled->setFrameBuffer(frameBuffer);
-            m_input_tiled->readTiles(firstxtile, firstxtile + nxtiles - 1,
-                                     firstytile, firstytile + nytiles - 1,
-                                     m_miplevel, m_miplevel);
-        } else if (m_tiled_input_part) {
+        if (m_tiled_input_part) {
             m_tiled_input_part->setFrameBuffer(frameBuffer);
             m_tiled_input_part->readTiles(firstxtile, firstxtile + nxtiles - 1,
                                           firstytile, firstytile + nytiles - 1,
@@ -1400,7 +1463,7 @@ OpenEXRInput::read_native_tiles_individually(int subimage, int miplevel,
 
 void
 OpenEXRInput::fill_missing(int xbegin, int xend, int ybegin, int yend,
-                           int zbegin, int zend, int chbegin, int chend,
+                           int /*zbegin*/, int /*zend*/, int chbegin, int chend,
                            void* data, stride_t xstride, stride_t ystride)
 {
     std::vector<float> missingcolor = m_missingcolor;
@@ -1431,10 +1494,10 @@ OpenEXRInput::fill_missing(int xbegin, int xend, int ybegin, int yend,
 
 bool
 OpenEXRInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
-                                         int yend, int z, int chbegin,
+                                         int yend, int /*z*/, int chbegin,
                                          int chend, DeepData& deepdata)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     if (m_deep_scanline_input_part == NULL) {
@@ -1502,11 +1565,11 @@ OpenEXRInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
 
 bool
 OpenEXRInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
-                                     int xend, int ybegin, int yend, int zbegin,
-                                     int zend, int chbegin, int chend,
-                                     DeepData& deepdata)
+                                     int xend, int ybegin, int yend,
+                                     int /*zbegin*/, int /*zend*/, int chbegin,
+                                     int chend, DeepData& deepdata)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     if (m_deep_tiled_input_part == NULL) {

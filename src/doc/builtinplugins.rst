@@ -24,6 +24,7 @@ It only supports unsigned integer 1-, 2-, 4-, and 8- bits per channel; only
 grayscale, RGB, and RGBA; does not support MIPmaps, multiimage, or
 tiles.
 
+**BMP Attributes**
 
 .. list-table::
    :widths: 30 10 65
@@ -32,6 +33,10 @@ tiles.
    * - ImageSpec Attribute
      - Type
      - BMP header data or explanation
+   * - ``compression``
+     - string
+     - The compression of the BMP file (``"rle4"`` or ``"rle8"``, if
+       RLE compression is used).
    * - ``XResolution``
      - float
      - hres
@@ -41,7 +46,84 @@ tiles.
    * - ``ResolutionUnit``
      - string
      - always ``"m"`` (pixels per meter)
+   * - ``bmp:bitsperpixel``
+     - int
+     - When not a whole number of bytes per channel, this describes the
+       bits per pixel in the file (16 for R4G4B4, 8 for a 256-color palette
+       image, 4 for a 16-color palette image, 1 for a 2-color palette image).
+   * - ``bmp:version``
+     - int
+     - Version of the BMP file format
+   * - ``oiio:ColorSpace``
+     - string
+     - currently, it is always ``"sRGB"`` (we presume all BMP files are sRGB)
 
+**Configuration settings for BMP input**
+
+When opening a BMP ImageInput with a *configuration* (see
+Section :ref:`sec-input-with-config`), the following special configuration
+options are supported:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``bmp:monochrome_detect``
+     - int
+     - If nonzero, try to detect when all palette entries are gray and pretend
+       that it's a 1-channel image to allow the calling app to save memory
+       and time (even though the BMP format does not actually support
+       grayscale images per se. It is 1 by default, but by setting the hint
+       to 0, you can disable this behavior.
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
+
+**Configuration settings for BMP output**
+
+When opening an BMP ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by writing to a memory buffer.
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
+
+**Custom I/O Overrides**
+
+BMP input and output both support the "custom I/O" feature via the special
+``"oiio:ioproxy"`` attributes (see Sections :ref:`sec-imageoutput-ioproxy` and
+:ref:`sec-imageinput-ioproxy`) as well as the `set_ioproxy()` methods.
+
+**BMP Limitations**
+
+* OIIO's current implementation will only write uncompressed 8bpp (from a
+  1-channel source), 24bpp (if 3 channel), or 32bpp (if 4 channel). Reads,
+  however, can handle RLE compression as well as 1, 4, or 16 bpp input.
+* Only 1, 3, and 4-channel images are supported with BMP due to limitations
+  of the file format itself.
+* BMP only supports uint8 pixel data types. Requests for other pixel data
+  types will automatically be converted to uint8.
+* OIIO's current implementation only supports RGB BMP files and presumes that
+  the pixel data are in sRGB color space.  It does not currently support CMYK
+  files or the color primary header information. (Though if this is important
+  to anyone, support can be added in the future.)
 
 |
 
@@ -66,12 +148,23 @@ DDS
 DDS (Direct Draw Surface) is an image file format designed by Microsoft
 for use in Direct3D graphics.  DDS files use the extension :file:`.dds`.
 
-DDS is an awful format, with several compression modes that are all so
-lossy as to be completely useless for high-end graphics.  Nevertheless,
-they are widely used in games and graphics hardware directly supports
-these compression modes.  Alas.
+DDS is primarily meant for images that are directly usable by the GPU.
+It supports 2D, cube and volume images with or without MIPmaps; using
+either uncompressed pixel formats or one of the lossy compression
+schemes supported by the graphics hardware (BC1-BC7).
 
 OpenImageIO currently only supports reading DDS files, not writing them.
+
+DDS files containing a "normal map" (`0x80000000`) pixel format flag
+will be interpreted as a tangent space normal map. When reading such files,
+the resulting image will be a 3-channel image with red & green channels
+coming from file data, and the blue channel computed as if it were the
+Z component of a normal map. This applies to images using DXT5 compression
+(normal X & Y components are assumed to be in alpha & green channels)
+and images using BC5/ATI2 compression (normal X & Y components are in
+red & green channels).
+
+**Attributes**
 
 .. list-table::
    :widths: 30 10 65
@@ -90,16 +183,42 @@ OpenImageIO currently only supports reading DDS files, not writing them.
      - string
      - Set correctly to one of ``"Plain Texture"``, ``"Volume Texture"``, or
        ``"CubeFace Environment"``.
-   * - ``texturetype``
-     - string
-     - Set correctly to one of ``"Plain Texture"``, ``"Volume Texture"``,
-       or ``"Environment"``.
    * - ``dds:CubeMapSides``
      - string
      - For environment maps, which cube faces are present (e.g., ``"+x -x
        +y -y"`` if *x* & *y* faces are present, but not *z*).
 
 
+**Configuration settings for DDS input**
+
+When opening an DDS ImageInput with a *configuration* (see
+Section :ref:`sec-input-with-config`), the following special configuration
+attributes are supported:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.    
+
+Additionally, an integer ``dds:bc5normal`` global attribute is supported
+to control behaviour of images compressed in BC5/ATI2 compression format.
+When the attribute value is set to non-zero (default is zero), any input
+image using BC5/ATI2 compression format is assumed to be a normal map,
+even if pixel format "normal map" flag is not set.
+
+**Custom I/O Overrides**
+
+DDS input supports the "custom I/O" feature via the
+special ``"oiio:ioproxy"`` attributes (see Sections
+:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+the `set_ioproxy()` methods.
 
 
 |
@@ -148,7 +267,7 @@ DPX files use the file extension :file:`.dpx`.
 **Configuration settings for DPX input**
 
 When opening a DPX ImageInput with a *configuration* (see
-Section :ref:`sec-inputwithconfig`), the following special configuration
+Section :ref:`sec-input-with-config`), the following special configuration
 options are supported:
 
 .. list-table::
@@ -163,6 +282,10 @@ options are supported:
      - If nonzero, reading images with non-RGB color models (such as YCbCr)
        will return unaltered pixel values (versus the default OIIO behavior
        of automatically converting to RGB).
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
 
 
 **Configuration settings for DPX output**
@@ -183,6 +306,22 @@ control aspects of the writing itself:
        will keep unaltered pixel values (versus the default OIIO behavior
        of automatically converting from RGB to the designated color space
        as the pixels are written).
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by writing to memory rather than the file system.
+
+**Custom I/O Overrides**
+
+DPX input and output both support the "custom I/O" feature via the
+special ``"oiio:ioproxy"`` attributes (see Sections
+:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+the `set_ioproxy()` methods.
 
 **DPX Attributes**
 
@@ -362,69 +501,6 @@ control aspects of the writing itself:
 
 |
 
-.. _sec-bundledplugins-field3d:
-
-Field3D
-===============================================
-
-Field3d is an open-source volume data file format.  Field3d files commonly
-use the extension :file:`.f3d`. The official Field3D site is:
-https://github.com/imageworks/Field3D Currently, OpenImageIO only reads
-Field3d files, and does not write them.
-
-Fields are comprised of multiple *layers* (which appear to OpenImageIO
-as subimages).  Each layer/subimage may have a different name, resolution,
-and coordinate mapping.  Layers may be scalar (1 channel) or vector (3
-channel) fields, and the data may be ``half``, `float`, or ``double``.
-
-OpenImageIO always reports Field3D files as tiled.  If the Field3d file has
-a "block size", the block size will be reported as the tile size. Otherwise,
-the tile size will be the size of the entire volume.
-
-.. list-table::
-   :widths: 30 10 65
-   :header-rows: 1
-
-   * - ImageSpec Attribute
-     - Type
-     - Field3d header data or explanation
-   * - ``ImageDescription``
-     - string
-     - unique layer name
-   * - ``oiio:subimagename``
-     - string
-     - unique layer name
-   * - ``field3d:partition``
-     - string
-     - the partition name
-   * - ``field3d:layer``
-     - string
-     - the layer (a.k.a. attribute) name
-   * - ``field3d:fieldtype``
-     - string
-     - field type, one of: ``"dense"``, ``"sparse"``, or ``"MAC"``
-   * - ``field3d:mapping``
-     - string
-     - the coordinate mapping type
-   * - ``field3d:localtoworld``
-     - matrix of doubles
-     - if a matrixMapping, the local-to-world transformation matrix
-   * - ``worldtolocal``
-     - matrix
-     - if a matrixMapping, the world-to-local coordinate mapping
-
-
-The "unique layer name" is generally the partition name + ``:`` + attribute
-name (example: ``"defaultfield:density"``), with the following exceptions:
-(1) if the partition and attribute names are identical, just one is used
-rather than it being pointlessly concatenated (e.g., ``"density"``, not
-``"density:density"``); (2) if there are mutiple partitions + attribute
-combinations with identical names in the same file, "*number*" will be added
-after the partition name for subsequent layers (e.g., ``"default:density"``,
-``"default.2:density"``, ``"default.3:density"``).
-
-|
-
 .. _sec-bundledplugins-fits:
 
 FITS
@@ -503,13 +579,58 @@ despite its technical limitations.
      - Frames per second
    * - ``oiio:Movie``
      - int
-     - If nonzero, indicates that it's an animated GIF.
-   * - ``gif:LoopCount``
+     - If nonzero, indicates that it's a multi-subimage file intended to represent an animation.
+   * - ``oiio:LoopCount``
      - int
      - Number of times the animation should be played (0-65535, 0 stands for infinity).
+   * - ``gif:LoopCount``
+     - int
+     - Deprecated synonym for ``oiio:LoopCount``.
    * - ``ImageDescription``
      - string
      - The GIF comment field.
+
+**Configuration settings for GIF input**
+
+When opening a GIF ImageInput with a *configuration* (see
+Section :ref:`sec-input-with-config`), the following special configuration
+options are supported:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
+
+**Configuration settings for GIF output**
+
+When opening a GIF ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by writing to memory rather than the file system.
+
+**Custom I/O Overrides**
+
+GIF input and output support the "custom I/O" feature via the
+special ``"oiio:ioproxy"`` attributes (see Sections
+:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+the `set_ioproxy()` methods.
 
 **Limitations**
 
@@ -541,6 +662,7 @@ applications and to distribute HDR environment maps. But newer formats with
 native HDR support, such as OpenEXR, are vastly superior and should be
 preferred except when legacy file access is required.
 
+**Attributes**
 
 .. list-table::
    :widths: 30 10 65
@@ -551,41 +673,103 @@ preferred except when legacy file access is required.
      - RGBE header data or explanation
    * - ``Orientation``
      - int
-     - encodes the orientation (see Section :ref:`metadata-orientation`)
+     - encodes the orientation (see Section :ref:`sec-metadata-orientation`)
    * - ``oiio:ColorSpace``
      - string
-     - Color space (see Section `Color information metadata`_).
+     - Color space (see Section :ref:`sec-metadata-color`). We currently
+       assume that any RGBE files encountered are linear with sRGB primaries.
    * - ``oiio:Gamma``
      - float
      - the gamma correction specified in the RGBE header (if it's gamma corrected).
 
 
+**Configuration settings for HDR input**
+
+When opening an HDR ImageInput with a *configuration* (see
+Section :ref:`sec-input-with-config`), the following special configuration
+options are supported:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
+
+**Configuration settings for HDR output**
+
+When opening a HDR ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by writing to memory rather than the file system.
+
+**Custom I/O Overrides**
+
+HDR input and output support the "custom I/O" feature via the
+special ``"oiio:ioproxy"`` attributes (see Sections
+:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+the `set_ioproxy()` methods.
 
 |
 
 .. _sec-bundledplugins-heif:
 
-HEIF/HEIC
+HEIF/HEIC/AVIF
 ===============================================
 
-HEIF is a container format for images compressed with the HEIC compression
-standard (same compression as HEVC/H.265). It is used commonly for iPhone
-camera pictures, but it is not Apple-specific and will probably become more
-popualar on other platforms in coming years. HEIF files usually use the file
-extension :file:`.HEIC`.
+HEIF is a container format for images compressed with various compression
+standards (HEIC is based on HEVC/H.265, AVIF is based on AV1). HEIC is used
+commonly for iPhone camera pictures, but it is not Apple-specific and will
+probably become more popular on other platforms in coming years. HEIF files
+usually use the file extension :file:`.HEIC` or :file:`.AVIF` depending on their
+main compression type.
 
-HEIC compression is lossy, but is higher visual quality than JPEG while
-taking only half the file size. Currently, OIIO's HEIF reader supports
+HEIC and AVIF compression formats are lossy, but are higher visual quality than
+JPEG while taking <= half the file size. Currently, OIIO's HEIF reader supports
 reading files as RGB or RGBA, uint8 pixel values. Multi-image files are
 currently supported for reading, but not yet writing. All pixel data is
 uint8, though we hope to add support for HDR (more than 8 bits) in the
 future.
 
+**Configuration settings for HEIF input**
+
+When opening an HEIF ImageInput with a *configuration* (see
+Section :ref:`sec-input-with-config`), the following special configuration
+attributes are supported:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:UnassociatedAlpha``
+     - int
+     - If nonzero, and the file contains unassociated alpha, this will
+       cause the reader to leave alpha unassociated (versus the default of
+       premultiplying color channels by alpha if the alpha channel is
+       unassociated).
+
 **Configuration settings for HEIF output**
 
 When opening an HEIF ImageOutput, the following special metadata tokens
 control aspects of the writing itself:
-
 
 .. list-table::
    :widths: 30 10 65
@@ -596,9 +780,9 @@ control aspects of the writing itself:
      - HEIF header data or explanation
    * - ``Compression``
      - string
-     - If supplied, must be ``"heic"``, but may optionally have a quality
-       value appended, like ``"heic:90"``. Quality can be 1-100, with 100
-       meaning lossless. The default is 75.
+     - If supplied, can be ``"heic"`` or ``"avif"``, but may optionally have a
+       quality value appended, like ``"heic:90"``. Quality can be 1-100, with
+       100 meaning lossless. The default is 75.
 
 
 
@@ -612,6 +796,7 @@ ICO
 ICO is an image file format used for small images (usually icons) on
 Windows.  ICO files use the file extension :file:`.ico`.
 
+**Attributes**
 
 .. list-table::
    :widths: 30 10 65
@@ -626,6 +811,24 @@ Windows.  ICO files use the file extension :file:`.ico`.
    * - ``ico:PNG``
      - int
      - if nonzero, will cause the ICO to be written out using PNG format.
+
+**Configuration settings for ICO output**
+
+When opening an ICO ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
 
 **Limitations**
 
@@ -644,6 +847,8 @@ IFF
 ===============================================
 
 IFF files are used by Autodesk Maya and use the file extension :file:`.iff`.
+
+**Attributes**
 
 .. list-table::
    :widths: 30 10 65
@@ -664,6 +869,53 @@ IFF files are used by Autodesk Maya and use the file extension :file:`.iff`.
    * - ``oiio:BitsPerSample``
      - int
      - the true bits per sample of the IFF file.
+
+**Configuration settings for IFF input**
+
+When opening a IFF ImageInput with a *configuration* (see
+Section :ref:`sec-input-with-config`), the following special configuration
+options are supported:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
+
+**Configuration settings for IFF output**
+
+When opening an IFF ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
+
+**Custom I/O Overrides**
+
+RLA input and output support the "custom I/O" feature via the
+special ``"oiio:ioproxy"`` attributes (see Sections
+:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+the `set_ioproxy()` methods.
 
 
 
@@ -692,7 +944,7 @@ also blessed by the Joint Photographic Experts Group that attempt to
 address some of these issues, such as JPEG-2000, but these do not have
 anywhere near the acceptance of the original JPEG/JFIF format.
 
-
+**Attributes**
 
 .. list-table::
    :widths: 30 10 65
@@ -717,7 +969,8 @@ anywhere near the acceptance of the original JPEG/JFIF format.
        meaning lossless.
    * - ``ICCProfile``
      - uint8[]
-     - The ICC color profile
+     - The ICC color profile. A variety of other ``ICCProfile:*`` attributes
+       may also be present, extracted from the main profile.
    * - ``jpeg:subsampling``
      - string
      - Describes the chroma subsampling, e.g., ``"4:2:0"`` (the default),
@@ -729,6 +982,55 @@ anywhere near the acceptance of the original JPEG/JFIF format.
        Appendix :ref:`chap-stdmetadata` is properly translated when using
        JPEG files.
 
+**Configuration settings for JPEG input**
+
+When opening a JPEG ImageInput with a *configuration* (see
+Section :ref:`sec-input-with-config`), the following special configuration
+attributes are supported:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
+
+**Configuration settings for JPEG output**
+
+When opening a JPEG ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by writing to a memory buffer.
+   * - ``jpeg:progressive``
+     - int
+     - If nonzero, will write a progressive JPEG file.
+
+
+**Custom I/O Overrides**
+
+JPEG input and output support the "custom I/O" feature
+via the `ImageInput::set_ioproxy()` method and the special
+``"oiio:ioproxy"`` attributes (see Section :ref:`sec-imageinput-ioproxy`).
 
 **Limitations**
 
@@ -761,6 +1063,7 @@ JPEG-2000 is not yet widely used, so OpenImageIO's support of it is
 preliminary.  In particular, we are not yet very good at handling the
 metadata robustly.
 
+**Attributes**
 
 .. list-table::
    :widths: 30 10 65
@@ -772,8 +1075,72 @@ metadata robustly.
    * - ``jpeg2000:streamformat``
      - string
      - specifies the JPEG-2000 stream format (``"none"`` or ``"jpc"``)
+   * - ``oiio:ColorSpace``
+     - string
+     - Color space (see Section :ref:`sec-metadata-color`).
+   * - ``ICCProfile``
+     - uint8[]
+     - The ICC color profile. A variety of other ``ICCProfile:*`` attributes
+       may also be present, extracted from the main profile.
 
 
+**Configuration settings for JPEG-2000 input**
+
+When opening an JPEG-2000 ImageInput with a *configuration* (see
+Section :ref:`sec-input-with-config`), the following special configuration
+attributes are supported:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:UnassociatedAlpha``
+     - int
+     - If nonzero, will leave alpha unassociated (versus the default of
+       premultiplying color channels by alpha if the alpha channel is
+       unassociated).
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
+
+**Configuration settings for JPEG-2000 output**
+
+When opening a JPEG-2000 ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by writing to a memory buffer.
+   * - ``oiio:UnassociatedAlpha``
+     - int
+     - If nonzero, indicates that the data being passed is already in
+       unassociated form (non-premultiplied colors) and should stay that way
+       for output rather than being assumed to be associated and get automatic
+       un-association to store in the file.
+
+**Custom I/O Overrides**
+
+JPEG-2000 input and output both support the "custom I/O" feature via the
+special ``"oiio:ioproxy"`` attributes (see Sections
+:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+the `set_ioproxy()` methods.
 
 
 |
@@ -910,6 +1277,9 @@ The official OpenEXR site is http://www.openexr.com/.
      - worldToCamera
    * - ``worldtoscreen``
      - matrix
+     - worldToScreen
+   * - ``worldtoNDC``
+     - matrix
      - worldToNDC
    * - ``ImageDescription``
      - string
@@ -938,7 +1308,10 @@ The official OpenEXR site is http://www.openexr.com/.
        system, it will use ``"zip"`` by default. For ``"dwaa"`` and
        ``"dwab"``, the dwaCompressionLevel may be optionally appended to the
        compression name after a colon, like this: ``"dwaa:200"``. (The
-       default DWA compression value is 45.)
+       default DWA compression value is 45.) For ``"zip"`` and ``"zips"``
+       compression, a level from 1 to 9 may be appended (the default is
+       ``"zip:4"``), but note that this is only honored when building
+       against OpenEXR 3.1.3 or later.
    * - ``textureformat``
      - string
      - ``"Plain Texture"`` for MIP-mapped OpenEXR files, ``"CubeFace
@@ -979,7 +1352,7 @@ The official OpenEXR site is http://www.openexr.com/.
 **Configuration settings for OpenEXR input**
 
 When opening an OpenEXR ImageInput with a *configuration* (see
-Section :ref:`sec-inputwithconfig`), the following special configuration
+Section :ref:`sec-input-with-config`), the following special configuration
 attributes are supported:
 
 .. list-table::
@@ -1029,8 +1402,9 @@ control aspects of the writing itself:
 **Custom I/O Overrides**
 
 OpenEXR input and output both support the "custom I/O" feature via the
-special ``"oiio:ioproxy"`` attributes (see
-Sections :ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`).
+special ``"oiio:ioproxy"`` attributes (see Sections
+:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+the `set_ioproxy()` methods.
 
 **A note on channel names**
 
@@ -1069,6 +1443,8 @@ subimages).  Each layer/subimage may have a different name, resolution, and
 coordinate mapping.  Layers may be scalar (1 channel) or vector (3 channel)
 fields, and the voxel data are always `float`. OpenVDB files always
 report as tiled, using the leaf dimension size.
+
+**Attributes**
 
 .. list-table::
    :widths: 30 10 65
@@ -1136,18 +1512,19 @@ files use the file extension :file:`.png`.
      - resolution and units from the PNG header.
    * - ``oiio:ColorSpace``
      - string
-     - Color space (see Section `Color information metadata`_).
+     - Color space (see Section :ref:`sec-metadata-color`).
    * - ``oiio:Gamma``
      - float
      - the gamma correction value (if specified).
    * - ``ICCProfile``
      - uint8[]
-     - The ICC color profile
+     - The ICC color profile. A variety of other ``ICCProfile:*`` attributes
+       may also be present, extracted from the main profile.
 
 **Configuration settings for PNG input**
 
 When opening an PNG ImageInput with a *configuration* (see
-Section :ref:`sec-inputwithconfig`), the following special configuration
+Section :ref:`sec-input-with-config`), the following special configuration
 attributes are supported:
 
 .. list-table::
@@ -1179,19 +1556,36 @@ control aspects of the writing itself:
    * - Output Configuration Attribute
      - Type
      - Meaning
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
    * - ``oiio:ioproxy``
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by writing to a memory buffer.
-   * - ``oiio:dither``
+   * - ``png:compressionLevel``
      - int
-     - If nonzero and outputting UINT8 values in the file, will add a small
-       amount of random dither to combat the appearance of banding
+     - Compression level for zip/deflate compression, on a scale from 0
+       (fastest, minimal compression) to 9 (slowest, maximal compression).
+       The default is 6. PNG compression is always lossless.
+   * - ``png:filter``
+     - int
+     - Controls the "row filters" that prepare the image for optimal
+       compression. The default is 0 (``PNG_NO_FILTERS``), but other values
+       (which may be "or-ed" or summed to combine their effects) are 8
+       (``PNG_FILTER_NONE``), 16 (``PNG_FILTER_SUB``), 32
+       (``PNG_FILTER_UP``), 64 (``PNG_FILTER_AVG``), or 128
+       (``PNG_FILTER_PAETH``).
 
 **Custom I/O Overrides**
 
-PNG output supports the "custom I/O" feature via the special
-``"oiio:ioproxy"`` attributes (see Section :ref:`sec-imageoutput-ioproxy`).
+PNG input and output both support the "custom I/O" feature via the special
+``"oiio:ioproxy"`` attributes (see Sections :ref:`sec-imageoutput-ioproxy`
+and :ref:`sec-imageinput-ioproxy`) as well as the `set_ioproxy()` methods.
+
+
 
 **Limitations**
 
@@ -1234,6 +1628,8 @@ other than 1 or 3 channels, no tiles, no multi-image, no MIPmapping.
 It's not a smart choice unless you are sending your images back to the
 1980's via a time machine.
 
+**Attributes**
+
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -1251,7 +1647,52 @@ It's not a smart choice unless you are sending your images back to the
        ASCII.  The PNM writer honors this attribute in the ImageSpec to
        determine whether to write an ASCII or binary file.
 
+**Configuration settings for PNM input**
 
+When opening a PNM ImageInput with a *configuration* (see
+Section :ref:`sec-input-with-config`), the following special configuration
+attributes are supported:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
+
+**Configuration settings for PNM output**
+
+When opening a PNM ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by writing to a memory buffer.
+
+**Custom I/O Overrides**
+
+PNM input and output both support the "custom I/O" feature via the
+special ``"oiio:ioproxy"`` attributes (see Sections
+:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+the `set_ioproxy()` methods.
 
 |
 
@@ -1264,10 +1705,24 @@ PSD is the file format used for storing Adobe PhotoShop images. OpenImageIO
 provides limited read abilities for PSD, but not currently the ability to
 write PSD files.
 
+**Attributes**
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - ImageSpec Attribute
+     - Type
+     - JPEG header data or explanation
+   * - ``ICCProfile``
+     - uint8[]
+     - The ICC color profile. A variety of other ``ICCProfile:*`` attributes
+       may also be present, extracted from the main profile.
+
 **Configuration settings for PSD input**
 
 When opening an ImageInput with a *configuration* (see
-Section :ref:`sec-inputwithconfig`), the following special configuration
+Section :ref:`sec-input-with-config`), the following special configuration
 options are supported:
 
 .. list-table::
@@ -1282,12 +1737,25 @@ options are supported:
      - If nonzero, reading images with non-RGB color models (such as YCbCr
        or CMYK) will return unaltered pixel values (versus the default OIIO
        behavior of automatically converting to RGB).
+   * - ``oiio:UnassociatedAlpha``
+     - int
+     - If nonzero, will leave alpha unassociated (versus the default of
+       premultiplying color channels by alpha if the alpha channel is
+       unassociated).
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
 
 Currently, the PSD format reader supports color modes RGB, CMYK,
-multichannel, grayscale, indexed, and bitmap. It does NOT currenty support
+multichannel, grayscale, indexed, and bitmap. It does NOT currently support
 Lab or duotone modes.
 
+**Custom I/O Overrides**
 
+PSD output supports the "custom I/O" feature via the special ``"oiio:ioproxy"``
+attributes (see Sections :ref:`sec-imageoutput-ioproxy` and
+:ref:`sec-imageinput-ioproxy`) as well as the `set_ioproxy()` methods.
 
 |
 
@@ -1306,6 +1774,7 @@ Ptex files, but the TextureSystem doesn't properly filter across face
 boundaries when using it as a texture.  OpenImageIO currently does not write
 Ptex files at all.
 
+**Attributes**
 
 .. list-table::
    :widths: 30 10 65
@@ -1343,7 +1812,7 @@ plugin that is based on the LibRaw library (http://www.libraw.org/).
 **Configuration settings for RAW input**
 
 When opening an ImageInput with a *configuration* (see
-Section :ref:`sec-inputwithconfig`), the following special configuration
+Section :ref:`sec-input-with-config`), the following special configuration
 options are supported:
 
 .. list-table::
@@ -1385,8 +1854,11 @@ options are supported:
        is not equal to 0.
    * - ``raw:ColorSpace``
      - string
-     - Which color primaries to use: ``raw``, ``sRGB``, ``Adobe``, ``Wide``,
-       ``ProPhoto``, ``ACES``, ``XYZ``. (Default: ``sRGB``)
+     - Which color primaries to use for the returned pixel values: ``raw``,
+       ``sRGB``, ``sRGB-linear`` (sRGB primaries, but a linear transfer
+       function), ``Adobe``, ``Wide``, ``ProPhoto``, ``ProPhoto-linear``,
+       ``XYZ``, ``ACES`` (only supported by LibRaw >= 0.18), ``DCI-P3``
+       (LibRaw >= 0.21), ``Rec2020`` (LibRaw >= 0.2). (Default: ``sRGB``)
    * - ``raw:Exposure``
      - float
      - Amount of exposure before de-mosaicing, from 0.25 (2 stop darken) to
@@ -1400,6 +1872,31 @@ options are supported:
      - int
      - Set libraw highlight mode processing: 0 = clip, 1 = unclip, 2 =
        blend, 3+ = rebuild. (Default: 0.)
+   * - ``raw:balance_clamped``
+     - int
+     - If nonzero, balance any clamped highlight values in the image. Resolves issues
+       where highlights take on an undesired hue shift due to incongruous channel
+       sensor saturation.
+       Enabling this option will change the output datatype to HALF.
+       (Default: 0)
+   * - ``raw:apply_scene_linear_scale``
+     - int
+     - If nonzero, applies an additional multiplication to the pixel values returned
+       by libraw. See ``raw:camera_to_scene_linear_scale`` for more details.
+       Enabling this option will change the output datatype to HALF.
+       (Default: 0)
+   * - ``raw:camera_to_scene_linear_scale``
+     - float
+     - Whilst the libraw pixel values are linear, they are normalized based on
+       the whitepoint / sensor / ISO and shooting conditions. An additional multiplication
+       is needed to bring exposure levels up so that a correctly photographed 18% grey card
+       has pixel values at 0.18. Setting this metadata key implies ``raw:apply_scene_linear_scale``.
+       Enabling this option will change the output datatype to HALF.
+       (Default: 2.2222222222222223 (1.0/0.45))
+   * - ``raw:user_flip``
+     - int
+     - Set libraw user flip value : -1 ignored, other values are between [0; 8] with the same 
+       definition than the Exif orientation code.
 
 
 
@@ -1415,6 +1912,8 @@ RLA (Run-Length encoded, version A) is an early CGI renderer output format,
 originating from Wavefront Advanced Visualizer and used primarily by
 software developed at Wavefront.  RLA files commonly use the file extension
 :file:`.rla`.
+
+**Attributes**
 
 .. list-table::
    :widths: 30 10 65
@@ -1444,7 +1943,7 @@ software developed at Wavefront.  RLA files commonly use the file extension
      - whether the image is a field-rendered (interlaced) one ``0`` for false, non-zero for true.
    * - ``rla:FileName``
      - string
-     - name under which the file was orignally saved.
+     - name under which the file was originally saved.
    * - ``ImageDescription``
      - string
      - RLA "Description" of the image.
@@ -1489,11 +1988,57 @@ software developed at Wavefront.  RLA files commonly use the file extension
      - white point XY (vec2) or XYZ (vec3) coordinates.
    * - ``oiio:ColorSpace``
      - string
-     - Color space (see Section `Color information metadata`_).
+     - Color space (see Section :ref:`sec-metadata-color`).
    * - ``oiio:Gamma``
      - float
      - the gamma correction value (if specified).
 
+**Configuration settings for RLA input**
+
+When opening a RLA ImageInput with a *configuration* (see
+Section :ref:`sec-input-with-config`), the following special configuration
+options are supported:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
+
+**Configuration settings for RLA output**
+
+When opening a RLA ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
+
+**Custom I/O Overrides**
+
+RLA input and output support the "custom I/O" feature via the
+special ``"oiio:ioproxy"`` attributes (see Sections
+:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+the `set_ioproxy()` methods.
 
 **Limitations**
 
@@ -1518,6 +2063,7 @@ The SGI format is sometimes used for legacy apps, but has little merit
 otherwise: no support for tiles, no MIPmaps, no multi-subimage, only 8- and
 16-bit integer pixels (no floating point), only 1-4 channels.
 
+**Attributes**
 
 .. list-table::
    :widths: 30 10 65
@@ -1533,7 +2079,53 @@ otherwise: no support for tiles, no MIPmaps, no multi-subimage, only 8- and
      - string
      - Image name.
 
+**Configuration settings for SGI input**
 
+When opening a SGI ImageInput with a *configuration* (see
+Section :ref:`sec-input-with-config`), the following special configuration
+options are supported:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
+
+**Configuration settings for SGI output**
+
+When opening an SGI ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
+
+
+**Custom I/O Overrides**
+
+SGI input and output support the "custom I/O" feature via the
+special ``"oiio:ioproxy"`` attributes (see Sections
+:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+the `set_ioproxy()` methods.
 
 |
 
@@ -1549,6 +2141,8 @@ files use the file extension :file:`.pic`.
 The Softimage PIC format is sometimes used for legacy apps, but has little
 merit otherwise, so currently OpenImageIO only reads Softimage files and is
 unable to write them.
+
+**Attributes**
 
 .. list-table::
    :widths: 30 10 65
@@ -1582,6 +2176,7 @@ files use the file extension :file:`.tga`, or, much more rarely,
 :file:`.tpic`. The official Targa format specification may be found at:
 http://www.dca.fee.unicamp.br/~martino/disciplinas/ea978/tgaffs.pdf
 
+**Attributes**
 
 .. list-table::
    :widths: 30 10 65
@@ -1612,9 +2207,20 @@ http://www.dca.fee.unicamp.br/~martino/disciplinas/ea978/tgaffs.pdf
      - string
      - values of ``none`` and ``rle`` are supported.  The writer will use
        RLE compression if any unknown compression methods are requested.
+   * - ``targa:alpha_type``
+     - int
+     - Meaning of any alpha channel (0 = none; 1 = undefined, ignore;
+       2 = undefined, preserve; 3 = useful unassociated alpha;
+       4 = useful associated alpha / premultiplied color).
    * - ``targa:ImageID``
      - string
      - Image ID
+   * - ``targa:JobTime``
+     - string
+     - Job time
+   * - ``targa:version``
+     - int
+     - TGA file format version (1 or 2)
    * - ``PixelAspectRatio``
      - float
      - pixel aspect ratio
@@ -1623,17 +2229,69 @@ http://www.dca.fee.unicamp.br/~martino/disciplinas/ea978/tgaffs.pdf
      - the true bits per sample of the PIC file.
    * - ``oiio:ColorSpace``
      - string
-     - Color space (see Section `Color information metadata`_).
+     - Color space (see Section :ref:`sec-metadata-color`).
    * - ``oiio:Gamma``
      - float
      - the gamma correction value (if specified).
 
-
 If the TGA file contains a thumbnail, its dimensions will be stored in the
 attributes ``"thumbnail_width"``, ``"thumbnail_height"``, and
 ``"thumbnail_nchannels"``, and the thumbnail pixels themselves will be
-stored in ``"thumbnail_image"`` (as an array of UINT8 values, whose length
-is the total number of channel samples in the thumbnail).
+retrievable via `ImageInput::get_thumbnail()` or `ImageBuf::thumbnail()` or
+`ImageCache::get_thumbnail()`.
+
+**Configuration settings for Targa input**
+
+When opening an Targa ImageInput with a *configuration* (see
+Section :ref:`sec-input-with-config`), the following special configuration
+attributes are supported:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
+   * - ``oiio:UnassociatedAlpha``
+     - int
+     - If nonzero, and the file contains unassociated alpha, this will
+       cause the reader to leave alpha unassociated (versus the default of
+       premultiplying color channels by alpha if the alpha channel is
+       unassociated).
+
+**Configuration settings for Targa output**
+
+When opening a Targa ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by writing to a memory buffer.
+
+**Custom I/O Overrides**
+
+Targa input and output support the "custom I/O" feature via the
+special ``"oiio:ioproxy"`` attributes (see Sections
+:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+the `set_ioproxy()` methods.
 
 **Limitations**
 
@@ -1651,6 +2309,64 @@ is the total number of channel samples in the thumbnail).
 
 |
 
+.. _sec-bundledplugins-term:
+
+Term (Terminal)
+===============================================
+
+This *experimental* output-only "format" is actually a procedural output
+that writes a low-res representation of the image to the console output. It
+requires a terminal application that supports Unicode and 24 bit color
+extensions.
+
+The `term` ImageOutput supports the following special metadata tokens to
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+     - Type
+     - Meaning
+   * - ``term:method``
+     - string
+     - May be one of `iterm2`, `24bit` (default), `24bit-space`, `256color`,
+       or `dither`.
+   * - ``term:fit``
+     - int
+     - If 1 (the default), the image will be resized to fit on the console
+       window.
+
+
+
+The `iterm2` mode is the best quality and is the default mode when actually
+running on a Mac and launching using iTerm2 as the terminal. This mode uses
+iTerm2's nonstandard extension to directly output an pixel array to be
+visible in the terminal.
+
+The default in other circumstances is the `24bit` mode, which displays two
+approximately square pixels vertically in each character cell, by outputting
+the Unicode "upper half block" glyph (`\u2508`) with the foreground color
+set to the top pixel's color and the background color set to the bottom
+pixel's color.
+
+If this doesn't look right, or your terminal doesn't support Unicode,
+the `24bit-space` is an alternate mode that displays one elongated pixel
+in each character cell, writing a space character with the correct color.
+
+There's also a `256color` method that just uses the 6x6x6 color space in the
+256 color palette -- which looks horrible -- and an experimental `dither`
+which does a half-assed Floyd-Steinberg dithering, horizontally only, and
+frankly is not an improvement unless you squint really hard. These may
+change or be eliminted in the future.
+
+In all cases, the image will automatically be resized to fit in the terminal
+and keep approximately the correct aspect ratio, as well as converted to
+sRGB so it looks kinda ok.
+
+|
+
 .. _sec-bundledplugins-tiff:
 
 TIFF
@@ -1658,7 +2374,7 @@ TIFF
 
 TIFF (Tagged Image File Format) is a flexible file format created by Aldus,
 now controlled by Adobe.  TIFF supports nearly everything anybody could want
-in an image format (and has extactly the complexity you would expect from
+in an image format (and has exactly the complexity you would expect from
 such a requirement). TIFF files commonly use the file extensions
 :file:`.tif` or, :file:`.tiff`. Additionally, OpenImageIO associates the
 following extensions with TIFF files by default: :file:`.tx`, :file:`.env`,
@@ -1690,7 +2406,7 @@ metadata if present.
 **Configuration settings for TIFF input**
 
 When opening an ImageInput with a *configuration* (see
-Section :ref:`sec-inputwithconfig`), the following special configuration
+Section :ref:`sec-input-with-config`), the following special configuration
 options are supported:
 
 .. list-table::
@@ -1702,7 +2418,8 @@ options are supported:
      - Meaning
    * - ``oiio:UnassociatedAlpha``
      - int
-     - If nonzero, will leave alpha unassociated (versus the default of
+     - If nonzero, and the file contains unassociated alpha, this will
+       cause the reader to leave alpha unassociated (versus the default of
        premultiplying color channels by alpha if the alpha channel is
        unassociated).
    * - ``oiio:RawColor``
@@ -1710,6 +2427,10 @@ options are supported:
      - If nonzero, reading images with non-RGB color models (such as YCbCr)
        will return unaltered pixel values (versus the default OIIO behavior
        of automatically converting to RGB).
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
 
 **Configuration settings for TIFF output**
 
@@ -1724,14 +2445,23 @@ aspects of the writing itself:
    * - Output Configuration Attribute
      - Type
      - Meaning
-   * - ``oiio:UnassociatedAlpha``
-     - int
-     - If nonzero, any alpha channel is understood to be unassociated, and
-       the EXTRASAMPLES tag in the TIFF file will be set to reflect this).
    * - ``oiio:BitsPerSample``
      - int
      - Requests a rescaling to a specific bits per sample (such as writing
        12-bit TIFFs).
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by writing to memory rather than the file system.
+   * - ``oiio:UnassociatedAlpha``
+     - int
+     - If nonzero, any alpha channel is understood to be unassociated, and
+       the EXTRASAMPLES tag in the TIFF file will be set to reflect this).
    * - ``tiff:write_exif``
      - int
      - If zero, will not write any Exif data to the TIFF file. (The default
@@ -1744,36 +2474,51 @@ aspects of the writing itself:
        TIFF files despite their being legal.
    * - ``tiff:ColorSpace``
      - string
-     - Requests that the file be saved with a non-RGB color spaces. Choices
-       are ``RGB``, ``CMYK``. % , ``YCbCr``, ``CIELAB``, ``ICCLAB``,
-       ``ITULAB``.
+     - Requests that the RGB image be converted and saved in the TIFF file in
+       a non-RGB color space. Choices are ``RGB``, ``CMYK``.  (Note that
+       ``YCbCr``, ``CIELAB``, ``ICCLAB``, ``ITULAB`` are not yet supported
+       for convertion. However, if the `oiio:ColorSpace` is one of those,
+       meaning that the image data is presumed to already be in that
+       space, the TIFF PhotometricInterpretation tag will be set to convey
+       this information.)
    * - ``tiff:zipquality``
      - int
-     - A time-vs-quality knob for ``zip`` compression, ranging from 1-9
+     - A time-vs-space knob for ``zip`` compression, ranging from 1-9
        (default is 6). Higher means compress to less space, but taking
-       longer to do so. It is strictly a time vs space tradeoff, the quality
-       is identical (lossless) no matter what the setting.
+       longer to do so. It is strictly a time vs space tradeoff, the visual
+       image quality is identical (lossless) no matter what the setting.
    * - ``tiff:RowsPerStrip``
      - int
      - Overrides TIFF scanline rows per strip with a specific request (if
        not supplied, OIIO will choose a reasonable default).
+   * - ``tiff:bigtiff``
+     - int
+     - If nonzero, forces use of "bigtiff," a nonstandard extension that
+       allows files to be more than 4 GB (default: 0).
+   * - ``tiff:write_extrasamples``
+     - int
+     - If zero, do NOT write the "EXTRASAMPLES" tag to the TIFF header.
+       (The default is 1, which means write the tag.)
+   * - ``tiff:write_iptc``
+     - int
+     - If nonzero, write an IPTC data block to the TIFF file.
+       (The default is 0, which means not to write an IPTC block.)
 
 
 **TIFF compression modes**
 
 The full list of possible TIFF compression mode values are as
-follows ($ ^*$ indicates that OpenImageIO can write that format, and is not
-part of the format name):
+follows.
 
-    ``none`` $ ^*$
-    ``lzw`` $ ^*$
-    ``zip`` $ ^*$
+    ``none`` :sup:`*`
+    ``lzw`` :sup:`*`
+    ``zip`` :sup:`*`
     ``ccitt_t4``
     ``ccitt_t6``
     ``ccittfax3``
     ``ccittfax4``
     ``ccittrle2``
-    ``ccittrle`` $ ^*$
+    ``ccittrle`` :sup:`*`
     ``dcs``
     ``isojbig``
     ``IT8BL``
@@ -1781,11 +2526,11 @@ part of the format name):
     ``IT8LW``
     ``IT8MP``
     ``jp2000``
-    ``jpeg`` $ ^*$
+    ``jpeg`` :sup:`*`
     ``lzma``
     ``next``
     ``ojpeg``
-    ``packbits`` $ ^*$
+    ``packbits`` :sup:`*`
     ``pixarfilm``
     ``pixarlog``
     ``sgilog24``
@@ -1793,6 +2538,16 @@ part of the format name):
     ``T43``
     ``T85``
     ``thunderscan``
+
+:sup:`*` indicates that OpenImageIO can write that format, and is not
+part of the format name. The compression types without the asterisk are
+supported for reading but not for writing.
+
+**Custom I/O Overrides**
+
+TIFF input and output support the "custom I/O" feature
+via the `ImageInput::set_ioproxy()` method and the special
+``"oiio:ioproxy"`` attributes (see Section :ref:`sec-imageinput-ioproxy`).
 
 **Limitations**
 
@@ -1872,7 +2627,8 @@ aware of:
      - Orientation
    * - ``ICCProfile``
      - uint8[]
-     - The ICC color profile
+     - The ICC color profile. A variety of other ``ICCProfile:*`` attributes
+       may also be present, extracted from the main profile.
    * - ``textureformat``
      - string
      - PIXAR_TEXTUREFORMAT
@@ -1920,10 +2676,12 @@ aware of:
      - The actual bits per sample in the file (may differ from `ImageSpec::format`).
    * - ``oiio:UnassociatedAlpha``
      - int
-     - Nonzero if the alpha channel contained "unassociated" alpha.
-
-
-
+     - Nonzero if the data returned by OIIO will have "unassociated" alpha.
+   * - ``tiff:UnassociatedAlpha``
+     - int
+     - Nonzero if the data in the file had "unassociated" alpha (even if using
+       the usual convention of returning associated alpha from the read
+       methods).
 
 
 
@@ -1934,8 +2692,79 @@ aware of:
 Webp
 ===============================================
 
-FIXME
+WebP is an image file format developed by Google that is intended to be an
+open standard for lossy-compressed images for use on the web.
 
+**Attributes**
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - ImageSpec Attribute
+     - Type
+     - WebP header data or explanation
+   * - ``oiio:Movie``
+     - int
+     - If nonzero, indicates that it's a multi-subimage file intended to
+       represent an animation.
+   * - ``oiio:LoopCount``
+     - int
+     - Number of times the animation should be played (0-65535, 0 stands for infinity).
+   * - ``webp:LoopCount``
+     - int
+     - Deprecated synonym for ``oiio:LoopCount``.
+
+**Configuration settings for WebP input**
+
+When opening an WebP ImageInput with a *configuration* (see
+Section :ref:`sec-input-with-config`), the following special configuration
+attributes are supported:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
+
+**Configuration settings for WebP output**
+
+When opening a WebP ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by writing to a memory buffer.
+
+**Custom I/O Overrides**
+
+WebP input and output both support the "custom I/O" feature via the special
+``"oiio:ioproxy"`` attributes (see Sections :ref:`sec-imageoutput-ioproxy` and
+:ref:`sec-imageinput-ioproxy`) as well as the `set_ioproxy()` methods.
+
+**Limitations**
+
+* WebP only supports 3-channel (RGB) or 4-channel (RGBA) images and must
+  be 8-bit unsigned integer pixel values (uint8).
 
 
 |

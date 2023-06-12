@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 /// \file
@@ -16,6 +16,7 @@
 
 #include <OpenImageIO/attrdelegate.h>
 #include <OpenImageIO/export.h>
+#include <OpenImageIO/strongparam.h>
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/ustring.h>
 
@@ -29,7 +30,7 @@ OIIO_NAMESPACE_BEGIN
 ///  - Each value has an array of 4 ELEMENTS, each of which is a color
 ///  - A color has 3 COMPONENTS (R, G, B)
 ///
-class OIIO_API ParamValue {
+class OIIO_UTIL_API ParamValue {
 public:
     /// Interpolation types
     ///
@@ -40,27 +41,58 @@ public:
         INTERP_VERTEX   = 3   ///< Interpolated like vertices
     };
 
+    OIIO_STRONG_PARAM_TYPE(Copy, bool);
+    OIIO_STRONG_PARAM_TYPE(FromUstring, bool);
+
     ParamValue() noexcept { m_data.ptr = nullptr; }
+
+#if OIIO_VERSION_LESS(3, 0, 0) && !defined(OIIO_DOXYGEN)
+    // DEPRECATED(2.4): Use the ones with strongly typed bool parameters
     ParamValue(const ustring& _name, TypeDesc _type, int _nvalues,
-               const void* _value, bool _copy = true) noexcept
+               const void* _value, bool _copy) noexcept
+    {
+        init_noclear(_name, _type, _nvalues, _value, Copy(_copy));
+    }
+    ParamValue(const ustring& _name, TypeDesc _type, int _nvalues,
+               Interp _interp, const void* _value, bool _copy) noexcept
+    {
+        init_noclear(_name, _type, _nvalues, _interp, _value, Copy(_copy));
+    }
+    ParamValue(string_view _name, TypeDesc _type, int _nvalues,
+               const void* _value, bool _copy) noexcept
+    {
+        init_noclear(ustring(_name), _type, _nvalues, _value, Copy(_copy));
+    }
+    ParamValue(string_view _name, TypeDesc _type, int _nvalues, Interp _interp,
+               const void* _value, bool _copy) noexcept
+    {
+        init_noclear(ustring(_name), _type, _nvalues, _interp, _value,
+                     Copy(_copy));
+    }
+#endif
+
+    ParamValue(const ustring& _name, TypeDesc _type, int _nvalues,
+               const void* _value, Copy _copy = Copy(true)) noexcept
     {
         init_noclear(_name, _type, _nvalues, _value, _copy);
     }
     ParamValue(const ustring& _name, TypeDesc _type, int _nvalues,
-               Interp _interp, const void* _value, bool _copy = true) noexcept
+               Interp _interp, const void* _value,
+               Copy _copy = Copy(true)) noexcept
     {
         init_noclear(_name, _type, _nvalues, _interp, _value, _copy);
     }
     ParamValue(string_view _name, TypeDesc _type, int _nvalues,
-               const void* _value, bool _copy = true) noexcept
+               const void* _value, Copy _copy = Copy(true)) noexcept
     {
         init_noclear(ustring(_name), _type, _nvalues, _value, _copy);
     }
     ParamValue(string_view _name, TypeDesc _type, int _nvalues, Interp _interp,
-               const void* _value, bool _copy = true) noexcept
+               const void* _value, Copy _copy = Copy(true)) noexcept
     {
         init_noclear(ustring(_name), _type, _nvalues, _interp, _value, _copy);
     }
+
     ParamValue(string_view _name, int value) noexcept
     {
         init_noclear(ustring(_name), TypeDesc::INT, 1, &value);
@@ -71,12 +103,12 @@ public:
     }
     ParamValue(string_view _name, ustring value) noexcept
     {
-        init_noclear(ustring(_name), TypeDesc::STRING, 1, &value);
+        init_noclear(ustring(_name), TypeDesc::STRING, 1, &value, Copy(true),
+                     FromUstring(true));
     }
     ParamValue(string_view _name, string_view value) noexcept
+        : ParamValue(_name, ustring(value))
     {
-        ustring u(value);
-        init_noclear(ustring(_name), TypeDesc::STRING, 1, &u);
     }
 
     // Set from string -- parse
@@ -86,19 +118,19 @@ public:
     ParamValue(const ParamValue& p) noexcept
     {
         init_noclear(p.name(), p.type(), p.nvalues(), p.interp(), p.data(),
-                     true);
+                     Copy(true), FromUstring(true));
     }
-    ParamValue(const ParamValue& p, bool _copy) noexcept
+    ParamValue(const ParamValue& p, Copy _copy) noexcept
     {
         init_noclear(p.name(), p.type(), p.nvalues(), p.interp(), p.data(),
-                     _copy);
+                     _copy, FromUstring(true));
     }
 
     // Rvalue (move) constructor
     ParamValue(ParamValue&& p) noexcept
     {
         init_noclear(p.name(), p.type(), p.nvalues(), p.interp(), p.data(),
-                     false);
+                     Copy(false), FromUstring(true));
         m_copy       = p.m_copy;
         m_nonlocal   = p.m_nonlocal;
         p.m_data.ptr = nullptr;  // make sure the old one won't free
@@ -106,46 +138,56 @@ public:
 
     ~ParamValue() noexcept { clear_value(); }
 
+#if OIIO_VERSION_LESS(3, 0, 0) && !defined(OIIO_DOXYGEN)
+    // DEPRECATED(2.4): Use the ones with strongly typed bool parameters
     void init(ustring _name, TypeDesc _type, int _nvalues, Interp _interp,
-              const void* _value, bool _copy = true) noexcept
+              const void* _value, bool _copy) noexcept
+    {
+        clear_value();
+        init_noclear(_name, _type, _nvalues, _interp, _value, Copy(_copy));
+    }
+    void init(ustring _name, TypeDesc _type, int _nvalues, const void* _value,
+              bool _copy) noexcept
+    {
+        init(_name, _type, _nvalues, INTERP_CONSTANT, _value, Copy(_copy));
+    }
+    void init(string_view _name, TypeDesc _type, int _nvalues,
+              const void* _value, bool _copy) noexcept
+    {
+        init(ustring(_name), _type, _nvalues, _value, Copy(_copy));
+    }
+    void init(string_view _name, TypeDesc _type, int _nvalues, Interp _interp,
+              const void* _value, bool _copy) noexcept
+    {
+        init(ustring(_name), _type, _nvalues, _interp, _value, Copy(_copy));
+    }
+#endif
+
+    void init(ustring _name, TypeDesc _type, int _nvalues, Interp _interp,
+              const void* _value, Copy _copy) noexcept
     {
         clear_value();
         init_noclear(_name, _type, _nvalues, _interp, _value, _copy);
     }
     void init(ustring _name, TypeDesc _type, int _nvalues, const void* _value,
-              bool _copy = true) noexcept
+              Copy _copy = Copy(true)) noexcept
     {
         init(_name, _type, _nvalues, INTERP_CONSTANT, _value, _copy);
     }
     void init(string_view _name, TypeDesc _type, int _nvalues,
-              const void* _value, bool _copy = true) noexcept
+              const void* _value, Copy _copy = Copy(true)) noexcept
     {
         init(ustring(_name), _type, _nvalues, _value, _copy);
     }
     void init(string_view _name, TypeDesc _type, int _nvalues, Interp _interp,
-              const void* _value, bool _copy = true) noexcept
+              const void* _value, Copy _copy = Copy(true)) noexcept
     {
         init(ustring(_name), _type, _nvalues, _interp, _value, _copy);
     }
 
     // Assignment
-    const ParamValue& operator=(const ParamValue& p) noexcept
-    {
-        if (this != &p)
-            init(p.name(), p.type(), p.nvalues(), p.interp(), p.data(),
-                 p.m_copy);
-        return *this;
-    }
-    const ParamValue& operator=(ParamValue&& p) noexcept
-    {
-        if (this != &p) {
-            init(p.name(), p.type(), p.nvalues(), p.interp(), p.data(), false);
-            m_copy       = p.m_copy;
-            m_nonlocal   = p.m_nonlocal;
-            p.m_data.ptr = nullptr;
-        }
-        return *this;
-    }
+    const ParamValue& operator=(const ParamValue& p) noexcept;
+    const ParamValue& operator=(ParamValue&& p) noexcept;
 
     // FIXME -- some time in the future (after more cleanup), we should make
     // name() return a string_view, and use uname() for the rare time when
@@ -182,16 +224,16 @@ public:
         return (reinterpret_cast<const T*>(data()))[i];
     }
 
-    /// Retrive an integer, with converstions from a wide variety of type
-    /// cases, including unsigned, short, byte. Not float. It will retrive
+    /// Retrieve an integer, with conversions from a wide variety of type
+    /// cases, including unsigned, short, byte. Not float. It will retrieve
     /// from a string, but only if the string is entirely a valid int
-    /// format. Unconvertable types return the default value.
+    /// format. Unconvertible types return the default value.
     int get_int(int defaultval = 0) const;
     int get_int_indexed(int index, int defaultval = 0) const;
 
-    /// Retrive a float, with converstions from a wide variety of type
-    /// cases, including integers. It will retrive from a string, but only
-    /// if the string is entirely a valid float format. Unconvertable types
+    /// Retrieve a float, with conversions from a wide variety of type
+    /// cases, including integers. It will retrieve from a string, but only
+    /// if the string is entirely a valid float format. Unconvertible types
     /// return the default value.
     float get_float(float defaultval = 0) const;
     float get_float_indexed(int index, float defaultval = 0) const;
@@ -200,12 +242,16 @@ public:
     /// elements is also passed. In the case of a single string, just the
     /// string directly is returned. But for an array of strings, the array
     /// is returned as one string that's a comma-separated list of double-
-    /// quoted, escaped strings.
+    /// quoted, escaped strings. For an array or aggregate, at most `maxsize`
+    /// elements are returned (if `maxsize` is 0, all elements are returned,
+    /// no matter how large it is).
     std::string get_string(int maxsize = 64) const;
     std::string get_string_indexed(int index) const;
     /// Convert any type to a ustring value. An optional maximum number of
-    /// elements is also passed. Same behavior as get_string, but returning
-    /// a ustring.
+    /// elements is also passed. Same behavior as get_string, but returning a
+    /// ustring. For an array or aggregate, at most `maxsize` elements are
+    /// returned (if `maxsize` is 0, all elements are returned, no matter how
+    /// large it is).
     ustring get_ustring(int maxsize = 64) const;
     ustring get_ustring_indexed(int index) const;
 
@@ -222,10 +268,12 @@ private:
     bool m_nonlocal        = false;
 
     void init_noclear(ustring _name, TypeDesc _type, int _nvalues,
-                      const void* _value, bool _copy = true) noexcept;
+                      const void* _value, Copy _copy = Copy(true),
+                      FromUstring _from_ustring = FromUstring(false)) noexcept;
     void init_noclear(ustring _name, TypeDesc _type, int _nvalues,
                       Interp _interp, const void* _value,
-                      bool _copy = true) noexcept;
+                      Copy _copy                = Copy(true),
+                      FromUstring _from_ustring = FromUstring(false)) noexcept;
     void clear_value() noexcept;
 };
 
@@ -234,7 +282,7 @@ private:
 /// A list of ParamValue entries, that can be iterated over or searched.
 /// It's really just a std::vector<ParamValue>, but with a few more handy
 /// methods.
-class OIIO_API ParamValueList : public std::vector<ParamValue> {
+class OIIO_UTIL_API ParamValueList : public std::vector<ParamValue> {
 public:
     ParamValueList() {}
 
@@ -258,16 +306,32 @@ public:
     const_iterator find(ustring name, TypeDesc type = TypeDesc::UNKNOWN,
                         bool casesensitive = true) const;
 
+    /// Search for the first entry with matching name, etc., and return
+    /// a pointer to it, or nullptr if it is not found.
+    ParamValue* find_pv(string_view name, TypeDesc type = TypeDesc::UNKNOWN,
+                        bool casesensitive = true)
+    {
+        iterator f = find(name, type, casesensitive);
+        return f != end() ? &(*f) : nullptr;
+    }
+    const ParamValue* find_pv(string_view name,
+                              TypeDesc type      = TypeDesc::UNKNOWN,
+                              bool casesensitive = true) const
+    {
+        const_iterator f = find(name, type, casesensitive);
+        return f != cend() ? &(*f) : nullptr;
+    }
+
     /// Case insensitive search for an integer, with default if not found.
     /// Automatically will return an int even if the data is really
-    /// unsigned, short, or byte, but not float. It will retrive from a
+    /// unsigned, short, or byte, but not float. It will retrieve from a
     /// string, but only if the string is entirely a valid int format.
     int get_int(string_view name, int defaultval = 0,
                 bool casesensitive = false, bool convert = true) const;
 
     /// Case insensitive search for a float, with default if not found.
     /// Automatically will return a float even if the data is really double
-    /// or half. It will retrive from a string, but only if the string is
+    /// or half. It will retrieve from a string, but only if the string is
     /// entirely a valid float format.
     float get_float(string_view name, float defaultval = 0,
                     bool casesensitive = false, bool convert = true) const;
@@ -334,7 +398,13 @@ public:
         attribute(name, TypeString, 1, &v);
     }
 
-    /// Search list for named item, return its type or TypeUnknnown if not
+    void attribute(string_view name, ustring value)
+    {
+        if (!name.empty())
+            add_or_replace(ParamValue(name, value));
+    }
+
+    /// Search list for named item, return its type or TypeUnknown if not
     /// found.
     TypeDesc getattributetype(string_view name,
                               bool casesensitive = false) const
@@ -352,6 +422,15 @@ public:
     bool getattribute(string_view name, std::string& value,
                       bool casesensitive = false) const;
 
+    /// Retrieve from list: If found its data type is reasonably convertible
+    /// to `type`, copy/convert the value into val[...] and return true.
+    /// Otherwise, return false and don't modify what val points to.
+    bool getattribute_indexed(string_view name, int index, TypeDesc type,
+                              void* value, bool casesensitive = false) const;
+    /// Shortcut for retrieving a single string via getattribute.
+    bool getattribute_indexed(string_view name, int index, std::string& value,
+                              bool casesensitive = false) const;
+
     /// Sort alphabetically, optionally case-insensitively, locale-
     /// independently, and with all the "un-namespaced" items appearing
     /// first, followed by items with "prefixed namespaces" (e.g. "z" comes
@@ -363,6 +442,8 @@ public:
     /// the contents of another. But merge() adds the other items without
     /// erasing any items already in this list.
     ///
+    /// @param other
+    ///     The ParamValueList whose entries will be merged into this one.
     /// @param override
     ///     If true, `other` attributes will replace any identically-named
     ///     attributes already in this list. If false, only attributes whose

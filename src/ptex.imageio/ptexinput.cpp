@@ -1,11 +1,10 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #include <Ptexture.h>
 
 #include <OpenImageIO/dassert.h>
-#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/typedesc.h>
 
@@ -19,31 +18,31 @@ public:
     {
         init();
     }
-    virtual ~PtexInput() { close(); }
-    virtual const char* format_name(void) const override { return "ptex"; }
-    virtual int supports(string_view feature) const override
+    ~PtexInput() override { close(); }
+    const char* format_name(void) const override { return "ptex"; }
+    int supports(string_view feature) const override
     {
         return (feature == "arbitrary_metadata"
                 || feature == "exif"    // Because of arbitrary_metadata
                 || feature == "iptc");  // Because of arbitrary_metadata
     }
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool close() override;
-    virtual int current_subimage(void) const override
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool close() override;
+    int current_subimage(void) const override
     {
-        lock_guard lock(m_mutex);
+        lock_guard lock(*this);
         return m_subimage;
     }
-    virtual int current_miplevel(void) const override
+    int current_miplevel(void) const override
     {
-        lock_guard lock(m_mutex);
+        lock_guard lock(*this);
         return m_miplevel;
     }
-    virtual bool seek_subimage(int subimage, int miplevel) override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
-    virtual bool read_native_tile(int subimage, int miplevel, int x, int y,
-                                  int z, void* data) override;
+    bool seek_subimage(int subimage, int miplevel) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
+    bool read_native_tile(int subimage, int miplevel, int x, int y, int z,
+                          void* data) override;
 
 private:
     PtexTexture* m_ptex;
@@ -71,7 +70,7 @@ private:
 
 
 
-// Obligatory material to make this a recognizeable imageio plugin:
+// Obligatory material to make this a recognizable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageInput*
@@ -85,8 +84,8 @@ OIIO_EXPORT int ptex_imageio_version = OIIO_PLUGIN_VERSION;
 OIIO_EXPORT const char*
 ptex_imageio_library_version()
 {
-    return ustring::sprintf("Ptex %d.%d", PtexLibraryMajorVersion,
-                            PtexLibraryMinorVersion)
+    return ustring::fmtformat("Ptex {}.{}", PtexLibraryMajorVersion,
+                              PtexLibraryMinorVersion)
         .c_str();
 }
 
@@ -106,7 +105,7 @@ PtexInput::open(const std::string& name, ImageSpec& newspec)
             m_ptex->release();
             m_ptex = NULL;
         }
-        errorf("%s", perr);
+        errorf("%s", perr.c_str());
         return false;
     }
 
@@ -191,13 +190,13 @@ PtexInput::seek_subimage(int subimage, int miplevel)
         wrapmode += "periodic";
     m_spec.attribute("wrapmode", wrapmode);
 
-#define GETMETA(pmeta, key, ptype, basetype, typedesc, value)                  \
-    {                                                                          \
-        const ptype* v;                                                        \
-        int count;                                                             \
-        pmeta->getValue(key, v, count);                                        \
-        typedesc = TypeDesc(basetype, count);                                  \
-        value    = (const void*)v;                                             \
+#define GETMETA(pmeta, key, ptype, basetype, typedesc, value) \
+    {                                                         \
+        const ptype* v;                                       \
+        int count;                                            \
+        pmeta->getValue(key, v, count);                       \
+        typedesc = TypeDesc(basetype, count);                 \
+        value    = (const void*)v;                            \
     }
 
     PtexMetaData* pmeta = m_ptex->getMetaData();
@@ -207,7 +206,7 @@ PtexInput::seek_subimage(int subimage, int miplevel)
             const char* key = NULL;
             Ptex::MetaDataType ptype;
             pmeta->getKey(i, key, ptype);
-            ASSERT(key);
+            OIIO_DASSERT(key);
             const char* vchar;
             const void* value;
             TypeDesc typedesc;
@@ -255,8 +254,8 @@ PtexInput::close()
 
 
 bool
-PtexInput::read_native_scanline(int subimage, int miplevel, int y, int z,
-                                void* data)
+PtexInput::read_native_scanline(int /*subimage*/, int /*miplevel*/, int /*y*/,
+                                int /*z*/, void* /*data*/)
 {
     return false;  // Not scanline oriented
 }
@@ -264,10 +263,10 @@ PtexInput::read_native_scanline(int subimage, int miplevel, int y, int z,
 
 
 bool
-PtexInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
+PtexInput::read_native_tile(int subimage, int miplevel, int x, int y, int /*z*/,
                             void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
 

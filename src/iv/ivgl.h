@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 #ifndef OPENIMAGEIO_IVGL_H
@@ -36,7 +36,7 @@ class ImageViewer;
 
 
 
-class IvGL : public QOpenGLWidget, protected QOpenGLFunctions {
+class IvGL final : public QOpenGLWidget, protected QOpenGLFunctions {
     Q_OBJECT
 public:
     IvGL(QWidget* parent, ImageViewer& viewer);
@@ -144,15 +144,15 @@ protected:
     bool m_mouse_activation;  ///< Can we expect the window to be activated by mouse?
 
 
-    virtual void initializeGL();
-    virtual void resizeGL(int w, int h);
-    virtual void paintGL();
+    void initializeGL() override;
+    void resizeGL(int w, int h) override;
+    void paintGL() override;
 
-    virtual void mousePressEvent(QMouseEvent* event);
-    virtual void mouseReleaseEvent(QMouseEvent* event);
-    virtual void mouseMoveEvent(QMouseEvent* event);
-    virtual void wheelEvent(QWheelEvent* event);
-    virtual void focusOutEvent(QFocusEvent* event);
+    void mousePressEvent(QMouseEvent* event) override;
+    void mouseReleaseEvent(QMouseEvent* event) override;
+    void mouseMoveEvent(QMouseEvent* event) override;
+    void wheelEvent(QWheelEvent* event) override;
+    void focusOutEvent(QFocusEvent* event) override;
 
     void paint_pixelview();
     void glSquare(float xmin, float ymin, float xmax, float ymax, float z = 0);
@@ -193,7 +193,7 @@ private:
 
     /// Loads the given patch of the image, but first figures if it's already
     /// been loaded.
-    void load_texture(int x, int y, int width, int height, float percent);
+    void load_texture(int x, int y, int width, int height);
 
     /// Destroys shaders and selects fixed-function pipeline
     void create_shaders_abort(void);

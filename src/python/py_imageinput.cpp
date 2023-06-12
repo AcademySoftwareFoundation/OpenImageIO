@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #include "py_oiio.h"
 
@@ -115,24 +115,6 @@ ImageInput_read_tiles(ImageInput& self, int subimage, int miplevel, int xbegin,
 
 
 py::object
-ImageInput_read_native_deep_scanlines_old(ImageInput& self, int ybegin,
-                                          int yend, int z, int chbegin,
-                                          int chend)
-{
-    std::unique_ptr<DeepData> dd;
-    bool ok = true;
-    {
-        py::gil_scoped_release gil;
-        dd.reset(new DeepData);
-        ok = self.read_native_deep_scanlines(ybegin, yend, z, chbegin, chend,
-                                             *dd);
-    }
-    return ok ? py::cast(dd.release()) : py::none();
-}
-
-
-
-py::object
 ImageInput_read_native_deep_scanlines(ImageInput& self, int subimage,
                                       int miplevel, int ybegin, int yend, int z,
                                       int chbegin, int chend)
@@ -214,7 +196,10 @@ declare_imageinput(py::module& m)
             },
             "filename"_a, "config"_a)
         .def("format_name", &ImageInput::format_name)
-        .def("valid_file", &ImageInput::valid_file)
+        .def("valid_file",
+             [](ImageInput& self, const std::string& filename) {
+                 return self.valid_file(filename);
+             })
         .def("spec", [](ImageInput& self) { return self.spec(); })
         .def(
             "spec",
@@ -249,6 +234,14 @@ declare_imageinput(py::module& m)
             },
             "subimage"_a, "miplevel"_a, "chbegin"_a, "chend"_a,
             "format"_a = TypeFloat)
+        .def(
+            "read_image",
+            [](ImageInput& self, int chbegin, int chend,
+               TypeDesc format) -> py::object {
+                return ImageInput_read_image(self, 0, 0, chbegin, chend,
+                                             format);
+            },
+            "chbegin"_a, "chend"_a, "format"_a = TypeFloat)
         .def(
             "read_image",
             [](ImageInput& self, TypeDesc format) -> py::object {
@@ -331,10 +324,12 @@ declare_imageinput(py::module& m)
             "read_native_deep_scanlines",  // DEPRECATED(1.9), keep for back compatibility
             [](ImageInput& self, int ybegin, int yend, int z, int chbegin,
                int chend) {
-                return ImageInput_read_native_deep_scanlines_old(self, ybegin,
-                                                                 yend, z,
-                                                                 chbegin,
-                                                                 chend);
+                int subimage = self.current_subimage();
+                int miplevel = self.current_miplevel();
+                return ImageInput_read_native_deep_scanlines(self, subimage,
+                                                             miplevel, ybegin,
+                                                             yend, z, chbegin,
+                                                             chend);
             },
             "ybegin"_a, "yend"_a, "z"_a, "chbegin"_a, "chend"_a)
         .def("read_native_deep_tiles", &ImageInput_read_native_deep_tiles,
@@ -353,8 +348,21 @@ declare_imageinput(py::module& m)
             "chbegin"_a, "chend"_a)
         .def("read_native_deep_image", &ImageInput_read_native_deep_image,
              "subimage"_a = 0, "miplevel"_a = 0)
-        .def("geterror",
-             [](ImageInput& self) { return PY_STR(self.geterror()); });
+        .def(
+            "get_thumbnail",
+            [](ImageInput& self, int subimage) {
+                ImageBuf buf;
+                self.get_thumbnail(buf, subimage);
+                return buf;
+            },
+            "subimage"_a = 0)
+        .def_property_readonly("has_error", &ImageInput::has_error)
+        .def(
+            "geterror",
+            [](ImageInput& self, bool clear) {
+                return PY_STR(self.geterror(clear));
+            },
+            "clear"_a = true);
 }
 
 }  // namespace PyOpenImageIO

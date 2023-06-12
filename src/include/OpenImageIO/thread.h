@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 // clang-format off
 
@@ -74,7 +74,7 @@ public:
 /// overhead is associated with a particular lock.
 template<typename T> class null_lock {
 public:
-    null_lock(T& m) noexcept {}
+    null_lock(T& /*m*/) noexcept {}
 };
 
 
@@ -84,21 +84,16 @@ using std::recursive_mutex;
 using std::thread;
 typedef std::lock_guard<mutex> lock_guard;
 typedef std::lock_guard<recursive_mutex> recursive_lock_guard;
+typedef std::lock_guard<std::recursive_timed_mutex> recursive_timed_lock_guard;
 
 
 
 /// Yield the processor for the rest of the timeslice.
-///
+/// DEPRECATED(2.4): Use std::this_thread::yield() instead.
 inline void
 yield() noexcept
 {
-#if defined(__GNUC__)
-    sched_yield();
-#elif defined(_MSC_VER)
-    SwitchToThread();
-#else
-#    error No yield on this platform.
-#endif
+    std::this_thread::yield();
 }
 
 
@@ -117,11 +112,19 @@ pause(int delay) noexcept
 
 #elif defined(_MSC_VER)
     for (int i = 0; i < delay; ++i) {
-#    if defined(_WIN64)
-        YieldProcessor();
-#    else
+        // A reimplementation of winnt.h YieldProcessor,
+        // to avoid including windows headers.
+        #if defined(_M_AMD64)
+        _mm_pause();
+        #elif defined(_M_ARM64) || defined(_M_HYBRID_X86_ARM64)
+        __dmb(_ARM64_BARRIER_ISHST);
+        __yield();
+        #elif defined(_M_ARM)
+        __dmb(_ARM_BARRIER_ISHST);
+        __yield();
+        #else
         _asm pause
-#    endif /* _WIN64 */
+        #endif
     }
 
 #else
@@ -148,7 +151,7 @@ public:
             pause(m_count);
             m_count *= 2;
         } else {
-            yield();
+            std::this_thread::yield();
         }
     }
 
@@ -468,6 +471,12 @@ public:
         m_bits.fetch_sub(WRITER, std::memory_order_release);
     }
 
+    /// lock() is a synonym for exclusive (write) lock.
+    void lock() { write_lock(); }
+
+    /// unlock() is a synonym for exclusive (write) unlock.
+    void unlock() { write_unlock(); }
+
     /// Helper class: scoped read lock for a spin_rw_mutex -- grabs the
     /// read lock upon construction, releases the lock when it exits scope.
     class read_lock_guard {
@@ -641,7 +650,7 @@ private:
 ///
 /// Thread pool. Have fun, be safe.
 ///
-class OIIO_API thread_pool {
+class OIIO_UTIL_API thread_pool {
 public:
     /// Initialize the pool.  This implicitly calls resize() to set the
     /// number of worker threads, defaulting to a number of workers that is
@@ -713,7 +722,7 @@ public:
     bool run_one_task(std::thread::id id);
 
     /// Return true if the calling thread is part of the thread pool. This
-    /// can be used to limit a pool thread from inadvisedly adding its own
+    /// can be used to limit a pool thread from unadvisedly adding its own
     /// subtasks to clog up the pool.
     /// DEPRECATED(2.1) -- use is_worker() instead.
     bool this_thread_is_in_pool() const;
@@ -766,7 +775,7 @@ private:
 /// hilariously over-threading your application. Note that this call may
 /// (safely, and only once) trigger creation of the thread pool and its
 /// worker threads if it has not yet been created.
-OIIO_API thread_pool* default_thread_pool ();
+OIIO_UTIL_API thread_pool* default_thread_pool ();
 
 /// If a thread pool has been created, this call will safely terminate its
 /// worker threads. This should presumably be called by an appication
@@ -795,7 +804,7 @@ OIIO_API void default_thread_pool_shutdown();
 ///        // wait for all those queue tasks to finish.
 ///    }
 ///
-class OIIO_API task_set {
+class OIIO_UTIL_API task_set {
 public:
     task_set(thread_pool* pool = nullptr)
         : m_pool(pool ? pool : default_thread_pool())
@@ -815,7 +824,7 @@ public:
     // of this task set.
     void push(std::future<void>&& f)
     {
-        DASSERT(
+        OIIO_DASSERT(
             std::this_thread::get_id() == submitter()
             && "All tasks in a tast_set should be added by the same thread");
         m_futures.emplace_back(std::move(f));
@@ -840,7 +849,7 @@ public:
     {
         const std::chrono::milliseconds wait_time(0);
         for (auto&& f : m_futures)
-            ASSERT(f.wait_for(wait_time) == std::future_status::ready);
+            OIIO_ASSERT(f.wait_for(wait_time) == std::future_status::ready);
     }
 
 private:

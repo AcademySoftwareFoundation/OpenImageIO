@@ -1,7 +1,14 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
+
+
+#include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/fmath.h>
+#include <OpenImageIO/imageio.h>
+
 #include "bmp_pvt.h"
+
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -10,23 +17,21 @@ namespace bmp_pvt {
 /// Helper - write, with error detection
 template<class T>
 bool
-fwrite(FILE* fd, const T* buf)
+fwrite(Filesystem::IOProxy* fd, const T* buf)
 {
-    size_t n = std::fwrite(buf, sizeof(T), 1, fd);
-    return n == 1;
+    return fd->write(buf, sizeof(T)) == sizeof(T);
 }
 
 /// Helper - read, with error detection
 template<class T>
 bool
-fread(FILE* fd, T* buf, size_t itemsize = sizeof(T))
+fread(Filesystem::IOProxy* fd, T* buf, size_t itemsize = sizeof(T))
 {
-    size_t n = std::fread(buf, itemsize, 1, fd);
-    return n == 1;
+    return fd->read(buf, itemsize) == itemsize;
 }
 
 bool
-BmpFileHeader::read_header(FILE* fd)
+BmpFileHeader::read_header(Filesystem::IOProxy* fd)
 {
     if (!fread(fd, &magic) || !fread(fd, &fsize) || !fread(fd, &res1)
         || !fread(fd, &res2) || !fread(fd, &offset)) {
@@ -41,7 +46,7 @@ BmpFileHeader::read_header(FILE* fd)
 
 
 bool
-BmpFileHeader::write_header(FILE* fd)
+BmpFileHeader::write_header(Filesystem::IOProxy* fd)
 {
     if (bigendian())
         swap_endian();
@@ -65,8 +70,8 @@ BmpFileHeader::isBmp() const
     case MAGIC_CI:
     case MAGIC_CP:
     case MAGIC_PT: return true;
+    default: return false;
     }
-    return false;
 }
 
 
@@ -82,12 +87,13 @@ BmpFileHeader::swap_endian(void)
 
 
 bool
-DibInformationHeader::read_header(FILE* fd)
+DibInformationHeader::read_header(Filesystem::IOProxy* fd)
 {
     if (!fread(fd, &size))
         return false;
 
-    if (size == WINDOWS_V3 || size == WINDOWS_V4 || size == WINDOWS_V5) {
+    if (size == WINDOWS_V3 || size == WINDOWS_V4 || size == WINDOWS_V5
+        || size == UNDOCHEADER52 || size == UNDOCHEADER56) {
         if (!fread(fd, &width) || !fread(fd, &height) || !fread(fd, &cplanes)
             || !fread(fd, &bpp) || !fread(fd, &compression)
             || !fread(fd, &isize) || !fread(fd, &hres) || !fread(fd, &vres)
@@ -95,16 +101,25 @@ DibInformationHeader::read_header(FILE* fd)
             return false;
         }
 
+        if ((size == WINDOWS_V3 && bpp == 16 && compression == 3)
+            || size == WINDOWS_V4 || size == WINDOWS_V5 || size == UNDOCHEADER52
+            || size == UNDOCHEADER56) {
+            if (!fread(fd, &red_mask) || !fread(fd, &green_mask)
+                || !fread(fd, &blue_mask)) {
+                return false;
+            }
+            if (size != UNDOCHEADER52 && !fread(fd, &alpha_mask)) {
+                return false;
+            }
+        }
+
         if (size == WINDOWS_V4 || size == WINDOWS_V5) {
-            if (!fread(fd, &red_mask) || !fread(fd, &blue_mask)
-                || !fread(fd, &green_mask) || !fread(fd, &alpha_mask)
-                || !fread(fd, &cs_type) || !fread(fd, &red_x)
-                || !fread(fd, &red_y) || !fread(fd, &red_z)
-                || !fread(fd, &green_x) || !fread(fd, &green_y)
-                || !fread(fd, &green_z) || !fread(fd, &blue_x)
-                || !fread(fd, &blue_y) || !fread(fd, &blue_z)
-                || !fread(fd, &gamma_x) || !fread(fd, &gamma_y)
-                || !fread(fd, &gamma_z)) {
+            if (!fread(fd, &cs_type) || !fread(fd, &red_x) || !fread(fd, &red_y)
+                || !fread(fd, &red_z) || !fread(fd, &green_x)
+                || !fread(fd, &green_y) || !fread(fd, &green_z)
+                || !fread(fd, &blue_x) || !fread(fd, &blue_y)
+                || !fread(fd, &blue_z) || !fread(fd, &gamma_x)
+                || !fread(fd, &gamma_y) || !fread(fd, &gamma_z)) {
                 return false;
             }
         }
@@ -116,14 +131,16 @@ DibInformationHeader::read_header(FILE* fd)
             }
         }
     } else if (size == OS2_V1) {
-        // some of theses fields are smaller then in WINDOWS_Vx headers,
-        // so we use hardcoded counts
-        width  = 0;
-        height = 0;
-        if (!fread(fd, &width, 2) || !fread(fd, &height, 2)
+        // some of these fields are smaller than in WINDOWS_Vx headers,
+        // so we read into 16 bit ints and copy.
+        uint16_t width16  = 0;
+        uint16_t height16 = 0;
+        if (!fread(fd, &width16) || !fread(fd, &height16)
             || !fread(fd, &cplanes) || !fread(fd, &bpp)) {
             return false;
         }
+        width  = width16;
+        height = height16;
     }
     if (bigendian())
         swap_endian();
@@ -133,7 +150,7 @@ DibInformationHeader::read_header(FILE* fd)
 
 
 bool
-DibInformationHeader::write_header(FILE* fd)
+DibInformationHeader::write_header(Filesystem::IOProxy* fd)
 {
     if (bigendian())
         swap_endian();
@@ -146,7 +163,7 @@ DibInformationHeader::write_header(FILE* fd)
         return false;
     }
 
-    return (true);
+    return true;
 }
 
 

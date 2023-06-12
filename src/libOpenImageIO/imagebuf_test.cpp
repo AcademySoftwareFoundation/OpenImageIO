@@ -1,12 +1,13 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 #include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
+#include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/unittest.h>
 
@@ -41,6 +42,19 @@ test_wrapmodes()
         OIIO_CHECK_EQUAL(test_wrap(wrap_periodic_pow2, val[i], ori, w), per[i]);
         OIIO_CHECK_EQUAL(test_wrap(wrap_mirror, val[i], ori, w), mir[i]);
     }
+}
+
+
+
+void
+test_is_imageio_format_name()
+{
+    OIIO_CHECK_EQUAL(is_imageio_format_name(""), false);
+    OIIO_CHECK_EQUAL(is_imageio_format_name("openexr"), true);
+    OIIO_CHECK_EQUAL(is_imageio_format_name("OpEnExR"), true);
+    OIIO_CHECK_EQUAL(is_imageio_format_name("tiff"), true);
+    OIIO_CHECK_EQUAL(is_imageio_format_name("tiffx"), false);
+    OIIO_CHECK_EQUAL(is_imageio_format_name("blort"), false);
 }
 
 
@@ -212,6 +226,72 @@ ImageBuf_test_appbuffer()
 
 
 void
+ImageBuf_test_appbuffer_strided()
+{
+    Strutil::print("Testing strided app buffers\n");
+
+    // Make a 16x16 x 3chan float buffer, fill with zero
+    const int res = 16, nchans = 3;
+    float mem[res][res][nchans];
+    memset(mem, 0, res * res * nchans * sizeof(float));
+
+    // Wrap the whole buffer, fill with green
+    ImageBuf wrapped(ImageSpec(res, res, nchans, TypeFloat), mem);
+    const float green[nchans] = { 0.0f, 1.0f, 0.0f };
+    ImageBufAlgo::fill(wrapped, green);
+    float color[nchans] = { -1, -1, -1 };
+    OIIO_CHECK_ASSERT(ImageBufAlgo::isConstantColor(wrapped, 0.0f, color)
+                      && color[0] == 0.0f && color[1] == 1.0f
+                      && color[2] == 0.0f);
+
+    // Do a strided wrap in the interior: a 3x3 image with extra spacing
+    // between pixels and rows, and fill it with red.
+    ImageBuf strided(ImageSpec(3, 3, nchans, TypeFloat), &mem[4][4][0],
+                     2 * nchans * sizeof(float) /* every other pixel */,
+                     2 * res * nchans * sizeof(float) /* ever other line */);
+    const float red[nchans] = { 1.0f, 0.0f, 0.0f };
+    ImageBufAlgo::fill(strided, red);
+
+    // The strided IB ought to look all-red
+    OIIO_CHECK_ASSERT(ImageBufAlgo::isConstantColor(strided, 0.0f, color)
+                      && color[0] == 1.0f && color[1] == 0.0f
+                      && color[2] == 0.0f);
+
+    // The wrapped IB ought NOT to look like one color
+    OIIO_CHECK_ASSERT(!ImageBufAlgo::isConstantColor(wrapped, 0.0f, color));
+
+    // Write both to disk and make sure they are what we think they are
+    {
+        strided.write("stridedfill.tif", TypeUInt8);
+        ImageBuf test("stridedfill.tif");  // read it back
+        float color[nchans] = { -1, -1, -1 };
+        OIIO_CHECK_ASSERT(ImageBufAlgo::isConstantColor(test, 0.0f, color)
+                          && color[0] == 1.0f && color[1] == 0.0f
+                          && color[2] == 0.0f);
+    }
+    {
+        wrapped.write("wrappedfill.tif", TypeUInt8);
+        ImageBuf test("wrappedfill.tif");  // read it back
+        // Slightly tricky test because of the strides
+        for (int y = 0; y < res; ++y) {
+            for (int x = 0; x < res; ++x) {
+                float pixel[nchans];
+                test.getpixel(x, y, pixel);
+                if ((x == 4 || x == 6 || x == 8)
+                    && (y == 4 || y == 6 || y == 8)) {
+                    OIIO_CHECK_ASSERT(cspan<float>(pixel) == cspan<float>(red));
+                } else {
+                    OIIO_CHECK_ASSERT(cspan<float>(pixel)
+                                      == cspan<float>(green));
+                }
+            }
+        }
+    }
+}
+
+
+
+void
 test_open_with_config()
 {
     // N.B. This function must run after ImageBuf_test_appbuffer, which
@@ -222,6 +302,9 @@ test_open_with_config()
     ImageBuf A("A_imagebuf_test.tif", 0, 0, ic, &config);
     OIIO_CHECK_EQUAL(A.spec().get_int_attribute("oiio:DebugOpenConfig!", 0),
                      42);
+    // Clear A because it would be unwise to let the ImageBuf outlive the
+    // custom ImageCache we passed it to use.
+    A.clear();
     ic->destroy(ic);
 }
 
@@ -245,7 +328,7 @@ test_empty_iterator()
 void
 print(const ImageBuf& A)
 {
-    ASSERT(A.spec().format == TypeDesc::FLOAT);
+    OIIO_DASSERT(A.spec().format == TypeDesc::FLOAT);
     for (ImageBuf::ConstIterator<float> p(A); !p.done(); ++p) {
         std::cout << "   @" << p.x() << ',' << p.y() << "=(";
         for (int c = 0; c < A.nchannels(); ++c)
@@ -379,10 +462,52 @@ test_roi()
 
 
 
-int
-main(int argc, char** argv)
+// Test what happens when we read, replace the image on disk, then read
+// again.
+void
+test_write_over()
 {
+    // Write two images
+    {
+        ImageBuf img(ImageSpec(16, 16, 3, TypeUInt8));
+        ImageBufAlgo::fill(img, { 0.0f, 1.0f, 0.0f });
+        img.write("tmp-green.tif");
+        Sysutil::usleep(1000000);  // make sure times are different
+        ImageBufAlgo::fill(img, { 1.0f, 0.0f, 0.0f });
+        img.write("tmp-red.tif");
+    }
+
+    // Read the image
+    float pixel[3];
+    ImageBuf A("tmp-green.tif");
+    A.getpixel(4, 4, pixel);
+    OIIO_CHECK_ASSERT(pixel[0] == 0 && pixel[1] == 1 && pixel[2] == 0);
+    A.reset();  // make sure A isn't held open, we're about to remove it
+
+    // Replace the green image with red, under the nose of the ImageBuf.
+    Filesystem::remove("tmp-green.tif");
+    Filesystem::copy("tmp-red.tif", "tmp-green.tif");
+
+    // Read the image again -- different ImageBuf.
+    // We expect it to have the new color, not have the underlying
+    // ImageCache misremember the old color!
+    ImageBuf B("tmp-green.tif");
+    B.getpixel(4, 4, pixel);
+    OIIO_CHECK_ASSERT(pixel[0] == 1 && pixel[1] == 0 && pixel[2] == 0);
+    B.reset();  // make sure B isn't held open, we're about to remove it
+
+    Filesystem::remove("tmp-green.tif");
+}
+
+
+
+int
+main(int /*argc*/, char* /*argv*/[])
+{
+    // Some miscellaneous things that aren't strictly ImageBuf, but this is
+    // as good a place to verify them as any.
     test_wrapmodes();
+    test_is_imageio_format_name();
     test_roi();
 
     // Lots of tests related to ImageBuf::Iterator
@@ -400,11 +525,14 @@ main(int argc, char** argv)
                                                        "mirror");
 
     ImageBuf_test_appbuffer();
+    ImageBuf_test_appbuffer_strided();
     test_open_with_config();
     test_read_channel_subset();
 
     test_set_get_pixels();
     time_get_pixels();
+
+    test_write_over();
 
     Filesystem::remove("A_imagebuf_test.tif");
     return unit_test_failures;

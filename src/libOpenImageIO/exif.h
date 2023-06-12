@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 // clang-format off
 
@@ -11,6 +11,7 @@
 #include <set>
 #include <vector>
 
+#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/paramlist.h>
 #include <OpenImageIO/tiffutils.h>
@@ -30,12 +31,12 @@ namespace pvt {
 inline const void*
 dataptr(const TIFFDirEntry& td, cspan<uint8_t> data, int offset_adjustment)
 {
-    int len = tiff_data_size(td);
+    size_t len = tiff_data_size(td);
     if (len <= 4)
         return (const char*)&td.tdir_offset;
     else {
         int offset = td.tdir_offset + offset_adjustment;
-        if (offset < 0 || offset + len > (int)data.size())
+        if (offset < 0 || size_t(offset) + len > std::size(data))
             return nullptr;  // out of bounds!
         return (const char*)data.data() + offset;
     }
@@ -112,7 +113,7 @@ void append_tiff_dir_entry (std::vector<TIFFDirEntry> &dirs,
                             size_t offset_override = 0,
                             OIIO::endian endianreq = OIIO::endian::native);
 
-void decode_ifd (const unsigned char *ifd, cspan<uint8_t> buf,
+bool decode_ifd (cspan<uint8_t> buf, size_t ifd_offset,
                  ImageSpec &spec, const TagMap& tag_map,
                  std::set<size_t>& ifd_offsets_seen, bool swab=false,
                  int offset_adjustment=0);

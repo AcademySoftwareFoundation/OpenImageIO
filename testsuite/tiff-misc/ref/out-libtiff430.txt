@@ -1,0 +1,29 @@
+Reading src/separate.tif
+src/separate.tif     :  128 x  128, 3 channel, uint8 tiff
+    SHA-1: 486088DECAE711C444FDCAB009C378F7783AD9C5
+    channel list: R, G, B
+    compression: "zip"
+    DateTime: "2020:10:25 15:32:04"
+    Orientation: 1 (normal)
+    planarconfig: "separate"
+    Software: "OpenImageIO 2.3.0dev : oiiotool --pattern fill:topleft=0,0,0:topright=1,0,0:bottomleft=0,1,0:bottomright=1,1,1 128x128 3 --planarconfig separate -scanline -attrib tiff:rowsperstrip 17 -d uint8 -o separate.tif"
+    oiio:BitsPerSample: 8
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 2
+    tiff:RowsPerStrip: 7
+Comparing "src/separate.tif" and "separate.tif"
+PASS
+oiiotool ERROR: read : No support for data format of "src/corrupt1.tif"
+Full command line was:
+> oiiotool --oiioattrib try_all_readers 0 --info -v src/corrupt1.tif
+oiiotool ERROR: read : File does not exist: "src/crash-1633.tif"
+Full command line was:
+> oiiotool --oiioattrib try_all_readers 0 --info -v src/crash-1633.tif
+oiiotool ERROR: read : File does not exist: "src/crash-1643.tif"
+Full command line was:
+> oiiotool --oiioattrib try_all_readers 0 --info src/crash-1643.tif -o out.exr
+iconvert ERROR copying "src/crash-1709.tif" to "crash-1709.exr" :
+	TIFFReadRawTile failed reading tile x=1088,y=72,z=0: Read error at row 4294967295, col 4294967295; got 114 bytes, expected 127
+Comparing "check1.tif" and "ref/check1.tif"
+PASS

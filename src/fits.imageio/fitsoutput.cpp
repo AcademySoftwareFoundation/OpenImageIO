@@ -1,8 +1,8 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
-#include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/fmath.h>
 
 #include "fits_pvt.h"
 
@@ -11,7 +11,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 using namespace fits_pvt;
 
 
-// Obligatory material to make this a recognizeable imageio plugin
+// Obligatory material to make this a recognizable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageOutput*
@@ -31,7 +31,7 @@ FitsOutput::supports(string_view feature) const
 {
     return (feature == "multiimage" || feature == "alpha"
             || feature == "nchannels" || feature == "random_access"
-            || feature == "arbitrary_metadata"
+            || feature == "noimage" || feature == "arbitrary_metadata"
             || feature == "exif"    // Because of arbitrary_metadata
             || feature == "iptc");  // Because of arbitrary_metadata
 }
@@ -41,14 +41,12 @@ FitsOutput::supports(string_view feature) const
 bool
 FitsOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 {
-    if (mode == AppendMIPLevel) {
-        errorf("%s does not support MIP levels", format_name());
+    close();
+    if (!check_open(mode, spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 1 << 10 }))
         return false;
-    }
 
-    // saving 'name' and 'spec' for later use
     m_filename = name;
-    m_spec     = spec;
+
     if (m_spec.format == TypeDesc::UNKNOWN)  // if unknown, default to float
         m_spec.set_format(TypeDesc::FLOAT);
     // FITS only supports signed short and int pixels
@@ -60,12 +58,7 @@ FitsOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     // checking if the file exists and can be opened in WRITE mode
     m_fd = Filesystem::fopen(m_filename, mode == AppendSubimage ? "r+b" : "wb");
     if (!m_fd) {
-        errorf("Could not open \"%s\"", m_filename);
-        return false;
-    }
-
-    if (m_spec.depth != 1) {
-        errorf("Volume FITS files not supported");
+        errorfmt("Could not open \"{}\"", m_filename);
         return false;
     }
 
@@ -86,13 +79,13 @@ FitsOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 
 
 bool
-FitsOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
+FitsOutput::write_scanline(int y, int /*z*/, TypeDesc format, const void* data,
                            stride_t xstride)
 {
     if (m_spec.width == 0 && m_spec.height == 0)
         return true;
     if (y > m_spec.height) {
-        errorf("Attempt to write too many scanlines to %s", m_filename);
+        errorfmt("Attempt to write too many scanlines to {}", m_filename);
         close();
         return false;
     }
@@ -154,7 +147,7 @@ FitsOutput::close(void)
     bool ok = true;
     if (m_spec.tile_width) {
         // Handle tile emulation -- output the buffered pixels
-        ASSERT(m_tilebuffer.size());
+        OIIO_ASSERT(m_tilebuffer.size());
         ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
                               m_spec.format, &m_tilebuffer[0]);
         std::vector<unsigned char>().swap(m_tilebuffer);
@@ -224,7 +217,7 @@ FitsOutput::create_fits_header(void)
     size_t byte_count = fwrite(&header[0], 1, header.size(), m_fd);
     if (byte_count != header.size()) {
         // FIXME Bad Write
-        errorf("Bad header write (err %d)", byte_count);
+        errorfmt("Bad header write (err {})", byte_count);
     }
 }
 

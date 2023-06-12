@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #include "py_oiio.h"
 
@@ -58,6 +58,7 @@ declare_typedesc(py::module& m)
         .value("TIMECODE", TypeDesc::TIMECODE)
         .value("KEYCODE", TypeDesc::KEYCODE)
         .value("RATIONAL", TypeDesc::RATIONAL)
+        .value("BOX", TypeDesc::BOX)
         .export_values();
 
     py::class_<TypeDesc>(m, "TypeDesc")
@@ -113,12 +114,15 @@ declare_typedesc(py::module& m)
              })
         .def("equivalent", &TypeDesc::equivalent)
         .def("unarray", &TypeDesc::unarray)
+        .def("is_vec2", &TypeDesc::is_vec2)
         .def("is_vec3", &TypeDesc::is_vec3)
         .def("is_vec4", &TypeDesc::is_vec4)
+        .def("is_box2", &TypeDesc::is_box2)
+        .def("is_box3", &TypeDesc::is_box3)
 
         // overloaded operators
-        .def(py::self == py::self)  // operator==
-        .def(py::self != py::self)  // operator!=
+        .def(py::self == py::self)  // operator==   //NOSONAR
+        .def(py::self != py::self)  // operator!=   //NOSONAR
 
         // Conversion to string
         .def("__str__", [](TypeDesc t) { return PY_STR(t.c_str()); })
@@ -143,7 +147,11 @@ declare_typedesc(py::module& m)
         .def_readonly_static("TypeTimeCode", &TypeTimeCode)
         .def_readonly_static("TypeKeyCode", &TypeKeyCode)
         .def_readonly_static("TypeRational", &TypeRational)
-        .def_readonly_static("TypeFloat4", &TypeFloat4);
+        .def_readonly_static("TypeFloat2", &TypeFloat2)
+        .def_readonly_static("TypeVector2", &TypeVector2)
+        .def_readonly_static("TypeVector2i", &TypeVector2i)
+        .def_readonly_static("TypeFloat4", &TypeFloat4)
+        .def_readonly_static("TypeVector4", &TypeVector4);
 
     // Declare that a BASETYPE is implicitly convertible to a TypeDesc.
     // This keeps us from having to separately declare func(TypeDesc)
@@ -155,7 +163,6 @@ declare_typedesc(py::module& m)
     // foo(TypeUInt8).
     py::implicitly_convertible<py::str, TypeDesc>();
 
-#if 1
     // Global constants of common TypeDescs
     m.attr("TypeUnknown")  = TypeUnknown;
     m.attr("TypeFloat")    = TypeFloat;
@@ -166,6 +173,8 @@ declare_typedesc(py::module& m)
     m.attr("TypeString")   = TypeString;
     m.attr("TypeInt")      = TypeInt;
     m.attr("TypeUInt")     = TypeUInt;
+    m.attr("TypeInt64")    = TypeInt64;
+    m.attr("TypeUInt64")   = TypeUInt64;
     m.attr("TypeInt32")    = TypeInt32;
     m.attr("TypeUInt32")   = TypeUInt32;
     m.attr("TypeInt16")    = TypeInt16;
@@ -178,9 +187,17 @@ declare_typedesc(py::module& m)
     m.attr("TypeMatrix44") = TypeMatrix44;
     m.attr("TypeTimeCode") = TypeTimeCode;
     m.attr("TypeKeyCode")  = TypeKeyCode;
+    m.attr("TypeFloat2")   = TypeFloat2;
+    m.attr("TypeVector2")  = TypeVector2;
     m.attr("TypeFloat4")   = TypeFloat4;
+    m.attr("TypeVector4")  = TypeVector4;
+    m.attr("TypeVector2i") = TypeVector2i;
+    m.attr("TypeBox2")     = TypeBox2;
+    m.attr("TypeBox3")     = TypeBox3;
+    m.attr("TypeBox2i")    = TypeBox2i;
+    m.attr("TypeBox3i")    = TypeBox3i;
     m.attr("TypeRational") = TypeRational;
-#endif
+    m.attr("TypePointer")  = TypePointer;
 }
 
 }  // namespace PyOpenImageIO

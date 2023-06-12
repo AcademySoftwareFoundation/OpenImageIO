@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -40,6 +40,7 @@
 OIIO_NAMESPACE_BEGIN
 
 class DeepData;
+class ImageBuf;
 
 
 /// Type we use for stride lengths between pixels, scanlines, or image
@@ -70,6 +71,11 @@ typedef ParamValue ImageIOParameter;
 typedef ParamValueList ImageIOParameterList;
 
 
+// Forward declaration of IOProxy
+namespace Filesystem {
+    class IOProxy;
+}
+
 
 /// ROI is a small helper struct describing a rectangular region of interest
 /// in an image. The region is [xbegin,xend) x [begin,yend) x [zbegin,zend),
@@ -80,10 +86,10 @@ struct ROI {
     ///@{
     /// @name ROI data members
     /// The data members are:
-    /// 
+    ///
     ///     int xbegin, xend, ybegin, yend, zbegin, zend;
     ///     int chbegin, chend;
-    /// 
+    ///
     /// These describe the spatial extent
     ///     [xbegin,xend) x [ybegin,yend) x [zbegin,zend)
     /// And the channel extent:
@@ -132,7 +138,7 @@ struct ROI {
     }
 
     /// All() is an alias for the default constructor, which indicates that
-    /// it means "all" of the image, or no region restruction.  For example,
+    /// it means "all" of the image, or no region restriction.  For example,
     ///     float myfunc (ImageBuf &buf, ROI roi = ROI::All());
     /// Note that this is equivalent to:
     ///     float myfunc (ImageBuf &buf, ROI roi = {});
@@ -288,7 +294,7 @@ public:
         ///< channel is present, or if it is not known which channel
         ///< represents alpha.
     int z_channel;
-        ///< The index of the channel that respresents *z* or *depth* (from
+        ///< The index of the channel that represents *z* or *depth* (from
         ///< the camera).  It defaults to -1 if no depth channel is present,
         ///< or if it is not know which channel represents depth.
     bool deep;                ///< True if the image contains deep data.
@@ -308,6 +314,11 @@ public:
     /// something reasonable.
     ImageSpec (TypeDesc format = TypeDesc::UNKNOWN) noexcept;
 
+    /// Constructor: given just the data format (as any type name recognized
+    /// by the `TypeDesc` constructor), set all other fields to something
+    /// reasonable.
+    ImageSpec (string_view format) noexcept : ImageSpec(TypeDesc(format)) {}
+
     /// Constructs an `ImageSpec` with the given x and y resolution, number
     /// of channels, and pixel data format.
     ///
@@ -319,14 +330,30 @@ public:
     /// channel (if it exists) is assumed to be alpha.
     ImageSpec (int xres, int yres, int nchans, TypeDesc fmt = TypeUInt8) noexcept;
 
+    /// Construct an `ImageSpec` with the given x and y resolution, number
+    /// of channels, and pixel data format name (as any type name recognized
+    /// by the `TypeDesc` constructor).
+    ImageSpec (int xres, int yres, int nchans, string_view fmt) noexcept
+        : ImageSpec(xres, yres, nchans, TypeDesc(fmt)) {}
+
     /// Construct an `ImageSpec` whose dimensions (both data and "full") and
     /// number of channels are given by the `ROI`, pixel data type by `fmt`,
     /// and other fields are set to their default values.
     explicit ImageSpec (const ROI &roi, TypeDesc fmt = TypeUInt8) noexcept;
 
+    /// Construct an `ImageSpec` from an ROI giving dimensions, and the name
+    /// of a data type that will be recognized by the `TypeDesc` constructor.
+    explicit ImageSpec (const ROI &roi, string_view fmt) noexcept
+        : ImageSpec(roi, TypeDesc(fmt)) {}
+
     /// Set the data format, and clear any per-channel format information
     /// in `channelformats`.
     void set_format (TypeDesc fmt) noexcept;
+
+    /// Set the data format, and clear any per-channel format information
+    /// in `channelformats`. The `fmt` may be a string such as `"uint8"`,
+    /// or any other type name recognized by the TypeDesc constructor.
+    void set_format (string_view fmt) noexcept { set_format(TypeDesc(fmt)); }
 
     /// Sets the `channelnames` to reasonable defaults for the number of
     /// channels.  Specifically, channel names are set to "R", "G", "B,"
@@ -459,16 +486,16 @@ public:
     }
 
     /// Add a string attribute to `extra_attribs`.
-    void attribute (string_view name, string_view value) {
-        const char *s = value.c_str();
-        attribute (name, TypeDesc::STRING, &s);
-    }
+    void attribute (string_view name, string_view value);
+
+    /// Add a string attribute (passed as a ustring) to `extra_attribs`.
+    void attribute (string_view name, ustring value);
 
     /// Parse a string containing a textual representation of a value of
     /// the given `type`, and add that as an attribute to `extra_attribs`.
     /// Example:
     ///
-    ///     spec.attribute ("temperature", TypeString, "-273.15");
+    ///     spec.attribute ("temperature", TypeFloat, "-273.15");
     ///
     void attribute (string_view name, TypeDesc type, string_view value);
 
@@ -499,7 +526,7 @@ public:
     /// `ParamValue` record, or NULL if not found.  This variety of
     /// `find_attribute(}` can retrieve items such as "width", which are
     /// data members of the `ImageSpec`, but not in `extra_attribs`. The
-    /// 1tmpparam` is a storage area owned by the caller, which is used as
+    /// `tmpparam` is a storage area owned by the caller, which is used as
     /// temporary buffer in cases where the information does not correspond
     /// to an actual `extra_attribs` (in this case, the return value will be
     /// `&tmpparam`). The extra names it understands are:
@@ -562,23 +589,23 @@ public:
     /// (it is up to the caller to ensure there is enough space) and return
     /// `true`. If no such attribute is found, or if it doesn't match the
     /// type, return `false` and do not modify `val`.
-    /// 
+    ///
     /// EXAMPLES:
-    /// 
+    ///
     ///     ImageSpec spec;
     ///     ...
     ///     // Retrieving an integer attribute:
     ///     int orientation = 0;
     ///     spec.getattribute ("orientation", TypeInt, &orientation);
-    /// 
+    ///
     ///     // Retrieving a string attribute with a char*:
     ///     const char* compression = nullptr;
     ///     spec.getattribute ("compression", TypeString, &compression);
-    /// 
+    ///
     ///     // Alternately, retrieving a string with a ustring:
     ///     ustring compression;
     ///     spec.getattribute ("compression", TypeString, &compression);
-    /// 
+    ///
     /// Note that when passing a string, you need to pass a pointer to the
     /// `char*`, not a pointer to the first character.  Also, the `char*`
     /// will end up pointing to characters owned by the `ImageSpec`; the
@@ -624,7 +651,7 @@ public:
     /// `ImageSpec::SerialXML`. The `verbose` argument may be one of:
     /// `ImageSpec::SerialBrief` (just resolution and other vital
     /// statistics, one line for `SerialText`, `ImageSpec::SerialDetailed`
-    /// (contains all metadata in orginal form), or
+    /// (contains all metadata in original form), or
     /// `ImageSpec::SerialDetailedHuman` (contains all metadata, in many
     /// cases with human-readable explanation).
     std::string serialize (SerialFormat format,
@@ -749,6 +776,15 @@ public:
         deep = other.deep;
     }
 
+    /// Set the metadata to presume that color space is `name` (or to assume
+    /// nothing about the color space if `name` is empty). The core operation
+    /// is to set the "oiio:ColorSpace" attribute, but it also removes or
+    /// alters several other attributes that may hint color space in ways that
+    /// might be contradictory or no longer true.
+    ///
+    /// @version 2.5
+    void set_colorspace(string_view name);
+
     /// Returns `true` for a newly initialized (undefined) `ImageSpec`.
     /// (Designated by no channels and undefined data type -- true of the
     /// uninitialized state of an ImageSpec, and presumably not for any
@@ -799,7 +835,7 @@ public:
     using unique_ptr = std::unique_ptr<ImageInput>;
 
     /// @{
-    /// @name Creating an ImageIntput
+    /// @name Creating an ImageInput
 
     /// Create an ImageInput subclass instance that is able to read the
     /// given file and open it, returning a `unique_ptr` to the ImageInput
@@ -821,34 +857,64 @@ public:
     /// will be tried until one is found that will open the file.
     ///
     /// @param filename
-    ///         The name of the file to open.
+    ///         The name of the file to open, UTF-8 encoded.
     ///
     /// @param config
     ///         Optional pointer to an ImageSpec whose metadata contains
     ///         "configuration hints."
     ///
+    /// @param ioproxy
+    ///         Optional pointer to an IOProxy to use (not supported by all
+    ///         formats, see `supports("ioproxy")`). The caller retains
+    ///         ownership of the proxy.
+    ///
     /// @returns
     ///         A `unique_ptr` that will close and free the ImageInput when
     ///         it exits scope or is reset. The pointer will be empty if the
-    ///         requiresd writer was not able to be created.
+    ///         required writer was not able to be created.
     static unique_ptr open (const std::string& filename,
-                            const ImageSpec *config = nullptr);
+                            const ImageSpec *config = nullptr,
+                            Filesystem::IOProxy* ioproxy = nullptr);
+
+    /// Create and open an ImageInput using a UTF-16 encoded wstring filename.
+    static unique_ptr open (const std::wstring& filename,
+                            const ImageSpec *config = nullptr,
+                            Filesystem::IOProxy* ioproxy = nullptr) {
+        return open(Strutil::utf16_to_utf8(filename), config, ioproxy);
+    }
 
     /// Create and return an ImageInput implementation that is able to read
-    /// the given file.  If `do_open` is true, fully open it if possible
+    /// the given file or format.  If `do_open` is true (and the `filename`
+    /// is the name of a file, not just a format), fully open it if possible
     /// (using the optional `config` configuration spec, if supplied),
     /// otherwise just create the ImageInput but don't open it. The
     /// plugin_searchpath parameter is an override of the searchpath.
     /// colon-separated list of directories to search for ImageIO plugin
-    /// DSO/DLL's (not a searchpath for the image itself!).  This will
-    /// actually just try every imageio plugin it can locate, until it finds
-    /// one that's able to open the file without error.
+    /// DSO/DLL's (not a searchpath for the image itself!).
+    ///
+    /// If the `filename` parameter is the name of a file format (such as
+    /// "openexr"), it will create an ImageInput that reads that particular
+    /// format. If the name is a file extension (such as "exr" or ".exr"),
+    /// it will guess the file format from the extension and return that
+    /// type of ImageInput.
+    ///
+    /// If `filename` is a full file name (such as "hawaii.exr"), it will
+    /// create an ImageInput that reads the format implied by the file
+    /// extension (".tif") and try to open the file with that reader. If the
+    /// file can be opened and appears to be of the correct type, then that
+    /// ImageInput (after being closed) will be returned to the caller. But
+    /// if it fails (say, because the file type does not match the
+    /// extension), then every known kind of image reader will be tried in
+    /// turn, until one can be found that succeeds in opening that file. The
+    /// `create()` file will fail entirely only if no known image reader
+    /// type succeeds.
     ///
     /// If the caller intends to immediately open the file, then it is often
     /// simpler to call static `ImageInput::open()`.
     ///
     /// @param filename
-    ///         The name of the file to open.
+    ///         The name of an image file, or a file extension, or the name
+    ///         of a file format. The filename is UTF-8 encoded.
     ///
     /// @param do_open
     ///         If `true`, not only create but also open the file.
@@ -857,18 +923,39 @@ public:
     ///         Optional pointer to an ImageSpec whose metadata contains
     ///         "configuration hints" for the ImageInput implementation.
     ///
+    /// @param ioproxy
+    ///         Optional pointer to an IOProxy to use (not supported by all
+    ///         formats, see `supports("ioproxy")`). The caller retains
+    ///         ownership of the proxy. If this is not supplied, it is still
+    ///         possible to set the proxy with a call to `set_proxy()` prior
+    ///         to `open()`.
+    ///
     /// @param plugin_searchpath
-    ///                 An optional colon-separated list of directories to
-    ///                 search for OpenImageIO plugin DSO/DLL's.
+    ///         An optional colon-separated list of directories to search
+    ///         for OpenImageIO plugin DSO/DLL's.
     ///
     /// @returns
     ///         A `unique_ptr` that will close and free the ImageInput when
     ///         it exits scope or is reset. The pointer will be empty if the
-    ///         requiresd writer was not able to be created.
-    static unique_ptr create (const std::string& filename, bool do_open=false,
+    ///         required writer was not able to be created.
+    static unique_ptr create (string_view filename, bool do_open=false,
                               const ImageSpec *config=nullptr,
-                              string_view plugin_searchpath="");
+                              Filesystem::IOProxy* ioproxy = nullptr,
+                              string_view plugin_searchpath = "");
 
+    /// Create an ImageInput using a UTF-16 encoded wstring filename.
+    static unique_ptr create (const std::wstring& filename, bool do_open=false,
+                              const ImageSpec *config=nullptr,
+                              Filesystem::IOProxy* ioproxy = nullptr,
+                              string_view plugin_searchpath = "") {
+        return create(Strutil::utf16_to_utf8(filename), do_open, config,
+                      ioproxy, plugin_searchpath);
+    }
+
+    // DEPRECATED(2.2): back compatible version
+    static unique_ptr create (const std::string& filename, bool do_open,
+                              const ImageSpec *config,
+                              string_view plugin_searchpath);
     // DEPRECATED(2.1) This method should no longer be used, it is redundant.
     static unique_ptr create (const std::string& filename,
                               const std::string& plugin_searchpath);
@@ -882,9 +969,6 @@ protected:
     ImageInput ();
 public:
     virtual ~ImageInput ();
-
-    typedef std::recursive_mutex mutex;
-    typedef std::lock_guard<mutex> lock_guard;
 
     /// Return the name of the format implemented by this class.
     virtual const char *format_name (void) const = 0;
@@ -905,6 +989,9 @@ public:
     /// - `"exif"` :
     ///       Can this format store Exif camera data?
     ///
+    /// - `"ioproxy"` :
+    ///       Does this format reader support reading from an `IOProxy`?
+    ///
     /// - `"iptc"` :
     ///       Can this format store IPTC data?
     ///
@@ -912,17 +999,38 @@ public:
     ///       Can this format create images without reading from a disk
     ///       file?
     ///
-    /// - `"ioproxy"` :
-    ///       Does this format reader support reading from an `IOProxy`?
+    /// - `"thumbnail"` :
+    ///       Does this format reader support retrieving a reduced
+    ///       resolution copy of the image via the `thumbnail()` method?
     ///
     /// This list of queries may be extended in future releases. Since this
     /// can be done simply by recognizing new query strings, and does not
     /// require any new API entry points, addition of support for new
     /// queries does not break ``link compatibility'' with
     /// previously-compiled plugins.
-    virtual int supports (string_view feature) const { return false; }
+    virtual int supports (string_view feature OIIO_MAYBE_UNUSED) const {
+        return false;
+    }
 
     /// Return true if the `filename` names a file of the type for this
+    /// ImageInput.  The implementation will try to determine this as
+    /// efficiently as possible, in most cases much less expensively than
+    /// doing a full `open()`.  Note that there can be false positives: a
+    /// file can appear to be of the right type (i.e., `valid_file()`
+    /// returning `true`) but still fail a subsequent call to `open()`, such
+    /// as if the contents of the file are truncated, nonsensical, or
+    /// otherwise corrupted. The filename is UTF-8 encoded.
+    ///
+    /// @returns
+    ///         `true` upon success, or `false` upon failure.
+    virtual bool valid_file (const std::string& filename) const;
+
+    /// Check valid file using a UTF-16 encoded wstring filename.
+    bool valid_file (const std::wstring& filename) const {
+        return valid_file(Strutil::utf16_to_utf8(filename));
+    }
+
+    /// Return true if the `ioproxy` represents a file of the type for this
     /// ImageInput.  The implementation will try to determine this as
     /// efficiently as possible, in most cases much less expensively than
     /// doing a full `open()`.  Note that there can be false positives: a
@@ -932,8 +1040,8 @@ public:
     /// otherwise corrupted.
     ///
     /// @returns
-    ///         `true` upon success, or `false` upen failure.
-    virtual bool valid_file (const std::string& filename) const;
+    ///         `true` upon success, or `false` upon failure.
+    virtual bool valid_file (Filesystem::IOProxy* ioproxy) const;
 
     /// Opens the file with given name and seek to the first subimage in the
     /// file.  Various file attributes are put in `newspec` and a copy
@@ -943,7 +1051,7 @@ public:
     /// data format, and other metadata about the image.
     ///
     /// @param name
-    ///         Filename to open.
+    ///         Filename to open, UTF-8 encoded.
     ///
     /// @param newspec
     ///         Reference to an ImageSpec in which to deposit a full
@@ -954,6 +1062,11 @@ public:
     ///         `true` if the file was found and opened successfully.
     virtual bool open (const std::string& name, ImageSpec &newspec) = 0;
 
+    /// Open the ImageInput using a UTF-16 encoded wstring filename.
+    bool open (const std::wstring& name, ImageSpec &newspec) {
+        return open(Strutil::utf16_to_utf8(name), newspec);
+    }
+
     /// Open file with given name, similar to `open(name,newspec)`. The
     /// `config` is an ImageSpec giving requests or special instructions.
     /// ImageInput implementations are free to not respond to any such
@@ -961,7 +1074,7 @@ public:
     /// call regular `open(name,newspec)`.
     ///
     /// @param name
-    ///         Filename to open.
+    ///         Filename to open, UTF-8 encoded.
     ///
     /// @param newspec
     ///         Reference to an ImageSpec in which to deposit a full
@@ -975,7 +1088,14 @@ public:
     /// @returns
     ///         `true` if the file was found and opened successfully.
     virtual bool open (const std::string& name, ImageSpec &newspec,
-                       const ImageSpec& config) { return open(name,newspec); }
+                       const ImageSpec& config OIIO_MAYBE_UNUSED) {
+        return open(name,newspec);
+    }
+    /// Open the ImageInput using a UTF-16 encoded wstring filename.
+    bool open (const std::wstring& name, ImageSpec &newspec,
+               const ImageSpec& config OIIO_MAYBE_UNUSED) {
+        return open(name,newspec);
+    }
 
     /// Return a reference to the image specification of the current
     /// subimage/MIPlevel.  Note that the contents of the spec are invalid
@@ -990,7 +1110,7 @@ public:
     /// expensive, due to the work that needs to be done to fully copy an
     /// ImageSpec if there is lots of named metadata to allocate and copy.
     /// See also the less expensive `spec_dimensions()`. Errors (such as
-    /// having requested a nonexistant subimage) are indicated by returning
+    /// having requested a nonexistent subimage) are indicated by returning
     /// an ImageSpec with `format==TypeUnknown`.
     virtual ImageSpec spec (int subimage, int miplevel=0);
 
@@ -1000,9 +1120,28 @@ public:
     /// nor any of the arbitrary named metadata will be copied, thus this is
     /// a relatively inexpensive operation if you don't need that
     /// information. It is guaranteed to be thread-safe. Errors (such as
-    /// having requested a nonexistant subimage) are indicated by returning
+    /// having requested a nonexistent subimage) are indicated by returning
     /// an ImageSpec with `format==TypeUnknown`.
     virtual ImageSpec spec_dimensions (int subimage, int miplevel=0);
+
+    /// Retrieve a reduced-resolution ("thumbnail") version of the given
+    /// subimage. It is guaranteed to be thread-safe.
+    ///
+    /// @param thumb
+    ///         A reference to an `ImageBuf` which will be overwritten with
+    ///         the thumbnail image.
+    /// @param subimage
+    ///         The index of the subimage in the file whose thumbnail is to
+    ///         be retrieved.
+    /// @returns
+    ///         `true` upon success, `false` if no thumbnail was available,
+    ///         or if this file format (or reader) does not support
+    ///         thumbnails.
+    ///
+    /// @note This method was added to OpenImageIO 2.3.
+    virtual bool get_thumbnail(ImageBuf& thumb, int subimage) {
+        return false;
+    }
 
     /// Close an open ImageInput. The call to close() is not strictly
     /// necessary if the ImageInput is destroyed immediately afterwards,
@@ -1010,7 +1149,7 @@ public:
     /// still open.
     ///
     /// @returns
-    ///         `true` upon success, or `false` upen failure.
+    ///         `true` upon success, or `false` upon failure.
     virtual bool close () = 0;
 
     /// Returns the index of the subimage that is currently being read.
@@ -1033,7 +1172,7 @@ public:
     /// sequentially read through prior subimages and levels.
     ///
     /// @returns
-    ///         `true` upon success, or `false` upen failure. A failure may
+    ///         `true` upon success, or `false` upon failure. A failure may
     ///         indicate that no such subimage or MIP level exists in the
     ///         file.
     virtual bool seek_subimage (int subimage, int miplevel) {
@@ -1068,7 +1207,7 @@ public:
     ///   data type it is stored in the file into the `format` of the `data`
     ///   buffer.  If `format` is `TypeUnknown` it will just copy pixels of
     ///   file's native data layout (including, possibly, per-channel data
-    ///   formats as specified by the ImageSpec's `channelfomats` field).
+    ///   formats as specified by the ImageSpec's `channelformats` field).
     ///
     /// * The `stride` values describe the layout of the `data` buffer:
     ///   `xstride` is the distance in bytes between successive pixels
@@ -1086,7 +1225,7 @@ public:
     ///   `end` is *one past the last item*. That means that the number of
     ///   items is `end - begin`.
     ///
-    /// * For ordinary 2D (non-volumetric) imaages, any `z` or `zbegin`
+    /// * For ordinary 2D (non-volumetric) images, any `z` or `zbegin`
     ///   coordinates should be 0 and any `zend` should be 1, indicating
     ///   that only a single image "plane" exists.
     ///
@@ -1120,7 +1259,7 @@ public:
     /// @param  data        Pointer to the pixel data buffer.
     /// @param  xstride     The distance in bytes between successive
     ///                     pixels in `data` (or `AutoStride`).
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     virtual bool read_scanline (int y, int z, TypeDesc format, void *data,
                                 stride_t xstride=AutoStride);
 
@@ -1155,7 +1294,7 @@ public:
     /// @param  xstride/ystride
     ///                     The distance in bytes between successive pixels
     ///                     and scanlines (or `AutoStride`).
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     ///
     /// @note This call was changed for OpenImageIO 2.0 to include the
     ///     explicit subimage and miplevel parameters. The previous
@@ -1169,19 +1308,23 @@ public:
                                  stride_t xstride=AutoStride,
                                  stride_t ystride=AutoStride);
 
+#ifndef OIIO_DOXYGEN
     // DEPRECATED versions of read_scanlines (pre-1.9 OIIO). These will
     // eventually be removed. Try to replace these calls with ones to the
     // new variety of read_scanlines that takes an explicit subimage and
     // miplevel. These old versions are NOT THREAD-SAFE.
+    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
     bool read_scanlines (int ybegin, int yend, int z,
                          TypeDesc format, void *data,
                          stride_t xstride=AutoStride,
                          stride_t ystride=AutoStride);
+    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
     bool read_scanlines (int ybegin, int yend, int z,
                          int chbegin, int chend,
                          TypeDesc format, void *data,
                          stride_t xstride=AutoStride,
                          stride_t ystride=AutoStride);
+#endif
 
     /// Read the tile whose upper-left origin is (x,y,z) into `data[]`,
     /// converting if necessary from the native data format of the file into
@@ -1206,7 +1349,7 @@ public:
     ///                     The distance in bytes between successive pixels,
     ///                     scanlines, and image planes (or `AutoStride` to
     ///                     indicate a "contiguous" single tile).
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     ///
     /// @note This call will fail if the image is not tiled, or if (x,y,z)
     /// is not the upper left corner coordinates of a tile.
@@ -1261,7 +1404,7 @@ public:
     /// @param  xstride/ystride/zstride
     ///                     The distance in bytes between successive pixels,
     ///                     scanlines, and image planes (or `AutoStride`).
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     ///
     /// @note The call will fail if the image is not tiled, or if the pixel
     /// ranges do not fall along tile (or image) boundaries, or if it is not
@@ -1272,18 +1415,22 @@ public:
                              stride_t xstride=AutoStride, stride_t ystride=AutoStride,
                              stride_t zstride=AutoStride);
 
+#ifndef OIIO_DOXYGEN
     // DEPRECATED versions of read_tiles (pre-1.9 OIIO). These will
     // eventually be removed. Try to replace these calls with ones to the
     // new variety of read_tiles that takes an explicit subimage and
     // miplevel. These old versions are NOT THREAD-SAFE.
+    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
     bool read_tiles (int xbegin, int xend, int ybegin, int yend,
                      int zbegin, int zend, TypeDesc format, void *data,
                      stride_t xstride=AutoStride, stride_t ystride=AutoStride,
                      stride_t zstride=AutoStride);
+    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
     bool read_tiles (int xbegin, int xend, int ybegin, int yend,
                      int zbegin, int zend, int chbegin, int chend,
                      TypeDesc format, void *data, stride_t xstride=AutoStride,
                      stride_t ystride=AutoStride, stride_t zstride=AutoStride);
+#endif
 
     /// Read the entire image of `spec.width x spec.height x spec.depth`
     /// pixels into a buffer with the given strides and in the desired
@@ -1292,7 +1439,7 @@ public:
     /// Depending on the spec, this will read either all tiles or all
     /// scanlines. Assume that data points to a layout in row-major order.
     ///
-    /// This version of read_imgage, because it passes explicit subimage and
+    /// This version of read_image, because it passes explicit subimage and
     /// miplevel, does not require a separate call to seek_subimage, and is
     /// guaranteed to be thread-safe against other concurrent calls to any
     /// of the read_* methods that take an explicit subimage/miplevel (but
@@ -1310,7 +1457,8 @@ public:
     /// @param  miplevel    The MIP level to read (0 is the highest
     ///                     resolution level).
     /// @param  chbegin/chend
-    ///                     The channel range to read.
+    ///                     The channel range to read. If chend is -1, it
+    ///                     will be set to spec.nchannels.
     /// @param  format      A TypeDesc describing the type of `data`.
     /// @param  data        Pointer to the pixel data.
     /// @param  xstride/ystride/zstride
@@ -1318,7 +1466,7 @@ public:
     ///                     scanlines, and image planes (or `AutoStride`).
     /// @param  progress_callback/progress_callback_data
     ///                     Optional progress callback.
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     virtual bool read_image (int subimage, int miplevel,
                              int chbegin, int chend,
                              TypeDesc format, void *data,
@@ -1328,16 +1476,19 @@ public:
                              ProgressCallback progress_callback=NULL,
                              void *progress_callback_data=NULL);
 
+#ifndef OIIO_DOXYGEN
     // DEPRECATED versions of read_image (pre-1.9 OIIO). These will
     // eventually be removed. Try to replace these calls with ones to the
     // new variety of read_image that takes an explicit subimage and
     // miplevel. These old versions are NOT THREAD-SAFE.
+    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
     virtual bool read_image (TypeDesc format, void *data,
                              stride_t xstride=AutoStride,
                              stride_t ystride=AutoStride,
                              stride_t zstride=AutoStride,
                              ProgressCallback progress_callback=NULL,
                              void *progress_callback_data=NULL);
+    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
     virtual bool read_image (int chbegin, int chend,
                              TypeDesc format, void *data,
                              stride_t xstride=AutoStride,
@@ -1345,9 +1496,12 @@ public:
                              stride_t zstride=AutoStride,
                              ProgressCallback progress_callback=NULL,
                              void *progress_callback_data=NULL);
+    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
     bool read_image (float *data) {
-        return read_image (TypeDesc::FLOAT, data);
+        return read_image (current_subimage(), current_miplevel(),
+                           0, -1, TypeFloat, data);
     }
+#endif
 
     /// Read deep scanlines containing pixels (*,y,z), for all y in the
     /// range [ybegin,yend) into `deepdata`. This will fail if it is not a
@@ -1362,7 +1516,7 @@ public:
     /// @param  z           The z coordinate of the scanline.
     /// @param  deepdata    A `DeepData` object into which the data for
     ///                     these scanlines will be placed.
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     virtual bool read_native_deep_scanlines (int subimage, int miplevel,
                                              int ybegin, int yend, int z,
                                              int chbegin, int chend,
@@ -1383,7 +1537,7 @@ public:
     ///                     The channel range to read.
     /// @param  deepdata    A `DeepData` object into which the data for
     ///                     these tiles will be placed.
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     ///
     /// @note The call will fail if the image is not tiled, or if the pixel
     /// ranges do not fall along tile (or image) boundaries, or if it is not
@@ -1403,17 +1557,20 @@ public:
     ///                     resolution level).
     /// @param  deepdata    A `DeepData` object into which the data for
     ///                     the image will be placed.
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     virtual bool read_native_deep_image (int subimage, int miplevel,
                                          DeepData &deepdata);
 
+#ifndef OIIO_DOXYGEN
     // DEPRECATED(1.9), Now just used for back compatibility:
+    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
     bool read_native_deep_scanlines (int ybegin, int yend, int z,
                              int chbegin, int chend, DeepData &deepdata) {
         return read_native_deep_scanlines (current_subimage(), current_miplevel(),
                                            ybegin, yend, z,
                                            chbegin, chend, deepdata);
     }
+    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
     bool read_native_deep_tiles (int xbegin, int xend, int ybegin, int yend,
                                  int zbegin, int zend, int chbegin, int chend,
                                  DeepData &deepdata) {
@@ -1421,10 +1578,12 @@ public:
                                        xbegin, xend, ybegin, yend,
                                        zbegin, zend, chbegin, chend, deepdata);
     }
+    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
     bool read_native_deep_image (DeepData &deepdata) {
         return read_native_deep_image (current_subimage(), current_miplevel(),
                                        deepdata);
     }
+#endif
 
     /// @}
 
@@ -1455,7 +1614,7 @@ public:
     // varieties are special cases, for example if the particular format is
     // able to efficiently read multiple scanlines or tiles at once, and if
     // the subclass does not provide overloads, the base class
-    // implementaiton will be used instead, which is implemented by reducing
+    // implementation will be used instead, which is implemented by reducing
     // the operation to multiple calls to read_scanline or read_tile.
 
     /// Read a single scanline (all channels) of native data into contiguous
@@ -1474,13 +1633,13 @@ public:
                                         int chbegin, int chend, void *data);
 
     /// Read a single tile (all channels) of native data into contiguous
-    /// mamory. The base class read_native_tile fails. A format reader that
+    /// memory. The base class read_native_tile fails. A format reader that
     /// supports tiles MUST overload this virtual method that reads a single
     /// tile (all channels).
     virtual bool read_native_tile (int subimage, int miplevel,
                                    int x, int y, int z, void *data);
 
-    /// Read multiple tiles (all channels) of native data into contigious
+    /// Read multiple tiles (all channels) of native data into contiguous
     /// memory. A format reader that supports reading multiple tiles at once
     /// (in a way that's more efficient than reading the tiles one at a
     /// time) is advised (but not required) to overload this virtual method.
@@ -1492,7 +1651,7 @@ public:
                                     int zbegin, int zend, void *data);
 
     /// Read multiple tiles (potentially a subset of channels) of native
-    /// data into contigious memory. A format reader that supports reading
+    /// data into contiguous memory. A format reader that supports reading
     /// multiple tiles at once, and can handle a channel subset while doing
     /// so, is advised (but not required) to overload this virtual method.
     /// If an ImageInput subclass does not overload this, the default
@@ -1511,36 +1670,63 @@ public:
     virtual int send_to_input (const char *format, ...);
     int send_to_client (const char *format, ...);
 
-    /// If any of the API routines returned false indicating an error, this
-    /// method will return the error string (and clear any error flags).  If
-    /// no error has occurred since the last time `geterror()` was called,
-    /// it will return an empty string.
-    std::string geterror () const {
-        lock_guard lock (m_mutex);
-        std::string e = m_errmessage;
-        m_errmessage.clear ();
-        return e;
-    }
+    /// Set an IOProxy for this reader. This must be called prior to
+    /// `open()`, and only for readers that support them
+    /// (`supports("ioproxy")`). The caller retains ownership of the proxy.
+    ///
+    /// @returns `true` for success, `false` for failure.
+    virtual bool set_ioproxy (Filesystem::IOProxy* ioproxy);
+
+    /// Is there a pending error message waiting to be retrieved, that
+    /// resulted from an ImageInput API call made by the this thread?
+    ///
+    /// Note that any `error()` calls issued are thread-specific, and the
+    /// `geterror()/has_error()` are expected to be called by the same
+    /// thread that called whichever API function encountered an error.
+    bool has_error() const;
+
+    /// Return the text of all pending error messages issued against this
+    /// ImageInput by the calling thread, and clear the pending error
+    /// message unless `clear` is false. If no error message is pending, it
+    /// will return an empty string.
+    ///
+    /// Note that any `error()` calls issued are thread-specific, and the
+    /// `geterror()/has_error()` are expected to be called by the same
+    /// thread that called whichever API function encountered an error.
+    std::string geterror(bool clear = true) const;
 
     /// Error reporting for the plugin implementation: call this with
-    /// Strutil::format-like arguments.
+    /// Strutil::format-like arguments. It is not necessary to have the
+    /// error message contain a trailing newline.
     /// Use with caution! Some day this will change to be fmt-like rather
     /// than printf-like.
     template<typename... Args>
+    OIIO_FORMAT_DEPRECATED
     void error(const char* fmt, const Args&... args) const {
         append_error(Strutil::format (fmt, args...));
     }
 
     /// Error reporting for the plugin implementation: call this with
-    /// printf-like arguments.
+    /// printf-like arguments. It is not necessary to have the error message
+    /// contain a trailing newline.
     template<typename... Args>
     void errorf(const char* fmt, const Args&... args) const {
         append_error(Strutil::sprintf (fmt, args...));
     }
 
     /// Error reporting for the plugin implementation: call this with
-    /// fmt::format-like arguments.
+    /// std::format-like arguments. It is not necessary to have the error
+    /// message contain a trailing newline.
     template<typename... Args>
+    void errorfmt(const char* fmt, const Args&... args) const {
+        append_error(Strutil::fmt::format (fmt, args...));
+    }
+
+    // Error reporting for the plugin implementation: call this with
+    // std::format-like arguments. It is not necessary to have the
+    // error message contain a trailing newline.
+    template<typename... Args>
+    OIIO_DEPRECATED("use `errorfmt` instead")
     void fmterror(const char* fmt, const Args&... args) const {
         append_error(Strutil::fmt::format (fmt, args...));
     }
@@ -1556,19 +1742,23 @@ public:
     /// new threads. That is probably the desired behavior in situations
     /// where the calling application has already spawned multiple worker
     /// threads.
-    void threads (int n) { m_threads = n; }
+    void threads(int n);
 
     /// Retrieve the current thread-spawning policy.
     /// @see  `threads(int)`
-    int threads () const { return m_threads; }
+    int threads() const;
 
-    /// Lock the internal mutex, block until the lock is acquired.
-    void lock () { m_mutex.lock(); }
-    /// Try to loak the internal mutex, returning true if successful, or
-    /// false if the lock could not be immediately acquired.
-    bool try_lock () { return m_mutex.try_lock(); }
-    /// Ulock the internal mutex.
-    void unlock () { m_mutex.unlock(); }
+    /// There is a (hidden) internal recursive mutex to each ImageInput
+    /// that can be used by the II to enforce thread safety. This is exposed
+    /// via the obvious lock()/unlock()/try_lock() semantics.
+    void lock() const;
+    void unlock() const;
+    bool try_lock() const;
+
+    /// The presence of lock() and unlock() establish an ImageInput itself
+    /// as having the BasicLockable concept and therefore can be used by
+    /// std::lock_guard.
+    typedef std::lock_guard<const ImageInput&> lock_guard;
 
     // Custom new and delete to ensure that allocations & frees happen in
     // the OpenImageIO library, not in the app or plugins (because Windows).
@@ -1580,15 +1770,67 @@ public:
     typedef ImageInput* (*Creator)();
 
 protected:
-    mutable mutex m_mutex;   // lock of the thread-safe methods
     ImageSpec m_spec;  // format spec of the current open subimage/MIPlevel
                        // BEWARE using m_spec directly -- not thread-safe
 
+    /// @{
+    /// @name IOProxy aids for ImageInput implementations.
+    ///
+    /// This set of utility functions are not meant to be called by user code.
+    /// They are protected methods of ImageInput, and are used internally by
+    /// the ImageInput implementation to help it properly implement support of
+    /// IOProxy.
+    ///
+
+    /// Get the IOProxy being used underneath.
+    Filesystem::IOProxy* ioproxy();
+    const Filesystem::IOProxy* ioproxy() const;
+
+    /// Is this file currently opened (active proxy)?
+    bool ioproxy_opened() const;
+
+    /// Clear the proxy ptr, and close/destroy any "local" proxy.
+    void ioproxy_clear();
+
+    /// Retrieve any ioproxy request from the configuration hint spec, and
+    /// make `m_io` point to it. But if no IOProxy is found in the config,
+    /// don't overwrite one we already have.
+    void ioproxy_retrieve_from_config(const ImageSpec& config);
+
+    /// Presuming that `ioproxy_retrieve_from_config` has already been called,
+    /// if `m_io` is still not set (i.e., wasn't found in the config), open a
+    /// IOFile local proxy with the given read/write `mode`. Return true if a
+    /// proxy is set up. If it can't be done (i.e., no proxy passed, file
+    /// couldn't be opened), issue an error and return false.
+    bool ioproxy_use_or_open(string_view name);
+
+    /// Helper: read from the proxy akin to fread(). Return true on success,
+    /// false upon failure and issue a helpful error message. NOTE: this is
+    /// not the same return value as std::fread, which returns the number of
+    /// items read.
+    bool ioread(void* buf, size_t itemsize, size_t nitems = 1);
+
+    /// Helper: seek the proxy, akin to fseek. Return true on success, false
+    /// upon failure and issue an error message. (NOTE: this is not the same
+    /// return value as std::fseek, which returns 0 on success.)
+    bool ioseek(int64_t pos, int origin = SEEK_SET);
+
+    /// Helper: retrieve the current position of the proxy, akin to ftell.
+    int64_t iotell() const;
+
+    /// @}
+
 private:
-    mutable std::string m_errmessage;  // private storage of error message
-    int m_threads;    // Thread policy
-    void append_error (const std::string& message) const; // add to m_errmessage
+    // PIMPL idiom -- this lets us hide details of the internals of the
+    // ImageInput parent class so that changing them does not break the
+    // ABI.
+    class Impl;
+    static void impl_deleter(Impl*);
+    std::unique_ptr<Impl, decltype(&impl_deleter)> m_impl;
+
+    void append_error(string_view message) const; // add to error message
     // Deprecated:
+    OIIO_DEPRECATED("Deprecated")
     static unique_ptr create (const std::string& filename, bool do_open,
                               const std::string& plugin_searchpath);
 };
@@ -1614,21 +1856,44 @@ public:
     /// Create an `ImageOutput` that can be used to write an image file.
     /// The type of image file (and hence, the particular subclass of
     /// `ImageOutput` returned, and the plugin that contains its methods) is
-    /// inferred from the name.
+    /// inferred from the name, if it appears to be a full filename, or it
+    /// may also name the format.
     ///
-    /// @param filename The name of the file format (e.g., "openexr"), a
-    ///                 file extension (e.g., "exr"), or a filename from
-    ///                 which the the file format can be inferred from its
-    ///                 extension (e.g., "hawaii.exr").
+    /// @param filename
+    ///         The name of the file format (e.g., "openexr"), a file
+    ///         extension (e.g., "exr"), or a filename from which the the
+    ///         file format can be inferred from its extension (e.g.,
+    ///         "hawaii.exr"). The filename is UTF-8 encoded.
+    ///
     /// @param plugin_searchpath
-    ///                 An optional colon-separated list of directories to
-    ///                 search for OpenImageIO plugin DSO/DLL's.
-    /// @returns        A `unique_ptr` that will close and free the
-    ///                 ImageOutput when it exits scope or is reset.
-    ///                 The pointer will be empty if the requiresd writer
-    ///                 was not able to be created.
+    ///         An optional colon-separated list of directories to search
+    ///         for OpenImageIO plugin DSO/DLL's.
+    ///
+    /// @param ioproxy
+    ///         Optional pointer to an IOProxy to use (not supported by all
+    ///         formats, see `supports("ioproxy")`). The caller retains
+    ///         ownership of the proxy.
+    ///
+    /// @returns
+    ///         A `unique_ptr` that will close and free the ImageOutput when
+    ///         it exits scope or is reset. The pointer will be empty if the
+    ///         required writer was not able to be created.
+    static unique_ptr create (string_view filename,
+                              Filesystem::IOProxy* ioproxy = nullptr,
+                              string_view plugin_searchpath = "");
+
+    /// Create an ImageOutput using a UTF-16 encoded wstring filename and
+    /// plugin searchpath.
+    static unique_ptr create (const std::wstring& filename,
+                              Filesystem::IOProxy* ioproxy = nullptr,
+                              const std::wstring& plugin_searchpath = {}) {
+        return create(Strutil::utf16_to_utf8(filename), ioproxy,
+                      Strutil::utf16_to_utf8(plugin_searchpath));
+    }
+
+    // DEPRECATED(2.2)
     static unique_ptr create (const std::string &filename,
-                              const std::string &plugin_searchpath="");
+                              const std::string &plugin_searchpath);
 
     /// @}
 
@@ -1643,7 +1908,7 @@ public:
     /// Return the name of the format implemented by this class.
     virtual const char *format_name (void) const = 0;
 
-    // Overrride these functions in your derived output class
+    // Override these functions in your derived output class
     // to inform the client which formats are supported
 
     /// @{
@@ -1726,7 +1991,7 @@ public:
     ///         origin (i.e., nonzero ImageSpec `x`, `y`, `z`)?
     ///
     ///  - `"negativeorigin"` :
-    ///         Does the image format allow pixel and data window origins
+    ///         Does the image format allow data and display window origins
     ///         (i.e., ImageSpec `x`, `y`, `z`, `full_x`, `full_y`, `full_z`)
     ///         to have negative values?
     ///
@@ -1752,12 +2017,33 @@ public:
     ///  - `"ioproxy"`
     ///         Does the image file format support writing to an `IOProxy`?
     ///
+    ///  - `"procedural"` :
+    ///        Is this a purely procedural output that doesn't write an
+    ///        actual file?
+    ///
+    ///  - `"thumbnail"` :
+    ///        Does this format writer support adding a  reduced resolution
+    ///        copy of the image via the `thumbnail()` method?
+    ///
+    ///  - `"thumbnail_after_write"` :
+    ///        Does this format writer support calling `thumbnail()` after
+    ///        the scanlines or tiles have been specified? (Supporting
+    ///        `"thumbnail"` but not `"thumbnail_after_write"` means that any
+    ///        thumbnail must be supplied immediately after `open()`, prior
+    ///        to any of the `write_*()` calls.)
+    ///
+    ///  - `"noimage"` :
+    ///        Does this format allow 0x0 sized images, i.e. an image file
+    ///        with metadata only and no pixels?
+    ///
     /// This list of queries may be extended in future releases. Since this
     /// can be done simply by recognizing new query strings, and does not
     /// require any new API entry points, addition of support for new
     /// queries does not break ``link compatibility'' with
     /// previously-compiled plugins.
-    virtual int supports (string_view feature) const { return false; }
+    virtual int supports (string_view feature OIIO_MAYBE_UNUSED) const {
+        return false;
+    }
 
     /// Modes passed to the `open()` call.
     enum OpenMode { Create, AppendSubimage, AppendMIPLevel };
@@ -1770,16 +2056,22 @@ public:
     /// appending a subimage, or a MIP level to the current subimage,
     /// respectively.
     ///
-    /// @param  name        The name of the image file to open.
+    /// @param  filename    The name of the image file to open, UTF-8 encoded.
     /// @param  newspec     The ImageSpec describing the resolution, data
     ///                     types, etc.
     /// @param  mode        Specifies whether the purpose of the `open` is
     ///                     to create/truncate the file (default: `Create`),
     ///                     append another subimage (`AppendSubimage`), or
     ///                     append another MIP level (`AppendMIPLevel`).
-    /// @returns            `true` upon success, or `false` upen failure.
-    virtual bool open (const std::string &name, const ImageSpec &newspec,
+    /// @returns            `true` upon success, or `false` upon failure.
+    virtual bool open (const std::string &filename, const ImageSpec &newspec,
                        OpenMode mode=Create) = 0;
+
+    /// Open an ImageOutput using a UTF-16 encoded wstring filename.
+    bool open (const std::wstring &filename, const ImageSpec &newspec,
+               OpenMode mode=Create) {
+        return open(Strutil::utf16_to_utf8(filename), newspec, mode);
+    }
 
     /// Open a multi-subimage file with given name and specifications for
     /// each of the subimages.  Upon success, the first subimage will be
@@ -1789,25 +2081,33 @@ public:
     /// `open(name,spec,AppendMIPLevel)`).
     ///
     /// The purpose of this call is to accommodate format-writing
-    /// libraries that fmust know the number and specifications of the
+    /// libraries that must know the number and specifications of the
     /// subimages upon first opening the file; such formats can be
     /// detected by::
     ///     supports("multiimage") && !supports("appendsubimage")
     /// The individual specs passed to the appending open() calls for
     /// subsequent subimages *must* match the ones originally passed.
     ///
-    /// @param  name        The name of the image file to open.
+    /// @param  filename    The name of the image file to open, UTF-8 encoded.
     /// @param  subimages   The number of subimages (and therefore the
     ///                     length of the `specs[]` array.
     /// @param  specs[]
     ///                      Pointer to an array of `ImageSpec` objects
     ///                      describing each of the expected subimages.
-    /// @returns            `true` upon success, or `false` upen failure.
-    virtual bool open (const std::string &name, int subimages,
+    /// @returns            `true` upon success, or `false` upon failure.
+    virtual bool open (const std::string &filename,
+                       int subimages OIIO_MAYBE_UNUSED,
                        const ImageSpec *specs) {
         // Default implementation: just a regular open, assume that
         // appending will work.
-        return open (name, specs[0]);
+        return open (filename, specs[0]);
+    }
+
+    bool open (const std::wstring &filename, int subimages OIIO_MAYBE_UNUSED,
+               const ImageSpec *specs) {
+        // Default implementation: just a regular open, assume that
+        // appending will work.
+        return open (Strutil::utf16_to_utf8(filename), specs[0]);
     }
 
     /// Return a reference to the image format specification of the current
@@ -1832,7 +2132,7 @@ public:
     ///   `TypeUnknown`, then rather than converting from `format`, it will
     ///   just copy pixels assumed to already be in the file's native data
     ///   layout (including, possibly, per-channel data formats as specified
-    ///   by the ImageSpec's `channelfomats` field).
+    ///   by the ImageSpec's `channelformats` field).
     ///
     /// * The `stride` values describe the layout of the `data` buffer:
     ///   `xstride` is the distance in bytes between successive pixels
@@ -1850,7 +2150,7 @@ public:
     ///   `end` is *one past the last item*. That means that the number of
     ///   items is `end - begin`.
     ///
-    /// * For ordinary 2D (non-volumetric) imaages, any `z` or `zbegin`
+    /// * For ordinary 2D (non-volumetric) images, any `z` or `zbegin`
     ///   coordinates should be 0 and any `zend` should be 1, indicating
     ///   that only a single image "plane" exists.
     ///
@@ -1873,7 +2173,7 @@ public:
     /// @param  data        Pointer to the pixel data.
     /// @param  xstride     The distance in bytes between successive
     ///                     pixels in `data` (or `AutoStride`).
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride=AutoStride);
 
@@ -1891,7 +2191,7 @@ public:
     /// @param  xstride/ystride
     ///                     The distance in bytes between successive pixels
     ///                     and scanlines (or `AutoStride`).
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     virtual bool write_scanlines (int ybegin, int yend, int z,
                                   TypeDesc format, const void *data,
                                   stride_t xstride=AutoStride,
@@ -1914,7 +2214,7 @@ public:
     ///                     The distance in bytes between successive pixels,
     ///                     scanlines, and image planes (or `AutoStride` to
     ///                     indicate a "contiguous" single tile).
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     ///
     /// @note This call will fail if the image is not tiled, or if (x,y,z)
     /// is not the upper left corner coordinates of a tile.
@@ -1952,7 +2252,7 @@ public:
     /// @param  xstride/ystride/zstride
     ///                     The distance in bytes between successive pixels,
     ///                     scanlines, and image planes (or `AutoStride`).
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     ///
     /// @note The call will fail if the image is not tiled, or if the pixel
     /// ranges do not fall along tile (or image) boundaries, or if it is not
@@ -1985,7 +2285,7 @@ public:
     /// @param  xstride/ystride/zstride
     ///                     The distance in bytes between successive pixels,
     ///                     scanlines, and image planes (or `AutoStride`).
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     ///
     /// @note The call will fail for a format plugin that does not return
     /// true for `supports("rectangles")`.
@@ -2017,7 +2317,7 @@ public:
     ///                     scanlines, and image planes (or `AutoStride`).
     /// @param  progress_callback/progress_callback_data
     ///                     Optional progress callback.
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     virtual bool write_image (TypeDesc format, const void *data,
                               stride_t xstride=AutoStride,
                               stride_t ystride=AutoStride,
@@ -2033,7 +2333,7 @@ public:
     /// @param  z           The z coordinate of the scanline.
     /// @param  deepdata    A `DeepData` object with the data for these
     ///                     scanlines.
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     virtual bool write_deep_scanlines (int ybegin, int yend, int z,
                                        const DeepData &deepdata);
 
@@ -2052,7 +2352,7 @@ public:
     /// @param  zbegin/zend The z range of the pixels covered by the tiles
     ///                     (for a 2D image, zbegin=0 and zend=1).
     /// @param  deepdata    A `DeepData` object with the data for the tiles.
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     ///
     /// @note The call will fail if the image is not tiled, or if the pixel
     /// ranges do not fall along tile (or image) boundaries, or if it is not
@@ -2065,16 +2365,30 @@ public:
     /// the spec, this will write either all tiles or all scanlines.
     ///
     /// @param  deepdata    A `DeepData` object with the data for the image.
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     virtual bool write_deep_image (const DeepData &deepdata);
+
+    /// Specify a reduced-resolution ("thumbnail") version of the image.
+    /// Note that many image formats may require the thumbnail to be
+    /// specified prior to writing the pixels.
+    ///
+    /// @param thumb
+    ///         A reference to an `ImageBuf` containing the thumbnail image.
+    /// @returns
+    ///         `true` upon success, `false` if it was not possible to write
+    ///         the thumbnail, or if this file format (or writer) does not
+    ///         support thumbnails.
+    ///
+    /// @note This method was added to OpenImageIO 2.3.
+    virtual bool set_thumbnail(const ImageBuf& thumb) { return false; }
 
     /// @}
 
-    /// Read the current subimage of `in`, and write it as the next
-    /// subimage of `*this`, in a way that is efficient and does not alter
-    /// pixel values, if at all possible.  Both `in` and `this` must be a
-    /// properly-opened `ImageInput` and `ImageOutput`, respectively, and
-    /// their current images must match in size and number of channels.
+    /// Read the pixels of the current subimage of `in`, and write it as the
+    /// next subimage of `*this`, in a way that is efficient and does not
+    /// alter pixel values, if at all possible.  Both `in` and `this` must
+    /// be a properly-opened `ImageInput` and `ImageOutput`, respectively,
+    /// and their current images must match in size and number of channels.
     ///
     /// If a particular ImageOutput implementation does not supply a
     /// `copy_image` method, it will inherit the default implementation,
@@ -2086,8 +2400,17 @@ public:
     /// followed by `out->write_image()`, and avoids any unintended pixel
     /// alterations, especially for formats that use lossy compression.
     ///
+    /// If the function fails and returns `false`, an error message can be
+    /// retrieved from `this->geterror()`, even if the actual error was
+    /// related to reading from `in` (i.e., reading errors are automatically
+    /// transferrred to `*this`).
+    ///
+    /// Note: this method is NOT thread-safe (against other threads that may
+    /// also be using `in`), since it depends on persistent state in the
+    /// ImageInput.
+    ///
     /// @param  in          A pointer to the open `ImageInput` to read from.
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     virtual bool copy_image (ImageInput *in);
 
     // General message passing between client and image output server. This
@@ -2095,35 +2418,63 @@ public:
     virtual int send_to_output (const char *format, ...);
     int send_to_client (const char *format, ...);
 
-    /// If any of the API routines returned false indicating an error, this
-    /// method will return the error string (and clear any error flags).  If
-    /// no error has occurred since the last time `geterror()` was called,
-    /// it will return an empty string.
-    std::string geterror () const {
-        std::string e = m_errmessage;
-        m_errmessage.clear ();
-        return e;
-    }
+    /// Set an IOProxy for this writer. This must be called prior to
+    /// `open()`, and only for writers that support them
+    /// (`supports("ioproxy")`). The caller retains ownership of the proxy.
+    ///
+    /// @returns `true` for success, `false` for failure.
+    virtual bool set_ioproxy (Filesystem::IOProxy* ioproxy);
+
+    /// Is there a pending error message waiting to be retrieved, that
+    /// resulted from an ImageOutput API call made by the this thread?
+    ///
+    /// Note that any `error()` calls issued are thread-specific, and the
+    /// `geterror()/has_error()` are expected to be called by the same
+    /// thread that called whichever API function encountered an error.
+    bool has_error() const;
+
+    /// Return the text of all pending error messages issued against this
+    /// ImageOutput by the calling thread, and clear the pending error
+    /// message unless `clear` is false. If no error message is pending, it
+    /// will return an empty string.
+    ///
+    /// Note that any `error()` calls issued are thread-specific, and the
+    /// `geterror()/has_error()` are expected to be called by the same
+    /// thread that called whichever API function encountered an error.
+    std::string geterror(bool clear = true) const;
 
     /// Error reporting for the plugin implementation: call this with
-    /// `Strutil::format`-like arguments.
+    /// `Strutil::format`-like arguments. It is not necessary to have the
+    /// error message contain a trailing newline.
     /// Use with caution! Some day this will change to be fmt-like rather
     /// than printf-like.
     template<typename... Args>
+    OIIO_FORMAT_DEPRECATED
     void error(const char* fmt, const Args&... args) const {
         append_error(Strutil::format (fmt, args...));
     }
 
     /// Error reporting for the plugin implementation: call this with
-    /// printf-like arguments.
+    /// printf-like arguments. It is not necessary to have the error message
+    /// contain a trailing newline.
     template<typename... Args>
     void errorf(const char* fmt, const Args&... args) const {
         append_error(Strutil::sprintf (fmt, args...));
     }
 
     /// Error reporting for the plugin implementation: call this with
-    /// fmt::format-like arguments.
+    /// std::format-like arguments. It is not necessary to have the error
+    /// message contain a trailing newline.
     template<typename... Args>
+    void errorfmt(const char* fmt, const Args&... args) const {
+        append_error(Strutil::fmt::format (fmt, args...));
+    }
+
+    // Error reporting for the plugin implementation: call this with
+    // std::format-like arguments. It is not necessary to have the error
+    // message contain a trailing newline.
+    template<typename... Args>
+    OIIO_DEPRECATED("use `errorfmt` instead")
     void fmterror(const char* fmt, const Args&... args) const {
         append_error(Strutil::fmt::format (fmt, args...));
     }
@@ -2140,11 +2491,11 @@ public:
     /// new threads. That is probably the desired behavior in situations
     /// where the calling application has already spawned multiple worker
     /// threads.
-    void threads (int n) { m_threads = n; }
+    void threads(int n);
 
     /// Retrieve the current thread-spawning policy.
     /// @see  `threads(int)`
-    int threads () const { return m_threads; }
+    int threads() const;
 
     // Custom new and delete to ensure that allocations & frees happen in
     // the OpenImageIO library, not in the app or plugins (because Windows).
@@ -2156,6 +2507,96 @@ public:
     typedef ImageOutput* (*Creator)();
 
 protected:
+    /// @{
+    /// @name Helper functions for ImageOutput implementations.
+    ///
+    /// This set of utility functions are not meant to be called by user code.
+    /// They are protected methods of ImageOutput, and are used internally by
+    /// the ImageOutput implementation to help it properly implement support
+    /// of IOProxy.
+    ///
+
+    /// Helper: convenience boilerplate for several checks and operations that
+    /// every implementation of ImageOutput::open() will need to do.
+    ///
+    /// 1. Check if the open `mode` is one allowed by `supports("multiimage")`
+    ///    and `supports("mipmap")`.
+    /// 2. Copy the passed spec to the internal m_spec.
+    /// 3. Do all possible validity checks based on `supports()` (for example,
+    ///    is the request to write volumetric data but the format writer
+    ///    doesn't support it).
+    ///
+    /// Returns true if ok, false if the open request can't be satisfied.
+    ///
+    /// Having a central helper method for this is beneficial:
+    ///
+    /// * Less repeated code in the many open() implementations, which also
+    ///   means less opportunity for bugs.
+    /// * Ensures that all image writers perform the full set of possible
+    ///   validity checks.
+    /// * Ensures that error messages are consistent across all writers and
+    ///   can be improved in a single location.
+    /// * Better code coverage for testing, because the error handling that is
+    ///   done centrally means we don't need to separately test every possible
+    ///   error condition in every writer.
+    ///
+    /// @param mode
+    ///     The mode in which the file is to be opened (`Create`,
+    ///     `AppendSubimage`, or `AppendMIPLevel`).
+    ///
+    /// @param spec
+    ///     The ImageSpec that we are validating.
+    ///
+    /// @param range
+    ///     An ROI that describes the allowable pixel coordinates and channel
+    ///     indices as half-open intervals.  For example, the default value
+    ///     `{0, 65535, 0, 65535, 0, 1, 0, 4}` means that pixel coordinates
+    ///     must be non-negative and the width and height be representable by
+    ///     a uint16 value, up to 4 channels are allowed, and volumes are not
+    ///     permitted (z coordinate may only be 0). File formats that can
+    ///     handle larger resolutions, or volumes, or >4 channels must
+    ///     override these limits!
+    ///
+    /// @param flags
+    ///     A bitfield flag (bits defined by `enum OpenChecks`) that can
+    ///     indicate additional checks to perform, or checks that should be
+    ///     skipped.
+    ///
+    /// Checks performed include:
+    /// 
+    /// * Whether the open `mode` is one allowed by `supports("multiimage")`
+    ///   and `supports("mipmap")`.
+    /// * Whether the resolution and channel count is within the range
+    ///   implied by `range`. If `spec.depth < 1`, it will be set to 1.
+    /// * Whether the request for volumes or deep images can be accommodated
+    ///   by the format (according to its `supports()` queries).
+    /// * If per-channel data types are supplied (and not all the same), but
+    ///   but the file format does not not `supports("channelformats")`. If
+    ///   `spec.channelformats` is used but all formats are equal, then
+    ///   the `channelformats` vector will be cleared and only `spec.format`
+    ///   will be used.
+    /// * If any of the "full" size fields are negative or zero, they will be
+    ///   set to the corresponding pixel data size fields.
+    /// * Whether the pixel origin offset (`spec.x`, `spec.y`, `spec.z`) is
+    ///   allowed to be non-zero (according to `supports("origin")` or
+    ///   negative (`supports("negativeorigin")`) -- if it is not allowed,
+    ///   it is an error if flags includes `Strict`, otherwise it will simply
+    ///   be adjusted to 0.
+    /// * Whether the `extra_attribs` contains a request to use an IOProxy,
+    ///   but the format writer does not report `supports("ioproxy")`.
+    bool check_open(OpenMode mode, const ImageSpec &spec,
+                    ROI range = {0, 65535, 0, 65535, 0, 1, 0, 4},
+                    uint64_t flags = 0);
+
+    /// Bit field definitions for the `flags` argument to `check_open()`.
+    enum class OpenChecks : uint64_t {
+        Defaults = 0,
+        Disallow1Channel = 1,
+        Disallow2Channel = 2,
+        Disallow1or2Channel = Disallow1Channel | Disallow2Channel,
+        Strict = (uint64_t(1) << 32)
+    };
+
     /// Helper routines used by write_* implementations: convert data (in
     /// the given format and stride) to the "native" format of the file
     /// (described by the 'spec' member variable), in contiguous order. This
@@ -2211,13 +2652,76 @@ protected:
                                     void *image_buffer,
                                     TypeDesc buf_format = TypeDesc::UNKNOWN);
 
+    /// @}
+
+    /// @{
+    /// @name IOProxy aids for ImageOutput implementations.
+    ///
+    /// This set of utility functions are not meant to be called by user code.
+    /// They are protected methods of ImageOutput, and are used internally by
+    /// the ImageOutput implementation to help it properly implement support
+    /// of IOProxy.
+    ///
+
+    /// Get the IOProxy being used underneath.
+    Filesystem::IOProxy* ioproxy();
+    const Filesystem::IOProxy* ioproxy() const;
+
+    /// Is this file currently opened (active proxy)?
+    bool ioproxy_opened() const;
+
+    /// Clear the proxy ptr, and close/destroy any "local" proxy.
+    void ioproxy_clear();
+
+    /// Retrieve any ioproxy request from the configuration hint spec, and
+    /// make `m_io` point to it. But if no IOProxy is found in the config,
+    /// don't overwrite one we already have.
+    void ioproxy_retrieve_from_config(const ImageSpec& config);
+
+    /// Presuming that `ioproxy_retrieve_from_config` has already been called,
+    /// if `m_io` is still not set (i.e., wasn't found in the config), open a
+    /// IOFile local proxy with the given read/write `mode`. Return true if a
+    /// proxy is set up. If it can't be done (i.e., no proxy passed, file
+    /// couldn't be opened), issue an error and return false.
+    bool ioproxy_use_or_open(string_view name);
+
+    /// Helper: write to the proxy akin to fwrite(). Return true on success,
+    /// false upon failure and issue a helpful error message. NOTE: this is
+    /// not the same return value as std::fwrite, which returns the number of
+    /// items written.
+    bool iowrite(const void* buf, size_t itemsize, size_t nitems = 1);
+
+    /// Helper: seek the proxy, akin to fseek. Return true on success, false
+    /// upon failure and issue an error message. (NOTE: this isionot the same
+    /// return value as std::fseek, which returns 0 on success.)
+    bool ioseek(int64_t pos, int origin = SEEK_SET);
+
+    /// Helper: retrieve the current position of the proxy, akin to ftell.
+    int64_t iotell() const;
+
+    /// Write a formatted string to the output proxy. Return true on success,
+    /// false upon failure and issue an error message.
+    template<typename Str, typename... Args>
+    inline bool iowritefmt(const Str& fmt, Args&&... args)
+    {
+        std::string s = Strutil::fmt::format(fmt, args...);
+        return iowrite(s.data(), s.size());
+    }
+
+    /// @}
+
 protected:
-    ImageSpec m_spec;           ///< format spec of the currently open image
+    ImageSpec m_spec;           // format spec of the currently open image
 
 private:
-    void append_error (const std::string& message) const; // add to m_errmessage
-    mutable std::string m_errmessage;   ///< private storage of error message
-    int m_threads;    // Thread policy
+    // PIMPL idiom -- this lets us hide details of the internals of the
+    // ImageInput parent class so that changing them does not break the
+    // ABI.
+    class Impl;
+    static void impl_deleter(Impl*);
+    std::unique_ptr<Impl, decltype(&impl_deleter)> m_impl;
+
+    void append_error(string_view message) const; // add to m_errmessage
 };
 
 
@@ -2231,15 +2735,19 @@ private:
 /// are linked against an adequate version of the library.
 OIIO_API int openimageio_version ();
 
+/// Is there a pending global error message waiting to be retrieved?
+OIIO_API bool has_error();
+
 /// Returns any error string describing what went wrong if
 /// `ImageInput::create()` or `ImageOutput::create()` failed (since in such
 /// cases, the ImageInput or ImageOutput itself does not exist to have its
 /// own `geterror()` function called). This function returns the last error
-/// for this particular thread; separate threads will not clobber each
-/// other's global error messages.
-OIIO_API std::string geterror ();
+/// for this particular thread, and clear the pending error message unless
+/// `clear` is false; separate threads will not clobber each other's global
+/// error messages.
+OIIO_API std::string geterror(bool clear = true);
 
-/// `OIIO::attribute()` sets an global attribute (i.e., a property or
+/// `OIIO::attribute()` sets a global attribute (i.e., a property or
 /// option) of OpenImageIO. The `name` designates the name of the attribute,
 /// `type` describes the type of data, and `val` is a pointer to memory
 /// containing the new value for the attribute.
@@ -2280,7 +2788,7 @@ OIIO_API std::string geterror ();
 ///    application level, each of which is expected to be making separate
 ///    OIIO calls simultaneously, should set this to 1, thus having each
 ///    calling thread do its own work inside of OIIO rather than spawning
-///    new threads with a high overall "fan out.""
+///    new threads with a high overall "fan out."
 ///
 /// - `int exr_threads`
 ///
@@ -2288,10 +2796,32 @@ OIIO_API std::string geterror ();
 ///    many threads as the amount of hardware concurrency detected. Note
 ///    that this is separate from the OIIO `"threads"` attribute.
 ///
+/// - `string font_searchpath`
+///
+///    Colon-separated (or semicolon-separated) list of directories to search
+///    if fonts are needed. (Such as for `ImageBufAlgo::render_text()`.)
+///
+/// - `int use_tbb`
+///
+///    If nonzero and TBB was found and support configured when OIIO was
+///    compiled, parallel processing within OIIO (including inside the
+///    parallel.h utilities) will try to use TBB by default where possible.
+///    If zero, they will try to use OIIO's native thread pool even if TBB
+///    is available.
+///
 /// - `string plugin_searchpath`
 ///
-///    Colon-separated list of directories to search for dynamically-loaded
-///    format plugins.
+///    Colon-separated (or semicolon-separated) list of directories to search
+///    for dynamically-loaded format plugins.
+///
+/// - `int try_all_readers`
+///
+///    When nonzero (the default), a call to `ImageInput::create()` or
+///    `ImageInput::open()` that does not succeed in opening the file with the
+///    format reader implied by the file extension will try all available
+///    format readers to see if one of them can open the file. If this is
+///    zero, the only reader that will be tried is the one implied by the file
+///    extension.
 ///
 /// - `int read_chunk`
 ///
@@ -2338,14 +2868,44 @@ OIIO_API std::string geterror ();
 ///    may not read these correctly, but OIIO will. That's why the default
 ///    is not to support it.
 ///
+/// - `int dds:bc5normal`
+///
+///    When nonzero, treats BC5/ATI2 format files as normal maps (loads as
+///    3 channels, computes blue from red and green). Default is 0.
+///
+/// - `int openexr:core`
+///
+///    When nonzero, use the new "OpenEXR core C library" when available,
+///    for OpenEXR >= 3.1. This is experimental, and currently defaults to 0.
+///
+/// - `int limits:channels` (1024)
+///
+///    When nonzero, the maximum number of color channels in an image. Image
+///    files whose headers indicate they have more channels might be assumed
+///    to be corrupted or malicious files.  In situations when more channels
+///    are expected to be encountered, the application should raise this
+///    limit. The default is 1024 channels.
+///
+/// - `int limits:imagesize_MB` (32768)
+///
+///    When nonzero, the maximum size in MB of the uncompressed pixel data of
+///    a single 2D image. Images whose headers indicate that they are larger
+///    than this might be assumed to be corrupted or malicious files. The
+///    default is 32768 (32 GB of uncompressed pixel data -- equivalent to 64k
+///    x 64k x 4 channel x half). In situations when images larger than this
+///    are expected to be encountered, you should raise this limit.
+///
 /// - `int log_times`
 ///
 ///    When the `"log_times"` attribute is nonzero, `ImageBufAlgo` functions
 ///    are instrumented to record the number of times they were called and
 ///    the total amount of time spent executing them. It can be overridden
-///    by environment variable `OPENIMAGEIO_LOG_TIMES`. If the value of
-///    `log_times` is 2 or more when the application terminates, the timing
-///    report will be printed to `stdout` upon exit.
+///    by environment variable `OPENIMAGEIO_LOG_TIMES`. The totals will be
+///    recorded and can be retrieved as a string by using
+///    `OIIO::getattribute("timing_report", ...)`. Additionally, if the
+///    value is 2 or more, the timing report will be printed to `stdout`
+///    upon application exit (not advised in contexts where it isn't ok to
+///    print to the terminal via stdout, such as GUI apps or libraries).
 ///
 ///    When enabled, there is a slight runtime performance cost due to
 ///    checking the time at the start and end of each of those function
@@ -2353,12 +2913,7 @@ OIIO_API std::string geterror ();
 ///    the log information. When the `log_times` attribute is disabled,
 ///    there is no additional performance cost.
 ///
-///    The report of totals can be retrieved as the value of the
-///    `"timing_report"` attribute, using `OIIO:get_attribute()` call.
-///
-///    
-///
-OIIO_API bool attribute (string_view name, TypeDesc type, const void *val);
+OIIO_API bool attribute(string_view name, TypeDesc type, const void* val);
 
 /// Shortcut attribute() for setting a single integer.
 inline bool attribute (string_view name, int val) {
@@ -2370,7 +2925,8 @@ inline bool attribute (string_view name, float val) {
 }
 /// Shortcut attribute() for setting a single string.
 inline bool attribute (string_view name, string_view val) {
-    const char *s = val.c_str();
+    std::string valstr = val;
+    const char *s = valstr.c_str();
     return attribute (name, TypeString, &s);
 }
 
@@ -2384,16 +2940,20 @@ inline bool attribute (string_view name, string_view val) {
 /// documented as settable by the `OIIO::attribute()` call, `getattribute()`
 /// can also retrieve the following read-only attributes:
 ///
+/// - `string version`
+///
+///   The version designation of the OpenImageIO library, as a string.
+///
 /// - `string format_list`
 /// - `string input_format_list`
 /// - `string output_format_list`
-///   
+///
 ///   A comma-separated list of all the names of, respectively, all
 ///   supported image formats, all formats accepted as inputs, and all
 ///   formats accepted as outputs.
-///   
+///
 /// - `string extension_list`
-///   
+///
 ///   For each format, the format name, followed by a colon, followed by a
 ///   comma-separated list of all extensions that are presumed to be used
 ///   for that format.  Semicolons separate the lists for formats.  For
@@ -2402,25 +2962,43 @@ inline bool attribute (string_view name, string_view val) {
 ///        "tiff:tif;jpeg:jpg,jpeg;openexr:exr"
 ///
 /// - `string library_list`
-///   
+///
 ///   For each format that uses a dependent library, the format name,
 ///   followed by a colon, followed by the name and version of the
 ///   dependency. Semicolons separate the lists for formats.  For example,
 ///
 ///        "tiff:LIBTIFF 4.0.4;gif:gif_lib 4.2.3;openexr:OpenEXR 2.2.0"
 ///
-/// - string "timing_report"
-///         A string containing the report of all the log_times.
+/// - `string font_list`
+/// - `string font_file_list`
+/// - `string font_dir_list`
+///
+///   A semicolon-separated list of, respectively, all the fonts that
+///   OpenImageIO can find, all the font files that OpenImageIO can find (with
+///   full paths), and all the directories that OpenImageIO will search for
+///   fonts.  (Added in OpenImageIO 2.5)
+///
+/// - `string opencolorio_version`
+///
+///   Returns the version (such as "2.2.0") of OpenColorIO that is used by
+///   OpenImageiO, or "0.0.0" if no OpenColorIO support has been enabled.
+///   (Added in OpenImageIO 2.4.6)
+///
+/// - `int opencv_version`
+///
+///   Returns the encoded version (such as 40701 for 4.7.1) of the OpenCV that
+///   is used by OpenImageIO, or 0 if no OpenCV support has been enabled.
+///   (Added in OpenImageIO 2.5.2)
 ///
 /// - `string hw:simd`
 /// - `string oiio:simd` (read-only)
-///   
+///
 ///   A comma-separated list of hardware CPU features for SIMD (and some
 ///   other things). The `"oiio:simd"` attribute is similarly a list of
 ///   which features this build of OIIO was compiled to support.
 ///
 ///   This was added in OpenImageIO 1.8.
-///   
+///
 /// - `float resident_memory_used_MB`
 ///
 ///   This read-only attribute can be used for debugging purposes to report
@@ -2442,7 +3020,7 @@ inline bool attribute (string_view name, string_view val) {
 ///        IBA::resize                  20   0.24s   (avg  12.18ms)
 ///        IBA::zero                     8   0.66ms  (avg   0.08ms)
 ///
-OIIO_API bool getattribute (string_view name, TypeDesc type, void *val);
+OIIO_API bool getattribute(string_view name, TypeDesc type, void* val);
 
 /// Shortcut getattribute() for retrieving a single integer.
 /// The value is placed in `val`, and the function returns `true` if the
@@ -2502,6 +3080,29 @@ OIIO_API void declare_imageio_format (const std::string &format_name,
                                       const char **output_extensions,
                                       const char *lib_version);
 
+/// Is `name` one of the known format names?
+OIIO_API bool is_imageio_format_name(string_view name);
+
+/// Utility: Parse the "extension_list" attribute into a std::map string
+/// keys are the names of all the file formats OIIO knows how to read, and
+/// whose values are vectors of strings of the file extensions associated
+/// with the file format. (Added in OIIO 2.2.13.)
+inline std::map<std::string, std::vector<std::string>>
+get_extension_map()
+{
+    std::map<std::string, std::vector<std::string>> map;
+    auto all_extensions = OIIO::get_string_attribute("extension_list");
+    for (auto oneformat : OIIO::Strutil::splitsv(all_extensions, ";")) {
+        auto format_exts = OIIO::Strutil::splitsv(oneformat, ":", 2);
+        if (format_exts.size() != 2)
+            continue;   // something went wrong
+        map[format_exts[0]] = OIIO::Strutil::splits(format_exts[1], ",");
+    }
+    return map;
+}
+
+
+
 /// Helper function: convert contiguous data between two arbitrary pixel
 /// data types (specified by TypeDesc's). Return true if ok, false if it
 /// didn't know how to do the conversion.  If dst_type is UNKNOWN, it will
@@ -2509,7 +3110,7 @@ OIIO_API void declare_imageio_format (const std::string &format_name,
 ///
 /// The conversion is of normalized (pixel-like) values -- for example
 /// 'UINT8' 255 will convert to float 1.0 and vice versa, not float 255.0.
-/// If you want a straight C-like data cast convertion (e.g., uint8 255 ->
+/// If you want a straight C-like data cast conversion (e.g., uint8 255 ->
 /// float 255.0), then you should prefer the un-normalized convert_type()
 /// utility function found in typedesc.h.
 OIIO_API bool convert_pixel_values (TypeDesc src_type, const void *src,
@@ -2544,7 +3145,7 @@ inline bool convert_image(int nchannels, int width, int height, int depth,
             stride_t src_xstride, stride_t src_ystride, stride_t src_zstride,
             void *dst, TypeDesc dst_type,
             stride_t dst_xstride, stride_t dst_ystride, stride_t dst_zstride,
-            int alpha_channel, int z_channel = -1)
+            int /*alpha_channel*/, int /*z_channel*/ = -1)
 {
     return convert_image(nchannels, width, height, depth, src, src_type,
                          src_xstride, src_ystride, src_zstride, dst, dst_type,
@@ -2569,14 +3170,14 @@ inline bool parallel_convert_image(
             stride_t src_xstride, stride_t src_ystride, stride_t src_zstride,
             void *dst, TypeDesc dst_type,
             stride_t dst_xstride, stride_t dst_ystride, stride_t dst_zstride,
-            int alpha_channel, int z_channel, int nthreads=0)
+            int /*alpha_channel*/, int /*z_channel*/, int nthreads=0)
 {
     return parallel_convert_image (nchannels, width, height, depth,
            src, src_type, src_xstride, src_ystride, src_zstride,
            dst, dst_type, dst_xstride, dst_ystride, dst_zstride, nthreads);
 }
 
-/// Add random [-theramplitude,ditheramplitude] dither to the color channels
+/// Add random [-ditheramplitude,ditheramplitude] dither to the color channels
 /// of the image.  Dither will not be added to the alpha or z channel.  The
 /// image origin and dither seed values allow a reproducible (or variable)
 /// dither pattern.  If the strides are set to AutoStride, they will be
@@ -2591,7 +3192,10 @@ OIIO_API void add_dither (int nchannels, int width, int height, int depth,
                           int yorigin=0, int zorigin=0);
 
 /// Convert unassociated to associated alpha by premultiplying all color
-/// (non-alpha, non-z) channels by alpha.
+/// (non-alpha, non-z) channels by alpha. The nchannels, width, height, and
+/// depth parameters describe the "shape" of the image data (along with
+/// optional stride overrides). The chbegin/chend describe which range of
+/// channels to actually premultiply.
 OIIO_API void premult (int nchannels, int width, int height, int depth,
                        int chbegin, int chend,
                        TypeDesc datatype, void *data, stride_t xstride,
@@ -2635,23 +3239,34 @@ typedef bool (*wrap_impl) (int &coord, int origin, int width);
 /// output to stderr for debugging statements.
 OIIO_API void debug (string_view str);
 
-/// debug output with `fmt`/`std::format` conventions.
-template<typename T1, typename... Args>
-void fmtdebug (const char* fmt, const T1& v1, const Args&... args)
+/// debug output with `std::format` conventions.
+/// This is just a wrapped synonym for Strutil::debug().
+template<typename... Args>
+void debugfmt (const char* fmt, Args&&... args)
 {
-    debug (Strutil::fmt::format(fmt, v1, args...));
+    Strutil::debug(fmt, std::forward<Args>(args)...);
+}
+
+// (Unfortunate old synonym)
+template<typename... Args>
+OIIO_DEPRECATED("use `debugfmt` instead")
+void fmtdebug (const char* fmt, const Args&... args)
+{
+    debug (Strutil::fmt::format(fmt, args...));
 }
 
 /// debug output with printf conventions.
-template<typename T1, typename... Args>
-void debugf (const char* fmt, const T1& v1, const Args&... args)
+template<typename... Args>
+OIIO_FORMAT_DEPRECATED
+void debugf (const char* fmt, const Args&... args)
 {
-    debug (Strutil::sprintf(fmt, v1, args...));
+    debug (Strutil::sprintf(fmt, args...));
 }
 
 /// debug output with the same conventions as Strutil::format. Beware, this
 /// will change one day!
 template<typename T1, typename... Args>
+OIIO_FORMAT_DEPRECATED
 void debug (const char* fmt, const T1& v1, const Args&... args)
 {
     debug (Strutil::format(fmt, v1, args...));
@@ -2662,3 +3277,10 @@ void debug (const char* fmt, const T1& v1, const Args&... args)
 OIIO_API void _ImageIO_force_link ();
 
 OIIO_NAMESPACE_END
+
+
+#if FMT_VERSION >= 100000
+FMT_BEGIN_NAMESPACE
+template<> struct formatter<OIIO::ROI> : ostream_formatter {};
+FMT_END_NAMESPACE
+#endif

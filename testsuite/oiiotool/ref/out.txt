@@ -11,7 +11,6 @@ chname.exr           :   38 x   38, 5 channel, float openexr
     full/display size: 40 x 40
     full/display origin: 0, 0
     compression: "zips"
-    nuke/node_hash: ""
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
@@ -25,7 +24,6 @@ allhalf.exr          :   38 x   38, 5 channel, half openexr
     full/display size: 40 x 40
     full/display origin: 0, 0
     compression: "zips"
-    nuke/node_hash: ""
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
@@ -39,54 +37,34 @@ rgbahalf-zfloat.exr  :   38 x   38, 5 channel, half/half/half/half/float openexr
     full/display size: 40 x 40
     full/display origin: 0, 0
     compression: "zips"
-    nuke/node_hash: ""
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "Linear"
     oiio:subimages: 1
-copyA.0001.jpg       :  128 x   96, 3 channel, uint8 jpeg
-copyA.0002.jpg       :  128 x   96, 3 channel, uint8 jpeg
-copyA.0003.jpg       :  128 x   96, 3 channel, uint8 jpeg
-copyA.0004.jpg       :  128 x   96, 3 channel, uint8 jpeg
-copyA.0005.jpg       :  128 x   96, 3 channel, uint8 jpeg
-copyA.0006.jpg       :  128 x   96, 3 channel, uint8 jpeg
-copyA.0007.jpg       :  128 x   96, 3 channel, uint8 jpeg
-copyA.0008.jpg       :  128 x   96, 3 channel, uint8 jpeg
-copyA.0009.jpg       :  128 x   96, 3 channel, uint8 jpeg
-copyA.0010.jpg       :  128 x   96, 3 channel, uint8 jpeg
-Sequence 1-5:  1
-Sequence 1-5:  2
-Sequence 1-5:  3
-Sequence 1-5:  4
-Sequence 1-5:  5
-Sequence -5-5:  -5
-Sequence -5-5:  -4
-Sequence -5-5:  -3
-Sequence -5-5:  -2
-Sequence -5-5:  -1
-Sequence -5-5:  0
-Sequence -5-5:  1
-Sequence -5-5:  2
-Sequence -5-5:  3
-Sequence -5-5:  4
-Sequence -5-5:  5
-Sequence -5--2:  -5
-Sequence -5--2:  -4
-Sequence -5--2:  -3
-Sequence -5--2:  -2
-16+5=21
-16-5=11
-16*5=80
-16/5=3.2
-16//5=3
-16%5=1
-xyz should say xyz
-timecode is 01:02:03:04
-2
-{3+4}
-4
+--printstats:
+ 128 x   96, 3 channel, float tiff
+    Stats Min: 0 0 0 (of 255)
+    Stats Max: 190 255 255 (of 255)
+    Stats Avg: 26.00 55.26 108.45 (of 255)
+    Stats StdDev: 32.31 59.12 95.51 (of 255)
+    Stats NanCount: 0 0 0 
+    Stats InfCount: 0 0 0 
+    Stats FiniteCount: 12288 12288 12288 
+    Constant: No
+    Monochrome: No
+ 128 x   96, 3 channel, float tiff
+    Stats Min: 1 3 9 (of 255)
+    Stats Max: 14 28 67 (of 255)
+    Stats Avg: 6.05 8.30 18.13 (of 255)
+    Stats StdDev: 3.07 4.69 10.19 (of 255)
+    Stats NanCount: 0 0 0 
+    Stats InfCount: 0 0 0 
+    Stats FiniteCount: 100 100 100 
+    Constant: No
+    Monochrome: No
+ 
 Reading black.tif
     oiio:DebugOpenConfig!: 42
 Reading add_rgb_rgba.exr
@@ -99,13 +77,24 @@ add_rgb_rgba.exr     :   64 x   64, 4 channel, float openexr
     screenWindowWidth: 1
     oiio:ColorSpace: "Linear"
     oiio:subimages: 1
+dumpdata:
+dump.exr             :    2 x    2, 3 channel, half openexr
+    Pixel (0, 0): 0.000000000 0.000000000 0.000000000
+    Pixel (1, 0): 1.000000000 1.000000000 0.000000000
+    Pixel (0, 1): 0.000000000 0.000000000 0.000000000
+    Pixel (1, 1): 1.000000000 1.000000000 0.000000000
+dumpdata:C
+// dump.exr             :    2 x    2, 3 channel, half openexr
+half data[2][2][3] =
+{
+  { /* (0, 0): */ { 0.000000000, 0.000000000, 0.000000000 },
+    /* (1, 0): */ { 1.000000000, 1.000000000, 0.000000000 } },
+  { /* (0, 1): */ { 0.000000000, 0.000000000, 0.000000000 },
+    /* (1, 1): */ { 1.000000000, 1.000000000, 0.000000000 } },
+};
 Comparing "filled.tif" and "ref/filled.tif"
 PASS
 Comparing "autotrim.tif" and "ref/autotrim.tif"
-PASS
-Comparing "histogram_regular.tif" and "ref/histogram_regular.tif"
-PASS
-Comparing "histogram_cumulative.tif" and "ref/histogram_cumulative.tif"
 PASS
 Comparing "trim.tif" and "ref/trim.tif"
 PASS
@@ -173,6 +162,22 @@ Comparing "rangecompress-luma.tif" and "ref/rangecompress-luma.tif"
 PASS
 Comparing "rangeexpand-luma.tif" and "ref/rangeexpand-luma.tif"
 PASS
+Comparing "min.exr" and "ref/min.exr"
+PASS
+Comparing "cmin1.exr" and "ref/cmin1.exr"
+PASS
+Comparing "cmin2.exr" and "ref/cmin2.exr"
+PASS
+Comparing "max.exr" and "ref/max.exr"
+PASS
+Comparing "cmax1.exr" and "ref/cmax1.exr"
+PASS
+Comparing "cmax2.exr" and "ref/cmax2.exr"
+PASS
+Comparing "maxchan.tif" and "ref/maxchan.tif"
+PASS
+Comparing "minchan.tif" and "ref/minchan.tif"
+PASS
 Comparing "grid-clamped.tif" and "ref/grid-clamped.tif"
 PASS
 Comparing "bsplinekernel.exr" and "ref/bsplinekernel.exr"
@@ -201,15 +206,25 @@ Comparing "polar.exr" and "ref/polar.exr"
 PASS
 Comparing "unpolar.exr" and "ref/unpolar.exr"
 PASS
+Comparing "subimages-2.exr" and "ref/subimages-2.exr"
+PASS
+Comparing "subimages-4.exr" and "ref/subimages-4.exr"
+PASS
+Comparing "subimageD3.exr" and "ref/subimageD3.exr"
+PASS
+Comparing "subimageB1.exr" and "ref/subimageB1.exr"
+PASS
+Comparing "subimage-noB.exr" and "ref/subimage-noB.exr"
+PASS
+Comparing "subimage-individual.exr" and "ref/subimage-individual.exr"
+PASS
+Comparing "subimage1.exr" and "ref/subimage1.exr"
+PASS
 Comparing "labeladd.exr" and "ref/labeladd.exr"
 PASS
-Comparing "exprgradient.tif" and "ref/exprgradient.tif"
-PASS
-Comparing "exprcropped.tif" and "ref/exprcropped.tif"
-PASS
-Comparing "exprstrcatlzw.tif" and "ref/exprstrcatlzw.tif"
-PASS
-Comparing "tahoe-contraststretch.tif" and "ref/tahoe-contraststretch.tif"
-PASS
 Comparing "const5-rgb.tif" and "ref/const5-rgb.tif"
+PASS
+Comparing "box_over_missing2.tif" and "ref/box_over_missing2.tif"
+PASS
+Comparing "box_over_missing3.tif" and "ref/box_over_missing3.tif"
 PASS

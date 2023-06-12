@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 // Avoid a compiler warning from a duplication in tiffconf.h/pyconfig.h
 #undef SIZEOF_LONG
@@ -34,18 +34,18 @@ ImageOutput_write_scanline(ImageOutput& self, int y, int z, py::buffer& buffer)
 {
     const ImageSpec& spec(self.spec());
     if (spec.tile_width != 0) {
-        self.errorf("Cannot write scanlines to a filed file.");
+        self.errorfmt("Cannot write scanlines to a tiled file.");
         return false;
     }
     oiio_bufinfo buf(buffer.request(), spec.nchannels, spec.width, 1, 1, 1);
     if (!buf.data || buf.error.size()) {
-        self.errorf("Pixel data array error: %s",
-                    buf.error.size() ? buf.error.c_str() : "unspecified");
+        self.errorfmt("Pixel data array error: {}",
+                      buf.error.size() ? buf.error.c_str() : "unspecified");
         return false;  // failed sanity checks
     }
     if (static_cast<int>(buf.size)
         < self.spec().width * self.spec().nchannels) {
-        self.error("write_scanlines was not passed a long enough array");
+        self.errorfmt("write_scanlines was not passed a long enough array");
         return false;
     }
     py::gil_scoped_release gil;
@@ -60,19 +60,19 @@ ImageOutput_write_scanlines(ImageOutput& self, int ybegin, int yend, int z,
 {
     const ImageSpec& spec(self.spec());
     if (spec.tile_width != 0) {
-        self.errorf("Cannot write scanlines to a filed file.");
+        self.errorfmt("Cannot write scanlines to a filed file.");
         return false;
     }
     oiio_bufinfo buf(buffer.request(), spec.nchannels, spec.width,
                      yend - ybegin, 1, 2);
     if (!buf.data || buf.error.size()) {
-        self.errorf("Pixel data array error: %s",
-                    buf.error.size() ? buf.error.c_str() : "unspecified");
+        self.errorfmt("Pixel data array error: {}",
+                      buf.error.size() ? buf.error.c_str() : "unspecified");
         return false;  // failed sanity checks
     }
     if (static_cast<int>(buf.size)
         < self.spec().width * self.spec().nchannels * (yend - ybegin)) {
-        self.error("write_scanlines was not passed a long enough array");
+        self.errorfmt("write_scanlines was not passed a long enough array");
         return false;
     }
     py::gil_scoped_release gil;
@@ -100,7 +100,7 @@ ImageOutput_write_tile(ImageOutput& self, int x, int y, int z,
         return false;  // failed sanity checks
     }
     if (buf.size < self.spec().tile_pixels() * self.spec().nchannels) {
-        self.error("write_tile was not passed a long enough array");
+        self.errorfmt("write_tile was not passed a long enough array");
         return false;
     }
     py::gil_scoped_release gil;
@@ -129,7 +129,7 @@ ImageOutput_write_tiles(ImageOutput& self, int xbegin, int xend, int ybegin,
     if (static_cast<int>(buf.size) < (xend - xbegin) * (yend - ybegin)
                                          * (zend - zbegin)
                                          * self.spec().nchannels) {
-        self.error("write_tiles was not passed a long enough array");
+        self.errorfmt("write_tiles was not passed a long enough array");
         return false;
     }
     py::gil_scoped_release gil;
@@ -219,7 +219,7 @@ declare_imageoutput(py::module& m)
                     mode = ImageOutput::AppendMIPLevel;
                 else if (!Strutil::iequals(modestr, "Create"))
                     throw std::invalid_argument(
-                        Strutil::sprintf("Unknown open mode '%s'", modestr));
+                        Strutil::fmt::format("Unknown open mode '{}'", modestr));
                 return self.open(name, newspec, mode);
             },
             "filename"_a, "spec"_a, "mode"_a = "Create")
@@ -246,10 +246,19 @@ declare_imageoutput(py::module& m)
         .def("write_deep_tiles", &ImageOutput_write_deep_tiles, "xbegin"_a,
              "xend"_a, "ybegin"_a, "yend"_a, "zbegin"_a, "zend"_a, "deepdata"_a)
         .def("write_deep_image", &ImageOutput_write_deep_image)
+        .def("set_thumbnail",
+             [](ImageOutput& self, const ImageBuf& thumb) {
+                 return self.set_thumbnail(thumb);
+             })
         .def("copy_image", [](ImageOutput& self,
                               ImageInput& in) { return self.copy_image(&in); })
-        .def("geterror",
-             [](ImageOutput& self) { return PY_STR(self.geterror()); });
+        .def_property_readonly("has_error", &ImageOutput::has_error)
+        .def(
+            "geterror",
+            [](ImageOutput& self, bool clear) {
+                return PY_STR(self.geterror(clear));
+            },
+            "clear"_a = true);
 }
 
 }  // namespace PyOpenImageIO

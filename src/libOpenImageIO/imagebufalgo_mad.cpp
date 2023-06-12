@@ -1,18 +1,13 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
-
-/// \file
-/// Implementation of ImageBufAlgo algorithms that do math on
-/// single pixels at a time.
-
-#include <OpenEXR/half.h>
+// https://github.com/OpenImageIO/oiio
 
 #include <cmath>
 #include <iostream>
 #include <limits>
 
 #include <OpenImageIO/dassert.h>
+#include <OpenImageIO/half.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
@@ -32,7 +27,7 @@ mad_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, const ImageBuf& C,
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         if ((is_same<Rtype, float>::value || is_same<Rtype, half>::value)
             && (is_same<ABCtype, float>::value || is_same<ABCtype, half>::value)
-            // && R.localpixels() // has to be, because it's writeable
+            // && R.localpixels() // has to be, because it's writable
             && A.localpixels() && B.localpixels()
             && C.localpixels()
             // && R.contains_roi(roi)  // has to be, because IBAPrep
@@ -55,7 +50,7 @@ mad_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, const ImageBuf& C,
                         = (const ABCtype*)B.pixeladdr(roi.xbegin, y, z);
                     const ABCtype* craw
                         = (const ABCtype*)C.pixeladdr(roi.xbegin, y, z);
-                    DASSERT(araw && braw && craw);
+                    OIIO_DASSERT(araw && braw && craw);
                     // The straightforward loop auto-vectorizes very well,
                     // there's no benefit to using explicit SIMD here.
                     for (int x = 0; x < nxvalues; ++x)
@@ -153,14 +148,14 @@ ImageBufAlgo::mad(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_,
     // Get pointers to any image. At least one of A or B must be an image.
     const ImageBuf *A = A_.imgptr(), *B = B_.imgptr(), *C = C_.imgptr();
     if (!A && !B) {
-        dst.errorf(
+        dst.errorfmt(
             "ImageBufAlgo::mad(): at least one of the first two arguments must be an image");
         return false;
     }
     // All of the arguments that are images need to be initialized
     if ((A && !A->initialized()) || (B && !B->initialized())
         || (C && !C->initialized())) {
-        dst.errorf("Uninitialized input image");
+        dst.errorfmt("Uninitialized input image");
         return false;
     }
 
@@ -228,7 +223,7 @@ ImageBufAlgo::mad(Image_or_Const A, Image_or_Const B, Image_or_Const C, ROI roi,
     ImageBuf result;
     bool ok = mad(result, A, B, C, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::mad() error");
+        result.errorfmt("ImageBufAlgo::mad() error");
     return result;
 }
 
@@ -248,7 +243,7 @@ ImageBufAlgo::invert(const ImageBuf& A, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = invert(result, A, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("invert error");
+        result.errorfmt("invert error");
     return result;
 }
 

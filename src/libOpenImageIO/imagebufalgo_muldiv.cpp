@@ -1,16 +1,16 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 /// \file
 /// Implementation of ImageBufAlgo algorithms that do math on
 /// single pixels at a time.
 
-#include <OpenEXR/half.h>
-
 #include <cmath>
 #include <iostream>
 #include <limits>
+
+#include <OpenImageIO/half.h>
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/deepdata.h>
@@ -119,7 +119,7 @@ ImageBufAlgo::mul(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_, ROI roi,
         return ok;
     }
     // Remaining cases: error
-    dst.errorf("ImageBufAlgo::mul(): at least one argument must be an image");
+    dst.errorfmt("ImageBufAlgo::mul(): at least one argument must be an image");
     return false;
 }
 
@@ -131,7 +131,7 @@ ImageBufAlgo::mul(Image_or_Const A, Image_or_Const B, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = mul(result, A, B, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::mul() error");
+        result.errorfmt("ImageBufAlgo::mul() error");
     return result;
 }
 
@@ -199,7 +199,7 @@ ImageBufAlgo::div(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_, ROI roi,
         return ok;
     }
     // Remaining cases: error
-    dst.errorf("ImageBufAlgo::div(): at least one argument must be an image");
+    dst.errorfmt("ImageBufAlgo::div(): at least one argument must be an image");
     return false;
 }
 
@@ -211,7 +211,7 @@ ImageBufAlgo::div(Image_or_Const A, Image_or_Const B, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = div(result, A, B, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::div() error");
+        result.errorfmt("ImageBufAlgo::div() error");
     return result;
 }
 

@@ -1,8 +1,10 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
+#include <cmath>
 #include <iomanip>
+#include <memory>
 
 #include <OpenEXR/ImfTimeCode.h>  //For TimeCode support
 
@@ -10,8 +12,8 @@
 // But that seems not to be actively maintained.
 #include "libdpx/DPX.h"
 #include "libdpx/DPXColorConverter.h"
+#include "libdpx/DPXHeader.h"
 
-#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/typedesc.h>
@@ -22,19 +24,23 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class DPXInput final : public ImageInput {
 public:
     DPXInput() { init(); }
-    virtual ~DPXInput() { close(); }
-    virtual const char* format_name(void) const override { return "dpx"; }
-    virtual bool valid_file(const std::string& filename) const override;
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool open(const std::string& name, ImageSpec& newspec,
-                      const ImageSpec& config) override;
-    virtual bool close() override;
-    virtual int current_subimage(void) const override { return m_subimage; }
-    virtual bool seek_subimage(int subimage, int miplevel) override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
-    virtual bool read_native_scanlines(int subimage, int miplevel, int ybegin,
-                                       int yend, int z, void* data) override;
+    ~DPXInput() override { close(); }
+    const char* format_name(void) const override { return "dpx"; }
+    int supports(string_view feature) const override
+    {
+        return (feature == "ioproxy");
+    }
+    bool valid_file(Filesystem::IOProxy* ioproxy) const override;
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool open(const std::string& name, ImageSpec& newspec,
+              const ImageSpec& config) override;
+    bool close() override;
+    int current_subimage(void) const override { return m_subimage; }
+    bool seek_subimage(int subimage, int miplevel) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
+    bool read_native_scanlines(int subimage, int miplevel, int ybegin, int yend,
+                               int z, void* data) override;
 
 private:
     int m_subimage;
@@ -50,12 +56,13 @@ private:
     {
         m_subimage = -1;
         if (m_stream) {
-            m_stream->Close();
             delete m_stream;
             m_stream = nullptr;
+            m_dpx.SetInStream(nullptr);
         }
         m_userBuf.clear();
         m_rawcolor = false;
+        ioproxy_clear();
     }
 
     /// Helper function - retrieve string for libdpx characteristic
@@ -77,7 +84,7 @@ private:
 
 
 
-// Obligatory material to make this a recognizeable imageio plugin:
+// Obligatory material to make this a recognizable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageInput*
@@ -101,20 +108,14 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 bool
-DPXInput::valid_file(const std::string& filename) const
+DPXInput::valid_file(Filesystem::IOProxy* ioproxy) const
 {
-    InStream* stream = new InStream();
-    if (!stream)
+    if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Mode::Read)
         return false;
-    bool ok = false;
-    if (stream->Open(filename.c_str())) {
-        dpx::Reader dpx;
-        dpx.SetInStream(stream);
-        ok = dpx.ReadHeader();
-        stream->Close();
-    }
-    delete stream;
-    return ok;
+
+    dpx::U32 magic {};
+    const size_t numRead = ioproxy->pread(&magic, sizeof(magic), 0);
+    return numRead == sizeof(magic) && dpx::Header::ValidMagicCookie(magic);
 }
 
 
@@ -122,9 +123,11 @@ DPXInput::valid_file(const std::string& filename) const
 bool
 DPXInput::open(const std::string& name, ImageSpec& newspec)
 {
-    // open the image
-    m_stream = new InStream();
-    if (!m_stream->Open(name.c_str())) {
+    if (!ioproxy_use_or_open(name))
+        return false;
+
+    m_stream = new InStream(ioproxy());
+    if (!m_stream) {
         errorf("Could not open file \"%s\"", name);
         return false;
     }
@@ -154,6 +157,7 @@ DPXInput::open(const std::string& name, ImageSpec& newspec,
     m_rawcolor = config.get_int_attribute("dpx:RawColor")
                  || config.get_int_attribute("dpx:RawData")  // deprecated
                  || config.get_int_attribute("oiio:RawColor");
+    ioproxy_retrieve_from_config(config);
     return open(name, newspec);
 }
 
@@ -301,10 +305,10 @@ DPXInput::seek_subimage(int subimage, int miplevel)
         break;
     case dpx::kITUR709: m_spec.attribute("oiio:ColorSpace", "Rec709"); break;
     case dpx::kUserDefined:
-        if (!isnan(m_dpx.header.Gamma()) && m_dpx.header.Gamma() != 0) {
+        if (!std::isnan(m_dpx.header.Gamma()) && m_dpx.header.Gamma() != 0) {
             float g = float(m_dpx.header.Gamma());
             m_spec.attribute("oiio:ColorSpace",
-                             Strutil::sprintf("GammaCorrected%.2g", g));
+                             Strutil::sprintf("Gamma%.2g", g));
             m_spec.attribute("oiio:Gamma", g);
             break;
         }
@@ -350,10 +354,12 @@ DPXInput::seek_subimage(int subimage, int miplevel)
     }
     if (m_dpx.header.ImageEncoding(subimage) == dpx::kRLE)
         m_spec.attribute("compression", "rle");
-    char buf[32 + 1];
-    m_dpx.header.Description(subimage, buf);
-    if (buf[0] && buf[0] != char(-1))
-        m_spec.attribute("ImageDescription", buf);
+    {
+        char desc[32 + 1];
+        m_dpx.header.Description(subimage, desc);
+        if (desc[0] && desc[0] != char(-1))
+            m_spec.attribute("ImageDescription", desc);
+    }
     m_spec.attribute("PixelAspectRatio",
                      m_dpx.header.AspectRatio(1)
                          ? (m_dpx.header.AspectRatio(0)
@@ -371,24 +377,24 @@ DPXInput::seek_subimage(int subimage, int miplevel)
     // set without checking for bogus attributes
 #define DPX_SET_ATTRIB_N(x) DPX_SET_ATTRIB(x, subimage)
     // set with checking for bogus attributes
-#define DPX_SET_ATTRIB_BYTE(x)                                                 \
-    if (m_dpx.header.x() != 0xFF)                                              \
+#define DPX_SET_ATTRIB_BYTE(x)    \
+    if (m_dpx.header.x() != 0xFF) \
     DPX_SET_ATTRIB(x, )
-#define DPX_SET_ATTRIB_INT_N(x)                                                \
-    if (m_dpx.header.x(subimage) != 0xFFFFFFFF)                                \
+#define DPX_SET_ATTRIB_INT_N(x)                 \
+    if (m_dpx.header.x(subimage) != 0xFFFFFFFF) \
     DPX_SET_ATTRIB(x, subimage)
-#define DPX_SET_ATTRIB_INT(x)                                                  \
-    if (m_dpx.header.x() != 0xFFFFFFFF)                                        \
+#define DPX_SET_ATTRIB_INT(x)           \
+    if (m_dpx.header.x() != 0xFFFFFFFF) \
     DPX_SET_ATTRIB(x, )
-#define DPX_SET_ATTRIB_FLOAT_N(x)                                              \
-    if (!isnan(m_dpx.header.x(subimage)))                                      \
+#define DPX_SET_ATTRIB_FLOAT_N(x)              \
+    if (!std::isnan(m_dpx.header.x(subimage))) \
     DPX_SET_ATTRIB(x, subimage)
-#define DPX_SET_ATTRIB_FLOAT(x)                                                \
-    if (!isnan(m_dpx.header.x()))                                              \
+#define DPX_SET_ATTRIB_FLOAT(x)        \
+    if (!std::isnan(m_dpx.header.x())) \
     DPX_SET_ATTRIB(x, )
     // see comment above Copyright, Software and DocumentName
-#define DPX_SET_ATTRIB_STR(X, x)                                               \
-    if (m_dpx.header.x[0] && m_dpx.header.x[0] != char(-1))                    \
+#define DPX_SET_ATTRIB_STR(X, x)                            \
+    if (m_dpx.header.x[0] && m_dpx.header.x[0] != char(-1)) \
     m_spec.attribute("dpx:" #X, m_dpx.header.x)
 
     DPX_SET_ATTRIB_INT(EncryptKey);
@@ -454,13 +460,13 @@ DPXInput::seek_subimage(int subimage, int miplevel)
                                      m_dpx.header.userBits };
         m_spec.attribute("smpte:TimeCode", TypeTimeCode, timecode);
 
-        // This attribute is dpx specific and is left in for backwards compatability.
+        // This attribute is dpx specific and is left in for backwards compatibility.
         // Users should utilise the new smpte:TimeCode attribute instead
         Imf::TimeCode tc(m_dpx.header.timeCode, m_dpx.header.userBits);
         m_spec.attribute("dpx:TimeCode", get_timecode_string(tc));
     }
 
-    // This attribute is dpx specific and is left in for backwards compatability.
+    // This attribute is dpx specific and is left in for backwards compatibility.
     // Users should utilise the new smpte:TimeCode attribute instead
     if (m_dpx.header.userBits != 0xFFFFFFFF)
         m_spec.attribute("dpx:UserBits", m_dpx.header.userBits);
@@ -474,9 +480,12 @@ DPXInput::seek_subimage(int subimage, int miplevel)
         date[19] = 0;
         m_spec.attribute("dpx:SourceDateTime", date);
     }
-    m_dpx.header.FilmEdgeCode(buf);
-    if (buf[0])
-        m_spec.attribute("dpx:FilmEdgeCode", buf);
+    {
+        char filmedge[17];
+        m_dpx.header.FilmEdgeCode(filmedge);
+        if (filmedge[0])
+            m_spec.attribute("dpx:FilmEdgeCode", filmedge);
+    }
 
     tmpstr.clear();
     switch (m_dpx.header.Signal()) {
@@ -565,9 +574,9 @@ DPXInput::read_native_scanline(int subimage, int miplevel, int y, int z,
 
 bool
 DPXInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
-                                int yend, int z, void* data)
+                                int yend, int /*z*/, void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
 

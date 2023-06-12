@@ -1,0 +1,20 @@
+Reading ../oiio-images/webp/1.webp
+../oiio-images/webp/1.webp :  550 x  368, 3 channel, uint8 webp
+    SHA-1: C8D715F7E492E94E29FFF0E605E0F00F1892FC7A
+    channel list: R, G, B
+    oiio:ColorSpace: "sRGB"
+Reading ../oiio-images/webp/2.webp
+../oiio-images/webp/2.webp :  550 x  404, 3 channel, uint8 webp
+    SHA-1: 6679CBF3655C40A6ECE9188DDC136BE18599C138
+    channel list: R, G, B
+    oiio:ColorSpace: "sRGB"
+Reading ../oiio-images/webp/3.webp
+../oiio-images/webp/3.webp : 1280 x  720, 3 channel, uint8 webp
+    SHA-1: AC77455077A5C8E9271B16FCB3A3E520CBA42018
+    channel list: R, G, B
+    oiio:ColorSpace: "sRGB"
+Reading ../oiio-images/webp/4.webp
+../oiio-images/webp/4.webp : 1024 x  772, 3 channel, uint8 webp
+    SHA-1: 8F42E3DCCE6FE15146BA06C440C15B7831F60572
+    channel list: R, G, B
+    oiio:ColorSpace: "sRGB"

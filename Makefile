@@ -10,7 +10,7 @@
 #
 # Copyright 2008-present Contributors to the OpenImageIO project.
 # SPDX-License-Identifier: BSD-3-Clause
-# https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+# https://github.com/OpenImageIO/oiio
 #########################################################################
 
 
@@ -21,18 +21,9 @@ working_dir	:= ${shell pwd}
 # Figure out which architecture we're on
 include ${working_dir}/src/make/detectplatform.mk
 
-# Presence of make variables DEBUG and PROFILE cause us to make special
-# builds, which we put in their own areas.
-ifdef DEBUG
-    variant +=.debug
-endif
-ifdef PROFILE
-    variant +=.profile
-endif
-
 MY_MAKE_FLAGS ?=
 MY_NINJA_FLAGS ?=
-MY_CMAKE_FLAGS += -g3
+MY_CMAKE_FLAGS ?=
 BUILDSENTINEL ?= Makefile
 NINJA ?= ninja
 CMAKE ?= cmake
@@ -46,10 +37,8 @@ endif
 
 # Set up variables holding the names of platform-dependent directories --
 # set these after evaluating site-specific instructions
-top_build_dir ?= build
-build_dir     ?= ${top_build_dir}/${platform}${variant}
-top_dist_dir  ?= dist
-dist_dir      ?= ${top_dist_dir}/${platform}${variant}
+build_dir ?= build
+dist_dir  ?= dist
 
 INSTALL_PREFIX ?= ${working_dir}/${dist_dir}
 
@@ -95,7 +84,7 @@ MY_CMAKE_FLAGS += -DPYLIB_INCLUDE_SONAME:BOOL=${PYLIB_INCLUDE_SONAME}
 endif
 
 ifneq (${USE_EXTERNAL_PUGIXML},)
-MY_CMAKE_FLAGS += -DUSE_EXTERNAL_PUGIXML:BOOL=${USE_EXTERNAL_PUGIXML} -DPUGIXML_HOME=${PUGIXML_HOME}
+MY_CMAKE_FLAGS += -DUSE_EXTERNAL_PUGIXML:BOOL=${USE_EXTERNAL_PUGIXML}
 endif
 
 ifneq (${OPENEXR_ROOT},)
@@ -198,6 +187,10 @@ MY_CMAKE_FLAGS += -G Ninja
 BUILDSENTINEL := build.ninja
 endif
 
+ifneq (${UNITY},)
+  MY_CMAKE_FLAGS += -DCMAKE_UNITY_BUILD=ON -DCMAKE_UNITY_BUILD_MODE=${UNITY}
+endif
+
 ifeq (${CODECOV},1)
   CMAKE_BUILD_TYPE=Debug
   MY_CMAKE_FLAGS += -DCODECOV:BOOL=${CODECOV}
@@ -245,7 +238,7 @@ endif
 #########################################################################
 # Top-level documented targets
 
-all: dist
+all: install
 
 # 'make debug' is implemented via recursive make setting DEBUG
 debug:
@@ -265,7 +258,7 @@ config:
 		cd ${build_dir} ; \
 		${CMAKE} -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE} \
 			 -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX} \
-			 ${MY_CMAKE_FLAGS} ../.. ; \
+			 ${MY_CMAKE_FLAGS} ${working_dir} ; \
 	 fi)
 
 
@@ -303,7 +296,7 @@ clang-format: config
 	  )
 
 
-# 'make dist' is just a synonym for 'make install'
+# DEPRECATED: 'make dist' is just a synonym for 'make install'
 dist : install
 
 TEST_FLAGS += --force-new-ctest-process --output-on-failure
@@ -312,21 +305,30 @@ TEST_FLAGS += --force-new-ctest-process --output-on-failure
 test: build
 	@ ${CMAKE} -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests ${TEST_FLAGS}..."
 	@ ( cd ${build_dir} ; \
-	    PYTHONPATH=${PWD}/${build_dir}/src/python \
+	    PYTHONPATH=${PWD}/${build_dir}/lib/python/site-packages \
 	    ctest -E broken ${TEST_FLAGS} \
 	  )
 	@ ( if [[ "${CODECOV}" == "1" ]] ; then \
 	      cd ${build_dir} ; \
 	      lcov -b . -d . -c -o cov.info ; \
 	      lcov --remove cov.info "/usr*" -o cov.info ; \
-	      genhtml -o ./cov -t "Test coverage" --num-spaces 4 cov.info ; \
+	      lcov --remove cov.info "*/usr/incude" -o cov.info ; \
+	      lcov --remove cov.info "/Library/Developer/*" -o cov.info ; \
+	      lcov --remove cov.info "*/detail/pugixml/*" -o cov.info ; \
+	      lcov --remove cov.info "*/detail/fmt/*" -o cov.info ; \
+	      lcov --remove cov.info "*/detail/farmhash.h" -o cov.info ; \
+	      lcov --remove cov.info "*/v1/*" -o cov.info ; \
+	      lcov --remove cov.info "*/ext/robin-map/*" -o cov.info ; \
+	      lcov --remove cov.info "*/kissfft.hh" -o cov.info ; \
+	      lcov --remove cov.info "*/stb_sprintf.h" -o cov.info ; \
+	      genhtml -o ../_coverage -t "Test coverage" --num-spaces 4 cov.info ; \
 	  fi )
 
 # 'make testall' does a full build and then runs all tests (even the ones
 # that are expected to fail on some platforms)
 testall: build
 	${CMAKE} -E cmake_echo_color --switch=$(COLOR) --cyan "Running all tests ${TEST_FLAGS}..."
-	( cd ${build_dir} ; PYTHONPATH=${PWD}/${build_dir}/src/python ctest ${TEST_FLAGS} )
+	( cd ${build_dir} ; PYTHONPATH=${PWD}/${build_dir}/lib/python/site-packages ctest ${TEST_FLAGS} )
 
 # 'make clean' clears out the build directory for this platform
 clean:
@@ -336,10 +338,8 @@ clean:
 realclean: clean
 	${CMAKE} -E remove_directory ${dist_dir}
 
-# 'make nuke' blows away the build and dist areas for all platforms
-nuke:
-	${CMAKE} -E remove_directory ${top_build_dir}
-	${CMAKE} -E remove_directory ${top_dist_dir}
+# DEPRECATED: 'make nuke' blows away the build and dist areas for all platforms
+nuke: realclean
 
 doxygen:
 	doxygen src/doc/Doxyfile
@@ -359,7 +359,6 @@ help:
 	@echo "  make profile      Build and install for profiling"
 	@echo "  make clean        Remove the temporary files in ${build_dir}"
 	@echo "  make realclean    Remove both ${build_dir} AND ${dist_dir}"
-	@echo "  make nuke         Remove ALL of build and dist (not just ${platform})"
 	@echo "  make test         Run tests"
 	@echo "  make testall      Run all tests, even broken ones"
 	@echo "  make clang-format Run clang-format on all the source files"
@@ -370,12 +369,13 @@ help:
 	@echo "      STOP_ON_WARNING=0        Do not stop building if compiler warns"
 	@echo "      OPENIMAGEIO_SITE=xx      Use custom site build mods"
 	@echo "      MYCC=xx MYCXX=yy         Use custom compilers"
-	@echo "      CMAKE_CXX_STANDARD=14    Compile in C++14 mode (default is C++11)"
+	@echo "      CMAKE_CXX_STANDARD=14    C++ standard to build with (default is 14)"
 	@echo "      USE_LIBCPLUSPLUS=1       For clang, use libc++"
 	@echo "      GLIBCXX_USE_CXX11_ABI=1  For gcc, use the new string ABI"
 	@echo "      EXTRA_CPP_ARGS=          Additional args to the C++ command"
 	@echo "      USE_NINJA=1              Set up Ninja build (instead of make)"
 	@echo "      USE_CCACHE=0             Disable ccache (even if available)"
+	@echo "      UNITY=BATCH              Do a 'Unity' build (BATCH or GROUP or nothing)"
 	@echo "      CODECOV=1                Enable code coverage tests"
 	@echo "      SANITIZE=name1,...       Enable sanitizers (address, leak, thread)"
 	@echo "      CLANG_TIDY=1             Run clang-tidy on all source (can be modified"
@@ -383,7 +383,7 @@ help:
 	@echo "      CLANG_FORMAT_INCLUDES=... CLANG_FORMAT_EXCLUDES=..."
 	@echo "                               Customize files for 'make clang-format'"
 	@echo "  Linking and libraries:"
-	@echo "      SOVERSION=nn             Include the specifed major version number "
+	@echo "      SOVERSION=nn             Include the specified major version number "
 	@echo "                                  in the shared object metadata"
 	@echo "      OIIO_LIBNAME_SUFFIX=name Optional name appended to library names"
 	@echo "      BUILD_SHARED_LIBS=0      Build static library instead of shared"
@@ -392,7 +392,7 @@ help:
 	@echo "      For each dependeny Foo, defining ENABLE_Foo=0 disables it, even"
 	@echo "      if found. And you can hint where to find it with Foo_ROOT=path"
 	@echo "      Note that it is case sensitive! The list of package names is:"
-	@echo "          DCMTK  FFmpeg  Field3D  Freetype  GIF  JPEGTurbo"
+	@echo "          DCMTK  FFmpeg  Freetype  GIF  JPEGTurbo"
 	@echo "          LibRaw  OpenColorIO  OpenCV  OpenGL  OpenJpeg  OpenVDB"
 	@echo "          PTex  R3DSDK  TBB  TIFF  Webp"
 	@echo "  Finding and Using Dependencies:"

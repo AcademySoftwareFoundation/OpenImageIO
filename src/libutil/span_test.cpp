@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #include <array>
 #include <iostream>
@@ -22,6 +22,8 @@ test_span()
     static float A[] = { 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 0 };
     cspan<float> a(A);
     OIIO_CHECK_EQUAL(a.size(), 12);
+    OIIO_CHECK_EQUAL(std::size(a), size_t(12));
+    OIIO_CHECK_EQUAL(std::ssize(a), int(12));
     OIIO_CHECK_EQUAL(a[0], 0.0f);
     OIIO_CHECK_EQUAL(a[1], 1.0f);
     OIIO_CHECK_EQUAL(a[2], 0.0f);
@@ -59,6 +61,8 @@ test_span_mutable()
     float A[] = { 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 0 };
     span<float> a(A);
     OIIO_CHECK_EQUAL(a.size(), 12);
+    OIIO_CHECK_EQUAL(std::size(a), size_t(12));
+    OIIO_CHECK_EQUAL(std::ssize(a), int(12));
     OIIO_CHECK_EQUAL(a[0], 0.0f);
     OIIO_CHECK_EQUAL(a[1], 1.0f);
     OIIO_CHECK_EQUAL(a[2], 0.0f);
@@ -308,7 +312,7 @@ test_image_view_mutable()
 
 
 int
-main(int argc, char* argv[])
+main(int /*argc*/, char* /*argv*/[])
 {
     test_span();
     test_span_mutable();

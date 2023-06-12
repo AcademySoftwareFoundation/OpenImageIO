@@ -1,12 +1,15 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
+#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
 
-#include <OpenEXR/ImathMatrix.h>
+#if OIIO_GNUC_VERSION >= 60000
+#    pragma GCC diagnostic ignored "-Wstrict-overflow"
+#endif
 
 #include <openvdb/openvdb.h>
 #include <openvdb/tools/Dense.h>
@@ -50,36 +53,35 @@ class OpenVDBInput final : public ImageInput {
 
     void init()
     {
-        ASSERT(!m_input);
+        OIIO_DASSERT(!m_input);
         std::string().swap(m_name);
         std::vector<layerrecord>().swap(m_layers);
         m_subimage   = -1;
         m_nsubimages = 0;
     }
 
-    mutex& vdbMutex() { return m_mutex; }
     void readMetaData(const openvdb::GridBase& grid, const layerrecord& layer,
                       ImageSpec& spec);
 
 public:
     OpenVDBInput() { init(); }
-    virtual ~OpenVDBInput() { close(); }
+    ~OpenVDBInput() override { close(); }
 
-    virtual const char* format_name(void) const override { return "openvdb"; }
-    virtual int supports(string_view feature) const override
+    const char* format_name(void) const override { return "openvdb"; }
+    int supports(string_view feature) const override
     {
         return (feature == "arbitrary_metadata");
     }
-    virtual bool valid_file(const std::string& filename) const override;
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool close() override;
-    virtual int current_subimage(void) const override;
-    virtual bool seek_subimage(int subimage, int miplevel) override;
-    virtual bool seek_subimage_nolock(int subimage, int miplevel);
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
-    virtual bool read_native_tile(int subimage, int miplevel, int x, int y,
-                                  int z, void* data) override;
+    bool valid_file(const std::string& filename) const override;
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool close() override;
+    int current_subimage(void) const override;
+    bool seek_subimage(int subimage, int miplevel) override;
+    bool seek_subimage_nolock(int subimage, int miplevel);
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
+    bool read_native_tile(int subimage, int miplevel, int x, int y, int z,
+                          void* data) override;
 
     ImageSpec spec(int subimage, int miplevel) override;
     ImageSpec spec_dimensions(int subimage, int miplevel) override;
@@ -134,7 +136,7 @@ OpenVDBInput::spec_dimensions(int subimage, int miplevel)
 int
 OpenVDBInput::current_subimage(void) const
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     return m_subimage;
 }
 
@@ -143,7 +145,7 @@ OpenVDBInput::current_subimage(void) const
 bool
 OpenVDBInput::seek_subimage(int subimage, int miplevel)
 {
-    lock_guard lock(vdbMutex());
+    lock_guard lock(*this);
     return seek_subimage_nolock(subimage, miplevel);
 }
 
@@ -204,6 +206,7 @@ template<typename GridType> struct VDBReader {
     {
         // Probe for a cell-centered voxel
         enum { kOffset = LeafType::DIM / 2 };
+        // const int kOffset = LeafType::DIM / 2;
         const openvdb::Coord xyz(x + kOffset, y + kOffset, z + kOffset);
         const RootType& root = grid.tree().root();
         // Use the GridType::ConstAccessor so only one query needs to be done.
@@ -211,11 +214,9 @@ template<typename GridType> struct VDBReader {
         typename GridType::ConstAccessor cache = grid.getConstAccessor();
         if (auto* leaf = root.probeConstLeafAndCache(xyz, cache)) {
             CoordBBox bbox = leaf->getNodeBoundingBox();
-            ASSERT((bbox.min().x() == x && bbox.min().y() == y
-                    && bbox.min().z() == z)
-                   && "Tile access unaligned");
-            ASSERT((bbox.dim() == Coord(LeafType::DIM))
-                   && "Unexpected tile dimensions");
+            if (bbox.min().x() != x || bbox.min().y() != y
+                || bbox.min().z() != z || bbox.dim() != Coord(LeafType::DIM))
+                return false;  // unaligned or unexpected tile dimensions
             // Have OpenVDB fill the dense block, into the values pointer
             DenseT dense(bbox, values);
             leaf->copyToDense(bbox, dense);
@@ -280,7 +281,6 @@ public:
     }
     openvdb::io::File* operator->() { return m_file.get(); };
     operator bool() const { return m_file.get() != nullptr; }
-    void reset() { m_file.reset(); }
 };
 
 
@@ -295,7 +295,7 @@ openVDB(const std::string& filename, const ImageInput* errReport)
     if (!f)
         return nullptr;
 
-    // Endianess of OPENVDB_MAGIC isn't clear, so just leave as is
+    // Endianness of OPENVDB_MAGIC isn't clear, so just leave as is
     int32_t magic;
     static_assert(sizeof(magic) == sizeof(OPENVDB_MAGIC),
                   "Magic type not the same size");
@@ -347,7 +347,7 @@ OpenVDBInput::readMetaData(const openvdb::GridBase& grid,
                            const layerrecord& layer, ImageSpec& spec)
 {
     // If two grids of the same name exist in a VDB, then there will be an
-    // object name & a grid name that get concated to make a unique name
+    // object name & a grid name that get concatenated to make a unique name
     // "density[0].density", "density[1].density" for lookup.
     // Otherwise, just use the grid name; so one can do texture3d("Cd") instead
     // of texture3d("Cd.Cd")
@@ -481,7 +481,6 @@ OpenVDBInput::open(const std::string& filename, ImageSpec& newspec)
     auto file = openVDB(filename, this);
     if (!file)
         return false;
-    ASSERT(file->isOpen());
 
     try {
         for (io::File::NameIterator name = file->beginName(),
@@ -514,7 +513,7 @@ OpenVDBInput::open(const std::string& filename, ImageSpec& newspec)
 
             channelnames.resize(layerspec.nchannels);
             if (layerspec.nchannels > 1) {
-                ASSERT(layerspec.nchannels <= 4);
+                OIIO_DASSERT(layerspec.nchannels <= 4);
                 const bool iscolor = layer.name == "Cd"
                                      || layer.name == "color";
                 const char kChanName[4]
@@ -544,8 +543,8 @@ OpenVDBInput::open(const std::string& filename, ImageSpec& newspec)
 
 
 bool
-OpenVDBInput::read_native_scanline(int subimage, int miplevel, int y, int z,
-                                   void* data)
+OpenVDBInput::read_native_scanline(int /*subimage*/, int /*miplevel*/,
+                                   int /*y*/, int /*z*/, void* /*data*/)
 {
     // scanlines not supported
     return false;
@@ -557,7 +556,11 @@ bool
 OpenVDBInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
                                void* data)
 {
-    lock_guard lock(vdbMutex());
+    OIIO_PRAGMA_WARNING_PUSH
+#if OIIO_GNUC_VERSION >= 120100
+    OIIO_GCC_ONLY_PRAGMA(GCC diagnostic ignored "-Wstringop-overflow")
+#endif
+    lock_guard lock(*this);
     if (!seek_subimage_nolock(subimage, miplevel))
         return false;
 
@@ -574,11 +577,12 @@ OpenVDBInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
     default: break;
     }
     return false;
+    OIIO_PRAGMA_WARNING_POP
 }
 
 
 
-// Obligatory material to make this a recognizeable imageio plugin:
+// Obligatory material to make this a recognizable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageInput*

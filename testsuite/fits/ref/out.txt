@@ -1,5 +1,5 @@
-Reading ../../../../../fits-images/pg93/tst0001.fits
-../../../../../fits-images/pg93/tst0001.fits :  123 x  321, 1 channel, uint8 fits
+Reading ../fits-images/pg93/tst0001.fits
+../fits-images/pg93/tst0001.fits :  123 x  321, 1 channel, uint8 fits
     SHA-1: FC4F635D410B219477B709E4D6F993E9AA42C7B3
     channel list: Y
     Blocked: "T"
@@ -17,10 +17,10 @@ Simple 8-bit ramp pattern for testing of FITS readers"
     Extend: "T"
     Object: "Ramp 8-bit"
     Origin: "ESO"
-Comparing "../../../../../fits-images/pg93/tst0001.fits" and "tst0001.fits"
+Comparing "../fits-images/pg93/tst0001.fits" and "tst0001.fits"
 PASS
-Reading ../../../../../fits-images/pg93/tst0003.fits
-../../../../../fits-images/pg93/tst0003.fits :  137 x  271, 1 channel, int fits
+Reading ../fits-images/pg93/tst0003.fits
+../fits-images/pg93/tst0003.fits :  137 x  271, 1 channel, int fits
     SHA-1: 9D2DEE3C1411AB38B5DBAD0532F3679B797B2374
     channel list: Y
     Blocked: "T"
@@ -40,10 +40,10 @@ Simple 32-bit ramp pattern for testing of FITS readers"
     Extend: "T"
     Object: "Ramp 32-bit"
     Origin: "ESO"
-Comparing "../../../../../fits-images/pg93/tst0003.fits" and "tst0003.fits"
+Comparing "../fits-images/pg93/tst0003.fits" and "tst0003.fits"
 PASS
-Reading ../../../../../fits-images/pg93/tst0005.fits
-../../../../../fits-images/pg93/tst0005.fits :  102 x  109, 1 channel, float fits
+Reading ../fits-images/pg93/tst0005.fits
+../fits-images/pg93/tst0005.fits :  102 x  109, 1 channel, float fits
     SHA-1: 763996BCEADB93234A73AD0D714C3E9D874014CE
     channel list: Y
     Blocked: "T"
@@ -59,10 +59,10 @@ Simple 32-bit FP sine wave pattern for testing of FITS readers"
     Extend: "T"
     Object: "Wave 32-bit FP"
     Origin: "ESO"
-Comparing "../../../../../fits-images/pg93/tst0005.fits" and "tst0005.fits"
+Comparing "../fits-images/pg93/tst0005.fits" and "tst0005.fits"
 PASS
-Reading ../../../../../fits-images/pg93/tst0006.fits
-../../../../../fits-images/pg93/tst0006.fits :   77 x  173, 1 channel, double fits
+Reading ../fits-images/pg93/tst0006.fits
+../fits-images/pg93/tst0006.fits :   77 x  173, 1 channel, double fits
     SHA-1: B043726D3F76840AAC84713C1A6C323D85CADC74
     channel list: Y
     Blocked: "T"
@@ -78,10 +78,10 @@ Simple 64-bit FP sine wave pattern for testing of FITS readers"
     Extend: "T"
     Object: "Wave 64-bit fp"
     Origin: "ESO"
-Comparing "../../../../../fits-images/pg93/tst0006.fits" and "tst0006.fits"
+Comparing "../fits-images/pg93/tst0006.fits" and "tst0006.fits"
 PASS
-Reading ../../../../../fits-images/pg93/tst0007.fits
-../../../../../fits-images/pg93/tst0007.fits :   38 x    1, 1 channel, float fits
+Reading ../fits-images/pg93/tst0007.fits
+../fits-images/pg93/tst0007.fits :   38 x    1, 1 channel, float fits
     SHA-1: 32FB2E046F09E6DC814A6040B03706174EAE7229
     channel list: Y
     Comment: "This test file was created by P.Grosbol, ESO (pgrosbol@eso.org)
@@ -134,10 +134,10 @@ So best of luck with the decoding"
     DateTime: "1992:08:20 00:00:00"
     Object: "IEEE 32-bit test"
     Origin: "ESO"
-Comparing "../../../../../fits-images/pg93/tst0007.fits" and "tst0007.fits"
+Comparing "../fits-images/pg93/tst0007.fits" and "tst0007.fits"
 PASS
-Reading ../../../../../fits-images/pg93/tst0008.fits
-../../../../../fits-images/pg93/tst0008.fits :   38 x    1, 1 channel, double fits
+Reading ../fits-images/pg93/tst0008.fits
+../fits-images/pg93/tst0008.fits :   38 x    1, 1 channel, double fits
     SHA-1: 5C21742E65AF385B106DE98BE7004190C6F2E2BC
     channel list: Y
     Comment: "This test file was created by P.Grosbol, ESO (pgrosbol@eso.org)
@@ -189,10 +189,10 @@ So best of luck with the decoding"
     DateTime: "1992:08:20 00:00:00"
     Object: "IEEE 64-bit test"
     Origin: "ESO"
-Comparing "../../../../../fits-images/pg93/tst0008.fits" and "tst0008.fits"
+Comparing "../fits-images/pg93/tst0008.fits" and "tst0008.fits"
 PASS
-Reading ../../../../../fits-images/pg93/tst0013.fits
-../../../../../fits-images/pg93/tst0013.fits :  128 x  128, 1 channel, float fits
+Reading ../fits-images/pg93/tst0013.fits
+../fits-images/pg93/tst0013.fits :  128 x  128, 1 channel, float fits
     SHA-1: 2DAE86283E1BCB155774A83F88C75B045FB9B28C
     channel list: Y
     Airmass: 1.019
@@ -246,30 +246,30 @@ ESO DET NCORRS = 'Double '"
     Time-sid: 36564
     Tm-end: 70121
     Tm-start: 69932
-Comparing "../../../../../fits-images/pg93/tst0013.fits" and "tst0013.fits"
+Comparing "../fits-images/pg93/tst0013.fits" and "tst0013.fits"
 PASS
-Reading ../../../../../fits-images/ftt4b/file001.fits
-../../../../../fits-images/ftt4b/file001.fits :    0 x    0, 1 channel, uint8 fits
+Reading ../fits-images/ftt4b/file001.fits
+../fits-images/ftt4b/file001.fits :    0 x    0, 1 channel, uint8 fits
     SHA-1: DA39A3EE5E6B4B0D3255BFEF95601890AFD80709
     channel list: Y
     DateTime: "1984:05:27 00:00:00"
     Extend: "T"
     Object: "SNG - CAT."
     Origin: "ESO"
-Comparing "../../../../../fits-images/ftt4b/file001.fits" and "file001.fits"
+Comparing "../fits-images/ftt4b/file001.fits" and "file001.fits"
 PASS
-Reading ../../../../../fits-images/ftt4b/file002.fits
-../../../../../fits-images/ftt4b/file002.fits :    0 x    0, 1 channel, uint8 fits
+Reading ../fits-images/ftt4b/file002.fits
+../fits-images/ftt4b/file002.fits :    0 x    0, 1 channel, uint8 fits
     SHA-1: DA39A3EE5E6B4B0D3255BFEF95601890AFD80709
     channel list: Y
     DateTime: "1984:05:27 00:00:00"
     Extend: "T"
     Object: "PGSNC - SN.CAT."
     Origin: "ESO"
-Comparing "../../../../../fits-images/ftt4b/file002.fits" and "file002.fits"
+Comparing "../fits-images/ftt4b/file002.fits" and "file002.fits"
 PASS
-Reading ../../../../../fits-images/ftt4b/file003.fits
-../../../../../fits-images/ftt4b/file003.fits :  512 x  512, 1 channel, int16 fits
+Reading ../fits-images/ftt4b/file003.fits
+../fits-images/ftt4b/file003.fits :  512 x  512, 1 channel, int16 fits
     SHA-1: 5CC4340F5D8AB2B776D2E12BFE946CA5CAFA38C6
     channel list: Y
     Blank: -32768
@@ -479,10 +479,10 @@ AIPS   CLEAN NITER= 12000 PRODUCT=1"
     Observer: "LISZ"
     Obsra: 252.167
     Origin: "AIPSNRAO node CVAX       15JUL84"
-Comparing "../../../../../fits-images/ftt4b/file003.fits" and "file003.fits"
+Comparing "../fits-images/ftt4b/file003.fits" and "file003.fits"
 PASS
-Reading ../../../../../fits-images/ftt4b/file009.fits
-../../../../../fits-images/ftt4b/file009.fits :    0 x    0, 1 channel, int16 fits
+Reading ../fits-images/ftt4b/file009.fits
+../fits-images/ftt4b/file009.fits :    0 x    0, 1 channel, int16 fits
     SHA-1: DA39A3EE5E6B4B0D3255BFEF95601890AFD80709
     channel list: Y
     Blank: -32768
@@ -561,10 +561,10 @@ VLACV ANT   N=22 X=  1021.275 Y= -2683.726 Z= -1494.627 ST='CW6'"
     Pzero4: 0
     Pzero5: 0
     Telescop: "VLA"
-Comparing "../../../../../fits-images/ftt4b/file009.fits" and "file009.fits"
+Comparing "../fits-images/ftt4b/file009.fits" and "file009.fits"
 PASS
-Reading ../../../../../fits-images/ftt4b/file012.fits
-../../../../../fits-images/ftt4b/file012.fits :  513 x  513, 1 channel, int16 fits
+Reading ../fits-images/ftt4b/file012.fits
+../fits-images/ftt4b/file012.fits :  513 x  513, 1 channel, int16 fits
     SHA-1: 844CE9474D5C9E91154E41D7ED417173DE57286D
     channel list: Y
     Bscale: 2.85522e-06
@@ -698,5 +698,5 @@ AIPS   CLEAN NITER= 12000 PRODUCT=1"
     Observer: "LAIN"
     Origin: "AIPS"
     Tables: 1
-Comparing "../../../../../fits-images/ftt4b/file012.fits" and "file012.fits"
+Comparing "../fits-images/ftt4b/file012.fits" and "file012.fits"
 PASS

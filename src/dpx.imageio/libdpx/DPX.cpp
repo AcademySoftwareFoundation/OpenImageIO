@@ -42,9 +42,9 @@
 // determine byte order for current system
 // Intel processors are Little Endian
 // Power PC, MIPS and Ultra Sparc are Big Endian
-static unsigned long lValue = 0x12345678;
-static unsigned long *lPtr = &lValue;
-dpx::Endian dpx::systemByteOrder = (*(unsigned char*)lPtr == 0x78 ? dpx::kLittleEndian : dpx::kBigEndian);
+static unsigned long dpx_lValue = 0x12345678;
+static unsigned long *dpx_lPtr = &dpx_lValue;
+dpx::Endian dpx::systemByteOrder = (*(unsigned char*)dpx_lPtr == 0x78 ? dpx::kLittleEndian : dpx::kBigEndian);
 
 		
 		

@@ -1,6 +1,6 @@
 Could not open "badname.tif"
 	Error:  Could not open file: badname.tif: Cannot open
-Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
+Opened "../oiio-images/tahoe-gps.jpg" as a jpeg
   resolution 2048x1536+0+0
   untiled
   3 channels: ('R', 'G', 'B')
@@ -26,7 +26,7 @@ Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
   Exif:PixelXDimension = 2048
   Exif:PixelYDimension = 1536
   Exif:WhiteBalance = 0
-  GPS:VersionID = None
+  GPS:VersionID = (2, 2, 0, 0)
   GPS:LatitudeRef = "N"
   GPS:Latitude = (39.0, 18.0, 24.399999618530273)
   GPS:LongitudeRef = "W"
@@ -56,10 +56,10 @@ Opened "grid.tx" as a tiff
   textureformat = "Plain Texture"
   wrapmodes = "black,black"
   fovcot = 1.0
+  tiff:Compression = 8
   tiff:PhotometricInterpretation = 2
   tiff:PlanarConfiguration = 1
   planarconfig = "contig"
-  tiff:Compression = 8
   compression = "zip"
   PixelAspectRatio = 1.0
   oiio:AverageColor = "0.608983,0.608434,0.608728,1"
@@ -96,23 +96,23 @@ Subimage 0 MIP level 10 :
   tile size  64x64x1
 
 Testing read_image:
-Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
+Opened "../oiio-images/tahoe-gps.jpg" as a jpeg
 @ (0L, 0L) = [40 35 57]
 @ (2047L, 1535L) = [37 56 89]
 @ (1024L, 768L) = [137 183 233]
 
-Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
+Opened "../oiio-images/tahoe-gps.jpg" as a jpeg
 @ (0L, 0L) = [ 0.15686275  0.13725491  0.22352943]
 @ (2047L, 1535L) = [ 0.14509805  0.21960786  0.34901962]
 @ (1024L, 768L) = [ 0.53725493  0.71764708  0.91372555]
 
-Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
+Opened "../oiio-images/tahoe-gps.jpg" as a jpeg
 @ (0L, 0L) = [40]
 @ (2047L, 1535L) = [37]
 @ (1024L, 768L) = [137]
 
 Testing read_scanline:
-Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
+Opened "../oiio-images/tahoe-gps.jpg" as a jpeg
 @ (0L, 0L) = [40 35 57]
 @ (0L, 1535L) = [ 82  94 136]
 
@@ -122,7 +122,7 @@ Opened "grid.tx" as a tiff
 @ (32L, 32L) = [255 127 127 255]
 
 Testing read_scanlines:
-Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
+Opened "../oiio-images/tahoe-gps.jpg" as a jpeg
 @ (0L, 0L) = [40 35 57]
 @ (2047L, 1535L) = [37 56 89]
 @ (1024L, 768L) = [137 183 233]
@@ -143,11 +143,11 @@ Read array typecode uint16  [ 12288 ]
 
 Test read_tiles native half:
 Opened "testf16.exr" as a openexr
-Read array typecode uint16  [ 12288 ]
+Read array typecode float16  [ 12288 ]
 
 Test read_image into half:
 Opened "testu16.tif" as a tiff
-Read array typecode uint16  [ 12288 ]
+Read array typecode float16  [ 12288 ]
 
 Test read_image into FLOAT:
 Opened "testu16.tif" as a tiff
@@ -205,4 +205,6 @@ Testing write and read of TIFF CMYK with auto RGB translation:
  [0.24705884 0.49803925 0.49803925]]
 
 
+is_imageio_format_name('tiff') = True
+is_imageio_format_name('txff') = False
 Done.

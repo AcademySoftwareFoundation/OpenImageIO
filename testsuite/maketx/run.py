@@ -1,17 +1,26 @@
 #!/usr/bin/env python 
 
-# location of oiio-images directory
-oiio_images = OIIO_TESTSUITE_IMAGEDIR
+failureok = 1
+
+outputs = [ ]
 
 # Just for simplicity, make a checkerboard with a solid alpha
 command += oiiotool (" --pattern checker 128x128 4 --ch R,G,B,=1.0"
-            + " -d uint8 -o " + oiio_relpath("checker.tif") )
+            + " -d uint8 -o " + make_relpath("checker.tif") )
+# Noise bump pattern
+command += oiiotool (" --pattern noise 64x64 1"
+           + " -d half -o " + make_relpath("noise.exr"))
 
 # Basic test - recreate the grid texture
-command += maketx_command (oiio_images + "/grid.tif", "grid.tx", showinfo=True)
+command += maketx_command ("../common/grid.tif", "grid.tx", showinfo=True)
+
+# Make tex twice using -u
+command += maketx_command ("checker.tif", "checker.tx", "-u", showinfo=True)
+command += maketx_command ("checker.tif", "checker.tx", "-u", showinfo=True)
+
 
 # Test --resize (to power of 2) with the grid, which is 1000x1000
-command += maketx_command (oiio_images + "/grid.tif", "grid-resize.tx",
+command += maketx_command ("../common/grid.tif", "grid-resize.tx",
                            "--resize", showinfo=True)
 
 # Test -d to set output data type
@@ -53,13 +62,13 @@ command += maketx_command ("checker.tif", "checker-opaque.tx",
 
 # Test --monochrome-detect (first create a monochrome image)
 command += oiiotool (" --pattern constant:color=.25,.25,.25 256x256 3 "
-                    + " -d uint8 -o " + oiio_relpath("gray.tif"))
+                    + " -d uint8 -o " + make_relpath("gray.tif"))
 command += maketx_command ("gray.tif", "gray-mono.tx",
                            "--monochrome-detect", showinfo=True)
 
 # Test --monochrome-detect on something that is NOT monochrome
 command += oiiotool (" --pattern constant:color=.25,.2,.15 256x256 3 "
-                    + " -d uint8 -o " + oiio_relpath("pink.tif"))
+                    + " -d uint8 -o " + make_relpath("pink.tif"))
 command += maketx_command ("pink.tif", "pink-mono.tx",
                            "--monochrome-detect", showinfo=True)
 
@@ -69,10 +78,13 @@ command += maketx_command ("pink.tif", "pink-mono.tx",
 command += maketx_command ("checker.tif", "checker-prman.tx",
                            "-d uint16 --prman", showinfo=True)
 
+# Test --checknan : take advantage of the bad.exr images in 
+# testsuite/oiiotool-fixnan.  (Use --nomipmap to cut down on stats output)
+command += maketx_command (OIIO_TESTSUITE_ROOT+"/oiiotool-fixnan/src/bad.exr",
+                           "nan.exr", "--checknan --nomipmap")
+
 # Test --fixnan : take advantage of the bad.exr images in 
 # testsuite/oiiotool-fixnan.  (Use --nomipmap to cut down on stats output)
-# FIXME: would also like to test --checknan, but the problem with that is
-# that is actually FAILS if there's a nan.
 command += maketx_command (OIIO_TESTSUITE_ROOT+"/oiiotool-fixnan/src/bad.exr",
                            "nan.exr", "--fixnan box3 --nomipmap",
                            showinfo=True, showinfo_extra="--stats")
@@ -85,16 +97,16 @@ command += maketx_command ("checker.tif", "checker-exr.pdq",
 # hint in the ImageDescription of the input file.
 command += oiiotool (" --pattern constant:color=1,0,0 64x64 3 "
             + " --caption \"foo SHA-1=1234abcd ConstantColor=[0.0,0,-0.0] bar\""
-            + " -d uint8 -o " + oiio_relpath("small.tif") )
+            + " -d uint8 -o " + make_relpath("small.tif") )
 command += info_command ("small.tif", safematch=1);
 command += maketx_command ("small.tif", "small.tx",
                            "--oiio --constant-color-detect", showinfo=True)
 
 # Test that the oiio:SHA-1 hash is stable, and that that changing filter and
 # using -hicomp result in different images and different hashes.
-command += maketx_command (oiio_images + "/grid.tif", "grid-lanczos3.tx",
+command += maketx_command ("../common/grid.tif", "grid-lanczos3.tx",
                            extraargs = "-filter lanczos3")
-command += maketx_command (oiio_images + "/grid.tif", "grid-lanczos3-hicomp.tx",
+command += maketx_command ("../common/grid.tif", "grid-lanczos3-hicomp.tx",
                            extraargs = "-filter lanczos3 -hicomp")
 command += info_command ("grid.tx",
                          extraargs="--metamatch oiio:SHA-1")
@@ -108,24 +120,46 @@ command += info_command ("grid-lanczos3-hicomp.tx",
 # all-white image, turning it into an env map, and calculating its
 # statistics (should be 1.0 everywhere).
 command += oiiotool (" --pattern constant:color=1,1,1 4x2 3 "
-            + " -d half -o " + oiio_relpath("white.exr"))
+            + " -d half -o " + make_relpath("white.exr"))
 command += maketx_command ("white.exr", "whiteenv.exr",
                            "--envlatl")
-command += oiiotool ("--stats whiteenv.exr")
+command += oiiotool ("--stats -a whiteenv.exr")
 
-#Test --bumpslopes to export a 6 channels height map with gradients
-command += oiiotool (" --pattern noise 64x64 1"
-           + " -d half -o " + oiio_relpath("bump.exr"))
-command += maketx_command ("bump.exr", "bumpslope.exr",
+# Test --lightprobe
+command += maketx_command ("src/uffizi_probe-128.exr", "uffizi_latlong_env-128.exr",
+                           "--lightprobe -d half")
+outputs += [ "uffizi_latlong_env-128.exr" ]
+
+# Test --bumpslopes to export a 6 channels height map with gradients
+command += maketx_command ("noise.exr", "bumpslope.exr",
                            "--bumpslopes -d half", showinfo=True)
 
+# Test --cdf
+command += maketx_command ("noise.exr", "cdf.exr",
+                           "--cdf -d half", showinfo=True)
 
-outputs = [ "out.txt" ]
+command += maketx_command ("noise.exr", "bumpslope-cdf.exr",
+                           "--bumpslopes --cdf -d half", showinfo=True)
+
+# Test --sattrib, --attrib
+command += maketx_command ("checker.tif", "checker-attribs.tx",
+                           "--sattrib sname sval " +
+                           "--attrib iname 42 " +
+                           "--attrib fname 3.14159 " +
+                           "--attrib sname2 sval2 ",
+                           showinfo = True)
+
+# Test --colorconvert and --unpremult
+command += oiiotool (" --pattern constant:color=.25,.25,.25,.5 64x64 4 "
+                    + " -d uint8 -o " + make_relpath("gray64srgb.tif"))
+command += maketx_command ("gray64srgb.tif", "gray64linsrgb.tx",
+                           "--colorconvert srgb lin_srgb --unpremult")
+
+outputs += [ "out.txt" ]
 
 
 
-# To do:  --filter --checknan --fullpixels
-#         --prman-metadata --ignore-unassoc
+# To do:  --fullpixels
+#         --ignore-unassoc
 #         --mipimage 
-#         --envlatl TIFF, --envlatl EXR
-#         --colorconvert --unpremult -u --fovcot
+#         --fovcot

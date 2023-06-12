@@ -21,7 +21,7 @@ Steps to reproduce the behavior:
 A clear and concise description of what you expected to happen.
 
 **Evidence**
-Do you have error messages? (please quote exacty) Screenshots? Example
+Do you have error messages? (please quote exactly) Screenshots? Example
 command lines or scripts that reliably reproduce the error? If it only
 happens with certain image files, can you attach the smallest image you
 can make that reproduces the problem?

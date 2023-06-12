@@ -120,6 +120,10 @@ General options
 
     Prints usage information to the terminal.
 
+.. option:: --version
+
+    Prints the version designation of the OIIO library.
+
 .. describe:: -v
 
     Verbose output --- more detail about what it finds when comparing
@@ -142,22 +146,34 @@ Thresholds and comparison options
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. describe:: -fail A
-              -failpercent B
-              -hardfail C
+              -failrelative R
+              -failpercent P
+              -hardfail H
 
-    Sets the threshold for FAILURE: if more than *B* % of pixels (on a 0-100
-    floating point scale) are greater than *A* different, or if *any* pixels
-    are more than *C* different.  The defaults are to fail if more than 0%
-    (any) pixels differ by more than 0.00001 (1e-6), and *C* is infinite.
+    Sets the threshold for FAILURE: if more than *P* % of pixels (on a 0-100
+    floating point scale) are greater than *A* different absolutely or *R*
+    relatively (to the mean of the two values), or if *any* pixels are more
+    than *H* different absolutely.  The defaults are to fail if more than 0%
+    (any) pixels differ by more than 0.00001 (1e-6), and *H* is infinite.
 
 .. describe:: -warn A
-              -warnpercent B
-              -hardwarn C
+              -warnrelative R
+              -warnpercent P
+              -hardwarn H
 
-    Sets the threshold for WARNING: if more than *B* % of pixels (on a 0-100
-    floating point scale) are greater than *A* different, or if *any* pixels
-    are more than *C* different.  The defaults are to warn if more than 0%
-    (any) pixels differ by more than 0.00001 (1e-6), and *C* is infinite.
+    Sets the threshold for WARNING: if more than *P* % of pixels (on a 0-100
+    floating point scale) are greater than *A* different absolutely or *R*
+    different relatively (to the mean of the two values), or if *any* pixels
+    are more than *H* different absolutely.  The defaults are to warn if more
+    than 0% (any) pixels differ by more than 0.00001 (1e-6), and *H* is
+    infinite.
+
+.. describe:: --allowfailures N
+
+    Allows up to *N* pixels to differ by any amount, and still consider it
+    a matching image.
+
+    This option was added in OIIO 2.3.19.
 
 .. describe:: -p
 

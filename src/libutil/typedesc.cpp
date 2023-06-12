@@ -1,15 +1,16 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 #include <cstdio>
 #include <cstdlib>
 #include <string>
 
-#include <OpenEXR/half.h>
+#include <OpenImageIO/detail/fmt.h>
 
 #include <OpenImageIO/dassert.h>
+#include <OpenImageIO/half.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/ustring.h>
@@ -56,7 +57,7 @@ TypeDesc::basesize() const noexcept
 {
     if (basetype >= TypeDesc::LASTBASE)
         return 0;
-    DASSERT(basetype < TypeDesc::LASTBASE);
+    OIIO_DASSERT(basetype < TypeDesc::LASTBASE);
     return basetype_size[basetype];
 }
 
@@ -82,7 +83,7 @@ TypeDesc::is_floating_point() const noexcept
         0,  // STRING
         0   // PTR
     };
-    DASSERT(basetype < TypeDesc::LASTBASE);
+    OIIO_DASSERT(basetype < TypeDesc::LASTBASE);
     return isfloat[basetype];
 }
 
@@ -108,7 +109,7 @@ TypeDesc::is_signed() const noexcept
         0,  // STRING
         0   // PTR
     };
-    DASSERT(basetype < TypeDesc::LASTBASE);
+    OIIO_DASSERT(basetype < TypeDesc::LASTBASE);
     return issigned[basetype];
 }
 
@@ -161,31 +162,37 @@ TypeDesc::c_str() const
     // we don't have to re-assemble strings all the time?
 
     // Timecode and Keycode are hard coded
-    static constexpr TypeDesc TypeTimeCodeAlt(UINT, VEC2, TIMECODE);
-    if (*this == TypeTimeCode || *this == TypeTimeCodeAlt)
+    if (vecsemantics == TIMECODE && (basetype == INT || basetype == UINT)
+        && basevalues() == 2) {
         return ustring("timecode").c_str();
-    else if (*this == TypeKeyCode)
+    }
+    if (vecsemantics == KEYCODE && (basetype == INT || basetype == UINT)
+        && basevalues() == 7) {
         return ustring("keycode").c_str();
+    }
 
+    int alen = arraylen;
     std::string result;
     if (aggregate == SCALAR)
         result = basetype_name[basetype];
-    else if (aggregate == MATRIX44 && basetype == FLOAT)
-        result = "matrix";
-    else if (aggregate == MATRIX33 && basetype == FLOAT)
-        result = "matrix33";
-    else if (aggregate == VEC4 && basetype == FLOAT && vecsemantics == NOXFORM)
-        result = "float4";
+    // else if (aggregate == MATRIX44 && basetype == FLOAT)
+    //     result = "matrix";
+    // else if (aggregate == MATRIX33 && basetype == FLOAT)
+    //     result = "matrix33";
+    // else if (aggregate == VEC2 && basetype == FLOAT && vecsemantics == NOXFORM)
+    //     result = "float2";
+    // else if (aggregate == VEC4 && basetype == FLOAT && vecsemantics == NOXFORM)
+    //     result = "float4";
     else if (vecsemantics == NOXFORM) {
-        const char* agg = "";
         switch (aggregate) {
-        case VEC2: agg = "vec2"; break;
-        case VEC3: agg = "vec3"; break;
-        case VEC4: agg = "vec4"; break;
-        case MATRIX33: agg = "matrix33"; break;
-        case MATRIX44: agg = "matrix"; break;
+        case VEC2: result = "float2"; break;
+        case VEC3: result = "float3"; break;
+        case VEC4: result = "float4"; break;
+        case MATRIX33: result = "matrix33"; break;
+        case MATRIX44: result = "matrix"; break;
         }
-        result = std::string(agg) + basetype_code[basetype];
+        if (basetype != FLOAT)
+            result += basetype_code[basetype];
     } else {
         // Special names for vector semantics
         const char* vec = "";
@@ -195,7 +202,8 @@ TypeDesc::c_str() const
         case VECTOR: vec = "vector"; break;
         case NORMAL: vec = "normal"; break;
         case RATIONAL: vec = "rational"; break;
-        default: DASSERT(0 && "Invalid vector semantics");
+        case BOX: vec = ""; break;
+        default: OIIO_DASSERT(0 && "Invalid vector semantics");
         }
         const char* agg = "";
         switch (aggregate) {
@@ -208,18 +216,26 @@ TypeDesc::c_str() const
         if (basetype != FLOAT)
             result += basetype_code[basetype];
     }
-    if (arraylen > 0)
-        result += Strutil::sprintf("[%d]", arraylen);
-    else if (arraylen < 0)
+    // More unusual cases
+    if (vecsemantics == BOX) {
+        result = Strutil::fmt::format("box{}{}", int(aggregate),
+                                      basetype == FLOAT
+                                          ? ""
+                                          : basetype_code[basetype]);
+        alen   = arraylen > 2 ? (arraylen / 2) : (arraylen < 0 ? -1 : 0);
+    }
+    if (alen > 0)
+        result += Strutil::sprintf("[%d]", alen);
+    else if (alen < 0)
         result += "[]";
     return ustring(result).c_str();
 }
 
 
 
-// Copy src into dst until you hit the end, find a delimiter charcter,
+// Copy src into dst until you hit the end, find a delimiter character,
 // or have copied maxlen-1 characters, whichever comes first.  Add a
-// terminating null charcter.  Return the number of characters copied.
+// terminating null character.  Return the number of characters copied.
 inline size_t
 copy_until(const char* src, const char* delim, char* dst, size_t maxlen)
 {
@@ -276,10 +292,32 @@ TypeDesc::fromstring(string_view typestring)
         t = TypeMatrix33;
     else if (type == "matrix" || type == "matrix44")
         t = TypeMatrix44;
+    else if (type == "vector2")
+        t = TypeVector2;
+    else if (type == "vector4")
+        t = TypeVector4;
+    else if (type == "float2")
+        t = TypeFloat2;
+    else if (type == "float4")
+        t = TypeFloat4;
     else if (type == "timecode")
         t = TypeTimeCode;
     else if (type == "rational")
         t = TypeRational;
+    else if (type == "box2i")
+        t = TypeBox2i;
+    else if (type == "box3i")
+        t = TypeBox3i;
+    else if (type == "box2" || type == "box2f")
+        t = TypeBox2;
+    else if (type == "box3" || type == "box3f")
+        t = TypeBox3;
+    else if (type == "timecode")
+        t = TypeTimeCode;
+    else if (type == "keycode")
+        t = TypeKeyCode;
+    else if (type == "pointer")
+        t = TypePointer;
     else {
         return 0;  // unknown
     }
@@ -303,7 +341,7 @@ tostring_formatting::tostring_formatting(
     const char* int_fmt, const char* float_fmt, const char* string_fmt,
     const char* ptr_fmt, const char* aggregate_begin, const char* aggregate_end,
     const char* aggregate_sep, const char* array_begin, const char* array_end,
-    const char* array_sep, int flags)
+    const char* array_sep, int flags, const char* uint_fmt)
     : int_fmt(int_fmt)
     , float_fmt(float_fmt)
     , string_fmt(string_fmt)
@@ -315,15 +353,31 @@ tostring_formatting::tostring_formatting(
     , array_end(array_end)
     , array_sep(array_sep)
     , flags(flags)
+    , uint_fmt(uint_fmt)
 {
 }
 
 
 
-template<class T>
-inline std::string
-sprintt(TypeDesc type, const char* format, const tostring_formatting& fmt,
-        const T* v)
+tostring_formatting::tostring_formatting(
+    Notation notation, const char* int_fmt, const char* uint_fmt,
+    const char* float_fmt, const char* string_fmt, const char* ptr_fmt,
+    const char* aggregate_begin, const char* aggregate_end,
+    const char* aggregate_sep, const char* array_begin, const char* array_end,
+    const char* array_sep, int flags)
+    : tostring_formatting(int_fmt, float_fmt, string_fmt, ptr_fmt,
+                          aggregate_begin, aggregate_end, aggregate_sep,
+                          array_begin, array_end, array_sep, flags, uint_fmt)
+{
+    use_sprintf = false;
+}
+
+
+
+template<class T, class Cast = T>
+static std::string
+sprint_type(TypeDesc type, const char* format, const tostring_formatting& fmt,
+            const T* v)
 {
     std::string val;
     if (type.arraylen)
@@ -333,7 +387,7 @@ sprintt(TypeDesc type, const char* format, const tostring_formatting& fmt,
         if (type.aggregate > 1)
             val += fmt.aggregate_begin;
         for (int j = 0; j < (int)type.aggregate; ++j, ++v) {
-            val += Strutil::sprintf(format, *v);
+            val += Strutil::sprintf(format, static_cast<Cast>(*v));
             if (type.aggregate > 1 && j < type.aggregate - 1)
                 val += fmt.aggregate_sep;
         }
@@ -349,9 +403,9 @@ sprintt(TypeDesc type, const char* format, const tostring_formatting& fmt,
 
 
 
-inline std::string
-sprintt(TypeDesc type, const char* format, const tostring_formatting& fmt,
-        const char** v)
+static std::string
+sprint_type(TypeDesc type, const char* format, const tostring_formatting& fmt,
+            const char** v)
 {
     std::string val;
     if (type.arraylen)
@@ -366,6 +420,68 @@ sprintt(TypeDesc type, const char* format, const tostring_formatting& fmt,
                                                    : std::string());
             else
                 val += Strutil::sprintf(format, *v ? *v : "");
+            if (type.aggregate > 1 && j < type.aggregate - 1)
+                val += fmt.aggregate_sep;
+        }
+        if (type.aggregate > 1)
+            val += fmt.aggregate_end;
+        if (i < n - 1)
+            val += fmt.array_sep;
+    }
+    if (type.arraylen)
+        val += fmt.array_end;
+    return val;
+}
+
+
+
+template<class T>
+static std::string
+format_type(TypeDesc type, const char* format, const tostring_formatting& fmt,
+            const T* v)
+{
+    std::string val;
+    if (type.arraylen)
+        val += fmt.array_begin;
+    const size_t n = type.arraylen ? type.arraylen : 1;
+    for (size_t i = 0; i < n; ++i) {
+        if (type.aggregate > 1)
+            val += fmt.aggregate_begin;
+        for (int j = 0; j < (int)type.aggregate; ++j, ++v) {
+            val += Strutil::fmt::format(format, *v);
+            if (type.aggregate > 1 && j < type.aggregate - 1)
+                val += fmt.aggregate_sep;
+        }
+        if (type.aggregate > 1)
+            val += fmt.aggregate_end;
+        if (i < n - 1)
+            val += fmt.array_sep;
+    }
+    if (type.arraylen)
+        val += fmt.array_end;
+    return val;
+}
+
+
+
+static std::string
+format_type(TypeDesc type, const char* format, const tostring_formatting& fmt,
+            const char** v)
+{
+    std::string val;
+    if (type.arraylen)
+        val += fmt.array_begin;
+    const size_t n = type.arraylen ? type.arraylen : 1;
+    for (size_t i = 0; i < n; ++i) {
+        if (type.aggregate > 1)
+            val += fmt.aggregate_begin;
+        for (int j = 0; j < (int)type.aggregate; ++j, ++v) {
+            if (fmt.flags & tostring_formatting::escape_strings)
+                val += Strutil::fmt::format(format,
+                                            *v ? Strutil::escape_chars(*v)
+                                               : std::string());
+            else
+                val += Strutil::fmt::format(format, *v ? *v : "");
             if (type.aggregate > 1 && j < type.aggregate - 1)
                 val += fmt.aggregate_sep;
         }
@@ -403,17 +519,37 @@ bcdToBinary(unsigned int bcd)
 std::string
 tostring(TypeDesc type, const void* data, const tostring_formatting& fmt)
 {
+    if (!data)
+        return std::string();
     // Perhaps there is a way to use CType<> with a dynamic argument?
     switch (type.basetype) {
     case TypeDesc::UNKNOWN:
-        return sprintt(type, fmt.ptr_fmt, fmt, (void**)data);
-    case TypeDesc::NONE: return sprintt(type, "None", fmt, (void**)data);
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.ptr_fmt, fmt, (void**)data)
+                   : format_type(type, fmt.ptr_fmt, fmt, (void**)data);
+    case TypeDesc::NONE:
+        return fmt.use_sprintf ? sprint_type(type, "None", fmt, (void**)data)
+                               : format_type(type, "None", fmt, (void**)data);
     case TypeDesc::UCHAR:
-        return sprintt(type, fmt.int_fmt, fmt, (unsigned char*)data);
-    case TypeDesc::CHAR: return sprintt(type, fmt.int_fmt, fmt, (char*)data);
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.uint_fmt ? fmt.uint_fmt : "%u", fmt,
+                                 (unsigned char*)data)
+                   : format_type(type, fmt.uint_fmt ? fmt.uint_fmt : "%u", fmt,
+                                 (unsigned char*)data);
+    case TypeDesc::CHAR:
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.int_fmt, fmt, (char*)data)
+                   : format_type(type, "{:d}", fmt, (char*)data);
     case TypeDesc::USHORT:
-        return sprintt(type, fmt.int_fmt, fmt, (uint16_t*)data);
-    case TypeDesc::SHORT: return sprintt(type, fmt.int_fmt, fmt, (short*)data);
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.uint_fmt ? fmt.uint_fmt : "%u", fmt,
+                                 (uint16_t*)data)
+                   : format_type(type, fmt.uint_fmt ? fmt.uint_fmt : "%u", fmt,
+                                 (uint16_t*)data);
+    case TypeDesc::SHORT:
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.int_fmt, fmt, (short*)data)
+                   : format_type(type, fmt.int_fmt, fmt, (short*)data);
     case TypeDesc::UINT:
         if (type.vecsemantics == TypeDesc::RATIONAL
             && type.aggregate == TypeDesc::VEC2) {
@@ -422,7 +558,7 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt)
             for (size_t i = 0, e = type.numelements(); i < e; ++i, val += 2) {
                 if (i)
                     out += ", ";
-                out += Strutil::sprintf("%d/%d", val[0], val[1]);
+                out += Strutil::sprintf("%u/%u", val[0], val[1]);
             }
             return out;
         } else if (type == TypeTimeCode) {
@@ -436,7 +572,11 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt)
             return Strutil::sprintf("%02d:%02d:%02d:%02d", hours, minutes,
                                     seconds, frame);
         }
-        return sprintt(type, fmt.int_fmt, fmt, (unsigned int*)data);
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.uint_fmt ? fmt.uint_fmt : "%u", fmt,
+                                 (unsigned int*)data)
+                   : format_type(type, fmt.uint_fmt ? fmt.uint_fmt : "%u", fmt,
+                                 (unsigned int*)data);
     case TypeDesc::INT:
         if (type.elementtype() == TypeRational) {
             std::string out;
@@ -448,23 +588,43 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt)
             }
             return out;
         }
-        return sprintt(type, fmt.int_fmt, fmt, (int*)data);
-    case TypeDesc::ULONGLONG:
-        return sprintt(type, fmt.int_fmt, fmt, (const uint64_t*)data);
-    case TypeDesc::LONGLONG:
-        return sprintt(type, fmt.int_fmt, fmt, (const int64_t*)data);
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.int_fmt, fmt, (int*)data)
+                   : format_type(type, fmt.int_fmt, fmt, (int*)data);
+    case TypeDesc::UINT64:
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.uint_fmt ? fmt.uint_fmt : "%u", fmt,
+                                 (const uint64_t*)data)
+                   : format_type(type, fmt.uint_fmt ? fmt.uint_fmt : "%u", fmt,
+                                 (const uint64_t*)data);
+    case TypeDesc::INT64:
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.int_fmt, fmt, (const int64_t*)data)
+                   : format_type(type, fmt.int_fmt, fmt, (const int64_t*)data);
     case TypeDesc::HALF:
-        return sprintt(type, fmt.float_fmt, fmt, (const half*)data);
+        return fmt.use_sprintf
+                   ? sprint_type<half, float>(type, fmt.float_fmt, fmt,
+                                              (const half*)data)
+                   : format_type(type, fmt.float_fmt, fmt, (const half*)data);
     case TypeDesc::FLOAT:
-        return sprintt(type, fmt.float_fmt, fmt, (const float*)data);
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.float_fmt, fmt, (const float*)data)
+                   : format_type(type, fmt.float_fmt, fmt, (const float*)data);
     case TypeDesc::DOUBLE:
-        return sprintt(type, fmt.float_fmt, fmt, (const double*)data);
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.float_fmt, fmt, (const double*)data)
+                   : format_type(type, fmt.float_fmt, fmt, (const double*)data);
     case TypeDesc::STRING:
         if (!type.is_array()
             && !(fmt.flags & tostring_formatting::quote_single_string))
-            return *(const char**)data;
-        return sprintt(type, fmt.string_fmt, fmt, (const char**)data);
-    case TypeDesc::PTR: return sprintt(type, fmt.ptr_fmt, fmt, (void**)data);
+            return *(const char**)data ? *(const char**)data : "";
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.string_fmt, fmt, (const char**)data)
+                   : format_type(type, fmt.string_fmt, fmt, (const char**)data);
+    case TypeDesc::PTR:
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.ptr_fmt, fmt, (void**)data)
+                   : format_type(type, fmt.ptr_fmt, fmt, (void**)data);
     default:
 #ifndef NDEBUG
         return Strutil::sprintf("<unknown data type> (base %d, agg %d vec %d)",
@@ -631,7 +791,7 @@ convert_type(TypeDesc srctype, const void* src, TypeDesc dsttype, void* dst,
     }
     if (dsttype == TypeInt && srctype == TypeString) {
         // Only succeed for a string if it exactly holds something that
-        // excatly parses to an int value.
+        // exactly parses to an int value.
         string_view str(((const char**)src)[0]);
         int val = 0;
         if (Strutil::parse_int(str, val) && str.empty()) {
@@ -660,7 +820,7 @@ convert_type(TypeDesc srctype, const void* src, TypeDesc dsttype, void* dst,
     }
     if (dsttype == TypeFloat && srctype == TypeString) {
         // Only succeed for a string if it exactly holds something that
-        // excatly parses to a float value.
+        // exactly parses to a float value.
         string_view str(((const char**)src)[0]);
         float val = 0;
         if (Strutil::parse_float(str, val) && str.empty()) {
@@ -695,6 +855,43 @@ TypeDesc::operator<(const TypeDesc& x) const noexcept
 
 
 
+TypeDesc::BASETYPE
+TypeDesc::basetype_merge(TypeDesc at, TypeDesc bt)
+{
+    BASETYPE a = (BASETYPE)at.basetype;
+    BASETYPE b = (BASETYPE)bt.basetype;
+
+    // Same type already? done.
+    if (a == b)
+        return a;
+    if (a == UNKNOWN)
+        return b;
+    if (b == UNKNOWN)
+        return a;
+    // Canonicalize so a's size (in bytes) is >= b's size in bytes. This
+    // unclutters remaining cases.
+    if (TypeDesc(a).size() < TypeDesc(b).size())
+        std::swap(a, b);
+    // Double or float trump anything else
+    if (a == DOUBLE || a == FLOAT)
+        return a;
+    if (a == UINT32 && (b == UINT16 || b == UINT8))
+        return a;
+    if (a == INT32 && (b == INT16 || b == UINT16 || b == INT8 || b == UINT8))
+        return a;
+    if ((a == UINT16 || a == HALF) && b == UINT8)
+        return a;
+    if ((a == INT16 || a == HALF) && (b == INT8 || b == UINT8))
+        return a;
+    // Out of common cases. For all remaining edge cases, punt and say that
+    // we prefer float.
+    return FLOAT;
+}
+
+
+
+// Static members of pre-constructed types
+// DEPRECATED(1.8)
 const TypeDesc TypeDesc::TypeFloat(TypeDesc::FLOAT);
 const TypeDesc TypeDesc::TypeColor(TypeDesc::FLOAT, TypeDesc::VEC3,
                                    TypeDesc::COLOR);

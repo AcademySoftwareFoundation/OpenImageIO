@@ -1,12 +1,14 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
-
-#include <OpenEXR/half.h>
+// https://github.com/OpenImageIO/oiio
 
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <set>
+#include <unordered_map>
+
+#include <OpenImageIO/half.h>
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filesystem.h>
@@ -149,7 +151,7 @@ ImageBufAlgo::fill(cspan<float> pixel, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = fill(result, pixel, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("fill error");
+        result.errorfmt("fill error");
     return result;
 }
 
@@ -160,7 +162,7 @@ ImageBufAlgo::fill(cspan<float> top, cspan<float> bottom, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = fill(result, top, bottom, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("fill error");
+        result.errorfmt("fill error");
     return result;
 }
 
@@ -174,7 +176,7 @@ ImageBufAlgo::fill(cspan<float> topleft, cspan<float> topright,
     bool ok = fill(result, topleft, topright, bottomleft, bottomright, roi,
                    nthreads);
     if (!ok && !result.has_error())
-        result.errorf("fill error");
+        result.errorfmt("fill error");
     return result;
 }
 
@@ -185,6 +187,22 @@ ImageBufAlgo::zero(ImageBuf& dst, ROI roi, int nthreads)
     pvt::LoggedTimer logtime("IBA::zero");
     if (!IBAprep(roi, &dst))
         return false;
+    OIIO_ASSERT(dst.localpixels());
+    if (dst.contiguous() && roi == dst.roi() && !dst.deep()) {
+        // Special case: we're zeroing out an entire contiguous buffer -- safe
+        // to use use memset.
+        ImageBufAlgo::parallel_image(roi, nthreads, [=, &dst](ROI roi) {
+            auto size = dst.spec().pixel_bytes() * imagesize_t(roi.width());
+            for (int z = roi.zbegin; z < roi.zend; ++z) {
+                for (int y = roi.ybegin; y < roi.yend; ++y) {
+                    memset(dst.pixeladdr(roi.xbegin, y, z), 0, size);
+                }
+            }
+        });
+        return true;
+    }
+
+    // More general case -- fall back on fill_const
     float* zero = OIIO_ALLOCA(float, roi.chend);
     memset(zero, 0, roi.chend * sizeof(float));
     bool ok;
@@ -201,7 +219,7 @@ ImageBufAlgo::zero(ROI roi, int nthreads)
     ImageBuf result;
     bool ok = zero(result, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("zero error");
+        result.errorfmt("zero error");
     return result;
 }
 
@@ -210,7 +228,7 @@ ImageBufAlgo::zero(ROI roi, int nthreads)
 template<typename T>
 static bool
 render_point_(ImageBuf& dst, int x, int y, const float* color, float alpha,
-              ROI roi, int nthreads)
+              ROI roi, int /*nthreads*/)
 {
     ImageBuf::Iterator<T> r(dst, x, y);
     for (int c = roi.chbegin; c < roi.chend; ++c)
@@ -334,7 +352,7 @@ template<typename T> struct IB_drawer {
 template<typename T>
 static bool
 render_line_(ImageBuf& dst, int x1, int y1, int x2, int y2, cspan<float> color,
-             float alpha, bool skip_first, ROI roi, int nthreads)
+             float alpha, bool skip_first, ROI roi, int /*nthreads*/)
 {
     ImageBuf::Iterator<T> r(dst, roi);
     IB_drawer<T> draw(r, color, alpha, roi);
@@ -509,7 +527,7 @@ ImageBufAlgo::checker(int width, int height, int depth, cspan<float> color1,
     bool ok = checker(result, width, height, depth, color1, color2, xoffset,
                       yoffset, zoffset, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("checker error");
+        result.errorfmt("checker error");
     return result;
 }
 
@@ -612,6 +630,31 @@ noise_salt_(ImageBuf& dst, float saltval, float saltportion, bool mono,
 
 
 
+template<typename T>
+static bool
+noise_blue_(ImageBuf& dst, float min, float max, bool mono, int seed, ROI roi,
+            int nthreads)
+{
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        for (ImageBuf::Iterator<T> p(dst, roi); !p.done(); ++p) {
+            float n         = 0.0;
+            const float* bn = nullptr;
+            for (int c = roi.chbegin; c < roi.chend; ++c) {
+                if (c == roi.chbegin || !mono) {
+                    if (!bn || !(c & 3))
+                        bn = pvt::bluenoise_4chan_ptr(p.x(), p.y(), p.z(),
+                                                      roi.chbegin & ~3, seed);
+                    n = lerp(min, max, bn[c & 3]);
+                }
+                p[c] = p[c] + n;
+            }
+        }
+    });
+    return true;
+}
+
+
+
 bool
 ImageBufAlgo::noise(ImageBuf& dst, string_view noisetype, float A, float B,
                     bool mono, int seed, ROI roi, int nthreads)
@@ -624,8 +667,12 @@ ImageBufAlgo::noise(ImageBuf& dst, string_view noisetype, float A, float B,
         OIIO_DISPATCH_COMMON_TYPES(ok, "noise_gaussian", noise_gaussian_,
                                    dst.spec().format, dst, A, B, mono, seed,
                                    roi, nthreads);
-    } else if (noisetype == "uniform") {
+    } else if (noisetype == "white" || noisetype == "uniform") {
         OIIO_DISPATCH_COMMON_TYPES(ok, "noise_uniform", noise_uniform_,
+                                   dst.spec().format, dst, A, B, mono, seed,
+                                   roi, nthreads);
+    } else if (noisetype == "blue") {
+        OIIO_DISPATCH_COMMON_TYPES(ok, "noise_blue", noise_blue_,
                                    dst.spec().format, dst, A, B, mono, seed,
                                    roi, nthreads);
     } else if (noisetype == "salt") {
@@ -634,7 +681,7 @@ ImageBufAlgo::noise(ImageBuf& dst, string_view noisetype, float A, float B,
                                    roi, nthreads);
     } else {
         ok = false;
-        dst.errorf("noise", "unknown noise type \"%s\"", noisetype);
+        dst.errorfmt("unknown noise type \"{}\"", noisetype);
     }
     return ok;
 }
@@ -649,8 +696,184 @@ ImageBufAlgo::noise(string_view noisetype, float A, float B, bool mono,
     bool ok         = true;
     ok              = noise(result, noisetype, A, B, mono, seed, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("noise error");
+        result.errorfmt("noise error");
     return result;
+}
+
+
+
+namespace {
+// Helper: make an ImageSpec in the shape of the bluenosie_table, but don't
+// let it look like it's RGB, because it's just data.
+inline ImageSpec
+bnspec()
+{
+    ImageSpec spec(pvt::bntable_res, pvt::bntable_res, 4, TypeFloat);
+    spec.channelnames  = { "X", "Y", "Z", "W" };
+    spec.alpha_channel = -1;
+    return spec;
+}
+}  // namespace
+
+const ImageBuf&
+ImageBufAlgo::bluenoise_image()
+{
+    // This ImageBuf "wraps" the table.
+    static const ImageBuf img(bnspec(), pvt::bluenoise_table);
+    return img;
+}
+
+
+
+static std::vector<std::string> font_search_dirs;
+static std::vector<std::string> all_font_files;
+static std::vector<std::string> all_fonts;
+static std::unordered_map<std::string, std::string> font_file_map;
+static std::mutex font_search_mutex;
+static bool fonts_are_enumerated = false;
+static const char* font_dir_prefix_envvars[]
+    = { "OPENIMAGEIO_FONTS", "HOME", "SystemRoot", "OpenImageIO_ROOT" };
+static const char* font_dir_prefixes[]
+    = { "/Library/Fonts", "/System/Library/Fonts",
+        "C:/Windows",     "/usr",
+        "/usr/local",     "/opt/local" };
+static const char* font_dir_suffixes[]
+    = { "fonts",       "Fonts",       "Library/Fonts",
+        "share/fonts", "share/Fonts", "share/fonts/OpenImageIO" };
+static const char* default_font_name[] = { "DroidSans", "cour", "Courier New",
+                                           "FreeMono", nullptr };
+// static const char* font_extensions[]   = { "", ".ttf", ".ttc", ".pfa", ".pfb" };
+
+
+
+// Add one dir to font_search_dirs, if the dir exists.
+static void
+fontpath_add_one_dir(string_view dir, int recursion = 0)
+{
+    if (dir.size() && Filesystem::is_directory(dir)) {
+        font_search_dirs.emplace_back(dir);
+        if (recursion) {
+            std::vector<std::string> files;
+            if (Filesystem::get_directory_entries(dir, files, false)) {
+                for (auto&& subdir : files)
+                    fontpath_add_one_dir(subdir, recursion - 1);
+            }
+        }
+    }
+}
+
+
+// Add all the dirs in a searchpath to font_search_dirs.
+static void
+fontpath_add_from_searchpath(string_view searchpath)
+{
+    if (searchpath.size()) {
+        for (auto& dir : Filesystem::searchpath_split(searchpath, true)) {
+            fontpath_add_one_dir(dir);
+            for (auto s : font_dir_suffixes)
+                fontpath_add_one_dir(Strutil::fmt::format("{}/{}", dir, s));
+        }
+    }
+}
+
+
+// Add dir/{common_font_subdirs} to font_search_dirs.
+static void
+fontpath_add_from_dir(const std::string& dir)
+{
+    if (dir.size() && Filesystem::is_directory(dir)) {
+        fontpath_add_one_dir(dir);
+        for (auto s : font_dir_suffixes)
+            fontpath_add_one_dir(Strutil::fmt::format("{}/{}", dir, s));
+    }
+}
+
+
+static void
+enumerate_fonts()
+{
+    std::lock_guard<std::mutex> lock(font_search_mutex);
+    if (fonts_are_enumerated)
+        return;  // already done
+
+    // Find all the existing dirs from the font search path to populate
+    // font_search_dirs.
+    fontpath_add_from_searchpath(pvt::font_searchpath);
+    for (auto s : font_dir_prefix_envvars)
+        fontpath_add_from_searchpath(Sysutil::getenv(s));
+    for (auto s : font_dir_prefixes)
+        fontpath_add_from_dir(s);
+    std::string this_program = OIIO::Sysutil::this_program_path();
+    if (this_program.size()) {
+        std::string path = Filesystem::parent_path(this_program);
+        path             = Filesystem::parent_path(path);
+        fontpath_add_from_dir(path);
+    }
+
+    // Get list of directories one level deeper than the font_search_dirs
+    auto dirs = font_search_dirs;
+    for (auto& dir : font_search_dirs) {
+        std::vector<std::string> filenames;
+        Filesystem::get_directory_entries(dir, filenames, false);
+        for (auto& f : filenames)
+            if (f.size() && Filesystem::is_directory(f))
+                dirs.push_back(f);
+    }
+
+    // Look for all the font files in dirs, populate font_file_set and font_set
+    std::set<std::string> font_set;
+    std::set<std::string> font_file_set;
+    for (auto& dir : dirs) {
+        std::vector<std::string> filenames;
+        Filesystem::get_directory_entries(dir, filenames, false);
+        for (auto& f : filenames) {
+            if (Strutil::iends_with(f, ".ttf") || Strutil::iends_with(f, ".ttc")
+                || Strutil::iends_with(f, ".pfa")
+                || Strutil::iends_with(f, ".pfb")) {
+                std::string fontname
+                    = Filesystem::replace_extension(Filesystem::filename(f),
+                                                    "");
+                font_file_set.insert(f);
+                font_set.insert(fontname);
+                if (font_file_map.find(fontname) == font_file_map.end())
+                    font_file_map[fontname] = f;
+            }
+        }
+    }
+    for (auto& f : font_file_set)
+        all_font_files.push_back(f);
+    for (auto& f : font_set)
+        all_fonts.push_back(f);
+
+    // Don't need to do that again
+    fonts_are_enumerated = true;
+}
+
+
+
+const std::vector<std::string>&
+pvt::font_dirs()
+{
+    enumerate_fonts();
+    return font_search_dirs;
+}
+
+
+
+const std::vector<std::string>&
+pvt::font_file_list()
+{
+    enumerate_fonts();
+    return all_font_files;
+}
+
+
+
+const std::vector<std::string>&
+pvt::font_list()
+{
+    enumerate_fonts();
+    return all_fonts;
 }
 
 
@@ -660,25 +883,29 @@ namespace {  // anon
 static mutex ft_mutex;
 static FT_Library ft_library = NULL;
 static bool ft_broken        = false;
-static std::vector<std::string> font_search_dirs;
-static const char* default_font_name[] = { "DroidSans", "cour", "Courier New",
-                                           "FreeMono", nullptr };
+
 
 // Helper: given unicode and a font face, compute its size
 static ROI
-text_size_from_unicode(std::vector<uint32_t>& utext, FT_Face face)
+text_size_from_unicode(cspan<uint32_t> utext, FT_Face face, int fontsize)
 {
+    int y = 0;
+    int x = 0;
     ROI size;
     size.xbegin = size.ybegin = std::numeric_limits<int>::max();
     size.xend = size.yend = std::numeric_limits<int>::min();
     FT_GlyphSlot slot     = face->glyph;
-    int x                 = 0;
     for (auto ch : utext) {
+        if (ch == '\n') {
+            x = 0;
+            y += fontsize;
+            continue;
+        }
         int error = FT_Load_Char(face, ch, FT_LOAD_RENDER);
         if (error)
             continue;  // ignore errors
-        size.ybegin = std::min(size.ybegin, -slot->bitmap_top);
-        size.yend   = std::max(size.yend, int(slot->bitmap.rows)
+        size.ybegin = std::min(size.ybegin, y - slot->bitmap_top);
+        size.yend   = std::max(size.yend, y + int(slot->bitmap.rows)
                                             - int(slot->bitmap_top) + 1);
         size.xbegin = std::min(size.xbegin, x + int(slot->bitmap_left));
         size.xend   = std::max(size.xend, x + int(slot->bitmap.width)
@@ -690,13 +917,12 @@ text_size_from_unicode(std::vector<uint32_t>& utext, FT_Face face)
 }
 
 
-
 // Given font name, resolve it to an existing font filename.
 // If found, return true and put the resolved filename in result.
 // If not found, return false and put an error message in result.
 // Not thread-safe! The caller must use the mutex.
 static bool
-resolve_font(int fontsize, string_view font_, std::string& result)
+resolve_font(string_view font_, std::string& result)
 {
     result.clear();
 
@@ -713,96 +939,34 @@ resolve_font(int fontsize, string_view font_, std::string& result)
         }
     }
 
-    // A set of likely directories for fonts to live, across several systems.
-    // Fill out the list of search dirs if not yet done.
-    if (font_search_dirs.size() == 0) {
-        string_view home = Sysutil::getenv("HOME");
-        if (home.size()) {
-            std::string h(home);
-            font_search_dirs.push_back(h + "/fonts");
-            font_search_dirs.push_back(h + "/Fonts");
-            font_search_dirs.push_back(h + "/Library/Fonts");
-        }
-        string_view systemRoot = Sysutil::getenv("SystemRoot");
-        if (systemRoot.size())
-            font_search_dirs.push_back(std::string(systemRoot) + "/Fonts");
-        font_search_dirs.emplace_back("/usr/share/fonts");
-        font_search_dirs.emplace_back("/usr/share/fonts/OpenImageIO");
-        font_search_dirs.emplace_back("/Library/Fonts");
-        font_search_dirs.emplace_back("/Library/Fonts/OpenImageIO");
-        font_search_dirs.emplace_back("C:/Windows/Fonts");
-        font_search_dirs.emplace_back("C:/Windows/Fonts/OpenImageIO");
-        font_search_dirs.emplace_back("/usr/local/share/fonts");
-        font_search_dirs.emplace_back("/usr/local/share/fonts/OpenImageIO");
-        font_search_dirs.emplace_back("/opt/local/share/fonts");
-        font_search_dirs.emplace_back("/opt/local/share/fonts/OpenImageIO");
-        // Try $OPENIMAGEIO_ROOT_DIR/fonts
-        string_view OpenImageIOrootdir = Sysutil::getenv("OpenImageIO_ROOT");
-        if (OpenImageIOrootdir.size()) {
-            font_search_dirs.push_back(std::string(OpenImageIOrootdir)
-                                       + "/fonts");
-            font_search_dirs.push_back(std::string(OpenImageIOrootdir)
-                                       + "/share/fonts/OpenImageIO");
-        }
-        string_view oiiorootdir = Sysutil::getenv("OPENIMAGEIO_ROOT_DIR");
-        if (oiiorootdir.size()) {
-            font_search_dirs.push_back(std::string(oiiorootdir) + "/fonts");
-            font_search_dirs.push_back(std::string(oiiorootdir)
-                                       + "/share/fonts/OpenImageIO");
-        }
-        // Try $OPENIMAGEIOHOME/fonts -- deprecated (1.9)
-        string_view oiiohomedir = Sysutil::getenv("OPENIMAGEIOHOME");
-        if (oiiohomedir.size()) {
-            font_search_dirs.push_back(std::string(oiiohomedir) + "/fonts");
-            font_search_dirs.push_back(std::string(oiiohomedir)
-                                       + "/share/fonts/OpenImageIO");
-        }
-        // Try ../fonts relative to where this executing binary came from
-        std::string this_program = OIIO::Sysutil::this_program_path();
-        if (this_program.size()) {
-            std::string path = Filesystem::parent_path(this_program);
-            path             = Filesystem::parent_path(path);
-            font_search_dirs.push_back(path + "/fonts");
-            font_search_dirs.push_back(path + "/share/fonts/OpenImageIO");
-        }
-    }
-
-    // Try to find the font.  Experiment with several extensions
+    // Try to find the font.
+    enumerate_fonts();
     std::string font = font_;
     if (font.empty()) {
         // nothing specified -- look for something to use as a default.
-        for (int j = 0; default_font_name[j] && font.empty(); ++j) {
-            static const char* extensions[] = { "", ".ttf", ".pfa", ".pfb",
-                                                NULL };
-            for (int i = 0; font.empty() && extensions[i]; ++i)
-                font = Filesystem::searchpath_find(
-                    std::string(default_font_name[j]) + extensions[i],
-                    font_search_dirs, true, true);
+        for (auto fontname : default_font_name) {
+            auto f = font_file_map.find(fontname);
+            if (f != font_file_map.end()) {
+                font = f->second;
+                break;
+            }
         }
         if (font.empty()) {
             result = "Could not set default font face";
             return false;
         }
-    } else if (Filesystem::is_regular(font)) {
-        // directly specified a filename -- use it
-    } else {
+    }
+    if (!Filesystem::is_regular(font)) {
         // A font name was specified but it's not a full path, look for it
-        std::string f;
-        static const char* extensions[] = { "", ".ttf", ".pfa", ".pfb", NULL };
-        for (int i = 0; f.empty() && extensions[i]; ++i)
-            f = Filesystem::searchpath_find(font + extensions[i],
-                                            font_search_dirs, true, true);
-        if (f.empty()) {
-            result = Strutil::sprintf("Could not set font face to \"%s\"",
-                                      font);
-            return false;
-        }
-        font = f;
+        auto f = font_file_map.find(font);
+        if (f != font_file_map.end())
+            font = f->second;
+        else
+            font = std::string();
     }
 
-    ASSERT(!font.empty());
     if (!Filesystem::is_regular(font)) {
-        result = Strutil::sprintf("Could not find font \"%s\"", font);
+        result = Strutil::fmt::format("Could not find font \"{}\"", font);
         return false;
     }
 
@@ -826,7 +990,7 @@ ImageBufAlgo::text_size(string_view text, int fontsize, string_view font_)
     lock_guard ft_lock(ft_mutex);
 
     std::string font;
-    bool ok = resolve_font(fontsize, font_, font);
+    bool ok = resolve_font(font_, font);
     if (!ok) {
         return size;
     }
@@ -845,29 +1009,10 @@ ImageBufAlgo::text_size(string_view text, int fontsize, string_view font_)
         return size;  // couldn't set the character size
     }
 
-    FT_GlyphSlot slot = face->glyph;  // a small shortcut
-
     std::vector<uint32_t> utext;
-    utext.reserve(
-        text.size());  //Possible overcommit, but most text will be ascii
+    utext.reserve(text.size());
     Strutil::utf8_to_unicode(text, utext);
-
-    size.xbegin = size.ybegin = std::numeric_limits<int>::max();
-    size.xend = size.yend = std::numeric_limits<int>::min();
-    int x                 = 0;
-    for (auto ch : utext) {
-        error = FT_Load_Char(face, ch, FT_LOAD_RENDER);
-        if (error)
-            continue;  // ignore errors
-        size.ybegin = std::min(size.ybegin, -slot->bitmap_top);
-        size.yend   = std::max(size.yend, int(slot->bitmap.rows)
-                                            - int(slot->bitmap_top) + 1);
-        size.xbegin = std::min(size.xbegin, x + int(slot->bitmap_left));
-        size.xend   = std::max(size.xend, x + int(slot->bitmap.width)
-                                            + int(slot->bitmap_left) + 1);
-        // increment pen position
-        x += slot->advance.x >> 6;
-    }
+    size = text_size_from_unicode(utext, face, fontsize);
 
     FT_Done_Face(face);
 #endif
@@ -881,11 +1026,12 @@ bool
 ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
                           int fontsize, string_view font_,
                           cspan<float> textcolor, TextAlignX alignx,
-                          TextAlignY aligny, int shadow, ROI roi, int nthreads)
+                          TextAlignY aligny, int shadow, ROI roi,
+                          int /*nthreads*/)
 {
     pvt::LoggedTimer logtime("IBA::render_text");
     if (R.spec().depth > 1) {
-        R.errorf("ImageBufAlgo::render_text does not support volume images");
+        R.errorfmt("ImageBufAlgo::render_text does not support volume images");
         return false;
     }
 
@@ -894,10 +1040,10 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
     lock_guard ft_lock(ft_mutex);
 
     std::string font;
-    bool ok = resolve_font(fontsize, font_, font);
+    bool ok = resolve_font(font_, font);
     if (!ok) {
         std::string err = font.size() ? font : "Font error";
-        R.errorf("%s", err);
+        R.errorfmt("{}", err);
         return false;
     }
 
@@ -905,7 +1051,7 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
     FT_Face face;  // handle to face object
     error = FT_New_Face(ft_library, font.c_str(), 0 /* face index */, &face);
     if (error) {
-        R.errorf("Could not set font face to \"%s\"", font);
+        R.errorfmt("Could not set font face to \"{}\"", font);
         return false;  // couldn't open the face
     }
 
@@ -913,7 +1059,7 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
                                fontsize /*height*/);
     if (error) {
         FT_Done_Face(face);
-        R.errorf("Could not set font size to %d", fontsize);
+        R.errorfmt("Could not set font size to {}", fontsize);
         return false;  // couldn't set the character size
     }
 
@@ -921,14 +1067,26 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
     int nchannels(R.nchannels());
     IBA_FIX_PERCHAN_LEN_DEF(textcolor, nchannels);
 
+    // Take into account the alpha of the requested text color. Slightly
+    // complicated logic to try to make our best guess.
+    int alpha_channel = R.spec().alpha_channel;
+    float textalpha   = 1.0f;
+    if (alpha_channel >= 0 && alpha_channel < int(textcolor.size())) {
+        // If the image we're writing into has a designated alpha, use it.
+        textalpha = textcolor[alpha_channel];
+    } else if (alpha_channel < 0 && nchannels <= 4 && textcolor.size() == 4) {
+        // If the buffer doesn't have an alpha, but the text color passed
+        // has 4 values, assume the last value is supposed to be alpha.
+        textalpha = textcolor[3];
+    }
+
     // Convert the UTF to 32 bit unicode
     std::vector<uint32_t> utext;
-    utext.reserve(
-        text.size());  //Possible overcommit, but most text will be ascii
+    utext.reserve(text.size());
     Strutil::utf8_to_unicode(text, utext);
 
     // Compute the size that the text will render as, into an ROI
-    ROI textroi     = text_size_from_unicode(utext, face);
+    ROI textroi     = text_size_from_unicode(utext, face, fontsize);
     textroi.zbegin  = 0;
     textroi.zend    = 1;
     textroi.chbegin = 0;
@@ -956,8 +1114,14 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
     ImageBuf textimg(ImageSpec(textroi, TypeDesc::FLOAT));
     ImageBufAlgo::zero(textimg);
 
-    // Glyph by glyph, fill in our txtimg buffer
+    // Glyph by glyph, fill in our textimg buffer
+    int origx = x;
     for (auto ch : utext) {
+        if (ch == '\n') {
+            x = origx;
+            y += fontsize;
+            continue;
+        }
         int error = FT_Load_Char(face, ch, FT_LOAD_RENDER);
         if (error)
             continue;  // ignore errors
@@ -996,7 +1160,7 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
     ImageBuf::Iterator<float> r(R, roi);
     for (; !r.done(); ++r, ++t, ++a) {
         float val   = t[0];
-        float alpha = a[0];
+        float alpha = a[0] * textalpha;
         R.getpixel(r.x(), r.y(), pixelcolor);
         for (int c = 0; c < nchannels; ++c)
             pixelcolor[c] = val * textcolor[c] + (1.0f - alpha) * pixelcolor[c];
@@ -1007,7 +1171,7 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
     return true;
 
 #else
-    R.errorf("OpenImageIO was not compiled with FreeType for font rendering");
+    R.errorfmt("OpenImageIO was not compiled with FreeType for font rendering");
     return false;  // Font rendering not supported
 #endif
 }

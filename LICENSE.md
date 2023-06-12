@@ -1,5 +1,3 @@
-BSD 3-Clause License
-
 Copyright (c) 2008-present by Contributors to the OpenImageIO project.
 All Rights Reserved.
 

@@ -1,9 +1,13 @@
 # Copyright 2008-present Contributors to the OpenImageIO project.
 # SPDX-License-Identifier: BSD-3-Clause
-# https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+# https://github.com/OpenImageIO/oiio
 
-set (testtex_srcs testtex.cpp)
-add_executable (testtex ${testtex_srcs})
-target_include_directories (testtex PRIVATE ${ROBINMAP_INCLUDES})
-target_link_libraries (testtex PRIVATE OpenImageIO)
-set_target_properties (testtex PROPERTIES FOLDER "Tools")
+# testtex ordinarily gets built for testing but is not "installed". Setting
+# -DENABLE_INSTALL_testtex=ON will install this test program along with the
+# rest of the command line tools.  (Note: must be in PARENT_SCOPE or it would
+# be local to this directory and not override properly by command line `-D`.)
+set (ENABLE_INSTALL_testtex OFF PARENT_SCOPE)
+
+fancy_add_executable (NAME testtex
+                      INCLUDE_DIRS ${ROBINMAP_INCLUDES}
+                      LINK_LIBRARIES OpenImageIO )

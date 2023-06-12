@@ -1,16 +1,16 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 /// \file
 /// Implementation of ImageBufAlgo algorithms that do math on
 /// single pixels at a time.
 
-#include <OpenEXR/half.h>
-
 #include <cmath>
 #include <iostream>
 #include <limits>
+
+#include <OpenImageIO/half.h>
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/deepdata.h>
@@ -62,7 +62,7 @@ static bool
 add_impl_deep(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
               int nthreads)
 {
-    ASSERT(R.deep());
+    OIIO_ASSERT(R.deep());
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         cspan<TypeDesc> channeltypes(R.deepdata()->all_channeltypes());
         ImageBuf::Iterator<float> r(R, roi);
@@ -104,7 +104,7 @@ ImageBufAlgo::add(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_, ROI roi,
             // the bigger of them, but adjusted roi to be the lesser. Now handle
             // the channels that got left out because they were not common to
             // all the inputs.
-            ASSERT(roi.chend <= dst.nchannels());
+            OIIO_ASSERT(roi.chend <= dst.nchannels());
             roi.chbegin = roi.chend;
             roi.chend   = origroi.chend;
             if (A.nchannels() > B.nchannels()) {  // A exists
@@ -135,7 +135,7 @@ ImageBufAlgo::add(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_, ROI roi,
         return ok;
     }
     // Remaining cases: error
-    dst.errorf("ImageBufAlgo::add(): at least one argument must be an image");
+    dst.errorfmt("ImageBufAlgo::add(): at least one argument must be an image");
     return false;
 }
 
@@ -147,7 +147,7 @@ ImageBufAlgo::add(Image_or_Const A, Image_or_Const B, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = add(result, A, B, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::add() error");
+        result.errorfmt("ImageBufAlgo::add() error");
     return result;
 }
 
@@ -191,7 +191,7 @@ ImageBufAlgo::sub(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_, ROI roi,
             // the bigger of them, but adjusted roi to be the lesser. Now handle
             // the channels that got left out because they were not common to
             // all the inputs.
-            ASSERT(roi.chend <= dst.nchannels());
+            OIIO_ASSERT(roi.chend <= dst.nchannels());
             roi.chbegin = roi.chend;
             roi.chend   = origroi.chend;
             if (A.nchannels() > B.nchannels()) {  // A exists
@@ -228,7 +228,7 @@ ImageBufAlgo::sub(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_, ROI roi,
         return ok;
     }
     // Remaining cases: error
-    dst.errorf("ImageBufAlgo::sub(): at least one argument must be an image");
+    dst.errorfmt("ImageBufAlgo::sub(): at least one argument must be an image");
     return false;
 }
 
@@ -240,7 +240,7 @@ ImageBufAlgo::sub(Image_or_Const A, Image_or_Const B, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = sub(result, A, B, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::sub() error");
+        result.errorfmt("ImageBufAlgo::sub() error");
     return result;
 }
 

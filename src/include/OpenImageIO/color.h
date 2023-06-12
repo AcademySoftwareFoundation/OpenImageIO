@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #pragma once
 
@@ -9,11 +9,8 @@
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
-#include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/ustring.h>
-
-#include <OpenEXR/ImathMatrix.h> /* because we need M44f */
 
 
 OIIO_NAMESPACE_BEGIN
@@ -37,12 +34,13 @@ public:
     // Convert a single 3-color
     void apply(float* data)
     {
-        apply((float*)data, 1, 1, 3, sizeof(float), 0, 0);
+        apply((float*)data, 1, 1, 3, sizeof(float), 3 * sizeof(float),
+              3 * sizeof(float));
     }
 };
 
 // Preprocessor symbol to allow conditional compilation depending on
-// whether the ColorProcesor class is exposed (it was not prior to OIIO 1.9).
+// whether the ColorProcessor class is exposed (it was not prior to OIIO 1.9).
 #define OIIO_HAS_COLORPROCESSOR 1
 
 
@@ -88,18 +86,27 @@ public:
 
     /// Has an error string occurred?
     /// (This will not affect the error state.)
+    bool has_error() const;
+
+    /// DEPRECATED(2.4), old name for has_error().
     bool error() const;
 
-    /// This routine will return the error string (and clear any error
-    /// flags).  If no error has occurred since the last time geterror()
-    /// was called, it will return an empty string.
-    std::string geterror();
+    /// This routine will return the error string (and by default, clear any
+    /// error flags).  If no error has occurred since the last time
+    /// geterror() was called, it will return an empty string.
+    std::string geterror(bool clear = true) const;
 
     /// Get the number of ColorSpace(s) defined in this configuration
     int getNumColorSpaces() const;
 
     /// Query the name of the specified ColorSpace.
     const char* getColorSpaceNameByIndex(int index) const;
+
+    /// Given a color space name, return the index of an equivalent color
+    /// space, or -1 if not found. It will first look for an exact match of
+    /// the name, but if not found, will match a color space that is
+    /// "equivalent" to the named color space.
+    int getColorSpaceIndex(string_view name) const;
 
     /// Get the name of the color space representing the named role,
     /// or NULL if none could be identified.
@@ -117,6 +124,15 @@ public:
     /// or NULL if none could be identified.
     const char* getColorSpaceFamilyByName(string_view name) const;
 
+    // Get the number of Roles defined in this configuration
+    int getNumRoles() const;
+
+    /// Query the name of the specified Role.
+    const char* getRoleByIndex(int index) const;
+
+    /// Retrieve the full list of known Roles, as a vector of strings.
+    std::vector<std::string> getRoles() const;
+
     /// Get the number of Looks defined in this configuration
     int getNumLooks() const;
 
@@ -126,9 +142,16 @@ public:
     /// Retrieve the full list of known look names, as a vector of strings.
     std::vector<std::string> getLookNames() const;
 
+    /// Is the color space known to be linear? This is very conservative, and
+    /// will return false if it's not sure.
+    bool isColorSpaceLinear(string_view name) const;
+
+    /// Retrieve the full list of aliases for the named color space.
+    std::vector<std::string> getAliases(string_view color_space) const;
+
     /// Given the specified input and output ColorSpace, request a handle to
     /// a ColorProcessor.  It is possible that this will return an empty
-    /// handle, if the inputColorSpace doesnt exist, the outputColorSpace
+    /// handle, if the inputColorSpace doesn't exist, the outputColorSpace
     /// doesn't exist, or if the specified transformation is illegal (for
     /// example, it may require the inversion of a 3D-LUT, etc).
     ///
@@ -151,7 +174,7 @@ public:
     /// inverse==true, request the inverse transformation.  The
     /// context_key and context_value can optionally be used to establish
     /// extra key/value pairs in the OCIO context if they are comma-
-    /// separated lists of ontext keys and values, respectively.
+    /// separated lists of context keys and values, respectively.
     ///
     /// The handle is actually a shared_ptr, so when you're done with a
     /// ColorProcess, just discard it. ColorProcessor(s) remain valid even
@@ -200,6 +223,17 @@ public:
     /// display is empty or not specified, the default display will be used.
     const char* getDefaultViewName(string_view display = "") const;
 
+    /// Returns the colorspace attribute of the (display, view) pair. (Note
+    /// that this may be either a color space or a display color space.)
+    /// Returns nullptr for failure.
+    const char* getDisplayViewColorSpaceName(const std::string& display,
+                                             const std::string& view) const;
+
+    /// Returns the looks attribute of a (display, view) pair. Returns nullptr
+    /// for failure.
+    const char* getDisplayViewLooks(const std::string& display,
+                                    const std::string& view) const;
+
     /// Construct a processor to transform from the given color space
     /// to the color space of the given display and view. You may optionally
     /// override the looks that are, by default, used with the display/view
@@ -224,13 +258,25 @@ public:
     ColorProcessorHandle
     createDisplayTransform(string_view display, string_view view,
                            string_view inputColorSpace, string_view looks = "",
-                           string_view context_key   = "",
+                           bool inverse = false, string_view context_key = "",
                            string_view context_value = "") const;
     ColorProcessorHandle
     createDisplayTransform(ustring display, ustring view,
                            ustring inputColorSpace, ustring looks = ustring(),
+                           bool inverse          = false,
                            ustring context_key   = ustring(),
                            ustring context_value = ustring()) const;
+
+    // OIIO_DEPRECATED("prefer the kind that takes an `inverse` parameter (2.5)")
+    ColorProcessorHandle
+    createDisplayTransform(string_view display, string_view view,
+                           string_view inputColorSpace, string_view looks,
+                           string_view context_key,
+                           string_view context_value = "") const;
+    // OIIO_DEPRECATED("prefer the kind that takes an `inverse` parameter (2.5)")
+    ColorProcessorHandle createDisplayTransform(
+        ustring display, ustring view, ustring inputColorSpace, ustring looks,
+        ustring context_key, ustring context_value = ustring()) const;
 
     /// Construct a processor to perform color transforms determined by an
     /// OpenColorIO FileTransform. It is possible that this will return an
@@ -255,23 +301,51 @@ public:
     ///
     /// Created ColorProcessors are cached, so asking for the same color
     /// space transformation multiple times shouldn't be very expensive.
-    ColorProcessorHandle createMatrixTransform(const Imath::M44f& M,
+    ColorProcessorHandle createMatrixTransform(M44fParam M,
                                                bool inverse = false) const;
+
+    /// Given a filepath, ask OCIO what color space it thinks the file
+    /// should be, based on how the name matches file naming rules in the
+    /// OCIO config.  (This is mostly a wrapper around OCIO's
+    /// ColorConfig::getColorSpaceFromSFilepath.)
+    string_view getColorSpaceFromFilepath(string_view str) const;
 
     /// Given a string (like a filename), look for the longest, right-most
     /// colorspace substring that appears. Returns "" if no such color space
-    /// is found. (This is just a wrapper around OCIO's
-    /// ColorConfig::parseColorSpaceFromString.)
+    /// is found.
     string_view parseColorSpaceFromString(string_view str) const;
+
+    /// Turn the name, which could be a color space, an alias, a role, or
+    /// an OIIO-understood universal name (like "sRGB") into a canonical
+    /// color space name. If the name is not recognized, return "".
+    string_view resolve(string_view name) const;
+
+    /// Are the two color space names/aliases/roles equivalent?
+    bool equivalent(string_view color_space,
+                    string_view other_color_space) const;
 
     /// Return a filename or other identifier for the config we're using.
     std::string configname() const;
 
     // DEPRECATED(1.9) -- no longer necessary, because it's a shared ptr
-    static void deleteColorProcessor(const ColorProcessorHandle& processor) {}
+    OIIO_DEPRECATED("no longer necessary (1.9)")
+    static void deleteColorProcessor(const ColorProcessorHandle& /*processor*/)
+    {
+    }
 
     /// Return if OpenImageIO was built with OCIO support
     static bool supportsOpenColorIO();
+
+    /// Return the hex OCIO version (maj<<24 + min<<16 + patch), or 0 if no
+    /// OCIO support is available.
+    static int OpenColorIO_version_hex();
+
+    /// Return a default ColorConfig, which is a singleton that will be
+    /// created the first time it is needed.  It will be initialized with the
+    /// OCIO environment variable, if it exists, or the OCIO built-in config
+    /// (for OCIO >= 2.2).  If neither of those is possible, it will be
+    /// initialized with a built-in minimal config.
+    static const ColorConfig& default_colorconfig();
 
 private:
     ColorConfig(const ColorConfig&) = delete;
@@ -284,7 +358,8 @@ private:
 
 
 
-/// Utility -- convert sRGB value to linear
+/// Utility -- convert sRGB value to linear transfer function, without
+/// any change in color primaries.
 ///    http://en.wikipedia.org/wiki/SRGB
 inline float
 sRGB_to_linear(float x)
@@ -304,7 +379,8 @@ sRGB_to_linear(const simd::vfloat4& x)
 }
 #endif
 
-/// Utility -- convert linear value to sRGB
+/// Utility -- convert linear value to sRGB transfer function, without
+/// any change in color primaries.
 inline float
 linear_to_sRGB(float x)
 {
@@ -314,7 +390,8 @@ linear_to_sRGB(float x)
 
 
 #ifndef __CUDA_ARCH__
-/// Utility -- convert linear value to sRGB
+/// Utility -- convert linear value to sRGB transfer function, without
+/// any change in color primaries.
 inline simd::vfloat4
 linear_to_sRGB(const simd::vfloat4& x)
 {
@@ -325,7 +402,8 @@ linear_to_sRGB(const simd::vfloat4& x)
 #endif
 
 
-/// Utility -- convert Rec709 value to linear
+/// Utility -- convert Rec709 value to linear transfer function, without
+/// any change in color primaries.
 ///    http://en.wikipedia.org/wiki/Rec._709
 inline float
 Rec709_to_linear(float x)
@@ -336,7 +414,8 @@ Rec709_to_linear(float x)
         return powf((x + 0.099f) * (1.0f / 1.099f), (1.0f / 0.45f));
 }
 
-/// Utility -- convert linear value to Rec709
+/// Utility -- convert linear value to Rec709 transfer function, without
+/// any change in color primaries.
 inline float
 linear_to_Rec709(float x)
 {

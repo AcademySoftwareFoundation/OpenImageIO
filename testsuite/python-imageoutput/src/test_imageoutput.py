@@ -84,7 +84,8 @@ def copy_image (in_filename, out_filename, method="image",
     input.close ()
     output.close ()
     if ok :
-        print ("Copied", in_filename, "to", out_filename, "as", method)
+        print ("Copied", in_filename, "to", out_filename, "as", method,
+               "(memformat", memformat, "outformat", outformat, ")")
 
 
 def test_subimages (out_filename="multipart.exr") :
@@ -114,6 +115,10 @@ try:
     # Regression test for crash when changing formats
     copy_image ("scanline.tif", "grid-image.tif",
                 memformat=oiio.TypeUInt8, outformat=oiio.TypeUInt16)
+
+    # Exercise 'half'
+    copy_image ("scanline.tif", "grid-half.exr",
+                memformat='half', outformat='half')
 
     # Ensure we can write multiple subimages
     test_subimages ()

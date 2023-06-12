@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #include <cassert>
 #include <cmath>
@@ -9,7 +9,6 @@
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filesystem.h>
-#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagebufalgo_util.h>
 #include <OpenImageIO/imageio.h>
 
@@ -23,22 +22,27 @@ using namespace RLA_pvt;
 class RLAInput final : public ImageInput {
 public:
     RLAInput() { init(); }
-    virtual ~RLAInput() { close(); }
-    virtual const char* format_name(void) const override { return "rla"; }
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual int current_subimage(void) const override
+    ~RLAInput() override { close(); }
+    const char* format_name(void) const override { return "rla"; }
+    int supports(string_view feature) const override
     {
-        lock_guard lock(m_mutex);
+        return feature == "ioproxy";
+    }
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool open(const std::string& name, ImageSpec& newspec,
+              const ImageSpec& config) override;
+    int current_subimage(void) const override
+    {
+        lock_guard lock(*this);
         return m_subimage;
     }
-    virtual bool seek_subimage(int subimage, int miplevel) override;
-    virtual bool close() override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
+    bool seek_subimage(int subimage, int miplevel) override;
+    bool close() override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
 
 private:
     std::string m_filename;            ///< Stash the filename
-    FILE* m_file;                      ///< Open image handle
     RLAHeader m_rla;                   ///< Wavefront RLA header
     std::vector<unsigned char> m_buf;  ///< Buffer the image pixels
     int m_subimage;                    ///< Current subimage index
@@ -49,25 +53,14 @@ private:
     ///
     void init()
     {
-        m_file = NULL;
+        ioproxy_clear();
         m_buf.clear();
-    }
-
-    /// Helper: raw read, with error detection
-    ///
-    bool fread(void* buf, size_t itemsize, size_t nitems)
-    {
-        size_t n = ::fread(buf, itemsize, nitems, m_file);
-        if (n != nitems)
-            errorf("Read error: read %d records but %d expected %s", (int)n,
-                   (int)nitems, feof(m_file) ? " (hit EOF)" : "");
-        return n == nitems;
     }
 
     /// Helper: read buf[0..nitems-1], swap endianness if necessary
     template<typename T> bool read(T* buf, size_t nitems = 1)
     {
-        if (!fread(buf, sizeof(T), nitems))
+        if (!ioread(buf, sizeof(T), nitems))
             return false;
         if (littleendian()
             && (is_same<T, uint16_t>::value || is_same<T, int16_t>::value
@@ -79,7 +72,7 @@ private:
 
     /// Helper function: translate 3-letter month abbreviation to number.
     ///
-    inline int get_month_number(const char* s);
+    inline int get_month_number(string_view);
 
     /// Helper: read the RLA header and scanline offset table.
     ///
@@ -103,15 +96,14 @@ private:
     // debugging aid
     void preview(std::ostream& out)
     {
-        ASSERT(!feof(m_file));
-        long pos = ftell(m_file);
-        out << "@" << pos << ", next 4 bytes are ";
+        auto pos = iotell();
+        Strutil::print(out, "@{}, next 4 bytes are ", pos);
         union {  // trickery to avoid punned pointer warnings
             unsigned char c[4];
             uint16_t s[2];
             uint32_t i;
         } u;
-        read(&u.c, 4);  // because it's char, it didn't swap endian
+        ioread((char*)&u.c, 4);  // because it's char, it didn't swap endian
         uint16_t s[2] = { u.s[0], u.s[1] };
         uint32_t i    = u.i;
         if (littleendian()) {
@@ -122,13 +114,13 @@ private:
                                 u.c[0], ((char*)u.c)[0], u.c[1],
                                 ((char*)u.c)[1], u.c[2], ((char*)u.c)[2],
                                 u.c[3], ((char*)u.c)[3], s[0], s[1], i);
-        fseek(m_file, pos, SEEK_SET);
+        ioseek(pos);
     }
 };
 
 
 
-// Obligatory material to make this a recognizeable imageio plugin:
+// Obligatory material to make this a recognizable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageInput*
@@ -152,15 +144,24 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 bool
+RLAInput::open(const std::string& name, ImageSpec& newspec,
+               const ImageSpec& config)
+{
+    // Check 'config' for any special requests
+    ioproxy_retrieve_from_config(config);
+    return open(name, newspec);
+}
+
+
+
+bool
 RLAInput::open(const std::string& name, ImageSpec& newspec)
 {
     m_filename = name;
 
-    m_file = Filesystem::fopen(name, "rb");
-    if (!m_file) {
-        errorf("Could not open file \"%s\"", name);
+    if (!ioproxy_use_or_open(name))
         return false;
-    }
+    ioseek(0);
 
     // set a bogus subimage index so that seek_subimage actually seeks
     m_subimage = 1;
@@ -177,17 +178,23 @@ RLAInput::read_header()
 {
     // Read the image header, which should have the same exact layout as
     // the m_rla structure (except for endianness issues).
-    ASSERT(sizeof(m_rla) == 740 && "Bad RLA struct size");
+    static_assert(sizeof(m_rla) == 740, "Bad RLA struct size");
     if (!read(&m_rla)) {
-        errorf("RLA could not read the image header");
+        errorfmt("RLA could not read the image header");
         return false;
     }
     m_rla.rla_swap_endian();  // fix endianness
 
     if (m_rla.Revision != (int16_t)0xFFFE
         && m_rla.Revision != 0 /* for some reason, this can happen */) {
-        errorf("RLA header Revision number unrecognized: %d", m_rla.Revision);
+        errorfmt("RLA header Revision number unrecognized: {}", m_rla.Revision);
         return false;  // unknown file revision
+    }
+    if (m_rla.NumOfChannelBits < 0 || m_rla.NumOfChannelBits > 32
+        || m_rla.NumOfMatteBits < 0 || m_rla.NumOfMatteBits > 32
+        || m_rla.NumOfAuxBits < 0 || m_rla.NumOfAuxBits > 32) {
+        errorfmt("Unsupported bit depth, or maybe corrupted file.");
+        return false;
     }
     if (m_rla.NumOfChannelBits == 0)
         m_rla.NumOfChannelBits = 8;  // apparently, this can happen
@@ -198,7 +205,7 @@ RLAInput::read_header()
     // scanline of this subimage.
     m_sot.resize(std::abs(m_rla.ActiveBottom - m_rla.ActiveTop) + 1, 0);
     if (!read(&m_sot[0], m_sot.size())) {
-        errorf("RLA could not read the scanline offset table");
+        errorfmt("RLA could not read the scanline offset table");
         return false;
     }
     return true;
@@ -216,42 +223,45 @@ RLAInput::seek_subimage(int subimage, int miplevel)
         return true;  // already on the right level
 
     // RLA images allow multiple subimages; they are simply concatenated
-    // together, wth image N's header field NextOffset giving the
+    // together, with image N's header field NextOffset giving the
     // absolute offset of the start of image N+1.
     int diff = subimage - current_subimage();
     if (subimage - current_subimage() < 0) {
         // If we are requesting an image earlier than the current one,
         // reset to the first subimage.
-        fseek(m_file, 0, SEEK_SET);
+        ioseek(0);
         if (!read_header())
             return false;  // read_header always calls error()
         diff = subimage;
     }
     // forward scrolling -- skip subimages until we're at the right place
     while (diff > 0 && m_rla.NextOffset != 0) {
-        fseek(m_file, m_rla.NextOffset, SEEK_SET);
+        if (!ioseek(m_rla.NextOffset)) {
+            errorfmt("Could not seek to header offset. Corrupted file?");
+            return false;
+        }
         if (!read_header())
             return false;  // read_header always calls error()
         --diff;
     }
     if (diff > 0 && m_rla.NextOffset == 0) {  // no more subimages to read
-        errorf("Unknown subimage");
+        errorfmt("Unknown subimage");
         return false;
     }
 
     // Now m_rla holds the header of the requested subimage.  Examine it
     // to fill out our ImageSpec.
 
-    if (m_rla.ColorChannelType > CT_FLOAT) {
-        errorf("Illegal color channel type: %d", m_rla.ColorChannelType);
+    if (m_rla.ColorChannelType < 0 || m_rla.ColorChannelType > CT_FLOAT) {
+        errorfmt("Illegal color channel type: {}", m_rla.ColorChannelType);
         return false;
     }
-    if (m_rla.MatteChannelType > CT_FLOAT) {
-        errorf("Illegal matte channel type: %d", m_rla.MatteChannelType);
+    if (m_rla.MatteChannelType < 0 || m_rla.MatteChannelType > CT_FLOAT) {
+        errorfmt("Illegal matte channel type: {}", m_rla.MatteChannelType);
         return false;
     }
-    if (m_rla.AuxChannelType > CT_FLOAT) {
-        errorf("Illegal auxiliary channel type: %d", m_rla.AuxChannelType);
+    if (m_rla.AuxChannelType < 0 || m_rla.AuxChannelType > CT_FLOAT) {
+        errorfmt("Illegal auxiliary channel type: {}", m_rla.AuxChannelType);
         return false;
     }
 
@@ -266,12 +276,21 @@ RLAInput::seek_subimage(int subimage, int miplevel)
                             ? get_channel_typedesc(m_rla.AuxChannelType,
                                                    m_rla.NumOfAuxBits)
                             : TypeUnknown;
-    TypeDesc maxtype = ImageBufAlgo::type_merge(col_type, mat_type, aux_type);
+    TypeDesc maxtype  = ImageBufAlgo::type_merge(col_type, mat_type, aux_type);
     if (maxtype == TypeUnknown) {
-        errorf("Failed channel bytes sanity check");
+        errorfmt("Failed channel bytes sanity check");
         return false;  // failed sanity check
     }
 
+    if (m_rla.NumOfColorChannels < 1 || m_rla.NumOfColorChannels > 3
+        || m_rla.NumOfMatteChannels < 0 || m_rla.NumOfMatteChannels > 3
+        || m_rla.NumOfAuxChannels < 0 || m_rla.NumOfAuxChannels > 256) {
+        errorfmt(
+            "Invalid number of channels ({} color, {} matte, {} aux), or corrupted header.",
+            m_rla.NumOfColorChannels, m_rla.NumOfMatteChannels,
+            m_rla.NumOfAuxChannels);
+        return false;
+    }
     m_spec = ImageSpec(m_rla.ActiveRight - m_rla.ActiveLeft + 1,
                        (m_rla.ActiveTop - m_rla.ActiveBottom + 1)
                            / (m_rla.FieldRendered ? 2 : 1),  // interlaced image?
@@ -308,8 +327,10 @@ RLAInput::seek_subimage(int subimage, int miplevel)
             && (aux_type == TypeDesc::FLOAT || aux_type == TypeDesc::INT32
                 || aux_type == TypeDesc::UINT32)) {
             z_channel = m_rla.NumOfColorChannels + m_rla.NumOfMatteChannels;
-            m_spec.z_channel               = z_channel;
-            m_spec.channelnames[z_channel] = "Z";
+            m_spec.z_channel = z_channel;
+            if (m_spec.channelnames.size() < size_t(z_channel + 1))
+                m_spec.channelnames.resize(z_channel + 1);
+            m_spec.channelnames[z_channel] = std::string("Z");
         }
     }
     m_stride += m_rla.NumOfAuxChannels * aux_type.size();
@@ -330,27 +351,29 @@ RLAInput::seek_subimage(int subimage, int miplevel)
     m_spec.attribute("compression", "rle");
 
     if (m_rla.DateCreated[0]) {
-        char month[4] = { 0, 0, 0, 0 };
+        string_view date(m_rla.DateCreated);
+        string_view month = Strutil::parse_word(date);
         int d, h, M, m, y;
-        if (sscanf(m_rla.DateCreated, "%c%c%c %d %d:%d %d", month + 0,
-                   month + 1, month + 2, &d, &h, &m, &y)
-            == 7) {
+        if (month.size() == 3 && Strutil::parse_int(date, d)
+            && Strutil::parse_int(date, h) && Strutil::parse_char(date, ':')
+            && Strutil::parse_int(date, m) && Strutil::parse_int(date, y)) {
             M = get_month_number(month);
             if (M > 0) {
                 // construct a date/time marker in OIIO convention
-                m_spec.attribute("DateTime",
-                                 Strutil::sprintf("%4d:%02d:%02d %02d:%02d:00",
-                                                  y, M, d, h, m));
+                m_spec.attribute(
+                    "DateTime",
+                    Strutil::fmt::format("{:4d}:{:02d}:{:02d} {:02d}:{:02d}:00",
+                                         y, M, d, h, m));
             }
         }
     }
 
     // save some typing by using macros
-#define FIELD(x, name)                                                         \
-    if (m_rla.x > 0)                                                           \
+#define FIELD(x, name) \
+    if (m_rla.x > 0)   \
     m_spec.attribute(name, m_rla.x)
-#define STRING_FIELD(x, name)                                                  \
-    if (m_rla.x[0])                                                            \
+#define STRING_FIELD(x, name) \
+    if (m_rla.x[0])           \
     m_spec.attribute(name, m_rla.x)
 
     STRING_FIELD(Description, "ImageDescription");
@@ -381,7 +404,7 @@ RLAInput::seek_subimage(int subimage, int miplevel)
             m_spec.attribute("oiio:ColorSpace", "Linear");
         else {
             m_spec.attribute("oiio:ColorSpace",
-                             Strutil::sprintf("GammaCorrected%.2g", gamma));
+                             Strutil::fmt::format("Gamma{:.2g}", gamma));
             m_spec.attribute("oiio:Gamma", gamma);
         }
     }
@@ -393,38 +416,46 @@ RLAInput::seek_subimage(int subimage, int miplevel)
     float f[3];  // variable will be reused for chroma, thus the array
     // read chromaticity points
     if (m_rla.RedChroma[0]) {
-        int num = sscanf(m_rla.RedChroma, "%f %f %f", f + 0, f + 1, f + 2);
-        if (num >= 2)
+        bool three = Strutil::scan_values(m_rla.RedChroma, "",
+                                          span<float>(f, 3));
+        if (three
+            || Strutil::scan_values(m_rla.RedChroma, "", span<float>(f, 2)))
             m_spec.attribute("rla:RedChroma",
                              TypeDesc(TypeDesc::FLOAT,
-                                      num == 2 ? TypeDesc::VEC2 : TypeDesc::VEC3,
+                                      three ? TypeDesc::VEC3 : TypeDesc::VEC2,
                                       TypeDesc::POINT),
                              f);
     }
     if (m_rla.GreenChroma[0]) {
-        int num = sscanf(m_rla.GreenChroma, "%f %f %f", f + 0, f + 1, f + 2);
-        if (num >= 2)
+        bool three = Strutil::scan_values(m_rla.GreenChroma, "",
+                                          span<float>(f, 3));
+        if (three
+            || Strutil::scan_values(m_rla.GreenChroma, "", span<float>(f, 2)))
             m_spec.attribute("rla:GreenChroma",
                              TypeDesc(TypeDesc::FLOAT,
-                                      num == 2 ? TypeDesc::VEC2 : TypeDesc::VEC3,
+                                      three ? TypeDesc::VEC3 : TypeDesc::VEC2,
                                       TypeDesc::POINT),
                              f);
     }
     if (m_rla.BlueChroma[0]) {
-        int num = sscanf(m_rla.BlueChroma, "%f %f %f", f + 0, f + 1, f + 2);
-        if (num >= 2)
+        bool three = Strutil::scan_values(m_rla.BlueChroma, "",
+                                          span<float>(f, 3));
+        if (three
+            || Strutil::scan_values(m_rla.BlueChroma, "", span<float>(f, 2)))
             m_spec.attribute("rla:BlueChroma",
                              TypeDesc(TypeDesc::FLOAT,
-                                      num == 2 ? TypeDesc::VEC2 : TypeDesc::VEC3,
+                                      three ? TypeDesc::VEC3 : TypeDesc::VEC2,
                                       TypeDesc::POINT),
                              f);
     }
     if (m_rla.WhitePoint[0]) {
-        int num = sscanf(m_rla.WhitePoint, "%f %f %f", f + 0, f + 1, f + 2);
-        if (num >= 2)
+        bool three = Strutil::scan_values(m_rla.WhitePoint, "",
+                                          span<float>(f, 3));
+        if (three
+            || Strutil::scan_values(m_rla.WhitePoint, "", span<float>(f, 2)))
             m_spec.attribute("rla:WhitePoint",
                              TypeDesc(TypeDesc::FLOAT,
-                                      num == 2 ? TypeDesc::VEC2 : TypeDesc::VEC3,
+                                      three ? TypeDesc::VEC3 : TypeDesc::VEC2,
                                       TypeDesc::POINT),
                              f);
     }
@@ -441,11 +472,6 @@ RLAInput::seek_subimage(int subimage, int miplevel)
 bool
 RLAInput::close()
 {
-    if (m_file) {
-        fclose(m_file);
-        m_file = NULL;
-    }
-
     init();  // Reset to initial state
     return true;
 }
@@ -461,7 +487,8 @@ RLAInput::decode_rle_span(unsigned char* buf, int n, int stride,
         signed char count = (signed char)encoded[e++];
         if (count >= 0) {
             // run count positive: value repeated count+1 times
-            for (int i = 0; i <= count && n; ++i, buf += stride, --n)
+            for (int i = 0; i <= count && n && e < elen;
+                 ++i, buf += stride, --n)
                 *buf = encoded[e];
             ++e;
         } else {
@@ -472,7 +499,7 @@ RLAInput::decode_rle_span(unsigned char* buf, int n, int stride,
         }
     }
     if (n != 0) {
-        errorf("Read error: malformed RLE record");
+        errorfmt("Read error: malformed RLE record");
         return 0;
     }
     return e;
@@ -506,27 +533,34 @@ RLAInput::decode_channel_group(int first_channel, short num_channels,
     }
 
     // Read the big-endian values into the buffer.
-    // The channels are simply contatenated together in order.
+    // The channels are simply concatenated together in order.
     // Each channel starts with a length, from which we know how many
     // bytes of encoded RLE data to read.  Then there are RLE
     // spans for each 8-bit slice of the channel.
     std::vector<char> encoded;
     for (int c = 0; c < num_channels; ++c) {
         // Read the length
-        uint16_t length;  // number of encoded bytes
-        if (!read(&length)) {
-            errorf("Read error: couldn't read RLE record length");
+        uint16_t lenu16;  // number of encoded bytes
+        if (!read(&lenu16)) {
+            errorfmt("Read error: couldn't read RLE record length");
             return false;
         }
+        size_t length = lenu16;
         // Read the encoded RLE record
         encoded.resize(length);
         if (!read(&encoded[0], length)) {
-            errorf("Read error: couldn't read RLE data span");
+            errorfmt("Read error: couldn't read RLE data span");
             return false;
         }
 
         if (chantype == TypeDesc::FLOAT) {
             // Special case -- float data is just dumped raw, no RLE
+            if (length != size_t(m_spec.width * chsize)) {
+                errorfmt(
+                    "Read error: not enough data in scanline {}, channel {}", y,
+                    c);
+                return false;
+            }
             for (int x = 0; x < m_spec.width; ++x)
                 *((float*)&m_buf[offset + c * chsize + x * pixelsize])
                     = ((float*)&encoded[0])[x];
@@ -537,13 +571,14 @@ RLAInput::decode_channel_group(int first_channel, short num_channels,
         // which we re-interleave properly by passing the right offsets
         // and strides to decode_rle_span.
         size_t eoffset = 0;
-        for (int bytes = 0; bytes < chsize; ++bytes) {
+        for (int bytes = 0; bytes < chsize && length > 0; ++bytes) {
             size_t e = decode_rle_span(&m_buf[offset + c * chsize + bytes],
                                        m_spec.width, pixelsize,
                                        &encoded[eoffset], length);
             if (!e)
                 return false;
             eoffset += e;
+            length -= e;
         }
     }
 
@@ -608,10 +643,10 @@ RLAInput::decode_channel_group(int first_channel, short num_channels,
 
 
 bool
-RLAInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+RLAInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
 
@@ -619,7 +654,7 @@ RLAInput::read_native_scanline(int subimage, int miplevel, int y, int z,
     y = m_spec.height - (y - m_spec.y) - 1;
 
     // Seek to scanline start, based on the scanline offset table
-    fseek(m_file, m_sot[y], SEEK_SET);
+    ioseek(m_sot[y]);
 
     // Now decode and interleave the channels.
     // The channels are non-interleaved (i.e. rrrrrgggggbbbbb...).
@@ -653,7 +688,7 @@ RLAInput::read_native_scanline(int subimage, int miplevel, int y, int z,
 
 
 inline int
-RLAInput::get_month_number(const char* s)
+RLAInput::get_month_number(string_view s)
 {
     static const char* months[] = { "",    "jan", "feb", "mar", "apr",
                                     "may", "jun", "jul", "aug", "sep",
@@ -678,14 +713,14 @@ RLAInput::get_channel_typedesc(short chan_type, short chan_bits)
             case 2: return TypeDesc::UINT16;
             case 3:
             case 4: return TypeDesc::UINT32;
-            default: ASSERT(!"Invalid colour channel type");
+            default: OIIO_ASSERT(!"Invalid colour channel type");
             }
         } else
             return TypeDesc::UINT8;
     case CT_WORD: return TypeDesc::UINT16;
     case CT_DWORD: return TypeDesc::UINT32;
     case CT_FLOAT: return TypeDesc::FLOAT;
-    default: ASSERT(!"Invalid colour channel type");
+    default: OIIO_ASSERT(!"Invalid colour channel type");
     }
     // shut up compiler
     return TypeDesc::UINT8;

@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #pragma once
 
@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <iostream>
 
+#include <OpenImageIO/simd.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 
@@ -43,7 +44,9 @@ public:
             std::cout << Sysutil::Term(std::cout).ansi("red", "ERRORS!\n");
             std::exit(m_failures != 0);
         } else {
+#ifndef OIIO_UNIT_TEST_QUIET_SUCCESS
             std::cout << Sysutil::Term(std::cout).ansi("green", "OK\n");
+#endif
         }
     }
     const UnitTestFailureCounter& operator++() noexcept  // prefix
@@ -95,135 +98,137 @@ static OIIO::pvt::UnitTestFailureCounter unit_test_failures;
 /// prints an error message indicating the module and line where the
 /// error occurred, but does NOT abort.  This is helpful for unit tests
 /// where we do not want one failure.
-#define OIIO_CHECK_ASSERT(x)                                                   \
-    ((x) ? ((void)0)                                                           \
-         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")      \
-                       << __FILE__ << ":" << __LINE__ << ":\n"                 \
-                       << "FAILED: "                                           \
-                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x  \
-                       << "\n"),                                               \
+#define OIIO_CHECK_ASSERT(x)                                                  \
+    ((x) ? ((void)0)                                                          \
+         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")     \
+                       << __FILE__ << ":" << __LINE__ << ":\n"                \
+                       << "FAILED: "                                          \
+                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x \
+                       << "\n"),                                              \
             (void)++unit_test_failures))
 
-#define OIIO_CHECK_EQUAL(x, y)                                                 \
-    (((x) == (y))                                                              \
-         ? ((void)0)                                                           \
-         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")      \
-                       << __FILE__ << ":" << __LINE__ << ":\n"                 \
-                       << "FAILED: "                                           \
-                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x  \
-                       << " == " << #y << "\n"                                 \
-                       << "\tvalues were '" << (x) << "' and '" << (y)         \
-                       << "'\n"),                                              \
+#define OIIO_CHECK_EQUAL(x, y)                                                \
+    (((x) == (y))                                                             \
+         ? ((void)0)                                                          \
+         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")     \
+                       << __FILE__ << ":" << __LINE__ << ":\n"                \
+                       << "FAILED: "                                          \
+                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x \
+                       << " == " << #y << "\n"                                \
+                       << "\tvalues were '" << (x) << "' and '" << (y)        \
+                       << "'\n"),                                             \
             (void)++unit_test_failures))
 
-#define OIIO_CHECK_EQUAL_THRESH(x, y, eps)                                     \
-    ((std::abs((x) - (y)) <= eps)                                              \
-         ? ((void)0)                                                           \
-         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")      \
-                       << __FILE__ << ":" << __LINE__ << ":\n"                 \
-                       << "FAILED: "                                           \
-                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x  \
-                       << " == " << #y << "\n"                                 \
-                       << "\tvalues were '" << (x) << "' and '" << (y) << "'"  \
-                       << ", diff was " << std::abs((x) - (y)) << "\n"),       \
+#define OIIO_CHECK_FALSE(x) OIIO_CHECK_EQUAL(x, false)
+
+#define OIIO_CHECK_EQUAL_THRESH(x, y, eps)                                    \
+    ((std::abs((x) - (y)) <= eps)                                             \
+         ? ((void)0)                                                          \
+         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")     \
+                       << __FILE__ << ":" << __LINE__ << ":\n"                \
+                       << "FAILED: "                                          \
+                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x \
+                       << " == " << #y << "\n"                                \
+                       << "\tvalues were '" << (x) << "' and '" << (y) << "'" \
+                       << ", diff was " << std::abs((x) - (y)) << "\n"),      \
             (void)++unit_test_failures))
 
-#define OIIO_CHECK_EQUAL_APPROX(x, y)                                          \
-    (OIIO::pvt::equal_approx(x, y)                                             \
-         ? ((void)0)                                                           \
-         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")      \
-                       << __FILE__ << ":" << __LINE__ << ":\n"                 \
-                       << "FAILED: "                                           \
-                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x  \
-                       << " == " << #y << "\n"                                 \
-                       << "\tvalues were '" << (x) << "' and '" << (y) << "'"  \
-                       << ", diff was " << ((x) - (y)) << "\n"),               \
+#define OIIO_CHECK_EQUAL_APPROX(x, y)                                         \
+    (OIIO::pvt::equal_approx(x, y)                                            \
+         ? ((void)0)                                                          \
+         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")     \
+                       << __FILE__ << ":" << __LINE__ << ":\n"                \
+                       << "FAILED: "                                          \
+                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x \
+                       << " == " << #y << "\n"                                \
+                       << "\tvalues were '" << (x) << "' and '" << (y) << "'" \
+                       << ", diff was " << ((x) - (y)) << "\n"),              \
             (void)++unit_test_failures))
 
-#define OIIO_CHECK_NE(x, y)                                                    \
-    (((x) != (y))                                                              \
-         ? ((void)0)                                                           \
-         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")      \
-                       << __FILE__ << ":" << __LINE__ << ":\n"                 \
-                       << "FAILED: "                                           \
-                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x  \
-                       << " != " << #y << "\n"                                 \
-                       << "\tvalues were '" << (x) << "' and '" << (y)         \
-                       << "'\n"),                                              \
+#define OIIO_CHECK_NE(x, y)                                                   \
+    (((x) != (y))                                                             \
+         ? ((void)0)                                                          \
+         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")     \
+                       << __FILE__ << ":" << __LINE__ << ":\n"                \
+                       << "FAILED: "                                          \
+                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x \
+                       << " != " << #y << "\n"                                \
+                       << "\tvalues were '" << (x) << "' and '" << (y)        \
+                       << "'\n"),                                             \
             (void)++unit_test_failures))
 
-#define OIIO_CHECK_LT(x, y)                                                    \
-    (((x) < (y))                                                               \
-         ? ((void)0)                                                           \
-         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")      \
-                       << __FILE__ << ":" << __LINE__ << ":\n"                 \
-                       << "FAILED: "                                           \
-                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x  \
-                       << " < " << #y << "\n"                                  \
-                       << "\tvalues were '" << (x) << "' and '" << (y)         \
-                       << "'\n"),                                              \
+#define OIIO_CHECK_LT(x, y)                                                   \
+    (((x) < (y))                                                              \
+         ? ((void)0)                                                          \
+         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")     \
+                       << __FILE__ << ":" << __LINE__ << ":\n"                \
+                       << "FAILED: "                                          \
+                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x \
+                       << " < " << #y << "\n"                                 \
+                       << "\tvalues were '" << (x) << "' and '" << (y)        \
+                       << "'\n"),                                             \
             (void)++unit_test_failures))
 
-#define OIIO_CHECK_GT(x, y)                                                    \
-    (((x) > (y))                                                               \
-         ? ((void)0)                                                           \
-         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")      \
-                       << __FILE__ << ":" << __LINE__ << ":\n"                 \
-                       << "FAILED: "                                           \
-                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x  \
-                       << " > " << #y << "\n"                                  \
-                       << "\tvalues were '" << (x) << "' and '" << (y)         \
-                       << "'\n"),                                              \
+#define OIIO_CHECK_GT(x, y)                                                   \
+    (((x) > (y))                                                              \
+         ? ((void)0)                                                          \
+         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")     \
+                       << __FILE__ << ":" << __LINE__ << ":\n"                \
+                       << "FAILED: "                                          \
+                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x \
+                       << " > " << #y << "\n"                                 \
+                       << "\tvalues were '" << (x) << "' and '" << (y)        \
+                       << "'\n"),                                             \
             (void)++unit_test_failures))
 
-#define OIIO_CHECK_LE(x, y)                                                    \
-    (((x) <= (y))                                                              \
-         ? ((void)0)                                                           \
-         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")      \
-                       << __FILE__ << ":" << __LINE__ << ":\n"                 \
-                       << "FAILED: "                                           \
-                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x  \
-                       << " <= " << #y << "\n"                                 \
-                       << "\tvalues were '" << (x) << "' and '" << (y)         \
-                       << "'\n"),                                              \
+#define OIIO_CHECK_LE(x, y)                                                   \
+    (((x) <= (y))                                                             \
+         ? ((void)0)                                                          \
+         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")     \
+                       << __FILE__ << ":" << __LINE__ << ":\n"                \
+                       << "FAILED: "                                          \
+                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x \
+                       << " <= " << #y << "\n"                                \
+                       << "\tvalues were '" << (x) << "' and '" << (y)        \
+                       << "'\n"),                                             \
             (void)++unit_test_failures))
 
-#define OIIO_CHECK_GE(x, y)                                                    \
-    (((x) >= (y))                                                              \
-         ? ((void)0)                                                           \
-         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")      \
-                       << __FILE__ << ":" << __LINE__ << ":\n"                 \
-                       << "FAILED: "                                           \
-                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x  \
-                       << " >= " << #y << "\n"                                 \
-                       << "\tvalues were '" << (x) << "' and '" << (y)         \
-                       << "'\n"),                                              \
+#define OIIO_CHECK_GE(x, y)                                                   \
+    (((x) >= (y))                                                             \
+         ? ((void)0)                                                          \
+         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")     \
+                       << __FILE__ << ":" << __LINE__ << ":\n"                \
+                       << "FAILED: "                                          \
+                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x \
+                       << " >= " << #y << "\n"                                \
+                       << "\tvalues were '" << (x) << "' and '" << (y)        \
+                       << "'\n"),                                             \
             (void)++unit_test_failures))
 
 
 // Special SIMD related equality checks that use all()
-#define OIIO_CHECK_SIMD_EQUAL(x, y)                                            \
-    (all((x) == (y))                                                           \
-         ? ((void)0)                                                           \
-         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")      \
-                       << __FILE__ << ":" << __LINE__ << ":\n"                 \
-                       << "FAILED: "                                           \
-                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x  \
-                       << " == " << #y << "\n"                                 \
-                       << "\tvalues were '" << (x) << "' and '" << (y)         \
-                       << "'\n"),                                              \
+#define OIIO_CHECK_SIMD_EQUAL(x, y)                                           \
+    (all((x) == (y))                                                          \
+         ? ((void)0)                                                          \
+         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")     \
+                       << __FILE__ << ":" << __LINE__ << ":\n"                \
+                       << "FAILED: "                                          \
+                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x \
+                       << " == " << #y << "\n"                                \
+                       << "\tvalues were '" << (x) << "' and '" << (y)        \
+                       << "'\n"),                                             \
             (void)++unit_test_failures))
 
-#define OIIO_CHECK_SIMD_EQUAL_THRESH(x, y, eps)                                \
-    (all(abs((x) - (y)) < (eps))                                               \
-         ? ((void)0)                                                           \
-         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")      \
-                       << __FILE__ << ":" << __LINE__ << ":\n"                 \
-                       << "FAILED: "                                           \
-                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x  \
-                       << " == " << #y << "\n"                                 \
-                       << "\tvalues were '" << (x) << "' and '" << (y)         \
-                       << "'\n"),                                              \
+#define OIIO_CHECK_SIMD_EQUAL_THRESH(x, y, eps)                               \
+    (all(abs((x) - (y)) <= (eps))                                             \
+         ? ((void)0)                                                          \
+         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")     \
+                       << __FILE__ << ":" << __LINE__ << ":\n"                \
+                       << "FAILED: "                                          \
+                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x \
+                       << " == " << #y << "\n"                                \
+                       << "\tvalues were '" << (x) << "' and '" << (y)        \
+                       << "'\n"),                                             \
             (void)++unit_test_failures))
 
 
@@ -235,12 +240,12 @@ static OIIO::pvt::UnitTestFailureCounter unit_test_failures;
 //    OIIO_CHECK_IMAGEBUF_STATUS(buf,
 //        ImageBufAlgo::Func (buf, ...)
 //    );
-#define OIIO_CHECK_IMAGEBUF_STATUS(buf, x)                                     \
-    ((x && !buf.has_error())                                                   \
-         ? ((void)0)                                                           \
-         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")      \
-                       << __FILE__ << ":" << __LINE__ << ":\n"                 \
-                       << "FAILED: "                                           \
-                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x  \
-                       << ": " << buf.geterror() << "\n"),                     \
+#define OIIO_CHECK_IMAGEBUF_STATUS(buf, x)                                    \
+    ((x && !buf.has_error())                                                  \
+         ? ((void)0)                                                          \
+         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")     \
+                       << __FILE__ << ":" << __LINE__ << ":\n"                \
+                       << "FAILED: "                                          \
+                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x \
+                       << ": " << buf.geterror() << "\n"),                    \
             (void)++unit_test_failures))

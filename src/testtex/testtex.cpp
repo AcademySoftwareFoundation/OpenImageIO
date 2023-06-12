@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 #include <cmath>
@@ -11,25 +11,20 @@
 #include <iostream>
 #include <iterator>
 
-#include <OpenEXR/ImathMatrix.h>
-#include <OpenEXR/ImathVec.h>
-#include <OpenEXR/half.h>
-
+#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/filesystem.h>
-#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
+#include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/texture.h>
 #include <OpenImageIO/timer.h>
 #include <OpenImageIO/ustring.h>
-
-#include "../libtexture/imagecache_pvt.h"
 
 using namespace OIIO;
 
@@ -39,6 +34,7 @@ static std::vector<ustring> filenames;
 static std::string output_filename = "out.exr";
 static bool verbose                = false;
 static int nthreads                = 0;
+static int minthreads              = 1;
 static int threadtimes             = 0;
 static int output_xres = 512, output_yres = 512;
 static int nchannels_override     = 0;
@@ -46,30 +42,35 @@ static std::string dataformatname = "half";
 static float sscale = 1, tscale = 1;
 static float sblur = 0, tblur = -1;
 static float width       = 1;
+static float widthramp   = 0;
 static float anisoaspect = 1.0;  // anisotropic aspect ratio
 static std::string wrapmodes("periodic");
-static int anisomax           = TextureOpt().anisotropic;
-static int iters              = 1;
-static int autotile           = 0;
-static bool automip           = false;
-static bool dedup             = true;
-static bool test_construction = false;
-static bool test_gettexels    = false;
-static bool test_getimagespec = false;
-static bool filtertest        = false;
-static TextureSystem* texsys  = NULL;
+static std::string texcolorspace;
+static int texcolortransform_id = 0;
+static int anisomax             = TextureOpt().anisotropic;
+static int iters                = 1;
+static int autotile             = 0;
+static bool automip             = false;
+static bool dedup               = true;
+static bool test_construction   = false;
+static bool test_gettexels      = false;
+static bool test_getimagespec   = false;
+static bool filtertest          = false;
+static TextureSystem* texsys    = NULL;
 static std::string searchpath;
-static bool batch        = false;
-static bool nowarp       = false;
-static bool tube         = false;
-static bool use_handle   = false;
-static float cachesize   = -1;
-static int maxfiles      = -1;
-static int mipmode       = TextureOpt::MipModeDefault;
-static int interpmode    = TextureOpt::InterpSmartBicubic;
-static float missing[4]  = { -1, 0, 0, 1 };
-static float fill        = -1;  // -1 signifies unset
-static float scalefactor = 1.0f;
+static bool batch         = false;
+static bool nowarp        = false;
+static bool tube          = false;
+static bool use_handle    = false;
+static bool use_bluenoise = false;
+static float cachesize    = -1;
+static int maxfiles       = -1;
+static int mipmode        = TextureOpt::MipModeDefault;
+static int interpmode     = TextureOpt::InterpSmartBicubic;
+static int stochastic     = 0;
+static float missing[4]   = { -1, 0, 0, 1 };
+static float fill         = -1;  // -1 signifies unset
+static float scalefactor  = 1.0f;
 static Imath::V3f texoffset(0, 0, 0);
 static bool nountiled              = false;
 static bool nounmipped             = false;
@@ -79,19 +80,37 @@ static bool resetstats             = false;
 static bool testhash               = false;
 static bool wedge                  = false;
 static int ntrials                 = 1;
+static int lowtrials               = 10;
 static int testicwrite             = 0;
 static bool test_derivs            = false;
 static bool test_statquery         = false;
 static bool invalidate_before_iter = true;
 static bool close_before_iter      = false;
+static bool runstats               = false;
+static bool udim_tests             = false;
+static bool do_gettextureinfo      = true;
+static int subimage                = -1;
+static std::string subimagename;
 static Imath::M33f xform;
 static std::string texoptions;
+static std::string gtiname;
+static std::string maketest_template;
+static int maketest_res   = 2048;
+static int maketest_chans = 4;
+static int num_test_files = 0;
+static std::vector<std::string> filenames_to_delete;
+const int pieces_per_udim = 20;
+static std::vector<TextureSystem::TextureHandle*> texture_handles;
 void* dummyptr;
+static const ImageBuf& bluenoiseimg(ImageBufAlgo::bluenoise_image());
 
 typedef void (*Mapping2D)(const int&, const int&, float&, float&, float&,
                           float&, float&, float&);
 typedef void (*Mapping3D)(const int&, const int&, Imath::V3f&, Imath::V3f&,
                           Imath::V3f&, Imath::V3f&);
+
+typedef void (*MappingEnv)(const int&, const int&, Imath::V3f&, Imath::V3f&,
+                           Imath::V3f&);
 
 typedef void (*Mapping2DWide)(const Tex::IntWide&, const Tex::IntWide&,
                               Tex::FloatWide&, Tex::FloatWide&, Tex::FloatWide&,
@@ -103,98 +122,160 @@ typedef void (*Mapping3DWide)(const Tex::IntWide&, const Tex::IntWide&,
                               Imath::Vec3<Tex::FloatWide>&,
                               Imath::Vec3<Tex::FloatWide>&);
 
-
-
-static int
-parse_files(int argc, const char* argv[])
-{
-    for (int i = 0; i < argc; i++)
-        filenames.emplace_back(argv[i]);
-    return 0;
-}
+typedef void (*MappingEnvWide)(const Tex::IntWide&, const Tex::IntWide&,
+                               Imath::Vec3<Tex::FloatWide>&,
+                               Imath::Vec3<Tex::FloatWide>&,
+                               Imath::Vec3<Tex::FloatWide>&);
 
 
 
 static void
 getargs(int argc, const char* argv[])
 {
-    bool help = false;
-    ArgParse ap;
     // clang-format off
-    ap.options ("Usage:  testtex [options] inputfile",
-                  "%*", parse_files, "",
-                  "--help", &help, "Print help message",
-                  "-v", &verbose, "Verbose status messages",
-                  "-o %s:FILENAME", &output_filename, "Output test image",
-                  "-d %s:TYPE", &dataformatname, "Set the output data format to one of:"
-                        "uint8, sint8, uint10, uint12, uint16, sint16, half, float, double",
-                  "--res %d:WIDTH %d:HEIGHT", &output_xres, &output_yres,
-                      "Resolution of output test image",
-                  "--nchannels %d:N", &nchannels_override,
-                      "Force number of channels to look up",
-                  "--iters %d:N", &iters,
-                      "Iterations for time trials",
-                  "--threads %d:N", &nthreads, "Number of threads (default 0 = #cores)",
-                  "-t %d", &nthreads, "",  // synonym
-                  "--texoptions %s:OPTLIST", &texoptions, "Set extra TextureSystem options (name=val,name=val)",
-                  "--blur %f:BLURSIZE", &sblur, "Add blur to texture lookup",
-                  "--stblur %f:SBLUR %f:TBLUR", &sblur, &tblur, "Add blur (s, t) to texture lookup",
-                  "--width %f:WIDTH", &width, "Multiply filter width of texture lookup",
-                  "--fill %f:FILLVAL", &fill, "Set fill value for missing channels",
-                  "--wrap %s:MODE", &wrapmodes, "Set wrap mode (default, black, clamp, periodic, mirror, overscan)",
-                  "--anisoaspect %f:ASPECT", &anisoaspect, "Set anisotropic ellipse aspect ratio for threadtimes tests (default: 2.0)",
-                  "--anisomax %d:MAX", &anisomax,
-                      Strutil::sprintf("Set max anisotropy (default: %d)", anisomax).c_str(),
-                  "--mipmode %d:MODE", &mipmode, "Set mip mode (default: 0 = aniso)",
-                  "--interpmode %d:MODE", &interpmode, "Set interp mode (default: 3 = smart bicubic)",
-                  "--missing %f:R %f:G %f:B", &missing[0], &missing[1], &missing[2],
-                        "Specify missing texture color",
-                  "--autotile %d:TILESIZE", &autotile, "Set auto-tile size for the image cache",
-                  "--automip", &automip, "Set auto-MIPmap for the image cache",
-                  "--batch", &batch,
-                        Strutil::sprintf("Use batched shading, batch size = %d", Tex::BatchWidth).c_str(),
-                  "--handle", &use_handle, "Use texture handle rather than name lookup",
-                  "--searchpath %s:PATHLIST", &searchpath, "Search path for files (colon-separated directory list)",
-                  "--filtertest", &filtertest, "Test the filter sizes",
-                  "--nowarp", &nowarp, "Do not warp the image->texture mapping",
-                  "--tube", &tube, "Make a tube projection",
-                  "--ctr", &test_construction, "Test TextureOpt construction time",
-                  "--gettexels", &test_gettexels, "Test TextureSystem::get_texels",
-                  "--getimagespec", &test_getimagespec, "Test TextureSystem::get_imagespec",
-                  "--offset %f:SOFF %f:TOFF %f:ROFF", &texoffset[0], &texoffset[1], &texoffset[2], "Offset texture coordinates",
-                  "--scalest %f:SSCALE %f:TSCALE", &sscale, &tscale, "Scale texture lookups (s, t)",
-                  "--cachesize %f:MB", &cachesize, "Set cache size, in MB",
-                  "--nodedup %!", &dedup, "Turn off de-duplication",
-                  "--scale %f:SCALEFACTOR", &scalefactor, "Scale intensities",
-                  "--maxfiles %d:MAXFILES", &maxfiles, "Set maximum open files",
-                  "--nountiled", &nountiled, "Reject untiled images",
-                  "--nounmipped", &nounmipped, "Reject unmipped images",
-                  "--graytorgb", &gray_to_rgb, "Convert gratscale textures to RGB",
-                  "--flipt", &flip_t, "Flip direction of t coordinate",
-                  "--derivs", &test_derivs, "Test returning derivatives of texture lookups",
-                  "--resetstats", &resetstats, "Print and reset statistics on each iteration",
-                  "--testhash", &testhash, "Test the tile hashing function",
-                  "--threadtimes %d:MODE", &threadtimes, "Do thread timings (arg = workload profile)",
-                  "--trials %d:N", &ntrials, "Number of trials for timings",
-                  "--wedge", &wedge, "Wedge test",
-                  "--noinvalidate %!", &invalidate_before_iter, "Don't invalidate the cache before each --threadtimes trial",
-                  "--closebeforeiter", &close_before_iter, "Close all handles before each --iter",
-                  "--testicwrite %d:MODE", &testicwrite, "Test ImageCache write ability (1=seeded, 2=generated)",
-                  "--teststatquery", &test_statquery, "Test queries of statistics",
-                  nullptr);
-    // clang-format on
-    if (ap.parse(argc, argv) < 0) {
-        std::cerr << ap.geterror() << std::endl;
-        ap.usage();
-        exit(EXIT_FAILURE);
-    }
-    if (help) {
-        ap.usage();
-        exit(EXIT_FAILURE);
-    }
+    ArgParse ap;
+    ap.usage ("testtex [options] inputfile");
+    ap.arg("filename")
+      .hidden()
+      .action([&](cspan<const char*> argv){ filenames.emplace_back(argv[0]); });
+    ap.arg("-v", &verbose)
+      .help("Verbose status messages");
 
-    if (filenames.size() < 1 && !test_construction && !test_getimagespec
-        && !testhash) {
+    ap.arg("-o %s:FILENAME", &output_filename)
+      .help("Output test image");
+    ap.arg("-d %s:TYPE", &dataformatname)
+      .help("Set the output data format to one of: "
+            "uint8, sint8, uint10, uint12, uint16, sint16, half, float, double");
+    ap.arg("--res %d:WIDTH %d:HEIGHT", &output_xres, &output_yres)
+      .help("Resolution of output test image");
+    ap.arg("--nchannels %d:N", &nchannels_override)
+      .help("Force number of channels to look up");
+    ap.arg("--iters %d:N", &iters)
+      .help("Iterations for time trials");
+    ap.arg("--threads %d:N", &nthreads)
+      .help("Number of threads (default 0 = #cores)");
+    ap.arg("-t %d", &nthreads)
+       .hidden();  // synonym
+    ap.arg("--texoptions %s:OPTLIST", &texoptions)
+      .help("Set extra TextureSystem options (name=val,name=val)");
+    ap.arg("--blur %f:BLURSIZE", &sblur)
+      .help("Add blur to texture lookup");
+    ap.arg("--stblur %f:SBLUR %f:TBLUR", &sblur, &tblur)
+      .help("Add blur (s, t) to texture lookup");
+    ap.arg("--width %f:WIDTH", &width)
+      .help("Multiply filter width of texture lookup");
+    ap.arg("--widthramp %f:WIDTH", &widthramp)
+      .help("If set, ramp to this width on the right side");
+    ap.arg("--fill %f:FILLVAL", &fill)
+      .help("Set fill value for missing channels");
+    ap.arg("--wrap %s:MODE", &wrapmodes)
+      .help("Set wrap mode (default, black, clamp, periodic, mirror, overscan)");
+    ap.arg("--texcolorspace %s:NAME", &texcolorspace)
+      .help("Set texture presumed color space");
+    ap.arg("--anisoaspect %f:ASPECT", &anisoaspect)
+      .help("Set anisotropic ellipse aspect ratio for threadtimes tests (default: 2.0)");
+    ap.arg("--anisomax %d:MAX", &anisomax)
+      .help(Strutil::fmt::format("Set max anisotropy (default: {})", anisomax));
+    ap.arg("--mipmode %d:MODE", &mipmode)
+      .help("Set mip mode (default: 0 = aniso)");
+    ap.arg("--interpmode %d:MODE", &interpmode)
+      .help("Set interp mode (default: 3 = smart bicubic)");
+    ap.arg("--stochastic %d:MODE", &stochastic)
+      .help("Set stochastic sampling mode (default: 0 = none)");
+    ap.arg("--missing %f:R %f:G %f:B", &missing[0], &missing[1], &missing[2])
+      .help("Specify missing texture color");
+    ap.arg("--autotile %d:TILESIZE", &autotile)
+      .help("Set auto-tile size for the image cache");
+    ap.arg("--automip", &automip)
+      .help("Set auto-MIPmap for the image cache");
+    ap.arg("--batch", &batch)
+      .help(Strutil::fmt::format("Use batched shading, batch size = {}", Tex::BatchWidth));
+    ap.arg("--handle", &use_handle)
+      .help("Use texture handle rather than name lookup");
+    ap.arg("--searchpath %s:PATHLIST", &searchpath)
+      .help("Search path for files (colon-separated directory list)");
+    ap.arg("--filtertest", &filtertest)
+      .help("Test the filter sizes");
+    ap.arg("--nowarp", &nowarp)
+      .help("Do not warp the image->texture mapping");
+    ap.arg("--tube", &tube)
+      .help("Make a tube projection");
+    ap.arg("--ctr", &test_construction)
+      .help("Test TextureOpt construction time");
+    ap.arg("--gettexels", &test_gettexels)
+      .help("Test TextureSystem::get_texels");
+    ap.arg("--getimagespec", &test_getimagespec)
+      .help("Test TextureSystem::get_imagespec");
+    ap.arg("--gettextureinfo %s:NAME", &gtiname)
+      .help("Test gettextureinfo, retrieving attrib 'NAME'");
+    ap.arg("--offset %f:SOFF %f:TOFF %f:ROFF", &texoffset.x, &texoffset.y, &texoffset.z)
+      .help("Offset texture coordinates");
+    ap.arg("--scalest %f:SSCALE %f:TSCALE", &sscale, &tscale)
+      .help("Scale texture lookups (s, t)");
+    ap.arg("--cachesize %f:MB", &cachesize)
+      .help("Set cache size, in MB");
+    ap.arg("--nodedup %!", &dedup)
+      .help("Turn off de-duplication");
+    ap.arg("--scale %f:SCALEFACTOR", &scalefactor)
+      .help("Scale intensities");
+    ap.arg("--maxfiles %d:MAXFILES", &maxfiles)
+      .help("Set maximum open files");
+    ap.arg("--nountiled", &nountiled)
+      .help("Reject untiled images");
+    ap.arg("--nounmipped", &nounmipped)
+      .help("Reject unmipped images");
+    ap.arg("--graytorgb", &gray_to_rgb)
+      .help("Convert gratscale textures to RGB");
+    ap.arg("--flipt", &flip_t)
+      .help("Flip direction of t coordinate");
+    ap.arg("--derivs", &test_derivs)
+      .help("Test returning derivatives of texture lookups");
+    ap.arg("--resetstats", &resetstats)
+      .help("Print and reset statistics on each iteration");
+    ap.arg("--testhash", &testhash)
+      .help("Test the tile hashing function");
+    ap.arg("--threadtimes %d:MODE", &threadtimes)
+      .help("Do thread timings (arg = workload profile)");
+    ap.arg("--trials %d:N", &ntrials)
+      .help("Number of trials for timings");
+    ap.arg("--lowtrials %d:N", &lowtrials)
+      .help("Optional lower number of trials for <= 2 thread timings");
+    ap.arg("--wedge", &wedge)
+      .help("Wedge test");
+    ap.arg("--minthreads %d:N", &minthreads)
+      .help("Minimum number of threads for wedges (default: 1)");
+    ap.arg("--noinvalidate %!", &invalidate_before_iter)
+      .help("Don't invalidate the cache before each --threadtimes trial");
+    ap.arg("--closebeforeiter", &close_before_iter)
+      .help("Close all handles before each --iter");
+    ap.arg("--testicwrite %d:MODE", &testicwrite)
+      .help("Test ImageCache write ability (1=seeded, 2=generated)");
+    ap.arg("--teststatquery", &test_statquery)
+      .help("Test queries of statistics");
+    ap.arg("--runstats", &runstats)
+      .help("Print runtime statistics");
+    ap.arg("--maketests %d:NUMFILES %s:TEMPLATE", &num_test_files,  &maketest_template)
+      .help("Make tests from a template (e.g., \"tmp/test{:04}.exr\")");
+    ap.arg("--maketest-res %d:RES", &maketest_res)
+      .help("Resolution for maketests (default: 2048)");
+    ap.arg("--maketest-chans %d:NCHANS", &maketest_chans)
+      .help("Channels for maketests (default: 4)");
+    ap.arg("--udim", &udim_tests)
+      .help("Do udim-oriented tests");
+    ap.arg("--bluenoise", &use_bluenoise)
+      .help("Use blue noise for stochastic choices");
+    ap.arg("--no-gettextureinfo %!", &do_gettextureinfo)
+      .help("Do not test gettextureinfo");
+    ap.arg("--subimage %d:INDEX", &subimage)
+      .help("Use the specified subimage (by index)");
+    ap.arg("--subimagename %s:NAME", &subimagename)
+      .help("Use the specified subimage (by name)");
+
+    // clang-format on
+    ap.parse(argc, argv);
+
+    if (filenames.size() < 1 && !num_test_files && !test_construction
+        && !test_getimagespec && !testhash) {
         std::cerr << "testtex: Must have at least one input file\n";
         ap.usage();
         exit(EXIT_FAILURE);
@@ -204,7 +285,7 @@ getargs(int argc, const char* argv[])
 
 
 static void
-initialize_opt(TextureOpt& opt, int nchannels)
+initialize_opt(TextureOpt& opt)
 {
     opt.sblur  = sblur;
     opt.tblur  = tblur >= 0.0f ? tblur : sblur;
@@ -212,8 +293,7 @@ initialize_opt(TextureOpt& opt, int nchannels)
     opt.swidth = width;
     opt.twidth = width;
     opt.rwidth = width;
-    //    opt.nchannels = nchannels;
-    opt.fill = (fill >= 0.0f) ? fill : 1.0f;
+    opt.fill   = (fill >= 0.0f) ? fill : 1.0f;
     if (missing[0] >= 0)
         opt.missingcolor = (float*)&missing;
     TextureOpt::parse_wrapmodes(wrapmodes.c_str(), opt.swrap, opt.twrap);
@@ -221,12 +301,17 @@ initialize_opt(TextureOpt& opt, int nchannels)
     opt.anisotropic = anisomax;
     opt.mipmode     = (TextureOpt::MipMode)mipmode;
     opt.interpmode  = (TextureOpt::InterpMode)interpmode;
+    if (subimage >= 0)
+        opt.subimage = subimage;
+    else if (!subimagename.empty())
+        opt.subimagename = ustring(subimagename);
+    opt.colortransformid = texcolortransform_id;
 }
 
 
 
 static void
-initialize_opt(TextureOptBatch& opt, int nchannels)
+initialize_opt(TextureOptBatch& opt)
 {
     using namespace Tex;
     FloatWide sb(sblur);
@@ -246,6 +331,11 @@ initialize_opt(TextureOptBatch& opt, int nchannels)
     opt.anisotropic = anisomax;
     opt.mipmode     = MipMode(mipmode);
     opt.interpmode  = InterpMode(interpmode);
+    if (subimage >= 0)
+        opt.subimage = subimage;
+    else if (!subimagename.empty())
+        opt.subimagename = ustring(subimagename);
+    opt.colortransformid = texcolortransform_id;
 }
 
 
@@ -255,64 +345,95 @@ test_gettextureinfo(ustring filename)
 {
     bool ok;
 
-    int res[2] = { 0 };
-    ok         = texsys->get_texture_info(filename, 0, ustring("resolution"),
+    int res[3] = { 0 };
+
+    ok = texsys->get_texture_info(filename, 0, ustring("resolution"),
                                   TypeDesc(TypeDesc::INT, 2), res);
-    std::cout << "Result of get_texture_info resolution = " << ok << ' '
-              << res[0] << 'x' << res[1] << "\n";
+    Strutil::print(
+        "Result of get_texture_info resolution (as int[2]) = {} {}x{}\n", ok,
+        res[0], res[1]);
+    ok = texsys->get_texture_info(filename, 0, ustring("resolution"),
+                                  TypeDesc(TypeDesc::INT, 3), res);
+    Strutil::print(
+        "Result of get_texture_info resolution (as int[3]) = {} {}x{}x{}\n", ok,
+        res[0], res[1], res[2]);
 
     int chan = 0;
-    ok       = texsys->get_texture_info(filename, 0, ustring("channels"),
+
+    ok = texsys->get_texture_info(filename, 0, ustring("channels"),
                                   TypeDesc::INT, &chan);
-    std::cout << "Result of get_texture_info channels = " << ok << ' ' << chan
-              << "\n";
+    Strutil::print("Result of get_texture_info channels = {} {}\n", ok, chan);
 
     float fchan = 0;
-    ok          = texsys->get_texture_info(filename, 0, ustring("channels"),
+
+    ok = texsys->get_texture_info(filename, 0, ustring("channels"),
                                   TypeDesc::FLOAT, &fchan);
-    std::cout << "Result of get_texture_info channels = " << ok << ' ' << fchan
-              << "\n";
+    Strutil::print("Result of get_texture_info channels = {} {:g}\n", ok,
+                   fchan);
 
     int dataformat = 0;
     ok = texsys->get_texture_info(filename, 0, ustring("format"), TypeDesc::INT,
                                   &dataformat);
-    std::cout << "Result of get_texture_info data format = " << ok << ' '
-              << TypeDesc((TypeDesc::BASETYPE)dataformat).c_str() << "\n";
+    Strutil::print("Result of get_texture_info data format = {} {}\n", ok,
+                   TypeDesc((TypeDesc::BASETYPE)dataformat).c_str());
 
-    const char* datetime = NULL;
-    ok = texsys->get_texture_info(filename, 0, ustring("DateTime"),
-                                  TypeDesc::STRING, &datetime);
-    std::cout << "Result of get_texture_info datetime = " << ok << ' '
-              << (datetime ? datetime : "") << "\n";
+    int window[6];
+    ok = texsys->get_texture_info(filename, 0, ustring("datawindow"),
+                                  TypeDesc("int[4]"), window);
+    Strutil::print(
+        "Result of get_texture_info datawindow (as int[4]) = {} [{} {} {} {}]\n",
+        ok, window[0], window[1], window[2], window[3]);
+    ok = texsys->get_texture_info(filename, 0, ustring("datawindow"),
+                                  TypeDesc("int[6]"), window);
+    Strutil::print(
+        "Result of get_texture_info datawindow (as int[6]) = {} [{} {} {} {} {} {}]\n",
+        ok, window[0], window[1], window[2], window[3], window[4], window[5]);
+
+    ok = texsys->get_texture_info(filename, 0, ustring("displaywindow"),
+                                  TypeDesc("int[4]"), window);
+    Strutil::print(
+        "Result of get_texture_info displaywindow (as int[4]) = {} [{} {} {} {}]\n",
+        ok, window[0], window[1], window[2], window[3]);
+    ok = texsys->get_texture_info(filename, 0, ustring("displaywindow"),
+                                  TypeDesc("int[6]"), window);
+    Strutil::print(
+        "Result of get_texture_info displaywindow (as int[6]) = {} [{} {} {} {} {} {}]\n",
+        ok, window[0], window[1], window[2], window[3], window[4], window[5]);
 
     float avg[4];
     ok = texsys->get_texture_info(filename, 0, ustring("averagecolor"),
                                   TypeDesc(TypeDesc::FLOAT, 4), avg);
-    std::cout << "Result of get_texture_info averagecolor = "
-              << (ok ? "yes" : "no\n");
+    Strutil::print("Result of get_texture_info averagecolor = {}",
+                   ok ? "yes" : "no\n");
     if (ok)
-        std::cout << " " << avg[0] << ' ' << avg[1] << ' ' << avg[2] << ' '
-                  << avg[3] << "\n";
+        Strutil::print(" {:g} {:g} {:g} {:g}\n", avg[0], avg[1], avg[2],
+                       avg[3]);
     ok = texsys->get_texture_info(filename, 0, ustring("averagealpha"),
                                   TypeFloat, avg);
-    std::cout << "Result of get_texture_info averagealpha = "
-              << (ok ? "yes" : "no\n");
+    Strutil::print("Result of get_texture_info averagealpha = {}",
+                   ok ? "yes" : "no\n");
     if (ok)
-        std::cout << " " << avg[0] << "\n";
+        Strutil::print(" {:g}\n", avg[0]);
     ok = texsys->get_texture_info(filename, 0, ustring("constantcolor"),
                                   TypeDesc(TypeDesc::FLOAT, 4), avg);
-    std::cout << "Result of get_texture_info constantcolor = "
-              << (ok ? "yes" : "no\n");
+    Strutil::print("Result of get_texture_info constantcolor = {}",
+                   ok ? "yes" : "no\n");
     if (ok)
-        std::cout << " " << avg[0] << ' ' << avg[1] << ' ' << avg[2] << ' '
-                  << avg[3] << "\n";
+        Strutil::print(" {:g} {:g} {:g} {:g}\n", avg[0], avg[1], avg[2],
+                       avg[3]);
+    ok = texsys->get_texture_info(filename, 0, ustring("constantalpha"),
+                                  TypeFloat, avg);
+    Strutil::print("Result of get_texture_info constantalpha = {}",
+                   ok ? "yes" : "no\n");
+    if (ok)
+        Strutil::print(" {:g}\n", avg[0]);
 
     const char* texturetype = NULL;
     ok = texsys->get_texture_info(filename, 0, ustring("textureformat"),
                                   TypeDesc::STRING, &texturetype);
-    std::cout << "Texture type is " << ok << ' '
-              << (texturetype ? texturetype : "") << "\n";
-    std::cout << "\n";
+    Strutil::print("Texture type is {} {}\n", ok,
+                   texturetype ? texturetype : "");
+    Strutil::print("\n");
 }
 
 
@@ -323,16 +444,6 @@ warp(const Float& x, const Float& y, const Imath::M33f& xform)
 {
     Imath::Vec2<Float> coord(x, y);
     xform.multVecMatrix(coord, coord);
-    return coord;
-}
-
-
-template<typename Float = float>
-inline Imath::Vec3<Float>
-warp(const Float& x, const Float& y, const Float& z, const Imath::M33f& xform)
-{
-    Imath::Vec3<Float> coord(x, y, z);
-    coord *= xform;
     return coord;
 }
 
@@ -356,8 +467,8 @@ void
 map_default(const Int& x, const Int& y, Float& s, Float& t, Float& dsdx,
             Float& dtdx, Float& dsdy, Float& dtdy)
 {
-    s    = (Float(x) + 0.5f) / output_xres * sscale + texoffset[0];
-    t    = (Float(y) + 0.5f) / output_yres * tscale + texoffset[1];
+    s    = (Float(x) + 0.5f) / output_xres * sscale + texoffset.x;
+    t    = (Float(y) + 0.5f) / output_yres * tscale + texoffset.y;
     dsdx = 1.0f / output_xres * sscale;
     dtdx = 0.0f;
     dsdy = 0.0f;
@@ -371,19 +482,18 @@ static void
 map_warp(const Int& x, const Int& y, Float& s, Float& t, Float& dsdx,
          Float& dtdx, Float& dsdy, Float& dtdy)
 {
-    const Imath::Vec2<Float> coord  = warp_coord(Float(x) + 0.5f,
-                                                Float(y) + 0.5f);
-    const Imath::Vec2<Float> coordx = warp_coord(Float(x) + 1.5f,
-                                                 Float(y) + 0.5f);
-    const Imath::Vec2<Float> coordy = warp_coord(Float(x) + 0.5f,
-                                                 Float(y) + 1.5f);
+    Imath::Vec2<Float> coord  = warp_coord(Float(x) + 0.5f, Float(y) + 0.5f);
+    Imath::Vec2<Float> coordx = warp_coord(Float(x) + 1.5f, Float(y) + 0.5f)
+                                - coord;
+    Imath::Vec2<Float> coordy = warp_coord(Float(x) + 0.5f, Float(y) + 1.5f)
+                                - coord;
 
-    s    = coord[0];
-    t    = coord[1];
-    dsdx = coordx[0] - coord[0];
-    dtdx = coordx[1] - coord[1];
-    dsdy = coordy[0] - coord[0];
-    dtdy = coordy[1] - coord[1];
+    s    = coord.x;
+    t    = coord.y;
+    dsdx = coordx.x;
+    dtdx = coordx.y;
+    dsdy = coordy.x;
+    dtdy = coordy.y;
 }
 
 
@@ -484,49 +594,75 @@ map_default_3D(const Int& x, const Int& y, Imath::Vec3<Float>& P,
                Imath::Vec3<Float>& dPdx, Imath::Vec3<Float>& dPdy,
                Imath::Vec3<Float>& dPdz)
 {
-    P[0] = (Float(x) + 0.5f) / output_xres * sscale;
-    P[1] = (Float(y) + 0.5f) / output_yres * tscale;
-    P[2] = 0.5f * sscale;
+    P.x = (Float(x) + 0.5f) / output_xres * sscale;
+    P.y = (Float(y) + 0.5f) / output_yres * tscale;
+    P.z = 0.5f * sscale;
     P += texoffset;
-    dPdx[0] = 1.0f / output_xres * sscale;
-    dPdx[1] = 0;
-    dPdx[2] = 0;
-    dPdy[0] = 0;
-    dPdy[1] = 1.0f / output_yres * tscale;
-    dPdy[2] = 0;
+    dPdx.x = 1.0f / output_xres * sscale;
+    dPdx.y = 0;
+    dPdx.z = 0;
+    dPdy.x = 0;
+    dPdy.y = 1.0f / output_yres * tscale;
+    dPdy.z = 0;
     dPdz.setValue(0, 0, 0);
 }
 
 
 
-template<typename Float = float, typename Int = int>
+// Just map pixels to environment direction
 void
-map_warp_3D(const Int& x, const Int& y, Imath::Vec3<Float>& P,
-            Imath::Vec3<Float>& dPdx, Imath::Vec3<Float>& dPdy,
-            Imath::Vec3<Float>& dPdz)
+map_env_latlong(const int& x, const int& y, Imath::Vec3<float>& R,
+                Imath::Vec3<float>& dRdx, Imath::Vec3<float>& dRdy)
 {
-    Imath::Vec3<Float> coord = warp((Float(x) / output_xres),
-                                    (Float(y) / output_yres), Float(0.5),
-                                    xform);
-    coord.x *= sscale;
-    coord.y *= tscale;
-    coord += texoffset;
-    Imath::Vec3<Float> coordx = warp((Float(x + 1) / output_xres),
-                                     (Float(y) / output_yres), Float(0.5),
-                                     xform);
-    coordx.x *= sscale;
-    coordx.y *= tscale;
-    coordx += texoffset;
-    Imath::Vec3<Float> coordy = warp((Float(x) / output_xres),
-                                     (Float(y + 1) / output_yres), Float(0.5),
-                                     xform);
-    coordy.x *= sscale;
-    coordy.y *= tscale;
-    coordy += texoffset;
-    P    = coord;
-    dPdx = coordx - coord;
-    dPdy = coordy - coord;
-    dPdz.setValue(0, 0, 0);
+    float u         = (x + 0.5f) / output_xres;
+    float v         = (y + 0.5f) / output_yres;
+    float du_dx     = float(1.0f / output_xres);  // du_dy = 0
+    float dv_dy     = float(1.0f / output_yres);  // dv_dx = 0
+    float theta     = float(2.0 * M_PI) * u;
+    float dtheta_dx = float(2.0 * M_PI) * du_dx;  // dtheta_dy = 0
+    float phi       = float(M_PI) * v;
+    float dphi_dy   = float(M_PI) * dv_dy;  // dphi_dx = 0
+
+    R    = Imath::Vec3<float>(fast_sin(phi) * fast_sin(theta), fast_cos(phi),
+                           -fast_sin(phi) * fast_cos(theta));
+    dRdx = Imath::Vec3<float>(fast_sin(phi) * fast_cos(theta) * dtheta_dx,
+                              float(0.0f),
+                              fast_sin(phi) * fast_sin(theta) * dtheta_dx);
+    dRdy = Imath::Vec3<float>(-fast_cos(phi) * fast_sin(theta) * dphi_dy,
+                              -fast_sin(phi) * dphi_dy,
+                              -fast_cos(phi) * fast_cos(theta) * dphi_dy);
+}
+
+
+
+// Turn v3f[lanes] into simd[3]
+inline Imath::Vec3<Tex::FloatWide>
+soa(const Imath::V3f v[])
+{
+    Imath::Vec3<Tex::FloatWide> result;
+    for (int i = 0; i < Tex::BatchWidth; ++i) {
+        result[0][i] = v[i].x;
+        result[1][i] = v[i].y;
+        result[2][i] = v[i].z;
+    }
+    return result;
+}
+
+
+
+// FIXME -- templatize map_env_latlong. For now, just loop over scalar version.
+void
+map_env_latlong(const Tex::IntWide& x, const Tex::IntWide& y,
+                Imath::Vec3<Tex::FloatWide>& R,
+                Imath::Vec3<Tex::FloatWide>& dRdx,
+                Imath::Vec3<Tex::FloatWide>& dRdy)
+{
+    Imath::V3f r[Tex::BatchWidth], drdx[Tex::BatchWidth], drdy[Tex::BatchWidth];
+    for (int i = 0; i < Tex::BatchWidth; ++i)
+        map_env_latlong(x[i], y[i], r[i], drdx[i], drdy[i]);
+    R    = soa(r);
+    dRdx = soa(drdx);
+    dRdy = soa(drdy);
 }
 
 
@@ -541,7 +677,7 @@ plain_tex_region(ImageBuf& image, ustring filename, Mapping2D mapping,
     int nchannels = nchannels_override ? nchannels_override : image.nchannels();
 
     TextureOpt opt;
-    initialize_opt(opt, nchannels);
+    initialize_opt(opt);
 
     float* result    = OIIO_ALLOCA(float, std::max(3, nchannels));
     float* dresultds = test_derivs ? OIIO_ALLOCA(float, nchannels) : NULL;
@@ -549,6 +685,24 @@ plain_tex_region(ImageBuf& image, ustring filename, Mapping2D mapping,
     for (ImageBuf::Iterator<float> p(image, roi); !p.done(); ++p) {
         float s, t, dsdx, dtdx, dsdy, dtdy;
         mapping(p.x(), p.y(), s, t, dsdx, dtdx, dsdy, dtdy);
+
+        if (widthramp != 0.0f) {
+            // If widthramp is set, we want to blend between the set width
+            // and the ramp width from left to right.
+            opt.swidth = OIIO::lerp(width, widthramp, s);
+            opt.twidth = opt.swidth;
+        }
+        if (stochastic) {
+            // Hash the pixel coords to get a pseudo-random variant
+            if (use_bluenoise) {
+                opt.rnd = bluenoiseimg.getchannel(p.x(), p.y(), 0, 0,
+                                                  ImageBuf::WrapPeriodic);
+            } else {
+                constexpr float inv
+                    = 1.0f / float(std::numeric_limits<uint32_t>::max());
+                opt.rnd = bjhash::bjfinal(p.x(), p.y()) * inv;
+            }
+        }
 
         // Call the texture system to do the filtering.
         bool ok;
@@ -562,7 +716,7 @@ plain_tex_region(ImageBuf& image, ustring filename, Mapping2D mapping,
         if (!ok) {
             std::string e = texsys->geterror();
             if (!e.empty())
-                Strutil::fprintf(std::cerr, "ERROR: %s\n", e);
+                Strutil::print(std::cerr, "ERROR: {}\n", e);
         }
 
         // Save filtered pixels back to the image.
@@ -581,8 +735,8 @@ plain_tex_region(ImageBuf& image, ustring filename, Mapping2D mapping,
 void
 test_plain_texture(Mapping2D mapping)
 {
-    std::cout << "Testing 2d texture " << filenames[0]
-              << ", output = " << output_filename << "\n";
+    Strutil::print("Testing 2d texture {}, output = {}\n", filenames[0],
+                   output_filename);
     const int nchannels = 4;
     ImageSpec outspec(output_xres, output_yres, nchannels, TypeDesc::FLOAT);
     ImageBuf image(outspec);
@@ -606,7 +760,7 @@ test_plain_texture(Mapping2D mapping)
             // Use a different filename for each iteration
             int texid = iter % (int)filenames.size();
             filename  = (filenames[texid]);
-            std::cout << "iter " << iter << " file " << filename << "\n";
+            Strutil::print("iter {} file {}\n", iter, filename);
         }
         if (close_before_iter)
             texsys->close_all();
@@ -617,23 +771,21 @@ test_plain_texture(Mapping2D mapping)
                       test_derivs ? &image_ds : NULL,
                       test_derivs ? &image_dt : NULL, _1));
         if (resetstats) {
-            std::cout << texsys->getstats(2) << "\n";
+            Strutil::print("{}\n", texsys->getstats(2));
             texsys->reset_stats();
         }
     }
 
     if (!image.write(output_filename))
-        Strutil::fprintf(std::cerr, "Error writing %s : %s\n", output_filename,
-                         image.geterror());
+        Strutil::print(std::cerr, "Error writing {} : {}\n", output_filename,
+                       image.geterror());
     if (test_derivs) {
         if (!image_ds.write(output_filename + "-ds.exr"))
-            Strutil::fprintf(std::cerr, "Error writing %s : %s\n",
-                             (output_filename + "-ds.exr"),
-                             image_ds.geterror());
+            Strutil::print(std::cerr, "Error writing {} : {}\n",
+                           (output_filename + "-ds.exr"), image_ds.geterror());
         if (!image_dt.write(output_filename + "-dt.exr"))
-            Strutil::fprintf(std::cerr, "Error writing %s : %s\n",
-                             (output_filename + "-dt.exr"),
-                             image_dt.geterror());
+            Strutil::print(std::cerr, "Error writing {} : {}\n",
+                           (output_filename + "-dt.exr"), image_dt.geterror());
     }
 }
 
@@ -649,12 +801,14 @@ plain_tex_region_batch(ImageBuf& image, ustring filename, Mapping2DWide mapping,
         filename);
     int nchannels_img = image.nchannels();
     int nchannels = nchannels_override ? nchannels_override : image.nchannels();
-    DASSERT(image.spec().format == TypeDesc::FLOAT);
-    DASSERT(image_ds == nullptr || image_ds->spec().format == TypeDesc::FLOAT);
-    DASSERT(image_dt == nullptr || image_dt->spec().format == TypeDesc::FLOAT);
+    OIIO_DASSERT(image.spec().format == TypeDesc::FLOAT);
+    OIIO_DASSERT(image_ds == nullptr
+                 || image_ds->spec().format == TypeDesc::FLOAT);
+    OIIO_DASSERT(image_dt == nullptr
+                 || image_dt->spec().format == TypeDesc::FLOAT);
 
     TextureOptBatch opt;
-    initialize_opt(opt, nchannels);
+    initialize_opt(opt);
 
     int nc               = std::max(3, nchannels);
     FloatWide* result    = OIIO_ALLOCA(FloatWide, nc);
@@ -664,6 +818,31 @@ plain_tex_region_batch(ImageBuf& image, ustring filename, Mapping2DWide mapping,
         for (int x = roi.xbegin; x < roi.xend; x += BatchWidth) {
             FloatWide s, t, dsdx, dtdx, dsdy, dtdy;
             mapping(IntWide::Iota(x), y, s, t, dsdx, dtdx, dsdy, dtdy);
+
+            if (widthramp != 0.0f) {
+                // If widthramp is set, we want to blend between the set width
+                // and the ramp width from left to right.
+                for (int i = 0; i < BatchWidth; ++i) {
+                    opt.swidth[i] = OIIO::lerp(width, widthramp, s[i]);
+                    opt.twidth[i] = opt.swidth[i];
+                }
+            }
+            if (stochastic) {
+                // Hash the pixel coords to get a pseudo-random variant
+#if OIIO_VERSION_GREATER_EQUAL(2, 4, 0)
+                constexpr float inv
+                    = 1.0f / float(std::numeric_limits<uint32_t>::max());
+                for (int i = 0; i < BatchWidth; ++i) {
+                    if (use_bluenoise)
+                        opt.rnd[i]
+                            = bluenoiseimg.getchannel(x + i, y, 0, 0,
+                                                      ImageBuf::WrapPeriodic);
+                    else
+                        opt.rnd[i] = bjhash::bjfinal(x + i, y) * inv;
+                }
+#endif
+            }
+
             int npoints  = std::min(BatchWidth, roi.xend - x);
             RunMask mask = RunMaskOn >> (BatchWidth - npoints);
             // Call the texture system to do the filtering.
@@ -682,7 +861,7 @@ plain_tex_region_batch(ImageBuf& image, ustring filename, Mapping2DWide mapping,
             if (!ok) {
                 std::string e = texsys->geterror();
                 if (!e.empty())
-                    Strutil::fprintf(std::cerr, "ERROR: %s\n", e);
+                    Strutil::print(std::cerr, "ERROR: {}\n", e);
             }
             // Save filtered pixels back to the image.
             for (int c = 0; c < nchannels; ++c)
@@ -711,8 +890,8 @@ plain_tex_region_batch(ImageBuf& image, ustring filename, Mapping2DWide mapping,
 void
 test_plain_texture_batch(Mapping2DWide mapping)
 {
-    std::cout << "Testing BATCHED 2d texture " << filenames[0]
-              << ", output = " << output_filename << "\n";
+    Strutil::print("Testing BATCHED 2d texture {}, output = {}\n", filenames[0],
+                   output_filename);
     const int nchannels = 4;
     ImageSpec outspec(output_xres, output_yres, nchannels, TypeDesc::FLOAT);
     TypeDesc fmt(dataformatname);
@@ -736,7 +915,7 @@ test_plain_texture_batch(Mapping2DWide mapping)
             // Use a different filename for each iteration
             int texid = iter % (int)filenames.size();
             filename  = (filenames[texid]);
-            std::cout << "iter " << iter << " file " << filename << "\n";
+            Strutil::print("iter {} file {}\n", iter, filename);
         }
         if (close_before_iter)
             texsys->close_all();
@@ -747,23 +926,21 @@ test_plain_texture_batch(Mapping2DWide mapping)
                                        image_dt.get(), roi);
             });
         if (resetstats) {
-            std::cout << texsys->getstats(2) << "\n";
+            Strutil::print("{}\n", texsys->getstats(2));
             texsys->reset_stats();
         }
     }
 
     if (!image.write(output_filename))
-        Strutil::fprintf(std::cerr, "Error writing %s : %s\n", output_filename,
-                         image.geterror());
+        Strutil::print(std::cerr, "Error writing {} : {}\n", output_filename,
+                       image.geterror());
     if (test_derivs) {
         if (!image_ds->write(output_filename + "-ds.exr"))
-            Strutil::fprintf(std::cerr, "Error writing %s : %s\n",
-                             (output_filename + "-ds.exr"),
-                             image_ds->geterror());
+            Strutil::print(std::cerr, "Error writing {} : {}\n",
+                           (output_filename + "-ds.exr"), image_ds->geterror());
         if (!image_dt->write(output_filename + "-dt.exr"))
-            Strutil::fprintf(std::cerr, "Error writing %s : %s\n",
-                             (output_filename + "-dt.exr"),
-                             image_dt->geterror());
+            Strutil::print(std::cerr, "Error writing {} : {}\n",
+                           (output_filename + "-dt.exr"), image_dt->geterror());
     }
 }
 
@@ -778,7 +955,7 @@ tex3d_region(ImageBuf& image, ustring filename, Mapping3D mapping, ROI roi)
     int nchannels = nchannels_override ? nchannels_override : image.nchannels();
 
     TextureOpt opt;
-    initialize_opt(opt, nchannels);
+    initialize_opt(opt);
     opt.fill = (fill >= 0.0f) ? fill : 0.0f;
     //    opt.swrap = opt.twrap = opt.rwrap = TextureOpt::WrapPeriodic;
 
@@ -791,13 +968,18 @@ tex3d_region(ImageBuf& image, ustring filename, Mapping3D mapping, ROI roi)
         mapping(p.x(), p.y(), P, dPdx, dPdy, dPdz);
 
         // Call the texture system to do the filtering.
-        bool ok = texsys->texture3d(texture_handle, perthread_info, opt, P,
-                                    dPdx, dPdy, dPdz, nchannels, result,
-                                    dresultds, dresultdt, dresultdr);
+        bool ok = use_handle
+                      ? texsys->texture3d(texture_handle, perthread_info, opt,
+                                          P, dPdx, dPdy, dPdz, nchannels,
+                                          result, dresultds, dresultdt,
+                                          dresultdr)
+                      : texsys->texture3d(filename, opt, P, dPdx, dPdy, dPdz,
+                                          nchannels, result, dresultds,
+                                          dresultdt, dresultdr);
         if (!ok) {
             std::string e = texsys->geterror();
             if (!e.empty())
-                Strutil::fprintf(std::cerr, "ERROR: %s\n", e);
+                Strutil::print(std::cerr, "ERROR: {}\n", e);
         }
 
         // Save filtered pixels back to the image.
@@ -821,7 +1003,7 @@ tex3d_region_batch(ImageBuf& image, ustring filename, Mapping3DWide mapping,
     int nchannels = nchannels_override ? nchannels_override : image.nchannels();
 
     TextureOptBatch opt;
-    initialize_opt(opt, nchannels);
+    initialize_opt(opt);
     opt.fill = (fill >= 0.0f) ? fill : 0.0f;
     //    opt.swrap = opt.twrap = opt.rwrap = TextureOpt::WrapPeriodic;
 
@@ -840,17 +1022,23 @@ tex3d_region_batch(ImageBuf& image, ustring filename, Mapping3DWide mapping,
             RunMask mask = RunMaskOn >> (BatchWidth - npoints);
 
             // Call the texture system to do the filtering.
-            if (y == 0 && x == 0)
-                std::cout << "P = " << P << "\n";
-            bool ok = texsys->texture3d(texture_handle, perthread_info, opt,
-                                        mask, (float*)&P, (float*)&dPdx,
-                                        (float*)&dPdy, (float*)&dPdz, nchannels,
-                                        (float*)result, (float*)dresultds,
-                                        (float*)dresultdt, (float*)dresultdr);
+            bool ok
+                = use_handle
+                      ? texsys->texture3d(texture_handle, perthread_info, opt,
+                                          mask, (float*)&P, (float*)&dPdx,
+                                          (float*)&dPdy, (float*)&dPdz,
+                                          nchannels, (float*)result,
+                                          (float*)dresultds, (float*)dresultdt,
+                                          (float*)dresultdr)
+                      : texsys->texture3d(filename, opt, mask, (float*)&P,
+                                          (float*)&dPdx, (float*)&dPdy,
+                                          (float*)&dPdz, nchannels,
+                                          (float*)result, (float*)dresultds,
+                                          (float*)dresultdt, (float*)dresultdr);
             if (!ok) {
                 std::string e = texsys->geterror();
                 if (!e.empty())
-                    Strutil::fprintf(std::cerr, "ERROR: %s\n", e);
+                    Strutil::print(std::cerr, "ERROR: {}\n", e);
             }
 
             // Save filtered pixels back to the image.
@@ -870,8 +1058,8 @@ tex3d_region_batch(ImageBuf& image, ustring filename, Mapping3DWide mapping,
 void
 test_texture3d(ustring filename, Mapping3D mapping)
 {
-    std::cout << "Testing 3d texture " << filename
-              << ", output = " << output_filename << "\n";
+    Strutil::print("Testing texture3d {}, output = {}\n", filename,
+                   output_filename);
     int nchannels = nchannels_override ? nchannels_override : 4;
     ImageSpec outspec(output_xres, output_yres, nchannels, TypeDesc::FLOAT);
     ImageBuf image(outspec);
@@ -891,8 +1079,8 @@ test_texture3d(ustring filename, Mapping3D mapping)
     }
 
     if (!image.write(output_filename))
-        Strutil::fprintf(std::cerr, "Error writing %s : %s\n", output_filename,
-                         image.geterror());
+        Strutil::print(std::cerr, "Error writing {} : {}\n", output_filename,
+                       image.geterror());
 }
 
 
@@ -900,8 +1088,8 @@ test_texture3d(ustring filename, Mapping3D mapping)
 void
 test_texture3d_batch(ustring filename, Mapping3DWide mapping)
 {
-    std::cout << "Testing 3d texture " << filename
-              << ", output = " << output_filename << "\n";
+    Strutil::print("Testing BATCHED texture3d {}, output = {}\n", filename,
+                   output_filename);
     int nchannels = nchannels_override ? nchannels_override : 4;
     ImageSpec outspec(output_xres, output_yres, nchannels, TypeDesc::FLOAT);
     ImageBuf image(outspec);
@@ -923,22 +1111,233 @@ test_texture3d_batch(ustring filename, Mapping3DWide mapping)
     }
 
     if (!image.write(output_filename))
-        Strutil::fprintf(std::cerr, "Error writing %s : %s\n", output_filename,
-                         image.geterror());
+        Strutil::print(std::cerr, "Error writing {} : {}\n", output_filename,
+                       image.geterror());
+}
+
+
+
+static void test_shadow(ustring /*filename*/) {}
+
+
+
+void
+env_region(ImageBuf& image, ustring filename, MappingEnv mapping,
+           ImageBuf* image_ds, ImageBuf* image_dt, ROI roi)
+{
+    TextureSystem::Perthread* perthread_info     = texsys->get_perthread_info();
+    TextureSystem::TextureHandle* texture_handle = texsys->get_texture_handle(
+        filename);
+    int nchannels = nchannels_override ? nchannels_override : image.nchannels();
+
+    TextureOpt opt;
+    initialize_opt(opt);
+
+    float* result    = OIIO_ALLOCA(float, nchannels);
+    float* dresultds = test_derivs ? OIIO_ALLOCA(float, nchannels) : NULL;
+    float* dresultdt = test_derivs ? OIIO_ALLOCA(float, nchannels) : NULL;
+    for (ImageBuf::Iterator<float> p(image, roi); !p.done(); ++p) {
+        Imath::V3f R, dRdx, dRdy;
+        mapping(p.x(), p.y(), R, dRdx, dRdy);
+        // if (p.x() == 0 && p.y() == 0)
+        //     Strutil::print("R = {}\n", R);
+        // Call the texture system to do the filtering.
+        bool ok = use_handle
+                      ? texsys->environment(texture_handle, perthread_info, opt,
+                                            R, dRdx, dRdy, nchannels, result,
+                                            dresultds, dresultdt)
+                      : texsys->environment(filename, opt, R, dRdx, dRdy,
+                                            nchannels, result, dresultds,
+                                            dresultdt);
+        if (!ok) {
+            std::string e = texsys->geterror();
+            if (!e.empty())
+                Strutil::print(std::cerr, "ERROR: {}\n", e);
+        }
+
+        // Save filtered pixels back to the image.
+        for (int i = 0; i < nchannels; ++i)
+            result[i] *= scalefactor;
+        image.setpixel(p.x(), p.y(), result);
+        if (image_ds)
+            image_ds->setpixel(p.x(), p.y(), dresultds);
+        if (image_dt)
+            image_dt->setpixel(p.x(), p.y(), dresultdt);
+    }
+}
+
+
+
+void
+env_region_batch(ImageBuf& image, ustring filename, MappingEnvWide mapping,
+                 ImageBuf* image_ds, ImageBuf* image_dt, ROI roi)
+{
+    using namespace Tex;
+    TextureSystem::Perthread* perthread_info     = texsys->get_perthread_info();
+    TextureSystem::TextureHandle* texture_handle = texsys->get_texture_handle(
+        filename);
+    int nchannels_img = image.nchannels();
+    int nchannels = nchannels_override ? nchannels_override : image.nchannels();
+
+    TextureOptBatch opt;
+    initialize_opt(opt);
+
+    FloatWide* result    = OIIO_ALLOCA(FloatWide, nchannels);
+    FloatWide* dresultds = test_derivs ? OIIO_ALLOCA(FloatWide, nchannels)
+                                       : nullptr;
+    FloatWide* dresultdt = test_derivs ? OIIO_ALLOCA(FloatWide, nchannels)
+                                       : nullptr;
+    for (int y = roi.ybegin; y < roi.yend; ++y) {
+        for (int x = roi.xbegin; x < roi.xend; x += BatchWidth) {
+            Imath::Vec3<FloatWide> R, dRdx, dRdy;
+            mapping(IntWide::Iota(x), y, R, dRdx, dRdy);
+            int npoints  = std::min(BatchWidth, roi.xend - x);
+            RunMask mask = RunMaskOn >> (BatchWidth - npoints);
+
+            // Call the texture system to do the filtering.
+            // if (y == 0 && x == 0)
+            //     Strutil::print("R = {}\n", R);
+            bool ok
+                = use_handle
+                      ? texsys->environment(texture_handle, perthread_info, opt,
+                                            mask, (const float*)&R,
+                                            (const float*)&dRdx,
+                                            (const float*)&dRdy, nchannels,
+                                            (float*)result, (float*)dresultds,
+                                            (float*)dresultdt)
+                      : texsys->environment(filename, opt, mask,
+                                            (const float*)&R,
+                                            (const float*)&dRdx,
+                                            (const float*)&dRdy, nchannels,
+                                            (float*)result, (float*)dresultds,
+                                            (float*)dresultdt);
+
+            if (!ok) {
+                std::string e = texsys->geterror();
+                if (!e.empty())
+                    Strutil::print(std::cerr, "ERROR: {}\n", e);
+            }
+
+            // Save filtered pixels back to the image.
+            for (int i = 0; i < nchannels; ++i)
+                result[i] *= scalefactor;
+            float* resultptr = (float*)image.pixeladdr(x, y);
+            // FIXME: simplify by using SIMD scatter
+            for (int i = 0; i < npoints; ++i)
+                for (int c = 0; c < nchannels; ++c)
+                    resultptr[c + i * nchannels_img] = result[c][i];
+            if (test_derivs) {
+                float* resultdsptr = (float*)image_ds->pixeladdr(x, y);
+                float* resultdtptr = (float*)image_dt->pixeladdr(x, y);
+                for (int c = 0; c < nchannels; ++c) {
+                    for (int i = 0; i < npoints; ++i) {
+                        resultdsptr[c + i * nchannels_img] = dresultds[c][i];
+                        resultdtptr[c + i * nchannels_img] = dresultdt[c][i];
+                    }
+                }
+            }
+        }
+    }
 }
 
 
 
 static void
-test_shadow(ustring filename)
+test_environment(ustring filename, MappingEnv mapping)
 {
+    Strutil::sync::print("Testing environment {}, output = {}\n", filename,
+                         output_filename);
+    int nchannels = nchannels_override ? nchannels_override : 4;
+    ImageSpec outspec(output_xres, output_yres, nchannels, TypeDesc::FLOAT);
+    ImageBuf image(outspec);
+    TypeDesc fmt(dataformatname);
+    image.set_write_format(fmt);
+    OIIO::ImageBufAlgo::zero(image);
+    ImageBuf image_ds, image_dt;
+    if (test_derivs) {
+        image_ds.reset(outspec);
+        image_ds.set_write_format(fmt);
+        OIIO::ImageBufAlgo::zero(image_ds);
+        image_dt.reset(outspec);
+        image_dt.set_write_format(fmt);
+        OIIO::ImageBufAlgo::zero(image_dt);
+    }
+
+    for (int iter = 0; iter < iters; ++iter) {
+        // Trick: switch to second texture, if given, for second iteration
+        if (iter && filenames.size() > 1)
+            filename = filenames[1];
+        if (close_before_iter)
+            texsys->close_all();
+        ImageBufAlgo::parallel_image(
+            get_roi(image.spec()), nthreads, [&](ROI roi) {
+                env_region(image, filename, mapping,
+                           test_derivs ? &image_ds : nullptr,
+                           test_derivs ? &image_dt : nullptr, roi);
+            });
+    }
+
+    if (!image.write(output_filename))
+        Strutil::print(std::cerr, "Error writing {} : {}\n", output_filename,
+                       image.geterror());
+    if (test_derivs) {
+        if (!image_ds.write(output_filename + "-ds.exr"))
+            Strutil::print(std::cerr, "Error writing {} : {}\n",
+                           (output_filename + "-ds.exr"), image_ds.geterror());
+        if (!image_dt.write(output_filename + "-dt.exr"))
+            Strutil::print(std::cerr, "Error writing {} : {}\n",
+                           (output_filename + "-dt.exr"), image_dt.geterror());
+    }
 }
 
 
 
 static void
-test_environment(ustring filename)
+test_environment_batch(ustring filename, MappingEnvWide mapping)
 {
+    Strutil::sync::print("Testing BATCHED environment {}, output = {}\n",
+                         filename, output_filename);
+    int nchannels = nchannels_override ? nchannels_override : 4;
+    ImageSpec outspec(output_xres, output_yres, nchannels, TypeDesc::FLOAT);
+    ImageBuf image(outspec);
+    TypeDesc fmt(dataformatname);
+    image.set_write_format(fmt);
+    OIIO::ImageBufAlgo::zero(image);
+    ImageBuf image_ds, image_dt;
+    if (test_derivs) {
+        image_ds.reset(outspec);
+        image_ds.set_write_format(fmt);
+        OIIO::ImageBufAlgo::zero(image_ds);
+        image_dt.reset(outspec);
+        image_dt.set_write_format(fmt);
+        OIIO::ImageBufAlgo::zero(image_dt);
+    }
+
+    for (int iter = 0; iter < iters; ++iter) {
+        // Trick: switch to second texture, if given, for second iteration
+        if (iter && filenames.size() > 1)
+            filename = filenames[1];
+        if (close_before_iter)
+            texsys->close_all();
+        ImageBufAlgo::parallel_image(
+            get_roi(image.spec()), nthreads, [&](ROI roi) {
+                env_region_batch(image, filename, mapping,
+                                 test_derivs ? &image_ds : nullptr,
+                                 test_derivs ? &image_dt : nullptr, roi);
+            });
+    }
+
+    if (!image.write(output_filename))
+        Strutil::print(std::cerr, "Error writing {} : {}\n", output_filename,
+                       image.geterror());
+    if (test_derivs) {
+        if (!image_ds.write(output_filename + "-ds.exr"))
+            Strutil::print(std::cerr, "Error writing {} : {}\n",
+                           (output_filename + "-ds.exr"), image_ds.geterror());
+        if (!image_dt.write(output_filename + "-dt.exr"))
+            Strutil::print(std::cerr, "Error writing {} : {}\n",
+                           (output_filename + "-dt.exr"), image_dt.geterror());
+    }
 }
 
 
@@ -949,10 +1348,10 @@ test_getimagespec_gettexels(ustring filename)
     ImageSpec spec;
     int miplevel = 0;
     if (!texsys->get_imagespec(filename, 0, spec)) {
-        Strutil::fprintf(std::cerr, "Could not get spec for %s\n", filename);
+        Strutil::print(std::cerr, "Could not get spec for {}\n", filename);
         std::string e = texsys->geterror();
         if (!e.empty())
-            Strutil::fprintf(std::cerr, "ERROR: %s\n", e);
+            Strutil::print(std::cerr, "ERROR: {}\n", e);
         return;
     }
 
@@ -965,16 +1364,16 @@ test_getimagespec_gettexels(ustring filename)
     ImageSpec postagespec(w, h, nchannels, TypeDesc::FLOAT);
     ImageBuf buf(postagespec);
     TextureOpt opt;
-    initialize_opt(opt, nchannels);
+    initialize_opt(opt);
     std::vector<float> tmp(w * h * nchannels);
     int x = spec.x + spec.width / 2 - w / 2;
     int y = spec.y + spec.height / 2 - h / 2;
     for (int i = 0; i < iters; ++i) {
         bool ok = texsys->get_texels(filename, opt, miplevel, x, x + w, y,
                                      y + h, 0, 1, 0, nchannels,
-                                     postagespec.format, &tmp[0]);
+                                     postagespec.format, tmp.data());
         if (!ok)
-            Strutil::fprintf(std::cerr, "ERROR: %s\n", texsys->geterror());
+            Strutil::print(std::cerr, "ERROR: {}\n", texsys->geterror());
     }
     for (int y = 0; y < h; ++y)
         for (int x = 0; x < w; ++x) {
@@ -985,122 +1384,6 @@ test_getimagespec_gettexels(ustring filename)
     if (fmt != TypeDesc::UNKNOWN)
         buf.set_write_format(fmt);
     buf.write(output_filename);
-}
-
-
-
-static void
-test_hash()
-{
-    std::vector<size_t> fourbits(1 << 4, 0);
-    std::vector<size_t> eightbits(1 << 8, 0);
-    std::vector<size_t> sixteenbits(1 << 16, 0);
-    std::vector<size_t> highereightbits(1 << 8, 0);
-
-    const size_t iters = 1000000;
-    const int res      = 4 * 1024;  // Simulate tiles from a 4k image
-    const int tilesize = 64;
-    const int nfiles   = iters / ((res / tilesize) * (res / tilesize));
-    std::cout << "Testing hashing with " << nfiles << " files of " << res << 'x'
-              << res << " with " << tilesize << 'x' << tilesize << " tiles:\n";
-
-    ImageCache* imagecache = ImageCache::create();
-
-    // Set up the ImageCacheFiles outside of the timing loop
-    using OIIO::pvt::ImageCacheFile;
-    using OIIO::pvt::ImageCacheFileRef;
-    using OIIO::pvt::ImageCacheImpl;
-    std::vector<ImageCacheFileRef> icf;
-    for (int f = 0; f < nfiles; ++f) {
-        ustring filename = ustring::sprintf("%06d.tif", f);
-        icf.push_back(
-            new ImageCacheFile(*(ImageCacheImpl*)imagecache, NULL, filename));
-    }
-
-    // First, just try to do raw timings of the hash
-    Timer timer;
-    size_t i = 0, hh = 0;
-    for (int f = 0; f < nfiles; ++f) {
-        for (int y = 0; y < res; y += tilesize) {
-            for (int x = 0; x < res; x += tilesize, ++i) {
-                OIIO::pvt::TileID id(*icf[f], 0, 0, x, y, 0);
-                size_t h = id.hash();
-                hh += h;
-            }
-        }
-    }
-    std::cout << "hh = " << hh << "\n";
-    double time = timer();
-    double rate = (i / 1.0e6) / time;
-    std::cout << "Hashing rate: " << Strutil::sprintf("%3.2f", rate)
-              << " Mhashes/sec\n";
-
-    // Now, check the quality of the hash by looking at the low 4, 8, and
-    // 16 bits and making sure that they divide into hash buckets fairly
-    // evenly.
-    i = 0;
-    for (int f = 0; f < nfiles; ++f) {
-        for (int y = 0; y < res; y += tilesize) {
-            for (int x = 0; x < res; x += tilesize, ++i) {
-                OIIO::pvt::TileID id(*icf[f], 0, 0, x, y, 0);
-                size_t h = id.hash();
-                ++fourbits[h & 0xf];
-                ++eightbits[h & 0xff];
-                ++highereightbits[(h >> 24) & 0xff];
-                ++sixteenbits[h & 0xffff];
-                // if (i < 16) std::cout << Strutil::sprintf("%llx\n", h);
-            }
-        }
-    }
-
-    size_t min, max;
-    min = std::numeric_limits<size_t>::max();
-    max = 0;
-    for (int i = 0; i < 16; ++i) {
-        if (fourbits[i] < min)
-            min = fourbits[i];
-        if (fourbits[i] > max)
-            max = fourbits[i];
-    }
-    std::cout << "4-bit hash buckets range from " << min << " to " << max
-              << "\n";
-
-    min = std::numeric_limits<size_t>::max();
-    max = 0;
-    for (int i = 0; i < 256; ++i) {
-        if (eightbits[i] < min)
-            min = eightbits[i];
-        if (eightbits[i] > max)
-            max = eightbits[i];
-    }
-    std::cout << "8-bit hash buckets range from " << min << " to " << max
-              << "\n";
-
-    min = std::numeric_limits<size_t>::max();
-    max = 0;
-    for (int i = 0; i < 256; ++i) {
-        if (highereightbits[i] < min)
-            min = highereightbits[i];
-        if (highereightbits[i] > max)
-            max = highereightbits[i];
-    }
-    std::cout << "higher 8-bit hash buckets range from " << min << " to " << max
-              << "\n";
-
-    min = std::numeric_limits<size_t>::max();
-    max = 0;
-    for (int i = 0; i < (1 << 16); ++i) {
-        if (sixteenbits[i] < min)
-            min = sixteenbits[i];
-        if (sixteenbits[i] > max)
-            max = sixteenbits[i];
-    }
-    std::cout << "16-bit hash buckets range from " << min << " to " << max
-              << "\n";
-
-    std::cout << "\n";
-
-    ImageCache::destroy(imagecache);
 }
 
 
@@ -1128,22 +1411,26 @@ do_tex_thread_workout(int iterations, int mythread)
     int nchannels = nchannels_override ? nchannels_override : 3;
     float* result = OIIO_ALLOCA(float, nchannels);
     TextureOpt opt;
-    initialize_opt(opt, nchannels);
+    initialize_opt(opt);
     float* dresultds = test_derivs ? OIIO_ALLOCA(float, nchannels) : NULL;
     float* dresultdt = test_derivs ? OIIO_ALLOCA(float, nchannels) : NULL;
     TextureSystem::Perthread* perthread_info = texsys->get_perthread_info();
     int pixel, whichfile = 0;
 
-    std::vector<TextureSystem::TextureHandle*> texture_handles;
-    for (auto f : filenames)
-        texture_handles.emplace_back(texsys->get_texture_handle(f));
-
     ImageSpec spec0;
-    bool ok = texsys->get_imagespec(filenames[0], 0, spec0);
-    if (!ok) {
-        Strutil::fprintf(std::cerr, "Unexpected error: %s\n",
-                         texsys->geterror());
-        return;
+    if (texsys->is_udim(filenames[0])) {
+        auto th = texsys->resolve_udim(filenames[0], 0.5f, 0.5f);
+        if (!th || !texsys->get_imagespec(th, nullptr, 0, spec0)) {
+            Strutil::print(std::cerr, "Unexpected error with {}: {}\n",
+                           filenames[0], texsys->geterror());
+        }
+    } else {
+        bool ok = texsys->get_imagespec(filenames[0], 0, spec0);
+        if (!ok) {
+            Strutil::print(std::cerr, "Unexpected error: {}\n",
+                           texsys->geterror());
+            return;
+        }
     }
     // Compute a filter size that's between the second and third MIP levels.
     float fw   = (1.0f / spec0.width) * 1.5f * 2.0;
@@ -1215,12 +1502,17 @@ do_tex_thread_workout(int iterations, int mythread)
                 pixel += 57557 * mythread;
             }
             break;
-        default: ASSERT_MSG(0, "Unkonwn thread work pattern %d", threadtimes);
+        default:
+            OIIO_ASSERT_MSG(0, "Unknown thread work pattern %d", threadtimes);
         }
         if (!ok && spec0.width && spec0.height) {
             s = (((2 * pixel) % spec0.width) + 0.5f) / spec0.width;
             t = (((2 * ((2 * pixel) / spec0.width)) % spec0.height) + 0.5f)
                 / spec0.height;
+            if (udim_tests) {
+                s *= 10.0f;
+                t *= float((pieces_per_udim + 9) / 10);
+            }
             if (use_handle)
                 ok = texsys->texture(texture_handles[whichfile], perthread_info,
                                      opt, s, t, dsdx, dtdx, dsdy, dtdy,
@@ -1231,8 +1523,8 @@ do_tex_thread_workout(int iterations, int mythread)
                                      dresultds, dresultdt);
         }
         if (!ok) {
-            Strutil::fprintf(std::cerr, "Unexpected error: %s\n",
-                             texsys->geterror());
+            Strutil::print(std::cerr, "Unexpected error: {}\n",
+                           texsys->geterror());
             return;
         }
         // Do some pointless work, to simulate that in a real app, there
@@ -1245,7 +1537,7 @@ do_tex_thread_workout(int iterations, int mythread)
     }
     // Force the compiler to not optimize away the "other work"
     for (int c = 0; c < nchannels; ++c)
-        ASSERT(!isnan(result[c]));
+        OIIO_ASSERT(!isnan(result[c]));
 }
 
 
@@ -1261,7 +1553,7 @@ launch_tex_threads(int numthreads, int iterations)
     for (int i = 0; i < numthreads; ++i) {
         threads.create_thread(std::bind(do_tex_thread_workout, iterations, i));
     }
-    ASSERT((int)threads.size() == numthreads);
+    OIIO_ASSERT((int)threads.size() == numthreads);
     threads.join_all();
 }
 
@@ -1273,21 +1565,21 @@ public:
         : m_miplevel(-1)
     {
     }
-    virtual ~GridImageInput() { close(); }
-    virtual const char* format_name(void) const final { return "grid"; }
-    virtual bool valid_file(const std::string& filename) const final
+    ~GridImageInput() override { close(); }
+    const char* format_name(void) const final { return "grid"; }
+    bool valid_file(const std::string& /*filename*/) const final
     {
         return true;
     }
-    virtual bool open(const std::string& name, ImageSpec& newspec) final
+    bool open(const std::string& /*name*/, ImageSpec& newspec) final
     {
         bool ok = seek_subimage(0, 0);
         newspec = spec();
         return ok;
     }
-    virtual bool close() { return true; }
-    virtual int current_miplevel(void) const final { return m_miplevel; }
-    virtual bool seek_subimage(int subimage, int miplevel) final
+    bool close() override { return true; }
+    int current_miplevel(void) const final { return m_miplevel; }
+    bool seek_subimage(int subimage, int miplevel) final
     {
         if (subimage > 0)
             return false;
@@ -1306,15 +1598,15 @@ public:
         m_miplevel         = miplevel;
         return true;
     }
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) final
+    bool read_native_scanline(int /*subimage*/, int /*miplevel*/, int /*y*/,
+                              int /*z*/, void* /*data*/) final
     {
         return false;
     }
-    virtual bool read_native_tile(int subimage, int miplevel, int xbegin,
-                                  int ybegin, int zbegin, void* data) final
+    bool read_native_tile(int subimage, int miplevel, int xbegin, int ybegin,
+                          int zbegin, void* data) final
     {
-        lock_guard lock(m_mutex);
+        lock_guard lock(*this);
         if (!seek_subimage(subimage, miplevel))
             return false;
         float* tile = (float*)data;
@@ -1349,13 +1641,13 @@ make_grid_input()
 void
 test_icwrite(int testicwrite)
 {
-    std::cout << "Testing IC write, mode " << testicwrite << "\n";
+    Strutil::print("Testing IC write, mode {}\n", testicwrite);
 
     // The global "shared" ImageCache will be the same one the
     // TextureSystem uses.
     ImageCache* ic = ImageCache::create();
 
-    // Set up the fake file ane add it
+    // Set up the fake file and add it
     int tw = 64, th = 64;  // tile width and height
     int nc = nchannels_override ? nchannels_override : 3;  // channels
     ImageSpec spec(512, 512, nc, TypeDesc::FLOAT);
@@ -1365,9 +1657,10 @@ test_icwrite(int testicwrite)
     spec.tile_depth  = 1;
     ustring filename(filenames[0]);
     bool ok = ic->add_file(filename, make_grid_input);
-    if (!ok)
-        std::cout << "ic->add_file error: " << ic->geterror() << "\n";
-    ASSERT(ok);
+    if (!ok) {
+        Strutil::print("ic->add_file error: {}\n", ic->geterror());
+        OIIO_ASSERT(ok);
+    }
 
     // Now add all the tiles if it's a seeded map
     // testicwrite == 1 means to seed the first MIP level using add_tile.
@@ -1391,14 +1684,93 @@ test_icwrite(int testicwrite)
                 bool ok = ic->add_tile(filename, 0, 0, tx, ty, 0, 0, -1,
                                        TypeDesc::FLOAT, &tile[0]);
                 if (!ok) {
-                    Strutil::fprintf(std::cerr, "ic->add_tile error: %s\n",
-                                     ic->geterror());
+                    Strutil::print(std::cerr, "ic->add_tile error: {}\n",
+                                   ic->geterror());
                     return;
                 }
-                ASSERT(ok);
             }
         }
     }
+}
+
+
+
+// Return a repeatable hash-based pseudo-random value uniform on [0,1).
+// It's a hash, so it's completely deterministic, based on x,y,z,c,seed.
+// But it can be used in similar ways to a PRNG.
+OIIO_FORCEINLINE float
+hashrand(int x, int y, int z, int c, int seed)
+{
+    const uint32_t magic = 0xfffff;
+    uint32_t xu(x), yu(y), zu(z), cu(c), seedu(seed);
+    using bjhash::bjfinal;
+    uint32_t h = bjfinal(bjfinal(xu, yu, zu), cu, seedu) & magic;
+    return h * (1.0f / (magic + 1));
+}
+
+
+
+static void
+make_temp_noise_file(string_view filename, int seed)
+{
+    ImageSpec spec(maketest_res, maketest_res, maketest_chans,
+                   Filesystem::extension(filename) == ".exr" ? TypeHalf
+                                                             : TypeUInt16);
+    ImageBuf buf(spec);
+    float c0[4] = { hashrand(1, 0, 0, 0, seed + 23 * 0),
+                    hashrand(0, 1, 0, 0, seed + 23 * 0),
+                    hashrand(0, 0, 1, 0, seed + 23 * 0), 1.0f };
+    float c1[4] = { hashrand(1, 0, 0, 0, seed + 23 * 1),
+                    hashrand(0, 1, 0, 0, seed + 23 * 1),
+                    hashrand(0, 0, 1, 0, seed + 23 * 1), 1.0f };
+    float c2[4] = { hashrand(1, 0, 0, 0, seed + 23 * 2),
+                    hashrand(0, 1, 0, 0, seed + 23 * 2),
+                    hashrand(0, 0, 1, 0, seed + 23 * 2), 1.0f };
+    float c3[4] = { hashrand(1, 0, 0, 0, seed + 23 * 3),
+                    hashrand(0, 1, 0, 0, seed + 23 * 3),
+                    hashrand(0, 0, 1, 0, seed + 23 * 3), 1.0f };
+    ImageBufAlgo::fill(buf, c0, c1, c2, c3);
+    ImageSpec config;
+    ImageBufAlgo::make_texture(ImageBufAlgo::MakeTxTexture, buf, filename,
+                               config);
+    filenames_to_delete.push_back(filename);
+}
+
+
+
+// If asked to make our own test files, do it now
+static void
+make_test_files()
+{
+    Timer timer;
+    int n      = 0;
+    int pieces = udim_tests ? pieces_per_udim : 1;
+    for (int i = 0; n < num_test_files; ++i) {
+        std::string filename = Strutil::fmt::format(maketest_template, i);
+        bool do_print
+            = (num_test_files <= 10 || i <= 4 || i >= num_test_files - 5
+               || (num_test_files < 200 && (i % 10) == 0) || (i % 100) == 0);
+        if (do_print) {
+            Strutil::print("Temp file {}: {}\n", i, filename);
+            fflush(stdout);
+        }
+        for (int u = 0; u < pieces && n < num_test_files; ++u) {
+            std::string fn
+                = Strutil::replace(filename, "<UDIM>",
+                                   Strutil::fmt::format("{:04d}", u + 1001));
+            if (udim_tests && do_print)
+                Strutil::print("    {}\n", fn);
+            if (!Filesystem::exists(fn))
+                make_temp_noise_file(fn, i + u * 19);
+            ++n;
+        }
+        filenames.emplace_back(filename);
+    }
+    if (runstats)
+        Strutil::print("Created {} test files in {}\n\n",
+                       filenames_to_delete.size(),
+                       Strutil::timeintervalformat(timer()));
+    fflush(stdout);
 }
 
 
@@ -1417,7 +1789,7 @@ main(int argc, const char* argv[])
     OIIO::attribute("threads", nthreads);
 
     texsys = TextureSystem::create();
-    std::cout << "Created texture system\n";
+    Strutil::sync::print("Created texture system\n");
     if (texoptions.size())
         texsys->attribute("options", texoptions);
     texsys->attribute("autotile", autotile);
@@ -1437,6 +1809,12 @@ main(int argc, const char* argv[])
         texsys->attribute("accept_unmipped", 0);
     texsys->attribute("gray_to_rgb", gray_to_rgb);
     texsys->attribute("flip_t", flip_t);
+    texsys->attribute("stochastic", stochastic);
+    texcolortransform_id
+        = std::max(0, texsys->get_colortransform_id(ustring(texcolorspace),
+                                                    ustring("scene_linear")));
+    if (texcolortransform_id > 0)
+        print("Treating texture as if it is in colorspace {}\n", texcolorspace);
 
     if (test_construction) {
         Timer t;
@@ -1444,7 +1822,7 @@ main(int argc, const char* argv[])
             TextureOpt opt;
             dummyptr = &opt;  // This forces the optimizer to keep the loop
         }
-        std::cout << "TextureOpt construction: " << t() << " ns\n";
+        Strutil::print("TextureOpt construction: {} ns\n", t());
         TextureOpt canonical, copy;
         t.reset();
         t.start();
@@ -1452,7 +1830,15 @@ main(int argc, const char* argv[])
             copy     = canonical;
             dummyptr = &copy;  // This forces the optimizer to keep the loop
         }
-        std::cout << "TextureOpt copy: " << t() << " ns\n";
+        Strutil::print("TextureOpt copy: {} ns\n", t());
+    }
+
+    if (maketest_template.size()
+        && Strutil::contains(maketest_template, "<UDIM>"))
+        udim_tests = true;
+
+    if (num_test_files > 0) {
+        make_test_files();
     }
 
     if (testicwrite && filenames.size()) {
@@ -1467,13 +1853,26 @@ main(int argc, const char* argv[])
         iters = 0;
     }
 
+    if (gtiname.size()) {
+        const char* attrib = nullptr;
+        bool result        = texsys->get_texture_info(filenames[0], 0,
+                                               ustring(gtiname), TypeString,
+                                               &attrib);
+        if (result)
+            Strutil::print("Image \"{}\" attrib \"{}\" = \"{}\"\n",
+                           filenames[0], gtiname, attrib);
+        else
+            Strutil::print("Image \"{}\" attrib \"{}\" -> not found\n",
+                           filenames[0], gtiname, attrib);
+    }
+
     if (test_gettexels) {
         test_getimagespec_gettexels(filenames[0]);
         iters = 0;
     }
 
     if (testhash) {
-        test_hash();
+        TextureSystem::unit_test_hash();
     }
 
     Imath::M33f scale;
@@ -1486,17 +1885,22 @@ main(int argc, const char* argv[])
     xform = persp * rot * trans * scale;
     xform.invert();
 
+    for (auto f : filenames) {
+        texture_handles.emplace_back(texsys->get_texture_handle(f));
+        // Strutil::print("tex {} -> {:p}\n", f, (void*)texture_handles.back());
+    }
+
     if (threadtimes) {
         // If the --iters flag was used, do that number of iterations total
         // (divided among the threads). If not supplied (iters will be 1),
         // then use a large constant *per thread*.
         const int iterations = iters > 1 ? iters : 2000000;
-        std::cout << "Workload: " << workload_names[threadtimes] << "\n";
-        std::cout << "texture cache size = " << cachesize << " MB\n";
-        std::cout << "hw threads = " << Sysutil::hardware_concurrency() << "\n";
-        std::cout << "times are best of " << ntrials << " trials\n\n";
-        std::cout << "threads  time (s)   speedup efficiency\n";
-        std::cout << "-------- -------- --------- ----------\n";
+        Strutil::print("Workload: {}\n", workload_names[threadtimes]);
+        Strutil::print("texture cache size = {} MB\n", cachesize);
+        Strutil::print("hw threads = {}\n", Sysutil::hardware_concurrency());
+        Strutil::print("times are best of {} trials\n\n", ntrials);
+        Strutil::print("threads  time (s)   speedup efficiency\n");
+        Strutil::print("-------- -------- --------- ----------\n");
 
         if (nthreads == 0)
             nthreads = Sysutil::hardware_concurrency();
@@ -1504,28 +1908,30 @@ main(int argc, const char* argv[])
                                       24, 32, 64, 128, 1024, 1 << 30 };
         float single_thread_time  = 0.0f;
         for (int i = 0; threadcounts[i] <= nthreads; ++i) {
-            int nt  = wedge ? threadcounts[i] : nthreads;
-            int its = iters > 1 ? (std::max(1, iters / nt))
-                                : iterations;  // / nt;
+            if (threadcounts[i] < minthreads)
+                continue;
+            int nt    = wedge ? threadcounts[i] : nthreads;
+            int its   = iters > 1 ? (std::max(1, iters / nt)) : iterations;
+            int tries = nt <= 2 ? std::min(lowtrials, ntrials) : ntrials;
             double range;
-            double t = time_trial(std::bind(launch_tex_threads, nt, its),
-                                  ntrials, &range);
-            if (nt == 1)
-                single_thread_time = (float)t;
-            float speedup    = (single_thread_time /*/nt*/) / (float)t;
-            float efficiency = (single_thread_time / nt) / float(t);
-            std::cout << Strutil::sprintf(
-                "%3d     %8.2f   %6.1fx  %6.1f%%    range %.2f\t(%d iters/thread)\n",
+            float t = (float)time_trial(std::bind(launch_tex_threads, nt, its),
+                                        tries, &range);
+            if (single_thread_time == 0.0f)
+                single_thread_time = t * nt;
+            float speedup    = single_thread_time / t;
+            float efficiency = speedup / nt;
+            Strutil::print(
+                "{:3}     {:8.2f}   {:6.1f}x  {:6.1f}%    range {:.2f}\t({} iters/thread)\n",
                 nt, t, speedup, efficiency * 100.0f, range, its);
-            std::cout.flush();
+            fflush(stdout);
             if (!wedge)
                 break;  // don't loop if we're not wedging
         }
-        std::cout << "\n";
-
+        Strutil::print("\n");
     } else if (iters > 0 && filenames.size()) {
         ustring filename(filenames[0]);
-        test_gettextureinfo(filenames[0]);
+        if (do_gettextureinfo)
+            test_gettextureinfo(filenames[0]);
         const char* texturetype = "Plain Texture";
         texsys->get_texture_info(filename, 0, ustring("texturetype"),
                                  TypeDesc::STRING, &texturetype);
@@ -1554,34 +1960,33 @@ main(int argc, const char* argv[])
         }
         if (!strcmp(texturetype, "Volume Texture")) {
             if (batch) {
-                if (nowarp)
-                    test_texture3d_batch(filename, map_default_3D);
-                else
-                    test_texture3d_batch(filename, map_warp_3D);
+                test_texture3d_batch(filename, map_default_3D);
             } else {
-                if (nowarp)
-                    test_texture3d(filename, map_default_3D);
-                else
-                    test_texture3d(filename, map_warp_3D);
+                test_texture3d(filename, map_default_3D);
             }
         }
         if (!strcmp(texturetype, "Shadow")) {
             test_shadow(filename);
         }
         if (!strcmp(texturetype, "Environment")) {
-            test_environment(filename);
+            if (batch) {
+                test_environment_batch(filename, map_env_latlong);
+            } else {
+                test_environment(filename, map_env_latlong);
+            }
         }
         test_getimagespec_gettexels(filename);
-        std::cout << "Time: " << Strutil::timeintervalformat(timer()) << "\n";
+        if (runstats || verbose)
+            Strutil::print("Time: {}\n", Strutil::timeintervalformat(timer()));
     }
 
     if (test_statquery) {
-        std::cout << "Testing statistics queries:\n";
+        Strutil::print("Testing statistics queries:\n");
         int total_files = 0;
         texsys->getattribute("total_files", total_files);
-        std::cout << "  Total files: " << total_files << "\n";
+        Strutil::print("  Total files: {}\n", total_files);
         std::vector<ustring> all_filenames(total_files);
-        std::cout << TypeDesc(TypeDesc::STRING, total_files) << "\n";
+        Strutil::print("{}\n", TypeDesc(TypeDesc::STRING, total_files));
         texsys->getattribute("all_filenames",
                              TypeDesc(TypeDesc::STRING, total_files),
                              &all_filenames[0]);
@@ -1605,20 +2010,29 @@ main(int argc, const char* argv[])
             texsys->get_texture_info(all_filenames[i], 0,
                                      ustring("stat:file_size"), TypeDesc::INT64,
                                      &file_size);
-            std::cout << Strutil::sprintf(
-                "  %d: %s  opens=%d, read=%s, time=%s, data=%s, file=%s\n", i,
+            Strutil::print(
+                "  {}: {}  opens={}, read={}, time={}, data={}, file={}\n", i,
                 all_filenames[i], timesopened, Strutil::memformat(bytesread),
                 Strutil::timeintervalformat(iotime, 2),
                 Strutil::memformat(data_size), Strutil::memformat(file_size));
         }
     }
 
-    std::cout << "Memory use: "
-              << Strutil::memformat(Sysutil::memory_used(true)) << "\n";
-    std::cout << texsys->getstats(verbose ? 2 : 0) << "\n";
+    if (runstats || verbose) {
+        Strutil::print("Memory use: {}\n",
+                       Strutil::memformat(Sysutil::memory_used(true)));
+        Strutil::print("{}\n", texsys->getstats(verbose ? 2 : 1));
+    }
     TextureSystem::destroy(texsys);
 
     if (verbose)
-        std::cout << "\nustrings: " << ustring::getstats(false) << "\n\n";
+        Strutil::print("\nustrings: {}\n\n", ustring::getstats(false));
+
+    // Delete any temporary files we created
+    for (auto&& f : filenames_to_delete) {
+        std::string err;
+        Filesystem::remove(f, err);
+    }
+
     return 0;
 }

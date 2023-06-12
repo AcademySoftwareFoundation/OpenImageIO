@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #include "py_oiio.h"
 
@@ -62,14 +62,19 @@ declare_roi(py::module& m)
 
         // Conversion to string
         .def("__str__",
-             [](const ROI& roi) { return PY_STR(Strutil::sprintf("%s", roi)); })
+             [](const ROI& roi) {
+                 return PY_STR(Strutil::fmt::format("{}", roi));
+             })
+
+        // Copy
+        .def("copy", [](const ROI& self) -> ROI { return self; })
 
         // roi_union, roi_intersection, get_roi(spec), get_roi_full(spec)
         // set_roi(spec,newroi), set_roi_full(newroi)
 
         // overloaded operators
-        .def(py::self == py::self)  // operator==
-        .def(py::self != py::self)  // operator!=
+        .def(py::self == py::self)  // operator==   // NOSONAR
+        .def(py::self != py::self)  // operator!=   // NOSONAR
         ;
 
     m.def("union", &roi_union);

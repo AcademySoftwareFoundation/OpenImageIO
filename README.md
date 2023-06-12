@@ -2,8 +2,7 @@ README for OpenImageIO
 ======================
 
 [![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg?style=flat-square)](https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md)
-[![Build Status](https://travis-ci.org/OpenImageIO/oiio.svg?branch=master)](https://travis-ci.org/OpenImageIO/oiio)
-[![Windows Build Status](https://ci.appveyor.com/api/projects/status/a0l32ti7gcoergtf/branch/master?svg=true)](https://ci.appveyor.com/api/projects/status/a0l32ti7gcoergtf/branch/master)
+[![CI](https://github.com/OpenImageIO/oiio/actions/workflows/ci.yml/badge.svg)](https://github.com/OpenImageIO/oiio/actions/workflows/ci.yml)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2694/badge)](https://bestpractices.coreinfrastructure.org/projects/2694)
 
 
@@ -19,7 +18,7 @@ OpenImageIO consists of:
 * Simple but powerful ImageInput and ImageOutput APIs that provide
   an abstraction for reading and writing image files of nearly any
   format, without the calling application needing to know any of the
-  details of these file formats, and indeed without the calling 
+  details of these file formats, and indeed without the calling
   application needing to be aware of which formats are available.
 
 * A library that manages subclasses of ImageInput and ImageOutput that
@@ -31,9 +30,9 @@ OpenImageIO consists of:
 * Plugins implementing I/O for several popular image file formats,
   including TIFF, JPEG/JFIF, OpenEXR, PNG, HDR/RGBE, ICO, BMP, Targa,
   JPEG-2000, RMan Zfile, FITS, DDS, Softimage PIC, PNM, DPX, Cineon,
-  IFF, Field3D, OpenVDB, Ptex, Photoshop PSD, Wavefront RLA, SGI, WebP,
-  GIF, DICOM, HEIC/HEIF, many "RAW" digital camera formats, and a variety of
-  movie formats (readable as individual frames).  More are being developed
+  IFF, OpenVDB, Ptex, Photoshop PSD, Wavefront RLA, SGI, WebP,
+  GIF, DICOM, HEIF/HEIC/AVIF, many "RAW" digital camera formats, and a variety
+  of movie formats (readable as individual frames).  More are being developed
   all the time.
 
 * Several command line image tools based on these classes, including
@@ -83,7 +82,7 @@ particular licensing terms in your own application.
 Some code and resources are distributed along with OIIO that have highly
 compatible, though slightly different, licenses (generally MIT or Apache).
 See the PDF documentation Acknowledgements section, and the
-[LICENSE-THIRD-PARTY](LICENSE-THIRD-PARTY.md) file for details.
+[THIRD-PARTY](THIRD-PARTY.md) file for details.
 
 
 Building and Installation
@@ -113,7 +112,7 @@ Simple "how do I...", "I'm having trouble", or "is this a bug" questions are
 best asked on the [oiio-dev developer mail
 list](http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org).
 That's where the most people will see it and potentially be able to answer
-your question quickly (moreso than a GH "issue").
+your question quickly (more so than a GH "issue").
 
 Bugs, build problems, and discovered vulnerabilities that you are relatively
 certain is a legit problem in the code, and for which you can give clear
@@ -137,13 +136,10 @@ detailed instructions.
 Web Resources
 -------------
 
-Main web page:      http://www.openimageio.org
+* Main web page:      http://www.openimageio.org
 
-GitHub page:        http://github.com/OpenImageIO/oiio
+* GitHub page:        http://github.com/OpenImageIO/oiio
 
-Mail list subscriptions and archives:
-
-* Developer mail list: http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org
-
-* Just release announcements: http://lists.openimageio.org/listinfo.cgi/oiio-announce-openimageio.org
+* Developer mail list subscriptions and archives:
+  http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org
 

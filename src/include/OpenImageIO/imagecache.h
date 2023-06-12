@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 // clang-format off
 
@@ -18,6 +18,9 @@
 // Is the close() method present?
 #define OIIO_IMAGECACHE_SUPPORTS_CLOSE 1
 
+// Is the getattributetype() method present? (Added in 2.5)
+#define OIIO_IMAGECACHE_SUPPORTS_GETATTRIBUTETYPE 1
+
 // Does invalidate() support the optional `force` flag?
 #define OIIO_IMAGECACHE_INVALIDATE_FORCE 1
 
@@ -25,10 +28,14 @@
 
 OIIO_NAMESPACE_BEGIN
 
+// Forward declaration
+class TextureOpt;
+
 namespace pvt {
 // Forward declaration
 class ImageCacheImpl;
 class ImageCacheFile;
+class ImageCacheTile;
 class ImageCachePerThreadInfo;
 };  // namespace pvt
 
@@ -94,11 +101,13 @@ public:
     /// attribute/getattribute:
     ///
     /// - `int max_open_files` :
-    ///           The maximum number of file handles that the image cache
-    ///           will hold open simultaneously.  (Default = 100)
+    ///           The approximate maximum number of file handles that the
+    ///           image cache will hold open simultaneously. This is not an
+    ///           iron-clad guarantee; the number of handles may momentarily
+    ///           exceed this by a small percentage. (Default = 100)
     /// - `float max_memory_MB` :
-    ///           The maximum amount of memory (measured in MB) used for the
-    ///           internal "tile cache." (Default: 256.0 MB)
+    ///           The approximate maximum amount of memory (measured in MB)
+    ///           used for the internal "tile cache." (Default: 1024.0 MB)
     /// - `string searchpath` :
     ///           The search path for images: a colon-separated list of
     ///           directories that will be searched in order for any image
@@ -170,12 +179,14 @@ public:
     ///           consider `float` data. The default is zero, meaning that
     ///           image pixels are not forced to be `float` when in cache.
     /// - `int failure_retries` :
-    ///           When nonzero (the default), ImageCache accepts
-    ///           un-MIPmapped images as usual.  When set to zero,
-    ///           ImageCache will reject un-MIPmapped images with an error
-    ///           condition, as if the file could not be properly read. This
-    ///           is sometimes helpful for applications that want to enforce
-    ///           use of MIP-mapped images only. (Default: 1)
+    ///           When an image file is opened or a tile/scanline is read but
+    ///           a file error occurs, if this attribute is nonzero, it will
+    ///           try the operation again up to this many times before giving
+    ///           up and reporting a failure. Setting this to a small nonzero
+    ///           number (like 3) may help make an application more robust to
+    ///           occasional spurious networking or other glitches that would
+    ///           otherwise cause the entire long-running application to fail
+    ///           upon a single transient error. (Default: 0)
     /// - `int deduplicate` :
     ///           When nonzero, the ImageCache will notice duplicate images
     ///           under different names if their headers contain a SHA-1
@@ -184,6 +195,10 @@ public:
     ///           reads.  The default is 1 (de-duplication turned on). The
     ///           only reason to set it to 0 is if you specifically want to
     ///           disable the de-duplication optimization.
+    /// - `int max_open_files_strict` :
+    ///             If nonzero, work harder to make sure that we have
+    ///             smaller possible overages to the max open files limit.
+    ///             (Default: 0)
     /// - `string substitute_image` :
     ///           When set to anything other than the empty string, the
     ///           ImageCache will use the named image in place of *all*
@@ -204,6 +219,17 @@ public:
     ///           aren't getting any helpful additional information, this
     ///           can cut down on the clutter and the runtime. (default:
     ///           100)
+    /// - `int trust_file_extensions` :
+    ///           When nonzero, assume that the file extensions of any
+    ///           texture requests correctly indicates the file format (when
+    ///           enabled, this reduces the number of file opens, at the
+    ///           expense of not being able to open files if their format do
+    ///           not actually match their filename extension). Default: 0
+    /// - `string colorspace` :
+    ///           The working colorspace of the texture system. Default: none.
+    /// - `string colorconfig` :
+    ///           Name of the OCIO config to use. Default: "" (meaning to use
+    ///           the default color config).
     ///
     /// - `string options`
     ///           This catch-all is simply a comma-separated list of
@@ -386,6 +412,12 @@ public:
     /// as a `std::string`.
     virtual bool getattribute (string_view name, std::string &val) const = 0;
 
+    /// If the named attribute is known, return its data type. If no such
+    /// attribute exists, return `TypeUnknown`.
+    ///
+    /// This was added in version 2.5.
+    virtual TypeDesc getattributetype(string_view name) const = 0;
+
     /// @}
 
 
@@ -449,16 +481,32 @@ public:
     /// internals.
     typedef pvt::ImageCacheFile ImageHandle;
 
-    /// Retrieve an opaque handle for fast image lookups.  The opaque
-    /// `pointer thread_info` is thread-specific information returned by
-    /// `get_perthread_info()`.  Return NULL if something has gone horribly
-    /// wrong.
-    virtual ImageHandle* get_image_handle (ustring filename,
-                                            Perthread *thread_info=NULL) = 0;
+    /// Retrieve an opaque handle for fast texture lookups, or nullptr upon
+    /// failure.  The filename is presumed to be UTF-8 encoded. The `options`,
+    /// if not null, may be used to create a separate handle for certain
+    /// texture option choices. (Currently unused, but reserved for the future
+    /// or for alternate IC implementations.) The opaque pointer `thread_info`
+    /// is thread-specific information returned by `get_perthread_info()`.
+    virtual ImageHandle* get_image_handle(ustring filename,
+                                      Perthread* thread_info = nullptr,
+                                      const TextureOpt* options = nullptr) = 0;
+
+    /// Get an ImageHandle using a UTF-16 encoded wstring filename.
+    ImageHandle* get_image_handle(const std::wstring& filename,
+                                  Perthread* thread_info = nullptr,
+                                  const TextureOpt* options = nullptr) {
+        return get_image_handle(ustring(Strutil::utf16_to_utf8(filename)),
+                                thread_info, options);
+    }
 
     /// Return true if the image handle (previously returned by
     /// `get_image_handle()`) is a valid image that can be subsequently read.
     virtual bool good(ImageHandle* file) = 0;
+
+    /// Given a handle, return the filename for that image.
+    ///
+    /// This method was added in OpenImageIO 2.3.
+    virtual ustring filename_from_handle(ImageHandle* handle) = 0;
 
     /// @}
 
@@ -467,8 +515,8 @@ public:
     /// @name   Getting information about images
     ///
 
-    /// Given possibly-relative `filename`, resolve it and use the true path
-    /// to the file, with searchpath logic applied.
+    /// Given possibly-relative `filename` (UTF-8 encoded), resolve it and use
+    /// the true path to the file, with searchpath logic applied.
     virtual std::string resolve_filename(const std::string& filename) const = 0;
 
     /// Get information or metadata about the named image and store it in
@@ -545,6 +593,12 @@ public:
     ///   coordinate system where $x$ and $y$ range from -1 to +1.
     ///   Generally, only rendered images will have this.
     ///
+    /// - `"worldtoNDC"` : The projection matrix, which is a 4x4 matrix
+    ///   (an `Imath::M44f`, described as `TypeDesc(FLOAT,MATRIX)`), giving
+    ///   the matrix that projected points from world space into a 2D NDC
+    ///   coordinate system where $x$ and $y$ range from 0 to +1. Generally,
+    ///   only rendered images will have this.
+    ///
     /// - `"averagecolor"` : If available in the metadata (generally only
     ///   for files that have been processed by `maketx`), this will return
     ///   the average color of the texture (into an array of `float`).
@@ -595,7 +649,7 @@ public:
     ///   (`float`).
     ///
     /// - `"stat:mipsused"` : Stores 1 if any MIP levels beyond the highest
-    ///   resolution were accesed, otherwise 0. (`int`)
+    ///   resolution were accessed, otherwise 0. (`int`)
     ///
     /// - `"stat:is_duplicate"` : Stores 1 if this file was a duplicate of
     ///   another image, otherwise 0. (`int`)
@@ -607,7 +661,7 @@ public:
     ///
     ///
     /// @param  filename
-    ///             The name of the image.
+    ///             The name of the image, as a UTF-8 encoded ustring.
     /// @param  subimage/miplevel
     ///             The subimage and MIP level to query.
     /// @param  dataname
@@ -642,7 +696,7 @@ public:
     /// `miplevel`).
     ///
     /// @param  filename
-    ///             The name of the image.
+    ///             The name of the image, as a UTF-8 encoded ustring.
     /// @param  spec
     ///             ImageSpec into which will be copied the spec for the
     ///             requested image.
@@ -684,7 +738,7 @@ public:
     /// `invalidate_all()`, or destroys the ImageCache.
     ///
     /// @param  filename
-    ///             The name of the image.
+    ///             The name of the image, as a UTF-8 encoded ustring.
     /// @param  subimage/miplevel
     ///             The subimage and MIP level to query.
     /// @param  native
@@ -707,6 +761,29 @@ public:
                                         Perthread *thread_info,
                                         int subimage=0, int miplevel=0,
                                         bool native=false) = 0;
+
+    /// Copy into `thumbnail` any associated thumbnail associated with this
+    /// image (for the first subimage by default, or as set by `subimage`).
+    ///
+    /// @param  filename
+    ///             The name of the image, as a UTF-8 encoded ustring.
+    /// @param  thumbnail
+    ///             ImageBuf into which will be copied the thumbnail, if it
+    ///             exists. If no thumbnail can be retrieved, `thumb` will
+    ///             be reset to an uninitialized (empty) ImageBuf.
+    /// @param  subimage
+    ///             The subimage to query.
+    /// @returns
+    ///             `true` upon success, `false` upon failure failure (such
+    ///             as being unable to find, open, or read the file, or if
+    ///             it does not contain a thumbnail).
+    virtual bool get_thumbnail (ustring filename, ImageBuf& thumbnail,
+                                int subimage=0) = 0;
+    /// A more efficient variety of `get_thumbnail()` for cases where you
+    /// can use an `ImageHandle*` to specify the image and optionally have a
+    /// `Perthread*` for the calling thread.
+    virtual bool get_thumbnail (ImageHandle *file, Perthread *thread_info,
+                                ImageBuf& thumbnail, int subimage=0) = 0;
     /// @}
 
     /// @{
@@ -722,7 +799,7 @@ public:
     /// region of the image file will be filled with zero values.
     ///
     /// @param  filename
-    ///             The name of the image.
+    ///             The name of the image, as a UTF-8 encoded ustring.
     /// @param  subimage/miplevel
     ///             The subimage and MIP level to retrieve pixels from.
     /// @param  xbegin/xend/ybegin/yend/zbegin/zend
@@ -730,8 +807,8 @@ public:
     ///             include the begin value but not the end value (much like
     ///             STL begin/end usage).
     /// @param  chbegin/chend
-    ///             Channel range to retrieve. For all channels, use
-    ///             `chbegin = 0`, `chend = spec.nchannels`.
+    ///             Channel range to retrieve. To retrieve all channels, use
+    ///             `chbegin = 0`, `chend = nchannels`.
     /// @param  format
     ///             TypeDesc describing the data type of the values you want
     ///             to retrieve into `result`. The pixel values will be
@@ -795,19 +872,23 @@ public:
     ///
 
     /// Invalidate any loaded tiles or open file handles associated with the
-    /// filename, so that any subsequent queries will be forced to re-open
-    /// the file or re-load any tiles (even those that were previously
-    /// loaded and would ordinarily be reused).  A client might do this if,
-    /// for example, they are aware that an image being held in the cache
-    /// has been updated on disk.  This is safe to do even if other
-    /// procedures are currently holding reference-counted tile pointers
-    /// from the named image, but those procedures will not get updated
-    /// pixels until they release the tiles they are holding.
+    /// filename (UTF-8 encoded), so that any subsequent queries will be
+    /// forced to re-open the file or re-load any tiles (even those that were
+    /// previously loaded and would ordinarily be reused).  A client might do
+    /// this if, for example, they are aware that an image being held in the
+    /// cache has been updated on disk.  This is safe to do even if other
+    /// procedures are currently holding reference-counted tile pointers from
+    /// the named image, but those procedures will not get updated pixels
+    /// until they release the tiles they are holding.
     ///
-    /// If `force` is true, this invalidation will happen unconditionally;
-    /// if false, the file will only be invalidated if it has been changed
-    /// since it was first opened by the ImageCache.
+    /// If `force` is true, this invalidation will happen unconditionally; if
+    /// false, the file will only be invalidated if it has been changed since
+    /// it was first opened by the ImageCache.
     virtual void invalidate(ustring filename, bool force = true) = 0;
+
+    /// A more efficient variety of `invalidate()` for cases where you
+    /// already have an `ImageHandle*` for the file you want to invalidate.
+    virtual void invalidate(ImageHandle* file, bool force = true) = 0;
 
     /// Invalidate all loaded tiles and close open file handles.  This is
     /// safe to do even if other procedures are currently holding
@@ -821,11 +902,11 @@ public:
     /// since they were first opened.
     virtual void invalidate_all(bool force = false) = 0;
 
-    /// Close any open file handles associated with a named file, but do not
-    /// invalidate any image spec information or pixels associated with the
-    /// files.  A client might do this in order to release OS file handle
-    /// resources, or to make it safe for other processes to modify image
-    /// files on disk.
+    /// Close any open file handles associated with a named file (UTF-8
+    /// encoded), but do not invalidate any image spec information or pixels
+    /// associated with the files.  A client might do this in order to release
+    /// OS file handle resources, or to make it safe for other processes to
+    /// modify image files on disk.
     virtual void close (ustring filename) = 0;
 
     /// `close()` all files known to the cache.
@@ -833,17 +914,16 @@ public:
 
     /// An opaque data type that allows us to have a pointer to a tile but
     /// without exposing any internals.
-    class Tile;
+    typedef pvt::ImageCacheTile Tile;
 
-    /// Find the tile specified by an image filename, subimage & miplevel,
-    /// the coordinates of a pixel, and optionally a channel range.   An
-    /// opaque pointer to the tile will be returned, or `nullptr` if no such
-    /// file (or tile within the file) exists or can be read.  The tile will
-    /// not be purged from the cache until after `release_tile()` is called
-    /// on the tile pointer the same number of times that `get_tile()` was
-    /// called (reference counting). This is thread-safe! If `chend <
-    /// chbegin`, it will retrieve a tile containing all channels in the
-    /// file.
+    /// Find the tile specified by an image filename (UTF-8 encoded), subimage
+    /// & miplevel, the coordinates of a pixel, and optionally a channel
+    /// range.   An opaque pointer to the tile will be returned, or `nullptr`
+    /// if no such file (or tile within the file) exists or can be read.  The
+    /// tile will not be purged from the cache until after `release_tile()` is
+    /// called on the tile pointer the same number of times that `get_tile()`
+    /// was called (reference counting). This is thread-safe! If `chend <
+    /// chbegin`, it will retrieve a tile containing all channels in the file.
     virtual Tile * get_tile (ustring filename, int subimage, int miplevel,
                              int x, int y, int z,
                              int chbegin = 0, int chend = -1) = 0;
@@ -869,7 +949,7 @@ public:
     /// tile.
     virtual ROI tile_roi(const Tile* tile) const = 0;
 
-    /// For a tile retrived by `get_tile()`, return a pointer to the pixel
+    /// For a tile retrieved by `get_tile()`, return a pointer to the pixel
     /// data itself, and also store in `format` the data type that the
     /// pixels are internally stored in (which may be different than the
     /// data type of the pixels in the disk file).   This method should only
@@ -892,8 +972,8 @@ public:
     /// Once created, the ImageCache owns the ImageInput and is responsible
     /// for destroying it when done. Custom ImageInputs allow "procedural"
     /// images, among other things.  Also, this is the method you use to set
-    /// up a "writeable" ImageCache images (perhaps with a type of
-    /// ImageInput that's just a stub that does as little as possible).
+    /// up a "writable" ImageCache images (perhaps with a type of ImageInput
+    /// that's just a stub that does as little as possible).
     ///
     /// If `config` is not NULL, it points to an ImageSpec with configuration
     /// options/hints that will be passed to the underlying
@@ -932,11 +1012,14 @@ public:
     /// @{
     /// @name Errors and statistics
 
-    /// If any of the API routines returned `false` indicating an error,
-    /// this routine will return the error string (and clear any error
-    /// flags).  If no error has occurred since the last time `geterror()`
-    /// was called, it will return an empty string.
-    virtual std::string geterror() const = 0;
+    /// Is there a pending error message waiting to be retrieved?
+    virtual bool has_error() const = 0;
+
+    /// Return the text of all pending error messages issued against this
+    /// ImageCache, and clear the pending error message unless `clear` is
+    /// false. If no error message is pending, it will return an empty
+    /// string.
+    virtual std::string geterror(bool clear = true) const = 0;
 
     /// Returns a big string containing useful statistics about the
     /// ImageCache operations, suitable for saving to a file or outputting

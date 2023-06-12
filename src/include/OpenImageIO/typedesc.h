@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 // clang-format off
 
@@ -26,6 +26,12 @@
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/string_view.h>
+#include <OpenImageIO/strutil.h>
+
+// Define symbols that let client applications determine if newly added
+// features are supported.
+#define OIIO_TYPEDESC_VECTOR2 1
+
 
 
 OIIO_NAMESPACE_BEGIN
@@ -44,7 +50,7 @@ OIIO_NAMESPACE_BEGIN
 ///
 /////////////////////////////////////////////////////////////////////////////
 
-struct OIIO_API TypeDesc {
+struct OIIO_UTIL_API TypeDesc {
     /// BASETYPE is a simple enum describing the base data types that
     /// correspond (mostly) to the C/C++ built-in types.
     enum BASETYPE {
@@ -111,7 +117,8 @@ struct OIIO_API TypeDesc {
                           ///<   4-byte encoding of an SMPTE timecode.
         KEYCODE,          ///< indicates an `int[7]` representing the standard
                           ///<   28-byte encoding of an SMPTE keycode.
-        RATIONAL          ///< A VEC2 representing a rational number `val[0] / val[1]`
+        RATIONAL,         ///< A VEC2 representing a rational number `val[0] / val[1]`
+        BOX,              ///< A VEC2[2] or VEC3[2] that represents a 2D or 3D bounds (min/max)
     };
 
     unsigned char basetype;      ///< C data type at the heart of our type
@@ -122,7 +129,7 @@ struct OIIO_API TypeDesc {
 
     /// Construct from a BASETYPE and optional aggregateness, semantics,
     /// and arrayness.
-    constexpr TypeDesc (BASETYPE btype=UNKNOWN, AGGREGATE agg=SCALAR,
+    OIIO_HOSTDEVICE constexpr TypeDesc (BASETYPE btype=UNKNOWN, AGGREGATE agg=SCALAR,
                         VECSEMANTICS semantics=NOSEMANTICS,
                         int arraylen=0) noexcept
         : basetype(static_cast<unsigned char>(btype)),
@@ -132,12 +139,12 @@ struct OIIO_API TypeDesc {
           { }
 
     /// Construct an array of a non-aggregate BASETYPE.
-    constexpr TypeDesc (BASETYPE btype, int arraylen) noexcept
+    OIIO_HOSTDEVICE constexpr TypeDesc (BASETYPE btype, int arraylen) noexcept
         : TypeDesc(btype, SCALAR, NOSEMANTICS, arraylen) {}
 
     /// Construct an array from BASETYPE, AGGREGATE, and array length,
     /// with unspecified (or moot) semantic hints.
-    constexpr TypeDesc (BASETYPE btype, AGGREGATE agg, int arraylen) noexcept
+    OIIO_HOSTDEVICE constexpr TypeDesc (BASETYPE btype, AGGREGATE agg, int arraylen) noexcept
         : TypeDesc(btype, agg, NOSEMANTICS, arraylen) {}
 
     /// Construct from a string (e.g., "float[3]").  If no valid
@@ -156,7 +163,7 @@ struct OIIO_API TypeDesc {
     TypeDesc (string_view typestring);
 
     /// Copy constructor.
-    constexpr TypeDesc (const TypeDesc &t) noexcept
+    OIIO_HOSTDEVICE constexpr TypeDesc (const TypeDesc &t) noexcept
         : basetype(t.basetype), aggregate(t.aggregate),
           vecsemantics(t.vecsemantics), reserved(0), arraylen(t.arraylen)
           { }
@@ -166,40 +173,40 @@ struct OIIO_API TypeDesc {
     /// "float", "int[5]", "normal"
     const char *c_str() const;
 
-    friend std::ostream& operator<< (std::ostream& o, TypeDesc t) {
+    friend std::ostream& operator<< (std::ostream& o, const TypeDesc& t) {
         o << t.c_str();  return o;
     }
 
     /// Return the number of elements: 1 if not an array, or the array
     /// length. Invalid to call this for arrays of undetermined size.
-    OIIO_CONSTEXPR14 size_t numelements () const noexcept {
-        DASSERT_MSG (arraylen >= 0, "Called numelements() on TypeDesc "
-                     "of array with unspecified length (%d)", arraylen);
+    OIIO_HOSTDEVICE OIIO_CONSTEXPR14 size_t numelements () const noexcept {
+        OIIO_DASSERT_MSG (arraylen >= 0, "Called numelements() on TypeDesc "
+                          "of array with unspecified length (%d)", arraylen);
         return (arraylen >= 1 ? arraylen : 1);
     }
 
     /// Return the number of basetype values: the aggregate count multiplied
     /// by the array length (or 1 if not an array). Invalid to call this
     /// for arrays of undetermined size.
-    OIIO_CONSTEXPR14 size_t basevalues () const noexcept {
+    OIIO_HOSTDEVICE OIIO_CONSTEXPR14 size_t basevalues () const noexcept {
         return numelements() * aggregate;
     }
 
     /// Does this TypeDesc describe an array?
-    constexpr bool is_array () const noexcept { return (arraylen != 0); }
+    OIIO_HOSTDEVICE constexpr bool is_array () const noexcept { return (arraylen != 0); }
 
     /// Does this TypeDesc describe an array, but whose length is not
     /// specified?
-    constexpr bool is_unsized_array () const noexcept { return (arraylen < 0); }
+    OIIO_HOSTDEVICE constexpr bool is_unsized_array () const noexcept { return (arraylen < 0); }
 
     /// Does this TypeDesc describe an array, whose length is specified?
-    constexpr bool is_sized_array () const noexcept { return (arraylen > 0); }
+    OIIO_HOSTDEVICE constexpr bool is_sized_array () const noexcept { return (arraylen > 0); }
 
     /// Return the size, in bytes, of this type.
     ///
-    size_t size () const noexcept {
-        DASSERT_MSG (arraylen >= 0, "Called size() on TypeDesc "
-                     "of array with unspecified length (%d)", arraylen);
+    OIIO_HOSTDEVICE size_t size () const noexcept {
+        OIIO_DASSERT_MSG (arraylen >= 0, "Called size() on TypeDesc "
+                          "of array with unspecified length (%d)", arraylen);
         size_t a = (size_t) (arraylen > 0 ? arraylen : 1);
         if (sizeof(size_t) > sizeof(int)) {
             // size_t has plenty of room for this multiplication
@@ -214,17 +221,17 @@ struct OIIO_API TypeDesc {
 
     /// Return the type of one element, i.e., strip out the array-ness.
     ///
-    OIIO_CONSTEXPR14 TypeDesc elementtype () const noexcept {
+    OIIO_HOSTDEVICE OIIO_CONSTEXPR14 TypeDesc elementtype () const noexcept {
         TypeDesc t (*this);  t.arraylen = 0;  return t;
     }
 
     /// Return the size, in bytes, of one element of this type (that is,
     /// ignoring whether it's an array).
-    size_t elementsize () const noexcept { return aggregate * basesize(); }
+    OIIO_HOSTDEVICE size_t elementsize () const noexcept { return aggregate * basesize(); }
 
-    // /// Return just the underlying C scalar type, i.e., strip out the
-    // /// array-ness and the aggregateness.
-//    BASETYPE basetype () const { return TypeDesc(base); }
+    /// Return just the underlying C scalar type, i.e., strip out the
+    /// array-ness and the aggregateness.
+    OIIO_HOSTDEVICE constexpr TypeDesc scalartype() const { return TypeDesc(BASETYPE(basetype)); }
 
     /// Return the base type size, i.e., stripped of both array-ness
     /// and aggregateness.
@@ -238,10 +245,10 @@ struct OIIO_API TypeDesc {
     bool is_signed () const noexcept;
 
     /// Shortcut: is it UNKNOWN?
-    constexpr bool is_unknown () const noexcept { return (basetype == UNKNOWN); }
+    OIIO_HOSTDEVICE constexpr bool is_unknown () const noexcept { return (basetype == UNKNOWN); }
 
-    /// if (typespec) is the same as asking whether it's not UNKNOWN.
-    constexpr operator bool () const noexcept { return (basetype != UNKNOWN); }
+    /// if (typedesc) is the same as asking whether it's not UNKNOWN.
+    OIIO_HOSTDEVICE constexpr operator bool () const noexcept { return (basetype != UNKNOWN); }
 
     /// Set *this to the type described in the string.  Return the
     /// length of the part of the string that describes the type.  If
@@ -251,64 +258,86 @@ struct OIIO_API TypeDesc {
 
     /// Compare two TypeDesc values for equality.
     ///
-    constexpr bool operator== (const TypeDesc &t) const noexcept {
+    OIIO_HOSTDEVICE constexpr bool operator== (const TypeDesc &t) const noexcept {
         return basetype == t.basetype && aggregate == t.aggregate &&
             vecsemantics == t.vecsemantics && arraylen == t.arraylen;
     }
 
     /// Compare two TypeDesc values for inequality.
     ///
-    constexpr bool operator!= (const TypeDesc &t) const noexcept { return ! (*this == t); }
+    OIIO_HOSTDEVICE constexpr bool operator!= (const TypeDesc &t) const noexcept { return ! (*this == t); }
 
     /// Compare a TypeDesc to a basetype (it's the same if it has the
     /// same base type and is not an aggregate or an array).
-    friend constexpr bool operator== (const TypeDesc &t, BASETYPE b) noexcept {
+    OIIO_HOSTDEVICE friend constexpr bool operator== (const TypeDesc &t, BASETYPE b) noexcept {
         return (BASETYPE)t.basetype == b && (AGGREGATE)t.aggregate == SCALAR && !t.is_array();
     }
-    friend constexpr bool operator== (BASETYPE b, const TypeDesc &t) noexcept {
+    OIIO_HOSTDEVICE friend constexpr bool operator== (BASETYPE b, const TypeDesc &t) noexcept {
         return (BASETYPE)t.basetype == b && (AGGREGATE)t.aggregate == SCALAR && !t.is_array();
     }
 
     /// Compare a TypeDesc to a basetype (it's the same if it has the
     /// same base type and is not an aggregate or an array).
-    friend constexpr bool operator!= (const TypeDesc &t, BASETYPE b) noexcept {
+    OIIO_HOSTDEVICE friend constexpr bool operator!= (const TypeDesc &t, BASETYPE b) noexcept {
         return (BASETYPE)t.basetype != b || (AGGREGATE)t.aggregate != SCALAR || t.is_array();
     }
-    friend constexpr bool operator!= (BASETYPE b, const TypeDesc &t) noexcept {
+    OIIO_HOSTDEVICE friend constexpr bool operator!= (BASETYPE b, const TypeDesc &t) noexcept {
         return (BASETYPE)t.basetype != b || (AGGREGATE)t.aggregate != SCALAR || t.is_array();
     }
 
     /// TypeDesc's are equivalent if they are equal, or if their only
     /// inequality is differing vector semantics.
-    friend constexpr bool equivalent (const TypeDesc &a, const TypeDesc &b) noexcept {
+    OIIO_HOSTDEVICE friend constexpr bool equivalent (const TypeDesc &a, const TypeDesc &b) noexcept {
         return a.basetype == b.basetype && a.aggregate == b.aggregate &&
                (a.arraylen == b.arraylen || (a.is_unsized_array() && b.is_sized_array())
                                          || (a.is_sized_array()   && b.is_unsized_array()));
     }
     /// Member version of equivalent
-    constexpr bool equivalent (const TypeDesc &b) const noexcept {
+    OIIO_HOSTDEVICE constexpr bool equivalent (const TypeDesc &b) const noexcept {
         return this->basetype == b.basetype && this->aggregate == b.aggregate &&
                (this->arraylen == b.arraylen || (this->is_unsized_array() && b.is_sized_array())
                                              || (this->is_sized_array()   && b.is_unsized_array()));
     }
 
+    /// Is this a 2-vector aggregate (of the given type, float by default)?
+    OIIO_HOSTDEVICE constexpr bool is_vec2 (BASETYPE b=FLOAT) const noexcept {
+        return this->aggregate == VEC2 && this->basetype == b && !is_array();
+    }
+
     /// Is this a 3-vector aggregate (of the given type, float by default)?
-    constexpr bool is_vec3 (BASETYPE b=FLOAT) const noexcept {
+    OIIO_HOSTDEVICE constexpr bool is_vec3 (BASETYPE b=FLOAT) const noexcept {
         return this->aggregate == VEC3 && this->basetype == b && !is_array();
     }
 
     /// Is this a 4-vector aggregate (of the given type, float by default)?
-    constexpr bool is_vec4 (BASETYPE b=FLOAT) const noexcept {
+    OIIO_HOSTDEVICE constexpr bool is_vec4 (BASETYPE b=FLOAT) const noexcept {
         return this->aggregate == VEC4 && this->basetype == b && !is_array();
+    }
+
+    /// Is this an array of aggregates that represents a 2D bounding box?
+    OIIO_HOSTDEVICE constexpr bool is_box2 (BASETYPE b=FLOAT) const noexcept {
+        return this->aggregate == VEC2 && this->basetype == b && arraylen == 2
+                && this->vecsemantics == BOX;
+    }
+
+    /// Is this an array of aggregates that represents a 3D bounding box?
+    OIIO_HOSTDEVICE constexpr bool is_box3 (BASETYPE b=FLOAT) const noexcept {
+        return this->aggregate == VEC3 && this->basetype == b && arraylen == 2
+                && this->vecsemantics == BOX;
     }
 
     /// Demote the type to a non-array
     ///
-    void unarray (void) noexcept { arraylen = 0; }
+    OIIO_HOSTDEVICE void unarray (void) noexcept { arraylen = 0; }
 
     /// Test for lexicographic 'less', comes in handy for lots of STL
     /// containers and algorithms.
     bool operator< (const TypeDesc &x) const noexcept;
+
+    /// Given base data types of a and b, return a basetype that is a best
+    /// guess for one that can handle both without any loss of range or
+    /// precision.
+    static BASETYPE basetype_merge(TypeDesc a, TypeDesc b);
 
     // DEPRECATED(1.8): These static const member functions were mildly
     // problematic because they required external linkage (and possibly
@@ -316,6 +345,7 @@ struct OIIO_API TypeDesc {
     // that incurred some performance penalty and inability to optimize.
     // Please instead use the out-of-class constexpr versions below.  We
     // will eventually remove these.
+#ifndef OIIO_DOXYGEN
     static const TypeDesc TypeFloat;
     static const TypeDesc TypeColor;
     static const TypeDesc TypeString;
@@ -331,6 +361,7 @@ struct OIIO_API TypeDesc {
     static const TypeDesc TypeKeyCode;
     static const TypeDesc TypeFloat4;
     static const TypeDesc TypeRational;
+#endif
 };
 
 
@@ -339,34 +370,45 @@ struct OIIO_API TypeDesc {
 // Static values for commonly used types. Because these are constexpr,
 // they should incur no runtime construction cost and should optimize nicely
 // in various ways.
-static constexpr TypeDesc TypeUnknown (TypeDesc::UNKNOWN);
-static constexpr TypeDesc TypeFloat (TypeDesc::FLOAT);
-static constexpr TypeDesc TypeColor (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::COLOR);
-static constexpr TypeDesc TypePoint (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::POINT);
-static constexpr TypeDesc TypeVector (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::VECTOR);
-static constexpr TypeDesc TypeNormal (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::NORMAL);
-static constexpr TypeDesc TypeMatrix33 (TypeDesc::FLOAT, TypeDesc::MATRIX33);
-static constexpr TypeDesc TypeMatrix44 (TypeDesc::FLOAT, TypeDesc::MATRIX44);
-static constexpr TypeDesc TypeMatrix = TypeMatrix44;
-static constexpr TypeDesc TypeString (TypeDesc::STRING);
-static constexpr TypeDesc TypeInt (TypeDesc::INT);
-static constexpr TypeDesc TypeUInt (TypeDesc::UINT);
-static constexpr TypeDesc TypeInt32 (TypeDesc::INT);
-static constexpr TypeDesc TypeUInt32 (TypeDesc::UINT);
-static constexpr TypeDesc TypeInt16 (TypeDesc::INT16);
-static constexpr TypeDesc TypeUInt16 (TypeDesc::UINT16);
-static constexpr TypeDesc TypeInt8 (TypeDesc::INT8);
-static constexpr TypeDesc TypeUInt8 (TypeDesc::UINT8);
-static constexpr TypeDesc TypeHalf (TypeDesc::HALF);
-static constexpr TypeDesc TypeTimeCode (TypeDesc::UINT, TypeDesc::SCALAR, TypeDesc::TIMECODE, 2);
-static constexpr TypeDesc TypeKeyCode (TypeDesc::INT, TypeDesc::SCALAR, TypeDesc::KEYCODE, 7);
-static constexpr TypeDesc TypeFloat4 (TypeDesc::FLOAT, TypeDesc::VEC4);
-static constexpr TypeDesc TypeRational(TypeDesc::INT, TypeDesc::VEC2, TypeDesc::RATIONAL);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeUnknown (TypeDesc::UNKNOWN);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeFloat (TypeDesc::FLOAT);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeColor (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::COLOR);
+OIIO_INLINE_CONSTEXPR TypeDesc TypePoint (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::POINT);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeVector (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::VECTOR);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeNormal (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::NORMAL);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeMatrix33 (TypeDesc::FLOAT, TypeDesc::MATRIX33);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeMatrix44 (TypeDesc::FLOAT, TypeDesc::MATRIX44);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeMatrix = TypeMatrix44;
+OIIO_INLINE_CONSTEXPR TypeDesc TypeFloat2 (TypeDesc::FLOAT, TypeDesc::VEC2);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeVector2 (TypeDesc::FLOAT, TypeDesc::VEC2, TypeDesc::VECTOR);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeFloat4 (TypeDesc::FLOAT, TypeDesc::VEC4);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeVector4 = TypeFloat4;
+OIIO_INLINE_CONSTEXPR TypeDesc TypeString (TypeDesc::STRING);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeInt (TypeDesc::INT);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeUInt (TypeDesc::UINT);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeInt32 (TypeDesc::INT);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeUInt32 (TypeDesc::UINT);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeInt16 (TypeDesc::INT16);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeUInt16 (TypeDesc::UINT16);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeInt8 (TypeDesc::INT8);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeUInt8 (TypeDesc::UINT8);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeInt64 (TypeDesc::INT64);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeUInt64 (TypeDesc::UINT64);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeVector2i(TypeDesc::INT, TypeDesc::VEC2);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeBox2(TypeDesc::FLOAT, TypeDesc::VEC2, TypeDesc::BOX, 2);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeBox3(TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::BOX, 2);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeBox2i(TypeDesc::INT, TypeDesc::VEC2, TypeDesc::BOX, 2);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeBox3i(TypeDesc::INT, TypeDesc::VEC3, TypeDesc::BOX, 2);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeHalf (TypeDesc::HALF);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeTimeCode (TypeDesc::UINT, TypeDesc::SCALAR, TypeDesc::TIMECODE, 2);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeKeyCode (TypeDesc::INT, TypeDesc::SCALAR, TypeDesc::KEYCODE, 7);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeRational(TypeDesc::INT, TypeDesc::VEC2, TypeDesc::RATIONAL);
+OIIO_INLINE_CONSTEXPR TypeDesc TypePointer(TypeDesc::PTR);
 
 
 
-// DEPRECATED
-OIIO_API
+// DEPRECATED(2.1)
+OIIO_UTIL_API
 std::string tostring (TypeDesc type, const void *data,
                       const char *float_fmt,                // E.g. "%g"
                       const char *string_fmt = "%s",        // E.g. "\"%s\""
@@ -388,7 +430,7 @@ template<> struct BaseTypeFromC<unsigned int> { static const TypeDesc::BASETYPE 
 template<> struct BaseTypeFromC<int> { static const TypeDesc::BASETYPE value = TypeDesc::INT; };
 template<> struct BaseTypeFromC<unsigned long long> { static const TypeDesc::BASETYPE value = TypeDesc::UINT64; };
 template<> struct BaseTypeFromC<long long> { static const TypeDesc::BASETYPE value = TypeDesc::INT64; };
-#ifdef _HALF_H_
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
 template<> struct BaseTypeFromC<half> { static const TypeDesc::BASETYPE value = TypeDesc::HALF; };
 #endif
 template<> struct BaseTypeFromC<float> { static const TypeDesc::BASETYPE value = TypeDesc::FLOAT; };
@@ -406,13 +448,25 @@ template<size_t S> struct BaseTypeFromC<const char[S]> { static const TypeDesc::
 /// A template mechanism for getting the TypeDesc from a C type.
 /// The default for simple types is just the TypeDesc based on BaseTypeFromC.
 /// But we can specialize more complex types.
-template<typename T> struct TypeDescFromC { static const constexpr TypeDesc value() { return BaseTypeFromC<T>::value; } };
-template<> struct TypeDescFromC<int> { static const constexpr TypeDesc value() { return TypeDesc::INT; } };
+template<typename T> struct TypeDescFromC { static const constexpr TypeDesc value() { return TypeDesc(BaseTypeFromC<T>::value); } };
+template<> struct TypeDescFromC<int32_t> { static const constexpr TypeDesc value() { return TypeDesc::INT32; } };
+template<> struct TypeDescFromC<uint32_t> { static const constexpr TypeDesc value() { return TypeDesc::UINT32; } };
+template<> struct TypeDescFromC<int16_t> { static const constexpr TypeDesc value() { return TypeDesc::INT16; } };
+template<> struct TypeDescFromC<uint16_t> { static const constexpr TypeDesc value() { return TypeDesc::UINT16; } };
+template<> struct TypeDescFromC<int8_t> { static const constexpr TypeDesc value() { return TypeDesc::INT8; } };
+template<> struct TypeDescFromC<uint8_t> { static const constexpr TypeDesc value() { return TypeDesc::UINT8; } };
 template<> struct TypeDescFromC<float> { static const constexpr TypeDesc value() { return TypeDesc::FLOAT; } };
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
+template<> struct TypeDescFromC<half> { static const constexpr TypeDesc value() { return TypeDesc::HALF; } };
+#endif
+template<> struct TypeDescFromC<double> { static const constexpr TypeDesc value() { return TypeDesc::DOUBLE; } };
 template<size_t S> struct TypeDescFromC<char[S]> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
 template<size_t S> struct TypeDescFromC<const char[S]> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
 #ifdef INCLUDED_IMATHVEC_H
 template<> struct TypeDescFromC<Imath::V3f> { static const constexpr TypeDesc value() { return TypeVector; } };
+template<> struct TypeDescFromC<Imath::V2f> { static const constexpr TypeDesc value() { return TypeVector2; } };
+template<> struct TypeDescFromC<Imath::V4f> { static const constexpr TypeDesc value() { return TypeVector4; } };
+template<> struct TypeDescFromC<Imath::V2i> { static const constexpr TypeDesc value() { return TypeVector2i; } };
 #endif
 #ifdef INCLUDED_IMATHCOLOR_H
 template<> struct TypeDescFromC<Imath::Color3f> { static const constexpr TypeDesc value() { return TypeColor; } };
@@ -420,6 +474,14 @@ template<> struct TypeDescFromC<Imath::Color3f> { static const constexpr TypeDes
 #ifdef INCLUDED_IMATHMATRIX_H
 template<> struct TypeDescFromC<Imath::M33f> { static const constexpr TypeDesc value() { return TypeMatrix33; } };
 template<> struct TypeDescFromC<Imath::M44f> { static const constexpr TypeDesc value() { return TypeMatrix44; } };
+template<> struct TypeDescFromC<Imath::M33d> { static const constexpr TypeDesc value() { return TypeDesc(TypeDesc::DOUBLE, TypeDesc::MATRIX33); } };
+template<> struct TypeDescFromC<Imath::M44d> { static const constexpr TypeDesc value() { return TypeDesc(TypeDesc::DOUBLE, TypeDesc::MATRIX44); } };
+#endif
+#ifdef INCLUDED_IMATHBOX_H
+template<> struct TypeDescFromC<Imath::Box2f> { static const constexpr TypeDesc value() { return TypeBox2; } };
+template<> struct TypeDescFromC<Imath::Box2i> { static const constexpr TypeDesc value() { return TypeBox2i; } };
+template<> struct TypeDescFromC<Imath::Box3f> { static const constexpr TypeDesc value() { return TypeBox3; } };
+template<> struct TypeDescFromC<Imath::Box3i> { static const constexpr TypeDesc value() { return TypeBox3i; } };
 #endif
 
 
@@ -434,7 +496,7 @@ template<> struct CType<(int)TypeDesc::UINT> { typedef unsigned int type; };
 template<> struct CType<(int)TypeDesc::INT> { typedef int type; };
 template<> struct CType<(int)TypeDesc::UINT64> { typedef unsigned long long type; };
 template<> struct CType<(int)TypeDesc::INT64> { typedef long long type; };
-#ifdef _HALF_H_
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
 template<> struct CType<(int)TypeDesc::HALF> { typedef half type; };
 #endif
 template<> struct CType<(int)TypeDesc::FLOAT> { typedef float type; };
@@ -444,8 +506,9 @@ template<> struct CType<(int)TypeDesc::DOUBLE> { typedef double type; };
 
 /// Helper class for tostring() that contains a whole bunch of parameters
 /// that control exactly how all the data types that can be described as
-/// TypeDesc ought to be formatted as a string.
-struct tostring_formatting {
+/// TypeDesc ought to be formatted as a string. Uses printf-like
+/// conventions. This will someday be deprecated.
+struct OIIO_UTIL_API tostring_formatting {
     // Printf-like formatting specs for int, float, string, pointer data.
     const char *int_fmt = "%d";
     const char *float_fmt = "%g";
@@ -465,13 +528,28 @@ struct tostring_formatting {
     enum Flags { None=0, escape_strings=1, quote_single_string=2 };
     int flags = escape_strings;
     // Reserved space for future expansion without breaking the ABI.
-    const char *reserved1 = "";
+    const char *uint_fmt = "%u";
     const char *reserved2 = "";
     const char *reserved3 = "";
+    bool use_sprintf = true;
+
+    enum Notation { STDFORMAT };
 
     tostring_formatting() = default;
     tostring_formatting(const char *int_fmt, const char *float_fmt = "%g",
         const char *string_fmt = "\"%s\"", const char *ptr_fmt = "%p",
+        const char *aggregate_begin = "(", const char *aggregate_end = ")",
+        const char *aggregate_sep = ",", const char *array_begin = "{",
+        const char *array_end = "}", const char *array_sep = ",",
+        int flags = escape_strings,
+        const char *uint_fmt = "%u");
+
+    // Alternative ctr for std::format notation. You must pass STDFORMAT
+    // as the first argument.
+    tostring_formatting(Notation notation,
+        const char *int_fmt = "{}", const char *uint_fmt = "{}",
+        const char *float_fmt = "{}",
+        const char *string_fmt = "\"{}\"", const char *ptr_fmt = "{}",
         const char *aggregate_begin = "(", const char *aggregate_end = ")",
         const char *aggregate_sep = ",", const char *array_begin = "{",
         const char *array_end = "}", const char *array_sep = ",",
@@ -481,8 +559,9 @@ struct tostring_formatting {
 
 
 /// Return a string containing the data values formatted according
-/// to the type and the optional formatting control arguments.
-OIIO_API std::string
+/// to the type and the optional formatting control arguments. Will be
+/// deprecated someday as printf formatting falls out of favor.
+OIIO_UTIL_API std::string
 tostring(TypeDesc type, const void* data, const tostring_formatting& fmt = {});
 
 
@@ -496,14 +575,49 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt = {});
 ///   `char*`): it will always succeed, producing a string akin to calling
 ///   `tostring()`.
 /// * If dsttype is int32 or uint32: other integer types will do their best
-///   (caveat emptor if you mix signed/unsiged). Also a source string will
+///   (caveat emptor if you mix signed/unsigned). Also a source string will
 ///   convert to int if and only if its characters form a valid integer.
 /// * If dsttype is float: inteegers and other float types will do
 ///   their best conversion; strings will convert if and only if their
 ///   characters form a valid float number.
-OIIO_API bool
+OIIO_UTIL_API bool
 convert_type(TypeDesc srctype, const void* src,
              TypeDesc dsttype, void* dst, int n = 1);
 
 
 OIIO_NAMESPACE_END
+
+
+
+// Supply a fmtlib compatible custom formatter for TypeDesc.
+#if FMT_VERSION >= 100000
+FMT_BEGIN_NAMESPACE
+template<> struct formatter<OIIO::TypeDesc> : ostream_formatter {};
+FMT_END_NAMESPACE
+#else
+FMT_BEGIN_NAMESPACE
+template <>
+struct formatter<OIIO::TypeDesc> {
+    // Parses format specification
+    // C++14: constexpr auto parse(format_parse_context& ctx) const {
+    auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) // c++11
+    {
+        // Get the presentation type, if any. Required to be 's'.
+        auto it = ctx.begin(), end = ctx.end();
+        if (it != end && (*it == 's')) ++it;
+        // Check if reached the end of the range:
+        if (it != end && *it != '}')
+            throw format_error("invalid format");
+        // Return an iterator past the end of the parsed range:
+        return it;
+    }
+
+    template <typename FormatContext>
+    auto format(const OIIO::TypeDesc& t, FormatContext& ctx) -> decltype(ctx.out()) const {
+        // C++14:   auto format(const OIIO::TypeDesc& p, FormatContext& ctx) const {
+        // ctx.out() is an output iterator to write to.
+        return format_to(ctx.out(), "{}", t.c_str());
+    }
+};
+FMT_END_NAMESPACE
+#endif

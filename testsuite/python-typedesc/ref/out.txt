@@ -67,6 +67,32 @@ type 'FLOAT, VEC3, POINT, array of 2'
     basevalues = 6
     elementsize = 12
     basesize = 4
+type 'INT, VEC2, BOX, array of 2'
+    c_str "box2i"
+    basetype BASETYPE.INT
+    aggregate AGGREGATE.VEC2
+    vecsemantics VECSEMANTICS.BOX
+    arraylen 2
+    str(t) = "box2i"
+    size = 16
+    elementtype = box2i
+    numelements = 2
+    basevalues = 4
+    elementsize = 8
+    basesize = 4
+type 'FLOAT, VEC3, BOX, array of 2'
+    c_str "box3"
+    basetype BASETYPE.FLOAT
+    aggregate AGGREGATE.VEC3
+    vecsemantics VECSEMANTICS.BOX
+    arraylen 2
+    str(t) = "box3"
+    size = 24
+    elementtype = box3
+    numelements = 2
+    basevalues = 6
+    elementsize = 12
+    basesize = 4
 
 type 'float[2]'
     c_str "float[2]"
@@ -107,6 +133,19 @@ type 'uint16'
     basevalues = 1
     elementsize = 2
     basesize = 2
+type 'box3'
+    c_str "box3"
+    basetype BASETYPE.FLOAT
+    aggregate AGGREGATE.VEC3
+    vecsemantics VECSEMANTICS.BOX
+    arraylen 2
+    str(t) = "box3"
+    size = 24
+    elementtype = box3
+    numelements = 2
+    basevalues = 6
+    elementsize = 12
+    basesize = 4
 
 uint8 == uint8? True
 uint8 == uint8? True
@@ -146,8 +185,16 @@ type 'TypeKeyCode'
     c_str "keycode"
 type 'TypeRational'
     c_str "rational2i"
+type 'TypeFloat2'
+    c_str "float2"
+type 'TypeVector2'
+    c_str "vector2"
 type 'TypeFloat4'
     c_str "float4"
+type 'TypeVector4'
+    c_str "float4"
+type 'TypeVector2i'
+    c_str "float2i"
 type 'TypeHalf'
     c_str "half"
 
@@ -161,6 +208,10 @@ type 'TypeInt'
     c_str "int"
 type 'TypeUInt'
     c_str "uint"
+type 'TypeInt64'
+    c_str "int64"
+type 'TypeUInt64'
+    c_str "uint64"
 type 'TypeInt32'
     c_str "int"
 type 'TypeUInt32'
@@ -189,8 +240,16 @@ type 'TypeTimeCode'
     c_str "timecode"
 type 'TypeKeyCode'
     c_str "keycode"
+type 'TypeFloat2'
+    c_str "float2"
+type 'TypeVector2'
+    c_str "vector2"
 type 'TypeFloat4'
     c_str "float4"
+type 'TypeVector4'
+    c_str "float4"
+type 'TypeVector2i'
+    c_str "float2i"
 type 'TypeHalf'
     c_str "half"
 type 'TypeRational'

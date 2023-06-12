@@ -1,32 +1,6 @@
-/*
-  Copyright 2015 Larry Gritz and the other authors and contributors.
-  All Rights Reserved.
-
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions are
-  met:
-  * Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
-  * Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution.
-  * Neither the name of the software's owners nor the names of its
-    contributors may be used to endorse or promote products derived from
-    this software without specific prior written permission.
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-  (This is the Modified BSD License)
-*/
+// Copyright 2008-present Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: BSD-3-Clause
+// https://github.com/OpenImageIO/oiio
 
 #include "py_oiio.h"
 #include <OpenImageIO/color.h>
@@ -52,11 +26,20 @@ declare_colorconfig(py::module& m)
         .def("getColorSpaceNames", &ColorConfig::getColorSpaceNames)
         .def("getColorSpaceNameByIndex", &ColorConfig::getColorSpaceNameByIndex)
         .def(
+            "getColorSpaceIndex",
+            [](const ColorConfig& self, const std::string& name) {
+                return self.getColorSpaceIndex(name);
+            },
+            "name"_a)
+        .def(
             "getColorSpaceNameByRole",
             [](const ColorConfig& self, const std::string& role) {
                 return self.getColorSpaceNameByRole(role);
             },
             "role"_a)
+        .def("getNumRoles", &ColorConfig::getNumRoles)
+        .def("getRoleByIndex", &ColorConfig::getRoleByIndex)
+        .def("getRoles", &ColorConfig::getRoles)
         .def(
             "getColorSpaceDataType",
             [](const ColorConfig& self, const std::string& name) {
@@ -105,13 +88,51 @@ declare_colorconfig(py::module& m)
                 return self.getDefaultViewName(display);
             },
             "display"_a = "")
+        .def(
+            "getDisplayViewColorSpaceName",
+            [](const ColorConfig& self, const std::string& display,
+               const std::string& view) {
+                return self.getDisplayViewColorSpaceName(display, view);
+            },
+            "display"_a, "view"_a)
+        .def(
+            "getDisplayViewLooks",
+            [](const ColorConfig& self, const std::string& display,
+               const std::string& view) {
+                return self.getDisplayViewLooks(display, view);
+            },
+            "display"_a, "view"_a)
+
+        .def("getAliases",
+             [](const ColorConfig& self, const std::string& color_space) {
+                 return self.getAliases(color_space);
+             })
+
+        .def("getColorSpaceFromFilepath",
+             [](const ColorConfig& self, const std::string& str) {
+                 return std::string(self.getColorSpaceFromFilepath(str));
+             })
         .def("parseColorSpaceFromString",
              [](const ColorConfig& self, const std::string& str) {
                  return std::string(self.parseColorSpaceFromString(str));
              })
+        .def(
+            "resolve",
+            [](const ColorConfig& self, const std::string& name) {
+                return std::string(self.resolve(name));
+            },
+            "name"_a)
+        .def(
+            "equivalent",
+            [](const ColorConfig& self, const std::string& color_space,
+               const std::string& other_color_space) {
+                return self.equivalent(color_space, other_color_space);
+            },
+            "color_space"_a, "other_color_space"_a)
         .def("configname", &ColorConfig::configname);
 
-    m.attr("supportsOpenColorIO") = ColorConfig::supportsOpenColorIO();
+    m.attr("supportsOpenColorIO")     = ColorConfig::supportsOpenColorIO();
+    m.attr("OpenColorIO_version_hex") = ColorConfig::OpenColorIO_version_hex();
 }
 
 }  // namespace PyOpenImageIO

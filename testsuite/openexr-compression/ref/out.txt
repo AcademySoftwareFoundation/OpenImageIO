@@ -1,0 +1,30 @@
+out-none.exr compression none
+out-rle.exr compression rle
+out-zips.exr compression zips
+out-zip.exr compression zip
+out-piz.exr compression piz
+out-pxr24.exr compression pxr24
+out-b44.exr compression b44
+out-b44a.exr compression b44a
+out-dwaa.exr compression dwaa
+out-dwab.exr compression dwab
+Comparing "out-none.exr" and "ref/out-zip.exr"
+PASS
+Comparing "out-rle.exr" and "ref/out-zip.exr"
+PASS
+Comparing "out-zips.exr" and "ref/out-zip.exr"
+PASS
+Comparing "out-zip.exr" and "ref/out-zip.exr"
+PASS
+Comparing "out-piz.exr" and "ref/out-zip.exr"
+PASS
+Comparing "out-pxr24.exr" and "ref/out-zip.exr"
+PASS
+Comparing "out-b44.exr" and "ref/out-b44.exr"
+PASS
+Comparing "out-b44a.exr" and "ref/out-b44.exr"
+PASS
+Comparing "out-dwaa.exr" and "ref/out-dwaa.exr"
+PASS
+Comparing "out-dwab.exr" and "ref/out-dwaa.exr"
+PASS

@@ -71,7 +71,7 @@ namespace dpx
 		
 		for (int i = count - 1; i >= 0; i--)
 		{
-			// unpacking the buffer backwords
+			// unpacking the buffer backwards
 			U32 word = readBuf[(i + index) / 3 / sizeof(U32)];
 			U16 d1 = U16(word >> ((2 - (i + index) % 3) * 10 + PADDINGBITS) & 0x3ff);
 			BaseTypeConvertU10ToU16(d1, d1);
@@ -79,7 +79,7 @@ namespace dpx
 		}
 #if 0
 		// NOTE: REVERSE -- is this something we really need to handle?
-		// There were many dpx images that write the components backwords
+		// There were many dpx images that write the components backwards
 		// because of some confusion with DPX v1 spec
 		
 		switch (dpxHeader.DatumSwap(element))
@@ -96,7 +96,7 @@ namespace dpx
 			case 1:			// swap the three datum around so BGR becomes RGB
 				for (i = count - 1; i >= 0; i--)
 				{
-					// unpacking the buffer backwords
+					// unpacking the buffer backwards
 					U32 word = readBuf[(i + index) / 3 / sizeof(U32)];
 					U16 d1 = U16(word >> ((2 - (i + index) % 3) * 10 + PADDINGBITS) & 0x3ff);
 					BaseTypeConvertU10ToU16(d1, d1);
@@ -107,7 +107,7 @@ namespace dpx
 			case 2:			// swap the second two of three datum around so YCrCb becomes YCbCr
 				for (i = count - 1; i >= 0; i--)
 				{
-					// unpacking the buffer backwords
+					// unpacking the buffer backwards
 					U32 word = readBuf[(i + index) / 3 / sizeof(U32)];
 					U16 d1 = U16(word >> ((2 - (count + index) % 3) * 10 + PADDINGBITS) & 0x3ff);
 					BaseTypeConvertU10ToU16(d1, d1);
@@ -152,7 +152,7 @@ namespace dpx
 			offset += block.x1 * numberOfComponents / 3 * 4;
 			
 			
-			// get the read count in bytes, round to the 32-bit boundry
+			// get the read count in bytes, round to the 32-bit boundary
 			int readSize = (block.x2 - block.x1 + 1) * numberOfComponents;
 			readSize += readSize % 3;
 			readSize = readSize / 3 * 4;
@@ -172,7 +172,7 @@ namespace dpx
 
 			for (int count = (block.x2 - block.x1 + 1) * numberOfComponents - 1; count >= 0; count--)
 			{
-				// unpacking the buffer backwords
+				// unpacking the buffer backwards
 				U16 d1 = U16(readBuf[(count + index) / 3] >> ((2 - (count + index) % 3) * 10 + PADDINGBITS) & 0x3ff);
 				BaseTypeConvertU10ToU16(d1, d1);
 
@@ -214,7 +214,7 @@ namespace dpx
 				
 		for (int i = count - 1; i >= 0; i--)
 		{
-			// unpacking the buffer backwords
+			// unpacking the buffer backwards
 			// find the byte that the data starts in, read in as a 16 bits then shift and mask
 			// the pattern with byte offset is:
 			//	10 bits datasize rotates every 4 data elements

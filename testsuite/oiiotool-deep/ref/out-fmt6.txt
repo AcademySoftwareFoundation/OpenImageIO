@@ -1,0 +1,177 @@
+Reading allhalf.exr
+allhalf.exr          :  160 x  120, 2 channel, deep half openexr
+    SHA-1: 591BA693C60FCDD2FE3DC213B2541561E8A81595
+    channel list: A, Z
+    tile size: 64 x 64
+    camerainfo: "camera1"
+    compression: "zips"
+    PixelAspectRatio: 1
+    rendererinfo: "Arnold 3.4.71.1 linux 64-bit clang3.3.1 (branches/release_33 192315) (llvm/branches/release_33 192314) glibc2122 oiio10305 sse norlm (build date: Oct 23 2013 11:54:31)"
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    version: 1
+    worldToCamera: 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 1.5, 0, 4, 1
+    worldToNDC: 2.41421, 0, 0, 0, 0, 3.21895, 0, 0, 0, 0, -1.00671, -1, 3.62132, 0, 3.92617, 4
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+    openexr:chunkCount: 6
+    Stats Min: 0.011902 3.031250 (float)
+    Stats Max: 0.261963 5.000000 (float)
+    Stats Avg: 0.082321 4.119433 (float)
+    Stats StdDev: 0.068306 0.589750 (float)
+    Stats NanCount: 0 0 
+    Stats InfCount: 0 0 
+    Stats FiniteCount: 28846 28846 
+    Min deep samples in any pixel : 0
+    Max deep samples in any pixel : 22
+    1 pixel had the max of 22 samples, including (x=104, y=64)
+    Average deep samples per pixel: 1.50
+    Total deep samples in all pixels: 28846
+    Pixels with deep samples   : 4544
+    Pixels with no deep samples: 14656
+    Samples/pixel histogram:
+        0     :    14656 (76.3%)
+        1     :        0 ( 0.0%)
+        2     :       14 ( 0.1%)
+        3     :      639 ( 3.3%)
+        4     :      726 ( 3.8%)
+        5     :     1082 ( 5.6%)
+        6     :      375 ( 2.0%)
+        7     :      554 ( 2.9%)
+        8- 15 :     1063 ( 5.5%)
+       16- 22 :       91 ( 0.5%)
+    Minimum depth was 3.03125 at (159, 56)
+    Maximum depth was 5 at (136, 57)
+Reading swaptypes.exr
+swaptypes.exr        :  160 x  120, 2 channel, deep float/half openexr
+    SHA-1: A26C8B55734B7AE342FA3B37198327B0C00C0BC2
+    channel list: A (float), Z (half)
+    tile size: 64 x 64
+    camerainfo: "camera1"
+    compression: "zips"
+    PixelAspectRatio: 1
+    rendererinfo: "Arnold 3.4.71.1 linux 64-bit clang3.3.1 (branches/release_33 192315) (llvm/branches/release_33 192314) glibc2122 oiio10305 sse norlm (build date: Oct 23 2013 11:54:31)"
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    version: 1
+    worldToCamera: 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 1.5, 0, 4, 1
+    worldToNDC: 2.41421, 0, 0, 0, 0, 3.21895, 0, 0, 0, 0, -1.00671, -1, 3.62132, 0, 3.92617, 4
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+    openexr:chunkCount: 6
+    Stats Min: 0.011902 3.031250 (float)
+    Stats Max: 0.261963 5.000000 (float)
+    Stats Avg: 0.082321 4.119433 (float)
+    Stats StdDev: 0.068306 0.589750 (float)
+    Stats NanCount: 0 0 
+    Stats InfCount: 0 0 
+    Stats FiniteCount: 28846 28846 
+    Min deep samples in any pixel : 0
+    Max deep samples in any pixel : 22
+    1 pixel had the max of 22 samples, including (x=104, y=64)
+    Average deep samples per pixel: 1.50
+    Total deep samples in all pixels: 28846
+    Pixels with deep samples   : 4544
+    Pixels with no deep samples: 14656
+    Samples/pixel histogram:
+        0     :    14656 (76.3%)
+        1     :        0 ( 0.0%)
+        2     :       14 ( 0.1%)
+        3     :      639 ( 3.3%)
+        4     :      726 ( 3.8%)
+        5     :     1082 ( 5.6%)
+        6     :      375 ( 2.0%)
+        7     :      554 ( 2.9%)
+        8- 15 :     1063 ( 5.5%)
+       16- 22 :       91 ( 0.5%)
+    Minimum depth was 3.03125 at (159, 56)
+    Maximum depth was 5 at (136, 57)
+Reading tinydeep.exr
+tinydeep.exr         :    4 x    4, 2 channel, deep float openexr
+    SHA-1: 941FD2E69D58EB30EE29AD3F71720C3831AAD914
+    channel list: A, Z
+    compression: "zips"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    version: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+    openexr:chunkCount: 4
+    Pixel (0, 0): 0 samples 
+    Pixel (1, 0): 0 samples 
+    Pixel (2, 0): 0 samples 
+    Pixel (3, 0): 0 samples 
+    Pixel (0, 1): 0 samples 
+    Pixel (1, 1): 0 samples 
+    Pixel (2, 1): 0 samples 
+    Pixel (3, 1): 0 samples 
+    Pixel (0, 2): 0 samples 
+    Pixel (1, 2): 0 samples 
+    Pixel (2, 2): 1 samples : A=1.0 Z=10.0
+    Pixel (3, 2): 0 samples 
+    Pixel (0, 3): 0 samples 
+    Pixel (1, 3): 0 samples 
+    Pixel (2, 3): 0 samples 
+    Pixel (3, 3): 0 samples 
+    Stats Min: 1.000000 10.000000 (float)
+    Stats Max: 1.000000 10.000000 (float)
+    Stats Avg: 1.000000 10.000000 (float)
+    Stats StdDev: 0.000000 0.000000 (float)
+    Stats NanCount: 0 0 
+    Stats InfCount: 0 0 
+    Stats FiniteCount: 1 1 
+    Min deep samples in any pixel : 0
+    Max deep samples in any pixel : 1
+    1 pixel had the max of 1 samples, including (x=2, y=2)
+    Average deep samples per pixel: 0.06
+    Total deep samples in all pixels: 1
+    Pixels with deep samples   : 1
+    Pixels with no deep samples: 15
+    Samples/pixel histogram:
+        0     :       15 (93.8%)
+        1     :        1 ( 6.2%)
+    Minimum depth was 10 at (2, 2)
+    Maximum depth was 10 at (2, 2)
+Computing diff of "src/deep-nosamples.exr" vs "src/deep-onesample.exr"
+  Mean error = 42
+  RMS error = 42
+  Peak SNR = 0
+  Max error  = 42.0 @ (0, 0, Z)
+  1 pixels (100%) over 1e-06
+  0 pixels (0%) over 100.0
+WARNING
+Computing diff of "src/deep-onesample.exr" vs "src/deep-nosamples.exr"
+  Mean error = 42
+  RMS error = 42
+  Peak SNR = 0
+  Max error  = 42.0 @ (0, 0, Z)
+  1 pixels (100%) over 1e-06
+  0 pixels (0%) over 100.0
+WARNING
+Comparing "flat.exr" and "ref/flat.exr"
+PASS
+Comparing "ch.exr" and "ref/ch.exr"
+PASS
+Comparing "deepen.exr" and "ref/deepen.exr"
+PASS
+Comparing "crop1.exr" and "ref/crop1.exr"
+PASS
+Comparing "crop2.exr" and "ref/crop2.exr"
+PASS
+Comparing "trim1.exr" and "ref/trim1.exr"
+PASS
+Comparing "trim2.exr" and "ref/trim2.exr"
+PASS
+Comparing "deep_addc.exr" and "ref/deep_addc.exr"
+PASS
+Comparing "deep_subc.exr" and "ref/deep_subc.exr"
+PASS
+Comparing "deep_mulc.exr" and "ref/deep_mulc.exr"
+PASS
+Comparing "deep_divc.exr" and "ref/deep_divc.exr"
+PASS
+Comparing "deepmerge.exr" and "ref/deepmerge.exr"
+PASS
+Comparing "resampled-balls.exr" and "ref/resampled-balls.exr"
+PASS

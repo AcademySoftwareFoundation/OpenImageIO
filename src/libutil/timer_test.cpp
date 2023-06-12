@@ -1,11 +1,13 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
+#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/simd.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/timer.h>
@@ -17,44 +19,16 @@ using namespace OIIO;
 
 
 
-static int
-parse_files(int argc, const char* argv[])
-{
-    //    input_filename = ustring(argv[0]);
-    return 0;
-}
-
-
-
-static void
-getargs(int argc, char* argv[])
-{
-    bool help = false;
-    ArgParse ap;
-    // clang-format off
-    ap.options("timer_test\n" OIIO_INTRO_STRING "\n"
-               "Usage:  timer_test [options]",
-               "%*", parse_files, "",
-               "--help", &help, "Print help message",
-               NULL);
-    // clang-format on
-    if (ap.parse(argc, (const char**)argv) < 0) {
-        std::cerr << ap.geterror() << std::endl;
-        ap.usage();
-        exit(EXIT_FAILURE);
-    }
-    if (help) {
-        ap.usage();
-        exit(EXIT_FAILURE);
-    }
-}
-
-
-
 int
 main(int argc, char** argv)
 {
-    getargs(argc, argv);
+    ArgParse ap;
+    // clang-format off
+    ap.intro("timer_test\n" OIIO_INTRO_STRING)
+      .usage("timer_test [options]");
+    // clang-format on
+
+    ap.parse(argc, (const char**)argv);
 
     // First, just compute and print how expensive a Timer begin/end is,
     // in cycles per second.
@@ -92,11 +66,13 @@ main(int argc, char** argv)
     // But you want better power use, so instead we just increase the timing
     // tolereance on Apple to make this test pass.
 #    if defined(OIIO_CI) || defined(OIIO_CODE_COVERAGE)
-    // It seems especially bad on Travis, give extra time slop.
-    // Got even worse in Nov 2017 on Travis. Make the slop enormous.
-    // Got worse again Nov 2018. (What does Travis do every November?)
+    // It seems especially bad on CI runs, so give extra time slop.
     eps = 1.0;
 #    endif
+#elif defined(OIIO_CI)
+    // Also on GitHub Actions CI, timing seems a little imprecise. Give it
+    // some extra room to avoid spurious CI failures on this test.
+    eps = 0.25;
 #endif
 
     // Verify that Timer(false) doesn't start
@@ -141,6 +117,18 @@ main(int argc, char** argv)
     std::cout << "Checkpoint2: All " << all() << " selective " << selective()
               << "\n";
 
+    // Test add_ticks/add_seconds
+    {
+        Timer t(false);
+        Sysutil::usleep(100000);
+        OIIO_CHECK_EQUAL(t.ticking(), false);
+        t.add_ticks(100);
+        OIIO_CHECK_EQUAL(t.ticks(), 100);
+        t.add_ticks(100);
+        t.reset();
+        t.add_seconds(1.0);
+        OIIO_CHECK_EQUAL_THRESH(t(), 1.0, 1.0e-6);
+    }
 
     // Test Benchmarker
     Benchmarker bench;
@@ -149,7 +137,7 @@ main(int argc, char** argv)
 
     float val = 0.5;
     clobber(val);
-    simd::float4 val4 = val;
+    simd::vfloat4 val4 = val;
     clobber(val4);
 
     bench("add", [&]() { DoNotOptimize(val + 1.5); });

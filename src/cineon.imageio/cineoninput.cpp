@@ -1,11 +1,12 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
+
+#include <cmath>
 
 #include "libcineon/Cineon.h"
 
 #include <OpenImageIO/dassert.h>
-#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/typedesc.h>
@@ -18,12 +19,12 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class CineonInput final : public ImageInput {
 public:
     CineonInput() { init(); }
-    virtual ~CineonInput() { close(); }
-    virtual const char* format_name(void) const override { return "cineon"; }
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool close() override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
+    ~CineonInput() override { close(); }
+    const char* format_name(void) const override { return "cineon"; }
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool close() override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
 
 private:
     InStream* m_stream = nullptr;
@@ -49,7 +50,7 @@ private:
 
 
 
-// Obligatory material to make this a recognizeable imageio plugin:
+// Obligatory material to make this a recognizable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageInput*
@@ -78,13 +79,13 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     // open the image
     m_stream = new InStream();
     if (!m_stream->Open(name.c_str())) {
-        errorf("Could not open file \"%s\"", name);
+        errorfmt("Could not open file \"{}\"", name);
         return false;
     }
 
     m_cin.SetInStream(m_stream);
     if (!m_cin.ReadHeader()) {
-        errorf("Could not read header");
+        errorfmt("Could not read header");
         return false;
     }
 
@@ -100,19 +101,18 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     case 2: typedesc = TypeDesc::UINT16; break;
     case 3:
     case 4: typedesc = TypeDesc::UINT32; break;
-    default: errorf("Unsupported bit depth %d", maxbits); return false;
+    default: errorfmt("Unsupported bit depth {}", maxbits); return false;
     }
     m_spec = ImageSpec(m_cin.header.Width(), m_cin.header.Height(),
                        m_cin.header.NumberOfElements(), typedesc);
     // fill channel names
     m_spec.channelnames.clear();
     int gscount = 0, rcount = 0, gcount = 0, bcount = 0;
-    char buf[3];
     for (int i = 0; i < m_cin.header.NumberOfElements(); i++) {
         switch (m_cin.header.ImageDescriptor(i)) {
         case cineon::kGrayscale:
             if (++gscount > 1) {
-                std::string ch = Strutil::sprintf("I%d", gscount);
+                std::string ch = Strutil::fmt::format("I{}", gscount);
                 m_spec.channelnames.push_back(ch);
             } else
                 m_spec.channelnames.emplace_back("I");
@@ -120,7 +120,7 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
         case cineon::kPrintingDensityRed:
         case cineon::kRec709Red:
             if (++gscount > 1) {
-                std::string ch = Strutil::sprintf("R%d", rcount);
+                std::string ch = Strutil::fmt::format("R{}", rcount);
                 m_spec.channelnames.push_back(ch);
             } else
                 m_spec.channelnames.emplace_back("R");
@@ -128,7 +128,7 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
         case cineon::kPrintingDensityGreen:
         case cineon::kRec709Green:
             if (++gcount > 1) {
-                std::string ch = Strutil::sprintf("G%d", gcount);
+                std::string ch = Strutil::fmt::format("G{}", gcount);
                 m_spec.channelnames.push_back(ch);
             } else
                 m_spec.channelnames.emplace_back("G");
@@ -136,14 +136,14 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
         case cineon::kPrintingDensityBlue:
         case cineon::kRec709Blue:
             if (++bcount > 1) {
-                std::string ch = Strutil::sprintf("B%d", bcount);
+                std::string ch = Strutil::fmt::format("B{}", bcount);
                 m_spec.channelnames.push_back(ch);
             } else
                 m_spec.channelnames.emplace_back("B");
             break;
         default:
-            std::string ch = Strutil::sprintf("channel%d",
-                                              m_spec.channelnames.size());
+            std::string ch = Strutil::fmt::format("channel{}",
+                                                  m_spec.channelnames.size());
             m_spec.channelnames.push_back(ch);
             break;
         }
@@ -180,15 +180,15 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     case cineon::kRec709Blue: m_spec.attribute("oiio:ColorSpace", "Rec709");
     default:
         // either grayscale or printing density
-        if (!isinf(m_cin.header.Gamma()) && m_cin.header.Gamma() != 0.0f)
+        if (!std::isinf(m_cin.header.Gamma()) && m_cin.header.Gamma() != 0.0f)
             // actual gamma value is read later on
             m_spec.attribute("oiio:ColorSpace",
-                             Strutil::sprintf("GammaCorrected%.2g", g));
+                             Strutil::fmt::format("Gamma{:.2g}", g));
         break;
     }
 
     // gamma exponent
-    if (!isinf(m_cin.header.Gamma()) && m_cin.header.Gamma() != 0.0f)
+    if (!std::isinf(m_cin.header.Gamma()) && m_cin.header.Gamma() != 0.0f)
         m_spec.attribute("oiio:Gamma", (float)m_cin.header.Gamma());
 #endif
 
@@ -200,8 +200,9 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
         // libcineon's date/time format is pretty close to OIIO's (libcineon
         // uses %Y:%m:%d:%H:%M:%S%Z)
         m_spec.attribute("DateTime",
-                         Strutil::sprintf("%s %s", m_cin.header.creationDate,
-                                          m_cin.header.creationTime));
+                         Strutil::fmt::format("{} {}",
+                                              m_cin.header.creationDate,
+                                              m_cin.header.creationTime));
         // FIXME: do something about the time zone
     }
 
@@ -222,40 +223,40 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
 // per-file attribs
 #define CINEON_SET_ATTRIB_S(x, n, s) m_spec.attribute(s, m_cin.header.x(n))
 #define CINEON_SET_ATTRIB(x, n) CINEON_SET_ATTRIB_S(x, n, "cineon:" #x)
-#define CINEON_SET_ATTRIB_BYTE(x)                                              \
-    if (m_cin.header.x() != 0xFF)                                              \
+#define CINEON_SET_ATTRIB_BYTE(x) \
+    if (m_cin.header.x() != 0xFF) \
     CINEON_SET_ATTRIB(x, )
-#define CINEON_SET_ATTRIB_INT(x)                                               \
-    if (static_cast<unsigned int>(m_cin.header.x()) != 0xFFFFFFFF)             \
+#define CINEON_SET_ATTRIB_INT(x)                                   \
+    if (static_cast<unsigned int>(m_cin.header.x()) != 0xFFFFFFFF) \
     CINEON_SET_ATTRIB(x, )
-#define CINEON_SET_ATTRIB_FLOAT(x)                                             \
-    if (!isinf(m_cin.header.x()))                                              \
+#define CINEON_SET_ATTRIB_FLOAT(x)     \
+    if (!std::isinf(m_cin.header.x())) \
     CINEON_SET_ATTRIB(x, )
-#define CINEON_SET_ATTRIB_COORDS(x)                                            \
-    m_cin.header.x(floats);                                                    \
-    if (!isinf(floats[0]) && !isinf(floats[1])                                 \
-        && !(floats[0] == 0. && floats[1] == 0.))                              \
+#define CINEON_SET_ATTRIB_COORDS(x)                      \
+    m_cin.header.x(floats);                              \
+    if (!std::isinf(floats[0]) && !std::isinf(floats[1]) \
+        && !(floats[0] == 0. && floats[1] == 0.))        \
     m_spec.attribute("cineon:" #x, TypeDesc(TypeDesc::FLOAT, 2), &floats[0])
-#define CINEON_SET_ATTRIB_STR(X, x)                                            \
-    if (m_cin.header.x[0] && m_cin.header.x[0] != char(-1))                    \
+#define CINEON_SET_ATTRIB_STR(X, x)                         \
+    if (m_cin.header.x[0] && m_cin.header.x[0] != char(-1)) \
     m_spec.attribute("cineon:" #X, m_cin.header.x)
 
 // per-element attribs
-#define CINEON_SET_ATTRIB_N(x, a, t, c)                                        \
-    for (int i = 0; i < m_cin.header.NumberOfElements(); i++) {                \
-        c(x) a[i] = m_cin.header.x(i);                                         \
-    }                                                                          \
-    m_spec.attribute("cineon:" #x,                                             \
-                     TypeDesc(TypeDesc::t, m_cin.header.NumberOfElements()),   \
+#define CINEON_SET_ATTRIB_N(x, a, t, c)                                      \
+    for (int i = 0; i < m_cin.header.NumberOfElements(); i++) {              \
+        c(x) a[i] = m_cin.header.x(i);                                       \
+    }                                                                        \
+    m_spec.attribute("cineon:" #x,                                           \
+                     TypeDesc(TypeDesc::t, m_cin.header.NumberOfElements()), \
                      &a)
-#define CINEON_CHECK_ATTRIB_FLOAT(x) if (!isinf(m_cin.header.x(i)))
-#define CINEON_SET_ATTRIB_FLOAT_N(x)                                           \
+#define CINEON_CHECK_ATTRIB_FLOAT(x) if (!std::isinf(m_cin.header.x(i)))
+#define CINEON_SET_ATTRIB_FLOAT_N(x) \
     CINEON_SET_ATTRIB_N(x, floats, FLOAT, CINEON_CHECK_ATTRIB_FLOAT)
 #define CINEON_CHECK_ATTRIB_INT(x) if (m_cin.header.x(i) != 0xFFFFFFFF)
-#define CINEON_SET_ATTRIB_INT_N(x)                                             \
+#define CINEON_SET_ATTRIB_INT_N(x) \
     CINEON_SET_ATTRIB_N(x, ints, UINT32, CINEON_CHECK_ATTRIB_INT)
 #define CINEON_CHECK_ATTRIB_BYTE(x) if (m_cin.header.x(i) != 0xFF)
-#define CINEON_SET_ATTRIB_BYTE_N(x)                                            \
+#define CINEON_SET_ATTRIB_BYTE_N(x) \
     CINEON_SET_ATTRIB_N(x, ints, UINT32, CINEON_CHECK_ATTRIB_BYTE)
 
     CINEON_SET_ATTRIB_STR(Version, version);
@@ -331,13 +332,16 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
         // libcineon's date/time format is pretty close to OIIO's (libcineon
         // uses %Y:%m:%d:%H:%M:%S%Z)
         m_spec.attribute("DateTime",
-                         Strutil::sprintf("%s %s", m_cin.header.sourceDate,
-                                          m_cin.header.sourceTime));
+                         Strutil::fmt::format("{} {}", m_cin.header.sourceDate,
+                                              m_cin.header.sourceTime));
         // FIXME: do something about the time zone
     }
-    m_cin.header.FilmEdgeCode(buf);
-    if (buf[0])
-        m_spec.attribute("cineon:FilmEdgeCode", buf);
+    {
+        char filmedge[17];
+        m_cin.header.FilmEdgeCode(filmedge, sizeof(filmedge));
+        if (filmedge[0])
+            m_spec.attribute("cineon:FilmEdgeCode", filmedge);
+    }
 
     // read in user data
     if (m_cin.header.UserSize() != 0 && m_cin.header.UserSize() != 0xFFFFFFFF) {
@@ -365,10 +369,10 @@ CineonInput::close()
 
 
 bool
-CineonInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+CineonInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                   void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
 

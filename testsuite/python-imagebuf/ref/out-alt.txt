@@ -1,4 +1,4 @@
-Constructing to be a writeable 320x240,4 UINT16:
+Constructing to be a writable 320x240,4 UINT16:
   resolution 320x240+0+0
   untiled
   4 channels: ('R', 'G', 'B', 'A')
@@ -6,7 +6,7 @@ Constructing to be a writeable 320x240,4 UINT16:
   alpha channel =  3
   z channel =  -1
   deep =  False
-Resetting to be a writeable 640x480,3 Float:
+Resetting to be a writable 640x480,3 Float:
   resolution 640x480+0+0
   untiled
   3 channels: ('R', 'G', 'B')
@@ -14,6 +14,20 @@ Resetting to be a writeable 640x480,3 Float:
   alpha channel =  -1
   z channel =  -1
   deep =  False
+Constructing from a bare numpy array:
+ from 3D, shape is float 0 2 0 3 0 1 0 4
+  resolution 2x3+0+0
+  untiled
+  4 channels: ('R', 'G', 'B', 'A')
+  format =  float
+  alpha channel =  3
+  z channel =  -1
+  deep =  False
+  pixel (0,1) = 0.3 0 0.8 1
+
+ from 2D uint8, shape is uint8 0 2 0 3 0 1 0 1
+
+ from 4D, shape is float 0 2 0 2 0 2 0 4
 
 Testing read of ../common/textures/grid.tx:
 subimage: 0  /  1
@@ -51,10 +65,10 @@ Printing the whole spec to be sure:
   textureformat = "Plain Texture"
   wrapmodes = "black,black"
   fovcot = 1.0
+  tiff:Compression = 8
   tiff:PhotometricInterpretation = 2
   tiff:PlanarConfiguration = 1
   planarconfig = "contig"
-  tiff:Compression = 8
   compression = "zip"
   PixelAspectRatio = 1.0
   oiio:AverageColor = "0.608983,0.608434,0.608728,1"
@@ -79,10 +93,10 @@ Resetting to a different MIP level:
   textureformat = "Plain Texture"
   wrapmodes = "black,black"
   fovcot = 1.0
+  tiff:Compression = 8
   tiff:PhotometricInterpretation = 2
   tiff:PlanarConfiguration = 1
   planarconfig = "contig"
-  tiff:Compression = 8
   compression = "zip"
   PixelAspectRatio = 1.0
   oiio:AverageColor = "0.608983,0.608434,0.608728,1"
@@ -101,8 +115,8 @@ Pixel 1,0 is (0.0, 1.0, 0.0)
 Pixel 0,1 is (0.0, 0.0, 1.0)
 Interpolating 1,0.5 -> (0.5, 0.5, 0.0)
 Interpolating NDC 0.25,0.5 -> (0.5, 0.0, 0.5)
-Interpolating bicubic 0.25,0.5 -> (0.31944447755813599, 0.31944447755813599, 0.079861126840114594)
-Interpolating NDC bicubic 0.25,0.5 -> (0.31944447755813599, 0.079861126840114594, 0.31944447755813599)
+Interpolating bicubic 0.25,0.5 -> (0.31944, 0.31944, 0.079861)
+Interpolating NDC bicubic 0.25,0.5 -> (0.31944, 0.079861, 0.31944)
 The whole image is:  [[[ 1.  0.  0.]
   [ 0.  1.  0.]]
 
@@ -133,6 +147,9 @@ Sample 2
 	c 2 : 0.000
 	c 3 : 0.000
 	c 4 : 43.000
+Writing multi-image file
+Testing uninitialized bufs
+  empty nchannels: 0
 
 Done.
 Comparing "out.tif" and "ref/out.tif"
@@ -146,4 +163,6 @@ PASS
 Comparing "outarrayH.tif" and "ref/outarrayH.tif"
 PASS
 Comparing "perchan.exr" and "ref/perchan.exr"
+PASS
+Comparing "multipart.exr" and "ref/multipart.exr"
 PASS

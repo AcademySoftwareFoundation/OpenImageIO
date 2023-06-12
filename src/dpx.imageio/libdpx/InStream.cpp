@@ -5,7 +5,7 @@
  * Copyright (c) 2009, Patrick A. Palmer.
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
+ * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *
  *   - Redistributions of source code must retain the above copyright notice,
@@ -19,110 +19,67 @@
  *     contributors may be used to endorse or promote products derived from
  *     this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
- 
 
-#include <cstdio>
-
-#include <OpenImageIO/filesystem.h>
+// Alterations:
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: BSD-3-Clause
+// https://github.com/OpenImageIO/oiio
 
 #include "DPXStream.h"
 
-
-InStream::InStream() : fp(0)
-{
-}
-
-
-InStream::~InStream()
-{
-}
-
-
-bool InStream::Open(const char *f)
-{
-	if (this->fp)
-		this->Close();
-	if ((this->fp = OIIO::Filesystem::fopen(f, "rb")) == 0)
-		return false;
-		
-	return true;
-}
-
-
-void InStream::Close()
-{
-	if (this->fp)
-	{
-		::fclose(this->fp);
-		this->fp = 0;
-	}
-}
+#include <cstdio>
 
 
 void InStream::Rewind()
 {
-	if (this->fp)
-		::rewind(fp);
+    if (IsValid())
+        m_io->seek(0);
 }
-
 
 bool InStream::Seek(long offset, Origin origin)
 {
-	int o = 0;
-	switch (origin)
-	{
-	case kCurrent:
-		o = SEEK_CUR;
-		break;
-	case kEnd:
-		o = SEEK_END;
-		break;
-	case kStart:
-		o = SEEK_SET;
-		break;
-	}
-	
-	if (this->fp == 0)
-		return false;
-	return (::fseek(this->fp, offset, o) == 0);
+    if (!IsValid())
+        return false;
+
+    int ioOrigin;
+    switch (origin) {
+    case kStart: ioOrigin = SEEK_SET; break;
+    case kCurrent: ioOrigin = SEEK_CUR; break;
+    case kEnd: ioOrigin = SEEK_END; break;
+    default: ioOrigin = SEEK_SET; break;
+    }
+
+    return m_io->seek(offset, ioOrigin);
 }
-
-
 
 size_t InStream::Read(void *buf, const size_t size)
 {
-	if (this->fp == 0)
-		return 0;
-	return ::fread(buf, 1, size, this->fp);
+    return IsValid() ? m_io->read(buf, size) : false;
 }
-
 
 size_t InStream::ReadDirect(void *buf, const size_t size)
 {
-	return this->Read(buf, size);
+    return Read(buf, size);
 }
 
-
-bool InStream::EndOfFile() const 
+bool InStream::EndOfFile() const
 {
-	if (this->fp == 0)
-		return true;
-	return ::feof(this->fp);
+    return IsValid() ? (size_t(m_io->tell()) >= m_io->size()) : true;
 }
 
-
-
-
-
+long InStream::Tell()
+{
+    return IsValid() ? m_io->tell() : -1;
+}

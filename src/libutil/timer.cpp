@@ -1,19 +1,24 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #include <cstdio>
 #include <cstdlib>
 
-#include <OpenImageIO/strutil.h>
-#include <OpenImageIO/thread.h>
 #include <OpenImageIO/timer.h>
+
+#ifdef _WIN32
+#    define WIN32_LEAN_AND_MEAN
+#    define VC_EXTRALEAN
+#    define NOMINMAX
+#    include <windows.h>
+#endif
 
 
 OIIO_NAMESPACE_BEGIN
 
-double Timer::seconds_per_tick = 1.0e-6;
-
+double Timer::seconds_per_tick;
+Timer::ticks_t Timer::ticks_per_second;
 
 class TimerSetupOnce {
 public:
@@ -23,6 +28,7 @@ public:
         // From MSDN web site
         LARGE_INTEGER freq;
         QueryPerformanceFrequency(&freq);
+        Timer::ticks_per_second = Timer::ticks_t(freq.QuadPart);
         Timer::seconds_per_tick = 1.0 / (double)freq.QuadPart;
 #elif defined(__APPLE__)
         // NOTE(boulos): Both this value and that of the windows
@@ -35,12 +41,34 @@ public:
         mach_timebase_info(&time_info);
         Timer::seconds_per_tick = (1e-9 * static_cast<double>(time_info.numer))
                                   / static_cast<double>(time_info.denom);
+        Timer::ticks_per_second = Timer::ticks_t(1.0f
+                                                 / Timer::seconds_per_tick);
+#elif OIIO_TIMER_LINUX_USE_clock_gettime
+        // Defaults based on a nanosecond resolution timer: clock_gettime()
+        Timer::seconds_per_tick = 1.0e-9;
+        Timer::ticks_per_second = 1000000000;
+#else
+        // Defaults based on a microsecond resolution timer: gettimeofday()
+        Timer::seconds_per_tick = 1.0e-6;
+        Timer::ticks_per_second = 1000000;
 #endif
+        // Note: For anything but Windows and Mac, we rely on gettimeofday,
+        // which is microsecond timing, so there's nothing to set up.
     }
 };
 
 static TimerSetupOnce once;
 
-
+#ifdef _WIN32
+// a non-inline function on Windows, to avoid
+// including windows headers from OIIO public header.
+Timer::ticks_t
+Timer::now(void) const
+{
+    LARGE_INTEGER n;
+    QueryPerformanceCounter(&n);
+    return n.QuadPart;
+}
+#endif
 
 OIIO_NAMESPACE_END

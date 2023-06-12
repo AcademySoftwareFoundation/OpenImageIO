@@ -1,11 +1,11 @@
 # Copyright 2008-present Contributors to the OpenImageIO project.
 # SPDX-License-Identifier: BSD-3-Clause
-# https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+# https://github.com/OpenImageIO/oiio
 
 # Is the named package "enabled" via our disabling convention? If either
 # USE_pkgname (or the all-uppercase USE_PKGNAME, or ENABLE_pkgname, or
 # ENABLE_PKGNAME) exists as either a CMake or environment variable, is
-# nonempty by contains a non-true/nonnzero value, store false in the
+# nonempty by contains a non-true/nonzero value, store false in the
 # variable named by <enablevar>, otherwise store true.
 function (check_is_enabled pkgname enablevar)
     string (TOUPPER ${pkgname} pkgname_upper)

@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #include <cmath>
 #include <cstdio>
@@ -17,20 +17,24 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class PNGOutput final : public ImageOutput {
 public:
     PNGOutput();
-    virtual ~PNGOutput();
-    virtual const char* format_name(void) const override { return "png"; }
-    virtual int supports(string_view feature) const override
+    ~PNGOutput() override;
+    const char* format_name(void) const override { return "png"; }
+    int supports(string_view feature) const override
     {
-        return (feature == "alpha" || feature == "ioproxy");
+        return (feature == "alpha" || feature == "ioproxy"
+#ifdef PNG_eXIf_SUPPORTED
+                || feature == "exif"
+#endif
+        );
     }
-    virtual bool open(const std::string& name, const ImageSpec& spec,
-                      OpenMode mode = Create) override;
-    virtual bool close() override;
-    virtual bool write_scanline(int y, int z, TypeDesc format, const void* data,
-                                stride_t xstride) override;
-    virtual bool write_tile(int x, int y, int z, TypeDesc format,
-                            const void* data, stride_t xstride,
-                            stride_t ystride, stride_t zstride) override;
+    bool open(const std::string& name, const ImageSpec& spec,
+              OpenMode mode = Create) override;
+    bool close() override;
+    bool write_scanline(int y, int z, TypeDesc format, const void* data,
+                        stride_t xstride) override;
+    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
+                    stride_t xstride, stride_t ystride,
+                    stride_t zstride) override;
 
 private:
     std::string m_filename;  ///< Stash the filename
@@ -43,9 +47,7 @@ private:
     std::vector<unsigned char> m_scratch;
     std::vector<png_text> m_pngtext;
     std::vector<unsigned char> m_tilebuffer;
-    std::unique_ptr<Filesystem::IOProxy> m_local_io;
-    Filesystem::IOProxy* m_io = nullptr;
-    bool m_err                = false;
+    bool m_err = false;
 
     // Initialize private members to pre-opened state
     void init(void)
@@ -55,8 +57,7 @@ private:
         m_convert_alpha = true;
         m_gamma         = 1.0;
         m_pngtext.clear();
-        m_local_io.reset();
-        m_io  = nullptr;
+        ioproxy_clear();
         m_err = false;
     }
 
@@ -70,25 +71,26 @@ private:
                                  png_size_t length)
     {
         PNGOutput* pngoutput = (PNGOutput*)png_get_io_ptr(png_ptr);
-        DASSERT(pngoutput);
-        size_t bytes = pngoutput->m_io->write(data, length);
-        if (bytes != length) {
-            pngoutput->errorf("Write error");
+        OIIO_DASSERT(pngoutput);
+        if (!pngoutput->iowrite(data, length))
             pngoutput->m_err = true;
-        }
     }
 
     static void PngFlushCallback(png_structp png_ptr)
     {
         PNGOutput* pngoutput = (PNGOutput*)png_get_io_ptr(png_ptr);
-        DASSERT(pngoutput);
-        pngoutput->m_io->flush();
+        OIIO_DASSERT(pngoutput);
+        pngoutput->ioproxy()->flush();
     }
+
+    template<class T>
+    void deassociateAlpha(T* data, int size, int channels, int alpha_channel,
+                          float gamma);
 };
 
 
 
-// Obligatory material to make this a recognizeable imageio plugin:
+// Obligatory material to make this a recognizable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageOutput*
@@ -121,13 +123,8 @@ bool
 PNGOutput::open(const std::string& name, const ImageSpec& userspec,
                 OpenMode mode)
 {
-    if (mode != Create) {
-        errorf("%s does not support subimages or MIP levels", format_name());
+    if (!check_open(mode, userspec, { 0, 65535, 0, 65535, 0, 1, 0, 256 }))
         return false;
-    }
-
-    close();            // Close any already-opened file
-    m_spec = userspec;  // Stash the spec
 
     // If not uint8 or uint16, default to uint8
     if (m_spec.format != TypeDesc::UINT8 && m_spec.format != TypeDesc::UINT16)
@@ -135,23 +132,15 @@ PNGOutput::open(const std::string& name, const ImageSpec& userspec,
 
     // See if we were requested to write to a memory buffer, and if so,
     // extract the pointer.
-    auto ioparam = m_spec.find_attribute("oiio:ioproxy", TypeDesc::PTR);
-    m_io         = ioparam ? ioparam->get<Filesystem::IOProxy*>() : nullptr;
-    if (!m_io) {
-        // If no proxy was supplied, create a file writer
-        m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Mode::Write);
-        m_local_io.reset(m_io);
-    }
-    if (!m_io || m_io->mode() != Filesystem::IOProxy::Mode::Write) {
-        errorf("Could not open \"%s\"", name);
+    ioproxy_retrieve_from_config(m_spec);
+    if (!ioproxy_use_or_open(name))
         return false;
-    }
 
     std::string s = PNG_pvt::create_write_struct(m_png, m_info, m_color_type,
-                                                 m_spec);
+                                                 m_spec, this);
     if (s.length()) {
         close();
-        errorf("%s", s);
+        errorfmt("{}", s);
         return false;
     }
 
@@ -180,8 +169,42 @@ PNGOutput::open(const std::string& name, const ImageSpec& userspec,
         png_set_compression_strategy(m_png, Z_DEFAULT_STRATEGY);
     }
 
-    PNG_pvt::write_info(m_png, m_info, m_color_type, m_spec, m_pngtext,
-                        m_convert_alpha, m_gamma);
+    png_set_filter(m_png, 0,
+                   spec().get_int_attribute("png:filter", PNG_NO_FILTERS));
+    // https://www.w3.org/TR/PNG-Encoders.html#E.Filter-selection
+    // https://www.w3.org/TR/PNG-Rationale.html#R.Filtering
+    // The official advice is to PNG_NO_FILTER for palette or < 8 bpp
+    // images, but we and one of the others may be fine for >= 8 bit
+    // greyscale or color images (they aren't very prescriptive, noting that
+    // different filters may be better for different images.
+    // We have found the tradeoff complex, in fact as seen in
+    // https://github.com/OpenImageIO/oiio/issues/2645
+    // where we showed that across several images, 8 (PNG_FILTER_NONE --
+    // don't ask me how that's different from PNG_NO_FILTERS) had the
+    // fastest performance, but also made the largest files. I had trouble
+    // finding a filter choice that for "ordinary" images consistently
+    // performed better than the default on both time and resulting file
+    // size. So for now, we are keeping the default 0 (PNG_NO_FILTERS).
+
+#if defined(PNG_SKIP_sRGB_CHECK_PROFILE) && defined(PNG_SET_OPTION_SUPPORTED)
+    // libpng by default checks ICC profiles and are very strict, treating
+    // it as a serious error if it doesn't match th profile it thinks is
+    // right for sRGB. This call disables that behavior, which tends to have
+    // many false positives. Some references to discussion about this:
+    //    https://github.com/kornelski/pngquant/issues/190
+    //    https://sourceforge.net/p/png-mng/mailman/message/32003609/
+    //    https://bugzilla.gnome.org/show_bug.cgi?id=721135
+    png_set_option(m_png, PNG_SKIP_sRGB_CHECK_PROFILE, PNG_OPTION_ON);
+#endif
+
+    s = PNG_pvt::write_info(m_png, m_info, m_color_type, m_spec, m_pngtext,
+                            m_convert_alpha, m_gamma);
+
+    if (s.length()) {
+        close();
+        errorfmt("{}", s);
+        return false;
+    }
 
     m_dither = (m_spec.format == TypeDesc::UINT8)
                    ? m_spec.get_int_attribute("oiio:dither", 0)
@@ -203,7 +226,7 @@ PNGOutput::open(const std::string& name, const ImageSpec& userspec,
 bool
 PNGOutput::close()
 {
-    if (!m_io) {  // already closed
+    if (!ioproxy_opened()) {  // already closed
         init();
         return true;
     }
@@ -211,14 +234,18 @@ PNGOutput::close()
     bool ok = true;
     if (m_spec.tile_width) {
         // Handle tile emulation -- output the buffered pixels
-        ASSERT(m_tilebuffer.size());
+        OIIO_ASSERT(m_tilebuffer.size());
         ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
                               m_spec.format, &m_tilebuffer[0]);
         std::vector<unsigned char>().swap(m_tilebuffer);
     }
 
     if (m_png) {
-        PNG_pvt::finish_image(m_png, m_info);
+        PNG_pvt::write_end(m_png, m_info);
+        if (m_png || m_info)
+            PNG_pvt::destroy_write_struct(m_png, m_info);
+        m_png  = nullptr;
+        m_info = nullptr;
     }
 
     init();  // re-initialize
@@ -228,9 +255,9 @@ PNGOutput::close()
 
 
 template<class T>
-static void
-deassociateAlpha(T* data, int size, int channels, int alpha_channel,
-                 float gamma)
+void
+PNGOutput::deassociateAlpha(T* data, int size, int channels, int alpha_channel,
+                            float gamma)
 {
     unsigned int max = std::numeric_limits<T>::max();
     if (gamma == 1) {
@@ -287,7 +314,7 @@ PNGOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
         swap_endian((unsigned short*)data, m_spec.width * m_spec.nchannels);
 
     if (!PNG_pvt::write_row(m_png, (png_byte*)data)) {
-        errorf("PNG library error");
+        errorfmt("PNG library error");
         return false;
     }
 

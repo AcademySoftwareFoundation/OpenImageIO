@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 /////////////////////////////////////////////////////////////////////////
 // Tests related to ImageInput and ImageOutput
@@ -8,6 +8,7 @@
 
 #include <iostream>
 
+#include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imagebuf.h>
@@ -18,6 +19,30 @@
 using namespace OIIO;
 
 
+static std::string onlyformat = Sysutil::getenv("IMAGEINOUTTEST_ONLY_FORMAT");
+static bool nodelete          = false;  // Don't delete the test files
+
+
+
+static void
+getargs(int argc, char* argv[])
+{
+    // clang-format off
+    ArgParse ap;
+    ap.intro("imageinout_test -- unit test and benchmarks for image formats\n"
+             OIIO_INTRO_STRING)
+      .usage("imageinout_test [options]");
+
+    ap.arg("--no-delete", &nodelete)
+      .help("Don't delete temporary test files");
+    ap.arg("--onlyformat %s:FORMAT", &onlyformat)
+      .help("Test only one format");
+
+    ap.parse_args(argc, (const char**)argv);
+    // clang-format on
+}
+
+
 
 // Generate a small test image appropriate to the given format
 static ImageBuf
@@ -25,41 +50,59 @@ make_test_image(string_view formatname)
 {
     ImageBuf buf;
     auto out = ImageOutput::create(formatname);
-    ASSERT(out);
+    OIIO_DASSERT(out);
+    ImageSpec spec(64, 64, 4, TypeFloat);
+    float pval = 1.0f;
+    // Fill with 0 for lossy HEIF
+    if (formatname == "heif")
+        pval = 0.0f;
+
+    // Accommodate limited numbers of channels
     if (formatname == "zfile" || formatname == "fits")
-        buf.reset(ImageSpec(64, 64, 1, TypeFloat));
+        spec.nchannels = 1;  // these formats are single channel
     else if (!out->supports("alpha"))
-        buf.reset(ImageSpec(64, 64, 3, TypeFloat));
-    else
-        buf.reset(ImageSpec(64, 64, 4, TypeFloat));
-    ImageBufAlgo::fill(buf, { 1.0f, 1.0f, 1.0f, 1.0f });
+        spec.nchannels = std::min(spec.nchannels, 3);
+
+    // Webp library seems to automatically truncate alpha when it's 1.0,
+    // botching our comparisons. Just ease the headache of tests by sticking
+    // to RGB.
+    if (formatname == "webp")
+        spec.nchannels = 3;
+
+    // Force a fixed datetime metadata so it can't differ between writes
+    // and make different file patterns for these tests.
+    spec.attribute("DateTime", "01/01/2000 00:00:00");
+
+    buf.reset(spec);
+    ImageBufAlgo::fill(buf, { pval, pval, pval, 1.0f });
     return buf;
 }
 
 
 
-#define CHECKED(obj, call)                                                     \
-    if (!obj->call) {                                                          \
-        if (do_asserts)                                                        \
-            OIIO_CHECK_ASSERT(false && #call);                                 \
-        if (errmsg)                                                            \
-            *errmsg = obj->geterror();                                         \
-        else                                                                   \
-            std::cout << "      " << obj->geterror() << "\n";                  \
-        return false;                                                          \
+#define CHECKED(obj, call)                                    \
+    if (!obj->call) {                                         \
+        if (do_asserts)                                       \
+            OIIO_CHECK_ASSERT(false && #call);                \
+        if (errmsg)                                           \
+            *errmsg = obj->geterror();                        \
+        else                                                  \
+            std::cout << "      " << obj->geterror() << "\n"; \
+        return false;                                         \
     }
 
 
 static bool
 checked_write(ImageOutput* out, string_view filename, const ImageSpec& spec,
               TypeDesc type, const void* data, bool do_asserts = true,
-              std::string* errmsg = nullptr)
+              std::string* errmsg          = nullptr,
+              Filesystem::IOProxy* ioproxy = nullptr)
 {
     if (errmsg)
         *errmsg = "";
     std::unique_ptr<ImageOutput> out_local;
     if (!out) {
-        out_local = ImageOutput::create(filename);
+        out_local = ImageOutput::create(filename, ioproxy);
         out       = out_local.get();
     }
     OIIO_CHECK_ASSERT(out && "Failed to create output");
@@ -92,42 +135,84 @@ checked_read(ImageInput* in, string_view filename,
     }
     data.resize(in->spec().image_pixels() * in->spec().nchannels
                 * sizeof(float));
-    CHECKED(in, read_image(TypeFloat, data.data()));
+    CHECKED(in,
+            read_image(0, 0, 0, in->spec().nchannels, TypeFloat, data.data()));
     CHECKED(in, close());
     return true;
 }
 
 
 
-// Helper for test_all_formats: write the pixels in buf to an in-memrory
+// Helper for test_all_formats: write the pixels in buf to an in-memory
 // IOProxy, make sure it matches byte for byte the file named by disk_filename.
 static bool
 test_write_proxy(string_view formatname, string_view extension,
-                 const std::string& disk_filename, const ImageBuf& buf)
+                 const std::string& disk_filename, ImageBuf& buf)
 {
+    std::cout << "    Writing Proxy " << formatname << " ... ";
+    std::cout.flush();
     bool ok = true;
     Sysutil::Term term(stdout);
-    Filesystem::IOVecOutput outproxy;
-    ImageSpec proxyspec(buf.spec());
-    void* ptr = &outproxy;
-    proxyspec.attribute("oiio:ioproxy", TypeDesc::PTR, &ptr);
-    std::string memname = Strutil::sprintf("mem.%s", extension);
-    ok = checked_write(nullptr, memname, proxyspec, buf.spec().format,
-                       buf.localpixels());
 
-    // The in-memory vector we wrote should match, byte-for-byte,
-    // the version we wrote to disk earlier.
+    // Use ImageOutput.write_image interface to write to outproxy
+    Filesystem::IOVecOutput outproxy;
+    ok = checked_write(nullptr, disk_filename, buf.spec(), buf.spec().format,
+                       buf.localpixels(), true, nullptr, &outproxy);
+
+    // Use ImageBuf.write interface to write to outproxybuf
+    Filesystem::IOVecOutput outproxybuf;
+    buf.set_write_ioproxy(&outproxybuf);
+    buf.write(disk_filename);
+
+    if (nodelete) {
+        // Debugging -- dump the proxies to disk
+        Filesystem::write_binary_file(Strutil::fmt::format("outproxy.{}",
+                                                           extension),
+                                      outproxy.buffer());
+        Filesystem::write_binary_file(Strutil::fmt::format("outproxybuf.{}",
+                                                           extension),
+                                      outproxybuf.buffer());
+    }
+    // Now read back in the actual disk file we wrote earlier.
     uint64_t bytes_written = Filesystem::file_size(disk_filename);
     std::vector<unsigned char> readbuf(bytes_written);
     size_t bread = Filesystem::read_bytes(disk_filename, readbuf.data(),
                                           bytes_written);
-    ok           = (bread == bytes_written && outproxy.buffer() == readbuf);
-    OIIO_CHECK_ASSERT(ok && "Write proxy didn't match write file");
+
+    // OK, now we have three vectors:
+    //   - readbuf contains the bytes we actually wrote to disk
+    //   - outproxy.buffer() contains the bytes we wrote to the proxy using
+    //     ImageOutput.write_image().
+    //   - outproxybuf.buffer() contains the bytes we wrote to the proxy using
+    //     ImageBuf.write().
+    // These should all match, byte-for-byte.
+    ok = (bread == bytes_written && outproxy.buffer() == readbuf
+          && outproxybuf.buffer() == readbuf);
+    OIIO_CHECK_ASSERT(bread == bytes_written
+                      && "Bytes read didn't match bytes written");
+    OIIO_CHECK_ASSERT(outproxy.buffer() == readbuf
+                      && "Write proxy via ImageOutput didn't match write file");
+    if (outproxy.buffer() != readbuf) {
+        Strutil::print("Write proxy via ImageBuf didn't match write file\n");
+        Strutil::print("Sizes outproxy {} vs readbuf {}\n",
+                       outproxy.buffer().size(), readbuf.size());
+#if 0
+        for (size_t i = 0, e = std::min(outproxy.buffer().size(), readbuf.size());
+             i < e; ++i) {
+            Strutil::print(" {0:2d}: {1:02x} '{1:c}' vs {2:02x} '{2:c}'\n",
+                           i, outproxy.buffer()[i], readbuf[i]);
+            if (outproxy.buffer()[i] != readbuf[i]) {
+                Strutil::print("  Mismatch at byte {} outproxy {} vs readbuf {}\n",
+                               i, outproxy.buffer()[i], readbuf[i]);
+                break;
+            }
+        }
+#endif
+    }
+    OIIO_CHECK_ASSERT(outproxybuf.buffer() == readbuf
+                      && "Write proxy via ImageBuf didn't match write file");
     if (ok)
         std::cout << term.ansi("green", "OK\n");
-    else {
-        Strutil::printf("Read size=%d write size=%d\n", bread, bytes_written);
-    }
     return ok;
 }
 
@@ -142,43 +227,66 @@ test_read_proxy(string_view formatname, string_view extension,
 {
     bool ok = true;
     Sysutil::Term term(stdout);
+    std::cout << "    Reading Proxy " << formatname << " ... ";
+    std::cout.flush();
+
+    // Read the disk file into readbuf as a blob -- just a byte-for-byte
+    // copy of the file, but in memory.
     uint64_t bytes_written = Filesystem::file_size(disk_filename);
     std::vector<unsigned char> readbuf(bytes_written);
     Filesystem::read_bytes(disk_filename, readbuf.data(), bytes_written);
-    std::cout << "    Reading Proxy " << formatname << " ... ";
-    std::cout.flush();
+
+    // Read the in-memory file using an ioproxy, with ImageInput
     Filesystem::IOMemReader inproxy(readbuf);
-    void* ptr = &inproxy;
-    ImageSpec config;
-    config.attribute("oiio:ioproxy", TypeDesc::PTR, &ptr);
-    std::string memname = Strutil::sprintf("mem.%s", extension);
-    auto in             = ImageInput::open(memname, &config);
+    std::string memname = Strutil::concat("mem.", extension);
+    auto in             = ImageInput::open(memname, nullptr, &inproxy);
     OIIO_CHECK_ASSERT(in && "Failed to open input with proxy");
     if (in) {
-        readbuf.clear();
-        std::vector<unsigned char> readbuf2;
-        ok = checked_read(in.get(), memname, readbuf2, true);
-        ok &= memcmp(readbuf2.data(), buf.localpixels(), readbuf2.size()) == 0;
-        OIIO_CHECK_ASSERT(ok && "Read proxy didn't match original");
-        if (ok)
-            std::cout << term.ansi("green", "OK\n");
+        std::vector<unsigned char> readpixels;
+        ok &= checked_read(in.get(), memname, readpixels, true);
+        ok &= memcmp(readpixels.data(), buf.localpixels(), readpixels.size())
+              == 0;
+        OIIO_CHECK_ASSERT(
+            ok && "Read proxy with ImageInput didn't match original");
     } else {
+        ok = false;
         std::cout << "Error was: " << OIIO::geterror() << "\n";
     }
+
+    // Read the in-memory file using an ioproxy again, but with ImageInput
+    Filesystem::IOMemReader inproxybuf(readbuf);
+    ImageBuf inbuf(memname, 0, 0, nullptr, nullptr, &inproxybuf);
+    bool ok2 = inbuf.read(0, 0, /*force*/ true, TypeFloat);
+    if (!ok2) {
+        std::cout << "Read failed: " << inbuf.geterror() << "\n";
+        OIIO_CHECK_ASSERT(ok2);
+        return false;
+    }
+    OIIO_ASSERT(inbuf.localpixels());
+    OIIO_ASSERT(buf.localpixels());
+    OIIO_CHECK_EQUAL(buf.spec().format, inbuf.spec().format);
+    OIIO_CHECK_EQUAL(buf.spec().image_bytes(), inbuf.spec().image_bytes());
+    ok2 &= memcmp(inbuf.localpixels(), buf.localpixels(),
+                  buf.spec().image_bytes())
+           == 0;
+    OIIO_CHECK_ASSERT(ok2 && "Read proxy with ImageBuf didn't match original");
+    ok &= ok2;
+
+    if (ok)
+        std::cout << term.ansi("green", "OK\n");
     return ok;
 }
 
 
 
 // Test writer's ability to detect and recover from errors when asked to
-// write an unwriteable file (such as in a nonexistant directory).
+// write an unwritable file (such as in a nonexistent directory).
 static bool
-test_write_unwriteable(string_view formatname, string_view extension,
-                       const ImageBuf& buf)
+test_write_unwritable(string_view extension, const ImageBuf& buf)
 {
     bool ok = true;
     Sysutil::Term term(stdout);
-    std::string bad_filename = Strutil::sprintf("bad/bad.%s", extension);
+    std::string bad_filename = Strutil::concat("bad/bad.", extension);
     std::cout << "    Writing bad to " << bad_filename << " ... ";
     auto badout = ImageOutput::create(bad_filename);
     if (badout) {
@@ -211,19 +319,20 @@ test_all_formats()
         auto fmtexts           = Strutil::splitsv(e, ":");
         string_view formatname = fmtexts[0];
         // Skip "formats" that aren't amenable to this kind of testing
-        if (formatname == "null" || formatname == "socket")
+        if (formatname == "null" || formatname == "term")
             continue;
-        // Field3d very finicky. Skip for now. FIXME?
-        if (formatname == "field3d")
+
+        if (onlyformat.size() && formatname != onlyformat)
             continue;
+
         auto extensions = Strutil::splitsv(fmtexts[1], ",");
         bool ok         = true;
 
         //
         // Try writing the file
         //
-        std::string filename = Strutil::sprintf("imageinout_test-%s.%s",
-                                                formatname, extensions[0]);
+        std::string filename = Strutil::fmt::format("imageinout_test-{}.{}",
+                                                    formatname, extensions[0]);
         auto out             = ImageOutput::create(filename);
         if (!out) {
             std::cout << "  [skipping " << formatname << " -- no writer]\n";
@@ -274,13 +383,14 @@ test_all_formats()
             test_read_proxy(formatname, extensions[0], filename, buf);
 
         //
-        // Test what happens when we write to an unwriteable or nonexistant
+        // Test what happens when we write to an unwritable or nonexistent
         // directory. It should not crash! But appropriately return some
         // error.
         //
-        test_write_unwriteable(formatname, extensions[0], buf);
+        test_write_unwritable(extensions[0], buf);
 
-        Filesystem::remove(filename);
+        if (!nodelete)
+            Filesystem::remove(filename);
     }
     std::cout << "\n";
 }
@@ -310,7 +420,7 @@ test_read_tricky_sizes()
     // Read in, make sure it's right, several different ways
     {
         auto imgin = ImageInput::open(srcfilename);
-        imgin->read_image(TypeUInt8, buf, 4 /* xstride */);
+        imgin->read_image(0, 0, 0, 4, TypeUInt8, buf, 4 /* xstride */);
         OIIO_CHECK_EQUAL(int(buf[0][0][0]), 128);
         OIIO_CHECK_EQUAL(int(buf[0][0][1]), 0);
         OIIO_CHECK_EQUAL(int(buf[0][0][2]), 0);
@@ -342,7 +452,7 @@ test_read_tricky_sizes()
     {
         memset(buf, 0, 4 * 4 * 4);
         auto imgin = ImageInput::open(srcfilename);
-        imgin->read_image(TypeUInt8, buf, 4 /* xstride */);
+        imgin->read_image(0, 0, 0, 4, TypeUInt8, buf, 4 /* xstride */);
         OIIO_CHECK_EQUAL(int(buf[0][0][0]), 128);
         OIIO_CHECK_EQUAL(int(buf[0][0][1]), 0);
         OIIO_CHECK_EQUAL(int(buf[0][0][2]), 0);
@@ -375,8 +485,10 @@ test_read_tricky_sizes()
 
 
 int
-main(int argc, char** argv)
+main(int argc, char* argv[])
 {
+    getargs(argc, argv);
+
     test_all_formats();
     test_read_tricky_sizes();
 

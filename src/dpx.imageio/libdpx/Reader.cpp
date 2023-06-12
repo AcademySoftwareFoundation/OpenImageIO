@@ -48,7 +48,7 @@
 dpx::Reader::Reader() : fd(0), rio(0)
 {
 	// initialize all of the Codec* to NULL
-	for (int i = 0; i < MAX_ELEMENTS; i++)
+	for (int i = 0; i < DPX_MAX_ELEMENTS; i++)
 		this->codex[i] = 0;
 }
 
@@ -63,7 +63,7 @@ dpx::Reader::~Reader()
 void dpx::Reader::Reset()
 {
 	// delete all of the Codec * entries	
-	for (int i = 0; i < MAX_ELEMENTS; i++)
+	for (int i = 0; i < DPX_MAX_ELEMENTS; i++)
 		if (this->codex[i])
 		{
 			delete codex[i];
@@ -114,7 +114,7 @@ bool dpx::Reader::ReadImage(const int element, void *data)
 bool dpx::Reader::ReadBlock(const int element, unsigned char *data, Block &block)
 {
 	// make sure the range is good
-	if (element < 0 || element >= MAX_ELEMENTS)
+	if (element < 0 || element >= DPX_MAX_ELEMENTS)
 		return false;
 
 	// make sure the entry is valid

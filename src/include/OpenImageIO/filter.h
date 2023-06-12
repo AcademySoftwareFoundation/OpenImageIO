@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 #pragma once
@@ -14,7 +14,7 @@ OIIO_NAMESPACE_BEGIN
 
 /// Quick structure that describes a filter.
 ///
-class OIIO_API FilterDesc {
+class OIIO_UTIL_API FilterDesc {
 public:
     const char* name;  ///< name of the filter
     int dim;           ///< dimensionality: 1 or 2
@@ -28,7 +28,7 @@ public:
 
 /// Filter1D is the abstract data type for a 1D filter.
 /// The filters are NOT expected to have their results normalized.
-class OIIO_API Filter1D {
+class OIIO_UTIL_API Filter1D {
 public:
     Filter1D(float width)
         : m_w(width)
@@ -39,7 +39,7 @@ public:
     /// Get the width of the filter
     float width(void) const { return m_w; }
 
-    /// Evalutate the filter at an x position (relative to filter center)
+    /// Evaluate the filter at an x position (relative to filter center)
     virtual float operator()(float x) const = 0;
 
     /// Return the name of the filter, e.g., "box", "gaussian"
@@ -70,7 +70,7 @@ protected:
 
 /// Filter2D is the abstract data type for a 2D filter.
 /// The filters are NOT expected to have their results normalized.
-class OIIO_API Filter2D {
+class OIIO_UTIL_API Filter2D {
 public:
     Filter2D(float width, float height)
         : m_w(width)
@@ -88,7 +88,7 @@ public:
     ///
     virtual bool separable() const { return false; }
 
-    /// Evalutate the filter at an x and y position (relative to filter
+    /// Evaluate the filter at an x and y position (relative to filter
     /// center).
     virtual float operator()(float x, float y) const = 0;
 

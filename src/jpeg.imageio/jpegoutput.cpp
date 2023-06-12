@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #include <cassert>
 #include <cstdio>
@@ -29,24 +29,23 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class JpgOutput final : public ImageOutput {
 public:
     JpgOutput() { init(); }
-    virtual ~JpgOutput() { close(); }
-    virtual const char* format_name(void) const override { return "jpeg"; }
-    virtual int supports(string_view feature) const override
+    ~JpgOutput() override { close(); }
+    const char* format_name(void) const override { return "jpeg"; }
+    int supports(string_view feature) const override
     {
-        return (feature == "exif" || feature == "iptc");
+        return (feature == "exif" || feature == "iptc" || feature == "ioproxy");
     }
-    virtual bool open(const std::string& name, const ImageSpec& spec,
-                      OpenMode mode = Create) override;
-    virtual bool write_scanline(int y, int z, TypeDesc format, const void* data,
-                                stride_t xstride) override;
-    virtual bool write_tile(int x, int y, int z, TypeDesc format,
-                            const void* data, stride_t xstride,
-                            stride_t ystride, stride_t zstride) override;
-    virtual bool close() override;
-    virtual bool copy_image(ImageInput* in) override;
+    bool open(const std::string& name, const ImageSpec& spec,
+              OpenMode mode = Create) override;
+    bool write_scanline(int y, int z, TypeDesc format, const void* data,
+                        stride_t xstride) override;
+    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
+                    stride_t xstride, stride_t ystride,
+                    stride_t zstride) override;
+    bool close() override;
+    bool copy_image(ImageInput* in) override;
 
 private:
-    FILE* m_fd;
     std::string m_filename;
     unsigned int m_dither;
     int m_next_scanline;  // Which scanline is the next to write?
@@ -56,12 +55,33 @@ private:
     jvirt_barray_ptr* m_copy_coeffs;
     struct jpeg_decompress_struct* m_copy_decompressor;
     std::vector<unsigned char> m_tilebuffer;
+    // m_outbuffer/m_outsize are used for jpeg-to-memory
+    unsigned char* m_outbuffer = nullptr;
+#if OIIO_JPEG_LIB_VERSION >= 94
+    // libjpeg switched jpeg_mem_dest() from accepting a `unsigned long*`
+    // to a `size_t*` in version 9d.
+    size_t m_outsize = 0;
+#else
+    // libjpeg < 9d, and so far all libjpeg-turbo releases, have a
+    // jpeg_mem_dest() declaration that needs this to be unsigned long.
+    unsigned long m_outsize = 0;
+#endif
 
     void init(void)
     {
-        m_fd                = NULL;
         m_copy_coeffs       = NULL;
         m_copy_decompressor = NULL;
+        ioproxy_clear();
+        clear_outbuffer();
+    }
+
+    void clear_outbuffer()
+    {
+        if (m_outbuffer) {
+            free(m_outbuffer);
+            m_outbuffer = nullptr;
+        }
+        m_outsize = 0;
     }
 
     void set_subsampling(const int components[])
@@ -101,62 +121,59 @@ bool
 JpgOutput::open(const std::string& name, const ImageSpec& newspec,
                 OpenMode mode)
 {
-    if (mode != Create) {
-        errorf("%s does not support subimages or MIP levels", format_name());
-        return false;
-    }
-
     // Save name and spec for later use
     m_filename = name;
-    m_spec     = newspec;
 
-    // Check for things this format doesn't support
-    if (m_spec.width < 1 || m_spec.height < 1) {
-        errorf("Image resolution must be at least 1x1, you asked for %d x %d",
-               m_spec.width, m_spec.height);
+    if (!check_open(mode, newspec,
+                    { 0, JPEG_MAX_DIMENSION, 0, JPEG_MAX_DIMENSION, 0, 1, 0,
+                      256 }))
         return false;
-    }
-    if (m_spec.depth < 1)
-        m_spec.depth = 1;
-    if (m_spec.depth > 1) {
-        errorf("%s does not support volume images (depth > 1)", format_name());
-        return false;
-    }
+    // NOTE: we appear to let a large number of channels be allowed, but
+    // that's only because we robustly truncate to only RGB no matter what we
+    // are handed.
 
-    m_fd = Filesystem::fopen(name, "wb");
-    if (m_fd == NULL) {
-        errorf("Could not open \"%s\"", name);
+    ioproxy_retrieve_from_config(m_spec);
+    if (!ioproxy_use_or_open(name))
         return false;
-    }
 
     m_cinfo.err = jpeg_std_error(&c_jerr);  // set error handler
     jpeg_create_compress(&m_cinfo);         // create compressor
-    jpeg_stdio_dest(&m_cinfo, m_fd);        // set output stream
+    Filesystem::IOProxy* m_io = ioproxy();
+    if (!strcmp(m_io->proxytype(), "file")) {
+        auto fd = reinterpret_cast<Filesystem::IOFile*>(m_io)->handle();
+        jpeg_stdio_dest(&m_cinfo, fd);  // set output stream
+    } else {
+        clear_outbuffer();
+        jpeg_mem_dest(&m_cinfo, &m_outbuffer, &m_outsize);
+    }
 
     // Set image and compression parameters
     m_cinfo.image_width  = m_spec.width;
     m_cinfo.image_height = m_spec.height;
 
     // JFIF can only handle grayscale and RGB. Do the best we can with this
-    // limited format by truncating to 3 channels if > 3 are requested,
-    // truncating to 1 channel if 2 are requested.
+    // limited format by switching to 1 or 3 channels.
     if (m_spec.nchannels >= 3) {
+        // For 3 or more channels, write the first 3 as RGB and drop any
+        // additional channels.
         m_cinfo.input_components = 3;
         m_cinfo.in_color_space   = JCS_RGB;
+    } else if (m_spec.nchannels == 2) {
+        // Two channels are tricky. If the first channel name is "Y", assume
+        // it's a luminance image and write it as a single-channel grayscale.
+        // Otherwise, punt, write it as an RGB image with third channel black.
+        if (m_spec.channel_name(0) == "Y") {
+            m_cinfo.input_components = 1;
+            m_cinfo.in_color_space   = JCS_GRAYSCALE;
+        } else {
+            m_cinfo.input_components = 3;
+            m_cinfo.in_color_space   = JCS_RGB;
+        }
     } else {
+        // One channel, assume it's grayscale
         m_cinfo.input_components = 1;
         m_cinfo.in_color_space   = JCS_GRAYSCALE;
     }
-
-    string_view resunit = m_spec.get_string_attribute("ResolutionUnit");
-    if (Strutil::iequals(resunit, "none"))
-        m_cinfo.density_unit = 0;
-    else if (Strutil::iequals(resunit, "in"))
-        m_cinfo.density_unit = 1;
-    else if (Strutil::iequals(resunit, "cm"))
-        m_cinfo.density_unit = 2;
-    else
-        m_cinfo.density_unit = 0;
 
     resmeta_to_density();
 
@@ -195,17 +212,21 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
         }
         DBG std::cout << "out open: set_colorspace\n";
 
+        // Save as a progressive jpeg if requested by the user
+        if (m_spec.get_int_attribute("jpeg:progressive")) {
+            jpeg_simple_progression(&m_cinfo);
+        }
+
         jpeg_start_compress(&m_cinfo, TRUE);  // start working
         DBG std::cout << "out open: start_compress\n";
     }
     m_next_scanline = 0;  // next scanline we'll write
 
     // Write JPEG comment, if sent an 'ImageDescription'
-    ParamValue* comment = m_spec.find_attribute("ImageDescription",
-                                                TypeDesc::STRING);
-    if (comment && comment->data()) {
-        const char** c = (const char**)comment->data();
-        jpeg_write_marker(&m_cinfo, JPEG_COM, (JOCTET*)*c, strlen(*c) + 1);
+    std::string comment = m_spec.get_string_attribute("ImageDescription");
+    if (comment.size()) {
+        jpeg_write_marker(&m_cinfo, JPEG_COM, (JOCTET*)comment.c_str(),
+                          comment.size() + 1);
     }
 
     if (Strutil::iequals(m_spec.get_string_attribute("oiio:ColorSpace"), "sRGB"))
@@ -222,7 +243,8 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
     exif.push_back(0);
     exif.push_back(0);
     encode_exif(m_spec, exif);
-    jpeg_write_marker(&m_cinfo, JPEG_APP0 + 1, (JOCTET*)&exif[0], exif.size());
+    jpeg_write_marker(&m_cinfo, JPEG_APP0 + 1, (JOCTET*)exif.data(),
+                      exif.size());
 
     // Write IPTC IIM metadata tags, if we have anything
     std::vector<char> iptc;
@@ -241,14 +263,14 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
         head.push_back((char)(iptc.size() >> 8));  // size of block
         head.push_back((char)(iptc.size() & 0xff));
         iptc.insert(iptc.begin(), head.begin(), head.end());
-        jpeg_write_marker(&m_cinfo, JPEG_APP0 + 13, (JOCTET*)&iptc[0],
+        jpeg_write_marker(&m_cinfo, JPEG_APP0 + 13, (JOCTET*)iptc.data(),
                           iptc.size());
     }
 
     // Write XMP packet, if we have anything
     std::string xmp = encode_xmp(m_spec, true);
     if (!xmp.empty()) {
-        static char prefix[] = "http://ns.adobe.com/xap/1.0/";
+        static char prefix[] = "http://ns.adobe.com/xap/1.0/";  //NOSONAR
         std::vector<char> block(prefix, prefix + strlen(prefix) + 1);
         block.insert(block.end(), xmp.c_str(), xmp.c_str() + xmp.length());
         jpeg_write_marker(&m_cinfo, JPEG_APP0 + 1, (JOCTET*)&block[0],
@@ -270,9 +292,9 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
             if ((unsigned int)(num_markers * MAX_DATA_BYTES_IN_MARKER)
                 != icc_profile_length)
                 num_markers++;
-            int curr_marker     = 1; /* per spec, count strarts at 1*/
+            int curr_marker     = 1; /* per spec, count starts at 1*/
             size_t profile_size = MAX_DATA_BYTES_IN_MARKER + ICC_HEADER_SIZE;
-            std::vector<unsigned char> profile(profile_size);
+            std::vector<JOCTET> profile(profile_size);
             while (icc_profile_length > 0) {
                 // length of profile to put in this marker
                 unsigned int length
@@ -280,13 +302,14 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
                                (unsigned int)MAX_DATA_BYTES_IN_MARKER);
                 icc_profile_length -= length;
                 // Write the JPEG marker header (APP2 code and marker length)
-                strncpy((char*)&profile[0], "ICC_PROFILE", profile_size);
+                strcpy((char*)profile.data(), "ICC_PROFILE");  // NOSONAR
                 profile[11] = 0;
                 profile[12] = curr_marker;
-                profile[13] = (unsigned char)num_markers;
-                memcpy(&profile[0] + ICC_HEADER_SIZE,
-                       icc_profile + length * (curr_marker - 1), length);
-                jpeg_write_marker(&m_cinfo, JPEG_APP0 + 2, &profile[0],
+                profile[13] = (JOCTET)num_markers;
+                memcpy(profile.data() + ICC_HEADER_SIZE,
+                       icc_profile + length * (curr_marker - 1),
+                       length);  //NOSONAR
+                jpeg_write_marker(&m_cinfo, JPEG_APP0 + 2, profile.data(),
                                   ICC_HEADER_SIZE + length);
                 curr_marker++;
             }
@@ -308,13 +331,57 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
 void
 JpgOutput::resmeta_to_density()
 {
-    int X_density = int(m_spec.get_float_attribute("XResolution"));
-    int Y_density = int(m_spec.get_float_attribute("YResolution", X_density));
-    const float aspect = m_spec.get_float_attribute("PixelAspectRatio", 1.0f);
-    if (aspect != 1.0f && X_density <= 1 && Y_density <= 1) {
-        // No useful [XY]Resolution, but there is an aspect ratio requested.
-        // Arbitrarily pick 72 dots per undefined unit, and jigger it to
-        // honor it as best as we can.
+    // Clear cruft from Exif that might confuse us
+    m_spec.erase_attribute("exif:XResolution");
+    m_spec.erase_attribute("exif:YResolution");
+    m_spec.erase_attribute("exif:ResolutionUnit");
+
+    string_view resunit = m_spec.get_string_attribute("ResolutionUnit");
+    if (Strutil::iequals(resunit, "none"))
+        m_cinfo.density_unit = 0;
+    else if (Strutil::iequals(resunit, "in"))
+        m_cinfo.density_unit = 1;
+    else if (Strutil::iequals(resunit, "cm"))
+        m_cinfo.density_unit = 2;
+    else
+        m_cinfo.density_unit = 0;
+
+    // We want to use the metadata to set the X_density and Y_density fields in
+    // the JPEG header, but the problem is over-constrained. What are the
+    // possibilities?
+    //
+    // what is set?   xres yres par
+    //                                assume 72,72 par=1
+    //                  *             set yres = xres (par = 1.0)
+    //                       *        set xres=yres (par = 1.0)
+    //                  *    *        keep (par is implied)
+    //                           *    set yres=72, xres based on par
+    //                  *        *    set yres based on par
+    //                       *   *    set xres based on par
+    //                  *    *   *    par wins if they don't match
+    //
+    float XRes   = m_spec.get_float_attribute("XResolution");
+    float YRes   = m_spec.get_float_attribute("YResolution");
+    float aspect = m_spec.get_float_attribute("PixelAspectRatio");
+    if (aspect <= 0.0f) {
+        // PixelAspectRatio was not set in the ImageSpec. So just use the
+        // "resolution" values and pass them without judgment. If only one was
+        // set, make them equal and assume 1.0 aspect ratio. If neither were
+        // set, punt and set the fields to 0.
+        if (XRes <= 0.0f && YRes <= 0.0f) {
+            // No clue, set the fields to 1,1 to be valid and 1.0 aspect.
+            m_cinfo.X_density = 1;
+            m_cinfo.Y_density = 1;
+            return;
+        }
+        if (XRes <= 0.0f)
+            XRes = YRes;
+        if (YRes <= 0.0f)
+            YRes = XRes;
+        aspect = YRes / XRes;
+    } else {
+        // PixelAspectRatio was set in the ImageSpec. Let that trump the
+        // "resolution" fields, if they contradict.
         //
         // Here's where things get tricky. By logic and reason, as well as
         // the JFIF spec and ITU T.871, the pixel aspect ratio is clearly
@@ -323,18 +390,38 @@ JpgOutput::resmeta_to_density()
         // apps get this exactly backwards, and these include PhotoShop,
         // Nuke, and RV. So, alas, we must replicate the mistake, or else
         // all these common applications will misunderstand the JPEG files
-        // written by OIIO and vice versa.
-        Y_density = 72;
-        X_density = int(Y_density * aspect + 0.5f);
-        m_spec.attribute("XResolution", float(Y_density * aspect + 0.5f));
-        m_spec.attribute("YResolution", float(Y_density));
+        // written by OIIO and vice versa. In other words, we must reverse
+        // the sense of how aspect ratio relates to density, contradicting
+        // the JFIF spec but conforming to Nuke/etc's behavior. Sigh.
+        if (XRes <= 0.0f && YRes <= 0.0f) {
+            // resolutions were not set
+            if (aspect >= 1.0f) {
+                XRes = 72.0f;
+                YRes = XRes / aspect;
+            } else {
+                YRes = 72.0f;
+                XRes = YRes * aspect;
+            }
+        } else if (XRes <= 0.0f) {
+            // Xres not set, but Yres was and we know aspect
+            // e.g., yres = 100, aspect = 2.0
+            // This SHOULD be the right answer:
+            //     XRes = YRes / aspect;
+            // But because of the note above, reverse it:
+            //     XRes = YRes * aspect;
+            XRes = YRes * aspect;
+        } else {
+            // All other cases -- XRes is set, so reset Yres to conform to
+            // the requested PixelAspectRatio.
+            // This SHOULD be the right answer:
+            //     YRes = XRes * aspect;
+            // But because of the note above, reverse it:
+            //     YRes = XRes / aspect;
+            YRes = XRes / aspect;
+        }
     }
-    while (X_density > 65535 || Y_density > 65535) {
-        // JPEG header can store only UINT16 density values. If we
-        // overflow that limit, punt and knock it down to <= 16 bits.
-        X_density /= 2;
-        Y_density /= 2;
-    }
+    int X_density     = clamp(int(XRes + 0.5f), 1, 65535);
+    int Y_density     = clamp(int(YRes + 0.5f), 1, 65535);
     m_cinfo.X_density = X_density;
     m_cinfo.Y_density = Y_density;
 }
@@ -370,7 +457,18 @@ JpgOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     int save_nchannels = m_spec.nchannels;
     m_spec.nchannels   = m_cinfo.input_components;
 
-    data = to_native_scanline(format, data, xstride, m_scratch, m_dither, y, z);
+    if (save_nchannels == 2 && m_spec.nchannels == 3) {
+        // Edge case: expanding 2 channels to 3
+        uint8_t* tmp = OIIO_ALLOCA(uint8_t, m_spec.width * 3);
+        memset(tmp, 0, m_spec.width * 3);
+        convert_image(2, m_spec.width, 1, 1, data, format, xstride, AutoStride,
+                      AutoStride, tmp, TypeDesc::UINT8, 3 * sizeof(uint8_t),
+                      AutoStride, AutoStride);
+        data = tmp;
+    } else {
+        data = to_native_scanline(format, data, xstride, m_scratch, m_dither, y,
+                                  z);
+    }
     m_spec.nchannels = save_nchannels;
 
     jpeg_write_scanlines(&m_cinfo, (JSAMPLE**)&data, 1);
@@ -395,16 +493,16 @@ JpgOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
 bool
 JpgOutput::close()
 {
-    if (!m_fd) {  // Already closed
-        return true;
+    if (!ioproxy_opened()) {  // Already closed
         init();
+        return true;
     }
 
     bool ok = true;
 
     if (m_spec.tile_width) {
         // We've been emulating tiles; now dump as scanlines.
-        ASSERT(m_tilebuffer.size());
+        OIIO_DASSERT(m_tilebuffer.size());
         ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
                               m_spec.format, &m_tilebuffer[0]);
         std::vector<unsigned char>().swap(m_tilebuffer);  // free it
@@ -417,7 +515,6 @@ JpgOutput::close()
         char* data = &buf[0];
         while (m_next_scanline < spec().height) {
             jpeg_write_scanlines(&m_cinfo, (JSAMPLE**)&data, 1);
-            // DBG std::cout << "out close: write_scanlines\n";
             ++m_next_scanline;
         }
     }
@@ -433,10 +530,16 @@ JpgOutput::close()
     }
     DBG std::cout << "out close: about to destroy_compress\n";
     jpeg_destroy_compress(&m_cinfo);
-    fclose(m_fd);
-    m_fd = NULL;
-    init();
 
+    if (m_outsize) {
+        // We had an IOProxy of some type that was not IOFile. JPEG doesn't
+        // have fully general IO overloads, but it can write to memory
+        // buffers, we did that, so now we have to copy that in one big chunk
+        // to IOProxy.
+        ioproxy()->write(m_outbuffer, m_outsize);
+    }
+
+    init();
     return ok;
 }
 

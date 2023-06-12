@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 #include <OpenImageIO/filesystem.h>
@@ -15,20 +15,20 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class HeifOutput final : public ImageOutput {
 public:
     HeifOutput() {}
-    virtual ~HeifOutput() { close(); }
-    virtual const char* format_name(void) const override { return "heif"; }
-    virtual int supports(string_view feature) const override
+    ~HeifOutput() override { close(); }
+    const char* format_name(void) const override { return "heif"; }
+    int supports(string_view feature) const override
     {
-        return feature == "alpha" || feature == "exif";
+        return feature == "alpha" || feature == "exif" || feature == "tiles";
     }
-    virtual bool open(const std::string& name, const ImageSpec& spec,
-                      OpenMode mode) override;
-    virtual bool write_scanline(int y, int z, TypeDesc format, const void* data,
-                                stride_t xstride) override;
-    virtual bool write_tile(int x, int y, int z, TypeDesc format,
-                            const void* data, stride_t xstride,
-                            stride_t ystride, stride_t zstride) override;
-    virtual bool close() override;
+    bool open(const std::string& name, const ImageSpec& spec,
+              OpenMode mode) override;
+    bool write_scanline(int y, int z, TypeDesc format, const void* data,
+                        stride_t xstride) override;
+    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
+                    stride_t xstride, stride_t ystride,
+                    stride_t zstride) override;
+    bool close() override;
 
 private:
     std::string m_filename;
@@ -44,13 +44,13 @@ private:
 
 namespace {
 
-class MyHeifWriter : public heif::Context::Writer {
+class MyHeifWriter final : public heif::Context::Writer {
 public:
     MyHeifWriter(Filesystem::IOProxy* ioproxy)
         : m_ioproxy(ioproxy)
     {
     }
-    virtual heif_error write(const void* data, size_t size)
+    heif_error write(const void* data, size_t size) override
     {
         heif_error herr { heif_error_Ok, heif_suberror_Unspecified, "" };
         if (m_ioproxy && m_ioproxy->mode() == Filesystem::IOProxy::Write
@@ -78,7 +78,11 @@ heif_output_imageio_create()
     return new HeifOutput;
 }
 
-OIIO_EXPORT const char* heif_output_extensions[] = { "heif", "heic", "heics",
+OIIO_EXPORT const char* heif_output_extensions[] = { "heif",  "heic",
+                                                     "heics", "hif",
+#if LIBHEIF_HAVE_VERSION(1, 7, 0)
+                                                     "avif",
+#endif
                                                      nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
@@ -88,34 +92,11 @@ bool
 HeifOutput::open(const std::string& name, const ImageSpec& newspec,
                  OpenMode mode)
 {
-    if (mode != Create) {
-        errorf("%s does not support subimages or MIP levels", format_name());
+    if (!check_open(mode, newspec, { 0, 1 << 20, 0, 1 << 20, 0, 1, 0, 4 },
+                    uint64_t(OpenChecks::Disallow2Channel)))
         return false;
-    }
 
     m_filename = name;
-    // Save spec for later used
-    m_spec = newspec;
-    // heif always behaves like floating point
-    m_spec.set_format(TypeDesc::FLOAT);
-
-    // Check for things heif can't support
-    if (m_spec.nchannels != 1 && m_spec.nchannels != 3
-        && m_spec.nchannels != 4) {
-        errorf("heif can only support 1-, 3- or 4-channel images");
-        return false;
-    }
-    if (m_spec.width < 1 || m_spec.height < 1) {
-        errorf("Image resolution must be at least 1x1, you asked for %d x %d",
-               m_spec.width, m_spec.height);
-        return false;
-    }
-    if (m_spec.depth < 1)
-        m_spec.depth = 1;
-    if (m_spec.depth > 1) {
-        errorf("%s does not support volume images (depth > 1)", format_name());
-        return false;
-    }
 
     m_spec.set_format(TypeUInt8);  // Only uint8 for now
 
@@ -130,15 +111,23 @@ HeifOutput::open(const std::string& name, const ImageSpec& newspec,
                         chromas[m_spec.nchannels]);
         m_himage.add_plane(heif_channel_interleaved, newspec.width,
                            newspec.height, 8 * m_spec.nchannels /*bit depth*/);
-        m_encoder = heif::Encoder(heif_compression_HEVC);
 
+        m_encoder = heif::Encoder(heif_compression_HEVC);
+#if LIBHEIF_HAVE_VERSION(1, 7, 0)
+        auto compqual  = m_spec.decode_compression_metadata("", 75);
+        auto extension = Filesystem::extension(m_filename);
+        if (compqual.first == "avif"
+            || (extension == ".avif" && compqual.first == "")) {
+            m_encoder = heif::Encoder(heif_compression_AV1);
+        }
+#endif
     } catch (const heif::Error& err) {
         std::string e = err.get_message();
-        errorf("%s", e.empty() ? "unknown exception" : e.c_str());
+        errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
         return false;
     } catch (const std::exception& err) {
         std::string e = err.what();
-        errorf("%s", e.empty() ? "unknown exception" : e.c_str());
+        errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
         return false;
     }
 
@@ -153,7 +142,7 @@ HeifOutput::open(const std::string& name, const ImageSpec& newspec,
 
 
 bool
-HeifOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
+HeifOutput::write_scanline(int y, int /*z*/, TypeDesc format, const void* data,
                            stride_t xstride)
 {
     data           = to_native_scanline(format, data, xstride, scratch);
@@ -187,7 +176,7 @@ HeifOutput::close()
     bool ok = true;
     if (m_spec.tile_width) {
         // We've been emulating tiles; now dump as scanlines.
-        ASSERT(m_tilebuffer.size());
+        OIIO_ASSERT(m_tilebuffer.size());
         ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
                               m_spec.format, &m_tilebuffer[0]);
         std::vector<unsigned char>().swap(m_tilebuffer);
@@ -196,7 +185,7 @@ HeifOutput::close()
     std::vector<char> exifblob;
     try {
         auto compqual = m_spec.decode_compression_metadata("", 75);
-        if (compqual.first == "heic") {
+        if (compqual.first == "heic" || compqual.first == "avif") {
             if (compqual.second >= 100)
                 m_encoder.set_lossless(true);
             else {
@@ -216,13 +205,13 @@ HeifOutput::close()
         } catch (const heif::Error& err) {
 #ifdef DEBUG
             std::string e = err.get_message();
-            Strutil::printf("%s", e.empty() ? "unknown exception" : e.c_str());
+            Strutil::print("{}", e.empty() ? "unknown exception" : e.c_str());
 #endif
         }
         m_ctx->set_primary_image(m_ihandle);
         Filesystem::IOFile ioproxy(m_filename, Filesystem::IOProxy::Write);
         if (ioproxy.mode() != Filesystem::IOProxy::Write) {
-            errorf("Could not open \"%s\"", m_filename);
+            errorfmt("Could not open \"{}\"", m_filename);
             ok = false;
         } else {
             MyHeifWriter writer(&ioproxy);
@@ -230,11 +219,11 @@ HeifOutput::close()
         }
     } catch (const heif::Error& err) {
         std::string e = err.get_message();
-        errorf("%s", e.empty() ? "unknown exception" : e.c_str());
+        errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
         return false;
     } catch (const std::exception& err) {
         std::string e = err.what();
-        errorf("%s", e.empty() ? "unknown exception" : e.c_str());
+        errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
         return false;
     }
 

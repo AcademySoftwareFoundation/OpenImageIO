@@ -1,11 +1,11 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #include <cmath>
 #include <memory>
 
-#include <OpenEXR/half.h>
+#include <OpenImageIO/half.h>
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filter.h>
@@ -50,7 +50,7 @@
 // * Use the iterator Black or Clamp wrap modes to avoid lots of special
 //   cases inside the pixel loops.
 // * Use OIIO_DISPATCH_* macros to call type-specialized templated
-//   implemenations.  It is permissible to use OIIO_DISPATCH_COMMON_TYPES_*
+//   implementations.  It is permissible to use OIIO_DISPATCH_COMMON_TYPES_*
 //   to tame the cross-product of types, especially for binary functions
 //   (A,B inputs as well as R output).
 ///////////////////////////////////////////////////////////////////////////
@@ -64,10 +64,10 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
                       const ImageBuf* B, const ImageBuf* C,
                       ImageSpec* force_spec, int prepflags)
 {
-    ASSERT(dst);
+    OIIO_DASSERT(dst);
     if ((A && !A->initialized()) || (B && !B->initialized())
         || (C && !C->initialized())) {
-        dst->errorf("Uninitialized input image");
+        dst->errorfmt("Uninitialized input image");
         return false;
     }
 
@@ -113,7 +113,10 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
         // If the dst is initialized but is a cached image, we'll need
         // to fully read it into allocated memory so that we're able
         // to write to it subsequently.
-        dst->make_writeable(true);
+        dst->make_writable(true);
+        // Whatever we're about to do to the image, it is almost certain
+        // to make any thumbnail wrong, so just clear it.
+        dst->clear_thumbnail();
 
         // Merge source metadata into destination if requested.
         if (prepflags & IBAprep_MERGE_METADATA) {
@@ -127,7 +130,7 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
     } else {
         // Not an initialized destination image!
         if (!A && !roi.defined()) {
-            dst->errorf(
+            dst->errorfmt(
                 "ImageBufAlgo without any guess about region of interest");
             return false;
         }
@@ -251,24 +254,28 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
             }
         }
 
-        dst->reset(spec);
+        dst->reset(spec, (prepflags & IBAprep_FILL_ZERO_ALLOC)
+                             ? InitializePixels::Yes
+                             : InitializePixels::No);
 
         // If we just allocated more channels than the caller will write,
         // clear the extra channels.
         if (prepflags & IBAprep_CLAMP_MUTUAL_NCHANNELS)
             roi.chend = std::min(roi.chend, minchans);
         roi.chend = std::min(roi.chend, spec.nchannels);
-        if (roi.chbegin > 0) {
-            ROI r     = roi;
-            r.chbegin = 0;
-            r.chend   = roi.chbegin;
-            ImageBufAlgo::zero(*dst, r, 1);
-        }
-        if (roi.chend < dst->nchannels()) {
-            ROI r     = roi;
-            r.chbegin = roi.chend;
-            r.chend   = dst->nchannels();
-            ImageBufAlgo::zero(*dst, r, 1);
+        if (!dst->deep()) {
+            if (roi.chbegin > 0) {
+                ROI r     = roi;
+                r.chbegin = 0;
+                r.chend   = roi.chbegin;
+                ImageBufAlgo::zero(*dst, r, 1);
+            }
+            if (roi.chend < dst->nchannels()) {
+                ROI r     = roi;
+                r.chbegin = roi.chend;
+                r.chend   = dst->nchannels();
+                ImageBufAlgo::zero(*dst, r, 1);
+            }
         }
     }
     if (prepflags & IBAprep_CLAMP_MUTUAL_NCHANNELS)
@@ -278,7 +285,7 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
         if (dst->spec().alpha_channel < 0 || (A && A->spec().alpha_channel < 0)
             || (B && B->spec().alpha_channel < 0)
             || (C && C->spec().alpha_channel < 0)) {
-            dst->errorf("images must have alpha channels");
+            dst->errorfmt("images must have alpha channels");
             return false;
         }
     }
@@ -286,7 +293,7 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
         if (dst->spec().z_channel < 0 || (A && A->spec().z_channel < 0)
             || (B && B->spec().z_channel < 0)
             || (C && C->spec().z_channel < 0)) {
-            dst->errorf("images must have depth channels");
+            dst->errorfmt("images must have depth channels");
             return false;
         }
     }
@@ -295,7 +302,7 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
         int n = dst->spec().nchannels;
         if ((A && A->spec().nchannels != n) || (B && B->spec().nchannels != n)
             || (C && C->spec().nchannels != n)) {
-            dst->errorf("images must have the same number of channels");
+            dst->errorfmt("images must have the same number of channels");
             return false;
         }
     }
@@ -306,7 +313,7 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
             if ((A && A->spec().channel_name(c) != name)
                 || (B && B->spec().channel_name(c) != name)
                 || (C && C->spec().channel_name(c) != name)) {
-                dst->errorf(
+                dst->errorfmt(
                     "images must have the same channel names and order");
                 return false;
             }
@@ -315,7 +322,7 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
     if (prepflags & IBAprep_NO_SUPPORT_VOLUME) {
         if (dst->spec().depth > 1 || (A && A->spec().depth > 1)
             || (B && B->spec().depth > 1) || (C && C->spec().depth > 1)) {
-            dst->errorf("volumes not supported");
+            dst->errorfmt("volumes not supported");
             return false;
         }
     }
@@ -324,14 +331,14 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
         // At least one image is deep
         if (!(prepflags & IBAprep_SUPPORT_DEEP)) {
             // Error if the operation doesn't support deep images
-            dst->errorf("deep images not supported");
+            dst->errorfmt("deep images not supported");
             return false;
         }
         if (!(prepflags & IBAprep_DEEP_MIXED)) {
             // Error if not all images are deep
             if (!dst->deep() || (A && !A->deep()) || (B && !B->deep())
                 || (C && !C->deep())) {
-                dst->errorf("mixed deep & flat images not supported");
+                dst->errorfmt("mixed deep & flat images not supported");
                 return false;
             }
         }
@@ -341,40 +348,11 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
 
 
 
-/// Given data types a and b, return a type that is a best guess for one
-/// that can handle both without any loss of range or precision.
+// DEPRECATED(2.3): Replaced by TypeDesc::type_merge(BASETYPE,BASETYPE)
 TypeDesc::BASETYPE
 ImageBufAlgo::type_merge(TypeDesc::BASETYPE a, TypeDesc::BASETYPE b)
 {
-    // Same type already? done.
-    if (a == b)
-        return a;
-    if (a == TypeDesc::UNKNOWN)
-        return b;
-    if (b == TypeDesc::UNKNOWN)
-        return a;
-    // Canonicalize so a's size (in bytes) is >= b's size in bytes. This
-    // unclutters remaining cases.
-    if (TypeDesc(a).size() < TypeDesc(b).size())
-        std::swap(a, b);
-    // Double or float trump anything else
-    if (a == TypeDesc::DOUBLE || a == TypeDesc::FLOAT)
-        return a;
-    if (a == TypeDesc::UINT32
-        && (b == TypeDesc::UINT16 || b == TypeDesc::UINT8))
-        return a;
-    if (a == TypeDesc::INT32
-        && (b == TypeDesc::INT16 || b == TypeDesc::UINT16 || b == TypeDesc::INT8
-            || b == TypeDesc::UINT8))
-        return a;
-    if ((a == TypeDesc::UINT16 || a == TypeDesc::HALF) && b == TypeDesc::UINT8)
-        return a;
-    if ((a == TypeDesc::INT16 || a == TypeDesc::HALF)
-        && (b == TypeDesc::INT8 || b == TypeDesc::UINT8))
-        return a;
-    // Out of common cases. For all remaining edge cases, punt and say that
-    // we prefer float.
-    return TypeDesc::FLOAT;
+    return TypeDesc::basetype_merge(a, b);
 }
 
 
@@ -385,9 +363,9 @@ convolve_(ImageBuf& dst, const ImageBuf& src, const ImageBuf& kernel,
           bool normalize, ROI roi, int nthreads)
 {
     using namespace ImageBufAlgo;
+    OIIO_DASSERT(kernel.spec().format == TypeDesc::FLOAT && kernel.localpixels()
+                 && "kernel should be float and in local memory");
     parallel_image(roi, nthreads, [&](ROI roi) {
-        ASSERT(kernel.spec().format == TypeDesc::FLOAT && kernel.localpixels()
-               && "kernel should be float and in local memory");
         ROI kroi   = kernel.roi();
         int kchans = kernel.nchannels();
 
@@ -454,7 +432,7 @@ ImageBufAlgo::convolve(const ImageBuf& src, const ImageBuf& kernel,
     ImageBuf result;
     bool ok = convolve(result, src, kernel, normalize, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::convolve() error");
+        result.errorfmt("ImageBufAlgo::convolve() error");
     return result;
 }
 
@@ -529,7 +507,7 @@ ImageBufAlgo::make_kernel(string_view name, float width, float height,
         float val = normalize ? 1.0f / ((w * h * d)) : 1.0f;
         for (ImageBuf::Iterator<float> p(dst); !p.done(); ++p)
             p[0] = val;
-        dst.errorf("Unknown kernel \"%s\" %gx%g", name, width, height);
+        dst.errorfmt("Unknown kernel \"{}\" {}x{}", name, width, height);
         return dst;
     }
     if (normalize) {
@@ -549,7 +527,7 @@ ImageBufAlgo::make_kernel(string_view name, float width, float height,
 static bool
 threshold_to_zero(ImageBuf& dst, float threshold, ROI roi, int nthreads)
 {
-    ASSERT(dst.spec().format.basetype == TypeDesc::FLOAT);
+    OIIO_DASSERT(dst.spec().format.basetype == TypeDesc::FLOAT);
 
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         for (ImageBuf::Iterator<float> p(dst, roi); !p.done(); ++p)
@@ -580,13 +558,13 @@ ImageBufAlgo::unsharp_mask(ImageBuf& dst, const ImageBuf& src,
     if (kernel == "median") {
         median_filter(Blurry, src, ceilf(width), 0, roi, nthreads);
     } else {
-        ImageBuf K;
-        if (!make_kernel(K, kernel, width, width)) {
-            dst.errorf("%s", K.geterror());
+        ImageBuf K = make_kernel(kernel, width, width);
+        if (K.has_error()) {
+            dst.errorfmt("{}", K.geterror());
             return false;
         }
         if (!convolve(Blurry, src, K, true, roi, nthreads)) {
-            dst.errorf("%s", Blurry.geterror());
+            dst.errorfmt("{}", Blurry.geterror());
             return false;
         }
     }
@@ -604,7 +582,7 @@ ImageBufAlgo::unsharp_mask(ImageBuf& dst, const ImageBuf& src,
     if (ok)
         ok = mul(Diff, Diff, contrast, roi, nthreads);
     if (!ok) {
-        dst.errorf("%s", Diff.geterror());
+        dst.errorfmt("{}", Diff.geterror());
         return false;
     }
 
@@ -625,7 +603,7 @@ ImageBufAlgo::unsharp_mask(const ImageBuf& src, string_view kernel, float width,
     bool ok = unsharp_mask(result, src, kernel, width, contrast, threshold, roi,
                            nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::unsharp_mask() error");
+        result.errorfmt("ImageBufAlgo::unsharp_mask() error");
     return result;
 }
 
@@ -640,9 +618,9 @@ ImageBufAlgo::laplacian(ImageBuf& dst, const ImageBuf& src, ROI roi,
                  IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME))
         return false;
 
-    ImageBuf K;
-    if (!make_kernel(K, "laplacian", 3, 3)) {
-        dst.errorf("%s", K.geterror());
+    ImageBuf K = make_kernel("laplacian", 3, 3);
+    if (K.has_error()) {
+        dst.errorfmt("{}", K.geterror());
         return false;
     }
     // K.write ("K.exr");
@@ -658,7 +636,7 @@ ImageBufAlgo::laplacian(const ImageBuf& src, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = laplacian(result, src, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::laplacian() error");
+        result.errorfmt("ImageBufAlgo::laplacian() error");
     return result;
 }
 
@@ -737,7 +715,7 @@ ImageBufAlgo::median_filter(const ImageBuf& src, int width, int height, ROI roi,
     ImageBuf result;
     bool ok = median_filter(result, src, width, height, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::median_filter() error");
+        result.errorfmt("ImageBufAlgo::median_filter() error");
     return result;
 }
 
@@ -783,7 +761,7 @@ morph_impl(ImageBuf& R, const ImageBuf& A, int width, int height, MorphOp op,
                     }
                 }
             } else {
-                ASSERT(0 && "Unknown morphological operator");
+                OIIO_ASSERT(0 && "Unknown morphological operator");
             }
             for (int c = 0; c < nchannels; ++c)
                 r[c] = vals[c];
@@ -819,7 +797,7 @@ ImageBufAlgo::dilate(const ImageBuf& src, int width, int height, ROI roi,
     ImageBuf result;
     bool ok = dilate(result, src, width, height, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::dilate() error");
+        result.errorfmt("ImageBufAlgo::dilate() error");
     return result;
 }
 
@@ -850,7 +828,7 @@ ImageBufAlgo::erode(const ImageBuf& src, int width, int height, ROI roi,
     ImageBuf result;
     bool ok = erode(result, src, width, height, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::erode() error");
+        result.errorfmt("ImageBufAlgo::erode() error");
     return result;
 }
 
@@ -861,14 +839,14 @@ static bool
 hfft_(ImageBuf& dst, const ImageBuf& src, bool inverse, bool unitary, ROI roi,
       int nthreads)
 {
-    ASSERT(dst.spec().format.basetype == TypeDesc::FLOAT
-           && src.spec().format.basetype == TypeDesc::FLOAT
-           && dst.spec().nchannels == 2 && src.spec().nchannels == 2
-           && dst.roi() == src.roi()
-           && (dst.storage() == ImageBuf::LOCALBUFFER
-               || dst.storage() == ImageBuf::APPBUFFER)
-           && (src.storage() == ImageBuf::LOCALBUFFER
-               || src.storage() == ImageBuf::APPBUFFER));
+    OIIO_ASSERT(dst.spec().format.basetype == TypeDesc::FLOAT
+                && src.spec().format.basetype == TypeDesc::FLOAT
+                && dst.spec().nchannels == 2 && src.spec().nchannels == 2
+                && dst.roi() == src.roi()
+                && (dst.storage() == ImageBuf::LOCALBUFFER
+                    || dst.storage() == ImageBuf::APPBUFFER)
+                && (src.storage() == ImageBuf::LOCALBUFFER
+                    || src.storage() == ImageBuf::APPBUFFER));
 
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         int width     = roi.width();
@@ -896,7 +874,7 @@ ImageBufAlgo::fft(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::fft");
     if (src.spec().depth > 1) {
-        dst.errorf("ImageBufAlgo::fft does not support volume images");
+        dst.errorfmt("ImageBufAlgo::fft does not support volume images");
         return false;
     }
     if (!roi.defined())
@@ -936,7 +914,7 @@ ImageBufAlgo::fft(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
         zero(A, r);
     }
     if (!ImageBufAlgo::paste(A, 0, 0, 0, 0, src, roi, nthreads)) {
-        dst.errorf("%s", A.geterror());
+        dst.errorfmt("{}", A.geterror());
         return false;
     }
 
@@ -967,11 +945,11 @@ ImageBufAlgo::ifft(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::ifft");
     if (src.nchannels() != 2 || src.spec().format != TypeDesc::FLOAT) {
-        dst.errorf("ifft can only be done on 2-channel float images");
+        dst.errorfmt("ifft can only be done on 2-channel float images");
         return false;
     }
     if (src.spec().depth > 1) {
-        dst.errorf("ImageBufAlgo::ifft does not support volume images");
+        dst.errorfmt("ImageBufAlgo::ifft does not support volume images");
         return false;
     }
 
@@ -1029,7 +1007,7 @@ ImageBufAlgo::fft(const ImageBuf& src, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = fft(result, src, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::fft() error");
+        result.errorfmt("ImageBufAlgo::fft() error");
     return result;
 }
 
@@ -1040,7 +1018,7 @@ ImageBufAlgo::ifft(const ImageBuf& src, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = ifft(result, src, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::ifft() error");
+        result.errorfmt("ImageBufAlgo::ifft() error");
     return result;
 }
 
@@ -1093,14 +1071,14 @@ ImageBufAlgo::polar_to_complex(ImageBuf& dst, const ImageBuf& src, ROI roi,
 {
     pvt::LoggedTimer logtime("IBA::polar_to_complex");
     if (src.nchannels() != 2) {
-        dst.errorf("polar_to_complex can only be done on 2-channel");
+        dst.errorfmt("polar_to_complex can only be done on 2-channel");
         return false;
     }
 
     if (!IBAprep(roi, &dst, &src))
         return false;
     if (dst.nchannels() != 2) {
-        dst.errorf("polar_to_complex can only be done on 2-channel");
+        dst.errorfmt("polar_to_complex can only be done on 2-channel");
         return false;
     }
     bool ok;
@@ -1118,7 +1096,7 @@ ImageBufAlgo::polar_to_complex(const ImageBuf& src, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = polar_to_complex(result, src, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::polar_to_complex() error");
+        result.errorfmt("ImageBufAlgo::polar_to_complex() error");
     return result;
 }
 
@@ -1130,14 +1108,14 @@ ImageBufAlgo::complex_to_polar(ImageBuf& dst, const ImageBuf& src, ROI roi,
 {
     pvt::LoggedTimer logtime("IBA::complex_to_polar");
     if (src.nchannels() != 2) {
-        dst.errorf("complex_to_polar can only be done on 2-channel");
+        dst.errorfmt("complex_to_polar can only be done on 2-channel");
         return false;
     }
 
     if (!IBAprep(roi, &dst, &src))
         return false;
     if (dst.nchannels() != 2) {
-        dst.errorf("complex_to_polar can only be done on 2-channel");
+        dst.errorfmt("complex_to_polar can only be done on 2-channel");
         return false;
     }
     bool ok;
@@ -1155,7 +1133,7 @@ ImageBufAlgo::complex_to_polar(const ImageBuf& src, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = complex_to_polar(result, src, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::complex_to_polar() error");
+        result.errorfmt("ImageBufAlgo::complex_to_polar() error");
     return result;
 }
 
@@ -1166,9 +1144,9 @@ ImageBufAlgo::complex_to_polar(const ImageBuf& src, ROI roi, int nthreads)
 static bool
 divide_by_alpha(ImageBuf& dst, ROI roi, int nthreads)
 {
+    OIIO_ASSERT(dst.spec().format == TypeDesc::FLOAT);
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         const ImageSpec& spec(dst.spec());
-        ASSERT(spec.format == TypeDesc::FLOAT);
         int nc = spec.nchannels;
         int ac = spec.alpha_channel;
         for (ImageBuf::Iterator<float> d(dst, roi); !d.done(); ++d) {
@@ -1198,7 +1176,7 @@ ImageBufAlgo::fillholes_pushpull(ImageBuf& dst, const ImageBuf& src, ROI roi,
     // auto-deleted when the function exits.
     std::vector<std::shared_ptr<ImageBuf>> pyramid;
 
-    // First, make a writeable copy of the original image (converting
+    // First, make a writable copy of the original image (converting
     // to float as a convenience) as the top level of the pyramid.
     ImageSpec topspec = src.spec();
     topspec.set_format(TypeDesc::FLOAT);
@@ -1214,7 +1192,8 @@ ImageBufAlgo::fillholes_pushpull(ImageBuf& dst, const ImageBuf& src, ROI roi,
         w = std::max(1, w / 2);
         h = std::max(1, h / 2);
         ImageSpec smallspec(w, h, src.nchannels(), TypeDesc::FLOAT);
-        ImageBuf* small = new ImageBuf(smallspec);
+        smallspec.alpha_channel = topspec.alpha_channel;
+        ImageBuf* small         = new ImageBuf(smallspec);
         ImageBufAlgo::resize(*small, *pyramid.back(), "triangle");
         divide_by_alpha(*small, get_roi(smallspec), nthreads);
         pyramid.emplace_back(small);
@@ -1249,7 +1228,7 @@ ImageBufAlgo::fillholes_pushpull(const ImageBuf& src, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = fillholes_pushpull(result, src, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::fillholes_pushpull() error");
+        result.errorfmt("ImageBufAlgo::fillholes_pushpull() error");
     return result;
 }
 

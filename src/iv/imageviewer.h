@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 #ifndef OPENIMAGEIO_IMAGEVIEWER_H
@@ -23,8 +23,13 @@
 #include <QAction>
 #include <QCheckBox>
 #include <QDialog>
-#include <QGLWidget>
 #include <QMainWindow>
+
+#if OIIO_QT_MAJOR < 6
+#    include <QGLWidget>
+#else
+#    include <QOpenGLWidget>
+#endif
 
 #ifndef QT_NO_PRINTER
 // #include <QPrinter>
@@ -54,7 +59,7 @@ class IvGL;
 class ImageViewer;
 
 
-class IvImage : public ImageBuf {
+class IvImage final : public ImageBuf {
 public:
     IvImage(const std::string& filename,
             const ImageSpec* input_config = nullptr);
@@ -134,7 +139,7 @@ private:
 
 
 
-class ImageViewer : public QMainWindow {
+class ImageViewer final : public QMainWindow {
     Q_OBJECT
 
 public:
@@ -307,9 +312,9 @@ private:
     void displayCurrentImage(bool update = true);
     void updateTitle();
     void updateStatusBar();
-    void keyPressEvent(QKeyEvent* event);
-    void resizeEvent(QResizeEvent* event);
-    void closeEvent(QCloseEvent* event);
+    void keyPressEvent(QKeyEvent* event) override;
+    void resizeEvent(QResizeEvent* event) override;
+    void closeEvent(QCloseEvent* event) override;
 
     QTimer* slideTimer;     ///< Timer to use for slide show mode
     long slideDuration_ms;  ///< Slide show mode duration (in ms)
@@ -404,14 +409,14 @@ private:
 
 
 
-class IvInfoWindow : public QDialog {
+class IvInfoWindow final : public QDialog {
     Q_OBJECT
 public:
     IvInfoWindow(ImageViewer& viewer, bool visible = true);
     void update(IvImage* img);
 
 protected:
-    void keyPressEvent(QKeyEvent* event);
+    void keyPressEvent(QKeyEvent* event) override;
 
 private:
     QPushButton* closeButton;
@@ -424,13 +429,13 @@ private:
 
 
 
-class IvPreferenceWindow : public QDialog {
+class IvPreferenceWindow final : public QDialog {
     Q_OBJECT
 public:
     IvPreferenceWindow(ImageViewer& viewer);
 
 protected:
-    void keyPressEvent(QKeyEvent* event);
+    void keyPressEvent(QKeyEvent* event) override;
 
 private:
     QVBoxLayout* layout;

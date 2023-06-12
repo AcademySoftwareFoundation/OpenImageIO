@@ -13,16 +13,20 @@ You must ensure that the environment variable `PYTHONPATH` includes the
 :program:`python` subdirectory of the OpenImageIO installation.
 
 
-A Python program must import the `OpenImageIO` package::
+A Python program must import the `OpenImageIO` package:
+
+.. code-block:: python
 
     import OpenImageIO
 
 In most of our examples below, we assume that for the sake
-of brevity, we will alias the package name as follows::
+of brevity, we will alias the package name as follows:
+
+.. code-block:: python
 
     import OpenImageIO as oiio
-    from OIIO import ImageInput, ImageOutput
-    from OIIO import ImageBuf, ImageSpec, ImageBufAlgo
+    from OpenImageIO import ImageInput, ImageOutput
+    from OpenImageIO import ImageBuf, ImageSpec, ImageBufAlgo
 
 
 .. _sec-pythontypedesc:
@@ -31,7 +35,7 @@ TypeDesc
 ========
 
 The `TypeDesc` class that describes data types of pixels and metadata,
-described in detail in Section :ref:`sec-typedesc_`, is replicated for Python.
+described in detail in Section :ref:`sec-typedesc`, is replicated for Python.
 
 .. py:class:: BASETYPE
 
@@ -69,19 +73,21 @@ described in detail in Section :ref:`sec-typedesc_`, is replicated for Python.
     Construct a `TypeDesc` object the easy way: from a string description.
     If the type name is omitted, it will default to`UNKNOWN`.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         import OpenImageIO as oiio
-    
+
         # make a default (UNKNOWN) TypeDesc
         t = TypeDesc()
-    
+
         # make a TypeDesc describing an unsigned 8 bit int
         t = TypeDesc("uint8")
-    
+
         # make a TypeDesc describing an array of 14 'float' values
         t = TypeDesc("float[14]")
-    
+
         # make a TypeDesc describing 3-vector with point semantics
         t = TypeDesc("point")
 
@@ -92,19 +98,21 @@ described in detail in Section :ref:`sec-typedesc_`, is replicated for Python.
     Construct a `TypeDesc` object the hard way: from individual enum tokens
     describing the base type, aggregate class, semantic hints, and array length.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         import OpenImageIO as oiio
-    
+
         # make a default (UNKNOWN) TypeDesc
         t = TypeDesc()
-    
+
         # make a TypeDesc describing an unsigned 8 bit int
         t = TypeDesc(oiio.UINT8)
-    
+
         # make a TypeDesc describing an array of 14 'float' values
         t = TypeDesc(oiio.FLOAT, oiio.SCALAR, oiio.NOSEMANTICS, 14)
-    
+
         # make a TypeDesc describing a float point
         t = TypeDesc(oiio.FLOAT, oiio.VEC3, oiio.POINT)
 
@@ -113,13 +121,16 @@ described in detail in Section :ref:`sec-typedesc_`, is replicated for Python.
 .. py:data:: TypeUnknown TypeString TypeFloat TypeHalf
              TypeInt TypeUInt TypeInt16 TypeUInt16
              TypeColor TypePoint TypeVector TypeNormal
-             TypeFloat4 TypeMatrix TypeMatrix33
-             TypeTimeCode TypeKeyCode TypeRational
+             TypeFloat2 TypeVector2 TypeFloat4 TypeVector2i
+             TypeMatrix TypeMatrix33
+             TypeTimeCode TypeKeyCode TypeRational TypePointer
 
     Pre-constructed `TypeDesc` objects for some common types, available in the
     outer OpenImageIO scope.
-    
-    Example::
+
+    Example:
+
+    .. code-block:: python
 
         t = TypeFloat
 
@@ -128,27 +139,31 @@ described in detail in Section :ref:`sec-typedesc_`, is replicated for Python.
 .. py:function:: str (typedesc)
 
     Returns a string that describes the `TypeDesc`.
-    
-    Example::
 
-        print str(TypeDesc(oiio.UINT16))
-    
+    Example:
+
+    .. code-block:: python
+
+        print (str(TypeDesc(oiio.UINT16)))
+
         > int16
 
 
 
-.. py:property:: TypeDesc.basetype
-                 TypeDesc.aggregate
-                 TypeDesc.vecsemantics
-                 TypeDesc.arraylen
+.. py:attribute:: TypeDesc.basetype
+                  TypeDesc.aggregate
+                  TypeDesc.vecsemantics
+                  TypeDesc.arraylen
 
     Access to the raw fields in the `TypeDesc`.
-    
-    Example::
+
+    Example:
+
+    .. code-block:: python
 
         t = TypeDesc(...)
         if t.basetype == oiio.FLOAT :
-            print "It's made of floats"
+            print ("It's made of floats")
 
 
 
@@ -160,20 +175,22 @@ described in detail in Section :ref:`sec-typedesc_`, is replicated for Python.
 
     The `size()` is the size in bytes, of the type described.  The
     `basesize()` is the size in bytes of the `BASETYPE`.
-    
+
     The `elementtype()` is the type of each array element, if it is an
     array, or just the full type if it is not an array.  The `elementsize()`
     is the size, in bytes, of the `elementtype` (thus, returning the same
     value as `size()` if the type is not an array).  The `numelements()`
     method returns `arraylen` if it is an array, or 1 if it is not an array.
-    
-    Example::
+
+    Example:
+
+    .. code-block:: python
 
         t = TypeDesc("point[2]")
-        print "size =", t.size()
-        print "elementtype =", t.elementtype()
-        print "elementsize =", t.elementsize()
-    
+        print ("size =", t.size())
+        print ("elementtype =", t.elementtype())
+        print ("elementsize =", t.elementsize())
+
         > size = 24
         > elementtype = point
         > elementsize = 12
@@ -188,17 +205,19 @@ described in detail in Section :ref:`sec-typedesc_`, is replicated for Python.
     forgiving than `==`, in that it considers `POINT`, `VECTOR`, and
     `NORMAL` vector semantics to not constitute a difference from one
     another.
-    
-    Example::
+
+    Example:
+
+    .. code-block:: python
 
         f = TypeDesc("float")
         p = TypeDesc("point")
         v = TypeDesc("vector")
-        print "float==point?", (f == p)
-        print "vector==point?", (v == p)
-        print "float.equivalent(point)?", f.equivalent(p)
-        print "vector.equivalent(point)?", v.equivalent(p)
-    
+        print ("float==point?", (f == p))
+        print ("vector==point?", (v == p))
+        print ("float.equivalent(point)?", f.equivalent(p))
+        print ("vector.equivalent(point)?", v.equivalent(p))
+
         > float==point? False
         > vector==point? False
         > float.equivalent(point)? False
@@ -212,7 +231,7 @@ ROI
 ===
 
 The ROI class that describes an image extent or region of interest,
-explained in deail in Section :ref:`sec-ROI`, is replicated for Python.
+explained in detail in Section :ref:`sec-ROI`, is replicated for Python.
 
 .. py:method:: ROI()
                ROI(xbegin, xend, ybegin, yend, zbegin=0, zend=1, chbegin=0, chend=1000)
@@ -220,7 +239,9 @@ explained in deail in Section :ref:`sec-ROI`, is replicated for Python.
     Construct an ROI with the given bounds.  The constructor with no
     arguments makes an ROI that is "undefined."
 
-    Example::
+    Example:
+
+    .. code-block:: python
 
         roi = ROI (0, 640, 0, 480, 0, 1, 0, 4)   # video res RGBA
 
@@ -280,8 +301,10 @@ explained in deail in Section :ref:`sec-ROI`, is replicated for Python.
 
     Returns an ROI corresponding to the pixel data window of the given
     ImageSpec, or the display/full window, respectively.
-    
-    Example::
+
+    Example:
+
+    .. code-block:: python
 
         spec = ImageSpec(...)
         roi = oiio.get_roi(spec)
@@ -292,8 +315,10 @@ explained in deail in Section :ref:`sec-ROI`, is replicated for Python.
                  set_roi_full (imagespec, roi)
 
     Alter the ImageSpec's resolution and offset to match the passed ROI.
-    
-    Example::
+
+    Example:
+
+    .. code-block:: python
 
         # spec is an ImageSpec
         # The following sets the full (display) window to be equal to the
@@ -308,8 +333,8 @@ explained in deail in Section :ref:`sec-ROI`, is replicated for Python.
 ImageSpec
 =========
 
-The ImageSpec class that describes an image, explained in deail in
-Section :ref:`sec-ImageSpec_`, is replicated for Python.
+The ImageSpec class that describes an image, explained in detail in
+Section :ref:`sec-ImageSpec`, is replicated for Python.
 
 .. py:method:: ImageSpec ()
                ImageSpec (typedesc)
@@ -319,7 +344,9 @@ Section :ref:`sec-ImageSpec_`, is replicated for Python.
     Constructors of an ImageSpec. These correspond directly to the constructors
     in the C++ bindings.
 
-    Example::
+    Example:
+
+    .. code-block:: python
 
         import OpenImageIO as oiio
         ...
@@ -342,12 +369,14 @@ Section :ref:`sec-ImageSpec_`, is replicated for Python.
                   ImageSpec.x, ImageSpec.y, ImageSpec.z
 
     Resolution and offset of the image data (`int` values).
-    
-    Example::
+
+    Example:
+
+    .. code-block:: python
 
         s = ImageSpec (...)
-        print "Data window is ({},{})-({},{})".format (s.x, s.x+s.width-1,
-                                                       s.y, s.y+s.height-1)
+        print ("Data window is ({},{})-({},{})".format (s.x, s.x+s.width-1,
+                                                        s.y, s.y+s.height-1))
 
 
 
@@ -385,14 +414,16 @@ Section :ref:`sec-ImageSpec_`, is replicated for Python.
     there are different formats per channel, they will be stored in
     `channelformats` as a tuple of `TypeDesc` objects.
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         if spec.channelformats == None:
-            print "All color channels are", str(spec.format)
+            print ("All color channels are", str(spec.format))
         else:
-            print "Channel formats: "
+            print ("Channel formats: ")
             for t in spec.channelformats:
-                print "\t", t
+                print ("\t", t)
 
 
 
@@ -424,15 +455,17 @@ Section :ref:`sec-ImageSpec_`, is replicated for Python.
     
     - `extra_attribs[i].value` : The value of the indexed attribute.
 
-    Example::
+    Example:
+
+    .. code-block:: python
 
         s = ImageSpec(...)
         ...
-        print "extra_attribs size is", len(s.extra_attribs)
+        print ("extra_attribs size is", len(s.extra_attribs))
         for i in range(len(s.extra_attribs)) :
-            print i, s.extra_attribs[i].name, str(s.extra_attribs[i].type), " :"
-            print "\t", s.extra_attribs[i].value
-        print
+            print (i, s.extra_attribs[i].name, str(s.extra_attribs[i].type), " :")
+            print ("\t", s.extra_attribs[i].value)
+        print ()
 
 
 
@@ -450,8 +483,10 @@ Section :ref:`sec-ImageSpec_`, is replicated for Python.
 
     Given a `TypeDesc`, sets the `format` field and clear any per-channel
     formats in `channelformats`.
-    
-    Example::
+
+    Example:
+
+    .. code-block:: python
 
         s = ImageSpec ()
         s.set_format (TypeDesc("uint8"))
@@ -474,7 +509,7 @@ Section :ref:`sec-ImageSpec_`, is replicated for Python.
 
     ImageSpec.channel_bytes (channel, native=False)} Returns the size of a
     single channel value, in bytes (as an `int`). (Analogous to the C++
-    member functions, see Section :ref:`sec-ImageSpec_` for details.)
+    member functions, see Section :ref:`sec-ImageSpec` for details.)
 
 
 .. py:method:: ImageSpec.pixel_bytes ()
@@ -482,7 +517,7 @@ Section :ref:`sec-ImageSpec_`, is replicated for Python.
                ImageSpec.pixel_bytes (chbegin, chend, native=False)
 
     Returns the size of a pixel, in bytes (as an `int`). (Analogous to the
-    C++ member functions, see Section :ref:`sec-ImageSpec_`  for details.)
+    C++ member functions, see Section :ref:`sec-ImageSpec`  for details.)
 
 
 .. py:method:: ImageSpec.scanline_bytes (native=False)
@@ -491,7 +526,7 @@ Section :ref:`sec-ImageSpec_`, is replicated for Python.
 
     Returns the size of a scanline, tile, or the full image, in bytes (as an
     `int`). (Analogous to the C++ member functions, see Section
-    :ref:`sec-ImageSpec_`  for details.)
+    :ref:`sec-ImageSpec`  for details.)
 
 
 .. py:method:: ImageSpec.tile_pixels ()
@@ -499,7 +534,7 @@ Section :ref:`sec-ImageSpec_`, is replicated for Python.
 
     Returns the number of pixels in a tile or the full image, respectively
     (as an `int`). (Analogous to the C++ member functions, see Section
-    :ref:`sec-ImageSpec_`  for details.)
+    :ref:`sec-ImageSpec`  for details.)
 
 
 .. py:method:: ImageSpec.erase_attribute (name, searchtype=TypeUnknown, casesensitive=False)
@@ -518,7 +553,9 @@ Section :ref:`sec-ImageSpec_`, is replicated for Python.
     directly. For other types, you must pass the `TypeDesc` and then the
     data (for aggregate types or arrays, pass multiple values as a tuple).
 
-    Example::
+    Example:
+
+    .. code-block:: python
 
         s = ImageSpec (...)
         s.attribute ("foo_str", "blah")
@@ -527,7 +564,7 @@ Section :ref:`sec-ImageSpec_`, is replicated for Python.
         s.attribute ("foo_vector", TypeDesc.TypeVector, (1, 0, 11))
         s.attribute ("foo_matrix", TypeDesc.TypeMatrix,
                      (1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 1, 2, 3, 1))
-    
+
 
 
 .. py:method:: ImageSpec.getattribute (name)
@@ -537,8 +574,10 @@ Section :ref:`sec-ImageSpec_`, is replicated for Python.
     `getattribute()` function returns it regardless of type, or `None` if
     the attribute does not exist.  The typed variety will only succeed if
     the attribute is actually of that type specified.
-    
-    Example::
+
+    Example:
+
+    .. code-block:: python
 
         foo = s.getattribute ("foo")   # None if not found
         foo = s.getattribute ("foo", oiio.FLOAT)  # None if not found AND float
@@ -548,35 +587,73 @@ Section :ref:`sec-ImageSpec_`, is replicated for Python.
 .. py:method:: ImageSpec.get_int_attribute (name, defaultval=0)
                   ImageSpec.get_float_attribute (name, defaultval=0.0)
                   ImageSpec.get_string_attribute (name, defaultval="")
+                  ImageSpec.get_bytes_attribute (name, defaultval="")
 
     Retrieves a named metadata value from `extra_attribs`, if it is
     found and is of the given type; returns the default value (or a passed
     value) if not found.
-    
-    Example::
+
+    For an attribute of type STRING, get_bytes_attribute in Python3 skips
+    decoding the underlying C string as UTF-8 and returns a `bytes` object
+    containing the raw byte string.
+
+    Example:
+
+    .. code-block:: python
 
         # If "foo" is not found, or if it's not an int, return 0
         foo = s.get_int_attribute ("foo")
-    
+
         # If "foo" is not found, or if it's not a string, return "blah"
         foo = s.get_string_attribute ("foo", "blah")
 
 
 
-.. py:attribute:: ImageSpec[name]
+.. py:attribute:: ImageSpec[key]
 
-    *NEW in 2.1*
+    ImageSpec provides a Python `dict`-like interface for metadata,
+    in addition to `attribute()` and `getattribute()`. 
+    
+    The `ImageSpec["key"] = value` notation can be used to set an
+    attribute (just like calling `ImageSpec.attribute("key", value)`).
+    Also, `ImageSpec["key"]` can retrieve an attribute if it is present,
+    or raise a `KeyError` exception if not found.
 
-    Retrieve or set metadata using a dictionary-like syntax, rather than
-    `attribute()` and `getattribute()`. This is best illustrated by
-    example::
+    Like dictionaries, `'key' in spec` is True if the attribute is present,
+    and `del spec['key']` will remove the attribute.
+    
+    Examples:
 
-        comp = spec["Compression"]
-        # Same as:  comp = spec.getattribute("Compression")
+    .. code-block:: python
 
-        spec["Compression"] = comp
         # Same as: spec.attribute("Compression", comp)
+        spec["Compression"] = comp
 
+        # Same as:  comp = spec.getattribute("Compression")
+        # if it succeeds, or raises a KeyError if not found.
+        comp = spec["Compression"]
+
+        # Failed spec["key"] will raise a KeyError
+        try:
+            r = spec["unknown"]
+        except:
+            print("'unknown' key was not found")
+
+        # "key" in spec is True if the key is present
+        if "Compression" in spec:
+            print("'Compression' metadata is present")
+
+        # del spec["key"] removes the key
+        del key["Compression"]
+
+        # ImageSpec.get("key") returns the value, or None if not found
+        comp = spec.get("Compression")
+        # and optionally, a default value may be passed
+        comp = spec.get("Compression", "none")
+
+    The basic `["key"]` setting and retrieval was added in OpenImageIO in 2.1.
+    The `"key" in` and `del` operators, and the `get()` method, were added in
+    OpenImageIO 2.4.
 
 
 .. py:method:: ImageSpec.metadata_val (paramval, human=False)
@@ -635,6 +712,22 @@ Section :ref:`sec-ImageSpec_`, is replicated for Python.
     data types, but not the arbitrary named metadata or channel names.
 
 
+.. py:method:: bool ImageSpec.set_colorspace (name)
+
+    Set metadata to indicate the presumed color space `name`, or clear all
+    such metadata if `name` is the empty string.
+
+    This function was added in version 2.5.
+
+    Example:
+
+    .. code-block:: python
+
+        spec = ImageSpec(...)
+        spec.set_colorspace ("sRGB")
+
+
+
 .. py:method:: ImageSpec.undefined ()
 
     Returns `True` for a newly initialized (undefined) ImageSpec.
@@ -646,60 +739,62 @@ Example: Header info
 --------------------
 
 Here is an illustrative example of the use of ImageSpec, a working Python
-function that opens a file and prints all the relevant header information::
+function that opens a file and prints all the relevant header information:
 
-    #!/usr/bin/env python 
-    import OpenImageIO as oiio
-    
+.. code-block:: python
+
+    #!/usr/bin/env python
+    from OpenImageIO import ImageInput
+
     # Print the contents of an ImageSpec
     def print_imagespec (spec, subimage=0, mip=0) :
         if spec.depth <= 1 :
             print ("  resolution %dx%d%+d%+d" % (spec.width, spec.height, spec.x, spec.y))
         else :
-            print ("  resolution %dx%d%x%d+d%+d%+d" % 
+            print ("  resolution %dx%d%x%d+d%+d%+d" %
                    (spec.width, spec.height, spec.depth, spec.x, spec.y, spec.z))
         if (spec.width != spec.full_width or spec.height != spec.full_height
             or spec.depth != spec.full_depth) :
             if spec.full_depth <= 1 :
-                print ("  full res   %dx%d%+d%+d" % 
+                print ("  full res   %dx%d%+d%+d" %
                        (spec.full_width, spec.full_height, spec.full_x, spec.full_y))
             else :
-                print ("  full res   %dx%d%x%d+d%+d%+d" % 
+                print ("  full res   %dx%d%x%d+d%+d%+d" %
                        (spec.full_width, spec.full_height, spec.full_depth,
                         spec.full_x, spec.full_y, spec.full_z))
         if spec.tile_width :
-            print ("  tile size  %dx%dx%d" % 
+            print ("  tile size  %dx%dx%d" %
                    (spec.tile_width, spec.tile_height, spec.tile_depth))
         else :
-            print "  untiled"
+            print ("  untiled")
         if mip >= 1 :
             return
-        print "  " + str(spec.nchannels), "channels:", spec.channelnames
-        print "  format = ", str(spec.format)
+        print ("  " + str(spec.nchannels), "channels:", spec.channelnames)
+        print ("  format = ", str(spec.format))
         if len(spec.channelformats) > 0 :
-            print "  channelformats = ", spec.channelformats
-        print "  alpha channel = ", spec.alpha_channel
-        print "  z channel = ", spec.z_channel
-        print "  deep = ", spec.deep
-        for i in spec.extra_attribs) :
+            print ("  channelformats = ", spec.channelformats)
+        print ("  alpha channel = ", spec.alpha_channel)
+        print ("  z channel = ", spec.z_channel)
+        print ("  deep = ", spec.deep)
+        for i in spec.extra_attribs :
             if type(i.value) == str :
-                print " ", i.name, "= \"" + i.value + "\""
+                print (" ", i.name, "= \"" + i.value + "\"")
             else :
-                print " ", i.name, "=", i.value
-    
-    
+                print (" ", i.name, "=", i.value)
+
+
     def poor_mans_iinfo (filename) :
         input = ImageInput.open (filename)
         if not input :
-            print 'Could not open "' + filename + '"'
-            print "\tError: ", oiio.geterror()
+            print ('Could not open "' + filename + '"')
+            print ("\tError: ", oiio.geterror())
             return
-        print 'Opened "' + filename + '" as a ' + input.format_name()
+        print ('Opened "' + filename + '" as a ' + input.format_name())
         sub = 0
         mip = 0
         while True :
             if sub > 0 or mip > 0 :
-                print "Subimage", sub, "MIP level", mip, ":"
+                print ("Subimage", sub, "MIP level", mip, ":")
             print_imagespec (input.spec(), mip=mip)
             mip = mip + 1
             if input.seek_subimage (sub, mip) :
@@ -720,7 +815,7 @@ DeepData
 ========
 
 The DeepData class describing "deep" image data (multiple depth
-sample per pixel), which is explained in deail in
+sample per pixel), which is explained in detail in
 Section :ref:`sec-imageinput-deepdata`, is replicated for Python.
 
 .. py:method:: DeepData ()
@@ -748,12 +843,12 @@ Section :ref:`sec-imageinput-deepdata`, is replicated for Python.
 
 .. py:attribute:: DeepData.pixels
 
-    This `int` field constains the total number of pixels in this collection
+    This `int` field contains the total number of pixels in this collection
     of deep data.
 
 .. py:attribute:: DeepData.channels
 
-    This `int` field constains the number of channels.
+    This `int` field contains the number of channels.
 
 .. py:attribute:: DeepData.A_channel
                   DeepData.AR_channel
@@ -782,6 +877,10 @@ Section :ref:`sec-imageinput-deepdata`, is replicated for Python.
 .. py:method:: DeepData.samplesize ()
 
     Retrieve the packed size (in bytes) of all channels of one sample.
+
+.. py:method:: DeepData.same_channeltypes (other)
+
+    Returns `True` if this DeepData has the same channel types as `other`.
 
 .. py:method:: DeepData.set_samples (pixel, nsamples)
 
@@ -864,7 +963,7 @@ Section :ref:`sec-imageinput-deepdata`, is replicated for Python.
 ImageInput
 ==========
 
-See Chapter :ref:`chap-imageinput`_ for detailed explanations of the C++
+See Chapter :ref:`chap-imageinput` for detailed explanations of the C++
 ImageInput class APIs. The Python APIs are very similar. The biggest
 difference is that in C++, the various `read_*` functions write the pixel
 values into an already-allocated array that belongs to the caller, whereas
@@ -880,11 +979,13 @@ the Python versions allocate and return an array holding the pixel values
     second form, the optional ImageSpec argument `config` contains
     attributes that may set certain options when opening the file.
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         input = ImageInput.open ("tahoe.jpg")
         if input == None :
-            print "Error:", oiio.geterror()
+            print ("Error:", oiio.geterror())
             return
 
 .. py:method:: ImageInput.close ()
@@ -892,7 +993,9 @@ the Python versions allocate and return an array holding the pixel values
     Closes an open image file, returning `True` if successful, `False`
     otherwise.
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         input = ImageInput.open (filename)
         ...
@@ -902,11 +1005,13 @@ the Python versions allocate and return an array holding the pixel values
 
     Returns the format name of the open file, as a string.
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         input = ImageInput.open (filename)
         if input :
-            print filename, "was a", input.format_name(), "file."
+            print (filename, "was a", input.format_name(), "file.")
             input.close ()
 
 
@@ -915,11 +1020,13 @@ the Python versions allocate and return an array holding the pixel values
     Returns an ImageSpec corresponding to the currently open subimage and
     MIP level of the file.
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         input = ImageInput.open (filename)
         spec = input.spec()
-        print "resolution ", spec.width, "x", spec.height
+        print ("resolution ", spec.width, "x", spec.height)
 
 .. py:method:: ImageInput.spec (subimage, miplevel=0)
 
@@ -947,7 +1054,9 @@ the Python versions allocate and return an array holding the pixel values
     `False` upon failure (which may include the file not having the
     specified subimage or MIP level).
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         input = ImageInput.open (filename)
         mip = 0
@@ -956,17 +1065,17 @@ the Python versions allocate and return an array holding the pixel values
             if not ok :
                 break
             spec = input.spec()
-            print "MIP level", mip, "is", spec.width, "x", spec.height
+            print ("MIP level", mip, "is", spec.width, "x", spec.height)
 
 
 
-.. py:method:: ImageInput.read_image (format="float")
-               ImageInput.read_image (chbegin, chend, format="float")
-               ImageInput.read_image (subimage, miplevel, chbegin, chend, format="float")
+.. py:method:: ImageInput.read_image (format='float')
+               ImageInput.read_image (chbegin, chend, format='float')
+               ImageInput.read_image (subimage, miplevel, chbegin, chend, format='float')
 
     Read the entire image and return the pixels as a NumPy array of values
-    of the given `type` (described by a `TypeDesc` or a string, float by
-    default). If the `type` is `TypeUnknown`, the pixels will be returned in
+    of the given `format` (described by a `TypeDesc` or a string, float by
+    default). If the `format` is `unknown`, the pixels will be returned in
     the native format of the file. If an error occurs, `None` will be
     returned.
     
@@ -974,13 +1083,15 @@ the Python versions allocate and return an array holding the pixel values
     `[y][x][channel]`. For 3D volumetric images, the array returned will be
     4D with shape indexed as `[z][y][x][channel]`.
 
-    Example::
+    Example:
+
+    .. code-block:: python
 
         input = ImageInput.open (filename)
         spec = input.spec ()
         pixels = input.read_image ()
-        print "The first pixel is", pixels[0][0]
-        print "The second pixel is", pixels[0][1]
+        print ("The first pixel is", pixels[0][0])
+        print ("The second pixel is", pixels[0][1])
         input.close ()
 
 
@@ -994,7 +1105,9 @@ the Python versions allocate and return an array holding the pixel values
     
     The pixel array returned will be a 2D `ndarray`, indexed as `[x][channel]`.
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         input = ImageInput.open (filename)
         spec = input.spec ()
@@ -1003,7 +1116,7 @@ the Python versions allocate and return an array holding the pixel values
                 pixels = input.read_scanline (y, spec.z, "float")
                 # process the scanline
         else :
-            print "It's a tiled file"
+            print ("It's a tiled file")
         input.close ()
 
 
@@ -1019,7 +1132,9 @@ the Python versions allocate and return an array holding the pixel values
     `ndarray` indexed as `[y][x][channel]`. For 3D volumetric images, the
     array returned will be 4D with shape indexed as `[z][y][x][channel]`.
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         input = ImageInput.open (filename)
         spec = input.spec ()
@@ -1030,7 +1145,7 @@ the Python versions allocate and return an array holding the pixel values
                         pixels = input.read_tile (x, y, z, oiio.FLOAT)
                         # process the tile
         else :
-            print "It's a scanline file"
+            print ("It's a scanline file")
         input.close ()
 
 
@@ -1052,7 +1167,9 @@ the Python versions allocate and return an array holding the pixel values
     indexed as `[y][x][channel]`, and `read_tiles` will return a 4D
     array indexed as `[z][y][x][channel]`,
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         input = ImageInput.open (filename)
         spec = input.spec ()
@@ -1084,22 +1201,31 @@ the Python versions allocate and return an array holding the pixel values
     explicit subimage/miplevel.
 
 
-.. py:method:: ImageInput.geterror ()
+.. py:method:: ImageOutput.get_thumbnail(subimage: int = 0) -> ImageBuf
+
+    Retrieve an ImageBuf containing reduced-resolution("thumbnail") version
+    of the image. If no thumbnail could be retrieved, an empty ImageBuf
+    will be returned.
+
+
+.. py:method:: ImageInput.geterror (clear = True)
 
     Retrieves the error message from the latest failed operation on an
     ImageInput.
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         input = ImageInput.open (filename)
         if not input :
-            print "Open error:", oiio.geterror()
+            print ("Open error:", oiio.geterror())
             # N.B. error on open must be retrieved with the global geterror(),
             # since there is no ImageInput object!
         else :
             pixels = input.read_image (oiio.FLOAT)
             if not pixels :
-                print "Read_image error:", input.geterror()
+                print ("Read_image error:", input.geterror())
             input.close ()
 
 
@@ -1108,7 +1234,7 @@ the Python versions allocate and return an array holding the pixel values
 Example: Reading pixel values from a file to find min/max
 ---------------------------------------------------------
 
-.. code-block::
+.. code-block:: python
 
     #!/usr/bin/env python 
     import OpenImageIO as oiio
@@ -1116,14 +1242,14 @@ Example: Reading pixel values from a file to find min/max
     def find_min_max (filename) :
         input = ImageInput.open (filename)
         if not input :
-            print 'Could not open "' + filename + '"'
-            print "\tError: ", oiio.geterror()
+            print ('Could not open "' + filename + '"')
+            print ("\tError: ", oiio.geterror())
             return
         spec = input.spec()
         nchans = spec.nchannels
         pixels = input.read_image()
         if not pixels :
-            print "Could not read:", input.geterror()
+            print ("Could not read:", input.geterror())
             return
         input.close()    # we're done with the file at this point
         minval = pixels[0][0]   # initialize to the first pixel value
@@ -1136,8 +1262,8 @@ Example: Reading pixel values from a file to find min/max
                         minval[c] = p[c]
                     if p[c] > maxval[c] :
                         maxval[c] = p[c]
-        print "Min values per channel were", minval
-        print "Max values per channel were", maxval
+        print ("Min values per channel were", minval)
+        print ("Max values per channel were", maxval)
 
 |
 
@@ -1148,7 +1274,7 @@ Example: Reading pixel values from a file to find min/max
 ImageOutput
 ===========
 
-See Chapter :ref:`chap-imageoutput_` for detailed explanations of the C++
+See Chapter :ref:`chap-imageoutput` for detailed explanations of the C++
 ImageOutput class APIs. The Python APIs are very similar.
 
 .. py:method:: ImageOutput.create (name, plugin_searchpath="")
@@ -1160,12 +1286,14 @@ ImageOutput class APIs. The Python APIs are very similar.
     object, or `None` upon error (in which case, `OpenImageIO.geterror()`
     may be used to retrieve the error message).
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         import OpenImageIO as oiio
         output = ImageOutput.create ("myfile.tif")
         if not output :
-            print "Error:", oiio.geterror()
+            print ("Error:", oiio.geterror())
 
 
 
@@ -1173,11 +1301,13 @@ ImageOutput class APIs. The Python APIs are very similar.
 
     The file format name of a created ImageOutput, as a string.
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         output = ImageOutput.create (filename)
         if output :
-            print "Created output", filename, "as a", output.format_name()
+            print ("Created output", filename, "as a", output.format_name()
 
 
 
@@ -1185,39 +1315,43 @@ ImageOutput class APIs. The Python APIs are very similar.
 
     For a created ImageOutput, returns `True` if the file format supports
     the named feature (such as "tiles", "mipmap", etc., see Section
-    :ref:`sec-supportsfeaturelist_` for the full list), or `False` if this
-    file format does not support the feature.
-    
-    Example::
+    :ref:`sec-imageoutput-class-reference` for the full list), or `False` if
+    this file format does not support the feature.
+
+    Example:
+
+    .. code-block:: python
 
         output = ImageOutput.create (filename)
         if output :
-            print output.format_name(), "supports..."
-            print "tiles?", output.supports("tiles")
-            print "multi-image?", output.supports("multiimage")
-            print "MIP maps?", output.supports("mipmap")
-            print "per-channel formats?", output.supports("channelformats")
+            print (output.format_name(), "supports...")
+            print ("tiles?", output.supports("tiles"))
+            print ("multi-image?", output.supports("multiimage"))
+            print ("MIP maps?", output.supports("mipmap"))
+            print ("per-channel formats?", output.supports("channelformats"))
 
 
 .. py:method:: ImageOutput.open (filename, spec, mode="Create")
 
     Opens the named output file, with an ImageSpec describing the image to
-    be output.  The `mode` may be one of "create", "AppendSubimage", or
-    "AppendMIPLevel". See Section :ref:`sec-imageoutputopen_` for details.
-    Returns `True` upon success, `False` upon failure (error messages
-    retrieved via `ImageOutput.geterror()`.)
-    
+    be output.  The `mode` may be one of "Create", "AppendSubimage", or
+    "AppendMIPLevel". See Section :ref:`sec-imageoutput-class-reference` for
+    details. Returns `True` upon success, `False` upon failure (error
+    messages retrieved via `ImageOutput.geterror()`.)
+
     :return: `True` for success, `False` for failure.
 
-    Example::
+    Example:
+
+    .. code-block:: python
 
         output = ImageOutput.create (filename)
         if not output :
-            print "Error:", oiio.geterror()
+            print ("Error:", oiio.geterror())
         spec = ImageSpec (640, 480, 3, "uint8")
         ok = output.open (filename, spec)
         if not ok :
-            print "Could not open", filename, ":", output.geterror()
+            print ("Could not open", filename, ":", output.geterror())
 
 
 .. py:method:: ImageOutput.open (filename, (imagespec, ...))
@@ -1251,7 +1385,9 @@ ImageOutput class APIs. The Python APIs are very similar.
     total number of values.) The data type is deduced from the contents of the
     array itself. Returns `True` upon success, `False` upon failure.
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         # This example reads a scanline file, then converts it to tiled
         # and writes to the same name.
@@ -1283,7 +1419,9 @@ ImageOutput class APIs. The Python APIs are very similar.
     (It will also work fine if the array is 1D "flattened" version, as long
     as it contains the correct total number of values.)
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         # Copy a TIFF image to JPEG by copying scanline by scanline.
         input = ImageInput.open ("in.tif")
@@ -1319,7 +1457,9 @@ ImageOutput class APIs. The Python APIs are very similar.
     also work fine if the array is 1D "flattened" version, as long as it
     contains the correct total number of values.)
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         input = ImageInput.open (in_filename)
         spec = input.spec ()
@@ -1352,8 +1492,15 @@ ImageOutput class APIs. The Python APIs are very similar.
     Write a collection of scanlines, tiles, or an entire image of "deep"
     pixel data. The begin/end coordinates are all integer values, and
     `deepdata` should be a DeepData.
-    
-    
+
+
+.. py:method:: ImageOutput.set_thumbnail(thumb : ImageBuf)
+
+    Specify a reduced-resolution ("thumbnail") version of the image, as an
+    ImageBuf. Note that many image formats may require the thumbnail to be
+    specified prior to writing the pixels. Return `True` for success, or
+    `False` if a thumbnail could not be set.
+
 .. py:method:: ImageOutput.copy_image (imageinput)
 
     Copy the current image of the open input to the open output. (The reason
@@ -1362,7 +1509,9 @@ ImageOutput class APIs. The Python APIs are very similar.
     efficient technique to copy pixels unaltered, for example by avoiding the 
     decompression/recompression round trip.)
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         input = ImageInput.open (in_filename)
         spec = input.spec ()
@@ -1373,25 +1522,27 @@ ImageOutput class APIs. The Python APIs are very similar.
         input.close ()
 
 
-.. py:method:: ImageOuput.geterror ()
+.. py:method:: ImageOuput.geterror (clear = True)
 
     Retrieves the error message from the latest failed operation on an open
     file.
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         output = ImageOutput.create (filename)
         if not output :
-            print "Create error:", oiio.geterror()
+            print ("Create error:", oiio.geterror())
             # N.B. error on create must be retrieved with the global geterror(),
             # since there is no ImageOutput object!
         else :
             ok = output.open (filename, spec)
             if not ok :
-                print "Open error:", output.geterror()
+                print ("Open error:", output.geterror())
             ok = output.write_image (pixels)
             if not ok :
-                print "Write error:", output.geterror()
+                print ("Write error:", output.geterror())
             output.close ()
 
 
@@ -1402,7 +1553,7 @@ ImageOutput class APIs. The Python APIs are very similar.
 ImageBuf
 ========
 
-See Chapter :ref:`chap:-magebuf_` for detailed explanations of the C++
+See Chapter :ref:`chap-imagebuf` for detailed explanations of the C++
 ImageBuf class APIs. The Python APIs are very similar.
 
 .. py:method:: ImageBuf ()
@@ -1417,7 +1568,9 @@ awaiting a call to `reset()` or `copy()` before it is useful.
     Optionally, a specific subimage or MIP level may be specified
     (defaulting to 0).
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         import OpenImageIO as oiio
         ...
@@ -1430,7 +1583,9 @@ awaiting a call to `reset()` or `copy()` before it is useful.
     Construct a read-only ImageBuf that will read from the named file,
     with an ImageSpec `config` giving configuration hints.
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         import OpenImageIO as oiio
         ...
@@ -1442,16 +1597,40 @@ awaiting a call to `reset()` or `copy()` before it is useful.
 
 .. py:method:: ImageBuf (imagespec, zero = True)
 
-    Construct a writeable ImageBuf of the dimensions and data format
+    Construct a writable ImageBuf of the dimensions and data format
     specified by an ImageSpec. The pixels will be initialized to black/empty
     values if `zero` is True, otherwise the pixel values will remain
     uninitialized.
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         spec = ImageSpec (640, 480, 3, "float")
         buf = ImageBuf (spec)
 
+
+.. py:method:: ImageBuf (data)
+
+    Construct a writable ImageBuf of the dimensions of `data`, which is a
+    NumPy `ndarray` of values indexed as `[y][x][channel]` for normal 2D
+    images, or for 3D volumetric images, as `[z][y][x][channel]`. The data
+    will be copied into the ImageBuf's internal storage. The NumPy array may
+    be strided for z, y, or x, but must have "contiguous" channel data within
+    each pixel. The pixel data type is also deduced from the contents of the
+    `data` array.
+
+    Note that this Python ImageBuf will contain its own copy of the data, so
+    further changes to the `data` array will not affect the ImageBuf. This is
+    different from the C++ ImageBuf constructor from a pointer, which will
+    "wrap" the existing user-provided buffer but not make its own copy.
+
+    Example:
+
+    .. code-block:: python
+
+        pixels = numpy.zeros ((640, 480, 3), dtype = numpy.float32)
+        buf = ImageBuf (pixels)
 
 
 .. py:method:: ImageBuf.clear ()
@@ -1459,7 +1638,9 @@ awaiting a call to `reset()` or `copy()` before it is useful.
     Resets the ImageBuf to a pristine state identical to that of a freshly
     constructed ImageBuf using the default constructor.
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         buf = ImageBuf (...)
     
@@ -1478,10 +1659,26 @@ awaiting a call to `reset()` or `copy()` before it is useful.
 
 .. py:method:: ImageBuf.reset (imagespec, zero = True)
 
-    Restore the ImageBuf to the newly-constructed state of a writeable
+    Restore the ImageBuf to the newly-constructed state of a writable
     ImageBuf specified by an ImageSpec. The pixels will be iniialized to
     black/empty if `zero` is True, otherwise the pixel values will remain
     uninitialized.
+
+
+.. py:method:: ImageBuf.reset (data)
+
+    Reset the ImageBuf to be sized to the dimensions of `data`, which is a
+    NumPy `ndarray` of values indexed as `[y][x][channel]` for normal 2D
+    images, or for 3D volumetric images, as `[z][y][x][channel]`. The data
+    will be copied into the ImageBuf's internal storage. The NumPy array may
+    be strided for z, y, or x, but must have "contiguous" channel data within
+    each pixel. The pixel data type is also deduced from the contents of the
+    `data` array.
+
+    Note that this Python ImageBuf will contain its own copy of the data, so
+    further changes to the `data` array will not affect the ImageBuf. This is
+    different from the C++ ImageBuf constructor from a pointer, which will
+    "wrap" the existing user-provided buffer but not make its own copy.
 
 
 .. py:method:: ImageBuf.read(subimage=0, miplevel=0, force=False, convert=oiio.UNKNOWN)
@@ -1506,7 +1703,9 @@ awaiting a call to `reset()` or `copy()` before it is useful.
     read could not be performed (in which case, a `geterror()` call will
     retrieve the specific error message).
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         buf = ImageBuf ("mytexture.exr")
         buf.read (0, 2, True)
@@ -1535,7 +1734,9 @@ awaiting a call to `reset()` or `copy()` before it is useful.
     format to use (by default, it will infer it from the extension of the
     file name).
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         # No-frills conversion of a TIFF file to JPEG
         buf = ImageBuf ("in.tif")
@@ -1547,9 +1748,28 @@ awaiting a call to `reset()` or `copy()` before it is useful.
 
 
 
-.. py:method:: ImageBuf.make_writeable (keep_cache_type = False)
+.. py:method:: ImageBuf.write (imageoutput)
 
-    Force the ImageBuf to be writeable. That means that if it was previously
+    Write the contents of the ImageBuf as the next subimage to an open
+    ImageOutput.
+
+    Example:
+
+    .. code-block:: python
+
+        buf = ImageBuf (...)   # Existing ImageBuf
+
+        out = ImageOutput.create("out.exr")
+        out.open ("out.exr", buf.spec())
+
+        buf.write (out)
+        out.close()
+
+
+
+.. py:method:: ImageBuf.make_writable (keep_cache_type = False)
+
+    Force the ImageBuf to be writable. That means that if it was previously
     backed by an ImageCache (storage was `IMAGECACHE`), it will force a full
     read so that the whole image is in local memory.
 
@@ -1562,7 +1782,9 @@ awaiting a call to `reset()` or `copy()` before it is useful.
     data type description for all channels, or a tuple giving the data type for
     each channel in order.
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         # Conversion to a tiled unsigned 16 bit integer file
         buf = ImageBuf ("in.tif")
@@ -1585,21 +1807,25 @@ awaiting a call to `reset()` or `copy()` before it is useful.
     Handy rule of thumb: `spec()` describes the buffer, `nativespec()`
     describes the original file it came from.
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         buf = ImageBuf ("in.tif")
-        print "Resolution is", buf.spec().width, "x", buf.spec().height
+        print ("Resolution is", buf.spec().width, "x", buf.spec().height)
 
 
 
 .. py:method:: ImageBuf.specmod()
 
-    `ImageBuf.specmod()` provides a reference to the writeable ImageSpec
+    `ImageBuf.specmod()` provides a reference to the writable ImageSpec
     inside the ImageBuf.  Be very careful!  It is safe to modify certain
     metadata, but if you change the data format or resolution fields, you
     will get the chaos you deserve.
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         # Read an image, add a caption metadata, write it back out in place
         buf = ImageBuf ("file.tif")
@@ -1607,11 +1833,28 @@ awaiting a call to `reset()` or `copy()` before it is useful.
         buf.write ("file.tif")
 
 
-.. py:method:: ImageBuf.name
+.. py:attribute:: ImageBuf.has_thumbnail
+
+    Contains `True` if the ImageBuf contains thumbnail data, otherwise
+    `False`.
+
+.. py:method:: ImageBuf.clear_thumbnail()
+
+    Remove any associated thumbnail from this buffer.
+
+.. py:method:: ImageBuf.set_thumbnail(thumb: ImageBuf)
+
+    Set the thumbnai associated with this buffer to `thumb`.
+
+.. py:method:: ImageBuf.thumbnail() -> ImageBuf
+
+    Return an ImageBuf holding any thumbnail associated with this buffer.
+
+.. py:attribute:: ImageBuf.name
 
     The file name of the image (as a string).
 
-.. py:method::  ImageBuf.file_format_name
+.. py:attribute::  ImageBuf.file_format_name
 
     The file format of the image (as a string).
 
@@ -1657,7 +1900,7 @@ awaiting a call to `reset()` or `copy()` before it is useful.
                   ImageBuf.oriented_full_y
 
     The `Orientation` field gives the suggested display oriententation of
-    the image (see Section :ref:`metadata-orientation_`).
+    the image (see Section :ref:`sec-metadata-orientation`).
 
     The other fields are helpers that give the width, height, and origin
     (as well as "full" or "display" resolution and origin), taking the
@@ -1670,10 +1913,12 @@ awaiting a call to `reset()` or `copy()` before it is useful.
     These fields hold an ROI description of the pixel data window
     (`roi`) and the full (a.k.a. "display") window (`roi_full`).
 
-    Example::
+    Example:
+
+    .. code-block:: python
 
         buf = ImageBuf ("tahoe.jpg")
-        print "Resolution is", buf.roi.width, "x", buf.roi.height
+        print ("Resolution is", buf.roi.width, "x", buf.roi.height)
 
 
 
@@ -1682,28 +1927,31 @@ awaiting a call to `reset()` or `copy()` before it is useful.
     Changes the "origin" of the data pixel data window to the specified
     coordinates.
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         # Shift the pixel data so the upper left is at pixel (10, 10)
         buf.set_origin (10, 10)
 
 
 
-.. py:method:: ImageBuf.set_full (roi)
+.. py:method:: ImageBuf.set_full (xbegin, xend, ybegin, yend, zbegin, zend)
 
     Changes the "full" (a.k.a. "display") window to the specified ROI.
     
-    Example::
+    Example:
 
-        newroi = ROI (0, 1024, 0, 768)
-        buf.set_full (newroi)
+    .. code-block:: python
+
+        buf.set_full (0, 1024, 0, 768, 0, 1)
 
 
 
 .. py:attribute:: ImageBuf.pixels_valid
 
     Will be `True` if the file has already been read and the pixels are
-    valid. (It is always `True` for writeable ImageBuf's.) There should be
+    valid. (It is always `True` for writable ImageBuf's.) There should be
     few good reasons to access these, since the spec and pixels will be
     automatically be read when they are needed.
 
@@ -1732,7 +1980,9 @@ awaiting a call to `reset()` or `copy()` before it is useful.
     Return a full copy of this ImageBuf (with optional data format
     conversion, if `format` is supplied).
 
-    Example::
+    Example:
+
+    .. code-block:: python
 
         A = ImageBuf("A.tif")
     
@@ -1750,7 +2000,9 @@ awaiting a call to `reset()` or `copy()` before it is useful.
     If a `format` is provided, `this` will get the specified pixel
     data type rather than using the same pixel format as the source ImageBuf.
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         A = ImageBuf("A.tif")
     
@@ -1768,7 +2020,9 @@ awaiting a call to `reset()` or `copy()` before it is useful.
 
     Swaps the content of this ImageBuf and the other ImageBuf.
 
-    Example::
+    Example:
+
+    .. code-block:: python
 
         A = ImageBuf("A.tif")
         B = ImageBuf("B.tif")
@@ -1779,30 +2033,34 @@ awaiting a call to `reset()` or `copy()` before it is useful.
 
 .. py:method:: tuple ImageBuf.getpixel (x, y, z=0, wrap="black")
 
-Retrieves pixel (x,y,z) from the buffer and return it as a tuple of
-`float` values, one for each color channel.  The `x`, `y`, `z` values
-are `int` pixel coordinates.  The optional `wrap` parameter
-describes what should happen if the coordinates are outside the pixel data
-window (and may be: "black", "clamp", "periodic", "mirror").
+    Retrieves pixel (x,y,z) from the buffer and return it as a tuple of
+    `float` values, one for each color channel.  The `x`, `y`, `z` values
+    are `int` pixel coordinates.  The optional `wrap` parameter
+    describes what should happen if the coordinates are outside the pixel data
+    window (and may be: "black", "clamp", "periodic", "mirror").
+    
+    Example:
+    
+    .. code-block:: python
+    
+        buf = ImageBuf ("tahoe.jpg")
+        p = buf.getpixel (50, 50)
+        print (p)
+    
+        > (0.37, 0.615, 0.97)
 
-Example::
-
-    buf = ImageBuf ("tahoe.jpg")
-    p = buf.getpixel (50, 50)
-    print p
-
-    > (0.37, 0.615, 0.97)
 
 
-
-.. py:method:: mageBuf.getchannel (x, y, z, channel, wrap="black")
+.. py:method:: ImageBuf.getchannel (x, y, z, channel, wrap="black")
 
     Retrieves just a single channel value from pixel (x,y,z) from the buffer
     and returns it as a `float` value.  The optional `wrap` parameter
     describes what should happen if the coordinates are outside the pixel data
     window (and may be: "black", "clamp", "periodic", "mirror").
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         buf = ImageBuf ("tahoe.jpg")
         green = buf.getchannel (50, 50, 0, 1)
@@ -1818,8 +2076,10 @@ Example::
     "pixel space."   The optional `wrap` parameter describes what should
     happen if the coordinates are outside the pixel data window (and may be:
     "black", "clamp", "periodic", "mirror").
-    
-    Example::
+
+    Example:
+
+    .. code-block:: python
 
         buf = ImageBuf ("tahoe.jpg")
         midx = float(buf.xbegin + buf.xend) / 2.0
@@ -1841,8 +2101,10 @@ Example::
     the full/display window. The  `wrap` parameter describes what should
     happen if the coordinates are outside the pixel data window (and may be:
     "black", "clamp", "periodic", "mirror").
-    
-    Example::
+
+    Example:
+
+    .. code-block:: python
 
         buf = ImageBuf ("tahoe.jpg")
         p = buf.interpixel_NDC (0.5, 0.5)
@@ -1856,8 +2118,10 @@ Example::
 
     Sets pixel (x,y,z) to be the `pixel_value`, expressed as a tuple of
     `float` (one for each color channel).
-    
-    Example::
+
+    Example:
+
+    .. code-block:: python
 
         buf = ImageBuf (ImageSpec (640, 480, 3, oiio.UINT8))
     
@@ -1878,8 +2142,10 @@ Example::
     `ndarray` containing data elements indexed as `[y][x][channel]` for
     normal 2D images, or for 3D volumetric images, as `[z][y][x][channel]`).
     Returns `True` upon success, `False` upon failure.
-    
-    Example::
+
+    Example:
+
+    .. code-block:: python
 
         buf = ImageBuf ("tahoe.jpg")
         pixels = buf.get_pixels (oiio.FLOAT)  # no ROI means the whole image
@@ -1894,8 +2160,10 @@ Example::
     `[z][y][x][channel]`. (It will also work fine if the array is 1D
     "flattened" version, as long as it contains the correct total number of
     values.) The data type is deduced from the contents of the array itself.
-    
-    Example::
+
+    Example:
+
+    .. code-block:: python
 
         buf = ImageBuf (...)
         pixels = (....)
@@ -1907,19 +2175,21 @@ Example::
 
     This field will be `True` if an error has occurred in the ImageBuf.
 
-.. py:method::  ImageBuf.geterror ()
+.. py:method::  ImageBuf.geterror (clear = True)
 
     Retrieve the error message (and clear the `has_error` flag).
 
-    Example::
+    Example:
+
+    .. code-block:: python
 
         buf = ImageBuf ("in.tif")
         buf.read ()   # force a read
         if buf.has_error :
-            print "Error reading the file:", buf.geterror()
+            print ("Error reading the file:", buf.geterror())
         buf.write ("out.jpg")
         if buf.has_error :
-            print "Could not convert the file:", buf.geterror()
+            print ("Could not convert the file:", buf.geterror())
 
 
 
@@ -1983,13 +2253,13 @@ ImageBufAlgo
 ============
 
 The C++ ImageBufAlgo functions are described in detail in Chapter
-:ref:`chap-imagebufalgo_`.  They are also exposed to Python. For the
+:ref:`chap-imagebufalgo`.  They are also exposed to Python. For the
 majority of ImageBufAlgo functions, their use in Python is identical to C++;
 in those cases, we will keep our descriptions of the Python bindings minimal
-and refer you to Chapter :ref:`chap-imagebufalgo_`, saving the extended
+and refer you to Chapter :ref:`chap-imagebufalgo`, saving the extended
 descriptions for those functions that differ from the C++ counterparts.
 
-A few things about the paramters of the ImageBufAlgo function calls are
+A few things about the parameters of the ImageBufAlgo function calls are
 identical among the functions, so we will explain once here rather than
 separately for each function:
 
@@ -1997,7 +2267,7 @@ separately for each function:
   uninitialized ImageBuf, but it must be an ImageBuf).
 * `src` parameter is an initialized ImageBuf, which will not be modified
   (unless it happens to refer to the same image as `dst`.
-* `roi`, if supplied, is an `roi` specifying a region of interst over which
+* `roi`, if supplied, is an `roi` specifying a region of interest over which
   to operate. If omitted, the region will be the entire size of the source
   image(s).
 * `nthreads` is the maximum number of threads to use. If not supplied, it
@@ -2017,7 +2287,9 @@ Pattern generation
 
     Zero out the destination buffer (or a specific region of it).
     
-    Example::
+    Example:
+
+    .. code-block:: python
 
         # Initialize buf to a 640x480 3-channel FLOAT buffer of 0 values
         buf = ImageBufAlgo.zero (ROI(0, 640, 0, 480, 0, 1, 0, 3))
@@ -2041,7 +2313,9 @@ Pattern generation
     with values bilinearly interpolated from the four corner colors
     supplied.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         # Draw a red rectangle into buf
         buf = ImageBuf (ImageSpec(640, 480, 3, TypeDesc.FLOAT)
@@ -2056,7 +2330,9 @@ Pattern generation
     Return (or copy into `dst`) a checkerboard pattern. The colors are specified as
     tuples giving the values for each color channel.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         buf = ImageBuf(ImageSpec(640, 480, 3, oiio.UINT8))
         ImageBufAlgo.checker (buf, 64, 64, 1, (0.1,0.1,0.1), (0.4,0.4,0.4))
@@ -2068,22 +2344,39 @@ Pattern generation
     Return an image of pseudorandom noise, or add pseudorandom noise
     to the specified region of existing region `dst`.
     
-    For noise type "uniform", the noise is uniformly distributed on the
-    range `[A,B)`. For noise "gaussian", the noise will have a normal
-    distribution with mean A and standard deviation B. For noise "salt", the
-    value A will be stored in a random set of pixels whose proportion (of
-    the overall image) is B. For all noise types, choosing different `seed`
-    values will result in a different pattern. If the `mono` flag is `True`,
-    a single noise value will be applied to all channels specified by `roi`,
-    but if `mono` is `False`, a separate noise value will be computed for
-    each channel in the region.
+    For noise type "white" (and its synonym "uniform"), the values are
+    uniformly distributed on the range `[A,B)` and independently chosen for
+    each pixel. For noise type "blue", the range will still be uniformly
+    distributed on `[A,B)` as with "white," except that the values have better
+    spectral properties for sampling and dithering purposes. For noise
+    "gaussian", the noise will have a normal distribution with mean A and
+    standard deviation B. For noise "salt", the value A will be stored in a
+    random set of pixels whose proportion (of the overall image) is B. 
+    
+    For all noise types, choosing different `seed` values will result in a
+    different pattern. If the `mono` flag is `True`, a single noise value will
+    be applied to all channels specified by `roi`, but if `mono` is `False`, a
+    separate noise value will be computed for each channel in the region.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         buf = ImageBuf(ImageSpec(640, 480, 3, oiio.UINT8))
         ImageBufAlgo.zero (buf)
-        ImageBufAlgo.noise (buf, 'uniform', 0.25, 0.75)
+        ImageBufAlgo.noise (buf, 'white', 0.25, 0.75)
 
+
+.. py:method:: ImageBuf ImageBufAlgo.bluenoise_image ()
+
+    Return a reference to a singleton ImageBuf containing a 4-channel float
+    periodic blue noise image.
+
+    Example:
+
+    .. code-block:: python
+
+        buf = ImageBufAlgo.bluenoise_image ()
 
 
 .. py:method:: ImageBufAlgo.render_point (dst, x, y, color=(1,1,1,1))
@@ -2092,7 +2385,9 @@ Pattern generation
     is a tuple giving the per-channel colors. Return `True` for success,
     `False` for failure.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         buf = ImageBuf(ImageSpec (640, 480, 4, oiio.FLOAT))
         ImageBufAlgo.render_point (buf, 10, 20, (1,0,0,1))
@@ -2104,7 +2399,9 @@ Pattern generation
     Render a line from pixel $(x_1,y_1)$ to $(x_2,y_2)$ into `dst`.  The
     `color` (if supplied) is a tuple giving the per-channel colors.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         buf = ImageBuf(ImageSpec (640, 480, 4, oiio.FLOAT))
         ImageBufAlgo.render_line (buf, 10, 10, 500, 20, (1,0,0,1))
@@ -2117,7 +2414,9 @@ Pattern generation
     $(x_2,y_2)$ into `dst`.  The `color` (if supplied) is a tuple giving
     the per-channel colors.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         buf = ImageBuf(ImageSpec (640, 480, 4, oiio.FLOAT))
         ImageBufAlgo.render_box (buf, 150, 100, 240, 180, (0,1,1,1))
@@ -2132,7 +2431,9 @@ Pattern generation
     "left", "right", and "center", and choices for `aligny` are
     "baseline", "top", "bottom", and "center".
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         buf = ImageBuf(ImageSpec (640, 480, 4, oiio.FLOAT))
         ImageBufAlgo.render_text (buf, 50, 100, "Hello, world")
@@ -2147,7 +2448,9 @@ Pattern generation
     The size will not be `defined` if an error occurred (such as not being a
     valid font name).
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         A = ImageBuf(ImageSpec (640, 480, 4, oiio.FLOAT))
         Aroi = A.roi
@@ -2184,7 +2487,9 @@ Image transformations and data movement
     If `newchannelnames` is supplied, it is a tuple of new channel names. (See
     the C++ version for more full explanation.)
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         # Copy the first 3 channels of an RGBA, drop the alpha
         RGBA = ImageBuf("rgba.tif")
@@ -2201,11 +2506,14 @@ Image transformations and data movement
                                       ("R", "G", "B", "A"))
 
 
-.. py:method:: ImageBuf ImageBufAlgo.channel_append (A, B, roi=ROI.All, nthreads=0) bool ImageBufAlgo.channel_append (dst, A, B, roi=ROI.All, nthreads=0)
+.. py:method:: ImageBuf ImageBufAlgo.channel_append (A, B, roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.channel_append (dst, A, B, roi=ROI.All, nthreads=0)
 
     Append the channels of images `A` and `B` together into one image.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         RGBA = ImageBuf ("rgba.exr")
         Z = ImageBuf ("z.exr")
@@ -2220,7 +2528,9 @@ Image transformations and data movement
     optionally with the pixel type overridden by `convert` (if it is not
     `UNKNOWN`).
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         # Copy A's upper left 200x100 region into B
         B = ImageBufAlgo.copy (A, ROI(0,200,0,100))
@@ -2232,7 +2542,9 @@ Image transformations and data movement
 
     Reset `dst` to be the specified region of `src`.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         # Set B to be the upper left 200x100 region of A
         A = ImageBuf ("a.tif")
@@ -2246,7 +2558,9 @@ Image transformations and data movement
     Reset `dst` to be the specified region of `src`, but moved so that the
     resulting new image has its pixel data at the image plane origin.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         # Set B to be the lower left 200x100 region of A, moved to the origin
         A = ImageBuf ("a.tif")
@@ -2254,12 +2568,14 @@ Image transformations and data movement
 
 
 
-.. py:method:: bool ImageBufAlgo.paste (dst, xbegin, ybegin, zbegin, chbegin, src, ROI srcroi=ROI.All, nthreads=0)
+.. py:method:: bool ImageBufAlgo.paste (dst, xbegin, ybegin, zbegin, chbegin, src, srcroi=ROI.All, nthreads=0)
 
     Copy the specified region of `src` into `dst` with the given offset
     (`xbegin`, `ybegin`, `zbegin`).
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         # Paste small.exr on top of big.exr at offset (100,100)
         Big = ImageBuf ("big.exr")
@@ -2277,7 +2593,9 @@ Image transformations and data movement
 
     Copy while rotating the image by a multiple of 90 degrees.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         A = ImageBuf ("tahoe.exr")
         B = ImageBufAlgo.rotate90 (A)
@@ -2295,7 +2613,9 @@ Image transformations and data movement
     Copy while reversing orientation vertically (flip) or horizontally (flop),
     or diagonally (transpose).
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         A = ImageBuf ("tahoe.exr")
         B = ImageBufAlgo.flip (A)
@@ -2310,7 +2630,9 @@ Image transformations and data movement
     suggested by the `"Orientation"` metadata of the image (and the
     `"Orientation"` metadata is then set to 1, ordinary orientation).
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         A = ImageBuf ("tahoe.jpg")
         ImageBufAlgo.reorient (A, A)
@@ -2323,7 +2645,9 @@ Image transformations and data movement
 
     Copy while circularly shifting by the given amount. 
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         A = ImageBuf ("tahoe.exr")
         B = ImageBufAlgo.circular_shift (A, 200, 100)
@@ -2340,7 +2664,9 @@ Image transformations and data movement
     the filter and size are not specified, an appropriate default will be
     chosen.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         Src = ImageBuf ("tahoe.exr")
         Dst = ImageBufAlgo.rotate (Src, math.radians(45.0))
@@ -2355,7 +2681,9 @@ Image transformations and data movement
     transformation matrix.  If the filter and size are not specified, an
     appropriate default will be chosen.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         M = (0.7071068, 0.7071068, 0, -0.7071068, 0.7071068, 0, 20, -8.284271, 1)
         Src = ImageBuf ("tahoe.exr")
@@ -2370,7 +2698,9 @@ Image transformations and data movement
     `src`.  If the filter and size are not specified, an appropriate default
     will be chosen.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         # Resize the image to 640x480, using the default filter
         Src = ImageBuf ("tahoe.exr")
@@ -2386,7 +2716,9 @@ Image transformations and data movement
     pixel" choice or by bilinaerly interpolating (depending on
     `interpolate`).
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         # Resample quickly to 320x240 to make a low-quality thumbnail
         Src = ImageBuf ("tahoe.exr")
@@ -2394,14 +2726,16 @@ Image transformations and data movement
 
 
 
-.. py:method:: ImageBuf ImageBufAlgo.fit (src, filtername="", filtersize=0.0, exact=false, roi=ROI.All, nthreads=0)
-               bool ImageBufAlgo.fit (dst, src, filtername="", filtersize=0.0, exact=false, roi=ROI.All, nthreads=0)
+.. py:method:: ImageBuf ImageBufAlgo.fit (src, filtername="", filtersize=0.0, fillmode="letterbox", exact=false, roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.fit (dst, src, filtername="", filtersize=0.0, fillmode="letterbox", exact=false, roi=ROI.All, nthreads=0)
 
     Fit `src` into the `roi` while preserving the original aspect ratio,
     without stretching.  If the filter and size are not specified, an
     appropriate default will be chosen.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         # Resize to fit into a max of 640x480, preserving the aspect ratio
         Src = ImageBuf ("tahoe.exr")
@@ -2421,7 +2755,9 @@ Image arithmetic
     Compute `A + B`.  `A` and `B` each may be an ImageBuf, a `float` value
     (for all channels) or a tuple giving a `float` for each color channel.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         # Add two images
         buf = ImageBufAlgo.add (ImageBuf("a.exr"), ImageBuf("b.exr"))
@@ -2438,7 +2774,9 @@ Image arithmetic
     be an ImageBuf, a `float` value (for all channels) or a tuple giving a
     `float` for each color channel.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         buf = ImageBufAlgo.sub (ImageBuf("a.exr"), ImageBuf("b.exr"))
 
@@ -2450,7 +2788,9 @@ Image arithmetic
     Compute `abs(A - B)`.  `A` and `B` each may be an ImageBuf, a `float` value
     (for all channels) or a tuple giving a `float` for each color channel.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         buf = ImageBufAlgo.absdiff (ImageBuf("a.exr"), ImageBuf("b.exr"))
 
@@ -2461,7 +2801,9 @@ Image arithmetic
 
     Compute `abs(A)`.  `A` is an ImageBuf.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         buf = ImageBufAlgo.abs (ImageBuf("a.exr"))
 
@@ -2474,7 +2816,9 @@ Image arithmetic
     may be an ImageBuf, a `float` value (for all channels) or a tuple giving
     a `float` for each color channel.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         # Multiply the two images
         buf = ImageBufAlgo.mul (ImageBuf("a.exr"), ImageBuf("b.exr"))
@@ -2491,7 +2835,9 @@ Image arithmetic
     be 0.  `A` and `B` each may be an ImageBuf, a `float` value (for all
     channels) or a tuple giving a `float` for each color channel.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         # Divide a.exr by b.exr
         buf = ImageBufAlgo.div (ImageBuf("a.exr"), ImageBuf("b.exr"))
@@ -2508,7 +2854,9 @@ Image arithmetic
     `A`, `B`, and `C` each may be an ImageBuf, a `float` value (for all
     channels) or a tuple giving a `float` for each color channel.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         # Multiply a and b, then add c
         buf = ImageBufAlgo.mad (ImageBuf("a.exr"),
@@ -2522,7 +2870,9 @@ Image arithmetic
 
     Compute `1-A` (channel by channel color inverse). `A` is an ImageBuf.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         buf = ImageBufAlgo.invert (ImageBuf("a.exr"))
 
@@ -2535,7 +2885,9 @@ Image arithmetic
     `A` is an ImageBuf, and `B` may be a `float` (a single power
     for all channels) or a tuple giving a `float` for each color channel.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         # Linearize a 2.2 gamma-corrected image (channels 0-2 only)
         img = ImageBuf ("a.exr")
@@ -2550,7 +2902,9 @@ Image arithmetic
     of channels. The `weights` is a tuple providing the weight for each
     channel (if not supplied, all channels will have weight 1.0).
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         # Compute luminance via a weighted sum of R,G,B
         # (assuming Rec709 primaries and a linear scale)
@@ -2568,7 +2922,9 @@ Image arithmetic
     value domain [black, white] to range [min, max], either linearly or with
     optional application of a smooth sigmoidal remapping (if scontrast != 1.0).
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         A = ImageBuf('tahoe.tif');
     
@@ -2576,13 +2932,31 @@ Image arithmetic
         # 0.75 to white.
         linstretch = ImageBufAlgo.contrast_remap (A, black=0.1, white=0.75)
     
-        // Remapping 0->1 and 1->0 inverts the colors of the image,
-        // equivalent to ImageBufAlgo.invert().
+        # Remapping 0->1 and 1->0 inverts the colors of the image,
+        # equivalent to ImageBufAlgo.invert().
         inverse = ImageBufAlgo.contrast_remap (A, black=1.0, white=0.0)
     
-        // Use a sigmoid curve to add contrast but without any hard cutoffs.
-        // Use a contrast parameter of 5.0.
+        # Use a sigmoid curve to add contrast but without any hard cutoffs.
+        # Use a contrast parameter of 5.0.
         sigmoid = ImageBufAlgo.contrast_remap (a, contrast=5.0)
+
+
+
+.. py:method:: ImageBuf ImageBufAlgo.saturate (src, scale=0.0, firstchannel=0, roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.saturate (dst, src, scale=0.0, firstchannel=0, roi=ROI.All, nthreads=0)
+
+    Copy pixels from `src` to `dst`, and scale the saturation of channels
+    `firstchannel` to `firstchannel+2` by the `scale` factor.
+
+    This function was added in OpenImageIO 2.4.
+
+    Example:
+
+    .. code-block:: python
+
+        # In-place reduce saturation by 50%
+        A = ImageBuf ("a.exr")
+        ImageBufAlgo.saturate (A, A, 0.5)
 
 
 
@@ -2608,13 +2982,63 @@ Image arithmetic
     qualities (and are this not recommended): "blue-red", "spectrum", and
     "heat". In all cases, the implied `channels` is 3.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         heatmap = ImageBufAlgo.color_map (ImageBuf("a.jpg"), -1, "inferno")
     
         heatmap = ImageBufAlgo.color_map (ImageBuf("a.jpg"), -1, 3, 3,
                                 (0.25, 0.25, 0.25,  0, 0.5, 0,  1, 0, 0))
     
+
+
+.. py:method:: ImageBuf ImageBufAlgo.max (A, B, roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.max (dst, A, B, roi=ROI.All, nthreads=0)
+
+    Compute per-pixel, per-channel `max(A, B)`, returning the result image. At
+    least one of `A` and `B` must be an ImageBuf, the other may also be an
+    ImageBuf, or a `float` value (for all channels), or a tuple giving a
+    `float` for each color channel.
+
+    Example:
+
+    .. code-block:: python
+
+        # Make an image that for each pixel and channel, is the maximum
+        # value of that pixel and channel of A and B.
+        A = ImageBuf("a.exr")
+        B = ImageBuf("b.exr")
+        maximg = ImageBufAlgo.max (A, B)
+
+        # Do an in-place clamp image A so that all values are at least 0
+        # (thus ensuring that there are no negative values).
+        ImageBufAlgo.max (A, A, 0.0)
+
+
+
+.. py:method:: ImageBuf ImageBufAlgo.min (A, B, roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.min (dst, A, B, roi=ROI.All, nthreads=0)
+
+    Compute per-pixel, per-channel `min(A, B)`, returning the result image. At
+    least one of `A` and `B` must be an ImageBuf, the other may also be an
+    ImageBuf, or a `float` value (for all channels), or a tuple giving a
+    `float` for each color channel.
+
+    Example:
+
+    .. code-block:: python
+
+        # Make an image that for each pixel and channel, is the minimum
+        # value of that pixel and channel of A and B.
+        A = ImageBuf("a.exr")
+        B = ImageBuf("b.exr")
+        minimg = ImageBufAlgo.min (A, B)
+
+        # Do an in-place clamp image A so that the maximum value of each pixel
+        # is 0.5 (except for alpha, which may be up to 1.0):
+        ImageBufAlgo.min (A, A, (0.5, 0.5, 0.5, 1.0))
+
 
 
 .. py:method:: ImageBuf ImageBufAlgo.clamp (src, min, max, bool clampalpha01=False,  roi=ROI.All, nthreads=0)
@@ -2626,11 +3050,44 @@ Image arithmetic
     if `clampalpha01` is `True`, then any alpha channel is clamped to the
     0--1 range.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         # Clamp image buffer A in-place to the [0,1] range for all channels.
         ImageBufAlgo.clamp (A, A, 0.0, 1.0)
 
+
+.. py:method:: ImageBuf ImageBufAlgo.maxchan (src, roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.maxchan (dst, src, roi=ROI.All, nthreads=0)
+
+    Return a one-channel image where each pixel has the maximum value found
+    in any of the channels of `src` in that corresponding pixel.
+
+    This function was added in OpenImageIO 2.3.10.
+
+    Example:
+
+    .. code-block:: python
+
+        A = ImageBuf("rgb.exr")
+        max_of_rgb = ImageBufAlgo.maxchan (A)
+
+
+.. py:method:: ImageBuf ImageBufAlgo.minchan (src, roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.minchan (dst, src, roi=ROI.All, nthreads=0)
+
+    Return a one-channel image where each pixel has the minimum value found
+    in any of the channels of `src` in that corresponding pixel.
+
+    This function was added in OpenImageIO 2.3.10.
+
+    Example:
+
+    .. code-block:: python
+
+        A = ImageBuf("rgb.exr")
+        min_of_rgb = ImageBufAlgo.minchan (A)
 
 
 .. py:method:: ImageBuf ImageBufAlgo.rangecompress (src, useluma=False, roi=ROI.All, nthreads=0)
@@ -2648,7 +3105,9 @@ Image arithmetic
     could result in a big color shift when performing `rangecompress`
     and `rangeexpand`).
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         # Resize the image to 640x480, using a Lanczos3 filter, which
         # has negative lobes. To prevent those negative lobes from
@@ -2675,7 +3134,9 @@ Image arithmetic
 
     Composite ImageBuf `A` *over* ImageBuf `B`.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         Comp = ImageBufAlgo.over (ImageBuf("fg.exr"), ImageBuf("bg.exr"))
 
@@ -2687,7 +3148,9 @@ Image arithmetic
     Composite ImageBuf `A` and ImageBuf `B` using their respective
     *Z* channels to decide which is in front on a pixel-by-pixel basis.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         Comp = ImageBufAlgo.zover (ImageBuf("fg.exr"), ImageBuf("bg.exr"))
 
@@ -2708,26 +3171,32 @@ Image comparison and statistics
     `sum2`, each of which is a tuple with one value for each channel of the
     image.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         A = ImageBuf("a.exr")
         stats = ImageBufAlgo.computePixelStats (A)
-        print "   min = ", stats.min
-        print "   max = ", stats.max
-        print "   average = ", stats.avg
-        print "   standard deviation  = ", stats.stddev
-        print "   # NaN values    = ", stats.nancount
-        print "   # Inf values    = ", stats.infcount
-        print "   # finite values = ", stats.finitecount
+        print ("   min = ", stats.min)
+        print ("   max = ", stats.max)
+        print ("   average = ", stats.avg)
+        print ("   standard deviation  = ", stats.stddev)
+        print ("   # NaN values    = ", stats.nancount)
+        print ("   # Inf values    = ", stats.infcount)
+        print ("   # finite values = ", stats.finitecount)
 
 
 
-.. py:method:: CompareResults ImageBufAlgo.compare (A, B, failthresh, warnthresh, roi=ROI.All, nthreads=0)
+.. py:method:: CompareResults ImageBufAlgo.compare (A, B, failthresh, warnthresh, failrelative=0.0, warnrelative=0.0, roi=ROI.All, nthreads=0)
 
     Numerically compare two ImageBuf's, `A` and `B`. The `failthresh` and
-    `warnthresh` supply failure and warning difference thresholds. The
-    return value is a `CompareResults` object, which is defined as a class
-    having the following members::
+    `warnthresh` supply absolute failure and warning difference thresholds,
+    and `failrelative` and `warnrelative` supply failure and warning
+    thresholds relative to the values in each image. The return value is a
+    `CompareResults` object, which is defined as a class having the following
+    members:
+
+    .. code-block:: python
 
         meanerror, rms_error, PSNR, maxerror  # error statistics
         maxx, maxy, maxz, maxc                # pixel of biggest difference
@@ -2735,21 +3204,23 @@ Image comparison and statistics
         error                                 # True if there was an error
 
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         A = ImageBuf ("a.exr")
         B = ImageBuf ("b.exr")
         comp = ImageBufAlgo.compare (A, B, 1.0/255.0, 0.0)
         if comp.nwarn == 0 and comp.nfail == 0 :
-            print "Images match within tolerance"
+            print ("Images match within tolerance")
         else :
-            print comp.nfail, "failures,", comp.nwarn, " warnings."
-            print "Average error was " , comp.meanerror
-            print "RMS error was" , comp.rms_error
-            print "PSNR was" , comp.PSNR
-            print "largest error was ", comp.maxerror
-            print "  on pixel", (comp.maxx, comp.maxy, comp.maxz)
-            print "  channel", comp.maxc
+            print (comp.nfail, "failures,", comp.nwarn, " warnings.")
+            print ("Average error was " , comp.meanerror)
+            print ("RMS error was" , comp.rms_error)
+            print ("PSNR was" , comp.PSNR)
+            print ("largest error was ", comp.maxerror)
+            print ("  on pixel", (comp.maxx, comp.maxy, comp.maxz))
+            print ("  channel", comp.maxc)
 
 
 
@@ -2759,14 +3230,16 @@ Image comparison and statistics
     subset of channels described by `roi`), return a tuple giving that color
     (one `float` for each channel), otherwise return `None`.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         A = ImageBuf ("a.exr")
         color = ImageBufAlgo.isConstantColor (A)
         if color != None :
-            print "The image has the same value in all pixels:", color
+            print ("The image has the same value in all pixels:", color)
         else :
-            print "The image is not a solid color."
+            print ("The image is not a solid color.")
 
 
 
@@ -2775,16 +3248,18 @@ Image comparison and statistics
     Returns `True` if all pixels of `src` within the ROI have the given
     `channel` value `val`.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         A = ImageBuf ("a.exr")
         alpha = A.spec.alpha_channel
         if alpha < 0 :
-            print "The image does not have an alpha channel"
+            print ("The image does not have an alpha channel")
         elif ImageBufAlgo.isConstantChannel (A, alpha, 1.0) :
-            print "The image has alpha = 1.0 everywhere"
+            print ("The image has alpha = 1.0 everywhere")
         else :
-            print "The image has alpha < 1 in at least one pixel"
+            print ("The image has alpha < 1 in at least one pixel")
 
 
 
@@ -2792,14 +3267,48 @@ Image comparison and statistics
 
     Returns `True` if the image is monochrome within the ROI.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         A = ImageBuf ("a.exr")
         roi = A.roi
         roi.chend = min (3, roi.chend)  # only test RGB, not alpha
         if ImageBufAlgo.isMonochrome (A, roi) :
-            print "a.exr is really grayscale"
-    
+            print ("a.exr is really grayscale")
+
+
+
+.. py:method:: ImageBufAlgo.color_range_check (src, low, high, roi=ROI.All, nthreads=0)
+
+    Count how many pixels in the `src` image (within the `roi`) are outside
+    the value range described by `low` and `hi` (which each may be either
+    one value or a tuple with per-channel values for each of `roi.chbegin
+    ... roi.chend`. The result returned is a tuple containing three values:
+    the number of values less than `low`, the number of values greater then
+    `hi`, and the number of values within the range.
+
+    Example:
+
+    .. code-block:: python
+
+        A = ImageBuf ("a.exr")
+        counts = ImageBufAlgo.color_range_check (A, 0.5, 0.75)
+        print ('{} values < 0.5, {} values > 0.75'.format(counts[0], counts[1]))
+
+
+
+.. py:method:: ROI ImageBufAlgo.nonzero_region (src, roi=ROI.All, nthreads=0)
+
+    Returns an ROI that tightly encloses the minimal region within `roi`
+    that contains all pixels with nonzero values.
+
+    Example:
+
+    .. code-block:: python
+
+        A = ImageBuf ("a.exr")
+        nonzero_roi = ImageBufAlgo.nonzero_region(A)
 
 
 
@@ -2807,13 +3316,15 @@ Image comparison and statistics
 
     Compute the SHA-1 byte hash for all the pixels in the ROI of `src`.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         A = ImageBuf ("a.exr")
         hash = ImageBufAlgo.computePixelHashSHA1 (A, blocksize=64)
-    
-    
-    
+
+
+
 .. py:method:: tuple histogram (src, channel=0, bins=256, min=0.0, max=1.0, ignore_empty=False, roi=ROI.All, nthreads=0)
     
     Computes a histogram of the given `channel` of image `src`, within the
@@ -2844,7 +3355,9 @@ Convolutions
     scale with the width, and are therefore probably less useful in most
     cases.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         K = ImageBufAlgo.make_kernel ("gaussian", 5.0, 5.0)
 
@@ -2856,7 +3369,9 @@ Convolutions
     Replace the given ROI of `dst` with the convolution of `src` and
     a kernel (also an ImageBuf).
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         # Blur an image with a 5x5 Gaussian kernel
         Src = ImageBuf ("tahoe.exr")
@@ -2871,7 +3386,9 @@ Convolutions
     Replace the given ROI of `dst` with the Laplacian of the corresponding
     part of `src`.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         Src = ImageBuf ("tahoe.exr")
         L = ImageBufAlgo.laplacian (Src)
@@ -2885,7 +3402,9 @@ Convolutions
 
     Compute the forward or inverse discrete Fourier Transform.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         Src = ImageBuf ("tahoe.exr")
     
@@ -2893,7 +3412,7 @@ Convolutions
         Freq = ImageBufAlgo.fft (Src)
     
         # At this point, Freq is a 2-channel float image (real, imag)
-        # Convert it back from frequency domain to a spatial iamge
+        # Convert it back from frequency domain to a spatial image
         Spatial = ImageBufAlgo.ifft (Freq)
 
 
@@ -2906,14 +3425,16 @@ Convolutions
     Transform a 2-channel image from complex (real, imaginary) representation
     to polar (amplitude, phase), or vice versa.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         Polar = ImageBuf ("polar.exr")
     
         Complex = ImageBufAlgo.polar_to_complex (Polar)
     
         # At this point, Complex is a 2-channel complex image (real, imag)
-        # Convert it back from frequency domain to a spatial iamge
+        # Convert it back from frequency domain to a spatial image
         Spatial = ImageBufAlgo.ifft (Complex)
 
 
@@ -2937,7 +3458,9 @@ Image Enhancement / Restoration
         OpenImageIO.NONFINITE_BLACK
         OpenImageIO.NONFINITE_BOX3
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         Src = ImageBuf ("tahoe.exr")
         ImageBufAlgo.fixNonFinite (Src, Src, OpenImageIO.NONFINITE_BOX3)
@@ -2954,7 +3477,9 @@ Image Enhancement / Restoration
     alpha of src was < 1, dst will have a pixel color that is a plausible
     "filling" of the original alpha hole.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         Src = ImageBuf ("holes.exr")
         Filled = ImageBufAlgo.fillholes_pushpull (Src)
@@ -2966,7 +3491,9 @@ Image Enhancement / Restoration
     Replace the given ROI of `dst` with the `width` x `height` median filter
     of the corresponding region of `src` using the "unsharp mask" technique.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         Noisy = ImageBuf ("tahoe.exr")
         Clean = ImageBuf ()
@@ -2981,7 +3508,9 @@ Image Enhancement / Restoration
 
     Compute a dilated or eroded version of the corresponding region of `src`.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         Source = ImageBuf ("source.tif")
         Dilated = ImageBufAlgo.dilate (Source, 3, 3)
@@ -2994,7 +3523,9 @@ Image Enhancement / Restoration
     Compute a sharpened version of the corresponding region of `src` using
     the "unsharp mask" technique.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         Blurry = ImageBuf ("tahoe.exr")
         Sharp = ImageBufAlgo.unsharp_mask (Blurry, "gaussian", 5.0)
@@ -3012,10 +3543,12 @@ Color manipulation
 
     Apply a color transform to the pixel values.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         Src = ImageBuf ("tahoe.jpg")
-        Dst = ImageBufAlgo.colorconvert (Src, "sRGB", "linear")
+        Dst = ImageBufAlgo.colorconvert (Src, "sRGB", "scene_linear")
 
 
 
@@ -3027,7 +3560,9 @@ Color manipulation
     Apply a 4x4 matrix color transform to the pixel values. The matrix can
     be any tuple of 16 float values.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         Src = ImageBuf ("tahoe.jpg")
         M = ( .8047379,  .5058794, -.3106172, 0,
@@ -3043,7 +3578,9 @@ Color manipulation
 
     Apply an OpenColorIO "look" transform to the pixel values.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         Src = ImageBuf ("tahoe.jpg")
         Dst = ImageBufAlgo.ociolook (Src, "look", "vd8", "lnf",
@@ -3051,12 +3588,14 @@ Color manipulation
 
 
 
-.. py:method:: ImageBuf ImageBufAlgo.ociodisplay (src, display, view, fromspace="", looks="", unpremult=True, context_key="", context_value="", colorconfig="", roi=ROI.All, nthreads=0)
-               bool ImageBufAlgo.ociodisplay (dst, src, display, view, fromspace="", looks="", unpremult=True, context_key="", context_value="", colorconfig="", roi=ROI.All, nthreads=0)
+.. py:method:: ImageBuf ImageBufAlgo.ociodisplay (src, display, view, fromspace="", looks="", unpremult=True, inverse=False, context_key="", context_value="", colorconfig="", roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.ociodisplay (dst, src, display, view, fromspace="", looks="", unpremult=True, inverse=False, context_key="", context_value="", colorconfig="", roi=ROI.All, nthreads=0)
 
     Apply an OpenColorIO "display" transform to the pixel values.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         Src = ImageBuf ("tahoe.exr")
         Dst = ImageBufAlgo.ociodisplay (Src, "sRGB", "Film", "lnf",
@@ -3071,7 +3610,9 @@ Color manipulation
     In-place operations (`dst` and `src` being the same image)
     are supported.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         Src = ImageBuf ("tahoe.exr")
         Dst = ImageBufAlgo.ociofiletransform (Src, "foottransform.csp")
@@ -3082,11 +3623,20 @@ Color manipulation
                bool ImageBufAlgo.unpremult (dst, src, roi=ROI.All, nthreads=0)
                ImageBuf ImageBufAlgo.premult (src, roi=ROI.All, nthreads=0)
                bool ImageBufAlgo.premult (dst, src, roi=ROI.All, nthreads=0)
+               ImageBuf ImageBufAlgo.repremult (src, roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.repremult (dst, src, roi=ROI.All, nthreads=0)
 
-    Copy pixels from `src` to `dst`, and un-premultiply (or
-    premultiply) the colors by alpha.
+    Copy pixels from `src` to `dst`, and un-premultiply, premultiply, or
+    re-premultiply the colors by alpha.
 
-    Examples::
+    `unpremult` divides colors by alpha, but preserves original color if
+    alpha is 0. `premult` multiplies colors by alpha (even if alpha is 0).
+    `repreumlt` is the true inverse of `unpremult`, multiplying color by
+    alpha, but preserving color values in the alpha = 0 case.
+
+    Example:
+
+    .. code-block:: python
 
         # Convert in-place from associated alpha to unassociated alpha
         A = ImageBuf ("a.exr")
@@ -3116,20 +3666,30 @@ Import / export
     of supported configuration options is given in
     Section :ref:`sec-iba-importexport`.
 
-    Examples::
+    The return value is True for success, False if errors occurred, in which
+    case the error message will be retrievable from the global
+    `oiio.geterror()`.
+
+    Example:
+
+    .. code-block:: python
 
         # This command line:
         #    maketx in.exr --hicomp --filter lanczos3 --opaque-detect \
         #             -o texture.exr
-        # is equivalent to:
-    
-        Input = ImageBuf ("in.exr")
-        config = ImageSpec()
+        # performs the same operations as:
+
+        import OpenImageIO as oiio
+
+        Input = oiio.ImageBuf ("in.exr")
+        config = oiio.ImageSpec()
         config.attribute ("maketx:highlightcomp", 1)
         config.attribute ("maketx:filtername", "lanczos3")
-        config.attribute ("maketx:opaquedetect", 1)
-        ImageBufAlgo.make_texture (oiio.MakeTxTexture, Input,
-                                   "texture.exr", config)
+        config.attribute ("maketx:opaque_detect", 1)
+        ok = oiio.ImageBufAlgo.make_texture (oiio.MakeTxTexture, Input,
+                                        "texture.exr", config)
+        if not ok :
+            print("error:", oiio.geterror())
 
 
 
@@ -3137,7 +3697,9 @@ Import / export
 
     Capture a still image from a designated camera.
 
-    Examples::
+    Example:
+
+    .. code-block:: python
 
         WebcamImage = ImageBufAlgo.capture_image (0, OpenImageIO.UINT8)
         WebcamImage.write ("webcam.jpg")
@@ -3154,9 +3716,11 @@ Functions specific to deep images
     (but no depth samples for the pixels corresponding to those in the
     source image that have infinite "Z" or that had 0 for all color channels
     and no "Z" channel).
-    
-    Examples::
-    
+
+    Example:
+
+    .. code-block:: python
+
         Deep = ImageBufAlgo.deepen (ImageBuf("az.exr"))
 
 
@@ -3166,9 +3730,11 @@ Functions specific to deep images
 
     Composite the depth samples within each pixel of "deep" ImageBuf `src`
     to produce a "flat" ImageBuf.
-    
-    Examples::
-    
+
+    Example:
+
+    .. code-block:: python
+
         Flat = ImageBufAlgo.flatten (ImageBuf("deepalpha.exr"))
 
 
@@ -3179,9 +3745,11 @@ Functions specific to deep images
     Merge the samples of two deep images `A` and `B` into a deep result. If
     `occlusion_cull` is `True`, samples beyond the first opaque sample will
     be discarded, otherwise they will be kept.
-    
-    Examples::
-    
+
+    Example:
+
+    .. code-block:: python
+
         DeepA = ImageBuf("hardsurf.exr")
         DeepB = ImageBuf("volume.exr")
         Merged = ImageBufAlgo.deep_merge (DeepA, DeepB)
@@ -3195,9 +3763,11 @@ Functions specific to deep images
     than the opaque frontier of image `holdout`. That is, `holdout` will
     serve as a depth holdout mask, but no samples from `holdout` will
     actually be copied to `dst`.
-    
-    Examples::
-    
+
+    Example:
+
+    .. code-block:: python
+
         Img = ImageBuf("image.exr")
         Mask = ImageBuf("mask.exr")
         Thresholded = ImageBufAlgo.deep_holdout (Img, Mask)
@@ -3233,7 +3803,8 @@ Miscellaneous Utilities
 
 In the main ``OpenImageIO`` module, there are a number of values and
 functions that are useful.  These correspond to the C++ API functions
-explained in Section `Global Attributes`_, please refer there for details.
+explained in Section :ref:`sec-globalattribs`, please refer there for
+details.
 
 .. py:attribute:: openimageio_version
 
@@ -3242,7 +3813,7 @@ explained in Section `Global Attributes`_, please refer there for details.
     OpenImageIO 1.2.3 would return a value of 10203.
 
 
-.. py:method:: geterror()
+.. py:method:: geterror(clear = True)
 
     Retrieves the latest global error, as a string.
 
@@ -3252,12 +3823,14 @@ explained in Section `Global Attributes`_, please refer there for details.
                attribute (name, float_value)
                attribute (name, str_value)
 
-    Sets a global attribute (see Section `Global Attributes`_ for details),
+    Sets a global attribute (see Section :ref:`sec-globalattribs` for details),
     returning `True` upon success, or `False` if it was not a recognized
     attribute.
-    
-    Example::
-    
+
+    Example:
+
+    .. code-block:: python
+
         oiio.attribute ("threads", 0)
 
 
@@ -3266,19 +3839,39 @@ explained in Section `Global Attributes`_, please refer there for details.
                get_int_attribute (name, defaultval=0)
                get_float_attribute (name, defaultval=0.0)
                get_string_attribute (name, defaultval="")
+               get_bytes_attribute (name, defaultval="")
 
     Retrieves an attribute value from the named set of global OIIO options.
-    (See Section `Global Attributes`_.) The `getattribute()` function
+    (See Section :ref:`sec-globalattribs`.) The `getattribute()` function
     returns the value regardless of type, or `None` if the attribute does
     not exist.  The typed variety will only succeed if the attribute is
-    actually of that type specified. Type varity with the type in the name
+    actually of that type specified. Type variety with the type in the name
     also takes a default value.
-    
-    Example::
-    
+
+    For an attribute of type STRING, get_bytes_attribute in Python3 skips
+    decoding the underlying C string as UTF-8 and returns a `bytes` object
+    containing the raw byte string.
+
+    Example:
+
+    .. code-block:: python
+
         formats = oiio.get_string_attribute ("format_list")
 
 
+.. py:method:: is_imageio_format_name (name)
+
+    Returns True if `name` is the name of a known and supported file format,
+    `False` if it is not.
+
+    Example:
+
+    .. code-block:: python
+
+        >>> print (oiio.is_imageio_format_name('tiff'))
+        True
+        >>> print (oiio.is_imageio_format_name('Bob'))
+        False
 
 
 .. _sec-pythonrecipes:
@@ -3289,9 +3882,11 @@ Python Recipes
 This section illustrates the Python syntax for doing many common image
 operations from Python scripts, but that aren't already given as examples in
 the earlier function descriptions.  All example code fragments assume the
-following boilerplate::
+following boilerplate:
 
-    #!/usr/bin/env python 
+.. code-block:: python
+
+    #!/usr/bin/env python
 
     import OpenImageIO as oiio
     from OpenImageIO import ImageBuf, ImageSpec, ImageBufAlgo
@@ -3302,7 +3897,7 @@ following boilerplate::
 
 **Subroutine to create a constant-colored image**
 
-.. code-block::
+.. code-block:: python
 
     # Create an ImageBuf holding a n image of constant color, given the
     # resolution, data format (defaulting to UINT8), fill value, and image
@@ -3324,7 +3919,7 @@ what to do with it next.
 
 **Subroutine to save an image to disk, printing errors**
 
-.. code-block::
+.. code-block:: python
 
     # Save an ImageBuf to a given file name, with optional forced image format
     # and error handling.
@@ -3332,7 +3927,7 @@ what to do with it next.
         if not image.has_error :
             image.write (filename, format)
         if image.has_error :
-            print "Error writing", filename, ":", image.geterror()
+            print ("Error writing", filename, ":", image.geterror())
 
 
 
@@ -3340,7 +3935,7 @@ what to do with it next.
 
 **Converting between file formats**
 
-.. code-block::
+.. code-block:: python
 
     img = ImageBuf ("input.png")
     write_image (img, "output.tif")
@@ -3351,13 +3946,13 @@ what to do with it next.
 
 **Comparing two images and writing a difference image**
 
-.. code-block::
+.. code-block:: python
 
     A = ImageBuf ("A.tif")
     B = ImageBuf ("B.tif")
     compresults = ImageBufAlgo.compare (A, B, 1.0e-6, 1.0e-6)
     if compresults.nfail > 0 :
-        print "Images did not match, writing difference image diff.tif"
+        print ("Images did not match, writing difference image diff.tif")
         diff = ImageBufAlgo.absdiff (A, B)
         image_write (diff, "diff.tif")
 
@@ -3367,7 +3962,7 @@ what to do with it next.
 
 **Changing the data format or bit depth**
 
-.. code-block::
+.. code-block:: python
 
     img = ImageBuf ("input.exr")
     # presume that it's a "half" OpenEXR file
@@ -3381,7 +3976,9 @@ what to do with it next.
 **Changing the compression**
 
 The following command converts writes a TIFF file, specifically using
-LZW compression::
+LZW compression:
+
+.. code-block:: python
 
     img = ImageBuf ("in.tif")
     img.specmod().attribute ("compression", "lzw")
@@ -3389,7 +3986,9 @@ LZW compression::
 
 
 The following command writes its results as a JPEG file at a compression
-quality of 50 (pretty severe compression)::
+quality of 50 (pretty severe compression):
+
+.. code-block:: python
 
     img = ImageBuf ("big.jpg")
     img.specmod().attribute ("quality", 50)
@@ -3401,10 +4000,10 @@ quality of 50 (pretty severe compression)::
 
 **Converting between scanline and tiled images**
 
-.. code-block::
+.. code-block:: python
 
     img = ImageBuf ("scan.tif")
-    img.set_write_tiles (16, 16)
+    img.set_write_tiles (64, 64)
     write_image (img, "tile.tif")
 
     img = ImageBuf ("tile.tif")
@@ -3417,7 +4016,7 @@ quality of 50 (pretty severe compression)::
 
 **Adding captions or metadata**
 
-.. code-block::
+.. code-block:: python
 
     img = ImageBuf ("foo.jpg")
     # Add a caption:
@@ -3432,21 +4031,27 @@ quality of 50 (pretty severe compression)::
 
 **Changing image boundaries**
 
-Change the origin of the pixel data window::
+Change the origin of the pixel data window:
+
+.. code-block:: python
 
     img = ImageBuf ("in.exr")
     img.set_origin (256, 80)
     write_image (img, "offset.exr")
 
 
-Change the display window::
+Change the display window:
+
+.. code-block:: python
 
     img = ImageBuf ("in.exr")
     img.set_full (16, 1040, 16, 784)
     write_image (img, "out.exr")
 
 
-Change the display window to match the data window::
+Change the display window to match the data window:
+
+.. code-block:: python
 
     img = ImageBuf ("in.exr")
     img.set_full (img.roi())
@@ -3455,7 +4060,9 @@ Change the display window to match the data window::
 
 Cut (trim and extract) a 128x128 region whose upper left corner is at
 location (900,300), moving the result to the origin (0,0) of the image plane
-and setting the display window to the new pixel data window::
+and setting the display window to the new pixel data window:
+
+.. code-block:: python
 
     img = ImageBuf ("in.exr")
     b = ImageBufAlgo.cut (img, oiio.ROI(900,1028,300,428))
@@ -3468,7 +4075,7 @@ and setting the display window to the new pixel data window::
 **Extract just the named channels from a complicted many-channel image, and
 add an alpha channel that is 1 everywhere**
 
-.. code-block::
+.. code-block:: python
 
     img = ImageBuf ("allmyaovs.exr")
     b = ImageBufAlgo.channels (img, ("spec.R", "spec.G", "spec.B", 1.0))
@@ -3481,7 +4088,7 @@ add an alpha channel that is 1 everywhere**
 **Fade 30% of the way between two images**
 
 
-.. code-block::
+.. code-block:: python
 
     a = ImageBufAlgo.mul (ImageBuf("A.exr"), 0.7)
     b = ImageBufAlgo.mul (ImageBuf("B.exr"), 0.3)
@@ -3495,7 +4102,7 @@ add an alpha channel that is 1 everywhere**
 **Composite of small foreground over background, with offset**
 
 
-.. code-block::
+.. code-block:: python
 
     fg = ImageBuf ("fg.exr")
     fg.set_origin (512, 89)
@@ -3503,3 +4110,21 @@ add an alpha channel that is 1 everywhere**
     comp = ImageBufAlgo.over (fg, bg)
     write_image (comp, "composite.exr")
 
+
+|
+
+**Write multiple ImageBufs into one multi-subimage file**
+
+.. code-block:: python
+
+    bufs = (...)   # Suppose that bufs is a tuple of ImageBuf
+    specs = (...)  # specs is a tuple of the specs that describe them
+
+    # Open with intent to write the subimages
+    out = ImageOutput.create ("multipart.exr")
+    out.open ("multipart.exr", specs)
+    for s in range(len(bufs)) :
+        if s > 0 :
+            out.open ("multipart.exr", specs[s], "AppendSubimage")
+        bufs[s].write (out)
+    out.close ()

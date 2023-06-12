@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 #include <functional>
@@ -30,8 +30,8 @@ static bool verbose   = false;
 static bool wedge     = false;
 
 static spin_mutex print_mutex;  // make the prints not clobber each other
-volatile long long accum = 0;
-float faccum             = 0;
+long long accum = 0;
+float faccum    = 0;
 spin_mutex mymutex;
 
 
@@ -44,6 +44,7 @@ time_lock_cycle()
     std::cout << "Cost of lock/unlock cycle under no contention:\n";
     spin_mutex sm;
     std::mutex m;
+    std::recursive_mutex rm;
     bench("spin_mutex", [&]() {
         sm.lock();
         sm.unlock();
@@ -51,6 +52,10 @@ time_lock_cycle()
     bench("std::mutex", [&]() {
         m.lock();
         m.unlock();
+    });
+    bench("std::recursive_mutex", [&]() {
+        rm.lock();
+        rm.unlock();
     });
 }
 
@@ -87,31 +92,24 @@ do_accum(int iterations)
 static void
 getargs(int argc, char* argv[])
 {
-    bool help = false;
     ArgParse ap;
     // clang-format off
-    ap.options(
-        "spinlock_test\n" OIIO_INTRO_STRING "\n"
-        "Usage:  spinlock_test [options]",
-        // "%*", parse_files, "",
-        "--help", &help, "Print help message",
-        "-v", &verbose, "Verbose mode",
-        "--threads %d", &numthreads,
-                ustring::sprintf("Number of threads (default: %d)", numthreads).c_str(),
-        "--iters %d", &iterations,
-                ustring::sprintf("Number of iterations (default: %d)", iterations).c_str(),
-        "--trials %d", &ntrials, "Number of trials", "--wedge", &wedge, "Do a wedge test",
-        nullptr);
+    ap.intro("spinlock_test\n" OIIO_INTRO_STRING)
+      .usage("spinlock_test [options]");
+
+    ap.arg("-v", &verbose)
+      .help("Verbose mode");
+    ap.arg("--threads %d", &numthreads)
+      .help(Strutil::sprintf("Number of threads (default: %d)", numthreads));
+    ap.arg("--iters %d", &iterations)
+      .help(Strutil::sprintf("Number of iterations (default: %d)", iterations));
+    ap.arg("--trials %d", &ntrials)
+      .help("Number of trials");
+    ap.arg("--wedge", &wedge)
+      .help("Do a wedge test");
     // clang-format on
-    if (ap.parse(argc, (const char**)argv) < 0) {
-        std::cerr << ap.geterror() << std::endl;
-        ap.usage();
-        exit(EXIT_FAILURE);
-    }
-    if (help) {
-        ap.usage();
-        exit(EXIT_FAILURE);
-    }
+
+    ap.parse(argc, (const char**)argv);
 }
 
 

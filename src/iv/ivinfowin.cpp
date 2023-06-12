@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 #include <iostream>
@@ -56,10 +56,10 @@ IvInfoWindow::update(IvImage* img)
 {
     std::string newtitle;
     if (img) {
-        newtitle = Strutil::sprintf("%s - iv Info", img->name().c_str());
+        newtitle = Strutil::fmt::format("{} - iv Info", img->name());
         infoLabel->setText(img->longinfo().c_str());
     } else {
-        newtitle = Strutil::sprintf("iv Info");
+        newtitle = "iv Info";
         infoLabel->setText(tr("No image loaded."));
     }
     setWindowTitle(newtitle.c_str());

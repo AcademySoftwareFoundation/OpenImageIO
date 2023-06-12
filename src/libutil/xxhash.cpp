@@ -91,6 +91,7 @@ typedef struct { long long ll[11]; } XXH64_state_t;
 
 
 
+#ifdef OIIO_DOES_NOT_NEED_THESE
 //#include "xxhash.h"
 // Modify the local functions below should you wish to use some other memory routines
 // for malloc(), free()
@@ -103,6 +104,7 @@ static void* XXH_memcpy(void* dest, const void* src, size_t size)
 {
     return memcpy(dest,src,size);
 }
+#endif  /* OIIO_DOES_NOT_NEED_THESE */
 
 
 //**************************************
@@ -513,6 +515,9 @@ unsigned long long XXH64 (const void* input, size_t len, unsigned long long seed
         return XXH64_endian_align(input, len, seed, XXH_bigEndian, XXH_unaligned);
 #endif
 }
+
+
+#ifdef OIIO_DOES_NOT_NEED_THESE
 
 /****************************************************
  *  Advanced Hash Functions
@@ -942,6 +947,8 @@ unsigned long long XXH64_digest (const XXH64_state_t* state_in)
     else
         return XXH64_digest_endian(state_in, XXH_bigEndian);
 }
+
+#endif  /* OIIO_DOES_NOT_NEED_THESE */
 
 
 } // namespace xxhash

@@ -293,14 +293,14 @@ namespace dpx {
 			case kCbYCrY:	// 4:2:2 -> RGB, requires allocation
 				return pixels * 3 * bytes;
 				
-			case kCbYCr:	// 4:4:4 -> RGB, can get away with sviweling
+			case kCbYCr:	// 4:4:4 -> RGB, can get away with swiveling
 			case kRGB:		// redundant
 				return pixels * -3 * bytes;
 				
 			case kCbYACrYA:	// 4:2:2:4 -> RGBA, requires allocation
 				return pixels * 4 * bytes;
 				
-			case kCbYCrA:	// 4:4:4:4 -> RGBA, can get away with sviweling
+			case kCbYCrA:	// 4:4:4:4 -> RGBA, can get away with swiveling
 			case kRGBA:		// redundant
 			case kABGR:		// only needs swapping
 				return pixels * -4 * bytes;
@@ -335,11 +335,13 @@ namespace dpx {
 			header.ComponentByteCount(element));
 	}
 
+#if 0 /* NOT USED IN OIIO */
 	int QueryRGBBufferSize(const Header &header, const int element) {
 		return QueryRGBBufferSizeInternal(header.ImageDescriptor(element),
 			header.Width() * header.Height(),
 			header.ComponentByteCount(element));
 	}
+#endif /* NOT USED IN OIIO */
 
 	bool ConvertToRGB(const Header &header, const int element, const void *input, void *output, const Block &block) {
 		return ConvertToRGBInternal(header.ImageDescriptor(element),
@@ -347,6 +349,7 @@ namespace dpx {
 			input, output, (block.x2 - block.x1 + 1) * (block.y2 - block.y1 + 1));
 	}
 
+#if 0 /* NOT USED IN OIIO */
 	bool ConvertToRGB(const Header &header, const int element, const void *input, void *output) {
 		return ConvertToRGBInternal(header.ImageDescriptor(element),
 			header.ComponentDataSize(element), header.Colorimetric(element),
@@ -473,6 +476,7 @@ namespace dpx {
 		}
 		return true;
 	}
+#endif /* NOT USED IN OIIO */
 
 	static inline bool ConvertToNativeInternal(const Descriptor desc, const DataSize size, const Characteristic space,
 		const void *input, void *output, const int pixels) {
@@ -482,6 +486,7 @@ namespace dpx {
 			case kRGBA:
 				return true;
 
+#if 0 /* NOT USED IN OIIO */
 			// needs swapping
 			case kABGR:
 				switch (size) {
@@ -562,6 +567,7 @@ namespace dpx {
 				}
 				// shouldn't ever get here
 				return false;
+#endif /* NOT USED IN OIIO */
 
 			// all the rest is either irrelevant, invalid or unsupported
 			/*case kUserDefinedDescriptor:
@@ -586,24 +592,25 @@ namespace dpx {
 		}
 	}
 
+#if 0 /* NOT USED IN OIIO */
 	static inline int QueryNativeBufferSizeInternal(const Descriptor desc, const int pixels, const DataSize compSize) {
 		int bytes = compSize == kByte ? 1 : compSize == kWord ? 2 : compSize == kDouble ? 8 : 4;
 		switch (desc) {			
 			case kCbYCrY:	// RGB -> 4:2:2, requires allocation
 				return pixels * 2 * bytes;
-			
-			case kCbYCr:	// RGB -> 4:4:4, can get away with sviweling
+
+			case kCbYCr:	// RGB -> 4:4:4, can get away with swiveling
 			case kRGB:		// redundant
 				return pixels * -3 * bytes;
-			
+
 			case kCbYACrYA:	// RGBA -> 4:2:2:4, requires allocation
 				return pixels * 4 * bytes;
-			
-			case kCbYCrA:	// RGBA -> 4:4:4:4, can get away with sviweling
+
+			case kCbYCrA:	// RGBA -> 4:4:4:4, can get away with swiveling
 			case kRGBA:		// redundant
 			case kABGR:		// only needs swapping
 				return pixels * -4 * bytes;
-				
+
 			// all the rest is either irrelevant, invalid or unsupported
 			/*case kUserDefinedDescriptor:
 			case kRed:
@@ -626,11 +633,11 @@ namespace dpx {
 				return 0;
 		}
 	}
-	
+
 	int QueryNativeBufferSize(const Descriptor desc, const DataSize compSize, const Block &block) {
 		return QueryNativeBufferSizeInternal(desc, (block.x2 - block.x1 + 1) * (block.y2 - block.y1 + 1), compSize);
 	}
-	
+
 	int QueryNativeBufferSize(const Descriptor desc, const DataSize compSize, const int width, const int height) {
 		return QueryNativeBufferSizeInternal(desc, width * height, compSize);
 	}
@@ -638,7 +645,8 @@ namespace dpx {
 	bool ConvertToNative(const Descriptor desc, const DataSize compSize, const Characteristic cmetr, const void *input, void *output, const Block &block) {
 		return ConvertToNativeInternal(desc, compSize, cmetr, input, output, (block.x2 - block.x1 + 1) * (block.y2 - block.y1 + 1));
 	}
-	
+#endif /* NOT USED IN OIIO */
+
 	bool ConvertToNative(const Descriptor desc, const DataSize compSize, const Characteristic cmetr, const int width, const int height, const void *input, void *output) {
 		return ConvertToNativeInternal(desc, compSize, cmetr, input, output, width * height);
 	}

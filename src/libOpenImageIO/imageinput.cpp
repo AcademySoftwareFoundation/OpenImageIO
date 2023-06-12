@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #include <cmath>
 #include <cstdio>
@@ -10,6 +10,7 @@
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/deepdata.h>
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/parallel.h>
@@ -18,8 +19,37 @@
 
 #include "imageio_pvt.h"
 
+#include <boost/thread/tss.hpp>
+using boost::thread_specific_ptr;
+
+
 OIIO_NAMESPACE_BEGIN
 using namespace pvt;
+
+
+
+class ImageInput::Impl {
+public:
+    // So we can lock this ImageInput for the thread-safe methods.
+    std::recursive_mutex m_mutex;
+    // Thread-specific error message for this ImageInput.
+    thread_specific_ptr<std::string> m_errormessage;
+    int m_threads = 0;
+
+    // The IOProxy object we will use for all I/O operations.
+    Filesystem::IOProxy* m_io = nullptr;
+    // The "local" proxy that we will create to use if the user didn't
+    // supply a proxy for us to use.
+    std::unique_ptr<Filesystem::IOProxy> m_io_local;
+};
+
+
+
+void
+ImageInput::impl_deleter(Impl* impl)
+{
+    delete impl;
+}
 
 
 
@@ -45,7 +75,7 @@ ImageInput::operator delete(void* ptr)
 
 
 ImageInput::ImageInput()
-    : m_threads(0)
+    : m_impl(new Impl, impl_deleter)
 {
 }
 
@@ -63,25 +93,56 @@ ImageInput::~ImageInput() {}
 bool
 ImageInput::valid_file(const std::string& filename) const
 {
-    ImageSpec tmpspec;
-    bool ok = const_cast<ImageInput*>(this)->open(filename, tmpspec);
-    if (ok)
-        const_cast<ImageInput*>(this)->close();
+    ImageInput* self = const_cast<ImageInput*>(this);
+
+    if (self->supports("ioproxy")) {
+        Filesystem::IOFile io(filename, Filesystem::IOProxy::Read);
+        return valid_file(&io);
+    } else {
+        ImageSpec tmpspec;
+        bool ok = self->open(filename, tmpspec);
+        if (ok)
+            self->close();
+        (void)geterror();  // Clear any errors
+        return ok;
+    }
+}
+
+
+
+bool
+ImageInput::valid_file(Filesystem::IOProxy* ioproxy) const
+{
+    ImageInput* self = const_cast<ImageInput*>(this);
+
+    /* Open using the ioproxy if possible. */
+    if (!self->set_ioproxy(ioproxy))
+        return false;
+
+    ImageSpec config, tmpspec;
+    bool ok = self->open("", tmpspec, config);
+    if (ok) {
+        self->close();
+    }
+    self->ioproxy_clear();
+
+    (void)geterror();  // Clear any errors
     return ok;
 }
 
 
 
 std::unique_ptr<ImageInput>
-ImageInput::open(const std::string& filename, const ImageSpec* config)
+ImageInput::open(const std::string& filename, const ImageSpec* config,
+                 Filesystem::IOProxy* ioproxy)
 {
     if (!config) {
         // Without config, this is really just a call to create-with-open.
-        return ImageInput::create(filename, true, nullptr, std::string());
+        return ImageInput::create(filename, true, nullptr, ioproxy);
     }
 
     // With config, create without open, then try to open with config.
-    auto in = ImageInput::create(filename, false, config, std::string());
+    auto in = ImageInput::create(filename, false, config, ioproxy);
     if (!in)
         return in;  // create() failed, return the empty ptr
     ImageSpec newspec;
@@ -90,7 +151,7 @@ ImageInput::open(const std::string& filename, const ImageSpec* config)
         // error, delete the ImageInput we allocated, and return NULL.
         std::string err = in->geterror();
         if (err.size())
-            OIIO::pvt::errorf("%s", err);
+            OIIO::pvt::errorfmt("{}", err);
         in.reset();
     }
 
@@ -108,7 +169,7 @@ ImageInput::spec(int subimage, int miplevel)
     // already internally cache all of the subimage specs and thus don't
     // need a seek.
     ImageSpec ret;
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (seek_subimage(subimage, miplevel))
         ret = m_spec;
     return ret;
@@ -126,7 +187,7 @@ ImageInput::spec_dimensions(int subimage, int miplevel)
     // already internally cache all of the subimage specs and thus don't
     // need a seek.
     ImageSpec ret;
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (seek_subimage(subimage, miplevel))
         ret.copy_dimensions(m_spec);
     return ret;
@@ -139,7 +200,7 @@ bool
 ImageInput::read_scanline(int y, int z, TypeDesc format, void* data,
                           stride_t xstride)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
 
     // native_pixel_bytes is the size of a pixel in the FILE, including
     // the per-channel format.
@@ -168,8 +229,11 @@ ImageInput::read_scanline(int y, int z, TypeDesc format, void* data,
 
     // Complex case -- either changing data type or stride
     int scanline_values = m_spec.width * m_spec.nchannels;
-    unsigned char* buf  = OIIO_ALLOCA(unsigned char,
-                                     m_spec.scanline_bytes(true));
+
+    unsigned char* buf;
+    OIIO_ALLOCATE_STACK_OR_HEAP(buf, unsigned char,
+                                m_spec.scanline_bytes(true));
+
     bool ok = read_native_scanline(current_subimage(), current_miplevel(), y, z,
                                    buf);
     if (!ok)
@@ -184,7 +248,7 @@ ImageInput::read_scanline(int y, int z, TypeDesc format, void* data,
                                         xstride, AutoStride, AutoStride);
     } else {
         // Per-channel formats -- have to convert/copy channels individually
-        ASSERT(m_spec.channelformats.size() == (size_t)m_spec.nchannels);
+        OIIO_DASSERT(m_spec.channelformats.size() == (size_t)m_spec.nchannels);
         size_t offset = 0;
         for (int c = 0; ok && c < m_spec.nchannels; ++c) {
             TypeDesc chanformat = m_spec.channelformats[c];
@@ -198,8 +262,8 @@ ImageInput::read_scanline(int y, int z, TypeDesc format, void* data,
     }
 
     if (!ok)
-        errorf("ImageInput::read_scanline : no support for format %s",
-               m_spec.format);
+        errorfmt("ImageInput::read_scanline : no support for format {}",
+                 m_spec.format);
     return ok;
 }
 
@@ -209,7 +273,7 @@ bool
 ImageInput::read_scanlines(int ybegin, int yend, int z, TypeDesc format,
                            void* data, stride_t xstride, stride_t ystride)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     return read_scanlines(current_subimage(), current_miplevel(), ybegin, yend,
                           z, 0, m_spec.nchannels, format, data, xstride,
                           ystride);
@@ -222,7 +286,7 @@ ImageInput::read_scanlines(int ybegin, int yend, int z, int chbegin, int chend,
                            TypeDesc format, void* data, stride_t xstride,
                            stride_t ystride)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     return read_scanlines(current_subimage(), current_miplevel(), ybegin, yend,
                           z, chbegin, chend, format, data, xstride, ystride);
 }
@@ -234,9 +298,26 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
                            int z, int chbegin, int chend, TypeDesc format,
                            void* data, stride_t xstride, stride_t ystride)
 {
-    ImageSpec spec = spec_dimensions(subimage, miplevel);  // thread-safe
-    if (spec.undefined())
+    ImageSpec spec;
+    int rps = 0;
+    {
+        // We need to lock briefly to retrieve rps from the spec
+        lock_guard lock(*this);
+        if (!seek_subimage(subimage, miplevel))
+            return false;
+        // Copying the dimensions of the designated subimage/miplevel to a
+        // local `spec` means that we can release the lock!  (Calls to
+        // read_native_* will internally lock again if necessary.)
+        spec.copy_dimensions(m_spec);
+        // For scanline files, we also need one piece of metadata
+        if (!spec.tile_width)
+            rps = m_spec.get_int_attribute("tiff:RowsPerStrip", 64);
+    }
+    if (spec.image_bytes() < 1) {
+        errorfmt("Invalid image size {} x {} ({} chans)", m_spec.width,
+                 m_spec.height, m_spec.nchannels);
         return false;
+    }
 
     chend                     = clamp(chend, chbegin + 1, spec.nchannels);
     int nchans                = chend - chbegin;
@@ -252,11 +333,11 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
     stride_t zstride = AutoStride;
     spec.auto_stride(xstride, ystride, zstride, format, nchans, spec.width,
                      spec.height);
-    stride_t buffer_pixel_bytes = native ? native_pixel_bytes
-                                         : format.size() * nchans;
+    stride_t buffer_pixel_bytes    = native ? native_pixel_bytes
+                                            : format.size() * nchans;
     stride_t buffer_scanline_bytes = native ? native_scanline_bytes
                                             : buffer_pixel_bytes * spec.width;
-    bool contiguous = (xstride == (stride_t)buffer_pixel_bytes
+    bool contiguous                = (xstride == (stride_t)buffer_pixel_bytes
                        && ystride == (stride_t)buffer_scanline_bytes);
 
     if (native && contiguous) {
@@ -272,8 +353,8 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
 
     // Split into reasonable chunks -- try to use around 64 MB, but
     // round up to a multiple of the TIFF rows per strip (or 64).
-    int rps   = spec.get_int_attribute("tiff:RowsPerStrip", 64);
     int chunk = std::max(1, (1 << 26) / int(spec.scanline_bytes(true)));
+    chunk     = std::max(chunk, int(oiio_read_chunk));
     chunk     = round_to_multiple(chunk, rps);
     std::unique_ptr<char[]> buf(new char[chunk * native_scanline_bytes]);
 
@@ -323,8 +404,8 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
             }
         }
         if (!ok)
-            errorf("ImageInput::read_scanlines : no support for format %s",
-                   spec.format);
+            errorfmt("ImageInput::read_scanlines : no support for format {}",
+                     spec.format);
         data = (char*)data + ystride * nscanlines;
     }
     return ok;
@@ -340,7 +421,7 @@ ImageInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     // calls read_native_scanline, which is supplied by every plugin.
     // Only the hardcore ones will overload read_native_scanlines with
     // their own implementation.
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     size_t ystride = m_spec.scanline_bytes(true);
     yend           = std::min(yend, spec().y + spec().height);
     for (int y = ybegin; y < yend; ++y) {
@@ -405,7 +486,7 @@ bool
 ImageInput::read_tile(int x, int y, int z, TypeDesc format, void* data,
                       stride_t xstride, stride_t ystride, stride_t zstride)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!m_spec.tile_width || ((x - m_spec.x) % m_spec.tile_width) != 0
         || ((y - m_spec.y) % m_spec.tile_height) != 0
         || ((z - m_spec.z) % m_spec.tile_depth) != 0)
@@ -457,7 +538,7 @@ ImageInput::read_tile(int x, int y, int z, TypeDesc format, void* data,
                                         xstride, ystride, zstride);
     } else {
         // Per-channel formats -- have to convert/copy channels individually
-        ASSERT(m_spec.channelformats.size() == (size_t)m_spec.nchannels);
+        OIIO_DASSERT(m_spec.channelformats.size() == (size_t)m_spec.nchannels);
         size_t offset = 0;
         for (int c = 0; c < m_spec.nchannels; ++c) {
             TypeDesc chanformat = m_spec.channelformats[c];
@@ -472,8 +553,8 @@ ImageInput::read_tile(int x, int y, int z, TypeDesc format, void* data,
     }
 
     if (!ok)
-        errorf("ImageInput::read_tile : no support for format %s",
-               m_spec.format);
+        errorfmt("ImageInput::read_tile : no support for format {}",
+                 m_spec.format);
     return ok;
 }
 
@@ -486,7 +567,7 @@ ImageInput::read_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
 {
     int subimage, miplevel, chend;
     {
-        lock_guard lock(m_mutex);
+        lock_guard lock(*this);
         subimage = current_subimage();
         miplevel = current_miplevel();
         chend    = spec().nchannels;
@@ -505,7 +586,7 @@ ImageInput::read_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
 {
     int subimage, miplevel;
     {
-        lock_guard lock(m_mutex);
+        lock_guard lock(*this);
         subimage = current_subimage();
         miplevel = current_miplevel();
     }
@@ -574,19 +655,19 @@ ImageInput::read_tiles(int subimage, int miplevel, int xbegin, int xend,
     }
 
     // No such luck.  Just punt and read tiles individually.
-    bool ok            = true;
-    stride_t pixelsize = native_data ? native_pixel_bytes
-                                     : (format.size() * nchans);
-    stride_t native_pixelsize = spec.pixel_bytes(true);
-    stride_t full_pixelsize   = native_data ? native_pixelsize
-                                          : (format.size() * spec.nchannels);
+    bool ok                        = true;
+    stride_t pixelsize             = native_data ? native_pixel_bytes
+                                                 : (format.size() * nchans);
+    stride_t native_pixelsize      = spec.pixel_bytes(true);
+    stride_t full_pixelsize        = native_data ? native_pixelsize
+                                                 : (format.size() * spec.nchannels);
     stride_t full_tilewidthbytes   = full_pixelsize * spec.tile_width;
     stride_t full_tilewhbytes      = full_tilewidthbytes * spec.tile_height;
     stride_t full_tilebytes        = full_tilewhbytes * spec.tile_depth;
     stride_t full_native_tilebytes = spec.tile_bytes(true);
     size_t prefix_bytes = native_data ? spec.pixel_bytes(0, chbegin, true)
                                       : format.size() * chbegin;
-    bool allchans = (chbegin == 0 && chend == spec.nchannels);
+    bool allchans       = (chbegin == 0 && chend == spec.nchannels);
     std::vector<char> buf;
     for (int z = zbegin; z < zend; z += std::max(1, spec.tile_depth)) {
         int zd      = std::min(zend - z, spec.tile_depth);
@@ -636,7 +717,7 @@ ImageInput::read_tiles(int subimage, int miplevel, int xbegin, int xend,
                 if (full_x && full_y && full_z && allchans && !perchanfile) {
                     // Full tile, either native data or not needing
                     // per-tile data format conversion.
-                    lock_guard lock(m_mutex);
+                    lock_guard lock(*this);
                     if (!seek_subimage(subimage, miplevel))
                         return false;
                     ok &= read_tile(x, y, z, format, tilestart, xstride,
@@ -647,7 +728,7 @@ ImageInput::read_tiles(int subimage, int miplevel, int xbegin, int xend,
                     if (buf.size() < size_t(full_tilebytes))
                         buf.resize(full_tilebytes);
                     {
-                        lock_guard lock(m_mutex);
+                        lock_guard lock(*this);
                         if (!seek_subimage(subimage, miplevel))
                             return false;
                         ok &= read_tile(x, y, z, format, &buf[0],
@@ -679,8 +760,8 @@ ImageInput::read_tiles(int subimage, int miplevel, int xbegin, int xend,
 
 
 bool
-ImageInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
-                             void* data)
+ImageInput::read_native_tile(int /*subimage*/, int /*miplevel*/, int /*x*/,
+                             int /*y*/, int /*z*/, void* /*data*/)
 {
     // The base class read_native_tile fails. A format reader that supports
     // tiles MUST overload this virtual method that reads a single tile
@@ -809,8 +890,9 @@ ImageInput::read_image(TypeDesc format, void* data, stride_t xstride,
                        ProgressCallback progress_callback,
                        void* progress_callback_data)
 {
-    return read_image(0, -1, format, data, xstride, ystride, zstride,
-                      progress_callback, progress_callback_data);
+    return read_image(current_subimage(), current_miplevel(), 0, -1, format,
+                      data, xstride, ystride, zstride, progress_callback,
+                      progress_callback_data);
 }
 
 
@@ -823,7 +905,7 @@ ImageInput::read_image(int chbegin, int chend, TypeDesc format, void* data,
 {
     int subimage, miplevel;
     {
-        lock_guard lock(m_mutex);
+        lock_guard lock(*this);
         subimage = current_subimage();
         miplevel = current_miplevel();
     }
@@ -844,7 +926,8 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
     ImageSpec spec;
     int rps = 0;
     {
-        lock_guard lock(m_mutex);
+        // We need to lock briefly to retrieve rps from the spec
+        lock_guard lock(*this);
         if (!seek_subimage(subimage, miplevel))
             return false;
         // Copying the dimensions of the designated subimage/miplevel to a
@@ -854,6 +937,11 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
         // For scanline files, we also need one piece of metadata
         if (!spec.tile_width)
             rps = m_spec.get_int_attribute("tiff:RowsPerStrip", 64);
+    }
+    if (spec.image_bytes() < 1) {
+        errorfmt("Invalid image size {} x {} ({} chans)", m_spec.width,
+                 m_spec.height, m_spec.nchannels);
+        return false;
     }
 
     if (chend < 0)
@@ -924,9 +1012,10 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
 
 
 bool
-ImageInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
-                                       int yend, int z, int chbegin, int chend,
-                                       DeepData& deepdata)
+ImageInput::read_native_deep_scanlines(int /*subimage*/, int /*miplevel*/,
+                                       int /*ybegin*/, int /*yend*/, int /*z*/,
+                                       int /*chbegin*/, int /*chend*/,
+                                       DeepData& /*deepdata*/)
 {
     return false;  // default: doesn't support deep images
 }
@@ -934,10 +1023,11 @@ ImageInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
 
 
 bool
-ImageInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
-                                   int xend, int ybegin, int yend, int zbegin,
-                                   int zend, int chbegin, int chend,
-                                   DeepData& deepdata)
+ImageInput::read_native_deep_tiles(int /*subimage*/, int /*miplevel*/,
+                                   int /*xbegin*/, int /*xend*/, int /*ybegin*/,
+                                   int /*yend*/, int /*zbegin*/, int /*zend*/,
+                                   int /*chbegin*/, int /*chend*/,
+                                   DeepData& /*deepdata*/)
 {
     return false;  // default: doesn't support deep images
 }
@@ -978,7 +1068,7 @@ ImageInput::read_native_deep_image(int subimage, int miplevel,
 
 
 int
-ImageInput::send_to_input(const char* format, ...)
+ImageInput::send_to_input(const char* /*format*/, ...)
 {
     // FIXME -- I can't remember how this is supposed to work
     return 0;
@@ -987,7 +1077,7 @@ ImageInput::send_to_input(const char* format, ...)
 
 
 int
-ImageInput::send_to_client(const char* format, ...)
+ImageInput::send_to_client(const char* /*format*/, ...)
 {
     // FIXME -- I can't remember how this is supposed to work
     return 0;
@@ -996,14 +1086,203 @@ ImageInput::send_to_client(const char* format, ...)
 
 
 void
-ImageInput::append_error(const std::string& message) const
+ImageInput::append_error(string_view message) const
 {
-    lock_guard lock(m_mutex);
-    ASSERT(m_errmessage.size() < 1024 * 1024 * 16
-           && "Accumulated error messages > 16MB. Try checking return codes!");
-    if (m_errmessage.size())
-        m_errmessage += '\n';
-    m_errmessage += message;
+    if (message.size() && message.back() == '\n')
+        message.remove_suffix(1);
+    std::string* errptr = m_impl->m_errormessage.get();
+    if (!errptr) {
+        errptr = new std::string;
+        m_impl->m_errormessage.reset(errptr);
+    }
+    OIIO_DASSERT(
+        errptr->size() < 1024 * 1024 * 16
+        && "Accumulated error messages > 16MB. Try checking return codes!");
+    if (errptr->size() < 1024 * 1024 * 16) {
+        if (errptr->size() && errptr->back() != '\n')
+            *errptr += '\n';
+        *errptr += std::string(message);
+    }
 }
+
+
+
+bool
+ImageInput::has_error() const
+{
+    std::string* errptr = m_impl->m_errormessage.get();
+    return (errptr && errptr->size());
+}
+
+
+
+std::string
+ImageInput::geterror(bool clear) const
+{
+    std::string e;
+    std::string* errptr = m_impl->m_errormessage.get();
+    if (errptr) {
+        e = *errptr;
+        if (clear)
+            errptr->clear();
+    }
+    return e;
+}
+
+
+
+void
+ImageInput::threads(int n)
+{
+    m_impl->m_threads = n;
+}
+
+
+
+int
+ImageInput::threads() const
+{
+    return m_impl->m_threads;
+}
+
+
+
+void
+ImageInput::lock() const
+{
+    m_impl->m_mutex.lock();
+}
+
+
+
+bool
+ImageInput::try_lock() const
+{
+    return m_impl->m_mutex.try_lock();
+}
+
+
+
+void
+ImageInput::unlock() const
+{
+    m_impl->m_mutex.unlock();
+}
+
+
+Filesystem::IOProxy*
+ImageInput::ioproxy()
+{
+    return m_impl->m_io;
+}
+
+
+
+const Filesystem::IOProxy*
+ImageInput::ioproxy() const
+{
+    return m_impl->m_io;
+}
+
+
+
+bool
+ImageInput::set_ioproxy(Filesystem::IOProxy* ioproxy)
+{
+    m_impl->m_io = ioproxy;
+    return (ioproxy == nullptr || supports("ioproxy"));
+}
+
+
+
+bool
+ImageInput::ioproxy_opened() const
+{
+    Filesystem::IOProxy*& m_io(m_impl->m_io);
+    return m_io != nullptr && m_io->mode() == Filesystem::IOProxy::Read;
+}
+
+
+
+void
+ImageInput::ioproxy_clear()
+{
+    m_impl->m_io = nullptr;
+    m_impl->m_io_local.reset();
+}
+
+
+
+void
+ImageInput::ioproxy_retrieve_from_config(const ImageSpec& config)
+{
+    if (auto p = config.find_attribute("oiio:ioproxy", TypeDesc::PTR))
+        set_ioproxy(p->get<Filesystem::IOProxy*>());
+}
+
+
+
+bool
+ImageInput::ioproxy_use_or_open(string_view name)
+{
+    Filesystem::IOProxy*& m_io(m_impl->m_io);
+    if (!m_io) {
+        // If no proxy was supplied, create an IOFile
+        m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Mode::Read);
+        m_impl->m_io_local.reset(m_io);
+    }
+    if (!m_io || m_io->mode() != Filesystem::IOProxy::Mode::Read) {
+        errorfmt("Could not open file \"{}\"", name);
+        ioproxy_clear();
+        return false;
+    }
+    return true;
+}
+
+
+
+bool
+ImageInput::ioread(void* buf, size_t itemsize, size_t nitems)
+{
+    Filesystem::IOProxy*& m_io(m_impl->m_io);
+    size_t size = itemsize * nitems;
+    size_t n    = m_io->read(buf, size);
+    if (n != size) {
+        if (size_t(m_io->tell()) >= m_io->size())
+            ImageInput::errorfmt("Read error: hit end of file");
+        else
+            ImageInput::errorfmt(
+                "Read error at position {}, could only read {}/{} bytes {}",
+                m_io->tell() - n, n, size, m_io->error());
+    }
+    return n == size;
+}
+
+
+
+bool
+ImageInput::ioseek(int64_t pos, int origin)
+{
+    Filesystem::IOProxy*& m_io(m_impl->m_io);
+    if (m_io && !m_io->seek(pos, origin)) {
+        errorfmt("Seek error, could not seek from {} to {} (total size {}) {}",
+                 m_io->tell(),
+                 origin == SEEK_SET ? pos
+                                    : (origin == SEEK_CUR ? pos + m_io->tell()
+                                                          : pos + m_io->size()),
+                 m_io->size(), m_io->error());
+        return false;
+    }
+    return true;
+}
+
+
+
+int64_t
+ImageInput::iotell() const
+{
+    return m_impl->m_io->tell();
+}
+
 
 OIIO_NAMESPACE_END

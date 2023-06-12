@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #include <cstdio>
 #include <cstdlib>
@@ -31,7 +31,7 @@ void OIIO_API
 #if __has_attribute(__optnone__)
     __attribute__((__optnone__))
 #endif
-    clobber(void* p)
+    clobber(void*)
 {
 }
 
@@ -63,7 +63,7 @@ void
 Benchmarker::compute_stats(std::vector<double>& times, size_t iterations)
 {
     size_t trials = times.size();
-    ASSERT(trials >= 1);
+    OIIO_ASSERT(trials >= 1);
 #if 0
     // Debugging: print all the trial times
     for (auto v : times)

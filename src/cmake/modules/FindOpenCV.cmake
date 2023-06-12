@@ -36,8 +36,10 @@ if (EXISTS "${_ocv_version_file}")
     string (REGEX MATCHALL "[0-9]+" CV_VERSION_REVISION ${TMP})
     if (CV_VERSION_EPOCH)
         set (OpenCV_VERSION "${CV_VERSION_EPOCH}.${CV_VERSION_MAJOR}.${CV_VERSION_MINOR}")
+        string(REPLACE "." "" OpenCV_VERSION_SUFFIX "${OpenCV_VERSION}")
     else ()
         set (OpenCV_VERSION "${CV_VERSION_MAJOR}.${CV_VERSION_MINOR}.${CV_VERSION_REVISION}")
+        string(REPLACE "." "" OpenCV_VERSION_SUFFIX "${OpenCV_VERSION}")
     endif ()
 endif ()
 
@@ -49,13 +51,7 @@ set (libdirs "${PROJECT_SOURCE_DIR}/lib"
              /usr/local/opt/opencv3/lib
              )
 
-if (NOT ${OpenCV_VERSION} VERSION_LESS 4.0.0)
-    set (opencv_components opencv_core opencv_imgproc opencv_videoio)
-elseif (NOT ${OpenCV_VERSION} VERSION_LESS 3.0.0)
-    set (opencv_components opencv_videoio opencv_imgproc opencv_core)
-else (NOT ${OpenCV_VERSION} VERSION_LESS 2.0.0)
-    set (opencv_components opencv_highgui opencv_imgproc opencv_core)
-endif ()
+set (opencv_components opencv_core opencv_imgproc opencv_videoio opencv_core${OpenCV_VERSION_SUFFIX} opencv_imgproc${OpenCV_VERSION_SUFFIX} opencv_videoio${OpenCV_VERSION_SUFFIX})
 foreach (component ${opencv_components})
     find_library (${component}_lib
                   NAMES ${component}
@@ -73,6 +69,9 @@ FIND_PACKAGE_HANDLE_STANDARD_ARGS (OpenCV
 if (OPENCV_FOUND)
     set (OpenCV_INCLUDES ${OpenCV_INCLUDE_DIR})
     set (OpenCV_LIBRARIES ${OpenCV_LIBS})
+    foreach (component ${opencv_components})
+        list (APPEND OpenCV_${component}_LIBRARIES ${${component}_lib})
+    endforeach ()
 endif ()
 
 MARK_AS_ADVANCED (OpenCV_INCLUDE_DIR OpenCV_LIBS)

@@ -63,7 +63,7 @@ namespace dpx
 		/*!
 		 * \brief reset instance
 		 */	
-		virtual void Reset();
+        virtual void Reset() override;
 
 		/*!
 		 * \brief read data
@@ -80,7 +80,7 @@ namespace dpx
 						  const int element, 
 						  const Block &block, 
 						  void *data, 
-						  const DataSize size);
+                          const DataSize size) override;
 		
 	protected:
 		U8 *buf;			//!< intermediate buffer

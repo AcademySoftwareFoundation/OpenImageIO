@@ -1,22 +1,28 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 /// \file
 /// Implementation of ImageBufAlgo algorithms related to OpenCV.
 /// These are nonfunctional if OpenCV is not found at build time.
 
+#include <OpenImageIO/platform.h>
+
 #ifdef USE_OPENCV
 #    include <opencv2/core/version.hpp>
 #    ifdef CV_VERSION_EPOCH
-#        define OIIO_OPENCV_VERSION                                            \
-            (10000 * CV_VERSION_EPOCH + 100 * CV_VERSION_MAJOR                 \
+#        define OIIO_OPENCV_VERSION                            \
+            (10000 * CV_VERSION_EPOCH + 100 * CV_VERSION_MAJOR \
              + CV_VERSION_MINOR)
 #    else
-#        define OIIO_OPENCV_VERSION                                            \
-            (10000 * CV_VERSION_MAJOR + 100 * CV_VERSION_MINOR                 \
+#        define OIIO_OPENCV_VERSION                            \
+            (10000 * CV_VERSION_MAJOR + 100 * CV_VERSION_MINOR \
              + CV_VERSION_REVISION)
+#    endif
+#    if OIIO_GNUC_VERSION >= 110000 && OIIO_CPLUSPLUS_VERSION >= 20
+// Suppress gcc 11 / C++20 errors about opencv 4 headers
+#        pragma GCC diagnostic ignored "-Wdeprecated-enum-enum-conversion"
 #    endif
 #    include <opencv2/opencv.hpp>
 #    if OIIO_OPENCV_VERSION >= 40000
@@ -30,9 +36,8 @@
 #include <map>
 #include <vector>
 
-#include <OpenEXR/half.h>
-
 #include <OpenImageIO/dassert.h>
+#include <OpenImageIO/half.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
@@ -46,15 +51,26 @@
 OIIO_NAMESPACE_BEGIN
 
 
+namespace pvt {
+#ifdef USE_OPENCV
+int opencv_version = OIIO_OPENCV_VERSION;
+#else
+int opencv_version = 0;
+#endif
+}  // namespace pvt
+
+
+
+namespace ImageBufAlgo {
 
 // Note: DEPRECATED(2.0)
 ImageBuf
-ImageBufAlgo::from_IplImage(const IplImage* ipl, TypeDesc convert)
+from_IplImage(const IplImage* ipl, TypeDesc convert)
 {
     pvt::LoggedTimer logtime("IBA::from_IplImage");
     ImageBuf dst;
     if (!ipl) {
-        dst.errorf("Passed NULL source IplImage");
+        dst.errorfmt("Passed NULL source IplImage");
         return dst;
     }
 #ifdef USE_OPENCV
@@ -67,7 +83,7 @@ ImageBufAlgo::from_IplImage(const IplImage* ipl, TypeDesc convert)
     case int(IPL_DEPTH_32F): srcformat = TypeDesc::FLOAT; break;
     case int(IPL_DEPTH_64F): srcformat = TypeDesc::DOUBLE; break;
     default:
-        dst.errorf("Unsupported IplImage depth %d", (int)ipl->depth);
+        dst.errorfmt("Unsupported IplImage depth {}", (int)ipl->depth);
         return dst;
     }
 
@@ -78,7 +94,7 @@ ImageBufAlgo::from_IplImage(const IplImage* ipl, TypeDesc convert)
 
     if (ipl->dataOrder != IPL_DATA_ORDER_PIXEL) {
         // We don't handle separate color channels, and OpenCV doesn't either
-        dst.errorf("Unsupported IplImage data order %d", (int)ipl->dataOrder);
+        dst.errorfmt("Unsupported IplImage data order {}", (int)ipl->dataOrder);
         return dst;
     }
 
@@ -112,8 +128,8 @@ ImageBufAlgo::from_IplImage(const IplImage* ipl, TypeDesc convert)
     // probably templated by type.
 
 #else
-    dst.errorf(
-        "fromIplImage not supported -- no OpenCV support at compile time");
+    dst.errorfmt(
+        "from_IplImage not supported -- no OpenCV support at compile time");
 #endif
 
     return dst;
@@ -123,7 +139,7 @@ ImageBufAlgo::from_IplImage(const IplImage* ipl, TypeDesc convert)
 
 // Note: DEPRECATED(2.0)
 IplImage*
-ImageBufAlgo::to_IplImage(const ImageBuf& src)
+to_IplImage(const ImageBuf& src)
 {
     pvt::LoggedTimer logtime("IBA::to_IplImage");
 #ifdef USE_OPENCV
@@ -132,7 +148,7 @@ ImageBufAlgo::to_IplImage(const ImageBuf& src)
 
     // Make sure the image buffer is initialized.
     if (!tmp.initialized() && !tmp.read(tmp.subimage(), tmp.miplevel(), true)) {
-        DASSERT(0 && "Could not initialize ImageBuf.");
+        OIIO_DASSERT(0 && "Could not initialize ImageBuf.");
         return NULL;
     }
 
@@ -161,13 +177,13 @@ ImageBufAlgo::to_IplImage(const ImageBuf& src)
         dstFormat     = IPL_DEPTH_64F;
         dstSpecFormat = spec.format;
     } else {
-        DASSERT(0 && "Unknown data format in ImageBuf.");
+        OIIO_DASSERT(0 && "Unknown data format in ImageBuf.");
         return NULL;
     }
     IplImage* ipl = cvCreateImage(cvSize(spec.width, spec.height), dstFormat,
                                   spec.nchannels);
     if (!ipl) {
-        DASSERT(0 && "Unable to create IplImage.");
+        OIIO_DASSERT(0 && "Unable to create IplImage.");
         return NULL;
     }
 
@@ -183,7 +199,7 @@ ImageBufAlgo::to_IplImage(const ImageBuf& src)
                                    linestep, 0);
 
     if (!converted) {
-        DASSERT(0 && "convert_image failed.");
+        OIIO_DASSERT(0 && "convert_image failed.");
         cvReleaseImage(&ipl);
         return NULL;
     }
@@ -219,6 +235,7 @@ RBswap(ImageBuf& R, ROI roi, int nthreads)
     return true;
 }
 
+}  // end namespace ImageBufAlgo
 
 
 ImageBuf
@@ -237,7 +254,7 @@ ImageBufAlgo::from_OpenCV(const cv::Mat& mat, TypeDesc convert, ROI roi,
     case CV_32F: srcformat = TypeDesc::FLOAT; break;
     case CV_64F: srcformat = TypeDesc::DOUBLE; break;
     default:
-        dst.errorf("Unsupported OpenCV data type, depth=%d", mat.depth());
+        dst.errorfmt("Unsupported OpenCV data type, depth={}", mat.depth());
         return dst;
     }
 
@@ -263,7 +280,7 @@ ImageBufAlgo::from_OpenCV(const cv::Mat& mat, TypeDesc convert, ROI roi,
     }
 
 #else
-    dst.errorf(
+    dst.errorfmt(
         "from_OpenCV() not supported -- no OpenCV support at compile time");
 #endif
 
@@ -300,19 +317,27 @@ ImageBufAlgo::to_OpenCV(cv::Mat& dst, const ImageBuf& src, ROI roi,
         dstFormat     = CV_MAKETYPE(CV_16S, chans);
         dstSpecFormat = TypeInt16;
     } else if (spec.format == TypeDesc(TypeDesc::HALF)) {
+#    if OIIO_OPENCV_VERSION >= 40000
+        dstFormat = CV_MAKETYPE(CV_16F, chans);
+#    else
         dstFormat     = CV_MAKETYPE(CV_32F, chans);
         dstSpecFormat = TypeFloat;
+#    endif
     } else if (spec.format == TypeDesc(TypeDesc::FLOAT)) {
         dstFormat = CV_MAKETYPE(CV_32F, chans);
     } else if (spec.format == TypeDesc(TypeDesc::DOUBLE)) {
         dstFormat = CV_MAKETYPE(CV_64F, chans);
     } else {
-        DASSERT(0 && "Unknown data format in ImageBuf.");
+        OIIO::pvt::errorfmt(
+            "to_OpenCV() doesn't know how to make a cv::Mat of {}",
+            spec.format);
         return false;
     }
-    cv::Mat mat(roi.height(), roi.width(), dstFormat);
-    if (mat.empty()) {
-        DASSERT(0 && "Unable to create cv::Mat.");
+    dst.create(roi.height(), roi.width(), dstFormat);
+    if (dst.empty()) {
+        OIIO::pvt::errorfmt(
+            "to_OpenCV() was unable to create cv::Mat of {}x{} {}", roi.width(),
+            roi.height(), dstSpecFormat);
         return false;
     }
 
@@ -321,24 +346,27 @@ ImageBufAlgo::to_OpenCV(cv::Mat& dst, const ImageBuf& src, ROI roi,
     bool converted   = parallel_convert_image(
         chans, roi.width(), roi.height(), 1,
         src.pixeladdr(roi.xbegin, roi.ybegin, roi.zbegin, roi.chbegin),
-        spec.format, spec.pixel_bytes(), spec.scanline_bytes(), 0, mat.ptr(),
+        spec.format, spec.pixel_bytes(), spec.scanline_bytes(), 0, dst.ptr(),
         dstSpecFormat, pixelsize, linestep, 0, -1, -1, nthreads);
 
     if (!converted) {
-        DASSERT(0 && "convert_image failed.");
+        OIIO::pvt::errorfmt(
+            "to_OpenCV() was unable to convert source {} to cv::Mat of {}",
+            spec.format, dstSpecFormat);
         return false;
     }
 
     // OpenCV uses BGR ordering
     if (chans == 3) {
-        cv::cvtColor(mat, mat, cv::COLOR_RGB2BGR);
+        cv::cvtColor(dst, dst, cv::COLOR_RGB2BGR);
     } else if (chans == 4) {
-        cv::cvtColor(mat, mat, cv::COLOR_RGBA2BGRA);
+        cv::cvtColor(dst, dst, cv::COLOR_RGBA2BGRA);
     }
 
-    dst = std::move(mat);
     return true;
 #else
+    OIIO::pvt::errorfmt(
+        "to_OpenCV() not supported -- no OpenCV support at compile time");
     return false;
 #endif
 }
@@ -389,12 +417,12 @@ ImageBufAlgo::capture_image(int cameranum, TypeDesc convert)
         lock_guard lock(opencv_mutex);
         auto cvcam = cameras[cameranum];
         if (!cvcam) {
-            dst.errorf("Could not create a capture camera (OpenCV error)");
+            dst.errorfmt("Could not create a capture camera (OpenCV error)");
             return dst;  // failed somehow
         }
         (*cvcam) >> frame;
         if (frame.empty()) {
-            dst.errorf("Could not cvQueryFrame (OpenCV error)");
+            dst.errorfmt("Could not cvQueryFrame (OpenCV error)");
             return dst;  // failed somehow
         }
     }
@@ -415,7 +443,7 @@ ImageBufAlgo::capture_image(int cameranum, TypeDesc convert)
         dst.specmod().attribute("DateTime", datetime);
     }
 #else
-    dst.errorf(
+    dst.errorfmt(
         "capture_image not supported -- no OpenCV support at compile time");
 #endif
     return dst;

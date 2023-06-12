@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 /////////////////////////////////////////////////////////////////////////
@@ -53,7 +53,8 @@ OIIO_API size_t
 physical_memory();
 
 /// Convert calendar time pointed by 'time' into local time and save it in
-/// 'converted_time' variable
+/// 'converted_time' variable. This is a fully reentrant/thread-safe
+/// alternative to the non-reentrant C localtime() call.
 OIIO_API void
 get_local_time(const time_t* time, struct tm* converted_time);
 
@@ -62,8 +63,13 @@ get_local_time(const time_t* time, struct tm* converted_time);
 OIIO_API std::string
 this_program_path();
 
-/// Return the value of an environment variable (or the empty string_view
-/// if it is not found in the environment.)
+/// Return the value of an environment variable, or if it is not found in
+/// the environment, return `defaultval`, which in turn defaults to the
+/// empty string.
+OIIO_API string_view
+getenv(string_view name, string_view defaultval);
+
+// Legacy for link compatibility. DEPRECATED(2.3)
 OIIO_API string_view
 getenv(string_view name);
 
@@ -125,10 +131,10 @@ public:
     /// Default ctr: assume ANSI escape sequences are ok.
     Term() noexcept {}
     /// Construct from a FILE*: ANSI codes ok if the file describes a
-    /// live console, otherwise they will be supressed.
+    /// live console, otherwise they will be suppressed.
     Term(FILE* file);
     /// Construct from a stream: ANSI codes ok if the file describes a
-    /// live console, otherwise they will be supressed.
+    /// live console, otherwise they will be suppressed.
     Term(const std::ostream& stream);
 
     /// ansi("appearance") returns the ANSI escape sequence for the named

@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 #include <algorithm>
@@ -8,8 +8,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include <boost/thread/tss.hpp>
-
+#define AVOID_WIN32_FILEIO
 #include <tiffio.h>
 #include <zlib.h>
 
@@ -26,9 +25,6 @@
 #include "imageio_pvt.h"
 
 
-OIIO_PLUGIN_NAMESPACE_BEGIN
-
-
 // General TIFF information:
 // TIFF 6.0 spec:
 //     http://partners.adobe.com/public/developer/en/tiff/TIFF6.pdf
@@ -40,6 +36,35 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 // Libtiff:
 //     http://remotesensing.org/libtiff/
 
+
+// clang-format off
+#ifdef TIFFLIB_MAJOR_VERSION
+// libtiff >= 4.5 defines versions by number -- use them.
+#    define OIIO_TIFFLIB_VERSION (TIFFLIB_MAJOR_VERSION * 10000 \
+                                  + TIFFLIB_MINOR_VERSION * 100 \
+                                  + TIFFLIB_MICRO_VERSION)
+// For older libtiff, we need to figure it out by date.
+#elif TIFFLIB_VERSION >= 20220520
+#    define OIIO_TIFFLIB_VERSION 40400
+#elif TIFFLIB_VERSION >= 20210416
+#    define OIIO_TIFFLIB_VERSION 40300
+#elif TIFFLIB_VERSION >= 20201219
+#    define OIIO_TIFFLIB_VERSION 40200
+#elif TIFFLIB_VERSION >= 20191103
+#    define OIIO_TIFFLIB_VERSION 40100
+#elif TIFFLIB_VERSION >= 20120922
+#    define OIIO_TIFFLIB_VERSION 40003
+#elif TIFFLIB_VERSION >= 20111221
+#    define OIIO_TIFFLIB_VERSION 40000
+#elif TIFFLIB_VERSION >= 20090820
+#    define OIIO_TIFFLIB_VERSION 30900
+#else
+#    error "libtiff 3.9.0 or later is required"
+#endif
+// clang-format on
+
+
+OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
 // Helper struct for constructing tables of TIFF tags
@@ -73,67 +98,65 @@ struct TIFF_tag_info {
 class TIFFInput final : public ImageInput {
 public:
     TIFFInput();
-    virtual ~TIFFInput();
-    virtual const char* format_name(void) const override { return "tiff"; }
-    virtual bool valid_file(const std::string& filename) const override;
-    virtual int supports(string_view feature) const override
+    ~TIFFInput() override;
+    const char* format_name(void) const override { return "tiff"; }
+    bool valid_file(Filesystem::IOProxy* ioproxy) const override;
+    int supports(string_view feature) const override
     {
-        return (feature == "exif" || feature == "iptc");
+        return (feature == "exif" || feature == "iptc" || feature == "ioproxy");
         // N.B. No support for arbitrary metadata.
     }
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool open(const std::string& name, ImageSpec& newspec,
-                      const ImageSpec& config) override;
-    virtual bool close() override;
-    virtual int current_subimage(void) const override
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool open(const std::string& name, ImageSpec& newspec,
+              const ImageSpec& config) override;
+    bool close() override;
+    int current_subimage(void) const override
     {
         // If m_emulate_mipmap is true, pretend subimages are mipmap levels
-        lock_guard lock(m_mutex);
+        lock_guard lock(*this);
         return m_emulate_mipmap ? 0 : m_subimage;
     }
-    virtual int current_miplevel(void) const override
+    int current_miplevel(void) const override
     {
         // If m_emulate_mipmap is true, pretend subimages are mipmap levels
-        lock_guard lock(m_mutex);
+        lock_guard lock(*this);
         return m_emulate_mipmap ? m_subimage : 0;
     }
-    virtual bool seek_subimage(int subimage, int miplevel) override;
-    virtual ImageSpec spec(int subimage, int miplevel) override;
-    virtual ImageSpec spec_dimensions(int subimage, int miplevel) override;
+    bool seek_subimage(int subimage, int miplevel) override;
+    ImageSpec spec(int subimage, int miplevel) override;
+    ImageSpec spec_dimensions(int subimage, int miplevel) override;
     const ImageSpec& spec(void) const override { return m_spec; }
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
-    virtual bool read_native_scanlines(int subimage, int miplevel, int ybegin,
-                                       int yend, int z, void* data) override;
-    virtual bool read_native_tile(int subimage, int miplevel, int x, int y,
-                                  int z, void* data) override;
-    virtual bool read_native_tiles(int subimage, int miplevel, int xbegin,
-                                   int xend, int ybegin, int yend, int zbegin,
-                                   int zend, void* data) override;
-    virtual bool read_scanline(int y, int z, TypeDesc format, void* data,
-                               stride_t xstride) override;
-    virtual bool read_scanlines(int subimage, int miplevel, int ybegin,
-                                int yend, int z, int chbegin, int chend,
-                                TypeDesc format, void* data, stride_t xstride,
-                                stride_t ystride) override;
-    virtual bool read_tile(int x, int y, int z, TypeDesc format, void* data,
-                           stride_t xstride, stride_t ystride,
-                           stride_t zstride) override;
-    virtual bool read_tiles(int subimage, int miplevel, int xbegin, int xend,
-                            int ybegin, int yend, int zbegin, int zend,
-                            int chbegin, int chend, TypeDesc format, void* data,
-                            stride_t xstride, stride_t ystride,
-                            stride_t zstride) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
+    bool read_native_scanlines(int subimage, int miplevel, int ybegin, int yend,
+                               int z, void* data) override;
+    bool read_native_tile(int subimage, int miplevel, int x, int y, int z,
+                          void* data) override;
+    bool read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
+                           int ybegin, int yend, int zbegin, int zend,
+                           void* data) override;
+    bool read_scanline(int y, int z, TypeDesc format, void* data,
+                       stride_t xstride) override;
+    bool read_scanlines(int subimage, int miplevel, int ybegin, int yend, int z,
+                        int chbegin, int chend, TypeDesc format, void* data,
+                        stride_t xstride, stride_t ystride) override;
+    bool read_tile(int x, int y, int z, TypeDesc format, void* data,
+                   stride_t xstride, stride_t ystride,
+                   stride_t zstride) override;
+    bool read_tiles(int subimage, int miplevel, int xbegin, int xend,
+                    int ybegin, int yend, int zbegin, int zend, int chbegin,
+                    int chend, TypeDesc format, void* data, stride_t xstride,
+                    stride_t ystride, stride_t zstride) override;
 
 private:
     TIFF* m_tif;                            ///< libtiff handle
     std::string m_filename;                 ///< Stash the filename
     std::vector<unsigned char> m_scratch;   ///< Scratch space for us to use
     std::vector<unsigned char> m_scratch2;  ///< More scratch
-    int m_subimage;                  ///< What subimage are we looking at?
-    int m_next_scanline;             ///< Next scanline we'll read
-    bool m_no_random_access;         ///< Should we avoid random access?
-    bool m_emulate_mipmap;           ///< Should we emulate mip with subimage?
+    int m_subimage;           ///< What subimage are we looking at?
+    int m_next_scanline;      ///< Next scanline we'll read, relative to ymin
+    bool m_no_random_access;  ///< Should we avoid random access?
+    bool m_emulate_mipmap;    ///< Should we emulate mip with subimage?
     bool m_keep_unassociated_alpha;  ///< If the image is unassociated, please
                                      ///<   try to keep it that way!
     bool m_raw_color;                ///< If the image is not RGB, don't
@@ -169,6 +192,7 @@ private:
         m_colormap.clear();
         m_use_rgba_interface = false;
         m_subimage_specs.clear();
+        ioproxy_clear();
     }
 
     // Just close the TIFF file handle, but don't forget anything we
@@ -178,8 +202,8 @@ private:
         if (m_tif) {
             TIFFClose(m_tif);
             m_tif = NULL;
-            if (m_rgbadata.size())
-                std::vector<uint32_t>().swap(m_rgbadata);  // release
+            m_rgbadata.clear();
+            m_rgbadata.shrink_to_fit();
         }
     }
 
@@ -199,6 +223,7 @@ private:
     // Convert palette to RGB
     void palette_to_rgb(int n, const unsigned char* palettepels,
                         unsigned char* rgb);
+    void palette_to_rgb(int n, const uint16_t* palettepels, unsigned char* rgb);
 
     // Convert in-bits to out-bits (outbits must be 8, 16, 32, and
     // inbits < outbits)
@@ -207,45 +232,88 @@ private:
 
     void invert_photometric(int n, void* data);
 
-    // Calling TIFFGetField (tif, tag, &dest) is supposed to work fine for
-    // simple types... as long as the tag types in the file are the correct
-    // advertised types.  But for some types -- which we never expect, but
-    // it turns out can sometimes happen, TIFFGetField will try to pull
-    // a second argument (a void**) off the stack, and that can crash the
-    // program!  Ick.  So to avoid this, we always push a pointer, which
-    // we expect NOT to be altered, and if it is, it's a danger sign (plus
-    // we didn't crash).
-    bool safe_tiffgetfield(string_view name, int tag, void* dest)
+    const TIFFField* find_field(int tifftag, TIFFDataType tifftype = TIFF_ANY)
     {
-        void* ptr = NULL;  // dummy -- expect it to stay NULL
-        bool ok   = TIFFGetField(m_tif, tag, dest, &ptr);
-        if (ptr) {
-#ifndef NDEBUG
-            std::cerr << "Error safe_tiffgetfield : did not expect ptr set on "
-                      << name << " " << (void*)ptr << "\n";
-#endif
+        return TIFFFindField(m_tif, tifftag, tifftype);
+    }
+
+    OIIO_NODISCARD
+    TypeDesc tiffgetfieldtype(int tag)
+    {
+        auto field = find_field(tag);
+        if (!field)
+            return TypeUnknown;
+        TIFFDataType tiffdatatype = TIFFFieldDataType(field);
+        int passcount             = TIFFFieldPassCount(field);
+        int readcount             = TIFFFieldReadCount(field);
+        if (!passcount && readcount > 0)
+            return tiff_datatype_to_typedesc(tiffdatatype, readcount);
+        return TypeUnknown;
+    }
+
+    OIIO_NODISCARD
+    bool safe_tiffgetfield(string_view name OIIO_MAYBE_UNUSED, int tag,
+                           TypeDesc expected, void* dest)
+    {
+        TypeDesc type = tiffgetfieldtype(tag);
+        // Caller expects a specific type and the tag doesn't match? Punt.
+        if (expected != TypeUnknown && !equivalent(expected, type))
             return false;
+        auto field = find_field(tag);
+        if (!field)
+            return false;
+
+        // TIFFDataType tiffdatatype = TIFFFieldDataType(field);
+        int passcount = TIFFFieldPassCount(field);
+        int readcount = TIFFFieldReadCount(field);
+        if (!passcount && readcount > 0) {
+            return TIFFGetField(m_tif, tag, dest);
         }
-        return ok;
+        // OIIO::debugf(" stgf %s tag %d %s datatype %d passcount %d readcount %d\n",
+        //              name, tag, type, int(TIFFFieldDataType(field)), passcount, readcount);
+        return false;
     }
 
     // Get a string tiff tag field and save it it as a string_view. The
     // return value will be true if the tag was found, otherwise false.
-    bool tiff_get_string_field(int tag, string_view& result)
+    OIIO_NODISCARD
+    bool tiff_get_string_field(int tag, string_view name OIIO_MAYBE_UNUSED,
+                               string_view& result)
     {
-        char* s   = NULL;
-        void* ptr = NULL;  // dummy -- expect it to stay NULL
-        bool ok   = TIFFGetField(m_tif, tag, &s, &ptr);
-        if (ok && ptr) {
-            // Oy, some tags need 2 args, which are count, then ptr.
-            // There's no way to know ahead of time which ones, so we send
-            // a second pointer. If it gets overwritten, then we understand
-            // and try it again with 2 args, first one is count.
-            unsigned short count;
-            ok     = TIFFGetField(m_tif, tag, &count, &s);
-            result = string_view(s, count);
-        } else if (ok && s && *s)
-            result = string_view(s);
+        auto field = find_field(tag);
+        if (!field)
+            return false;
+        TIFFDataType tiffdatatype = TIFFFieldDataType(field);
+        int passcount             = TIFFFieldPassCount(field);
+        int readcount             = TIFFFieldReadCount(field);
+        // Strutil::printf(" tgsf %s tag %d datatype %d passcount %d readcount %d\n",
+        //                 name, tag, int(tiffdatatype), passcount, readcount);
+        char* s        = nullptr;
+        uint32_t count = 0;
+        bool ok        = false;
+        if (tiffdatatype == TIFF_ASCII && passcount
+            && readcount == TIFF_VARIABLE) {
+            uint16_t shortcount = 0;
+            ok                  = TIFFGetField(m_tif, tag, &shortcount, &s);
+            count               = shortcount;
+        } else if (tiffdatatype == TIFF_ASCII && passcount
+                   && readcount == TIFF_VARIABLE2) {
+            ok = TIFFGetField(m_tif, tag, &count, &s);
+        } else if (readcount > 0) {
+            ok    = TIFFGetField(m_tif, tag, &s);
+            count = readcount;
+        } else if (tiffdatatype == TIFF_ASCII) {
+            ok = TIFFGetField(m_tif, tag, &s);
+            if (ok && s && *s)
+                count = Strutil::safe_strlen(s, 64 * 1024);
+        } else {
+            // Some other type, we should not have been asking for this
+            // as ASCII, or maybe the tag is just the wrong data type in
+            // the file. Punt.
+        }
+        if (ok && s && *s) {
+            result = Strutil::safe_string_view(s, count);
+        }
         return ok;
     }
 
@@ -253,15 +321,19 @@ private:
     void get_string_attribute(string_view name, int tag)
     {
         string_view s;
-        if (tiff_get_string_field(tag, s))
-            m_spec.attribute(name, s);
+        if (tiff_get_string_field(tag, name, s)) {
+            if (s.size())
+                m_spec.attribute(name, s);
+            else
+                m_spec.erase_attribute(name);
+        }
     }
 
     // Get a matrix tiff tag field and put it into extra_params
     void get_matrix_attribute(string_view name, int tag)
     {
-        float* f = NULL;
-        if (safe_tiffgetfield(name, tag, &f) && f)
+        float* f = nullptr;
+        if (safe_tiffgetfield(name, tag, TypeUnknown, &f) && f)
             m_spec.attribute(name, TypeMatrix, f);
     }
 
@@ -269,15 +341,15 @@ private:
     void get_float_attribute(string_view name, int tag)
     {
         float f[16];
-        if (safe_tiffgetfield(name, tag, f))
+        if (safe_tiffgetfield(name, tag, TypeUnknown, f))
             m_spec.attribute(name, f[0]);
     }
 
     // Get an int tiff tag field and put it into extra_params
     void get_int_attribute(string_view name, int tag)
     {
-        int i;
-        if (safe_tiffgetfield(name, tag, &i))
+        int i = 0;
+        if (safe_tiffgetfield(name, tag, TypeUnknown, &i))
             m_spec.attribute(name, i);
     }
 
@@ -287,23 +359,11 @@ private:
         // Make room for two shorts, in case the tag is not the type we
         // expect, and libtiff writes a long instead.
         unsigned short s[2] = { 0, 0 };
-        if (safe_tiffgetfield(name, tag, &s)) {
+        if (safe_tiffgetfield(name, tag, TypeUInt16, &s)) {
             int i = s[0];
             m_spec.attribute(name, i);
         }
     }
-
-#ifdef TIFF_VERSION_BIG
-    const TIFFField* find_field(int tifftag, TIFFDataType tifftype)
-    {
-        return TIFFFindField(m_tif, tifftag, tifftype);
-    }
-#else
-    const TIFFFieldInfo* find_field(int tifftag, TIFFDataType tifftype)
-    {
-        return TIFFFindFieldInfo(m_tif, tifftag, tifftype);
-    }
-#endif
 
     // Search for TIFF tag having type 'tifftype', and if found,
     // add it in the obvious way to m_spec under the name 'oiioname'.
@@ -354,19 +414,18 @@ private:
             }
     }
 
-    void uncompress_one_strip(void* compressed_buf, unsigned long csize,
+    void uncompress_one_strip(const void* compressed_buf, unsigned long csize,
                               void* uncompressed_buf, size_t strip_bytes,
-                              int channels, int width, int height,
-                              int compression, bool* ok)
+                              int channels, int width, int height, bool* ok)
     {
-        ASSERT (compression == COMPRESSION_ADOBE_DEFLATE /*||
-                compression == COMPRESSION_NONE*/);
-        if (compression == COMPRESSION_NONE) {
+        OIIO_DASSERT (m_compression == COMPRESSION_ADOBE_DEFLATE /*||
+                      m_compression == COMPRESSION_NONE*/);
+        size_t nvals = size_t(width) * size_t(height) * size_t(channels);
+        if (m_compression == COMPRESSION_NONE) {
             // just copy if there's no compression
             memcpy(uncompressed_buf, compressed_buf, csize);
             if (m_is_byte_swapped && m_spec.format == TypeUInt16)
-                TIFFSwabArrayOfShort((unsigned short*)uncompressed_buf,
-                                     width * height * channels);
+                TIFFSwabArrayOfShort((unsigned short*)uncompressed_buf, nvals);
             return;
         }
         uLong uncompressed_size = (uLong)strip_bytes;
@@ -377,8 +436,7 @@ private:
             return;
         }
         if (m_is_byte_swapped && m_spec.format == TypeUInt16)
-            TIFFSwabArrayOfShort((unsigned short*)uncompressed_buf,
-                                 width * height * channels);
+            TIFFSwabArrayOfShort((unsigned short*)uncompressed_buf, nvals);
         if (m_predictor == PREDICTOR_HORIZONTAL) {
             if (m_spec.format == TypeUInt8)
                 undo_horizontal_predictor((unsigned char*)uncompressed_buf,
@@ -402,11 +460,44 @@ private:
                       / m_spec.tile_height;
         return xtile + ytile * nxtiles + ztile * nxtiles * nytiles;
     }
+
+#if OIIO_TIFFLIB_VERSION >= 40500
+    std::string m_last_error;
+    spin_mutex m_last_error_mutex;
+
+    std::string oiio_tiff_last_error()
+    {
+        spin_lock lock(m_last_error_mutex);
+        return m_last_error;
+    }
+
+    // TIFF 4.5+ has a mechanism for per-file thread-safe error handlers.
+    // Use it.
+    static int my_error_handler(TIFF* tif, void* user_data,
+                                const char* /*module*/, const char* fmt,
+                                va_list ap)
+    {
+        TIFFInput* self = (TIFFInput*)user_data;
+        spin_lock lock(self->m_last_error_mutex);
+        self->m_last_error = Strutil::vsprintf(fmt, ap);
+        return 1;
+    }
+
+    static int my_warning_handler(TIFF* tif, void* user_data,
+                                  const char* /*module*/, const char* fmt,
+                                  va_list ap)
+    {
+        TIFFInput* self = (TIFFInput*)user_data;
+        spin_lock lock(self->m_last_error_mutex);
+        self->m_last_error = Strutil::vsprintf(fmt, ap);
+        return 1;
+    }
+#endif
 };
 
 
 
-// Obligatory material to make this a recognizeable imageio plugin:
+// Obligatory material to make this a recognizable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageInput*
@@ -423,11 +514,11 @@ OIIO_EXPORT const char* tiff_input_extensions[]
 OIIO_PLUGIN_EXPORTS_END
 
 
-
-// Someplace to store an error message from the TIFF error handler
-// To avoid thread oddities, we have the storage area buffering error
-// messages for seterror()/geterror() be thread-specific.
-static boost::thread_specific_ptr<std::string> thread_error_msg;
+#if OIIO_TIFFLIB_VERSION < 40500
+// For TIFF 4.4 and earlier, we need someplace to store an error message from
+// the global TIFF error handler. To avoid thread oddities, we have the
+// storage area buffering error messages be thread-specific.
+static thread_local std::string thread_error_msg;
 static atomic_int handler_set;
 static spin_mutex handler_mutex;
 
@@ -436,20 +527,15 @@ static spin_mutex handler_mutex;
 std::string&
 oiio_tiff_last_error()
 {
-    std::string* e = thread_error_msg.get();
-    if (!e) {
-        e = new std::string;
-        thread_error_msg.reset(e);
-    }
-    return *e;
+    return thread_error_msg;
 }
 
 
 
 static void
-my_error_handler(const char* str, const char* format, va_list ap)
+my_error_handler(const char* /*str*/, const char* format, va_list ap)
 {
-    oiio_tiff_last_error() = Strutil::vformat(format, ap);
+    oiio_tiff_last_error() = Strutil::vsprintf(format, ap);
 }
 
 
@@ -466,17 +552,72 @@ oiio_tiff_set_error_handler()
         }
     }
 }
+#endif
 
 
+static tsize_t
+reader_readproc(thandle_t handle, tdata_t data, tsize_t size)
+{
+    auto io = static_cast<Filesystem::IOProxy*>(handle);
+    // Strutil::print("iop read {} {} @ {}\n",
+    //                io->filename(), size, io->tell());
+    auto r = io->read(data, size);
+    // for (size_t i = 0; i < r; ++i)
+    //     Strutil::print(" {:02x}",
+    //                    int(((unsigned char *)data)[i]));
+    // Strutil::print("\n");
+    return tsize_t(r);
+}
 
-struct CompressionCode {
-    int code;
-    const char* name;
-};
+static tsize_t
+reader_writeproc(thandle_t, tdata_t, tsize_t size)
+{
+    return tsize_t(0);
+}
+
+static toff_t
+reader_seekproc(thandle_t handle, toff_t offset, int origin)
+{
+    auto io = static_cast<Filesystem::IOProxy*>(handle);
+    // Strutil::print("iop seek {} {} ({})\n",
+    //                io->filename(), offset, origin);
+    return (io->seek(offset, origin)) ? toff_t(io->tell()) : toff_t(-1);
+}
+
+static int
+reader_closeproc(thandle_t handle)
+{
+    // auto io = static_cast<Filesystem::IOProxy*>(handle);
+    // if (io && io->opened()) {
+    //     // Strutil::print("iop close {}\n\n",
+    //     //                io->filename());
+    //     // io->seek(0);
+    //     io->close();
+    // }
+    return 0;
+}
+
+static toff_t
+reader_sizeproc(thandle_t handle)
+{
+    auto io = static_cast<Filesystem::IOProxy*>(handle);
+    // Strutil::print("iop size\n");
+    return toff_t(io->size());
+}
+
+static int
+reader_mapproc(thandle_t, tdata_t*, toff_t*)
+{
+    return 0;
+}
+
+static void reader_unmapproc(thandle_t, tdata_t, toff_t) {}
+
+
 
 // clang-format off
 
-static CompressionCode tiff_compressions[] = {
+static std::pair<int, const char*>  tiff_input_compressions[] = {
     { COMPRESSION_NONE,          "none" },        // no compression
     { COMPRESSION_LZW,           "lzw" },         // LZW
     { COMPRESSION_ADOBE_DEFLATE, "zip" },         // deflate / zip
@@ -503,13 +644,12 @@ static CompressionCode tiff_compressions[] = {
     { COMPRESSION_SGILOG,        "sgilog" },      // SGI log luminance RLE
     { COMPRESSION_SGILOG24,      "sgilog24" },    // SGI log 24bit
     { COMPRESSION_JP2000,        "jp2000" },      // Leadtools JPEG2000
-#if defined(TIFF_VERSION_BIG) && TIFFLIB_VERSION >= 20120922
+#if defined(TIFF_VERSION_BIG) && OIIO_TIFFLIB_VERSION >= 40003
     // Others supported in more recent TIFF library versions.
     { COMPRESSION_T85,           "T85" },         // TIFF/FX T.85 JBIG
     { COMPRESSION_T43,           "T43" },         // TIFF/FX T.43 color layered JBIG
     { COMPRESSION_LZMA,          "lzma" },        // LZMA2
 #endif
-    { -1, NULL }
 };
 
 // clang-format on
@@ -517,17 +657,19 @@ static CompressionCode tiff_compressions[] = {
 static const char*
 tiff_compression_name(int code)
 {
-    for (int i = 0; tiff_compressions[i].name; ++i)
-        if (code == tiff_compressions[i].code)
-            return tiff_compressions[i].name;
-    return NULL;
+    for (const auto& c : tiff_input_compressions)
+        if (c.first == code)
+            return c.second;
+    return nullptr;
 }
 
 
 
 TIFFInput::TIFFInput()
 {
+#if OIIO_TIFFLIB_VERSION < 40500
     oiio_tiff_set_error_handler();
+#endif
     init();
 }
 
@@ -542,21 +684,22 @@ TIFFInput::~TIFFInput()
 
 
 bool
-TIFFInput::valid_file(const std::string& filename) const
+TIFFInput::valid_file(Filesystem::IOProxy* ioproxy) const
 {
-    FILE* file = Filesystem::fopen(filename, "r");
-    if (!file)
-        return false;  // needs to be able to open
-    unsigned short magic[2] = { 0, 0 };
-    size_t numRead          = fread(magic, sizeof(unsigned short), 2, file);
-    fclose(file);
-    if (numRead != 2)  // fread failed
+    if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Mode::Read)
+        return false;
+
+    uint16_t magic[2] {};
+    const size_t numRead = ioproxy->pread(magic, sizeof(magic), 0);
+    if (numRead != sizeof(magic))  // read failed
         return false;
     if (magic[0] != TIFF_LITTLEENDIAN && magic[0] != TIFF_BIGENDIAN)
         return false;  // not the right byte order
     if ((magic[0] == TIFF_LITTLEENDIAN) != littleendian())
         swap_endian(&magic[1], 1);
     return (magic[1] == 42 /* Classic TIFF */ || magic[1] == 43 /* Big TIFF */);
+    // local_io, if used, will automatically close and free. A passed in
+    // proxy will remain in its prior state.
 }
 
 
@@ -564,7 +707,6 @@ TIFFInput::valid_file(const std::string& filename) const
 bool
 TIFFInput::open(const std::string& name, ImageSpec& newspec)
 {
-    oiio_tiff_set_error_handler();
     m_filename = name;
     m_subimage = -1;
 
@@ -580,6 +722,7 @@ TIFFInput::open(const std::string& name, ImageSpec& newspec,
                 const ImageSpec& config)
 {
     // Check 'config' for any special requests
+    ioproxy_retrieve_from_config(config);
     if (config.get_int_attribute("oiio:UnassociatedAlpha", 0) == 1)
         m_keep_unassociated_alpha = true;
     if (config.get_int_attribute("oiio:RawColor", 0) == 1)
@@ -621,15 +764,54 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
     bool read_meta = !(m_emulate_mipmap && m_tif && m_subimage >= 0);
 
     if (!m_tif) {
-#ifdef _WIN32
-        std::wstring wfilename = Strutil::utf8_to_utf16(m_filename);
-        m_tif                  = TIFFOpenW(wfilename.c_str(), "rm");
+#if OIIO_TIFFLIB_VERSION >= 40500
+        auto openopts = TIFFOpenOptionsAlloc();
+        TIFFOpenOptionsSetErrorHandlerExtR(openopts, my_error_handler, this);
+        TIFFOpenOptionsSetWarningHandlerExtR(openopts, my_warning_handler,
+                                             this);
+#endif
+        if (ioproxy_opened()) {
+            static_assert(sizeof(thandle_t) == sizeof(void*),
+                          "thandle_t must be same size as void*");
+            // Strutil::print("\n\nOpening client \"{}\"\n", m_filename);
+            ioseek(0);
+#if OIIO_TIFFLIB_VERSION >= 40500
+            m_tif = TIFFClientOpen(m_filename.c_str(), "rm", ioproxy(),
+                                   reader_readproc, reader_writeproc,
+                                   reader_seekproc, reader_closeproc,
+                                   reader_sizeproc, reader_mapproc,
+                                   reader_unmapproc);
 #else
-        m_tif = TIFFOpen(m_filename.c_str(), "rm");
+            m_tif = TIFFClientOpen(m_filename.c_str(), "rm", ioproxy(),
+                                   reader_readproc, reader_writeproc,
+                                   reader_seekproc, reader_closeproc,
+                                   reader_sizeproc, reader_mapproc,
+                                   reader_unmapproc);
+#endif
+        } else {
+#if OIIO_TIFFLIB_VERSION >= 40500
+#    ifdef _WIN32
+            std::wstring wfilename = Strutil::utf8_to_utf16wstring(m_filename);
+            m_tif = TIFFOpenWExt(wfilename.c_str(), "rm", openopts);
+#    else
+            m_tif = TIFFOpenExt(m_filename.c_str(), "rm", openopts);
+#    endif
+#else
+#    ifdef _WIN32
+            std::wstring wfilename = Strutil::utf8_to_utf16wstring(m_filename);
+            m_tif                  = TIFFOpenW(wfilename.c_str(), "rm");
+#    else
+            m_tif = TIFFOpen(m_filename.c_str(), "rm");
+#    endif
+#endif
+        }
+#if OIIO_TIFFLIB_VERSION >= 40500
+        TIFFOpenOptionsFree(openopts);
 #endif
         if (m_tif == NULL) {
             std::string e = oiio_tiff_last_error();
-            errorf("Could not open file: %s", e.length() ? e : m_filename);
+            errorfmt("Could not open file: {}", e.length() ? e : m_filename);
+            close_tif();
             return false;
         }
         m_is_byte_swapped = TIFFIsByteSwapped(m_tif);
@@ -640,43 +822,42 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
     if (subimage == m_subimage || TIFFSetDirectory(m_tif, subimage)) {
         m_subimage = subimage;
         readspec(read_meta);
-        // OK, some edge cases we just don't handle. For those, fall back on
-        // the TIFFRGBA interface.
-        bool is_jpeg        = (m_compression == COMPRESSION_JPEG
-                        || m_compression == COMPRESSION_OJPEG);
-        bool is_nonspectral = (m_photometric == PHOTOMETRIC_YCBCR
-                               || m_photometric == PHOTOMETRIC_CIELAB
-                               || m_photometric == PHOTOMETRIC_ICCLAB
-                               || m_photometric == PHOTOMETRIC_ITULAB
-                               || m_photometric == PHOTOMETRIC_LOGL
-                               || m_photometric == PHOTOMETRIC_LOGLUV);
-        if ((is_jpeg && m_spec.nchannels != 3)
-            || (is_nonspectral && !m_raw_color)) {
-            char emsg[1024];
-            m_use_rgba_interface = true;
-            if (!TIFFRGBAImageOK(m_tif, emsg)) {
-                errorf("No support for this flavor of TIFF file (%s)", emsg);
-                return false;
-            }
-            // This falls back to looking like uint8 images
-            m_spec.format = TypeDesc::UINT8;
-            m_spec.channelformats.clear();
-            m_photometric = PHOTOMETRIC_RGB;
+
+        char emsg[1024];
+        if (m_use_rgba_interface && !TIFFRGBAImageOK(m_tif, emsg)) {
+            errorfmt("No support for this flavor of TIFF file ({})", emsg);
+            return false;
         }
         if (size_t(subimage) >= m_subimage_specs.size())  // make room
             m_subimage_specs.resize(
                 subimage > 0 ? round_to_multiple(subimage + 1, 4) : 1);
-        if (m_subimage_specs[subimage]
-                .undefined())  // haven't cached this spec yet
+        if (m_subimage_specs[subimage].undefined()) {
+            // haven't cached this spec yet
             m_subimage_specs[subimage] = m_spec;
+        }
         if (m_spec.format == TypeDesc::UNKNOWN) {
-            errorf("No support for data format of \"%s\"", m_filename);
+            errorfmt("No support for data format of \"{}\"", m_filename);
+            return false;
+        }
+        if (pvt::limit_channels && m_spec.nchannels > pvt::limit_channels) {
+            errorfmt(
+                "{} channels exceeds \"limits:channels\" = {}. Possible corrupt input?\nIf you're sure this is a valid file, raise the OIIO global attribute \"limits:channels\".",
+                m_spec.nchannels, pvt::limit_channels);
+            return false;
+        }
+        if (pvt::limit_imagesize_MB
+            && m_spec.image_bytes(true)
+                   > pvt::limit_imagesize_MB * imagesize_t(1024 * 1024)) {
+            errorfmt(
+                "Uncompressed image size {:.1f} MB exceeds \"limits:imagesize_MB\" = {}. Possible corrupt input?\nIf you're sure this is a valid file, raise the OIIO global attribute \"limits:imagesize_MB\".",
+                float(m_spec.image_bytes(true)) / float(1024 * 1024),
+                pvt::limit_imagesize_MB);
             return false;
         }
         return true;
     } else {
         std::string e = oiio_tiff_last_error();
-        errorf("%s", e.length() ? e : m_filename);
+        errorfmt("Err: {}", e.length() ? e : m_filename);
         m_subimage = -1;
         return false;
     }
@@ -688,8 +869,21 @@ ImageSpec
 TIFFInput::spec(int subimage, int miplevel)
 {
     ImageSpec ret;
-    int s = m_emulate_mipmap ? miplevel : subimage;
-    lock_guard lock(m_mutex);
+
+    // s == index of the spec list to retrieve. Start by presuming it's
+    // the sublevel number.
+    int s = subimage;
+    if (m_emulate_mipmap) {
+        // This is the kind of TIFF file where we are emulating MIPmap
+        // levels with TIFF subimages.
+        if (subimage != 0)
+            return ret;  // Invalid subimage request, return the empty spec
+        // Index into the spec list by miplevel instead, because that's
+        // what it really contains.
+        s = miplevel;
+    }
+
+    lock_guard lock(*this);
     if (s >= 0 && s < int(m_subimage_specs.size())
         && !m_subimage_specs[s].undefined()) {
         // If we've cached this spec, we don't need to seek and read
@@ -707,8 +901,21 @@ ImageSpec
 TIFFInput::spec_dimensions(int subimage, int miplevel)
 {
     ImageSpec ret;
-    int s = m_emulate_mipmap ? miplevel : subimage;
-    lock_guard lock(m_mutex);
+
+    // s == index of the spec list to retrieve. Start by presuming it's
+    // the sublevel number.
+    int s = subimage;
+    if (m_emulate_mipmap) {
+        // This is the kind of TIFF file where we are emulating MIPmap
+        // levels with TIFF subimages.
+        if (subimage != 0)
+            return ret;  // Invalid subimage request, return the empty spec
+        // Index into the spec list by miplevel instead, because that's
+        // what it really contains.
+        s = miplevel;
+    }
+
+    lock_guard lock(*this);
     if (s >= 0 && s < int(m_subimage_specs.size())
         && !m_subimage_specs[s].undefined()) {
         // If we've cached this spec, we don't need to seek and read
@@ -728,7 +935,7 @@ TIFFInput::spec_dimensions(int subimage, int miplevel)
 void
 TIFFInput::readspec(bool read_meta)
 {
-    uint32 width = 0, height = 0, depth = 0;
+    uint32_t width = 0, height = 0, depth = 0;
     TIFFGetField(m_tif, TIFFTAG_IMAGEWIDTH, &width);
     TIFFGetField(m_tif, TIFFTAG_IMAGELENGTH, &height);
     TIFFGetFieldDefaulted(m_tif, TIFFTAG_IMAGEDEPTH, &depth);
@@ -760,14 +967,14 @@ TIFFInput::readspec(bool read_meta)
         // misinterpreting the image offset.
         int oiio_write_version = 0;
         string_view software;
-        if (tiff_get_string_field(TIFFTAG_SOFTWARE, software)
+        if (tiff_get_string_field(TIFFTAG_SOFTWARE, "Software", software)
             && Strutil::parse_prefix(software, "OpenImageIO")) {
             int major = 0, minor = 0, patch = 0;
             if (Strutil::parse_int(software, major)
                 && Strutil::parse_char(software, '.')
                 && Strutil::parse_int(software, minor)
                 && Strutil::parse_char(software, '.')
-                && Strutil::parse_int(software, patch)) {
+                && Strutil::parse_int(software, patch)) {  // NOSONAR
                 oiio_write_version = major * 10000 + minor * 100 + patch;
             }
         }
@@ -786,7 +993,7 @@ TIFFInput::readspec(bool read_meta)
 
     // Start by assuming the "full" (aka display) window is the same as the
     // data window. That's what we'll stick to if there is no further
-    // information in the file. But if the file has tags for hte "full"
+    // information in the file. But if the file has tags for the "full"
     // size, assume a display window with origin (0,0) and those dimensions.
     // (Unfortunately, there are no TIFF tags for "full" origin.)
     m_spec.full_x      = m_spec.x;
@@ -882,6 +1089,15 @@ TIFFInput::readspec(bool read_meta)
     // Now we need to get fields "by hand" for anything else that is less
     // straightforward...
 
+    m_compression = 0;
+    TIFFGetFieldDefaulted(m_tif, TIFFTAG_COMPRESSION, &m_compression);
+    m_spec.attribute("tiff:Compression", (int)m_compression);
+
+    m_photometric = (m_spec.nchannels == 1 ? PHOTOMETRIC_MINISBLACK
+                                           : PHOTOMETRIC_RGB);
+    TIFFGetField(m_tif, TIFFTAG_PHOTOMETRIC, &m_photometric);
+    m_spec.attribute("tiff:PhotometricInterpretation", (int)m_photometric);
+
     readspec_photometric();
 
     TIFFGetFieldDefaulted(m_tif, TIFFTAG_PLANARCONFIG, &m_planarconfig);
@@ -894,13 +1110,11 @@ TIFFInput::readspec(bool read_meta)
     else
         m_spec.attribute("planarconfig", "contig");
 
-    m_compression = 0;
-    TIFFGetFieldDefaulted(m_tif, TIFFTAG_COMPRESSION, &m_compression);
-    m_spec.attribute("tiff:Compression", (int)m_compression);
     if (const char* compressname = tiff_compression_name(m_compression))
         m_spec.attribute("compression", compressname);
     m_predictor = PREDICTOR_NONE;
-    if (!safe_tiffgetfield("Predictor", TIFFTAG_PREDICTOR, &m_predictor))
+    if (!safe_tiffgetfield("Predictor", TIFFTAG_PREDICTOR, TypeUInt16,
+                           &m_predictor))
         m_predictor = PREDICTOR_NONE;
 
     m_rowsperstrip = -1;
@@ -923,8 +1137,7 @@ TIFFInput::readspec(bool read_meta)
 
     unsigned short* sampleinfo  = NULL;
     unsigned short extrasamples = 0;
-    TIFFGetFieldDefaulted(m_tif, TIFFTAG_EXTRASAMPLES, &extrasamples,
-                          &sampleinfo);
+    TIFFGetField(m_tif, TIFFTAG_EXTRASAMPLES, &extrasamples, &sampleinfo);
     // std::cerr << "Extra samples = " << extrasamples << "\n";
     bool alpha_is_unassociated = false;  // basic assumption
     if (extrasamples) {
@@ -949,7 +1162,7 @@ TIFFInput::readspec(bool read_meta)
                 if (m_keep_unassociated_alpha)
                     m_spec.attribute("oiio:UnassociatedAlpha", 1);
             } else {
-                DASSERT(sampleinfo[i] == EXTRASAMPLE_UNSPECIFIED);
+                OIIO_DASSERT(sampleinfo[i] == EXTRASAMPLE_UNSPECIFIED);
                 // This extra channel is not alpha at all.  Undo any
                 // assumptions we previously made about this channel.
                 if (m_spec.alpha_channel == c) {
@@ -958,7 +1171,13 @@ TIFFInput::readspec(bool read_meta)
                 }
             }
         }
-        if (m_spec.alpha_channel >= 0) {
+        if (m_photometric == PHOTOMETRIC_SEPARATED)
+            m_spec.alpha_channel = -1;  // ignore alpha in CMYK
+        if (m_spec.alpha_channel >= 0
+            && m_spec.alpha_channel < m_spec.nchannels) {
+            while (m_spec.channelnames.size() < size_t(m_spec.nchannels))
+                m_spec.channelnames.push_back(
+                    Strutil::fmt::format("channel{}", m_spec.nchannels));
             m_spec.channelnames[m_spec.alpha_channel] = "A";
             // Special case: "R","A" should really be named "Y","A", since
             // the first channel is luminance, not red.
@@ -1014,65 +1233,63 @@ TIFFInput::readspec(bool read_meta)
 
     /// read color profile
     unsigned int icc_datasize = 0;
-    unsigned char* icc_buf    = NULL;
+    uint8_t* icc_buf          = NULL;
     TIFFGetField(m_tif, TIFFTAG_ICCPROFILE, &icc_datasize, &icc_buf);
-    if (icc_datasize && icc_buf)
+    if (icc_datasize && icc_buf) {
         m_spec.attribute(ICC_PROFILE_ATTR,
                          TypeDesc(TypeDesc::UINT8, icc_datasize), icc_buf);
+        std::string errormsg;
+        decode_icc_profile(cspan<uint8_t>(icc_buf, icc_datasize), m_spec,
+                           errormsg);
+    }
 
-        // Search for an EXIF IFD in the TIFF file, and if found, rummage
-        // around for Exif fields.
-#if TIFFLIB_VERSION > 20050912 /* compat with old TIFF libs - skip Exif */
+    // Search for an EXIF IFD in the TIFF file, and if found, rummage
+    // around for Exif fields.
     toff_t exifoffset = 0;
-    if (TIFFGetField(m_tif, TIFFTAG_EXIFIFD, &exifoffset)
-        && TIFFReadEXIFDirectory(m_tif, exifoffset)) {
-        for (const auto& tag : tag_table("Exif"))
-            find_tag(tag.tifftag, tag.tifftype, tag.name);
-        // Look for a Makernote
-        auto makerfield = find_field(EXIF_MAKERNOTE, TIFF_UNDEFINED);
-        // std::unique_ptr<uint32_t[]> buf (new uint32_t[]);
-        if (makerfield) {
-            // bool ok = TIFFGetField (m_tif, tag, dest, &ptr);
-            unsigned int mn_datasize = 0;
-            unsigned char* mn_buf    = NULL;
-            TIFFGetField(m_tif, EXIF_MAKERNOTE, &mn_datasize, &mn_buf);
-        }
-        // I'm not sure what state TIFFReadEXIFDirectory leaves us.
-        // So to be safe, close and re-seek.
-        TIFFClose(m_tif);
-#    ifdef _WIN32
-        std::wstring wfilename = Strutil::utf8_to_utf16(m_filename);
-        m_tif                  = TIFFOpenW(wfilename.c_str(), "rm");
-#    else
-        m_tif = TIFFOpen(m_filename.c_str(), "rm");
-#    endif
-        if (m_subimage)
-            TIFFSetDirectory(m_tif, m_subimage);
-
-        // A few tidbits to look for
-        ParamValue* p;
-        if ((p = m_spec.find_attribute("Exif:ColorSpace", TypeDesc::INT))) {
+    if (TIFFGetField(m_tif, TIFFTAG_EXIFIFD, &exifoffset)) {
+        if (TIFFReadEXIFDirectory(m_tif, exifoffset)) {
+            for (const auto& tag : tag_table("Exif"))
+                find_tag(tag.tifftag, tag.tifftype, tag.name);
+            // Look for a Makernote
+            auto makerfield = find_field(EXIF_MAKERNOTE, TIFF_UNDEFINED);
+            // std::unique_ptr<uint32_t[]> buf (new uint32_t[]);
+            if (makerfield) {
+                // bool ok = TIFFGetField (m_tif, tag, dest, &ptr);
+                unsigned int mn_datasize = 0;
+                unsigned char* mn_buf    = NULL;
+                TIFFGetField(m_tif, EXIF_MAKERNOTE, &mn_datasize, &mn_buf);
+            }
             // Exif spec says that anything other than 0xffff==uncalibrated
             // should be interpreted to be sRGB.
-            if (*(const int*)p->data() != 0xffff)
+            if (m_spec.get_int_attribute("Exif:ColorSpace") != 0xffff)
                 m_spec.attribute("oiio:ColorSpace", "sRGB");
         }
+        // TIFFReadEXIFDirectory seems to do something to the internal state
+        // that requires a TIFFSetDirectory to set things straight again.
+        TIFFSetDirectory(m_tif, m_subimage);
     }
-#endif
 
-#if TIFFLIB_VERSION >= 20051230
     // Search for IPTC metadata in IIM form -- but older versions of
     // libtiff botch the size, so ignore it for very old libtiff.
     int iptcsize         = 0;
-    const void* iptcdata = NULL;
-    if (TIFFGetField(m_tif, TIFFTAG_RICHTIFFIPTC, &iptcsize, &iptcdata)) {
-        std::vector<uint32> iptc((uint32*)iptcdata,
-                                 (uint32*)iptcdata + iptcsize);
-        if (TIFFIsByteSwapped(m_tif))
-            TIFFSwabArrayOfLong((uint32*)&iptc[0], iptcsize);
-        decode_iptc_iim(&iptc[0], iptcsize * 4, m_spec);
+    const char* iptcdata = nullptr;
+    TypeDesc iptctype    = tiffgetfieldtype(TIFFTAG_RICHTIFFIPTC);
+    if (TIFFGetField(m_tif, TIFFTAG_RICHTIFFIPTC, &iptcsize, &iptcdata)
+        && iptcsize > 0) {
+        std::vector<char> iptc;
+        if (iptctype.size() == 4) {
+            // Some TIFF files in the wild inexplicably think their IPTC
+            // data are stored as longs, and we have to undo any byte
+            // swapping that may have occurred.
+            iptcsize *= 4;
+            iptc.assign(iptcdata, iptcdata + iptcsize);
+            if (TIFFIsByteSwapped(m_tif))
+                TIFFSwabArrayOfLong((uint32_t*)&iptc[0], iptcsize / 4);
+        } else {
+            iptc.assign(iptcdata, iptcdata + iptcsize);
+        }
+        decode_iptc_iim(&iptc[0], iptcsize, m_spec);
     }
-#endif
 
     // Search for an XML packet containing XMP (IPTC, Exif, etc.)
     int xmlsize         = 0;
@@ -1129,6 +1346,12 @@ TIFFInput::readspec(bool read_meta)
         m_spec.attribute("oiio:SHA-1", sha);
         updatedDesc = true;
     }
+    std::string handed = Strutil::excise_string_after_head(desc,
+                                                           "oiio:handed=");
+    if (handed.size() && (handed == "left" || handed == "right")) {
+        m_spec.attribute("handed", handed);
+        updatedDesc = true;
+    }
 
     if (updatedDesc) {
         string_view d(desc);
@@ -1151,10 +1374,6 @@ TIFFInput::readspec(bool read_meta)
 void
 TIFFInput::readspec_photometric()
 {
-    m_photometric = (m_spec.nchannels == 1 ? PHOTOMETRIC_MINISBLACK
-                                           : PHOTOMETRIC_RGB);
-    TIFFGetField(m_tif, TIFFTAG_PHOTOMETRIC, &m_photometric);
-    m_spec.attribute("tiff:PhotometricInterpretation", (int)m_photometric);
     switch (m_photometric) {
     case PHOTOMETRIC_SEPARATED: {
         // Photometric "separated" is "usually CMYK".
@@ -1184,8 +1403,9 @@ TIFFInput::readspec_photometric()
             m_spec.attribute("oiio:ColorSpace", "color separated");
             m_raw_color = true;  // Conversion to RGB doesn't make sense
             const char* inknames = NULL;
-            safe_tiffgetfield("tiff:InkNames", TIFFTAG_INKNAMES, &inknames);
-            if (inknames && inknames[0] && numberofinks) {
+            if (safe_tiffgetfield("tiff:InkNames", TIFFTAG_INKNAMES,
+                                  TypeUnknown, &inknames)
+                && inknames && inknames[0] && numberofinks) {
                 m_spec.channelnames.clear();
                 // Decode the ink names, which are all concatenated together.
                 for (int i = 0; i < int(numberofinks); ++i) {
@@ -1226,15 +1446,17 @@ TIFFInput::readspec_photometric()
         // Read the color map
         unsigned short *r = NULL, *g = NULL, *b = NULL;
         TIFFGetField(m_tif, TIFFTAG_COLORMAP, &r, &g, &b);
-        ASSERT(r != NULL && g != NULL && b != NULL);
+        OIIO_ASSERT(r != NULL && g != NULL && b != NULL);
         m_colormap.clear();
+        m_colormap.reserve(3 * (1 << m_bitspersample));
         m_colormap.insert(m_colormap.end(), r, r + (1 << m_bitspersample));
         m_colormap.insert(m_colormap.end(), g, g + (1 << m_bitspersample));
         m_colormap.insert(m_colormap.end(), b, b + (1 << m_bitspersample));
-        // Palette TIFF images are always 3 channels (to the client)
+        // Palette TIFF images are always 3 channels, uint8 (to the client)
         m_spec.nchannels = 3;
+        m_spec.set_format(TypeUInt8);
         m_spec.default_channel_names();
-        if (m_bitspersample != m_spec.format.size() * 8) {
+        if (m_bitspersample < m_spec.format.size() * 8) {
             // For palette images with unusual bits per sample, set
             // oiio:BitsPerSample to the "full" version, to avoid problems
             // when copying the file back to a TIFF file (we don't write
@@ -1248,6 +1470,36 @@ TIFFInput::readspec_photometric()
         // allowed?  And if so, ever encountered in the wild?
         break;
     }
+    }
+
+    // For some PhotometricInterpretation modes that are both rare and hairy
+    // to handle, we use libtiff's TIFFRGBA interface and have it give us 8
+    // bit RGB values.
+    bool is_jpeg         = (m_compression == COMPRESSION_JPEG
+                    || m_compression == COMPRESSION_OJPEG);
+    bool is_nonspectral  = (m_photometric == PHOTOMETRIC_YCBCR
+                           || m_photometric == PHOTOMETRIC_CIELAB
+                           || m_photometric == PHOTOMETRIC_ICCLAB
+                           || m_photometric == PHOTOMETRIC_ITULAB
+                           || m_photometric == PHOTOMETRIC_LOGL
+                           || m_photometric == PHOTOMETRIC_LOGLUV);
+    m_use_rgba_interface = false;
+    m_rgbadata.clear();
+    if ((is_jpeg && m_spec.nchannels != 3)
+        || (is_nonspectral && !m_raw_color)) {
+        m_use_rgba_interface = true;
+        // This falls back to looking like uint8 images
+        m_spec.format = TypeDesc::UINT8;
+        m_spec.channelformats.clear();
+        m_photometric = PHOTOMETRIC_RGB;
+    }
+
+    // If we're not using the RGBA interface, but we have one of these
+    // non-spectral color spaces, set the OIIO color space attribute to
+    // the tiff:colorspace value.
+    if (is_nonspectral && !m_use_rgba_interface) {
+        m_spec.attribute("oiio:ColorSpace",
+                         m_spec.get_string_attribute("tiff:ColorSpace"));
     }
 }
 
@@ -1280,6 +1532,7 @@ TIFFInput::separate_to_contig(int nplanes, int nvals,
 
 
 
+// palette_to_rgb for <= 8 bit palette addressing
 void
 TIFFInput::palette_to_rgb(int n, const unsigned char* palettepels,
                           unsigned char* rgb)
@@ -1287,8 +1540,8 @@ TIFFInput::palette_to_rgb(int n, const unsigned char* palettepels,
     size_t vals_per_byte = 8 / m_bitspersample;
     size_t entries       = 1 << m_bitspersample;
     int highest          = entries - 1;
-    DASSERT(m_spec.nchannels == 3);
-    DASSERT(m_colormap.size() == 3 * entries);
+    OIIO_DASSERT(m_spec.nchannels == 3);
+    OIIO_DASSERT(m_colormap.size() == 3 * entries);
     for (int x = 0; x < n; ++x) {
         int i = palettepels[x / vals_per_byte];
         i >>= (m_bitspersample * (vals_per_byte - 1 - (x % vals_per_byte)));
@@ -1301,11 +1554,29 @@ TIFFInput::palette_to_rgb(int n, const unsigned char* palettepels,
 
 
 
+// palette_to_rgb, for 16 bit palette addressing
+void
+TIFFInput::palette_to_rgb(int n, const uint16_t* palettepels,
+                          unsigned char* rgb)
+{
+    size_t entries = 1 << m_bitspersample;
+    OIIO_DASSERT(m_spec.nchannels == 3);
+    OIIO_DASSERT(m_colormap.size() == 3 * entries);
+    for (int x = 0; x < n; ++x) {
+        int i  = palettepels[x];
+        *rgb++ = m_colormap[0 * entries + i] / 257;
+        *rgb++ = m_colormap[1 * entries + i] / 257;
+        *rgb++ = m_colormap[2 * entries + i] / 257;
+    }
+}
+
+
+
 void
 TIFFInput::bit_convert(int n, const unsigned char* in, int inbits, void* out,
                        int outbits)
 {
-    ASSERT(inbits >= 1 && inbits < 32);  // surely bugs if not
+    OIIO_DASSERT(inbits >= 1 && inbits < 32);  // surely bugs if not
     uint32_t highest = (1 << inbits) - 1;
     int B = 0, b = 0;
     // Invariant:
@@ -1389,10 +1660,10 @@ cmyk_to_rgb(int n, const T* cmyk, size_t cmyk_stride, T* rgb, size_t rgb_stride)
 
 
 bool
-TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                 void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     y -= m_spec.y;
@@ -1402,17 +1673,18 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int z,
         // libtiff has no way to read just one scanline as RGBA. So we
         // buffer the whole image.
         if (!m_rgbadata.size()) {  // first time through: allocate & read
-            m_rgbadata.resize(m_spec.width * m_spec.height * m_spec.depth);
+            m_rgbadata.resize(m_spec.image_pixels());
             bool ok = TIFFReadRGBAImageOriented(m_tif, m_spec.width,
-                                                m_spec.height, &m_rgbadata[0],
+                                                m_spec.height,
+                                                m_rgbadata.data(),
                                                 ORIENTATION_TOPLEFT, 0);
             if (!ok) {
-                errorf("Unknown error trying to read TIFF as RGBA");
+                errorfmt("Unknown error trying to read TIFF as RGBA");
                 return false;
             }
         }
         copy_image(m_spec.nchannels, m_spec.width, 1, 1,
-                   &m_rgbadata[y * m_spec.width], m_spec.nchannels, 4,
+                   &m_rgbadata[y * size_t(m_spec.width)], m_spec.nchannels, 4,
                    4 * m_spec.width, AutoStride, data, m_spec.nchannels,
                    m_spec.width * m_spec.nchannels, AutoStride);
         return true;
@@ -1420,12 +1692,18 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int z,
 
     // Make sure there's enough scratch space
     int nvals = m_spec.width * m_inputchannels;
-    m_scratch.resize(nvals * m_spec.format.size());
+    if (m_photometric == PHOTOMETRIC_PALETTE && m_bitspersample > 8)
+        m_scratch.resize(nvals * 2);  // special case for 16 bit palette
+    else
+        m_scratch.resize(nvals * m_spec.format.size());
+
+    // How many color planes to read
+    int planes = m_separate ? m_inputchannels : 1;
 
     // For compression modes that don't support random access to scanlines
     // (which I *think* is only LZW), we need to emulate random access by
     // re-seeking.
-    if (m_no_random_access) {
+    if (m_no_random_access && m_next_scanline != y) {
         if (m_next_scanline > y) {
             // User is trying to read an earlier scanline than the one we're
             // up to.  Easy fix: start over.
@@ -1447,14 +1725,20 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int z,
                 || !seek_subimage(old_subimage, old_miplevel)) {
                 return false;  // Somehow, the re-open failed
             }
-            ASSERT(m_next_scanline == 0 && current_subimage() == old_subimage
-                   && current_miplevel() == old_miplevel);
+            OIIO_DASSERT(m_next_scanline == 0
+                         && current_subimage() == old_subimage
+                         && current_miplevel() == old_miplevel);
         }
         while (m_next_scanline < y) {
             // Keep reading until we're read the scanline we really need
-            if (TIFFReadScanline(m_tif, &m_scratch[0], m_next_scanline) < 0) {
-                errorf("%s", oiio_tiff_last_error());
-                return false;
+            for (int c = 0; c < planes; ++c) { /* planes==1 for contig */
+                if (TIFFReadScanline(m_tif, &m_scratch[0], m_next_scanline, c)
+                    < 0) {
+#if OIIO_TIFFLIB_VERSION < 40500
+                    errorfmt("{}", oiio_tiff_last_error());
+#endif
+                    return false;
+                }
             }
             ++m_next_scanline;
         }
@@ -1466,17 +1750,22 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int z,
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Convert from palette to RGB
         if (TIFFReadScanline(m_tif, &m_scratch[0], y) < 0) {
-            errorf("%s", oiio_tiff_last_error());
+#if OIIO_TIFFLIB_VERSION < 40500
+            errorfmt("{}", oiio_tiff_last_error());
+#endif
             return false;
         }
-        palette_to_rgb(m_spec.width, &m_scratch[0], (unsigned char*)data);
+        if (m_bitspersample <= 8)
+            palette_to_rgb(m_spec.width, &m_scratch[0], (unsigned char*)data);
+        else if (m_bitspersample == 16)
+            palette_to_rgb(m_spec.width, (uint16_t*)&m_scratch[0],
+                           (unsigned char*)data);
         return true;
     }
     // Not palette...
 
-    int plane_bytes = m_spec.width * m_spec.format.size();
-    int planes      = m_separate ? m_inputchannels : 1;
-    int input_bytes = plane_bytes * m_inputchannels;
+    size_t plane_bytes = m_spec.width * m_spec.format.size();
+    size_t input_bytes = plane_bytes * m_inputchannels;
     // Where to read?  Directly into user data if no channel shuffling, bit
     // shifting, or CMYK conversion is needed, otherwise into scratch space.
     unsigned char* readbuf = (unsigned char*)data;
@@ -1487,7 +1776,9 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int z,
     // only do one TIFFReadScanline.
     for (int c = 0; c < planes; ++c) { /* planes==1 for contig */
         if (TIFFReadScanline(m_tif, &readbuf[plane_bytes * c], y, c) < 0) {
-            errorf("%s", oiio_tiff_last_error());
+#if OIIO_TIFFLIB_VERSION < 40500
+            errorfmt("{}", oiio_tiff_last_error());
+#endif
             return false;
         }
     }
@@ -1556,7 +1847,7 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int z,
                         m_inputchannels, (unsigned short*)data,
                         m_spec.nchannels);
         } else {
-            errorf("CMYK only supported for UINT8, UINT16");
+            errorfmt("CMYK only supported for UINT8, UINT16");
             return false;
         }
     }
@@ -1580,7 +1871,7 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     // parallelize by reading raw (compressed) strips then making calls to
     // zlib ourselves to decompress. Don't bother trying to handle any of
     // the uncommon cases with strips. This covers most real-world cases.
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     yend        = std::min(yend, spec().y + spec().height);
@@ -1633,7 +1924,7 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         // and more than one, or no point parallelizing
         nstrips > 1
         // only if we are reading scanlines in order
-        && ybegin == m_next_scanline
+        && ybegin == (m_next_scanline + m_spec.y)
         // only if we're threading and don't enter the thread pool recursively!
         && pool->size() > 1
         && !pool->is_worker()
@@ -1672,18 +1963,19 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                              tmsize_t(cbound));
             if (csize < 0) {
                 std::string err = oiio_tiff_last_error();
-                errorf("TIFFRead%sStrip failed reading line y=%d,z=%d: %s",
-                       read_raw_strips ? "Raw" : "Encoded", y, z,
-                       err.size() ? err.c_str() : "unknown error");
+                errorfmt("TIFFRead{}Strip failed reading line y={},z={}: {}",
+                         read_raw_strips ? "Raw" : "Encoded", y, z,
+                         err.size() ? err.c_str() : "unknown error");
                 ok = false;
             }
-            auto uncompress_etc = [=, &ok](int id) {
-                uncompress_one_strip(cbuf, (unsigned long)csize, data,
-                                     strip_bytes, this->m_spec.nchannels,
-                                     this->m_spec.width, m_rowsperstrip,
-                                     m_compression, &ok);
-                if (m_photometric == PHOTOMETRIC_MINISWHITE)
-                    invert_photometric(stripvals * stripchans, data);
+            auto out            = this;
+            auto uncompress_etc = [=, &ok](int /*id*/) {
+                out->uncompress_one_strip(cbuf, (unsigned long)csize, data,
+                                          strip_bytes, out->m_spec.nchannels,
+                                          out->m_spec.width,
+                                          out->m_rowsperstrip, &ok);
+                if (out->m_photometric == PHOTOMETRIC_MINISWHITE)
+                    out->invert_photometric(stripvals * stripchans, data);
             };
             if (parallelize) {
                 // Push the rest of the work onto the thread pool queue
@@ -1701,41 +1993,44 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         // "separate" planarconfig.
         int strips_in_file = (m_spec.height + m_rowsperstrip - 1)
                              / m_rowsperstrip;
-        for (size_t stripidx = 0; y + m_rowsperstrip <= yend;
-             y += m_rowsperstrip, ++stripidx) {
+        for (size_t stripidx = 0; y < yend; y += m_rowsperstrip, ++stripidx) {
+            int myrps       = std::min(yend - y, m_rowsperstrip);
+            int strip_endy  = std::min(y + m_rowsperstrip, yend);
+            int mystripvals = m_spec.width * stripchans * (strip_endy - y);
+            imagesize_t mystrip_bytes = mystripvals * m_spec.format.size();
             for (int c = 0; c < planes; ++c) {
                 tstrip_t stripnum = ((y - m_spec.y) / m_rowsperstrip)
                                     + c * strips_in_file;
                 tsize_t csize = TIFFReadEncodedStrip(m_tif, stripnum,
                                                      (char*)data
-                                                         + c * strip_bytes,
-                                                     tmsize_t(strip_bytes));
+                                                         + c * mystrip_bytes,
+                                                     tmsize_t(mystrip_bytes));
                 if (csize < 0) {
                     std::string err = oiio_tiff_last_error();
-                    errorf(
-                        "TIFFReadEncodedStrip failed reading line y=%d,z=%d: %s",
+                    errorfmt(
+                        "TIFFReadEncodedStrip failed reading line y={},z={}: {}",
                         y, z, err.size() ? err.c_str() : "unknown error");
                     ok = false;
                 }
             }
             if (m_photometric == PHOTOMETRIC_MINISWHITE)
-                invert_photometric(stripvals * planes, data);
+                invert_photometric(mystripvals * planes, data);
             if (m_separate) {
                 // handle "separate" planarconfig: copy to temp area, then
                 // separate_to_contig it back.
                 char* sepbuf = separate_tmp.get()
-                               + stripidx * strip_bytes * planes;
-                memcpy(sepbuf, data, strip_bytes * planes);
-                separate_to_contig(planes, m_spec.width * m_rowsperstrip,
+                               + stripidx * mystrip_bytes * planes;
+                memcpy(sepbuf, data, mystrip_bytes * planes);
+                separate_to_contig(planes, m_spec.width * myrps,
                                    (unsigned char*)sepbuf,
                                    (unsigned char*)data);
             }
-            data = (char*)data + strip_bytes * planes;
+            data = (char*)data + mystrip_bytes * planes;
         }
     }
 
     // If we have left over scanlines, read them serially
-    m_next_scanline = y;
+    m_next_scanline = y - m_spec.y;
     for (; y < yend; ++y) {
         bool ok = read_native_scanline(subimage, miplevel, y, z, data);
         if (!ok)
@@ -1752,7 +2047,7 @@ bool
 TIFFInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
                             void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     x -= m_spec.x;
@@ -1762,39 +2057,58 @@ TIFFInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
         // We punted and used the RGBA image interface
         // libtiff has a call to read just one tile as RGBA. So that's all
         // we need to do, not buffer the whole image.
-        m_rgbadata.resize(m_spec.tile_pixels() * 4);
-        bool ok = TIFFReadRGBATile(m_tif, x, y, &m_rgbadata[0]);
+        m_rgbadata.resize(m_spec.tile_pixels());
+        bool ok = TIFFReadRGBATile(m_tif, x, y, m_rgbadata.data());
         if (!ok) {
-            errorf("Unknown error trying to read TIFF as RGBA");
+            errorfmt("Unknown error trying to read TIFF as RGBA");
             return false;
         }
-        // Copy, and use stride magic to reverse top-to-bottom
+        // Copy, and use stride magic to reverse top-to-bottom, because
+        // TIFFReadRGBATile always returns data in bottom-to-top order.
         int tw = std::min(m_spec.tile_width, m_spec.width - x);
         int th = std::min(m_spec.tile_height, m_spec.height - y);
+
+        // When the vertical read size is smaller that the tile size
+        // the actual data is in the bottom end of the tile
+        // so copy_image should start from tile_height - read_height.
+        // (Again, because TIFFReadRGBATile reverses the scanline order.)
+        int vert_offset = m_spec.tile_height - th;
+
         copy_image(m_spec.nchannels, tw, th, 1,
-                   &m_rgbadata[(th - 1) * m_spec.tile_width], m_spec.nchannels,
-                   4, -m_spec.tile_width * 4, AutoStride, data,
-                   m_spec.nchannels, m_spec.nchannels * m_spec.tile_width,
+                   &m_rgbadata[vert_offset * m_spec.tile_width
+                               + (th - 1) * m_spec.tile_width],
+                   m_spec.nchannels, 4, -m_spec.tile_width * 4, AutoStride,
+                   data, m_spec.nchannels,
+                   m_spec.nchannels * imagesize_t(m_spec.tile_width),
                    AutoStride);
         return true;
     }
 
     imagesize_t tile_pixels = m_spec.tile_pixels();
-    imagesize_t nvals       = tile_pixels * m_spec.nchannels;
-    m_scratch.resize(m_spec.tile_bytes());
+    imagesize_t nvals       = tile_pixels * m_inputchannels;
+    if (m_photometric == PHOTOMETRIC_PALETTE && m_bitspersample > 8)
+        m_scratch.resize(nvals * 2);  // special case for 16 bit palette
+    else
+        m_scratch.resize(nvals * m_spec.format.size());
     bool no_bit_convert = (m_bitspersample == 8 || m_bitspersample == 16
                            || m_bitspersample == 32);
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Convert from palette to RGB
         if (TIFFReadTile(m_tif, &m_scratch[0], x, y, z, 0) < 0) {
-            errorf("%s", oiio_tiff_last_error());
+#if OIIO_TIFFLIB_VERSION < 40500
+            errorfmt("{}", oiio_tiff_last_error());
+#endif
             return false;
         }
-        palette_to_rgb(tile_pixels, &m_scratch[0], (unsigned char*)data);
+        if (m_bitspersample <= 8)
+            palette_to_rgb(tile_pixels, &m_scratch[0], (unsigned char*)data);
+        else if (m_bitspersample == 16)
+            palette_to_rgb(tile_pixels, (uint16_t*)&m_scratch[0],
+                           (unsigned char*)data);
     } else {
         // Not palette
         imagesize_t plane_bytes = m_spec.tile_pixels() * m_spec.format.size();
-        int planes              = m_separate ? m_spec.nchannels : 1;
+        int planes              = m_separate ? m_inputchannels : 1;
         std::vector<unsigned char> scratch2(m_separate ? m_spec.tile_bytes()
                                                        : 0);
         // Where to read?  Directly into user data if no channel shuffling
@@ -1807,7 +2121,9 @@ TIFFInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
         for (int c = 0; c < planes; ++c) /* planes==1 for contig */
             if (TIFFReadTile(m_tif, &readbuf[plane_bytes * c], x, y, z, c)
                 < 0) {
-                errorf("%s", oiio_tiff_last_error());
+#if OIIO_TIFFLIB_VERSION < 40500
+                errorfmt("{}", oiio_tiff_last_error());
+#endif
                 return false;
             }
         if (m_bitspersample < 8) {
@@ -1851,7 +2167,7 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
                              int ybegin, int yend, int zbegin, int zend,
                              void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     if (!m_spec.valid_tile_range(xbegin, xend, ybegin, yend, zbegin, zend))
@@ -1865,7 +2181,7 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
     // bother trying to handle any of the uncommon cases with strips. This
     // covers most real-world cases.
     thread_pool* pool = default_thread_pool();
-    ASSERT(m_spec.tile_depth >= 1);
+    OIIO_DASSERT(m_spec.tile_depth >= 1);
     size_t ntiles = size_t(
         (xend - xbegin + m_spec.tile_width - 1) / m_spec.tile_width
         * (yend - ybegin + m_spec.tile_height - 1) / m_spec.tile_height
@@ -1890,12 +2206,14 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
         // only if we're threading and don't enter the thread pool recursively!
         && pool->size() > 1
         && !pool->is_worker()
+        // only if this ImageInput wasn't asked to be single-threaded
+        && this->threads() != 1
         // and not if the feature is turned off
         && m_spec.get_int_attribute("tiff:multithread",
                                     OIIO::get_int_attribute("tiff:multithread"));
 
     // If we're not parallelizing, just call the parent class default
-    // implementaiton of read_native_tiles, which will loop over the tiles
+    // implementation of read_native_tiles, which will loop over the tiles
     // and read each one individually.
     if (!parallelize) {
         return ImageInput::read_native_tiles(subimage, miplevel, xbegin, xend,
@@ -1922,34 +2240,36 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
     //                  xbegin, xend, ybegin, yend, zbegin, zend);
     size_t tileidx = 0;
     for (int z = zbegin; z < zend; z += m_spec.tile_depth) {
-        for (int y = ybegin; y < yend; y += m_spec.tile_height) {
-            for (int x = xbegin; x < xend; x += m_spec.tile_width, ++tileidx) {
+        for (int y = ybegin; ok && y < yend; y += m_spec.tile_height) {
+            for (int x = xbegin; ok && x < xend;
+                 x += m_spec.tile_width, ++tileidx) {
                 char* cbuf = compressed_scratch.get() + tileidx * cbound;
                 char* ubuf = scratch.get() + tileidx * tile_bytes;
                 auto csize = TIFFReadRawTile(m_tif, tile_index(x, y, z), cbuf,
                                              tmsize_t(cbound));
                 if (csize < 0) {
                     std::string err = oiio_tiff_last_error();
-                    errorf(
-                        "TIFFReadRawTile failed reading tile x=%d,y=%d,z=%d: %s",
+                    errorfmt(
+                        "TIFFReadRawTile failed reading tile x={},y={},z={}: {}",
                         x, y, z, err.size() ? err.c_str() : "unknown error");
-                    return false;
+                    ok = false;
+                    break;
                 }
                 // Push the rest of the work onto the thread pool queue
-                tasks.push(pool->push([=, &ok](int id) {
-                    uncompress_one_strip(cbuf, (unsigned long)csize, ubuf,
-                                         tile_bytes, this->m_spec.nchannels,
-                                         this->m_spec.tile_width,
-                                         this->m_spec.tile_height
-                                             * this->m_spec.tile_depth,
-                                         m_compression, &ok);
-                    if (m_photometric == PHOTOMETRIC_MINISWHITE)
-                        invert_photometric(tilevals, ubuf);
-                    copy_image(this->m_spec.nchannels, this->m_spec.tile_width,
-                               this->m_spec.tile_height,
-                               this->m_spec.tile_depth, ubuf,
-                               size_t(pixel_bytes), pixel_bytes, tileystride,
-                               tilezstride,
+                auto out = this;
+                tasks.push(pool->push([=, &ok](int /*id*/) {
+                    out->uncompress_one_strip(cbuf, (unsigned long)csize, ubuf,
+                                              tile_bytes, out->m_spec.nchannels,
+                                              out->m_spec.tile_width,
+                                              out->m_spec.tile_height
+                                                  * out->m_spec.tile_depth,
+                                              &ok);
+                    if (out->m_photometric == PHOTOMETRIC_MINISWHITE)
+                        out->invert_photometric(tilevals, ubuf);
+                    copy_image(out->m_spec.nchannels, out->m_spec.tile_width,
+                               out->m_spec.tile_height, out->m_spec.tile_depth,
+                               ubuf, size_t(pixel_bytes), pixel_bytes,
+                               tileystride, tilezstride,
                                (char*)data + (z - zbegin) * zstride
                                    + (y - ybegin) * ystride
                                    + (x - xbegin) * pixel_bytes,
@@ -1958,6 +2278,7 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
             }
         }
     }
+    tasks.wait();
     return ok;
 }
 
@@ -1976,7 +2297,7 @@ TIFFInput::read_scanline(int y, int z, TypeDesc format, void* data,
         // conversions. That's why we do it here, rather than in
         // read_native_blah.
         {
-            lock_guard lock(m_mutex);
+            lock_guard lock(*this);
             if (format
                 == TypeUnknown)  // unknown means retrieve the native type
                 format = m_spec.format;
@@ -2008,7 +2329,7 @@ TIFFInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
         // read_native_blah.
         int nchannels, alpha_channel, z_channel, width;
         {
-            lock_guard lock(m_mutex);
+            lock_guard lock(*this);
             seek_subimage(subimage, miplevel);
             nchannels     = m_spec.nchannels;
             alpha_channel = m_spec.alpha_channel;
@@ -2046,7 +2367,7 @@ TIFFInput::read_tile(int x, int y, int z, TypeDesc format, void* data,
         // conversions. That's why we do it here, rather than in
         // read_native_blah.
         {
-            lock_guard lock(m_mutex);
+            lock_guard lock(*this);
             if (format
                 == TypeUnknown)  // unknown means retrieve the native type
                 format = m_spec.format;
@@ -2079,7 +2400,7 @@ TIFFInput::read_tiles(int subimage, int miplevel, int xbegin, int xend,
         // read_native_blah.
         int nchannels, alpha_channel, z_channel;
         {
-            lock_guard lock(m_mutex);
+            lock_guard lock(*this);
             seek_subimage(subimage, miplevel);
             nchannels     = m_spec.nchannels;
             alpha_channel = m_spec.alpha_channel;

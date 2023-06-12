@@ -1,12 +1,11 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #include <algorithm>
 #include <cassert>
 #include <cstdio>
 
-#include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
@@ -84,10 +83,11 @@ my_output_message(j_common_ptr cinfo)
     // Create the message
     char buffer[JMSG_LENGTH_MAX];
     (*cinfo->err->format_message)(cinfo, buffer);
-    myerr->jpginput->jpegerror(myerr, true);
+    myerr->jpginput->jpegerror(myerr, false);
 
-    /* Return control to the setjmp point */
-    longjmp(myerr->setjmp_buffer, 1);
+    // This function is called only for non-fatal problems, so we don't
+    // need to do the longjmp.
+    // longjmp(myerr->setjmp_buffer, 1);
 }
 
 
@@ -120,7 +120,7 @@ comp_info_to_attr(const jpeg_decompress_struct& cinfo)
 
 
 void
-JpgInput::jpegerror(my_error_ptr myerr, bool fatal)
+JpgInput::jpegerror(my_error_ptr /*myerr*/, bool fatal)
 {
     // Send the error message to the ImageInput
     char errbuf[JMSG_LENGTH_MAX];
@@ -138,26 +138,16 @@ JpgInput::jpegerror(my_error_ptr myerr, bool fatal)
 
 
 bool
-JpgInput::valid_file(const std::string& filename, Filesystem::IOProxy* io) const
+JpgInput::valid_file(Filesystem::IOProxy* ioproxy) const
 {
     // Check magic number to assure this is a JPEG file
-    uint8_t magic[2] = { 0, 0 };
-    bool ok          = true;
+    if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Read)
+        return false;
 
-    if (io) {
-        ok = (io->pread(magic, sizeof(magic), 0) == sizeof(magic));
-    } else {
-        FILE* fd = Filesystem::fopen(filename, "rb");
-        if (!fd)
-            return false;
-        ok = (fread(magic, sizeof(magic), 1, fd) == 1);
-        fclose(fd);
-    }
-
-    if (magic[0] != JPEG_MAGIC1 || magic[1] != JPEG_MAGIC2) {
-        ok = false;
-    }
-    return ok;
+    uint8_t magic[2] {};
+    const size_t numRead = ioproxy->pread(magic, sizeof(magic), 0);
+    return numRead == sizeof(magic) && magic[0] == JPEG_MAGIC1
+           && magic[1] == JPEG_MAGIC2;
 }
 
 
@@ -168,8 +158,8 @@ JpgInput::open(const std::string& name, ImageSpec& newspec,
 {
     auto p = config.find_attribute("_jpeg:raw", TypeInt);
     m_raw  = p && *(int*)p->data();
-    p      = config.find_attribute("oiio:ioproxy", TypeDesc::PTR);
-    m_io   = p ? p->get<Filesystem::IOProxy*>() : nullptr;
+    ioproxy_retrieve_from_config(config);
+    m_config.reset(new ImageSpec(config));  // save config spec
     return open(name, newspec);
 }
 
@@ -180,21 +170,14 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
 {
     m_filename = name;
 
-    if (m_io) {
-        // If an IOProxy was passed, it had better be a File or a
-        // MemReader, that's all we know how to use with jpeg.
-        std::string proxytype = m_io->proxytype();
-        if (proxytype != "file" && proxytype != "memreader") {
-            errorf("JPEG reader can't handle proxy type %s", proxytype);
-            return false;
-        }
-    } else {
-        // If no proxy was supplied, create a file reader
-        m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Mode::Read);
-        m_local_io.reset(m_io);
-    }
-    if (!m_io || m_io->mode() != Filesystem::IOProxy::Mode::Read) {
-        errorf("Could not open file \"%s\"", name);
+    if (!ioproxy_use_or_open(name))
+        return false;
+    // If an IOProxy was passed, it had better be a File or a
+    // MemReader, that's all we know how to use with jpeg.
+    Filesystem::IOProxy* m_io = ioproxy();
+    std::string proxytype     = m_io->proxytype();
+    if (proxytype != "file" && proxytype != "memreader") {
+        errorfmt("JPEG reader can't handle proxy type {}", proxytype);
         return false;
     }
 
@@ -231,11 +214,11 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
     jpeg_create_decompress(&m_cinfo);
     m_decomp_create = true;
     // specify the data source
-    if (!strcmp(m_io->proxytype(), "file")) {
-        auto fd = ((Filesystem::IOFile*)m_io)->handle();
+    if (proxytype == "file") {
+        auto fd = reinterpret_cast<Filesystem::IOFile*>(m_io)->handle();
         jpeg_stdio_src(&m_cinfo, fd);
     } else {
-        auto buffer = ((Filesystem::IOMemReader*)m_io)->buffer();
+        auto buffer = reinterpret_cast<Filesystem::IOMemReader*>(m_io)->buffer();
         jpeg_mem_src(&m_cinfo, const_cast<unsigned char*>(buffer.data()),
                      buffer.size());
     }
@@ -296,10 +279,7 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
                         m_spec);
         } else if (m->marker == (JPEG_APP0 + 1)
                    && !strcmp((const char*)m->data,
-                              "http://ns.adobe.com/xap/1.0/")) {
-#ifndef NDEBUG
-            std::cerr << "Found APP1 XMP! length " << m->data_length << "\n";
-#endif
+                              "http://ns.adobe.com/xap/1.0/")) {  //NOSONAR
             std::string xml((const char*)m->data, m->data_length);
             decode_xmp(xml, m_spec);
         } else if (m->marker == (JPEG_APP0 + 13)
@@ -317,22 +297,32 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
     // decoded, in case it contains useful information.
     float xdensity = m_spec.get_float_attribute("XResolution");
     float ydensity = m_spec.get_float_attribute("YResolution");
-    if (!xdensity || !ydensity) {
+    if (m_cinfo.X_density && m_cinfo.Y_density) {
         xdensity = float(m_cinfo.X_density);
         ydensity = float(m_cinfo.Y_density);
-        if (xdensity && ydensity) {
+        if (xdensity > 1 && ydensity > 1) {
             m_spec.attribute("XResolution", xdensity);
             m_spec.attribute("YResolution", ydensity);
+            // We're kind of assuming that if either cinfo.X_density or
+            // Y_density is 1, then those fields are only used to indicate
+            // pixel aspect ratio, but don't override [XY]Resolution that may
+            // have come from the Exif.
         }
     }
     if (xdensity && ydensity) {
-        float aspect = ydensity / xdensity;
+        // Pixel aspect ratio SHOULD be computed like this:
+        //     float aspect = ydensity / xdensity;
+        // But Nuke and Photoshop do it backwards, and so we do, too, because
+        // we are lemmings.
+        float aspect = xdensity / ydensity;
         if (aspect != 1.0f)
             m_spec.attribute("PixelAspectRatio", aspect);
-        switch (m_cinfo.density_unit) {
-        case 0: m_spec.attribute("ResolutionUnit", "none"); break;
-        case 1: m_spec.attribute("ResolutionUnit", "in"); break;
-        case 2: m_spec.attribute("ResolutionUnit", "cm"); break;
+        if (m_spec.extra_attribs.contains("XResolution")) {
+            switch (m_cinfo.density_unit) {
+            case 0: m_spec.attribute("ResolutionUnit", "none"); break;
+            case 1: m_spec.attribute("ResolutionUnit", "in"); break;
+            case 2: m_spec.attribute("ResolutionUnit", "cm"); break;
+            }
         }
     }
 
@@ -348,7 +338,7 @@ bool
 JpgInput::read_icc_profile(j_decompress_ptr cinfo, ImageSpec& spec)
 {
     int num_markers = 0;
-    std::vector<unsigned char> icc_buf;
+    std::vector<uint8_t> icc_buf;
     unsigned int total_length = 0;
     const int MAX_SEQ_NO      = 255;
     unsigned char marker_present
@@ -395,12 +385,21 @@ JpgInput::read_icc_profile(j_decompress_ptr cinfo, ImageSpec& spec)
         if (m->marker == (JPEG_APP0 + 2)
             && !strcmp((const char*)m->data, "ICC_PROFILE")) {
             int seq_no = GETJOCTET(m->data[12]);
-            memcpy(&icc_buf[0] + data_offset[seq_no], m->data + ICC_HEADER_SIZE,
-                   data_length[seq_no]);
+            memcpy(icc_buf.data() + data_offset[seq_no],
+                   m->data + ICC_HEADER_SIZE, data_length[seq_no]);
         }
     }
-    spec.attribute(ICC_PROFILE_ATTR, TypeDesc(TypeDesc::UINT8, total_length),
-                   &icc_buf[0]);
+    spec.attribute("ICCProfile", TypeDesc(TypeDesc::UINT8, total_length),
+                   icc_buf.data());
+
+    std::string errormsg;
+    bool ok = decode_icc_profile(icc_buf, spec, errormsg);
+    if (!ok) {
+        // errorfmt("Could not decode ICC profile: {}\n", errormsg);
+        // return false;
+        // Nah, just skip an ICC specific error?
+    }
+
     return true;
 }
 
@@ -428,9 +427,10 @@ cmyk_to_rgb(int n, const unsigned char* cmyk, size_t cmyk_stride,
 
 
 bool
-JpgInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+JpgInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                void* data)
 {
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     if (m_raw)
@@ -440,12 +440,16 @@ JpgInput::read_native_scanline(int subimage, int miplevel, int y, int z,
     if (m_next_scanline > y) {
         // User is trying to read an earlier scanline than the one we're
         // up to.  Easy fix: close the file and re-open.
+        // Don't forget to save and restore any configuration settings.
+        ImageSpec configsave;
+        if (m_config)
+            configsave = *m_config;
         ImageSpec dummyspec;
         int subimage = current_subimage();
-        if (!close() || !open(m_filename, dummyspec)
+        if (!close() || !open(m_filename, dummyspec, configsave)
             || !seek_subimage(subimage, 0))
             return false;  // Somehow, the re-open failed
-        assert(m_next_scanline == 0 && current_subimage() == subimage);
+        OIIO_DASSERT(m_next_scanline == 0 && current_subimage() == subimage);
     }
 
     // Set up our custom error handler
@@ -460,7 +464,7 @@ JpgInput::read_native_scanline(int subimage, int miplevel, int y, int z,
         // we'll have to convert.
         m_cmyk_buf.resize(m_spec.width * 4);
         readdata = &m_cmyk_buf[0];
-        ASSERT(m_spec.nchannels == 3);
+        OIIO_DASSERT(m_spec.nchannels == 3);
     }
 
     for (; m_next_scanline <= y; ++m_next_scanline) {
@@ -484,7 +488,7 @@ JpgInput::read_native_scanline(int subimage, int miplevel, int y, int z,
 bool
 JpgInput::close()
 {
-    if (m_io) {
+    if (ioproxy_opened()) {
         // unnecessary?  jpeg_abort_decompress (&m_cinfo);
         if (m_decomp_create)
             jpeg_destroy_decompress(&m_cinfo);

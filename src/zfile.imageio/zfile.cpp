@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #include <cmath>
 #include <cstdio>
@@ -8,6 +8,7 @@
 
 #include <zlib.h>
 
+#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
@@ -25,8 +26,8 @@ struct ZfileHeader {
     int magic;
     short width;
     short height;
-    float worldtoscreen[16];
-    float worldtocamera[16];
+    Imath::M44f worldtoscreen;
+    Imath::M44f worldtocamera;
 };
 
 static const int zfile_magic        = 0x2f0867ab;
@@ -40,7 +41,7 @@ gzFile
 open_gz(const std::string& filename, const char* mode)
 {
 #ifdef _WIN32
-    std::wstring wpath = Strutil::utf8_to_utf16(filename);
+    std::wstring wpath = Strutil::utf8_to_utf16wstring(filename);
     gzFile gz          = gzopen_w(wpath.c_str(), mode);
 #else
     gzFile gz = gzopen(filename.c_str(), mode);
@@ -55,13 +56,13 @@ open_gz(const std::string& filename, const char* mode)
 class ZfileInput final : public ImageInput {
 public:
     ZfileInput() { init(); }
-    virtual ~ZfileInput() { close(); }
-    virtual const char* format_name(void) const override { return "zfile"; }
-    virtual bool valid_file(const std::string& filename) const override;
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool close() override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
+    ~ZfileInput() override { close(); }
+    const char* format_name(void) const override { return "zfile"; }
+    bool valid_file(const std::string& filename) const override;
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool close() override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
 
 private:
     std::string m_filename;  ///< Stash the filename
@@ -84,16 +85,16 @@ private:
 class ZfileOutput final : public ImageOutput {
 public:
     ZfileOutput() { init(); }
-    virtual ~ZfileOutput() { close(); }
-    virtual const char* format_name(void) const override { return "zfile"; }
-    virtual bool open(const std::string& name, const ImageSpec& spec,
-                      OpenMode mode = Create) override;
-    virtual bool close() override;
-    virtual bool write_scanline(int y, int z, TypeDesc format, const void* data,
-                                stride_t xstride) override;
-    virtual bool write_tile(int x, int y, int z, TypeDesc format,
-                            const void* data, stride_t xstride,
-                            stride_t ystride, stride_t zstride) override;
+    ~ZfileOutput() override { close(); }
+    const char* format_name(void) const override { return "zfile"; }
+    bool open(const std::string& name, const ImageSpec& spec,
+              OpenMode mode = Create) override;
+    bool close() override;
+    bool write_scanline(int y, int z, TypeDesc format, const void* data,
+                        stride_t xstride) override;
+    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
+                    stride_t xstride, stride_t ystride,
+                    stride_t zstride) override;
 
 private:
     std::string m_filename;  ///< Stash the filename
@@ -102,17 +103,22 @@ private:
     std::vector<unsigned char> m_scratch;
     std::vector<unsigned char> m_tilebuffer;
 
+    bool opened() const { return m_file || m_gz; }
+
     // Initialize private members to pre-opened state
     void init(void)
     {
         m_file = nullptr;
         m_gz   = 0;
+        m_filename.clear();
+        m_scratch.clear();
+        m_tilebuffer.clear();
     }
 };
 
 
 
-// Obligatory material to make this a recognizeable imageio plugin:
+// Obligatory material to make this a recognizable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT int zfile_imageio_version = OIIO_PLUGIN_VERSION;
@@ -166,7 +172,7 @@ ZfileInput::open(const std::string& name, ImageSpec& newspec)
     m_filename = name;
     m_gz       = open_gz(name, "rb");
     if (!m_gz) {
-        errorf("Could not open \"%s\"", name);
+        errorfmt("Could not open \"{}\"", name);
         return false;
     }
 
@@ -175,7 +181,7 @@ ZfileInput::open(const std::string& name, ImageSpec& newspec)
     gzread(m_gz, &header, sizeof(header));
 
     if (header.magic != zfile_magic && header.magic != zfile_magic_endian) {
-        errorf("Not a valid Zfile");
+        errorfmt("Not a valid Zfile");
         return false;
     }
 
@@ -189,10 +195,9 @@ ZfileInput::open(const std::string& name, ImageSpec& newspec)
 
     m_spec = ImageSpec(header.width, header.height, 1, TypeDesc::FLOAT);
     if (m_spec.channelnames.size() == 0)
-        m_spec.channelnames.emplace_back("z");
-    else
-        m_spec.channelnames[0] = "z";
-    m_spec.z_channel = 0;
+        m_spec.channelnames.resize(1);
+    m_spec.channelnames[0] = std::string("z");
+    m_spec.z_channel       = 0;
 
     m_spec.attribute("worldtoscreen", TypeMatrix,
                      (float*)&header.worldtoscreen);
@@ -220,10 +225,10 @@ ZfileInput::close()
 
 
 bool
-ZfileInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+ZfileInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                  void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
 
@@ -235,7 +240,7 @@ ZfileInput::read_native_scanline(int subimage, int miplevel, int y, int z,
         if (!close() || !open(m_filename, dummyspec)
             || !seek_subimage(subimage, miplevel))
             return false;  // Somehow, the re-open failed
-        ASSERT(m_next_scanline == 0 && current_subimage() == subimage);
+        OIIO_DASSERT(m_next_scanline == 0 && current_subimage() == subimage);
     }
     while (m_next_scanline <= y) {
         // Keep reading until we're read the scanline we really need
@@ -253,38 +258,12 @@ bool
 ZfileOutput::open(const std::string& name, const ImageSpec& userspec,
                   OpenMode mode)
 {
-    if (mode != Create) {
-        errorf("%s does not support subimages or MIP levels", format_name());
-        return false;
-    }
-
     close();  // Close any already-opened file
     m_gz   = 0;
     m_file = NULL;
-    m_spec = userspec;  // Stash the spec
 
-    // Check for things this format doesn't support
-    if (m_spec.width < 1 || m_spec.height < 1) {
-        errorf("Image resolution must be at least 1x1, you asked for %d x %d",
-               m_spec.width, m_spec.height);
+    if (!check_open(mode, userspec, { 0, 32767, 0, 32767, 0, 1, 0, 1 }))
         return false;
-    }
-    if (m_spec.width > 32767 || m_spec.height > 32767) {
-        errorf("zfile image resolution maximum is 32767, you asked for %d x %d",
-               m_spec.width, m_spec.height);
-        return false;
-    }
-    if (m_spec.depth < 1)
-        m_spec.depth = 1;
-    if (m_spec.depth > 1) {
-        errorf("%s does not support volume images (depth > 1)", format_name());
-        return false;
-    }
-
-    if (m_spec.nchannels != 1) {
-        errorf("Zfile only supports 1 channel, not %d", m_spec.nchannels);
-        return false;
-    }
 
     // Force float
     m_spec.format = TypeDesc::FLOAT;
@@ -295,15 +274,14 @@ ZfileOutput::open(const std::string& name, const ImageSpec& userspec,
     header.height = (int)m_spec.height;
 
     ParamValue* p;
-    static float ident[16] = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
     if ((p = m_spec.find_attribute("worldtocamera", TypeMatrix)))
-        memcpy(header.worldtocamera, p->data(), 16 * sizeof(float));
+        header.worldtocamera = p->get<Imath::M44f>();
     else
-        memcpy(header.worldtocamera, ident, 16 * sizeof(float));
+        header.worldtocamera = Imath::M44f();  // assigns ident
     if ((p = m_spec.find_attribute("worldtoscreen", TypeMatrix)))
-        memcpy(header.worldtoscreen, p->data(), 16 * sizeof(float));
+        header.worldtoscreen = p->get<Imath::M44f>();
     else
-        memcpy(header.worldtoscreen, ident, 16 * sizeof(float));
+        header.worldtoscreen = Imath::M44f();  // assigns ident
 
     if (m_spec.get_string_attribute("compression", "none")
         != std::string("none")) {
@@ -312,7 +290,7 @@ ZfileOutput::open(const std::string& name, const ImageSpec& userspec,
         m_file = Filesystem::fopen(name, "wb");
     }
     if (!m_file && !m_gz) {
-        errorf("Could not open \"%s\"", name);
+        errorfmt("Could not open \"{}\"", name);
         return false;
     }
 
@@ -323,7 +301,8 @@ ZfileOutput::open(const std::string& name, const ImageSpec& userspec,
         b = fwrite(&header, sizeof(header), 1, m_file);
     }
     if (!b) {
-        errorf("Failed write zfile::open (err: %d)", b);
+        errorfmt("Failed write zfile::open (err: {})", b);
+        close();
         return false;
     }
 
@@ -340,13 +319,18 @@ ZfileOutput::open(const std::string& name, const ImageSpec& userspec,
 bool
 ZfileOutput::close()
 {
+    if (!opened()) {
+        init();
+        return true;
+    }
+
     bool ok = true;
-    if (m_spec.tile_width) {
+    if (m_spec.tile_width && m_tilebuffer.size()) {
         // We've been emulating tiles; now dump as scanlines.
-        ASSERT(m_tilebuffer.size());
         ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
-                              m_spec.format, &m_tilebuffer[0]);
-        std::vector<unsigned char>().swap(m_tilebuffer);
+                              m_spec.format, m_tilebuffer.data());
+        m_tilebuffer.clear();
+        m_tilebuffer.shrink_to_fit();
     }
 
     if (m_gz) {
@@ -365,9 +349,14 @@ ZfileOutput::close()
 
 
 bool
-ZfileOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
+ZfileOutput::write_scanline(int y, int /*z*/, TypeDesc format, const void* data,
                             stride_t xstride)
 {
+    if (!opened()) {
+        errorfmt("File not open");
+        return false;
+    }
+
     y -= m_spec.y;
     m_spec.auto_stride(xstride, format, spec().nchannels);
     const void* origdata = data;
@@ -383,7 +372,7 @@ ZfileOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     else {
         size_t b = fwrite(data, sizeof(float), m_spec.width, m_file);
         if (b != (size_t)m_spec.width) {
-            errorf("Failed write zfile::open (err: %d)", b);
+            errorfmt("Failed write zfile::open (err: {})", b);
             return false;
         }
     }
@@ -397,9 +386,14 @@ bool
 ZfileOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
                         stride_t xstride, stride_t ystride, stride_t zstride)
 {
+    if (!opened()) {
+        errorfmt("File not open");
+        return false;
+    }
     // Emulate tiles by buffering the whole image
+    OIIO_ASSERT(m_tilebuffer.data());
     return copy_tile_to_image_buffer(x, y, z, format, data, xstride, ystride,
-                                     zstride, &m_tilebuffer[0]);
+                                     zstride, m_tilebuffer.data());
 }
 
 

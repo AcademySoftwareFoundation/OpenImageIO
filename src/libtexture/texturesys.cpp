@@ -1,19 +1,18 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 #include <cmath>
 #include <cstring>
 #include <list>
+#include <random>
 #include <sstream>
 #include <string>
 
-#include <boost/random.hpp>
+#include <OpenImageIO/Imath.h>
 
-#include <OpenEXR/ImathMatrix.h>
-#include <OpenEXR/half.h>
-
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filter.h>
 #include <OpenImageIO/fmath.h>
@@ -54,7 +53,6 @@ static spin_mutex shared_texturesys_mutex;
 static bool do_unit_test_texture    = false;
 static float unit_test_texture_blur = 0.0f;
 
-static EightBitConverter<float> uchar2float;
 static vfloat4 u8scale(1.0f / 255.0f);
 static vfloat4 u16scale(1.0f / 65535.0f);
 
@@ -69,13 +67,6 @@ OIIO_FORCEINLINE vfloat4
 ushort2float4(const unsigned short* s)
 {
     return vfloat4(s) * u16scale;
-}
-
-
-OIIO_FORCEINLINE vfloat4
-half2float4(const half* h)
-{
-    return vfloat4(h);
 }
 
 
@@ -146,6 +137,9 @@ TextureSystem::destroy(TextureSystem* x, bool teardown_imagecache)
 
 
 namespace pvt {  // namespace pvt
+
+
+EightBitConverter<float> TextureSystemImpl::uchar2float;
 
 
 
@@ -223,7 +217,7 @@ wrap_periodic_pow2_simd(simd::vint4& coord_, const simd::vint4& origin,
                         const simd::vint4& width)
 {
     simd::vint4 coord(coord_);
-    //    DASSERT (ispow2(width));
+    // OIIO_DASSERT (ispow2(width));
     coord = coord - origin;
     coord = coord
             & (width - 1);  // Shortcut periodic if we're sure it's a pow of 2
@@ -244,7 +238,7 @@ wrap_mirror_simd(simd::vint4& coord_, const simd::vint4& origin,
     coord -= iter * width;
     // Odd iterations -- flip the sense
     coord = blend(coord, (width - 1) - coord, (iter & 1) != 0);
-    // DASSERT_MSG (coord >= 0 && coord < width,
+    // OIIO_DASSERT_MSG (coord >= 0 && coord < width,
     //              "width=%d, origin=%d, result=%d", width, origin, coord);
     coord += origin;
     coord_ = coord;
@@ -322,7 +316,6 @@ texture_type_name(TexFormat f)
 
 
 TextureSystemImpl::TextureSystemImpl(ImageCache* imagecache)
-    : hq_filter(NULL)
 {
     m_imagecache = (ImageCacheImpl*)imagecache;
     init();
@@ -337,8 +330,8 @@ TextureSystemImpl::init()
     m_gray_to_rgb       = false;
     m_flip_t            = false;
     m_max_tile_channels = 6;
-    delete hq_filter;
-    hq_filter    = Filter1D::create("b-spline", 4);
+    m_stochastic        = StochasticStrategy_None;
+    hq_filter.reset(Filter1D::create("b-spline", 4));
     m_statslevel = 0;
 
     // Allow environment variable to override default options
@@ -352,17 +345,15 @@ TextureSystemImpl::init()
 
 
 
-TextureSystemImpl::~TextureSystemImpl()
-{
-    printstats();
-    delete hq_filter;
-}
+TextureSystemImpl::~TextureSystemImpl() { printstats(); }
 
 
 
 std::string
 TextureSystemImpl::getstats(int level, bool icstats) const
 {
+    using Strutil::print;
+
     // Merge all the threads
     ImageCacheStatistics stats;
     m_imagecache->mergestats(stats);
@@ -376,46 +367,45 @@ TextureSystemImpl::getstats(int level, bool icstats) const
         out << "OpenImageIO Texture statistics\n";
 
         std::string opt;
-#define BOOLOPT(name)                                                          \
-    if (m_##name)                                                              \
+#define BOOLOPT(name) \
+    if (m_##name)     \
     opt += #name " "
-#define INTOPT(name) opt += Strutil::sprintf(#name "=%d ", m_##name)
-#define STROPT(name)                                                           \
-    if (m_##name.size())                                                       \
-    opt += Strutil::sprintf(#name "=\"%s\" ", m_##name)
+#define INTOPT(name) opt += Strutil::fmt::format(#name "={} ", m_##name)
+#define STROPT(name)     \
+    if (m_##name.size()) \
+    opt += Strutil::fmt::format(#name "=\"{}\" ", m_##name)
         INTOPT(gray_to_rgb);
         INTOPT(flip_t);
         INTOPT(max_tile_channels);
+        INTOPT(stochastic);
 #undef BOOLOPT
 #undef INTOPT
 #undef STROPT
-        out << "  Options:  " << Strutil::wordwrap(opt, 75, 12) << "\n";
+        print(out, "  Options:  {}\n", Strutil::wordwrap(opt, 75, 12));
 
-        out << "  Queries/batches : \n";
-        out << "    texture     :  " << stats.texture_queries << " queries in "
-            << stats.texture_batches << " batches\n";
-        out << "    texture 3d  :  " << stats.texture3d_queries
-            << " queries in " << stats.texture3d_batches << " batches\n";
-        out << "    shadow      :  " << stats.shadow_queries << " queries in "
-            << stats.shadow_batches << " batches\n";
-        out << "    environment :  " << stats.environment_queries
-            << " queries in " << stats.environment_batches << " batches\n";
-        out << "    gettextureinfo :  " << stats.imageinfo_queries
-            << " queries\n";
-        out << "  Interpolations :\n";
-        out << "    closest  : " << stats.closest_interps << "\n";
-        out << "    bilinear : " << stats.bilinear_interps << "\n";
-        out << "    bicubic  : " << stats.cubic_interps << "\n";
+        print(out, "  Queries/batches : \n");
+        print(out, "    texture     :  {} queries in {} batches\n",
+              stats.texture_queries, stats.texture_batches);
+        print(out, "    texture 3d  :  {} queries in {} batches\n",
+              stats.texture3d_queries, stats.texture3d_batches);
+        print(out, "    shadow      :  {} queries in {} batches\n",
+              stats.shadow_queries, stats.shadow_batches);
+        print(out, "    environment :  {} queries in {} batches\n",
+              stats.environment_queries, stats.environment_batches);
+        print(out, "    gettextureinfo :  {} queries\n",
+              stats.imageinfo_queries);
+        print(out, "  Interpolations :\n");
+        print(out, "    closest  : {}\n", stats.closest_interps);
+        print(out, "    bilinear : {}\n", stats.bilinear_interps);
+        print(out, "    bicubic  : {}\n", stats.cubic_interps);
         if (stats.aniso_queries)
-            out << Strutil::sprintf("  Average anisotropic probes : %.3g\n",
-                                    (double)stats.aniso_probes
-                                        / (double)stats.aniso_queries);
+            print(out, "  Average anisotropic probes : {:.3g}\n",
+                  (double)stats.aniso_probes / (double)stats.aniso_queries);
         else
-            out << Strutil::sprintf("  Average anisotropic probes : 0\n");
-        out << Strutil::sprintf("  Max anisotropy in the wild : %.3g\n",
-                                stats.max_aniso);
+            print(out, "  Average anisotropic probes : 0\n");
+        print(out, "  Max anisotropy in the wild : {:.3g}\n", stats.max_aniso);
         if (icstats)
-            out << "\n";
+            print(out, "\n");
     }
     if (icstats)
         out << m_imagecache->getstats(level);
@@ -437,7 +427,7 @@ TextureSystemImpl::printstats() const
 void
 TextureSystemImpl::reset_stats()
 {
-    ASSERT(m_imagecache);
+    OIIO_DASSERT(m_imagecache);
     m_imagecache->reset_stats();
 }
 
@@ -469,8 +459,12 @@ TextureSystemImpl::attribute(string_view name, TypeDesc type, const void* val)
         m_flip_t = *(const int*)val;
         return true;
     }
-    if (name == "m_max_tile_channels" && type == TypeInt) {
+    if (name == "max_tile_channels" && type == TypeInt) {
         m_max_tile_channels = *(const int*)val;
+        return true;
+    }
+    if (name == "stochastic" && type == TypeInt) {
+        m_stochastic = *(const int*)val;
         return true;
     }
     if (name == "statistics:level" && type == TypeInt) {
@@ -488,6 +482,37 @@ TextureSystemImpl::attribute(string_view name, TypeDesc type, const void* val)
 
     // Maybe it's meant for the cache?
     return m_imagecache->attribute(name, type, val);
+}
+
+
+
+TypeDesc
+TextureSystemImpl::getattributetype(string_view name) const
+{
+    // clang-format off
+    static std::unordered_map<std::string, TypeDesc> attr_types {
+        { "worldtocommon", TypeMatrix },
+        { "commontoworld", TypeMatrix },
+        { "gray_to_rgb", TypeInt },
+        { "grey_to_rgb", TypeInt },
+        { "flip_t", TypeInt },
+        { "max_tile_channels", TypeInt },
+        { "stochastic", TypeInt },
+    };
+    // clang-format on
+
+    // For all the easy cases, if the attribute is in the table and has a
+    // simple type, use that.
+    const auto found = attr_types.find(name);
+    if (found != attr_types.end())
+        return found->second;
+
+    // Maybe it's an ImageCache attribute
+    TypeDesc ict = m_imagecache->getattributetype(name);
+    if (ict != TypeUnknown)
+        return ict;
+
+    return TypeUnknown;
 }
 
 
@@ -514,8 +539,12 @@ TextureSystemImpl::getattribute(string_view name, TypeDesc type,
         *(int*)val = m_flip_t;
         return true;
     }
-    if (name == "m_max_tile_channels" && type == TypeInt) {
+    if (name == "max_tile_channels" && type == TypeInt) {
         *(int*)val = m_max_tile_channels;
+        return true;
+    }
+    if (name == "stochastic" && type == TypeInt) {
+        *(int*)val = m_stochastic;
         return true;
     }
 
@@ -535,6 +564,36 @@ TextureSystemImpl::resolve_filename(const std::string& filename) const
 
 
 
+int
+TextureSystemImpl::get_colortransform_id(ustring fromspace,
+                                         ustring tospace) const
+{
+    const ColorConfig& cc(ColorConfig::default_colorconfig());
+    if (tospace.empty())
+        tospace = m_imagecache->colorspace();
+    if (fromspace.empty())
+        return 0;  // null transform
+    int from = cc.getColorSpaceIndex(fromspace);
+    int to   = cc.getColorSpaceIndex(tospace);
+    if (from < 0 || to < 0)
+        return -1;  // unknown color space
+    if (from == to || cc.equivalent(fromspace, tospace))
+        return 0;                          // null transform
+    return ((from + 1) << 16) | (to + 1);  // mash the indices together
+    // Note: we add 1 to the indices so that 0 can be the null transform
+}
+
+
+
+int
+TextureSystemImpl::get_colortransform_id(ustringhash fromspace,
+                                         ustringhash tospace) const
+{
+    return get_colortransform_id(ustring(fromspace), ustring(tospace));
+}
+
+
+
 bool
 TextureSystemImpl::get_texture_info(ustring filename, int subimage,
                                     ustring dataname, TypeDesc datatype,
@@ -545,7 +604,7 @@ TextureSystemImpl::get_texture_info(ustring filename, int subimage,
     if (!ok) {
         std::string err = m_imagecache->geterror();
         if (!err.empty())
-            errorf("%s", err);
+            error("{}", err);
     }
     return ok;
 }
@@ -565,7 +624,7 @@ TextureSystemImpl::get_texture_info(TextureHandle* texture_handle,
     if (!ok) {
         std::string err = m_imagecache->geterror();
         if (!err.empty())
-            errorf("%s", err);
+            error("{}", err);
     }
     return ok;
 }
@@ -580,7 +639,7 @@ TextureSystemImpl::get_imagespec(ustring filename, int subimage,
     if (!ok) {
         std::string err = m_imagecache->geterror();
         if (!err.empty())
-            errorf("%s", err);
+            error("{}", err);
     }
     return ok;
 }
@@ -599,7 +658,7 @@ TextureSystemImpl::get_imagespec(TextureHandle* texture_handle,
     if (!ok) {
         std::string err = m_imagecache->geterror();
         if (!err.empty())
-            errorf("%s", err);
+            error("{}", err);
     }
     return ok;
 }
@@ -611,7 +670,7 @@ TextureSystemImpl::imagespec(ustring filename, int subimage)
 {
     const ImageSpec* spec = m_imagecache->imagespec(filename, subimage);
     if (!spec)
-        errorf("%s", m_imagecache->geterror());
+        error("{}", m_imagecache->geterror());
     return spec;
 }
 
@@ -628,9 +687,77 @@ TextureSystemImpl::imagespec(TextureHandle* texture_handle,
     if (!spec) {
         std::string err = m_imagecache->geterror();
         if (!err.empty())
-            errorf("%s", err);
+            error("{}", err);
     }
     return spec;
+}
+
+
+
+bool
+TextureSystemImpl::is_udim(ustring filename)
+{
+    PerThreadInfo* thread_info = m_imagecache->get_perthread_info();
+    TextureFile* udimfile      = find_texturefile(filename, thread_info);
+    return udimfile && ((ImageCache::ImageHandle*)udimfile)->is_udim();
+}
+
+
+bool
+TextureSystemImpl::is_udim(TextureHandle* udimfile)
+{
+    return udimfile && ((ImageCache::ImageHandle*)udimfile)->is_udim();
+}
+
+
+
+TextureSystem::TextureHandle*
+TextureSystemImpl::resolve_udim(ustring filename, float s, float t)
+{
+    PerThreadInfo* thread_info = m_imagecache->get_perthread_info();
+    TextureFile* udimfile      = find_texturefile(filename, thread_info);
+    return resolve_udim((TextureHandle*)udimfile, (Perthread*)thread_info, s,
+                        t);
+}
+
+
+
+TextureSystem::TextureHandle*
+TextureSystemImpl::resolve_udim(TextureHandle* udimfile, Perthread* thread_info,
+                                float s, float t)
+{
+    // Find the u and v tile indices
+    int utile = std::max(0, int(s));
+    int vtile = std::max(0, int(t));
+    return (TextureHandle*)m_imagecache->resolve_udim(
+        (ImageCache::ImageHandle*)udimfile, (ImageCache::Perthread*)thread_info,
+        utile, vtile);
+}
+
+
+
+void
+TextureSystemImpl::inventory_udim(ustring udimpattern,
+                                  std::vector<ustring>& filenames, int& nutiles,
+                                  int& nvtiles)
+{
+    PerThreadInfo* thread_info = m_imagecache->get_perthread_info();
+    TextureFile* udimfile      = find_texturefile(udimpattern, thread_info);
+    inventory_udim((TextureHandle*)udimfile, (Perthread*)thread_info, filenames,
+                   nutiles, nvtiles);
+}
+
+
+
+void
+TextureSystemImpl::inventory_udim(TextureHandle* udimfile,
+                                  Perthread* thread_info,
+                                  std::vector<ustring>& filenames, int& nutiles,
+                                  int& nvtiles)
+{
+    return m_imagecache->inventory_udim((ImageCache::ImageHandle*)udimfile,
+                                        (ImageCache::Perthread*)thread_info,
+                                        filenames, nutiles, nvtiles);
 }
 
 
@@ -644,7 +771,7 @@ TextureSystemImpl::get_texels(ustring filename, TextureOpt& options,
     PerThreadInfo* thread_info = m_imagecache->get_perthread_info();
     TextureFile* texfile       = find_texturefile(filename, thread_info);
     if (!texfile) {
-        errorf("Texture file \"%s\" not found", filename);
+        error("Texture file \"{}\" not found", filename);
         return false;
     }
     return get_texels((TextureHandle*)texfile, (Perthread*)thread_info, options,
@@ -666,25 +793,25 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
     TextureFile* texfile = verify_texturefile((TextureFile*)texture_handle_,
                                               thread_info);
     if (!texfile) {
-        errorf("Invalid texture handle NULL");
+        error("Invalid texture handle NULL");
         return false;
     }
 
     if (texfile->broken()) {
         if (texfile->errors_should_issue())
-            errorf("Invalid texture file \"%s\"", texfile->filename());
+            error("Invalid texture file \"{}\"", texfile->filename());
         return false;
     }
     int subimage = options.subimage;
     if (subimage < 0 || subimage >= texfile->subimages()) {
-        errorf("get_texel asked for nonexistant subimage %d of \"%s\"",
-               subimage, texfile->filename());
+        error("get_texel asked for nonexistent subimage {} of \"{}\"", subimage,
+              texfile->filename());
         return false;
     }
     if (miplevel < 0 || miplevel >= texfile->miplevels(subimage)) {
         if (texfile->errors_should_issue())
-            errorf("get_texel asked for nonexistant MIP level %d of \"%s\"",
-                   miplevel, texfile->filename());
+            error("get_texel asked for nonexistent MIP level {} of \"{}\"",
+                  miplevel, texfile->filename());
         return false;
     }
     const ImageSpec& spec(texfile->spec(subimage, miplevel));
@@ -695,7 +822,7 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
     // doing anything more complicated (not to mention bug-prone) until
     // somebody reports this routine as being a bottleneck.
     int nchannels      = chend - chbegin;
-    int actualchannels = Imath::clamp(spec.nchannels - chbegin, 0, nchannels);
+    int actualchannels = OIIO::clamp(spec.nchannels - chbegin, 0, nchannels);
     int tile_chbegin = 0, tile_chend = spec.nchannels;
     if (spec.nchannels > m_max_tile_channels) {
         // For files with many channels, narrow the range we cache
@@ -703,7 +830,7 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
         tile_chend   = chbegin + actualchannels;
     }
     TileID tileid(*texfile, subimage, miplevel, 0, 0, 0, tile_chbegin,
-                  tile_chend);
+                  tile_chend, options.colortransformid);
     size_t formatchannelsize = format.size();
     size_t formatpixelsize   = nchannels * formatchannelsize;
     size_t scanlinesize      = (xend - xbegin) * formatpixelsize;
@@ -712,7 +839,7 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
     bool ok                  = true;
     for (int z = zbegin; z < zend; ++z) {
         if (z < spec.z || z >= (spec.z + std::max(spec.depth, 1))) {
-            // nonexistant planes
+            // nonexistent planes
             memset(result, 0, zplanesize);
             result = (void*)((char*)result + zplanesize);
             continue;
@@ -720,7 +847,7 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
         tileid.z(z - ((z - spec.z) % std::max(1, spec.tile_depth)));
         for (int y = ybegin; y < yend; ++y) {
             if (y < spec.y || y >= (spec.y + spec.height)) {
-                // nonexistant scanlines
+                // nonexistent scanlines
                 memset(result, 0, scanlinesize);
                 result = (void*)((char*)result + scanlinesize);
                 continue;
@@ -728,7 +855,7 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
             tileid.y(y - ((y - spec.y) % spec.tile_height));
             for (int x = xbegin; x < xend; ++x, ++npixelsread) {
                 if (x < spec.x || x >= (spec.x + spec.width)) {
-                    // nonexistant columns
+                    // nonexistent columns
                     memset(result, 0, formatpixelsize);
                     result = (void*)((char*)result + formatpixelsize);
                     continue;
@@ -754,21 +881,31 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
     if (!ok) {
         std::string err = m_imagecache->geterror();
         if (!err.empty())
-            errorf("%s", err);
+            error("{}", err);
     }
     return ok;
 }
 
 
 
+bool
+TextureSystemImpl::has_error() const
+{
+    std::string* errptr = m_errormessage.get();
+    return (errptr && errptr->size());
+}
+
+
+
 std::string
-TextureSystemImpl::geterror() const
+TextureSystemImpl::geterror(bool clear) const
 {
     std::string e;
     std::string* errptr = m_errormessage.get();
     if (errptr) {
         e = *errptr;
-        errptr->clear();
+        if (clear)
+            errptr->clear();
     }
     return e;
 }
@@ -776,19 +913,21 @@ TextureSystemImpl::geterror() const
 
 
 void
-TextureSystemImpl::append_error(const std::string& message) const
+TextureSystemImpl::append_error(string_view message) const
 {
+    if (message.size() && message.back() == '\n')
+        message.remove_suffix(1);
     std::string* errptr = m_errormessage.get();
     if (!errptr) {
         errptr = new std::string;
         m_errormessage.reset(errptr);
     }
-    ASSERT(errptr != NULL);
-    ASSERT(errptr->size() < 1024 * 1024 * 16
-           && "Accumulated error messages > 16MB. Try checking return codes!");
-    if (errptr->size())
+    OIIO_DASSERT(
+        errptr->size() < 1024 * 1024 * 16
+        && "Accumulated error messages > 16MB. Try checking return codes!");
+    if (errptr->size() && errptr->back() != '\n')
         *errptr += '\n';
-    *errptr += message;
+    *errptr += std::string(message);
 }
 
 
@@ -832,6 +971,7 @@ TextureSystemImpl::missing_texture(TextureOpt& options, int nchannels,
                                    float* result, float* dresultds,
                                    float* dresultdt, float* dresultdr)
 {
+    OIIO_DASSERT(result != nullptr);
     for (int c = 0; c < nchannels; ++c) {
         if (options.missingcolor)
             result[c] = options.missingcolor[c];
@@ -860,34 +1000,46 @@ TextureSystemImpl::fill_gray_channels(const ImageSpec& spec, int nchannels,
                                       float* result, float* dresultds,
                                       float* dresultdt, float* dresultdr)
 {
+    OIIO_DASSERT(result != nullptr);
     int specchans = spec.nchannels;
     if (specchans == 1 && nchannels >= 3) {
         // Asked for RGB or RGBA, texture was just R...
         // copy the one channel to G and B
-        *(simd::vfloat4*)result = simd::shuffle<0, 0, 0, 3>(
-            *(simd::vfloat4*)result);
+        result[1] = result[0];
+        result[2] = result[0];
         if (dresultds) {
-            *(simd::vfloat4*)dresultds = simd::shuffle<0, 0, 0, 3>(
-                *(simd::vfloat4*)dresultds);
-            *(simd::vfloat4*)dresultdt = simd::shuffle<0, 0, 0, 3>(
-                *(simd::vfloat4*)dresultdt);
-            if (dresultdr)
-                *(simd::vfloat4*)dresultdr = simd::shuffle<0, 0, 0, 3>(
-                    *(simd::vfloat4*)dresultdr);
+            dresultds[1] = dresultds[0];
+            dresultds[2] = dresultds[0];
+            dresultdt[1] = dresultdt[0];
+            dresultdt[2] = dresultdt[0];
+            if (dresultdr) {
+                dresultdr[1] = dresultdr[0];
+                dresultdr[2] = dresultdr[0];
+            }
         }
     } else if (specchans == 2 && nchannels == 4 && spec.alpha_channel == 1) {
         // Asked for RGBA, texture was RA
         // Shuffle into RRRA
-        *(simd::vfloat4*)result = simd::shuffle<0, 0, 0, 1>(
-            *(simd::vfloat4*)result);
+        float a;
+        a         = result[1];
+        result[1] = result[0];
+        result[2] = result[0];
+        result[3] = a;
         if (dresultds) {
-            *(simd::vfloat4*)dresultds = simd::shuffle<0, 0, 0, 1>(
-                *(simd::vfloat4*)dresultds);
-            *(simd::vfloat4*)dresultdt = simd::shuffle<0, 0, 0, 1>(
-                *(simd::vfloat4*)dresultdt);
-            if (dresultdr)
-                *(simd::vfloat4*)dresultdr = simd::shuffle<0, 0, 0, 1>(
-                    *(simd::vfloat4*)dresultdr);
+            a            = dresultds[1];
+            dresultds[1] = dresultds[0];
+            dresultds[2] = dresultds[0];
+            dresultds[3] = a;
+            a            = dresultdt[1];
+            dresultdt[1] = dresultdt[0];
+            dresultdt[2] = dresultdt[0];
+            dresultdt[3] = a;
+            if (dresultdr) {
+                a            = dresultdr[1];
+                dresultdr[1] = dresultdr[0];
+                dresultdr[2] = dresultdr[0];
+                dresultdr[3] = a;
+            }
         }
     }
 }
@@ -903,11 +1055,15 @@ TextureSystemImpl::texture(ustring filename, TextureOptions& options,
                            int nchannels, float* result, float* dresultds,
                            float* dresultdt)
 {
+#ifdef OIIO_TEX_NO_IMPLEMENT_VARYINGREF
+    return false;
+#else
     Perthread* thread_info        = get_perthread_info();
     TextureHandle* texture_handle = get_texture_handle(filename, thread_info);
     return texture(texture_handle, thread_info, options, runflags, beginactive,
                    endactive, s, t, dsdx, dtdx, dsdy, dtdy, nchannels, result,
                    dresultds, dresultdt);
+#endif
 }
 
 
@@ -922,6 +1078,9 @@ TextureSystemImpl::texture(TextureHandle* texture_handle,
                            int nchannels, float* result, float* dresultds,
                            float* dresultdt)
 {
+#ifdef OIIO_TEX_NO_IMPLEMENT_VARYINGREF
+    return false;
+#else
     if (!texture_handle)
         return false;
     bool ok = true;
@@ -944,6 +1103,7 @@ TextureSystemImpl::texture(TextureHandle* texture_handle,
         }
     }
     return ok;
+#endif
 }
 
 
@@ -998,6 +1158,8 @@ TextureSystemImpl::texture(TextureHandle* texture_handle_,
         &TextureSystemImpl::texture_lookup_nomip,
         &TextureSystemImpl::texture_lookup_trilinear_mipmap,
         &TextureSystemImpl::texture_lookup_trilinear_mipmap,
+        &TextureSystemImpl::texture_lookup,
+        &TextureSystemImpl::texture_lookup_trilinear_mipmap,
         &TextureSystemImpl::texture_lookup
     };
     texture_lookup_prototype lookup = lookup_functions[(int)options.mipmode];
@@ -1005,9 +1167,13 @@ TextureSystemImpl::texture(TextureHandle* texture_handle_,
     PerThreadInfo* thread_info = m_imagecache->get_perthread_info(
         (PerThreadInfo*)thread_info_);
     TextureFile* texturefile = (TextureFile*)texture_handle_;
-    if (texturefile->is_udim())
-        texturefile = m_imagecache->resolve_udim(texturefile, thread_info, s,
-                                                 t);
+    if (texturefile->is_udim()) {
+        texturefile = (TextureFile*)resolve_udim((TextureHandle*)texture_handle_,
+                                                 (Perthread*)thread_info, s, t);
+        // Adjust s,t to be within the udim tile
+        s -= floorf(s);
+        t -= floorf(t);
+    }
 
     texturefile = verify_texturefile(texturefile, thread_info);
 
@@ -1024,8 +1190,8 @@ TextureSystemImpl::texture(TextureHandle* texture_handle_,
         int s = m_imagecache->subimage_from_name(texturefile,
                                                  options.subimagename);
         if (s < 0) {
-            errorf("Unknown subimage \"%s\" in texture \"%s\"",
-                   options.subimagename, texturefile->filename());
+            error("Unknown subimage \"{}\" in texture \"{}\"",
+                  options.subimagename, texturefile->filename());
             return missing_texture(options, nchannels, result, dresultds,
                                    dresultdt);
         }
@@ -1037,8 +1203,8 @@ TextureSystemImpl::texture(TextureHandle* texture_handle_,
         texturefile->subimageinfo(options.subimage));
     const ImageSpec& spec(texturefile->spec(options.subimage, 0));
 
-    int actualchannels = Imath::clamp(spec.nchannels - options.firstchannel, 0,
-                                      nchannels);
+    int actualchannels = OIIO::clamp(spec.nchannels - options.firstchannel, 0,
+                                     nchannels);
 
     // Figure out the wrap functions
     if (options.swrap == TextureOpt::WrapDefault)
@@ -1051,7 +1217,8 @@ TextureSystemImpl::texture(TextureHandle* texture_handle_,
         options.twrap = TextureOpt::WrapPeriodicPow2;
 
     if (subinfo.is_constant_image && options.swrap != TextureOpt::WrapBlack
-        && options.twrap != TextureOpt::WrapBlack) {
+        && options.twrap != TextureOpt::WrapBlack
+        && options.colortransformid <= 0) {
         // Lookup of constant color texture, non-black wrap -- skip all the
         // hard stuff.
         for (int c = 0; c < actualchannels; ++c)
@@ -1093,7 +1260,7 @@ TextureSystemImpl::texture(TextureHandle* texture_handle_,
     // then copy back when we're done.
     // FIXME -- is this necessary at all? Can we eliminate the conditional
     // and the duplicated code by always doing the simd copy thing? Come
-    // back here and time whether for 4-channnel textures it really matters.
+    // back here and time whether for 4-channel textures it really matters.
     bool simd_copy = (nchannels != 4 || ((size_t)result & 0x0f)
                       || ((size_t)dresultds & 0x0f) || /* FIXME -- necessary? */
                       ((size_t)dresultdt & 0x0f));
@@ -1171,6 +1338,7 @@ TextureSystemImpl::texture(TextureHandle* texture_handle,
     opt.conservative_filter = options.conservative_filter;
     opt.fill                = options.fill;
     opt.missingcolor        = options.missingcolor;
+    opt.colortransformid    = options.colortransformid;
     // rwrap not needed for 2D texture
 
     bool ok          = true;
@@ -1182,6 +1350,7 @@ TextureSystemImpl::texture(TextureHandle* texture_handle,
             opt.tblur  = options.tblur[i];
             opt.swidth = options.swidth[i];
             opt.twidth = options.twidth[i];
+            opt.rnd    = options.rnd[i];
             // rblur, rwidth not needed for 2D texture
             if (dresultds) {
                 ok &= texture(texture_handle, thread_info, opt, s[i], t[i],
@@ -1209,12 +1378,12 @@ TextureSystemImpl::texture(TextureHandle* texture_handle,
 bool
 TextureSystemImpl::texture_lookup_nomip(
     TextureFile& texturefile, PerThreadInfo* thread_info, TextureOpt& options,
-    int nchannels_result, int actualchannels, float s, float t, float dsdx,
-    float dtdx, float dsdy, float dtdy, float* result, float* dresultds,
-    float* dresultdt)
+    int nchannels_result, int actualchannels, float s, float t, float /*dsdx*/,
+    float /*dtdx*/, float /*dsdy*/, float /*dtdy*/, float* result,
+    float* dresultds, float* dresultdt)
 {
     // Initialize results to 0.  We'll add from here on as we sample.
-    DASSERT((dresultds == NULL) == (dresultdt == NULL));
+    OIIO_DASSERT((dresultds == NULL) == (dresultdt == NULL));
     ((simd::vfloat4*)result)->clear();
     if (dresultds) {
         ((simd::vfloat4*)dresultds)->clear();
@@ -1329,13 +1498,9 @@ adjust_blur(float& majorlength, float& minorlength, float& theta, float sblur,
         // Carefully add blur to the right derivative components in the
         // right proportions -- merely adding the same amount of blur
         // to all four derivatives blurs too much at some angles.
-        DASSERT(majorlength > 0.0f && minorlength > 0.0f);
+        OIIO_DASSERT(majorlength > 0.0f && minorlength > 0.0f);
         float sintheta, costheta;
-#ifdef TEX_FAST_MATH
         fast_sincos(theta, &sintheta, &costheta);
-#else
-        sincos(theta, &sintheta, &costheta);
-#endif
         sintheta = fabsf(sintheta);
         costheta = fabsf(costheta);
         majorlength += sblur * costheta + tblur * sintheta;
@@ -1375,22 +1540,21 @@ adjust_blur(float& majorlength, float& minorlength, float& theta, float sblur,
 // given the MIPmap levels we have available.
 inline void
 compute_miplevels(TextureSystemImpl::TextureFile& texturefile,
-                  TextureOpt& options, float majorlength, float minorlength,
-                  float& aspect, int* miplevel, float* levelweight)
+                  TextureOpt& options, bool stochastic, float majorlength,
+                  float minorlength, float& aspect, int* miplevel,
+                  float* levelweight)
 {
     ImageCacheFile::SubimageInfo& subinfo(
         texturefile.subimageinfo(options.subimage));
-    float levelblend  = 0.0f;
-    int nmiplevels    = (int)subinfo.levels.size();
+    int nmiplevels    = subinfo.n_mip_levels;
     int min_mip_level = subinfo.min_mip_level;
     for (int m = min_mip_level; m < nmiplevels; ++m) {
         // Compute the filter size (minor axis) in raster space at this
         // MIP level.  We use the smaller of the two texture resolutions,
         // which is better than just using one, but a more principled
         // approach is desired but remains elusive.  FIXME.
-        float filtwidth_ras = minorlength
-                              * std::min(subinfo.spec(m).width,
-                                         subinfo.spec(m).height);
+        float filtwidth_ras = minorlength * subinfo.minwh[m];
+
         // Once the filter width is smaller than one texel at this level,
         // we've gone too far, so we know that we want to interpolate the
         // previous level and the current level.  Note that filtwidth_ras
@@ -1398,7 +1562,9 @@ compute_miplevels(TextureSystemImpl::TextureFile& texturefile,
         if (filtwidth_ras <= 1.0f) {
             miplevel[0] = m - 1;
             miplevel[1] = m;
-            levelblend  = Imath::clamp(2.0f * filtwidth_ras - 1.0f, 0.0f, 1.0f);
+            float blend = OIIO::clamp(2.0f * filtwidth_ras - 1.0f, 0.0f, 1.0f);
+            levelweight[0] = 1.0f - blend;
+            levelweight[1] = blend;
             break;
         }
     }
@@ -1406,15 +1572,20 @@ compute_miplevels(TextureSystemImpl::TextureFile& texturefile,
     if (miplevel[1] < 0) {
         // We'd like to blur even more, but make due with the coarsest
         // MIP level.
-        miplevel[0] = nmiplevels - 1;
-        miplevel[1] = miplevel[0];
-        levelblend  = 0;
-    } else if (miplevel[0] < min_mip_level) {
+        miplevel[0]    = nmiplevels - 1;
+        miplevel[1]    = nmiplevels - 1;
+        levelweight[0] = 1.0f;
+        levelweight[1] = 0.0f;
+        return;
+    }
+    if (miplevel[0] < min_mip_level
+        || options.mipmode == TextureOpt::MipModeNoMIP) {
         // We wish we had even more resolution than the finest MIP level,
         // but tough for us.
-        miplevel[0] = min_mip_level;
-        miplevel[1] = min_mip_level;
-        levelblend  = 0;
+        miplevel[0]    = min_mip_level;
+        miplevel[1]    = min_mip_level;
+        levelweight[0] = 1.0f;
+        levelweight[1] = 0.0f;
         // It's possible that minorlength is degenerate, giving an aspect
         // ratio that implies a huge nsamples, which is pointless if those
         // samples are too close.  So if minorlength is less than 1/2 texel
@@ -1422,16 +1593,33 @@ compute_miplevels(TextureSystemImpl::TextureFile& texturefile,
         int r = std::max(subinfo.spec(0).full_width,
                          subinfo.spec(0).full_height);
         if (minorlength * r < 0.5f) {
-            aspect = Imath::clamp(majorlength * r * 2.0f, 1.0f,
-                                  float(options.anisotropic));
+            aspect = OIIO::clamp(majorlength * r * 2.0f, 1.0f,
+                                 float(options.anisotropic));
         }
+        return;
     }
     if (options.mipmode == TextureOpt::MipModeOneLevel) {
-        miplevel[0] = miplevel[1];
-        levelblend  = 0;
+        miplevel[0]    = miplevel[1];
+        levelweight[0] = 1.0f;
+        levelweight[1] = 0.0f;
+        return;
     }
-    levelweight[0] = 1.0f - levelblend;
-    levelweight[1] = levelblend;
+    if (stochastic) {
+        // If using stochastic sampling, the random deviate is a threshold
+        // versus the blend to determine which ONE of the two MIP levels to
+        // use. Then rescale options.rnd so we can use it again.
+        float blend = levelweight[1];
+        if (options.rnd >= blend) {
+            miplevel[1] = miplevel[0];
+            options.rnd = OIIO::clamp((options.rnd - blend) / (1.0f - blend),
+                                      0.0f, 1.0f);
+        } else {
+            miplevel[0] = miplevel[1];
+            options.rnd = OIIO::clamp(options.rnd / blend, 0.0f, 1.0f);
+        }
+        levelweight[0] = 1.0f;
+        levelweight[1] = 0.0f;
+    }
 }
 
 
@@ -1444,12 +1632,15 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap(
     float* dresultdt)
 {
     // Initialize results to 0.  We'll add from here on as we sample.
-    DASSERT((dresultds == NULL) == (dresultdt == NULL));
+    OIIO_DASSERT((dresultds == NULL) == (dresultdt == NULL));
     ((simd::vfloat4*)result)->clear();
     if (dresultds) {
         ((simd::vfloat4*)dresultds)->clear();
         ((simd::vfloat4*)dresultdt)->clear();
     }
+
+    bool stoch_mip = (options.rnd >= 0.0f
+                      && (m_stochastic & StochasticStrategy_MIP));
 
     adjust_width(dsdx, dtdx, dsdy, dtdy, options.swidth, options.twidth);
 
@@ -1460,12 +1651,12 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap(
     float sfilt          = std::max(fabsf(dsdx), fabsf(dsdy));
     float tfilt          = std::max(fabsf(dtdx), fabsf(dtdy));
     float filtwidth      = options.conservative_filter ? std::max(sfilt, tfilt)
-                                                  : std::min(sfilt, tfilt);
+                                                       : std::min(sfilt, tfilt);
     // account for blur
     filtwidth += std::max(options.sblur, options.tblur);
     float aspect = 1.0f;
-    compute_miplevels(texturefile, options, filtwidth, filtwidth, aspect,
-                      miplevel, levelweight);
+    compute_miplevels(texturefile, options, stoch_mip, filtwidth, filtwidth,
+                      aspect, miplevel, levelweight);
 
     static const sampler_prototype sample_functions[] = {
         // Must be in the same order as InterpMode enum
@@ -1555,14 +1746,10 @@ ellipse_axes(float dsdx, float dtdx, float dsdy, float dtdy, float& majorlength,
     minorlength = std::min(safe_sqrt (float(F / Cprime)), 1000.0f);
 #else
     // Wolfram says that this is equivalent to:
-    majorlength = std::min(safe_sqrt(float(Cprime)), 1000.0f);
-    minorlength = std::min(safe_sqrt(float(Aprime)), 1000.0f);
+    majorlength  = std::min(safe_sqrt(float(Cprime)), 1000.0f);
+    minorlength  = std::min(safe_sqrt(float(Aprime)), 1000.0f);
 #endif
-#ifdef TEX_FAST_MATH
     theta = fast_atan2(B, A - C) * 0.5f + float(M_PI_2);
-#else
-    theta = atan2(B, A - C) * 0.5 + M_PI_2;
-#endif
     if (ABCF) {
         // Optionally store the ellipse equation parameters, the ellipse
         // is given by: A*u^2 + B*u*v + C*v^2 < 1
@@ -1578,7 +1765,7 @@ ellipse_axes(float dsdx, float dtdx, float dsdy, float dtdy, float& majorlength,
     // derivatives, then majorlength/minorlength are the (diameter) axes
     // of the ellipse; if the derivs are the "to edge of pixel" 1/2
     // length derivs, then majorlength/minorlength are the major and
-    // minur radii of the elipse.  We do the former!  So it's important
+    // minor radii of the ellipse.  We do the former!  So it's important
     // to consider that factor of 2 in compute_ellipse_sampling.
 }
 
@@ -1595,14 +1782,27 @@ ellipse_axes(float dsdx, float dtdx, float dsdy, float dtdy, float& majorlength,
 inline int
 compute_ellipse_sampling(float aspect, float theta, float majorlength,
                          float minorlength, float& smajor, float& tmajor,
-                         float& invsamples, float* weights = NULL)
+                         float& invsamples, float* weights, float* samplepos,
+                         bool stochastic, float rnd)
 {
     // Compute the sin and cos of the sampling direction, given major
     // axis angle
     sincos(theta, &tmajor, &smajor);
-    float L = 2.0f * (majorlength - minorlength);
-    smajor *= L;
-    tmajor *= L;
+    float LL = 2.0f * (majorlength - minorlength);
+    smajor *= LL;
+    tmajor *= LL;
+    if (stochastic) {
+        // If we're doing stochastic anisotropy, we just need one sample.
+        weights[0] = 1.0f;
+        invsamples = 1.0f;
+        // For window half width w, standard deviation s, uniform random
+        // number r, warping to a windowed Gaussian PDF is:
+        //   M_SQRT2 * s * ierf((2 * r - 1) * erf(w / (M_SQRT2 * s)))
+        samplepos[0] = float(M_SQRT2)
+                       * fast_ierf((2.0f * rnd - 1.0f)
+                                   * fast_erf(1.0f / float(M_SQRT2)));
+        return 1;
+    }
 #if 1
     // This is the theoretically correct number of samples.
     int nsamples = std::max(1, int(2.0f * aspect - 1.0f));
@@ -1612,29 +1812,27 @@ compute_ellipse_sampling(float aspect, float theta, float majorlength,
     // artifacts.
 #endif
     invsamples = 1.0f / nsamples;
-    if (weights) {
-        if (nsamples == 1) {
-            weights[0] = 1.0f;
-        } else if (nsamples == 2) {
-            weights[0] = 0.5f;
-            weights[1] = 0.5f;
-        } else {
-            float scale = majorlength / L;  // 1/(L/major)
-            for (int i = 0, e = (nsamples + 1) / 2; i < e; ++i) {
-                float x = (2.0f * (i + 0.5f) * invsamples - 1.0f) * scale;
-#ifdef TEX_FAST_MATH
-                float w = fast_exp(-2.0f * x * x);
-#else
-                float w = expf(-2.0f * x * x);
-#endif
-                weights[nsamples - i - 1] = weights[i] = w;
-            }
-            float sumw = 0.0f;
-            for (int i = 0; i < nsamples; ++i)
-                sumw += weights[i];
-            for (int i = 0; i < nsamples; ++i)
-                weights[i] /= sumw;
+    if (nsamples == 1) {
+        weights[0]   = 1.0f;
+        samplepos[0] = 0.0f;
+    } else if (nsamples == 2) {
+        weights[0]   = 0.5f;
+        weights[1]   = 0.5f;
+        samplepos[0] = -0.5f;
+        samplepos[1] = 0.5f;
+    } else {
+        float scale = majorlength / LL;  // 1/(L/major)
+        float sumw  = 0.0f;
+        for (int i = 0; i < nsamples; ++i) {
+            float sp   = 2.0f * (i + 0.5f) * invsamples - 1.0f;
+            float x    = sp * scale;
+            float w    = fast_exp(-2.0f * x * x);
+            weights[i] = w;
+            sumw += w;
+            samplepos[i] = sp;
         }
+        for (int i = 0; i < nsamples; ++i)
+            weights[i] /= sumw;
     }
     return nsamples;
 }
@@ -1650,7 +1848,7 @@ TextureSystemImpl::texture_lookup(TextureFile& texturefile,
                                   float dtdy, float* result, float* dresultds,
                                   float* dresultdt)
 {
-    DASSERT((dresultds == NULL) == (dresultdt == NULL));
+    OIIO_DASSERT((dresultds == NULL) == (dresultdt == NULL));
 
     // Compute the natural resolution we want for the bare derivs, this
     // will be the threshold for knowing we're maxifying (and therefore
@@ -1660,6 +1858,9 @@ TextureSystemImpl::texture_lookup(TextureFile& texturefile,
     int naturalsres    = (int)(1.0f / sfilt_noblur);
     int naturaltres    = (int)(1.0f / tfilt_noblur);
 
+    bool stoch       = (options.rnd >= 0.0f);
+    bool stoch_mip   = stoch && (m_stochastic & StochasticStrategy_MIP);
+    bool stoch_aniso = stoch && (m_stochastic & StochasticStrategy_Aniso);
     // Scale by 'width'
     adjust_width(dsdx, dtdx, dsdy, dtdy, options.swidth, options.twidth);
 
@@ -1683,16 +1884,19 @@ TextureSystemImpl::texture_lookup(TextureFile& texturefile,
 
     int miplevel[2]      = { -1, -1 };
     float levelweight[2] = { 0, 0 };
-    compute_miplevels(texturefile, options, majorlength, minorlength, aspect,
-                      miplevel, levelweight);
+    compute_miplevels(texturefile, options, stoch_mip, majorlength, minorlength,
+                      aspect, miplevel, levelweight);
 
-    float* lineweight
-        = OIIO_ALLOCA(float,
-                      round_to_multiple_of_pow2(2 * options.anisotropic, 4));
+    int maxsamples    = round_to_multiple_of_pow2(2 * options.anisotropic, 4);
+    float* lineweight = OIIO_ALLOCA(float, 4 * maxsamples);
+    float* samplepos  = lineweight + maxsamples;
+    float* sval       = lineweight + 2 * maxsamples;
+    float* tval       = lineweight + 3 * maxsamples;
     float invsamples;
     int nsamples = compute_ellipse_sampling(aspect, theta, majorlength,
                                             minorlength, smajor, tmajor,
-                                            invsamples, lineweight);
+                                            invsamples, lineweight, samplepos,
+                                            stoch_aniso, options.rnd);
     // All the computations were done assuming full diametric axes of
     // the ellipse, but our derivatives are pixel-to-pixel, yielding
     // semi-major and semi-minor lengths, so we need to scale everything
@@ -1703,27 +1907,22 @@ TextureSystemImpl::texture_lookup(TextureFile& texturefile,
     bool ok           = true;
     int npointson     = 0;
     int closestprobes = 0, bilinearprobes = 0, bicubicprobes = 0;
-    int nsamples_padded = round_to_multiple_of_pow2(nsamples, 4);
-    float* sval         = OIIO_ALLOCA(float, nsamples_padded);
-    float* tval         = OIIO_ALLOCA(float, nsamples_padded);
 
     // Compute the s and t positions of the samples along the major axis.
+
 #if OIIO_SIMD
     // Do the computations in batches of 4, with SIMD ops.
-    static OIIO_SIMD4_ALIGN float iota_start[4] = { 0.5f, 1.5f, 2.5f, 3.5f };
-    vfloat4 iota                                = *(const vfloat4*)iota_start;
     for (int sample = 0; sample < nsamples; sample += 4) {
-        vfloat4 pos = 2.0f * (iota * invsamples - 0.5f);
-        vfloat4 ss  = s + pos * smajor;
-        vfloat4 tt  = t + pos * tmajor;
+        vfloat4 pos(samplepos + sample);
+        vfloat4 ss = s + pos * smajor;
+        vfloat4 tt = t + pos * tmajor;
         ss.store(sval + sample);
         tt.store(tval + sample);
-        iota += 4.0f;
     }
 #else
     // Non-SIMD, reference code
     for (int sample = 0; sample < nsamples; ++sample) {
-        float pos = 2.0f * ((sample + 0.5f) * invsamples - 0.5f);
+        float pos    = samplepos[sample];
         sval[sample] = s + pos * smajor;
         tval[sample] = t + pos * tmajor;
     }
@@ -1818,9 +2017,9 @@ TextureSystemImpl::texture_lookup(TextureFile& texturefile,
 
 const float*
 TextureSystemImpl::pole_color(TextureFile& texturefile,
-                              PerThreadInfo* thread_info,
+                              PerThreadInfo* /*thread_info*/,
                               const ImageCacheFile::LevelInfo& levelinfo,
-                              TileRef& tile, int subimage, int miplevel,
+                              TileRef& tile, int subimage, int /*miplevel*/,
                               int pole)
 {
     if (!levelinfo.onetile)
@@ -1830,10 +2029,10 @@ TextureSystemImpl::pole_color(TextureFile& texturefile,
         static spin_mutex mutex;  // Protect everybody's polecolor
         spin_lock lock(mutex);
         if (!levelinfo.polecolorcomputed) {
-            DASSERT(levelinfo.polecolor.size() == 0);
+            OIIO_DASSERT(levelinfo.polecolor.size() == 0);
             levelinfo.polecolor.resize(2 * spec.nchannels);
-            ASSERT(tile->id().nchannels() == spec.nchannels
-                   && "pole_color doesn't work for channel subsets");
+            OIIO_DASSERT(tile->id().nchannels() == spec.nchannels
+                         && "pole_color doesn't work for channel subsets");
             int pixelsize                = tile->pixelsize();
             TypeDesc::BASETYPE pixeltype = texturefile.pixeltype(subimage);
             // We store north and south poles adjacently in polecolor
@@ -1856,7 +2055,7 @@ TextureSystemImpl::pole_color(TextureFile& texturefile,
                         else if (pixeltype == TypeDesc::HALF)
                             p[c] += ((const half*)texel)[c];
                         else {
-                            DASSERT(pixeltype == TypeDesc::FLOAT);
+                            OIIO_DASSERT(pixeltype == TypeDesc::FLOAT);
                             p[c] += ((const float*)texel)[c];
                         }
                     }
@@ -1896,7 +2095,7 @@ TextureSystemImpl::fade_to_pole(float t, float* accum, float& weight,
                                thread_info->tile, options.subimage, miplevel,
                                1);
     }
-    pole = Imath::clamp(pole, 0.0f, 1.0f);
+    pole = OIIO::clamp(pole, 0.0f, 1.0f);
     pole *= pole;  // squaring makes more pleasing appearance
     polecolor += options.firstchannel;
     for (int c = 0; c < nchannels; ++c)
@@ -1931,12 +2130,12 @@ TextureSystemImpl::sample_closest(
         tile_chend   = options.firstchannel + actualchannels;
     }
     TileID id(texturefile, options.subimage, miplevel, 0, 0, 0, tile_chbegin,
-              tile_chend);
+              tile_chend, options.colortransformid);
     for (int sample = 0; sample < nsamples; ++sample) {
         float s = s_[sample], t = t_[sample];
         float weight = weight_[sample];
 
-        int stex, ttex;  // Texel coordintes
+        int stex, ttex;  // Texel coordinates
         float sfrac, tfrac;
         st_to_texel(s, t, texturefile, spec, stex, ttex, sfrac, tfrac);
 
@@ -1965,15 +2164,15 @@ TextureSystemImpl::sample_closest(
         id.xy(stex - tile_s, ttex - tile_t);
         bool ok = find_tile(id, thread_info, sample == 0);
         if (!ok)
-            errorf("%s", m_imagecache->geterror());
+            error("{}", m_imagecache->geterror());
         TileRef& tile(thread_info->tile);
         if (!tile || !ok) {
             allok = false;
             continue;
         }
-        int offset = id.nchannels() * (tile_t * spec.tile_width + tile_s)
-                     + (firstchannel - id.chbegin());
-        DASSERT((size_t)offset < spec.nchannels * spec.tile_pixels());
+        size_t offset = id.nchannels() * tile->pixel_index(tile_s, tile_t)
+                        + (firstchannel - id.chbegin());
+        OIIO_DASSERT(offset < spec.nchannels * spec.tile_pixels());
         simd::vfloat4 texel_simd;
         if (pixeltype == TypeDesc::UINT8) {
             // special case for 8-bit tiles
@@ -1981,9 +2180,9 @@ TextureSystemImpl::sample_closest(
         } else if (pixeltype == TypeDesc::UINT16) {
             texel_simd = ushort2float4(tile->ushortdata() + offset);
         } else if (pixeltype == TypeDesc::HALF) {
-            texel_simd = half2float4(tile->halfdata() + offset);
+            texel_simd = vfloat4(tile->halfdata() + offset);
         } else {
-            DASSERT(pixeltype == TypeDesc::FLOAT);
+            OIIO_DASSERT(pixeltype == TypeDesc::FLOAT);
             texel_simd.load(tile->floatdata() + offset);
         }
 
@@ -2056,8 +2255,8 @@ TextureSystemImpl::sample_bilinear(
     wrap_impl swrap_func         = wrap_functions[(int)options.swrap];
     wrap_impl twrap_func         = wrap_functions[(int)options.twrap];
     wrap_impl_simd wrap_func     = (swrap_func == twrap_func)
-                                   ? wrap_functions_simd[(int)options.swrap]
-                                   : NULL;
+                                       ? wrap_functions_simd[(int)options.swrap]
+                                       : NULL;
     simd::vint4 xy(spec.x, spec.y);
     simd::vint4 widthheight(spec.width, spec.height);
     simd::vint4 tilewh(spec.tile_width, spec.tile_height);
@@ -2076,12 +2275,12 @@ TextureSystemImpl::sample_bilinear(
         tile_chend   = options.firstchannel + actualchannels;
     }
     TileID id(texturefile, options.subimage, miplevel, 0, 0, 0, tile_chbegin,
-              tile_chend);
+              tile_chend, options.colortransformid);
     float nonfill = 0.0f;  // The degree to which we DON'T need fill
     // N.B. What's up with "nofill"? We need to consider fill only when we
     // are inside the valid texture region. Outside, i.e. in the black wrap
     // region, black takes precedence over fill. By keeping track of when
-    // we don't need to worry about fill, which is the comparitively rare
+    // we don't need to worry about fill, which is the comparatively rare
     // case, we do a lot less math and have fewer rounding errors.
 
     vfloat4 accum, daccumds, daccumdt;
@@ -2140,23 +2339,28 @@ TextureSystemImpl::sample_bilinear(
             tile_st &= tilewhmask;
         else
             tile_st %= tilewh;
+        OIIO_PRAGMA_WARNING_PUSH
+#if OIIO_CLANG_VERSION >= 140000 || OIIO_INTEL_CLANG_VERSION >= 140000 \
+    || OIIO_APPLE_CLANG_VERSION >= 140000
+        OIIO_CLANG_PRAGMA(GCC diagnostic ignored "-Wbitwise-instead-of-logical")
+#endif
         bool s_onetile = (tile_st[S0] != tilewhmask[S0])
                          & (sttex[S0] + 1 == sttex[S1]);
         bool t_onetile = (tile_st[T0] != tilewhmask[T0])
                          & (sttex[T0] + 1 == sttex[T1]);
+        OIIO_PRAGMA_WARNING_POP
         bool onetile = (s_onetile & t_onetile);
         if (onetile && all(stvalid)) {
             // Shortcut if all the texels we need are on the same tile
             id.xy(sttex[S0] - tile_st[S0], sttex[T0] - tile_st[T0]);
             bool ok = find_tile(id, thread_info, sample == 0);
             if (!ok)
-                errorf("%s", m_imagecache->geterror());
+                error("{}", m_imagecache->geterror());
             TileRef& tile(thread_info->tile);
             if (!tile->valid())
                 return false;
-            int pixelsize = tile->pixelsize();
-            int offset    = pixelsize
-                         * (tile_st[T0] * spec.tile_width + tile_st[S0]);
+            int pixelsize      = tile->pixelsize();
+            imagesize_t offset = tile->pixel_offset(tile_st[S0], tile_st[T0]);
             const unsigned char* p = tile->bytedata() + offset
                                      + channelsize
                                            * (firstchannel - id.chbegin());
@@ -2173,13 +2377,13 @@ TextureSystemImpl::sample_bilinear(
                 texel_simd[1][0] = ushort2float4((uint16_t*)p);
                 texel_simd[1][1] = ushort2float4((uint16_t*)(p + pixelsize));
             } else if (pixeltype == TypeDesc::HALF) {
-                texel_simd[0][0] = half2float4((half*)p);
-                texel_simd[0][1] = half2float4((half*)(p + pixelsize));
+                texel_simd[0][0] = vfloat4((half*)p);
+                texel_simd[0][1] = vfloat4((half*)(p + pixelsize));
                 p += pixelsize * spec.tile_width;
-                texel_simd[1][0] = half2float4((half*)p);
-                texel_simd[1][1] = half2float4((half*)(p + pixelsize));
+                texel_simd[1][0] = vfloat4((half*)p);
+                texel_simd[1][1] = vfloat4((half*)(p + pixelsize));
             } else {
-                DASSERT(pixeltype == TypeDesc::FLOAT);
+                OIIO_DASSERT(pixeltype == TypeDesc::FLOAT);
                 texel_simd[0][0].load((const float*)p);
                 texel_simd[0][1].load((const float*)(p + pixelsize));
                 p += pixelsize * spec.tile_width;
@@ -2211,19 +2415,16 @@ TextureSystemImpl::sample_bilinear(
                         id.xy(tile_edge[S0 + i], tile_edge[T0 + j]);
                         bool ok = find_tile(id, thread_info, sample == 0);
                         if (!ok)
-                            errorf("%s", m_imagecache->geterror());
+                            error("{}", m_imagecache->geterror());
                         if (!thread_info->tile->valid()) {
                             return false;
                         }
-                        DASSERT(thread_info->tile->id() == id);
+                        OIIO_DASSERT(thread_info->tile->id() == id);
                     }
                     TileRef& tile(thread_info->tile);
-                    int pixelsize = tile->pixelsize();
-                    int offset    = pixelsize
-                                 * (tile_t * spec.tile_width + tile_s);
+                    imagesize_t offset = tile->pixel_offset(tile_s, tile_t);
                     offset += (firstchannel - id.chbegin()) * channelsize;
-                    DASSERT(offset < spec.tile_width * spec.tile_height
-                                         * spec.tile_depth * pixelsize);
+                    OIIO_DASSERT(offset < spec.tile_bytes());
                     if (pixeltype == TypeDesc::UINT8)
                         texel_simd[j][i] = uchar2float4(
                             (const unsigned char*)(tile->bytedata() + offset));
@@ -2231,10 +2432,10 @@ TextureSystemImpl::sample_bilinear(
                         texel_simd[j][i] = ushort2float4(
                             (const unsigned short*)(tile->bytedata() + offset));
                     else if (pixeltype == TypeDesc::HALF)
-                        texel_simd[j][i] = half2float4(
+                        texel_simd[j][i] = vfloat4(
                             (const half*)(tile->bytedata() + offset));
                     else {
-                        DASSERT(pixeltype == TypeDesc::FLOAT);
+                        OIIO_DASSERT(pixeltype == TypeDesc::FLOAT);
                         texel_simd[j][i].load(
                             (const float*)(tile->bytedata() + offset));
                     }
@@ -2322,7 +2523,7 @@ namespace {
         }
     }
 
-    // Evaluate the 4 Bspline weights (no derivs), returing them as a vfloat4.
+    // Evaluate the 4 Bspline weights (no derivs), returning them as a vfloat4.
     // The fraction also comes in as a vfloat4 (assuming the same value in all 4
     // slots).
     inline vfloat4 evalBSplineWeights(const vfloat4& fraction)
@@ -2343,7 +2544,7 @@ namespace {
         OIIO_SIMD_FLOAT4_CONST4(om1m1o, 1.0f, -1.0f, -1.0f, 1.0f);
         OIIO_SIMD_FLOAT4_CONST4(z22z, 0.0f, 2.0f, 2.0f, 0.0f);
         simd::vfloat4 one_frac = vfloat4::One() - fraction;
-        simd::vfloat4 ofof = AxBxAyBy(one_frac,
+        simd::vfloat4 ofof     = AxBxAyBy(one_frac,
                                       fraction);  // 1-frac, frac, 1-frac, frac
         simd::vfloat4 C = (*(vfloat4*)&om1m1o) * ofof + (*(vfloat4*)&z22z);
         return (*(vfloat4*)&A) + (*(vfloat4*)&B) * ofof * ofof * C;
@@ -2419,7 +2620,7 @@ TextureSystemImpl::sample_bicubic(
     // N.B. What's up with "nofill"? We need to consider fill only when we
     // are inside the valid texture region. Outside, i.e. in the black wrap
     // region, black takes precedence over fill. By keeping track of when
-    // we don't need to worry about fill, which is the comparitively rare
+    // we don't need to worry about fill, which is the comparatively rare
     // case, we do a lot less math and have fewer rounding errors.
 
     // need_pole: do we potentially need to fade to special pole color?
@@ -2432,10 +2633,10 @@ TextureSystemImpl::sample_bicubic(
         tile_chend   = options.firstchannel + actualchannels;
     }
     TileID id(texturefile, options.subimage, miplevel, 0, 0, 0, tile_chbegin,
-              tile_chend);
-    size_t pixelsize                 = channelsize * id.nchannels();
-    size_t firstchannel_offset_bytes = channelsize
-                                       * (firstchannel - id.chbegin());
+              tile_chend, options.colortransformid);
+    int pixelsize                         = channelsize * id.nchannels();
+    imagesize_t firstchannel_offset_bytes = channelsize
+                                            * (firstchannel - id.chbegin());
     vfloat4 accum, daccumds, daccumdt;
     accum.clear();
     if (daccumds_) {
@@ -2514,18 +2715,21 @@ TextureSystemImpl::sample_bicubic(
             // Shortcut if all the texels we need are on the same tile
             id.xy(stex[0] - tile_s, ttex[0] - tile_t);
             bool ok = find_tile(id, thread_info, sample == 0);
-            if (!ok)
-                errorf("%s", m_imagecache->geterror());
+            if (!ok) {
+                if (m_imagecache->has_error())
+                    error("{}", m_imagecache->geterror());
+                return false;
+            }
             TileRef& tile(thread_info->tile);
             if (!tile) {
                 return false;
             }
             // N.B. thread_info->tile will keep holding a ref-counted pointer
             // to the tile for the duration that we're using the tile data.
-            int offset = pixelsize * (tile_t * spec.tile_width + tile_s);
+            imagesize_t offset        = tile->pixel_offset(tile_s, tile_t);
             const unsigned char* base = tile->bytedata() + offset
                                         + firstchannel_offset_bytes;
-            DASSERT(tile->data());
+            OIIO_DASSERT(tile->data());
             if (pixeltype == TypeDesc::UINT8) {
                 for (int j = 0, j_offset = 0; j < 4;
                      ++j, j_offset += pixelsize * spec.tile_width)
@@ -2544,7 +2748,7 @@ TextureSystemImpl::sample_bicubic(
                      ++j, j_offset += pixelsize * spec.tile_width)
                     for (int i = 0, i_offset = j_offset; i < 4;
                          ++i, i_offset += pixelsize)
-                        texel_simd[j][i] = half2float4(
+                        texel_simd[j][i] = vfloat4(
                             (const half*)(base + i_offset));
             } else {
                 for (int j = 0, j_offset = 0; j < 4;
@@ -2569,8 +2773,8 @@ TextureSystemImpl::sample_bicubic(
                         texel_simd[j][i].clear();
                     continue;
                 }
-                int row_offset_bytes = tile_t[j]
-                                       * (spec.tile_width * pixelsize);
+                imagesize_t row_offset_bytes
+                    = tile_t[j] * imagesize_t(spec.tile_width * pixelsize);
                 for (int i = 0; i < 4; ++i) {
                     if (!svalid[i]) {
                         texel_simd[j][i].clear();
@@ -2585,14 +2789,15 @@ TextureSystemImpl::sample_bicubic(
                         id.xy(tile_s_edge[i], tile_t_edge[j]);
                         bool ok = find_tile(id, thread_info, sample == 0);
                         if (!ok)
-                            errorf("%s", m_imagecache->geterror());
+                            error("{}", m_imagecache->geterror());
                         DASSERT(thread_info->tile->id() == id);
                         if (!thread_info->tile->valid())
                             return false;
                     }
                     TileRef& tile(thread_info->tile);
-                    DASSERT(tile->data());
-                    int offset = row_offset_bytes + column_offset_bytes[i];
+                    OIIO_DASSERT(tile->data());
+                    imagesize_t offset = row_offset_bytes
+                                         + column_offset_bytes[i];
                     // const unsigned char *pixelptr = tile->bytedata() + offset[i];
                     if (pixeltype == TypeDesc::UINT8)
                         texel_simd[j][i] = uchar2float4(tile->bytedata()
@@ -2601,7 +2806,7 @@ TextureSystemImpl::sample_bicubic(
                         texel_simd[j][i] = ushort2float4(
                             (const uint16_t*)(tile->bytedata() + offset));
                     else if (pixeltype == TypeDesc::HALF)
-                        texel_simd[j][i] = half2float4(
+                        texel_simd[j][i] = vfloat4(
                             (const half*)(tile->bytedata() + offset));
                     else
                         texel_simd[j][i].load(
@@ -2798,11 +3003,21 @@ TextureSystemImpl::visualize_ellipse(const std::string& name, float dsdx,
     float aspect      = TextureSystemImpl::anisotropic_aspect(majorlength,
                                                          minorlength, options,
                                                          trueaspect);
-    float* lineweight = OIIO_ALLOCA(float, 2 * options.anisotropic);
+    bool stoch_aniso  = (m_stochastic & StochasticStrategy_Aniso);
+    int maxsamples    = round_to_multiple_of_pow2(2 * options.anisotropic, 4);
+    float* lineweight = OIIO_ALLOCA(float, 4 * maxsamples);
+    float* samplepos  = lineweight + maxsamples;
     float smajor, tmajor, invsamples;
     int nsamples = compute_ellipse_sampling(aspect, theta, majorlength,
                                             minorlength, smajor, tmajor,
-                                            invsamples, lineweight);
+                                            invsamples, lineweight, samplepos,
+                                            stoch_aniso, 0.5f);
+    // All the computations were done assuming full diametric axes of
+    // the ellipse, but our derivatives are pixel-to-pixel, yielding
+    // semi-major and semi-minor lengths, so we need to scale everything
+    // by 1/2.
+    smajor *= 0.5f;
+    tmajor *= 0.5f;
 
     // Make an ImageBuf to hold our visualization image, set it to grey
     float scale = 100;
@@ -2850,7 +3065,8 @@ TextureSystemImpl::visualize_ellipse(const std::string& name, float dsdx,
     // Plop white dots at the sample positions
     int rad = int(scale * minorlength);
     for (int sample = 0; sample < nsamples; ++sample) {
-        float pos = 1.0f * (sample + 0.5f) * invsamples - 0.5f;
+        float pos = samplepos[sample];
+        // Strutil::print("samples:  {}\n", sample, pos);
         float x = pos * smajor, y = pos * tmajor;
         int xx = w / 2 + int(x * scale), yy = h / 2 - int(y * scale);
         int size = int(5 * lineweight[sample] / bigweight);
@@ -2914,20 +3130,132 @@ TextureSystemImpl::unit_test_texture()
     dtdy = 0.2;
     visualize_ellipse("6.tif", dsdx, dtdx, dsdy, dtdy, 0.0, 0.5);
 
-    boost::mt19937 rndgen;
-    boost::uniform_01<boost::mt19937, float> rnd(rndgen);
+    std::mt19937 gen;
+    std::uniform_real_distribution<float> rnd(0.0f, 1.0f);
     for (int i = 0; i < 100; ++i) {
-        dsdx = 1.5f * (rnd() - 0.5f);
-        dtdx = 1.5f * (rnd() - 0.5f);
-        dsdy = 1.5f * (rnd() - 0.5f);
-        dtdy = 1.5f * (rnd() - 0.5f);
-        visualize_ellipse(Strutil::sprintf("%04d.tif", 100 + i), dsdx, dtdx,
-                          dsdy, dtdy, sblur, tblur);
+        dsdx = 1.5f * (rnd(gen) - 0.5f);
+        dtdx = 1.5f * (rnd(gen) - 0.5f);
+        dsdy = 1.5f * (rnd(gen) - 0.5f);
+        dtdy = 1.5f * (rnd(gen) - 0.5f);
+        visualize_ellipse(Strutil::fmt::format("{:04d}.tif", 100 + i), dsdx,
+                          dtdx, dsdy, dtdy, sblur, tblur);
     }
 }
 
-
-
 }  // end namespace pvt
+
+
+
+void
+TextureSystem::unit_test_hash()
+{
+#ifndef OIIO_CODE_COVERAGE
+    std::vector<size_t> fourbits(1 << 4, 0);
+    std::vector<size_t> eightbits(1 << 8, 0);
+    std::vector<size_t> sixteenbits(1 << 16, 0);
+    std::vector<size_t> highereightbits(1 << 8, 0);
+
+    const size_t iters = 1000000;
+    const int res      = 4 * 1024;  // Simulate tiles from a 4k image
+    const int tilesize = 64;
+    const int nfiles   = iters / ((res / tilesize) * (res / tilesize));
+    Strutil::print("Testing hashing with {} files of {}x{} with {}x{} tiles:",
+                   nfiles, res, res, tilesize, tilesize);
+
+    ImageCache* imagecache = ImageCache::create();
+
+    // Set up the ImageCacheFiles outside of the timing loop
+    using OIIO::pvt::ImageCacheFile;
+    using OIIO::pvt::ImageCacheFileRef;
+    using OIIO::pvt::ImageCacheImpl;
+    std::vector<ImageCacheFileRef> icf;
+    for (int f = 0; f < nfiles; ++f) {
+        ustring filename = ustring::fmtformat("{:06}.tif", f);
+        icf.push_back(
+            new ImageCacheFile(*(ImageCacheImpl*)imagecache, NULL, filename));
+    }
+
+    // First, just try to do raw timings of the hash
+    Timer timer;
+    size_t i = 0, hh = 0;
+    for (int f = 0; f < nfiles; ++f) {
+        for (int y = 0; y < res; y += tilesize) {
+            for (int x = 0; x < res; x += tilesize, ++i) {
+                OIIO::pvt::TileID id(*icf[f], 0, 0, x, y, 0, 0, 1);
+                size_t h = id.hash();
+                hh += h;
+            }
+        }
+    }
+    Strutil::print("hh = {}\n", hh);
+    double time = timer();
+    double rate = (i / 1.0e6) / time;
+    Strutil::print("Hashing rate:` {:3.2f} Mhashes/sec\n", rate);
+
+    // Now, check the quality of the hash by looking at the low 4, 8, and
+    // 16 bits and making sure that they divide into hash buckets fairly
+    // evenly.
+    i = 0;
+    for (int f = 0; f < nfiles; ++f) {
+        for (int y = 0; y < res; y += tilesize) {
+            for (int x = 0; x < res; x += tilesize, ++i) {
+                OIIO::pvt::TileID id(*icf[f], 0, 0, x, y, 0, 0, 1);
+                size_t h = id.hash();
+                ++fourbits[h & 0xf];
+                ++eightbits[h & 0xff];
+                ++highereightbits[(h >> 24) & 0xff];
+                ++sixteenbits[h & 0xffff];
+                // if (i < 16) Strutil::print({:x}\n", h);
+            }
+        }
+    }
+
+    size_t min, max;
+    min = std::numeric_limits<size_t>::max();
+    max = 0;
+    for (int i = 0; i < 16; ++i) {
+        if (fourbits[i] < min)
+            min = fourbits[i];
+        if (fourbits[i] > max)
+            max = fourbits[i];
+    }
+    Strutil::print("4-bit hash buckets range from {} to {}\n", min, max);
+
+    min = std::numeric_limits<size_t>::max();
+    max = 0;
+    for (int i = 0; i < 256; ++i) {
+        if (eightbits[i] < min)
+            min = eightbits[i];
+        if (eightbits[i] > max)
+            max = eightbits[i];
+    }
+    Strutil::print("8-bit hash buckets range from {} to {}\n", min, max);
+
+    min = std::numeric_limits<size_t>::max();
+    max = 0;
+    for (int i = 0; i < 256; ++i) {
+        if (highereightbits[i] < min)
+            min = highereightbits[i];
+        if (highereightbits[i] > max)
+            max = highereightbits[i];
+    }
+    Strutil::print("higher 8-bit hash buckets range from {} to {}\n", min, max);
+
+    min = std::numeric_limits<size_t>::max();
+    max = 0;
+    for (int i = 0; i < (1 << 16); ++i) {
+        if (sixteenbits[i] < min)
+            min = sixteenbits[i];
+        if (sixteenbits[i] > max)
+            max = sixteenbits[i];
+    }
+    Strutil::print("16-bit hash buckets range from {} to {}\n", min, max);
+
+    Strutil::print("\n");
+
+    ImageCache::destroy(imagecache);
+#endif
+}
+
 
 OIIO_NAMESPACE_END

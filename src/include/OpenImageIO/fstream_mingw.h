@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 /// @file  fstream_mingw.h
@@ -18,9 +18,9 @@
 #include <ostream>
 
 #if defined(_WIN32) && defined(__GLIBCXX__)
-#    include <Share.h>
 #    include <ext/stdio_filebuf.h>  // __gnu_cxx::stdio_filebuf
 #    include <fcntl.h>
+#    include <share.h>
 #    include <sys/stat.h>
 
 

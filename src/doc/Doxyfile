@@ -99,7 +99,7 @@ OUTPUT_LANGUAGE        = English
 # Possible values are: None, LTR, RTL and Context.
 # The default value is: None.
 
-OUTPUT_TEXT_DIRECTION  = None
+#OUTPUT_TEXT_DIRECTION  = None
 
 # If the BRIEF_MEMBER_DESC tag is set to YES, doxygen will include brief member
 # descriptions after the members that are listed in the file and class
@@ -253,12 +253,6 @@ TAB_SIZE               = 4
 
 ALIASES                = "rst=\verbatim embed:rst:leading-slashes"
 ALIASES               += "endrst=\endverbatim"
-
-# This tag can be used to specify a number of word-keyword mappings (TCL only).
-# A mapping has the form "name=value". For example adding "class=itcl::class"
-# will allow you to use the command class in the itcl::class meaning.
-
-TCL_SUBST              =
 
 # Set the OPTIMIZE_OUTPUT_FOR_C tag to YES if your project consists of C sources
 # only. Doxygen will then generate output that is more tailored for C. For
@@ -900,11 +894,7 @@ RECURSIVE              = YES
 
 EXCLUDE                = ../../src/include/OpenImageIO/filter.h \
                          ../../src/include/OpenImageIO/plugin.h \
-                         ../../src/include/OpenImageIO/pugixml.cpp \
-                         ../../src/include/OpenImageIO/pugixml.hpp \
-                         ../../src/include/OpenImageIO/SHA1.h \
-                         ../../src/include/OpenImageIO/tinyformat.h \
-                         ../../src/include/OpenImageIO/fmt \
+                         ../../src/include/OpenImageIO/detail \
                          ../../src/doc \
                          ../../src/libOpenImageIO \
                          ../../src/libtexture \
@@ -1130,7 +1120,7 @@ ALPHABETICAL_INDEX     = YES
 # Minimum value: 1, maximum value: 20, default value: 5.
 # This tag requires that the tag ALPHABETICAL_INDEX is set to YES.
 
-COLS_IN_ALPHA_INDEX    = 5
+# COLS_IN_ALPHA_INDEX    = 5
 
 # In case all classes in a project start with a common prefix, all classes will
 # be put under the same header in the alphabetical index. The IGNORE_PREFIX tag
@@ -1860,7 +1850,7 @@ LATEX_HIDE_INDICES     = NO
 # The default value is: NO.
 # This tag requires that the tag GENERATE_LATEX is set to YES.
 
-LATEX_SOURCE_CODE      = YES
+# LATEX_SOURCE_CODE      = YES
 
 # The LATEX_BIB_STYLE tag can be used to specify the style to use for the
 # bibliography, e.g. plainnat, or ieeetr. See
@@ -1950,7 +1940,7 @@ RTF_EXTENSIONS_FILE    =
 # The default value is: NO.
 # This tag requires that the tag GENERATE_RTF is set to YES.
 
-RTF_SOURCE_CODE        = NO
+# RTF_SOURCE_CODE        = NO
 
 #---------------------------------------------------------------------------
 # Configuration options related to the man page output
@@ -2055,7 +2045,7 @@ DOCBOOK_OUTPUT         = docbook
 # The default value is: NO.
 # This tag requires that the tag GENERATE_DOCBOOK is set to YES.
 
-DOCBOOK_PROGRAMLISTING = NO
+# DOCBOOK_PROGRAMLISTING = NO
 
 #---------------------------------------------------------------------------
 # Configuration options for the AutoGen Definitions output
@@ -2165,11 +2155,31 @@ INCLUDE_FILE_PATTERNS  = *.h
 # This tag requires that the tag ENABLE_PREPROCESSING is set to YES.
 
 PREDEFINED             = DOXYGEN_SHOULD_SKIP_THIS \
+                         OIIO_DOXYGEN:=1 \
                          OIIO_NO_SANITIZE_ADDRESS:= \
+                         OIIO_NO_SANITIZE_UNDEFINED:= \
                          OIIO_API:= \
+                         OIIO_UTIL_API:= \
+                         OIIOC_API:= \
+                         OIIO_HOSTDEVICE= \
                          OIIO_NAMESPACE_BEGIN="namespace OIIO {" \
                          OIIO_NAMESPACE_END="}" \
-                         OIIO_CONSTEXPR14=constexpr
+                         OIIO_CONSTEXPR14=constexpr \
+                         OIIO_CONSTEXPR17=constexpr \
+                         OIIO_CONSTEXPR20=constexpr \
+                         OIIO_INLINE_CONSTEXPR="inline constexpr" \
+                         OIIO_PURE_FUNC= \
+                         OIIO_CONST_FUNC= \
+                         OIIO_MAYBE_UNUSED= \
+                         OIIO_NODISCARD=[[nodiscard]] \
+                         OIIO_DEPRECATED:=[[deprecated]] \
+                         OIIO_FORMAT_DEPRECATED:= \
+                         OIIO_ERRORHANDLER_PRINTF_DEPRECATED:= \
+                         OIIO_FORCEINLINE=inline \
+                         IMATH_HALF_H_=1 \
+                         INCLUDED_IMATHVEC_H=1 \
+                         INCLUDED_IMATHMATRIX_H=1 \
+
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then this
 # tag can be used to specify a list of macro names that should be expanded. The
@@ -2236,11 +2246,6 @@ EXTERNAL_GROUPS        = YES
 
 EXTERNAL_PAGES         = YES
 
-# The PERL_PATH should be the absolute path and name of the perl script
-# interpreter (i.e. the result of 'which perl').
-# The default file (with absolute path) is: /usr/bin/perl.
-
-PERL_PATH              = /usr/bin/perl
 
 #---------------------------------------------------------------------------
 # Configuration options related to the dot tool
@@ -2254,15 +2259,6 @@ PERL_PATH              = /usr/bin/perl
 # The default value is: YES.
 
 CLASS_DIAGRAMS         = YES
-
-# You can define message sequence charts within doxygen comments using the \msc
-# command. Doxygen will then run the mscgen tool (see:
-# http://www.mcternan.me.uk/mscgen/)) to produce the chart and insert it in the
-# documentation. The MSCGEN_PATH tag allows you to specify the directory where
-# the mscgen tool resides. If left empty the tool is assumed to be found in the
-# default search path.
-
-MSCGEN_PATH            =
 
 # You can include diagrams made with dia in doxygen documentation. Doxygen will
 # then run dia to produce the diagram and insert it in the documentation. The

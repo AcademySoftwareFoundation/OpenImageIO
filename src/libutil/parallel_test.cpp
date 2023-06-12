@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 #include <algorithm>
@@ -31,32 +31,24 @@ static int threadcounts[] = { 1,  2,  4,  8,  12,  16,   20,
 static void
 getargs(int argc, char* argv[])
 {
-    bool help = false;
     ArgParse ap;
     // clang-format off
-    ap.options(
-        "parallel_test\n" OIIO_INTRO_STRING "\n"
-        "Usage:  parallel_test [options]",
-        // "%*", parse_files, "",
-        "--help", &help, "Print help message",
-        "-v", &verbose, "Verbose mode",
-        "--threads %d", &numthreads,
-            ustring::sprintf("Number of threads (default: %d)", numthreads).c_str(),
-        "--iters %d", &iterations,
-            ustring::sprintf("Number of iterations (default: %d)", iterations).c_str(),
-        "--trials %d", &ntrials, "Number of trials",
-        "--wedge", &wedge, "Do a wedge test",
-        nullptr);
+    ap.intro("parallel_test\n" OIIO_INTRO_STRING)
+      .usage("parallel_test [options]");
+
+    ap.arg("-v", &verbose)
+      .help("Verbose mode");
+    ap.arg("--threads %d", &numthreads)
+      .help(Strutil::sprintf("Number of threads (default: %d)", numthreads));
+    ap.arg("--iters %d", &iterations)
+      .help(Strutil::sprintf("Number of iterations (default: %d)", iterations));
+    ap.arg("--trials %d", &ntrials)
+      .help("Number of trials");
+    ap.arg("--wedge", &wedge)
+      .help("Do a wedge test");
     // clang-format on
-    if (ap.parse(argc, (const char**)argv) < 0) {
-        std::cerr << ap.geterror() << std::endl;
-        ap.usage();
-        exit(EXIT_FAILURE);
-    }
-    if (help) {
-        ap.usage();
-        exit(EXIT_FAILURE);
-    }
+
+    ap.parse(argc, (const char**)argv);
 }
 
 
@@ -74,7 +66,7 @@ time_parallel_for()
         // make a lambda function that spawns a bunch of threads, calls a
         // trivial function, then waits for them to finish and tears down
         // the group.
-        auto func = [=]() { parallel_for(0, nt, [](int64_t i) { /*empty*/ }); };
+        auto func = [=]() { parallel_for(0, nt, [](int64_t) { /*empty*/ }); };
 
         double range;
         double t = time_trial(func, ntrials, its, &range);
@@ -132,13 +124,13 @@ test_thread_pool_recursion()
     static spin_mutex print_mutex;
     thread_pool* pool(default_thread_pool());
     pool->resize(2);
-    parallel_for(0, 10, [&](int id, int64_t i) {
+    parallel_for(0, 10, [&](int64_t /*i*/) {
         // sleep long enough that we can push all the jobs before any get
         // done.
         Sysutil::usleep(10);
         // then run something else that itself will push jobs onto the
         // thread pool queue.
-        parallel_for(0, 10, [&](int id, int64_t i) {
+        parallel_for(0, 10, [&](int64_t /*i*/) {
             Sysutil::usleep(2);
             spin_lock lock(print_mutex);
             // std::cout << "  recursive running thread " << id << std::endl;
@@ -161,7 +153,7 @@ test_empty_thread_pool()
     task_set ts(pool);
     for (int i = 0; i < ntasks; ++i)
         ts.push(pool->push([&](int id) {
-            ASSERT(id == -1 && "Must be run by calling thread");
+            OIIO_ASSERT(id == -1 && "Must be run by calling thread");
             count += 1;
         }));
     ts.wait();

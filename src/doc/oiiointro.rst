@@ -223,47 +223,46 @@ relevant parts of the source code.
 
 OpenImageIO incorporates, distributes, or contains derived works of:
 
-* The SHA-1 implemenation we use is public domain by Dominik Reichl  http://www.dominik-reichl.de/
-* Squish © 2006 Simon Brown, MIT license. http://sjbrown.co.uk/?code=squish
+* The SHA-1 implementation we use is public domain by Dominik Reichl  http://www.dominik-reichl.de/
 * PugiXML © 2006-2009 by Arseny Kapoulkine (based on work © 2003 Kristen Wegner), MIT license. http://pugixml.org/
 * DPX reader/writer © 2009 Patrick A. Palmer, BSD 3-clause license. https://github.com/patrickpalmer/dpx}
-* tinyformat.h © 2011 Chris Foster, Boost license. http://github.com/c42f/tinyformat
 * lookup3 code by Bob Jenkins, Public Domain. http://burtleburtle.net/bob/c/lookup3.c
 * xxhash © 2014 Yann Collet, BSD 2-clause license. https://github.com/Cyan4973/xxHash
 * farmhash © 2014 Google, Inc., MIT license. https://github.com/google/farmhash
+* gif.h by Charlie Tangora, public domain. https://github.com/ginsweater/gif-h
 * KissFFT © 2003--2010 Mark Borgerding, 3-clause BSD license. https://github.com/mborgerding/kissfft
 * CTPL thread pool © 2014 Vitaliy Vitsentiy, Apache License. https://github.com/vit-vit/CTPL
 * Droid fonts from the Android SDK are distributed under the Apache license.  http://www.droidfonts.com
 * function_view.h contains code derived from LLVM, © 2003--2018 University of Illinois at Urbana-Champaign. UIUC license (compatible with BSD)  http://llvm.org
 * FindOpenVDB.cmake © 2015 Blender Foundation, BSD license.
 * FindTBB.cmake © 2015 Justus Calvin, MIT license.
-* fmt library © Victor Zverovich. BSD 2-clause license. https://github.com/fmtlib/fmt
+* fmt library © Victor Zverovich. MIT license. https://github.com/fmtlib/fmt
 * UTF-8 decoder © 2008-2009 Bjoern Hoehrmann, MIT license. http://bjoern.hoehrmann.de/utf-8/decoder/dfa
 * Base-64 encoder © René Nyffenegger, Zlib license. http://www.adp-gmbh.ch/cpp/common/base64.html
 * stb_sprintf © 2017 Sean Barrett, public domain (or MIT license where that   may not apply). https://github.com/nothings/stb
+* bcdec.h bySergii "iOrange" Kudlai, MIT or Unlicense. https://github.com/iOrange/bcdec
 
 OpenImageIO Has the following build-time dependencies (using
 system installs, referencing as git submodules, or downloading as part of
 the build), including link-time dependencies
 against dynamic libraries:
 
-* libtiff <http://www.remotesensing.org/libtiff> © 1988-1997 Sam Leffler and 1991-1997 Silicon Graphics, Inc.  http://www.remotesensing.org/libtiff
+* libtiff © 1988-1997 Sam Leffler and 1991-1997 Silicon Graphics, Inc.  http://www.remotesensing.org/libtiff
 * IJG libjpeg © 1991-1998, Thomas G. Lane.  http://www.ijg.org
 * OpenEXR, Ilmbase, and Half © 2006, Industrial Light & Magic. http://www.openexr.com
 * zlib © 1995-2005 Jean-loup Gailly and Mark Adler. http://www.zlib.net
 * libpng © 1998-2008 Glenn Randers-Pehrson, et al. http://www.libpng.org
 * Boost © various authors. http://www.boost.org
 * GLEW © 2002-2007 Milan Ikits, et al. http://glew.sourceforge.net
-* Jasper © 2001-2006 Michael David Adams, et al. http://www.ece.uvic.ca/~mdadams/jasper/
 * Ptex © 2009 Disney Enterprises, Inc. http://ptex.us
-* Field3D © 2009 Sony Pictures Imageworks. http://sites.google.com/site/field3d/
 * GIFLIB © 1997 Eric S. Raymond (MIT Licensed). http://giflib.sourceforge.net/
 * LibRaw © 2008-2013 LibRaw LLC (LGPL, CDDL, and LibRaw licenses).  http://www.libraw.org/
 * FFmpeg © various authors and distributed under LGPL. https://www.ffmpeg.org
 * FreeType © 1996-2002, 2006 by David Turner, Robert Wilhelm, and Werner Lemberg. Distributed under the FreeType license (BSD compatible).
 * JPEG-Turbo © 2009--2015 D. R. Commander. Distributed under the BSD license.
 * pybind11 © 2016 Wenzel Jakob. Distributed under the BSD license. https://github.com/pybind/pybind11
-* OpenVDB © 2012-2018 DreamWorks Animation LLC, Mozilla Public License 2.0.
+* OpenJPEG © Universite catholique de Louvain (UCL), et al. Distributed under the BSD 2-clause license. https://github.com/uclouvain/openjpeg
+* OpenVDB © 2012-2018 DreamWorks Animation LLC, Mozilla Public License 2.0. https://www.openvdb.org/
 * Thread Building Blocks © Intel. Apache 2.0 license. https://www.threadingbuildingblocks.org/
-* libheif \copyright 2017-2018 Struktur AG (LGPL). https://github.com/strukturag/libheif
+* libheif © 2017-2018 Struktur AG (LGPL). https://github.com/strukturag/libheif
 

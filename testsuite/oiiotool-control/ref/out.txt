@@ -1,0 +1,285 @@
+42+2 = 44
+42-2 = 40
+42*2 = 84
+42/2 = 21
+42<41 = 0
+42<42 = 0
+42<43 = 1
+42<=41 = 0
+42<=42 = 1
+42<=43 = 1
+42>41 = 1
+42>42 = 0
+42>43 = 0
+42>=41 = 1
+42>=42 = 1
+42>=43 = 0
+42==41 = 0
+42==42 = 1
+42==43 = 0
+42!=41 = 1
+42!=42 = 0
+42!=43 = 1
+42<=>41 = 1
+42<=>42 = 0
+42<=>43 = -1
+(1==2)&&(2==2) = 0
+(1==1)&&(2==2) = 1
+(1==2)&&(1==2) = 0
+(1==2)||(2==2) = 1
+(1==1)||(2==2) = 1
+(1==2)||(1==2) = 0
+not(1==1) = 0
+not(1==2) = 1
+!(1==1) = 0
+!(1==2) = 1
+eq(foo,foo) = 1
+eq(foo,bar) = 0
+neq(foo,foo) = 0
+neq(foo,bar) = 1
+16+5=21
+16-5=11
+16*5=80
+16/5=3.2
+16//5=3
+16%5=1
+xyz should say xyz
+timecode is 01:02:03:04
+2
+{3+4}
+4
+Testing --set, expr i:
+  i = 1
+  now i = 42
+Testing --set, expr var(i):
+  i = 1
+  now i = 42
+Testing --set of implied types:
+  i = 42, f = 3.5, s = hello world
+Testing --set of various explicit types:
+  i = 42, f = 3.5, s = hello world, tc = 01:02:03:04, rat = 1/2
+Expr getattribute(limits:channels) = 1024
+Testing if with true cond (expect output):
+  inside if clause, i=42
+  done
+ 
+Testing if with false cond (expect NO output):
+  done
+ 
+Testing if/else with true cond:
+  inside if clause, i=42
+  done
+ 
+Testing if/else with false cond:
+  inside else clause, i=0
+  done
+ 
+Testing else without if:
+oiiotool ERROR: -else : else without matching if
+Full command line was:
+> oiiotool -echo "Testing else without if:" -else -echo bad -endif -echo " "
+Testing endif without if:
+oiiotool ERROR: -endif : endif without matching if
+Full command line was:
+> oiiotool -echo "Testing endif without if:" -endif -echo " "
+Testing while (expect output 0..2):
+  i = 0
+  i = 1
+  i = 2
+ 
+Testing endwhile without while:
+oiiotool ERROR: -endwhile : endwhile without matching while
+Full command line was:
+> oiiotool -echo "Testing endwhile without while:" -endwhile -echo " "
+Testing for i 5 (expect output 0..4):
+  i = 0
+  i = 1
+  i = 2
+  i = 3
+  i = 4
+ 
+Testing for i 5,10 (expect output 5..9):
+  i = 5
+  i = 6
+  i = 7
+  i = 8
+  i = 9
+ 
+Testing for i 5,10,2 (expect output 5,7,9):
+  i = 5
+  i = 7
+  i = 9
+ 
+Testing endfor without for:
+oiiotool ERROR: -endfor : endfor without matching for
+Full command line was:
+> oiiotool -echo "Testing endfor without for:" -endfor -echo " "
+Testing for i 5,10,2,8 (bad range):
+oiiotool ERROR: --for : Invalid range "5,10,2,8"
+Full command line was:
+> oiiotool -echo "Testing for i 5,10,2,8 (bad range):" --for i 5,10,2,8 --echo "  i = {i}" --endfor -echo " "
+Begin sequence iteration 0
+  copyA.#.jpg -> ./copyA.0001.jpg
+  copyB.#.jpg -> copyB.0001.jpg
+Reading ./copyA.0001.jpg
+Output: copyB.0001.jpg
+Writing copyB.0001.jpg
+
+Begin sequence iteration 1
+  copyA.#.jpg -> ./copyA.0002.jpg
+  copyB.#.jpg -> copyB.0002.jpg
+Reading ./copyA.0002.jpg
+Output: copyB.0002.jpg
+Writing copyB.0002.jpg
+
+Begin sequence iteration 2
+  copyA.#.jpg -> ./copyA.0003.jpg
+  copyB.#.jpg -> copyB.0003.jpg
+Reading ./copyA.0003.jpg
+Output: copyB.0003.jpg
+Writing copyB.0003.jpg
+
+Begin sequence iteration 3
+  copyA.#.jpg -> ./copyA.0004.jpg
+  copyB.#.jpg -> copyB.0004.jpg
+Reading ./copyA.0004.jpg
+Output: copyB.0004.jpg
+Writing copyB.0004.jpg
+
+Begin sequence iteration 4
+  copyA.#.jpg -> ./copyA.0005.jpg
+  copyB.#.jpg -> copyB.0005.jpg
+Reading ./copyA.0005.jpg
+Output: copyB.0005.jpg
+Writing copyB.0005.jpg
+
+Begin sequence iteration 5
+  copyA.#.jpg -> ./copyA.0006.jpg
+  copyB.#.jpg -> copyB.0006.jpg
+Reading ./copyA.0006.jpg
+Output: copyB.0006.jpg
+Writing copyB.0006.jpg
+
+Begin sequence iteration 6
+  copyA.#.jpg -> ./copyA.0007.jpg
+  copyB.#.jpg -> copyB.0007.jpg
+Reading ./copyA.0007.jpg
+Output: copyB.0007.jpg
+Writing copyB.0007.jpg
+
+Begin sequence iteration 7
+  copyA.#.jpg -> ./copyA.0008.jpg
+  copyB.#.jpg -> copyB.0008.jpg
+Reading ./copyA.0008.jpg
+Output: copyB.0008.jpg
+Writing copyB.0008.jpg
+
+Begin sequence iteration 8
+  copyA.#.jpg -> ./copyA.0009.jpg
+  copyB.#.jpg -> copyB.0009.jpg
+Reading ./copyA.0009.jpg
+Output: copyB.0009.jpg
+Writing copyB.0009.jpg
+
+Begin sequence iteration 9
+  copyA.#.jpg -> ./copyA.0010.jpg
+  copyB.#.jpg -> copyB.0010.jpg
+Reading ./copyA.0010.jpg
+Output: copyB.0010.jpg
+Writing copyB.0010.jpg
+
+copyA.0001.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0002.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0003.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0004.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0005.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0006.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0007.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0008.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0009.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0010.jpg       :  128 x   96, 3 channel, uint8 jpeg
+Sequence 1-5:  1
+Sequence 1-5:  2
+Sequence 1-5:  3
+Sequence 1-5:  4
+Sequence 1-5:  5
+Sequence -5-5:  -5
+Sequence -5-5:  -4
+Sequence -5-5:  -3
+Sequence -5-5:  -2
+Sequence -5-5:  -1
+Sequence -5-5:  0
+Sequence -5-5:  1
+Sequence -5-5:  2
+Sequence -5-5:  3
+Sequence -5-5:  4
+Sequence -5-5:  5
+Sequence -5--2:  -5
+Sequence -5--2:  -4
+Sequence -5--2:  -3
+Sequence -5--2:  -2
+oiiotool WARNING : oiiotool produced no output. Did you forget -o?
+oiiotool ERROR : Not all sequence specifications matched: copyA.#.jpg (10 frames) vs. copyC.1-5#.jpg (5 frames)
+Full command line was:
+> 
+
+Brief:  128 x   96, 3 channel, float tiff
+
+Brief native:  128 x   96, 3 channel, uint8 tiff
+
+Meta native:  128 x   96, 3 channel, uint8 tiff
+    channel list: R, G, B
+    compression: "lzw"
+    DateTime: "2013:04:16 10:20:35"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    planarconfig: "contig"
+    ResolutionUnit: "in"
+    Software: "OpenImageIO 1.6.4dev : oiiotool testsuite/oiiotool/tahoe-small.tif -resize 128x96 -o testsuite/oiiotool/tahoe-tiny.tif"
+    XResolution: 72
+    YResolution: 72
+    oiio:BitsPerSample: 8
+    tiff:Compression: 5
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+    tiff:RowsPerStrip: 32
+
+Stats:
+Stats Min: 0 0 0 (of 255)
+Stats Max: 190 255 255 (of 255)
+Stats Avg: 26.00 55.26 108.45 (of 255)
+Stats StdDev: 32.31 59.12 95.51 (of 255)
+Stats NanCount: 0 0 0 
+Stats InfCount: 0 0 0 
+Stats FiniteCount: 12288 12288 12288 
+Constant: No
+Monochrome: No
+
+Stack holds [0] = ../common/tahoe-small.tif, [1] = ../common/tahoe-tiny.tif
+filename=../common/tahoe-tiny.tif file_extension=.tif file_noextension=../common/tahoe-tiny
+MINCOLOR=0,0,0 MAXCOLOR=0.745098,1,1 AVGCOLOR=0.101942,0.216695,0.425293
+Testing NIMAGES:
+  0
+  1
+  2
+  3
+postponed sub:
+ 128 x   96, 3 channel, float 
+    Stats Min: 0.000000 0.000000 0.000000 (float)
+    Stats Max: 0.000000 0.000000 0.000000 (float)
+    Stats Avg: 0.000000 0.000000 0.000000 (float)
+    Stats StdDev: 0.000000 0.000000 0.000000 (float)
+    Stats NanCount: 0 0 0 
+    Stats InfCount: 0 0 0 
+    Stats FiniteCount: 12288 12288 12288 
+    Constant: Yes
+    Constant Color: 0.000000 0.000000 0.000000 (float)
+    Monochrome: Yes
+Comparing "exprgradient.tif" and "ref/exprgradient.tif"
+PASS
+Comparing "exprcropped.tif" and "ref/exprcropped.tif"
+PASS
+Comparing "exprstrcatlzw.tif" and "ref/exprstrcatlzw.tif"
+PASS
+Comparing "tahoe-contraststretch.tif" and "ref/tahoe-contraststretch.tif"
+PASS

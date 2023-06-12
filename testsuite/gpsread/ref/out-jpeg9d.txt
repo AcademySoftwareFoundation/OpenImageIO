@@ -1,0 +1,61 @@
+Reading ../oiio-images/tahoe-gps.jpg
+../oiio-images/tahoe-gps.jpg : 2048 x 1536, 3 channel, uint8 jpeg
+    SHA-1: B5183E383D55949944FE40DC55A67844739E0B7B
+    channel list: R, G, B
+    Make: "HTC"
+    Model: "T-Mobile G1"
+    Orientation: 1 (normal)
+    ResolutionUnit: "none"
+    Software: "title;va"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:DateTimeDigitized: "2009:02:21 08:32:04"
+    Exif:DateTimeOriginal: "2009:02:21 08:32:04"
+    Exif:ExifVersion: "0220"
+    Exif:FlashPixVersion: "0100"
+    Exif:PixelXDimension: 2048
+    Exif:PixelYDimension: 1536
+    Exif:WhiteBalance: 0 (auto)
+    Exif:YCbCrPositioning: 1
+    GPS:Altitude: 0 (0 m)
+    GPS:AltitudeRef: 0 (above sea level)
+    GPS:DateStamp: "1915:08:08"
+    GPS:Latitude: 39, 18, 24.4
+    GPS:LatitudeRef: "N"
+    GPS:Longitude: 120, 20, 6.25
+    GPS:LongitudeRef: "W"
+    GPS:MapDatum: "WGS-84"
+    GPS:TimeStamp: 17, 56, 33
+    GPS:VersionID: 2, 2, 0, 0
+    jpeg:subsampling: "4:2:0"
+    oiio:ColorSpace: "sRGB"
+Reading tahoe-gps.jpg
+tahoe-gps.jpg        : 2048 x 1536, 3 channel, uint8 jpeg
+    SHA-1: A74C7DF2B01825DCB6881407AE77C11DC56AB741
+    channel list: R, G, B
+    Make: "HTC"
+    Model: "T-Mobile G1"
+    Orientation: 1 (normal)
+    ResolutionUnit: "none"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:ExifVersion: "0230"
+    Exif:FlashPixVersion: "0100"
+    Exif:PixelXDimension: 2048
+    Exif:PixelYDimension: 1536
+    Exif:WhiteBalance: 0 (auto)
+    Exif:YCbCrPositioning: 1
+    GPS:Altitude: 0 (0 m)
+    GPS:AltitudeRef: 0 (above sea level)
+    GPS:DateStamp: "1915:08:08"
+    GPS:Latitude: 39, 18, 24.4
+    GPS:LatitudeRef: "N"
+    GPS:Longitude: 120, 20, 6.25
+    GPS:LongitudeRef: "W"
+    GPS:MapDatum: "WGS-84"
+    GPS:TimeStamp: 17, 56, 33
+    GPS:VersionID: 2, 2, 0, 0
+    jpeg:subsampling: "4:2:0"
+    oiio:ColorSpace: "sRGB"

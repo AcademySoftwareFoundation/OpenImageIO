@@ -36,6 +36,10 @@ Example::
 
     Prints usage information to the terminal.
 
+.. option:: --version
+
+    Prints the version designation of the OIIO library.
+
 .. describe:: -d
 
     Print directory names as it recurses.  This only happens if the `-r`
@@ -58,7 +62,7 @@ Example::
 
 .. describe:: -l
 
-    Simply list the matching files by name, surpressing the normal output
+    Simply list the matching files by name, suppressing the normal output
     that would include the metadata name and values that matched. For
     example::
 

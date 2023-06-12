@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #include <cmath>
 #include <iostream>
@@ -9,12 +9,15 @@
 #endif
 #include <vector>
 
+#ifndef OIIO_QT_MAJOR
+#    error "Build problem? OIIO_QT_MAJOR not defined."
+#endif
+
 #include "imageviewer.h"
 #include "ivgl.h"
 
 #include <QApplication>
 #include <QComboBox>
-#include <QDesktopWidget>
 #include <QFileDialog>
 #include <QKeyEvent>
 #include <QLabel>
@@ -28,11 +31,13 @@
 #include <QStatusBar>
 #include <QTimer>
 
-#include <OpenEXR/ImathFun.h>
+#if OIIO_QT_MAJOR < 6
+#    include <QDesktopWidget>
+#endif
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filesystem.h>
-#include <OpenImageIO/fmath.h>
+#include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/timer.h>
@@ -54,16 +59,15 @@ IsSpecSrgb(const ImageSpec& spec)
 
 // clang-format off
 static const char *s_file_filters = ""
-    "Image Files (*.bmp *.cin *.dcm *.dds *.dpx *.f3d *.fits *.gif *.hdr *.ico *.iff "
+    "Image Files (*.bmp *.cin *.dcm *.dds *.dpx *.fits *.gif *.hdr *.ico *.iff "
     "*.jpg *.jpe *.jpeg *.jif *.jfif *.jfi *.jp2 *.j2k *.exr *.png *.pbm *.pgm "
     "*.ppm *.psd *.ptex *.rla *.sgi *.rgb *.rgba *.bw *.int *.inta *.pic *.tga "
-    "*.tpic *.tif *.tiff *.tx *.env *.sm *.vsm *.webp *.zfile);;"
+    "*.tpic *.tif *.tiff *.tx *.env *.sm *.vsm *.vdb *.webp *.zfile);;"
     "BMP (*.bmp);;"
     "Cineon (*.cin);;"
     "Direct Draw Surface (*.dds);;"
     "DICOM (*.dcm);;"
     "DPX (*.dpx);;"
-    "Field3D (*.f3d);;"
     "FITS (*.fits);;"
     "GIF (*.gif);;"
     "HDR/RGBE (*.hdr);;"
@@ -72,6 +76,7 @@ static const char *s_file_filters = ""
     "JPEG (*.jpg *.jpe *.jpeg *.jif *.jfif *.jfi);;"
     "JPEG-2000 (*.jp2 *.j2k);;"
     "OpenEXR (*.exr);;"
+    "OpenVDB (*.vdb);;"
     "PhotoShop (*.psd);;"
     "Portable Network Graphics (*.png);;"
     "PNM / Netpbm (*.pbm *.pgm *.ppm);;"
@@ -774,11 +779,14 @@ ImageViewer::add_image(const std::string& filename)
 {
     if (filename.empty())
         return;
-    ImageSpec config;
-    if (rawcolor())
+    IvImage* newimage = nullptr;
+    if (rawcolor()) {
+        ImageSpec config;
         config.attribute("oiio:RawColor", 1);
-    IvImage* newimage = new IvImage(filename, &config);
-    ASSERT(newimage);
+        newimage = new IvImage(filename, &config);
+    } else {
+        newimage = new IvImage(filename);
+    }
     newimage->gamma(m_default_gamma);
     m_images.push_back(newimage);
     addRecentFile(filename);
@@ -813,11 +821,12 @@ ImageViewer::saveAs()
         return;
     QString name;
     name = QFileDialog::getSaveFileName(this, tr("Save Image"),
-                                        QString(img->name().c_str()),
+                                        QString(img->uname().c_str()),
                                         tr(s_file_filters));
     if (name.isEmpty())
         return;
-    bool ok = img->write(name.toStdString(), "", image_progress_callback, this);
+    bool ok = img->write(name.toStdString(), TypeUnknown, "",
+                         image_progress_callback, this);
     if (!ok) {
         std::cerr << "Save failed: " << img->geterror() << "\n";
     }
@@ -833,10 +842,11 @@ ImageViewer::saveWindowAs()
         return;
     QString name;
     name = QFileDialog::getSaveFileName(this, tr("Save Window"),
-                                        QString(img->name().c_str()));
+                                        QString(img->uname().c_str()));
     if (name.isEmpty())
         return;
-    img->write(name.toStdString(), "", image_progress_callback, this);  // FIXME
+    img->write(name.toStdString(), TypeUnknown, "", image_progress_callback,
+               this);
 }
 
 
@@ -849,10 +859,11 @@ ImageViewer::saveSelectionAs()
         return;
     QString name;
     name = QFileDialog::getSaveFileName(this, tr("Save Selection"),
-                                        QString(img->name().c_str()));
+                                        QString(img->uname().c_str()));
     if (name.isEmpty())
         return;
-    img->write(name.toStdString(), "", image_progress_callback, this);  // FIXME
+    img->write(name.toStdString(), TypeUnknown, "", image_progress_callback,
+               this);
 }
 
 
@@ -866,7 +877,7 @@ ImageViewer::updateTitle()
         return;
     }
     std::string message;
-    message = Strutil::sprintf("%s - iv Image Viewer", img->name().c_str());
+    message = Strutil::fmt::format("{} - iv Image Viewer", img->name());
     setWindowTitle(QString::fromLocal8Bit(message.c_str()));
 }
 
@@ -949,7 +960,7 @@ ImageViewer::loadCurrentImage(int subimage, int miplevel)
         // opengl's capabilities.
         if (!img->init_spec(img->name(), subimage, miplevel)) {
             statusImgInfo->setText(
-                tr("Could not display image: %1.").arg(img->name().c_str()));
+                tr("Could not display image: %1.").arg(img->uname().c_str()));
             statusViewInfo->setText(tr(""));
             return false;
         }
@@ -1005,7 +1016,7 @@ ImageViewer::loadCurrentImage(int subimage, int miplevel)
         // Read the image from disk or from the ImageCache if available.
         if (img->read_iv(subimage, miplevel, false, read_format,
                          image_progress_callback, this, allow_transforms)) {
-            // The image was read succesfully.
+            // The image was read successfully.
             // Check if we've got to do sRGB to linear (ie, when not supported
             // by OpenGL).
             // Do the first pixel transform to fill-in the secondary image
@@ -1017,7 +1028,7 @@ ImageViewer::loadCurrentImage(int subimage, int miplevel)
             return true;
         } else {
             statusImgInfo->setText(
-                tr("Could not display image: %1.").arg(img->name().c_str()));
+                tr("Could not display image: %1.").arg(img->uname().c_str()));
             statusViewInfo->setText(tr(""));
             return false;
         }
@@ -1082,7 +1093,7 @@ ImageViewer::deleteCurrentImage()
 {
     IvImage* img = cur();
     if (img) {
-        const char* filename = img->name().c_str();
+        const char* filename = img->uname().c_str();
         QString message("Are you sure you want to remove <b>");
         message = message + QString(filename) + QString("</b> file from disk?");
         QMessageBox::StandardButton button;
@@ -1274,7 +1285,7 @@ ImageViewer::gammaPlus()
 
 
 void
-ImageViewer::slide(long t, bool b)
+ImageViewer::slide(long /*t*/, bool b)
 {
     slideLoopAct->setChecked(b == true);
     slideNoLoopAct->setChecked(b == false);
@@ -1438,14 +1449,12 @@ ImageViewer::sortByPath()
 
 
 static bool
-DateTime_to_time_t(const char* datetime, time_t& timet)
+DateTime_to_time_t(string_view datetime, time_t& timet)
 {
     int year, month, day, hour, min, sec;
-    int r = sscanf(datetime, "%d:%d:%d %d:%d:%d", &year, &month, &day, &hour,
-                   &min, &sec);
-    // printf ("%d  %d:%d:%d %d:%d:%d\n", r, year, month, day, hour, min, sec);
-    if (r != 6)
+    if (!Strutil::scan_datetime(datetime, year, month, day, hour, min, sec))
         return false;
+    // print("{}:{}:{} {}:{}:{}\n", year, month, day, hour, min, sec);
     struct tm tmtime;
     time_t now;
     Sysutil::get_local_time(&now, &tmtime);  // fill in defaults
@@ -1823,10 +1832,10 @@ ImageViewer::zoomIn()
     float xoffset      = xc - xm;
     float yoffset      = yc - ym;
     float maxzoomratio = std::max(oldzoom / newzoom, newzoom / oldzoom);
-    int nsteps = (int)Imath::clamp(20 * (maxzoomratio - 1), 2.0f, 10.0f);
+    int nsteps         = (int)OIIO::clamp(20 * (maxzoomratio - 1), 2.0f, 10.0f);
     for (int i = 1; i <= nsteps; ++i) {
         float a         = (float)i / (float)nsteps;  // Interpolation amount
-        float z         = Imath::lerp(oldzoom, newzoom, a);
+        float z         = OIIO::lerp(oldzoom, newzoom, a);
         float zoomratio = z / oldzoom;
         view(xm + xoffset / zoomratio, ym + yoffset / zoomratio, z, false);
         if (i != nsteps) {
@@ -1858,10 +1867,10 @@ ImageViewer::zoomOut()
     float xoffset      = xcpel - xmpel;
     float yoffset      = ycpel - ympel;
     float maxzoomratio = std::max(oldzoom / newzoom, newzoom / oldzoom);
-    int nsteps = (int)Imath::clamp(20 * (maxzoomratio - 1), 2.0f, 10.0f);
+    int nsteps         = (int)OIIO::clamp(20 * (maxzoomratio - 1), 2.0f, 10.0f);
     for (int i = 1; i <= nsteps; ++i) {
         float a         = (float)i / (float)nsteps;  // Interpolation amount
-        float z         = Imath::lerp(oldzoom, newzoom, a);
+        float z         = OIIO::lerp(oldzoom, newzoom, a);
         float zoomratio = z / oldzoom;
         view(xmpel + xoffset / zoomratio, ympel + yoffset / zoomratio, z,
              false);
@@ -1949,9 +1958,14 @@ ImageViewer::fitWindowToImage(bool zoomok, bool minsize)
     }
 
     if (!m_fullscreen) {
-        QDesktopWidget* desktop = QApplication::desktop();
-        QRect availgeom         = desktop->availableGeometry(this);
-        int availwidth          = availgeom.width() - extraw - 20;
+#if OIIO_QT_MAJOR >= 6
+        auto desktop    = this->screen();
+        QRect availgeom = desktop->availableGeometry();
+#else
+        auto desktop    = QApplication::desktop();
+        QRect availgeom = desktop->availableGeometry(this);
+#endif
+        int availwidth  = availgeom.width() - extraw - 20;
         int availheight = availgeom.height() - extrah - menuBar()->height()
                           - 20;
 #if 0
@@ -2053,7 +2067,7 @@ static inline void
 calc_subimage_from_zoom(const IvImage* img, int& subimage, float& zoom,
                         float& xcenter, float& ycenter)
 {
-    int rel_subimage = Imath::trunc(std::log2(1.0f / zoom));
+    int rel_subimage = std::trunc(std::log2(1.0f / zoom));
     subimage         = clamp<int>(img->subimage() + rel_subimage, 0,
                           img->nsubimages() - 1);
     if (!(img->subimage() == 0 && zoom > 1)
@@ -2079,14 +2093,14 @@ ImageViewer::view(float xcenter, float ycenter, float newzoom, bool smooth,
     float oldxcenter, oldycenter;
     glwin->get_center(oldxcenter, oldycenter);
     float zoomratio = std::max(oldzoom / newzoom, newzoom / oldzoom);
-    int nsteps      = (int)Imath::clamp(20 * (zoomratio - 1), 2.0f, 10.0f);
+    int nsteps      = (int)OIIO::clamp(20 * (zoomratio - 1), 2.0f, 10.0f);
     if (!smooth || !redraw)
         nsteps = 1;
     for (int i = 1; i <= nsteps; ++i) {
         float a  = (float)i / (float)nsteps;  // Interpolation amount
-        float xc = Imath::lerp(oldxcenter, xcenter, a);
-        float yc = Imath::lerp(oldycenter, ycenter, a);
-        m_zoom   = Imath::lerp(oldzoom, newzoom, a);
+        float xc = OIIO::lerp(oldxcenter, xcenter, a);
+        float yc = OIIO::lerp(oldycenter, ycenter, a);
+        m_zoom   = OIIO::lerp(oldzoom, newzoom, a);
 
         glwin->view(xc, yc, m_zoom, redraw);  // Triggers redraw automatically
         if (i != nsteps) {

@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 #include <iostream>
@@ -94,10 +94,10 @@ decode_iptc_iim(const void* iptc, int length, ImageSpec& spec)
 
 #if DEBUG_IPTC_READ
     std::cerr << "IPTC dump:\n";
-    for (int i = 0; i < 100; ++i) {
-        if (buf[i] >= ' ')
+    for (int i = 0; i < std::min(length, 100); ++i) {
+        if (buf[i] >= ' ' && buf[i] < 128)
             std::cerr << (char)buf[i] << ' ';
-        std::cerr << "(" << (int)(unsigned char)buf[i] << ") ";
+        std::cerr << "(" << int(buf[i]) << ") ";
     }
     std::cerr << "\n";
 #endif
@@ -108,15 +108,17 @@ decode_iptc_iim(const void* iptc, int length, ImageSpec& spec)
     // repeats until we've used up the whole segment buffer, or I guess
     // until we don't find another 1C 02 tag start.
     // N.B. I don't know why, but Picasa sometimes uses 1C 01 !
-    while (length > 0 && buf[0] == 0x1c && (buf[1] == 0x02 || buf[1] == 0x01)) {
+    while (length >= 5 && buf[0] == 0x1c
+           && (buf[1] == 0x02 || buf[1] == 0x01)) {
         int secondbyte = buf[1];
         int tagtype    = buf[2];
         int tagsize    = (buf[3] << 8) + buf[4];
         buf += 5;
         length -= 5;
+        tagsize = std::min(tagsize, length);
 
 #if DEBUG_IPTC_READ
-        std::cerr << "iptc tag " << tagtype << ":\n";
+        std::cerr << "iptc tag " << tagtype << ", size=" << tagsize << ":\n";
         for (int i = 0; i < tagsize; ++i) {
             if (buf[i] >= ' ')
                 std::cerr << (char)buf[i] << ' ';
@@ -142,7 +144,8 @@ decode_iptc_iim(const void* iptc, int length, ImageSpec& spec)
                     } else {
                         spec.attribute(iimtag[i].name, s);
                     }
-                    if (iimtag[i].anothername)
+                    if (iimtag[i].anothername
+                        && !spec.extra_attribs.contains(iimtag[i].anothername))
                         spec.attribute(iimtag[i].anothername, s);
                     break;
                 }
@@ -159,19 +162,18 @@ decode_iptc_iim(const void* iptc, int length, ImageSpec& spec)
 
 
 static void
-encode_iptc_iim_one_tag(int tag, const char* name, TypeDesc type,
-                        const void* data, std::vector<char>& iptc)
+encode_iptc_iim_one_tag(int tag, string_view data, std::vector<char>& iptc)
 {
-    if (type == TypeDesc::STRING) {
-        iptc.push_back((char)0x1c);
-        iptc.push_back((char)0x02);
-        iptc.push_back((char)tag);
-        const char* str = ((const char**)data)[0];
-        int tagsize     = strlen(str);
-        tagsize = std::min(tagsize, 0xffff - 1);  // Prevent 16 bit overflow
+    OIIO_DASSERT(data != nullptr);
+    iptc.push_back((char)0x1c);
+    iptc.push_back((char)0x02);
+    iptc.push_back((char)tag);
+    if (data.size()) {
+        int tagsize = std::min(int(data.size()),
+                               0xffff - 1);  // Prevent 16 bit overflow
         iptc.push_back((char)(tagsize >> 8));
         iptc.push_back((char)(tagsize & 0xff));
-        iptc.insert(iptc.end(), str, str + tagsize);
+        iptc.insert(iptc.end(), data.data(), data.data() + tagsize);
     }
 }
 
@@ -186,27 +188,22 @@ encode_iptc_iim(const ImageSpec& spec, std::vector<char>& iptc)
     for (int i = 0; iimtag[i].name; ++i) {
         if ((p = spec.find_attribute(iimtag[i].name))) {
             if (iimtag[i].repeatable) {
-                std::string allvals(*(const char**)p->data());
+                std::string allvals = p->get_string(0);
                 std::vector<std::string> tokens;
                 Strutil::split(allvals, tokens, ";");
                 for (auto& token : tokens) {
                     token = Strutil::strip(token);
-                    if (token.size()) {
-                        const char* tok = &token[0];
-                        encode_iptc_iim_one_tag(iimtag[i].tag, iimtag[i].name,
-                                                p->type(), &tok, iptc);
-                    }
+                    if (token.size())
+                        encode_iptc_iim_one_tag(iimtag[i].tag, token, iptc);
                 }
             } else {
                 // Regular, non-repeating
-                encode_iptc_iim_one_tag(iimtag[i].tag, iimtag[i].name,
-                                        p->type(), p->data(), iptc);
+                encode_iptc_iim_one_tag(iimtag[i].tag, p->get_string(0), iptc);
             }
         }
         if (iimtag[i].anothername) {
             if ((p = spec.find_attribute(iimtag[i].anothername)))
-                encode_iptc_iim_one_tag(iimtag[i].tag, iimtag[i].anothername,
-                                        p->type(), p->data(), iptc);
+                encode_iptc_iim_one_tag(iimtag[i].tag, p->get_string(0), iptc);
         }
     }
 }

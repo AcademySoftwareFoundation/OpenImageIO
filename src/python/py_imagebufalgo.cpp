@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #include "py_oiio.h"
 #include <OpenImageIO/color.h>
@@ -12,6 +12,29 @@ namespace PyOpenImageIO {
 
 class IBA_dummy {
 };  // dummy class to establish a scope
+
+
+
+// Helper: resize vector `values` to match the number of channels described by
+// `roi`, if it's defined, and otherwise the number of channels in ImagBuf
+// `buf`, if it's defined, or otherwise just leave it alone unless it's empty.
+// If it needs to grow, then fill it with `fillvalue`, or if `fill_from_back`
+// is true, then fill with whatever is the back value.
+template<typename T>
+inline void
+vecresize(std::vector<T>& values, const ROI& roi, const ImageBuf& buf,
+          bool fill_from_back = false, T fillvalue = T(0))
+{
+    size_t len = roi.defined()
+                     ? roi.nchannels()
+                     : (buf.initialized() ? buf.nchannels()
+                                          : std::max(values.size(), size_t(1)));
+    T val      = fill_from_back ? (values.size() ? values.back() : fillvalue)
+                                : fillvalue;
+    values.resize(len, val);
+    OIIO_ASSERT(values.size() > 0);
+}
+
 
 
 bool
@@ -36,13 +59,7 @@ IBA_fill(ImageBuf& dst, py::object values_tuple, ROI roi = ROI::All(),
 {
     std::vector<float> values;
     py_to_stdvector(values, values_tuple);
-    if (dst.initialized())
-        values.resize(dst.nchannels(), 0.0f);
-    else if (roi.defined())
-        values.resize(roi.nchannels(), values.size() ? values.back() : 0.0f);
-    else
-        return false;
-    ASSERT(values.size() > 0);
+    vecresize(values, roi, dst, true /*fill_from_back*/);
     py::gil_scoped_release gil;
     return ImageBufAlgo::fill(dst, values, roi, nthreads);
 }
@@ -55,15 +72,8 @@ IBA_fill2(ImageBuf& dst, py::object top_tuple, py::object bottom_tuple,
     std::vector<float> top, bottom;
     py_to_stdvector(top, top_tuple);
     py_to_stdvector(bottom, bottom_tuple);
-    if (dst.initialized()) {
-        top.resize(dst.nchannels(), 0.0f);
-        bottom.resize(dst.nchannels(), 0.0f);
-    } else if (roi.defined()) {
-        top.resize(roi.nchannels(), 0.0f);
-        bottom.resize(roi.nchannels(), 0.0f);
-    } else
-        return false;
-    ASSERT(top.size() > 0 && bottom.size() > 0);
+    vecresize(top, roi, dst);
+    vecresize(bottom, roi, dst);
     py::gil_scoped_release gil;
     return ImageBufAlgo::fill(dst, top, bottom, roi, nthreads);
 }
@@ -79,20 +89,10 @@ IBA_fill4(ImageBuf& dst, py::object top_left_tuple, py::object top_right_tuple,
     py_to_stdvector(top_right, top_right_tuple);
     py_to_stdvector(bottom_left, bottom_left_tuple);
     py_to_stdvector(bottom_right, bottom_right_tuple);
-    if (dst.initialized()) {
-        top_left.resize(dst.nchannels(), 0.0f);
-        top_right.resize(dst.nchannels(), 0.0f);
-        bottom_left.resize(dst.nchannels(), 0.0f);
-        bottom_right.resize(dst.nchannels(), 0.0f);
-    } else if (roi.defined()) {
-        top_left.resize(roi.nchannels(), 0.0f);
-        top_right.resize(roi.nchannels(), 0.0f);
-        bottom_left.resize(roi.nchannels(), 0.0f);
-        bottom_right.resize(roi.nchannels(), 0.0f);
-    } else
-        return false;
-    ASSERT(top_left.size() > 0 && top_right.size() > 0 && bottom_left.size() > 0
-           && bottom_right.size() > 0);
+    vecresize(top_left, roi, dst);
+    vecresize(top_right, roi, dst);
+    vecresize(bottom_left, roi, dst);
+    vecresize(bottom_right, roi, dst);
     py::gil_scoped_release gil;
     return ImageBufAlgo::fill(dst, top_left, top_right, bottom_left,
                               bottom_right, roi, nthreads);
@@ -140,18 +140,8 @@ IBA_checker(ImageBuf& dst, int width, int height, int depth,
     std::vector<float> color1, color2;
     py_to_stdvector(color1, color1_tuple);
     py_to_stdvector(color2, color2_tuple);
-    if (dst.initialized())
-        color1.resize(dst.nchannels(), 0.0f);
-    else if (roi.defined())
-        color1.resize(roi.nchannels(), 0.0f);
-    else
-        return false;
-    if (dst.initialized())
-        color2.resize(dst.nchannels(), 0.0f);
-    else if (roi.defined())
-        color2.resize(roi.nchannels(), 0.0f);
-    else
-        return false;
+    vecresize(color1, roi, dst);
+    vecresize(color2, roi, dst);
     py::gil_scoped_release gil;
     return ImageBufAlgo::checker(dst, width, height, depth, color1, color2,
                                  xoffset, yoffset, zoffset, roi, nthreads);
@@ -198,7 +188,7 @@ IBA_channels(ImageBuf& dst, const ImageBuf& src, py::tuple channelorder_,
 {
     size_t nchannels = (size_t)len(channelorder_);
     if (nchannels < 1) {
-        dst.error("No channels selected");
+        dst.errorfmt("No channels selected");
         return false;
     }
     std::vector<int> channelorder(nchannels, -1);
@@ -220,7 +210,7 @@ IBA_channels(ImageBuf& dst, const ImageBuf& src, py::tuple channelorder_,
     std::vector<std::string> newchannelnames;
     py_to_stdvector(newchannelnames, newchannelnames_);
     if (newchannelnames.size() != 0 && newchannelnames.size() != nchannels) {
-        dst.error("Inconsistent number of channel arguments");
+        dst.errorfmt("Inconsistent number of channel arguments");
         return false;
     }
     py::gil_scoped_release gil;
@@ -538,13 +528,7 @@ IBA_add_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
 {
     std::vector<float> values;
     py_to_stdvector(values, values_tuple);
-    if (roi.defined())
-        values.resize(roi.nchannels(), values.size() ? values.back() : 0.0f);
-    else if (A.initialized())
-        values.resize(A.nchannels(), values.size() ? values.back() : 0.0f);
-    else
-        return false;
-    ASSERT(values.size() > 0);
+    vecresize(values, roi, A, true /*fill_from_back*/);
     py::gil_scoped_release gil;
     return ImageBufAlgo::add(dst, A, &values[0], roi, nthreads);
 }
@@ -562,17 +546,7 @@ IBA_add_color_ret(const ImageBuf& A, py::object values_tuple,
                   ROI roi = ROI::All(), int nthreads = 0)
 {
     ImageBuf result;
-    std::vector<float> values;
-    py_to_stdvector(values, values_tuple);
-    if (roi.defined())
-        values.resize(roi.nchannels(), values.size() ? values.back() : 0.0f);
-    else if (A.initialized())
-        values.resize(A.nchannels(), values.size() ? values.back() : 0.0f);
-    else
-        return result;
-    ASSERT(values.size() > 0);
-    py::gil_scoped_release gil;
-    result = ImageBufAlgo::add(A, values, roi, nthreads);
+    IBA_add_color(result, A, values_tuple, roi, nthreads);
     return result;
 }
 
@@ -593,13 +567,7 @@ IBA_sub_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
 {
     std::vector<float> values;
     py_to_stdvector(values, values_tuple);
-    if (roi.defined())
-        values.resize(roi.nchannels(), values.size() ? values.back() : 0.0f);
-    else if (A.initialized())
-        values.resize(A.nchannels(), values.size() ? values.back() : 0.0f);
-    else
-        return false;
-    ASSERT(values.size() > 0);
+    vecresize(values, roi, dst, true /*fill_from_back*/);
     py::gil_scoped_release gil;
     return ImageBufAlgo::sub(dst, A, &values[0], roi, nthreads);
 }
@@ -617,17 +585,7 @@ IBA_sub_color_ret(const ImageBuf& A, py::object values_tuple,
                   ROI roi = ROI::All(), int nthreads = 0)
 {
     ImageBuf result;
-    std::vector<float> values;
-    py_to_stdvector(values, values_tuple);
-    if (roi.defined())
-        values.resize(roi.nchannels(), values.size() ? values.back() : 0.0f);
-    else if (A.initialized())
-        values.resize(A.nchannels(), values.size() ? values.back() : 0.0f);
-    else
-        return result;
-    ASSERT(values.size() > 0);
-    py::gil_scoped_release gil;
-    result = ImageBufAlgo::sub(A, values, roi, nthreads);
+    IBA_sub_color(result, A, values_tuple, roi, nthreads);
     return result;
 }
 
@@ -647,13 +605,7 @@ IBA_absdiff_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
 {
     std::vector<float> values;
     py_to_stdvector(values, values_tuple);
-    if (roi.defined())
-        values.resize(roi.nchannels(), values.size() ? values.back() : 0.0f);
-    else if (A.initialized())
-        values.resize(A.nchannels(), values.size() ? values.back() : 0.0f);
-    else
-        return false;
-    ASSERT(values.size() > 0);
+    vecresize(values, roi, A, true);
     py::gil_scoped_release gil;
     return ImageBufAlgo::absdiff(dst, A, &values[0], roi, nthreads);
 }
@@ -667,21 +619,11 @@ IBA_absdiff_images(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
 }
 
 ImageBuf
-IBA_absdiff_color_ref(const ImageBuf& A, py::object values_tuple,
+IBA_absdiff_color_ret(const ImageBuf& A, py::object values_tuple,
                       ROI roi = ROI::All(), int nthreads = 0)
 {
     ImageBuf result;
-    std::vector<float> values;
-    py_to_stdvector(values, values_tuple);
-    if (roi.defined())
-        values.resize(roi.nchannels(), values.size() ? values.back() : 0.0f);
-    else if (A.initialized())
-        values.resize(A.nchannels(), values.size() ? values.back() : 0.0f);
-    else
-        return result;
-    ASSERT(values.size() > 0);
-    py::gil_scoped_release gil;
-    result = ImageBufAlgo::absdiff(A, values, roi, nthreads);
+    IBA_absdiff_color(result, A, values_tuple, roi, nthreads);
     return result;
 }
 
@@ -720,13 +662,7 @@ IBA_mul_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
 {
     std::vector<float> values;
     py_to_stdvector(values, values_tuple);
-    if (roi.defined())
-        values.resize(roi.nchannels(), values.size() ? values.back() : 0.0f);
-    else if (A.initialized())
-        values.resize(A.nchannels(), values.size() ? values.back() : 0.0f);
-    else
-        return false;
-    ASSERT(values.size() > 0);
+    vecresize(values, roi, A, true /*fill_from_back*/);
     py::gil_scoped_release gil;
     return ImageBufAlgo::mul(dst, A, &values[0], roi, nthreads);
 }
@@ -744,17 +680,7 @@ IBA_mul_color_ret(const ImageBuf& A, py::object values_tuple,
                   ROI roi = ROI::All(), int nthreads = 0)
 {
     ImageBuf result;
-    std::vector<float> values;
-    py_to_stdvector(values, values_tuple);
-    if (roi.defined())
-        values.resize(roi.nchannels(), values.size() ? values.back() : 0.0f);
-    else if (A.initialized())
-        values.resize(A.nchannels(), values.size() ? values.back() : 0.0f);
-    else
-        return result;
-    ASSERT(values.size() > 0);
-    py::gil_scoped_release gil;
-    result = ImageBufAlgo::mul(A, values, roi, nthreads);
+    IBA_mul_color(result, A, values_tuple, roi, nthreads);
     return result;
 }
 
@@ -774,13 +700,7 @@ IBA_div_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
 {
     std::vector<float> values;
     py_to_stdvector(values, values_tuple);
-    if (roi.defined())
-        values.resize(roi.nchannels(), values.size() ? values.back() : 0.0f);
-    else if (A.initialized())
-        values.resize(A.nchannels(), values.size() ? values.back() : 0.0f);
-    else
-        return false;
-    ASSERT(values.size() > 0);
+    vecresize(values, roi, A, true /*fill_from_back*/);
     py::gil_scoped_release gil;
     return ImageBufAlgo::div(dst, A, &values[0], roi, nthreads);
 }
@@ -800,17 +720,7 @@ IBA_div_color_ret(const ImageBuf& A, py::object values_tuple,
                   ROI roi = ROI::All(), int nthreads = 0)
 {
     ImageBuf result;
-    std::vector<float> values;
-    py_to_stdvector(values, values_tuple);
-    if (roi.defined())
-        values.resize(roi.nchannels(), values.size() ? values.back() : 0.0f);
-    else if (A.initialized())
-        values.resize(A.nchannels(), values.size() ? values.back() : 0.0f);
-    else
-        return result;
-    ASSERT(values.size() > 0);
-    py::gil_scoped_release gil;
-    result = ImageBufAlgo::div(A, values, roi, nthreads);
+    IBA_div_color(result, A, values_tuple, roi, nthreads);
     return result;
 }
 
@@ -830,20 +740,9 @@ IBA_mad_color(ImageBuf& dst, const ImageBuf& A, py::object Bvalues_tuple,
 {
     std::vector<float> Bvalues, Cvalues;
     py_to_stdvector(Bvalues, Bvalues_tuple);
-    if (roi.defined())
-        Bvalues.resize(roi.nchannels(), Bvalues.size() ? Bvalues.back() : 0.0f);
-    else if (A.initialized())
-        Bvalues.resize(A.nchannels(), Bvalues.size() ? Bvalues.back() : 0.0f);
-    else
-        return false;
+    vecresize(Bvalues, roi, A, true /*fill_from_back*/);
     py_to_stdvector(Cvalues, Cvalues_tuple);
-    if (roi.defined())
-        Cvalues.resize(roi.nchannels(), Cvalues.size() ? Cvalues.back() : 0.0f);
-    else if (A.initialized())
-        Cvalues.resize(A.nchannels(), Cvalues.size() ? Cvalues.back() : 0.0f);
-    else
-        return false;
-    ASSERT(Bvalues.size() > 0 && Cvalues.size() > 0);
+    vecresize(Cvalues, roi, A, true /*fill_from_back*/);
     py::gil_scoped_release gil;
     return ImageBufAlgo::mad(dst, A, Bvalues, Cvalues, roi, nthreads);
 }
@@ -854,13 +753,7 @@ IBA_mad_ici(ImageBuf& dst, const ImageBuf& A, py::object Bvalues_tuple,
 {
     std::vector<float> Bvalues, Cvalues;
     py_to_stdvector(Bvalues, Bvalues_tuple);
-    if (roi.defined())
-        Bvalues.resize(roi.nchannels(), Bvalues.size() ? Bvalues.back() : 0.0f);
-    else if (A.initialized())
-        Bvalues.resize(A.nchannels(), Bvalues.size() ? Bvalues.back() : 0.0f);
-    else
-        return false;
-    ASSERT(Bvalues.size() > 0);
+    vecresize(Bvalues, roi, A, true /*fill_from_back*/);
     py::gil_scoped_release gil;
     return ImageBufAlgo::mad(dst, A, Bvalues, C, roi, nthreads);
 }
@@ -888,24 +781,7 @@ IBA_mad_color_ret(const ImageBuf& A, py::object Bvalues_tuple,
                   int nthreads = 0)
 {
     ImageBuf result;
-    std::vector<float> Bvalues, Cvalues;
-    py_to_stdvector(Bvalues, Bvalues_tuple);
-    if (roi.defined())
-        Bvalues.resize(roi.nchannels(), Bvalues.size() ? Bvalues.back() : 0.0f);
-    else if (A.initialized())
-        Bvalues.resize(A.nchannels(), Bvalues.size() ? Bvalues.back() : 0.0f);
-    else
-        return result;
-    py_to_stdvector(Cvalues, Cvalues_tuple);
-    if (roi.defined())
-        Cvalues.resize(roi.nchannels(), Cvalues.size() ? Cvalues.back() : 0.0f);
-    else if (A.initialized())
-        Cvalues.resize(A.nchannels(), Cvalues.size() ? Cvalues.back() : 0.0f);
-    else
-        return result;
-    ASSERT(Bvalues.size() > 0 && Cvalues.size() > 0);
-    py::gil_scoped_release gil;
-    result = ImageBufAlgo::mad(A, Bvalues, Cvalues, roi, nthreads);
+    IBA_mad_color(result, A, Bvalues_tuple, Cvalues_tuple, roi, nthreads);
     return result;
 }
 
@@ -914,17 +790,7 @@ IBA_mad_ici_ret(const ImageBuf& A, py::object Bvalues_tuple, const ImageBuf& C,
                 ROI roi = ROI::All(), int nthreads = 0)
 {
     ImageBuf result;
-    std::vector<float> Bvalues, Cvalues;
-    py_to_stdvector(Bvalues, Bvalues_tuple);
-    if (roi.defined())
-        Bvalues.resize(roi.nchannels(), Bvalues.size() ? Bvalues.back() : 0.0f);
-    else if (A.initialized())
-        Bvalues.resize(A.nchannels(), Bvalues.size() ? Bvalues.back() : 0.0f);
-    else
-        return result;
-    ASSERT(Bvalues.size() > 0);
-    py::gil_scoped_release gil;
-    result = ImageBufAlgo::mad(A, Bvalues, C, roi, nthreads);
+    IBA_mad_ici(result, A, Bvalues_tuple, C, roi, nthreads);
     return result;
 }
 
@@ -969,13 +835,7 @@ IBA_pow_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
 {
     std::vector<float> values;
     py_to_stdvector(values, values_tuple);
-    if (roi.defined())
-        values.resize(roi.nchannels(), values.size() ? values.back() : 0.0f);
-    else if (A.initialized())
-        values.resize(A.nchannels(), values.size() ? values.back() : 0.0f);
-    else
-        return false;
-    ASSERT(values.size() > 0);
+    vecresize(values, roi, A, true /*fill_from_back*/);
     py::gil_scoped_release gil;
     return ImageBufAlgo::pow(dst, A, values, roi, nthreads);
 }
@@ -986,17 +846,85 @@ IBA_pow_color_ret(const ImageBuf& A, py::object values_tuple,
                   ROI roi = ROI::All(), int nthreads = 0)
 {
     ImageBuf result;
+    IBA_pow_color(result, A, values_tuple, roi, nthreads);
+    return result;
+}
+
+
+
+bool
+IBA_min_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
+              ROI roi = ROI::All(), int nthreads = 0)
+{
     std::vector<float> values;
     py_to_stdvector(values, values_tuple);
-    if (roi.defined())
-        values.resize(roi.nchannels(), values.size() ? values.back() : 0.0f);
-    else if (A.initialized())
-        values.resize(A.nchannels(), values.size() ? values.back() : 0.0f);
-    else
-        return result;
-    ASSERT(values.size() > 0);
+    vecresize(values, roi, A, true /*fill_from_back*/);
     py::gil_scoped_release gil;
-    result = ImageBufAlgo::pow(A, values, roi, nthreads);
+    return ImageBufAlgo::min(dst, A, values, roi, nthreads);
+}
+
+bool
+IBA_min_images(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
+               ROI roi = ROI::All(), int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::min(dst, A, B, roi, nthreads);
+}
+
+ImageBuf
+IBA_min_color_ret(const ImageBuf& A, py::object values_tuple,
+                  ROI roi = ROI::All(), int nthreads = 0)
+{
+    ImageBuf result;
+    IBA_min_color(result, A, values_tuple, roi, nthreads);
+    return result;
+}
+
+ImageBuf
+IBA_min_images_ret(const ImageBuf& A, const ImageBuf& B, ROI roi = ROI::All(),
+                   int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    ImageBuf result = ImageBufAlgo::min(A, B, roi, nthreads);
+    return result;
+}
+
+
+
+bool
+IBA_max_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
+              ROI roi = ROI::All(), int nthreads = 0)
+{
+    std::vector<float> values;
+    py_to_stdvector(values, values_tuple);
+    vecresize(values, roi, A, true /*fill_from_back*/);
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::max(dst, A, values, roi, nthreads);
+}
+
+bool
+IBA_max_images(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
+               ROI roi = ROI::All(), int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::max(dst, A, B, roi, nthreads);
+}
+
+ImageBuf
+IBA_max_color_ret(const ImageBuf& A, py::object values_tuple,
+                  ROI roi = ROI::All(), int nthreads = 0)
+{
+    ImageBuf result;
+    IBA_max_color(result, A, values_tuple, roi, nthreads);
+    return result;
+}
+
+ImageBuf
+IBA_max_images_ret(const ImageBuf& A, const ImageBuf& B, ROI roi = ROI::All(),
+                   int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    ImageBuf result = ImageBufAlgo::max(A, B, roi, nthreads);
     return result;
 }
 
@@ -1011,8 +939,9 @@ IBA_clamp(ImageBuf& dst, const ImageBuf& src, py::object min_, py::object max_,
     std::vector<float> min, max;
     py_to_stdvector(min, min_);
     py_to_stdvector(max, max_);
-    min.resize(src.nchannels(), -std::numeric_limits<float>::max());
-    max.resize(src.nchannels(), std::numeric_limits<float>::max());
+    const float big = std::numeric_limits<float>::max();
+    min.resize(src.nchannels(), min.size() >= 1 ? min.back() : -big);
+    max.resize(src.nchannels(), max.size() >= 1 ? max.back() : big);
     py::gil_scoped_release gil;
     return ImageBufAlgo::clamp(dst, src, min, max, clampalpha01, roi, nthreads);
 }
@@ -1029,6 +958,39 @@ IBA_clamp_ret(const ImageBuf& src, py::object min_, py::object max_,
 
 
 bool
+IBA_maxchan(ImageBuf& dst, const ImageBuf& src, ROI roi = ROI::All(),
+            int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::maxchan(dst, src, roi, nthreads);
+}
+
+ImageBuf
+IBA_maxchan_ret(const ImageBuf& src, ROI roi = ROI::All(), int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::maxchan(src, roi, nthreads);
+}
+
+
+bool
+IBA_minchan(ImageBuf& dst, const ImageBuf& src, ROI roi = ROI::All(),
+            int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::minchan(dst, src, roi, nthreads);
+}
+
+ImageBuf
+IBA_minchan_ret(const ImageBuf& src, ROI roi = ROI::All(), int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::minchan(src, roi, nthreads);
+}
+
+
+
+bool
 IBA_channel_sum_weight(ImageBuf& dst, const ImageBuf& src,
                        py::object weight_tuple, ROI roi = ROI::All(),
                        int nthreads = 0)
@@ -1036,13 +998,11 @@ IBA_channel_sum_weight(ImageBuf& dst, const ImageBuf& src,
     std::vector<float> weight;
     py_to_stdvector(weight, weight_tuple);
     if (!src.initialized()) {
-        dst.error("Uninitialized source image for channel_sum");
+        dst.errorfmt("Uninitialized source image for channel_sum");
         return false;
     }
-    if (weight.size() == 0)
-        weight.resize(src.nchannels(), 1.0f);  // no weights -> uniform
-    else
-        weight.resize(src.nchannels(), 0.0f);  // missing weights -> 0
+    // not enough weights -> uniform, missing weights -> 0
+    weight.resize(src.nchannels(), weight.size() ? 0.0 : 1.0f);
     py::gil_scoped_release gil;
     return ImageBufAlgo::channel_sum(dst, src, &weight[0], roi, nthreads);
 }
@@ -1062,18 +1022,7 @@ IBA_channel_sum_weight_ret(const ImageBuf& src, py::object weight_tuple,
                            ROI roi = ROI::All(), int nthreads = 0)
 {
     ImageBuf result;
-    std::vector<float> weight;
-    py_to_stdvector(weight, weight_tuple);
-    if (!src.initialized()) {
-        result.error("Uninitialized source image for channel_sum");
-        return result;
-    }
-    if (weight.size() == 0)
-        weight.resize(src.nchannels(), 1.0f);  // no weights -> uniform
-    else
-        weight.resize(src.nchannels(), 0.0f);  // missing weights -> 0
-    py::gil_scoped_release gil;
-    result = ImageBufAlgo::channel_sum(src, weight, roi, nthreads);
+    IBA_channel_sum_weight(result, src, weight_tuple, roi, nthreads);
     return result;
 }
 
@@ -1094,11 +1043,11 @@ IBA_color_map_values(ImageBuf& dst, const ImageBuf& src, int srcchannel,
     std::vector<float> knots;
     py_to_stdvector(knots, knots_tuple);
     if (!src.initialized()) {
-        dst.error("Uninitialized source image for color_map");
+        dst.errorfmt("Uninitialized source image for color_map");
         return false;
     }
     if (!knots.size()) {
-        dst.error("No knot values supplied");
+        dst.errorfmt("No knot values supplied");
         return false;
     }
     py::gil_scoped_release gil;
@@ -1113,7 +1062,7 @@ IBA_color_map_name(ImageBuf& dst, const ImageBuf& src, int srcchannel,
                    int nthreads = 0)
 {
     if (!src.initialized()) {
-        dst.error("Uninitialized source image for color_map");
+        dst.errorfmt("Uninitialized source image for color_map");
         return false;
     }
     py::gil_scoped_release gil;
@@ -1220,6 +1169,42 @@ IBA_unpremult_ret(const ImageBuf& src, ROI roi = ROI::All(), int nthreads = 0)
 }
 
 
+bool
+IBA_repremult(ImageBuf& dst, const ImageBuf& src, ROI roi = ROI::All(),
+              int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::repremult(dst, src, roi, nthreads);
+}
+
+
+ImageBuf
+IBA_repremult_ret(const ImageBuf& src, ROI roi = ROI::All(), int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::repremult(src, roi, nthreads);
+}
+
+
+
+bool
+IBA_saturate(ImageBuf& dst, const ImageBuf& src, float scale = 0.0f,
+             int firstchannel = 0, ROI roi = ROI::All(), int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::saturate(dst, src, scale, firstchannel, roi, nthreads);
+}
+
+
+ImageBuf
+IBA_saturate_ret(const ImageBuf& src, float scale = 0.0f, int firstchannel = 0,
+                 ROI roi = ROI::All(), int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::saturate(src, scale, firstchannel, roi, nthreads);
+}
+
+
 
 bool
 IBA_contrast_remap(ImageBuf& dst, const ImageBuf& src, py::object black_,
@@ -1274,14 +1259,25 @@ IBA_computePixelStats(const ImageBuf& src, ImageBufAlgo::PixelStats& stats,
                       ROI roi, int nthreads)
 {
     py::gil_scoped_release gil;
-    return ImageBufAlgo::computePixelStats(stats, src, roi, nthreads);
+    stats = ImageBufAlgo::computePixelStats(src, roi, nthreads);
+    return stats.min.size() != 0;
 }
 
 
 
 ImageBufAlgo::CompareResults
 IBA_compare_ret(const ImageBuf& A, const ImageBuf& B, float failthresh,
-                float warnthresh, ROI roi, int nthreads)
+                float warnthresh, float failrelative, float warnrelative,
+                ROI roi, int nthreads)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::compare(A, B, failthresh, warnthresh, failrelative,
+                                 warnrelative, roi, nthreads);
+}
+
+ImageBufAlgo::CompareResults
+IBA_compare_ret_old(const ImageBuf& A, const ImageBuf& B, float failthresh,
+                    float warnthresh, ROI roi, int nthreads)
 {
     py::gil_scoped_release gil;
     return ImageBufAlgo::compare(A, B, failthresh, warnthresh, roi, nthreads);
@@ -1294,8 +1290,8 @@ IBA_compare(const ImageBuf& A, const ImageBuf& B, float failthresh,
             int nthreads)
 {
     py::gil_scoped_release gil;
-    return ImageBufAlgo::compare(A, B, failthresh, warnthresh, result, roi,
-                                 nthreads);
+    result = ImageBufAlgo::compare(A, B, failthresh, warnthresh, roi, nthreads);
+    return result.error;
 }
 
 
@@ -1441,25 +1437,72 @@ IBA_resample_ret(const ImageBuf& src, bool interpolate, ROI roi, int nthreads)
 }
 
 
+bool
+IBA_st_warp(ImageBuf& dst, const ImageBuf& src, const ImageBuf& stbuf,
+            const std::string& filtername = "", float filterwidth = 0.0f,
+            int chan_s = 0, int chan_t = 1, bool flip_s = false,
+            bool flip_t = false, ROI roi = ROI::All(), int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::st_warp(dst, src, stbuf, filtername, filterwidth,
+                                 chan_s, chan_t, flip_s, flip_t, roi, nthreads);
+}
+
+ImageBuf
+IBA_st_warp_ret(const ImageBuf& src, const ImageBuf& stbuf,
+                const std::string& filtername = "", float filterwidth = 0.0f,
+                int chan_s = 0, int chan_t = 1, bool flip_s = false,
+                bool flip_t = false, ROI roi = ROI::All(), int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::st_warp(src, stbuf, filtername, filterwidth, chan_s,
+                                 chan_t, flip_s, flip_t, roi, nthreads);
+}
+
+
 
 bool
 IBA_fit(ImageBuf& dst, const ImageBuf& src, const std::string& filtername = "",
-        float filterwidth = 0.0f, bool exact = false, ROI roi = ROI::All(),
-        int nthreads = 0)
+        float filterwidth = 0.0f, const std::string& fillmode = "letterbox",
+        bool exact = false, ROI roi = ROI::All(), int nthreads = 0)
 {
     py::gil_scoped_release gil;
-    return ImageBufAlgo::fit(dst, src, filtername, filterwidth, exact, roi,
-                             nthreads);
+    return ImageBufAlgo::fit(dst, src, filtername, filterwidth, fillmode, exact,
+                             roi, nthreads);
 }
 
 ImageBuf
 IBA_fit_ret(const ImageBuf& src, const std::string& filtername = "",
-            float filterwidth = 0.0f, bool exact = false, ROI roi = ROI::All(),
-            int nthreads = 0)
+            float filterwidth = 0.0f, const std::string& fillmode = "letterbox",
+            bool exact = false, ROI roi = ROI::All(), int nthreads = 0)
 {
     py::gil_scoped_release gil;
-    return ImageBufAlgo::fit(src, filtername, filterwidth, exact, roi,
+    return ImageBufAlgo::fit(src, filtername, filterwidth, fillmode, exact, roi,
                              nthreads);
+}
+
+
+
+// DEPRECATED(2.3)
+bool
+IBA_fit_old(ImageBuf& dst, const ImageBuf& src,
+            const std::string& filtername = "", float filterwidth = 0.0f,
+            bool exact = false, ROI roi = ROI::All(), int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::fit(dst, src, filtername, filterwidth, "letterbox",
+                             exact, roi, nthreads);
+}
+
+// DEPRECATED(2.3)
+ImageBuf
+IBA_fit_ret_old(const ImageBuf& src, const std::string& filtername = "",
+                float filterwidth = 0.0f, bool exact = false,
+                ROI roi = ROI::All(), int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::fit(src, filtername, filterwidth, "letterbox", exact,
+                             roi, nthreads);
 }
 
 
@@ -1469,8 +1512,8 @@ IBA_make_kernel(ImageBuf& dst, const std::string& name, float width,
                 float height, float depth, bool normalize)
 {
     py::gil_scoped_release gil;
-    return ImageBufAlgo::make_kernel(dst, name, width, height, depth,
-                                     normalize);
+    dst = ImageBufAlgo::make_kernel(name, width, height, depth, normalize);
+    return !dst.has_error();
 }
 
 ImageBuf
@@ -1773,7 +1816,7 @@ IBA_colormatrixtransform(ImageBuf& dst, const ImageBuf& src,
     std::vector<float> Mvals;
     bool ok = py_to_stdvector(Mvals, Mobj);
     if (!ok || Mvals.size() != 16) {
-        dst.errorf(
+        dst.errorfmt(
             "colormatrixtransform did not receive 16 elements to make a 4x4 matrix");
         return false;
     }
@@ -1863,15 +1906,15 @@ IBA_ociolook_colorconfig_ret(const ImageBuf& src, const std::string& looks,
 bool
 IBA_ociodisplay(ImageBuf& dst, const ImageBuf& src, const std::string& display,
                 const std::string& view, const std::string& from,
-                const std::string& looks, bool unpremult,
+                const std::string& looks, bool unpremult, bool inverse,
                 const std::string& context_key,
                 const std::string& context_value, ROI roi = ROI::All(),
                 int nthreads = 0)
 {
     py::gil_scoped_release gil;
     return ImageBufAlgo::ociodisplay(dst, src, display, view, from, looks,
-                                     unpremult, context_key, context_value,
-                                     NULL, roi, nthreads);
+                                     unpremult, inverse, context_key,
+                                     context_value, NULL, roi, nthreads);
 }
 
 
@@ -1879,7 +1922,8 @@ bool
 IBA_ociodisplay_colorconfig(ImageBuf& dst, const ImageBuf& src,
                             const std::string& display, const std::string& view,
                             const std::string& from, const std::string& looks,
-                            bool unpremult, const std::string& context_key,
+                            bool unpremult, bool inverse,
+                            const std::string& context_key,
                             const std::string& context_value,
                             const std::string& colorconfig = "",
                             ROI roi = ROI::All(), int nthreads = 0)
@@ -1887,8 +1931,8 @@ IBA_ociodisplay_colorconfig(ImageBuf& dst, const ImageBuf& src,
     ColorConfig config(colorconfig);
     py::gil_scoped_release gil;
     return ImageBufAlgo::ociodisplay(dst, src, display, view, from, looks,
-                                     unpremult, context_key, context_value,
-                                     &config, roi, nthreads);
+                                     unpremult, inverse, context_key,
+                                     context_value, &config, roi, nthreads);
 }
 
 
@@ -1896,20 +1940,86 @@ IBA_ociodisplay_colorconfig(ImageBuf& dst, const ImageBuf& src,
 ImageBuf
 IBA_ociodisplay_ret(const ImageBuf& src, const std::string& display,
                     const std::string& view, const std::string& from,
-                    const std::string& looks, bool unpremult,
+                    const std::string& looks, bool unpremult, bool inverse,
                     const std::string& context_key,
                     const std::string& context_value, ROI roi = ROI::All(),
                     int nthreads = 0)
 {
     py::gil_scoped_release gil;
     return ImageBufAlgo::ociodisplay(src, display, view, from, looks, unpremult,
-                                     context_key, context_value, NULL, roi,
-                                     nthreads);
+                                     inverse, context_key, context_value, NULL,
+                                     roi, nthreads);
 }
 
 
 ImageBuf
-IBA_ociodisplay_colorconfig_ret(
+IBA_ociodisplay_colorconfig_ret(const ImageBuf& src, const std::string& display,
+                                const std::string& view,
+                                const std::string& from,
+                                const std::string& looks, bool unpremult,
+                                bool inverse, const std::string& context_key,
+                                const std::string& context_value,
+                                const std::string& colorconfig = "",
+                                ROI roi = ROI::All(), int nthreads = 0)
+{
+    ColorConfig config(colorconfig);
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::ociodisplay(src, display, view, from, looks, unpremult,
+                                     inverse, context_key, context_value,
+                                     &config, roi, nthreads);
+}
+
+
+
+bool
+IBA_ociodisplay_dep(ImageBuf& dst, const ImageBuf& src,
+                    const std::string& display, const std::string& view,
+                    const std::string& from, const std::string& looks,
+                    bool unpremult, const std::string& context_key,
+                    const std::string& context_value, ROI roi = ROI::All(),
+                    int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::ociodisplay(dst, src, display, view, from, looks,
+                                     unpremult, false, context_key,
+                                     context_value, NULL, roi, nthreads);
+}
+
+
+bool
+IBA_ociodisplay_dep_colorconfig(
+    ImageBuf& dst, const ImageBuf& src, const std::string& display,
+    const std::string& view, const std::string& from, const std::string& looks,
+    bool unpremult, const std::string& context_key,
+    const std::string& context_value, const std::string& colorconfig = "",
+    ROI roi = ROI::All(), int nthreads = 0)
+{
+    ColorConfig config(colorconfig);
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::ociodisplay(dst, src, display, view, from, looks,
+                                     unpremult, false, context_key,
+                                     context_value, &config, roi, nthreads);
+}
+
+
+
+ImageBuf
+IBA_ociodisplay_dep_ret(const ImageBuf& src, const std::string& display,
+                        const std::string& view, const std::string& from,
+                        const std::string& looks, bool unpremult,
+                        const std::string& context_key,
+                        const std::string& context_value, ROI roi = ROI::All(),
+                        int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::ociodisplay(src, display, view, from, looks, unpremult,
+                                     false, context_key, context_value, NULL,
+                                     roi, nthreads);
+}
+
+
+ImageBuf
+IBA_ociodisplay_dep_colorconfig_ret(
     const ImageBuf& src, const std::string& display, const std::string& view,
     const std::string& from, const std::string& looks, bool unpremult,
     const std::string& context_key, const std::string& context_value,
@@ -1918,8 +2028,8 @@ IBA_ociodisplay_colorconfig_ret(
     ColorConfig config(colorconfig);
     py::gil_scoped_release gil;
     return ImageBufAlgo::ociodisplay(src, display, view, from, looks, unpremult,
-                                     context_key, context_value, &config, roi,
-                                     nthreads);
+                                     false, context_key, context_value, &config,
+                                     roi, nthreads);
 }
 
 
@@ -2021,6 +2131,36 @@ IBA_nonzero_region(const ImageBuf& src, ROI roi, int nthreads)
 {
     py::gil_scoped_release gil;
     return ImageBufAlgo::nonzero_region(src, roi, nthreads);
+}
+
+
+
+py::object
+IBA_color_range_check(ImageBuf& src, const py::object& low,
+                      const py::object& high, ROI roi, int nthreads)
+{
+    imagesize_t lowcount = 0, highcount = 0, inrangecount = 0;
+    std::vector<float> lowvec, highvec;
+    py_to_stdvector(lowvec, low);
+    py_to_stdvector(highvec, high);
+    bool ok;
+    {
+        py::gil_scoped_release gil;
+        ok = ImageBufAlgo::color_range_check(src, &lowcount, &highcount,
+                                             &inrangecount, lowvec, highvec,
+                                             roi, nthreads);
+    }
+    py::object result;
+    if (ok) {
+        std::vector<int64_t> counts(3);
+        counts[0] = lowcount;
+        counts[1] = highcount;
+        counts[2] = inrangecount;
+        result    = C_to_tuple<int64_t>(counts);
+    } else {
+        result = py::none();
+    }
+    return result;
 }
 
 
@@ -2130,12 +2270,15 @@ IBA_histogram(const ImageBuf& src, int channel = 0, int bins = 256,
               float min = 0.0f, float max = 1.0f, bool ignore_empty = false,
               ROI roi = {}, int nthreads = 0)
 {
-    py::gil_scoped_release gil;
-    auto hist = ImageBufAlgo::histogram(src, channel, bins, min, max,
-                                        ignore_empty, roi, nthreads);
-    std::vector<int> h(bins);
-    for (int i = 0; i < bins; ++i)
-        h[i] = int(hist[i]);
+    std::vector<int> h;
+    {
+        py::gil_scoped_release gil;
+        auto hist = ImageBufAlgo::histogram(src, channel, bins, min, max,
+                                            ignore_empty, roi, nthreads);
+        h.resize(bins);
+        for (int i = 0; i < bins; ++i)
+            h[i] = int(hist[i]);
+    }
     return C_to_tuple<int>(h);
 }
 
@@ -2146,7 +2289,8 @@ IBA_capture_image(ImageBuf& dst, int cameranum,
                   TypeDesc::BASETYPE convert = TypeDesc::UNKNOWN)
 {
     py::gil_scoped_release gil;
-    return ImageBufAlgo::capture_image(dst, cameranum, convert);
+    dst = ImageBufAlgo::capture_image(cameranum, convert);
+    return !dst.has_error();
 }
 
 ImageBuf
@@ -2198,6 +2342,7 @@ declare_imagebufalgo(py::module& m)
         .value("MakeTxEnvLatl", ImageBufAlgo::MakeTxEnvLatl)
         .value("MakeTxEnvLatlFromLightProbe",
                ImageBufAlgo::MakeTxEnvLatlFromLightProbe)
+        .value("MakeTxBumpWithSlopes", ImageBufAlgo::MakeTxBumpWithSlopes)
         .export_values();
 
     py::class_<ImageBufAlgo::PixelStats>(m, "PixelStats")
@@ -2262,6 +2407,8 @@ declare_imagebufalgo(py::module& m)
         .def_static("noise", &IBA_noise_ret, "type"_a = "gaussian",
                     "A"_a = 0.0f, "B"_a = 0.1f, "mono"_a = false, "seed"_a = 0,
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
+
+        .def_static("bluenoise_image", &ImageBufAlgo::bluenoise_image)
 
         .def_static("channels", &IBA_channels, "dst"_a, "src"_a,
                     "channelorder"_a, "newchannelnames"_a = py::tuple(),
@@ -2382,7 +2529,7 @@ declare_imagebufalgo(py::module& m)
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
         .def_static("absdiff", &IBA_absdiff_images_ret, "A"_a, "B"_a,
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
-        .def_static("absdiff", IBA_absdiff_color_ref, "A"_a, "B"_a,
+        .def_static("absdiff", IBA_absdiff_color_ret, "A"_a, "B"_a,
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
 
         .def_static("abs", &IBA_abs, "dst"_a, "A"_a, "roi"_a = ROI::All(),
@@ -2477,11 +2624,44 @@ declare_imagebufalgo(py::module& m)
         .def_static("unpremult", &IBA_unpremult_ret, "src"_a,
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
 
+        .def_static("repremult", &IBA_repremult, "dst"_a, "src"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("repremult", &IBA_repremult_ret, "src"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+
+        .def_static("min", &IBA_min_images, "dst"_a, "A"_a, "B"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("min", IBA_min_color, "dst"_a, "A"_a, "B"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("min", &IBA_min_images_ret, "A"_a, "B"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("min", IBA_min_color_ret, "A"_a, "B"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+
+        .def_static("max", &IBA_max_images, "dst"_a, "A"_a, "B"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("max", IBA_max_color, "dst"_a, "A"_a, "B"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("max", &IBA_max_images_ret, "A"_a, "B"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("max", IBA_max_color_ret, "A"_a, "B"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+
         .def_static("clamp", &IBA_clamp, "dst"_a, "src"_a, "min"_a, "max"_a,
                     "clampalpha01"_a = false, "roi"_a = ROI::All(),
                     "nthreads"_a = 0)
         .def_static("clamp", &IBA_clamp_ret, "src"_a, "min"_a, "max"_a,
                     "clampalpha01"_a = false, "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
+
+        .def_static("maxchan", &IBA_maxchan, "dst"_a, "src"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("maxchan", &IBA_maxchan_ret, "src"_a, "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
+
+        .def_static("minchan", &IBA_minchan, "dst"_a, "src"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("minchan", &IBA_minchan_ret, "src"_a, "roi"_a = ROI::All(),
                     "nthreads"_a = 0)
 
         .def_static("contrast_remap", &IBA_contrast_remap, "dst"_a, "src"_a,
@@ -2492,6 +2672,13 @@ declare_imagebufalgo(py::module& m)
                     "black"_a = 0.0f, "white"_a = 1.0f, "min"_a = 0.0f,
                     "max"_a = 1.0f, "scontrast"_a = 1.0f, "sthresh"_a = 0.5f,
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
+
+        .def_static("saturate", &IBA_saturate, "dst"_a, "src"_a,
+                    "scale"_a = 0.0f, "firstchannel"_a = 0,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("saturate", &IBA_saturate_ret, "src"_a, "scale"_a = 0.0f,
+                    "firstchannel"_a = 0, "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
 
         .def_static("colorconvert", &IBA_colorconvert, "dst"_a, "src"_a,
                     "fromspace"_a, "tospace"_a, "unpremult"_a = true,
@@ -2540,24 +2727,46 @@ declare_imagebufalgo(py::module& m)
 
         .def_static("ociodisplay", &IBA_ociodisplay, "dst"_a, "src"_a,
                     "display"_a, "view"_a, "fromspace"_a = "", "looks"_a = "",
-                    "unpremult"_a = true, "context_key"_a = "",
-                    "context_value"_a = "", "roi"_a = ROI::All(),
-                    "nthreads"_a = 0)
+                    "unpremult"_a = true, "inverse"_a = false,
+                    "context_key"_a = "", "context_value"_a = "",
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
         .def_static("ociodisplay", &IBA_ociodisplay_colorconfig, "dst"_a,
                     "src"_a, "display"_a, "view"_a, "fromspace"_a = "",
-                    "looks"_a = "", "unpremult"_a = true, "context_key"_a = "",
-                    "context_value"_a = "", "colorconfig"_a = "",
-                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+                    "looks"_a = "", "unpremult"_a = true, "inverse"_a = false,
+                    "context_key"_a = "", "context_value"_a = "",
+                    "colorconfig"_a = "", "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
         .def_static("ociodisplay", &IBA_ociodisplay_ret, "src"_a, "display"_a,
                     "view"_a, "fromspace"_a = "", "looks"_a = "",
-                    "unpremult"_a = true, "context_key"_a = "",
-                    "context_value"_a = "", "roi"_a = ROI::All(),
-                    "nthreads"_a = 0)
+                    "unpremult"_a = true, "inverse"_a = false,
+                    "context_key"_a = "", "context_value"_a = "",
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
         .def_static("ociodisplay", &IBA_ociodisplay_colorconfig_ret, "src"_a,
                     "display"_a, "view"_a, "fromspace"_a = "", "looks"_a = "",
-                    "unpremult"_a = true, "context_key"_a = "",
-                    "context_value"_a = "", "colorconfig"_a = "",
+                    "unpremult"_a = true, "inverse"_a = false,
+                    "context_key"_a = "", "context_value"_a = "",
+                    "colorconfig"_a = "", "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
+
+        // DEPRECATED
+        .def_static("ociodisplay", &IBA_ociodisplay_dep, "dst"_a, "src"_a,
+                    "display"_a, "view"_a, "fromspace"_a, "looks"_a,
+                    "unpremult"_a, "context_key"_a, "context_value"_a = "",
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("ociodisplay", &IBA_ociodisplay_dep_colorconfig, "dst"_a,
+                    "src"_a, "display"_a, "view"_a, "fromspace"_a, "looks"_a,
+                    "unpremult"_a, "context_key"_a, "context_value"_a,
+                    "colorconfig"_a = "", "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
+        .def_static("ociodisplay", &IBA_ociodisplay_dep_ret, "src"_a,
+                    "display"_a, "view"_a, "fromspace"_a, "looks"_a,
+                    "unpremult"_a, "context_key"_a, "context_value"_a = "",
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("ociodisplay", &IBA_ociodisplay_dep_colorconfig_ret,
+                    "src"_a, "display"_a, "view"_a, "fromspace"_a, "looks"_a,
+                    "unpremult"_a, "context_key"_a, "context_value"_a = "",
+                    "colorconfig"_a = "", "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
 
         .def_static("ociofiletransform", &IBA_ociofiletransform, "dst"_a,
                     "src"_a, "name"_a, "unpremult"_a = true,
@@ -2583,7 +2792,12 @@ declare_imagebufalgo(py::module& m)
                     "warnthresh"_a, "result"_a, "roi"_a = ROI::All(),
                     "nthreads"_a = 0)
         .def_static("compare", &IBA_compare_ret, "A"_a, "B"_a, "failthresh"_a,
-                    "warnthresh"_a, "roi"_a = ROI::All(), "nthreads"_a = 0)
+                    "warnthresh"_a, "failrelative"_a = 0.0f,
+                    "warnrelative"_a = 0.0f, "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
+        .def_static("compare", &IBA_compare_ret_old, "A"_a, "B"_a,
+                    "failthresh"_a, "warnthresh"_a, "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
 
         .def_static("compare_Yee", &IBA_compare_Yee, "A"_a, "B"_a, "result"_a,
                     "luminance"_a = 100, "fov"_a = 45, "roi"_a = ROI::All(),
@@ -2601,7 +2815,10 @@ declare_imagebufalgo(py::module& m)
                     "threshold"_a = 0.0f, "roi"_a = ROI::All(),
                     "nthreads"_a = 0)
 
-        // color_count, color_range_check
+        // color_count
+
+        .def_static("color_range_check", &IBA_color_range_check, "src"_a,
+                    "low"_a, "high"_a, "roi"_a = ROI::All(), "nthreads"_a = 0)
 
         .def_static("nonzero_region", &IBA_nonzero_region, "src"_a,
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
@@ -2650,10 +2867,26 @@ declare_imagebufalgo(py::module& m)
                     "interpolate"_a = true, "roi"_a = ROI::All(),
                     "nthreads"_a = 0)
 
+        .def_static("st_warp", &IBA_st_warp, "dst"_a, "src"_a, "stbuf"_a,
+                    "filtername"_a = "", "filterwidth"_a = 0.0f, "chan_s"_a = 0,
+                    "chan_t"_a = 1, "flip_s"_a = false, "flip_t"_a = false,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("st_warp", &IBA_st_warp_ret, "src"_a, "stbuf"_a,
+                    "filtername"_a = "", "filterwidth"_a = 0.0f, "chan_s"_a = 0,
+                    "chan_t"_a = 1, "flip_s"_a = false, "flip_t"_a = false,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+
         .def_static("fit", &IBA_fit, "dst"_a, "src"_a, "filtername"_a = "",
+                    "filterwidth"_a = 0.0f, "fillmode"_a = "letterbox",
+                    "exact"_a = false, "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("fit", &IBA_fit_ret, "src"_a, "filtername"_a = "",
+                    "filterwidth"_a = 0.0f, "fillmode"_a = "letterbox",
+                    "exact"_a = false, "roi"_a = ROI::All(), "nthreads"_a = 0)
+        // DEPRECATED(2.3) versions
+        .def_static("fit", &IBA_fit_old, "dst"_a, "src"_a, "filtername"_a = "",
                     "filterwidth"_a = 0.0f, "exact"_a = false,
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
-        .def_static("fit", &IBA_fit_ret, "src"_a, "filtername"_a = "",
+        .def_static("fit", &IBA_fit_ret_old, "src"_a, "filtername"_a = "",
                     "filterwidth"_a = 0.0f, "exact"_a = false,
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
 
@@ -2771,7 +3004,6 @@ declare_imagebufalgo(py::module& m)
                     "bins"_a = 256, "min"_a = 0.0f, "max"_a = 1.0f,
                     "ignore_empty"_a = false, "roi"_a = ROI::All(),
                     "nthreads"_a = 0)
-        // histogram_draw,
 
         .def_static("make_texture", &IBA_make_texture_filename, "mode"_a,
                     "filename"_a, "outputfilename"_a, "config"_a = ImageSpec())

@@ -1,15 +1,13 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #include <cstdio>
 #include <cstdlib>
 
-#include <OpenEXR/ImathFun.h>
-#include <OpenEXR/half.h>
+#include <OpenImageIO/half.h>
 
-#include <boost/thread/tss.hpp>
-
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/hash.h>
@@ -29,7 +27,8 @@ OIIO_NAMESPACE_BEGIN
 static int
 threads_default()
 {
-    int n = Strutil::from_string<int>(Sysutil::getenv("OPENIMAGEIO_THREADS"));
+    int n = Strutil::from_string<int>(
+        Sysutil::getenv("OPENIMAGEIO_THREADS", Sysutil::getenv("CUE_THREADS")));
     if (n < 1)
         n = Sysutil::hardware_concurrency();
     return n;
@@ -37,26 +36,25 @@ threads_default()
 
 // Global private data
 namespace pvt {
-recursive_mutex imageio_mutex;
+std::recursive_mutex imageio_mutex;
 atomic_int oiio_threads(threads_default());
 atomic_int oiio_exr_threads(threads_default());
 atomic_int oiio_read_chunk(256);
+atomic_int oiio_try_all_readers(1);
+int openexr_core(0);  // Should we use "Exr core C library"?
 int tiff_half(0);
 int tiff_multithread(1);
+int dds_bc5normal(0);
+int limit_channels(1024);
+int limit_imagesize_MB(32 * 1024);
+ustring font_searchpath(Sysutil::getenv("OPENIMAGEIO_FONTS"));
 ustring plugin_searchpath(OIIO_DEFAULT_PLUGIN_SEARCHPATH);
 std::string format_list;         // comma-separated list of all formats
 std::string input_format_list;   // comma-separated list of readable formats
-std::string output_format_list;  // comma-separated list of writeable formats
+std::string output_format_list;  // comma-separated list of writable formats
 std::string extension_list;      // list of all extensions for all formats
 std::string library_list;        // list of all libraries for all formats
-static const char* oiio_debug_env = getenv("OPENIMAGEIO_DEBUG");
-#ifdef NDEBUG
-int oiio_print_debug(oiio_debug_env ? Strutil::stoi(oiio_debug_env) : 0);
-#else
-int oiio_print_debug(oiio_debug_env ? Strutil::stoi(oiio_debug_env) : 1);
-#endif
-int oiio_log_times = Strutil::from_string<int>(
-    Sysutil::getenv("OPENIMAGEIO_LOG_TIMES"));
+int oiio_log_times = Strutil::stoi(Sysutil::getenv("OPENIMAGEIO_LOG_TIMES"));
 std::vector<float> oiio_missingcolor;
 }  // namespace pvt
 
@@ -66,8 +64,7 @@ using namespace pvt;
 namespace {
 // Hidden global OIIO data.
 static spin_mutex attrib_mutex;
-static const int maxthreads  = 256;  // reasonable maximum for sanity check
-static FILE* oiio_debug_file = NULL;
+static const int maxthreads = 512;  // reasonable maximum for sanity check
 
 class TimingLog {
 public:
@@ -83,18 +80,20 @@ public:
             std::cout << report();
     }
 
-    // Call like a function to record times (but only if oiio_log_times > 0)
-    void operator()(string_view key, const Timer& timer)
+    // Call like a function to record times (but only if oiio_log_times > 0).
+    // The `count` parameter is the number of times the operation was invoked,
+    // as tallied by the timer (defaulting to 1).
+    void operator()(string_view key, const Timer& timer, int count = 1)
     {
         if (oiio_log_times) {
             auto t = timer();
             spin_lock lock(mutex);
             auto entry = timing_map.find(key);
             if (entry == timing_map.end())
-                timing_map[key] = std::make_pair(t, size_t(1));
+                timing_map[key] = std::make_pair(t, size_t(count));
             else {
                 entry->second.first += t;
-                entry->second.second += 1;
+                entry->second.second += count;
             }
         }
     }
@@ -198,6 +197,7 @@ oiio_simd_caps()
     if (OIIO_AVX512CD_ENABLED)   caps.emplace_back ("avx512cd");
     if (OIIO_AVX512BW_ENABLED)   caps.emplace_back ("avx512bw");
     if (OIIO_AVX512VL_ENABLED)   caps.emplace_back ("avx512vl");
+    if (OIIO_SIMD_NEON)          caps.emplace_back ("neon");
     if (OIIO_FMA_ENABLED)        caps.emplace_back ("fma");
     if (OIIO_F16C_ENABLED)       caps.emplace_back ("f16c");
     // if (OIIO_POPCOUNT_ENABLED)   caps.emplace_back ("popcnt");
@@ -216,37 +216,47 @@ openimageio_version()
 
 
 // To avoid thread oddities, we have the storage area buffering error
-// messages for seterror()/geterror() be thread-specific.
-static boost::thread_specific_ptr<std::string> thread_error_msg;
+// messages for append_error()/geterror() be thread-specific.
+static thread_local std::string error_msg;
 
-// Return a reference to the string for this thread's error messages,
-// creating it if none exists for this thread thus far.
-static std::string&
-error_msg()
+
+void
+pvt::append_error(string_view message)
 {
-    std::string* e = thread_error_msg.get();
-    if (!e) {
-        e = new std::string;
-        thread_error_msg.reset(e);
-    }
-    return *e;
+    // Remove a single trailing newline
+    if (message.size() && message.back() == '\n')
+        message.remove_suffix(1);
+    OIIO_ASSERT(
+        error_msg.size() < 1024 * 1024 * 16
+        && "Accumulated error messages > 16MB. Try checking return codes!");
+    // If we are appending to existing error messages, separate them with
+    // a single newline.
+    if (error_msg.size() && error_msg.back() != '\n')
+        error_msg += '\n';
+    error_msg += std::string(message);
+
+    // Remove a single trailing newline
+    if (message.size() && message.back() == '\n')
+        message.remove_suffix(1);
+    error_msg = std::string(message);
 }
 
 
 
-void
-pvt::seterror(string_view message)
+bool
+has_error()
 {
-    error_msg() = message;
+    return !error_msg.empty();
 }
 
 
 
 std::string
-geterror()
+geterror(bool clear)
 {
-    std::string e = error_msg();
-    error_msg().clear();
+    std::string e = error_msg;
+    if (clear)
+        error_msg.clear();
     return e;
 }
 
@@ -255,24 +265,15 @@ geterror()
 void
 debug(string_view message)
 {
-    recursive_lock_guard lock(pvt::imageio_mutex);
-    if (oiio_print_debug) {
-        if (!oiio_debug_file) {
-            const char* filename = getenv("OPENIMAGEIO_DEBUG_FILE");
-            oiio_debug_file = filename && filename[0] ? fopen(filename, "a")
-                                                      : stderr;
-            ASSERT(oiio_debug_file);
-        }
-        Strutil::fprintf(oiio_debug_file, "OIIO DEBUG: %s", message);
-    }
+    Strutil::pvt::debug(message);
 }
 
 
 
 void
-pvt::log_time(string_view key, const Timer& timer)
+pvt::log_time(string_view key, const Timer& timer, int count)
 {
-    timing_log(key, timer);
+    timing_log(key, timer, count);
 }
 
 
@@ -285,7 +286,7 @@ attribute(string_view name, TypeDesc type, const void* val)
         return optparser(gos, *(const char**)val);
     }
     if (name == "threads" && type == TypeInt) {
-        int ot = Imath::clamp(*(const int*)val, 0, maxthreads);
+        int ot = OIIO::clamp(*(const int*)val, 0, maxthreads);
         if (ot == 0)
             ot = threads_default();
         oiio_threads = ot;
@@ -297,12 +298,20 @@ attribute(string_view name, TypeDesc type, const void* val)
         oiio_read_chunk = *(const int*)val;
         return true;
     }
+    if (name == "font_searchpath" && type == TypeString) {
+        font_searchpath = ustring(*(const char**)val);
+        return true;
+    }
     if (name == "plugin_searchpath" && type == TypeString) {
         plugin_searchpath = ustring(*(const char**)val);
         return true;
     }
     if (name == "exr_threads" && type == TypeInt) {
-        oiio_exr_threads = Imath::clamp(*(const int*)val, -1, maxthreads);
+        oiio_exr_threads = OIIO::clamp(*(const int*)val, -1, maxthreads);
+        return true;
+    }
+    if (name == "openexr:core" && type == TypeInt) {
+        openexr_core = *(const int*)val;
         return true;
     }
     if (name == "tiff:half" && type == TypeInt) {
@@ -311,6 +320,22 @@ attribute(string_view name, TypeDesc type, const void* val)
     }
     if (name == "tiff:multithread" && type == TypeInt) {
         tiff_multithread = *(const int*)val;
+        return true;
+    }
+    if (name == "dds:bc5normal" && type == TypeInt) {
+        dds_bc5normal = *(const int*)val;
+        return true;
+    }
+    if (name == "limits:channels" && type == TypeInt) {
+        limit_channels = *(const int*)val;
+        return true;
+    }
+    if (name == "limits:imagesize_MB" && type == TypeInt) {
+        limit_imagesize_MB = *(const int*)val;
+        return true;
+    }
+    if (name == "use_tbb" && type == TypeInt) {
+        oiio_use_tbb = *(const int*)val;
         return true;
     }
     if (name == "debug" && type == TypeInt) {
@@ -323,17 +348,18 @@ attribute(string_view name, TypeDesc type, const void* val)
     }
     if (name == "missingcolor" && type.basetype == TypeDesc::FLOAT) {
         // missingcolor as float array
-        oiio_missingcolor.clear();
-        oiio_missingcolor.reserve(type.basevalues());
-        int n = type.basevalues();
-        for (int i = 0; i < n; ++i)
-            oiio_missingcolor[i] = ((const float*)val)[i];
+        oiio_missingcolor.assign((const float*)val,
+                                 (const float*)val + type.numelements());
         return true;
     }
     if (name == "missingcolor" && type == TypeString) {
         // missingcolor as string
         oiio_missingcolor = Strutil::extract_from_list_string<float>(
             *(const char**)val);
+        return true;
+    }
+    if (name == "try_all_readers" && type == TypeInt) {
+        oiio_try_all_readers = *(const int*)val;
         return true;
     }
 
@@ -349,9 +375,17 @@ getattribute(string_view name, TypeDesc type, void* val)
         *(int*)val = oiio_threads;
         return true;
     }
+    if (name == "version" && type == TypeString) {
+        *(ustring*)val = ustring(OIIO_VERSION_STRING);
+        return true;
+    }
     spin_lock lock(attrib_mutex);
     if (name == "read_chunk" && type == TypeInt) {
         *(int*)val = oiio_read_chunk;
+        return true;
+    }
+    if (name == "font_searchpath" && type == TypeString) {
+        *(ustring*)val = font_searchpath;
         return true;
     }
     if (name == "plugin_searchpath" && type == TypeString) {
@@ -388,16 +422,48 @@ getattribute(string_view name, TypeDesc type, void* val)
         *(ustring*)val = ustring(library_list);
         return true;
     }
+    if (name == "font_dir_list" && type == TypeString) {
+        *(ustring*)val = ustring(Strutil::join(font_dirs(), ";"));
+        return true;
+    }
+    if (name == "font_file_list" && type == TypeString) {
+        *(ustring*)val = ustring(Strutil::join(font_file_list(), ";"));
+        return true;
+    }
+    if (name == "font_list" && type == TypeString) {
+        *(ustring*)val = ustring(Strutil::join(font_list(), ";"));
+        return true;
+    }
     if (name == "exr_threads" && type == TypeInt) {
         *(int*)val = oiio_exr_threads;
+        return true;
+    }
+    if (name == "openexr:core" && type == TypeInt) {
+        *(int*)val = openexr_core;
         return true;
     }
     if (name == "tiff:half" && type == TypeInt) {
         *(int*)val = tiff_half;
         return true;
     }
+    if (name == "limits:channels" && type == TypeInt) {
+        *(int*)val = limit_channels;
+        return true;
+    }
+    if (name == "limits:imagesize_MB" && type == TypeInt) {
+        *(int*)val = limit_imagesize_MB;
+        return true;
+    }
     if (name == "tiff:multithread" && type == TypeInt) {
         *(int*)val = tiff_multithread;
+        return true;
+    }
+    if (name == "dds:bc5normal" && type == TypeInt) {
+        *(int*)val = dds_bc5normal;
+        return true;
+    }
+    if (name == "use_tbb" && type == TypeInt) {
+        *(int*)val = oiio_use_tbb;
         return true;
     }
     if (name == "debug" && type == TypeInt) {
@@ -440,16 +506,24 @@ getattribute(string_view name, TypeDesc type, void* val)
         *(ustring*)val = ustring(Strutil::join(oiio_missingcolor, ","));
         return true;
     }
+    if (name == "try_all_readers" && type == TypeInt) {
+        *(int*)val = oiio_try_all_readers;
+        return true;
+    }
+    if (name == "opencolorio_version" && type == TypeString) {
+        int v          = ColorConfig::OpenColorIO_version_hex();
+        *(ustring*)val = ustring::fmtformat("{}.{}.{}", v >> 24,
+                                            (v >> 16) & 0xff, (v >> 8) & 0xff);
+        return true;
+    }
+    if (name == "opencv_version" && type == TypeInt) {
+        *(int*)val = OIIO::pvt::opencv_version;
+        return true;
+    }
     return false;
 }
 
 
-inline long long
-quantize(float value, long long quant_min, long long quant_max)
-{
-    value = value * quant_max;
-    return Imath::clamp((long long)(value + 0.5f), quant_min, quant_max);
-}
 
 namespace {
 
@@ -514,7 +588,7 @@ pvt::contiguize(const void* src, int nchannels, stride_t xstride,
     case TypeDesc::UINT8:
         return _contiguize((const char*)src, nchannels, xstride, ystride,
                            zstride, (char*)dst, width, height, depth);
-    case TypeDesc::HALF: DASSERT(sizeof(half) == sizeof(short));
+    case TypeDesc::HALF: OIIO_DASSERT(sizeof(half) == sizeof(short));
     case TypeDesc::INT16:
     case TypeDesc::UINT16:
         return _contiguize((const short*)src, nchannels, xstride, ystride,
@@ -530,7 +604,9 @@ pvt::contiguize(const void* src, int nchannels, stride_t xstride,
     case TypeDesc::DOUBLE:
         return _contiguize((const double*)src, nchannels, xstride, ystride,
                            zstride, (double*)dst, width, height, depth);
-    default: ASSERT(0 && "OpenImageIO::contiguize : bad format"); return NULL;
+    default:
+        OIIO_ASSERT(0 && "OpenImageIO::contiguize : bad format");
+        return NULL;
     }
 }
 
@@ -561,40 +637,8 @@ pvt::convert_to_float(const void* src, float* dst, int nvals, TypeDesc format)
         convert_type((const unsigned long long*)src, dst, nvals);
         break;
     case TypeDesc::DOUBLE: convert_type((const double*)src, dst, nvals); break;
-    default: ASSERT(0 && "ERROR to_float: bad format"); return NULL;
+    default: OIIO_ASSERT(0 && "ERROR to_float: bad format"); return NULL;
     }
-    return dst;
-}
-
-
-
-template<typename T>
-static const void*
-_from_float(const float* src, T* dst, size_t nvals)
-{
-    if (!src) {
-        // If no source pixels, assume zeroes
-        T z = T(0);
-        for (size_t p = 0; p < nvals; ++p)
-            dst[p] = z;
-    } else if (std::numeric_limits<T>::is_integer) {
-        long long quant_min = (long long)std::numeric_limits<T>::min();
-        long long quant_max = (long long)std::numeric_limits<T>::max();
-        // Convert float to non-float native format, with quantization
-        for (size_t p = 0; p < nvals; ++p)
-            dst[p] = (T)quantize(src[p], quant_min, quant_max);
-    } else {
-        // It's a floating-point type of some kind -- we don't apply
-        // quantization
-        if (sizeof(T) == sizeof(float)) {
-            // It's already float -- return the source itself
-            return src;
-        }
-        // Otherwise, it's converting between two fp types
-        for (size_t p = 0; p < nvals; ++p)
-            dst[p] = (T)src[p];
-    }
-
     return dst;
 }
 
@@ -604,21 +648,31 @@ const void*
 pvt::convert_from_float(const float* src, void* dst, size_t nvals,
                         TypeDesc format)
 {
-    switch (format.basetype) {
-    case TypeDesc::FLOAT: return src;
-    case TypeDesc::HALF: return _from_float<half>(src, (half*)dst, nvals);
-    case TypeDesc::DOUBLE: return _from_float(src, (double*)dst, nvals);
-    case TypeDesc::INT8: return _from_float(src, (char*)dst, nvals);
-    case TypeDesc::UINT8: return _from_float(src, (unsigned char*)dst, nvals);
-    case TypeDesc::INT16: return _from_float(src, (short*)dst, nvals);
-    case TypeDesc::UINT16: return _from_float(src, (unsigned short*)dst, nvals);
-    case TypeDesc::INT: return _from_float(src, (int*)dst, nvals);
-    case TypeDesc::UINT: return _from_float(src, (unsigned int*)dst, nvals);
-    case TypeDesc::INT64: return _from_float(src, (long long*)dst, nvals);
-    case TypeDesc::UINT64:
-        return _from_float(src, (unsigned long long*)dst, nvals);
-    default: ASSERT(0 && "ERROR from_float: bad format"); return NULL;
+    // If no source pixels, assume zeroes
+    if (!src) {
+        memset(dst, 0, nvals * format.size());
+        return dst;
     }
+
+    // clang-format off
+    switch (format.basetype) {
+    case TypeDesc::FLOAT:
+        // If it's already float, return the source itself
+        return src;
+    case TypeDesc::HALF:   convert_type(src, (half*)    dst, nvals); break;
+    case TypeDesc::UINT8:  convert_type(src, (uint8_t*) dst, nvals); break;
+    case TypeDesc::UINT16: convert_type(src, (uint16_t*)dst, nvals); break;
+    case TypeDesc::UINT:   convert_type(src, (uint32_t*)dst, nvals); break;
+    case TypeDesc::INT8:   convert_type(src, (int8_t*)  dst, nvals); break;
+    case TypeDesc::INT16:  convert_type(src, (int16_t*) dst, nvals); break;
+    case TypeDesc::INT:    convert_type(src, (int32_t*) dst, nvals); break;
+    case TypeDesc::DOUBLE: convert_type(src, (double*)  dst, nvals); break;
+    case TypeDesc::INT64:  convert_type(src, (int64_t*) dst, nvals); break;
+    case TypeDesc::UINT64: convert_type(src, (uint64_t*)dst, nvals); break;
+    default: OIIO_ASSERT(0 && "ERROR from_float: bad format"); dst = nullptr;
+    }
+    // clang-format on
+    return dst;
 }
 
 
@@ -764,14 +818,13 @@ parallel_convert_image(int nchannels, int width, int height, int depth,
                            nchannels, width, height);
 
     int blocksize = std::max(1, height / nthreads);
-    parallel_for_chunked(
-        0, height, blocksize, [=](int id, int64_t ybegin, int64_t yend) {
-            convert_image(nchannels, width, yend - ybegin, depth,
-                          (const char*)src + src_ystride * ybegin, src_type,
-                          src_xstride, src_ystride, src_zstride,
-                          (char*)dst + dst_ystride * ybegin, dst_type,
-                          dst_xstride, dst_ystride, dst_zstride);
-        });
+    parallel_for_chunked(0, height, blocksize, [=](int64_t ybegin, int64_t yend) {
+        convert_image(nchannels, width, yend - ybegin, depth,
+                      (const char*)src + src_ystride * ybegin, src_type,
+                      src_xstride, src_ystride, src_zstride,
+                      (char*)dst + dst_ystride * ybegin, dst_type, dst_xstride,
+                      dst_ystride, dst_zstride);
+    });
     return true;
 }
 
@@ -817,12 +870,47 @@ copy_image(int nchannels, int width, int height, int depth, const void* src,
 
 
 void
+add_bluenoise(int nchannels, int width, int height, int depth, float* data,
+              stride_t xstride, stride_t ystride, stride_t zstride,
+              float ditheramplitude, int alpha_channel, int z_channel,
+              unsigned int ditherseed, int chorigin, int xorigin, int yorigin,
+              int zorigin)
+{
+    ImageSpec::auto_stride(xstride, ystride, zstride, sizeof(float), nchannels,
+                           width, height);
+    char* plane = (char*)data;
+    for (int z = 0; z < depth; ++z, plane += zstride) {
+        char* scanline = plane;
+        for (int y = 0; y < height; ++y, scanline += ystride) {
+            char* pixel = scanline;
+            for (int x = 0; x < width; ++x, pixel += xstride) {
+                float* val = (float*)pixel;
+                for (int c = 0; c < nchannels; ++c, ++val) {
+                    int channel = c + chorigin;
+                    if (channel == alpha_channel || channel == z_channel)
+                        continue;
+                    float dither
+                        = pvt::bluenoise_4chan_ptr(x + xorigin, y + yorigin,
+                                                   z + zorigin, channel & (~3),
+                                                   ditherseed)[channel & 3];
+                    *val += ditheramplitude * (dither - 0.5f);
+                }
+            }
+        }
+    }
+}
+
+
+
+void
 add_dither(int nchannels, int width, int height, int depth, float* data,
            stride_t xstride, stride_t ystride, stride_t zstride,
            float ditheramplitude, int alpha_channel, int z_channel,
            unsigned int ditherseed, int chorigin, int xorigin, int yorigin,
            int zorigin)
 {
+#if OIIO_VERSION < OIIO_MAKE_VERSION(2, 4, 0)
+    // Old: uniform random noise
     ImageSpec::auto_stride(xstride, ystride, zstride, sizeof(float), nchannels,
                            width, height);
     char* plane = (char*)data;
@@ -847,15 +935,21 @@ add_dither(int nchannels, int width, int height, int depth, float* data,
             }
         }
     }
+#else
+    // New: Use blue noise for our dither
+    add_bluenoise(nchannels, width, height, depth, data, xstride, ystride,
+                  zstride, ditheramplitude, alpha_channel, z_channel,
+                  ditherseed, chorigin, xorigin, yorigin, zorigin);
+#endif
 }
 
 
 
 template<typename T>
 static void
-premult_impl(int nchannels, int width, int height, int depth, int chbegin,
-             int chend, T* data, stride_t xstride, stride_t ystride,
-             stride_t zstride, int alpha_channel, int z_channel)
+premult_impl(int width, int height, int depth, int chbegin, int chend, T* data,
+             stride_t xstride, stride_t ystride, stride_t zstride,
+             int alpha_channel, int z_channel)
 {
     char* plane = (char*)data;
     for (int z = 0; z < depth; ++z, plane += zstride) {
@@ -888,61 +982,51 @@ premult(int nchannels, int width, int height, int depth, int chbegin, int chend,
                            nchannels, width, height);
     switch (datatype.basetype) {
     case TypeDesc::FLOAT:
-        premult_impl(nchannels, width, height, depth, chbegin, chend,
-                     (float*)data, xstride, ystride, zstride, alpha_channel,
-                     z_channel);
+        premult_impl(width, height, depth, chbegin, chend, (float*)data,
+                     xstride, ystride, zstride, alpha_channel, z_channel);
         break;
     case TypeDesc::UINT8:
-        premult_impl(nchannels, width, height, depth, chbegin, chend,
-                     (unsigned char*)data, xstride, ystride, zstride,
-                     alpha_channel, z_channel);
+        premult_impl(width, height, depth, chbegin, chend, (unsigned char*)data,
+                     xstride, ystride, zstride, alpha_channel, z_channel);
         break;
     case TypeDesc::UINT16:
-        premult_impl(nchannels, width, height, depth, chbegin, chend,
+        premult_impl(width, height, depth, chbegin, chend,
                      (unsigned short*)data, xstride, ystride, zstride,
                      alpha_channel, z_channel);
         break;
     case TypeDesc::HALF:
-        premult_impl(nchannels, width, height, depth, chbegin, chend,
-                     (half*)data, xstride, ystride, zstride, alpha_channel,
-                     z_channel);
+        premult_impl(width, height, depth, chbegin, chend, (half*)data, xstride,
+                     ystride, zstride, alpha_channel, z_channel);
         break;
     case TypeDesc::INT8:
-        premult_impl(nchannels, width, height, depth, chbegin, chend,
-                     (char*)data, xstride, ystride, zstride, alpha_channel,
-                     z_channel);
+        premult_impl(width, height, depth, chbegin, chend, (char*)data, xstride,
+                     ystride, zstride, alpha_channel, z_channel);
         break;
     case TypeDesc::INT16:
-        premult_impl(nchannels, width, height, depth, chbegin, chend,
-                     (short*)data, xstride, ystride, zstride, alpha_channel,
-                     z_channel);
+        premult_impl(width, height, depth, chbegin, chend, (short*)data,
+                     xstride, ystride, zstride, alpha_channel, z_channel);
         break;
     case TypeDesc::INT:
-        premult_impl(nchannels, width, height, depth, chbegin, chend,
-                     (int*)data, xstride, ystride, zstride, alpha_channel,
-                     z_channel);
+        premult_impl(width, height, depth, chbegin, chend, (int*)data, xstride,
+                     ystride, zstride, alpha_channel, z_channel);
         break;
     case TypeDesc::UINT:
-        premult_impl(nchannels, width, height, depth, chbegin, chend,
-                     (unsigned int*)data, xstride, ystride, zstride,
-                     alpha_channel, z_channel);
+        premult_impl(width, height, depth, chbegin, chend, (unsigned int*)data,
+                     xstride, ystride, zstride, alpha_channel, z_channel);
         break;
     case TypeDesc::INT64:
-        premult_impl(nchannels, width, height, depth, chbegin, chend,
-                     (int64_t*)data, xstride, ystride, zstride, alpha_channel,
-                     z_channel);
+        premult_impl(width, height, depth, chbegin, chend, (int64_t*)data,
+                     xstride, ystride, zstride, alpha_channel, z_channel);
         break;
     case TypeDesc::UINT64:
-        premult_impl(nchannels, width, height, depth, chbegin, chend,
-                     (uint64_t*)data, xstride, ystride, zstride, alpha_channel,
-                     z_channel);
+        premult_impl(width, height, depth, chbegin, chend, (uint64_t*)data,
+                     xstride, ystride, zstride, alpha_channel, z_channel);
         break;
     case TypeDesc::DOUBLE:
-        premult_impl(nchannels, width, height, depth, chbegin, chend,
-                     (double*)data, xstride, ystride, zstride, alpha_channel,
-                     z_channel);
+        premult_impl(width, height, depth, chbegin, chend, (double*)data,
+                     xstride, ystride, zstride, alpha_channel, z_channel);
         break;
-    default: ASSERT(0 && "OIIO::premult() of an unsupported type"); break;
+    default: OIIO_ASSERT(0 && "OIIO::premult() of an unsupported type"); break;
     }
 }
 
@@ -981,7 +1065,7 @@ wrap_periodic(int& coord, int origin, int width)
 bool
 wrap_periodic_pow2(int& coord, int origin, int width)
 {
-    DASSERT(ispow2(width));
+    OIIO_DASSERT(ispow2(width));
     coord -= origin;
     coord &= (width - 1);  // Shortcut periodic if we're sure it's a pow of 2
     coord += origin;
@@ -999,8 +1083,8 @@ wrap_mirror(int& coord, int origin, int width)
     coord -= iter * width;
     if (iter & 1)  // Odd iterations -- flip the sense
         coord = width - 1 - coord;
-    DASSERT_MSG(coord >= 0 && coord < width, "width=%d, origin=%d, result=%d",
-                width, origin, coord);
+    OIIO_DASSERT_MSG(coord >= 0 && coord < width,
+                     "width=%d, origin=%d, result=%d", width, origin, coord);
     coord += origin;
     return true;
 }

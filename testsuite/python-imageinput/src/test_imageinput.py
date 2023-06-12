@@ -6,7 +6,7 @@ import OpenImageIO as oiio
 import os
 
 OIIO_TESTSUITE_IMAGEDIR = os.getenv('OIIO_TESTSUITE_IMAGEDIR',
-                                    '../../../../../oiio-images')
+                                    '../oiio-images')
 
 # Print the contents of an ImageSpec
 def print_imagespec (spec, subimage=0, mip=0, msg="") :
@@ -312,6 +312,10 @@ try:
 
     test_tiff_remembering_config()
     test_tiff_cmyk()
+
+    # Test is_imageio_format_name
+    print ("is_imageio_format_name('tiff') =", oiio.is_imageio_format_name('tiff'))
+    print ("is_imageio_format_name('txff') =", oiio.is_imageio_format_name('txff'))
 
     print ("Done.")
 except Exception as detail:

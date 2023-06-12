@@ -24,16 +24,21 @@ Helper Classes
 Imath
 -------------------------------------------------
 
-The texture functinality of OpenImageIO uses the excellent open source
-``Ilmbase`` package's ``Imath`` types when it requires 3D vectors and
+The texture functionality of OpenImageIO uses the excellent open source
+``Imath`` types when it requires 3D vectors and
 transformation matrixes.  Specifically, we use ``Imath::V3f`` for 3D
 positions and directions, and ``Imath::M44f`` for 4x4 transformation
 matrices.  To use these yourself, we recommend that you::
 
+    // If using Imath 3.x:
+    #include <Imath/ImathVec.h>
+    #include <Imath/ImathMatrix.h>
+
+    // OR, if using OpenEXR 2.x, before Imath split off:
     #include <OpenEXR/ImathVec.h>
     #include <OpenEXR/ImathMatrix.h>
 
-Please refer to the ``Ilmbase`` and ``OpenEXR`` documentation and header
+Please refer to the ``Imath`` documentation and header
 files for more complete information about use of these types in your own
 application.  However, note that you are not strictly required to use these
 classes in your application --- ``Imath::V3f`` has a memory layout identical
@@ -130,16 +135,50 @@ structure:
   will return `false`. Note: When not NULL, the data must point to
   `nchannels` contiguous floats.
 
-- `float bias` :
+..
+  - `float bias` :
   For shadow map lookups only, this gives the "shadow bias" amount.
 
-- `int samples` :
+..
+  - `int samples` :
   For shadow map lookups only, the number of samples to use for the lookup.
 
 - `Wrap rwrap, float rblur, rwidth` :
   Specifies wrap, blur, and width for the third component of 3D volume
   texture lookups.  These are not used for 2D texture or environment
   lookups.
+
+- `MipMode mipmode` :
+  Determines if/how MIP-maps are used:
+
+    - `MipModeDefault`   : The default high-quality lookup (same as Aniso).
+
+    - `MipModeNoMIP`     : Just use highest-res image, no MIP mapping
+
+    - `MipModeOneLevel`  : Use just one mipmap level
+
+    - `MipModeTrilinear` : Use two MIPmap levels (trilinear)
+
+    - `MipModeAniso`     : Use two MIPmap levels w/ anisotropic
+
+- `InterpMode interpmode` :
+  Determines how we sample within a mipmap level:
+
+    - `InterpClosest`      : Force closest texel.
+
+    - `InterpBilinear`     : Force bilinear lookup within a mip level.
+
+    - `InterpBicubic`      : Force cubic lookup within a mip level.
+
+    - `InterpSmartBicubic` : Bicubic when maxifying, else bilinear (default).
+
+- `int anisotropic` :
+  Maximum anisotropic ratio (default: 32).
+
+- `bool conservative_filter` :
+  When true (the default), filters conservatively in a way that chooses to
+  sometimes over-blur rather than alias.
+
 
 
 
@@ -154,6 +193,110 @@ TextureSystem API
 
 
 
+
+
+
+.. _sec-texturesys-udim:
+
+UDIM texture atlases
+====================
+
+Texture lookups
+---------------
+
+The `texture()` call supports virtual filenames that expand per lookup for
+UDIM tiled texture atlases. The substitutions will occur if the texture
+filename initially passed to `texture()` does not exist as a concrete file
+and contains one or more of the following substrings:
+
+========== ======================== =================================
+Pattern    Numbering scheme         Example expansion if u=0.5, v=2.5
+========== ======================== =================================
+`<UDIM>`   1001 + utile + vtile*10  `1021`
+`<u>`      utile                    `u0`
+`<v>`      vtile                    `v2`
+`<U>`      utile + 1                `u1`
+`<V>`      vtile + 1                `v3`
+`<uvtile>` equivalent to `<u>_<v>`  `u0_v2`
+`<UVTILE>` equivalent to `<U>_<V>`  `u1_v3`
+`_u##v##`  utile, vtile             `_u00v02`
+`%(UDIM)d` synonym for `<UDIM>`     `1021`
+========== ======================== =================================
+
+where the tile numbers are derived from the input u,v texture
+coordinates as follows::
+
+    // Each unit square of texture is a different tile
+    utile = max (0, int(u));
+    vtile = max (0, int(v));
+    // Re-adjust the texture coordinates to the offsets within the tile
+    u = u - utile;
+    v = v - vtile;
+
+Example::
+
+    ustring filename ("paint.<UDIM>.tif");
+    float s = 1.4, t = 3.8;
+    texsys->texture (filename, s, t, ...);
+
+will retrieve from file :file:`paint.1032.tif` at coordinates (0.4,0.8).
+
+
+Handles of udim files
+---------------------
+
+Calls to `get_texture_handle()`, when passing a UDIM pattern filename, will
+always succeed. But without knowing a specific u and v, it has no way to
+know that the concrete file you will eventually ask for would not succeed,
+so this handle is for the overall
+"virtual" texture atlas.
+
+You can retrieve the handle of a specific "tile" of the UDIM set by using
+
+.. cpp:function:: TextureHandle* resolve_udim(ustring udimpattern, float s, float t)
+    TextureHandle* resolve_udim(TextureHandle* udimfile, Perthread* thread_info, float s, float t)
+
+    Note: these will return `nullptr` if the UDIM tile for those
+    coordinates is unpopulated.
+
+
+Note also that the `is_udim()` method can be used to ask whether a filename
+or handle corresponds to a UDIM pattern (the whole set of atlas tiles):
+
+.. cpp:function:: bool is_udim(ustring filename)
+    bool is_udim(TextureHandle* udimfile)
+
+
+Retrieving metadata from UDIM sets and tiles
+--------------------------------------------
+
+Calls to `get_texture_info()` on UDIM file pattern will succeed if the
+metadata is found and has the same value in all of the populated "tiles" of
+a UDIM. If not all populated tile files have the same value for that
+attribute, the call will fail.
+
+If you want to know the metadata at a specific texture coordinate, you can
+use a combination of `resolve_udim()` to find the handle for the corresponding
+concrete texture file for that "tile," and then `get_texture_info()` to
+retrieve the metadata for the concrete file.
+
+
+Full inventory of a UDIM set
+----------------------------
+
+You can get the range in u and v of the UDIM texture atlas, and the list of
+all of the concrete filenames of the corresponding tiles with this method:
+
+.. cpp:function:: void inventory_udim(ustring udimpattern, std::vector<ustring>& filenames, int& nutiles, int& nvtiles)
+   void inventory_udim(TextureHandle* udimfile, Perthread* thread_info, std::vector<ustring>& filenames, int& nutiles, int& nvtiles)
+
+The indexing scheme is that `filenames[u + v * nvtiles]` is the name of the
+tile with integer indices `(u,v)`, where 0 is the first index of each row or
+column.
+
+The combination of `inventory_udim()` and `get_texture_handle()` of the listed
+filenames can be used to generate the corresponding handles for each UDIM
+tile.
 
 
 
@@ -178,9 +321,9 @@ OpenImageIO) and may be accessed with the following constant:
 All of the batched calls take a *run mask*, which describes which subset of
 "lanes" should be computed by the batched lookup:
 
-.. doxygentypedef::
+.. doxygentypedef:: RunMask
 
-.. cpp:var:: RunMaskOn
+.. cpp:enumerator:: RunMaskOn
 
     The defined constant `RunMaskOn` contains the value with all bits
     `0..BatchWidth-1` set to 1.
@@ -195,19 +338,18 @@ batch of lookups from the same texture at once. The members of
 TextureOptBatch correspond to the similarly named members of the
 single-point TextureOpt, so we refer you to Section :ref:`sec-textureopt`
 for detailed explanations, and this section will only explain the
-differences between batched and single-point options.
+differences between batched and single-point options. Members include:
 
 
-.. cpp:member:: int firstchannel
-                int subimage
-                ustring subimagename
-                Tex::Wrap swrap, twrap, rwrap
-                Tex::MipMode mipmode
-                Tex::InterpMode interpmode
-                int anisotropic
-                bool conservative_filter
-                float fill
-                const float *missingcolor
+- `int firstchannel` :
+- `int subimage, ustring subimagename` :
+- `Wrap swrap, twrap, rwrap` :
+- `float fill` :
+- `const float* missingcolor` :
+- `MipMode mipmode` :
+- `InterpMode interpmode` :
+- `int anisotropic` :
+- `bool conservative_filter` :
 
     These fields are all scalars --- a single value for each TextureOptBatch
     --- which means that the value of these options must be the same for
@@ -216,17 +358,17 @@ differences between batched and single-point options.
     example) differing wrap modes or subimages from point to point, then you
     must split them into separate batch calls.
 
-.. cpp:member:: float sblur[Tex::BatchWidth]
-                float tblur[Tex::BatchWidth]
-                float rblur[Tex::BatchWidth]
+- `float sblur[Tex::BatchWidth]` :
+- `float tblur[Tex::BatchWidth]` :
+- `float rblur[Tex::BatchWidth]` :
 
     These arrays hold the `s`, and `t` blur amounts, for each sample in the
     batch, respectively. (And the `r` blur amount, used only for volumetric
     `texture3d()` lookups.)
 
-.. cpp:member:: float swidth[Tex::BatchWidth]
-                float twidth[Tex::BatchWidth]
-                float rwidth[Tex::BatchWidth]
+- `float swidth[Tex::BatchWidth]` :
+- `float twidth[Tex::BatchWidth]` :
+- `float rwidth[Tex::BatchWidth]` :
 
     These arrays hold the `s`, and `t` filtering width multiplier for
     derivatives, for each sample in the batch, respectively. (And the `r`
@@ -302,63 +444,4 @@ Batched Texture Lookup Calls
     
     This function returns `true` upon success, or `false` if the file was
     not found or could not be opened by any available ImageIO plugin.
-
-
-
-
-
-.. _sec-texturesys-udim:
-
-UDIM and texture atlases
-========================
-
-**Texture lookups**
-
-The `texture()` call supports virtual filenames that expand per lookup
-for UDIM and other tiled texture atlas techniques. The substitutions will
-occur if the texture filename initially passed to `texture()` does not
-exist as a concrete file and contains one or more of the following
-substrings:
-
-======== ========================
-`<UDIM>` 1001 + utile + vtile*10
-`<u>`    utile
-`<v>`    vtile
-`<U>`    utile + 1
-`<V>`    vtile + 1
-======== ========================
-
-where the tile numbers are derived from the input u,v texture
-coordinates as follows::
-
-    // Each unit square of texture is a different tile
-    utile = max (0, int(u));
-    vtile = max (0, int(v));
-    // Re-adjust the texture coordinates to the offsets within the tile
-    u = u - utile;
-    v = v - vtile;
-
-Example::
-
-    ustring filename ("paint.<UDIM>.tif");
-    float s = 1.4, t = 3.8;
-    texsys->texture (filename, s, t, ...);
-
-will retrieve from file :file:`paint.1032.tif` at coordinates (0.4,0.8).
-
-
-**Retrieving metadata**
-
-Calls to `get_texture_info()` on UDIM files will retrieve the metadata of
-the first file it finds matching the name template. The call will fail
-(return `nullptr` and not retrieve data) if no concrete texture file can
-be found that matches the udim naming template.
-
-
-**Handles of udim files**
-
-Calls to `get_texture_handle()` will always succeed. Withing knowing a
-specific u and v, it has no way to know that the concrete file you will
-eventually ask for would not succeed.
-
 

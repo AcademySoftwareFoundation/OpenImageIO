@@ -1,24 +1,31 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #include "ivgl.h"
 #include "imageviewer.h"
 
 #include <iostream>
 
-#include <OpenEXR/ImathFun.h>
-#include <OpenEXR/half.h>
-
 #include <QComboBox>
 #include <QLabel>
 #include <QMouseEvent>
 #include <QProgressBar>
+#if OIIO_QT_MAJOR >= 6
+#    include <QPainter>
+#    include <QPen>
+#endif
 
 #include "ivutils.h"
-#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/timer.h>
+
+OIIO_PRAGMA_WARNING_PUSH
+#if defined(__APPLE__)
+// Apple deprecates OpenGL calls, ugh
+OIIO_CLANG_PRAGMA(GCC diagnostic ignored "-Wdeprecated-declarations")
+#endif
+
 
 
 static const char*
@@ -37,9 +44,9 @@ gl_err_to_string(GLenum err)
 }
 
 
-#define GLERRPRINT(msg)                                                        \
-    for (GLenum err = glGetError(); err != GL_NO_ERROR; err = glGetError())    \
-        std::cerr << "GL error " << msg << " " << (int)err << " - "            \
+#define GLERRPRINT(msg)                                                     \
+    for (GLenum err = glGetError(); err != GL_NO_ERROR; err = glGetError()) \
+        std::cerr << "GL error " << msg << " " << (int)err << " - "         \
                   << gl_err_to_string(err) << "\n";
 
 
@@ -323,7 +330,7 @@ IvGL::create_shaders(void)
     // extension-based shaders won't work.
     m_shader_program = glCreateProgram();
 
-    GLERRPRINT("create progam");
+    GLERRPRINT("create program");
 
     // This holds the compilation status
     GLint status;
@@ -442,10 +449,10 @@ handle_orientation(int orientation, int width, int height, float& scale_x,
         point_x = width - point_x;
         if (pixel)
             // We want to access the pixel at (point_x,pointy), so we have to
-            // substract 1 to get the right index.
+            // subtract 1 to get the right index.
             --point_x;
         break;
-    case 3:  // bottom up, rigth to left (rotated 180).
+    case 3:  // bottom up, right to left (rotated 180).
         scale_x = -1;
         scale_y = -1;
         point_x = width - point_x;
@@ -567,10 +574,6 @@ IvGL::paintGL()
     //std::cerr << "(" << xbegin << ',' << ybegin << ") - (" << xend << ',' << yend << ")\n";
 
     // Provide some feedback
-    int total_tiles    = (int)(ceilf(float(xend - xbegin) / m_texture_width)
-                            * ceilf(float(yend - ybegin) / m_texture_height));
-    float tile_advance = 1.0f / total_tiles;
-    float percent      = tile_advance;
     m_viewer.statusViewInfo->hide();
     m_viewer.statusProgress->show();
 
@@ -589,10 +592,9 @@ IvGL::paintGL()
             // FIXME: This can get too slow. Some ideas: avoid sending the tex
             // images more than necessary, figure an optimum texture size, use
             // multiple texture objects.
-            load_texture(xstart, ystart, tile_width, tile_height, percent);
+            load_texture(xstart, ystart, tile_width, tile_height);
             gl_rect(xstart, ystart, xstart + tile_width, ystart + tile_height,
                     0, smin, tmin, smax, tmax);
-            percent += tile_advance;
         }
     }
 
@@ -615,7 +617,7 @@ IvGL::paintGL()
 
 
 void
-IvGL::shadowed_text(float x, float y, float z, const std::string& s,
+IvGL::shadowed_text(float x, float y, float /*z*/, const std::string& s,
                     const QFont& font)
 {
     /*
@@ -938,7 +940,7 @@ IvGL::useshader(int tex_width, int tex_height, bool pixelview)
 
     loc = glGetUniformLocation(m_shader_program, "height");
     glUniform1i(loc, tex_height);
-    GLERRPRINT("After settting uniforms");
+    GLERRPRINT("After setting uniforms");
 }
 
 
@@ -1076,15 +1078,15 @@ IvGL::clamp_view_to_window()
 
     // Don't let us scroll off the edges
     if (zoomedwidth >= w) {
-        m_centerx = Imath::clamp(m_centerx, xmin + 0.5f * w / m_zoom,
-                                 xmax - 0.5f * w / m_zoom);
+        m_centerx = OIIO::clamp(m_centerx, xmin + 0.5f * w / m_zoom,
+                                xmax - 0.5f * w / m_zoom);
     } else {
         m_centerx = img->oriented_full_x() + img->oriented_full_width() / 2;
     }
 
     if (zoomedheight >= h) {
-        m_centery = Imath::clamp(m_centery, ymin + 0.5f * h / m_zoom,
-                                 ymax - 0.5f * h / m_zoom);
+        m_centery = OIIO::clamp(m_centery, ymin + 0.5f * h / m_zoom,
+                                ymax - 0.5f * h / m_zoom);
     } else {
         m_centery = img->oriented_full_y() + img->oriented_full_height() / 2;
     }
@@ -1113,7 +1115,11 @@ IvGL::mousePressEvent(QMouseEvent* event)
             else
                 m_dragging = true;
             return;
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+        case Qt::MiddleButton:
+#else
         case Qt::MidButton:
+#endif
             m_dragging = true;
             // FIXME: should this be return rather than break?
             break;
@@ -1149,7 +1155,11 @@ IvGL::mouseMoveEvent(QMouseEvent* event)
     bool do_select = false, do_annotate = false;
     switch (mousemode) {
     case ImageViewer::MouseModeZoom:
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+        if ((m_drag_button == Qt::MiddleButton)
+#else
         if ((m_drag_button == Qt::MidButton)
+#endif
             || (m_drag_button == Qt::LeftButton && Alt)) {
             do_pan = true;
         } else if (m_drag_button == Qt::RightButton && Alt) {
@@ -1181,7 +1191,7 @@ IvGL::mouseMoveEvent(QMouseEvent* event)
         float dx = (pos.x() - m_mousex);
         float dy = (pos.y() - m_mousey);
         float z  = m_viewer.zoom() * (1.0 + 0.005 * (dx + dy));
-        z        = Imath::clamp(z, 0.01f, 256.0f);
+        z        = OIIO::clamp(z, 0.01f, 256.0f);
         m_viewer.zoom(z);
         m_viewer.fitImageToWindowAct->setChecked(false);
     } else if (do_wipe) {
@@ -1202,14 +1212,15 @@ void
 IvGL::wheelEvent(QWheelEvent* event)
 {
     m_mouse_activation = false;
-    if (event->orientation() == Qt::Vertical) {
-        // TODO: Update this to keep the zoom centered on the event .x, .y
+    QPoint angdelta    = event->angleDelta() / 8;  // div by 8 to get degrees
+    if (abs(angdelta.y()) > abs(angdelta.x())      // predominantly vertical
+        && abs(angdelta.y()) > 2) {                // suppress tiny motions
         float oldzoom = m_viewer.zoom();
-        float newzoom = (event->delta() > 0) ? ceil2f(oldzoom)
-                                             : floor2f(oldzoom);
+        float newzoom = (angdelta.y() > 0) ? ceil2f(oldzoom) : floor2f(oldzoom);
         m_viewer.zoom(newzoom);
         event->accept();
     }
+    // TODO: Update this to keep the zoom centered on the event .x, .y
 }
 
 
@@ -1248,8 +1259,8 @@ IvGL::get_focus_image_pixel(int& x, int& y)
     float normx = (float)(m_mousex + 0.5f) / w;
     float normy = (float)(m_mousey + 0.5f) / h;
     // imgx,imgy are the position of the mouse, in pixel coordinates
-    float imgx = Imath::lerp(left, right, normx);
-    float imgy = Imath::lerp(top, bottom, normy);
+    float imgx = OIIO::lerp(left, right, normx);
+    float imgy = OIIO::lerp(top, bottom, normy);
     // So finally x,y are the coordinates of the image pixel (on [0,res-1])
     // underneath the mouse cursor.
     //FIXME: Shouldn't this take image rotation into account?
@@ -1440,7 +1451,7 @@ IvGL::typespec_to_opengl(const ImageSpec& spec, int nchannels, GLenum& gltype,
 
 
 void
-IvGL::load_texture(int x, int y, int width, int height, float percent)
+IvGL::load_texture(int x, int y, int width, int height)
 {
     const ImageSpec& spec = m_current_image->spec();
     // Find if this has already been loaded.
@@ -1452,11 +1463,6 @@ IvGL::load_texture(int x, int y, int width, int height, float percent)
         }
     }
 
-    // Disabling progress report. Seems clear after some research that we cannot
-    // update the bar (not even with a signal) within a paint function without
-    // messing up the openGL context
-    //m_viewer.statusProgress->setValue ((int)(percent*100));
-    //m_viewer.statusProgress->update ();
     setCursor(Qt::WaitCursor);
 
     int nchannels = spec.nchannels;
@@ -1514,3 +1520,6 @@ IvGL::is_too_big(float width, float height)
                                         * ceilf(height / m_max_texture_size));
     return tiles > m_texbufs.size();
 }
+
+
+OIIO_PRAGMA_WARNING_POP

@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 from __future__ import absolute_import
+import numpy
 import OpenImageIO as oiio
 
 
@@ -91,6 +92,7 @@ try:
     s.attribute ("foo_matrix", oiio.TypeDesc.TypeMatrix,
                  (1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 1, 2, 3, 1))
     s.attribute ("smpte:TimeCode", oiio.TypeDesc.TypeTimeCode, (18356486, 4294967295))
+    s.attribute ("ucarr", "uint8[10]", numpy.array([49, 50, 51, 0, 0, 97, 98, 99, 1, 88], dtype='B'))
     s["delfoo_str"] =  "egg"
     s["delfoo_int"] = 29
     s["delfoo_float"] = 99.5
@@ -111,9 +113,29 @@ try:
     print ("getattribute('foo_matrix') retrieves", s.getattribute("foo_matrix"))
     print ("getattribute('foo_no') retrieves", s.getattribute("foo_no"))
     print ("getattribute('smpte:TimeCode') retrieves", s.getattribute("smpte:TimeCode"))
+    print ("getattribute('ucarr') retrieves", s.getattribute("ucarr"))
+    print ("getattribute('unknown') retrieves", s.getattribute("unknown"))
+    print ("s.get('foo_int') =", s.get('foo_int'))
+    print ("s.get('ucarr') retrieves", s.get("ucarr"))
+    try :
+        print ("s['ucarr'] retrieves", s['ucarr'])
+    except KeyError :
+        print ("s['ucarr'] not found")
+    print ("s.get('unknown') =", s.get('unknown'))
+    print ("s.get('unknown', 123) =", s.get('unknown'))
     print ("s['delfoo_float'] =", s['delfoo_float'])
     print ("s['delfoo_int'] =", s['delfoo_int'])
     print ("s['delfoo_str'] =", s['delfoo_str'])
+    try :
+        print ("s['unknown'] =", s['unknown'])
+    except KeyError :
+        print ("s['unknown'] raised a KeyError (as expected)")
+    except :
+        print ("s['unknown'] threw an unknown exception (oh no!)")
+    print("'foo_int' in s =", "foo_int" in s)
+    print("'unknown' in s =", "unknown" in s)
+    s["extra"] = 1  # add 'extra', then delete it
+    del s["extra"]  # it should not appear in the serialization below
     print ()
 
     print ("extra_attribs size is", len(s.extra_attribs))
@@ -125,11 +147,25 @@ try:
     print (s.serialize("xml"))
     print ("serialize(text, human):")
     print (s.serialize("text", "detailedhuman"))
+    print ()
+
+    s.attribute("dog", "Spot")
+    print ("Added dog: ", s.getattribute("dog"))
+    s.erase_attribute("dog")
+    print ("After erasing dog, dog = ", s.getattribute("dog"))
+    print()
 
     # test initialization from ROI
     print ("Testing construction from ROI:")
     sroi = oiio.ImageSpec (oiio.ROI(0,640,0,480,0,1,0,3), oiio.FLOAT);
     print_imagespec (sroi)
+
+    print ("\nTesting set_colorspace:")
+    s = oiio.ImageSpec()
+    s.set_colorspace("sRGB")
+    print ("  after set_colorspace('sRGB'):", s.get_string_attribute("oiio:ColorSpace"))
+    s.set_colorspace("")
+    print ("  after set_colorspace(''):", s.get_string_attribute("oiio:ColorSpace"))
 
     # Also test global OIIO functions here
     print ("\nTesting global attribute store/retrieve:")

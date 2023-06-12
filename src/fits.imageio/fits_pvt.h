@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #pragma once
 
@@ -9,7 +9,6 @@
 #include <sstream>
 
 #include <OpenImageIO/filesystem.h>
-#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 
 // This represent the size of ONE header unit in FITS file.
@@ -26,7 +25,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 namespace fits_pvt {
 
-// struct in which we store information about one subimage. This informations
+// struct in which we store information about one subimage. This information
 // allow us to set up pointer at the beginning of given subimage
 struct Subimage {
     int number;
@@ -40,34 +39,34 @@ struct Subimage {
 class FitsInput final : public ImageInput {
 public:
     FitsInput() { init(); }
-    virtual ~FitsInput() { close(); }
-    virtual const char* format_name(void) const override { return "fits"; }
-    virtual int supports(string_view feature) const override
+    ~FitsInput() override { close(); }
+    const char* format_name(void) const override { return "fits"; }
+    int supports(string_view feature) const override
     {
         return (feature == "arbitrary_metadata"
                 || feature == "exif"    // Because of arbitrary_metadata
                 || feature == "iptc");  // Because of arbitrary_metadata
     }
-    virtual bool valid_file(const std::string& filename) const override;
-    virtual bool open(const std::string& name, ImageSpec& spec) override;
-    virtual bool close(void) override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
-    virtual bool seek_subimage(int subimage, int miplevel) override;
-    virtual int current_subimage() const override { return m_cur_subimage; }
+    bool valid_file(const std::string& filename) const override;
+    bool open(const std::string& name, ImageSpec& spec) override;
+    bool close(void) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
+    bool seek_subimage(int subimage, int miplevel) override;
+    int current_subimage() const override { return m_cur_subimage; }
 
 private:
     FILE* m_fd;
     std::string m_filename;
     int m_cur_subimage;
     int m_bitpix;              // number of bits that represents data value;
-    int m_naxes;               // number of axses of the image (e.g dimensions)
+    int m_naxes;               // number of axes of the image (e.g dimensions)
     std::vector<int> m_naxis;  // axis sizes of each dimension
     fpos_t m_filepos;          // current position in the file
-    // here we store informations how many times COMMENT, HISTORY, HIERARCH
-    // keywords has occured
+    // here we store information how many times COMMENT, HISTORY, HIERARCH
+    // keywords have occurred
     std::map<std::string, int> keys;
-    // here we store informations about subimages,
+    // here we store information about subimages,
     // eg. subimage number and subimage offset
     std::vector<fits_pvt::Subimage> m_subimages;
     // here we stores content of COMMENT, HISTORY, HIERARCH keywords. Each line
@@ -82,6 +81,8 @@ private:
         m_cur_subimage = 0;
         m_bitpix       = 0;
         m_naxes        = 0;
+        m_naxis.clear();
+        keys.clear();
         m_subimages.clear();
         m_comment.clear();
         m_history.clear();
@@ -117,17 +118,17 @@ private:
 class FitsOutput final : public ImageOutput {
 public:
     FitsOutput() { init(); }
-    virtual ~FitsOutput() { close(); }
-    virtual const char* format_name(void) const override { return "fits"; }
-    virtual int supports(string_view feature) const override;
-    virtual bool open(const std::string& name, const ImageSpec& spec,
-                      OpenMode mode = Create) override;
-    virtual bool close(void) override;
-    virtual bool write_scanline(int y, int z, TypeDesc format, const void* data,
-                                stride_t xstride) override;
-    virtual bool write_tile(int x, int y, int z, TypeDesc format,
-                            const void* data, stride_t xstride,
-                            stride_t ystride, stride_t zstride) override;
+    ~FitsOutput() override { close(); }
+    const char* format_name(void) const override { return "fits"; }
+    int supports(string_view feature) const override;
+    bool open(const std::string& name, const ImageSpec& spec,
+              OpenMode mode = Create) override;
+    bool close(void) override;
+    bool write_scanline(int y, int z, TypeDesc format, const void* data,
+                        stride_t xstride) override;
+    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
+                    stride_t xstride, stride_t ystride,
+                    stride_t zstride) override;
 
 private:
     FILE* m_fd;
@@ -146,6 +147,7 @@ private:
         m_bitpix = 0;
         m_simple = true;
         m_scratch.clear();
+        m_tilebuffer.clear();
         m_sep = '\n';
     }
 

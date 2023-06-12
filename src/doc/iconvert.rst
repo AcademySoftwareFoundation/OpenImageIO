@@ -298,7 +298,7 @@ keywords, or arbitrary string metadata::
 .. describe:: --orientation orient
 
     Explicitly sets the image's `"Orientation"` metadata to a numeric value
-    (see Section~\ref{metadata:orientation} for the numeric codes). This
+    (see :ref:`sec-metadata-orientation` for the numeric codes). This
     only changes the metadata field that specifies how the image should be
     displayed, it does NOT alter the pixels themselves, and so has no effect
     for image formats that don't support some kind of orientation metadata.

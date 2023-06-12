@@ -1,15 +1,52 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
-#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/unittest.h>
 
 using namespace OIIO;
 
+const char* imagespec_xml_string = R"EOF(
+<ImageSpec version="24">
+<x>0</x>
+<y>0</y>
+<z>0</z>
+<width>1920</width>
+<height>1080</height>
+<depth>1</depth>
+<full_x>0</full_x>
+<full_y>0</full_y>
+<full_z>0</full_z>
+<full_width>1920</full_width>
+<full_height>1080</full_height>
+<full_depth>1</full_depth>
+<tile_width>1920</tile_width>
+<tile_height>1080</tile_height>
+<tile_depth>1</tile_depth>
+<format>float</format>
+<nchannels>4</nchannels>
+<channelnames>
+<channelname>R</channelname>
+<channelname>G</channelname>
+<channelname>B</channelname>
+<channelname>A</channelname>
+</channelnames>
+<alpha_channel>3</alpha_channel>
+<z_channel>-1</z_channel>
+<deep>0</deep>
+<attrib name="oiio:ColorSpace" type="string">scene_linear</attrib>
+<attrib name="compression" type="string">none</attrib>
+<attrib name="acesImageContainerFlag" type="int">1</attrib>
+<attrib name="chromaticities" type="float[8]">0.7347, 0.2653, 0, 1, 0.0001, -0.077, 0.32168, 0.33767</attrib>
+<attrib name="PixelAspectRatio" type="float">1</attrib>
+<attrib name="screenWindowCenter" type="float2">0, 0</attrib>
+<attrib name="screenWindowWidth" type="float">1</attrib>
+<attrib name="oiio:subimages" type="int">1</attrib>
+</ImageSpec>
+)EOF";
 
 void
 test_imagespec_pixels()
@@ -259,7 +296,7 @@ static void
 test_imagespec_from_ROI()
 {
     ROI roi(0, 640, 0, 480, 0, 1, 0, 3);
-    ImageSpec spec(roi, TypeDesc::FLOAT);
+    ImageSpec spec(roi, "float");
     OIIO_CHECK_EQUAL(spec.nchannels, 3);
     OIIO_CHECK_EQUAL(spec.width, 640);
     OIIO_CHECK_EQUAL(spec.height, 480);
@@ -267,18 +304,39 @@ test_imagespec_from_ROI()
     OIIO_CHECK_EQUAL(spec.full_width, 640);
     OIIO_CHECK_EQUAL(spec.full_height, 480);
     OIIO_CHECK_EQUAL(spec.full_depth, 1);
+    OIIO_CHECK_EQUAL(spec.format, TypeFloat);
+}
+
+static void
+test_imagespec_from_xml()
+{
+    std::cout << "test_imagespec_from_xml\n";
+    ImageSpec spec;
+    spec.from_xml(imagespec_xml_string);
+
+    OIIO_CHECK_EQUAL(spec.nchannels, 4);
+    OIIO_CHECK_EQUAL(spec.width, 1920);
+    OIIO_CHECK_EQUAL(spec.height, 1080);
+    OIIO_CHECK_EQUAL(spec.depth, 1);
+    OIIO_CHECK_EQUAL(spec.full_width, 1920);
+    OIIO_CHECK_EQUAL(spec.full_height, 1080);
+    OIIO_CHECK_EQUAL(spec.full_depth, 1);
+    OIIO_CHECK_EQUAL(spec.format, TypeFloat);
+    OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace"),
+                     "scene_linear");
 }
 
 
 
 int
-main(int argc, char* argv[])
+main(int /*argc*/, char* /*argv*/[])
 {
     test_imagespec_pixels();
     test_imagespec_metadata_val();
     test_imagespec_attribute_from_string();
     test_get_attribute();
     test_imagespec_from_ROI();
+    test_imagespec_from_xml();
 
     return unit_test_failures;
 }

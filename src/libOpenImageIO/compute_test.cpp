@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 //
@@ -14,6 +14,7 @@
 
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
+#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
@@ -43,15 +44,14 @@ static ImageBuf imgA, imgB, imgR;
 
 
 
-static void
-test_arrays(ROI roi)
+static void test_arrays(ROI)
 {
     const float* a = (const float*)imgA.localpixels();
-    ASSERT(a);
+    OIIO_DASSERT(a);
     const float* b = (const float*)imgB.localpixels();
-    ASSERT(b);
+    OIIO_DASSERT(b);
     float* r = (float*)imgR.localpixels();
-    ASSERT(r);
+    OIIO_DASSERT(r);
     for (int x = 0; x < size; ++x)
         r[x] = a[x] * a[x] + b[x];
 }
@@ -62,11 +62,11 @@ static void
 test_arrays_like_image(ROI roi)
 {
     const float* a = (const float*)imgA.localpixels();
-    ASSERT(a);
+    OIIO_DASSERT(a);
     const float* b = (const float*)imgB.localpixels();
-    ASSERT(b);
+    OIIO_DASSERT(b);
     float* r = (float*)imgR.localpixels();
-    ASSERT(r);
+    OIIO_DASSERT(r);
     int nchannels = imgA.nchannels();
     for (int y = roi.ybegin; y < roi.yend; ++y) {
         for (int x = roi.xbegin; x < roi.xend; ++x) {
@@ -79,15 +79,14 @@ test_arrays_like_image(ROI roi)
 
 
 
-static void
-test_arrays_simd4(ROI roi)
+static void test_arrays_simd4(ROI)
 {
     const float* a = (const float*)imgA.localpixels();
-    ASSERT(a);
+    OIIO_DASSERT(a);
     const float* b = (const float*)imgB.localpixels();
-    ASSERT(b);
+    OIIO_DASSERT(b);
     float* r = (float*)imgR.localpixels();
-    ASSERT(r);
+    OIIO_DASSERT(r);
     int x, end4 = size - (size & 3);
     for (x = 0; x < end4; x += 4, a += 4, b += 4, r += 4) {
         simd::vfloat4 a_simd(a), b_simd(b);
@@ -104,11 +103,11 @@ static void
 test_arrays_like_image_simd(ROI roi)
 {
     const float* a = (const float*)imgA.localpixels();
-    ASSERT(a);
+    OIIO_DASSERT(a);
     const float* b = (const float*)imgB.localpixels();
-    ASSERT(b);
+    OIIO_DASSERT(b);
     float* r = (float*)imgR.localpixels();
-    ASSERT(r);
+    OIIO_DASSERT(r);
     int nchannels = imgA.nchannels();
     for (int y = roi.ybegin; y < roi.yend; ++y) {
         for (int x = roi.xbegin; x < roi.xend; ++x) {
@@ -225,33 +224,26 @@ test_compute()
 static void
 getargs(int argc, char* argv[])
 {
-    bool help = false;
     ArgParse ap;
     // clang-format off
-    ap.options(
-        "compute_test\n" OIIO_INTRO_STRING "\n"
-        "Usage:  compute_test [options]",
-        // "%*", parse_files, "",
-        "--help", &help, "Print help message",
-        "-v", &verbose, "Verbose mode",
-        "--threads %d", &numthreads,
-            ustring::sprintf("Number of threads (default: %d)", numthreads).c_str(),
-        "--iterations %d", &iterations,
-            ustring::sprintf("Number of iterations (default: %d)", iterations).c_str(),
-        "--trials %d", &ntrials, "Number of trials",
-        "--allgpus", &allgpus, "Run OpenCL tests on all devices, not just default",
-        "--wedge", &wedge, "Do a wedge test",
-        nullptr);
+    ap.intro("compute_test\n" OIIO_INTRO_STRING)
+      .usage("compute_test [options]");
+
+    ap.arg("-v", &verbose)
+      .help("Verbose mode");
+    ap.arg("--threads %d", &numthreads)
+      .help(Strutil::sprintf("Number of threads (default: %d)", numthreads));
+    ap.arg("--iters %d", &iterations)
+      .help(Strutil::sprintf("Number of iterations (default: %d)", iterations));
+    ap.arg("--trials %d", &ntrials)
+      .help("Number of trials");
+    ap.arg("--allgpus", &allgpus)
+      .help("Run OpenCL tests on all devices, not just default");
+    ap.arg("--wedge", &wedge)
+      .help("Do a wedge test");
     // clang-format on
-    if (ap.parse(argc, (const char**)argv) < 0) {
-        std::cerr << ap.geterror() << std::endl;
-        ap.usage();
-        exit(EXIT_FAILURE);
-    }
-    if (help) {
-        ap.usage();
-        exit(EXIT_FAILURE);
-    }
+
+    ap.parse(argc, (const char**)argv);
 }
 
 

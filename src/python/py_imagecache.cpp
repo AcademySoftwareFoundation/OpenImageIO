@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #include "py_oiio.h"
 
@@ -103,9 +103,17 @@ declare_imagecache(py::module& m)
             "getattribute",
             [](const ImageCacheWrap& ic, const std::string& name,
                TypeDesc type) {
+                if (type == TypeUnknown)
+                    type = ic.m_cache->getattributetype(name);
                 return getattribute_typed(*ic.m_cache, name, type);
             },
             "name"_a, "type"_a = TypeUnknown)
+        .def(
+            "getattributetype",
+            [](const ImageCacheWrap& ic, const std::string& name) {
+                return ic.m_cache->getattributetype(name);
+            },
+            "name"_a)
         .def("resolve_filename",
              [](ImageCacheWrap& ic, const std::string& filename) {
                  py::gil_scoped_release gil;
@@ -114,13 +122,25 @@ declare_imagecache(py::module& m)
         // .def("get_image_info", &ImageCacheWrap::get_image_info)
         // .def("get_imagespec", &ImageCacheWrap::get_imagespec,
         //      "subimage"_a=0),
-        .def("get_pixels", &ImageCacheWrap::get_pixels)
+        // .def("get_thumbnail", &ImageCacheWrap::get_thumbnail,
+        //      "subimage"_a=0)
+        .def("get_pixels", &ImageCacheWrap::get_pixels, "filename"_a,
+             "subimage"_a, "miplevel"_a, "xbegin"_a, "xend"_a, "ybegin"_a,
+             "yend"_a, "zbegin"_a = 0, "zend"_a = 1, "datatype"_a = TypeUnknown)
         // .def("get_tile", &ImageCacheWrap::get_tile)
         // .def("release_tile", &ImageCacheWrap::release_tile)
         // .def("tile_pixels", &ImageCacheWrap::tile_pixels)
 
-        .def("geterror",
-             [](ImageCacheWrap& ic) { return PY_STR(ic.m_cache->geterror()); })
+        .def_property_readonly("has_error",
+                               [](ImageCacheWrap& self) {
+                                   return self.m_cache->has_error();
+                               })
+        .def(
+            "geterror",
+            [](ImageCacheWrap& self, bool clear) {
+                return PY_STR(self.m_cache->geterror(clear));
+            },
+            "clear"_a = true)
         .def(
             "getstats",
             [](ImageCacheWrap& ic, int level) {

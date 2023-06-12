@@ -1,0 +1,210 @@
+Could not open "badname.tif"
+	Error:  Could not open file: badname.tif: No such file or directory
+Opened "../oiio-images/tahoe-gps.jpg" as a jpeg
+  resolution 2048x1536+0+0
+  untiled
+  3 channels: ('R', 'G', 'B')
+  format =  uint8
+  alpha channel =  -1
+  z channel =  -1
+  deep =  False
+  oiio:ColorSpace = "sRGB"
+  jpeg:subsampling = "4:2:0"
+  Make = "HTC"
+  Model = "T-Mobile G1"
+  Orientation = 1
+  XResolution = 72.0
+  YResolution = 72.0
+  ResolutionUnit = "none"
+  Software = "title;va"
+  Exif:YCbCrPositioning = 1
+  Exif:ExifVersion = "0220"
+  Exif:DateTimeOriginal = "2009:02:21 08:32:04"
+  Exif:DateTimeDigitized = "2009:02:21 08:32:04"
+  Exif:FlashPixVersion = "0100"
+  Exif:ColorSpace = 1
+  Exif:PixelXDimension = 2048
+  Exif:PixelYDimension = 1536
+  Exif:WhiteBalance = 0
+  GPS:VersionID = (2, 2, 0, 0)
+  GPS:LatitudeRef = "N"
+  GPS:Latitude = (39.0, 18.0, 24.399999618530273)
+  GPS:LongitudeRef = "W"
+  GPS:Longitude = (120.0, 20.0, 6.25)
+  GPS:AltitudeRef = 0
+  GPS:Altitude = 0.0
+  GPS:TimeStamp = (17.0, 56.0, 33.0)
+  GPS:MapDatum = "WGS-84"
+  GPS:DateStamp = "1915:08:08"
+
+Opened "grid.tx" as a tiff
+  resolution 1024x1024+0+0
+  tile size  64x64x1
+  4 channels: ('R', 'G', 'B', 'A')
+  format =  uint8
+  alpha channel =  3
+  z channel =  -1
+  deep =  False
+  oiio:BitsPerSample = 8
+  Orientation = 1
+  XResolution = 72.0
+  YResolution = 72.0
+  ResolutionUnit = "in"
+  Software = "OpenImageIO 1.5.7dev : maketx -filter lanczos3 --resize grid.tif -o grid.tx"
+  DateTime = "2014:11:29 23:20:23"
+  DocumentName = "g.tif"
+  textureformat = "Plain Texture"
+  wrapmodes = "black,black"
+  fovcot = 1.0
+  tiff:Compression = 8
+  tiff:PhotometricInterpretation = 2
+  tiff:PlanarConfiguration = 1
+  planarconfig = "contig"
+  compression = "zip"
+  PixelAspectRatio = 1.0
+  oiio:AverageColor = "0.608983,0.608434,0.608728,1"
+  oiio:SHA-1 = "233A1D3412A54A5F49814AB7BFFD04F56F46D3D7"
+Subimage 0 MIP level 1 :
+  resolution 512x512+0+0
+  tile size  64x64x1
+Subimage 0 MIP level 2 :
+  resolution 256x256+0+0
+  tile size  64x64x1
+Subimage 0 MIP level 3 :
+  resolution 128x128+0+0
+  tile size  64x64x1
+Subimage 0 MIP level 4 :
+  resolution 64x64+0+0
+  tile size  64x64x1
+Subimage 0 MIP level 5 :
+  resolution 32x32+0+0
+  tile size  64x64x1
+Subimage 0 MIP level 6 :
+  resolution 16x16+0+0
+  tile size  64x64x1
+Subimage 0 MIP level 7 :
+  resolution 8x8+0+0
+  tile size  64x64x1
+Subimage 0 MIP level 8 :
+  resolution 4x4+0+0
+  tile size  64x64x1
+Subimage 0 MIP level 9 :
+  resolution 2x2+0+0
+  tile size  64x64x1
+Subimage 0 MIP level 10 :
+  resolution 1x1+0+0
+  tile size  64x64x1
+
+Testing read_image:
+Opened "../oiio-images/tahoe-gps.jpg" as a jpeg
+@ (0, 0) = [40 35 57]
+@ (2047, 1535) = [39 55 89]
+@ (1024, 768) = [136 183 235]
+
+Opened "../oiio-images/tahoe-gps.jpg" as a jpeg
+@ (0, 0) = [0.15686275 0.13725491 0.22352943]
+@ (2047, 1535) = [0.15294118 0.21568629 0.34901962]
+@ (1024, 768) = [0.53333336 0.7176471  0.9215687 ]
+
+Opened "../oiio-images/tahoe-gps.jpg" as a jpeg
+@ (0, 0) = [40]
+@ (2047, 1535) = [39]
+@ (1024, 768) = [136]
+
+Testing read_scanline:
+Opened "../oiio-images/tahoe-gps.jpg" as a jpeg
+@ (0, 0) = [40 35 57]
+@ (0, 1535) = [ 84  93 136]
+
+Testing read_tile:
+Opened "grid.tx" as a tiff
+@ (32, 32) = [  1   1   1 255]
+@ (32, 32) = [255 127 127 255]
+
+Testing read_scanlines:
+Opened "../oiio-images/tahoe-gps.jpg" as a jpeg
+@ (0, 0) = [40 35 57]
+@ (2047, 1535) = [39 55 89]
+@ (1024, 768) = [136 183 235]
+
+Testing read_tiles:
+Opened "grid.tx" as a tiff
+@ (0, 0) = [  0   0   0 255]
+@ (1023, 1023) = [  0   0   0 255]
+@ (512, 512) = [  0   0   0 255]
+
+Test read_image native u16:
+Opened "testu16.tif" as a tiff
+Read array typecode uint16  [ 12288 ]
+
+Test read_scanlines native u16:
+Opened "testu16.tif" as a tiff
+Read array typecode uint16  [ 12288 ]
+
+Test read_tiles native half:
+Opened "testf16.exr" as a openexr
+Read array typecode float16  [ 12288 ]
+
+Test read_image into half:
+Opened "testu16.tif" as a tiff
+Read array typecode float16  [ 12288 ]
+
+Test read_image into FLOAT:
+Opened "testu16.tif" as a tiff
+Read array typecode float32  [ 12288 ]
+
+Testing write and read of unassociated:
+  writing:  [[[0.5 0.5 0.5 0.5]
+  [0.5 0.5 0.5 0.5]]
+
+ [[0.5 0.5 0.5 0.5]
+  [0.5 0.5 0.5 0.5]]]
+
+  default reading as IB:  [[[0.25 0.25 0.25 0.5 ]
+  [0.25 0.25 0.25 0.5 ]]
+
+ [[0.25 0.25 0.25 0.5 ]
+  [0.25 0.25 0.25 0.5 ]]]
+
+  reading as IB with unassoc hint:  [[[0.5 0.5 0.5 0.5]
+  [0.5 0.5 0.5 0.5]]
+
+ [[0.5 0.5 0.5 0.5]
+  [0.5 0.5 0.5 0.5]]]
+
+  reading as II with hint, read scanlines backward: 
+    [1] =  [[0.5 0.5 0.5 0.5]
+ [0.5 0.5 0.5 0.5]]
+    [0] =  [[0.5 0.5 0.5 0.5]
+ [0.5 0.5 0.5 0.5]]
+
+
+Testing write and read of TIFF CMYK with auto RGB translation:
+  writing:  [[[0.5019608 0.        0.        0.5019608]
+  [0.5019608 0.        0.        0.5019608]]
+
+ [[0.5019608 0.        0.        0.5019608]
+  [0.5019608 0.        0.        0.5019608]]]
+
+  default reading as IB:  [[[0.24705884 0.49803925 0.49803925]
+  [0.24705884 0.49803925 0.49803925]]
+
+ [[0.24705884 0.49803925 0.49803925]
+  [0.24705884 0.49803925 0.49803925]]]
+
+  reading as IB with rawcolor=1:  [[[0.5019608 0.        0.        0.5019608]
+  [0.5019608 0.        0.        0.5019608]]
+
+ [[0.5019608 0.        0.        0.5019608]
+  [0.5019608 0.        0.        0.5019608]]]
+
+  reading as II with rawcolor=0, read scanlines backward: 
+    [1] =  [[0.24705884 0.49803925 0.49803925]
+ [0.24705884 0.49803925 0.49803925]]
+    [0] =  [[0.24705884 0.49803925 0.49803925]
+ [0.24705884 0.49803925 0.49803925]]
+
+
+is_imageio_format_name('tiff') = True
+is_imageio_format_name('txff') = False
+Done.

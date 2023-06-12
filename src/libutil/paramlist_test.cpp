@@ -1,14 +1,11 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 #include <limits>
 
-#include <OpenEXR/ImathColor.h>
-#include <OpenEXR/ImathMatrix.h>
-#include <OpenEXR/ImathVec.h>
-
+#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/paramlist.h>
 #include <OpenImageIO/unittest.h>
 
@@ -92,10 +89,29 @@ test_value_types()
     }
 
     {
+        double val = 2.25;
+        ret        = test_numeric(&val, 1, TypeDesc::DOUBLE);
+        OIIO_CHECK_EQUAL(ret, "2.25");
+    }
+
+    {
+        half val = 2.25;
+        ret      = test_numeric(&val, 1, TypeDesc::HALF);
+        OIIO_CHECK_EQUAL(ret, "2.25");
+    }
+
+    {
         const char* val = "hello";
         ParamValue p("name", val);
         OIIO_CHECK_EQUAL(p.get<ustring>(), "hello");
         OIIO_CHECK_EQUAL(p.get_string(), "hello");
+    }
+
+    {
+        const void* ptr = reinterpret_cast<const void*>(size_t(0xdeadbeef));
+        ParamValue p("name", TypeDesc::PTR, 1, &ptr);
+        OIIO_CHECK_EQUAL(p.get<void*>(), ptr);
+        OIIO_CHECK_EQUAL(p.get_string(), "0xdeadbeef");
     }
 
     {
@@ -249,6 +265,7 @@ test_paramlist()
     OIIO_CHECK_EQUAL(pl.get_int("bar"), 0);
     OIIO_CHECK_EQUAL(pl.get_int("bar"), 0);
     OIIO_CHECK_EQUAL(pl.get_string("bar"), "barbarbar?");
+    OIIO_CHECK_EQUAL(pl.get_string("foo"), "42");
     OIIO_CHECK_ASSERT(pl.find("foo") != pl.cend());
     OIIO_CHECK_ASSERT(pl.find("Foo") == pl.cend());
     OIIO_CHECK_ASSERT(pl.find("Foo", TypeDesc::UNKNOWN, false) != pl.cend());
@@ -328,6 +345,11 @@ test_delegates()
     OIIO_CHECK_EQUAL(pl["bar4"].get<std::string>(), "barbarbar?");
     OIIO_CHECK_EQUAL(pl["red"].get<Imath::Color3f>(),
                      Imath::Color3f(1.0f, 0.0f, 0.0f));
+    std::vector<float> redvec { 1.0f, 0.0f, 0.0f };
+    OIIO_CHECK_EQUAL(pl["red"].as_vec<float>(), redvec);
+    OIIO_CHECK_EQUAL(pl["red"].get_indexed<float>(0), 1.0f);
+    OIIO_CHECK_EQUAL(pl["red"].get_indexed<float>(1), 0.0f);
+    OIIO_CHECK_EQUAL(pl["red"].get_indexed<float>(2), 0.0f);
     OIIO_CHECK_EQUAL(pl["xy"].get<Imath::V3f>(), Imath::V3f(0.5f, 0.5f, 0.0f));
     OIIO_CHECK_EQUAL(pl["Tx"].get<Imath::M44f>(),
                      Imath::M44f(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 42, 0, 0,
@@ -338,16 +360,16 @@ test_delegates()
     string_view sv = pl["foo"].get();
     OIIO_CHECK_EQUAL(sv, "42");
 
-    Strutil::printf("Delegate-loaded array is\n");
+    Strutil::print("Delegate-loaded array is\n");
     for (auto&& p : pl)
-        Strutil::printf(" %16s : %s\n", p.name(), p.get_string());
-    Strutil::printf("\n");
+        Strutil::print(" {:16} : {}\n", p.name(), p.get_string());
+    Strutil::print("\n");
 }
 
 
 
 int
-main(int argc, char* argv[])
+main(int /*argc*/, char* /*argv*/[])
 {
     std::cout << "ParamValue size = " << sizeof(ParamValue) << "\n";
     test_value_types();

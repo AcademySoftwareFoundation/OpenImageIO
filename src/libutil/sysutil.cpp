@@ -1,6 +1,10 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
+
+#if (defined __MINGW32__) || (defined __MINGW64__) && !(defined _POSIX_C_SOURCE)
+#    define _POSIX_C_SOURCE 1  // for localtime_r
+#endif
 
 #include <cstdio>
 #include <cstdlib>
@@ -18,7 +22,8 @@
 #    include <unistd.h>
 #endif
 
-#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__NetBSD__) \
+    || defined(__OpenBSD__)
 #    include <sys/ioctl.h>
 #    include <sys/resource.h>
 #    include <sys/sysctl.h>
@@ -28,6 +33,7 @@
 #endif
 
 #ifdef __APPLE__
+#    include <TargetConditionals.h>
 #    include <mach-o/dyld.h>
 #    include <mach/mach_init.h>
 #    include <mach/task.h>
@@ -40,11 +46,15 @@
 
 #ifdef _WIN32
 #    define WIN32_LEAN_AND_MEAN
+#    define VC_EXTRALEAN
+#    define NOMINMAX
+#    include <windows.h>
+
 #    define DEFINE_CONSOLEV2_PROPERTIES
-#    include <Psapi.h>
 #    include <cstdio>
 #    include <io.h>
 #    include <malloc.h>
+#    include <psapi.h>
 #else
 #    include <sys/resource.h>
 #endif
@@ -57,20 +67,25 @@
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
+#include <OpenImageIO/ustring.h>
 
 #include <boost/version.hpp>
 #if BOOST_VERSION >= 106500
 #    ifndef _GNU_SOURCE
 #        define _GNU_SOURCE
 #    endif
-#    include <boost/stacktrace.hpp>
+#    if !defined(OIIO_DISABLE_BOOST_STACKTRACE)
+#        include <boost/stacktrace.hpp>
+#    endif
 #endif
 
 // clang 7.0 (rc2) has errors when including boost thread!
-// The only thin we're using there is boost::physical_concurrency.
+// The only thing we're using there is boost::physical_concurrency.
 #if !(OIIO_CLANG_VERSION >= 7)
 #    include <boost/thread.hpp>
 #endif
+
+OIIO_INTEL_PRAGMA(warning disable 2196)
 
 
 OIIO_NAMESPACE_BEGIN
@@ -125,13 +140,15 @@ Sysutil::memory_used(bool resident)
     else
         return 0;
 
-#elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+#elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__) \
+    || defined(__NetBSD__) || defined(__OpenBSD__)
+
     // FIXME -- does somebody know a good method for figuring this out for
     // FreeBSD?
     return 0;  // Punt
 #else
     // No idea what platform this is
-    ASSERT(0 && "Need to implement Sysutil::memory_used on this platform");
+    OIIO_ASSERT(0 && "Need to implement Sysutil::memory_used on this platform");
     return 0;  // Punt
 #endif
 }
@@ -194,9 +211,17 @@ Sysutil::physical_memory()
     sysctl(mib, 2, &physical_memory, &length, NULL, 0);
     return physical_memory;
 
+#elif defined(__NetBSD__) || defined(__OpenBSD__)
+    int mib[2] = { CTL_HW, HW_PHYSMEM64 };
+    uint64_t physical_memory;
+    size_t length = sizeof(physical_memory);
+    sysctl(mib, 2, &physical_memory, &length, NULL, 0);
+    return physical_memory;
+
 #else
     // No idea what platform this is
-    ASSERT(0 && "Need to implement Sysutil::physical_memory on this platform");
+    OIIO_ASSERT(
+        0 && "Need to implement Sysutil::physical_memory on this platform");
     return 0;  // Punt
 #endif
 }
@@ -206,7 +231,7 @@ Sysutil::physical_memory()
 void
 Sysutil::get_local_time(const time_t* time, struct tm* converted_time)
 {
-#ifdef _MSC_VER
+#ifdef _WIN32
     localtime_s(converted_time, time);
 #else
     localtime_r(time, converted_time);
@@ -232,7 +257,7 @@ Sysutil::this_program_path()
     unsigned int size = sizeof(filename);
     int r             = readlink("/proc/self/exe", filename, size);
     // user won't get the right answer if the filename is too long to store
-    ASSERT(r < int(size));
+    OIIO_ASSERT(r < int(size));
     if (r > 0)
         filename[r] = 0;  // readlink does not fill in the 0 byte
 #elif defined(__APPLE__)
@@ -247,6 +272,15 @@ Sysutil::this_program_path()
     mib[1]    = KERN_PROC;
     mib[2]    = KERN_PROC_PATHNAME;
     mib[3]    = -1;
+    size_t cb = sizeof(filename);
+    int r     = 1;
+    sysctl(mib, 4, filename, &cb, NULL, 0);
+#elif defined(__NetBSD__)
+    int mib[4];
+    mib[0]    = CTL_KERN;
+    mib[1]    = KERN_PROC_ARGS;
+    mib[2]    = -1;
+    mib[3]    = KERN_PROC_PATHNAME;
     size_t cb = sizeof(filename);
     int r     = 1;
     sysctl(mib, 4, filename, &cb, NULL, 0);
@@ -266,9 +300,21 @@ Sysutil::this_program_path()
 
 
 string_view
+Sysutil::getenv(string_view name, string_view defaultval)
+{
+    const char* env = ::getenv(std::string(name).c_str());
+    if (!env && defaultval.size())
+        env = ustring(defaultval).c_str();
+    return string_view(env ? env : "");
+}
+
+
+
+string_view
 Sysutil::getenv(string_view name)
 {
-    return string_view(::getenv(name.c_str()));
+    const char* env = ::getenv(std::string(name).c_str());
+    return string_view(env ? env : "");
 }
 
 
@@ -290,8 +336,9 @@ Sysutil::terminal_columns()
 {
     int columns = 80;  // a decent guess, if we have nothing more to go on
 
-#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)           \
-    || defined(__FreeBSD_kernel__) || defined(__GNU__)
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) \
+    || defined(__FreeBSD_kernel__) || defined(__NetBSD__)            \
+    || defined(__OpenBSD__) || defined(__GNU__)
     struct winsize w;
     ioctl(0, TIOCGWINSZ, &w);
     columns = w.ws_col;
@@ -314,8 +361,9 @@ Sysutil::terminal_rows()
 {
     int rows = 24;  // a decent guess, if we have nothing more to go on
 
-#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)           \
-    || defined(__FreeBSD_kernel__) || defined(__GNU__)
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) \
+    || defined(__FreeBSD_kernel__) || defined(__NetBSD__)            \
+    || defined(__OpenBSD__) || defined(__GNU__)
     struct winsize w;
     ioctl(0, TIOCGWINSZ, &w);
     rows = w.ws_row;
@@ -388,12 +436,32 @@ Term::Term(const std::ostream& stream)
         enableVTMode();
 #else
     // Non-windows: also check the TERM env variable for a terminal known to
-    // be capable of the color codes. List copied from the Apache-licensed
-    // Google Benchmark: https://github.com/google/benchmark/blob/master/src/colorprint.cc
-    const char* const supported_terminals[] = {
-        "cygwin", "linux",           "rxvt-unicode", "rxvt-unicode-256color",
-        "screen", "screen-256color", "tmux",         "tmux-256color",
-        "xterm",  "xterm-256color",  "xterm-color"
+    // be capable of the color codes. This list is assembled from a
+    // combination of terminals listed in Google Benchmark:
+    // https://github.com/google/benchmark/blob/master/src/colorprint.cc
+    // (Apache 2.0) also from https://github.com/agauniyal/rang (Unlicense).
+    static const char* const supported_terminals[] = {
+        "ansi",
+        "color",
+        "console",
+        "cygwin",
+        "gnome",
+        "konsole",
+        "kterm",
+        "linux",
+        "msys",
+        "putty",
+        "rxvt",
+        "rxvt-unicode-256color",
+        "rxvt-unicode",
+        "screen-256color",
+        "screen",
+        "tmux-256color",
+        "tmux",
+        "vt100",
+        "xterm-256color",
+        "xterm-color"
+        "xterm",
     };
     string_view TERM         = Sysutil::getenv("TERM");
     bool term_supports_color = false;
@@ -481,10 +549,10 @@ Term::ansi_bgcolor(int r, int g, int b)
 
 
 bool
-#if !defined(_MSC_VER)
-Sysutil::put_in_background(int argc, char* argv[])
-#else
+#ifdef _WIN32
 Sysutil::put_in_background(int, char*[])
+#else
+Sysutil::put_in_background(int argc, char* argv[])
 #endif
 {
     // You would think that this would be sufficient:
@@ -509,7 +577,7 @@ Sysutil::put_in_background(int, char*[])
     return daemon(1, 1) == 0;
 #endif
 
-#ifdef __APPLE__
+#if defined(__APPLE__) && TARGET_OS_OSX
     std::string newcmd = std::string(argv[0]) + " -F";
     for (int i = 1; i < argc; ++i) {
         newcmd += " \"";
@@ -596,7 +664,7 @@ aligned_free(void* ptr)
 std::string
 Sysutil::stacktrace()
 {
-#if BOOST_VERSION >= 106500
+#if BOOST_VERSION >= 106500 && !defined(OIIO_DISABLE_BOOST_STACKTRACE)
     std::stringstream out;
     out << boost::stacktrace::stacktrace();
     return out.str();
@@ -607,7 +675,7 @@ Sysutil::stacktrace()
 
 
 
-#if BOOST_VERSION >= 106500
+#if BOOST_VERSION >= 106500 && !defined(OIIO_DISABLE_BOOST_STACKTRACE)
 
 static std::string stacktrace_filename;
 static std::mutex stacktrace_filename_mutex;
@@ -622,7 +690,7 @@ stacktrace_signal_handler(int signum)
         else if (stacktrace_filename == "stderr")
             std::cerr << Sysutil::stacktrace();
         else {
-#    if BOOST_VERSION >= 106500
+#    if BOOST_VERSION >= 106500 && !defined(OIIO_DISABLE_BOOST_STACKTRACE)
             boost::stacktrace::safe_dump_to(stacktrace_filename.c_str());
 #    endif
         }
@@ -637,7 +705,7 @@ stacktrace_signal_handler(int signum)
 bool
 Sysutil::setup_crash_stacktrace(string_view filename)
 {
-#if BOOST_VERSION >= 106500
+#if BOOST_VERSION >= 106500 && !defined(OIIO_DISABLE_BOOST_STACKTRACE)
     std::lock_guard<std::mutex> lock(stacktrace_filename_mutex);
     stacktrace_filename = filename;
     ::signal(SIGSEGV, &stacktrace_signal_handler);

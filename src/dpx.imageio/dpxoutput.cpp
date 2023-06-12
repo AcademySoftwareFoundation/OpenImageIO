@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #include <cmath>
 #include <cstdio>
@@ -27,30 +27,30 @@ static const int MAX_DPX_IMAGE_ELEMENTS = 8;  // max subimages in DPX spec
 class DPXOutput final : public ImageOutput {
 public:
     DPXOutput();
-    virtual ~DPXOutput();
-    virtual const char* format_name(void) const override { return "dpx"; }
-    virtual int supports(string_view feature) const override
+    ~DPXOutput() override;
+    const char* format_name(void) const override { return "dpx"; }
+    int supports(string_view feature) const override
     {
         if (feature == "multiimage" || feature == "alpha"
             || feature == "nchannels" || feature == "random_access"
             || feature == "rewrite" || feature == "displaywindow"
-            || feature == "origin")
+            || feature == "origin" || feature == "ioproxy")
             return true;
         return false;
     }
-    virtual bool open(const std::string& name, const ImageSpec& spec,
-                      OpenMode mode = Create) override;
-    virtual bool open(const std::string& name, int subimages,
-                      const ImageSpec* specs) override;
-    virtual bool close() override;
-    virtual bool write_scanline(int y, int z, TypeDesc format, const void* data,
-                                stride_t xstride) override;
-    virtual bool write_tile(int x, int y, int z, TypeDesc format,
-                            const void* data, stride_t xstride,
-                            stride_t ystride, stride_t zstride) override;
+    bool open(const std::string& name, const ImageSpec& spec,
+              OpenMode mode = Create) override;
+    bool open(const std::string& name, int subimages,
+              const ImageSpec* specs) override;
+    bool close() override;
+    bool write_scanline(int y, int z, TypeDesc format, const void* data,
+                        stride_t xstride) override;
+    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
+                    stride_t xstride, stride_t ystride,
+                    stride_t zstride) override;
 
 private:
-    OutStream* m_stream;
+    OutStream* m_stream = nullptr;
     dpx::Writer m_dpx;
     std::vector<unsigned char> m_buf;
     std::vector<unsigned char> m_scratch;
@@ -83,6 +83,7 @@ private:
         m_subimages_to_write = 0;
         m_subimage_specs.clear();
         m_write_pending = false;
+        ioproxy_clear();
     }
 
     // Is the output file currently opened?
@@ -108,7 +109,7 @@ private:
 
 
 
-// Obligatory material to make this a recognizeable imageio plugin:
+// Obligatory material to make this a recognizable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageOutput*
@@ -125,11 +126,7 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 
-DPXOutput::DPXOutput()
-    : m_stream(NULL)
-{
-    init();
-}
+DPXOutput::DPXOutput() { init(); }
 
 
 
@@ -145,8 +142,8 @@ bool
 DPXOutput::open(const std::string& name, int subimages, const ImageSpec* specs)
 {
     if (subimages > MAX_DPX_IMAGE_ELEMENTS) {
-        errorf("DPX does not support more than %d subimages",
-               MAX_DPX_IMAGE_ELEMENTS);
+        errorfmt("DPX does not support more than {} subimages",
+                 MAX_DPX_IMAGE_ELEMENTS);
         return false;
     };
     m_subimages_to_write = subimages;
@@ -161,67 +158,56 @@ bool
 DPXOutput::open(const std::string& name, const ImageSpec& userspec,
                 OpenMode mode)
 {
-    if (mode == Create) {
-        m_subimage = 0;
-        if (m_subimage_specs.size() < 1) {
-            m_subimage_specs.resize(1);
-            m_subimage_specs[0]  = userspec;
-            m_subimages_to_write = 1;
+    if (mode == AppendSubimage) {
+        if (!is_opened()) {
+            errorfmt("open() with AppendSubimage called but file is not open.");
+            return false;
         }
-    } else if (mode == AppendSubimage) {
         if (m_write_pending)
             write_buffer();
         ++m_subimage;
         if (m_subimage >= m_subimages_to_write) {
-            errorf("Exceeded the pre-declared number of subimages (%d)",
-                   m_subimages_to_write);
+            errorfmt("Exceeded the pre-declared number of subimages ({})",
+                     m_subimages_to_write);
             return false;
         }
         return prep_subimage(m_subimage, true);
         // Nothing else to do, the header taken care of when we opened with
         // Create.
-    } else if (mode == AppendMIPLevel) {
-        errorf("DPX does not support MIP-maps");
-        return false;
     }
-
-    // From here out, all the heavy lifting is done for Create
-    ASSERT(mode == Create);
 
     if (is_opened())
         close();  // Close any already-opened file
-    m_stream = new OutStream();
-    if (!m_stream->Open(name.c_str())) {
-        errorf("Could not open \"%s\"", name);
-        delete m_stream;
-        m_stream = nullptr;
+
+    if (!check_open(mode, userspec, { 0, 1 << 20, 0, 1 << 20, 0, 1, 0, 256 }))
         return false;
+
+    // From here out, all the heavy lifting is done for Create
+    OIIO_DASSERT(mode == Create);
+
+    ioproxy_retrieve_from_config(m_spec);
+    if (!ioproxy_use_or_open(name))
+        return false;
+
+    m_subimage = 0;
+    if (m_subimage_specs.empty()) {
+        m_subimage_specs.resize(1);
+        m_subimage_specs[0]  = m_spec;
+        m_subimages_to_write = 1;
     }
+
+    m_stream = new OutStream(ioproxy());
     m_dpx.SetOutStream(m_stream);
     m_dpx.Start();
     m_subimage = 0;
 
-    ImageSpec& m_spec(m_subimage_specs[m_subimage]);  // alias the spec
-
-    // Check for things this format doesn't support
-    if (m_spec.width < 1 || m_spec.height < 1) {
-        errorf("Image resolution must be at least 1x1, you asked for %d x %d",
-               m_spec.width, m_spec.height);
-        return false;
-    }
-
-    if (m_spec.depth < 1)
-        m_spec.depth = 1;
-    else if (m_spec.depth > 1) {
-        errorf("DPX does not support volume images (depth > 1)");
-        return false;
-    }
+    ImageSpec& spec0(m_subimage_specs[m_subimage]);  // alias the spec
 
     // some metadata
-    std::string software  = m_spec.get_string_attribute("Software", "");
-    std::string project   = m_spec.get_string_attribute("DocumentName", "");
-    std::string copyright = m_spec.get_string_attribute("Copyright", "");
-    std::string datestr   = m_spec.get_string_attribute("DateTime", "");
+    std::string software  = spec0.get_string_attribute("Software", "");
+    std::string project   = spec0.get_string_attribute("DocumentName", "");
+    std::string copyright = spec0.get_string_attribute("Copyright", "");
+    std::string datestr   = spec0.get_string_attribute("DateTime", "");
     if (datestr.size() >= 19) {
         // libdpx's date/time format is pretty close to OIIO's (libdpx uses
         // %Y:%m:%d:%H:%M:%S%Z)
@@ -235,9 +221,9 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
     // check if the client wants endianness reverse to native
     // assume big endian per Jeremy's request, unless little endian is
     // explicitly specified
-    std::string endian = m_spec.get_string_attribute("oiio:Endian",
-                                                     littleendian() ? "little"
-                                                                    : "big");
+    std::string endian = spec0.get_string_attribute("oiio:Endian",
+                                                    littleendian() ? "little"
+                                                                   : "big");
     m_wantSwap         = (littleendian() != Strutil::iequals(endian, "little"));
 
     m_dpx.SetFileInfo(
@@ -246,11 +232,11 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
         software.empty() ? OIIO_INTRO_STRING : software.c_str(),  // creator
         project.empty() ? NULL : project.c_str(),                 // project
         copyright.empty() ? NULL : copyright.c_str(),             // copyright
-        m_spec.get_int_attribute("dpx:EncryptKey", ~0),  // encryption key
+        spec0.get_int_attribute("dpx:EncryptKey", ~0),  // encryption key
         m_wantSwap);
 
     // image info
-    m_dpx.SetImageInfo(m_spec.width, m_spec.height);
+    m_dpx.SetImageInfo(spec0.width, spec0.height);
 
     for (int s = 0; s < m_subimages_to_write; ++s) {
         prep_subimage(s, false);
@@ -276,82 +262,82 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
     }
 
     m_dpx.header.SetXScannedSize(
-        m_spec.get_float_attribute("dpx:XScannedSize",
-                                   std::numeric_limits<float>::quiet_NaN()));
+        spec0.get_float_attribute("dpx:XScannedSize",
+                                  std::numeric_limits<float>::quiet_NaN()));
     m_dpx.header.SetYScannedSize(
-        m_spec.get_float_attribute("dpx:YScannedSize",
-                                   std::numeric_limits<float>::quiet_NaN()));
+        spec0.get_float_attribute("dpx:YScannedSize",
+                                  std::numeric_limits<float>::quiet_NaN()));
     m_dpx.header.SetFramePosition(
-        m_spec.get_int_attribute("dpx:FramePosition", 0xFFFFFFFF));
+        spec0.get_int_attribute("dpx:FramePosition", 0xFFFFFFFF));
     m_dpx.header.SetSequenceLength(
-        m_spec.get_int_attribute("dpx:SequenceLength", 0xFFFFFFFF));
+        spec0.get_int_attribute("dpx:SequenceLength", 0xFFFFFFFF));
     m_dpx.header.SetHeldCount(
-        m_spec.get_int_attribute("dpx:HeldCount", 0xFFFFFFFF));
+        spec0.get_int_attribute("dpx:HeldCount", 0xFFFFFFFF));
     m_dpx.header.SetFrameRate(
-        m_spec.get_float_attribute("dpx:FrameRate",
-                                   std::numeric_limits<float>::quiet_NaN()));
+        spec0.get_float_attribute("dpx:FrameRate",
+                                  std::numeric_limits<float>::quiet_NaN()));
     m_dpx.header.SetShutterAngle(
-        m_spec.get_float_attribute("dpx:ShutterAngle",
-                                   std::numeric_limits<float>::quiet_NaN()));
+        spec0.get_float_attribute("dpx:ShutterAngle",
+                                  std::numeric_limits<float>::quiet_NaN()));
     // FIXME: should we write the input version through or always default to 2.0?
-    /*tmpstr = m_spec.get_string_attribute ("dpx:Version", "");
+    /*tmpstr = spec0.get_string_attribute ("dpx:Version", "");
     if (tmpstr.size () > 0)
         m_dpx.header.SetVersion (tmpstr.c_str ());*/
     std::string tmpstr;
-    tmpstr = m_spec.get_string_attribute("dpx:FrameId", "");
+    tmpstr = spec0.get_string_attribute("dpx:FrameId", "");
     if (tmpstr.size() > 0)
         m_dpx.header.SetFrameId(tmpstr.c_str());
-    tmpstr = m_spec.get_string_attribute("dpx:SlateInfo", "");
+    tmpstr = spec0.get_string_attribute("dpx:SlateInfo", "");
     if (tmpstr.size() > 0)
         m_dpx.header.SetSlateInfo(tmpstr.c_str());
-    tmpstr = m_spec.get_string_attribute("dpx:SourceImageFileName", "");
+    tmpstr = spec0.get_string_attribute("dpx:SourceImageFileName", "");
     if (tmpstr.size() > 0)
         m_dpx.header.SetSourceImageFileName(tmpstr.c_str());
-    tmpstr = m_spec.get_string_attribute("dpx:InputDevice", "");
+    tmpstr = spec0.get_string_attribute("dpx:InputDevice", "");
     if (tmpstr.size() > 0)
         m_dpx.header.SetInputDevice(tmpstr.c_str());
-    tmpstr = m_spec.get_string_attribute("dpx:InputDeviceSerialNumber", "");
+    tmpstr = spec0.get_string_attribute("dpx:InputDeviceSerialNumber", "");
     if (tmpstr.size() > 0)
         m_dpx.header.SetInputDeviceSerialNumber(tmpstr.c_str());
-    m_dpx.header.SetInterlace(m_spec.get_int_attribute("dpx:Interlace", 0xFF));
+    m_dpx.header.SetInterlace(spec0.get_int_attribute("dpx:Interlace", 0xFF));
     m_dpx.header.SetFieldNumber(
-        m_spec.get_int_attribute("dpx:FieldNumber", 0xFF));
+        spec0.get_int_attribute("dpx:FieldNumber", 0xFF));
     m_dpx.header.SetHorizontalSampleRate(
-        m_spec.get_float_attribute("dpx:HorizontalSampleRate",
-                                   std::numeric_limits<float>::quiet_NaN()));
+        spec0.get_float_attribute("dpx:HorizontalSampleRate",
+                                  std::numeric_limits<float>::quiet_NaN()));
     m_dpx.header.SetVerticalSampleRate(
-        m_spec.get_float_attribute("dpx:VerticalSampleRate",
-                                   std::numeric_limits<float>::quiet_NaN()));
+        spec0.get_float_attribute("dpx:VerticalSampleRate",
+                                  std::numeric_limits<float>::quiet_NaN()));
     m_dpx.header.SetTemporalFrameRate(
-        m_spec.get_float_attribute("dpx:TemporalFrameRate",
-                                   std::numeric_limits<float>::quiet_NaN()));
+        spec0.get_float_attribute("dpx:TemporalFrameRate",
+                                  std::numeric_limits<float>::quiet_NaN()));
     m_dpx.header.SetTimeOffset(
-        m_spec.get_float_attribute("dpx:TimeOffset",
-                                   std::numeric_limits<float>::quiet_NaN()));
+        spec0.get_float_attribute("dpx:TimeOffset",
+                                  std::numeric_limits<float>::quiet_NaN()));
     m_dpx.header.SetBlackLevel(
-        m_spec.get_float_attribute("dpx:BlackLevel",
-                                   std::numeric_limits<float>::quiet_NaN()));
+        spec0.get_float_attribute("dpx:BlackLevel",
+                                  std::numeric_limits<float>::quiet_NaN()));
     m_dpx.header.SetBlackGain(
-        m_spec.get_float_attribute("dpx:BlackGain",
-                                   std::numeric_limits<float>::quiet_NaN()));
+        spec0.get_float_attribute("dpx:BlackGain",
+                                  std::numeric_limits<float>::quiet_NaN()));
     m_dpx.header.SetBreakPoint(
-        m_spec.get_float_attribute("dpx:BreakPoint",
-                                   std::numeric_limits<float>::quiet_NaN()));
+        spec0.get_float_attribute("dpx:BreakPoint",
+                                  std::numeric_limits<float>::quiet_NaN()));
     m_dpx.header.SetWhiteLevel(
-        m_spec.get_float_attribute("dpx:WhiteLevel",
-                                   std::numeric_limits<float>::quiet_NaN()));
+        spec0.get_float_attribute("dpx:WhiteLevel",
+                                  std::numeric_limits<float>::quiet_NaN()));
     m_dpx.header.SetIntegrationTimes(
-        m_spec.get_float_attribute("dpx:IntegrationTimes",
-                                   std::numeric_limits<float>::quiet_NaN()));
-    float aspect = m_spec.get_float_attribute("PixelAspectRatio", 1.0f);
+        spec0.get_float_attribute("dpx:IntegrationTimes",
+                                  std::numeric_limits<float>::quiet_NaN()));
+    float aspect = spec0.get_float_attribute("PixelAspectRatio", 1.0f);
     int aspect_num, aspect_den;
     float_to_rational(aspect, aspect_num, aspect_den);
     m_dpx.header.SetAspectRatio(0, aspect_num);
     m_dpx.header.SetAspectRatio(1, aspect_den);
-    m_dpx.header.SetXOffset((unsigned int)std::max(0, m_spec.x));
-    m_dpx.header.SetYOffset((unsigned int)std::max(0, m_spec.y));
-    m_dpx.header.SetXOriginalSize((unsigned int)m_spec.full_width);
-    m_dpx.header.SetYOriginalSize((unsigned int)m_spec.full_height);
+    m_dpx.header.SetXOffset((unsigned int)std::max(0, spec0.x));
+    m_dpx.header.SetYOffset((unsigned int)std::max(0, spec0.y));
+    m_dpx.header.SetXOriginalSize((unsigned int)spec0.full_width);
+    m_dpx.header.SetYOriginalSize((unsigned int)spec0.full_height);
 
     static int DpxOrientations[] = { 0,
                                      dpx::kLeftToRightTopToBottom,
@@ -362,38 +348,38 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
                                      dpx::kTopToBottomRightToLeft,
                                      dpx::kBottomToTopLeftToRight,
                                      dpx::kBottomToTopRightToLeft };
-    int orient                   = m_spec.get_int_attribute("Orientation", 0);
+    int orient                   = spec0.get_int_attribute("Orientation", 0);
     orient                       = DpxOrientations[clamp(orient, 0, 8)];
     m_dpx.header.SetImageOrientation((dpx::Orientation)orient);
 
-    ParamValue* tc = m_spec.find_attribute("smpte:TimeCode", TypeTimeCode,
-                                           false);
+    ParamValue* tc = spec0.find_attribute("smpte:TimeCode", TypeTimeCode,
+                                          false);
     if (tc) {
         unsigned int* timecode = (unsigned int*)tc->data();
         m_dpx.header.timeCode  = timecode[0];
         m_dpx.header.userBits  = timecode[1];
     } else {
-        std::string timecode = m_spec.get_string_attribute("dpx:TimeCode", "");
-        int tmpint           = m_spec.get_int_attribute("dpx:TimeCode", ~0);
+        std::string timecode = spec0.get_string_attribute("dpx:TimeCode", "");
+        int tmpint           = spec0.get_int_attribute("dpx:TimeCode", ~0);
         if (timecode.size() > 0)
             m_dpx.header.SetTimeCode(timecode.c_str());
         else if (tmpint != ~0)
             m_dpx.header.timeCode = tmpint;
-        m_dpx.header.userBits = m_spec.get_int_attribute("dpx:UserBits", ~0);
+        m_dpx.header.userBits = spec0.get_int_attribute("dpx:UserBits", ~0);
     }
 
-    ParamValue* kc = m_spec.find_attribute("smpte:KeyCode", TypeKeyCode, false);
+    ParamValue* kc = spec0.find_attribute("smpte:KeyCode", TypeKeyCode, false);
     if (kc) {
         int* array = (int*)kc->data();
         set_keycode_values(array);
 
         // See if there is an overloaded dpx:Format
-        std::string format = m_spec.get_string_attribute("dpx:Format", "");
+        std::string format = spec0.get_string_attribute("dpx:Format", "");
         if (format.size() > 0)
             m_dpx.header.SetFormat(format.c_str());
     }
 
-    std::string srcdate = m_spec.get_string_attribute("dpx:SourceDateTime", "");
+    std::string srcdate = spec0.get_string_attribute("dpx:SourceDateTime", "");
     if (srcdate.size() >= 19) {
         // libdpx's date/time format is pretty close to OIIO's (libdpx uses
         // %Y:%m:%d:%H:%M:%S%Z)
@@ -406,7 +392,7 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
     }
 
     // set the user data size
-    ParamValue* user = m_spec.find_attribute("dpx:UserData");
+    ParamValue* user = spec0.find_attribute("dpx:UserData");
     if (user && user->datasize() > 0 && user->datasize() <= 1024 * 1024) {
         m_dpx.SetUserData(user->datasize());
     }
@@ -414,6 +400,7 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
     // commit!
     if (!m_dpx.WriteHeader()) {
         errorf("Failed to write DPX header");
+        close();
         return false;
     }
 
@@ -421,18 +408,19 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
     if (user && user->datasize() > 0 && user->datasize() <= 1024 * 1024) {
         if (!m_dpx.WriteUserData((void*)user->data())) {
             errorf("Failed to write user data");
+            close();
             return false;
         }
     }
 
-    m_dither = (m_spec.format == TypeDesc::UINT8)
-                   ? m_spec.get_int_attribute("oiio:dither", 0)
+    m_dither = (spec0.format == TypeDesc::UINT8)
+                   ? spec0.get_int_attribute("oiio:dither", 0)
                    : 0;
 
     // If user asked for tiles -- which this format doesn't support, emulate
     // it by buffering the whole image.
-    if (m_spec.tile_width && m_spec.tile_height)
-        m_tilebuffer.resize(m_spec.image_bytes());
+    if (spec0.tile_width && spec0.tile_height)
+        m_tilebuffer.resize(spec0.image_bytes());
 
     return prep_subimage(m_subimage, true);
 }
@@ -442,33 +430,33 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
 bool
 DPXOutput::prep_subimage(int s, bool allocate)
 {
-    m_spec = m_subimage_specs[s];  // stash the spec
+    ImageSpec& spec_s(m_subimage_specs[s]);  // reference the spec
 
     // determine descriptor
     m_desc = get_image_descriptor();
 
     // transfer function
-    std::string colorspace = m_spec.get_string_attribute("oiio:ColorSpace", "");
+    std::string colorspace = spec_s.get_string_attribute("oiio:ColorSpace", "");
     if (Strutil::iequals(colorspace, "Linear"))
         m_transfer = dpx::kLinear;
-    else if (Strutil::iequals(colorspace, "GammaCorrected"))
+    else if (Strutil::istarts_with(colorspace, "Gamma"))
         m_transfer = dpx::kUserDefined;
     else if (Strutil::iequals(colorspace, "Rec709"))
         m_transfer = dpx::kITUR709;
     else if (Strutil::iequals(colorspace, "KodakLog"))
         m_transfer = dpx::kLogarithmic;
     else {
-        std::string dpxtransfer = m_spec.get_string_attribute("dpx:Transfer",
+        std::string dpxtransfer = spec_s.get_string_attribute("dpx:Transfer",
                                                               "");
         m_transfer              = get_characteristic_from_string(dpxtransfer);
     }
 
     // colorimetric
     m_cmetr = get_characteristic_from_string(
-        m_spec.get_string_attribute("dpx:Colorimetric", "User defined"));
+        spec_s.get_string_attribute("dpx:Colorimetric", "User defined"));
 
     // select packing method
-    std::string pck = m_spec.get_string_attribute("dpx:Packing",
+    std::string pck = spec_s.get_string_attribute("dpx:Packing",
                                                   "Filled, method A");
     if (Strutil::iequals(pck, "Packed"))
         m_packing = dpx::kPacked;
@@ -477,7 +465,7 @@ DPXOutput::prep_subimage(int s, bool allocate)
     else
         m_packing = dpx::kFilledMethodA;
 
-    switch (m_spec.format.basetype) {
+    switch (spec_s.format.basetype) {
     case TypeDesc::UINT8:
     case TypeDesc::UINT16:
     case TypeDesc::FLOAT:
@@ -486,18 +474,18 @@ DPXOutput::prep_subimage(int s, bool allocate)
         break;
     case TypeDesc::HALF:
         // Turn half into float
-        m_spec.format.basetype = TypeDesc::FLOAT;
+        spec_s.format.basetype = TypeDesc::FLOAT;
         break;
     default:
         // Turn everything else into UINT16
-        m_spec.format.basetype = TypeDesc::UINT16;
+        spec_s.format.basetype = TypeDesc::UINT16;
         break;
     }
 
     // calculate target bit depth
-    m_bitdepth = m_spec.format.size() * 8;
-    if (m_spec.format == TypeDesc::UINT16) {
-        m_bitdepth = m_spec.get_int_attribute("oiio:BitsPerSample", 16);
+    m_bitdepth = spec_s.format.size() * 8;
+    if (spec_s.format == TypeDesc::UINT16) {
+        m_bitdepth = spec_s.get_int_attribute("oiio:BitsPerSample", 16);
         if (m_bitdepth != 10 && m_bitdepth != 12 && m_bitdepth != 16) {
             errorf("Unsupported bit depth %d", m_bitdepth);
             return false;
@@ -510,39 +498,42 @@ DPXOutput::prep_subimage(int s, bool allocate)
     if (m_bitdepth == 12)
         m_packing = dpx::kPacked;
     // I've also seen problems with 10 bits, but only for 1-channel images.
-    if (m_bitdepth == 10 && m_spec.nchannels == 1)
+    if (m_bitdepth == 10 && spec_s.nchannels == 1)
         m_packing = dpx::kPacked;
 
-    if (m_spec.format == TypeDesc::UINT8 || m_spec.format == TypeDesc::INT8)
+    if (spec_s.format == TypeDesc::UINT8 || spec_s.format == TypeDesc::INT8)
         m_datasize = dpx::kByte;
-    else if (m_spec.format == TypeDesc::UINT16
-             || m_spec.format == TypeDesc::INT16)
+    else if (spec_s.format == TypeDesc::UINT16
+             || spec_s.format == TypeDesc::INT16)
         m_datasize = dpx::kWord;
-    else if (m_spec.format == TypeDesc::FLOAT
-             || m_spec.format == TypeDesc::HALF) {
-        m_spec.format = TypeDesc::FLOAT;
+    else if (spec_s.format == TypeDesc::FLOAT
+             || spec_s.format == TypeDesc::HALF) {
+        spec_s.format = TypeDesc::FLOAT;
         m_datasize    = dpx::kFloat;
-    } else if (m_spec.format == TypeDesc::DOUBLE)
+    } else if (spec_s.format == TypeDesc::DOUBLE)
         m_datasize = dpx::kDouble;
     else {
         // use 16-bit unsigned integers as a failsafe
-        m_spec.set_format(TypeDesc::UINT16);
+        spec_s.set_format(TypeDesc::UINT16);
         m_datasize = dpx::kWord;
     }
 
     // check if the client is giving us raw data to write
-    m_rawcolor = m_spec.get_int_attribute("dpx:RawColor")
-                 || m_spec.get_int_attribute("dpx:RawData")  // deprecated
-                 || m_spec.get_int_attribute("oiio:RawColor");
+    m_rawcolor = spec_s.get_int_attribute("dpx:RawColor")
+                 || spec_s.get_int_attribute("dpx:RawData")  // deprecated
+                 || spec_s.get_int_attribute("oiio:RawColor");
 
     // see if we'll need to convert color space or not
-    if (m_desc == dpx::kRGB || m_desc == dpx::kRGBA || m_spec.nchannels == 1) {
+    if (m_desc == dpx::kRGB || m_desc == dpx::kRGBA || spec_s.nchannels == 1) {
         // shortcut for RGB/RGBA, and for 1-channel images that don't
         // need to decode color representations.
-        m_bytes    = m_spec.scanline_bytes();
+        m_bytes    = spec_s.scanline_bytes();
         m_rawcolor = true;
     } else {
-        m_bytes = dpx::QueryNativeBufferSize(m_desc, m_datasize, m_spec.width,
+        OIIO_ASSERT(0 && "Unsupported color space");
+        return false;
+#if 0  /* NOT USED IN OIIO */
+        m_bytes = dpx::QueryNativeBufferSize(m_desc, m_datasize, spec_s.width,
                                              1);
         if (m_bytes == 0 && !m_rawcolor) {
             errorf("Unable to deliver native format data from source data");
@@ -550,18 +541,20 @@ DPXOutput::prep_subimage(int s, bool allocate)
         } else if (m_bytes < 0) {
             // no need to allocate another buffer
             if (!m_rawcolor)
-                m_bytes = m_spec.scanline_bytes();
+                m_bytes = spec_s.scanline_bytes();
             else
                 m_bytes = -m_bytes;
         }
+#endif /* NOT USED IN OIIO */
     }
     if (m_bytes < 0)
         m_bytes = -m_bytes;
 
     // allocate space for the image data buffer
     if (allocate)
-        m_buf.resize(m_bytes * m_spec.height);
+        m_buf.resize(m_bytes * spec_s.height);
 
+    m_spec = spec_s;
     return true;
 }
 
@@ -570,9 +563,12 @@ DPXOutput::prep_subimage(int s, bool allocate)
 bool
 DPXOutput::write_buffer()
 {
+    if (!is_opened())
+        return false;
+
     bool ok = true;
-    if (m_write_pending) {
-        ok = m_dpx.WriteElement(m_subimage, &m_buf[0], m_datasize);
+    if (m_write_pending && m_buf.size()) {
+        ok = m_dpx.WriteElement(m_subimage, m_buf.data(), m_datasize);
         if (!ok) {
             const char* err = strerror(errno);
             errorf("DPX write failed (%s)",
@@ -594,11 +590,11 @@ DPXOutput::close()
     }
 
     bool ok = true;
-    if (m_spec.tile_width) {
+    const ImageSpec& spec_s(m_subimage_specs[m_subimage]);
+    if (spec_s.tile_width && m_tilebuffer.size()) {
         // Handle tile emulation -- output the buffered pixels
-        ASSERT(m_tilebuffer.size());
-        ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
-                              m_spec.format, &m_tilebuffer[0]);
+        ok &= write_scanlines(spec_s.y, spec_s.y + spec_s.height, 0,
+                              spec_s.format, &m_tilebuffer[0]);
         std::vector<unsigned char>().swap(m_tilebuffer);
     }
 
@@ -614,22 +610,28 @@ bool
 DPXOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
                           stride_t xstride)
 {
+    if (!is_opened()) {
+        errorfmt("write_scanline called but file is not open.");
+        return false;
+    }
+
     m_write_pending = true;
 
-    m_spec.auto_stride(xstride, format, m_spec.nchannels);
+    const ImageSpec& spec_s(m_subimage_specs[m_subimage]);
+    spec_s.auto_stride(xstride, format, spec_s.nchannels);
     const void* origdata = data;
     data = to_native_scanline(format, data, xstride, m_scratch, m_dither, y, z);
     if (data == origdata) {
         m_scratch.assign((unsigned char*)data,
-                         (unsigned char*)data + m_spec.scanline_bytes());
+                         (unsigned char*)data + spec_s.scanline_bytes());
         data = &m_scratch[0];
     }
 
-    unsigned char* dst = &m_buf[(y - m_spec.y) * m_bytes];
+    unsigned char* dst = &m_buf[(y - spec_s.y) * m_bytes];
     if (m_rawcolor)
         // fast path - just dump the scanline into the buffer
-        memcpy(dst, data, m_spec.scanline_bytes());
-    else if (!dpx::ConvertToNative(m_desc, m_datasize, m_cmetr, m_spec.width, 1,
+        memcpy(dst, data, spec_s.scanline_bytes());
+    else if (!dpx::ConvertToNative(m_desc, m_datasize, m_cmetr, spec_s.width, 1,
                                    data, dst))
         return false;
 
@@ -642,6 +644,11 @@ bool
 DPXOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
                       stride_t xstride, stride_t ystride, stride_t zstride)
 {
+    if (!is_opened()) {
+        errorfmt("write_tile called but file is not open.");
+        return false;
+    }
+
     // Emulate tiles by buffering the whole image
     return copy_tile_to_image_buffer(x, y, z, format, data, xstride, ystride,
                                      zstride, &m_tilebuffer[0]);
@@ -689,13 +696,14 @@ DPXOutput::get_characteristic_from_string(const std::string& str)
 dpx::Descriptor
 DPXOutput::get_image_descriptor()
 {
-    switch (m_spec.nchannels) {
+    const ImageSpec& spec0(m_subimage_specs[0]);
+    switch (spec0.nchannels) {
     case 1: {
-        std::string name = m_spec.channelnames.size() ? m_spec.channelnames[0]
-                                                      : "";
-        if (m_spec.z_channel == 0 || name == "Z")
+        std::string name = spec0.channelnames.size() ? spec0.channelnames[0]
+                                                     : "";
+        if (spec0.z_channel == 0 || name == "Z")
             return dpx::kDepth;
-        else if (m_spec.alpha_channel == 0 || name == "A")
+        else if (spec0.alpha_channel == 0 || name == "A")
             return dpx::kAlpha;
         else if (name == "R")
             return dpx::kRed;
@@ -709,9 +717,9 @@ DPXOutput::get_image_descriptor()
     case 3: return dpx::kRGB;
     case 4: return dpx::kRGBA;
     default:
-        if (m_spec.nchannels <= 8)
+        if (spec0.nchannels <= 8)
             return (dpx::Descriptor)((int)dpx::kUserDefined2Comp
-                                     + m_spec.nchannels - 2);
+                                     + spec0.nchannels - 2);
         return dpx::kUndefinedDescriptor;
     }
 }
@@ -723,42 +731,32 @@ DPXOutput::set_keycode_values(int* array)
 {
     // Manufacturer code
     {
-        std::stringstream ss;
-        ss << std::setfill('0');
-        ss << std::setw(2) << array[0];
-        memcpy(m_dpx.header.filmManufacturingIdCode, ss.str().c_str(), 2);
+        std::string ss = Strutil::fmt::format("{:02d}", array[0]);
+        memcpy(m_dpx.header.filmManufacturingIdCode, ss.c_str(), 2);
     }
 
     // Film type
     {
-        std::stringstream ss;
-        ss << std::setfill('0');
-        ss << std::setw(2) << array[1];
-        memcpy(m_dpx.header.filmType, ss.str().c_str(), 2);
+        std::string ss = Strutil::fmt::format("{:02d}", array[1]);
+        memcpy(m_dpx.header.filmType, ss.c_str(), 2);
     }
 
     // Prefix
     {
-        std::stringstream ss;
-        ss << std::setfill('0');
-        ss << std::setw(6) << array[2];
-        memcpy(m_dpx.header.prefix, ss.str().c_str(), 6);
+        std::string ss = Strutil::fmt::format("{:06d}", array[2]);
+        memcpy(m_dpx.header.prefix, ss.c_str(), 6);
     }
 
     // Count
     {
-        std::stringstream ss;
-        ss << std::setfill('0');
-        ss << std::setw(4) << array[3];
-        memcpy(m_dpx.header.count, ss.str().c_str(), 4);
+        std::string ss = Strutil::fmt::format("{:04d}", array[3]);
+        memcpy(m_dpx.header.count, ss.c_str(), 4);
     }
 
     // Perforation Offset
     {
-        std::stringstream ss;
-        ss << std::setfill('0');
-        ss << std::setw(2) << array[4];
-        memcpy(m_dpx.header.perfsOffset, ss.str().c_str(), 2);
+        std::string ss = Strutil::fmt::format("{:02d}", array[4]);
+        memcpy(m_dpx.header.perfsOffset, ss.c_str(), 2);
     }
 
     // Format

@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 #pragma once
@@ -44,7 +44,7 @@ template<> struct is_string<std::string> : std::true_type {};
 // to work as a shorthand for extracting the named attribute via
 // object.getattribute() and assigning it to the result.
 //
-// Basically, the class in question needs to posess these three methods,
+// Basically, the class in question needs to possess these three methods,
 // working in the usual idiomatic way for OIIO:
 //
 //      void attribute (string_view name, TypeDesc type, void* data);
@@ -73,7 +73,7 @@ template<> struct is_string<std::string> : std::true_type {};
 //         int i = obj["foo"].get<int>();
 //         float f = obj["bar"].get<float>();
 //         std::string s = obj["baz"].get<std::string>();
-//    If the object does not posess an attribute of that name (and/or of
+//    If the object does not possess an attribute of that name (and/or of
 //    that type), it will instead return the default value for that type.
 //    A specific default value override may be provided as an argument to
 //    the get() method:
@@ -149,6 +149,33 @@ public:
         return m_obj->getattribute(m_name, TypeString, &s) ? T(s) : defaultval;
     }
 
+    // `Delegate->get_indexed<T>(int index, defaultval=T())` retrieves the
+    // index-th base value in the data as type T, or the defaultval if no
+    // such named data exists or is not the designated type.
+    template<typename T,
+             typename std::enable_if<!pvt::is_string<T>::value, int>::type = 0>
+    inline T get_indexed(int index, const T& defaultval = T()) const
+    {
+        T result;
+        if (!m_obj->getattribute_indexed(m_name, index,
+                                         TypeDescFromC<T>::value(), &result))
+            result = defaultval;
+        return result;
+    }
+
+    // Using enable_if, make a slightly different version of get_indexed<>
+    // for strings, which need to do some ustring magic because we can't
+    // directly store in a std::string or string_view.
+    template<typename T = string_view,
+             typename std::enable_if<pvt::is_string<T>::value, int>::type = 1>
+    inline T get_indexed(int index, const T& defaultval = T()) const
+    {
+        ustring s;
+        return m_obj->getattribute_indexed(m_name, index, TypeString, &s)
+                   ? T(s)
+                   : defaultval;
+    }
+
     // `Delegate->as_string(defaultval="")` returns the data, no matter its
     // type, as a string. Returns the defaultval if no such data exists at
     // all.
@@ -175,6 +202,21 @@ public:
             s = defaultval;
         }
         return s;
+    }
+
+    // Return the entire attribute (even if an array or aggregate) as a
+    // `std::vector<T>`, calling `get_indexed` on each base element.
+    template<typename T, typename Allocator = std::allocator<T>>
+    inline std::vector<T, Allocator> as_vec() const
+    {
+        TypeDesc t      = m_obj->getattributetype(m_name);
+        size_t basevals = t.basevalues();
+        using Vec       = std::vector<T, Allocator>;
+        Vec result;
+        result.reserve(basevals);
+        for (size_t i = 0; i < basevals; ++i)
+            result.push_back(get_indexed<T>(int(i)));
+        return result;
     }
 
     // Allow direct assignment to string, equivalent to calling as_string().

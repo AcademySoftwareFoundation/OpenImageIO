@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 #include <cctype>
@@ -8,11 +8,13 @@
 
 #include "fits_pvt.h"
 
+#include <OpenImageIO/fmath.h>
+
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
-// Obligatory material to make this a recognizeable imageio plugin
+// Obligatory material to make this a recognizable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT int fits_imageio_version = OIIO_PLUGIN_VERSION;
@@ -66,12 +68,7 @@ FitsInput::open(const std::string& name, ImageSpec& spec)
 
     // checking if the file is FITS file
     char magic[6] = { 0 };
-    if (fread(magic, 1, 6, m_fd) != 6) {
-        errorf("%s isn't a FITS file", m_filename);
-        return false;  // Read failed
-    }
-
-    if (strncmp(magic, "SIMPLE", 6)) {
+    if (fread(magic, 1, 6, m_fd) != 6 || strncmp(magic, "SIMPLE", 6)) {
         errorf("%s isn't a FITS file", m_filename);
         close();
         return false;
@@ -91,10 +88,10 @@ FitsInput::open(const std::string& name, ImageSpec& spec)
 
 
 bool
-FitsInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+FitsInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                 void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
 

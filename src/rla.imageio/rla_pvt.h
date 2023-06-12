@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #pragma once
 
@@ -8,7 +8,7 @@
 /*
   Brief documentation about the RLA format:
 
-  * The file consists of multiple subimages, merely contatenated together.
+  * The file consists of multiple subimages, merely concatenated together.
     Each subimage starts with a RLAHeader, and within the header is a
     NextOffset field that gives the absolute offset (relative to the start
     of the file) of the beginning of the next subimage, or 0 if there
@@ -48,6 +48,9 @@
 
   * RLA files are "big endian" for all 16 and 32 bit data: header fields,
     offsets, and pixel data.
+
+  * References:
+      - https://www.fileformat.info/format/wavefrontrla/egff.htm
 
  */
 

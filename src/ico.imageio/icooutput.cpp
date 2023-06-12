@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #include <cmath>
 #include <cstdio>
@@ -24,17 +24,17 @@ using namespace ICO_pvt;
 class ICOOutput final : public ImageOutput {
 public:
     ICOOutput();
-    virtual ~ICOOutput();
-    virtual const char* format_name(void) const override { return "ico"; }
-    virtual int supports(string_view feature) const override;
-    virtual bool open(const std::string& name, const ImageSpec& spec,
-                      OpenMode mode = Create) override;
-    virtual bool close() override;
-    virtual bool write_scanline(int y, int z, TypeDesc format, const void* data,
-                                stride_t xstride) override;
-    virtual bool write_tile(int x, int y, int z, TypeDesc format,
-                            const void* data, stride_t xstride,
-                            stride_t ystride, stride_t zstride) override;
+    ~ICOOutput() override;
+    const char* format_name(void) const override { return "ico"; }
+    int supports(string_view feature) const override;
+    bool open(const std::string& name, const ImageSpec& spec,
+              OpenMode mode = Create) override;
+    bool close() override;
+    bool write_scanline(int y, int z, TypeDesc format, const void* data,
+                        stride_t xstride) override;
+    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
+                    stride_t xstride, stride_t ystride,
+                    stride_t zstride) override;
 
 private:
     std::string m_filename;                ///< Stash the filename
@@ -76,7 +76,7 @@ private:
     {
         size_t n = ::fwrite(buf, itemsize, nitems, m_file);
         if (n != nitems)
-            errorf("Write error");
+            errorfmt("Write error");
         return n == nitems;
     }
 
@@ -87,14 +87,14 @@ private:
     {
         size_t n = ::fread(buf, itemsize, nitems, m_file);
         if (n != nitems)
-            errorf("Read error");
+            errorfmt("Read error");
         return n == nitems;
     }
 };
 
 
 
-// Obligatory material to make this a recognizeable imageio plugin:
+// Obligatory material to make this a recognizable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageOutput*
@@ -127,32 +127,13 @@ bool
 ICOOutput::open(const std::string& name, const ImageSpec& userspec,
                 OpenMode mode)
 {
-    if (mode == AppendMIPLevel) {
-        errorf("%s does not support MIP levels", format_name());
-        return false;
-    }
+    close();  // Close any already-opened file
 
-    close();                                 // Close any already-opened file
-    m_spec = userspec;                       // Stash the spec
+    if (!check_open(mode, userspec, { 0, 256, 0, 256, 0, 1, 0, 4 }))
+        return false;
+
     if (m_spec.format == TypeDesc::UNKNOWN)  // if unknown, default to 8 bits
         m_spec.set_format(TypeDesc::UINT8);
-
-    // Check for things this format doesn't support
-    if (m_spec.width < 1 || m_spec.height < 1) {
-        errorf("Image resolution must be at least 1x1, you asked for %d x %d",
-               m_spec.width, m_spec.height);
-        return false;
-    } else if (m_spec.width > 256 || m_spec.height > 256) {
-        errorf("Image resolution must be at most 256x256, you asked for %d x %d",
-               m_spec.width, m_spec.height);
-        return false;
-    }
-    if (m_spec.depth < 1)
-        m_spec.depth = 1;
-    if (m_spec.depth > 1) {
-        errorf("%s does not support volume images (depth > 1)", format_name());
-        return false;
-    }
 
     // check if the client wants this subimage written as PNG
     // also force PNG if image size is 256 because ico_header->width and height
@@ -165,7 +146,7 @@ ICOOutput::open(const std::string& name, const ImageSpec& userspec,
         std::string s = PNG_pvt::create_write_struct(m_png, m_info,
                                                      m_color_type, m_spec);
         if (s.length()) {
-            errorf("%s", s);
+            errorfmt("{}", s);
             return false;
         }
     } else {
@@ -176,14 +157,15 @@ ICOOutput::open(const std::string& name, const ImageSpec& userspec,
         case 3: m_color_type = PNG_COLOR_TYPE_RGB; break;
         case 4: m_color_type = PNG_COLOR_TYPE_RGB_ALPHA; break;
         default:
-            errorf("ICO only supports 1-4 channels, not %d", m_spec.nchannels);
+            errorfmt("ICO only supports 1-4 channels, not {}",
+                     m_spec.nchannels);
             return false;
         }
 
-        m_bpp = (m_color_type == PNG_COLOR_TYPE_GRAY_ALPHA
+        m_bpp     = (m_color_type == PNG_COLOR_TYPE_GRAY_ALPHA
                  || m_color_type == PNG_COLOR_TYPE_RGB_ALPHA)
-                    ? 32
-                    : 24;
+                        ? 32
+                        : 24;
         m_xor_slb = (m_spec.width * m_bpp + 7) / 8  // real data bytes
                     + (4 - ((m_spec.width * m_bpp + 7) / 8) % 4)
                           % 4;              // padding
@@ -203,7 +185,7 @@ ICOOutput::open(const std::string& name, const ImageSpec& userspec,
 
     m_file = Filesystem::fopen(name, mode == AppendSubimage ? "r+b" : "wb");
     if (!m_file) {
-        errorf("Could not open \"%s\"", name);
+        errorfmt("Could not open \"{}\"", name);
         return false;
     }
 
@@ -236,7 +218,7 @@ ICOOutput::open(const std::string& name, const ImageSpec& userspec,
                   << ico.type << " count = " << ico.count << "\n";*/
 
         if (ico.reserved != 0 || ico.type != 1) {
-            errorf("File failed ICO header check");
+            errorfmt("File failed ICO header check");
             return false;
         }
 
@@ -412,14 +394,18 @@ ICOOutput::close()
     bool ok = true;
     if (m_spec.tile_width) {
         // Handle tile emulation -- output the buffered pixels
-        ASSERT(m_tilebuffer.size());
+        OIIO_ASSERT(m_tilebuffer.size());
         ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
                               m_spec.format, &m_tilebuffer[0]);
         std::vector<unsigned char>().swap(m_tilebuffer);
     }
 
     if (m_png) {
-        PNG_pvt::finish_image(m_png, m_info);
+        PNG_pvt::write_end(m_png, m_info);
+        if (m_png || m_info)
+            PNG_pvt::destroy_write_struct(m_png, m_info);
+        m_png  = nullptr;
+        m_info = nullptr;
     }
     fclose(m_file);
     m_file = NULL;
@@ -444,7 +430,7 @@ ICOOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
 
     if (m_want_png) {
         if (!PNG_pvt::write_row(m_png, (png_byte*)data)) {
-            errorf("PNG library error");
+            errorfmt("PNG library error");
             return false;
         }
     } else {
@@ -498,7 +484,7 @@ ICOOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
         // drawing at colour depths lower than 24-bit. If it's not present,
         // Windows will read out-of-bounds, treating any data that it
         // encounters as the AND mask, resulting in ugly transparency effects.
-        // Only need to do this for images with alpha, becasue 0 is opaque,
+        // Only need to do this for images with alpha, because 0 is opaque,
         // and we've already filled the file with zeros.
         if (m_color_type != PNG_COLOR_TYPE_GRAY
             && m_color_type != PNG_COLOR_TYPE_RGB) {

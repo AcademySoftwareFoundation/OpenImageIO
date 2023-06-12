@@ -11,74 +11,70 @@ ImageBuf is a utility class that stores an entire image.  It provides a
 nice API for reading, writing, and manipulating images as a single unit,
 without needing to worry about any of the details of storage or I/O.
 
-An ImageBuf can store its pixels in one of several ways:
-
-* Allocate "local storage" to hold the image pixels internal to the
-  ImageBuf.  This storage will be freed when the ImageBuf is destroyed.
-* "Wrap" pixel memory already allocated by the calling application, which
-  will continue to own that memory and be responsible for freeing it after
-  the ImageBuf is destroyed.
-* Be "backed" by an ImageCache, which will automatically be used to
-  retreive pixels when requested, but the ImageBuf will not allocate
-  separate storage for it.  This brings all the advantages of the
-  ImageCache, but can only be used for read-only ImageBuf's that reference a
-  stored image file.
-
-All I/O involving ImageBuf (that is, calls to `read` or `write`)
-are implemented in terms of ImageCache, ImageInput,
-and ImageOutput underneath, and so support all of the image file
-formats supported by OIIO.
+All I/O involving ImageBuf (that is, calls to `read` or `write`) are
+implemented underneath in terms of ImageCache, ImageInput, and ImageOutput,
+and so support all of the image file formats supported by OIIO.
 
 The ImageBuf class definition requires that you::
 
     #include <OpenImageIO/imagebuf.h>
 
 
+.. doxygenenum:: OIIO::ImageBuf::IBStorage
+
 
 Constructing, destructing, resetting an ImageBuf
 ================================================
+
+There are several ways to construct an ImageBuf. Each constructor has a
+corresponding `reset` method that takes the same arguments. Calling `reset`
+on an existing ImageBuf is equivalent to constructing a new ImageBuf from
+scratch (even if the ImageBuf, prior to reset, previously held an image).
+
 
 Making an empty or uninitialized ImageBuf
 -----------------------------------------
 
 .. doxygenfunction:: OIIO::ImageBuf::ImageBuf()
-.. doxygenfunction:: OIIO::ImageBuf::clear()
+.. doxygenfunction:: OIIO::ImageBuf::reset()
 
 
 Constructing a readable ImageBuf
 --------------------------------
 
-.. doxygenfunction:: OIIO::ImageBuf::ImageBuf(string_view, int, int, ImageCache *, const ImageSpec *)
-.. doxygenfunction:: OIIO::ImageBuf::reset(string_view, int, int, ImageCache *, const ImageSpec *)
+.. doxygenfunction:: OIIO::ImageBuf::ImageBuf(string_view name, int subimage = 0, int miplevel = 0, ImageCache *imagecache = nullptr, const ImageSpec *config = nullptr, Filesystem::IOProxy *ioproxy = nullptr)
+.. doxygenfunction:: OIIO::ImageBuf::reset(string_view name, int subimage = 0, int miplevel = 0, ImageCache *imagecache = nullptr, const ImageSpec *config = nullptr, Filesystem::IOProxy *ioproxy = nullptr)
 
 
-Constructing a writeable ImageBuf
+Constructing a writable ImageBuf
 --------------------------------------------------
 
-.. doxygenfunction:: OIIO::ImageBuf::ImageBuf(const ImageSpec&, InitializePixels)
-.. doxygenfunction:: OIIO::ImageBuf::reset(const ImageSpec&, InitializePixels)
-.. doxygenfunction:: OIIO::ImageBuf::make_writeable
+.. doxygenfunction:: OIIO::ImageBuf::ImageBuf(const ImageSpec &spec, InitializePixels zero = InitializePixels::Yes)
+.. doxygenfunction:: OIIO::ImageBuf::reset(const ImageSpec &spec, InitializePixels zero = InitializePixels::Yes)
+.. doxygenfunction:: OIIO::ImageBuf::make_writable
 
 
 Constructing an ImageBuf that "wraps" an application buffer
 -------------------------------------------------------------
 
-.. doxygenfunction:: OIIO::ImageBuf::ImageBuf(const ImageSpec&, void *)
+.. doxygenfunction:: OIIO::ImageBuf::ImageBuf(const ImageSpec &spec, void *buffer, stride_t xstride = AutoStride, stride_t ystride = AutoStride, stride_t zstride = AutoStride)
+.. doxygenfunction:: OIIO::ImageBuf::reset(const ImageSpec &spec, void *buffer, stride_t xstride = AutoStride, stride_t ystride = AutoStride, stride_t zstride = AutoStride)
 
 
 
 Reading and Writing disk images
 -------------------------------
 
-.. doxygenfunction:: OIIO::ImageBuf::read(int, int, bool, TypeDesc, ProgressCallback, void *)
-.. doxygenfunction:: OIIO::ImageBuf::read(int, int, int, int, bool, TypeDesc, ProgressCallback, void *)
+.. doxygenfunction:: OIIO::ImageBuf::read(int subimage = 0, int miplevel = 0, bool force = false, TypeDesc convert = TypeDesc::UNKNOWN, ProgressCallback progress_callback = nullptr, void *progress_callback_data = nullptr)
+.. doxygenfunction:: OIIO::ImageBuf::read(int subimage, int miplevel, int chbegin, int chend, bool force, TypeDesc convert, ProgressCallback progress_callback = nullptr, void *progress_callback_data = nullptr)
 .. doxygenfunction:: OIIO::ImageBuf::init_spec
 
-.. doxygenfunction:: OIIO::ImageBuf::write(string_view, TypeDesc, string_view, ProgressCallback, void *) const
-.. doxygenfunction:: OIIO::ImageBuf::write(ImageOutput *, ProgressCallback, void *) const
-.. doxygenfunction:: OIIO::ImageBuf::set_write_format(TypeDesc)
-.. doxygenfunction:: OIIO::ImageBuf::set_write_format(cspan<TypeDesc>)
+.. doxygenfunction:: OIIO::ImageBuf::write(string_view filename, TypeDesc dtype = TypeUnknown, string_view fileformat = string_view(), ProgressCallback progress_callback = nullptr, void *progress_callback_data = nullptr) const
+.. doxygenfunction:: OIIO::ImageBuf::write(ImageOutput *out, ProgressCallback progress_callback = nullptr, void *progress_callback_data = nullptr) const
+.. doxygenfunction:: OIIO::ImageBuf::set_write_format(TypeDesc format)
+.. doxygenfunction:: OIIO::ImageBuf::set_write_format(cspan<TypeDesc> format)
 .. doxygenfunction:: OIIO::ImageBuf::set_write_tiles
+.. doxygenfunction:: OIIO::ImageBuf::set_write_ioproxy
 
 
 
@@ -137,17 +133,17 @@ Getting and setting information about an ImageBuf
 .. doxygenfunction:: OIIO::ImageBuf::contains_roi
 .. doxygenfunction:: OIIO::ImageBuf::pixeltype
 .. doxygenfunction:: OIIO::ImageBuf::threads() const
-.. doxygenfunction:: OIIO::ImageBuf::threads(int) const
+.. doxygenfunction:: OIIO::ImageBuf::threads(int n) const
 
 
 
 Copying ImageBuf's and blocks of pixels
 ========================================
 
-.. doxygenfunction:: OIIO::ImageBuf::operator=(const ImageBuf&)
-.. doxygenfunction:: OIIO::ImageBuf::operator=(ImageBuf&&)
-.. doxygenfunction:: OIIO::ImageBuf::copy(const ImageBuf&, TypeDesc)
-.. doxygenfunction:: OIIO::ImageBuf::copy(TypeDesc) const
+.. doxygenfunction:: OIIO::ImageBuf::operator=(const ImageBuf &src)
+.. doxygenfunction:: OIIO::ImageBuf::operator=(ImageBuf &&src)
+.. doxygenfunction:: OIIO::ImageBuf::copy(const ImageBuf &src, TypeDesc format = TypeUnknown)
+.. doxygenfunction:: OIIO::ImageBuf::copy(TypeDesc format) const
 .. doxygenfunction:: OIIO::ImageBuf::copy_metadata
 .. doxygenfunction:: OIIO::ImageBuf::copy_pixels
 .. doxygenfunction:: OIIO::ImageBuf::swap
@@ -160,15 +156,15 @@ Getting and setting pixel values
 **Getting and setting individual pixels -- slow**
 
 .. doxygenfunction:: OIIO::ImageBuf::getchannel
-.. doxygenfunction:: OIIO::ImageBuf::getpixel(int, int, int, float *, int, WrapMode) const
+.. doxygenfunction:: OIIO::ImageBuf::getpixel(int x, int y, int z, float *pixel, int maxchannels = 1000, WrapMode wrap = WrapBlack) const
 
 .. doxygenfunction:: OIIO::ImageBuf::interppixel
 .. doxygenfunction:: OIIO::ImageBuf::interppixel_bicubic
 .. doxygenfunction:: OIIO::ImageBuf::interppixel_NDC
 .. doxygenfunction:: OIIO::ImageBuf::interppixel_bicubic_NDC
 
-.. doxygenfunction:: OIIO::ImageBuf::setpixel(int, int, int, const float *, int)
-.. doxygenfunction:: OIIO::ImageBuf::setpixel(int, const float *, int)
+.. doxygenfunction:: OIIO::ImageBuf::setpixel(int x, int y, int z, cspan<float> pixel)
+.. doxygenfunction:: OIIO::ImageBuf::setpixel(int i, cspan<float> pixel)
 
 |
 
@@ -187,10 +183,10 @@ Deep data in an ImageBuf
 .. doxygenfunction:: OIIO::ImageBuf::set_deep_samples
 .. doxygenfunction:: OIIO::ImageBuf::deep_insert_samples
 .. doxygenfunction:: OIIO::ImageBuf::deep_erase_samples
-.. doxygenfunction:: OIIO::ImageBuf::deep_value(int, int, int, int, int) const
-.. doxygenfunction:: OIIO::ImageBuf::deep_value_uint(int, int, int, int, int) const
-.. doxygenfunction:: OIIO::ImageBuf::set_deep_value(int, int, int, int, int, float)
-.. doxygenfunction:: OIIO::ImageBuf::set_deep_value(int, int, int, int, int, uint32_t)
+.. doxygenfunction:: OIIO::ImageBuf::deep_value(int x, int y, int z, int c, int s) const
+.. doxygenfunction:: OIIO::ImageBuf::deep_value_uint(int x, int y, int z, int c, int s) const
+.. doxygenfunction:: OIIO::ImageBuf::set_deep_value(int x, int y, int z, int c, int s, float value)
+.. doxygenfunction:: OIIO::ImageBuf::set_deep_value(int x, int y, int z, int c, int s, uint32_t value)
 .. doxygenfunction:: OIIO::ImageBuf::deep_pixel_ptr
 
 .. cpp:function:: DeepData& OIIO::ImageBuf::deepdata()
@@ -473,7 +469,7 @@ Strategy 2: Template your iterating functions based on buffer type
 Consider the following alternate version of the `make_black` function
 from Section `Example: Set all pixels in a region to black`_ ::
 
-    template<type BUFT>
+    template<typename BUFT>
     static bool make_black_impl (ImageBuf &buf, ROI region)
     {
         // Clamp the region's channel range to the channels in the image
@@ -501,7 +497,7 @@ from Section `Example: Set all pixels in a region to black`_ ::
             return make_black_impl<unsigned short> (buf, region);
         else {
             buf.error ("Unsupported pixel data format %s", buf.spec().format);
-            retrn false;
+            return false;
         }
     }
 
@@ -516,7 +512,7 @@ chapter).  You could rewrite the example even more simply::
 
     #include <OpenImageIO/imagebufalgo_util.h>
     
-    template<type BUFT>
+    template<typename BUFT>
     static bool make_black_impl (ImageBuf &buf, ROI region)
     {
         ... same as before ...
@@ -531,5 +527,5 @@ chapter).  You could rewrite the example even more simply::
     }
 
 This other type-dispatching helper macros will be discussed in more
-detail in Chapter `Image Processing`_.
+detail in Chapter :ref:`chap-imagebufalgo`.
 

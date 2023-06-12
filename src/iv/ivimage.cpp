@@ -1,14 +1,12 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 #include <iostream>
 
-#include <OpenEXR/half.h>
-
 #include "imageviewer.h"
-#include <OpenImageIO/fmath.h>
+#include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/strutil.h>
 
 
@@ -46,8 +44,9 @@ IvImage::init_spec_iv(const std::string& filename, int subimage, int miplevel)
         m_file_dataformat = spec().format;
     }
     string_view colorspace = spec().get_string_attribute("oiio:ColorSpace");
-    if (Strutil::istarts_with(colorspace, "GammaCorrected")) {
-        float g = Strutil::from_string<float>(colorspace.c_str() + 14);
+    if (Strutil::istarts_with(colorspace, "Gamma")) {
+        Strutil::parse_word(colorspace);
+        float g = Strutil::from_string<float>(colorspace);
         if (g > 1.0 && g <= 3.0 /*sanity check*/) {
             gamma(gamma() / g);
         }
@@ -91,13 +90,14 @@ std::string
 IvImage::shortinfo() const
 {
     if (m_shortinfo.empty()) {
-        m_shortinfo = Strutil::sprintf("%d x %d", spec().width, spec().height);
+        m_shortinfo = Strutil::fmt::format("{} x {}", spec().width,
+                                           spec().height);
         if (spec().depth > 1)
-            m_shortinfo += Strutil::sprintf(" x %d", spec().depth);
-        m_shortinfo += Strutil::sprintf(" x %d channel %s (%.2f MB)",
-                                        spec().nchannels, m_file_dataformat,
-                                        (float)spec().image_bytes()
-                                            / (1024.0 * 1024.0));
+            m_shortinfo += Strutil::fmt::format(" x {}", spec().depth);
+        m_shortinfo += Strutil::fmt::format(" x {} channel {} ({:.2f} MB)",
+                                            spec().nchannels, m_file_dataformat,
+                                            (float)spec().image_bytes()
+                                                / (1024.0 * 1024.0));
     }
     return m_shortinfo;
 }

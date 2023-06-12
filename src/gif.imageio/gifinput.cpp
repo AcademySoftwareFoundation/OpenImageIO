@@ -1,12 +1,14 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
+#include <fcntl.h>
 #include <memory>
 #include <vector>
 
 #include <gif_lib.h>
 
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/thread.h>
 
@@ -28,25 +30,33 @@
 #    define DISPOSE_BACKGROUND 2
 #endif
 
+
+
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 class GIFInput final : public ImageInput {
 public:
     GIFInput() { init(); }
-    virtual ~GIFInput() { close(); }
-    virtual const char* format_name(void) const override { return "gif"; }
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool close(void) override;
-    virtual bool seek_subimage(int subimage, int miplevel) override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
-
-    virtual int current_subimage(void) const override
+    ~GIFInput() override { close(); }
+    const char* format_name(void) const override { return "gif"; }
+    int supports(string_view feature) const override
     {
-        lock_guard lock(m_mutex);
+        return feature == "ioproxy";
+    }
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool open(const std::string& name, ImageSpec& newspec,
+              const ImageSpec& config) override;
+    bool close(void) override;
+    bool seek_subimage(int subimage, int miplevel) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
+
+    int current_subimage(void) const override
+    {
+        lock_guard lock(*this);
         return m_subimage;
     }
-    virtual int current_miplevel(void) const override
+    int current_miplevel(void) const override
     {
         // No mipmap support
         return 0;
@@ -90,11 +100,25 @@ private:
     /// Print error message.
     ///
     void report_last_error(void);
+
+    // Wrapper for GIF library to call that inputs from our IOProxy
+    static int readFunc(GifFileType* gif, GifByteType* data, int bytes)
+    {
+        size_t size(bytes);
+        auto inp    = reinterpret_cast<GIFInput*>(gif->UserData);
+        auto io     = inp->ioproxy();
+        auto result = io->read(data, size);
+        if (result < size)
+            inp->errorfmt(
+                "GIF read error at position {}, asked for {} bytes, got {} (total size {})",
+                io->tell() - result, size, result, io->size());
+        return static_cast<int>(result);
+    }
 };
 
 
 
-// Obligatory material to make this a recognizeable imageio plugin
+// Obligatory material to make this a recognizable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT int gif_imageio_version = OIIO_PLUGIN_VERSION;
@@ -125,7 +149,8 @@ OIIO_PLUGIN_EXPORTS_END
 void
 GIFInput::init(void)
 {
-    m_gif_file = NULL;
+    m_gif_file = nullptr;
+    ioproxy_clear();
 }
 
 
@@ -137,9 +162,25 @@ GIFInput::open(const std::string& name, ImageSpec& newspec)
     m_subimage = -1;
     m_canvas.clear();
 
-    bool ok = seek_subimage(0, 0);
-    newspec = spec();
-    return ok;
+    if (seek_subimage(0, 0)) {
+        newspec = spec();
+        return true;
+    } else {
+        close();
+        return false;
+    }
+}
+
+
+
+bool
+GIFInput::open(const std::string& name, ImageSpec& newspec,
+               const ImageSpec& config)
+{
+    // Check 'config' for any special requests
+    ioproxy_retrieve_from_config(config);
+    ioseek(0);
+    return open(name, newspec);
 }
 
 
@@ -161,10 +202,10 @@ GIFInput::decode_line_number(int line_number, int height)
 
 
 bool
-GIFInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+GIFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
 
@@ -210,6 +251,7 @@ GIFInput::read_gif_extension(int ext_code, GifByteType* ext, ImageSpec& newspec)
         // http://giflib.sourceforge.net/whatsinagif/bits_and_bytes.html#application_extension_block
         if (ext[0] == 3) {
             newspec.attribute("gif:LoopCount", (ext[3] << 8) | ext[2]);
+            newspec.attribute("oiio:LoopCount", (ext[3] << 8) | ext[2]);
         }
     }
 }
@@ -287,10 +329,13 @@ bool
 GIFInput::read_subimage_data()
 {
     GifColorType* colormap = NULL;
+    int colormap_count;
     if (m_gif_file->Image.ColorMap) {  // local colormap
-        colormap = m_gif_file->Image.ColorMap->Colors;
+        colormap       = m_gif_file->Image.ColorMap->Colors;
+        colormap_count = m_gif_file->Image.ColorMap->ColorCount;
     } else if (m_gif_file->SColorMap) {  // global colormap
-        colormap = m_gif_file->SColorMap->Colors;
+        colormap       = m_gif_file->SColorMap->Colors;
+        colormap_count = m_gif_file->SColorMap->ColorCount;
     } else {
         errorf("Neither local nor global colormap present.");
         return false;
@@ -319,6 +364,12 @@ GIFInput::read_subimage_data()
                 + (interlacing ? decode_line_number(wy, window_height) : wy);
         if (0 <= y && y < m_spec.height) {
             for (int wx = 0; wx < window_width; wx++) {
+                if (fscanline[wx] >= colormap_count) {
+                    errorfmt(
+                        "Possible corruption: Encoded value {:d} @ ({},{}) exceeds palette size {}\n",
+                        fscanline[wx], wx, y, colormap_count);
+                    return false;
+                }
                 int x   = window_left + wx;
                 int idx = m_spec.nchannels * (y * m_spec.width + x);
                 if (0 <= x && x < m_spec.width
@@ -357,20 +408,22 @@ GIFInput::seek_subimage(int subimage, int miplevel)
     }
 
     if (!m_gif_file) {
+        if (!ioproxy_use_or_open(m_filename))
+            return false;
 #if GIFLIB_MAJOR >= 5
         int giflib_error;
-        if (!(m_gif_file = DGifOpenFileName(m_filename.c_str(),
-                                            &giflib_error))) {
-            errorf("%s", GifErrorString(giflib_error));
+        m_gif_file = DGifOpen(this, readFunc, &giflib_error);
+        if (!m_gif_file) {
+            errorfmt("{}", GifErrorString(giflib_error));
             return false;
         }
 #else
-        if (!(m_gif_file = DGifOpenFileName(m_filename.c_str()))) {
-            errorf("Error trying to open the file.");
+        m_gif_file = DGifOpen(this, readFunc);
+        if (!m_gif_file) {
+            errorfmt("Error opening GIF");
             return false;
         }
 #endif
-
         m_subimage = -1;
         m_canvas.resize(m_gif_file->SWidth * m_gif_file->SHeight * 4);
     }
@@ -436,20 +489,21 @@ GIFInput::report_last_error(void)
 inline bool
 GIFInput::close(void)
 {
+    bool ok = true;
     if (m_gif_file) {
 #if GIFLIB_MAJOR > 5 || (GIFLIB_MAJOR == 5 && GIFLIB_MINOR >= 1)
         if (DGifCloseFile(m_gif_file, NULL) == GIF_ERROR) {
 #else
         if (DGifCloseFile(m_gif_file) == GIF_ERROR) {
 #endif
-            errorf("Error trying to close the file.");
-            return false;
+            errorfmt("Error trying to close the file.");
+            ok = false;
         }
-        m_gif_file = NULL;
+        m_gif_file = nullptr;
     }
     m_canvas.clear();
-
-    return true;
+    ioproxy_clear();
+    return ok;
 }
 
 OIIO_PLUGIN_NAMESPACE_END

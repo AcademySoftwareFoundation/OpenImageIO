@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 #pragma once
@@ -123,9 +123,9 @@ private:
         m_depth      = depth;
         m_chanstride = chanstride != AutoStride ? chanstride : sizeof(T);
         m_xstride    = xstride != AutoStride ? xstride
-                                          : m_nchannels * m_chanstride;
-        m_ystride = ystride != AutoStride ? ystride : m_width * m_xstride;
-        m_zstride = zstride != AutoStride ? zstride : m_height * m_ystride;
+                                             : m_nchannels * m_chanstride;
+        m_ystride    = ystride != AutoStride ? ystride : m_width * m_xstride;
+        m_zstride    = zstride != AutoStride ? zstride : m_height * m_ystride;
     }
 
     inline T* getptr(int c, int x, int y, int z = 0) const

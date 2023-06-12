@@ -1,13 +1,18 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #include <cstdlib>
 #include <string>
 
 #include <OpenImageIO/platform.h>
 
-#ifndef _WIN32
+#ifdef _WIN32
+#    define WIN32_LEAN_AND_MEAN
+#    define VC_EXTRALEAN
+#    define NOMINMAX
+#    include <windows.h>
+#else
 #    include <dlfcn.h>
 #endif
 
@@ -23,7 +28,7 @@ using namespace Plugin;
 namespace {
 
 static mutex plugin_mutex;
-static std::string last_error;
+static thread_local std::string last_error;
 
 }  // namespace
 
@@ -48,7 +53,7 @@ Plugin::plugin_extension(void)
 Handle
 dlopen(const char* plugin_filename, int)
 {
-    std::wstring w = Strutil::utf8_to_utf16(plugin_filename);
+    std::wstring w = Strutil::utf8_to_utf16wstring(plugin_filename);
     return LoadLibraryW(w.c_str());
 }
 
@@ -65,7 +70,7 @@ dlclose(Handle plugin_handle)
 void*
 dlsym(Handle plugin_handle, const char* symbol_name)
 {
-    return GetProcAddress((HMODULE)plugin_handle, symbol_name);
+    return (void*)GetProcAddress((HMODULE)plugin_handle, symbol_name);
 }
 
 
@@ -130,11 +135,11 @@ Plugin::getsym(Handle plugin_handle, const char* symbol_name, bool report_error)
 
 
 std::string
-Plugin::geterror(void)
+Plugin::geterror(bool clear)
 {
-    lock_guard guard(plugin_mutex);
     std::string e = last_error;
-    last_error.clear();
+    if (clear)
+        last_error.clear();
     return e;
 }
 

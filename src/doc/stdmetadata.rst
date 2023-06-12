@@ -63,8 +63,12 @@ Description of the image
 
 
 
+.. _sec-metadata-displayhints:
+.. _sec-metadata-orientation:
+
 Display hints
 =============
+
 
 .. option:: "Orientation" : int
 
@@ -123,22 +127,30 @@ Display hints
 
 
 
+.. _sec-metadata-color:
+
 Color information
 =================
 
 .. option:: "oiio:ColorSpace" : string
 
-    The name of the color space of the color channels.  Values incude:
+    The name of the color space of the color channels.  Values include:
     
-    - `"Linear"` :  Color pixel values are known to be scene-linear and
-      using facility-default color primaries (presumed sRGB/Rec709 color
-      primaries if otherwise unknown.
+    - `"scene_linear"` :  Color pixel values are known to be scene-linear and
+      using facility-default color primaries as defined by the OpenColorIO
+      configuration. Note that `"linear"` is treated as a synonym. (Note: when
+      no color config is found, this are presumed to use sRGB/Rec709 color
+      primaries when built against OpenColorIO 2.1 or earlier, or when no OCIO
+      support is available, but is presumed to be ACEScg when built against
+      OCIO 2.2 or higher and using its built-in config.)
+    - `"lin_srgb"` :  Color pixel values are known to be linear and
+      using sRGB/Rec709 color primaries.
     - `"sRGB"` :  Using standard sRGB response and primaries.
     - `"Rec709"` :  Using standard Rec709 response and primaries.
-    - `"ACES"` :  ACES color space encoding.
+    - `"ACEScg"` :  ACEScg color space encoding.
     - `"AdobeRGB"` :  Adobe RGB color space.
     - `"KodakLog"` :  Kodak logarithmic color space.
-    - `"GammaCorrectedX.Y"` :  Color values have been gamma corrected
+    - `"GammaX.Y"` :  Color values have been gamma corrected
       (raised to the power :math:`1/\gamma`). The `X.Y` is the numeric value
       of the gamma exponent.
     - *arbitrary* :  The name of any color space known to OpenColorIO (if
@@ -146,9 +158,9 @@ Color information
 
 .. option:: "oiio:Gamma" : float
 
-    If the color space is "GammaCorrectedX.Y", this value is the gamma
-    exponent. (Optional/deprecated; if present, it should match the suffix
-    of the color space.)
+    If the color space is "GammaX.Y", this value is the gamma exponent.
+    (Optional/deprecated; if present, it should match the suffix of the color
+    space.)
 
 .. option:: "oiio:BorderColor" : float[nchannels]
 
@@ -157,9 +169,19 @@ Color information
     the default is black (0 in all channels).
 
 .. option:: "ICCProfile" : uint8[]
+            "ICCProfile:...various..." : ...various types...
 
-    The ICC color profile takes the form of an array of bytes (unsigned 8
-    bit chars). The length of the array is the length of the profile blob.
+    The ICC color profile takes the form of an array of bytes (unsigned 8 bit
+    chars) whose contents and format is as dictated by the ICC specification.
+    The length of the array is the length of the profile blob.
+
+    When reading images containing ICC profiles, there may be a number of
+    other attributes extracted from the ICC profile (such as
+    `ICCProfile:device_class`). These are for informational convenience only,
+    as they replicate information which is also in the ICCProfile byte array.
+    Be aware that *setting* these attributes will not result in modifying the
+    ICC profile byte array (`"ICCProfile"`), which is considered the sole
+    piece of durable ICC profile information.
 
 
 
@@ -227,16 +249,21 @@ Format readers and writers that respond positively to `supports("ioproxy")`
 have the ability to read or write using an *I/O proxy* object. Among other
 things, this lets an ImageOutput write the file to a memory buffer rather
 than saving to disk, and for an ImageInput to read the file from a memory
-buffer. (Currently, only PNG and OpenEXR have the ability to do this.) This
-behavior is controlled by a special attributes
+buffer. This behavior is controlled by a special attributes
 
 .. option:: "oiio:ioproxy" : pointer
 
     Pointer to a `Filesystem::IOProxy` that will handle the I/O.
 
 An explanation of how this feature is used may be found in Sections
-:ref:`sec`imageoutput-readfilefrommemory` and
-:ref:`sec`imageoutput-writefiletomemory`.
+:ref:`sec-imageinput-ioproxy` and :ref:`sec-imageoutput-ioproxy`.
+
+In addition to communicating IOProxy information via this attribute, it
+is also allowed (and probably preferred) to directly supply the IOProxy
+information via calls to `ImageInput::open()`, `create()`, and
+`set_ioproxy()`, `ImageOutput::create()` and `set_ioproxy()`, and
+`ImageBuf::ImageBuf()`, `reset()`, and `set_write_ioproxy()`.
+
 
 
 Photographs or scanned images
@@ -259,6 +286,29 @@ The following metadata items are specific to photos or captured images.
 .. option:: "FNumber" : float
 
     The f/stop of the camera when it captured the image.
+
+
+Thumbnails / postage stamps / preview images
+============================================
+
+Some image file formats allow for storing a `thumbnail` -- a lower-resolution
+image suitable for an icon or other small preview. These are retrievable
+separately via `ImageInput::get_thumbnail()`, `ImageBuf::thumbnail()`, or
+`ImageCache::get_thumbnail()`. In addition, if a thumbnail is available,
+the `ImageSpec` should also contain the following metadata:
+
+
+.. option:: "thumbnail_width" : int
+
+    The thumbnail width, in pixels.
+
+.. option:: "thumbnail_height" : int
+
+    The thumbnail height, in pixels.
+
+.. option:: "thumbnail_nchannels" : int
+
+    The number of color channels in the thumbnail image.
 
 
 
@@ -312,6 +362,13 @@ to be used as textures (especially for OpenImageIO's TextureSystem).
     projection of the 3D view onto a :math:`[-1...1] \times [-1...1]` 2D
     domain.
 
+.. option:: "worldtoNDC" : matrix44
+
+    For shadow maps or rendered images this item (of type
+    `TypeDesc::PT_MATRIX`) is the world-to-NDC matrix describing the full
+    projection of the 3D view onto a :math:`[0...1] \times [0...1]` 2D
+    domain.
+
 .. option:: "oiio:updirection" : string
 
     For environment maps, indicates which direction is "up" (valid values
@@ -351,6 +408,8 @@ to be used as textures (especially for OpenImageIO's TextureSystem).
 
 
 
+.. _sec-metadata-exif:
+
 Exif metadata
 =============
 
@@ -375,7 +434,7 @@ FNumber         `FNumber`
 ==============  ==================================================
 
 
-The other remaining Exif metadata tags all include the ``Exif:'' prefix
+The other remaining Exif metadata tags all include the ``Exif:`` prefix
 to keep it from clashing with other names that may be used for other
 purposes.
 
@@ -497,8 +556,8 @@ A sum of:
     0    no strobe return detection function
     4    strobe return light was not detected
     6    strobe return light was detected
-    8    compulsary flash firing
-    16   compulsary flash supression
+    8    compulsory flash firing
+    16   compulsory flash suppression
     24   auto-flash mode
     32   no flash function (0 if flash function present)
     64   red-eye reduction supported (0 if no red-eye reduction mode)
@@ -691,7 +750,7 @@ A sum of:
 
 .. option:: "Exif:ImageUniqueID" : string
 
-    A unique identifier for the image, as 16 ASCII hexidecimal digits
+    A unique identifier for the image, as 16 ASCII hexadecimal digits
     representing a 128-bit number.
 
 
@@ -1013,7 +1072,7 @@ Extension conventions
 =====================
 
 To avoid conflicts with other plugins, or with any additional standard
-metadata names that may be added in future verions of OpenImageIO, it is
+metadata names that may be added in future versions of OpenImageIO, it is
 strongly advised that writers of new plugins should prefix their metadata
 with the name of the format, much like the `"Exif:"` and `"IPTC:"` metadata.
 

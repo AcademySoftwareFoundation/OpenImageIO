@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
@@ -35,16 +35,19 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class DICOMInput final : public ImageInput {
 public:
     DICOMInput() {}
-    virtual ~DICOMInput() { close(); }
-    virtual const char* format_name(void) const override { return "dicom"; }
-    virtual int supports(string_view feature) const override { return false; }
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool open(const std::string& name, ImageSpec& newspec,
-                      const ImageSpec& config) override;
-    virtual bool close() override;
-    virtual bool seek_subimage(int subimage, int miplevel) override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
+    ~DICOMInput() override { close(); }
+    const char* format_name(void) const override { return "dicom"; }
+    int supports(string_view /*feature*/) const override
+    {
+        return false;  // we don't support any optional features
+    }
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool open(const std::string& name, ImageSpec& newspec,
+              const ImageSpec& config) override;
+    bool close() override;
+    bool seek_subimage(int subimage, int miplevel) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
 
 private:
     std::unique_ptr<DicomImage> m_img;
@@ -95,7 +98,7 @@ DICOMInput::open(const std::string& name, ImageSpec& newspec)
 
 bool
 DICOMInput::open(const std::string& name, ImageSpec& newspec,
-                 const ImageSpec& config)
+                 const ImageSpec& /*config*/)
 {
     m_filename = name;
     m_subimage = -1;
@@ -211,7 +214,7 @@ DICOMInput::seek_subimage(int subimage, int miplevel)
         { EPI_YBR_Full, "YBR_Full", 3 },                /// YCbCr full
         { EPI_YBR_Full_422, "YBR_Full_422", 3 },        /// YCbCr full 4:2:2
         { EPI_YBR_Partial_422, "YBR_Partial_422", 3 },  /// YCbCr partial 4:2:2
-        { EPI_Unknown, NULL }
+        { EPI_Unknown, NULL, 0 }
     };
     int nchannels         = 1;
     const char* photoname = NULL;
@@ -261,7 +264,7 @@ DICOMInput::read_metadata()
         DcmStack stack;
         while (dcm->nextObject(stack, OFTrue).good()) {
             DcmObject* object = stack.top();
-            ASSERT(object);
+            OIIO_ASSERT(object);
             DcmTag& tag         = const_cast<DcmTag&>(object->getTag());
             std::string tagname = tag.getTagName();
             if (ignore_tags.find(tagname) != ignore_tags.end())
@@ -320,16 +323,16 @@ DICOMInput::read_metadata()
 
 
 bool
-DICOMInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+DICOMInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                  void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     if (y < 0 || y >= m_spec.height)  // out of range scanline
         return false;
 
-    ASSERT(m_internal_data);
+    OIIO_DASSERT(m_internal_data);
     size_t size = m_spec.scanline_bytes();
     memcpy(data, m_internal_data + y * size, size);
 

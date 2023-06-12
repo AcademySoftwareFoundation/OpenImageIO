@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 /////////////////////////////////////////////////////////////////////////
@@ -15,6 +15,7 @@
 #include <memory>
 
 #include <OpenImageIO/atomic.h>
+#include <OpenImageIO/dassert.h>
 
 
 OIIO_NAMESPACE_BEGIN
@@ -115,7 +116,7 @@ public:
         T* p = m_ptr;
         if (p) {
             if (!p->_decref())
-                DASSERT(0 && "release() when you aren't the sole owner");
+                OIIO_DASSERT(0 && "release() when you aren't the sole owner");
             m_ptr = nullptr;
         }
         return p;
@@ -132,14 +133,14 @@ public:
     /// Dereference
     T& operator*() const
     {
-        DASSERT(m_ptr);
+        OIIO_DASSERT(m_ptr);
         return *m_ptr;
     }
 
     /// Dereference
     T* operator->() const
     {
-        DASSERT(m_ptr);
+        OIIO_DASSERT(m_ptr);
         return m_ptr;
     }
 
@@ -148,6 +149,15 @@ public:
 
     /// Cast to bool to detect whether it points to anything
     operator bool() const noexcept { return m_ptr != NULL; }
+
+    friend bool operator==(const intrusive_ptr& a, const T* b)
+    {
+        return a.get() == b;
+    }
+    friend bool operator==(const T* b, const intrusive_ptr& a)
+    {
+        return a.get() == b;
+    }
 
 private:
     T* m_ptr;  // the raw pointer

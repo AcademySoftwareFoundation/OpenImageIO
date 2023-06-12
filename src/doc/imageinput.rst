@@ -4,27 +4,47 @@ ImageInput: Reading Images
 ##############################
 
 
+.. _sec-imageinput-made-simple:
+
 Image Input Made Simple
 ===========================
 
 Here is the simplest sequence required to open an image file, find out its
 resolution, and read the pixels (converting them into 8-bit values in
-memory, even if that's not the way they're stored in the file)::
+memory, even if that's not the way they're stored in the file):
+
+.. tabs::
+
+    .. code-tab:: c++
 
         #include <OpenImageIO/imageio.h>
         using namespace OIIO;
         ...
 
-        auto in = ImageInput::open (filename);
-        if (! in)
+        auto inp = ImageInput::open(filename);
+        if (! inp)
             return;
-        const ImageSpec &spec = in->spec();
+        const ImageSpec &spec = inp->spec();
         int xres = spec.width;
         int yres = spec.height;
         int channels = spec.nchannels;
-        std::vector<unsigned char> pixels (xres*yres*channels);
-        in->read_image (TypeDesc::UINT8, &pixels[0]);
-        in->close ();
+        std::vector<unsigned char> pixels(xres * yres * channels);
+        inp->read_image(TypeDesc::UINT8, &pixels[0]);
+        inp->close();
+
+    .. code-tab:: py
+
+        import OpenImageIO as oiio
+        import numpy as np
+
+        inp = ImageInput.open(filename)
+        if inp :
+            spec = inp.spec()
+            xres = spec.width
+            yres = spec.height
+            channels = spec.nchannels
+            pixels = inp.read_image("uint8")
+            inp.close()
 
 Here is a breakdown of what work this code is doing:
 
@@ -37,44 +57,73 @@ Here is a breakdown of what work this code is doing:
   method returns a ``std::unique_ptr<ImageInput>`` that will be
   automatically freed when it exits scope.
 
-  .. code-block::
+  .. tabs::
 
-        auto in = ImageInput::open (filename);
+     .. code-tab:: c++
 
-* The specification, accessible as ``in->spec()``, contains vital
+        auto inp = ImageInput::open (filename);
+
+     .. code-tab:: py
+
+        inp = ImageInput.open (filename)
+
+* The specification, accessible as ``inp->spec()``, contains vital
   information such as the dimensions of the image, number of color channels,
   and data type of the pixel values.  This is enough to allow us to allocate
-  enough space for the image.
+  enough space for the image in C++ (for Python, this is unnecessary, since
+  `read_image()` will return a NumPy array to us).
 
-  .. code-block::
+  .. tabs::
 
-        const ImageSpec &spec = in->spec();
+     .. code-tab:: c++
+
+        const ImageSpec &spec = inp->spec();
         int xres = spec.width;
         int yres = spec.height;
         int channels = spec.nchannels;
         std::vector<unsigned char> pixels (xres*yres*channels);
 
+     .. code-tab:: py
+
+        spec = inp.spec()
+        xres = spec.width
+        yres = spec.height
+        channels = spec.nchannels
+
   Note that in this example, we don't care what data format is used for the
-  pixel data in the file --- we allocate enough space for unsigned 8-bit
-  integer pixel values, and will rely on OpenImageIO's ability to convert to
-  our requested format from the native data format of the file.
+  pixel data in the file --- we will request unsigned 8 bit integers and rely
+  on OpenImageIO's ability to convert to our requested format from the native
+  data format of the file.
 
 * Read the entire image, hiding all details of the encoding of image data in
   the file, whether the file is scanline- or tile-based, or what is the
   native format of the data in the file (in this case, we request that it be
   automatically converted to unsigned 8-bit integers).
 
-  .. code-block::
+  .. tabs::
 
-        in->read_image (TypeDesc::UINT8, &pixels[0]);
+     .. code-tab:: c++
+
+        inp->read_image(TypeDesc::UINT8, &pixels[0]);
+
+     .. code-tab:: py
+
+        pixels = inp->read_image("uint8")
+        # Note: pixels now contains a NumPy array of the image data.
 
 * Close the file.
 
-  .. code-block::
+  .. tabs::
 
-        in->close ();
+     .. code-tab:: c++
 
-* When ``in`` exits its scope, the ImageInput will automatically be destroyed
+        inp->close();
+
+     .. code-tab:: py
+
+        inp.close()
+
+* When ``inp`` exits its scope, the ImageInput will automatically be destroyed
   and any resources used by the plugin will be released.
 
 
@@ -89,7 +138,7 @@ but that are more complex than the simple example above.
 Reading individual scanlines and tiles
 --------------------------------------
 
-The simple example of Section `Image Input Made Simple`_ read an entire
+The simple example of Section :ref:`sec-imageinput-made-simple` read an entire
 image with one call.  But sometimes you want to read a large image a little
 at a time and do not wish to retain the entire image in memory as you
 process it.  OpenImageIO allows you to read images one scanline at a time or
@@ -104,22 +153,36 @@ values for the tile dimensions.
 Reading scanlines
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Individual scanlines may be read using the ``read_scanline()`` API call::
+Individual scanlines may be read using the ``read_scanline()`` API call:
 
-        ...
-        auto in = ImageInput::open (filename);
-        const ImageSpec &spec = in->spec();
+.. tabs::
+
+    .. code-tab:: c++
+
+        auto inp = ImageInput::open (filename);
+        const ImageSpec &spec = inp->spec();
         if (spec.tile_width == 0) {
-            std::vector<unsigned char> scanline (spec.width*spec.channels);
+            std::vector<unsigned char> scanline (spec.width * spec.nchannels);
             for (int y = 0;  y < yres;  ++y) {
-                in->read_scanline (y, 0, TypeDesc::UINT8, &scanline[0]);
-                ... process data in scanline[0..width*channels-1] ...
+                inp->read_scanline (y, 0, TypeDesc::UINT8, &scanline[0]);
+                // ... process data in scanline[0..width*channels-1] ...
             }
         } else {
-            ... handle tiles, or reject the file ...
+             //... handle tiles, or reject the file ...
         }
-        in->close ();
-        ...
+        inp->close ();
+
+    .. code-tab:: py
+
+        inp = ImageInput.open (filename)
+        spec = inp.spec()
+        if spec.tile_width == 0 :
+            for y in range(yres) :
+                scanline = inp.read_scanline (y, 0, "uint8")
+                # ... process data in scanline[0..width*channels-1] ...
+        else :
+            # ... handle tiles, or reject the file ...
+        inp.close ()
 
 The first two arguments to ``read_scanline()`` specify which scanline
 is being read by its vertical (``y``) scanline number (beginning with 0)
@@ -128,7 +191,7 @@ be 0 for 2D non-volume images).  This is followed by a `TypeDesc`
 describing the data type of the pixel buffer you are supplying, and a
 pointer to the pixel buffer itself.  Additional optional arguments
 describe the data stride, which can be ignored for contiguous data (use
-of strides is explained in Section `Data Strides`_).
+of strides is explained in Section :ref:`sec-imageinput-data-strides`).
 
 Nearly all ImageInput implementations will be most efficient reading
 scanlines in strict order (starting with scanline 0, then 1, up to
@@ -145,7 +208,7 @@ but some image format readers may be able to read a contiguous block of
 scanlines more efficiently than reading each one individually.
 
 The full descriptions of the ``read_scanline()`` and ``read_scanlines()``
-functions may be found in Section `ImageInput Class Reference`_.
+functions may be found in Section :ref:`sec-imageinput-class-reference`.
 
 Reading tiles
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -156,27 +219,41 @@ Once you ``open()`` an image file, you can find out if it is a tiled image
 scanline image and you should read pixels using ``read_scanline()``, not
 ``read_tile()``.
 
-.. code-block::
+.. tabs::
 
-        ...
-        auto in = ImageInput::open (filename);
-        const ImageSpec &spec = in->spec();
+    .. code-tab:: c++
+
+        auto inp = ImageInput::open(filename);
+        const ImageSpec &spec = inp->spec();
         if (spec.tile_width == 0) {
-            ... read by scanline ...
+            // ... read scanline by scanline ...
         } else {
             // Tiles
             int tilesize = spec.tile_width * spec.tile_height;
-            std::vector<unsigned char> tile (tilesize * spec.channels);
+            std::vector<unsigned char> tile(tilesize * spec.nchannels);
             for (int y = 0;  y < yres;  y += spec.tile_height) {
                 for (int x = 0;  x < xres;  x += spec.tile_width) {
-                    in->read_tile (x, y, 0, TypeDesc::UINT8, &tile[0]);
-                    ... process the pixels in tile[] ..
+                    inp->read_tile(x, y, 0, TypeDesc::UINT8, &tile[0]);
+                    // ... process the pixels in tile[] ..
                 }
             }
         }
-        in->close ();
-        ...
+        inp->close ();
 
+    .. code-tab:: py
+
+        inp = ImageInput.open(filename)
+        spec = inp.spec()
+        if spec.tile_width == 0 :
+            # ... read scanline by scanline ...
+        else :
+            # Tiles
+            tilesize = spec.tile_width * spec.tile_height;
+            for y in range(0, yres, spec.tile_height) :
+                for x in range(0, xres, spec.tile_width) :
+                    tile = inp.read_tile (x, y, 0, "uint8")
+                    # ... process the pixels in tile[][] ..
+        inp.close ();
 
 The first three arguments to ``read_tile()`` specify which tile is
 being read by the pixel coordinates of any pixel contained in the
@@ -188,14 +265,14 @@ in order of increasing slice, increasing
 scanline within each slice, and increasing column within each scanline.
 Additional optional arguments describe the data stride, which can be
 ignored for contiguous data (use of strides is explained in
-Section `Data Strides`_).
+Section :ref:`sec-imageinput-data-strides`).
 
 All ImageInput implementations are required to support reading tiles in
 arbitrary order (i.e., not in strict order of increasing ``y`` rows, and
 within each row, increasing ``x`` column, without missing any tiles).
 
 The full description of the ``read_tile()`` function may be found
-in Section `ImageInput Class Reference`_.
+in Section :ref:`sec-imageinput-class-reference`.
 
 
 Converting formats
@@ -218,15 +295,22 @@ into your internal buffer represented as `float` values.  This will work
 regardless of whether the TIFF file itself is using 8-bit, 16-bit, or float
 values.
 
-.. code-block::
+.. tabs::
 
-        std::unique_ptr<ImageInput> in = ImageInput::open ("myfile.tif");
-        const ImageSpec &spec = in->spec();
-        ...
-        int numpixels = spec.width * spec.height;
+    .. code-tab:: c++
+
+        std::unique_ptr<ImageInput> inp = ImageInput::open ("myfile.tif");
+        const ImageSpec &spec = inp->spec();
+
+        int numpixels = spec.image_pixels()
         float pixels = new float [numpixels * channels];
-        ...
-        in->read_image (TypeDesc::FLOAT, pixels);
+
+        inp->read_image (TypeDesc::FLOAT, pixels);
+
+    .. code-tab:: py
+
+        inp = ImageInput.open("myfile.tif")
+        pixels = inp.read_image("float")
 
 
 Note that ``read_scanline()`` and ``read_tile()`` have a parameter that
@@ -239,11 +323,12 @@ eliminating any translation among types and seeing the actual numerical
 values in the file.
 
 
+.. _sec-imageinput-data-strides:
 
 Data Strides
 --------------------------------
 
-In the preceeding examples, we have assumed that the buffer passed to
+In the preceding examples, we have assumed that the buffer passed to
 the ``read`` functions (i.e., the place where you want your pixels
 to be stored) is *contiguous*, that is:
 
@@ -295,8 +380,49 @@ flexible functionality.  A few representative examples follow:
                    pixelsize,
                    scanlinesize);
 
-Please consult Section `ImageInput Class Reference`_ for detailed
+Please consult Section :ref:`sec-imageinput-class-reference` for detailed
 descriptions of the stride parameters to each ``read`` function.
+
+
+Reading channels to separate buffers
+------------------------------------
+
+While specifying data strides allows writing entire pixels to buffers with
+arbitrary layouts, it is not possible to separate those pixels into multiple
+buffers (i.e. to write image data to a separate or planar memory layout:
+RRRRGGGGBBBB instead of the interleaved RGBRGBRGBRGB).
+
+A workaround for this is to call ``read_scanlines``, ``read_tiles`` or
+``read_image`` repeatedly with arguments ``chbegin`` and ``chend`` of
+``0 <= chbegin < spec.nchannels`` and ``chend == chbegin + 1``:
+
+.. tabs::
+
+    .. code-tab:: c++
+
+        // one buffer for all three channels
+        unsigned char pixels[spec.width * spec.height * spec.nchannels];
+    
+        for (int channel = 0; channel < spec.nchannels; ++channel) {
+            file->read_image(
+                // reading one channel at a time
+                channel, channel + 1,
+                TypeDesc::UINT8,
+                // writing the data to offsets spaced `spec.width * spec.height`
+                // apart
+                &pixels[spec.width * spec.height * channel]);
+        }
+
+    .. code-tab:: py
+
+        pixels = numpy.zeros((spec.nchannels, spec.height, spec.width), "uint8")
+        for channel in range(spec.nchannels) :
+            pixels[channel] = file.read_image(channel, channel + 1, "uint8")
+
+For many formats, this is nearly as fast as reading the image with
+interleaved pixel data if the format stores the pixels in an interleaved
+layout and even slightly faster if the pixels are stored in separate planes
+in the file.
 
 
 Reading metadata
@@ -317,22 +443,33 @@ Channel names
 
 In addition to specifying the number of color channels, the ImageSpec also
 stores the names of those channels in its ``channelnames`` field, which is a
-``std::vector<std::string>``.  Its length should always be equal to the
-number of channels (it's the responsibility of the ImageInput to ensure
-this).
+``std::vector<std::string>`` in C++, or a tuple of strings in Python.  Its
+length should always be equal to the number of channels (it's the
+responsibility of the ImageInput to ensure this).
 
 Only a few file formats (and thus ImageInput implementations) have a way of
 specifying custom channel names, so most of the time you will see that the
 channel names follow the default convention of being named ``"R"``, ``"G"``,
 ``"B"``, and ``"A"``, for red, green, blue, and alpha, respectively.
 
-Here is example code that prints the names of the channels in an image::
+Here is example code that prints the names of the channels in an image:
 
-        ImageInput *in = ImageInput::open (filename);
-        const ImageSpec &spec = in->spec();
+.. tabs::
+
+    .. code-tab:: c++
+
+        auto inp = ImageInput::open (filename);
+        const ImageSpec &spec = inp->spec();
         for (int i = 0;  i < spec.nchannels;  ++i)
             std::cout << "Channel " << i << " is "
                       << spec.channelnames[i] << "\n";
+
+    .. code-tab:: py
+
+        inp = ImageInput.open (filename)
+        spec = inp.spec()
+        for i in range(spec.nchannels) :
+            print("Channel", i, "is", spec.channelnames[i])
 
 
 Specially-designated channels
@@ -357,23 +494,33 @@ essentially a vector of ParamValue instances.  Each ParamValue stores one
 meta-datum consisting of a name, type (specified by a `TypeDesc`), number
 of values, and data pointer.
 
-If you know the name of a specific piece of metadata you want to use, you
-can find it using the ``ImageSpec::find_attribute()`` method, which
-returns a pointer to the matching ParamValue, or ``nullptr`` if no match was
-found.  An optional `TypeDesc` argument can narrow the search to only
-parameters that match the specified type as well as the name.  Below is an
-example that looks for orientation information, expecting it to consist of a
-single integer::
+If you know the name and type of a specific piece of metadata you want to use,
+you can retrieve it using the ``ImageSpec::getattribute()`` method. In C++,
+this copies the value into your variable and returns ``true`` if the attribute
+was found, or ``false`` if it was not.  In Python, ``getattribute()`` simply
+returns the value of the attribute itself, or ``None`` if no match was found.
 
-        ImageInput *in = ImageInput::open (filename);
-        const ImageSpec &spec = in->spec();
+.. tabs::
+
+    .. code-tab:: c++
+
+        auto in; = ImageInput::open(filename);
+        const ImageSpec &spec = inp->spec();
         ...
-        ParamValue *p = spec.find_attribute ("Orientation", TypeInt);
-        if (p) {
-            int orientation = * (int *) p->data();
-        } else {
+        int orientation = 0;
+        bool ok = spec.getattribute("Orientation", TypeInt, &orientation);
+        if (!ok) {
             std::cout << "No integer orientation in the file\n";
         }
+
+    .. code-tab:: py
+
+        inp = ImageInput.open (filename)
+        spec = in.spec()
+
+        orientation = spec.getattribute("Orientation")
+        if orientation is None :
+            print("No integer orientation in the file")
 
 
 By convention, ImageInput plugins will save all integer metadata as 32-bit
@@ -386,13 +533,21 @@ metadata.  Floating-point metadata and string metadata may also exist, of
 course.
 
 For certain common types, there is an even simpler method for retrieving
-the metadata::
+the metadata:
 
+.. tabs::
 
-    int i = spec.get_int_attribute ("Orientation", 0);
-    float f = spec.get_float_attribute ("PixelAspectRatio", 1.0f);
-    std::string s = spec.get_string_attribute ("ImageDescription", "");
+    .. code-tab:: c++
 
+        int i = spec.get_int_attribute ("Orientation", 0);
+        float f = spec.get_float_attribute ("PixelAspectRatio", 1.0f);
+        std::string s = spec.get_string_attribute ("ImageDescription", "");
+
+    .. code-tab:: py
+
+        i = spec.get_int_attribute ("Orientation", 0)
+        f = spec.get_float_attribute ("PixelAspectRatio", 1.0)
+        s = spec.get_string_attribute ("ImageDescription", "")
 
 This method simply returns the value.  The second argument is the default
 value to use if the attribute named is not found.  These versions will do
@@ -401,34 +556,60 @@ and the attribute is really an int, it will return the proper float for it;
 or if the attribute is a UINT16 and you call ``get_int_attribute()``, it
 will succeed, promoting to an int.
 
-It is also possible to step through all the metadata, item by item.
-This can be accomplished using the technique of the following example::
+And finally, another convenience method lets you treat the spec itself
+as an associative array or dictionary:
 
-        for (size_t i = 0;  i < spec.extra_attribs.size();  ++i) {
-            const ParamValue &p (spec.extra_attribs[i]);
-            printf ("    %s: ", p.name.c_str());
-            if (p.type() == TypeString)
-                printf ("\"%s\"", *(const char **)p.data());
-            else if (p.type() == TypeFloat)
-                printf ("%g", *(const float *)p.data());
-            else if (p.type() == TypeInt)
-                printf ("%d", *(const int *)p.data());
-            else if (p.type() == TypeDesc::UINT)
-                printf ("%u", *(const unsigned int *)p.data());
-            else if (p.type() == TypeMatrix) {
-                const float *f = (const float *)p.data();
-                printf ("%f %f %f %f %f %f %f %f "
-                        "%f %f %f %f %f %f %f %f",
-                        f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7],
-                        f[8], f[9], f[10], f[11], f[12], f[13], f[14], f[15]);
-            }
-            else
-                printf (" <unknown data type> ");
-            printf ("\n");
+.. tabs::
+
+    .. code-tab:: c++
+
+        // spec["key"].get<TYPE> tries to retrieve that type, or a default
+        // value (generally 0 or empty string) if not found.
+        int i = spec["Orientation"].get<int>();
+        float f = spec["PixelAspectRatio"].get<float>();
+        std::string s = spec["ImageDescription"].get<std::string>();
+
+        // An optional argument to get() lets you specify a different default
+        // value to return if the attribute is not found.
+        float f = spec["PixelAspectRatio"].get<float>(1.0f);
+
+    .. code-tab:: py
+
+        # spec["key"] returns the attribute if present, or raises KeyError
+        # if not found.
+        i = spec["Orientation"]
+        f = spec["PixelAspectRatio"]
+        s = spec["ImageDescription"]
+
+        # spec.get("key", default=None) returns the attribute if present,
+        # or the default value if not found.
+        val = spec.get("Orientation", 1)
+
+Note that when retrieving with this "dictionary" syntax, the C++ and
+Python behaviors are different: C++ requires a `get<TYPE>()` call to
+retrieve the full value, and a missing key will return a default value.
+Python will return the value directly (no `get()` needed), and a missing
+key will raise a `KeyError` exception.
+
+It is also possible to step through all the metadata, item by item.
+This can be accomplished using the technique of the following example:
+
+.. tabs::
+
+    .. code-tab:: c++
+
+        for (const auto &p : spec.extra_attribs) {
+            printf ("    %s: %s\n", p.name().c_str(), p.get_string().c_str());
         }
+
+    .. code-tab:: py
+
+        for p in spec.attribs :
+            printf ("    ", p.name, ":", p.value)
 
 Each individual ImageInput implementation should document the names,
 types, and meanings of all metadata attributes that they understand.
+
 
 Color space hints
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -443,7 +624,7 @@ values.
 
 The ``ImageSpec::extra_attribs`` field may store metadata that reveals the
 color space the image file in the ``"oiio:ColorSpace"`` attribute (see
-Section `Color information metadata`_ for explanations of particular values).
+Section :ref:`sec-metadata-color` for explanations of particular values).
 
 The ImageInput sets the ``"oiio:ColorSpace"`` metadata in a purely advisory
 capacity --- the ``read`` will not convert pixel values among color spaces.
@@ -466,20 +647,30 @@ in one file, and/or miltiple resolutions for each image to form a
 MIPmap.  When you ``open()`` an ImageInput, it will by default point
 to the first (i.e., number 0) subimage in the file, and the highest
 resolution (level 0) MIP-map level.  You can switch to viewing another
-subimage or MIP-map level using the ``seek_subimage()`` function::
+subimage or MIP-map level using the ``seek_subimage()`` function:
 
+.. tabs::
 
-        ImageInput *in = ImageInput::open (filename);
-        const ImageSpec &spec = in->spec();
-        ...
+    .. code-tab:: c++
+
+        auto inp = ImageInput::open (filename);
         int subimage = 1;
         int miplevel = 0;
-        if (in->seek_subimage (subimage, miplevel, spec)) {
-            ...
+        if (inp->seek_subimage (subimage, miplevel)) {
+            ... process the subimage/miplevel ...
         } else {
             ... no such subimage/miplevel ...
         }
 
+    .. code-tab:: py
+
+        inp = ImageInput.open(filename)
+        subimage = 1
+        miplevel = 0
+        if inp.seek_subimage (subimage, miplevel) :
+            # ... process the subimage/miplevel ...
+        else :
+            # ... no such subimage/miplevel ...
 
 The ``seek_subimage()`` function takes three arguments: the index of the
 subimage to switch to (starting with 0), the MIPmap level (starting with 0
@@ -495,21 +686,22 @@ subimage and MIP levels, respectively.
 
 Below is pseudocode for reading all the levels of a MIP-map (a
 multi-resolution image used for texture mapping) that shows how to read
-multi-image files::
+multi-image files:
 
+.. tabs::
 
-        auto in = ImageInput::open (filename);
-        const ImageSpec &spec = in->spec();
+    .. code-tab:: c++
 
+        auto inp = ImageInput::open (filename);
         int num_miplevels = 0;
-        while (in->seek_subimage (0, num_miplevels, spec)) {
-            // Note: spec has the format of the current subimage/miplevel
+        while (inp->seek_subimage (0, num_miplevels, spec)) {
+            const ImageSpec &spec = inp->spec();
             int npixels = spec.width * spec.height;
             int nchannels = spec.nchannels;
             unsigned char *pixels = new unsigned char [npixels * nchannels];
-            in->read_image (TypeDesc::UINT8, pixels);
+            inp->read_image(TypeDesc::UINT8, pixels);
 
-            ... do whatever you want with this level, in pixels ...
+            // ... do whatever you want with this level, in pixels ...
 
             delete [] pixels;
             ++num_miplevels;
@@ -517,8 +709,26 @@ multi-image files::
         // Note: we break out of the while loop when seek_subimage fails
         // to find a next MIP level.
 
-        in->close ();
+        inp->close();
 
+    .. code-tab:: py
+
+        inp = ImageInput::open (filename)
+        num_miplevels = 0
+        while inp.seek_subimage(0, num_miplevels, spec) :
+            spec = inp.spec()
+            npixels = spec.width * spec.height
+            nchannels = spec.nchannels
+            pixels = inp.read_image ("uint8")
+
+            # ... do whatever you want with this level, in pixels ...
+
+            num_miplevels += 1
+        }
+        # Note: we break out of the while loop when seek_subimage fails
+        # to find a next MIP level.
+
+        inp.close()
 
 In this example, we have used ``read_image()``, but of course
 ``read_scanline()`` and ``read_tile()`` work as you would expect, on the
@@ -545,13 +755,13 @@ OpenEXR file, consisting of R/G/B/A channels in ``half`` and a Z channel in
 `float`::
 
 
-        ImageInput *in = ImageInput::open (filename);
-        const ImageSpec &spec = in->spec();
+        auto inp = ImageInput::open (filename);
+        const ImageSpec &spec = inp->spec();
 
         // Allocate enough space
         unsigned char *pixels = new unsigned char [spec.image_bytes(true)];
 
-        in->read_image (TypeDesc::UNKNOWN, /* use native channel formats */
+        inp->read_image(TypeDesc::UNKNOWN, /* use native channel formats */
                         pixels);           /* data buffer */
 
         if (spec.channelformats.size() > 0) {
@@ -562,6 +772,8 @@ OpenEXR file, consisting of R/G/B/A channels in ``half`` and a Z channel in
         }
 
 
+
+.. _sec-imageinput-deepdata:
 
 Reading "deep" data
 --------------------------------
@@ -575,64 +787,192 @@ Deep files cannot be read with the usual ``read_scanline()``,
 ``read_scanlines()``, ``read_tile()``, ``read_tiles()``, ``read_image()``
 functions, due to the nature of their variable number of samples per pixel.
 Instead, ImageInput has three special member functions used only for reading
-deep data::
+deep data:
 
-    bool read_native_deep_scanlines (int subimage, int miplevel,
-                                     int ybegin, int yend, int z,
-                                     int chbegin, int chend,
+.. tabs::
+
+    .. code-tab:: c++
+
+        bool read_native_deep_scanlines (int subimage, int miplevel,
+                                         int ybegin, int yend, int z,
+                                         int chbegin, int chend,
+                                         DeepData &deepdata);
+    
+        bool read_native_deep_tiles (int subimage, int miplevel,
+                                     int xbegin, int xend, int ybegin int yend,
+                                     int zbegin, int zend,
+                                     int chbegin, int chend, DeepData &deepdata);
+    
+        bool read_native_deep_image (int subimage, int miplevel,
                                      DeepData &deepdata);
 
-    bool read_native_deep_tiles (int subimage, int miplevel,
-                                 int xbegin, int xend, int ybegin int yend,
-                                 int zbegin, int zend,
-                                 int chbegin, int chend, DeepData &deepdata);
+    .. code-tab:: py
 
-    bool read_native_deep_image (int subimage, int miplevel,
-                                 DeepData &deepdata);
+        ImageInput.read_native_deep_scanlines (subimage, miplevel,
+                                         ybegin, yend, z, chbegin, chend)
+    
+        ImageInput.read_native_deep_tiles (subimage, miplevel, xbegin, xend,
+                                     ybegin yend, zbegin, zend, chbegin, chend)
+    
+        ImageInput.read_native_deep_image (subimage, miplevel)
 
 
 It is only possible to read "native" data types from deep files; that is,
 there is no automatic translation into arbitrary data types as there is for
 ordinary images.  All three of these functions store the resulting deep data
 in a special DeepData structure, described in detail in
-Section `Reading "deep" data`_.
+Section :ref:`sec-imageinput-deepdata`.
 
 Here is an example of using these methods to read a deep image from a file
-and print all its values::
+and print all its values:
 
-    auto in = ImageInput::open (filename);
-    if (! in)
-        return;
-    const ImageSpec &spec = in->spec();
-    if (spec.deep) {
-        DeepData deepdata;
-        in->read_native_deep_image (0, 0, deepdata);
-        int p = 0;  // absolute pixel number
-        for (int y = 0; y < spec.height;  ++y) {
-            for (int x = 0;  x < spec.width;  ++x, ++p) {
-                std::cout << "Pixel " << x << "," << y << ":\n";
-                if (deepdata.samples(p) == 0)
-                    std::cout << "  no samples\n";
-                else
-                    for (int c = 0;  c < spec.nchannels;  ++c) {
-                        TypeDesc type = deepdata.channeltype(c);
-                        std::cout << "  " << spec.channelnames[c] << ": ";
-                        void *ptr = deepdata.pointers[p*spec.nchannels+c]
-                        for (int s = 0; s < deepdata.samples(p); ++s) {
-                            if (type.basetype == TypeDesc::FLOAT ||
-                                type.basetype == TypeDesc::HALF)
-                                std::cout << deepdata.deep_value(p, c, s) << ' ';
-                            else if (type.basetype == TypeDesc::UINT32)
-                                std::cout << deepdata.deep_value_uint(p, c, s) << ' ';
+.. tabs::
+
+    .. code-tab:: c++
+
+        auto inp = ImageInput::open (filename);
+        if (! inp)
+            return;
+        const ImageSpec &spec = inp.spec();
+        if (spec.deep) {
+            DeepData deepdata;
+            inp.read_native_deep_image (0, 0, deepdata);
+            int p = 0;  // absolute pixel number
+            for (int y = 0; y < spec.height;  ++y) {
+                for (int x = 0;  x < spec.width;  ++x, ++p) {
+                    std::cout << "Pixel " << x << "," << y << ":\n";
+                    if (deepdata.samples(p) == 0)
+                        std::cout << "  no samples\n";
+                    else
+                        for (int c = 0;  c < spec.nchannels;  ++c) {
+                            TypeDesc type = deepdata.channeltype(c);
+                            std::cout << "  " << spec.channelnames[c] << ": ";
+                            void *ptr = deepdata.pointers[p*spec.nchannels+c]
+                            for (int s = 0; s < deepdata.samples(p); ++s) {
+                                if (type.basetype == TypeDesc::FLOAT ||
+                                    type.basetype == TypeDesc::HALF)
+                                    std::cout << deepdata.deep_value(p, c, s) << ' ';
+                                else if (type.basetype == TypeDesc::UINT32)
+                                    std::cout << deepdata.deep_value_uint(p, c, s) << ' ';
+                            }
+                            std::cout << "\n";
                         }
-                        std::cout << "\n";
-                    }
+                }
             }
         }
-    }
-    in->close ();
+        inp.close ();
+
+    .. code-tab:: py
+
+        inp = ImageInput::open (filename)
+        if inp is None :
+            return
+        spec = inp.spec()
+        if spec.deep :
+            deepdata = inp.read_native_deep_image (0, 0)
+            p = 0  # absolute pixel number
+            for y in range(spec.height) :
+                for x in range(spec.width) :
+                    print ("Pixel", x, ",", y, ":")
+                    if deepdata.samples(p) == 0 :
+                        print("  no samples)
+                    else :
+                        for c in range(spec.nchannels) :
+                            type = deepdata.channeltype(c)
+                            print ("  ", spec.channelnames[c], ":")
+                            for s in range(deepdata.samples(p) :
+                                print (deepdata.deep_value(p, c, s), end="")
+                            print("")
+        inp.close()
 
 
+.. _sec-input-with-config:
+
+Opening for input with configuration settings/hints
+---------------------------------------------------
+
+Sometimes you will want to give the image file reader hints or requests for
+how to open the file or present its data, hints which must be made in time for
+the initial opening of the file. For example, in specific circumstances, you
+might want to request that an image with unassociated alpha *not* be
+automatically converted to associated alpha by multiplying the color channel
+values by the alpha (as would be customary by OIIO convention).
+
+This is accomplished by using the ``ImageInput::open()`` or
+``ImageInput::create()`` method varieties that take an additional ``config``
+parameter. This is an ``ImageSpec`` object whose metadata contains the
+configuration hints.
+
+Configuration hints are optional and advisory only -- meaning that not all
+image file readers will respect them (and indeed, many of them are only
+sensible for certain file formats).
+
+Some common input configuration hints that tend to be respected across many
+readers (but not all, check Chapter :ref:`chap-bundledplugins` to see what
+hints are supported by each reader) are:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
+   * - ``oiio:RawColor``
+     - int
+     - If nonzero, reading images with non-RGB color models (such as YCbCr)
+       will return unaltered pixel values (versus the default OIIO behavior
+       of automatically converting to RGB).
+   * - ``oiio:UnassociatedAlpha``
+     - int
+     - If nonzero, and the file contains unassociated alpha, this will
+       cause the reader to leave alpha unassociated (versus the default of
+       premultiplying color channels by alpha if the alpha channel is
+       unassociated).
+
+Examples:
+
+    Below is an example where we wish to read in an RGBA image in a format
+    that tends to store it as unassociated alpha, but we DON'T want it to
+    automatically be converted to associated alpha.
+
+    .. tabs::
+    
+       .. code-tab:: c++
+    
+          // Set up an ImageSpec that holds the configuration hints.
+          ImageSpec config;
+          config["oiio:UnassociatedAlpha"] = 1;
+    
+          // Open the file, passing in the config.
+          auto inp = ImageInput::open (filename, config);
+          const ImageSpec &spec = inp->spec();
+          std::vector<unsigned char> pixels (spec.image_pixels() * spec.nchannels);
+          inp->read_image (TypeDesc::UINT8, pixels.data());
+          if (spec.get_int_attribute("oiio:UnassociatedAlpha"))
+              printf("pixels holds unassociated alpha\n");
+          else
+              printf("pixels holds associated alpha\n");
+
+       .. code-tab:: py
+    
+          # Set up an ImageSpec that holds the configuration hints.
+          config = ImageSpec()
+          config["oiio:UnassociatedAlpha"] = 1
+    
+          # Open the file, passing in the config.
+          inp = ImageInput.open (filename, config)
+          pixels = inp.read_image ("uint8")
+          if (spec["oiio:UnassociatedAlpha"] == 1)
+              print("pixels holds unassociated alpha")
+          else
+              print("pixels holds associated alpha")
+
+.. _sec-imageinput-ioproxy:
 
 Custom I/O proxies (and reading the file from a memory buffer)
 --------------------------------------------------------------
@@ -646,10 +986,8 @@ Only some input format readers support this feature. To find out if a
 particular file format supports this feature, you can create an ImageInput
 of the right type, and check if it supports the feature name ``"ioproxy"``::
 
-    ImageInput *in = ImageInput::create (filename);
+    auto in = ImageInput::create(filename);
     if (! in  ||  ! in->supports ("ioproxy")) {
-        ImageInput::destroy (in);
-        in = nullptr;
         return;
     }
 
@@ -666,16 +1004,11 @@ buffer::
 
     const void *buf = ...;   // pointer to memory block
     size_t size = ...;       // length of memory block
-
-    ImageSpec config; // ImageSpec describing input configuration options
     Filesystem::IOMemReader memreader (buf, size);  // I/O proxy object
-    void *ptr = &memreader;
-    config.attribute ("oiio:ioproxy", TypeDesc::PTR, &ptr);
 
-    ImageSpec spec;
-    ImageInput *in = ImageInput::open ("in.exr", spec, &config);
+    auto in = ImageInput::open ("in.exr", nullptr, &memreader);
     in->read_image (...);
-    ImageInput::destroy (in);
+    in->close();
 
     // That will have read the "file" from the memory buffer
 
@@ -684,13 +1017,24 @@ buffer::
 Custom search paths for plugins
 --------------------------------
 
-Please see Section `Global Attributes`_ for discussion about setting the plugin
-search path via the ``attribute()`` function. For example::
+Please see Section :ref:`sec-globalattribs` for discussion about setting the
+plugin search path via the ``attribute()`` function. For example:
 
-        std::string mysearch = "/usr/myapp/lib:${HOME}/plugins";
+.. tabs::
+    
+   .. code-tab:: c++
+    
+        std::string mysearch = "/usr/myapp/lib:/home/jane/plugins";
         OIIO::attribute ("plugin_searchpath", mysearch);
-        ImageInput *in = ImageInput::open (filename);
-        ...
+        auto inp = ImageInput::open (filename);
+        // ...
+
+   .. code-tab:: py
+    
+        mysearch = "/usr/myapp/lib:/home/jane/plugins"
+        OpenImageIO.attribute ("plugin_searchpath", mysearch)
+        inp = ImageInput.open(filename)
+        # ...
 
 
 Error checking
@@ -713,42 +1057,68 @@ the latest error message resulting from a call to static ``open()`` or
 ``create()``.
 
 Here is another version of the simple image reading code from
-Section `Image Input Made Simple`_, but this time it is fully
-elaborated with error checking and reporting::
+Section :ref:`sec-imageinput-made-simple`, but this time it is fully
+elaborated with error checking and reporting:
 
+.. tabs::
+    
+   .. code-tab:: c++
+    
         #include <OpenImageIO/imageio.h>
         using namespace OIIO;
         ...
 
         const char *filename = "foo.jpg";
-        int xres, yres, channels;
-        std::vector<unsigned char> pixels;
-
-        auto in = ImageInput::open (filename);
-        if (! in) {
+        auto inp = ImageInput::open (filename);
+        if (! inp) {
             std::cerr << "Could not open " << filename
                       << ", error = " << OIIO::geterror() << "\n";
             return;
         }
-        const ImageSpec &spec = in->spec();
-        xres = spec.width;
-        yres = spec.height;
-        channels = spec.nchannels;
-        pixels.resize (xres*yres*channels);
+        const ImageSpec &spec = inp->spec();
+        int xres = spec.width;
+        int yres = spec.height;
+        int channels = spec.nchannels;
+        std::vector<unsigned char> pixels(xres * yres * channels);
 
-        if (! in->read_image (TypeDesc::UINT8, &pixels[0])) {
+        if (! inp->read_image (TypeDesc::UINT8, &pixels[0])) {
             std::cerr << "Could not read pixels from " << filename
-                      << ", error = " << in->geterror() << "\n";
+                      << ", error = " << inp->geterror() << "\n";
             return;
         }
 
-        if (! in->close ()) {
+        if (! inp->close ()) {
             std::cerr << "Error closing " << filename
-                      << ", error = " << in->geterror() << "\n";
+                      << ", error = " << inp->geterror() << "\n";
             return;
         }
 
+   .. code-tab:: py
+    
+        import OpenImageIO as oiio
+        import numpy as np
 
+        filename = "foo.jpg"
+        inp = ImageInput::open(filename)
+        if inp is None :
+            print("Could not open", filename, ", error =", oiio.geterror())
+            return
+        spec = inp.spec()
+        xres = spec.width
+        yres = spec.height
+        channels = spec.nchannels
+
+        pixels = inp.read_image("uint8")
+        if pixels is None :
+            print("Could not read pixels from", filename, ", error =", inp.geterror())
+            return
+
+        if not inp.close() :
+            print("Error closing", filename, ", error =", inp.geterror())
+            return
+
+
+.. _sec-imageinput-class-reference:
 
 ImageInput Class Reference
 ===========================

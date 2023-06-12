@@ -8,6 +8,12 @@ command += oiiotool("src/deepalpha.exr --flatten -o flat.exr")
 # test --ch on deep files (and --chnames)
 command += oiiotool("src/deepalpha.exr --ch =0.0,A,=0.5,A,Z --chnames R,G,B,A,Z --flatten -d half -o ch.exr")
 
+# test -d 
+command += oiiotool("src/deepalpha.exr -d half -o allhalf.exr")
+command += info_command("allhalf.exr", extraargs="--stats", safematch=1)
+command += oiiotool("src/deepalpha.exr -d A=float -d Z=half -o swaptypes.exr")
+command += info_command("swaptypes.exr", extraargs="--stats", safematch=1)
+
 # --deepen
 command += oiiotool("-pattern fill:topleft=0,14:topright=0.5,15:bottomleft=0.5,14:bottomright=1,15 4x4 2 -chnames A,Z -fill:color=0,1e38 2x1+1+2 -o az.exr")
 command += oiiotool("az.exr -deepen -o deepen.exr")
@@ -40,6 +46,11 @@ command += oiiotool (exrdir+"/Balls.exr -cut 512x288+0+0 " +
 # --resample
 command += oiiotool (exrdir+"/Balls.exr -resample 128x72 -o resampled-balls.exr")
 
+# --info --dumpdata --hash
+command += oiiotool ("-pattern constant:color=1e38,0 4x4 2 --chnames Z,A"
+                     " --point:color=10.0,1.0 2,2 --deepen -o tinydeep.exr")
+command += info_command ("-v --info --hash --stats --dumpdata tinydeep.exr",
+                         safematch=True)
 
 
 # Regression test: it used to be that comparing deep image, it would loop

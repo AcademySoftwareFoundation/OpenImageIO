@@ -51,7 +51,7 @@ namespace dpx
 	// is one that approximates the 'true' floating-point scale factor.
 	// 8->16 : 65535.0 / 255.0. 10->16 : 65535.0 / 1023.0.
 	// For performance considerations, we choose to emulate this
-	// floating-poing scaling with pure integer math, using a trick
+	// floating-point scaling with pure integer math, using a trick
 	// where we duplicate portions of the MSB in the LSB.
 	//
 	// For bit depth demotions, simple truncation is used.

@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 #pragma once
@@ -59,8 +59,20 @@
 #    define OIIO_LOCAL __attribute__((visibility("hidden")))
 #endif
 
-#if defined(OpenImageIO_EXPORTS) || defined(OpenImageIO_Util_EXPORTS)
+#if defined(OpenImageIO_EXPORTS)
 #    define OIIO_API OIIO_EXPORT
 #else
 #    define OIIO_API OIIO_IMPORT
+#endif
+
+#if defined(OpenImageIO_Util_EXPORTS)
+#    define OIIO_UTIL_API OIIO_EXPORT
+#else
+#    define OIIO_UTIL_API OIIO_IMPORT
+#endif
+
+#if defined(OpenImageIO_C_EXPORTS)
+#    define OIIOC_API OIIO_EXPORT
+#else
+#    define OIIOC_API OIIO_IMPORT
 #endif

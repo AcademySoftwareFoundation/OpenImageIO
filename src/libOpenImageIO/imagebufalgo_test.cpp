@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 #include <cstdio>
@@ -8,12 +8,19 @@
 #include <iostream>
 #include <string>
 
+#include <OpenImageIO/platform.h>
+
 #if USE_OPENCV
+// Suppress gcc 11 / C++20 errors about opencv 4 headers
+#    if OIIO_GNUC_VERSION >= 110000 && OIIO_CPLUSPLUS_VERSION >= 20
+#        pragma GCC diagnostic ignored "-Wdeprecated-enum-enum-conversion"
+#    endif
 #    include <opencv2/opencv.hpp>
 #endif
 
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
@@ -36,32 +43,24 @@ static int threadcounts[] = { 1,  2,  4,  8,  12,  16,   20,
 static void
 getargs(int argc, char* argv[])
 {
-    bool help = false;
     ArgParse ap;
     // clang-format off
-    ap.options(
-        "imagebufalgo_test\n" OIIO_INTRO_STRING "\n"
-        "Usage:  imagebufalgo_test [options]",
-        // "%*", parse_files, "",
-        "--help", &help, "Print help message",
-        "-v", &verbose, "Verbose mode",
-        "--threads %d", &numthreads,
-            ustring::sprintf("Number of threads (default: %d)", numthreads).c_str(),
-        "--iters %d", &iterations,
-            ustring::sprintf("Number of iterations (default: %d)", iterations).c_str(),
-        "--trials %d", &ntrials, "Number of trials",
-        "--wedge", &wedge, "Do a wedge test",
-        nullptr);
+    ap.intro("imagebufalgo_test\n" OIIO_INTRO_STRING)
+      .usage("imagebufalgo_test [options]");
+
+    ap.arg("-v", &verbose)
+      .help("Verbose mode");
+    ap.arg("--threads %d", &numthreads)
+      .help(Strutil::sprintf("Number of threads (default: %d)", numthreads));
+    ap.arg("--iters %d", &iterations)
+      .help(Strutil::sprintf("Number of iterations (default: %d)", iterations));
+    ap.arg("--trials %d", &ntrials)
+      .help("Number of trials");
+    ap.arg("--wedge", &wedge)
+      .help("Do a wedge test");
     // clang-format on
-    if (ap.parse(argc, (const char**)argv) < 0) {
-        std::cerr << ap.geterror() << std::endl;
-        ap.usage();
-        exit(EXIT_FAILURE);
-    }
-    if (help) {
-        ap.usage();
-        exit(EXIT_FAILURE);
-    }
+
+    ap.parse(argc, (const char**)argv);
 }
 
 
@@ -70,27 +69,60 @@ void
 test_type_merge()
 {
     std::cout << "test type_merge\n";
-    using namespace OIIO::ImageBufAlgo;
-    OIIO_CHECK_EQUAL(type_merge(TypeDesc::UINT8, TypeDesc::UINT8),
+    OIIO_CHECK_EQUAL(TypeDesc::basetype_merge(TypeDesc::UINT8, TypeDesc::UINT8),
                      TypeDesc::UINT8);
-    OIIO_CHECK_EQUAL(type_merge(TypeDesc::UINT8, TypeDesc::FLOAT),
+    OIIO_CHECK_EQUAL(TypeDesc::basetype_merge(TypeDesc::UINT8, TypeDesc::FLOAT),
                      TypeDesc::FLOAT);
-    OIIO_CHECK_EQUAL(type_merge(TypeDesc::FLOAT, TypeDesc::UINT8),
+    OIIO_CHECK_EQUAL(TypeDesc::basetype_merge(TypeDesc::FLOAT, TypeDesc::UINT8),
                      TypeDesc::FLOAT);
-    OIIO_CHECK_EQUAL(type_merge(TypeDesc::UINT8, TypeDesc::UINT16),
+    OIIO_CHECK_EQUAL(TypeDesc::basetype_merge(TypeDesc::UINT8, TypeDesc::UINT16),
                      TypeDesc::UINT16);
-    OIIO_CHECK_EQUAL(type_merge(TypeDesc::UINT16, TypeDesc::FLOAT),
+    OIIO_CHECK_EQUAL(TypeDesc::basetype_merge(TypeDesc::UINT16, TypeDesc::FLOAT),
                      TypeDesc::FLOAT);
-    OIIO_CHECK_EQUAL(type_merge(TypeDesc::HALF, TypeDesc::FLOAT),
+    OIIO_CHECK_EQUAL(TypeDesc::basetype_merge(TypeDesc::HALF, TypeDesc::FLOAT),
                      TypeDesc::FLOAT);
-    OIIO_CHECK_EQUAL(type_merge(TypeDesc::HALF, TypeDesc::UINT8),
+    OIIO_CHECK_EQUAL(TypeDesc::basetype_merge(TypeDesc::HALF, TypeDesc::UINT8),
                      TypeDesc::HALF);
-    OIIO_CHECK_EQUAL(type_merge(TypeDesc::HALF, TypeDesc::UNKNOWN),
+    OIIO_CHECK_EQUAL(TypeDesc::basetype_merge(TypeDesc::HALF, TypeDesc::UNKNOWN),
                      TypeDesc::HALF);
-    OIIO_CHECK_EQUAL(type_merge(TypeDesc::FLOAT, TypeDesc::UNKNOWN),
+    OIIO_CHECK_EQUAL(TypeDesc::basetype_merge(TypeDesc::FLOAT,
+                                              TypeDesc::UNKNOWN),
                      TypeDesc::FLOAT);
-    OIIO_CHECK_EQUAL(type_merge(TypeDesc::UINT8, TypeDesc::UNKNOWN),
+    OIIO_CHECK_EQUAL(TypeDesc::basetype_merge(TypeDesc::UINT8,
+                                              TypeDesc::UNKNOWN),
                      TypeDesc::UINT8);
+}
+
+
+
+// Helper: make an IB filled with a constant value, with a spec that
+// describes the image shape.
+static ImageBuf
+filled_image(cspan<float> value, const ImageSpec& spec)
+{
+    ImageBuf buf(spec);
+    ImageBufAlgo::fill(buf, value);
+    return buf;
+}
+
+// Helper: make an IB filled with a constant value, with given resolution and
+// data type (defaulting to 4x4 float), with number of channels determined by
+// the size of the value array).
+static ImageBuf
+filled_image(cspan<float> value, int width = 4, int height = 4,
+             TypeDesc dtype = TypeDesc::FLOAT)
+{
+    ImageSpec spec(width, height, std::ssize(value), dtype);
+    return filled_image(value, spec);
+}
+
+// Helper: make a 4x4 IB filled with a constant value, with given data type
+// (defaulting to float), with number of channels determined by the size of
+// the value array).
+inline ImageBuf
+filled_image(cspan<float> value, TypeDesc dtype)
+{
+    return filled_image(value, 4, 4, dtype);
 }
 
 
@@ -363,30 +395,22 @@ void
 test_add()
 {
     std::cout << "test add\n";
-    const int WIDTH = 4, HEIGHT = 4, CHANNELS = 4;
-    ImageSpec spec(WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
 
     // Create buffers
-    ImageBuf A(spec);
-    const float Aval[CHANNELS] = { 0.1f, 0.2f, 0.3f, 0.4f };
-    ImageBufAlgo::fill(A, Aval);
-    ImageBuf B(spec);
-    const float Bval[CHANNELS] = { 0.01f, 0.02f, 0.03f, 0.04f };
-    ImageBufAlgo::fill(B, Bval);
+    const float Aval[] = { 0.1f, 0.2f, 0.3f, 0.4f };
+    const float Bval[] = { 0.01f, 0.02f, 0.03f, 0.04f };
+    ImageBuf A         = filled_image(Aval);
+    ImageBuf B         = filled_image(Bval);
 
     // Test addition of images
-    ImageBuf R(spec);
-    ImageBufAlgo::add(R, A, B);
-    for (int j = 0; j < spec.height; ++j)
-        for (int i = 0; i < spec.width; ++i)
-            for (int c = 0; c < spec.nchannels; ++c)
-                OIIO_CHECK_EQUAL(R.getchannel(i, j, 0, c), Aval[c] + Bval[c]);
+    ImageBuf R = ImageBufAlgo::add(A, B);
+    for (ImageBuf::ConstIterator<float> r(R); !r.done(); ++r)
+        for (int c = 0, nc = R.nchannels(); c < nc; ++c)
+            OIIO_CHECK_EQUAL(r[c], Aval[c] + Bval[c]);
 
     // Test addition of image and constant color
-    ImageBuf D(spec);
-    ImageBufAlgo::add(D, A, Bval);
-    ImageBufAlgo::CompareResults comp;
-    ImageBufAlgo::compare(R, D, 1e-6f, 1e-6f, comp);
+    ImageBuf D = ImageBufAlgo::add(A, Bval);
+    auto comp  = ImageBufAlgo::compare(R, D, 1e-6f, 1e-6f);
     OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
 }
 
@@ -397,30 +421,22 @@ void
 test_sub()
 {
     std::cout << "test sub\n";
-    const int WIDTH = 4, HEIGHT = 4, CHANNELS = 4;
-    ImageSpec spec(WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
 
     // Create buffers
-    ImageBuf A(spec);
-    const float Aval[CHANNELS] = { 0.1f, 0.2f, 0.3f, 0.4f };
-    ImageBufAlgo::fill(A, Aval);
-    ImageBuf B(spec);
-    const float Bval[CHANNELS] = { 0.01f, 0.02f, 0.03f, 0.04f };
-    ImageBufAlgo::fill(B, Bval);
+    const float Aval[] = { 0.1f, 0.2f, 0.3f, 0.4f };
+    const float Bval[] = { 0.01f, 0.02f, 0.03f, 0.04f };
+    ImageBuf A         = filled_image(Aval);
+    ImageBuf B         = filled_image(Bval);
 
     // Test subtraction of images
-    ImageBuf R(spec);
-    ImageBufAlgo::sub(R, A, B);
-    for (int j = 0; j < spec.height; ++j)
-        for (int i = 0; i < spec.width; ++i)
-            for (int c = 0; c < spec.nchannels; ++c)
-                OIIO_CHECK_EQUAL(R.getchannel(i, j, 0, c), Aval[c] - Bval[c]);
+    ImageBuf R = ImageBufAlgo::sub(A, B);
+    for (ImageBuf::ConstIterator<float> r(R); !r.done(); ++r)
+        for (int c = 0, nc = R.nchannels(); c < nc; ++c)
+            OIIO_CHECK_EQUAL(r[c], Aval[c] - Bval[c]);
 
     // Test subtraction of image and constant color
-    ImageBuf D(spec);
-    ImageBufAlgo::sub(D, A, Bval);
-    ImageBufAlgo::CompareResults comp;
-    ImageBufAlgo::compare(R, D, 1e-6f, 1e-6f, comp);
+    ImageBuf D = ImageBufAlgo::sub(A, Bval);
+    auto comp  = ImageBufAlgo::compare(R, D, 1e-6f, 1e-6f);
     OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
 }
 
@@ -431,30 +447,23 @@ void
 test_mul()
 {
     std::cout << "test mul\n";
-    const int WIDTH = 4, HEIGHT = 4, CHANNELS = 4;
-    ImageSpec spec(WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
 
     // Create buffers
-    ImageBuf A(spec);
-    const float Aval[CHANNELS] = { 0.1f, 0.2f, 0.3f, 0.4f };
-    ImageBufAlgo::fill(A, Aval);
-    ImageBuf B(spec);
-    const float Bval[CHANNELS] = { 0.01f, 0.02f, 0.03f, 0.04f };
-    ImageBufAlgo::fill(B, Bval);
+    // Create buffers
+    const float Aval[] = { 0.1f, 0.2f, 0.3f, 0.4f };
+    const float Bval[] = { 0.01f, 0.02f, 0.03f, 0.04f };
+    ImageBuf A         = filled_image(Aval);
+    ImageBuf B         = filled_image(Bval);
 
     // Test multiplication of images
-    ImageBuf R(spec);
-    ImageBufAlgo::mul(R, A, B);
-    for (int j = 0; j < spec.height; ++j)
-        for (int i = 0; i < spec.width; ++i)
-            for (int c = 0; c < spec.nchannels; ++c)
-                OIIO_CHECK_EQUAL(R.getchannel(i, j, 0, c), Aval[c] * Bval[c]);
+    ImageBuf R = ImageBufAlgo::mul(A, B);
+    for (ImageBuf::ConstIterator<float> r(R); !r.done(); ++r)
+        for (int c = 0, nc = R.nchannels(); c < nc; ++c)
+            OIIO_CHECK_EQUAL(r[c], Aval[c] * Bval[c]);
 
     // Test multiplication of image and constant color
-    ImageBuf D(spec);
-    ImageBufAlgo::mul(D, A, Bval);
-    ImageBufAlgo::CompareResults comp;
-    ImageBufAlgo::compare(R, D, 1e-6f, 1e-6f, comp);
+    ImageBuf D = ImageBufAlgo::mul(A, Bval);
+    auto comp  = ImageBufAlgo::compare(R, D, 1e-6f, 1e-6f);
     OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
 }
 
@@ -491,8 +500,59 @@ test_mad()
     // Test multiplication of image and constant color
     ImageBuf D(spec);
     ImageBufAlgo::mad(D, A, Bval, Cval);
-    ImageBufAlgo::CompareResults comp;
-    ImageBufAlgo::compare(R, D, 1e-6f, 1e-6f, comp);
+    auto comp = ImageBufAlgo::compare(R, D, 1e-6f, 1e-6f);
+    OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
+}
+
+
+
+// Tests ImageBufAlgo::min
+void
+test_min()
+{
+    std::cout << "test min\n";
+
+    // Create buffers
+    const float Aval[] = { 0.1f, 0.02f, 0.3f, 0.04f };
+    const float Bval[] = { 0.01f, 0.2f, 0.03f, 0.4f };
+    ImageBuf A         = filled_image(Aval);
+    ImageBuf B         = filled_image(Bval);
+
+    // Test min of images
+    ImageBuf R = ImageBufAlgo::min(A, B);
+    for (ImageBuf::ConstIterator<float> r(R); !r.done(); ++r)
+        for (int c = 0, nc = R.nchannels(); c < nc; ++c)
+            OIIO_CHECK_EQUAL(r[c], std::min(Aval[c], Bval[c]));
+
+    // Test min of image and constant color
+    ImageBuf D = ImageBufAlgo::min(A, Bval);
+    auto comp  = ImageBufAlgo::compare(R, D, 1e-6f, 1e-6f);
+    OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
+}
+
+
+
+// Tests ImageBufAlgo::max
+void
+test_max()
+{
+    std::cout << "test max\n";
+
+    // Create buffers
+    const float Aval[] = { 0.1f, 0.02f, 0.3f, 0.04f };
+    const float Bval[] = { 0.01f, 0.2f, 0.03f, 0.4f };
+    ImageBuf A         = filled_image(Aval);
+    ImageBuf B         = filled_image(Bval);
+
+    // Test max of images
+    ImageBuf R = ImageBufAlgo::max(A, B);
+    for (ImageBuf::ConstIterator<float> r(R); !r.done(); ++r)
+        for (int c = 0, nc = R.nchannels(); c < nc; ++c)
+            OIIO_CHECK_EQUAL(r[c], std::max(Aval[c], Bval[c]));
+
+    // Test max of image and constant color
+    ImageBuf D = ImageBufAlgo::max(A, Bval);
+    auto comp  = ImageBufAlgo::compare(R, D, 1e-6f, 1e-6f);
     OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
 }
 
@@ -500,49 +560,78 @@ test_mad()
 
 // Test ImageBuf::over
 void
-test_over()
+test_over(TypeDesc dtype = TypeFloat)
 {
-    std::cout << "test over\n";
+    std::cout << "test over " << dtype << "\n";
 
-    const int WIDTH = 4, HEIGHT = 4, CHANNELS = 4;
-    ImageSpec spec(WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
     ROI roi(2, 4, 1, 3);  // region with fg
 
     // Create buffers
-    ImageBuf BG(spec);
-    const float BGval[CHANNELS] = { 0.5f, 0.0f, 0.0f, 0.5f };
-    ImageBufAlgo::fill(BG, BGval);
+    const float BGval[] = { 0.5f, 0.0f, 0.0f, 0.5f };
+    ImageBuf BG         = filled_image(BGval, dtype);
 
-    ImageBuf FG(spec);
-    ImageBufAlgo::zero(FG);
-    const float FGval[CHANNELS] = { 0.0f, 0.5f, 0.0f, 0.5f };
+    ImageBuf FG         = filled_image({ 0.0f, 0.0f, 0.0f, 0.0f }, dtype);
+    const float FGval[] = { 0.0f, 0.5f, 0.0f, 0.5f };
     ImageBufAlgo::fill(FG, FGval, roi);
 
     // value it should be where composited
-    const float comp_val[CHANNELS] = { 0.25f, 0.5f, 0.0f, 0.75f };
+    const float comp_val[] = { 0.25f, 0.5f, 0.0f, 0.75f };
 
     // Test over
-    ImageBuf R(spec);
-    ImageBufAlgo::over(R, FG, BG);
+    ImageBuf R = ImageBufAlgo::over(FG, BG);
+    int nc     = R.nchannels();
     for (ImageBuf::ConstIterator<float> r(R); !r.done(); ++r) {
         if (roi.contains(r.x(), r.y()))
-            for (int c = 0; c < CHANNELS; ++c)
-                OIIO_CHECK_EQUAL(r[c], comp_val[c]);
+            for (int c = 0; c < nc; ++c)
+                OIIO_CHECK_EQUAL(R.getchannel(r.x(), r.y(), 0, c), comp_val[c]);
         else
-            for (int c = 0; c < CHANNELS; ++c)
-                OIIO_CHECK_EQUAL(r[c], BGval[c]);
+            for (int c = 0; c < nc; ++c)
+                OIIO_CHECK_EQUAL(R.getchannel(r.x(), r.y(), 0, c), BGval[c]);
     }
 
     // Timing
     Benchmarker bench;
     ImageSpec onekfloat(1000, 1000, 4, TypeFloat);
-    BG.reset(onekfloat);
-    ImageBufAlgo::fill(BG, BGval);
-    FG.reset(onekfloat);
-    ImageBufAlgo::zero(FG);
+    BG = filled_image(BGval, 1000, 1000);
+    FG = filled_image({ 0.0f, 0.0f, 0.0f, 0.0f }, 1000, 1000);
     ImageBufAlgo::fill(FG, FGval, ROI(250, 750, 100, 900));
     R.reset(onekfloat);
     bench("  IBA::over ", [&]() { ImageBufAlgo::over(R, FG, BG); });
+}
+
+
+
+// Test ImageBuf::zover
+void
+test_zover()
+{
+    std::cout << "test zover\n";
+
+    ImageSpec spec(4, 4, 5, TypeFloat);
+    spec.channelnames.assign({ "R", "G", "B", "A", "Z" });
+    spec.z_channel = 4;
+
+    ROI roi(2, 4, 1, 3);  // region with fg
+
+    // Create buffers
+    const float Aval[] = { 0.5f, 0.5, 0.5, 1.0f, 10.0f };  // z == 10
+    ImageBuf A         = filled_image(Aval, spec);
+
+    ImageBuf B         = filled_image({ 0.0f, 0.0f, 0.0f, 1.0f, 15.0f }, spec);
+    const float Bval[] = { 1.0f, 1.0f, 1.0f, 1.0f, 5.0f };
+    ImageBufAlgo::fill(B, Bval, roi);
+
+    // Test zover
+    ImageBuf R = ImageBufAlgo::zover(A, B, true);
+    int nc     = R.nchannels();
+    for (ImageBuf::ConstIterator<float> r(R); !r.done(); ++r) {
+        if (roi.contains(r.x(), r.y()))
+            for (int c = 0; c < nc; ++c)
+                OIIO_CHECK_EQUAL(R.getchannel(r.x(), r.y(), 0, c), Bval[c]);
+        else
+            for (int c = 0; c < nc; ++c)
+                OIIO_CHECK_EQUAL(R.getchannel(r.x(), r.y(), 0, c), Aval[c]);
+    }
 }
 
 
@@ -572,8 +661,7 @@ test_compare()
     // 0.06, 0.07, 0.08, 0.09, 0, 0, ...}.
     const float failthresh = 0.05;
     const float warnthresh = 0.025;
-    ImageBufAlgo::CompareResults comp;
-    ImageBufAlgo::compare(A, B, failthresh, warnthresh, comp);
+    auto comp = ImageBufAlgo::compare(A, B, failthresh, warnthresh);
     // We expect 5 pixels to exceed the fail threshold, 7 pixels to
     // exceed the warn threshold, the maximum difference to be 0.09,
     // and the maximally different pixel to be (9,0).
@@ -585,6 +673,32 @@ test_compare()
     std::cout << "   mean err " << comp.meanerror << ", RMS err "
               << comp.rms_error << ", PSNR = " << comp.PSNR << "\n";
     OIIO_CHECK_EQUAL(comp.nfail, 5);
+    OIIO_CHECK_EQUAL(comp.nwarn, 7);
+    OIIO_CHECK_EQUAL_THRESH(comp.maxerror, 0.09f, 1e-6f);
+    OIIO_CHECK_EQUAL(comp.maxx, 9);
+    OIIO_CHECK_EQUAL(comp.maxy, 0);
+    OIIO_CHECK_EQUAL_THRESH(comp.meanerror, 0.0045f, 1.0e-8f);
+
+    // Relative comparison: warn at 5% of the difference, fail at 10% of the
+    // difference. In row 0, we have:
+    //    A:  0.50  0.50  0.50  0.50  0.50  0.50  0.50  0.50  0.50  0.50
+    //    B:  0.50  0.51  0.52  0.53  0.54  0.55  0.56  0.57  0.58  0.59
+    // mean:  0.50  0.505 0.51  0.515 0.52  0.525 0.53  0.535 0.54  0.545
+    // diff:  0.0   0.01  0.02  0.03  0.04  0.05  0.06  0.07  0.08  0.09
+    // fail?                                       x     x     x     x
+    // warn?                     x     x     x     x     x     x     x
+    comp = ImageBufAlgo::compare(A, B, 0.0f, 0.0f, 0.1f, 0.05f);
+    // We expect 4 pixels to exceed the fail threshold, 7 pixels to
+    // exceed the warn threshold, the maximum difference to be 0.09,
+    // and the maximally different pixel to be (9,0).
+    // The total error should be 3 chans * sum{0.01,...,0.09} / (pixels*chans)
+    //   = 3 * 0.45 / (100*3) = 0.0045
+    std::cout << "Testing relative comparison: " << comp.nfail << " failed, "
+              << comp.nwarn << " warned, max diff = " << comp.maxerror << " @ ("
+              << comp.maxx << ',' << comp.maxy << ")\n";
+    std::cout << "   mean err " << comp.meanerror << ", RMS err "
+              << comp.rms_error << ", PSNR = " << comp.PSNR << "\n";
+    OIIO_CHECK_EQUAL(comp.nfail, 4);
     OIIO_CHECK_EQUAL(comp.nwarn, 7);
     OIIO_CHECK_EQUAL_THRESH(comp.maxerror, 0.09f, 1e-6f);
     OIIO_CHECK_EQUAL(comp.maxx, 9);
@@ -700,8 +814,7 @@ test_computePixelStats()
     img.setpixel(1, 0, white);
     img.setpixel(0, 1, black);
     img.setpixel(1, 1, white);
-    ImageBufAlgo::PixelStats stats;
-    ImageBufAlgo::computePixelStats(stats, img);
+    auto stats = ImageBufAlgo::computePixelStats(img);
     for (int c = 0; c < 3; ++c) {
         OIIO_CHECK_EQUAL(stats.min[c], 0.0f);
         OIIO_CHECK_EQUAL(stats.max[c], 1.0f);
@@ -786,8 +899,7 @@ test_maketx_from_imagebuf()
     // Read it back and compare it
     ImageBuf B(pgname);
     B.read();
-    ImageBufAlgo::CompareResults comparison;
-    ImageBufAlgo::compare(A, B, 0, 0, comparison);
+    auto comparison = ImageBufAlgo::compare(A, B, 0, 0);
     OIIO_CHECK_EQUAL(comparison.nwarn, 0);
     OIIO_CHECK_EQUAL(comparison.nfail, 0);
     remove(pgname);  // clean up
@@ -804,17 +916,17 @@ test_IBAprep()
     ImageBuf rgb(ImageSpec(256, 256, 3));   // Basic RGB uint8 image
     ImageBuf rgba(ImageSpec(256, 256, 4));  // Basic RGBA uint8 image
 
-#define CHECK(...)                                                             \
-    {                                                                          \
-        ImageBuf dst;                                                          \
-        ROI roi;                                                               \
-        OIIO_CHECK_ASSERT(IBAprep(__VA_ARGS__));                               \
+#define CHECK(...)                               \
+    {                                            \
+        ImageBuf dst;                            \
+        ROI roi;                                 \
+        OIIO_CHECK_ASSERT(IBAprep(__VA_ARGS__)); \
     }
-#define CHECK0(...)                                                            \
-    {                                                                          \
-        ImageBuf dst;                                                          \
-        ROI roi;                                                               \
-        OIIO_CHECK_ASSERT(!IBAprep(__VA_ARGS__));                              \
+#define CHECK0(...)                               \
+    {                                             \
+        ImageBuf dst;                             \
+        ROI roi;                                  \
+        OIIO_CHECK_ASSERT(!IBAprep(__VA_ARGS__)); \
     }
 
     // Test REQUIRE_ALPHA
@@ -823,7 +935,7 @@ test_IBAprep()
 
     // Test REQUIRE_Z
     ImageSpec rgbaz_spec(256, 256, 5);
-    rgbaz_spec.channelnames[4] = "Z";
+    rgbaz_spec.channelnames[4] = std::string("Z");
     rgbaz_spec.z_channel       = 4;
     ImageBuf rgbaz(rgbaz_spec);
     CHECK(roi, &dst, &rgbaz, IBAprep_REQUIRE_Z);
@@ -878,6 +990,43 @@ test_IBAprep()
 #undef CHECK
 }
 
+
+
+// Test extra validation checks done by `st_warp`
+void
+test_validate_st_warp_checks()
+{
+    // using namespace ImageBufAlgo;
+    std::cout << "test st_warp validation checks" << std::endl;
+
+    const int size = 16;
+    ImageSpec srcSpec(size, size, 3, TypeDesc::FLOAT);
+    ImageBuf SRC(srcSpec);
+    ImageBuf ST;
+    ImageBuf DST;
+
+    ImageBufAlgo::zero(SRC);
+
+    // Fail: Uninitialized ST buffer
+    OIIO_CHECK_ASSERT(!ImageBufAlgo::st_warp(DST, SRC, ST));
+
+    ROI disjointROI(size, size, size * 2, size * 2, 0, 1, 0, 2);
+    ImageSpec stSpec(disjointROI, TypeDesc::HALF);
+    ST.reset(stSpec);
+    // Fail: Non-intersecting ST and output ROIs
+    OIIO_CHECK_ASSERT(!ImageBufAlgo::st_warp(DST, SRC, ST));
+
+    stSpec = ImageSpec(size, size, 2, TypeDesc::HALF);
+    ST.reset(stSpec);
+
+    DST.reset();
+    // Fail: Out-of-range chan_s
+    OIIO_CHECK_ASSERT(!ImageBufAlgo::st_warp(DST, SRC, ST, nullptr, 2));
+    // Fail: Out-of-range chan_t
+    OIIO_CHECK_ASSERT(!ImageBufAlgo::st_warp(DST, SRC, ST, nullptr, 0, 2));
+    // Success
+    OIIO_CHECK_ASSERT(ImageBufAlgo::st_warp(DST, SRC, ST, nullptr));
+}
 
 
 void
@@ -964,6 +1113,46 @@ test_opencv()
 
 
 
+void
+test_color_management()
+{
+    ColorConfig config;
+
+    // Test the IBA::colorconvert version that works on a color at a time
+    {
+        auto processor = config.createColorProcessor("lin_srgb", "srgb");
+        float rgb[3]   = { 0.5f, 0.5f, 0.5f };
+        ImageBufAlgo::colorconvert(rgb, processor.get(), false);
+        OIIO_CHECK_EQUAL_THRESH(rgb[1], 0.735356983052449f, 1.0e-5);
+    }
+    {
+        auto processor = config.createColorProcessor("lin_srgb", "srgb");
+        float rgb[4]   = { 0.5f, 0.5f, 0.5f, 1.0f };
+        ImageBufAlgo::colorconvert(rgb, processor.get(), true);
+        OIIO_CHECK_EQUAL_THRESH(rgb[1], 0.735356983052449f, 1.0e-5);
+    }
+}
+
+
+
+static void
+test_yee()
+{
+    print("Testing Yee comparison\n");
+    ImageSpec spec(1, 1, 3, TypeDesc::FLOAT);
+    ImageBuf img1(spec);
+    ImageBufAlgo::fill(img1, { 0.1f, 0.1f, 0.1f });
+    ImageBuf img2(spec);
+    ImageBufAlgo::fill(img2, { 0.1f, 0.6f, 0.1f });
+    ImageBufAlgo::CompareResults cr;
+    int n = ImageBufAlgo::compare_Yee(img1, img2, cr);
+    OIIO_CHECK_EQUAL(n, 1);
+    OIIO_CHECK_EQUAL(cr.maxx, 0);
+    OIIO_CHECK_EQUAL(cr.maxy, 0);
+}
+
+
+
 int
 main(int argc, char** argv)
 {
@@ -987,7 +1176,11 @@ main(int argc, char** argv)
     test_sub();
     test_mul();
     test_mad();
-    test_over();
+    test_min();
+    test_max();
+    test_over(TypeFloat);
+    test_over(TypeHalf);
+    test_zover();
     test_compare();
     test_isConstantColor();
     test_isConstantChannel();
@@ -996,7 +1189,10 @@ main(int argc, char** argv)
     histogram_computation_test();
     test_maketx_from_imagebuf();
     test_IBAprep();
+    test_validate_st_warp_checks();
     test_opencv();
+    test_color_management();
+    test_yee();
 
     benchmark_parallel_image(64, iterations * 64);
     benchmark_parallel_image(512, iterations * 16);

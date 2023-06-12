@@ -58,7 +58,7 @@
 #
 # * TBB_FOUND             - Set to false, or undefined, if we haven’t found, or
 #                           don’t want to use TBB.
-# * TBB_<component>_FOUND - If False, optional <component> part of TBB sytem is
+# * TBB_<component>_FOUND - If False, optional <component> part of TBB system is
 #                           not available.
 # * TBB_VERSION           - The full version string
 # * TBB_VERSION_MAJOR     - The major version
@@ -74,7 +74,7 @@
 #                           tbbmalloc, tbbmalloc_debug, tbb_preview, or 
 #                           tbb_preview_debug.
 #
-# The following varibles should be used to build and link with TBB:
+# The following variables should be used to build and link with TBB:
 #
 # * TBB_INCLUDE_DIRS - The include directory for TBB.
 # * TBB_LIBRARIES    - The libraries to link against to use TBB.
@@ -134,7 +134,7 @@ if(NOT TBB_FOUND)
   # Find the TBB include dir
   ##################################
   
-  find_path(TBB_INCLUDE_DIRS tbb/tbb.h
+  find_path(TBB_INCLUDE_DIRS tbb/tbb_stddef.h
       HINTS ${TBB_INCLUDE_DIR} ${TBB_SEARCH_DIR}
       PATHS ${TBB_DEFAULT_SEARCH_DIR})
   
@@ -208,7 +208,25 @@ if(NOT TBB_FOUND)
       REQUIRED_VARS TBB_INCLUDE_DIRS TBB_LIBRARIES
       HANDLE_COMPONENTS
       VERSION_VAR TBB_VERSION)
-  
-  mark_as_advanced(TBB_INCLUDE_DIRS TBB_LIBRARIES)
 
+  mark_as_advanced(TBB_INCLUDE_DIRS TBB_LIBRARIES)
+  set(_tbb_version_file)
+
+  # Add targets
+  if (TBB_FOUND)
+    if (NOT TARGET TBB::tbb)
+        add_library(TBB::tbb UNKNOWN IMPORTED)
+        set_target_properties(TBB::tbb PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES ${TBB_INCLUDE_DIRS})
+        set_property(TARGET TBB::tbb APPEND PROPERTY
+            IMPORTED_LOCATION ${TBB_tbb_LIBRARY})
+    endif ()
+    if (NOT TARGET TBB::tbbmalloc)
+        add_library(TBB::tbbmalloc UNKNOWN IMPORTED)
+        set_target_properties(TBB::tbbmalloc PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES ${TBB_INCLUDE_DIRS})
+        set_property(TARGET TBB::tbbmalloc APPEND PROPERTY
+            IMPORTED_LOCATION ${TBB_tbbmalloc_LIBRARY})
+    endif ()
+  endif()
 endif()

@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 #pragma once
@@ -33,7 +33,7 @@ OIIO_NAMESPACE_BEGIN
 /// to replicate an entire array full of 3's in order to call the function.
 ///
 /// Instead, we may wish to generalize the function so that each operand
-/// may rever to EITHER a single value or an array of values, without
+/// may refer to EITHER a single value or an array of values, without
 /// making the code more complicated.  We can do this with VaryingRef:
 ///
 ///     void add (int n, VaryingRef<float> a, VaryingRef<float> b,

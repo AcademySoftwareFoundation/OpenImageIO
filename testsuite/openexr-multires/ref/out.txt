@@ -1,5 +1,5 @@
-Reading ../../../../../openexr-images/MultiResolution/Bonita.exr
-../../../../../openexr-images/MultiResolution/Bonita.exr :  550 x  832, 3 channel, half openexr
+Reading ../openexr-images/MultiResolution/Bonita.exr
+../openexr-images/MultiResolution/Bonita.exr :  550 x  832, 3 channel, half openexr
     MIP-map levels: 550x832 275x416 137x208 68x104 34x52 17x26 8x13 4x6 2x3 1x1
     SHA-1: 564202D0616E02C51CBAD01C4FC34A3D5D77861C
     channel list: R, G, B
@@ -15,10 +15,10 @@ Reading ../../../../../openexr-images/MultiResolution/Bonita.exr
     oiio:ColorSpace: "Linear"
     oiio:subimages: 1
     openexr:roundingmode: 0
-Comparing "../../../../../openexr-images/MultiResolution/Bonita.exr" and "Bonita.exr"
+Comparing "../openexr-images/MultiResolution/Bonita.exr" and "Bonita.exr"
 PASS
-Reading ../../../../../openexr-images/MultiResolution/ColorCodedLevels.exr
-../../../../../openexr-images/MultiResolution/ColorCodedLevels.exr :  512 x  512, 4 channel, half openexr
+Reading ../openexr-images/MultiResolution/ColorCodedLevels.exr
+../openexr-images/MultiResolution/ColorCodedLevels.exr :  512 x  512, 4 channel, half openexr
     MIP-map levels: 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
     SHA-1: 3694F36696BA49FBA37BC7D35E7ACB2DFDDED2EC
     channel list: R, G, B, A
@@ -34,10 +34,10 @@ Reading ../../../../../openexr-images/MultiResolution/ColorCodedLevels.exr
     oiio:ColorSpace: "Linear"
     oiio:subimages: 1
     openexr:roundingmode: 0
-Comparing "../../../../../openexr-images/MultiResolution/ColorCodedLevels.exr" and "ColorCodedLevels.exr"
+Comparing "../openexr-images/MultiResolution/ColorCodedLevels.exr" and "ColorCodedLevels.exr"
 PASS
-Reading ../../../../../openexr-images/MultiResolution/KernerEnvCube.exr
-../../../../../openexr-images/MultiResolution/KernerEnvCube.exr :  256 x 1536, 4 channel, half openexr
+Reading ../openexr-images/MultiResolution/KernerEnvCube.exr
+../openexr-images/MultiResolution/KernerEnvCube.exr :  256 x 1536, 4 channel, half openexr
     MIP-map levels: 256x1536 128x768 64x384 32x192 16x96 8x48 4x24 2x12 1x6 1x3 1x1
     SHA-1: FE90067A116E33C65D2C663C1A19ABCCE2C621A4
     channel list: R, G, B, A
@@ -54,10 +54,10 @@ Reading ../../../../../openexr-images/MultiResolution/KernerEnvCube.exr
     oiio:sampleborder: 1
     oiio:subimages: 1
     openexr:roundingmode: 0
-Comparing "../../../../../openexr-images/MultiResolution/KernerEnvCube.exr" and "KernerEnvCube.exr"
+Comparing "../openexr-images/MultiResolution/KernerEnvCube.exr" and "KernerEnvCube.exr"
 PASS
-Reading ../../../../../openexr-images/MultiResolution/KernerEnvLatLong.exr
-../../../../../openexr-images/MultiResolution/KernerEnvLatLong.exr : 1024 x  512, 4 channel, half openexr
+Reading ../openexr-images/MultiResolution/KernerEnvLatLong.exr
+../openexr-images/MultiResolution/KernerEnvLatLong.exr : 1024 x  512, 4 channel, half openexr
     MIP-map levels: 1024x512 512x256 256x128 128x64 64x32 32x16 16x8 8x4 4x2 2x1 1x1
     SHA-1: 10D3B289F5E6E0497AC5C297373BEEEEA4F7EEA4
     channel list: R, G, B, A
@@ -73,10 +73,10 @@ Reading ../../../../../openexr-images/MultiResolution/KernerEnvLatLong.exr
     oiio:subimages: 1
     oiio:updirection: "y"
     openexr:roundingmode: 0
-Comparing "../../../../../openexr-images/MultiResolution/KernerEnvLatLong.exr" and "KernerEnvLatLong.exr"
+Comparing "../openexr-images/MultiResolution/KernerEnvLatLong.exr" and "KernerEnvLatLong.exr"
 PASS
-Reading ../../../../../openexr-images/MultiResolution/MirrorPattern.exr
-../../../../../openexr-images/MultiResolution/MirrorPattern.exr :  512 x  512, 3 channel, half openexr
+Reading ../openexr-images/MultiResolution/MirrorPattern.exr
+../openexr-images/MultiResolution/MirrorPattern.exr :  512 x  512, 3 channel, half openexr
     MIP-map levels: 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
     SHA-1: 1E48D1639C572C689EE82ACA93EEE9FC9EFB24EB
     channel list: R, G, B
@@ -91,10 +91,10 @@ Reading ../../../../../openexr-images/MultiResolution/MirrorPattern.exr
     oiio:ColorSpace: "Linear"
     oiio:subimages: 1
     openexr:roundingmode: 0
-Comparing "../../../../../openexr-images/MultiResolution/MirrorPattern.exr" and "MirrorPattern.exr"
+Comparing "../openexr-images/MultiResolution/MirrorPattern.exr" and "MirrorPattern.exr"
 PASS
-Reading ../../../../../openexr-images/MultiResolution/OrientationCube.exr
-../../../../../openexr-images/MultiResolution/OrientationCube.exr :  512 x 3072, 4 channel, half openexr
+Reading ../openexr-images/MultiResolution/OrientationCube.exr
+../openexr-images/MultiResolution/OrientationCube.exr :  512 x 3072, 4 channel, half openexr
     MIP-map levels: 512x3072 256x1536 128x768 64x384 32x192 16x96 8x48 4x24 2x12 1x6 1x3 1x1
     SHA-1: 06D36508E3D76F3288D6B50867812CC6E29C3C5A
     channel list: R, G, B, A
@@ -111,10 +111,10 @@ Reading ../../../../../openexr-images/MultiResolution/OrientationCube.exr
     oiio:sampleborder: 1
     oiio:subimages: 1
     openexr:roundingmode: 0
-Comparing "../../../../../openexr-images/MultiResolution/OrientationCube.exr" and "OrientationCube.exr"
+Comparing "../openexr-images/MultiResolution/OrientationCube.exr" and "OrientationCube.exr"
 PASS
-Reading ../../../../../openexr-images/MultiResolution/OrientationLatLong.exr
-../../../../../openexr-images/MultiResolution/OrientationLatLong.exr : 1024 x  512, 4 channel, half openexr
+Reading ../openexr-images/MultiResolution/OrientationLatLong.exr
+../openexr-images/MultiResolution/OrientationLatLong.exr : 1024 x  512, 4 channel, half openexr
     MIP-map levels: 1024x512 512x256 256x128 128x64 64x32 32x16 16x8 8x4 4x2 2x1 1x1
     SHA-1: 91BB1952FB9254759FA0629F40A721C6D461C8FC
     channel list: R, G, B, A
@@ -130,10 +130,10 @@ Reading ../../../../../openexr-images/MultiResolution/OrientationLatLong.exr
     oiio:subimages: 1
     oiio:updirection: "y"
     openexr:roundingmode: 0
-Comparing "../../../../../openexr-images/MultiResolution/OrientationLatLong.exr" and "OrientationLatLong.exr"
+Comparing "../openexr-images/MultiResolution/OrientationLatLong.exr" and "OrientationLatLong.exr"
 PASS
-Reading ../../../../../openexr-images/MultiResolution/PeriodicPattern.exr
-../../../../../openexr-images/MultiResolution/PeriodicPattern.exr :  517 x  517, 3 channel, half openexr
+Reading ../openexr-images/MultiResolution/PeriodicPattern.exr
+../openexr-images/MultiResolution/PeriodicPattern.exr :  517 x  517, 3 channel, half openexr
     MIP-map levels: 517x517 258x258 129x129 64x64 32x32 16x16 8x8 4x4 2x2 1x1
     SHA-1: B83B67E1FF9B24991A6582C997AA9F629C094ED2
     channel list: R, G, B
@@ -148,10 +148,10 @@ Reading ../../../../../openexr-images/MultiResolution/PeriodicPattern.exr
     oiio:ColorSpace: "Linear"
     oiio:subimages: 1
     openexr:roundingmode: 0
-Comparing "../../../../../openexr-images/MultiResolution/PeriodicPattern.exr" and "PeriodicPattern.exr"
+Comparing "../openexr-images/MultiResolution/PeriodicPattern.exr" and "PeriodicPattern.exr"
 PASS
-Reading ../../../../../openexr-images/MultiResolution/StageEnvCube.exr
-../../../../../openexr-images/MultiResolution/StageEnvCube.exr :  256 x 1536, 3 channel, half openexr
+Reading ../openexr-images/MultiResolution/StageEnvCube.exr
+../openexr-images/MultiResolution/StageEnvCube.exr :  256 x 1536, 3 channel, half openexr
     MIP-map levels: 256x1536 128x768 64x384 32x192 16x96 8x48 4x24 2x12 1x6 1x3 1x1
     SHA-1: 12BC1AA3805E1D718263F3118BD3366013E13B97
     channel list: R, G, B
@@ -168,10 +168,10 @@ Reading ../../../../../openexr-images/MultiResolution/StageEnvCube.exr
     oiio:sampleborder: 1
     oiio:subimages: 1
     openexr:roundingmode: 0
-Comparing "../../../../../openexr-images/MultiResolution/StageEnvCube.exr" and "StageEnvCube.exr"
+Comparing "../openexr-images/MultiResolution/StageEnvCube.exr" and "StageEnvCube.exr"
 PASS
-Reading ../../../../../openexr-images/MultiResolution/StageEnvLatLong.exr
-../../../../../openexr-images/MultiResolution/StageEnvLatLong.exr : 1000 x  500, 3 channel, half openexr
+Reading ../openexr-images/MultiResolution/StageEnvLatLong.exr
+../openexr-images/MultiResolution/StageEnvLatLong.exr : 1000 x  500, 3 channel, half openexr
     MIP-map levels: 1000x500 500x250 250x125 125x63 63x32 32x16 16x8 8x4 4x2 2x1 1x1
     SHA-1: 573137DBE0076465729FC3DBE2B586A19330515D
     channel list: R, G, B
@@ -187,10 +187,10 @@ Reading ../../../../../openexr-images/MultiResolution/StageEnvLatLong.exr
     oiio:subimages: 1
     oiio:updirection: "y"
     openexr:roundingmode: 1
-Comparing "../../../../../openexr-images/MultiResolution/StageEnvLatLong.exr" and "StageEnvLatLong.exr"
+Comparing "../openexr-images/MultiResolution/StageEnvLatLong.exr" and "StageEnvLatLong.exr"
 PASS
-Reading ../../../../../openexr-images/MultiResolution/WavyLinesCube.exr
-../../../../../openexr-images/MultiResolution/WavyLinesCube.exr :  256 x 1536, 3 channel, half openexr
+Reading ../openexr-images/MultiResolution/WavyLinesCube.exr
+../openexr-images/MultiResolution/WavyLinesCube.exr :  256 x 1536, 3 channel, half openexr
     MIP-map levels: 256x1536 128x768 64x384 32x192 16x96 8x48 4x24 2x12 1x6 1x3 1x1
     SHA-1: 2B90F593D0F4188F341438C097DC447D0B4C4A9B
     channel list: R, G, B
@@ -207,10 +207,10 @@ Reading ../../../../../openexr-images/MultiResolution/WavyLinesCube.exr
     oiio:sampleborder: 1
     oiio:subimages: 1
     openexr:roundingmode: 0
-Comparing "../../../../../openexr-images/MultiResolution/WavyLinesCube.exr" and "WavyLinesCube.exr"
+Comparing "../openexr-images/MultiResolution/WavyLinesCube.exr" and "WavyLinesCube.exr"
 PASS
-Reading ../../../../../openexr-images/MultiResolution/WavyLinesLatLong.exr
-../../../../../openexr-images/MultiResolution/WavyLinesLatLong.exr : 1024 x  512, 3 channel, half openexr
+Reading ../openexr-images/MultiResolution/WavyLinesLatLong.exr
+../openexr-images/MultiResolution/WavyLinesLatLong.exr : 1024 x  512, 3 channel, half openexr
     MIP-map levels: 1024x512 512x256 256x128 128x64 64x32 32x16 16x8 8x4 4x2 2x1 1x1
     SHA-1: D7CB49482CFB4D2854089E7FF92690F69337DED0
     channel list: R, G, B
@@ -226,10 +226,10 @@ Reading ../../../../../openexr-images/MultiResolution/WavyLinesLatLong.exr
     oiio:subimages: 1
     oiio:updirection: "y"
     openexr:roundingmode: 0
-Comparing "../../../../../openexr-images/MultiResolution/WavyLinesLatLong.exr" and "WavyLinesLatLong.exr"
+Comparing "../openexr-images/MultiResolution/WavyLinesLatLong.exr" and "WavyLinesLatLong.exr"
 PASS
-Reading ../../../../../openexr-images/MultiResolution/WavyLinesSphere.exr
-../../../../../openexr-images/MultiResolution/WavyLinesSphere.exr :  480 x  480, 4 channel, half openexr
+Reading ../openexr-images/MultiResolution/WavyLinesSphere.exr
+../openexr-images/MultiResolution/WavyLinesSphere.exr :  480 x  480, 4 channel, half openexr
     SHA-1: E802DC23DA0EEF8EE782CC5D7BA56294C0FA7462
     channel list: R, G, B, A
     compression: "piz"
@@ -239,5 +239,100 @@ Reading ../../../../../openexr-images/MultiResolution/WavyLinesSphere.exr
     screenWindowWidth: 1
     oiio:ColorSpace: "Linear"
     oiio:subimages: 1
-Comparing "../../../../../openexr-images/MultiResolution/WavyLinesSphere.exr" and "WavyLinesSphere.exr"
+Comparing "../openexr-images/MultiResolution/WavyLinesSphere.exr" and "WavyLinesSphere.exr"
+PASS
+Reading ../openexr-images/MultiView/Adjuster.exr
+../openexr-images/MultiView/Adjuster.exr :  775 x  678, 9 channel, half openexr
+    SHA-1: 3528BD22E1C079B85E694685D80FBBFB7D1B3B9F
+    channel list: R, G, B, left.R, left.G, left.B, right.R, right.G, right.B
+    compression: "b44a"
+    ImageDescription: "Plane blade adjustment mechanism"
+    multiView: "center", "left", "right"
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    XResolution: 100
+    YResolution: 100
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Comparing "../openexr-images/MultiView/Adjuster.exr" and "Adjuster.exr"
+PASS
+Reading ../openexr-images/MultiView/Balls.exr
+../openexr-images/MultiView/Balls.exr : 1000 x  784, 6 channel, half openexr
+    SHA-1: A9E6D430F81F0407D7530B5DBD2379036F227377
+    channel list: R, G, B, right.R, right.G, right.B
+    compression: "piz"
+    multiView: "left", "right"
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    XResolution: 100
+    YResolution: 100
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Comparing "../openexr-images/MultiView/Balls.exr" and "Balls.exr"
+PASS
+Reading ../openexr-images/MultiView/Fog.exr
+../openexr-images/MultiView/Fog.exr : 1000 x  672, 2 channel, half openexr
+    SHA-1: 558BF1D0FD1934388AC24AF7B7ABF1DBA2618119
+    channel list: Y, right.Y
+    compression: "piz"
+    ilut: "log"
+    ImageDescription: "Fog in the Presidio of San Francisco"
+    latitude: 37.7973
+    longitude: -122.476
+    multiView: "left", "right"
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    XResolution: 100
+    YResolution: 100
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Comparing "../openexr-images/MultiView/Fog.exr" and "Fog.exr"
+PASS
+Reading ../openexr-images/MultiView/Impact.exr
+../openexr-images/MultiView/Impact.exr :  554 x  699, 6 channel, half openexr
+    MIP-map levels: 554x699 277x349 138x174 69x87 34x43 17x21 8x10 4x5 2x2 1x1
+    SHA-1: A878ABDBB1C4F1F9DC17C6D31938E9EBFF76930B
+    channel list: R, G, B, right.R, right.G, right.B
+    tile size: 64 x 64
+    compression: "zip"
+    ilut: "log"
+    ImageDescription: "Steel ball breaking a wine glass"
+    multiView: "left", "right"
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    textureformat: "Plain Texture"
+    wrapmodes: "clamp,clamp"
+    XResolution: 100
+    YResolution: 100
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+    openexr:roundingmode: 0
+Comparing "../openexr-images/MultiView/Impact.exr" and "Impact.exr"
+PASS
+Reading ../openexr-images/MultiView/LosPadres.exr
+../openexr-images/MultiView/LosPadres.exr :  689 x 1000, 6 channel, half openexr
+    SHA-1: 489178A1FBE480DCA649EE24B3FAA408351E4EE3
+    channel list: R, G, B, left.R, left.G, left.B
+    compression: "piz"
+    ImageDescription: "Los Padres National Forest from above"
+    latitude: 34.53
+    longitude: -119.05
+    multiView: "right", "left"
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    XResolution: 100
+    YResolution: 100
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Comparing "../openexr-images/MultiView/LosPadres.exr" and "LosPadres.exr"
 PASS

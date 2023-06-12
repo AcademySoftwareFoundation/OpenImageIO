@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #include <cmath>
 #include <cstdio>
@@ -23,18 +23,18 @@ using namespace ICO_pvt;
 class ICOInput final : public ImageInput {
 public:
     ICOInput() { init(); }
-    virtual ~ICOInput() { close(); }
-    virtual const char* format_name(void) const override { return "ico"; }
-    virtual bool open(const std::string& name, ImageSpec& newspec) override;
-    virtual bool close() override;
-    virtual int current_subimage(void) const override
+    ~ICOInput() override { close(); }
+    const char* format_name(void) const override { return "ico"; }
+    bool open(const std::string& name, ImageSpec& newspec) override;
+    bool close() override;
+    int current_subimage(void) const override
     {
-        lock_guard lock(m_mutex);
+        lock_guard lock(*this);
         return m_subimage;
     }
-    virtual bool seek_subimage(int subimage, int miplevel) override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
+    bool seek_subimage(int subimage, int miplevel) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
 
 private:
     std::string m_filename;            ///< Stash the filename
@@ -82,7 +82,7 @@ private:
 
 
 
-// Obligatory material to make this a recognizeable imageio plugin:
+// Obligatory material to make this a recognizable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageInput*
@@ -186,7 +186,7 @@ ICOInput::seek_subimage(int subimage, int miplevel)
     if (!fread(temp, 1, sizeof(temp)))
         return false;
     if (temp[1] == 'P' && temp[2] == 'N' && temp[3] == 'G') {
-        // standard PNG initalization
+        // standard PNG initialization
         if (png_sig_cmp((png_bytep)temp, 0, 7)) {
             errorf("Subimage failed PNG signature check");
             return false;
@@ -274,8 +274,7 @@ ICOInput::readimg()
 {
     if (m_png) {
         // subimage is a PNG
-        std::string s = PNG_pvt::read_into_buffer(m_png, m_info, m_spec, m_bpp,
-                                                  m_color_type, m_buf);
+        std::string s = PNG_pvt::read_into_buffer(m_png, m_info, m_spec, m_buf);
 
         //std::cerr << "[ico] PNG buffer size = " << m_buf.size () << "\n";
 
@@ -288,7 +287,7 @@ ICOInput::readimg()
     }
 
     // otherwise we're dealing with a DIB
-    DASSERT(m_spec.scanline_bytes() == ((size_t)m_spec.width * 4));
+    OIIO_DASSERT(m_spec.scanline_bytes() == ((size_t)m_spec.width * 4));
     m_buf.resize(m_spec.image_bytes());
 
     //std::cerr << "[ico] DIB buffer size = " << m_buf.size () << "\n";
@@ -309,6 +308,7 @@ ICOInput::readimg()
     std::vector<unsigned char> scanline(slb);
     ico_palette_entry* pe;
     int k;
+    int index;
     for (int y = m_spec.height - 1; y >= 0; y--) {
         if (!fread(&scanline[0], 1, slb))
             return false;
@@ -317,13 +317,23 @@ ICOInput::readimg()
             // fill the buffer
             switch (m_bpp) {
             case 1:
-                pe = &palette[(scanline[x / 8] & (1 << (7 - x % 8))) != 0];
+                index = ((scanline[x / 8] & (1 << (7 - x % 8))) != 0);
+                if (index >= m_palette_size) {
+                    errorfmt("Possible corruption: index exceeds palette size");
+                    return false;
+                }
+                pe           = &palette[index];
                 m_buf[k + 0] = pe->r;
                 m_buf[k + 1] = pe->g;
                 m_buf[k + 2] = pe->b;
                 break;
             case 4:
-                pe           = &palette[(scanline[x / 2] & 0xF0) >> 4];
+                index = ((scanline[x / 2] & 0xF0) >> 4);
+                if (index >= m_palette_size) {
+                    errorfmt("Possible corruption: index exceeds palette size");
+                    return false;
+                }
+                pe           = &palette[index];
                 m_buf[k + 0] = pe->r;
                 m_buf[k + 1] = pe->g;
                 m_buf[k + 2] = pe->b;
@@ -342,7 +352,12 @@ ICOInput::readimg()
                           << "\n";*/
                 break;
             case 8:
-                pe           = &palette[scanline[x]];
+                index = scanline[x];
+                if (index >= m_palette_size) {
+                    errorfmt("Possible corruption: index exceeds palette size");
+                    return false;
+                }
+                pe           = &palette[index];
                 m_buf[k + 0] = pe->r;
                 m_buf[k + 1] = pe->g;
                 m_buf[k + 2] = pe->b;
@@ -419,10 +434,10 @@ ICOInput::close()
 
 
 bool
-ICOInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+ICOInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
 

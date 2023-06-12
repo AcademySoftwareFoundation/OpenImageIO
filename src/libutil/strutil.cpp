@@ -1,15 +1,19 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 #include <cmath>
+#include <codecvt>
 #include <cstdarg>
+#include <cstdint>
 #include <cstdlib>
+#include <ctime>
 #include <iostream>
 #include <limits>
-#include <locale.h>
+#include <locale>
 #include <mutex>
+#include <numeric>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -18,14 +22,21 @@
 #endif
 
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/find.hpp>
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/string_view.h>
 #include <OpenImageIO/strutil.h>
+#include <OpenImageIO/thread.h>
 #include <OpenImageIO/ustring.h>
 
 #ifdef _WIN32
+#    define WIN32_LEAN_AND_MEAN
+#    define VC_EXTRALEAN
+#    define NOMINMAX
+#    include <windows.h>
+
 #    include <shellapi.h>
 #endif
 
@@ -39,6 +50,12 @@
 #    pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #    define STBI__ASAN OIIO_NO_SANITIZE_ADDRESS
 #endif
+#define stbsp__uintptr std::uintptr_t
+
+#ifdef OpenImageIO_SANITIZE
+#    define STB_SPRINTF_NOUNALIGNED
+#endif
+
 #include "stb_sprintf.h"
 
 
@@ -49,8 +66,9 @@ namespace {
 static std::mutex output_mutex;
 
 // On systems that support it, get a location independent locale.
-#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)           \
-    || defined(__FreeBSD_kernel__) || defined(__GLIBC__)
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) \
+    || defined(__FreeBSD_kernel__) || defined(__OpenBSD__)           \
+    || defined(__GLIBC__)
 static locale_t c_loc = newlocale(LC_ALL_MASK, "C", nullptr);
 #elif defined(_WIN32)
 static _locale_t c_loc = _create_locale(LC_ALL, "C");
@@ -85,15 +103,14 @@ isdigit(char c)
 
 
 
-OIIO_NO_SANITIZE_ADDRESS
-const char*
-string_view::c_str() const
+OIIO_NO_SANITIZE_ADDRESS const char*
+c_str(string_view str)
 {
     // Usual case: either empty, or null-terminated
-    if (m_len == 0)  // empty string
+    if (str.size() == 0)  // empty string
         return "";
 
-    // This clause attempts to find out if there's a string-teriminating
+    // This clause attempts to find out if there's a string-terminating
     // '\0' character just beyond the boundary of the string_view, in which
     // case, simply returning m_chars (with no ustring creation) is a valid
     // C string.
@@ -111,38 +128,74 @@ string_view::c_str() const
     // in C++17 string_view. So maybe we'll find ourselves relying on it a
     // lot less, and therefore the performance hit of doing it foolproof
     // won't be as onerous.
-    if (m_chars[m_len] == 0)  // 0-terminated
-        return m_chars;
+    if (str[str.size()] == 0)  // 0-terminated
+        return str.data();
 
     // Rare case: may not be 0-terminated. Bite the bullet and construct a
     // 0-terminated string.  We use ustring as a way to avoid any issues of
     // who cleans up the allocation, though it means that it will stay in
     // the ustring table forever. Punt on this for now, it's an edge case
     // that we need to handle, but is not likely to ever be an issue.
-    return ustring(m_chars, 0, m_len).c_str();
+    return ustring(str).c_str();
 }
 
 
 
 void
-Strutil::sync_output(FILE* file, string_view str)
+Strutil::sync_output(FILE* file, string_view str, bool flush)
 {
     if (str.size() && file) {
         std::unique_lock<std::mutex> lock(output_mutex);
         fwrite(str.data(), 1, str.size(), file);
-        fflush(file);
+        if (flush)
+            fflush(file);
     }
 }
 
 
 
 void
-Strutil::sync_output(std::ostream& file, string_view str)
+Strutil::sync_output(std::ostream& file, string_view str, bool flush)
 {
     if (str.size()) {
         std::unique_lock<std::mutex> lock(output_mutex);
         file << str;
-        file.flush();
+        if (flush)
+            file.flush();
+    }
+}
+
+
+
+namespace pvt {
+static const char* oiio_debug_env = getenv("OPENIMAGEIO_DEBUG");
+#ifdef NDEBUG
+OIIO_UTIL_API int
+    oiio_print_debug(oiio_debug_env ? Strutil::stoi(oiio_debug_env) : 0);
+#else
+OIIO_UTIL_API int
+    oiio_print_debug(oiio_debug_env ? Strutil::stoi(oiio_debug_env) : 1);
+#endif
+}  // namespace pvt
+
+
+void
+Strutil::pvt::debug(string_view message)
+{
+    if (OIIO::pvt::oiio_print_debug) {
+        static mutex debug_mutex;
+        lock_guard lock(debug_mutex);
+        static FILE* oiio_debug_file = nullptr;
+        if (!oiio_debug_file) {
+            const char* filename = getenv("OPENIMAGEIO_DEBUG_FILE");
+            oiio_debug_file = filename && filename[0] ? fopen(filename, "a")
+                                                      : stderr;
+            OIIO_ASSERT(oiio_debug_file);
+            if (!oiio_debug_file)
+                oiio_debug_file = stderr;
+        }
+        print(oiio_debug_file, "OIIO DEBUG: {}", message);
+        fflush(oiio_debug_file);
     }
 }
 
@@ -221,12 +274,12 @@ Strutil::memformat(long long bytes, int digits)
         d     = (double)bytes / MB;
     } else if (bytes >= KB) {
         // Just KB, don't bother with decimalization
-        return format("%lld KB", (long long)bytes / KB);
+        return fmt::format("{} KB", bytes / KB);
     } else {
         // Just bytes, don't bother with decimalization
-        return format("%lld B", (long long)bytes);
+        return fmt::format("{} B", bytes);
     }
-    return format("%1.*f %s", digits, d, units);
+    return Strutil::sprintf("%1.*f %s", digits, d, units);
 }
 
 
@@ -246,13 +299,13 @@ Strutil::timeintervalformat(double secs, int digits)
     int m = (int)floor(secs / mins);
     secs  = fmod(secs, mins);
     if (d)
-        out += format("%dd %dh ", d, h);
+        out += fmt::format("{}d {}h ", d, h);
     else if (h)
-        out += format("%dh ", h);
+        out += fmt::format("{}h ", h);
     if (m || h || d)
-        out += format("%dm %1.*fs", m, digits, secs);
+        out += Strutil::sprintf("%dm %1.*fs", m, digits, secs);
     else
-        out += format("%1.*fs", digits, secs);
+        out += Strutil::sprintf("%1.*fs", digits, secs);
     return out;
 }
 
@@ -262,7 +315,11 @@ bool
 Strutil::get_rest_arguments(const std::string& str, std::string& base,
                             std::map<std::string, std::string>& result)
 {
-    std::string::size_type mark_pos = str.find_first_of("?");
+    // Look for `?` as the start of REST arguments, but not if it's part
+    // of a `\\?\` special windows filename notation.
+    // See: https://docs.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation
+    size_t start  = starts_with(str, "\\\\?\\") ? 4 : 0;
+    auto mark_pos = str.find_first_of("?", start);
     if (mark_pos == std::string::npos) {
         base = str;
         return true;
@@ -270,9 +327,8 @@ Strutil::get_rest_arguments(const std::string& str, std::string& base,
 
     base             = str.substr(0, mark_pos);
     std::string rest = str.substr(mark_pos + 1);
-    std::vector<std::string> rest_tokens;
-    Strutil::split(rest, rest_tokens, "&");
-    for (const std::string& keyval : rest_tokens) {
+    auto rest_tokens = Strutil::splitsv(rest, "&");
+    for (auto keyval : rest_tokens) {
         mark_pos = keyval.find_first_of("=");
         if (mark_pos == std::string::npos)
             return false;
@@ -302,8 +358,9 @@ Strutil::escape_chars(string_view unescaped)
             case '\r': c = 'r'; break;
             case '\f': c = 'f'; break;
             case '\a': c = 'a'; break;
+            default: break;
             }
-            s.insert(i, &c, 1);
+            s.insert(i, 1, c);
         }
     }
     return s;
@@ -329,10 +386,8 @@ Strutil::unescape_chars(string_view escaped)
                 case 'b': s[i] = '\b'; break;
                 case 'r': s[i] = '\r'; break;
                 case 'f': s[i] = '\f'; break;
-                case 'a':
-                    s[i] = '\a';
-                    break;
-                    // default case: the deletion is enough (backslash and quote)
+                case 'a': s[i] = '\a'; break;
+                default: break;  // the deletion is enough (backslash and quote)
                 }
             } else if (c >= '0' && c < '8') {
                 // up to 3 octal digits
@@ -360,7 +415,7 @@ Strutil::wordwrap(string_view src, int columns, int prefix, string_view sep,
         return src;  // give up, no way to make it wrap
     std::ostringstream out;
     columns -= prefix;  // now columns is the real width we have to work with
-    std::string allsep = Strutil::sprintf("%s%s", sep, presep);
+    std::string allsep = Strutil::concat(sep, presep);
     while ((int)src.length() > columns) {
         // Find the last `sep` break before the column limit.
         size_t breakpoint = src.find_last_of(allsep, columns);
@@ -389,13 +444,39 @@ Strutil::wordwrap(string_view src, int columns, int prefix, string_view sep,
 
 
 
-// DEPRECATED(2.0) -- for link compatibility
 namespace Strutil {
-std::string
-wordwrap(string_view src, int columns, int prefix)
+
+// Define a locale-independent, case-insensitive comparison for all platforms.
+
+inline int
+strcasecmp(const char* a, const char* b)
 {
-    return wordwrap(src, columns, prefix, " ", "");
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) \
+    || defined(__FreeBSD_kernel__) || defined(__OpenBSD__)           \
+    || defined(__GLIBC__)
+    return strcasecmp_l(a, b, c_loc);
+#elif defined(_WIN32)
+    return _stricmp_l(a, b, c_loc);
+#else
+#    error("need equivalent of strcasecmp_l on this platform");
+#endif
 }
+
+
+inline int
+strncasecmp(const char* a, const char* b, size_t size)
+{
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) \
+    || defined(__FreeBSD_kernel__) || defined(__OpenBSD__)           \
+    || defined(__GLIBC__)
+    return strncasecmp_l(a, b, size, c_loc);
+#elif defined(_WIN32)
+    return _strnicmp_l(a, b, size, c_loc);
+#else
+#    error("need equivalent of strncasecmp_l on this platform");
+#endif
+}
+
 }  // namespace Strutil
 
 
@@ -403,57 +484,145 @@ wordwrap(string_view src, int columns, int prefix)
 bool
 Strutil::iequals(string_view a, string_view b)
 {
-    return boost::algorithm::iequals(a, b, std::locale::classic());
+    int asize = a.size();
+    int bsize = b.size();
+    if (asize != bsize)
+        return false;
+    return Strutil::strncasecmp(a.data(), b.data(), bsize) == 0;
 }
 
 
 bool
 Strutil::iless(string_view a, string_view b)
 {
-    return boost::algorithm::ilexicographical_compare(a, b,
-                                                      std::locale::classic());
+    size_t asize = a.size();
+    size_t bsize = b.size();
+    size_t size  = std::min(asize, bsize);
+    int c        = Strutil::strncasecmp(a.data(), b.data(), size);
+    // If c != 0, we could tell if a<b from the initial characters. But if c==0,
+    // the strings were equal up to the position of the lesser length, so
+    // whichever is smaller is "less" than the other.
+    return (c != 0) ? (c < 0) : (asize < bsize);
 }
 
 
 bool
 Strutil::starts_with(string_view a, string_view b)
 {
-    return boost::algorithm::starts_with(a, b);
+    size_t asize = a.size();
+    size_t bsize = b.size();
+    if (asize < bsize)
+        return false;
+    return strncmp(a.data(), b.data(), bsize) == 0;
 }
 
 
 bool
 Strutil::istarts_with(string_view a, string_view b)
 {
-    return boost::algorithm::istarts_with(a, b, std::locale::classic());
+    size_t asize = a.size();
+    size_t bsize = b.size();
+    if (asize < bsize)  // a can't start with b if a is smaller
+        return false;
+    return Strutil::strncasecmp(a.data(), b.data(), bsize) == 0;
 }
 
 
 bool
 Strutil::ends_with(string_view a, string_view b)
 {
-    return boost::algorithm::ends_with(a, b);
+    size_t asize = a.size();
+    size_t bsize = b.size();
+    if (asize < bsize)  // a can't start with b if a is smaller
+        return false;
+    return strncmp(a.data() + asize - bsize, b.data(), bsize) == 0;
+    // return boost::algorithm::ends_with(a, b);
 }
 
 
 bool
 Strutil::iends_with(string_view a, string_view b)
 {
-    return boost::algorithm::iends_with(a, b, std::locale::classic());
+    size_t asize = a.size();
+    size_t bsize = b.size();
+    if (asize < bsize)  // a can't start with b if a is smaller
+        return false;
+    return strncasecmp(a.data() + asize - bsize, b.data(), bsize) == 0;
+    // return boost::algorithm::iends_with(a, b, std::locale::classic());
 }
 
 
 bool
 Strutil::contains(string_view a, string_view b)
 {
-    return boost::algorithm::contains(a, b);
+    return find(a, b) != string_view::npos;
+    // We used to use the boost contains, but it seems to be about 2x more
+    // expensive than (find() != npos).
+    // return boost::algorithm::contains(a, b);
 }
 
 
 bool
 Strutil::icontains(string_view a, string_view b)
 {
-    return boost::algorithm::icontains(a, b, std::locale::classic());
+    return ifind(a, b) != string_view::npos;
+    // We used to use the boost icontains, but it seems to be about 2x more
+    // expensive than (ifind() != npos).
+    // return boost::algorithm::icontains(a, b, std::locale::classic());
+}
+
+
+
+bool
+Strutil::contains_any_char(string_view a, string_view set)
+{
+    if (a.size() == 0)
+        return false;
+    // Leverage Strutil::parse_until, which trims a string until it hits
+    // any characters in a set.
+    string_view r = parse_until(a, set, false /* don't alter a */);
+    // If r encompasses less than all of a, it must have found one of the
+    // characters in set.
+    return (r.size() < a.size());
+}
+
+
+
+size_t
+Strutil::find(string_view a, string_view b)
+{
+    return a.find(b);
+}
+
+
+size_t
+Strutil::rfind(string_view a, string_view b)
+{
+    return a.rfind(b);
+}
+
+
+size_t
+Strutil::ifind(string_view a, string_view b)
+{
+    if (a.empty())
+        return string_view::npos;
+    if (b.empty())
+        return 0;
+    auto f = boost::algorithm::ifind_first(a, b, std::locale::classic());
+    return f.empty() ? string_view::npos : f.begin() - a.data();
+}
+
+
+size_t
+Strutil::irfind(string_view a, string_view b)
+{
+    if (a.empty())
+        return string_view::npos;
+    if (b.empty())
+        return a.size();
+    auto f = boost::algorithm::ifind_last(a, b, std::locale::classic());
+    return f.empty() ? string_view::npos : f.begin() - a.data();
 }
 
 
@@ -475,15 +644,17 @@ Strutil::to_upper(std::string& a)
 bool
 Strutil::StringIEqual::operator()(const char* a, const char* b) const noexcept
 {
-    return boost::algorithm::iequals(a, b, std::locale::classic());
+    return Strutil::strcasecmp(a, b) == 0;
+    // return boost::algorithm::iequals(a, b, std::locale::classic());
 }
 
 
 bool
 Strutil::StringILess::operator()(const char* a, const char* b) const noexcept
 {
-    return boost::algorithm::ilexicographical_compare(a, b,
-                                                      std::locale::classic());
+    return Strutil::strcasecmp(a, b) < 0;
+    // return boost::algorithm::ilexicographical_compare(a, b,
+    //                                                   std::locale::classic());
 }
 
 
@@ -519,7 +690,7 @@ Strutil::strip(string_view str, string_view chars)
     if (b == std::string::npos)
         return string_view();
     size_t e = str.find_last_not_of(chars);
-    DASSERT(e != std::string::npos);
+    OIIO_DASSERT(e != std::string::npos);
     return str.substr(b, e - b + 1);
 }
 
@@ -532,16 +703,16 @@ split_whitespace(string_view str, std::vector<string_view>& result,
     // Implementation inspired by Pystring
     string_view::size_type i, j, len = str.size();
     for (i = j = 0; i < len;) {
-        while (i < len && ::isspace(str[i]))
+        while (i < len && Strutil::isspace(str[i]))
             i++;
         j = i;
-        while (i < len && !::isspace(str[i]))
+        while (i < len && !Strutil::isspace(str[i]))
             i++;
         if (j < i) {
             if (--maxsplit <= 0)
                 break;
             result.push_back(str.substr(j, i - j));
-            while (i < len && ::isspace(str[i]))
+            while (i < len && Strutil::isspace(str[i]))
                 i++;
             j = i;
         }
@@ -558,8 +729,8 @@ Strutil::splits(string_view str, string_view sep, int maxsplit)
     auto sr_result = splitsv(str, sep, maxsplit);
     std::vector<std::string> result;
     result.reserve(sr_result.size());
-    for (size_t i = 0, e = sr_result.size(); i != e; ++i)
-        result.push_back(sr_result[i]);
+    for (auto& s : sr_result)
+        result.push_back(s);
     return result;
 }
 
@@ -578,6 +749,8 @@ std::vector<string_view>
 Strutil::splitsv(string_view str, string_view sep, int maxsplit)
 {
     std::vector<string_view> result;
+    if (str.size() == 0)
+        return result;  // No source string --> no pieces
 
     // Implementation inspired by Pystring
     if (maxsplit < 0)
@@ -613,12 +786,39 @@ Strutil::split(string_view str, std::vector<string_view>& result,
 
 
 std::string
+Strutil::concat(string_view s, string_view t)
+{
+    size_t sl = s.size();
+    size_t tl = t.size();
+    if (sl == 0)
+        return t;
+    if (tl == 0)
+        return s;
+    size_t len = sl + tl;
+    char* buf;
+    OIIO_ALLOCATE_STACK_OR_HEAP(buf, char, len);
+    memcpy(buf, s.data(), sl);
+    memcpy(buf + sl, t.data(), tl);
+    return std::string(buf, len);
+}
+
+
+
+std::string
 Strutil::repeat(string_view str, int n)
 {
-    std::ostringstream out;
-    while (n-- > 0)
-        out << str;
-    return out.str();
+    size_t sl  = str.size();
+    size_t len = sl * std::max(0, n);
+    std::unique_ptr<char[]> heap_buf;
+    char local_buf[256] = "";
+    char* buf           = local_buf;
+    if (len > sizeof(local_buf)) {
+        heap_buf.reset(new char[len]);
+        buf = heap_buf.get();
+    }
+    for (int i = 0; i < n; ++i)
+        memcpy(buf + i * sl, str.data(), sl);
+    return std::string(buf, len);
 }
 
 
@@ -649,41 +849,107 @@ Strutil::replace(string_view str, string_view pattern, string_view replacement,
 
 
 
-#ifdef _WIN32
+// Conversion functions between UTF-8 and UTF-16 for windows.
+//
+// For historical reasons, the standard encoding for strings on windows is
+// UTF-16, whereas the unix world seems to have settled on UTF-8.  These two
+// encodings can be stored in std::string and std::wstring respectively, with
+// the caveat that they're both variable-width encodings, so not all the
+// standard string methods will make sense (for example std::string::size()
+// won't return the number of glyphs in a UTF-8 string, unless it happens to
+// be made up of only the 7-bit ASCII subset).
+//
+// The standard windows API functions usually have two versions, a UTF-16
+// version with a 'W' suffix (using wchar_t* strings), and an ANSI version
+// with a 'A' suffix (using char* strings) which uses the current windows
+// code page to define the encoding.  (To make matters more confusing there is
+// also a further "TCHAR" version which is #defined to the UTF-16 or ANSI
+// version, depending on whether UNICODE is defined during compilation.
+// This is meant to make it possible to support compiling libraries in
+// either unicode or ansi mode from the same codebase.)
+//
+// Using std::string as the string container (as in OIIO) implies that we
+// can't use UTF-16.  It also means we need a variable-width encoding to
+// represent characters in non-Latin alphabets in an unambiguous way; the
+// obvious candidate is UTF-8.  File paths in OIIO are considered to be
+// represented in UTF-8, and must be converted to UTF-16 before passing to
+// windows API file opening functions.
+//
+// On the other hand, the encoding used for the ANSI versions of the windows
+// API is the current windows code page.  This is more compatible with the
+// default setup of the standard windows command prompt, and may be more
+// appropriate for error messages.
+
+std::wstring
+Strutil::utf8_to_utf16wstring(string_view str) noexcept
+{
+    try {
+        OIIO_PRAGMA_WARNING_PUSH
+        OIIO_CLANG_PRAGMA(GCC diagnostic ignored "-Wdeprecated-declarations")
+        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> conv;
+        OIIO_PRAGMA_WARNING_POP
+        return conv.from_bytes(str.data(), str.data() + str.size());
+    } catch (const std::exception&) {
+        return std::wstring();
+    }
+}
+
+
+
+#if OPENIMAGEIO_VERSION < 30000
+// DEPRECATED(2.5) and slated for removal in 3.0.
 std::wstring
 Strutil::utf8_to_utf16(string_view str) noexcept
 {
-    std::wstring native;
-
-    native.resize(
-        MultiByteToWideChar(CP_UTF8, 0, str.data(), str.length(), NULL, 0));
-    MultiByteToWideChar(CP_UTF8, 0, str.data(), str.length(), &native[0],
-                        (int)native.size());
-
-    return native;
+    return utf8_to_utf16wstring(str);
 }
+#endif
 
 
 
 std::string
 Strutil::utf16_to_utf8(const std::wstring& str) noexcept
 {
-    std::string utf8;
-
-    utf8.resize(WideCharToMultiByte(CP_UTF8, 0, str.data(), str.length(), NULL,
-                                    0, NULL, NULL));
-    WideCharToMultiByte(CP_UTF8, 0, str.data(), str.length(), &utf8[0],
-                        (int)utf8.size(), NULL, NULL);
-
-    return utf8;
+    try {
+        OIIO_PRAGMA_WARNING_PUSH
+        OIIO_CLANG_PRAGMA(GCC diagnostic ignored "-Wdeprecated-declarations")
+        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> conv;
+        OIIO_PRAGMA_WARNING_POP
+        return conv.to_bytes(str);
+    } catch (const std::exception&) {
+        return std::string();
+    }
 }
+
+
+
+std::string
+Strutil::utf16_to_utf8(const std::u16string& str) noexcept
+{
+    try {
+        OIIO_PRAGMA_WARNING_PUSH
+        OIIO_CLANG_PRAGMA(GCC diagnostic ignored "-Wdeprecated-declarations")
+        // There is a bug in MSVS 2017 causing an unresolved symbol if char16_t is used (see https://stackoverflow.com/a/35103224)
+#if defined _MSC_VER && _MSC_VER >= 1900 && _MSC_VER < 1930
+        std::wstring_convert<std::codecvt_utf8_utf16<int16_t>, int16_t> convert;
+        auto p = reinterpret_cast<const int16_t*>(str.data());
+        return convert.to_bytes(p, p + str.size());
+#else
+        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> conv;
+        return conv.to_bytes(str);
 #endif
+        OIIO_PRAGMA_WARNING_POP
+    } catch (const std::exception&) {
+        return std::string();
+    }
+}
 
 
 
 char*
 Strutil::safe_strcpy(char* dst, string_view src, size_t size) noexcept
 {
+    OIIO_DASSERT(dst);
     if (src.size()) {
         size_t end = std::min(size - 1, src.size());
         for (size_t i = 0; i < end; ++i)
@@ -699,10 +965,34 @@ Strutil::safe_strcpy(char* dst, string_view src, size_t size) noexcept
 
 
 
+char*
+Strutil::safe_strcat(char* dst, string_view src, size_t size) noexcept
+{
+    OIIO_DASSERT(dst);
+    if (src.size()) {
+        size_t dstsize = strnlen(dst, size);
+        size_t end     = std::min(size - dstsize - 1, src.size());
+        for (size_t i = 0; i < end; ++i)
+            dst[dstsize + i] = src[i];
+        dst[dstsize + end] = 0;
+    }
+    return dst;
+}
+
+
+
+size_t
+Strutil::safe_strlen(const char* str, size_t size) noexcept
+{
+    return str ? strnlen(str, size) : 0;
+}
+
+
+
 void
 Strutil::skip_whitespace(string_view& str) noexcept
 {
-    while (str.size() && isspace(str.front()))
+    while (str.size() && Strutil::isspace(str.front()))
         str.remove_prefix(1);
 }
 
@@ -711,7 +1001,7 @@ Strutil::skip_whitespace(string_view& str) noexcept
 void
 Strutil::remove_trailing_whitespace(string_view& str) noexcept
 {
-    while (str.size() && isspace(str.back()))
+    while (str.size() && Strutil::isspace(str.back()))
         str.remove_suffix(1);
 }
 
@@ -816,7 +1106,7 @@ Strutil::parse_string(string_view& str, string_view& val, bool eat,
     const char *begin = p.begin(), *end = p.begin();
     bool escaped = false;  // was the prior character a backslash
     while (end != p.end()) {
-        if (isspace(*end) && !quoted)
+        if (Strutil::isspace(*end) && !quoted)
             break;  // not quoted and we hit whitespace: we're done
         if (quoted && *end == lead_char && !escaped)
             break;  // closing quote -- we're done (beware embedded quote)
@@ -837,6 +1127,48 @@ Strutil::parse_string(string_view& str, string_view& val, bool eat,
     if (eat)
         str = p;
     return quoted || val.size();
+}
+
+
+
+bool
+Strutil::parse_values(string_view& str, string_view prefix, span<int> values,
+                      string_view sep, string_view postfix, bool eat) noexcept
+{
+    string_view p = str;
+    bool ok       = true;
+    if (prefix.size())
+        ok &= Strutil::parse_prefix(p, prefix);
+    for (size_t i = 0, sz = values.size(); i < sz && ok; ++i) {
+        ok &= Strutil::parse_value(p, values[i]);
+        if (ok && sep.size() && i < sz - 1)
+            ok &= Strutil::parse_prefix(p, sep);
+    }
+    if (ok && postfix.size())
+        ok &= Strutil::parse_prefix(p, postfix);
+    if (ok && eat)
+        str = p;
+    return ok;
+}
+
+bool
+Strutil::parse_values(string_view& str, string_view prefix, span<float> values,
+                      string_view sep, string_view postfix, bool eat) noexcept
+{
+    string_view p = str;
+    bool ok       = true;
+    if (prefix.size())
+        ok &= Strutil::parse_prefix(p, prefix);
+    for (size_t i = 0, sz = values.size(); i < sz && ok; ++i) {
+        ok &= Strutil::parse_value(p, values[i]);
+        if (ok && sep.size() && i < sz - 1)
+            ok &= Strutil::parse_prefix(p, sep);
+    }
+    if (ok && postfix.size())
+        ok &= Strutil::parse_prefix(p, postfix);
+    if (ok && eat)
+        str = p;
+    return ok;
 }
 
 
@@ -956,6 +1288,26 @@ Strutil::parse_while(string_view& str, string_view set, bool eat) noexcept
 
 
 string_view
+Strutil::parse_line(string_view& str, bool eat) noexcept
+{
+    string_view result;
+    auto newlinepos = str.find('\n');
+    if (newlinepos >= str.size() - 1) {
+        // No newline, or newline is the last char -> return the whole thing
+        result = str;
+        if (eat)
+            str = string_view();
+    } else {
+        result = str.substr(0, newlinepos + 1);
+        if (eat)
+            str = str.substr(newlinepos + 1);
+    }
+    return result;
+}
+
+
+
+string_view
 Strutil::parse_nested(string_view& str, bool eat) noexcept
 {
     // Make sure we have a valid string and ascertain the characters that
@@ -988,7 +1340,7 @@ Strutil::parse_nested(string_view& str, bool eat) noexcept
     if (nesting)
         return string_view();  // No proper closing
 
-    ASSERT(p[len - 1] == closing);
+    OIIO_ASSERT(p[len - 1] == closing);
 
     // The result is the first len characters
     string_view result = str.substr(0, len);
@@ -1076,8 +1428,8 @@ decode(uint32_t* state, uint32_t* codep, uint32_t byte)
 {
     uint32_t type = utf8d[byte];
     *codep        = (*state != UTF8_ACCEPT) ? (byte & 0x3fu) | (*codep << 6)
-                                     : (0xff >> type) & (byte);
-    *state = utf8d[256 + *state + type];
+                                            : (0xff >> type) & (byte);
+    *state        = utf8d[256 + *state + type];
     return *state;
 }
 
@@ -1249,7 +1601,7 @@ Strutil::strtof(const char* nptr, char** endptr) noexcept
 #ifdef __APPLE__
     // On OSX, strtod_l is for some reason drastically faster than strtof_l.
     return static_cast<float>(strtod_l(nptr, endptr, c_loc));
-#elif defined(__linux__) || defined(__FreeBSD__)                               \
+#elif defined(__linux__) || defined(__FreeBSD__) \
     || defined(__FreeBSD_kernel__) || defined(__GLIBC__)
     return strtof_l(nptr, endptr, c_loc);
 #elif defined(_WIN32)
@@ -1284,9 +1636,8 @@ double
 Strutil::strtod(const char* nptr, char** endptr) noexcept
 {
     // Can use strtod_l on platforms that support it
-#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)           \
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) \
     || defined(__FreeBSD_kernel__) || defined(__GLIBC__)
-    // static initialization inside function is thread-safe by C++11 rules!
     return strtod_l(nptr, endptr, c_loc);
 #elif defined(_WIN32)
     // Windows has _strtod_l
@@ -1366,7 +1717,7 @@ Strutil::stof(string_view s, size_t* pos)
     // will use the "short string optimization", meaning that this string
     // creation will NOT need an allocation/free for most strings we expect
     // to hold a text representation of a float.
-    return Strutil::stof(std::string(s).c_str(), pos);
+    return Strutil::stof(std::string(s), pos);
 }
 
 
@@ -1411,6 +1762,20 @@ Strutil::stod(string_view s, size_t* pos)
 
 
 
+unsigned int
+Strutil::stoui(string_view s, size_t* pos, int base)
+{
+    // For conversion of string_view to unsigned int, fall back on strtoul.
+    char* endptr = nullptr;
+    std::string ss(s);
+    auto r = strtoul(ss.c_str(), &endptr, base);
+    if (pos)
+        *pos = size_t(endptr - ss.c_str());
+    return static_cast<unsigned int>(r);
+}
+
+
+
 bool
 Strutil::string_is_int(string_view s)
 {
@@ -1436,5 +1801,65 @@ Strutil::string_is_float(string_view s)
     return pos && s.empty();  // consumed the whole string
 }
 
+
+
+bool
+Strutil::scan_datetime(string_view str, int& year, int& month, int& day,
+                       int& hour, int& min, int& sec)
+{
+    bool ok = parse_int(str, year)
+              && (parse_char(str, ':', false) || parse_char(str, '-', false)
+                  || parse_char(str, '/', false))
+              && parse_int(str, month)
+              && (parse_char(str, ':', false) || parse_char(str, '-', false)
+                  || parse_char(str, '/', false))
+              && parse_int(str, day) && parse_int(str, hour)
+              && parse_char(str, ':', false) && parse_int(str, min)
+              && parse_char(str, ':', false) && parse_int(str, sec);  //NOSONAR
+    return ok && month >= 1 && month <= 12 && day >= 1 && day <= 31 && hour >= 0
+           && hour <= 23 && min >= 0 && min <= 59 && sec >= 0 && sec <= 59;
+}
+
+
+
+// https://en.wikipedia.org/wiki/Levenshtein_distance
+// With some guidance from https://github.com/wooorm/levenshtein.c (MIT
+// license) as well.
+static size_t
+levenshtein_distance(string_view a, string_view b)
+{
+    if (a == b)
+        return 0;
+    if (a.size() == 0)
+        return b.size();
+    if (b.size() == 0)
+        return a.size();
+
+    size_t* cache;
+    OIIO_ALLOCATE_STACK_OR_HEAP(cache, size_t, a.size());
+    std::iota(cache, cache + a.size(), 1);  // [ 1, 2, 3, ... ]
+
+    size_t result = 0;
+    for (size_t bi = 0; bi < b.size(); ++bi) {
+        char code   = b[bi];
+        size_t dist = bi;
+        for (size_t ai = 0; ai < a.size(); ++ai) {
+            size_t bdist = code == a[ai] ? dist : dist + 1;
+            dist         = cache[ai];
+            result       = dist > result ? (bdist > result ? result + 1 : bdist)
+                                         : (bdist > dist ? dist + 1 : bdist);
+            cache[ai]    = result;
+        }
+    }
+    return result;
+}
+
+
+
+size_t
+Strutil::edit_distance(string_view a, string_view b, EditDistMetric metric)
+{
+    return levenshtein_distance(a, b);
+}
 
 OIIO_NAMESPACE_END

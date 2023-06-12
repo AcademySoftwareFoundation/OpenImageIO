@@ -1,11 +1,10 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #pragma once
 
 #include <OpenImageIO/filesystem.h>
-#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -26,7 +25,7 @@ struct FileHeader {
 
 struct ColorModeData {
     uint32_t length;
-    std::string data;
+    std::unique_ptr<uint8_t[]> data;
 };
 
 
@@ -36,7 +35,7 @@ struct ImageResourceBlock {
     uint16_t id;
     std::string name;
     uint32_t length;
-    std::streampos pos;
+    int64_t pos;
 };
 
 }  // namespace psd_pvt

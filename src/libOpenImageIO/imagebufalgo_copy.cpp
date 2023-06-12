@@ -1,16 +1,11 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
-
-/// \file
-/// Implementation of ImageBufAlgo algorithms that merely move pixels
-/// or channels between images without altering their values.
-
-
-#include <OpenEXR/half.h>
+// https://github.com/OpenImageIO/oiio
 
 #include <cmath>
 #include <iostream>
+
+#include <OpenImageIO/half.h>
 
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/imagebuf.h>
@@ -61,7 +56,7 @@ static bool
 deep_paste_(ImageBuf& dst, const ImageBuf& src, ROI dstroi, ROI srcroi,
             int nthreads)
 {
-    ASSERT(dst.deep() && src.deep());
+    OIIO_ASSERT(dst.deep() && src.deep());
     int relative_x = dstroi.xbegin - srcroi.xbegin;
     int relative_y = dstroi.ybegin - srcroi.ybegin;
     int relative_z = dstroi.zbegin - srcroi.zbegin;
@@ -159,7 +154,7 @@ copy_(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads = 1)
 static bool
 copy_deep(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads = 1)
 {
-    ASSERT(dst.deep() && src.deep());
+    OIIO_ASSERT(dst.deep() && src.deep());
     using namespace ImageBufAlgo;
     parallel_image(roi, nthreads, [&](ROI roi) {
         DeepData& dstdeep(*dst.deepdata());
@@ -170,7 +165,7 @@ copy_deep(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads = 1)
             // The caller should ALREADY have set the samples, since that
             // is not thread-safe against the copying below.
             // d.set_deep_samples (samples);
-            DASSERT(d.deep_samples() == samples);
+            OIIO_DASSERT(d.deep_samples() == samples);
             if (samples == 0)
                 continue;
             for (int c = roi.chbegin; c < roi.chend; ++c) {
@@ -249,7 +244,7 @@ ImageBufAlgo::copy(const ImageBuf& src, TypeDesc convert, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = copy(result, src, convert, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::copy() error");
+        result.errorfmt("ImageBufAlgo::copy() error");
     return result;
 }
 
@@ -303,7 +298,7 @@ ImageBufAlgo::crop(const ImageBuf& src, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = crop(result, src, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::crop() error");
+        result.errorfmt("ImageBufAlgo::crop() error");
     return result;
 }
 
@@ -334,7 +329,7 @@ ImageBufAlgo::cut(const ImageBuf& src, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = cut(result, src, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::cut() error");
+        result.errorfmt("ImageBufAlgo::cut() error");
     return result;
 }
 
@@ -393,7 +388,7 @@ ImageBufAlgo::circular_shift(const ImageBuf& src, int xshift, int yshift,
     bool ok = circular_shift(result, src, xshift, yshift, zshift, roi,
                              nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::circular_shift() error");
+        result.errorfmt("ImageBufAlgo::circular_shift() error");
     return result;
 }
 

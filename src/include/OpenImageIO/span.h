@@ -1,7 +1,6 @@
-// Copyright 2008-presennt Contributors to the OpenImageIO project.
-//  https://github.com/OpenImageIO/oiio
-// BSD 3-clause license:
-//  https://github.com/OpenImageIO/oiio/blob/master/LICENSE
+// Copyright 2008-present Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: BSD-3-Clause
+// https://github.com/OpenImageIO/oiio
 
 // clang-format off
 
@@ -18,21 +17,39 @@
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/platform.h>
+#include <OpenImageIO/detail/fmt.h>
 
 OIIO_NAMESPACE_BEGIN
 
+// By default, our span::size() is a signed value, because we wrote this at
+// a time that the draft of std::span said it should be signed. The final
+// C++20 std::span ended up with an unsigned size, like all the other STL
+// classes. We will eventually conform by switching, but not until we are at
+// OIIO 3.0, allowing source code API-breaking incompatibilities. In the
+// mean time, we allow a back door to experiment with standard conformance
+// by pre-defining OIIO_SPAN_SIZE_IS_UNSIGNED=1.
+#if OIIO_VERSION_GREATER_EQUAL(3,0,0)
+#    define OIIO_SPAN_SIZE_IS_UNSIGNED
+#endif
 
-constexpr ptrdiff_t dynamic_extent = -1;
+#ifdef OIIO_SPAN_SIZE_IS_UNSIGNED
+using oiio_span_size_type = size_t;
+#else
+using oiio_span_size_type = ptrdiff_t;
+#endif
+
+OIIO_INLINE_CONSTEXPR oiio_span_size_type dynamic_extent = -1;
 
 
-/// span<T> is a non-owning, non-copying, non-allocating reference to a
+
+/// `span<T>` is a non-owning, non-copying, non-allocating reference to a
 /// contiguous array of T objects known length. A 'span` encapsulates both a
 /// pointer and a length, and thus is a safer way of passing pointers around
 /// (because the function called knows how long the array is). A function
 /// that might ordinarily take a `T*` and a length could instead just take a
 /// `span<T>`.
 ///
-/// `A span<T>` is mutable (the values in the array may be modified).  A
+/// A `span<T>` is mutable (the values in the array may be modified).  A
 /// non-mutable (i.e., read-only) reference would be `span<const T>`. Thus,
 /// a function that might ordinarily take a `const T*` and a length could
 /// instead take a `span<const T>`.
@@ -41,7 +58,7 @@ constexpr ptrdiff_t dynamic_extent = -1;
 /// `span<const T>`.
 ///
 /// A `span` may be initialized explicitly from a pointer and length, by
-/// initializing with a `std::vector<T>`, or by initalizing with a constant
+/// initializing with a `std::vector<T>`, or by initializing with a constant
 /// (treated as an array of length 1). For all of these cases, no extra
 /// allocations are performed, and no extra copies of the array contents are
 /// made.
@@ -53,35 +70,37 @@ constexpr ptrdiff_t dynamic_extent = -1;
 /// structure (unless you are really sure you know what you're doing).
 ///
 
-template <typename T, ptrdiff_t Extent = dynamic_extent>
+template <typename T, oiio_span_size_type Extent = dynamic_extent>
 class span {
     static_assert (std::is_array<T>::value == false, "can't have span of an array");
 public:
     using element_type = T;
     using value_type = typename std::remove_cv<T>::type;
-    using index_type = ptrdiff_t;
+    using size_type = oiio_span_size_type;
     using difference_type = ptrdiff_t;
-    using size_type = ptrdiff_t;
+#if OIIO_VERSION < OIIO_MAKE_VERSION(3,0,0)
+    using index_type = size_type;  // DEPRECATED(3.0)
+#endif
     using pointer = element_type*;
     using reference = element_type&;
     using iterator = element_type*;
     using const_iterator = const element_type*;
     using reverse_iterator = std::reverse_iterator<iterator>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
-    static constexpr index_type extent = Extent;
+    static constexpr size_type extent = Extent;
 
     /// Default constructor -- the span points to nothing.
     constexpr span () noexcept { }
 
     /// Copy constructor (copies the span pointer and length, NOT the data).
-    template<class U, ptrdiff_t N>
+    template<class U, oiio_span_size_type N>
     constexpr span (const span<U,N> &copy) noexcept
         : m_data(copy.data()), m_size(copy.size()) { }
     /// Copy constructor (copies the span pointer and length, NOT the data).
     constexpr span (const span &copy) noexcept = default;
 
     /// Construct from T* and length.
-    constexpr span (pointer data, index_type size) noexcept
+    constexpr span (pointer data, size_type size) noexcept
         : m_data(data), m_size(size) { }
 
     /// Construct from begin and end pointers.
@@ -97,14 +116,16 @@ public:
     constexpr span (T (&data)[N]) : m_data(data), m_size(N) { }
 
     /// Construct from std::vector<T>.
-    constexpr span (std::vector<T> &v)
+    template<class Allocator>
+    constexpr span (std::vector<T, Allocator> &v)
         : m_data(v.size() ? &v[0] : nullptr), m_size(v.size()) {
     }
 
     /// Construct from `const std::vector<T>.` This turns
     /// `const std::vector<T>` into a `span<const T>` (the span isn't const,
     /// but the data it points to will be).
-    span (const std::vector<value_type> &v)
+    template<class Allocator>
+    span (const std::vector<value_type, Allocator> &v)
         : m_data(v.size() ? &v[0] : nullptr), m_size(v.size()) { }
 
     /// Construct from mutable element std::array
@@ -129,43 +150,48 @@ public:
     }
 
     /// Subview containing the first Count elements of the span.
-    template<index_type Count>
+    template<size_type Count>
     constexpr span<element_type, Count> first () const {
         return { m_data, Count };
     }
     /// Subview containing the last Count elements of the span.
-    template<index_type Count>
+    template<size_type Count>
     constexpr span<element_type, Count> last () const {
         return { m_data + m_size - Count, Count };
     }
 
-    template<index_type Offset, index_type Count = dynamic_extent>
+    template<size_type Offset, size_type Count = dynamic_extent>
     constexpr span<element_type, Count> subspan () const {
         return { m_data + Offset, Count != dynamic_extent ? Count : (Extent != dynamic_extent ? Extent - Offset : m_size - Offset) };
     }
 
-    constexpr span<element_type, dynamic_extent> first (index_type count) const {
+    constexpr span<element_type, dynamic_extent> first (size_type count) const {
         return { m_data, count };
     }
 
-    constexpr span<element_type, dynamic_extent> last (index_type count) const {
+    constexpr span<element_type, dynamic_extent> last (size_type count) const {
         return { m_data + ( m_size - count ), count };
     }
 
     constexpr span<element_type, dynamic_extent>
-    subspan (index_type offset, index_type count = dynamic_extent) const {
+    subspan (size_type offset, size_type count = dynamic_extent) const {
         return { m_data + offset, count == dynamic_extent ? m_size - offset : count };
     }
 
-    constexpr index_type size() const noexcept { return m_size; }
-    constexpr index_type size_bytes() const noexcept { return m_size*sizeof(T); }
+    // Note: size() currently returns a signed value. But eventually, we
+    // will conform to std::span<>::size() which returns size_t. In the mean
+    // time, apps may choose to avoid the size() method and instead use
+    // std::size(myspan) and std::ssize(myspan), which already conform to
+    // std's practice of returning size_t and ptrdiff_t, respectively.
+    constexpr size_type size() const noexcept { return m_size; }
+    constexpr size_type size_bytes() const noexcept { return size()*sizeof(T); }
     constexpr bool empty() const noexcept { return m_size == 0; }
 
     constexpr pointer data() const noexcept { return m_data; }
 
-    constexpr reference operator[] (index_type idx) const { return m_data[idx]; }
-    constexpr reference operator() (index_type idx) const { return m_data[idx]; }
-    reference at (index_type idx) const {
+    constexpr reference operator[] (size_type idx) const { return m_data[idx]; }
+    constexpr reference operator() (size_type idx) const { return m_data[idx]; }
+    reference at (size_type idx) const {
         if (idx >= size())
             throw (std::out_of_range ("OpenImageIO::span::at"));
         return m_data[idx];
@@ -188,19 +214,19 @@ public:
 
 private:
     pointer     m_data = nullptr;
-    index_type  m_size = 0;
+    size_type   m_size = 0;
 };
 
 
 
 /// cspan<T> is a synonym for a non-mutable span<const T>.
-template <typename T>
-using cspan = span<const T>;
+template <typename T, oiio_span_size_type Extent = dynamic_extent>
+using cspan = span<const T, Extent>;
 
 
 
 /// Compare all elements of two spans for equality
-template <class T, ptrdiff_t X, class U, ptrdiff_t Y>
+template <class T, oiio_span_size_type X, class U, oiio_span_size_type Y>
 OIIO_CONSTEXPR14 bool operator== (span<T,X> l, span<U,Y> r) {
 #if OIIO_CPLUSPLUS_VERSION >= 20
     return std::equal (l.begin(), l.end(), r.begin(), r.end());
@@ -214,7 +240,7 @@ OIIO_CONSTEXPR14 bool operator== (span<T,X> l, span<U,Y> r) {
 }
 
 /// Compare all elements of two spans for inequality
-template <class T, ptrdiff_t X, class U, ptrdiff_t Y>
+template <class T, oiio_span_size_type X, class U, oiio_span_size_type Y>
 OIIO_CONSTEXPR14 bool operator!= (span<T,X> l, span<U,Y> r) {
     return !(l == r);
 }
@@ -225,15 +251,18 @@ OIIO_CONSTEXPR14 bool operator!= (span<T,X> l, span<U,Y> r) {
 /// array with known length and optionally non-default strides through the
 /// data.  An span_strided<T> is mutable (the values in the array may
 /// be modified), whereas an span_strided<const T> is not mutable.
-template <typename T, ptrdiff_t Extent = dynamic_extent>
+template <typename T, oiio_span_size_type Extent = dynamic_extent>
 class span_strided {
     static_assert (std::is_array<T>::value == false,
                    "can't have span_strided of an array");
 public:
     using element_type = T;
     using value_type = typename std::remove_cv<T>::type;
-    using index_type = ptrdiff_t;
+    using size_type  = oiio_span_size_type;
     using difference_type = ptrdiff_t;
+#if OIIO_VERSION < OIIO_MAKE_VERSION(3,0,0)
+    using index_type = size_type;  // DEPRECATED(3.0)
+#endif
     using stride_type = ptrdiff_t;
     using pointer = element_type*;
     using reference = element_type&;
@@ -241,7 +270,7 @@ public:
     using const_iterator = const element_type*;
     using reverse_iterator = std::reverse_iterator<iterator>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
-    static constexpr index_type extent = Extent;
+    static constexpr size_type extent = Extent;
 
     /// Default ctr -- points to nothing
     constexpr span_strided () noexcept {}
@@ -251,7 +280,7 @@ public:
         : m_data(copy.data()), m_size(copy.size()), m_stride(copy.stride()) {}
 
     /// Construct from T* and size, and optionally stride.
-    constexpr span_strided (pointer data, index_type size, stride_type stride=1)
+    constexpr span_strided (pointer data, size_type size, stride_type stride=1)
         : m_data(data), m_size(size), m_stride(stride) { }
 
     /// Construct from a single T&.
@@ -263,13 +292,15 @@ public:
     constexpr span_strided (T (&data)[N]) : span_strided(data,N,1) {}
 
     /// Construct from std::vector<T>.
-    OIIO_CONSTEXPR14 span_strided (std::vector<T> &v)
+    template<class Allocator>
+    OIIO_CONSTEXPR14 span_strided (std::vector<T, Allocator> &v)
         : span_strided(v.size() ? &v[0] : nullptr, v.size(), 1) {}
 
     /// Construct from const std::vector<T>. This turns const std::vector<T>
     /// into an span_strided<const T> (the span_strided isn't
     /// const, but the data it points to will be).
-    constexpr span_strided (const std::vector<value_type> &v)
+    template<class Allocator>
+    constexpr span_strided (const std::vector<value_type, Allocator> &v)
         : span_strided(v.size() ? &v[0] : nullptr, v.size(), 1) {}
 
     /// Construct an span from an initializer_list.
@@ -288,16 +319,16 @@ public:
         return *this;
     }
 
-    constexpr index_type size() const noexcept { return m_size; }
+    constexpr size_type size() const noexcept { return m_size; }
     constexpr stride_type stride() const noexcept { return m_stride; }
 
-    constexpr reference operator[] (index_type idx) const {
+    constexpr reference operator[] (size_type idx) const {
         return m_data[m_stride*idx];
     }
-    constexpr reference operator() (index_type idx) const {
+    constexpr reference operator() (size_type idx) const {
         return m_data[m_stride*idx];
     }
-    reference at (index_type idx) const {
+    reference at (size_type idx) const {
         if (idx >= size())
             throw (std::out_of_range ("OpenImageIO::span_strided::at"));
         return m_data[m_stride*idx];
@@ -308,20 +339,20 @@ public:
 
 private:
     pointer       m_data   = nullptr;
-    index_type    m_size   = 0;
+    size_type     m_size   = 0;
     stride_type   m_stride = 1;
 };
 
 
 
 /// cspan_strided<T> is a synonym for a non-mutable span_strided<const T>.
-template <typename T>
-using cspan_strided = span_strided<const T>;
+template <typename T, oiio_span_size_type Extent = dynamic_extent>
+using cspan_strided = span_strided<const T, Extent>;
 
 
 
 /// Compare all elements of two spans for equality
-template <class T, ptrdiff_t X, class U, ptrdiff_t Y>
+template <class T, oiio_span_size_type X, class U, oiio_span_size_type Y>
 OIIO_CONSTEXPR14 bool operator== (span_strided<T,X> l, span_strided<U,Y> r) {
     auto lsize = l.size();
     if (lsize != r.size())
@@ -333,10 +364,57 @@ OIIO_CONSTEXPR14 bool operator== (span_strided<T,X> l, span_strided<U,Y> r) {
 }
 
 /// Compare all elements of two spans for inequality
-template <class T, ptrdiff_t X, class U, ptrdiff_t Y>
+template <class T, oiio_span_size_type X, class U, oiio_span_size_type Y>
 OIIO_CONSTEXPR14 bool operator!= (span_strided<T,X> l, span_strided<U,Y> r) {
     return !(l == r);
 }
 
 
 OIIO_NAMESPACE_END
+
+
+
+// Declare std::size and std::ssize for our span.
+namespace std {
+
+template<class T, OIIO::oiio_span_size_type E = OIIO::dynamic_extent>
+constexpr size_t size(const OIIO::span<T, E>& c) {
+    return static_cast<size_t>(c.size());
+}
+
+template<class T, OIIO::oiio_span_size_type E = OIIO::dynamic_extent>
+constexpr size_t size(const OIIO::span_strided<T, E>& c) {
+    return static_cast<size_t>(c.size());
+}
+
+
+#if OIIO_CPLUSPLUS_VERSION < 20
+// C++20 and beyond already have these declared.
+template<class T, OIIO::oiio_span_size_type E = OIIO::dynamic_extent>
+constexpr ptrdiff_t ssize(const OIIO::span<T, E>& c) {
+    return static_cast<ptrdiff_t>(c.size());
+}
+
+template<class T, OIIO::oiio_span_size_type E = OIIO::dynamic_extent>
+constexpr ptrdiff_t ssize(const OIIO::span_strided<T, E>& c) {
+    return static_cast<ptrdiff_t>(c.size());
+}
+#endif
+
+// Allow client software to easily know if the std::size/ssize was added for
+// our span templates.
+#define OIIO_SPAN_HAS_STD_SIZE 1
+
+} // namespace std
+
+// clang-format on
+
+
+
+/// Custom fmtlib formatters for span/cspan types.
+namespace fmt {
+template<typename T, OIIO::oiio_span_size_type Extent>
+struct formatter<OIIO::span<T, Extent>>
+    : OIIO::pvt::index_formatter<OIIO::span<T, Extent>> {
+};
+}  // namespace fmt

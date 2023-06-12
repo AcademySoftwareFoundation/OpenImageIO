@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 #include <cmath>
@@ -13,6 +13,7 @@
 
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/sysutil.h>
@@ -45,7 +46,9 @@ static int orientation = 0;
 static bool rotcw = false, rotccw = false, rot180 = false;
 static bool sRGB     = false;
 static bool separate = false, contig = false;
-static bool noclobber = false;
+static bool noclobber  = false;
+static int return_code = EXIT_SUCCESS;
+static ArgParse ap;
 
 
 
@@ -63,7 +66,6 @@ static void
 getargs(int argc, char* argv[])
 {
     bool help = false;
-    ArgParse ap;
     // clang-format off
     ap.options ("iconvert -- copy images with format conversions and other alterations\n"
                 OIIO_INTRO_STRING "\n"
@@ -103,43 +105,51 @@ getargs(int argc, char* argv[])
     if (ap.parse(argc, (const char**)argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
         ap.usage();
-        exit(EXIT_FAILURE);
+        ap.abort();
+        return_code = EXIT_FAILURE;
+        return;
     }
     if (help) {
         ap.usage();
-        exit(EXIT_SUCCESS);
+        ap.abort();
+        return_code = EXIT_SUCCESS;
+        return;
     }
 
     if (filenames.size() != 2 && !inplace) {
         std::cerr
             << "iconvert: Must have both an input and output filename specified.\n";
         ap.usage();
-        exit(EXIT_FAILURE);
+        ap.abort();
+        return_code = EXIT_FAILURE;
+        return;
     }
     if (filenames.size() == 0 && inplace) {
         std::cerr << "iconvert: Must have at least one filename\n";
         ap.usage();
-        exit(EXIT_FAILURE);
+        ap.abort();
+        return_code = EXIT_FAILURE;
+        return;
     }
     if (((int)rotcw + (int)rotccw + (int)rot180 + (orientation > 0)) > 1) {
         std::cerr
             << "iconvert: more than one of --rotcw, --rotccw, --rot180, --orientation\n";
         ap.usage();
-        exit(EXIT_FAILURE);
+        ap.abort();
+        return_code = EXIT_FAILURE;
+        return;
     }
 }
 
 
 
 static bool
-DateTime_to_time_t(const char* datetime, time_t& timet)
+DateTime_to_time_t(string_view datetime, time_t& timet)
 {
     int year, month, day, hour, min, sec;
-    int r = sscanf(datetime, "%d:%d:%d %d:%d:%d", &year, &month, &day, &hour,
-                   &min, &sec);
-    // printf ("%d  %d:%d:%d %d:%d:%d\n", r, year, month, day, hour, min, sec);
-    if (r != 6)
+    if (!Strutil::scan_datetime(datetime, year, month, day, hour, min, sec))
         return false;
+    // print("{}:{}:{} {}:{}:{}\n", year, month, day, hour, min, sec);
     struct tm tmtime;
     time_t now;
     Sysutil::get_local_time(&now, &tmtime);  // fill in defaults
@@ -206,6 +216,8 @@ adjust_spec(ImageInput* in, ImageOutput* out, const ImageSpec& inspec,
         outspec.channelformats.clear();
     }
     if (outspec.format != inspec.format || inspec.channelformats.size())
+        nocopy = true;
+    if (outspec.nchannels != inspec.nchannels)
         nocopy = true;
 
     outspec.attribute("oiio:Gamma", gammaval);
@@ -333,7 +345,7 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
     if (!out) {
         std::cerr
             << "iconvert ERROR: Could not find an ImageIO plugin to write \""
-            << out_filename << "\" :" << geterror() << "\n";
+            << out_filename << "\" : " << geterror() << "\n";
         return false;
     }
 
@@ -422,6 +434,17 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
                 break;
             }
 
+            // Copy thumbnail, if there is one.
+            if (miplevel == 0 && in->supports("thumbnail")
+                && out->supports("thumbnail")) {
+                ImageBuf thumb;
+                in->get_thumbnail(thumb, subimage);
+                if (thumb.initialized())
+                    out->set_thumbnail(thumb);
+            }
+
+            if (in->spec().nchannels != out->spec().nchannels)
+                nocopy = true;
             if (!nocopy) {
                 ok = out->copy_image(in.get());
                 if (!ok)
@@ -432,7 +455,8 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
                 // Need to do it by hand for some reason.  Future expansion in which
                 // only a subset of channels are copied, or some such.
                 std::vector<char> pixels((size_t)outspec.image_bytes(true));
-                ok = in->read_image(outspec.format, &pixels[0]);
+                ok = in->read_image(subimage, miplevel, 0, outspec.nchannels,
+                                    outspec.format, &pixels[0]);
                 if (!ok) {
                     std::cerr << "iconvert ERROR reading \"" << in_filename
                               << "\" : " << in->geterror() << "\n";
@@ -485,6 +509,8 @@ main(int argc, char* argv[])
 
     Filesystem::convert_native_arguments(argc, (const char**)argv);
     getargs(argc, argv);
+    if (ap.aborted())
+        return return_code;
 
     OIIO::attribute("threads", nthreads);
 

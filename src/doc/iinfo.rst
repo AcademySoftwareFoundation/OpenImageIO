@@ -69,7 +69,7 @@ prints all metadata about each image::
         Exif:ApertureValue: 6.91887 (f/11)
         Exif:ExposureBiasValue: 0
         Exif:MeteringMode: 5 (pattern)
-        Exif:Flash: 16 (no flash, flash supression)
+        Exif:Flash: 16 (no flash, flash suppression)
         Exif:FocalLength: 27 (27 mm)
         Exif:ColorSpace: 1
         Exif:PixelXDimension: 2496
@@ -137,6 +137,10 @@ subimages::
 .. describe:: --help
 
     Prints usage information to the terminal.
+
+.. option:: --version
+
+    Prints the version designation of the OIIO library.
 
 .. describe:: -v
 

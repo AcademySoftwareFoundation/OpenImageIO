@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 // This implementation of thread_pool is based on CTPL.
@@ -28,8 +28,19 @@
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/thread.h>
 
+#if OIIO_TBB
+#    include <tbb/parallel_for.h>
+#    include <tbb/task_arena.h>
+#endif
+
 #include <boost/container/flat_map.hpp>
-#include <boost/thread/tss.hpp>
+
+#ifdef _WIN32
+#    define WIN32_LEAN_AND_MEAN
+#    define VC_EXTRALEAN
+#    define NOMINMAX
+#    include <windows.h>
+#endif
 
 #if 0
 
@@ -41,11 +52,12 @@ template<typename T> using Queue = boost::lockfree::queue<T>;
 
 #    include <queue>
 
-namespace {
+OIIO_NAMESPACE_BEGIN
+namespace pvt {
 
-template<typename T> class Queue {
+template<typename T> class ThreadsafeQueue {
 public:
-    Queue(int size) {}
+    ThreadsafeQueue(int /*size*/) {}
     bool push(T const& value)
     {
         std::unique_lock<Mutex> lock(this->mutex);
@@ -79,17 +91,24 @@ private:
     Mutex mutex;
 };
 
-}  // namespace
+}  // namespace pvt
+OIIO_NAMESPACE_END
 
 #endif
 
 
 OIIO_NAMESPACE_BEGIN
 
+namespace pvt {
+OIIO_UTIL_API int oiio_use_tbb(0);  // Use TBB if available
+}
+
+
 static int
 threads_default()
 {
-    int n = Strutil::from_string<int>(Sysutil::getenv("OPENIMAGEIO_THREADS"));
+    int n = Strutil::from_string<int>(
+        Sysutil::getenv("OPENIMAGEIO_THREADS", Sysutil::getenv("CUE_THREADS")));
     if (n < 1)
         n = Sysutil::hardware_concurrency();
     return n;
@@ -112,7 +131,7 @@ public:
     // get the number of running threads in the pool
     int size() const
     {
-        DASSERT(m_size == static_cast<int>(this->threads.size()));
+        OIIO_DASSERT(m_size == static_cast<int>(this->threads.size()));
         return m_size;
     }
 
@@ -167,7 +186,7 @@ public:
             delete _f;  // empty the queue
     }
 
-    // pops a functional wraper to the original function
+    // pops a functional wrapper to the original function
     std::function<void(int)> pop()
     {
         std::function<void(int id)>* _f = nullptr;
@@ -182,7 +201,7 @@ public:
 
 
     // wait for all computing threads to finish and stop all threads
-    // may be called asyncronously to not pause the calling thread while waiting
+    // may be called asynchronously to not pause the calling thread while waiting
     // if isWait == true, all the functions in the queue are run, otherwise the queue is cleared without running the functions
     void stop(bool isWait = false)
     {
@@ -210,7 +229,8 @@ public:
             = std::any_of(this->threads.begin(), this->threads.end(),
                           [](std::unique_ptr<std::thread>& t) {
                               DWORD rcode;
-                              GetExitCodeThread(t->native_handle(), &rcode);
+                              GetExitCodeThread((HANDLE)t->native_handle(),
+                                                &rcode);
                               return rcode != STILL_ACTIVE;
                           });
 
@@ -252,14 +272,14 @@ public:
         std::function<void(int)>* f = nullptr;
         bool isPop                  = this->q.pop(f);
         if (isPop) {
-            DASSERT(f);
+            OIIO_DASSERT(f);
             std::unique_ptr<std::function<void(int id)>> func(
                 f);  // at return, delete the function even if an exception occurred
             register_worker(id);
             (*f)(-1);
             deregister_worker(id);
         } else {
-            DASSERT(f == nullptr);
+            OIIO_DASSERT(f == nullptr);
         }
         return isPop;
     }
@@ -338,7 +358,7 @@ private:
     std::vector<std::unique_ptr<std::thread>> threads;
     std::vector<std::unique_ptr<std::thread>> terminating_threads;
     std::vector<std::shared_ptr<std::atomic<bool>>> flags;
-    mutable Queue<std::function<void(int id)>*> q;
+    mutable pvt::ThreadsafeQueue<std::function<void(int id)>*> q;
     std::atomic<bool> isDone;
     std::atomic<bool> isStop;
     std::atomic<int> nWaiting;  // how many threads are waiting
@@ -484,7 +504,7 @@ default_thread_pool_shutdown()
 void
 task_set::wait_for_task(size_t taskindex, bool block)
 {
-    DASSERT(submitter() == std::this_thread::get_id());
+    OIIO_DASSERT(submitter() == std::this_thread::get_id());
     if (taskindex >= m_futures.size())
         return;  // nothing to wait for
     auto& f(m_futures[taskindex]);
@@ -512,7 +532,7 @@ task_set::wait_for_task(size_t taskindex, bool block)
         if (!m_pool->run_one_task(m_submitter_thread)) {
             // We tried to do a task ourselves, but there weren't any
             // left, so just wait for the rest to finish.
-            yield();
+            std::this_thread::yield();
         }
     }
 }
@@ -522,7 +542,7 @@ task_set::wait_for_task(size_t taskindex, bool block)
 void
 task_set::wait(bool block)
 {
-    DASSERT(submitter() == std::this_thread::get_id());
+    OIIO_DASSERT(submitter() == std::this_thread::get_id());
     const std::chrono::milliseconds wait_time(0);
     if (m_pool->is_worker(m_submitter_thread))
         block = true;  // don't get into recursive work stealing
@@ -530,15 +550,11 @@ task_set::wait(bool block)
         int tries = 0;
         while (1) {
             bool all_finished = true;
-            int nfutures = 0, finished = 0;
             for (auto&& f : m_futures) {
                 // Asking future.wait_for for 0 time just checks the status.
-                ++nfutures;
                 auto status = f.wait_for(wait_time);
                 if (status != std::future_status::ready)
                     all_finished = false;
-                else
-                    ++finished;
             }
             if (all_finished)  // All futures are ready? We're done.
                 break;
@@ -553,7 +569,7 @@ task_set::wait(bool block)
                 // We tried to do a task ourselves, but there weren't any
                 // left, so just wait for the rest to finish.
 #if 1
-                yield();
+                std::this_thread::yield();
 #else
                 // FIXME -- as currently written, if we see an empty queue
                 // but we're still waiting for the tasks in our set to end,
@@ -596,34 +612,47 @@ parallel_recursive_depth(int change = 0)
 
 
 void
-parallel_for_chunked(int64_t start, int64_t end, int64_t chunksize,
-                     std::function<void(int id, int64_t b, int64_t e)>&& task,
-                     parallel_options opt)
+paropt::resolve()
+{
+    if (m_pool == nullptr)
+        m_pool = default_thread_pool();
+    if (m_maxthreads <= 0)
+        m_maxthreads = m_pool->size() + 1;  // pool size + caller
+    if (!m_recursive && m_pool->is_worker())
+        m_maxthreads = 1;
+}
+
+
+
+void
+parallel_for_chunked_id(int64_t begin, int64_t end, int64_t chunksize,
+                        std::function<void(int id, int64_t b, int64_t e)>&& task,
+                        paropt opt)
 {
     if (parallel_recursive_depth(1) > 1)
-        opt.maxthreads = 1;
+        opt.maxthreads(1);
     opt.resolve();
-    chunksize = std::min(chunksize, end - start);
+    chunksize = std::min(chunksize, end - begin);
     if (chunksize < 1) {           // If caller left chunk size to us...
         if (opt.singlethread()) {  // Single thread: do it all in one shot
-            chunksize = end - start;
+            chunksize = end - begin;
         } else {  // Multithread: choose a good chunk size
-            int p     = std::max(1, 2 * opt.maxthreads);
-            chunksize = std::max(int64_t(opt.minitems), (end - start) / p);
+            int p     = std::max(1, 2 * opt.maxthreads());
+            chunksize = std::max(int64_t(opt.minitems()), (end - begin) / p);
         }
     }
     // N.B. If chunksize was specified, honor it, even for the single
     // threaded case.
-    for (task_set ts(opt.pool); start < end; start += chunksize) {
-        int64_t e = std::min(end, start + chunksize);
-        if (e == end || opt.singlethread() || opt.pool->very_busy()) {
+    for (task_set ts(opt.pool()); begin < end; begin += chunksize) {
+        int64_t e = std::min(end, begin + chunksize);
+        if (e == end || opt.singlethread() || opt.pool()->very_busy()) {
             // For the last (or only) subtask, or if we are using just one
             // thread, or if the pool is already oversubscribed, do it
             // ourselves and avoid messing with the queue or handing off
             // between threads.
-            task(-1, start, e);
+            task(-1, begin, e);
         } else {
-            ts.push(opt.pool->push(task, start, e));
+            ts.push(opt.pool()->push(task, begin, e));
         }
     }
     parallel_recursive_depth(-1);
@@ -632,39 +661,272 @@ parallel_for_chunked(int64_t start, int64_t end, int64_t chunksize,
 
 
 void
-parallel_for_chunked_2D(
-    int64_t xstart, int64_t xend, int64_t xchunksize, int64_t ystart,
+parallel_for_chunked(int64_t begin, int64_t end, int64_t chunksize,
+                     std::function<void(int64_t b, int64_t e)>&& task,
+                     paropt opt)
+{
+    auto wrapper = [&](int /*id*/, int64_t b, int64_t e) { task(b, e); };
+    parallel_for_chunked_id(begin, end, chunksize, wrapper, opt);
+}
+
+
+
+// DEPRECATED(2.3)
+void
+parallel_for_chunked(int64_t begin, int64_t end, int64_t chunksize,
+                     std::function<void(int id, int64_t b, int64_t e)>&& task,
+                     parallel_options opt)
+{
+    parallel_for_chunked_id(begin, end, chunksize, std::move(task), opt);
+}
+
+
+
+template<typename Index>
+inline void
+parallel_for_impl(Index begin, Index end, function_view<void(Index)> task,
+                  paropt opt)
+{
+    if (opt.maxthreads() == 1) {
+        // One thread max? Run in caller's thread.
+        for (auto i = begin; i != end; ++i)
+            task(i);
+        return;
+    }
+#if OIIO_TBB
+    if (opt.strategy() == paropt::ParStrategy::TryTBB
+        || (opt.strategy() == paropt::ParStrategy::Default
+            && pvt::oiio_use_tbb)) {
+        if (opt.maxthreads()) {
+            tbb::task_arena arena(opt.maxthreads());
+            arena.execute([=] { tbb::parallel_for(begin, end, task); });
+        } else {
+            tbb::parallel_for(begin, end, task);
+        }
+        return;
+    }
+#endif
+    parallel_for_chunked_id(
+        int64_t(begin), int64_t(end), 0,
+        [&task](int /*id*/, int64_t b, int64_t e) {
+            for (Index i(b), end(e); i != end; ++i)
+                task(i);
+        },
+        opt);
+}
+
+
+
+void
+parallel_for(int begin, int end, function_view<void(int)> task, paropt opt)
+{
+    parallel_for_impl(begin, end, task, opt);
+}
+
+
+void
+parallel_for(uint32_t begin, uint32_t end, function_view<void(uint32_t)> task,
+             paropt opt)
+{
+    parallel_for_impl(begin, end, task, opt);
+}
+
+
+void
+parallel_for(int64_t begin, int64_t end, function_view<void(int64_t)> task,
+             paropt opt)
+{
+    parallel_for_impl(begin, end, task, opt);
+}
+
+
+void
+parallel_for(uint64_t begin, uint64_t end, function_view<void(uint64_t)> task,
+             paropt opt)
+{
+    parallel_for_impl(begin, end, task, opt);
+}
+
+
+
+template<typename Index>
+inline void
+parallel_for_range_impl(Index begin, Index end,
+                        std::function<void(Index, Index)>&& task, paropt opt)
+{
+    if (opt.maxthreads() == 1) {  // One thread max? Run in caller's thread.
+        task(begin, end);
+        return;
+    }
+#if parlab_TBB
+    if (opt.strategy() == paropt::ParStrategy::TryTBB
+        || (opt.strategy() == paropt::ParStrategy::Default
+            && pvt::oiio_use_tbb)) {
+        auto wrapper = [=](const tbb::blocked_range<Index>& r) {
+            task(r.begin(), r.end());
+        };
+        // OIIO::Strutil::print("tbb\n");
+        if (opt.maxthreads()) {
+            tbb::task_arena arena(opt.maxthreads());
+            arena.execute([=] {
+                tbb::parallel_for(tbb::blocked_range<Index>(begin, end),
+                                  wrapper);
+            });
+        } else {
+            tbb::parallel_for(tbb::blocked_range<Index>(begin, end), wrapper);
+        }
+        return;
+    }
+#endif
+    // OIIO::Strutil::print("oiio\n");
+    OIIO::parallel_for_chunked(
+        int64_t(begin), int64_t(end), 0,
+        [&](int64_t b, int64_t e) { task(Index(b), Index(e)); }, opt);
+}
+
+
+
+void
+parallel_for_range(int32_t begin, int32_t end,
+                   std::function<void(int32_t, int32_t)>&& task, paropt opt)
+{
+    parallel_for_range_impl(begin, end, std::move(task), opt);
+}
+
+
+void
+parallel_for_range(uint32_t begin, uint32_t end,
+                   std::function<void(uint32_t, uint32_t)>&& task, paropt opt)
+{
+    parallel_for_range_impl(begin, end, std::move(task), opt);
+}
+
+
+void
+parallel_for_range(int64_t begin, int64_t end,
+                   std::function<void(int64_t, int64_t)>&& task, paropt opt)
+{
+    parallel_for_range_impl(begin, end, std::move(task), opt);
+}
+
+
+void
+parallel_for_range(uint64_t begin, uint64_t end,
+                   std::function<void(uint64_t, uint64_t)>&& task, paropt opt)
+{
+    parallel_for_range_impl(begin, end, std::move(task), opt);
+}
+
+
+
+// DEPRECATED(2.3)
+void
+parallel_for(int64_t begin, int64_t end,
+             std::function<void(int id, int64_t index)>&& task, paropt opt)
+{
+    parallel_for_chunked_id(
+        begin, end, 0,
+        [&task](int id, int64_t i, int64_t e) {
+            for (; i < e; ++i)
+                task(id, i);
+        },
+        opt);
+}
+
+
+
+void
+parallel_for_chunked_2D_id(
+    int64_t xbegin, int64_t xend, int64_t xchunksize, int64_t ybegin,
     int64_t yend, int64_t ychunksize,
     std::function<void(int id, int64_t, int64_t, int64_t, int64_t)>&& task,
-    parallel_options opt)
+    paropt opt)
 {
     if (parallel_recursive_depth(1) > 1)
-        opt.maxthreads = 1;
+        opt.maxthreads(1);
     opt.resolve();
     if (opt.singlethread()
-        || (xchunksize >= (xend - xstart) && ychunksize >= (yend - ystart))
-        || opt.pool->very_busy()) {
-        task(-1, xstart, xend, ystart, yend);
+        || (xchunksize >= (xend - xbegin) && ychunksize >= (yend - ybegin))
+        || opt.pool()->very_busy()) {
+        task(-1, xbegin, xend, ybegin, yend);
         parallel_recursive_depth(-1);
         return;
     }
     if (ychunksize < 1)
         ychunksize = std::max(int64_t(1),
-                              (yend - ystart) / (2 * opt.maxthreads));
+                              (yend - ybegin) / (2 * opt.maxthreads()));
     if (xchunksize < 1) {
-        int64_t ny = std::max(int64_t(1), (yend - ystart) / ychunksize);
-        int64_t nx = std::max(int64_t(1), opt.maxthreads / ny);
-        xchunksize = std::max(int64_t(1), (xend - xstart) / nx);
+        int64_t ny = std::max(int64_t(1), (yend - ybegin) / ychunksize);
+        int64_t nx = std::max(int64_t(1), opt.maxthreads() / ny);
+        xchunksize = std::max(int64_t(1), (xend - xbegin) / nx);
     }
-    task_set ts(opt.pool);
-    for (auto y = ystart; y < yend; y += ychunksize) {
+    task_set ts(opt.pool());
+    for (auto y = ybegin; y < yend; y += ychunksize) {
         int64_t ychunkend = std::min(yend, y + ychunksize);
-        for (auto x = xstart; x < xend; x += xchunksize) {
+        for (auto x = xbegin; x < xend; x += xchunksize) {
             int64_t xchunkend = std::min(xend, x + xchunksize);
-            ts.push(opt.pool->push(task, x, xchunkend, y, ychunkend));
+            ts.push(opt.pool()->push(task, x, xchunkend, y, ychunkend));
         }
     }
     parallel_recursive_depth(-1);
+}
+
+
+
+// DEPRECATED(2.3)
+void
+parallel_for_chunked_2D(
+    int64_t xbegin, int64_t xend, int64_t xchunksize, int64_t ybegin,
+    int64_t yend, int64_t ychunksize,
+    std::function<void(int id, int64_t, int64_t, int64_t, int64_t)>&& task,
+    parallel_options opt)
+{
+    parallel_for_chunked_2D_id(xbegin, xend, xchunksize, ybegin, yend,
+                               ychunksize, std::move(task), opt);
+}
+
+
+
+// DEPRECATED(2.3)
+void
+parallel_for_chunked_2D(
+    int64_t xbegin, int64_t xend, int64_t xchunksize, int64_t ybegin,
+    int64_t yend, int64_t ychunksize,
+    std::function<void(int id, int64_t, int64_t, int64_t, int64_t)>&& task,
+    paropt opt)
+{
+    parallel_for_chunked_2D_id(xbegin, xend, xchunksize, ybegin, yend,
+                               ychunksize, std::move(task), opt);
+}
+
+
+
+void
+parallel_for_chunked_2D(
+    int64_t xbegin, int64_t xend, int64_t xchunksize, int64_t ybegin,
+    int64_t yend, int64_t ychunksize,
+    std::function<void(int64_t, int64_t, int64_t, int64_t)>&& task, paropt opt)
+{
+    auto wrapper = [&](int /*id*/, int64_t xb, int64_t xe, int64_t yb,
+                       int64_t ye) { task(xb, xe, yb, ye); };
+    parallel_for_chunked_2D_id(xbegin, xend, xchunksize, ybegin, yend,
+                               ychunksize, wrapper, opt);
+}
+
+
+
+void
+parallel_for_2D(int64_t xbegin, int64_t xend, int64_t ybegin, int64_t yend,
+                std::function<void(int64_t i, int64_t j)>&& task, paropt opt)
+{
+    parallel_for_chunked_2D_id(
+        xbegin, xend, 0, ybegin, yend, 0,
+        [&task](int /*id*/, int64_t xb, int64_t xe, int64_t yb, int64_t ye) {
+            for (auto y = yb; y < ye; ++y)
+                for (auto x = xb; x < xe; ++x)
+                    task(x, y);
+        },
+        opt);
 }
 
 

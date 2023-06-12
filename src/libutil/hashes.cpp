@@ -9,120 +9,10 @@
 #    include <endian.h> /* attempt to define endianness */
 #endif
 
-#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/hash.h>
 #include <OpenImageIO/platform.h>
 
 OIIO_NAMESPACE_BEGIN
-
-
-namespace xxhash {
-
-/*
-   xxHash - Fast Hash algorithm
-   Copyright (C) 2012, Yann Collet.
-   BSD 2-Clause License (http://www.opensource.org/licenses/bsd-license.php)
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are
-   met:
-
-       * Redistributions of source code must retain the above copyright
-   notice, this list of conditions and the following disclaimer.
-       * Redistributions in binary form must reproduce the above
-   copyright notice, this list of conditions and the following disclaimer
-   in the documentation and/or other materials provided with the
-   distribution.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-        You can contact the author at :
-        - xxHash source repository : http://code.google.com/p/xxhash/
-*/
-
-
-//**************************************
-// Includes
-//**************************************
-
-//**************************************
-// Compiler Options
-//**************************************
-#ifdef _MSC_VER              // Visual Studio
-#define inline __forceinline // Visual is not C99, but supports some kind of inline
-#endif
-
-// Check for support of _rotl 
-// Not required for GCC 4.9x with -std=c++11
-#ifndef _rotl
-#define _rotl(x,r) ((x << r) | (x >> (32 - r)))
-#endif
-
-
-
-//**************************************
-// Constants
-//**************************************
-#define PRIME1   2654435761U
-#define PRIME2   2246822519U
-#define PRIME3   3266489917U
-#define PRIME4    668265263U
-#define PRIME5   0x165667b1
-
-
-
-//****************************
-// Private functions
-//****************************
-
-// This version is for very small inputs (< 16  bytes)
-inline unsigned int XXH_small(const void* key, int len, unsigned int seed)
-{
-        const unsigned char* p = (unsigned char*)key;
-        const unsigned char* const bEnd = p + len;
-        unsigned int idx = seed + PRIME1;
-        unsigned int crc = PRIME5;
-        const unsigned char* const limit = bEnd - 4;
-
-        while (p<limit)
-        {
-                crc += ((*(unsigned int*)p) + idx++);
-                crc += _rotl(crc, 17) * PRIME4;
-                crc *= PRIME1;
-                p+=4;
-        }
-
-        while (p<bEnd)
-        {
-                crc += ((*p) + idx++);
-                crc *= PRIME1;
-                p++;
-        }
-
-        crc += len;
-
-        crc ^= crc >> 15;
-        crc *= PRIME2;
-        crc ^= crc >> 13;
-        crc *= PRIME3;
-        crc ^= crc >> 16;
-
-        return crc;
-}
-
-
-} // end namespace xxhash
-
 
 
 namespace bjhash {
@@ -328,6 +218,7 @@ uint32_t        initval)         /* the previous hash, or an arbitrary value */
 }
 
 
+#ifdef OIIO_DOES_NOT_USE
 /*
 --------------------------------------------------------------------
 hashword2() -- same as hashword(), but take two seeds and return two
@@ -372,6 +263,7 @@ uint32_t       *pb)               /* IN: more seed OUT: secondary hash value */
   /*------------------------------------------------------ report the result */
   *pc=c; *pb=b;
 }
+#endif
 
 
 /*
@@ -432,7 +324,7 @@ uint32_t hashlittle( const void *key, size_t length, uint32_t initval)
      * rest of the string.  Every machine with memory protection I've seen
      * does it on word boundaries, so is OK with this.  But VALGRIND will
      * still catch it and complain.  The masking trick does make the hash
-     * noticably faster for short strings (like English words).
+     * noticeably faster for short strings (like English words).
      */
 #ifndef VALGRIND
 
@@ -571,6 +463,7 @@ uint32_t hashlittle( const void *key, size_t length, uint32_t initval)
 }
 
 
+#ifdef OIIO_DOES_NOT_USE
 /*
  * hashlittle2: return 2 32-bit hash values
  *
@@ -617,7 +510,7 @@ void hashlittle2(
      * rest of the string.  Every machine with memory protection I've seen
      * does it on word boundaries, so is OK with this.  But VALGRIND will
      * still catch it and complain.  The masking trick does make the hash
-     * noticably faster for short strings (like English words).
+     * noticeably faster for short strings (like English words).
      */
 #ifndef VALGRIND
 
@@ -794,7 +687,7 @@ uint32_t hashbig( const void *key, size_t length, uint32_t initval)
      * rest of the string.  Every machine with memory protection I've seen
      * does it on word boundaries, so is OK with this.  But VALGRIND will
      * still catch it and complain.  The masking trick does make the hash
-     * noticably faster for short strings (like English words).
+     * noticeably faster for short strings (like English words).
      */
 #ifndef VALGRIND
 
@@ -884,6 +777,7 @@ uint32_t hashbig( const void *key, size_t length, uint32_t initval)
   final(a,b,c);
   return c;
 }
+#endif
 
 } // end namespace bjhash
 

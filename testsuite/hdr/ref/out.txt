@@ -1,0 +1,24 @@
+Reading MtTamWest.hdr
+MtTamWest.hdr        : 1214 x  732, 3 channel, float hdr
+    channel list: R, G, B
+    Orientation: 1 (normal)
+    oiio:ColorSpace: "lin_srgb"
+    Stats Min: 0.000183 0.000240 0.000000 (float)
+    Stats Max: 3.875000 3.875000 4.875000 (float)
+    Stats Avg: 0.220837 0.352995 0.493945 (float)
+    Stats StdDev: 0.345123 0.515839 0.686306 (float)
+    Stats NanCount: 0 0 0 
+    Stats InfCount: 0 0 0 
+    Stats FiniteCount: 888648 888648 888648 
+    Constant: No
+    Monochrome: No
+../openexr-images/ScanLines/MtTamWest.exr : 1214 x  732, 4 channel, half openexr
+    Stats Min: 0.000188 0.000244 0.000000 1.000000 (float)
+    Stats Max: 3.884766 3.898438 4.878906 1.000000 (float)
+    Stats Avg: 0.222063 0.354169 0.495088 1.000000 (float)
+    Stats StdDev: 0.346593 0.517326 0.687826 0.000000 (float)
+    Stats NanCount: 0 0 0 0 
+    Stats InfCount: 0 0 0 0 
+    Stats FiniteCount: 888648 888648 888648 888648 
+    Constant: No
+    Monochrome: No

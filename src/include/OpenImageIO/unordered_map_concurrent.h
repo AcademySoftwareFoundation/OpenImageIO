@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 
 #pragma once
@@ -10,6 +10,54 @@
 #include <OpenImageIO/thread.h>
 
 OIIO_NAMESPACE_BEGIN
+
+
+namespace pvt {
+
+// SFINAE test for whether class T has method `iterator find(key,hash)`.
+// As described here: https://www.bfilipek.com/2016/02/sfinae-followup.html
+// clang-format off
+template <typename T>
+class has_find_with_hash {
+    using key_type = typename T::key_type;
+    using iterator_type = typename T::iterator;
+    template <typename U>
+      static constexpr std::false_type test(...) { return {}; }
+    template <typename U>
+      static constexpr auto test(U* u) ->
+        typename std::is_same<iterator_type, decltype(u->find(key_type(), size_t(0)))>::type { return {}; }
+public:
+    static constexpr bool value = test<T>(nullptr);
+};
+// clang-format on
+
+}  // namespace pvt
+
+
+// Helper function: find_with_hash.
+//
+// Calls `map.find(key, hash)` if a method with that signature exists for
+// the Map type, otherwise just calls `map.find(key)`.
+//
+// This lets us use unordered_map_concurrent with underlying bin map types
+// that do (e.g., robin_map) or do not (e.g., std::unordered_map) support a
+// find method taking a precomputed hash.
+template<class Map, class Key,
+         OIIO_ENABLE_IF(pvt::has_find_with_hash<Map>::value)>
+typename Map::iterator
+find_with_hash(Map& map, const Key& key, size_t hash)
+{
+    return map.find(key, hash);
+}
+
+template<class Map, class Key,
+         OIIO_ENABLE_IF(!pvt::has_find_with_hash<Map>::value)>
+typename Map::iterator
+find_with_hash(Map& map, const Key& key, size_t /*hash*/)
+{
+    return map.find(key);
+}
+
 
 
 /// unordered_map_concurrent provides an unordered_map replacement that
@@ -46,11 +94,12 @@ OIIO_NAMESPACE_BEGIN
 
 template<class KEY, class VALUE, class HASH = std::hash<KEY>,
          class PRED = std::equal_to<KEY>, size_t BINS = 16,
-         class BINMAP = unordered_map<KEY, VALUE, HASH, PRED>>
+         class BINMAP = std::unordered_map<KEY, VALUE, HASH, PRED>>
 class unordered_map_concurrent {
 public:
     typedef BINMAP BinMap_t;
     typedef typename BINMAP::iterator BinMap_iterator_t;
+    using key_type = KEY;
 
 public:
     unordered_map_concurrent() { m_size = 0; }
@@ -158,8 +207,8 @@ public:
         /// finish the last bin of the map, return the end() iterator.
         void operator++()
         {
-            DASSERT(m_umc);
-            DASSERT(m_bin >= 0);
+            OIIO_DASSERT(m_umc);
+            OIIO_DASSERT(m_bin >= 0);
             ++m_biniterator;
             while (m_biniterator == m_umc->m_bins[m_bin].map.end()) {
                 if (m_bin == BINS - 1) {
@@ -216,7 +265,7 @@ public:
         // the bin it previously referred to.
         void rebin(int newbin)
         {
-            DASSERT(m_umc);
+            OIIO_DASSERT(m_umc);
             unbin();
             m_bin = newbin;
             lock();
@@ -269,7 +318,7 @@ public:
         Bin& bin(m_bins[b]);
         if (do_lock)
             bin.lock();
-        typename BinMap_t::iterator it = bin.map.find(key, hash);
+        auto it = find_with_hash(bin.map, key, hash);
         if (it == bin.map.end()) {
             // not found -- return the 'end' iterator
             if (do_lock)
@@ -284,6 +333,41 @@ public:
         return i;
     }
 
+    /// Search for key.  If found, return an iterator referring to the
+    /// existing element, otherwise, insert the value and return an iterator
+    /// to the newly added element.  If do_lock is true, lock the bin that
+    /// we're searching and return the iterator in a locked state; however,
+    /// if do_lock is false, assume that the caller already has the bin
+    /// locked, so do no locking and return an iterator that is unaware that
+    /// it holds a lock.
+    std::pair<iterator, bool> find_or_insert(const KEY& key, const VALUE& value,
+                                             bool do_lock = true)
+    {
+        size_t hash   = m_hash(key);
+        size_t b      = whichbin(hash);
+        bool inserted = false;
+        Bin& bin(m_bins[b]);
+        // We're returning an iterator no matter what, so prepare it
+        // partially now, before we are holding any lock.
+        iterator iret(this);
+        iret.m_bin    = (unsigned)b;
+        iret.m_locked = do_lock;
+        if (do_lock)
+            bin.lock();
+        iret.m_biniterator = find_with_hash(bin.map, key, hash);
+        if (iret.m_biniterator == bin.map.end()) {
+            // Not found in the map, insert it
+            auto result = bin.map.emplace(key, value);
+            if (result.second) {
+                // the insert was successful!
+                ++m_size;
+            }
+            iret.m_biniterator = result.first;
+            inserted           = true;
+        }
+        return { iret, inserted };
+    }
+
     /// Search for key. If found, return true and store the value. If not
     /// found, return false and do not alter value. If do_lock is true,
     /// read-lock the bin while we're searching, and release it before
@@ -295,14 +379,42 @@ public:
         size_t b    = whichbin(hash);
         Bin& bin(m_bins[b]);
         if (do_lock)
-            bin.lock();
-        typename BinMap_t::iterator it = bin.map.find(key, hash);
-        bool found                     = (it != bin.map.end());
+            bin.read_lock();
+        auto it    = find_with_hash(bin.map, key, hash);
+        bool found = (it != bin.map.end());
         if (found)
             value = it->second;
         if (do_lock)
-            bin.unlock();
+            bin.read_unlock();
         return found;
+    }
+
+    /// Insert <key,value> into the hash map if it's not already there.
+    /// Return true if added, false if it was already present.
+    /// If it was already present in the map, replace `value` with the
+    /// value stored in the map.
+    /// If do_lock is true, lock the bin containing key while doing this
+    /// operation; if do_lock is false, assume that the caller already
+    /// has the bin locked, so do no locking or unlocking.
+    bool insert_retrieve(const KEY& key, VALUE& value, VALUE& mapvalue,
+                         bool do_lock = true)
+    {
+        size_t hash = m_hash(key);
+        size_t b    = whichbin(hash);
+        Bin& bin(m_bins[b]);
+        if (do_lock)
+            bin.lock();
+        auto result = bin.map.emplace(key, value);
+        if (result.second) {
+            // the insert was successful!
+            ++m_size;
+        } else {
+            // Replace caller's value with the one already in the table.
+            value = result.first->second;
+        }
+        if (do_lock)
+            bin.unlock();
+        return result.second;
     }
 
     /// Insert <key,value> into the hash map if it's not already there.
@@ -310,6 +422,11 @@ public:
     /// If do_lock is true, lock the bin containing key while doing this
     /// operation; if do_lock is false, assume that the caller already
     /// has the bin locked, so do no locking or unlocking.
+    ///
+    /// N.B.: This method returns a bool, whereas std::unordered_map::insert
+    /// returns a pair<iterator,bool>. If you want the more standard
+    /// functionalty, we call that find_or_insert(). Sorry for the mixup,
+    /// it's too late to rename it now to conform to the standard.
     bool insert(const KEY& key, const VALUE& value, bool do_lock = true)
     {
         size_t hash = m_hash(key);
@@ -319,7 +436,7 @@ public:
             bin.lock();
         auto result = bin.map.emplace(key, value);
         if (result.second) {
-            // the insert was succesful!
+            // the insert was successful!
             ++m_size;
         }
         if (do_lock)
@@ -338,7 +455,8 @@ public:
         Bin& bin(m_bins[b]);
         if (do_lock)
             bin.lock();
-        bin.map.erase(key, hash);
+        bin.map.erase(key);
+        --m_size;
         if (do_lock)
             bin.unlock();
     }
@@ -349,7 +467,7 @@ public:
     /// Return the total number of entries in the map.
     size_t size() { return size_t(m_size); }
 
-    /// Expliticly lock the bin that will contain the key (regardless of
+    /// Explicitly lock the bin that will contain the key (regardless of
     /// whether there is such an entry in the map), and return its bin
     /// number.
     size_t lock_bin(const KEY& key)
@@ -364,40 +482,72 @@ public:
     /// holds the lock).
     void unlock_bin(size_t bin) { m_bins[bin].unlock(); }
 
+    // Return a mask that is 1 for bits of the hash that are not used to
+    // determine the bin number.
+    static constexpr size_t nobin_mask() { return ~size_t(0) >> log2(BINS); }
+
 private:
     struct Bin {
-        OIIO_CACHE_ALIGN               // align bin to cache line
-            mutable spin_mutex mutex;  // mutex for this bin
-        BinMap_t map;                  // hash map for this bin
+        OIIO_CACHE_ALIGN                  // align bin to cache line
+            mutable spin_rw_mutex mutex;  // mutex for this bin
+        BinMap_t map;                     // hash map for this bin
 #ifndef NDEBUG
-        mutable atomic_int m_nlocks;  // for debugging
+        mutable atomic_int m_nrlocks;  // for debugging
+        mutable atomic_int m_nwlocks;  // for debugging
 #endif
 
         Bin()
         {
 #ifndef NDEBUG
-            m_nlocks = 0;
+            m_nrlocks = 0;
+            m_nwlocks = 0;
 #endif
         }
         ~Bin()
         {
 #ifndef NDEBUG
-            DASSERT(m_nlocks == 0);
+            OIIO_DASSERT(m_nrlocks == 0 && m_nwlocks == 0);
 #endif
         }
+
+        void read_lock() const
+        {
+            mutex.read_lock();
+#ifndef NDEBUG
+            ++m_nrlocks;
+            OIIO_DASSERT_MSG(m_nwlocks == 0,
+                             "oops, m_nrlocks = %d, m_nwlocks = %d",
+                             (int)m_nrlocks, (int)m_nwlocks);
+#endif
+        }
+        void read_unlock() const
+        {
+#ifndef NDEBUG
+            OIIO_DASSERT_MSG(m_nwlocks == 0 && m_nrlocks >= 1,
+                             "oops, m_nrlocks = %d, m_nwlocks = %d",
+                             (int)m_nrlocks, (int)m_nwlocks);
+            --m_nrlocks;
+#endif
+            mutex.read_unlock();
+        }
+
         void lock() const
         {
             mutex.lock();
 #ifndef NDEBUG
-            ++m_nlocks;
-            DASSERT_MSG(m_nlocks == 1, "oops, m_nlocks = %d", (int)m_nlocks);
+            ++m_nwlocks;
+            OIIO_DASSERT_MSG(m_nwlocks == 1 && m_nrlocks == 0,
+                             "oops, m_nrlocks = %d, m_nwlocks = %d",
+                             (int)m_nrlocks, (int)m_nwlocks);
 #endif
         }
         void unlock() const
         {
 #ifndef NDEBUG
-            DASSERT_MSG(m_nlocks == 1, "oops, m_nlocks = %d", (int)m_nlocks);
-            --m_nlocks;
+            OIIO_DASSERT_MSG(m_nwlocks == 1 && m_nrlocks == 0,
+                             "oops, m_nrlocks = %d, m_nwlocks = %d",
+                             (int)m_nrlocks, (int)m_nwlocks);
+            --m_nwlocks;
 #endif
             mutex.unlock();
         }
@@ -426,7 +576,7 @@ private:
         // low-order bits of the hash will directly be used to index the hash table,
         // so using those would lead to collisions.
         size_t bin = hash >> BIN_SHIFT;
-        DASSERT(bin < BINS);
+        OIIO_DASSERT(bin < BINS);
         return bin;
     }
 };

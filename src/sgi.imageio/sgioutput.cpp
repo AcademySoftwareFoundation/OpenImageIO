@@ -1,13 +1,48 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #include "sgi_pvt.h"
 
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-// Obligatory material to make this a recognizeable imageio plugin
+class SgiOutput final : public ImageOutput {
+public:
+    SgiOutput() {}
+    ~SgiOutput() override { close(); }
+    const char* format_name(void) const override { return "sgi"; }
+    int supports(string_view feature) const override;
+    bool open(const std::string& name, const ImageSpec& spec,
+              OpenMode mode = Create) override;
+    bool close(void) override;
+    bool write_scanline(int y, int z, TypeDesc format, const void* data,
+                        stride_t xstride) override;
+    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
+                    stride_t xstride, stride_t ystride,
+                    stride_t zstride) override;
+
+private:
+    std::string m_filename;
+    std::vector<unsigned char> m_scratch;
+    unsigned int m_dither;
+    std::vector<unsigned char> m_tilebuffer;
+
+    void init() { ioproxy_clear(); }
+
+    bool create_and_write_header();
+
+    /// Helper - write, with error detection
+    template<class T>
+    bool fwrite(const T* buf, size_t itemsize = sizeof(T), size_t nitems = 1)
+    {
+        return iowrite(buf, itemsize, nitems);
+    }
+};
+
+
+
+// Obligatory material to make this a recognizable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 OIIO_EXPORT ImageOutput*
 sgi_output_imageio_create()
@@ -23,7 +58,8 @@ OIIO_PLUGIN_EXPORTS_END
 int
 SgiOutput::supports(string_view feature) const
 {
-    return (feature == "alpha" || feature == "nchannels");
+    return (feature == "alpha" || feature == "nchannels"
+            || feature == "ioproxy");
 }
 
 
@@ -31,26 +67,14 @@ SgiOutput::supports(string_view feature) const
 bool
 SgiOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 {
-    if (mode != Create) {
-        errorf("%s does not support subimages or MIP levels", format_name());
+    if (!check_open(mode, spec, { 0, 65535, 0, 65535, 0, 1, 0, 256 }))
         return false;
-    }
 
-    close();  // Close any already-opened file
-    // saving 'name' and 'spec' for later use
     m_filename = name;
-    m_spec     = spec;
 
-    if (m_spec.width >= 65535 || m_spec.height >= 65535) {
-        errorf("Exceeds the maximum resolution (65535)");
+    ioproxy_retrieve_from_config(m_spec);
+    if (!ioproxy_use_or_open(name))
         return false;
-    }
-
-    m_fd = Filesystem::fopen(m_filename, "wb");
-    if (!m_fd) {
-        errorf("Could not open \"%s\"", name);
-        return false;
-    }
 
     // SGI image files only supports UINT8 and UINT16.  If something
     // else was requested, revert to the one most likely to be readable
@@ -78,7 +102,7 @@ SgiOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     y    = m_spec.height - y - 1;
     data = to_native_scanline(format, data, xstride, m_scratch, m_dither, y, z);
 
-    // In SGI format all channels are saved to file separately: firsty all
+    // In SGI format all channels are saved to file separately: first, all
     // channel 1 scanlines are saved, then all channel2 scanlines are saved
     // and so on.
     //
@@ -104,8 +128,8 @@ SgiOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
         ptrdiff_t scanline_offset = sgi_pvt::SGI_HEADER_LEN
                                     + ptrdiff_t(c * m_spec.height + y)
                                           * m_spec.width * bpc;
-        Filesystem::fseek(m_fd, scanline_offset, SEEK_SET);
-        if (!fwrite(&channeldata[0], 1, m_spec.width * bpc)) {
+        ioseek(scanline_offset);
+        if (!iowrite(&channeldata[0], 1, m_spec.width * bpc)) {
             return false;
         }
     }
@@ -129,7 +153,7 @@ SgiOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
 bool
 SgiOutput::close()
 {
-    if (!m_fd) {  // already closed
+    if (!ioproxy_opened()) {  // already closed
         init();
         return true;
     }
@@ -137,13 +161,13 @@ SgiOutput::close()
     bool ok = true;
     if (m_spec.tile_width) {
         // Handle tile emulation -- output the buffered pixels
-        ASSERT(m_tilebuffer.size());
+        OIIO_ASSERT(m_tilebuffer.size());
         ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
                               m_spec.format, &m_tilebuffer[0]);
-        std::vector<unsigned char>().swap(m_tilebuffer);
+        m_tilebuffer.clear();
+        m_tilebuffer.shrink_to_fit();
     }
 
-    fclose(m_fd);
     init();
     return ok;
 }
@@ -172,13 +196,8 @@ SgiOutput::create_and_write_header()
     sgi_header.pixmax = (sgi_header.bpc == 1) ? 255 : 65535;
     sgi_header.dummy  = 0;
 
-    ParamValue* ip = m_spec.find_attribute("ImageDescription",
-                                           TypeDesc::STRING);
-    if (ip && ip->data()) {
-        const char** img_descr = (const char**)ip->data();
-        strncpy(sgi_header.imagename, *img_descr, 80);
-        sgi_header.imagename[79] = 0;
-    }
+    auto imagename = m_spec.get_string_attribute("ImageDescription");
+    Strutil::safe_strcpy(sgi_header.imagename, imagename, 80);
 
     sgi_header.colormap = sgi_pvt::NORMAL;
 
@@ -201,7 +220,7 @@ SgiOutput::create_and_write_header()
         || !fwrite(&sgi_header.pixmax) || !fwrite(&sgi_header.dummy)
         || !fwrite(sgi_header.imagename, 1, 80) || !fwrite(&sgi_header.colormap)
         || !fwrite(dummy, 404, 1)) {
-        errorf("Error writing to \"%s\"", m_filename);
+        errorfmt("Error writing to \"{}\"", m_filename);
         return false;
     }
     return true;

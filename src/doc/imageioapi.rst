@@ -26,7 +26,7 @@ vector and matrix types, and an array length (if
 it's an array).
 
 The remainder of this section describes the C++ API for `TypeDesc`.
-See Section~\ref{sec:pythontypedesc} for the corresponding Python
+See Section :ref:`Python Bindings<chap-pythonbindings>` for the corresponding Python
 bindings.
 
 .. doxygenstruct:: OIIO::TypeDesc
@@ -41,8 +41,12 @@ in the outer OpenImageIO scope:
 
     TypeUnknown TypeFloat TypeColor TypePoint TypeVector TypeNormal
     TypeMatrix33 TypeMatrix44 TypeMatrix TypeHalf
-    TypeInt TypeUInt TypeInt16 TypeUInt16 TypeInt8 TypeUInt8
-    TypeString TypeTimeCode TypeKeyCode TypeFloat4 TypeRational
+    TypeInt TypeUInt TypeInt32 TypeUInt32 TypeInt64 TypeUInt64
+    TypeInt16 TypeUInt16 TypeInt8 TypeUInt8
+    TypeFloat2 TypeVector2 TypeVector2i TypeFloat4
+    TypeString TypeTimeCode TypeKeyCode
+    TypeBox2 TypeBox2i TypeBox3 TypeBox3i
+    TypeRational TypePointer
 
 The only types commonly used to store *pixel values* in image files
 are scalars of ``UINT8``, ``UINT16``, `float`, and ``half``
@@ -53,8 +57,8 @@ than images) can describe many types not used by
 OpenImageIO.  Please ignore this extra complexity; only the above simple types are understood by
 OpenImageIO as pixel storage data types, though a few others, including
 `string` and ``MATRIX44`` aggregates, are occasionally used for
-*metadata* for certain image file formats (see `sec-imageoutput-metadata`_
-Sections `sec-imageoutput-metadata`_, `sec_imageinput_metadata`_,
+*metadata* for certain image file formats (see
+Sections :ref:`sec-imageoutput-metadata`, :ref:`sec-imageinput-metadata`,
 and the documentation of individual ImageIO plugins for details).
 
 
@@ -65,7 +69,11 @@ and the documentation of individual ImageIO plugins for details).
 Non-owning string views: ``string_view``
 ==========================================
 
-.. doxygenclass:: OIIO::string_view
+.. cpp:type:: using string_view = basic_string_view<char>;
+
+    `string_view` is a synonym for a non-mutable `string_view<char>`.
+
+.. doxygenclass:: OIIO::basic_string_view
     :members:
 
 |
@@ -92,7 +100,7 @@ Non-owning array views: ``span`` / ``cspan``
 
 Additionally, there is a convenience template:
 
-.. cpp:function:: template <typename T> using cspan = span<const T>;
+.. cpp:type:: template<typename T> cspan = span<const T>
 
     `cspan<T>` is a synonym for a non-mutable `span<const T>`.
 
@@ -157,7 +165,7 @@ format specification of a single image.  It contains:
 
 
 The remainder of this section describes the C++ API for ``ImageSpec``.
-See Section sec-pythonimagespec_ for the corresponding Python
+See Section :ref:`sec-pythonimagespec` for the corresponding Python
 bindings.
 
 
@@ -189,7 +197,7 @@ Global Attributes
 
 These helper functions are not part of any other OpenImageIO class, they
 just exist in the OpenImageIO namespace as general utilities. (See
-sec-pythonmiscapi_ for the corresponding Python bindings.)
+:ref:`sec-pythonmiscapi` for the corresponding Python bindings.)
 
 .. doxygenfunction:: OIIO::attribute(string_view, TypeDesc, const void *)
 
@@ -220,7 +228,7 @@ sec-pythonmiscapi_ for the corresponding Python bindings.)
         int threads;
         OIIO::getattribute ("threads", &threads);
         std::string path;
-        OIIO::getattribute ("plugin_searchpath", &path);
+        OIIO::getattribute ("plugin_searchpath", path);
 
 .. cpp:function:: int get_int_attribute (string_view name, int defaultvalue=0)
                   float get_float_attribute (string_view name, float defaultvalue=0)
@@ -232,8 +240,8 @@ sec-pythonmiscapi_ for the corresponding Python bindings.)
 
     EXAMPLES::
 
-        int threads = OIIO::getattribute ("threads", 0);
-        string_view path = OIIO::getattribute ("plugin_searchpath");
+        int threads = OIIO::get_int_attribute ("threads", 0);
+        string_view path = OIIO::get_string_attribute ("plugin_searchpath");
 
 
 
@@ -244,24 +252,34 @@ Miscellaneous Utilities
 ==========================================
 
 These helper functions are not part of any other OpenImageIO class, they
-just exist in the OpenImageIO namespace as general utilities. (See
-sec-pythonmiscapi_ for the corresponding Python bindings.)
+just exist in the OIIO namespace as general utilities. (See
+:ref:`sec-pythonmiscapi` for the corresponding Python bindings.)
 
 .. doxygenfunction:: openimageio_version
 
 
-.. cpp:function:: std::string geterror ()
+.. cpp:function:: bool OIIO::has_error ()
+
+    Is there a pending global error message waiting to be retrieved?
+
+.. cpp:function:: std::string OIIO::geterror (bool clear = true)
 
     Returns any error string describing what went wrong if
     `ImageInput::create()` or `ImageOutput::create()` failed (since in such
-    cases, the `ImageInput` or `ImageOutput` itself does not exist to have
-    its own `geterror()` function called). This function returns the last
-    error for this particular thread; separate threads will not clobber each
-    other's global error messages.
+    cases, the ImageInput or ImageOutput itself does not exist to have its
+    own `geterror()` function called). This function returns the last error
+    for this particular thread, and clear the pending error message unless
+    `clear` is false; separate threads will not clobber each other's global
+    error messages.
 
 
 
 .. doxygenfunction:: declare_imageio_format
+
+
+.. doxygenfunction:: is_imageio_format_name
+
+.. doxygenfunction:: get_extension_map
 
 |
 
@@ -274,6 +292,12 @@ Environment variables
 There are a few special environment variables that can be used to control
 OpenImageIO at times that it is not convenient to set options individually from
 inside the source code.
+
+``OPENIMAGEIO_FONTS``
+
+    A searchpath for finding fonts (for example, when using by
+    `ImageBufAlgo::render_text` or `oiiotool --text`). This may contain a
+    list of directories separated by ":" or ";".
 
 ``OPENIMAGEIO_OPTIONS``
 
@@ -302,7 +326,7 @@ inside the source code.
         imagecache->attribute ("options", value);
 
 
-``OPENIMAGEIO_TEXTURESYSTEM_OPTIONS``
+``OPENIMAGEIO_TEXTURE_OPTIONS``
 
     Allows you to seed the options for any TextureSystem created.
 
@@ -314,3 +338,10 @@ inside the source code.
     will be passed to a call to::
 
         texturesys->attribute ("options", value);
+
+``OPENIMAGEIO_THREADS``, ``CUE_THREADS``
+
+    Either of these sets the default number of threads that OpenImageIO will
+    use for its thread pool. If both are set, ``OPENIMAGEIO_THREADS`` will
+    take precedence. If neither is set, the default will be 0, which means
+    to use as many threads as there are physical cores on the machine.
