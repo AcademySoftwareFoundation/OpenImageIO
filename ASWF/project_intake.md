@@ -19,8 +19,8 @@ This is a checklist for TSC's to review as part of the intake process. The TSC s
   - [ ] Developer Certificate of Origin past commit signoff done and DCO Probot enabled.
   - [X] Issue/feature tracker established (JIRA, GitHub issues)
   - [ ] Mailing lists ( one of )
-    - [ ] **(Awaiting from LF)** Setup new lists ( -dev@ and -tsc@ ) on [ASWF groups.io](https://lists.aswf.io) ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to setup )
-    - [ ] **(ASAP from LF)** Move to [ASWF groups.io](https://lists.aswf.io) ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to transfer )
+    - [ ] Setup new lists ( -dev@ and -tsc@ ) on [ASWF groups.io](https://lists.aswf.io) ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to setup )
+    - [X] Move to [ASWF groups.io](https://lists.aswf.io) ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to transfer )
   - [X] Slack ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to setup project channel on [ASWF Slack](https://slack.aswf.io) )
   - [ ] Website
   - [X] CI/build environment
