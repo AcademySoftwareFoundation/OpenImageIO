@@ -487,5 +487,6 @@ main(int argc, const char* argv[])
     if (sum)
         print("Total size: {}\n", Strutil::memformat(totalsize));
 
+    shutdown();
     return returncode;
 }

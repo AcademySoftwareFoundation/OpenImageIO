@@ -2033,6 +2033,6 @@ main(int argc, const char* argv[])
         std::string err;
         Filesystem::remove(f, err);
     }
-
+    shutdown();
     return 0;
 }

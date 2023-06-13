@@ -2728,6 +2728,13 @@ private:
 
 // Utility functions
 
+/// `OIIO::shutdown` prepares OpenImageIO for shutdown. Before exiting an 
+/// application that utilizes OpenImageIO the `OIIO::shutdown` function must be 
+/// called, which will perform shutdown of any running thread-pools. Failing 
+/// to call `OIIO::shutdown` could lead to a sporadic dead-lock during 
+/// application shutdown on certain platforms such as Windows. 
+OIIO_API void shutdown ();
+
 /// Returns a numeric value for the version of OpenImageIO, 10000 for each
 /// major version, 100 for each minor version, 1 for each patch.  For
 /// example, OpenImageIO 1.2.3 would return a value of 10203. One example of

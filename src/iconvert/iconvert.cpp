@@ -522,6 +522,6 @@ main(int argc, char* argv[])
     } else {
         ok = convert_file(filenames[0], filenames[1]);
     }
-
+    shutdown();
     return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }

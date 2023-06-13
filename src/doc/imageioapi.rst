@@ -281,6 +281,13 @@ just exist in the OIIO namespace as general utilities. (See
 
 .. doxygenfunction:: get_extension_map
 
+ .. _sec-startupshutdown:
+
+Startup and Shutdown
+==========================================
+
+.. doxygenfunction:: shutdown
+
 |
 
 

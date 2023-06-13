@@ -399,5 +399,6 @@ main(int argc, char* argv[])
 
     imagecache->invalidate_all(true);
     ImageCache::destroy(imagecache);
+    shutdown();
     return ret;
 }

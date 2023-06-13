@@ -127,6 +127,6 @@ main(int argc, char* argv[])
         std::cout << "\n";
         std::cout << imagecache->getstats(1 + verbose) << "\n";
     }
-
+    shutdown();
     return r;
 }
