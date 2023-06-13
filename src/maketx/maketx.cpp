@@ -537,5 +537,6 @@ main(int argc, char* argv[])
     if (runstats)
         std::cout << "\n" << ic->getstats();
 
+    shutdown();
     return ok ? 0 : EXIT_FAILURE;
 }

@@ -2728,6 +2728,10 @@ private:
 
 // Utility functions
 
+/// `OIIO::shutdown` prepares OpenImageIO for shutdown, this function must be 
+/// called before the main function exists. 
+OIIO_API void shutdown ();
+
 /// Returns a numeric value for the version of OpenImageIO, 10000 for each
 /// major version, 100 for each minor version, 1 for each patch.  For
 /// example, OpenImageIO 1.2.3 would return a value of 10203. One example of

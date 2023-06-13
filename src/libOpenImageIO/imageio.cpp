@@ -205,6 +205,11 @@ oiio_simd_caps()
     // clang-format on
 }
 
+void
+shutdown()
+{
+    default_thread_pool_shutdown();
+}
 
 
 int

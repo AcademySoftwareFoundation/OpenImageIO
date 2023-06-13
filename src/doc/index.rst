@@ -55,6 +55,7 @@ OpenImageIO |version|
    imagebuf
    imagebufalgo
    pythonbindings
+   shutdown
 
 .. toctree::
    :caption: Image Utilities

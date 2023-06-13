@@ -7443,6 +7443,6 @@ main(int argc, char* argv[])
     ot.curimg = nullptr;
     ot.image_stack.clear();
     ot.image_labels.clear();
-
+    shutdown();
     return ot.return_value;
 }
