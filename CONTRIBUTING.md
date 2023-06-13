@@ -11,7 +11,7 @@ Mail List and Slack
 
 Contributors should be reading the oiio-dev mail list:
 
-* [oiio-dev](http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org)
+* [oiio-dev](https://lists.aswf.io/g/oiio-dev)
 For developers of the OpenImageIO code itself, or users who are really
 interested in the OIIO internals. This is where we mostly discuss the code
 (including bug reports), but are also happy to answer user questions about
@@ -31,7 +31,7 @@ How to Ask for Help
 If you have trouble installing, building, or using OpenImageIO, but there's
 not yet a solid reason to suspect you've encountered a genuine bug, start by
 posting a question to the [oiio-dev mailing
-list](http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org).
+list](https://lists.aswf.io/g/oiio-dev).
 This is the place for questions such has "How do I...".
 
 
@@ -43,7 +43,7 @@ enhancements: https://github.com/OpenImageIO/oiio/issues
 
 **If you are merely asking a question ("how do I...")**, please do not file an
 issue, but instead ask the question on the [oiio-dev mailing
-list](http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org).
+list](https://lists.aswf.io/g/oiio-dev).
 
 If you are submitting a bug report, please be sure to note which version of
 OIIO you are using, on what platform (OS/version, which compiler you used,
@@ -110,33 +110,33 @@ repository. The protocol is like this:
 1. Get a GitHub account, fork OpenImageIO/oiio to create your own repository
 on GitHub, and then clone it to get a repository on your local machine.
 
-2. Edit, compile, and test your changes. Run clang-format (see the
+1. Edit, compile, and test your changes. Run clang-format (see the
 instructions on coding style below).
 
-3. Push your changes to your fork (each unrelated pull request to a separate
+1. Push your changes to your fork (each unrelated pull request to a separate
 "topic branch", please).
 
-4. Make a "pull request" on GitHub for your patch.
+1. Make a "pull request" on GitHub for your patch.
 
-5. If your patch will induce a major compatibility break, or has a design
+2. If your patch will induce a major compatibility break, or has a design
 component that deserves extended discussion or debate among the wider OIIO
 community, then it may be prudent to email oiio-dev pointing everybody to
 the pull request URL and discussing any issues you think are important.
 
-6. All pull requests automatically launch CI jobs on GitHub Actions to
+1. All pull requests automatically launch CI jobs on GitHub Actions to
 ensure that the build completes and that the tests suite runs correctly, for
 a variety of platform, compiler, library, and flag combinations. The status
 of the CI tests for your PR will be displayed on the GitHub PR page. We will
 not accept PRs that don't build cleanly or pass the existing testsuite.
 
-7. The reviewer will look over the code and critique on the "comments" area.
+1. The reviewer will look over the code and critique on the "comments" area.
 Reviewers may ask for changes, explain problems they found, congratulate the
 author on a clever solution, etc. But until somebody says "LGTM" (looks good
 to me), the code should not be committed. Sometimes this takes a few rounds
 of give and take. Please don't take it hard if your first try is not
 accepted. It happens to all of us.
 
-9. After approval, one of the senior developers (with commit approval to the
+1. After approval, one of the senior developers (with commit approval to the
 official main repository) will merge your fixes into the master branch.
 
 

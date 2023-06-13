@@ -110,7 +110,7 @@ Contact & reporting problems
 
 Simple "how do I...", "I'm having trouble", or "is this a bug" questions are
 best asked on the [oiio-dev developer mail
-list](http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org).
+list](https://lists.aswf.io/g/oiio-dev).
 That's where the most people will see it and potentially be able to answer
 your question quickly (more so than a GH "issue").
 
@@ -141,5 +141,5 @@ Web Resources
 * GitHub page:        http://github.com/OpenImageIO/oiio
 
 * Developer mail list subscriptions and archives:
-  http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org
+  https://lists.aswf.io/g/oiio-dev
 
