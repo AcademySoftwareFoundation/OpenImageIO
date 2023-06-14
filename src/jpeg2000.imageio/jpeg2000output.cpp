@@ -156,9 +156,9 @@ Jpeg2000Output::open(const std::string& name, const ImageSpec& spec,
 
     m_filename = name;
 
-    // If not uint8 or uint16, default to uint8
+    // If not uint8 or uint16, default to uint16
     if (m_spec.format != TypeDesc::UINT8 && m_spec.format != TypeDesc::UINT16)
-        m_spec.set_format(TypeDesc::UINT8);
+        m_spec.set_format(TypeDesc::UINT16);
 
     m_dither        = (m_spec.format == TypeDesc::UINT8)
                           ? m_spec.get_int_attribute("oiio:dither", 0)
