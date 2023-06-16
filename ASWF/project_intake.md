@@ -13,7 +13,7 @@ This is a checklist for TSC's to review as part of the intake process. The TSC s
   - [X] A [GOVERNANCE.md](../GOVERNANCE.md) file that documents the project’s technical governance.
   - [ ] A [SUPPORT.md](../SUPPORT.md) file to let users and developers know about ways to get help with your project.
 - Infrastructure/Assets
-  - [ ] **(Awaiting final draft from LF)** Technical Charter Approved
+  - [ ] **(Final draft awaiting TSC vote)** Technical Charter Approved
   - [ ] **(Awaiting scan from LF)** License scan completed and no issues found
   - [ ] **(Awaiting final draft of project ownership transfer from LF)** Code repository imported to ASWF GitHub organization or ownership of current GitHub organization given to `thelinuxfoundation` user
   - [ ] Developer Certificate of Origin past commit signoff done and DCO Probot enabled.
@@ -27,7 +27,7 @@ This is a checklist for TSC's to review as part of the intake process. The TSC s
   - [ ] **(Awaiting final draft from LF)** Trademarks/mark ownership rights ( complete 'LF Projects - Form of Trademark and Account Assignment' - create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) - only needed if project using existing name )
   - [ ] Domain name	( create [issue with the LF IT staff](https://jira.linuxfoundation.org/plugins/servlet/theme/portal/2/group/19) to setup/transfer )
   - [ ] Zoom account access ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to get access to credentials )
-  - [ ] Social media accounts or other project accounts	( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to transfer )
+  - [X] (N/A) Social media accounts or other project accounts	( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to transfer )
   - [X] Logo(s)	( create [issue on artwork repo](https://github.com/AcademySoftwareFoundation/artwork/issues/new) to add in SVG and PNG format and color/black/white )
 - New Project Governance
   - [X] TSC members identified
@@ -35,12 +35,12 @@ This is a checklist for TSC's to review as part of the intake process. The TSC s
   - [X] TSC meeting cadence set and added to project calendar
   - [ ] **(Awaiting TSC ratification)** CLA Approved ( if used ) ( [CCLA](CLA-corporate.md) and [ICLA](CLA-individual.md) )
   - Project charter	( [charter.md](charter.md) )
-    - [ ] **(Awaiting final draft from LF)** Approved by TSC
+    - [ ] **(Awaiting TSC approval vote)** Approved by TSC
     - [ ] Filed ( create pull request against [foundation repo](https://github.com/AcademySoftwareFoundation/foundation) )
   - [ ] [Core Infrastructure Initiative Best Practices Badge](https://bestpractices.coreinfrastructure.org/) achieved as the 'Passing' level.
 - Outreach
   - [ ] New project announcement done ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to trigger )
-  - [ ] Project added to ASWF website and ASWF landscape
+  - [X] Project added to ASWF website and ASWF landscape
 - Incubation Stage requirements
   - [X] Have achieved and maintained a [OpenSSF Best Practices Badge at the passing level](https://bestpractices.coreinfrastructure.org/en/criteria).
   - [ ] Have had a successful license scan with any critical issues remedied.
