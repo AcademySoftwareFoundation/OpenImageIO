@@ -923,10 +923,9 @@ append_tiff_dir_entry_integer(const ParamValue& p,
     case TypeDesc::INT: i = (T) * (int*)p.data(); break;
     case TypeDesc::UINT16: i = (T) * (unsigned short*)p.data(); break;
     case TypeDesc::INT16: i = (T) * (short*)p.data(); break;
-    case TypeDesc::STRING:
-    {
+    case TypeDesc::STRING: {
         if (Strutil::string_is_int(p.get_ustring())) {
-            i = (T) p.get_int();
+            i = (T)p.get_int();
             break;
         } else {
             return false;
