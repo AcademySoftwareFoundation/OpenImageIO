@@ -1989,8 +1989,15 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src, string_view from,
             if (colorconfig->error())
                 dst.errorfmt("{}", colorconfig->geterror());
             else
-                dst.errorfmt("Could not construct the color transform {} -> {}",
-                             from, to);
+#ifdef USE_OCIO
+                dst.errorfmt(
+                    "Could not construct the color transform {} -> {} (unknown error)",
+                    from, to);
+#else
+                dst.errorfmt(
+                    "Could not construct the color transform {} -> {} (no OpenColorIO support)",
+                    from, to);
+#endif
             return false;
         }
     }
@@ -2300,7 +2307,13 @@ ImageBufAlgo::ociolook(ImageBuf& dst, const ImageBuf& src, string_view looks,
             if (colorconfig->error())
                 dst.errorfmt("{}", colorconfig->geterror());
             else
-                dst.errorfmt("Could not construct the color transform");
+#ifdef USE_OCIO
+                dst.errorfmt(
+                    "Could not construct the color transform (unknown error)");
+#else
+                dst.errorfmt(
+                    "Could not construct the color transform (no OpenColorIO support)");
+#endif
             return false;
         }
     }
@@ -2359,7 +2372,13 @@ ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
             if (colorconfig->error())
                 dst.errorfmt("{}", colorconfig->geterror());
             else
-                dst.errorfmt("Could not construct the color transform");
+#ifdef USE_OCIO
+                dst.errorfmt(
+                    "Could not construct the color transform (unknown error)");
+#else
+                dst.errorfmt(
+                    "Could not construct the color transform (no OpenColorIO support)");
+#endif
             return false;
         }
     }
@@ -2435,7 +2454,13 @@ ImageBufAlgo::ociofiletransform(ImageBuf& dst, const ImageBuf& src,
             if (colorconfig->error())
                 dst.errorfmt("{}", colorconfig->geterror());
             else
-                dst.errorfmt("Could not construct the color transform");
+#ifdef USE_OCIO
+                dst.errorfmt(
+                    "Could not construct the color transform (unknown error)");
+#else
+                dst.errorfmt(
+                    "Could not construct the color transform (no OpenColorIO support)");
+#endif
             return false;
         }
     }
