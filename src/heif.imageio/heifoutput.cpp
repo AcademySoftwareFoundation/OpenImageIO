@@ -70,11 +70,14 @@ private:
 }  // namespace
 
 
+
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageOutput*
 heif_output_imageio_create()
 {
+    extern void oiio_heif_init();
+    oiio_heif_init();
     return new HeifOutput;
 }
 
