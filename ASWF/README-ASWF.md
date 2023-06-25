@@ -12,10 +12,10 @@ Summary of the current state of documents:
 
 | File | Status | Notes |
 | ---- | ------ | ----- |
-| CLA-corporate.md | Proposed / assumed final | This is the standard ASWF corporate CLA used for the other projects. |
-| CLA-individual.md | Proposed / assumed final | This is the standard ASWF individual CLA used for the other projects. |
-| CODE_OF_CONDUCT.md | Assumed final | Links to the standard LF CoC. |
+| CLA-corporate.md |Final | Standard ASWF corporate CLA, approved by the TSC. Will take effect when the repo moves. |
+| CLA-individual.md | Final | Standard ASWF individual CLA, approved by the TSC. Will take effect when the repo moves. |
+| CODE_OF_CONDUCT.md | Final | Links to the standard LF CoC, approved by the TSC and now in effect. |
 | CONTRIBUTING.md | Proposed | Modified version of our existing CONTRIBUTING guidelines, lightly amended to reflect the changes that will come along with moving the repo, the new CLA/DCO rules, etc.
-| GOVERNANCE.md | Proposed | Copied and adapted from OSL. This is for us to decide and finalize. Please suggest any requested changes, **especially to the list of TSC members**. |
-| project_intake.md | Final | This is the latest ASWF project intake checklist. We will check off items as we get them done. |
-| Technical-Charter.md | Proposed / assumed final | TSC needs to vote approval |
+| GOVERNANCE.md | Final | Approved by the TSC and now in effect. |
+| project_intake.md | Ongoing | This is the latest ASWF project intake checklist. We will check off items as we get them done. |
+| Technical-Charter.md | Final | Approved by the TSC. |

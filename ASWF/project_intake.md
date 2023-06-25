@@ -13,7 +13,7 @@ This is a checklist for TSC's to review as part of the intake process. The TSC s
   - [X] A [GOVERNANCE.md](../GOVERNANCE.md) file that documents the project’s technical governance.
   - [ ] A [SUPPORT.md](../SUPPORT.md) file to let users and developers know about ways to get help with your project.
 - Infrastructure/Assets
-  - [ ] **(Final draft awaiting TSC vote)** Technical Charter Approved
+  - [X] Technical Charter Approved
   - [ ] **(Awaiting scan from LF)** License scan completed and no issues found
   - [ ] **(Awaiting final draft of project ownership transfer from LF)** Code repository imported to ASWF GitHub organization or ownership of current GitHub organization given to `thelinuxfoundation` user
   - [ ] Developer Certificate of Origin past commit signoff done and DCO Probot enabled.
@@ -33,11 +33,11 @@ This is a checklist for TSC's to review as part of the intake process. The TSC s
   - [X] TSC members identified
   - [X] First TSC meeting held
   - [X] TSC meeting cadence set and added to project calendar
-  - [ ] **(Awaiting TSC ratification)** CLA Approved ( if used ) ( [CCLA](CLA-corporate.md) and [ICLA](CLA-individual.md) )
+  - [X] CLA Approved ( if used ) ( [CCLA](CLA-corporate.md) and [ICLA](CLA-individual.md) )
   - Project charter	( [charter.md](charter.md) )
-    - [ ] **(Awaiting TSC approval vote)** Approved by TSC
+    - [X] Approved by TSC
     - [ ] Filed ( create pull request against [foundation repo](https://github.com/AcademySoftwareFoundation/foundation) )
-  - [ ] [Core Infrastructure Initiative Best Practices Badge](https://bestpractices.coreinfrastructure.org/) achieved as the 'Passing' level.
+  - [X] [Core Infrastructure Initiative Best Practices Badge](https://bestpractices.coreinfrastructure.org/) achieved as the 'Passing' level.
 - Outreach
   - [ ] New project announcement done ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to trigger )
   - [X] Project added to ASWF website and ASWF landscape

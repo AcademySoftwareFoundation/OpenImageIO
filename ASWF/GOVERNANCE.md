@@ -128,16 +128,6 @@ represents the project at all ASWF TAC meetings.
 
 ### TSC Members
 
-> :construction: This is the preliminary list of *presumed* TSC members.
-> Please comment or open PRs against this file to do any of the following:
-> - Propose an additional TSC member from among the significant stakeholder
->   organizations, or an individual who is anticipated to make significant
->   ongoing code, organizational, or advisory contributions to the project.
-> - Remove yourself if we are mistaken about your ability and willingness to
->   serve in this role.
-> - Substitute an alternate or permanent replacement from the same organization,
->   when a replacement for an interim designee is found.
-
 Current voting members of the TSC are:
 
 * **Chair and TAC representative**: Daniel Greenstein - Sony Pictures Imageworks (possibly interim?)
