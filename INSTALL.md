@@ -123,6 +123,9 @@ build options), maybe one of these packages managers will do it for you:
 
 If these work for you and it's all you need, bingo! You are done.
 
+You may find this guide to versions carried by distributions helpful:
+
+[![OpenImageIO packaging status](https://repology.org/badge/vertical-allrepos/openimageio.svg?exclude_unsupported=1&columns=3&exclude_sources=modules,site&header=OpenImageIO%20packaging%20status)](https://repology.org/project/openimageio/versions)
 
 
 Building from source

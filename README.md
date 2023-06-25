@@ -4,6 +4,7 @@ README for OpenImageIO
 [![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg?style=flat-square)](https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md)
 [![CI](https://github.com/OpenImageIO/oiio/actions/workflows/ci.yml/badge.svg)](https://github.com/OpenImageIO/oiio/actions/workflows/ci.yml)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2694/badge)](https://bestpractices.coreinfrastructure.org/projects/2694)
+[![latest packaged version(s)](https://repology.org/badge/latest-versions/openimageio.svg)](https://repology.org/project/openimageio/versions)
 
 
 Introduction
