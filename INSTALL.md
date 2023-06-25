@@ -59,7 +59,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * giflib >= 4.1 (tested through 5.2; 5.0+ is strongly recommended for
        stability and thread safety)
  * If you want support for HEIF/HEIC or AVIF images:
-     * libheif >= 1.3 (1.7 required for AVIF support, tested through 1.15)
+     * libheif >= 1.3 (1.7 required for AVIF support, tested through 1.16)
      * libheif must be built with an AV1 encoder/decoder for AVIF support.
      * Avoid libheif 1.10 on Mac, it is very broken. Libheif 1.11+ is fine.
  * If you want support for DICOM medical image files:
