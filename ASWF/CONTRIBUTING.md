@@ -7,7 +7,7 @@ Contributing to OpenImageIO
 >
 > TO DO:
 >
-> - [ ] Update the mail list sign-up page after the mail list moves.
+> - [X] Update the mail list sign-up page after the mail list moves.
 > - [ ] Update the repo URL
 > - [ ] Double check the security and info email addresses.
 >
@@ -114,7 +114,7 @@ process and our use of a CLA manager.
 
 **Contribution sign off**
 
-ASWF requires the use of the [Developer’s Certificate of Origin 1.1
+This project requires the use of the [Developer’s Certificate of Origin 1.1
 (DCO)](https://developercertificate.org/), which is the same mechanism that
 the [Linux®
 Kernel](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/process/submitting-patches.rst#n416)
