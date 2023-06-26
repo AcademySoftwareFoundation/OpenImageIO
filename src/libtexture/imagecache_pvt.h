@@ -560,13 +560,17 @@ struct TileID {
     /// Digest the TileID into a size_t to use as a hash key.
     size_t hash() const
     {
-        const uint64_t a = (uint64_t(m_x) << 32) + uint64_t(m_y);
-        const uint64_t b = (uint64_t(m_z) << 32) + uint64_t(m_subimage);
-        const uint64_t c = (uint64_t(m_miplevel) << 32)
-                           + (uint64_t(m_chbegin) << 16) + uint64_t(m_chend);
-        const uint64_t d = m_file->filename().hash()
-                           + uint64_t(m_colortransformid);
-        return fasthash::fasthash64({ a, b, c, d });
+        static constexpr size_t member_size
+            = sizeof(m_x) + sizeof(m_y) + sizeof(m_z) + sizeof(m_subimage)
+              + sizeof(m_miplevel) + sizeof(m_chbegin) + sizeof(m_chend)
+              + sizeof(m_colortransformid) + sizeof(m_padding) + sizeof(m_file);
+        static_assert(
+            sizeof(*this) == member_size,
+            "All TileID members must be accounted for so we can hash the entire class.");
+        static_assert(
+            sizeof(*this) % sizeof(uint64_t) == 0,
+            "FastHash uses the fewest instructions when data size is a multiple of 8 bytes.");
+        return fasthash::fasthash64(this, sizeof(*this));
     }
 
     /// Functor that hashes a TileID
@@ -590,6 +594,7 @@ private:
     int m_miplevel;            ///< MIP-map level
     short m_chbegin, m_chend;  ///< Channel range
     int m_colortransformid;    ///< Colorspace id (0 == default)
+    int m_padding = 0;         ///< Unused
     ImageCacheFile* m_file;    ///< Which ImageCacheFile we refer to
 };
 
