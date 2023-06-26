@@ -2,8 +2,9 @@ Contributing to OpenImageIO
 ===========================
 
 Code contributions to OpenImageIO are always welcome, and [nearly 200
-people](CREDITS.md) have done so over the years.  Please review this
-document to get a briefing on our process.
+people](https://github.com/OpenImageIO/oiio/blob/master/CREDITS.md) have done
+so over the years.  Please review this document to get a briefing on our
+process.
 
 
 Mail List and Slack
@@ -164,7 +165,7 @@ official main repository) will merge your fixes into the master branch.
 Coding Style
 ------------
 
-#### File conventions
+### File conventions
 
 C++ implementation should be named `*.cpp`. Headers should be named `.h`.
 All headers should contain
@@ -185,7 +186,7 @@ notice or copy it to any new files, it really only applies to the particular
 file in which it appears.
 
 
-#### Formatting
+### Formatting
 
 We use [clang-format](https://clang.llvm.org/docs/ClangFormat.html)
 to uniformly format our source code prior to PR submission. Make sure that
@@ -233,7 +234,7 @@ developers visually parse the code (for example, spotting at a glance where
 new functions begin), but not so much as to spread it out or be confusing.
 
 
-#### Identifiers
+### Identifiers
 
 In general, classes and templates should start with upper case and
 capitalize new words: `class CustomerList;` In general, local variables
@@ -253,7 +254,7 @@ Names of data should generally be nouns. Functions/methods are trickier: a
 the name of a function that returns a value but has no side effects should
 be a noun, but a procedure that performs an action should be a verb.
 
-#### Class structure
+### Class structure
 
 Try to avoid public data members, although there are some classes that serve
 a role similar to a simple C struct -- a very straightforward collection of
@@ -273,7 +274,7 @@ Avoid multiple inheritance.
 
 Namespaces: yes, use them!
 
-#### Third-party libraries
+### Third-party libraries
 
 Prefer C++11 `std` rather than Boost, where both can do the same task.
 Feel free to use Boost classes you already see in the code base, but don't
@@ -287,7 +288,7 @@ Use these libraries for OIIO internals, but please DO NOT require them in
 any of our main external APIs unless it's been thoroughly discussed and
 approved by the group.
 
-#### Comments and Doxygen
+### Comments and Doxygen
 
 Comment philosophy: try to be clear, try to help teach the reader what's
 going on in your code.
@@ -303,7 +304,7 @@ They looks like this:
         float foo;  ///< Doxygen comments on same line look like this
     }
 
-#### Miscellaneous
+### Miscellaneous
 
 Macros should be used only rarely -- prefer inline functions, templates,
 enums, or "const" values wherever possible.
