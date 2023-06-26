@@ -97,6 +97,27 @@ add a digital signature directly), and email it back to: info@openimageio.org
 Our CLA's are identical to those used by Apache and many other open source
 projects.
 
+**Contribution sign off**
+
+This project requires the use of the [Developer’s Certificate of Origin 1.1
+(DCO)](https://developercertificate.org/), which is the same mechanism that
+the [Linux®
+Kernel](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/process/submitting-patches.rst#n416)
+and many other communities use to manage code contributions. The DCO is
+considered one of the simplest tools for sign offs from contributors as the
+representations are meant to be easy to read and indicating signoff is done
+as a part of the commit message.
+
+Here is an example Signed-off-by line, which indicates that the submitter
+accepts the DCO:
+
+    Signed-off-by: John Doe <john.doe@example.com>
+
+You can include this automatically when you commit a change to your local
+git repository using `git commit -s`. You might also want to
+leverage this [command line tool](https://github.com/coderanger/dco) for
+automatically adding the signoff message on commits.
+
 
 Pull Requests and Code Review
 -----------------------------
