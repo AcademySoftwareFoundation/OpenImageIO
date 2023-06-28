@@ -1,4 +1,9 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
+
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
 
 # This test renders the "tube" pattern with a checker pattern (i.e.,
 # showing all angles and a wide range of anisotropy), at several

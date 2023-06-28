@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
 # Save the env for use by other stages. Exclude things that we know aren't
 # needed.
 printenv \

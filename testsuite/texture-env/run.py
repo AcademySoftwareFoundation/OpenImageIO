@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
+
 redirect = ">> out.txt 2>&1"
 # Create a ramped checker
 command += oiiotool("-pattern fill:topleft=0,0,0,1:topright=1,0,0,1:bottomleft=0,1,0,1:bottomright=1,1,0,1 256x128 4 "

@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
 # This script is run when CI system first starts up.
 # Since it sets many env variables needed by the caller, it should be run
 # with 'source', not in a separate shell.

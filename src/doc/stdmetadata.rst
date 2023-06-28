@@ -1,3 +1,8 @@
+..
+  Copyright Contributors to the OpenImageIO project.
+  SPDX-License-Identifier: CC-BY-4.0
+
+
 .. _chap-stdmetadata:
 
 Metadata conventions

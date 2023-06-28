@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
+
 # Create some test images we need
 # command += oiiotool ("--create 320x240 3 -d uint8 -o black.tif")
 # command += oiiotool ("--pattern constant:color=0.5,0.5,0.5 128x128 3 -d half -o grey128.exr")

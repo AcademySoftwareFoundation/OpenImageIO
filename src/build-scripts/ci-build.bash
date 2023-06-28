@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
 # Important: set -ex causes this whole script to terminate with error if
 # any command in it fails. This is crucial for CI tests.
 set -ex
