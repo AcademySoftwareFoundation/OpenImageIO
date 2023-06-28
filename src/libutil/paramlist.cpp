@@ -171,6 +171,9 @@ ParamValue::ParamValue(string_view name, TypeDesc type, string_view value)
     } else if (type == TypeDesc::STRING) {
         ustring s(value);
         init(name, type, 1, &s);
+    } else if (type == TypeDesc::USTRINGHASH) {
+        ustringhash s(value);
+        init(name, type, 1, &s);
     }
 }
 
@@ -187,40 +190,11 @@ ParamValue::get_int(int defaultval) const
 int
 ParamValue::get_int_indexed(int index, int defaultval) const
 {
-#if 1 && OIIO_VERSION >= 20101
     int val = defaultval;
     convert_type(type().elementtype(),
                  (const char*)data() + index * type().basesize(), TypeInt,
                  &val);
     return val;
-#else
-    int base = type().basetype;
-    if (base == TypeDesc::INT)
-        return get<int>(index);
-    if (base == TypeDesc::UINT)
-        return (int)get<unsigned int>(index);
-    if (base == TypeDesc::INT16)
-        return get<short>(index);
-    if (base == TypeDesc::UINT16)
-        return get<unsigned short>(index);
-    if (base == TypeDesc::INT8)
-        return get<char>(index);
-    if (base == TypeDesc::UINT8)
-        return get<unsigned char>(index);
-    if (base == TypeDesc::INT64)
-        return get<long long>(index);
-    if (base == TypeDesc::UINT64)
-        return get<unsigned long long>(index);
-    if (base == TypeDesc::STRING) {
-        // Only succeed for a string if it exactly holds something that
-        // exactly parses to an int value.
-        string_view str = get<ustring>(index);
-        int val         = defaultval;
-        if (Strutil::parse_int(str, val) && str.empty())
-            return val;
-    }
-    return defaultval;  // Some nonstandard type, fail
-#endif
 }
 
 
@@ -236,54 +210,11 @@ ParamValue::get_float(float defaultval) const
 float
 ParamValue::get_float_indexed(int index, float defaultval) const
 {
-#if 1 && OIIO_VERSION >= 20101
     float val = defaultval;
     convert_type(type().elementtype(),
                  (const char*)data() + index * type().basesize(), TypeFloat,
                  &val);
     return val;
-#else
-    int base = type().basetype;
-    if (base == TypeDesc::FLOAT)
-        return get<float>(index);
-    if (base == TypeDesc::HALF)
-        return get<half>(index);
-    if (base == TypeDesc::DOUBLE)
-        return get<double>(index);
-    if (base == TypeDesc::INT) {
-        if (type().aggregate == TypeDesc::VEC2
-            && type().vecsemantics == TypeDesc::RATIONAL) {
-            int num = get<int>(2 * index + 0);
-            int den = get<int>(2 * index + 1);
-            return den ? float(num) / float(den) : 0.0f;
-        }
-        return get<int>(index);
-    }
-    if (base == TypeDesc::UINT)
-        return get<unsigned int>(index);
-    if (base == TypeDesc::INT16)
-        return get<short>(index);
-    if (base == TypeDesc::UINT16)
-        return get<unsigned short>(index);
-    if (base == TypeDesc::INT8)
-        return get<char>(index);
-    if (base == TypeDesc::UINT8)
-        return get<unsigned char>(index);
-    if (base == TypeDesc::INT64)
-        return get<long long>(index);
-    if (base == TypeDesc::UINT64)
-        return get<unsigned long long>(index);
-    if (base == TypeDesc::STRING) {
-        // Only succeed for a string if it exactly holds something
-        // that exactly parses to a float value.
-        string_view str = get<ustring>(index);
-        float val       = defaultval;
-        if (Strutil::parse_float(str, val) && str.empty())
-            return val;
-    }
-
-    return defaultval;
-#endif
 }
 
 
@@ -400,6 +331,8 @@ ParamValue::get_string_indexed(int index) const
     } else if (element.basetype == TypeDesc::PTR) {
         out += "ptr ";
         formatType<void*>(*this, index, index + 1, "{:p}", out);
+    } else if (element.basetype == TypeDesc::USTRINGHASH) {
+        return get<ustringhash>(index).string();
     } else {
         out += Strutil::fmt::format(
             "<unknown data type> (base {:d}, agg {:d} vec {:d})",
@@ -417,6 +350,8 @@ ParamValue::get_ustring(int maxsize) const
     // super inexpensive.
     if (type() == TypeDesc::STRING)
         return get<ustring>();
+    if (type() == TypeDesc::USTRINGHASH)
+        return ustring(get<ustringhash>());
     return ustring(get_string(maxsize));
 }
 
@@ -429,6 +364,8 @@ ParamValue::get_ustring_indexed(int index) const
     // super inexpensive.
     if (type() == TypeDesc::STRING)
         return get<ustring>(index);
+    if (type() == TypeDesc::USTRINGHASH)
+        return ustring(get<ustringhash>());
     return ustring(get_string_indexed(index));
 }
 

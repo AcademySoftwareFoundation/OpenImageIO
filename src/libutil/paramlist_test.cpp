@@ -104,7 +104,16 @@ test_value_types()
         const char* val = "hello";
         ParamValue p("name", val);
         OIIO_CHECK_EQUAL(p.get<ustring>(), "hello");
+        OIIO_CHECK_EQUAL(p.get_ustring(), "hello");
         OIIO_CHECK_EQUAL(p.get_string(), "hello");
+    }
+
+    {
+        ustringhash val("hello");
+        ParamValue p("name", val);
+        OIIO_CHECK_EQUAL(p.get_string(), "hello");
+        OIIO_CHECK_EQUAL(p.get_ustring(), "hello");
+        OIIO_CHECK_EQUAL(p.get<ustringhash>(), val);
     }
 
     {

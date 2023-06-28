@@ -47,7 +47,8 @@ static int basetype_size[TypeDesc::LASTBASE] = {
     sizeof(float),               // FLOAT
     sizeof(double),              // DOUBLE
     sizeof(char*),               // STRING
-    sizeof(void*)                // PTR
+    sizeof(void*),               // PTR
+    sizeof(ustringhash),         // USTRINGHASH
 };
 
 }
@@ -81,7 +82,8 @@ TypeDesc::is_floating_point() const noexcept
         1,  // FLOAT
         1,  // DOUBLE
         0,  // STRING
-        0   // PTR
+        0,  // PTR
+        0,  // USTRINGHASH
     };
     OIIO_DASSERT(basetype < TypeDesc::LASTBASE);
     return isfloat[basetype];
@@ -107,7 +109,8 @@ TypeDesc::is_signed() const noexcept
         1,  // FLOAT
         1,  // DOUBLE
         0,  // STRING
-        0   // PTR
+        0,  // PTR
+        0,  // USTRINGHASH
     };
     OIIO_DASSERT(basetype < TypeDesc::LASTBASE);
     return issigned[basetype];
@@ -118,21 +121,22 @@ TypeDesc::is_signed() const noexcept
 namespace {
 
 static const char* basetype_name[] = {
-    "unknown",  // UNKNOWN
-    "void",     // VOID/NONE
-    "uint8",    // UCHAR
-    "int8",     // CHAR
-    "uint16",   // USHORT
-    "int16",    // SHORT
-    "uint",     // UINT
-    "int",      // INT
-    "uint64",   // ULONGLONG
-    "int64",    // LONGLONG
-    "half",     // HALF
-    "float",    // FLOAT
-    "double",   // DOUBLE
-    "string",   // STRING
-    "pointer"   // PTR
+    "unknown",      // UNKNOWN
+    "void",         // VOID/NONE
+    "uint8",        // UCHAR
+    "int8",         // CHAR
+    "uint16",       // USHORT
+    "int16",        // SHORT
+    "uint",         // UINT
+    "int",          // INT
+    "uint64",       // ULONGLONG
+    "int64",        // LONGLONG
+    "half",         // HALF
+    "float",        // FLOAT
+    "double",       // DOUBLE
+    "string",       // STRING
+    "pointer",      // PTR
+    "ustringhash",  // USTRINGHASH
 };
 
 static const char* basetype_code[] = {
@@ -150,7 +154,8 @@ static const char* basetype_code[] = {
     "f",        // FLOAT
     "d",        // DOUBLE
     "str",      // STRING
-    "ptr"       // PTR
+    "ptr",      // PTR
+    "uh",       // USTRINGHASH
 };
 
 }  // namespace
@@ -318,6 +323,8 @@ TypeDesc::fromstring(string_view typestring)
         t = TypeKeyCode;
     else if (type == "pointer")
         t = TypePointer;
+    else if (type == "ustringhash")
+        t = TypeUstringhash;
     else {
         return 0;  // unknown
     }
@@ -625,6 +632,14 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt)
         return fmt.use_sprintf
                    ? sprint_type(type, fmt.ptr_fmt, fmt, (void**)data)
                    : format_type(type, fmt.ptr_fmt, fmt, (void**)data);
+    case TypeDesc::USTRINGHASH: {
+        const char* v = ((const ustringhash*)data)->c_str();
+        if (!type.is_array()
+            && !(fmt.flags & tostring_formatting::quote_single_string))
+            return v ? v : "";
+        return fmt.use_sprintf ? sprint_type(type, fmt.string_fmt, fmt, &v)
+                               : format_type(type, fmt.string_fmt, fmt, &v);
+    }
     default:
 #ifndef NDEBUG
         return Strutil::sprintf("<unknown data type> (base %d, agg %d vec %d)",
@@ -780,7 +795,10 @@ convert_type(TypeDesc srctype, const void* src, TypeDesc dsttype, void* dst,
     }
 
     if (dsttype == TypeString) {
-        (*(ustring*)dst) = ustring(tostring(srctype, src));
+        if (srctype == TypeUstringhash)
+            (*(ustring*)dst) = ustring::from_hash(*(const ustring::hash_t*)src);
+        else
+            (*(ustring*)dst) = ustring(tostring(srctype, src));
         return true;
     }
 

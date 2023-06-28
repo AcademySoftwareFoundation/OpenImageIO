@@ -110,6 +110,11 @@ public:
         : ParamValue(_name, ustring(value))
     {
     }
+    ParamValue(string_view _name, ustringhash value) noexcept
+    {
+        init_noclear(ustring(_name), TypeDesc::USTRINGHASH, 1, &value,
+                     Copy(true));
+    }
 
     // Set from string -- parse
     ParamValue(string_view _name, TypeDesc type, string_view value);
