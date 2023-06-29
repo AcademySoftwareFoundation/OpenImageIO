@@ -15,16 +15,16 @@ This is a checklist for TSC's to review as part of the intake process. The TSC s
 - Infrastructure/Assets
   - [X] Technical Charter Approved
   - [ ] **(Awaiting scan from LF)** License scan completed and no issues found
-  - [ ] **(Awaiting final draft of project ownership transfer from LF)** Code repository imported to ASWF GitHub organization or ownership of current GitHub organization given to `thelinuxfoundation` user
-  - [ ] Developer Certificate of Origin past commit signoff done and DCO Probot enabled.
+  - [ ] Code repository imported to ASWF GitHub organization or ownership of current GitHub organization given to `thelinuxfoundation` user
+  - [X] Developer Certificate of Origin past commit signoff done and DCO Probot enabled.
   - [X] Issue/feature tracker established (JIRA, GitHub issues)
   - [ ] Mailing lists ( one of )
     - [X] Setup new lists ( -dev@ and -tsc@ ) on [ASWF groups.io](https://lists.aswf.io) ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to setup )
-    - [ ] (In progress) Move to [ASWF groups.io](https://lists.aswf.io) ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to transfer )
+    - [X] (In progress) Move to [ASWF groups.io](https://lists.aswf.io) ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to transfer )
   - [X] Slack ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to setup project channel on [ASWF Slack](https://slack.aswf.io) )
   - [ ] Website
   - [X] CI/build environment
-  - [ ] **(Awaiting final draft from LF)** Trademarks/mark ownership rights ( complete 'LF Projects - Form of Trademark and Account Assignment' - create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) - only needed if project using existing name )
+  - [X] Trademarks/mark ownership rights ( complete 'LF Projects - Form of Trademark and Account Assignment' - create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) - only needed if project using existing name )
   - [ ] Domain name	( create [issue with the LF IT staff](https://jira.linuxfoundation.org/plugins/servlet/theme/portal/2/group/19) to setup/transfer )
   - [ ] Zoom account access ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to get access to credentials )
   - [X] (N/A) Social media accounts or other project accounts	( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to transfer )
