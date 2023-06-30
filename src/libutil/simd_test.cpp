@@ -2027,7 +2027,7 @@ main(int argc, char* argv[])
     test_shuffle16<vint16>();
     test_blend<vint16>();
     test_vint_to_uint16s<vint16>();
-    test_vint_to_uint16s<vint16>();
+    test_vint_to_uint8s<vint16>();
     test_shift<vint16>();
 
     category_heading("vbool4");
