@@ -18,7 +18,7 @@ This is a checklist for TSC's to review as part of the intake process. The TSC s
   - [ ] Code repository imported to ASWF GitHub organization or ownership of current GitHub organization given to `thelinuxfoundation` user
   - [X] Developer Certificate of Origin past commit signoff done and DCO Probot enabled.
   - [X] Issue/feature tracker established (JIRA, GitHub issues)
-  - [ ] Mailing lists ( one of )
+  - [X] Mailing lists ( one of )
     - [X] Setup new lists ( -dev@ and -tsc@ ) on [ASWF groups.io](https://lists.aswf.io) ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to setup )
     - [X] (In progress) Move to [ASWF groups.io](https://lists.aswf.io) ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to transfer )
   - [X] Slack ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to setup project channel on [ASWF Slack](https://slack.aswf.io) )
@@ -34,7 +34,7 @@ This is a checklist for TSC's to review as part of the intake process. The TSC s
   - [X] First TSC meeting held
   - [X] TSC meeting cadence set and added to project calendar
   - [X] CLA Approved ( if used ) ( [CCLA](CLA-corporate.md) and [ICLA](CLA-individual.md) )
-  - Project charter	( [charter.md](charter.md) )
+  - Project charter	( [Technical-Charter.md](Technical-Charter.md) )
     - [X] Approved by TSC
     - [ ] Filed ( create pull request against [foundation repo](https://github.com/AcademySoftwareFoundation/foundation) )
   - [X] [Core Infrastructure Initiative Best Practices Badge](https://bestpractices.coreinfrastructure.org/) achieved as the 'Passing' level.

@@ -1,6 +1,17 @@
 Contributing to OpenImageIO
 ===========================
 
+> NOTE: This is the proposed post-ASWF-move version of CONTRIBUTING. After the
+> project is legally transferred and moved to the new repo, this file will
+> replace the one at the project root.
+>
+> TO DO:
+>
+> - [X] Update the mail list sign-up page after the mail list moves.
+> - [ ] Update the repo URL
+> - [ ] Double check the security and info email addresses.
+>
+
 Code contributions to OpenImageIO are always welcome, and [nearly 200
 people](https://github.com/OpenImageIO/oiio/blob/master/CREDITS.md) have done
 so over the years.  Please review this document to get a briefing on our
@@ -71,32 +82,35 @@ Contributor License Agreement (CLA) and Intellectual Property
 -------------------------------------------------------------
 
 To protect the project -- and the contributors! -- we do require a Contributor
-License Agreement (CLA) for anybody submitting substantial changes. Trivial
-changes (such as an alteration to the build system, short bug fixes to
-existing code, etc.) may be accepted without a CLA, at the sole discretion of
-the project leader, but anything complex needs a CLA. This is for your own
+License Agreement (CLA) for anybody submitting changes. This is for your own
 safety, as it prevents any possible future disputes between code authors and
 their employers or anyone else who might think they might own the IP output of
 the author.
 
-* [Corporate CLA](https://github.com/OpenImageIO/oiio/blob/master/src/doc/CLA-CORPORATE) :
+* [Corporate CLA](https://github.com/OpenImageIO/oiio/blob/master/ASWF/CLA-corporate.md) :
   If you are writing the code as part of your job, or if there is any
   possibility that your employers might think they own any intellectual
   property you create. This needs to be executed by someone who has
   signatory power for the company.
 
-* [Individual CLA](https://github.com/OpenImageIO/oiio/blob/master/src/doc/CLA-INDIVIDUAL) :
+* [Individual CLA](https://github.com/OpenImageIO/oiio/blob/master/ASWF/CLA-individual.md) :
   If you are an individual writing the code on your own time, using your own
   equipment, and you're SURE you are the sole owner of any intellectual
   property you contribute.
 
+The easiest way to sign CLAs is digitally [using EasyCLA](https://corporate.v1.easycla.lfx.linuxfoundation.org).
+Companies who prefer not to use the online tools may sign, scan, and email
+the executed copy to manager@lfprojects.org.
 
-Download the appropriate CLA from the links above (or find them in the src/doc
-directory of the software distribution), print, sign, and rescan it (or just
-add a digital signature directly), and email it back to: info@openimageio.org
+The CLA allows a company to name a "CLA Manager" (who does not need
+signatory power) who has the ability to use the online system to add or
+delete individual employees of the company who are authorized to submit pull
+requests, without needing to get an executive to amend and sign the
+agreement each time.
 
-Our CLA's are identical to those used by Apache and many other open source
-projects.
+Please note that these CLAs are based on the Apache 2.0 CLAs, and differ
+minimally, only as much as was required to correctly describe the EasyCLA
+process and our use of a CLA manager.
 
 **Contribution sign off**
 
