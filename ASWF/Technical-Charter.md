@@ -1,6 +1,6 @@
 # Technical Charter (the "Charter") for OpenImageIO a Series of LF Projects, LLC
 
-Adopted July 24, 2023 by majority vote of the TSC.
+Adopted July 1, 2023 by unanimous vote of the TSC.
 
 This Charter sets forth the responsibilities and procedures for technical
 contribution to, and oversight of, the OpenImageIO open source project, which
