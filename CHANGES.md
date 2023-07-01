@@ -1,3 +1,7 @@
+Release 2.4.14.0 (1 Aug? 2023) -- compared to 2.4.13.0
+-------------------------------------------------------
+
+
 Release 2.4.13.0 (1 July 2023) -- compared to 2.4.12.0
 -------------------------------------------------------
 - *OpenCV*: Improve OpenCV support -- errors, version, half [#3853](https://github.com/OpenImageIO/oiio/pull/3853) 
