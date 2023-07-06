@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
 # Run code coverage analysis
 # This assumes that the build occurred with CODECOV=1 and tests have already
 # fully run.

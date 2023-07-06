@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
+
 # Make sure we can do a read-write-read round trip of all the OpenEXR
 # test images that exercise different display and pixel windows.
 

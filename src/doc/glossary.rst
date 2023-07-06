@@ -1,5 +1,11 @@
 .. _chap-glossary:
 
+..
+  Copyright Contributors to the OpenImageIO project.
+  SPDX-License-Identifier: CC-BY-4.0
+
+
+
 Glossary
 ########
 

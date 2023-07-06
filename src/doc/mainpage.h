@@ -1,6 +1,10 @@
 // Comments that don't go anywhere in the source code, but help to
 // generate the "main page" or other docs for doxygen.
 
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: Apache-2.0
+// https://github.com/OpenImageIO/oiio
+
 
 namespace OpenImageIO {
 

@@ -1,5 +1,9 @@
 #!/usr/bin/python
 
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
 # Format the output from various oiio command line "$tool --help" invocations,
 # and munge such that txt2man generates a simple man page with not-too-horrible
 # formatting.
