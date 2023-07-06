@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
 files = ["gif_animation.gif", "gif_oiio_logo_with_alpha.gif",
          "gif_tahoe.gif", "gif_tahoe_interlaced.gif",
          "gif_bluedot.gif", "gif_diagonal_interlaced.gif",

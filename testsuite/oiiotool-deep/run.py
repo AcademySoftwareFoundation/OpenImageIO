@@ -1,5 +1,9 @@
 #!/usr/bin/env python 
 
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
 exrdir = OIIO_TESTSUITE_IMAGEDIR + "/v2/LowResLeftView"
 
 # test --flatten : turn deep into composited non-deep
