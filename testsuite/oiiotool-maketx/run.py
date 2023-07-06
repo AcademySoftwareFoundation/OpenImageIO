@@ -1,5 +1,9 @@
 #!/usr/bin/env python 
 
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
 # Construct a command that will create a texture, appending console
 # output to the file "out.txt".
 def omaketx_command (infile, outfile, extraargs="",

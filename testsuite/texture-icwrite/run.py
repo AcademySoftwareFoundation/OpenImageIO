@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
 # test 1: seed top level, no MIP map
 command += testtex_command (OIIO_TESTSUITE_IMAGEDIR + " -res 256 256 -d uint8 -o out1.tif --testicwrite 1 blah")
 # test 2: seed top level, automip

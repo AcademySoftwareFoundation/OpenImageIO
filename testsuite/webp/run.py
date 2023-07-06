@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
 files = [ "1.webp", "2.webp", "3.webp", "4.webp" ]
 for f in files:
     command += info_command (OIIO_TESTSUITE_IMAGEDIR + "/" + f)
