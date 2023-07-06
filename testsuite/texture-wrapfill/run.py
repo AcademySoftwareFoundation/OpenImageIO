@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
 # This tests a particular tricky case: the interplay of "black" wrap mode
 # with fill color.  Outside the s,t [0,1] range, it should be black, NOT
 # fill color.  
