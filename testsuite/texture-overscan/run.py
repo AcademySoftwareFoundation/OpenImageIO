@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
+
 # Creates a texture with overscan -- it looks like the usual grid in the
 # 0-1 (display) window, but is red checker for a while outside that window.
 #

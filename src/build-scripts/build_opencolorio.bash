@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
 # Utility script to download and build OpenColorIO
 
 # Exit the whole script if any command fails.

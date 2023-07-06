@@ -1,4 +1,9 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
+
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
 
 # This test just maps a 50% grey texture, once with default settings, and once
 # declaring that it thinks the texture is in sRGB texture space.

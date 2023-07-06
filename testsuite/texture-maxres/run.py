@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
+
 command = (oiio_app("testtex") + " -res 256 256 "
            + "-texoptions max_mip_res=128 "
            + OIIO_TESTSUITE_IMAGEDIR + "/miplevels.tx"

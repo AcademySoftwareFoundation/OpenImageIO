@@ -1,5 +1,9 @@
 # Find Robinmap
 #
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/OpenImageIO/oiio
+#
 # Sets the usual variables expected for find_package scripts:
 #
 # ROBINMAP_INCLUDES - header location

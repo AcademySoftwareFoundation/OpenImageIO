@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
+
 # This test just views the "miplevels" texture straight on, but it uses
 # -widthramp to smoothly blend between mipmap levels from left to right
 # (wanting the 256^2 level at the left and the 64^2 level at the right).

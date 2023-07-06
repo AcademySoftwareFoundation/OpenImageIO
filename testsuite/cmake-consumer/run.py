@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # Copyright Contributors to the OpenImageIO project.
-# SPDX-License-Identifier: BSD-3-Clause
+# SPDX-License-Identifier: Apache-2.0
 # https://github.com/OpenImageIO/oiio
 
 
