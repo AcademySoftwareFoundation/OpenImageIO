@@ -10,8 +10,37 @@ relicensed to the Apache License, Version 2.0, and are submitted pursuant to
 the Developer Certificate of Origin, version 1.1:
 
 - Larry Gritz (@lgritz)
-
-
+- Chris Kulla (fpsunflower)
+- Brecht Van Lommel (brechtvl)
+- Daniel Flehner Heen (apetrynet)
+- Daniel Wyatt (dewyatt)
+- Aras Pranckevičius (aras-p)
+- Leszek Godlewski (inequation)
+- Dalai Felinto (dfelinto)
+- Jesse Yurkovich (jessey-git)
+- Sergey Sharybin (sergeyvfx)
+- Ray Molenkamp (LazyDodo)
+- Nathan Rusch (nrusch)
+- Ismael Cortes (leamsi)
+- AdamMainsTL
+- Sony Pictures Imageworks (cstein, olegul, fpsunflower, brianhall77, jeremyselan)
+- Richard Shaw (hobbes1069)
+- Robert Matusewicz
+- Mariusz Szczepańczyk (mszczepanczyk)
+- Scott Wilson
+- Kevin Brightwell (Nava2)
+- Simon Boorer
+- Alex Hughes (Ahuge)
+- Alister Chowdhury
+- Manuel Leonhardt (skycaptain)
+- Alexandre Gauthier (MrKepzie)
+- Mark Boorer (shootfast)
+- Povilas Kanapickas (p12tic)
+- Mikael Sundell
+- Roman Zulak (marsupial)
+- Autodesk (includes Thiago Ize, Elvic Liang, Wayne Arnold, William Krick, Brecht Van Lommel, Marcos Fajardo)
+- Thiago Ize
+- Nick Black (dankamongmen)
 
 **Prior authors, please submit a PR against this file that adds your name
 above. If, at the time of your prior contributions, you were employed by a

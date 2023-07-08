@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: BSD-3-Clause
+
 # - Find OPENVDB library
 # Find the native OPENVDB includes and library
 # This module defines
