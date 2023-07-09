@@ -230,6 +230,8 @@ Release 2.5 (summer 2023?) -- compared to 2.4
       introduced in OIIO in 2.4. On top of that, speed up by another 4x beyond
       what we ever did before by speeding up the RGBE->float conversion. #3588
       #3590 (2.4.5/2.5.0.0)
+* ICO:
+    - Heap-buffer-overflow [#3872](https://github.com/OpenImageIO/oiio/pull/3872)  (by xiaoxiaoafeifei)  Fixes CVE-2023-36183.
 * IFF:
     - Protect against 0-sized allocations. #3603 (2.5.0.0)
     - IOProxy support. #3647 (2.4.6/2.5.0.0)
@@ -475,6 +477,31 @@ Release 2.5 (summer 2023?) -- compared to 2.4
   [#3852](https://github.com/OpenImageIO/oiio/pull/3852)  (2.5.2.0)
 
 
+
+
+Release 2.4.13.0 (1 July 2023) -- compared to 2.4.12.0
+-------------------------------------------------------
+- *OpenCV*: Improve OpenCV support -- errors, version, half [#3853](https://github.com/OpenImageIO/oiio/pull/3853)
+- *IBA*: Improve error message for IBA::ocio functions [#3887](https://github.com/OpenImageIO/oiio/pull/3887)
+- *exif*: Convert paramvalue string to integer when needed [#3886](https://github.com/OpenImageIO/oiio/pull/3886) (by Fabien Servant @ TCS)
+- *exr*: Correction to dwa vs zip logic when outputting OpenEXR [#3884](https://github.com/OpenImageIO/oiio/pull/3884)
+- *ico*: Heap-buffer-overflow [#3872](https://github.com/OpenImageIO/oiio/pull/3872) (by xiaoxiaoafeifei) Fixes CVE-2023-36183.
+- *jpeg*: Fix density calculation  for jpeg output [#3861](https://github.com/OpenImageIO/oiio/pull/3861) (by Loïc Vital)
+- *jpeg2000*: Better pixel type promotion logic [#3878](https://github.com/OpenImageIO/oiio/pull/3878)
+- *psd*: Prevent simultaneous psd thumbnail reads from clashing [#3877](https://github.com/OpenImageIO/oiio/pull/3877)
+- *strutil.h*: Ensure proper constexpr of string hashing [#3901](https://github.com/OpenImageIO/oiio/pull/3901)
+- *build* Fix use of OIIO_LOCAL_DEPS_PATH [#3865](https://github.com/OpenImageIO/oiio/pull/3865)
+- *build* Fix fmt vs gcc warning that had version typo [#3874](https://github.com/OpenImageIO/oiio/pull/3874)
+- *ci*: Add test with new aswf containers for VFX Platform 2023 [#3875](https://github.com/OpenImageIO/oiio/pull/3875)
+- *ci*: Fix broken heif dependency and test [#3894](https://github.com/OpenImageIO/oiio/pull/3894)
+- *ci*: Simplify build_llvm.bash script [#3892](https://github.com/OpenImageIO/oiio/pull/3892)
+- *tests*: Fix missing simd test due to copy paste typo [#3896](https://github.com/OpenImageIO/oiio/pull/3896)
+- *docs*: Update CONTRIBUTING and SECURITY [#3852](https://github.com/OpenImageIO/oiio/pull/3852)
+- *docs*: ImageInput and ImageOutput docs updated to Python 3. [#3866](https://github.com/OpenImageIO/oiio/pull/3866) (by Ziggy Cross)
+- *docs*: Many fixes to python code examples [#3869](https://github.com/OpenImageIO/oiio/pull/3869) (by Jesse Y)
+- *docs*: Update mail list URL [#3880](https://github.com/OpenImageIO/oiio/pull/3880)
+- *docs*: Fix explanation of raw:Exposure config hint [#3889](https://github.com/OpenImageIO/oiio/pull/3889)
+- *docs*: Document use of the DCO which is now required for all PRs [#3897](https://github.com/OpenImageIO/oiio/pull/3897)
 
 Release 2.4.12.0 (1 June 2023) -- compared to 2.4.11.1
 ------------------------------------------------------
