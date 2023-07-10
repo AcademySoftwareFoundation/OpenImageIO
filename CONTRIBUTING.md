@@ -189,7 +189,7 @@ All headers should contain
 All source files should begin with these three lines:
 
     // Copyright Contributors to the OpenImageIO project.
-    // SPDX-License-Identifier: BSD-3-Clause
+    // SPDX-License-Identifier: Apache-2.0
     // https://github.com/OpenImageIO/oiio
 
 as a comment in the syntax of whatever source code is used in that file.
