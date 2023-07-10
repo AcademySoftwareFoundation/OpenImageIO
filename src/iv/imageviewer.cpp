@@ -2049,7 +2049,7 @@ ImageViewer::about()
         this, tr("About iv"),
         tr("<p><b>iv</b> is the image viewer for OpenImageIO.</p>"
            "<p>(c) Copyright Contributors to the OpenImageIO project.</p>"
-           "<p>See <a href='http://openimageio.org'>http://openimageio.org</a> for details.</p>"));
+           "<p>See <a href='https://openimageio.org'>https://openimageio.org</a> for details.</p>"));
 }
 
 
