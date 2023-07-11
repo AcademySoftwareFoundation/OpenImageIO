@@ -28,7 +28,7 @@ memory, even if that's not the way they're stored in the file):
         int xres = spec.width;
         int yres = spec.height;
         int nchannels = spec.nchannels;
-        std::vector<unsigned char> pixels(xres * yres * nchannels);
+        auto pixels = std::unique_ptr<unsigned char[]>(new unsigned char[xres * yres * nchannels]);
         inp->read_image(0, 0, 0, nchannels, TypeDesc::UINT8, &pixels[0]);
         inp->close();
 
@@ -79,8 +79,8 @@ Here is a breakdown of what work this code is doing:
         const ImageSpec &spec = inp->spec();
         int xres = spec.width;
         int yres = spec.height;
-        int channels = spec.nchannels;
-        std::vector<unsigned char> pixels (xres*yres*channels);
+        int nchannels = spec.nchannels;
+        auto pixels = std::unique_ptr<unsigned char[]>(new unsigned char[xres * yres * nchannels]);
 
      .. code-tab:: py
 
@@ -163,7 +163,7 @@ Individual scanlines may be read using the ``read_scanline()`` API call:
         auto inp = ImageInput::open (filename);
         const ImageSpec &spec = inp->spec();
         if (spec.tile_width == 0) {
-            std::vector<unsigned char> scanline (spec.width*spec.channels);
+            auto scanline = std::unique_ptr<unsigned char[]>(new unsigned char[spec.width * spec.nchannels]);
             for (int y = 0;  y < yres;  ++y) {
                 inp->read_scanline (y, 0, TypeDesc::UINT8, &scanline[0]);
                 // ... process data in scanline[0..width*channels-1] ...
@@ -231,7 +231,7 @@ scanline image and you should read pixels using ``read_scanline()``, not
         } else {
             // Tiles
             int tilesize = spec.tile_width * spec.tile_height;
-            std::vector<unsigned char> tile(tilesize * spec.channels);
+            auto tile = std::unique_ptr<unsigned char[]>(new unsigned char[tilesize * spec.nchannels]);
             for (int y = 0;  y < yres;  y += spec.tile_height) {
                 for (int x = 0;  x < xres;  x += spec.tile_width) {
                     inp->read_tile(x, y, 0, TypeDesc::UINT8, &tile[0]);
@@ -305,9 +305,9 @@ values.
 
         int numpixels = spec.image_pixels();
         int nchannels = spec.nchannels;
-        float *pixels = new float [numpixels * nchannels];
+        auto pixels = std::unique_ptr<float[]>(new float[numpixels * nchannels]);
 
-        inp->read_image (0, 0, 0, nchannels, TypeDesc::FLOAT, pixels);
+        inp->read_image (0, 0, 0, nchannels, TypeDesc::FLOAT, &pixels[0]);
 
     .. code-tab:: py
 
@@ -362,7 +362,7 @@ flexible functionality.  A few representative examples follow:
 
 * Flip an image vertically upon reading, by using *negative* ``y`` stride::
 
-    std::vector<unsigned char> pixels(spec.width * spec.height * spec.nchannels);
+    auto pixels = std::unique_ptr<unsigned char[]>(new unsigned char[spec.width * spec.height * spec.nchannels]);
     int scanlinesize = spec.width * spec.nchannels * sizeof(pixels[0]);
     ...
     in->read_image (0, 0, 0, spec.nchannels,
@@ -404,7 +404,7 @@ A workaround for this is to call ``read_scanlines``, ``read_tiles`` or
     .. code-tab:: c++
 
         // one buffer for all three channels
-        std::vector<unsigned char> pixels(spec.width * spec.height * spec.nchannels);
+        auto pixels = std::unique_ptr<unsigned char[]>(new unsigned char[spec.width * spec.height * spec.nchannels]);
 
         for (int channel = 0; channel < spec.nchannels; ++channel) {
             file->read_image(
@@ -702,12 +702,11 @@ multi-image files:
             const ImageSpec &spec = inp->spec();
             int npixels = spec.width * spec.height;
             int nchannels = spec.nchannels;
-            unsigned char *pixels = new unsigned char [npixels * nchannels];
+            auto pixels = std::unique_ptr<unsigned char[]>(new unsigned char[npixels * nchannels]);
             inp->read_image(0, miplevel, 0, nchannels, TypeDesc::UINT8, pixels);
 
             // ... do whatever you want with this level, in pixels ...
 
-            delete [] pixels;
             ++miplevel;
         }
         // Note: we break out of the while loop when seek_subimage fails
@@ -762,7 +761,7 @@ OpenEXR file, consisting of R/G/B/A channels in ``half`` and a Z channel in
         const ImageSpec &spec = inp->spec();
 
         // Allocate enough space
-        unsigned char *pixels = new unsigned char [spec.image_bytes(true)];
+        auto pixels = std::unique_ptr<unsigned char[]>(new unsigned char[spec.image_bytes(true)]);
         int nchannels = spec.nchannels;
         inp->read_image(0, 0, 0, nchannels,
                         TypeDesc::UNKNOWN, /* use native channel formats */
@@ -955,7 +954,7 @@ Examples:
           // Open the file, passing in the config.
           auto inp = ImageInput::open (filename, config);
           const ImageSpec &spec = inp->spec();
-          std::vector<unsigned char> pixels (spec.image_pixels() * spec.nchannels);
+          auto pixels = std::unique_ptr<unsigned char[]>(new unsigned char[spec.image_pixels() * spec.nchannels]);
           inp->read_image (0, 0, 0, spec.nchannels, TypeDesc::UINT8, pixels.data());
           if (spec.get_int_attribute("oiio:UnassociatedAlpha"))
               printf("pixels holds unassociated alpha\n");
@@ -1084,7 +1083,7 @@ elaborated with error checking and reporting:
         int xres = spec.width;
         int yres = spec.height;
         int nchannels = spec.nchannels;
-        std::vector<unsigned char> pixels(xres * yres * nchannels);
+        auto pixels = std::unique_ptr<unsigned char[]>(new unsigned char[xres * yres * nchannels]);
 
         if (! inp->read_image(0, 0, 0, nchannels, TypeDesc::UINT8, &pixels[0])) {
             std::cerr << "Could not read pixels from " << filename
