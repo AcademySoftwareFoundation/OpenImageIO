@@ -815,23 +815,32 @@ public:
     }
 
     /// Construct a ustringhash from a null-terminated C string (char *).
-    OIIO_HOSTDEVICE explicit ustringhash(const char* str)
+    OIIO_DEVICE_CONSTEXPR explicit ustringhash(const char* str)
     {
 #ifdef __CUDA_ARCH__
         m_hash = Strutil::strhash(str);  // GPU: just compute the hash
 #else
-        m_hash = ustring(str).hash();  // CPU: make ustring, get its hash
+        m_hash = ustring(str).hash();       // CPU: make ustring, get its hash
+#endif
+    }
+
+    OIIO_DEVICE_CONSTEXPR explicit ustringhash(const char* str, size_t len)
+    {
+#ifdef __CUDA_ARCH__
+        m_hash = Strutil::strhash(len, str);  // GPU: just compute the hash
+#else
+        m_hash = ustring(str, len).hash();  // CPU: make ustring, get its hash
 #endif
     }
 
     /// Construct a ustringhash from a string_view, which can be
     /// auto-converted from either a std::string.
-    OIIO_HOSTDEVICE explicit ustringhash(string_view str)
+    OIIO_DEVICE_CONSTEXPR explicit ustringhash(string_view str)
     {
 #ifdef __CUDA_ARCH__
         m_hash = Strutil::strhash(str);  // GPU: just compute the hash
 #else
-        m_hash = ustring(str).hash();  // CPU: make ustring, get its hash
+        m_hash = ustring(str).hash();       // CPU: make ustring, get its hash
 #endif
     }
 
@@ -1010,6 +1019,22 @@ inline ustring::ustring(ustringhash hash)
     m_chars = ustring::from_hash(hash.hash()).c_str();
 }
 #endif
+
+
+
+/// ustring string literal operator
+inline ustring operator""_us(const char* str, std::size_t len)
+{
+    return ustring(str, len);
+}
+
+
+/// ustringhash string literal operator
+OIIO_DEVICE_CONSTEXPR ustringhash operator""_ush(const char* str,
+                                                 std::size_t len)
+{
+    return ustringhash(str, len);
+}
 
 
 

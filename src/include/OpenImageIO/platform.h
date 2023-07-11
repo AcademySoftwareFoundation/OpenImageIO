@@ -527,6 +527,15 @@
 #endif
 
 
+// OIIO_DEVICE_CONSTEXPR is like OIIO_HOSTDEVICE, but it's `constexpr` only on
+// the Cuda device side, and merely inline (not constexpr) on the host side.
+#ifdef __CUDA_ARCH__
+#    define OIIO_DEVICE_CONSTEXPR __device__ constexpr
+#else
+#    define OIIO_DEVICE_CONSTEXPR /*__host__*/ inline
+#endif
+
+
 
 // OIIO_PRETTY_FUNCTION gives a text string of the current function
 // declaration.
