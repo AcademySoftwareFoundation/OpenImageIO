@@ -44,18 +44,18 @@ if (WebP_FOUND)
     set (WEBP_INCLUDES "${WEBP_INCLUDE_DIR}")
     set (WEBP_LIBRARIES ${WEBP_LIBRARY} ${WEBPDEMUX_LIBRARY})
 
-    if (NOT TARGET WebP::WebP)
-        add_library(WebP::WebP UNKNOWN IMPORTED)
-        set_target_properties(WebP::WebP PROPERTIES
+    if (NOT TARGET WebP::webp)
+        add_library(WebP::webp UNKNOWN IMPORTED)
+        set_target_properties(WebP::webp PROPERTIES
             INTERFACE_INCLUDE_DIRECTORIES ${WEBP_INCLUDES})
-        set_property(TARGET WebP::WebP APPEND PROPERTY
+        set_property(TARGET WebP::webp APPEND PROPERTY
             IMPORTED_LOCATION ${WEBP_LIBRARY})
     endif ()
-    if (NOT TARGET WebP::WebPDemux)
-        add_library(WebP::WebPDemux UNKNOWN IMPORTED)
-        set_target_properties(WebP::WebPDemux PROPERTIES
+    if (NOT TARGET WebP::webpdemux)
+        add_library(WebP::webpdemux UNKNOWN IMPORTED)
+        set_target_properties(WebP::webpdemux PROPERTIES
             INTERFACE_INCLUDE_DIRECTORIES ${WEBP_INCLUDES})
-        set_property(TARGET WebP::WebPDemux APPEND PROPERTY
+        set_property(TARGET WebP::webpdemux APPEND PROPERTY
             IMPORTED_LOCATION ${WEBPDEMUX_LIBRARY})
     endif ()
 endif ()
