@@ -95,6 +95,9 @@
 #  ifndef OIIO_NO_AVX2
 #    define OIIO_NO_AVX2 1
 #  endif
+#endif
+
+#if !(defined(_M_ARM64) || defined(__aarch64) || defined(__aarch64__)) || defined(__CUDA_ARCH__)
 #  ifndef OIIO_NO_NEON
 #    define OIIO_NO_NEON 1
 #  endif
