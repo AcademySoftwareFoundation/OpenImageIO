@@ -1,5 +1,5 @@
-// Copyright 2008-present Contributors to the OpenImageIO project.
-// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
 // https://github.com/OpenImageIO/oiio
 
 
@@ -70,11 +70,14 @@ private:
 }  // namespace
 
 
+
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageOutput*
 heif_output_imageio_create()
 {
+    extern void oiio_heif_init();
+    oiio_heif_init();
     return new HeifOutput;
 }
 

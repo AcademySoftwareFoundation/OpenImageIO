@@ -1,5 +1,5 @@
-// Copyright 2008-present Contributors to the OpenImageIO project.
-// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
 // https://github.com/OpenImageIO/oiio
 
 #include <cstdio>
@@ -205,6 +205,11 @@ oiio_simd_caps()
     // clang-format on
 }
 
+void
+shutdown()
+{
+    default_thread_pool_shutdown();
+}
 
 
 int

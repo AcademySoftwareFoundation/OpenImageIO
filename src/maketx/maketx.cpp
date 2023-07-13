@@ -1,5 +1,5 @@
-// Copyright 2008-present Contributors to the OpenImageIO project.
-// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
 // https://github.com/OpenImageIO/oiio
 
 #include <cmath>
@@ -537,5 +537,6 @@ main(int argc, char* argv[])
     if (runstats)
         std::cout << "\n" << ic->getstats();
 
+    shutdown();
     return ok ? 0 : EXIT_FAILURE;
 }

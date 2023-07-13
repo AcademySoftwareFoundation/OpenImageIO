@@ -1,5 +1,5 @@
-// Copyright 2008-present Contributors to the OpenImageIO project.
-// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
 // https://github.com/OpenImageIO/oiio
 
 // clang-format off
@@ -106,9 +106,8 @@ public:
         : m_chars(chars), m_len(len) { }
 
     /// Construct from char*, use strlen to determine length.
-    OIIO_CONSTEXPR17 basic_string_view(const CharT* chars) noexcept
-        : m_chars(chars), m_len(chars ? Traits::length(chars) : 0) { }
-    // N.B. char_traits::length() is constexpr starting with C++17.
+    constexpr basic_string_view(const CharT* chars) noexcept
+        : m_chars(chars), m_len(chars ? cestrlen(chars) : 0) { }
 
     /// Construct from std::string. Remember that a string_view doesn't have
     /// its own copy of the characters, so don't use the `string_view` after
@@ -429,6 +428,20 @@ private:
             if (!traits::find(s.data(), s.length(), *first))
                 return first;
         return last;
+    }
+
+    // Guaranteed constexpr length of a C string
+    static constexpr size_t cestrlen(const charT* chars) {
+#if OIIO_CPLUSPLUS_VERSION >= 17
+        return Traits::length(chars);
+#else
+        if (chars == nullptr)
+            return 0;
+        size_t len = 0;
+        while (chars[len] != 0)
+            len++;
+        return len;
+#endif
     }
 
     class traits_eq {

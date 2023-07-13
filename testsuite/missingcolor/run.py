@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
+
 # Test "missingcolor" attribute by reading a tiled exr that deliberately has
 # missing tiles. Make sure that we do the right thing in the presence of
 # missingcolor attribute.

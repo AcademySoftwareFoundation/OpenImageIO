@@ -1,5 +1,5 @@
-// Copyright 2008-present Contributors to the OpenImageIO project.
-// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
 // https://github.com/OpenImageIO/oiio
 // clang-format off
 
@@ -350,6 +350,9 @@ test_hash()
     OIIO_CHECK_EQUAL(strhash(std::string("foo")), 6150913649986995171);
     OIIO_CHECK_EQUAL(strhash(string_view("foo")), 6150913649986995171);
     OIIO_CHECK_EQUAL(strhash(""), 0);  // empty string hashes to 0
+    // Check longer hash and ensure that it's really constexpr
+    constexpr size_t hash = Strutil::strhash("much longer string");
+    OIIO_CHECK_EQUAL(hash, 16257490369375554819ULL);
 }
 
 

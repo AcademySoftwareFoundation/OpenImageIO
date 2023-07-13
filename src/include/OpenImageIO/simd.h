@@ -1,5 +1,5 @@
-// Copyright 2008-present Contributors to the OpenImageIO project.
-// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
 // https://github.com/OpenImageIO/oiio
 
 /// @file  simd.h
@@ -290,7 +290,7 @@ class vbool16;
 class vint16;
 class vfloat16;
 
-#if OIIO_DISABLE_DEPRECATED >= OIIO_MAKE_VERSION(1,9,0) && !defined(OIIO_INTERNAL)
+#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(1,9,0) && !defined(OIIO_INTERNAL)
 // Deprecated names -- remove these in 1.9
 // These are removed from visibility for the OIIO codebase itself, or for any
 // downstream project that defines OIIO_DISABLE_DEPRECATED to exclude

@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
 # ../openexr-images/Chromaticities:
 # README         Rec709.exr     Rec709_YC.exr  XYZ.exr        XYZ_YC.exr
 imagedir = OIIO_TESTSUITE_IMAGEDIR + "/Chromaticities"

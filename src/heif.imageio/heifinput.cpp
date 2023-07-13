@@ -1,5 +1,5 @@
-// Copyright 2008-present Contributors to the OpenImageIO project.
-// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
 // https://github.com/OpenImageIO/oiio
 
 #include <OpenImageIO/filesystem.h>
@@ -59,6 +59,17 @@ private:
 
 
 
+void
+oiio_heif_init()
+{
+#if LIBHEIF_HAVE_VERSION(1, 6, 0)
+    static std::once_flag flag;
+    std::call_once(flag, []() { heif_init(nullptr); });
+#endif
+}
+
+
+
 // Export version number and create function symbols
 OIIO_PLUGIN_EXPORTS_BEGIN
 
@@ -73,6 +84,7 @@ heif_imageio_library_version()
 OIIO_EXPORT ImageInput*
 heif_input_imageio_create()
 {
+    oiio_heif_init();
     return new HeifInput;
 }
 

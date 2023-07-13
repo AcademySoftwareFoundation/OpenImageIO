@@ -1,5 +1,5 @@
-// Copyright 2008-present Contributors to the OpenImageIO project.
-// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
 // https://github.com/OpenImageIO/oiio
 
 
@@ -522,6 +522,6 @@ main(int argc, char* argv[])
     } else {
         ok = convert_file(filenames[0], filenames[1]);
     }
-
+    shutdown();
     return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }

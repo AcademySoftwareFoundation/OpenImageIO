@@ -1,4 +1,9 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
+
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
 
 # Basic test -- save with dither
 command += oiiotool ("-pattern fill:left=0,0,0:right=0.0625,0.0625,0.0625 256x256 3 -d uint8 -dither -o ramp.tif")

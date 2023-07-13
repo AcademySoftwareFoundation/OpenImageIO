@@ -1,5 +1,5 @@
-// Copyright 2008-present Contributors to the OpenImageIO project.
-// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
 // https://github.com/OpenImageIO/oiio
 
 
@@ -7443,6 +7443,6 @@ main(int argc, char* argv[])
     ot.curimg = nullptr;
     ot.image_stack.clear();
     ot.image_labels.clear();
-
+    shutdown();
     return ot.return_value;
 }

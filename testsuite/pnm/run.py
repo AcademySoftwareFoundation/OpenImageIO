@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
 imagedir = OIIO_TESTSUITE_IMAGEDIR + "/pnm"
 
 for f in [ "bw-ascii.pbm", "bw-binary.pbm",

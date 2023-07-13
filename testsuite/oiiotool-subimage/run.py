@@ -1,4 +1,9 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
+
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
 
 # Slightly bump allowable failures, for slightly shifting font rendering
 # with changed freetype versions.

@@ -259,7 +259,7 @@ The following are the steps for making the release:
    release (from CHANGES.md). If this is a beta or release candidate, check
    "this is a pre-release" box at the bottom.
 
-8. Announce the release on the [oiio-dev mail list](http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org)
+8. Announce the release on the [oiio-dev mail list](https://lists.aswf.io/g/oiio-dev)
    with the subject "Release: OpenImageIO v1.2.3.4" and using one of these
    templates for the body of the email.
 

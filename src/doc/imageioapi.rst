@@ -1,3 +1,8 @@
+..
+  Copyright Contributors to the OpenImageIO project.
+  SPDX-License-Identifier: CC-BY-4.0
+
+
 Image I/O API Helper Classes
 ############################
 
@@ -280,6 +285,13 @@ just exist in the OIIO namespace as general utilities. (See
 .. doxygenfunction:: is_imageio_format_name
 
 .. doxygenfunction:: get_extension_map
+
+ .. _sec-startupshutdown:
+
+Startup and Shutdown
+==========================================
+
+.. doxygenfunction:: shutdown
 
 |
 

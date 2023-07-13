@@ -4,6 +4,7 @@ README for OpenImageIO
 [![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg?style=flat-square)](https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md)
 [![CI](https://github.com/OpenImageIO/oiio/actions/workflows/ci.yml/badge.svg)](https://github.com/OpenImageIO/oiio/actions/workflows/ci.yml)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2694/badge)](https://bestpractices.coreinfrastructure.org/projects/2694)
+[![latest packaged version(s)](https://repology.org/badge/latest-versions/openimageio.svg)](https://repology.org/project/openimageio/versions)
 
 
 Introduction
@@ -110,7 +111,7 @@ Contact & reporting problems
 
 Simple "how do I...", "I'm having trouble", or "is this a bug" questions are
 best asked on the [oiio-dev developer mail
-list](http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org).
+list](https://lists.aswf.io/g/oiio-dev).
 That's where the most people will see it and potentially be able to answer
 your question quickly (more so than a GH "issue").
 
@@ -141,5 +142,5 @@ Web Resources
 * GitHub page:        http://github.com/OpenImageIO/oiio
 
 * Developer mail list subscriptions and archives:
-  http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org
+  https://lists.aswf.io/g/oiio-dev
 

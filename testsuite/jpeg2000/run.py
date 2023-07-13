@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
 # Allow some LSB slop -- necessary because of the alpha disassociation
 # combined with implied sRGB conversion.
 failthresh = 0.02

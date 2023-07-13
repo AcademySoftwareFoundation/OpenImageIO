@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
 if [ "${OIIOTOOL}" == "" ] ; then
     OIIOTOOL=oiiotool
 fi

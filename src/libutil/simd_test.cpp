@@ -1,5 +1,5 @@
-// Copyright 2008-present Contributors to the OpenImageIO project.
-// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: Apache-2.0
 // https://github.com/OpenImageIO/oiio
 
 // clang-format off
@@ -2027,7 +2027,7 @@ main(int argc, char* argv[])
     test_shuffle16<vint16>();
     test_blend<vint16>();
     test_vint_to_uint16s<vint16>();
-    test_vint_to_uint16s<vint16>();
+    test_vint_to_uint8s<vint16>();
     test_shift<vint16>();
 
     category_heading("vbool4");

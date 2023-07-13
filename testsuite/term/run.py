@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/OpenImageIO/oiio
+
+
 redirect = ' >> out.txt 2>&1 '
 
 command += oiiotool ("-pattern fill:topleft=1,0,0:topright=0,1,0:bottomleft=0,0,1:bottomright=1,1,1 60x40 3 -o ramp.exr")

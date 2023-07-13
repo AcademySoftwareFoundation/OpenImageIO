@@ -1,3 +1,7 @@
+..
+  Copyright Contributors to the OpenImageIO project.
+  SPDX-License-Identifier: CC-BY-4.0
+
 .. _chap-bundledplugins:
 
 Bundled ImageIO Plugins
@@ -1862,7 +1866,7 @@ options are supported:
    * - ``raw:Exposure``
      - float
      - Amount of exposure before de-mosaicing, from 0.25 (2 stop darken) to
-       8 (3 stop brighten). (Default: 0, meaning no correction.)
+       8.0 (3 stop brighten). (Default: 1.0, meaning no correction.)
    * - ``raw:Demosaic``
      - string
      - Force a demosaicing algorithm: ``linear``, ``VNG``, ``PPG``, ``AHD``

@@ -1,5 +1,5 @@
-// Copyright 2008-present Contributors to the OpenImageIO project.
-// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
 // https://github.com/OpenImageIO/oiio
 
 
@@ -181,13 +181,17 @@ main(int argc, const char* argv[])
         flag = std::regex_constants::extended;
     if (ap["i"].get<int>())
         flag |= std::regex_constants::icase;
+
+    bool ok = true;
+
     try {
         std::regex re(pattern, flag);
         for (auto&& s : filenames)
             grep_file(s, re);
     } catch (const std::regex_error& e) {
         std::cerr << "igrep: " << e.what() << "\n";
-        return EXIT_FAILURE;
+        ok = false;
     }
-    return 0;
+    shutdown();
+    return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }
