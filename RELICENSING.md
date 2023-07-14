@@ -23,7 +23,7 @@ the Developer Certificate of Origin, version 1.1:
 - Nathan Rusch (nrusch)
 - Ismael Cortes (leamsi)
 - AdamMainsTL
-- Sony Pictures Imageworks (cstein, olegul, fpsunflower, brianhall77, jeremyselan)
+- Sony Pictures Imageworks (cstein, olegul, fpsunflower, brianhall77, jeremyselan, drg)
 - Richard Shaw (hobbes1069)
 - Robert Matusewicz
 - Mariusz Szczepańczyk (mszczepanczyk)
@@ -41,6 +41,50 @@ the Developer Certificate of Origin, version 1.1:
 - Autodesk (includes Thiago Ize, Elvic Liang, Wayne Arnold, William Krick, Brecht Van Lommel, Marcos Fajardo)
 - Thiago Ize
 - Nick Black (dankamongmen)
+- Michel Lerenard (micler)
+- Stefan Bruens (StefanBruens)
+- David Gordon
+- Claire Foster (c42f)
+- Konrad Kleine (kwk)
+- Simone Gasparini (simogasp)
+- Radu Arjocu (ra-mt)
+- Dominik Bartkiewicz (fafik23)
+- 360highdynamicrangehdr (?)
+- Leonid Onokhov (sopvop)
+- Nuno Cardoso (npcardoso)
+- Todica Ionut (360highdynamicrangehdr)
+- Till Dechent (ttddee)
+- Tom Knowles (knowlsie)
+- SRHMorris
+- Biswapriyo Nath (Biswa96)
+- Edoardo Dominici (dedoardo)
+- Frédéric Devernay (devernay)
+- Simone Gasparini (simogasp)
+- roelandschoukens
+- Nayden Dochev (nayyden)
+- Yann Lanthony (yann-lty)
+- Benjamin Buch (bebuch)
+- Joris Nijs (joris-nijs)
+- Jan Honsbrok (Latios96)
+- Matteo F. Vescovi (mfvescovi)
+- Patrick Northon (patlefort)
+- Eric Mehl (ericmehl)
+- Xo Wang (GHF)
+- etiam
+- Fabien Servant (servantftechnicolor)
+- Loïc Vital (mugulmd)
+- Thomas Mansencal (Wētā FX)
+- Brent Davis (btdavis)
+- pwm1234-sri
+- toxieainc
+- demoulinv
+- Julien Enche (jenche)
+- Justin Israel
+- xiaoxiaoafeifei
+- Brad Smith (brad0)
+- lmarz
+- Seifeddine Dridi (seifeddinedridi)
+- Daniel Dresser (danieldresser)
 - Luc Bournaud (DevilishSpirits)
 
 **Prior authors, please submit a PR against this file that adds your name
