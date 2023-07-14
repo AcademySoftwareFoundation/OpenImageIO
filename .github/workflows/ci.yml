@@ -255,7 +255,7 @@ jobs:
             cxx_std: 17
             fmt_ver: 9.1.0
             openexr_ver: v3.1.7
-            pybind11_ver: v2.10.0
+            pybind11_ver: v2.11.1
             python_ver: "3.10"
             simd: avx2,f16c
             setenvs: export LIBRAW_VERSION=0.20.2
