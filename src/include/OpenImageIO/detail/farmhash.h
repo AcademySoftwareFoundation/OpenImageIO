@@ -20,6 +20,11 @@
 //
 // FarmHash, by Geoff Pike
 
+// Additional modifications for OpenImageIO:
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: Apache-2.0
+// https://github.com/OpenImageIO/oiio
+
 // clang-format off
 
 // https://github.com/google/farmhash
