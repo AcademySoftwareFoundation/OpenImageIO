@@ -32,23 +32,22 @@ memory, even if that's not the way they're stored in the file):
         const ImageSpec &spec = inp->spec();
         int xres = spec.width;
         int yres = spec.height;
-        int channels = spec.nchannels;
-        std::vector<unsigned char> pixels(xres * yres * channels);
-        inp->read_image(TypeDesc::UINT8, &pixels[0]);
+        int nchannels = spec.nchannels;
+        auto pixels = std::unique_ptr<unsigned char[]>(new unsigned char[xres * yres * nchannels]);
+        inp->read_image(0, 0, 0, nchannels, TypeDesc::UINT8, &pixels[0]);
         inp->close();
 
     .. code-tab:: py
 
         import OpenImageIO as oiio
-        import numpy as np
 
-        inp = ImageInput.open(filename)
+        inp = oiio.ImageInput.open(filename)
         if inp :
             spec = inp.spec()
             xres = spec.width
             yres = spec.height
-            channels = spec.nchannels
-            pixels = inp.read_image("uint8")
+            nchannels = spec.nchannels
+            pixels = inp.read_image(0, 0, 0, nchannels, "uint8")
             inp.close()
 
 Here is a breakdown of what work this code is doing:
@@ -85,8 +84,8 @@ Here is a breakdown of what work this code is doing:
         const ImageSpec &spec = inp->spec();
         int xres = spec.width;
         int yres = spec.height;
-        int channels = spec.nchannels;
-        std::vector<unsigned char> pixels (xres*yres*channels);
+        int nchannels = spec.nchannels;
+        auto pixels = std::unique_ptr<unsigned char[]>(new unsigned char[xres * yres * nchannels]);
 
      .. code-tab:: py
 
@@ -103,17 +102,19 @@ Here is a breakdown of what work this code is doing:
 * Read the entire image, hiding all details of the encoding of image data in
   the file, whether the file is scanline- or tile-based, or what is the
   native format of the data in the file (in this case, we request that it be
-  automatically converted to unsigned 8-bit integers).
+  automatically converted to unsigned 8-bit integers). Note that the exact set
+  of channels are specified as well as the explicit subimage and  miplevel for
+  efficiency and thread-safety.
 
   .. tabs::
 
      .. code-tab:: c++
 
-        inp->read_image(TypeDesc::UINT8, &pixels[0]);
+        inp->read_image(0, 0, 0, nchannels, TypeDesc::UINT8, &pixels[0]);
 
      .. code-tab:: py
 
-        pixels = inp->read_image("uint8")
+        pixels = inp->read_image(0, 0, 0, nchannels, "uint8")
         # Note: pixels now contains a NumPy array of the image data.
 
 * Close the file.
@@ -167,7 +168,7 @@ Individual scanlines may be read using the ``read_scanline()`` API call:
         auto inp = ImageInput::open (filename);
         const ImageSpec &spec = inp->spec();
         if (spec.tile_width == 0) {
-            std::vector<unsigned char> scanline (spec.width * spec.nchannels);
+            auto scanline = std::unique_ptr<unsigned char[]>(new unsigned char[spec.width * spec.nchannels]);
             for (int y = 0;  y < yres;  ++y) {
                 inp->read_scanline (y, 0, TypeDesc::UINT8, &scanline[0]);
                 // ... process data in scanline[0..width*channels-1] ...
@@ -235,7 +236,7 @@ scanline image and you should read pixels using ``read_scanline()``, not
         } else {
             // Tiles
             int tilesize = spec.tile_width * spec.tile_height;
-            std::vector<unsigned char> tile(tilesize * spec.nchannels);
+            auto tile = std::unique_ptr<unsigned char[]>(new unsigned char[tilesize * spec.nchannels]);
             for (int y = 0;  y < yres;  y += spec.tile_height) {
                 for (int x = 0;  x < xres;  x += spec.tile_width) {
                     inp->read_tile(x, y, 0, TypeDesc::UINT8, &tile[0]);
@@ -307,15 +308,16 @@ values.
         std::unique_ptr<ImageInput> inp = ImageInput::open ("myfile.tif");
         const ImageSpec &spec = inp->spec();
 
-        int numpixels = spec.image_pixels()
-        float pixels = new float [numpixels * channels];
+        int numpixels = spec.image_pixels();
+        int nchannels = spec.nchannels;
+        auto pixels = std::unique_ptr<float[]>(new float[numpixels * nchannels]);
 
-        inp->read_image (TypeDesc::FLOAT, pixels);
+        inp->read_image (0, 0, 0, nchannels, TypeDesc::FLOAT, &pixels[0]);
 
     .. code-tab:: py
 
         inp = ImageInput.open("myfile.tif")
-        pixels = inp.read_image("float")
+        pixels = inp.read_image(0, 0, 0, nchannels, "float")
 
 
 Note that ``read_scanline()`` and ``read_tile()`` have a parameter that
@@ -365,10 +367,11 @@ flexible functionality.  A few representative examples follow:
 
 * Flip an image vertically upon reading, by using *negative* ``y`` stride::
 
-    unsigned char pixels[spec.width * spec.height * spec.nchannels];
+    auto pixels = std::unique_ptr<unsigned char[]>(new unsigned char[spec.width * spec.height * spec.nchannels]);
     int scanlinesize = spec.width * spec.nchannels * sizeof(pixels[0]);
     ...
-    in->read_image (TypeDesc::UINT8,
+    in->read_image (0, 0, 0, spec.nchannels,
+                    TypeDesc::UINT8,
                     (char *)pixels+(yres-1)*scanlinesize, // offset to last
                     AutoStride,                  // default x stride
                     -scanlinesize,               // special y stride
@@ -406,10 +409,11 @@ A workaround for this is to call ``read_scanlines``, ``read_tiles`` or
     .. code-tab:: c++
 
         // one buffer for all three channels
-        unsigned char pixels[spec.width * spec.height * spec.nchannels];
-    
+        auto pixels = std::unique_ptr<unsigned char[]>(new unsigned char[spec.width * spec.height * spec.nchannels]);
+
         for (int channel = 0; channel < spec.nchannels; ++channel) {
             file->read_image(
+                0, 0,
                 // reading one channel at a time
                 channel, channel + 1,
                 TypeDesc::UINT8,
@@ -422,7 +426,7 @@ A workaround for this is to call ``read_scanlines``, ``read_tiles`` or
 
         pixels = numpy.zeros((spec.nchannels, spec.height, spec.width), "uint8")
         for channel in range(spec.nchannels) :
-            pixels[channel] = file.read_image(channel, channel + 1, "uint8")
+            pixels[channel] = file.read_image(0, 0, channel, channel + 1, "uint8")
 
 For many formats, this is nearly as fast as reading the image with
 interleaved pixel data if the format stores the pixels in an interleaved
@@ -698,18 +702,17 @@ multi-image files:
     .. code-tab:: c++
 
         auto inp = ImageInput::open (filename);
-        int num_miplevels = 0;
-        while (inp->seek_subimage (0, num_miplevels, spec)) {
+        int miplevel = 0;
+        while (inp->seek_subimage (0, miplevel)) {
             const ImageSpec &spec = inp->spec();
             int npixels = spec.width * spec.height;
             int nchannels = spec.nchannels;
-            unsigned char *pixels = new unsigned char [npixels * nchannels];
-            inp->read_image(TypeDesc::UINT8, pixels);
+            auto pixels = std::unique_ptr<unsigned char[]>(new unsigned char[npixels * nchannels]);
+            inp->read_image(0, miplevel, 0, nchannels, TypeDesc::UINT8, pixels);
 
             // ... do whatever you want with this level, in pixels ...
 
-            delete [] pixels;
-            ++num_miplevels;
+            ++miplevel;
         }
         // Note: we break out of the while loop when seek_subimage fails
         // to find a next MIP level.
@@ -719,16 +722,15 @@ multi-image files:
     .. code-tab:: py
 
         inp = ImageInput::open (filename)
-        num_miplevels = 0
-        while inp.seek_subimage(0, num_miplevels, spec) :
+        miplevel = 0
+        while inp.seek_subimage(0, miplevel) :
             spec = inp.spec()
-            npixels = spec.width * spec.height
             nchannels = spec.nchannels
-            pixels = inp.read_image ("uint8")
+            pixels = inp.read_image (0, miplevel, 0, nchannels, "uint8")
 
             # ... do whatever you want with this level, in pixels ...
 
-            num_miplevels += 1
+            miplevel += 1
         }
         # Note: we break out of the while loop when seek_subimage fails
         # to find a next MIP level.
@@ -764,9 +766,10 @@ OpenEXR file, consisting of R/G/B/A channels in ``half`` and a Z channel in
         const ImageSpec &spec = inp->spec();
 
         // Allocate enough space
-        unsigned char *pixels = new unsigned char [spec.image_bytes(true)];
-
-        inp->read_image(TypeDesc::UNKNOWN, /* use native channel formats */
+        auto pixels = std::unique_ptr<unsigned char[]>(new unsigned char[spec.image_bytes(true)]);
+        int nchannels = spec.nchannels;
+        inp->read_image(0, 0, 0, nchannels,
+                        TypeDesc::UNKNOWN, /* use native channel formats */
                         pixels);           /* data buffer */
 
         if (spec.channelformats.size() > 0) {
@@ -956,8 +959,8 @@ Examples:
           // Open the file, passing in the config.
           auto inp = ImageInput::open (filename, config);
           const ImageSpec &spec = inp->spec();
-          std::vector<unsigned char> pixels (spec.image_pixels() * spec.nchannels);
-          inp->read_image (TypeDesc::UINT8, pixels.data());
+          auto pixels = std::unique_ptr<unsigned char[]>(new unsigned char[spec.image_pixels() * spec.nchannels]);
+          inp->read_image (0, 0, 0, spec.nchannels, TypeDesc::UINT8, pixels.data());
           if (spec.get_int_attribute("oiio:UnassociatedAlpha"))
               printf("pixels holds unassociated alpha\n");
           else
@@ -971,7 +974,8 @@ Examples:
     
           # Open the file, passing in the config.
           inp = ImageInput.open (filename, config)
-          pixels = inp.read_image ("uint8")
+          spec = inp.spec()
+          pixels = inp.read_image (0, 0, 0, spec.nchannels, "uint8")
           if (spec["oiio:UnassociatedAlpha"] == 1)
               print("pixels holds unassociated alpha")
           else
@@ -1083,10 +1087,10 @@ elaborated with error checking and reporting:
         const ImageSpec &spec = inp->spec();
         int xres = spec.width;
         int yres = spec.height;
-        int channels = spec.nchannels;
-        std::vector<unsigned char> pixels(xres * yres * channels);
+        int nchannels = spec.nchannels;
+        auto pixels = std::unique_ptr<unsigned char[]>(new unsigned char[xres * yres * nchannels]);
 
-        if (! inp->read_image (TypeDesc::UINT8, &pixels[0])) {
+        if (! inp->read_image(0, 0, 0, nchannels, TypeDesc::UINT8, &pixels[0])) {
             std::cerr << "Could not read pixels from " << filename
                       << ", error = " << inp->geterror() << "\n";
             return;
@@ -1111,9 +1115,9 @@ elaborated with error checking and reporting:
         spec = inp.spec()
         xres = spec.width
         yres = spec.height
-        channels = spec.nchannels
+        nchannels = spec.nchannels
 
-        pixels = inp.read_image("uint8")
+        pixels = inp.read_image(0, 0, 0, nchannels, "uint8")
         if pixels is None :
             print("Could not read pixels from", filename, ", error =", inp.geterror())
             return
