@@ -391,6 +391,10 @@ private:
             rgb[0] = convert_type<float, T>(R);
             rgb[1] = convert_type<float, T>(G);
             rgb[2] = convert_type<float, T>(B);
+
+            if (cmyk_stride == 5 && rgb_stride == 4) {
+                rgb[3] = convert_type<float, T>(cmyk[4]);
+            }
         }
     }
 
@@ -780,25 +784,30 @@ PSDInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     } else if (m_header.color_mode == ColorMode_CMYK) {
         switch (bps) {
         case 4: {
-            std::unique_ptr<float[]> cmyk(new float[4 * spec.width]);
-            interleave_row(cmyk.get(), channel_buffers, spec.width, 4);
-            cmyk_to_rgb(spec.width, cmyk.get(), 4, (float*)dst, spec.nchannels);
+            std::unique_ptr<float[]> cmyk(
+                new float[channel_count * spec.width]);
+            interleave_row(cmyk.get(), channel_buffers, spec.width,
+                           channel_count);
+            cmyk_to_rgb(spec.width, cmyk.get(), channel_count, (float*)dst,
+                        spec.nchannels);
             break;
         }
         case 2: {
             std::unique_ptr<unsigned short[]> cmyk(
-                new unsigned short[4 * spec.width]);
-            interleave_row(cmyk.get(), channel_buffers, spec.width, 4);
-            cmyk_to_rgb(spec.width, cmyk.get(), 4, (unsigned short*)dst,
-                        spec.nchannels);
+                new unsigned short[channel_count * spec.width]);
+            interleave_row(cmyk.get(), channel_buffers, spec.width,
+                           channel_count);
+            cmyk_to_rgb(spec.width, cmyk.get(), channel_count,
+                        (unsigned short*)dst, spec.nchannels);
             break;
         }
         default: {
             std::unique_ptr<unsigned char[]> cmyk(
-                new unsigned char[4 * spec.width]);
-            interleave_row(cmyk.get(), channel_buffers, spec.width, 4);
-            cmyk_to_rgb(spec.width, cmyk.get(), 4, (unsigned char*)dst,
-                        spec.nchannels);
+                new unsigned char[channel_count * spec.width]);
+            interleave_row(cmyk.get(), channel_buffers, spec.width,
+                           channel_count);
+            cmyk_to_rgb(spec.width, cmyk.get(), channel_count,
+                        (unsigned char*)dst, spec.nchannels);
             break;
         }
         }
