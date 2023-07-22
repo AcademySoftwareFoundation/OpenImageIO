@@ -16,6 +16,8 @@ Comparing "src/pattern2-16-grayscale.psd" and "pattern2-16-grayscale.psd.tif"
 PASS
 Comparing "src/pattern2-8-indexed.psd" and "pattern2-8-indexed.psd.tif"
 PASS
+Comparing "src/cmyk-with-alpha.psd" and "cmyk-with-alpha.psd.tif"
+PASS
 Comparing "pattern2-8-rgb.psd.tif" and "ref/pattern2.tif"
 PASS
 Comparing "pattern2-16-rgb.psd.tif" and "ref/pattern2.tif"
@@ -33,4 +35,6 @@ PASS
 Comparing "pattern2-16-grayscale.psd.tif" and "ref/pattern2-gray.tif"
 PASS
 Comparing "pattern2-8-indexed.psd.tif" and "ref/pattern2-alpha.tif"
+PASS
+Comparing "cmyk-with-alpha.psd.tif" and "ref/cmyk-with-alpha.tif"
 PASS
