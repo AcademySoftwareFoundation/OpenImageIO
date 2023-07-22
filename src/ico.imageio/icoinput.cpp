@@ -30,6 +30,8 @@ public:
         return feature == "ioproxy";
     }
     bool open(const std::string& name, ImageSpec& newspec) override;
+    bool open(const std::string& name, ImageSpec& newspec,
+              const ImageSpec& config) override;
     bool close() override;
     int current_subimage(void) const override
     {
@@ -107,15 +109,24 @@ OIIO_EXPORT const char* ico_input_extensions[] = { "ico", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 
-
-
 bool
 ICOInput::open(const std::string& name, ImageSpec& newspec)
 {
+    ImageSpec emptyconfig;
+    return open(name, newspec, emptyconfig);
+}
+
+bool
+ICOInput::open(const std::string& name, ImageSpec& newspec,
+               const ImageSpec& config)
+{
     m_filename = name;
 
+    ioproxy_retrieve_from_config(config);
     if (!ioproxy_use_or_open(name))
         return false;
+
+    ioseek(0);
 
     if (!ioread(&m_ico, 1, sizeof(m_ico)))
         return false;
