@@ -37,15 +37,11 @@ cd ${ZLIB_SRC_DIR}
 echo "git checkout ${ZLIB_VERSION} --force"
 git checkout ${ZLIB_VERSION} --force
 
-mkdir -p ${ZLIB_BUILD_DIR} && true
-cd ${ZLIB_BUILD_DIR}
-
-
 if [[ -z $DEP_DOWNLOAD_ONLY ]]; then
-    time cmake -DCMAKE_BUILD_TYPE=Release \
+    time cmake -S . -B ${ZLIB_BUILD_DIR} -DCMAKE_BUILD_TYPE=Release \
                -DCMAKE_INSTALL_PREFIX=${ZLIB_INSTALL_DIR} \
-               ${ZLIB_CONFIG_OPTS} ..
-    time cmake --build . --config Release --target install
+               ${ZLIB_CONFIG_OPTS}
+    time cmake --build ${ZLIB_BUILD_DIR} --config Release --target install
 fi
 
 # ls -R ${ZLIB_INSTALL_DIR}

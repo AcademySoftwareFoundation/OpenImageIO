@@ -37,11 +37,8 @@ cd ${WEBP_SRC_DIR}
 echo "git checkout ${WEBP_VERSION} --force"
 git checkout ${WEBP_VERSION} --force
 
-mkdir -p ${WEBP_BUILD_DIR}
-cd ${WEBP_BUILD_DIR}
-
 if [[ -z $DEP_DOWNLOAD_ONLY ]]; then
-    time cmake -DCMAKE_BUILD_TYPE=${WEBP_BUILD_TYPE} \
+    time cmake -S . -B ${WEBP_BUILD_DIR} -DCMAKE_BUILD_TYPE=${WEBP_BUILD_TYPE} \
                -DCMAKE_INSTALL_PREFIX=${WEBP_INSTALL_DIR} \
                -DWEBP_BUILD_ANIM_UTILS=OFF \
                -DWEBP_BUILD_CWEBP=OFF \
@@ -51,8 +48,8 @@ if [[ -z $DEP_DOWNLOAD_ONLY ]]; then
                -DWEBP_BUILD_IMG2WEBP=OFF \
                -DWEBP_BUILD_EXTRAS=OFF \
                -DBUILD_SHARED_LIBS=ON \
-               ${WEBP_CONFIG_OPTS} ..
-    time cmake --build . --target install
+               ${WEBP_CONFIG_OPTS}
+    time cmake --build ${WEBP_BUILD_DIR} --target install
 fi
 
 

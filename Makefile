@@ -299,7 +299,7 @@ clang-format: config
 # DEPRECATED: 'make dist' is just a synonym for 'make install'
 dist : install
 
-TEST_FLAGS += --force-new-ctest-process --output-on-failure
+TEST_FLAGS += --force-new-ctest-process --output-on-failure --progress
 
 # 'make test' does a full build and then runs all tests
 test: build

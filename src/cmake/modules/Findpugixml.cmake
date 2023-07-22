@@ -16,9 +16,7 @@ find_package (pugixml CONFIG)
 if (TARGET pugixml::pugixml)
     # New pugixml (>= 1.11) has nice config files we can rely on and makes a
     # pugixml::pugixml target.
-    if (VERBOSE)
-        message (STATUS "Found CONFIG for pugixml (>=1.11)")
-    endif ()
+    message (VERBOSE "Found CONFIG for pugixml (>=1.11)")
 
     set (PUGIXML_FOUND true)
     set (pugixml_FOUND true)

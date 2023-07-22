@@ -52,11 +52,9 @@ macro (find_python)
     if (NOT DEFINED PYTHON_SITE_DIR)
         set (PYTHON_SITE_DIR "${CMAKE_INSTALL_LIBDIR}/python${PYTHON_VERSION_FOUND}/site-packages/OpenImageIO")
     endif ()
-    if (VERBOSE)
-        message (STATUS "    Python site packages dir ${PYTHON_SITE_DIR}")
-        message (STATUS "    Python to include 'lib' prefix: ${PYLIB_LIB_PREFIX}")
-        message (STATUS "    Python to include SO version: ${PYLIB_INCLUDE_SONAME}")
-    endif ()
+    message (VERBOSE "    Python site packages dir ${PYTHON_SITE_DIR}")
+    message (VERBOSE "    Python to include 'lib' prefix: ${PYLIB_LIB_PREFIX}")
+    message (VERBOSE "    Python to include SO version: ${PYLIB_INCLUDE_SONAME}")
 endmacro()
 
 
@@ -114,9 +112,7 @@ macro (setup_python_module)
 
     # This is only needed for SpComp2
     if (PYLIB_INCLUDE_SONAME)
-        if (VERBOSE)
-            message(STATUS "Setting Py${lib_MODULE} SOVERSION to: ${SOVERSION}")
-        endif ()
+        message(VERBOSE "Setting Py${lib_MODULE} SOVERSION to: ${SOVERSION}")
         set_target_properties(${target_name} PROPERTIES
             VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
             SOVERSION ${SOVERSION} )

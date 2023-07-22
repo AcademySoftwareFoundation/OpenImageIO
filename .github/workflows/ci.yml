@@ -40,7 +40,7 @@ jobs:
             simd: sse4.2
             fmt_ver: 6.1.2
             pybind11_ver: v2.4.2
-            setenvs: export PUGIXML_VERSION=v1.9
+            setenvs: export PUGIXML_VERSION=v1.9 CMAKE_VERSION=3.15.5
           - desc: gcc6/C++14 py3.7 boost1.70 exr2.4 ocio1.1
             nametag: linux-vfx2020
             os: ubuntu-latest
@@ -162,11 +162,12 @@ jobs:
             python_ver: 2.7
             simd: 0
             setenvs: export  EMBEDPLUGINS=0
+                             CMAKE_VERSION=3.15.5
                              PTEX_VERSION=v2.3.1
+                             WEBP_VERSION=v1.0.0
                              USE_JPEGTURBO=0
                              USE_OPENCOLORIO=0
                              USE_OPENCV=0
-                             WEBP_VERSION=v1.0.0
             depcmds: sudo rm -rf /usr/local/include/OpenEXR
 
           # Test formatting. This test entry doesn't do a full build, it

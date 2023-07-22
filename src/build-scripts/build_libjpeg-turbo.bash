@@ -36,14 +36,11 @@ cd ${LIBJPEGTURBO_SRC_DIR}
 echo "git checkout ${LIBJPEGTURBO_VERSION} --force"
 git checkout ${LIBJPEGTURBO_VERSION} --force
 
-mkdir -p ${LIBJPEGTURBO_BUILD_DIR}
-cd ${LIBJPEGTURBO_BUILD_DIR}
-
 if [[ -z $DEP_DOWNLOAD_ONLY ]]; then
-    time cmake -DCMAKE_BUILD_TYPE=Release \
+    time cmake -S . -B ${LIBJPEGTURBO_BUILD_DIR} -DCMAKE_BUILD_TYPE=Release \
                -DCMAKE_INSTALL_PREFIX=${LIBJPEGTURBO_INSTALL_DIR} \
-               ${LIBJPEGTURBO_CONFIG_OPTS} ..
-    time cmake --build . --config Release --target install
+               ${LIBJPEGTURBO_CONFIG_OPTS}
+    time cmake --build ${LIBJPEGTURBO_BUILD_DIR} --config Release --target install
 fi
 
 # ls -R ${LIBJPEGTURBO_INSTALL_DIR}

@@ -38,16 +38,13 @@ cd ${PUGIXML_SRC_DIR}
 echo "git checkout ${PUGIXML_VERSION} --force"
 git checkout ${PUGIXML_VERSION} --force
 
-mkdir -p ${PUGIXML_BUILD_DIR}
-cd ${PUGIXML_BUILD_DIR}
-
 if [[ -z $DEP_DOWNLOAD_ONLY ]]; then
-    time cmake -DCMAKE_BUILD_TYPE=Release \
+    time cmake -S . -B ${PUGIXML_BUILD_DIR} -DCMAKE_BUILD_TYPE=Release \
                -DCMAKE_INSTALL_PREFIX=${PUGIXML_INSTALL_DIR} \
                -DBUILD_SHARED_LIBS=ON \
                -DBUILD_TESTS=OFF \
                ${PUGIXML_BUILD_OPTS} ..
-    time cmake --build . --config Release --target install
+    time cmake --build ${PUGIXML_BUILD_DIR} --config Release --target install
 fi
 
 # ls -R ${PUGIXML_INSTALL_DIR}

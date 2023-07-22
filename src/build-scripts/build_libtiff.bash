@@ -36,19 +36,17 @@ cd libtiff
 echo "git checkout ${LIBTIFF_VERSION} --force"
 git checkout ${LIBTIFF_VERSION} --force
 
-mkdir -p build
-cd build
-
 if [[ -z $DEP_DOWNLOAD_ONLY ]]; then
-    time cmake -DCMAKE_BUILD_TYPE=${LIBTIFF_BUILD_TYPE} \
+    time cmake -S . -B build \
+               -DCMAKE_BUILD_TYPE=${LIBTIFF_BUILD_TYPE} \
                -DCMAKE_INSTALL_PREFIX=${LIBTIFF_INSTALL_DIR} \
                -DCMAKE_CXX_FLAGS="${LIBTIFF_CXX_FLAGS}" \
                -DBUILD_SHARED_LIBS=${LIBTIFF_BUILD_SHARED_LIBS:-ON} \
                -Dtiff-tests=${LIBTIFF_BUILD_TESTS:-OFF} \
                -Dtiff-docs=${LIBTIFF_BUILD_TESTS:-OFF} \
                -Dlibdeflate=ON \
-               ${LIBTIFF_BUILDOPTS} ..
-    time cmake --build . --target install
+               ${LIBTIFF_BUILDOPTS}
+    time cmake --build build --target install
 fi
 
 popd

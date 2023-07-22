@@ -138,6 +138,9 @@ else
 
 fi
 
+if [[ "$CMAKE_VERSION" != "" ]] ; then
+    source src/build-scripts/build_cmake.bash
+fi
 cmake --version
 
 
