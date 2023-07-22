@@ -42,6 +42,7 @@ the Developer Certificate of Origin, version 1.1:
 - Thiago Ize
 - Nick Black (dankamongmen)
 - Luc Bournaud (DevilishSpirits)
+- Gonzalo Garramuño (ggarra13)
 
 **Prior authors, please submit a PR against this file that adds your name
 above. If, at the time of your prior contributions, you were employed by a
