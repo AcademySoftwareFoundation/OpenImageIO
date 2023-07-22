@@ -1,6 +1,7 @@
 Release 2.5 (summer 2023?) -- compared to 2.4
 -------------------------------------------------
 ### New minimum dependencies and compatibility changes:
+* LibRaw: minimum has ben raised from 0.15 to 0.18. (2.5.2.1)
 
 ### ⛰️  New features and public API changes:
 * TextureSystem color management: #3761 (2.5.1.0)
