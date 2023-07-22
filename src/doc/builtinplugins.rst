@@ -816,6 +816,24 @@ Windows.  ICO files use the file extension :file:`.ico`.
      - int
      - if nonzero, will cause the ICO to be written out using PNG format.
 
+**Configuration settings for ICO input**
+
+When opening an ICO ImageInput with a *configuration* (see
+Section :ref:`sec-input-with-config`), the following special configuration
+attributes are supported:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.    
+
 **Configuration settings for ICO output**
 
 When opening an ICO ImageOutput, the following special metadata tokens
