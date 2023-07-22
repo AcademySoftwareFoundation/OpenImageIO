@@ -23,7 +23,7 @@ the Developer Certificate of Origin, version 1.1:
 - Nathan Rusch (nrusch)
 - Ismael Cortes (leamsi)
 - AdamMainsTL
-- Sony Pictures Imageworks (cstein, olegul, fpsunflower, brianhall77, jeremyselan, drg)
+- Sony Pictures Imageworks (cstein, olegul, fpsunflower, brianhall77, jeremyselan, drg, richardssam, lecocqp)
 - Richard Shaw (hobbes1069)
 - Robert Matusewicz
 - Mariusz Szczepańczyk (mszczepanczyk)
@@ -86,6 +86,31 @@ the Developer Certificate of Origin, version 1.1:
 - Seifeddine Dridi (seifeddinedridi)
 - Daniel Dresser (danieldresser)
 - Luc Bournaud (DevilishSpirits)
+- Dennis Schridde (devurandom)
+- Dieter De Baets (debaetsd)
+- Gonzalo Garramuño (ggarra13)
+- Alan Jones (@skyphyr)
+- pumkinpal
+- Christopher Crosetto (ccrosetto)
+- Russell Greene (russelltg)
+- Sam Richards (richardssam)
+- Guillaume Chatelet (gchatelet)
+- extrowerk
+- Heiko Becker (heirecka)
+- Mark Visser (mjmvisser)
+- Harry Mallon (hjmallon)
+- Henri Fousse (darkhorse64)
+- Krzysztof Blicharski (blicharski)
+- Hugh Macdonald (HughMacdonald)
+- Pascal Lecocq (lecocqp)
+- Ramon Montoya Vozmediano (rmv)
+- Dan Wexler (danwexler)
+- Jérôme Duval (korli)
+- Tim Grant (timgrant)
+- Shane Ambler (sambler)
+- Wētā
+- Kimball Thurston (kdt3rd)
+- Anders Langlands (anderslanglands)
 
 **Prior authors, please submit a PR against this file that adds your name
 above. If, at the time of your prior contributions, you were employed by a
