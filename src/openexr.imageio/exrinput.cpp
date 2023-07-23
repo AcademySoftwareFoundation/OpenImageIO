@@ -572,18 +572,10 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
         case Imf::ZIP_COMPRESSION: comp = "zip"; break;
         case Imf::PIZ_COMPRESSION: comp = "piz"; break;
         case Imf::PXR24_COMPRESSION: comp = "pxr24"; break;
-#ifdef IMF_B44_COMPRESSION
-            // The enum Imf::B44_COMPRESSION is not defined in older versions
-            // of OpenEXR, and there are no explicit version numbers in the
-            // headers.  BUT this other related #define is present only in
-            // the newer version.
         case Imf::B44_COMPRESSION: comp = "b44"; break;
         case Imf::B44A_COMPRESSION: comp = "b44a"; break;
-#endif
-#if OPENEXR_CODED_VERSION >= 20200
         case Imf::DWAA_COMPRESSION: comp = "dwaa"; break;
         case Imf::DWAB_COMPRESSION: comp = "dwab"; break;
-#endif
         default: break;
         }
         if (comp)

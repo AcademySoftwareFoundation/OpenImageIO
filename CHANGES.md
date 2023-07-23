@@ -1,7 +1,10 @@
 Release 2.5 (summer 2023?) -- compared to 2.4
 -------------------------------------------------
 ### New minimum dependencies and compatibility changes:
-* LibRaw: minimum has ben raised from 0.15 to 0.18. (2.5.2.1)
+* CMake: minimum needed to build OpenImageIO has been raised from 3.12 to
+  3.15. #3924 (2.5.2.1)
+* LibRaw: minimum has ben raised from 0.15 to 0.18. #3921 (2.5.2.1)
+* The new OpenEXR minimum is 2.4 (raised from 2.3). #3928 (2.5.2.1)
 
 ### ⛰️  New features and public API changes:
 * TextureSystem color management: #3761 (2.5.1.0)
