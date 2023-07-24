@@ -570,12 +570,7 @@ struct TileID {
         static_assert(
             sizeof(*this) % sizeof(uint64_t) == 0,
             "FastHash uses the fewest instructions when data size is a multiple of 8 bytes.");
-        // This appears to be a false positive which only affects GCC.
-        // https://godbolt.org/z/5q7Y7ndfb
-        OIIO_PRAGMA_WARNING_PUSH
-        OIIO_GCC_ONLY_PRAGMA(GCC diagnostic ignored "-Wuninitialized")
         return fasthash::fasthash64(this, sizeof(*this));
-        OIIO_PRAGMA_WARNING_POP
     }
 
     /// Functor that hashes a TileID
