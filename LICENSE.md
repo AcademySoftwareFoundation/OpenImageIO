@@ -1,13 +1,3 @@
-New code entering the OpenImageIO repository from July 1 2023 onward is
-subject to the [Apache 2.0 license](LICENSE-APACHE.md), reproduced below.
-
-Code that was contributed to OpenImageIO prior to July 1 2023, and has not
-been [relicensed](RELICENSING.md), was contributed under the [BSD 3-clause
-license](LICENSE-BSD.md).
-
-
----
-
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/

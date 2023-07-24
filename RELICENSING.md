@@ -1,5 +1,5 @@
 New code entering the OpenImageIO repository from July 1 2023 onward is
-subject to the [Apache 2.0 license](LICENSE-Apache-2.0.md).
+subject to the [Apache 2.0 license](LICENSE.md).
 
 Code dating from earlier than July 1 2023 was contributed under the [BSD
 3-clause license](LICENSE-BSD-3-Clause.md), unless relicensed below.
