@@ -80,7 +80,12 @@ inline uint64_t fasthash64(const void *buf, size_t len, uint64_t seed=1771)
 	uint64_t v;
 
 	while (pos != end) {
+		// This appears to be a false positive which only affects GCC.
+		// https://godbolt.org/z/5q7Y7ndfb
+		OIIO_PRAGMA_WARNING_PUSH
+		OIIO_GCC_ONLY_PRAGMA(GCC diagnostic ignored "-Wmaybe-uninitialized")
 		v  = *pos++;
+		OIIO_PRAGMA_WARNING_PUSH
 		h ^= mix(v);
 		h *= m;
 	}

@@ -3181,13 +3181,8 @@ TextureSystem::unit_test_hash()
     for (int f = 0; f < nfiles; ++f) {
         for (int y = 0; y < res; y += tilesize) {
             for (int x = 0; x < res; x += tilesize, ++i) {
-                // This appears to be a false positive which only affects GCC.
-                // https://godbolt.org/z/5q7Y7ndfb
-                OIIO_PRAGMA_WARNING_PUSH
-                OIIO_GCC_ONLY_PRAGMA(GCC diagnostic ignored "-Wuninitialized")
                 OIIO::pvt::TileID id(*icf[f], 0, 0, x, y, 0, 0, 1);
                 size_t h = id.hash();
-                OIIO_PRAGMA_WARNING_POP
                 hh += h;
             }
         }
@@ -3204,13 +3199,8 @@ TextureSystem::unit_test_hash()
     for (int f = 0; f < nfiles; ++f) {
         for (int y = 0; y < res; y += tilesize) {
             for (int x = 0; x < res; x += tilesize, ++i) {
-                // This appears to be a false positive which only affects GCC.
-                // https://godbolt.org/z/5q7Y7ndfb
-                OIIO_PRAGMA_WARNING_PUSH
-                OIIO_GCC_ONLY_PRAGMA(GCC diagnostic ignored "-Wuninitialized")
                 OIIO::pvt::TileID id(*icf[f], 0, 0, x, y, 0, 0, 1);
                 size_t h = id.hash();
-                OIIO_PRAGMA_WARNING_POP
                 ++fourbits[h & 0xf];
                 ++eightbits[h & 0xff];
                 ++highereightbits[(h >> 24) & 0xff];
