@@ -6,7 +6,6 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
-#include <iostream>
 #include <iterator>
 #include <string>
 #include <vector>
@@ -16,6 +15,7 @@
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 
 
