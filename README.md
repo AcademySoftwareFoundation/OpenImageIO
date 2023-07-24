@@ -1,3 +1,11 @@
+<div align="center">
+  <img src="ASWF/logos/openimageio-horizontal-gradient.png">
+<br>
+<br>
+<br>
+<br>
+</div>
+
 README for OpenImageIO
 ======================
 
