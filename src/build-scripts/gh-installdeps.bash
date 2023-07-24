@@ -44,20 +44,22 @@ if [[ "$ASWF_ORG" != ""  ]] ; then
     fi
 
     if [[ "$CXX" == "icpc" || "$CC" == "icc" || "$USE_ICC" != "" ]] ; then
-        # The "current" version of icc 2023.x on the Intel site is build to
-        # link against a glibc too new for the ASWF CentOS7-based containers
-        # we run CI on. So we lock down to a specific version of icc 2022.1
-        # that is known to work.
+        # Lock down icc to 2022.1 because newer versions hosted on the Intel
+        # repo require a glibc too new for the ASWF CentOS7-based containers
+        # we run CI on.
         sudo cp src/build-scripts/oneAPI.repo /etc/yum.repos.d
         sudo /usr/bin/yum install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic-2022.1.0.x86_64
-        # Because multiple (possibly newer) versions of oneAPI may be installed,
-        # use a config file to specify compiler and tbb versions
-        # NOTE: oneAPI components have independent version numbering.
         set +e; source /opt/intel/oneapi/setvars.sh --config oneapi_2022.1.0.cfg; set -e
     elif [[ "$CXX" == "icpc" || "$CC" == "icc" || "$USE_ICC" != "" || "$CXX" == "icpx" || "$CC" == "icx" || "$USE_ICX" != "" ]] ; then
+        # Lock down icx to 2023.1 because newer versions hosted on the Intel
+        # repo require a libstd++ too new for the ASWF containers we run CI on
+        # because their default install of gcc 9 based toolchain.
         sudo cp src/build-scripts/oneAPI.repo /etc/yum.repos.d
-        sudo yum install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
+        sudo yum install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic-2023.1.0.x86_64
+        # sudo yum install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
+        echo "Verifying installation of Intel(r) oneAPI DPC++/C++ Compiler:"
+        icpx --version
     fi
 
 else
