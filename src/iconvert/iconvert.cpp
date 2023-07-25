@@ -6,7 +6,6 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
-#include <iostream>
 #include <iterator>
 #include <string>
 #include <vector>
@@ -16,11 +15,12 @@
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 
 
 using namespace OIIO;
-
+using OIIO::Strutil::print;
 
 static std::string uninitialized  = "uninitialized \001 HHRU dfvAS: efjl";
 static std::string dataformatname = "";
@@ -97,13 +97,13 @@ getargs(int argc, char* argv[])
                 "--sRGB", &sRGB, "This file is in sRGB color space",
                 "--separate", &separate, "Force planarconfig separate",
                 "--contig", &contig, "Force planarconfig contig",
-                "--no-clobber", &noclobber, "Do no overwrite existing files",
+                "--no-clobber", &noclobber, "Do not overwrite existing files",
 //FIXME         "-z", &zfile, "Treat input as a depth file",
 //FIXME         "-c %s", &channellist, "Restrict/shuffle channels",
                 nullptr);
     // clang-format on
     if (ap.parse(argc, (const char**)argv) < 0) {
-        std::cerr << ap.geterror() << std::endl;
+        print(stderr, "{}\n", ap.geterror());
         ap.usage();
         ap.abort();
         return_code = EXIT_FAILURE;
@@ -117,23 +117,25 @@ getargs(int argc, char* argv[])
     }
 
     if (filenames.size() != 2 && !inplace) {
-        std::cerr
-            << "iconvert: Must have both an input and output filename specified.\n";
+        print(
+            stderr,
+            "iconvert: Must have both an input and output filename specified.\n");
         ap.usage();
         ap.abort();
         return_code = EXIT_FAILURE;
         return;
     }
     if (filenames.size() == 0 && inplace) {
-        std::cerr << "iconvert: Must have at least one filename\n";
+        print(stderr, "iconvert: Must have at least one filename\n");
         ap.usage();
         ap.abort();
         return_code = EXIT_FAILURE;
         return;
     }
     if (((int)rotcw + (int)rotccw + (int)rot180 + (orientation > 0)) > 1) {
-        std::cerr
-            << "iconvert: more than one of --rotcw, --rotccw, --rot180, --orientation\n";
+        print(
+            stderr,
+            "iconvert: more than one of --rotcw, --rotccw, --rot180, --orientation\n");
         ap.usage();
         ap.abort();
         return_code = EXIT_FAILURE;
@@ -312,14 +314,15 @@ static bool
 convert_file(const std::string& in_filename, const std::string& out_filename)
 {
     if (noclobber && Filesystem::exists(out_filename)) {
-        std::cerr << "iconvert ERROR: Output file already exists \""
-                  << out_filename << "\"\n";
+        print(stderr, "iconvert ERROR: Output file already exists \"{}\"\n",
+              out_filename);
         return false;
     }
 
-    if (verbose)
-        std::cout << "Converting " << in_filename << " to " << out_filename
-                  << "\n";
+    if (verbose) {
+        print("Converting {} to {}\n", in_filename, out_filename);
+        fflush(stdout);
+    }
 
     std::string tempname = out_filename;
     if (tempname == in_filename) {
@@ -330,11 +333,10 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
     auto in = ImageInput::open(in_filename);
     if (!in) {
         std::string err = geterror();
-        std::cerr << "iconvert ERROR: "
-                  << (err.length() ? err
-                                   : Strutil::sprintf("Could not open \"%s\"",
-                                                      in_filename))
-                  << "\n";
+        print(stderr, "iconvert ERROR: {}\n",
+              (err.length() ? err
+                            : Strutil::fmt::format("Could not open \"{}\"",
+                                                   in_filename)));
         return false;
     }
     ImageSpec inspec         = in->spec();
@@ -343,9 +345,10 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
     // Find an ImageIO plugin that can open the output file, and open it
     auto out = ImageOutput::create(tempname);
     if (!out) {
-        std::cerr
-            << "iconvert ERROR: Could not find an ImageIO plugin to write \""
-            << out_filename << "\" : " << geterror() << "\n";
+        print(
+            stderr,
+            "iconvert ERROR: Could not find an ImageIO plugin to write \"{}\": {}\n",
+            out_filename, geterror());
         return false;
     }
 
@@ -375,9 +378,10 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
     for (int subimage = 0; ok && in->seek_subimage(subimage, 0, inspec);
          ++subimage) {
         if (subimage > 0 && !out->supports("multiimage")) {
-            std::cerr << "iconvert WARNING: " << out->format_name()
-                      << " does not support multiple subimages.\n";
-            std::cerr << "\tOnly the first subimage has been copied.\n";
+            print(stderr,
+                  "iconvert WARNING: {} does not support multiple subimages.\n"
+                  "\tOnly the first subimage has been copied.\n",
+                  out->format_name());
             break;  // we're done
         }
 
@@ -396,16 +400,17 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
                     mode = ImageOutput::AppendSubimage;  // use if we must
                     if (!mip_to_subimage_warning
                         && strcmp(out->format_name(), "tiff")) {
-                        std::cerr << "iconvert WARNING: " << out->format_name()
-                                  << " does not support MIPmaps.\n";
-                        std::cerr
-                            << "\tStoring the MIPmap levels in subimages.\n";
+                        print(stderr,
+                              "iconvert WARNING: {} does not support MIPmaps.\n"
+                              "\tStoring the MIPmap levels in subimages.\n",
+                              out->format_name());
                     }
                     mip_to_subimage_warning = true;
                 } else {
-                    std::cerr << "iconvert WARNING: " << out->format_name()
-                              << " does not support MIPmaps.\n";
-                    std::cerr << "\tOnly the first level has been copied.\n";
+                    print(stderr,
+                          "iconvert WARNING: {} does not support MIPmaps.\n"
+                          "\tOnly the first level has been copied.\n",
+                          out->format_name());
                     break;  // on to the next subimage
                 }
                 ok = out->open(tempname.c_str(), outspec, mode);
@@ -424,12 +429,11 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
             }
             if (!ok) {
                 std::string err = out->geterror();
-                std::cerr << "iconvert ERROR: "
-                          << (err.length()
-                                  ? err
-                                  : Strutil::sprintf("Could not open \"%s\"",
-                                                     out_filename))
-                          << "\n";
+                print(stderr, "iconvert ERROR: {}\n",
+                      (err.length()
+                           ? err
+                           : Strutil::fmt::format("Could not open \"{}\"",
+                                                  out_filename)));
                 ok = false;
                 break;
             }
@@ -448,9 +452,9 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
             if (!nocopy) {
                 ok = out->copy_image(in.get());
                 if (!ok)
-                    std::cerr << "iconvert ERROR copying \"" << in_filename
-                              << "\" to \"" << out_filename << "\" :\n\t"
-                              << out->geterror() << "\n";
+                    print(stderr,
+                          "iconvert ERROR copying \"{}\" to \"{}\" :\n\t{}\n",
+                          in_filename, out_filename, out->geterror());
             } else {
                 // Need to do it by hand for some reason.  Future expansion in which
                 // only a subset of channels are copied, or some such.
@@ -458,13 +462,13 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
                 ok = in->read_image(subimage, miplevel, 0, outspec.nchannels,
                                     outspec.format, &pixels[0]);
                 if (!ok) {
-                    std::cerr << "iconvert ERROR reading \"" << in_filename
-                              << "\" : " << in->geterror() << "\n";
+                    print(stderr, "iconvert ERROR reading \"{}\": {}\n",
+                          in_filename, in->geterror());
                 } else {
                     ok = out->write_image(outspec.format, &pixels[0]);
                     if (!ok)
-                        std::cerr << "iconvert ERROR writing \"" << out_filename
-                                  << "\" : " << out->geterror() << "\n";
+                        print(stderr, "iconvert ERROR writing \"{}\": {}\n",
+                              out_filename, out->geterror());
                 }
             }
 
