@@ -148,7 +148,8 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
             }
         } else if (pybuf.ndim == 1
                    && pybuf.shape[0]
-                       == int64_t(width) * int64_t(height) * int64_t(nchans)) {
+                          == int64_t(width) * int64_t(height)
+                                 * int64_t(nchans)) {
             // all pixels & channels smushed together
             // just rely on autostride
         } else {
@@ -164,7 +165,7 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
             // passed from python as [x][c]
             xstride = pybuf.strides[0];
         } else if (pybuf.ndim == 1
-            && pybuf.shape[0] == int64_t(width) * int64_t(nchans)) {
+                   && pybuf.shape[0] == int64_t(width) * int64_t(nchans)) {
             // all pixels & channels smushed together
             xstride = pybuf.strides[0] * nchans;
         } else {
