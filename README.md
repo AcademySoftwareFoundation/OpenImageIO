@@ -1,5 +1,6 @@
-README for OpenImageIO
-======================
+<p align="center">
+  <img src="ASWF/logos/openimageio-horizontal-gradient.png">
+</p>
 
 [![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg?style=flat-square)](https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md)
 [![CI](https://github.com/OpenImageIO/oiio/actions/workflows/ci.yml/badge.svg)](https://github.com/OpenImageIO/oiio/actions/workflows/ci.yml)

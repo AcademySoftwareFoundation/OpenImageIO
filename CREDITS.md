@@ -143,6 +143,7 @@ lg@openimageio.org
 * Nick Black
 * Nicolas Burtnyk
 * Nixon Kwok
+* Noah Rahm (designer of our logo!)
 * Northon Patrick
 * Nuno Cardoso
 * Ole Gulbrandsen
