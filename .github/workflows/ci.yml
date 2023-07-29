@@ -30,12 +30,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - desc: gcc6/C++14 py2.7 boost1.66 exr2.3 ocio1.1
+          - desc: gcc6/C++14 py2.7 boost1.66 exr2.4 ocio1.1
             nametag: linux-vfx2019
             os: ubuntu-latest
             container: aswf/ci-osl:2019
             vfxyear: 2019
             cxx_std: 14
+            openexr_ver: v2.4.3
             python_ver: 2.7
             simd: sse4.2
             fmt_ver: 6.1.2
@@ -148,7 +149,7 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 9.1.0
             pybind11_ver: v2.10.0
-          - desc: oldest/hobbled gcc6.3/C++14 py2.7 boost-1.66 exr-2.3 no-sse no-ocio
+          - desc: oldest/hobbled gcc6.3/C++14 py2.7 boost-1.66 exr-2.4 no-sse no-ocio
             # Oldest versions of the dependencies that we can muster, and various
             # things disabled (no SSE, OCIO, or OpenCV, don't embed plugins).
             nametag: linux-oldest
@@ -157,13 +158,13 @@ jobs:
             vfxyear: 2019
             cxx_std: 14
             fmt_ver: 6.1.2
-            openexr_ver: v2.3.0
+            openexr_ver: v2.4.0
             pybind11_ver: v2.4.2
             python_ver: 2.7
             simd: 0
             setenvs: export  EMBEDPLUGINS=0
                              CMAKE_VERSION=3.15.5
-                             PTEX_VERSION=v2.3.1
+                             PTEX_VERSION=v2.3.2
                              WEBP_VERSION=v1.0.0
                              USE_JPEGTURBO=0
                              USE_OPENCOLORIO=0

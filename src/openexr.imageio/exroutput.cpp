@@ -20,20 +20,9 @@
 #include <OpenEXR/ImfOutputFile.h>
 #include <OpenEXR/ImfTiledOutputFile.h>
 
-#ifdef OPENEXR_VERSION_MAJOR
-#    define OPENEXR_CODED_VERSION                                    \
-        (OPENEXR_VERSION_MAJOR * 10000 + OPENEXR_VERSION_MINOR * 100 \
-         + OPENEXR_VERSION_PATCH)
-#else
-#    define OPENEXR_CODED_VERSION 20000
-#endif
-
-#if OPENEXR_CODED_VERSION >= 20400 \
-    || __has_include(<OpenEXR/ImfFloatVectorAttribute.h>)
-#    define OPENEXR_HAS_FLOATVECTOR 1
-#else
-#    define OPENEXR_HAS_FLOATVECTOR 0
-#endif
+#define OPENEXR_CODED_VERSION                                    \
+    (OPENEXR_VERSION_MAJOR * 10000 + OPENEXR_VERSION_MINOR * 100 \
+     + OPENEXR_VERSION_PATCH)
 
 // The way that OpenEXR uses dynamic casting for attributes requires
 // temporarily suspending "hidden" symbol visibility mode.
@@ -47,9 +36,7 @@ OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wunused-parameter")
 #include <OpenEXR/ImfCompressionAttribute.h>
 #include <OpenEXR/ImfEnvmapAttribute.h>
 #include <OpenEXR/ImfFloatAttribute.h>
-#if OPENEXR_HAS_FLOATVECTOR
-#    include <OpenEXR/ImfFloatVectorAttribute.h>
-#endif
+#include <OpenEXR/ImfFloatVectorAttribute.h>
 #include <OpenEXR/ImfHeader.h>
 #include <OpenEXR/ImfIntAttribute.h>
 #include <OpenEXR/ImfKeyCodeAttribute.h>
@@ -254,11 +241,7 @@ OIIO_EXPORT int openexr_imageio_version = OIIO_PLUGIN_VERSION;
 OIIO_EXPORT const char*
 openexr_imageio_library_version()
 {
-#ifdef OPENEXR_VERSION_STRING
     return "OpenEXR " OPENEXR_VERSION_STRING;
-#else
-    return "OpenEXR 1.x";
-#endif
 }
 
 OIIO_EXPORT const char* openexr_output_extensions[] = { "exr", "sxr", "mxr",
@@ -954,22 +937,14 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
                 header.compression() = Imf::PIZ_COMPRESSION;
             else if (Strutil::iequals(str, "pxr24"))
                 header.compression() = Imf::PXR24_COMPRESSION;
-#ifdef IMF_B44_COMPRESSION
-            // The enum Imf::B44_COMPRESSION is not defined in older versions
-            // of OpenEXR, and there are no explicit version numbers in the
-            // headers.  BUT this other related #define is present only in
-            // the newer version.
             else if (Strutil::iequals(str, "b44"))
                 header.compression() = Imf::B44_COMPRESSION;
             else if (Strutil::iequals(str, "b44a"))
                 header.compression() = Imf::B44A_COMPRESSION;
-#endif
-#if OPENEXR_CODED_VERSION >= 20200
             else if (Strutil::iequals(str, "dwaa"))
                 header.compression() = Imf::DWAA_COMPRESSION;
             else if (Strutil::iequals(str, "dwab"))
                 header.compression() = Imf::DWAB_COMPRESSION;
-#endif
         }
         return true;
     }
@@ -1298,15 +1273,13 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
                 header.insert(xname.c_str(), Imf::StringVectorAttribute(v));
                 return true;
             }
-#if OPENEXR_HAS_FLOATVECTOR
-            // float Vector -- only supported in OpenEXR >= 2.2
+            // float Vector
             if (type.basetype == TypeDesc::FLOAT) {
                 Imf::FloatVector v((const float*)data,
                                    (const float*)data + type.basevalues());
                 header.insert(xname.c_str(), Imf::FloatVectorAttribute(v));
                 return true;
             }
-#endif
         }
     } catch (const std::exception& e) {
         OIIO::debugfmt("Caught OpenEXR exception: {}\n", e.what());
