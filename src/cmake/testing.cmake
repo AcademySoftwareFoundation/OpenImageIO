@@ -125,9 +125,7 @@ macro (oiio_add_tests)
             endif()
 
         endforeach ()
-        if (VERBOSE)
-           message (STATUS "TESTS: ${_ats_UNPARSED_ARGUMENTS}")
-        endif ()
+        message (VERBOSE "TESTS: ${_ats_UNPARSED_ARGUMENTS}")
     endif ()
 endmacro ()
 
@@ -364,18 +362,15 @@ function (oiio_get_test_data name)
     if (IS_DIRECTORY "${OIIO_LOCAL_TESTDATA_ROOT}/${name}"
         AND NOT EXISTS "${CMAKE_BINARY_DIR}/testsuite/${name}")
         set (_ogtd_LINK_RESULT "")
-        if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.14)
-            # Just make a link if we can
-            message (STATUS "Linking ${name} from ${OIIO_LOCAL_TESTDATA_ROOT}/${name}")
-            file (CREATE_LINK "${OIIO_LOCAL_TESTDATA_ROOT}/${name}"
-                              "${CMAKE_BINARY_DIR}/testsuite/${name}"
-                              SYMBOLIC RESULT _ogtd_LINK_RESULT)
-            # Note: Using 'COPY_ON_ERROR' in the above command should have prevented the need to
-            # have the manual fall-back below. However, there's been at least one case where a user
-            # noticed that copying did not happen if creating the link failed (CMake 3.24). We can
-            # adjust this in the future if CMake behavior improves.
-            message (STATUS "Link result ${_ogtd_LINK_RESULT}")
-        endif ()
+        message (STATUS "Linking ${name} from ${OIIO_LOCAL_TESTDATA_ROOT}/${name}")
+        file (CREATE_LINK "${OIIO_LOCAL_TESTDATA_ROOT}/${name}"
+                          "${CMAKE_BINARY_DIR}/testsuite/${name}"
+                          SYMBOLIC RESULT _ogtd_LINK_RESULT)
+        # Note: Using 'COPY_ON_ERROR' in the above command should have prevented the need to
+        # have the manual fall-back below. However, there's been at least one case where a user
+        # noticed that copying did not happen if creating the link failed (CMake 3.24). We can
+        # adjust this in the future if CMake behavior improves.
+        message (VERBOSE "Link result ${_ogtd_LINK_RESULT}")
         if (NOT _ogtd_LINK_RESULT EQUAL 0)
             # Older cmake or failure to link -- copy
             message (STATUS "Copying ${name} from ${OIIO_LOCAL_TESTDATA_ROOT}/${name}")

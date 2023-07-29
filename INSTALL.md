@@ -19,7 +19,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=17`, etc.
  * Compilers: gcc 6.1 - 12.1, clang 3.4 - 16, MSVS 2017 - 2019,
    Intel icc 17+, Intel OneAPI C++ compiler 2022+.
- * CMake >= 3.12 (tested through 3.26)
+ * **CMake >= 3.15** (tested through 3.27)
  * OpenEXR/Imath >= 2.3 (recommended: 2.4 or higher; tested through 3.1 and main)
  * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.5)
  * libjpeg >= 8, or libjpeg-turbo >= 1.1 (tested through jpeg9d and jpeg-turbo
@@ -251,9 +251,8 @@ The command 'make help' will list all possible options.
 You can also ignore the top level Makefile wrapper, and instead use
 CMake directly:
 
-    mkdir build
-    cd build
-    cmake ..
+    cmake -B build -S .
+    cmake --build build --target install
 
 If the compile stops because of warnings, try again with
 
@@ -262,8 +261,9 @@ If the compile stops because of warnings, try again with
 
 or, if you are using CMake directly,
 
-    cd build
-    cmake -DSTOP_ON_WARNING=0 ..
+    rm -rf build
+    cmake -B build -S . -DSTOP_ON_WARNING=0
+    cmake --build build --target install
 
 
 
@@ -288,19 +288,16 @@ the section below, and will only have to point OIIO build process so their locat
   ```
   cd {ZLIB_ROOT}
   git clone https://github.com/madler/zlib .
-  mkdir build
-  cd build
-  cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=. ..
-  cmake --build . --config Release --target install
-  del lib\zlib.lib
+  cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=.
+  cmake --build build --config Release --target install
+  del build\lib\zlib.lib
   ```
 * libTIFF:
   ```
   cd {TIFF_ROOT}
   git clone https://gitlab.com/libtiff/libtiff.git .
-  cd build
-  cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=. ..
-  cmake --build . --target install
+  cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=.
+  cmake --build build --target install
   ```
 * libjpeg-turbo:
   ```
@@ -308,19 +305,19 @@ the section below, and will only have to point OIIO build process so their locat
   git clone https://github.com/libjpeg-turbo/libjpeg-turbo .
   mkdir build
   cd build
-  cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_SHARED=OFF -DCMAKE_INSTALL_PREFIX=. ..
-  cmake --build . --config Release --target install
+  cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DENABLE_SHARED=OFF -DCMAKE_INSTALL_PREFIX=.
+  cmake --build build --config Release --target install
   ```
 * OpenEXR: you'll have to point it to your `{ZLIB_ROOT}` location from the above. If copy-pasting the multi-line command (with lines ending in `^`) into
   cmd.exe prompt, make sure to copy all the lines at once.
   ```
   cd {EXR_ROOT}
   git clone https://github.com/AcademySoftwareFoundation/openexr .
-  cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=dist ^
+  cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=dist ^
     -DBUILD_TESTING=OFF -DBUILD_SHARED_LIBS=OFF -DOPENEXR_BUILD_TOOLS=OFF ^
     -DOPENEXR_INSTALL_TOOLS=OFF -DOPENEXR_INSTALL_EXAMPLES=OFF ^
-    -DZLIB_ROOT={ZLIB_ROOT}\build ..
-  cmake --build . --target install --config Release
+    -DZLIB_ROOT={ZLIB_ROOT}\build
+  cmake --build build --target install --config Release
   ```
 
 Now get the OIIO source and do one-time CMake configuration step. Replace `{*_ROOT}` below with folders where you have put the 3rd party
@@ -328,16 +325,14 @@ dependencies.
 ```
 cd {OIIO_ROOT}
 git clone https://github.com/OpenImageIO/oiio .
-mkdir build
-cd build
-cmake -DVERBOSE=ON -DCMAKE_BUILD_TYPE=Release ^
+cmake -S . -B build -DVERBOSE=ON -DCMAKE_BUILD_TYPE=Release ^
   -DBoost_USE_STATIC_LIBS=ON -DBoost_NO_WARN_NEW_VERSIONS=ON -DBoost_ROOT={BOOST_ROOT} ^
   -DZLIB_ROOT={ZLIB_ROOT}\build ^
   -DTIFF_ROOT={TIFF_ROOT}\build ^
   -DOpenEXR_ROOT={EXR_ROOT}\build\dist ^
   -DImath_DIR={EXR_ROOT}\build\dist\lib\cmake\Imath ^
   -DJPEG_ROOT={JPEG_ROOT}\build ^
-  -DUSE_PYTHON=0 -DUSE_QT=0 -DBUILD_SHARED_LIBS=0 -DLINKSTATIC=1 ..
+  -DUSE_PYTHON=0 -DUSE_QT=0 -DBUILD_SHARED_LIBS=0 -DLINKSTATIC=1
 ```
 
 This will produce `{OIIO_ROOT}/build/OpenImageIO.sln` that can be opened in Visual Studio IDE. Note that the solution will be

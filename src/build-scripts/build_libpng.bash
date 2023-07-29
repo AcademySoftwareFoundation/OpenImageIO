@@ -38,16 +38,13 @@ cd ${LIBPNG_SRC_DIR}
 echo "git checkout ${LIBPNG_VERSION} --force"
 git checkout ${LIBPNG_VERSION} --force
 
-mkdir -p ${LIBPNG_BUILD_DIR}
-cd ${LIBPNG_BUILD_DIR}
-
 if [[ -z $DEP_DOWNLOAD_ONLY ]]; then
-    time cmake -DCMAKE_BUILD_TYPE=Release \
+    time cmake -S . -B ${LIBPNG_BUILD_DIR} -DCMAKE_BUILD_TYPE=Release \
                -DCMAKE_INSTALL_PREFIX=${LIBPNG_INSTALL_DIR} \
                -DPNG_EXECUTABLES=OFF \
                -DPNG_TESTS=OFF \
-               ${LIBPNG_CONFIG_OPTS} ..
-    time cmake --build . --config Release --target install
+               ${LIBPNG_CONFIG_OPTS}
+    time cmake --build ${LIBPNG_BUILD_DIR} --config Release --target install
 fi
 
 # ls -R ${LIBPNG_INSTALL_DIR}
