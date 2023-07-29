@@ -42,7 +42,7 @@ template<class T> using auto_ptr = unique_ptr<T>;
 #include <libraw/libraw.h>
 #include <libraw/libraw_version.h>
 
-#if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 15, 0)
+#if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 18, 0)
 #    error "OpenImageIO does not support such an old LibRaw"
 #endif
 
@@ -284,7 +284,6 @@ RawInput::open(const std::string& name, ImageSpec& newspec)
 
 
 
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 17, 0)
 static void
 exif_parser_cb(ImageSpec* spec, int tag, int tifftype, int len,
                unsigned int byteorder, LibRaw_abstract_datastream* ifp)
@@ -359,7 +358,6 @@ exif_parser_cb(ImageSpec* spec, int tag, int tifftype, int len,
     // Strutil::fprintf (std::cerr, "RAW metadata NOT HANDLED: tag=%s: tifftype=%d,len=%d (%s), byteorder=0x%x\n",
     //                   taginfo->name, tifftype, len, type, byteorder);
 }
-#endif
 
 
 
@@ -401,10 +399,8 @@ RawInput::open_raw(bool unpack, const std::string& name,
 
     // Temp spec for exif parser callback to dump into
     ImageSpec exifspec;
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 17, 0)
     m_processor->set_exifparser_handler((exif_parser_callback)exif_parser_cb,
                                         &exifspec);
-#endif
 
     // Force flip value if needed. If user_flip is -1, libraw ignores it
     m_processor->imgdata.params.user_flip
@@ -587,26 +583,16 @@ RawInput::open_raw(bool unpack, const std::string& name,
         m_processor->imgdata.params.gamm[0]      = 1.0;
         m_processor->imgdata.params.gamm[1]      = 1.0;
     } else if (Strutil::iequals(cs, "ACES")) {
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 18, 0)
         // ACES linear
         m_processor->imgdata.params.output_color = 6;
         m_processor->imgdata.params.gamm[0]      = 1.0;
         m_processor->imgdata.params.gamm[1]      = 1.0;
-#else
-        errorfmt("raw:ColorSpace value of \"{}\" is not supported by libRaw {}",
-                 cs, LIBRAW_VERSION_STR);
-        return false;
-#endif
-    } else if (Strutil::iequals(cs, "DCI-P3")) {
 #if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0)
-        // ACES linear
+    } else if (Strutil::iequals(cs, "DCI-P3")) {
+        // DCI-P3
         m_processor->imgdata.params.output_color = 7;
         m_processor->imgdata.params.gamm[0]      = 1.0;
         m_processor->imgdata.params.gamm[1]      = 1.0;
-#else
-        errorfmt("raw:ColorSpace value of \"{}\" is not supported by libRaw {}",
-                 cs, LIBRAW_VERSION_STR);
-        return false;
 #endif
     } else if (Strutil::iequals(cs, "Rec2020")) {
 #if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0)
@@ -648,21 +634,8 @@ RawInput::open_raw(bool unpack, const std::string& name,
     std::string demosaic = config.get_string_attribute("raw:Demosaic");
     if (demosaic.size()) {
         static const char* demosaic_algs[]
-            = { "linear",
-                "VNG",
-                "PPG",
-                "AHD",
-                "DCB",
-                "AHD-Mod",
-                "AFD",
-                "VCD",
-                "Mixed",
-                "LMMSE",
-                "AMaZE",
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 16, 0)
-                "DHT",
-                "AAHD",
-#endif
+            = { "linear", "VNG", "PPG", "AHD", "DCB", "AHD-Mod", "AFD", "VCD",
+                "Mixed", "LMMSE", "AMaZE", "DHT", "AAHD",
                 // Future demosaicing algorithms should go here
                 NULL };
         size_t d;
@@ -672,17 +645,6 @@ RawInput::open_raw(bool unpack, const std::string& name,
         if (demosaic_algs[d])
             m_processor->imgdata.params.user_qual = d;
         else if (Strutil::iequals(demosaic, "none")) {
-#ifdef LIBRAW_DECODER_FLATFIELD
-            // See if we can access the Bayer patterned data for this raw file
-            libraw_decoder_info_t decoder_info;
-            m_processor->get_decoder_info(&decoder_info);
-            if (!(decoder_info.decoder_flags & LIBRAW_DECODER_FLATFIELD)) {
-                errorf("Unable to extract unbayered data from file \"%s\"",
-                       name);
-                return false;
-            }
-
-#endif
             // User has selected no demosaicing, so no processing needs to be done
             m_process = false;
 
@@ -853,12 +815,9 @@ RawInput::open_raw(bool unpack, const std::string& name,
     }
     if (idata.model[0])
         m_spec.attribute("Model", idata.model);
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 17, 0)
     if (idata.software[0])
         m_spec.attribute("Software", idata.software);
-    else
-#endif
-        if (color.model2[0])
+    else if (color.model2[0])
         m_spec.attribute("Software", color.model2);
 
     // FIXME: idata. dng_version, is_foveon, colors, filters, cdesc
@@ -885,15 +844,14 @@ RawInput::open_raw(bool unpack, const std::string& name,
         m_spec.attribute("ImageDescription", other.desc);
     if (other.artist[0])
         m_spec.attribute("Artist", other.artist);
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 17, 0)
     if (other.parsed_gps.gpsparsed) {
         add("GPS", "Latitude", other.parsed_gps.latitude, false, 0.0f);
-#    if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
         add("GPS", "Longitude", other.parsed_gps.longitude, false, 0.0f);
-#    else
+#else
         add("GPS", "Longitude", other.parsed_gps.longtitude, false,
             0.0f);  // N.B. wrong spelling!
-#    endif
+#endif
         add("GPS", "TimeStamp", other.parsed_gps.gpstimestamp, false, 0.0f);
         add("GPS", "Altitude", other.parsed_gps.altitude, false, 0.0f);
         add("GPS", "LatitudeRef", string_view(&other.parsed_gps.latref, 1),
@@ -905,7 +863,6 @@ RawInput::open_raw(bool unpack, const std::string& name,
         add("GPS", "Status", string_view(&other.parsed_gps.gpsstatus, 1),
             false);
     }
-#endif
 #if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
     const libraw_makernotes_t& makernotes(m_processor->imgdata.makernotes);
     const libraw_metadata_common_t& common(makernotes.common);
@@ -1006,7 +963,6 @@ RawInput::get_makernotes()
 void
 RawInput::get_makernotes_canon()
 {
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 18, 0)
     auto const& mn(m_processor->imgdata.makernotes.canon);
     // MAKER (CanonColorDataVer, 0);
     // MAKER (CanonColorDataSubVer, 0);
@@ -1020,7 +976,7 @@ RawInput::get_makernotes_canon()
     MAKERF(ExposureMode);
     MAKERF(AESetting);
     MAKERF(ImageStabilization);
-#    if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 21, 0)
+#if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 21, 0)
     MAKERF(HighlightTonePriority);
     MAKERF(FocusMode);
     MAKER(AFPoint, 0);
@@ -1042,7 +998,7 @@ RawInput::get_makernotes_canon()
         //  short        AFPointsSelected[4];
         //  ushort       PrimaryAFPoint;
     }
-#    endif
+#endif
     MAKERF(FlashMode);
     MAKERF(FlashActivity);
     MAKER(FlashBits, 0);
@@ -1052,7 +1008,7 @@ RawInput::get_makernotes_canon()
     MAKERF(ContinuousDrive);
     MAKER(SensorWidth, 0);
     MAKER(SensorHeight, 0);
-#    if LIBRAW_VERSION_AT_LEAST_SNAPSHOT_202110
+#if LIBRAW_VERSION_AT_LEAST_SNAPSHOT_202110
     add(m_make, "SensorLeftBorder", mn.DefaultCropAbsolute.l, false, 0);
     add(m_make, "SensorTopBorder", mn.DefaultCropAbsolute.t, false, 0);
     add(m_make, "SensorRightBorder", mn.DefaultCropAbsolute.r, false, 0);
@@ -1061,7 +1017,7 @@ RawInput::get_makernotes_canon()
     add(m_make, "BlackMaskTopBorder", mn.LeftOpticalBlack.t, false, 0);
     add(m_make, "BlackMaskRightBorder", mn.LeftOpticalBlack.r, false, 0);
     add(m_make, "BlackMaskBottomBorder", mn.LeftOpticalBlack.b, false, 0);
-#    else
+#else
     MAKER(SensorLeftBorder, 0);
     MAKER(SensorTopBorder, 0);
     MAKER(SensorRightBorder, 0);
@@ -1070,7 +1026,6 @@ RawInput::get_makernotes_canon()
     MAKER(BlackMaskTopBorder, 0);
     MAKER(BlackMaskRightBorder, 0);
     MAKER(BlackMaskBottomBorder, 0);
-#    endif
 #endif
 #if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 19, 0)
     // Extra added with libraw 0.19:
@@ -1150,15 +1105,14 @@ RawInput::get_makernotes_nikon()
 void
 RawInput::get_makernotes_olympus()
 {
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 18, 0)
     auto const& mn(m_processor->imgdata.makernotes.olympus);
-#    if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
     MAKERF(SensorCalibration);
-#    else
+#else
     MAKERF(OlympusCropID);
     MAKERF(OlympusFrame); /* upper left XY, lower right XY */
     MAKERF(OlympusSensorCalibration);
-#    endif
+#endif
     MAKERF(FocusMode);
     MAKERF(AutoFocus);
     MAKERF(AFPoint);
@@ -1167,7 +1121,6 @@ RawInput::get_makernotes_olympus()
     MAKERF(AFResult);
     // MAKERF(ImageStabilization);  Removed after 0.19
     MAKERF(ColorSpace);
-#endif
 #if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 19, 0)
     MAKERF(AFFineTune);
     if (mn.AFFineTune)
@@ -1231,24 +1184,23 @@ RawInput::get_makernotes_kodak()
 void
 RawInput::get_makernotes_fuji()
 {
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 18, 0)
     auto const& mn(m_processor->imgdata.makernotes.fuji);
 
-#    if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
     add(m_make, "ExpoMidPointShift", mn.ExpoMidPointShift);
     add(m_make, "DynamicRange", mn.DynamicRange);
     add(m_make, "FilmMode", mn.FilmMode);
     add(m_make, "DynamicRangeSetting", mn.DynamicRangeSetting);
     add(m_make, "DevelopmentDynamicRange", mn.DevelopmentDynamicRange);
     add(m_make, "AutoDynamicRange", mn.AutoDynamicRange);
-#    else
+#else
     add(m_make, "ExpoMidPointShift", mn.FujiExpoMidPointShift);
     add(m_make, "DynamicRange", mn.FujiDynamicRange);
     add(m_make, "FilmMode", mn.FujiFilmMode);
     add(m_make, "DynamicRangeSetting", mn.FujiDynamicRangeSetting);
     add(m_make, "DevelopmentDynamicRange", mn.FujiDevelopmentDynamicRange);
     add(m_make, "AutoDynamicRange", mn.FujiAutoDynamicRange);
-#    endif
+#endif
 
     MAKERF(FocusMode);
     MAKERF(AFMode);
@@ -1260,11 +1212,10 @@ RawInput::get_makernotes_fuji()
     MAKERF(ExrMode);
     MAKERF(Macro);
     MAKERF(Rating);
-#    if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 21, 0)
+#if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 21, 0)
     MAKERF(FrameRate);
     MAKERF(FrameWidth);
     MAKERF(FrameHeight);
-#    endif
 #endif
 }
 
@@ -1273,13 +1224,11 @@ RawInput::get_makernotes_fuji()
 void
 RawInput::get_makernotes_sony()
 {
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 18, 0)
     auto const& mn(m_processor->imgdata.makernotes.sony);
-#endif
 
 #if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
     MAKERF(CameraType);
-#elif LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 18, 0)
+#else
     MAKERF(SonyCameraType);
 #endif
 
@@ -1322,7 +1271,6 @@ RawInput::get_makernotes_sony()
 void
 RawInput::get_lensinfo()
 {
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 18, 0)
     {
         auto const& mn(m_processor->imgdata.lens);
         MAKER(MinFocal, 0.0f);
@@ -1370,29 +1318,29 @@ RawInput::get_lensinfo()
         MAKER(Adapter, 0);
         MAKER(AttachmentID, 0ULL);
         MAKER(Attachment, 0);
-#    if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
         MAKER(FocalUnits, 0);
-#    else
+#else
         MAKER(CanonFocalUnits, 0);
-#    endif
+#endif
         MAKER(FocalLengthIn35mmFormat, 0.0f);
     }
 
     if (Strutil::iequals(m_make, "Nikon")) {
         auto const& mn(m_processor->imgdata.lens.nikon);
-#    if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
         add(m_make, "EffectiveMaxAp", mn.EffectiveMaxAp);
         add(m_make, "LensIDNumber", mn.LensIDNumber);
         add(m_make, "LensFStops", mn.LensFStops);
         add(m_make, "MCUVersion", mn.MCUVersion);
         add(m_make, "LensType", mn.LensType);
-#    else
+#else
         add(m_make, "EffectiveMaxAp", mn.NikonEffectiveMaxAp);
         add(m_make, "LensIDNumber", mn.NikonLensIDNumber);
         add(m_make, "LensFStops", mn.NikonLensFStops);
         add(m_make, "MCUVersion", mn.NikonMCUVersion);
         add(m_make, "LensType", mn.NikonLensType);
-#    endif
+#endif
     }
     if (Strutil::iequals(m_make, "DNG")) {
         auto const& mn(m_processor->imgdata.lens.dng);
@@ -1401,7 +1349,6 @@ RawInput::get_lensinfo()
         MAKER(MaxFocal, 0.0f);
         MAKER(MinFocal, 0.0f);
     }
-#endif
 }
 
 
@@ -1409,7 +1356,6 @@ RawInput::get_lensinfo()
 void
 RawInput::get_shootinginfo()
 {
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 18, 0)
     auto const& mn(m_processor->imgdata.shootinginfo);
     MAKER(DriveMode, -1);
     MAKER(FocusMode, -1);
@@ -1419,7 +1365,6 @@ RawInput::get_shootinginfo()
     MAKERF(ImageStabilization);
     MAKER(BodySerial, 0);
     MAKER(InternalBodySerial, 0);
-#endif
 }
 
 
@@ -1427,7 +1372,6 @@ RawInput::get_shootinginfo()
 void
 RawInput::get_colorinfo()
 {
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 18, 0)
     add("raw", "pre_mul",
         cspan<float>(&(m_processor->imgdata.color.pre_mul[0]),
                      &(m_processor->imgdata.color.pre_mul[4])),
@@ -1444,7 +1388,6 @@ RawInput::get_colorinfo()
         cspan<float>(&(m_processor->imgdata.color.cam_xyz[0][0]),
                      &(m_processor->imgdata.color.cam_xyz[3][3])),
         false, 0.f);
-#endif
 }
 
 
