@@ -114,7 +114,7 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
             zstride = pybuf.strides[0];
         } else if (pybuf.ndim == 3 && pybuf.shape[0] == depth
                    && pybuf.shape[1] == height
-                   && pybuf.shape[2] == width * nchans) {
+                   && pybuf.shape[2] == int64_t(width) * int64_t(nchans)) {
             // passed from python as [z][y][xpixel] -- chans mushed together
             xstride = pybuf.strides[2];
             ystride = pybuf.strides[1];
@@ -133,10 +133,11 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
         } else if (pybuf.ndim == 2) {
             // Somebody collapsed a dimension. Is it [pixel][c] with x&y
             // combined, or is it [y][xpixel] with channels mushed together?
-            if (pybuf.shape[0] == width * height && pybuf.shape[1] == nchans)
+            if (pybuf.shape[0] == int64_t(width) * int64_t(height)
+                && pybuf.shape[1] == nchans)
                 xstride = pybuf.strides[0];
             else if (pybuf.shape[0] == height
-                     && pybuf.shape[1] == width * nchans) {
+                     && pybuf.shape[1] == int64_t(width) * int64_t(nchans)) {
                 ystride = pybuf.strides[0];
                 xstride = pybuf.strides[0] * nchans;
             } else {
@@ -146,7 +147,9 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
                     pixeldims, pybuf.ndim);
             }
         } else if (pybuf.ndim == 1
-                   && pybuf.shape[0] == height * width * nchans) {
+                   && pybuf.shape[0]
+                          == int64_t(width) * int64_t(height)
+                                 * int64_t(nchans)) {
             // all pixels & channels smushed together
             // just rely on autostride
         } else {
@@ -161,7 +164,8 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
             && pybuf.shape[1] == nchans) {
             // passed from python as [x][c]
             xstride = pybuf.strides[0];
-        } else if (pybuf.ndim == 1 && pybuf.shape[0] == width * nchans) {
+        } else if (pybuf.ndim == 1
+                   && pybuf.shape[0] == int64_t(width) * int64_t(nchans)) {
             // all pixels & channels smushed together
             xstride = pybuf.strides[0] * nchans;
         } else {
