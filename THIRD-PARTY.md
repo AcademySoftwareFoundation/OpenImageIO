@@ -1,5 +1,5 @@
 See [LICENSE.md](LICENSE.md) for the main open source license of original
-code written for the OpenImageIO project.
+code written for the OpenImageIO project, which is the Apache-2.0 license.
 
 The remainder of this file reproduces the open source licensing details
 of other projects that have been imported, incorporated into, or derived
@@ -11,6 +11,13 @@ In no particular order:
 
 BSD 3-Clause License
 SPDX-License-Identifier: BSD-3-Clause
+
+* OpenImageIO prior to July 1, 2023
+
+  Code that was contributed to OpenImageIO prior to July 1 2023, and has not
+  yet been [relicensed](RELICENSING.md), was contributed under the [BSD
+  3-clause license](LICENSE-BSD.md). Currently, this is less than 2% of the
+  codebase (by lines of code).
 
 * Gelato, Copyright (c) 2004 by NVIDIA Corp.
 
