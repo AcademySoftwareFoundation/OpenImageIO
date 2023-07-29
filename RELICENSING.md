@@ -1,5 +1,5 @@
 New code entering the OpenImageIO repository from July 1 2023 onward is
-subject to the [Apache 2.0 license](LICENSE-Apache-2.0.md).
+subject to the [Apache 2.0 license](LICENSE.md).
 
 Code dating from earlier than July 1 2023 was contributed under the [BSD
 3-clause license](LICENSE-BSD-3-Clause.md), unless relicensed below.
@@ -23,7 +23,7 @@ the Developer Certificate of Origin, version 1.1:
 - Nathan Rusch (nrusch)
 - Ismael Cortes (leamsi)
 - AdamMainsTL
-- Sony Pictures Imageworks (cstein, olegul, fpsunflower, brianhall77, jeremyselan)
+- Sony Pictures Imageworks (cstein, olegul, fpsunflower, brianhall77, jeremyselan, drg)
 - Richard Shaw (hobbes1069)
 - Robert Matusewicz
 - Mariusz Szczepańczyk (mszczepanczyk)
@@ -41,6 +41,50 @@ the Developer Certificate of Origin, version 1.1:
 - Autodesk (includes Thiago Ize, Elvic Liang, Wayne Arnold, William Krick, Brecht Van Lommel, Marcos Fajardo)
 - Thiago Ize
 - Nick Black (dankamongmen)
+- Michel Lerenard (micler)
+- Stefan Bruens (StefanBruens)
+- David Gordon
+- Claire Foster (c42f)
+- Konrad Kleine (kwk)
+- Simone Gasparini (simogasp)
+- Radu Arjocu (ra-mt)
+- Dominik Bartkiewicz (fafik23)
+- 360highdynamicrangehdr (?)
+- Leonid Onokhov (sopvop)
+- Nuno Cardoso (npcardoso)
+- Todica Ionut (360highdynamicrangehdr)
+- Till Dechent (ttddee)
+- Tom Knowles (knowlsie)
+- SRHMorris
+- Biswapriyo Nath (Biswa96)
+- Edoardo Dominici (dedoardo)
+- Frédéric Devernay (devernay)
+- Simone Gasparini (simogasp)
+- roelandschoukens
+- Nayden Dochev (nayyden)
+- Yann Lanthony (yann-lty)
+- Benjamin Buch (bebuch)
+- Joris Nijs (joris-nijs)
+- Jan Honsbrok (Latios96)
+- Matteo F. Vescovi (mfvescovi)
+- Patrick Northon (patlefort)
+- Eric Mehl (ericmehl)
+- Xo Wang (GHF)
+- etiam
+- Fabien Servant (servantftechnicolor)
+- Loïc Vital (mugulmd)
+- Thomas Mansencal (Wētā FX)
+- Brent Davis (btdavis)
+- pwm1234-sri
+- toxieainc
+- demoulinv
+- Julien Enche (jenche)
+- Justin Israel
+- xiaoxiaoafeifei
+- Brad Smith (brad0)
+- lmarz
+- Seifeddine Dridi (seifeddinedridi)
+- Daniel Dresser (danieldresser)
 - Luc Bournaud (DevilishSpirits)
 
 **Prior authors, please submit a PR against this file that adds your name

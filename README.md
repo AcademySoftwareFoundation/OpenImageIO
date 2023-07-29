@@ -2,7 +2,7 @@
   <img src="ASWF/logos/openimageio-horizontal-gradient.png">
 </p>
 
-[![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg?style=flat-square)](https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md)
+[![License](https://img.shields.io/badge/license-Apache2.0-blue.svg?style=flat-square)](https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md)
 [![CI](https://github.com/OpenImageIO/oiio/actions/workflows/ci.yml/badge.svg)](https://github.com/OpenImageIO/oiio/actions/workflows/ci.yml)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2694/badge)](https://bestpractices.coreinfrastructure.org/projects/2694)
 
@@ -68,10 +68,13 @@ Licensing
 
 OpenImageIO is (c) Copyright Contributors to the OpenImageIO project.
 
-OpenImageIO is distributed using the [modified BSD license](LICENSE.md)
-(also known as the "new BSD" or "3-clause BSD" license).  The documentation
-is licensed under the [Creative Commons Attribution 3.0 Unported
-License](http://creativecommons.org/licenses/by/3.0/).
+OpenImageIO is distributed using primarily the Apache 2.0 license -- see the
+[LICENSE.md](LICENSE.md) file for details.  The documentation is licensed
+under the [Creative Commons Attribution 4.0 Unported
+License](http://creativecommons.org/licenses/by/4.0/). A small amount of code
+imported from other projects, and also some pre-July-2023 code that has not
+yet been relicensed under Apache-2.0, is covered by other compatible licenses
+-- see [THIRD-PARTY](THIRD-PARTY.md) file for details.
 
 The plain English bottom line is that OpenImageIO is free, as well as
 freely modifiable and redistributable (in both source and binary form).
@@ -128,7 +131,7 @@ security-related issues [security@openimageio.org](security@openimageio.org).
 Contributing
 ------------
 
-OpenImageIO welcomes code contributions, and [nearly 150 people](CREDITS.md)
+OpenImageIO welcomes code contributions, and [nearly 200 people](CREDITS.md)
 have done so over the years. We take code contributions via the usual GitHub
 pull request (PR) mechanism. Please see [CONTRIBUTING](CONTRIBUTING.md) for
 detailed instructions.
