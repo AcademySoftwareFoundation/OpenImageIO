@@ -83,6 +83,7 @@ struct OIIO_UTIL_API TypeDesc {
         DOUBLE,             ///< 64-bit IEEE floating point values, (C/C++ `double`).
         STRING,             ///< Character string.
         PTR,                ///< A pointer value.
+        USTRINGHASH,        ///< The hash of a ustring
         LASTBASE
     };
 
@@ -404,6 +405,7 @@ OIIO_INLINE_CONSTEXPR TypeDesc TypeTimeCode (TypeDesc::UINT, TypeDesc::SCALAR, T
 OIIO_INLINE_CONSTEXPR TypeDesc TypeKeyCode (TypeDesc::INT, TypeDesc::SCALAR, TypeDesc::KEYCODE, 7);
 OIIO_INLINE_CONSTEXPR TypeDesc TypeRational(TypeDesc::INT, TypeDesc::VEC2, TypeDesc::RATIONAL);
 OIIO_INLINE_CONSTEXPR TypeDesc TypePointer(TypeDesc::PTR);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeUstringhash(TypeDesc::USTRINGHASH);
 
 
 
@@ -485,6 +487,10 @@ template<> struct TypeDescFromC<Imath::Box3i> { static const constexpr TypeDesc 
 #endif
 
 
+class ustringhash;  // forward declaration
+
+
+
 /// A template mechanism for getting C type of TypeDesc::BASETYPE.
 ///
 template<int b> struct CType {};
@@ -501,6 +507,7 @@ template<> struct CType<(int)TypeDesc::HALF> { typedef half type; };
 #endif
 template<> struct CType<(int)TypeDesc::FLOAT> { typedef float type; };
 template<> struct CType<(int)TypeDesc::DOUBLE> { typedef double type; };
+template<> struct CType<(int)TypeDesc::USTRINGHASH> { typedef ustringhash type; };
 
 
 

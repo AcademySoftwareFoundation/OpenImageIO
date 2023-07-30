@@ -18,6 +18,7 @@
 
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/unittest.h>
+#include <OpenImageIO/ustring.h>
 
 
 using namespace OIIO;
@@ -144,6 +145,8 @@ main(int /*argc*/, char* /*argv*/[])
                           TypeFloat4, {});
     test_type<const char*>("string", TypeDesc(TypeDesc::STRING), TypeString,
                            "hello", "hello");
+    test_type<ustringhash>("ustringhash", TypeDesc(TypeDesc::USTRINGHASH),
+                           TypeUstringhash, ustringhash("hello"), "hello");
     int i2[2] = { 1, 2 };
     test_type<int[2]>("rational",
                       TypeDesc(TypeDesc::INT, TypeDesc::VEC2,
