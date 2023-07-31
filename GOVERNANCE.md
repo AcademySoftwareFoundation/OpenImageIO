@@ -133,6 +133,7 @@ Current voting members of the TSC are:
 * **Chair and TAC representative**: Daniel Greenstein - Sony Pictures Imageworks (possibly interim?)
 * **Chief Architect**: Larry Gritz - Sony Pictures Imageworks
 * Anton Dukhovnikov - Wētā Digital / Unity
+* Jesse Yurkovich - Blender
 * Joseph Goldstone - ARRI
 * Lewis Wakeland - Disney TV Animation
 * Luke Emrose - Animal Logic (interim?)
