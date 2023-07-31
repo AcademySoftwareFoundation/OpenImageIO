@@ -180,6 +180,9 @@ her absence. Meetings may also be streamed online where appropriate;
 connection details will be posted to the oiio-dev mail list in advance of the
 scheduled meeting.
 
+The biweekly TSC meetings can be found on the [ASWF Calendar](https://www.aswf.io/meeting-calendar),
+just click on the OpenImageIO meeting entries to get the Zoom link.
+
 Items are added to the TSC agenda which are considered contentious or are
 modifications of governance, contribution policy, TSC membership, or release
 process, in addition to topics involving the high-level technical direction
