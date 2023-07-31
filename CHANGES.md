@@ -1,6 +1,26 @@
-Release 2.4.14.0 (1 Aug? 2023) -- compared to 2.4.13.0
+Release 2.4.14.0 (1 Aug 2023) -- compared to 2.4.13.0
 -------------------------------------------------------
-
+- *ico*: IOProxy support for ICO input [#3919](https://github.com/OpenImageIO/oiio/pull/3919) (by jasonbaumeister)
+- *fix(psd)*: CMYK PSD files now copy alpha correctly [#3918](https://github.com/OpenImageIO/oiio/pull/3918) (by jasonbaumeister)
+- *fix(python)*: Fix arithmetic overflow in oiio_bufinfo (Python interop) [#3931](https://github.com/OpenImageIO/oiio/pull/3931) (by Jesse Yurkovich)
+- *build*: Fix WebP linking if CMAKE_FIND_PACKAGE_PREFER_CONFIG is ON
+  [#3863](https://github.com/OpenImageIO/oiio/pull/3863) (by Benjamin Buch)
+- *build*: Find OpenEXR equally well with our FindOpenEXR and exr's exported
+  config file [#3862](https://github.com/OpenImageIO/oiio/pull/3862) (by Benjamin Buch)
+- *build*: Fix broken OIIO_NO_NEON definition [#3911](https://github.com/OpenImageIO/oiio/pull/3911)
+- *ci*: Lock down icx version [#3929](https://github.com/OpenImageIO/oiio/pull/3929)
+- *ci*: Bump build_openexr and build_opencolorio defaults to latest versions [#3920](https://github.com/OpenImageIO/oiio/pull/3920)
+- *admin*: Update mail list to https://lists.aswf.io/g/oiio-dev
+  [#3880](https://github.com/OpenImageIO/oiio/pull/3880)
+- *admin*: Add charter and other ASWF documents to the repo
+  [#3850](https://github.com/OpenImageIO/oiio/pull/3850)
+- *admin*: Document use of the DCO which is now required for all PRs
+  [#3897](https://github.com/OpenImageIO/oiio/pull/3897)
+- *admin*: Put logo on the main readme
+  [#3927](https://github.com/OpenImageIO/oiio/pull/3927)
+- *admin*: Remove old CLAs that are no longer in effect
+- *admin*: Change open source license to Apache 2.0. #3899, #3903, #3904,
+  #3906, #3914, #3922, #3926.
 
 Release 2.4.13.0 (1 July 2023) -- compared to 2.4.12.0
 -------------------------------------------------------
