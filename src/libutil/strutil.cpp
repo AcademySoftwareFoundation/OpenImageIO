@@ -1436,11 +1436,11 @@ decode(uint32_t* state, uint32_t* codep, uint32_t byte)
 void
 Strutil::utf8_to_unicode(string_view str, std::vector<uint32_t>& uvec)
 {
-    const char* begin = str.begin();
-    const char* end   = str.end();
-    uint32_t state    = 0;
+    const char* begin  = str.begin();
+    const char* end    = str.end();
+    uint32_t state     = 0;
+    uint32_t codepoint = 0;
     for (; begin != end; ++begin) {
-        uint32_t codepoint = 0;
         if (!decode(&state, &codepoint, (unsigned char)*begin))
             uvec.push_back(codepoint);
     }
