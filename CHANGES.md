@@ -1,3 +1,7 @@
+Release 2.4.15.0 (1 Sep? 2023) -- compared to 2.4.14.0
+-------------------------------------------------------
+
+
 Release 2.4.14.0 (1 Aug 2023) -- compared to 2.4.13.0
 -------------------------------------------------------
 - *ico*: IOProxy support for ICO input [#3919](https://github.com/OpenImageIO/oiio/pull/3919) (by jasonbaumeister)
