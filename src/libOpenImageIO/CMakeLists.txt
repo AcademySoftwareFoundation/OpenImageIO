@@ -103,6 +103,18 @@ if (EMBEDPLUGINS)
     endforeach ()
 endif ()
 
+# Enable default use of OpenEXR core library for versions of the library
+# new enough to support DWA compression in exrcore.
+if (OPENEXR_VERSION VERSION_GREATER_EQUAL 3.1.10)
+    target_compile_definitions(OpenImageIO
+                               PRIVATE OIIO_OPENEXR_CORE_DEFAULT=1)
+    message (STATUS "OpenEXR core library will be used by default")
+else ()
+    target_compile_definitions(OpenImageIO
+                               PRIVATE OIIO_OPENEXR_CORE_DEFAULT=0)
+    message (STATUS "OpenEXR core library will not be used by default")
+endif ()
+
 # Source groups for libutil and libtexture
 source_group ("libutil"    REGULAR_EXPRESSION ".+/libutil/.+")
 source_group ("libtexture" REGULAR_EXPRESSION ".+/libtexture/.+")

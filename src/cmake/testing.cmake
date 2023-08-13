@@ -274,15 +274,19 @@ macro (oiio_add_all_tests)
     set (all_openexr_tests
          openexr-suite openexr-multires openexr-chroma
          openexr-v2 openexr-window perchannel oiiotool-deep)
+    if (OpenEXR_VERSION VERSION_GREATER_EQUAL 3.1.10)
+        # OpenEXR 3.1.10 is the first release where the exr core library
+        # properly supported all compression types (DWA in particular).
+        list (APPEND all_openexr_tests openexr-compression)
+    endif ()
     # Run all OpenEXR tests without core library
-    oiio_add_tests (${all_openexr_tests} openexr-compression
+    oiio_add_tests (${all_openexr_tests}
                     ENVIRONMENT OPENIMAGEIO_OPTIONS=openexr:core=0
                     IMAGEDIR openexr-images
                     URL http://github.com/AcademySoftwareFoundation/openexr-images)
     # For OpenEXR >= 3.1, be sure to test with the core option on
     if (OpenEXR_VERSION VERSION_GREATER_EQUAL 3.1)
         oiio_add_tests (${all_openexr_tests}
-                            # N.B. doesn't work yet: openexr-compression
                         SUFFIX ".core"
                         ENVIRONMENT OPENIMAGEIO_OPTIONS=openexr:core=1
                         IMAGEDIR openexr-images
