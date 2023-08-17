@@ -1028,6 +1028,27 @@ ImageBuf OIIO_API pow (const ImageBuf &A, cspan<float> B,
 bool OIIO_API pow (ImageBuf &dst, const ImageBuf &A, cspan<float> B,
                    ROI roi={}, int nthreads=0);
 
+/// Normalize 3D vectors (i.e., divide by their length) textures.
+/// 
+/// inCenter and outCenter define 0.0 coordinate in input and output 
+/// 3D vectors encodings (e.g. 0.0f for [-1,1] or 0.5f for [0,1] encoding).
+/// 
+/// scale defines the scale factor to apply to the normalized vectors 
+/// (i.e. 1.0f for a full range normalization, 0.5f for 0.0-1.0 range encoding).
+/// 
+/// Default values are for [-1,1] encoding and full range normalization.
+/// 
+/// Functions required 3 or 4 channels. If destination have no alpha channel, 
+/// but source have, alpha channel will be dropped.
+/// 
+bool OIIO_API normalize(ImageBuf& dst, const ImageBuf& A, float inCenter=0.0f,
+                        float outCenter=0.0f, float scale=1.0f,
+                        ROI roi={}, int nthreads=0);
+
+ImageBuf OIIO_API normalize(const ImageBuf& A, float inCenter=0.0f,
+                            float outCenter=0.0, float scale=1.0f, 
+                            ROI roi={}, int nthreads=0);
+
 
 /// Converts a multi-channel image into a one-channel image via a weighted
 /// sum of channels:
