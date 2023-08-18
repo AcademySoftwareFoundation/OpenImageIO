@@ -119,6 +119,16 @@ the Developer Certificate of Origin, version 1.1:
 - johnfea
 - Max Liani (maxliani)
 - Michael Görner (v4hn)
+- Philip Nemec (p-nemec)
+- Google
+- Nandan Dubey (ndubey)
+- NVIDIA
+- Jonathan Hearn (splidje)
+- Michael Root
+- Ott Tinn
+- Lukas Shrangl (luhk)
+- Manuel Gamito (mgamito)
+- Rémi Achard (remia)
 
 **Prior authors, please submit a PR against this file that adds your name
 above. If, at the time of your prior contributions, you were employed by a
