@@ -299,7 +299,7 @@ BmpInput::read_rle_image()
     int rletype = m_dib_header.compression == RLE4_COMPRESSION ? 4 : 8;
     m_spec.attribute("compression", rletype == 4 ? "rle4" : "rle8");
     m_uncompressed.clear();
-    m_uncompressed.resize(m_spec.height * m_spec.width);
+    m_uncompressed.resize(m_spec.image_pixels());
     // Note: the clear+resize zeroes out the buffer
     bool ok = true;
     int y = 0, x = 0;
