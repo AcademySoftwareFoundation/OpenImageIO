@@ -7,10 +7,10 @@ assignees: ''
 
 ---
 
-**PLEASE DO NOT REPORT BUILD TROUBLES AS ISSUES**
+**PLEASE DO NOT REPORT BUILD TROUBLES AS GITHUB "ISSUES" UNLESS YOU ARE RALLY SURE IT'S A BUG**
 
 The best way to get help with your build problems is to ask a question on the
-[oiio-dev developer mail list](http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org).
+[oiio-dev developer mail list](https://lists.aswf.io/g/oiio-dev).
 
 When you email about this, please attach one or both of the following:
 1. The full verbose build log, which you can create like this:
