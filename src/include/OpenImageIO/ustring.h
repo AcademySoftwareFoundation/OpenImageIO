@@ -818,18 +818,24 @@ public:
     OIIO_DEVICE_CONSTEXPR explicit ustringhash(const char* str)
     {
 #ifdef __CUDA_ARCH__
-        m_hash = Strutil::strhash(str);  // GPU: just compute the hash
+        // GPU: just compute the hash. This can be constexpr!
+        m_hash = Strutil::strhash(str);
 #else
-        m_hash = ustring(str).hash();       // CPU: make ustring, get its hash
+        // CPU: make ustring, get its hash. Note that ustring ctr can't be
+        // constexpr because it has to modify the internal ustring table.
+        m_hash = ustring(str).hash();
 #endif
     }
 
     OIIO_DEVICE_CONSTEXPR explicit ustringhash(const char* str, size_t len)
     {
 #ifdef __CUDA_ARCH__
-        m_hash = Strutil::strhash(len, str);  // GPU: just compute the hash
+        // GPU: just compute the hash. This can be constexpr!
+        m_hash = Strutil::strhash(len, str);
 #else
-        m_hash = ustring(str, len).hash();  // CPU: make ustring, get its hash
+        // CPU: make ustring, get its hash. Note that ustring ctr can't be
+        // constexpr because it has to modify the internal ustring table.
+        m_hash = ustring(str, len).hash();
 #endif
     }
 
@@ -838,9 +844,12 @@ public:
     OIIO_DEVICE_CONSTEXPR explicit ustringhash(string_view str)
     {
 #ifdef __CUDA_ARCH__
-        m_hash = Strutil::strhash(str);  // GPU: just compute the hash
+        // GPU: just compute the hash. This can be constexpr!
+        m_hash = Strutil::strhash(str);
 #else
-        m_hash = ustring(str).hash();       // CPU: make ustring, get its hash
+        // CPU: make ustring, get its hash. Note that ustring ctr can't be
+        // constexpr because it has to modify the internal ustring table.
+        m_hash = ustring(str).hash();
 #endif
     }
 
