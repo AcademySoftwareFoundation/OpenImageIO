@@ -501,6 +501,16 @@ test_write_over()
 
 
 
+static void
+test_uncaught_error()
+{
+    ImageBuf buf;
+    buf.error("Boo!");
+    // buf exists scope and is destroyed without anybody retrieving the error.
+}
+
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -533,6 +543,8 @@ main(int /*argc*/, char* /*argv*/[])
     time_get_pixels();
 
     test_write_over();
+
+    test_uncaught_error();
 
     Filesystem::remove("A_imagebuf_test.tif");
     return unit_test_failures;
