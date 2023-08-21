@@ -156,6 +156,12 @@ test_ustring()
 
     // std::hash
     OIIO_CHECK_EQUAL(std::hash<ustring> {}(foo), foo.hash());
+
+    // string literals
+    auto whichtype = "foo"_us;
+    OIIO_CHECK_EQUAL(whichtype, ustring("foo"));
+    OIIO_CHECK_ASSERT((std::is_same<decltype(whichtype), ustring>::value));
+    OIIO_CHECK_ASSERT(!(std::is_same<decltype(whichtype), const char*>::value));
 }
 
 
@@ -227,6 +233,12 @@ test_ustringhash()
 
     // formatting string
     OIIO_CHECK_EQUAL(Strutil::fmt::format("{}", hfoo), "foo");
+
+    // string literals
+    auto whichtype = "foo"_ush;
+    OIIO_CHECK_EQUAL(whichtype, ustringhash("foo"));
+    OIIO_CHECK_ASSERT((std::is_same<decltype(whichtype), ustringhash>::value));
+    OIIO_CHECK_ASSERT(!(std::is_same<decltype(whichtype), const char*>::value));
 }
 
 
