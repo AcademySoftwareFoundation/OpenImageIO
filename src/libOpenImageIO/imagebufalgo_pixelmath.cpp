@@ -497,6 +497,8 @@ ImageBufAlgo::normalize(const ImageBuf& A, float inCenter, float outCenter,
     return result;
 }
 
+
+
 template<class D, class S>
 static bool
 channel_sum_(ImageBuf& dst, const ImageBuf& src, cspan<float> weights, ROI roi,
