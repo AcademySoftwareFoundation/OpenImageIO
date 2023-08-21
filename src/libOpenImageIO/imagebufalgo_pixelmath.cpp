@@ -469,7 +469,7 @@ ImageBufAlgo::normalize(ImageBuf& dst, const ImageBuf& src, float inCenter,
         return false;
 
     if (src.spec().nchannels != 3 && src.spec().nchannels != 4) {
-        src.errorfmt("normalize can only handle 3- or 4-channel (RGB, RGBA) images");
+        src.errorfmt("normalize can only handle 3- or 4-channel images");
         return false;
     }
     if (src.spec().nchannels < dst.spec().nchannels) {
