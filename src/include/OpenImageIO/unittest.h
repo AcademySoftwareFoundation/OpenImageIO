@@ -133,6 +133,18 @@ static OIIO::pvt::UnitTestFailureCounter unit_test_failures;
                        << ", diff was " << std::abs((x) - (y)) << "\n"),      \
             (void)++unit_test_failures))
 
+#define OIIO_CHECK_EQUAL_THRESH_REL(x, y, epsabs, epsrel)                     \
+    ((std::abs((x) - (y)) <= (epsabs + epsrel * std::max(abs(x), abs(y))))    \
+         ? ((void)0)                                                          \
+         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")     \
+                       << __FILE__ << ":" << __LINE__ << ":\n"                \
+                       << "FAILED: "                                          \
+                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x \
+                       << " == " << #y << "\n"                                \
+                       << "\tvalues were '" << (x) << "' and '" << (y) << "'" \
+                       << ", diff was " << std::abs((x) - (y)) << "\n"),      \
+            (void)++unit_test_failures))
+
 #define OIIO_CHECK_EQUAL_APPROX(x, y)                                         \
     (OIIO::pvt::equal_approx(x, y)                                            \
          ? ((void)0)                                                          \
