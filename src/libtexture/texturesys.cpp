@@ -82,9 +82,9 @@ static const OIIO_SIMD4_ALIGN vbool4 channel_masks[5] = {
 TextureSystem*
 TextureSystem::create(bool shared, ImageCache* imagecache)
 {
-// Because the shared_texturesys is never deleted (by design)
-// we silence the otherwise useful compiler warning on newer GCC versions
-OIIO_PRAGMA_WARNING_PUSH
+    // Because the shared_texturesys is never deleted (by design)
+    // we silence the otherwise useful compiler warning on newer GCC versions
+    OIIO_PRAGMA_WARNING_PUSH
 #if OIIO_GNUC_VERSION > 100000
     OIIO_GCC_ONLY_PRAGMA(GCC diagnostic ignored "-Wmismatched-new-delete")
 #endif
@@ -113,7 +113,7 @@ OIIO_PRAGMA_WARNING_PUSH
 #if 0
     std::cerr << "creating new ImageCache " << (void *)ts << "\n";
 #endif
-OIIO_PRAGMA_WARNING_POP
+    OIIO_PRAGMA_WARNING_POP
     return ts;
 }
 
