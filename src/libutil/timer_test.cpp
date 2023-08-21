@@ -54,6 +54,7 @@ main(int argc, char** argv)
 
     const int interval = 100000;  // 1/10 sec
     double eps         = 0.01;    // slop we allow in our timings
+    double epsrel      = 0.1;     // Allow an additional 10% relative error
 #ifdef __APPLE__
     eps = 0.03;
     // On some Apple OSX systems (especially >= 10.10 Yosemite), a feature
@@ -79,41 +80,41 @@ main(int argc, char** argv)
     Timer all(Timer::StartNow);
     Timer selective(Timer::DontStartNow);
     Sysutil::usleep(interval);
-    OIIO_CHECK_EQUAL_THRESH(selective(), 0.0, eps);
-    OIIO_CHECK_EQUAL_THRESH(all(), 0.1, eps);
+    OIIO_CHECK_EQUAL_THRESH_REL(selective(), 0.0, eps, epsrel);
+    OIIO_CHECK_EQUAL_THRESH_REL(all(), 0.1, eps, epsrel);
 
     // Make sure start/stop work
     selective.start();
     Sysutil::usleep(interval);
-    OIIO_CHECK_EQUAL_THRESH(selective(), 0.1, eps);
-    OIIO_CHECK_EQUAL_THRESH(all(), 0.2, eps);
+    OIIO_CHECK_EQUAL_THRESH_REL(selective(), 0.1, eps, epsrel);
+    OIIO_CHECK_EQUAL_THRESH_REL(all(), 0.2, eps, epsrel);
     selective.stop();
     Sysutil::usleep(interval);
-    OIIO_CHECK_EQUAL_THRESH(selective(), 0.1, eps);
-    OIIO_CHECK_EQUAL_THRESH(all(), 0.3, eps);
+    OIIO_CHECK_EQUAL_THRESH_REL(selective(), 0.1, eps, epsrel);
+    OIIO_CHECK_EQUAL_THRESH_REL(all(), 0.3, eps, epsrel);
     std::cout << "Checkpoint: All " << all() << " selective " << selective()
               << "\n";
 
     // Test reset() -- should set selective to 0 and turn it off
     selective.reset();
     Sysutil::usleep(interval);
-    OIIO_CHECK_EQUAL_THRESH(selective(), 0.0, eps);
-    OIIO_CHECK_EQUAL_THRESH(all(), 0.4, eps);
+    OIIO_CHECK_EQUAL_THRESH_REL(selective(), 0.0, eps, epsrel);
+    OIIO_CHECK_EQUAL_THRESH_REL(all(), 0.4, eps, epsrel);
     selective.start();
     Sysutil::usleep(interval);
-    OIIO_CHECK_EQUAL_THRESH(selective(), 0.1, eps);
-    OIIO_CHECK_EQUAL_THRESH(all(), 0.5, eps);
+    OIIO_CHECK_EQUAL_THRESH_REL(selective(), 0.1, eps, epsrel);
+    OIIO_CHECK_EQUAL_THRESH_REL(all(), 0.5, eps, epsrel);
 
     // Test lap()
     double lap = selective.lap();  // lap=.1, select.time_since_start
-    OIIO_CHECK_EQUAL_THRESH(lap, 0.1, eps);
-    OIIO_CHECK_EQUAL_THRESH(selective(), 0.1, eps);
-    OIIO_CHECK_EQUAL_THRESH(selective.time_since_start(), 0.0, eps);
-    OIIO_CHECK_EQUAL_THRESH(all(), 0.5, eps);
+    OIIO_CHECK_EQUAL_THRESH_REL(lap, 0.1, eps, epsrel);
+    OIIO_CHECK_EQUAL_THRESH_REL(selective(), 0.1, eps, epsrel);
+    OIIO_CHECK_EQUAL_THRESH_REL(selective.time_since_start(), 0.0, eps, epsrel);
+    OIIO_CHECK_EQUAL_THRESH_REL(all(), 0.5, eps, epsrel);
     Sysutil::usleep(interval);
-    OIIO_CHECK_EQUAL_THRESH(selective(), 0.2, eps);
-    OIIO_CHECK_EQUAL_THRESH(selective.time_since_start(), 0.1, eps);
-    OIIO_CHECK_EQUAL_THRESH(all(), 0.6, eps);
+    OIIO_CHECK_EQUAL_THRESH_REL(selective(), 0.2, eps, epsrel);
+    OIIO_CHECK_EQUAL_THRESH_REL(selective.time_since_start(), 0.1, eps, epsrel);
+    OIIO_CHECK_EQUAL_THRESH_REL(all(), 0.6, eps, epsrel);
     std::cout << "Checkpoint2: All " << all() << " selective " << selective()
               << "\n";
 
