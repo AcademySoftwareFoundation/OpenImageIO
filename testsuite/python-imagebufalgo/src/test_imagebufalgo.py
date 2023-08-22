@@ -269,11 +269,11 @@ try:
     b = test_iba (ImageBufAlgo.normalize, a, 0.5, 0.5, 0.5)
     write (b, "normalize_uiui.tif", oiio.UINT16)
     b = test_iba (ImageBufAlgo.normalize, a, 0.5, 0.0, 1.0)
-    write (b, "normalize_uifl.exr", oiio.FLOAT)
+    write (b, "normalize_uifl.exr", oiio.HALF)
 
     a = ImageBuf (OIIO_TESTSUITE_ROOT+"/common/vectorschart_raw_xyza.exr")
     b = test_iba (ImageBufAlgo.normalize, a, 0.0, 0.0, 1.0)
-    write (b, "normalize_flfl.exr", oiio.FLOAT)
+    write (b, "normalize_flfl.exr", oiio.HALF)
     b = test_iba (ImageBufAlgo.normalize, a, 0.0, 0.5, 0.5)
     write (b, "normalize_flui.tif", oiio.UINT16)
     b = ImageBuf()
