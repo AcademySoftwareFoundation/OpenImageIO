@@ -2899,10 +2899,11 @@ OIIO_API std::string geterror(bool clear = true);
 ///    data of a single 2D image. Images whose headers indicate that they are
 ///    larger than this might be assumed to be corrupted or malicious files.
 ///    The default is 32768 (32 GB of uncompressed pixel data -- equivalent to
-///    64k x 64k x 4 channel x half), or half the amount of total physical
+///    64k x 64k x 4 channel x half), or the total amount of total physical
 ///    memory available to the running process, whichever is smaller. In
 ///    situations when images larger than this are expected to be encountered,
-///    you should raise this limit.
+///    you should raise this limit. Setting the limit to 0 means having no
+///    limit.
 ///
 /// - `int log_times`
 ///
