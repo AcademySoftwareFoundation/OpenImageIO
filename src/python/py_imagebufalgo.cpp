@@ -2982,10 +2982,10 @@ declare_imagebufalgo(py::module& m)
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
 
         .def_static("normalize", &IBA_normalize, "dst"_a, "src"_a, 
-                    "incenter"_a = 0.0f, "outcenter"_a = 0.0f, "scale"_a = 1.0f,
+                    "inCenter"_a = 0.0f, "outCenter"_a = 0.0f, "scale"_a = 1.0f,
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
         .def_static("normalize", &IBA_normalize_ret, "src"_a,
-                    "incenter"_a = 0.0f, "outcenter"_a = 0.0f, "scale"_a = 1.0f,
+                    "inCenter"_a = 0.0f, "outCenter"_a = 0.0f, "scale"_a = 1.0f,
 					"roi"_a = ROI::All(), "nthreads"_a = 0)
 
         .def_static("fillholes_pushpull", &IBA_fillholes_pushpull, "dst"_a,
