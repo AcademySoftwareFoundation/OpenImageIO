@@ -46,7 +46,8 @@ int tiff_half(0);
 int tiff_multithread(1);
 int dds_bc5normal(0);
 int limit_channels(1024);
-int limit_imagesize_MB(32 * 1024);
+int limit_imagesize_MB(std::min(32 * 1024,
+                                int((Sysutil::physical_memory() / 2) >> 20)));
 ustring font_searchpath(Sysutil::getenv("OPENIMAGEIO_FONTS"));
 ustring plugin_searchpath(OIIO_DEFAULT_PLUGIN_SEARCHPATH);
 std::string format_list;         // comma-separated list of all formats
