@@ -473,14 +473,15 @@ ImageBufAlgo::normalize(ImageBuf& dst, const ImageBuf& src, float inCenter,
         return false;
     }
     if (src.spec().nchannels < dst.spec().nchannels) {
-        dst.errorfmt("destination buffer can`t have more channels than the source");
-		return false;
-	}
+        dst.errorfmt(
+            "destination buffer can`t have more channels than the source");
+        return false;
+    }
 
     bool ok;
-    OIIO_DISPATCH_COMMON_TYPES(ok, "normalize", normalize_impl, dst.spec().format,
-                               dst, src, inCenter, outCenter, scale,
-                               roi, nthreads);
+    OIIO_DISPATCH_COMMON_TYPES(ok, "normalize", normalize_impl,
+                               dst.spec().format, dst, src, inCenter, outCenter,
+                               scale, roi, nthreads);
 
     return ok;
 }

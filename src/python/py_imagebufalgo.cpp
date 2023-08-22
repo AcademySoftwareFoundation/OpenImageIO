@@ -1703,9 +1703,9 @@ bool
 IBA_normalize(ImageBuf& dst, const ImageBuf& src, float inCenter,
               float outCenter, float scale, ROI roi, int nthreads)
 {
-	py::gil_scoped_release gil;
-	return ImageBufAlgo::normalize(dst, src, inCenter, outCenter, 
-                                   scale, roi, nthreads);
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::normalize(dst, src, inCenter, outCenter, scale, roi,
+                                   nthreads);
 }
 
 
@@ -1714,9 +1714,9 @@ ImageBuf
 IBA_normalize_ret(const ImageBuf& src, float inCenter, float outCenter,
                   float scale, ROI roi, int nthreads)
 {
-	py::gil_scoped_release gil;
-	return ImageBufAlgo::normalize(src, inCenter, outCenter, scale, roi,
-        								   nthreads);
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::normalize(src, inCenter, outCenter, scale, roi,
+                                   nthreads);
 }
 
 
@@ -2981,12 +2981,12 @@ declare_imagebufalgo(py::module& m)
                     "mode"_a = ImageBufAlgo::NONFINITE_BOX3,
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
 
-        .def_static("normalize", &IBA_normalize, "dst"_a, "src"_a, 
+        .def_static("normalize", &IBA_normalize, "dst"_a, "src"_a,
                     "inCenter"_a = 0.0f, "outCenter"_a = 0.0f, "scale"_a = 1.0f,
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
         .def_static("normalize", &IBA_normalize_ret, "src"_a,
                     "inCenter"_a = 0.0f, "outCenter"_a = 0.0f, "scale"_a = 1.0f,
-					"roi"_a = ROI::All(), "nthreads"_a = 0)
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
 
         .def_static("fillholes_pushpull", &IBA_fillholes_pushpull, "dst"_a,
                     "src"_a, "roi"_a = ROI::All(), "nthreads"_a = 0)
