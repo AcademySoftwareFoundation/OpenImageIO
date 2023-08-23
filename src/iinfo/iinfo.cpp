@@ -362,7 +362,7 @@ print_info(const std::string& filename, size_t namefieldlength,
               spec.depth > 1 ? "volume " : "");
         if (spec.channelformats.size()) {
             for (size_t c = 0; c < spec.channelformats.size(); ++c)
-                print("{}{}", c ? "/" : "", spec.channelformat(c));
+                print("{}{}", c ? "/" : "", spec.channelformat((int)c));
         } else {
             int bits = spec.get_int_attribute("oiio:BitsPerSample", 0);
             print("{}", extended_format_name(spec.format, bits));
@@ -390,7 +390,7 @@ print_info(const std::string& filename, size_t namefieldlength,
         for (int i = 0; i < num_of_subimages; ++i) {
             input->seek_subimage(i, 0, spec);
             int bits = spec.get_int_attribute("oiio:BitsPerSample",
-                                              spec.format.size() * 8);
+                                              (int)spec.format.size() * 8);
             if (i)
                 print(", ");
             if (spec.depth > 1)

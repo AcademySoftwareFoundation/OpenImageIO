@@ -74,7 +74,7 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf)
         data    = pybuf.ptr;
         xstride = format.size();
         size    = 1;
-        for (int i = pybuf.ndim - 1; i >= 0; --i) {
+        for (ssize_t i = pybuf.ndim - 1; i >= 0; --i) {
             if (pybuf.strides[i] != py::ssize_t(size * xstride)) {
                 // Just can't handle non-contiguous strides
                 format = TypeUnknown;
@@ -221,7 +221,7 @@ make_pyobject(const void* data, TypeDesc type, int nvalues,
         // Array of uint8 bytes
         // Have to make a copy of the data, because make_numpy_array will
         // take possession of it.
-        int n = type.arraylen * nvalues;
+        size_t n = type.arraylen * nvalues;
         if (n <= 0)
             return defaultvalue;
         uint8_t* ucdata(new uint8_t[n]);

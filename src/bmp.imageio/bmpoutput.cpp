@@ -148,7 +148,7 @@ BmpOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
 
     // Swap RGB pixels into BGR format
     if (m_spec.nchannels >= 3)
-        for (int i = 0, iend = m_buf.size() - 2; i < iend;
+        for (size_t i = 0, iend = m_buf.size() - 2; i < iend;
              i += m_spec.nchannels)
             std::swap(m_buf[i], m_buf[i + 2]);
 
@@ -202,7 +202,7 @@ BmpOutput::create_and_write_file_header(void)
     int64_t data_size  = m_padded_scanline_size * m_spec.height;
     int palettesize    = (m_spec.nchannels == 1) ? 4 * 256 : 0;
     int64_t file_size  = data_size + BMP_HEADER_SIZE + WINDOWS_V3 + palettesize;
-    m_bmp_header.fsize = file_size;
+    m_bmp_header.fsize = (int32_t)file_size;
     m_bmp_header.res1  = 0;
     m_bmp_header.res2  = 0;
     m_bmp_header.offset = BMP_HEADER_SIZE + WINDOWS_V3 + palettesize;

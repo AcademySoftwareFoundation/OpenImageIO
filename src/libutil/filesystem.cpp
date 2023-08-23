@@ -1016,7 +1016,7 @@ Filesystem::scan_for_matching_filenames(const std::string& pattern,
                                                  view_filenames))
                     continue;
 
-                for (int j = 0, f = view_numbers.size(); j < f; ++j) {
+                for (size_t j = 0, f = view_numbers.size(); j < f; ++j) {
                     matches.push_back(
                         std::make_pair(std::make_pair(view_numbers[j], view),
                                        view_filenames[j]));

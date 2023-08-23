@@ -204,7 +204,7 @@ HeifOutput::close()
         exifblob.insert(exifblob.begin(), head.begin(), head.end());
         try {
             m_ctx->add_exif_metadata(m_ihandle, exifblob.data(),
-                                     exifblob.size());
+                                     (int)exifblob.size());
         } catch (const heif::Error& err) {
 #ifdef DEBUG
             std::string e = err.get_message();

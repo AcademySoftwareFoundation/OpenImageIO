@@ -552,7 +552,7 @@ TGAInput::get_thumbnail(ImageBuf& thumb, int subimage)
         // load pixel data
         unsigned char pixel[4];
         unsigned char in[4];
-        for (int64_t y = thumbspec.height - 1; y >= 0; y--) {
+        for (int y = thumbspec.height - 1; y >= 0; y--) {
             char* img = (char*)thumb.pixeladdr(0, y);
             for (int64_t x = 0; x < thumbspec.width;
                  x++, img += m_spec.nchannels) {

@@ -160,8 +160,8 @@ DICOMInput::seek_subimage(int subimage, int miplevel)
             errorf("Unable to open DICOM file %s", m_filename);
             return false;
         }
-        m_framecount = m_img->getFrameCount();
-        m_firstframe = m_img->getFirstFrame();
+        m_framecount = (int)m_img->getFrameCount();
+        m_firstframe = (int)m_img->getFirstFrame();
     }
 
     if (subimage >= m_firstframe + m_framecount) {
@@ -226,7 +226,7 @@ DICOMInput::seek_subimage(int subimage, int miplevel)
         }
     }
 
-    m_spec = ImageSpec(m_img->getWidth(), m_img->getHeight(), nchannels,
+    m_spec = ImageSpec((int)m_img->getWidth(), (int)m_img->getHeight(), nchannels,
                        format);
 
     m_bitspersample = m_img->getDepth();
@@ -337,7 +337,7 @@ DICOMInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     memcpy(data, m_internal_data + y * size, size);
 
     // Handle non-full bit depths
-    int bits = m_spec.format.size() * 8;
+    int bits = (int)m_spec.format.size() * 8;
     if (bits != m_bitspersample) {
         size_t n = m_spec.width * m_spec.nchannels;
         if (m_spec.format == TypeDesc::UINT8) {

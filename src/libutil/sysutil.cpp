@@ -325,7 +325,7 @@ Sysutil::usleep(unsigned long useconds)
 #ifdef _WIN32
     Sleep(useconds / 1000);  // Win32 Sleep() is milliseconds, not micro
 #else
-    ::usleep(useconds);  // *nix usleep() is in microseconds
+    ::usleep((useconds_t)useconds);  // *nix usleep() is in microseconds
 #endif
 }
 

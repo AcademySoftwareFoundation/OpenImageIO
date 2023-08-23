@@ -400,7 +400,7 @@ print_info_subimage(std::ostream& out, Oiiotool& ot, int current_subimage,
             if (input)
                 input->seek_subimage(i, 0, spec);
             int bits = spec.get_int_attribute("oiio:BitsPerSample",
-                                              spec.format.size() * 8);
+                                              (int)spec.format.size() * 8);
             if (i)
                 s += ", ";
             if (spec.depth > 1)

@@ -86,7 +86,7 @@ inline char SwapBytes( char& value )
 
 
 template <typename T>
-void SwapBuffer(T *buf, unsigned int len)
+void SwapBuffer(T *buf, size_t len)
 {
 	for (unsigned int i = 0; i < len; i++)
 		SwapBytes(buf[i]);
@@ -94,7 +94,7 @@ void SwapBuffer(T *buf, unsigned int len)
 
 
 template <DataSize SIZE>
-void EndianSwapImageBuffer(void *data, int length)
+void EndianSwapImageBuffer(void *data, size_t length)
 {
 	switch (SIZE)
 	{
@@ -120,7 +120,7 @@ void EndianSwapImageBuffer(void *data, int length)
 }
 
 
-inline void EndianSwapImageBuffer(DataSize size, void *data, int length)
+inline void EndianSwapImageBuffer(DataSize size, void *data, size_t length)
 {
 	switch (size)
 	{

@@ -498,11 +498,11 @@ getattribute(string_view name, TypeDesc type, void* val)
     if (name == "missingcolor" && type.basetype == TypeDesc::FLOAT
         && oiio_missingcolor.size()) {
         // missingcolor as float array
-        int n  = type.basevalues();
-        int nm = std::min(int(oiio_missingcolor.size()), n);
-        for (int i = 0; i < nm; ++i)
+        size_t n  = type.basevalues();
+        size_t nm = std::min(oiio_missingcolor.size(), n);
+        for (size_t i = 0; i < nm; ++i)
             ((float*)val)[i] = oiio_missingcolor[i];
-        for (int i = nm; i < n; ++i)
+        for (size_t i = nm; i < n; ++i)
             ((float*)val)[i] = 0.0f;
         return true;
     }
@@ -824,7 +824,7 @@ parallel_convert_image(int nchannels, int width, int height, int depth,
 
     int blocksize = std::max(1, height / nthreads);
     parallel_for_chunked(0, height, blocksize, [=](int64_t ybegin, int64_t yend) {
-        convert_image(nchannels, width, yend - ybegin, depth,
+        convert_image(nchannels, width, (int)(yend - ybegin), depth,
                       (const char*)src + src_ystride * ybegin, src_type,
                       src_xstride, src_ystride, src_zstride,
                       (char*)dst + dst_ystride * ybegin, dst_type, dst_xstride,

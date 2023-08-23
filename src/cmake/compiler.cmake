@@ -148,9 +148,12 @@ if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_APPLECLANG)
         # Don't warn about using unknown preprocessor symbols in `#if`
         add_compile_options ("-Wno-expansion-to-defined")
     endif ()
-    if (CMAKE_GENERATOR MATCHES "Xcode")
-        add_compile_options ("-Wno-shorten-64-to-32")
-    endif ()
+#    if (CMAKE_GENERATOR MATCHES "Xcode")
+#        add_compile_options ("-Wno-shorten-64-to-32")
+#    endif ()
+    add_compile_options ("-Wshorten-64-to-32")
+    add_compile_options ("-Wsign-compare")
+
 endif ()
 
 if (CMAKE_COMPILER_IS_GNUCC AND NOT (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_APPLECLANG))

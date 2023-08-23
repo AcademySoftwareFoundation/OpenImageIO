@@ -369,10 +369,10 @@ OpenEXRCoreInput::open(const std::string& name, ImageSpec& newspec,
                 m->get_string());
         } else {
             // missingcolor as numeric array
-            int n = m->type().basevalues();
+            size_t n = m->type().basevalues();
             m_missingcolor.clear();
             m_missingcolor.reserve(n);
-            for (int i = 0; i < n; ++i)
+            for (size_t i = 0; i < n; ++i)
                 m_missingcolor[i] = m->get_float(i);
         }
     } else {
@@ -621,7 +621,7 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
 
         case EXR_ATTR_FLOAT: spec.attribute(oname, attr->f); break;
         case EXR_ATTR_FLOAT_VECTOR: {
-            TypeDesc fv(TypeDesc::FLOAT, (size_t)attr->floatvector->length);
+            TypeDesc fv(TypeDesc::FLOAT, (int)attr->floatvector->length);
             spec.attribute(oname, fv, attr->floatvector->arr);
 
             break;
@@ -685,7 +685,7 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
             std::vector<ustring> ustrvec(attr->stringvector->n_strings);
             for (int32_t i = 0, e = attr->stringvector->n_strings; i < e; ++i)
                 ustrvec[i] = attr->stringvector->strings[i].str;
-            TypeDesc sv(TypeDesc::STRING, ustrvec.size());
+            TypeDesc sv(TypeDesc::STRING, int(ustrvec.size()));
             spec.attribute(oname, sv, &ustrvec[0]);
             break;
         }
@@ -944,7 +944,7 @@ OpenEXRCoreInput::PartInfo::query_channels(OpenEXRCoreInput* in,
         spec.channelformats.push_back(cnh[c].datatype);
         spec.format = TypeDesc::basetype_merge(spec.format, cnh[c].datatype);
         pixeltype.push_back(cnh[c].exr_data_type);
-        chanbytes.push_back(cnh[c].datatype.size());
+        chanbytes.push_back((int)cnh[c].datatype.size());
         all_one_format &= (cnh[c].datatype == cnh[0].datatype);
         if (spec.alpha_channel < 0
             && (Strutil::iequals(cnh[c].suffix, "A")
@@ -1246,8 +1246,8 @@ OpenEXRCoreInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                             = decoder.channels[dc];
                         if (cname == curchan.channel_name) {
                             curchan.decode_to_ptr     = cdata + chanoffset;
-                            curchan.user_pixel_stride = pixelbytes;
-                            curchan.user_line_stride  = scanlinebytes;
+                            curchan.user_pixel_stride = (int32_t)pixelbytes;
+                            curchan.user_line_stride  = (int32_t)scanlinebytes;
                             chanoffset += chanbytes;
                             break;
                         }
@@ -1376,9 +1376,8 @@ OpenEXRCoreInput::read_native_tile(int subimage, int miplevel, int x, int y,
             exr_coding_channel_info_t& curchan = decoder.channels[dc];
             if (cname == curchan.channel_name) {
                 curchan.decode_to_ptr     = cdata + chanoffset;
-                curchan.user_pixel_stride = pixelbytes;
-                curchan.user_line_stride
-                    = scanlinebytes;  //curchan.width * pixelbytes;
+                curchan.user_pixel_stride = (int32_t)pixelbytes;
+                curchan.user_line_stride  = (int32_t)scanlinebytes;  //curchan.width * pixelbytes;
                 chanoffset += chanbytes;
 #if ENABLE_READ_DEBUG_PRINTS
                 std::cerr << " chan " << c << " tile " << tx << ", " << ty
@@ -1484,8 +1483,8 @@ OpenEXRCoreInput::read_native_tiles(int subimage, int miplevel, int xbegin,
     parallel_for_2D(
         0, nxtiles, 0, nytiles,
         [&](int64_t tx, int64_t ty) {
-            int curytile         = firstytile + ty;
-            int curxtile         = firstxtile + tx;
+            int curytile         = firstytile + (int)ty;
+            int curxtile         = firstxtile + (int)tx;
             uint8_t* tilesetdata = static_cast<uint8_t*>(data);
             tilesetdata += ty * tileh * scanlinebytes;
             exr_chunk_info_t cinfo;
@@ -1510,8 +1509,8 @@ OpenEXRCoreInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                             = decoder.channels[dc];
                         if (cname == curchan.channel_name) {
                             curchan.decode_to_ptr = curtilestart + chanoffset;
-                            curchan.user_pixel_stride = pixelbytes;
-                            curchan.user_line_stride  = scanlinebytes;
+                            curchan.user_pixel_stride = (int32_t)pixelbytes;
+                            curchan.user_line_stride  = (int32_t)scanlinebytes;
                             chanoffset += chanbytes;
                             break;
                         }
@@ -1523,10 +1522,10 @@ OpenEXRCoreInput::read_native_tiles(int subimage, int miplevel, int xbegin,
             if (rv == EXR_ERR_SUCCESS)
                 rv = exr_decoding_run(m_exr_context, subimage, &decoder);
             if (rv != EXR_ERR_SUCCESS
-                && !check_fill_missing(xbegin + tx * tilew,
-                                       xbegin + (tx + 1) * tilew,
-                                       ybegin + ty * tileh,
-                                       ybegin + (ty + 1) * tileh, zbegin, zend,
+                && !check_fill_missing(xbegin + (int)tx * tilew,
+                                       xbegin + (int)(tx + 1) * tilew,
+                                       ybegin + (int)ty * tileh,
+                                       ybegin + (int)(ty + 1) * tileh, zbegin, zend,
                                        chbegin, chend, curtilestart, pixelbytes,
                                        scanlinebytes)) {
                 ok = false;
@@ -1648,9 +1647,8 @@ realloc_deepdata(exr_decode_pipeline_t* decode)
                 curchan.decode_to_ptr = reinterpret_cast<uint8_t*>(
                     cdata + chanoffset);
                 curchan.user_bytes_per_element = ud->deepdata->samplesize();
-                curchan.user_pixel_stride      = size_t(chans) * sizeof(void*);
-                curchan.user_line_stride       = (size_t(w) * size_t(chans)
-                                            * sizeof(void*));
+                curchan.user_pixel_stride      = (int32_t)(chans * sizeof(void*));
+                curchan.user_line_stride       = (int32_t)(w * chans * sizeof(void*));
                 chanoffset += 1;
                 break;
             }
@@ -1725,7 +1723,7 @@ OpenEXRCoreInput::read_native_deep_scanlines(int subimage, int miplevel,
                 // Note: the decoder will be destroyed by dd exiting scope
                 exr_result_t rv = EXR_ERR_SUCCESS;
                 bool first      = true;
-                for (int y = yb; y < ye; ++y) {
+                for (int y = (int)yb; y < ye; ++y) {
                     rv = exr_read_scanline_chunk_info(m_exr_context, subimage,
                                                       y, &cinfo);
                     if (rv != EXR_ERR_SUCCESS)
@@ -1778,7 +1776,7 @@ OpenEXRCoreInput::read_native_deep_scanlines(int subimage, int miplevel,
             exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;
             DecoderDestroyer dd(m_exr_context, &decoder);
             exr_result_t rv = EXR_ERR_SUCCESS;
-            for (int y = yb; y < ye; ++y) {
+            for (int y = (int)yb; y < ye; ++y) {
                 myud.cury = y - ybegin;
                 exr_chunk_info_t cinfo;
                 rv = exr_read_scanline_chunk_info(m_exr_context, subimage, y,
@@ -1903,7 +1901,7 @@ OpenEXRCoreInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
                 // Note: the decoder will be destroyed by dd exiting scope
                 exr_result_t rv
                     = exr_read_tile_chunk_info(m_exr_context, subimage,
-                                               firstxtile + tx, firstytile + ty,
+                                               firstxtile + (int)tx, firstytile + (int)ty,
                                                miplevel, miplevel, &cinfo);
                 if (rv == EXR_ERR_SUCCESS)
                     rv = exr_decoding_initialize(m_exr_context, subimage,
@@ -1921,13 +1919,13 @@ OpenEXRCoreInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
                 } else {
                     uint32_t* allsampdata = all_samples.data()
                                             + ty * width * tileh;
-                    int sw = tilew;
+                    size_t sw = tilew;
                     if ((size_t(tx) * size_t(tilew) + size_t(tilew)) > width)
                         sw = width - (tx * tilew);
-                    int nlines = tileh;
+                    size_t nlines = tileh;
                     if ((size_t(ty) * size_t(tileh) + size_t(tileh)) > height)
                         nlines = height - (ty * tileh);
-                    for (int y = 0; y < nlines; ++y) {
+                    for (size_t y = 0; y < nlines; ++y) {
                         memcpy(allsampdata + y * ud.fullwidth + tx * tilew,
                                decoder.sample_count_table + y * sw,
                                sw * sizeof(uint32_t));
@@ -1945,15 +1943,15 @@ OpenEXRCoreInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
         0, nxtiles, 0, nytiles,
         [&](int64_t tx, int64_t ty) {
             auto myud = ud;
-            myud.xoff = tx * tilew;
-            myud.cury = ty * tileh;
+            myud.xoff = (int)tx * tilew;
+            myud.cury = (int)ty * tileh;
             exr_chunk_info_t cinfo;
             exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;
             DecoderDestroyer dd(m_exr_context, &decoder);
             // Note: the decoder will be destroyed by dd exiting scope
             exr_result_t rv
                 = exr_read_tile_chunk_info(m_exr_context, subimage,
-                                           firstxtile + tx, firstytile + ty,
+                                           firstxtile + (int)tx, firstytile + (int)ty,
                                            miplevel, miplevel, &cinfo);
             if (rv == EXR_ERR_SUCCESS)
                 rv = exr_decoding_initialize(m_exr_context, subimage, &cinfo,

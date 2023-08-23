@@ -234,7 +234,7 @@ ImageSpec::pixel_bytes(bool native) const noexcept
     if (nchannels < 0)
         return 0;
     if (!native || channelformats.empty())
-        return clamped_mult32((size_t)nchannels, channel_bytes());
+        return clamped_mult32((uint32_t)nchannels, (uint32_t)channel_bytes());
     else {
         size_t sum = 0;
         for (int i = 0; i < nchannels; ++i)
@@ -252,7 +252,7 @@ ImageSpec::pixel_bytes(int chbegin, int chend, bool native) const noexcept
         return 0;
     chend = std::max(chend, chbegin);
     if (!native || channelformats.empty())
-        return clamped_mult32((size_t)(chend - chbegin), channel_bytes());
+        return clamped_mult32((uint32_t)(chend - chbegin), (uint32_t)channel_bytes());
     else {
         size_t sum = 0;
         for (int i = chbegin; i < chend; ++i)

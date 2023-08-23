@@ -21,7 +21,7 @@ static std::string
 test_numeric(T* data, int num_elements, TypeDesc type)
 {
     ParamValue p("name", type, num_elements, data);
-    int n = type.numelements() * num_elements;
+    int n = (int)type.numelements() * num_elements;
     for (int i = 0; i < n; ++i)
         OIIO_CHECK_EQUAL(p.get<T>(i), ((const T*)data)[i]);
     if (std::numeric_limits<T>::is_integer) {

@@ -225,7 +225,7 @@ ICOOutput::open(const std::string& name, const ImageSpec& userspec,
         // need to move stuff around to make room for another subimage header
         int subimage = ico.count++;
         fseek(m_file, 0, SEEK_END);
-        int len = ftell(m_file);
+        long len = ftell(m_file);
         unsigned char buf[512];
         // append null data at the end of file so that we don't seek beyond eof
         if (!fwrite(buf, sizeof(ico_subimage))) {
@@ -234,8 +234,8 @@ ICOOutput::open(const std::string& name, const ImageSpec& userspec,
 
         // do the actual moving, 0.5kB per iteration
         int skip = sizeof(ico_header) + sizeof(ico_subimage) * (subimage - 1);
-        for (int left = len - skip; left > 0; left -= sizeof(buf)) {
-            int amount = std::min(left, (int)sizeof(buf));
+        for (long left = len - skip; left > 0; left -= sizeof(buf)) {
+            long amount = std::min(left, (long)sizeof(buf));
             /*std::cerr << "[ico] moving " << amount << " bytes (" << left
                       << " vs " << sizeof (buf) << ")\n";*/
             fseek(m_file, skip + left - amount, SEEK_SET);
@@ -284,7 +284,7 @@ ICOOutput::open(const std::string& name, const ImageSpec& userspec,
         }
 
         // offset at which we'll be writing new image data
-        m_offset = len + sizeof(ico_subimage);
+        m_offset = (int)(len + sizeof(ico_subimage));
 
         // next part of code expects the file pointer to be where the new
         // subimage header is to be written

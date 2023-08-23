@@ -182,27 +182,27 @@ tiff_datatype_to_typedesc(TIFFDataType tifftype, size_t tiffcount)
         tiffcount = 0;  // length 1 == not an array
     switch (tifftype) {
     case TIFF_NOTYPE: return TypeUnknown;
-    case TIFF_BYTE: return TypeDesc(TypeDesc::UINT8, tiffcount);
+    case TIFF_BYTE: return TypeDesc(TypeDesc::UINT8, int(tiffcount));
     case TIFF_ASCII: return TypeString;
-    case TIFF_SHORT: return TypeDesc(TypeDesc::UINT16, tiffcount);
-    case TIFF_LONG: return TypeDesc(TypeDesc::UINT32, tiffcount);
+    case TIFF_SHORT: return TypeDesc(TypeDesc::UINT16, int(tiffcount));
+    case TIFF_LONG: return TypeDesc(TypeDesc::UINT32, int(tiffcount));
     case TIFF_RATIONAL:
         return TypeDesc(TypeDesc::INT32, TypeDesc::VEC2, TypeDesc::RATIONAL,
-                        tiffcount);
-    case TIFF_SBYTE: return TypeDesc(TypeDesc::INT8, tiffcount);
+                        int(tiffcount));
+    case TIFF_SBYTE: return TypeDesc(TypeDesc::INT8, int(tiffcount));
     case TIFF_UNDEFINED:
-        return TypeDesc(TypeDesc::UINT8, tiffcount);  // 8-bit untyped data
-    case TIFF_SSHORT: return TypeDesc(TypeDesc::INT16, tiffcount);
-    case TIFF_SLONG: return TypeDesc(TypeDesc::INT32, tiffcount);
+        return TypeDesc(TypeDesc::UINT8, int(tiffcount));  // 8-bit untyped data
+    case TIFF_SSHORT: return TypeDesc(TypeDesc::INT16, int(tiffcount));
+    case TIFF_SLONG: return TypeDesc(TypeDesc::INT32, int(tiffcount));
     case TIFF_SRATIONAL:
         return TypeDesc(TypeDesc::INT32, TypeDesc::VEC2, TypeDesc::RATIONAL,
-                        tiffcount);
-    case TIFF_FLOAT: return TypeDesc(TypeDesc::FLOAT, tiffcount);
-    case TIFF_DOUBLE: return TypeDesc(TypeDesc::DOUBLE, tiffcount);
+                        int(tiffcount));
+    case TIFF_FLOAT: return TypeDesc(TypeDesc::FLOAT, int(tiffcount));
+    case TIFF_DOUBLE: return TypeDesc(TypeDesc::DOUBLE, int(tiffcount));
     case TIFF_IFD: return TypeUnknown;
 #ifdef TIFF_VERSION_BIG
-    case TIFF_LONG8: return TypeDesc(TypeDesc::UINT64, tiffcount);
-    case TIFF_SLONG8: return TypeDesc(TypeDesc::INT64, tiffcount);
+    case TIFF_LONG8: return TypeDesc(TypeDesc::UINT64, int(tiffcount));
+    case TIFF_SLONG8: return TypeDesc(TypeDesc::INT64, int(tiffcount));
     case TIFF_IFD8: return TypeUnknown;
 #endif
     }
@@ -704,7 +704,7 @@ add_exif_item_to_spec(ImageSpec& spec, const char* name,
         return;
     }
     if (dirp->tdir_type == TIFF_ASCII) {
-        int len         = tiff_data_size(*dirp);
+        size_t len         = tiff_data_size(*dirp);
         const char* ptr = (const char*)dataptr;
         while (len && ptr[len - 1] == 0)  // Don't grab the terminating null
             --len;
@@ -961,7 +961,7 @@ encode_exif_entry(const ParamValue& p, int tag, std::vector<TIFFDirEntry>& dirs,
         if (p.type() == TypeDesc::STRING) {
             ustring s = *(const ustring*)p.data();
             if (s.size()) {
-                int len = size_t(s.size()) + 1;
+                size_t len = size_t(s.size()) + 1;
                 append_tiff_dir_entry(dirs, data, tag, type, len, s.data(),
                                       offset_correction, 0, endianreq);
             }
@@ -1058,7 +1058,7 @@ pvt::append_tiff_dir_entry(std::vector<TIFFDirEntry>& dirs,
     TIFFDirEntry dir;
     dir.tdir_tag        = tag;
     dir.tdir_type       = type;
-    dir.tdir_count      = count;
+    dir.tdir_count      = (uint32_t)count;
     size_t len          = tiff_data_size(dir);
     char* ptr           = nullptr;
     bool data_in_offset = false;
@@ -1073,7 +1073,7 @@ pvt::append_tiff_dir_entry(std::vector<TIFFDirEntry>& dirs,
         if (mydata) {
             // Add to the data vector and use its offset
             size_t oldsize  = data.size();
-            dir.tdir_offset = data.size() - offset_correction;
+            dir.tdir_offset = (uint32_t)(data.size() - offset_correction);
             data.insert(data.end(), (char*)mydata, (char*)mydata + len);
             ptr = &data[oldsize];
         } else {
@@ -1469,7 +1469,7 @@ encode_exif(const ImageSpec& spec, std::vector<char>& blob,
     // Now go back and patch the header with the offset of the first TIFF
     // directory. Some hoop jumping is necessary to avoid triggering ubsan
     // by having an unaligned acces.
-    uint32_t diroff = tiffdirstart - tiffstart;
+    size_t diroff = tiffdirstart - tiffstart;
     if (endianreq != endian::native)
         swap_endian(&diroff);
     memcpy(blob.data() + tiffstart + offsetof(TIFFHeader, tiff_diroff), &diroff,

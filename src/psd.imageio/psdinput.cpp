@@ -590,7 +590,7 @@ PSDInput::open(const std::string& name, ImageSpec& newspec)
     }
 
     // Layer count + 1 for merged composite (Image Data Section)
-    m_subimage_count = m_layers.size() + 1;
+    m_subimage_count = (int)m_layers.size() + 1;
     // Set m_type_desc to the appropriate TypeDesc
     set_type_desc();
     // Setup ImageSpecs and m_channels

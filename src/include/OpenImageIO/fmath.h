@@ -838,7 +838,7 @@ OIIO_FORCEINLINE OIIO_HOSTDEVICE float bitcast_to_float (int x) {
 /// unsigned int, float, long long, pointers.
 template<class T>
 inline OIIO_HOSTDEVICE void
-swap_endian (T *f, int len=1)
+swap_endian (T *f, size_t len=1)
 {
     for (char *c = (char *) f;  len--;  c += sizeof(T)) {
         if (sizeof(T) == 2) {
@@ -859,74 +859,74 @@ swap_endian (T *f, int len=1)
 #if (OIIO_GNUC_VERSION || OIIO_ANY_CLANG || OIIO_INTEL_CLASSIC_COMPILER_VERSION) && !defined(__CUDACC__)
 // CPU gcc and compatible can use these intrinsics, 8-15x faster
 
-template<> inline void swap_endian(uint16_t* f, int len) {
-    for (int i = 0; i < len; ++i)
+template<> inline void swap_endian(uint16_t* f, size_t len) {
+    for (size_t i = 0; i < len; ++i)
         f[i] = __builtin_bswap16(f[i]);
 }
 
-template<> inline void swap_endian(uint32_t* f, int len) {
-    for (int i = 0; i < len; ++i)
+template<> inline void swap_endian(uint32_t* f, size_t len) {
+    for (size_t i = 0; i < len; ++i)
         f[i] = __builtin_bswap32(f[i]);
 }
 
-template<> inline void swap_endian(uint64_t* f, int len) {
-    for (int i = 0; i < len; ++i)
+template<> inline void swap_endian(uint64_t* f, size_t len) {
+    for (size_t i = 0; i < len; ++i)
         f[i] = __builtin_bswap64(f[i]);
 }
 
-template<> inline void swap_endian(int16_t* f, int len) {
-    for (int i = 0; i < len; ++i)
+template<> inline void swap_endian(int16_t* f, size_t len) {
+    for (size_t i = 0; i < len; ++i)
         f[i] = __builtin_bswap16(f[i]);
 }
 
-template<> inline void swap_endian(int32_t* f, int len) {
-    for (int i = 0; i < len; ++i)
+template<> inline void swap_endian(int32_t* f, size_t len) {
+    for (size_t i = 0; i < len; ++i)
         f[i] = __builtin_bswap32(f[i]);
 }
 
-template<> inline void swap_endian(int64_t* f, int len) {
-    for (int i = 0; i < len; ++i)
+template<> inline void swap_endian(int64_t* f, size_t len) {
+    for (size_t i = 0; i < len; ++i)
         f[i] = __builtin_bswap64(f[i]);
 }
 
-template<> inline void swap_endian(float* f, int len) {
+template<> inline void swap_endian(float* f, size_t len) {
     swap_endian((uint32_t*)f, len);
 }
 
-template<> inline void swap_endian(double* f, int len) {
+template<> inline void swap_endian(double* f, size_t len) {
     swap_endian((uint64_t*)f, len);
 }
 
 #elif defined(_MSC_VER) && !defined(__CUDACC__)
 // CPU MSVS can use these intrinsics
 
-template<> inline void swap_endian(uint16_t* f, int len) {
-    for (int i = 0; i < len; ++i)
+template<> inline void swap_endian(uint16_t* f, size_t len) {
+    for (size_t i = 0; i < len; ++i)
         f[i] = _byteswap_ushort(f[i]);
 }
 
-template<> inline void swap_endian(uint32_t* f, int len) {
-    for (int i = 0; i < len; ++i)
+template<> inline void swap_endian(uint32_t* f, size_t len) {
+    for (size_t i = 0; i < len; ++i)
         f[i] = _byteswap_ulong(f[i]);
 }
 
-template<> inline void swap_endian(uint64_t* f, int len) {
-    for (int i = 0; i < len; ++i)
+template<> inline void swap_endian(uint64_t* f, size_t len) {
+    for (size_t i = 0; i < len; ++i)
         f[i] = _byteswap_uint64(f[i]);
 }
 
-template<> inline void swap_endian(int16_t* f, int len) {
-    for (int i = 0; i < len; ++i)
+template<> inline void swap_endian(int16_t* f, size_t len) {
+    for (size_t i = 0; i < len; ++i)
         f[i] = _byteswap_ushort(f[i]);
 }
 
-template<> inline void swap_endian(int32_t* f, int len) {
-    for (int i = 0; i < len; ++i)
+template<> inline void swap_endian(int32_t* f, size_t len) {
+    for (size_t i = 0; i < len; ++i)
         f[i] = _byteswap_ulong(f[i]);
 }
 
-template<> inline void swap_endian(int64_t* f, int len) {
-    for (int i = 0; i < len; ++i)
+template<> inline void swap_endian(int64_t* f, size_t len) {
+    for (size_t i = 0; i < len; ++i)
         f[i] = _byteswap_uint64(f[i]);
 }
 #endif

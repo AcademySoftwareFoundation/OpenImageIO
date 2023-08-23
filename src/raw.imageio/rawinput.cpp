@@ -165,7 +165,7 @@ private:
              bool force = true, int ignval = 0)
     {
         if (force || !allval(data, ignval)) {
-            int size = data.size() > 1 ? data.size() : 0;
+            int size = data.size() > 1 ? int(data.size()) : 0;
             m_spec.attribute(prefixedname(prefix, name),
                              TypeDesc(TypeDesc::INT, size), data.data());
         }
@@ -174,7 +174,7 @@ private:
              bool force = true, short ignval = 0)
     {
         if (force || !allval(data, ignval)) {
-            int size = data.size() > 1 ? data.size() : 0;
+            int size = data.size() > 1 ? int(data.size()) : 0;
             m_spec.attribute(prefixedname(prefix, name),
                              TypeDesc(TypeDesc::INT16, size), data.data());
         }
@@ -183,7 +183,7 @@ private:
              bool force = true, unsigned short ignval = 0)
     {
         if (force || !allval(data, ignval)) {
-            int size = data.size() > 1 ? data.size() : 0;
+            int size = data.size() > 1 ? int(data.size()) : 0;
             m_spec.attribute(prefixedname(prefix, name),
                              TypeDesc(TypeDesc::UINT16, size), data.data());
         }
@@ -192,7 +192,7 @@ private:
              bool force = true, unsigned char ignval = 0)
     {
         if (force || !allval(data, ignval)) {
-            int size = data.size() > 1 ? data.size() : 0;
+            int size = data.size() > 1 ? int(data.size()) : 0;
             m_spec.attribute(prefixedname(prefix, name),
                              TypeDesc(TypeDesc::UINT8, size), data.data());
         }
@@ -201,7 +201,7 @@ private:
              bool force = true, float ignval = 0)
     {
         if (force || !allval(data, ignval)) {
-            int size = data.size() > 1 ? data.size() : 0;
+            int size = data.size() > 1 ? int(data.size()) : 0;
             m_spec.attribute(prefixedname(prefix, name),
                              TypeDesc(TypeDesc::FLOAT, size), data.data());
         }
@@ -638,7 +638,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
                 "Mixed", "LMMSE", "AMaZE", "DHT", "AAHD",
                 // Future demosaicing algorithms should go here
                 NULL };
-        size_t d;
+        int d;
         for (d = 0; demosaic_algs[d]; d++)
             if (Strutil::iequals(demosaic, demosaic_algs[d]))
                 break;

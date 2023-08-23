@@ -176,7 +176,7 @@ TypeDesc::c_str() const
         return ustring("keycode").c_str();
     }
 
-    int alen = arraylen;
+    size_t alen = arraylen;
     std::string result;
     if (aggregate == SCALAR)
         result = basetype_name[basetype];
@@ -783,8 +783,8 @@ convert_type(TypeDesc srctype, const void* src, TypeDesc dsttype, void* dst,
 {
     if (n > 1) {
         // Handle multiple values by turning into or expanding array length
-        srctype.arraylen = srctype.numelements() * n;
-        dsttype.arraylen = dsttype.numelements() * n;
+        srctype.arraylen = (int)srctype.numelements() * n;
+        dsttype.arraylen = (int)dsttype.numelements() * n;
     }
 
     if (srctype.basetype == dsttype.basetype

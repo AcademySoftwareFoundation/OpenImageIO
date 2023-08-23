@@ -145,10 +145,10 @@ WebpOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
             ImageBufAlgo::unpremult(bufwrap, bufwrap);
             ImageBufAlgo::pow(bufwrap, bufwrap, 1.0f / 2.2f, rgbroi);
             WebPPictureImportRGBA(&m_webp_picture, &m_uncompressed_image[0],
-                                  m_scanline_size);
+                                  (int)m_scanline_size);
         } else {
             WebPPictureImportRGB(&m_webp_picture, &m_uncompressed_image[0],
-                                 m_scanline_size);
+                                 (int)m_scanline_size);
         }
         if (!WebPEncode(&m_webp_config, &m_webp_picture)) {
             errorfmt("Failed to encode {} as WebP image", m_filename);

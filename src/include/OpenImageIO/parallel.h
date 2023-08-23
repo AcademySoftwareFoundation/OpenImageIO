@@ -144,8 +144,8 @@ public:
         return *this;
     }
 
-    constexpr int minitems() const noexcept { return m_minitems; }
-    paropt& minitems(int m) noexcept
+    constexpr size_t minitems() const noexcept { return m_minitems; }
+    paropt& minitems(size_t m) noexcept
     {
         m_minitems = m;
         return *this;

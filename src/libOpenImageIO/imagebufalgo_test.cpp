@@ -112,7 +112,7 @@ static ImageBuf
 filled_image(cspan<float> value, int width = 4, int height = 4,
              TypeDesc dtype = TypeDesc::FLOAT)
 {
-    ImageSpec spec(width, height, std::ssize(value), dtype);
+    ImageSpec spec(width, height, (int)std::ssize(value), dtype);
     return filled_image(value, spec);
 }
 

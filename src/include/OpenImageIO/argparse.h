@@ -669,7 +669,7 @@ public:
             ParamValueList& pl(arg.argparse().params());
             ParamValue* pv = pl.find_pv(arg.dest());
             // TypeDesc t = pv ? pv->type() : TypeUnknown;
-            int nold = pv ? pv->type().basevalues() : 0;
+            int nold = pv ? int(pv->type().basevalues()) : 0;
             int nnew = int(myarg.size());
             int n    = nold + nnew;
             T* vals  = OIIO_ALLOCA(T, n);

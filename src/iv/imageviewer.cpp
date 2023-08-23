@@ -674,7 +674,7 @@ ImageViewer::open()
     openPath          = dialog.directory().path();
     QStringList names = dialog.selectedFiles();
 
-    int old_lastimage = m_images.size() - 1;
+    int old_lastimage = (int)m_images.size() - 1;
     for (auto& name : names) {
         std::string filename = name.toUtf8().data();
         if (filename.empty())
@@ -703,7 +703,7 @@ ImageViewer::openRecentFile()
         // (and reload) rather than loading a second copy.
         for (size_t i = 0; i < m_images.size(); ++i) {
             if (m_images[i]->name() == filename) {
-                current_image(i);
+                current_image((int)i);
                 reload();
                 return;
             }
@@ -712,7 +712,7 @@ ImageViewer::openRecentFile()
         add_image(filename);
         if (m_images.size() > 1) {
             // Otherwise, add_image already did this for us.
-            current_image(m_images.size() - 1);
+            current_image((int)m_images.size() - 1);
             fitWindowToImage(true, true);
         }
     }
@@ -1370,7 +1370,7 @@ ImageViewer::slideShow()
 {
     fullScreenToggle();
     connect(slideTimer, SIGNAL(timeout()), this, SLOT(slideImages()));
-    slideTimer->start(slideDuration_ms);
+    slideTimer->start((int)slideDuration_ms);
     updateActions();
 }
 
@@ -1413,7 +1413,7 @@ compName(IvImage* first, IvImage* second)
 void
 ImageViewer::sortByName()
 {
-    int numImg = m_images.size();
+    size_t numImg = m_images.size();
     if (numImg < 2)
         return;
     std::sort(m_images.begin(), m_images.end(), &compName);
@@ -1437,7 +1437,7 @@ compPath(IvImage* first, IvImage* second)
 void
 ImageViewer::sortByPath()
 {
-    int numImg = m_images.size();
+    size_t numImg = m_images.size();
     if (numImg < 2)
         return;
     std::sort(m_images.begin(), m_images.end(), &compPath);
@@ -1513,7 +1513,7 @@ compImageDate(IvImage* first, IvImage* second)
 void
 ImageViewer::sortByImageDate()
 {
-    int numImg = m_images.size();
+    size_t numImg = m_images.size();
     if (numImg < 2)
         return;
     std::sort(m_images.begin(), m_images.end(), &compImageDate);
@@ -1546,7 +1546,7 @@ compFileDate(IvImage* first, IvImage* second)
 void
 ImageViewer::sortByFileDate()
 {
-    int numImg = m_images.size();
+    size_t numImg = m_images.size();
     if (numImg < 2)
         return;
     std::sort(m_images.begin(), m_images.end(), &compFileDate);
@@ -1560,7 +1560,7 @@ ImageViewer::sortByFileDate()
 void
 ImageViewer::sortReverse()
 {
-    int numImg = m_images.size();
+    size_t numImg = m_images.size();
     if (numImg < 2)
         return;
     std::reverse(m_images.begin(), m_images.end());

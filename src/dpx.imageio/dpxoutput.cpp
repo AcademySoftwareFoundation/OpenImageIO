@@ -483,7 +483,7 @@ DPXOutput::prep_subimage(int s, bool allocate)
     }
 
     // calculate target bit depth
-    m_bitdepth = spec_s.format.size() * 8;
+    m_bitdepth = (int)spec_s.format.size() * 8;
     if (spec_s.format == TypeDesc::UINT16) {
         m_bitdepth = spec_s.get_int_attribute("oiio:BitsPerSample", 16);
         if (m_bitdepth != 10 && m_bitdepth != 12 && m_bitdepth != 16) {

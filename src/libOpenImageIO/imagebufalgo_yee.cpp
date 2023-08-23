@@ -333,7 +333,7 @@ ImageBufAlgo::compare_Yee(const ImageBuf& img0, const ImageBuf& img1,
         }
     }
 
-    return result.nfail;
+    return (int)result.nfail;
 }
 
 

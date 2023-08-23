@@ -138,7 +138,7 @@ computePixelStats_(const ImageBuf& src, ImageBufAlgo::PixelStats& stats,
     if (src.deep()) {
         parallel_for_chunked(roi.ybegin, roi.yend, 64,
                              [&](int64_t ybegin, int64_t yend) {
-            ROI subroi(roi.xbegin, roi.xend, ybegin, yend, roi.zbegin,
+            ROI subroi(roi.xbegin, roi.xend, (int)ybegin, (int)yend, roi.zbegin,
                        roi.zend, roi.chbegin, roi.chend);
             ImageBufAlgo::PixelStats tmp(nchannels);
             for (ImageBuf::ConstIterator<T> s(src, subroi); !s.done();
@@ -160,7 +160,7 @@ computePixelStats_(const ImageBuf& src, ImageBufAlgo::PixelStats& stats,
     } else {  // Non-deep case
         parallel_for_chunked(roi.ybegin, roi.yend, 64,
                              [&](int64_t ybegin, int64_t yend) {
-            ROI subroi(roi.xbegin, roi.xend, ybegin, yend, roi.zbegin,
+            ROI subroi(roi.xbegin, roi.xend, (int)ybegin, (int)yend, roi.zbegin,
                        roi.zend, roi.chbegin, roi.chend);
             ImageBufAlgo::PixelStats tmp(nchannels);
             for (ImageBuf::ConstIterator<T> s(src, subroi); !s.done();
@@ -895,8 +895,8 @@ ImageBufAlgo::computePixelHashSHA1(const ImageBuf& src, string_view extrainfo,
                          [&](int64_t ybegin, int64_t yend) {
         int64_t b   = (ybegin - src.ybegin()) / blocksize;  // block number
         ROI broi    = roi;
-        broi.ybegin = ybegin;
-        broi.yend   = yend;
+        broi.ybegin = (int)ybegin;
+        broi.yend   = (int)yend;
         results[b]  = simplePixelHashSHA1(src, "", broi);
     }, nthreads);
     // clang-format on
@@ -1106,7 +1106,7 @@ ImageBufAlgo::histogram_draw(ImageBuf& R,
 {
     pvt::LoggedTimer logtimer("IBA::histogram_draw");
     // Fail if there are no bins to draw.
-    int bins = histogram.size();
+    int bins = (int)histogram.size();
     if (bins == 0) {
         R.errorfmt("There are no bins to draw, the histogram is empty");
         return false;

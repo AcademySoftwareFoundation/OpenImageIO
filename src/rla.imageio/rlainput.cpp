@@ -512,9 +512,9 @@ RLAInput::decode_channel_group(int first_channel, short num_channels,
                                short num_bits, int y)
 {
     // Some preliminaries -- figure out various sizes and offsets
-    int chsize;         // size of the channels in this group, in bytes
-    int offset;         // buffer offset to first channel
-    int pixelsize;      // spacing between pixels (in bytes) in the output
+    size_t chsize;         // size of the channels in this group, in bytes
+    size_t offset;         // buffer offset to first channel
+    size_t pixelsize;      // spacing between pixels (in bytes) in the output
     TypeDesc chantype;  // data type for the channel
     if (!m_spec.channelformats.size()) {
         // No per-channel formats, they are all the same, so it's easy
@@ -571,9 +571,9 @@ RLAInput::decode_channel_group(int first_channel, short num_channels,
         // which we re-interleave properly by passing the right offsets
         // and strides to decode_rle_span.
         size_t eoffset = 0;
-        for (int bytes = 0; bytes < chsize && length > 0; ++bytes) {
+        for (size_t bytes = 0; bytes < chsize && length > 0; ++bytes) {
             size_t e = decode_rle_span(&m_buf[offset + c * chsize + bytes],
-                                       m_spec.width, pixelsize,
+                                       m_spec.width, (int)pixelsize,
                                        &encoded[eoffset], length);
             if (!e)
                 return false;

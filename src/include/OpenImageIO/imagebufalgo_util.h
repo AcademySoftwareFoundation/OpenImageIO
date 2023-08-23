@@ -74,7 +74,7 @@ parallel_image(ROI roi, paropt opt, std::function<void(ROI)> f)
 
     auto task = [&](int64_t xbegin, int64_t xend, int64_t ybegin,
                     int64_t yend) {
-        f(ROI(xbegin, xend, ybegin, yend, roi.zbegin, roi.zend, roi.chbegin,
+        f(ROI((int)xbegin, (int)xend, (int)ybegin, (int)yend, roi.zbegin, roi.zend, roi.chbegin,
               roi.chend));
     };
     parallel_for_chunked_2D(roi.xbegin, roi.xend, xchunk, roi.ybegin, roi.yend,

@@ -48,7 +48,7 @@ public:
     bool read_native_scanline(int subimage, int miplevel, int y, int z,
                               void* data) override;
     bool close() override;
-    int current_subimage(void) const override { return m_subimage; }
+    int current_subimage(void) const override { return (int)m_subimage; }
     bool seek_subimage(int subimage, int miplevel) override;
 
 private:
@@ -488,7 +488,7 @@ HdrInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     if (m_next_scanline != y) {
         // For random access, use cached file offsets of scanlines. This avoids
         // re-reading the same pixels many times over.
-        m_next_scanline = std::min((size_t)y, m_scanline_offsets.size() - 1);
+        m_next_scanline = std::min(y, (int)m_scanline_offsets.size() - 1);
         ioseek(m_scanline_offsets[m_next_scanline]);
     }
 
