@@ -27,9 +27,9 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * libjpeg >= 8, or libjpeg-turbo >= 1.1 (tested through jpeg9d and jpeg-turbo
    2.1)
  * Boost >= 1.53 (recommended: at least 1.66; tested through 1.81)
- * [fmtlib](https://github.com/fmtlib/fmt) >= 6.1.2 (tested through 10.0). If
-   not found at build time, this will be automatically downloaded unless the
-   build sets `-DBUILD_MISSING_FMT=OFF`.
+ * **[fmtlib](https://github.com/fmtlib/fmt) >= 7.0** (tested through 10.1).
+   If not found at build time, this will be automatically downloaded unless
+   the build sets `-DBUILD_MISSING_FMT=OFF`.
 
 ### Optional dependencies -- features may be disabled if not found
  * If you are building the `iv` viewer (which will be disabled if any of

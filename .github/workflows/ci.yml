@@ -39,7 +39,7 @@ jobs:
             openexr_ver: v2.4.3
             python_ver: 2.7
             simd: sse4.2
-            fmt_ver: 6.1.2
+            fmt_ver: 7.0.1
             pybind11_ver: v2.4.2
             setenvs: export PUGIXML_VERSION=v1.9 CMAKE_VERSION=3.15.5
           - desc: gcc6/C++14 py3.7 boost1.70 exr2.4 ocio1.1
@@ -96,7 +96,7 @@ jobs:
             cxx_std: 17
             python_ver: 3.9
             simd: "avx2,f16c"
-            fmt_ver: 8.1.1
+            fmt_ver: 9.1.0
             pybind11_ver: v2.8.1
           - desc: icc/C++17 py3.9 boost1.76 exr3.1 ocio2.1 qt5.15
             nametag: linux-vfx2022-icc
@@ -147,7 +147,7 @@ jobs:
             cxx_std: 17
             python_ver: "3.10"
             simd: "avx2,f16c"
-            fmt_ver: 9.1.0
+            fmt_ver: 10.1.1
             pybind11_ver: v2.10.0
           - desc: oldest/hobbled gcc6.3/C++14 py2.7 boost-1.66 exr-2.4 no-sse no-ocio
             # Oldest versions of the dependencies that we can muster, and various
@@ -157,7 +157,7 @@ jobs:
             container: aswf/ci-osl:2019
             vfxyear: 2019
             cxx_std: 14
-            fmt_ver: 6.1.2
+            fmt_ver: 7.0.1
             openexr_ver: v2.4.0
             pybind11_ver: v2.4.2
             python_ver: 2.7
@@ -255,7 +255,7 @@ jobs:
             cc_compiler: gcc-11
             cxx_compiler: g++-11
             cxx_std: 17
-            fmt_ver: 9.1.0
+            fmt_ver: 10.1.1
             openexr_ver: v3.2.0
             pybind11_ver: v2.11.1
             python_ver: "3.10"
@@ -275,7 +275,7 @@ jobs:
             cc_compiler: gcc-12
             cxx_compiler: g++-12
             cxx_std: 20
-            fmt_ver: 10.0.0
+            fmt_ver: master
             openexr_ver: main
             pybind11_ver: master
             python_ver: "3.10"
@@ -296,7 +296,7 @@ jobs:
             cxx_compiler: clang++
             cc_compiler: clang
             cxx_std: 20
-            fmt_ver: 9.0.0
+            fmt_ver: 10.1.1
             openexr_ver: v3.1.11
             pybind11_ver: v2.9.2
             python_ver: 3.8
