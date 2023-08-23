@@ -256,7 +256,7 @@ jobs:
             cxx_compiler: g++-11
             cxx_std: 17
             fmt_ver: 9.1.0
-            openexr_ver: v3.1.7
+            openexr_ver: v3.1.11
             pybind11_ver: v2.11.1
             python_ver: "3.10"
             simd: avx2,f16c
@@ -297,7 +297,7 @@ jobs:
             cc_compiler: clang
             cxx_std: 20
             fmt_ver: 9.0.0
-            openexr_ver: v3.1.5
+            openexr_ver: v3.1.11
             pybind11_ver: v2.9.2
             python_ver: 3.8
             simd: avx2,f16c
