@@ -562,7 +562,7 @@ IffInput::readimg()
                 // tile compress.
                 if (tile_compress) {
                     // map BGR(A) to RGB(A)
-                    for (size_t c = (channels * m_spec.channel_bytes()) - 1;
+                    for (int c = (int)(channels * m_spec.channel_bytes()) - 1;
                          c >= 0; --c) {
                         std::vector<uint8_t> in(tw * th);
                         uint8_t* in_p = &in[0];
