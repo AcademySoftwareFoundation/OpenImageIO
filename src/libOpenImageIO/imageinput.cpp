@@ -1249,7 +1249,8 @@ ImageInput::ioread(void* buf, size_t itemsize, size_t nitems)
     size_t n    = m_io->read(buf, size);
     if (n != size) {
         if (size_t(m_io->tell()) >= m_io->size())
-            ImageInput::errorfmt("Read error: hit end of file");
+            ImageInput::errorfmt("Read error: hit end of file in {} reader",
+                                 format_name());
         else
             ImageInput::errorfmt(
                 "Read error at position {}, could only read {}/{} bytes {}",
