@@ -151,8 +151,11 @@ if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_APPLECLANG)
 #    if (CMAKE_GENERATOR MATCHES "Xcode")
 #        add_compile_options ("-Wno-shorten-64-to-32")
 #    endif ()
-    add_compile_options ("-Wshorten-64-to-32")
-    add_compile_options ("-Wsign-compare")
+
+    if (NOT WIN32)
+        add_compile_options ("-Wshorten-64-to-32")
+        add_compile_options ("-Wsign-compare")
+    endif ()
 
 endif ()
 

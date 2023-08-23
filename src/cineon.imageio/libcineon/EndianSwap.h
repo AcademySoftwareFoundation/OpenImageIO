@@ -88,7 +88,7 @@ inline char SwapBytes( char& value )
 template <typename T>
 void SwapBuffer(T *buf, size_t len)
 {
-	for (unsigned int i = 0; i < len; i++)
+	for (size_t i = 0; i < len; i++)
 		SwapBytes(buf[i]);
 }
 
