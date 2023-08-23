@@ -804,9 +804,12 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
             && m_spec.image_bytes(true)
                    > pvt::limit_imagesize_MB * imagesize_t(1024 * 1024)) {
             errorfmt(
-                "Uncompressed image size {:.1f} MB exceeds \"limits:imagesize_MB\" = {}. Possible corrupt input?\nIf you're sure this is a valid file, raise the OIIO global attribute \"limits:imagesize_MB\".",
+                "Uncompressed image size {:.1f} MB exceeds the {} MB limit.\n"
+                "Image claimed to be {}x{}, {}-channel {}. Possible corrupt input?\n"
+                "If this is a valid file, raise the OIIO attribute \"limits:imagesize_MB\".",
                 float(m_spec.image_bytes(true)) / float(1024 * 1024),
-                pvt::limit_imagesize_MB);
+                pvt::limit_imagesize_MB, m_spec.width, m_spec.height,
+                m_spec.nchannels, m_spec.format);
             return false;
         }
         return true;

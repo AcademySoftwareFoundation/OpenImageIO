@@ -23,7 +23,10 @@ command += oiiotool("--oiioattrib try_all_readers 0 src/crash4.tga -o crash4.exr
 command += oiiotool("--oiioattrib try_all_readers 0 src/crash5.tga -o crash5.exr", failureok = True)
 command += oiiotool("--oiioattrib try_all_readers 0 src/crash6.tga -o crash6.exr", failureok = True)
 command += oiiotool("--oiioattrib try_all_readers 0 src/crash1707.tga -o crash1707.exr", failureok = True)
-command += oiiotool("--oiioattrib try_all_readers 0 src/crash1708.tga -o crash1707.exr", failureok = True)
+command += oiiotool("--oiioattrib try_all_readers 0 src/crash1708.tga -o crash1708.exr", failureok = True)
+command += oiiotool("--oiioattrib limits:imagesize_MB 1024 "
+                    "--oiioattrib try_all_readers 0 "
+                    "src/crash3952.tga -o crash3952.exr", failureok = True)
 
 # Test odds and ends, unusual files
 command += rw_command("src", "1x1.tga")

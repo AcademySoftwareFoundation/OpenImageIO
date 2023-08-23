@@ -184,7 +184,7 @@ Reading ../oiio-images/dds/broken/dds_bc3_just_header.dds
     channel list: R, G, B, A
     compression: "DXT5"
     textureformat: "Plain Texture"
-oiiotool ERROR: read : "../oiio-images/dds/broken/dds_bc3_no_full_header.dds": Read error: hit end of file
+oiiotool ERROR: read : "../oiio-images/dds/broken/dds_bc3_no_full_header.dds": Read error: hit end of file in dds reader
 Full command line was:
 > oiiotool --info -v -a --hash ../oiio-images/dds/broken/dds_bc3_no_full_header.dds
 Reading ../oiio-images/dds/broken/dds_bc7_just_header.dds
