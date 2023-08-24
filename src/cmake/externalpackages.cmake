@@ -61,7 +61,10 @@ message (STATUS "Boost_COMPONENTS = ${Boost_COMPONENTS}")
 # cmake output (e.g. boost 1.70.0, cmake <= 3.14). Specifically it fails
 # to set the expected variables printed below. So until that's fixed
 # force FindBoost.cmake to use the original brute force path.
-set (Boost_NO_BOOST_CMAKE ON)
+if (NOT DEFINED Boost_NO_BOOST_CMAKE)
+    set (Boost_NO_BOOST_CMAKE ON)
+endif ()
+
 checked_find_package (Boost REQUIRED
                       VERSION_MIN 1.53
                       COMPONENTS ${Boost_COMPONENTS}
