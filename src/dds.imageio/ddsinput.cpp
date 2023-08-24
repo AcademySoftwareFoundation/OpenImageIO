@@ -788,7 +788,7 @@ DDSInput::internal_readimg(unsigned char* dst, int w, int h, int d)
             int k;
             for (int y = 0; y < h; y++) {
                 for (int x = 0; x < w; x++) {
-                    k          = (y * w + x) * 4;
+                    k = (y * w + x) * 4;
                     if (dst[k + 3]) {
                         dst[k + 0] = (unsigned char)((int)dst[k + 0] * 255
                                                      / (int)dst[k + 3]);
