@@ -548,7 +548,7 @@ RLAInput::decode_channel_group(int first_channel, short num_channels,
         size_t length = lenu16;
         // Read the encoded RLE record
         encoded.resize(length);
-        if (!read(&encoded[0], length)) {
+        if (!length || !read(&encoded[0], length)) {
             errorfmt("Read error: couldn't read RLE data span");
             return false;
         }
