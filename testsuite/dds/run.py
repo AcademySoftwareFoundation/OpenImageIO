@@ -51,3 +51,4 @@ for f in files:
 # Test more corrupted files or those that used to crash
 command += info_command ("src/crash-1634.dds", hash=True)
 command += info_command ("src/crash-1635.dds", hash=True)
+command += info_command ("src/crash-3950.dds", hash=True)

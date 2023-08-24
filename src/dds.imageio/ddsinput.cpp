@@ -789,12 +789,14 @@ DDSInput::internal_readimg(unsigned char* dst, int w, int h, int d)
             for (int y = 0; y < h; y++) {
                 for (int x = 0; x < w; x++) {
                     k          = (y * w + x) * 4;
-                    dst[k + 0] = (unsigned char)((int)dst[k + 0] * 255
-                                                 / (int)dst[k + 3]);
-                    dst[k + 1] = (unsigned char)((int)dst[k + 1] * 255
-                                                 / (int)dst[k + 3]);
-                    dst[k + 2] = (unsigned char)((int)dst[k + 2] * 255
-                                                 / (int)dst[k + 3]);
+                    if (dst[k + 3]) {
+                        dst[k + 0] = (unsigned char)((int)dst[k + 0] * 255
+                                                     / (int)dst[k + 3]);
+                        dst[k + 1] = (unsigned char)((int)dst[k + 1] * 255
+                                                     / (int)dst[k + 3]);
+                        dst[k + 2] = (unsigned char)((int)dst[k + 2] * 255
+                                                     / (int)dst[k + 3]);
+                    }
                 }
             }
         }
