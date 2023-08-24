@@ -775,7 +775,7 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
                 // it was a valid file, and it's not.  Try the next one.
                 if (pvt::oiio_print_debug > 1)
                     OIIO::debugfmt(
-                        "ImageInput::create: \"{}\" did not open using format \"{}\" {} [valid_file was fals].\n",
+                        "ImageInput::create: \"{}\" did not open using format \"{}\" {} [valid_file was false].\n",
                         filename, plugin->first, in->format_name());
                 in.reset();
                 continue;
