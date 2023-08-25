@@ -117,12 +117,12 @@ GetBaseType(Compression cmp)
 static int
 GetChannelCount(Compression cmp, bool isNormal)
 {
-    if (isNormal)
-        return 3;
+    if (cmp == Compression::DXT5)
+        return isNormal ? 3 : 4;
+    if (cmp == Compression::BC5)
+        return isNormal ? 3 : 2;
     if (cmp == Compression::BC4)
         return 1;
-    if (cmp == Compression::BC5)
-        return 2;
     if (cmp == Compression::BC6HU || cmp == Compression::BC6HS)
         return 3;
     return 4;
