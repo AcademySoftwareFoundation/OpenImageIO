@@ -4665,8 +4665,8 @@ UNARY_IMAGE_OP(unpolar, ImageBufAlgo::polar_to_complex);  // --unpolar
 
 // --normalize
 OIIOTOOL_OP(normalize, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
-    float inCenter  = op.options().get_float("incntr", 0.0f);
-    float outCenter = op.options().get_float("outcntr", 0.0f);
+    float inCenter  = op.options().get_float("incenter", 0.0f);
+    float outCenter = op.options().get_float("outcenter", 0.0f);
     float scale     = op.options().get_float("scale", 1.0f);
     return ImageBufAlgo::normalize(*img[0], *img[1], inCenter, outCenter,
                                    scale);
@@ -6874,7 +6874,7 @@ Oiiotool::getargs(int argc, char* argv[])
       .help("Laplacian filter the image")
       .OTACTION(action_laplacian);
     ap.arg("--normalize")
-      .help("Normalize the image (options: incntr=0.5, outcntr=0.5, scale=0.5)")
+      .help("Normalize the image (options: incenter=0.5, outcenter=0.5, scale=0.5)")
 	  .OTACTION(action_normalize);
     ap.arg("--fft")
       .help("Take the FFT of the image")
