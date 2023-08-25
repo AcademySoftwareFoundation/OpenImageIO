@@ -117,12 +117,12 @@ GetBaseType(Compression cmp)
 static int
 GetChannelCount(Compression cmp, bool isNormal)
 {
-    if (isNormal)
-        return 3;
+    if (cmp == Compression::DXT5)
+        return isNormal ? 3 : 4;
+    if (cmp == Compression::BC5)
+        return isNormal ? 3 : 2;
     if (cmp == Compression::BC4)
         return 1;
-    if (cmp == Compression::BC5)
-        return 2;
     if (cmp == Compression::BC6HU || cmp == Compression::BC6HS)
         return 3;
     return 4;
@@ -788,13 +788,15 @@ DDSInput::internal_readimg(unsigned char* dst, int w, int h, int d)
             int k;
             for (int y = 0; y < h; y++) {
                 for (int x = 0; x < w; x++) {
-                    k          = (y * w + x) * 4;
-                    dst[k + 0] = (unsigned char)((int)dst[k + 0] * 255
-                                                 / (int)dst[k + 3]);
-                    dst[k + 1] = (unsigned char)((int)dst[k + 1] * 255
-                                                 / (int)dst[k + 3]);
-                    dst[k + 2] = (unsigned char)((int)dst[k + 2] * 255
-                                                 / (int)dst[k + 3]);
+                    k = (y * w + x) * 4;
+                    if (dst[k + 3]) {
+                        dst[k + 0] = (unsigned char)((int)dst[k + 0] * 255
+                                                     / (int)dst[k + 3]);
+                        dst[k + 1] = (unsigned char)((int)dst[k + 1] * 255
+                                                     / (int)dst[k + 3]);
+                        dst[k + 2] = (unsigned char)((int)dst[k + 2] * 255
+                                                     / (int)dst[k + 3]);
+                    }
                 }
             }
         }
