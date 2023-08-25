@@ -208,3 +208,9 @@ src/crash-1634.dds   :   16 x    8, 1 channel, uint8 dds
 oiiotool ERROR: read : "src/crash-1635.dds": Unsupported DDS bit depth: 1048576 (maybe it's a corrupted file?)
 Full command line was:
 > oiiotool --info -v -a --hash src/crash-1635.dds
+Reading src/crash-3950.dds
+src/crash-3950.dds   :   16 x    1, 4 channel, uint8 dds
+    SHA-1: EAAFC1B407635293A2F156CCBA32225D37469178
+    channel list: R, G, B, A
+    compression: "DXT4"
+    textureformat: "Plain Texture"
