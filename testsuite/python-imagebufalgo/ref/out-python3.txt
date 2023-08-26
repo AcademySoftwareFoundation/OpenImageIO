@@ -172,6 +172,16 @@ Comparing "resample.tif" and "../../../testsuite/oiiotool-xform/ref/resample.tif
 PASS
 Comparing "fit.tif" and "../../../testsuite/oiiotool-xform/ref/fit.tif"
 PASS
+Comparing "normalize_uiui.tif" and "ref/normalize_uiui.tif"
+PASS
+Comparing "normalize_uifl.exr" and "ref/normalize_uifl.exr"
+PASS
+Comparing "normalize_flfl.exr" and "ref/normalize_flfl.exr"
+PASS
+Comparing "normalize_flui.tif" and "ref/normalize_flui.tif"
+PASS
+Comparing "normalize_flui_na.tif" and "ref/normalize_flui_na.tif"
+PASS
 Comparing "bsplinekernel.exr" and "../../../testsuite/oiiotool/ref/bsplinekernel.exr"
 PASS
 Comparing "bspline-blur.tif" and "../../../testsuite/oiiotool/ref/bspline-blur.tif"

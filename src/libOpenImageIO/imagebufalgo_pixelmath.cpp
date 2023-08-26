@@ -433,6 +433,71 @@ ImageBufAlgo::pow(const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
     return result;
 }
 
+template<class Rtype>
+static bool
+normalize_impl(ImageBuf& R, const ImageBuf& A, float inCenter, float outCenter,
+               float scale, ROI roi, int nthreads)
+{
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        ImageBuf::ConstIterator<Rtype> a(A, roi);
+        for (ImageBuf::Iterator<Rtype> r(R, roi); !r.done(); ++r, ++a) {
+            float x = a[0] - inCenter;
+            float y = a[1] - inCenter;
+            float z = a[2] - inCenter;
+
+            float length = std::sqrt(x * x + y * y + z * z);
+
+            float s = (length > 0.0f) ? scale / length : 0.0f;
+
+            r[0] = x * s + outCenter;
+            r[1] = y * s + outCenter;
+            r[2] = z * s + outCenter;
+
+            if (R.spec().nchannels == 4) {
+                r[3] = a[3];
+            }
+        }
+    });
+    return true;
+}
+
+bool
+ImageBufAlgo::normalize(ImageBuf& dst, const ImageBuf& src, float inCenter,
+                        float outCenter, float scale, ROI roi, int nthreads)
+{
+    if (!ImageBufAlgo::IBAprep(roi, &dst, &src))
+        return false;
+
+    if (src.spec().nchannels != 3 && src.spec().nchannels != 4) {
+        src.errorfmt("normalize can only handle 3- or 4-channel images");
+        return false;
+    }
+    if (src.spec().nchannels < dst.spec().nchannels) {
+        dst.errorfmt(
+            "destination buffer can`t have more channels than the source");
+        return false;
+    }
+
+    bool ok;
+    OIIO_DISPATCH_COMMON_TYPES(ok, "normalize", normalize_impl,
+                               dst.spec().format, dst, src, inCenter, outCenter,
+                               scale, roi, nthreads);
+
+    return ok;
+}
+
+ImageBuf
+ImageBufAlgo::normalize(const ImageBuf& A, float inCenter, float outCenter,
+                        float scale, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = ImageBufAlgo::normalize(result, A, inCenter, outCenter, scale,
+                                      roi, nthreads);
+    if (!ok && !result.has_error())
+        result.errorfmt("normalize error");
+    return result;
+}
+
 
 
 template<class D, class S>

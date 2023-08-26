@@ -1028,6 +1028,34 @@ ImageBuf OIIO_API pow (const ImageBuf &A, cspan<float> B,
 bool OIIO_API pow (ImageBuf &dst, const ImageBuf &A, cspan<float> B,
                    ROI roi={}, int nthreads=0);
 
+/// Normalize a 3D vector texture (i.e., divide each pixel by its length).
+/// This function assumes a 3-channel image that represents a 3-vector, or a
+/// 4-channel image that represents a 3-vector plus an alpha value. If an
+/// alpha channel is present, its value is merely copied, and is not part of
+/// the normalization computation. If the destination has no alpha channel but
+/// the sources do, the alpha channel will be dropped.
+///
+/// `inCenter` and `outCenter` define the pixel value that corresponds to a
+/// 0.0 vector value for input and output, respectively.  `scale` defines the
+/// scale factor to apply to the normalized vectors.
+///
+/// Thus, if the input image encodes vector components into [0,1] range pixel
+/// values so that a pixel value 0.5 indicates a 0-length vector, then you
+/// should use `inCenter=0.5`, whereas if they are already using the full
+/// range (0.0 is encoded as 0.0), then you want `inCenter=0.0`. Similarly, if
+/// you want the output normalized vectors to be in the range [0,1], use
+/// `outCenter=0.5` and `scale=0.5`, but if you want them to be in the range
+/// [-1,1], use `outCenter=0.0` and `scale=1.0` (this probably will only work
+/// if you intend to write the results in `float` or `half` format).
+/// 
+bool OIIO_API normalize(ImageBuf& dst, const ImageBuf& A, float inCenter=0.0f,
+                        float outCenter=0.0f, float scale=1.0f,
+                        ROI roi={}, int nthreads=0);
+
+ImageBuf OIIO_API normalize(const ImageBuf& A, float inCenter=0.0f,
+                            float outCenter=0.0, float scale=1.0f, 
+                            ROI roi={}, int nthreads=0);
+
 
 /// Converts a multi-channel image into a one-channel image via a weighted
 /// sum of channels:

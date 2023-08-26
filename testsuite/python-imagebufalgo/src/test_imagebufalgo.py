@@ -264,6 +264,23 @@ try:
     b = test_iba (ImageBufAlgo.invert, a)
     write (b, "invert.tif", oiio.UINT8)
 
+    # normalize
+    a = ImageBuf (OIIO_TESTSUITE_ROOT+"/common/vectorschart_raw.tif")
+    b = test_iba (ImageBufAlgo.normalize, a, 0.5, 0.5, 0.5)
+    write (b, "normalize_uiui.tif", oiio.UINT16)
+    b = test_iba (ImageBufAlgo.normalize, a, 0.5, 0.0, 1.0)
+    write (b, "normalize_uifl.exr", oiio.HALF)
+
+    a = ImageBuf (OIIO_TESTSUITE_ROOT+"/common/vectorschart_raw_xyza.exr")
+    b = test_iba (ImageBufAlgo.normalize, a, 0.0, 0.0, 1.0)
+    write (b, "normalize_flfl.exr", oiio.HALF)
+    b = test_iba (ImageBufAlgo.normalize, a, 0.0, 0.5, 0.5)
+    write (b, "normalize_flui.tif", oiio.UINT16)
+    b = ImageBuf()
+    b.specmod().nchannels = 3
+    b = test_iba (ImageBufAlgo.normalize, a, 0.0, 0.5, 0.5)
+    write (b, "normalize_flui_na.tif", oiio.UINT16)
+
     # pow
     b = ImageBufAlgo.pow (gray128, 2)
     write (b, "cpow1.exr")
