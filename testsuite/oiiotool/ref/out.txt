@@ -140,6 +140,16 @@ Comparing "cpow1.exr" and "ref/cpow1.exr"
 PASS
 Comparing "cpow2.exr" and "ref/cpow2.exr"
 PASS
+Comparing "normalize.exr" and "ref/normalize.exr"
+PASS
+Comparing "normalize_scale.exr" and "ref/normalize_scale.exr"
+PASS
+Comparing "normalize_offsetin.exr" and "ref/normalize_offsetin.exr"
+PASS
+Comparing "normalize_offsetscaleout.exr" and "ref/normalize_offsetscaleout.exr"
+PASS
+Comparing "normalize_offsetscale.exr" and "ref/normalize_offsetscale.exr"
+PASS
 Comparing "abs.exr" and "ref/abs.exr"
 PASS
 Comparing "absdiff.exr" and "ref/absdiff.exr"

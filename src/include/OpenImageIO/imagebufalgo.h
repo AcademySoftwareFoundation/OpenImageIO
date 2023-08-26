@@ -1047,6 +1047,10 @@ bool OIIO_API pow (ImageBuf &dst, const ImageBuf &A, cspan<float> B,
 /// `outCenter=0.5` and `scale=0.5`, but if you want them to be in the range
 /// [-1,1], use `outCenter=0.0` and `scale=1.0` (this probably will only work
 /// if you intend to write the results in `float` or `half` format).
+///
+/// Expressed another way, the computation is conceptually:
+///
+///     out = outCenter + scale * (in - inCenter) / length(in - inCenter)
 /// 
 bool OIIO_API normalize(ImageBuf& dst, const ImageBuf& A, float inCenter=0.0f,
                         float outCenter=0.0f, float scale=1.0f,

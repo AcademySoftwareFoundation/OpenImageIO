@@ -265,21 +265,32 @@ try:
     write (b, "invert.tif", oiio.UINT8)
 
     # normalize
-    a = ImageBuf (OIIO_TESTSUITE_ROOT+"/common/vectorschart_raw.tif")
-    b = test_iba (ImageBufAlgo.normalize, a, 0.5, 0.5, 0.5)
-    write (b, "normalize_uiui.tif", oiio.UINT16)
-    b = test_iba (ImageBufAlgo.normalize, a, 0.5, 0.0, 1.0)
-    write (b, "normalize_uifl.exr", oiio.HALF)
-
-    a = ImageBuf (OIIO_TESTSUITE_ROOT+"/common/vectorschart_raw_xyza.exr")
-    b = test_iba (ImageBufAlgo.normalize, a, 0.0, 0.0, 1.0)
-    write (b, "normalize_flfl.exr", oiio.HALF)
-    b = test_iba (ImageBufAlgo.normalize, a, 0.0, 0.5, 0.5)
-    write (b, "normalize_flui.tif", oiio.UINT16)
-    b = ImageBuf()
-    b.specmod().nchannels = 3
-    b = test_iba (ImageBufAlgo.normalize, a, 0.0, 0.5, 0.5)
-    write (b, "normalize_flui_na.tif", oiio.UINT16)
+    # Construct an image with several values to test normalization
+    norm = ImageBuf(ImageSpec(3, 3, 3, "half"))
+    ImageBufAlgo.render_point(norm, 0, 0, (0.0, 0.0, 0.0))    # zero
+    ImageBufAlgo.render_point(norm, 1, 0, (0.6, 0.0, 0.0))    # x
+    ImageBufAlgo.render_point(norm, 2, 0, (-0.6, 0.0, 0.0))   # -x
+    ImageBufAlgo.render_point(norm, 0, 1, (0.0, 0.6, 0.0))    # y
+    ImageBufAlgo.render_point(norm, 1, 1, (0.0, -0.6, 0.0))   # -y
+    ImageBufAlgo.render_point(norm, 2, 1, (0.0, 0.0, 0.6))    # z
+    ImageBufAlgo.render_point(norm, 0, 2, (0.0, 0.0, -0.6))   # -z
+    ImageBufAlgo.render_point(norm, 1, 2, (0.6, 0.6, -0.6))   # diag3
+    ImageBufAlgo.render_point(norm, 2, 2, (0.0, -0.6, -0.6))  # diag2
+    write (norm, "norm.exr", "half")
+    # and another copy that is offset to .5 center and scaled by 0.5
+    normoffset = ImageBufAlgo.add(ImageBufAlgo.mul(norm, 0.5), 0.5)
+    write (normoffset, "normoffset.exr", "half")
+    # Test various options
+    b = test_iba (ImageBufAlgo.normalize, norm)
+    write (b, "normalize.exr", "half")
+    b = test_iba (ImageBufAlgo.normalize, norm, scale=0.5)
+    write (b, "normalize_scale.exr", "half")
+    b = test_iba (ImageBufAlgo.normalize, normoffset, inCenter=0.5)
+    write (b, "normalize_offsetin.exr", "half")
+    b = test_iba (ImageBufAlgo.normalize, norm, outCenter=0.5, scale=0.5)
+    write (b, "normalize_offsetscaleout.exr", "half")
+    b = test_iba (ImageBufAlgo.normalize, normoffset, inCenter=0.5, outCenter=0.5, scale=0.5)
+    write (b, "normalize_offsetscale.exr", "half")
 
     # pow
     b = ImageBufAlgo.pow (gray128, 2)
