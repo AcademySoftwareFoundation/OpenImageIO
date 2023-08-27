@@ -42,9 +42,11 @@
 #    include <intrin.h>
 #endif
 
-//Avoid min and max being defined
-#if defined(_WIN32)
-#define NOMINMAX
+// Avoid min and max being defined for any subsequent include of windows.h
+#ifdef _WIN32
+#    ifndef NOMINMAX
+#        define NOMINMAX
+#    endif
 #endif
 
 #include <OpenImageIO/oiioversion.h>

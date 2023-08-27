@@ -35,6 +35,7 @@ if (NOT OIIO_USING_FMT_LOCAL)
 endif ()
 
 if (WIN32)
+    add_definitions(-DWIN32_LEAN_AND_MEAN -DNOMINMAX -DNOGDI -DVC_EXTRALEAN)
     target_link_libraries (OpenImageIO_Util PRIVATE psapi)
 endif()
 
