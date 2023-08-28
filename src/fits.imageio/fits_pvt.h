@@ -44,8 +44,10 @@ public:
     int supports(string_view feature) const override
     {
         return (feature == "arbitrary_metadata"
-                || feature == "exif"    // Because of arbitrary_metadata
-                || feature == "iptc");  // Because of arbitrary_metadata
+                || feature == "exif"     // Because of arbitrary_metadata
+                || feature == "iptc"     // Because of arbitrary_metadata
+                || feature == "noimage"  // allow metadata only, no pixels
+        );
     }
     bool valid_file(const std::string& filename) const override;
     bool open(const std::string& name, ImageSpec& spec) override;
