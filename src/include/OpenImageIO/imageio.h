@@ -1852,17 +1852,15 @@ protected:
     ///
     /// Checks performed include:
     ///
-    /// * Whether the resolution is within the range implied by the half-open
-    ///   intervals given by `reslimits` `[xbegin, xend]`, `[ybegin, yend]`,
-    ///   `[zbegin, zend]`. The default is at least 1x1 and no more than
-    ///   1M x 1M pixels.
-    /// * Whether the channel count is within `reslimits` `[chbegin, chend)`
-    ///   as well as within the `"limit:channels"` OIIO attribute.
+    /// * Whether the resolution and channel count are within the range
+    ///   implied by `range`.
+    /// * Whether the channel count is within the `"limit:channels"` OIIO
+    ///   attribute.
     /// * The total uncompressed pixel data size is expected to be within the
     ///   `"limit:imagesize_MB"` OIIO attribute.
     ///
     bool check_open (const ImageSpec &spec,
-                     ROI reslimits = ROI(1, 1<<20, 1, 1<<20, 1, 1<<20, 1, 1<<16),
+                     ROI range = {0, 65535, 0, 65535, 0, 1, 0, 4},
                      uint64_t flags = 0);
 
     /// Bit field definitions for the `flags` argument to `check_open()`.

@@ -839,7 +839,8 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
             errorfmt("No support for data format of \"{}\"", m_filename);
             return false;
         }
-        if (!check_open(m_spec))
+        if (!check_open(m_spec,
+                        { 0, 1 << 20, 0, 1 << 20, 0, 1 << 16, 0, 1 << 16 }))
             return false;
         return true;
     } else {

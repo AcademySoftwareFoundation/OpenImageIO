@@ -1299,20 +1299,25 @@ ImageInput::check_open(const ImageSpec& spec, ROI range, uint64_t /*flags*/)
             format_name(), m_spec.width, m_spec.height);
         return false;
     }
-    if (m_spec.width > range.width() || m_spec.height > range.height()) {
-        errorfmt(
-            "{} image resolution may not exceed {}x{}, but the file appears to be {}x{}. Possible corrupt input?",
-            format_name(), range.width(), range.height(), m_spec.width,
-            m_spec.height);
-        return false;
+    if (m_spec.depth > 1) {
+        if (m_spec.width > range.width() || m_spec.height > range.height()
+            || m_spec.depth > range.depth()) {
+            errorfmt(
+                "{} image resolution may not exceed {}x{}x{}, but the file appears to be {}x{}x{}. Possible corrupt input?",
+                format_name(), range.width(), range.height(), range.depth(),
+                m_spec.width, m_spec.height, m_spec.depth);
+            return false;
+        }
+    } else {
+        if (m_spec.width > range.width() || m_spec.height > range.height()) {
+            errorfmt(
+                "{} image resolution may not exceed {}x{}, but the file appears to be {}x{}. Possible corrupt input?",
+                format_name(), range.width(), range.height(), m_spec.width,
+                m_spec.height);
+            return false;
+        }
     }
-    if (spec.depth >= range.depth()) {
-        errorfmt(
-            "{} volumetric slices may not exceed {}, but the file appears to be {}x{}x{}. Possible corrupt input?",
-            format_name(), range.depth(), spec.width, spec.height, spec.depth);
-        return false;
-    }
-    if (spec.nchannels < range.chbegin || spec.nchannels >= range.chend) {
+    if (spec.nchannels > range.nchannels()) {
         errorfmt(
             "{} does not support {}-channel images. Possible corrupt input?",
             format_name(), spec.nchannels);
