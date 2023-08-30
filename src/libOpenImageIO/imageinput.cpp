@@ -1286,4 +1286,63 @@ ImageInput::iotell() const
 }
 
 
+
+bool
+ImageInput::check_open(const ImageSpec& spec, ROI range, uint64_t /*flags*/)
+{
+    // Check for sensible resolutions, etc.
+    if ((m_spec.width <= 0 || m_spec.height <= 0 || m_spec.depth <= 0
+         || m_spec.nchannels <= 0)
+        && !supports("noimage")) {
+        errorfmt(
+            "{} image resolution must be at least 1x1, but the file specified {}x{}. Possible corrupt input?",
+            format_name(), m_spec.width, m_spec.height);
+        return false;
+    }
+    if (m_spec.depth > 1) {
+        if (m_spec.width > range.width() || m_spec.height > range.height()
+            || m_spec.depth > range.depth()) {
+            errorfmt(
+                "{} image resolution may not exceed {}x{}x{}, but the file appears to be {}x{}x{}. Possible corrupt input?",
+                format_name(), range.width(), range.height(), range.depth(),
+                m_spec.width, m_spec.height, m_spec.depth);
+            return false;
+        }
+    } else {
+        if (m_spec.width > range.width() || m_spec.height > range.height()) {
+            errorfmt(
+                "{} image resolution may not exceed {}x{}, but the file appears to be {}x{}. Possible corrupt input?",
+                format_name(), range.width(), range.height(), m_spec.width,
+                m_spec.height);
+            return false;
+        }
+    }
+    if (spec.nchannels > range.nchannels()) {
+        errorfmt(
+            "{} does not support {}-channel images. Possible corrupt input?",
+            format_name(), spec.nchannels);
+        return false;
+    }
+    if (pvt::limit_channels && spec.nchannels > pvt::limit_channels) {
+        errorfmt(
+            "{} channels exceeds \"limits:channels\" = {}. Possible corrupt input?\nIf you're sure this is a valid file, raise the OIIO global attribute \"limits:channels\".",
+            spec.nchannels, pvt::limit_channels);
+        return false;
+    }
+    if (pvt::limit_imagesize_MB
+        && spec.image_bytes(true)
+               > pvt::limit_imagesize_MB * imagesize_t(1024 * 1024)) {
+        errorfmt(
+            "Uncompressed image size {:.1f} MB exceeds the {} MB limit.\n"
+            "Image claimed to be {}x{}, {}-channel {}. Possible corrupt input?\n"
+            "If this is a valid file, raise the OIIO attribute \"limits:imagesize_MB\".",
+            float(m_spec.image_bytes(true)) / float(1024 * 1024),
+            pvt::limit_imagesize_MB, m_spec.width, m_spec.height,
+            m_spec.nchannels, m_spec.format);
+        return false;
+    }
+
+    return true;  // all is ok
+}
+
 OIIO_NAMESPACE_END

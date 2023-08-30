@@ -1003,6 +1003,10 @@ public:
     ///       Does this format reader support retrieving a reduced
     ///       resolution copy of the image via the `thumbnail()` method?
     ///
+    ///  - `"noimage"` :
+    ///        Does this format allow 0x0 sized images, i.e. an image file
+    ///        with metadata only and no pixels?
+    ///
     /// This list of queries may be extended in future releases. Since this
     /// can be done simply by recognizing new query strings, and does not
     /// require any new API entry points, addition of support for new
@@ -1818,6 +1822,53 @@ protected:
     /// Helper: retrieve the current position of the proxy, akin to ftell.
     int64_t iotell() const;
 
+    /// Helper: convenience boilerplate for several checks and operations that
+    /// every implementation of ImageInput::open() will need to do. Failure is
+    /// presumed to indicate a file that is corrupt (or perhaps maliciously
+    /// crafted) and no further reading should be attempted.
+    ///
+    /// @param spec
+    ///     The ImageSpec that we are validating.
+    ///
+    /// @param range
+    ///     An ROI that describes the allowable pixel coordinates and channel
+    ///     indices as half-open intervals.  For example, the default value
+    ///     `{0, 65535, 0, 65535, 0, 1, 0, 4}` means that pixel coordinates
+    ///     must be non-negative and the width and height be representable by
+    ///     a uint16 value, up to 4 channels are allowed, and volumes are not
+    ///     permitted (z coordinate may only be 0). File formats that can
+    ///     handle larger resolutions, or volumes, or >4 channels must
+    ///     override these limits!
+    ///
+    /// @param flags
+    ///     A bitfield flag (bits defined by `enum OpenChecks`) that can
+    ///     indicate additional checks to perform, or checks that should be
+    ///     skipped.
+    ///
+    /// @returns
+    ///     Return `true` if the spec is valid and passes all checks,
+    ///     otherwise return `false` and make appropriate calls to
+    ///     this->errorfmt() to record the errors.
+    ///
+    /// Checks performed include:
+    ///
+    /// * Whether the resolution and channel count are within the range
+    ///   implied by `range`.
+    /// * Whether the channel count is within the `"limit:channels"` OIIO
+    ///   attribute.
+    /// * The total uncompressed pixel data size is expected to be within the
+    ///   `"limit:imagesize_MB"` OIIO attribute.
+    ///
+    bool check_open (const ImageSpec &spec,
+                     ROI range = {0, 65535, 0, 65535, 0, 1, 0, 4},
+                     uint64_t flags = 0);
+
+    /// Bit field definitions for the `flags` argument to `check_open()`.
+    enum class OpenChecks : uint64_t {
+        Defaults = 0,
+        // Reserved for future use
+    };
+
     /// @}
 
 private:
@@ -2526,7 +2577,8 @@ protected:
     ///    is the request to write volumetric data but the format writer
     ///    doesn't support it).
     ///
-    /// Returns true if ok, false if the open request can't be satisfied.
+    /// Returns true if ok, false if the open request can't be satisfied (and
+    /// makes appropriate calls to this->errorfmt() to record the errors).
     ///
     /// Having a central helper method for this is beneficial:
     ///
@@ -2561,6 +2613,11 @@ protected:
     ///     A bitfield flag (bits defined by `enum OpenChecks`) that can
     ///     indicate additional checks to perform, or checks that should be
     ///     skipped.
+    ///
+    /// @returns
+    ///     Return `true` if the spec is valid and passes all checks,
+    ///     otherwise return `false` and make appropriate calls to
+    ///     this->errorfmt() to record the errors.
     ///
     /// Checks performed include:
     /// 
