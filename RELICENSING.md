@@ -23,7 +23,7 @@ the Developer Certificate of Origin, version 1.1:
 - Nathan Rusch (nrusch)
 - Ismael Cortes (leamsi)
 - AdamMainsTL
-- Sony Pictures Imageworks (cstein, olegul, fpsunflower, brianhall77, jeremyselan, drg, richardssam, lecocqp)
+- Sony Pictures Imageworks (cmstein, olegul, fpsunflower, brianhall77, jeremyselan, drg, richardssam, lecocqp)
 - Richard Shaw (hobbes1069)
 - Robert Matusewicz
 - Mariusz Szczepańczyk (mszczepanczyk)
@@ -111,6 +111,14 @@ the Developer Certificate of Origin, version 1.1:
 - Wētā
 - Kimball Thurston (kdt3rd)
 - Anders Langlands (anderslanglands)
+- Алексей (Alexpux)
+- Fabien Castan (fabiencastan)
+- Grégoire De Lillo (gregoire-dl)
+- Edgar Velázquez-Armendáriz (edgarv)
+- Malcolm Humphreys (malcolmhumphreys)
+- johnfea
+- Max Liani (maxliani)
+- Michael Görner (v4hn)
 
 **Prior authors, please submit a PR against this file that adds your name
 above. If, at the time of your prior contributions, you were employed by a
