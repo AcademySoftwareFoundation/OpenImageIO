@@ -2557,6 +2557,38 @@ current top image.
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
 
+.. option:: --normalize
+
+    Normalize the top image. Assuming the first three channels represent a 3D
+    vector, divide each pixel by its length to make it unit length. This
+    function assumes a 3-channel image that represents a 3-vector, or a
+    4-channel image that represents a 3-vector plus an alpha value. If an
+    alpha channel is present, its value is merely copied, and is not part of
+    the normalization computation.
+
+    Optional appended modifiers include:
+
+      `:incenter=` *float*
+        The pixel value that corresponds to a 0.0 vector value for the input.
+        (default: 0.0)
+
+      `:outcenter=` *float*
+        The pixel value that corresponds to a 0.0 vector value for the output.
+        (default: 0.0)
+
+      `:scale=` *float*
+        The desired length of the output vectors. (default: 1.0)
+
+    Example::
+
+        # Normalize a floating point image containing vector values:
+        oiiotool xyzvectors.exr --normalize -o normalized.exr
+
+        # Normalize an unsigned integer image where [-1,1] vector values
+        # are encoded on [0,1] for both input and output:
+        oiiotool xyzvectors.tif --normalize:incenter=0.5:outcenter=0.5:scale=0.5 -o normalized.tif
+
+
 .. option:: --noise
 
     Alter the top image to introduce noise, with the option `:type=`

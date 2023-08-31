@@ -69,6 +69,14 @@ command += oiiotool ("grey128.exr --powc 2 -o cpow1.exr")
 # Test --powc val,val,val... (per-channel powers)
 command += oiiotool ("grey128.exr --powc 2,2,1 -o cpow2.exr")
 
+# Test --normalize
+command += oiiotool ("src/norm.exr --normalize -o normalize.exr " +
+                     "src/norm.exr --normalize:scale=0.5 -o normalize_scale.exr " +
+                     "src/normoffset.exr --normalize:incenter=0.5 -o normalize_offsetin.exr " +
+                     "src/norm.exr --normalize:outcenter=0.5:scale=0.5 -o normalize_offsetscaleout.exr " +
+                     "src/normoffset.exr --normalize:incenter=0.5:outcenter=0.5:scale=0.5 -o normalize_offsetscale.exr ")
+
+
 # Test --abs, --absdiff, --absdiffc
 # First, make a test image that's 0.5 on the left, -0.5 on the right
 command += oiiotool ("-pattern constant:color=-0.25,-0.25,-0.25 64x128 3 "
@@ -263,6 +271,8 @@ outputs = [
             "div.exr", "divc1.exr", "divc2.exr",
             "mad.exr", "invert.tif",
             "cpow1.exr", "cpow2.exr",
+            "normalize.exr", "normalize_scale.exr", "normalize_offsetin.exr",
+            "normalize_offsetscaleout.exr", "normalize_offsetscale.exr",
             "abs.exr", "absdiff.exr", "absdiffc.exr",
             "chsum.tif",
             "rgbahalf-zfloat.exr",
