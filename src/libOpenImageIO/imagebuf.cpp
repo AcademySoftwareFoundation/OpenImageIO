@@ -485,6 +485,16 @@ ImageBufImpl::~ImageBufImpl()
     // else init_spec requested the system-wide shared cache, which
     // does not need to be destroyed.
     clear();
+
+    // Upon destruction, print uncaught errors to help users who don't know
+    // how to properly check for errors.
+    if (!m_err.empty() /* Note: safe becausethis is the dtr */
+        && pvt::imagebuf_print_uncaught_errors) {
+        OIIO::print(
+            "An ImageBuf was destroyed with a pending error message that was never\n"
+            "retrieved via ImageBuf::geterror(). This was the error message:\n{}\n",
+            m_err);
+    }
 }
 
 

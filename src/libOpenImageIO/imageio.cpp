@@ -52,6 +52,7 @@ int dds_bc5normal(0);
 int limit_channels(1024);
 int limit_imagesize_MB(std::min(32 * 1024,
                                 int(Sysutil::physical_memory() >> 20)));
+int imagebuf_print_uncaught_errors(1);
 ustring font_searchpath(Sysutil::getenv("OPENIMAGEIO_FONTS"));
 ustring plugin_searchpath(OIIO_DEFAULT_PLUGIN_SEARCHPATH);
 std::string format_list;         // comma-separated list of all formats
@@ -344,6 +345,10 @@ attribute(string_view name, TypeDesc type, const void* val)
         limit_imagesize_MB = *(const int*)val;
         return true;
     }
+    if (name == "imagebuf:print_uncaught_errors" && type == TypeInt) {
+        imagebuf_print_uncaught_errors = *(const int*)val;
+        return true;
+    }
     if (name == "use_tbb" && type == TypeInt) {
         oiio_use_tbb = *(const int*)val;
         return true;
@@ -470,6 +475,10 @@ getattribute(string_view name, TypeDesc type, void* val)
     }
     if (name == "dds:bc5normal" && type == TypeInt) {
         *(int*)val = dds_bc5normal;
+        return true;
+    }
+    if (name == "imagebuf:print_uncaught_errors" && type == TypeInt) {
+        *(int*)val = imagebuf_print_uncaught_errors;
         return true;
     }
     if (name == "use_tbb" && type == TypeInt) {

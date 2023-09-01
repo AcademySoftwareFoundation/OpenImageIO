@@ -2962,7 +2962,7 @@ OIIO_API std::string geterror(bool clear = true);
 ///    you should raise this limit. Setting the limit to 0 means having no
 ///    limit.
 ///
-/// - `int log_times`
+/// - `int log_times` (0)
 ///
 ///    When the `"log_times"` attribute is nonzero, `ImageBufAlgo` functions
 ///    are instrumented to record the number of times they were called and
@@ -2979,6 +2979,20 @@ OIIO_API std::string geterror(bool clear = true);
 ///    calls, and the locking and recording of the data structure that holds
 ///    the log information. When the `log_times` attribute is disabled,
 ///    there is no additional performance cost.
+///
+/// - `imagebuf:print_uncaught_errors` (1)
+///
+///   If nonzero, an `ImageBuf` upon destruction will print any error messages
+///   that were never retrieved by its `geterror()` method. While this may
+///   seem chaotic, we are presuming that any well-written library or
+///   application will proactively check error codes and retrieve errors, so
+///   will never print anything upon destruction. But for less sophisticated
+///   applications (or users), this is very useful for forcing display of
+///   error messages so that users can see relevant errors even if they never
+///   check them explicitly, thus self-diagnose their troubles before asking
+///   the project dev deam for help. Advanced users who for some reason desire
+///   to neither retrieve errors themselves nor have them printed in this
+///   manner can disable the behavior by setting this attribute to 0.
 ///
 OIIO_API bool attribute(string_view name, TypeDesc type, const void* val);
 
