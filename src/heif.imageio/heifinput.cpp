@@ -62,7 +62,7 @@ private:
 void
 oiio_heif_init()
 {
-#if LIBHEIF_HAVE_VERSION(1, 6, 0)
+#if LIBHEIF_HAVE_VERSION(1, 16, 0)
     static std::once_flag flag;
     std::call_once(flag, []() { heif_init(nullptr); });
 #endif
