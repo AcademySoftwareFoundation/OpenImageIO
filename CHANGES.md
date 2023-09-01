@@ -1,3 +1,7 @@
+Release 2.4.16.0 (1 Oct? 2023) -- compared to 2.4.15.0
+-------------------------------------------------------
+
+
 Release 2.4.15.0 (1 Sep 2023) -- compared to 2.4.14.0
 -------------------------------------------------------
 - *bmp*: Fix signed integer overflow when computing total number of pixels [#3948](https://github.com/OpenImageIO/oiio/pull/3948)  (by xiaoxiaoafeifei)
