@@ -1,6 +1,18 @@
-Release 2.4.15.0 (1 Sep? 2023) -- compared to 2.4.14.0
+Release 2.4.15.0 (1 Sep 2023) -- compared to 2.4.14.0
 -------------------------------------------------------
-
+- *bmp*: Fix signed integer overflow when computing total number of pixels [#3948](https://github.com/OpenImageIO/oiio/pull/3948)  (by xiaoxiaoafeifei)
+- *dds*: Fix div by 0 during DXT4 DDS load [#3959](https://github.com/OpenImageIO/oiio/pull/3959)  (by Jesse Yurkovich)
+- *rla*: Invalid read from an empty vector during RLA load [#3960](https://github.com/OpenImageIO/oiio/pull/3960)  (by Jesse Yurkovich)
+- *fix*:  Various protections against corrupted files [#3954](https://github.com/OpenImageIO/oiio/pull/3954)
+- *fix*: Improve Utf-8 text rendering [#3935](https://github.com/OpenImageIO/oiio/pull/3935)  (by Nicolas)
+- *fix*: Fix typo in debug output [#3956](https://github.com/OpenImageIO/oiio/pull/3956)  (by Jesse Yurkovich)
+- *ustring.h*: String literal operator for ustring and ustringhash [#3939](https://github.com/OpenImageIO/oiio/pull/3939)
+- *build* Suppress Xcode warnings [#3940](https://github.com/OpenImageIO/oiio/pull/3940)  (by Anton Dukhovnikov)
+- *build*: Silence gcc new/delete warnings for texturesys [#3944](https://github.com/OpenImageIO/oiio/pull/3944)  (by Shootfast)
+- *build* Added check for Boost_NO_BOOST_CMAKE, ignore if already set [#3961](https://github.com/OpenImageIO/oiio/pull/3961)  (by Mikael Sundell)
+- *build* Fix broken libheif < 1.13 [#3970](https://github.com/OpenImageIO/oiio/pull/3970)
+- *ci*: Make more robust timer_test [#3953](https://github.com/OpenImageIO/oiio/pull/3953)
+- *admin* Relicense code under Apache 2.0 [#3938](https://github.com/OpenImageIO/oiio/pull/3938) [#3966](https://github.com/OpenImageIO/oiio/pull/3966)
 
 Release 2.4.14.0 (1 Aug 2023) -- compared to 2.4.13.0
 -------------------------------------------------------
