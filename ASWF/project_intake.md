@@ -14,7 +14,7 @@ This is a checklist for TSC's to review as part of the intake process. The TSC s
   - [ ] A [SUPPORT.md](../SUPPORT.md) file to let users and developers know about ways to get help with your project.
 - Infrastructure/Assets
   - [X] Technical Charter Approved
-  - [ ] **(Awaiting scan from LF)** License scan completed and no issues found
+  - [X] License scan completed and no issues found
   - [ ] Code repository imported to ASWF GitHub organization or ownership of current GitHub organization given to `thelinuxfoundation` user
   - [X] Developer Certificate of Origin past commit signoff done and DCO Probot enabled.
   - [X] Issue/feature tracker established (JIRA, GitHub issues)
@@ -36,7 +36,7 @@ This is a checklist for TSC's to review as part of the intake process. The TSC s
   - [X] CLA Approved ( if used ) ( [CCLA](CLA-corporate.md) and [ICLA](CLA-individual.md) )
   - Project charter	( [Technical-Charter.md](Technical-Charter.md) )
     - [X] Approved by TSC
-    - [ ] Filed ( create pull request against [foundation repo](https://github.com/AcademySoftwareFoundation/foundation) )
+    - [X] Filed ( create pull request against [foundation repo](https://github.com/AcademySoftwareFoundation/foundation) )
   - [X] [Core Infrastructure Initiative Best Practices Badge](https://bestpractices.coreinfrastructure.org/) achieved as the 'Passing' level.
 - Outreach
   - [ ] New project announcement done ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to trigger )
