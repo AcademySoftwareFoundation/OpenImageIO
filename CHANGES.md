@@ -1,13 +1,21 @@
-Release 2.5 (summer 2023?) -- compared to 2.4
+Release 2.5 (Fall 2023) -- compared to 2.4
 -------------------------------------------------
+
+Beta 1: 2023-09-04
+
 ### New minimum dependencies and compatibility changes:
 * CMake: minimum needed to build OpenImageIO has been raised from 3.12 to
-  3.15. #3924 (2.5.2.1)
-* LibRaw: minimum has ben raised from 0.15 to 0.18. #3921 (2.5.2.1)
-* The new OpenEXR minimum is 2.4 (raised from 2.3). #3928 (2.5.2.1)
+  3.15.  [#3924](https://github.com/OpenImageIO/oiio/pull/3924) (2.5.2.1)
+* LibRaw: minimum has ben raised from 0.15 to 0.18.
+  [#3921](https://github.com/OpenImageIO/oiio/pull/3921) (2.5.2.1)
+* The new OpenEXR minimum is 2.4 (raised from 2.3).
+  [#3928](https://github.com/OpenImageIO/oiio/pull/3928) (2.5.2.1)
+* The new `fmt` library minimum is 7.0 (raised from 6.1)
+  [#3973](https://github.com/OpenImageIO/oiio/pull/3973) (2.5.3.0)
 
 ### ⛰️  New features and public API changes:
-* TextureSystem color management: #3761 (2.5.1.0)
+
+* TextureSystem color management: [#3761](https://github.com/OpenImageIO/oiio/pull/3761) (2.5.1.0)
     - TextureOpt and TextureOptBatch have a new field, `colortransformid`,
       which supplies an integer ID for a requested color space transformation
       to be applied as texture tiles are read. The default value 0 means no
@@ -27,53 +35,6 @@ Release 2.5 (summer 2023?) -- compared to 2.4
     - texture.h defines symbol `OIIO_TEXTURESYSTEM_SUPPORTS_COLORSPACE` that
       can be tested for existence to know if the new fields are in the
       TextureOpt structure.
-* ImageBufAlgo additions:
-    - A new flavor of `ociodisplay()` now contains an inverse parameter.
-      #3650 (2.5.0.0)
-* oiiotool new commands and features:
-    - New `--iccread` and `--iccwrite` add an ICC profile from an external
-      file to the metadata of an image, or extract the ICC profile metadata
-      and save it as a separate file. #3550 (2.5.0.0)
-    - New expression syntax for retrieving metadata `{TOP[foo]}` is similar to
-      the existing `{TOP.foo}`, if there is no `foo` metadata found, the
-      former evaluates to an empty string, whereas the latter is an error.
-      #3619 (2.4.5/2.5.0.0)
-    - New `--no-error-exit` causes an error to not exit immediately, but
-      rather to try to execute the remaining command line operations. This is
-      intended primarily for unit tests and debugging. #3643 (2.5.0.0)
-    - New `--colorconfiginfo` prints the full inventory of color management
-      information, including color space aliases, roles, and with improved
-      readability of output for larger configs. #3707 (2.5.0.0)
-    - The `--resize` command takes new optional `:from=`, `:to=`, and
-      `:edgeclamp=` modifiers to give more general and fine control over the
-      specific correspondence between display windows in the input image and
-      resized destination image (including allowing partial pixel offsets).
-      #3751 #3752 (2.5.0.1)
-    - *oiiotool*: Expression eval `NIMAGES` gives current stack depth
-      [#3822](https://github.com/OpenImageIO/oiio/pull/3822)  (2.5.2.0)
-    - *oiiotool*: `--parallel-frames` parallelizes execution over a frame
-      range rather than over regions within each image operation. This should
-      be used with caution, as it will give incorrect results for an oiiotool
-      command line involving a frame range where the iterations have a data
-      dependency on each other and must be executed in order. But in cases
-      where the order of frame processing doesn't matter and there are many
-      more frames in the sequence than cores, you can get a substantial
-      performance improvement using this flag.
-      [#3849](https://github.com/OpenImageIO/oiio/pull/3849)  (2.5.2.0)
-    - *oiiotool*: New `-otex` optional modifier `forcefloat=0` can improve
-      memory use for enormous texture conversion.
-      [#3829](https://github.com/OpenImageIO/oiio/pull/3829) (2.5.2.0)
-* OIIO::getattribute() new queries:
-    - `font_list`, `font_file_list`, `font_dir_list` return, respectively, the
-      list of fonts that OIIO found, the list of full paths to font files, and
-      the list of directories searched for fonts. All return a single string
-      that is a semicolon-separated list of the items. #3633 (2.5.0.0)
-    - `opencolorio_version` returns the human-readable (e.g. "2.2.0") version
-      of OpenColorIO that is being used. #3662 (2.5.0.0)
-* IOProxy support for additional file formats: SGI #3641, RLA #3642, IFF #3647
-  (2.5.0.0)
-* New `OIIO::print()` exposes `Strutil::print()` in the main OIIO namespace.
-  #3667 (2.4.6/2.5.0.0)
 * Extensive support for OpenColorIO 2.2 functionality and improved color
   management:
     - When building against OCIO 2.2, you can specify/use the new "built-in"
@@ -101,51 +62,144 @@ Release 2.5 (summer 2023?) -- compared to 2.4
       config). #3755 (2.5.0.1)
     - New `ColorConfig::getColorSpaceIndex()` looks up a color space index by
       its name, alias, or role. #3758 (2.5.0.1)
+* oiiotool new commands and features:
+    - New `--iccread` and `--iccwrite` add an ICC profile from an external
+      file to the metadata of an image, or extract the ICC profile metadata
+      and save it as a separate file. #3550 (2.5.0.0)
+    - New `--parallel-frames` parallelizes execution over a frame range rather
+      than over regions within each image operation. This should be used with
+      caution, as it will give incorrect results for an oiiotool command line
+      involving a frame range where the iterations have a data dependency on
+      each other and must be executed in order. But in cases where the order
+      of frame processing doesn't matter and there are many more frames in the
+      sequence than cores, you can get a substantial performance improvement
+      using this flag. [#3849](https://github.com/OpenImageIO/oiio/pull/3849) (2.5.2.0)
+    - New `--no-error-exit` causes an error to not exit immediately, but
+      rather to try to execute the remaining command line operations. This is
+      intended primarily for unit tests and debugging. #3643 (2.5.0.0)
+    - New `--colorconfiginfo` prints the full inventory of color management
+      information, including color space aliases, roles, and with improved
+      readability of output for larger configs. #3707 (2.5.0.0)
+    - The `--resize` command takes new optional `:from=`, `:to=`, and
+      `:edgeclamp=` modifiers to give more general and fine control over the
+      specific correspondence between display windows in the input image and
+      resized destination image (including allowing partial pixel offsets).
+      #3751 #3752 (2.5.0.1)
+    - New expression substitution additions:
+        - New syntax for retrieving metadata `{TOP[foo]}` is similar to the
+          existing `{TOP.foo}`, if there is no `foo` metadata found, the
+          former evaluates to an empty string, whereas the latter is an error.
+          #3619 (2.4.5/2.5.0.0)
+        - `{NIMAGES}` gives current stack depth
+          [#3822](https://github.com/OpenImageIO/oiio/pull/3822)  (2.5.2.0)
+        - `{nativeformat}` is the pixel data format of the file, whereas the
+          existing `format` has always returned the data type used in memory.
+          Also, `METANATIVE` and `METANATIVEBRIEF` are the full metadata
+          keywords for native file metadata, comapred to the previously
+          existing `META` and `METABRIEF` which we now clarify reflect the
+          in-memory representation. #3639 (2.5.0.0)
+    - `--ociodisplay` now takes an optional `:inverse=1` modifier. #3650
+      (2.5.0.0)
+    - New `-otex` optional modifier `forcefloat=0` can improve memory use for
+      enormous texture conversion.
+      [#3829](https://github.com/OpenImageIO/oiio/pull/3829) (2.5.2.0)
+    - `--printinfo` now takes new optional modifiers: `:native=1` ensures
+      that the metadata printed is of the file, not changed by the way the
+      image is stored in memory (for example, it may have been converted to
+      a more convenient in-memory data type); `:verbose=1` prints verbose
+      stats even if `-v` is not used; `:stats=1` prints full pixel stats,
+      even if `--stats` is not used. #3639 (2.5.0.0)
+    - New `--normalize` mormalizes image that represent 3D vectors (i.e.,
+      divide by their length) textures. This is helpful for normal maps.
+      [#3945](https://github.com/OpenImageIO/oiio/pull/3945) (by Vlad (Kuzmin) Erium) (2.5.3.0)
+* ImageBufAlgo additions:
+    - A new flavor of `ociodisplay()` now contains an inverse parameter.
+      #3650 (2.5.0.0)
+    - New `normalize()` normalizes image that represent 3D vectors (i.e.,
+      divide by their length) textures. This is helpful for normal maps.
+      [#3945](https://github.com/OpenImageIO/oiio/pull/3945) (by Vlad (Kuzmin)
+      Erium) [#3963](https://github.com/OpenImageIO/oiio/pull/3963) (2.5.3.0)
 * ImageInput / ImageOutput
-    - New `ImageOutput::check_open()` can be used by format writers authors to
-      centralize certain validity tests so they don't need to be implemented
-      separately for each file type. This is not meant to be called by client
-      application code, only by format writer authors. #3686 (2.5.0.0)
-    - *ImageInput*: [**breaking**] Add an ImageInput::valid_file(IOProxy)
-      overload [#3826](https://github.com/OpenImageIO/oiio/pull/3826)  (by
-      Jesse Y)  (2.5.2.0)
+    - New `ImageOutput::check_open()` method can be used by format writers
+      authors to centralize certain validity tests so they don't need to be
+      implemented separately for each file type. This is not meant to be
+      called by client application code, only by format writer authors. #3686
+      (2.5.0.0)
+    - Add an `ImageInput::valid_file(IOProxy)` overload
+      [#3826](https://github.com/OpenImageIO/oiio/pull/3826) (by Jesse Y)
+      (2.5.2.0) and implement its overloads for DDS, PSD, and WEBP
+      [#3831](https://github.com/OpenImageIO/oiio/pull/3831)  (by Jesse Y)
+      (2.5.2.0)
+    - New `ImageOutput::check_open()` and `ImageInput::open_check()` can be
+      used by format reader/writer authors to centralize certain validity
+      tests so they don't need to be implemented separately for each file
+      type. This is not meant to be called by client application code, only by
+      format reader/writer authors.
+      [#3686](https://github.com/OpenImageIO/oiio/pull/3686) (2.5.0.0)
+      [#3967](https://github.com/OpenImageIO/oiio/pull/3967) (2.5.3.0)
+    - *ImageInput*: Add an ImageInput::valid_file(IOProxy) overload
+      [#3826](https://github.com/OpenImageIO/oiio/pull/3826)  (by Jesse Y) (2.5.2.0)
     - *ImageInput*: Implement valid_file(IOProxy) overloads for DDS, PSD, and
       WEBP [#3831](https://github.com/OpenImageIO/oiio/pull/3831)  (by Jesse
       Y)  (2.5.2.0)
+* New top-level `namespace OIIO` functions:
+    - `OIIO::shutdown()` method [#3882](https://github.com/OpenImageIO/oiio/pull/3882) (by Ray Molenkamp)
+    - `OIIO::default_thread_pool_shutdown()` [#2382](https://github.com/OpenImageIO/oiio/pull/2382)
+    - `OIIO::print()` exposes `Strutil::print()` in the main OIIO namespace.
+  #3667 (2.4.6/2.5.0.0)
+* OIIO::getattribute() new queries:
+    - `font_list`, `font_file_list`, `font_dir_list` return, respectively, the
+      list of fonts that OIIO found, the list of full paths to font files, and
+      the list of directories searched for fonts. All return a single string
+      that is a semicolon-separated list of the items. #3633 (2.5.0.0)
+    - `opencolorio_version` returns the human-readable (e.g. "2.2.0") version
+      of OpenColorIO that is being used. #3662 (2.5.0.0)
+* IOProxy support for additional file formats: SGI #3641, RLA #3642, IFF #3647
+  (2.5.0.0), ICO input [#3919](https://github.com/OpenImageIO/oiio/pull/3919)
+  (by jasonbaumeister) (2.5.2.0)
+* Remove long deprecated/nonfunctional C API headers [#3567](https://github.com/OpenImageIO/oiio/pull/3567)
 
-### Performance improvements:
+### 🚀  Performance improvements:
+
 - Fixed some ImageBuf and IBA internals to avoid unnecessary/redundant zeroing
   out of newly allocated buffer memory. #3754 (2.5.0.1)
 - *oiiotool*: `--parallel-frames` parallelizes execution over a frame
-  range rather than over regions within each image operation. This should
-  be used with caution, as it will give incorrect results for an oiiotool
-  command line involving a frame range where the iterations have a data
-  dependency on each other and must be executed in order. But in cases
-  where the order of frame processing doesn't matter and there are many
-  more frames in the sequence than cores, you can get a substantial
-  performance improvement using this flag.
+  range rather than over regions within each image operation.
   [#3849](https://github.com/OpenImageIO/oiio/pull/3849)  (2.5.2.0)
 - *psd*: Improve memory efficiency of PSD read
   [#3807](https://github.com/OpenImageIO/oiio/pull/3807)  (2.5.2.0)
 - Improvements to performance and memory when making very large textures
   [#3829](https://github.com/OpenImageIO/oiio/pull/3829) (2.5.2.0)
+- OpenEXR: Change to using exr-core for reading by default [#3788](https://github.com/OpenImageIO/oiio/pull/3788)
+- TextureSystem: Improve texture lookup performance by remove redundant
+  instructions from tile hash [#3898](https://github.com/OpenImageIO/oiio/pull/3898) (by Curtis Black) (2.5.2.0)
 
 ### 🐛  Fixes and feature enhancements:
+
+* ImageInput: fix typo in debug output [#3956](https://github.com/OpenImageIO/oiio/pull/3956) (by Jesse Yurkovich)
 * Python bindings:
-    - Now has the ability to getattribute() of int64 and uint64 metadata.
-      #3555 (2.5.0.0)
+    - Add ability to `getattribute()` of int64 and uint64 data [#3555](https://github.com/OpenImageIO/oiio/pull/3555) (2.5.0.0)
     - Fixed ability to add and retrieve `uint8[]` metadata, which on the
       python side will be numpy arrays of type uint8 (dtype='B'). This is
       important for being able to set and retrieve "ICCProfile" metadata.
       #3556 (2.5.0.0)
+    - Eliminate redundant code in Python IBA bindings [#3615](https://github.com/OpenImageIO/oiio/pull/3615)
     - Improve error messages for when passing incorrect python array sizes.
       #3801 (2.5.1.0)
+    - Fix arithmetic overflow in oiio_bufinfo (Python interop) [#3931](https://github.com/OpenImageIO/oiio/pull/3931) (by Jesse Yurkovich) (2.5.2.0)
 * ImageBuf improvements:
     - Fixes to subtle bugs when ImageBuf is used with IOProxy. #3666
       (2.4.6/2.5.0.0)
+    - Auto print uncaught ImageBuf errors. When an IB is destroyed, any errors
+      that were never retrieved via `geterror()` will be printed, to aid users
+      who would not notice the errors otherwise.
+      [#3949](https://github.com/OpenImageIO/oiio/pull/3949) (2.5.3.0)
 * ImageBufAlgo improvements:
     - IBAPrep should not zero out deep images when creating a new destination
       image. #3724 (2.5.0.0/2.4.8.0)
+    - Improve error message for IBA::ocio functions [#3887](https://github.com/OpenImageIO/oiio/pull/3887)
+    - UTF-8 text rendering fixes [#3935](https://github.com/OpenImageIO/oiio/pull/3935)
+      (by Nicolas) (2.5.3.0)
 * make_texture() / maketx / TextureSystem / ImageCache:
     - Ensure proper setting of certain metadata when using a texture as a
       source to build another texture. #3634 (2.4.5/2.5.0.0)
@@ -164,59 +218,52 @@ Release 2.5 (summer 2023?) -- compared to 2.4
       scenarios with very high thread contention. #3784 (2.4.10.0/2.5.0.3)
     - maketx and oiiotool --otex: Add support for CDFs of bumpslopes channels.
       Previously, if you used both --bumpslopes and --cdf at the same time,
-      the CDFs were not produced for all channels. #3793 (2.4.10.0/2.5.1.0)
+      the CDFs were not produced for all channels. #3793 (by Tom Knowles) (2.4.10.0/2.5.1.0)
 * oiiotool improvements:
-    - `--printinfo` now takes new optional modifiers: `:native=1` ensures
-      that the metadata printed is of the file, not changed by the way the
-      image is stored in memory (for example, it may have been converted to
-      a more convenient in-memory data type); `:verbose=1` prints verbose
-      stats even if `-v` is not used; `:stats=1` prints full pixel stats,
-      even if `--stats` is not used. #3639 (2.5.0.0)
-    - Expression substitution recognizes new metadata names: `nativeformat` is
-      the pixel data format of the file, whereas the existing `format` has
-      always returned the data type used in memory. Also, `METANATIVE` and
-      `METANATIVEBRIEF` are the full metadata keywords for native file
-      metadata, comapred to the previously existing `META` and `METABRIEF`
-      which we now clarify reflect the in-memory representation. #3639
-      (2.5.0.0)
     - When `-q` (quiet mode) is used, and when an error occurs, only print the
       error message and not the full help message. #3649 (2.5.0.0)
-    - `--ociodisplay` now takes an optional `:inverse=1` modifier. #3650
+    - Fix problems with `--point` when there is no alpha channel. #3684
+      (2.4.6/2.5.0.0)
+    - `--dumpdata` fix channel name output. #3687 (2.4.6/2.5.0.0)
+    - `--help` now prints a much abbreviated color management section (just the
+      OCIO version and config file). Use the new `--colorconfiginfo` argument
+      to print the full color management information, which is both more
+      readable and more detailed than what `--help` used to print. #3707
       (2.5.0.0)
-   - Fix problems with `--point` when there is no alpha channel. #3684
-     (2.4.6/2.5.0.0)
-   - `--dumpdata` fix channel name output. #3687 (2.4.6/2.5.0.0)
-   - `--help` now prints a much abbreviated color management section (just the
-     OCIO version and config file). Use the new `--colorconfiginfo` argument
-     to print the full color management information, which is both more
-     readable and more detailed than what `--help` used to print. #3707
-     (2.5.0.0)
-    - *oiiotool*: Don't propagate unsupported channels
+    - Don't propagate unsupported channels
       [#3838](https://github.com/OpenImageIO/oiio/pull/3838)  (2.5.2.0)
     - *refactor*: Get rid of the global Oiiotool singleton.
       [#3848](https://github.com/OpenImageIO/oiio/pull/3848) (2.5.2.0)
+    - *oiiotool*: Work around static destruction order issue #3295 [#3591](https://github.com/OpenImageIO/oiio/pull/3591) (by Aras Pranckevičius)
 * ICC Profiles found in JPEG, JPEG-2000, PSN, PSD, and TIFF files are now
   examined and several key fields are extracted as separate metadata. #3554
   (2.5.0.0)
+* Various protections against corrupted files [#3954](https://github.com/OpenImageIO/oiio/pull/3954) (2.5.3.0)
 * BMP:
-    - Fix reading 16bpp images. #3592 (2.4.5/2.5.0.0)
+    - Fix reading 16bpp images. [#3592](https://github.com/OpenImageIO/oiio/pull/3592) (by Aras Pranckevičius) (2.4.5/2.5.0.0)
     - Protect against corrupt pixel coordinates. (TALOS-2022-1630,
-      CVE-2022-38143) #3620 (2.4.5/2.5.0.0)
+      CVE-2022-38143) [#3620](https://github.com/OpenImageIO/oiio/pull/3620) (2.4.5/2.5.0.0)
     - Fix possible write errors, fixes TALOS-2022-1653 / CVE-2022-43594,
       CVE-2022-43595. #3673 (2.4.6/2.5.0.0)
     - Mark color space as sRGB, which seems likely to be true of any BMP
       files anybody encounters. #3701 (2.5.0.0)
+    - Fix signed integer overflow when computing total number of pixels
+      [#3948](https://github.com/OpenImageIO/oiio/pull/3948) (by xiaoxiaoafeifei) (2.5.3.0)
 * DDS:
     - Fix heap overflow in DDS input. #3542 (2.5.0.0)
     - Improved support for DTX5, ATI2/BC5 normal maps, R10G10B10A2
       format, RXGB, BC4U, BC5U, A8, improved low bit expansion to 8 bits.
-      #3573 (2.4.4.2/2.5.0.0)
-    - Fix alpha/luminance files, better testing. #3581 (2.4.5/2.5.0.0)
-    - Optimize loading of compressed images, improves 3-5x. #3583 #3584
+      [#3573](https://github.com/OpenImageIO/oiio/pull/3573)
+      (by Aras Pranckevičius)(2.4.4.2/2.5.0.0)
+    - Fix alpha/luminance files, better testing. [#3581](https://github.com/OpenImageIO/oiio/pull/3581) (by Aras Pranckevičius) (2.4.5/2.5.0.0)
+    - Optimize loading of compressed images, improves 3-5x. [#3583](https://github.com/OpenImageIO/oiio/pull/3583) (by Aras Pranckevičius) #3584
       (2.4.5/2.5.0.0)
+    - Honor ImageInput thread policy [#3584](https://github.com/OpenImageIO/oiio/pull/3584)
     - Fix crashes for cubemap files when a cube face was not present, and
       check for invalid bits per pixel. (TALOS-2022-1634, CVE-2022-41838)
+      (TALOS-2022-1635, CVE-2022-41999) [#3625](https://github.com/OpenImageIO/oiio/pull/3625) (2.4.5/2.5.0.0)
       (TALOS-2022-1635, CVE-2022-41999) #3625 (2.4.5/2.5.0.0)
+    - Fix divide-by-0 during DXT4 DDS load [#3959](https://github.com/OpenImageIO/oiio/pull/3959) (by Jesse Yurkovich) (2.5.3.0)
 * DPX:
     - Fix possible write errors, fixes TALOS-2022-1651 / CVE-2022-43592 and
       TALOS-2022-1652 / CVE-2022-43593. #3672 (2.4.6/2.5.0.0)
@@ -228,12 +275,17 @@ Release 2.5 (summer 2023?) -- compared to 2.4
       (2.4.10.0/2.5.1.0)
     - Prevent heap-buffer-overflow
       [#3841](https://github.com/OpenImageIO/oiio/pull/3841) (2.5.2.0) (by
-      xiaoxiaoafeifei) 
+      xiaoxiaoafeifei)
+* HEIC:
+    - Support the ".hif" extension, which seems to be used by some Canon
+      cameras instead of .heif.
+      [#3813](https://github.com/OpenImageIO/oiio/pull/3813)(by AdamMainsTL)
 * HDR:
     - Fix a 8x (!) read performance regression for HDR files that was
       introduced in OIIO in 2.4. On top of that, speed up by another 4x beyond
-      what we ever did before by speeding up the RGBE->float conversion. #3588
-      #3590 (2.4.5/2.5.0.0)
+      what we ever did before by speeding up the RGBE->float conversion.
+      [#3588](https://github.com/OpenImageIO/oiio/pull/3588) [#3590](https://github.com/OpenImageIO/oiio/pull/3590)
+      (by Aras Pranckevičius) (2.4.5/2.5.0.0)
 * ICO:
     - Heap-buffer-overflow [#3872](https://github.com/OpenImageIO/oiio/pull/3872)  (by xiaoxiaoafeifei)  Fixes CVE-2023-36183.
 * IFF:
@@ -245,22 +297,28 @@ Release 2.5 (summer 2023?) -- compared to 2.4
       TALOS-2022-1655 / CVE-2022-43597 CVE-2022-43598, TALOS-2022-1656 /
       CVE-2022-43599 CVE-2022-43600 CVE-2022-43601 CVE-2022-43602  #3676
       (2.4.6/2.5.0.0)
+    - Catch possible exception, identified by static analysis [#3681](https://github.com/OpenImageIO/oiio/pull/3681)
 * JPEG
     - *jpeg*: Fix density calculation  for jpeg output
       [#3861](https://github.com/OpenImageIO/oiio/pull/3861)  (2.5.2.0) (by
       Loïc Vital) 
+* JPEG2000:
+    - Better pixel type promotion logic [#3878](https://github.com/OpenImageIO/oiio/pull/3878) (2.5.2.0)
 * OpenEXR:
     - Fix potential use of uninitialized value when closing. #3764 (2.5.0.1)
-    - *exr*: Try to improve exr thread pool weirdness
+    - Try to improve exr thread pool weirdness
       [#3864](https://github.com/OpenImageIO/oiio/pull/3864)  (2.5.2.0)
     - Controlled shutdown of IlmThread pool in all apps in which we use it.
       [#3805](https://github.com/OpenImageIO/oiio/pull/3805)  (2.5.2.0)
+    - Correction to dwa vs zip logic when outputting OpenEXR [#3884](https://github.com/OpenImageIO/oiio/pull/3884) (2.5.2.0)
+    - Enable openexr core library by default when recent enough
+      [#3942](https://github.com/OpenImageIO/oiio/pull/3942) (2.5.3.0)
 * PBM:
-    - Fix accidental inversion for 1-bit bipmap pbm files. #3731
+    - Fix accidental inversion for 1-bit bitmap pbm files. [#3731](https://github.com/OpenImageIO/oiio/pull/3731)
       (2.5.0.0/2.4.8.0)
 * PNG:
     - Fix memory leaks for error conditions. #3543 #3544 (2.5.0.0)
-    - Add EXIF write support to PNG output. #3736 (2.5.0.1)
+    - Add EXIF write support to PNG output. [#3736](https://github.com/OpenImageIO/oiio/pull/3736) (by Joris Nijs) (2.5.0.1)
 * PSD:
     - Fix a PSD read error on ARM architecture. #3589 (2.4.5/2.5.0.0)
     - Protect against corrupted embedded thumbnails. (TALOS-2022-1626,
@@ -270,8 +328,9 @@ Release 2.5 (summer 2023?) -- compared to 2.4
     - Fix wrong "oiio:UnassociatedAlpha" metadata. #3750 (2.5.0.1)
     - Handle very wide images with more than 64k resolution in either
       direction. #3806 (2.5.1.0/2.4.11)
-    - *psd*: Improve memory efficiency of PSD read
-      [#3807](https://github.com/OpenImageIO/oiio/pull/3807)  (2.5.2.0)
+    - Improve memory efficiency of PSD read [#3807](https://github.com/OpenImageIO/oiio/pull/3807)  (2.5.2.0)
+    - Prevent simultaneous psd thumbnail reads from clashing [#3877](https://github.com/OpenImageIO/oiio/pull/3877)
+    - CMYK PSD files now copy alpha correctly [#3918](https://github.com/OpenImageIO/oiio/pull/3918) (by jasonbaumeister) (2.5.2.0)
 * RAW:
     - Add color metadata: pre_mul, cam_mul, cam_xyz, rgb_cam. #3561 #3569
       #3572 (2.5.0.0)
@@ -285,24 +344,27 @@ Release 2.5 (summer 2023?) -- compared to 2.4
     - Fix potential buffer overrun. (TALOS-2022-1629, CVE-2022-36354) #3624
       (2.4.5/2.5.0.0)
     - IOProxy support. #3642 (2.5.0.0)
+    - Fix possible invalid read from an empty vector during RLA load
+      [#3960](https://github.com/OpenImageIO/oiio/pull/3960) (by Jesse Yurkovich) (2.5.3.0)
 * SGI:
     - IOProxy support. #3641 (2.5.0.0)
 * Targa:
     - Fix incorrect unique_ptr allocation. #3541 (2.5.0.0)
-    - Fix string overflow safety. (TALOS-2022-1628, CVE-2022-41981) #3622
-      (2.4.5/2.5.0.0)
+    - Fix string overflow safety. (TALOS-2022-1628, CVE-2022-41981)
+      [#3622](https://github.com/OpenImageIO/oiio/pull/3622) (2.4.5/2.5.0.0)
     - Guard against corrupted tga files Fixes TALOS-2023-1707 /
       CVE-2023-24473, TALOS-2023-1708 / CVE-2023-22845. #3768 (2.5.1.0/2.4.8.1)
 * TIFF:
     - Guard against corrupt files with buffer overflows. (TALOS-2022-1627,
-      CVE-2022-41977) #3628 (2.4.5/2.5.0.0)
+      CVE-2022-41977) [#3628](https://github.com/OpenImageIO/oiio/pull/3628) (2.4.5/2.5.0.0)
     - Guard against buffer overflow for certain CMYK files. (TALOS-2022-1633,
-      CVE-2022-41639) (TALOS-2022-1643, CVE-2022-41988) #3632 (2.4.5/2.5.0.0)
+      CVE-2022-41639) (TALOS-2022-1643, CVE-2022-41988)
+      [#3632](https://github.com/OpenImageIO/oiio/pull/3632) (2.4.5/2.5.0.0)
     - While building against the new libtiff 4.5, use its new per-tiff error
       handlers to ensure better thread safety. #3719 (2.5.0.0/2.4.8.0)
     - Better logic for making TIFF PhotometricInterpretation tag and
       oiio:ColorSpace metadata correspond to each other correctly for TIFF
-      files. #3746 (2.5.0.1)
+      files. [#3746](https://github.com/OpenImageIO/oiio/pull/3746) (2.5.0.1)
     - Fix: race condition in TIFF reader, fixes TALOS-2023-1709 /
       CVE-2023-24472. #3772 (2.5.1.0/2.4.8.1)
     - Disable writing TIFF files with JPEG compression -- it never worked
@@ -314,11 +376,16 @@ Release 2.5 (summer 2023?) -- compared to 2.4
 * Zfile:
     - Zfile write safety, fixes TALOS-2022-1657 / CVE-2022-43603. #3670
       (2.4.6/2.5.0.0)
-* Exif / TIFF/JPEG/PSD: Fix EXIF bugs where corrupted exif blocks could
-  overrun memory. (TALOS-2022-1626, CVE-2022-41794) (TALOS-2022-1632,
-  CVE-2022-41684) (TALOS-2022-1636 CVE-2022-41837) #3627 (2.4.5/2.5.0.0)
-* Exif / TIFF/JPEG/PSD: Fix typo that prevented us from correctly naming Exif
-  "CameraElevationAngle" metadata. #3783 (2.4.10.0/2.5.1.0)
+* Exif (all formats that support it, TIFF/JPEG/PSD):
+    - Fix EXIF bugs where corrupted exif blocks could overrun memory.
+      (TALOS-2022-1626, CVE-2022-41794) (TALOS-2022-1632, CVE-2022-41684)
+      (TALOS-2022-1636 CVE-2022-41837) #3627 (2.4.5/2.5.0.0)
+    - Fix typo that prevented us from correctly naming Exif
+      "CameraElevationAngle" metadata.
+      [#3783](https://github.com/OpenImageIO/oiio/pull/3783) (by Fabien
+      Castan) (2.4.10.0/2.5.1.0)
+    - Convert paramvalue string to integer when needed [#3886](https://github.com/OpenImageIO/oiio/pull/3886) (by Fabien Servant @ TCS) (2.5.2.0)
+    - Squash some alignment problems caught by ubsan [#3646](https://github.com/OpenImageIO/oiio/pull/3646)
 * Fix missing OIIO::getattribute support for `limits:channels` and
   `limits:imagesize_MB`. #3617 (2.4.5/2.5.0.0)
 * IBA::render_text and `oiiotool --text` now can find ".ttc" font files. #3633
@@ -329,12 +396,14 @@ Release 2.5 (summer 2023?) -- compared to 2.4
   (2.5.1.0)
 * Improve searching for fonts for the text rendering functionality. #3802
   #3803 (2.5.1.0)
-- *OpenCV*: Improve OpenCV support -- errors, version, half
+* Improve OpenCV support -- errors, version, half
   [#3853](https://github.com/OpenImageIO/oiio/pull/3853)  (2.5.2.0)
-- Prevent possible deadlock when reading files with wrong extensions
+* Prevent possible deadlock when reading files with wrong extensions
   [#3845](https://github.com/OpenImageIO/oiio/pull/3845) 
+* Wait for terminated threads to join in thread_pool::Impl::resize [#3879](https://github.com/OpenImageIO/oiio/pull/3879) (by Ray Molenkamp)
 
 ### 🔧  Internals and developer goodies
+
 * filesystem.h:
     - Add an optional size parameter to `read_text_file()` to limit the
       maximum size that will be allocated and read (default to a limit of
@@ -347,25 +416,31 @@ Release 2.5 (summer 2023?) -- compared to 2.4
     - IOMemReader::pread now detects and correctly handles out-of-range
       read positions. #3712 (2.4.7/2.5.0.0)
 * fmath.h:
-    - Fix a wrong result with `fast_exp2()` with MSVS and sse4.2. #3804
+    - Fix a wrong result with `fast_exp2()` with MSVS and sse4.2.
+      [#3804](https://github.com/OpenImageIO/oiio/pull/3804) (by Eric Mehl)
       (2.5.1.0/2.4.11)
 * platform.h:
     - New macros for detecting MSVS 2019 and 2022. #3727 (2.5.0.0/2.4.8.0)
 * simd.h:
     - Fixes to ensure safe compilation for Cuda. #3810 (2.5.1.0/2.4.11)
+    - Fix sense of hiding deprecated type names [#3870](https://github.com/OpenImageIO/oiio/pull/3870) (2.5.2.0)
+    - Fix broken OIIO_NO_NEON definition [#3911](https://github.com/OpenImageIO/oiio/pull/3911)
 * span.h:
     - `cspan<>` template now allows for Extent template argument (as `span<>`
       already did). #3685 (2.5.0.0)
     - New custom fmt formatter can print spans. #3685 (2.5.0.0)
+* string_view.h:
+    - Avoid sanitizer warning unsigned integer overflow [#3678](https://github.com/OpenImageIO/oiio/pull/3678)(by wayne-arnold-adsk)
 * strutil.h:
     - Add a new flavor of `utf16_to_utf8()` to convert between std::u16string
       and std::string (UTF-8 encoded). Note the contrast between this and the
       existing flavor that takes a `std::wstring` with UTF-16 encoding
       (`std::wchar/wstring` is not guaranteed to 16 bits on all platforms, but
       `u16char/u16string` is). #3553 (2.5.0.0)
-    - New `trimmed_whitspace()`. #3636 (2.4.5/2.5.0.0)
-    - *strutil*: Use forward properly for sync::print().
+    - New `trimmed_whitspace()`. [#3636](https://github.com/OpenImageIO/oiio/pull/3636) (2.4.5/2.5.0.0)
+    - Use std::forward properly for sync::print().
       [#3825](https://github.com/OpenImageIO/oiio/pull/3825)  (2.5.2.0)
+    - Ensure proper constexpr of string hashing [#3901](https://github.com/OpenImageIO/oiio/pull/3901)
 * timer.h:
     - Minor improvements to Timer and LoggedTimer classes. #3753 (2.5.0.1)
 * tiffutils.h:
@@ -383,13 +458,17 @@ Release 2.5 (summer 2023?) -- compared to 2.4
     - Ensure that ustring hashes are always 64 bits, even on 32-bit
       architectures. #3606 (2.5.0.0)
     - Ensure safe use of this header from Cuda. #3718 (2.4.7/2.5.0.0)
-    - ustringhash: Make an explicit constructor from a hash value. #3778
-      (2.4.9.0/2.5.1.0)
+    - ustringhash: Make an explicit constructor from a hash value.
+      [#3778](https://github.com/OpenImageIO/oiio/pull/3778) (2.4.9.0/2.5.1.0)
+    - String literal operator for ustring and ustringhash
+      [#3939](https://github.com/OpenImageIO/oiio/pull/3939) (2.5.3.0)
 * Safety: excise the last instances of unsafe sprintf. #3705 (2.5.0.0)
-- Root out stray uses of deprecated simd type names; `OIIO_DISABLE_DEPRECATED`
+* Root out stray uses of deprecated simd type names; `OIIO_DISABLE_DEPRECATED`
   [#3830](https://github.com/OpenImageIO/oiio/pull/3830)  (2.5.2.0)
+* Convert iconvert.cpp stream io and sprintf to modern [#3925](https://github.com/OpenImageIO/oiio/pull/3925)
 
 ### 🏗  Build/test/CI and platform ports:
+
 * CMake build system and scripts:
     - It is now possible to `-DOpenImageIO_VERSION` to override the version
       number being built (use with extreme caution). #3549 #3653 (2.5.0.0)
@@ -402,11 +481,16 @@ Release 2.5 (summer 2023?) -- compared to 2.4
       #3739 (2.4.7.1/2.5.0.0)
     - New CMake cache variable `OIIO_DISABLE_BOOST_STACKTRACE` to disable the
       stacktrace functionality for users who want to avoid the Boost
-      stacktrace library. #3777 (2.4.9.0/2.5.1.0)
+      stacktrace library. #3777 (by jreichel-nvidia) (2.4.9.0/2.5.1.0)
     - Check need for libatomic with check_cxx_source_compiles instead of the
       more expensive check_cxx_source_runs. #3774 (2.4.9.0/2.5.1.0)
     - Fix incorrect CMake variable name to control symbol visibility
       [#3834](https://github.com/OpenImageIO/oiio/pull/3834)  (2.5.2.0)
+    -  Make sure use of `${PROJECT_NAME}` doesn't occur before the call to
+       `project()`. [#3651](https://github.com/OpenImageIO/oiio/pull/3651)
+    - Fix use of OIIO_LOCAL_DEPS_PATH [#3865](https://github.com/OpenImageIO/oiio/pull/3865)
+    - Added check for Boost_NO_BOOST_CMAKE, ignore if already set
+      [#3961](https://github.com/OpenImageIO/oiio/pull/3961) (by Mikael Sundell) (2.5.3.0)
 * Dependency version support:
     - Support for OpenColorIO 2.2. #3644 (2.5.0.0)
     - New CMake option `INTERNALIZE_FMT` (default ON), if set to OFF, will
@@ -414,74 +498,166 @@ Release 2.5 (summer 2023?) -- compared to 2.4
       necessary fmt headers into the OIIO include area. #3598 (2.4.7/2.5.0.0)
     - build_libtiff.bash changed to build shared library by default. #3586
       (2.5.0.0)
-    - build_openexr.bash changed to build v3.1.5 by default. #3703 (2.5.0.0)
+    - build_openexr.bash changed to build v3.1.5 by default. #3703 (by Michael Oliver) (2.5.0.0)
     - Qt6 support for iv. #3779 (2.4.9.0/2.5.1.0)
     - Fmt 10.0 support [#3836](https://github.com/OpenImageIO/oiio/pull/3836) (2.5.2.0)
-    - Ffmpeg 6.0 support [#3812](https://github.com/OpenImageIO/oiio/pull/3812)  (2.5.2.0)
+    - FFmpeg 6.0 support [#3812](https://github.com/OpenImageIO/oiio/pull/3812)  (2.5.2.0)
     - Disable new warning for fmt headers in gcc13
       [#3827](https://github.com/OpenImageIO/oiio/pull/3827)  (2.5.2.0)
+    - Raise minimum CMake dependency from 3.12 to 3.15 [#3924](https://github.com/OpenImageIO/oiio/pull/3924) (2.5.2.0)
+    - Raise minimum libraw to 0.18 [#3921](https://github.com/OpenImageIO/oiio/pull/3921) (2.5.2.0)
+    - Raise OpenEXR minimum from 2.3 to 2.4 [#3928](https://github.com/OpenImageIO/oiio/pull/3928) (2.5.2.0)
+    - Fix WebP linking if CMAKE_FIND_PACKAGE_PREFER_CONFIG is ON [#3863](https://github.com/OpenImageIO/oiio/pull/3863) (by Benjamin Buch)
+    - Find OpenEXR equally well with our FindOpenEXR and exr's exported config
+      file [#3862](https://github.com/OpenImageIO/oiio/pull/3862) (by Benjamin
+      Buch)
+    - Fix fmt vs gcc warning that had version typo [#3874](https://github.com/OpenImageIO/oiio/pull/3874)
+    - Fix broken libheif < 1.13 [#3970](https://github.com/OpenImageIO/oiio/pull/3970) (2.5.3.0)
 * Testing and Continuous integration (CI) systems:
     - Restored sanitizer tests which had been inadvertently disabled. #3545
       (2.5.0.0)
     - Added tests for undefined behavior sanitizer. #3565 (2.5.0.0)
     - Added tests or improved test coverage for Cineon files #3607, iinfo
       #3605 #3613 #3688 #3706, texture statistics #3612, oiiotool unit tests
-      #3616, oiiotool expression substitution #3636, various oiiotool #3637
-      #3643 #3649, oiiotool control flow #3643, oiiotool sequence errors and
-      selecting out of range subimages or mip levels #3649, Strutil
+      #3616, oiiotool expression substitution #3636, various oiiotool #3626
+      #3637 #3643 #3649, oiiotool control flow #3643, oiiotool sequence errors
+      and selecting out of range subimages or mip levels #3649, Strutil
       functionality #3655, ImageCache #3654, environment mapping #3694,
       texture3d #3699, term output #3714, igrep #3715, oiiotool --pdiff #3723,
-      zover, fixnan for deep images, 2D filters #3730, pbm files #3731,
-      maketx --lightprobe #3732 (2.5.0.0), TypeDesc::tostring, python
-      ImageCache and ImageBuf #3745, maketx #3748 (2.5.0.1), ImageBufAlgo
-      python functions #3766 (2.5.1.0).
+      zover, fixnan for deep images, 2D filters #3730, pbm files #3731, maketx
+      --lightprobe #3732 (2.5.0.0), TypeDesc::tostring, python ImageCache and
+      ImageBuf #3745, maketx #3748 (2.5.0.1), ImageBufAlgo python functions
+      #3766 (2.5.1.0), etc. #3745
     - Make testsuite/oiiotool-control run much faster by combining commands
       into fewer oiiotool invocations (speeds up testsuite) #3618 (2.5.0.0)
     - CI color related tests use the OCIO buit-in configs, when OCIO 2.2+ is
       available. #3662 (2.5.0.0)
-    - *ci*: Fix warnings
-      [#3833](https://github.com/OpenImageIO/oiio/pull/3833)  (2.5.2.0)
-    - *ci*: Fix package name for icc
-      [#3860](https://github.com/OpenImageIO/oiio/pull/3860)  (2.5.2.0)
+    - Fix compiler warnings [#3833](https://github.com/OpenImageIO/oiio/pull/3833)  (2.5.2.0)
+    - Fix package name for icc [#3860](https://github.com/OpenImageIO/oiio/pull/3860)  (2.5.2.0)
     - Change the few symbolic links to copies to help Windows
       [#3818](https://github.com/OpenImageIO/oiio/pull/3818)  (2.5.2.0)
     - Fix incorrect branch name when cloning openexr-images for the tests
       [#3814](https://github.com/OpenImageIO/oiio/pull/3814)  (2.5.2.0) (by
       Jesse Y) 
+    - Sonar analysis should exclude stb_sprintf.h [#3609](https://github.com/OpenImageIO/oiio/pull/3609)
+    - Eliminate xxhash and farmhash code from coverage analysis [#3621](https://github.com/OpenImageIO/oiio/pull/3621)
+    - No longer add the ppa:ubuntu-toolchain-r/test repository [#3671](https://github.com/OpenImageIO/oiio/pull/3671)
+    - Test against latest webp, and deal with its master->main repo change [#3695](https://github.com/OpenImageIO/oiio/pull/3695)
+    - Fix broken Mac CI with proper numpy install [#3702](https://github.com/OpenImageIO/oiio/pull/3702)
+    - Lock down to older icc so it's not broken [#3744](https://github.com/OpenImageIO/oiio/pull/3744)
+    - Updates to runners, dependencies [#3786](https://github.com/OpenImageIO/oiio/pull/3786)
+    - Bump 'latest versions' test to the newest openexr release [#3796](https://github.com/OpenImageIO/oiio/pull/3796)
+    - Fix broken heif dependency and test [#3894](https://github.com/OpenImageIO/oiio/pull/3894)
+    - Add test with new aswf containers for VFX Platform 2023 [#3875](https://github.com/OpenImageIO/oiio/pull/3875)
+    - Simplify build_llvm.bash script [#3892](https://github.com/OpenImageIO/oiio/pull/3892)
+    - Get rid of long-unused install_test_images.bash [#3895](https://github.com/OpenImageIO/oiio/pull/3895)
+    - Test against pybind11 v2.11 [#3912](https://github.com/OpenImageIO/oiio/pull/3912)
+    - Lock down icx version [#3929](https://github.com/OpenImageIO/oiio/pull/3929)
+    - Fix missing simd test due to copy paste typo [#3896](https://github.com/OpenImageIO/oiio/pull/3896)
+    - Bump build_openexr and build_opencolorio defaults to latest versions [#3920](https://github.com/OpenImageIO/oiio/pull/3920)
+    - Test both openexr old and core versions [#3604](https://github.com/OpenImageIO/oiio/pull/3604)
+    - Add benchmarking of strutil.h ways to concatenate strings. [#3787](https://github.com/OpenImageIO/oiio/pull/3787)
+    - Make timer_test more robust [#3953](https://github.com/OpenImageIO/oiio/pull/3953) (2.5.3.0)
 * Platform support:
-    - MinGW: fix incorrect symbol visibility issue for ImageBuf iterators.
-      #3578 (2.4.5/2.5.0.0)
     - Windows: protect against OpenEXR thread deadlock on shutdown. #3582
       (2.4.5/2.5.0.0)
     - Windows: Work around a static destruction order issue. #3591
       (2.4.5/2.5.0.0)
     - Windows: define `NOGDI` to keep the inclusion of windows.h from adding
-      as many unneeded symbols. #3596 (2.4.5/2.5.0.0)
-    - Windows: Stop including Windows.h from public OIIO headers. #3597
-      (2.5.0.0)
-    - ARM: improve SIMD operations for ARM NEON. #3599 (2.4.5/2.5.0.0)
+      as many unneeded symbols. [#3596](https://github.com/OpenImageIO/oiio/pull/3596) (by Aras Pranckevičius) (2.4.5/2.5.0.0)
+    - Windows: Stop including Windows.h from public OIIO headers. [#3597](https://github.com/OpenImageIO/oiio/pull/3597) (by Aras Pranckevičius) (2.5.0.0)
+    - Windows: Fix windows.h pre-definitions
+      [#3965](https://github.com/OpenImageIO/oiio/pull/3965) (2.5.3.0)
     - Windows on ARM64 build fixes. #3690 (2.4.6/2.5.0.0)
+    - Windows: Fix unresolved external symbol for MSVS 2017.
+      [#3763](https://github.com/OpenImageIO/oiio/pull/3763) (by Latios96) (2.5.0.1)
+    - Windows: Fix build error with MSVC [#3832](https://github.com/OpenImageIO/oiio/pull/3832)  (by Ray Molenkamp)  (2.5.2.0)
+    - MinGW: fix incorrect symbol visibility issue for ImageBuf iterators. #3578
     - Mac: Suppress warnings about deprecated std::codecvt on newest Apple
       clang. #3709 #3710 (2.4.7/2.5.0.0)
-    - ARM: Fix signed/unsigned mismatch compiler errors in vbool4 methods.
+    - Mac: Fixes to make a clean build using Apple Clang 11.0.
+      [#3795](https://github.com/OpenImageIO/oiio/pull/3795) (by johnfea) (2.4.10.0/2.5.1.0)
+    - Mac: Fixes for latest xcode on MacOS 13.3 Ventura [#3854](https://github.com/OpenImageIO/oiio/pull/3854)  (2.5.2.0)
+    - Mac: Suppress Xcode warnings [#3940](https://github.com/OpenImageIO/oiio/pull/3940) (by Anton Dukhovnikov) (2.5.3.0)
       #3722 (2.4.7/2.5.0.0)
+    - Mac: Fixes for latest xcode on MacOS 13.3 Ventura [#3854](https://github.com/OpenImageIO/oiio/pull/3854)  (2.5.2.0)
+    - Fixes to make a clean build on Mac using Apple Clang 11.0.
+    - ARM: Fix signed/unsigned mismatch compiler errors in vbool4 methods.
+    - ARM: improve SIMD operations for ARM NEON. #3599 (2.4.5/2.5.0.0)
+    - ARM: Fix signed/unsigned mismatch compiler errors in vbool4 methods.
     - ARM Mac: Fix build break. #3735 (2.5.0.0/2.4.7.1)
-    - Windows: Fix unresolved external symbol for MSVS 2017. #3763 (2.5.0.1)
-    - Fixes to make a clean build on Mac using Apple Clang 11.0. #3795
-      (2.4.10.0/2.5.1.0)
-    - Fixes to build properly on OpenBSD. #3808 (2.5.1.0/2.4.11)
-    - *Mac*: Fixes for latest xcode on MacOS 13.3 Ventura [#3854](https://github.com/OpenImageIO/oiio/pull/3854)  (2.5.2.0)
-    - Fix build error with MSVC [#3832](https://github.com/OpenImageIO/oiio/pull/3832)  (by Ray Molenkamp)  (2.5.2.0)
+    - Fixes to build properly on OpenBSD. [#3808](https://github.com/OpenImageIO/oiio/pull/3808) (by Brad Smith) (2.5.1.0/2.4.11)
+    - Squash warning in gcc 12.1 + C++20 [#3679](https://github.com/OpenImageIO/oiio/pull/3679)
+    - Work around problems with fmt library + NVPTX relating to unknown
+      float128 type. [#3823](https://github.com/OpenImageIO/oiio/pull/3823)
+      (by Edoardo Dominici)
+    - Silence gcc new/delete warnings for texturesys [#3944](https://github.com/OpenImageIO/oiio/pull/3944) (by Shootfast) (2.5.3.0)
 
 ### 📚  Notable documentation changes:
+
+- Docs: Better Windows build instructions in INSTALL.md. [#3602](https://github.com/OpenImageIO/oiio/pull/3602) (by Aras Pranckevičius) (2.4.5/2.5.0.0)
+- ImageInput and ImageOutput docs updated to Python 3. [#3866](https://github.com/OpenImageIO/oiio/pull/3866) (by Ziggy Cross)
+- Fix explanation of raw:Exposure config hint [#3889](https://github.com/OpenImageIO/oiio/pull/3889)
+- Many fixes to python code examples [#3869](https://github.com/OpenImageIO/oiio/pull/3869) (by Jesse Y)
+- Update ImageInput docs to not use deprecated APIs [#3907](https://github.com/OpenImageIO/oiio/pull/3907) (by Jesse Y)
+
+### 🏢  Project Administration
+
 - Added RELEASING.md documenting our versioning and release procedures #3564
-  #3580
-- Docs: Better Windows build instructions in INSTALL.md. #3602 (2.4.5/2.5.0.0)
-- Update CONTRIBUTING and SECURITY
-  [#3852](https://github.com/OpenImageIO/oiio/pull/3852)  (2.5.2.0)
+#3580
+- Update CONTRIBUTING and SECURITY [#3852](https://github.com/OpenImageIO/oiio/pull/3852)  (2.5.2.0)
+- Update mail list to https://lists.aswf.io/g/oiio-dev [#3880](https://github.com/OpenImageIO/oiio/pull/3880)
+- Add charter and other ASWF documents to the repo [#3850](https://github.com/OpenImageIO/oiio/pull/3850)
+- Document use of the DCO which is now required for all PRs [#3897](https://github.com/OpenImageIO/oiio/pull/3897)
+- Put logo on the main readme [#3927](https://github.com/OpenImageIO/oiio/pull/3927)
+- Remove old CLAs that are no longer in effect
+- Change open source license to Apache 2.0. #3899, #3903, #3904, #3906,
+    #3914, #3922, #3926, #3938, #3966.
+- Make sure README has links for slack and meetings [#3936](https://github.com/OpenImageIO/oiio/pull/3936)
+- Update pull request and issue templates [#3946](https://github.com/OpenImageIO/oiio/pull/3946)
+- Add Jesse Yurkovich to the TSC [#3937](https://github.com/OpenImageIO/oiio/pull/3937)
 
 
 
+Release 2.4.15.0 (1 Sep 2023) -- compared to 2.4.14.0
+-------------------------------------------------------
+- *bmp*: Fix signed integer overflow when computing total number of pixels [#3948](https://github.com/OpenImageIO/oiio/pull/3948)  (by xiaoxiaoafeifei)
+- *dds*: Fix div by 0 during DXT4 DDS load [#3959](https://github.com/OpenImageIO/oiio/pull/3959)  (by Jesse Yurkovich)
+- *rla*: Invalid read from an empty vector during RLA load [#3960](https://github.com/OpenImageIO/oiio/pull/3960)  (by Jesse Yurkovich)
+- *fix*:  Various protections against corrupted files [#3954](https://github.com/OpenImageIO/oiio/pull/3954)
+- *fix*: Improve Utf-8 text rendering [#3935](https://github.com/OpenImageIO/oiio/pull/3935)  (by Nicolas)
+- *fix*: Fix typo in debug output [#3956](https://github.com/OpenImageIO/oiio/pull/3956)  (by Jesse Yurkovich)
+- *ustring.h*: String literal operator for ustring and ustringhash [#3939](https://github.com/OpenImageIO/oiio/pull/3939)
+- *build* Suppress Xcode warnings [#3940](https://github.com/OpenImageIO/oiio/pull/3940)  (by Anton Dukhovnikov)
+- *build*: Silence gcc new/delete warnings for texturesys [#3944](https://github.com/OpenImageIO/oiio/pull/3944)  (by Shootfast)
+- *build* Added check for Boost_NO_BOOST_CMAKE, ignore if already set [#3961](https://github.com/OpenImageIO/oiio/pull/3961)  (by Mikael Sundell)
+- *build* Fix broken libheif < 1.13 [#3970](https://github.com/OpenImageIO/oiio/pull/3970)
+- *ci*: Make more robust timer_test [#3953](https://github.com/OpenImageIO/oiio/pull/3953)
+- *admin* Relicense code under Apache 2.0 [#3938](https://github.com/OpenImageIO/oiio/pull/3938) [#3966](https://github.com/OpenImageIO/oiio/pull/3966)
+
+Release 2.4.14.0 (1 Aug 2023) -- compared to 2.4.13.0
+-------------------------------------------------------
+- *ico*: IOProxy support for ICO input [#3919](https://github.com/OpenImageIO/oiio/pull/3919) (by jasonbaumeister)
+- *fix(psd)*: CMYK PSD files now copy alpha correctly [#3918](https://github.com/OpenImageIO/oiio/pull/3918) (by jasonbaumeister)
+- *fix(python)*: Fix arithmetic overflow in oiio_bufinfo (Python interop) [#3931](https://github.com/OpenImageIO/oiio/pull/3931) (by Jesse Yurkovich)
+- *build*: Fix WebP linking if CMAKE_FIND_PACKAGE_PREFER_CONFIG is ON
+  [#3863](https://github.com/OpenImageIO/oiio/pull/3863) (by Benjamin Buch)
+- *build*: Find OpenEXR equally well with our FindOpenEXR and exr's exported
+  config file [#3862](https://github.com/OpenImageIO/oiio/pull/3862) (by Benjamin Buch)
+- *build*: Fix broken OIIO_NO_NEON definition [#3911](https://github.com/OpenImageIO/oiio/pull/3911)
+- *ci*: Lock down icx version [#3929](https://github.com/OpenImageIO/oiio/pull/3929)
+- *ci*: Bump build_openexr and build_opencolorio defaults to latest versions [#3920](https://github.com/OpenImageIO/oiio/pull/3920)
+- *admin*: Update mail list to https://lists.aswf.io/g/oiio-dev
+  [#3880](https://github.com/OpenImageIO/oiio/pull/3880)
+- *admin*: Add charter and other ASWF documents to the repo
+  [#3850](https://github.com/OpenImageIO/oiio/pull/3850)
+- *admin*: Document use of the DCO which is now required for all PRs
+  [#3897](https://github.com/OpenImageIO/oiio/pull/3897)
+- *admin*: Put logo on the main readme
+  [#3927](https://github.com/OpenImageIO/oiio/pull/3927)
+- *admin*: Remove old CLAs that are no longer in effect
+- *admin*: Change open source license to Apache 2.0. #3899, #3903, #3904,
+  #3906, #3914, #3922, #3926.
 
 Release 2.4.13.0 (1 July 2023) -- compared to 2.4.12.0
 -------------------------------------------------------
@@ -510,7 +686,7 @@ Release 2.4.13.0 (1 July 2023) -- compared to 2.4.12.0
 Release 2.4.12.0 (1 June 2023) -- compared to 2.4.11.1
 ------------------------------------------------------
 - *oiiotool*: Don't propagate unsupported channels [#3838](https://github.com/OpenImageIO/oiio/pull/3838)
-- Improvements to performance and memory when making very large textures [#3829](https://github.com/OpenImageIO/oiio/pull/3829)
+- *oiiotool*: Improvements to performance and memory when making very large textures [#3829](https://github.com/OpenImageIO/oiio/pull/3829)
 - *fix*: Prevent possible deadlock when reading files with wrong extensions [#3845](https://github.com/OpenImageIO/oiio/pull/3845)
 - *gif*: Prevent possible heap buffer overflow [#3841](https://github.com/OpenImageIO/oiio/pull/3841)  (by xiaoxiaoafeifei)
 - *psd*: Improve memory efficiency of PSD read [#3807](https://github.com/OpenImageIO/oiio/pull/3807)
@@ -521,7 +697,6 @@ Release 2.4.12.0 (1 June 2023) -- compared to 2.4.11.1
 - *build*: Fix build error with MSVC [#3832](https://github.com/OpenImageIO/oiio/pull/3832)  (by Ray Molenkamp)
 - *ci*: Fix warnings [#3833](https://github.com/OpenImageIO/oiio/pull/3833)
 - *ci*: Fix package name for icc [#3860](https://github.com/OpenImageIO/oiio/pull/3860)
-
 
 Release 2.4.11.1 (14 May 2023) -- compared to 2.4.11.0
 ------------------------------------------------------
@@ -534,7 +709,7 @@ Release 2.4.11.0 (1 May 2023) -- compared to 2.4.10.0
 * Python: Improve error messages when passing wrong python array sizes. #3801
 * Raw: handle 1-channel raw images. #3798
 * HEIC: Support the ".hif" extension, which seems to be used by some Canon
-  cameras instead of .heif. #3813
+  cameras instead of .heif. [#3813](https://github.com/OpenImageIO/oiio/pull/3813)(by AdamMainsTL)
 * PSD: Fix problems reading images with width > 64k pixels. #3806
 * Windows/fmath: Work around MSVS bug(?) that generated wrong code for
   fast_exp2. #3804
@@ -543,7 +718,7 @@ Release 2.4.11.0 (1 May 2023) -- compared to 2.4.10.0
   (including Cuda compiles). #3814
 * Build: Fix building against new ffmpeg 6.0. #3812
 * Build: Work around problems with fmt library + NVPTX relating to unknown
-  float128 type. #3823
+  float128 type. [#3823](https://github.com/OpenImageIO/oiio/pull/3823) (by Edoardo Dominici)
 * CI/test: Fix incorrect branch name when cloning openexr-images for the
   testsuite. #3814
 * Test: Use copies instead of symlinks in a couple spots to help on Windows.
@@ -654,9 +829,10 @@ Release 2.4.6 (1 Dec 2022) -- compared to 2.4.5.0
 * IFF files: Add IOProxy support. #3647
 * IFF: Fix possible write errors, fixes TALOS-2022-1654 / CVE-2022-43596,
   TALOS-2022-1655 / CVE-2022-43597 CVE-2022-43598, TALOS-2022-1656 /
-  CVE-2022-43599 CVE-2022-43600 CVE-2022-43601 CVE-2022-43602 #3676
+  CVE-2022-43599 CVE-2022-43600 CVE-2022-43601 CVE-2022-43602
+  [#3676](https://github.com/OpenImageIO/oiio/pull/3676)
 * PSD: Fix thumbnail extraction. #3668
-* PSD: when reading, don't reject padded thumbnails. #3677
+* PSD: when reading, don't reject padded thumbnails. [#3677](https://github.com/OpenImageIO/oiio/pull/3677)
 * Raw: Update Exif orientation if user flip is set. #3669
 * Zfile write safety, fixes TALOS-2022-1657 / CVE-2022-43603. #3670
 * filesystem.h: new `Filesystem::is_executable()` and `find_program()`. #3638
@@ -1374,7 +1550,7 @@ Build/test system improvements and platform ports:
       components to the path. #3487 (2.4.2.1)
     - On MacOS, do not force MACOS_RPATH on. #3523 (2.4.2.2)
     - Improvements to the generated cmake config files when building static
-      libraries. #3552 #3557 (2.4.4.0)
+      libraries. #3552 #3557 (by Povilas Kanapickas) (2.4.4.0)
 * Dependency version support:
     - When using C++17, use std::gcd instead of boost. #3076 (2.4.0)
     - When using C++17, use `inline constexpr` instead of certain statics.
@@ -1399,6 +1575,7 @@ Build/test system improvements and platform ports:
     - Fixes for ffmpeg 5.1 detection. #3516 (2.3.19.0/2.4.2.2)
     - Support for gcc 12.1. #3480 (2.4.2.1) #3551 (2.4.4.0)
     - Support building with clang 15.0. #3563 (2.4.4.0)
+    - Try FORTIFY_SOURCE [#3575](https://github.com/OpenImageIO/oiio/pull/3575)
 * Testing and Continuous integration (CI) systems:
     - Properly test against all the versions of VFX Platform 2022. #3074
       (2.4.0)
@@ -1438,8 +1615,8 @@ Build/test system improvements and platform ports:
     - Improved simd.h support for armv7 and aarch32. #3361 (2.4.1.0/2.3.14)
     - Suppress MacOS wasnings about OpenGL deprecation. #3380 (2.4.1.0/2.3.14)
     - Fix MSVS/Windows errors. #3382 (2.4.1.1)
-    - Fix cross-compiling on Android failing due to `-latomic` check. #3560
-      (2.4.4.0)
+    - Fix cross-compiling on Android failing due to `-latomic` check.
+      [#3560](https://github.com/OpenImageIO/oiio/pull/3560) (by Povilas Kanapickas) (2.4.4.0)
     - Fix building on iOS. #3562 (2.4.4.0)
 
 Notable documentation changes:
