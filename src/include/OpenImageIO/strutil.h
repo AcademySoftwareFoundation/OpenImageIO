@@ -127,11 +127,7 @@ template<typename Str, typename... Args>
 OIIO_NODISCARD
 inline std::string format(const Str& fmt, Args&&... args)
 {
-#if FMT_VERSION >= 70000
     return ::fmt::vformat(fmt, ::fmt::make_format_args(args...));
-#else
-    return ::fmt::format(fmt, args...);
-#endif
 }
 } // namespace fmt
 

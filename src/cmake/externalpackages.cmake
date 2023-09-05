@@ -317,7 +317,7 @@ endmacro()
 option (BUILD_FMT_FORCE "Force local download/build of fmt even if installed" OFF)
 option (BUILD_MISSING_FMT "Local download/build of fmt if not installed" ON)
 option (INTERNALIZE_FMT "Copy fmt headers into <install>/include/OpenImageIO/detail/fmt" ON)
-set (BUILD_FMT_VERSION "9.0.0" CACHE STRING "Preferred fmtlib/fmt version, when downloading/building our own")
+set (BUILD_FMT_VERSION "10.0.0" CACHE STRING "Preferred fmtlib/fmt version, when downloading/building our own")
 
 macro (find_or_download_fmt)
     # If we weren't told to force our own download/build of fmt, look
@@ -350,7 +350,8 @@ macro (find_or_download_fmt)
     else ()
         set (OIIO_USING_FMT_LOCAL FALSE)
     endif ()
-    checked_find_package (fmt REQUIRED)
+    checked_find_package (fmt REQUIRED
+                          VERSION_MIN 7.0)
 endmacro()
 
 find_or_download_fmt()
