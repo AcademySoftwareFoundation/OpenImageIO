@@ -5,6 +5,7 @@
 #pragma once
 #define OIIO_FMT_H
 
+#include <OpenImageIO/dassert.h>
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/type_traits.h>
 
@@ -16,6 +17,14 @@
 // Disable fmt exceptions
 #ifndef FMT_EXCEPTIONS
 #    define FMT_EXCEPTIONS 0
+#endif
+
+// Redefining FMT_THROW to something benign seems to avoid some UB or possibly
+// gcc 11+ compiler bug triggered by the definition of FMT_THROW in fmt 10.1+
+// when FMT_EXCEPTIONS=0, which results in mangling SIMD math. This nugget
+// below works around the problems for hard to understand reasons.
+#if !defined(FMT_THROW) && OIIO_GNUC_VERSION >= 110000
+#    define FMT_THROW(x) OIIO_ASSERT_MSG(0, "fmt exception: %s", (x).what())
 #endif
 
 // Use the grisu fast floating point formatting for old fmt versions
