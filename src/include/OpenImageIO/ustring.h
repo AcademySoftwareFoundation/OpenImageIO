@@ -1051,10 +1051,6 @@ OIIO_DEVICE_CONSTEXPR ustringhash operator""_ush(const char* str,
 /// Deprecated -- This is too easy to confuse with the ustringhash class. And
 /// also it is unnecessary if you use std::hash<ustring>. This will be removed
 /// in OIIO 3.0.
-#    if OIIO_VERSION_GREATER_EQUAL(2, 6, 0)
-OIIO_DEPRECATED("Use std::hash<ustring> instead of ustringHash")
-#    endif
-
 using ustringHash = std::hash<ustring>;
 #endif
 
