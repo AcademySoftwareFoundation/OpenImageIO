@@ -18,42 +18,19 @@ to a file:
 
 .. tabs::
 
-    .. code-tab:: c++
+   .. tab:: C++
+      .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imageoutput.cpp
+          :language: c++
+          :start-after: BEGIN-imageoutput-simple
+          :end-before: END-imageoutput-simple
 
-       #include <OpenImageIO/imageio.h>
-       using namespace OIIO;
-       ...
+   .. tab:: Python
 
-       const char *filename = "foo.jpg";
-       const int xres = 640, yres = 480;
-       const int channels = 3;  // RGB
-       unsigned char pixels[xres * yres * channels];
+      .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imageoutput.py
+          :language: py
+          :start-after: BEGIN-imageoutput-simple
+          :end-before: END-imageoutput-simple
 
-       std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
-       if (! out)
-           return;
-       ImageSpec spec (xres, yres, channels, TypeDesc::UINT8);
-       out->open (filename, spec);
-       out->write_image (TypeDesc::UINT8, pixels);
-       out->close ();
-
-    .. code-tab:: py
-
-       import OpenImageIO as oiio
-       import numpy as np
-
-       filename = "foo.jpg"
-       xres = 640
-       yres = 480
-       channels = 3  # RGB
-       pixels = np.zeros((yres, xres, channels), dtype=np.uint8)
-
-       out = oiio.ImageOutput.create (filename)
-       if out:
-           spec = oiio.ImageSpec(xres, yres, channels, 'uint8')
-           out.open (filename, spec)
-           out.write_image (pixels)
-           out.close ()
 
 This little bit of code does a surprising amount of useful work:
 
@@ -73,7 +50,7 @@ This little bit of code does a surprising amount of useful work:
         out = ImageOutput.create (filename)
 
 * Open the file, write the correct headers, and in all other important ways
-  prepare a file with the given dimensions (640 x 480), number of color
+  prepare a file with the given dimensions (320 x 240), number of color
   channels (3), and data format (unsigned 8-bit integer).
 
   .. tabs::
@@ -172,33 +149,26 @@ time, one tile at a time, or by individual rectangles.
 Writing individual scanlines
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Individual scanlines may be written using the ``writescanline()`` API call:
+Individual scanlines may be written using the ``write_scanline()`` API call:
 
 .. tabs::
 
-   .. code-tab:: c++
+   .. tab:: C++
+      .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imageoutput.cpp
+          :language: c++
+          :start-after: BEGIN-imageoutput-scanlines
+          :end-before: END-imageoutput-scanlines
+          :dedent: 4
 
-      unsigned char scanline[xres*channels];
-      out->open (filename, spec);
-      int z = 0;   // Always zero for 2D images
-      for (int y = 0;  y < yres;  ++y) {
-          ... generate data in scanline[0..xres*channels-1] ...
-          out->write_scanline (y, z, TypeDesc::UINT8, scanline);
-      }
-      out->close ();
+   .. tab:: Python
 
-   .. code-tab:: py
+      .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imageoutput.py
+          :language: py
+          :start-after: BEGIN-imageoutput-scanlines
+          :end-before: END-imageoutput-scanlines
+          :dedent: 8
 
-      out.open (filename, spec)
-      z = 0   # Always zero for 2D images
-      for y in range(yres) :
-          # generate data in scanline[0..xres*channels-1] ...
-          scanline = ...
-          out.write_scanline (y, z, scanline)
-      }
-      out.close ()
-
-The first two arguments to ``writescanline()`` specify which scanline is
+The first two arguments to ``write_scanline()`` specify which scanline is
 being written by its vertical (*y*) scanline number (beginning with 0)
 and, for volume images, its slice (*z*) number (the slice number should
 be 0 for 2D non-volume images).  This is followed by a `TypeDesc`
@@ -212,7 +182,7 @@ All ``ImageOutput`` implementations will accept scanlines in strict order
 any).  See Section :ref:`sec-imageoutput-random-access-pixels` for details
 on out-of-order or repeated scanlines.
 
-The full description of the ``writescanline()`` function may be found
+The full description of the ``write_scanline()`` function may be found
 in Section :ref:`sec-imageoutput-class-reference`.
 
 Writing individual tiles
@@ -220,7 +190,7 @@ Writing individual tiles
 
 Not all image formats (and therefore not all ``ImageOutput``
 implementations) support tiled images.  If the format does not support
-tiles, then ``writetile()`` will fail.  An application using OpenImageIO
+tiles, then ``write_tile()`` will fail.  An application using OpenImageIO
 should gracefully handle the case that tiled output is not available for
 the chosen format.
 
@@ -297,7 +267,7 @@ individual plugin.
               out.write_tile (x, y, z, tile)
       out.close ()
 
-The first three arguments to ``writetile()`` specify which tile is being
+The first three arguments to ``write_tile()`` specify which tile is being
 written by the pixel coordinates of any pixel contained in the tile: *x*
 (column), *y* (scanline), and *z* (slice, which should always be 0 for 2D
 non-volume images).  This is followed by a `TypeDesc` describing the data
@@ -311,7 +281,7 @@ All ``ImageOutput`` implementations that support tiles will accept tiles in
 strict order of increasing *y* rows, and within each row, increasing *x*
 column, without missing any tiles.  See
 
-The full description of the ``writetile()`` function may be found
+The full description of the ``write_tile()`` function may be found
 in Section :ref:`sec-imageoutput-class-reference`.
 
 Writing arbitrary rectangles
@@ -451,15 +421,15 @@ do not attempt to remap values, and do not clamp (except to their full
 floating-point range).
 
 
-It is not required that the pixel data passed to ``writeimage()``,
-``writescanline()``, ``writetile()``, or ``write_rectangle()`` actually be
+It is not required that the pixel data passed to ``write_image()``,
+``write_scanline()``, ``write_tile()``, or ``write_rectangle()`` actually be
 in the same data type as that requested as the native pixel data type of the
 file. You can fully mix and match data you pass to the various "write"
 routines and OpenImageIO will automatically convert from the internal format
 to the native file format.  For example, the following code will open a TIFF
 file that stores pixel data as 16-bit unsigned integers (values ranging from
 0 to 65535), compute internal pixel values as floating-point values, with
-``writeimage()`` performing the conversion automatically:
+``write_image()`` performing the conversion automatically:
 
 .. tabs::
 
@@ -484,7 +454,7 @@ file that stores pixel data as 16-bit unsigned integers (values ranging from
       out.write_image (pixels)
 
 
-Note that ``writescanline()``, ``writetile()``, and ``write_rectangle()``
+Note that ``write_scanline()``, ``write_tile()``, and ``write_rectangle()``
 have a parameter that works in a corresponding manner.
 
 
@@ -507,13 +477,13 @@ passed to the "write" functions are *contiguous*, that is:
 * for 3D volumetric images, the first pixel of slice *z* immediately
   follows the last pixel of of slice ``z-1``.
 
-Please note that this implies that data passed to ``writetile()`` be
+Please note that this implies that data passed to ``write_tile()`` be
 contiguous in the shape of a single tile (not just an offset into a whole
 image worth of pixels), and that data passed to ``write_rectangle()`` be
 contiguous in the dimensions of the rectangle.
 
-The ``writescanline()`` function takes an optional ``xstride`` argument, and
-the ``writeimage()``, ``writetile()``, and ``write_rectangle()`` functions
+The ``write_scanline()`` function takes an optional ``xstride`` argument, and
+the ``write_image()``, ``write_tile()``, and ``write_rectangle()`` functions
 take optional ``xstride``, ``ystride``, and ``zstride`` values that describe
 the distance, in *bytes*, between successive pixel columns, rows, and
 slices, respectively, of the data you are passing. For any of these values
@@ -1152,8 +1122,8 @@ specification of the subimages at the time you first open the file.
           out.write_image (pixels[s])
       out.close ()
 
-In both of these examples, we have used ``writeimage()``, but of course
-``writescanline()``, ``writetile()``, and ``write_rectangle()`` work as you
+In both of these examples, we have used ``write_image()``, but of course
+``write_scanline()``, ``write_tile()``, and ``write_rectangle()`` work as you
 would expect, on the current subimage.
 
 
@@ -1278,8 +1248,8 @@ used for texture mapping):
       out.close ()
 
 
-In this example, we have used ``writeimage()``, but of course
-``writescanline()``, ``writetile()``, and ``write_rectangle()`` work as you
+In this example, we have used ``write_image()``, but of course
+``write_scanline()``, ``write_tile()``, and ``write_rectangle()`` work as you
 would expect, on the current MIP level.
 
 

@@ -139,6 +139,7 @@ macro (oiio_add_all_tests)
     # Freestanding tests:
     oiio_add_tests (
                     cmake-consumer
+                    docs-examples-cpp
                     iinfo igrep
                     nonwhole-tiles
                     oiiotool
@@ -208,6 +209,7 @@ macro (oiio_add_all_tests)
     # libraries to run correctly.
     if (USE_PYTHON AND NOT BUILD_OIIOUTIL_ONLY AND NOT SANITIZE)
         oiio_add_tests (
+            docs-examples-python
             python-colorconfig
             python-deep 
             python-imagebuf
