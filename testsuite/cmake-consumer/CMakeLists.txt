@@ -21,6 +21,12 @@ set (CMAKE_CXX_EXTENSIONS OFF)
 # Make sure we have dependencies we need
 find_package (OpenImageIO CONFIG REQUIRED)
 
+# Special for OIIO testsuite when running in sanitize mode
+if (DEFINED ENV{SANITIZE})
+    add_compile_options (-fsanitize=$ENV{SANITIZE})
+    add_link_options (-fsanitize=$ENV{SANITIZE})
+endif()
+
 
 add_executable(consumer consumer.cpp)
 target_link_libraries (consumer
