@@ -31,11 +31,6 @@
 #include <OpenImageIO/thread.h>
 #include <OpenImageIO/ustring.h>
 
-#ifdef _WIN32
-#    include <shellapi.h>
-#    include <windows.h>
-#endif
-
 
 // We use the public domain stb implementation of vsnprintf because
 // not all platforms support a locale-independent version of vsnprintf.
