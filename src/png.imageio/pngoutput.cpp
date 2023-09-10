@@ -310,12 +310,11 @@ bool
 PNGOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
                           stride_t xstride)
 {
-    bool need_swap = (m_spec.format == TypeDesc::UINT16 && littleendian());
     y -= m_spec.y;
     m_spec.auto_stride(xstride, format, spec().nchannels);
     const void* origdata = data;
     data = to_native_scanline(format, data, xstride, m_scratch, m_dither, y, z);
-    if (data == origdata && (m_convert_alpha || need_swap)) {
+    if (data == origdata && (m_convert_alpha || m_need_swap)) {
         m_scratch.assign((unsigned char*)data,
                          (unsigned char*)data + m_spec.scanline_bytes());
         data = &m_scratch[0];
@@ -369,8 +368,7 @@ PNGOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
     size_t npixels = m_spec.width * (yend - ybegin);
     size_t nvals   = npixels * m_spec.nchannels;
     size_t nbytes  = nvals * m_spec.format.size();
-    bool need_swap = (m_spec.format == TypeDesc::UINT16 && littleendian());
-    if (data == origdata && (m_convert_alpha || need_swap)) {
+    if (data == origdata && (m_convert_alpha || m_need_swap)) {
         m_scratch.assign((unsigned char*)data, (unsigned char*)data + nbytes);
         data = m_scratch.data();
     }

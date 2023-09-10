@@ -1602,11 +1602,11 @@ control aspects of the writing itself:
        (``PNG_FILTER_PAETH``).
 
        **Important**: We have noticed that 8 (PNG_FILTER_NONE) is much
-       faster than the default of NO_FILTERS (someimes 3x or more faster),
-       but also makes larger resutling files are quite a bit larger (sometimes
-       2x larger). If you are need to optimize PNG write speed and are willing
-       to have larger PNG files on disk, you may want to use that value for
-       this attribute.
+       faster than the default of NO_FILTERS (sometimes 3x or more faster),
+       but also makes larger resulting files that are quite a bit larger
+       (sometimes 2x larger). If you need to optimize PNG write speed and
+       are willing to have larger PNG files on disk, you may want to use
+       that value for this attribute.
 
 **Custom I/O Overrides**
 
