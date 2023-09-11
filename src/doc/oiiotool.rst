@@ -916,8 +916,8 @@ output each one to a different file, with names `sub0001.tif`,
 
 .. option:: --cache <size>
 
-    Set the underlying ImageCache size (in MB). See Section
-    :ref:`sec-imagecache-api`.
+    Causes images to be read through an ImageCache and set the underlying
+    cache size (in MB). See Section :ref:`sec-imagecache-api`.
 
 .. option:: --oiioattrib <name> <value>
 
@@ -1264,29 +1264,30 @@ These are all non-positional flags that affect how all images are read in the
 
 .. option:: --native
 
-    Normally, all images read by :program:`oiiotool` are read into an
-    ImageBuf backed by an underlying ImageCache, and are automatically
+    Normally, all images read by :program:`oiiotool` are automatically
     converted to `float` pixels for internal storage (because any subsequent
     image processing is usually much faster and more accurate when done on
-    floating-point values).
+    floating-point values), and also if the `--cache` option is used, the
+    reading and storage of images will be mediated through an ImageCache.
 
-    This option causes (1) input images to be stored internally in their
-    native pixel data type rather than converted to float, and (2) to bypass
-    the ImageCache (reading directly into an ImageBuf) if the pixel data
-    type is not one of the types that is supported internally to ImageCache
-    (`UINT8`, `uint16`, `half`, and `float`).
+    The `--native` option causes input images to be stored internally in their
+    native pixel data type of th file rather than converted to float. Also,
+    even if the `--cache` option is used, reads will bypass the ImageCache
+    (reading directly into an ImageBuf) if the pixel data type is not one of
+    the types that is supported internally by ImageCache (`UINT8`, `uint16`,
+    `half`, and `float`).
 
-    images whose pixels are comprised of data types that are not natively
-    representable exactly in the ImageCache to bypass the ImageCache and be
-    read directly into an ImageBuf.
-
-    The typical use case for this is when you know you are dealing with
-    unusual pixel data types that might lose precision if converted to
-    `float` (for example, if you have images with `uint32` or `double`
-    pixels). Another use case is if you are using :program:`oiiotool` merely
-    for file format or data format conversion, with no actual image
-    processing math performed on the pixel values -- in that case, you might
-    save time and memory by bypassing the conversion to `float`.
+    There are three uses cases where `--native` might be very helpful: (a) If
+    you are using :program:`oiiotool` merely for file format or data format
+    conversion, with no actual image processing math performed on the pixel
+    values -- in that case, you might save time and memory by avoiding the
+    conversion to `float`. (b) If you are reading exceptionally large images
+    that have smaller data types than `float` (for example, `uint8` pixels),
+    and the only way to make the images fit in memory are to store them as
+    uint8 rather than converting to float (which takes 4 times as much space
+    in memory). (c) If you know the file has unusual pixel data types that
+    might lose precision if converted to `float` (for example, if you have
+    images with `uint32` or `double` pixels).
 
 .. option:: --autotile <tilesize>
 

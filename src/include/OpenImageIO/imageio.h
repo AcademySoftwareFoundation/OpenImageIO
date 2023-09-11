@@ -2994,6 +2994,11 @@ OIIO_API std::string geterror(bool clear = true);
 ///   to neither retrieve errors themselves nor have them printed in this
 ///   manner can disable the behavior by setting this attribute to 0.
 ///
+/// - `imagebuf:use_imagecache` (0)
+///
+///   If nonzero, an `ImageBuf` that references a file but is not given an
+///   ImageCache will read the image through the default ImageCache.
+///
 OIIO_API bool attribute(string_view name, TypeDesc type, const void* val);
 
 /// Shortcut attribute() for setting a single integer.
@@ -3058,6 +3063,21 @@ inline bool attribute (string_view name, string_view val) {
 ///   OpenImageIO can find, all the font files that OpenImageIO can find (with
 ///   full paths), and all the directories that OpenImageIO will search for
 ///   fonts.  (Added in OpenImageIO 2.5)
+///
+/// - int64_t IB_local_mem_current
+/// - int64_t IB_local_mem_peak
+///
+///   Current and peak size (in bytes) of how much memory was consumed by
+///   ImageBufs that owned their own allcoated local pixel buffers. (Added in
+///   OpenImageIO 2.5.)
+///
+/// - float IB_total_open_time
+/// - float IB_total_image_read_time
+///
+///   Total amount of time (in seconds) that ImageBufs spent opening
+///   (including reading header information) and reading pixel data from files
+///   that they opened and read themselves (that is, excluding I/O from IBs
+///   that were backed by ImageCach.  (Added in OpenImageIO 2.5.)
 ///
 /// - `string opencolorio_version`
 ///

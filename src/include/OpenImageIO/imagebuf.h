@@ -61,7 +61,7 @@ enum class InitializePixels { No = 0, Yes = 1 };
 /// the details of memory layout and data representation (translating
 /// to/from float automatically).
 ///
-/// ImageBuf makes an important simplification: all channels are just one
+/// ImageBuf makes an important simplification: all channels are the same
 /// data type. For example, if an image file on disk has a mix of `half` and
 /// `float` channels, the in-memory ImageBuf representation will be entirely
 /// `float` (for mixed data types, it will try to pick one that can best
@@ -76,21 +76,17 @@ enum class InitializePixels { No = 0, Yes = 1 };
 /// other than the first subimage of the file, or forcing the read to
 /// translate into a different data format than appears in the file).
 ///
-/// ImageBuf data coming from disk files is backed by ImageCache. That is,
-/// especially for tiled files, specific regions of the image will only
-/// be read if and when they are needed, and if there are many large
-/// ImageBuf's, memory holding pixels not recently accesssed will be
-/// automatically freed. Thus, performance of ImageBuf on very large images
-/// (or if there are many ImageBuf's simultaneously in use) can be sensitive
-/// to choices of the ImageCache parameters such as "autotile". It may be
-/// wise for maximum performance to explicitly `read()` (with `force=true`)
-/// small images into memory rather than using the ImageCache, in cases
-/// where your application has no need for the ImageCache features that
-/// limit memory footprint (such as if you know for sure that your app will
-/// only read a small number of images, of reasonable size, and will need
-/// to access all the pixels of all the images it reads).
+/// ImageBuf data coming from disk files may optionally be backed by
+/// ImageCache, by explicitly passing an `ImageCache*` to the ImageBuf
+/// constructor or `reset()` method (pass `ImageCache::create()` to get a
+/// pointer to the default global ImageCache), or by having previously set the
+/// global OIIO attribute `"imagebuf:use_imagecache"` to a nonzero value. When
+/// an ImageBuf is backed by ImageCache in this way, specific regions of the
+/// image will only be read if and when they are needed, and if there are many
+/// large ImageBuf's, memory holding pixels not recently accessed will be
+/// automatically freed if the cache size limit is reached.
 ///
-/// Writeable ImageBufs are always stored entirely in memory, and do not use
+/// Writable ImageBufs are always stored entirely in memory, and do not use
 /// the ImageCache or any other clever schemes to limit memory. If you have
 /// enough simultaneous writeable large ImageBuf's, you can run out of RAM.
 /// Note that if an ImageBuf starts as readable (backed by ImageCache), any
@@ -178,11 +174,8 @@ public:
     ///             The subimage and MIP level to read (defaults to the
     ///             first subimage of the file, highest-res MIP level).
     /// @param imagecache
-    ///             Optionally, a particular ImageCache to use. If nullptr,
-    ///             the default global/shared image cache will be used. If
-    ///             a custom ImageCache (not the global/shared one), it is
-    ///             important that the IC should not be destroyed while the
-    ///             ImageBuf is still alive.
+    ///             Optionally, an ImageCache to use, if possible, rather
+    ///             than reading the entire image file into memory.
     /// @param config
     ///             Optionally, a pointer to an ImageSpec whose metadata
     ///             contains configuration hints that set options related
@@ -393,7 +386,8 @@ public:
     ///             `LOCALPIXELS` storage buffer). Otherwise, it is up to
     ///             the implementation whether to immediately read or have
     ///             the image backed by an ImageCache (storage
-    ///             `IMAGECACHE`.)
+    ///             `IMAGECACHE`, if the ImageBuf was originall constructed
+    ///             or reset with an ImageCache specified).
     /// @param  convert
     ///             If set to a specific type (not`UNKNOWN`), the ImageBuf
     ///             memory will be allocated for that type specifically and
@@ -1026,7 +1020,8 @@ public:
     /// image being in RAM somewhere?
     bool cachedpixels() const;
 
-    /// A pointer to the underlying ImageCache.
+    /// A pointer to the underlying ImageCache, or nullptr if this ImageBuf
+    /// is not backed by an ImageCache.
     ImageCache* imagecache() const;
 
     /// Return the address where pixel `(x,y,z)`, channel `ch`, is stored in

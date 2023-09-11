@@ -52,7 +52,6 @@ int dds_bc5normal(0);
 int limit_channels(1024);
 int limit_imagesize_MB(std::min(32 * 1024,
                                 int(Sysutil::physical_memory() >> 20)));
-int imagebuf_print_uncaught_errors(1);
 ustring font_searchpath(Sysutil::getenv("OPENIMAGEIO_FONTS"));
 ustring plugin_searchpath(OIIO_DEFAULT_PLUGIN_SEARCHPATH);
 std::string format_list;         // comma-separated list of all formats
@@ -349,6 +348,10 @@ attribute(string_view name, TypeDesc type, const void* val)
         imagebuf_print_uncaught_errors = *(const int*)val;
         return true;
     }
+    if (name == "imagebuf:use_imagecache" && type == TypeInt) {
+        imagebuf_use_imagecache = *(const int*)val;
+        return true;
+    }
     if (name == "use_tbb" && type == TypeInt) {
         oiio_use_tbb = *(const int*)val;
         return true;
@@ -481,6 +484,10 @@ getattribute(string_view name, TypeDesc type, void* val)
         *(int*)val = imagebuf_print_uncaught_errors;
         return true;
     }
+    if (name == "imagebuf:use_imagecache" && type == TypeInt) {
+        *(int*)val = imagebuf_use_imagecache;
+        return true;
+    }
     if (name == "use_tbb" && type == TypeInt) {
         *(int*)val = oiio_use_tbb;
         return true;
@@ -537,6 +544,22 @@ getattribute(string_view name, TypeDesc type, void* val)
     }
     if (name == "opencv_version" && type == TypeInt) {
         *(int*)val = OIIO::pvt::opencv_version;
+        return true;
+    }
+    if (name == "IB_local_mem_current" && type == TypeInt64) {
+        *(long long*)val = IB_local_mem_current;
+        return true;
+    }
+    if (name == "IB_local_mem_peak" && type == TypeInt64) {
+        *(long long*)val = IB_local_mem_peak;
+        return true;
+    }
+    if (name == "IB_total_open_time" && type == TypeFloat) {
+        *(float*)val = IB_total_open_time;
+        return true;
+    }
+    if (name == "IB_total_image_read_time" && type == TypeFloat) {
+        *(float*)val = IB_total_image_read_time;
         return true;
     }
     return false;
