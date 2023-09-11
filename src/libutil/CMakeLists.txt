@@ -84,7 +84,7 @@ install_targets (OpenImageIO_Util)
 
 
 
-if (OIIO_BUILD_TESTS)
+if (OIIO_BUILD_TESTS AND BUILD_TESTING)
 
     add_executable (argparse_test argparse_test.cpp)
     target_link_libraries (argparse_test PRIVATE OpenImageIO_Util)
