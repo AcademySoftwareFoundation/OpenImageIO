@@ -1769,8 +1769,8 @@ public:
     /// `filenames` will be sized to `ntiles * nvtiles` and filled with the
     /// the names of the concrete files comprising the atlas, with an empty
     /// ustring corresponding to any unpopulated tiles (the UDIM set is
-    /// allowed to be sparse). The filename list is indexed as `utile + vtile
-    /// * nvtiles`.
+    /// allowed to be sparse). The filename list is indexed as
+    /// `utile + vtile * nvtiles`.
     ///
     /// This method was added in OpenImageIO 2.3.
     virtual void inventory_udim(ustring udimpattern,

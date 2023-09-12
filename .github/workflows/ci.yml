@@ -138,7 +138,7 @@ jobs:
                             OIIO_CMAKE_FLAGS="-DSANITIZE=address,undefined -DUSE_PYTHON=0"
                             CMAKE_BUILD_TYPE=Debug
                             CTEST_TEST_TIMEOUT=1200
-                            CTEST_EXCLUSIONS="broken|cmake-consumer|png-damaged"
+                            CTEST_EXCLUSIONS="broken|png-damaged"
           - desc: gcc11/C++17 py3.10 boost1.80 exr3.1 ocio2.2
             nametag: linux-vfx2023
             os: ubuntu-latest
