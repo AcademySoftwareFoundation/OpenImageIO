@@ -17,3 +17,14 @@ command += oiiotool ("--create 64x64 3 " +
                      "--attrib Exif:FocalLength 45.7 " +
                      "-o exif.png")
 command += info_command ("exif.png", safematch=True)
+
+# regression test for 16 bit output bug
+command += oiiotool ("--pattern fill:topleft=1,0,0,1:topright=0,1,0,1:bottomleft=0,0,1,1:bottomright=1,1,1,1 16x16 4 -d uint16 -o test16.png")
+
+# Test high quality alpha deassociation using alpha value close to zero.
+# This example is inspired by Yafes on the Slack.
+command += oiiotool ("--pattern fill:color=0.00235,0.00106,0.00117,0.0025 1x1 4 -d uint8 -o smallalpha.png")
+command += oiiotool ("--no-autopremult --dumpdata smallalpha.png")
+
+outputs = [ "test16.png", "out.txt" ]
+
