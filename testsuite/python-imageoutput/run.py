@@ -10,7 +10,7 @@ command += oiio_app("iconvert") + "../common/grid.tif --scanline scanline.tif > 
 command += oiio_app("iconvert") + "../common/grid.tif --tile 64 64 tiled.tif > out.txt ;" 
 
 # Run the script 
-command += pythonbin + " src/test_imageoutput.py > out.txt ;"
+command += pythonbin + " src/test_imageoutput.py >> out.txt ;"
 
 # compare the outputs -- these are custom because they compare to grid.tif
 files = [ "grid-image.tif", "grid-scanline.tif", "grid-scanlines.tif",
