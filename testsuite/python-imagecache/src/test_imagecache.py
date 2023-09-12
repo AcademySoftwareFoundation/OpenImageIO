@@ -27,9 +27,11 @@ try:
     print ("getattribute(\"max_memory_MB\")", ic.getattribute("max_memory_MB"))
     print ("getattribute(\"searchpath\")", ic.getattribute("searchpath"))
 
-    # Force a file to be touched by the IC
-    ib = oiio.ImageBuf("../common/tahoe-tiny.tif")
-    ib = oiio.ImageBuf("../common/grid.tif")
+    # Force a file to be touched by the IC and test get_imagespec
+    spec = ic.get_imagespec("../common/tahoe-tiny.tif")
+    print ("tahoe_tiny is", spec.width, "x", spec.height)
+    spec = ic.get_imagespec("../common/grid.tif")
+    print ("grid is", spec.width, "x", spec.height)
 
     # Test getattribute(name, type) with the full type specified
     print ("full getattribute stat:cache_memory_used", ic.getattribute("stat:cache_memory_used", 'int64'))
