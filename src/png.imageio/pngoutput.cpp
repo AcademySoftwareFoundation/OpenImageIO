@@ -176,7 +176,6 @@ PNGOutput::open(const std::string& name, const ImageSpec& userspec,
     } else if (Strutil::iequals(compression, "none")) {
         png_set_compression_strategy(m_png, Z_NO_COMPRESSION);
         png_set_compression_level(m_png, 0);
-        print("compression zero\n");
     } else {
         png_set_compression_strategy(m_png, Z_DEFAULT_STRATEGY);
     }
