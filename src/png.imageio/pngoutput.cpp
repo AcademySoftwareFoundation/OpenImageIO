@@ -331,7 +331,7 @@ PNGOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     }
 
     // PNG is always big endian
-    if (need_swap)
+    if (m_need_swap)
         swap_endian((unsigned short*)data, m_spec.width * m_spec.nchannels);
 
     if (!PNG_pvt::write_row(m_png, (png_byte*)data)) {
@@ -384,7 +384,7 @@ PNGOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
     }
 
     // PNG is always big endian
-    if (need_swap)
+    if (m_need_swap)
         swap_endian((unsigned short*)data, nbytes);
 
     if (!PNG_pvt::write_rows(m_png, (png_byte*)data, yend - ybegin,
