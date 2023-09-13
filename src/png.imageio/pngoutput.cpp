@@ -32,6 +32,9 @@ public:
     bool close() override;
     bool write_scanline(int y, int z, TypeDesc format, const void* data,
                         stride_t xstride) override;
+    bool write_scanlines(int ybegin, int yend, int z, TypeDesc format,
+                         const void* data, stride_t xstride = AutoStride,
+                         stride_t ystride = AutoStride) override;
     bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
                     stride_t xstride, stride_t ystride,
                     stride_t zstride) override;
@@ -43,6 +46,7 @@ private:
     unsigned int m_dither;
     int m_color_type;      ///< PNG color model type
     bool m_convert_alpha;  ///< Do we deassociate alpha?
+    bool m_need_swap;      ///< Do we need to swap bytes?
     float m_gamma;         ///< Gamma to use for alpha conversion
     std::vector<unsigned char> m_scratch;
     std::vector<png_text> m_pngtext;
@@ -55,6 +59,7 @@ private:
         m_png           = NULL;
         m_info          = NULL;
         m_convert_alpha = true;
+        m_need_swap     = false;
         m_gamma         = 1.0;
         m_pngtext.clear();
         ioproxy_clear();
@@ -165,9 +170,17 @@ PNGOutput::open(const std::string& name, const ImageSpec& userspec,
         png_set_compression_strategy(m_png, Z_RLE);
     } else if (Strutil::iequals(compression, "fixed")) {
         png_set_compression_strategy(m_png, Z_FIXED);
+    } else if (Strutil::iequals(compression, "pngfast")) {
+        png_set_compression_strategy(m_png, Z_DEFAULT_STRATEGY);
+        png_set_compression_level(m_png, Z_BEST_SPEED);
+    } else if (Strutil::iequals(compression, "none")) {
+        png_set_compression_strategy(m_png, Z_NO_COMPRESSION);
+        png_set_compression_level(m_png, 0);
     } else {
         png_set_compression_strategy(m_png, Z_DEFAULT_STRATEGY);
     }
+
+    m_need_swap = (m_spec.format == TypeDesc::UINT16 && littleendian());
 
     png_set_filter(m_png, 0,
                    spec().get_int_attribute("png:filter", PNG_NO_FILTERS));
@@ -293,7 +306,7 @@ PNGOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     m_spec.auto_stride(xstride, format, spec().nchannels);
     const void* origdata = data;
     data = to_native_scanline(format, data, xstride, m_scratch, m_dither, y, z);
-    if (data == origdata) {
+    if (data == origdata && (m_convert_alpha || m_need_swap)) {
         m_scratch.assign((unsigned char*)data,
                          (unsigned char*)data + m_spec.scanline_bytes());
         data = &m_scratch[0];
@@ -310,13 +323,69 @@ PNGOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     }
 
     // PNG is always big endian
-    if (littleendian() && m_spec.format == TypeDesc::UINT16)
+    if (m_need_swap)
         swap_endian((unsigned short*)data, m_spec.width * m_spec.nchannels);
 
     if (!PNG_pvt::write_row(m_png, (png_byte*)data)) {
         errorfmt("PNG library error");
         return false;
     }
+
+    return true;
+}
+
+
+
+bool
+PNGOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
+                           const void* data, stride_t xstride, stride_t ystride)
+{
+#if 0
+    // For testing/benchmarking: just implement write_scanlines in terms of
+    // individual calls to write_scanline.
+    for (int y = ybegin ; y < yend; ++y) {
+        if (!write_scanline(y, z, format, data, xstride))
+            return false;
+        data = (const char*)data + ystride;
+    }
+    return true;
+#else
+    stride_t zstride = AutoStride;
+    m_spec.auto_stride(xstride, ystride, zstride, format, m_spec.nchannels,
+                       m_spec.width, m_spec.height);
+    const void* origdata = data;
+    data = to_native_rectangle(m_spec.x, m_spec.x + m_spec.width, ybegin, yend,
+                               z, z + 1, format, data, xstride, ystride,
+                               zstride, m_scratch);
+    size_t npixels = m_spec.width * (yend - ybegin);
+    size_t nvals   = npixels * m_spec.nchannels;
+    if (data == origdata && (m_convert_alpha || m_need_swap)) {
+        m_scratch.assign((unsigned char*)data,
+                         (unsigned char*)data + nvals * m_spec.format.size());
+        data = m_scratch.data();
+    }
+
+    // PNG specifically dictates unassociated (un-"premultiplied") alpha
+    if (m_convert_alpha) {
+        if (m_spec.format == TypeDesc::UINT16)
+            deassociateAlpha((unsigned short*)data, npixels, m_spec.nchannels,
+                             m_spec.alpha_channel, m_gamma);
+        else
+            deassociateAlpha((unsigned char*)data, npixels, m_spec.nchannels,
+                             m_spec.alpha_channel, m_gamma);
+    }
+
+    // PNG is always big endian
+    if (m_need_swap)
+        swap_endian((unsigned short*)data, nvals);
+
+    if (!PNG_pvt::write_rows(m_png, (png_byte*)data, yend - ybegin,
+                             stride_t(m_spec.width) * m_spec.nchannels
+                                 * m_spec.format.size())) {
+        errorfmt("PNG library error");
+        return false;
+    }
+#endif
 
     return true;
 }
