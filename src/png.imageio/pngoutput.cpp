@@ -181,13 +181,6 @@ PNGOutput::open(const std::string& name, const ImageSpec& userspec,
     }
 
     m_need_swap = (m_spec.format == TypeDesc::UINT16 && littleendian());
-#if defined(PNG_WRITE_SWAP_SUPPORTED)
-    if (m_need_swap) {
-        // libpng can do the swap for us, we don't need to
-        png_set_swap(m_png);
-        m_need_swap = false;
-    }
-#endif
 
     png_set_filter(m_png, 0,
                    spec().get_int_attribute("png:filter", PNG_NO_FILTERS));
@@ -366,9 +359,9 @@ PNGOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
                                zstride, m_scratch);
     size_t npixels = m_spec.width * (yend - ybegin);
     size_t nvals   = npixels * m_spec.nchannels;
-    size_t nbytes  = nvals * m_spec.format.size();
     if (data == origdata && (m_convert_alpha || m_need_swap)) {
-        m_scratch.assign((unsigned char*)data, (unsigned char*)data + nbytes);
+        m_scratch.assign((unsigned char*)data,
+                         (unsigned char*)data + nvals * m_spec.format.size());
         data = m_scratch.data();
     }
 
@@ -384,7 +377,7 @@ PNGOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
 
     // PNG is always big endian
     if (m_need_swap)
-        swap_endian((unsigned short*)data, nbytes);
+        swap_endian((unsigned short*)data, nvals);
 
     if (!PNG_pvt::write_rows(m_png, (png_byte*)data, yend - ybegin,
                              stride_t(m_spec.width) * m_spec.nchannels
