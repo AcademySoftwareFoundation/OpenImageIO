@@ -1,3 +1,35 @@
+Release 2.6 (Fall 2024) -- compared to 2.5
+-------------------------------------------------
+
+### New minimum dependencies and compatibility changes:
+
+### ⛰️  New features and public API changes:
+  - *python*: Implement ImageCache.get_imagespec() [#3982](https://github.com/OpenImageIO/oiio/pull/3982) (2.6.0.0)
+
+### 🚀  Performance improvements:
+
+### 🐛  Fixes and feature enhancements:
+  - *png*: New output compression mode names recognized: "none", "pngfast".
+    Also some minor speedups to PNG writes.
+    [#3980](https://github.com/OpenImageIO/oiio/pull/3980) (2.6.0.0)
+  - *png*: Write out proper tiff header version in png EXIF blobs [#3984](https://github.com/OpenImageIO/oiio/pull/3984) (by Jesse Yurkovich) (2.6.0.0)
+
+### 🔧  Internals and developer goodies
+
+### 🏗  Build/test/CI and platform ports:
+  - Fix Cuda ustring.h warnings [#3978](https://github.com/OpenImageIO/oiio/pull/3978) (2.6.0.0)
+  - Remove unnecessary headers from strutil.cpp causing build trouble [#3976](https://github.com/OpenImageIO/oiio/pull/3976) (by Jesse Yurkovich) (2.6.0.0)
+
+### 📚  Notable documentation changes:
+  - Start the process of ensuring that all code examples in the docs are built
+    and executed as part of the testsuite. This will be a continuing process
+    [#3977](https://github.com/OpenImageIO/oiio/pull/3977) (2.6.0.0)
+
+### 🏢  Project Administration
+
+
+
+
 Release 2.5 (Fall 2023) -- compared to 2.4
 -------------------------------------------------
 
