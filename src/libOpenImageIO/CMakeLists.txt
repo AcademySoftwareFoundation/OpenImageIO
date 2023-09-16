@@ -228,7 +228,7 @@ install_targets (OpenImageIO)
 
 # Testing
 
-if (OIIO_BUILD_TESTS)
+if (OIIO_BUILD_TESTS AND BUILD_TESTING)
 
     add_executable (color_test color_test.cpp)
     target_link_libraries (color_test PRIVATE OpenImageIO)
@@ -272,4 +272,4 @@ if (OIIO_BUILD_TESTS)
     set_target_properties (compute_test PROPERTIES FOLDER "Unit Tests")
     add_test (unit_compute ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/compute_test)
 
-endif (OIIO_BUILD_TESTS)
+endif ()

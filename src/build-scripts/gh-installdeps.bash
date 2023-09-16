@@ -18,8 +18,12 @@ if [[ "$ASWF_ORG" != ""  ]] ; then
     #ls /etc/yum.repos.d
 
     sudo yum install -y giflib giflib-devel && true
-    sudo yum install -y opencv opencv-devel && true
-    sudo yum install -y ffmpeg ffmpeg-devel && true
+    if [[ "${USE_OPENCV}" != "0" ]] ; then
+        sudo yum install -y opencv opencv-devel && true
+    fi
+    if [[ "${USE_FFMPEG}" != "0" ]] ; then
+        sudo yum install -y ffmpeg ffmpeg-devel && true
+    fi
     if [[ "${EXTRA_DEP_PACKAGES}" != "" ]] ; then
         time sudo yum install -y ${EXTRA_DEP_PACKAGES}
     fi
@@ -191,6 +195,10 @@ fi
 
 if [[ "$PTEX_VERSION" != "" ]] ; then
     source src/build-scripts/build_Ptex.bash
+fi
+
+if [[ "$ABI_CHECK" != "" ]] ; then
+    source src/build-scripts/build_abi_tools.bash
 fi
 
 if [[ "$USE_ICC" != "" ]] ; then
