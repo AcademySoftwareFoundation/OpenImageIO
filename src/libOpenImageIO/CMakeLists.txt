@@ -228,7 +228,7 @@ install_targets (OpenImageIO)
 
 # Testing
 
-if (OIIO_BUILD_TESTS)
+if (OIIO_BUILD_TESTS AND BUILD_TESTING)
 
     add_executable (color_test color_test.cpp)
     target_link_libraries (color_test PRIVATE OpenImageIO)

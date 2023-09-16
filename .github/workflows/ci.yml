@@ -186,6 +186,27 @@ jobs:
             setenvs: export BUILDTARGET=clang-format
                             OIIO_CMAKE_FLAGS=-DUSE_PYTHON=0
 
+          # Test ABI stability. `abi_check` is the version or commit that we
+          # believe is the current standard against which we don't want to
+          # break the ABI. Basically, we will build that version as well as
+          # the current one, and compare the resulting libraries.
+          - desc: abi check
+            nametag: linux-vfx2023
+            os: ubuntu-latest
+            container: aswftesting/ci-osl:2023-clang15
+            vfxyear: 2023
+            cxx_std: 17
+            python_ver: "3.10"
+            simd: "avx2,f16c"
+            fmt_ver: 10.1.1
+            pybind11_ver: v2.10.0
+            skip_tests: 1
+            # abi_check: v2.4.15.0
+            abi_check: d795a3b2cceb471a3b4ab741b4a2665d07003887
+            setenvs: export OIIO_CMAKE_FLAGS="-DOIIO_BUILD_TOOLS=0 -DOIIO_BUILD_TESTS=0 -DUSE_PYTHON=0"
+                            USE_OPENCV=0 USE_FFMPEG=0 USE_PYTHON=0
+                            CMAKE_BUILD_TYPE=RelWithDebInfo
+
     runs-on: ${{ matrix.os }}
     container:
       image: ${{ matrix.container }}
@@ -198,6 +219,7 @@ jobs:
       OPENEXR_VERSION: ${{matrix.openexr_ver}}
       PYBIND11_VERSION: ${{matrix.pybind11_ver}}
       PYTHON_VERSION: ${{matrix.python_ver}}
+      ABI_CHECK: ${{matrix.abi_check}}
     steps:
       # We would like to use harden-runner, but it flags too many false
       # positives, every time we download a dependency. We should use it only
@@ -230,12 +252,30 @@ jobs:
       - name: Testsuite
         if: matrix.skip_tests != '1'
         run: src/build-scripts/ci-test.bash
+      - name: Check out ABI standard
+        if: matrix.abi_check != ''
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
+        with:
+          ref: ${{matrix.abi_check}}
+          path: abi_standard
+      - name: Build ABI standard
+        if: matrix.abi_check != ''
+        run: |
+            mkdir -p abi_standard/build
+            pushd abi_standard
+            src/build-scripts/ci-build.bash
+            popd
+      - name: Check ABI
+        if: matrix.abi_check != ''
+        run: |
+            src/build-scripts/ci-abicheck.bash ./build abi_standard/build libOpenImageIO libOpenImageIO_Util
       - uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
         if: failure()
         with:
           name: oiio-${{github.job}}-${{matrix.nametag}}
           path: |
             build/cmake-save
+            build/compat_reports
             build/testsuite/*/*.*
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
