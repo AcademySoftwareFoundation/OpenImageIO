@@ -272,4 +272,4 @@ if (OIIO_BUILD_TESTS AND BUILD_TESTING)
     set_target_properties (compute_test PROPERTIES FOLDER "Unit Tests")
     add_test (unit_compute ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/compute_test)
 
-endif (OIIO_BUILD_TESTS)
+endif ()
