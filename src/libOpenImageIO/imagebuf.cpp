@@ -1061,7 +1061,6 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
             m_thumbnail.reset(new ImageBuf);
             m_has_thumbnail = input->get_thumbnail(*m_thumbnail.get(),
                                                    subimage);
-            m_has_thumbnail = true;
         }
 
         m_current_subimage = subimage;
