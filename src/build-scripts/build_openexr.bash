@@ -3,7 +3,7 @@
 # Utility script to download and build OpenEXR & IlmBase
 
 # Copyright Contributors to the OpenImageIO project.
-# SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+# SPDX-License-Identifier: Apache-2.0
 # https://github.com/OpenImageIO/oiio
 
 # Exit the whole script if any command fails.
@@ -28,7 +28,6 @@ echo "Building OpenEXR ${OPENEXR_VERSION}"
 echo "OpenEXR build dir will be: ${OPENEXR_BUILD_DIR}"
 echo "OpenEXR install dir will be: ${OPENEXR_INSTALL_DIR}"
 echo "OpenEXR Build type is ${OPENEXR_BUILD_TYPE}"
-echo "CMAKE_PREFIX_PATH is ${CMAKE_PREFIX_PATH}"
 
 # Clone OpenEXR project (including IlmBase) from GitHub and build
 if [[ ! -e ${OPENEXR_SOURCE_DIR} ]] ; then
