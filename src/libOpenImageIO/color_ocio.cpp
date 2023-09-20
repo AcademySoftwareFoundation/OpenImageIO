@@ -164,7 +164,8 @@ struct CSInfo {
         is_Rec709          = 32,  // Rec709 primaries and transfer function
         is_known           = is_srgb | is_lin_srgb | is_ACEScg | is_Rec709
     };
-    int flags = 0;
+    int m_flags   = 0;
+    bool examined = false;
     std::string canonical;  // Canonical name for this color space
 #ifdef USE_OCIO
     OCIO::ConstColorSpaceRcPtr ocio_cs;
@@ -174,28 +175,42 @@ struct CSInfo {
            string_view canonical_ = "")
         : name(name_)
         , index(index_)
-        , flags(flags_)
+        , m_flags(flags_)
         , canonical(canonical_)
     {
     }
+
+    void setflag(int flagval) { m_flags |= flagval; }
+
+    // Set flag to include any bits in flagval, and also if alias is not yet
+    // set, set it to name.
+    void setflag(int flagval, std::string& alias)
+    {
+        m_flags |= flagval;
+        if (alias.empty())
+            alias = name;
+    }
+
+    int flags() const { return m_flags; }
 };
 
 
 
 // Hidden implementation of ColorConfig
 class ColorConfig::Impl {
-public:
 #ifdef USE_OCIO
+public:
     OCIO::ConstConfigRcPtr config_;
+    OCIO::ConstConfigRcPtr builtinconfig_;
 #endif
+
+private:
     std::vector<CSInfo> colorspaces;
     std::string scene_linear_alias;  // Alias for a scene-linear color space
     std::string lin_srgb_alias;
     std::string srgb_alias;
     std::string ACEScg_alias;
     std::string Rec709_alias;
-
-private:
     mutable spin_rw_mutex m_mutex;
     mutable std::string m_error;
     ColorProcessorMap colorprocmap;  // cache of ColorProcessors
@@ -222,10 +237,11 @@ public:
 #endif
     }
 
-    void inventory();
+    bool init(string_view filename);
 
     void add(const std::string& name, int index, int flags = 0)
     {
+        spin_rw_write_lock lock(m_mutex);
         colorspaces.emplace_back(name, index, flags);
         // classify(colorspaces.back());
     }
@@ -239,30 +255,12 @@ public:
                 return &cs;
         return nullptr;
     }
-
-    // Set the flags for the given color space and canonical name, if we can
-    // figure it out.  If stage > 0, it assumes all the color spaces have been
-    // through one call to classify, so maybe there are some other guesses we
-    // can make.
-    void classify(CSInfo& cs);
-
-    // Apply more heuristics to try to deduce more color space information.
-    void reclassify_heuristics(CSInfo& cs);
-
-    // Return the CSInfo flags for the given color space name
-    int flags(string_view name) const
+    CSInfo* find(string_view name)
     {
-        const CSInfo* cs = find(name);
-        return cs ? cs->flags : 0;
-    }
-
-    // Set cs.flag to include any bits in flagval, and also if alias is not
-    // yet set, set it to cs.name.
-    void setflag(CSInfo& cs, int flagval, std::string& alias)
-    {
-        cs.flags |= flagval;
-        if (alias.empty())
-            alias = cs.name;
+        for (auto&& cs : colorspaces)
+            if (cs.name == name)
+                return &cs;
+        return nullptr;
     }
 
     // Search for a matching ColorProcessor, return it if found (otherwise
@@ -284,12 +282,12 @@ public:
     {
         if (!handle)
             return handle;
-        ++colorprocs_created;
         spin_rw_write_lock lock(m_mutex);
         auto found = colorprocmap.find(key);
         if (found == colorprocmap.end()) {
             // No equivalent item in the map. Add this one.
             colorprocmap[key] = handle;
+            ++colorprocs_created;
         } else {
             // There's already an equivalent one. Oops. Discard this one and
             // return the one already in the map.
@@ -297,6 +295,15 @@ public:
         }
         return handle;
     }
+
+    int getNumColorSpaces() const { return (int)colorspaces.size(); }
+
+    const char* getColorSpaceNameByIndex(int index) const
+    {
+        return colorspaces[index].name.c_str();
+    }
+
+    string_view resolve(string_view name) const;
 
     // Note: Uses std::format syntax
     template<typename... Args>
@@ -335,12 +342,77 @@ public:
     get_to_builtin_cpu_proc(const char* my_from, const char* builtin_to) const;
 #endif
     bool isColorSpaceLinear(string_view name) const;
+
+private:
+    // Return the CSInfo flags for the given color space name
+    int flags(string_view name)
+    {
+        CSInfo* cs = find(name);
+        if (!cs)
+            return 0;
+        examine(cs);
+        spin_rw_read_lock lock(m_mutex);
+        return cs->flags();
+    }
+
+    // Set cs.flag to include any bits in flagval.
+    void setflag(CSInfo& cs, int flagval)
+    {
+        spin_rw_write_lock lock(m_mutex);
+        cs.setflag(flagval);
+    }
+
+    // Set cs.flag to include any bits in flagval, and also if alias is not
+    // yet set, set it to cs.name.
+    void setflag(CSInfo& cs, int flagval, std::string& alias)
+    {
+        spin_rw_write_lock lock(m_mutex);
+        cs.setflag(flagval, alias);
+    }
+
+    void inventory();
+
+    // Set the flags for the given color space and canonical name, if we can
+    // make a guess based on the name. This is very inexpensive. This should
+    // only be called from within a lock of the mutex.
+    void classify_by_name(CSInfo& cs);
+
+    // Set the flags for the given color space and canonical name, trying some
+    // tricks to deduce the color space from the primaries, white point, and
+    // transfer function. This is more expensive, and might only work for OCIO
+    // 2.2 and above. This should only be called from within a lock of the
+    // mutex.
+    void classify_by_conversions(CSInfo& cs);
+
+    // Apply more heuristics to try to deduce more color space information.
+    void reclassify_heuristics(CSInfo& cs);
+
+    // If the CSInfo hasn't yet been "examined" (fully classified by all
+    // heuristics), do so. This should NOT be called from within a lock of the
+    // mutex.
+    void examine(CSInfo* cs)
+    {
+        if (!cs->examined) {
+            spin_rw_write_lock lock(m_mutex);
+            if (!cs->examined) {
+                classify_by_name(*cs);
+                classify_by_conversions(*cs);
+                reclassify_heuristics(*cs);
+                cs->examined = true;
+            }
+        }
+    }
+
+    // For OCIO 2.3+, we can ask for the equivalent of some built-in
+    // color spaces.
+    void identify_builtin_equivalents();
+
     bool check_same_as_builtin_transform(const char* my_from,
                                          const char* builtin_to) const;
     bool test_conversion_yields(const char* from, const char* to,
                                 cspan<Imath::C3f> test_colors,
                                 cspan<Imath::C3f> result_colors) const;
-    friend class ColorConfig;
+    const char* IdentifyBuiltinColorSpace(const char* name) const;
 };
 
 
@@ -362,7 +434,7 @@ ColorConfig::Impl::inventory()
             for (int i = 0, e = config_->getNumColorSpaces(); i < e; ++i)
                 add(config_->getColorSpaceNameByIndex(i), i);
             for (auto&& cs : colorspaces)
-                classify(cs);
+                classify_by_name(cs);
             OCIO::ConstColorSpaceRcPtr lin = config_->getColorSpace(
                 "scene_linear");
             if (lin)
@@ -393,7 +465,7 @@ ColorConfig::Impl::inventory()
     add("Rec709", 2, CSInfo::is_Rec709);
 
     for (auto&& cs : colorspaces)
-        classify(cs);
+        classify_by_name(cs);
 }
 
 
@@ -474,28 +546,74 @@ ColorConfig::Impl::test_conversion_yields(const char* from, const char* to,
 
 
 
-void
-ColorConfig::Impl::classify(CSInfo& cs)
+#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 2, 0)
+static bool
+transform_has_Lut3D(string_view name, OCIO::ConstTransformRcPtr transform)
 {
-    if (isColorSpaceLinear(cs.name))
-        cs.flags |= CSInfo::is_linear_response;
+    using namespace OCIO;
+    auto ttype = transform ? transform->getTransformType() : -1;
+    if (ttype == TRANSFORM_TYPE_LUT3D || ttype == TRANSFORM_TYPE_COLORSPACE
+        || ttype == TRANSFORM_TYPE_FILE || ttype == TRANSFORM_TYPE_LOOK
+        || ttype == TRANSFORM_TYPE_DISPLAY_VIEW) {
+        return true;
+    }
+    if (ttype == TRANSFORM_TYPE_GROUP) {
+        auto group = dynamic_cast<const GroupTransform*>(transform.get());
+        for (int i = 0, n = group->getNumTransforms(); i < n; ++i) {
+            if (transform_has_Lut3D("", group->getTransform(i)))
+                return true;
+        }
+    }
+    if (name.size() && ttype >= 0)
+        DBG("{} has type {}\n", name, ttype);
+    return false;
+}
 
+#endif
+
+
+
+void
+ColorConfig::Impl::classify_by_name(CSInfo& cs)
+{
     // General heuristics based on the names -- for a few canonical names,
     // believe them! Woe be unto the poor soul who names a color space "sRGB"
     // or "ACEScg" and it's really something entirely different.
     if (Strutil::iequals(cs.name, "sRGB")
         || Strutil::iequals(cs.name, "sRGB - Texture")) {
-        setflag(cs, CSInfo::is_srgb, srgb_alias);
+        cs.setflag(CSInfo::is_srgb, srgb_alias);
     } else if (Strutil::iequals(cs.name, "Rec709")) {
-        setflag(cs, CSInfo::is_Rec709, Rec709_alias);
+        cs.setflag(CSInfo::is_Rec709, Rec709_alias);
     } else if (Strutil::iequals(cs.name, "lin_srgb")
                || Strutil::iequals(cs.name, "Linear Rec.709 (sRGB)")) {
-        setflag(cs, CSInfo::is_lin_srgb | CSInfo::is_linear_response,
-                lin_srgb_alias);
+        cs.setflag(CSInfo::is_lin_srgb | CSInfo::is_linear_response,
+                   lin_srgb_alias);
     } else if (Strutil::iequals(cs.name, "ACEScg")) {
-        setflag(cs, CSInfo::is_ACEScg | CSInfo::is_linear_response,
-                ACEScg_alias);
+        cs.setflag(CSInfo::is_ACEScg | CSInfo::is_linear_response,
+                   ACEScg_alias);
     }
+
+    // Set up some canonical names
+    if (cs.flags() & CSInfo::is_srgb)
+        cs.canonical = "sRGB";
+    else if (cs.flags() & CSInfo::is_Rec709)
+        cs.canonical = "Rec709";
+    else if (cs.flags() & CSInfo::is_lin_srgb)
+        cs.canonical = "lin_srgb";
+    else if (cs.flags() & CSInfo::is_ACEScg)
+        cs.canonical = "ACEScg";
+}
+
+
+
+void
+ColorConfig::Impl::classify_by_conversions(CSInfo& cs)
+{
+    if (cs.examined)
+        return;  // Already classified
+
+    if (isColorSpaceLinear(cs.name))
+        cs.setflag(CSInfo::is_linear_response);
 
 #if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 2, 0)
     // If the name didn't already tell us what it is, and we have a new enough
@@ -505,30 +623,40 @@ ColorConfig::Impl::classify(CSInfo& cs)
     // nonstandard. Skip this part if the color space we're classifying is
     // itself part of the built-in config -- in that case, it will already be
     // tagged correctly by the name above.
-    if (!(cs.flags & CSInfo::is_known) && config_ && !disable_ocio
+    if (!(cs.flags() & CSInfo::is_known) && config_ && !disable_ocio
         && !m_config_is_built_in) {
-        // cs.ocio_cs = config_->getColorSpace(cs.name.c_str());
-        if (check_same_as_builtin_transform(cs.name.c_str(), "srgb_tx")) {
-            setflag(cs, CSInfo::is_srgb, srgb_alias);
+        using namespace OCIO;
+        cs.ocio_cs = config_->getColorSpace(cs.name.c_str());
+        if (transform_has_Lut3D(cs.name, cs.ocio_cs->getTransform(
+                                             COLORSPACE_DIR_TO_REFERENCE))
+            || transform_has_Lut3D(cs.name,
+                                   cs.ocio_cs->getTransform(
+                                       COLORSPACE_DIR_FROM_REFERENCE))) {
+            // Skip things with LUT3d because they are expensive due to LUT
+            // inversion costs, and they're not gonna be our favourite
+            // canonical spaces anyway.
+            // DBG("{} has LUT3\n", cs.name);
+        } else if (check_same_as_builtin_transform(cs.name.c_str(), "srgb_tx")) {
+            cs.setflag(CSInfo::is_srgb, srgb_alias);
         } else if (check_same_as_builtin_transform(cs.name.c_str(),
                                                    "lin_srgb")) {
-            setflag(cs, CSInfo::is_lin_srgb | CSInfo::is_linear_response,
-                    lin_srgb_alias);
+            cs.setflag(CSInfo::is_lin_srgb | CSInfo::is_linear_response,
+                       lin_srgb_alias);
         } else if (check_same_as_builtin_transform(cs.name.c_str(), "ACEScg")) {
-            setflag(cs, CSInfo::is_ACEScg | CSInfo::is_linear_response,
-                    ACEScg_alias);
+            cs.setflag(CSInfo::is_ACEScg | CSInfo::is_linear_response,
+                       ACEScg_alias);
         }
     }
 #endif
 
     // Set up some canonical names
-    if (cs.flags & CSInfo::is_srgb)
+    if (cs.flags() & CSInfo::is_srgb)
         cs.canonical = "sRGB";
-    else if (cs.flags & CSInfo::is_Rec709)
+    else if (cs.flags() & CSInfo::is_Rec709)
         cs.canonical = "Rec709";
-    else if (cs.flags & CSInfo::is_lin_srgb)
+    else if (cs.flags() & CSInfo::is_lin_srgb)
         cs.canonical = "lin_srgb";
-    else if (cs.flags & CSInfo::is_ACEScg)
+    else if (cs.flags() & CSInfo::is_ACEScg)
         cs.canonical = "ACEScg";
 }
 
@@ -540,7 +668,7 @@ ColorConfig::Impl::reclassify_heuristics(CSInfo& cs)
 #if OCIO_VERSION_HEX < MAKE_OCIO_VERSION_HEX(2, 2, 0)
     // Extra checks for OCIO < 2.2. For >= 2.2, there is no need, we
     // already figured this out using the built-in configs.
-    if (!(cs.flags & CSInfo::is_known)) {
+    if (!(cs.flags() & CSInfo::is_known)) {
         // If this isn't one of the known color spaces, let's try some
         // tricks!
         static float srgb05 = linear_to_sRGB(0.5f);
@@ -566,11 +694,150 @@ ColorConfig::Impl::reclassify_heuristics(CSInfo& cs)
 
 
 
+void
+ColorConfig::Impl::identify_builtin_equivalents()
+{
+#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 3, 0)
+    if (auto n = IdentifyBuiltinColorSpace("srgb_tx")) {
+        if (CSInfo* cs = find(n)) {
+            cs->setflag(CSInfo::is_srgb, srgb_alias);
+            DBG("Identified {} = builtin '{}'\n", "srgb", cs->name);
+        }
+    }
+    if (auto n = IdentifyBuiltinColorSpace("lin_srgb")) {
+        if (CSInfo* cs = find(n)) {
+            cs->setflag(CSInfo::is_lin_srgb | CSInfo::is_linear_response,
+                        lin_srgb_alias);
+            DBG("Identified {} = builtin '{}'\n", "lin_srgb", cs->name);
+        }
+    }
+    if (auto n = IdentifyBuiltinColorSpace("ACEScg")) {
+        if (CSInfo* cs = find(n)) {
+            cs->setflag(CSInfo::is_ACEScg | CSInfo::is_linear_response,
+                        ACEScg_alias);
+            DBG("Identified {} = builtin '{}'\n", "ACEScg", cs->name);
+        }
+    }
+#endif
+}
+
+
+
+const char*
+ColorConfig::Impl::IdentifyBuiltinColorSpace(const char* name) const
+{
+#ifdef USE_OCIO
+    if (!config_ || disable_builtin_configs)
+        return nullptr;
+#endif
+#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 3, 0)
+    try {
+        return OCIO::Config::IdentifyBuiltinColorSpace(config_, builtinconfig_,
+                                                       name);
+    } catch (...) {
+    }
+#endif
+    return nullptr;
+}
+
+
+
 ColorConfig::ColorConfig(string_view filename) { reset(filename); }
 
 
 
 ColorConfig::~ColorConfig() {}
+
+
+
+bool
+ColorConfig::Impl::init(string_view filename)
+{
+    OIIO_MAYBE_UNUSED Timer timer;
+    bool ok = true;
+
+#ifdef USE_OCIO
+    auto oldlog = OCIO::GetLoggingLevel();
+    OCIO::SetLoggingLevel(OCIO::LOGGING_LEVEL_NONE);
+
+#    if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 2, 0)
+    try {
+        builtinconfig_ = OCIO::Config::CreateFromFile("ocio://default");
+    } catch (OCIO::Exception& e) {
+        error("Error making OCIO built-in config: {}", e.what());
+    }
+#    endif
+
+    // If no filename was specified, use env $OCIO
+    if (filename.empty())
+        filename = Sysutil::getenv("OCIO");
+#    ifdef OCIO_HAS_BUILTIN_CONFIGS
+    if (filename.empty() && !disable_builtin_configs)
+        filename = "ocio://default";
+#    endif
+    if (filename.size() && !Filesystem::exists(filename)
+#    ifdef OCIO_HAS_BUILTIN_CONFIGS
+        && !Strutil::istarts_with(filename, "ocio://")
+#    endif
+    ) {
+        error("Requested non-existent OCIO config \"{}\"", filename);
+    } else {
+        // Either filename passed, or taken from $OCIO, and it seems to exist
+        try {
+            config_ = OCIO::Config::CreateFromFile(
+                std::string(filename).c_str());
+            configname(filename);
+            m_config_is_built_in = Strutil::istarts_with(filename, "ocio://");
+        } catch (OCIO::Exception& e) {
+            error("Error reading OCIO config \"{}\": {}", filename, e.what());
+        } catch (...) {
+            error("Error reading OCIO config \"{}\"", filename);
+        }
+    }
+    OCIO::SetLoggingLevel(oldlog);
+
+    ok = config_.get() != nullptr;
+
+    if (timer() > 0.1f)
+        DBG("OCIO config {} loaded in {:0.2f} seconds\n", filename,
+            timer.lap());
+#endif
+
+    inventory();
+    identify_builtin_equivalents();
+#if OCIO_VERSION_HEX < MAKE_OCIO_VERSION_HEX(2, 2, 0)
+    // Prior to 2.2, there are some other heuristics we use
+    for (auto&& cs : colorspaces)
+        reclassify_heuristics(cs);
+#endif
+    if (timer() > 0.1f)
+        DBG("OCIO config classified in {:0.2f} seconds\n", timer.lap());
+
+#if 1
+    for (auto&& cs : colorspaces) {
+        DBG("Color space '{}':\n", cs.name);
+        if (cs.flags() & CSInfo::is_srgb)
+            DBG("'{}' is srgb\n", cs.name);
+        if (cs.flags() & CSInfo::is_lin_srgb)
+            DBG("'{}' is lin_srgb\n", cs.name);
+        if (cs.flags() & CSInfo::is_ACEScg)
+            DBG("'{}' is ACEScg\n", cs.name);
+        if (cs.flags() & CSInfo::is_Rec709)
+            DBG("'{}' is Rec709\n", cs.name);
+        if (cs.flags() & CSInfo::is_linear_response)
+            DBG("'{}' has linear response\n", cs.name);
+        if (cs.flags() & CSInfo::is_scene_linear)
+            DBG("'{}' is scene_linear\n", cs.name);
+        if (cs.flags())
+            DBG("\n");
+    }
+#endif
+    DBG("Aliases: scene_linear={}   lin_srgb={}   srgb={}   ACEScg={}   Rec709={}\n",
+        scene_linear_alias, lin_srgb_alias, srgb_alias, ACEScg_alias,
+        Rec709_alias);
+
+    return ok;
+}
 
 
 
@@ -585,75 +852,7 @@ ColorConfig::reset(string_view filename)
     }
 
     m_impl.reset(new ColorConfig::Impl(this));
-    bool ok = true;
-
-#ifdef USE_OCIO
-    auto oldlog = OCIO::GetLoggingLevel();
-    OCIO::SetLoggingLevel(OCIO::LOGGING_LEVEL_NONE);
-
-    // If no filename was specified, use env $OCIO
-    if (filename.empty())
-        filename = Sysutil::getenv("OCIO");
-#    ifdef OCIO_HAS_BUILTIN_CONFIGS
-    if (filename.empty() && !disable_builtin_configs)
-        filename = "ocio://default";
-#    endif
-    if (filename.size() && !Filesystem::exists(filename)
-#    ifdef OCIO_HAS_BUILTIN_CONFIGS
-        && !Strutil::istarts_with(filename, "ocio://")
-#    endif
-    ) {
-        getImpl()->error("Requested non-existent OCIO config \"{}\"", filename);
-    } else {
-        // Either filename passed, or taken from $OCIO, and it seems to exist
-        try {
-            getImpl()->config_ = OCIO::Config::CreateFromFile(
-                std::string(filename).c_str());
-            getImpl()->configname(filename);
-            getImpl()->m_config_is_built_in = Strutil::istarts_with(filename,
-                                                                    "ocio://");
-        } catch (OCIO::Exception& e) {
-            getImpl()->error("Error reading OCIO config \"{}\": {}", filename,
-                             e.what());
-        } catch (...) {
-            getImpl()->error("Error reading OCIO config \"{}\"", filename);
-        }
-    }
-    OCIO::SetLoggingLevel(oldlog);
-
-    ok = getImpl()->config_.get() != nullptr;
-#endif
-
-    getImpl()->inventory();
-#if OCIO_VERSION_HEX < MAKE_OCIO_VERSION_HEX(2, 2, 0)
-    // Prior to 2.2, there are some other heuristics we use
-    for (auto&& cs : getImpl()->colorspaces)
-        getImpl()->reclassify_heuristics(cs);
-#endif
-#if 1
-    for (auto&& cs : getImpl()->colorspaces) {
-        DBG("Color space '{}':\n", cs.name);
-        if (cs.flags & CSInfo::is_srgb)
-            DBG("'{}' is srgb\n", cs.name);
-        if (cs.flags & CSInfo::is_lin_srgb)
-            DBG("'{}' is lin_srgb\n", cs.name);
-        if (cs.flags & CSInfo::is_ACEScg)
-            DBG("'{}' is ACEScg\n", cs.name);
-        if (cs.flags & CSInfo::is_Rec709)
-            DBG("'{}' is Rec709\n", cs.name);
-        if (cs.flags & CSInfo::is_linear_response)
-            DBG("'{}' has linear response\n", cs.name);
-        if (cs.flags & CSInfo::is_scene_linear)
-            DBG("'{}' is scene_linear\n", cs.name);
-        if (cs.flags)
-            DBG("\n");
-    }
-#endif
-    DBG("Aliases: scene_linear={}   lin_srgb={}   srgb={}   ACEScg={}   Rec709={}\n",
-        getImpl()->scene_linear_alias, getImpl()->lin_srgb_alias,
-        getImpl()->srgb_alias, getImpl()->ACEScg_alias,
-        getImpl()->Rec709_alias);
-    return ok;
+    return m_impl->init(filename);
 }
 
 
@@ -685,7 +884,7 @@ ColorConfig::geterror(bool clear) const
 int
 ColorConfig::getNumColorSpaces() const
 {
-    return (int)getImpl()->colorspaces.size();
+    return (int)getImpl()->getNumColorSpaces();
 }
 
 
@@ -693,7 +892,7 @@ ColorConfig::getNumColorSpaces() const
 const char*
 ColorConfig::getColorSpaceNameByIndex(int index) const
 {
-    return getImpl()->colorspaces[index].name.c_str();
+    return getImpl()->getColorSpaceNameByIndex(index);
 }
 
 
@@ -702,12 +901,12 @@ int
 ColorConfig::getColorSpaceIndex(string_view name) const
 {
     // Check for exact matches
-    for (int i = 0, e = (int)m_impl->colorspaces.size(); i < e; ++i)
-        if (Strutil::iequals(m_impl->colorspaces[i].name, name))
+    for (int i = 0, e = getNumColorSpaces(); i < e; ++i)
+        if (Strutil::iequals(getColorSpaceNameByIndex(i), name))
             return i;
     // Check for aliases and equivalents
-    for (int i = 0, e = (int)m_impl->colorspaces.size(); i < e; ++i)
-        if (equivalent(m_impl->colorspaces[i].name, name))
+    for (int i = 0, e = getNumColorSpaces(); i < e; ++i)
+        if (equivalent(getColorSpaceNameByIndex(i), name))
             return i;
     return -1;
 }
@@ -734,9 +933,10 @@ std::vector<std::string>
 ColorConfig::getColorSpaceNames() const
 {
     std::vector<std::string> result;
-    result.reserve(getImpl()->colorspaces.size());
-    for (auto& c : getImpl()->colorspaces)
-        result.push_back(c.name);
+    int n = getNumColorSpaces();
+    result.reserve(n);
+    for (int i = 0; i < n; ++i)
+        result.emplace_back(getColorSpaceNameByIndex(i));
     return result;
 }
 
@@ -1083,8 +1283,16 @@ ColorConfig::configname() const
 string_view
 ColorConfig::resolve(string_view name) const
 {
+    return getImpl()->resolve(name);
+}
+
+
+
+string_view
+ColorConfig::Impl::resolve(string_view name) const
+{
 #ifdef USE_OCIO
-    OCIO::ConstConfigRcPtr config = getImpl()->config_;
+    OCIO::ConstConfigRcPtr config = config_;
     if (config && !disable_ocio) {
         const char* namestr           = c_str(name);
         OCIO::ConstColorSpaceRcPtr cs = config->getColorSpace(namestr);
@@ -1094,24 +1302,20 @@ ColorConfig::resolve(string_view name) const
     // OCIO did not know this name as a color space, role, or alias.
 #endif
     // Maybe it's an informal alias of common names?
-    if (Strutil::iequals(name, "sRGB") && !getImpl()->srgb_alias.empty()) {
-        return getImpl()->srgb_alias;
-    }
-    if (Strutil::iequals(name, "lin_srgb")
-        && getImpl()->lin_srgb_alias.size()) {
-        return getImpl()->lin_srgb_alias;
-    }
-    if (Strutil::iequals(name, "ACEScg") && !getImpl()->ACEScg_alias.empty()) {
-        return getImpl()->ACEScg_alias;
-    }
+    spin_rw_write_lock lock(m_mutex);
+    if (Strutil::iequals(name, "sRGB") && !srgb_alias.empty())
+        return srgb_alias;
+    if (Strutil::iequals(name, "lin_srgb") && lin_srgb_alias.size())
+        return lin_srgb_alias;
+    if (Strutil::iequals(name, "ACEScg") && !ACEScg_alias.empty())
+        return ACEScg_alias;
     if ((Strutil::iequals(name, "linear")
          || Strutil::iequals(name, "scene_linear"))
-        && !getImpl()->scene_linear_alias.empty()) {
-        return getImpl()->scene_linear_alias;
+        && !scene_linear_alias.empty()) {
+        return scene_linear_alias;
     }
-    if (Strutil::iequals(name, "Rec709") && getImpl()->Rec709_alias.size()) {
-        return getImpl()->Rec709_alias;
-    }
+    if (Strutil::iequals(name, "Rec709") && Rec709_alias.size())
+        return Rec709_alias;
 
     return name;
 }
@@ -1145,9 +1349,9 @@ ColorConfig::equivalent(string_view color_space1,
     const CSInfo* csi1 = getImpl()->find(color_space1);
     const CSInfo* csi2 = getImpl()->find(color_space2);
     if (csi1 && csi2) {
-        int flags1 = csi1->flags & mask;
-        int flags2 = csi2->flags & mask;
-        if ((flags1 | flags2) && csi1->flags == csi2->flags)
+        int flags1 = csi1->flags() & mask;
+        int flags2 = csi2->flags() & mask;
+        if ((flags1 | flags2) && csi1->flags() == csi2->flags())
             return true;
         if ((csi1->canonical.size() && csi2->canonical.size())
             && Strutil::iequals(csi1->canonical, csi2->canonical))
