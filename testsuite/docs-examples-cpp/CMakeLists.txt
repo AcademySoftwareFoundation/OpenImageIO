@@ -27,19 +27,12 @@ if (DEFINED ENV{SANITIZE})
     add_link_options (-fsanitize=$ENV{SANITIZE})
 endif()
 
-add_executable(docs-examples-imageoutput src/docs-examples-imageoutput.cpp)
-target_link_libraries (docs-examples-imageoutput
-                       PRIVATE OpenImageIO::OpenImageIO)
-
-# Chapters we haven't done yet:
-# add_executable(docs-imageinput src/docs-examples-imageinput.cpp)
-# target_link_libraries (docs-examples-imageinput
-#                        PRIVATE OpenImageIO::OpenImageIO)
-# 
-# add_executable(docs-imagebuf src/docs-examples-imagebuf.cpp)
-# target_link_libraries (docs-examples-imagebuf
-#                        PRIVATE OpenImageIO::OpenImageIO)
-# 
-# add_executable(docs-imagebufalgo src/docs-examples-imagebufalgo.cpp)
-# target_link_libraries (docs-examples-imagebufalgo
-#                        PRIVATE OpenImageIO::OpenImageIO)
+###########################################################################
+# For each chapter example file, build an executable.
+set (chapters imageioapi imageoutput imageinput writingplugins
+             imagecache texturesys imagebuf imagebufalgo)
+foreach (chapter ${chapters})
+    add_executable(docs-examples-${chapter} src/docs-examples-${chapter}.cpp)
+    target_link_libraries (docs-examples-${chapter}
+                           PRIVATE OpenImageIO::OpenImageIO)
+endforeach ()
