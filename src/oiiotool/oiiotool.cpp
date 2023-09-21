@@ -4884,6 +4884,7 @@ action_mosaic(Oiiotool& ot, cspan<const char*> argv)
     }
 
     int widest = 0, highest = 0, nchannels = 0;
+    TypeDesc outtype = TypeUnknown;
     std::vector<ImageRecRef> images(nimages);
     for (int i = nimages - 1; i >= 0; --i) {
         ImageRecRef img = ot.pop();
@@ -4892,6 +4893,7 @@ action_mosaic(Oiiotool& ot, cspan<const char*> argv)
         widest    = std::max(widest, img->spec()->full_width);
         highest   = std::max(highest, img->spec()->full_height);
         nchannels = std::max(nchannels, img->spec()->nchannels);
+        outtype   = TypeDesc::basetype_merge(outtype, img->spec()->format);
     }
 
     auto options = ot.extract_options(command);
@@ -4916,7 +4918,7 @@ action_mosaic(Oiiotool& ot, cspan<const char*> argv)
 
     ImageSpec Rspec(ximages * widest + (ximages - 1) * pad,
                     yimages * highest + (yimages - 1) * pad, nchannels,
-                    TypeDesc::FLOAT);
+                    outtype);
     ImageRecRef R(new ImageRec("mosaic", Rspec, ot.imagecache));
     ot.push(R);
 
