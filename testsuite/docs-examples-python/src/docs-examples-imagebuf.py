@@ -9,14 +9,14 @@ from __future__ import absolute_import
 
 
 ############################################################################
-# This file contains code examples from the ImageInput chapter of the
+# This file contains code examples from the ImageBuf chapter of the
 # main OpenImageIO documentation.
 #
 # To add an additional test, replicate the section below. Change
 # "example1" to a helpful short name that identifies the example.
 
 
-# BEGIN-imageinput-example1
+# BEGIN-imagebuf-example1
 import OpenImageIO as oiio
 import numpy as np
 
@@ -31,7 +31,7 @@ def example1() :
     #
     return
 
-# END-imageinput-example1
+# END-imagebuf-example1
 
 #
 ############################################################################
