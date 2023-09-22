@@ -201,6 +201,10 @@ if [[ "$ABI_CHECK" != "" ]] ; then
     source src/build-scripts/build_abi_tools.bash
 fi
 
+if [[ "$LIBJPEGTURBO_VERSION" != "" ]] ; then
+    source src/build-scripts/build_libjpeg-turbo.bash
+fi
+
 if [[ "$USE_ICC" != "" ]] ; then
     # We used gcc for the prior dependency builds, but use icc for OIIO itself
     echo "which icpc:" $(which icpc)
