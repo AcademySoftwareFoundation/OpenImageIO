@@ -24,8 +24,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * **OpenEXR/Imath >= 2.4** (recommended: 3.1 or higher; tested through 3.2
    and main) (ADVISORY: We expect that OIIO 2.6 in 2024 will require OpenEXR >= 3.1)
  * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.5)
- * libjpeg >= 8, or libjpeg-turbo >= 1.1 (tested through jpeg9d and jpeg-turbo
-   2.1)
+ * libjpeg >= 8 (tested through jpeg9e), or **libjpeg-turbo >= 2.1** (tested
+   through 3.0)
  * Boost >= 1.53 (recommended: at least 1.66; tested through 1.81)
  * **[fmtlib](https://github.com/fmtlib/fmt) >= 7.0** (tested through 10.1).
    If not found at build time, this will be automatically downloaded unless

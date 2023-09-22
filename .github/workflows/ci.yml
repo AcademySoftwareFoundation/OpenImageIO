@@ -300,7 +300,8 @@ jobs:
             pybind11_ver: v2.11.1
             python_ver: "3.10"
             simd: avx2,f16c
-            setenvs: export LIBRAW_VERSION=0.20.2
+            setenvs: export LIBJPEGTURBO_VERSION=3.0.0
+                            LIBRAW_VERSION=0.20.2
                             LIBTIFF_VERSION=v4.5.0
                             OPENCOLORIO_VERSION=v2.3.0
                             OPENJPEG_VERSION=v2.4.0
@@ -320,7 +321,8 @@ jobs:
             pybind11_ver: master
             python_ver: "3.10"
             simd: avx2,f16c
-            setenvs: export LIBRAW_VERSION=master
+            setenvs: export LIBJPEGTURBO_VERSION=main
+                            LIBRAW_VERSION=master
                             LIBTIFF_VERSION=master
                             OPENCOLORIO_VERSION=main
                             OPENJPEG_VERSION=master
@@ -371,6 +373,7 @@ jobs:
             openexr_ver: v2.5.8
             pybind11_ver: v2.5.0
             simd: avx
+            setenvs: export EXTRA_DEP_PACKAGES=libjpeg-turbo8-dev
           - desc: static libs gcc7 C++14 exr2.4
             nametag: linux-static
             os: ubuntu-20.04
