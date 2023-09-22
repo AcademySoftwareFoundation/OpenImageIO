@@ -89,8 +89,8 @@ private:
     }
 
     template<class T>
-    void deassociateAlpha(T* data, int size, int channels, int alpha_channel,
-                          float gamma);
+    void deassociateAlpha(T* data, size_t npixels, int channels,
+                          int alpha_channel, float gamma);
 };
 
 
@@ -269,30 +269,33 @@ PNGOutput::close()
 
 template<class T>
 void
-PNGOutput::deassociateAlpha(T* data, int size, int channels, int alpha_channel,
-                            float gamma)
+PNGOutput::deassociateAlpha(T* data, size_t npixels, int channels,
+                            int alpha_channel, float gamma)
 {
-    unsigned int max = std::numeric_limits<T>::max();
     if (gamma == 1) {
-        for (int x = 0; x < size; ++x, data += channels)
-            if (data[alpha_channel])
-                for (int c = 0; c < channels; c++)
-                    if (c != alpha_channel) {
-                        unsigned int f = data[c];
-                        f              = (f * max) / data[alpha_channel];
-                        data[c]        = (T)std::min(max, f);
-                    }
-    } else {
-        for (int x = 0; x < size; ++x, data += channels)
-            if (data[alpha_channel]) {
-                // See associateAlpha() for an explanation.
-                float alpha_deassociate = pow((float)max / data[alpha_channel],
-                                              gamma);
-                for (int c = 0; c < channels; c++)
+        for (size_t x = 0; x < npixels; ++x, data += channels) {
+            DataArrayProxy<T, float> val(data);
+            float alpha = val[alpha_channel];
+            if (alpha != 0.0f && alpha != 1.0f) {
+                for (int c = 0; c < channels; c++) {
                     if (c != alpha_channel)
-                        data[c] = static_cast<T>(std::min(
-                            max, (unsigned int)(data[c] * alpha_deassociate)));
+                        val[c] = data[c] / alpha;
+                }
             }
+        }
+    } else {
+        for (size_t x = 0; x < npixels; ++x, data += channels) {
+            DataArrayProxy<T, float> val(data);
+            float alpha = val[alpha_channel];
+            if (alpha != 0.0f && alpha != 1.0f) {
+                // See associateAlpha() for an explanation.
+                float alpha_deassociate = pow(1.0f / val[alpha_channel], gamma);
+                for (int c = 0; c < channels; c++) {
+                    if (c != alpha_channel)
+                        val[c] = val[c] * alpha_deassociate;
+                }
+            }
+        }
     }
 }
 
@@ -302,24 +305,40 @@ bool
 PNGOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
                           stride_t xstride)
 {
-    y -= m_spec.y;
     m_spec.auto_stride(xstride, format, spec().nchannels);
     const void* origdata = data;
+    if (format == TypeUnknown)
+        format = m_spec.format;
+
+    // PNG specifically dictates unassociated (un-"premultiplied") alpha.
+    // If we need to unassociate alpha, do it in float.
+    std::unique_ptr<float[]> unassoc_scratch;
+    if (m_convert_alpha) {
+        size_t nvals     = size_t(m_spec.width) * size_t(m_spec.nchannels);
+        float* floatvals = nullptr;
+        if (nvals * sizeof(float) <= (1 << 16)) {
+            floatvals = OIIO_ALLOCA(float, nvals);  // small enough for stack
+        } else {
+            unassoc_scratch.reset(new float[nvals]);
+            floatvals = unassoc_scratch.get();
+        }
+        // Contiguize and convert to float
+        OIIO::convert_image(m_spec.nchannels, m_spec.width, 1, 1, data, format,
+                            xstride, AutoStride, AutoStride, floatvals,
+                            TypeFloat, AutoStride, AutoStride, AutoStride);
+        // Deassociate alpha
+        deassociateAlpha(floatvals, size_t(m_spec.width), m_spec.nchannels,
+                         m_spec.alpha_channel, m_gamma);
+        data    = floatvals;
+        format  = TypeFloat;
+        xstride = size_t(m_spec.nchannels) * sizeof(float);
+    }
+
     data = to_native_scanline(format, data, xstride, m_scratch, m_dither, y, z);
     if (data == origdata && (m_convert_alpha || m_need_swap)) {
         m_scratch.assign((unsigned char*)data,
                          (unsigned char*)data + m_spec.scanline_bytes());
         data = &m_scratch[0];
-    }
-
-    // PNG specifically dictates unassociated (un-"premultiplied") alpha
-    if (m_convert_alpha) {
-        if (m_spec.format == TypeDesc::UINT16)
-            deassociateAlpha((unsigned short*)data, m_spec.width,
-                             m_spec.nchannels, m_spec.alpha_channel, m_gamma);
-        else
-            deassociateAlpha((unsigned char*)data, m_spec.width,
-                             m_spec.nchannels, m_spec.alpha_channel, m_gamma);
     }
 
     // PNG is always big endian
@@ -354,25 +373,39 @@ PNGOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
     m_spec.auto_stride(xstride, ystride, zstride, format, m_spec.nchannels,
                        m_spec.width, m_spec.height);
     const void* origdata = data;
+    if (format == TypeUnknown)
+        format = m_spec.format;
+
+    // PNG specifically dictates unassociated (un-"premultiplied") alpha.
+    // If we need to unassociate alpha, do it in float.
+    std::unique_ptr<float[]> unassoc_scratch;
+    size_t npixels = size_t(m_spec.width) * size_t(yend - ybegin);
+    size_t nvals   = npixels * size_t(m_spec.nchannels);
+    if (m_convert_alpha) {
+        unassoc_scratch.reset(new float[nvals]);
+        float* floatvals = unassoc_scratch.get();
+        // Contiguize and convert to float
+        OIIO::convert_image(m_spec.nchannels, m_spec.width, m_spec.height, 1,
+                            data, format, xstride, ystride, AutoStride,
+                            floatvals, TypeFloat, AutoStride, AutoStride,
+                            AutoStride);
+        // Deassociate alpha
+        deassociateAlpha(floatvals, npixels, m_spec.nchannels,
+                         m_spec.alpha_channel, m_gamma);
+        data    = floatvals;
+        format  = TypeFloat;
+        xstride = size_t(m_spec.nchannels) * sizeof(float);
+        ystride = xstride * size_t(m_spec.width);
+        zstride = ystride * size_t(m_spec.height);
+    }
+
     data = to_native_rectangle(m_spec.x, m_spec.x + m_spec.width, ybegin, yend,
                                z, z + 1, format, data, xstride, ystride,
-                               zstride, m_scratch);
-    size_t npixels = m_spec.width * (yend - ybegin);
-    size_t nvals   = npixels * m_spec.nchannels;
+                               zstride, m_scratch, m_dither, 0, ybegin, z);
     if (data == origdata && (m_convert_alpha || m_need_swap)) {
         m_scratch.assign((unsigned char*)data,
                          (unsigned char*)data + nvals * m_spec.format.size());
         data = m_scratch.data();
-    }
-
-    // PNG specifically dictates unassociated (un-"premultiplied") alpha
-    if (m_convert_alpha) {
-        if (m_spec.format == TypeDesc::UINT16)
-            deassociateAlpha((unsigned short*)data, npixels, m_spec.nchannels,
-                             m_spec.alpha_channel, m_gamma);
-        else
-            deassociateAlpha((unsigned char*)data, npixels, m_spec.nchannels,
-                             m_spec.alpha_channel, m_gamma);
     }
 
     // PNG is always big endian
