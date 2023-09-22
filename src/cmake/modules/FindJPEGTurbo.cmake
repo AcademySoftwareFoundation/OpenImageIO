@@ -33,7 +33,22 @@ endif ()
 if (JPEG_INCLUDE_DIR AND JPEG_LIBRARY)
   set (JPEG_INCLUDE_DIRS ${JPEG_INCLUDE_DIR} CACHE PATH "JPEG include dirs")
   set (JPEG_LIBRARIES ${JPEG_LIBRARY} CACHE STRING "JPEG libraries")
-  file(STRINGS "${JPEG_INCLUDE_DIR}/jconfig.h"
+
+  find_path(jconfig_header_file jconfig.h PATHS "${JPEG_INCLUDE_DIR}")
+
+  if (NOT jconfig_header_file)
+    file(GLOB_RECURSE jconfig_header_file_list "${JPEG_INCLUDE_DIR}/*/jconfig.h")
+
+    if (jconfig_header_file_list)
+      list(GET jconfig_header_file_list 0 jconfig_header_file)
+    endif()
+
+    if (NOT jconfig_header_file)
+      message(WARNING "Cannot find jconfig.h from libturbojpeg")
+    endif()
+  endif()
+
+  file(STRINGS "${jconfig_header_file}"
                 jpeg_lib_version REGEX "^#define[\t ]+JPEG_LIB_VERSION[\t ]+.*")
   if (jpeg_lib_version)
       string(REGEX REPLACE "^#define[\t ]+JPEG_LIB_VERSION[\t ]+([0-9]+).*"
