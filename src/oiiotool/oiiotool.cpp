@@ -582,7 +582,12 @@ set_cachesize(Oiiotool& ot, cspan<const char*> argv)
 {
     OIIO_DASSERT(argv.size() == 2);
     ot.cachesize = Strutil::stoi(argv[1]);
-    ot.imagecache->attribute("max_memory_MB", float(ot.cachesize));
+    if (ot.cachesize) {
+        OIIO::attribute("imagebuf:use_imagecache", 1);
+        ot.imagecache->attribute("max_memory_MB", float(ot.cachesize));
+    } else {
+        OIIO::attribute("imagebuf:use_imagecache", 0);
+    }
 }
 
 
@@ -7424,30 +7429,38 @@ main(int argc, char* argv[])
     if (ot.runstats) {
         double total_time  = ot.total_runtime();
         double unaccounted = total_time;
-        std::cout << "\n";
-        int threads = -1;
-        OIIO::getattribute("threads", threads);
-        std::cout << "Threads: " << threads << "\n";
-        std::cout << "oiiotool runtime statistics:\n";
-        std::cout << "  Total time: "
-                  << Strutil::timeintervalformat(total_time, 2) << "\n";
-        static const char* timeformat = "      %-12s : %5.2f\n";
+        print("\n");
+        print("Threads: {}\n", OIIO::get_int_attribute("threads"));
+        print("oiiotool runtime statistics:\n");
+        print("  Total time: {}\n", Strutil::timeintervalformat(total_time, 2));
         for (auto& func : ot.function_times) {
             double t = func.second;
             if (t > 0.0) {
-                Strutil::printf(timeformat, func.first, t);
+                Strutil::print("      {:<12} : {:5.2f}\n", func.first, t);
                 unaccounted -= t;
             }
         }
-        if (unaccounted > 0.0) {
-            Strutil::printf(timeformat, "unaccounted", unaccounted);
-        }
+        if (unaccounted > 0.0)
+            Strutil::print("      {:<12} : {:5.2f}\n", "unaccounted",
+                           unaccounted);
         ot.check_peak_memory();
-        std::cout << "  Peak memory:    " << Strutil::memformat(ot.peak_memory)
-                  << "\n";
-        std::cout << "  Current memory: "
-                  << Strutil::memformat(Sysutil::memory_used()) << "\n";
-        std::cout << "\n" << ot.imagecache->getstats(2) << "\n";
+        print("  Peak memory:    {}\n", Strutil::memformat(ot.peak_memory));
+        print("  Current memory: {}\n",
+              Strutil::memformat(Sysutil::memory_used()));
+        {
+            int64_t current = 0, peak = 0;
+            OIIO::getattribute("IB_local_mem_current", TypeInt64, &current);
+            OIIO::getattribute("IB_local_mem_peak", TypeInt64, &peak);
+            print("\nImageBuf local memory: current {}, peak {}\n",
+                  Strutil::memformat(current), Strutil::memformat(peak));
+            float opentime = OIIO::get_float_attribute("IB_total_open_time");
+            float readtime = OIIO::get_float_attribute(
+                "IB_total_image_read_time");
+            print("ImageBuf direct read time: {}, open time {}\n",
+                  Strutil::timeintervalformat(readtime, 2),
+                  Strutil::timeintervalformat(opentime, 2));
+        }
+        print("\n{}\n", ot.imagecache->getstats(2));
     }
 
     // Release references of images that might hold onto a shared

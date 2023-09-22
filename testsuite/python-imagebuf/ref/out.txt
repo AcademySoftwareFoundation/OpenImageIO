@@ -30,8 +30,6 @@ Constructing from a bare numpy array:
  from 4D, shape is float 0 2 0 2 0 2 0 4
 
 Testing read of ../common/textures/grid.tx:
-subimage: 0  /  1
-miplevel: 0  /  11
 channels: 4
 name: ../common/textures/grid.tx
 file_format_name: tiff

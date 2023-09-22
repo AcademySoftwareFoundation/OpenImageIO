@@ -191,8 +191,10 @@ try:
     b = oiio.ImageBuf ("../common/textures/grid.tx")
     b.init_spec ("../common/textures/grid.tx")
     b.read ()
-    print ("subimage:", b.subimage, " / ", b.nsubimages)
-    print ("miplevel:", b.miplevel, " / ", b.nmiplevels)
+    if b.nsubimages != 0:
+        print ("subimage:", b.subimage, " / ", b.nsubimages)
+    if b.nmiplevels != 0:
+        print ("miplevel:", b.miplevel, " / ", b.nmiplevels)
     print ("channels:", b.nchannels)
     print ("name:", b.name)
     print ("file_format_name:", b.file_format_name)
