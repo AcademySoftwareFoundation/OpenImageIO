@@ -28,7 +28,14 @@ OIIO_NAMESPACE_BEGIN
 
 OIIO_STRONG_PARAM_TYPE(DoLock, bool);
 
-static atomic_ll IB_local_mem_current;
+namespace pvt {
+int imagebuf_print_uncaught_errors(1);
+int imagebuf_use_imagecache(0);
+atomic_ll IB_local_mem_current;
+atomic_ll IB_local_mem_peak;
+std::atomic<float> IB_total_open_time(0.0f);
+std::atomic<float> IB_total_image_read_time(0.0f);
+}  // namespace pvt
 
 
 
@@ -291,11 +298,11 @@ private:
     stride_t m_zstride;
     stride_t m_channel_stride;
     bool m_contiguous;
-    ImageCache* m_imagecache;              ///< ImageCache to use
-    TypeDesc m_cachedpixeltype;            ///< Data type stored in the cache
-    DeepData m_deepdata;                   ///< Deep data
-    size_t m_allocated_size;               ///< How much memory we've allocated
-    std::vector<char> m_blackpixel;        ///< Pixel-sized zero bytes
+    ImageCache* m_imagecache = nullptr;  ///< ImageCache to use
+    TypeDesc m_cachedpixeltype;          ///< Data type stored in the cache
+    DeepData m_deepdata;                 ///< Deep data
+    size_t m_allocated_size;             ///< How much memory we've allocated
+    std::vector<char> m_blackpixel;      ///< Pixel-sized zero bytes
     std::vector<TypeDesc> m_write_format;  /// Pixel data format to use for write()
     int m_write_tile_width;
     int m_write_tile_height;
@@ -389,23 +396,9 @@ ImageBufImpl::ImageBufImpl(string_view filename, int subimage, int miplevel,
         }
         m_spec_valid = true;
     } else if (filename.length() > 0) {
+        // filename being nonempty means this ImageBuf refers to a file.
         OIIO_DASSERT(buffer == nullptr);
-        // Invalidate the image in cache. Do so unconditionally if there's
-        // a chance that configuration hints may have changed.
-        invalidate(m_name, config || m_configspec);
-        // If a filename was given, read the spec and set it up as an
-        // ImageCache-backed image.  Reallocate later if an explicit read()
-        // is called to force read into a local buffer.
-        if (config)
-            m_configspec.reset(new ImageSpec(*config));
-        m_rioproxy = ioproxy;
-        if (m_rioproxy) {
-            add_configspec();
-            m_configspec->attribute("oiio:ioproxy", TypeDesc::PTR, &m_rioproxy);
-        }
-        read(subimage, miplevel);
-        // FIXME: investigate if the above read is really necessary, or if
-        // it can be eliminated and done fully lazily.
+        reset(filename, subimage, miplevel, imagecache, config, ioproxy);
     } else {
         OIIO_DASSERT(buffer == nullptr);
     }
@@ -618,14 +611,15 @@ ImageBufImpl::new_pixels(size_t size, const void* data)
         size = 0;
     }
     m_allocated_size = size;
-    IB_local_mem_current += m_allocated_size;
+    pvt::IB_local_mem_current += m_allocated_size;
+    atomic_max(pvt::IB_local_mem_peak, (long long)pvt::IB_local_mem_current);
     if (data && size)
         memcpy(m_pixels.get(), data, size);
     m_localpixels = m_pixels.get();
     m_storage     = size ? ImageBuf::LOCALBUFFER : ImageBuf::UNINITIALIZED;
     if (pvt::oiio_print_debug > 1)
         OIIO::debugfmt("IB allocated {} MB, global IB memory now {} MB\n",
-                       size >> 20, IB_local_mem_current >> 20);
+                       size >> 20, pvt::IB_local_mem_current >> 20);
     eval_contiguous();
     return m_localpixels;
 }
@@ -637,8 +631,9 @@ ImageBufImpl::free_pixels()
     if (m_allocated_size) {
         if (pvt::oiio_print_debug > 1)
             OIIO::debugfmt("IB freed {} MB, global IB memory now {} MB\n",
-                           m_allocated_size >> 20, IB_local_mem_current >> 20);
-        IB_local_mem_current -= m_allocated_size;
+                           m_allocated_size >> 20,
+                           pvt::IB_local_mem_current >> 20);
+        pvt::IB_local_mem_current -= m_allocated_size;
         m_allocated_size = 0;
     }
     m_pixels.reset();
@@ -768,11 +763,14 @@ ImageBufImpl::reset(string_view filename, int subimage, int miplevel,
 {
     clear();
     m_name = ustring(filename);
-    invalidate(m_name, false);
+    if (m_imagecache || pvt::imagebuf_use_imagecache) {
+        // Invalidate the image in cache. Do so unconditionally if there's a
+        // chance that configuration hints may have changed.
+        invalidate(m_name, config || m_configspec);
+    }
     m_current_subimage = subimage;
     m_current_miplevel = miplevel;
-    if (imagecache)
-        m_imagecache = imagecache;
+    m_imagecache       = imagecache;
     if (config)
         m_configspec.reset(new ImageSpec(*config));
     m_rioproxy = ioproxy;
@@ -782,10 +780,10 @@ ImageBufImpl::reset(string_view filename, int subimage, int miplevel,
     }
 
     if (m_name.length() > 0) {
-        // If a filename was given, read the spec and set it up as an
-        // ImageCache-backed image.  Reallocate later if an explicit read()
-        // is called to force read into a local buffer.
+        // filename non-empty means this ImageBuf refers to a file.
         read(subimage, miplevel);
+        // FIXME: investigate if the above read is really necessary, or if
+        // it can be eliminated and done fully lazily.
     }
 }
 
@@ -825,12 +823,17 @@ ImageBufImpl::reset(string_view filename, const ImageSpec& spec,
     m_current_subimage = 0;
     m_current_miplevel = 0;
     if (buffer) {
-        m_spec    = spec;
-        m_xstride = xstride;
-        m_ystride = ystride;
-        m_zstride = zstride;
+        m_spec           = spec;
+        m_nativespec     = nativespec ? *nativespec : spec;
+        m_channel_stride = stride_t(spec.format.size());
+        m_xstride        = xstride;
+        m_ystride        = ystride;
+        m_zstride        = zstride;
         ImageSpec::auto_stride(m_xstride, m_ystride, m_zstride, m_spec.format,
                                m_spec.nchannels, m_spec.width, m_spec.height);
+        m_blackpixel.resize(round_to_multiple(spec.pixel_bytes(),
+                                              OIIO_SIMD_MAX_SIZE_BYTES),
+                            0);
         m_localpixels  = (char*)buffer;
         m_storage      = ImageBuf::APPBUFFER;
         m_pixels_valid = true;
@@ -936,81 +939,135 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
 
     m_name = filename;
 
-    // Make sure we have access to an imagecache. Also invalidate any cache
-    // info for the file just in case it has changed on disk.
-    if (!m_imagecache)
-        m_imagecache = ImageCache::create(true /* shared cache */);
+    // If we weren't given an imagecache but "imagebuf:use_imagecache"
+    // attribute was set, use a shared IC.
+    if (m_imagecache == nullptr && pvt::imagebuf_use_imagecache)
+        m_imagecache = ImageCache::create(true);
 
-    m_pixels_valid = false;
-    m_nsubimages   = 0;
-    m_nmiplevels   = 0;
-    static ustring s_subimages("subimages"), s_miplevels("miplevels");
-    static ustring s_fileformat("fileformat");
-    if (m_configspec) {  // Pass configuration options to cache
-        // Invalidate the file in the cache, and add with replacement
-        // because it might have a different config than last time.
-        m_imagecache->invalidate(m_name, true);
-        m_imagecache->add_file(m_name, nullptr, m_configspec.get(),
-                               /*replace=*/true);
+    if (m_imagecache) {
+        m_pixels_valid = false;
+        m_nsubimages   = 0;
+        m_nmiplevels   = 0;
+        static ustring s_subimages("subimages"), s_miplevels("miplevels");
+        static ustring s_fileformat("fileformat");
+        if (m_configspec) {  // Pass configuration options to cache
+            // Invalidate the file in the cache, and add with replacement
+            // because it might have a different config than last time.
+            m_imagecache->invalidate(m_name, true);
+            m_imagecache->add_file(m_name, nullptr, m_configspec.get(),
+                                   /*replace=*/true);
+        } else {
+            // If no configspec, just do a regular soft invalidate
+            invalidate(m_name, false);
+        }
+        m_imagecache->get_image_info(m_name, subimage, miplevel, s_subimages,
+                                     TypeInt, &m_nsubimages);
+        m_imagecache->get_image_info(m_name, subimage, miplevel, s_miplevels,
+                                     TypeInt, &m_nmiplevels);
+        const char* fmt = NULL;
+        m_imagecache->get_image_info(m_name, subimage, miplevel, s_fileformat,
+                                     TypeString, &fmt);
+        m_fileformat = ustring(fmt);
+        m_imagecache->get_imagespec(m_name, m_spec, subimage, miplevel);
+        m_imagecache->get_imagespec(m_name, m_nativespec, subimage, miplevel,
+                                    true);
+        m_xstride = m_spec.pixel_bytes();
+        m_ystride = m_spec.scanline_bytes();
+        m_zstride = clamped_mult64(m_ystride, (imagesize_t)m_spec.height);
+        m_channel_stride = m_spec.format.size();
+        m_blackpixel.resize(round_to_multiple(m_xstride,
+                                              OIIO_SIMD_MAX_SIZE_BYTES),
+                            0);
+        // ^^^ NB make it big enough for SIMD
+
+        // Go ahead and read any thumbnail that exists. Is that bad?
+        if (m_spec["thumbnail_width"].get<int>()
+            && m_spec["thumbnail_height"].get<int>()) {
+            m_thumbnail.reset(new ImageBuf);
+            m_imagecache->get_thumbnail(m_name, *m_thumbnail, subimage);
+            m_has_thumbnail = true;
+        }
+
+        // Subtlety: m_nativespec will have the true formats of the file, but
+        // we rig m_spec to reflect what it will look like in the cache.
+        // This may make m_spec appear to change if there's a subsequent read()
+        // that forces a full read into local memory, but what else can we do?
+        // It causes havoc for it to suddenly change in the other direction
+        // when the file is lazily read.
+        int peltype = TypeDesc::UNKNOWN;
+        m_imagecache->get_image_info(m_name, subimage, miplevel,
+                                     ustring("cachedpixeltype"), TypeInt,
+                                     &peltype);
+        if (peltype != TypeDesc::UNKNOWN) {
+            m_spec.format = (TypeDesc::BASETYPE)peltype;
+            m_spec.channelformats.clear();
+        }
+
+        if (m_nsubimages) {
+            m_badfile          = false;
+            m_pixelaspect      = m_spec.get_float_attribute("pixelaspectratio",
+                                                       1.0f);
+            m_current_subimage = subimage;
+            m_current_miplevel = miplevel;
+            m_spec_valid       = true;
+        } else {
+            m_badfile          = true;
+            m_current_subimage = -1;
+            m_current_miplevel = -1;
+            m_err              = m_imagecache->geterror();
+            m_spec_valid       = false;
+            // std::cerr << "ImageBuf ERROR: " << m_err << "\n";
+        }
     } else {
-        // If no configspec, just do a regular soft invalidate
-        invalidate(m_name, false);
-    }
-    m_imagecache->get_image_info(m_name, subimage, miplevel, s_subimages,
-                                 TypeInt, &m_nsubimages);
-    m_imagecache->get_image_info(m_name, subimage, miplevel, s_miplevels,
-                                 TypeInt, &m_nmiplevels);
-    const char* fmt = NULL;
-    m_imagecache->get_image_info(m_name, subimage, miplevel, s_fileformat,
-                                 TypeString, &fmt);
-    m_fileformat = ustring(fmt);
-    m_imagecache->get_imagespec(m_name, m_spec, subimage, miplevel);
-    m_imagecache->get_imagespec(m_name, m_nativespec, subimage, miplevel, true);
-    m_xstride        = m_spec.pixel_bytes();
-    m_ystride        = m_spec.scanline_bytes();
-    m_zstride        = clamped_mult64(m_ystride, (imagesize_t)m_spec.height);
-    m_channel_stride = m_spec.format.size();
-    m_blackpixel.resize(round_to_multiple(m_xstride, OIIO_SIMD_MAX_SIZE_BYTES),
-                        0);
-    // ^^^ NB make it big enough for SIMD
-
-    // Go ahead and read any thumbnail that exists. Is that bad?
-    if (m_spec["thumbnail_width"].get<int>()
-        && m_spec["thumbnail_height"].get<int>()) {
-        m_thumbnail.reset(new ImageBuf);
-        m_imagecache->get_thumbnail(m_name, *m_thumbnail, subimage);
-        m_has_thumbnail = true;
-    }
-
-    // Subtlety: m_nativespec will have the true formats of the file, but
-    // we rig m_spec to reflect what it will look like in the cache.
-    // This may make m_spec appear to change if there's a subsequent read()
-    // that forces a full read into local memory, but what else can we do?
-    // It causes havoc for it to suddenly change in the other direction
-    // when the file is lazily read.
-    int peltype = TypeDesc::UNKNOWN;
-    m_imagecache->get_image_info(m_name, subimage, miplevel,
-                                 ustring("cachedpixeltype"), TypeInt, &peltype);
-    if (peltype != TypeDesc::UNKNOWN) {
-        m_spec.format = (TypeDesc::BASETYPE)peltype;
-        m_spec.channelformats.clear();
-    }
-
-    if (m_nsubimages) {
-        m_badfile     = false;
-        m_pixelaspect = m_spec.get_float_attribute("pixelaspectratio", 1.0f);
-        m_current_subimage = subimage;
-        m_current_miplevel = miplevel;
-        m_spec_valid       = true;
-    } else {
+        //
+        // No imagecache supplied, we will use ImageInput directly
+        //
+        Timer timer;
         m_badfile          = true;
+        m_pixels_valid     = false;
+        m_spec_valid       = false;
+        m_nsubimages       = 0;
+        m_nmiplevels       = 0;
+        m_badfile          = false;
         m_current_subimage = -1;
         m_current_miplevel = -1;
-        m_err              = m_imagecache->geterror();
-        m_spec_valid       = false;
-        // std::cerr << "ImageBuf ERROR: " << m_err << "\n";
-    }
+        auto input = ImageInput::open(filename, m_configspec.get(), m_rioproxy);
+        if (!input) {
+            m_err = OIIO::geterror();
+            atomic_fetch_add(pvt::IB_total_open_time, float(timer()));
+            return false;
+        }
+        m_spec = input->spec(subimage, miplevel);
+        if (input->has_error()) {
+            m_err = input->geterror();
+            atomic_fetch_add(pvt::IB_total_open_time, float(timer()));
+            return false;
+        }
+        m_badfile    = false;
+        m_spec_valid = true;
+        m_fileformat = ustring(input->format_name());
+        m_nativespec = m_spec;
+        m_xstride    = m_spec.pixel_bytes();
+        m_ystride    = m_spec.scanline_bytes();
+        m_zstride    = clamped_mult64(m_ystride, (imagesize_t)m_spec.height);
+        m_channel_stride = m_spec.format.size();
+        m_blackpixel.resize(
+            round_to_multiple(m_xstride, OIIO_SIMD_MAX_SIZE_BYTES));
+        // ^^^ NB make it big enough for SIMD
 
+        // Go ahead and read any thumbnail that exists. Is that bad?
+        if (m_spec["thumbnail_width"].get<int>()
+            && m_spec["thumbnail_height"].get<int>()) {
+            m_thumbnail.reset(new ImageBuf);
+            m_has_thumbnail = input->get_thumbnail(*m_thumbnail.get(),
+                                                   subimage);
+        }
+
+        m_current_subimage = subimage;
+        m_current_miplevel = miplevel;
+        m_pixelaspect = m_spec.get_float_attribute("pixelaspectratio", 1.0f);
+        atomic_fetch_add(pvt::IB_total_open_time, float(timer()));
+    }
     return !m_badfile;
 }
 
@@ -1056,6 +1113,7 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
     bool use_channel_subset = (chbegin != 0 || chend != nativespec().nchannels);
 
     if (m_spec.deep) {
+        Timer timer;
         auto input = ImageInput::open(m_name.string(), m_configspec.get(),
                                       m_rioproxy);
         if (!input) {
@@ -1063,41 +1121,51 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
             return false;
         }
         input->threads(threads());  // Pass on our thread policy
-        if (!input->read_native_deep_image(subimage, miplevel, m_deepdata)) {
+        bool ok = input->read_native_deep_image(subimage, miplevel, m_deepdata);
+        if (ok) {
+            m_spec = m_nativespec;  // Deep images always use native data
+            m_pixels_valid = true;
+            m_storage      = ImageBuf::LOCALBUFFER;
+        } else {
             error(input->geterror());
-            return false;
         }
-        m_spec         = m_nativespec;  // Deep images always use native data
-        m_pixels_valid = true;
-        m_storage      = ImageBuf::LOCALBUFFER;
-        return true;
+        atomic_fetch_add(pvt::IB_total_image_read_time, float(timer()));
+        return ok;
     }
 
     m_pixelaspect = m_spec.get_float_attribute("pixelaspectratio", 1.0f);
 
-    // If we don't already have "local" pixels, and we aren't asking to
-    // convert the pixels to a specific (and different) type, then take an
-    // early out by relying on the cache.
-    int peltype = TypeDesc::UNKNOWN;
-    m_imagecache->get_image_info(m_name, subimage, miplevel,
-                                 ustring("cachedpixeltype"), TypeInt, &peltype);
-    m_cachedpixeltype = TypeDesc((TypeDesc::BASETYPE)peltype);
-    if (!m_localpixels && !force && !use_channel_subset
-        && (convert == m_cachedpixeltype || convert == TypeDesc::UNKNOWN)) {
-        m_spec.format = m_cachedpixeltype;
-        m_xstride     = m_spec.pixel_bytes();
-        m_ystride     = m_spec.scanline_bytes();
-        m_zstride     = clamped_mult64(m_ystride, (imagesize_t)m_spec.height);
-        m_blackpixel.resize(round_to_multiple(m_xstride,
-                                              OIIO_SIMD_MAX_SIZE_BYTES),
-                            0);
-        // NB make it big enough for SSE
-        m_pixels_valid = true;
-        m_storage      = ImageBuf::IMAGECACHE;
+    if (m_imagecache) {
+        // If we don't already have "local" pixels, and we aren't asking to
+        // convert the pixels to a specific (and different) type, then take an
+        // early out by relying on the cache.
+        int peltype = TypeDesc::UNKNOWN;
+        m_imagecache->get_image_info(m_name, subimage, miplevel,
+                                     ustring("cachedpixeltype"), TypeInt,
+                                     &peltype);
+        m_cachedpixeltype = TypeDesc((TypeDesc::BASETYPE)peltype);
+        if (!m_localpixels && !force && !use_channel_subset
+            && (convert == m_cachedpixeltype || convert == TypeDesc::UNKNOWN)) {
+            m_spec.format = m_cachedpixeltype;
+            m_xstride     = m_spec.pixel_bytes();
+            m_ystride     = m_spec.scanline_bytes();
+            m_zstride = clamped_mult64(m_ystride, (imagesize_t)m_spec.height);
+            m_blackpixel.resize(round_to_multiple(m_xstride,
+                                                  OIIO_SIMD_MAX_SIZE_BYTES),
+                                0);
+            // NB make it big enough for SSE
+            m_pixels_valid = true;
+            m_storage      = ImageBuf::IMAGECACHE;
 #ifndef NDEBUG
-        // std::cerr << "read was not necessary -- using cache\n";
+            // std::cerr << "read was not necessary -- using cache\n";
 #endif
-        return true;
+            return true;
+        }
+
+    } else {
+        // No cache should take the "forced read now" route.
+        force             = true;
+        m_cachedpixeltype = m_nativespec.format;
     }
 
     if (use_channel_subset) {
@@ -1127,7 +1195,7 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
     m_spec.tile_height = m_nativespec.tile_height;
     m_spec.tile_depth  = m_nativespec.tile_depth;
 
-    if (force || m_rioproxy
+    if (force || !m_imagecache || m_rioproxy
         || (convert != TypeDesc::UNKNOWN && convert != m_cachedpixeltype
             && convert.size() >= m_cachedpixeltype.size()
             && convert.size() >= m_nativespec.format.size())) {
@@ -1137,8 +1205,9 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
         // loss of range or precision resulting from going through the
         // cache. Or the caller requested a forced read, for that case we
         // also do a direct read now.
-        if (!m_configspec
-            || !m_configspec->find_attribute("oiio:UnassociatedAlpha")) {
+        if (m_imagecache
+            && (!m_configspec
+                || !m_configspec->find_attribute("oiio:UnassociatedAlpha"))) {
             int unassoc = 0;
             if (m_imagecache->getattribute("unassociatedalpha", unassoc)) {
                 // Since IB needs to act as if it's backed by an ImageCache,
@@ -1150,6 +1219,7 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
                 m_configspec->attribute("oiio:UnassociatedAlpha", unassoc);
             }
         }
+        Timer timer;
         auto in = ImageInput::open(m_name.string(), m_configspec.get(),
                                    m_rioproxy);
         if (in) {
@@ -1169,6 +1239,7 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
             m_pixels_valid = false;
             error(OIIO::geterror());
         }
+        atomic_fetch_add(pvt::IB_total_image_read_time, float(timer()));
         // Since we have read in the entire image now, if we are using an
         // IOProxy, we invalidate any cache entry to avoid lifetime issues
         // related to the IOProxy. This helps to eliminate trouble emerging
@@ -1186,13 +1257,14 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
         //          //    the user thinks the forced immediate read was the
         //          //    last it'll be needed. But the cache entry still
         //          //    has a pointer to it! Oh no!
-        if (m_rioproxy)
+        if (m_imagecache && m_rioproxy)
             m_imagecache->invalidate(m_name);
         return m_pixels_valid;
     }
 
     // All other cases, no loss of precision is expected, so even a forced
     // read should go through the image cache.
+    OIIO_ASSERT(m_imagecache);
     if (m_imagecache->get_pixels(m_name, subimage, miplevel, m_spec.x,
                                  m_spec.x + m_spec.width, m_spec.y,
                                  m_spec.y + m_spec.height, m_spec.z,
@@ -2825,7 +2897,9 @@ ImageBuf::WrapMode_from_string(string_view name)
 void
 ImageBuf::IteratorBase::release_tile()
 {
-    m_ib->imagecache()->release_tile(m_tile);
+    auto ic = m_ib->imagecache();
+    OIIO_DASSERT(ic);
+    ic->release_tile(m_tile);
 }
 
 
@@ -2836,6 +2910,7 @@ ImageBufImpl::retile(int x, int y, int z, ImageCache::Tile*& tile,
                      int& tilexend, bool& haderror, bool exists,
                      ImageBuf::WrapMode wrap) const
 {
+    OIIO_DASSERT(m_imagecache);
     if (!exists) {
         // Special case -- (x,y,z) describes a location outside the data
         // window.  Use the wrap mode to possibly give a meaningful data
