@@ -1229,6 +1229,7 @@ convert_type (const S &src)
 /// shifted fully to the right.
 template<unsigned int FROM_BITS, unsigned int TO_BITS>
 inline OIIO_HOSTDEVICE unsigned int bit_range_convert(unsigned int in) {
+    static_assert(FROM_BITS > 0, "FROM_BITS cannot be 0");
     unsigned int out = 0;
     int shift = TO_BITS - FROM_BITS;
     for (; shift > 0; shift -= FROM_BITS)
@@ -1244,10 +1245,12 @@ inline OIIO_HOSTDEVICE unsigned int
 bit_range_convert(unsigned int in, unsigned int FROM_BITS, unsigned int TO_BITS)
 {
     unsigned int out = 0;
-    int shift = TO_BITS - FROM_BITS;
-    for (; shift > 0; shift -= FROM_BITS)
-        out |= in << shift;
-    out |= in >> -shift;
+    if (FROM_BITS) {
+        int shift = TO_BITS - FROM_BITS;
+        for (; shift > 0; shift -= FROM_BITS)
+            out |= in << shift;
+        out |= in >> -shift;
+    }
     return out;
 }
 
