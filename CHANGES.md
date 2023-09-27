@@ -1,3 +1,8 @@
+Release 2.4.17.0 (1 Nov? 2023) -- compared to 2.4.16.0
+-------------------------------------------------------
+
+
+
 Release 2.4.16.0 (1 Oct 2023) -- compared to 2.4.15.0
 -------------------------------------------------------
 - *png*: Write out proper tiff header version in png EXIF blobs [#3984](https://github.com/OpenImageIO/oiio/pull/3984) (by Jesse Yurkovich)
