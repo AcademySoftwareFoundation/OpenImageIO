@@ -3,6 +3,7 @@ Release 2.5 (Fall 2023) -- compared to 2.4
 
 Beta 1 (2.5.3.0): 2023-09-04
 Beta 2 (2.5.3.1): 2023-09-24
+RC1 (2.5.3.2): 2023-09-27
 
 ### New minimum dependencies and compatibility changes:
 * CMake: minimum needed to build OpenImageIO has been raised from 3.12 to
@@ -50,7 +51,8 @@ Beta 2 (2.5.3.1): 2023-09-24
       equivalent to these, even if they are named something totally different,
       thanks to the magic of OCIO 2.2 built-in configs. For older OCIO (2.1 or
       older), it is less robust and may have to make best guesses based on the
-      name of the color spaces it finds. #3707 (2.5.0.0)
+      name of the color spaces it finds. [#3707](https://github.com/OpenImageIO/oiio/pull/3707) (2.5.0.0)
+      [#3995](https://github.com/OpenImageIO/oiio/pull/3995) (2.5.3.2-rc1)
     - New ColorConfig methods: `getAliases()` #3662; `isColorSpaceLinear()`
       #3662; `resolve(name)` turns any color space name, alias, role, or OIIO
       name (like "sRGB") into a canonical color space name;
@@ -334,6 +336,10 @@ Beta 2 (2.5.3.1): 2023-09-24
     - Write out proper tiff header version in png EXIF blobs
       [#3984](https://github.com/OpenImageIO/oiio/pull/3984) (by Jesse
       Yurkovich) (2.5.3.1-beta2)
+    - A variety of minor optimizations to the PNG writer
+      [#3980](https://github.com/OpenImageIO/oiio/pull/3980) (2.5.3.2-rc1)
+    - Improve PNG write data quality when alpha is low
+      [#3985](https://github.com/OpenImageIO/oiio/pull/3985) (2.5.3.2-rc1)
 * PSD:
     - Fix a PSD read error on ARM architecture. #3589 (2.4.5/2.5.0.0)
     - Protect against corrupted embedded thumbnails. (TALOS-2022-1626,
@@ -434,6 +440,7 @@ Beta 2 (2.5.3.1): 2023-09-24
     - Fix a wrong result with `fast_exp2()` with MSVS and sse4.2.
       [#3804](https://github.com/OpenImageIO/oiio/pull/3804) (by Eric Mehl)
       (2.5.1.0/2.4.11)
+    - Prevent infinite loop in bit_range_convert [#3996](https://github.com/OpenImageIO/oiio/pull/3996) (by Jesse Yurkovich) (2.5.3.2-rc1)
 * platform.h:
     - New macros for detecting MSVS 2019 and 2022. #3727 (2.5.0.0/2.4.8.0)
 * simd.h:
