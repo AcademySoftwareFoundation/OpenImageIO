@@ -3110,8 +3110,9 @@ ImageBuf::IteratorBase::init_ib(WrapMode wrap, bool write)
     if (!m_localpixels && write) {
         const_cast<ImageBuf*>(m_ib)->make_writable(true);
         OIIO_DASSERT(m_ib->storage() != IMAGECACHE);
-        m_tile      = nullptr;
-        m_proxydata = nullptr;
+        m_tile        = nullptr;
+        m_proxydata   = nullptr;
+        m_localpixels = true;
     }
     m_img_xbegin = spec.x;
     m_img_xend   = spec.x + spec.width;

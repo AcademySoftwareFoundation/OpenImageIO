@@ -1324,6 +1324,8 @@ public:
             return m_ib->deep_value_uint(m_x, m_y, m_z, c, s);
         }
 
+        bool localpixels() const { return m_localpixels; }
+
         // Did we encounter an error while we iterated?
         bool has_error() const { return m_readerror; }
 
