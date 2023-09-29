@@ -1371,6 +1371,7 @@ public:
             OIIO_DASSERT(m_exists && m_valid);   // precondition
             OIIO_DASSERT(valid(m_x, m_y, m_z));  // should be true by definition
             if (m_localpixels) {
+                OIIO_DASSERT(m_proxydata != nullptr);
                 m_proxydata += m_pixel_stride;
                 if (OIIO_UNLIKELY(m_x >= m_img_xend))
                     pos_xincr_local_past_end();

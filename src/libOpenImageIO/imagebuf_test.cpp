@@ -531,6 +531,8 @@ test_mutable_iterator_with_imagecache()
     ImageBuf::Iterator<float> it(buf);
     OIIO_CHECK_EQUAL(buf.spec().tile_width, 0);  // should look untiled
     OIIO_CHECK_ASSERT(buf.localpixels());        // should look local
+    for (; !it.done(); ++it)
+        it[0] = 1.0f;
 
     ImageCache::create()->invalidate(ustring(srcfilename));
     Filesystem::remove(srcfilename);
