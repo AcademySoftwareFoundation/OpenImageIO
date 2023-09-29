@@ -189,7 +189,7 @@ have a heading added at the top for the *next* version.
    - The `${PROJECT_NAME}_SUPPORTED_RELEASE` variable should be `ON` for any
      release branch, `OFF` for master.
 
-5. In the https://github.com/OpenImageIO/oiio-images project, create a branch
+5. In the https://github.com/AcademySoftwareFoundation/OpenImageIO-images project, create a branch
    `RB-x.y` for the major/minor branch, and in the main oiio repo, update
    src/build-scripts/install_test_images.bash to specify `-b RB-x.y` in the
    checkout of oiio-images to ensure CI tests are against the set of test
@@ -252,7 +252,7 @@ The following are the steps for making the release:
    (This example assumes "OpenImageIO" is the name of the remote for the
    GitHub `OpenImageIO/oiio` repo.)
 
-7. Draft a release on GitHub: On https://github.com/OpenImageIO/oiio/releases
+7. Draft a release on GitHub: On https://github.com/AcademySoftwareFoundation/OpenImageIO/releases
    select "Draft a new release." Choose the new tag you just pushed. Make the
    release title "OpenImageIO v1.2.3.4" (and beta, etc., designation
    if applicable). In the description, paste the release notes for this

@@ -15,7 +15,7 @@ This is a checklist for TSC's to review as part of the intake process. The TSC s
 - Infrastructure/Assets
   - [X] Technical Charter Approved
   - [X] License scan completed and no issues found
-  - [ ] Code repository imported to ASWF GitHub organization or ownership of current GitHub organization given to `thelinuxfoundation` user
+  - [X] Code repository imported to ASWF GitHub organization or ownership of current GitHub organization given to `thelinuxfoundation` user
   - [X] Developer Certificate of Origin past commit signoff done and DCO Probot enabled.
   - [X] Issue/feature tracker established (JIRA, GitHub issues)
   - [X] Mailing lists ( one of )
@@ -25,8 +25,8 @@ This is a checklist for TSC's to review as part of the intake process. The TSC s
   - [ ] Website
   - [X] CI/build environment
   - [X] Trademarks/mark ownership rights ( complete 'LF Projects - Form of Trademark and Account Assignment' - create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) - only needed if project using existing name )
-  - [ ] Domain name	( create [issue with the LF IT staff](https://jira.linuxfoundation.org/plugins/servlet/theme/portal/2/group/19) to setup/transfer )
-  - [ ] Zoom account access ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to get access to credentials )
+  - [X] Domain name	( create [issue with the LF IT staff](https://jira.linuxfoundation.org/plugins/servlet/theme/portal/2/group/19) to setup/transfer )
+  - [X] Zoom account access ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to get access to credentials )
   - [X] (N/A) Social media accounts or other project accounts	( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to transfer )
   - [X] Logo(s)	( create [issue on artwork repo](https://github.com/AcademySoftwareFoundation/artwork/issues/new) to add in SVG and PNG format and color/black/white )
 - New Project Governance
@@ -43,8 +43,8 @@ This is a checklist for TSC's to review as part of the intake process. The TSC s
   - [X] Project added to ASWF website and ASWF landscape
 - Incubation Stage requirements
   - [X] Have achieved and maintained a [OpenSSF Best Practices Badge at the passing level](https://bestpractices.coreinfrastructure.org/en/criteria).
-  - [ ] Have had a successful license scan with any critical issues remedied.
-  - [ ] Have a defined project mission and scope
+  - [X] Have had a successful license scan with any critical issues remedied.
+  - [X] Have a defined project mission and scope
   - [ ] An overview of the project’s architecture and features defined.
   - [ ] A project roadmap defined, which should address the following questions.
     - What use cases are possible now?
@@ -54,7 +54,7 @@ This is a checklist for TSC's to review as part of the intake process. The TSC s
     - Demonstrate a sustained flow of commits / merged contributions
     - A credible plan for developing a thriving user community, in particular expanding the number of committers and contributors?
     - Outline of the plan for the project to complete the requirements for Adopted Stage
-  - [ ] Obtain an affirmative vote of the TAC.
+  - [X] Obtain an affirmative vote of the TAC.
 - Adopted Stage graduation requirements
   - [ ] Demonstrate a substantial ongoing flow of commits and merged contributions, authored by a healthy number of diverse contributors.
   - [ ] Demonstrable roadmap progress.

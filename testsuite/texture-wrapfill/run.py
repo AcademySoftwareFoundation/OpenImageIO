@@ -2,7 +2,7 @@
 
 # Copyright Contributors to the OpenImageIO project.
 # SPDX-License-Identifier: Apache-2.0
-# https://github.com/OpenImageIO/oiio
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 # This tests a particular tricky case: the interplay of "black" wrap mode
 # with fill color.  Outside the s,t [0,1] range, it should be black, NOT

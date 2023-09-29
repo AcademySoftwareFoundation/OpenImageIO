@@ -1,6 +1,6 @@
 # Copyright Contributors to the OpenImageIO project.
 # SPDX-License-Identifier: Apache-2.0
-# https://github.com/OpenImageIO/oiio
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 # Is the named package "enabled" via our disabling convention? If either
 # USE_pkgname (or the all-uppercase USE_PKGNAME, or ENABLE_pkgname, or
