@@ -18,4 +18,4 @@ When you email about this, please attach one or both of the following:
 2. The `CMakeCache.txt` file from your build directory.
 
 If you are pretty sure that you have identified a **BUG** in the OpenImageIO
-build scripts, please file a [bug report issue](https://github.com/OpenImageIO/oiio/issues/new?template=bug_report.md).
+build scripts, please file a [bug report issue](https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/new?template=bug_report.md).

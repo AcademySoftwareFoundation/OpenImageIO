@@ -2,7 +2,7 @@
 
 # Copyright Contributors to the OpenImageIO project.
 # SPDX-License-Identifier: Apache-2.0
-# https://github.com/OpenImageIO/oiio
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 # Construct a command that will create a texture, appending console
 # output to the file "out.txt".

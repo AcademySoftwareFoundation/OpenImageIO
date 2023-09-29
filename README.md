@@ -4,8 +4,8 @@
   <img src="ASWF/logos/openimageio-horizontal-gradient.png">
 </p>
 
-[![License](https://img.shields.io/badge/license-Apache2.0-blue.svg?style=flat-square)](https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md)
-[![CI](https://github.com/OpenImageIO/oiio/actions/workflows/ci.yml/badge.svg)](https://github.com/OpenImageIO/oiio/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache2.0-blue.svg?style=flat-square)](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/master/LICENSE.md)
+[![CI](https://github.com/AcademySoftwareFoundation/OpenImageIO/actions/workflows/ci.yml/badge.svg)](https://github.com/AcademySoftwareFoundation/OpenImageIO/actions/workflows/ci.yml)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2694/badge)](https://bestpractices.coreinfrastructure.org/projects/2694)
 [![latest packaged version(s)](https://repology.org/badge/latest-versions/openimageio.svg)](https://repology.org/project/openimageio/versions)
 
@@ -121,7 +121,7 @@ Slack](https://slack.aswf.io) `#openimageio` channel.
 Bugs, build problems, and discovered vulnerabilities that you are relatively
 certain is a legit problem in the code, and **for which you can give clear
 instructions for how to reproduce**, should be [reported as
-issues](https://github.com/OpenImageIO/oiio/issues).
+issues](https://github.com/AcademySoftwareFoundation/OpenImageIO/issues).
 
 If confidentiality precludes a public question or issue, you may contact us
 privately at [info@openimageio.org](info@openimageio.org), or for
@@ -150,7 +150,7 @@ pull request (PR) mechanism.
 --------------------------------------------------
 
 * [Main web page](http://www.openimageio.org)
-* [GitHub project page](http://github.com/OpenImageIO/oiio)
+* [GitHub project page](http://github.com/AcademySoftwareFoundation/OpenImageIO)
 * [Developer mail list](https://lists.aswf.io/g/oiio-dev)
 * [ASWF Slack](https://slack.aswf.io) (look for the `#openimageio` channel)
 * Biweekly Technical Steering Committee (TSC) Zoom meetings are on the [ASWF

@@ -10,7 +10,7 @@ assignees: ''
 **PLEASE DO NOT ASK USAGE QUESTIONS USING GITHUB "ISSUES"**
 
 If you are pretty sure that you have identified a **BUG** in OpenImageIO,
-please file a [bug report issue](https://github.com/OpenImageIO/oiio/issues/new?template=bug_report.md).
+please file a [bug report issue](https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/new?template=bug_report.md).
 
 But if you are just asking a question:
 * How do I...?

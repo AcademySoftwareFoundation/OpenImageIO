@@ -25,9 +25,9 @@ OpenImageIO |version|
 
     Quick Links:
     `Web site <https://openimageio.org>`_ /
-    `GitHub repository <https://github.com/OpenImageIO/oiio>`_ /
+    `GitHub repository <https://github.com/AcademySoftwareFoundation/OpenImageIO>`_ /
     `Developer mail list <https://lists.aswf.io/g/oiio-dev>`_ /
-    `BSD License <https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md>`_
+    `BSD License <https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/master/LICENSE.md>`_
 
 
 ------------

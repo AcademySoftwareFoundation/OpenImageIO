@@ -13,7 +13,7 @@ Contributing to OpenImageIO
 >
 
 Code contributions to OpenImageIO are always welcome, and [nearly 200
-people](https://github.com/OpenImageIO/oiio/blob/master/CREDITS.md) have done
+people](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/master/CREDITS.md) have done
 so over the years.  Please review this document to get a briefing on our
 process.
 
@@ -51,7 +51,7 @@ Bug Reports and Issue Tracking
 ------------------------------
 
 We use GitHub's issue tracking system for reporting bugs and requesting
-enhancements: https://github.com/OpenImageIO/oiio/issues
+enhancements: https://github.com/AcademySoftwareFoundation/OpenImageIO/issues
 
 **If you are merely asking a question ("how do I...")**, please do not file an
 issue, but instead ask the question on the [oiio-dev mailing
@@ -87,13 +87,13 @@ safety, as it prevents any possible future disputes between code authors and
 their employers or anyone else who might think they might own the IP output of
 the author.
 
-* [Corporate CLA](https://github.com/OpenImageIO/oiio/blob/master/ASWF/CLA-corporate.md) :
+* [Corporate CLA](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/master/ASWF/CLA-corporate.md) :
   If you are writing the code as part of your job, or if there is any
   possibility that your employers might think they own any intellectual
   property you create. This needs to be executed by someone who has
   signatory power for the company.
 
-* [Individual CLA](https://github.com/OpenImageIO/oiio/blob/master/ASWF/CLA-individual.md) :
+* [Individual CLA](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/master/ASWF/CLA-individual.md) :
   If you are an individual writing the code on your own time, using your own
   equipment, and you're SURE you are the sole owner of any intellectual
   property you contribute.
@@ -190,7 +190,7 @@ All source files should begin with these three lines:
 
     // Copyright Contributors to the OpenImageIO project.
     // SPDX-License-Identifier: Apache-2.0
-    // https://github.com/OpenImageIO/oiio
+    // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 as a comment in the syntax of whatever source code is used in that file.
 

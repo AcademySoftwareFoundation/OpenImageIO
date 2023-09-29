@@ -2,7 +2,7 @@
 
 # Copyright Contributors to the OpenImageIO project.
 # SPDX-License-Identifier: Apache-2.0
-# https://github.com/OpenImageIO/oiio
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
 command = oiiotool ("-pattern fill:topleft=0,0,0:topright=1,0,0:bottomleft=0,1,0:bottomright=1,1,1 "

@@ -2,7 +2,7 @@
 
 # Copyright Contributors to the OpenImageIO project.
 # SPDX-License-Identifier: Apache-2.0
-# https://github.com/OpenImageIO/oiio
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 # test 1: seed top level, no MIP map
 command += testtex_command (OIIO_TESTSUITE_IMAGEDIR + " -res 256 256 -d uint8 -o out1.tif --testicwrite 1 blah")

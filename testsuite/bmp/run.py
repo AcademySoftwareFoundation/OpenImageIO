@@ -2,7 +2,7 @@
 
 # Copyright Contributors to the OpenImageIO project.
 # SPDX-License-Identifier: Apache-2.0
-# https://github.com/OpenImageIO/oiio
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 # save the error output
 redirect = " >> out.txt 2>&1 "
@@ -24,7 +24,7 @@ for f in files :
 command += rw_command ("src", "g01bg2-v5.bmp")
 
 # Regression test for old OS2 flavor of BMP.
-# See https://github.com/OpenImageIO/oiio/issues/2898
+# See https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/2898
 command += rw_command ("src", "PRINTER.BMP")
 
 # Test BMP of the 56-byte DIB header variety

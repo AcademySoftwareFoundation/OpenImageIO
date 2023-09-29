@@ -2,7 +2,7 @@
 
 # Copyright Contributors to the OpenImageIO project.
 # SPDX-License-Identifier: Apache-2.0
-# https://github.com/OpenImageIO/oiio
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 # This script, which assumes it is running on a Mac OSX with Homebrew
 # installed, does a "brew install" in all packages reasonably needed by
