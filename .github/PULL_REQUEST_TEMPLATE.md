@@ -19,7 +19,7 @@
 
 <!-- Put an 'x' in the boxes as you complete the checklist items -->
 
-- [ ] I have read the [contribution guidelines](https://github.com/OpenImageIO/oiio/blob/master/CONTRIBUTING.md).
+- [ ] I have read the [contribution guidelines](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/master/CONTRIBUTING.md).
 - [ ] I have updated the documentation, if applicable.
 - [ ] I have ensured that the change is tested somewhere in the testsuite
   (adding new test cases if necessary).

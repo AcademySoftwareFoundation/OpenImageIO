@@ -2,7 +2,7 @@
 
 # Copyright Contributors to the OpenImageIO project.
 # SPDX-License-Identifier: Apache-2.0
-# https://github.com/OpenImageIO/oiio
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 # ../openexr-images/Chromaticities:
 # README         Rec709.exr     Rec709_YC.exr  XYZ.exr        XYZ_YC.exr

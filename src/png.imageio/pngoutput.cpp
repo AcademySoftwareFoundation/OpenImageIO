@@ -1,6 +1,6 @@
 // Copyright Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
-// https://github.com/OpenImageIO/oiio
+// https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #include <cmath>
 #include <cstdio>
@@ -191,7 +191,7 @@ PNGOutput::open(const std::string& name, const ImageSpec& userspec,
     // greyscale or color images (they aren't very prescriptive, noting that
     // different filters may be better for different images.
     // We have found the tradeoff complex, in fact as seen in
-    // https://github.com/OpenImageIO/oiio/issues/2645
+    // https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/2645
     // where we showed that across several images, 8 (PNG_FILTER_NONE --
     // don't ask me how that's different from PNG_NO_FILTERS) had the
     // fastest performance, but also made the largest files. I had trouble

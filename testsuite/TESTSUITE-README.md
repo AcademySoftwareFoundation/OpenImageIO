@@ -42,7 +42,7 @@ that allow just a teensy bit of low-bit errors in a few pixels. Sometimes, a
 failure is because it's slightly exceeding that. If so, you may be able to
 keep the existing reference output but just adjust the test to allow more
 slightly differing pixels. You can see how this is done
-[here](https://github.com/OpenImageIO/oiio/blob/master/testsuite/raw/run.py#L30),
+[here](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/master/testsuite/raw/run.py#L30),
 where we have raised the image matching threshold quite a bit because
 libraw's debayering seems to change a lot from version to version (making
 different, but usually perceptually indistinguishible outputs). Be gentle

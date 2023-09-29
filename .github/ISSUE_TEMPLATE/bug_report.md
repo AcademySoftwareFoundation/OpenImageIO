@@ -34,4 +34,4 @@ can make that reproduces the problem?
 
 
 **IF YOU ALREADY HAVE A CODE FIX:** There is no need to file a separate issue,
-please just go straight to making a [pull request](https://github.com/OpenImageIO/oiio/pulls).
+please just go straight to making a [pull request](https://github.com/AcademySoftwareFoundation/OpenImageIO/pulls).

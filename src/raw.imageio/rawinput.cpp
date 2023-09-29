@@ -1,6 +1,6 @@
 // Copyright Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
-// https://github.com/OpenImageIO/oiio
+// https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #include <algorithm>
 #include <ctime> /* time_t, struct tm, gmtime */
@@ -387,7 +387,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
 {
     // std::cout << "open_raw " << name << " unpack=" << unpack << "\n";
     {
-        // See https://github.com/OpenImageIO/oiio/issues/2630
+        // See https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/2630
         // Something inside LibRaw constructor is not thread safe. Use a
         // static mutex here to make sure only one thread is constructing a
         // LibRaw at a time. Cross fingers and hope all the rest of LibRaw

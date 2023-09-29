@@ -1,6 +1,6 @@
 # Copyright Contributors to the OpenImageIO project.
 # SPDX-License-Identifier: Apache-2.0
-# https://github.com/OpenImageIO/oiio/
+# https://github.com/AcademySoftwareFoundation/OpenImageIO/
 
 include (CTest)
 
@@ -406,7 +406,7 @@ endfunction()
 
 function (oiio_setup_test_data)
     oiio_get_test_data (oiio-images
-                        REPO https://github.com/OpenImageIO/oiio-images.git)
+                        REPO https://github.com/AcademySoftwareFoundation/OpenImageIO-images.git)
     oiio_get_test_data (openexr-images
                         REPO https://github.com/AcademySoftwareFoundation/openexr-images.git
                         BRANCH main)

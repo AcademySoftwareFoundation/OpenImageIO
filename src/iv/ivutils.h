@@ -1,6 +1,6 @@
 // Copyright Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: Apache-2.0
-// https://github.com/OpenImageIO/oiio
+// https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #ifndef OPENIMAGEIO_IV_UTILS_H
 #define OPENIMAGEIO_IV_UTILS_H

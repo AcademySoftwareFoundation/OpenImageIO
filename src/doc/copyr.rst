@@ -36,4 +36,4 @@ http://creativecommons.org/licenses/by/4.0/
 
 OpenImageIO incorporates code from several other software packages with
 compatible licenses. Copies of their licenses are reproduced here:
-https://github.com/OpenImageIO/oiio/blob/master/THIRD-PARTY.md
+https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/master/THIRD-PARTY.md
