@@ -96,23 +96,23 @@ Subimage 0 MIP level 10 :
   tile size  64x64x1
 
 Testing read_image:
-Opened "D:/a/oiio/oiio/build/testsuite/oiio-images/tahoe-gps.jpg" as a jpeg
+Opened "D:/a/OpenImageIO/OpenImageIO/build/testsuite/oiio-images/tahoe-gps.jpg" as a jpeg
 @ (0, 0) = [40 35 57]
 @ (2047, 1535) = [37 56 89]
 @ (1024, 768) = [137 183 233]
 
-Opened "D:/a/oiio/oiio/build/testsuite/oiio-images/tahoe-gps.jpg" as a jpeg
+Opened "D:/a/OpenImageIO/OpenImageIO/build/testsuite/oiio-images/tahoe-gps.jpg" as a jpeg
 @ (0, 0) = [0.15686275 0.13725491 0.22352943]
 @ (2047, 1535) = [0.14509805 0.21960786 0.34901962]
 @ (1024, 768) = [0.5372549  0.7176471  0.91372555]
 
-Opened "D:/a/oiio/oiio/build/testsuite/oiio-images/tahoe-gps.jpg" as a jpeg
+Opened "D:/a/OpenImageIO/OpenImageIO/build/testsuite/oiio-images/tahoe-gps.jpg" as a jpeg
 @ (0, 0) = [40]
 @ (2047, 1535) = [37]
 @ (1024, 768) = [137]
 
 Testing read_scanline:
-Opened "D:/a/oiio/oiio/build/testsuite/oiio-images/tahoe-gps.jpg" as a jpeg
+Opened "D:/a/OpenImageIO/OpenImageIO/build/testsuite/oiio-images/tahoe-gps.jpg" as a jpeg
 @ (0, 0) = [40 35 57]
 @ (0, 1535) = [ 82  94 136]
 
@@ -122,7 +122,7 @@ Opened "grid.tx" as a tiff
 @ (32, 32) = [255 127 127 255]
 
 Testing read_scanlines:
-Opened "D:/a/oiio/oiio/build/testsuite/oiio-images/tahoe-gps.jpg" as a jpeg
+Opened "D:/a/OpenImageIO/OpenImageIO/build/testsuite/oiio-images/tahoe-gps.jpg" as a jpeg
 @ (0, 0) = [40 35 57]
 @ (2047, 1535) = [37 56 89]
 @ (1024, 768) = [137 183 233]
