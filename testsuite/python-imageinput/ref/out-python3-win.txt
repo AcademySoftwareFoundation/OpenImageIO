@@ -1,6 +1,6 @@
 Could not open "badname.tif"
 	Error:  Could not open file: S: Cannot open
-Opened "D:/a/oiio/oiio/build/testsuite/oiio-images/tahoe-gps.jpg" as a jpeg
+Opened "D:/a/OpenImageIO/OpenImageIO/build/testsuite/oiio-images/tahoe-gps.jpg" as a jpeg
   resolution 2048x1536+0+0
   untiled
   3 channels: ('R', 'G', 'B')
