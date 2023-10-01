@@ -1,9 +1,5 @@
-Release 2.5 (Fall 2023) -- compared to 2.4
--------------------------------------------------
-
-Beta 1 (2.5.3.0): 2023-09-04
-Beta 2 (2.5.3.1): 2023-09-24
-RC1 (2.5.3.2): 2023-09-27
+Release 2.5 (2.5.4.0, Oct 1, 2023) -- compared to 2.4
+-----------------------------------------------------
 
 ### New minimum dependencies and compatibility changes:
 * CMake: minimum needed to build OpenImageIO has been raised from 3.12 to
@@ -643,6 +639,8 @@ RC1 (2.5.3.2): 2023-09-27
 
 ### 🏢  Project Administration
 
+- **Moved repo to https://github.com/AcademySoftwareFundation/OpenImageIO**.
+  Also moved the "oiio-images" repo to AcademySoftareFoundation/OpenImageIO
 - Added RELEASING.md documenting our versioning and release procedures #3564
 #3580
 - Update CONTRIBUTING and SECURITY [#3852](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3852)  (2.5.2.0)
