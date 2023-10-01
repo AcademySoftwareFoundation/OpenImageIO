@@ -1,5 +1,10 @@
-Release 2.4.16.0 (1 Oct? 2023) -- compared to 2.4.15.0
+Release 2.4.16.0 (1 Oct 2023) -- compared to 2.4.15.0
 -------------------------------------------------------
+- *png*: Write out proper tiff header version in png EXIF blobs [#3984](https://github.com/OpenImageIO/oiio/pull/3984) (by Jesse Yurkovich)
+- *ustring*: Fix Cuda warnings [#3978](https://github.com/OpenImageIO/oiio/pull/3978)
+- *fmath*: Prevent infinite loop in bit_range_convert [#3996](https://github.com/OpenImageIO/oiio/pull/3996) (by Jesse Yurkovich)
+- *build*: Fixes to work properly with fmt 10.1 (partial port of #3973)
+- *admin*: Relicense code under Apache 2.0 [#3989](https://github.com/OpenImageIO/oiio/pull/3989)
 
 
 Release 2.4.15.0 (1 Sep 2023) -- compared to 2.4.14.0
