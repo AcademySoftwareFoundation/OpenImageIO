@@ -156,8 +156,7 @@ else ()
     message (STATUS "Using internal PugiXML")
 endif()
 
-# From pythonutils.cmake
-find_python()
+find_package(Python COMPONENTS Interpreter Development)
 
 
 ###########################################################################
