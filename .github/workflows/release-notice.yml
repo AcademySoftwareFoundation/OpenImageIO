@@ -1,0 +1,18 @@
+name: Publish Release Notice to ASWF Slack
+
+on:
+  release:
+    types:
+      - published
+      # published should cover both 'released' and 'prereleased'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+    - name: Notify Slack
+      id: slack
+      with:
+        slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_RELEASES_URL }}
+      uses: fedecalendino/slack-release-notifier@2.1.0
