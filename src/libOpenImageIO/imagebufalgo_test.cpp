@@ -24,6 +24,7 @@
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
+#include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/timer.h>
 #include <OpenImageIO/unittest.h>
@@ -1108,6 +1109,28 @@ test_opencv()
     auto comp = ImageBufAlgo::compare(src, dst, 0.0f, 0.0f);
     OIIO_CHECK_EQUAL(comp.error, false);
     OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
+
+    // Regression test: reading from ImageBuf-backed image to OpenCV
+    auto loaded_image = OIIO::ImageBuf("../../testsuite/common/tahoe-tiny.tif",
+                                       0, 0, ImageCache::create());
+    OIIO_CHECK_ASSERT(loaded_image.initialized());
+    if (!loaded_image.initialized()) {
+        std::cout << loaded_image.geterror() << 'n';
+        return;
+    }
+    auto cv_image = cv::Mat {};
+    try {
+        bool ok = OIIO::ImageBufAlgo::to_OpenCV(cv_image, loaded_image, {}, 1);
+        OIIO_CHECK_ASSERT(ok);
+        if (!ok) {
+            std::cout << "Error when converting: " << OIIO::geterror() << '\n';
+            return;
+        }
+    } catch (const std::exception& e) {
+        OIIO_CHECK_ASSERT(0);
+        std::cout << "Error when converting: " << e.what() << '\n';
+        return;
+    }
 #endif
 }
 
