@@ -511,6 +511,35 @@ test_uncaught_error()
 
 
 
+void
+test_mutable_iterator_with_imagecache()
+{
+    // Make 4x4 1-channel float source image, value 0.5, write it.
+    char srcfilename[] = "tmp_f1.exr";
+    ImageSpec fsize1(4, 4, 1, TypeFloat);
+    ImageBuf src(fsize1);
+    ImageBufAlgo::fill(src, 0.5f);
+    src.write(srcfilename);
+
+    ImageBuf buf(srcfilename, 0, 0, ImageCache::create());
+    // Using the cache, it should look tiled
+    OIIO_CHECK_EQUAL(buf.spec().tile_width, buf.spec().width);
+
+    // Make a mutable iterator, even though it's an image file reference.
+    // Merely establishing the iterator ought to read the file and make the
+    // buffer writeable.
+    ImageBuf::Iterator<float> it(buf);
+    OIIO_CHECK_EQUAL(buf.spec().tile_width, 0);  // should look untiled
+    OIIO_CHECK_ASSERT(buf.localpixels());        // should look local
+    for (; !it.done(); ++it)
+        it[0] = 1.0f;
+
+    ImageCache::create()->invalidate(ustring(srcfilename));
+    Filesystem::remove(srcfilename);
+}
+
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -533,6 +562,7 @@ main(int /*argc*/, char* /*argv*/[])
                                                        "periodic");
     iterator_wrap_test<ImageBuf::ConstIterator<float>>(ImageBuf::WrapMirror,
                                                        "mirror");
+    test_mutable_iterator_with_imagecache();
 
     ImageBuf_test_appbuffer();
     ImageBuf_test_appbuffer_strided();

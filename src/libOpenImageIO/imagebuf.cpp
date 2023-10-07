@@ -3110,17 +3110,17 @@ ImageBuf::IteratorBase::init_ib(WrapMode wrap, bool write)
     if (!m_localpixels && write) {
         const_cast<ImageBuf*>(m_ib)->make_writable(true);
         OIIO_DASSERT(m_ib->storage() != IMAGECACHE);
-        m_tile      = nullptr;
-        m_proxydata = nullptr;
+        m_tile        = nullptr;
+        m_proxydata   = nullptr;
+        m_localpixels = !m_deep;
     }
-    m_img_xbegin = spec.x;
-    m_img_xend   = spec.x + spec.width;
-    m_img_ybegin = spec.y;
-    m_img_yend   = spec.y + spec.height;
-    m_img_zbegin = spec.z;
-    m_img_zend   = spec.z + spec.depth;
-    m_nchannels  = spec.nchannels;
-    //            m_tilewidth = spec.tile_width;
+    m_img_xbegin   = spec.x;
+    m_img_xend     = spec.x + spec.width;
+    m_img_ybegin   = spec.y;
+    m_img_yend     = spec.y + spec.height;
+    m_img_zbegin   = spec.z;
+    m_img_zend     = spec.z + spec.depth;
+    m_nchannels    = spec.nchannels;
     m_pixel_stride = m_ib->pixel_stride();
     m_x            = 1 << 31;
     m_y            = 1 << 31;
