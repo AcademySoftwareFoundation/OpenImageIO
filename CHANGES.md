@@ -1,3 +1,7 @@
+Release 2.5.5.0 (Nov 1?, 2023) -- compared to 2.5.4.0
+-----------------------------------------------------
+
+
 Release 2.5 (2.5.4.0, Oct 1, 2023) -- compared to 2.4
 -----------------------------------------------------
 
@@ -47,8 +51,8 @@ Release 2.5 (2.5.4.0, Oct 1, 2023) -- compared to 2.4
       equivalent to these, even if they are named something totally different,
       thanks to the magic of OCIO 2.2 built-in configs. For older OCIO (2.1 or
       older), it is less robust and may have to make best guesses based on the
-      name of the color spaces it finds. [#3707](https://github.com/OpenImageIO/oiio/pull/3707) (2.5.0.0)
-      [#3995](https://github.com/OpenImageIO/oiio/pull/3995) (2.5.3.2-rc1)
+      name of the color spaces it finds. [#3707](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3707) (2.5.0.0)
+      [#3995](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3995) (2.5.3.2-rc1)
     - New ColorConfig methods: `getAliases()` #3662; `isColorSpaceLinear()`
       #3662; `resolve(name)` turns any color space name, alias, role, or OIIO
       name (like "sRGB") into a canonical color space name;
@@ -333,9 +337,9 @@ Release 2.5 (2.5.4.0, Oct 1, 2023) -- compared to 2.4
       [#3984](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3984) (by Jesse
       Yurkovich) (2.5.3.1-beta2)
     - A variety of minor optimizations to the PNG writer
-      [#3980](https://github.com/OpenImageIO/oiio/pull/3980) (2.5.3.2-rc1)
+      [#3980](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3980) (2.5.3.2-rc1)
     - Improve PNG write data quality when alpha is low
-      [#3985](https://github.com/OpenImageIO/oiio/pull/3985) (2.5.3.2-rc1)
+      [#3985](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3985) (2.5.3.2-rc1)
 * PSD:
     - Fix a PSD read error on ARM architecture. #3589 (2.4.5/2.5.0.0)
     - Protect against corrupted embedded thumbnails. (TALOS-2022-1626,
@@ -436,7 +440,7 @@ Release 2.5 (2.5.4.0, Oct 1, 2023) -- compared to 2.4
     - Fix a wrong result with `fast_exp2()` with MSVS and sse4.2.
       [#3804](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3804) (by Eric Mehl)
       (2.5.1.0/2.4.11)
-    - Prevent infinite loop in bit_range_convert [#3996](https://github.com/OpenImageIO/oiio/pull/3996) (by Jesse Yurkovich) (2.5.3.2-rc1)
+    - Prevent infinite loop in bit_range_convert [#3996](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3996) (by Jesse Yurkovich) (2.5.3.2-rc1)
 * platform.h:
     - New macros for detecting MSVS 2019 and 2022. #3727 (2.5.0.0/2.4.8.0)
 * simd.h:
@@ -655,6 +659,15 @@ Release 2.5 (2.5.4.0, Oct 1, 2023) -- compared to 2.4
 - Update pull request and issue templates [#3946](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3946)
 - Add Jesse Yurkovich to the TSC [#3937](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3937)
 
+
+
+Release 2.4.16.0 (1 Oct 2023) -- compared to 2.4.15.0
+-------------------------------------------------------
+- *png*: Write out proper tiff header version in png EXIF blobs [#3984](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3984) (by Jesse Yurkovich)
+- *ustring*: Fix Cuda warnings [#3978](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3978)
+- *fmath*: Prevent infinite loop in bit_range_convert [#3996](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3996) (by Jesse Yurkovich)
+- *build*: Fixes to work properly with fmt 10.1 (partial port of #3973)
+- *admin*: Relicense code under Apache 2.0 [#3989](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3989)
 
 
 Release 2.4.15.0 (1 Sep 2023) -- compared to 2.4.14.0
