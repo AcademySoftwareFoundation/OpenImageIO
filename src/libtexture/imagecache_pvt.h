@@ -567,9 +567,11 @@ struct TileID {
         static_assert(
             sizeof(*this) == member_size,
             "All TileID members must be accounted for so we can hash the entire class.");
+#ifdef __LP64__
         static_assert(
             sizeof(*this) % sizeof(uint64_t) == 0,
             "FastHash uses the fewest instructions when data size is a multiple of 8 bytes.");
+#endif
         return fasthash::fasthash64(this, sizeof(*this));
     }
 
