@@ -540,6 +540,62 @@ test_mutable_iterator_with_imagecache()
 
 
 
+void
+time_iterators()
+{
+    print("Timing iterator operations:\n");
+    const int rez = 4096, nchans = 4;
+    ImageSpec spec(rez, rez, nchans, TypeFloat);
+    ImageBuf img(spec);
+    ImageBufAlgo::fill(img, { 0.25f, 0.5f, 0.75f, 1.0f });
+
+    Benchmarker bench;
+    double sum = 0.0f;
+    bench("Read traversal with ConstIterator", [&]() {
+        sum = 0.0f;
+        for (ImageBuf::ConstIterator<float> it(img); !it.done(); ++it) {
+            for (int c = 0; c < nchans; ++c)
+                sum += it[c];
+        }
+    });
+    OIIO_CHECK_EQUAL(sum, 2.5 * rez * rez);
+    bench("Read traversal with Iterator", [&]() {
+        sum = 0.0f;
+        for (ImageBuf::Iterator<float> it(img); !it.done(); ++it) {
+            for (int c = 0; c < nchans; ++c)
+                sum += it[c];
+        }
+    });
+    OIIO_CHECK_EQUAL(sum, 2.5 * rez * rez);
+    bench("Read traversal with pointer", [&]() {
+        sum             = 0.0f;
+        const float* it = (const float*)img.localpixels();
+        for (int y = 0; y < rez; ++y)
+            for (int x = 0; x < rez; ++x, it += 4) {
+                for (int c = 0; c < nchans; ++c)
+                    sum += it[c];
+            }
+    });
+    OIIO_CHECK_EQUAL(sum, 2.5 * rez * rez);
+    bench("Write traversal with Iterator", [&]() {
+        ImageBuf::Iterator<float> it(img);
+        for (ImageBuf::Iterator<float> it(img); !it.done(); ++it) {
+            for (int c = 0; c < nchans; ++c)
+                it[c] = 0.5f;
+        }
+    });
+    bench("Write traversal with pointer", [&]() {
+        float* it = (float*)img.localpixels();
+        for (int y = 0; y < rez; ++y)
+            for (int x = 0; x < rez; ++x, it += 4) {
+                for (int c = 0; c < nchans; ++c)
+                    it[c] = 0.5f;
+            }
+    });
+}
+
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -563,6 +619,7 @@ main(int /*argc*/, char* /*argv*/[])
     iterator_wrap_test<ImageBuf::ConstIterator<float>>(ImageBuf::WrapMirror,
                                                        "mirror");
     test_mutable_iterator_with_imagecache();
+    time_iterators();
 
     ImageBuf_test_appbuffer();
     ImageBuf_test_appbuffer_strided();
