@@ -60,6 +60,7 @@ std::string output_format_list;  // comma-separated list of writable formats
 std::string extension_list;      // list of all extensions for all formats
 std::string library_list;        // list of all libraries for all formats
 int oiio_log_times = Strutil::stoi(Sysutil::getenv("OPENIMAGEIO_LOG_TIMES"));
+int oiio_print_uncaught_errors(1);
 std::vector<float> oiio_missingcolor;
 }  // namespace pvt
 
@@ -225,9 +226,29 @@ openimageio_version()
 
 
 
+// ErrorHolder houses a string, with the addition that when it is destroyed,
+// it will disgorge any un-retrieved error messages, in an effort to help
+// beginning users diagnose their problems if they have forgotten to call
+// geterror().
+struct ErrorHolder {
+    std::string error_msg;
+
+    ~ErrorHolder()
+    {
+        if (!error_msg.empty() && pvt::oiio_print_uncaught_errors) {
+            OIIO::print(
+                "OpenImageIO exited with a pending error message that was never\n"
+                "retrieved via OIIO::geterror(). This was the error message:\n{}\n",
+                error_msg);
+        }
+    }
+};
+
+
+
 // To avoid thread oddities, we have the storage area buffering error
 // messages for append_error()/geterror() be thread-specific.
-static thread_local std::string error_msg;
+static thread_local ErrorHolder error_msg_holder;
 
 
 void
@@ -236,6 +257,7 @@ pvt::append_error(string_view message)
     // Remove a single trailing newline
     if (message.size() && message.back() == '\n')
         message.remove_suffix(1);
+    std::string& error_msg(error_msg_holder.error_msg);
     OIIO_ASSERT(
         error_msg.size() < 1024 * 1024 * 16
         && "Accumulated error messages > 16MB. Try checking return codes!");
@@ -256,6 +278,7 @@ pvt::append_error(string_view message)
 bool
 has_error()
 {
+    std::string& error_msg(error_msg_holder.error_msg);
     return !error_msg.empty();
 }
 
@@ -264,6 +287,7 @@ has_error()
 std::string
 geterror(bool clear)
 {
+    std::string& error_msg(error_msg_holder.error_msg);
     std::string e = error_msg;
     if (clear)
         error_msg.clear();
@@ -342,6 +366,10 @@ attribute(string_view name, TypeDesc type, const void* val)
     }
     if (name == "limits:imagesize_MB" && type == TypeInt) {
         limit_imagesize_MB = *(const int*)val;
+        return true;
+    }
+    if (name == "oiio:print_uncaught_errors" && type == TypeInt) {
+        oiio_print_uncaught_errors = *(const int*)val;
         return true;
     }
     if (name == "imagebuf:print_uncaught_errors" && type == TypeInt) {
@@ -478,6 +506,10 @@ getattribute(string_view name, TypeDesc type, void* val)
     }
     if (name == "dds:bc5normal" && type == TypeInt) {
         *(int*)val = dds_bc5normal;
+        return true;
+    }
+    if (name == "oiio:print_uncaught_errors" && type == TypeInt) {
+        *(int*)val = oiio_print_uncaught_errors;
         return true;
     }
     if (name == "imagebuf:print_uncaught_errors" && type == TypeInt) {

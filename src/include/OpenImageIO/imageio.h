@@ -2980,6 +2980,21 @@ OIIO_API std::string geterror(bool clear = true);
 ///    the log information. When the `log_times` attribute is disabled,
 ///    there is no additional performance cost.
 ///
+/// - `oiio:print_uncaught_errors` (1)
+///
+///   If nonzero, upon program exit, any error messages that would have been
+///   retrieved by a call to `OIIO::geterror()`, but never were, will be
+///   printed to stdout. While this may seem chaotic, we are presuming that
+///   any well-written library or application will proactively check error
+///   codes and retrieve errors, so this will never print anything upon exit.
+///   But for less sophisticated applications (or users), this is very useful
+///   for forcing display of error messages so that users can see relevant
+///   errors even if they never check them explicitly, thus self-diagnose
+///   their troubles before asking the project dev deam for help. Advanced
+///   users who for some reason desire to neither retrieve errors themselves
+///   nor have them printed in this manner can disable the behavior by setting
+///   this attribute to 0.
+///
 /// - `imagebuf:print_uncaught_errors` (1)
 ///
 ///   If nonzero, an `ImageBuf` upon destruction will print any error messages
