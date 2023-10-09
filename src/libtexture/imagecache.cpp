@@ -2721,6 +2721,7 @@ ImageCacheImpl::get_image_info(ImageCacheFile* file,
             std::string* errptr = m_errormessage.get();
             if (errptr)
                 errptr->clear();
+            (void)OIIO::geterror(true);  // Suppress global errors
         }
         return true;
     }

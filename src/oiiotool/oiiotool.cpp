@@ -5285,6 +5285,11 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
             auto input = ImageInput::create(filename);
             if (input && input->supports("procedural"))
                 exists = 1;
+            if (!input) {
+                // If the create call failed, eat any stray global errors it
+                // may have issued.
+                (void)OIIO::geterror();
+            }
         }
         ImageBufRef substitute;  // possible substitute for missing image
         if (!exists) {
