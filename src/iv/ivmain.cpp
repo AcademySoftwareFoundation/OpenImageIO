@@ -39,7 +39,7 @@ getargs(int argc, char* argv[])
     // clang-format off
     ap.intro("iv -- image viewer\n"
              OIIO_INTRO_STRING)
-      .usage("iv [options] [filename...]")
+      .usage("iv [options] [filename... | dirname...]")
       .add_version(OIIO_VERSION_STRING);
 
     ap.arg("filename")
@@ -108,8 +108,38 @@ main(int argc, char* argv[])
     mainWin->activateWindow();
 
     // Add the images
-    for (auto& f : ap["filename"].as_vec<std::string>())
-        mainWin->add_image(f);
+    for (auto& f : ap["filename"].as_vec<std::string>()) {
+        // Check if the file exists
+        if (!Filesystem::exists(f)) {
+            std::cerr << "Error: File or directory does not exist: " << f << "\n";
+            continue;
+        }
+
+        if (Filesystem::is_directory(f)) {
+            // If f is a directory, iterate through its files
+            std::vector<std::string> files;
+            Filesystem::get_directory_entries(f, files);
+
+            std::vector<std::string> validImages;  // Vector to hold valid images
+            for (auto& file : files) {
+                auto in = ImageInput::open(file);
+                if (in) {
+                    validImages.push_back(file);
+                    in->close();  // Close the ImageInput object to free resources
+                }
+            }
+
+            if (validImages.empty()) {
+                std::cerr << "Error: No valid images found in directory: " << f << "\n";
+            } else {
+                for (auto& validImage : validImages) {
+                    mainWin->add_image(validImage);
+                }
+            }
+        } else {
+            mainWin->add_image(f);
+        }
+    }
 
     mainWin->current_image(0);
 
