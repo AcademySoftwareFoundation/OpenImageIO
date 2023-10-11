@@ -1,3 +1,5 @@
+cshift.exr           :  256 x  256, 4 channel, half openexr
+    SHA-1: 000F95FDC44D4DBDA8B4041C2506149C7AE28ACA
 Comparing "simple.tif" and "ref/simple.tif"
 PASS
 Comparing "scanlines.tif" and "ref/scanlines.tif"

@@ -998,19 +998,27 @@ Shuffling channels
 
     .. tabs::
   
-       .. code-tab:: c++
+       .. tab:: C++
 
-          ImageBuf A ("grid.jpg");
-          ImageBuf B = ImageBufAlgo::circular_shift (A, 70, 30);
+          .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+             :language: c++
+             :start-after: BEGIN-imagebufalgo-cshift
+             :end-before: END-imagebufalgo-cshift
+             :dedent: 4
 
-       .. code-tab:: py
+       .. tab:: Python
 
-          A = ImageBuf("tahoe.jpg")
-          A = ImageBufAlgo.circular_shift (A, 70, 30)
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+             :language: c++
+             :start-after: BEGIN-imagebufalgo-cshift
+             :end-before: END-imagebufalgo-cshift
+             :dedent: 4
 
-       .. code-tab:: bash oiiotool
+       .. tab:: oiiotool
 
-          oiiotool tahoe.jpg --cshift +70+30 -o out.jpg
+          .. code-block:: bash
+
+             oiiotool tahoe.jpg --cshift +70+30 -o out.jpg
 
 .. |cshiftimg1| image:: figures/grid-small.jpg
    :width: 2.0 in
@@ -1062,8 +1070,6 @@ Shuffling channels
 
 .. doxygengroup:: resize
 ..
-
-  Examples::
 
   Examples:
 
