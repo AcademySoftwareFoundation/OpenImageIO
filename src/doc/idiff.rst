@@ -26,11 +26,14 @@ Using `idiff`
 
 The `idiff` utility is invoked as follows:
 
-    `idiff` [*options*] *image1* *image2*
+    `idiff` [*options*] *input1* *input2|directory*
 
 Where *input1* and *input2* are the names of two image files that should be
 compared.  They may be of any format recognized by OpenImageIO (i.e., for
 which image-reading plugins are available).
+
+When a *directory* is specified instead of *input2* then `idiff` will use
+the same-named file as *input1* in the specified directory.
 
 If the two input images are not the same resolutions, or do not have the
 same number of channels, the comparison will return FAILURE immediately and
