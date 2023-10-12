@@ -18,6 +18,7 @@ from __future__ import absolute_import
 
 # BEGIN-imagebufalgo-example1
 import OpenImageIO as oiio
+from OpenImageIO import *
 import numpy as np
 
 def example1() :
@@ -37,6 +38,44 @@ def example1() :
 ############################################################################
 
 
+# Section: ImageBufAlgo common principles
+
+
+# Section: Pattern Generation
+
+
+# Section: Image transformation and data movement
+
+def example_circular_shift() :
+    # BEGIN-imagebufalgo-cshift
+    A = ImageBuf("grid.exr")
+    B = ImageBufAlgo.circular_shift(A, 70, 30)
+    # END-imagebufalgo-cshift
+    B.write("cshift.exr");
+
+
+# Section: Image Arithmetic
+
+
+# Section: Image comparison and statistics
+
+
+# Section: Convolution and frequency-space algorithms
+
+
+# Section: Image enhancement / restoration
+
+
+# Section: Morphological filters
+
+
+# Section: Color space conversion
+
+
+# Section: Import / export
+
+
+
 
 
 
@@ -44,3 +83,24 @@ if __name__ == '__main__':
     # Each example function needs to get called here, or it won't execute
     # as part of the test.
     example1()
+
+    # Section: ImageBufAlgo common principles
+
+    # Section: Pattern Generation
+
+    # Section: Image transformation and data movement
+    example_circular_shift()
+
+    # Section: Image Arithmetic
+
+    # Section: Image comparison and statistics
+
+    # Section: Convolution and frequency-space algorithms
+
+    # Section: Image enhancement / restoration
+
+    # Section: Morphological filters
+
+    # Section: Color space conversion
+
+    # Section: Import / export
