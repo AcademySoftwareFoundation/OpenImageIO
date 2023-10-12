@@ -107,6 +107,12 @@ main(int argc, char* argv[])
     mainWin->raise();
     mainWin->activateWindow();
 
+    // Set up the imagecache with parameters that make sense for iv
+    ImageCache* imagecache = ImageCache::create(true);
+    ustring uexists("exists");
+    std::string knownExtensions;
+    OIIO::getattribute("extension_list", knownExtensions);
+
     // Add the images
     for (auto& f : ap["filename"].as_vec<std::string>()) {
         // Check if the file exists
@@ -122,10 +128,12 @@ main(int argc, char* argv[])
 
             std::vector<std::string> validImages;  // Vector to hold valid images
             for (auto& file : files) {
-                auto in = ImageInput::open(file);
-                if (in) {
-                    validImages.push_back(file);
-                    in->close();  // Close the ImageInput object to free resources
+                std::string extension = Filesystem::extension(file);
+                if (knownExtensions.find(extension) != std::string::npos) {
+                    int exists = 0;
+                    bool ok = imagecache->get_image_info(ustring(file), 0, 0, uexists, OIIO::TypeInt, &exists);
+                    if (ok && exists)
+                        validImages.push_back(file);
                 }
             }
 
