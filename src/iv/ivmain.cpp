@@ -108,20 +108,12 @@ main(int argc, char* argv[])
     mainWin->activateWindow();
 
     ustring uexists("exists");
-    std::string knownExtensions;
-    OIIO::getattribute("extension_list", knownExtensions);
-    std::vector<std::string> extensionsVector;
-    std::stringstream ss(knownExtensions);
-    std::string item;
-    while (std::getline(ss, item, ';')) {
-        size_t pos = item.find(':');
-        if (pos != std::string::npos) {
-            std::string exts = item.substr(pos + 1);
-            std::stringstream inner_ss(exts);
-            while (std::getline(inner_ss, item, ',')) {
-                extensionsVector.push_back(item);
-            }
-        }
+    std::vector<std::string> extensionsVector; // Vector to hold all extensions
+    auto all_extensions = OIIO::get_string_attribute("extension_list");
+    for (auto oneformat : OIIO::Strutil::splitsv(all_extensions, ";")) { // Split the extensions by semicolon
+        auto format_exts = OIIO::Strutil::splitsv(oneformat, ":", 2);
+        for (auto ext : OIIO::Strutil::splitsv(format_exts[1], ","))
+            extensionsVector.emplace_back(ext); 
     }
 
 
