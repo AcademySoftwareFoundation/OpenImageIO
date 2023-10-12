@@ -43,7 +43,7 @@ getargs(int argc, char* argv[])
     ArgParse ap;
     ap.intro("idiff -- compare two images\n"
              OIIO_INTRO_STRING)
-      .usage("idiff [options] image1 image2")
+      .usage("idiff [options] <image1> <image2 | directory>")
       .add_version(OIIO_VERSION_STRING)
       .print_defaults(true);
 
