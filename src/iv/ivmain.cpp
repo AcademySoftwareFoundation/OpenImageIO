@@ -107,11 +107,24 @@ main(int argc, char* argv[])
     mainWin->raise();
     mainWin->activateWindow();
 
-    // Set up the imagecache with parameters that make sense for iv
-    ImageCache* imagecache = ImageCache::create(true);
     ustring uexists("exists");
     std::string knownExtensions;
     OIIO::getattribute("extension_list", knownExtensions);
+    std::vector<std::string> extensionsVector;
+    std::stringstream ss(knownExtensions);
+    std::string item;
+    while (std::getline(ss, item, ';')) {
+        size_t pos = item.find(':');
+        if (pos != std::string::npos) {
+            std::string exts = item.substr(pos + 1);
+            std::stringstream inner_ss(exts);
+            while (std::getline(inner_ss, item, ',')) {
+                extensionsVector.push_back(item);
+            }
+        }
+    }
+
+
 
     // Add the images
     for (auto& f : ap["filename"].as_vec<std::string>()) {
@@ -127,9 +140,23 @@ main(int argc, char* argv[])
             Filesystem::get_directory_entries(f, files);
 
             std::vector<std::string> validImages;  // Vector to hold valid images
+            // for (auto& file : files) {
+            //     std::string extension = Filesystem::extension(file);
+            //     // Ensure the extension string starts with a dot
+            //     if (!extension.empty() && extension[0] != '.') {
+            //         extension = "." + extension;
+            //     }
+            //     // Search for the extension in the knownExtensions string
+            //     if (knownExtensions.find(extension) != std::string::npos) {
+            //         int exists = 0;
+            //         bool ok = imagecache->get_image_info(ustring(file), 0, 0, uexists, OIIO::TypeInt, &exists);
+            //         if (ok && exists)
+            //             validImages.push_back(file);
+            //     }
+            // }
             for (auto& file : files) {
-                std::string extension = Filesystem::extension(file);
-                if (knownExtensions.find(extension) != std::string::npos) {
+                std::string extension = Filesystem::extension(file).substr(1);  // Remove the leading dot
+                if (std::find(extensionsVector.begin(), extensionsVector.end(), extension) != extensionsVector.end()) {
                     int exists = 0;
                     bool ok = imagecache->get_image_info(ustring(file), 0, 0, uexists, OIIO::TypeInt, &exists);
                     if (ok && exists)
