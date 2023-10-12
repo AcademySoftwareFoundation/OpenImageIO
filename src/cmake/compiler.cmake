@@ -622,6 +622,10 @@ else ()
 endif ()
 
 
+###########################################################################
+# Generate compile_commands.json for use by editors and tools.
+set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 
 ###########################################################################
 # Macro to install targets to the appropriate locations.  Use this instead
