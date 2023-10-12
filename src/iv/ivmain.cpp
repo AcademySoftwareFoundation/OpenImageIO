@@ -116,8 +116,6 @@ main(int argc, char* argv[])
             extensionsVector.emplace_back(ext); 
     }
 
-
-
     // Add the images
     for (auto& f : ap["filename"].as_vec<std::string>()) {
         // Check if the file exists
