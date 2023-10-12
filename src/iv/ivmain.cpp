@@ -159,7 +159,7 @@ main(int argc, char* argv[])
             }
         } else {
             mainWin->add_image(f);
-        }
+        } 
     }
 
     mainWin->current_image(0);
