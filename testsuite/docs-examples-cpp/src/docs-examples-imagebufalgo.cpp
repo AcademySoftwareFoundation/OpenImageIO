@@ -12,6 +12,8 @@
 
 // BEGIN-imagebufalgo-example1
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
 using namespace OIIO;
 
 void example1()
@@ -31,11 +33,75 @@ void example1()
 ///////////////////////////////////////////////////////////////////////////
 
 
+// Section: ImageBufAlgo common principles
+
+
+// Section: Pattern Generation
+
+
+// Section: Image transformation and data movement
+
+void example_circular_shift()
+{
+// BEGIN-imagebufalgo-cshift
+    ImageBuf A("grid.exr");
+    ImageBuf B = ImageBufAlgo::circular_shift(A, 70, 30);
+    B.write("cshift.exr");
+// END-imagebufalgo-cshift
+}
+
+
+
+// Section: Image Arithmetic
+
+
+// Section: Image comparison and statistics
+
+
+// Section: Convolution and frequency-space algorithms
+
+
+// Section: Image enhancement / restoration
+
+
+// Section: Morphological filters
+
+
+// Section: Color space conversion
+
+
+// Section: Import / export
+
+
+
+
 
 int main(int /*argc*/, char** /*argv*/)
 {
     // Each example function needs to get called here, or it won't execute
     // as part of the test.
     example1();
+
+    // Section: ImageBufAlgo common principles
+
+    // Section: Pattern Generation
+
+    // Section: Image transformation and data movement
+    example_circular_shift();
+
+    // Section: Image Arithmetic
+
+    // Section: Image comparison and statistics
+
+    // Section: Convolution and frequency-space algorithms
+
+    // Section: Image enhancement / restoration
+
+    // Section: Morphological filters
+
+    // Section: Color space conversion
+
+    // Section: Import / export
+
     return 0;
 }

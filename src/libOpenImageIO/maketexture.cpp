@@ -647,6 +647,8 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
         if (!mipmap) {
             // Send hint to OpenEXR driver that we won't specify a MIPmap
             outspec.attribute("openexr:levelmode", 0 /* ONE_LEVEL */);
+        } else {
+            outspec.erase_attribute("openexr:levelmode");
         }
         // OpenEXR always uses border sampling for environment maps
         if (envlatlmode) {
