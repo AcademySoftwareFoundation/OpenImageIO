@@ -140,20 +140,6 @@ main(int argc, char* argv[])
             Filesystem::get_directory_entries(f, files);
 
             std::vector<std::string> validImages;  // Vector to hold valid images
-            // for (auto& file : files) {
-            //     std::string extension = Filesystem::extension(file);
-            //     // Ensure the extension string starts with a dot
-            //     if (!extension.empty() && extension[0] != '.') {
-            //         extension = "." + extension;
-            //     }
-            //     // Search for the extension in the knownExtensions string
-            //     if (knownExtensions.find(extension) != std::string::npos) {
-            //         int exists = 0;
-            //         bool ok = imagecache->get_image_info(ustring(file), 0, 0, uexists, OIIO::TypeInt, &exists);
-            //         if (ok && exists)
-            //             validImages.push_back(file);
-            //     }
-            // }
             for (auto& file : files) {
                 std::string extension = Filesystem::extension(file).substr(1);  // Remove the leading dot
                 if (std::find(extensionsVector.begin(), extensionsVector.end(), extension) != extensionsVector.end()) {
