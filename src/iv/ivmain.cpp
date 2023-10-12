@@ -145,6 +145,7 @@ main(int argc, char* argv[])
             if (validImages.empty()) {
                 std::cerr << "Error: No valid images found in directory: " << f << "\n";
             } else {
+                std::sort(validImages.begin(), validImages.end()); // Sort the valid images lexicographically
                 for (auto& validImage : validImages) {
                     mainWin->add_image(validImage);
                 }
