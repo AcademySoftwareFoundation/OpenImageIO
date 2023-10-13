@@ -29,9 +29,9 @@ lines.exr            :  640 x  480, 4 channel, float openexr
 box.exr              :  640 x  480, 4 channel, float openexr
     SHA-1: 6CBE5E98B145C5975CB930A91BAEE981C30E6B32
 text1.exr            :  640 x  480, 3 channel, float openexr
-    SHA-1: 014ECFC5EBF07F77DF24A592F43BC7CB101534AE
+    SHA-1: 72E989716A14F0399886CE39B04B92C20BCB3242
 text2.exr            :  640 x  480, 3 channel, float openexr
-    SHA-1: 53359E96A286F909A89ACC99A67A9ED3BADC4A7A
+    SHA-1: 7210D03C177F8DD854B2BA70FB298BB6287AC2E7
 cshift.exr           :  256 x  256, 4 channel, half openexr
     SHA-1: 000F95FDC44D4DBDA8B4041C2506149C7AE28ACA
 Comparing "simple.tif" and "ref/simple.tif"
