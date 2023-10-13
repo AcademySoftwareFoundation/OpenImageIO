@@ -39,7 +39,7 @@ getargs(int argc, char* argv[])
     // clang-format off
     ap.intro("iv -- image viewer\n"
              OIIO_INTRO_STRING)
-      .usage("iv [options] [filename...]")
+      .usage("iv [options] [filename... | dirname...]")
       .add_version(OIIO_VERSION_STRING);
 
     ap.arg("filename")
@@ -107,9 +107,51 @@ main(int argc, char* argv[])
     mainWin->raise();
     mainWin->activateWindow();
 
+    ustring uexists("exists");
+    std::vector<std::string> extensionsVector; // Vector to hold all extensions
+    auto all_extensions = OIIO::get_string_attribute("extension_list");
+    for (auto oneformat : OIIO::Strutil::splitsv(all_extensions, ";")) { // Split the extensions by semicolon
+        auto format_exts = OIIO::Strutil::splitsv(oneformat, ":", 2);
+        for (auto ext : OIIO::Strutil::splitsv(format_exts[1], ","))
+            extensionsVector.emplace_back(ext); 
+    }
+
     // Add the images
-    for (auto& f : ap["filename"].as_vec<std::string>())
-        mainWin->add_image(f);
+    for (auto& f : ap["filename"].as_vec<std::string>()) {
+        // Check if the file exists
+        if (!Filesystem::exists(f)) {
+            std::cerr << "Error: File or directory does not exist: " << f << "\n";
+            continue;
+        }
+
+        if (Filesystem::is_directory(f)) {
+            // If f is a directory, iterate through its files
+            std::vector<std::string> files;
+            Filesystem::get_directory_entries(f, files);
+
+            std::vector<std::string> validImages;  // Vector to hold valid images
+            for (auto& file : files) {
+                std::string extension = Filesystem::extension(file).substr(1);  // Remove the leading dot
+                if (std::find(extensionsVector.begin(), extensionsVector.end(), extension) != extensionsVector.end()) {
+                    int exists = 0;
+                    bool ok = imagecache->get_image_info(ustring(file), 0, 0, uexists, OIIO::TypeInt, &exists);
+                    if (ok && exists)
+                        validImages.push_back(file);
+                }
+            }
+
+            if (validImages.empty()) {
+                std::cerr << "Error: No valid images found in directory: " << f << "\n";
+            } else {
+                std::sort(validImages.begin(), validImages.end()); // Sort the valid images lexicographically
+                for (auto& validImage : validImages) {
+                    mainWin->add_image(validImage);
+                }
+            }
+        } else {
+            mainWin->add_image(f);
+        } 
+    }
 
     mainWin->current_image(0);
 
