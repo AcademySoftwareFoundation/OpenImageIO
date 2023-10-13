@@ -6,7 +6,8 @@
 
 
 # Prep:
-command += run_app("cmake -E copy ../common/grid-small.exr grid.exr")
+command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.exr grid.exr")
+command += run_app("cmake -E copy " + test_source_dir + "/../common/tahoe-small.tif tahoe.tif")
 
 # Run the examples for each chapter
 for chapter in [ "imageioapi", "imageoutput", "imageinput", "writingplugins",
@@ -17,6 +18,22 @@ for chapter in [ "imageioapi", "imageoutput", "imageinput", "writingplugins",
 # of checking in a full copy of the image if it's not needed.
 hashes = [
     # Outputs from the ImageBufAlgo chapter:
+    "zero1.exr",
+    "zero2.exr",
+    "zero3.exr",
+    "zero4.exr",
+    "fill.exr",
+    "checker.exr",
+    "noise1.exr",
+    "noise2.exr",
+    "noise3.exr",
+    "noise4.exr",
+    "blue-noise.exr",
+    "point.exr",
+    "lines.exr",
+    "box.exr",
+    "text1.exr",
+    "text2.exr",
     "cshift.exr",
 ]
 for file in hashes :

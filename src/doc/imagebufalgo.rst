@@ -37,24 +37,22 @@ Most ImageBufAlgo functions that produce image data come in two forms:
    case, an entirely new image will be created to hold the result. In case of
    error, the result image returned can have any error conditions checked with
    `has_error()` and `geterror()`.
-   
-   .. tabs::
-   
-      .. code-tab:: c++
-   
-          // Method 1: Return an image result
-          ImageBuf dst = ImageBufAlgo::over (fg, bg);
-          if (dst.has_error())
-              std::cout << "error: " << dst.geterror() << "\n";
 
-      .. code-tab:: py
-   
-          # Method 1: Return an image result
-          fg = ImageBuf("fg.exr")
-          bg = ImageBuf("bg.exr")
-          dst = ImageBufAlgo.over (fg, bg)
-          if dst.has_error() :
-              print("error:", dst.geterror())
+   .. tabs::
+
+      .. tab:: C++
+            .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+             :language: c++
+             :start-after: BEGIN-imagebufalgo-output-error1
+             :end-before: END-imagebufalgo-output-error1
+             :dedent: 4
+
+      .. tab:: Python
+         .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+             :language: py
+             :start-after: BEGIN-imagebufalgo-output-error1
+             :end-before: END-imagebufalgo-output-error1
+             :dedent: 4
 
 
 2. Pass a destination ImageBuf reference as the first parameter.
@@ -64,27 +62,22 @@ Most ImageBufAlgo functions that produce image data come in two forms:
    function succeeds or `false` if the function fails. Upon failure, the
    destination ImageBuf (the one that is being altered) will have an error
    message set.
-   
-   .. tabs::
-   
-      .. code-tab:: c++
-      
-          // Method 2: Write into an existing image
-          ImageBuf fg ("fg.exr"), bg ("bg.exr");
-          ImageBuf dst;   // will be the output image
-          bool ok = ImageBufAlgo::over (dst, fg, bg);
-          if (! ok)
-              std::cout << "error: " << dst.geterror() << "\n";
 
-      .. code-tab:: py
-          
-          # Method 2: Write into an existing image
-          fg = ImageBuf("fg.exr")
-          bg = ImageBuf("bg.exr")
-          dst = ImageBuf()  # will be the output image
-          ok = ImageBufAlgo.over (dst, fg, bg)
-          if not ok :
-              print("error:", dst.geterror())
+   .. tabs::
+
+      .. tab:: C++
+            .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+             :language: c++
+             :start-after: BEGIN-imagebufalgo-output-error2
+             :end-before: END-imagebufalgo-output-error2
+             :dedent: 4
+
+      .. tab:: Python
+         .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+             :language: py
+             :start-after: BEGIN-imagebufalgo-output-error2
+             :end-before: END-imagebufalgo-output-error2
+             :dedent: 4
 
 
 The first option (return an ImageBuf directly) is a more compact and
@@ -188,58 +181,34 @@ zero() -- create a black image
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
-  
-          // Create a new 3-channel, 512x512 float image filled with 0.0 values.
-          ImageBuf zero = ImageBufAlgo::zero (ROI(0,512,0,512,0,1,0,3));
-          
-          // Zero out an existing buffer, keeping it the same size and data type
-          ImageBuf A = ...;
-          ...
-          ImageBufAlgo::zero (A);
-          
-          // Zero out just the green channel, leave everything else the same
-          ROI roi = A.roi ();
-          roi.chbegin = 1; // green
-          roi.chend = 2;   // one past the end of the channel region
-          ImageBufAlgo::zero (A, roi);
-  
-          // Zero out a rectangular region of an existing buffer
-          ImageBufAlgo::zero (A, ROI (0, 100, 0, 100));
-          
-       .. code-tab:: py
-  
-          # Create a new 3-channel, 512x512 float image filled with 0.0 values.
-          zero = ImageBufAlgo.zero (ROI(0,512,0,512,0,1,0,3))
-          
-          # Zero out an existing buffer, keeping it the same size and data type
-          A = ImageBuf(...)
-          ...
-          ImageBufAlgo.zero (A)
-          
-          # Zero out just the green channel, leave everything else the same
-          roi = A.roi
-          roi.chbegin = 1 # green
-          roi.chend = 2   # one past the end of the channel region
-          ImageBufAlgo.zero (A, roi)
 
-          # Zero out a rectangular region of an existing buffer
-          ImageBufAlgo.zero (A, ROI (0, 100, 0, 100))
-         
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-zero
+              :end-before: END-imagebufalgo-zero
+              :dedent: 4
+
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-zero
+              :end-before: END-imagebufalgo-zero
+              :dedent: 4
+
        .. code-tab:: bash oiiotool
-  
+
           # Create a new 3-channel, 512x512 float image filled with 0.0 values.
           oiiotool --create 512x512 3 -d float -o out.exr
-          
+
           # Zero out an existing image, keeping it the same size and data type.
           # For simplicity, just scale all values by 0.0
           oiiotool in.exr --mulc 0.0 -o out.exr
-          
+
           # Zero out just the green channel, leave everything else the same.
           # Again, rely on --mulc to scale the channels
           oiiotool in.exr --mulc 1,0,1 -o out.exr
-          
+
           # Zero out a rectangular region of an existing image
           oiiotool in.exr --fill:color=0,0,0 100x100+0+0 -o out.exr
 
@@ -254,29 +223,20 @@ fill() -- fill a region with a solid color or gradient
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
-  
-          // Create a new 640x480 RGB image, with a top-to-bottom gradient
-          // from red to pink
-          float pink[3] = { 1, 0.7, 0.7 };
-          float red[3] = { 1, 0, 0 };
-          ImageBuf A = ImageBufAlgo::fill (red, pink, ROI(0, 640, 0, 480, 0, 1, 0, 3));
 
-          // Draw a filled red rectangle overtop existing image A.
-          ImageBufAlgo::fill (A, red, ROI(50, 100, 75, 175));
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-fill
+              :end-before: END-imagebufalgo-fill
+              :dedent: 4
 
-       .. code-tab:: py
-  
-          # Create a new 640x480 RGB image, with a top-to-bottom gradient
-          # from red to pink
-          pink = (1, 0.7, 0.7)
-          red = (1, 0, 0)
-          A = ImageBufAlgo.fill (top=red, bottom=pink,
-                                 ROI(0, 640, 0, 480, 0, 1, 0, 3))
-
-          # Draw a filled red rectangle overtop existing image A.
-          ImageBufAlgo.fill (A, red, ROI(50, 100, 75, 175))
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-fill
+              :end-before: END-imagebufalgo-fill
+              :dedent: 4
 
        .. code-tab:: bash oiiotool
   
@@ -307,24 +267,19 @@ checker() -- make a checker pattern
 
     .. tabs::
   
-       .. code-tab:: c++
-  
-          // Create a new 640x480 RGB image, fill it with a two-toned gray
-          // checkerboard, the checkers being 64x64 pixels each.
-          ImageBuf A (ImageSpec(640, 480, 3, TypeDesc::FLOAT);
-          float dark[3] = { 0.1, 0.1, 0.1 };
-          float light[3] = { 0.4, 0.4, 0.4 };
-          ImageBufAlgo::checker (A, 64, 64, 1, dark, light, 0, 0, 0);
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-checker
+              :end-before: END-imagebufalgo-checker
+              :dedent: 4
 
-       .. code-tab:: py
-  
-          # Create a new 640x480 RGB image, fill it with a two-toned gray
-          # checkerboard, the checkers being 64x64 pixels each.
-          A = ImageBuf (ImageSpec(640, 480, 3, "float")
-          dark = (0.1, 0.1, 0.1)
-          light = (0.4, 0.4, 0.4)
-          A = ImageBufAlgo.checker (64, 64, 1, dark, light,
-                                    roi=ROI(0, 640, 0, 480, 0, 1, 0, 3))
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-checker
+              :end-before: END-imagebufalgo-checker
+              :dedent: 4
 
        .. code-tab:: bash oiiotool
   
@@ -352,43 +307,20 @@ Noise patterns
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
-  
-          // Create a new 256x256 field of grayscale white noise on [0,1)
-          ImageBuf A = ImageBufAlgo::noise ("uniform", 0.0f /*min*/, 1.0f /*max*/,
-                               true /*mono*/, 1 /*seed*/, ROI(0,256,0,256,0,1,0,3));
-      
-          // Create a new 256x256 field of grayscale white noise on [0,1)
-          ImageBuf B = ImageBufAlgo::noise ("blue", 0.0f /*min*/, 1.0f /*max*/,
-                               true /*mono*/, 1 /*seed*/, ROI(0,256,0,256,0,1,0,3));
-      
-          // Add color Gaussian noise to an existing image
-          ImageBuf C ("tahoe.jpg");
-          ImageBufAlgo::noise (C, "gaussian", 0.0f /*mean*/, 0.1f /*stddev*/,
-                               false /*mono*/, 1 /*seed*/);
-      
-          // Use salt and pepper noise to make occasional random dropouts
-          ImageBuf D ("tahoe.jpg");
-          ImageBufAlgo::noise (D, "salt", 0.0f /*value*/, 0.01f /*portion*/,
-                               true /*mono*/, 1 /*seed*/);
-       .. code-tab:: py
-  
-          # Create a new 256x256 field of grayscale white noise on [0,1)
-          A = ImageBufAlgo.noise ("uniform", min=0.0, max=1.0, mono=True, seed=1,
-                                  roi = ROI(0,256,0,256,0,1,0,3))
-      
-          # Create a new 256x256 field of grayscale blue noise on [0,1)
-          B = ImageBufAlgo.noise ("blue", min=0.0, max=1.0, mono=True, seed=1,
-                                  roi = ROI(0,256,0,256,0,1,0,3))
-      
-          # Add color Gaussian noise to an existing image
-          C = ImageBuf ("tahoe.jpg")
-          ImageBufAlgo.noise (C, "gaussian", A=0.0, B=0.1, mono=False, seed=1)
-      
-          # Use salt and pepper noise to make occasional random dropouts
-          D = ImageBuf ("tahoe.jpg")
-          ImageBufAlg.noise (D, "salt", A=0.0, B=0.01, mono=True, seed=1)
+
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-noise1
+              :end-before: END-imagebufalgo-noise1
+              :dedent: 4
+
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-noise1
+              :end-before: END-imagebufalgo-noise1
+              :dedent: 4
 
        .. code-tab:: bash oiiotool
   
@@ -432,15 +364,20 @@ Noise patterns
   Example:
 
     .. tabs::
-  
-       .. code-tab:: c++
-  
-          const ImageBuf& A = ImageBufAlgo::bluenoise_image();
 
-       .. code-tab:: py
-  
-          A = ImageBufAlgo.bluenoise_image()
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-noise2
+              :end-before: END-imagebufalgo-noise2
+              :dedent: 4
 
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-noise2
+              :end-before: END-imagebufalgo-noise2
+              :dedent: 4
 
 
 Drawing shapes: points, lines, boxes
@@ -452,18 +389,20 @@ Drawing shapes: points, lines, boxes
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
-  
-          ImageBuf A (ImageSpec (640, 480, 4, TypeDesc::FLOAT));
-          float red[4] = { 1, 0, 0, 1 };
-          ImageBufAlgo::render_point (A, 50, 100, red);
 
-       .. code-tab:: py
-  
-          A = ImageBuf(ImageSpec(640, 480, 4, "float"))
-          red = (1, 0, 0, 1)
-          ImageBufAlgo.render_point (A, 50, 100, red)
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-point
+              :end-before: END-imagebufalgo-point
+              :dedent: 4
+
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-point
+              :end-before: END-imagebufalgo-point
+              :dedent: 4
 
        .. code-tab:: bash oiiotool
   
@@ -478,20 +417,20 @@ Drawing shapes: points, lines, boxes
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
-  
-          ImageBuf A (ImageSpec (640, 480, 4, TypeDesc::FLOAT));
-          float red[4] = { 1, 0, 0, 1 };
-          ImageBufAlgo::render_line (A, 10, 60, 250, 20, red);
-          ImageBufAlgo::render_line (A, 250, 20, 100, 190, red, true);
 
-       .. code-tab:: py
-  
-          A = ImageBuf(ImageSpec(640, 480, 4, "float"))
-          red = (1, 0, 0, 1)
-          ImageBufAlgo.render_line (A, 10, 60, 250, 20, red);
-          ImageBufAlgo.render_line (A, 250, 20, 100, 190, red, True)
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-lines
+              :end-before: END-imagebufalgo-lines
+              :dedent: 4
+
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-lines
+              :end-before: END-imagebufalgo-lines
+              :dedent: 4
 
        .. code-tab:: bash oiiotool
   
@@ -510,21 +449,19 @@ Drawing shapes: points, lines, boxes
 
     .. tabs::
   
-       .. code-tab:: c++
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-box
+              :end-before: END-imagebufalgo-box
+              :dedent: 4
 
-          ImageBuf A (ImageSpec (640, 480, 4, TypeDesc::FLOAT));
-          float cyan[4] = { 0, 1, 1, 1 };
-          float yellow_transparent[4] = { 0.5, 0.5, 0, 0.5 };
-          ImageBufAlgo::render_box (A, 150, 100, 240, 180, cyan);
-          ImageBufAlgo::render_box (A, 100, 50, 180, 140, yellow_transparent, true);
-
-       .. code-tab:: py
-
-          A = ImageBuf(ImageSpec(640, 480, 4, "float"))
-          cyan = (0, 1, 1, 1)
-          yellow_transparent = (0.5, 0.5, 0, 0.5)
-          ImageBufAlgo.render_box (A, 150, 100, 240, 180, cyan)
-          ImageBufAlgo.render_box (A, 100, 50, 180, 140, yellow_transparent, fill=True)
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-box
+              :end-before: END-imagebufalgo-box
+              :dedent: 4
 
        .. code-tab:: bash oiiotool
 
@@ -548,29 +485,19 @@ Drawing text
 
     .. tabs::
   
-       .. code-tab:: c++
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-text1
+              :end-before: END-imagebufalgo-text1
+              :dedent: 4
 
-          ImageBufAlgo::render_text (ImgA, 50, 100, "Hello, world");
-          float red[] = { 1, 0, 0, 1 };
-          ImageBufAlgo::render_text (ImgA, 100, 200, "Go Big Red!",
-                                     60, "Arial Bold", red);
-
-          float white[] = { 1, 1, 1, 1 };
-          ImageBufAlgo::render_text (ImgB, 320, 240, "Centered",
-                                     60, "Arial Bold", white,
-                                     TextAlignX::Center, TextAlignY::Center);
-
-       .. code-tab:: py
-
-          ImageBufAlgo.render_text (ImgA, 50, 100, "Hello, world")
-          red = (1, 0, 0, 1)
-          ImageBufAlgo.render_text (ImgA, 100, 200, "Go Big Red!",
-                                    60, "Arial Bold", red)
-
-          white = (1, 1, 1, 1)
-          ImageBufAlgo.render_text (ImgB, 320, 240, "Centered",
-                                    fontsize=60, fontname="Arial Bold",
-                                    color=white, alignx="center", aligny="center")
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-text1
+              :end-before: END-imagebufalgo-text1
+              :dedent: 4
 
        .. code-tab:: bash oiiotool
 
@@ -602,30 +529,19 @@ Drawing text
 
     .. tabs::
   
-       .. code-tab:: c++
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-text2
+              :end-before: END-imagebufalgo-text2
+              :dedent: 4
 
-          // Render text centered in the image, using text_size to find out
-          // the size we will need and adjusting the coordinates.
-          ImageBuf A (ImageSpec (640, 480, 4, TypeDesc::FLOAT));
-          ROI Aroi = A.roi();
-          ROI size = ImageBufAlgo::text_size ("Centered", 48, "Courier New");
-          if (size.defined()) {
-              int x = Aroi.xbegin + Aroi.width()/2  - (size.xbegin + size.width()/2);
-              int y = Aroi.ybegin + Aroi.height()/2 - (size.ybegin + size.height()/2);
-              ImageBufAlgo::render_text (A, x, y, "Centered", 48, "Courier New");
-          }
-
-       .. code-tab:: py
-
-          # Render text centered in the image, using text_size to find out
-          # the size we will need and adjusting the coordinates.
-          A = ImageBuf (ImageSpec (640, 480, 4, "float"))
-          Aroi = A.roi
-          size = ImageBufAlgo.text_size ("Centered", 48, "Courier New")
-          if size.defined() :
-              x = Aroi.xbegin + Aroi.width//2  - (size.xbegin + size.width//2)
-              y = Aroi.ybegin + Aroi.height//2 - (size.ybegin + size.height//2)
-              ImageBufAlgo.render_text (A, x, y, "Centered", 48, "Courier New")
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-text2
+              :end-before: END-imagebufalgo-text2
+              :dedent: 4
 
 
 
