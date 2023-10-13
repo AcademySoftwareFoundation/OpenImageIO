@@ -197,6 +197,15 @@ private:
 
     /// Destroys shaders and selects fixed-function pipeline
     void create_shaders_abort(void);
+    
+    
+#ifdef USE_OCIO
+    class Impl;
+    std::unique_ptr<Impl> pImpl;
+    
+    void update_ocio_state();
+    void on_ocio_error(const char * message);
+#endif
 };
 
 #endif  // OPENIMAGEIO_IVGL_H

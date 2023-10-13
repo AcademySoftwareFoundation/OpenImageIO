@@ -23,6 +23,9 @@ if (iv_enabled AND (Qt5_FOUND OR Qt6_FOUND) AND OPENGL_FOUND)
             $<TARGET_NAME_IF_EXISTS:Qt6::Widgets>
             $<TARGET_NAME_IF_EXISTS:Qt6::OpenGLWidgets>
             ${OPENGL_LIBRARIES}
+            $<TARGET_NAME_IF_EXISTS:OpenColorIO::OpenColorIO>
+            $<TARGET_NAME_IF_EXISTS:OpenColorIO::OpenColorIOHeaders>
+            /opt/local/lib/libOpenColorIOoglapphelpers.a
         )
     if (iv_enabled AND FORCE_OPENGL_1)
         target_compile_definitions(iv PRIVATE FORCE_OPENGL_1)

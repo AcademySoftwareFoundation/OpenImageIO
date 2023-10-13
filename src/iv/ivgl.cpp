@@ -20,6 +20,12 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/timer.h>
 
+#ifdef USE_OCIO
+#include <OpenColorIO/OpenColorIO.h>
+#include <OpenColorIO/oglapphelpers/glsl.h>
+namespace OCIO = OCIO_NAMESPACE;
+#endif
+
 OIIO_PRAGMA_WARNING_PUSH
 #if defined(__APPLE__)
 // Apple deprecates OpenGL calls, ugh
@@ -49,6 +55,13 @@ gl_err_to_string(GLenum err)
         std::cerr << "GL error " << msg << " " << (int)err << " - "         \
                   << gl_err_to_string(err) << "\n";
 
+#ifdef USE_OCIO
+class IvGL::Impl {
+public:
+    std::string processorCacheID;
+    OCIO::OpenGLBuilderRcPtr openGLBuilder;
+};
+#endif
 
 
 IvGL::IvGL(QWidget* parent, ImageViewer& viewer)
@@ -70,6 +83,9 @@ IvGL::IvGL(QWidget* parent, ImageViewer& viewer)
     , m_current_image(NULL)
     , m_pixelview_left_corner(true)
     , m_last_texbuf_used(0)
+#ifdef USE_OCIO
+    , pImpl(std::make_unique<Impl>())
+#endif
 {
 #if 0
     QGLFormat format;
@@ -189,127 +205,144 @@ IvGL::create_textures(void)
     m_tex_created = true;
 }
 
+// clang-format off
+
+static const GLchar *vertex_source =
+    "varying vec2 vTexCoord;\n"
+    "void main ()\n"
+    "{\n"
+    "    vTexCoord = gl_MultiTexCoord0.xy;\n"
+    "    gl_Position = ftransform();\n"
+    "}\n";
+
+static const GLchar *fragment_source =
+    "uniform sampler2D imgtex;\n"
+    "varying vec2 vTexCoord;\n"
+    "uniform float gain;\n"
+    "uniform float gamma;\n"
+    "uniform int startchannel;\n"
+    "uniform int colormode;\n"
+    // Remember, if imgchannels == 2, second channel would be channel 4 (a).
+    "uniform int imgchannels;\n"
+    "uniform int pixelview;\n"
+    "uniform int linearinterp;\n"
+    "uniform int width;\n"
+    "uniform int height;\n"
+    "uniform bool useocio;\n"
+    "vec4 rgba_mode (vec4 C)\n"
+    "{\n"
+    "    if (imgchannels <= 2) {\n"
+    "        if (startchannel == 1)\n"
+    "           return vec4(C.aaa, 1.0);\n"
+    "        return C.rrra;\n"
+    "    }\n"
+    "    return C;\n"
+    "}\n"
+    "vec4 rgb_mode (vec4 C)\n"
+    "{\n"
+    "    if (imgchannels <= 2) {\n"
+    "        if (startchannel == 1)\n"
+    "           return vec4(C.aaa, 1.0);\n"
+    "        return vec4 (C.rrr, 1.0);\n"
+    "    }\n"
+    "    float C2[4];\n"
+    "    C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;\n"
+    "    return vec4 (C2[startchannel], C2[startchannel+1], C2[startchannel+2], 1.0);\n"
+    "}\n"
+    "vec4 singlechannel_mode (vec4 C)\n"
+    "{\n"
+    "    float C2[4];\n"
+    "    C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;\n"
+    "    if (startchannel > imgchannels)\n"
+    "        return vec4 (0.0,0.0,0.0,1.0);\n"
+    "    return vec4 (C2[startchannel], C2[startchannel], C2[startchannel], 1.0);\n"
+    "}\n"
+    "vec4 luminance_mode (vec4 C)\n"
+    "{\n"
+    "    if (imgchannels <= 2)\n"
+    "        return vec4 (C.rrr, C.a);\n"
+    "    float lum = dot (C.rgb, vec3(0.2126, 0.7152, 0.0722));\n"
+    "    return vec4 (lum, lum, lum, C.a);\n"
+    "}\n"
+    "float heat_red(float x)\n"
+    "{\n"
+    "    return clamp (mix(0.0, 1.0, (x-0.35)/(0.66-0.35)), 0.0, 1.0) -\n"
+    "           clamp (mix(0.0, 0.5, (x-0.89)/(1.0-0.89)), 0.0, 1.0);\n"
+    "}\n"
+    "float heat_green(float x)\n"
+    "{\n"
+    "    return clamp (mix(0.0, 1.0, (x-0.125)/(0.375-0.125)), 0.0, 1.0) -\n"
+    "           clamp (mix(0.0, 1.0, (x-0.64)/(0.91-0.64)), 0.0, 1.0);\n"
+    "}\n"
+    "vec4 heatmap_mode (vec4 C)\n"
+    "{\n"
+    "    float C2[4];\n"
+    "    C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;\n"
+    "    return vec4(heat_red(C2[startchannel]),\n"
+    "                heat_green(C2[startchannel]),\n"
+    "                heat_red(1.0-C2[startchannel]),\n"
+    "                1.0);\n"
+    "}\n"
+    "void main ()\n"
+    "{\n"
+    "    vec2 st = vTexCoord;\n"
+    "    float black = 0.0;\n"
+    "    if (pixelview != 0 || linearinterp == 0) {\n"
+    "        vec2 wh = vec2(width,height);\n"
+    "        vec2 onehalf = vec2(0.5,0.5);\n"
+    "        vec2 st_res = st * wh /* + onehalf */ ;\n"
+    "        vec2 st_pix = floor (st_res);\n"
+    "        vec2 st_rem = st_res - st_pix;\n"
+    "        st = (st_pix + onehalf) / wh;\n"
+    "        if (pixelview != 0) {\n"
+    "            if (st.x < 0.0 || st.x >= 1.0 || \n"
+    "                    st.y < 0.0 || st.y >= 1.0 || \n"
+    "                    st_rem.x < 0.05 || st_rem.x >= 0.95 || \n"
+    "                    st_rem.y < 0.05 || st_rem.y >= 0.95)\n"
+    "                black = 1.0;\n"
+    "        }\n"
+    "    }\n"
+    "    vec4 C = texture2D (imgtex, st);\n"
+    "    C = mix (C, vec4(0.05,0.05,0.05,1.0), black);\n"
+    "    if (startchannel < 0)\n"
+    "        C = vec4(0.0,0.0,0.0,1.0);\n"
+    "    else if (colormode == 0)\n" // RGBA
+    "        C = rgba_mode (C);\n"
+    "    else if (colormode == 1)\n" // RGB (i.e., ignore alpha).
+    "        C = rgb_mode (C);\n"
+    "    else if (colormode == 2)\n" // Single channel.
+    "        C = singlechannel_mode (C);\n"
+    "    else if (colormode == 3)\n" // Luminance.
+    "        C = luminance_mode (C);\n"
+    "    else if (colormode == 4)\n" // Heatmap.
+    "        C = heatmap_mode (C);\n"
+    "    if (pixelview != 0)\n"
+    "        C.a = 1.0;\n"
+    "    if (useocio) {\n"
+    "        C = OCIODisplay(C);\n"
+    "    }\n"
+    "    else {\n"
+    "        C.xyz *= gain;\n"
+    "        float invgamma = 1.0/gamma;\n"
+    "        C.xyz = pow (C.xyz, vec3 (invgamma, invgamma, invgamma));\n"
+    "    }\n"
+    "    gl_FragColor = C;\n"
+    "}\n";
+
+// clang-format on
 
 
 void
 IvGL::create_shaders(void)
 {
+    // This function is never called. It is only present here to avoid linker errors.
+    
     // clang-format off
-    static const GLchar *vertex_source =
-        "varying vec2 vTexCoord;\n"
-        "void main ()\n"
-        "{\n"
-        "    vTexCoord = gl_MultiTexCoord0.xy;\n"
-        "    gl_Position = ftransform();\n"
-        "}\n";
-
-    static const GLchar *fragment_source =
-        "uniform sampler2D imgtex;\n"
-        "varying vec2 vTexCoord;\n"
-        "uniform float gain;\n"
-        "uniform float gamma;\n"
-        "uniform int startchannel;\n"
-        "uniform int colormode;\n"
-        // Remember, if imgchannels == 2, second channel would be channel 4 (a).
-        "uniform int imgchannels;\n"
-        "uniform int pixelview;\n"
-        "uniform int linearinterp;\n"
-        "uniform int width;\n"
-        "uniform int height;\n"
-        "vec4 rgba_mode (vec4 C)\n"
-        "{\n"
-        "    if (imgchannels <= 2) {\n"
-        "        if (startchannel == 1)\n"
-        "           return vec4(C.aaa, 1.0);\n"
-        "        return C.rrra;\n"
-        "    }\n"
-        "    return C;\n"
-        "}\n"
-        "vec4 rgb_mode (vec4 C)\n"
-        "{\n"
-        "    if (imgchannels <= 2) {\n"
-        "        if (startchannel == 1)\n"
-        "           return vec4(C.aaa, 1.0);\n"
-        "        return vec4 (C.rrr, 1.0);\n"
-        "    }\n"
-        "    float C2[4];\n"
-        "    C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;\n"
-        "    return vec4 (C2[startchannel], C2[startchannel+1], C2[startchannel+2], 1.0);\n"
-        "}\n"
-        "vec4 singlechannel_mode (vec4 C)\n"
-        "{\n"
-        "    float C2[4];\n"
-        "    C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;\n"
-        "    if (startchannel > imgchannels)\n"
-        "        return vec4 (0.0,0.0,0.0,1.0);\n"
-        "    return vec4 (C2[startchannel], C2[startchannel], C2[startchannel], 1.0);\n"
-        "}\n"
-        "vec4 luminance_mode (vec4 C)\n"
-        "{\n"
-        "    if (imgchannels <= 2)\n"
-        "        return vec4 (C.rrr, C.a);\n"
-        "    float lum = dot (C.rgb, vec3(0.2126, 0.7152, 0.0722));\n"
-        "    return vec4 (lum, lum, lum, C.a);\n"
-        "}\n"
-        "float heat_red(float x)\n"
-        "{\n"
-        "    return clamp (mix(0.0, 1.0, (x-0.35)/(0.66-0.35)), 0.0, 1.0) -\n"
-        "           clamp (mix(0.0, 0.5, (x-0.89)/(1.0-0.89)), 0.0, 1.0);\n"
-        "}\n"
-        "float heat_green(float x)\n"
-        "{\n"
-        "    return clamp (mix(0.0, 1.0, (x-0.125)/(0.375-0.125)), 0.0, 1.0) -\n"
-        "           clamp (mix(0.0, 1.0, (x-0.64)/(0.91-0.64)), 0.0, 1.0);\n"
-        "}\n"
-        "vec4 heatmap_mode (vec4 C)\n"
-        "{\n"
-        "    float C2[4];\n"
-        "    C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;\n"
-        "    return vec4(heat_red(C2[startchannel]),\n"
-        "                heat_green(C2[startchannel]),\n"
-        "                heat_red(1.0-C2[startchannel]),\n"
-        "                1.0);\n"
-        "}\n"
-        "void main ()\n"
-        "{\n"
-        "    vec2 st = vTexCoord;\n"
-        "    float black = 0.0;\n"
-        "    if (pixelview != 0 || linearinterp == 0) {\n"
-        "        vec2 wh = vec2(width,height);\n"
-        "        vec2 onehalf = vec2(0.5,0.5);\n"
-        "        vec2 st_res = st * wh /* + onehalf */ ;\n"
-        "        vec2 st_pix = floor (st_res);\n"
-        "        vec2 st_rem = st_res - st_pix;\n"
-        "        st = (st_pix + onehalf) / wh;\n"
-        "        if (pixelview != 0) {\n"
-        "            if (st.x < 0.0 || st.x >= 1.0 || \n"
-        "                    st.y < 0.0 || st.y >= 1.0 || \n"
-        "                    st_rem.x < 0.05 || st_rem.x >= 0.95 || \n"
-        "                    st_rem.y < 0.05 || st_rem.y >= 0.95)\n"
-        "                black = 1.0;\n"
-        "        }\n"
-        "    }\n"
-        "    vec4 C = texture2D (imgtex, st);\n"
-        "    C = mix (C, vec4(0.05,0.05,0.05,1.0), black);\n"
-        "    if (startchannel < 0)\n"
-        "        C = vec4(0.0,0.0,0.0,1.0);\n"
-        "    else if (colormode == 0)\n" // RGBA
-        "        C = rgba_mode (C);\n"
-        "    else if (colormode == 1)\n" // RGB (i.e., ignore alpha).
-        "        C = rgb_mode (C);\n"
-        "    else if (colormode == 2)\n" // Single channel.
-        "        C = singlechannel_mode (C);\n"
-        "    else if (colormode == 3)\n" // Luminance.
-        "        C = luminance_mode (C);\n"
-        "    else if (colormode == 4)\n" // Heatmap.
-        "        C = heatmap_mode (C);\n"
-        "    if (pixelview != 0)\n"
-        "        C.a = 1.0;\n"
-        "    C.xyz *= gain;\n"
-        "    float invgamma = 1.0/gamma;\n"
-        "    C.xyz = pow (C.xyz, vec3 (invgamma, invgamma, invgamma));\n"
-        "    gl_FragColor = C;\n"
-        "}\n";
+    static const GLchar *dummy_ocio_source =
+       "vec4 OCIODisplay(vec4 C)\n"
+       "{\n"
+       "    return C;\n"
+       "}\n";
     // clang-format on
 
     if (!m_use_shaders) {
@@ -349,8 +382,10 @@ IvGL::create_shaders(void)
     glAttachShader(m_shader_program, m_vertex_shader);
     GLERRPRINT("After attach vertex shader.");
 
+    const char * fragment_sources[] = {dummy_ocio_source, fragment_source};
+    
     m_fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(m_fragment_shader, 1, &fragment_source, NULL);
+    glShaderSource(m_fragment_shader, 2, fragment_sources, NULL);
     glCompileShader(m_fragment_shader);
     glGetShaderiv(m_fragment_shader, GL_COMPILE_STATUS, &status);
     if (!status) {
@@ -550,6 +585,11 @@ IvGL::paintGL()
     // Recentered so that the pixel space (m_centerx,m_centery) position is
     // at the center of the visible window.
 
+#ifdef USE_OCIO
+    if (m_viewer.useOCIO())
+        update_ocio_state();
+#endif
+    
     useshader(m_texture_width, m_texture_height);
 
     float smin = 0, smax = 1.0;
@@ -899,47 +939,82 @@ IvGL::useshader(int tex_width, int tex_height, bool pixelview)
 
     const ImageSpec& spec(img->spec());
 
+    
+    unsigned program;
+    
+#ifdef USE_OCIO
+    if (m_viewer.useOCIO() && pImpl->openGLBuilder) {
+        pImpl->openGLBuilder->useProgram();
+        GLERRPRINT("OCIO After use program");
+        pImpl->openGLBuilder->useAllTextures();
+        GLERRPRINT("OCIO After use textures");
+        pImpl->openGLBuilder->useAllUniforms();
+        GLERRPRINT("OCIO After use uniforms");
+        
+        program = pImpl->openGLBuilder->getProgramHandle();
+    }
+    else {
+        glUseProgram(m_shader_program);
+        GLERRPRINT("After use program");
+        
+        program = m_shader_program;
+    }
+#else
     glUseProgram(m_shader_program);
     GLERRPRINT("After use program");
+    
+    program = m_shader_program;
+#endif
 
+    
+
+    
     GLint loc;
 
-    loc = glGetUniformLocation(m_shader_program, "startchannel");
+    loc = glGetUniformLocation(program, "startchannel");
     if (m_viewer.current_channel() >= spec.nchannels) {
         glUniform1i(loc, -1);
         return;
     }
     glUniform1i(loc, 0);
 
-    loc = glGetUniformLocation(m_shader_program, "imgtex");
+    loc = glGetUniformLocation(program, "imgtex");
     // This is the texture unit, not the texture object
     glUniform1i(loc, 0);
 
-    loc = glGetUniformLocation(m_shader_program, "gain");
-
+    loc = glGetUniformLocation(program, "gain");
     float gain = powf(2.0, img->exposure());
     glUniform1f(loc, gain);
 
-    loc = glGetUniformLocation(m_shader_program, "gamma");
+    loc = glGetUniformLocation(program, "gamma");
     glUniform1f(loc, img->gamma());
 
-    loc = glGetUniformLocation(m_shader_program, "colormode");
+    loc = glGetUniformLocation(program, "colormode");
     glUniform1i(loc, m_viewer.current_color_mode());
 
-    loc = glGetUniformLocation(m_shader_program, "imgchannels");
+    loc = glGetUniformLocation(program, "imgchannels");
     glUniform1i(loc, spec.nchannels);
-
-    loc = glGetUniformLocation(m_shader_program, "pixelview");
+    
+    loc = glGetUniformLocation(program, "useocio");
+    
+#ifdef USE_OCIO
+    glUniform1i(loc, m_viewer.useOCIO() && pImpl->openGLBuilder);
+#else
+    glUniform1i(loc, false);
+#endif
+    
+    loc = glGetUniformLocation(program, "pixelview");
     glUniform1i(loc, pixelview);
 
-    loc = glGetUniformLocation(m_shader_program, "linearinterp");
+    loc = glGetUniformLocation(program, "linearinterp");
     glUniform1i(loc, m_viewer.linearInterpolation());
 
-    loc = glGetUniformLocation(m_shader_program, "width");
+    loc = glGetUniformLocation(program, "width");
     glUniform1i(loc, tex_width);
 
-    loc = glGetUniformLocation(m_shader_program, "height");
+    loc = glGetUniformLocation(program, "height");
     glUniform1i(loc, tex_height);
+
     GLERRPRINT("After setting uniforms");
 }
 
@@ -1521,5 +1596,119 @@ IvGL::is_too_big(float width, float height)
     return tiles > m_texbufs.size();
 }
 
+#ifdef USE_OCIO
+void 
+IvGL::update_ocio_state()
+{
+    IvImage* img = m_viewer.cur();
+    if (!img)
+        return;
+            
+    const char * ocioColorSpace = m_viewer.ocioColorSpace().c_str();
+    const char * ocioDisplay = m_viewer.ocioDisplay().c_str();
+    const char * ocioView = m_viewer.ocioView().c_str();
+    const char * ocioLook = m_viewer.ocioLook().c_str();
+    OCIO::OptimizationFlags m_ocioOptimization = (OCIO::OptimizationFlags)m_viewer.ocioOptimization();
+            
+            
+    OCIO::ConstConfigRcPtr config = OCIO::GetCurrentConfig();
+
+    OCIO::DisplayViewTransformRcPtr transform = OCIO::DisplayViewTransform::Create();
+    transform->setSrc(ocioColorSpace);
+    transform->setDisplay(ocioDisplay);
+    transform->setView(ocioView);
+
+    OCIO::LegacyViewingPipelineRcPtr viewingPipeline = OCIO::LegacyViewingPipeline::Create();
+    viewingPipeline->setDisplayViewTransform(transform);
+    if (ocioLook && ocioLook[0])
+    {
+        viewingPipeline->setLooksOverrideEnabled(true);
+        viewingPipeline->setLooksOverride(ocioLook);
+    }
+
+    // Fstop exposure control (in SCENE_LINEAR)
+    {
+        double gain = powf(2.0f, img->exposure());
+        const double slope[4] = {gain, gain, gain, 1.0f};
+        double mat[16];
+        double offset[4];
+        
+        OCIO::MatrixTransform::Scale(mat, offset, slope);
+        OCIO::MatrixTransformRcPtr matrixTransform =  OCIO::MatrixTransform::Create();
+        matrixTransform->setMatrix(mat);
+        matrixTransform->setOffset(offset);
+        viewingPipeline->setLinearCC(matrixTransform);
+    }
+                        
+    // Post-display transform gamma
+    {
+        double exponent = 1.0/std::max(1e-6, static_cast<double>(img->gamma()));
+        const double exponent4f[4] = { exponent, exponent, exponent, exponent };
+        OCIO::ExponentTransformRcPtr expTransform =  OCIO::ExponentTransform::Create();
+        expTransform->setValue(exponent4f);
+        viewingPipeline->setDisplayCC(expTransform);
+    }
+
+    OCIO::ConstProcessorRcPtr processor;
+    try {
+        processor = viewingPipeline->getProcessor(config, config->getCurrentContext());
+    }
+    catch (const OCIO::Exception & e) {
+        on_ocio_error(e.what());
+        return;
+    }
+        
+    std::string processorCacheID = processor->getCacheID();
+    
+    if (processorCacheID != pImpl->processorCacheID) {
+        pImpl->processorCacheID = processorCacheID;
+        
+        if (pImpl->openGLBuilder != nullptr) {
+            unsigned program = pImpl->openGLBuilder->getProgramHandle();
+            glDetachShader(program, m_vertex_shader);
+            
+            pImpl->openGLBuilder = nullptr;
+        }
+    }
+            
+    if (pImpl->openGLBuilder == nullptr) {
+        
+        OCIO::GpuShaderDescRcPtr shaderDesc = OCIO::GpuShaderDesc::CreateShaderDesc();
+        shaderDesc->setLanguage(OCIO::GPU_LANGUAGE_GLSL_1_2);
+        shaderDesc->setFunctionName("OCIODisplay");
+        shaderDesc->setResourcePrefix("ocio_");
+                
+        OCIO::ConstGPUProcessorRcPtr gpuProcessor = processor->getOptimizedGPUProcessor((OCIO::OptimizationFlags)m_ocioOptimization);
+        gpuProcessor->extractGpuShaderInfo(shaderDesc);
+        
+        try {
+            pImpl->openGLBuilder = OCIO::OpenGLBuilder::Create(shaderDesc);
+            pImpl->openGLBuilder->allocateAllTextures(m_texbufs.size() + 1);
+
+            unsigned program = pImpl->openGLBuilder->getProgramHandle();
+            glAttachShader(program, m_vertex_shader);
+
+            pImpl->openGLBuilder->buildProgram(fragment_source, false);
+        }
+        catch (const OCIO::Exception & e) {
+            on_ocio_error(e.what());
+            return;
+        }
+    }
+}
+            
+void 
+IvGL::on_ocio_error(const char * message)
+{
+    m_viewer.statusImgInfo->setText(tr("OCIO error: %1.").arg(message));
+    
+    if (pImpl->openGLBuilder != nullptr) {
+        unsigned program = pImpl->openGLBuilder->getProgramHandle();
+        glDetachShader(program, m_vertex_shader);
+        
+        pImpl->openGLBuilder = nullptr;
+    }
+}
+#endif
 
 OIIO_PRAGMA_WARNING_POP
