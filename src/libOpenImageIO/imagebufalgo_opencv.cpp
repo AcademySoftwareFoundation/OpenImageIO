@@ -343,12 +343,10 @@ ImageBufAlgo::to_OpenCV(cv::Mat& dst, const ImageBuf& src, ROI roi,
 
     size_t pixelsize = dstSpecFormat.size() * chans;
     size_t linestep  = pixelsize * roi.width();
-    bool converted   = parallel_convert_image(
-        chans, roi.width(), roi.height(), 1,
-        src.pixeladdr(roi.xbegin, roi.ybegin, roi.zbegin, roi.chbegin),
-        spec.format, spec.pixel_bytes(), spec.scanline_bytes(), 0, dst.ptr(),
-        dstSpecFormat, pixelsize, linestep, 0, -1, -1, nthreads);
-
+    // Make an IB that wraps the OpenCV buffer, then IBA:: copy to it
+    ImageBuf cvib(ImageSpec(roi.width(), roi.height(), chans, dstSpecFormat),
+                  dst.ptr(), pixelsize, linestep, AutoStride);
+    bool converted = ImageBufAlgo::copy(cvib, src);
     if (!converted) {
         OIIO::pvt::errorfmt(
             "to_OpenCV() was unable to convert source {} to cv::Mat of {}",
