@@ -23,7 +23,7 @@ concurrency:
 jobs:
   analysis:
     name: Scorecards analysis
-    if: github.repository == 'OpenImageIO/oiio'
+    if: github.repository == 'AcademySoftwareFoundation/OpenImageIO'
     runs-on: ubuntu-latest
     permissions:
       # Needed to upload the results to code-scanning dashboard.
