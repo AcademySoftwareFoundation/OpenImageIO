@@ -324,7 +324,7 @@ Now get the OIIO source and do one-time CMake configuration step. Replace `{*_RO
 dependencies.
 ```
 cd {OIIO_ROOT}
-git clone https://github.com/OpenImageIO/oiio .
+git clone https://github.com/AcademySoftwareFoundation/OpenImageIO .
 mkdir build
 cd build
 cmake -DVERBOSE=ON -DCMAKE_BUILD_TYPE=Release ^
@@ -373,7 +373,7 @@ OpenImageIO. We split test images into a separate project in order to make
 the main source code tree smaller and simpler for people who don't need the
 test suite.
 
-    git clone https://github.com/OpenImageIO/oiio-images.git
+    git clone https://github.com/AcademySoftwareFoundation/OpenImageIO-images.git
 
 Also, there are collections of images for some of the file formats we
 support, and make test expects them to also be present. To run full tests,

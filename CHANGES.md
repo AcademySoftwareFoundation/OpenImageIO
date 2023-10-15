@@ -5,98 +5,98 @@ Release 2.4.17.0 (1 Nov? 2023) -- compared to 2.4.16.0
 
 Release 2.4.16.0 (1 Oct 2023) -- compared to 2.4.15.0
 -------------------------------------------------------
-- *png*: Write out proper tiff header version in png EXIF blobs [#3984](https://github.com/OpenImageIO/oiio/pull/3984) (by Jesse Yurkovich)
-- *ustring*: Fix Cuda warnings [#3978](https://github.com/OpenImageIO/oiio/pull/3978)
-- *fmath*: Prevent infinite loop in bit_range_convert [#3996](https://github.com/OpenImageIO/oiio/pull/3996) (by Jesse Yurkovich)
+- *png*: Write out proper tiff header version in png EXIF blobs [#3984](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3984) (by Jesse Yurkovich)
+- *ustring*: Fix Cuda warnings [#3978](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3978)
+- *fmath*: Prevent infinite loop in bit_range_convert [#3996](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3996) (by Jesse Yurkovich)
 - *build*: Fixes to work properly with fmt 10.1 (partial port of #3973)
-- *admin*: Relicense code under Apache 2.0 [#3989](https://github.com/OpenImageIO/oiio/pull/3989)
+- *admin*: Relicense code under Apache 2.0 [#3989](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3989)
 
 
 Release 2.4.15.0 (1 Sep 2023) -- compared to 2.4.14.0
 -------------------------------------------------------
-- *bmp*: Fix signed integer overflow when computing total number of pixels [#3948](https://github.com/OpenImageIO/oiio/pull/3948)  (by xiaoxiaoafeifei)
-- *dds*: Fix div by 0 during DXT4 DDS load [#3959](https://github.com/OpenImageIO/oiio/pull/3959)  (by Jesse Yurkovich)
-- *rla*: Invalid read from an empty vector during RLA load [#3960](https://github.com/OpenImageIO/oiio/pull/3960)  (by Jesse Yurkovich)
-- *fix*:  Various protections against corrupted files [#3954](https://github.com/OpenImageIO/oiio/pull/3954)
-- *fix*: Improve Utf-8 text rendering [#3935](https://github.com/OpenImageIO/oiio/pull/3935)  (by Nicolas)
-- *fix*: Fix typo in debug output [#3956](https://github.com/OpenImageIO/oiio/pull/3956)  (by Jesse Yurkovich)
-- *ustring.h*: String literal operator for ustring and ustringhash [#3939](https://github.com/OpenImageIO/oiio/pull/3939)
-- *build* Suppress Xcode warnings [#3940](https://github.com/OpenImageIO/oiio/pull/3940)  (by Anton Dukhovnikov)
-- *build*: Silence gcc new/delete warnings for texturesys [#3944](https://github.com/OpenImageIO/oiio/pull/3944)  (by Shootfast)
-- *build* Added check for Boost_NO_BOOST_CMAKE, ignore if already set [#3961](https://github.com/OpenImageIO/oiio/pull/3961)  (by Mikael Sundell)
-- *build* Fix broken libheif < 1.13 [#3970](https://github.com/OpenImageIO/oiio/pull/3970)
-- *ci*: Make more robust timer_test [#3953](https://github.com/OpenImageIO/oiio/pull/3953)
-- *admin* Relicense code under Apache 2.0 [#3938](https://github.com/OpenImageIO/oiio/pull/3938) [#3966](https://github.com/OpenImageIO/oiio/pull/3966)
+- *bmp*: Fix signed integer overflow when computing total number of pixels [#3948](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3948)  (by xiaoxiaoafeifei)
+- *dds*: Fix div by 0 during DXT4 DDS load [#3959](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3959)  (by Jesse Yurkovich)
+- *rla*: Invalid read from an empty vector during RLA load [#3960](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3960)  (by Jesse Yurkovich)
+- *fix*:  Various protections against corrupted files [#3954](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3954)
+- *fix*: Improve Utf-8 text rendering [#3935](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3935)  (by Nicolas)
+- *fix*: Fix typo in debug output [#3956](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3956)  (by Jesse Yurkovich)
+- *ustring.h*: String literal operator for ustring and ustringhash [#3939](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3939)
+- *build* Suppress Xcode warnings [#3940](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3940)  (by Anton Dukhovnikov)
+- *build*: Silence gcc new/delete warnings for texturesys [#3944](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3944)  (by Shootfast)
+- *build* Added check for Boost_NO_BOOST_CMAKE, ignore if already set [#3961](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3961)  (by Mikael Sundell)
+- *build* Fix broken libheif < 1.13 [#3970](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3970)
+- *ci*: Make more robust timer_test [#3953](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3953)
+- *admin* Relicense code under Apache 2.0 [#3938](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3938) [#3966](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3966)
 
 Release 2.4.14.0 (1 Aug 2023) -- compared to 2.4.13.0
 -------------------------------------------------------
-- *ico*: IOProxy support for ICO input [#3919](https://github.com/OpenImageIO/oiio/pull/3919) (by jasonbaumeister)
-- *fix(psd)*: CMYK PSD files now copy alpha correctly [#3918](https://github.com/OpenImageIO/oiio/pull/3918) (by jasonbaumeister)
-- *fix(python)*: Fix arithmetic overflow in oiio_bufinfo (Python interop) [#3931](https://github.com/OpenImageIO/oiio/pull/3931) (by Jesse Yurkovich)
+- *ico*: IOProxy support for ICO input [#3919](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3919) (by jasonbaumeister)
+- *fix(psd)*: CMYK PSD files now copy alpha correctly [#3918](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3918) (by jasonbaumeister)
+- *fix(python)*: Fix arithmetic overflow in oiio_bufinfo (Python interop) [#3931](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3931) (by Jesse Yurkovich)
 - *build*: Fix WebP linking if CMAKE_FIND_PACKAGE_PREFER_CONFIG is ON
-  [#3863](https://github.com/OpenImageIO/oiio/pull/3863) (by Benjamin Buch)
+  [#3863](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3863) (by Benjamin Buch)
 - *build*: Find OpenEXR equally well with our FindOpenEXR and exr's exported
-  config file [#3862](https://github.com/OpenImageIO/oiio/pull/3862) (by Benjamin Buch)
-- *build*: Fix broken OIIO_NO_NEON definition [#3911](https://github.com/OpenImageIO/oiio/pull/3911)
-- *ci*: Lock down icx version [#3929](https://github.com/OpenImageIO/oiio/pull/3929)
-- *ci*: Bump build_openexr and build_opencolorio defaults to latest versions [#3920](https://github.com/OpenImageIO/oiio/pull/3920)
+  config file [#3862](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3862) (by Benjamin Buch)
+- *build*: Fix broken OIIO_NO_NEON definition [#3911](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3911)
+- *ci*: Lock down icx version [#3929](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3929)
+- *ci*: Bump build_openexr and build_opencolorio defaults to latest versions [#3920](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3920)
 - *admin*: Update mail list to https://lists.aswf.io/g/oiio-dev
-  [#3880](https://github.com/OpenImageIO/oiio/pull/3880)
+  [#3880](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3880)
 - *admin*: Add charter and other ASWF documents to the repo
-  [#3850](https://github.com/OpenImageIO/oiio/pull/3850)
+  [#3850](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3850)
 - *admin*: Document use of the DCO which is now required for all PRs
-  [#3897](https://github.com/OpenImageIO/oiio/pull/3897)
+  [#3897](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3897)
 - *admin*: Put logo on the main readme
-  [#3927](https://github.com/OpenImageIO/oiio/pull/3927)
+  [#3927](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3927)
 - *admin*: Remove old CLAs that are no longer in effect
 - *admin*: Change open source license to Apache 2.0. #3899, #3903, #3904,
   #3906, #3914, #3922, #3926.
 
 Release 2.4.13.0 (1 July 2023) -- compared to 2.4.12.0
 -------------------------------------------------------
-- *OpenCV*: Improve OpenCV support -- errors, version, half [#3853](https://github.com/OpenImageIO/oiio/pull/3853) 
-- *IBA*: Improve error message for IBA::ocio functions [#3887](https://github.com/OpenImageIO/oiio/pull/3887) 
-- *exif*: Convert paramvalue string to integer when needed [#3886](https://github.com/OpenImageIO/oiio/pull/3886)  (by Fabien Servant @ TCS) 
-- *exr*: Correction to dwa vs zip logic when outputting OpenEXR [#3884](https://github.com/OpenImageIO/oiio/pull/3884) 
-- *ico*: Heap-buffer-overflow [#3872](https://github.com/OpenImageIO/oiio/pull/3872) (by xiaoxiaoafeifei) Fixes CVE-2023-36183.
-- *jpeg*: Fix density calculation  for jpeg output [#3861](https://github.com/OpenImageIO/oiio/pull/3861)  (by Loïc Vital) 
-- *jpeg2000*: Better pixel type promotion logic [#3878](https://github.com/OpenImageIO/oiio/pull/3878) 
-- *psd*: Prevent simultaneous psd thumbnail reads from clashing [#3877](https://github.com/OpenImageIO/oiio/pull/3877) 
-- *strutil.h*: Ensure proper constexpr of string hashing [#3901](https://github.com/OpenImageIO/oiio/pull/3901) 
-- *build* Fix use of OIIO_LOCAL_DEPS_PATH [#3865](https://github.com/OpenImageIO/oiio/pull/3865)
-- *build* Fix fmt vs gcc warning that had version typo [#3874](https://github.com/OpenImageIO/oiio/pull/3874) 
-- *ci*: Add test with new aswf containers for VFX Platform 2023 [#3875](https://github.com/OpenImageIO/oiio/pull/3875) 
-- *ci*: Fix broken heif dependency and test [#3894](https://github.com/OpenImageIO/oiio/pull/3894) 
-- *ci*: Simplify build_llvm.bash script [#3892](https://github.com/OpenImageIO/oiio/pull/3892) 
-- *tests*: Fix missing simd test due to copy paste typo [#3896](https://github.com/OpenImageIO/oiio/pull/3896)
-- *docs*: Update CONTRIBUTING and SECURITY [#3852](https://github.com/OpenImageIO/oiio/pull/3852) 
-- *docs*: ImageInput and ImageOutput docs updated to Python 3. [#3866](https://github.com/OpenImageIO/oiio/pull/3866) (by Ziggy Cross)
-- *docs*: Many fixes to python code examples [#3869](https://github.com/OpenImageIO/oiio/pull/3869)  (by Jesse Y) 
-- *docs*: Update mail list URL [#3880](https://github.com/OpenImageIO/oiio/pull/3880) 
-- *docs*: Fix explanation of raw:Exposure config hint [#3889](https://github.com/OpenImageIO/oiio/pull/3889) 
-- *docs*: Document use of the DCO which is now required for all PRs [#3897](https://github.com/OpenImageIO/oiio/pull/3897) 
+- *OpenCV*: Improve OpenCV support -- errors, version, half [#3853](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3853) 
+- *IBA*: Improve error message for IBA::ocio functions [#3887](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3887) 
+- *exif*: Convert paramvalue string to integer when needed [#3886](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3886)  (by Fabien Servant @ TCS) 
+- *exr*: Correction to dwa vs zip logic when outputting OpenEXR [#3884](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3884) 
+- *ico*: Heap-buffer-overflow [#3872](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3872) (by xiaoxiaoafeifei) Fixes CVE-2023-36183.
+- *jpeg*: Fix density calculation  for jpeg output [#3861](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3861)  (by Loïc Vital) 
+- *jpeg2000*: Better pixel type promotion logic [#3878](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3878) 
+- *psd*: Prevent simultaneous psd thumbnail reads from clashing [#3877](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3877) 
+- *strutil.h*: Ensure proper constexpr of string hashing [#3901](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3901) 
+- *build* Fix use of OIIO_LOCAL_DEPS_PATH [#3865](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3865)
+- *build* Fix fmt vs gcc warning that had version typo [#3874](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3874) 
+- *ci*: Add test with new aswf containers for VFX Platform 2023 [#3875](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3875) 
+- *ci*: Fix broken heif dependency and test [#3894](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3894) 
+- *ci*: Simplify build_llvm.bash script [#3892](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3892) 
+- *tests*: Fix missing simd test due to copy paste typo [#3896](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3896)
+- *docs*: Update CONTRIBUTING and SECURITY [#3852](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3852) 
+- *docs*: ImageInput and ImageOutput docs updated to Python 3. [#3866](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3866) (by Ziggy Cross)
+- *docs*: Many fixes to python code examples [#3869](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3869)  (by Jesse Y) 
+- *docs*: Update mail list URL [#3880](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3880) 
+- *docs*: Fix explanation of raw:Exposure config hint [#3889](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3889) 
+- *docs*: Document use of the DCO which is now required for all PRs [#3897](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3897) 
 
 
 
 Release 2.4.12.0 (1 June 2023) -- compared to 2.4.11.1
 ------------------------------------------------------
-- *oiiotool*: Don't propagate unsupported channels [#3838](https://github.com/OpenImageIO/oiio/pull/3838)
-- *oiiotool*: Improvements to performance and memory when making very large textures [#3829](https://github.com/OpenImageIO/oiio/pull/3829)
-- *fix*: Prevent possible deadlock when reading files with wrong extensions [#3845](https://github.com/OpenImageIO/oiio/pull/3845)
-- *gif*: Prevent possible heap buffer overflow [#3841](https://github.com/OpenImageIO/oiio/pull/3841)  (by xiaoxiaoafeifei)
-- *psd*: Improve memory efficiency of PSD read [#3807](https://github.com/OpenImageIO/oiio/pull/3807)
-- *raw*: Fix LibRaw flip to Exif orientation conversion [#3847](https://github.com/OpenImageIO/oiio/pull/3847)  (by Loïc Vital)
-- *raw*: Raw input fix user_flip usage [#3858](https://github.com/OpenImageIO/oiio/pull/3858)  (by Loïc Vital)
-- *strutil*: Use forward properly for sync::print(). [#3825](https://github.com/OpenImageIO/oiio/pull/3825)
-- *build*: Fixes for latest xcode on MacOS 13.3 Ventura [#3854](https://github.com/OpenImageIO/oiio/pull/3854)
-- *build*: Fix build error with MSVC [#3832](https://github.com/OpenImageIO/oiio/pull/3832)  (by Ray Molenkamp)
-- *ci*: Fix warnings [#3833](https://github.com/OpenImageIO/oiio/pull/3833)
-- *ci*: Fix package name for icc [#3860](https://github.com/OpenImageIO/oiio/pull/3860)
+- *oiiotool*: Don't propagate unsupported channels [#3838](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3838)
+- *oiiotool*: Improvements to performance and memory when making very large textures [#3829](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3829)
+- *fix*: Prevent possible deadlock when reading files with wrong extensions [#3845](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3845)
+- *gif*: Prevent possible heap buffer overflow [#3841](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3841)  (by xiaoxiaoafeifei)
+- *psd*: Improve memory efficiency of PSD read [#3807](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3807)
+- *raw*: Fix LibRaw flip to Exif orientation conversion [#3847](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3847)  (by Loïc Vital)
+- *raw*: Raw input fix user_flip usage [#3858](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3858)  (by Loïc Vital)
+- *strutil*: Use forward properly for sync::print(). [#3825](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3825)
+- *build*: Fixes for latest xcode on MacOS 13.3 Ventura [#3854](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3854)
+- *build*: Fix build error with MSVC [#3832](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3832)  (by Ray Molenkamp)
+- *ci*: Fix warnings [#3833](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3833)
+- *ci*: Fix package name for icc [#3860](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3860)
 
 
 Release 2.4.11.1 (14 May 2023) -- compared to 2.4.11.0
 ------------------------------------------------------
-- *build*: Fmt 10.0 support [#3836](https://github.com/OpenImageIO/oiio/pull/3836)
+- *build*: Fmt 10.0 support [#3836](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3836)
 
 Release 2.4.11.0 (1 May 2023) -- compared to 2.4.10.0
 ------------------------------------------------------
@@ -4273,5 +4273,5 @@ Notable documentation changes:
 --------------
 
 For older release notes, see:
-* [CHANGES-0.x](https://github.com/OpenImageIO/oiio/blob/master/src/doc/CHANGES-0.x.md).
-* [CHANGES-1.x](https://github.com/OpenImageIO/oiio/blob/master/src/doc/CHANGES-1.x.md).
+* [CHANGES-0.x](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/master/src/doc/CHANGES-0.x.md).
+* [CHANGES-1.x](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/master/src/doc/CHANGES-1.x.md).

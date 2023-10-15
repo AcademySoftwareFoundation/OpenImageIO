@@ -2,7 +2,7 @@
 #
 # Copyright Contributors to the OpenImageIO project.
 # SPDX-License-Identifier: Apache-2.0
-# https://github.com/OpenImageIO/oiio
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
 #
 # This module will first look into the directories defined by the variables:
 #   - DCMTK_ROOT, DCMTK_INCLUDE_PATH, DCMTK_LIBRARY_PATH

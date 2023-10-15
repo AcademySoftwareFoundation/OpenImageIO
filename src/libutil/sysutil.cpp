@@ -1,6 +1,6 @@
 // Copyright Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: Apache-2.0
-// https://github.com/OpenImageIO/oiio
+// https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #if (defined __MINGW32__) || (defined __MINGW64__) && !(defined _POSIX_C_SOURCE)
 #    define _POSIX_C_SOURCE 1  // for localtime_r
@@ -469,7 +469,7 @@ Term::Term(const std::ostream& stream)
     // using the shell command 'tput colors' for a more authoritative
     // answer. LG isn't sure under what conditions that might break and
     // doesn't have time to look into it further at this time.
-    // https://github.com/OpenImageIO/oiio/pull/1752
+    // https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/1752
     // Some day we should return to this if we come to rely more heavily on
     // this console coloring as a core feature.
 #endif

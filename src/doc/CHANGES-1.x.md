@@ -1,7 +1,7 @@
 These are all the release notes for versions 1.0 (Feb 2012) - 1.8 (Dec 2018).
 For 0.x releases, see [CHANGES-0.x.md](CHANGES-0.x.md).
 For the full release notes of all versions, see:
-[CHANGES](https://github.com/OpenImageIO/oiio/blob/master/CHANGES.md).
+[CHANGES](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/master/CHANGES.md).
 
 
 Release 1.8.17 (1 Dec 2018) -- compared to 1.8.16
@@ -4029,7 +4029,7 @@ Developer goodies:
  * Strutil additions: escape_chars, unescape_chars, word_wrap.
  * Filesystem additions: filename(), extension().
  * Sysutil additions: terminal_columns()
- * Use github.com/OpenImageIO/oiio-images project for test images that are
+ * Use github.com/AcademySoftwareFoundation/OpenImageIO-images project for test images that are
    too big to fit in testsuite.
  * Fixed bugs in Timer::lap().
  * Aded 'invert' algorithm to fmath.h.

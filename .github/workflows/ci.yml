@@ -1,6 +1,6 @@
 # Copyright Contributors to the OpenImageIO project.
 # SPDX-License-Identifier: BSD-3-Clause
-# https://github.com/OpenImageIO/oiio
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 name: CI
 
@@ -17,7 +17,7 @@ on:
   schedule:
     # Full nightly build
     - cron: "0 8 * * *"
-      if: github.repository == 'OpenImageIO/oiio'
+      if: github.repository == 'AcademySoftwareFoundation/OpenImageIO'
 
 permissions: read-all
 
