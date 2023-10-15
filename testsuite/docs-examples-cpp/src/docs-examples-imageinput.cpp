@@ -32,10 +32,34 @@ void example1()
 
 
 
+// BEGIN-imageinput-simple
+#include <OpenImageIO/imageio.h>
+using namespace OIIO;
+
+void simple_read()
+{
+    const char* filename = "tahoe.tif";
+
+    auto inp = ImageInput::open(filename);
+    if (! inp)
+        return;
+    const ImageSpec &spec = inp->spec();
+    int xres = spec.width;
+    int yres = spec.height;
+    int nchannels = spec.nchannels;
+    auto pixels = std::unique_ptr<unsigned char[]>(new unsigned char[xres * yres * nchannels]);
+    inp->read_image(0, 0, 0, nchannels, TypeDesc::UINT8, &pixels[0]);
+    inp->close();
+}
+
+// END-imageinput-simple
+
+
+
 int main(int /*argc*/, char** /*argv*/)
 {
     // Each example function needs to get called here, or it won't execute
     // as part of the test.
-    example1();
+    simple_read();
     return 0;
 }

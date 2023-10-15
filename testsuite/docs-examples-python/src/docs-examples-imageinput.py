@@ -37,10 +37,24 @@ def example1() :
 ############################################################################
 
 
+# BEGIN-impageinput-simple
+import OpenImageIO as oiio
+def simple_read():
+    filename = "tahoe.tif"
+
+    inp = oiio.ImageInput.open(filename)
+    if inp :
+        spec = inp.spec()
+        xres = spec.width
+        yres = spec.height
+        nchannels = spec.nchannels
+        pixels = inp.read_image(0, 0, 0, nchannels, "uint8")
+        inp.close()
+# END-imageinput-simple
 
 
 
 if __name__ == '__main__':
     # Each example function needs to get called here, or it won't execute
     # as part of the test.
-    example1()
+    simple_read()

@@ -20,35 +20,16 @@ memory, even if that's not the way they're stored in the file):
 
 .. tabs::
 
-    .. code-tab:: c++
-
-        #include <OpenImageIO/imageio.h>
-        using namespace OIIO;
-        ...
-
-        auto inp = ImageInput::open(filename);
-        if (! inp)
-            return;
-        const ImageSpec &spec = inp->spec();
-        int xres = spec.width;
-        int yres = spec.height;
-        int nchannels = spec.nchannels;
-        auto pixels = std::unique_ptr<unsigned char[]>(new unsigned char[xres * yres * nchannels]);
-        inp->read_image(0, 0, 0, nchannels, TypeDesc::UINT8, &pixels[0]);
-        inp->close();
-
+    .. tab:: C++
+        .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imageinput.cpp
+            :language: c++
+            :start-after: BEGIN-imageinput-simple
+            :end-before: END-imageinput-simple
     .. code-tab:: py
-
-        import OpenImageIO as oiio
-
-        inp = oiio.ImageInput.open(filename)
-        if inp :
-            spec = inp.spec()
-            xres = spec.width
-            yres = spec.height
-            nchannels = spec.nchannels
-            pixels = inp.read_image(0, 0, 0, nchannels, "uint8")
-            inp.close()
+        .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imageinput.py
+            :language: py
+            :start-after: BEGIN-imageinput-simple
+            :end-before: END-imageinput-simple
 
 Here is a breakdown of what work this code is doing:
 
