@@ -35,7 +35,7 @@ jobs:
     name: "SonarCloud Analysis"
     # Exclude runs on forks, since only the main org has the SonarCloud
     # account credentials.
-    if: github.repository == 'OpenImageIO/oiio'
+    if: github.repository == 'AcademySoftwareFoundation/OpenImageIO'
     strategy:
       fail-fast: false
       matrix:
