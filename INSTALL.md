@@ -50,7 +50,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * OpenJpeg >= 2.0 (tested through 2.5; we recommend 2.4 or higher
        for multithreading support)
  * If you want support for OpenVDB files:
-     * OpenVDB >= 5.0 (tested through 10.0)
+     * OpenVDB >= 5.0 (tested through 10.1). Note that using OpenVDB >= 10.0
+       requires that you compile OIIO with C++17 or higher.
  * If you want to use TBB as the thread pool:
      * TBB >= 2018 (tested through 2021 and OneTBB)
  * If you want support for converting to and from OpenCV data structures,
