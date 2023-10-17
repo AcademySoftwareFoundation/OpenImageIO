@@ -1926,8 +1926,17 @@ options are supported:
      - int
      - Set libraw user flip value : -1 ignored, other values are between [0; 8] with the same 
        definition than the Exif orientation code.
-
-
+   * - ``raw:threshold``
+     - float
+     - Libraw parameter for noise reduction through wavelet denoising.
+       The best threshold should be somewhere between 100 and 1000.
+       (Default: 0.0)
+   * - ``raw:fbdd_noiserd``
+     - int
+     - Controls FBDD noise reduction before demosaic.
+       0 - do not use FBDD noise reduction, 1 - light FBDD reduction,
+       2 (and more) - full FBDD reduction
+       (Default: 0)
 
 
 |
