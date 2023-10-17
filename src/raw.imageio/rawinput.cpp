@@ -688,7 +688,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
     // 2 (and more) - full FBDD reduction
     m_processor->imgdata.params.fbdd_noiserd
         = config.get_int_attribute("raw:fbdd_noiserd", 0);
-    
+
     // Values returned by libraw are in linear, but are normalized based on the
     // whitepoint / sensor / ISO and shooting conditions.
     // Technically the transformation for each camera body / lens / setup
