@@ -1,0 +1,99 @@
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
+
+
+# This workflow is for CI for ARM-based MacOS. In an ideal world, this would
+# just be another matrix entry in the main CI workflow, but MacOS ARM runners
+# too expensive to run on every PR push. So we break into a separate workflow
+# to have more fine-grained control over when it runs.
+
+name: CI-Mac-ARM
+
+# This section controls when the workflow runs.
+on:
+  # Run upon push, but only for tagged versions, or if the branch name
+  # contains the substrings "macarm", "-alpha", "-beta", or is called
+  # "release".
+  push:
+    tags:
+      - v**
+    branches:
+      - '*macarm*'
+      - '*alpha*'
+      - '*beta*'
+      - 'release'
+  # Run for pull requests whose branch name includes "macarm" (this allows
+  # us to test specific PRs that we think need ARM verification).
+  pull_request:
+    if: contains(github.head_ref, 'macarm')
+  # Run monthly on the 27th (a few days before patch releases) to make sure we
+  # haven't broken anything among the many PRs that didn't test on ARM.
+  schedule:
+    - cron: "0 8 27 * *"
+      if: github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+
+permissions: read-all
+
+
+jobs:
+  # This section should remain an identical copy of the main CI workflow job
+  # for MacOS.
+  macos-arm:
+    name: "${{matrix.os}} appleclang${{matrix.aclang}}/C++${{matrix.cxx_std}} py${{matrix.python_ver}} ${{matrix.desc}} boost1.76 exr3.1 ocio2.1"
+    # Needs special runners, only run on the main repo,
+    if: github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - desc: MacOS-13 ARM
+            os: macos-13-xlarge
+            nametag: macos13-arm-py311
+            cxx_std: 17
+            python_ver: "3.11"
+            aclang: 14
+            setenvs: export CTEST_TEST_TIMEOUT=600 USE_OPENCV=0 USE_QT=0 PARALLEL=8
+    runs-on: ${{ matrix.os }}
+    env:
+      CC: clang
+      CXX: clang++
+      CMAKE_CXX_STANDARD: ${{ matrix.cxx_std }}
+      PYTHON_VERSION: ${{ matrix.python_ver }}
+    steps:
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.2
+      - name: Prepare ccache timestamp
+        id: ccache_cache_keys
+        run: echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
+      - name: ccache
+        id: ccache
+        uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d # v3.0.4
+        with:
+          path: /Users/runner/.ccache
+          key: ${{github.job}}-${{matrix.nametag}}-${{ steps.ccache_cache_keys.outputs.date }}
+          restore-keys: ${{github.job}}-
+      - name: Build setup
+        run: |
+            ${{matrix.setenvs}}
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/install_homebrew_deps.bash
+            ${{matrix.depcmds}}
+      - name: Build
+        run: |
+            export PYTHONPATH=/usr/local/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: src/build-scripts/ci-test.bash
+      - uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
+        if: failure()
+        with:
+          name: oiio-${{github.job}}-${{matrix.nametag}}
+          path: |
+            build/cmake-save
+            build/testsuite/*/*.*
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
+            !build/testsuite/j2kp4files_v1_5
