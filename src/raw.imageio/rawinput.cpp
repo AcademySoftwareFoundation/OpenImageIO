@@ -676,6 +676,19 @@ RawInput::open_raw(bool unpack, const std::string& name,
         m_spec.attribute("raw:Demosaic", "AHD");
     }
 
+    // Wavelets denoise before demosaic
+    // Use wavelets to erase noise while preserving real detail.
+    // The best threshold should be somewhere between 100 and 1000.
+    m_processor->imgdata.params.threshold
+        = config.get_float_attribute("raw:threshold", 0.0f);
+
+    // Controls FBDD noise reduction before demosaic.
+    // 0 - do not use FBDD noise reduction
+    // 1 - light FBDD reduction
+    // 2 (and more) - full FBDD reduction
+    m_processor->imgdata.params.fbdd_noiserd
+        = config.get_int_attribute("raw:fbdd_noiserd", 0);
+
     // Values returned by libraw are in linear, but are normalized based on the
     // whitepoint / sensor / ISO and shooting conditions.
     // Technically the transformation for each camera body / lens / setup
