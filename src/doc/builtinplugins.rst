@@ -1936,7 +1936,7 @@ options are supported:
      - Controls FBDD noise reduction before demosaic.
        0 - do not use FBDD noise reduction, 1 - light FBDD reduction,
        2 (and more) - full FBDD reduction
-       (Default: 0.0)
+       (Default: 0)
 
 
 |
