@@ -2925,41 +2925,31 @@ Import / export
 
   Examples:
 
-    .. tabs::
-  
-       .. code-tab:: c++
+   .. tabs::
 
-          ImageBuf Input ("in.exr");
-          ImageSpec config;
-          config["maketx:highlightcomp"] = 1;
-          config["maketx:filtername"] = "lanczos3";
-          config["maketx:opaque_detect"] = 1;
-      
-          bool ok = ImageBufAlgo::make_texture (ImageBufAlgo::MakeTxTexture,
-                                                Input, "texture.exr", config);
-          if (! ok)
-              std::cout << "make_texture error: " << OIIO::geterror() << "\n";
+      .. tab:: C++
+         .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-make-texture
+              :end-before: END-imagebufalgo-make-texture
+              :dedent: 4
 
-       .. code-tab:: py
+      .. tab:: Python
+         .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-make-texture
+              :end-before: END-imagebufalgo-make-texture
+              :dedent: 4
 
-          Input = ImageBuf("in.exr")
-          config = ImageSpec()
-          config["maketx:highlightcomp"] = 1
-          config["maketx:filtername"] = "lanczos3"
-          config["maketx:opaque_detect"] = 1
-      
-          ok = ImageBufAlgo.make_texture (OpenImageIO.MakeTxTexture,
-                                          Input, "texture.exr", config)
-          if not ok :
-              print("make_texture error:", OpenImageIO.geterror())
+      .. tab:: oiiotool
+         .. sourcecode:: bash
+         
+            oiiotool in.exr -otex:hilightcomp=1:filtername=lanczos3:opaque_detect=1 texture.exr
 
-       .. code-tab:: bash oiiotool
+      .. tab:: maketx
+         .. sourcecode:: bash
 
-          oiiotool in.exr -otex:hilightcomp=1:filtername=lanczos3:opaque_detect=1 texture.exr
-
-       .. code-tab:: bash maketx
-
-          maketx in.exr --hicomp --filter lanczos3 --opaque-detect -o texture.exr
+            maketx in.exr --hicomp --filter lanczos3 --opaque-detect -o texture.exr
       
 |
 

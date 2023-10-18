@@ -35,6 +35,7 @@ hashes = [
     "text1.exr",
     "text2.exr",
     "cshift.exr",
+    "texture.exr"
 ]
 for file in hashes :
     command += info_command(file, verbose=False)

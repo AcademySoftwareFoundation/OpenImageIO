@@ -267,6 +267,23 @@ void example_circular_shift()
 // Section: Import / export
 
 
+void example_make_texture()
+{
+    // BEGIN-imagebufalgo-make-texture
+    ImageBuf Input ("grid.exr");
+    ImageSpec config;
+    config["maketx:highlightcomp"] = 1;
+    config["maketx:filtername"] = "lanczos3";
+    config["maketx:opaque_detect"] = 1;
+
+    bool ok = ImageBufAlgo::make_texture (ImageBufAlgo::MakeTxTexture,
+                                          Input, "texture.exr", config);
+    if (! ok)
+        std::cout << "make_texture error: " << OIIO::geterror() << "\n";
+    // END-imagebufalgo-make-texture
+}
+
+
 
 
 
@@ -308,6 +325,7 @@ int main(int /*argc*/, char** /*argv*/)
     // Section: Color space conversion
 
     // Section: Import / export
+    example_make_texture();
 
     return 0;
 }
