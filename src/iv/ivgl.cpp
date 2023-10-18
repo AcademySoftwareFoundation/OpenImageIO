@@ -1641,7 +1641,17 @@ IvGL::update_ocio_state()
         update_shader = true;
     }
             
-    OCIO::OptimizationFlags ocio_optimization = (OCIO::OptimizationFlags)m_viewer.ocioOptimization();
+    OCIO::OptimizationFlags ocio_optimization;
+            
+    switch(m_viewer.ocioOptimization())
+    {
+        case ImageViewer::OCIO_OPTIMIZATION_NONE:      ocio_optimization = OCIO::OPTIMIZATION_NONE;      break;
+        case ImageViewer::OCIO_OPTIMIZATION_LOSSLESS:  ocio_optimization = OCIO::OPTIMIZATION_LOSSLESS;  break;
+        case ImageViewer::OCIO_OPTIMIZATION_VERY_GOOD: ocio_optimization = OCIO::OPTIMIZATION_VERY_GOOD; break;
+        case ImageViewer::OCIO_OPTIMIZATION_GOOD:      ocio_optimization = OCIO::OPTIMIZATION_GOOD;      break;
+        case ImageViewer::OCIO_OPTIMIZATION_DRAFT:     ocio_optimization = OCIO::OPTIMIZATION_DRAFT;     break;
+    }
+            
     if (pImpl->current_optimization != ocio_optimization) {
         pImpl->current_optimization = ocio_optimization;
         update_shader = true;

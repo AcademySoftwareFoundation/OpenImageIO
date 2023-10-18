@@ -249,12 +249,21 @@ public:
     bool rawcolor() const { return m_rawcolor; }
     
 #ifdef USE_OCIO
+    
+    enum OCIO_OPTIMIZATION {
+        OCIO_OPTIMIZATION_NONE,
+        OCIO_OPTIMIZATION_LOSSLESS,
+        OCIO_OPTIMIZATION_VERY_GOOD,
+        OCIO_OPTIMIZATION_GOOD,
+        OCIO_OPTIMIZATION_DRAFT
+    };
+    
     bool useOCIO() {return m_useOCIO; }
     const std::string & ocioColorSpace() { return m_ocioColourSpace; }
     const std::string & ocioDisplay() { return m_ocioDisplay; }
     const std::string & ocioView() { return m_ocioView; }
     const std::string & ocioLook() { return m_ocioLook; }
-    qulonglong ocioOptimization() { return m_ocioOptimization; }
+    OCIO_OPTIMIZATION ocioOptimization() { return m_ocioOptimization; }
 #endif
     
 
@@ -456,7 +465,7 @@ private:
     std::string m_ocioDisplay;
     std::string m_ocioView;
     std::string m_ocioLook;
-    qulonglong m_ocioOptimization;
+    OCIO_OPTIMIZATION m_ocioOptimization;
 #endif
 };
 
