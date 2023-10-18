@@ -34,6 +34,8 @@ text2.exr            :  640 x  480, 3 channel, float openexr
     SHA-1: 53359E96A286F909A89ACC99A67A9ED3BADC4A7A
 cshift.exr           :  256 x  256, 4 channel, half openexr
     SHA-1: 000F95FDC44D4DBDA8B4041C2506149C7AE28ACA
+texture.exr          :  256 x  256, 3 channel, half openexr (+mipmap)
+    SHA-1: 4074B050432CE7C664CEC4546A46E74F9A310CDC
 Comparing "simple.tif" and "ref/simple.tif"
 PASS
 Comparing "scanlines.tif" and "ref/scanlines.tif"

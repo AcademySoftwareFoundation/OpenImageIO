@@ -255,6 +255,21 @@ def example_circular_shift() :
 
 # Section: Import / export
 
+def example_make_texture():
+    # BEGIN-imagebufalgo-make-texture
+    Input = ImageBuf("grid.exr")
+    config = ImageSpec()
+    config["maketx:highlightcomp"] = 1
+    config["maketx:filtername"] = "lanczos3"
+    config["maketx:opaque_detect"] = 1
+
+    ok = ImageBufAlgo.make_texture (OpenImageIO.MakeTxTexture,
+                                    Input, "texture.exr", config)
+    if not ok :
+        print("make_texture error:", OpenImageIO.geterror())
+
+    # END-imagebufalgo-make-texture
+
 
 
 
@@ -297,3 +312,4 @@ if __name__ == '__main__':
     # Section: Color space conversion
 
     # Section: Import / export
+    example_make_texture()
