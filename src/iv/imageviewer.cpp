@@ -141,7 +141,7 @@ ImageViewer::ImageViewer()
     setWindowTitle(tr("Image Viewer"));
     resize(m_default_width, m_default_height);
     //    setSizePolicy (QSizePolicy::Ignored, QSizePolicy::Ignored);
-    
+
     setAttribute(Qt::WA_DeleteOnClose);
 }
 
@@ -194,7 +194,7 @@ ImageViewer::createActions()
     saveSelectionAsAct = new QAction(tr("Save Selection As..."), this);
     connect(saveSelectionAsAct, SIGNAL(triggered()), this,
             SLOT(saveSelectionAs()));
-    
+
     moveToNewWindowAct = new QAction(tr("Move to new window"), this);
     connect(moveToNewWindowAct, SIGNAL(triggered()), this,
             SLOT(moveToNewWindow()));
@@ -876,10 +876,9 @@ ImageViewer::saveSelectionAs()
 void
 ImageViewer::moveToNewWindow()
 {
-    if (m_images.size())
-    {
+    if (m_images.size()) {
         ImageViewer* imageViewer = new ImageViewer();
-        
+
         imageViewer->show();
         imageViewer->rawcolor(rawcolor());
         imageViewer->add_image(m_images[m_current_image]->name());
