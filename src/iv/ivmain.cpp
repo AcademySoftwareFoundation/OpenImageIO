@@ -74,11 +74,11 @@ getargs(int argc, char* argv[])
       .metavar("STRING")
       .defaultval("")
       .action(ArgParse::store());
-    ap.arg("--look")
-      .help("OCIO look")
-      .metavar("STRING")
-      .defaultval("")
-      .action(ArgParse::store());
+//    ap.arg("--look")
+//      .help("OCIO look")
+//      .metavar("STRING")
+//      .defaultval("")
+//      .action(ArgParse::store());
 #endif
     
     ap.parse(argc, (const char**)argv);
@@ -119,11 +119,11 @@ main(int argc, char* argv[])
     std::string color_space = ap["image-color-space"].as_string("");
     std::string display = ap["display"].as_string("");
     std::string view = ap["view"].as_string("");
-    std::string look = ap["look"].as_string("");
+//    std::string look = ap["look"].as_string("");
     
     bool use_ocio = color_space != "" && display != "" && view != "";
     
-    ImageViewer* mainWin = new ImageViewer(use_ocio, color_space, display, view, look);
+    ImageViewer* mainWin = new ImageViewer(use_ocio, color_space, display, view/*, look*/);
 #else
     ImageViewer* mainWin = new ImageViewer;
 #endif

@@ -1631,11 +1631,11 @@ IvGL::update_ocio_state()
         update_shader       = true;
     }
 
-    const char* ocio_look = m_viewer.ocioLook().c_str();
-    if (pImpl->current_look != ocio_look) {
-        pImpl->current_look = ocio_look;
-        update_shader       = true;
-    }
+//    const char* ocio_look = m_viewer.ocioLook().c_str();
+//    if (pImpl->current_look != ocio_look) {
+//        pImpl->current_look = ocio_look;
+//        update_shader       = true;
+//    }
 
     OCIO::OptimizationFlags ocio_optimization;
 
@@ -1663,61 +1663,65 @@ IvGL::update_ocio_state()
     }
 
     if (update_shader) {
-        OCIO::ConstConfigRcPtr config = OCIO::GetCurrentConfig();
-
-        OCIO::DisplayViewTransformRcPtr transform
-            = OCIO::DisplayViewTransform::Create();
-        transform->setSrc(ocio_color_space);
-        transform->setDisplay(ocio_display);
-        transform->setView(ocio_view);
-
-        OCIO::LegacyViewingPipelineRcPtr viewingPipeline
-            = OCIO::LegacyViewingPipeline::Create();
-        viewingPipeline->setDisplayViewTransform(transform);
-        if (ocio_look && ocio_look[0]) {
-            viewingPipeline->setLooksOverrideEnabled(true);
-            viewingPipeline->setLooksOverride(ocio_look);
-        }
-
-        OCIO::ExposureContrastTransformRcPtr exposureTransform
-            = OCIO::ExposureContrastTransform::Create();
-        exposureTransform->makeExposureDynamic();
-        viewingPipeline->setLinearCC(exposureTransform);
-
-        OCIO::ExposureContrastTransformRcPtr gammaTransform
-            = OCIO::ExposureContrastTransform::Create();
-        gammaTransform->makeGammaDynamic();
-        gammaTransform->setPivot(1.0);
-        viewingPipeline->setDisplayCC(gammaTransform);
-
-        OCIO::ConstProcessorRcPtr processor;
         try {
-            processor
-                = viewingPipeline->getProcessor(config,
-                                                config->getCurrentContext());
-        } catch ( const OCIO::Exception& e ) {
-            on_ocio_error(e.what());
-            return;
-        }
+            OCIO::ConstConfigRcPtr config = OCIO::GetCurrentConfig();
+            
+            OCIO::ConstColorSpaceRcPtr scene_linear_space
+                = config->getColorSpace("scene_linear");
+            
+            if (!scene_linear_space) {
+                on_ocio_error("Missing 'scene_linear' color space");
+                return;
+            }
+            
+            OCIO::ColorSpaceTransformRcPtr input_transform
+                = OCIO::ColorSpaceTransform::Create();
+            input_transform->setSrc(ocio_color_space);
+            input_transform->setDst(scene_linear_space->getName());
+            
+            OCIO::ExposureContrastTransformRcPtr exposure_transform
+                = OCIO::ExposureContrastTransform::Create();
+            exposure_transform->makeExposureDynamic();
+            
+            OCIO::DisplayViewTransformRcPtr display_transform
+                = OCIO::DisplayViewTransform::Create();
+            display_transform->setSrc(scene_linear_space->getName());
+            display_transform->setDisplay(ocio_display);
+            display_transform->setView(ocio_view);
+            
+            OCIO::ExposureContrastTransformRcPtr gamma_transform
+                = OCIO::ExposureContrastTransform::Create();
+            gamma_transform->makeGammaDynamic();
+            gamma_transform->setPivot(1.0);
+            
+            
+            OCIO::GroupTransformRcPtr group_transform
+                = OCIO::GroupTransform::Create();
+            group_transform->appendTransform(input_transform);
+            group_transform->appendTransform(exposure_transform);
+            group_transform->appendTransform(display_transform);
+            group_transform->appendTransform(gamma_transform);
+            
+            OCIO::ConstProcessorRcPtr processor
+                = config->getProcessor(group_transform);
+            
+            if (pImpl->openGLBuilder != nullptr) {
+                unsigned program = pImpl->openGLBuilder->getProgramHandle();
+                glDetachShader(program, m_vertex_shader);
 
-        if (pImpl->openGLBuilder != nullptr) {
-            unsigned program = pImpl->openGLBuilder->getProgramHandle();
-            glDetachShader(program, m_vertex_shader);
+                pImpl->openGLBuilder = nullptr;
+            }
 
-            pImpl->openGLBuilder = nullptr;
-        }
+            OCIO::GpuShaderDescRcPtr shaderDesc
+                = OCIO::GpuShaderDesc::CreateShaderDesc();
+            shaderDesc->setLanguage(OCIO::GPU_LANGUAGE_GLSL_1_2);
+            shaderDesc->setFunctionName("OCIODisplay");
+            shaderDesc->setResourcePrefix("ocio_");
 
-        OCIO::GpuShaderDescRcPtr shaderDesc
-            = OCIO::GpuShaderDesc::CreateShaderDesc();
-        shaderDesc->setLanguage(OCIO::GPU_LANGUAGE_GLSL_1_2);
-        shaderDesc->setFunctionName("OCIODisplay");
-        shaderDesc->setResourcePrefix("ocio_");
-
-        OCIO::ConstGPUProcessorRcPtr gpuProcessor
-            = processor->getOptimizedGPUProcessor(ocio_optimization);
-        gpuProcessor->extractGpuShaderInfo(shaderDesc);
-
-        try {
+            OCIO::ConstGPUProcessorRcPtr gpuProcessor
+                = processor->getOptimizedGPUProcessor(ocio_optimization);
+            gpuProcessor->extractGpuShaderInfo(shaderDesc);
+            
             pImpl->openGLBuilder = OCIO::OpenGLBuilder::Create(shaderDesc);
             pImpl->openGLBuilder->allocateAllTextures(m_texbufs.size() + 1);
 
@@ -1725,18 +1729,22 @@ IvGL::update_ocio_state()
             glAttachShader(program, m_vertex_shader);
 
             pImpl->openGLBuilder->buildProgram(fragment_source, false);
+            
+            OCIO::DynamicPropertyRcPtr prop1 = shaderDesc->getDynamicProperty(
+                OCIO::DYNAMIC_PROPERTY_GAMMA);
+            pImpl->gamma_property = OCIO::DynamicPropertyValue::AsDouble(prop1);
+
+            OCIO::DynamicPropertyRcPtr prop2 = shaderDesc->getDynamicProperty(
+                OCIO::DYNAMIC_PROPERTY_EXPOSURE);
+            pImpl->exposure_property
+                = OCIO::DynamicPropertyValue::AsDouble(prop2);
+            
         } catch (const OCIO::Exception& e) {
             on_ocio_error(e.what());
             return;
         }
 
-        OCIO::DynamicPropertyRcPtr prop1 = shaderDesc->getDynamicProperty(
-            OCIO::DYNAMIC_PROPERTY_GAMMA);
-        pImpl->gamma_property = OCIO::DynamicPropertyValue::AsDouble(prop1);
 
-        OCIO::DynamicPropertyRcPtr prop2 = shaderDesc->getDynamicProperty(
-            OCIO::DYNAMIC_PROPERTY_EXPOSURE);
-        pImpl->exposure_property = OCIO::DynamicPropertyValue::AsDouble(prop2);
     }
 }
 
