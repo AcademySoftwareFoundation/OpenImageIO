@@ -21,8 +21,8 @@
 #include <OpenImageIO/timer.h>
 
 #ifdef USE_OCIO
-#include <OpenColorIO/OpenColorIO.h>
-#include <OpenColorIO/oglapphelpers/glsl.h>
+#    include <OpenColorIO/OpenColorIO.h>
+#    include <OpenColorIO/oglapphelpers/glsl.h>
 namespace OCIO = OCIO_NAMESPACE;
 #endif
 
@@ -63,7 +63,7 @@ public:
     std::string current_view;
     std::string current_look;
     OCIO::OptimizationFlags current_optimization;
-    
+
     OCIO::OpenGLBuilderRcPtr openGLBuilder;
     OCIO::DynamicPropertyDoubleRcPtr gamma_property;
     OCIO::DynamicPropertyDoubleRcPtr exposure_property;
@@ -343,7 +343,7 @@ void
 IvGL::create_shaders(void)
 {
     // This function is never called. It is only present here to avoid linker errors.
-    
+
     // clang-format off
     static const GLchar *dummy_ocio_source =
        "vec4 OCIODisplay(vec4 C)\n"
@@ -389,8 +389,8 @@ IvGL::create_shaders(void)
     glAttachShader(m_shader_program, m_vertex_shader);
     GLERRPRINT("After attach vertex shader.");
 
-    const char * fragment_sources[] = {dummy_ocio_source, fragment_source};
-    
+    const char* fragment_sources[] = { dummy_ocio_source, fragment_source };
+
     m_fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(m_fragment_shader, 2, fragment_sources, NULL);
     glCompileShader(m_fragment_shader);
@@ -596,7 +596,7 @@ IvGL::paintGL()
     if (m_viewer.useOCIO())
         update_ocio_state();
 #endif
-    
+
     useshader(m_texture_width, m_texture_height);
 
     float smin = 0, smax = 1.0;
@@ -946,39 +946,36 @@ IvGL::useshader(int tex_width, int tex_height, bool pixelview)
 
     const ImageSpec& spec(img->spec());
 
-    
+
     unsigned program;
-    
+
 #ifdef USE_OCIO
     if (m_viewer.useOCIO() && pImpl->openGLBuilder) {
         pImpl->openGLBuilder->useProgram();
         GLERRPRINT("OCIO After use program");
         pImpl->openGLBuilder->useAllTextures();
         GLERRPRINT("OCIO After use textures");
-        
+
         pImpl->exposure_property->setValue(img->exposure());
-        pImpl->gamma_property->setValue(1.0 / std::max(1e-6, static_cast<double>(img->gamma())));
+        pImpl->gamma_property->setValue(
+            1.0 / std::max(1e-6, static_cast<double>(img->gamma())));
         pImpl->openGLBuilder->useAllUniforms();
         GLERRPRINT("OCIO After use uniforms");
-        
+
         program = pImpl->openGLBuilder->getProgramHandle();
-    }
-    else {
+    } else {
         glUseProgram(m_shader_program);
         GLERRPRINT("After use program");
-        
+
         program = m_shader_program;
     }
 #else
     glUseProgram(m_shader_program);
     GLERRPRINT("After use program");
-    
+
     program = m_shader_program;
 #endif
 
-    
-
-    
     GLint loc;
 
     loc = glGetUniformLocation(program, "startchannel");
@@ -992,7 +989,7 @@ IvGL::useshader(int tex_width, int tex_height, bool pixelview)
     // This is the texture unit, not the texture object
     glUniform1i(loc, 0);
 
-    loc = glGetUniformLocation(program, "gain");
+    loc        = glGetUniformLocation(program, "gain");
     float gain = powf(2.0, img->exposure());
     glUniform1f(loc, gain);
 
@@ -1004,15 +1001,15 @@ IvGL::useshader(int tex_width, int tex_height, bool pixelview)
 
     loc = glGetUniformLocation(program, "imgchannels");
     glUniform1i(loc, spec.nchannels);
-    
+
     loc = glGetUniformLocation(program, "useocio");
-    
+
 #ifdef USE_OCIO
     glUniform1i(loc, m_viewer.useOCIO() && pImpl->openGLBuilder);
 #else
     glUniform1i(loc, false);
 #endif
-    
+
     loc = glGetUniformLocation(program, "pixelview");
     glUniform1i(loc, pixelview);
 
@@ -1607,108 +1604,119 @@ IvGL::is_too_big(float width, float height)
 }
 
 #ifdef USE_OCIO
-void 
+void
 IvGL::update_ocio_state()
 {
-            
     IvImage* img = m_viewer.cur();
     if (!img)
         return;
-            
+
     bool update_shader = false;
-            
-    const char * ocio_color_space = m_viewer.ocioColorSpace().c_str();
+
+    const char* ocio_color_space = m_viewer.ocioColorSpace().c_str();
     if (pImpl->current_color_space != ocio_color_space) {
         pImpl->current_color_space = ocio_color_space;
-        update_shader = true;
+        update_shader              = true;
     }
-            
-    const char * ocio_display = m_viewer.ocioDisplay().c_str();
+
+    const char* ocio_display = m_viewer.ocioDisplay().c_str();
     if (pImpl->current_display != ocio_display) {
         pImpl->current_display = ocio_display;
-        update_shader = true;
+        update_shader          = true;
     }
-            
-    const char * ocio_view = m_viewer.ocioView().c_str();
+
+    const char* ocio_view = m_viewer.ocioView().c_str();
     if (pImpl->current_view != ocio_view) {
         pImpl->current_view = ocio_view;
-        update_shader = true;
+        update_shader       = true;
     }
-            
-    const char * ocio_look = m_viewer.ocioLook().c_str();
+
+    const char* ocio_look = m_viewer.ocioLook().c_str();
     if (pImpl->current_look != ocio_look) {
         pImpl->current_look = ocio_look;
-        update_shader = true;
+        update_shader       = true;
     }
-            
+
     OCIO::OptimizationFlags ocio_optimization;
-            
-    switch(m_viewer.ocioOptimization())
-    {
-        case ImageViewer::OCIO_OPTIMIZATION_NONE:      ocio_optimization = OCIO::OPTIMIZATION_NONE;      break;
-        case ImageViewer::OCIO_OPTIMIZATION_LOSSLESS:  ocio_optimization = OCIO::OPTIMIZATION_LOSSLESS;  break;
-        case ImageViewer::OCIO_OPTIMIZATION_VERY_GOOD: ocio_optimization = OCIO::OPTIMIZATION_VERY_GOOD; break;
-        case ImageViewer::OCIO_OPTIMIZATION_GOOD:      ocio_optimization = OCIO::OPTIMIZATION_GOOD;      break;
-        case ImageViewer::OCIO_OPTIMIZATION_DRAFT:     ocio_optimization = OCIO::OPTIMIZATION_DRAFT;     break;
+
+    switch (m_viewer.ocioOptimization()) {
+    case ImageViewer::OCIO_OPTIMIZATION_NONE:
+        ocio_optimization = OCIO::OPTIMIZATION_NONE;
+        break;
+    case ImageViewer::OCIO_OPTIMIZATION_LOSSLESS:
+        ocio_optimization = OCIO::OPTIMIZATION_LOSSLESS;
+        break;
+    case ImageViewer::OCIO_OPTIMIZATION_VERY_GOOD:
+        ocio_optimization = OCIO::OPTIMIZATION_VERY_GOOD;
+        break;
+    case ImageViewer::OCIO_OPTIMIZATION_GOOD:
+        ocio_optimization = OCIO::OPTIMIZATION_GOOD;
+        break;
+    case ImageViewer::OCIO_OPTIMIZATION_DRAFT:
+        ocio_optimization = OCIO::OPTIMIZATION_DRAFT;
+        break;
     }
-            
+
     if (pImpl->current_optimization != ocio_optimization) {
         pImpl->current_optimization = ocio_optimization;
-        update_shader = true;
+        update_shader               = true;
     }
-         
+
     if (update_shader) {
-        
         OCIO::ConstConfigRcPtr config = OCIO::GetCurrentConfig();
 
-        OCIO::DisplayViewTransformRcPtr transform = OCIO::DisplayViewTransform::Create();
+        OCIO::DisplayViewTransformRcPtr transform
+            = OCIO::DisplayViewTransform::Create();
         transform->setSrc(ocio_color_space);
         transform->setDisplay(ocio_display);
         transform->setView(ocio_view);
 
-        OCIO::LegacyViewingPipelineRcPtr viewingPipeline = OCIO::LegacyViewingPipeline::Create();
+        OCIO::LegacyViewingPipelineRcPtr viewingPipeline
+            = OCIO::LegacyViewingPipeline::Create();
         viewingPipeline->setDisplayViewTransform(transform);
-        if (ocio_look && ocio_look[0])
-        {
+        if (ocio_look && ocio_look[0]) {
             viewingPipeline->setLooksOverrideEnabled(true);
             viewingPipeline->setLooksOverride(ocio_look);
         }
 
-        OCIO::ExposureContrastTransformRcPtr exposureTransform = OCIO::ExposureContrastTransform::Create();
+        OCIO::ExposureContrastTransformRcPtr exposureTransform
+            = OCIO::ExposureContrastTransform::Create();
         exposureTransform->makeExposureDynamic();
-//        exposureTransform->setExposure(pImpl->current_exposure);
         viewingPipeline->setLinearCC(exposureTransform);
-        
-        OCIO::ExposureContrastTransformRcPtr gammaTransform = OCIO::ExposureContrastTransform::Create();
+
+        OCIO::ExposureContrastTransformRcPtr gammaTransform
+            = OCIO::ExposureContrastTransform::Create();
         gammaTransform->makeGammaDynamic();
-//        gammaTransform->setExposure(pImpl->current_gamma);
         gammaTransform->setPivot(1.0);
         viewingPipeline->setDisplayCC(gammaTransform);
-        
+
         OCIO::ConstProcessorRcPtr processor;
         try {
-            processor = viewingPipeline->getProcessor(config, config->getCurrentContext());
-        }
-        catch (const OCIO::Exception & e) {
+            processor
+                = viewingPipeline->getProcessor(config,
+                                                config->getCurrentContext());
+        } catch ( const OCIO::Exception& e ) {
             on_ocio_error(e.what());
             return;
         }
-        
+
         if (pImpl->openGLBuilder != nullptr) {
             unsigned program = pImpl->openGLBuilder->getProgramHandle();
             glDetachShader(program, m_vertex_shader);
-            
+
             pImpl->openGLBuilder = nullptr;
         }
-        
-        OCIO::GpuShaderDescRcPtr shaderDesc = OCIO::GpuShaderDesc::CreateShaderDesc();
+
+        OCIO::GpuShaderDescRcPtr shaderDesc
+            = OCIO::GpuShaderDesc::CreateShaderDesc();
         shaderDesc->setLanguage(OCIO::GPU_LANGUAGE_GLSL_1_2);
         shaderDesc->setFunctionName("OCIODisplay");
         shaderDesc->setResourcePrefix("ocio_");
-                
-        OCIO::ConstGPUProcessorRcPtr gpuProcessor = processor->getOptimizedGPUProcessor(ocio_optimization);
+
+        OCIO::ConstGPUProcessorRcPtr gpuProcessor
+            = processor->getOptimizedGPUProcessor(ocio_optimization);
         gpuProcessor->extractGpuShaderInfo(shaderDesc);
-        
+
         try {
             pImpl->openGLBuilder = OCIO::OpenGLBuilder::Create(shaderDesc);
             pImpl->openGLBuilder->allocateAllTextures(m_texbufs.size() + 1);
@@ -1717,29 +1725,30 @@ IvGL::update_ocio_state()
             glAttachShader(program, m_vertex_shader);
 
             pImpl->openGLBuilder->buildProgram(fragment_source, false);
-        }
-        catch (const OCIO::Exception & e) {
+        } catch (const OCIO::Exception& e) {
             on_ocio_error(e.what());
             return;
         }
-        
-        OCIO::DynamicPropertyRcPtr prop1 = shaderDesc->getDynamicProperty(OCIO::DYNAMIC_PROPERTY_GAMMA);
+
+        OCIO::DynamicPropertyRcPtr prop1 = shaderDesc->getDynamicProperty(
+            OCIO::DYNAMIC_PROPERTY_GAMMA);
         pImpl->gamma_property = OCIO::DynamicPropertyValue::AsDouble(prop1);
-        
-        OCIO::DynamicPropertyRcPtr prop2 = shaderDesc->getDynamicProperty(OCIO::DYNAMIC_PROPERTY_EXPOSURE);
+
+        OCIO::DynamicPropertyRcPtr prop2 = shaderDesc->getDynamicProperty(
+            OCIO::DYNAMIC_PROPERTY_EXPOSURE);
         pImpl->exposure_property = OCIO::DynamicPropertyValue::AsDouble(prop2);
     }
 }
-            
-void 
-IvGL::on_ocio_error(const char * message)
+
+void
+IvGL::on_ocio_error(const char* message)
 {
     m_viewer.statusImgInfo->setText(tr("OCIO error: %1.").arg(message));
-    
+
     if (pImpl->openGLBuilder != nullptr) {
         unsigned program = pImpl->openGLBuilder->getProgramHandle();
         glDetachShader(program, m_vertex_shader);
-        
+
         pImpl->openGLBuilder = nullptr;
     }
 }

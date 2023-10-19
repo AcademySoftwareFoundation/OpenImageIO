@@ -35,13 +35,13 @@
 #    include <QDesktopWidget>
 #endif
 
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/timer.h>
-#include <OpenImageIO/color.h>
 
 
 #include "ivutils.h"
@@ -97,13 +97,10 @@ static const char *s_file_filters = ""
 
 ImageViewer::ImageViewer(
 #ifdef USE_OCIO
-        bool use_ocio,
-        const std::string & image_color_space,
-        const std::string & display,
-        const std::string & view,
-        const std::string & look
+    bool use_ocio, const std::string& image_color_space,
+    const std::string& display, const std::string& view, const std::string& look
 #endif
-)
+    )
     : infoWindow(NULL)
     , preferenceWindow(NULL)
     , darkPaletteBox(NULL)
@@ -465,175 +462,165 @@ ImageViewer::createActions()
 #ifdef USE_OCIO
 
 void
-ImageViewer::createOCIOMenus(QMenu * parent)
+ImageViewer::createOCIOMenus(QMenu* parent)
 {
-    ocioColorSpacesMenu = new QMenu(tr("Image color space"));
-    ocioDisplaysMenu = new QMenu(tr("Display/View"));
-    ocioLooksMenu = new QMenu(tr("Look override"));
+    ocioColorSpacesMenu  = new QMenu(tr("Image color space"));
+    ocioDisplaysMenu     = new QMenu(tr("Display/View"));
+    ocioLooksMenu        = new QMenu(tr("Look override"));
     ocioOptimizationMenu = new QMenu(tr("Optimization"));
-    
+
     try {
         ColorConfig config;
-        
-        std::map<std::string, QMenu *> colourSpaceFamilies;
-        
+
+        std::map<std::string, QMenu*> colourSpaceFamilies;
+
         ocioColorSpacesGroup = new QActionGroup(ocioColorSpacesMenu);
         ocioColorSpacesGroup->setExclusive(true);
-        
-        for (int i = 0; i < config.getNumColorSpaces(); i++)
-        {
-            const char * colorSpaceName = config.getColorSpaceNameByIndex(i);
-            if (colorSpaceName && *colorSpaceName)
-            {
+
+        for (int i = 0; i < config.getNumColorSpaces(); i++) {
+            const char* colorSpaceName = config.getColorSpaceNameByIndex(i);
+
+            if (colorSpaceName && *colorSpaceName) {
                 // If no color space provided via command line parameters, select the top color space in the list.
                 if (m_ocioColourSpace == "" && i == 0) {
                     m_ocioColourSpace = colorSpaceName;
                 }
-                
-                const char * family = config.getColorSpaceFamilyByName(colorSpaceName);
-                
-                QMenu * targetMenu;
-                if (family && *family)
-                {
+
+                const char* family = config.getColorSpaceFamilyByName(
+                    colorSpaceName);
+
+                QMenu* targetMenu;
+                if (family && *family) {
                     auto iter = colourSpaceFamilies.find(family);
-                    if (iter == colourSpaceFamilies.end())
-                    {
+                    if (iter == colourSpaceFamilies.end()) {
                         targetMenu = new QMenu(family);
                         ocioColorSpacesMenu->addMenu(targetMenu);
                         colourSpaceFamilies[family] = targetMenu;
-                    }
-                    else
-                    {
+                    } else {
                         targetMenu = iter->second;
                     }
-                }
-                else
-                {
+                } else {
                     targetMenu = ocioColorSpacesMenu;
                 }
-                
-                QAction * action = new QAction(colorSpaceName, this);
+
+                QAction* action = new QAction(colorSpaceName, this);
                 action->setCheckable(true);
                 action->setChecked(m_ocioColourSpace == colorSpaceName);
-                
-                connect(action, SIGNAL(triggered()), this, SLOT(ocioColorSpaceAction()));
-                
+
+                connect(action, SIGNAL(triggered()), this,
+                        SLOT(ocioColorSpaceAction()));
+
                 ocioColorSpacesGroup->addAction(action);
                 targetMenu->addAction(action);
             }
         }
-        
+
         ocioDisplayViewsGroup = new QActionGroup(ocioDisplaysMenu);
         ocioDisplayViewsGroup->setExclusive(true);
-        
+
         if (m_ocioDisplay == "" || m_ocioDisplay == "default") {
             m_ocioDisplay = config.getDefaultDisplayName();
         }
-        
+
         if (m_ocioView == "" || m_ocioView == "default") {
             m_ocioDisplay = config.getDefaultViewName();
         }
-        
-        for (int i = 0; i < config.getNumDisplays(); i++)
-        {
-            const char * display = config.getDisplayNameByIndex(i);
-            
+
+        for (int i = 0; i < config.getNumDisplays(); i++) {
+            const char* display = config.getDisplayNameByIndex(i);
+
             if (display && *display) {
-                
-                QMenu * menu = new QMenu(display);
-                
-                for (int j = 0; j < config.getNumViews(display); j++)
-                {
-                    const char * view = config.getViewNameByIndex(display, j);
-                    
+                QMenu* menu = new QMenu(display);
+
+                for (int j = 0; j < config.getNumViews(display); j++) {
+                    const char* view = config.getViewNameByIndex(display, j);
+
                     if (view && *view) {
-                        QAction * action = new QAction(view, menu);
+                        QAction* action = new QAction(view, menu);
                         action->setCheckable(true);
-                        action->setChecked(m_ocioDisplay == display && m_ocioView == view);
-                        
-                        connect(action, SIGNAL(triggered()), this, SLOT(ocioDisplayViewAction()));
-                        
+                        action->setChecked(m_ocioDisplay == display
+                                           && m_ocioView == view);
+
+                        connect(action, SIGNAL(triggered()), this,
+                                SLOT(ocioDisplayViewAction()));
+
                         menu->addAction(action);
                         ocioDisplayViewsGroup->addAction(action);
                     }
                 }
-                
+
                 ocioDisplaysMenu->addMenu(menu);
             }
         }
-        
+
         ocioLooksGroup = new QActionGroup(ocioLooksMenu);
         ocioLooksGroup->setExclusive(true);
-        ocioLooksGroup->setExclusionPolicy(QActionGroup::ExclusionPolicy::ExclusiveOptional);
-        
-        for (int i = 0; i < config.getNumLooks(); i++)
-        {
-            const char * look = config.getLookNameByIndex(i);
-            
+        ocioLooksGroup->setExclusionPolicy(
+            QActionGroup::ExclusionPolicy::ExclusiveOptional);
+
+        for (int i = 0; i < config.getNumLooks(); i++) {
+            const char* look = config.getLookNameByIndex(i);
+
             if (look && *look) {
-            
-                QAction * action = new QAction(look, this);
+                QAction* action = new QAction(look, this);
                 action->setCheckable(true);
                 action->setChecked(m_ocioLook == look);
-                
-                connect(action, SIGNAL(triggered()), this, SLOT(ocioLookAction()));
-                
+
+                connect(action, SIGNAL(triggered()), this,
+                        SLOT(ocioLookAction()));
+
                 ocioLooksGroup->addAction(action);
                 ocioLooksMenu->addAction(action);
             }
         }
-        
-        const char * optimizationModeName[] = {
-            "None",
-            "Lossless",
-            "Very good",
-            "Good",
-            "Draft"
-        };
-        
+
+        const char* optimizationModeName[] = { "None", "Lossless", "Very good",
+                                               "Good", "Draft" };
+
         ocioOptimizationGroup = new QActionGroup(ocioOptimizationMenu);
         ocioOptimizationGroup->setExclusive(true);
-        
-        for (size_t i = 0; i < sizeof(optimizationModeName) / sizeof(optimizationModeName[0]); i++)
-        {
-            QAction * action = new QAction(tr(optimizationModeName[i]));
+
+        for (size_t i = 0;
+             i < sizeof(optimizationModeName) / sizeof(optimizationModeName[0]);
+             i++) {
+            QAction* action = new QAction(tr(optimizationModeName[i]));
             action->setData(QVariant((int)i));
             action->setCheckable(true);
             action->setChecked(m_ocioOptimization == i);
-            
-            connect(action, SIGNAL(triggered()), this, SLOT(ocioOptimizationAction()));
-            
+
+            connect(action, SIGNAL(triggered()), this,
+                    SLOT(ocioOptimizationAction()));
+
             ocioOptimizationGroup->addAction(action);
             ocioOptimizationMenu->addAction(action);
         }
-    }
-    catch (...)
-    {
+    } catch (...) {
         std::cerr << "Error loading OCIO config file" << std::endl;
         m_useOCIO = false;
         return;
     }
-    
-    QMenu * ocioMenu = new QMenu(tr("OCIO"));
-    
-    QAction * action = new QAction(tr("Use OCIO"));
+
+    QMenu* ocioMenu = new QMenu(tr("OCIO"));
+
+    QAction* action = new QAction(tr("Use OCIO"));
     action->setCheckable(true);
     action->setChecked(m_useOCIO);
     connect(action, SIGNAL(toggled(bool)), this, SLOT(useOCIOAction(bool)));
-    
+
     ocioMenu->addAction(action);
     ocioMenu->addMenu(ocioColorSpacesMenu);
     ocioMenu->addMenu(ocioDisplaysMenu);
     ocioMenu->addMenu(ocioLooksMenu);
     ocioMenu->addMenu(ocioOptimizationMenu);
-    
+
     parent->addMenu(ocioMenu);
 }
 
-void ImageViewer::useOCIOAction(bool checked)
+void
+ImageViewer::useOCIOAction(bool checked)
 {
     m_useOCIO = checked;
-    
+
     ocioColorSpacesMenu->setEnabled(m_useOCIO);
     ocioDisplaysMenu->setEnabled(m_useOCIO);
     ocioLooksMenu->setEnabled(m_useOCIO);
@@ -642,47 +629,45 @@ void ImageViewer::useOCIOAction(bool checked)
     displayCurrentImage();
 }
 
-void ImageViewer::ocioColorSpaceAction()
+void
+ImageViewer::ocioColorSpaceAction()
 {
-    QAction * action = ocioColorSpacesGroup->checkedAction();
-    if (action)
-    {
+    QAction* action = ocioColorSpacesGroup->checkedAction();
+    if (action) {
         m_ocioColourSpace = action->text().toStdString();
         displayCurrentImage();
     }
 }
 
-void ImageViewer::ocioDisplayViewAction()
+void
+ImageViewer::ocioDisplayViewAction()
 {
-    QAction * action = ocioDisplayViewsGroup->checkedAction();
-    if (action)
-    {
-        QMenu * menu = qobject_cast<QMenu *>(action->parentWidget());
+    QAction* action = ocioDisplayViewsGroup->checkedAction();
+    if (action) {
+        QMenu* menu   = qobject_cast<QMenu*>(action->parentWidget());
         m_ocioDisplay = menu->title().toStdString();
-        m_ocioView = action->text().toStdString();
+        m_ocioView    = action->text().toStdString();
         displayCurrentImage();
     }
 }
 
-void ImageViewer::ocioLookAction()
+void
+ImageViewer::ocioLookAction()
 {
-    QAction * action = ocioLooksGroup->checkedAction();
-    if (action)
-    {
-        m_ocioLook =  action->text().toStdString();
-    }
-    else
-    {
+    QAction* action = ocioLooksGroup->checkedAction();
+    if (action) {
+        m_ocioLook = action->text().toStdString();
+    } else {
         m_ocioLook = "";
     }
     displayCurrentImage();
 }
 
-void ImageViewer::ocioOptimizationAction()
+void
+ImageViewer::ocioOptimizationAction()
 {
-    QAction * action = ocioLooksGroup->checkedAction();
-    if (action)
-    {
+    QAction* action = ocioLooksGroup->checkedAction();
+    if (action) {
         m_ocioOptimization = (OCIO_OPTIMIZATION)action->data().toInt();
         displayCurrentImage();
     }
@@ -775,11 +760,11 @@ ImageViewer::createMenus()
     viewMenu->addAction(viewSubimageNextAct);
     viewMenu->addMenu(channelMenu);
     viewMenu->addMenu(colormodeMenu);
-    
+
 #ifdef USE_OCIO
     createOCIOMenus(viewMenu);
 #endif
-    
+
     viewMenu->addMenu(expgamMenu);
     menuBar()->addMenu(viewMenu);
     // Full screen mode

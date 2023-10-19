@@ -145,13 +145,11 @@ class ImageViewer final : public QMainWindow {
 public:
     ImageViewer(
 #ifdef USE_OCIO
-        bool use_ocio,
-        const std::string & image_color_space,
-        const std::string & display,
-        const std::string & view,
-        const std::string & look
+        bool use_ocio, const std::string& image_color_space,
+        const std::string& display, const std::string& view,
+        const std::string& look
 #endif
-);
+    );
     ~ImageViewer();
 
     enum COLOR_MODE {
@@ -247,25 +245,21 @@ public:
 
     void rawcolor(bool val) { m_rawcolor = val; }
     bool rawcolor() const { return m_rawcolor; }
-    
+
 #ifdef USE_OCIO
-    
-    enum OCIO_OPTIMIZATION {
-        OCIO_OPTIMIZATION_NONE,
-        OCIO_OPTIMIZATION_LOSSLESS,
-        OCIO_OPTIMIZATION_VERY_GOOD,
-        OCIO_OPTIMIZATION_GOOD,
-        OCIO_OPTIMIZATION_DRAFT
-    };
-    
-    bool useOCIO() {return m_useOCIO; }
-    const std::string & ocioColorSpace() { return m_ocioColourSpace; }
-    const std::string & ocioDisplay() { return m_ocioDisplay; }
-    const std::string & ocioView() { return m_ocioView; }
-    const std::string & ocioLook() { return m_ocioLook; }
+    enum OCIO_OPTIMIZATION { OCIO_OPTIMIZATION_NONE      = 0,
+                             OCIO_OPTIMIZATION_LOSSLESS  = 1,
+                             OCIO_OPTIMIZATION_VERY_GOOD = 2,
+                             OCIO_OPTIMIZATION_GOOD      = 3,
+                             OCIO_OPTIMIZATION_DRAFT     = 4 };
+
+    bool useOCIO() { return m_useOCIO; }
+    const std::string& ocioColorSpace() { return m_ocioColourSpace; }
+    const std::string& ocioDisplay() { return m_ocioDisplay; }
+    const std::string& ocioView() { return m_ocioView; }
+    const std::string& ocioLook() { return m_ocioLook; }
     OCIO_OPTIMIZATION ocioOptimization() { return m_ocioOptimization; }
 #endif
-    
 
 private slots:
     void open();                ///< Dialog to open new image from file
@@ -333,7 +327,7 @@ private slots:
     void ocioLookAction();
     void ocioOptimizationAction();
 #endif
-    
+
 private:
     void createActions();
     void createMenus();
@@ -364,7 +358,7 @@ private:
 #ifndef QT_NO_PRINTER
     // QPrinter printer;
 #endif
-    
+
 
 
 
@@ -446,20 +440,20 @@ private:
     friend class IvInfoWindow;
     friend class IvPreferenceWindow;
     friend bool image_progress_callback(void* opaque, float done);
-    
+
 #ifdef USE_OCIO
-    void createOCIOMenus(QMenu * parent);
-    
-    QMenu * ocioColorSpacesMenu;
-    QMenu * ocioDisplaysMenu;
-    QMenu * ocioLooksMenu;
-    QMenu * ocioOptimizationMenu;
-    
-    QActionGroup * ocioColorSpacesGroup;
-    QActionGroup * ocioDisplayViewsGroup;
-    QActionGroup * ocioLooksGroup;
-    QActionGroup * ocioOptimizationGroup;
-    
+    void createOCIOMenus(QMenu* parent);
+
+    QMenu* ocioColorSpacesMenu;
+    QMenu* ocioDisplaysMenu;
+    QMenu* ocioLooksMenu;
+    QMenu* ocioOptimizationMenu;
+
+    QActionGroup* ocioColorSpacesGroup;
+    QActionGroup* ocioDisplayViewsGroup;
+    QActionGroup* ocioLooksGroup;
+    QActionGroup* ocioOptimizationGroup;
+
     bool m_useOCIO;
     std::string m_ocioColourSpace;
     std::string m_ocioDisplay;
