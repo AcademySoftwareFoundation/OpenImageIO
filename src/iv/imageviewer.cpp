@@ -141,6 +141,8 @@ ImageViewer::ImageViewer()
     setWindowTitle(tr("Image Viewer"));
     resize(m_default_width, m_default_height);
     //    setSizePolicy (QSizePolicy::Ignored, QSizePolicy::Ignored);
+
+    setAttribute(Qt::WA_DeleteOnClose);
 }
 
 
@@ -192,6 +194,10 @@ ImageViewer::createActions()
     saveSelectionAsAct = new QAction(tr("Save Selection As..."), this);
     connect(saveSelectionAsAct, SIGNAL(triggered()), this,
             SLOT(saveSelectionAs()));
+
+    moveToNewWindowAct = new QAction(tr("Move to new window"), this);
+    connect(moveToNewWindowAct, SIGNAL(triggered()), this,
+            SLOT(moveToNewWindow()));
 
     printAct = new QAction(tr("&Print..."), this);
     printAct->setShortcut(tr("Ctrl+P"));
@@ -457,6 +463,7 @@ ImageViewer::createMenus()
     fileMenu->addAction(saveWindowAsAct);
     fileMenu->addAction(saveSelectionAsAct);
     fileMenu->addSeparator();
+    fileMenu->addAction(moveToNewWindowAct);
     fileMenu->addAction(printAct);
     fileMenu->addAction(deleteCurrentImageAct);
     fileMenu->addSeparator();
@@ -866,7 +873,20 @@ ImageViewer::saveSelectionAs()
                this);
 }
 
+void
+ImageViewer::moveToNewWindow()
+{
+    if (m_images.size()) {
+        ImageViewer* imageViewer = new ImageViewer();
 
+        imageViewer->show();
+        imageViewer->rawcolor(rawcolor());
+        imageViewer->add_image(m_images[m_current_image]->name());
+        imageViewer->current_image(0);
+        imageViewer->raise();
+        imageViewer->activateWindow();
+    }
+}
 
 void
 ImageViewer::updateTitle()

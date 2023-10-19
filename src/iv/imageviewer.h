@@ -248,6 +248,7 @@ private slots:
     void saveAs();              ///< Save As... functionality
     void saveWindowAs();        ///< Save As... functionality
     void saveSelectionAs();     ///< Save As... functionality
+    void moveToNewWindow();     ///< Split current image off as a new window
     void print();               ///< Print current image
     void deleteCurrentImage();  ///< Deleting displayed image
     void zoomIn();              ///< Zoom in to next power of 2
@@ -332,6 +333,7 @@ private:
     static const unsigned int MaxRecentFiles = 10;
     QAction* openRecentAct[MaxRecentFiles];
     QAction *saveAsAct, *saveWindowAsAct, *saveSelectionAsAct;
+    QAction* moveToNewWindowAct;
     QAction* printAct;
     QAction* deleteCurrentImageAct;
     QAction* exitAct;
