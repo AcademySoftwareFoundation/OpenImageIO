@@ -307,8 +307,8 @@ Beta 2 (2.5.3.1): 2023-09-24
       CVE-2022-43595. #3673 (2.4.6/2.5.0.0)
     - Mark color space as sRGB, which seems likely to be true of any BMP
       files anybody encounters. #3701 (2.5.0.0)
-    - Fix signed integer overflow when computing total number of pixels
-      [#3948](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3948) (by xiaoxiaoafeifei) (2.5.3.0)
+    - Fix signed integer overflow when computing total number of pixels.
+      Fixes CVE-2023-42295. [#3948](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3948) (by xiaoxiaoafeifei) (2.5.3.0)
 * DDS:
     - Fix heap overflow in DDS input. #3542 (2.5.0.0)
     - Improved support for DTX5, ATI2/BC5 normal maps, R10G10B10A2
@@ -702,7 +702,7 @@ Beta 2 (2.5.3.1): 2023-09-24
 
 Release 2.4.15.0 (1 Sep 2023) -- compared to 2.4.14.0
 -------------------------------------------------------
-- *bmp*: Fix signed integer overflow when computing total number of pixels [#3948](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3948)  (by xiaoxiaoafeifei)
+- *bmp*: Fix signed integer overflow when computing total number of pixels. Fixes CVE-2023-42295. [#3948](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3948)  (by xiaoxiaoafeifei)
 - *dds*: Fix div by 0 during DXT4 DDS load [#3959](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3959)  (by Jesse Yurkovich)
 - *rla*: Invalid read from an empty vector during RLA load [#3960](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3960)  (by Jesse Yurkovich)
 - *fix*:  Various protections against corrupted files [#3954](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3954)
