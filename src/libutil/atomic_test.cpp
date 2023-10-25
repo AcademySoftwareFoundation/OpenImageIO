@@ -24,7 +24,7 @@ using namespace OIIO;
 // value at the end.
 
 static int iterations = 2000000;
-static int numthreads = clamp((int)Sysutil::physical_concurrency(), 2, 16);
+static int numthreads = clamp((int)Sysutil::hardware_concurrency(), 2, 16);
 static int ntrials    = 5;
 static bool verbose   = false;
 static bool wedge     = false;

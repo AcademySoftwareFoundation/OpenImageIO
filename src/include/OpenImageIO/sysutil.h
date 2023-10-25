@@ -86,15 +86,24 @@ OIIO_API bool
 put_in_background(int argc, char* argv[]);
 
 /// Number of virtual cores available on this platform (including
-/// hyperthreads).
+/// hyperthreads). Note that this is just a wrapper/synonym for C++
+/// std::thread::hardware_concurrency(), and was put in OIIO to allow its use
+/// before C++11 was our minimum.
 OIIO_API unsigned int
 hardware_concurrency();
 
+#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2, 6, 0)
 /// Number of full hardware cores available on this platform (does not
 /// include hyperthreads). This is not always accurate and on some
 /// platforms will return the number of virtual cores.
+///
+/// This is considered DEPRECATED(2.6) and will be removed from a future
+/// release of OpenImageIO. It is now a synonym for hardware_concurrency().
+OIIO_DEPRECATED(
+    "unreliable, replace with hardware_concurrency() [DEPRECATED in 2.6.0.0]")
 OIIO_API unsigned int
 physical_concurrency();
+#endif
 
 /// Get the maximum number of open file handles allowed on this system.
 OIIO_API size_t

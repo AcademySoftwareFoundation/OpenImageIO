@@ -75,12 +75,6 @@
 #    endif
 #endif
 
-// clang 7.0 (rc2) has errors when including boost thread!
-// The only thing we're using there is boost::physical_concurrency.
-#if !(OIIO_CLANG_VERSION >= 7)
-#    include <boost/thread.hpp>
-#endif
-
 OIIO_INTEL_PRAGMA(warning disable 2196)
 
 
@@ -607,12 +601,7 @@ Sysutil::hardware_concurrency()
 unsigned int
 Sysutil::physical_concurrency()
 {
-    // clang 7.0.0rc2 has trouble compiling boost thread
-#if BOOST_VERSION >= 105600 && !(OIIO_CLANG_VERSION >= 7)
-    return boost::thread::physical_concurrency();
-#else
     return std::thread::hardware_concurrency();
-#endif
 }
 
 
