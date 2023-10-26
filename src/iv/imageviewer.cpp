@@ -99,7 +99,7 @@ ImageViewer::ImageViewer(
 #ifdef USE_OCIO
     bool use_ocio, const std::string& image_color_space,
     const std::string& display, const std::string& view
-    /*, const std::string& look */
+/*, const std::string& look */
 #endif
     )
     : infoWindow(NULL)
@@ -118,7 +118,7 @@ ImageViewer::ImageViewer(
     , m_ocioColourSpace(image_color_space)
     , m_ocioDisplay(display)
     , m_ocioView(view)
-//    , m_ocioLook(look)
+    //    , m_ocioLook(look)
     , m_ocioOptimization(OCIO_OPTIMIZATION_NONE)
 #endif
 {

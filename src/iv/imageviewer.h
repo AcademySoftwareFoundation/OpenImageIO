@@ -146,7 +146,7 @@ public:
     ImageViewer(
 #ifdef USE_OCIO
         bool use_ocio, const std::string& image_color_space,
-        const std::string& display, const std::string& view/*,
+        const std::string& display, const std::string& view /*,
         const std::string& look*/
 #endif
     );
@@ -257,7 +257,7 @@ public:
     const std::string& ocioColorSpace() { return m_ocioColourSpace; }
     const std::string& ocioDisplay() { return m_ocioDisplay; }
     const std::string& ocioView() { return m_ocioView; }
-//    const std::string& ocioLook() { return m_ocioLook; }
+    //    const std::string& ocioLook() { return m_ocioLook; }
     OCIO_OPTIMIZATION ocioOptimization() { return m_ocioOptimization; }
 #endif
 
@@ -324,7 +324,7 @@ private slots:
     void useOCIOAction(bool checked);
     void ocioColorSpaceAction();
     void ocioDisplayViewAction();
-//    void ocioLookAction();
+    //    void ocioLookAction();
     void ocioOptimizationAction();
 #endif
 
@@ -458,7 +458,7 @@ private:
     std::string m_ocioColourSpace;
     std::string m_ocioDisplay;
     std::string m_ocioView;
-//    std::string m_ocioLook;
+    //    std::string m_ocioLook;
     OCIO_OPTIMIZATION m_ocioOptimization;
 #endif
 };
