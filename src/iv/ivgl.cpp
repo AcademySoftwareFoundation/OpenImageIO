@@ -1665,7 +1665,7 @@ IvGL::update_ocio_state()
     if (update_shader) {
         try {
             OCIO::ConstConfigRcPtr config = OCIO::GetCurrentConfig();
-            
+
             OCIO::ConstColorSpaceRcPtr scene_linear_space
                 = config->getColorSpace("scene_linear");
 

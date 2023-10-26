@@ -21,6 +21,7 @@
 #include <vector>
 
 #include <QAction>
+#include <QActionGroup>
 #include <QCheckBox>
 #include <QDialog>
 #include <QMainWindow>

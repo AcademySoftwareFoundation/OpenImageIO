@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright Contributors to the OpenColorIO Project.
 
+// clang-format off
+
 #ifndef INCLUDED_OCIO_GLSL_H
 #define INCLUDED_OCIO_GLSL_H
 

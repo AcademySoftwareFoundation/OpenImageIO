@@ -467,7 +467,7 @@ ImageViewer::createOCIOMenus(QMenu* parent)
 {
     ocioColorSpacesMenu  = new QMenu(tr("Image color space"));
     ocioDisplaysMenu     = new QMenu(tr("Display/View"));
-//    ocioLooksMenu        = new QMenu(tr("Look override"));
+    //    ocioLooksMenu        = new QMenu(tr("Look override"));
     ocioOptimizationMenu = new QMenu(tr("Optimization"));
 
     try {
@@ -554,26 +554,26 @@ ImageViewer::createOCIOMenus(QMenu* parent)
             }
         }
 
-//        ocioLooksGroup = new QActionGroup(ocioLooksMenu);
-//        ocioLooksGroup->setExclusive(true);
-//        ocioLooksGroup->setExclusionPolicy(
-//            QActionGroup::ExclusionPolicy::ExclusiveOptional);
-//
-//        for (int i = 0; i < config.getNumLooks(); i++) {
-//            const char* look = config.getLookNameByIndex(i);
-//
-//            if (look && *look) {
-//                QAction* action = new QAction(look, this);
-//                action->setCheckable(true);
-//                action->setChecked(m_ocioLook == look);
-//
-//                connect(action, SIGNAL(triggered()), this,
-//                        SLOT(ocioLookAction()));
-//
-//                ocioLooksGroup->addAction(action);
-//                ocioLooksMenu->addAction(action);
-//            }
-//        }
+        //        ocioLooksGroup = new QActionGroup(ocioLooksMenu);
+        //        ocioLooksGroup->setExclusive(true);
+        //        ocioLooksGroup->setExclusionPolicy(
+        //            QActionGroup::ExclusionPolicy::ExclusiveOptional);
+        //
+        //        for (int i = 0; i < config.getNumLooks(); i++) {
+        //            const char* look = config.getLookNameByIndex(i);
+        //
+        //            if (look && *look) {
+        //                QAction* action = new QAction(look, this);
+        //                action->setCheckable(true);
+        //                action->setChecked(m_ocioLook == look);
+        //
+        //                connect(action, SIGNAL(triggered()), this,
+        //                        SLOT(ocioLookAction()));
+        //
+        //                ocioLooksGroup->addAction(action);
+        //                ocioLooksMenu->addAction(action);
+        //            }
+        //        }
 
         const char* optimizationModeName[] = { "None", "Lossless", "Very good",
                                                "Good", "Draft" };
@@ -611,7 +611,7 @@ ImageViewer::createOCIOMenus(QMenu* parent)
     ocioMenu->addAction(action);
     ocioMenu->addMenu(ocioColorSpacesMenu);
     ocioMenu->addMenu(ocioDisplaysMenu);
-//    ocioMenu->addMenu(ocioLooksMenu);
+    //    ocioMenu->addMenu(ocioLooksMenu);
     ocioMenu->addMenu(ocioOptimizationMenu);
 
     parent->addMenu(ocioMenu);
@@ -624,7 +624,7 @@ ImageViewer::useOCIOAction(bool checked)
 
     ocioColorSpacesMenu->setEnabled(m_useOCIO);
     ocioDisplaysMenu->setEnabled(m_useOCIO);
-//    ocioLooksMenu->setEnabled(m_useOCIO);
+    //    ocioLooksMenu->setEnabled(m_useOCIO);
     ocioOptimizationMenu->setEnabled(m_useOCIO);
 
     displayCurrentImage();
