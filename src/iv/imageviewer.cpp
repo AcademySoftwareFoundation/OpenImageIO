@@ -645,7 +645,7 @@ ImageViewer::ocioDisplayViewAction()
 {
     QAction* action = ocioDisplayViewsGroup->checkedAction();
     if (action) {
-        QMenu* menu   = qobject_cast<QMenu*>(action->parentWidget());
+        QMenu* menu   = qobject_cast<QMenu*>(action->parent());
         m_ocioDisplay = menu->title().toStdString();
         m_ocioView    = action->text().toStdString();
         displayCurrentImage();
