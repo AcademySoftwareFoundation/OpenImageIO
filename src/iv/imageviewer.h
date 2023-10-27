@@ -145,11 +145,8 @@ class ImageViewer final : public QMainWindow {
 
 public:
     ImageViewer(
-#ifdef USE_OCIO
         bool use_ocio, const std::string& image_color_space,
-        const std::string& display, const std::string& view /*,
-        const std::string& look*/
-#endif
+        const std::string& display, const std::string& view
     );
     ~ImageViewer();
 
@@ -253,12 +250,10 @@ public:
                              OCIO_OPTIMIZATION_VERY_GOOD = 2,
                              OCIO_OPTIMIZATION_GOOD      = 3,
                              OCIO_OPTIMIZATION_DRAFT     = 4 };
-
     bool useOCIO() { return m_useOCIO; }
     const std::string& ocioColorSpace() { return m_ocioColourSpace; }
     const std::string& ocioDisplay() { return m_ocioDisplay; }
     const std::string& ocioView() { return m_ocioView; }
-    //    const std::string& ocioLook() { return m_ocioLook; }
     OCIO_OPTIMIZATION ocioOptimization() { return m_ocioOptimization; }
 #endif
 
@@ -447,19 +442,16 @@ private:
 
     QMenu* ocioColorSpacesMenu;
     QMenu* ocioDisplaysMenu;
-//    QMenu* ocioLooksMenu;
     QMenu* ocioOptimizationMenu;
 
     QActionGroup* ocioColorSpacesGroup;
     QActionGroup* ocioDisplayViewsGroup;
-//    QActionGroup* ocioLooksGroup;
     QActionGroup* ocioOptimizationGroup;
 
     bool m_useOCIO;
     std::string m_ocioColourSpace;
     std::string m_ocioDisplay;
     std::string m_ocioView;
-    //    std::string m_ocioLook;
     OCIO_OPTIMIZATION m_ocioOptimization;
 #endif
 };
