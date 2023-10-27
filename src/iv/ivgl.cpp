@@ -23,7 +23,6 @@
 
 #ifdef USE_OCIO
 #    include <OpenColorIO/OpenColorIO.h>
-#    include <OpenColorIO/oglapphelpers/glsl.h>
 namespace OCIO = OCIO_NAMESPACE;
 #endif
 
