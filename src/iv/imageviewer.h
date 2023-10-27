@@ -39,6 +39,13 @@
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imageio.h>
 
+#ifdef USE_OCIO
+#   include <OpenColorIO/OpenColorIO.h>
+#   if OCIO_VERSION_MAJOR >= 2
+#       define HAS_OCIO_2
+#   endif
+#endif
+
 using namespace OIIO;
 
 class QComboBox;

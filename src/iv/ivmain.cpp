@@ -58,7 +58,7 @@ getargs(int argc, char* argv[])
     ap.arg("--rawcolor")
       .help("Do not automatically transform to RGB");
 
-#ifdef USE_OCIO
+#ifdef HAS_OCIO_2
     ap.arg("--display")
       .help("OCIO display")
       .metavar("STRING")
@@ -110,7 +110,7 @@ main(int argc, char* argv[])
     //    Q_INIT_RESOURCE(iv);
     QApplication app(argc, argv);
     
-#ifdef USE_OCIO
+#ifdef HAS_OCIO_2
     std::string color_space = ap["image-color-space"].as_string("");
     std::string display     = ap["display"].as_string("");
     std::string view        = ap["view"].as_string("");

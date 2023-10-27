@@ -108,7 +108,7 @@ ImageViewer::ImageViewer(bool use_ocio, const std::string& image_color_space,
     , m_fullscreen(false)
     , m_default_gamma(1)
     , m_darkPalette(false)
-#ifdef USE_OCIO
+#ifdef HAS_OCIO
     , m_useOCIO(use_ocio)
     , m_ocioColourSpace(image_color_space)
     , m_ocioDisplay(display)
@@ -453,7 +453,7 @@ ImageViewer::createActions()
             SLOT(setSlideShowDuration(int)));
 }
 
-#ifdef USE_OCIO
+#ifdef HAS_OCIO_2
 
 void
 ImageViewer::createOCIOMenus(QMenu* parent)
@@ -685,7 +685,7 @@ ImageViewer::createMenus()
     viewMenu->addMenu(channelMenu);
     viewMenu->addMenu(colormodeMenu);
 
-#ifdef USE_OCIO
+#ifdef HAS_OCIO_2
     createOCIOMenus(viewMenu);
 #endif
 

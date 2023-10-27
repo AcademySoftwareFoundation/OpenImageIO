@@ -21,6 +21,12 @@
 #include <OpenImageIO/timer.h>
 
 #ifdef USE_OCIO
+#   if OCIO_VERSION_MAJOR >= 2
+#       define HAS_OCIO
+#   endif
+#endif
+
+#ifdef HAS_OCIO_2
 #    include <OpenColorIO/OpenColorIO.h>
 #    include "glsl.h"
 namespace OCIO = OCIO_NAMESPACE;
@@ -55,7 +61,7 @@ gl_err_to_string(GLenum err)
         std::cerr << "GL error " << msg << " " << (int)err << " - "         \
                   << gl_err_to_string(err) << "\n";
 
-#ifdef USE_OCIO
+#ifdef HAS_OCIO_2
 class IvGL::Impl {
 public:
     std::string current_color_space;
@@ -90,7 +96,7 @@ IvGL::IvGL(QWidget* parent, ImageViewer& viewer)
     , m_current_image(NULL)
     , m_pixelview_left_corner(true)
     , m_last_texbuf_used(0)
-#ifdef USE_OCIO
+#ifdef HAS_OCIO_2
     , pImpl(std::make_unique<Impl>())
 #endif
 {
@@ -592,7 +598,7 @@ IvGL::paintGL()
     // Recentered so that the pixel space (m_centerx,m_centery) position is
     // at the center of the visible window.
 
-#ifdef USE_OCIO
+#ifdef HAS_OCIO_2
     if (m_viewer.useOCIO())
         update_ocio_state();
 #endif
@@ -949,7 +955,7 @@ IvGL::useshader(int tex_width, int tex_height, bool pixelview)
 
     unsigned program;
 
-#ifdef USE_OCIO
+#ifdef HAS_OCIO_2
     if (m_viewer.useOCIO() && pImpl->openGLBuilder) {
         pImpl->openGLBuilder->useProgram();
         GLERRPRINT("OCIO After use program");
@@ -1004,7 +1010,7 @@ IvGL::useshader(int tex_width, int tex_height, bool pixelview)
 
     loc = glGetUniformLocation(program, "useocio");
 
-#ifdef USE_OCIO
+#ifdef HAS_OCIO_2
     glUniform1i(loc, m_viewer.useOCIO() && pImpl->openGLBuilder);
 #else
     glUniform1i(loc, false);
@@ -1603,7 +1609,7 @@ IvGL::is_too_big(float width, float height)
     return tiles > m_texbufs.size();
 }
 
-#ifdef USE_OCIO
+#ifdef HAS_OCIO_2
 void
 IvGL::update_ocio_state()
 {
