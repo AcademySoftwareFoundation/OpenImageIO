@@ -4,6 +4,7 @@
 
 #include "ivgl.h"
 #include "imageviewer.h"
+#include "glsl.h"
 
 #include <iostream>
 
@@ -64,7 +65,7 @@ public:
     std::string current_look;
     OCIO::OptimizationFlags current_optimization;
 
-    OCIO::OpenGLBuilderRcPtr openGLBuilder;
+    OIIO_OCIO::OpenGLBuilderRcPtr openGLBuilder;
     OCIO::DynamicPropertyDoubleRcPtr gamma_property;
     OCIO::DynamicPropertyDoubleRcPtr exposure_property;
 };
@@ -1631,12 +1632,6 @@ IvGL::update_ocio_state()
         update_shader       = true;
     }
 
-    //    const char* ocio_look = m_viewer.ocioLook().c_str();
-    //    if (pImpl->current_look != ocio_look) {
-    //        pImpl->current_look = ocio_look;
-    //        update_shader       = true;
-    //    }
-
     OCIO::OptimizationFlags ocio_optimization;
 
     switch (m_viewer.ocioOptimization()) {
@@ -1721,13 +1716,13 @@ IvGL::update_ocio_state()
                 = processor->getOptimizedGPUProcessor(ocio_optimization);
             gpuProcessor->extractGpuShaderInfo(shaderDesc);
 
-            pImpl->openGLBuilder = OCIO::OpenGLBuilder::Create(shaderDesc);
+            pImpl->openGLBuilder = OIIO_OCIO::OpenGLBuilder::Create(shaderDesc, context());
             pImpl->openGLBuilder->allocateAllTextures(m_texbufs.size() + 1);
 
             unsigned program = pImpl->openGLBuilder->getProgramHandle();
             glAttachShader(program, m_vertex_shader);
 
-            pImpl->openGLBuilder->buildProgram(fragment_source, false);
+            pImpl->openGLBuilder->buildProgram(fragment_source, false, context());
 
             OCIO::DynamicPropertyRcPtr prop1 = shaderDesc->getDynamicProperty(
                 OCIO::DYNAMIC_PROPERTY_GAMMA);

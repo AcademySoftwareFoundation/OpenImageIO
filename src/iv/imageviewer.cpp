@@ -95,10 +95,8 @@ static const char *s_file_filters = ""
 
 
 
-ImageViewer::ImageViewer(
-    bool use_ocio, const std::string& image_color_space,
-    const std::string& display, const std::string& view
-    )
+ImageViewer::ImageViewer(bool use_ocio, const std::string& image_color_space,
+                         const std::string& display, const std::string& view)
     : infoWindow(NULL)
     , preferenceWindow(NULL)
     , darkPaletteBox(NULL)
@@ -463,7 +461,6 @@ ImageViewer::createOCIOMenus(QMenu* parent)
 {
     ocioColorSpacesMenu  = new QMenu(tr("Image color space"));
     ocioDisplaysMenu     = new QMenu(tr("Display/View"));
-    //    ocioLooksMenu        = new QMenu(tr("Look override"));
     ocioOptimizationMenu = new QMenu(tr("Optimization"));
 
     try {
@@ -550,27 +547,6 @@ ImageViewer::createOCIOMenus(QMenu* parent)
             }
         }
 
-        //        ocioLooksGroup = new QActionGroup(ocioLooksMenu);
-        //        ocioLooksGroup->setExclusive(true);
-        //        ocioLooksGroup->setExclusionPolicy(
-        //            QActionGroup::ExclusionPolicy::ExclusiveOptional);
-        //
-        //        for (int i = 0; i < config.getNumLooks(); i++) {
-        //            const char* look = config.getLookNameByIndex(i);
-        //
-        //            if (look && *look) {
-        //                QAction* action = new QAction(look, this);
-        //                action->setCheckable(true);
-        //                action->setChecked(m_ocioLook == look);
-        //
-        //                connect(action, SIGNAL(triggered()), this,
-        //                        SLOT(ocioLookAction()));
-        //
-        //                ocioLooksGroup->addAction(action);
-        //                ocioLooksMenu->addAction(action);
-        //            }
-        //        }
-
         const char* optimizationModeName[] = { "None", "Lossless", "Very good",
                                                "Good", "Draft" };
 
@@ -607,7 +583,6 @@ ImageViewer::createOCIOMenus(QMenu* parent)
     ocioMenu->addAction(action);
     ocioMenu->addMenu(ocioColorSpacesMenu);
     ocioMenu->addMenu(ocioDisplaysMenu);
-    //    ocioMenu->addMenu(ocioLooksMenu);
     ocioMenu->addMenu(ocioOptimizationMenu);
 
     parent->addMenu(ocioMenu);
@@ -620,7 +595,6 @@ ImageViewer::useOCIOAction(bool checked)
 
     ocioColorSpacesMenu->setEnabled(m_useOCIO);
     ocioDisplaysMenu->setEnabled(m_useOCIO);
-    //    ocioLooksMenu->setEnabled(m_useOCIO);
     ocioOptimizationMenu->setEnabled(m_useOCIO);
 
     displayCurrentImage();
@@ -647,18 +621,6 @@ ImageViewer::ocioDisplayViewAction()
         displayCurrentImage();
     }
 }
-
-//void
-//ImageViewer::ocioLookAction()
-//{
-//    QAction* action = ocioLooksGroup->checkedAction();
-//    if (action) {
-//        m_ocioLook = action->text().toStdString();
-//    } else {
-//        m_ocioLook = "";
-//    }
-//    displayCurrentImage();
-//}
 
 void
 ImageViewer::ocioOptimizationAction()

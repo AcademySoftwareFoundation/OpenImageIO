@@ -144,10 +144,8 @@ class ImageViewer final : public QMainWindow {
     Q_OBJECT
 
 public:
-    ImageViewer(
-        bool use_ocio, const std::string& image_color_space,
-        const std::string& display, const std::string& view
-    );
+    ImageViewer(bool use_ocio, const std::string& image_color_space,
+                const std::string& display, const std::string& view);
     ~ImageViewer();
 
     enum COLOR_MODE {
@@ -354,8 +352,6 @@ private:
 #ifndef QT_NO_PRINTER
     // QPrinter printer;
 #endif
-
-
 
 
     QAction *openAct, *reloadAct, *closeImgAct;

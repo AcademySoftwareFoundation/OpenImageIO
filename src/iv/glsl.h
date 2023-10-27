@@ -9,9 +9,13 @@
 #include <vector>
 
 #include <OpenColorIO/OpenColorIO.h>
+#include <QOpenGLFunctions>
 
 
-namespace OCIO_NAMESPACE
+using namespace OCIO_NAMESPACE;
+
+
+namespace OIIO_OCIO
 {
 
 class OpenGLBuilder;
@@ -21,7 +25,7 @@ typedef OCIO_SHARED_PTR<OpenGLBuilder> OpenGLBuilderRcPtr;
 // This is a reference implementation showing how to do the texture upload & allocation,
 // and the program compilation for the GLSL shader language.
 
-class OpenGLBuilder
+class OpenGLBuilder: protected QOpenGLFunctions
 {
     struct TextureId
     {
@@ -44,10 +48,10 @@ class OpenGLBuilder
     typedef std::vector<TextureId> TextureIds;
 
     // Uniform are used for dynamic parameters.
-    class Uniform
+    class Uniform: protected QOpenGLFunctions
     {
     public:
-        Uniform(const std::string & name, const GpuShaderDesc::UniformData & data);
+        Uniform(const std::string & name, const GpuShaderDesc::UniformData & data, QOpenGLContext *context);
 
         void setUp(unsigned program);
 
@@ -64,7 +68,7 @@ class OpenGLBuilder
 
 public:
     // Create an OpenGL builder using the GPU shader information from a specific processor
-    static OpenGLBuilderRcPtr Create(const GpuShaderDescRcPtr & gpuShader);
+    static OpenGLBuilderRcPtr Create(const GpuShaderDescRcPtr & gpuShader, QOpenGLContext *context);
 
     ~OpenGLBuilder();
 
@@ -81,19 +85,19 @@ public:
 
     // Build the complete shader program which includes the OCIO shader program 
     // and the client shader program.
-    unsigned buildProgram(const std::string & clientShaderProgram, bool standaloneShader);
+    unsigned buildProgram(const std::string & clientShaderProgram, bool standaloneShader, QOpenGLContext *context);
     void useProgram();
     unsigned getProgramHandle();
 
     // Determine the maximum width value of a texture
     // depending of the graphic card and its driver.
-    static unsigned GetTextureMaxWidth();
+    /*static*/ unsigned GetTextureMaxWidth();
 
 protected:
-    OpenGLBuilder(const GpuShaderDescRcPtr & gpuShader);
+    OpenGLBuilder(const GpuShaderDescRcPtr & gpuShader, QOpenGLContext *context);
 
     // Prepare all the needed uniforms.
-    void linkAllUniforms();
+    void linkAllUniforms(QOpenGLContext *context);
 
     void deleteAllTextures();
     void deleteAllUniforms();
@@ -117,7 +121,7 @@ private:
     bool m_verbose;                        // Print shader code to std::cout for debugging purposes
 };
 
-} // namespace OCIO_NAMESPACE
+} // namespace OIIO_OCIO
 
 #endif // INCLUDED_OCIO_GLSL_H
 

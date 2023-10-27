@@ -3,21 +3,21 @@
 
 // clang-format off
 
-#ifdef __APPLE__
-
-#include <OpenGL/gl.h>
-#include <OpenGL/glext.h>
-
-#elif _WIN32
-
-#include <GL/glew.h>
-
-#else
-
-#include <GL/glew.h>
-#include <GL/gl.h>
-
-#endif
+//#ifdef __APPLE__
+//
+//#include <OpenGL/gl.h>
+//#include <OpenGL/glext.h>
+//
+//#elif _WIN32
+//
+//#include <GL/glew.h>
+//
+//#else
+//
+//#include <GL/glew.h>
+//#include <GL/gl.h>
+//
+//#endif
 
 #include <sstream>
 #include <iostream>
@@ -26,9 +26,9 @@
 
 #include "glsl.h"
 
+using namespace OCIO_NAMESPACE;
 
-
-namespace OCIO_NAMESPACE
+namespace OIIO_OCIO
 {
 
 namespace
@@ -205,8 +205,9 @@ void LinkShaders(GLuint program, GLuint fragShader)
 
 //////////////////////////////////////////////////////////
 
-OpenGLBuilder::Uniform::Uniform(const std::string & name, const GpuShaderDesc::UniformData & data)
-    : m_name(name)
+OpenGLBuilder::Uniform::Uniform(const std::string & name, const GpuShaderDesc::UniformData & data, QOpenGLContext *context)
+    : QOpenGLFunctions(context)
+    , m_name(name)
     , m_data(data)
     , m_handle(0)
 {
@@ -262,13 +263,14 @@ void OpenGLBuilder::Uniform::use()
 
 //////////////////////////////////////////////////////////
 
-OpenGLBuilderRcPtr OpenGLBuilder::Create(const GpuShaderDescRcPtr & shaderDesc)
+OpenGLBuilderRcPtr OpenGLBuilder::Create(const GpuShaderDescRcPtr & shaderDesc, QOpenGLContext *context)
 {
-    return OpenGLBuilderRcPtr(new OpenGLBuilder(shaderDesc));
+    return OpenGLBuilderRcPtr(new OpenGLBuilder(shaderDesc, context));
 }
 
-OpenGLBuilder::OpenGLBuilder(const GpuShaderDescRcPtr & shaderDesc)
-    :   m_shaderDesc(shaderDesc)
+OpenGLBuilder::OpenGLBuilder(const GpuShaderDescRcPtr & shaderDesc, QOpenGLContext *context)
+    :   QOpenGLFunctions(context)
+    ,   m_shaderDesc(shaderDesc)
     ,   m_startIndex(0)
     ,   m_fragShader(0)
     ,   m_program(glCreateProgram())
@@ -410,7 +412,7 @@ void OpenGLBuilder::useAllTextures()
     }
 }
 
-void OpenGLBuilder::linkAllUniforms()
+void OpenGLBuilder::linkAllUniforms(QOpenGLContext *context)
 {
     deleteAllUniforms();
 
@@ -424,7 +426,7 @@ void OpenGLBuilder::linkAllUniforms()
             throw Exception("Unknown uniform type.");
         }
         // Transfer uniform.
-        m_uniforms.emplace_back(name, data);
+        m_uniforms.emplace_back(name, data, context);
         // Connect uniform with program.
         m_uniforms.back().setUp(m_program);
     }
@@ -469,7 +471,7 @@ std::string OpenGLBuilder::getGLSLVersionString()
     }
 }
 
-unsigned OpenGLBuilder::buildProgram(const std::string & clientShaderProgram, bool standaloneShader)
+unsigned OpenGLBuilder::buildProgram(const std::string & clientShaderProgram, bool standaloneShader, QOpenGLContext *context)
 {
     const std::string shaderCacheID = m_shaderDesc->getCacheID();
     if(shaderCacheID!=m_shaderCacheID)
@@ -498,7 +500,7 @@ unsigned OpenGLBuilder::buildProgram(const std::string & clientShaderProgram, bo
         LinkShaders(m_program, m_fragShader);
         m_shaderCacheID = shaderCacheID;
 
-        linkAllUniforms();
+        linkAllUniforms(context);
     }
 
     return m_program;
@@ -579,4 +581,4 @@ unsigned OpenGLBuilder::GetTextureMaxWidth()
     return w;
 }
 
-} // namespace OCIO_NAMESPACE
+} // namespace OIIO_OCIO
