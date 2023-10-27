@@ -36,12 +36,12 @@ bool OpenGLBuilder::GetGLError(std::string & error)
     const GLenum glErr = glGetError();
     if(glErr!=GL_NO_ERROR)
     {
-#ifdef __APPLE__
+//#ifdef __APPLE__
         // Unfortunately no gluErrorString equivalent on Mac.
         error = "OpenGL Error";
-#else
-        error = (const char*)gluErrorString(glErr);
-#endif
+//#else
+//        error = (const char*)gluErrorString(glErr);
+//#endif
         return true;
     }
     return false;
