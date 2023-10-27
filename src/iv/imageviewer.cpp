@@ -15,6 +15,7 @@
 
 #include "imageviewer.h"
 #include "ivgl.h"
+#include "ivgl_ocio.h"
 
 #include <QApplication>
 #include <QComboBox>
@@ -108,12 +109,12 @@ ImageViewer::ImageViewer(bool use_ocio, const std::string& image_color_space,
     , m_fullscreen(false)
     , m_default_gamma(1)
     , m_darkPalette(false)
-#ifdef HAS_OCIO
+#ifdef HAS_OCIO_2
     , m_useOCIO(use_ocio)
     , m_ocioColourSpace(image_color_space)
     , m_ocioDisplay(display)
     , m_ocioView(view)
-#endif
+#endif  // HAS_OCIO_2
 {
     readSettings(false);
 
@@ -135,7 +136,13 @@ ImageViewer::ImageViewer(bool use_ocio, const std::string& image_color_space,
     slideTimer       = new QTimer();
     slideDuration_ms = 5000;
     slide_loop       = true;
-    glwin            = new IvGL(this, *this);
+
+#ifdef HAS_OCIO_2
+    glwin = new IvGL_OCIO(this, *this);
+#else
+    glwin = new IvGL(this, *this);
+#endif
+
     glwin->setPalette(m_palette);
     glwin->resize(m_default_width, m_default_height);
     setCentralWidget(glwin);
@@ -458,8 +465,8 @@ ImageViewer::createActions()
 void
 ImageViewer::createOCIOMenus(QMenu* parent)
 {
-    ocioColorSpacesMenu  = new QMenu(tr("Image color space"));
-    ocioDisplaysMenu     = new QMenu(tr("Display/View"));
+    ocioColorSpacesMenu = new QMenu(tr("Image color space"));
+    ocioDisplaysMenu    = new QMenu(tr("Display/View"));
 
     try {
         ColorConfig config;
@@ -597,7 +604,7 @@ ImageViewer::ocioDisplayViewAction()
     }
 }
 
-#endif
+#endif  // HAS_OCIO_2
 
 void
 ImageViewer::createMenus()
@@ -1035,7 +1042,13 @@ void
 ImageViewer::moveToNewWindow()
 {
     if (m_images.size()) {
-        ImageViewer* imageViewer = new ImageViewer();
+#ifdef HAS_OCIO_2
+        ImageViewer* imageViewer = new ImageViewer(m_useOCIO, m_ocioColourSpace,
+                                                   m_ocioDisplay, m_ocioView);
+#else
+        std::string dummy;
+        ImageViewer* imageViewer = new ImageViewer(false, dummy, dummy, dummy);
+#endif
 
         imageViewer->show();
         imageViewer->rawcolor(rawcolor());

@@ -114,10 +114,12 @@ main(int argc, char* argv[])
     std::string color_space = ap["image-color-space"].as_string("");
     std::string display     = ap["display"].as_string("");
     std::string view        = ap["view"].as_string("");
+    //    std::string look = ap["look"].as_string("");
     
     bool use_ocio = color_space != "" && display != "" && view != "";
     
-    ImageViewer* mainWin = new ImageViewer(use_ocio, color_space, display, view);
+    ImageViewer* mainWin = new ImageViewer(use_ocio, color_space, display, 
+                                           view);
 #else
     std::string dummy;
     ImageViewer* mainWin = new ImageViewer(false, dummy, dummy, dummy);

@@ -20,18 +20,6 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/timer.h>
 
-#ifdef USE_OCIO
-#   if OCIO_VERSION_MAJOR >= 2
-#       define HAS_OCIO
-#   endif
-#endif
-
-#ifdef HAS_OCIO_2
-#    include <OpenColorIO/OpenColorIO.h>
-#    include "glsl.h"
-namespace OCIO = OCIO_NAMESPACE;
-#endif
-
 OIIO_PRAGMA_WARNING_PUSH
 #if defined(__APPLE__)
 // Apple deprecates OpenGL calls, ugh
@@ -55,28 +43,6 @@ gl_err_to_string(GLenum err)
     }
 }
 
-
-#define GLERRPRINT(msg)                                                     \
-    for (GLenum err = glGetError(); err != GL_NO_ERROR; err = glGetError()) \
-        std::cerr << "GL error " << msg << " " << (int)err << " - "         \
-                  << gl_err_to_string(err) << "\n";
-
-#ifdef HAS_OCIO_2
-class IvGL::Impl {
-public:
-    std::string current_color_space;
-    std::string current_display;
-    std::string current_view;
-    std::string current_look;
-    OCIO::OptimizationFlags current_optimization;
-
-    OIIO_OCIO::OpenGLBuilderRcPtr openGLBuilder;
-    OCIO::DynamicPropertyDoubleRcPtr gamma_property;
-    OCIO::DynamicPropertyDoubleRcPtr exposure_property;
-};
-#endif
-
-
 IvGL::IvGL(QWidget* parent, ImageViewer& viewer)
     : QOpenGLWidget(parent)
     , m_viewer(viewer)
@@ -96,9 +62,6 @@ IvGL::IvGL(QWidget* parent, ImageViewer& viewer)
     , m_current_image(NULL)
     , m_pixelview_left_corner(true)
     , m_last_texbuf_used(0)
-#ifdef HAS_OCIO_2
-    , pImpl(std::make_unique<Impl>())
-#endif
 {
 #if 0
     QGLFormat format;
@@ -180,19 +143,19 @@ IvGL::create_textures(void)
     for (unsigned int texture : textures) {
         m_texbufs.emplace_back();
         glBindTexture(GL_TEXTURE_2D, texture);
-        GLERRPRINT("bind tex");
+        print_error("bind tex");
         glTexImage2D(GL_TEXTURE_2D, 0 /*mip level*/,
                      4 /*internal format - color components */, 1 /*width*/,
                      1 /*height*/, 0 /*border width*/,
                      GL_RGBA /*type - GL_RGB, GL_RGBA, GL_LUMINANCE */,
                      GL_FLOAT /*format - GL_FLOAT */, NULL /*data*/);
-        GLERRPRINT("tex image 2d");
+        print_error("tex image 2d");
         // Initialize tex parameters.
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-        GLERRPRINT("After tex parameters");
+        print_error("After tex parameters");
         m_texbufs.back().tex_object = texture;
         m_texbufs.back().x          = 0;
         m_texbufs.back().y          = 0;
@@ -218,211 +181,231 @@ IvGL::create_textures(void)
     m_tex_created = true;
 }
 
-// clang-format off
-
-static const GLchar *vertex_source =
-    "varying vec2 vTexCoord;\n"
-    "void main ()\n"
-    "{\n"
-    "    vTexCoord = gl_MultiTexCoord0.xy;\n"
-    "    gl_Position = ftransform();\n"
-    "}\n";
-
-static const GLchar *fragment_source =
-    "uniform sampler2D imgtex;\n"
-    "varying vec2 vTexCoord;\n"
-    "uniform float gain;\n"
-    "uniform float gamma;\n"
-    "uniform int startchannel;\n"
-    "uniform int colormode;\n"
-    // Remember, if imgchannels == 2, second channel would be channel 4 (a).
-    "uniform int imgchannels;\n"
-    "uniform int pixelview;\n"
-    "uniform int linearinterp;\n"
-    "uniform int width;\n"
-    "uniform int height;\n"
-    "uniform bool useocio;\n"
-    "vec4 rgba_mode (vec4 C)\n"
-    "{\n"
-    "    if (imgchannels <= 2) {\n"
-    "        if (startchannel == 1)\n"
-    "           return vec4(C.aaa, 1.0);\n"
-    "        return C.rrra;\n"
-    "    }\n"
-    "    return C;\n"
-    "}\n"
-    "vec4 rgb_mode (vec4 C)\n"
-    "{\n"
-    "    if (imgchannels <= 2) {\n"
-    "        if (startchannel == 1)\n"
-    "           return vec4(C.aaa, 1.0);\n"
-    "        return vec4 (C.rrr, 1.0);\n"
-    "    }\n"
-    "    float C2[4];\n"
-    "    C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;\n"
-    "    return vec4 (C2[startchannel], C2[startchannel+1], C2[startchannel+2], 1.0);\n"
-    "}\n"
-    "vec4 singlechannel_mode (vec4 C)\n"
-    "{\n"
-    "    float C2[4];\n"
-    "    C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;\n"
-    "    if (startchannel > imgchannels)\n"
-    "        return vec4 (0.0,0.0,0.0,1.0);\n"
-    "    return vec4 (C2[startchannel], C2[startchannel], C2[startchannel], 1.0);\n"
-    "}\n"
-    "vec4 luminance_mode (vec4 C)\n"
-    "{\n"
-    "    if (imgchannels <= 2)\n"
-    "        return vec4 (C.rrr, C.a);\n"
-    "    float lum = dot (C.rgb, vec3(0.2126, 0.7152, 0.0722));\n"
-    "    return vec4 (lum, lum, lum, C.a);\n"
-    "}\n"
-    "float heat_red(float x)\n"
-    "{\n"
-    "    return clamp (mix(0.0, 1.0, (x-0.35)/(0.66-0.35)), 0.0, 1.0) -\n"
-    "           clamp (mix(0.0, 0.5, (x-0.89)/(1.0-0.89)), 0.0, 1.0);\n"
-    "}\n"
-    "float heat_green(float x)\n"
-    "{\n"
-    "    return clamp (mix(0.0, 1.0, (x-0.125)/(0.375-0.125)), 0.0, 1.0) -\n"
-    "           clamp (mix(0.0, 1.0, (x-0.64)/(0.91-0.64)), 0.0, 1.0);\n"
-    "}\n"
-    "vec4 heatmap_mode (vec4 C)\n"
-    "{\n"
-    "    float C2[4];\n"
-    "    C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;\n"
-    "    return vec4(heat_red(C2[startchannel]),\n"
-    "                heat_green(C2[startchannel]),\n"
-    "                heat_red(1.0-C2[startchannel]),\n"
-    "                1.0);\n"
-    "}\n"
-    "void main ()\n"
-    "{\n"
-    "    vec2 st = vTexCoord;\n"
-    "    float black = 0.0;\n"
-    "    if (pixelview != 0 || linearinterp == 0) {\n"
-    "        vec2 wh = vec2(width,height);\n"
-    "        vec2 onehalf = vec2(0.5,0.5);\n"
-    "        vec2 st_res = st * wh /* + onehalf */ ;\n"
-    "        vec2 st_pix = floor (st_res);\n"
-    "        vec2 st_rem = st_res - st_pix;\n"
-    "        st = (st_pix + onehalf) / wh;\n"
-    "        if (pixelview != 0) {\n"
-    "            if (st.x < 0.0 || st.x >= 1.0 || \n"
-    "                    st.y < 0.0 || st.y >= 1.0 || \n"
-    "                    st_rem.x < 0.05 || st_rem.x >= 0.95 || \n"
-    "                    st_rem.y < 0.05 || st_rem.y >= 0.95)\n"
-    "                black = 1.0;\n"
-    "        }\n"
-    "    }\n"
-    "    vec4 C = texture2D (imgtex, st);\n"
-    "    C = mix (C, vec4(0.05,0.05,0.05,1.0), black);\n"
-    "    if (startchannel < 0)\n"
-    "        C = vec4(0.0,0.0,0.0,1.0);\n"
-    "    else if (colormode == 0)\n" // RGBA
-    "        C = rgba_mode (C);\n"
-    "    else if (colormode == 1)\n" // RGB (i.e., ignore alpha).
-    "        C = rgb_mode (C);\n"
-    "    else if (colormode == 2)\n" // Single channel.
-    "        C = singlechannel_mode (C);\n"
-    "    else if (colormode == 3)\n" // Luminance.
-    "        C = luminance_mode (C);\n"
-    "    else if (colormode == 4)\n" // Heatmap.
-    "        C = heatmap_mode (C);\n"
-    "    if (pixelview != 0)\n"
-    "        C.a = 1.0;\n"
-    "    if (useocio) {\n"
-    "        C = OCIODisplay(C);\n"
-    "    }\n"
-    "    else {\n"
-    "        C.xyz *= gain;\n"
-    "        float invgamma = 1.0/gamma;\n"
-    "        C.xyz = pow (C.xyz, vec3 (invgamma, invgamma, invgamma));\n"
-    "    }\n"
-    "    gl_FragColor = C;\n"
-    "}\n";
-
-// clang-format on
-
+const char*
+IvGL::color_func_shader_text()
+{
+    // clang-format off
+    return
+        "uniform float gain;\n"
+        "uniform float gamma;\n"
+        "\n"
+        "vec4 ColorFunc(vec4 C)\n"
+        "{\n"
+        "    C.xyz *= gain;\n"
+        "    float invgamma = 1.0/gamma;\n"
+        "    C.xyz = pow (C.xyz, vec3 (invgamma, invgamma, invgamma));\n"
+        "    return C;\n"
+        "}\n";
+    // clang-format on
+}
 
 void
 IvGL::create_shaders(void)
 {
-    // This function is never called. It is only present here to avoid linker errors.
-
-    // clang-format off
-    static const GLchar *dummy_ocio_source =
-       "vec4 OCIODisplay(vec4 C)\n"
-       "{\n"
-       "    return C;\n"
-       "}\n";
-    // clang-format on
-
     if (!m_use_shaders) {
         std::cerr << "Not using shaders!\n";
         return;
     }
-    if (m_shaders_created)
+
+    const char* color_shader = color_func_shader_text();
+    if (m_color_shader_text != color_shader) {
+        if (m_shader_program) {
+            if (m_vertex_shader) {
+                glDetachShader(m_shader_program, m_vertex_shader);
+            }
+            glUseProgram(0);
+            glDeleteProgram(m_shader_program);
+            m_shader_program  = 0;
+            m_shaders_created = false;
+        }
+    }
+
+    if (m_shaders_created) {
         return;
-
-    //initialize shader object handles for abort function
-    m_shader_program  = 0;
-    m_vertex_shader   = 0;
-    m_fragment_shader = 0;
-
-    // When using extensions to support shaders, we need to load the function
-    // entry points (which is actually done by GLEW) and then call them. So
-    // we have to get the functions through the right symbols otherwise
-    // extension-based shaders won't work.
-    m_shader_program = glCreateProgram();
-
-    GLERRPRINT("create program");
+    }
 
     // This holds the compilation status
     GLint status;
 
-    m_vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(m_vertex_shader, 1, &vertex_source, NULL);
-    glCompileShader(m_vertex_shader);
-    glGetShaderiv(m_vertex_shader, GL_COMPILE_STATUS, &status);
+    if (!m_vertex_shader) {
+        // clang-format off
+        static const GLchar* vertex_source =
+            "varying vec2 vTexCoord;\n"
+            "void main ()\n"
+            "{\n"
+            "    vTexCoord = gl_MultiTexCoord0.xy;\n"
+            "    gl_Position = ftransform();\n"
+            "}\n";
+        // clang-format on
 
-    if (!status) {
-        std::cerr << "vertex shader compile status: " << status << "\n";
-        print_shader_log(std::cerr, m_vertex_shader);
-        create_shaders_abort();
-        return;
+        m_vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+        glShaderSource(m_vertex_shader, 1, &vertex_source, NULL);
+        glCompileShader(m_vertex_shader);
+        glGetShaderiv(m_vertex_shader, GL_COMPILE_STATUS, &status);
+
+        if (!status) {
+            std::cerr << "vertex shader compile status: " << status << "\n";
+            print_shader_log(std::cerr, m_vertex_shader);
+            create_shaders_abort();
+            return;
+        }
     }
-    glAttachShader(m_shader_program, m_vertex_shader);
-    GLERRPRINT("After attach vertex shader.");
 
-    const char* fragment_sources[] = { dummy_ocio_source, fragment_source };
+    // clang-format off
+    static const GLchar* fragment_source =
+        "uniform sampler2D imgtex;\n"
+        "varying vec2 vTexCoord;\n"
+        "uniform int startchannel;\n"
+        "uniform int colormode;\n"
+        // Remember, if imgchannels == 2, second channel would be channel 4 (a).
+        "uniform int imgchannels;\n"
+        "uniform int pixelview;\n"
+        "uniform int linearinterp;\n"
+        "uniform int width;\n"
+        "uniform int height;\n"
+        "vec4 rgba_mode (vec4 C)\n"
+        "{\n"
+        "    if (imgchannels <= 2) {\n"
+        "        if (startchannel == 1)\n"
+        "           return vec4(C.aaa, 1.0);\n"
+        "        return C.rrra;\n"
+        "    }\n"
+        "    return C;\n"
+        "}\n"
+        "vec4 rgb_mode (vec4 C)\n"
+        "{\n"
+        "    if (imgchannels <= 2) {\n"
+        "        if (startchannel == 1)\n"
+        "           return vec4(C.aaa, 1.0);\n"
+        "        return vec4 (C.rrr, 1.0);\n"
+        "    }\n"
+        "    float C2[4];\n"
+        "    C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;\n"
+        "    return vec4 (C2[startchannel], C2[startchannel+1], C2[startchannel+2], 1.0);\n"
+        "}\n"
+        "vec4 singlechannel_mode (vec4 C)\n"
+        "{\n"
+        "    float C2[4];\n"
+        "    C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;\n"
+        "    if (startchannel > imgchannels)\n"
+        "        return vec4 (0.0,0.0,0.0,1.0);\n"
+        "    return vec4 (C2[startchannel], C2[startchannel], C2[startchannel], 1.0);\n"
+        "}\n"
+        "vec4 luminance_mode (vec4 C)\n"
+        "{\n"
+        "    if (imgchannels <= 2)\n"
+        "        return vec4 (C.rrr, C.a);\n"
+        "    float lum = dot (C.rgb, vec3(0.2126, 0.7152, 0.0722));\n"
+        "    return vec4 (lum, lum, lum, C.a);\n"
+        "}\n"
+        "float heat_red(float x)\n"
+        "{\n"
+        "    return clamp (mix(0.0, 1.0, (x-0.35)/(0.66-0.35)), 0.0, 1.0) -\n"
+        "           clamp (mix(0.0, 0.5, (x-0.89)/(1.0-0.89)), 0.0, 1.0);\n"
+        "}\n"
+        "float heat_green(float x)\n"
+        "{\n"
+        "    return clamp (mix(0.0, 1.0, (x-0.125)/(0.375-0.125)), 0.0, 1.0) -\n"
+        "           clamp (mix(0.0, 1.0, (x-0.64)/(0.91-0.64)), 0.0, 1.0);\n"
+        "}\n"
+        "vec4 heatmap_mode (vec4 C)\n"
+        "{\n"
+        "    float C2[4];\n"
+        "    C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;\n"
+        "    return vec4(heat_red(C2[startchannel]),\n"
+        "                heat_green(C2[startchannel]),\n"
+        "                heat_red(1.0-C2[startchannel]),\n"
+        "                1.0);\n"
+        "}\n"
+        "void main ()\n"
+        "{\n"
+        "    vec2 st = vTexCoord;\n"
+        "    float black = 0.0;\n"
+        "    if (pixelview != 0 || linearinterp == 0) {\n"
+        "        vec2 wh = vec2(width,height);\n"
+        "        vec2 onehalf = vec2(0.5,0.5);\n"
+        "        vec2 st_res = st * wh /* + onehalf */ ;\n"
+        "        vec2 st_pix = floor (st_res);\n"
+        "        vec2 st_rem = st_res - st_pix;\n"
+        "        st = (st_pix + onehalf) / wh;\n"
+        "        if (pixelview != 0) {\n"
+        "            if (st.x < 0.0 || st.x >= 1.0 || \n"
+        "                    st.y < 0.0 || st.y >= 1.0 || \n"
+        "                    st_rem.x < 0.05 || st_rem.x >= 0.95 || \n"
+        "                    st_rem.y < 0.05 || st_rem.y >= 0.95)\n"
+        "                black = 1.0;\n"
+        "        }\n"
+        "    }\n"
+        "    vec4 C = texture2D (imgtex, st);\n"
+        "    C = mix (C, vec4(0.05,0.05,0.05,1.0), black);\n"
+        "    if (startchannel < 0)\n"
+        "        C = vec4(0.0,0.0,0.0,1.0);\n"
+        "    else if (colormode == 0)\n" // RGBA
+        "        C = rgba_mode (C);\n"
+        "    else if (colormode == 1)\n" // RGB (i.e., ignore alpha).
+        "        C = rgb_mode (C);\n"
+        "    else if (colormode == 2)\n" // Single channel.
+        "        C = singlechannel_mode (C);\n"
+        "    else if (colormode == 3)\n" // Luminance.
+        "        C = luminance_mode (C);\n"
+        "    else if (colormode == 4)\n" // Heatmap.
+        "        C = heatmap_mode (C);\n"
+        "    if (pixelview != 0)\n"
+        "        C.a = 1.0;\n"
+        "    C = ColorFunc(C);\n"
+        "    gl_FragColor = C;\n"
+        "}\n";
+    // clang-format on
 
-    m_fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(m_fragment_shader, 2, fragment_sources, NULL);
-    glCompileShader(m_fragment_shader);
-    glGetShaderiv(m_fragment_shader, GL_COMPILE_STATUS, &status);
+    const char* fragment_sources[] = { "#version 120\n", color_shader,
+                                       fragment_source };
+    m_color_shader_text            = color_shader;
+
+    GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragment_shader, 3, fragment_sources, NULL);
+    glCompileShader(fragment_shader);
+    glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &status);
     if (!status) {
         std::cerr << "fragment shader compile status: " << status << "\n";
-        print_shader_log(std::cerr, m_fragment_shader);
+        print_shader_log(std::cerr, fragment_shader);
         create_shaders_abort();
         return;
     }
-    glAttachShader(m_shader_program, m_fragment_shader);
-    GLERRPRINT("After attach fragment shader");
 
-    glLinkProgram(m_shader_program);
-    GLERRPRINT("link");
-    GLint linked;
-    glGetProgramiv(m_shader_program, GL_LINK_STATUS, &linked);
-    if (!linked) {
-        std::cerr << "NOT LINKED\n";
-        char buf[10000];
-        buf[0] = 0;
-        GLsizei len;
-        glGetProgramInfoLog(m_shader_program, sizeof(buf), &len, buf);
-        std::cerr << "link log:\n" << buf << "---\n";
-        create_shaders_abort();
-        return;
+    if (!m_shader_program) {
+        // When using extensions to support shaders, we need to load the
+        // function entry points (which is actually done by GLEW) and then call
+        // them. So we have to get the functions through the right symbols
+        // otherwise extension-based shaders won't work.
+        m_shader_program = glCreateProgram();
+        print_error("create program");
+
+        glAttachShader(m_shader_program, m_vertex_shader);
+        print_error("After attach vertex shader.");
+
+        glAttachShader(m_shader_program, fragment_shader);
+        print_error("After attach fragment shader");
+
+        glLinkProgram(m_shader_program);
+        print_error("link");
+        GLint linked;
+        glGetProgramiv(m_shader_program, GL_LINK_STATUS, &linked);
+        if (!linked) {
+            std::cerr << "NOT LINKED\n";
+            char buf[10000];
+            buf[0] = 0;
+            GLsizei len;
+            glGetProgramInfoLog(m_shader_program, sizeof(buf), &len, buf);
+            std::cerr << "link log:\n" << buf << "---\n";
+            create_shaders_abort();
+            return;
+        }
+
+        glDetachShader(m_shader_program, fragment_shader);
+        print_error("After detach fragment shader");
+
+        glDeleteShader(fragment_shader);
+        print_error("After delete fragment shader");
     }
 
     m_shaders_created = true;
@@ -438,10 +421,8 @@ IvGL::create_shaders_abort(void)
         glDeleteProgram(m_shader_program);
     if (m_vertex_shader)
         glDeleteShader(m_vertex_shader);
-    if (m_fragment_shader)
-        glDeleteShader(m_fragment_shader);
 
-    GLERRPRINT("After delete shaders");
+    print_error("After delete shaders");
     m_use_shaders = false;
 }
 
@@ -450,7 +431,7 @@ IvGL::create_shaders_abort(void)
 void
 IvGL::resizeGL(int w, int h)
 {
-    GLERRPRINT("resizeGL entry");
+    print_error("resizeGL entry");
     glViewport(0, 0, w, h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -461,7 +442,7 @@ IvGL::resizeGL(int w, int h)
     glMatrixMode(GL_MODELVIEW);
 
     clamp_view_to_window();
-    GLERRPRINT("resizeGL exit");
+    print_error("resizeGL exit");
 }
 
 
@@ -598,10 +579,7 @@ IvGL::paintGL()
     // Recentered so that the pixel space (m_centerx,m_centery) position is
     // at the center of the visible window.
 
-#ifdef HAS_OCIO_2
-    if (m_viewer.useOCIO())
-        update_ocio_state();
-#endif
+    update_state();
 
     useshader(m_texture_width, m_texture_height);
 
@@ -828,7 +806,7 @@ IvGL::paint_pixelview()
         glBindTexture(GL_TEXTURE_2D, m_pixelview_tex);
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, xend - xbegin, yend - ybegin,
                         glformat, gltype, zoombuffer);
-        GLERRPRINT("After tsi2d");
+        print_error("After tsi2d");
     } else {
         smin = -1;
         smax = -1;
@@ -927,10 +905,6 @@ IvGL::paint_pixelview()
 void
 IvGL::useshader(int tex_width, int tex_height, bool pixelview)
 {
-    IvImage* img = m_viewer.cur();
-    if (!img)
-        return;
-
     if (!m_use_shaders) {
         glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
         for (auto&& tb : m_texbufs) {
@@ -950,85 +924,65 @@ IvGL::useshader(int tex_width, int tex_height, bool pixelview)
         return;
     }
 
-    const ImageSpec& spec(img->spec());
+    use_program();
+    update_uniforms(tex_width, tex_height, pixelview);
+}
 
-
-    unsigned program;
-
-#ifdef HAS_OCIO_2
-    if (m_viewer.useOCIO() && pImpl->openGLBuilder) {
-        pImpl->openGLBuilder->useProgram();
-        GLERRPRINT("OCIO After use program");
-        pImpl->openGLBuilder->useAllTextures();
-        GLERRPRINT("OCIO After use textures");
-
-        pImpl->exposure_property->setValue(img->exposure());
-        pImpl->gamma_property->setValue(
-            1.0 / std::max(1e-6, static_cast<double>(img->gamma())));
-        pImpl->openGLBuilder->useAllUniforms();
-        GLERRPRINT("OCIO After use uniforms");
-
-        program = pImpl->openGLBuilder->getProgramHandle();
-    } else {
-        glUseProgram(m_shader_program);
-        GLERRPRINT("After use program");
-
-        program = m_shader_program;
-    }
-#else
+void
+IvGL::use_program(void)
+{
     glUseProgram(m_shader_program);
-    GLERRPRINT("After use program");
+    print_error("After use program");
+}
 
-    program = m_shader_program;
-#endif
+void
+IvGL::update_uniforms(int tex_width, int tex_height, bool pixelview)
+{
+    IvImage* img = m_viewer.cur();
+    if (!img)
+        return;
+
+    const ImageSpec& spec(img->spec());
 
     GLint loc;
 
-    loc = glGetUniformLocation(program, "startchannel");
+    loc = glGetUniformLocation(m_shader_program, "startchannel");
     if (m_viewer.current_channel() >= spec.nchannels) {
         glUniform1i(loc, -1);
         return;
     }
     glUniform1i(loc, 0);
 
-    loc = glGetUniformLocation(program, "imgtex");
+    loc = glGetUniformLocation(m_shader_program, "imgtex");
     // This is the texture unit, not the texture object
     glUniform1i(loc, 0);
 
-    loc        = glGetUniformLocation(program, "gain");
+    loc        = glGetUniformLocation(m_shader_program, "gain");
     float gain = powf(2.0, img->exposure());
     glUniform1f(loc, gain);
 
-    loc = glGetUniformLocation(program, "gamma");
+    loc = glGetUniformLocation(m_shader_program, "gamma");
     glUniform1f(loc, img->gamma());
 
-    loc = glGetUniformLocation(program, "colormode");
+    loc = glGetUniformLocation(m_shader_program, "colormode");
     glUniform1i(loc, m_viewer.current_color_mode());
 
-    loc = glGetUniformLocation(program, "imgchannels");
+    loc = glGetUniformLocation(m_shader_program, "imgchannels");
     glUniform1i(loc, spec.nchannels);
 
-    loc = glGetUniformLocation(program, "useocio");
-
-#ifdef HAS_OCIO_2
-    glUniform1i(loc, m_viewer.useOCIO() && pImpl->openGLBuilder);
-#else
-    glUniform1i(loc, false);
-#endif
-
-    loc = glGetUniformLocation(program, "pixelview");
+    loc = glGetUniformLocation(m_shader_program, "pixelview");
     glUniform1i(loc, pixelview);
 
-    loc = glGetUniformLocation(program, "linearinterp");
+    loc = glGetUniformLocation(m_shader_program, "linearinterp");
     glUniform1i(loc, m_viewer.linearInterpolation());
 
-    loc = glGetUniformLocation(program, "width");
+    loc = glGetUniformLocation(m_shader_program, "width");
     glUniform1i(loc, tex_width);
 
-    loc = glGetUniformLocation(program, "height");
+    loc = glGetUniformLocation(m_shader_program, "height");
     glUniform1i(loc, tex_height);
 
-    GLERRPRINT("After setting uniforms");
+    print_error("After setting uniforms");
 }
 
 
@@ -1074,14 +1028,14 @@ IvGL::update()
         glTexImage2D(GL_TEXTURE_2D, 0 /*mip level*/, glinternalformat,
                      m_texture_width, m_texture_height, 0 /*border width*/,
                      glformat, gltype, NULL /*data*/);
-        GLERRPRINT("Setting up texture");
+        print_error("Setting up texture");
     }
 
     // Set the right type for the texture used for pixelview.
     glBindTexture(GL_TEXTURE_2D, m_pixelview_tex);
     glTexImage2D(GL_TEXTURE_2D, 0, glinternalformat, closeuptexsize,
                  closeuptexsize, 0, glformat, gltype, NULL);
-    GLERRPRINT("Setting up pixelview texture");
+    print_error("Setting up pixelview texture");
 
     // Resize the buffer at once, rather than create one each drawing.
     m_tex_buffer.resize(m_texture_width * m_texture_height * nchannels
@@ -1584,17 +1538,17 @@ IvGL::load_texture(int x, int y, int width, int height)
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo_objects[m_last_pbo_used]);
     glBufferData(GL_PIXEL_UNPACK_BUFFER, width * height * spec.pixel_bytes(),
                  &m_tex_buffer[0], GL_STREAM_DRAW);
-    GLERRPRINT("After buffer data");
+    print_error("After buffer data");
     m_last_pbo_used = (m_last_pbo_used + 1) & 1;
 
     // When using PBO this is the offset within the buffer.
     void* data = 0;
 
     glBindTexture(GL_TEXTURE_2D, tb.tex_object);
-    GLERRPRINT("After bind texture");
+    print_error("After bind texture");
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, glformat, gltype,
                     data);
-    GLERRPRINT("After loading sub image");
+    print_error("After loading sub image");
     m_last_texbuf_used = (m_last_texbuf_used + 1) % m_texbufs.size();
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 }
@@ -1609,129 +1563,18 @@ IvGL::is_too_big(float width, float height)
     return tiles > m_texbufs.size();
 }
 
-#ifdef HAS_OCIO_2
 void
-IvGL::update_ocio_state()
+IvGL::update_state(void)
 {
-    IvImage* img = m_viewer.cur();
-    if (!img)
-        return;
-
-    bool update_shader = false;
-
-    const char* ocio_color_space = m_viewer.ocioColorSpace().c_str();
-    if (pImpl->current_color_space != ocio_color_space) {
-        pImpl->current_color_space = ocio_color_space;
-        update_shader              = true;
-    }
-
-    const char* ocio_display = m_viewer.ocioDisplay().c_str();
-    if (pImpl->current_display != ocio_display) {
-        pImpl->current_display = ocio_display;
-        update_shader          = true;
-    }
-
-    const char* ocio_view = m_viewer.ocioView().c_str();
-    if (pImpl->current_view != ocio_view) {
-        pImpl->current_view = ocio_view;
-        update_shader       = true;
-    }
-
-    if (update_shader) {
-        try {
-            OCIO::ConstConfigRcPtr config = OCIO::GetCurrentConfig();
-
-            OCIO::ConstColorSpaceRcPtr scene_linear_space
-                = config->getColorSpace("scene_linear");
-
-            if (!scene_linear_space) {
-                on_ocio_error("Missing 'scene_linear' color space");
-                return;
-            }
-
-            OCIO::ColorSpaceTransformRcPtr input_transform
-                = OCIO::ColorSpaceTransform::Create();
-            input_transform->setSrc(ocio_color_space);
-            input_transform->setDst(scene_linear_space->getName());
-
-            OCIO::ExposureContrastTransformRcPtr exposure_transform
-                = OCIO::ExposureContrastTransform::Create();
-            exposure_transform->makeExposureDynamic();
-
-            OCIO::DisplayViewTransformRcPtr display_transform
-                = OCIO::DisplayViewTransform::Create();
-            display_transform->setSrc(scene_linear_space->getName());
-            display_transform->setDisplay(ocio_display);
-            display_transform->setView(ocio_view);
-
-            OCIO::ExposureContrastTransformRcPtr gamma_transform
-                = OCIO::ExposureContrastTransform::Create();
-            gamma_transform->makeGammaDynamic();
-            gamma_transform->setPivot(1.0);
-
-            OCIO::GroupTransformRcPtr group_transform
-                = OCIO::GroupTransform::Create();
-            group_transform->appendTransform(input_transform);
-            group_transform->appendTransform(exposure_transform);
-            group_transform->appendTransform(display_transform);
-            group_transform->appendTransform(gamma_transform);
-
-            OCIO::ConstProcessorRcPtr processor = config->getProcessor(
-                group_transform);
-
-            if (pImpl->openGLBuilder != nullptr) {
-                unsigned program = pImpl->openGLBuilder->getProgramHandle();
-                glDetachShader(program, m_vertex_shader);
-
-                pImpl->openGLBuilder.reset();
-            }
-
-            OCIO::GpuShaderDescRcPtr shaderDesc
-                = OCIO::GpuShaderDesc::CreateShaderDesc();
-            shaderDesc->setLanguage(OCIO::GPU_LANGUAGE_GLSL_1_2);
-            shaderDesc->setFunctionName("OCIODisplay");
-            shaderDesc->setResourcePrefix("ocio_");
-
-            OCIO::ConstGPUProcessorRcPtr gpuProcessor
-                = processor->getOptimizedGPUProcessor(OCIO::OPTIMIZATION_DEFAULT);
-            gpuProcessor->extractGpuShaderInfo(shaderDesc);
-
-            pImpl->openGLBuilder = OIIO_OCIO::OpenGLBuilder::Create(shaderDesc, context());
-            pImpl->openGLBuilder->allocateAllTextures(m_texbufs.size() + 1);
-
-            unsigned program = pImpl->openGLBuilder->getProgramHandle();
-            glAttachShader(program, m_vertex_shader);
-
-            pImpl->openGLBuilder->buildProgram(fragment_source, false, context());
-
-            OCIO::DynamicPropertyRcPtr prop1 = shaderDesc->getDynamicProperty(
-                OCIO::DYNAMIC_PROPERTY_GAMMA);
-            pImpl->gamma_property = OCIO::DynamicPropertyValue::AsDouble(prop1);
-
-            OCIO::DynamicPropertyRcPtr prop2 = shaderDesc->getDynamicProperty(
-                OCIO::DYNAMIC_PROPERTY_EXPOSURE);
-            pImpl->exposure_property = OCIO::DynamicPropertyValue::AsDouble(
-                prop2);
-
-        } catch (const OCIO::Exception& e) {
-            on_ocio_error(e.what());
-            return;
-        }
-    }
+    create_shaders();
 }
 
 void
-IvGL::on_ocio_error(const char* message)
+IvGL::print_error(const char* msg)
 {
-    m_viewer.statusImgInfo->setText(tr("OCIO error: %1.").arg(message));
-
-    if (pImpl->openGLBuilder != nullptr) {
-        unsigned program = pImpl->openGLBuilder->getProgramHandle();
-        glDetachShader(program, m_vertex_shader);
-
-        pImpl->openGLBuilder.reset();
-    }
+    for (GLenum err = glGetError(); err != GL_NO_ERROR; err = glGetError())
+        std::cerr << "GL error " << msg << " " << (int)err << " - "
+                  << gl_err_to_string(err) << "\n";
 }
-#endif
 
 OIIO_PRAGMA_WARNING_POP
