@@ -113,7 +113,6 @@ ImageViewer::ImageViewer(bool use_ocio, const std::string& image_color_space,
     , m_ocioColourSpace(image_color_space)
     , m_ocioDisplay(display)
     , m_ocioView(view)
-    , m_ocioOptimization(OCIO_OPTIMIZATION_NONE)
 #endif
 {
     readSettings(false);
@@ -461,7 +460,6 @@ ImageViewer::createOCIOMenus(QMenu* parent)
 {
     ocioColorSpacesMenu  = new QMenu(tr("Image color space"));
     ocioDisplaysMenu     = new QMenu(tr("Display/View"));
-    ocioOptimizationMenu = new QMenu(tr("Optimization"));
 
     try {
         ColorConfig config;
@@ -546,27 +544,6 @@ ImageViewer::createOCIOMenus(QMenu* parent)
                 ocioDisplaysMenu->addMenu(menu);
             }
         }
-
-        const char* optimizationModeName[] = { "None", "Lossless", "Very good",
-                                               "Good", "Draft" };
-
-        ocioOptimizationGroup = new QActionGroup(ocioOptimizationMenu);
-        ocioOptimizationGroup->setExclusive(true);
-
-        for (size_t i = 0;
-             i < sizeof(optimizationModeName) / sizeof(optimizationModeName[0]);
-             i++) {
-            QAction* action = new QAction(tr(optimizationModeName[i]));
-            action->setData(QVariant((int)i));
-            action->setCheckable(true);
-            action->setChecked(m_ocioOptimization == i);
-
-            connect(action, SIGNAL(triggered()), this,
-                    SLOT(ocioOptimizationAction()));
-
-            ocioOptimizationGroup->addAction(action);
-            ocioOptimizationMenu->addAction(action);
-        }
     } catch (...) {
         std::cerr << "Error loading OCIO config file" << std::endl;
         m_useOCIO = false;
@@ -583,7 +560,6 @@ ImageViewer::createOCIOMenus(QMenu* parent)
     ocioMenu->addAction(action);
     ocioMenu->addMenu(ocioColorSpacesMenu);
     ocioMenu->addMenu(ocioDisplaysMenu);
-    ocioMenu->addMenu(ocioOptimizationMenu);
 
     parent->addMenu(ocioMenu);
 }
@@ -595,7 +571,6 @@ ImageViewer::useOCIOAction(bool checked)
 
     ocioColorSpacesMenu->setEnabled(m_useOCIO);
     ocioDisplaysMenu->setEnabled(m_useOCIO);
-    ocioOptimizationMenu->setEnabled(m_useOCIO);
 
     displayCurrentImage();
 }
@@ -618,16 +593,6 @@ ImageViewer::ocioDisplayViewAction()
         QMenu* menu   = qobject_cast<QMenu*>(action->parent());
         m_ocioDisplay = menu->title().toStdString();
         m_ocioView    = action->text().toStdString();
-        displayCurrentImage();
-    }
-}
-
-void
-ImageViewer::ocioOptimizationAction()
-{
-    QAction* action = ocioOptimizationGroup->checkedAction();
-    if (action) {
-        m_ocioOptimization = (OCIO_OPTIMIZATION)action->data().toInt();
         displayCurrentImage();
     }
 }
