@@ -119,6 +119,19 @@ private:
     unsigned m_program;                    // Program identifier
     std::string m_shaderCacheID;           // Current shader program key
     bool m_verbose;                        // Print shader code to std::cout for debugging purposes
+
+    bool GetGLError(std::string & error);
+    void CheckStatus();
+    void SetTextureParameters(GLenum textureType, Interpolation interpolation);
+    void AllocateTexture3D(unsigned index, unsigned & texId,
+                           Interpolation interpolation,
+                           unsigned edgelen, const float * values);
+    void AllocateTexture2D(unsigned index, unsigned & texId,
+                           unsigned width, unsigned height,
+                           GpuShaderDesc::TextureType channel,
+                           Interpolation interpolation, const float * values);
+    GLuint CompileShaderText(GLenum shaderType, const char * text);
+    void LinkShaders(GLuint program, GLuint fragShader);
 };
 
 } // namespace OIIO_OCIO

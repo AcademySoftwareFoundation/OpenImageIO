@@ -31,9 +31,7 @@ using namespace OCIO_NAMESPACE;
 namespace OIIO_OCIO
 {
 
-namespace
-{
-bool GetGLError(std::string & error)
+bool OpenGLBuilder::GetGLError(std::string & error)
 {
     const GLenum glErr = glGetError();
     if(glErr!=GL_NO_ERROR)
@@ -49,7 +47,7 @@ bool GetGLError(std::string & error)
     return false;
 }
 
-void CheckStatus()
+void OpenGLBuilder::CheckStatus()
 {
     std::string error;
     if (GetGLError(error))
@@ -58,7 +56,7 @@ void CheckStatus()
     }
 }
 
-void SetTextureParameters(GLenum textureType, Interpolation interpolation)
+void OpenGLBuilder::SetTextureParameters(GLenum textureType, Interpolation interpolation)
 {
     if(interpolation==INTERP_NEAREST)
     {
@@ -76,7 +74,7 @@ void SetTextureParameters(GLenum textureType, Interpolation interpolation)
     glTexParameteri(textureType, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 }
 
-void AllocateTexture3D(unsigned index, unsigned & texId,
+void OpenGLBuilder::AllocateTexture3D(unsigned index, unsigned & texId,
                         Interpolation interpolation,
                         unsigned edgelen, const float * values)
 {
@@ -97,7 +95,7 @@ void AllocateTexture3D(unsigned index, unsigned & texId,
                     edgelen, edgelen, edgelen, 0, GL_RGB, GL_FLOAT, values);
 }
 
-void AllocateTexture2D(unsigned index, unsigned & texId,
+void OpenGLBuilder::AllocateTexture2D(unsigned index, unsigned & texId,
                        unsigned width, unsigned height,
                        GpuShaderDesc::TextureType channel,
                        Interpolation interpolation, const float * values)
@@ -138,7 +136,7 @@ void AllocateTexture2D(unsigned index, unsigned & texId,
     }
 }
 
-GLuint CompileShaderText(GLenum shaderType, const char * text)
+GLuint OpenGLBuilder::CompileShaderText(GLenum shaderType, const char * text)
 {
     CheckStatus();
 
@@ -172,7 +170,7 @@ GLuint CompileShaderText(GLenum shaderType, const char * text)
     return shader;
 }
 
-void LinkShaders(GLuint program, GLuint fragShader)
+void OpenGLBuilder::LinkShaders(GLuint program, GLuint fragShader)
 {
     CheckStatus();
 
@@ -200,10 +198,6 @@ void LinkShaders(GLuint program, GLuint fragShader)
         throw Exception(err.c_str());
     }
 }
-}
-
-
-//////////////////////////////////////////////////////////
 
 OpenGLBuilder::Uniform::Uniform(const std::string & name, const GpuShaderDesc::UniformData & data, QOpenGLContext *context)
     : QOpenGLFunctions(context)
@@ -217,14 +211,14 @@ void OpenGLBuilder::Uniform::setUp(unsigned program)
 {
     m_handle = glGetUniformLocation(program, m_name.c_str());
 
-    std::string error;
-    if (GetGLError(error))
-    {
-        std::string err("Shader parameter ");
-        err += m_name;
-        err += " not found: ";
-        throw Exception(err.c_str());
-    }
+//    std::string error;
+//    if (GetGLError(error))
+//    {
+//        std::string err("Shader parameter ");
+//        err += m_name;
+//        err += " not found: ";
+//        throw Exception(err.c_str());
+//    }
 }
 
 void OpenGLBuilder::Uniform::use()
@@ -429,6 +423,15 @@ void OpenGLBuilder::linkAllUniforms(QOpenGLContext *context)
         m_uniforms.emplace_back(name, data, context);
         // Connect uniform with program.
         m_uniforms.back().setUp(m_program);
+        
+        std::string error;
+        if (GetGLError(error))
+        {
+            std::string err("Shader parameter ");
+            err += name;
+            err += " not found: ";
+            throw Exception(err.c_str());
+        }
     }
 }
 
