@@ -32,6 +32,38 @@ text1.exr            :  640 x  480, 3 channel, float openexr
     SHA-1: 014ECFC5EBF07F77DF24A592F43BC7CB101534AE
 text2.exr            :  640 x  480, 3 channel, float openexr
     SHA-1: 53359E96A286F909A89ACC99A67A9ED3BADC4A7A
+channels-rgba.exr    :  256 x  256, 4 channel, half openexr
+    SHA-1: C823E3701152B4B3C20DD79EA8A20CF4293F4B71
+channels-rgb.exr     :  256 x  256, 3 channel, half openexr
+    SHA-1: 4074B050432CE7C664CEC4546A46E74F9A310CDC
+channels-brga.exr    :  256 x  256, 4 channel, half openexr
+    SHA-1: 04E09E64C61CEA1634D26FB2E6C733875D163671
+channels-alpha.exr   :  256 x  256, 1 channel, half openexr
+    SHA-1: 99C332E70F321F0EA47C0F70AF8B0E3E6524F91F
+channel-append.exr   :  640 x  480, 5 channel, float openexr
+    SHA-1: F7ECA3179B1ABD2C45141DCEF0C17ECFE7E5A91F
+copy.exr             :  256 x  256, 4 channel, float openexr
+    SHA-1: 7044589C8B904DAF6A2BA3246224E97DD460AC93
+crop.exr             :  200 x  100, 4 channel, half openexr
+    SHA-1: 4DA3918566D087A9D2D9E93B2A7BABE971FE6BBD
+cut.exr              :  200 x  100, 4 channel, half openexr
+    SHA-1: 4DA3918566D087A9D2D9E93B2A7BABE971FE6BBD
+paste.exr            :  256 x  256, 4 channel, half openexr
+    SHA-1: 67A4C36DEAED98A5A8ABA5F0E0EDE697345DC22A
+rotate-90.exr        :  256 x  256, 4 channel, half openexr
+    SHA-1: AFFAEA876E8E7760226B017B0A89A3549B7A5895
+rotate-180.exr       :  256 x  256, 4 channel, half openexr
+    SHA-1: A5E42C5F18177DA146EC7E4567E4AE3AE2816C3C
+rotate-270.exr       :  256 x  256, 4 channel, half openexr
+    SHA-1: 46C803894186457376A0C590768C9DB4877737BB
+flip.exr             :  256 x  256, 4 channel, half openexr
+    SHA-1: A9EB9A8762BCD8DD161C00B01E2DF39E5C91B0D4
+flop.exr             :  256 x  256, 4 channel, half openexr
+    SHA-1: 7C10717DB4F2E21F0B4F6D5404C660CA8B504F5E
+transpose.exr        :  256 x  256, 4 channel, float openexr
+    SHA-1: 2E0E9151C138EA26A331AA4C1FB39DA70815D4F7
+reorient.exr         :  256 x  256, 4 channel, half openexr
+    SHA-1: 46C803894186457376A0C590768C9DB4877737BB
 cshift.exr           :  256 x  256, 4 channel, half openexr
     SHA-1: 000F95FDC44D4DBDA8B4041C2506149C7AE28ACA
 texture.exr          :  256 x  256, 3 channel, half openexr (+mipmap)

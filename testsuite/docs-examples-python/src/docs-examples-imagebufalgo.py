@@ -19,7 +19,8 @@ import OpenImageIO as oiio
 from OpenImageIO import *
 import numpy as np
 
-def example1() :
+
+def example1():
     #
     # Example code fragment from the docs goes here.
     #
@@ -209,7 +210,7 @@ def example_text1():
     ImgB.write("text2.exr")
 
 
-def example_test2():
+def example_text2():
     # BEGIN-imagebufalgo-text2
     # Render text centered in the image, using text_size to find out
     # the size we will need and adjusting the coordinates.
@@ -225,12 +226,179 @@ def example_test2():
 
 # Section: Image transformation and data movement
 
-def example_circular_shift() :
+def example_channels():
+    RGBA = ImageBuf("grid.exr")
+    BRGA = ImageBuf()
+
+    # BEGIN-imagebufalgo-channels
+    # Copy the first 3 channels of an RGBA, drop the alpha
+    RGB = ImageBufAlgo.channels(RGBA, (0, 1, 2))
+
+    # Copy just the alpha channel, making a 1-channel image
+    Alpha = ImageBufAlgo.channels(RGBA, ("A",))
+
+    # Swap the R and B channels
+    success = ImageBufAlgo.channels(BRGA, RGBA,
+                                    channelorder=(2, 1, 0, 3),
+                                    newchannelnames=("R", "G", "B", "A"))
+
+    # Add an alpha channel with value 1.0 everywhere to an RGB image,
+    # keep the other channels with their old ordering, values, and
+    # names.
+    RGBA = ImageBufAlgo.channels(RGB,
+                                 channelorder=(0, 1, 2, 1.0),
+                                 newchannelnames=("", "", "", "A"))
+    # END-imagebufalgo-channels
+
+    RGBA.write("channels-rgba.exr")
+    RGB.write("channels-rgb.exr")
+    Alpha.write("channels-alpha.exr")
+    BRGA.write("channels-brga.exr")
+
+
+def example_channel_append():
+    Z = ImageBuf(ImageSpec(640, 480, 1, "float"))
+
+    # BEGIN-imagebufalgo-channel-append
+    RGBA = ImageBuf("grid.exr")
+    RGBAZ = ImageBufAlgo.channel_append(RGBA, Z)
+    # END-imagebufalgo-channel-append
+
+    RGBAZ.write("channel-append.exr")
+
+
+def example_copy():
+    # BEGIN-imagebufalgo-copy
+    # Set B to be a copy of A, but converted to float
+    A = ImageBuf("grid.exr")
+    B = ImageBufAlgo.copy(A, convert="float")
+    # END-imagebufalgo-copy
+
+    B.write("copy.exr")
+
+
+def example_crop():
+    # BEGIN-imagebufalgo-crop
+    # Set B to be a 200x100 region of A starting at (50,50), trimming
+    # the exterior away but leaving that region in its original position.
+    A = ImageBuf("grid.exr")
+    B = ImageBufAlgo.crop(A, ROI(50, 250, 50, 150))
+    # END-imagebufalgo-crop
+
+    B.write("crop.exr")
+
+
+def example_cut():
+    # BEGIN-imagebufalgo-cut
+    # Set B to be a 200x100 region of A starting at (50,50), but
+    # moved to the upper left corner so its new origin is (0,0).
+    A = ImageBuf("grid.exr")
+    B = ImageBufAlgo.cut(A, ROI(50, 250, 50, 150))
+    # END-imagebufalgo-cut
+
+    B.write("cut.exr")
+
+
+def example_paste():
+    # BEGIN-imagebufalgo-paste
+    # Paste Fg on top of Bg, offset by (100,100)
+    Bg = ImageBuf("grid.exr")
+    Fg = ImageBuf("tahoe.tif")
+    ImageBufAlgo.paste(Bg, 100, 100, 0, 0, Fg)
+    # END-imagebufalgo-paste
+
+    Bg.write("paste.exr")
+
+
+def example_rotate_n():
+    # BEGIN-imagebufalgo-rotate-n
+    A = ImageBuf("grid.exr")
+    R90 = ImageBufAlgo.rotate90(A)
+    R180 = ImageBufAlgo.rotate180(A)
+    R270 = ImageBufAlgo.rotate270(A)
+    # END-imagebufalgo-rotate-n
+
+    R90.write("rotate-90.exr")
+    R180.write("rotate-180.exr")
+    R270.write("rotate-270.exr")
+
+
+def example_flip_flop_transpose():
+    # BEGIN-imagebufalgo-flip-flop-transpose
+    A = ImageBuf("grid.exr")
+    B1 = ImageBufAlgo.flip(A)
+    B2 = ImageBufAlgo.flop(A)
+    B3 = ImageBufAlgo.transpose(A)
+    # END-imagebufalgo-flip-flop-transpose
+
+    B1.write("flip.exr")
+    B2.write("flop.exr")
+    B3.write("transpose.exr")
+
+
+def example_reorient():
+    tmp = ImageBuf("grid.exr")
+    tmp.specmod().attribute("Orientation", 8)
+    tmp.write("grid-vertical.exr")
+
+    # BEGIN-imagebufalgo-reorient
+    A = ImageBuf("grid-vertical.exr")
+    A = ImageBufAlgo.reorient(A)
+    # END-imagebufalgo-reorient
+
+    A.write("reorient.exr")
+
+
+def example_circular_shift():
     # BEGIN-imagebufalgo-cshift
     A = ImageBuf("grid.exr")
     B = ImageBufAlgo.circular_shift(A, 70, 30)
     # END-imagebufalgo-cshift
     B.write("cshift.exr")
+
+
+def example_rotate():
+    # BEGIN-imagebufalgo-rotate-angle
+    Src = ImageBuf("grid.exr")
+    Dst = ImageBufAlgo.rotate(Src, 45.0)
+    # END-imagebufalgo-rotate-angle
+
+
+def example_resize():
+    # BEGIN-imagebufalgo-resize
+    # Resize the image to 640x480, using the default filter
+    Src = ImageBuf("grid.exr")
+    roi = ROI(0, 640, 0, 480, 0, 1, 0, Src.nchannels)
+    Dst = ImageBufAlgo.resize(Src, roi=roi)
+    # END-imagebufalgo-resize
+
+
+def example_resample():
+    # BEGIN-imagebufalgo-resample
+    # Resample quickly to 320x240, with default interpolation
+    Src = ImageBuf("grid.exr")
+    roi = ROI(0, 320, 0, 240, 0, 1, 0, Src.nchannels)
+    Dst = ImageBufAlgo.resample(Src, roi=roi)
+    # END-imagebufalgo-resample
+
+
+def example_fit():
+    # BEGIN-imagebufalgo-fit
+    # Resize to fit into a max of 640x480, preserving the aspect ratio
+    Src = ImageBuf("grid.exr")
+    roi = ROI(0, 640, 0, 480, 0, 1, 0, Src.nchannels)
+    Dst = ImageBufAlgo.fit(Src, "", 0, True, roi)
+    # END-imagebufalgo-fit
+
+
+def example_warp():
+    # BEGIN-imagebufalgo-warp
+    M = (0.7071068,  0.7071068, 0,
+         -0.7071068, 0.7071068, 0,
+         20,         -8.284271, 1)
+    Src = ImageBuf("grid.exr")
+    Dst = ImageBufAlgo.warp(Src, M, filtername="lanczos3")
+    # END-imagebufalgo-warp
 
 
 # Section: Image Arithmetic
@@ -269,10 +437,6 @@ def example_make_texture():
     # END-imagebufalgo-make-texture
 
 
-
-
-
-
 if __name__ == '__main__':
     # Each example function needs to get called here, or it won't execute
     # as part of the test.
@@ -292,10 +456,24 @@ if __name__ == '__main__':
     example_lines()
     example_box()
     example_text1()
-    example_test2()
+    example_text2()
 
     # Section: Image transformation and data movement
+    example_channels()
+    example_channel_append()
+    example_copy()
+    example_crop()
+    example_cut()
+    example_paste()
+    example_rotate_n()
+    example_flip_flop_transpose()
+    example_reorient()
     example_circular_shift()
+    example_rotate()
+    example_resize()
+    example_resample()
+    example_fit()
+    example_warp()
 
     # Section: Image Arithmetic
 
