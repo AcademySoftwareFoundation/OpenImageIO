@@ -1,5 +1,19 @@
-Release 2.5.5.0 (Nov 1?, 2023) -- compared to 2.5.4.0
+Release 2.5.5.0 (Nov 1, 2023) -- compared to 2.5.4.0
 -----------------------------------------------------
+- *build*: Provide compile_commands.json for use by tools [#4014](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4014) (by David Aguilar)
+- *build*: Don't fail for 32 bit builds because of static_assert check [#4006](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4006)
+- *build*: Protect against mismatch of OpenVDB vs C++ [#4023](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4023)
+- *build*: Adjust OpenVDB version requirements vs C++17 [#4030](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4030)
+- *ci*: CI tests on MacOS ARM, and fixes found consequently [#4026](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4026)
+- *idiff*: Allow users to specify a directory as the 2nd argument [#4015](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4015) (by David Aguilar)
+- *iv*: Implement Directory Argument Loading for iv [#4010](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4010) (by Chaitanya Sharma)
+- *iv*: Split off the current image in iv into a separate window [#4017](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4017) (by Anton Dukhovnikov)
+- Print unretrieved global error messages [#4005](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4005)
+- *ImageBuf*: Fix crash when mutable Iterator used with read-IB [#3997](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3997)
+- *exr*: Handle edge case of exr attribute that interferes with our hints [#4008](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4008)
+- *raw*: LibRaw wavelet denoise options [#4028](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4028) (by Vlad (Kuzmin) Erium)
+- *OpenCV*: IBA::to_OpenCV fails for ImageCache-backed images [#4013](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4013)
+- *tests*: Add opencv regression test [#4024](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4024)
 
 
 Release 2.5 (2.5.4.0, Oct 1, 2023) -- compared to 2.4
