@@ -1,6 +1,9 @@
-Release 2.4.17.0 (1 Nov? 2023) -- compared to 2.4.16.0
+Release 2.4.17.0 (1 Nov 2023) -- compared to 2.4.16.0
 -------------------------------------------------------
-
+- *build*: Protect against mismatch of OpenVDB vs C++ [#4023](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4023) [#4030](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4030)
+- *exr*: Handle edge case of exr attribute that interferes with our hints [#4008](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4008)
+- *OpenCV*: IBA::to_OpenCV fails for ImageCache-backed images [#4013](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4013)
+- *tests*: Add opencv regression test [#4024](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4024)
 
 
 Release 2.4.16.0 (1 Oct 2023) -- compared to 2.4.15.0
