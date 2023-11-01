@@ -380,7 +380,7 @@ support, and make test expects them to also be present. To run full tests,
 you will need to download and unpack the test image collections from:
 
 * http://www.simplesystems.org/libtiff/images.html
-* https://openexr.com/en/latest/_test_images/index.html#test-images
+* https://openexr.com/en/latest/_test_images/index.html#test-images -- in githttps://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/TestImages/
 * http://www.itu.int/net/ITU-T/sigdb/speimage/ImageForm-s.aspx?val=10100803
 * http://www.cv.nrao.edu/fits/data/tests/
 
