@@ -15,4 +15,4 @@ jobs:
       id: slack
       with:
         slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_RELEASES_URL }}
-      uses: fedecalendino/slack-release-notifier@2.1.0
+      uses: fedecalendino/slack-release-notifier@v2.1.0
