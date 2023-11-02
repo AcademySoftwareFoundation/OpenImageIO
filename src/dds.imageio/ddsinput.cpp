@@ -357,6 +357,7 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
 
     if (!ioproxy_use_or_open(name))
         return false;
+    ioseek(0);
 
     static_assert(sizeof(dds_header) == 128, "dds header size does not match");
     if (!ioread(&m_dds, sizeof(m_dds), 1))
