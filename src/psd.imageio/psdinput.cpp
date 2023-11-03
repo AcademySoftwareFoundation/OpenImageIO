@@ -546,6 +546,7 @@ PSDInput::open(const std::string& name, ImageSpec& newspec)
     m_filename = name;
     if (!ioproxy_use_or_open(name))
         return false;
+    ioseek(0);
 
     // File Header
     if (!load_header()) {
