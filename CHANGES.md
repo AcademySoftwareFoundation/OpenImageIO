@@ -1,3 +1,7 @@
+Release 2.5.6.0 (Dec ??, 2023) -- compared to 2.5.5.0
+-----------------------------------------------------
+
+
 Release 2.5.5.0 (Nov 1, 2023) -- compared to 2.5.4.0
 -----------------------------------------------------
 - *build*: Provide compile_commands.json for use by tools [#4014](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4014) (by David Aguilar)
