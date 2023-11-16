@@ -129,6 +129,9 @@ the Developer Certificate of Origin, version 1.1:
 - Lukas Shrangl (luhk)
 - Manuel Gamito (mgamito)
 - Rémi Achard (remia)
+- Joseph Goldstone (JGoldstone)
+- Matthew Levine (melevine)
+- Yang Yang (yangyangl, but now cometyang)
 
 **Prior authors, please submit a PR against this file that adds your name
 above. If, at the time of your prior contributions, you were employed by a
