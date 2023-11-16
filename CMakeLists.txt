@@ -92,6 +92,11 @@ endif ()
 
 
 option (VERBOSE "Print lots of messages while compiling" OFF)
+if (VERBOSE)
+    set (CMAKE_MESSAGE_LOG_LEVEL "VERBOSE" CACHE STRING "CMake log level to display")
+else ()
+    set (CMAKE_MESSAGE_LOG_LEVEL "STATUS" CACHE STRING "CMake log level to display")
+endif ()
 option (${PROJ_NAME}_BUILD_TOOLS "Build the command-line tools" ON)
 option (${PROJ_NAME}_BUILD_TESTS "Build the unit tests" ON)
 set (OIIO_LIBNAME_SUFFIX "" CACHE STRING
