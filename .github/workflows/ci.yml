@@ -448,17 +448,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - desc: MacOS-11
-            runner: macos-11
-            nametag: macos11-py39
-            cxx_std: 17
-            python_ver: "3.9"
-            aclang: 13
-            setenvs: export QT_VERSION=@5
           - desc: MacOS-12
             runner: macos-12
             nametag: macos12-py310
-            cxx_std: 20
+            cxx_std: 17
             python_ver: "3.10"
             aclang: 13
             setenvs: export CTEST_TEST_TIMEOUT=600
