@@ -1755,10 +1755,10 @@ ImageViewer::keyPressEvent(QKeyEvent* event)
     case Qt::Key_Up:
     case Qt::Key_PageUp: prevImage(); return;  //break;
     case Qt::Key_Right:
-        //        std::cerr << "Modifier is " << (int)event->modifiers() << '\n';
-        //        fprintf (stderr, "%x\n", (int)event->modifiers());
-        //        if (event->modifiers() & Qt::ShiftModifier)
-        //            std::cerr << "hey, ctrl right\n";
+        // print(stderr, "Modifier is {0:d} 0x(0:x}\n", event->modifiers());
+        // if (event->modifiers() & Qt::ShiftModifier)
+        //     print(stderr, "hey, ctrl right\n");
+
     case Qt::Key_Down:
     case Qt::Key_PageDown: nextImage(); return;  //break;
     case Qt::Key_Escape:
@@ -1770,7 +1770,7 @@ ImageViewer::keyPressEvent(QKeyEvent* event)
     case Qt::Key_Plus:
     case Qt::Key_Equal: zoomIn(); break;
     default:
-        // std::cerr << "ImageViewer key " << (int)event->key() << '\n';
+        // print(stderr, "ImageViewer key {:d}\n", event->key());
         QMainWindow::keyPressEvent(event);
     }
 }

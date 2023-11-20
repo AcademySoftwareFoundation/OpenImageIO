@@ -186,9 +186,10 @@ timed_thread_wedge(function_view<void(int)> task, function_view<void()> pretask,
 {
     std::vector<double> times(threadcounts.size(), 0.0f);
     if (out)
-        (*out)
-            << "threads    time   speedup  efficient  its/thread   range (best of "
-            << ntrials << ")\n";
+        Strutil::print(
+            *out,
+            "threads    time   speedup  efficient  its/thread   range (best of {})\n",
+            ntrials);
     for (size_t i = 0; i < (size_t)threadcounts.size(); ++i) {
         int nthreads = threadcounts[i];
         if (nthreads > maxthreads)
@@ -210,10 +211,9 @@ timed_thread_wedge(function_view<void(int)> task, function_view<void()> pretask,
             double ideal           = one_thread_time / nthreads;
             double speedup         = one_thread_time / times[i];
             double efficiency      = 100.0 * ideal / times[i];
-            Strutil::fprintf(*out,
-                             "%4d   %8.1f   %6.2fx    %6.2f%% %10d %8.2f\n",
-                             nthreads, times[i], speedup, efficiency, iters,
-                             range);
+            Strutil::print(
+                *out, "{:4}   {:8.1f}   {:6.2f}x    {:6.2f}% {:10} {:8.2f}\n",
+                nthreads, times[i], speedup, efficiency, iters, range);
         }
     }
     return times;
