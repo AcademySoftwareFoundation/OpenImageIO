@@ -37,21 +37,21 @@ ErrorHandler::operator()(int errcode, const std::string& msg)
     switch (errcode & 0xffff0000) {
     case EH_INFO:
         if (verbosity() >= VERBOSE)
-            fprintf(stdout, "INFO: %s\n", msg.c_str());
+            print("INFO: {}\n", msg);
         break;
     case EH_WARNING:
         if (verbosity() >= NORMAL)
-            fprintf(stderr, "WARNING: %s\n", msg.c_str());
+            print(stderr, "WARNING: {}\n", msg);
         break;
-    case EH_ERROR: fprintf(stderr, "ERROR: %s\n", msg.c_str()); break;
-    case EH_SEVERE: fprintf(stderr, "SEVERE ERROR: %s\n", msg.c_str()); break;
+    case EH_ERROR: print(stderr, "ERROR: {}\n", msg); break;
+    case EH_SEVERE: print(stderr, "SEVERE ERROR: {}\n", msg); break;
     case EH_DEBUG:
 #ifdef NDEBUG
         break;
 #endif
     default:
         if (verbosity() > QUIET)
-            fprintf(stdout, "%s", msg.c_str());
+            print("{}", msg);
         break;
     }
     fflush(stdout);

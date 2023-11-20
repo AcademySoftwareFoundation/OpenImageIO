@@ -299,8 +299,8 @@ exif_parser_cb(ImageSpec* spec, int tag, int tifftype, int len,
                                               size_t(len));
     const TagInfo* taginfo = tag_lookup("Exif", tag);
     if (!taginfo) {
-        // Strutil::fprintf (std::cerr, "NO TAGINFO FOR CALLBACK tag=%d (0x%x): tifftype=%d,len=%d (%s), byteorder=0x%x\n",
-        //                   tag, tag, tifftype, len, type, byteorder);
+        // print(stderr, "NO TAGINFO FOR CALLBACK tag=%d (0x{:x}): tifftype={},len={} ({}), byteorder=0x{:x}\n",
+        //       tag, tag, tifftype, len, type, byteorder);
         return;
     }
     if (type.size() >= (1 << 20))
@@ -310,14 +310,14 @@ exif_parser_cb(ImageSpec* spec, int tag, int tifftype, int len,
     ifp->read(buf.data(), size, 1);
 
     // debug scaffolding
-    // Strutil::fprintf (std::cerr, "CALLBACK tag=%s: tifftype=%d,len=%d (%s), byteorder=0x%x\n",
-    //                   taginfo->name, tifftype, len, type, byteorder);
+    // print(stderr, "CALLBACK tag={}: tifftype={},len={} ({}), byteorder=0x{:x}\n",
+    //       taginfo->name, tifftype, len, type, byteorder);
     // for (int i = 0; i < std::min(16UL,size); ++i) {
     //     if (buf[i] >= ' ' && buf[i] < 128)
     //         std::cerr << char(buf[i]);
-    //     Strutil::fprintf (std::cerr, "(%d) ", int(buf[i]));
+    //     print(stderr, "({}) ", int(buf[i]));
     // }
-    // std::cerr << "\n";
+    // print(stderr, "\n");
 
     bool swab = (littleendian() != (byteorder == 0x4949));
     if (swab) {
@@ -355,8 +355,8 @@ exif_parser_cb(ImageSpec* spec, int tag, int tifftype, int len,
         spec->attribute(taginfo->name, string_view((char*)buf.data(), size));
         return;
     }
-    // Strutil::fprintf (std::cerr, "RAW metadata NOT HANDLED: tag=%s: tifftype=%d,len=%d (%s), byteorder=0x%x\n",
-    //                   taginfo->name, tifftype, len, type, byteorder);
+    // print(stderr, "RAW metadata NOT HANDLED: tag={}: tifftype={},len={} ({}), byteorder=0x{:x}\n",
+    //       taginfo->name, tifftype, len, type, byteorder);
 }
 
 
@@ -414,16 +414,16 @@ RawInput::open_raw(bool unpack, const std::string& name,
     int ret = m_processor->open_file(name.c_str());
 #endif
     if (ret != LIBRAW_SUCCESS) {
-        errorf("Could not open file \"%s\", %s", m_filename,
-               libraw_strerror(ret));
+        errorfmt("Could not open file \"{}\", {}", m_filename,
+                 libraw_strerror(ret));
         return false;
     }
 
     OIIO_ASSERT(!m_unpacked);
     if (unpack) {
         if ((ret = m_processor->unpack()) != LIBRAW_SUCCESS) {
-            errorf("Could not unpack \"%s\", %s", m_filename,
-                   libraw_strerror(ret));
+            errorfmt("Could not unpack \"{}\", {}", m_filename,
+                     libraw_strerror(ret));
             return false;
         }
         m_unpacked = true;
@@ -606,7 +606,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
         return false;
 #endif
     } else {
-        errorf("raw:ColorSpace set to unknown value \"%s\"", cs);
+        errorfmt("raw:ColorSpace set to unknown value \"{}\"", cs);
         return false;
     }
     m_spec.attribute("oiio:ColorSpace", cs);
@@ -615,7 +615,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
     float exposure = config.get_float_attribute("raw:Exposure", -1.0f);
     if (exposure >= 0.0f) {
         if (exposure < 0.25f || exposure > 8.0f) {
-            errorf("raw:Exposure invalid value. range 0.25f - 8.0f");
+            errorfmt("raw:Exposure invalid value. range 0.25f - 8.0f");
             return false;
         }
         m_processor->imgdata.params.exp_correc
@@ -746,8 +746,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
                                                    0);  // default OFF
     if (highlight_mode != 0 /*Clip*/) {
         // FIXME: promote this debug message to a runtme warning
-        OIIO::debugf(
-            "%s",
+        OIIO::debugfmt(
             "raw:balance_clamped will have no effect as raw:HighlightMode is not 0\n");
     }
     if (m_process && balance_clamped != 0 && highlight_mode == 0 /*Clip*/) {
@@ -766,13 +765,13 @@ RawInput::open_raw(bool unpack, const std::string& name,
             // Get unadjusted max value (need to force a read first)
             ret = m_processor->raw2image_ex(/*subtract_black=*/true);
             if (ret != LIBRAW_SUCCESS) {
-                errorf("HighlightMode adjustment detection read failed");
-                errorf("%s", libraw_strerror(ret));
+                errorfmt("HighlightMode adjustment detection read failed");
+                errorfmt("{}", libraw_strerror(ret));
                 return false;
             }
             if (m_processor->adjust_maximum() != LIBRAW_SUCCESS) {
-                errorf("HighlightMode minimum adjustment failed");
-                errorf("%s", libraw_strerror(ret));
+                errorfmt("HighlightMode minimum adjustment failed");
+                errorfmt("{}", libraw_strerror(ret));
                 return false;
             }
             float unadjusted = m_processor->imgdata.color.maximum;
@@ -783,8 +782,8 @@ RawInput::open_raw(bool unpack, const std::string& name,
 
             // Get new max value
             if (m_processor->adjust_maximum() != LIBRAW_SUCCESS) {
-                errorf("HighlightMode maximum adjustment failed");
-                errorf("%s", libraw_strerror(ret));
+                errorfmt("HighlightMode maximum adjustment failed");
+                errorfmt("{}", libraw_strerror(ret));
                 return false;
             }
             float adjusted = m_processor->imgdata.color.maximum;
