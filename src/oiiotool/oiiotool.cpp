@@ -5381,30 +5381,31 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
             std::string colorspace(
                 ot.colorconfig.getColorSpaceFromFilepath(filename));
             if (colorspace.size() && ot.debug)
-                std::cout << "  From " << filename
-                          << ", we deduce color space \"" << colorspace
-                          << "\"\n";
+                print("  From {}, we deduce color space \"{}\"\n", filename,
+                      colorspace);
             if (colorspace.empty()) {
                 ot.read();
                 colorspace = ot.curimg->spec()->get_string_attribute(
                     "oiio:ColorSpace");
                 if (ot.debug)
-                    std::cout << "  Metadata of " << filename
-                              << " indicates color space \"" << colorspace
-                              << "\"\n";
+                    print("  Metadata of {} indicates color space \"{}\"\n",
+                          colorspace, filename);
             }
             std::string linearspace = ot.colorconfig.resolve("linear");
             if (colorspace.size()
-                && ot.colorconfig.equivalent(colorspace, linearspace)) {
+                && !ot.colorconfig.equivalent(colorspace, linearspace)) {
                 std::string cmd = "colorconvert:strict=0";
                 if (autoccunpremult)
                     cmd += ":unpremult=1";
                 const char* argv[] = { cmd.c_str(), colorspace.c_str(),
                                        linearspace.c_str() };
                 if (ot.debug)
-                    std::cout << "  Converting " << filename << " from "
-                              << colorspace << " to " << linearspace << "\n";
+                    print("  Converting {} from {} to {}\n", filename,
+                          colorspace, linearspace);
                 action_colorconvert(ot, argv);
+            } else if (ot.debug) {
+                print("  no auto conversion necessary for {}->{}\n", colorspace,
+                      linearspace);
             }
         }
 
