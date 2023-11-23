@@ -289,11 +289,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - desc: latest releases gcc11 C++17 avx2 exr3.2 ocio2.3
+          - desc: latest releases gcc12 C++17 avx2 exr3.2 ocio2.3
             nametag: linux-latest-releases
             runner: ubuntu-22.04
-            cc_compiler: gcc-11
-            cxx_compiler: g++-11
+            cc_compiler: gcc-12
+            cxx_compiler: g++-12
             cxx_std: 17
             fmt_ver: 10.1.1
             openexr_ver: v3.2.0
@@ -310,11 +310,11 @@ jobs:
                             USE_OPENVDB=0
                             WEBP_VERSION=v1.3.0
                             # The installed OpenVDB has a TLS conflict with Python 3.8
-          - desc: bleeding edge gcc12 C++20 py3.10 OCIO/libtiff/exr-master boost1.74 avx2
+          - desc: bleeding edge gcc13 C++20 py3.10 OCIO/libtiff/exr-master boost1.74 avx2
             nametag: linux-bleeding-edge
             runner: ubuntu-22.04
-            cc_compiler: gcc-12
-            cxx_compiler: g++-12
+            cc_compiler: gcc-13
+            cxx_compiler: g++-13
             cxx_std: 20
             fmt_ver: master
             openexr_ver: main
