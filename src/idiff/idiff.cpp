@@ -301,7 +301,7 @@ main(int argc, char* argv[])
 
             int yee_failures = 0;
             if (perceptual && !img0.deep()) {
-                ImageBufAlgo::CompareResults cr;
+                cr           = {};
                 yee_failures = ImageBufAlgo::compare_Yee(img0, img1, cr);
             }
 

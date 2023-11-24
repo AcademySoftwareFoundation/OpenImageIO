@@ -19,6 +19,7 @@ command += oiiotool("-pdiff img1.exr img2.exr")
 command += oiiotool("-pdiff img1.exr img1.exr")
 command += diff_command("img1.exr", "img2.exr", extraargs="-p")
 command += diff_command("img1.exr", "img1.exr", extraargs="-p")
+command += diff_command("img1.exr", "img2.exr", extraargs="-p -fail 1")
 
 
 # Outputs to check against references
