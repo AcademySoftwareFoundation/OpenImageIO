@@ -662,8 +662,8 @@ RawInput::open_raw(bool unpack, const std::string& name,
             m_spec.attribute("raw:FilterPattern", filter);
 
             // Also, any previously set demosaicing options are void, so remove them
-            m_spec.erase_attribute("oiio:Colorspace");
-            m_spec.erase_attribute("raw:Colorspace");
+            m_spec.erase_attribute("oiio:ColorSpace");
+            m_spec.erase_attribute("raw:ColorSpace");
             m_spec.erase_attribute("raw:Exposure");
         } else {
             errorf("raw:Demosaic set to unknown value");
