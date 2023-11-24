@@ -128,7 +128,7 @@ bool
 TermOutput::output()
 {
     // Color convert in place to sRGB, or it won't look right
-    std::string cspace = m_buf.spec()["oiio:colorspace"].get();
+    std::string cspace = m_buf.spec()["oiio:ColorSpace"].get();
     ImageBufAlgo::colorconvert(m_buf, m_buf, cspace, "sRGB");
 
     string_view method(m_method);
