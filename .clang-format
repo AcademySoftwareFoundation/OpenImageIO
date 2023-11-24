@@ -1,6 +1,5 @@
 Language:        Cpp
 BasedOnStyle:  WebKit
-SpaceBeforeParens: ControlStatements
 
 AccessModifierOffset: -4
 AlignAfterOpenBracket: Align
