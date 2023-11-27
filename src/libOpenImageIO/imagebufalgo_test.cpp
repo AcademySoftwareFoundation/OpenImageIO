@@ -1140,19 +1140,31 @@ void
 test_color_management()
 {
     ColorConfig config;
+    auto processor = config.createColorProcessor("lin_srgb", "srgb");
+    // These color spaces might not be found if the site running this test
+    // has a weirdo OCIO config that doesn't contain those names. If we fail,
+    // try again using the built-in config (OCIO 2.2+) and hope for the best.
+    if (!processor)
+        processor = ColorConfig("ocio://default")
+                        .createColorProcessor("lin_srgb", "srgb");
+    OIIO_CHECK_ASSERT(processor);
 
     // Test the IBA::colorconvert version that works on a color at a time
     {
-        auto processor = config.createColorProcessor("lin_srgb", "srgb");
-        float rgb[3]   = { 0.5f, 0.5f, 0.5f };
-        ImageBufAlgo::colorconvert(rgb, processor.get(), false);
+        float rgb[3] = { 0.5f, 0.5f, 0.5f };
+        bool r       = ImageBufAlgo::colorconvert(rgb, processor.get(), false);
+        OIIO_CHECK_ASSERT(r);
+        if (!r)
+            OIIO::print("colorconvert error: {}\n", OIIO::geterror());
         OIIO_CHECK_EQUAL_THRESH(rgb[1], 0.735356983052449f, 1.0e-5);
     }
     {
-        auto processor = config.createColorProcessor("lin_srgb", "srgb");
-        float rgb[4]   = { 0.5f, 0.5f, 0.5f, 1.0f };
-        ImageBufAlgo::colorconvert(rgb, processor.get(), true);
-        OIIO_CHECK_EQUAL_THRESH(rgb[1], 0.735356983052449f, 1.0e-5);
+        float rgba[4] = { 0.5f, 0.5f, 0.5f, 1.0f };
+        bool r        = ImageBufAlgo::colorconvert(rgba, processor.get(), true);
+        OIIO_CHECK_ASSERT(r);
+        if (!r)
+            OIIO::print("colorconvert error: {}\n", OIIO::geterror());
+        OIIO_CHECK_EQUAL_THRESH(rgba[1], 0.735356983052449f, 1.0e-5);
     }
 }
 
