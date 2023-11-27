@@ -612,6 +612,9 @@ ColorConfig::Impl::classify_by_name(CSInfo& cs)
     } else if (cs.name == "srgbf" || cs.name == "srgbh" || cs.name == "srgb16"
                || cs.name == "srgb8") {
         cs.setflag(CSInfo::is_srgb, srgb_alias);
+    } else if (cs.name == "srgblnf" || cs.name == "srgblnh"
+               || cs.name == "srgbln16" || cs.name == "srgbln8") {
+        cs.setflag(CSInfo::is_lin_srgb, lin_srgb_alias);
     }
 #endif
 
