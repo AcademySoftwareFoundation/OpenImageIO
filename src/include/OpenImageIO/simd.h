@@ -276,7 +276,7 @@
 
 
 // Without SSE, we need to fall back on Imath for matrix44 invert
-#if !OIIO_SIMD_SSE
+#if !OIIO_SIMD_SSE && !defined(__CUDA_ARCH__)
 #   include <OpenImageIO/Imath.h>
 #endif
 
