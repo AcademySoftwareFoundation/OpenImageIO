@@ -21,11 +21,14 @@ lg@openimageio.org
 * Anders Langlands
 * Angus Davis
 * Anthony Nemoff
+* Anton Dukhovnikov
 * Aras Pranckevičius
 * Arkady Shapkin
+* Aura Munoz
 * Basileios Anastasatos
 * Bastien Montagne
 * Ben De Luca
+* Benjamin Buch
 * Bernhard Rosenkraenzer
 * Biswapriyo Nath
 * Blair Tennessy
@@ -35,9 +38,11 @@ lg@openimageio.org
 * Brent Davis
 * Brian Hall
 * Brice Gros
+* Calvin Schaul
 * Carl Rand
 * Cassian Andrei
 * Chad Dombrova
+* Chaitanya Sharma
 * Changlin Hsieh
 * Chris Crosetto
 * Chris Foster
@@ -51,6 +56,7 @@ lg@openimageio.org
 * Daniel Dresser
 * Daniel Flehner Heen
 * Daniel Wyatt
+* Danny Greenstein
 * David Aguilar
 * David Gordon
 * Deepak Gopinath
@@ -84,11 +90,14 @@ lg@openimageio.org
 * Ismael Cortes
 * Jan Hettenkofer
 * Jan Honsbrok
+* Jason Baumeister
 * Jens Lindgren
 * Jep Hill
 * Jeph Alapat
+* Jeremy Retailleau
 * Jeremy Rose
 * Jeremy Selan
+* Jesse Yurkovich
 * Jim Hourihan
 * Johannes Unterguggenberger
 * John Burnett
@@ -110,6 +119,7 @@ lg@openimageio.org
 * LazyDodo
 * Leonid Onokhov
 * Leszek Godlewski
+* Loïc Vital
 * Lucas Panian
 * Lucille Caillaud
 * Lukas Schrangl
@@ -141,6 +151,7 @@ lg@openimageio.org
 * Nicholas Yue
 * Nick Black
 * Nicolas Burtnyk
+* Nicolas Vivien
 * Nixon Kwok
 * Noah Rahm (designer of our logo!)
 * Northon Patrick
@@ -194,11 +205,14 @@ lg@openimageio.org
 * Vinod Khare
 * Vishal Agrawal
 * Vitor Franchi
+* Vlad (Kuzmin) Erium
 * Wayne Arnold
 * Will Rosecrans
 * William Krick
 * Wormszer
+* xiaoxiaoafeifei
 * Xo Wang
 * Yang Yang
 * Yann Lanthony
+* Ziggy Cross
 * zomgrolf

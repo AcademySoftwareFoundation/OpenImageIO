@@ -1,6 +1,14 @@
-Release 2.5.6.0 (Dec ??, 2023) -- compared to 2.5.5.0
+Release 2.5.6.0 (Dec 1, 2023) -- compared to 2.5.5.0
 -----------------------------------------------------
-
+- *oiiotool*: --autocc bugfix and color config inventory cleanup [#4060](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4060)
+- *idiff*: Fix issue when computing perceptual diff [#4061](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4061) (by Aura Munoz)
+- *ci*: Add tiff-misc reference for slightly changed error messages [#4052](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4052)
+- *ci*: Remove MacOS-11 test [#4053](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4053)
+- *ci*: Test against gcc-13 [#4059](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4059)
+- *build*: Better cmake verbose behavior [#4037](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4037)
+- *docs*: Update INSTALL.md to reflect the latest versions we've tested against [#4058](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4058)
+- *admin*: Fix typo in slack-release-notifier version [#4046](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4046) [#4047](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4047)
+- *admin*: More relicensing code under Apache 2.0 [#4038](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4038)
 
 Release 2.5.5.0 (Nov 1, 2023) -- compared to 2.5.4.0
 -----------------------------------------------------
