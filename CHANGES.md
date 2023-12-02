@@ -1,3 +1,7 @@
+Release 2.5.7.0 (Jan 1?, 2024) -- compared to 2.5.6.0
+-----------------------------------------------------
+
+
 Release 2.5.6.0 (Dec 1, 2023) -- compared to 2.5.5.0
 -----------------------------------------------------
 - *oiiotool*: --autocc bugfix and color config inventory cleanup [#4060](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4060)
