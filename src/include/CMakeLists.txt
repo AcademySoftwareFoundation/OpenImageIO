@@ -66,13 +66,13 @@ install (FILES ${detail_headers}
 
 if (INTERNALIZE_FMT OR OIIO_USING_FMT_LOCAL)
     set (fmt_headers
-         ${FMT_INCLUDES}/fmt/core.h
-         ${FMT_INCLUDES}/fmt/format-inl.h
-         ${FMT_INCLUDES}/fmt/format.h
-         ${FMT_INCLUDES}/fmt/ostream.h
-         ${FMT_INCLUDES}/fmt/printf.h )
-    if (fmt_VERSION VERSION_GREATER_EQUAL 90000)
-        list (APPEND fmt_headers ${FMT_INCLUDES}/fmt/std.h)
+         ${FMT_INCLUDE_DIR}/fmt/core.h
+         ${FMT_INCLUDE_DIR}/fmt/format-inl.h
+         ${FMT_INCLUDE_DIR}/fmt/format.h
+         ${FMT_INCLUDE_DIR}/fmt/ostream.h
+         ${FMT_INCLUDE_DIR}/fmt/printf.h )
+    if (fmt_VERSION VERSION_GREATER_EQUAL 9)
+        list (APPEND fmt_headers ${FMT_INCLUDE_DIR}/fmt/std.h)
     endif ()
     file (COPY ${fmt_headers}
           DESTINATION ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt)
@@ -85,7 +85,7 @@ else ()
         file (WRITE "${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/${f}"
                     "#include <fmt/${f}>")
     endforeach ()
-    if (fmt_VERSION VERSION_GREATER_EQUAL 90000)
+    if (fmt_VERSION VERSION_GREATER_EQUAL 9)
         list (APPEND fmt_headers ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/std.h)
         file (WRITE "${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/std.h"
                     "#include <fmt/std.h>")

@@ -332,7 +332,7 @@ macro (find_or_download_fmt)
     # If an external copy wasn't found and we requested that missing
     # packages be built, or we we are forcing a local copy to be built, then
     # download and build it.
-    if ((BUILD_MISSING_FMT AND NOT FMT_FOUND) OR BUILD_FMT_FORCE)
+    if ((BUILD_MISSING_FMT AND NOT fmt_FOUND) OR BUILD_FMT_FORCE)
         message (STATUS "Downloading local fmtlib/fmt")
         set (FMT_INSTALL_DIR "${PROJECT_SOURCE_DIR}/ext/fmt")
         set (FMT_GIT_REPOSITORY "https://github.com/fmtlib/fmt")
@@ -350,16 +350,18 @@ macro (find_or_download_fmt)
         endif ()
         set (FMT_INCLUDE_DIR "${FMT_INSTALL_DIR}/include")
         set (OIIO_USING_FMT_LOCAL TRUE)
+        set (fmt_VERSION ${BUILD_FMT_VERSION})
     else ()
+        get_target_property(FMT_INCLUDE_DIR fmt::fmt INTERFACE_INCLUDE_DIRECTORIES)
         set (OIIO_USING_FMT_LOCAL FALSE)
+        checked_find_package (fmt REQUIRED
+                              VERSION_MIN 7.0)
     endif ()
-    checked_find_package (fmt REQUIRED
-                          VERSION_MIN 7.0)
 endmacro()
 
 find_or_download_fmt()
 
-if (FMT_VERSION VERSION_EQUAL 90100
+if (fmt_VERSION VERSION_EQUAL 9.1.0
         AND GCC_VERSION VERSION_GREATER 0.0 AND NOT GCC_VERSION VERSION_GREATER 7.2)
     message (WARNING "${ColorRed}fmt 9.1 is known to not work with gcc <= 7.2${ColorReset}")
 endif ()
