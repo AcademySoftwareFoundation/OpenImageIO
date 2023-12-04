@@ -155,6 +155,7 @@ target_link_libraries (OpenImageIO
             ZLIB::ZLIB
             $<TARGET_NAME_IF_EXISTS:Boost::thread>
             ${CMAKE_DL_LIBS}
+            fmt::fmt
         )
 
 if (FREETYPE_FOUND)

@@ -65,17 +65,24 @@ install (FILES ${detail_headers}
          COMPONENT developer)
 
 if (INTERNALIZE_FMT OR OIIO_USING_FMT_LOCAL)
-    set (fmt_headers
-         ${FMT_INCLUDE_DIR}/fmt/core.h
-         ${FMT_INCLUDE_DIR}/fmt/format-inl.h
-         ${FMT_INCLUDE_DIR}/fmt/format.h
-         ${FMT_INCLUDE_DIR}/fmt/ostream.h
-         ${FMT_INCLUDE_DIR}/fmt/printf.h )
+    set (fmt_headers_base_names core.h format-inl.h format.h ostream.h printf.h)
     if (fmt_VERSION VERSION_GREATER_EQUAL 9)
-        list (APPEND fmt_headers ${FMT_INCLUDE_DIR}/fmt/std.h)
+        list (APPEND fmt_headers_base_names std.h)
     endif ()
-    file (COPY ${fmt_headers}
-          DESTINATION ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt)
+    list (TRANSFORM fmt_headers_base_names
+          PREPEND ${FMT_INCLUDE_DIR}/fmt/
+          OUTPUT_VARIABLE fmt_headers)
+    list (TRANSFORM fmt_headers_base_names
+          PREPEND ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/
+          OUTPUT_VARIABLE fmt_headers_internal)
+    add_custom_command (OUTPUT ${fmt_headers_internal}
+                        DEPENDS ${fmt_headers}
+                        COMMAND
+                            ${CMAKE_COMMAND} -E copy
+                            ${fmt_headers}
+                            ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt)
+    add_custom_target (fmt_internal DEPENDS ${fmt_headers_internal})
+    add_dependencies (fmt::fmt fmt_internal)
 else ()
     set (fmt_headers
          ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/format.h
