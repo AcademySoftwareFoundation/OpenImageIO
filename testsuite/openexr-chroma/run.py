@@ -18,10 +18,11 @@ for f in files:
 # CrissyField.exr  Garden.exr       StarField.exr
 # Flowers.exr      MtTamNorth.exr
 imagedir = OIIO_TESTSUITE_IMAGEDIR + "/LuminanceChroma"
-#command += rw_command (imagedir, "CrissyField.exr", extraargs="--compression zip")
-#command += rw_command (imagedir, "Flowers.exr", extraargs="--compression zip")
+# Request a lossless compression method for the first two images. Otherwise,
+# the b44 compression from input image carries over to the output image and
+# causes pretty large compression artefacts.
+command += rw_command (imagedir, "CrissyField.exr", extraargs="--compression zip")
+command += rw_command (imagedir, "Flowers.exr", extraargs="--compression zip")
 command += rw_command (imagedir, "Garden.exr")
-#command += rw_command (imagedir, "MtTamNorth.exr")
-#command += rw_command (imagedir, "StarField.exr")
-# FIXME -- most of these are broken, we don't read LuminanceChroma images,
-#     nor do we currently support subsampled channels
+command += rw_command (imagedir, "MtTamNorth.exr")
+command += rw_command (imagedir, "StarField.exr")
