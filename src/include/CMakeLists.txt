@@ -69,18 +69,23 @@ if (INTERNALIZE_FMT OR OIIO_USING_FMT_LOCAL)
     if (fmt_VERSION VERSION_GREATER_EQUAL 9)
         list (APPEND fmt_headers_base_names std.h)
     endif ()
+    set (fmt_internal_directory ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt)
     list (TRANSFORM fmt_headers_base_names
           PREPEND ${FMT_INCLUDE_DIR}/fmt/
           OUTPUT_VARIABLE fmt_headers)
     list (TRANSFORM fmt_headers_base_names
-          PREPEND ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/
+          PREPEND ${fmt_internal_directory}/
           OUTPUT_VARIABLE fmt_headers_internal)
+    add_custom_command (OUTPUT ${fmt_internal_directory}
+                        COMMAND
+                            ${CMAKE_COMMAND} -E make_directory
+                            ${fmt_internal_directory})
     add_custom_command (OUTPUT ${fmt_headers_internal}
-                        DEPENDS ${fmt_headers}
+                        DEPENDS ${fmt_headers} ${fmt_internal_directory}
                         COMMAND
                             ${CMAKE_COMMAND} -E copy
                             ${fmt_headers}
-                            ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt)
+                            ${fmt_internal_directory})
     add_custom_target (fmt_internal DEPENDS ${fmt_headers_internal})
     add_dependencies (fmt::fmt fmt_internal)
 else ()
