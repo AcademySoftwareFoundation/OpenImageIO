@@ -506,6 +506,14 @@ void test_conversion_loadstore_int ()
     OIIO_CHECK_SIMD_EQUAL (VEC(uc1234), C1234);
     OIIO_CHECK_SIMD_EQUAL (VEC( c1234), C1234);
 
+    // Check store to integers
+    VEC CStep = VEC::Iota(-130, 131);
+    unsigned char ucStepExp[]  = {126, 1, 132, 7, 138, 13, 144, 19, 150, 25, 156, 31, 162, 37, 168, 43};
+    unsigned char ucStepGot[VEC::elements] = {};
+    CStep.store(ucStepGot);
+    for (int i = 0; i < VEC::elements; ++i)
+        OIIO_CHECK_EQUAL ((int)ucStepGot[i], (int)ucStepExp[i]);
+
     benchmark ("load from int[]", [](const int *d){ return VEC(d); }, i1234);
     benchmark ("load from unsigned short[]", [](const unsigned short *d){ return VEC(d); }, us1234);
     benchmark ("load from short[]", [](const short *d){ return VEC(d); }, s1234);
