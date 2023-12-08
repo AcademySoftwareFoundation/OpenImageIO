@@ -4293,6 +4293,11 @@ OIIO_FORCEINLINE void vint4::load (const unsigned char *values) {
     // Trickery: load one float worth of bits = 4 uchars!
     simd_t a = _mm_castps_si128 (_mm_load_ss ((const float *)values));
     m_simd = _mm_cvtepu8_epi32 (a);
+#elif OIIO_SIMD_SSE >= 2
+    // Trickery: load one float worth of bits = 4 uchars!
+    simd_t a = _mm_castps_si128 (_mm_load_ss ((const float *)values));
+    a = _mm_unpacklo_epi8(a, _mm_setzero_si128());
+    m_simd = _mm_unpacklo_epi16(a, _mm_setzero_si128());
 #else
     SIMD_CONSTRUCT (values[i]);
 #endif
@@ -4784,17 +4789,15 @@ OIIO_FORCEINLINE void vint4::store (unsigned char *values) const {
 #if OIIO_AVX512VL_ENABLED
     _mm_mask_cvtepi32_storeu_epi8 (values, __mmask8(0xf), m_simd);
 #elif OIIO_SIMD_SSE
-    // Expressed as bytes and considering little endianness, we
-    // currently have AxBxCxDx (the 'x' means don't care).
-    vint4 clamped = m_simd & vint4(0xff);          // A000 B000 C000 D000
-    vint4 swapped = shuffle_sse<1,0,3,2>(clamped); // B000 A000 D000 C000
-    vint4 shifted = swapped << 8;                  // 0B00 0A00 0D00 0C00
-    vint4 merged = clamped | shifted;              // AB00 xxxx CD00 xxxx
-    vint4 merged2 = shuffle_sse<2,2,2,2>(merged);  // CD00 ...
-    vint4 shifted2 = merged2 << 16;                // 00CD ...
-    vint4 result = merged | shifted2;              // ABCD ...
-    memcpy(values, &result, 4);  // memcpy because it may be unaligned
-    // At this point, values[] should hold A,B,C,D
+    vint4 clamped = m_simd & vint4(0xff);                         // A000 B000 C000 D000
+    simd_t val16 = _mm_packs_epi32(clamped, _mm_setzero_si128()); // A0B0 C0D0 xxxx xxxx
+    simd_t val8 = _mm_packus_epi16(val16, _mm_setzero_si128());   // ABCD xxxx xxxx xxxx
+    _mm_store_ss((float*)values, _mm_castsi128_ps(val8));
+#elif OIIO_SIMD_NEON
+    vint4 clamped = m_simd & vint4(0xff);
+    simd_t val16 = vcombine_s16(vqmovn_s32(clamped), vdup_n_s16(0));
+    simd_t val8 = vcombine_u8(vqmovun_s16(val16), vdup_n_u8(0));
+    vst1q_lane_u32((uint32_t*)values, val8, 0);
 #else
     SIMD_DO (values[i] = m_val[i]);
 #endif
