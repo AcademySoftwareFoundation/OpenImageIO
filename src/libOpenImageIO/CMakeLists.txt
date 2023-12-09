@@ -143,6 +143,7 @@ target_link_libraries (OpenImageIO
             OpenImageIO_Util
             ${OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY}
             ${OPENIMAGEIO_IMATH_TARGETS}
+            fmt::fmt
         PRIVATE
             ${OPENIMAGEIO_OPENEXR_TARGETS}
             ${OpenCV_LIBRARIES}
@@ -155,7 +156,6 @@ target_link_libraries (OpenImageIO
             ZLIB::ZLIB
             $<TARGET_NAME_IF_EXISTS:Boost::thread>
             ${CMAKE_DL_LIBS}
-            fmt::fmt
         )
 
 if (FREETYPE_FOUND)
