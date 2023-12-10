@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <openjpeg.h>
+#include <opj_config.h>
 
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imagebuf.h>
