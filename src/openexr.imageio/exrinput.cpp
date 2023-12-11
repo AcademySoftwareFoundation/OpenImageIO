@@ -1352,8 +1352,8 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
             // FIXME There is probably some optimized code for this somewhere.
             for (int c = chbegin; c < chend; ++c) {
                 size_t chanbytes = m_spec.channelformat(c).size();
-                half* src = &pixels[0][0].r + c;
-                half* dst = (half*)((char*)data + c * chanbytes);
+                half* src        = &pixels[0][0].r + c;
+                half* dst        = (half*)((char*)data + c * chanbytes);
                 for (int y = ybegin; y < yend; ++y) {
                     for (int x = 0; x < m_spec.width; ++x) {
                         *dst = *src;
