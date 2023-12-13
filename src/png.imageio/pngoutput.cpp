@@ -385,7 +385,7 @@ PNGOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
         unassoc_scratch.reset(new float[nvals]);
         float* floatvals = unassoc_scratch.get();
         // Contiguize and convert to float
-        OIIO::convert_image(m_spec.nchannels, m_spec.width, m_spec.height, 1,
+        OIIO::convert_image(m_spec.nchannels, m_spec.width, yend - ybegin, 1,
                             data, format, xstride, ystride, AutoStride,
                             floatvals, TypeFloat, AutoStride, AutoStride,
                             AutoStride);
