@@ -143,7 +143,7 @@ target_link_libraries (OpenImageIO
             OpenImageIO_Util
             ${OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY}
             ${OPENIMAGEIO_IMATH_TARGETS}
-            fmt::fmt
+            ${fmt_target}
         PRIVATE
             ${OPENIMAGEIO_OPENEXR_TARGETS}
             ${OpenCV_LIBRARIES}

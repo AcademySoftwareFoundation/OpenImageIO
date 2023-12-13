@@ -20,7 +20,7 @@ target_link_libraries (OpenImageIO_Util
             ${GCC_ATOMIC_LIBRARIES}
             ${OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY}
             ${OPENIMAGEIO_IMATH_TARGETS}
-            fmt::fmt
+            ${fmt_target}
         PRIVATE
             $<TARGET_NAME_IF_EXISTS:Boost::filesystem>
             $<TARGET_NAME_IF_EXISTS:Boost::thread>
