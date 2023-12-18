@@ -175,7 +175,7 @@ IvGL_OCIO::use_program(void)
         m_gamma_property->setValue(gamma);
         m_exposure_property->setValue(img->exposure());
     } else {
-        use_program();
+        IvGL::use_program();
     }
 }
 
@@ -360,8 +360,10 @@ IvGL_OCIO::allocate_all_textures(unsigned start_index)
         unsigned height                    = 0;
         GpuShaderDesc::TextureType channel = GpuShaderDesc::TEXTURE_RGB_CHANNEL;
         Interpolation interpolation        = INTERP_LINEAR;
+        GpuShaderCreator::TextureDimensions dimensions
+            = GpuShaderCreator::TextureDimensions::TEXTURE_2D;
         m_shader_desc->getTexture(idx, textureName, samplerName, width, height,
-                                  channel, interpolation);
+                                  channel, dimensions, interpolation);
 
         if (!textureName || !*textureName || !samplerName || !*samplerName
             || width == 0) {
