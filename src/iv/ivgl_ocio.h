@@ -10,6 +10,11 @@
 #    include <OpenColorIO/OpenColorIO.h>
 #    if OCIO_VERSION_MAJOR >= 2
 #        define HAS_OCIO_2
+#        if OCIO_VERSION_MAJOR == 2
+#            if OCIO_VERSION_MINOR >= 3
+#                define HAS_OCIO_2_3
+#            endif
+#        endif
 #    endif
 #endif
 
