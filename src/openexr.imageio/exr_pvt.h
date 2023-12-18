@@ -5,17 +5,17 @@
 #pragma once
 
 
-#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/Imath.h>
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/string_view.h>
 #include <OpenImageIO/typedesc.h>
 
+#include <ImathBox.h>
 #include <OpenEXR/IexThrowErrnoExc.h>
 #include <OpenEXR/ImfChannelList.h>
 #include <OpenEXR/ImfIO.h>
-#include <ImathBox.h>
 
 #ifdef OPENEXR_VERSION_MAJOR
 #    define OPENEXR_CODED_VERSION                                    \
