@@ -1176,6 +1176,13 @@ public:
 
     /// @}
 
+    /// @{
+    /// @name  Locking the internal mutex
+
+    void lock() const;
+    void unlock() const;
+    /// @}
+
     /// Return the `WrapMode` corresponding to the name (`"default"`,
     /// `"black"`, `"clamp"`, `"periodic"`, `"mirror"`). For an unknown
     /// name, this will return `WrapDefault`.
@@ -1301,7 +1308,7 @@ public:
         ROI range() const
         {
             return ROI(m_rng_xbegin, m_rng_xend, m_rng_ybegin, m_rng_yend,
-                       m_rng_zbegin, m_rng_zend, 0, m_ib->nchannels());
+                       m_rng_zbegin, m_rng_zend, 0, m_nchannels);
         }
 
         /// Reset the iteration range for this iterator and reposition to
@@ -1401,6 +1408,15 @@ public:
         // elsewhere to prevent imagebuf.h needing to know anything more
         // about ImageCache.
         void OIIO_API release_tile();
+
+        // Check if the IB is writable, make it so if it isn't.
+        OIIO_FORCEINLINE void ensure_writable()
+        {
+            if (OIIO_UNLIKELY(m_ib->storage() == IMAGECACHE))
+                make_writable();
+        }
+        // Do the dirty work of making the IB writable.
+        void OIIO_API make_writable();
     };
 
     /// Templated class for referring to an individual pixel in an
@@ -1409,7 +1425,7 @@ public:
     /// [xbegin..xend) X [ybegin..yend).  It is templated on BUFT, the
     /// type known to be in the internal representation of the ImageBuf,
     /// and USERT, the type that the user wants to retrieve or set the
-    /// data (defaulting to float).  the whole idea is to allow this:
+    /// data (defaulting to float). The whole idea is to allow this:
     /// \code
     ///   ImageBuf img (...);
     ///   ImageBuf::Iterator<float> pixel (img, 0, 512, 0, 512);
@@ -1459,29 +1475,51 @@ public:
 
         ~Iterator() {}
 
+    private:
+        // Private helper struct that encapsulates an Interator& and an index,
+        // awaiting a later read or write (which will call the iterator's
+        // get() or set(), respectively).
+        struct IteratorValRef {
+            Iterator& it;
+            int index;
+            IteratorValRef(Iterator& it, int index)
+                : it(it)
+                , index(index)
+            {
+            }
+            operator USERT() const { return it.get(index); }
+            void operator=(USERT val) { it.set(index, val); }
+        };
+
+    public:
         /// Dereferencing the iterator gives us a proxy for the pixel,
         /// which we can index for reading or assignment.
         DataArrayProxy<BUFT, USERT>& operator*()
         {
+            ensure_writable();
             return *(DataArrayProxy<BUFT, USERT>*)(void*)&m_proxydata;
+        }
+
+        /// Retrieve the value of channel i at the current iterator.
+        USERT get(int i) const
+        {
+            ConstDataArrayProxy<BUFT, USERT> proxy((const BUFT*)m_proxydata);
+            return proxy[i];
+        }
+
+        /// Set the value of channel i at the current iterator. If the buffer
+        /// is not writable (for example, it is backed by an ImageCache), it
+        /// will be made writable by copying into a henceforth-local buffer.
+        void set(int i, USERT val)
+        {
+            ensure_writable();
+            DataArrayProxy<BUFT, USERT> proxy((BUFT*)m_proxydata);
+            proxy[i] = val;
         }
 
         /// Array indexing retrieves the value of the i-th channel of
         /// the current pixel.
-        USERT operator[](int i) const
-        {
-            DataArrayProxy<BUFT, USERT> proxy((BUFT*)m_proxydata);
-            return proxy[i];
-        }
-
-        /// Array referencing retrieve a proxy (which may be "assigned
-        /// to") of i-th channel of the current pixel, so that this
-        /// works: me[i] = val;
-        DataProxy<BUFT, USERT> operator[](int i)
-        {
-            DataArrayProxy<BUFT, USERT> proxy((BUFT*)m_proxydata);
-            return proxy[i];
-        }
+        IteratorValRef operator[](int i) { return IteratorValRef(*this, i); }
 
         void* rawptr() const { return m_proxydata; }
 
@@ -1489,6 +1527,7 @@ public:
         /// this if deep_alloc() has not yet been called on the buffer.)
         void set_deep_samples(int n)
         {
+            ensure_writable();
             return const_cast<ImageBuf*>(m_ib)->set_deep_samples(m_x, m_y, m_z,
                                                                  n);
         }
@@ -1497,11 +1536,13 @@ public:
         /// if deep_alloc() has been called.)
         void set_deep_value(int c, int s, float value)
         {
+            ensure_writable();
             return const_cast<ImageBuf*>(m_ib)->set_deep_value(m_x, m_y, m_z, c,
                                                                s, value);
         }
         void set_deep_value(int c, int s, uint32_t value)
         {
+            ensure_writable();
             return const_cast<ImageBuf*>(m_ib)->set_deep_value(m_x, m_y, m_z, c,
                                                                s, value);
         }
