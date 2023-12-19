@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: CC-BY-4.0 -->
 <!-- Copyright Contributors to the OpenImageIO Project. -->
 <p align="center">
-  <img src="ASWF/logos/openimageio-horizontal-gradient.png">
+  <img src="ASWF/logos/openimageio-horizontal-gradient.png"> 
 </p>
 
 [![License](https://img.shields.io/badge/license-Apache2.0-blue.svg?style=flat-square)](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/master/LICENSE.md)
