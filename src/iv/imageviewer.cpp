@@ -15,6 +15,7 @@
 
 #include "imageviewer.h"
 #include "ivgl.h"
+#include "ivgl_ocio.h"
 
 #include <QApplication>
 #include <QComboBox>
@@ -35,12 +36,14 @@
 #    include <QDesktopWidget>
 #endif
 
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/timer.h>
+
 
 #include "ivutils.h"
 
@@ -93,7 +96,8 @@ static const char *s_file_filters = ""
 
 
 
-ImageViewer::ImageViewer()
+ImageViewer::ImageViewer(bool use_ocio, const std::string& image_color_space,
+                         const std::string& display, const std::string& view)
     : infoWindow(NULL)
     , preferenceWindow(NULL)
     , darkPaletteBox(NULL)
@@ -105,6 +109,12 @@ ImageViewer::ImageViewer()
     , m_fullscreen(false)
     , m_default_gamma(1)
     , m_darkPalette(false)
+#ifdef HAS_OCIO_2
+    , m_useOCIO(use_ocio)
+    , m_ocioColourSpace(image_color_space)
+    , m_ocioDisplay(display)
+    , m_ocioView(view)
+#endif  // HAS_OCIO_2
 {
     readSettings(false);
 
@@ -126,7 +136,13 @@ ImageViewer::ImageViewer()
     slideTimer       = new QTimer();
     slideDuration_ms = 5000;
     slide_loop       = true;
-    glwin            = new IvGL(this, *this);
+
+#ifdef HAS_OCIO_2
+    glwin = new IvGL_OCIO(this, *this);
+#else
+    glwin = new IvGL(this, *this);
+#endif
+
     glwin->setPalette(m_palette);
     glwin->resize(m_default_width, m_default_height);
     setCentralWidget(glwin);
@@ -444,7 +460,151 @@ ImageViewer::createActions()
             SLOT(setSlideShowDuration(int)));
 }
 
+#ifdef HAS_OCIO_2
 
+void
+ImageViewer::createOCIOMenus(QMenu* parent)
+{
+    ocioColorSpacesMenu = new QMenu(tr("Image color space"));
+    ocioDisplaysMenu    = new QMenu(tr("Display/View"));
+
+    try {
+        ColorConfig config;
+
+        std::map<std::string, QMenu*> colourSpaceFamilies;
+
+        ocioColorSpacesGroup = new QActionGroup(ocioColorSpacesMenu);
+        ocioColorSpacesGroup->setExclusive(true);
+
+        for (int i = 0; i < config.getNumColorSpaces(); i++) {
+            const char* colorSpaceName = config.getColorSpaceNameByIndex(i);
+
+            if (colorSpaceName && *colorSpaceName) {
+                // If no color space provided via command line parameters, select the top color space in the list.
+                if (m_ocioColourSpace == "" && i == 0) {
+                    m_ocioColourSpace = colorSpaceName;
+                }
+
+                const char* family = config.getColorSpaceFamilyByName(
+                    colorSpaceName);
+
+                QMenu* targetMenu;
+                if (family && *family) {
+                    auto iter = colourSpaceFamilies.find(family);
+                    if (iter == colourSpaceFamilies.end()) {
+                        targetMenu = new QMenu(family);
+                        ocioColorSpacesMenu->addMenu(targetMenu);
+                        colourSpaceFamilies[family] = targetMenu;
+                    } else {
+                        targetMenu = iter->second;
+                    }
+                } else {
+                    targetMenu = ocioColorSpacesMenu;
+                }
+
+                QAction* action = new QAction(colorSpaceName, this);
+                action->setCheckable(true);
+                action->setChecked(m_ocioColourSpace == colorSpaceName);
+
+                connect(action, SIGNAL(triggered()), this,
+                        SLOT(ocioColorSpaceAction()));
+
+                ocioColorSpacesGroup->addAction(action);
+                targetMenu->addAction(action);
+            }
+        }
+
+        ocioDisplayViewsGroup = new QActionGroup(ocioDisplaysMenu);
+        ocioDisplayViewsGroup->setExclusive(true);
+
+        if (m_ocioDisplay == "" || m_ocioDisplay == "default") {
+            m_ocioDisplay = config.getDefaultDisplayName();
+        }
+
+        if (m_ocioView == "" || m_ocioView == "default") {
+            m_ocioView = config.getDefaultViewName();
+        }
+
+        for (int i = 0; i < config.getNumDisplays(); i++) {
+            const char* display = config.getDisplayNameByIndex(i);
+
+            if (display && *display) {
+                QMenu* menu = new QMenu(display);
+
+                for (int j = 0; j < config.getNumViews(display); j++) {
+                    const char* view = config.getViewNameByIndex(display, j);
+
+                    if (view && *view) {
+                        QAction* action = new QAction(view, menu);
+                        action->setCheckable(true);
+                        action->setChecked(m_ocioDisplay == display
+                                           && m_ocioView == view);
+
+                        connect(action, SIGNAL(triggered()), this,
+                                SLOT(ocioDisplayViewAction()));
+
+                        menu->addAction(action);
+                        ocioDisplayViewsGroup->addAction(action);
+                    }
+                }
+
+                ocioDisplaysMenu->addMenu(menu);
+            }
+        }
+    } catch (...) {
+        std::cerr << "Error loading OCIO config file" << std::endl;
+        m_useOCIO = false;
+        return;
+    }
+
+    QMenu* ocioMenu = new QMenu(tr("OCIO"));
+
+    QAction* action = new QAction(tr("Use OCIO"));
+    action->setCheckable(true);
+    action->setChecked(m_useOCIO);
+    connect(action, SIGNAL(toggled(bool)), this, SLOT(useOCIOAction(bool)));
+
+    ocioMenu->addAction(action);
+    ocioMenu->addMenu(ocioColorSpacesMenu);
+    ocioMenu->addMenu(ocioDisplaysMenu);
+
+    parent->addMenu(ocioMenu);
+}
+
+void
+ImageViewer::useOCIOAction(bool checked)
+{
+    m_useOCIO = checked;
+
+    ocioColorSpacesMenu->setEnabled(m_useOCIO);
+    ocioDisplaysMenu->setEnabled(m_useOCIO);
+
+    displayCurrentImage();
+}
+
+void
+ImageViewer::ocioColorSpaceAction()
+{
+    QAction* action = ocioColorSpacesGroup->checkedAction();
+    if (action) {
+        m_ocioColourSpace = action->text().toStdString();
+        displayCurrentImage();
+    }
+}
+
+void
+ImageViewer::ocioDisplayViewAction()
+{
+    QAction* action = ocioDisplayViewsGroup->checkedAction();
+    if (action) {
+        QMenu* menu   = qobject_cast<QMenu*>(action->parent());
+        m_ocioDisplay = menu->title().toStdString();
+        m_ocioView    = action->text().toStdString();
+        displayCurrentImage();
+    }
+}
+
+#endif  // HAS_OCIO_2
 
 void
 ImageViewer::createMenus()
@@ -531,6 +691,11 @@ ImageViewer::createMenus()
     viewMenu->addAction(viewSubimageNextAct);
     viewMenu->addMenu(channelMenu);
     viewMenu->addMenu(colormodeMenu);
+
+#ifdef HAS_OCIO_2
+    createOCIOMenus(viewMenu);
+#endif
+
     viewMenu->addMenu(expgamMenu);
     menuBar()->addMenu(viewMenu);
     // Full screen mode
@@ -877,7 +1042,13 @@ void
 ImageViewer::moveToNewWindow()
 {
     if (m_images.size()) {
-        ImageViewer* imageViewer = new ImageViewer();
+#ifdef HAS_OCIO_2
+        ImageViewer* imageViewer = new ImageViewer(m_useOCIO, m_ocioColourSpace,
+                                                   m_ocioDisplay, m_ocioView);
+#else
+        std::string dummy;
+        ImageViewer* imageViewer = new ImageViewer(false, dummy, dummy, dummy);
+#endif
 
         imageViewer->show();
         imageViewer->rawcolor(rawcolor());
