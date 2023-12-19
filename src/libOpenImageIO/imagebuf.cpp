@@ -330,6 +330,9 @@ private:
         return m_nativespec.format;
     }
 
+    void lock() const { m_mutex.lock(); }
+    void unlock() const { m_mutex.unlock(); }
+
     const ImageBufImpl operator=(const ImageBufImpl& src);  // unimplemented
     friend class ImageBuf;
 };
@@ -3102,18 +3105,32 @@ ImageBuf::IteratorBase::range_is_image()
 
 
 void
+ImageBuf::IteratorBase::make_writable()
+{
+    std::lock_guard<const ImageBuf> lock(*m_ib);
+    if (m_ib->storage() != IMAGECACHE)
+        return;  // already done
+    const_cast<ImageBuf*>(m_ib)->make_writable(true);
+    OIIO_DASSERT(m_ib->storage() != IMAGECACHE);
+    if (m_tile)
+        release_tile();
+    m_tile        = nullptr;
+    m_proxydata   = nullptr;
+    m_localpixels = !m_deep;
+    pos(m_x, m_y, m_z);
+}
+
+
+
+void
 ImageBuf::IteratorBase::init_ib(WrapMode wrap, bool write)
 {
+    ImageBufImpl::lock_t lock(m_ib->m_impl->m_mutex);
     const ImageSpec& spec(m_ib->spec());
     m_deep        = spec.deep;
     m_localpixels = (m_ib->localpixels() != nullptr);
-    if (!m_localpixels && write) {
-        const_cast<ImageBuf*>(m_ib)->make_writable(true);
-        OIIO_DASSERT(m_ib->storage() != IMAGECACHE);
-        m_tile        = nullptr;
-        m_proxydata   = nullptr;
-        m_localpixels = !m_deep;
-    }
+    // if (write)
+    //      ensure_writable();  // Not here; do it lazily
     m_img_xbegin   = spec.x;
     m_img_xend     = spec.x + spec.width;
     m_img_ybegin   = spec.y;
@@ -3232,6 +3249,21 @@ ImageBuf::IteratorBase::rerange(int xbegin, int xend, int ybegin, int yend,
     m_rng_zbegin = zbegin;
     m_rng_zend   = zend;
     pos(xbegin, ybegin, zbegin);
+}
+
+
+
+void
+ImageBuf::lock() const
+{
+    m_impl->lock();
+}
+
+
+void
+ImageBuf::unlock() const
+{
+    m_impl->unlock();
 }
 
 
