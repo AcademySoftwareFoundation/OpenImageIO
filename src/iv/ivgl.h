@@ -15,9 +15,6 @@
 #    pragma warning(disable : 4127 4512)
 #endif
 
-// Thanks, Apple, dammit:
-#define GL_SILENCE_DEPRECATION 1
-
 // included to remove std::min/std::max errors
 #include <OpenImageIO/platform.h>
 
@@ -34,9 +31,7 @@ using namespace OIIO;
 class IvImage;
 class ImageViewer;
 
-
-
-class IvGL final : public QOpenGLWidget, protected QOpenGLFunctions {
+class IvGL : public QOpenGLWidget, protected QOpenGLFunctions {
     Q_OBJECT
 public:
     IvGL(QWidget* parent, ImageViewer& viewer);
@@ -105,7 +100,6 @@ protected:
     ImageViewer& m_viewer;          ///< Backpointer to viewer
     bool m_shaders_created;         ///< Have the shaders been created?
     GLuint m_vertex_shader;         ///< Vertex shader id
-    GLuint m_fragment_shader;       ///< Fragment shader id
     GLuint m_shader_program;        ///< GL shader program id
     bool m_tex_created;             ///< Have the textures been created?
     float m_zoom;                   ///< Zoom ratio
@@ -129,6 +123,8 @@ protected:
     /// Buffer passed to IvImage::copy_image when not using PBO.
     ///
     std::vector<unsigned char> m_tex_buffer;
+
+    std::string m_color_shader_text;
 
     /// Represents a texture object being used as a buffer.
     ///
@@ -164,6 +160,16 @@ protected:
 
     void shadowed_text(float x, float y, float z, const std::string& s,
                        const QFont& font);
+
+    virtual void update_state(void);
+
+    virtual void use_program(void);
+
+    virtual void update_uniforms(int tex_width, int tex_height, bool pixelview);
+
+    void print_error(const char* msg);
+
+    virtual const char* color_func_shader_text();
 
 private:
     typedef QOpenGLWidget parent_t;

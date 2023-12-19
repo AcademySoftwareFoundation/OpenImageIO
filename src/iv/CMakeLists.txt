@@ -23,6 +23,8 @@ if (iv_enabled AND (Qt5_FOUND OR Qt6_FOUND) AND OPENGL_FOUND)
             $<TARGET_NAME_IF_EXISTS:Qt6::Widgets>
             $<TARGET_NAME_IF_EXISTS:Qt6::OpenGLWidgets>
             ${OPENGL_LIBRARIES}
+            $<TARGET_NAME_IF_EXISTS:OpenColorIO::OpenColorIO>
+            $<TARGET_NAME_IF_EXISTS:OpenColorIO::OpenColorIOHeaders>
         )
     if (iv_enabled AND FORCE_OPENGL_1)
         target_compile_definitions(iv PRIVATE FORCE_OPENGL_1)
@@ -32,6 +34,9 @@ if (iv_enabled AND (Qt5_FOUND OR Qt6_FOUND) AND OPENGL_FOUND)
     endif ()
     if (Qt6_FOUND)
         target_compile_definitions(iv PRIVATE OIIO_QT_MAJOR=6)
+    endif ()
+    if (APPLE)
+        target_compile_definitions(iv PRIVATE GL_SILENCE_DEPRECATION)
     endif ()
 else ()
     message (STATUS "\n\n   WARNING: Qt or OpenGL not found -- 'iv' will not be built!\n")
