@@ -82,7 +82,7 @@ else ()
          ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/ostream.h
          ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/printf.h )
     foreach (f format.h ostream.h printf.h)
-        configure_file("${CMAKE_CURRENT_LIST_DIR}/OpenImageIO/${f}.in" "${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/${f}" COPYONLY)
+        configure_file ("${CMAKE_CURRENT_LIST_DIR}/OpenImageIO/${f}.in" "${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/${f}" COPYONLY)
     endforeach ()
     if (fmt_VERSION VERSION_GREATER_EQUAL 90000)
         list (APPEND fmt_headers ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/std.h)
