@@ -368,24 +368,21 @@ produce a dynamic-linked version.
 Test Images
 -----------
 
-We have yet another project containing a set of sample images for testing
-OpenImageIO. We split test images into a separate project in order to make
-the main source code tree smaller and simpler for people who don't need the
-test suite.
+There are several projects containing sets of sample images for testing
+OpenImageIO.
 
-    git clone https://github.com/AcademySoftwareFoundation/OpenImageIO-images.git
+They are kept separate in order to make the main source code
+tree smaller and simpler for people who don't need the test suite.
+Additionally, some of these packages are maintained outside the OpenImageIO
+project by their respective organizations.
 
-Also, there are collections of images for some of the file formats we
-support, and make test expects them to also be present. To run full tests,
-you will need to download and unpack the test image collections from:
-
-* http://www.simplesystems.org/libtiff/images.html
-* http://www.openexr.com/downloads.html
-* http://www.itu.int/net/ITU-T/sigdb/speimage/ImageForm-s.aspx?val=10100803
-* http://www.cv.nrao.edu/fits/data/tests/
-
-These images should be placed in a sibling directory to the OpenImageIO
-repository named oiio-testimages.
+| Download | Directory Placement | Notes |
+| --- | --- | --- |
+| git clone https://github.com/AcademySoftwareFoundation/OpenImageIO-images.git | `<path>/../oiio-images` | CMake will download if not present |
+| git clone https://github.com/AcademySoftwareFoundation/openexr-images.git | `<path>/../openexr-images` | CMake will download if not present |
+| http://www.cv.nrao.edu/fits/data/tests/ | `<path>/../fits-images` | Manual download required |
+| https://www.itu.int/net/ITU-T/sigdb/speimage/ImageForm-s.aspx?val=10100803 | `<path>/../j2kp4files_v1_5` | Manual download required |
+Where `<path>` is the location of the main `OpenImageIO` repository.
 
 You do not need any of these packages in order to build or use
 OpenImageIO. But if you are going to contribute to OpenImageIO
