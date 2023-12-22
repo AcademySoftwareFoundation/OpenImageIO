@@ -649,10 +649,14 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
     std::unique_ptr<ImageInput> in;
     std::map<std::string, std::string> args;
     std::string filename_stripped;
-    if (!Strutil::get_rest_arguments(filename, filename_stripped, args)) {
-        OIIO::pvt::errorfmt(
-            "ImageInput::create() called with malformed filename");
-        return in;
+
+    // Only check REST arguments if the file does not exist
+    if (!Filesystem::exists(filename)) {
+        if (!Strutil::get_rest_arguments(filename, filename_stripped, args)) {
+            OIIO::pvt::errorfmt(
+                "ImageInput::create() called with malformed filename");
+            return in;
+        }
     }
 
     if (filename_stripped.empty())
