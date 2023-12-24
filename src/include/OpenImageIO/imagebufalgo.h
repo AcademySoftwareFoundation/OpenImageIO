@@ -404,7 +404,7 @@ ROI OIIO_API text_size (string_view text, int fontsize=16,
 ///             The total number of channels that will be set up in the
 ///             `dst` image.
 /// @param  channelorder
-///             For each channel in `dst`, the index of he `src` channel
+///             For each channel in `dst`, the index of the `src` channel
 ///             from which to copy. Any `channelorder[i]` < 0 indicates that
 ///             the channel `i` should be filled with constant value
 ///             `channelvalues[i]` rather than copy any channel from `src`.
