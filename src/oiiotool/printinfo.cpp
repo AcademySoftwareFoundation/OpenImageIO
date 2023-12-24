@@ -149,7 +149,7 @@ dump_flat_data(std::ostream& out, ImageInput* input,
 
 
 // Macro to call a type-specialzed version func<type>(R,...)
-#define OIIO_DISPATCH_TYPES(ret, name, func, type, R, ...)                    \
+#define PRINTINFO_DISPATCH_TYPES(ret, name, func, type, R, ...)               \
     switch (type.basetype) {                                                  \
     case TypeDesc::FLOAT: ret = func<float>(R, __VA_ARGS__); break;           \
     case TypeDesc::UINT8: ret = func<unsigned char>(R, __VA_ARGS__); break;   \
@@ -211,8 +211,8 @@ dump_data(std::ostream& out, ImageInput* input,
 
     } else {
         OIIO_UNUSED_OK bool ok = true;
-        OIIO_DISPATCH_TYPES(ok, "dump_flat_data", dump_flat_data, spec.format,
-                            out, input, opt, subimage);
+        PRINTINFO_DISPATCH_TYPES(ok, "dump_flat_data", dump_flat_data,
+                                 spec.format, out, input, opt, subimage);
     }
 }
 
