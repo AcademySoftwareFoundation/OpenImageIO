@@ -763,13 +763,22 @@ inline OIIO_HOSTDEVICE float sign (float x)
 /// @version 2.4.1
 template <typename OUT_TYPE, typename IN_TYPE>
 OIIO_FORCEINLINE OIIO_HOSTDEVICE OUT_TYPE bitcast (const IN_TYPE& in) noexcept {
-    // NOTE: this is the only standards compliant way of doing this type of casting,
-    // luckily the compilers we care about know how to optimize away this idiom.
     static_assert(sizeof(IN_TYPE) == sizeof(OUT_TYPE),
                   "bit_cast must be between objects of the same size");
+#if defined(__cpp_lib_bit_cast) &&  __cpp_lib_bit_cast >= 201806L && !defined(__CUDA_ARCH__)
+    // If std::bit_cast is available, use it.
+    return std::bit_cast<OUT_TYPE>(in);
+#elif OIIO_GNUC_VERSION >= 110000 && !defined(__CUDA_ARCH__)
+    // Pre C++20, use __builtin_bit_cast for gcc if available
+    return __builtin_bit_cast(OUT_TYPE, in);
+#else
+    // NOTE: this is the only standards compliant way of doing this type of
+    // casting, luckily the compilers we care about know how to optimize away
+    // this idiom.
     OUT_TYPE out;
     memcpy ((void *)&out, &in, sizeof(IN_TYPE));
     return out;
+#endif
 }
 
 #if OIIO_VERSION_LESS(3, 0, 0)
