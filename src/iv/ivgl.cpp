@@ -1494,7 +1494,10 @@ IvGL::load_texture(int x, int y, int width, int height)
     }
 
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo_objects[m_last_pbo_used]);
-    glBufferData(GL_PIXEL_UNPACK_BUFFER, width * height * spec.pixel_bytes(),
+    glBufferData(GL_PIXEL_UNPACK_BUFFER,
+                 GLsizeiptr(uint64_t(width) * uint64_t(height)
+                            * uint64_t(nchannels)
+                            * uint64_t(spec.format.size())),
                  &m_tex_buffer[0], GL_STREAM_DRAW);
     GLERRPRINT("After buffer data");
     m_last_pbo_used = (m_last_pbo_used + 1) & 1;
