@@ -23,10 +23,11 @@ if [[ `uname` == "Linux" ]] ; then
     ls -l $LLVMTAR
     tar xf $LLVMTAR
     rm -f $LLVMTAR
-    echo "Installed ${LLVM_VERSION} in ${LLVM_INSTALL_DIR}"
+    echo "Installed LLVM ${LLVM_VERSION} in ${LLVM_INSTALL_DIR}"
     mkdir -p $LLVM_INSTALL_DIR && true
     mv clang+llvm*/* $LLVM_INSTALL_DIR
     export LLVM_DIRECTORY=$LLVM_INSTALL_DIR
     export PATH=${LLVM_INSTALL_DIR}/bin:$PATH
+    export LLVM_ROOT=${LLVM_INSTALL_DIR}
     # ls -a $LLVM_DIRECTORY
 fi
