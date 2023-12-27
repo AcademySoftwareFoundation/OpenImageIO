@@ -1009,7 +1009,7 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
         if (m_nsubimages) {
             m_badfile          = false;
             m_pixelaspect      = m_spec.get_float_attribute("pixelaspectratio",
-                                                       1.0f);
+                                                            1.0f);
             m_current_subimage = subimage;
             m_current_miplevel = miplevel;
             m_spec_valid       = true;
@@ -2130,7 +2130,7 @@ interppixel_(const ImageBuf& img, float x, float y, float* pixel,
     int n             = img.spec().nchannels;
     float* localpixel = OIIO_ALLOCA(float, n * 4);
     float* p[4]       = { localpixel, localpixel + n, localpixel + 2 * n,
-                    localpixel + 3 * n };
+                          localpixel + 3 * n };
     x -= 0.5f;
     y -= 0.5f;
     int xtexel, ytexel;
@@ -2949,7 +2949,7 @@ ImageBufImpl::retile(int x, int y, int z, ImageCache::Tile*& tile,
         tilezbegin = m_spec.z + ztile * td;
         tilexend   = tilexbegin + tw;
         tile       = m_imagecache->get_tile(m_name, m_current_subimage,
-                                      m_current_miplevel, x, y, z);
+                                            m_current_miplevel, x, y, z);
         if (!tile) {
             // Even though tile is NULL, ensure valid black pixel data
             std::string e = m_imagecache->geterror();

@@ -598,10 +598,10 @@ IvGL::paintGL()
     ybegin     = std::max(spec.y, ybegin - (ybegin % m_texture_height));
     int xend   = (int)floor(real_centerx) + wincenterx;
     xend       = std::min(spec.x + spec.width,
-                    xend + m_texture_width - (xend % m_texture_width));
+                          xend + m_texture_width - (xend % m_texture_width));
     int yend   = (int)floor(real_centery) + wincentery;
     yend       = std::min(spec.y + spec.height,
-                    yend + m_texture_height - (yend % m_texture_height));
+                          yend + m_texture_height - (yend % m_texture_height));
     //std::cerr << "(" << xbegin << ',' << ybegin << ") - (" << xend << ',' << yend << ")\n";
 
     // Provide some feedback

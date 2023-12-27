@@ -320,7 +320,7 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
     // std::cout << "color_space=" << m_image->color_space << "\n";
     TypeDesc format = (maxPrecision <= 8) ? TypeDesc::UINT8 : TypeDesc::UINT16;
     m_spec   = ImageSpec(datawindow.width(), datawindow.height(), channelCount,
-                       format);
+                         format);
     m_spec.x = datawindow.xbegin;
     m_spec.y = datawindow.ybegin;
     m_spec.full_x      = m_image->x0;

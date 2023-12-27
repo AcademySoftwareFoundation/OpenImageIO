@@ -1108,7 +1108,8 @@ PSDInput::handle_resources(ImageResourceMap& resources)
 
 
 
-bool PSDInput::load_resource_1005(uint32_t /*length*/)
+bool
+PSDInput::load_resource_1005(uint32_t /*length*/)
 {
     ResolutionInfo resinfo;
     // Fixed 16.16
@@ -1170,7 +1171,8 @@ PSDInput::load_resource_1006(uint32_t length)
 
 
 
-bool PSDInput::load_resource_1010(uint32_t /*length*/)
+bool
+PSDInput::load_resource_1010(uint32_t /*length*/)
 {
     int8_t color_id = 0;
     int32_t color   = 0;
@@ -1220,7 +1222,8 @@ PSDInput::load_resource_1039(uint32_t length)
 
 
 
-bool PSDInput::load_resource_1047(uint32_t /*length*/)
+bool
+PSDInput::load_resource_1047(uint32_t /*length*/)
 {
     if (!read_bige<int16_t>(m_transparency_index))
         return false;
@@ -1278,7 +1281,8 @@ PSDInput::load_resource_1060(uint32_t length)
 
 
 
-bool PSDInput::load_resource_1064(uint32_t /*length*/)
+bool
+PSDInput::load_resource_1064(uint32_t /*length*/)
 {
     uint32_t version;
     if (!read_bige<uint32_t>(version))
@@ -1579,7 +1583,7 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
     uint32_t width, height;
     if (channel_info.channel_id == ChannelID_LayerMask) {
         width  = (uint32_t)std::abs((int)layer.mask_data.right
-                                   - (int)layer.mask_data.left);
+                                    - (int)layer.mask_data.left);
         height = (uint32_t)std::abs((int)layer.mask_data.bottom
                                     - (int)layer.mask_data.top);
     } else {

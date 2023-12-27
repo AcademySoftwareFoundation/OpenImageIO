@@ -296,7 +296,7 @@ exif_parser_cb(ImageSpec* spec, int tag, int tifftype, int len,
     // std::cerr << "Stream position " << streampos << "\n";
 
     TypeDesc type          = tiff_datatype_to_typedesc(TIFFDataType(tifftype),
-                                              size_t(len));
+                                                       size_t(len));
     const TagInfo* taginfo = tag_lookup("Exif", tag);
     if (!taginfo) {
         // print(stderr, "NO TAGINFO FOR CALLBACK tag=%d (0x{:x}): tifftype={},len={} ({}), byteorder=0x{:x}\n",

@@ -1117,7 +1117,10 @@ test_texture3d_batch(ustring filename, Mapping3DWide mapping)
 
 
 
-static void test_shadow(ustring /*filename*/) {}
+static void
+test_shadow(ustring /*filename*/)
+{
+}
 
 
 
@@ -1856,8 +1859,8 @@ main(int argc, const char* argv[])
     if (gtiname.size()) {
         const char* attrib = nullptr;
         bool result        = texsys->get_texture_info(filenames[0], 0,
-                                               ustring(gtiname), TypeString,
-                                               &attrib);
+                                                      ustring(gtiname), TypeString,
+                                                      &attrib);
         if (result)
             Strutil::print("Image \"{}\" attrib \"{}\" = \"{}\"\n",
                            filenames[0], gtiname, attrib);

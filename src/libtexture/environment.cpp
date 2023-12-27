@@ -456,7 +456,7 @@ TextureSystemImpl::environment(TextureHandle* texture_handle_,
     float invsamples;
     if (aniso) {
         aspect    = anisotropic_aspect(majorlength, minorlength, options,
-                                    trueaspect);
+                                       trueaspect);
         filtwidth = minorlength;
         if (trueaspect > stats.max_aniso)
             stats.max_aniso = trueaspect;
@@ -501,7 +501,7 @@ TextureSystemImpl::environment(TextureHandle* texture_handle_,
                 miplevel[0] = m - 1;
                 miplevel[1] = m;
                 levelblend  = OIIO::clamp(2.0f * filtwidth_ras - 1.0f, 0.0f,
-                                         1.0f);
+                                          1.0f);
                 break;
             }
         }
