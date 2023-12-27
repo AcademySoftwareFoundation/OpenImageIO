@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+set (OIIO_IV_EXTRA_IV_LIBRARIES "" CACHE STRING "Paths to extra libraries to force iv to link against")
+
 set (CMAKE_AUTOMOC ON)
 if (Qt5_POSITION_INDEPENDENT_CODE OR Qt6_POSITION_INDEPENDENT_CODE)
     set (CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -23,6 +25,7 @@ if (iv_enabled AND (Qt5_FOUND OR Qt6_FOUND) AND OPENGL_FOUND)
             $<TARGET_NAME_IF_EXISTS:Qt6::Widgets>
             $<TARGET_NAME_IF_EXISTS:Qt6::OpenGLWidgets>
             ${OPENGL_LIBRARIES}
+            ${OIIO_IV_EXTRA_IV_LIBRARIES}
         )
     if (iv_enabled AND FORCE_OPENGL_1)
         target_compile_definitions(iv PRIVATE FORCE_OPENGL_1)
