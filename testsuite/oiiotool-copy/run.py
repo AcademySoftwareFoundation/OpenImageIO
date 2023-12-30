@@ -27,6 +27,16 @@ command += oiiotool("-i:ch=Z rgb64.exr -d half -o ch-err.exr")
 command += oiiotool("-i:ch=R,G,B rgb-z-parts64.exr -d half -o ch-err2.exr")
 
 
+# test -d to change data formats
+command += oiiotool ("src/rgbaz.exr -d half -o allhalf.exr")
+command += info_command ("allhalf.exr", safematch=1)
+
+# test -d NAME=fmt to change data format of one channel, and to make
+# sure oiiotool will output per-channel formats.
+command += oiiotool ("src/rgbaz.exr -d half -d Z=float -o rgbahalf-zfloat.exr")
+command += info_command ("rgbahalf-zfloat.exr", safematch=1)
+
+
 # Some tests to verify that we are transferring data formats properly.
 #
 command += oiiotool ("-pattern checker 128x128 3 -d uint8 -tile 16 16 -o uint8.tif " +
@@ -55,6 +65,22 @@ command += oiiotool ("-pattern checker 128x128 3 uint8.tif -add -o tmp.tif " +
 # Try to copy extra channels to a file that doesn't support it -- we should get
 # a warning message about only saving the first 3 channels.
 command += oiiotool ("--pattern constant:color=0.1,0.2,0.3,0.4 64x64 4 --chnames R,G,B,X -d uint8 -o rgbx.png")
+
+
+# test channel shuffling
+command += oiiotool ("../common/grid.tif"
+            + " --ch =0.25,B,G -o chanshuffle.tif")
+
+# test --ch to separate RGBA from an RGBAZ file
+command += oiiotool ("src/rgbaz.exr --ch R,G,B,A -o ch-rgba.exr")
+command += oiiotool ("src/rgbaz.exr --ch Z -o ch-z.exr")
+
+# test --chappend to merge RGBA and Z
+command += oiiotool ("ch-rgba.exr ch-z.exr --chappend -o chappend-rgbaz.exr")
+
+# test --chnames to rename channels
+command += oiiotool ("src/rgbaz.exr --chnames Red,,,,Depth -o chname.exr")
+command += info_command ("chname.exr", safematch=1)
 
 # test --crop
 command += oiiotool ("../common/grid.tif --crop 100x400+50+200 -o crop.tif")
@@ -109,6 +135,9 @@ command += oiiotool ("-echo \"Testing -o with no image\" -o out.tif")
 # Outputs to check against references
 outputs = [
             "rgonly.exr", "ch-err.exr", "ch-err2.exr",
+            "allhalf.exr", "rgbahalf-zfloat.exr",
+            "chanshuffle.tif", "ch-rgba.exr", "ch-z.exr",
+            "chappend-rgbaz.exr", "chname.exr",
             "crop.tif", "cut.tif", "pasted.tif",
             "mosaic.tif", "mosaicfit.tif",
             "greenmeta.exr",

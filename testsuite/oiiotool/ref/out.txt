@@ -4,45 +4,6 @@
        0  < 0,0,0
     6400  > 1,0.9,1
    59136  within range
-Reading chname.exr
-chname.exr           :   38 x   38, 5 channel, float openexr
-    SHA-1: 6EB25E53358BF3ECDFECD04F662D335DE647A1A6
-    channel list: Red, G, B, A, Depth
-    full/display size: 40 x 40
-    full/display origin: 0, 0
-    compression: "zips"
-    Orientation: 1 (normal)
-    PixelAspectRatio: 1
-    screenWindowCenter: 0, 0
-    screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
-    oiio:subimages: 1
-Reading allhalf.exr
-allhalf.exr          :   38 x   38, 5 channel, half openexr
-    SHA-1: 1C71682E8D8F6DCDC2A7A7B23842DFEEC51438F2
-    channel list: R, G, B, A, Z
-    full/display size: 40 x 40
-    full/display origin: 0, 0
-    compression: "zips"
-    Orientation: 1 (normal)
-    PixelAspectRatio: 1
-    screenWindowCenter: 0, 0
-    screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
-    oiio:subimages: 1
-Reading rgbahalf-zfloat.exr
-rgbahalf-zfloat.exr  :   38 x   38, 5 channel, half/half/half/half/float openexr
-    SHA-1: 9324AFD44451321A8D87E09F656C7B86E827E5CD
-    channel list: R (half), G (half), B (half), A (half), Z (float)
-    full/display size: 40 x 40
-    full/display origin: 0, 0
-    compression: "zips"
-    Orientation: 1 (normal)
-    PixelAspectRatio: 1
-    screenWindowCenter: 0, 0
-    screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
-    oiio:subimages: 1
 --printstats:
  128 x   96, 3 channel, float tiff
     Stats Min: 0 0 0 (of 255)
@@ -100,16 +61,6 @@ Comparing "trim.tif" and "ref/trim.tif"
 PASS
 Comparing "trimsubimages.tif" and "ref/trimsubimages.tif"
 PASS
-Comparing "chanshuffle.tif" and "ref/chanshuffle.tif"
-PASS
-Comparing "ch-rgba.exr" and "ref/ch-rgba.exr"
-PASS
-Comparing "ch-z.exr" and "ref/ch-z.exr"
-PASS
-Comparing "chappend-rgbaz.exr" and "ref/chappend-rgbaz.exr"
-PASS
-Comparing "chname.exr" and "ref/chname.exr"
-PASS
 Comparing "add.exr" and "ref/add.exr"
 PASS
 Comparing "cadd1.exr" and "ref/cadd1.exr"
@@ -157,8 +108,6 @@ PASS
 Comparing "absdiffc.exr" and "ref/absdiffc.exr"
 PASS
 Comparing "chsum.tif" and "ref/chsum.tif"
-PASS
-Comparing "rgbahalf-zfloat.exr" and "ref/rgbahalf-zfloat.exr"
 PASS
 Comparing "tahoe-filled.tif" and "ref/tahoe-filled.tif"
 PASS
