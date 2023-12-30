@@ -124,10 +124,10 @@ try:
     # channels, channel_append
     b = ImageBufAlgo.channels (grid, (0.25,2,"G"))
     write (b, "chanshuffle.tif")
-    b = ImageBufAlgo.channels (ImageBuf(OIIO_TESTSUITE_ROOT+"/oiiotool/src/rgbaz.exr"),
+    b = ImageBufAlgo.channels (ImageBuf(OIIO_TESTSUITE_ROOT+"/oiiotool-copy/src/rgbaz.exr"),
                                ("R","G","B","A"))
     write (b, "ch-rgba.exr")
-    b = ImageBufAlgo.channels (ImageBuf(OIIO_TESTSUITE_ROOT+"/oiiotool/src/rgbaz.exr"), ("Z",))
+    b = ImageBufAlgo.channels (ImageBuf(OIIO_TESTSUITE_ROOT+"/oiiotool-copy/src/rgbaz.exr"), ("Z",))
     write (b, "ch-z.exr")
     b = test_iba (ImageBufAlgo.channel_append, ImageBuf("ch-rgba.exr"),
                   ImageBuf("ch-z.exr"))
