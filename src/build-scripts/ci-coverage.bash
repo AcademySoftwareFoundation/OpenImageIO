@@ -25,4 +25,9 @@ for g in $(find ../build -name "*.gcno" -type f); do
     echo "dirname $g = $(dirname $g) to " `$(echo "$g" | sed -e 's/\/build\//\//' -e 's/\.gcno/\.cpp/' -e 's/\.cpp\.cpp/\.cpp/' -e 's/\/CMakeFiles.*\.dir\//\//')`
     gcov -l -p -o $(dirname "$g") $(echo "$g" | sed -e 's/\/build\//\//' -e 's/\.gcno/\.cpp/' -e 's/\/CMakeFiles.*\.dir\//\//')
 done
+
+# Remove pointless .gcov files so we don't analyze them
+rm -f "*opt*include*"
+rm -f "*usr*local*"
+
 popd

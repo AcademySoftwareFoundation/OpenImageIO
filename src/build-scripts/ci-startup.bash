@@ -53,6 +53,11 @@ export DYLD_LIBRARY_PATH=${LOCAL_DEPS_DIR}/dist/lib:$DYLD_LIBRARY_PATH
 # export OCIO="$PWD/testsuite/common/OpenColorIO/nuke-default/config.ocio"
 export TESTSUITE_CLEANUP_ON_SUCCESS=${TESTSUITE_CLEANUP_ON_SUCCESS:=1}
 
+# Sonar
+export BUILD_WRAPPER_OUT_DIR="${PWD}/bw_output"
+export BW_OUTPUT_DIR="${PWD}/bw_output"
+
+
 mkdir -p build dist
 
 echo "HOME = $HOME"
