@@ -6,11 +6,6 @@ name: CI
 
 on:
   push:
-    # Skip full CI on any experimental branch containing "analysisonly" or
-    # "sonaronly"
-    branches:
-      - '!*analysisonly'
-      - '!*sonaronly*'
     # Skip jobs when only documentation files are changed
     paths-ignore:
       - '**.md'
