@@ -76,6 +76,8 @@ test_ustring()
     ustring foo("foo"), bar("bar"), empty(""), uninit;
     ustring foobarbaz("foobarbaz");
 
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<ustring>::value);
+
     // Size of a ustring is just a pointer
     OIIO_CHECK_EQUAL(sizeof(ustring), sizeof(const char*));
 
@@ -171,6 +173,9 @@ test_ustringhash()
 {
     // Two ustrings
     ustring foo("foo"), bar("bar");
+
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<ustringhash>::value);
+
     OIIO_CHECK_EQUAL(sizeof(ustringhash), sizeof(size_t));
 
     // Make two ustringhash's from strings

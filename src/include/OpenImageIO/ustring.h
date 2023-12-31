@@ -184,10 +184,7 @@ public:
     }
 
     /// Copy construct a ustring from another ustring.
-    ustring(const ustring& str) noexcept
-        : m_chars(str.m_chars)
-    {
-    }
+    ustring(const ustring& str) noexcept = default;
 
     /// Construct a ustring from an indexed substring of a ustring.
     ustring(const ustring& str, size_type pos, size_type n = npos)
@@ -804,9 +801,7 @@ public:
 
     /// Copy construct a ustringhash from another ustringhash.
     OIIO_HOSTDEVICE constexpr ustringhash(const ustringhash& str) noexcept
-        : m_hash(str.m_hash)
-    {
-    }
+        = default;
 
     /// Construct from a ustring
     ustringhash(const ustring& str) noexcept
@@ -1137,6 +1132,7 @@ OIIO_NAMESPACE_END
 
 
 namespace std {  // not necessary in C++17, then we can just say std::hash
+
 // std::hash specialization for ustring
 template<> struct hash<OIIO::ustring> {
     std::size_t operator()(OIIO::ustring u) const noexcept
@@ -1154,6 +1150,13 @@ template<> struct hash<OIIO::ustringhash> {
         return static_cast<std::size_t>(u.hash());
     }
 };
+
+
+// Force C++ to understand that ustring and ustringhash are trivially copyable
+// (i.e. memcpy from one ustring to another is fine).
+template<> struct is_trivially_copyable<OIIO::ustring> : std::true_type {};
+template<> struct is_trivially_copyable<OIIO::ustringhash> : std::true_type {};
+
 }  // namespace std
 
 
