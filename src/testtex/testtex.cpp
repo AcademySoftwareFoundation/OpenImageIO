@@ -1413,6 +1413,7 @@ do_tex_thread_workout(int iterations, int mythread)
     float s = 0.1f, t = 0.1f;
     int nchannels = nchannels_override ? nchannels_override : 3;
     float* result = OIIO_ALLOCA(float, nchannels);
+    memset(result, 0, sizeof(float) * nchannels);
     TextureOpt opt;
     initialize_opt(opt);
     float* dresultds = test_derivs ? OIIO_ALLOCA(float, nchannels) : NULL;
