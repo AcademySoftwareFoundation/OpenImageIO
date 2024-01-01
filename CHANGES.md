@@ -1,3 +1,8 @@
+Release 2.5.8.0 (Feb 1?, 2024) -- compared to 2.5.7.0
+-----------------------------------------------------
+
+
+
 Release 2.5.7.0 (Jan 1, 2024) -- compared to 2.5.6.0
 -----------------------------------------------------
 - *fix(iv)*: Avoid crash with OpenGL + multi-channel images [#4087](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4087)
@@ -15,7 +20,6 @@ Release 2.5.7.0 (Jan 1, 2024) -- compared to 2.5.6.0
 - *docs*: Fix link to openexr test images [#4080](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4080) (by Jesse Yurkovich)
 - *admin*: Account for duplicate emails in the .mailmap [#4075](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4075)
 - *dev*: Faster vint4 load/store with unsigned char conversion [#4071](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4071) (by Aras Pranckevičius)
-
 
 Release 2.5.6.0 (Dec 1, 2023) -- compared to 2.5.5.0
 -----------------------------------------------------
