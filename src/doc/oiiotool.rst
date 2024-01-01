@@ -4274,7 +4274,7 @@ will be printed with the command `oiiotool --colorconfiginfo`.
 
     Optional appended modifiers include:
     
-      `from=` *val*
+      `from=` *name*
         Assume the image is in the named color space. If no `from=` is
         supplied, it will try to deduce it from the image's metadata or
         previous `--iscolorspace` directives. If no such hints are
@@ -4294,7 +4294,6 @@ will be printed with the command `oiiotool --colorconfiginfo`.
         bracketed by divide-by-alpha / mult-by-alpha operations.
     
       `inverse=` *val* :
-
         If *val* is nonzero, inverts the color transformation.
 
       `:subimages=` *indices-or-names*
