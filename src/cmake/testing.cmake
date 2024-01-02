@@ -139,6 +139,7 @@ macro (oiio_add_all_tests)
     # Freestanding tests:
     oiio_add_tests (
                     cmake-consumer
+                    cryptomatte
                     docs-examples-cpp
                     iinfo igrep
                     nonwhole-tiles
