@@ -1559,6 +1559,22 @@ test_special()
         OIIO_CHECK_SIMD_EQUAL (vfloat4(c127)/vfloat4(127.0), vfloat4(1.0f));
         OIIO_CHECK_SIMD_EQUAL (vfloat4(c127)*vfloat4(1.0f/127.0), vfloat4(1.0f));
     }
+
+    // Test the 2-vfloat4 shuffle
+    {
+        #define PERMUTE(a,b,c,d) ((d<<6)|(c<<4)|(b<<2)|(a<<0))
+        vfloat4 a(10, 11, 12, 13);
+        vfloat4 b(20, 21, 22, 23);
+        OIIO_CHECK_SIMD_EQUAL(shuffle<PERMUTE(2,0,1,3)>(a,b),
+                              vfloat4(12, 10, 21, 23));
+    }
+    // Test vfloat4::load_pairs
+    {
+        vfloat4 x;
+        static const float vals[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+        x.load_pairs(vals+2, vals+5);
+        OIIO_CHECK_SIMD_EQUAL(x, vfloat4(2, 3, 5, 6));
+    }
 }
 
 
@@ -1825,7 +1841,7 @@ test_matrix()
 {
     Imath::V3f P(1.0f, 0.0f, 0.0f);
     Imath::M44f Mtrans(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 10, 11, 12, 1);
-    Imath::M44f Mrot = Imath::M44f().rotate(Imath::V3f(0.0f, M_PI_2, 0.0f));
+    Imath::M44f Mrot = Imath::M44f().rotate(Imath::V3f(0.0f, M_PI/4.0f, 0.0f));
 
     test_heading("Testing matrix ops:");
     std::cout << "  P = " << P << "\n";
@@ -1878,6 +1894,26 @@ test_matrix()
     OIIO_CHECK_ASSERT(
         mx_equal_thresh(matrix44(Mrot.inverse()), matrix44(Mrot).inverse(),
                         1.0e-6f));
+
+    // Test that matrix44::inverse always matches Imath::M44f::inverse
+    Imath::M44f rts = (Mtrans * Mrot) * Imath::M44f(2.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f);
+    OIIO_CHECK_ASSERT(
+        mx_equal_thresh(matrix44(rts.inverse()), matrix44(rts).inverse(),
+                        1.0e-5f));
+    OIIO_CHECK_ASSERT(
+        mx_equal_thresh(matrix44(Mtrans.inverse()), matrix44(Mtrans).inverse(),
+                        1.0e-6f));
+    OIIO_CHECK_ASSERT(
+        mx_equal_thresh(matrix44(Mrot.inverse()), matrix44(Mrot).inverse(),
+                        1.0e-6f));
+    Imath::M44f m123(1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 1.0f);
+    OIIO_CHECK_ASSERT(
+        mx_equal_thresh(matrix44(m123.inverse()), matrix44(m123).inverse(),
+                        1.0e-6f));    
+
     OIIO_CHECK_EQUAL(
         matrix44(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15),
         Imath::M44f(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15));
