@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+redirect = " >> out.txt 2>&1 "
 
 # Prep:
 command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.exr grid.exr")
@@ -12,7 +13,7 @@ command += run_app("cmake -E copy " + test_source_dir + "/../common/tahoe-small.
 # Run the examples for each chapter
 for chapter in [ "imageioapi", "imageoutput", "imageinput", "writingplugins",
                  "imagecache", "texturesys", "imagebuf", "imagebufalgo" ] :
-    command += pythonbin + " src/docs-examples-" + chapter + ".py >> out.txt ;"
+    command += pythonbin + " src/docs-examples-" + chapter + ".py " + redirect + " ;"
 
 # hashes merely check that the images don't change, but saves us the space
 # of checking in a full copy of the image if it's not needed.
