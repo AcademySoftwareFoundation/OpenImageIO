@@ -54,6 +54,11 @@ SPDX-License-Identifier: BSD-3-Clause
 
 * FindOpenVDB.cmake (c) Copyright 2015 Blender Foundation, BSD license.
 
+* Cryptomatte project, Copyright (c) 2014, 2015, 2016 Psyop Media Company,
+  LLC. https://github.com/Psyop/Cryptomatte
+
+  The test image in testsuite/cryptomatte/src/cryptoasset.exr is a small crop
+  of a sample image from the Cryptomatte project.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:

@@ -2813,6 +2813,21 @@ current top image.
     +-----------------+-----------------+-----------------+-----------------+---------------+
 
 
+.. option:: --cryptomatte-colors <name>
+
+    Creates an RGB image from the input image that contains Cryptomatte
+    channels based on the given name, i.e. `<name>` followed by a 2-digit
+    number (`00`, `01`, ...) followed by the channels (`.red`, `.green`,
+    `.blue`, `.alpha`). Each Cryptomatte ID in the input will be given a
+    unique color in the output image.
+
+    This command was added in OpenImageIO 2.6.
+    
+    Example::
+    
+        oiiotool crypto.exr --cryptomatte-colors "CryptoAsset" -o matte.exr
+
+
 .. option:: --paste <location>
 
     Takes two images -- the first is the "foreground" and the second is the
