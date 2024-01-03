@@ -762,23 +762,43 @@ inline OIIO_HOSTDEVICE float sign (float x)
 /// it has the right decorators to work with Cuda.
 /// @version 2.4.1
 template <typename To, typename From>
-OIIO_FORCEINLINE OIIO_HOSTDEVICE To bitcast (const From& in) noexcept {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE To bitcast(const From& from) noexcept {
     static_assert(sizeof(From) == sizeof(To),
                   "bit_cast must be between objects of the same size");
-#if (OIIO_GNUC_VERSION >= 110000 || OIIO_CLANG_VERSION >= 100000 ||\
-     OIIO_APPLE_CLANG_VERSION >= 100000 || OIIO_INTEL_CLANG_VERSION >= 20220000) \
-    && !defined(__CUDA_ARCH__)
-    // Use __builtin_bit_cast for gcc/clang if available
-    return __builtin_bit_cast(To, in);
-#else
     // NOTE: this is the only standards compliant way of doing this type of
-    // casting, luckily the compilers we care about know how to optimize away
-    // this idiom.
-    To out;
-    memcpy ((void *)&out, &in, sizeof(From));
-    return out;
-#endif
+    // casting. This seems to generate optimal code for gcc, clang, MSVS, and
+    // icx, for both scalar code and vectorized loops, but icc fails to
+    // vectorize without the intrinsics overrides below.
+    //
+    // If we ever find the memcpy isn't doing the job, we should try
+    // gcc/clang's __builtin_bit_cast and see if that's any better. Some day
+    // this may all be replaced with C++20 std::bit_cast, but we should not do
+    // so without checking that it works ok for vectorized loops.
+    To result;
+    memcpy ((void *)&result, &from, sizeof(From));
+    return result;
 }
+
+#if defined(__INTEL_COMPILER)
+// For Intel icc, using the memcpy implementation above will cause a loop with
+// a bitcast to fail to vectorize, but using the intrinsics below will allow
+// it to vectorize. For icx, as well as gcc and clang, the same optimal code
+// is generated (even in a vectorized loop) for memcpy. We can probably remove
+// these intrinsics once we drop support for icc.
+template<> OIIO_FORCEINLINE uint32_t bitcast<uint32_t, float>(const float& val) noexcept {
+    return static_cast<uint32_t>(_castf32_u32(val));
+}
+template<> OIIO_FORCEINLINE int32_t bitcast<int32_t, float>(const float& val) noexcept {
+    return static_cast<int32_t>(_castf32_u32(val));
+}
+template<> OIIO_FORCEINLINE float bitcast<float, uint32_t>(const uint32_t& val) noexcept {
+    return _castu32_f32(val);
+}
+template<> OIIO_FORCEINLINE float bitcast<float, int32_t>(const int32_t& val) noexcept {
+    return _castu32_f32(val);
+}
+#endif
+
 
 #if OIIO_VERSION_LESS(3, 0, 0)
 /// Note: The C++20 std::bit_cast has the reverse order of the template
@@ -794,7 +814,6 @@ OIIO_FORCEINLINE OIIO_HOSTDEVICE OUT_TYPE bit_cast (const IN_TYPE& in) {
     return bitcast<OUT_TYPE, IN_TYPE>(in);
 }
 #endif
-
 
 
 OIIO_FORCEINLINE OIIO_HOSTDEVICE int bitcast_to_int (float x) {
