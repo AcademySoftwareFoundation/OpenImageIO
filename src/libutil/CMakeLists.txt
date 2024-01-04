@@ -20,7 +20,6 @@ target_link_libraries (OpenImageIO_Util
             ${GCC_ATOMIC_LIBRARIES}
             ${OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY}
             ${OPENIMAGEIO_IMATH_TARGETS}
-            ${fmt_target}
         PRIVATE
             $<TARGET_NAME_IF_EXISTS:Boost::filesystem>
             $<TARGET_NAME_IF_EXISTS:Boost::thread>
@@ -28,11 +27,11 @@ target_link_libraries (OpenImageIO_Util
             ${CMAKE_DL_LIBS}
         )
 
-if (NOT OIIO_USING_FMT_LOCAL)
-    target_include_directories (OpenImageIO_Util
-                                PUBLIC ${FMT_INCLUDES} )
+if (INTERNALIZE_FMT OR OIIO_USING_FMT_LOCAL)
+    add_dependencies(OpenImageIO_Util fmt_internal_target)
+else ()
     target_link_libraries (OpenImageIO_Util
-                           PUBLIC $<TARGET_NAME_IF_EXISTS:fmt::fmt> )
+                           PUBLIC fmt::fmt-header-only)
 endif ()
 
 if (WIN32)

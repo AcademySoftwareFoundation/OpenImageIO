@@ -143,7 +143,6 @@ target_link_libraries (OpenImageIO
             OpenImageIO_Util
             ${OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY}
             ${OPENIMAGEIO_IMATH_TARGETS}
-            ${fmt_target}
         PRIVATE
             ${OPENIMAGEIO_OPENEXR_TARGETS}
             ${OpenCV_LIBRARIES}
@@ -170,7 +169,12 @@ if (MINGW)
     target_link_libraries (OpenImageIO PRIVATE ws2_32)
 endif()
 
-
+if (INTERNALIZE_FMT OR OIIO_USING_FMT_LOCAL)
+    add_dependencies(OpenImageIO_Util fmt_internal_target)
+else ()
+    target_link_libraries (OpenImageIO_Util
+                           PUBLIC fmt::fmt-header-only)
+endif ()
 
 file (GLOB iba_sources "imagebufalgo_*.cpp")
 if (MSVC)

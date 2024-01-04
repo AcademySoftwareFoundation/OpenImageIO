@@ -352,7 +352,7 @@ macro (find_or_download_fmt)
         set (OIIO_USING_FMT_LOCAL TRUE)
         set (fmt_VERSION ${BUILD_FMT_VERSION})
     else ()
-        get_target_property(FMT_INCLUDE_DIR fmt::fmt INTERFACE_INCLUDE_DIRECTORIES)
+        get_target_property(FMT_INCLUDE_DIR fmt::fmt-header-only INTERFACE_INCLUDE_DIRECTORIES)
         set (OIIO_USING_FMT_LOCAL FALSE)
         checked_find_package (fmt REQUIRED
                               VERSION_MIN 7.0)

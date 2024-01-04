@@ -86,8 +86,7 @@ if (INTERNALIZE_FMT OR OIIO_USING_FMT_LOCAL)
                             ${CMAKE_COMMAND} -E copy
                             ${fmt_headers}
                             ${fmt_internal_directory})
-    add_custom_target (fmt_internal DEPENDS ${fmt_headers_internal})
-    set(fmt_target fmt_internal)
+    add_custom_target (fmt_internal_target DEPENDS ${fmt_headers_internal})
 else ()
     set (fmt_headers
          ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/format.h
@@ -102,7 +101,6 @@ else ()
         file (WRITE "${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/std.h"
                     "#include <fmt/std.h>")
     endif ()
-    set(fmt_target fmt::fmt)
 endif ()
 install (FILES ${fmt_headers}
          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/detail/fmt
