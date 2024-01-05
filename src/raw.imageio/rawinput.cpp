@@ -1493,7 +1493,7 @@ RawInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         // For none or 180 degree rotation, the scanlines are still contiguous in memory
         if (sizes.flip == 0 /*no rotation*/ || sizes.flip == 3 /*180 degrees*/) {
             if (sizes.flip == 3) {
-                scanline_start = sizes.raw_width * (m_spec.height - y)
+                scanline_start = sizes.raw_width * (m_spec.height - 1 - y)
                                  + sizes.left_margin;
             }
             unsigned short* scanline = &((m_processor->imgdata.rawdata.raw_image
