@@ -761,16 +761,44 @@ inline OIIO_HOSTDEVICE float sign (float x)
 /// equivalently to C++20 std::bit_cast, but it works prior to C++20 and
 /// it has the right decorators to work with Cuda.
 /// @version 2.4.1
-template <typename OUT_TYPE, typename IN_TYPE>
-OIIO_FORCEINLINE OIIO_HOSTDEVICE OUT_TYPE bitcast (const IN_TYPE& in) noexcept {
-    // NOTE: this is the only standards compliant way of doing this type of casting,
-    // luckily the compilers we care about know how to optimize away this idiom.
-    static_assert(sizeof(IN_TYPE) == sizeof(OUT_TYPE),
+template <typename To, typename From>
+OIIO_FORCEINLINE OIIO_HOSTDEVICE To bitcast(const From& from) noexcept {
+    static_assert(sizeof(From) == sizeof(To),
                   "bit_cast must be between objects of the same size");
-    OUT_TYPE out;
-    memcpy ((void *)&out, &in, sizeof(IN_TYPE));
-    return out;
+    // NOTE: this is the only standards compliant way of doing this type of
+    // casting. This seems to generate optimal code for gcc, clang, MSVS, and
+    // icx, for both scalar code and vectorized loops, but icc fails to
+    // vectorize without the intrinsics overrides below.
+    //
+    // If we ever find the memcpy isn't doing the job, we should try
+    // gcc/clang's __builtin_bit_cast and see if that's any better. Some day
+    // this may all be replaced with C++20 std::bit_cast, but we should not do
+    // so without checking that it works ok for vectorized loops.
+    To result;
+    memcpy ((void *)&result, &from, sizeof(From));
+    return result;
 }
+
+#if defined(__INTEL_COMPILER)
+// For Intel icc, using the memcpy implementation above will cause a loop with
+// a bitcast to fail to vectorize, but using the intrinsics below will allow
+// it to vectorize. For icx, as well as gcc and clang, the same optimal code
+// is generated (even in a vectorized loop) for memcpy. We can probably remove
+// these intrinsics once we drop support for icc.
+template<> OIIO_FORCEINLINE uint32_t bitcast<uint32_t, float>(const float& val) noexcept {
+    return static_cast<uint32_t>(_castf32_u32(val));
+}
+template<> OIIO_FORCEINLINE int32_t bitcast<int32_t, float>(const float& val) noexcept {
+    return static_cast<int32_t>(_castf32_u32(val));
+}
+template<> OIIO_FORCEINLINE float bitcast<float, uint32_t>(const uint32_t& val) noexcept {
+    return _castu32_f32(val);
+}
+template<> OIIO_FORCEINLINE float bitcast<float, int32_t>(const int32_t& val) noexcept {
+    return _castu32_f32(val);
+}
+#endif
+
 
 #if OIIO_VERSION_LESS(3, 0, 0)
 /// Note: The C++20 std::bit_cast has the reverse order of the template
@@ -784,42 +812,6 @@ OIIO_DEPRECATED("Use OIIO::bitcast<To, From> instead")
 #endif
 OIIO_FORCEINLINE OIIO_HOSTDEVICE OUT_TYPE bit_cast (const IN_TYPE& in) {
     return bitcast<OUT_TYPE, IN_TYPE>(in);
-}
-#endif
-
-#if defined(__x86_64__) && !defined(__CUDA_ARCH__) && \
-    (defined(__INTEL_COMPILER) || defined(__INTEL_LLVM_COMPILER) \
-     || OIIO_CLANG_VERSION >= 100000 || OIIO_APPLE_CLANG_VERSION >= 130000)
-// On x86/x86_64 for certain compilers we can use Intel CPU intrinsics for
-// some common bitcast cases that might be even more understandable to the
-// compiler and generate better code without its getting confused about the
-// memcpy in the general case. We're a bit conservative with the compiler
-// version checks here, it may be that some earlier versions support these
-// intrinsics.
-
-template<> OIIO_FORCEINLINE uint32_t bitcast<uint32_t, float>(const float& val) noexcept {
-    return static_cast<uint32_t>(_castf32_u32(val));
-}
-template<> OIIO_FORCEINLINE int32_t bitcast<int32_t, float>(const float& val) noexcept {
-    return static_cast<int32_t>(_castf32_u32(val));
-}
-template<> OIIO_FORCEINLINE float bitcast<float, uint32_t>(const uint32_t& val) noexcept {
-    return _castu32_f32(val);
-}
-template<> OIIO_FORCEINLINE float bitcast<float, int32_t>(const int32_t& val) noexcept {
-    return _castu32_f32(val);
-}
-template<> OIIO_FORCEINLINE uint64_t bitcast<uint64_t, double>(const double& val) noexcept {
-    return static_cast<uint64_t>(_castf64_u64(val));
-}
-template<> OIIO_FORCEINLINE int64_t bitcast<int64_t, double>(const double& val) noexcept {
-    return static_cast<int64_t>(_castf64_u64(val));
-}
-template<> OIIO_FORCEINLINE double bitcast<double, uint64_t>(const uint64_t& val) noexcept {
-    return _castu64_f64(val);
-}
-template<> OIIO_FORCEINLINE double bitcast<double, int64_t>(const int64_t& val) noexcept {
-    return _castu64_f64(val);
 }
 #endif
 
