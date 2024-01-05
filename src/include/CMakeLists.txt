@@ -65,17 +65,28 @@ install (FILES ${detail_headers}
          COMPONENT developer)
 
 if (INTERNALIZE_FMT OR OIIO_USING_FMT_LOCAL)
-    set (fmt_headers
-         ${FMT_INCLUDES}/fmt/core.h
-         ${FMT_INCLUDES}/fmt/format-inl.h
-         ${FMT_INCLUDES}/fmt/format.h
-         ${FMT_INCLUDES}/fmt/ostream.h
-         ${FMT_INCLUDES}/fmt/printf.h )
-    if (fmt_VERSION VERSION_GREATER_EQUAL 90000)
-        list (APPEND fmt_headers ${FMT_INCLUDES}/fmt/std.h)
+    set (fmt_headers_base_names core.h format-inl.h format.h ostream.h printf.h)
+    if (fmt_VERSION VERSION_GREATER_EQUAL 9)
+        list (APPEND fmt_headers_base_names std.h)
     endif ()
-    file (COPY ${fmt_headers}
-          DESTINATION ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt)
+    set (fmt_internal_directory ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt)
+    list (TRANSFORM fmt_headers_base_names
+          PREPEND ${FMT_INCLUDE_DIR}/fmt/
+          OUTPUT_VARIABLE fmt_headers)
+    list (TRANSFORM fmt_headers_base_names
+          PREPEND ${fmt_internal_directory}/
+          OUTPUT_VARIABLE fmt_headers_internal)
+    add_custom_command (OUTPUT ${fmt_internal_directory}
+                        COMMAND
+                            ${CMAKE_COMMAND} -E make_directory
+                            ${fmt_internal_directory})
+    add_custom_command (OUTPUT ${fmt_headers_internal}
+                        DEPENDS ${fmt_headers} ${fmt_internal_directory}
+                        COMMAND
+                            ${CMAKE_COMMAND} -E copy
+                            ${fmt_headers}
+                            ${fmt_internal_directory})
+    add_custom_target (fmt_internal_target DEPENDS ${fmt_headers_internal})
 else ()
     set (fmt_headers
          ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/format.h
@@ -85,7 +96,7 @@ else ()
         file (WRITE "${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/${f}"
                     "#include <fmt/${f}>")
     endforeach ()
-    if (fmt_VERSION VERSION_GREATER_EQUAL 90000)
+    if (fmt_VERSION VERSION_GREATER_EQUAL 9)
         list (APPEND fmt_headers ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/std.h)
         file (WRITE "${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/std.h"
                     "#include <fmt/std.h>")
