@@ -887,6 +887,15 @@ Filter1D::get_filterdesc(int filternum, FilterDesc* filterdesc)
 
 
 
+std::shared_ptr<const Filter1D>
+Filter1D::create_shared(string_view filtername, float width)
+{
+    return std::shared_ptr<const Filter1D>(create(filtername, width),
+                                           Filter1D::destroy);
+}
+
+
+
 // Filter1D::create is the static method that, given a filter name,
 // width, and height, returns an allocated and instantiated filter of
 // the correct implementation.  If the name is not recognized, return
@@ -980,6 +989,15 @@ Filter2D::get_filterdesc(int filternum, FilterDesc* filterdesc)
 
 
 
+std::shared_ptr<const Filter2D>
+Filter2D::create_shared(string_view filtername, float width, float height)
+{
+    return std::shared_ptr<const Filter2D>(create(filtername, width, height),
+                                           Filter2D::destroy);
+}
+
+
+
 // Filter2D::create is the static method that, given a filter name,
 // width, and height, returns an allocated and instantiated filter of
 // the correct implementation.  If the name is not recognized, return
@@ -988,6 +1006,8 @@ Filter2D::get_filterdesc(int filternum, FilterDesc* filterdesc)
 Filter2D*
 Filter2D::create(string_view filtername, float width, float height)
 {
+    if (height <= 0.0f)
+        height = width;
     if (filtername == "box")
         return new FilterBox2D(width, height);
     if (filtername == "triangle")

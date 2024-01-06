@@ -17,8 +17,10 @@ ImageBuf's. The functions are declared in the header file
 ImageBufAlgo common principles
 ==============================
 
-.. .. doxygengroup: ImageBufAlgo_intro
-   Do I like the above one better?
+.. .. doxygengroup:: ImageBufAlgo_intro
+..
+
+..   Do I like the above one better?
 
 
 This section explains the general rules common to all ImageBufAlgo
@@ -150,6 +152,12 @@ possible.  The main reason to explicitly pass a different number
 and the thread calling the ImageBufAlgo function just wants to continue doing
 the computation without spawning additional threads, which might tend to
 crowd out the other application threads.
+
+`FilterOpt` options for filtering
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. doxygenclass:: OIIO::FilterOpt
+    :members:
 
 
 
@@ -1862,7 +1870,8 @@ Image arithmetic
           ImageBuf Compressed = ImageBufAlgo::rangecompress (Src);
       
           // 3. Now do the resize
-          ImageBuf Dst = ImageBufAlgo::resize (Compressed, "lanczos3", 6.0f,
+          ImageBuf Dst = ImageBufAlgo::resize (Compressed,
+                                               FilterOpt("lanczos3", 6.0f),
                                                ROI(0, 640, 0, 480));
       
           // 4. Expand range to be linear again (operate in-place)
@@ -1877,7 +1886,8 @@ Image arithmetic
           Compressed = ImageBufAlgo.rangecompress (Src)
       
           # 3. Now do the resize
-          Dst = ImageBufAlgo.resize (Compressed, "lanczos3", 6.0, ROI(0, 640, 0, 480))
+          Dst = ImageBufAlgo.resize (Compressed, filtername="lanczos3",
+                                     filtersize=6.0, roi=ROI(0, 640, 0, 480))
       
           # 4. Expand range to be linear again (operate in-place)
           ImageBufAlgo.rangeexpand (Dst, Dst)

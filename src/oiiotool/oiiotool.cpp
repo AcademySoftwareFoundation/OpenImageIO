@@ -4475,13 +4475,15 @@ public:
             ok &= ImageBufAlgo::rangecompress(tmpimg, *src);
             src = &tmpimg;
         }
-        if (do_warp[current_subimage()])
+        if (do_warp[current_subimage()]) {
+            FilterOpt filter(filtername, 0.0f, ImageBuf::WrapBlack);
+            filter.edgeclamp = edgeclamp;
             ok &= ImageBufAlgo::warp(*img[0], *src, M[current_subimage()],
-                                     filtername, 0.0f, false,
-                                     ImageBuf::WrapDefault, edgeclamp);
-        else
+                                     filter, false);
+        } else {
             ok &= ImageBufAlgo::resize(*img[0], *src, filtername, 0.0f,
                                        img[0]->roi());
+        }
         if (highlightcomp && ok) {
             // re-expand the range in place
             ok &= ImageBufAlgo::rangeexpand(*img[0], *img[0]);
@@ -4618,7 +4620,8 @@ action_fit(Oiiotool& ot, cspan<const char*> argv)
         newspec.x = newspec.full_x = fit_full_x;
         newspec.y = newspec.full_y = fit_full_y;
         (*R)(s, 0).reset(newspec);
-        ImageBufAlgo::fit((*R)(s, 0), *src, filtername, 0.0f, fillmode, exact);
+        ImageBufAlgo::fit((*R)(s, 0), *src, { filtername, 0.0f }, fillmode,
+                          exact);
         if (highlightcomp) {
             // re-expand the range in place
             ImageBufAlgo::rangeexpand((*R)(s, 0), (*R)(s, 0));

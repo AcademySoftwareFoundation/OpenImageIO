@@ -60,6 +60,40 @@ OIIO_NAMESPACE_BEGIN
 
 
 bool
+FilterOpt::resolve(string_view default_filtername, float default_width)
+{
+    if (m_filter) {
+        // If the filter was specified, make sure the name+width match.
+        name  = m_filter->name();
+        width = m_filter->width();
+    } else {
+        // No filter was specfied. Get one.
+        if (name.empty()) {
+            // If no name was specified, use the default filtername as passed,
+            // or blackman-harris is a good all-purpose guess.
+            if (default_filtername.empty())
+                name = "blackman-harris";
+            else
+                name = default_filtername;
+            width = default_width;
+        }
+        // Look for a matching filter name. Use its preferred width if none
+        // was specified by the user.
+        for (int i = 0, e = Filter2D::num_filters(); i < e; ++i) {
+            const FilterDesc& fd(Filter2D::get_filterdesc(i));
+            if (fd.name == name) {
+                float w  = width > 0.0f ? width : fd.width;
+                m_filter = Filter2D::create_shared(name, w, w);
+                break;
+            }
+        }
+    }
+    return filterptr() ? true : false;
+}
+
+
+
+bool
 ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
                       const ImageBuf* B, const ImageBuf* C,
                       ImageSpec* force_spec, int prepflags)
