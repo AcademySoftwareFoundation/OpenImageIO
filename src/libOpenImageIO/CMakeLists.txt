@@ -169,13 +169,6 @@ if (MINGW)
     target_link_libraries (OpenImageIO PRIVATE ws2_32)
 endif()
 
-if (INTERNALIZE_FMT OR OIIO_USING_FMT_LOCAL)
-    add_dependencies(OpenImageIO_Util fmt_internal_target)
-else ()
-    target_link_libraries (OpenImageIO_Util
-                           PUBLIC fmt::fmt-header-only)
-endif ()
-
 file (GLOB iba_sources "imagebufalgo_*.cpp")
 if (MSVC)
     # In some MSVC setups, the IBA functions with huge template expansions
