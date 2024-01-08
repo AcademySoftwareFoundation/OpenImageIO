@@ -44,7 +44,8 @@ static ImageBuf imgA, imgB, imgR;
 
 
 
-static void test_arrays(ROI)
+static void
+test_arrays(ROI)
 {
     const float* a = (const float*)imgA.localpixels();
     OIIO_DASSERT(a);
@@ -79,7 +80,8 @@ test_arrays_like_image(ROI roi)
 
 
 
-static void test_arrays_simd4(ROI)
+static void
+test_arrays_simd4(ROI)
 {
     const float* a = (const float*)imgA.localpixels();
     OIIO_DASSERT(a);

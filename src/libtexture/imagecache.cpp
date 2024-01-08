@@ -584,7 +584,7 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
                     }
                     tempspec.tile_height = std::min(tempspec.height, autotile);
                     tempspec.tile_depth  = std::min(std::max(tempspec.depth, 1),
-                                                   autotile);
+                                                    autotile);
                 } else {
                     // Don't auto-tile -- which really means, make it look like
                     // a single tile that's as big as the whole image.

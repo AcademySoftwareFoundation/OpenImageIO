@@ -546,7 +546,7 @@ make_numpy_array(T* data, int dims, size_t chans, size_t width, size_t height,
     // Create a Python object that will free the allocated memory when
     // destroyed:
     py::capsule free_when_done(mem, [](void* f) {
-        delete[](reinterpret_cast<T*>(f));
+        delete[] (reinterpret_cast<T*>(f));
     });
 
     std::vector<size_t> shape, strides;
@@ -600,7 +600,7 @@ make_numpy_array(TypeDesc format, void* data, int dims, size_t chans,
                                 depth);
     if (format == TypeDesc::INT)
         return make_numpy_array((int*)data, dims, chans, width, height, depth);
-    delete[](char*) data;
+    delete[] (char*)data;
     return py::none();
 }
 

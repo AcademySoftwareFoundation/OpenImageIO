@@ -1432,9 +1432,9 @@ OpenEXROutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
         int y1         = std::min(ybegin + chunk, yend);
         int nscanlines = y1 - ybegin;
         const void* d  = to_native_rectangle(m_spec.x, m_spec.x + m_spec.width,
-                                            ybegin, y1, z, z + 1, format, data,
-                                            xstride, ystride, zstride,
-                                            m_scratch);
+                                             ybegin, y1, z, z + 1, format, data,
+                                             xstride, ystride, zstride,
+                                             m_scratch);
 
         // Compute where OpenEXR needs to think the full buffers starts.
         // OpenImageIO requires that 'data' points to where client stored

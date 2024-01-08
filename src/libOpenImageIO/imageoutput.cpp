@@ -500,7 +500,7 @@ ImageOutput::write_image(TypeDesc format, const void* data, stride_t xstride,
                                 m_spec.z + m_spec.depth);
             for (int y = 0; y < m_spec.height; y += m_spec.tile_height) {
                 int yend      = std::min(y + m_spec.y + m_spec.tile_height,
-                                    m_spec.y + m_spec.height);
+                                         m_spec.y + m_spec.height);
                 const char* d = (const char*)data + z * zstride + y * ystride;
                 ok &= write_tiles(m_spec.x, m_spec.x + m_spec.width,
                                   y + m_spec.y, yend, z + m_spec.z, zend,
@@ -521,7 +521,7 @@ ImageOutput::write_image(TypeDesc format, const void* data, stride_t xstride,
         for (int z = 0; z < m_spec.depth; ++z)
             for (int y = 0; y < m_spec.height && ok; y += chunk) {
                 int yend      = std::min(y + m_spec.y + chunk,
-                                    m_spec.y + m_spec.height);
+                                         m_spec.y + m_spec.height);
                 const char* d = (const char*)data + z * zstride + y * ystride;
                 ok &= write_scanlines(y + m_spec.y, yend, z + m_spec.z, format,
                                       d, xstride, ystride);

@@ -415,6 +415,5 @@ constexpr ptrdiff_t ssize(const OIIO::span_strided<T, E>& c) {
 namespace fmt {
 template<typename T, OIIO::oiio_span_size_type Extent>
 struct formatter<OIIO::span<T, Extent>>
-    : OIIO::pvt::index_formatter<OIIO::span<T, Extent>> {
-};
+    : OIIO::pvt::index_formatter<OIIO::span<T, Extent>> {};
 }  // namespace fmt
