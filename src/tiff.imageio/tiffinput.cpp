@@ -611,7 +611,10 @@ reader_mapproc(thandle_t, tdata_t*, toff_t*)
     return 0;
 }
 
-static void reader_unmapproc(thandle_t, tdata_t, toff_t) {}
+static void
+reader_unmapproc(thandle_t, tdata_t, toff_t)
+{
+}
 
 
 
@@ -1948,7 +1951,7 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
             char* cbuf        = compressed_scratch.get() + stripidx * cbound;
             tstrip_t stripnum = (y - m_spec.y) / m_rowsperstrip;
             tsize_t csize     = TIFFReadRawStrip(m_tif, stripnum, cbuf,
-                                             tmsize_t(cbound));
+                                                 tmsize_t(cbound));
             if (csize < 0) {
                 std::string err = oiio_tiff_last_error();
                 errorfmt("TIFFRead{}Strip failed reading line y={},z={}: {}",

@@ -207,7 +207,7 @@ catalog_plugin(const std::string& format_name,
 
     std::string version_function = format_name + "_imageio_version";
     int* plugin_version          = (int*)Plugin::getsym(handle,
-                                               version_function.c_str());
+                                                        version_function.c_str());
     if (!plugin_version || *plugin_version != OIIO_PLUGIN_VERSION) {
         Plugin::close(handle);
         return;

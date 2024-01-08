@@ -1753,8 +1753,8 @@ ellipse_axes(float dsdx, float dtdx, float dsdy, float dtdy, float& majorlength,
     minorlength = std::min(safe_sqrt (float(F / Cprime)), 1000.0f);
 #else
     // Wolfram says that this is equivalent to:
-    majorlength  = std::min(safe_sqrt(float(Cprime)), 1000.0f);
-    minorlength  = std::min(safe_sqrt(float(Aprime)), 1000.0f);
+    majorlength = std::min(safe_sqrt(float(Cprime)), 1000.0f);
+    minorlength = std::min(safe_sqrt(float(Aprime)), 1000.0f);
 #endif
     theta = fast_atan2(B, A - C) * 0.5f + float(M_PI_2);
     if (ABCF) {
@@ -2552,7 +2552,7 @@ namespace {
         OIIO_SIMD_FLOAT4_CONST4(z22z, 0.0f, 2.0f, 2.0f, 0.0f);
         simd::vfloat4 one_frac = vfloat4::One() - fraction;
         simd::vfloat4 ofof     = AxBxAyBy(one_frac,
-                                      fraction);  // 1-frac, frac, 1-frac, frac
+                                          fraction);  // 1-frac, frac, 1-frac, frac
         simd::vfloat4 C = (*(vfloat4*)&om1m1o) * ofof + (*(vfloat4*)&z22z);
         return (*(vfloat4*)&A) + (*(vfloat4*)&B) * ofof * ofof * C;
 #endif
@@ -3008,8 +3008,8 @@ TextureSystemImpl::visualize_ellipse(const std::string& name, float dsdx,
     TextureOpt options;
     float trueaspect;
     float aspect      = TextureSystemImpl::anisotropic_aspect(majorlength,
-                                                         minorlength, options,
-                                                         trueaspect);
+                                                              minorlength, options,
+                                                              trueaspect);
     bool stoch_aniso  = (m_stochastic & StochasticStrategy_Aniso);
     int maxsamples    = round_to_multiple_of_pow2(2 * options.anisotropic, 4);
     float* lineweight = OIIO_ALLOCA(float, 4 * maxsamples);

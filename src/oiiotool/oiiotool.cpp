@@ -419,7 +419,7 @@ Oiiotool::remember_input_channelformats(ImageRecRef img)
         // Overall default format is the merged type of all subimages
         // of the first input image.
         input_dataformat         = TypeDesc::basetype_merge(input_dataformat,
-                                                    nspec.format);
+                                                            nspec.format);
         std::string subimagename = nspec.get_string_attribute(
             "oiio:subimagename");
         if (subimagename.size()) {
@@ -787,7 +787,7 @@ set_output_dataformat(ImageSpec& spec, TypeDesc format,
         for (int c = 0; c < spec.nchannels; ++c) {
             std::string chname = spec.channel_name(c);
             auto subchname     = Strutil::fmt::format("{}.{}", subimagename,
-                                                  chname);
+                                                      chname);
             if (channelformats[subchname] != "" && subimagename.size())
                 spec.channelformats[c] = TypeDesc(channelformats[subchname]);
             else if (channelformats[chname] != "")
@@ -3168,7 +3168,7 @@ action_chappend(Oiiotool& ot, cspan<const char*> argv)
     std::string command = ot.express(argv[0]);
     auto options        = ot.extract_options(command);
     int n               = OIIO::clamp(options["n"].get<int>(2), 2,
-                        int(ot.image_stack.size() + 1));
+                                      int(ot.image_stack.size() + 1));
     command             = remove_modifier(command, "n");
     bool ok             = true;
 
@@ -3362,7 +3362,7 @@ action_subimage_append(Oiiotool& ot, cspan<const char*> argv)
     OTScopedTimer timer(ot, command);
     auto options = ot.extract_options(command);
     int n        = OIIO::clamp(options["n"].get<int>(2), 2,
-                        int(ot.image_stack.size() + 1));
+                               int(ot.image_stack.size() + 1));
 
     action_subimage_append_n(ot, n, command);
 }
@@ -4712,7 +4712,7 @@ action_pixelaspect(Oiiotool& ot, cspan<const char*> argv)
     if (scale_full_width != Aspec->full_width
         || scale_full_height != Aspec->full_height) {
         std::string resize  = format_resolution(scale_full_width,
-                                               scale_full_height, 0, 0);
+                                                scale_full_height, 0, 0);
         std::string command = "resize";
         if (filtername.size())
             command += Strutil::fmt::format(":filter={}", filtername);
@@ -5890,10 +5890,10 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
         roi.zend           = std::max(roi.zbegin + 1, roi.zend);
         std::string crop   = (ir->spec(0, 0)->depth == 1)
                                  ? format_resolution(roi.width(), roi.height(),
-                                                   roi.xbegin, roi.ybegin)
+                                                     roi.xbegin, roi.ybegin)
                                  : format_resolution(roi.width(), roi.height(),
-                                                   roi.depth(), roi.xbegin,
-                                                   roi.ybegin, roi.zbegin);
+                                                     roi.depth(), roi.xbegin,
+                                                     roi.ybegin, roi.zbegin);
         const char* argv[] = { "crop:allsubimages=1", crop.c_str() };
         void action_crop(Oiiotool & ot,
                          cspan<const char*> argv);  // forward decl

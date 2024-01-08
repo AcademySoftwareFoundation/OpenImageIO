@@ -65,6 +65,7 @@ if [[ "${DEBUG_CI:=0}" != "0" ]] ; then
 fi
 
 if [[ "$BUILDTARGET" == clang-format ]] ; then
+    echo "Running " `which clang-format` " version " `clang-format --version`
     git diff --color
     THEDIFF=`git diff`
     if [[ "$THEDIFF" != "" ]] ; then

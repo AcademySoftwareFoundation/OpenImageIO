@@ -173,21 +173,6 @@ jobs:
                              USE_OPENCV=0
             depcmds: sudo rm -rf /usr/local/include/OpenEXR
 
-          # Test formatting. This test entry doesn't do a full build, it
-          # just runs clang-format on everything, and passes if nothing is
-          # misformatted. Upon failure, the build artifact will be the full
-          # source code with the formatting fixed (diffs will also appear in
-          # the console output).
-          - desc: "clang-format"
-            nametag: clang-format
-            runner: ubuntu-latest
-            container: aswf/ci-osl:2022-clang12
-            vfxyear: 2022
-            cxx_std: 17
-            skip_tests: 1
-            setenvs: export BUILDTARGET=clang-format
-                            OIIO_CMAKE_FLAGS=-DUSE_PYTHON=0
-
           # Test ABI stability. `abi_check` is the version or commit that we
           # believe is the current standard against which we don't want to
           # break the ABI. Basically, we will build that version as well as
@@ -389,6 +374,22 @@ jobs:
             depcmds: |
               sudo rm -rf /usr/local/include/OpenEXR
               sudo rm -rf /usr/local/lib64/cmake/{IlmBase,OpenEXR}
+          # Test formatting. This test entry doesn't do a full build, it
+          # just runs clang-format on everything, and passes if nothing is
+          # misformatted. Upon failure, the build artifact will be the full
+          # source code with the formatting fixed (diffs will also appear in
+          # the console output).
+          - desc: "clang-format"
+            nametag: clang-format
+            runner: ubuntu-latest
+            cxx_std: 17
+            extra_artifacts: "src/*.*"
+            python_ver: "3.10"
+            skip_tests: 1
+            setenvs: export BUILDTARGET=clang-format
+                            OIIO_CMAKE_FLAGS=-DUSE_PYTHON=0
+                            LLVM_VERSION=17.0.6 LLVM_DISTRO_NAME=ubuntu-22.04
+                            SKIP_SYSTEM_DEPS_INSTALL=1 QT_VERSION=0
 
     runs-on: ${{ matrix.runner }}
     env:
@@ -439,6 +440,7 @@ jobs:
           path: |
             build/cmake-save
             build/testsuite/*/*.*
+            ${{ matrix.extra_artifacts }}
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
             !build/testsuite/fits-images
