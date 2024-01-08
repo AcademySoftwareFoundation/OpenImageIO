@@ -78,7 +78,7 @@ test_1d()
         // Graph it
         float scale          = normalize ? 1.0f / (*f)(0.0f) : 1.0f;
         float color[3]       = { 0.25f * (i & 3), 0.25f * ((i >> 2) & 3),
-                           0.25f * ((i >> 4) & 3) };
+                                 0.25f * ((i >> 4) & 3) };
         std::string filtname = filtdesc.name;
         if (filtdesc.name != f->name())
             filtname = Strutil::fmt::format("{} ({})", filtname, f->name());
@@ -132,7 +132,7 @@ test_2d()
         // Graph it
         float scale          = normalize ? 1.0f / (*f)(0.0f, 0.0f) : 1.0f;
         float color[3]       = { 0.25f * (i & 3), 0.25f * ((i >> 2) & 3),
-                           0.25f * ((i >> 4) & 3) };
+                                 0.25f * ((i >> 4) & 3) };
         std::string filtname = filtdesc.name;
         if (filtdesc.name != f->name())
             filtname = Strutil::fmt::format("{} ({})", filtname, f->name());

@@ -24,8 +24,7 @@
 using namespace OIIO;
 
 
-struct notype {
-};
+struct notype {};
 
 
 

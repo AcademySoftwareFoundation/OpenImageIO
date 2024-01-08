@@ -75,15 +75,18 @@ else
         git cmake ninja-build ccache g++ \
         libboost-dev libboost-thread-dev libboost-filesystem-dev \
         libilmbase-dev libopenexr-dev \
-        libtbb-dev \
-        libtiff-dev libgif-dev libpng-dev libraw-dev libwebp-dev \
-        libavcodec-dev libavformat-dev libswscale-dev libavutil-dev \
-        dcmtk libopenvdb-dev \
-        libfreetype6-dev \
-        locales wget \
-        libopencolorio-dev \
-        libopencv-dev \
-        libhdf5-dev
+        libtiff-dev libgif-dev libpng-dev
+    if [[ "${SKIP_SYSTEM_DEPS_INSTALL}" != "1" ]] ; then
+        time sudo apt-get -q install -y \
+            libraw-dev libwebp-dev \
+            libavcodec-dev libavformat-dev libswscale-dev libavutil-dev \
+            dcmtk libopenvdb-dev \
+            libfreetype6-dev \
+            locales wget \
+            libopencolorio-dev \
+            libtbb-dev \
+            libopencv-dev
+    fi
     if [[ "${QT_VERSION:-5}" == "5" ]] ; then
         time sudo apt-get -q install -y \
             qt5-default || /bin/true
@@ -152,7 +155,7 @@ cmake --version
 # If we're using clang to compile on native Ubuntu, we need to install it.
 # If on an ASWF CentOS docker container, it already is installed.
 #
-if [[ "$CXX" == "clang++" && "$ASWF_ORG" == "" ]] ; then
+if [[ ("$CXX" == "clang++" && "$ASWF_ORG" == "") || "$LLVM_VERSION" != "" ]] ; then
     source src/build-scripts/build_llvm.bash
 fi
 

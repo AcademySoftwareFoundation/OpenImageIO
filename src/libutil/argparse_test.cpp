@@ -67,11 +67,11 @@ static void
 test_old()
 {
     auto args   = split_commands("basic alpha --flag --unflag --intarg 42 "
-                               "--floatarg 3.5 --stringarg foo "
-                               "--append xxx --append yyy "
-                               "--hidden "
-                               "--callback who "
-                               "bravo charlie");
+                                   "--floatarg 3.5 --stringarg foo "
+                                   "--append xxx --append yyy "
+                                   "--hidden "
+                                   "--callback who "
+                                   "bravo charlie");
     bool flag   = false;
     bool unflag = true;
     bool hidden = false;

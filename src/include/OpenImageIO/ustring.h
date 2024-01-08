@@ -1032,15 +1032,16 @@ inline ustring::ustring(ustringhash hash)
 
 
 /// ustring string literal operator
-inline ustring operator""_us(const char* str, std::size_t len)
+inline ustring
+operator""_us(const char* str, std::size_t len)
 {
     return ustring(str, len);
 }
 
 
 /// ustringhash string literal operator
-OIIO_DEVICE_CONSTEXPR ustringhash operator""_ush(const char* str,
-                                                 std::size_t len)
+OIIO_DEVICE_CONSTEXPR ustringhash
+operator""_ush(const char* str, std::size_t len)
 {
     return ustringhash(str, len);
 }
