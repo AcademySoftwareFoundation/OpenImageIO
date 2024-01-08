@@ -1493,7 +1493,7 @@ RawInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         // For none or 180 degree rotation, the scanlines are still contiguous in memory
         if (sizes.flip == 0 /*no rotation*/ || sizes.flip == 3 /*180 degrees*/) {
             if (sizes.flip == 3) {
-                scanline_start = sizes.raw_width * (m_spec.height - y)
+                scanline_start = sizes.raw_width * (m_spec.height - 1 - y)
                                  + sizes.left_margin;
             }
             unsigned short* scanline = &((m_processor->imgdata.rawdata.raw_image
@@ -1505,7 +1505,7 @@ RawInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         // to the array direction so we must copy the pixels into a temporary contiguous buffer
         else if (sizes.flip == 5 /*90 degrees CCW*/
                  || sizes.flip == 6 /*90 degrees CW*/) {
-            scanline_start = m_spec.height - y + sizes.left_margin;
+            scanline_start = m_spec.height - 1 - y + sizes.left_margin;
             if (sizes.flip == 6) {
                 scanline_start = y + sizes.left_margin;
             }
@@ -1514,7 +1514,7 @@ RawInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                 size_t index
                     = (sizes.flip == 5)
                           ? i
-                          : m_spec.width
+                          : m_spec.width - 1
                                 - i;  //flip the index if rotating 90 degrees CW
                 buffer[index] = (m_processor->imgdata.rawdata.raw_image
                                  + offset)[sizes.raw_width * i + scanline_start];
