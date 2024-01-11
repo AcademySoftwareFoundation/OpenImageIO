@@ -215,7 +215,7 @@ PNMInput::read_file_scanline(void* data, int y)
             else if (m_pnm_type == PF || m_pnm_type == Pf)
                 numbytes = m_spec.nchannels * 4 * m_spec.width;
             else
-                numbytes = m_spec.scanline_bytes();
+                numbytes = (int)m_spec.scanline_bytes();
             if (size_t(numbytes) > m_remaining.size())
                 return false;
             buf.assign(m_remaining.begin(), m_remaining.begin() + numbytes);

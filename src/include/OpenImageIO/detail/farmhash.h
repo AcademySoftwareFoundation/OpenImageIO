@@ -629,7 +629,7 @@ STATIC_INLINE uint64_t HashLen0to16(const char *s, size_t len) {
     uint8_t b = s[len >> 1];
     uint8_t c = s[len - 1];
     uint32_t y = static_cast<uint32_t>(a) + (static_cast<uint32_t>(b) << 8);
-    uint32_t z = len + (static_cast<uint32_t>(c) << 2);
+    uint32_t z = static_cast<uint32_t>(len) + (static_cast<uint32_t>(c) << 2);
     return ShiftMix(y * inlined::k2 ^ z * inlined::k0) * inlined::k2;
   }
   return inlined::k2;
@@ -1169,7 +1169,7 @@ namespace farmhashnt {
 
 STATIC_INLINE uint32_t Hash32(const char *s, size_t len) {
   FARMHASH_DIE_IF_MISCONFIGURED;
-  return s == NULL ? 0 : len;
+  return s == NULL ? 0 : static_cast<uint32_t>(len);
 }
 
 STATIC_INLINE uint32_t Hash32WithSeed(const char *s, size_t len, uint32_t seed) {
@@ -1210,7 +1210,7 @@ STATIC_INLINE uint32_t Hash32Len13to24(const char *s, size_t len, uint32_t seed 
   uint32_t d = Fetch(s + (len >> 1));
   uint32_t e = Fetch(s);
   uint32_t f = Fetch(s + len - 4);
-  uint32_t h = d * inlined::c1 + len + seed;
+  uint32_t h = d * inlined::c1 + static_cast<uint32_t>(len) + seed;
   a = Rotate(a, 12) + f;
   h = inlined::Mur(c, h) + a;
   a = Rotate(a, 3) + c;
@@ -1228,10 +1228,10 @@ STATIC_INLINE uint32_t Hash32Len0to4(const char *s, size_t len, uint32_t seed = 
     b = b * inlined::c1 + v;
     c ^= b;
   }
-  return fmix(inlined::Mur(b, inlined::Mur(len, c)));
+  return fmix(inlined::Mur(b, inlined::Mur(static_cast<uint32_t>(len), c)));
 }
 
-STATIC_INLINE uint32_t Hash32Len5to12(const char *s, size_t len, uint32_t seed = 0) {
+STATIC_INLINE uint32_t Hash32Len5to12(const char *s, uint32_t len, uint32_t seed = 0) {
   uint32_t a = len, b = len * 5, c = 9, d = b + seed;
   a += Fetch(s);
   b += Fetch(s + len - 4);
@@ -1239,7 +1239,7 @@ STATIC_INLINE uint32_t Hash32Len5to12(const char *s, size_t len, uint32_t seed =
   return fmix(seed ^ inlined::Mur(c, inlined::Mur(b, inlined::Mur(a, d))));
 }
 
-STATIC_INLINE uint32_t Hash32(const char *s, size_t len) {
+STATIC_INLINE uint32_t Hash32(const char *s, uint32_t len) {
   if (len <= 24) {
     return len <= 12 ?
         (len <= 4 ? Hash32Len0to4(s, len) : Hash32Len5to12(s, len)) :
@@ -1297,7 +1297,7 @@ STATIC_INLINE uint32_t Hash32(const char *s, size_t len) {
   return h;
 }
 
-STATIC_INLINE uint32_t Hash32WithSeed(const char *s, size_t len, uint32_t seed) {
+STATIC_INLINE uint32_t Hash32WithSeed(const char *s, uint32_t len, uint32_t seed) {
   if (len <= 24) {
     if (len >= 13) return Hash32Len13to24(s, len, seed * inlined::c1);
     else if (len >= 5) return Hash32Len5to12(s, len, seed);
@@ -1310,12 +1310,12 @@ STATIC_INLINE uint32_t Hash32WithSeed(const char *s, size_t len, uint32_t seed) 
 namespace farmhashsu {
 #if !can_use_sse42 || !can_use_aesni
 
-STATIC_INLINE uint32_t Hash32(const char *s, size_t len) {
+STATIC_INLINE uint32_t Hash32(const char *s, uint32_t len) {
   FARMHASH_DIE_IF_MISCONFIGURED;
   return s == NULL ? 0 : len;
 }
 
-STATIC_INLINE uint32_t Hash32WithSeed(const char *s, size_t len, uint32_t seed) {
+STATIC_INLINE uint32_t Hash32WithSeed(const char *s, uint32_t len, uint32_t seed) {
   FARMHASH_DIE_IF_MISCONFIGURED;
   return seed + Hash32(s, len);
 }
@@ -1530,12 +1530,12 @@ STATIC_INLINE uint32_t Hash32WithSeed(const char *s, size_t len, uint32_t seed) 
 namespace farmhashsa {
 #if !can_use_sse42
 
-STATIC_INLINE uint32_t Hash32(const char *s, size_t len) {
+STATIC_INLINE uint32_t Hash32(const char *s, uint32_t len) {
   FARMHASH_DIE_IF_MISCONFIGURED;
   return s == NULL ? 0 : len;
 }
 
-STATIC_INLINE uint32_t Hash32WithSeed(const char *s, size_t len, uint32_t seed) {
+STATIC_INLINE uint32_t Hash32WithSeed(const char *s, uint32_t len, uint32_t seed) {
   FARMHASH_DIE_IF_MISCONFIGURED;
   return seed + Hash32(s, len);
 }
@@ -1754,7 +1754,7 @@ namespace farmhashcc {
 #undef fmix
 #define fmix farmhash::inlined::fmix
 
-STATIC_INLINE uint32_t Hash32Len13to24(const char *s, size_t len) {
+STATIC_INLINE uint32_t Hash32Len13to24(const char *s, uint32_t len) {
   uint32_t a = Fetch(s - 4 + (len >> 1));
   uint32_t b = Fetch(s + 4);
   uint32_t c = Fetch(s + len - 8);
@@ -1766,7 +1766,7 @@ STATIC_INLINE uint32_t Hash32Len13to24(const char *s, size_t len) {
   return fmix(inlined::Mur(f, inlined::Mur(e, inlined::Mur(d, inlined::Mur(c, inlined::Mur(b, inlined::Mur(a, h)))))));
 }
 
-STATIC_INLINE uint32_t Hash32Len0to4(const char *s, size_t len) {
+STATIC_INLINE uint32_t Hash32Len0to4(const char *s, uint32_t len) {
   uint32_t b = 0;
   uint32_t c = 9;
   for (size_t i = 0; i < len; i++) {
@@ -1777,7 +1777,7 @@ STATIC_INLINE uint32_t Hash32Len0to4(const char *s, size_t len) {
   return fmix(inlined::Mur(b, inlined::Mur(len, c)));
 }
 
-STATIC_INLINE uint32_t Hash32Len5to12(const char *s, size_t len) {
+STATIC_INLINE uint32_t Hash32Len5to12(const char *s, uint32_t len) {
   uint32_t a = len, b = len * 5, c = 9, d = b;
   a += Fetch(s);
   b += Fetch(s + len - 4);
@@ -1785,7 +1785,7 @@ STATIC_INLINE uint32_t Hash32Len5to12(const char *s, size_t len) {
   return fmix(inlined::Mur(c, inlined::Mur(b, inlined::Mur(a, d))));
 }
 
-STATIC_INLINE uint32_t Hash32(const char *s, size_t len) {
+STATIC_INLINE uint32_t Hash32(const char *s, uint32_t len) {
   if (len <= 24) {
     return len <= 12 ?
         (len <= 4 ? Hash32Len0to4(s, len) : Hash32Len5to12(s, len)) :
@@ -1854,7 +1854,7 @@ STATIC_INLINE uint32_t Hash32(const char *s, size_t len) {
   return h;
 }
 
-STATIC_INLINE uint32_t Hash32WithSeed(const char *s, size_t len, uint32_t seed) {
+STATIC_INLINE uint32_t Hash32WithSeed(const char *s, uint32_t len, uint32_t seed) {
   if (len <= 24) {
     if (len >= 13) return farmhashmk::Hash32Len13to24(s, len, seed * inlined::c1);
     else if (len >= 5) return farmhashmk::Hash32Len5to12(s, len, seed);
@@ -1913,7 +1913,7 @@ STATIC_INLINE uint64_t HashLen0to16(const char *s, size_t len) {
     uint8_t b = s[len >> 1];
     uint8_t c = s[len - 1];
     uint32_t y = static_cast<uint32_t>(a) + (static_cast<uint32_t>(b) << 8);
-    uint32_t z = len + (static_cast<uint32_t>(c) << 2);
+    uint32_t z = static_cast<uint32_t>(len) + (static_cast<uint32_t>(c) << 2);
     return ShiftMix(y * inlined::k2 ^ z * inlined::k0) * inlined::k2;
   }
   return inlined::k2;
@@ -2062,7 +2062,7 @@ namespace inlined {
 // Hash function for a byte array.  See also Hash(), below.
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
-STATIC_INLINE uint32_t Hash32(const char* s, size_t len) {
+STATIC_INLINE uint32_t Hash32(const char* s, uint32_t len) {
   return DebugTweak(
       (can_use_sse41 & x86_64) ? farmhashnt::Hash32(s, len) :
       (can_use_sse42 & can_use_aesni) ? farmhashsu::Hash32(s, len) :
@@ -2074,7 +2074,7 @@ STATIC_INLINE uint32_t Hash32(const char* s, size_t len) {
 // hashed into the result.
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
-STATIC_INLINE uint32_t Hash32WithSeed(const char* s, size_t len, uint32_t seed) {
+STATIC_INLINE uint32_t Hash32WithSeed(const char* s, uint32_t len, uint32_t seed) {
   return DebugTweak(
       (can_use_sse41 & x86_64) ? farmhashnt::Hash32WithSeed(s, len, seed) :
       (can_use_sse42 & can_use_aesni) ? farmhashsu::Hash32WithSeed(s, len, seed) :
@@ -2136,7 +2136,7 @@ STATIC_INLINE uint128_t Hash128WithSeed(const char* s, size_t len, uint128_t see
 // FINGERPRINTING (i.e., good, portable, forever-fixed hash functions)
 
 // Fingerprint function for a byte array.  Most useful in 32-bit binaries.
-STATIC_INLINE uint32_t Fingerprint32(const char* s, size_t len) {
+STATIC_INLINE uint32_t Fingerprint32(const char* s, uint32_t len) {
   return farmhashmk::Hash32(s, len);
 }
 

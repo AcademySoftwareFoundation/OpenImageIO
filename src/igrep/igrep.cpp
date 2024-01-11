@@ -86,8 +86,8 @@ grep_file(const std::string& filename, std::regex& re,
         for (auto&& p : spec.extra_attribs) {
             TypeDesc t = p.type();
             if (t.elementtype() == TypeDesc::STRING) {
-                int n = t.numelements();
-                for (int i = 0; i < n; ++i) {
+                size_t n = t.numelements();
+                for (size_t i = 0; i < n; ++i) {
                     bool match = false;
                     try {
                         match = std::regex_search(((const char**)p.data())[i],

@@ -244,10 +244,10 @@ Sysutil::this_program_path()
     char filename[10240] = "";
 
 #if defined(__linux__)
-    unsigned int size = sizeof(filename);
-    int r             = readlink("/proc/self/exe", filename, size);
+    size_t size = sizeof(filename);
+    ssize_t r = readlink("/proc/self/exe", filename, size);
     // user won't get the right answer if the filename is too long to store
-    OIIO_ASSERT(r < int(size));
+    OIIO_ASSERT(r < ssize_t(size));
     if (r > 0)
         filename[r] = 0;  // readlink does not fill in the 0 byte
 #elif defined(__APPLE__)
@@ -315,7 +315,7 @@ Sysutil::usleep(unsigned long useconds)
 #ifdef _WIN32
     Sleep(useconds / 1000);  // Win32 Sleep() is milliseconds, not micro
 #else
-    ::usleep(useconds);  // *nix usleep() is in microseconds
+    ::usleep((useconds_t)useconds);  // *nix usleep() is in microseconds
 #endif
 }
 

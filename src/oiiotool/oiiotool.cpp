@@ -1703,7 +1703,7 @@ void
 Oiiotool::express_error(const string_view expr, const string_view s,
                         string_view explanation)
 {
-    int offset = expr.rfind(s) + 1;
+    size_t offset = expr.rfind(s) + 1;
     errorfmt("expression", "{} at char {} of '{}'", explanation, offset, expr);
 }
 
@@ -2649,7 +2649,7 @@ icc_read(Oiiotool& ot, cspan<const char*> argv)
     int subimages = allsubimages ? A->subimages() : 1;
     for (int s = 0; s < subimages; ++s) {
         (*A)(s).specmod().attribute("ICCProfile",
-                                    TypeDesc(TypeDesc::UINT8, len), icc.get());
+                                    TypeDesc(TypeDesc::UINT8, int(len)), icc.get());
         A->update_spec_from_imagebuf(s);
     }
     A->metadata_modified(true);

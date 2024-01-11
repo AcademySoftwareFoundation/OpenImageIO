@@ -97,7 +97,7 @@ PNMOutput::write_ascii(const T* data, const stride_t stride,
 {
     int nc = m_spec.nchannels;
     for (int x = 0; x < m_spec.width; x++) {
-        unsigned int pixel = x * stride;
+        size_t pixel = x * stride;
         for (int c = 0; c < nc; c++) {
             unsigned int val = data[pixel + c];
             val              = val * max_val / std::numeric_limits<T>::max();
@@ -116,7 +116,7 @@ PNMOutput::write_raw(const T* data, const stride_t stride, unsigned int max_val)
 {
     int nc = m_spec.nchannels;
     for (int x = 0; x < m_spec.width; x++) {
-        unsigned int pixel = x * stride;
+        size_t pixel = x * stride;
         for (int c = 0; c < nc; c++) {
             unsigned int val = data[pixel + c];
             val              = val * max_val / std::numeric_limits<T>::max();

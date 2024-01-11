@@ -395,7 +395,7 @@ ImageCacheFile::SubimageInfo::init(ImageCacheFile& icfile,
             /* future expansion:  || spec.format == AnotherFormat ... */)
             datatype = spec.format;
     }
-    channelsize = datatype.size();
+    channelsize = (unsigned int)datatype.size();
     pixelsize   = channelsize * spec.nchannels;
 
     // See if there's a constant color tag
@@ -1508,7 +1508,7 @@ ImageCacheTile::ImageCacheTile(const TileID& id, const void* pels,
 {
     ImageCacheFile& file(m_id.file());
     const ImageSpec& spec(file.spec(id.subimage(), id.miplevel()));
-    m_channelsize = file.datatype(id.subimage()).size();
+    m_channelsize = (int)file.datatype(id.subimage()).size();
     m_pixelsize   = id.nchannels() * m_channelsize;
     m_tile_width  = spec.tile_width;
     if (copy) {
@@ -1564,7 +1564,7 @@ bool
 ImageCacheTile::read(ImageCachePerThreadInfo* thread_info)
 {
     ImageCacheFile& file(m_id.file());
-    m_channelsize = file.datatype(id().subimage()).size();
+    m_channelsize = (int)file.datatype(id().subimage()).size();
     m_pixelsize   = m_id.nchannels() * m_channelsize;
     size_t size   = memsize_needed();
     OIIO_ASSERT(memsize() == 0 && size > OIIO_SIMD_MAX_SIZE_BYTES);
@@ -1991,7 +1991,7 @@ ImageCacheImpl::getstats(int level) const
                 print(out, "  {:76}{}\n", "BROKEN", file->filename());
                 continue;
             }
-            print(out, "{}\n", onefile_stat_line(file, i + 1));
+            print(out, "{}\n", onefile_stat_line(file, (int)i + 1));
         }
         print(out, "\n  Tot:  {:4}  {:7}   {:8.1f}   ({:5} {:6.1f}) {:9}\n",
               total_opens, total_tiles, total_bytes / 1024.0 / 1024.0,
@@ -2425,7 +2425,7 @@ ImageCacheImpl::getattribute(string_view name, TypeDesc type, void* val) const
     if (name == "all_filenames" && type.basetype == TypeDesc::STRING
         && type.is_sized_array()) {
         ustring* names = (ustring*)val;
-        int n          = type.arraylen;
+        size_t n          = type.arraylen;
         for (FilenameMap::iterator f = m_files.begin();
              f != m_files.end() && n-- > 0; ++f) {
             *names++ = f->second->filename();
@@ -2919,7 +2919,7 @@ ImageCacheImpl::get_image_info(ImageCacheFile* file,
         return true;
     }
     if (dataname == s_averagecolor && datatype.basetype == TypeDesc::FLOAT) {
-        int datalen = datatype.numelements() * datatype.aggregate;
+        int datalen = (int)datatype.numelements() * datatype.aggregate;
         return file->get_average_color((float*)data, subimage, 0, datalen);
     }
     if (dataname == s_averagealpha && datatype == TypeDesc::FLOAT
@@ -2930,7 +2930,7 @@ ImageCacheImpl::get_image_info(ImageCacheFile* file,
     }
     if (dataname == s_constantcolor && datatype.basetype == TypeDesc::FLOAT) {
         if (file->subimageinfo(subimage).is_constant_image) {
-            int datalen = datatype.numelements() * datatype.aggregate;
+            int datalen = (int)datatype.numelements() * datatype.aggregate;
             return file->get_average_color((float*)data, subimage, 0, datalen);
         }
         return false;  // Fail if it's not a constant image
@@ -3290,8 +3290,8 @@ ImageCacheImpl::get_pixels(ImageCacheFile* file,
                 if (xcontig) {
                     // Special case for a contiguous span within one tile
                     int spanend   = std::min(tx + spec.tile_width, xend);
-                    stride_t span = spanend - x;
-                    convert_types(cachetype, data, format, xptr,
+                    int span = spanend - x;
+                    convert_pixel_values(cachetype, data, format, xptr,
                                   result_nchans * span);
                     x += (span - 1);
                     xptr += xstride * (span - 1);

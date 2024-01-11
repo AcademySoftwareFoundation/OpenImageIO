@@ -226,7 +226,7 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
     std::string comment = m_spec.get_string_attribute("ImageDescription");
     if (comment.size()) {
         jpeg_write_marker(&m_cinfo, JPEG_COM, (JOCTET*)comment.c_str(),
-                          comment.size() + 1);
+                          (unsigned int)comment.size() + 1);
     }
 
     if (Strutil::iequals(m_spec.get_string_attribute("oiio:ColorSpace"), "sRGB"))
@@ -244,7 +244,7 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
     exif.push_back(0);
     encode_exif(m_spec, exif);
     jpeg_write_marker(&m_cinfo, JPEG_APP0 + 1, (JOCTET*)exif.data(),
-                      exif.size());
+                      (unsigned int)exif.size());
 
     // Write IPTC IIM metadata tags, if we have anything
     std::vector<char> iptc;
@@ -264,7 +264,7 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
         head.push_back((char)(iptc.size() & 0xff));
         iptc.insert(iptc.begin(), head.begin(), head.end());
         jpeg_write_marker(&m_cinfo, JPEG_APP0 + 13, (JOCTET*)iptc.data(),
-                          iptc.size());
+                          (unsigned int)iptc.size());
     }
 
     // Write XMP packet, if we have anything
@@ -274,7 +274,7 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
         std::vector<char> block(prefix, prefix + strlen(prefix) + 1);
         block.insert(block.end(), xmp.c_str(), xmp.c_str() + xmp.length());
         jpeg_write_marker(&m_cinfo, JPEG_APP0 + 1, (JOCTET*)&block[0],
-                          block.size());
+                          (unsigned int)block.size());
     }
 
     m_spec.set_format(TypeDesc::UINT8);  // JPG is only 8 bit
@@ -285,7 +285,7 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
     if (icc_profile_parameter != NULL) {
         unsigned char* icc_profile
             = (unsigned char*)icc_profile_parameter->data();
-        unsigned int icc_profile_length = icc_profile_parameter->type().size();
+        unsigned int icc_profile_length = (unsigned int)icc_profile_parameter->type().size();
         if (icc_profile && icc_profile_length) {
             /* Calculate the number of markers we'll need, rounding up of course */
             int num_markers = icc_profile_length / MAX_DATA_BYTES_IN_MARKER;

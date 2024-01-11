@@ -138,7 +138,7 @@ bool dpx::Writer::WriteHeader()
 
 void dpx::Writer::SetUserData(const long size)
 {
-	this->header.SetUserSize(size);
+	this->header.SetUserSize((U32)size);
 }
 
 
@@ -185,8 +185,8 @@ void dpx::Writer::SetElement(const int num, const Descriptor desc, const U8 bitD
 bool
 dpx::Writer::WritePadData(const int alignment)
 {
-    int imageoffset = ((this->fileLoc + alignment - 1)/alignment)*alignment;
-    int padsize = imageoffset - this->fileLoc;
+    long imageoffset = ((this->fileLoc + alignment - 1)/alignment)*alignment;
+    long padsize = imageoffset - this->fileLoc;
     if (padsize > 0) {
         std::vector<dpx::U8> pad (padsize, 0xff);
         this->fileLoc += this->fd->Write (&pad[0], padsize);
@@ -213,7 +213,7 @@ bool dpx::Writer::WriteElement(const int element, void *data, const long count)
 		return false;
 
 	// update file ptr
-	this->header.SetDataOffset(element, this->fileLoc);
+	this->header.SetDataOffset(element, (U32)this->fileLoc);
 	this->fileLoc += count;
 		
 	// write
@@ -253,8 +253,8 @@ bool dpx::Writer::WriteElement(const int element, void *data, const DataSize siz
 
 	// mark location in headers
 	if (element == 0)
-		this->header.SetImageOffset(this->fileLoc);
-	this->header.SetDataOffset(element, this->fileLoc);
+		this->header.SetImageOffset((U32)this->fileLoc);
+	this->header.SetDataOffset(element, (U32)this->fileLoc);
 	
 	// reverse the order of the components
 	bool reverse = false;
@@ -426,7 +426,7 @@ bool dpx::Writer::WriteThrough(void *data, const U32 width, const U32 height, co
 bool dpx::Writer::Finish()
 {
 	// write the file size in the header
-	this->header.SetFileSize(this->fileLoc);
+	this->header.SetFileSize((U32)this->fileLoc);
 	
 	// rewrite all of the offsets in the header
 	return this->header.WriteOffsetData(this->fd);

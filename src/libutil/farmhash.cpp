@@ -42,7 +42,7 @@
 // Hash function for a byte array.  See also Hash(), below.
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
-uint32_t Hash32(const char* s, size_t len) {
+uint32_t Hash32(const char* s, uint32_t len) {
   return farmhash::inlined::Hash32(s, len);
 }
 
@@ -50,7 +50,7 @@ uint32_t Hash32(const char* s, size_t len) {
 // hashed into the result.
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
-uint32_t Hash32WithSeed(const char* s, size_t len, uint32_t seed) {
+uint32_t Hash32WithSeed(const char* s, uint32_t len, uint32_t seed) {
   return farmhash::inlined::Hash32WithSeed(s, len, seed);
 }
 
@@ -105,7 +105,7 @@ uint128_t Hash128WithSeed(const char* s, size_t len, uint128_t seed) {
 // FINGERPRINTING (i.e., good, portable, forever-fixed hash functions)
 
 // Fingerprint function for a byte array.  Most useful in 32-bit binaries.
-uint32_t Fingerprint32(const char* s, size_t len) {
+uint32_t Fingerprint32(const char* s, uint32_t len) {
   return farmhash::inlined::Fingerprint32(s, len);
 }
 

@@ -392,10 +392,10 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
                 m->get_string());
         } else {
             // missingcolor as numeric array
-            int n = m->type().basevalues();
+            size_t n = m->type().basevalues();
             m_missingcolor.clear();
             m_missingcolor.reserve(n);
-            for (int i = 0; i < n; ++i)
+            for (size_t i = 0; i < n; ++i)
                 m_missingcolor[i] = m->get_float(i);
         }
     } else {
@@ -665,7 +665,7 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
             std::vector<ustring> ustrvec(strvec.size());
             for (size_t i = 0, e = strvec.size(); i < e; ++i)
                 ustrvec[i] = strvec[i];
-            TypeDesc sv(TypeDesc::STRING, ustrvec.size());
+            TypeDesc sv(TypeDesc::STRING, int(ustrvec.size()));
             spec.attribute(oname, sv, &ustrvec[0]);
 #if OPENEXR_HAS_FLOATVECTOR
 
@@ -674,7 +674,7 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
                        = header->findTypedAttribute<Imf::FloatVectorAttribute>(
                            name))) {
             std::vector<float> fvec = fvattr->value();
-            TypeDesc fv(TypeDesc::FLOAT, fvec.size());
+            TypeDesc fv(TypeDesc::FLOAT, int(fvec.size()));
             spec.attribute(oname, fv, &fvec[0]);
 #endif
         } else if (type == "double"
@@ -976,7 +976,7 @@ OpenEXRInput::PartInfo::query_channels(OpenEXRInput* in,
         spec.channelformats.push_back(cnh[c].datatype);
         spec.format = TypeDesc::basetype_merge(spec.format, cnh[c].datatype);
         pixeltype.push_back(cnh[c].exr_data_type);
-        chanbytes.push_back(cnh[c].datatype.size());
+        chanbytes.push_back((int)cnh[c].datatype.size());
         all_one_format &= (cnh[c].datatype == cnh[0].datatype);
         if (spec.alpha_channel < 0
             && (Strutil::iequals(cnh[c].suffix, "A")
@@ -1603,9 +1603,9 @@ OpenEXRInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
         }
         m_deep_tiled_input_part->setFrameBuffer(frameBuffer);
 
-        int xtiles = round_to_multiple(width, m_spec.tile_width)
+        int xtiles = (int)round_to_multiple(width, m_spec.tile_width)
                      / m_spec.tile_width;
-        int ytiles = round_to_multiple(height, m_spec.tile_height)
+        int ytiles = (int)round_to_multiple(height, m_spec.tile_height)
                      / m_spec.tile_height;
 
         int firstxtile = (xbegin - m_spec.x) / m_spec.tile_width;

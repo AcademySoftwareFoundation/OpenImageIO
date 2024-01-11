@@ -465,11 +465,11 @@ public:
 
     /// Array indexing by integer will return a reference to the ParamValue
     /// in that position of the list.
-    ParamValue& operator[](int index)
+    ParamValue& operator[](size_t index)
     {
         return std::vector<ParamValue>::operator[](index);
     }
-    const ParamValue& operator[](int index) const
+    const ParamValue& operator[](size_t index) const
     {
         return std::vector<ParamValue>::operator[](index);
     }

@@ -35,20 +35,20 @@ ImageBuf_from_buffer(const py::buffer& buffer)
 
     if (info.ndim == 3) {
         // Assume [y][x][c]
-        ImageSpec spec(info.shape[1], info.shape[0], info.shape[2], format);
+        ImageSpec spec((int)info.shape[1], (int)info.shape[0], (int)info.shape[2], format);
         ib.reset(spec, InitializePixels::No);
         ib.set_pixels(get_roi(spec), format, info.ptr, info.strides[1],
                       info.strides[0]);
     } else if (info.ndim == 2) {
         // Assume [y][x], single channel
-        ImageSpec spec(info.shape[1], info.shape[0], 1, format);
+        ImageSpec spec((int)info.shape[1], (int)info.shape[0], 1, format);
         ib.reset(spec, InitializePixels::No);
         ib.set_pixels(get_roi(spec), format, info.ptr, info.strides[1],
                       info.strides[0]);
     } else if (info.ndim == 4) {
         // Assume volume [z][y][x][c]
-        ImageSpec spec(info.shape[2], info.shape[1], info.shape[3], format);
-        spec.depth      = info.shape[0];
+        ImageSpec spec((int)info.shape[2], (int)info.shape[1], (int)info.shape[3], format);
+        spec.depth      = (int)info.shape[0];
         spec.full_depth = spec.depth;
         ib.reset(spec, InitializePixels::No);
         ib.set_pixels(get_roi(spec), format, info.ptr, info.strides[2],

@@ -298,14 +298,14 @@ WebpInput::read_current_subimage()
                                       m_iter.fragment.size,
                                       m_decoded_image.get() + offset,
                                       m_spec.image_bytes() - offset,
-                                      m_spec.scanline_bytes());
+                                      (int)m_spec.scanline_bytes());
         } else {
             OIIO_DASSERT(m_spec.nchannels == 4);
             okptr = WebPDecodeRGBAInto(m_iter.fragment.bytes,
                                        m_iter.fragment.size,
                                        m_decoded_image.get() + offset,
                                        m_spec.image_bytes() - offset,
-                                       m_spec.scanline_bytes());
+                                       (int)m_spec.scanline_bytes());
             // WebP requires unassociated alpha, and it's sRGB.
             // Handle this all by wrapping an IB around it.
             ImageBuf fullbuf(m_spec, m_decoded_image.get());
@@ -323,7 +323,7 @@ WebpInput::read_current_subimage()
         okptr = WebPDecodeRGBAInto(m_iter.fragment.bytes, m_iter.fragment.size,
                                    (uint8_t*)fragbuf.localpixels(),
                                    fragspec.image_bytes(),
-                                   fragspec.scanline_bytes());
+                                   (int)fragspec.scanline_bytes());
         // WebP requires unassociated alpha, and it's sRGB.
         // Handle this all by wrapping an IB around it.
         ImageBufAlgo::premult(fragbuf, fragbuf);

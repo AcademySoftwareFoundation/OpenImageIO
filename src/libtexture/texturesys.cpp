@@ -2641,7 +2641,7 @@ TextureSystemImpl::sample_bicubic(
     }
     TileID id(texturefile, options.subimage, miplevel, 0, 0, 0, tile_chbegin,
               tile_chend, options.colortransformid);
-    int pixelsize                         = channelsize * id.nchannels();
+    int pixelsize                         = (int)channelsize * id.nchannels();
     imagesize_t firstchannel_offset_bytes = channelsize
                                             * (firstchannel - id.chbegin());
     vfloat4 accum, daccumds, daccumdt;
@@ -2773,7 +2773,7 @@ TextureSystemImpl::sample_bicubic(
             tile_s_edge = stex - tile_s;
             tile_t_edge = ttex - tile_t;
             simd::vint4 column_offset_bytes = tile_s * pixelsize
-                                              + firstchannel_offset_bytes;
+                                              + (uint32_t)firstchannel_offset_bytes;
             for (int j = 0; j < 4; ++j) {
                 if (!tvalid[j]) {
                     for (int i = 0; i < 4; ++i)

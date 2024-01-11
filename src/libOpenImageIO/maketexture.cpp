@@ -1234,7 +1234,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         std::vector<imagesize_t> hist;
 
         for (int i = 0; i < channels; i++) {
-            hist = ImageBufAlgo::histogram(*src, i, bins, 0.0f, 1.0f);
+            hist = ImageBufAlgo::histogram(*src, i, (int)bins, 0.0f, 1.0f);
 
             // Turn the histogram into a non-normalized CDF
             for (uint64_t j = 1; j < bins; j++) {
@@ -1257,7 +1257,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
                 invCDF[j] = std::min(1.0f, std::max(0.0f, g));
             }
             configspec.attribute("invCDF_" + std::to_string(i),
-                                 TypeDesc(TypeDesc::FLOAT, bins),
+                                 TypeDesc(TypeDesc::FLOAT, int(bins)),
                                  invCDF.data());
 
             // Store the forward CDF as a lookup table to transform back to
@@ -1270,7 +1270,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
             }
 
             configspec.attribute("CDF_" + std::to_string(i),
-                                 TypeDesc(TypeDesc::FLOAT, bins), CDF.data());
+                                 TypeDesc(TypeDesc::FLOAT, int(bins)), CDF.data());
         }
 
         configspec["CDF_bits"] = cdf_bits;

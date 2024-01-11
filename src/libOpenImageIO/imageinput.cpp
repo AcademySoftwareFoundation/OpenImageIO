@@ -529,8 +529,8 @@ ImageInput::read_tile(int x, int y, int z, TypeDesc format, void* data,
         return false;
     if (m_spec.channelformats.empty()) {
         // No per-channel formats -- do the conversion in one shot
-        ok = contiguous ? convert_types(m_spec.format, &buf[0], format, data,
-                                        tile_values)
+        ok = contiguous ? convert_pixel_values(m_spec.format, &buf[0], format, data,
+                                        (int)tile_values)
                         : convert_image(m_spec.nchannels, m_spec.tile_width,
                                         m_spec.tile_height, m_spec.tile_depth,
                                         &buf[0], m_spec.format, AutoStride,

@@ -582,7 +582,7 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
 
     if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
         return "Could not set PNG IHDR chunk";
-    png_set_IHDR(sp, ip, spec.width, spec.height, spec.format.size() * 8,
+    png_set_IHDR(sp, ip, spec.width, spec.height, (uint32_t)spec.format.size() * 8,
                  color_type, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
                  PNG_FILTER_TYPE_DEFAULT);
 
@@ -619,7 +619,7 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
     const ParamValue* icc_profile_parameter = spec.find_attribute(
         ICC_PROFILE_ATTR);
     if (icc_profile_parameter != NULL) {
-        unsigned int length = icc_profile_parameter->type().size();
+        uint32_t length = (uint32_t)icc_profile_parameter->type().size();
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG iCCP chunk";
 #if OIIO_LIBPNG_VERSION > 10500 /* PNG function signatures changed */
@@ -701,7 +701,7 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
                       spec.extra_attribs[p].data(), text);
 
     if (text.size())
-        png_set_text(sp, ip, &text[0], text.size());
+        png_set_text(sp, ip, &text[0], (int)text.size());
 
     png_write_info(sp, ip);
     png_set_packing(sp);  // Pack 1, 2, 4 bit into bytes

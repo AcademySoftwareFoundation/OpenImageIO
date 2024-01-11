@@ -376,7 +376,7 @@ add_attrib(ImageSpec& spec, string_view xmlname, string_view xmlvalue,
             vals.push_back(Strutil::stoi(xmlvalue));
         TypeDesc t = oiiotype;
         if (vals.size() > 1)
-            t.arraylen = vals.size();
+            t.arraylen = int(vals.size());
         spec.attribute(oiioname, t, vals.data());
         return vals.size() * sizeof(int);
     } else if (oiiotype == TypeDesc::UINT) {
@@ -390,7 +390,7 @@ add_attrib(ImageSpec& spec, string_view xmlname, string_view xmlvalue,
         vals.push_back(Strutil::stof(xmlvalue));
         TypeDesc t = oiiotype;
         if (vals.size() > 1)
-            t.arraylen = vals.size();
+            t.arraylen = int(vals.size());
         spec.attribute(oiioname, t, vals.data());
         return vals.size() * sizeof(float);
     }

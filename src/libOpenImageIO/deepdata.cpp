@@ -91,7 +91,7 @@ public:
             spin_lock lock(m_mutex);
             if (!m_allocated) {
                 // m_cumcapacity.resize (npixels);
-                size_t totalcapacity = 0;
+                int totalcapacity = 0;
                 for (size_t i = 0; i < npixels; ++i) {
                     m_cumcapacity[i] = totalcapacity;
                     totalcapacity += m_capacity[i];
@@ -1030,7 +1030,7 @@ namespace {
 // Comparator functor for depth sorting sample indices of a deep pixel.
 class SampleComparator {
 public:
-    SampleComparator(const DeepData& dd, int pixel, int zchan, int zbackchan)
+    SampleComparator(const DeepData& dd, int64_t pixel, int zchan, int zbackchan)
         : deepdata(dd)
         , pixel(pixel)
         , zchan(zchan)
@@ -1054,7 +1054,7 @@ public:
 
 private:
     const DeepData& deepdata;
-    int pixel;
+    int64_t pixel;
     int zchan, zbackchan;
 };
 

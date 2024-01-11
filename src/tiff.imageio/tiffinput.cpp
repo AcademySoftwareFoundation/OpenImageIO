@@ -289,7 +289,7 @@ private:
         // Strutil::printf(" tgsf %s tag %d datatype %d passcount %d readcount %d\n",
         //                 name, tag, int(tiffdatatype), passcount, readcount);
         char* s        = nullptr;
-        uint32_t count = 0;
+        size_t   count = 0;
         bool ok        = false;
         if (tiffdatatype == TIFF_ASCII && passcount
             && readcount == TIFF_VARIABLE) {
@@ -1513,10 +1513,10 @@ TIFFInput::separate_to_contig(int nplanes, int nvals,
                               const unsigned char* separate,
                               unsigned char* contig)
 {
-    int channelbytes = m_spec.channel_bytes();
+    size_t channelbytes = m_spec.channel_bytes();
     for (int p = 0; p < nvals; ++p)                 // loop over pixels
         for (int c = 0; c < nplanes; ++c)           // loop over channels
-            for (int i = 0; i < channelbytes; ++i)  // loop over data bytes
+            for (size_t i = 0; i < channelbytes; ++i)  // loop over data bytes
                 contig[(p * nplanes + c) * channelbytes + i]
                     = separate[(c * nvals + p) * channelbytes + i];
 }
@@ -1530,7 +1530,7 @@ TIFFInput::palette_to_rgb(int n, const unsigned char* palettepels,
 {
     size_t vals_per_byte = 8 / m_bitspersample;
     size_t entries       = 1 << m_bitspersample;
-    int highest          = entries - 1;
+    size_t highest       = entries - 1;
     OIIO_DASSERT(m_spec.nchannels == 3);
     OIIO_DASSERT(m_colormap.size() == 3 * entries);
     for (int x = 0; x < n; ++x) {
@@ -2075,8 +2075,8 @@ TIFFInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
         return true;
     }
 
-    imagesize_t tile_pixels = m_spec.tile_pixels();
-    imagesize_t nvals       = tile_pixels * m_inputchannels;
+    int tile_pixels = (int)m_spec.tile_pixels();
+    int nvals       = tile_pixels * m_inputchannels;
     if (m_photometric == PHOTOMETRIC_PALETTE && m_bitspersample > 8)
         m_scratch.resize(nvals * 2);  // special case for 16 bit palette
     else
@@ -2220,7 +2220,7 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
     stride_t ystride       = (xend - xbegin) * pixel_bytes;
     stride_t zstride       = (yend - ybegin) * ystride;
     imagesize_t tile_bytes = m_spec.tile_bytes(true);
-    int tilevals           = m_spec.tile_pixels() * m_spec.nchannels;
+    int tilevals           = (int)m_spec.tile_pixels() * m_spec.nchannels;
     size_t cbound          = compressBound((uLong)tile_bytes);
     std::unique_ptr<char[]> compressed_scratch(new char[cbound * ntiles]);
     std::unique_ptr<char[]> scratch(new char[tile_bytes * ntiles]);

@@ -263,7 +263,7 @@ IffOutput::write_header(IffFileHeader& header)
     write_meta_string("DATE", header.date);
 
     // for4 position for later user in close
-    header.for4_start = iotell();
+    header.for4_start = (uint32_t)iotell();
 
     // write 'FOR4' type, with 0 length to reserve it for now
     if (!write_str("FOR4") || !write_int(0))
@@ -350,7 +350,7 @@ IffOutput::close(void)
         // flip buffer to make write tile easier,
         // from tga.imageio:
 
-        int bytespp = m_spec.pixel_bytes();
+        size_t bytespp = m_spec.pixel_bytes();
 
         std::vector<unsigned char> flip(m_spec.width * bytespp);
         unsigned char *src, *dst, *tmp = &flip[0];
@@ -388,7 +388,7 @@ IffOutput::close(void)
                     return false;
 
                 // length.
-                uint32_t length = tw * th * m_spec.pixel_bytes();
+                uint32_t length = tw * th * (uint32_t)m_spec.pixel_bytes();
 
                 // tile length.
                 uint32_t tile_length = length;
@@ -411,14 +411,15 @@ IffOutput::close(void)
                 // handle 8-bit data
                 if (m_spec.format == TypeDesc::UINT8) {
                     if (tile_compress) {
-                        uint32_t index = 0, size = 0;
+                        uint32_t index = 0;
+                        size_t size = 0;
                         std::vector<uint8_t> tmp;
 
                         // set bytes.
                         tmp.resize(tile_length * 2);
 
                         // map: RGB(A) to BGRA
-                        for (int c = (channels * m_spec.channel_bytes()) - 1;
+                        for (long c = (channels * m_spec.channel_bytes()) - 1;
                              c >= 0; --c) {
                             std::vector<uint8_t> in(tw * th);
                             uint8_t* in_p = &in[0];
@@ -497,7 +498,8 @@ IffOutput::close(void)
                 // handle 16-bit data
                 else if (m_spec.format == TypeDesc::UINT16) {
                     if (tile_compress) {
-                        uint32_t index = 0, size = 0;
+                        uint32_t index = 0;
+                        size_t size = 0;
                         std::vector<uint8_t> tmp;
 
                         // set bytes.
@@ -525,7 +527,7 @@ IffOutput::close(void)
                         }
 
                         // map: RRGGBB(AA) to BGR(A)BGR(A)
-                        for (int c = (channels * m_spec.channel_bytes()) - 1;
+                        for (long c = (channels * m_spec.channel_bytes()) - 1;
                              c >= 0; --c) {
                             int mc = map[c];
 
@@ -624,7 +626,7 @@ IffOutput::close(void)
         }
 
         // set sizes
-        uint32_t pos(iotell());
+        uint32_t pos((uint32_t)iotell());
 
         uint32_t p0 = pos - 8;
         uint32_t p1 = p0 - m_iff_header.for4_start;

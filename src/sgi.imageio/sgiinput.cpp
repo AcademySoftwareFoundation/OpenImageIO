@@ -192,8 +192,8 @@ SgiInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         for (int c = 0; c < m_spec.nchannels; ++c) {
             // offset for this scanline/channel
             ptrdiff_t off             = y + c * m_spec.height;
-            ptrdiff_t scanline_offset = start_tab[off];
-            ptrdiff_t scanline_length = length_tab[off];
+            uint32_t scanline_offset = start_tab[off];
+            uint32_t scanline_length = length_tab[off];
             channeldata[c].resize(m_spec.width * bpc);
             uncompress_rle_channel(scanline_offset, scanline_length,
                                    &(channeldata[c][0]));

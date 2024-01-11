@@ -128,11 +128,11 @@ parse_elements(string_view value, ParamValue& p)
 {
     using namespace Strutil;
     TypeDesc type = p.type();
-    int num_items = type.numelements() * type.aggregate;
+    size_t num_items = type.numelements() * type.aggregate;
     T* data       = (T*)p.data();
     // Erase any leading whitespace
     value.remove_prefix(value.find_first_not_of(" \t"));
-    for (int i = 0; i < num_items; ++i) {
+    for (size_t i = 0; i < num_items; ++i) {
         // Make a temporary copy so we for sure have a 0-terminated string.
         std::string temp = value;
         // Grab the first value from it

@@ -139,7 +139,7 @@ class kissfft
         void kf_bfly2( cpx_type * Fout, const size_t fstride, int m)
         {
             for (int k=0;k<m;++k) {
-                cpx_type t = Fout[m+k] * _traits.twiddle(k*fstride);
+                cpx_type t = Fout[m+k] * _traits.twiddle(k * (int)fstride);
                 Fout[m+k] = Fout[k] - t;
                 Fout[k] += t;
             }
@@ -149,10 +149,10 @@ class kissfft
         {
             cpx_type scratch[7];
             int negative_if_inverse = _inverse * -2 +1;
-            for (size_t k=0;k<m;++k) {
-                scratch[0] = Fout[k+m] * _traits.twiddle(k*fstride);
-                scratch[1] = Fout[k+2*m] * _traits.twiddle(k*fstride*2);
-                scratch[2] = Fout[k+3*m] * _traits.twiddle(k*fstride*3);
+            for (size_t k=0; k < m; ++k) {
+                scratch[0] = Fout[k+m] * _traits.twiddle((int)(k*fstride));
+                scratch[1] = Fout[k+2*m] * _traits.twiddle((int)(k*fstride*2));
+                scratch[2] = Fout[k+3*m] * _traits.twiddle((int)(k*fstride*3));
                 scratch[5] = Fout[k] - scratch[1];
 
                 Fout[k] += scratch[1];

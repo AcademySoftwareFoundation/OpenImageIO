@@ -704,7 +704,7 @@ parallel_for_impl(Index begin, Index end, function_view<void(Index)> task,
     parallel_for_chunked_id(
         int64_t(begin), int64_t(end), 0,
         [&task](int /*id*/, int64_t b, int64_t e) {
-            for (Index i(b), end(e); i != end; ++i)
+            for (Index i = Index(b), end = Index(e); i != end; ++i)
                 task(i);
         },
         opt);

@@ -211,7 +211,7 @@ Strutil::vsprintf(const char* fmt, va_list ap)
         apsave = ap;
 #endif
 
-        int needed = oiio_stbsp_vsnprintf(buf, size, fmt, ap);
+        int needed = oiio_stbsp_vsnprintf(buf, (int)size, fmt, ap);
         va_end(ap);
 
         // NB. C99 says vsnprintf returns -1 on an encoding error. Otherwise
@@ -475,8 +475,8 @@ strncasecmp(const char* a, const char* b, size_t size)
 bool
 Strutil::iequals(string_view a, string_view b)
 {
-    int asize = a.size();
-    int bsize = b.size();
+    size_t asize = a.size();
+    size_t bsize = b.size();
     if (asize != bsize)
         return false;
     return Strutil::strncasecmp(a.data(), b.data(), bsize) == 0;

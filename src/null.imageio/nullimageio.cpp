@@ -195,10 +195,10 @@ parse_param(string_view paramname, string_view val, ImageSpec& spec)
     }
 
     // Read the values and set the attribute
-    int n = type.numelements() * type.aggregate;
+    size_t n = type.numelements() * type.aggregate;
     if (type.basetype == TypeDesc::INT) {
         std::vector<int> values(n);
-        for (int i = 0; i < n; ++i) {
+        for (size_t i = 0; i < n; ++i) {
             Strutil::parse_int(val, values[i]);
             Strutil::parse_char(val, ',');  // optional
         }
@@ -207,7 +207,7 @@ parse_param(string_view paramname, string_view val, ImageSpec& spec)
     }
     if (type.basetype == TypeDesc::FLOAT) {
         std::vector<float> values(n);
-        for (int i = 0; i < n; ++i) {
+        for (size_t i = 0; i < n; ++i) {
             Strutil::parse_float(val, values[i]);
             Strutil::parse_char(val, ',');  // optional
         }
@@ -215,7 +215,7 @@ parse_param(string_view paramname, string_view val, ImageSpec& spec)
             spec.attribute(paramname, type, &values[0]);
     } else if (type.basetype == TypeDesc::STRING) {
         std::vector<ustring> values(n);
-        for (int i = 0; i < n; ++i) {
+        for (size_t i = 0; i < n; ++i) {
             string_view v;
             Strutil::parse_string(val, v);
             Strutil::parse_char(val, ',');  // optional

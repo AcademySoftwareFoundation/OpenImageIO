@@ -573,10 +573,10 @@ DDSInput::internal_seek_subimage(int cubeface, int miplevel, unsigned int& w,
     // we can easily calculate the offsets because both compressed and
     // uncompressed images have predictable length
     // calculate the offset; start with after the header
-    unsigned int ofs = sizeof(dds_header);
+    size_t ofs = sizeof(dds_header);
     if (m_dds.fmt.fourCC == DDS_4CC_DX10)
         ofs += sizeof(dds_header_dx10);
-    unsigned int len;
+    size_t len;
     // this loop is used to iterate over cube map sides, or run once in the
     // case of ordinary 2D or 3D images
     for (int j = 0; j <= cubeface; j++) {

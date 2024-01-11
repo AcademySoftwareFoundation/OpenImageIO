@@ -361,7 +361,7 @@ IffInput::read_header()
                                     // tbmp position for later user in in
                                     // read_native_tile
 
-                                    m_iff_header.tbmp_start = iotell();
+                                    m_iff_header.tbmp_start = (uint32_t)iotell();
 
                                     // read first RGBA block to detect tile size.
 
@@ -537,7 +537,7 @@ IffInput::readimg()
             uint8_t channels = m_iff_header.pixel_channels;
 
             // set tile size
-            uint32_t tile_size = tw * th * channels * m_spec.channel_bytes()
+            size_t tile_size = tw * th * channels * m_spec.channel_bytes()
                                  + 8;
 
             // test if compressed
@@ -562,7 +562,7 @@ IffInput::readimg()
                 // tile compress.
                 if (tile_compress) {
                     // map BGR(A) to RGB(A)
-                    for (int c = (channels * m_spec.channel_bytes()) - 1;
+                    for (int c = (int)(channels * m_spec.channel_bytes()) - 1;
                          c >= 0; --c) {
                         std::vector<uint8_t> in(tw * th);
                         uint8_t* in_p = &in[0];
@@ -644,7 +644,7 @@ IffInput::readimg()
                     }
 
                     // map BGR(A)BGR(A) to RRGGBB(AA)
-                    for (int c = (channels * m_spec.channel_bytes()) - 1;
+                    for (size_t c = (channels * m_spec.channel_bytes()) - 1;
                          c >= 0; --c) {
                         int mc = map[c];
 
@@ -724,7 +724,7 @@ IffInput::readimg()
     // flip buffer to make read_native_tile easier,
     // from tga.imageio:
 
-    int bytespp = m_spec.pixel_bytes();
+    size_t bytespp = m_spec.pixel_bytes();
 
     std::vector<unsigned char> flip(m_spec.width * bytespp);
     unsigned char *src, *dst, *tmp = &flip[0];

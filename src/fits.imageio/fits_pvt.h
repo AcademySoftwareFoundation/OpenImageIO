@@ -28,7 +28,7 @@ namespace fits_pvt {
 // struct in which we store information about one subimage. This information
 // allow us to set up pointer at the beginning of given subimage
 struct Subimage {
-    int number;
+    size_t number;
     size_t offset;
 };
 

@@ -866,7 +866,7 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
     if (icc_profile_parameter != NULL) {
         unsigned char* icc_profile
             = (unsigned char*)icc_profile_parameter->data();
-        uint32_t length = icc_profile_parameter->type().size();
+        size_t length = icc_profile_parameter->type().size();
         if (icc_profile && length)
             TIFFSetField(m_tif, TIFFTAG_ICCPROFILE, length, icc_profile);
     }
@@ -1185,10 +1185,10 @@ void
 TIFFOutput::contig_to_separate(int n, int nchans, const char* contig,
                                char* separate)
 {
-    int channelbytes = m_spec.channel_bytes();
+    size_t channelbytes = m_spec.channel_bytes();
     for (int p = 0; p < n; ++p)                     // loop over pixels
         for (int c = 0; c < nchans; ++c)            // loop over channels
-            for (int i = 0; i < channelbytes; ++i)  // loop over data bytes
+            for (size_t i = 0; i < channelbytes; ++i)  // loop over data bytes
                 separate[(c * n + p) * channelbytes + i]
                     = contig[(p * nchans + c) * channelbytes + i];
 }
@@ -1250,7 +1250,7 @@ TIFFOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     std::vector<unsigned char> cmyk;
     if (m_photometric == PHOTOMETRIC_SEPARATED && m_convert_rgb_to_cmyk)
         data = convert_to_cmyk(spec().width, data, cmyk);
-    size_t scanline_vals = size_t(spec().width) * m_outputchans;
+    int scanline_vals = spec().width * m_outputchans;
 
     // Handle weird bit depths
     if (spec().format.size() * 8 != m_bitspersample) {
@@ -1261,7 +1261,7 @@ TIFFOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     y -= m_spec.y;
     if (m_planarconfig == PLANARCONFIG_SEPARATE && m_spec.nchannels > 1) {
         // Convert from contiguous (RGBRGBRGB) to separate (RRRGGGBBB)
-        int plane_bytes = m_spec.width * m_spec.format.size();
+        size_t plane_bytes = m_spec.width * m_spec.format.size();
 
         char* separate;
         OIIO_ALLOCATE_STACK_OR_HEAP(separate, char, plane_bytes* m_outputchans);
@@ -1498,7 +1498,7 @@ TIFFOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
     // Handle weird photometric/color spaces
     std::vector<unsigned char> cmyk;
     if (m_photometric == PHOTOMETRIC_SEPARATED && m_convert_rgb_to_cmyk)
-        data = convert_to_cmyk(spec().tile_pixels(), data, cmyk);
+        data = convert_to_cmyk((int)spec().tile_pixels(), data, cmyk);
 
     // Handle weird bit depths
     if (spec().format.size() * 8 != m_bitspersample) {
@@ -1514,7 +1514,7 @@ TIFFOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
 
         char* separate;
         OIIO_ALLOCATE_STACK_OR_HEAP(separate, char, plane_bytes* m_outputchans);
-        contig_to_separate(tile_pixels, m_outputchans, (const char*)data,
+        contig_to_separate((int)tile_pixels, m_outputchans, (const char*)data,
                            separate);
         for (int c = 0; c < m_outputchans; ++c) {
             if (TIFFWriteTile(m_tif, (tdata_t)&separate[plane_bytes * c], x, y,
