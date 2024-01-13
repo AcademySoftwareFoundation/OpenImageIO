@@ -7,6 +7,8 @@
 
 #include <OpenImageIO/Imath.h>
 #include <OpenImageIO/paramlist.h>
+#include <OpenImageIO/span.h>
+#include <OpenImageIO/span_util.h>
 #include <OpenImageIO/unittest.h>
 
 

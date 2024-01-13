@@ -226,6 +226,8 @@ public:
     // a std::string.
     template<typename T> const T& get(int i = 0) const noexcept
     {
+        OIIO_DASSERT(i >= 0 && i < int(m_nvalues * m_type.basevalues())
+                     && "OIIO::ParamValue::get() range check");
         return (reinterpret_cast<const T*>(data()))[i];
     }
 
