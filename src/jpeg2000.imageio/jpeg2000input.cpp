@@ -275,6 +275,7 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
         close();
         return false;
     }
+    OIIO_ASSERT(m_image != nullptr);
 
     // we support only one, three or four components in image
     const int channelCount = m_image->numcomps;

@@ -306,6 +306,7 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
                 profile[11] = 0;
                 profile[12] = curr_marker;
                 profile[13] = (JOCTET)num_markers;
+                OIIO_ASSERT(profile_size >= ICC_HEADER_SIZE + length);
                 memcpy(profile.data() + ICC_HEADER_SIZE,
                        icc_profile + length * (curr_marker - 1),
                        length);  //NOSONAR
