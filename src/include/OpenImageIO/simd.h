@@ -10360,6 +10360,25 @@ template<> struct formatter<OIIO::simd::matrix44>
     : OIIO::pvt::array_formatter<OIIO::simd::matrix44, float, 16> {};
 } // namespace fmt
 
+
+// Force C++ to understand that ustring and ustringhash are trivially copyable
+// (i.e. memcpy from one ustring to another is fine).
+
+namespace std {  // not necessary in C++17, just say std::is_trivially_copyable
+template<> struct is_trivially_copyable<OIIO::simd::vbool4> : std::true_type {};
+template<> struct is_trivially_copyable<OIIO::simd::vint4> : std::true_type {};
+template<> struct is_trivially_copyable<OIIO::simd::vfloat4> : std::true_type {};
+template<> struct is_trivially_copyable<OIIO::simd::vfloat3> : std::true_type {};
+template<> struct is_trivially_copyable<OIIO::simd::matrix44> : std::true_type {};
+template<> struct is_trivially_copyable<OIIO::simd::vbool8> : std::true_type {};
+template<> struct is_trivially_copyable<OIIO::simd::vint8> : std::true_type {};
+template<> struct is_trivially_copyable<OIIO::simd::vfloat8> : std::true_type {};
+template<> struct is_trivially_copyable<OIIO::simd::vbool16> : std::true_type {};
+template<> struct is_trivially_copyable<OIIO::simd::vint16> : std::true_type {};
+template<> struct is_trivially_copyable<OIIO::simd::vfloat16> : std::true_type {};
+}  // namespace std
+
+
 #undef SIMD_DO
 #undef SIMD_CONSTRUCT
 #undef SIMD_CONSTRUCT_PAD
