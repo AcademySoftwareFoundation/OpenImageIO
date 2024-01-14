@@ -1939,6 +1939,25 @@ test_matrix()
 
 
 
+static void
+test_trivially_copyable()
+{
+    print("\nTesting trivially_copyable on all SIMD classes\n");
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vbool4>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vint4>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vfloat4>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vfloat3>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<matrix44>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vbool8>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vint8>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vfloat8>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vbool16>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vint16>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vfloat16>::value);
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -2094,6 +2113,7 @@ main(int argc, char* argv[])
     test_special();
     test_metaprogramming();
     test_matrix();
+    test_trivially_copyable();
 
     std::cout << "\nTotal time: " << Strutil::timeintervalformat(timer())
               << "\n";
