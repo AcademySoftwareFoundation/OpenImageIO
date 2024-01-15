@@ -76,7 +76,12 @@ test_ustring()
     ustring foo("foo"), bar("bar"), empty(""), uninit;
     ustring foobarbaz("foobarbaz");
 
-    OIIO_CHECK_ASSERT(std::is_trivially_copyable<ustring>::value);
+    OIIO_CHECK_ASSERT(std::is_default_constructible<OIIO::ustring>());
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<OIIO::ustring>());
+    OIIO_CHECK_ASSERT(std::is_trivially_destructible<OIIO::ustring>());
+    OIIO_CHECK_ASSERT(std::is_trivially_move_constructible<OIIO::ustring>());
+    OIIO_CHECK_ASSERT(std::is_trivially_copy_constructible<OIIO::ustring>());
+    OIIO_CHECK_ASSERT(std::is_trivially_move_assignable<OIIO::ustring>());
 
     // Size of a ustring is just a pointer
     OIIO_CHECK_EQUAL(sizeof(ustring), sizeof(const char*));
@@ -174,7 +179,14 @@ test_ustringhash()
     // Two ustrings
     ustring foo("foo"), bar("bar");
 
-    OIIO_CHECK_ASSERT(std::is_trivially_copyable<ustringhash>::value);
+    OIIO_CHECK_ASSERT(std::is_default_constructible<OIIO::ustringhash>());
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<OIIO::ustringhash>());
+    OIIO_CHECK_ASSERT(std::is_trivially_destructible<OIIO::ustringhash>());
+    OIIO_CHECK_ASSERT(
+        std::is_trivially_move_constructible<OIIO::ustringhash>());
+    OIIO_CHECK_ASSERT(
+        std::is_trivially_copy_constructible<OIIO::ustringhash>());
+    OIIO_CHECK_ASSERT(std::is_trivially_move_assignable<OIIO::ustringhash>());
 
     OIIO_CHECK_EQUAL(sizeof(ustringhash), sizeof(size_t));
 
@@ -293,7 +305,7 @@ verify_no_collisions()
 {
     // Try to force a hash collision
     parallel_for(int64_t(0), int64_t(1000000LL * int64_t(collide)),
-                 [](int64_t i) { ustring u = ustring::fmtformat("{:x}", i); });
+                 [](int64_t i) { (void)ustring::fmtformat("{:x}", i); });
     std::vector<ustring> collisions;
     size_t ncollisions = ustring::hash_collisions(&collisions);
     OIIO_CHECK_ASSERT(ncollisions == 0);
