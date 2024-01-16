@@ -2728,11 +2728,11 @@ Color space conversion
 
 |
 
-.. doxygenfunction:: colormatrixtransform(const ImageBuf &src, const Imath::M44f &M, bool unpremult = true, ROI roi = {}, int nthreads = 0)
+.. doxygenfunction:: colormatrixtransform(const ImageBuf &src, M44fParam M, bool unpremult = true, ROI roi = {}, int nthreads = 0)
 ..
 
   Result-as-parameter version:
-    .. doxygenfunction:: colormatrixtransform(ImageBuf &dst, const ImageBuf &src, const Imath::M44f &M, bool unpremult = true, ROI roi = {}, int nthreads = 0)
+    .. doxygenfunction:: colormatrixtransform(ImageBuf &dst, const ImageBuf &src, M44fParam M, bool unpremult = true, ROI roi = {}, int nthreads = 0)
 
   Examples:
 
@@ -2775,11 +2775,11 @@ Color space conversion
 
 |
 
-.. doxygenfunction:: ociolook(const ImageBuf &src, string_view looks, string_view fromspace, string_view tospace, bool unpremult = true, bool inverse = false, string_view context_key = "", string_view context_value = "", ColorConfig *colorconfig = nullptr, ROI roi = {}, int nthreads = 0)
+.. doxygenfunction:: ociolook(const ImageBuf &src, string_view looks, string_view fromspace, string_view tospace, bool unpremult = true, bool inverse = false, string_view context_key = "", string_view context_value = "", const ColorConfig *colorconfig = nullptr, ROI roi = {}, int nthreads = 0)
 ..
 
   Result-as-parameter version:
-    .. doxygenfunction:: ociolook(ImageBuf &dst, const ImageBuf &src, string_view looks, string_view fromspace, string_view tospace, bool unpremult = true, bool inverse = false, string_view context_key = "", string_view context_value = "", ColorConfig *colorconfig = nullptr, ROI roi = {}, int nthreads = 0)
+    .. doxygenfunction:: ociolook(ImageBuf &dst, const ImageBuf &src, string_view looks, string_view fromspace, string_view tospace, bool unpremult = true, bool inverse = false, string_view context_key = "", string_view context_value = "", const ColorConfig *colorconfig = nullptr, ROI roi = {}, int nthreads = 0)
 
   Examples:
 
@@ -2803,11 +2803,11 @@ Color space conversion
 
 |
 
-.. doxygenfunction:: ociodisplay(const ImageBuf &src, string_view display, string_view view, string_view fromspace = "", string_view looks = "", bool unpremult = true, string_view context_key = "", string_view context_value = "", ColorConfig *colorconfig = nullptr, ROI roi = {}, int nthreads = 0)
+.. doxygenfunction:: ociodisplay(const ImageBuf &src, string_view display, string_view view, string_view fromspace = "", string_view looks = "", bool unpremult = true, bool inverse = false, string_view context_key = "", string_view context_value = "", const ColorConfig *colorconfig = nullptr, ROI roi = {}, int nthreads = 0)
 ..
 
   Result-as-parameter version:
-    .. doxygenfunction:: ociodisplay(ImageBuf &dst, const ImageBuf &src, string_view display, string_view view, string_view fromspace = "", string_view looks = "", bool unpremult = true, string_view context_key = "", string_view context_value = "", ColorConfig *colorconfig = nullptr, ROI roi = {}, int nthreads = 0)
+    .. doxygenfunction:: ociodisplay(ImageBuf &dst, const ImageBuf &src, string_view display, string_view view, string_view fromspace = "", string_view looks = "", bool unpremult = true, bool inverse = false, string_view context_key = "", string_view context_value = "", const ColorConfig *colorconfig = nullptr, ROI roi = {}, int nthreads = 0)
 
   Examples:
 
@@ -2831,11 +2831,11 @@ Color space conversion
 
 |
 
-.. doxygenfunction:: ociofiletransform(const ImageBuf &src, string_view name, bool unpremult = true, bool inverse = false, ColorConfig *colorconfig = nullptr, ROI roi = {}, int nthreads = 0)
+.. doxygenfunction:: ociofiletransform(const ImageBuf &src, string_view name, bool unpremult = true, bool inverse = false, const ColorConfig *colorconfig = nullptr, ROI roi = {}, int nthreads = 0)
 ..
 
   Result-as-parameter version:
-    .. doxygenfunction:: ociofiletransform(ImageBuf &dst, const ImageBuf &src, string_view name, bool unpremult = true, bool inverse = false, ColorConfig *colorconfig = nullptr, ROI roi = {}, int nthreads = 0)
+    .. doxygenfunction:: ociofiletransform(ImageBuf &dst, const ImageBuf &src, string_view name, bool unpremult = true, bool inverse = false, const ColorConfig *colorconfig = nullptr, ROI roi = {}, int nthreads = 0)
 
   Examples:
 
