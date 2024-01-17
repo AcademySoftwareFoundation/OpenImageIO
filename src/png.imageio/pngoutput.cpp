@@ -119,7 +119,10 @@ PNGOutput::PNGOutput() { init(); }
 PNGOutput::~PNGOutput()
 {
     // Close, if not already done.
-    close();
+    try {
+        close();
+    } catch (...) {
+    }
 }
 
 

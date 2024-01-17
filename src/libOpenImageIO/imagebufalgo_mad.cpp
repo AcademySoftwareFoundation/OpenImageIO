@@ -147,7 +147,7 @@ ImageBufAlgo::mad(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_,
         A_.swap(B_);
     // Get pointers to any image. At least one of A or B must be an image.
     const ImageBuf *A = A_.imgptr(), *B = B_.imgptr(), *C = C_.imgptr();
-    if (!A && !B) {
+    if (!A) {
         dst.errorfmt(
             "ImageBufAlgo::mad(): at least one of the first two arguments must be an image");
         return false;
