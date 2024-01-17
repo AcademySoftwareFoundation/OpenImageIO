@@ -184,10 +184,7 @@ public:
     }
 
     /// Copy construct a ustring from another ustring.
-    ustring(const ustring& str) noexcept
-        : m_chars(str.m_chars)
-    {
-    }
+    ustring(const ustring& str) noexcept = default;
 
     /// Construct a ustring from an indexed substring of a ustring.
     ustring(const ustring& str, size_type pos, size_type n = npos)
@@ -203,7 +200,7 @@ public:
 #endif
 
     /// ustring destructor.
-    ~ustring() noexcept {}
+    ~ustring() noexcept = default;
 
     /// Conversion to an OIIO::string_view.
     operator string_view() const noexcept { return { c_str(), length() }; }
@@ -212,79 +209,75 @@ public:
     explicit operator std::string() const noexcept { return string(); }
 
     /// Assign a ustring to *this.
-    const ustring& assign(const ustring& str)
+    ustring& assign(const ustring& str)
     {
         m_chars = str.m_chars;
         return *this;
     }
 
     /// Assign a substring of a ustring to *this.
-    const ustring& assign(const ustring& str, size_type pos, size_type n = npos)
+    ustring& assign(const ustring& str, size_type pos, size_type n = npos)
     {
         *this = ustring(str, pos, n);
         return *this;
     }
 
     /// Assign a std::string to *this.
-    const ustring& assign(const std::string& str)
+    ustring& assign(const std::string& str)
     {
         assign(str.c_str());
         return *this;
     }
 
     /// Assign a substring of a std::string to *this.
-    const ustring& assign(const std::string& str, size_type pos,
-                          size_type n = npos)
+    ustring& assign(const std::string& str, size_type pos, size_type n = npos)
     {
         *this = ustring(str, pos, n);
         return *this;
     }
 
     /// Assign a null-terminated C string (char*) to *this.
-    const ustring& assign(const char* str)
+    ustring& assign(const char* str)
     {
         m_chars = str ? make_unique(str) : nullptr;
         return *this;
     }
 
     /// Assign the first n characters of str to *this.
-    const ustring& assign(const char* str, size_type n)
+    ustring& assign(const char* str, size_type n)
     {
         *this = ustring(str, n);
         return *this;
     }
 
     /// Assign n copies of c to *this.
-    const ustring& assign(size_type n, char c)
+    ustring& assign(size_type n, char c)
     {
         *this = ustring(n, c);
         return *this;
     }
 
     /// Assign a string_view to *this.
-    const ustring& assign(string_view str)
+    ustring& assign(string_view str)
     {
         m_chars = str.length() ? make_unique(str) : nullptr;
         return *this;
     }
 
     /// Assign a ustring to another ustring.
-    const ustring& operator=(const ustring& str) { return assign(str); }
+    ustring& operator=(const ustring& str) noexcept = default;
 
     /// Assign a null-terminated C string (char *) to a ustring.
-    const ustring& operator=(const char* str) { return assign(str); }
+    ustring& operator=(const char* str) { return assign(str); }
 
     /// Assign a C++ std::string to a ustring.
-    const ustring& operator=(const std::string& str) { return assign(str); }
+    ustring& operator=(const std::string& str) { return assign(str); }
 
     /// Assign a string_view to a ustring.
-    const ustring& operator=(string_view str) { return assign(str); }
+    ustring& operator=(string_view str) { return assign(str); }
 
     /// Assign a single char to a ustring.
-    const ustring& operator=(char c)
-    {
-        return *this = ustring(string_view(&c, 1));
-    }
+    ustring& operator=(char c) { return *this = ustring(string_view(&c, 1)); }
 
     /// Return a C string representation of a ustring.
     const char* c_str() const noexcept { return m_chars; }
@@ -804,9 +797,10 @@ public:
 
     /// Copy construct a ustringhash from another ustringhash.
     OIIO_HOSTDEVICE constexpr ustringhash(const ustringhash& str) noexcept
-        : m_hash(str.m_hash)
-    {
-    }
+        = default;
+
+    /// Move construct a ustringhash from another ustringhash.
+    OIIO_HOSTDEVICE ustringhash(ustringhash&& str) noexcept = default;
 
     /// Construct from a ustring
     ustringhash(const ustring& str) noexcept
@@ -870,15 +864,12 @@ public:
     }
 
     /// Assign from a ustringhash
-    OIIO_HOSTDEVICE constexpr const ustringhash&
-    operator=(const ustringhash& str)
-    {
-        m_hash = str.m_hash;
-        return *this;
-    }
+    OIIO_HOSTDEVICE constexpr ustringhash& operator=(const ustringhash& str)
+        = default;
+    OIIO_HOSTDEVICE ustringhash& operator=(ustringhash&& str) = default;
 
     /// Assign from a ustring
-    const ustringhash& operator=(const ustring& str)
+    ustringhash& operator=(const ustring& str)
     {
         m_hash = str.hash();
         return *this;
