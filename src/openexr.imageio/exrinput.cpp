@@ -928,7 +928,7 @@ get_index_of_suffix(string_view name, span<ChanNameHolder> chans)
 }
 
 
-// Is this a luminanc-chroma image, i.e., Y/BY/RY or Y/BY/RY/A or Y/BY/RY/Alpha?
+// Is this a luminance-chroma image, i.e., Y/BY/RY or Y/BY/RY/A or Y/BY/RY/Alpha?
 //
 // Note that extra channels are not supported.
 static bool
@@ -1010,6 +1010,7 @@ OpenEXRInput::PartInfo::query_channels(OpenEXRInput* in,
     // miplevels/subimages, no extra channels.
     luminance_chroma = is_luminance_chroma(cnh);
     if (luminance_chroma) {
+        spec.attribute("openexr:luminancechroma", 1);
         spec.format    = TypeDesc::HALF;
         spec.nchannels = cnh.size();
         if (spec.nchannels == 3) {
@@ -1440,7 +1441,7 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
     const PartInfo& part(m_parts[m_subimage]);
     if (part.luminance_chroma) {
         errorf(
-            "OpenEXRInput::read_native_deep_scanlines is not supported for luminance-chroma images");
+            "OpenEXRInput::read_native_tiles is not supported for luminance-chroma images");
         return false;
     }
 #if 0
