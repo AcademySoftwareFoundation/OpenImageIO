@@ -64,6 +64,13 @@ OIIO_PRAGMA_WARNING_PUSH
 
 OIIO_PRAGMA_WARNING_POP
 
+// At some point a method signature changed
+#if FMT_VERSION >= 90000
+#    define OIIO_FMT_CUSTOM_FORMATTER_CONST const
+#else
+#    define OIIO_FMT_CUSTOM_FORMATTER_CONST
+#endif
+
 
 OIIO_NAMESPACE_BEGIN
 namespace pvt {
@@ -118,7 +125,8 @@ template<typename T,
          OIIO_ENABLE_IF(has_subscript<T>::value&& has_size_method<T>::value)>
 struct index_formatter : format_parser_with_separator {
     // inherits parse() from format_parser_with_separator
-    template<typename FormatContext> auto format(const T& v, FormatContext& ctx)
+    template<typename FormatContext>
+    auto format(const T& v, FormatContext& ctx) OIIO_FMT_CUSTOM_FORMATTER_CONST
     {
         std::string vspec = elem_fmt.size() ? fmt::format("{{:{}}}", elem_fmt)
                                             : std::string("{}");
@@ -162,7 +170,8 @@ struct index_formatter : format_parser_with_separator {
 template<typename T, typename Elem, int Size>
 struct array_formatter : format_parser_with_separator {
     // inherits parse() from format_parser_with_separator
-    template<typename FormatContext> auto format(const T& v, FormatContext& ctx)
+    template<typename FormatContext>
+    auto format(const T& v, FormatContext& ctx) OIIO_FMT_CUSTOM_FORMATTER_CONST
     {
         std::string vspec = elem_fmt.size() ? fmt::format("{{:{}}}", elem_fmt)
                                             : std::string("{}");
