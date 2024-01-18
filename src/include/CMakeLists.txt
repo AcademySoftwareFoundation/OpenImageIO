@@ -65,13 +65,13 @@ install (FILES ${detail_headers}
          COMPONENT developer)
 
 if (INTERNALIZE_FMT OR OIIO_USING_FMT_LOCAL)
-    set (fmt_headers_base_names core.h format-inl.h format.h ostream.h printf.h)
-    if (fmt_VERSION VERSION_GREATER_EQUAL 9)
-        list (APPEND fmt_headers_base_names std.h)
-    endif ()
-    if (EXISTS "${FMT_INCLUDE_DIR}/fmt/base.h")
-        list (APPEND fmt_headers_base_names base.h)
-    endif ()
+    set (fmt_headers_base_names)
+    foreach (header_name core.h format-inl.h format.h ostream.h printf.h
+             std.h base.h chrono.h)
+        if (EXISTS "${FMT_INCLUDE_DIR}/fmt/${header_name}")
+             list (APPEND fmt_headers_base_names ${header_name})
+        endif ()
+    endforeach ()
     set (fmt_internal_directory ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt)
     list (TRANSFORM fmt_headers_base_names
           PREPEND ${FMT_INCLUDE_DIR}/fmt/
