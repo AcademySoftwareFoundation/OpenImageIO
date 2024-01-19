@@ -313,7 +313,7 @@ BmpInput::read_rle_image()
         }
         if (y >= m_spec.height) {  // out of y bounds
             errorfmt(
-                "BMP might be corrupted, it is referencing an out-of-bounds pixel coordinte ({},{})",
+                "BMP might be corrupted, it is referencing an out-of-bounds pixel coordinate ({},{})",
                 x, y);
             ok = false;
             break;
