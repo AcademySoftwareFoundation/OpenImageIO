@@ -920,10 +920,7 @@ public:
 
 private:
     // The actual data representation
-    union {
-        simd_t   m_simd;
-        uint16_t m_bits;
-    };
+    simd_t m_simd;
 };
 
 
@@ -3920,19 +3917,15 @@ OIIO_FORCEINLINE bool none (const vbool8& v) { return reduce_or(v) == false; }
 
 OIIO_FORCEINLINE int vbool16::operator[] (int i) const {
     OIIO_DASSERT(i >= 0 && i < elements);
-#if OIIO_SIMD_AVX >= 512
-    return (int(m_simd) >> i) & 1;
-#else
-    return (m_bits >> i) & 1;
-#endif
+    return (static_cast<uint16_t>(m_simd) >> i) & 1;
 }
 
 OIIO_FORCEINLINE void vbool16::setcomp (int i, bool value) {
     OIIO_DASSERT(i >= 0 && i < elements);
-    int bits = m_bits;
+    int bits = static_cast<uint16_t>(m_simd);
     bits &= (0xffff ^ (1<<i));
     bits |= (int(value)<<i);
-    m_bits = bits;
+    m_simd = static_cast<simd_t>(bits);
 }
 
 
@@ -4015,11 +4008,7 @@ OIIO_FORCEINLINE const vbool16& vbool16::operator= (const vbool16 & other) {
 
 
 OIIO_FORCEINLINE int vbool16::bitmask () const {
-#if OIIO_SIMD_AVX >= 512
-    return int(m_simd);
-#else
-    return int(m_bits);
-#endif
+    return static_cast<int>(m_simd);
 }
 
 
@@ -4038,13 +4027,13 @@ OIIO_FORCEINLINE const vbool16 vbool16::True () {
 
 
 OIIO_FORCEINLINE void vbool16::store (bool *values) const {
-    SIMD_DO (values[i] = m_bits & (1<<i));
+    SIMD_DO (values[i] = m_simd & (1<<i));
 }
 
 OIIO_FORCEINLINE void vbool16::store (bool *values, int n) const {
     OIIO_DASSERT (n >= 0 && n <= elements);
     for (int i = 0; i < n; ++i)
-        values[i] = m_bits & (1<<i);
+        values[i] = m_simd & (1<<i);
 }
 
 
@@ -4070,7 +4059,7 @@ OIIO_FORCEINLINE vbool16 operator! (const vbool16 & a) {
 #if OIIO_SIMD_AVX >= 512
     return _mm512_knot (a.simd());
 #else
-    return vbool16 (a.m_bits ^ 0xffff);
+    return vbool16 (a.m_simd ^ 0xffff);
 #endif
 }
 
@@ -4078,7 +4067,7 @@ OIIO_FORCEINLINE vbool16 operator& (const vbool16 & a, const vbool16 & b) {
 #if OIIO_SIMD_AVX >= 512
     return _mm512_kand (a.simd(), b.simd());
 #else
-    return vbool16 (a.m_bits & b.m_bits);
+    return vbool16 (a.m_simd & b.m_simd);
 #endif
 }
 
@@ -4086,7 +4075,7 @@ OIIO_FORCEINLINE vbool16 operator| (const vbool16 & a, const vbool16 & b) {
 #if OIIO_SIMD_AVX >= 512
     return _mm512_kor (a.simd(), b.simd());
 #else
-    return vbool16 (a.m_bits | b.m_bits);
+    return vbool16 (a.m_simd | b.m_simd);
 #endif
 }
 
@@ -4094,7 +4083,7 @@ OIIO_FORCEINLINE vbool16 operator^ (const vbool16& a, const vbool16& b) {
 #if OIIO_SIMD_AVX >= 512
     return _mm512_kxor (a.simd(), b.simd());
 #else
-    return vbool16 (a.m_bits ^ b.m_bits);
+    return vbool16 (a.m_simd ^ b.m_simd);
 #endif
 }
 
@@ -4121,7 +4110,7 @@ OIIO_FORCEINLINE vbool16 operator== (const vbool16 & a, const vbool16 & b) {
 #if OIIO_SIMD_AVX >= 512
     return _mm512_kxnor (a.simd(), b.simd());
 #else
-    return vbool16 (!(a.m_bits ^ b.m_bits));
+    return vbool16 (!(a.m_simd ^ b.m_simd));
 #endif
 }
 
@@ -4129,7 +4118,7 @@ OIIO_FORCEINLINE vbool16 operator!= (const vbool16 & a, const vbool16 & b) {
 #if OIIO_SIMD_AVX >= 512
     return _mm512_kxor (a.simd(), b.simd());
 #else
-    return vbool16 (a.m_bits ^ b.m_bits);
+    return vbool16 (a.m_simd ^ b.m_simd);
 #endif
 }
 
