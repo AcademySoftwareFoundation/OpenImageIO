@@ -2574,7 +2574,7 @@ Developer goodies / internals:
     - TypeDesc can now describe 2D and 3D bounding boxes, as arrays of 2
       VEC2 aggregates (for 2D) or VEC3 aggregates (for 3D) with "BOX"
       semantic. The shorthand for these are `TypeBox2`, `TypeBox3` (for
-      float), and `TypeBox2i` and `TypeBox3i` for integer or pixel coordinte
+      float), and `TypeBox2i` and `TypeBox3i` for integer or pixel coordinate
       boxes. #3008 (2.2.17/2.3.6)
 * unordered_map_concurrent.h:
     - New methods find_or_insert, nobin_mask(). #2867 (2.2.12/2.3.3)
@@ -2777,7 +2777,7 @@ Release 2.2.17 (1 Aug 2021) -- compared to 2.2.16
 * typedesc.h: TypeDesc can now describe 2D and 3D bounding boxes, as arrays
   of 2 VEC2 aggregates (for 2D) or VEC3 aggregates (for 3D) with "BOX"
   semantic. The shorthand for these are `TypeBox2`, `TypeBox3` (for float),
-  and `TypeBox2i` and `TypeBox3i` for integer or pixel coordinte
+  and `TypeBox2i` and `TypeBox3i` for integer or pixel coordinate
   boxes. #3008
 * Build: Fixes for building against fmt 8.0.0. #3007
 * Build: Finding boost is more flexible when desiring static libraries. #3031

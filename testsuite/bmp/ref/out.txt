@@ -294,7 +294,7 @@ PASS
 oiiotool ERROR: read : "src/decodecolormap-corrupt.bmp": Possible corrupted header, invalid palette size
 Full command line was:
 > oiiotool --info -v -a --hash src/decodecolormap-corrupt.bmp
-oiiotool ERROR: read : "src/bad-y.bmp": BMP might be corrupted, it is referencing an out-of-bounds pixel coordinte (0,255)
+oiiotool ERROR: read : "src/bad-y.bmp": BMP might be corrupted, it is referencing an out-of-bounds pixel coordinate (0,255)
 BMP error reading rle-compressed image
 Full command line was:
 > oiiotool --info -v -a --hash src/bad-y.bmp
