@@ -115,6 +115,14 @@ else ()
     message (STATUS "OpenEXR core library will not be used by default")
 endif ()
 
+# Some extra definitions we need to retrieve build related attributes.
+target_compile_definitions(OpenImageIO
+              PRIVATE
+                  OIIO_QT_VERSION="${Qt6_VERSION}${Qt5_VERSION}"
+                  OIIO_PYTHON_VERSION="${Python_VERSION}"
+                  OIIO_TBB_VERSION="${TBB_VERSION}"
+             )
+
 # Source groups for libutil and libtexture
 source_group ("libutil"    REGULAR_EXPRESSION ".+/libutil/.+")
 source_group ("libtexture" REGULAR_EXPRESSION ".+/libtexture/.+")

@@ -6421,9 +6421,43 @@ print_ocio_info(Oiiotool& ot, std::ostream& out)
 
 
 static void
+print_build_info(Oiiotool& ot, std::ostream& out)
+{
+    using Strutil::fmt::format;
+    int columns = Sysutil::terminal_columns() - 2;
+
+    auto platform = format("OIIO {} | {}", OIIO_VERSION_STRING,
+                           OIIO::get_string_attribute("build:platform"));
+    print("{}\n", Strutil::wordwrap(platform, columns, 4));
+
+    auto buildinfo = format("    Build compiler: {} | C++{}/{}",
+                            OIIO::get_string_attribute("build:compiler"),
+                            OIIO_CPLUSPLUS_VERSION, __cplusplus);
+    print("{}\n", Strutil::wordwrap(buildinfo, columns, 4));
+
+    auto hwbuildfeats
+        = format("    HW features enabled at build: {}",
+                 OIIO::get_string_attribute("build:simd", "no SIMD"));
+    print("{}\n", Strutil::wordwrap(hwbuildfeats, columns, 4));
+
+    std::string libs = OIIO::get_string_attribute("build:dependencies");
+    if (libs.size()) {
+        auto libvec = Strutil::splitsv(libs, ";");
+        for (auto& lib : libvec) {
+            size_t pos = lib.find(':');
+            lib.remove_prefix(pos + 1);
+        }
+        print(out, "{}\n",
+              Strutil::wordwrap("Dependencies: " + Strutil::join(libvec, ", "),
+                                columns, 4));
+    }
+}
+
+
+
+static void
 print_help_end(Oiiotool& ot, std::ostream& out)
 {
-    using Strutil::print;
     print(out, "\n");
     int columns = Sysutil::terminal_columns() - 2;
 
@@ -6447,28 +6481,9 @@ print_help_end(Oiiotool& ot, std::ostream& out)
                                 + Strutil::join(filternames, ", "),
                             columns, 4));
 
-    std::string libs = OIIO::get_string_attribute("library_list");
-    if (libs.size()) {
-        auto libvec = Strutil::splitsv(libs, ";");
-        for (auto& lib : libvec) {
-            size_t pos = lib.find(':');
-            lib.remove_prefix(pos + 1);
-        }
-        print(out, "{}\n",
-              Strutil::wordwrap("Dependent libraries: "
-                                    + Strutil::join(libvec, ", "),
-                                columns, 4));
-    }
+    print_build_info(ot, out);
 
-    // Print the HW info
-    std::string buildsimd = OIIO::get_string_attribute("oiio:simd");
-    if (!buildsimd.size())
-        buildsimd = "no SIMD";
-    auto buildinfo = Strutil::fmt::format("OIIO {} built for C++{}/{} {}",
-                                          OIIO_VERSION_STRING,
-                                          OIIO_CPLUSPLUS_VERSION, __cplusplus,
-                                          buildsimd);
-    print("{}\n", Strutil::wordwrap(buildinfo, columns, 4));
+    // Print the current HW info
     auto hwinfo = Strutil::fmt::format("Running on {} cores {:.1f}GB {}",
                                        Sysutil::hardware_concurrency(),
                                        Sysutil::physical_memory()
@@ -6588,6 +6603,12 @@ Oiiotool::getargs(int argc, char* argv[])
       .help("Debug mode");
     ap.arg("--runstats", &ot.runstats)
       .help("Print runtime statistics");
+    ap.arg("--buildinfo")
+      .help("Print OIIO build information")
+      .action([&](cspan<const char*>){
+            print_build_info(ot, std::cout);
+            ot.printed_info = true;
+        });
     ap.arg("--info")
       .help("Print resolution and basic info on all inputs, detailed metadata if -v is also used (options: format=xml:verbose=1)")
       .OTACTION(set_printinfo);

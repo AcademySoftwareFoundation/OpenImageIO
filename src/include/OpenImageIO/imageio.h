@@ -3107,13 +3107,30 @@ inline bool attribute (string_view name, string_view val) {
 ///   (Added in OpenImageIO 2.5.2)
 ///
 /// - `string hw:simd`
-/// - `string oiio:simd` (read-only)
+/// - `string build:simd` (read-only)
 ///
 ///   A comma-separated list of hardware CPU features for SIMD (and some
-///   other things). The `"oiio:simd"` attribute is similarly a list of
+///   other things). The `"build:simd"` attribute is similarly a list of
 ///   which features this build of OIIO was compiled to support.
 ///
-///   This was added in OpenImageIO 1.8.
+///   These were added in OpenImageIO 1.8. The `"build:simd"` attribute was
+///   added added in OpenImageIO 2.5.8 as a preferred synonym for what
+///   previously was called `"oiio:simd"`, which is now deprecated.
+///
+/// - `string build:platform` (read-only)
+///
+///   THe name of the OS and CPU architecture that OpenImageIO was built
+///   for (e.g., `"Linux/x86_64"`).  (Added in OpenImageIO 2.5.8.)
+///
+/// - `string build:compiler` (read-only)
+///
+///   THe name and version of the compiler used to build OIIO.
+///   (Added in OpenImageIO 2.5.8.)
+///
+/// - `string build:dependencies` (read-only)
+///
+///   List of library dependencieis (where known) and versions, separatd by
+///   semicolons. (Added in OpenImageIO 2.5.8.)
 ///
 /// - `float resident_memory_used_MB`
 ///
