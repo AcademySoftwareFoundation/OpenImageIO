@@ -179,6 +179,15 @@ filtered_sample(const ImageBuf& src, float s, float t, float dsdx, float dtdx,
         tmin = clamp(tmin, src.ybegin(), src.yend());
         tmax = clamp(tmax, src.ybegin(), src.yend());
         // wrap = ImageBuf::WrapClamp;
+        if (s < src.xbegin() - 1 || s >= src.xend() || t < src.ybegin() - 1
+            || t >= src.yend()) {
+            // Also, when edgeclamp is true, to further reduce ringing that
+            // shows up outside the image boundary, always be black when
+            // sampling more than one pixel from the source edge.
+            for (int c = 0, nc = src.nchannels(); c < nc; ++c)
+                result[c] = 0.0f;
+            return;
+        }
     }
     ImageBuf::ConstIterator<SRCTYPE> samp(src, smin, smax, tmin, tmax, 0, 1,
                                           wrap);
@@ -789,6 +798,7 @@ bool
 ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, Filter2D* filter,
                   string_view fillmode, bool exact, ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::fit");
     // No time logging, it will be accounted in the underlying warp/resize
     if (!IBAprep(roi, &dst, &src,
                  IBAprep_NO_SUPPORT_VOLUME | IBAprep_NO_COPY_ROI_FULL))
@@ -847,10 +857,8 @@ ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, Filter2D* filter,
         // If no filter was provided, punt and just linearly interpolate.
         float wratio = float(resize_full_width) / float(srcspec.full_width);
         float hratio = float(resize_full_height) / float(srcspec.full_height);
-        float w      = 2.0f * std::max(1.0f, wratio);
-        float h      = 2.0f * std::max(1.0f, hratio);
-        filter       = Filter2D::create("triangle", w, h);
-        filterptr.reset(filter);
+        filterptr    = get_resize_filter("", 0.0f, dst, wratio, hratio);
+        filter       = filterptr.get();
     }
 
     bool ok = true;
@@ -881,6 +889,7 @@ ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, Filter2D* filter,
             newspec.set_roi(resizeroi);
             newspec.set_roi_full(resizeroi);
             dst.reset(newspec);
+            logtime.stop();  // it will be picked up again by the next call...
             ok &= ImageBufAlgo::resize(dst, src, filter, resizeroi, nthreads);
         } else {
             ok &= dst.copy(src);  // no resize is necessary
@@ -902,6 +911,9 @@ ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, string_view filtername,
                   float fwidth, string_view fillmode, bool exact, ROI roi,
                   int nthreads)
 {
+    if (filtername.empty() && fwidth == 0.0f)
+        return fit(dst, src, nullptr, fillmode, exact, roi, nthreads);
+
     pvt::LoggedTimer logtime("IBA::fit");
     if (!IBAprep(roi, &dst, &src,
                  IBAprep_NO_SUPPORT_VOLUME | IBAprep_NO_COPY_ROI_FULL))
