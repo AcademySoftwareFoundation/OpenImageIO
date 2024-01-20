@@ -10195,7 +10195,7 @@ OIIO_FORCEINLINE vfloat16 floor (const vfloat16& a)
 OIIO_FORCEINLINE vfloat16 round (const vfloat16& a)
 {
 #if OIIO_SIMD_AVX >= 512
-    return _mm512_roundscale_ps (a, (1<<4) | 3); // scale=1, round to nearest smaller mag int
+    return _mm512_roundscale_ps (a, (_MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC));
 #else
     return vfloat16(round(a.lo()), round(a.hi()));
 #endif
