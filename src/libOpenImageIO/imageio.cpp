@@ -22,8 +22,6 @@
 
 #include "imageio_pvt.h"
 
-#include <boost/version.hpp>
-
 OIIO_NAMESPACE_BEGIN
 
 static int
@@ -614,36 +612,7 @@ getattribute(string_view name, TypeDesc type, void* val)
         return true;
     }
     if (name == "build:dependencies" && type == TypeString) {
-        if (library_list.empty())
-            pvt::catalog_all_plugins(plugin_searchpath.string());
-        std::string deps = library_list;  // start with format libraries
-        deps += format(";Boost {}.{}", BOOST_VERSION / 100000,
-                       (BOOST_VERSION / 100) % 1000);
-        if (!Strutil::iequals(OIIO_FREETYPE_VERSION, ""))
-            deps += format(";Freetype {}", OIIO_FREETYPE_VERSION);
-        else
-            deps += ";NO Freetype";
-        if (int ociover = ColorConfig::OpenColorIO_version_hex())
-            deps += format(";OpenColorIO {}.{}.{}", (ociover >> 24),
-                           ((ociover >> 16) & 0xff), ((ociover >> 8) & 0xff));
-        else
-            deps += ";NO OpenColorIO";
-        if (!Strutil::iequals(OIIO_OpenCV_VERSION, ""))
-            deps += format(";OpenCV {}", OIIO_OpenCV_VERSION);
-        else
-            deps += ";NO OpenCV";
-        if (!Strutil::iequals(OIIO_PYTHON_VERSION, ""))
-            deps += format(";Python {}", OIIO_PYTHON_VERSION);
-        else
-            deps += ";NO Python";
-        if (!Strutil::iequals(OIIO_QT_VERSION, ""))
-            deps += format(";Qt {}", OIIO_QT_VERSION);
-        if (!Strutil::iequals(OIIO_TBB_VERSION, ""))
-            if (OIIO_TBB_VERSION)
-                deps += format(";TBB {}", OIIO_TBB_VERSION);
-        deps += format(";fmt {}.{}.{}", FMT_VERSION / 10000,
-                       (FMT_VERSION / 100) % 100, FMT_VERSION % 100);
-        *(ustring*)val = ustring(deps);
+        *(ustring*)val = ustring(OIIO_ALL_BUILD_DEPS_FOUND);
         return true;
     }
     if (name == "resident_memory_used_MB" && type == TypeInt) {

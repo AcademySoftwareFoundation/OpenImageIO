@@ -197,7 +197,6 @@ include_directories (
 # Tell CMake to process the sub-directories
 add_subdirectory (src/libutil)
 
-find_or_download_robin_map ()
 
 
 # Add IO plugin directories -- if we are embedding plugins, we need to visit

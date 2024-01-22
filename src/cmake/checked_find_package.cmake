@@ -9,6 +9,8 @@ set (OPTIONAL_DEPS "" CACHE STRING
      "Additional dependencies to consider optional (semicolon-separated list, or ALL)")
 option (ALWAYS_PREFER_CONFIG "Prefer a dependency's exported config file if it's available" OFF)
 
+# Track all build deps we find with checked_find_package
+set (CFP_ALL_BUILD_DEPS_FOUND "")
 
 # Utility function to list the names and values of all variables matching
 # the pattern (case-insensitive)
@@ -66,6 +68,9 @@ endfunction ()
 #     file from the package before using a FindPackage.cmake module.
 #   * Optional DEBUG turns on extra debugging information related to how
 #     this package is found.
+#   * Found package "name version" or "name NONE" are accumulated in the list
+#     CFP_ALL_BUILD_DEPS_FOUND. If the optional NO_RECORD_NOTFOUND is
+#     supplied, un-found packags will not be recorded.
 #
 # N.B. This needs to be a macro, not a function, because the find modules
 # will set(blah val PARENT_SCOPE) and we need that to be the global scope,
@@ -73,7 +78,7 @@ endfunction ()
 macro (checked_find_package pkgname)
     cmake_parse_arguments(_pkg   # prefix
         # noValueKeywords:
-        "REQUIRED;PREFER_CONFIG;DEBUG"
+        "REQUIRED;PREFER_CONFIG;DEBUG;NO_RECORD_NOTFOUND"
         # singleValueKeywords:
         "ENABLE;ISDEPOF;VERSION_MIN;VERSION_MAX;RECOMMEND_MIN;RECOMMEND_MIN_REASON"
         # multiValueKeywords:
@@ -155,6 +160,8 @@ macro (checked_find_package pkgname)
                     message (STATUS "${ColorYellow}Recommend ${pkgname} >= ${_pkg_RECOMMEND_MIN} ${_pkg_RECOMMEND_MIN_REASON} ${ColorReset}")
                 endif ()
             endif ()
+            string (STRIP "${pkgname} ${${pkgname}_VERSION}" app_)
+            list (APPEND CFP_ALL_BUILD_DEPS_FOUND "${app_}")
         else ()
             message (STATUS "${ColorRed}${pkgname} library not found ${ColorReset}")
             if (${pkgname}_ROOT)
@@ -175,6 +182,9 @@ macro (checked_find_package pkgname)
             endif ()
             if (_pkg_REQUIRED)
                 message (FATAL_ERROR "${ColorRed}${pkgname} is required, aborting.${ColorReset}")
+            endif ()
+            if (NOT _pkg_NO_RECORD_NOTFOUND)
+                list (APPEND CFP_ALL_BUILD_DEPS_FOUND "${pkgname} NONE")
             endif ()
         endif()
         if (_pkg_VERBOSE AND (${pkgname}_FOUND OR ${pkgname_upper}_FOUND OR _pkg_DEBUG))
