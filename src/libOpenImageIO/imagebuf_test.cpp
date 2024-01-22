@@ -9,6 +9,7 @@
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/parallel.h>
 #include <OpenImageIO/unittest.h>
 
 #include <iostream>
@@ -522,17 +523,38 @@ test_mutable_iterator_with_imagecache()
     src.write(srcfilename);
 
     ImageBuf buf(srcfilename, 0, 0, ImageCache::create());
-    // Using the cache, it should look tiled
+    // Using the cache, it should look tiled and using the IC
     OIIO_CHECK_EQUAL(buf.spec().tile_width, buf.spec().width);
+    OIIO_CHECK_EQUAL(buf.storage(), ImageBuf::IMAGECACHE);
 
-    // Make a mutable iterator, even though it's an image file reference.
-    // Merely establishing the iterator ought to read the file and make the
-    // buffer writeable.
-    ImageBuf::Iterator<float> it(buf);
-    OIIO_CHECK_EQUAL(buf.spec().tile_width, 0);  // should look untiled
-    OIIO_CHECK_ASSERT(buf.localpixels());        // should look local
-    for (; !it.done(); ++it)
+    // Iterate with a ConstIterator, make sure it's still IC backed
+    for (ImageBuf::ConstIterator<float> it(buf); !it.done(); ++it) {
+        OIIO_CHECK_EQUAL(it[0], 0.5f);
+    }
+    OIIO_CHECK_EQUAL(buf.spec().tile_width, buf.spec().width);
+    OIIO_CHECK_EQUAL(buf.storage(), ImageBuf::IMAGECACHE);
+    OIIO_CHECK_ASSERT(!buf.localpixels());  // should not look local
+
+    // Make a mutable iterator and traverse the image, even though it's an
+    // image file reference.
+    for (ImageBuf::Iterator<float> it(buf); !it.done(); ++it) {
+        OIIO_CHECK_EQUAL(it.get(0), 0.5f);
+        OIIO_CHECK_EQUAL(it[0], 0.5f);
+    }
+    // The mere existence of the mutable iterator and traversal with it
+    // should still not change anything.
+    OIIO_CHECK_EQUAL(buf.storage(), ImageBuf::IMAGECACHE);
+    OIIO_CHECK_ASSERT(!buf.localpixels());       // should not look local
+    OIIO_CHECK_EQUAL(buf.spec().tile_width, 4);  // should look tiled
+
+    // Make a mutable iterator and traverse the image, altering the pixels.
+    for (ImageBuf::Iterator<float> it(buf); !it.done(); ++it) {
         it[0] = 1.0f;
+        OIIO_CHECK_EQUAL(it[0], 1.0f);
+    }
+    // Writing through the iterator should have localized the IB
+    OIIO_CHECK_ASSERT(buf.localpixels());        // should look local now
+    OIIO_CHECK_EQUAL(buf.spec().tile_width, 0);  // should look untiled
 
     ImageCache::create()->invalidate(ustring(srcfilename));
     Filesystem::remove(srcfilename);
@@ -596,6 +618,62 @@ time_iterators()
 
 
 
+void
+test_iterator_concurrency()
+{
+    print("Testing iterator concurrency safety.\n");
+
+    // Make a source image
+    char srcfilename[] = "tmp2.exr";
+    const int rez = 256, nchans = 4;
+    ImageBuf src(ImageSpec(rez, rez, nchans, TypeFloat));
+    ImageBufAlgo::fill(src, { 0.25f, 0.5f, 0.75f, 1.0f });
+    src.set_write_tiles(64, 64);
+    src.write(srcfilename);
+
+    int nthreads = 2 * Sysutil::hardware_concurrency();
+    for (int trial = 0; trial < 100; ++trial) {
+        ImageBuf img(srcfilename, 0, 0, ImageCache::create());
+        OIIO_CHECK_ASSERT(!img.localpixels());  // should not look local
+        parallel_for(0, nthreads, [&](int index) {
+            double sum = 0.0;
+            int nchans = img.nchannels();
+            int style  = (index + trial) % 3;
+            if (style == 0) {
+                // One in three iterates with ConstIterator
+                for (ImageBuf::ConstIterator<float> it(img); !it.done(); ++it) {
+                    for (int c = 0; c < nchans; ++c)
+                        sum += it[c];
+                }
+            } else if (style == 1) {
+                // One in three iterates with Iterator, but only reads
+                for (ImageBuf::Iterator<float> it(img); !it.done(); ++it) {
+                    for (int c = 0; c < nchans; ++c)
+                        sum += it[c];
+                }
+            } else {
+                // One in every three tries to write
+                for (ImageBuf::Iterator<float> it(img); !it.done(); ++it) {
+                    for (int c = 0; c < nchans; ++c) {
+                        float v = it[c];
+                        it[c]   = v;
+                        sum += it[c];
+                    }
+                }
+            }
+            OIIO_CHECK_EQUAL(sum, 2.5 * rez * rez);
+        });
+        OIIO_CHECK_ASSERT(img.localpixels());  // should look local
+        if (trial % 10 == 9)
+            print("  {} checks out ({} threads)\n", trial + 1, nthreads);
+    }
+
+    ImageCache::create()->invalidate(ustring(srcfilename));
+    Filesystem::remove(srcfilename);
+}
+
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -620,6 +698,7 @@ main(int /*argc*/, char* /*argv*/[])
                                                        "mirror");
     test_mutable_iterator_with_imagecache();
     time_iterators();
+    test_iterator_concurrency();
 
     ImageBuf_test_appbuffer();
     ImageBuf_test_appbuffer_strided();

@@ -29,6 +29,7 @@
 #include <OpenImageIO/filter.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
+#include <OpenImageIO/imagebufalgo_util.h>
 #include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/simd.h>
@@ -418,7 +419,7 @@ Oiiotool::remember_input_channelformats(ImageRecRef img)
         // Overall default format is the merged type of all subimages
         // of the first input image.
         input_dataformat         = TypeDesc::basetype_merge(input_dataformat,
-                                                    nspec.format);
+                                                            nspec.format);
         std::string subimagename = nspec.get_string_attribute(
             "oiio:subimagename");
         if (subimagename.size()) {
@@ -786,7 +787,7 @@ set_output_dataformat(ImageSpec& spec, TypeDesc format,
         for (int c = 0; c < spec.nchannels; ++c) {
             std::string chname = spec.channel_name(c);
             auto subchname     = Strutil::fmt::format("{}.{}", subimagename,
-                                                  chname);
+                                                      chname);
             if (channelformats[subchname] != "" && subimagename.size())
                 spec.channelformats[c] = TypeDesc(channelformats[subchname]);
             else if (channelformats[chname] != "")
@@ -3167,7 +3168,7 @@ action_chappend(Oiiotool& ot, cspan<const char*> argv)
     std::string command = ot.express(argv[0]);
     auto options        = ot.extract_options(command);
     int n               = OIIO::clamp(options["n"].get<int>(2), 2,
-                        int(ot.image_stack.size() + 1));
+                                      int(ot.image_stack.size() + 1));
     command             = remove_modifier(command, "n");
     bool ok             = true;
 
@@ -3361,7 +3362,7 @@ action_subimage_append(Oiiotool& ot, cspan<const char*> argv)
     OTScopedTimer timer(ot, command);
     auto options = ot.extract_options(command);
     int n        = OIIO::clamp(options["n"].get<int>(2), 2,
-                        int(ot.image_stack.size() + 1));
+                               int(ot.image_stack.size() + 1));
 
     action_subimage_append_n(ot, n, command);
 }
@@ -3617,6 +3618,152 @@ OIIOTOOL_OP(colormap, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
                                        img[1]->roi(), 0);
     }
 });
+
+
+// This will eventually be turned into an IBA freestanding function. But while
+// we experiment with it, we'll leave it temporarily internal to oiiotool so
+// that we don't break compatibility repeatedly.
+
+namespace ImageBufAlgox {
+ImageBuf OIIO_API
+cryptomatte_colors(const ImageBuf& src, span<const int> channelset,
+                   ROI roi = {}, int nthreads = 0);
+bool OIIO_API
+cryptomatte_colors(ImageBuf& dst, const ImageBuf& src,
+                   span<const int> channelset, ROI roi = {}, int nthreads = 0);
+}  // namespace ImageBufAlgox
+
+// The cryptomatte spec can be found here:
+// https://github.com/Psyop/Cryptomatte
+//
+// The short version is that there will be a series of channels called
+// `<layer>00.red`, `<layer>00.green`, `<layer>00.blue`, `<layer>00.alpha`,
+// `<layer>01.red`, `<layer>01.green`, `<layer>01.blue`, `<layer>01.alpha`,
+// etc. Each successive pair of these `float`-valued channels (e.g.
+// layer00.red + layer00.green, then the next pair is layer00.blue +
+// layer00.alpha) constists of (a) the first channel being the float bitcast
+// of the 32-bit object ID, and (b) the second channel being the alpha
+// coverage of how much that object is visible in the pixel.
+//
+
+template<class D, class S>
+static bool
+cryptomatte_colors_(ImageBuf& dst, const ImageBuf& src,
+                    span<const int> channelset, ROI roi, int nthreads)
+{
+    OIIO::ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        ImageBuf::Iterator<D> d(dst, roi);
+        ImageBuf::ConstIterator<S> s(src, roi);
+        int nids = int(channelset.size()) / 2;  // 2 chans per ID
+        for (; !d.done(); ++d, ++s) {
+            float pixel[4] = { 0, 0, 0, 0 };
+            for (int id = 0; id < nids; ++id) {
+                // Grab a pair of channels: encoded hash, coverage
+                float en    = s[channelset[2 * id]];
+                float alpha = s[channelset[2 * id + 1]];
+                if (alpha < 1.0e-5 || en == 0)
+                    continue;
+                // fmix the hash to expand to all the bits and scramble
+                uint32_t h = murmur::fmix(bitcast<uint32_t, float>(en));
+                // For each of R,G,B, convert the hash to a float for that
+                // channel, then rehash to make the next channel appear
+                // decorrelated.
+                pixel[0] += alpha * convert_type<uint32_t, float>(h);
+                h = murmur::fmix(h + 0x0101);
+                pixel[1] += alpha * convert_type<uint32_t, float>(h);
+                h = murmur::fmix(h + 0x020000);
+                pixel[2] += alpha * convert_type<uint32_t, float>(h);
+                // h = murmur::fmix(h);  // no need to rehash for alpha
+                pixel[3] += alpha;
+            }
+            for (int c = 0; c < 3; ++c)
+                d[c] = pixel[c];
+        }
+    });
+    return true;
+}
+
+
+
+bool
+ImageBufAlgox::cryptomatte_colors(ImageBuf& dst, const ImageBuf& src,
+                                  span<const int> channelset, ROI roi,
+                                  int nthreads)
+{
+    // pvt::LoggedTimer logtime("IBA::cryptomatte_colors");
+    if (!roi.defined())
+        roi = get_roi(src.spec());
+    roi.chend = std::min(roi.chend, src.nchannels());
+    // Always output a 3-channel image
+    ROI dstroi     = roi;
+    dstroi.chbegin = 0;
+    dstroi.chend   = 3;
+    if (!IBAprep(dstroi, &dst))
+        return false;
+    bool ok;
+    OIIO_DISPATCH_COMMON_TYPES2(ok, "cryptomatte_colors", cryptomatte_colors_,
+                                dst.spec().format, src.spec().format, dst, src,
+                                channelset, roi, nthreads);
+    return ok;
+}
+
+
+
+ImageBuf
+ImageBufAlgox::cryptomatte_colors(const ImageBuf& src,
+                                  span<const int> channelset, ROI roi,
+                                  int nthreads)
+{
+    ImageBuf result;
+    bool ok = cryptomatte_colors(result, src, channelset, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.errorfmt("ImageBufAlgo::cryptomatte_colors() error");
+    return result;
+}
+
+
+// --cryptomatte-colors
+class OpCryptomatteColors final : public OiiotoolOp {
+public:
+    std::string m_cmpattern;
+
+    OpCryptomatteColors(Oiiotool& ot, string_view opname,
+                        cspan<const char*> argv)
+        : OiiotoolOp(ot, opname, argv, 1)
+    {
+        m_cmpattern = Strutil::fmt::format("{}[0-9][0-9]\\..*", args(1));
+    }
+    bool setup() override
+    {
+        int subimages = compute_subimages();
+        std::vector<ImageSpec> newspecs(subimages);
+        for (int s = 0; s < subimages; ++s) {
+            ImageSpec& newspec(newspecs[s]);
+            newspec           = *ir(1)->spec(s);
+            newspec.nchannels = 3;
+            newspec.set_format(newspec.format);
+            newspec.default_channel_names();
+        }
+        for (int s = 0; s < subimages; ++s)
+            (*ir(0))(s).reset(newspecs[s]);
+        return true;
+    }
+    bool impl(span<ImageBuf*> img) override
+    {
+        const std::regex repattern(m_cmpattern);
+        std::vector<int> channels;
+        const ImageBuf& src(*img[1]);
+        const ImageSpec& srcspec(src.spec());
+        for (int c = 0; c < srcspec.nchannels; ++c) {
+            std::string name = srcspec.channel_name(c);
+            if (std::regex_match(name, repattern))
+                channels.push_back(c);
+        }
+        return ImageBufAlgox::cryptomatte_colors(*img[0], src, channels);
+    }
+};
+
+OP_CUSTOMCLASS(cryptomatte_colors, OpCryptomatteColors, 1);
 
 
 
@@ -4565,7 +4712,7 @@ action_pixelaspect(Oiiotool& ot, cspan<const char*> argv)
     if (scale_full_width != Aspec->full_width
         || scale_full_height != Aspec->full_height) {
         std::string resize  = format_resolution(scale_full_width,
-                                               scale_full_height, 0, 0);
+                                                scale_full_height, 0, 0);
         std::string command = "resize";
         if (filtername.size())
             command += Strutil::fmt::format(":filter={}", filtername);
@@ -5743,10 +5890,10 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
         roi.zend           = std::max(roi.zbegin + 1, roi.zend);
         std::string crop   = (ir->spec(0, 0)->depth == 1)
                                  ? format_resolution(roi.width(), roi.height(),
-                                                   roi.xbegin, roi.ybegin)
+                                                     roi.xbegin, roi.ybegin)
                                  : format_resolution(roi.width(), roi.height(),
-                                                   roi.depth(), roi.xbegin,
-                                                   roi.ybegin, roi.zbegin);
+                                                     roi.depth(), roi.xbegin,
+                                                     roi.ybegin, roi.zbegin);
         const char* argv[] = { "crop:allsubimages=1", crop.c_str() };
         void action_crop(Oiiotool & ot,
                          cspan<const char*> argv);  // forward decl
@@ -6784,6 +6931,9 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--colormap %s:MAPNAME")
       .help("Color map based on channel 0 (arg: \"inferno\", \"viridis\", \"magma\", \"turbo\", \"plasma\", \"blue-red\", \"spectrum\", \"heat\", or comma-separated list of RGB triples)")
       .OTACTION(action_colormap);
+    ap.arg("--cryptomatte-colors %s:NAME")
+      .help("Convert the named cryptomatte channels into a color matte image")
+      .OTACTION(action_cryptomatte_colors);
     ap.arg("--crop %s:GEOM")
       .help("Set pixel data resolution and offset, cropping or padding if necessary (WxH+X+Y or xmin,ymin,xmax,ymax)")
       .OTACTION(action_crop);

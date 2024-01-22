@@ -193,8 +193,8 @@ GIFOutput::start_subimage(const ImageSpec& spec)
     if (m_subimage == 0) {
         m_gifwriter.f = ioproxy();
         bool ok       = GifBegin(&m_gifwriter, m_filename.c_str(), m_spec.width,
-                           m_spec.height, m_delay, 8 /*bit depth*/,
-                           true /*dither*/);
+                                 m_spec.height, m_delay, 8 /*bit depth*/,
+                                 true /*dither*/);
         if (!ok) {
             errorfmt("Could not open \"{}\"", m_filename);
             return false;
@@ -216,8 +216,8 @@ GIFOutput::finish_subimage()
         return true;
 
     bool ok         = GifWriteFrame(&m_gifwriter, &m_canvas[0], spec().width,
-                            spec().height, m_delay, 8 /*bitdepth*/,
-                            true /*dither*/);
+                                    spec().height, m_delay, 8 /*bitdepth*/,
+                                    true /*dither*/);
     m_pending_write = false;
     return ok;
 }

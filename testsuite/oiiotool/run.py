@@ -100,30 +100,6 @@ command += oiiotool (  "-a --create 320x240 3 -fill:color=.1,.5,.1 120x80+50+70 
                      + "--create 320x240 3 -fill:color=.5,.5,.1 100x10+70+70 -rotate 140 "
                      + "--siappend -trim -origin +0+0 -fullpixels -d uint8 -o trimsubimages.tif")
 
-# test channel shuffling
-command += oiiotool ("../common/grid.tif"
-            + " --ch =0.25,B,G -o chanshuffle.tif")
-
-# test --ch to separate RGBA from an RGBAZ file
-command += oiiotool ("src/rgbaz.exr --ch R,G,B,A -o ch-rgba.exr")
-command += oiiotool ("src/rgbaz.exr --ch Z -o ch-z.exr")
-
-# test --chappend to merge RGBA and Z
-command += oiiotool ("ch-rgba.exr ch-z.exr --chappend -o chappend-rgbaz.exr")
-
-# test --chnames to rename channels
-command += oiiotool ("src/rgbaz.exr --chnames Red,,,,Depth -o chname.exr")
-command += info_command ("chname.exr", safematch=1)
-
-# test -d to change data formats
-command += oiiotool ("src/rgbaz.exr -d half -o allhalf.exr")
-command += info_command ("allhalf.exr", safematch=1)
-
-# test -d NAME=fmt to change data format of one channel, and to make
-# sure oiiotool will output per-channel formats.
-command += oiiotool ("src/rgbaz.exr -d half -d Z=float -o rgbahalf-zfloat.exr")
-command += info_command ("rgbahalf-zfloat.exr", safematch=1)
-
 # test hole filling
 command += oiiotool ("ref/hole.tif --fillholes -o tahoe-filled.tif")
 # test hole filling for a cropped image
@@ -263,8 +239,6 @@ outputs = [
             "filled.tif",
             "autotrim.tif",
             "trim.tif", "trimsubimages.tif",
-            "chanshuffle.tif", "ch-rgba.exr", "ch-z.exr",
-            "chappend-rgbaz.exr", "chname.exr",
             "add.exr", "cadd1.exr", "cadd2.exr",
             "sub.exr", "subc.exr",
             "mul.exr", "cmul1.exr", "cmul2.exr",
@@ -275,7 +249,6 @@ outputs = [
             "normalize_offsetscaleout.exr", "normalize_offsetscale.exr",
             "abs.exr", "absdiff.exr", "absdiffc.exr",
             "chsum.tif",
-            "rgbahalf-zfloat.exr",
             "tahoe-filled.tif", "growholes.tif",
             "rangecompress.tif", "rangeexpand.tif",
             "rangecompress-luma.tif", "rangeexpand-luma.tif",

@@ -25,8 +25,7 @@ on:
       - 'release'
   # Run for pull requests whose branch name includes "macarm" (this allows
   # us to test specific PRs that we think need ARM verification).
-  pull_request:
-    if: contains(github.head_ref, 'macarm')
+  pull_request: {}
   # Run monthly on the 27th (a few days before patch releases) to make sure we
   # haven't broken anything among the many PRs that didn't test on ARM.
   schedule:
@@ -42,7 +41,9 @@ jobs:
   macos-arm:
     name: "${{matrix.os}} appleclang${{matrix.aclang}}/C++${{matrix.cxx_std}} py${{matrix.python_ver}} ${{matrix.desc}} boost1.76 exr3.1 ocio2.1"
     # Needs special runners, only run on the main repo,
-    if: github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+    if: github.repository == 'AcademySoftwareFoundation/OpenImageIO' &&
+        ((github.event_name == 'pull_request' && contains(github.head_ref, 'macarm')) ||
+         (github.event_name == 'push' || github.event_name == 'schedule'))
     strategy:
       fail-fast: false
       matrix:

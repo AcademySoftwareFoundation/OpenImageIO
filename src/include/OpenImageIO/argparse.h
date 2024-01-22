@@ -189,7 +189,7 @@ public:
     ArgParse(int argc, const char** argv);
 
     // Disallow copy ctr and assignment
-    ArgParse(const ArgParse&) = delete;
+    ArgParse(const ArgParse&)                  = delete;
     const ArgParse& operator=(const ArgParse&) = delete;
 
     /// Move constructor
@@ -426,7 +426,7 @@ public:
         {
         }
         // Disallow copy ctr and assignment
-        Arg(const Arg&)    = delete;
+        Arg(const Arg&)                  = delete;
         const Arg& operator=(const Arg&) = delete;
 
         /// Set the help / description of this command line argument.

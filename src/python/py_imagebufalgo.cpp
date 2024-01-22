@@ -10,8 +10,7 @@
 namespace PyOpenImageIO {
 
 
-class IBA_dummy {
-};  // dummy class to establish a scope
+class IBA_dummy {};  // dummy class to establish a scope
 
 
 

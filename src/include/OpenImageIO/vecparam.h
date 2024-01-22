@@ -168,8 +168,7 @@ public:
 
 /// C arrays of just the right length also are qualified for has_subscript_N.
 template<typename Base, int Nelem>
-struct has_subscript_N<Base[Nelem], Base, Nelem> : public std::true_type {
-};
+struct has_subscript_N<Base[Nelem], Base, Nelem> : public std::true_type {};
 
 
 
@@ -203,8 +202,7 @@ public:
 /// C arrays of just the right length also are qualified for has_double_subscript_RC.
 template<typename Base, int Rows, int Cols>
 struct has_double_subscript_RC<Base[Rows][Cols], Base, Rows, Cols>
-    : public std::true_type {
-};
+    : public std::true_type {};
 
 /// @}
 

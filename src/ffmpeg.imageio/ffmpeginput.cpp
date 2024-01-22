@@ -491,7 +491,7 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
     }
 
     m_spec   = ImageSpec(m_codec_context->width, m_codec_context->height,
-                       nchannels, datatype);
+                         nchannels, datatype);
     m_stride = (size_t)(m_spec.scanline_bytes());
 
     m_rgb_buffer.resize(av_image_get_buffer_size(m_dst_pix_format,

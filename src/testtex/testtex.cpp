@@ -1117,7 +1117,10 @@ test_texture3d_batch(ustring filename, Mapping3DWide mapping)
 
 
 
-static void test_shadow(ustring /*filename*/) {}
+static void
+test_shadow(ustring /*filename*/)
+{
+}
 
 
 
@@ -1410,6 +1413,7 @@ do_tex_thread_workout(int iterations, int mythread)
     float s = 0.1f, t = 0.1f;
     int nchannels = nchannels_override ? nchannels_override : 3;
     float* result = OIIO_ALLOCA(float, nchannels);
+    memset(result, 0, sizeof(float) * nchannels);
     TextureOpt opt;
     initialize_opt(opt);
     float* dresultds = test_derivs ? OIIO_ALLOCA(float, nchannels) : NULL;
@@ -1856,8 +1860,8 @@ main(int argc, const char* argv[])
     if (gtiname.size()) {
         const char* attrib = nullptr;
         bool result        = texsys->get_texture_info(filenames[0], 0,
-                                               ustring(gtiname), TypeString,
-                                               &attrib);
+                                                      ustring(gtiname), TypeString,
+                                                      &attrib);
         if (result)
             Strutil::print("Image \"{}\" attrib \"{}\" = \"{}\"\n",
                            filenames[0], gtiname, attrib);

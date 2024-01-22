@@ -301,10 +301,10 @@ public:
     bool very_busy() const { return jobs_in_queue() > size_t(4 * m_size); }
 
 private:
-    Impl(const Impl&) = delete;
-    Impl(Impl&&)      = delete;
+    Impl(const Impl&)            = delete;
+    Impl(Impl&&)                 = delete;
     Impl& operator=(const Impl&) = delete;
-    Impl& operator=(Impl&&) = delete;
+    Impl& operator=(Impl&&)      = delete;
 
     void set_thread(int i)
     {

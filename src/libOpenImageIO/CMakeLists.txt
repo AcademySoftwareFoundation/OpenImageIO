@@ -169,8 +169,6 @@ if (MINGW)
     target_link_libraries (OpenImageIO PRIVATE ws2_32)
 endif()
 
-
-
 file (GLOB iba_sources "imagebufalgo_*.cpp")
 if (MSVC)
     # In some MSVC setups, the IBA functions with huge template expansions

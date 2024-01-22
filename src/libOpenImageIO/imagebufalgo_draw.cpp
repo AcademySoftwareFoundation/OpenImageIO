@@ -906,10 +906,10 @@ text_size_from_unicode(cspan<uint32_t> utext, FT_Face face, int fontsize)
             continue;  // ignore errors
         size.ybegin = std::min(size.ybegin, y - slot->bitmap_top);
         size.yend   = std::max(size.yend, y + int(slot->bitmap.rows)
-                                            - int(slot->bitmap_top) + 1);
+                                              - int(slot->bitmap_top) + 1);
         size.xbegin = std::min(size.xbegin, x + int(slot->bitmap_left));
         size.xend   = std::max(size.xend, x + int(slot->bitmap.width)
-                                            + int(slot->bitmap_left) + 1);
+                                              + int(slot->bitmap_left) + 1);
         // increment pen position
         x += slot->advance.x >> 6;
     }

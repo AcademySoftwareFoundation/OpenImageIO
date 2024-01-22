@@ -1039,7 +1039,10 @@ public:
     }
 
     int nargs() const { return m_nargs; }
-    string_view args(int i) const { return m_args[i]; }
+    string_view args(int i) const
+    {
+        return i < m_nargs ? m_args[i] : string_view();
+    }
     int nimages() const { return m_nimages; }
     string_view opname() const { return m_opname; }
     ParamValueList& options() { return m_options; }

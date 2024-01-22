@@ -30,7 +30,8 @@ public:
     // in bytes, between subsequent color channels, pixels, and scanlines.
     virtual void apply(float* data, int width, int height, int channels,
                        stride_t chanstride, stride_t xstride,
-                       stride_t ystride) const = 0;
+                       stride_t ystride) const
+        = 0;
     // Convert a single 3-color
     void apply(float* data)
     {
@@ -348,7 +349,7 @@ public:
     static const ColorConfig& default_colorconfig();
 
 private:
-    ColorConfig(const ColorConfig&) = delete;
+    ColorConfig(const ColorConfig&)            = delete;
     ColorConfig& operator=(const ColorConfig&) = delete;
 
     class Impl;

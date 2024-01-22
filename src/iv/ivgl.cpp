@@ -43,14 +43,6 @@ gl_err_to_string(GLenum err)
     }
 }
 
-
-#define GLERRPRINT(msg)                                                     \
-    for (GLenum err = glGetError(); err != GL_NO_ERROR; err = glGetError()) \
-        std::cerr << "GL error " << msg << " " << (int)err << " - "         \
-                  << gl_err_to_string(err) << "\n";
-
-
-
 IvGL::IvGL(QWidget* parent, ImageViewer& viewer)
     : QOpenGLWidget(parent)
     , m_viewer(viewer)
@@ -151,19 +143,19 @@ IvGL::create_textures(void)
     for (unsigned int texture : textures) {
         m_texbufs.emplace_back();
         glBindTexture(GL_TEXTURE_2D, texture);
-        GLERRPRINT("bind tex");
+        print_error("bind tex");
         glTexImage2D(GL_TEXTURE_2D, 0 /*mip level*/,
                      4 /*internal format - color components */, 1 /*width*/,
                      1 /*height*/, 0 /*border width*/,
                      GL_RGBA /*type - GL_RGB, GL_RGBA, GL_LUMINANCE */,
                      GL_FLOAT /*format - GL_FLOAT */, NULL /*data*/);
-        GLERRPRINT("tex image 2d");
+        print_error("tex image 2d");
         // Initialize tex parameters.
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-        GLERRPRINT("After tex parameters");
+        print_error("After tex parameters");
         m_texbufs.back().tex_object = texture;
         m_texbufs.back().x          = 0;
         m_texbufs.back().y          = 0;
@@ -189,25 +181,80 @@ IvGL::create_textures(void)
     m_tex_created = true;
 }
 
-
+const char*
+IvGL::color_func_shader_text()
+{
+    // clang-format off
+    return
+        "uniform float gain;\n"
+        "uniform float gamma;\n"
+        "\n"
+        "vec4 ColorFunc(vec4 C)\n"
+        "{\n"
+        "    C.xyz *= gain;\n"
+        "    float invgamma = 1.0/gamma;\n"
+        "    C.xyz = pow (C.xyz, vec3 (invgamma, invgamma, invgamma));\n"
+        "    return C;\n"
+        "}\n";
+    // clang-format on
+}
 
 void
 IvGL::create_shaders(void)
 {
-    // clang-format off
-    static const GLchar *vertex_source =
-        "varying vec2 vTexCoord;\n"
-        "void main ()\n"
-        "{\n"
-        "    vTexCoord = gl_MultiTexCoord0.xy;\n"
-        "    gl_Position = ftransform();\n"
-        "}\n";
+    if (!m_use_shaders) {
+        std::cerr << "Not using shaders!\n";
+        return;
+    }
 
-    static const GLchar *fragment_source =
+    const char* color_shader = color_func_shader_text();
+    if (m_color_shader_text != color_shader) {
+        if (m_shader_program) {
+            if (m_vertex_shader) {
+                glDetachShader(m_shader_program, m_vertex_shader);
+            }
+            glUseProgram(0);
+            glDeleteProgram(m_shader_program);
+            m_shader_program  = 0;
+            m_shaders_created = false;
+        }
+    }
+
+    if (m_shaders_created) {
+        return;
+    }
+
+    // This holds the compilation status
+    GLint status;
+
+    if (!m_vertex_shader) {
+        // clang-format off
+        static const GLchar* vertex_source =
+            "varying vec2 vTexCoord;\n"
+            "void main ()\n"
+            "{\n"
+            "    vTexCoord = gl_MultiTexCoord0.xy;\n"
+            "    gl_Position = ftransform();\n"
+            "}\n";
+        // clang-format on
+
+        m_vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+        glShaderSource(m_vertex_shader, 1, &vertex_source, NULL);
+        glCompileShader(m_vertex_shader);
+        glGetShaderiv(m_vertex_shader, GL_COMPILE_STATUS, &status);
+
+        if (!status) {
+            std::cerr << "vertex shader compile status: " << status << "\n";
+            print_shader_log(std::cerr, m_vertex_shader);
+            create_shaders_abort();
+            return;
+        }
+    }
+
+    // clang-format off
+    static const GLchar* fragment_source =
         "uniform sampler2D imgtex;\n"
         "varying vec2 vTexCoord;\n"
-        "uniform float gain;\n"
-        "uniform float gamma;\n"
         "uniform int startchannel;\n"
         "uniform int colormode;\n"
         // Remember, if imgchannels == 2, second channel would be channel 4 (a).
@@ -305,76 +352,60 @@ IvGL::create_shaders(void)
         "        C = heatmap_mode (C);\n"
         "    if (pixelview != 0)\n"
         "        C.a = 1.0;\n"
-        "    C.xyz *= gain;\n"
-        "    float invgamma = 1.0/gamma;\n"
-        "    C.xyz = pow (C.xyz, vec3 (invgamma, invgamma, invgamma));\n"
+        "    C = ColorFunc(C);\n"
         "    gl_FragColor = C;\n"
         "}\n";
     // clang-format on
 
-    if (!m_use_shaders) {
-        std::cerr << "Not using shaders!\n";
-        return;
-    }
-    if (m_shaders_created)
-        return;
+    const char* fragment_sources[] = { "#version 120\n", color_shader,
+                                       fragment_source };
+    m_color_shader_text            = color_shader;
 
-    //initialize shader object handles for abort function
-    m_shader_program  = 0;
-    m_vertex_shader   = 0;
-    m_fragment_shader = 0;
-
-    // When using extensions to support shaders, we need to load the function
-    // entry points (which is actually done by GLEW) and then call them. So
-    // we have to get the functions through the right symbols otherwise
-    // extension-based shaders won't work.
-    m_shader_program = glCreateProgram();
-
-    GLERRPRINT("create program");
-
-    // This holds the compilation status
-    GLint status;
-
-    m_vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(m_vertex_shader, 1, &vertex_source, NULL);
-    glCompileShader(m_vertex_shader);
-    glGetShaderiv(m_vertex_shader, GL_COMPILE_STATUS, &status);
-
-    if (!status) {
-        std::cerr << "vertex shader compile status: " << status << "\n";
-        print_shader_log(std::cerr, m_vertex_shader);
-        create_shaders_abort();
-        return;
-    }
-    glAttachShader(m_shader_program, m_vertex_shader);
-    GLERRPRINT("After attach vertex shader.");
-
-    m_fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(m_fragment_shader, 1, &fragment_source, NULL);
-    glCompileShader(m_fragment_shader);
-    glGetShaderiv(m_fragment_shader, GL_COMPILE_STATUS, &status);
+    GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragment_shader, 3, fragment_sources, NULL);
+    glCompileShader(fragment_shader);
+    glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &status);
     if (!status) {
         std::cerr << "fragment shader compile status: " << status << "\n";
-        print_shader_log(std::cerr, m_fragment_shader);
+        print_shader_log(std::cerr, fragment_shader);
         create_shaders_abort();
         return;
     }
-    glAttachShader(m_shader_program, m_fragment_shader);
-    GLERRPRINT("After attach fragment shader");
 
-    glLinkProgram(m_shader_program);
-    GLERRPRINT("link");
-    GLint linked;
-    glGetProgramiv(m_shader_program, GL_LINK_STATUS, &linked);
-    if (!linked) {
-        std::cerr << "NOT LINKED\n";
-        char buf[10000];
-        buf[0] = 0;
-        GLsizei len;
-        glGetProgramInfoLog(m_shader_program, sizeof(buf), &len, buf);
-        std::cerr << "link log:\n" << buf << "---\n";
-        create_shaders_abort();
-        return;
+    if (!m_shader_program) {
+        // When using extensions to support shaders, we need to load the
+        // function entry points (which is actually done by GLEW) and then call
+        // them. So we have to get the functions through the right symbols
+        // otherwise extension-based shaders won't work.
+        m_shader_program = glCreateProgram();
+        print_error("create program");
+
+        glAttachShader(m_shader_program, m_vertex_shader);
+        print_error("After attach vertex shader.");
+
+        glAttachShader(m_shader_program, fragment_shader);
+        print_error("After attach fragment shader");
+
+        glLinkProgram(m_shader_program);
+        print_error("link");
+        GLint linked;
+        glGetProgramiv(m_shader_program, GL_LINK_STATUS, &linked);
+        if (!linked) {
+            std::cerr << "NOT LINKED\n";
+            char buf[10000];
+            buf[0] = 0;
+            GLsizei len;
+            glGetProgramInfoLog(m_shader_program, sizeof(buf), &len, buf);
+            std::cerr << "link log:\n" << buf << "---\n";
+            create_shaders_abort();
+            return;
+        }
+
+        glDetachShader(m_shader_program, fragment_shader);
+        print_error("After detach fragment shader");
+
+        glDeleteShader(fragment_shader);
+        print_error("After delete fragment shader");
     }
 
     m_shaders_created = true;
@@ -390,10 +421,8 @@ IvGL::create_shaders_abort(void)
         glDeleteProgram(m_shader_program);
     if (m_vertex_shader)
         glDeleteShader(m_vertex_shader);
-    if (m_fragment_shader)
-        glDeleteShader(m_fragment_shader);
 
-    GLERRPRINT("After delete shaders");
+    print_error("After delete shaders");
     m_use_shaders = false;
 }
 
@@ -402,7 +431,7 @@ IvGL::create_shaders_abort(void)
 void
 IvGL::resizeGL(int w, int h)
 {
-    GLERRPRINT("resizeGL entry");
+    print_error("resizeGL entry");
     glViewport(0, 0, w, h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -413,7 +442,7 @@ IvGL::resizeGL(int w, int h)
     glMatrixMode(GL_MODELVIEW);
 
     clamp_view_to_window();
-    GLERRPRINT("resizeGL exit");
+    print_error("resizeGL exit");
 }
 
 
@@ -550,6 +579,8 @@ IvGL::paintGL()
     // Recentered so that the pixel space (m_centerx,m_centery) position is
     // at the center of the visible window.
 
+    update_state();
+
     useshader(m_texture_width, m_texture_height);
 
     float smin = 0, smax = 1.0;
@@ -567,10 +598,10 @@ IvGL::paintGL()
     ybegin     = std::max(spec.y, ybegin - (ybegin % m_texture_height));
     int xend   = (int)floor(real_centerx) + wincenterx;
     xend       = std::min(spec.x + spec.width,
-                    xend + m_texture_width - (xend % m_texture_width));
+                          xend + m_texture_width - (xend % m_texture_width));
     int yend   = (int)floor(real_centery) + wincentery;
     yend       = std::min(spec.y + spec.height,
-                    yend + m_texture_height - (yend % m_texture_height));
+                          yend + m_texture_height - (yend % m_texture_height));
     //std::cerr << "(" << xbegin << ',' << ybegin << ") - (" << xend << ',' << yend << ")\n";
 
     // Provide some feedback
@@ -775,7 +806,7 @@ IvGL::paint_pixelview()
         glBindTexture(GL_TEXTURE_2D, m_pixelview_tex);
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, xend - xbegin, yend - ybegin,
                         glformat, gltype, zoombuffer);
-        GLERRPRINT("After tsi2d");
+        print_error("After tsi2d");
     } else {
         smin = -1;
         smax = -1;
@@ -874,10 +905,6 @@ IvGL::paint_pixelview()
 void
 IvGL::useshader(int tex_width, int tex_height, bool pixelview)
 {
-    IvImage* img = m_viewer.cur();
-    if (!img)
-        return;
-
     if (!m_use_shaders) {
         glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
         for (auto&& tb : m_texbufs) {
@@ -897,10 +924,25 @@ IvGL::useshader(int tex_width, int tex_height, bool pixelview)
         return;
     }
 
-    const ImageSpec& spec(img->spec());
+    use_program();
+    update_uniforms(tex_width, tex_height, pixelview);
+}
 
+void
+IvGL::use_program(void)
+{
     glUseProgram(m_shader_program);
-    GLERRPRINT("After use program");
+    print_error("After use program");
+}
+
+void
+IvGL::update_uniforms(int tex_width, int tex_height, bool pixelview)
+{
+    IvImage* img = m_viewer.cur();
+    if (!img)
+        return;
+
+    const ImageSpec& spec(img->spec());
 
     GLint loc;
 
@@ -915,8 +957,7 @@ IvGL::useshader(int tex_width, int tex_height, bool pixelview)
     // This is the texture unit, not the texture object
     glUniform1i(loc, 0);
 
-    loc = glGetUniformLocation(m_shader_program, "gain");
-
+    loc        = glGetUniformLocation(m_shader_program, "gain");
     float gain = powf(2.0, img->exposure());
     glUniform1f(loc, gain);
 
@@ -940,7 +981,8 @@ IvGL::useshader(int tex_width, int tex_height, bool pixelview)
 
     loc = glGetUniformLocation(m_shader_program, "height");
     glUniform1i(loc, tex_height);
-    GLERRPRINT("After setting uniforms");
+
+    print_error("After setting uniforms");
 }
 
 
@@ -986,14 +1028,14 @@ IvGL::update()
         glTexImage2D(GL_TEXTURE_2D, 0 /*mip level*/, glinternalformat,
                      m_texture_width, m_texture_height, 0 /*border width*/,
                      glformat, gltype, NULL /*data*/);
-        GLERRPRINT("Setting up texture");
+        print_error("Setting up texture");
     }
 
     // Set the right type for the texture used for pixelview.
     glBindTexture(GL_TEXTURE_2D, m_pixelview_tex);
     glTexImage2D(GL_TEXTURE_2D, 0, glinternalformat, closeuptexsize,
                  closeuptexsize, 0, glformat, gltype, NULL);
-    GLERRPRINT("Setting up pixelview texture");
+    print_error("Setting up pixelview texture");
 
     // Resize the buffer at once, rather than create one each drawing.
     m_tex_buffer.resize(m_texture_width * m_texture_height * nchannels
@@ -1494,19 +1536,22 @@ IvGL::load_texture(int x, int y, int width, int height)
     }
 
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo_objects[m_last_pbo_used]);
-    glBufferData(GL_PIXEL_UNPACK_BUFFER, width * height * spec.pixel_bytes(),
+    glBufferData(GL_PIXEL_UNPACK_BUFFER,
+                 GLsizeiptr(uint64_t(width) * uint64_t(height)
+                            * uint64_t(nchannels)
+                            * uint64_t(spec.format.size())),
                  &m_tex_buffer[0], GL_STREAM_DRAW);
-    GLERRPRINT("After buffer data");
+    print_error("After buffer data");
     m_last_pbo_used = (m_last_pbo_used + 1) & 1;
 
     // When using PBO this is the offset within the buffer.
     void* data = 0;
 
     glBindTexture(GL_TEXTURE_2D, tb.tex_object);
-    GLERRPRINT("After bind texture");
+    print_error("After bind texture");
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, glformat, gltype,
                     data);
-    GLERRPRINT("After loading sub image");
+    print_error("After loading sub image");
     m_last_texbuf_used = (m_last_texbuf_used + 1) % m_texbufs.size();
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 }
@@ -1521,5 +1566,18 @@ IvGL::is_too_big(float width, float height)
     return tiles > m_texbufs.size();
 }
 
+void
+IvGL::update_state(void)
+{
+    create_shaders();
+}
+
+void
+IvGL::print_error(const char* msg)
+{
+    for (GLenum err = glGetError(); err != GL_NO_ERROR; err = glGetError())
+        std::cerr << "GL error " << msg << " " << (int)err << " - "
+                  << gl_err_to_string(err) << "\n";
+}
 
 OIIO_PRAGMA_WARNING_POP
