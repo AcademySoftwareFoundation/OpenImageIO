@@ -1,0 +1,86 @@
+Reading ../openexr-images/Chromaticities/Rec709_YC.exr
+../openexr-images/Chromaticities/Rec709_YC.exr :  610 x  406, 3 channel, half openexr
+    SHA-1: 49859846114293725E9C8F5014B5FDB76B323087
+    channel list: R, G, B
+    compression: "piz"
+    Copyright: "Copyright 2006 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+    openexr:luminancechroma: 1
+Comparing "../openexr-images/Chromaticities/Rec709_YC.exr" and "Rec709_YC.exr"
+PASS
+Reading ../openexr-images/Chromaticities/XYZ_YC.exr
+../openexr-images/Chromaticities/XYZ_YC.exr :  610 x  406, 3 channel, half openexr
+    SHA-1: 39C38B61DF76FBB0B34F4D3105B107A31A924F09
+    channel list: R, G, B
+    chromaticities: 1, 0, 0, 1, 0, 0, 0.333333, 0.333333
+    compression: "piz"
+    Copyright: "Copyright 2006 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+    openexr:luminancechroma: 1
+Comparing "../openexr-images/Chromaticities/XYZ_YC.exr" and "XYZ_YC.exr"
+PASS
+Reading ../openexr-images/LuminanceChroma/CrissyField.exr
+../openexr-images/LuminanceChroma/CrissyField.exr : 1218 x  810, 3 channel, half openexr
+    SHA-1: E8848F0AAF12A69F44EE1E9F8C3F07DE510ABA23
+    channel list: R, G, B
+    compression: "b44"
+    Copyright: "Copyright 2006 Industrial Light & Magic"
+    ImageDescription: "The Golden Gate without the Bridge"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+    openexr:luminancechroma: 1
+Comparing "../openexr-images/LuminanceChroma/CrissyField.exr" and "CrissyField.exr"
+PASS
+Reading ../openexr-images/LuminanceChroma/Flowers.exr
+../openexr-images/LuminanceChroma/Flowers.exr :  784 x  734, 3 channel, half openexr
+    SHA-1: C4E53E2D8144886DC7AB159D0E0BEE1BDE4D79E4
+    channel list: R, G, B
+    compression: "b44"
+    Copyright: "Copyright 2006 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+    openexr:luminancechroma: 1
+Comparing "../openexr-images/LuminanceChroma/Flowers.exr" and "Flowers.exr"
+PASS
+Reading ../openexr-images/LuminanceChroma/MtTamNorth.exr
+../openexr-images/LuminanceChroma/MtTamNorth.exr : 1198 x  796, 3 channel, half openexr
+    SHA-1: A00EB802780091395392B8B1429F02134E51FF7A
+    channel list: R, G, B
+    compression: "piz"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+    openexr:luminancechroma: 1
+Comparing "../openexr-images/LuminanceChroma/MtTamNorth.exr" and "MtTamNorth.exr"
+PASS
+Reading ../openexr-images/LuminanceChroma/StarField.exr
+../openexr-images/LuminanceChroma/StarField.exr : 1000 x 1000, 3 channel, half openexr
+    SHA-1: 5F229CADA1497EF6E76B3B79377BAC8A01585E45
+    channel list: R, G, B
+    compression: "piz"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+    openexr:luminancechroma: 1
+Comparing "../openexr-images/LuminanceChroma/StarField.exr" and "StarField.exr"
+PASS
