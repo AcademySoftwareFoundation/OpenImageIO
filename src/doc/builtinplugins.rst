@@ -1453,9 +1453,9 @@ by :file:`libIlmImf`.
 
 * Subsampled channels are not supported with the exception of reading
   luminance-chroma images with vertical and horizontal sampling rates of 2.
-  This limited support does work when OpenEXR's C Core API in used, only when
-  OpenEXR's C++ API is used. Furthermore, it does not work in combination with
-  tiles, multiple subimages, mipmapping, or deep pixels.
+  This limited support does not work when OpenEXR's C Core API in used, only
+  when OpenEXR's C++ API is used. Furthermore, it does not work in
+  combination with tiles, multiple subimages, mipmapping, or deep pixels.
 
 
 |
