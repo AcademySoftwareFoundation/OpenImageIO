@@ -1365,6 +1365,11 @@ The official OpenEXR site is http://www.openexr.com/.
    * - ``openexr:dwaCompressionLevel``
      - float
      - compression level for dwaa or dwab compression (default: 45.0).
+   * - ``openexr::luminancechroma``
+     - int
+     - If nonzero, indicates whether the image is a luminance-chroma image.
+       Upon reading, the subsampled Y/BY/RY(/A) channels of luminance-chroma
+       images are automatically converted to RGB(A) channels.
    * - *other*
      - 
      - All other attributes will be added to the ImageSpec by their name and
@@ -1446,6 +1451,11 @@ by :file:`libIlmImf`.
   data.  OpenImageIO's OpenEXR writer will silently convert data in formats
   (including the common UINT8 and UINT16 cases) to HALF data for output.
 
+* Subsampled channels are not supported with the exception of reading
+  luminance-chroma images with vertical and horizontal sampling rates of 2.
+  This limited support does not work when OpenEXR's C Core API in used, only
+  when OpenEXR's C++ API is used. Furthermore, it does not work in
+  combination with tiles, multiple subimages, mipmapping, or deep pixels.
 
 
 |
