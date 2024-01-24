@@ -54,7 +54,7 @@ jobs:
             cxx_std: 17
             python_ver: "3.11"
             aclang: 14
-            setenvs: export CTEST_TEST_TIMEOUT=600 USE_OPENCV=0 USE_QT=0 PARALLEL=8
+            setenvs: export CTEST_TEST_TIMEOUT=600 USE_OPENCV=0 USE_QT=0
     runs-on: ${{ matrix.os }}
     env:
       CC: clang
