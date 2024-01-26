@@ -443,7 +443,7 @@ Oiiotool::remember_input_channelformats(ImageRecRef img)
                 if (input_channelformats[subchname] == "")
                     input_channelformats[subchname] = chtypename;
             } else {
-                if (input_channelformats[chname] != "")
+                if (input_channelformats[chname] == "")
                     input_channelformats[chname] = chtypename;
             }
         }
@@ -764,39 +764,23 @@ set_output_dataformat(ImageSpec& spec, TypeDesc format,
                       std::map<std::string, std::string>& channelformats,
                       int bitdepth)
 {
-    // Account for default requested format
     if (format != TypeUnknown)
         spec.format = format;
-    if (bitdepth)
-        spec.attribute("oiio:BitsPerSample", bitdepth);
-    else
-        spec.erase_attribute("oiio:BitsPerSample");
-
-    // See if there's a recommended format for this subimage
-    std::string subimagename = spec["oiio:subimagename"];
-    if (format == TypeUnknown && subimagename.size()) {
-        auto key = Strutil::fmt::format("{}.*", subimagename);
-        if (channelformats[key] != "")
-            spec.format = TypeDesc(channelformats[key]);
-    }
-
-    // Honor any per-channel requests
-    if (channelformats.size()) {
-        spec.channelformats.clear();
-        spec.channelformats.resize(spec.nchannels, spec.format);
+    spec.channelformats.resize(spec.nchannels, spec.format);
+    if (!channelformats.empty()) {
+        std::string subimagename = spec["oiio:subimagename"];
         for (int c = 0; c < spec.nchannels; ++c) {
             std::string chname = spec.channel_name(c);
             auto subchname     = Strutil::fmt::format("{}.{}", subimagename,
                                                       chname);
-            if (channelformats[subchname] != "" && subimagename.size())
-                spec.channelformats[c] = TypeDesc(channelformats[subchname]);
+            TypeDesc chtype    = spec.channelformat(c);
+            if (subimagename.size() && channelformats[subchname] != "")
+                chtype = TypeDesc(channelformats[subchname]);
             else if (channelformats[chname] != "")
-                spec.channelformats[c] = TypeDesc(channelformats[chname]);
-            else
-                spec.channelformats[c] = spec.format;
+                chtype = TypeDesc(channelformats[chname]);
+            if (chtype != TypeUnknown)
+                spec.channelformats[c] = chtype;
         }
-    } else {
-        spec.channelformats.clear();
     }
 
     // Eliminate the per-channel formats if they are all the same.
@@ -809,6 +793,11 @@ set_output_dataformat(ImageSpec& spec, TypeDesc format,
             spec.channelformats.clear();
         }
     }
+
+    if (bitdepth)
+        spec.attribute("oiio:BitsPerSample", bitdepth);
+    else
+        spec.erase_attribute("oiio:BitsPerSample");
 }
 
 
@@ -835,37 +824,71 @@ adjust_output_options(string_view filename, ImageSpec& spec,
     //   format as the input, or else she would have said so).
     // * Otherwise, just write the buffer's format, regardless of how it got
     //   that way.
-    TypeDesc requested_output_dataformat = ot.output_dataformat;
-    auto requested_output_channelformats = ot.output_channelformats;
+
+    // spec is what we're going to use for output.
+
+    // Accumulating results here
+    TypeDesc requested_output_dataformat;
+    std::map<std::string, std::string> requested_channelformats;
+    int requested_output_bits = 0;
+
+    if (was_direct_read && nativespec) {
+        // If the image we're outputting is an unmodified direct read of a
+        // file, assume that we'll default to outputting the same channel
+        // formats it started in.
+        requested_output_dataformat = nativespec->format;
+        for (int c = 0; c < nativespec->nchannels; ++c) {
+            requested_channelformats[nativespec->channel_name(c)]
+                = nativespec->channelformat(c).c_str();
+        }
+        requested_output_bits = nativespec->get_int_attribute(
+            "oiio:BitsPerSample");
+    } else if (ot.input_dataformat != TypeUnknown) {
+        // If the image we're outputting is a computed or modified image, not
+        // a direct read, then assume that the FIRST image we read in provides
+        // a template for the output we want (if we ever read an image).
+        requested_output_dataformat = ot.input_dataformat;
+        requested_channelformats    = ot.input_channelformats;
+        requested_output_bits       = ot.input_bitspersample;
+    }
+
+    // Any "global" format requests set by -d override the above.
+    if (ot.output_dataformat != TypeUnknown) {
+        // `-d type` clears the board and imposes the request
+        requested_output_dataformat = ot.output_dataformat;
+        requested_channelformats.clear();
+        spec.channelformats.clear();
+        if (ot.output_bitspersample)
+            requested_output_bits = ot.output_bitspersample;
+    }
+    if (!ot.output_channelformats.empty()) {
+        // `-d chan=type` overrides the format for a specific channel
+        for (auto&& c : ot.output_channelformats)
+            requested_channelformats[c.first] = c.second;
+    }
+
+    // Any override options on the -o command itself take precedence over
+    // everything else.
     if (fileoptions.contains("type")) {
         requested_output_dataformat.fromstring(fileoptions.get_string("type"));
-        requested_output_channelformats.clear();
+        requested_channelformats.clear();
+        spec.channelformats.clear();
     } else if (fileoptions.contains("datatype")) {
         requested_output_dataformat.fromstring(
             fileoptions.get_string("datatype"));
-        requested_output_channelformats.clear();
+        requested_channelformats.clear();
+        spec.channelformats.clear();
     }
-    int requested_output_bits = fileoptions.get_int("bits",
-                                                    ot.output_bitspersample);
+    requested_output_bits = fileoptions.get_int("bits", requested_output_bits);
 
-    if (requested_output_dataformat != TypeUnknown) {
-        // Requested an explicit override of datatype
-        set_output_dataformat(spec, requested_output_dataformat,
-                              requested_output_channelformats,
-                              requested_output_bits);
-    } else if (was_direct_read && nativespec) {
-        // Do nothing -- use the file's native data format
-        spec.channelformats = nativespec->channelformats;
-        set_output_dataformat(spec, nativespec->format,
-                              requested_output_channelformats,
-                              (*nativespec)["oiio:BitsPerSample"].get<int>());
-    } else if (ot.input_dataformat != TypeUnknown) {
-        auto mergedlist = ot.input_channelformats;
-        for (auto& c : requested_output_channelformats)
-            mergedlist[c.first] = c.second;
-        set_output_dataformat(spec, ot.input_dataformat, mergedlist,
-                              ot.input_bitspersample);
-    }
+    // At this point, the trio of "requested" variable reflect any global or
+    // command requests to override the logic of what was found in the input
+    // files.
+
+    // Set the types in the spec
+    set_output_dataformat(spec, requested_output_dataformat,
+                          requested_channelformats, requested_output_bits);
+
 
     // Tiling strategy:
     // * If a specific request was made for tiled or scanline output, honor
