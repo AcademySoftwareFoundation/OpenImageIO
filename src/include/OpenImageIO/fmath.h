@@ -37,6 +37,7 @@
 #include <typeinfo>
 #include <type_traits>
 
+#include <OpenImageIO/bit.h>
 #include <OpenImageIO/span.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/oiioversion.h>
@@ -264,58 +265,6 @@ clamped_mult64(uint64_t a, uint64_t b)
         return std::numeric_limits<uint64_t>::max();
     else
         return ab;
-}
-
-
-
-/// Bitwise circular rotation left by `s` bits (for any unsigned integer
-/// type).  For info on the C++20 std::rotl(), see
-/// http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p0553r4.html
-// FIXME: this should be constexpr, but we're leaving that out for now
-// because the Cuda specialization uses an intrinsic that isn't constexpr.
-// Come back to this later when more of the Cuda library is properly
-// constexpr.
-template<class T>
-OIIO_NODISCARD OIIO_FORCEINLINE OIIO_HOSTDEVICE
-// constexpr
-T rotl(T x, int s) noexcept
-{
-    static_assert(std::is_unsigned<T>::value && std::is_integral<T>::value,
-                  "rotl only works for unsigned integer types");
-    return (x << s) | (x >> ((sizeof(T) * 8) - s));
-}
-
-
-#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 320
-// Cuda has an intrinsic for 32 bit unsigned int rotation
-// FIXME: This should be constexpr, but __funnelshift_lc seems not to be
-// marked as such.
-template<>
-OIIO_NODISCARD OIIO_FORCEINLINE OIIO_HOSTDEVICE
-// constexpr
-uint32_t rotl(uint32_t x, int s) noexcept
-{
-    return __funnelshift_lc(x, x, s);
-}
-#endif
-
-
-
-// Old names -- DEPRECATED(2.1)
-OIIO_FORCEINLINE OIIO_HOSTDEVICE uint32_t
-rotl32(uint32_t x, int k)
-{
-#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 320
-    return __funnelshift_lc(x, x, k);
-#else
-    return (x << k) | (x >> (32 - k));
-#endif
-}
-
-OIIO_FORCEINLINE OIIO_HOSTDEVICE uint64_t
-rotl64(uint64_t x, int k)
-{
-    return (x << k) | (x >> (64 - k));
 }
 
 
@@ -757,171 +706,28 @@ inline OIIO_HOSTDEVICE float sign (float x)
 //
 // Type and range conversion helper functions and classes.
 
-/// Standards-compliant bit cast of two equally sized types. This is used
-/// equivalently to C++20 std::bit_cast, but it works prior to C++20 and
-/// it has the right decorators to work with Cuda.
-/// @version 2.4.1
-template <typename To, typename From>
-OIIO_FORCEINLINE OIIO_HOSTDEVICE To bitcast(const From& from) noexcept {
-    static_assert(sizeof(From) == sizeof(To),
-                  "bit_cast must be between objects of the same size");
-    // NOTE: this is the only standards compliant way of doing this type of
-    // casting. This seems to generate optimal code for gcc, clang, MSVS, and
-    // icx, for both scalar code and vectorized loops, but icc fails to
-    // vectorize without the intrinsics overrides below.
-    //
-    // If we ever find the memcpy isn't doing the job, we should try
-    // gcc/clang's __builtin_bit_cast and see if that's any better. Some day
-    // this may all be replaced with C++20 std::bit_cast, but we should not do
-    // so without checking that it works ok for vectorized loops.
-    To result;
-    memcpy ((void *)&result, &from, sizeof(From));
-    return result;
-}
 
-#if defined(__INTEL_COMPILER)
-// For Intel icc, using the memcpy implementation above will cause a loop with
-// a bitcast to fail to vectorize, but using the intrinsics below will allow
-// it to vectorize. For icx, as well as gcc and clang, the same optimal code
-// is generated (even in a vectorized loop) for memcpy. We can probably remove
-// these intrinsics once we drop support for icc.
-template<> OIIO_FORCEINLINE uint32_t bitcast<uint32_t, float>(const float& val) noexcept {
-    return static_cast<uint32_t>(_castf32_u32(val));
-}
-template<> OIIO_FORCEINLINE int32_t bitcast<int32_t, float>(const float& val) noexcept {
-    return static_cast<int32_t>(_castf32_u32(val));
-}
-template<> OIIO_FORCEINLINE float bitcast<float, uint32_t>(const uint32_t& val) noexcept {
-    return _castu32_f32(val);
-}
-template<> OIIO_FORCEINLINE float bitcast<float, int32_t>(const int32_t& val) noexcept {
-    return _castu32_f32(val);
-}
-#endif
-
-
-#if OIIO_VERSION_LESS(3, 0, 0)
-/// Note: The C++20 std::bit_cast has the reverse order of the template
-/// arguments of our original bit_cast! That is unfortunate. For now, we
-/// prefer using OIIO::bitcast. We'll keep this old one for backward
-/// compatibility, but will eventually deprecate for OIIO 2.5 and remove it
-/// for 3.0.
-template <typename IN_TYPE, typename OUT_TYPE>
-#if OIIO_VERSION_GREATER_EQUAL(2, 5, 0)
-OIIO_DEPRECATED("Use OIIO::bitcast<To, From> instead")
-#endif
-OIIO_FORCEINLINE OIIO_HOSTDEVICE OUT_TYPE bit_cast (const IN_TYPE& in) {
-    return bitcast<OUT_TYPE, IN_TYPE>(in);
-}
-#endif
-
-
-OIIO_FORCEINLINE OIIO_HOSTDEVICE int bitcast_to_int (float x) {
-    return bitcast<int, float>(x);
-}
-OIIO_FORCEINLINE OIIO_HOSTDEVICE float bitcast_to_float (int x) {
-    return bitcast<float, int>(x);
-}
-
-
-
-/// Change endian-ness of one or more data items that are each 2, 4,
-/// or 8 bytes.  This should work for any of short, unsigned short, int,
-/// unsigned int, float, long long, pointers.
+/// Old name, raw pointer and length. Prefer the span-based byteswap.
 template<class T>
 inline OIIO_HOSTDEVICE void
-swap_endian (T *f, int len=1)
+swap_endian(T* vals, int len = 1)
 {
-    for (char *c = (char *) f;  len--;  c += sizeof(T)) {
-        if (sizeof(T) == 2) {
-            std::swap (c[0], c[1]);
-        } else if (sizeof(T) == 4) {
-            std::swap (c[0], c[3]);
-            std::swap (c[1], c[2]);
-        } else if (sizeof(T) == 8) {
-            std::swap (c[0], c[7]);
-            std::swap (c[1], c[6]);
-            std::swap (c[2], c[5]);
-            std::swap (c[3], c[4]);
-        }
-    }
-}
-
-
-#if (OIIO_GNUC_VERSION || OIIO_ANY_CLANG || OIIO_INTEL_CLASSIC_COMPILER_VERSION) && !defined(__CUDACC__)
-// CPU gcc and compatible can use these intrinsics, 8-15x faster
-
-template<> inline void swap_endian(uint16_t* f, int len) {
     for (int i = 0; i < len; ++i)
-        f[i] = __builtin_bswap16(f[i]);
+        vals[i] = byteswap(vals[i]);
 }
 
-template<> inline void swap_endian(uint32_t* f, int len) {
-    for (int i = 0; i < len; ++i)
-        f[i] = __builtin_bswap32(f[i]);
-}
 
-template<> inline void swap_endian(uint64_t* f, int len) {
-    for (int i = 0; i < len; ++i)
-        f[i] = __builtin_bswap64(f[i]);
-}
 
-template<> inline void swap_endian(int16_t* f, int len) {
-    for (int i = 0; i < len; ++i)
-        f[i] = __builtin_bswap16(f[i]);
+/// Byteswap a span of values.  This should work for any of short, unsigned
+/// short, int, unsigned int, float, long long, pointers. It's just calling
+/// byteswap on each element.
+template<typename T>
+inline OIIO_HOSTDEVICE void
+byteswap_span(span<T> vals)
+{
+    for (size_t i = 0, len = vals.size(); i < len; ++i)
+        vals[i] = byteswap(vals[i]);
 }
-
-template<> inline void swap_endian(int32_t* f, int len) {
-    for (int i = 0; i < len; ++i)
-        f[i] = __builtin_bswap32(f[i]);
-}
-
-template<> inline void swap_endian(int64_t* f, int len) {
-    for (int i = 0; i < len; ++i)
-        f[i] = __builtin_bswap64(f[i]);
-}
-
-template<> inline void swap_endian(float* f, int len) {
-    swap_endian((uint32_t*)f, len);
-}
-
-template<> inline void swap_endian(double* f, int len) {
-    swap_endian((uint64_t*)f, len);
-}
-
-#elif defined(_MSC_VER) && !defined(__CUDACC__)
-// CPU MSVS can use these intrinsics
-
-template<> inline void swap_endian(uint16_t* f, int len) {
-    for (int i = 0; i < len; ++i)
-        f[i] = _byteswap_ushort(f[i]);
-}
-
-template<> inline void swap_endian(uint32_t* f, int len) {
-    for (int i = 0; i < len; ++i)
-        f[i] = _byteswap_ulong(f[i]);
-}
-
-template<> inline void swap_endian(uint64_t* f, int len) {
-    for (int i = 0; i < len; ++i)
-        f[i] = _byteswap_uint64(f[i]);
-}
-
-template<> inline void swap_endian(int16_t* f, int len) {
-    for (int i = 0; i < len; ++i)
-        f[i] = _byteswap_ushort(f[i]);
-}
-
-template<> inline void swap_endian(int32_t* f, int len) {
-    for (int i = 0; i < len; ++i)
-        f[i] = _byteswap_ulong(f[i]);
-}
-
-template<> inline void swap_endian(int64_t* f, int len) {
-    for (int i = 0; i < len; ++i)
-        f[i] = _byteswap_uint64(f[i]);
-}
-#endif
 
 
 

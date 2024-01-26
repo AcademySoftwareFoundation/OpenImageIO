@@ -283,7 +283,7 @@ macro (oiio_add_all_tests)
         list (APPEND all_openexr_tests openexr-compression)
     endif ()
     # Run all OpenEXR tests without core library
-    oiio_add_tests (${all_openexr_tests}
+    oiio_add_tests (${all_openexr_tests} openexr-luminance-chroma
                     ENVIRONMENT OPENIMAGEIO_OPTIONS=openexr:core=0
                     IMAGEDIR openexr-images
                     URL http://github.com/AcademySoftwareFoundation/openexr-images)

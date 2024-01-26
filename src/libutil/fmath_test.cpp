@@ -573,9 +573,12 @@ test_swap_endian(T val, T swapval)
     Benchmarker bench;
     std::array<T, len> v;
     std::fill(v.begin(), v.end(), val);
-    swap_endian(&(v[0]));
+    swap_endian(&(v[0]));  // Test single value version
     OIIO_CHECK_EQUAL(v[0], swapval);
-    swap_endian(&(v[0]), len);
+    swap_endian(&(v[0]), len);  // Test ptr + len version
+    OIIO_CHECK_EQUAL(v[37], swapval);
+    std::fill(v.begin(), v.end(), val);
+    byteswap_span(OIIO::span<T>(v));  // Test span byteswap
     OIIO_CHECK_EQUAL(v[37], swapval);
     clobber(v[0]);
     bench(Strutil::fmt::format("swap_endian({})", type),
