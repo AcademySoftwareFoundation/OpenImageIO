@@ -101,7 +101,7 @@ checked_find_package (TIFF REQUIRED
 checked_find_package (OpenEXR REQUIRED
                       VERSION_MIN 2.4
                       RECOMMEND_MIN 3.1
-                      PRINT IMATH_INCLUDES OPENEXR_INCLUDES)
+                      PRINT IMATH_INCLUDES OPENEXR_INCLUDES Imath_VERSION)
 # Force Imath includes to be before everything else to ensure that we have
 # the right Imath/OpenEXR version, not some older version in the system
 # library. This shouldn't be necessary, except for the common case of people
