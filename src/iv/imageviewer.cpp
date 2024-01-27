@@ -118,7 +118,7 @@ ImageViewer::ImageViewer(bool use_ocio, const std::string& image_color_space,
 {
     readSettings(false);
 
-    float gam = Strutil::stof(Sysutil::getenv("GAMMA"));
+    float gam = Strutil::stof(Sysutil::getenv("GAMMA", "2.2"));
     if (gam >= 0.1 && gam <= 5)
         m_default_gamma = gam;
     // FIXME -- would be nice to have a more nuanced approach to display
