@@ -74,7 +74,8 @@ test_1d()
     for (int i = 0, e = Filter1D::num_filters(); i < e; ++i) {
         FilterDesc filtdesc;
         Filter1D::get_filterdesc(i, &filtdesc);
-        Filter1D* f = Filter1D::create(filtdesc.name, filtdesc.width);
+        auto filter = Filter1D::create_shared(filtdesc.name, filtdesc.width);
+        auto f      = filter.get();
         // Graph it
         float scale          = normalize ? 1.0f / (*f)(0.0f) : 1.0f;
         float color[3]       = { 0.25f * (i & 3), 0.25f * ((i >> 2) & 3),
@@ -96,8 +97,6 @@ test_1d()
 
         // Time it
         bench(filtdesc.name, [=]() { DoNotOptimize((*f)(0.25f)); });
-
-        Filter1D::destroy(f);
     }
 
     graph.write("filters.tif");
@@ -127,8 +126,9 @@ test_2d()
     for (int i = 0, e = Filter2D::num_filters(); i < e; ++i) {
         FilterDesc filtdesc;
         Filter2D::get_filterdesc(i, &filtdesc);
-        Filter2D* f = Filter2D::create(filtdesc.name, filtdesc.width,
-                                       filtdesc.width);
+        auto filter = Filter2D::create_shared(filtdesc.name, filtdesc.width,
+                                              filtdesc.width);
+        auto f      = filter.get();
         // Graph it
         float scale          = normalize ? 1.0f / (*f)(0.0f, 0.0f) : 1.0f;
         float color[3]       = { 0.25f * (i & 3), 0.25f * ((i >> 2) & 3),
@@ -150,8 +150,6 @@ test_2d()
 
         // Time it
         bench(filtdesc.name, [=]() { DoNotOptimize((*f)(0.25f, 0.25f)); });
-
-        Filter2D::destroy(f);
     }
 
     graph.write("filters2d.tif");

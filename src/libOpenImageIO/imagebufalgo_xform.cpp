@@ -1108,7 +1108,7 @@ ImageBufAlgo::st_warp(ImageBuf& dst, const ImageBuf& src, const ImageBuf& stbuf,
             filter.width = 6.0f;
         }
         filter.filter(
-            Filter2D::create(filter.name, filter.width, filter.width));
+            Filter2D::create_shared(filter.name, filter.width, filter.width));
     }
 
     bool ok;

@@ -76,7 +76,7 @@ public:
     static const FilterDesc& get_filterdesc(int filternum);
 
 protected:
-    float m_w;
+    const float m_w;
 };
 
 
@@ -145,7 +145,7 @@ public:
     static const FilterDesc& get_filterdesc(int filternum);
 
 protected:
-    float m_w, m_h;
+    const float m_w, m_h;
 };
 
 

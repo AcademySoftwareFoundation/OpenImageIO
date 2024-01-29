@@ -506,7 +506,7 @@ ImageBufAlgo::make_kernel(string_view name, float width, float height,
     spec.full_depth  = spec.depth;
     ImageBuf dst(spec);
 
-    std::unique_ptr<Filter2D> filter(Filter2D::create(name, width, height));
+    auto filter = Filter2D::create_shared(name, width, height);
     if (filter) {
         // Named continuous filter from filter.h
         for (ImageBuf::Iterator<float> p(dst); !p.done(); ++p)

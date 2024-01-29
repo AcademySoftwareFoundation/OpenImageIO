@@ -36,7 +36,7 @@ static spin_mutex maketx_mutex;  // for anything that needs locking
 
 
 
-static Filter2D*
+static std::shared_ptr<const Filter2D>
 setup_filter(const ImageSpec& dstspec, const ImageSpec& srcspec,
              std::string filtername = std::string())
 {
@@ -60,10 +60,11 @@ setup_filter(const ImageSpec& dstspec, const ImageSpec& srcspec,
         FilterDesc d;
         Filter2D::get_filterdesc(i, &d);
         if (filtername == d.name)
-            return Filter2D::create(filtername, w * d.width, h * d.width);
+            return Filter2D::create_shared(filtername, w * d.width,
+                                           h * d.width);
     }
 
-    return NULL;  // couldn't find a matching name
+    return {};  // couldn't find a matching name
 }
 
 
@@ -797,8 +798,8 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
                                                            envlatlmode,
                                                            allow_shift));
                 } else {
-                    Filter2D* filter = setup_filter(small->spec(), img->spec(),
-                                                    filtername);
+                    auto filter = setup_filter(small->spec(), img->spec(),
+                                               filtername);
                     if (!filter) {
                         errorfmt("Could not make filter \"{}\"", filtername);
                         return false;
@@ -842,7 +843,6 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
                                             std::numeric_limits<float>::max(),
                                             true);
                     }
-                    Filter2D::destroy(filter);
                 }
             }
             if (clamp_half)
@@ -1748,14 +1748,13 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
                 std::bind(resize_block, std::ref(*toplevel), std::cref(*src),
                           _1, envlatlmode, allow_shift != 0));
         } else {
-            Filter2D* filter = setup_filter(toplevel->spec(), src->spec(),
-                                            resize_filter);
+            auto filter = setup_filter(toplevel->spec(), src->spec(),
+                                       resize_filter);
             if (!filter) {
                 errorfmt("Could not make filter \"{}\"", resize_filter);
                 return false;
             }
             ImageBufAlgo::resize(*toplevel, *src, filter);
-            Filter2D::destroy(filter);
         }
     }
     stat_resizetime += alltime.lap();
