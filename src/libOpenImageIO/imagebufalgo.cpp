@@ -452,6 +452,18 @@ ImageBuf
 ImageBufAlgo::make_kernel(string_view name, float width, float height,
                           float depth, bool normalize)
 {
+    auto filter = Filter2D::create_shared(name, width, height);
+    if (filter) {
+        if (width == 0.0f)
+            width = filter->width();
+        if (height == 0.0f)
+            height = filter->height();
+    } else {
+        if (width == 0.0f)
+            width = 4.0f;
+        if (height == 0.0f)
+            height = 4.0f;
+    }
     int w = std::max(1, (int)ceilf(width));
     int h = std::max(1, (int)ceilf(height));
     int d = std::max(1, (int)ceilf(depth));
@@ -472,7 +484,6 @@ ImageBufAlgo::make_kernel(string_view name, float width, float height,
     spec.full_depth  = spec.depth;
     ImageBuf dst(spec);
 
-    std::unique_ptr<Filter2D> filter(Filter2D::create(name, width, height));
     if (filter) {
         // Named continuous filter from filter.h
         for (ImageBuf::Iterator<float> p(dst); !p.done(); ++p)

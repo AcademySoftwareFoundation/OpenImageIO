@@ -9,6 +9,7 @@
 #include <OpenImageIO/paramlist.h>
 #include <OpenImageIO/span.h>
 #include <OpenImageIO/span_util.h>
+#include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/unittest.h>
 
 
@@ -384,6 +385,124 @@ test_delegates()
 
 
 
+static void
+test_paramlistspan()
+{
+    std::cout << "test_paramlistspan\n";
+    ParamValueList pvlist;
+    pvlist.emplace_back("foo", int(42));
+    pvlist.emplace_back("pi", float(M_PI));
+    pvlist.emplace_back("bar", "barbarbar?");
+    pvlist["bar2"] = std::string("barbarbar?");
+    pvlist["bar3"] = ustring("barbarbar?");
+    pvlist["bar4"] = string_view("barbarbar?");
+    pvlist["red"]  = Imath::Color3f(1.0f, 0.0f, 0.0f);
+    pvlist["xy"]   = Imath::V3f(0.5f, 0.5f, 0.0f);
+    pvlist["Tx"] = Imath::M44f(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 42, 0, 0, 1);
+
+    ParamValueSpan pl(pvlist);
+    OIIO_CHECK_EQUAL(pl.get_int("foo"), 42);
+    OIIO_CHECK_EQUAL(pl.get_int("pi", 4), 4);  // should fail int
+    OIIO_CHECK_EQUAL(pl.get_float("pi"), float(M_PI));
+    OIIO_CHECK_EQUAL(pl.get_int("bar"), 0);
+    OIIO_CHECK_EQUAL(pl.get_int("bar"), 0);
+    OIIO_CHECK_EQUAL(pl.get_string("bar"), "barbarbar?");
+    OIIO_CHECK_EQUAL(pl.get_string("foo"), "42");
+    OIIO_CHECK_ASSERT(pl.find("foo") != pl.cend());
+    OIIO_CHECK_ASSERT(pl.find("Foo") == pl.cend());
+    OIIO_CHECK_ASSERT(pl.find("Foo", TypeDesc::UNKNOWN, false) != pl.cend());
+    OIIO_CHECK_ASSERT(pl.find("Foo", TypeDesc::UNKNOWN, true) == pl.cend());
+    OIIO_CHECK_ASSERT(pl.find("foo", TypeDesc::INT) != pl.cend());
+    OIIO_CHECK_ASSERT(pl.find("foo", TypeDesc::FLOAT) == pl.cend());
+
+    OIIO_CHECK_ASSERT(pl.contains("foo"));
+    OIIO_CHECK_ASSERT(!pl.contains("nonono"));
+
+    OIIO_CHECK_EQUAL(pl["absent"].get<int>(), 0);
+    OIIO_CHECK_EQUAL(pl["absent"].type(), TypeUnknown);
+    OIIO_CHECK_EQUAL(pl["foo"].get<int>(), 42);
+    OIIO_CHECK_EQUAL(pl["foo"].type(), TypeInt);
+    OIIO_CHECK_EQUAL(pl["foo"].as_string(), "42");
+    OIIO_CHECK_EQUAL(pl["pi"].get<float>(), float(M_PI));
+    OIIO_CHECK_EQUAL(pl["bar"].get<std::string>(), "barbarbar?");
+    OIIO_CHECK_EQUAL(pl["bar"].get<string_view>(), "barbarbar?");
+    OIIO_CHECK_EQUAL(pl["bar"].get<ustring>(), "barbarbar?");
+    OIIO_CHECK_EQUAL(pl["bar"].as_string(), "barbarbar?");
+    OIIO_CHECK_EQUAL(pl["bar2"].get<std::string>(), "barbarbar?");
+    OIIO_CHECK_EQUAL(pl["bar3"].get<std::string>(), "barbarbar?");
+    OIIO_CHECK_EQUAL(pl["bar4"].get<std::string>(), "barbarbar?");
+    OIIO_CHECK_EQUAL(pl["red"].get<Imath::Color3f>(),
+                     Imath::Color3f(1.0f, 0.0f, 0.0f));
+    std::vector<float> redvec { 1.0f, 0.0f, 0.0f };
+    OIIO_CHECK_EQUAL(pl["red"].as_vec<float>(), redvec);
+    OIIO_CHECK_EQUAL(pl["red"].get_indexed<float>(0), 1.0f);
+    OIIO_CHECK_EQUAL(pl["red"].get_indexed<float>(1), 0.0f);
+    OIIO_CHECK_EQUAL(pl["red"].get_indexed<float>(2), 0.0f);
+    OIIO_CHECK_EQUAL(pl["xy"].get<Imath::V3f>(), Imath::V3f(0.5f, 0.5f, 0.0f));
+    OIIO_CHECK_EQUAL(pl["Tx"].get<Imath::M44f>(),
+                     Imath::M44f(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 42, 0, 0,
+                                 1));
+}
+
+
+
+static void
+print_pv(const ParamValue& pv)
+{
+    print("  {} : {} '{}'\n", pv.name(), pv.type(), pv.get_string());
+}
+
+
+
+static void
+print_pvspan(string_view explain, ParamValueSpan pvl)
+{
+    print("{}:\n", explain);
+    for (auto&& pv : pvl)
+        print_pv(pv);
+}
+
+
+
+static void
+test_implied_construction()
+{
+    print("Testing construction of PVs from {{name,value}} pairs:\n");
+
+    // Make sure we can pass a simple pair to something that takes PV
+    print_pv({ "foo_i", 42 });
+    print_pv({ "bar_f", 42.5f });
+    print_pv({ "bar_s", "forty two" });
+
+    // Test passing a ParamValueSpan from an immediate initializer list
+    print_pvspan("Testing of PVS from span of pairs",
+                 { { "foo_i", 42 },
+                   { "bar_f", 42.5f },
+                   { "bar_s", "forty two" } });
+
+    // Test passing a PVL to something that expects a PVS
+    ParamValueList pvl;
+    pvl["i"]    = 1;
+    pvl["f"]    = 2.5f;
+    pvl["s"]    = "forty two";
+    pvl["i42s"] = "42";
+    print_pvspan("Testing of PVS from PVL", pvl);
+
+    ParamValueSpan pvs(pvl);
+    OIIO_CHECK_EQUAL(pvs.data(), pvl.data());  // make sure it wraps the PVL
+    OIIO_CHECK_EQUAL(size_t(pvs.size()), size_t(pvl.size()));
+    OIIO_CHECK_EQUAL(pvs[1].name(), pvl[1].name());  // check []
+    OIIO_CHECK_EQUAL(pvs[1].get<float>(), 2.5f);     // not found
+    OIIO_CHECK_EQUAL(pvs.find("s")->data(), pvl.find("s")->data());
+    OIIO_CHECK_EQUAL(pvs.find("unknown"), pvs.end());
+    OIIO_CHECK_EQUAL(pvs.get_int("i"), 1);
+    OIIO_CHECK_EQUAL(pvs.get_float("i"), 1.0f);
+    OIIO_CHECK_EQUAL(pvs.get_float("i42s"), 42.0f);
+    OIIO_CHECK_EQUAL(pvs.get_string("i"), "1");
+}
+
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -392,6 +511,8 @@ main(int /*argc*/, char* /*argv*/[])
     test_from_string();
     test_paramlist();
     test_delegates();
+    test_implied_construction();
+    test_paramlistspan();
 
     return unit_test_failures;
 }

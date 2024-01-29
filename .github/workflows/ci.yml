@@ -178,7 +178,7 @@ jobs:
           # break the ABI. Basically, we will build that version as well as
           # the current one, and compare the resulting libraries.
           - desc: abi check
-            nametag: linux-vfx2023
+            nametag: abi-check
             runner: ubuntu-latest
             container: aswftesting/ci-osl:2023-clang15
             vfxyear: 2023

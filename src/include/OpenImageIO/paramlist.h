@@ -503,4 +503,138 @@ public:
 
 
 
+/// A span of const ParamValue entries, that can be iterated over or searched.
+/// It's really just a cspan<ParamValue>, but with a few more handy methods.
+/// This is a convenient way to pass the contents of a ParamValueList (or its
+/// equivalent of any consecutive subarray of PV's) without any copies.
+class OIIO_UTIL_API ParamValueSpan : public cspan<ParamValue> {
+public:
+    // Note: inherits from cspan:
+    //   - size()
+    //   - data()
+    //   - operator[int]
+    //   - begin(), end(), cbegin(), cend()
+
+    ParamValueSpan(cspan<ParamValue> p)
+        : cspan<ParamValue>(p)
+    {
+    }
+
+    // Trivially make a ParamValueSpan from a ParamValueList
+    ParamValueSpan(const ParamValueList& p)
+        : cspan<ParamValue>(p)
+    {
+    }
+
+    /// Construct an span from an initializer_list.
+    constexpr ParamValueSpan(std::initializer_list<ParamValue> il)
+        : cspan<ParamValue>(il.begin(), il.size())
+    {
+    }
+
+    /// Construct from a fixed-length C array.  Template magic automatically
+    /// finds the length from the declared type of the array.
+    template<size_t N>
+    constexpr ParamValueSpan(const ParamValue (&data)[N])
+        : cspan<ParamValue>(data, N)
+    {
+    }
+
+    constexpr reference operator[](size_type idx) const
+    {
+        return cspan<ParamValue>::operator[](idx);
+    }
+
+    const_iterator find(string_view name, TypeDesc type = TypeUnknown,
+                        bool casesensitive = true) const;
+    const_iterator find(ustring name, TypeDesc type = TypeUnknown,
+                        bool casesensitive = true) const;
+
+    /// Case insensitive search for an integer, with default if not found.
+    /// Automatically will return an int even if the data is really
+    /// unsigned, short, or byte, but not float. It will retrieve from a
+    /// string, but only if the string is entirely a valid int format.
+    int get_int(string_view name, int defaultval = 0, bool casesensitive = true,
+                bool convert = true) const;
+    int get_int(ustring name, int defaultval = 0, bool casesensitive = true,
+                bool convert = true) const;
+
+    /// Case insensitive search for a float, with default if not found.
+    /// Automatically will return a float even if the data is really double
+    /// or half. It will retrieve from a string, but only if the string is
+    /// entirely a valid float format.
+    float get_float(string_view name, float defaultval = 0,
+                    bool casesensitive = true, bool convert = true) const;
+    float get_float(ustring name, float defaultval = 0,
+                    bool casesensitive = true, bool convert = true) const;
+
+    /// Simple way to get a string attribute, with default provided.
+    /// If the value is another type, it will be turned into a string.
+    string_view get_string(string_view name,
+                           string_view defaultval = string_view(),
+                           bool casesensitive     = true,
+                           bool convert           = true) const;
+    string_view get_string(ustring name, string_view defaultval = string_view(),
+                           bool casesensitive = true,
+                           bool convert       = true) const;
+    ustring get_ustring(string_view name,
+                        string_view defaultval = string_view(),
+                        bool casesensitive = true, bool convert = true) const;
+    ustring get_ustring(ustring name, string_view defaultval = string_view(),
+                        bool casesensitive = true, bool convert = true) const;
+
+    /// Does the span contain the named attribute?
+    bool contains(string_view name, TypeDesc type = TypeUnknown,
+                  bool casesensitive = true) const
+    {
+        return (find(name, type, casesensitive) != end());
+    }
+    bool contains(ustring name, TypeDesc type = TypeUnknown,
+                  bool casesensitive = true) const
+    {
+        return (find(name, type, casesensitive) != end());
+    }
+
+    /// Search list for named item, return its type or TypeUnknown if not
+    /// found.
+    TypeDesc getattributetype(string_view name,
+                              bool casesensitive = false) const
+    {
+        auto p = find(name, TypeUnknown, casesensitive);
+        return p != cend() ? p->type() : TypeUnknown;
+    }
+
+    /// Retrieve from list: If found its data type is reasonably convertible
+    /// to `type`, copy/convert the value into val[...] and return true.
+    /// Otherwise, return false and don't modify what val points to.
+    bool getattribute(string_view name, TypeDesc type, void* value,
+                      bool casesensitive = false) const;
+    /// Shortcut for retrieving a single string via getattribute.
+    bool getattribute(string_view name, std::string& value,
+                      bool casesensitive = false) const;
+
+    /// Retrieve from list: If found its data type is reasonably convertible
+    /// to `type`, copy/convert the value into val[...] and return true.
+    /// Otherwise, return false and don't modify what val points to.
+    bool getattribute_indexed(string_view name, int index, TypeDesc type,
+                              void* value, bool casesensitive = false) const;
+    /// Shortcut for retrieving a single string via getattribute.
+    bool getattribute_indexed(string_view name, int index, std::string& value,
+                              bool casesensitive = false) const;
+
+    // Inherits operator[int] from span
+
+    /// Array indexing by string will create a "Delegate" that enables a
+    /// convenient shorthand for retrieving a value:
+    ///
+    ///     int i = list["foo"].get<int>();
+    ///     std::string s = list["baz"].get<std::string>();
+    ///
+    AttrDelegate<const ParamValueSpan> operator[](string_view name) const
+    {
+        return { this, name };
+    }
+};
+
+
 OIIO_NAMESPACE_END

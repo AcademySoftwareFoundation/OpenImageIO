@@ -19,6 +19,7 @@ using namespace OIIO;
 static int iterations = 10;
 static int ntrials    = 5;
 static bool verbose   = false;
+static bool graph     = false;
 static bool normalize = false;
 static int graphxres = 1280, graphyres = 500;
 static int graphyzero  = graphyres * 3 / 4;
@@ -40,7 +41,7 @@ getargs(int argc, char* argv[])
     // ap.arg("--threads %d", &numthreads)
     //   .help(Strutil::sprintf("Number of threads (default: %d)", numthreads));
     ap.arg("--iters %d", &iterations)
-      .help(Strutil::sprintf("Number of iterations (default: %d)", iterations));
+      .help(Strutil::fmt::format("Number of iterations (default: {})", iterations));
     ap.arg("--trials %d", &ntrials)
       .help("Number of trials");
     ap.arg("--normalize", &normalize)
@@ -55,7 +56,46 @@ getargs(int argc, char* argv[])
 void
 test_1d()
 {
-    print("Testing 1D filters\n");
+    print("\nTesting 1D filters\n");
+    for (int i = 0, e = Filter1D::num_filters(); i < e; ++i) {
+        FilterDesc filtdesc;
+        Filter1D::get_filterdesc(i, &filtdesc);
+        auto filter = Filter1D::create_shared(filtdesc.name, filtdesc.width);
+        print("1D {:<20s}: ", filter->name());
+        for (float x = 0.0f; x <= filter->width() / 2.0f; x += 0.5f) {
+            float y = (*filter)(x);
+            print("{:.1f}, {:.4f}  ", x, y);
+        }
+        print("\n");
+    }
+}
+
+
+
+void
+test_2d()
+{
+    print("\nTesting 2D filters\n");
+    for (int i = 0, e = Filter1D::num_filters(); i < e; ++i) {
+        FilterDesc filtdesc;
+        Filter2D::get_filterdesc(i, &filtdesc);
+        auto filter = Filter2D::create_shared(filtdesc.name, filtdesc.width,
+                                              filtdesc.width);
+        print("2D {:<20s}: ", filter->name());
+        for (float x = 0.0f; x <= filter->width() / 2.0f; x += 0.5f) {
+            float y = (*filter)(x, 0.0f);
+            print("{:.1f}, {:.4f}  ", x, y);
+        }
+        print("\n");
+    }
+}
+
+
+
+void
+graph_1d()
+{
+    print("\nGraphing 1D filters\n");
 
     Benchmarker bench;
     bench.iterations(iterations);
@@ -74,7 +114,8 @@ test_1d()
     for (int i = 0, e = Filter1D::num_filters(); i < e; ++i) {
         FilterDesc filtdesc;
         Filter1D::get_filterdesc(i, &filtdesc);
-        Filter1D* f = Filter1D::create(filtdesc.name, filtdesc.width);
+        auto filter = Filter1D::create_shared(filtdesc.name, filtdesc.width);
+        auto f      = filter.get();
         // Graph it
         float scale          = normalize ? 1.0f / (*f)(0.0f) : 1.0f;
         float color[3]       = { 0.25f * (i & 3), 0.25f * ((i >> 2) & 3),
@@ -96,8 +137,6 @@ test_1d()
 
         // Time it
         bench(filtdesc.name, [=]() { DoNotOptimize((*f)(0.25f)); });
-
-        Filter1D::destroy(f);
     }
 
     graph.write("filters.tif");
@@ -106,14 +145,9 @@ test_1d()
 
 
 void
-test_2d()
+graph_2d()
 {
-    print("\nTesting 2D filters\n");
-
-    Benchmarker bench;
-    bench.iterations(iterations);
-    bench.trials(ntrials);
-    // bench.units (Benchmarker::Unit::ms);
+    print("\nGraphing 2D filters\n");
 
     ImageBuf graph(ImageSpec(graphxres, graphyres, 3, TypeDesc::UINT8));
     float white[3] = { 1, 1, 1 };
@@ -127,8 +161,9 @@ test_2d()
     for (int i = 0, e = Filter2D::num_filters(); i < e; ++i) {
         FilterDesc filtdesc;
         Filter2D::get_filterdesc(i, &filtdesc);
-        Filter2D* f = Filter2D::create(filtdesc.name, filtdesc.width,
-                                       filtdesc.width);
+        auto filter = Filter2D::create_shared(filtdesc.name, filtdesc.width,
+                                              filtdesc.width);
+        auto f      = filter.get();
         // Graph it
         float scale          = normalize ? 1.0f / (*f)(0.0f, 0.0f) : 1.0f;
         float color[3]       = { 0.25f * (i & 3), 0.25f * ((i >> 2) & 3),
@@ -147,14 +182,45 @@ test_2d()
             lastx = x;
             lasty = y;
         }
-
-        // Time it
-        bench(filtdesc.name, [=]() { DoNotOptimize((*f)(0.25f, 0.25f)); });
-
-        Filter2D::destroy(f);
     }
-
     graph.write("filters2d.tif");
+}
+
+
+
+void
+bench_1d()
+{
+    print("\nBenchmarking 1D filters\n");
+    Benchmarker bench;
+    bench.iterations(iterations);
+    bench.trials(ntrials);
+    for (int i = 0, e = Filter1D::num_filters(); i < e; ++i) {
+        FilterDesc filtdesc;
+        Filter1D::get_filterdesc(i, &filtdesc);
+        auto filter = Filter1D::create_shared(filtdesc.name, filtdesc.width);
+        auto f      = filter.get();
+        bench(filtdesc.name, [=]() { DoNotOptimize((*f)(0.25f)); });
+    }
+}
+
+
+
+void
+bench_2d()
+{
+    print("\nBenchmarking 2D filters\n");
+    Benchmarker bench;
+    bench.iterations(iterations);
+    bench.trials(ntrials);
+    for (int i = 0, e = Filter2D::num_filters(); i < e; ++i) {
+        FilterDesc filtdesc;
+        Filter2D::get_filterdesc(i, &filtdesc);
+        auto filter = Filter2D::create_shared(filtdesc.name, filtdesc.width,
+                                              filtdesc.width);
+        auto f      = filter.get();
+        bench(filtdesc.name, [=]() { DoNotOptimize((*f)(0.25f, 0.25f)); });
+    }
 }
 
 
@@ -174,4 +240,10 @@ main(int argc, char* argv[])
 
     test_1d();
     test_2d();
+    if (graph) {
+        test_1d();
+        test_2d();
+    }
+    bench_1d();
+    bench_2d();
 }
