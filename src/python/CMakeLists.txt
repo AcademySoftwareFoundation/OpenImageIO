@@ -2,9 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-# from pythonutils.cmake
-checked_find_package (pybind11 REQUIRED
-                      VERSION_MIN 2.4.2)
 
 
 file (GLOB python_srcs *.cpp)
