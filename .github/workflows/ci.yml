@@ -287,17 +287,17 @@ jobs:
             cxx_compiler: g++-12
             cxx_std: 17
             fmt_ver: 10.1.1
-            openexr_ver: v3.2.0
+            openexr_ver: v3.2.1
             pybind11_ver: v2.11.1
             python_ver: "3.10"
             simd: avx2,f16c
-            setenvs: export LIBJPEGTURBO_VERSION=3.0.0
-                            LIBRAW_VERSION=0.20.2
-                            LIBTIFF_VERSION=v4.5.0
-                            OPENCOLORIO_VERSION=v2.3.0
+            setenvs: export LIBJPEGTURBO_VERSION=3.0.1
+                            LIBRAW_VERSION=0.21.2
+                            LIBTIFF_VERSION=v4.6.0
+                            OPENCOLORIO_VERSION=v2.3.1
                             OPENJPEG_VERSION=v2.4.0
-                            PTEX_VERSION=v2.4.0
-                            PUGIXML_VERSION=v1.13
+                            PTEX_VERSION=v2.4.2
+                            PUGIXML_VERSION=v1.14
                             USE_OPENVDB=0
                             WEBP_VERSION=v1.3.0
                             # The installed OpenVDB has a TLS conflict with Python 3.8

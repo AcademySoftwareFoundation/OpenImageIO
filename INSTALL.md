@@ -18,15 +18,15 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * The default build mode is C++17. This can be controlled by via the
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=14`, etc.
      * ADVISORY: We expect that OIIO 2.6 in 2024 will require C++17 or higher.
- * Compilers: gcc 6.1 - 13.1, clang 3.4 - 16, MSVS 2017 - 2019,
+ * Compilers: gcc 6.1 - 13.1, clang 3.4 - 17, MSVS 2017 - 2019,
    Intel icc 17+, Intel OneAPI C++ compiler 2022+.
- * **CMake >= 3.15** (tested through 3.27)
+ * **CMake >= 3.15** (tested through 3.28)
  * **OpenEXR/Imath >= 2.4** (recommended: 3.1 or higher; tested through 3.2
    and main) (ADVISORY: We expect that OIIO 2.6 in 2024 will require OpenEXR >= 3.1)
  * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.6)
  * libjpeg >= 8 (tested through jpeg9e), or **libjpeg-turbo >= 2.1** (tested
    through 3.0)
- * Boost >= 1.53 (recommended: at least 1.66; tested through 1.83)
+ * Boost >= 1.53 (recommended: at least 1.66; tested through 1.84)
  * **[fmtlib](https://github.com/fmtlib/fmt) >= 7.0** (tested through 10.1).
    If not found at build time, this will be automatically downloaded unless
    the build sets `-DBUILD_MISSING_FMT=OFF`.
@@ -42,10 +42,10 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
        not support Python < 3.6.)
      * NumPy
  * If you want support for camera "RAW" formats:
-     * LibRaw >= 0.18 (tested though 0.21.1; if
+     * LibRaw >= 0.18 (tested though 0.21.2; if
        building with C++17 or higher, LibRaw >= 0.20 is necessary)
  * If you want support for a wide variety of video formats:
-     * ffmpeg >= 3.0 (tested through 6.0)
+     * ffmpeg >= 3.0 (tested through 6.1)
  * If you want support for jpeg 2000 images:
      * OpenJpeg >= 2.0 (tested through 2.5; we recommend 2.4 or higher
        for multithreading support)
@@ -56,16 +56,16 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * TBB >= 2018 (tested through 2021 and OneTBB)
  * If you want support for converting to and from OpenCV data structures,
    or for capturing images from a camera:
-     * OpenCV 3.x, or 4.x (tested through 4.5)
+     * OpenCV 3.x, or 4.x (tested through 4.9)
  * If you want support for GIF images:
      * giflib >= 4.1 (tested through 5.2; 5.0+ is strongly recommended for
        stability and thread safety)
  * If you want support for HEIF/HEIC or AVIF images:
-     * libheif >= 1.3 (1.7 required for AVIF support, tested through 1.17)
+     * libheif >= 1.3 (1.7 required for AVIF support, tested through 1.17.6)
      * libheif must be built with an AV1 encoder/decoder for AVIF support.
      * Avoid libheif 1.10 on Mac, it is very broken. Libheif 1.11+ is fine.
  * If you want support for DICOM medical image files:
-     * DCMTK >= 3.6.1 (tested through 3.6.7)
+     * DCMTK >= 3.6.1 (tested through 3.6.8)
  * If you want support for WebP images:
      * WebP >= 0.6.1 (tested through 1.3.2)
  * If you want support for OpenColorIO color transformations:
