@@ -17,6 +17,14 @@
 # definitions giving the version:
 # WEBP_VERSION          Version of Webp (e.g., 3.6.2)
 
+# Try the config for newer WebP versions.
+find_package(WebP CONFIG)
+
+if (NOT TARGET WebP::webp)
+# If not found, roll our own.
+# Note: When WebP 1.1 (released late 2019) is our minimum, we can use their
+# exported configs and remove our FindWebP.cmake module.
+
 include (FindPackageHandleStandardArgs)
 
 find_path (WEBP_INCLUDE_DIR webp/encode.h
@@ -65,3 +73,5 @@ mark_as_advanced (
     WEBP_LIBRARY
     WEBPDEMUX_LIBRARY
     )
+
+endif ()

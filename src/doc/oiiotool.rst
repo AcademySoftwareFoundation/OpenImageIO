@@ -897,6 +897,11 @@ output each one to a different file, with names `sub0001.tif`,
     Print timing and memory statistics about the work done by
     :program:`oiiotool`.
 
+.. option:: --buildinfo
+
+    Print information about OIIO build-time options and dependencies.
+    This can be useful when reporting issues.
+
 .. option:: -a
 
     Performs all operations on all subimages and/or MIPmap levels of each

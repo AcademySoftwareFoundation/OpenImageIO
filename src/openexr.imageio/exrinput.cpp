@@ -14,8 +14,6 @@
 #include <OpenImageIO/Imath.h>
 #include <OpenImageIO/platform.h>
 
-#include <boost/version.hpp>
-
 #include <OpenEXR/ImfArray.h>
 #include <OpenEXR/ImfChannelList.h>
 #include <OpenEXR/ImfEnvmap.h>
