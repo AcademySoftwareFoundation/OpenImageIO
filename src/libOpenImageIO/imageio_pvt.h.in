@@ -225,4 +225,7 @@ OIIO_NAMESPACE_END
 //Define a default plugin search path
 #define OIIO_DEFAULT_PLUGIN_SEARCHPATH "@PLUGIN_SEARCH_PATH_NATIVE@"
 
+// List of build-time dependencies (semicolon separated)
+#define OIIO_ALL_BUILD_DEPS_FOUND "@CFP_ALL_BUILD_DEPS_FOUND@"
+
 #endif // OPENIMAGEIO_IMAGEIO_PVT_H

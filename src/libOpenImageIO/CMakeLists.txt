@@ -115,6 +115,16 @@ else ()
     message (STATUS "OpenEXR core library will not be used by default")
 endif ()
 
+# Some extra definitions we need to retrieve build related attributes.
+target_compile_definitions(OpenImageIO
+              PRIVATE
+                  OIIO_FREETYPE_VERSION="${FREETYPE_VERSION_STRING}"
+                  OIIO_OpenCV_VERSION="${OpenCV_VERSION}"
+                  OIIO_PYTHON_VERSION="${Python_VERSION}"
+                  OIIO_QT_VERSION="${Qt6_VERSION}${Qt5_VERSION}"
+                  OIIO_TBB_VERSION="${TBB_VERSION}"
+             )
+
 # Source groups for libutil and libtexture
 source_group ("libutil"    REGULAR_EXPRESSION ".+/libutil/.+")
 source_group ("libtexture" REGULAR_EXPRESSION ".+/libtexture/.+")
@@ -126,7 +136,6 @@ target_include_directories (OpenImageIO
                                 ${OPENEXR_INCLUDES}
                             PRIVATE
                                 ${ROBINMAP_INCLUDES}
-                                ${FREETYPE_INCLUDE_DIRS}
                             )
 target_include_directories (OpenImageIO SYSTEM PUBLIC ${OpenCV_INCLUDES})
 
@@ -151,15 +160,12 @@ target_link_libraries (OpenImageIO
             $<TARGET_NAME_IF_EXISTS:OpenColorIO::OpenColorIOHeaders>
             $<TARGET_NAME_IF_EXISTS:pugixml::pugixml>
             $<TARGET_NAME_IF_EXISTS:TBB::tbb>
+            $<TARGET_NAME_IF_EXISTS:Freetype::Freetype>
             ${BZIP2_LIBRARIES}
             ZLIB::ZLIB
             $<TARGET_NAME_IF_EXISTS:Boost::thread>
             ${CMAKE_DL_LIBS}
         )
-
-if (FREETYPE_FOUND)
-    target_link_libraries (OpenImageIO PRIVATE ${FREETYPE_LIBRARIES})
-endif()
 
 if (WIN32)
     target_link_libraries (OpenImageIO PRIVATE psapi)
