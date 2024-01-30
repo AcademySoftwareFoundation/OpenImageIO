@@ -363,6 +363,11 @@ test_delegates()
     OIIO_CHECK_EQUAL(pl["Tx"].get<Imath::M44f>(),
                      Imath::M44f(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 42, 0, 0,
                                  1));
+
+    OIIO_CHECK_EQUAL(pl.get_int("foo"), 42);
+    OIIO_CHECK_EQUAL(pl.get_float("foo"), 42.0f);
+    OIIO_CHECK_EQUAL(pl.get_string("foo"), "42");
+
     std::string s = pl["foo"];
     OIIO_CHECK_EQUAL(s, "42");
 
