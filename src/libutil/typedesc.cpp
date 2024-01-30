@@ -740,6 +740,11 @@ to_floats(TypeDesc srctype, const void* src, T* dst, size_t n = 1)
             dst[i] = T(((const unsigned int*)src)[i]);
         return true;
     }
+    if (srctype.basetype == TypeDesc::INT) {
+        for (size_t i = 0; i < n; ++i)
+            dst[i] = T(((const int*)src)[i]);
+        return true;
+    }
     if (srctype.basetype == TypeDesc::INT16) {
         for (size_t i = 0; i < n; ++i)
             dst[i] = T(((const short*)src)[i]);
@@ -823,7 +828,7 @@ convert_type(TypeDesc srctype, const void* src, TypeDesc dsttype, void* dst,
                               dsttype.basevalues()))
             return true;
     }
-    // N.B. No uint inversion from string
+    // N.B. No uint conversion from string
 
     if (dsttype.basetype == TypeDesc::FLOAT
         && dsttype.basevalues() == srctype.basevalues()) {
