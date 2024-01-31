@@ -1,6 +1,21 @@
-Release 2.5.8.0 (Feb 1?, 2024) -- compared to 2.5.7.0
+Release 2.5.8.0 (Feb 1, 2024) -- compared to 2.5.7.0
 -----------------------------------------------------
-
+- *feat(oiiotool)*: New `--buildinfo` command prints build information,
+  including version, compiler, and all library dependencies. [#4124](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4124)
+- *feat(api)*: New global getattribute queries: "build:platform",
+  "build:compiler", "build:dependencies" [#4124](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4124)
+- *feat(openexr)*: Add support for luminance-chroma OpenEXR images. [#4070](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4070) (by jreichel-nvidia)
+- *fix(raw)*: Avoid buffer overrun for flip direction cases [#4100](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4100)
+- *fix(iv)*: Assume iv display gamma 2.2 if `GAMMA` env variable is not set [#4118](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4118)
+- *fix*: Fixes to reduce problems identified by static analysis [#4113](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4113)
+- *dev(simd.h)*: Make all-architecture matrix44::inverse() [#4076](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4076)
+- *dev(simd.h)*: Fix AVX-512 round function [#4119](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4119) (by AngryLoki)
+- *build(deps)*: Remove Findfmt.cmake, rely on that package's exported config. [#4069](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4069) [#4103](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4103) (by Dominik Wójt)
+- *build(deps)*: Account for header changes in fmt project trunk [#4109](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4109) [#4114](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4114)
+- *tests*: Shuffle some tests between directories [#4091](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4091)
+- *tests*: Fix docs test, used wrong namespace [#4090](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4090)
+- *docs*: Fix broken IBA color management documentation [#4104](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4104)
+- *style*: Update our formatting standard to clang-format 17.0 and C++17 [#4096](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4096)
 
 
 Release 2.5.7.0 (Jan 1, 2024) -- compared to 2.5.6.0
