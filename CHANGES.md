@@ -1,3 +1,8 @@
+Release 2.5.9.0 (Mar ??, 2024) -- compared to 2.5.8.0
+-----------------------------------------------------
+
+
+
 Release 2.5.8.0 (Feb 1, 2024) -- compared to 2.5.7.0
 -----------------------------------------------------
 - *feat(oiiotool)*: New `--buildinfo` command prints build information,
