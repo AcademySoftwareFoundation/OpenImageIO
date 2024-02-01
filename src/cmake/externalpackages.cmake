@@ -158,8 +158,9 @@ endif()
 
 # From pythonutils.cmake
 find_python()
-
-checked_find_package (pybind11 REQUIRED VERSION_MIN 2.4.2)
+if (USE_PYTHON)
+    checked_find_package (pybind11 REQUIRED VERSION_MIN 2.4.2)
+endif ()
 
 
 ###########################################################################
