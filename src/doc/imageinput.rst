@@ -25,7 +25,8 @@ memory, even if that's not the way they're stored in the file):
             :language: c++
             :start-after: BEGIN-imageinput-simple
             :end-before: END-imageinput-simple
-    .. code-tab:: py
+
+    .. tab:: py
         .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imageinput.py
             :language: py
             :start-after: BEGIN-imageinput-simple
