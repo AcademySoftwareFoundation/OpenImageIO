@@ -294,7 +294,7 @@ jobs:
             setenvs: export LIBJPEGTURBO_VERSION=3.0.1
                             LIBRAW_VERSION=0.21.2
                             LIBTIFF_VERSION=v4.6.0
-                            OPENCOLORIO_VERSION=v2.3.1
+                            OPENCOLORIO_VERSION=v2.3.2
                             OPENJPEG_VERSION=v2.4.0
                             PTEX_VERSION=v2.4.2
                             PUGIXML_VERSION=v1.14
@@ -452,7 +452,7 @@ jobs:
 
 
   macrunner:
-    name: "${{matrix.runner}} appleclang${{matrix.aclang}}/C++${{matrix.cxx_std}} py${{matrix.python_ver}} ${{matrix.desc}} boost1.76 exr3.1 ocio2.1"
+    name: "${{matrix.runner}} appleclang${{matrix.aclang}}/C++${{matrix.cxx_std}} py${{matrix.python_ver}} ${{matrix.desc}}"
     strategy:
       fail-fast: false
       matrix:
@@ -463,20 +463,25 @@ jobs:
             cxx_std: 17
             python_ver: "3.10"
             aclang: 13
-            setenvs: export CTEST_TEST_TIMEOUT=600
           - desc: MacOS-13
             runner: macos-13
             nametag: macos13-py311
-            cxx_std: 20
+            cxx_std: 17
             python_ver: "3.11"
             aclang: 14
-            setenvs: export CTEST_TEST_TIMEOUT=600
+          - desc: MacOS-14-ARM
+            runner: macos-14
+            nametag: macos14-arm-py311
+            cxx_std: 20
+            python_ver: "3.11"
+            aclang: 15
     runs-on: ${{ matrix.runner }}
     env:
       CC: clang
       CXX: clang++
       CMAKE_CXX_STANDARD: ${{ matrix.cxx_std }}
       PYTHON_VERSION: ${{ matrix.python_ver }}
+      CTEST_TEST_TIMEOUT: 600
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       - name: Prepare ccache timestamp
