@@ -104,7 +104,7 @@ version](https://readthedocs.org/projects/openimageio/downloads/pdf/latest/).
 
 👷 Building and installing OpenImageIO
 --------------------------------------
-- [Build and installation instructions](/INSTALL.md) for OpenImageIO. Such
+- [Build and installation instructions](INSTALL.md) for OpenImageIO. Such
   as it is. This could use some work, particularly for Windows.
 
 
