@@ -341,7 +341,7 @@ Odds and ends to do after the tag is pushed and the announcements are sent:
   have done. Update as necessary.
 
 - Go to [readthedocs.org](https://openimageio.readthedocs.io/), and ensure
-  that the new release is built and visible and is the default release shown
+  that the new release is built, visible, and is the default release shown
   (specified in the Admin section). I tend to keep the latest patch of each
   minor release available for reference indefinitely, but hide the docs for
   earlier patch releases within that minor release series.
