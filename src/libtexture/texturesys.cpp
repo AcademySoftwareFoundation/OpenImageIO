@@ -1350,8 +1350,10 @@ TextureSystemImpl::texture(TextureHandle* texture_handle,
 
     bool ok          = true;
     Tex::RunMask bit = 1;
+    float* r         = OIIO_ALLOCA(float, 3 * nchannels);
+    float* drds      = r + nchannels;
+    float* drdt      = drds + nchannels;
     for (int i = 0; i < Tex::BatchWidth; ++i, bit <<= 1) {
-        float r[4], drds[4], drdt[4];  // temp result
         if (mask & bit) {
             opt.sblur  = options.sblur[i];
             opt.tblur  = options.tblur[i];
@@ -2102,6 +2104,7 @@ TextureSystemImpl::fade_to_pole(float t, float* accum, float& weight,
                                thread_info->tile, options.subimage, miplevel,
                                1);
     }
+    OIIO_DASSERT(polecolor != nullptr);
     pole = OIIO::clamp(pole, 0.0f, 1.0f);
     pole *= pole;  // squaring makes more pleasing appearance
     polecolor += options.firstchannel;
