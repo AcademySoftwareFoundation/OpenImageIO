@@ -9,6 +9,7 @@
 
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/dassert.h>
+#include <OpenImageIO/filter.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/hash.h>
 #include <OpenImageIO/imageio.h>
@@ -537,6 +538,13 @@ getattribute(string_view name, TypeDesc type, void* val)
     }
     if (name == "font_list" && type == TypeString) {
         *(ustring*)val = ustring(Strutil::join(font_list(), ";"));
+        return true;
+    }
+    if (name == "filter_list" && type == TypeString) {
+        std::vector<string_view> filternames;
+        for (int i = 0, e = Filter2D::num_filters(); i < e; ++i)
+            filternames.emplace_back(Filter2D::get_filterdesc(i).name);
+        *(ustring*)val = ustring(Strutil::join(filternames, ";"));
         return true;
     }
     if (name == "exr_threads" && type == TypeInt) {

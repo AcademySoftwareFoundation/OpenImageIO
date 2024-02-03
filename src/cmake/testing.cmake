@@ -151,6 +151,7 @@ macro (oiio_add_all_tests)
                     oiiotool-subimage oiiotool-text oiiotool-xform
                     diff
                     dither dup-channels
+                    filters
                     jpeg-corrupt
                     maketx oiiotool-maketx
                     misnamed-file

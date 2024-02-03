@@ -3079,6 +3079,11 @@ inline bool attribute (string_view name, string_view val) {
 ///   full paths), and all the directories that OpenImageIO will search for
 ///   fonts.  (Added in OpenImageIO 2.5)
 ///
+/// - `string filter_list`
+///
+///   A semicolon-separated list of all built-in 2D filters. (Added in
+///   OpenImageIO 2.5.9)
+///
 /// - int64_t IB_local_mem_current
 /// - int64_t IB_local_mem_peak
 ///
