@@ -151,7 +151,6 @@ macro (oiio_add_all_tests)
                     oiiotool-subimage oiiotool-text oiiotool-xform
                     diff
                     dither dup-channels
-                    filters
                     jpeg-corrupt
                     maketx oiiotool-maketx
                     misnamed-file
@@ -222,6 +221,7 @@ macro (oiio_add_all_tests)
             python-roi
             python-texturesys
             python-typedesc
+            filters
             )
         # These Python tests also need access to oiio-images
         oiio_add_tests (
