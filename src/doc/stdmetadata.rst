@@ -77,21 +77,21 @@ Display hints
 
 .. option:: "Orientation" : int
 
-    y default, image pixels are ordered from the top of the display to the
-    ottom, and within each scanline, from left to right (i.e., the same
-    rdering as English text and scan progression on a CRT).  But the
-    "Orientation"` field can suggest that it should be displayed with
-    different orientation, according to the TIFF/EXIF conventions:
+    By default, image pixels are ordered from the top of the display to the
+    bottom, and within each scanline, from left to right (i.e., the same
+    ordering as English text and scan progression on a CRT).  But the
+    `"Orientation"` field can suggest that it should be displayed with
+    a different orientation, according to the TIFF/EXIF conventions:
 
     ===  ==========================================================================
-     0   normal (top to bottom, left to right)
-     1   flipped horizontally (top to botom, right to left)
-     2   rotated :math:`180^\circ` (bottom to top, right to left)
-     3   flipped vertically (bottom to top, left to right)
-     4   transposed (left to right, top to bottom)
-     5   rotated :math:`90^\circ` clockwise (right to left, top to bottom)
-     6   transverse (right to left, bottom to top)
-     7   rotated :math:`90^\circ` counter-clockwise (left to right, bottom to top)
+     1   normal (top to bottom, left to right)
+     2   flipped horizontally (top to bottom, right to left)
+     3   rotated :math:`180^\circ` (bottom to top, right to left)
+     4   flipped vertically (bottom to top, left to right)
+     5   transposed (left to right, top to bottom)
+     6   rotated :math:`90^\circ` clockwise (right to left, top to bottom)
+     7   transverse (right to left, bottom to top)
+     8   rotated :math:`90^\circ` counter-clockwise (left to right, bottom to top)
     ===  ==========================================================================
 
 .. option:: "PixelAspectRatio" : float

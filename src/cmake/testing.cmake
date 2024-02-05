@@ -260,8 +260,10 @@ macro (oiio_add_all_tests)
                     IMAGEDIR openexr-images
                     URL http://github.com/AcademySoftwareFoundation/openexr-images)
     oiio_add_tests (heif
-                    FOUNDVAR Libheif_FOUND ENABLEVAR ENABLE_Libheif
-                    URL https://github.com/nokiatech/heif/tree/gh-pages/content)
+                    FOUNDVAR Libheif_FOUND
+                    ENABLEVAR ENABLE_Libheif
+                    IMAGEDIR oiio-images/heif
+                    URL http://github.com/AcademySoftwareFoundation/openexr-images)
     oiio_add_tests (ico
                     ENABLEVAR ENABLE_ICO
                     IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
