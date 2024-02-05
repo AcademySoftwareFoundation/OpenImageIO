@@ -26,7 +26,7 @@ memory, even if that's not the way they're stored in the file):
             :start-after: BEGIN-imageinput-simple
             :end-before: END-imageinput-simple
 
-    .. tab:: py
+    .. tab:: Python
         .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imageinput.py
             :language: py
             :start-after: BEGIN-imageinput-simple

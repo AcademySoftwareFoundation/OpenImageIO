@@ -37,7 +37,7 @@ def example1() :
 ############################################################################
 
 
-# BEGIN-impageinput-simple
+# BEGIN-imageinput-simple
 import OpenImageIO as oiio
 def simple_read():
     filename = "tahoe.tif"
