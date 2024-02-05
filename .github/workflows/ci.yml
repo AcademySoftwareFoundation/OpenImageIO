@@ -220,7 +220,7 @@ jobs:
         # glibc than these containers have.
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
-        run: echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
+        run: echo "date=`date -u +'%Y-%m-%dT%H:%M:%SZ'`" >> $GITHUB_OUTPUT
       - name: ccache
         id: ccache
         uses: actions/cache@e12d46a63a90f2fae62d114769bbf2a179198b5c # v3.3.3
@@ -416,7 +416,7 @@ jobs:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
-        run: echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
+        run: echo "date=`date -u +'%Y-%m-%dT%H:%M:%SZ'`" >> $GITHUB_OUTPUT
       - name: ccache
         id: ccache
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
@@ -486,7 +486,7 @@ jobs:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
-        run: echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
+        run: echo "date=`date -u +'%Y-%m-%dT%H:%M:%SZ'`" >> $GITHUB_OUTPUT
       - name: ccache
         id: ccache
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
@@ -552,7 +552,7 @@ jobs:
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       - name: Setup Nuget.exe
-        uses: nuget/setup-nuget@b2bc17b761a1d88cab755a776c7922eb26eefbfa # v1.0.6
+        uses: nuget/setup-nuget@a21f25cd3998bf370fde17e3f1b4c12c175172f9 # v2.0.0
       - name: Build setup
         shell: bash
         run: |

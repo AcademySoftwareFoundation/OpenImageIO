@@ -88,7 +88,7 @@ jobs:
           fetch-depth: '0'
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
-        run: echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
+        run: echo "date=`date -u +'%Y-%m-%dT%H:%M:%SZ'`" >> $GITHUB_OUTPUT
       - name: ccache
         id: ccache
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
