@@ -295,6 +295,71 @@ DecompressImage(uint8_t* rgba, int width, int height, const uint8_t* blocks,
         opt);
 }
 
+/// Gets the bitmasks required to extract the channels of a DXGI format.
+/// Returns whether the DXGI format is supported.
+/// Compressed formats BCn are not handled by this function.
+///
+static bool
+GetDxgiFormatChannelMasks(uint32_t dxgiFormat, uint32_t masks[4])
+{
+    masks[0] = masks[1] = masks[2] = masks[3] = 0;
+
+    switch (dxgiFormat) {
+    case DDS_FORMAT_R16_UNORM: masks[0] = 0xFFFF; break;
+
+    case DDS_FORMAT_R10G10B10A2_UNORM:
+        masks[0] = 0x000003FF;
+        masks[1] = 0x000FFC00;
+        masks[2] = 0x3FF00000;
+        masks[3] = 0xC0000000;
+        break;
+
+    case DDS_FORMAT_R8G8B8A8_UNORM:
+    case DDS_FORMAT_R8G8B8A8_UNORM_SRGB:
+        masks[0] = 0x000000FF;
+        masks[1] = 0x0000FF00;
+        masks[2] = 0x00FF0000;
+        masks[3] = 0xFF000000;
+        break;
+
+    case DDS_FORMAT_B8G8R8A8_UNORM:
+    case DDS_FORMAT_B8G8R8A8_UNORM_SRGB:
+        masks[3] = 0xFF000000;
+        OIIO_FALLTHROUGH;
+    case DDS_FORMAT_B8G8R8X8_UNORM:
+    case DDS_FORMAT_B8G8R8X8_UNORM_SRGB:
+        masks[0] = 0x00FF0000;
+        masks[1] = 0x0000FF00;
+        masks[2] = 0x000000FF;
+        break;
+
+    default: return false;
+    }
+
+    return true;
+}
+
+/// Gets the bits-per-pixel of a DXGI format, or 0 if not supported.
+/// Compressed formats BCn are not handled by this function.
+///
+static uint32_t
+GetDxgiFormatBitsPerPixel(uint32_t dxgiFormat)
+{
+    switch (dxgiFormat) {
+    case DDS_FORMAT_R16_UNORM: return 16;
+
+    case DDS_FORMAT_R10G10B10A2_UNORM:
+    case DDS_FORMAT_R8G8B8A8_UNORM:
+    case DDS_FORMAT_R8G8B8A8_UNORM_SRGB:
+    case DDS_FORMAT_B8G8R8A8_UNORM:
+    case DDS_FORMAT_B8G8R8A8_UNORM_SRGB:
+    case DDS_FORMAT_B8G8R8X8_UNORM:
+    case DDS_FORMAT_B8G8R8X8_UNORM_SRGB: return 32;
+
+    default: return 0;
+    }
+}
+
 
 // Obligatory material to make this a recognizable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
@@ -391,13 +456,16 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
     std::cerr << "[dds] mipmaps: " << m_dds.mipmaps << "\n";
     std::cerr << "[dds] fmt.size: " << m_dds.fmt.size << "\n";
     std::cerr << "[dds] fmt.flags: " << m_dds.fmt.flags << "\n";
-    
     std::cerr << "[dds] fmt.fourCC: " << ((char *)&m_dds.fmt.fourCC)[0]
                                       << ((char *)&m_dds.fmt.fourCC)[1]
                                       << ((char *)&m_dds.fmt.fourCC)[2]
                                       << ((char *)&m_dds.fmt.fourCC)[3]
                                       << " (" << m_dds.fmt.fourCC << ")\n";
     std::cerr << "[dds] fmt.bpp: " << m_dds.fmt.bpp << "\n";
+    std::cerr << "[dds] fmt.masks[0]: " << m_dds.fmt.masks[0] << "\n";
+    std::cerr << "[dds] fmt.masks[1]: " << m_dds.fmt.masks[1] << "\n";
+    std::cerr << "[dds] fmt.masks[2]: " << m_dds.fmt.masks[2] << "\n";
+    std::cerr << "[dds] fmt.masks[3]: " << m_dds.fmt.masks[3] << "\n";
     std::cerr << "[dds] caps.flags1: " << m_dds.caps.flags1 << "\n";
     std::cerr << "[dds] caps.flags2: " << m_dds.caps.flags2 << "\n";*/
 
@@ -433,6 +501,12 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
     if (m_dds.fmt.fourCC == DDS_4CC_DX10) {
         if (!ioread(&m_dx10, sizeof(m_dx10), 1))
             return false;
+
+        /*std::cerr << "[dds:dx10] dxgiFormat: " << m_dx10.dxgiFormat << "\n";
+        std::cerr << "[dds:dx10] resourceDimension: " << m_dx10.resourceDimension << "\n";
+        std::cerr << "[dds:dx10] arraySize: " << m_dx10.arraySize << "\n";
+        std::cerr << "[dds:dx10] miscFlag: " << m_dx10.miscFlag << "\n";
+        std::cerr << "[dds:dx10] miscFlag2: " << m_dx10.miscFlag2 << "\n";*/
     }
 
     // validate the pixel format
@@ -454,6 +528,18 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
         case DDS_4CC_BC5U: m_compression = Compression::BC5; break;
         case DDS_4CC_DX10: {
             switch (m_dx10.dxgiFormat) {
+            case DDS_FORMAT_BC1_UNORM:
+            case DDS_FORMAT_BC1_UNORM_SRGB:
+                m_compression = Compression::DXT1;
+                break;
+            case DDS_FORMAT_BC2_UNORM:
+            case DDS_FORMAT_BC2_UNORM_SRGB:
+                m_compression = Compression::DXT3;
+                break;
+            case DDS_FORMAT_BC3_UNORM:
+            case DDS_FORMAT_BC3_UNORM_SRGB:
+                m_compression = Compression::DXT5;
+                break;
             case DDS_FORMAT_BC4_UNORM: m_compression = Compression::BC4; break;
             case DDS_FORMAT_BC5_UNORM: m_compression = Compression::BC5; break;
             case DDS_FORMAT_BC6H_UF16:
@@ -462,12 +548,22 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
             case DDS_FORMAT_BC6H_SF16:
                 m_compression = Compression::BC6HS;
                 break;
-            case DDS_FORMAT_BC7_UNORM: m_compression = Compression::BC7; break;
+            case DDS_FORMAT_BC7_UNORM:
+            case DDS_FORMAT_BC7_UNORM_SRGB:
+                m_compression = Compression::BC7;
+                break;
+
+            default:
+                if (!GetDxgiFormatChannelMasks(m_dx10.dxgiFormat,
+                                               m_dds.fmt.masks)) {
+                    errorfmt("Unsupported DXGI format: {}", m_dx10.dxgiFormat);
+                    return false;
+                }
+                break;
             }
         } break;
-        }
-        if (m_compression == Compression::None) {
-            errorf("Unsupported compression type");
+        default:
+            errorfmt("Unsupported compression type: {}", m_dds.fmt.fourCC);
             return false;
         }
     }
@@ -482,6 +578,20 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
     if (m_compression != Compression::None) {
         m_nchans = GetChannelCount(m_compression,
                                    m_dds.fmt.flags & DDS_PF_NORMAL);
+    } else if (m_dds.fmt.fourCC == DDS_4CC_DX10) {
+        // uncompressed DXGI formats, calculate bytes per pixel and bit shifts
+        m_Bpp    = (GetDxgiFormatBitsPerPixel(m_dx10.dxgiFormat) + 7) >> 3;
+        m_nchans = 0;
+        for (int i = 0; i < 4; ++i) {
+            if (m_dds.fmt.masks[i] != 0) {
+                // place channels sequentially
+                m_dds.fmt.masks[m_nchans] = m_dds.fmt.masks[i];
+                m_nchans++;
+            }
+        }
+
+        for (int i = 0; i < m_nchans; ++i)
+            calc_shifts(m_dds.fmt.masks[i], m_BitCounts[i], m_RightShifts[i]);
     } else {
         // also calculate bytes per pixel and the bit shifts
         m_Bpp = (m_dds.fmt.bpp + 7) >> 3;
@@ -699,6 +809,7 @@ DDSInput::seek_subimage(int subimage, int miplevel)
             m_spec.attribute("compression", str);
     }
 
+    uint32_t bpp = 0;
     if (m_dds.fmt.bpp
         && (m_dds.fmt.flags
             & (DDS_PF_RGB | DDS_PF_LUMINANCE | DDS_PF_YUV | DDS_PF_ALPHAONLY))) {
@@ -709,12 +820,34 @@ DDSInput::seek_subimage(int subimage, int miplevel)
                 m_dds.fmt.bpp);
             return false;
         }
-        m_spec.attribute("oiio:BitsPerSample", m_dds.fmt.bpp);
+        bpp = m_dds.fmt.bpp;
+    } else if (m_dds.fmt.fourCC == DDS_4CC_DX10) {
+        bpp = GetDxgiFormatBitsPerPixel(m_dx10.dxgiFormat);
+    }
+
+    if (bpp != 0)
+        m_spec.attribute("oiio:BitsPerSample", bpp);
+
+    const char* colorspace = nullptr;
+
+    if (m_dds.fmt.fourCC == DDS_4CC_DX10) {
+        switch (m_dx10.dxgiFormat) {
+        case DDS_FORMAT_BC1_UNORM_SRGB:
+        case DDS_FORMAT_BC2_UNORM_SRGB:
+        case DDS_FORMAT_BC3_UNORM_SRGB:
+        case DDS_FORMAT_BC7_UNORM_SRGB:
+        case DDS_FORMAT_R8G8B8A8_UNORM_SRGB:
+        case DDS_FORMAT_B8G8R8A8_UNORM_SRGB:
+        case DDS_FORMAT_B8G8R8X8_UNORM_SRGB: colorspace = "sRGB"; break;
+        }
     }
 
     // linear color space for HDR-ish images
-    if (basetype == TypeDesc::HALF || basetype == TypeDesc::FLOAT)
-        m_spec.attribute("oiio:ColorSpace", "linear");
+    if (colorspace == nullptr
+        && (basetype == TypeDesc::HALF || basetype == TypeDesc::FLOAT))
+        colorspace = "linear";
+
+    m_spec.set_colorspace(colorspace);
 
     m_spec.default_channel_names();
     // Special case: if a 2-channel DDS RG or YA?
