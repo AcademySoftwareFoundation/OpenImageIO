@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+#include <OpenImageIO/Imath.h>
 
 ///////////////////////////////////////////////////////////////////////////
 // This file contains code examples from the ImageBufAlgo chapter of the
@@ -235,6 +236,138 @@ void example_text2()
 
 // Section: Image transformation and data movement
 
+void example_channels()
+{
+    ImageBuf RGBA ("grid.exr");
+
+    // BEGIN-imagebufalgo-channels
+    // Copy the first 3 channels of an RGBA, drop the alpha
+    ImageBuf RGB = ImageBufAlgo::channels (RGBA, 3, {} /*default ordering*/);
+
+    // Copy just the alpha channel, making a 1-channel image
+    ImageBuf Alpha = ImageBufAlgo::channels (RGBA, 1, 3 /*alpha_channel*/);
+
+    // Swap the R and B channels
+    ImageBuf BRGA;
+    bool success = ImageBufAlgo::channels (
+        BRGA, RGBA, 4, { 2, 1, 0, 3 }, {}, { "R", "G", "B", "A" });
+
+    // Add an alpha channel with value 1.0 everywhere to an RGB image,
+    // keep the other channels with their old ordering, values, and
+    // names.
+    RGBA = ImageBufAlgo::channels (
+        RGB, 4, { 0, 1, 2, -1 },
+        { 0 /*ignore*/, 0 /*ignore*/, 0 /*ignore*/, 1.0 },
+        { "", "", "", "A" });
+    // END-imagebufalgo-channels
+
+    RGBA.write("channels-rgba.exr");
+    RGB.write("channels-rgb.exr");
+    Alpha.write("channels-alpha.exr");
+    BRGA.write("channels-brga.exr");
+}
+
+void example_channel_append()
+{
+    ImageBuf Z (ImageSpec (640, 480, 1, TypeDesc::FLOAT));
+
+    // BEGIN-imagebufalgo-channel-append
+    ImageBuf RGBA ("grid.exr");
+    ImageBuf RGBAZ = ImageBufAlgo::channel_append (RGBA, Z);
+    // END-imagebufalgo-channel-append
+
+    RGBAZ.write("channel-append.exr");
+}
+
+void example_copy()
+{
+    // BEGIN-imagebufalgo-copy
+    // Set B to be a copy of A, but converted to float
+    ImageBuf A ("grid.exr");
+    ImageBuf B = ImageBufAlgo::copy (A, TypeDesc::FLOAT);
+    // END-imagebufalgo-copy
+
+    B.write("copy.exr");
+}
+
+void example_crop()
+{
+    // BEGIN-imagebufalgo-crop
+    // Set B to be a 200x100 region of A starting at (50,50), trimming
+    // the exterior away but leaving that region in its original position.
+    ImageBuf A ("grid.exr");
+    ImageBuf B = ImageBufAlgo::crop (A, ROI(50, 250, 50, 150));
+    // END-imagebufalgo-crop
+
+    B.write("crop.exr");
+}
+
+void example_cut()
+{
+    // BEGIN-imagebufalgo-cut
+    // Set B to be a 200x100 region of A starting at (50,50), but
+    // moved to the upper left corner so its new origin is (0,0).
+    ImageBuf A ("grid.exr");
+    ImageBuf B = ImageBufAlgo::cut (A, ROI(50,250,50,150));
+    // END-imagebufalgo-cut
+
+    B.write("cut.exr");
+}
+
+void example_paste()
+{
+    // BEGIN-imagebufalgo-paste
+    // Paste Fg on top of Bg, offset by (100,100)
+    ImageBuf Bg ("grid.exr");
+    ImageBuf Fg ("tahoe.tif");
+    ImageBufAlgo::paste (Bg, 100, 100, 0, 0, Fg);
+    // END-imagebufalgo-paste
+
+    Bg.write("paste.exr");
+}
+
+void example_rotate_n()
+{
+    // BEGIN-imagebufalgo-rotate-n
+    ImageBuf A ("grid.exr");
+    ImageBuf R90 = ImageBufAlgo::rotate90 (A);
+    ImageBuf R180 = ImageBufAlgo::rotate180 (A);
+    ImageBuf R270 = ImageBufAlgo::rotate270 (A);
+    // END-imagebufalgo-rotate-n
+
+    R90.write("rotate-90.exr");
+    R180.write("rotate-180.exr");
+    R270.write("rotate-270.exr");
+}
+
+void example_flip_flop_transpose()
+{
+    // BEGIN-imagebufalgo-flip-flop-transpose
+    ImageBuf A ("grid.exr");
+    ImageBuf B1 = ImageBufAlgo::flip (A);
+    ImageBuf B2 = ImageBufAlgo::flop (A);
+    ImageBuf B3 = ImageBufAlgo::transpose (A);
+    // END-imagebufalgo-flip-flop-transpose
+
+    B1.write("flip.exr");
+    B2.write("flop.exr");
+    B3.write("transpose.exr");
+}
+
+void example_reorient()
+{
+    ImageBuf tmp ("grid.exr");
+    tmp.specmod().attribute("Orientation", 8);
+    tmp.write("grid-vertical.exr");
+
+    // BEGIN-imagebufalgo-reorient
+    ImageBuf A ("grid-vertical.exr");
+    A = ImageBufAlgo::reorient (A);
+    // END-imagebufalgo-reorient
+
+    A.write("reorient.exr");
+}
+
 void example_circular_shift()
 {
     // BEGIN-imagebufalgo-cshift
@@ -244,6 +377,54 @@ void example_circular_shift()
     // END-imagebufalgo-cshift
 }
 
+void example_rotate()
+{
+    // BEGIN-imagebufalgo-rotate-angle
+    ImageBuf Src ("grid.exr");
+    ImageBuf Dst = ImageBufAlgo::rotate (Src, 45.0);
+    // END-imagebufalgo-rotate-angle
+}
+
+void example_resize()
+{
+    // BEGIN-imagebufalgo-resize
+    // Resize the image to 640x480, using the default filter
+    ImageBuf Src ("grid.exr");
+    ROI roi (0, 640, 0, 480, 0, 1, /*chans:*/ 0, Src.nchannels());
+    ImageBuf Dst = ImageBufAlgo::resize (Src, "", 0, roi);
+    // END-imagebufalgo-resize
+}
+
+void example_resample()
+{
+    // BEGIN-imagebufalgo-resample
+    // Resample quickly to 320x240, with default interpolation
+    ImageBuf Src ("grid.exr");
+    ROI roi (0, 320, 0, 240, 0, 1, /*chans:*/ 0, Src.nchannels());
+    ImageBuf Dst = ImageBufAlgo::resample (Src, true, roi);
+    // END-imagebufalgo-resample
+}
+
+void example_fit()
+{
+    // BEGIN-imagebufalgo-fit
+    // Resize to fit into a max of 640x480, preserving the aspect ratio
+    ImageBuf Src ("grid.exr");
+    ROI roi (0, 640, 0, 480, 0, 1, /*chans:*/ 0, Src.nchannels());
+    ImageBuf Dst = ImageBufAlgo::fit (Src, "", 0, true, roi);
+    // END-imagebufalgo-fit
+}
+
+void example_warp()
+{
+    // BEGIN-imagebufalgo-warp
+    Imath::M33f M ( 0.7071068, 0.7071068, 0,
+                   -0.7071068, 0.7071068, 0,
+                    20,       -8.284271,  1);
+    ImageBuf Src ("grid.exr");
+    ImageBuf Dst = ImageBufAlgo::warp (Src, M, "lanczos3");
+    // END-imagebufalgo-warp
+}
 
 
 // Section: Image Arithmetic
@@ -284,9 +465,6 @@ void example_make_texture()
 }
 
 
-
-
-
 int main(int /*argc*/, char** /*argv*/)
 {
     // Each example function needs to get called here, or it won't execute
@@ -310,7 +488,21 @@ int main(int /*argc*/, char** /*argv*/)
     example_text2();
 
     // Section: Image transformation and data movement
+    example_channels();
+    example_channel_append();
+    example_copy();
+    example_crop();
+    example_cut();
+    example_paste();
+    example_rotate_n();
+    example_flip_flop_transpose();
+    example_reorient();
     example_circular_shift();
+    example_rotate();
+    example_resize();
+    example_resample();
+    example_fit();
+    example_warp();
 
     // Section: Image Arithmetic
 
