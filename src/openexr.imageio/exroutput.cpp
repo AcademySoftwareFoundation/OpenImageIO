@@ -967,7 +967,8 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
     if (Strutil::istarts_with(xname, "oiio:")) {
         if (Strutil::iequals(xname, "oiio:ConstantColor")
             || Strutil::iequals(xname, "oiio:AverageColor")
-            || Strutil::iequals(xname, "oiio:SHA-1")) {
+            || Strutil::iequals(xname, "oiio:SHA-1")
+            || Strutil::iequals(xname, "oiio:ColorSpace")) {
             // let these fall through and get stored as metadata
         } else {
             // Other than the listed exceptions, suppress any other custom
