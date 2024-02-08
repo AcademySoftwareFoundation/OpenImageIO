@@ -27,13 +27,11 @@ OIIO_EXPORT int jpeg_imageio_version = OIIO_PLUGIN_VERSION;
 OIIO_EXPORT const char*
 jpeg_imageio_library_version()
 {
-#define STRINGIZE2(a) #a
-#define STRINGIZE(a) STRINGIZE2(a)
 #ifdef LIBJPEG_TURBO_VERSION
-    return "jpeg-turbo " STRINGIZE(LIBJPEG_TURBO_VERSION) "/jp" STRINGIZE(
-        JPEG_LIB_VERSION);
+    return "jpeg-turbo " OIIO_STRINGIZE(
+        LIBJPEG_TURBO_VERSION) "/jp" OIIO_STRINGIZE(JPEG_LIB_VERSION);
 #else
-    return "jpeglib " STRINGIZE(JPEG_LIB_VERSION_MAJOR) "." STRINGIZE(
+    return "jpeglib " OIIO_STRINGIZE(JPEG_LIB_VERSION_MAJOR) "." OIIO_STRINGIZE(
         JPEG_LIB_VERSION_MINOR);
 #endif
 }
