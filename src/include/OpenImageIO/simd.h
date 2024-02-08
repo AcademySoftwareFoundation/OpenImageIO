@@ -77,6 +77,13 @@
 // OIIO_SIMD_HAS_SIMD8 : nonzero if vfloat8, vint8, vbool8 are defined
 // OIIO_SIMD_HAS_SIMD16 : nonzero if vfloat16, vint16, vbool16 are defined
 
+#ifdef OIIO_NO_SIMD /* Request to disable all SIMD */
+#  define OIIO_NO_SSE 1
+#  define OIIO_NO_AVX 1
+#  define OIIO_NO_AVX2 1
+#  define OIIO_NO_NEON 1
+#endif
+
 #if defined(_M_ARM64) || defined(__aarch64__) || defined(__aarch64)
 #  ifndef __ARM_NEON__
 #      define __ARM_NEON__
@@ -4788,9 +4795,9 @@ OIIO_FORCEINLINE void vint4::store (unsigned char *values) const {
     _mm_store_ss((float*)values, _mm_castsi128_ps(val8));
 #elif OIIO_SIMD_NEON
     vint4 clamped = m_simd & vint4(0xff);
-    simd_t val16 = vcombine_s16(vqmovn_s32(clamped), vdup_n_s16(0));
-    simd_t val8 = vcombine_u8(vqmovun_s16(val16), vdup_n_u8(0));
-    vst1q_lane_u32((uint32_t*)values, val8, 0);
+    int16x8_t val16 = vcombine_s16(vqmovn_s32(clamped), vdup_n_s16(0));
+    uint8x16_t val8 = vcombine_u8(vqmovun_s16(val16), vdup_n_u8(0));
+    vst1q_lane_u32((uint32_t*)values, vreinterpretq_u32_u8(val8), 0);
 #else
     SIMD_DO (values[i] = m_val[i]);
 #endif
