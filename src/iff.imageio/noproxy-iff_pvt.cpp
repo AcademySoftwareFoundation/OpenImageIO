@@ -8,9 +8,6 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 using namespace iff_pvt;
 
-#define STRINGIZE2(a) #a
-#define STRINGIZE(a) STRINGIZE2(a)
-
 
 
 bool
@@ -30,7 +27,7 @@ IffFileHeader::read_header(FILE* fd, std::string& err)
     for (;;) {
         // get type and length
         if (!read_typesize(fd, type, size)) {
-            err = "could not read type/size @ L" STRINGIZE(__LINE__);
+            err = "could not read type/size @ L" OIIO_STRINGIZE(__LINE__);
             return false;
         }
 
@@ -40,7 +37,7 @@ IffFileHeader::read_header(FILE* fd, std::string& err)
             && type[3] == '4') {
             // get type
             if (!fread(&type, 1, sizeof(type), fd)) {
-                err = "could not read FDR4 type @ L" STRINGIZE(__LINE__);
+                err = "could not read FDR4 type @ L" OIIO_STRINGIZE(__LINE__);
                 return false;
             }
 
@@ -50,7 +47,7 @@ IffFileHeader::read_header(FILE* fd, std::string& err)
                 // read TBHD.
                 for (;;) {
                     if (!read_typesize(fd, type, size)) {
-                        err = "could not read CIMG length @ L" STRINGIZE(
+                        err = "could not read CIMG length @ L" OIIO_STRINGIZE(
                             __LINE__);
                         return false;
                     }
@@ -63,7 +60,8 @@ IffFileHeader::read_header(FILE* fd, std::string& err)
 
                         // test if table header size is correct
                         if (tbhdsize != 24 && tbhdsize != 32) {
-                            err = "bad table header @ L" STRINGIZE(__LINE__);
+                            err = "bad table header @ L" OIIO_STRINGIZE(
+                                __LINE__);
                             return false;  // bad table header
                         }
 
@@ -72,14 +70,14 @@ IffFileHeader::read_header(FILE* fd, std::string& err)
                             || !read(fd, prnum) || !read(fd, prden)
                             || !read(fd, flags) || !read(fd, bytes)
                             || !read(fd, tiles) || !read(fd, compression)) {
-                            err = "@ L" STRINGIZE(__LINE__);
+                            err = "@ L" OIIO_STRINGIZE(__LINE__);
                             return false;
                         }
 
                         // get xy
                         if (tbhdsize == 32) {
                             if (!read(fd, x) || !read(fd, y)) {
-                                err = "could not get xy @ L" STRINGIZE(
+                                err = "could not get xy @ L" OIIO_STRINGIZE(
                                     __LINE__);
                                 return false;
                             }
@@ -90,7 +88,7 @@ IffFileHeader::read_header(FILE* fd, std::string& err)
 
                         // tiles
                         if (tiles == 0) {
-                            err = "non-tiles not supported @ L" STRINGIZE(
+                            err = "non-tiles not supported @ L" OIIO_STRINGIZE(
                                 __LINE__);
                             return false;
                         }  // non-tiles not supported
@@ -100,7 +98,7 @@ IffFileHeader::read_header(FILE* fd, std::string& err)
                         // 2 QRL (not supported)
                         // 3 QR4 (not supported)
                         if (compression > 1) {
-                            err = "only RLE compression is supported @ L" STRINGIZE(
+                            err = "only RLE compression is supported @ L" OIIO_STRINGIZE(
                                 __LINE__);
                             return false;
                         }
@@ -135,7 +133,7 @@ IffFileHeader::read_header(FILE* fd, std::string& err)
                         for (;;) {
                             // get type
                             if (!read_typesize(fd, type, size)) {
-                                err = "could not read type/size @ L" STRINGIZE(
+                                err = "could not read type/size @ L" OIIO_STRINGIZE(
                                     __LINE__);
                                 return false;
                             }
@@ -146,7 +144,7 @@ IffFileHeader::read_header(FILE* fd, std::string& err)
                                 && type[2] == 'T' && type[3] == 'H') {
                                 std::vector<char> str(chunksize);
                                 if (!fread(&str[0], 1, chunksize, fd)) {
-                                    err = "could not read author @ L" STRINGIZE(
+                                    err = "could not read author @ L" OIIO_STRINGIZE(
                                         __LINE__);
                                     return false;
                                 }
@@ -155,7 +153,7 @@ IffFileHeader::read_header(FILE* fd, std::string& err)
                                        && type[2] == 'T' && type[3] == 'E') {
                                 std::vector<char> str(chunksize);
                                 if (!fread(&str[0], 1, chunksize, fd)) {
-                                    err = "could not read date @ L" STRINGIZE(
+                                    err = "could not read date @ L" OIIO_STRINGIZE(
                                         __LINE__);
                                     return false;
                                 }
@@ -163,7 +161,7 @@ IffFileHeader::read_header(FILE* fd, std::string& err)
                             } else if (type[0] == 'F' && type[1] == 'O'
                                        && type[2] == 'R' && type[3] == '4') {
                                 if (!fread(&type, 1, sizeof(type), fd)) {
-                                    err = "could not read FOR4 type @ L" STRINGIZE(
+                                    err = "could not read FOR4 type @ L" OIIO_STRINGIZE(
                                         __LINE__);
                                     return false;
                                 }
@@ -180,7 +178,8 @@ IffFileHeader::read_header(FILE* fd, std::string& err)
 
                                     for (unsigned int t = 0; t < tiles; t++) {
                                         if (!read_typesize(fd, type, size)) {
-                                            err = "xxx @ L" STRINGIZE(__LINE__);
+                                            err = "xxx @ L" OIIO_STRINGIZE(
+                                                __LINE__);
                                             return false;
                                         }
                                         chunksize = align_size(size, 4);
@@ -195,7 +194,7 @@ IffFileHeader::read_header(FILE* fd, std::string& err)
                                                 || !read(fd, ymin)
                                                 || !read(fd, xmax)
                                                 || !read(fd, ymax)) {
-                                                err = "xxx @ L" STRINGIZE(
+                                                err = "xxx @ L" OIIO_STRINGIZE(
                                                     __LINE__);
                                                 return false;
                                             }
@@ -204,7 +203,7 @@ IffFileHeader::read_header(FILE* fd, std::string& err)
                                             if (xmin > xmax || ymin > ymax
                                                 || xmax >= width
                                                 || ymax >= height) {
-                                                err = "tile min/max nonsensical @ L" STRINGIZE(
+                                                err = "tile min/max nonsensical @ L" OIIO_STRINGIZE(
                                                     __LINE__);
                                                 return false;
                                             }
@@ -219,7 +218,7 @@ IffFileHeader::read_header(FILE* fd, std::string& err)
 
                                         // skip to the next block.
                                         if (fseek(fd, chunksize, SEEK_CUR)) {
-                                            err = "could not fseek @ L" STRINGIZE(
+                                            err = "could not fseek @ L" OIIO_STRINGIZE(
                                                 __LINE__);
                                             return false;
                                         }
@@ -227,7 +226,7 @@ IffFileHeader::read_header(FILE* fd, std::string& err)
                                 } else {
                                     // skip to the next block.
                                     if (fseek(fd, chunksize, SEEK_CUR)) {
-                                        err = "could not fseek @ L" STRINGIZE(
+                                        err = "could not fseek @ L" OIIO_STRINGIZE(
                                             __LINE__);
                                         return false;
                                     }
@@ -235,7 +234,7 @@ IffFileHeader::read_header(FILE* fd, std::string& err)
                             } else {
                                 // skip to the next block.
                                 if (fseek(fd, chunksize, SEEK_CUR)) {
-                                    err = "could not fseek @ L" STRINGIZE(
+                                    err = "could not fseek @ L" OIIO_STRINGIZE(
                                         __LINE__);
                                     return false;
                                 }
@@ -247,7 +246,7 @@ IffFileHeader::read_header(FILE* fd, std::string& err)
 
                     // skip to the next block.
                     if (fseek(fd, chunksize, SEEK_CUR)) {
-                        err = "could not fseek @ L" STRINGIZE(__LINE__);
+                        err = "could not fseek @ L" OIIO_STRINGIZE(__LINE__);
                         return false;
                     }
                 }
@@ -255,11 +254,11 @@ IffFileHeader::read_header(FILE* fd, std::string& err)
         }
         // skip to the next block.
         if (fseek(fd, chunksize, SEEK_CUR)) {
-            err = "could not fseek @ L" STRINGIZE(__LINE__);
+            err = "could not fseek @ L" OIIO_STRINGIZE(__LINE__);
             return false;
         }
     }
-    err = "unknown error, ended early @ L" STRINGIZE(__LINE__);
+    err = "unknown error, ended early @ L" OIIO_STRINGIZE(__LINE__);
     return false;
 }
 
