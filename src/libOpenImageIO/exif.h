@@ -44,6 +44,26 @@ dataptr(const TIFFDirEntry& td, cspan<uint8_t> data, int offset_adjustment)
 
 
 
+// Return a span that bounds offset data within the dir entry
+template<typename T>
+inline cspan<uint8_t>
+dataspan(const TIFFDirEntry& td, cspan<uint8_t> data, int offset_adjustment,
+         size_t count)
+{
+    size_t len = tiff_data_size(td);
+    OIIO_DASSERT(len == sizeof(T) * count);
+    if (len <= 4)
+        return { (const uint8_t*)&td.tdir_offset, oiio_span_size_type(len) };
+    else {
+        int offset = td.tdir_offset + offset_adjustment;
+        if (offset < 0 || size_t(offset) + len > std::size(data))
+            return {};  // out of bounds! return empty span
+        return { data.data() + offset, oiio_span_size_type(len) };
+    }
+}
+
+
+
 struct LabelIndex {
     int value;
     const char* label;
