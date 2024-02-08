@@ -132,11 +132,9 @@ OIIO_EXPORT const char* gif_input_extensions[] = { "gif", NULL };
 OIIO_EXPORT const char*
 gif_imageio_library_version()
 {
-#define STRINGIZE2(a) #a
-#define STRINGIZE(a) STRINGIZE2(a)
 #if defined(GIFLIB_MAJOR) && defined(GIFLIB_MINOR) && defined(GIFLIB_RELEASE)
-    return "gif_lib " STRINGIZE(GIFLIB_MAJOR) "." STRINGIZE(
-        GIFLIB_MINOR) "." STRINGIZE(GIFLIB_RELEASE);
+    return "gif_lib " OIIO_STRINGIZE(GIFLIB_MAJOR) "." OIIO_STRINGIZE(
+        GIFLIB_MINOR) "." OIIO_STRINGIZE(GIFLIB_RELEASE);
 #else
     return "gif_lib unknown version";
 #endif

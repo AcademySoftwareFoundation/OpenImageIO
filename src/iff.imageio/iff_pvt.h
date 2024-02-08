@@ -107,10 +107,6 @@ tile_height_size(uint32_t height)
 }
 
 
-#define STRINGIZE2(a) #a
-#define STRINGIZE(a) STRINGIZE2(a)
-
-
 }  // namespace iff_pvt
 
 
