@@ -221,6 +221,7 @@ macro (oiio_add_all_tests)
             python-roi
             python-texturesys
             python-typedesc
+            filters
             )
         # These Python tests also need access to oiio-images
         oiio_add_tests (
