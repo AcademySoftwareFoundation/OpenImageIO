@@ -1,0 +1,34 @@
+Comparing "box.exr" and "ref/box.exr"
+PASS
+Comparing "triangle.exr" and "ref/triangle.exr"
+PASS
+Comparing "gaussian.exr" and "ref/gaussian.exr"
+PASS
+Comparing "sharp-gaussian.exr" and "ref/sharp-gaussian.exr"
+PASS
+Comparing "catmull-rom.exr" and "ref/catmull-rom.exr"
+PASS
+Comparing "blackman-harris.exr" and "ref/blackman-harris.exr"
+PASS
+Comparing "sinc.exr" and "ref/sinc.exr"
+PASS
+Comparing "lanczos3.exr" and "ref/lanczos3.exr"
+PASS
+Comparing "radial-lanczos3.exr" and "ref/radial-lanczos3.exr"
+PASS
+Comparing "nuke-lanczos6.exr" and "ref/nuke-lanczos6.exr"
+PASS
+Comparing "mitchell.exr" and "ref/mitchell.exr"
+PASS
+Comparing "bspline.exr" and "ref/bspline.exr"
+PASS
+Comparing "disk.exr" and "ref/disk.exr"
+PASS
+Comparing "cubic.exr" and "ref/cubic.exr"
+PASS
+Comparing "keys.exr" and "ref/keys.exr"
+PASS
+Comparing "simon.exr" and "ref/simon.exr"
+PASS
+Comparing "rifman.exr" and "ref/rifman.exr"
+PASS

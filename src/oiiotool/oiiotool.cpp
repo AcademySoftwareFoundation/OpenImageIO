@@ -6496,12 +6496,11 @@ print_help_end(Oiiotool& ot, std::ostream& out)
     print(out, "    Run `oiiotool --colorconfiginfo` for a "
                "full color management inventory.\n");
 
-    std::vector<string_view> filternames;
-    for (int i = 0, e = Filter2D::num_filters(); i < e; ++i)
-        filternames.emplace_back(Filter2D::get_filterdesc(i).name);
     print(out, "{}\n",
           Strutil::wordwrap("Filters available: "
-                                + Strutil::join(filternames, ", "),
+                                + Strutil::replace(OIIO::get_string_attribute(
+                                                       "filter_list"),
+                                                   ";", ", ", true),
                             columns, 4));
 
     print_build_info(ot, out);
