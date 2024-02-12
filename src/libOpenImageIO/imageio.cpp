@@ -219,16 +219,16 @@ oiio_build_compiler()
     using Strutil::fmt::format;
 
     std::string comp;
-#if OIIO_GNUC_VERSION
-    comp = format("gcc {}.{}", __GNUC__, __GNUC_MINOR__);
-#elif OIIO_CLANG_VERSION
-    comp = format("clang {}.{}", __clang_major__, __clang_minor__);
-#elif OIIO_APPLE_CLANG_VERSION
-    comp = format("Apple clang {}.{}", __clang_major__, __clang_minor__);
-#elif OIIO_INTEL_COMPILER
+#if OIIO_INTEL_CLASSIC_COMPILER_VERSION
     comp = format("Intel icc {}", OIIO_INTEL_CLASSIC_COMPILER_VERSION);
 #elif OIIO_INTEL_LLVM_COMPILER
     comp = format("Intel icx {}.{}", __clang_major__, __clang_minor__);
+#elif OIIO_APPLE_CLANG_VERSION
+    comp = format("Apple clang {}.{}", __clang_major__, __clang_minor__);
+#elif OIIO_CLANG_VERSION
+    comp = format("clang {}.{}", __clang_major__, __clang_minor__);
+#elif OIIO_GNUC_VERSION
+    comp = format("gcc {}.{}", __GNUC__, __GNUC_MINOR__);
 #elif OIIO_MSVS_VERSION
     comp = format("MSVS {}", OIIO_MSVS_VERSION);
 #else
@@ -242,7 +242,7 @@ static std::string
 oiio_build_platform()
 {
     std::string platform;
-#if defined(__LINUX__)
+#if defined(__linux__)
     platform = "Linux";
 #elif defined(__APPLE__)
     platform = "MacOS";
