@@ -138,6 +138,8 @@ the Developer Certificate of Origin, version 1.1:
 - Carl Rand (crand)
 - Gregor Mückl (gmueckl)
 
+...
+
 **Prior authors, please submit a PR against this file that adds your name
 above. If, at the time of your prior contributions, you were employed by a
 company who would have owned your IP output, then please have someone from
