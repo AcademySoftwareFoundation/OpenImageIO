@@ -132,6 +132,11 @@ the Developer Certificate of Origin, version 1.1:
 - Joseph Goldstone (JGoldstone)
 - Matthew Levine (melevine)
 - Yang Yang (yangyangl, but now cometyang)
+- Merwan Achibet (merwaaan)
+- Anthony Nemoff (ix-anemoff)
+- Damien Courtois (ix-dcourtois)
+- Carl Rand (crand)
+- Gregor Mückl (gmueckl)
 
 **Prior authors, please submit a PR against this file that adds your name
 above. If, at the time of your prior contributions, you were employed by a
