@@ -363,7 +363,9 @@ HeifInput::seek_subimage(int subimage, int miplevel)
             // libheif supplies oriented width & height, so if we are NOT
             // auto-reorienting and it's one of the orientations that swaps
             // width and height, we need to do that swap ourselves.
-            if (orientation == 5 || orientation == 6 || orientation == 8) {
+            // Note: all the orientations that swap width and height are 5-8,
+            // whereas 1-4 preserve aspect ratio.
+            if (orientation >= 5) {
                 std::swap(m_spec.width, m_spec.height);
                 std::swap(m_spec.full_width, m_spec.full_height);
             }
