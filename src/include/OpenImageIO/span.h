@@ -233,7 +233,7 @@ using cspan = span<const T, Extent>;
 
 /// Compare all elements of two spans for equality
 template <class T, oiio_span_size_type X, class U, oiio_span_size_type Y>
-OIIO_CONSTEXPR14 bool operator== (span<T,X> l, span<U,Y> r) {
+constexpr bool operator== (span<T,X> l, span<U,Y> r) {
 #if OIIO_CPLUSPLUS_VERSION >= 20
     return std::equal (l.begin(), l.end(), r.begin(), r.end());
 #else
@@ -247,7 +247,7 @@ OIIO_CONSTEXPR14 bool operator== (span<T,X> l, span<U,Y> r) {
 
 /// Compare all elements of two spans for inequality
 template <class T, oiio_span_size_type X, class U, oiio_span_size_type Y>
-OIIO_CONSTEXPR14 bool operator!= (span<T,X> l, span<U,Y> r) {
+constexpr bool operator!= (span<T,X> l, span<U,Y> r) {
     return !(l == r);
 }
 
@@ -299,7 +299,7 @@ public:
 
     /// Construct from std::vector<T>.
     template<class Allocator>
-    OIIO_CONSTEXPR14 span_strided (std::vector<T, Allocator> &v)
+    constexpr span_strided (std::vector<T, Allocator> &v)
         : span_strided(v.data(), v.size(), 1) {}
 
     /// Construct from const std::vector<T>. This turns const std::vector<T>
@@ -359,7 +359,7 @@ using cspan_strided = span_strided<const T, Extent>;
 
 /// Compare all elements of two spans for equality
 template <class T, oiio_span_size_type X, class U, oiio_span_size_type Y>
-OIIO_CONSTEXPR14 bool operator== (span_strided<T,X> l, span_strided<U,Y> r) {
+constexpr bool operator== (span_strided<T,X> l, span_strided<U,Y> r) {
     auto lsize = l.size();
     if (lsize != r.size())
         return false;
@@ -371,7 +371,7 @@ OIIO_CONSTEXPR14 bool operator== (span_strided<T,X> l, span_strided<U,Y> r) {
 
 /// Compare all elements of two spans for inequality
 template <class T, oiio_span_size_type X, class U, oiio_span_size_type Y>
-OIIO_CONSTEXPR14 bool operator!= (span_strided<T,X> l, span_strided<U,Y> r) {
+constexpr bool operator!= (span_strided<T,X> l, span_strided<U,Y> r) {
     return !(l == r);
 }
 

@@ -160,7 +160,7 @@ public:
     const CharT* c_str() const;
 
     // Assignment
-    OIIO_CONSTEXPR14 basic_string_view& operator=(const basic_string_view& copy) noexcept = default;
+    constexpr basic_string_view& operator=(const basic_string_view& copy) noexcept = default;
 
     /// Convert a string_view to a `std::string`.
     operator std::basic_string<CharT, Traits>() const {
@@ -223,22 +223,22 @@ public:
     constexpr const_pointer data() const noexcept { return m_chars; }
 
     // modifiers
-    OIIO_CONSTEXPR14 void clear() noexcept { init(nullptr, 0); }
-    OIIO_CONSTEXPR14 void remove_prefix(size_type n) noexcept
+    constexpr void clear() noexcept { init(nullptr, 0); }
+    constexpr void remove_prefix(size_type n) noexcept
     {
         if (n > m_len)
             n = m_len;
         m_chars += n;
         m_len -= n;
     }
-    OIIO_CONSTEXPR14 void remove_suffix(size_type n) noexcept
+    constexpr void remove_suffix(size_type n) noexcept
     {
         if (n > m_len)
             n = m_len;
         m_len -= n;
     }
 
-    OIIO_CONSTEXPR14 basic_string_view substr(size_type pos, size_type n = npos) const noexcept
+    constexpr basic_string_view substr(size_type pos, size_type n = npos) const noexcept
     {
         if (pos >= size())
             return basic_string_view();  // start past end -> return empty
@@ -409,7 +409,7 @@ private:
     const CharT* m_chars = nullptr;
     size_t m_len = 0;
 
-    OIIO_CONSTEXPR14 void init(const CharT* chars, size_t len) noexcept
+    constexpr void init(const CharT* chars, size_t len) noexcept
     {
         m_chars = chars;
         m_len   = len;

@@ -658,20 +658,14 @@ inline void aligned_delete(T* t) {
 }
 
 
-
-#if OIIO_CPLUSPLUS_VERSION >= 14
-    using std::enable_if_t;    // Use C++14 std::enable_if_t
-#else
-    // Define enable_if_t for C++11
-    template <bool B, class T = void>
-    using enable_if_t = typename std::enable_if<B, T>::type;
-#endif
+// DEPRECATED(2.6)
+using std::enable_if_t;
 
 // An enable_if helper to be used in template parameters which results in
 // much shorter symbols: https://godbolt.org/z/sWw4vP
 // Borrowed from fmtlib.
 #ifndef OIIO_ENABLE_IF
-#   define OIIO_ENABLE_IF(...) OIIO::enable_if_t<(__VA_ARGS__), int> = 0
+#   define OIIO_ENABLE_IF(...) std::enable_if_t<(__VA_ARGS__), int> = 0
 #endif
 
 OIIO_NAMESPACE_END

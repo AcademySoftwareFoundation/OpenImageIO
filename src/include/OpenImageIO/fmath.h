@@ -145,7 +145,7 @@ using std::isnan;
 /// Quick test for whether an integer is a power of 2.
 ///
 template<typename T>
-inline OIIO_HOSTDEVICE OIIO_CONSTEXPR14 bool
+inline OIIO_HOSTDEVICE constexpr bool
 ispow2(T x) noexcept
 {
     // Numerous references for this bit trick are on the web.  The
@@ -158,7 +158,7 @@ ispow2(T x) noexcept
 
 /// Round up to next higher power of 2 (return x if it's already a power
 /// of 2).
-inline OIIO_HOSTDEVICE OIIO_CONSTEXPR14 int
+inline OIIO_HOSTDEVICE constexpr int
 ceil2(int x) noexcept
 {
     // Here's a version with no loops.
@@ -181,7 +181,7 @@ ceil2(int x) noexcept
 
 /// Round down to next lower power of 2 (return x if it's already a power
 /// of 2).
-inline OIIO_HOSTDEVICE OIIO_CONSTEXPR14 int
+inline OIIO_HOSTDEVICE constexpr int
 floor2(int x) noexcept
 {
     // Make all bits past the first 1 also be 1, i.e. 0001xxxx -> 00011111
