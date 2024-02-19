@@ -83,13 +83,16 @@ private:
     }
 
     // helper to compress verbatim
-    void compress_verbatim(const uint8_t*& in, uint8_t*& out, int size);
+    void compress_verbatim(const uint8_t*& in, uint8_t*& out, int size,
+                           cspan<uint8_t> in_span, span<uint8_t> out_span);
 
     // helper to compress duplicate
-    void compress_duplicate(const uint8_t*& in, uint8_t*& out, int size);
+    void compress_duplicate(const uint8_t*& in, uint8_t*& out, int size,
+                            cspan<uint8_t> in_span, span<uint8_t> out_span);
 
     // helper to compress a rle channel
-    size_t compress_rle_channel(const uint8_t* in, uint8_t* out, int size);
+    size_t compress_rle_channel(const uint8_t* in, uint8_t* out, int size,
+                                cspan<uint8_t> in_span, span<uint8_t> out_span);
 };
 
 
@@ -352,15 +355,15 @@ IffOutput::close(void)
 
         int bytespp = m_spec.pixel_bytes();
 
-        std::vector<unsigned char> flip(m_spec.width * bytespp);
-        unsigned char *src, *dst, *tmp = &flip[0];
+        std::vector<unsigned char> fliptmp(m_spec.width * bytespp);
         for (int y = 0; y < m_spec.height / 2; y++) {
-            src = &m_buf[(m_spec.height - y - 1) * m_spec.width * bytespp];
-            dst = &m_buf[y * m_spec.width * bytespp];
+            unsigned char* src
+                = &m_buf[(m_spec.height - y - 1) * m_spec.width * bytespp];
+            unsigned char* dst = &m_buf[y * m_spec.width * bytespp];
 
-            memcpy(tmp, src, m_spec.width * bytespp);
+            memcpy(fliptmp.data(), src, m_spec.width * bytespp);
             memcpy(src, dst, m_spec.width * bytespp);
-            memcpy(dst, tmp, m_spec.width * bytespp);
+            memcpy(dst, fliptmp.data(), m_spec.width * bytespp);
         }
 
         // write y-tiles
@@ -403,8 +406,7 @@ IffOutput::close(void)
                 bool tile_compress = (m_iff_header.compression == RLE);
 
                 // set bytes.
-                std::vector<uint8_t> scratch;
-                scratch.resize(tile_length);
+                std::vector<uint8_t> scratch(tile_length);
 
                 uint8_t* out_p = static_cast<uint8_t*>(&scratch[0]);
 
@@ -441,7 +443,7 @@ IffOutput::close(void)
 
                             // compress rle channel
                             size = compress_rle_channel(&in[0], &tmp[0] + index,
-                                                        tw * th);
+                                                        tw * th, in, tmp);
                             index += size;
                         }
 
@@ -551,7 +553,7 @@ IffOutput::close(void)
 
                             // compress rle channel
                             size = compress_rle_channel(&in[0], &tmp[0] + index,
-                                                        tw * th);
+                                                        tw * th, in, tmp);
                             index += size;
                         }
 
@@ -654,8 +656,10 @@ IffOutput::close(void)
 
 
 void
-IffOutput::compress_verbatim(const uint8_t*& in, uint8_t*& out, int size)
+IffOutput::compress_verbatim(const uint8_t*& in, uint8_t*& out, int size,
+                             cspan<uint8_t> in_span, span<uint8_t> out_span)
 {
+    OIIO_DASSERT(in >= in_span.cbegin() && in + size <= in_span.cend());
     int count          = 1;
     unsigned char byte = 0;
 
@@ -671,7 +675,9 @@ IffOutput::compress_verbatim(const uint8_t*& in, uint8_t*& out, int size)
     }
 
     // copy
+    OIIO_DASSERT(out >= out_span.begin() && out < out_span.end());
     *out++ = count - 1;
+    OIIO_DASSERT(out >= out_span.begin() && out + count <= out_span.end());
     memcpy(out, in, count);
 
     out += count;
@@ -681,8 +687,10 @@ IffOutput::compress_verbatim(const uint8_t*& in, uint8_t*& out, int size)
 
 
 void
-IffOutput::compress_duplicate(const uint8_t*& in, uint8_t*& out, int size)
+IffOutput::compress_duplicate(const uint8_t*& in, uint8_t*& out, int size,
+                              cspan<uint8_t> in_span, span<uint8_t> out_span)
 {
+    OIIO_DASSERT(in >= in_span.cbegin() && in + size <= in_span.cend());
     int count = 1;
     for (; count < size; ++count) {
         if (in[count - 1] != in[count])
@@ -693,6 +701,7 @@ IffOutput::compress_duplicate(const uint8_t*& in, uint8_t*& out, int size)
     const int length = run ? 1 : count;
 
     // copy
+    OIIO_DASSERT(out >= out_span.begin() && out + 2 <= out_span.end());
     *out++ = ((count - 1) & 0x7f) | (run << 7);
     *out   = *in;
 
@@ -703,10 +712,13 @@ IffOutput::compress_duplicate(const uint8_t*& in, uint8_t*& out, int size)
 
 
 size_t
-IffOutput::compress_rle_channel(const uint8_t* in, uint8_t* out, int size)
+IffOutput::compress_rle_channel(const uint8_t* in, uint8_t* out, int size,
+                                cspan<uint8_t> in_span, span<uint8_t> out_span)
 {
     const uint8_t* const _out = out;
     const uint8_t* const end  = in + size;
+    OIIO_DASSERT(in >= in_span.cbegin() && in + size <= in_span.cend());
+    OIIO_DASSERT(out >= out_span.begin() && out < out_span.end());
 
     while (in < end) {
         // find runs
@@ -714,10 +726,10 @@ IffOutput::compress_rle_channel(const uint8_t* in, uint8_t* out, int size)
         if (max > 0) {
             if (in < (end - 1) && in[0] == in[1]) {
                 // compress duplicate
-                compress_duplicate(in, out, max);
+                compress_duplicate(in, out, max, in_span, out_span);
             } else {
                 // compress verbatim
-                compress_verbatim(in, out, max);
+                compress_verbatim(in, out, max, in_span, out_span);
             }
         }
     }
