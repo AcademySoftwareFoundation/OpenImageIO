@@ -164,10 +164,7 @@ struct OIIO_UTIL_API TypeDesc {
     TypeDesc (string_view typestring);
 
     /// Copy constructor.
-    OIIO_HOSTDEVICE constexpr TypeDesc (const TypeDesc &t) noexcept
-        : basetype(t.basetype), aggregate(t.aggregate),
-          vecsemantics(t.vecsemantics), reserved(0), arraylen(t.arraylen)
-          { }
+    OIIO_HOSTDEVICE constexpr TypeDesc (const TypeDesc &t) noexcept = default;
 
 
     /// Return the name, for printing and whatnot.  For example,
@@ -365,8 +362,13 @@ struct OIIO_UTIL_API TypeDesc {
 #endif
 };
 
-
-
+// Validate that TypeDesc can be used directly as POD in a C interface.
+static_assert(std::is_default_constructible<TypeDesc>(), "TypeDesc is not default constructable.");
+static_assert(std::is_trivially_copyable<TypeDesc>(), "TypeDesc is not trivially copyable.");
+static_assert(std::is_trivially_destructible<TypeDesc>(), "TypeDesc is not trivially destructible.");
+static_assert(std::is_trivially_move_constructible<TypeDesc>(), "TypeDesc is not move constructible.");
+static_assert(std::is_trivially_copy_constructible<TypeDesc>(), "TypeDesc is not copy constructible.");
+static_assert(std::is_trivially_move_assignable<TypeDesc>(), "TypeDesc is not move assignable.");
 
 // Static values for commonly used types. Because these are constexpr,
 // they should incur no runtime construction cost and should optimize nicely
