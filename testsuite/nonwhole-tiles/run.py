@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
+
+
 # Regression test for stride bugs for tiled images where resolution isn't
 # a whole number of tiles.  This particular resolution mimics a particular
 # failure case known to cause problems that I debugged.

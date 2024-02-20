@@ -1,0 +1,25 @@
+checker middle, top mip, channels: 1 = (0.5,)
+checker middle, top mip, channels: 2 = (0.5, 0.5)
+checker middle, top mip, channels: 3 = (0.5, 0.5, 0.5)
+
+checker middle, mip tail, channels: 1 = (0.5,)
+
+missingcolor channels: 1 = (1.0,)
+missingcolor channels: 2 = (1.0, 2.0)
+missingcolor channels: 3 = (1.0, 2.0, 3.0)
+missingcolor channels: 4 = (1.0, 2.0, 3.0, 4.0)
+
+default-missingcolor = (0.0, 0.0, 0.0, 0.0)
+
+top mip pixel differences when streaming = 0
+
+udim file.<UDIM>.tx -> 2x4 ['.\\file.1001.tx', '.\\file.1002.tx', '.\\file.1011.tx', '.\\file.1012.tx', '', '', '', '.\\file.1032.tx']
+getattributetype stat:image_size int64
+getattributetype total_files int
+getattributetype max_memory_MB float
+getattributetype worldtocommon matrix
+untyped getattribute stat:image_size 1048575
+untyped getattribute total_files 3
+untyped getattribute max_memory_MB 1024.0
+untyped getattribute worldtocommon (1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0)
+Done.

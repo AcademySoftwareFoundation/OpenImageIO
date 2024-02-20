@@ -1,287 +1,628 @@
-/*
-  Copyright 2009 Larry Gritz and the other authors and contributors.
-  All Rights Reserved.
-
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions are
-  met:
-  * Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
-  * Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution.
-  * Neither the name of the software's owners nor the names of its
-    contributors may be used to endorse or promote products derived from
-    this software without specific prior written permission.
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-  (This is the Modified BSD License)
-*/
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: Apache-2.0
+// https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #ifndef PYOPENIMAGEIO_PY_OIIO_H
 #define PYOPENIMAGEIO_PY_OIIO_H
 
-// Avoid a compiler warning from a duplication in tiffconf.h/pyconfig.h
-#undef SIZEOF_LONG
-#include <boost/python.hpp>
-
-#include "OpenImageIO/imageio.h"
-#include "OpenImageIO/typedesc.h"
-#include "OpenImageIO/imagecache.h"
-#include "OpenImageIO/imagebuf.h"
-
-
-#if PY_MAJOR_VERSION < 2 || (PY_MAJOR_VERSION == 2 && PY_MINOR_VERSION < 5)
-#define Py_ssize_t int
+// Python.h uses the 'register' keyword, don't warn about it being
+// deprecated in C++17.
+#if (__cplusplus >= 201703L && defined(__GNUC__)) || defined(__clang__)
+#    pragma GCC diagnostic ignored "-Wregister"
 #endif
 
-namespace PyOpenImageIO
+// clang-format off
+// Must include Python.h first to avoid certain warnings
+#ifdef _POSIX_C_SOURCE
+#  error "You must include Python.h (and therefore py_oiio.h) BEFORE anything that defines _POSIX_C_SOURCE"
+#endif 
+#include <Python.h>
+// clang-format on
+
+#include <memory>
+
+// Avoid a compiler warning from a duplication in tiffconf.h/pyconfig.h
+#undef SIZEOF_LONG
+
+// Avoid a problem with copysign defined in pyconfig.h on Windows.
+#ifdef copysign
+#    undef copysign
+#endif
+
+#include <OpenImageIO/Imath.h>
+#include <OpenImageIO/deepdata.h>
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagecache.h>
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/span.h>
+#include <OpenImageIO/texture.h>
+#include <OpenImageIO/typedesc.h>
+
+#if PY_MAJOR_VERSION < 3
+OIIO_CLANG_PRAGMA(GCC diagnostic ignored "-Wunused-value")
+#endif
+
+#include <pybind11/numpy.h>
+#include <pybind11/operators.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+namespace py = pybind11;
+
+
+#if PY_MAJOR_VERSION == 2
+// Preferred Python string caster for Python2 is py::bytes, so it's a byte
+// string (not unicode).
+#    define PY_STR py::bytes
+#else
+// Python3 is always unicode, so return a true str
+#    define PY_STR py::str
+#endif
+
+
+namespace pybind11 {
+namespace detail {
+
+    // This half casting support for numpy was all derived from discussions
+    // here: https://github.com/pybind/pybind11/issues/1776
+
+    // Similar to enums in `pybind11/numpy.h`. Determined by doing:
+    // python3 -c 'import numpy as np; print(np.dtype(np.float16).num)'
+    constexpr int NPY_FLOAT16 = 23;
+
+    template<> struct npy_format_descriptor<half> {
+        static pybind11::dtype dtype()
+        {
+            handle ptr = npy_api::get().PyArray_DescrFromType_(NPY_FLOAT16);
+            return reinterpret_borrow<pybind11::dtype>(ptr);
+        }
+        static std::string format()
+        {
+            // following: https://docs.python.org/3/library/struct.html#format-characters
+            return "e";
+        }
+        static constexpr auto name = _("float16");
+    };
+
+}  // namespace detail
+}  // namespace pybind11
+
+
+
+namespace PyOpenImageIO {
+
+//using namespace boost::python;
+
+using namespace OIIO;
+
+// clang-format off
+
+void declare_imagespec (py::module& m);
+void declare_imageinput (py::module& m);
+void declare_imageoutput (py::module& m);
+void declare_typedesc (py::module& m);
+void declare_roi (py::module& m);
+void declare_deepdata (py::module& m);
+void declare_colorconfig (py::module& m);
+void declare_imagecache (py::module& m);
+void declare_imagebuf (py::module& m);
+void declare_imagebufalgo (py::module& m);
+void declare_paramvalue (py::module& m);
+void declare_global (py::module& m);
+void declare_wrap (py::module& m);
+void declare_mipmpode (py::module& m);
+void declare_interpmode (py::module& m);
+void declare_textureopt (py::module& m);
+void declare_texturesystem (py::module& m);
+
+// bool PyProgressCallback(void*, float);
+// object C_array_to_Python_array (const char *data, TypeDesc type, size_t size);
+TypeDesc typedesc_from_python_array_code (string_view code);
+// const char * python_array_code (TypeDesc format);  // unused
+
+
+inline std::string
+object_classname(const py::object& obj)
 {
-
-using namespace boost::python;
-
-OIIO_NAMESPACE_USING
-
-void declare_imagespec(); 
-void declare_imageinput();
-void declare_imageoutput();
-void declare_typedesc();
-void declare_roi();
-void declare_deepdata();
-void declare_imagecache();
-void declare_imagebuf();
-void declare_imagebufalgo();
-void declare_paramvalue();
-void declare_global();
-
-bool PyProgressCallback(void*, float);
-object C_array_to_Python_array (const char *data, TypeDesc type, size_t size);
+    return obj.attr("__class__").attr("__name__").cast<py::str>();
+}
 
 
 
-// Suck up one or more presumed T values into a vector<T>
+template<typename T> struct PyTypeForCType { };
+template<> struct PyTypeForCType<int> { typedef py::int_ type; };
+template<> struct PyTypeForCType<unsigned int> { typedef py::int_ type; };
+template<> struct PyTypeForCType<short> { typedef py::int_ type; };
+template<> struct PyTypeForCType<unsigned short> { typedef py::int_ type; };
+template<> struct PyTypeForCType<char> { typedef py::int_ type; };
+template<> struct PyTypeForCType<unsigned char> { typedef py::int_ type; };
+template<> struct PyTypeForCType<int64_t> { typedef py::int_ type; };
+template<> struct PyTypeForCType<uint64_t> { typedef py::int_ type; };
+template<> struct PyTypeForCType<float> { typedef py::float_ type; };
+template<> struct PyTypeForCType<half> { typedef py::float_ type; };
+template<> struct PyTypeForCType<double> { typedef py::float_ type; };
+template<> struct PyTypeForCType<const char*> { typedef PY_STR type; };
+template<> struct PyTypeForCType<std::string> { typedef PY_STR type; };
+
+// clang-format on
+
+
+// Struct that holds OIIO style buffer info, constructed from
+// py::buffer_info
+struct oiio_bufinfo {
+    TypeDesc format  = TypeUnknown;
+    void* data       = nullptr;
+    stride_t xstride = AutoStride, ystride = AutoStride, zstride = AutoStride;
+    size_t size = 0;
+    std::string error;
+
+    // Just raw buffer, no idea what to expect, treat like a flat array.
+    // Only works for "contiguous" buffers.
+    oiio_bufinfo(const py::buffer_info& pybuf);
+
+    // Expect a certain layout, figure out how to make sense of the buffer.
+    oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
+                 int height, int depth, int pixeldims);
+
+    // Retrieve presumed contiguous data value index i.
+    template<typename T> T dataval(size_t i) { return ((const T*)data)[i]; }
+};
+
+
+
+// Suck up a tuple of presumed T values into a vector<T>. Works for T any of
+// int, float, string, and works if the Python container is any of tuple,
+// list.
+template<typename T, typename PYT>
+inline bool
+py_indexable_pod_to_stdvector(std::vector<T>& vals, const PYT& obj)
+{
+    OIIO_ASSERT(py::isinstance<py::tuple>(obj)
+                || py::isinstance<py::list>(obj));
+    bool ok             = true;
+    const size_t length = py::len(obj);
+    vals.reserve(length);
+    for (size_t i = 0; i < length; ++i) {
+        auto elem = obj[i];
+        if (std::is_same<T, float>::value && py::isinstance<py::float_>(elem)) {
+            vals.emplace_back(T(elem.template cast<float>()));
+        } else if ((std::is_same<T, float>::value || std::is_same<T, int>::value)
+                   && py::isinstance<py::int_>(elem)) {
+            vals.emplace_back(T(elem.template cast<int>()));
+        } else if (std::is_same<T, unsigned int>::value
+                   && py::isinstance<py::int_>(elem)) {
+            vals.emplace_back(T(elem.template cast<unsigned int>()));
+        } else {
+            // FIXME? Other cases?
+            vals.emplace_back(T(42));
+            ok = false;
+        }
+    }
+    return ok;
+}
+
+
+// Partial specialization for reading strings
+template<typename PYT>
+inline bool
+py_indexable_pod_to_stdvector(std::vector<std::string>& vals, const PYT& obj)
+{
+    OIIO_ASSERT(py::isinstance<py::tuple>(obj)
+                || py::isinstance<py::list>(obj));
+    bool ok             = true;
+    const size_t length = py::len(obj);
+    vals.reserve(length);
+    for (size_t i = 0; i < length; ++i) {
+        auto elem = obj[i];
+        if (py::isinstance<py::str>(elem)) {
+            vals.emplace_back(elem.template cast<py::str>());
+        } else {
+            // FIXME? Other cases?
+            vals.emplace_back("");
+            ok = false;
+        }
+    }
+    return ok;
+}
+
+
+// Partial specialization for reading TypeDesc
+template<typename PYT>
+inline bool
+py_indexable_pod_to_stdvector(std::vector<TypeDesc>& vals, const PYT& obj)
+{
+    OIIO_ASSERT(py::isinstance<py::tuple>(obj)
+                || py::isinstance<py::list>(obj));
+    bool ok             = true;
+    const size_t length = py::len(obj);
+    vals.reserve(length);
+    for (size_t i = 0; i < length; ++i) {
+        auto elem = obj[i];
+        if (py::isinstance<TypeDesc>(elem)) {
+            vals.emplace_back(*(elem.template cast<TypeDesc*>()));
+        } else if (py::isinstance<TypeDesc::BASETYPE>(elem)) {
+            vals.emplace_back(*(elem.template cast<TypeDesc::BASETYPE*>()));
+        } else if (py::isinstance<py::str>(elem)) {
+            vals.emplace_back(
+                TypeDesc(std::string(elem.template cast<py::str>())));
+        } else {
+            // FIXME? Other cases?
+            vals.emplace_back(TypeUnknown);
+            ok = false;
+        }
+    }
+    return ok;
+}
+
+
+
 template<typename T>
-void py_to_stdvector (std::vector<T> &vals, const object &obj)
+inline bool
+py_scalar_pod_to_stdvector(std::vector<T>& vals, const py::object& obj)
 {
-    extract<const tuple&> tup (obj);
-    if (tup.check()) {
-        // tuple case: recurse
-        for (int i = 0, e = len(tup()); i < e; ++i)
-            py_to_stdvector<T> (vals, tup()[i]);
+    using pytype = typename PyTypeForCType<T>::type;
+    vals.clear();
+    if (py::isinstance<pytype>(obj)) {
+        vals.emplace_back(obj.template cast<pytype>());
+        return true;
     } else {
-        // non-tuple case
-        extract<T> t (obj);
-        vals.push_back (t.check() ? t() : T());
+        return false;
+    }
+}
+
+// float specialization -- accept ints, too
+template<>
+inline bool
+py_scalar_pod_to_stdvector(std::vector<float>& vals, const py::object& obj)
+{
+    vals.clear();
+    if (py::isinstance<py::float_>(obj)) {
+        vals.emplace_back(obj.template cast<py::float_>());
+        return true;
+    } else if (py::isinstance<py::int_>(obj)) {
+        int i = obj.template cast<py::int_>();
+        vals.emplace_back((float)i);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+// TypeDesc specialization
+template<>
+inline bool
+py_scalar_pod_to_stdvector(std::vector<TypeDesc>& vals, const py::object& obj)
+{
+    vals.clear();
+    if (py::isinstance<TypeDesc>(obj)) {
+        vals.emplace_back(*(obj.template cast<TypeDesc*>()));
+        return true;
+    } else if (py::isinstance<TypeDesc::BASETYPE>(obj)) {
+        vals.emplace_back(*(obj.template cast<TypeDesc::BASETYPE*>()));
+        return true;
+    } else if (py::isinstance<py::str>(obj)) {
+        vals.emplace_back(TypeDesc(std::string(obj.template cast<py::str>())));
+        return true;
+    } else {
+        return false;
     }
 }
 
 
-// Suck up a tuple of presumed T values into a vector<T>
+
 template<typename T>
-void py_to_stdvector (std::vector<T> &vals, const tuple &tup)
+inline bool
+py_buffer_to_stdvector(std::vector<T>& vals, const py::buffer& obj)
 {
-    for (int i = 0, e = len(tup); i < e; ++i)
-        py_to_stdvector<T> (vals, tup[i]);
+    OIIO_DASSERT(py::isinstance<py::buffer>(obj));
+    oiio_bufinfo binfo(obj.request());
+    bool ok = true;
+    vals.reserve(binfo.size);
+    for (size_t i = 0; i < binfo.size; ++i) {
+        if (std::is_same<T, float>::value
+            && binfo.format.basetype == TypeDesc::FLOAT) {
+            vals.emplace_back(binfo.dataval<float>(i));
+        } else if ((std::is_same<T, float>::value || std::is_same<T, int>::value)
+                   && binfo.format.basetype == TypeDesc::INT) {
+            vals.emplace_back(T(binfo.dataval<int>(i)));
+        } else if (std::is_same<T, unsigned int>::value
+                   && binfo.format.basetype == TypeDesc::UINT) {
+            vals.emplace_back(T(binfo.dataval<unsigned int>(i)));
+        } else if (std::is_same<T, unsigned char>::value
+                   && binfo.format.basetype == TypeDesc::UINT8) {
+            vals.emplace_back(T(binfo.dataval<unsigned char>(i)));
+        } else if (std::is_same<T, unsigned short>::value
+                   && binfo.format.basetype == TypeDesc::UINT16) {
+            vals.emplace_back(T(binfo.dataval<unsigned short>(i)));
+        } else {
+            // FIXME? Other cases?
+            vals.emplace_back(T(42));
+            ok = false;
+        }
+    }
+    return ok;
+}
+
+
+// Specialization for reading strings
+template<>
+inline bool
+py_buffer_to_stdvector(std::vector<std::string>& /*vals*/,
+                       const py::buffer& /*obj*/)
+{
+    return false;  // not supported
+}
+
+
+// Specialization for reading TypeDesc
+template<>
+inline bool
+py_buffer_to_stdvector(std::vector<TypeDesc>& /*vals*/,
+                       const py::buffer& /*obj*/)
+{
+    return false;  // not supported
 }
 
 
 
-// Convert an array of T values into either tuple. FUNC is a conversion
-// function such as PyInt_FromLong, PyFloat_FromDouble, or
-// PyString_FromString.
-template<typename T, typename FUNC>
-object C_to_tuple (const T *vals, int size, FUNC f)
+// Suck up a tuple (or list, or single instance) of presumed T values into a
+// vector<T>. Works for T any of int, float, string, and works if the Python
+// container is any of tuple, list.
+template<typename T>
+inline bool
+py_to_stdvector(std::vector<T>& vals, const py::object& obj)
 {
-    PyObject* result = PyTuple_New (size);
-    for (int i = 0;  i < size;  ++i)
-        PyTuple_SetItem(result, i, f(vals[i]));
-    return object(handle<>(result));
+    if (py::isinstance<py::tuple>(obj)) {  // if it's a Python tuple
+        return py_indexable_pod_to_stdvector(vals, obj.cast<py::tuple>());
+    }
+    if (py::isinstance<py::list>(obj)) {  // if it's a Python list
+        return py_indexable_pod_to_stdvector(vals, obj.cast<py::list>());
+    }
+    // Apparently a str can masquerade as a buffer object, so make sure to
+    // exclude that from the buffer case.
+    if (py::isinstance<py::buffer>(obj) && !py::isinstance<py::str>(obj)) {
+        return py_buffer_to_stdvector(vals, obj.cast<py::buffer>());
+    }
+
+    // handle scalar case or bust
+    return py_scalar_pod_to_stdvector(vals, obj);
+}
+
+
+
+template<typename T>
+inline py::tuple
+C_to_tuple(cspan<T> vals)
+{
+    size_t size = vals.size();
+    py::tuple result(size);
+    for (size_t i = 0; i < size; ++i)
+        result[i] = typename PyTypeForCType<T>::type(vals[i]);
+    return result;
+}
+
+
+template<typename T>
+inline py::tuple
+C_to_tuple(const T* vals, size_t size)
+{
+    py::tuple result(size);
+    for (size_t i = 0; i < size; ++i)
+        result[i] = typename PyTypeForCType<T>::type(vals[i]);
+    return result;
+}
+
+
+template<>
+inline py::tuple
+C_to_tuple(cspan<unsigned char> vals)
+{
+    size_t size = vals.size();
+    py::tuple result(size);
+    for (size_t i = 0; i < size; ++i)
+        result[i] = static_cast<unsigned char>(vals[i]);
+    return result;
+}
+
+
+// Special case for TypeDesc
+template<>
+inline py::tuple
+C_to_tuple<TypeDesc>(cspan<TypeDesc> vals)
+{
+    size_t size = vals.size();
+    py::tuple result(size);
+    for (size_t i = 0; i < size; ++i)
+        result[i] = py::cast(vals[i]);
+    return result;
 }
 
 
 
 // Convert an array of T values (described by type) into either a simple
 // Python object (if it's an int, float, or string and a SCALAR) or a
-// Python tuple.  FUNC is a conversion function such as PyInt_FromLong,
-// PyFloat_FromDouble, or PyString_FromString.
-template<typename T, typename FUNC>
-object C_to_val_or_tuple (const T *vals, TypeDesc type, FUNC f)
+// Python tuple.
+template<typename T>
+inline py::object
+C_to_val_or_tuple(const T* vals, TypeDesc type, int nvalues = 1)
 {
-    if (type.arraylen == 0 && type.aggregate == TypeDesc::SCALAR) {
-        // scalar case
-        return object (vals[0]);
-    }
-    // Array/aggregate case -- return a tuple
-    int size = type.numelements() * type.aggregate;
-    return C_to_tuple (vals, size, f);
+    OIIO_DASSERT(vals && nvalues);
+    size_t n = type.numelements() * type.aggregate * nvalues;
+    if (n == 1 && !type.arraylen)
+        return typename PyTypeForCType<T>::type(vals[0]);
+    else
+        return C_to_tuple(cspan<T>(vals, n));
 }
 
 
 
-// Helper class to release the GIL, allowing other Python threads to
-// proceed, then re-acquire it again when the scope ends.
-class ScopedGILRelease {
-public:
-    ScopedGILRelease () : m_thread_state(PyEval_SaveThread()) { }
-    ~ScopedGILRelease () { PyEval_RestoreThread (m_thread_state); }
-private:
-    PyThreadState *m_thread_state;
-};
-
-
-
-class ImageInputWrap {
-private:
-    /// Friend declaration for ImageOutputWrap::copy_image
-    friend class ImageOutputWrap;
-    ImageInput *m_input;
-public:
-	virtual ~ImageInputWrap();
-    static object create(const std::string&, const std::string&);
-    static object open_static_regular(const std::string&);
-    static object open_static_with_config(const std::string&,const ImageSpec&);
-    const char *format_name () const;
-    bool valid_file (const std::string &name) const;
-    bool open_regular (const std::string &name);
-    bool open_with_config(const std::string &name, const ImageSpec &config);
-    const ImageSpec &spec() const;
-    int supports (const std::string &feature) const;
-    bool close();
-    int current_subimage() const;
-    int current_miplevel() const;
-    bool seek_subimage (int, int);
-    object read_image (TypeDesc);
-    object read_scanline (int y, int z, TypeDesc format);
-    object read_scanlines (int ybegin, int yend, int z,
-                           int chbegin, int chend, TypeDesc format);
-    object read_tile (int x, int y, int z, TypeDesc format);
-    object read_tiles (int xbegin, int xend, int ybegin, int yend,
-                       int zbegin, int zend, int chbegin, int chend,
-                       TypeDesc format);
-    object read_native_deep_scanlines (int ybegin, int yend, int z,
-                                       int chbegin, int chend);
-    object read_native_deep_tiles (int xbegin, int xend, int ybegin, int yend,
-                                   int zbegin, int zend, int chbegin, int chend);
-    object read_native_deep_image ();
-    std::string geterror() const;
-};
-
-
-class ImageOutputWrap {
-private:
-    friend class ImageBufWrap;
-    ImageOutput *m_output;
-    const void *make_read_buffer (object &buffer, imagesize_t size);
-public:
-    virtual ~ImageOutputWrap();
-    static boost::python::object create(const std::string&, const std::string&);
-    const ImageSpec &spec() const;
-    bool open (const std::string&, const ImageSpec&, ImageOutput::OpenMode);
-    bool open_specs (const std::string&, tuple &specs);
-    bool close();
-    bool write_scanline (int, int, TypeDesc, boost::python::object&,
-                         stride_t xstride=AutoStride);
-    bool write_scanline_bt (int, int, TypeDesc::BASETYPE,
-                            boost::python::object&, stride_t xstride=AutoStride);
-    bool write_scanlines (int, int, int, TypeDesc, boost::python::object&,
-                         stride_t xstride=AutoStride);
-    bool write_scanlines_bt (int, int, int, TypeDesc::BASETYPE,
-                            boost::python::object&, stride_t xstride=AutoStride);
-    bool write_tile (int, int, int, TypeDesc, boost::python::object&,
-                     stride_t xstride=AutoStride, stride_t ystride=AutoStride,
-                     stride_t zstride=AutoStride);
-    bool write_tile_bt (int, int, int, TypeDesc::BASETYPE,
-                        boost::python::object&, stride_t xstride=AutoStride,
-                        stride_t ystride=AutoStride,
-                        stride_t zstride=AutoStride);
-    bool write_tiles (int, int, int, int, int, int,
-                      TypeDesc, boost::python::object&,
-                      stride_t xstride=AutoStride, stride_t ystride=AutoStride,
-                      stride_t zstride=AutoStride);
-    bool write_tiles_bt (int, int, int, int, int, int,
-                         TypeDesc::BASETYPE, boost::python::object&,
-                         stride_t xstride=AutoStride,
-                         stride_t ystride=AutoStride,
-                         stride_t zstride=AutoStride);
-    bool write_image (TypeDesc format, object &buffer,
-                      stride_t xstride=AutoStride,
-                      stride_t ystride=AutoStride,
-                      stride_t zstride=AutoStride);
-    bool write_image_bt (TypeDesc::BASETYPE basetype, object &buffer,
-                         stride_t xstride=AutoStride,
-                         stride_t ystride=AutoStride,
-                         stride_t zstride=AutoStride);
-    bool write_deep_scanlines (int ybegin, int yend, int z,
-                               const DeepData &deepdata);
-    bool write_deep_tiles (int xbegin, int xend, int ybegin, int yend,
-                           int zbegin, int zend, const DeepData &deepdata);
-    bool write_deep_image (const DeepData &deepdata);
-    bool copy_image (ImageInputWrap *iiw);
-    const char *format_name () const;
-    int supports (const std::string&) const;
-    std::string geterror()const;
-};
-
-
-class ImageCacheWrap {
-private:
-    friend class ImageBufWrap;
-    ImageCache *m_cache;
-public:
-    static ImageCacheWrap *create (bool);
-    static void destroy (ImageCacheWrap*);
-    void clear ();     
-    bool attribute (const std::string&, TypeDesc, const void*);    
-    bool attribute_int    (const std::string&, int );
-    bool attribute_float  (const std::string&, float);
-    bool attribute_double (const std::string&, double);
-    bool attribute_char   (const std::string&, const char*);
-    bool attribute_string (const std::string&, const std::string&);
-    bool getattribute(const std::string&, TypeDesc, void*);
-    bool getattribute_int (const std::string&, int&);
-    bool getattribute_float(const std::string&, float&);
-    bool getattribute_double(const std::string&, double&);
-    bool getattribute_char(const std::string&, char**);    
-    bool getattribute_string(const std::string&, std::string&);
-    std::string resolve_filename (const std::string&);
-    bool get_image_info_old (ustring, ustring, TypeDesc, void*);
-    bool get_image_info (ustring, int, int, ustring, TypeDesc, void*);
-    bool get_imagespec(ustring, ImageSpec&, int);
-    bool get_pixels (ustring, int, int, int, int, int, int, 
-                     int, int, TypeDesc, void*);
-
-    //First needs to be exposed to python in imagecache.cpp
-    /*
-    Tile *get_tile (ustring filename, int subimage,
-                    int x, int y, int z) {
-        return m_cache->get_tile(filename, subimage, x, y, z);
+template<typename T, typename POBJ>
+bool
+attribute_typed(T& myobj, string_view name, TypeDesc type, const POBJ& dataobj)
+{
+    if (type.basetype == TypeDesc::INT) {
+        std::vector<int> vals;
+        bool ok = py_to_stdvector(vals, dataobj);
+        ok &= (vals.size() == type.numelements() * type.aggregate);
+        if (ok)
+            myobj.attribute(name, type, &vals[0]);
+        return ok;
     }
-    void release_tile (Tile *tile) const {
-        m_cache->release-tile(tile);
+    if (type.basetype == TypeDesc::UINT) {
+        std::vector<unsigned int> vals;
+        bool ok = py_to_stdvector(vals, dataobj);
+        ok &= (vals.size() == type.numelements() * type.aggregate);
+        if (ok)
+            myobj.attribute(name, type, &vals[0]);
+        return ok;
     }
-    const void *tile_pixels (Tile *tile, TypeDesc &format) const {
-        m_cache->tile_pixels(tile, format);
-    }        
-    */
+    if (type.basetype == TypeDesc::UINT8) {
+        std::vector<unsigned char> vals;
+        bool ok = py_to_stdvector(vals, dataobj);
+        ok &= (vals.size() == type.numelements() * type.aggregate);
+        if (ok)
+            myobj.attribute(name, type, &vals[0]);
+        return ok;
+    }
+    if (type.basetype == TypeDesc::FLOAT) {
+        std::vector<float> vals;
+        bool ok = py_to_stdvector(vals, dataobj);
+        ok &= (vals.size() == type.numelements() * type.aggregate);
+        if (ok)
+            myobj.attribute(name, type, &vals[0]);
+        return ok;
+    }
+    if (type.basetype == TypeDesc::STRING) {
+        std::vector<std::string> vals;
+        bool ok = py_to_stdvector(vals, dataobj);
+        ok &= (vals.size() == type.numelements() * type.aggregate);
+        if (ok) {
+            std::vector<ustring> u;
+            for (auto& val : vals)
+                u.emplace_back(val);
+            myobj.attribute(name, type, &u[0]);
+        }
+        return ok;
+    }
+    return false;
+}
 
-    std::string geterror () const;
-    std::string getstats (int) const;
-    void invalidate (ustring);
-    void invalidate_all (bool);
-};
+
+
+// `data` points to values of `type`. Make a python object that represents
+// them.
+py::object
+make_pyobject(const void* data, TypeDesc type, int nvalues = 1,
+              py::object defaultvalue = py::none());
 
 
 
-} // namespace PyOpenImageIO
+template<typename T>
+py::object
+getattribute_typed(const T& obj, const std::string& name,
+                   TypeDesc type = TypeUnknown)
+{
+    if (type == TypeUnknown)
+        return py::none();
+    char* data = OIIO_ALLOCA(char, type.size());
+    bool ok    = obj.getattribute(name, type, data);
+    if (!ok)
+        return py::none();  // None
+    return make_pyobject(data, type);
+}
 
-#endif // PYOPENIMAGEIO_PY_OIIO_H
+
+
+// TRANSFERS ownership of the data pointer!
+// N.B. There is some evidence that this doesn't work properly with
+// non-float arrays. Maybe a limitation of pybind11?
+template<class T>
+inline py::array_t<T>
+make_numpy_array(T* data, int dims, size_t chans, size_t width, size_t height,
+                 size_t depth = 1)
+{
+    const size_t size = chans * width * height * depth;
+    T* mem            = data ? data : new T[size];
+
+    // Create a Python object that will free the allocated memory when
+    // destroyed:
+    py::capsule free_when_done(mem, [](void* f) {
+        delete[] (reinterpret_cast<T*>(f));
+    });
+
+    std::vector<size_t> shape, strides;
+    if (dims == 4) {  // volumetric
+        shape.assign({ depth, height, width, chans });
+        strides.assign({ height * width * chans * sizeof(T),
+                         width * chans * sizeof(T), chans * sizeof(T),
+                         sizeof(T) });
+    } else if (dims == 3 && depth == 1) {  // 2D+channels
+        shape.assign({ height, width, chans });
+        strides.assign(
+            { width * chans * sizeof(T), chans * sizeof(T), sizeof(T) });
+    } else if (dims == 2 && depth == 1
+               && height == 1) {  // 1D (scanline) + channels
+        shape.assign({ width, chans });
+        strides.assign({ chans * sizeof(T), sizeof(T) });
+    } else {  // punt -- make it a 1D array
+        shape.assign({ size });
+        strides.assign({ sizeof(T) });
+    }
+    return py::array_t<T>(shape, strides, mem, free_when_done);
+}
+
+
+
+inline py::object
+make_numpy_array(TypeDesc format, void* data, int dims, size_t chans,
+                 size_t width, size_t height, size_t depth = 1)
+{
+    if (format == TypeDesc::FLOAT)
+        return make_numpy_array((float*)data, dims, chans, width, height,
+                                depth);
+    if (format == TypeDesc::UINT8)
+        return make_numpy_array((unsigned char*)data, dims, chans, width,
+                                height, depth);
+    if (format == TypeDesc::UINT16)
+        return make_numpy_array((unsigned short*)data, dims, chans, width,
+                                height, depth);
+    if (format == TypeDesc::INT8)
+        return make_numpy_array((char*)data, dims, chans, width, height, depth);
+    if (format == TypeDesc::INT16)
+        return make_numpy_array((short*)data, dims, chans, width, height,
+                                depth);
+    if (format == TypeDesc::DOUBLE)
+        return make_numpy_array((double*)data, dims, chans, width, height,
+                                depth);
+    if (format == TypeDesc::HALF)
+        return make_numpy_array((half*)data, dims, chans, width, height, depth);
+    if (format == TypeDesc::UINT)
+        return make_numpy_array((unsigned int*)data, dims, chans, width, height,
+                                depth);
+    if (format == TypeDesc::INT)
+        return make_numpy_array((int*)data, dims, chans, width, height, depth);
+    delete[] (char*)data;
+    return py::none();
+}
+
+
+
+template<typename C>
+inline void
+delegate_setitem(C& self, const std::string& key, py::object obj)
+{
+    if (py::isinstance<py::float_>(obj))
+        self[key] = float(obj.template cast<py::float_>());
+    else if (py::isinstance<py::int_>(obj))
+        self[key] = int(obj.template cast<py::int_>());
+    else if (py::isinstance<py::str>(obj))
+        self[key] = std::string(obj.template cast<py::str>());
+    else if (py::isinstance<py::bytes>(obj))
+        self[key] = std::string(obj.template cast<py::bytes>());
+    else
+        throw std::invalid_argument("Bad type for __setitem__");
+}
+
+
+}  // namespace PyOpenImageIO
+
+#endif  // PYOPENIMAGEIO_PY_OIIO_H

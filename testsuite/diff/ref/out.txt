@@ -1,0 +1,45 @@
+Comparing "img1.exr" and "img2.exr"
+64 x 64, 3 channels
+  Mean error = 0.0049235
+  RMS error = 0.049616
+  Peak SNR = 26.0876
+  Max error  = 0.5 @ (5, 17, G)  values are 0.1, 0.1, 0.1 vs 0.1, 0.6, 0.1
+  121 pixels (2.95%) over 0.008
+  121 pixels (2.95%) over 0.004
+FAILURE
+Computing diff of "img1.exr" vs "img2.exr"
+  Mean error = 0.0049235
+  RMS error = 0.049616
+  Peak SNR = 26.0876
+  Max error  = 0.5 @ (5, 17, G)  values are 0.1, 0.1, 0.1 vs 0.1, 0.6, 0.1
+  121 pixels (2.95%) over 1e-06
+  121 pixels (2.95%) over 1e-06
+FAILURE
+Computing perceptual diff of "img1.exr" vs "img2.exr"
+  Max error  = 1 @ (5, 17, R)  values are 0.1, 0.1, 0.1 vs 0.1, 0.6, 0.1
+  121 pixels (2.95%) failed the perceptual test
+FAILURE
+Computing perceptual diff of "img1.exr" vs "img1.exr"
+PASS
+Comparing "img1.exr" and "img2.exr"
+64 x 64, 3 channels
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = 0
+  Max error  = 1 @ (5, 17, R)  values are 0.1, 0.1, 0.1 vs 0.1, 0.6, 0.1
+  0 pixels (0%) over 0.008
+  121 pixels (2.95%) over 0.004
+  121 pixels (2.9541%) failed the perceptual test
+FAILURE
+Comparing "img1.exr" and "img1.exr"
+PASS
+Comparing "img1.exr" and "img2.exr"
+64 x 64, 3 channels
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = 0
+  Max error  = 1 @ (5, 17, R)  values are 0.1, 0.1, 0.1 vs 0.1, 0.6, 0.1
+  0 pixels (0%) over 0.008
+  121 pixels (2.95%) over 1
+  121 pixels (2.9541%) failed the perceptual test
+FAILURE

@@ -1,0 +1,94 @@
+Comparing "resample.tif" and "ref/resample.tif"
+PASS
+Comparing "resize.tif" and "ref/resize.tif"
+PASS
+Comparing "resize2.tif" and "ref/resize2.tif"
+PASS
+Comparing "resize64.tif" and "ref/resize64.tif"
+PASS
+Comparing "resize512.tif" and "ref/resize512.tif"
+PASS
+Comparing "resized-offset.exr" and "ref/resized-offset.exr"
+PASS
+Comparing "resizefrom.tif" and "ref/resizefrom.tif"
+PASS
+Comparing "resizefromto.tif" and "ref/resizefromto.tif"
+PASS
+Comparing "resizefromtooffset.tif" and "ref/resizefromtooffset.tif"
+PASS
+Comparing "fit.tif" and "ref/fit.tif"
+PASS
+Comparing "fit2.tif" and "ref/fit2.tif"
+PASS
+Comparing "fit3.tif" and "ref/fit3.tif"
+PASS
+Comparing "fit4.exr" and "ref/fit4.exr"
+PASS
+Comparing "fitw-letterbox-200x200.exr" and "ref/fitw-letterbox-200x200.exr"
+PASS
+Comparing "fitw-width-200x200.exr" and "ref/fitw-width-200x200.exr"
+PASS
+Comparing "fitw-height-200x200.exr" and "ref/fitw-height-200x200.exr"
+PASS
+Comparing "fith-letterbox-200x200.exr" and "ref/fith-letterbox-200x200.exr"
+PASS
+Comparing "fith-width-200x200.exr" and "ref/fith-width-200x200.exr"
+PASS
+Comparing "fith-height-200x200.exr" and "ref/fith-height-200x200.exr"
+PASS
+Comparing "fitw-letterbox-300x300.exr" and "ref/fitw-letterbox-300x300.exr"
+PASS
+Comparing "fitw-width-300x300.exr" and "ref/fitw-width-300x300.exr"
+PASS
+Comparing "fitw-height-300x300.exr" and "ref/fitw-height-300x300.exr"
+PASS
+Comparing "fith-letterbox-300x300.exr" and "ref/fith-letterbox-300x300.exr"
+PASS
+Comparing "fith-width-300x300.exr" and "ref/fith-width-300x300.exr"
+PASS
+Comparing "fith-height-300x300.exr" and "ref/fith-height-300x300.exr"
+PASS
+Comparing "pixelaspect.tif" and "ref/pixelaspect.tif"
+PASS
+Comparing "warped.tif" and "ref/warped.tif"
+PASS
+Comparing "st_warped.tif" and "ref/st_warped.tif"
+PASS
+Comparing "rotated.tif" and "ref/rotated.tif"
+PASS
+Comparing "rotated-offcenter.tif" and "ref/rotated-offcenter.tif"
+PASS
+Comparing "rotated360.tif" and "ref/rotated360.tif"
+PASS
+Comparing "flip.tif" and "ref/flip.tif"
+PASS
+Comparing "flip-crop.tif" and "ref/flip-crop.tif"
+PASS
+Comparing "flop.tif" and "ref/flop.tif"
+PASS
+Comparing "flop-crop.tif" and "ref/flop-crop.tif"
+PASS
+Comparing "flipflop.tif" and "ref/flipflop.tif"
+PASS
+Comparing "flipflop-crop.tif" and "ref/flipflop-crop.tif"
+PASS
+Comparing "rotate90.tif" and "ref/rotate90.tif"
+PASS
+Comparing "rotate90-crop.tif" and "ref/rotate90-crop.tif"
+PASS
+Comparing "rotate270.tif" and "ref/rotate270.tif"
+PASS
+Comparing "rotate270-crop.tif" and "ref/rotate270-crop.tif"
+PASS
+Comparing "reorient1.tif" and "ref/reorient1.tif"
+PASS
+Comparing "reorient2.tif" and "ref/reorient2.tif"
+PASS
+Comparing "reorient3.tif" and "ref/reorient3.tif"
+PASS
+Comparing "transpose.tif" and "ref/transpose.tif"
+PASS
+Comparing "transpose-crop.tif" and "ref/transpose-crop.tif"
+PASS
+Comparing "cshift.tif" and "ref/cshift.tif"
+PASS

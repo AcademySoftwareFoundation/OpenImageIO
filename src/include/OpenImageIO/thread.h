@@ -1,33 +1,8 @@
-/*
-  Copyright 2008 Larry Gritz and the other authors and contributors.
-  All Rights Reserved.
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: Apache-2.0
+// https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions are
-  met:
-  * Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
-  * Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution.
-  * Neither the name of the software's owners nor the names of its
-    contributors may be used to endorse or promote products derived from
-    this software without specific prior written permission.
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-  (This is the Modified BSD License)
-*/
-
+// clang-format off
 
 /////////////////////////////////////////////////////////////////////////
 /// @file   thread.h
@@ -36,84 +11,25 @@
 /////////////////////////////////////////////////////////////////////////
 
 
-#ifndef OPENIMAGEIO_THREAD_H
-#define OPENIMAGEIO_THREAD_H
+#pragma once
 
-#include "oiioversion.h"
-#include "platform.h"
+#include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <functional>
+#include <future>
+#include <iostream>
+#include <memory>
+#include <mutex>
+#include <thread>
+#include <vector>
 
+#include <OpenImageIO/atomic.h>
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/export.h>
+#include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/platform.h>
 
-// defining NOMINMAX to prevent problems with std::min/std::max
-// and std::numeric_limits<type>::min()/std::numeric_limits<type>::max()
-// when boost include windows.h
-#ifdef _MSC_VER
-# define WIN32_LEAN_AND_MEAN
-# define VC_EXTRALEAN
-# ifndef NOMINMAX
-#   define NOMINMAX
-# endif
-#endif
- 
-#include <boost/version.hpp>
-#if defined(__GNUC__) && (BOOST_VERSION == 104500)
-// gcc reports errors inside some of the boost headers with boost 1.45
-// See: https://svn.boost.org/trac/boost/ticket/4818
-#pragma GCC diagnostic ignored "-Wunused-variable"
-#endif
-
-#include <boost/thread.hpp>
-#include <boost/thread/tss.hpp>
-#include <boost/version.hpp>
-
-#if defined(__GNUC__) && (BOOST_VERSION == 104500)
-// can't restore via push/pop in all versions of gcc (warning push/pop implemented for 4.6+ only)
-#pragma GCC diagnostic error "-Wunused-variable"
-#endif
-
-#if defined(_MSC_VER)
-#  include <windows.h>
-#  include <winbase.h>
-#  pragma intrinsic (_InterlockedExchangeAdd)
-#  pragma intrinsic (_InterlockedCompareExchange)
-#  pragma intrinsic (_InterlockedCompareExchange64)
-#  if defined(_WIN64)
-#    pragma intrinsic(_InterlockedExchangeAdd64)
-#  endif
-// InterlockedExchangeAdd64 & InterlockedExchange64 are not available for XP
-#  if defined(_WIN32_WINNT) && _WIN32_WINNT <= 0x0501
-inline long long
-InterlockedExchangeAdd64 (volatile long long *Addend, long long Value)
-{
-    long long Old;
-    do {
-        Old = *Addend;
-    } while (_InterlockedCompareExchange64(Addend, Old + Value, Old) != Old);
-    return Old;
-}
-
-inline long long
-InterlockedExchange64 (volatile long long *Target, long long Value)
-{
-    long long Old;
-    do {
-        Old = *Target;
-    } while (_InterlockedCompareExchange64(Target, Value, Old) != Old);
-    return Old;
-}
-#  endif
-#endif
-
-#if OIIO_CPLUSPLUS11
-#  include <atomic>
-#  define not_yet_OIIO_USE_STDATOMIC 1
-#endif
-
-#if defined(__GNUC__) && (defined(_GLIBCXX_ATOMIC_BUILTINS) || (__GNUC__ * 100 + __GNUC_MINOR__ >= 401))
-#  define USE_GCC_ATOMICS
-#  if !defined(__clang__) && (__GNUC__ * 100 + __GNUC_MINOR__ >= 408)
-#    define OIIO_USE_GCC_NEW_ATOMICS
-#  endif
-#endif
 
 
 // OIIO_THREAD_ALLOW_DCLP, if set to 0, prevents us from using a dodgy
@@ -123,7 +39,7 @@ InterlockedExchange64 (volatile long long *Target, long long Value)
 // it off. Also set to 0 if you don't believe that we are correct in
 // allowing this construct on all platforms.
 #ifndef OIIO_THREAD_ALLOW_DCLP
-#define OIIO_THREAD_ALLOW_DCLP 1
+#    define OIIO_THREAD_ALLOW_DCLP 1
 #endif
 
 
@@ -139,334 +55,52 @@ InterlockedExchange64 (volatile long long *Target, long long Value)
 
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 /// Null mutex that can be substituted for a real one to test how much
 /// overhead is associated with a particular mutex.
 class null_mutex {
 public:
-    null_mutex () { }
-    ~null_mutex () { }
-    void lock () { }
-    void unlock () { }
-    void lock_shared () { }
-    void unlock_shared () { }
-    bool try_lock () { return true; }
+    null_mutex() noexcept {}
+    ~null_mutex() noexcept {}
+    void lock() noexcept {}
+    void unlock() noexcept {}
+    void lock_shared() noexcept {}
+    void unlock_shared() noexcept {}
+    bool try_lock() noexcept { return true; }
 };
 
 /// Null lock that can be substituted for a real one to test how much
 /// overhead is associated with a particular lock.
-template<typename T>
-class null_lock {
+template<typename T> class null_lock {
 public:
-    null_lock (T &m) { }
+    null_lock(T& /*m*/) noexcept {}
 };
 
 
-// Null thread-specific ptr that just wraps a single ordinary pointer
-//
-template<typename T>
-class null_thread_specific_ptr {
-public:
-    typedef void (*destructor_t)(T *);
-    null_thread_specific_ptr (destructor_t dest=NULL)
-        : m_ptr(NULL), m_dest(dest) { }
-    ~null_thread_specific_ptr () { reset (NULL); }
-    T * get () { return m_ptr; }
-    void reset (T *newptr=NULL) {
-        if (m_ptr) {
-            if (m_dest)
-                (*m_dest) (m_ptr);
-            else
-                delete m_ptr;
-        }
-        m_ptr = newptr;
-    }
-private:
-    T *m_ptr;
-    destructor_t m_dest;
-};
 
-
-#ifdef NOTHREADS
-
-// Definitions that we use for debugging to turn off all mutexes, locks,
-// and atomics in order to test the performance hit of our thread safety.
-
-// Null thread-specific ptr that just wraps a single ordinary pointer
-//
-template<typename T>
-class thread_specific_ptr {
-public:
-    typedef void (*destructor_t)(T *);
-    thread_specific_ptr (destructor_t dest=NULL)
-        : m_ptr(NULL), m_dest(dest) { }
-    ~thread_specific_ptr () { reset (NULL); }
-    T * get () { return m_ptr; }
-    void reset (T *newptr=NULL) {
-        if (m_ptr) {
-            if (m_dest)
-                (*m_dest) (m_ptr);
-            else
-                delete m_ptr;
-        }
-        m_ptr = newptr;
-    }
-private:
-    T *m_ptr;
-    destructor_t m_dest;
-};
-
-
-typedef null_mutex mutex;
-typedef null_mutex recursive_mutex;
-typedef null_lock<mutex> lock_guard;
-typedef null_lock<recursive_mutex> recursive_lock_guard;
-
-
-#else
-
-// Fairly modern Boost has all the mutex and lock types we need.
-
-typedef boost::mutex mutex;
-typedef boost::recursive_mutex recursive_mutex;
-typedef boost::lock_guard< boost::mutex > lock_guard;
-typedef boost::lock_guard< boost::recursive_mutex > recursive_lock_guard;
-using boost::thread_specific_ptr;
-
-#endif
-
-
-
-#if OIIO_USE_STDATOMIC
-using std::memory_order;
-#else
-enum memory_order {
-#if defined(OIIO_USE_GCC_NEW_ATOMICS)
-    memory_order_relaxed = __ATOMIC_RELAXED,
-    memory_order_consume = __ATOMIC_CONSUME,
-    memory_order_acquire = __ATOMIC_ACQUIRE,
-    memory_order_release = __ATOMIC_RELEASE,
-    memory_order_acq_rel = __ATOMIC_ACQ_REL,
-    memory_order_seq_cst = __ATOMIC_SEQ_CST
-#else
-    memory_order_relaxed,
-    memory_order_consume,
-    memory_order_acquire,
-    memory_order_release,
-    memory_order_acq_rel,
-    memory_order_seq_cst
-#endif
-};
-#endif
-
-
-
-/// Atomic version of:  r = *at, *at += x, return r
-/// For each of several architectures.
-inline int
-atomic_exchange_and_add (volatile int *at, int x,
-                         memory_order order = memory_order_seq_cst)
-{
-#ifdef NOTHREADS
-    int r = *at;  *at += x;  return r;
-#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
-    return __atomic_fetch_add (at, x, order);
-#elif defined(USE_GCC_ATOMICS)
-    return __sync_fetch_and_add ((int *)at, x);
-#elif defined(_MSC_VER)
-    // Windows
-    return _InterlockedExchangeAdd ((volatile LONG *)at, x);
-#else
-#   error No atomics on this platform.
-#endif
-}
-
-
-
-inline long long
-atomic_exchange_and_add (volatile long long *at, long long x,
-                         memory_order order = memory_order_seq_cst)
-{
-#ifdef NOTHREADS
-    long long r = *at;  *at += x;  return r;
-#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
-    return __atomic_fetch_add (at, x, order);
-#elif defined(USE_GCC_ATOMICS)
-    return __sync_fetch_and_add (at, x);
-#elif defined(_MSC_VER)
-    // Windows
-#  if defined(_WIN64)
-    return _InterlockedExchangeAdd64 ((volatile LONGLONG *)at, x);
-#  else
-    return InterlockedExchangeAdd64 ((volatile LONGLONG *)at, x);
-#  endif
-#else
-#   error No atomics on this platform.
-#endif
-}
-
-
-
-/// Atomic version of:
-///    if (*at == compareval) {
-///        *at = newval;  return true;
-///    } else {
-///        return false;
-///    }
-inline bool
-atomic_compare_and_exchange (volatile int *at, int compareval, int newval,
-                             bool weak = false,
-                             memory_order success = memory_order_seq_cst,
-                             memory_order failure = memory_order_seq_cst)
-{
-#ifdef NOTHREADS
-    if (*at == compareval) {
-        *at = newval;  return true;
-    } else {
-        return false;
-    }
-#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
-    return __atomic_compare_exchange_n (at, &compareval, newval, weak,
-                                        success, failure);
-#elif defined(USE_GCC_ATOMICS)
-    return __sync_bool_compare_and_swap (at, compareval, newval);
-#elif defined(_MSC_VER)
-    return (_InterlockedCompareExchange ((volatile LONG *)at, newval, compareval) == compareval);
-#else
-#   error No atomics on this platform.
-#endif
-}
-
-
-
-inline bool
-atomic_compare_and_exchange (volatile long long *at, long long compareval, long long newval,
-                             bool weak = false,
-                             memory_order success = memory_order_seq_cst,
-                             memory_order failure = memory_order_seq_cst)
-{
-#ifdef NOTHREADS
-    if (*at == compareval) {
-        *at = newval;  return true;
-    } else {
-        return false;
-    }
-#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
-    return __atomic_compare_exchange_n (at, &compareval, newval, weak,
-                                        success, failure);
-#elif defined(USE_GCC_ATOMICS)
-    return __sync_bool_compare_and_swap (at, compareval, newval);
-#elif defined(_MSC_VER)
-    return (_InterlockedCompareExchange64 ((volatile LONGLONG *)at, newval, compareval) == compareval);
-#else
-#   error No atomics on this platform.
-#endif
-}
-
-
-
-/// Atomic version of:  r = *at, *at = x, return r
-/// For each of several architectures.
-inline int
-atomic_exchange (volatile int *at, int x,
-                 memory_order order = memory_order_seq_cst)
-{
-#ifdef NOTHREADS
-    int r = *at;  *at = x;  return r;
-#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
-    return __atomic_exchange_n (at, x, order);
-#elif defined(USE_GCC_ATOMICS)
-    // No __sync version of atomic exchange! Do it the hard way:
-    while (1) {
-        int old = *at;
-        if (atomic_compare_and_exchange (at, old, x))
-            return old;
-    }
-    return 0; // can never happen
-#elif defined(_MSC_VER)
-    // Windows
-    return _InterlockedExchange ((volatile LONG *)at, x);
-#else
-#   error No atomics on this platform.
-#endif
-}
-
-
-
-inline long long
-atomic_exchange (volatile long long *at, long long x,
-                 memory_order order = memory_order_seq_cst)
-{
-#ifdef NOTHREADS
-    long long r = *at;  *at = x;  return r;
-#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
-    return __atomic_exchange_n (at, x, order);
-#elif defined(USE_GCC_ATOMICS)
-    // No __sync version of atomic exchange! Do it the hard way:
-    while (1) {
-        long long old = *at;
-        if (atomic_compare_and_exchange (at, old, x))
-            return old;
-    }
-    return 0; // can never happen
-#elif defined(_MSC_VER)
-    // Windows
-#  if defined(_WIN64)
-    return _InterlockedExchange64 ((volatile LONGLONG *)at, x);
-#  else
-    return InterlockedExchange64 ((volatile LONGLONG *)at, x);
-#  endif
-#else
-#   error No atomics on this platform.
-#endif
-}
-
-
-
-/// Memory fence / synchronization barrier
-OIIO_FORCEINLINE void
-atomic_thread_fence (memory_order order = memory_order_seq_cst)
-{
-#ifdef NOTHREADS
-    // nothing
-#elif OIIO_USE_STDATOMIC
-    std::__atomic_thread_fence (order);
-#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
-    __atomic_thread_fence (order);
-#elif defined(USE_GCC_ATOMICS)
-    __sync_synchronize ();
-#elif defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__))
-    __asm__ __volatile__ ("":::"memory");
-#elif defined(_MSC_VER)
-    MemoryBarrier ();
-#else
-#   error No atomics on this platform.
-#endif
-}
+using std::mutex;
+using std::recursive_mutex;
+using std::thread;
+typedef std::lock_guard<mutex> lock_guard;
+typedef std::lock_guard<recursive_mutex> recursive_lock_guard;
+typedef std::lock_guard<std::recursive_timed_mutex> recursive_timed_lock_guard;
 
 
 
 /// Yield the processor for the rest of the timeslice.
-///
+/// DEPRECATED(2.4): Use std::this_thread::yield() instead.
 inline void
-yield ()
+yield() noexcept
 {
-#if defined(__GNUC__)
-    sched_yield ();
-#elif defined(_MSC_VER)
-    SwitchToThread ();
-#else
-#   error No yield on this platform.
-#endif
+    std::this_thread::yield();
 }
 
 
 
 // Slight pause
 inline void
-pause (int delay)
+pause(int delay) noexcept
 {
 #if defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__))
     for (int i = 0; i < delay; ++i)
@@ -478,16 +112,25 @@ pause (int delay)
 
 #elif defined(_MSC_VER)
     for (int i = 0; i < delay; ++i) {
-#if defined (_WIN64)
-        YieldProcessor();
-#else
-        _asm  pause
-#endif /* _WIN64 */
+        // A reimplementation of winnt.h YieldProcessor,
+        // to avoid including windows headers.
+        #if defined(_M_AMD64)
+        _mm_pause();
+        #elif defined(_M_ARM64) || defined(_M_HYBRID_X86_ARM64)
+        __dmb(_ARM64_BARRIER_ISHST);
+        __yield();
+        #elif defined(_M_ARM)
+        __dmb(_ARM_BARRIER_ISHST);
+        __yield();
+        #else
+        _asm pause
+        #endif
     }
 
 #else
     // No pause on this platform, just punt
-    for (int i = 0; i < delay; ++i) ;
+    for (int i = 0; i < delay; ++i)
+        ;
 #endif
 }
 
@@ -496,148 +139,33 @@ pause (int delay)
 // Helper class to deliver ever longer pauses until we yield our timeslice.
 class atomic_backoff {
 public:
-    atomic_backoff () : m_count(1) { }
+    atomic_backoff(int pausemax = 16) noexcept
+        : m_count(1)
+        , m_pausemax(pausemax)
+    {
+    }
 
-    void operator() () {
-        if (m_count <= 16) {
-            pause (m_count);
+    void operator()() noexcept
+    {
+        if (m_count <= m_pausemax) {
+            pause(m_count);
             m_count *= 2;
         } else {
-            yield();
+            std::this_thread::yield();
         }
     }
 
 private:
     int m_count;
+    int m_pausemax;
 };
 
 
-
-/// Atomic integer.  Increment, decrement, add, and subtract in a
-/// totally thread-safe manner.
-template<class T>
-class atomic {
-public:
-    /// Construct with initial value.
-    ///
-    atomic (T val=0) : m_val(val) { }
-
-    ~atomic () { }
-
-    /// Retrieve value
-    ///
-    T load (memory_order order = memory_order_seq_cst) const {
-        return atomic_exchange_and_add (&m_val, 0, order);
-    }
-
-    /// Retrieve value
-    ///
-    T operator() () const { return load(); }
-
-    /// Retrieve value
-    ///
-    operator T() const { return load(); }
-
-    /// Fast retrieval of value, no interchange, don't care about memory
-    /// fences. Use with extreme caution!
-    T fast_value () const { return m_val; }
-
-    /// Assign new value, atomically.
-    void store (T x, memory_order order = memory_order_seq_cst) {
-        atomic_exchange (&m_val, x, order);
-    }
-
-    /// Atomic exchange
-    T exchange (T x, memory_order order = memory_order_seq_cst) {
-        return atomic_exchange (&m_val, x, order);
-    }
-
-    /// Atomic fetch-and-add: add x and return the old value.
-    T fetch_add (T x, memory_order order = memory_order_seq_cst) {
-        return atomic_exchange_and_add (&m_val, x, order);
-    }
-    /// Atomic fetch-and-subtract: subtract x and return the old value.
-    T fetch_sub (T x, memory_order order = memory_order_seq_cst) {
-        return atomic_exchange_and_add (&m_val, -x, order);
-    }
-
-    /// Assign new value.
-    ///
-    T operator= (T x) { store(x); return x; }
-
-    /// Pre-increment:  ++foo
-    ///
-    T operator++ () { return fetch_add(1) + 1; }
-
-    /// Post-increment:  foo++
-    ///
-    T operator++ (int) {  return fetch_add(1); }
-
-    /// Pre-decrement:  --foo
-    ///
-    T operator-- () {  return fetch_sub(1) - 1; }
-
-    /// Post-decrement:  foo--
-    ///
-    T operator-- (int) {  return fetch_sub(1); }
-
-    /// Add to the value, return the new result
-    ///
-    T operator+= (T x) { return fetch_add(x) + x; }
-
-    /// Subtract from the value, return the new result
-    ///
-    T operator-= (T x) { return fetch_sub(x) - x; }
-
-    bool bool_compare_and_swap (T compareval, T newval) {
-        return atomic_compare_and_exchange (&m_val, compareval, newval);
-    }
-
-    T operator= (const atomic &x) {
-        T r = x();
-        *this = r;
-        return r;
-    }
-
-private:
-#ifdef __arm__
-    OIIO_ALIGN(8)
-#endif 
-    volatile mutable T m_val;
-
-    // Disallow copy construction by making private and unimplemented.
-    atomic (atomic const &);
-};
-
-
-
-#ifdef NOTHREADS
-
-typedef int atomic_int;
-typedef long long atomic_ll;
-
-#else
-
-typedef atomic<int> atomic_int;
-typedef atomic<long long> atomic_ll;
-
-#endif
-
-
-
-#ifdef NOTHREADS
-
-typedef null_mutex spin_mutex;
-typedef null_lock<spin_mutex> spin_lock;
-
-#else
-
-// Define our own spin locks.
 
 
 /// A spin_mutex is semantically equivalent to a regular mutex, except
 /// for the following:
-///  - A spin_mutex is just 4 bytes, whereas a regular mutex is quite
+///  - A spin_mutex is just 1 byte, whereas a regular mutex is quite
 ///    large (44 bytes for pthread).
 ///  - A spin_mutex is extremely fast to lock and unlock, whereas a regular
 ///    mutex is surprisingly expensive just to acquire a lock.
@@ -650,41 +178,39 @@ typedef null_lock<spin_mutex> spin_lock;
 /// lock for a very short period of time, you may save runtime by using
 /// a spin_mutex, even though it's non-blocking.
 ///
-/// N.B. A spin_mutex is only the size of an int.  To avoid "false
+/// N.B. A spin_mutex is only the size of a bool.  To avoid "false
 /// sharing", be careful not to put two spin_mutex objects on the same
 /// cache line (within 128 bytes of each other), or the two mutexes may
 /// effectively (and wastefully) lock against each other.
 ///
 class spin_mutex {
 public:
-    /// Default constructor -- initialize to unlocked.
-    ///
-    spin_mutex (void) { m_locked = 0; }
-
-    ~spin_mutex (void) { }
+    spin_mutex(void) noexcept {}
+    ~spin_mutex(void) noexcept {}
 
     /// Copy constructor -- initialize to unlocked.
     ///
-    spin_mutex (const spin_mutex &) { m_locked = 0; }
+    spin_mutex(const spin_mutex&) noexcept {}
 
     /// Assignment does not do anything, since lockedness should not
     /// transfer.
-    const spin_mutex& operator= (const spin_mutex&) { return *this; }
+    const spin_mutex& operator=(const spin_mutex&) noexcept { return *this; }
 
     /// Acquire the lock, spin until we have it.
     ///
-    void lock () {
+    void lock() noexcept
+    {
         // To avoid spinning too tightly, we use the atomic_backoff to
         // provide increasingly longer pauses, and if the lock is under
         // lots of contention, eventually yield the timeslice.
         atomic_backoff backoff;
 
         // Try to get ownership of the lock. Though experimentation, we
-        // found that OIIO_UNLIKELY makes this just a bit faster on 
-        // gcc x86/x86_64 systems.
-        while (! OIIO_UNLIKELY(try_lock())) {
+        // found that OIIO_UNLIKELY makes this just a bit faster on gcc
+        // x86/x86_64 systems.
+        while (!OIIO_UNLIKELY(try_lock())) {
 #if OIIO_THREAD_ALLOW_DCLP
-            // The full try_lock() involves a compare_and_swap, which
+            // The full try_lock() involves a test_and_set, which
             // writes memory, and that will lock the bus.  But a normal
             // read of m_locked will let us spin until the value
             // changes, without locking the bus. So it's faster to
@@ -698,7 +224,7 @@ public:
             // give a way to use tsan for other checks.
             do {
                 backoff();
-            } while (m_locked);
+            } while (*(volatile bool*)&m_locked);
 #else
             backoff();
 #endif
@@ -707,68 +233,49 @@ public:
 
     /// Release the lock that we hold.
     ///
-    void unlock () {
-        // Fastest way to do it is with a store with "release" semantics
-#if defined(OIIO_USE_GCC_NEW_ATOMICS)
-        __atomic_clear (&m_locked, __ATOMIC_RELEASE);
-#elif defined(USE_GCC_ATOMICS)
-        __sync_lock_release (&m_locked);
-        //   Equivalent, x86 specific code:
-        //   __asm__ __volatile__("": : :"memory");
-        //   m_locked = 0;
-#elif defined(_MSC_VER)
-        MemoryBarrier ();
-        m_locked = 0;
-#else
-        // Otherwise, just assign zero to the atomic (but that's a full 
-        // memory barrier).
-        *(atomic_int *)&m_locked = 0;
-#endif
+    void unlock() noexcept
+    {
+        // Fastest way to do it is with a clear with "release" semantics
+        m_locked.clear(std::memory_order_release);
     }
 
     /// Try to acquire the lock.  Return true if we have it, false if
     /// somebody else is holding the lock.
-    bool try_lock () {
-#if defined(OIIO_USE_GCC_NEW_ATOMICS)
-        return __atomic_test_and_set (&m_locked, __ATOMIC_ACQUIRE) == 0;
-#elif defined(USE_GCC_ATOMICS)
-        // GCC gives us an intrinsic that is even better -- an atomic
-        // exchange with "acquire" barrier semantics.
-        return __sync_lock_test_and_set (&m_locked, 1) == 0;
-#else
-        // Our compare_and_swap returns true if it swapped
-        return atomic_compare_and_exchange (&m_locked, 0, 1);
-#endif
+    bool try_lock() noexcept
+    {
+        return !m_locked.test_and_set(std::memory_order_acquire);
     }
 
     /// Helper class: scoped lock for a spin_mutex -- grabs the lock upon
     /// construction, releases the lock when it exits scope.
     class lock_guard {
     public:
-        lock_guard (spin_mutex &fm) : m_fm(fm) { m_fm.lock(); }
-        ~lock_guard () { m_fm.unlock(); }
+        lock_guard(spin_mutex& fm) noexcept
+            : m_fm(fm)
+        {
+            m_fm.lock();
+        }
+        ~lock_guard() noexcept { m_fm.unlock(); }
+
     private:
-        lock_guard(); // Do not implement
-        lock_guard(const lock_guard& other); // Do not implement
-        lock_guard& operator = (const lock_guard& other); // Do not implement
-        spin_mutex & m_fm;
+        lock_guard() = delete;
+        lock_guard(const lock_guard& other) = delete;
+        lock_guard& operator=(const lock_guard& other) = delete;
+        spin_mutex& m_fm;
     };
 
 private:
-#if defined(OIIO_USE_GCC_NEW_ATOMICS)
-    // Using the gcc >= 4.8 new atomics, we can easily do a single byte flag
-    volatile char m_locked; ///< Atomic counter is zero if nobody holds the lock
-#else
-    // Otherwise, fall back on it being an int
-    volatile int m_locked;  ///< Atomic counter is zero if nobody holds the lock
-#endif
+    std::atomic_flag m_locked = ATOMIC_FLAG_INIT;  // initialize to unlocked
 };
 
 
 typedef spin_mutex::lock_guard spin_lock;
 
-#endif
 
+
+#if 0
+
+// OLD CODE vvvvvvvv
 
 
 /// Spinning reader/writer mutex.  This is just like spin_mutex, except
@@ -881,11 +388,475 @@ private:
 };
 
 
+#else
+
+// vvv New spin rw lock Oct 2017
+
+/// Spinning reader/writer mutex.  This is just like spin_mutex, except
+/// that there are separate locking mechanisms for "writers" (exclusive
+/// holders of the lock, presumably because they are modifying whatever
+/// the lock is protecting) and "readers" (non-exclusive, non-modifying
+/// tasks that may access the protectee simultaneously).
+class spin_rw_mutex {
+public:
+    /// Default constructor -- initialize to unlocked.
+    ///
+    spin_rw_mutex() noexcept {}
+
+    ~spin_rw_mutex() noexcept {}
+
+    // Do not allow copy or assignment.
+    spin_rw_mutex(const spin_rw_mutex&) = delete;
+    const spin_rw_mutex& operator=(const spin_rw_mutex&) = delete;
+
+    /// Acquire the reader lock.
+    ///
+    void read_lock() noexcept
+    {
+        // first increase the readers, and if it turned out nobody was
+        // writing, we're done. This means that acquiring a read when nobody
+        // is writing is a single atomic operation.
+        int oldval = m_bits.fetch_add(1, std::memory_order_acquire);
+        if (!(oldval & WRITER))
+            return;
+        // Oops, we incremented readers but somebody was writing. Backtrack
+        // by subtracting, and do things the hard way.
+        int expected = (--m_bits) & NOTWRITER;
+
+        // Do compare-and-exchange until we can increase the number of
+        // readers by one and have no writers.
+        if (m_bits.compare_exchange_weak(expected, expected + 1,
+                                         std::memory_order_acquire))
+            return;
+        atomic_backoff backoff;
+        do {
+            backoff();
+            expected = m_bits.load() & NOTWRITER;
+        } while (!m_bits.compare_exchange_weak(expected, expected + 1,
+                                               std::memory_order_acquire));
+    }
+
+    /// Release the reader lock.
+    ///
+    void read_unlock() noexcept
+    {
+        // Atomically reduce the number of readers.  It's at least 1,
+        // and the WRITER bit should definitely not be set, so this just
+        // boils down to an atomic decrement of m_bits.
+        m_bits.fetch_sub(1, std::memory_order_release);
+    }
+
+    /// Acquire the writer lock.
+    ///
+    void write_lock() noexcept
+    {
+        // Do compare-and-exchange until we have just ourselves as writer
+        int expected = 0;
+        if (m_bits.compare_exchange_weak(expected, WRITER,
+                                         std::memory_order_acquire))
+            return;
+        atomic_backoff backoff;
+        do {
+            backoff();
+            expected = 0;
+        } while (!m_bits.compare_exchange_weak(expected, WRITER,
+                                               std::memory_order_acquire));
+    }
+
+    /// Release the writer lock.
+    ///
+    void write_unlock() noexcept
+    {
+        // Remove the writer bit
+        m_bits.fetch_sub(WRITER, std::memory_order_release);
+    }
+
+    /// lock() is a synonym for exclusive (write) lock.
+    void lock() { write_lock(); }
+
+    /// unlock() is a synonym for exclusive (write) unlock.
+    void unlock() { write_unlock(); }
+
+    /// Helper class: scoped read lock for a spin_rw_mutex -- grabs the
+    /// read lock upon construction, releases the lock when it exits scope.
+    class read_lock_guard {
+    public:
+        read_lock_guard (spin_rw_mutex &fm) noexcept : m_fm(fm) { m_fm.read_lock(); }
+        ~read_lock_guard () noexcept { m_fm.read_unlock(); }
+    private:
+        read_lock_guard(const read_lock_guard& other) = delete;
+        read_lock_guard& operator = (const read_lock_guard& other) = delete;
+        spin_rw_mutex & m_fm;
+    };
+
+    /// Helper class: scoped write lock for a spin_rw_mutex -- grabs the
+    /// read lock upon construction, releases the lock when it exits scope.
+    class write_lock_guard {
+    public:
+        write_lock_guard (spin_rw_mutex &fm) noexcept : m_fm(fm) { m_fm.write_lock(); }
+        ~write_lock_guard () noexcept { m_fm.write_unlock(); }
+    private:
+        write_lock_guard(const write_lock_guard& other) = delete;
+        write_lock_guard& operator = (const write_lock_guard& other) = delete;
+        spin_rw_mutex & m_fm;
+    };
+
+private:
+    // Use one word to hold the reader count, with a high bit indicating
+    // that it's locked for writing.  This will only work if we have
+    // fewer than 2^30 simultaneous readers.  I think that should hold
+    // us for some time.
+    enum { WRITER = 1<<30, NOTWRITER = WRITER-1 };
+    std::atomic<int> m_bits { 0 };
+};
+
+#endif
+
+
 typedef spin_rw_mutex::read_lock_guard spin_rw_read_lock;
 typedef spin_rw_mutex::write_lock_guard spin_rw_write_lock;
 
 
-}
-OIIO_NAMESPACE_EXIT
 
-#endif // OPENIMAGEIO_THREAD_H
+/// Mutex pool. Sometimes, we have lots of objects that need to be
+/// individually locked for thread safety, but two separate objects don't
+/// need to lock against each other. If there are many more objects than
+/// threads, it's wasteful for each object to contain its own mutex. So a
+/// solution is to make a mutex_pool -- a collection of several mutexes.
+/// Each object uses a hash to choose a consistent mutex for itself, but
+/// which will be unlikely to be locked simultaneously by different object.
+/// Semantically, it looks rather like an associative array of mutexes. We
+/// also ensure that the mutexes are all on different cache lines, to ensure
+/// that they don't exhibit false sharing. Try to choose Bins larger than
+/// the expected number of threads that will be simultaneously locking
+/// mutexes.
+template<class Mutex, class Key, class Hash, size_t Bins = 16>
+class mutex_pool {
+public:
+    mutex_pool() noexcept {}
+    Mutex& operator[](const Key& key) noexcept { return m_mutex[m_hash(key) % Bins].m; }
+
+private:
+    // Helper type -- force cache line alignment. This should make an array
+    // of these also have padding so that each individual mutex is aligned
+    // to its own cache line, thus eliminating any "false sharing."
+    struct AlignedMutex {
+        OIIO_CACHE_ALIGN Mutex m;
+    };
+
+    AlignedMutex m_mutex[Bins];
+    Hash m_hash;
+};
+
+
+
+/// Simple thread group class: lets you spawn a group of new threads,
+/// then wait for them to all complete.
+class thread_group {
+public:
+    thread_group() {}
+    ~thread_group() { join_all(); }
+
+    void add_thread(thread* t)
+    {
+        if (t) {
+            lock_guard lock(m_mutex);
+            m_threads.emplace_back(t);
+        }
+    }
+
+    template<typename FUNC, typename... Args>
+    thread* create_thread(FUNC func, Args&&... args)
+    {
+        thread* t = new thread(func, std::forward<Args>(args)...);
+        add_thread(t);
+        return t;
+    }
+
+    void join_all()
+    {
+        lock_guard lock(m_mutex);
+        for (auto& t : m_threads)
+            if (t->joinable())
+                t->join();
+    }
+
+    size_t size() const
+    {
+        lock_guard lock(m_mutex);
+        return m_threads.size();
+    }
+
+private:
+    mutable mutex m_mutex;
+    std::vector<std::unique_ptr<thread>> m_threads;
+};
+
+
+
+/// thread_pool is a persistent set of threads watching a queue to which
+/// tasks can be submitted.
+///
+/// Call default_thread_pool() to retrieve a pointer to a single shared
+/// thread_pool that will be initialized the first time it's needed, running
+/// a number of threads corresponding to the number of cores on the machine.
+///
+/// It's possible to create other pools, but it's not something that's
+/// recommended unless you really know what you're doing and are careful
+/// that the sum of threads across all pools doesn't cause you to be highly
+/// over-threaded. An example of when this might be useful is if you want
+/// one pool of 4 threads to handle I/O without interference from a separate
+/// pool of 4 (other) threads handling computation.
+///
+/// Submitting an asynchronous task to the queue follows the following
+/// pattern:
+///
+///     /* func that takes a thread ID followed possibly by more args */
+///     result_t my_func (int thread_id, Arg1 arg1, ...) { }
+///     pool->push (my_func, arg1, ...);
+///
+/// If you just want to "fire and forget", then:
+///
+///     pool->push (func, ...args...);
+///
+/// But if you need a result, or simply need to know when the task has
+/// completed, note that the push() method will return a future<result_t>
+/// that you can check, like this:
+///
+///     std::future<result_t> f = pool->push (my_task);
+///
+/// And then you can
+///
+///     find out if it's done:              if (f.valid()) ...
+///     wait for it to get done:            f.wait();
+///     get result (waiting if necessary):  result_t r = f.get();
+///
+/// A common idiom is to fire a bunch of sub-tasks at the queue, and then
+/// wait for them to all complete. We provide a helper class, task_set,
+/// to make this easy:
+///
+///     task_set tasks (pool);
+///     for (int i = 0; i < n_subtasks; ++i)
+///         tasks.push (pool->push (myfunc));
+///     tasks.wait ();
+///
+/// Note that the tasks.wait() is optional -- it will be called
+/// automatically when the task_set exits its scope.
+///
+/// The task function's first argument, the thread_id, is the thread number
+/// for the pool, or -1 if it's being executed by a non-pool thread (this
+/// can happen in cases where the whole pool is occupied and the calling
+/// thread contributes to running the work load).
+///
+/// Thread pool. Have fun, be safe.
+///
+class OIIO_UTIL_API thread_pool {
+public:
+    /// Initialize the pool.  This implicitly calls resize() to set the
+    /// number of worker threads, defaulting to a number of workers that is
+    /// one less than the number of hardware cores.
+    thread_pool(int nthreads = -1);
+    ~thread_pool();
+
+    /// How many threads are in the pool?
+    int size() const;
+
+    /// Sets the number of worker threads in the pool. If the pool size is
+    /// 0, any tasks added to the pool will be executed immediately by the
+    /// calling thread. Requesting nthreads < 0 will cause it to resize to
+    /// the number of hardware cores minus one (one less, to account for the
+    /// fact that the calling thread will also contribute). BEWARE! Resizing
+    /// the queue should not be done while jobs are running.
+    void resize(int nthreads = -1);
+
+    /// Return the number of currently idle threads in the queue. Zero
+    /// means the queue is fully engaged.
+    int idle() const;
+
+    /// Run the user's function that accepts argument int - id of the
+    /// running thread. The returned value is templatized std::future, where
+    /// the user can get the result and rethrow any exceptions. If the queue
+    /// has no worker threads, the task will be run immediately by the
+    /// calling thread.
+    template<typename F> auto push(F&& f) -> std::future<decltype(f(0))>
+    {
+        auto pck = std::make_shared<std::packaged_task<decltype(f(0))(int)>>(
+            std::forward<F>(f));
+        if (size() < 1) {
+            (*pck)(-1);  // No worker threads, run it with the calling thread
+        } else {
+            auto _f = new std::function<void(int id)>(
+                [pck](int id) { (*pck)(id); });
+            push_queue_and_notify(_f);
+        }
+        return pck->get_future();
+    }
+
+    /// Run the user's function that accepts an arbitrary set of arguments
+    /// (also passed). The returned value is templatized std::future, where
+    /// the user can get the result and rethrow any exceptions. If the queue
+    /// has no worker threads, the task will be run immediately by the
+    /// calling thread.
+    template<typename F, typename... Rest>
+    auto push (F && f, Rest&&... rest) ->std::future<decltype(f(0, rest...))> {
+        auto pck = std::make_shared<std::packaged_task<decltype(f(0, rest...))(int)>>(
+            std::bind(std::forward<F>(f), std::placeholders::_1, std::forward<Rest>(rest)...)
+        );
+        if (size() < 1) {
+            (*pck)(-1); // No worker threads, run it with the calling thread
+        } else {
+            auto _f = new std::function<void(int id)>([pck](int id) {
+                (*pck)(id);
+            });
+            push_queue_and_notify (_f);
+        }
+        return pck->get_future();
+    }
+
+    /// If there are any tasks on the queue, pull one off and run it (on
+    /// this calling thread) and return true. Otherwise (there are no
+    /// pending jobs), return false immediately. This utility is what makes
+    /// it possible for non-pool threads to also run tasks from the queue
+    /// when they would ordinarily be idle. The thread id of the caller
+    /// should be passed.
+    bool run_one_task(std::thread::id id);
+
+    /// Return true if the calling thread is part of the thread pool. This
+    /// can be used to limit a pool thread from unadvisedly adding its own
+    /// subtasks to clog up the pool.
+    /// DEPRECATED(2.1) -- use is_worker() instead.
+    bool this_thread_is_in_pool() const;
+
+    /// Register a thread (not already in the thread pool itself) as working
+    /// on tasks in the pool. This is used to avoid recursion.
+    void register_worker(std::thread::id id);
+    /// De-register a thread, saying it is no longer in the process of
+    /// taking work from the thread pool.
+    void deregister_worker(std::thread::id id);
+    /// Is the thread in the pool or currently engaged in taking tasks from
+    /// the pool?
+    bool is_worker(std::thread::id id) const;
+    bool is_worker() const { return is_worker(std::this_thread::get_id()); }
+    // Non-const versions: DEPRECATED(2.1)
+    bool is_worker(std::thread::id id);
+
+    /// How many jobs are waiting to run?  (Use with caution! Can be out of
+    /// date by the time you look at it.)
+    size_t jobs_in_queue() const;
+
+    /// Is the pool very busy? Meaning that there are significantly more
+    /// tasks in the queue waiting to run than there are threads in the
+    /// pool. It may be wise for a caller to check this before submitting
+    /// tasks -- if the queue is very busy, it's probably more expedient to
+    /// execute the code directly rather than add it to an oversubscribed
+    /// queue.
+    bool very_busy() const;
+
+private:
+    // Disallow copy construction and assignment
+    thread_pool(const thread_pool&) = delete;
+    thread_pool(thread_pool&&) = delete;
+    thread_pool& operator=(const thread_pool&) = delete;
+    thread_pool& operator=(thread_pool&&) = delete;
+
+    // PIMPL pattern hides all the guts far away from the public API
+    class Impl;
+    std::unique_ptr<Impl> m_impl;
+
+    // Utility function that helps us hide the implementation
+    void push_queue_and_notify(std::function<void(int id)>* f);
+};
+
+
+
+/// Return a reference to the "default" shared thread pool. In almost all
+/// ordinary circumstances, you should use this exclusively to get a single
+/// shared thread pool, since creating multiple thread pools could result in
+/// hilariously over-threading your application. Note that this call may
+/// (safely, and only once) trigger creation of the thread pool and its
+/// worker threads if it has not yet been created.
+OIIO_UTIL_API thread_pool* default_thread_pool();
+
+/// If a thread pool has been created, this call will safely terminate its
+/// worker threads. This should presumably be called by an application
+/// immediately before it exists, when it is confident the thread pool will
+/// no longer be needed.
+OIIO_UTIL_API void default_thread_pool_shutdown();
+
+
+
+/// task_set is a group of future<void>'s from a thread_queue that you can
+/// add to, and when you either call wait() or just leave the task_set's
+/// scope, it will wait for all the tasks in the set to be done before
+/// proceeding.
+///
+/// A typical idiom for using this is:
+///
+///    void myfunc (int id) { ... do something ... }
+///
+///    thread_pool* pool (default_thread_pool());
+///    {
+///        task_set tasks (pool);
+///        // Launch a bunch of tasks into the thread pool
+///        for (int i = 0; i < ntasks; ++i)
+///            tasks.push (pool->push (myfunc));
+///        // The following brace, by ending the scope of 'tasks', will
+///        // wait for all those queue tasks to finish.
+///    }
+///
+class OIIO_UTIL_API task_set {
+public:
+    task_set(thread_pool* pool = nullptr)
+        : m_pool(pool ? pool : default_thread_pool())
+        , m_submitter_thread(std::this_thread::get_id())
+    {
+    }
+    ~task_set() { wait(); }
+
+    task_set(const task_set&) = delete;
+    const task_set& operator=(const task_set&) = delete;
+
+    // Return the thread id of the thread that set up this task_set and
+    // submitted its tasks to the thread pool.
+    std::thread::id submitter() const { return m_submitter_thread; }
+
+    // Save a future (presumably returned by a threadpool::push() as part
+    // of this task set.
+    void push(std::future<void>&& f)
+    {
+        OIIO_DASSERT(
+            std::this_thread::get_id() == submitter()
+            && "All tasks in a tast_set should be added by the same thread");
+        m_futures.emplace_back(std::move(f));
+    }
+
+    // Wait for the given taskindex (0..n-1, where n is the number of tasks
+    // submitted as part of this task_set). If block == true, fully block
+    // while waiting for that task to finish. If block is false, then busy
+    // wait, and opportunistically run queue tasks yourself while you are
+    // waiting for the task to finish.
+    void wait_for_task(size_t taskindex, bool block = false);
+
+    // Wait for all tasks in the set to finish. If block == true, fully
+    // block while waiting for the pool threads to all finish. If block is
+    // false, then busy wait, and opportunistically run queue tasks yourself
+    // while you are waiting for other tasks to finish.
+    void wait(bool block = false);
+
+    // Debugging sanity check, called after wait(), to ensure that all the
+    // tasks were completed.
+    void check_done()
+    {
+        const std::chrono::milliseconds wait_time(0);
+        for (auto&& f : m_futures)
+            OIIO_ASSERT(f.wait_for(wait_time) == std::future_status::ready);
+    }
+
+private:
+    thread_pool* m_pool;
+    std::thread::id m_submitter_thread;
+    std::vector<std::future<void>> m_futures;
+};
+
+
+OIIO_NAMESPACE_END

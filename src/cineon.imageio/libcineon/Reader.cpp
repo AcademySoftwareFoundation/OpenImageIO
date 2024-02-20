@@ -54,6 +54,7 @@ cineon::Reader::Reader() : fd(0), rio(0)
 cineon::Reader::~Reader()
 {
 	this->Reset();
+    delete this->rio;
 }
 
 

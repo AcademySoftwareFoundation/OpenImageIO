@@ -35,6 +35,10 @@
 #include <cstring>
 #include <ctime>
 
+#if defined(__GNUC__)
+#    pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
+
 #include "Cineon.h"
 #include "CineonStream.h"
 #include "EndianSwap.h"
@@ -78,12 +82,12 @@ void cineon::Writer::SetImageInfo(const U32 width, const U32 height)
 }
 
 
-// returns next available or MAX_ELEMENTS if full
+// returns next available or CINEON_MAX_ELEMENTS if full
 int cineon::Writer::NextAvailElement() const
 {
 	unsigned int i;
 
-	for (i = 0; i < MAX_ELEMENTS; i++)
+	for (i = 0; i < CINEON_MAX_ELEMENTS; i++)
 	{
 		if (this->header.ImageDescriptor(i) == kUndefinedDescriptor)
 			break;
@@ -135,7 +139,7 @@ void cineon::Writer::SetElement(const int num, const Descriptor desc, const U8 b
 			const R32 highData, const R32 highQuantity)
 {
 	// make sure the range is good
-	if (num < 0 || num >= MAX_ELEMENTS)
+	if (num < 0 || num >= CINEON_MAX_ELEMENTS)
 		return;
 
 	// set values
@@ -156,7 +160,7 @@ void cineon::Writer::SetElement(const int num, const Descriptor desc, const U8 b
 bool cineon::Writer::WriteElement(const int element, void *data, const long count)
 {
 	// make sure the range is good
-	if (element < 0 || element >= MAX_ELEMENTS)
+	if (element < 0 || element >= CINEON_MAX_ELEMENTS)
 		return false;
 
 	// make sure the entry is valid
@@ -176,7 +180,7 @@ bool cineon::Writer::WriteElement(const int element, void *data, const long coun
 bool cineon::Writer::WriteElement(const int element, void *data)
 {
 	// make sure the range is good
-	if (element < 0 || element >= MAX_ELEMENTS)
+	if (element < 0 || element >= CINEON_MAX_ELEMENTS)
 		return false;
 
 	// make sure the entry is valid
@@ -193,7 +197,7 @@ bool cineon::Writer::WriteElement(const int element, void *data, const DataSize 
 	bool status = true;
 
 	// make sure the range is good
-	if (element < 0 || element >= MAX_ELEMENTS)
+	if (element < 0 || element >= CINEON_MAX_ELEMENTS)
 		return false;
 
 	// make sure the entry is valid
@@ -239,8 +243,7 @@ bool cineon::Writer::WriteElement(const int element, void *data, const DataSize 
 		 (bitDepth == 16 && size == cineon::kWord))
 	{
 		status = this->WriteThrough(data, width, height, noc, bytes, eolnPad, eoimPad, blank);
-		if (blank)
-			delete [] blank;
+        delete [] blank;
 		return status;
 	}
 	else
@@ -280,6 +283,7 @@ bool cineon::Writer::WriteElement(const int element, void *data, const DataSize 
 			break;
 
         default:
+            delete [] blank;
             return false;
 		}
 	}
@@ -293,8 +297,7 @@ bool cineon::Writer::WriteElement(const int element, void *data, const DataSize 
 	}
 
 	// rid of memory
-	if (blank)
-		delete [] blank;
+    delete [] blank;
 
 	return status;
 }
@@ -305,7 +308,7 @@ bool cineon::Writer::WriteElement(const int element, void *data, const DataSize 
 bool cineon::Writer::WriteThrough(void *data, const U32 width, const U32 height, const int noc, const int bytes, const U32 eolnPad, const U32 eoimPad, char *blank)
 {
 	bool status = true;
-	const int count = width * height * noc;
+	const size_t count = size_t(width) * size_t(height) * noc;
 	unsigned int i;
 	unsigned char *imageBuf = reinterpret_cast<unsigned char*>(data);
 

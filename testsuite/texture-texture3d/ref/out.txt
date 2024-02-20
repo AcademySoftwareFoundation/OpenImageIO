@@ -1,0 +1,47 @@
+Created texture system
+Result of get_texture_info resolution (as int[2]) = true 33x33
+Result of get_texture_info resolution (as int[3]) = true 33x33x33
+Result of get_texture_info channels = true 1
+Result of get_texture_info channels = true 1
+Result of get_texture_info data format = true float
+Result of get_texture_info datawindow (as int[4]) = true [-16 -16 16 16]
+Result of get_texture_info datawindow (as int[6]) = true [-16 -16 -16 16 16 16]
+Result of get_texture_info displaywindow (as int[4]) = true [-12 -12 12 12]
+Result of get_texture_info displaywindow (as int[6]) = true [-12 -12 -12 12 12 12]
+Result of get_texture_info averagecolor = no
+Result of get_texture_info averagealpha = no
+Result of get_texture_info constantcolor = no
+Result of get_texture_info constantalpha = no
+Texture type is true Volume Texture
+
+Testing texture3d ../openvdb/src/sphere.vdb, output = out.exr
+Created texture system
+Testing texture3d ../openvdb/src/sphere.vdb, output = out-handle.exr
+Created texture system
+Testing texture3d ../openvdb/src/sphere.vdb, output = out-5chan.exr
+Created texture system
+Testing texture3d ../openvdb/src/sphere.vdb, output = out-subimage0.exr
+Created texture system
+Testing texture3d ../openvdb/src/sphere.vdb, output = out-subimagedensity.exr
+Created texture system
+Testing texture3d ../openvdb/src/sphere.vdb, output = out-subimagemissing.exr
+ERROR: Unknown subimage "missing" in texture "../openvdb/src/sphere.vdb"
+ERROR: Unknown subimage "missing" in texture "../openvdb/src/sphere.vdb"
+ERROR: Unknown subimage "missing" in texture "../openvdb/src/sphere.vdb"
+ERROR: Unknown subimage "missing" in texture "../openvdb/src/sphere.vdb"
+Created texture system
+Testing texture3d ../openvdb/src/sphere.vdb, output = closest.exr
+Comparing "out.exr" and "ref/out.exr"
+PASS
+Comparing "out-handle.exr" and "ref/out-handle.exr"
+PASS
+Comparing "out-5chan.exr" and "ref/out-5chan.exr"
+PASS
+Comparing "out-subimage0.exr" and "ref/out-subimage0.exr"
+PASS
+Comparing "out-subimagedensity.exr" and "ref/out-subimagedensity.exr"
+PASS
+Comparing "out-subimagemissing.exr" and "ref/out-subimagemissing.exr"
+PASS
+Comparing "closest.exr" and "ref/closest.exr"
+PASS

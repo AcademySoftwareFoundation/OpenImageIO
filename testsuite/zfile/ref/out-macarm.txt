@@ -1,0 +1,17 @@
+Reading out.zfile
+out.zfile            :   64 x   64, 1 channel, float zfile
+    SHA-1: EF2AEAE96A84C10881A388BDA2CD35CAD29F14FC
+    channel list: z
+    worldtocamera: 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1
+    worldtoscreen: 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1
+    Stats Min: 0.100000 (float)
+    Stats Max: 1.000000 (float)
+    Stats Avg: 0.475000 (float)
+    Stats StdDev: 0.146327 (float)
+    Stats NanCount: 0 
+    Stats InfCount: 0 
+    Stats FiniteCount: 4096 
+    Constant: No
+    Monochrome: Yes
+Comparing "out.zfile" and "ref/out.zfile"
+PASS

@@ -1,206 +1,133 @@
-/*
-  Copyright 2008-2009 Larry Gritz and the other authors and contributors.
-  All Rights Reserved.
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: Apache-2.0
+// https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions are
-  met:
-  * Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
-  * Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution.
-  * Neither the name of the software's owners nor the names of its
-    contributors may be used to endorse or promote products derived from
-    this software without specific prior written permission.
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-  (This is the Modified BSD License)
-*/
-#ifndef OPENIMAGEIO_BMP_H
-#define OPENIMAGEIO_BMP_H
-
-#include <cstdio>
-#include "OpenImageIO/imageio.h"
-#include "OpenImageIO/filesystem.h"
-#include "OpenImageIO/fmath.h"
+#pragma once
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
+// Docs reminders:
+// https://en.wikipedia.org/wiki/BMP_file_format
+// https://web.archive.org/web/20150127132443/https://forums.adobe.com/message/3272950
+
+
 namespace bmp_pvt {
 
-    // size of the BMP file header (the first header that occur in BMP file)
-    const int BMP_HEADER_SIZE = 14;
+// size of the BMP file header (the first header that occur in BMP file)
+const int BMP_HEADER_SIZE = 14;
 
-    // sizes of various DIB haders
-    const int OS2_V1 = 12;
-    const int WINDOWS_V3 = 40;
-    const int WINDOWS_V4 = 108;
+// sizes of various DIB headers
+const int OS2_V1        = 12;
+const int WINDOWS_V3    = 40;
+const int UNDOCHEADER52 = 52;  // 0x34
+const int UNDOCHEADER56 = 56;  // 0x38
+const int WINDOWS_V4    = 108;
+const int WINDOWS_V5    = 124;
 
-    // bmp magic numbers
-    const int16_t MAGIC_BM = 0x4D42;
-    const int16_t MAGIC_BA = 0x4142;
-    const int16_t MAGIC_CI = 0x4943;
-    const int16_t MAGIC_CP = 0x5043;
-    const int16_t MAGIC_PT = 0x5450;
+// bmp magic numbers
+const int16_t MAGIC_BM = 0x4D42;
+const int16_t MAGIC_BA = 0x4142;
+const int16_t MAGIC_CI = 0x4943;
+const int16_t MAGIC_CP = 0x5043;
+const int16_t MAGIC_PT = 0x5450;
 
-    //const int32_t RLE4_COMPRESSION = 2;
-    
-    // store informations about BMP file
-    class BmpFileHeader {
-     public:
-         // reads informations about BMP file
-         bool read_header (FILE *fd);
+const int32_t NO_COMPRESSION   = 0;  // BI_RGB
+const int32_t RLE8_COMPRESSION = 1;  // BI_RLE8
+const int32_t RLE4_COMPRESSION = 2;  // BI_RLE4
 
-         // writes information about bmp file to given file
-         bool write_header (FILE *fd);
-
-         // return true if given file is BMP file
-         bool isBmp () const;
-
-         int16_t magic; // used to identify BMP file
-         int32_t fsize; // size of the BMP file
-         int16_t res1;  // reserved
-         int16_t res2;  // reserved
-         int32_t offset; //offset of image data
-     private:
-         void swap_endian (void);
-    };
-
-    // stores information about bitmap
-    class DibInformationHeader {
-     public:
-         // reads informations about bitmap
-         bool read_header (FILE *fd);
-
-         // writes informations about bitmap
-         bool write_header (FILE *fd);
-
-         int32_t size; // size of the header
-         int32_t width; // bitmap width in pixels
-         int32_t height; // bitmap height in pixels
-         int16_t cplanes; // number of color planes - always 1
-         int16_t bpp; // number of bits per pixel, image color depth
-         int32_t compression; // compression used in file
-         int32_t isize; // size of the raw image data
-         int32_t hres; // horizontal resolution in pixels per meter
-         int32_t vres; // vertical resolutions in pixels per meter
-         int32_t cpalete; // number of entries in the color palete
-         int32_t important; // number of importatn color used, 
-                            // 0 - all colors are important,
-                            // in most cases ignored
-
-         // added in Version 4 of the format
-         int32_t red_mask;
-         int32_t blue_mask;
-         int32_t green_mask;
-         int32_t alpha_mask;
-         int32_t cs_type;    //color space type
-         int32_t red_x;
-         int32_t red_y;
-         int32_t red_z;
-         int32_t green_x;
-         int32_t green_y;
-         int32_t green_z;
-         int32_t blue_x;
-         int32_t blue_y;
-         int32_t blue_z;
-         int32_t gamma_x;
-         int32_t gamma_y;
-         int32_t gamma_z;
-     private:
-         void swap_endian (void);
-    };
-
-    struct color_table {
-        uint8_t b;
-        uint8_t g;
-        uint8_t r;
-        uint8_t unused;
-    };
-} //namespace bmp_pvt
-
-
-
-class BmpInput : public ImageInput {
- public:
-    BmpInput () { init (); }
-    virtual ~BmpInput () { close (); }
-    virtual const char *format_name (void) const { return "bmp"; }
-    virtual bool valid_file (const std::string &filename) const;
-    virtual bool open (const std::string &name, ImageSpec &spec);
-    virtual bool close (void);
-    virtual bool read_native_scanline (int y, int z, void *data);
- private:
-    int m_scanline_size;
-    int m_pad_size;
-    FILE *m_fd;
-    bmp_pvt::BmpFileHeader m_bmp_header;
-    bmp_pvt::DibInformationHeader m_dib_header;
-    std::string m_filename;
-    std::vector<bmp_pvt::color_table> m_colortable;
-    fpos_t m_image_start;
-    void init (void) {
-        m_scanline_size = 0;
-        m_pad_size = 0;
-        m_fd = NULL;
-        m_filename.clear ();
-        m_colortable.clear ();
-    }
-
-    bool read_color_table (void);
+enum class CSType {
+    CalibratedRGB       = 0,
+    DeviceDependentRGB  = 1,
+    DeviceDependentCMYK = 2
 };
 
 
 
-class BmpOutput : public ImageOutput {
- public:
-    BmpOutput () { init (); }
-    virtual ~BmpOutput () { close (); }
-    virtual const char *format_name (void) const { return "bmp"; }
-    virtual int supports (string_view feature) const;
-    virtual bool open (const std::string &name, const ImageSpec &spec,
-                       OpenMode mode);
-    virtual bool close (void);
-    virtual bool write_scanline (int y, int z, TypeDesc format,
-                                 const void *data, stride_t xstride);
-    virtual bool write_tile (int x, int y, int z, TypeDesc format,
-                             const void *data, stride_t xstride,
-                             stride_t ystride, stride_t zstride);
- private:
-    int m_scanline_size;
-    FILE *m_fd;
-    std::string m_filename;
-    bmp_pvt::BmpFileHeader m_bmp_header;
-    bmp_pvt::DibInformationHeader m_dib_header;
-    fpos_t m_image_start;
-    unsigned int m_dither;
-    std::vector<unsigned char> m_tilebuffer;
+// store information about BMP file
+class BmpFileHeader {
+public:
+    // reads information about BMP file
+    bool read_header(Filesystem::IOProxy* fd);
 
-    void init (void) {
-        m_scanline_size = 0;
-        m_fd = NULL;
-        m_filename.clear ();
-    }
+    // writes information about bmp file to given file
+    bool write_header(Filesystem::IOProxy* fd);
 
-    void create_and_write_file_header (void);
+    // return true if given file is BMP file
+    bool isBmp() const;
 
-    void create_and_write_bitmap_header (void);
+    int16_t magic;   // used to identify BMP file
+    int32_t fsize;   // size of the BMP file
+    int16_t res1;    // reserved
+    int16_t res2;    // reserved
+    int32_t offset;  // offset of image data (pixels)
+private:
+    void swap_endian(void);
 };
+
+// stores information about bitmap
+class DibInformationHeader {
+public:
+    // reads information about bitmap
+    bool read_header(Filesystem::IOProxy* fd);
+
+    // writes information about bitmap
+    bool write_header(Filesystem::IOProxy* fd);
+
+    int32_t size;     // size of the header
+    int32_t width;    // bitmap width in pixels
+    int32_t height;   // bitmap height in pixels
+    int16_t cplanes;  // number of color planes - always 1
+    int16_t bpp;      // number of bits per pixel, image color depth
+
+    // Added after Version 1 of the format
+    int32_t compression = 0;  // compression used in file
+    int32_t isize       = 0;  // size of the raw image data
+    int32_t hres        = 0;  // horizontal resolution in pixels per meter
+    int32_t vres        = 0;  // vertical resolutions in pixels per meter
+    int32_t cpalete     = 0;  // number of entries in the color palette
+    int32_t important   = 0;  // number of important color used,
+                              // 0 - all colors are important,
+                              // in most cases ignored
+
+    // added in Version 4 of the format
+    int32_t red_mask   = 0;
+    int32_t blue_mask  = 0;
+    int32_t green_mask = 0;
+    int32_t alpha_mask = 0;
+    int32_t cs_type    = 0;  // color space type
+    int32_t red_x      = 0;
+    int32_t red_y      = 0;
+    int32_t red_z      = 0;
+    int32_t green_x    = 0;
+    int32_t green_y    = 0;
+    int32_t green_z    = 0;
+    int32_t blue_x     = 0;
+    int32_t blue_y     = 0;
+    int32_t blue_z     = 0;
+    int32_t gamma_x    = 0;
+    int32_t gamma_y    = 0;
+    int32_t gamma_z    = 0;
+
+    // added in Version 5 of the format
+    int32_t intent;
+    int32_t profile_data;
+    int32_t profile_size;
+    int32_t reserved;
+
+private:
+    void swap_endian(void);
+};
+
+struct color_table {
+    uint8_t b;
+    uint8_t g;
+    uint8_t r;
+    uint8_t unused;
+};
+
+}  //namespace bmp_pvt
+
 
 
 OIIO_PLUGIN_NAMESPACE_END
-
-
-#endif // OPENIMAGEIO_BMP_H

@@ -1,0 +1,30 @@
+getNumColorSpaces = 8
+getColorSpaceNames = ['linear', 'scene_linear', 'default', 'rgb', 'RGB', 'lin_srgb', 'sRGB', 'Rec709']
+Index of 'lin_srgb' = 5
+Index of 'unknown' = -1
+Name of color space 2 = default
+getNumLooks = 0
+getLookNames = []
+getNumDisplays = 0
+getDisplayNames = []
+getDefaultDisplayName = None
+getNumViews = 0
+getViewNames = []
+getDefaultViewName = None
+getNumRoles = 0
+getRoles = []
+aliases of 'scene_linear' are []
+resolve('foo'): foo
+resolve('linear'): linear
+resolve('scene_linear'): scene_linear
+resolve('lin_srgb'): lin_srgb
+resolve('srgb'): sRGB
+resolve('ACEScg'): ACEScg
+equivalent('lin_srgb', 'srgb'): False
+equivalent('scene_linear', 'srgb'): False
+equivalent('linear', 'lin_srgb'): True
+equivalent('scene_linear', 'lin_srgb'): True
+equivalent('ACEScg', 'scene_linear'): False
+equivalent('lnf', 'scene_linear'): False
+
+Done.

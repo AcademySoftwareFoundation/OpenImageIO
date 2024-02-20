@@ -94,7 +94,7 @@ namespace cineon
 			offset += block.x1 * numberOfComponents / 3 * 4;
 
 
-			// get the read count in bytes, round to the 32-bit boundry
+			// get the read count in bytes, round to the 32-bit boundary
 			int readSize = (block.x2 - block.x1 + 1) * numberOfComponents;
 			readSize += readSize % 3;
 			readSize = readSize / 3 * 4;
@@ -110,7 +110,7 @@ namespace cineon
 
 			for (int count = (block.x2 - block.x1 + 1) * numberOfComponents - 1; count >= 0; count--)
 			{
-				// unpacking the buffer backwords
+				// unpacking the buffer backwards
 				U16 d1 = U16(readBuf[(count + index) / 3] >> ((2 - (count + index) % 3) * 10 + PADDINGBITS) & 0x3ff);
 				BaseTypeConvertU10ToU16(d1, d1);
 				BaseTypeConverter(d1, obuf[count]);
@@ -146,7 +146,7 @@ namespace cineon
 
 		for (int i = count - 1; i >= 0; i--)
 		{
-			// unpacking the buffer backwords
+			// unpacking the buffer backwards
 			// find the byte that the data starts in, read in as a 16 bits then shift and mask
 			// the pattern with byte offset is:
 			//	10 bits datasize rotates every 4 data elements

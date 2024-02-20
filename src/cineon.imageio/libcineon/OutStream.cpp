@@ -34,7 +34,7 @@
 
 #include <cstdio>
 
-#include "OpenImageIO/filesystem.h"
+#include <OpenImageIO/filesystem.h>
 
 #include "CineonStream.h"
 
@@ -97,7 +97,7 @@ bool OutStream::Seek(long offset, Origin origin)
 	}
 
 	if (this->fp == 0)
-		return -1;
+		return false;
 	return (::fseek(this->fp, offset, o) == 0);
 }
 

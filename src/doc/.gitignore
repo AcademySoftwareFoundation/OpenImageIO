@@ -3,5 +3,9 @@
 *.log
 *.out
 *.toc
+*.turd
 /openimageio.ilg
 /openimageio.ind
+_markdown_openimageio/
+_minted-openimageio/
+_static/

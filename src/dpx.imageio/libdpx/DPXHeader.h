@@ -37,12 +37,12 @@
  
 // SMPTE DPX graphic file format v2.0
 
-
+#pragma once
 #ifndef _DPX_DPXHEADER_H
 #define _DPX_DPXHEADER_H 1
 
 #include <cstring>
-#include "OpenImageIO/strutil.h"
+#include <OpenImageIO/strutil.h>
 #include "DPXStream.h"
 
 
@@ -54,23 +54,16 @@
 #define SMPTE_VERSION		"V2.0"
 
 /*!
- * \def MAX_ELEMENTS
+ * \def DPX_MAX_ELEMENTS
  * \brief Maximum number of image elements
  */
-#define MAX_ELEMENTS		8
+#    define DPX_MAX_ELEMENTS 8
 
 /*!
- * \def MAX_COMPONENTS
- * \brief Maximum number of components per image element
- */
-#define MAX_COMPONENTS		8
-
-
-/*!
- * \def MAGIC_COOKIE
+ * \def DPX_MAGIC_COOKIE
  * \brief HEX value of "SDPX"
  */
-#define MAGIC_COOKIE		0x53445058
+#define DPX_MAGIC_COOKIE		0x53445058
 
 
 
@@ -189,20 +182,21 @@ namespace dpx
 	 */
 	enum Characteristic 
 	{
-		kUserDefined = 0,								//!< User defined
-		kPrintingDensity,								//!< Printing density
-		kLinear,										//!< Linear, transfer only
-		kLogarithmic,									//!< Logarithmic, transfer only
-		kUnspecifiedVideo,								//!< Unspecified video
-		kSMPTE274M,										//!< SMPTE 274M
-		kITUR709,										//!< ITU-R 709-4
-		kITUR601,										//!< ITU-R 601-5 system B or G
-		kITUR602,										//!< ITU-R 601-5 system M
-		kNTSCCompositeVideo,							//!< NTSC composite video
-		kPALCompositeVideo,								//!< PAL composite video
-		kZLinear,										//!< Z depth linear, transfer only
-		kZHomogeneous,									//!< Z depth homogeneous, transfer only
-		kUndefinedCharacteristic = 0xff					//!< Undefined
+		kUserDefined = 0,					//!< User defined
+		kPrintingDensity = 1,				//!< Printing density
+		kLinear = 2,						//!< Linear, transfer only
+		kLogarithmic = 3,					//!< Logarithmic, transfer only
+		kUnspecifiedVideo = 4,				//!< Unspecified video
+		kSMPTE274M = 5,						//!< SMPTE 274M
+		kITUR709 = 6,						//!< ITU-R 709-4
+		kITUR601 = 7,						//!< ITU-R 601-5 system B or G
+		kITUR602 = 8,						//!< ITU-R 601-5 system M
+		kNTSCCompositeVideo = 9,			//!< NTSC composite video
+		kPALCompositeVideo = 10,			//!< PAL composite video
+		kZLinear = 11,						//!< Z depth linear, transfer only
+		kZHomogeneous = 12,					//!< Z depth homogeneous, transfer only
+        kADX = 13,                          //!< SMPTE ST 2065-3 Academy Density Exchange Encoding (ADX)
+		kUndefinedCharacteristic = 0xff		//!< Undefined
 	};
 
 	
@@ -324,8 +318,8 @@ namespace dpx
 		U16					numberOfElements;			//!< Number of elements (1-8)
 		U32					pixelsPerLine;				//!< Pixels per line
 		U32					linesPerElement;			//!< Lines per element
-		ImageElement		chan[MAX_ELEMENTS];			//!< Image element data structures
-		ASCII				reserved2[52];				//!< Reserved
+        ImageElement        chan[DPX_MAX_ELEMENTS];     //!< Image element data structures
+        ASCII				reserved2[52];				//!< Reserved
 		/* end of group */
 		//@}
 		
@@ -653,14 +647,14 @@ namespace dpx
 		inline void			SetHighQuantity(const int i, const R32 quant);
 		
 		/*!
-		 * \brief Get the component defintion
+		 * \brief Get the component definition
 		 * \param i element index (0-7)
 		 * \return component descriptor 
 		 */	
 		inline Descriptor	ImageDescriptor(const int i) const;
 		
 		/*!
-		 * \brief Set the component defintion
+		 * \brief Set the component definition
 		 * \param i element index (0-7)
 		 * \param desc component descriptor 
 		 */	
@@ -1170,13 +1164,13 @@ namespace dpx
 		
 		/*!
 		 * \brief Get the shutter angle of the motion picture camera
-		 * \return degress of the temporal sampling aperture
+		 * \return degrees of the temporal sampling aperture
 		 */
 		inline R32			ShutterAngle() const;
 		
 		/*!
 		 * \brief Set the shutter angle of the motion picture camera
-		 * \param angle degress of the temporal sampling aperture
+		 * \param angle degrees of the temporal sampling aperture
 		 */
 		inline void			SetShutterAngle(const R32 angle);
 		
@@ -1261,25 +1255,25 @@ namespace dpx
 		inline void			SetFieldNumber(const U8 fn);
 		
 		/*!
-		 * \brief Get the video sournce
+		 * \brief Get the video source
 		 * \return signal
 		 */
 		inline VideoSignal	Signal() const;
 		
 		/*!
-		 * \brief Set the video sournce
+		 * \brief Set the video source
 		 * \param vs signal
 		 */
 		inline void			SetSignal(const VideoSignal vs);
 		
 		/*!
-		 * \brief Get the clock rate at which samples were aquired
+		 * \brief Get the clock rate at which samples were acquired
 		 * \return rate
 		 */
 		inline R32			HorizontalSampleRate() const;
 		
 		/*!
-		 * \brief Set the clock rate at which samples were aquired
+		 * \brief Set the clock rate at which samples were acquired
 		 * \param rate rate
 		 */
 		inline void			SetHorizontalSampleRate(const R32 rate);
@@ -1447,7 +1441,7 @@ namespace dpx
 		 * \brief Returns the size of the header
 		 * \return 2048 as defined by the standard
 		 */
-		const U32			Size() const;
+		U32			Size() const;
 
 		/*!
 		 * \brief Calculate all of the offset members in the header
@@ -1508,7 +1502,7 @@ namespace dpx
 		return this->DetermineByteSwap(this->magicNumber);
 	}
 
-	inline const U32 Header::Size() const
+	inline U32 Header::Size() const
 	{
 		return 2048;
 	}
@@ -1583,57 +1577,52 @@ namespace dpx
 	
 	inline void GenericHeader::FileName(char *fn) const
 	{
-		::strncpy(fn, this->fileName, sizeof(this->fileName));
-		fn[100] = '\0';
+		OIIO::Strutil::safe_strcpy(fn, this->fileName, sizeof(this->fileName));
 	}
 	
 	inline void GenericHeader::SetFileName(const char *fn)
 	{
-		::strncpy(this->fileName, fn, sizeof(this->fileName));
+		OIIO::Strutil::safe_strcpy(this->fileName, fn, sizeof(this->fileName));
 	}
 	
 	inline void GenericHeader::CreationTimeDate(char *ct) const
 	{
-		::strncpy(ct, this->creationTimeDate, sizeof(this->creationTimeDate));
-		ct[24] = '\0';
+		OIIO::Strutil::safe_strcpy(ct, this->creationTimeDate, sizeof(this->creationTimeDate));
 	}
 	
 	inline void GenericHeader::SetCreationTimeDate(const char *ct)
 	{
-		::strncpy(this->creationTimeDate, ct, sizeof(this->creationTimeDate));
+		OIIO::Strutil::safe_strcpy(this->creationTimeDate, ct, sizeof(this->creationTimeDate));
 	}
 	
 	inline void GenericHeader::Creator(char *creat) const
 	{
-		::strncpy(creat, this->creator, sizeof(this->creator));
-		creat[200] = '\0';		
+		OIIO::Strutil::safe_strcpy(creat, this->creator, sizeof(this->creator));
 	}
 	
 	inline void GenericHeader::SetCreator(const char *creat)
 	{
-		::strncpy(this->creator, creat, sizeof(this->creator));
+		OIIO::Strutil::safe_strcpy(this->creator, creat, sizeof(this->creator));
 	}
 	
 	inline void GenericHeader::Project(char *prj) const
 	{
-		::strncpy(prj, this->project, sizeof(this->project));
-		prj[200] = '\0';
+		OIIO::Strutil::safe_strcpy(prj, this->project, sizeof(this->project));
 	}
 	
 	inline void GenericHeader::SetProject(const char *prj)
 	{
-		::strncpy(this->project, prj, sizeof(this->project));
+		OIIO::Strutil::safe_strcpy(this->project, prj, sizeof(this->project));
 	}
 	
 	inline void GenericHeader::Copyright(char *copy) const
 	{
-		::strncpy(copy, this->copyright, sizeof(this->copyright));
-		copy[200] = '\0';
+		OIIO::Strutil::safe_strcpy(copy, this->copyright, sizeof(this->copyright));
 	}
 	
 	inline void GenericHeader::SetCopyright(const char *copy)
 	{
-		::strncpy(this->copyright, copy, sizeof(this->copyright));
+		OIIO::Strutil::safe_strcpy(this->copyright, copy, sizeof(this->copyright));
 	}
 	
 	inline U32 GenericHeader::EncryptKey() const
@@ -1689,150 +1678,150 @@ namespace dpx
 	
 	inline U32 GenericHeader::DataSign(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xffffffff;
-		return this->chan[i].dataSign;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return 0xffffffff;
+        return this->chan[i].dataSign;
 	}
 
 	inline void GenericHeader::SetDataSign(const int i, const U32 sign)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].dataSign = sign;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        this->chan[i].dataSign = sign;
 	}
 
 	inline U32 GenericHeader::LowData(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xffffffff;
-		return this->chan[i].lowData;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return 0xffffffff;
+        return this->chan[i].lowData;
 	}
 
 	inline void GenericHeader::SetLowData(const int i, const U32 data)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].lowData = data;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        this->chan[i].lowData = data;
 	}
 
 	inline R32 GenericHeader::LowQuantity(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xffffffff;
-		return this->chan[i].lowQuantity;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return R32(0xffffffff);
+        return this->chan[i].lowQuantity;
 	}
 
 	inline void GenericHeader::SetLowQuantity(const int i, const R32 quant)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].lowQuantity = quant;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        this->chan[i].lowQuantity = quant;
 	}
 
 	inline U32 GenericHeader::HighData(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xffffffff;
-		return this->chan[i].highData;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return 0xffffffff;
+        return this->chan[i].highData;
 	}
 
 	inline void GenericHeader::SetHighData(const int i, const U32 data)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].highData = data;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        this->chan[i].highData = data;
 	}
 
 	inline R32 GenericHeader::HighQuantity(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xffffffff;
-		return this->chan[i].highQuantity;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return R32(0xffffffff);
+        return this->chan[i].highQuantity;
 	}
 
 	inline void GenericHeader::SetHighQuantity(const int i, const R32 quant)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].highQuantity = quant;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        this->chan[i].highQuantity = quant;
 	}
 
 	inline Descriptor GenericHeader::ImageDescriptor(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return Descriptor(0xff);
-		return Descriptor(this->chan[i].descriptor);
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return Descriptor(0xff);
+        return Descriptor(this->chan[i].descriptor);
 	}
 
 	inline void GenericHeader::SetImageDescriptor(const int i, const Descriptor desc)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].descriptor = desc;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        this->chan[i].descriptor = desc;
 	}
 
 	inline Characteristic GenericHeader::Transfer(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return Characteristic(0xff);
-		return Characteristic(this->chan[i].transfer);
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return Characteristic(0xff);
+        return Characteristic(this->chan[i].transfer);
 	}
 
 	inline void GenericHeader::SetTransfer(const int i, const Characteristic ch)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].transfer = ch;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        this->chan[i].transfer = ch;
 	}
 
 	inline Characteristic GenericHeader::Colorimetric(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return Characteristic(0xff);
-		return Characteristic(this->chan[i].colorimetric);
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return Characteristic(0xff);
+        return Characteristic(this->chan[i].colorimetric);
 	}
 
 	inline void GenericHeader::SetColorimetric(const int i, const Characteristic c)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].colorimetric = c;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        this->chan[i].colorimetric = c;
 	}
 
 	inline U8 GenericHeader::BitDepth(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xff;
-		return this->chan[i].bitDepth;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return 0xff;
+        return this->chan[i].bitDepth;
 	}
 
 	inline void GenericHeader::SetBitDepth(const int i, const U8 depth)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].bitDepth = depth;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        this->chan[i].bitDepth = depth;
 	}
 
 	inline Packing GenericHeader::ImagePacking(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return Packing(0xff);
-		return Packing(this->chan[i].packing);
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return Packing(0xff);
+        return Packing(this->chan[i].packing);
 	}
 
 	inline void GenericHeader::SetImagePacking(const int i, const Packing pack)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].packing = pack;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        this->chan[i].packing = pack;
 	}
 
 	inline Encoding GenericHeader::ImageEncoding(const int i) const
 	{
 		Encoding e = kNone;
-		
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return kNone;
+
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return kNone;
 	
 		if (this->chan[i].encoding == 1)
 			e = kRLE;
@@ -1842,70 +1831,70 @@ namespace dpx
 
 	inline void GenericHeader::SetImageEncoding(const int i, const Encoding enc)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-	
-		this->chan[i].encoding = (enc == kNone ? 0 : 1);
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+
+        this->chan[i].encoding = (enc == kNone ? 0 : 1);
 	}
 
 	inline U32 GenericHeader::DataOffset(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xffffffff;
-		return this->chan[i].dataOffset;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return 0xffffffff;
+        return this->chan[i].dataOffset;
 	}
 
 	inline void GenericHeader::SetDataOffset(const int i, const U32 offset)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].dataOffset = offset;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        this->chan[i].dataOffset = offset;
 	}
 
 	inline U32 GenericHeader::EndOfLinePadding(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xffffffff;
-		if (this->chan[i].endOfLinePadding == 0xffffffff)
-				return 0;
-		return this->chan[i].endOfLinePadding;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return 0xffffffff;
+        if (this->chan[i].endOfLinePadding == 0xffffffff)
+            return 0;
+        return this->chan[i].endOfLinePadding;
 	}
 
 	inline void GenericHeader::SetEndOfLinePadding(const int i, const U32 eolp)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].endOfLinePadding = eolp;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        this->chan[i].endOfLinePadding = eolp;
 	}
 
 	inline U32 GenericHeader::EndOfImagePadding(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xffffffff;
-		if (this->chan[i].endOfImagePadding == 0xffffffff)
-			return 0;	
-		return this->chan[i].endOfImagePadding;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return 0xffffffff;
+        if (this->chan[i].endOfImagePadding == 0xffffffff)
+            return 0;
+        return this->chan[i].endOfImagePadding;
 	}
 
 	inline void GenericHeader::SetEndOfImagePadding(const int i, const U32 eoip)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].endOfImagePadding = eoip;
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        this->chan[i].endOfImagePadding = eoip;
 	}
 
 	inline void GenericHeader::Description(const int i, char *desc) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		strncpy(desc, this->chan[i].description, 32);
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        OIIO::Strutil::safe_strcpy(desc, this->chan[i].description, 32);
 	}
 
 	inline void GenericHeader::SetDescription(const int i, const char *desc)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		::strncpy(this->chan[i].description, desc, 32);
+        if (i < 0 || i >= DPX_MAX_ELEMENTS)
+            return;
+        OIIO::Strutil::safe_strcpy(this->chan[i].description, desc, 32);
 	}
 	
 	
@@ -1971,46 +1960,42 @@ namespace dpx
 	
 	inline void GenericHeader::SourceImageFileName(char *fn) const
 	{
-		::strncpy(fn, this->sourceImageFileName, sizeof(this->sourceImageFileName));
-		fn[100] = '\0';
+		OIIO::Strutil::safe_strcpy(fn, this->sourceImageFileName, sizeof(this->sourceImageFileName));
 	}
 	
 	inline void GenericHeader::SetSourceImageFileName(const char *fn)
 	{
-		::strncpy(this->sourceImageFileName, fn, sizeof(this->sourceImageFileName));
+		OIIO::Strutil::safe_strcpy(this->sourceImageFileName, fn, sizeof(this->sourceImageFileName));
 	}
 	
 	inline void GenericHeader::SourceTimeDate(char *td) const
 	{
-		::strncpy(td, this->sourceTimeDate, sizeof(this->sourceTimeDate));
-		td[24] = '\0';
+		OIIO::Strutil::safe_strcpy(td, this->sourceTimeDate, sizeof(this->sourceTimeDate));
 	}
 	
 	inline void GenericHeader::SetSourceTimeDate(const char *td)
 	{
-		::strncpy(this->sourceTimeDate, td, sizeof(this->sourceTimeDate));
+		OIIO::Strutil::safe_strcpy(this->sourceTimeDate, td, sizeof(this->sourceTimeDate));
 	}
 	
 	inline void GenericHeader::InputDevice(char *dev) const
 	{
-		::strncpy(dev, this->inputDevice, sizeof(this->inputDevice));
-		dev[32] = '\0';
+		OIIO::Strutil::safe_strcpy(dev, this->inputDevice, sizeof(this->inputDevice));
 	}
 	
 	inline void  GenericHeader::SetInputDevice(const char *dev)
 	{
-		::strncpy(this->inputDevice, dev, sizeof(this->inputDevice));
+		OIIO::Strutil::safe_strcpy(this->inputDevice, dev, sizeof(this->inputDevice));
 	}
 	
 	inline void GenericHeader::InputDeviceSerialNumber(char *sn) const
 	{
-		::strncpy(sn, this->inputDeviceSerialNumber, sizeof(this->inputDeviceSerialNumber));
-		sn[32] = '\0';
+		OIIO::Strutil::safe_strcpy(sn, this->inputDeviceSerialNumber, sizeof(this->inputDeviceSerialNumber));
 	}
 	
 	inline void GenericHeader::SetInputDeviceSerialNumber(const char *sn)
 	{
-		::strncpy(this->inputDeviceSerialNumber, sn, sizeof(this->inputDeviceSerialNumber));
+		OIIO::Strutil::safe_strcpy(this->inputDeviceSerialNumber, sn, sizeof(this->inputDeviceSerialNumber));
 	}
 	
 	inline U16 GenericHeader::Border(const int i) const
@@ -2066,13 +2051,12 @@ namespace dpx
 	
 	inline void IndustryHeader::Format(char *fmt) const
 	{
-		::strncpy(fmt, this->format, sizeof(this->format));
-		fmt[32] = '\0';
+		OIIO::Strutil::safe_strcpy(fmt, this->format, sizeof(this->format));
 	}
 
 	inline void IndustryHeader::SetFormat(const char *fmt)
 	{
-		::strncpy(this->format, fmt, sizeof(this->format));
+		OIIO::Strutil::safe_strcpy(this->format, fmt, sizeof(this->format));
 	}
 
 	inline U32 IndustryHeader::FramePosition() const
@@ -2127,24 +2111,22 @@ namespace dpx
 
 	inline void IndustryHeader::FrameId(char *id) const
 	{
-		::strncpy(id, this->frameId, sizeof(this->frameId));
-		id[32] = '\0';
+		OIIO::Strutil::safe_strcpy(id, this->frameId, sizeof(this->frameId));
 	}
 
 	inline void IndustryHeader::SetFrameId(const char *id)
 	{
-		::strncpy(this->frameId, id, sizeof(this->frameId));
+		OIIO::Strutil::safe_strcpy(this->frameId, id, sizeof(this->frameId));
 	}
 
 	inline void IndustryHeader::SlateInfo(char *slate) const
 	{
-		::strncpy(slate, this->slateInfo, sizeof(this->slateInfo));
-		slate[100] = '\0';
+		OIIO::Strutil::safe_strcpy(slate, this->slateInfo, sizeof(this->slateInfo));
 	}
 
 	inline void IndustryHeader::SetSlateInfo(const char *slate)
 	{
-		::strncpy(this->slateInfo, slate, sizeof(this->slateInfo));
+		OIIO::Strutil::safe_strcpy(this->slateInfo, slate, sizeof(this->slateInfo));
 	}
 
 

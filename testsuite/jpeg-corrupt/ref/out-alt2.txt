@@ -1,0 +1,20 @@
+Reading src/corrupt-exif.jpg
+src/corrupt-exif.jpg :  256 x  256, 3 channel, uint8 jpeg
+    SHA-1: 4E7872E76ACB971D56715978C9C4F8FF4055AD67
+    channel list: R, G, B
+    Orientation: 1 (normal)
+    ResolutionUnit: "in"
+    XResolution: 300
+    YResolution: 300
+    jpeg:subsampling: "4:2:0"
+    oiio:ColorSpace: "sRGB"
+Reading src/corrupt-exif-1626.jpg
+src/corrupt-exif-1626.jpg :  256 x  256, 3 channel, uint8 jpeg
+    SHA-1: FB711E5A0E4440C6B7C7A94835C44706569FFB78
+    channel list: R, G, B
+    Orientation: 1 (normal)
+    ResolutionUnit: "in"
+    XResolution: 300
+    YResolution: 300
+    jpeg:subsampling: "4:2:0"
+    oiio:ColorSpace: "sRGB"

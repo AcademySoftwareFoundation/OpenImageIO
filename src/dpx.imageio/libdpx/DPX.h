@@ -33,7 +33,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-
+#pragma once
 #ifndef _DPX_H
 #define _DPX_H 1
 
@@ -146,7 +146,7 @@ namespace dpx
 	/*!
 	 * \brief returns a char * of the default DPX file extension
 	 *
-	 * \return .dpx file extenion
+	 * \return .dpx file extension
 	 */
 	inline const char *DefaultExtension();
 
@@ -250,14 +250,10 @@ namespace dpx
 	protected:			
 		InStream *fd;
 		
-		Codec *codex[MAX_ELEMENTS];
+		Codec *codex[DPX_MAX_ELEMENTS];
 		ElementReadStream *rio;
 	};
 	
-	
-	
-	
-
 
 
 
@@ -400,7 +396,7 @@ namespace dpx
 		 *
 		 * \param element element number (0-7)
 		 * \param data buffer
-         * \param alignment -- defines the imageAlignement to make sure the image is on typically an 8K alignement.
+         * \param alignment -- defines the imageAlignment to make sure the image is on typically an 8K alignment.
 		 * \return success true/false
 		 */			
 		bool WriteElement(const int element, void *data);

@@ -1,9 +1,9 @@
-find_package (JPEG)
-find_package (TIFF)
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-if (JPEG_FOUND AND TIFF_FOUND)
-    include_directories (${TIFF_INCLUDE_DIR})
-    include_directories (${JPEG_INCLUDE_DIR})
-    add_oiio_plugin (jpeginput.cpp jpegoutput.cpp
-        LINK_LIBRARIES ${JPEG_LIBRARIES})
-endif ()
+add_oiio_plugin (jpeginput.cpp jpegoutput.cpp
+                 LINK_LIBRARIES
+                     $<TARGET_NAME_IF_EXISTS:libjpeg-turbo::jpeg>
+                     $<TARGET_NAME_IF_EXISTS:JPEG::JPEG>
+                 )

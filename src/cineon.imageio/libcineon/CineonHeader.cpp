@@ -33,7 +33,6 @@
  */
 
 
-
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
@@ -41,7 +40,8 @@
 #include <ctime>
 #include <limits>
 
-#include "OpenImageIO/strutil.h"
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
 
 #include "CineonHeader.h"
 #include "EndianSwap.h"
@@ -82,7 +82,7 @@ cineon::GenericHeader::GenericHeader()
 void cineon::GenericHeader::Reset()
 {
 	// File Information
-	this->magicNumber = MAGIC_COOKIE;
+	this->magicNumber = CINEON_MAGIC_COOKIE;
 	this->imageOffset = ~0;
 	EmptyString(this->version);
 	OIIO::Strutil::safe_strcpy(this->version, SPEC_VERSION, sizeof(this->version));
@@ -160,10 +160,10 @@ void cineon::IndustryHeader::Reset()
 
 cineon::ImageElement::ImageElement()
 {
-	this->lowData = 0xffffffff;
-	this->lowQuantity = 0xffffffff;
-	this->highData = 0xffffffff;
-	this->highQuantity = 0xffffffff;
+	this->lowData = R32(0xffffffff);
+	this->lowQuantity = R32(0xffffffff);
+	this->highData = R32(0xffffffff);
+	this->highQuantity = R32(0xffffffff);
 	this->bitDepth = 0xff;
 }
 
@@ -212,6 +212,8 @@ bool cineon::Header::Check()
 
 
 
+#ifdef OIIO_DOES_NOT_NEED_THIS
+
 bool cineon::Header::Write(OutStream *io)
 {
 	// write the header to the file
@@ -254,7 +256,7 @@ bool cineon::Header::WriteOffsetData(OutStream *io)
 	//const long IMAGE_STRUCTURE = 72;	// sizeof the image data structure
 
 	/*int i;
-	for (i = 0; i < MAX_ELEMENTS; i++)
+	for (i = 0; i < CINEON_MAX_ELEMENTS; i++)
 	{
 			// only write if there is a defined image description
 			if (this->chan[i].descriptor == kUndefinedDescriptor)
@@ -272,11 +274,12 @@ bool cineon::Header::WriteOffsetData(OutStream *io)
 
 	return true;
 }
+#endif  /* OIIO_DOES_NOT_NEED_THIS */
 
 
 bool cineon::Header::ValidMagicCookie(const U32 magic)
 {
-	U32 mc = MAGIC_COOKIE;
+	U32 mc = CINEON_MAGIC_COOKIE;
 
 	if (magic == mc)
 		return true;
@@ -289,7 +292,7 @@ bool cineon::Header::ValidMagicCookie(const U32 magic)
 
 bool cineon::Header::DetermineByteSwap(const U32 magic) const
 {
-	U32 mc = MAGIC_COOKIE;
+	U32 mc = CINEON_MAGIC_COOKIE;
 
 	bool byteSwap = false;
 
@@ -317,7 +320,7 @@ bool cineon::Header::Validate()
 		SwapBytes(this->fileSize);
 
 		// Image information
-		for (int i = 0; i < MAX_ELEMENTS; i++)
+		for (int i = 0; i < CINEON_MAX_ELEMENTS; i++)
 		{
 			SwapBytes(this->chan[i].pixelsPerLine);
 			SwapBytes(this->chan[i].linesPerElement);
@@ -372,7 +375,7 @@ int cineon::GenericHeader::ImageElementCount() const
 {
 	int i = 0;
 
-	while (i < MAX_ELEMENTS )
+	while (i < CINEON_MAX_ELEMENTS )
 	{
 		if (this->ImageDescriptor(i) == kUndefinedDescriptor)
 			break;
@@ -383,6 +386,7 @@ int cineon::GenericHeader::ImageElementCount() const
 }
 
 
+#ifdef OIIO_DOES_NOT_NEED_THIS
 void cineon::GenericHeader::CalculateNumberOfElements()
 {
 	int i = this->ImageElementCount();
@@ -398,7 +402,7 @@ void cineon::Header::CalculateOffsets()
 {
 	int i;
 
-	for (i = 0; i < MAX_ELEMENTS; i++)
+	for (i = 0; i < CINEON_MAX_ELEMENTS; i++)
 	{
 		// only write if there is a defined image description
 		if (this->chan[i].designator[1] == kUndefinedDescriptor)
@@ -407,11 +411,12 @@ void cineon::Header::CalculateOffsets()
 
 	}
 }
+#endif  /* OIIO_DOES_NOT_NEED_THIS */
 
 
 cineon::DataSize cineon::GenericHeader::ComponentDataSize(const int element) const
 {
-	if (element < 0 || element >= MAX_ELEMENTS)
+	if (element < 0 || element >= CINEON_MAX_ELEMENTS)
 		return kByte;
 
 	cineon::DataSize ret;
@@ -444,7 +449,7 @@ cineon::DataSize cineon::GenericHeader::ComponentDataSize(const int element) con
 
 int cineon::GenericHeader::ComponentByteCount(const int element) const
 {
-	if (element < 0 || element >= MAX_ELEMENTS)
+	if (element < 0 || element >= CINEON_MAX_ELEMENTS)
 		return kByte;
 
 	int ret;
@@ -500,76 +505,66 @@ int cineon::GenericHeader::DataSizeByteCount(const DataSize ds)
 }
 
 
-void cineon::IndustryHeader::FilmEdgeCode(char *edge) const
+void cineon::IndustryHeader::FilmEdgeCode(char *edge, size_t size) const
 {
-	if (this->filmManufacturingIdCode == 0xff
-		&& this->filmType == 0xff
-		&& this->perfsOffset == 0xff
-		&& this->prefix == 0xffffffff
-		&& this->count == 0xffffffff)
-		*edge = 0;
-	else
-		sprintf(edge, "%02u%02u%02u%06u%04u",
-			(unsigned int)this->filmManufacturingIdCode,
-			(unsigned int)this->filmType,
-			(unsigned int)this->perfsOffset,
-			this->prefix,
-			this->count);
+        if (this->filmManufacturingIdCode == 0xff && this->filmType == 0xff
+            && this->perfsOffset == 0xff && this->prefix == 0xffffffff
+            && this->count == 0xffffffff)
+                *edge = 0;
+        else {
+                std::string e = OIIO::Strutil::sprintf(
+                    "%02u%02u%02u%06u%04u",
+                    (unsigned int)this->filmManufacturingIdCode,
+                    (unsigned int)this->filmType,
+                    (unsigned int)this->perfsOffset, this->prefix, this->count);
+                OIIO::Strutil::safe_strcpy(edge, e, size);
+        }
 }
 
 
+#ifdef OIIO_DOES_NOT_NEED_THIS
 void cineon::IndustryHeader::SetFilmEdgeCode(const char *edge)
 {
-	char buf[7];
-
-	strncpy(buf, edge, 2);
-	this->filmManufacturingIdCode = atoi(buf);
-
-	strncpy(buf, edge + 2, 2);
-	this->filmType = atoi(buf);
-
-	strncpy(buf, edge + 4, 2);
-	this->perfsOffset = atoi(buf);
-
-	strncpy(buf, edge + 6, 6);
-	this->prefix = atoi(buf);
-
-	strncpy(buf, edge + 12, 4);
-	this->count = atoi(buf);
+	this->filmManufacturingIdCode = OIIO::Strutil::stoi(OIIO::string_view(edge, 2));
+	this->filmType = OIIO::Strutil::stoi(OIIO::string_view(edge + 2, 2));
+	this->perfsOffset = OIIO::Strutil::stoi(OIIO::string_view(edge + 4, 2));
+	this->prefix = OIIO::Strutil::stoi(OIIO::string_view(edge + 6, 6));
+	this->count = OIIO::Strutil::stoi(OIIO::string_view(edge + 12, 4));
 }
+#endif  /* OIIO_DOES_NOT_NEED_THIS */
 
 
 void cineon::GenericHeader::SetCreationTimeDate(const long sec)
 {
-	struct tm *tm_time;
 	char str[32];
 
-#ifdef WIN32
+#ifdef _WIN32
 	_tzset();
 #endif
 
 	const time_t t = time_t(sec);
-	tm_time = ::localtime(&t);
-	::strftime(str, 32, "%Y:%m:%d:%H:%M:%S%Z", tm_time);
-	::strncpy(this->creationDate, str, 10);
-	::strncpy(this->creationTime, str + 11, 12);
+    struct tm localtm;
+    OIIO::Sysutil::get_local_time(&t, &localtm);
+    ::strftime(str, 32, "%Y:%m:%d:%H:%M:%S%Z", &localtm);
+	OIIO::Strutil::safe_strcpy(this->creationDate, str, 11);
+	OIIO::Strutil::safe_strcpy(this->creationTime, str + 11, 12);
 }
 
 
 void cineon::GenericHeader::SetSourceTimeDate(const long sec)
 {
-	struct tm *tm_time;
 	char str[32];
 
-#ifdef WIN32
+#ifdef _WIN32
 	_tzset();
 #endif
 
 	const time_t t = time_t(sec);
-	tm_time = ::localtime(&t);
-	::strftime(str, 32, "%Y:%m:%d:%H:%M:%S%Z", tm_time);
-	::strncpy(this->sourceDate, str, 10);
-	::strncpy(this->sourceTime, str + 11, 12);
+    struct tm localtm;
+    OIIO::Sysutil::get_local_time(&t, &localtm);
+    ::strftime(str, 32, "%Y:%m:%d:%H:%M:%S%Z", &localtm);
+	OIIO::Strutil::safe_strcpy(this->sourceDate, str, 11);
+	OIIO::Strutil::safe_strcpy(this->sourceTime, str + 11, 12);
 }
 
 

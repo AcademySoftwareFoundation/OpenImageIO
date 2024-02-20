@@ -1,0 +1,33 @@
+Reading ../oiio-images/oiio-logo-no-alpha.png
+../oiio-images/oiio-logo-no-alpha.png :  135 x  135, 4 channel, uint8 png
+    SHA-1: 75ED9B183E083ECF0A4881EEE0B553457B698CF4
+    channel list: R, G, B, A
+    Comment: "Created with GIMP"
+    DateTime: "2009:03:26 17:19:47"
+    ResolutionUnit: "inch"
+    XResolution: 72.009
+    YResolution: 72.009
+    oiio:ColorSpace: "sRGB"
+Comparing "../oiio-images/oiio-logo-no-alpha.png" and "oiio-logo-no-alpha.png"
+PASS
+Reading ../oiio-images/oiio-logo-with-alpha.png
+../oiio-images/oiio-logo-with-alpha.png :  135 x  135, 4 channel, uint8 png
+    SHA-1: 8AED04DCCE8F83B068C537DC0982A42EFBE431B6
+    channel list: R, G, B, A
+    Comment: "Created with GIMP"
+    DateTime: "2009:03:26 18:44:26"
+    ResolutionUnit: "inch"
+    XResolution: 72.009
+    YResolution: 72.009
+    oiio:ColorSpace: "sRGB"
+Comparing "../oiio-images/oiio-logo-with-alpha.png" and "oiio-logo-with-alpha.png"
+PASS
+Reading exif.png
+exif.png             :   64 x   64, 3 channel, uint8 png
+    SHA-1: 7CB41FEA50720B48BE0C145E1473982B23E9AB77
+    channel list: R, G, B
+    oiio:ColorSpace: "sRGB"
+smallalpha.png       :    1 x    1, 4 channel, uint8 png
+    Pixel (0, 0): 240 108 119 1 (0.94117653 0.42352945 0.4666667 0.003921569)
+Comparing "test16.png" and "ref/test16.png"
+PASS

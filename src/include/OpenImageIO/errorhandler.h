@@ -1,53 +1,36 @@
-/*
-  Copyright 2009 Larry Gritz and the other authors and contributors.
-  All Rights Reserved.
-
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions are
-  met:
-  * Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
-  * Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution.
-  * Neither the name of the software's owners nor the names of its
-    contributors may be used to endorse or promote products derived from
-    this software without specific prior written permission.
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-  (This is the Modified BSD License)
-*/
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: Apache-2.0
+// https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
-#ifndef OPENIMAGEIO_ERRORMANAGER_H
-#define OPENIMAGEIO_ERRORMANAGER_H
+#pragma once
 
-#include <cstdarg>
-
-#include "export.h"
-#include "oiioversion.h"
-#include "strutil.h"
+#include <OpenImageIO/export.h>
+#include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/strutil.h>
 
 
-OIIO_NAMESPACE_ENTER
-{
+// If OIIO_ERRORHANDLER_HIDE_PRINTF is defined, mark the old-style printf-like
+// format functions as deprecated. (This is a debugging aid for downstream
+// projects who want to root out any places where they might be using the old
+// one).
+#if defined(OIIO_ERRORHANDLER_HIDE_PRINTF) || defined(OIIO_INTERNAL)
+#    define OIIO_ERRORHANDLER_PRINTF_DEPRECATED \
+        OIIO_DEPRECATED(                        \
+            "old style (printf-like) formatting version of this function is deprecated")
+#else
+#    define OIIO_ERRORHANDLER_PRINTF_DEPRECATED
+#endif
+
+
+OIIO_NAMESPACE_BEGIN
 
 /// ErrorHandler is a simple class that accepts error messages
 /// (classified as errors, severe errors, warnings, info, messages, or
 /// debug output) and handles them somehow.  By default it just prints
-/// the messages to stdout and/or stderr (and supresses some based on a
+/// the messages to stdout and/or stderr (and suppresses some based on a
 /// "verbosity" level).
-/// 
+///
 /// The basic idea is that your library code has no idea whether some
 /// application that will use it someday will want errors or other
 /// output to be sent to the console, go to a log file, be intercepted
@@ -57,20 +40,20 @@ OIIO_NAMESPACE_ENTER
 /// different behavior from the default console output) and make all
 /// error-like output via the ErrorHandler*.
 ///
-class OIIO_API ErrorHandler {
+class OIIO_UTIL_API ErrorHandler {
 public:
     /// Error categories.  We use broad categories in the high order bits.
     /// A library may just use these categories, or may create individual
     /// error codes as long as they have the right high bits to designate
-    /// their category (file not found = ERROR + 1, etc.).  
+    /// their category (file not found = ERROR + 1, etc.).
     enum ErrCode {
-        EH_NO_ERROR    = 0,    // never sent to handler
-        EH_MESSAGE     = 0 << 16,
-        EH_INFO        = 1 << 16,
-        EH_WARNING     = 2 << 16,
-        EH_ERROR       = 3 << 16,
-        EH_SEVERE      = 4 << 16,
-        EH_DEBUG       = 5 << 16
+        EH_NO_ERROR = 0,  // never sent to handler
+        EH_MESSAGE  = 0 << 16,
+        EH_INFO     = 1 << 16,
+        EH_WARNING  = 2 << 16,
+        EH_ERROR    = 3 << 16,
+        EH_SEVERE   = 4 << 16,
+        EH_DEBUG    = 5 << 16
     };
 
     /// VerbosityLevel controls how much detail the calling app wants.
@@ -81,86 +64,200 @@ public:
         VERBOSE = 2   ///< Like NORMAL, but also show INFO
     };
 
-    ErrorHandler () : m_verbosity(NORMAL) { }
-    virtual ~ErrorHandler () { }
+    ErrorHandler() noexcept
+        : m_verbosity(NORMAL)
+    {
+    }
+    virtual ~ErrorHandler() {}
+
+    /// Set desired verbosity level.
+    void verbosity(int v) noexcept { m_verbosity = v; }
+
+    /// Return the current verbosity level.
+    int verbosity() const noexcept { return m_verbosity; }
 
     /// The main (or "full detail") method -- takes a code (with high
     /// bits being an ErrCode) and writes the message, with a prefix
     /// indicating the error category (no prefix for "MESSAGE") and
     /// error string.
-    virtual void operator () (int errcode, const std::string &msg);
+    virtual void operator()(int errcode, const std::string& msg);
 
-    /// Info message with printf-like formatted error message.
-    /// Will not print unless verbosity >= VERBOSE.
-    void info (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
+    // Base cases -- take a single string
+    void info(const std::string& msg) { (*this)(EH_INFO, msg); }
+    void warning(const std::string& msg) { (*this)(EH_WARNING, msg); }
+    void error(const std::string& msg) { (*this)(EH_ERROR, msg); }
+    void severe(const std::string& msg) { (*this)(EH_SEVERE, msg); }
+    void message(const std::string& msg) { (*this)(EH_MESSAGE, msg); }
+#ifndef NDEBUG
+    void debug(const std::string& msg) { (*this)(EH_DEBUG, msg); }
+#else
+    void debug(const std::string&) {}
+#endif
+
+    // Formatted output with the same notation as Strutil::format.
+    /// Use with caution! Some day this will change to be fmt-like rather
+    /// than printf-like.
+    template<typename... Args>
+    OIIO_FORMAT_DEPRECATED void info(const char* format, const Args&... args)
+    {
+        if (verbosity() >= VERBOSE)
+            info(Strutil::format(format, args...));
+    }
 
     /// Warning message with printf-like formatted error message.
     /// Will not print unless verbosity >= NORMAL (i.e. will suppress
     /// for QUIET).
-    void warning (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
+    template<typename... Args>
+    OIIO_FORMAT_DEPRECATED void warning(const char* format, const Args&... args)
+    {
+        if (verbosity() >= NORMAL)
+            warning(Strutil::format(format, args...));
+    }
 
     /// Error message with printf-like formatted error message.
     /// Will print regardless of verbosity.
-    void error (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
+    template<typename... Args>
+    OIIO_FORMAT_DEPRECATED void error(const char* format, const Args&... args)
+    {
+        error(Strutil::format(format, args...));
+    }
 
     /// Severe error message with printf-like formatted error message.
     /// Will print regardless of verbosity.
-    void severe (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
+    template<typename... Args>
+    OIIO_FORMAT_DEPRECATED void severe(const char* format, const Args&... args)
+    {
+        severe(Strutil::format(format, args...));
+    }
 
     /// Prefix-less message with printf-like formatted error message.
     /// Will not print if verbosity is QUIET.  Also note that unlike
     /// the other routines, message() will NOT append a newline.
-    void message (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
+    template<typename... Args>
+    OIIO_FORMAT_DEPRECATED void message(const char* format, const Args&... args)
+    {
+        if (verbosity() > QUIET)
+            message(Strutil::format(format, args...));
+    }
 
     /// Debugging message with printf-like formatted error message.
     /// This will not produce any output if not in DEBUG mode, or
     /// if verbosity is QUIET.
+    template<typename... Args>
+    OIIO_FORMAT_DEPRECATED void debug(const char* format OIIO_MAYBE_UNUSED,
+                                      const Args&... args OIIO_MAYBE_UNUSED)
+    {
 #ifndef NDEBUG
-    void debug (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
-#else
-    void debug (const char * /*format*/, ...) OPENIMAGEIO_PRINTF_ARGS(2,3) { }
+        debug(Strutil::format(format, args...));
 #endif
+    }
 
-    void vInfo    (const char *format, va_list argptr);
-    void vWarning (const char *format, va_list argptr);
-    void vError   (const char *format, va_list argptr);
-    void vSevere  (const char *format, va_list argptr);
-    void vMessage (const char *format, va_list argptr);
+    //
+    // Formatted output with printf notation. Use these if you specifically
+    // want printf-notation, even after format() changes to python notation
+    // in some future OIIO release.
+    //
+    template<typename... Args>
+    OIIO_ERRORHANDLER_PRINTF_DEPRECATED void infof(const char* format,
+                                                   const Args&... args)
+    {
+        if (verbosity() >= VERBOSE)
+            info(Strutil::sprintf(format, args...));
+    }
+
+    template<typename... Args>
+    OIIO_ERRORHANDLER_PRINTF_DEPRECATED void warningf(const char* format,
+                                                      const Args&... args)
+    {
+        if (verbosity() >= NORMAL)
+            warning(Strutil::sprintf(format, args...));
+    }
+
+    template<typename... Args>
+    OIIO_ERRORHANDLER_PRINTF_DEPRECATED void errorf(const char* format,
+                                                    const Args&... args)
+    {
+        error(Strutil::sprintf(format, args...));
+    }
+
+    template<typename... Args>
+    OIIO_ERRORHANDLER_PRINTF_DEPRECATED void severef(const char* format,
+                                                     const Args&... args)
+    {
+        severe(Strutil::sprintf(format, args...));
+    }
+
+    template<typename... Args>
+    OIIO_ERRORHANDLER_PRINTF_DEPRECATED void messagef(const char* format,
+                                                      const Args&... args)
+    {
+        if (verbosity() > QUIET)
+            message(Strutil::sprintf(format, args...));
+    }
+
+    template<typename... Args>
+    OIIO_ERRORHANDLER_PRINTF_DEPRECATED void
+    debugf(const char* format OIIO_MAYBE_UNUSED,
+           const Args&... args OIIO_MAYBE_UNUSED)
+    {
 #ifndef NDEBUG
-    void vDebug   (const char *format, va_list argptr);
-#else
-    void vDebug   (const char *, va_list) { }
+        debug(Strutil::sprintf(format, args...));
 #endif
+    }
 
-    void info    (const std::string &msg) { (*this)(EH_INFO, msg); }
-    void warning (const std::string &msg) { (*this)(EH_WARNING, msg); }
-    void error   (const std::string &msg) { (*this)(EH_ERROR, msg); }
-    void severe  (const std::string &msg) { (*this)(EH_SEVERE, msg); }
-    void message (const std::string &msg) { (*this)(EH_MESSAGE, msg); }
+    //
+    // Formatted output with std::format notation. Use these if you
+    // specifically want std::format-notation, even before format() changes
+    // to the new notation in some future OIIO release.
+    //
+    template<typename... Args>
+    void infofmt(const char* format, const Args&... args)
+    {
+        if (verbosity() >= VERBOSE)
+            info(Strutil::fmt::format(format, args...));
+    }
+
+    template<typename... Args>
+    void warningfmt(const char* format, const Args&... args)
+    {
+        if (verbosity() >= NORMAL)
+            warning(Strutil::fmt::format(format, args...));
+    }
+
+    template<typename... Args>
+    void errorfmt(const char* format, const Args&... args)
+    {
+        error(Strutil::fmt::format(format, args...));
+    }
+
+    template<typename... Args>
+    void severefmt(const char* format, const Args&... args)
+    {
+        severe(Strutil::fmt::format(format, args...));
+    }
+
+    template<typename... Args>
+    void messagefmt(const char* format, const Args&... args)
+    {
+        if (verbosity() > QUIET)
+            message(Strutil::fmt::format(format, args...));
+    }
+
+    template<typename... Args>
+    void debugfmt(const char* format, const Args&... args)
+    {
 #ifndef NDEBUG
-    void debug   (const std::string &msg) { (*this)(EH_DEBUG, msg); }
-#else
-    void debug   (const std::string &) { }
+        debug(Strutil::fmt::format(format, args...));
 #endif
-
-    /// Set desired verbosity level.
-    ///
-    void verbosity (int v) { m_verbosity = v; }
-
-    /// Return the current verbosity level.
-    ///
-    int verbosity () const { return m_verbosity; }
+    }
 
     /// One built-in handler that can always be counted on to be present
     /// and just echoes the error messages to the console (stdout or
     /// stderr, depending on the error category).
-    static ErrorHandler & default_handler ();
+    static ErrorHandler& default_handler();
 
 private:
     int m_verbosity;
 };
 
-}
-OIIO_NAMESPACE_EXIT
-
-#endif /* !defined(OPENIMAGEIO_ERRORMANAGER_H) */
+OIIO_NAMESPACE_END

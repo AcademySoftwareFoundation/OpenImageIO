@@ -1,0 +1,368 @@
+Reading ../oiio-images/libtiffpic/caspian.tif
+../oiio-images/libtiffpic/caspian.tif :  279 x  220, 3 channel, double tiff
+    SHA-1: 53F0C0A71BCACCDA213DA73DC23B0CA0CD629D9A
+    channel list: R, G, B
+    compression: "zip"
+    planarconfig: "separate"
+    oiio:BitsPerSample: 64
+    tiff:Compression: 32946
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 2
+    tiff:RowsPerStrip: 3
+Comparing "../oiio-images/libtiffpic/caspian.tif" and "caspian.tif"
+PASS
+Reading ../oiio-images/libtiffpic/cramps.tif
+../oiio-images/libtiffpic/cramps.tif :  800 x  607, 1 channel, uint8 tiff
+    SHA-1: A1CA337CBB22D84410BBE710BB31D5D6646CF839
+    channel list: Y
+    compression: "packbits"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    planarconfig: "contig"
+    XResolution: 72
+    YResolution: 72
+    oiio:BitsPerSample: 8
+    tiff:Compression: 32773
+    tiff:PhotometricInterpretation: 0
+    tiff:PlanarConfiguration: 1
+    tiff:RowsPerStrip: 12
+Comparing "../oiio-images/libtiffpic/cramps.tif" and "cramps.tif"
+PASS
+Reading ../oiio-images/libtiffpic/cramps-tile.tif
+../oiio-images/libtiffpic/cramps-tile.tif :  800 x  607, 1 channel, uint8 tiff
+    SHA-1: A1CA337CBB22D84410BBE710BB31D5D6646CF839
+    channel list: Y
+    tile size: 256 x 256
+    compression: "none"
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    oiio:BitsPerSample: 8
+    tiff:Compression: 1
+    tiff:PhotometricInterpretation: 0
+    tiff:PlanarConfiguration: 1
+Comparing "../oiio-images/libtiffpic/cramps-tile.tif" and "cramps-tile.tif"
+PASS
+Comparing "../oiio-images/libtiffpic/cramps-tile.tif" and "../oiio-images/libtiffpic/cramps.tif"
+PASS
+Reading ../oiio-images/libtiffpic/dscf0013.tif
+../oiio-images/libtiffpic/dscf0013.tif :  640 x  480, 3 channel, uint8 tiff
+    2 subimages: 640x480 [u8,u8,u8], 160x120 [u8,u8,u8]
+ subimage  0:  640 x  480, 3 channel, uint8 tiff
+    SHA-1: 5A28EA8AB0FD8E03EA11BF008E842CFEB42A9716
+    channel list: R, G, B
+    compression: "none"
+    Copyright: "          "
+    DateTime: "2004:11:10 00:00:31"
+    FNumber: 3.4
+    Make: "FUJIFILM"
+    Model: "MX-2900ZOOM"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    planarconfig: "contig"
+    ResolutionUnit: "in"
+    Software: "Digital Camera MX-2900ZOOM Ver1.00"
+    XResolution: 72
+    YResolution: 72
+    Exif:ApertureValue: 3.53 (f/3.4)
+    Exif:BrightnessValue: -0.4
+    Exif:ColorSpace: 1
+    Exif:DateTimeDigitized: "2004:11:10 00:00:31"
+    Exif:DateTimeOriginal: "2004:11:10 00:00:31"
+    Exif:ExposureBiasValue: 0
+    Exif:ExposureProgram: 2 (normal program)
+    Exif:Flash: 1 (flash fired)
+    Exif:FocalLength: 7.4 (7.4 mm)
+    Exif:FocalPlaneResolutionUnit: 3 (cm)
+    Exif:FocalPlaneXResolution: 847
+    Exif:FocalPlaneYResolution: 847
+    Exif:MaxApertureValue: 3.53 (f/3.4)
+    Exif:MeteringMode: 1 (average)
+    Exif:SensingMethod: 2 (1-chip color area)
+    Exif:ShutterSpeedValue: 6.5 (1/90 s)
+    Exif:YCbCrPositioning: 2
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "sRGB"
+    tiff:ColorSpace: "YCbCr"
+    tiff:Compression: 1
+    tiff:PhotometricInterpretation: 6
+    tiff:PlanarConfiguration: 1
+    tiff:RowsPerStrip: 15
+ subimage  1:  160 x  120, 3 channel, uint8 tiff
+    SHA-1: A273D70F123360DE64EB07748E7EED98486C7F4B
+    channel list: R, G, B
+    compression: "none"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    planarconfig: "contig"
+    ResolutionUnit: "in"
+    XResolution: 72
+    YResolution: 72
+    Exif:YCbCrPositioning: 2
+    oiio:BitsPerSample: 8
+    tiff:ColorSpace: "YCbCr"
+    tiff:Compression: 1
+    tiff:PhotometricInterpretation: 6
+    tiff:PlanarConfiguration: 1
+    tiff:RowsPerStrip: 120
+Comparing "../oiio-images/libtiffpic/dscf0013.tif" and "dscf0013.tif"
+PASS
+Reading ../oiio-images/libtiffpic/fax2d.tif
+../oiio-images/libtiffpic/fax2d.tif : 1728 x 1082, 1 channel, uint1 tiff
+    SHA-1: A57ECEDA78607AE81ABA344E4456EDB1E34A6CB0
+    channel list: Y
+    compression: "ccittfax3"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 0.480392
+    planarconfig: "contig"
+    ResolutionUnit: "in"
+    Software: "fax2tiff"
+    XResolution: 204
+    YResolution: 98
+    oiio:BitsPerSample: 1
+    tiff:Compression: 3
+    tiff:PhotometricInterpretation: 0
+    tiff:PlanarConfiguration: 1
+Comparing "../oiio-images/libtiffpic/fax2d.tif" and "fax2d.tif"
+PASS
+Reading ../oiio-images/libtiffpic/g3test.tif
+../oiio-images/libtiffpic/g3test.tif : 1728 x 1103, 1 channel, uint1 tiff
+    SHA-1: D674B2BB7707525F8DD678E81CAF50EE3A15D1E8
+    channel list: Y
+    compression: "ccittfax3"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 0.480392
+    planarconfig: "contig"
+    ResolutionUnit: "in"
+    Software: "fax2tiff"
+    XResolution: 204
+    YResolution: 98
+    oiio:BitsPerSample: 1
+    tiff:Compression: 3
+    tiff:PhotometricInterpretation: 0
+    tiff:PlanarConfiguration: 1
+Comparing "../oiio-images/libtiffpic/g3test.tif" and "g3test.tif"
+PASS
+Reading ../oiio-images/libtiffpic/jello.tif
+../oiio-images/libtiffpic/jello.tif :  256 x  192, 3 channel, uint8 tiff
+    SHA-1: 41CD2AD5CA87F8CCBF7B181B58BEF136E6C64E1A
+    channel list: R, G, B
+    compression: "packbits"
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    oiio:BitsPerSample: 8
+    tiff:ColorSpace: "palette"
+    tiff:Compression: 32773
+    tiff:PhotometricInterpretation: 3
+    tiff:PlanarConfiguration: 1
+    tiff:RowsPerStrip: 32
+Comparing "../oiio-images/libtiffpic/jello.tif" and "jello.tif"
+PASS
+Reading ../oiio-images/libtiffpic/off_l16.tif
+../oiio-images/libtiffpic/off_l16.tif :  333 x  225, 1 channel, uint8 tiff
+    SHA-1: 430C2B645099A186CC7AE28C5DA697297E40A4D5
+    channel list: Y
+    compression: "sgilog"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    planarconfig: "contig"
+    ResolutionUnit: "in"
+    XResolution: 72
+    YResolution: 72
+    oiio:BitsPerSample: 16
+    tiff:ColorSpace: "LOGL"
+    tiff:Compression: 34676
+    tiff:PhotometricInterpretation: 32844
+    tiff:PlanarConfiguration: 1
+    tiff:RowsPerStrip: 8
+Comparing "../oiio-images/libtiffpic/off_l16.tif" and "off_l16.tif"
+PASS
+Reading ../oiio-images/libtiffpic/off_luv24.tif
+../oiio-images/libtiffpic/off_luv24.tif :  333 x  225, 3 channel, uint8 tiff
+    SHA-1: CBB091760E8D9859F3DB5D5A168AF90D0C709A0B
+    channel list: R, G, B
+    compression: "sgilog24"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    planarconfig: "contig"
+    ResolutionUnit: "in"
+    XResolution: 72
+    YResolution: 72
+    oiio:BitsPerSample: 16
+    tiff:ColorSpace: "LOGLUV"
+    tiff:Compression: 34677
+    tiff:PhotometricInterpretation: 32845
+    tiff:PlanarConfiguration: 1
+    tiff:RowsPerStrip: 8
+Comparing "../oiio-images/libtiffpic/off_luv24.tif" and "off_luv24.tif"
+PASS
+Reading ../oiio-images/libtiffpic/off_luv32.tif
+../oiio-images/libtiffpic/off_luv32.tif :  333 x  225, 3 channel, uint8 tiff
+    SHA-1: FA6245246E4E92A0D8112249976843128338DBDD
+    channel list: R, G, B
+    compression: "sgilog"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    planarconfig: "contig"
+    ResolutionUnit: "in"
+    XResolution: 72
+    YResolution: 72
+    oiio:BitsPerSample: 16
+    tiff:ColorSpace: "LOGLUV"
+    tiff:Compression: 34676
+    tiff:PhotometricInterpretation: 32845
+    tiff:PlanarConfiguration: 1
+    tiff:RowsPerStrip: 8
+Comparing "../oiio-images/libtiffpic/off_luv32.tif" and "off_luv32.tif"
+PASS
+Reading ../oiio-images/libtiffpic/pc260001.tif
+../oiio-images/libtiffpic/pc260001.tif :  640 x  480, 3 channel, uint8 tiff
+    SHA-1: F34868893B33383BE653ADA9FC054C8EA61BAC53
+    channel list: R, G, B
+    compression: "none"
+    DateTime: "2005:12:26 17:09:35"
+    ExposureTime: 0.0125
+    FNumber: 5.6
+    ImageDescription: "OLYMPUS DIGITAL CAMERA         "
+    Make: "OLYMPUS IMAGING CORP."
+    Model: "C7070WZ"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    planarconfig: "contig"
+    ResolutionUnit: "in"
+    Software: "Version 1.0"
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 1
+    Exif:Contrast: 2 (hard)
+    Exif:CustomRendered: 0 (no)
+    Exif:DateTimeDigitized: "2005:12:26 17:09:35"
+    Exif:DateTimeOriginal: "2005:12:26 17:09:35"
+    Exif:DigitalZoomRatio: 0
+    Exif:ExposureBiasValue: 0
+    Exif:ExposureMode: 0 (auto)
+    Exif:ExposureProgram: 2 (normal program)
+    Exif:Flash: 89 (flash fired, auto flash, red-eye reduction)
+    Exif:FocalLength: 17.8 (17.8 mm)
+    Exif:LightSource: 0 (unknown)
+    Exif:MaxApertureValue: 3 (f/2.8)
+    Exif:MeteringMode: 5 (pattern)
+    Exif:Saturation: 0 (normal)
+    Exif:SceneCaptureType: 0 (standard)
+    Exif:Sharpness: 2 (hard)
+    Exif:WhiteBalance: 0 (auto)
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "sRGB"
+    tiff:Compression: 1
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+    tiff:RowsPerStrip: 32
+Comparing "../oiio-images/libtiffpic/pc260001.tif" and "pc260001.tif"
+PASS
+Reading ../oiio-images/libtiffpic/quad-tile.tif
+../oiio-images/libtiffpic/quad-tile.tif :  512 x  384, 3 channel, uint8 tiff
+    SHA-1: EAE4D1FB2E60558747B8DDA9E93F0217191491A9
+    channel list: R, G, B
+    tile size: 128 x 128
+    compression: "lzw"
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    oiio:BitsPerSample: 8
+    tiff:Compression: 5
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+Comparing "../oiio-images/libtiffpic/quad-tile.tif" and "quad-tile.tif"
+PASS
+Reading ../oiio-images/libtiffpic/quad-jpeg.tif
+../oiio-images/libtiffpic/quad-jpeg.tif :  512 x  384, 3 channel, uint8 tiff
+    SHA-1: F907BED70BDEA0315FEB94F3042F9BDE61142BDA
+    channel list: R, G, B
+    compression: "jpeg"
+    planarconfig: "contig"
+    oiio:BitsPerSample: 8
+    tiff:ColorSpace: "YCbCr"
+    tiff:Compression: 7
+    tiff:PhotometricInterpretation: 6
+    tiff:PlanarConfiguration: 1
+    tiff:RowsPerStrip: 16
+Comparing "../oiio-images/libtiffpic/quad-jpeg.tif" and "quad-jpeg.tif"
+PASS
+Reading ../oiio-images/libtiffpic/strike.tif
+../oiio-images/libtiffpic/strike.tif :  256 x  200, 4 channel, uint8 tiff
+    SHA-1: C764170BDD3B192C3F0D16EB761E690A3128C520
+    channel list: R, G, B, A
+    compression: "lzw"
+    PixelAspectRatio: 1
+    planarconfig: "contig"
+    ResolutionUnit: "none"
+    XResolution: 1
+    YResolution: 1
+    oiio:BitsPerSample: 8
+    tiff:Compression: 5
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+    tiff:RowsPerStrip: 8
+Comparing "../oiio-images/libtiffpic/strike.tif" and "strike.tif"
+PASS
+Reading ../oiio-images/libtiffpic/ycbcr-cat.tif
+../oiio-images/libtiffpic/ycbcr-cat.tif :  250 x  325, 3 channel, uint8 tiff
+    SHA-1: E2FCF4BF1C9005987432CFCC8FD3A50F9417285D
+    channel list: R, G, B
+    compression: "lzw"
+    ImageDescription: "YCbCr conversion of cat.tif"
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    Exif:YCbCrPositioning: 1
+    oiio:BitsPerSample: 8
+    tiff:ColorSpace: "YCbCr"
+    tiff:Compression: 5
+    tiff:PhotometricInterpretation: 6
+    tiff:PlanarConfiguration: 1
+    tiff:RowsPerStrip: 10
+Comparing "../oiio-images/libtiffpic/ycbcr-cat.tif" and "ycbcr-cat.tif"
+PASS
+Reading ../oiio-images/libtiffpic/smallliz.tif
+../oiio-images/libtiffpic/smallliz.tif :  160 x  160, 3 channel, uint8 tiff
+    SHA-1: 9F2F09DBBD1A3C00DE84EA9174B821D64709BE28
+    channel list: R, G, B
+    compression: "ojpeg"
+    PixelAspectRatio: 1
+    planarconfig: "contig"
+    ResolutionUnit: "in"
+    Software: "HP IL v1.1"
+    XResolution: 100
+    YResolution: 100
+    Exif:YCbCrPositioning: 1
+    oiio:BitsPerSample: 8
+    tiff:ColorSpace: "YCbCr"
+    tiff:Compression: 6
+    tiff:PhotometricInterpretation: 6
+    tiff:PlanarConfiguration: 1
+    tiff:RowsPerStrip: 160
+    tiff:subfiletype: 0
+Reading ../oiio-images/libtiffpic/zackthecat.tif
+../oiio-images/libtiffpic/zackthecat.tif :  234 x  213, 3 channel, uint8 tiff
+    SHA-1: 7FAA5E402AB1A5307154B3EEF4A62F251472BF3F
+    channel list: R, G, B
+    tile size: 240 x 224
+    compression: "ojpeg"
+    PixelAspectRatio: 1
+    planarconfig: "contig"
+    ResolutionUnit: "in"
+    XResolution: 75
+    YResolution: 75
+    oiio:BitsPerSample: 8
+    tiff:ColorSpace: "YCbCr"
+    tiff:Compression: 6
+    tiff:PhotometricInterpretation: 6
+    tiff:PlanarConfiguration: 1
+Reading ../oiio-images/libtiffpic/oxford.tif
+../oiio-images/libtiffpic/oxford.tif :  601 x   81, 3 channel, uint8 tiff
+    SHA-1: 6158BC605553813CD61D99900DAE389EEC3763D8
+    channel list: R, G, B
+    compression: "lzw"
+    planarconfig: "separate"
+    oiio:BitsPerSample: 8
+    tiff:Compression: 5
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 2
+    tiff:RowsPerStrip: 1

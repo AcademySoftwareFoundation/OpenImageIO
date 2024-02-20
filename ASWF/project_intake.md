@@ -1,0 +1,66 @@
+# Project Intake checklist
+
+This is a checklist for TSC's to review as part of the intake process. The TSC should review this entire list during the kickoff meeting. For anything outstanding, create an [issue](../issues) to track and link to it in the list
+
+- Existing Project Governance
+  - [X] A [LICENSE.md](../LICENSE.md) file in every code repository, with the license chosen an OSI-approved license.
+  - [X] Any third-party components/dependencies included are listed along with thier licenses ( [THIRD-PARTY.md](../THIRD-PARTY.md) )
+  - [X] A [README.md](../README.md) file welcoming new community members to the project and explaining why the project is useful and how to get started.
+  - [X] A [CONTRIBUTING.md](../CONTRIBUTING.md) file explaining to other developers and your community of users how to contribute to the project. The file should explain what types of contributions are needed and how the process works, along with how to disclose security issues responsibly ( may also point to a [SECURITY.md](../SECURITY.md) file ).
+  - [ ] A [CODEOWNERS](../CODEOWNERS) or [COMMITTERS](../COMMITERS.csv) file to define individuals or teams that are responsible for code in a repository; document current project owners and current and emeritus committers.
+  - [X] A [CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md) file that sets the ground rules for participants’ behavior associated and helps to facilitate a friendly, welcoming environment. By default, projects should leverage the Linux Foundation Code of Conduct unless an alternate Code of Conduct was previously approved.
+  - [X] A [RELEASING.md](../RELEASING.md) file that provides documentation on the release methodology, cadence, criteria, etc.
+  - [X] A [GOVERNANCE.md](../GOVERNANCE.md) file that documents the project’s technical governance.
+  - [ ] A [SUPPORT.md](../SUPPORT.md) file to let users and developers know about ways to get help with your project.
+- Infrastructure/Assets
+  - [X] Technical Charter Approved
+  - [X] License scan completed and no issues found
+  - [X] Code repository imported to ASWF GitHub organization or ownership of current GitHub organization given to `thelinuxfoundation` user
+  - [X] Developer Certificate of Origin past commit signoff done and DCO Probot enabled.
+  - [X] Issue/feature tracker established (JIRA, GitHub issues)
+  - [X] Mailing lists ( one of )
+    - [X] Setup new lists ( -dev@ and -tsc@ ) on [ASWF groups.io](https://lists.aswf.io) ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to setup )
+    - [X] (In progress) Move to [ASWF groups.io](https://lists.aswf.io) ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to transfer )
+  - [X] Slack ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to setup project channel on [ASWF Slack](https://slack.aswf.io) )
+  - [ ] Website
+  - [X] CI/build environment
+  - [X] Trademarks/mark ownership rights ( complete 'LF Projects - Form of Trademark and Account Assignment' - create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) - only needed if project using existing name )
+  - [X] Domain name	( create [issue with the LF IT staff](https://jira.linuxfoundation.org/plugins/servlet/theme/portal/2/group/19) to setup/transfer )
+  - [X] Zoom account access ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to get access to credentials )
+  - [X] (N/A) Social media accounts or other project accounts	( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to transfer )
+  - [X] Logo(s)	( create [issue on artwork repo](https://github.com/AcademySoftwareFoundation/artwork/issues/new) to add in SVG and PNG format and color/black/white )
+- New Project Governance
+  - [X] TSC members identified
+  - [X] First TSC meeting held
+  - [X] TSC meeting cadence set and added to project calendar
+  - [X] CLA Approved ( if used ) ( [CCLA](CLA-corporate.md) and [ICLA](CLA-individual.md) )
+  - Project charter	( [Technical-Charter.md](Technical-Charter.md) )
+    - [X] Approved by TSC
+    - [X] Filed ( create pull request against [foundation repo](https://github.com/AcademySoftwareFoundation/foundation) )
+  - [X] [Core Infrastructure Initiative Best Practices Badge](https://bestpractices.coreinfrastructure.org/) achieved as the 'Passing' level.
+- Outreach
+  - [ ] New project announcement done ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to trigger )
+  - [X] Project added to ASWF website and ASWF landscape
+- Incubation Stage requirements
+  - [X] Have achieved and maintained a [OpenSSF Best Practices Badge at the passing level](https://bestpractices.coreinfrastructure.org/en/criteria).
+  - [X] Have had a successful license scan with any critical issues remedied.
+  - [X] Have a defined project mission and scope
+  - [ ] An overview of the project’s architecture and features defined.
+  - [ ] A project roadmap defined, which should address the following questions.
+    - What use cases are possible now?
+    - What does the next year look like in terms of additional features and use cases covered?
+  - [ ] Community and contributor growth assessment
+    - The current number of contributors and committers, and the number of different organizations contributing to the project.
+    - Demonstrate a sustained flow of commits / merged contributions
+    - A credible plan for developing a thriving user community, in particular expanding the number of committers and contributors?
+    - Outline of the plan for the project to complete the requirements for Adopted Stage
+  - [X] Obtain an affirmative vote of the TAC.
+- Adopted Stage graduation requirements
+  - [ ] Demonstrate a substantial ongoing flow of commits and merged contributions, authored by a healthy number of diverse contributors.
+  - [ ] Demonstrable roadmap progress.
+  - [ ] A healthy number of public adopters that are identified within the project ( using an ADOPTERS file or showcased on the project’s website ).
+  - [ ] Have achieved and maintained an [OpenSSF Best Practices Badge at the gold level](https://bestpractices.coreinfrastructure.org/en/criteria/2).
+  - [ ] Have a technical lead appointed for voting representation of the project to the TAC.
+  - [ ] Be deemed by the TAC to add value to the mission of ASWF.
+  - [ ] 2/3 supermajority vote of the TAC
+  - [ ] Affirmative majority vote of the Governing Board

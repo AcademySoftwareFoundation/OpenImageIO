@@ -1,134 +1,114 @@
-/*
-  Copyright 2008 Larry Gritz and the other authors and contributors.
-  All Rights Reserved.
-
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions are
-  met:
-  * Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
-  * Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution.
-  * Neither the name of the software's owners nor the names of its
-    contributors may be used to endorse or promote products derived from
-    this software without specific prior written permission.
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-  (This is the Modified BSD License)
-*/
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: Apache-2.0
+// https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
-#include <cmath>
 #include <ctime>
 #include <iostream>
 #include <iterator>
+#include <memory>
+#include <regex>
 
-#include <boost/scoped_ptr.hpp>
-#include <boost/foreach.hpp>
-#include <boost/regex.hpp>
-#include <boost/filesystem.hpp>
-using namespace boost::filesystem;
+#include <OpenImageIO/argparse.h>
+#include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
 
-#include "OpenImageIO/argparse.h"
-#include "OpenImageIO/strutil.h"
-#include "OpenImageIO/filesystem.h"
-#include "OpenImageIO/imageio.h"
+using namespace OIIO;
 
-OIIO_NAMESPACE_USING;
-
-static bool help = false;
-static bool invert_match = false;
-static bool ignore_case = false;
-static bool list_files = false;
-static bool recursive = false;
-static bool file_match = false;
-static bool print_dirs = false;
+static bool help          = false;
+static bool invert_match  = false;
+static bool list_files    = false;
+static bool recursive     = false;
+static bool file_match    = false;
+static bool print_dirs    = false;
 static bool all_subimages = false;
-static bool extended_regex = false;
 static std::string pattern;
 static std::vector<std::string> filenames;
 
 
 
 static bool
-grep_file (const std::string &filename, boost::regex &re,
-           bool ignore_nonimage_files=false)
+grep_file(const std::string& filename, std::regex& re,
+          bool ignore_nonimage_files = false)
 {
-    if (! Filesystem::exists (filename)) {
+    if (!Filesystem::exists(filename)) {
         std::cerr << "igrep: " << filename << ": No such file or directory\n";
         return false;
     }
 
-    if (Filesystem::is_directory (filename)) {
-        if (! recursive)
+    if (Filesystem::is_directory(filename)) {
+        if (!recursive)
             return false;
         if (print_dirs) {
             std::cout << "(" << filename << "/)\n";
             std::cout.flush();
         }
         bool r = false;
-        boost::filesystem::path path (filename);
-        boost::filesystem::directory_iterator end_itr;  // default is past-end
-        for (boost::filesystem::directory_iterator itr(path);  itr != end_itr;  ++itr) {
-            // std::cout << "  rec " << itr->path() << "\n";
-            r |= grep_file (itr->path().string(), re, true);
-        }
+        std::vector<std::string> directory_entries;
+        Filesystem::get_directory_entries(filename, directory_entries);
+        for (const auto& d : directory_entries)
+            r |= grep_file(d, re, true);
         return r;
     }
 
-    boost::scoped_ptr<ImageInput> in (ImageInput::open (filename.c_str()));
-    if (! in.get()) {
-        if (! ignore_nonimage_files)
+    auto in = ImageInput::open(filename);
+    if (!in.get()) {
+        if (!ignore_nonimage_files)
             std::cerr << geterror() << "\n";
         return false;
     }
     ImageSpec spec = in->spec();
 
     if (file_match) {
-        bool match = boost::regex_search (filename, re);
-        if (match && ! invert_match) {
+        bool match = false;
+        try {
+            match = std::regex_search(filename, re);
+        } catch (const std::regex_error& e) {
+            std::cerr << "igrep: " << e.what() << "\n";
+            return false;
+        }
+        if (match && !invert_match) {
             std::cout << filename << "\n";
             return true;
         }
     }
 
-    bool found = false;
+    bool found   = false;
     int subimage = 0;
     do {
         if (!all_subimages && subimage > 0)
             break;
-        BOOST_FOREACH (const ImageIOParameter &p, spec.extra_attribs) {
+        for (auto&& p : spec.extra_attribs) {
             TypeDesc t = p.type();
             if (t.elementtype() == TypeDesc::STRING) {
                 int n = t.numelements();
-                for (int i = 0;  i < n;  ++i) {
-                    bool match = boost::regex_search (((const char **)p.data())[i], re);
+                for (int i = 0; i < n; ++i) {
+                    bool match = false;
+                    try {
+                        match = std::regex_search(((const char**)p.data())[i],
+                                                  re);
+                    } catch (const std::regex_error& e) {
+                        std::cerr << "igrep: " << e.what() << "\n";
+                        return false;
+                    }
                     found |= match;
-                    if (match && ! invert_match) {
+                    if (match && !invert_match) {
                         if (list_files) {
                             std::cout << filename << "\n";
                             return found;
                         }
-                        std::cout << filename << ": " << p.name() << " = " 
-                                  << ((const char **)p.data())[i] << "\n";
+                        std::cout << filename << ": " << p.name() << " = "
+                                  << ((const char**)p.data())[i] << "\n";
                     }
                 }
             }
         }
-    } while (in->seek_subimage (++subimage, 0, spec));
+    } while (in->seek_subimage(++subimage, 0, spec));
 
     if (invert_match) {
         found = !found;
@@ -141,13 +121,13 @@ grep_file (const std::string &filename, boost::regex &re,
 
 
 static int
-parse_files (int argc, const char *argv[])
+parse_files(int argc, const char* argv[])
 {
-    for (int i = 0;  i < argc;  i++) {
+    for (int i = 0; i < argc; i++) {
         if (pattern.empty())
             pattern = argv[i];
         else
-            filenames.push_back (argv[i]);
+            filenames.emplace_back(argv[i]);
     }
     return 0;
 }
@@ -155,43 +135,63 @@ parse_files (int argc, const char *argv[])
 
 
 int
-main (int argc, const char *argv[])
+main(int argc, const char* argv[])
 {
-    Filesystem::convert_native_arguments (argc, argv);
+    // Helpful for debugging to make sure that any crashes dump a stack
+    // trace.
+    Sysutil::setup_crash_stacktrace("stdout");
+
+    Filesystem::convert_native_arguments(argc, argv);
+    // clang-format off
     ArgParse ap;
-    ap.options ("igrep -- search images for matching metadata\n"
-                OIIO_INTRO_STRING "\n"
-                "Usage:  igrep [options] pattern filename...",
-                "%*", parse_files, "",
-                "-i", &ignore_case, "Ignore upper/lower case distinctions",
-                "-v", &invert_match, "Invert match (select non-matching files)",
-                "-E", &extended_regex, "Pattern is an extended regular expression",
-                "-f", &file_match, "Match against file name as well as metadata",
-                "-l", &list_files, "List the matching files (no detail)",
-                "-r", &recursive, "Recurse into directories",
-                "-d", &print_dirs, "Print directories (when recursive)",
-                "-a", &all_subimages, "Search all subimages of each file",
-                "--help", &help, "Print help message",
-                NULL);
-    if (ap.parse(argc, argv) < 0 || pattern.empty() || filenames.empty()) {
+    ap.intro("igrep -- search images for matching metadata\n"
+             OIIO_INTRO_STRING)
+      .usage("igrep [options] pattern filename...")
+      .add_version(OIIO_VERSION_STRING);
+    ap.arg("filename")
+      .hidden()
+      .action(parse_files);
+    ap.arg("-i")
+      .help("Ignore upper/lower case distinctions");
+    ap.arg("-v", &invert_match)
+      .help("Invert match (select non-matching files)");
+    ap.arg("-E")
+      .help( "Pattern is an extended regular expression");
+    ap.arg("-f", &file_match)
+      .help("Match against file name as well as metadata");
+    ap.arg("-l", &list_files)
+      .help("List the matching files (no detail)");
+    ap.arg("-r", &recursive)
+      .help("Recurse into directories");
+    ap.arg("-d", &print_dirs)
+      .help("Print directories (when recursive)");
+    ap.arg("-a", &all_subimages)
+      .help("Search all subimages of each file");
+
+    // clang-format on
+    ap.parse(argc, argv);
+    if (pattern.empty() || filenames.empty()) {
         std::cerr << ap.geterror() << std::endl;
-        ap.usage ();
-        return EXIT_FAILURE;
-    }
-    if (help) {
-        ap.usage ();
-        exit (EXIT_FAILURE);
+        ap.usage();
+        return help ? EXIT_SUCCESS : EXIT_FAILURE;
     }
 
-    boost::regex_constants::syntax_option_type flag = boost::regex_constants::grep;
-    if (extended_regex)
-        flag = boost::regex::extended;
-    if (ignore_case)
-        flag |= boost::regex_constants::icase;
-    boost::regex re (pattern, flag);
-    BOOST_FOREACH (const std::string &s, filenames) {
-        grep_file (s, re);
-    }
+    auto flag = std::regex_constants::grep;
+    if (ap["E"].get<int>())
+        flag = std::regex_constants::extended;
+    if (ap["i"].get<int>())
+        flag |= std::regex_constants::icase;
 
-    return 0;
+    bool ok = true;
+
+    try {
+        std::regex re(pattern, flag);
+        for (auto&& s : filenames)
+            grep_file(s, re);
+    } catch (const std::regex_error& e) {
+        std::cerr << "igrep: " << e.what() << "\n";
+        ok = false;
+    }
+    shutdown();
+    return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }

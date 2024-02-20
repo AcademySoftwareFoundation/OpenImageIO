@@ -1,0 +1,5 @@
+read was not necessary -- using cache
+going to have to read src/incomplete.exr: float vs float
+oiiotool ERROR: read : Failed OpenEXR read: Error reading pixel data from image file "src/incomplete.exr". Scan line 126 is missing.
+Full command line was:
+> oiiotool src/incomplete.exr -o out.exr

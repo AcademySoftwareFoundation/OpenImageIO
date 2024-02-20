@@ -1,6 +1,5 @@
-set (iconvert_srcs iconvert.cpp)
-add_executable (iconvert ${iconvert_srcs})
-set_target_properties (iconvert PROPERTIES FOLDER "Tools")
-target_link_libraries (iconvert OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
-link_ilmbase (iconvert)
-oiio_install_targets (iconvert)
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
+
+fancy_add_executable (LINK_LIBRARIES OpenImageIO)

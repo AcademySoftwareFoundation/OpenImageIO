@@ -1,91 +1,80 @@
-/*
-  Copyright 2008 Larry Gritz and the other authors and contributors.
-  All Rights Reserved.
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: Apache-2.0
+// https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions are
-  met:
-  * Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
-  * Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution.
-  * Neither the name of the software's owners nor the names of its
-    contributors may be used to endorse or promote products derived from
-    this software without specific prior written permission.
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-  (This is the Modified BSD License)
-*/
-
+#include <cerrno>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
-#include <cmath>
-#include <errno.h>
 #include <fstream>
 #include <map>
+#include <memory>
 #include <numeric>
 
-#include <OpenEXR/ImfTestFile.h>
-#include <OpenEXR/ImfInputFile.h>
-#include <OpenEXR/ImfTiledInputFile.h>
+#include <OpenImageIO/Imath.h>
+#include <OpenImageIO/platform.h>
+
+#include <OpenEXR/ImfArray.h>
 #include <OpenEXR/ImfChannelList.h>
 #include <OpenEXR/ImfEnvmap.h>
+#include <OpenEXR/ImfInputFile.h>
+#include <OpenEXR/ImfRgba.h>
+#include <OpenEXR/ImfTestFile.h>
+#include <OpenEXR/ImfTiledInputFile.h>
 
-// The way that OpenEXR uses dynamic casting for attributes requires 
+#include "exr_pvt.h"
+
+// The way that OpenEXR uses dynamic casting for attributes requires
 // temporarily suspending "hidden" symbol visibility mode.
-#ifdef __GNUC__
-#pragma GCC visibility push(default)
-#endif
-#include <OpenEXR/ImfIntAttribute.h>
-#include <OpenEXR/ImfFloatAttribute.h>
-#include <OpenEXR/ImfMatrixAttribute.h>
-#include <OpenEXR/ImfVecAttribute.h>
-#include <OpenEXR/ImfVecAttribute.h>
-#include <OpenEXR/ImfBoxAttribute.h>
-#include <OpenEXR/ImfStringAttribute.h>
-#include <OpenEXR/ImfTimeCodeAttribute.h>
-#include <OpenEXR/ImfKeyCodeAttribute.h>
-#include <OpenEXR/ImfEnvmapAttribute.h>
-#include <OpenEXR/ImfCompressionAttribute.h>
+OIIO_PRAGMA_VISIBILITY_PUSH
+OIIO_PRAGMA_WARNING_PUSH
+OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wunused-parameter")
 #include <OpenEXR/IexBaseExc.h>
 #include <OpenEXR/IexThrowErrnoExc.h>
-#ifdef USE_OPENEXR_VERSION2
-#include <OpenEXR/ImfStringVectorAttribute.h>
-#include <OpenEXR/ImfPartType.h>
-#include <OpenEXR/ImfMultiPartInputFile.h>
-#include <OpenEXR/ImfInputPart.h>
-#include <OpenEXR/ImfTiledInputPart.h>
+#include <OpenEXR/ImfBoxAttribute.h>
+#include <OpenEXR/ImfChromaticitiesAttribute.h>
+#include <OpenEXR/ImfCompressionAttribute.h>
+#include <OpenEXR/ImfDeepFrameBuffer.h>
 #include <OpenEXR/ImfDeepScanLineInputPart.h>
 #include <OpenEXR/ImfDeepTiledInputPart.h>
-#include <OpenEXR/ImfDeepFrameBuffer.h>
+#include <OpenEXR/ImfDoubleAttribute.h>
+#include <OpenEXR/ImfEnvmapAttribute.h>
+#include <OpenEXR/ImfFloatAttribute.h>
+#include <OpenEXR/ImfHeader.h>
+#if OPENEXR_HAS_FLOATVECTOR
+#    include <OpenEXR/ImfFloatVectorAttribute.h>
 #endif
-
-#ifdef __GNUC__
-#pragma GCC visibility pop
-#endif
+#include <OpenEXR/ImfInputPart.h>
+#include <OpenEXR/ImfIntAttribute.h>
+#include <OpenEXR/ImfKeyCodeAttribute.h>
+#include <OpenEXR/ImfMatrixAttribute.h>
+#include <OpenEXR/ImfMultiPartInputFile.h>
+#include <OpenEXR/ImfPartType.h>
+#include <OpenEXR/ImfRationalAttribute.h>
+#include <OpenEXR/ImfRgbaFile.h>
+#include <OpenEXR/ImfStringAttribute.h>
+#include <OpenEXR/ImfStringVectorAttribute.h>
+#include <OpenEXR/ImfTiledInputPart.h>
+#include <OpenEXR/ImfTimeCodeAttribute.h>
+#include <OpenEXR/ImfVecAttribute.h>
+OIIO_PRAGMA_WARNING_POP
+OIIO_PRAGMA_VISIBILITY_POP
 
 #include <OpenEXR/ImfCRgbaFile.h>
 
-#include "OpenImageIO/dassert.h"
-#include "OpenImageIO/imageio.h"
-#include "OpenImageIO/thread.h"
-#include "OpenImageIO/strutil.h"
-#include "OpenImageIO/fmath.h"
-#include "OpenImageIO/filesystem.h"
-#include "OpenImageIO/imagebufalgo_util.h"
+#if OPENEXR_CODED_VERSION >= 30100 && defined(OIIO_USE_EXR_C_API)
+#    define USE_OPENEXR_CORE
+#endif
 
-#include <boost/scoped_array.hpp>
+#include "imageio_pvt.h"
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/deepdata.h>
+#include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/imagebufalgo_util.h>
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
+#include <OpenImageIO/thread.h>
 
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -94,335 +83,389 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 // Custom file input stream, copying code from the class StdIFStream in OpenEXR,
 // which would have been used if we just provided a filename. The difference is
 // that this can handle UTF-8 file paths on all platforms.
-class OpenEXRInputStream : public Imf::IStream
-{
+class OpenEXRInputStream final : public Imf::IStream {
 public:
-    OpenEXRInputStream (const char *filename) : Imf::IStream (filename) {
-        // The reason we have this class is for this line, so that we
-        // can correctly handle UTF-8 file paths on Windows
-        Filesystem::open (ifs, filename, std::ios_base::binary);
-        if (!ifs)
-            Iex::throwErrnoExc ();
+    OpenEXRInputStream(const char* filename, Filesystem::IOProxy* io)
+        : Imf::IStream(filename)
+        , m_io(io)
+    {
+        if (!io || io->mode() != Filesystem::IOProxy::Read)
+            throw Iex::IoExc("File input failed.");
     }
-    virtual bool read (char c[], int n) {
-        if (!ifs)
-            throw Iex::InputExc ("Unexpected end of file.");
-        errno = 0;
-        ifs.read (c, n);
-        return check_error ();
+    bool read(char c[], int n) override
+    {
+        OIIO_DASSERT(m_io);
+        if (m_io->read(c, n) != size_t(n))
+            throw Iex::IoExc("Unexpected end of file.");
+        return n;
     }
-    virtual Imath::Int64 tellg () {
-        return std::streamoff (ifs.tellg ());
+#if OIIO_USING_IMATH >= 3
+    uint64_t tellg() override { return m_io->tell(); }
+    void seekg(uint64_t pos) override
+    {
+        if (!m_io->seek(pos))
+            throw Iex::IoExc("File input failed.");
     }
-    virtual void seekg (Imath::Int64 pos) {
-        ifs.seekg (pos);
-        check_error ();
+#else
+    Imath::Int64 tellg() override { return m_io->tell(); }
+    void seekg(Imath::Int64 pos) override
+    {
+        if (!m_io->seek(pos))
+            throw Iex::IoExc("File input failed.");
     }
-    virtual void clear () {
-        ifs.clear ();
-    }
+#endif
+    void clear() override {}
 
 private:
-    bool check_error () {
-        if (!ifs) {
-            if (errno)
-                Iex::throwErrnoExc ();
-            return false;
-        }
-        return true;
-    }
-    std::ifstream ifs;
+    Filesystem::IOProxy* m_io = nullptr;
 };
 
 
 
-class OpenEXRInput : public ImageInput {
+class OpenEXRInput final : public ImageInput {
 public:
-    OpenEXRInput ();
-    virtual ~OpenEXRInput () { close(); }
-    virtual const char * format_name (void) const { return "openexr"; }
-    virtual int supports (string_view feature) const {
+    OpenEXRInput();
+    ~OpenEXRInput() override { close(); }
+    const char* format_name(void) const override { return "openexr"; }
+    int supports(string_view feature) const override
+    {
         return (feature == "arbitrary_metadata"
-             || feature == "exif"   // Because of arbitrary_metadata
-             || feature == "iptc"); // Because of arbitrary_metadata
+                || feature == "exif"  // Because of arbitrary_metadata
+                || feature == "iptc"  // Because of arbitrary_metadata
+                || feature == "ioproxy");
     }
-    virtual bool valid_file (const std::string &filename) const;
-    virtual bool open (const std::string &name, ImageSpec &newspec);
-    virtual bool close ();
-    virtual int current_subimage (void) const { return m_subimage; }
-    virtual int current_miplevel (void) const { return m_miplevel; }
-    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec);
-    virtual bool read_native_scanline (int y, int z, void *data);
-    virtual bool read_native_scanlines (int ybegin, int yend, int z, void *data);
-    virtual bool read_native_scanlines (int ybegin, int yend, int z,
-                                        int chbegin, int chend, void *data);
-    virtual bool read_native_tile (int x, int y, int z, void *data);
-    virtual bool read_native_tiles (int xbegin, int xend, int ybegin, int yend,
-                                    int zbegin, int zend, void *data);
-    virtual bool read_native_tiles (int xbegin, int xend, int ybegin, int yend,
-                                    int zbegin, int zend,
-                                    int chbegin, int chend, void *data);
-    virtual bool read_native_deep_scanlines (int ybegin, int yend, int z,
-                                             int chbegin, int chend,
-                                             DeepData &deepdata);
-    virtual bool read_native_deep_tiles (int xbegin, int xend,
-                                         int ybegin, int yend,
-                                         int zbegin, int zend,
-                                         int chbegin, int chend,
-                                         DeepData &deepdata);
+    bool valid_file(Filesystem::IOProxy* ioproxy) const override;
+    bool open(const std::string& name, ImageSpec& newspec,
+              const ImageSpec& config) override;
+    bool open(const std::string& name, ImageSpec& newspec) override
+    {
+        return open(name, newspec, ImageSpec());
+    }
+    bool close() override;
+    int current_subimage(void) const override { return m_subimage; }
+    int current_miplevel(void) const override { return m_miplevel; }
+    bool seek_subimage(int subimage, int miplevel) override;
+    ImageSpec spec(int subimage, int miplevel) override;
+    ImageSpec spec_dimensions(int subimage, int miplevel) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
+    bool read_native_scanlines(int subimage, int miplevel, int ybegin, int yend,
+                               int z, void* data) override;
+    bool read_native_scanlines(int subimage, int miplevel, int ybegin, int yend,
+                               int z, int chbegin, int chend,
+                               void* data) override;
+    bool read_native_tile(int subimage, int miplevel, int x, int y, int z,
+                          void* data) override;
+    bool read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
+                           int ybegin, int yend, int zbegin, int zend,
+                           void* data) override;
+    bool read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
+                           int ybegin, int yend, int zbegin, int zend,
+                           int chbegin, int chend, void* data) override;
+    bool read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
+                                    int yend, int z, int chbegin, int chend,
+                                    DeepData& deepdata) override;
+    bool read_native_deep_tiles(int subimage, int miplevel, int xbegin,
+                                int xend, int ybegin, int yend, int zbegin,
+                                int zend, int chbegin, int chend,
+                                DeepData& deepdata) override;
+
+    bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
+    {
+        m_io = ioproxy;
+        return true;
+    }
 
 private:
     struct PartInfo {
-        bool initialized;
+        std::atomic_bool initialized;
         ImageSpec spec;
-        int topwidth;                     ///< Width of top mip level
-        int topheight;                    ///< Height of top mip level
-        int levelmode;                    ///< The level mode
-        int roundingmode;                 ///< Rounding mode
-        bool cubeface;                    ///< It's a cubeface environment map
-        int nmiplevels;                   ///< How many MIP levels are there?
+        int topwidth;           ///< Width of top mip level
+        int topheight;          ///< Height of top mip level
+        int levelmode;          ///< The level mode
+        int roundingmode;       ///< Rounding mode
+        bool cubeface;          ///< It's a cubeface environment map
+        bool luminance_chroma;  ///< It's a luminance chroma image
+        int nmiplevels;         ///< How many MIP levels are there?
         Imath::Box2i top_datawindow;
         Imath::Box2i top_displaywindow;
-        std::vector<Imf::PixelType> pixeltype; ///< Imf pixel type for each chan
-        std::vector<int> chanbytes;       ///< Size (in bytes) of each channel
+        std::vector<Imf::PixelType> pixeltype;  ///< Imf pixel type for each chan
+        std::vector<int> chanbytes;  ///< Size (in bytes) of each channel
 
-        PartInfo () : initialized(false) { }
-        ~PartInfo () { }
-        void parse_header (const Imf::Header *header);
-        void query_channels (const Imf::Header *header);
+        PartInfo()
+            : initialized(false)
+        {
+        }
+        PartInfo(const PartInfo& p)
+            : initialized((bool)p.initialized)
+            , spec(p.spec)
+            , topwidth(p.topwidth)
+            , topheight(p.topheight)
+            , levelmode(p.levelmode)
+            , roundingmode(p.roundingmode)
+            , cubeface(p.cubeface)
+            , luminance_chroma(p.luminance_chroma)
+            , nmiplevels(p.nmiplevels)
+            , top_datawindow(p.top_datawindow)
+            , top_displaywindow(p.top_displaywindow)
+            , pixeltype(p.pixeltype)
+            , chanbytes(p.chanbytes)
+        {
+        }
+        ~PartInfo() {}
+        bool parse_header(OpenEXRInput* in, const Imf::Header* header);
+        bool query_channels(OpenEXRInput* in, const Imf::Header* header);
+        void compute_mipres(int miplevel, ImageSpec& spec) const;
     };
+    friend struct PartInfo;
 
-    std::vector<PartInfo> m_parts;        ///< Image parts
-    OpenEXRInputStream *m_input_stream;   ///< Stream for input file
-#ifdef USE_OPENEXR_VERSION2
-    Imf::MultiPartInputFile *m_input_multipart;   ///< Multipart input
-    Imf::InputPart *m_scanline_input_part;
-    Imf::TiledInputPart *m_tiled_input_part;
-    Imf::DeepScanLineInputPart *m_deep_scanline_input_part;
-    Imf::DeepTiledInputPart *m_deep_tiled_input_part;
-#else
-    char *m_input_multipart;   ///< Multipart input
-    char *m_scanline_input_part;
-    char *m_tiled_input_part;
-    char *m_deep_scanline_input_part;
-    char *m_deep_tiled_input_part;
-#endif
-    Imf::InputFile *m_input_scanline;     ///< Input for scanline files
-    Imf::TiledInputFile *m_input_tiled;   ///< Input for tiled files
-    int m_subimage;                       ///< What subimage are we looking at?
-    int m_nsubimages;                     ///< How many subimages are there?
-    int m_miplevel;                       ///< What MIP level are we looking at?
-    std::vector<unsigned char> m_scratch; ///< Scratch space for us to use
+    std::vector<PartInfo> m_parts;               ///< Image parts
+    OpenEXRInputStream* m_input_stream;          ///< Stream for input file
+    Imf::MultiPartInputFile* m_input_multipart;  ///< Multipart input
+    Imf::InputPart* m_scanline_input_part;
+    Imf::TiledInputPart* m_tiled_input_part;
+    Imf::DeepScanLineInputPart* m_deep_scanline_input_part;
+    Imf::DeepTiledInputPart* m_deep_tiled_input_part;
+    Imf::RgbaInputFile* m_input_rgba;
+    Filesystem::IOProxy* m_io = nullptr;
+    std::unique_ptr<Filesystem::IOProxy> m_local_io;
+    int m_subimage;                     ///< What subimage are we looking at?
+    int m_nsubimages;                   ///< How many subimages are there?
+    int m_miplevel;                     ///< What MIP level are we looking at?
+    std::vector<float> m_missingcolor;  ///< Color for missing tile/scanline
 
-    void init () {
-        m_input_stream = NULL;
-        m_input_multipart = NULL;
-        m_scanline_input_part = NULL;
-        m_tiled_input_part = NULL;
+    void init()
+    {
+        m_input_stream             = NULL;
+        m_input_multipart          = NULL;
+        m_scanline_input_part      = NULL;
+        m_tiled_input_part         = NULL;
         m_deep_scanline_input_part = NULL;
-        m_deep_tiled_input_part = NULL;
-        m_input_scanline = NULL;
-        m_input_tiled = NULL;
-        m_subimage = -1;
-        m_miplevel = -1;
+        m_deep_tiled_input_part    = NULL;
+        m_input_rgba               = NULL;
+        m_subimage                 = -1;
+        m_miplevel                 = -1;
+        m_io                       = nullptr;
+        m_local_io.reset();
+        m_missingcolor.clear();
     }
+
+    bool read_native_tiles_individually(int subimage, int miplevel, int xbegin,
+                                        int xend, int ybegin, int yend,
+                                        int zbegin, int zend, int chbegin,
+                                        int chend, void* data, stride_t xstride,
+                                        stride_t ystride);
+
+    // Fill in with 'missing' color/pattern.
+    void fill_missing(int xbegin, int xend, int ybegin, int yend, int zbegin,
+                      int zend, int chbegin, int chend, void* data,
+                      stride_t xstride, stride_t ystride);
 };
 
 
 
-// Obligatory material to make this a recognizeable imageio plugin:
+// Obligatory material to make this a recognizable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-OIIO_EXPORT ImageInput *
-openexr_input_imageio_create ()
+OIIO_EXPORT ImageInput*
+openexr_input_imageio_create()
 {
+#ifdef USE_OPENEXR_CORE
+    if (pvt::openexr_core) {
+        // Strutil::print("selecting core\n");
+        extern ImageInput* openexrcore_input_imageio_create();
+        return openexrcore_input_imageio_create();
+    }
+#endif
     return new OpenEXRInput;
 }
 
 // OIIO_EXPORT int openexr_imageio_version = OIIO_PLUGIN_VERSION; // it's in exroutput.cpp
 
-OIIO_EXPORT const char * openexr_input_extensions[] = {
-    "exr", "sxr", "mxr", NULL
-};
+OIIO_EXPORT const char* openexr_input_extensions[] = { "exr", "sxr", "mxr",
+                                                       nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 
 
+static std::map<std::string, std::string> exr_tag_to_oiio_std {
+    // Ones whose name we change to our convention
+    { "cameraTransform", "worldtocamera" },
+    { "capDate", "DateTime" },
+    { "comments", "ImageDescription" },
+    { "owner", "Copyright" },
+    { "pixelAspectRatio", "PixelAspectRatio" },
+    { "xDensity", "XResolution" },
+    { "expTime", "ExposureTime" },
+    // Ones we don't rename -- OpenEXR convention matches ours
+    { "wrapmodes", "wrapmodes" },
+    { "aperture", "FNumber" },
+    // Ones to prefix with openexr:
+    { "chunkCount", "openexr:chunkCount" },
+    { "maxSamplesPerPixel", "openexr:maxSamplesPerPixel" },
+    { "dwaCompressionLevel", "openexr:dwaCompressionLevel" },
+    // Ones to skip because we handle specially or consider them irrelevant
+    { "channels", "" },
+    { "compression", "" },
+    { "dataWindow", "" },
+    { "displayWindow", "" },
+    { "envmap", "" },
+    { "tiledesc", "" },
+    { "tiles", "" },
+    { "openexr:lineOrder", "" },
+    { "type", "" },
 
-class StringMap {
-    typedef std::map<std::string, std::string> map_t;
-public:
-    StringMap (void) { init(); }
-
-    const std::string & operator[] (const std::string &s) const {
-        map_t::const_iterator i;
-        i = m_map.find (s);
-        return i == m_map.end() ? s : i->second;
-    }
-private:
-    map_t m_map;
-
-    void init (void) {
-        // Ones whose name we change to our convention
-        m_map["cameraTransform"] = "worldtocamera";
-        m_map["worldToCamera"] = "worldtocamera";
-        m_map["worldToNDC"] = "worldtoscreen";
-        m_map["capDate"] = "DateTime";
-        m_map["comments"] = "ImageDescription";
-        m_map["owner"] = "Copyright";
-        m_map["pixelAspectRatio"] = "PixelAspectRatio";
-        m_map["xDensity"] = "XResolution";
-        m_map["expTime"] = "ExposureTime";
-        // Ones we don't rename -- OpenEXR convention matches ours
-        m_map["wrapmodes"] = "wrapmodes";
-        m_map["aperture"] = "FNumber";
-        // Ones to prefix with openexr:
-        m_map["version"] = "openexr:version";
-        m_map["chunkCount"] = "openexr:chunkCount";
-        m_map["maxSamplesPerPixel"] = "openexr:maxSamplesPerPixel";
-        m_map["dwaCompressionLevel"] = "openexr:dwaCompressionLevel";
-        // Ones to skip because we handle specially
-        m_map["channels"] = "";
-        m_map["compression"] = "";
-        m_map["dataWindow"] = "";
-        m_map["displayWindow"] = "";
-        m_map["envmap"] = "";
-        m_map["tiledesc"] = "";
-        m_map["tiles"] = "";
-        m_map["openexr:lineOrder"] = "";
-        m_map["type"] = "";
-        // Ones to skip because we consider them irrelevant
-
-//        m_map[""] = "";
-        // FIXME: Things to consider in the future:
-        // preview
-        // screenWindowCenter
-        // chromaticities whiteLuminance adoptedNeutral
-        // renderingTransform, lookModTransform
-        // utcOffset
-        // longitude latitude altitude
-        // focus isoSpeed
-        // keyCode timeCode framesPerSecond
-    }
+    // FIXME: Things to consider in the future:
+    // preview
+    // screenWindowCenter
+    // adoptedNeutral
+    // renderingTransform, lookModTransform
+    // utcOffset
+    // longitude latitude altitude
+    // focus isoSpeed
 };
 
-static StringMap exr_tag_to_oiio_std;
 
 
 namespace pvt {
 
-void set_exr_threads ()
+void
+set_exr_threads();
+
+}  // namespace pvt
+
+
+
+OpenEXRInput::OpenEXRInput() { init(); }
+
+
+
+bool
+OpenEXRInput::valid_file(Filesystem::IOProxy* ioproxy) const
 {
-    static int exr_threads = 0;  // lives in exrinput.cpp
-    static spin_mutex exr_threads_mutex;  
+    if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Mode::Read)
+        return false;
 
-    int oiio_threads = 1;
-    OIIO::getattribute ("threads", oiio_threads);
-
-    spin_lock lock (exr_threads_mutex);
-    if (exr_threads != oiio_threads) {
-        exr_threads = oiio_threads;
-        Imf::setGlobalThreadCount (exr_threads == 1 ? 0 : exr_threads);
+    try {
+        OpenEXRInputStream IStream("", ioproxy);
+        return Imf::isOpenExrFile(IStream);
+    } catch (const std::exception& e) {
+        return false;
     }
-}
-
-} // namespace pvt
-
-
-
-OpenEXRInput::OpenEXRInput ()
-{
-    init ();
 }
 
 
 
 bool
-OpenEXRInput::valid_file (const std::string &filename) const
+OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
+                   const ImageSpec& config)
 {
-    return Imf::isOpenExrFile (filename.c_str());
-}
+    // First thing's first. See if we're been given an IOProxy. We have to
+    // do this before the check for non-exr files, that's why it's here and
+    // not where the rest of the configuration hints are handled.
+    const ParamValue* param = config.find_attribute("oiio:ioproxy",
+                                                    TypeDesc::PTR);
+    if (param)
+        m_io = param->get<Filesystem::IOProxy*>();
 
-
-
-bool
-OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
-{
-    // Quick check to reject non-exr files
-    if (! Filesystem::is_regular (name)) {
-        error ("Could not open file \"%s\"", name.c_str());
-        return false;
-    }
-    bool tiled;
-    if (! Imf::isOpenExrFile (name.c_str(), tiled)) {
-        error ("\"%s\" is not an OpenEXR file", name.c_str());
+    // Quick check to immediately reject nonexistent or non-exr files.
+    if (!m_io && !Filesystem::is_regular(name)) {
+        errorf("Could not open file \"%s\"", name);
         return false;
     }
 
-    pvt::set_exr_threads ();
+    // If we weren't given an IOProxy, create one now that just reads from
+    // the file.
+    if (!m_io) {
+        m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Read);
+        m_local_io.reset(m_io);
+    }
+    OIIO_ASSERT(m_io);
 
-    m_spec = ImageSpec(); // Clear everything with default constructor
-    
+    if (!valid_file(m_io)) {
+        errorf("\"%s\" is not an OpenEXR file", name);
+        return false;
+    }
+
+    // Check any other configuration hints
+
+    // "missingcolor" gives fill color for missing scanlines or tiles.
+    if (const ParamValue* m = config.find_attribute("oiio:missingcolor")) {
+        if (m->type().basetype == TypeDesc::STRING) {
+            // missingcolor as string
+            m_missingcolor = Strutil::extract_from_list_string<float>(
+                m->get_string());
+        } else {
+            // missingcolor as numeric array
+            int n = m->type().basevalues();
+            m_missingcolor.clear();
+            m_missingcolor.reserve(n);
+            for (int i = 0; i < n; ++i)
+                m_missingcolor[i] = m->get_float(i);
+        }
+    } else {
+        // If not passed explicit, is there a global setting?
+        std::string mc = OIIO::get_string_attribute("missingcolor");
+        if (mc.size())
+            m_missingcolor = Strutil::extract_from_list_string<float>(mc);
+    }
+
+    // Before engaging further with OpenEXR, make sure it is using the right
+    // number of threads.
+    pvt::set_exr_threads();
+
+    // Clear the spec with default constructor
+    m_spec = ImageSpec();
+
+    // Establish an input stream.
     try {
-        m_input_stream = new OpenEXRInputStream (name.c_str());
-    } catch (const std::exception &e) {
+        if (m_io->mode() != Filesystem::IOProxy::Read) {
+            // If the proxy couldn't be opened in write mode, try to
+            // return an error.
+            std::string e = m_io->error();
+            errorf("Could not open \"%s\" (%s)", name,
+                   e.size() ? e : std::string("unknown error"));
+            return false;
+        }
+        m_io->seek(0);
+        m_input_stream = new OpenEXRInputStream(name.c_str(), m_io);
+    } catch (const std::exception& e) {
         m_input_stream = NULL;
-        error ("OpenEXR exception: %s", e.what());
+        errorf("OpenEXR exception: %s", e.what());
         return false;
-    } catch (...) {   // catch-all for edge cases or compiler bugs
+    } catch (...) {  // catch-all for edge cases or compiler bugs
         m_input_stream = NULL;
-        error ("OpenEXR exception: unknown");
+        errorf("OpenEXR exception: unknown");
         return false;
     }
 
-#ifdef USE_OPENEXR_VERSION2
+    // Read the header by constructing a MultiPartInputFile from the input
+    // stream.
     try {
-        m_input_multipart = new Imf::MultiPartInputFile (*m_input_stream);
-    } catch (const std::exception &e) {
+        m_input_multipart = new Imf::MultiPartInputFile(*m_input_stream);
+    } catch (const std::exception& e) {
         delete m_input_stream;
         m_input_stream = NULL;
-        error ("OpenEXR exception: %s", e.what());
+        errorf("OpenEXR exception: %s", e.what());
         return false;
-    } catch (...) {   // catch-all for edge cases or compiler bugs
+    } catch (...) {  // catch-all for edge cases or compiler bugs
         m_input_stream = NULL;
-        error ("OpenEXR exception: unknown");
+        errorf("OpenEXR exception: unknown");
         return false;
     }
 
     m_nsubimages = m_input_multipart->parts();
-
-#else
-    try {
-        if (tiled) {
-            m_input_tiled = new Imf::TiledInputFile (*m_input_stream);
-        } else {
-            m_input_scanline = new Imf::InputFile (*m_input_stream);
-        }
-    } catch (const std::exception &e) {
-        delete m_input_stream;
-        m_input_stream = NULL;
-        error ("OpenEXR exception: %s", e.what());
-        return false;
-    } catch (...) {   // catch-all for edge cases or compiler bugs
-        m_input_stream = NULL;
-        error ("OpenEXR exception: unknown");
-        return false;
-    }
-
-    if (! m_input_scanline && ! m_input_tiled) {
-        error ("Unknown error opening EXR file");
-        return false;
-    }
-
-    m_nsubimages = 1;  // OpenEXR 1.x did not have multipart
-#endif
-
-    m_parts.resize (m_nsubimages);
+    m_parts.resize(m_nsubimages);
     m_subimage = -1;
     m_miplevel = -1;
-    bool ok = seek_subimage (0, 0, newspec);
-    if (! ok)
-        close ();
+
+    // Set up for the first subimage ("part"). This will trigger reading
+    // information about all the parts.
+    bool ok = seek_subimage(0, 0);
+    if (ok)
+        newspec = m_spec;
+    else
+        close();
     return ok;
 }
 
@@ -430,10 +473,10 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
 
 // Count number of MIPmap levels
 inline int
-numlevels (int width, int roundingmode)
+numlevels(int width, int roundingmode)
 {
     int nlevels = 1;
-    for (  ;  width > 1;  ++nlevels) {
+    for (; width > 1; ++nlevels) {
         if (roundingmode == Imf::ROUND_DOWN)
             width = width / 2;
         else
@@ -444,201 +487,254 @@ numlevels (int width, int roundingmode)
 
 
 
-void
-OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
+bool
+OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
+                                     const Imf::Header* header)
 {
+    bool ok = true;
     if (initialized)
-        return;
+        return ok;
 
-    ASSERT (header);
+    ImageInput::lock_guard lock(*in);
+    OIIO_DASSERT(header);
     spec = ImageSpec();
 
-    top_datawindow = header->dataWindow();
+    top_datawindow    = header->dataWindow();
     top_displaywindow = header->displayWindow();
-    spec.x = top_datawindow.min.x;
-    spec.y = top_datawindow.min.y;
-    spec.z = 0;
-    spec.width  = top_datawindow.max.x - top_datawindow.min.x + 1;
-    spec.height = top_datawindow.max.y - top_datawindow.min.y + 1;
-    spec.depth = 1;
-    topwidth = spec.width;      // Save top-level mipmap dimensions
-    topheight = spec.height;
-    spec.full_x = top_displaywindow.min.x;
-    spec.full_y = top_displaywindow.min.y;
-    spec.full_z = 0;
-    spec.full_width  = top_displaywindow.max.x - top_displaywindow.min.x + 1;
-    spec.full_height = top_displaywindow.max.y - top_displaywindow.min.y + 1;
-    spec.full_depth = 1;
-    spec.tile_depth = 1;
+    spec.x            = top_datawindow.min.x;
+    spec.y            = top_datawindow.min.y;
+    spec.z            = 0;
+    spec.width        = top_datawindow.max.x - top_datawindow.min.x + 1;
+    spec.height       = top_datawindow.max.y - top_datawindow.min.y + 1;
+    spec.depth        = 1;
+    topwidth          = spec.width;  // Save top-level mipmap dimensions
+    topheight         = spec.height;
+    spec.full_x       = top_displaywindow.min.x;
+    spec.full_y       = top_displaywindow.min.y;
+    spec.full_z       = 0;
+    spec.full_width   = top_displaywindow.max.x - top_displaywindow.min.x + 1;
+    spec.full_height  = top_displaywindow.max.y - top_displaywindow.min.y + 1;
+    spec.full_depth   = 1;
+    spec.tile_depth   = 1;
 
-    if (header->hasTileDescription()) {
-        const Imf::TileDescription &td (header->tileDescription());
-        spec.tile_width = td.xSize;
+    if (header->hasTileDescription()
+        && Strutil::icontains(header->type(), "tile")) {
+        const Imf::TileDescription& td(header->tileDescription());
+        spec.tile_width  = td.xSize;
         spec.tile_height = td.ySize;
-        levelmode = td.mode;
-        roundingmode = td.roundingMode;
+        levelmode        = td.mode;
+        roundingmode     = td.roundingMode;
         if (levelmode == Imf::MIPMAP_LEVELS)
-            nmiplevels = numlevels (std::max(topwidth,topheight), roundingmode);
+            nmiplevels = numlevels(std::max(topwidth, topheight), roundingmode);
         else if (levelmode == Imf::RIPMAP_LEVELS)
-            nmiplevels = numlevels (std::max(topwidth,topheight), roundingmode);
+            nmiplevels = numlevels(std::max(topwidth, topheight), roundingmode);
         else
             nmiplevels = 1;
     } else {
-        spec.tile_width = 0;
+        spec.tile_width  = 0;
         spec.tile_height = 0;
-        levelmode = Imf::ONE_LEVEL;
-        nmiplevels = 1;
+        levelmode        = Imf::ONE_LEVEL;
+        nmiplevels       = 1;
     }
-    query_channels (header);   // also sets format
+    if (!query_channels(in, header))  // also sets format
+        return false;
 
-#ifdef USE_OPENEXR_VERSION2
-    spec.deep = Strutil::istarts_with (header->type(), "deep");
-#endif
+    spec.deep = Strutil::istarts_with(header->type(), "deep");
 
     // Unless otherwise specified, exr files are assumed to be linear.
-    spec.attribute ("oiio:ColorSpace", "Linear");
+    spec.attribute("oiio:ColorSpace", "Linear");
 
     if (levelmode != Imf::ONE_LEVEL)
-        spec.attribute ("openexr:roundingmode", roundingmode);
+        spec.attribute("openexr:roundingmode", roundingmode);
 
-    const Imf::EnvmapAttribute *envmap;
+    const Imf::EnvmapAttribute* envmap;
     envmap = header->findTypedAttribute<Imf::EnvmapAttribute>("envmap");
     if (envmap) {
         cubeface = (envmap->value() == Imf::ENVMAP_CUBE);
-        spec.attribute ("textureformat", cubeface ? "CubeFace Environment" : "LatLong Environment");
+        spec.attribute("textureformat", cubeface ? "CubeFace Environment"
+                                                 : "LatLong Environment");
         // OpenEXR conventions for env maps
-        if (! cubeface)
-            spec.attribute ("oiio:updirection", "y");
-        spec.attribute ("oiio:sampleborder", 1);
+        if (!cubeface)
+            spec.attribute("oiio:updirection", "y");
+        spec.attribute("oiio:sampleborder", 1);
         // FIXME - detect CubeFace Shadow?
     } else {
         cubeface = false;
         if (spec.tile_width && levelmode == Imf::MIPMAP_LEVELS)
-            spec.attribute ("textureformat", "Plain Texture");
+            spec.attribute("textureformat", "Plain Texture");
         // FIXME - detect Shadow
     }
 
-    const Imf::CompressionAttribute *compressattr;
-    compressattr = header->findTypedAttribute<Imf::CompressionAttribute>("compression");
+    const Imf::CompressionAttribute* compressattr;
+    compressattr = header->findTypedAttribute<Imf::CompressionAttribute>(
+        "compression");
     if (compressattr) {
-        const char *comp = NULL;
+        const char* comp = NULL;
         switch (compressattr->value()) {
-        case Imf::NO_COMPRESSION    : comp = "none"; break;
-        case Imf::RLE_COMPRESSION   : comp = "rle"; break;
-        case Imf::ZIPS_COMPRESSION  : comp = "zips"; break;
-        case Imf::ZIP_COMPRESSION   : comp = "zip"; break;
-        case Imf::PIZ_COMPRESSION   : comp = "piz"; break;
-        case Imf::PXR24_COMPRESSION : comp = "pxr24"; break;
-#ifdef IMF_B44_COMPRESSION
-            // The enum Imf::B44_COMPRESSION is not defined in older versions
-            // of OpenEXR, and there are no explicit version numbers in the
-            // headers.  BUT this other related #define is present only in
-            // the newer version.
-        case Imf::B44_COMPRESSION   : comp = "b44"; break;
-        case Imf::B44A_COMPRESSION  : comp = "b44a"; break;
-#endif
-#if defined(OPENEXR_VERSION_MAJOR) && \
-    (OPENEXR_VERSION_MAJOR*10000+OPENEXR_VERSION_MINOR*100+OPENEXR_VERSION_PATCH) >= 20200
-        case Imf::DWAA_COMPRESSION  : comp = "dwaa"; break;
-        case Imf::DWAB_COMPRESSION  : comp = "dwab"; break;
-#endif
-        default:
-            break;
+        case Imf::NO_COMPRESSION: comp = "none"; break;
+        case Imf::RLE_COMPRESSION: comp = "rle"; break;
+        case Imf::ZIPS_COMPRESSION: comp = "zips"; break;
+        case Imf::ZIP_COMPRESSION: comp = "zip"; break;
+        case Imf::PIZ_COMPRESSION: comp = "piz"; break;
+        case Imf::PXR24_COMPRESSION: comp = "pxr24"; break;
+        case Imf::B44_COMPRESSION: comp = "b44"; break;
+        case Imf::B44A_COMPRESSION: comp = "b44a"; break;
+        case Imf::DWAA_COMPRESSION: comp = "dwaa"; break;
+        case Imf::DWAB_COMPRESSION: comp = "dwab"; break;
+        default: break;
         }
         if (comp)
-            spec.attribute ("compression", comp);
+            spec.attribute("compression", comp);
     }
 
-    for (Imf::Header::ConstIterator hit = header->begin();
-             hit != header->end();  ++hit) {
-        const Imf::IntAttribute *iattr;
-        const Imf::FloatAttribute *fattr;
-        const Imf::StringAttribute *sattr;
-        const Imf::M44fAttribute *mattr;
-        const Imf::V3fAttribute *v3fattr;
-        const Imf::V3iAttribute *v3iattr;
-        const Imf::V2fAttribute *v2fattr;
-        const Imf::V2iAttribute *v2iattr;
-        const Imf::Box2iAttribute *b2iattr;
-        const Imf::Box2fAttribute *b2fattr;
-        const Imf::TimeCodeAttribute *tattr;
-        const Imf::KeyCodeAttribute *kcattr;
-#ifdef USE_OPENEXR_VERSION2
-        const Imf::StringVectorAttribute *svattr;
+    for (auto hit = header->begin(); hit != header->end(); ++hit) {
+        const Imf::IntAttribute* iattr;
+        const Imf::FloatAttribute* fattr;
+        const Imf::StringAttribute* sattr;
+        const Imf::M33fAttribute* m33fattr;
+        const Imf::M44fAttribute* m44fattr;
+        const Imf::V3fAttribute* v3fattr;
+        const Imf::V3iAttribute* v3iattr;
+        const Imf::V2fAttribute* v2fattr;
+        const Imf::V2iAttribute* v2iattr;
+        const Imf::Box2iAttribute* b2iattr;
+        const Imf::Box2fAttribute* b2fattr;
+        const Imf::TimeCodeAttribute* tattr;
+        const Imf::KeyCodeAttribute* kcattr;
+        const Imf::ChromaticitiesAttribute* crattr;
+        const Imf::RationalAttribute* rattr;
+#if OPENEXR_HAS_FLOATVECTOR
+        const Imf::FloatVectorAttribute* fvattr;
 #endif
-        const char *name = hit.name();
-        std::string oname = exr_tag_to_oiio_std[name];
-        if (oname.empty())   // Empty string means skip this attrib
+        const Imf::StringVectorAttribute* svattr;
+        const Imf::DoubleAttribute* dattr;
+        const Imf::V2dAttribute* v2dattr;
+        const Imf::V3dAttribute* v3dattr;
+        const Imf::M33dAttribute* m33dattr;
+        const Imf::M44dAttribute* m44dattr;
+        const char* name = hit.name();
+        auto found       = exr_tag_to_oiio_std.find(name);
+        std::string oname(found != exr_tag_to_oiio_std.end() ? found->second
+                                                             : name);
+        if (oname.empty())  // Empty string means skip this attrib
             continue;
-//        if (oname == name)
-//            oname = std::string(format_name()) + "_" + oname;
-        const Imf::Attribute &attrib = hit.attribute();
-        std::string type = attrib.typeName();
-        if (type == "string" && 
-            (sattr = header->findTypedAttribute<Imf::StringAttribute> (name)))
-            spec.attribute (oname, sattr->value().c_str());
-        else if (type == "int" && 
-            (iattr = header->findTypedAttribute<Imf::IntAttribute> (name)))
-            spec.attribute (oname, iattr->value());
-        else if (type == "float" && 
-            (fattr = header->findTypedAttribute<Imf::FloatAttribute> (name)))
-            spec.attribute (oname, fattr->value());
-        else if (type == "m44f" && 
-            (mattr = header->findTypedAttribute<Imf::M44fAttribute> (name)))
-            spec.attribute (oname, TypeDesc::TypeMatrix, &(mattr->value()));
-        else if (type == "v3f" &&
-                 (v3fattr = header->findTypedAttribute<Imf::V3fAttribute> (name)))
-            spec.attribute (oname, TypeDesc::TypeVector, &(v3fattr->value()));
-        else if (type == "v3i" &&
-                 (v3iattr = header->findTypedAttribute<Imf::V3iAttribute> (name))) {
-            TypeDesc v3 (TypeDesc::INT, TypeDesc::VEC3, TypeDesc::VECTOR);
-            spec.attribute (oname, v3, &(v3iattr->value()));
-        }
-        else if (type == "v2f" &&
-                 (v2fattr = header->findTypedAttribute<Imf::V2fAttribute> (name))) {
-            TypeDesc v2 (TypeDesc::FLOAT,TypeDesc::VEC2);
-            spec.attribute (oname, v2, &(v2fattr->value()));
-        }
-        else if (type == "v2i" &&
-                 (v2iattr = header->findTypedAttribute<Imf::V2iAttribute> (name))) {
-            TypeDesc v2 (TypeDesc::INT,TypeDesc::VEC2);
-            spec.attribute (oname, v2, &(v2iattr->value()));
-        }
-#ifdef USE_OPENEXR_VERSION2
-        else if (type == "stringvector" &&
-            (svattr = header->findTypedAttribute<Imf::StringVectorAttribute> (name))) {
+        //        if (oname == name)
+        //            oname = std::string(format_name()) + "_" + oname;
+        const Imf::Attribute& attrib = hit.attribute();
+        std::string type             = attrib.typeName();
+        if (type == "string"
+            && (sattr = header->findTypedAttribute<Imf::StringAttribute>(
+                    name))) {
+            if (sattr->value().size())
+                spec.attribute(oname, sattr->value().c_str());
+        } else if (type == "int"
+                   && (iattr = header->findTypedAttribute<Imf::IntAttribute>(
+                           name)))
+            spec.attribute(oname, iattr->value());
+        else if (type == "float"
+                 && (fattr = header->findTypedAttribute<Imf::FloatAttribute>(
+                         name)))
+            spec.attribute(oname, fattr->value());
+        else if (type == "m33f"
+                 && (m33fattr = header->findTypedAttribute<Imf::M33fAttribute>(
+                         name)))
+            spec.attribute(oname, TypeMatrix33, &(m33fattr->value()));
+        else if (type == "m44f"
+                 && (m44fattr = header->findTypedAttribute<Imf::M44fAttribute>(
+                         name)))
+            spec.attribute(oname, TypeMatrix44, &(m44fattr->value()));
+        else if (type == "v3f"
+                 && (v3fattr = header->findTypedAttribute<Imf::V3fAttribute>(
+                         name)))
+            spec.attribute(oname, TypeVector, &(v3fattr->value()));
+        else if (type == "v3i"
+                 && (v3iattr = header->findTypedAttribute<Imf::V3iAttribute>(
+                         name))) {
+            TypeDesc v3(TypeDesc::INT, TypeDesc::VEC3, TypeDesc::VECTOR);
+            spec.attribute(oname, v3, &(v3iattr->value()));
+        } else if (type == "v2f"
+                   && (v2fattr = header->findTypedAttribute<Imf::V2fAttribute>(
+                           name))) {
+            TypeDesc v2(TypeDesc::FLOAT, TypeDesc::VEC2);
+            spec.attribute(oname, v2, &(v2fattr->value()));
+        } else if (type == "v2i"
+                   && (v2iattr = header->findTypedAttribute<Imf::V2iAttribute>(
+                           name))) {
+            TypeDesc v2(TypeDesc::INT, TypeDesc::VEC2);
+            spec.attribute(oname, v2, &(v2iattr->value()));
+        } else if (type == "stringvector"
+                   && (svattr
+                       = header->findTypedAttribute<Imf::StringVectorAttribute>(
+                           name))) {
             std::vector<std::string> strvec = svattr->value();
-            std::vector<ustring> ustrvec (strvec.size());
-            for (size_t i = 0, e = strvec.size();  i < e;  ++i)
+            std::vector<ustring> ustrvec(strvec.size());
+            for (size_t i = 0, e = strvec.size(); i < e; ++i)
                 ustrvec[i] = strvec[i];
-            TypeDesc sv (TypeDesc::STRING, ustrvec.size());
+            TypeDesc sv(TypeDesc::STRING, ustrvec.size());
             spec.attribute(oname, sv, &ustrvec[0]);
-        }
+#if OPENEXR_HAS_FLOATVECTOR
+
+        } else if (type == "floatvector"
+                   && (fvattr
+                       = header->findTypedAttribute<Imf::FloatVectorAttribute>(
+                           name))) {
+            std::vector<float> fvec = fvattr->value();
+            TypeDesc fv(TypeDesc::FLOAT, fvec.size());
+            spec.attribute(oname, fv, &fvec[0]);
 #endif
-        else if (type == "box2i" &&
-                 (b2iattr = header->findTypedAttribute<Imf::Box2iAttribute> (name))) {
-            TypeDesc bx (TypeDesc::INT, TypeDesc::VEC2, 2);
-            spec.attribute (oname, bx, &b2iattr->value());
-        }
-        else if (type == "box2f" &&
-                 (b2fattr = header->findTypedAttribute<Imf::Box2fAttribute> (name))) {
-            TypeDesc bx (TypeDesc::FLOAT, TypeDesc::VEC2, 2);
-            spec.attribute (oname, bx, &b2fattr->value());
-        }
-        else if (type == "timecode" &&
-                 (tattr = header->findTypedAttribute<Imf::TimeCodeAttribute> (name))) {
+        } else if (type == "double"
+                   && (dattr = header->findTypedAttribute<Imf::DoubleAttribute>(
+                           name))) {
+            TypeDesc d(TypeDesc::DOUBLE);
+            spec.attribute(oname, d, &(dattr->value()));
+        } else if (type == "v2d"
+                   && (v2dattr = header->findTypedAttribute<Imf::V2dAttribute>(
+                           name))) {
+            TypeDesc v2(TypeDesc::DOUBLE, TypeDesc::VEC2);
+            spec.attribute(oname, v2, &(v2dattr->value()));
+        } else if (type == "v3d"
+                   && (v3dattr = header->findTypedAttribute<Imf::V3dAttribute>(
+                           name))) {
+            TypeDesc v3(TypeDesc::DOUBLE, TypeDesc::VEC3, TypeDesc::VECTOR);
+            spec.attribute(oname, v3, &(v3dattr->value()));
+        } else if (type == "m33d"
+                   && (m33dattr = header->findTypedAttribute<Imf::M33dAttribute>(
+                           name))) {
+            TypeDesc m33(TypeDesc::DOUBLE, TypeDesc::MATRIX33);
+            spec.attribute(oname, m33, &(m33dattr->value()));
+        } else if (type == "m44d"
+                   && (m44dattr = header->findTypedAttribute<Imf::M44dAttribute>(
+                           name))) {
+            TypeDesc m44(TypeDesc::DOUBLE, TypeDesc::MATRIX44);
+            spec.attribute(oname, m44, &(m44dattr->value()));
+        } else if (type == "box2i"
+                   && (b2iattr = header->findTypedAttribute<Imf::Box2iAttribute>(
+                           name))) {
+            TypeDesc bx(TypeDesc::INT, TypeDesc::VEC2, 2);
+            spec.attribute(oname, bx, &b2iattr->value());
+        } else if (type == "box2f"
+                   && (b2fattr = header->findTypedAttribute<Imf::Box2fAttribute>(
+                           name))) {
+            TypeDesc bx(TypeDesc::FLOAT, TypeDesc::VEC2, 2);
+            spec.attribute(oname, bx, &b2fattr->value());
+        } else if (type == "timecode"
+                   && (tattr
+                       = header->findTypedAttribute<Imf::TimeCodeAttribute>(
+                           name))) {
             unsigned int timecode[2];
-            timecode[0] = tattr->value().timeAndFlags(Imf::TimeCode::TV60_PACKING); //TV60 returns unchanged _time
+            timecode[0] = tattr->value().timeAndFlags(
+                Imf::TimeCode::TV60_PACKING);  //TV60 returns unchanged _time
             timecode[1] = tattr->value().userData();
 
             // Elevate "timeCode" to smpte:TimeCode
             if (oname == "timeCode")
                 oname = "smpte:TimeCode";
-            spec.attribute(oname, TypeDesc::TypeTimeCode, timecode);
-        }
-        else if (type == "keycode" &&
-                 (kcattr = header->findTypedAttribute<Imf::KeyCodeAttribute> (name))) {
-            const Imf::KeyCode *k = &kcattr->value();
+            spec.attribute(oname, TypeTimeCode, timecode);
+        } else if (type == "keycode"
+                   && (kcattr
+                       = header->findTypedAttribute<Imf::KeyCodeAttribute>(
+                           name))) {
+            const Imf::KeyCode* k = &kcattr->value();
             unsigned int keycode[7];
             keycode[0] = k->filmMfcCode();
             keycode[1] = k->filmType();
@@ -651,30 +747,65 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
             // Elevate "keyCode" to smpte:KeyCode
             if (oname == "keyCode")
                 oname = "smpte:KeyCode";
-            spec.attribute(oname, TypeDesc::TypeKeyCode, keycode);
-        }
-        else {
+            spec.attribute(oname, TypeKeyCode, keycode);
+        } else if (type == "chromaticities"
+                   && (crattr = header->findTypedAttribute<
+                                Imf::ChromaticitiesAttribute>(name))) {
+            const Imf::Chromaticities* chroma = &crattr->value();
+            spec.attribute(oname, TypeDesc(TypeDesc::FLOAT, 8),
+                           (const float*)chroma);
+        } else if (type == "rational"
+                   && (rattr
+                       = header->findTypedAttribute<Imf::RationalAttribute>(
+                           name))) {
+            const Imf::Rational* rational = &rattr->value();
+            int n                         = rational->n;
+            unsigned int d                = rational->d;
+            if (d < (1UL << 31)) {
+                int r[2];
+                r[0] = n;
+                r[1] = static_cast<int>(d);
+                spec.attribute(oname, TypeRational, r);
+            } else {
+                int f = static_cast<int>(gcd(int64_t(n), int64_t(d)));
+                if (f > 1) {
+                    int r[2];
+                    r[0] = n / f;
+                    r[1] = static_cast<int>(d / f);
+                    spec.attribute(oname, TypeRational, r);
+                } else {
+                    // TODO: find a way to allow the client to accept "close" rational values
+                    OIIO::debugf(
+                        "Don't know what to do with OpenEXR Rational attribute %s with value %d / %u that we cannot represent exactly",
+                        oname, n, d);
+                }
+            }
+        } else {
 #if 0
             std::cerr << "  unknown attribute " << type << ' ' << name << "\n";
 #endif
         }
     }
 
-    float aspect = spec.get_float_attribute ("PixelAspectRatio", 0.0f);
-    float xdensity = spec.get_float_attribute ("XResolution", 0.0f);
+    float aspect   = spec.get_float_attribute("PixelAspectRatio", 0.0f);
+    float xdensity = spec.get_float_attribute("XResolution", 0.0f);
     if (xdensity) {
         // If XResolution is found, supply the YResolution and unit.
-        spec.attribute ("YResolution", xdensity * (aspect ? aspect : 1.0f));
-        spec.attribute ("ResolutionUnit", "in"); // EXR is always pixels/inch
+        spec.attribute("YResolution", xdensity * (aspect ? aspect : 1.0f));
+        spec.attribute("ResolutionUnit", "in");  // EXR is always pixels/inch
     }
 
-#ifdef USE_OPENEXR_VERSION2
     // EXR "name" also gets passed along as "oiio:subimagename".
-    if (header->hasName())
-        spec.attribute ("oiio:subimagename", header->name());
-#endif
+    if (header->hasName() && header->name() != "")
+        spec.attribute("oiio:subimagename", header->name());
+
+    spec.attribute("oiio:subimages", in->m_nsubimages);
+
+    // Squash some problematic texture metadata if we suspect it's wrong
+    pvt::check_texture_metadata_sanity(spec);
 
     initialized = true;
+    return ok;
 }
 
 
@@ -683,13 +814,15 @@ namespace {
 
 
 static TypeDesc
-TypeDesc_from_ImfPixelType (Imf::PixelType ptype)
+TypeDesc_from_ImfPixelType(Imf::PixelType ptype)
 {
     switch (ptype) {
-    case Imf::UINT  : return TypeDesc::UINT;  break;
-    case Imf::HALF  : return TypeDesc::HALF;  break;
-    case Imf::FLOAT : return TypeDesc::FLOAT; break;
-    default: ASSERT (0);
+    case Imf::UINT: return TypeDesc::UINT; break;
+    case Imf::HALF: return TypeDesc::HALF; break;
+    case Imf::FLOAT: return TypeDesc::FLOAT; break;
+    default:
+        OIIO_ASSERT_MSG(0, "Unknown Imf::PixelType %d", int(ptype));
+        return TypeUnknown;
     }
 }
 
@@ -697,38 +830,65 @@ TypeDesc_from_ImfPixelType (Imf::PixelType ptype)
 
 // Used to hold channel information for sorting into canonical order
 struct ChanNameHolder {
-    string_view fullname;
+    string_view fullname;    // layer.suffix
+    string_view layer;       // just layer
+    string_view suffix;      // just suffix (or the fillname, if no layer)
     int exr_channel_number;  // channel index in the exr (sorted by name)
-    string_view layer;
-    string_view suffix;
-    int special_index;
+    int special_index;       // sort order for special reserved names
     Imf::PixelType exr_data_type;
     TypeDesc datatype;
+    int xSampling;
+    int ySampling;
 
-    ChanNameHolder (string_view fullname, int n, Imf::PixelType exrtype)
-        : fullname(fullname), exr_channel_number(n), exr_data_type(exrtype),
-          datatype(TypeDesc_from_ImfPixelType(exrtype))
+    ChanNameHolder(string_view fullname, int n, const Imf::Channel& exrchan)
+        : fullname(fullname)
+        , exr_channel_number(n)
+        , special_index(10000)
+        , exr_data_type(exrchan.type)
+        , datatype(TypeDesc_from_ImfPixelType(exrchan.type))
+        , xSampling(exrchan.xSampling)
+        , ySampling(exrchan.ySampling)
     {
-        size_t dot = fullname.find_last_of ('.');
-        if (dot == string_view::npos) {
-            suffix = fullname;
-        } else {
-            layer = string_view (fullname.data(), dot+1);
-            suffix = string_view (fullname.data()+dot+1, fullname.size()-dot-1);
-        }
-        static const char * special[] = {
-            "R", "Red", "G", "Green", "B", "Blue", "real", "imag",
-            "A", "Alpha", "RA", "RG", "RB", "Z", "Depth", "Zback", NULL
-        };
-        special_index = 10000;
+        split_name(fullname, layer, suffix);
+    }
+
+    // Compute canoninical channel list sort priority
+    void compute_special_index()
+    {
+        static const char* special[]
+            = { "R",    "Red",  "G",  "Green", "B",     "Blue",  "Y",
+                "real", "imag", "A",  "Alpha", "AR",    "RA",    "AG",
+                "GA",   "AB",   "BA", "Z",     "Depth", "Zback", nullptr };
         for (int i = 0; special[i]; ++i)
-            if (Strutil::iequals (suffix, special[i])) {
+            if (Strutil::iequals(suffix, special[i])) {
                 special_index = i;
-                break;
+                return;
             }
     }
 
-    static bool compare_cnh (const ChanNameHolder &a, const ChanNameHolder &b)
+    // Compute alternate channel sort priority for layers that contain
+    // x,y,z.
+    void compute_special_index_xyz()
+    {
+        static const char* special[]
+            = { "R",  "Red", "G",  "Green", "B",    "Blue", /* "Y", */
+                "X",  "Y",   "Z",  "real",  "imag", "A",     "Alpha", "AR",
+                "RA", "AG",  "GA", "AB",    "BA",   "Depth", "Zback", nullptr };
+        for (int i = 0; special[i]; ++i)
+            if (Strutil::iequals(suffix, special[i])) {
+                special_index = i;
+                return;
+            }
+    }
+
+    // Partial sort on layer only
+    static bool compare_layer(const ChanNameHolder& a, const ChanNameHolder& b)
+    {
+        return (a.layer < b.layer);
+    }
+
+    // Full sort on layer name, special index, suffix
+    static bool compare_cnh(const ChanNameHolder& a, const ChanNameHolder& b)
     {
         if (a.layer < b.layer)
             return true;
@@ -743,264 +903,495 @@ struct ChanNameHolder {
     }
 };
 
-} // anon namespace
 
-
-
-void
-OpenEXRInput::PartInfo::query_channels (const Imf::Header *header)
+// Is the channel name (suffix only) in the list?
+static bool
+suffixfound(string_view name, span<ChanNameHolder> chans)
 {
-    ASSERT (! initialized);
-    spec.nchannels = 0;
-    const Imf::ChannelList &channels (header->channels());
-    std::vector<std::string> channelnames;  // Order of channels in file
-    std::vector<ChanNameHolder> cnh;
-    int c = 0;
-    for (Imf::ChannelList::ConstIterator ci = channels.begin();
-         ci != channels.end();  ++c, ++ci) {
-        cnh.push_back (ChanNameHolder (ci.name(), c, ci.channel().type));
-        ++spec.nchannels;
-    }
-    std::sort (cnh.begin(), cnh.end(), ChanNameHolder::compare_cnh);
-    // Now we should have cnh sorted into the order that we want to present
-    // to the OIIO client.
-    spec.format = TypeDesc::UNKNOWN;
-    bool all_one_format = true;
-    for (int c = 0; c < spec.nchannels; ++c) {
-        spec.channelnames.push_back (cnh[c].fullname);
-        spec.channelformats.push_back (cnh[c].datatype);
-        spec.format = TypeDesc(ImageBufAlgo::type_merge (TypeDesc::BASETYPE(spec.format.basetype),
-                                                         TypeDesc::BASETYPE(cnh[c].datatype.basetype)));
-        pixeltype.push_back (cnh[c].exr_data_type);
-        chanbytes.push_back (cnh[c].datatype.size());
-        all_one_format &= (cnh[c].datatype == cnh[0].datatype);
-        if (spec.alpha_channel < 0 && (Strutil::iequals (cnh[c].suffix, "A") ||
-                                       Strutil::iequals (cnh[c].suffix, "Alpha")))
-            spec.alpha_channel = c;
-        if (spec.z_channel < 0 && (Strutil::iequals (cnh[c].suffix, "Z") ||
-                                   Strutil::iequals (cnh[c].suffix, "Depth")))
-            spec.z_channel = c;
-    }
-    ASSERT ((int)spec.channelnames.size() == spec.nchannels);
-    ASSERT (spec.format != TypeDesc::UNKNOWN);
-    if (all_one_format)
-        spec.channelformats.clear();
+    for (auto& c : chans)
+        if (Strutil::iequals(name, c.suffix))
+            return true;
+    return false;
 }
+
+
+// Returns the index of that channel name (suffix only) in the list, or -1 in case of failure.
+static int
+get_index_of_suffix(string_view name, span<ChanNameHolder> chans)
+{
+    for (size_t i = 0, n = chans.size(); i < n; ++i)
+        if (Strutil::iequals(name, chans[i].suffix))
+            return static_cast<int>(i);
+    return -1;
+}
+
+
+// Is this a luminance-chroma image, i.e., Y/BY/RY or Y/BY/RY/A or Y/BY/RY/Alpha?
+//
+// Note that extra channels are not supported.
+static bool
+is_luminance_chroma(span<ChanNameHolder> chans)
+{
+    if (chans.size() < 3 || chans.size() > 4)
+        return false;
+    if (!suffixfound("Y", chans))
+        return false;
+    if (!suffixfound("BY", chans))
+        return false;
+    if (!suffixfound("RY", chans))
+        return false;
+    if (chans.size() == 4 && !suffixfound("A", chans)
+        && !suffixfound("Alpha", chans))
+        return false;
+    return true;
+}
+
+
+}  // namespace
 
 
 
 bool
-OpenEXRInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
+OpenEXRInput::PartInfo::query_channels(OpenEXRInput* in,
+                                       const Imf::Header* header)
 {
-    if (subimage < 0 || subimage >= m_nsubimages)   // out of range
+    OIIO_DASSERT(!initialized);
+    bool ok = true;
+    const Imf::ChannelList& channels(header->channels());
+    std::vector<ChanNameHolder> cnh;
+    int c = 0;
+    for (auto ci = channels.begin(); ci != channels.end(); ++c, ++ci)
+        cnh.emplace_back(ci.name(), c, ci.channel());
+    spec.nchannels = int(cnh.size());
+    if (!spec.nchannels) {
+        in->errorf("No channels found");
         return false;
+    }
 
-    if (subimage == m_subimage && miplevel == m_miplevel) {  // no change
-        newspec = m_spec;
+    // First, do a partial sort by layername. EXR should already be in that
+    // order, but take no chances.
+    std::sort(cnh.begin(), cnh.end(), ChanNameHolder::compare_layer);
+
+    // Now, within each layer, sort by channel name
+    for (auto layerbegin = cnh.begin(); layerbegin != cnh.end();) {
+        // Identify the subrange that comprises a layer
+        auto layerend = layerbegin + 1;
+        while (layerend != cnh.end() && layerbegin->layer == layerend->layer)
+            ++layerend;
+
+        span<ChanNameHolder> layerspan(&(*layerbegin), layerend - layerbegin);
+        // Strutil::printf("layerspan:\n");
+        // for (auto& c : layerspan)
+        //     Strutil::printf("  %s = %s . %s\n", c.fullname, c.layer, c.suffix);
+        if (suffixfound("X", layerspan)
+            && (suffixfound("Y", layerspan) || suffixfound("Z", layerspan))) {
+            // If "X", and at least one of "Y" and "Z", are found among the
+            // channel names of this layer, it must encode some kind of
+            // position or normal. The usual sort order will give a weird
+            // result. Choose a different sort order to reflect this.
+            for (auto& ch : layerspan)
+                ch.compute_special_index_xyz();
+        } else {
+            // Use the usual sort order.
+            for (auto& ch : layerspan)
+                ch.compute_special_index();
+        }
+        std::sort(layerbegin, layerend, ChanNameHolder::compare_cnh);
+
+        layerbegin = layerend;  // next set of layers
+    }
+
+    // Now we should have cnh sorted into the order that we want to present
+    // to the OIIO client.
+
+    // Limitations for luminance-chroma images: no tiling, no deep samples, no
+    // miplevels/subimages, no extra channels.
+    luminance_chroma = is_luminance_chroma(cnh);
+    if (luminance_chroma) {
+        spec.attribute("openexr:luminancechroma", 1);
+        spec.format    = TypeDesc::HALF;
+        spec.nchannels = cnh.size();
+        if (spec.nchannels == 3) {
+            spec.channelnames  = { "R", "G", "B" };
+            spec.alpha_channel = -1;
+            spec.z_channel     = -1;
+        } else {
+            OIIO_ASSERT(spec.nchannels == 4);
+            int index_a = get_index_of_suffix("A", cnh);
+            if (index_a != -1) {
+                spec.channelnames  = { "R", "G", "B", "A" };
+                spec.alpha_channel = index_a;
+            } else {
+                spec.channelnames  = { "R", "G", "B", "Alpha" };
+                spec.alpha_channel = get_index_of_suffix("Alpha", cnh);
+                OIIO_ASSERT(spec.alpha_channel != -1);
+            }
+            spec.z_channel = -1;
+        }
+        spec.channelformats.clear();
         return true;
     }
 
-    PartInfo &part (m_parts[subimage]);
-    if (! part.initialized) {
-        const Imf::Header *header = NULL;
-#ifdef USE_OPENEXR_VERSION2
-        if (m_input_multipart)
-            header = &(m_input_multipart->header(subimage));
-#else
-        if (m_input_tiled)
-            header = &(m_input_tiled->header());
-        if (m_input_scanline)
-            header = &(m_input_scanline->header());
-#endif
-        part.parse_header (header);
-        part.initialized = true;
-    }
-
-#ifdef USE_OPENEXR_VERSION2
-    if (subimage != m_subimage) {
-        delete m_scanline_input_part;  m_scanline_input_part = NULL;
-        delete m_tiled_input_part;  m_tiled_input_part = NULL;
-        delete m_deep_scanline_input_part;  m_deep_scanline_input_part = NULL;
-        delete m_deep_tiled_input_part;  m_deep_tiled_input_part = NULL;
-        try {
-            if (part.spec.deep) {
-                if (part.spec.tile_width)
-                    m_deep_tiled_input_part = new Imf::DeepTiledInputPart (*m_input_multipart, subimage);
-                else
-                    m_deep_scanline_input_part = new Imf::DeepScanLineInputPart (*m_input_multipart, subimage);
-            } else {
-                if (part.spec.tile_width)
-                    m_tiled_input_part = new Imf::TiledInputPart (*m_input_multipart, subimage);
-                else
-                    m_scanline_input_part = new Imf::InputPart (*m_input_multipart, subimage);
-            }
-        } catch (const std::exception &e) {
-            error ("OpenEXR exception: %s", e.what());
-            m_scanline_input_part = NULL;
-            m_tiled_input_part = NULL;
-            m_deep_scanline_input_part = NULL;
-            m_deep_tiled_input_part = NULL;
-            ASSERT(0);
-            return false;
-        } catch (...) {   // catch-all for edge cases or compiler bugs
-            error ("OpenEXR exception: unknown");
-            m_scanline_input_part = NULL;
-            m_tiled_input_part = NULL;
-            m_deep_scanline_input_part = NULL;
-            m_deep_tiled_input_part = NULL;
-            ASSERT(0);
-            return false;
+    spec.format         = TypeDesc::UNKNOWN;
+    bool all_one_format = true;
+    for (int c = 0; c < spec.nchannels; ++c) {
+        spec.channelnames.push_back(cnh[c].fullname);
+        spec.channelformats.push_back(cnh[c].datatype);
+        spec.format = TypeDesc::basetype_merge(spec.format, cnh[c].datatype);
+        pixeltype.push_back(cnh[c].exr_data_type);
+        chanbytes.push_back(cnh[c].datatype.size());
+        all_one_format &= (cnh[c].datatype == cnh[0].datatype);
+        if (spec.alpha_channel < 0
+            && (Strutil::iequals(cnh[c].suffix, "A")
+                || Strutil::iequals(cnh[c].suffix, "Alpha")))
+            spec.alpha_channel = c;
+        if (spec.z_channel < 0
+            && (Strutil::iequals(cnh[c].suffix, "Z")
+                || Strutil::iequals(cnh[c].suffix, "Depth")))
+            spec.z_channel = c;
+        if (cnh[c].xSampling != 1 || cnh[c].ySampling != 1) {
+            ok = false;
+            in->errorfmt(
+                "Subsampled channels are not supported (channel \"{}\" has sampling {},{}).",
+                cnh[c].fullname, cnh[c].xSampling, cnh[c].ySampling);
+            // FIXME: Some day, we should handle channel subsampling (beyond the luminance chroma
+            // special case, possibly replacing it).
         }
     }
-#endif
+    OIIO_DASSERT((int)spec.channelnames.size() == spec.nchannels);
+    OIIO_DASSERT(spec.format != TypeDesc::UNKNOWN);
+    if (all_one_format)
+        spec.channelformats.clear();
+    return ok;
+}
 
-    m_subimage = subimage;
 
-    if (miplevel < 0 || miplevel >= part.nmiplevels)   // out of range
-        return false;
 
-    m_miplevel = miplevel;
-    m_spec = part.spec;
+void
+OpenEXRInput::PartInfo::compute_mipres(int miplevel, ImageSpec& spec) const
+{
+    // Compute the resolution of the requested mip level, and also adjust
+    // the "full" size appropriately (based on the exr display window).
 
-    if (miplevel == 0 && part.levelmode == Imf::ONE_LEVEL) {
-        newspec = m_spec;
-        return true;
-    }
+    if (levelmode == Imf::ONE_LEVEL)
+        return;  // spec is already correct
 
-    // Compute the resolution of the requested mip level.
-    int w = part.topwidth, h = part.topheight;
-    if (part.levelmode == Imf::MIPMAP_LEVELS) {
-        while (miplevel--) {
-            if (part.roundingmode == Imf::ROUND_DOWN) {
+    int w = topwidth;
+    int h = topheight;
+    if (levelmode == Imf::MIPMAP_LEVELS) {
+        for (int m = miplevel; m; --m) {
+            if (roundingmode == Imf::ROUND_DOWN) {
                 w = w / 2;
                 h = h / 2;
             } else {
                 w = (w + 1) / 2;
                 h = (h + 1) / 2;
             }
-            w = std::max (1, w);
-            h = std::max (1, h);
+            w = std::max(1, w);
+            h = std::max(1, h);
         }
-    } else if (part.levelmode == Imf::RIPMAP_LEVELS) {
+    } else if (levelmode == Imf::RIPMAP_LEVELS) {
         // FIXME
     } else {
-        ASSERT(0);
+        OIIO_ASSERT_MSG(0, "Unknown levelmode %d", int(levelmode));
     }
 
-    m_spec.width = w;
-    m_spec.height = h;
+    spec.width  = w;
+    spec.height = h;
     // N.B. OpenEXR doesn't support data and display windows per MIPmap
     // level.  So always take from the top level.
-    Imath::Box2i datawindow = part.top_datawindow;
-    Imath::Box2i displaywindow = part.top_displaywindow;
-    m_spec.x = datawindow.min.x;
-    m_spec.y = datawindow.min.y;
-    if (m_miplevel == 0) {
-        m_spec.full_x = displaywindow.min.x;
-        m_spec.full_y = displaywindow.min.y;
-        m_spec.full_width = displaywindow.max.x - displaywindow.min.x + 1;
-        m_spec.full_height = displaywindow.max.y - displaywindow.min.y + 1;
+    Imath::Box2i datawindow    = top_datawindow;
+    Imath::Box2i displaywindow = top_displaywindow;
+    spec.x                     = datawindow.min.x;
+    spec.y                     = datawindow.min.y;
+    if (miplevel == 0) {
+        spec.full_x      = displaywindow.min.x;
+        spec.full_y      = displaywindow.min.y;
+        spec.full_width  = displaywindow.max.x - displaywindow.min.x + 1;
+        spec.full_height = displaywindow.max.y - displaywindow.min.y + 1;
     } else {
-        m_spec.full_x = m_spec.x;
-        m_spec.full_y = m_spec.y;
-        m_spec.full_width = m_spec.width;
-        m_spec.full_height = m_spec.height;
+        spec.full_x      = spec.x;
+        spec.full_y      = spec.y;
+        spec.full_width  = spec.width;
+        spec.full_height = spec.height;
     }
-    if (part.cubeface) {
-        m_spec.full_width = w;
-        m_spec.full_height = w;
+    if (cubeface) {
+        spec.full_width  = w;
+        spec.full_height = w;
     }
-    newspec = m_spec;
+}
+
+
+
+bool
+OpenEXRInput::seek_subimage(int subimage, int miplevel)
+{
+    if (subimage < 0 || subimage >= m_nsubimages)  // out of range
+        return false;
+
+    if (subimage == m_subimage && miplevel == m_miplevel) {  // no change
+        return true;
+    }
+
+    PartInfo& part(m_parts[subimage]);
+    if (!part.initialized) {
+        const Imf::Header* header = NULL;
+        if (m_input_multipart)
+            header = &(m_input_multipart->header(subimage));
+        if (!part.parse_header(this, header))
+            return false;
+        part.initialized = true;
+    }
+
+    if (subimage != m_subimage) {
+        delete m_scanline_input_part;
+        m_scanline_input_part = NULL;
+        delete m_tiled_input_part;
+        m_tiled_input_part = NULL;
+        delete m_deep_scanline_input_part;
+        m_deep_scanline_input_part = NULL;
+        delete m_deep_tiled_input_part;
+        m_deep_tiled_input_part = NULL;
+        delete m_input_rgba;
+        m_input_rgba = NULL;
+        try {
+            if (part.luminance_chroma) {
+                if (subimage != 0 || miplevel != 0) {
+                    errorf(
+                        "Non-zero subimage or miplevel are not supported for luminance-chroma images.");
+                    return false;
+                }
+                m_input_stream->seekg(0);
+                m_input_rgba = new Imf::RgbaInputFile(*m_input_stream);
+            } else if (part.spec.deep) {
+                if (part.spec.tile_width)
+                    m_deep_tiled_input_part
+                        = new Imf::DeepTiledInputPart(*m_input_multipart,
+                                                      subimage);
+                else
+                    m_deep_scanline_input_part
+                        = new Imf::DeepScanLineInputPart(*m_input_multipart,
+                                                         subimage);
+            } else {
+                if (part.spec.tile_width)
+                    m_tiled_input_part
+                        = new Imf::TiledInputPart(*m_input_multipart, subimage);
+                else
+                    m_scanline_input_part
+                        = new Imf::InputPart(*m_input_multipart, subimage);
+            }
+        } catch (const std::exception& e) {
+            errorf("OpenEXR exception: %s", e.what());
+            m_scanline_input_part      = NULL;
+            m_tiled_input_part         = NULL;
+            m_deep_scanline_input_part = NULL;
+            m_deep_tiled_input_part    = NULL;
+            m_input_rgba               = NULL;
+            return false;
+        } catch (...) {  // catch-all for edge cases or compiler bugs
+            errorf("OpenEXR exception: unknown");
+            m_scanline_input_part      = NULL;
+            m_tiled_input_part         = NULL;
+            m_deep_scanline_input_part = NULL;
+            m_deep_tiled_input_part    = NULL;
+            m_input_rgba               = NULL;
+            return false;
+        }
+    }
+
+    m_subimage = subimage;
+
+    if (miplevel < 0 || miplevel >= part.nmiplevels)  // out of range
+        return false;
+
+    m_miplevel = miplevel;
+    m_spec     = part.spec;
+
+    if (miplevel == 0 && part.levelmode == Imf::ONE_LEVEL) {
+        return true;
+    }
+
+    // Compute the resolution of the requested mip level and adjust the
+    // full size fields.
+    part.compute_mipres(miplevel, m_spec);
 
     return true;
 }
 
 
 
+ImageSpec
+OpenEXRInput::spec(int subimage, int miplevel)
+{
+    ImageSpec ret;
+    if (subimage < 0 || subimage >= m_nsubimages)
+        return ret;  // invalid
+    const PartInfo& part(m_parts[subimage]);
+    if (!part.initialized) {
+        // Only if this subimage hasn't yet been inventoried do we need
+        // to lock and seek.
+        lock_guard lock(*this);
+        if (!part.initialized) {
+            if (!seek_subimage(subimage, miplevel))
+                return ret;
+        }
+    }
+    if (miplevel < 0 || miplevel >= part.nmiplevels)
+        return ret;  // invalid
+    ret = part.spec;
+    part.compute_mipres(miplevel, ret);
+    return ret;
+}
+
+
+
+ImageSpec
+OpenEXRInput::spec_dimensions(int subimage, int miplevel)
+{
+    ImageSpec ret;
+    if (subimage < 0 || subimage >= m_nsubimages)
+        return ret;  // invalid
+    const PartInfo& part(m_parts[subimage]);
+    if (!part.initialized) {
+        // Only if this subimage hasn't yet been inventoried do we need
+        // to lock and seek.
+        lock_guard lock(*this);
+        if (!seek_subimage(subimage, miplevel))
+            return ret;
+    }
+    if (miplevel < 0 || miplevel >= part.nmiplevels)
+        return ret;  // invalid
+    ret.copy_dimensions(part.spec);
+    part.compute_mipres(miplevel, ret);
+    return ret;
+}
+
+
+
 bool
-OpenEXRInput::close ()
+OpenEXRInput::close()
 {
     delete m_input_multipart;
     delete m_scanline_input_part;
     delete m_tiled_input_part;
     delete m_deep_scanline_input_part;
     delete m_deep_tiled_input_part;
-    delete m_input_scanline;
-    delete m_input_tiled;
+    delete m_input_rgba;
     delete m_input_stream;
-    init ();  // Reset to initial state
+    init();  // Reset to initial state
     return true;
 }
 
 
 
 bool
-OpenEXRInput::read_native_scanline (int y, int z, void *data)
+OpenEXRInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+                                   void* data)
 {
-    return read_native_scanlines (y, y+1, z, 0, m_spec.nchannels, data);
+    return read_native_scanlines(subimage, miplevel, y, y + 1, z, 0,
+                                 m_spec.nchannels, data);
 }
 
 
 
 bool
-OpenEXRInput::read_native_scanlines (int ybegin, int yend, int z, void *data)
+OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
+                                    int yend, int z, void* data)
 {
-    return read_native_scanlines (ybegin, yend, z, 0, m_spec.nchannels, data);
+    return read_native_scanlines(subimage, miplevel, ybegin, yend, z, 0,
+                                 m_spec.nchannels, data);
 }
 
 
-
 bool
-OpenEXRInput::read_native_scanlines (int ybegin, int yend, int z,
-                                     int chbegin, int chend, void *data)
+OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
+                                    int yend, int /*z*/, int chbegin, int chend,
+                                    void* data)
 {
-    chend = clamp (chend, chbegin+1, m_spec.nchannels);
-//    std::cerr << "openexr rns " << ybegin << ' ' << yend << ", channels "
-//              << chbegin << "-" << (chend-1) << "\n";
-    if (m_input_scanline == NULL && m_scanline_input_part == NULL) {
-        error ("called OpenEXRInput::read_native_scanlines without an open file");
+    lock_guard lock(*this);
+    if (!seek_subimage(subimage, miplevel))
         return false;
-    }
+    chend = clamp(chend, chbegin + 1, m_spec.nchannels);
+    //    std::cerr << "openexr rns " << ybegin << ' ' << yend << ", channels "
+    //              << chbegin << "-" << (chend-1) << "\n";
 
     // Compute where OpenEXR needs to think the full buffers starts.
     // OpenImageIO requires that 'data' points to where the client wants
     // to put the pixels being read, but OpenEXR's frameBuffer.insert()
     // wants where the address of the "virtual framebuffer" for the
     // whole image.
-    const PartInfo &part (m_parts[m_subimage]);
-    size_t pixelbytes = m_spec.pixel_bytes (chbegin, chend, true);
+    const PartInfo& part(m_parts[m_subimage]);
+    size_t pixelbytes    = m_spec.pixel_bytes(chbegin, chend, true);
     size_t scanlinebytes = (size_t)m_spec.width * pixelbytes;
-    char *buf = (char *)data
-              - m_spec.x * pixelbytes
-              - ybegin * scanlinebytes;
+    char* buf = (char*)data - m_spec.x * pixelbytes - ybegin * scanlinebytes;
 
     try {
+        if (part.luminance_chroma) {
+            Imath::Box2i dw = m_input_rgba->dataWindow();
+            if (dw.min.x != 0 || dw.min.y != 0
+                || dw != m_input_rgba->displayWindow()) {
+                errorf(
+                    "Non-trivial data and/or display windows are not supported for luminance-chroma images.");
+                return false;
+            }
+            int dw_width     = dw.max.x - dw.min.x + 1;
+            int dw_height    = dw.max.y - dw.min.y + 1;
+            int chunk_height = yend - ybegin;
+            // FIXME Are these assumptions correct?
+            OIIO_ASSERT(ybegin >= dw.min.y);
+            OIIO_ASSERT(yend <= dw.max.y + 1);
+            OIIO_ASSERT(chunk_height <= dw_height);
+
+            Imf::Array2D<Imf::Rgba> pixels(chunk_height, dw_width);
+            m_input_rgba->setFrameBuffer(&pixels[0][0] - dw.min.x
+                                             - ybegin * dw_width,
+                                         1, dw_width);
+            m_input_rgba->readPixels(ybegin, yend - 1);
+
+            // FIXME There is probably some optimized code for this somewhere.
+            for (int c = chbegin; c < chend; ++c) {
+                size_t chanbytes = m_spec.channelformat(c).size();
+                half* src        = &pixels[0][0].r + c;
+                half* dst        = (half*)((char*)data + c * chanbytes);
+                for (int y = ybegin; y < yend; ++y) {
+                    for (int x = 0; x < m_spec.width; ++x) {
+                        *dst = *src;
+                        src += 4;  // always advance 4 RGBA halfs
+                        dst += m_spec.nchannels;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        if (!m_scanline_input_part) {
+            errorf(
+                "called OpenEXRInput::read_native_scanlines without an open file");
+            return false;
+        }
+
         Imf::FrameBuffer frameBuffer;
         size_t chanoffset = 0;
-        for (int c = chbegin;  c < chend;  ++c) {
+        for (int c = chbegin; c < chend; ++c) {
             size_t chanbytes = m_spec.channelformat(c).size();
-            frameBuffer.insert (m_spec.channelnames[c].c_str(),
-                                Imf::Slice (part.pixeltype[c],
-                                            buf + chanoffset,
-                                            pixelbytes, scanlinebytes));
+            frameBuffer.insert(m_spec.channelnames[c].c_str(),
+                               Imf::Slice(part.pixeltype[c], buf + chanoffset,
+                                          pixelbytes, scanlinebytes));
             chanoffset += chanbytes;
         }
-        if (m_input_scanline) {
-            m_input_scanline->setFrameBuffer (frameBuffer);
-            m_input_scanline->readPixels (ybegin, yend-1);
-#ifdef USE_OPENEXR_VERSION2
-        } else if (m_scanline_input_part) {
-            m_scanline_input_part->setFrameBuffer (frameBuffer);
-            m_scanline_input_part->readPixels (ybegin, yend-1);
-#endif
+        if (m_scanline_input_part) {
+            m_scanline_input_part->setFrameBuffer(frameBuffer);
+            m_scanline_input_part->readPixels(ybegin, yend - 1);
         } else {
-            ASSERT (0);
+            errorf("Attempted to read scanline from a non-scanline file.");
+            return false;
         }
-    } catch (const std::exception &e) {
-        error ("Failed OpenEXR read: %s", e.what());
+    } catch (const std::exception& e) {
+        errorf("Failed OpenEXR read: %s", e.what());
         return false;
-    } catch (...) {   // catch-all for edge cases or compiler bugs
-        error ("Failed OpenEXR read: unknown exception");
+    } catch (...) {  // catch-all for edge cases or compiler bugs
+        errorf("Failed OpenEXR read: unknown exception");
         return false;
     }
     return true;
@@ -1009,39 +1400,56 @@ OpenEXRInput::read_native_scanlines (int ybegin, int yend, int z,
 
 
 bool
-OpenEXRInput::read_native_tile (int x, int y, int z, void *data)
+OpenEXRInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
+                               void* data)
 {
-    return read_native_tiles (x, x+m_spec.tile_width, y, y+m_spec.tile_height,
-                              z, z+m_spec.tile_depth,
-                              0, m_spec.nchannels, data);
+    lock_guard lock(*this);
+    if (!seek_subimage(subimage, miplevel))
+        return false;
+    return read_native_tiles(subimage, miplevel, x, x + m_spec.tile_width, y,
+                             y + m_spec.tile_height, z, z + m_spec.tile_depth,
+                             0, m_spec.nchannels, data);
 }
 
 
 
 bool
-OpenEXRInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
-                                 int zbegin, int zend, void *data)
+OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
+                                int xend, int ybegin, int yend, int zbegin,
+                                int zend, void* data)
 {
-    return read_native_tiles (xbegin, xend, ybegin, yend, zbegin, zend,
-                              0, m_spec.nchannels, data);
+    lock_guard lock(*this);
+    if (!seek_subimage(subimage, miplevel))
+        return false;
+    return read_native_tiles(subimage, miplevel, xbegin, xend, ybegin, yend,
+                             zbegin, zend, 0, m_spec.nchannels, data);
 }
 
 
 
 bool
-OpenEXRInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
-                                 int zbegin, int zend, 
-                                 int chbegin, int chend, void *data)
+OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
+                                int xend, int ybegin, int yend, int zbegin,
+                                int zend, int chbegin, int chend, void* data)
 {
-    chend = clamp (chend, chbegin+1, m_spec.nchannels);
+    lock_guard lock(*this);
+    if (!seek_subimage(subimage, miplevel))
+        return false;
+    chend = clamp(chend, chbegin + 1, m_spec.nchannels);
+    const PartInfo& part(m_parts[m_subimage]);
+    if (part.luminance_chroma) {
+        errorf(
+            "OpenEXRInput::read_native_tiles is not supported for luminance-chroma images");
+        return false;
+    }
 #if 0
     std::cerr << "openexr rnt " << xbegin << ' ' << xend << ' ' << ybegin 
               << ' ' << yend << ", chans " << chbegin
               << "-" << (chend-1) << "\n";
 #endif
-    if (! (m_input_tiled || m_tiled_input_part) ||
-        ! m_spec.valid_tile_range (xbegin, xend, ybegin, yend, zbegin, zend)) {
-        error ("called OpenEXRInput::read_native_tiles without an open file");
+    if (!m_tiled_input_part
+        || !m_spec.valid_tile_range(xbegin, xend, ybegin, yend, zbegin, zend)) {
+        errorf("called OpenEXRInput::read_native_tiles without an open file");
         return false;
     }
 
@@ -1050,71 +1458,87 @@ OpenEXRInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
     // to put the pixels being read, but OpenEXR's frameBuffer.insert()
     // wants where the address of the "virtual framebuffer" for the
     // whole image.
-    const PartInfo &part (m_parts[m_subimage]);
-    size_t pixelbytes = m_spec.pixel_bytes (chbegin, chend, true);
-    int firstxtile = (xbegin-m_spec.x) / m_spec.tile_width;
-    int firstytile = (ybegin-m_spec.y) / m_spec.tile_height;
+    size_t pixelbytes = m_spec.pixel_bytes(chbegin, chend, true);
+    int firstxtile    = (xbegin - m_spec.x) / m_spec.tile_width;
+    int firstytile    = (ybegin - m_spec.y) / m_spec.tile_height;
     // clamp to the image edge
-    xend = std::min (xend, m_spec.x+m_spec.width);
-    yend = std::min (yend, m_spec.y+m_spec.height);
-    zend = std::min (zend, m_spec.z+m_spec.depth);
+    xend = std::min(xend, m_spec.x + m_spec.width);
+    yend = std::min(yend, m_spec.y + m_spec.height);
+    zend = std::min(zend, m_spec.z + m_spec.depth);
     // figure out how many tiles we need
     int nxtiles = (xend - xbegin + m_spec.tile_width - 1) / m_spec.tile_width;
     int nytiles = (yend - ybegin + m_spec.tile_height - 1) / m_spec.tile_height;
-    int whole_width = nxtiles * m_spec.tile_width;
+    int whole_width  = nxtiles * m_spec.tile_width;
     int whole_height = nytiles * m_spec.tile_height;
-    
-    boost::scoped_array<char> tmpbuf;
-    void *origdata = data;
-    if (whole_width != (xend-xbegin) || whole_height != (yend-ybegin)) {
+
+    std::unique_ptr<char[]> tmpbuf;
+    void* origdata = data;
+    if (whole_width != (xend - xbegin) || whole_height != (yend - ybegin)) {
         // Deal with the case of reading not a whole number of tiles --
         // OpenEXR will happily overwrite user memory in this case.
-        tmpbuf.reset (new char [nxtiles * nytiles * m_spec.tile_bytes(true)]);
+        tmpbuf.reset(new char[nxtiles * nytiles * m_spec.tile_bytes(true)]);
         data = &tmpbuf[0];
     }
-    char *buf = (char *)data
-              - xbegin * pixelbytes
-              - ybegin * pixelbytes * m_spec.tile_width * nxtiles;
+    char* buf = (char*)data - xbegin * pixelbytes
+                - ybegin * pixelbytes * m_spec.tile_width * nxtiles;
 
     try {
         Imf::FrameBuffer frameBuffer;
         size_t chanoffset = 0;
-        for (int c = chbegin;  c < chend;  ++c) {
+        for (int c = chbegin; c < chend; ++c) {
             size_t chanbytes = m_spec.channelformat(c).size();
-            frameBuffer.insert (m_spec.channelnames[c].c_str(),
-                                Imf::Slice (part.pixeltype[c],
-                                            buf + chanoffset, pixelbytes,
-                                            pixelbytes*m_spec.tile_width*nxtiles));
+            frameBuffer.insert(m_spec.channelnames[c].c_str(),
+                               Imf::Slice(part.pixeltype[c], buf + chanoffset,
+                                          pixelbytes,
+                                          pixelbytes * m_spec.tile_width
+                                              * nxtiles));
             chanoffset += chanbytes;
         }
-        if (m_input_tiled) {
-            m_input_tiled->setFrameBuffer (frameBuffer);
-            m_input_tiled->readTiles (firstxtile, firstxtile+nxtiles-1,
-                                      firstytile, firstytile+nytiles-1,
-                                      m_miplevel, m_miplevel);
-#ifdef USE_OPENEXR_VERSION2
-        } else if (m_tiled_input_part) {
-            m_tiled_input_part->setFrameBuffer (frameBuffer);
-            m_tiled_input_part->readTiles (firstxtile, firstxtile+nxtiles-1,
-                                           firstytile, firstytile+nytiles-1,
-                                           m_miplevel, m_miplevel);
-#endif
+        if (m_tiled_input_part) {
+            m_tiled_input_part->setFrameBuffer(frameBuffer);
+            m_tiled_input_part->readTiles(firstxtile, firstxtile + nxtiles - 1,
+                                          firstytile, firstytile + nytiles - 1,
+                                          m_miplevel, m_miplevel);
         } else {
-            ASSERT (0);
+            errorf("Attempted to read tiles from a non-tiled file");
+            return false;
         }
         if (data != origdata) {
-            stride_t user_scanline_bytes = (xend-xbegin) * pixelbytes;
-            stride_t scanline_stride = nxtiles*m_spec.tile_width*pixelbytes;
-            for (int y = ybegin;  y < yend;  ++y)
-                memcpy ((char *)origdata+(y-ybegin)*scanline_stride,
-                        (char *)data+(y-ybegin)*scanline_stride,
-                        user_scanline_bytes);
+            stride_t user_scanline_bytes = (xend - xbegin) * pixelbytes;
+            stride_t scanline_stride = nxtiles * m_spec.tile_width * pixelbytes;
+            for (int y = ybegin; y < yend; ++y)
+                memcpy((char*)origdata + (y - ybegin) * scanline_stride,
+                       (char*)data + (y - ybegin) * scanline_stride,
+                       user_scanline_bytes);
         }
-    } catch (const std::exception &e) {
-        error ("Failed OpenEXR read: %s", e.what());
-        return false;
-    } catch (...) {   // catch-all for edge cases or compiler bugs
-        error ("Failed OpenEXR read: unknown exception");
+    } catch (const std::exception& e) {
+        std::string err = e.what();
+        if (m_missingcolor.size()) {
+            // User said not to fail for bad or missing tiles. If we failed
+            // reading a single tile, use the fill pattern. If we failed
+            // reading many tiles, we don't know which ones, so go back and
+            // read them individually for a second chance.
+            stride_t xstride = pixelbytes;
+            stride_t ystride = xstride * (xend - xbegin);
+            if (nxtiles * nytiles == 1) {
+                // Read of one tile -- use the fill pattern
+                fill_missing(xbegin, xend, ybegin, yend, zbegin, zend, chbegin,
+                             chend, data, xstride, ystride);
+            } else {
+                // Read of many tiles -- don't know which failed, so try
+                // again to read them all individually.
+                return read_native_tiles_individually(subimage, miplevel,
+                                                      xbegin, xend, ybegin,
+                                                      yend, zbegin, zend,
+                                                      chbegin, chend, data,
+                                                      xstride, ystride);
+            }
+        } else {
+            errorf("Failed OpenEXR read: %s", err);
+            return false;
+        }
+    } catch (...) {  // catch-all for edge cases or compiler bugs
+        errorf("Failed OpenEXR read: unknown exception");
         return false;
     }
 
@@ -1124,149 +1548,223 @@ OpenEXRInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
 
 
 bool
-OpenEXRInput::read_native_deep_scanlines (int ybegin, int yend, int z,
-                                          int chbegin, int chend,
-                                          DeepData &deepdata)
+OpenEXRInput::read_native_tiles_individually(int subimage, int miplevel,
+                                             int xbegin, int xend, int ybegin,
+                                             int yend, int zbegin, int zend,
+                                             int chbegin, int chend, void* data,
+                                             stride_t xstride, stride_t ystride)
 {
+    // Note: this is only called by read_tiles, which still holds the
+    // mutex, so it's safe to directly access m_spec.
+    bool ok = true;
+    for (int y = ybegin; y < yend; y += m_spec.tile_height) {
+        // int ye = std::min(y + m_spec.tile_height, m_spec.y + m_spec.height);
+        int ye = y + m_spec.tile_height;
+        for (int x = xbegin; x < xend; x += m_spec.tile_width) {
+            // int xe = std::min(x + m_spec.tile_width, m_spec.x + m_spec.width);
+            int xe  = x + m_spec.tile_width;
+            char* d = (char*)data + (y - ybegin) * ystride
+                      + (x - xbegin) * xstride;
+            ok &= read_tiles(subimage, miplevel, x, xe, y, ye, zbegin, zend,
+                             chbegin, chend, TypeUnknown, d, xstride, ystride);
+        }
+    }
+    return ok;
+}
+
+
+
+void
+OpenEXRInput::fill_missing(int xbegin, int xend, int ybegin, int yend,
+                           int /*zbegin*/, int /*zend*/, int chbegin, int chend,
+                           void* data, stride_t xstride, stride_t ystride)
+{
+    std::vector<float> missingcolor = m_missingcolor;
+    missingcolor.resize(chend, m_missingcolor.back());
+    bool stripe = missingcolor[0] < 0.0f;
+    if (stripe)
+        missingcolor[0] = fabsf(missingcolor[0]);
+    for (int y = ybegin; y < yend; ++y) {
+        for (int x = xbegin; x < xend; ++x) {
+            char* d = (char*)data + (y - ybegin) * ystride
+                      + (x - xbegin) * xstride;
+            for (int ch = chbegin; ch < chend; ++ch) {
+                float v = missingcolor[ch];
+                if (stripe && ((x - y) & 8))
+                    v = 0.0f;
+                TypeDesc cf = m_spec.channelformat(ch);
+                if (cf == TypeFloat)
+                    *(float*)d = v;
+                else if (cf == TypeHalf)
+                    *(half*)d = v;
+                d += cf.size();
+            }
+        }
+    }
+}
+
+
+
+bool
+OpenEXRInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
+                                         int yend, int /*z*/, int chbegin,
+                                         int chend, DeepData& deepdata)
+{
+    lock_guard lock(*this);
+    if (!seek_subimage(subimage, miplevel))
+        return false;
+    const PartInfo& part(m_parts[m_subimage]);
+    if (part.luminance_chroma) {
+        errorf(
+            "OpenEXRInput::read_native_deep_scanlines is not supported for luminance-chroma images");
+        return false;
+    }
     if (m_deep_scanline_input_part == NULL) {
-        error ("called OpenEXRInput::read_native_deep_scanlines without an open file");
+        errorf(
+            "called OpenEXRInput::read_native_deep_scanlines without an open file");
         return false;
     }
 
-#ifdef USE_OPENEXR_VERSION2
     try {
-        const PartInfo &part (m_parts[m_subimage]);
         size_t npixels = (yend - ybegin) * m_spec.width;
-        chend = clamp (chend, chbegin+1, m_spec.nchannels);
-        int nchans = chend - chbegin;
+        chend          = clamp(chend, chbegin + 1, m_spec.nchannels);
+        int nchans     = chend - chbegin;
 
         // Set up the count and pointers arrays and the Imf framebuffer
         std::vector<TypeDesc> channeltypes;
-        m_spec.get_channelformats (channeltypes);
-        deepdata.init (npixels, nchans, &channeltypes[chbegin],
-                       &channeltypes[chend]);
+        m_spec.get_channelformats(channeltypes);
+        deepdata.init(npixels, nchans,
+                      cspan<TypeDesc>(&channeltypes[chbegin], nchans),
+                      m_spec.channelnames);
+        std::vector<unsigned int> all_samples(npixels);
+        std::vector<void*> pointerbuf(npixels * nchans);
         Imf::DeepFrameBuffer frameBuffer;
-        Imf::Slice countslice (Imf::UINT,
-                               (char *)(&deepdata.nsamples[0]
-                                        - m_spec.x
-                                        - ybegin*m_spec.width),
-                               sizeof(unsigned int),
-                               sizeof(unsigned int) * m_spec.width);
-        frameBuffer.insertSampleCountSlice (countslice);
-        for (int c = chbegin;  c < chend;  ++c) {
-            Imf::DeepSlice slice (part.pixeltype[c],
-                                  (char *)(&deepdata.pointers[c-chbegin]
-                                           - m_spec.x * nchans
-                                           - ybegin*m_spec.width*nchans),
-                                  sizeof(void*) * nchans, // xstride of pointer array
-                                  sizeof(void*) * nchans*m_spec.width, // ystride of pointer array
-                                  part.chanbytes[c]); // stride of data sample
-            frameBuffer.insert (m_spec.channelnames[c].c_str(), slice);
+        Imf::Slice countslice(Imf::UINT,
+                              (char*)(&all_samples[0] - m_spec.x
+                                      - ybegin * m_spec.width),
+                              sizeof(unsigned int),
+                              sizeof(unsigned int) * m_spec.width);
+        frameBuffer.insertSampleCountSlice(countslice);
+
+        for (int c = chbegin; c < chend; ++c) {
+            Imf::DeepSlice slice(
+                part.pixeltype[c],
+                (char*)(&pointerbuf[0] + (c - chbegin) - m_spec.x * nchans
+                        - ybegin * m_spec.width * nchans),
+                sizeof(void*) * nchans,  // xstride of pointer array
+                sizeof(void*) * nchans
+                    * m_spec.width,      // ystride of pointer array
+                deepdata.samplesize());  // stride of data sample
+            frameBuffer.insert(m_spec.channelnames[c].c_str(), slice);
         }
-        m_deep_scanline_input_part->setFrameBuffer (frameBuffer);
+        m_deep_scanline_input_part->setFrameBuffer(frameBuffer);
 
         // Get the sample counts for each pixel and compute the total
         // number of samples and resize the data area appropriately.
-        m_deep_scanline_input_part->readPixelSampleCounts (ybegin, yend-1);
-        deepdata.alloc ();
+        m_deep_scanline_input_part->readPixelSampleCounts(ybegin, yend - 1);
+        deepdata.set_all_samples(all_samples);
+        deepdata.get_pointers(pointerbuf);
 
         // Read the pixels
-        m_deep_scanline_input_part->readPixels (ybegin, yend-1);
-    } catch (const std::exception &e) {
-        error ("Failed OpenEXR read: %s", e.what());
+        m_deep_scanline_input_part->readPixels(ybegin, yend - 1);
+        // deepdata.import_chansamp (pointerbuf);
+    } catch (const std::exception& e) {
+        errorf("Failed OpenEXR read: %s", e.what());
         return false;
-    } catch (...) {   // catch-all for edge cases or compiler bugs
-        error ("Failed OpenEXR read: unknown exception");
+    } catch (...) {  // catch-all for edge cases or compiler bugs
+        errorf("Failed OpenEXR read: unknown exception");
         return false;
     }
 
     return true;
-
-#else
-    return false;
-#endif
 }
 
 
 
 bool
-OpenEXRInput::read_native_deep_tiles (int xbegin, int xend,
-                                      int ybegin, int yend,
-                                      int zbegin, int zend,
-                                      int chbegin, int chend,
-                                      DeepData &deepdata)
+OpenEXRInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
+                                     int xend, int ybegin, int yend,
+                                     int /*zbegin*/, int /*zend*/, int chbegin,
+                                     int chend, DeepData& deepdata)
 {
+    lock_guard lock(*this);
+    if (!seek_subimage(subimage, miplevel))
+        return false;
+    const PartInfo& part(m_parts[m_subimage]);
+    if (part.luminance_chroma) {
+        errorf(
+            "OpenEXRInput::read_native_deep_tiles is not supported for luminance-chroma images");
+        return false;
+    }
     if (m_deep_tiled_input_part == NULL) {
-        error ("called OpenEXRInput::read_native_deep_tiles without an open file");
+        errorf(
+            "called OpenEXRInput::read_native_deep_tiles without an open file");
         return false;
     }
 
-#ifdef USE_OPENEXR_VERSION2
     try {
-        const PartInfo &part (m_parts[m_subimage]);
-        size_t width = (xend - xbegin);
-        size_t npixels = width * (yend - ybegin) * (zend - zbegin);
-        chend = clamp (chend, chbegin+1, m_spec.nchannels);
-        int nchans = chend - chbegin;
+        size_t width   = xend - xbegin;
+        size_t height  = yend - ybegin;
+        size_t npixels = width * height;
+        chend          = clamp(chend, chbegin + 1, m_spec.nchannels);
+        int nchans     = chend - chbegin;
 
         // Set up the count and pointers arrays and the Imf framebuffer
         std::vector<TypeDesc> channeltypes;
-        m_spec.get_channelformats (channeltypes);
-        deepdata.init (npixels, nchans, &channeltypes[chbegin],
-                       &channeltypes[chend]);
+        m_spec.get_channelformats(channeltypes);
+        deepdata.init(npixels, nchans,
+                      cspan<TypeDesc>(&channeltypes[chbegin], nchans),
+                      m_spec.channelnames);
+        std::vector<unsigned int> all_samples(npixels);
+        std::vector<void*> pointerbuf(npixels * nchans);
         Imf::DeepFrameBuffer frameBuffer;
-        Imf::Slice countslice (Imf::UINT,
-                               (char *)(&deepdata.nsamples[0]
-                                        - xbegin
-                                        - ybegin*width),
-                               sizeof(unsigned int),
-                               sizeof(unsigned int) * width);
-        frameBuffer.insertSampleCountSlice (countslice);
-        for (int c = chbegin;  c < chend;  ++c) {
-            Imf::DeepSlice slice (part.pixeltype[c],
-                                  (char *)(&deepdata.pointers[c-chbegin]
-                                           - xbegin*nchans
-                                           - ybegin*width*nchans),
-                                  sizeof(void*) * nchans, // xstride of pointer array
-                                  sizeof(void*) * nchans*width, // ystride of pointer array
-                                  part.chanbytes[c]); // stride of data sample
-            frameBuffer.insert (m_spec.channelnames[c].c_str(), slice);
+        Imf::Slice countslice(
+            Imf::UINT, (char*)(&all_samples[0] - xbegin - ybegin * width),
+            sizeof(unsigned int), sizeof(unsigned int) * width);
+        frameBuffer.insertSampleCountSlice(countslice);
+        for (int c = chbegin; c < chend; ++c) {
+            Imf::DeepSlice slice(
+                part.pixeltype[c],
+                (char*)(&pointerbuf[0] + (c - chbegin) - xbegin * nchans
+                        - ybegin * width * nchans),
+                sizeof(void*) * nchans,          // xstride of pointer array
+                sizeof(void*) * nchans * width,  // ystride of pointer array
+                deepdata.samplesize());          // stride of data sample
+            frameBuffer.insert(m_spec.channelnames[c].c_str(), slice);
         }
-        m_deep_tiled_input_part->setFrameBuffer (frameBuffer);
+        m_deep_tiled_input_part->setFrameBuffer(frameBuffer);
 
-        int xtiles = round_to_multiple (xend-xbegin, m_spec.tile_width) / m_spec.tile_width;
-        int ytiles = round_to_multiple (yend-ybegin, m_spec.tile_height) / m_spec.tile_height;
+        int xtiles = round_to_multiple(width, m_spec.tile_width)
+                     / m_spec.tile_width;
+        int ytiles = round_to_multiple(height, m_spec.tile_height)
+                     / m_spec.tile_height;
 
         int firstxtile = (xbegin - m_spec.x) / m_spec.tile_width;
         int firstytile = (ybegin - m_spec.y) / m_spec.tile_height;
 
         // Get the sample counts for each pixel and compute the total
         // number of samples and resize the data area appropriately.
-        m_deep_tiled_input_part->readPixelSampleCounts (
-                firstxtile, firstxtile+xtiles-1,
-                firstytile, firstytile+ytiles-1);
-        deepdata.alloc ();
+        m_deep_tiled_input_part->readPixelSampleCounts(firstxtile,
+                                                       firstxtile + xtiles - 1,
+                                                       firstytile,
+                                                       firstytile + ytiles - 1);
+        deepdata.set_all_samples(all_samples);
+        deepdata.get_pointers(pointerbuf);
 
         // Read the pixels
-        m_deep_tiled_input_part->readTiles (
-                firstxtile, firstxtile+xtiles-1,
-                firstytile, firstytile+ytiles-1,
-                m_miplevel, m_miplevel);
-    } catch (const std::exception &e) {
-        error ("Failed OpenEXR read: %s", e.what());
+        m_deep_tiled_input_part->readTiles(firstxtile, firstxtile + xtiles - 1,
+                                           firstytile, firstytile + ytiles - 1,
+                                           m_miplevel, m_miplevel);
+    } catch (const std::exception& e) {
+        errorf("Failed OpenEXR read: %s", e.what());
         return false;
-    } catch (...) {   // catch-all for edge cases or compiler bugs
-        error ("Failed OpenEXR read: unknown exception");
+    } catch (...) {  // catch-all for edge cases or compiler bugs
+        errorf("Failed OpenEXR read: unknown exception");
         return false;
     }
 
     return true;
-
-#else
-    return false;
-#endif
 }
 
 
 OIIO_PLUGIN_NAMESPACE_END
-

@@ -1,0 +1,71 @@
+# This file establishes email equivalences so we can resolve what look like
+# multiple authors, but actually are the same author who has used multiple
+# emails over the course of their involvement with the project.
+#
+# The format is any of the following:
+#     <CANONICAL-EMAIL> <alternate-email>
+#     CANONICAL-NAME <CANONICAL-EMAIL> <alternate-email>
+#     CANONICAL-NAME <CANONICAL-EMAIL> alternate-name <alternate-email>
+#
+# You can check for duplicates with this command:
+#     git shortlog -sne --all
+# That command (and others) will use this file to collapse the duplicates.
+#
+# If you see any duplicates we don't account for here, or if you look at your
+# own entry here and want a different name or email to be your canonical one
+# (we may not have guessed correctly and matched your preferences), please
+# file a PR with the edits to this file.
+
+Alejandro Conty <aconty@imageworks.com> aconty <aconty@gmail.com>
+Alejandro Conty <aconty@imageworks.com> Alejandro Conty <aconty@gmail.com>
+Anton Dukhovnikov <antond@wetafx.co.nz> Anton Dukhovnikov <131838425+antond-weta@users.noreply.github.com>
+Brecht Van Lommel <brecht@blender.org> <brecht@solidangle.com>
+Brecht Van Lommel <brecht@blender.org> Brecht Van Lommel <brechtvanlommel@gmail.com>
+Brecht Van Lommel <brecht@blender.org> brechtvanlommel@gmail.com <brechtvanlommel@gmail.com>
+Chris Kulla <ckulla@gmail.com> <ckulla@imageworks.com>
+Chris Kulla <ckulla@gmail.com> <fpsunflower@users.noreply.github.com>
+Chris Kulla <ckulla@gmail.com> Christopher Kulla <ckulla@gmail.com>
+Chris Kulla <ckulla@gmail.com> fpsunflower <ckulla@gmail.com>
+Claire Foster <aka.c42f@gmail.com> <chris42f@gmail.com>
+Clément Champetier <cl.champetier@gmail.com> Clement Champetier <cnt@mikrosimage.eu>
+Clifford Stein <cstein@imageworks.com> Cliff Stein <clifford.stein@gmail.com> 
+Clifford Stein <cstein@imageworks.com> cmstein <cstein@imageworks.com> 
+Dan Wexler <danwexler@gmail.com> Dan Wexler <wex@flarg.com>
+Dan Wexler <danwexler@gmail.com> Dan Wexler <wex@the11ers.com>
+Edgar Velazquez-Armendariz <eva5@cs.cornell.edu> Edgar Velázquez-Armendáriz <edgarv@users.noreply.github.com>
+Fabien Castan <fabcastan@gmail.com> Fabien Castan <fabien.castan@free.fr>
+Fabien Servant <55734626+servantf@users.noreply.github.com> Fabien Servant @ TCS <100348063+servantftechnicolor@users.noreply.github.com>
+Frédéric Devernay <frederic.devernay@m4x.org> Frédéric Devernay <devernay@users.noreply.github.com>
+Harry Mallon <harry.mallon@codex.online> Harry Mallon <1816667+hjmallon@users.noreply.github.com>
+Henri Fousse <henri.fousse@free.fr> darkhorse64 <henri.fousse@free.fr>
+Jesse Yurkovich <jesse.y@gmail.com> Jesse Y <jesse.y@gmail.com>
+Larry Gritz <lg@larrygritz.com> <larrygritz@gmail.com>
+Larry Gritz <lg@larrygritz.com> lgritz <lg@larrygritz.com>
+Leszek Godlewski <ineqvation@gmail.com> Leszek Godlewski <lg@inequation.org>
+lmarz <main@lmarz.org> lmarz <37630820+lmarz@users.noreply.github.com>
+Mark Boorer <markboo99@gmail.com> Mark Boorer <mkj@dneg.com>
+Mark Boorer <markboo99@gmail.com> Shootfast <markboo99@gmail.com>
+Mark Visser <mjmvisser@gmail.com> Mark Visser <mvisser@mokkostudio.com>
+Matteo F. Vescovi <mfvescovi@gmail.com> Matteo F. Vescovi <mfv.debian@gmail.com>
+Matteo F. Vescovi <mfvescovi@gmail.com> Matteo F. Vescovi <mfvescovi@users.noreply.github.com>
+Mikael Sundell <mikael.sundell@gmail.com> Mikael Sundell <mikaelsundell@Mikaels-MacBook-Pro.local>
+Nathan Rusch <nathanrusch@gmail.com> Nathan Rusch <nrusch@users.noreply.github.com>
+Nick Black <dank@qemfd.net> nick black <dankamongmen@gmail.com>
+Nick Black <dank@qemfd.net> Nick Black <dankamongmen@gmail.com>
+Pascal Lecocq <plecocq@imageworks.com> Pascal Lecocq <pascal.lecocq@gmail.com>
+Ramon Montoya <ramon.montoya@gmail.com> Ramon Montoya Vozmediano <ramon.montoya@gmail.com>
+Ramon Montoya <ramon.montoya@gmail.com> rmv <ramon.montoya@gmail.com>
+Ray Molenkamp <ray@lazydodo.com> Ray Molenkamp <github@lazydodo.com>
+Richard M. Shaw <hobbes1069@gmail.com> Richard <hobbes1069@gmail.com>
+Richard M. Shaw <hobbes1069@gmail.com> Richard Shaw <hobbes1069@gmail.com>
+Robert Matusewicz <matekm@gmail.com> matekm <matekm@gmail.com> 
+Robert Matusewicz <matekm@gmail.com> Robert <matekm@gmail.com>
+Roman Zulak <marsupial@users.noreply.github.com> marsupial <marsupial@users.noreply.github.com>
+Sam Richards <sam_junk@taurich.org> Sam Richards <sam@imageworks.com>
+Shane Ambler <FreeBSD@ShaneWare.Biz> sambler <Develop@Shaneware.Biz>
+Shane Ambler <FreeBSD@ShaneWare.Biz> SAmbler <Develop@Shaneware.Biz>
+Simon Boorer <simonboo99@gmail.com> Simon Boorer <sboorer@localhost.localdomain>
+Thiago Ize <thiago@solidangle.com> Thiago Ize <ThiagoIze@users.noreply.github.com>
+Vlad (Kuzmin) Erium <shaamaan@gmail.com> Vlad (Kuzmin) Erium <libalias@gmail.com>
+Will Rosecrans <wrosecrans@gmail.com> Will <wrosecrans@gmail.com>
+Yang Yang <yang.yang@topazlabs.com> YangYangTL <yang.yang@topazlabs.com>

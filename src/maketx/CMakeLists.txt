@@ -1,6 +1,5 @@
-set (maketx_srcs maketx.cpp)
-add_executable (maketx ${maketx_srcs})
-set_target_properties (maketx PROPERTIES FOLDER "Tools")
-target_link_libraries (maketx OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
-link_ilmbase (maketx)
-oiio_install_targets (maketx)
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
+
+fancy_add_executable (LINK_LIBRARIES OpenImageIO)

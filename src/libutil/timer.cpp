@@ -1,52 +1,31 @@
-/*
-  Copyright 2013 Larry Gritz and the other authors and contributors.
-  All Rights Reserved.
-
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions are
-  met:
-  * Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
-  * Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution.
-  * Neither the name of the software's owners nor the names of its
-    contributors may be used to endorse or promote products derived from
-    this software without specific prior written permission.
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-  (This is the Modified BSD License)
-*/
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: Apache-2.0
+// https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #include <cstdio>
 #include <cstdlib>
 
-#include "OpenImageIO/timer.h"
+#include <OpenImageIO/timer.h>
+
+#ifdef _WIN32
+#    include <windows.h>
+#endif
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
-double Timer::seconds_per_tick = 1.0e-6;
-
+double Timer::seconds_per_tick;
+Timer::ticks_t Timer::ticks_per_second;
 
 class TimerSetupOnce {
 public:
-    TimerSetupOnce () {
+    TimerSetupOnce()
+    {
 #ifdef _WIN32
         // From MSDN web site
         LARGE_INTEGER freq;
-        QueryPerformanceFrequency (&freq);
+        QueryPerformanceFrequency(&freq);
+        Timer::ticks_per_second = Timer::ticks_t(freq.QuadPart);
         Timer::seconds_per_tick = 1.0 / (double)freq.QuadPart;
 #elif defined(__APPLE__)
         // NOTE(boulos): Both this value and that of the windows
@@ -57,13 +36,36 @@ public:
         // Leopard, Apple returns 1 for both numer and denom.
         mach_timebase_info_data_t time_info;
         mach_timebase_info(&time_info);
-        Timer::seconds_per_tick = (1e-9*static_cast<double>(time_info.numer))/
-                                       static_cast<double>(time_info.denom);
+        Timer::seconds_per_tick = (1e-9 * static_cast<double>(time_info.numer))
+                                  / static_cast<double>(time_info.denom);
+        Timer::ticks_per_second = Timer::ticks_t(1.0f
+                                                 / Timer::seconds_per_tick);
+#elif OIIO_TIMER_LINUX_USE_clock_gettime
+        // Defaults based on a nanosecond resolution timer: clock_gettime()
+        Timer::seconds_per_tick = 1.0e-9;
+        Timer::ticks_per_second = 1000000000;
+#else
+        // Defaults based on a microsecond resolution timer: gettimeofday()
+        Timer::seconds_per_tick = 1.0e-6;
+        Timer::ticks_per_second = 1000000;
 #endif
+        // Note: For anything but Windows and Mac, we rely on gettimeofday,
+        // which is microsecond timing, so there's nothing to set up.
     }
 };
 
 static TimerSetupOnce once;
 
+#ifdef _WIN32
+// a non-inline function on Windows, to avoid
+// including windows headers from OIIO public header.
+Timer::ticks_t
+Timer::now(void) const
+{
+    LARGE_INTEGER n;
+    QueryPerformanceCounter(&n);
+    return n.QuadPart;
 }
-OIIO_NAMESPACE_EXIT
+#endif
+
+OIIO_NAMESPACE_END

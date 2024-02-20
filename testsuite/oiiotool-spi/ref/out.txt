@@ -1,0 +1,20 @@
+Reading iff_vd8.1001.iff
+iff_vd8.1001.iff     : 1998 x 1080, 4 channel, uint8 iff
+    SHA-1: 8DCC7F60EEA962A70ACE8E443BFA73D899123332
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Artist: "arturo on duck7105.spimageworks.com, Linux 3.10.0-327.22.2.el7.x86_64 x86_64"
+    compression: "rle"
+    DateTime: "Tue Oct 11 09:21:35 2016"
+Comparing "fit_lg10.dpx" and "../../../../../spi-oiio-tests/ref/fit_lg10.dpx"
+PASS
+Comparing "mkt019_comp_wayn_fullres_s3d_lf_v51_alpha_misc_vd16.1001.tif" and "../../../../../spi-oiio-tests/ref/mkt019_comp_wayn_fullres_s3d_lf_v51_alpha_misc_vd16.1001.tif"
+PASS
+Comparing "ffr0830_avid_ref_match_v3_2kdcip_ref8.1024.jpg" and "../../../../../spi-oiio-tests/ref/ffr0830_avid_ref_match_v3_2kdcip_ref8.1024.jpg"
+PASS
+Comparing "ep0400-v2_bg1_v101_1kalxog_vd8.1001.jpg" and "../../../../../spi-oiio-tests/ref/ep0400-v2_bg1_v101_1kalxog_vd8.1001.jpg"
+PASS
+Comparing "os0225_110_lightingfix_v002.0101.png" and "../../../../../spi-oiio-tests/ref/os0225_110_lightingfix_v002.0101.png"
+PASS
+Comparing "iff_vd8.1001.iff" and "../../../../../spi-oiio-tests/ref/iff_vd8.1001.iff"
+PASS

@@ -1,0 +1,66 @@
+Reading src/triangle.ptx
+src/triangle.ptx     :    4 x    4, 3 channel, float ptex
+    9 subimages: 4x4 [f,f,f], 4x4 [f,f,f], 4x4 [f,f,f], 4x4 [f,f,f], 4x4 [f,f,f], 4x4 [f,f,f], 4x4 [f,f,f], 4x4 [f,f,f], 4x4 [f,f,f]
+ subimage  0:    4 x    4, 3 channel, float ptex
+    MIP-map levels: 4x4 2x2 1x1
+    SHA-1: 7BC2F942597DAEB92D3E51C8C72EA9C957F5A891
+    channel list: R, G, B
+    tile size: 4 x 4
+    wrapmode: "clamp,clamp"
+    ptex:meshType: "triangle"
+ subimage  1:    4 x    4, 3 channel, float ptex
+    MIP-map levels: 4x4 2x2 1x1
+    SHA-1: 2E813D8DAA6013C7DFE8EF84E56B6BD9BEA7F93B
+    channel list: R, G, B
+    tile size: 4 x 4
+    wrapmode: "clamp,clamp"
+    ptex:meshType: "triangle"
+ subimage  2:    4 x    4, 3 channel, float ptex
+    MIP-map levels: 4x4 2x2 1x1
+    SHA-1: 79B3511C35A63D9AD8EF2691E76DE191103CF450
+    channel list: R, G, B
+    tile size: 4 x 4
+    wrapmode: "clamp,clamp"
+    ptex:meshType: "triangle"
+ subimage  3:    4 x    4, 3 channel, float ptex
+    MIP-map levels: 4x4 2x2 1x1
+    SHA-1: E5AEE2FB805B38C351034D4FECEF603AD8042ABE
+    channel list: R, G, B
+    tile size: 4 x 4
+    wrapmode: "clamp,clamp"
+    ptex:meshType: "triangle"
+ subimage  4:    4 x    4, 3 channel, float ptex
+    MIP-map levels: 4x4 2x2 1x1
+    SHA-1: 749BBBD8B925A6F78B9A307AFDF56ACAE8E0B7E1
+    channel list: R, G, B
+    tile size: 4 x 4
+    wrapmode: "clamp,clamp"
+    ptex:meshType: "triangle"
+ subimage  5:    4 x    4, 3 channel, float ptex
+    MIP-map levels: 4x4 2x2 1x1
+    SHA-1: 2125A335891CB63F42574D4CDE73B00A81530D00
+    channel list: R, G, B
+    tile size: 4 x 4
+    wrapmode: "clamp,clamp"
+    ptex:meshType: "triangle"
+ subimage  6:    4 x    4, 3 channel, float ptex
+    MIP-map levels: 4x4 2x2 1x1
+    SHA-1: F4F98B602AC70B7FD5021A1493E769526927AB04
+    channel list: R, G, B
+    tile size: 4 x 4
+    wrapmode: "clamp,clamp"
+    ptex:meshType: "triangle"
+ subimage  7:    4 x    4, 3 channel, float ptex
+    MIP-map levels: 4x4 2x2 1x1
+    SHA-1: EAC7068342FC9F973BE55178218E9B6191154C95
+    channel list: R, G, B
+    tile size: 4 x 4
+    wrapmode: "clamp,clamp"
+    ptex:meshType: "triangle"
+ subimage  8:    4 x    4, 3 channel, float ptex
+    MIP-map levels: 4x4 2x2 1x1
+    SHA-1: 36A0877272CDB3322250E4097CCF09CDFCEA3F1C
+    channel list: R, G, B
+    tile size: 4 x 4
+    wrapmode: "clamp,clamp"
+    ptex:meshType: "triangle"

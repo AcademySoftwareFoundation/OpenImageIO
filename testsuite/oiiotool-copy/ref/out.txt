@@ -1,0 +1,152 @@
+WARNING: --ch: Unknown channel name "Z", filling with 0 (actual channels: "R,G,B")
+WARNING: --ch: Unknown channel name "R", filling with 0 (actual channels: "Z")
+WARNING: --ch: Unknown channel name "G", filling with 0 (actual channels: "Z")
+WARNING: --ch: Unknown channel name "B", filling with 0 (actual channels: "Z")
+Reading allhalf.exr
+allhalf.exr          :   38 x   38, 5 channel, half openexr
+    SHA-1: 1C71682E8D8F6DCDC2A7A7B23842DFEEC51438F2
+    channel list: R, G, B, A, Z
+    full/display size: 40 x 40
+    full/display origin: 0, 0
+    compression: "zips"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Reading rgbahalf-zfloat.exr
+rgbahalf-zfloat.exr  :   38 x   38, 5 channel, half/half/half/half/float openexr
+    SHA-1: 9324AFD44451321A8D87E09F656C7B86E827E5CD
+    channel list: R (half), G (half), B (half), A (half), Z (float)
+    full/display size: 40 x 40
+    full/display origin: 0, 0
+    compression: "zips"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+explicit -d uint save result: 
+uint8.tif            :  128 x  128, 3 channel, uint8 tiff
+    tile size: 16 x 16
+
+unmodified copy result: 
+tmp.tif              :  128 x  128, 3 channel, uint8 tiff
+    tile size: 16 x 16
+
+copy with explicit -d uint16 result: 
+copy_uint16.tif      :  128 x  128, 3 channel, uint16 tiff
+    tile size: 16 x 16
+
+copy with -o:type=uint16 result: 
+ 128 x  128, 3 channel, uint16 tiff
+copy with -o:datatype=uint16 result: 
+ 128 x  128, 3 channel, uint16 tiff
+siappend result: 
+tmp.tif              :  128 x  128, 3 channel, uint8 tiff
+    tile size: 16 x 16
+ subimage  1:  128 x  128, 3 channel, uint16 tiff
+    tile size: 16 x 16
+
+combining images result: 
+tmp.tif              :  128 x  128, 3 channel, uint8 tiff
+    tile size: 16 x 16
+
+oiiotool WARNING: -o : Can't save 4 channels to png... saving only channels R,G,B
+Reading chname.exr
+chname.exr           :   38 x   38, 5 channel, float openexr
+    SHA-1: 6EB25E53358BF3ECDFECD04F662D335DE647A1A6
+    channel list: Red, G, B, A, Depth
+    full/display size: 40 x 40
+    full/display origin: 0, 0
+    compression: "zips"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Reading green.exr
+green.exr            :   64 x   64, 3 channel, half openexr
+    SHA-1: 8B61993247469F3C208CA894D71856727B11606A
+    channel list: R, G, B
+    compression: "zip"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Reading greenmeta.exr
+greenmeta.exr        :   64 x   64, 3 channel, half openexr
+    SHA-1: 8B61993247469F3C208CA894D71856727B11606A
+    channel list: R, G, B
+    compression: "zip"
+    eyes: 2
+    hair: "brown"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    weight: 20.5
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Reading nometamerge.exr
+nometamerge.exr      :   64 x   64, 6 channel, float openexr
+    SHA-1: 9F13A523321C66208E90D45F87FA0CD9B370E111
+    channel list: R, G, B, A, Z, channel3
+    a: 3
+    compression: "zip"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Reading metamerge.exr
+metamerge.exr        :   64 x   64, 6 channel, float openexr
+    SHA-1: 9F13A523321C66208E90D45F87FA0CD9B370E111
+    channel list: R, G, B, A, Z, channel3
+    a: 3
+    b: 1
+    compression: "zip"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Testing -o with no image
+oiiotool WARNING: -o : out.tif did not have any current image to output.
+Comparing "rgonly.exr" and "ref/rgonly.exr"
+PASS
+Comparing "ch-err.exr" and "ref/ch-err.exr"
+PASS
+Comparing "ch-err2.exr" and "ref/ch-err2.exr"
+PASS
+Comparing "allhalf.exr" and "ref/allhalf.exr"
+PASS
+Comparing "rgbahalf-zfloat.exr" and "ref/rgbahalf-zfloat.exr"
+PASS
+Comparing "chanshuffle.tif" and "ref/chanshuffle.tif"
+PASS
+Comparing "ch-rgba.exr" and "ref/ch-rgba.exr"
+PASS
+Comparing "ch-z.exr" and "ref/ch-z.exr"
+PASS
+Comparing "chappend-rgbaz.exr" and "ref/chappend-rgbaz.exr"
+PASS
+Comparing "chname.exr" and "ref/chname.exr"
+PASS
+Comparing "crop.tif" and "ref/crop.tif"
+PASS
+Comparing "cut.tif" and "ref/cut.tif"
+PASS
+Comparing "pasted.tif" and "ref/pasted.tif"
+PASS
+Comparing "mosaic.tif" and "ref/mosaic.tif"
+PASS
+Comparing "mosaicfit.tif" and "ref/mosaicfit.tif"
+PASS
+Comparing "greenmeta.exr" and "ref/greenmeta.exr"
+PASS
+Comparing "chappend-3images.exr" and "ref/chappend-3images.exr"
+PASS

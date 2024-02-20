@@ -1,542 +1,390 @@
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
+
 ###########################################################################
-# Find libraries
+# Find external dependencies
+###########################################################################
 
-setup_path (THIRD_PARTY_TOOLS_HOME 
-#            "${PROJECT_SOURCE_DIR}/../external/dist/${platform}"
-            "unknown"
-            "Location of third party libraries in the external project")
-
-# Add all third party tool directories to the include and library paths so
-# that they'll be correctly found by the various FIND_PACKAGE() invocations.
-if (THIRD_PARTY_TOOLS_HOME AND EXISTS "${THIRD_PARTY_TOOLS_HOME}")
-    set (CMAKE_INCLUDE_PATH "${THIRD_PARTY_TOOLS_HOME}/include" ${CMAKE_INCLUDE_PATH})
-    # Detect third party tools which have been successfully built using the
-    # lock files which are placed there by the external project Makefile.
-    file (GLOB _external_dir_lockfiles "${THIRD_PARTY_TOOLS_HOME}/*.d")
-    foreach (_dir_lockfile ${_external_dir_lockfiles})
-        # Grab the tool directory_name.d
-        get_filename_component (_ext_dirname ${_dir_lockfile} NAME)
-        # Strip off the .d extension
-        string (REGEX REPLACE "\\.d$" "" _ext_dirname ${_ext_dirname})
-        set (CMAKE_INCLUDE_PATH "${THIRD_PARTY_TOOLS_HOME}/include/${_ext_dirname}" ${CMAKE_INCLUDE_PATH})
-        set (CMAKE_LIBRARY_PATH "${THIRD_PARTY_TOOLS_HOME}/lib/${_ext_dirname}" ${CMAKE_LIBRARY_PATH})
-    endforeach ()
+if (NOT VERBOSE)
+    set (Boost_FIND_QUIETLY true)
+    set (PkgConfig_FIND_QUIETLY true)
+    set (Threads_FIND_QUIETLY true)
 endif ()
 
+message (STATUS "${ColorBoldWhite}")
+message (STATUS "* Checking for dependencies...")
+message (STATUS "*   - Missing a dependency 'Package'?")
+message (STATUS "*     Try cmake -DPackage_ROOT=path or set environment var Package_ROOT=path")
+message (STATUS "*     For many dependencies, we supply src/build-scripts/build_Package.bash")
+message (STATUS "*   - To exclude an optional dependency (even if found),")
+message (STATUS "*     -DUSE_Package=OFF or set environment var USE_Package=OFF ")
+message (STATUS "${ColorReset}")
 
-setup_string (SPECIAL_COMPILE_FLAGS "" 
-               "Custom compilation flags")
-if (SPECIAL_COMPILE_FLAGS)
-    add_definitions (${SPECIAL_COMPILE_FLAGS})
-endif ()
+set (OIIO_LOCAL_DEPS_PATH "${CMAKE_SOURCE_DIR}/ext/dist" CACHE STRING
+     "Local area for dependencies added to CMAKE_PREFIX_PATH")
+list (APPEND CMAKE_PREFIX_PATH ${OIIO_LOCAL_DEPS_PATH})
 
+include (ExternalProject)
 
+option (BUILD_MISSING_DEPS "Try to download and build any missing dependencies" OFF)
 
-###########################################################################
-# IlmBase setup
-
-find_package (IlmBase REQUIRED)
-
-include_directories ("${ILMBASE_INCLUDE_DIR}")
-include_directories ("${ILMBASE_INCLUDE_DIR}/OpenEXR")
-
-macro (LINK_ILMBASE target)
-    target_link_libraries (${target} ${ILMBASE_LIBRARIES})
-endmacro ()
-
-# end IlmBase setup
-###########################################################################
-
-
-###########################################################################
-# OpenEXR setup
-
-find_package (OpenEXR REQUIRED)
-
-if (EXISTS "${OPENEXR_INCLUDE_DIR}/OpenEXR/ImfMultiPartInputFile.h")
-    add_definitions (-DUSE_OPENEXR_VERSION2=1)
-    setup_string (OPENEXR_VERSION 2.0.0 "OpenEXR version number")
-    if (VERBOSE)
-        message (STATUS "OpenEXR version 2.x")
-    endif ()
-else ()
-    setup_string (OPENEXR_VERSION 1.6.1 "OpenEXR version number")
-    if (VERBOSE)
-        message (STATUS "OpenEXR version 1.x")
-    endif ()
-endif ()
-mark_as_advanced (OPENEXR_VERSION)
-
-include_directories ("${OPENEXR_INCLUDE_DIR}")
-# OpenEXR 1.x had weird #include dirctives, this is also necessary:
-include_directories ("${OPENEXR_INCLUDE_DIR}/OpenEXR")
-
-macro (LINK_OPENEXR target)
-    target_link_libraries (${target} ${OPENEXR_LIBRARIES})
-endmacro ()
-
-# OpenEXR setup
-###########################################################################
+include (FindThreads)
 
 
 ###########################################################################
 # Boost setup
-
-message (STATUS "BOOST_ROOT ${BOOST_ROOT}")
-
-if (NOT DEFINED Boost_ADDITIONAL_VERSIONS)
-  set (Boost_ADDITIONAL_VERSIONS "1.57" "1.56"
-                                 "1.55" "1.54" "1.53" "1.52" "1.51" "1.50"
-                                 "1.49" "1.48" "1.47" "1.46" "1.45" "1.44" 
-                                 "1.43" "1.43.0" "1.42" "1.42.0")
+if (MSVC)
+    # Disable automatic linking using pragma comment(lib,...) of boost libraries upon including of a header
+    add_definitions (-DBOOST_ALL_NO_LIB=1)
 endif ()
-if (LINKSTATIC)
-    set (Boost_USE_STATIC_LIBS   ON)
-endif ()
-set (Boost_USE_MULTITHREADED ON)
-if (BOOST_CUSTOM)
-    set (Boost_FOUND true)
-    # N.B. For a custom version, the caller had better set up the variables
-    # Boost_VERSION, Boost_INCLUDE_DIRS, Boost_LIBRARY_DIRS, Boost_LIBRARIES.
-else ()
-    set (Boost_COMPONENTS filesystem regex system thread)
-    find_package (Boost 1.42 REQUIRED 
-                  COMPONENTS ${Boost_COMPONENTS}
-                 )
 
-    # Try to figure out if this boost distro has Boost::python.  If we
-    # include python in the component list above, cmake will abort if
-    # it's not found.  So we resort to checking for the boost_python
-    # library's existance to get a soft failure.
-    find_library (oiio_boost_python_lib boost_python
-                  PATHS ${Boost_LIBRARY_DIRS} NO_DEFAULT_PATH)
-    mark_as_advanced (oiio_boost_python_lib)
-    if (NOT oiio_boost_python_lib AND Boost_SYSTEM_LIBRARY_RELEASE)
-        get_filename_component (oiio_boost_PYTHON_rel
-                                ${Boost_SYSTEM_LIBRARY_RELEASE} NAME
-                               )
-        string (REGEX REPLACE "^(lib)?(.+)_system(.+)$" "\\2_python\\3"
-                oiio_boost_PYTHON_rel ${oiio_boost_PYTHON_rel}
-               )
-        find_library (oiio_boost_PYTHON_LIBRARY_RELEASE
-                      NAMES ${oiio_boost_PYTHON_rel} lib${oiio_boost_PYTHON_rel}
-                      HINTS ${Boost_LIBRARY_DIRS}
-                      NO_DEFAULT_PATH
-                     )
-        mark_as_advanced (oiio_boost_PYTHON_LIBRARY_RELEASE)
-    endif ()
-    if (NOT oiio_boost_python_lib AND Boost_SYSTEM_LIBRARY_DEBUG)
-        get_filename_component (oiio_boost_PYTHON_dbg
-                                ${Boost_SYSTEM_LIBRARY_DEBUG} NAME
-                               )
-        string (REGEX REPLACE "^(lib)?(.+)_system(.+)$" "\\2_python\\3"
-                oiio_boost_PYTHON_dbg ${oiio_boost_PYTHON_dbg}
-               )
-        find_library (oiio_boost_PYTHON_LIBRARY_DEBUG
-                      NAMES ${oiio_boost_PYTHON_dbg} lib${oiio_boost_PYTHON_dbg}
-                      HINTS ${Boost_LIBRARY_DIRS}
-                      NO_DEFAULT_PATH
-                     )
-        mark_as_advanced (oiio_boost_PYTHON_LIBRARY_DEBUG)
-    endif ()
-    if (oiio_boost_python_lib OR
-        oiio_boost_PYTHON_LIBRARY_RELEASE OR oiio_boost_PYTHON_LIBRARY_DEBUG)
-        set (oiio_boost_PYTHON_FOUND ON)
-    else ()
-        set (oiio_boost_PYTHON_FOUND OFF)
+# If the build system hasn't been specifically told how to link Boost, link it the same way as other
+# OIIO dependencies:
+if (NOT DEFINED Boost_USE_STATIC_LIBS)
+    set (Boost_USE_STATIC_LIBS "${LINKSTATIC}")
+endif ()
+
+if (MSVC)
+    # Not linking Boost as static libraries: either an explicit setting or LINKSTATIC is FALSE:
+    if (NOT Boost_USE_STATIC_LIBS)
+        add_definitions (-DBOOST_ALL_DYN_LINK=1)
     endif ()
 endif ()
+
+set (Boost_COMPONENTS thread)
+if (NOT USE_STD_FILESYSTEM)
+    list (APPEND Boost_COMPONENTS filesystem)
+endif ()
+message (STATUS "Boost_COMPONENTS = ${Boost_COMPONENTS}")
+# The FindBoost.cmake interface is broken if it uses boost's installed
+# cmake output (e.g. boost 1.70.0, cmake <= 3.14). Specifically it fails
+# to set the expected variables printed below. So until that's fixed
+# force FindBoost.cmake to use the original brute force path.
+if (NOT DEFINED Boost_NO_BOOST_CMAKE)
+    set (Boost_NO_BOOST_CMAKE ON)
+endif ()
+
+checked_find_package (Boost REQUIRED
+                      VERSION_MIN 1.53
+                      COMPONENTS ${Boost_COMPONENTS}
+                      RECOMMEND_MIN 1.66
+                      RECOMMEND_MIN_REASON "Boost 1.66 is the oldest version our CI tests against"
+                      PRINT Boost_INCLUDE_DIRS Boost_LIBRARIES )
 
 # On Linux, Boost 1.55 and higher seems to need to link against -lrt
-if (CMAKE_SYSTEM_NAME MATCHES "Linux" AND ${Boost_VERSION} GREATER 105499)
+if (CMAKE_SYSTEM_NAME MATCHES "Linux"
+      AND ${Boost_VERSION} VERSION_GREATER_EQUAL 105500)
     list (APPEND Boost_LIBRARIES "rt")
-endif ()
-
-if (VERBOSE)
-    message (STATUS "BOOST_ROOT ${BOOST_ROOT}")
-    message (STATUS "Boost found ${Boost_FOUND} ")
-    message (STATUS "Boost version      ${Boost_VERSION}")
-    message (STATUS "Boost include dirs ${Boost_INCLUDE_DIRS}")
-    message (STATUS "Boost library dirs ${Boost_LIBRARY_DIRS}")
-    message (STATUS "Boost libraries    ${Boost_LIBRARIES}")
-    message (STATUS "Boost_python_FOUND ${oiio_boost_PYTHON_FOUND}")
-endif ()
-if (NOT oiio_boost_PYTHON_FOUND)
-    # If Boost python components were not found, turn off all python support.
-    message (STATUS "Boost python support not found -- will not build python components!")
-    if (APPLE AND USE_PYTHON)
-        message (STATUS "   If your Boost is from Macports, you need the +python26 variant to get Python support.")
-    endif ()
-    set (USE_PYTHON OFF)
-    set (PYTHONLIBS_FOUND OFF)
 endif ()
 
 include_directories (SYSTEM "${Boost_INCLUDE_DIRS}")
 link_directories ("${Boost_LIBRARY_DIRS}")
 
+option (OIIO_DISABLE_BOOST_STACKTRACE "Disable use of Boost stacktrace." OFF)
+
 # end Boost setup
 ###########################################################################
 
-###########################################################################
-# OpenGL setup
 
-if (USE_OPENGL)
-    find_package (OpenGL)
+###########################################################################
+# Dependencies for required formats and features. These are so critical
+# that we will not complete the build if they are not found.
+
+checked_find_package (ZLIB REQUIRED)  # Needed by several packages
+checked_find_package (TIFF REQUIRED
+                      VERSION_MIN 3.9
+                      RECOMMEND_MIN 4.0
+                      RECOMMEND_MIN_REASON "to support >4GB files")
+
+# IlmBase & OpenEXR
+checked_find_package (OpenEXR REQUIRED
+                      VERSION_MIN 2.4
+                      RECOMMEND_MIN 3.1
+                      PRINT IMATH_INCLUDES OPENEXR_INCLUDES Imath_VERSION)
+# Force Imath includes to be before everything else to ensure that we have
+# the right Imath/OpenEXR version, not some older version in the system
+# library. This shouldn't be necessary, except for the common case of people
+# building against Imath/OpenEXR 3.x when there is still a system-level
+# install version of 2.x.
+include_directories(BEFORE ${IMATH_INCLUDES} ${OPENEXR_INCLUDES})
+if (MSVC AND NOT LINKSTATIC)
+    add_definitions (-DOPENEXR_DLL) # Is this needed for new versions?
 endif ()
-message (STATUS "OPENGL_FOUND=${OPENGL_FOUND} USE_OPENGL=${USE_OPENGL}")
-
-# end OpenGL setup
-###########################################################################
-
-
-###########################################################################
-# OpenColorIO Setup
-
-if (USE_OCIO)
-    # If 'OCIO_PATH' not set, use the env variable of that name if available
-    if (NOT OCIO_PATH)
-        if (NOT $ENV{OCIO_PATH} STREQUAL "")
-            set (OCIO_PATH $ENV{OCIO_PATH})
-        endif ()
-    endif()
-
-    find_package (OpenColorIO)
-    FindOpenColorIO ()
-
-    if (OCIO_FOUND)
-        message (STATUS "OpenColorIO enabled")
-        if (VERBOSE)
-            message(STATUS "OCIO_INCLUDES: ${OCIO_INCLUDES}")
-        endif ()
-        include_directories (${OCIO_INCLUDES})
-        add_definitions ("-DUSE_OCIO=1")
-    else ()
-        message (STATUS "Skipping OpenColorIO support")
-    endif ()
+if (OpenEXR_VERSION VERSION_GREATER_EQUAL 3.0)
+    set (OIIO_USING_IMATH 3)
 else ()
-    message (STATUS "OpenColorIO disabled")
+    set (OIIO_USING_IMATH 2)
+endif ()
+set (OPENIMAGEIO_IMATH_TARGETS
+            # For OpenEXR/Imath 3.x:
+            $<TARGET_NAME_IF_EXISTS:Imath::Imath>
+            $<TARGET_NAME_IF_EXISTS:Imath::Half>
+            # For OpenEXR >= 2.4/2.5 with reliable exported targets
+            $<TARGET_NAME_IF_EXISTS:IlmBase::Imath>
+            $<TARGET_NAME_IF_EXISTS:IlmBase::Half>
+            $<TARGET_NAME_IF_EXISTS:IlmBase::Iex> )
+set (OPENIMAGEIO_OPENEXR_TARGETS
+            # For OpenEXR/Imath 3.x:
+            $<TARGET_NAME_IF_EXISTS:OpenEXR::OpenEXR>
+            # For OpenEXR >= 2.4/2.5 with reliable exported targets
+            $<TARGET_NAME_IF_EXISTS:OpenEXR::IlmImf>
+            $<TARGET_NAME_IF_EXISTS:IlmBase::IlmThread>
+            $<TARGET_NAME_IF_EXISTS:IlmBase::Iex> )
+set (OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY "PUBLIC" CACHE STRING
+     "Should we expose Imath library dependency as PUBLIC or PRIVATE")
+set (OPENIMAGEIO_CONFIG_DO_NOT_FIND_IMATH OFF CACHE BOOL
+     "Exclude find_dependency(Imath) from the exported OpenImageIOConfig.cmake")
+
+# JPEG -- prefer JPEG-Turbo to regular libjpeg
+checked_find_package (libjpeg-turbo
+                      VERSION_MIN 2.1
+                      DEFINITIONS -DUSE_JPEG_TURBO=1)
+if (NOT TARGET libjpeg-turbo::jpeg) # Try to find the non-turbo version
+    checked_find_package (JPEG REQUIRED)
 endif ()
 
-# end OpenColorIO setup
-###########################################################################
-
-
-###########################################################################
-# Qt setup
-
-if (USE_QT)
-    if (USE_OPENGL)
-        set (QT_USE_QTOPENGL true)
-    endif ()
-    find_package (Qt4)
-endif ()
-if (USE_QT AND QT4_FOUND)
-    if (VERBOSE)
-        message (STATUS "QT4_FOUND=${QT4_FOUND}")
-        message (STATUS "QT_INCLUDES=${QT_INCLUDES}")
-        message (STATUS "QT_LIBRARIES=${QT_LIBRARIES}")
-    endif ()
-else ()
-    message (STATUS "No Qt4 -- skipping components that need Qt4.")
-endif ()
-
-# end Qt setup
-###########################################################################
-
-###########################################################################
-# GL Extension Wrangler library setup
-
-if (USE_OPENGL)
-    set (GLEW_VERSION 1.5.1)
-    find_library (GLEW_LIBRARIES
-                  NAMES GLEW glew32)
-    find_path (GLEW_INCLUDES
-               NAMES glew.h
-               PATH_SUFFIXES GL)
-    if (GLEW_INCLUDES AND GLEW_LIBRARIES)
-        set (GLEW_FOUND TRUE)
-        if (VERBOSE)
-            message (STATUS "GLEW includes = ${GLEW_INCLUDES}")
-            message (STATUS "GLEW library = ${GLEW_LIBRARIES}")
-        endif ()
-    else ()
-        message (STATUS "GLEW not found")
-    endif ()
-else ()
-    message (STATUS "USE_OPENGL=0, skipping components that need OpenGL")
-endif (USE_OPENGL)
-
-# end GL Extension Wrangler library setup
-###########################################################################
-
-
-###########################################################################
-# FFmpeg
-
-if (USE_FFMPEG)
-    find_package (FFmpeg)
-    if (FFMPEG_INCLUDE_DIR AND FFMPEG_LIBRARIES)
-        set (FFMPEG_FOUND TRUE)
-        if (VERBOSE)
-            message (STATUS "FFMPEG includes = ${FFMPEG_INCLUDE_DIR}")
-            message (STATUS "FFMPEG library = ${FFMPEG_LIBRARIES}")
-        endif ()
-    else ()
-        message (STATUS "FFMPEG not found")
-    endif ()
-endif()
-
-# end FFmpeg setup
-###########################################################################
-
-
-###########################################################################
-# Field3d
-
-if (USE_FIELD3D)
-    if (HDF5_CUSTOM)
-        if (VERBOSE)
-            message (STATUS "Using custom HDF5")
-        endif ()
-        set (HDF5_FOUND true)
-        # N.B. For a custom version, the caller had better set up the
-        # variables HDF5_INCLUDE_DIRS and HDF5_LIBRARIES.
-    else ()
-        find_library (HDF5_LIBRARY
-                      NAMES hdf5
-                      PATHS "${THIRD_PARTY_TOOLS_HOME}/lib/"
-                      /usr/local/lib
-                      /opt/local/lib
-                     )
-        if (HDF5_LIBRARY)
-            set (HDF5_FOUND true)
-        endif ()
-    endif ()
-    if (VERBOSE)
-        message (STATUS "HDF5_FOUND=${HDF5_FOUND}")
-        message (STATUS "HDF5_LIBRARY=${HDF5_LIBRARY}")
-    endif ()
-endif ()
-if (USE_FIELD3D AND HDF5_FOUND)
-    if (VERBOSE)
-        message (STATUS "FIELD3D_HOME=${FIELD3D_HOME}")
-    endif ()
-    if (FIELD3D_HOME)
-        set (FIELD3D_INCLUDES "${FIELD3D_HOME}/include")
-    else ()
-        find_path (FIELD3D_INCLUDES Field3D/Field.h
-                   "${THIRD_PARTY_TOOLS}/include"
-                   "${PROJECT_SOURCE_DIR}/src/include"
-                   "${FIELD3D_HOME}/include"
-                  )
-    endif ()
-    find_library (FIELD3D_LIBRARY
-                  NAMES Field3D
-                  PATHS "${THIRD_PARTY_TOOLS_HOME}/lib/"
-                        "${FIELD3D_HOME}/lib"
-                 )
-    if (FIELD3D_INCLUDES AND FIELD3D_LIBRARY)
-        set (FIELD3D_FOUND TRUE)
-        if (VERBOSE)
-            message (STATUS "Field3D includes = ${FIELD3D_INCLUDES}")
-            message (STATUS "Field3D library = ${FIELD3D_LIBRARY}")
-        endif ()
-        add_definitions ("-DUSE_FIELD3D=1")
-        include_directories ("${FIELD3D_INCLUDES}")
-    else ()
-        message (STATUS "Field3D not found")
-        add_definitions ("-UUSE_FIELD3D")
-        set (FIELD3D_FOUND FALSE)
-    endif ()
-else ()
-    add_definitions ("-UUSE_FIELD3D")
-    message (STATUS "Field3d will not be used")
-endif ()
-
-# end Field3d setup
-###########################################################################
-
-# OpenJpeg
-if (USE_OPENJPEG)
-    find_package (OpenJpeg)
-endif()
-# end OpenJpeg setup_path
-###########################################################################
-
-
-###########################################################################
-# LibRaw
-if (USE_LIBRAW)
-    message (STATUS "Looking for LibRaw with ${LIBRAW_PATH}")
-    if (LIBRAW_PATH)
-        # Customized path requested, don't use find_package
-        FIND_PATH(LibRaw_INCLUDE_DIR libraw/libraw.h
-                  PATHS "${LIBRAW_PATH}/include"
-                  NO_DEFAULT_PATH
-                 )
-        FIND_LIBRARY(LibRaw_r_LIBRARIES NAMES raw_r
-                     PATHS "${LIBRAW_PATH}/lib"
-                     NO_DEFAULT_PATH
-                    )
-    else ()
-    	find_package (LibRaw)
-    endif ()
-	if (LibRaw_r_LIBRARIES AND LibRaw_INCLUDE_DIR)
-		set (LIBRAW_FOUND TRUE)
-		include_directories (${LibRaw_INCLUDE_DIR})
-        if (VERBOSE)
-            message (STATUS "Found LibRaw, include ${LibRaw_INCLUDE_DIR}")
-        endif ()
-	else ()
-		set (LIBRAW_FOUND FALSE)
-        message (STATUS "LibRaw not found!")
-	endif()
-else ()
-    message (STATUS "Not using LibRaw")
-endif()
-
-# end LibRaw setup
-###########################################################################
-
-
-###########################################################################
-# WebP setup
-
-if (VERBOSE)
-    message (STATUS "WEBP_HOME=${WEBP_HOME}")
-endif ()
-find_path (WEBP_INCLUDE_DIR webp/encode.h
-           "${THIRD_PARTY_TOOLS}/include"
-           "${PROJECT_SOURCE_DIR}/src/include"
-           "${WEBP_HOME}")
-find_library (WEBP_LIBRARY
-              NAMES webp
-              PATHS "${THIRD_PARTY_TOOLS_HOME}/lib/"
-              "${WEBP_HOME}"
-             )
-if (WEBP_INCLUDE_DIR AND WEBP_LIBRARY)
-    set (WEBP_FOUND TRUE)
-    if (VERBOSE)
-        message (STATUS "WEBP includes = ${WEBP_INCLUDE_DIR} ")
-        message (STATUS "WEBP library = ${WEBP_LIBRARY} ")
-    endif ()
-else()
-    set (WEBP_FOUND FALSE)
-    message (STATUS "WebP library not found")
-endif()
-# end Webp setup
-###########################################################################
-
-###########################################################################
 # Pugixml setup.  Normally we just use the version bundled with oiio, but
 # some linux distros are quite particular about having separate packages so we
 # allow this to be overridden to use the distro-provided package if desired.
+option (USE_EXTERNAL_PUGIXML "Use an externally built shared library version of the pugixml library" OFF)
 if (USE_EXTERNAL_PUGIXML)
-    find_package (PugiXML REQUIRED)
-    # insert include path to pugixml first, to ensure that the external
-    # pugixml is found, and not the one in OIIO's include directory.
-    include_directories (BEFORE ${PUGIXML_INCLUDE_DIR})
-    add_definitions ("-DUSE_EXTERNAL_PUGIXML=1")
+    checked_find_package (pugixml REQUIRED
+                          VERSION_MIN 1.8
+                          DEFINITIONS -DUSE_EXTERNAL_PUGIXML=1)
+else ()
+    message (STATUS "Using internal PugiXML")
 endif()
 
-
-###########################################################################
-# OpenCV setup
-
-if (USE_OPENCV)
-    find_path (OpenCV_INCLUDE_DIR opencv/cv.h
-               "${THIRD_PARTY_TOOLS}/include"
-               "${PROJECT_SOURCE_DIR}/include"
-               "${OpenCV_HOME}/include"
-               /usr/local/include
-               /opt/local/include
-               )
-    find_library (OpenCV_LIBS
-                  NAMES opencv_core
-                  PATHS "${THIRD_PARTY_TOOLS_HOME}/lib/"
-                        "${PROJECT_SOURCE_DIR}/lib"
-                        "${OpenCV_HOME}/lib"
-                        /usr/local/lib
-                        /opt/local/lib
-                 )
-    find_library (OpenCV_LIBS_highgui
-                  NAMES opencv_highgui
-                  PATHS "${THIRD_PARTY_TOOLS_HOME}/lib/"
-                        "${PROJECT_SOURCE_DIR}/lib"
-                        "${OpenCV_HOME}/lib"
-                        /usr/local/lib
-                        /opt/local/lib
-                 )
-    set (OpenCV_LIBS "${OpenCV_LIBS} ${OpenCV_LIBS_highgui}")
-    if (OpenCV_INCLUDE_DIR AND OpenCV_LIBS)
-        set (OpenCV_FOUND TRUE)
-        add_definitions ("-DUSE_OPENCV")
-        if (VERBOSE)
-            message (STATUS "OpenCV includes = ${OpenCV_INCLUDE_DIR} ")
-            message (STATUS "OpenCV libs = ${OpenCV_LIBS} ")
-        endif ()
-    else ()
-        set (OpenCV_FOUND FALSE)
-        message (STATUS "OpenCV library not found")
-    endif ()
-else ()
-    message (STATUS "Not using OpenCV")
+# From pythonutils.cmake
+find_python()
+if (USE_PYTHON)
+    checked_find_package (pybind11 REQUIRED VERSION_MIN 2.4.2)
 endif ()
 
-# end OpenCV setup
-###########################################################################
-
 
 ###########################################################################
-# Freetype setup
+# Dependencies for optional formats and features. If these are not found,
+# we will continue building, but the related functionality will be disabled.
 
-if (USE_FREETYPE)
-    find_package (Freetype)
-    if (FREETYPE_FOUND)
-        add_definitions ("-DUSE_FREETYPE")
-        if (VERBOSE)
-            message (STATUS "Freetype includes = ${FREETYPE_INCLUDE_DIRS} ")
-            message (STATUS "Freetype libs = ${FREETYPE_LIBRARIES} ")
-        endif ()
-    else ()
-        message (STATUS "Freetype library not found")
-    endif ()
-else ()
-    message (STATUS "Not using Freetype")
+checked_find_package (PNG)
+
+checked_find_package (BZip2)   # Used by ffmpeg and freetype
+if (NOT BZIP2_FOUND)
+    set (BZIP2_LIBRARIES "")  # TODO: why does it break without this?
 endif ()
 
-# end Freetype setup
-###########################################################################
+checked_find_package (Freetype
+                   DEFINITIONS  -DUSE_FREETYPE=1 )
 
-
-###########################################################################
-# OpenSSL Setup
-
-if (USE_OPENSSL)
-    find_package (OpenSSL)
-    if (OPENSSL_FOUND)
-        message (STATUS "OpenSSL enabled")
-        if (VERBOSE)
-            message(STATUS "OPENSSL_INCLUDES: ${OPENSSL_INCLUDE_DIR}")
-        endif ()
-        include_directories (${OPENSSL_INCLUDE_DIR})
-        add_definitions ("-DUSE_OPENSSL=1")
-    else ()
-        message (STATUS "Skipping OpenSSL support")
+checked_find_package (OpenColorIO
+                      DEFINITIONS  -DUSE_OCIO=1 -DUSE_OPENCOLORIO=1
+                      # PREFER_CONFIG
+                      )
+if (OpenColorIO_FOUND)
+    option (OIIO_DISABLE_BUILTIN_OCIO_CONFIGS
+           "For deveoper debugging/testing ONLY! Disable OCIO 2.2 builtin configs." OFF)
+    if (OIIO_DISABLE_BUILTIN_OCIO_CONFIGS OR "$ENV{OIIO_DISABLE_BUILTIN_OCIO_CONFIGS}")
+        add_compile_definitions(OIIO_DISABLE_BUILTIN_OCIO_CONFIGS)
     endif ()
 else ()
-    message (STATUS "OpenSSL disabled")
+    set (OpenColorIO_FOUND 0)
 endif ()
 
-# end OpenSSL setup
-###########################################################################
+checked_find_package (OpenCV 3.0
+                   DEFINITIONS  -DUSE_OPENCV=1)
+
+# Intel TBB
+set (TBB_USE_DEBUG_BUILD OFF)
+checked_find_package (TBB 2017
+                      SETVARIABLES OIIO_TBB
+                      PREFER_CONFIG)
+
+# DCMTK is used to read DICOM images
+checked_find_package (DCMTK VERSION_MIN 3.6.1
+                      PREFER_CONFIG)
+
+checked_find_package (FFmpeg VERSION_MIN 3.0)
+checked_find_package (GIF
+                      VERSION_MIN 4
+                      RECOMMEND_MIN 5.0
+                      RECOMMEND_MIN_REASON "for stability and thread safety")
+
+# For HEIF/HEIC/AVIF formats
+checked_find_package (Libheif VERSION_MIN 1.3
+                      RECOMMEND_MIN 1.7
+                      RECOMMEND_MIN_REASON "for AVIF support")
+if (APPLE AND LIBHEIF_VERSION VERSION_GREATER_EQUAL 1.10 AND LIBHEIF_VERSION VERSION_LESS 1.11)
+    message (WARNING "Libheif 1.10 on Apple is known to be broken, disabling libheif support")
+    set (Libheif_FOUND 0)
+endif ()
+
+checked_find_package (LibRaw
+                      VERSION_MIN 0.18
+                      PRINT LibRaw_r_LIBRARIES)
+if (LibRaw_FOUND AND LibRaw_VERSION VERSION_LESS 0.20 AND CMAKE_CXX_STANDARD VERSION_GREATER_EQUAL 17)
+    message (STATUS "${ColorYellow}WARNING When building for C++17, LibRaw should be 0.20 or higher (found ${LibRaw_VERSION}). You may get errors, depending on the compiler.${ColorReset}")
+    # Currently, we issue the above warning and let them take their chances.
+    # If we wish to disable the LibRaw<0.20/C++17 combination that may fail,
+    # just uncomment the following two lines.
+    # set (LibRaw_FOUND 0)
+    # set (LIBRAW_FOUND 0)
+endif ()
+
+checked_find_package (OpenJPEG VERSION_MIN 2.0
+                      RECOMMEND_MIN 2.2
+                      RECOMMEND_MIN_REASON "for multithreading support")
+# Note: Recent OpenJPEG versions have exported cmake configs, but we don't
+# find them reliable at all, so we stick to our FindOpenJPEG.cmake module.
+
+checked_find_package (OpenVDB
+                      VERSION_MIN 5.0
+                      DEPS         TBB
+                      DEFINITIONS  -DUSE_OPENVDB=1)
+if (OpenVDB_FOUND AND OpenVDB_VERSION VERSION_GREATER_EQUAL 10.1 AND CMAKE_CXX_STANDARD VERSION_LESS 17)
+    message (WARNING "${ColorYellow}OpenVDB >= 10.1 (we found ${OpenVDB_VERSION}) can only be used when we build with C++17 or higher. Disabling OpenVDB support.${ColorReset}")
+    set (OpenVDB_FOUND 0)
+endif ()
+
+checked_find_package (Ptex PREFER_CONFIG)
+if (NOT Ptex_FOUND OR NOT Ptex_VERSION)
+    # Fallback for inadequate Ptex exported configs. This will eventually
+    # disappear when we can 100% trust Ptex's exports.
+    unset (Ptex_FOUND)
+    checked_find_package (Ptex)
+endif ()
+
+checked_find_package (WebP)
+# Note: When WebP 1.1 (released late 2019) is our minimum, we can use their
+# exported configs and remove our FindWebP.cmake module.
+
+option (USE_R3DSDK "Enable R3DSDK (RED camera) support" OFF)
+checked_find_package (R3DSDK NO_RECORD_NOTFOUND)  # RED camera
+
+set (NUKE_VERSION "7.0" CACHE STRING "Nuke version to target")
+checked_find_package (Nuke NO_RECORD_NOTFOUND)
+
+
+# Qt -- used for iv
+option (USE_QT "Use Qt if found" ON)
+if (USE_QT)
+    checked_find_package (OpenGL)   # used for iv
+endif ()
+if (USE_QT AND OPENGL_FOUND)
+    checked_find_package (Qt6 COMPONENTS Core Gui Widgets OpenGLWidgets)
+    if (NOT Qt6_FOUND)
+        checked_find_package (Qt5 COMPONENTS Core Gui Widgets OpenGL)
+    endif ()
+    if (NOT Qt5_FOUND AND NOT Qt6_FOUND AND APPLE)
+        message (STATUS "  If you think you installed qt with Homebrew and it still doesn't work,")
+        message (STATUS "  try:   export PATH=/usr/local/opt/qt/bin:$PATH")
+    endif ()
+endif ()
 
 
 ###########################################################################
-# GIF
-if (USE_GIF)
-    find_package (GIF)
-endif()
-# end GIF setup_path
-###########################################################################
+# Tessil/robin-map
 
+option (BUILD_ROBINMAP_FORCE "Force local download/build of robin-map even if installed" OFF)
+option (BUILD_MISSING_ROBINMAP "Local download/build of robin-map if not installed" ON)
+set (BUILD_ROBINMAP_VERSION "v0.6.2" CACHE STRING "Preferred Tessil/robin-map version, of downloading/building our own")
+
+macro (find_or_download_robin_map)
+    # If we weren't told to force our own download/build of robin-map, look
+    # for an installed version. Still prefer a copy that seems to be
+    # locally installed in this tree.
+    if (NOT BUILD_ROBINMAP_FORCE)
+        find_package (Robinmap QUIET)
+    endif ()
+    # If an external copy wasn't found and we requested that missing
+    # packages be built, or we we are forcing a local copy to be built, then
+    # download and build it.
+    # Download the headers from github
+    if ((BUILD_MISSING_ROBINMAP AND NOT ROBINMAP_FOUND) OR BUILD_ROBINMAP_FORCE)
+        message (STATUS "Downloading local Tessil/robin-map")
+        set (ROBINMAP_INSTALL_DIR "${PROJECT_SOURCE_DIR}/ext/robin-map")
+        set (ROBINMAP_GIT_REPOSITORY "https://github.com/Tessil/robin-map")
+        if (NOT IS_DIRECTORY ${ROBINMAP_INSTALL_DIR}/include/tsl)
+            find_package (Git REQUIRED)
+            execute_process(COMMAND             ${GIT_EXECUTABLE} clone    ${ROBINMAP_GIT_REPOSITORY} -n ${ROBINMAP_INSTALL_DIR})
+            execute_process(COMMAND             ${GIT_EXECUTABLE} checkout ${BUILD_ROBINMAP_VERSION}
+                            WORKING_DIRECTORY   ${ROBINMAP_INSTALL_DIR})
+            if (IS_DIRECTORY ${ROBINMAP_INSTALL_DIR}/include/tsl)
+                message (STATUS "DOWNLOADED Tessil/robin-map to ${ROBINMAP_INSTALL_DIR}.\n"
+                         "Remove that dir to get rid of it.")
+            else ()
+                message (FATAL_ERROR "Could not download Tessil/robin-map")
+            endif ()
+        endif ()
+        set (ROBINMAP_INCLUDE_DIR "${ROBINMAP_INSTALL_DIR}/include")
+    endif ()
+    checked_find_package (Robinmap REQUIRED)
+endmacro()
+
+find_or_download_robin_map ()
+
+
+###########################################################################
+# fmtlib
+
+option (BUILD_FMT_FORCE "Force local download/build of fmt even if installed" OFF)
+option (BUILD_MISSING_FMT "Local download/build of fmt if not installed" ON)
+option (INTERNALIZE_FMT "Copy fmt headers into <install>/include/OpenImageIO/detail/fmt" ON)
+set (BUILD_FMT_VERSION "10.0.0" CACHE STRING "Preferred fmtlib/fmt version, when downloading/building our own")
+
+macro (find_or_download_fmt)
+    # If we weren't told to force our own download/build of fmt, look
+    # for an installed version. Still prefer a copy that seems to be
+    # locally installed in this tree.
+    if (NOT BUILD_FMT_FORCE)
+        find_package (fmt QUIET)
+    endif ()
+    # If an external copy wasn't found and we requested that missing
+    # packages be built, or we we are forcing a local copy to be built, then
+    # download and build it.
+    if ((BUILD_MISSING_FMT AND NOT fmt_FOUND) OR BUILD_FMT_FORCE)
+        message (STATUS "Downloading local fmtlib/fmt")
+        set (FMT_INSTALL_DIR "${PROJECT_SOURCE_DIR}/ext/fmt")
+        set (FMT_GIT_REPOSITORY "https://github.com/fmtlib/fmt")
+        if (NOT IS_DIRECTORY ${FMT_INSTALL_DIR}/include/fmt)
+            find_package (Git REQUIRED)
+            execute_process(COMMAND             ${GIT_EXECUTABLE} clone    ${FMT_GIT_REPOSITORY} -n ${FMT_INSTALL_DIR})
+            execute_process(COMMAND             ${GIT_EXECUTABLE} checkout ${BUILD_FMT_VERSION}
+                            WORKING_DIRECTORY   ${FMT_INSTALL_DIR})
+            if (IS_DIRECTORY ${FMT_INSTALL_DIR}/include/fmt)
+                message (STATUS "DOWNLOADED fmtlib/fmt to ${FMT_INSTALL_DIR}.\n"
+                         "Remove that dir to get rid of it.")
+            else ()
+                message (FATAL_ERROR "Could not download fmtlib/fmt")
+            endif ()
+        endif ()
+        set (FMT_INCLUDE_DIR "${FMT_INSTALL_DIR}/include")
+        set (OIIO_USING_FMT_LOCAL TRUE)
+        if (EXISTS "${FMT_INCLUDE_DIR}/fmt/base.h")
+            file (STRINGS "${FMT_INCLUDE_DIR}/fmt/base.h" TMP REGEX "^#define FMT_VERSION .*$")
+        else ()
+            file (STRINGS "${FMT_INCLUDE_DIR}/fmt/core.h" TMP REGEX "^#define FMT_VERSION .*$")
+        endif ()
+        string (REGEX MATCHALL "[0-9]+" FMT_VERSION_NUMERIC ${TMP})
+        math(EXPR FMT_VERSION_PATCH "${FMT_VERSION_NUMERIC} % 100")
+        math(EXPR FMT_VERSION_MINOR "(${FMT_VERSION_NUMERIC} / 100) % 100")
+        math(EXPR FMT_VERSION_MAJOR "${FMT_VERSION_NUMERIC} / 10000")
+        set (fmt_VERSION "${FMT_VERSION_MAJOR}.${FMT_VERSION_MINOR}.${FMT_VERSION_PATCH}")
+        list (APPEND CFP_ALL_BUILD_DEPS_FOUND "${pkgname} ${${pkgname}_VERSION}")
+    else ()
+        get_target_property(FMT_INCLUDE_DIR fmt::fmt-header-only INTERFACE_INCLUDE_DIRECTORIES)
+        set (OIIO_USING_FMT_LOCAL FALSE)
+        checked_find_package (fmt REQUIRED
+                              VERSION_MIN 7.0)
+    endif ()
+endmacro()
+
+find_or_download_fmt()
+
+if (fmt_VERSION VERSION_EQUAL 9.1.0
+        AND GCC_VERSION VERSION_GREATER 0.0 AND NOT GCC_VERSION VERSION_GREATER 7.2)
+    message (WARNING "${ColorRed}fmt 9.1 is known to not work with gcc <= 7.2${ColorReset}")
+endif ()
+
+list (SORT CFP_ALL_BUILD_DEPS_FOUND COMPARE STRING CASE INSENSITIVE)
+message (STATUS "All build dependencies: ${CFP_ALL_BUILD_DEPS_FOUND}")

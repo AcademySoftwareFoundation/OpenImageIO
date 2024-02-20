@@ -1,15 +1,18 @@
 #!/usr/bin/env python
 
-imagedir = parent + "/oiio-images/pnm"
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+imagedir = OIIO_TESTSUITE_IMAGEDIR + "/pnm"
 
-#files = [ "oiio-logo-no-alpha.png",  "oiio-logo-with-alpha.png" ]
-#for f in files:
-#    command += rw_command (imagedir,  f)
-
+for f in [ "bw-ascii.pbm", "bw-binary.pbm",
+           "grey-ascii.pgm", "grey-binary.pgm",
+           "rgb-ascii.ppm", "rgb-binary.ppm" ] :
+    command += rw_command ("src", f)
 
 # We can't yet write PFM files, so just get the hashes and call it a day
 files = [ "test-1.pfm", "test-2.pfm", "test-3.pfm" ]
 for f in files:
-    command += info_command (imagedir+"/"+f, safematch=True, hash=True)
-    #command += rw_command (imagedir,  f)
+    command += info_command (imagedir + "/" + f,
+                             safematch=True, hash=True)

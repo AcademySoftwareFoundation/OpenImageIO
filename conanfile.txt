@@ -1,0 +1,32 @@
+[requires]
+zlib/1.2.11
+libtiff/4.0.9
+libpng/1.6.37
+openexr/2.4.0
+boost/1.70.0
+libjpeg/9c
+libjpeg-turbo/2.0.2
+giflib/5.1.4
+freetype/2.10.0
+#opencv/4.1.1@conan/stable
+openjpeg/2.3.1
+libwebp/1.0.3
+tsl-robin-map/0.6.1@tessil/stable
+tbb/2020.0
+# To do:
+# opencolorio? not on conan?
+# pybind11/2.4.3 - conan doesn't have this minimum version
+# dcmtk
+# ffmpeg
+# libheif
+# libraw
+# openvdb
+# ptex
+# qt5
+
+
+[generators]
+cmake
+
+[options]
+#libpng:shared=False

@@ -1,3 +1,7 @@
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
+
 # - CMake find module for Nuke
 #
 # If requesting a specific release, the Nuke version string must be converted
@@ -12,9 +16,9 @@
 # Output variables:
 #  NUKE_FOUND
 #  NUKE_EXECUTABLE
-#  NUKE_INCLUDE_DIRS
-#  NUKE_LIBRARY_DIRS
+#  NUKE_INCLUDES
 #  NUKE_LIBRARIES
+#  NUKE_LIBRARY_DIRS
 #  NUKE_DDIMAGE_LIBRARY
 #  NUKE_VERSION_MAJOR
 #  NUKE_VERSION_MINOR
@@ -31,7 +35,7 @@
 #    6.3v1 6.3v2 6.3v3 6.3v4 6.3v5 6.3v6 6.3v7 6.3v8 6.3v9
 #    7.0v1 7.0v2 7.0v3 7.0v4)
 
-set(_nuke_KNOWN_VERSIONS 5.0 5.1 5.2 6.0 6.1 6.2 6.3 7.0 8.0 9.0)
+set(_nuke_KNOWN_VERSIONS 5.0 5.1 5.2 6.0 6.1 6.2 6.3 7.0 8.0 9.0 10.0 10.5 11.0 11.1 11.2)
 set(_nuke_TEST_VERSIONS) # List of Nuke-style strings (e.g. "7.0v4")
 
 
@@ -130,12 +134,12 @@ find_library(NUKE_DDIMAGE_LIBRARY DDImage
 if(NUKE_DDIMAGE_LIBRARY)
     get_filename_component(NUKE_LIBRARY_DIRS ${NUKE_DDIMAGE_LIBRARY} PATH)
 
-    find_path(NUKE_INCLUDE_DIRS DDImage/Op.h "${NUKE_LIBRARY_DIRS}/include")
+    find_path(NUKE_INCLUDE_DIR DDImage/Op.h "${NUKE_LIBRARY_DIRS}/include")
 
     # Pull version information from header
     # (We could pull the DDImage path apart instead, but this avoids dealing
     # with platform-specific naming.)
-    file(STRINGS "${NUKE_INCLUDE_DIRS}/DDImage/ddImageVersionNumbers.h" _nuke_DDIMAGE_VERSION_H)
+    file(STRINGS "${NUKE_INCLUDE_DIR}/DDImage/ddImageVersionNumbers.h" _nuke_DDIMAGE_VERSION_H)
     string(REGEX REPLACE ".*#define kDDImageVersionMajorNum ([0-9]+).*" "\\1"
         NUKE_VERSION_MAJOR ${_nuke_DDIMAGE_VERSION_H})
     string(REGEX REPLACE ".*#define kDDImageVersionMinorNum ([0-9]+).*" "\\1"
@@ -156,4 +160,9 @@ endif()
 # Finalize search
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Nuke DEFAULT_MSG
-    NUKE_DDIMAGE_LIBRARY NUKE_INCLUDE_DIRS NUKE_LIBRARY_DIRS NUKE_EXECUTABLE)
+    NUKE_DDIMAGE_LIBRARY NUKE_INCLUDE_DIR NUKE_LIBRARY_DIRS NUKE_EXECUTABLE)
+
+if (NUKE_FOUND)
+    set (NUKE_INCLUDES ${NUKE_INCLUDE_DIR})
+    set (NUKE_LIBRARIES ${NUKE_DDIMAGE_LIBRARY})
+endif ()

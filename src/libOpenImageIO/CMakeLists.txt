@@ -1,189 +1,92 @@
-message (STATUS "Create imagio_pvt.h from imageio_pvt.h.in")
-file (TO_NATIVE_PATH "${PLUGIN_SEARCH_PATH}" PLUGIN_SEARCH_PATH_NATIVE)
-configure_file (imageio_pvt.h.in "${CMAKE_CURRENT_BINARY_DIR}/imageio_pvt.h" @ONLY)
-include_directories("${CMAKE_CURRENT_BINARY_DIR}")
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
+
+if (VERBOSE)
+   message (STATUS "Create imagio_pvt.h from imageio_pvt.h.in")
+endif ()
+configure_file (imageio_pvt.h.in "${CMAKE_BINARY_DIR}/include/imageio_pvt.h" @ONLY)
 
 file (GLOB libOpenImageIO_hdrs ../include/OpenImageIO/*.h)
 
 if (NOT USE_EXTERNAL_PUGIXML)
     list (APPEND libOpenImageIO_hdrs
-          ../include/OpenImageIO/pugiconfig.hpp
-          ../include/OpenImageIO/pugixml.hpp
-          ../include/OpenImageIO/pugixml.cpp
+          ../include/OpenImageIO/detail/pugixml/pugiconfig.hpp
+          ../include/OpenImageIO/detail/pugixml/pugixml.hpp
+          ../include/OpenImageIO/detail/pugixml/pugixml.cpp
     )
+    if (CMAKE_COMPILER_IS_GNUCC AND NOT ${GCC_VERSION} VERSION_LESS 6.0)
+        set_source_files_properties (formatspec.cpp xmp.cpp
+                                     PROPERTIES COMPILE_FLAGS -Wno-error=placement-new)
+    endif ()
 endif()
 
-set (libOpenImageIO_srcs exif.cpp formatspec.cpp imagebuf.cpp
-                          imageinput.cpp imageio.cpp imageioplugin.cpp
-                          imageoutput.cpp iptc.cpp xmp.cpp
-                          color_ocio.cpp
+# Make the build complete for newer ffmpeg versions (3.1.1+) that have
+# marked m_format_context->streams[i]->codec as deprecated.
+# FIXME -- at some point, come back and figure out how to fix for real
+# before the field disappears entirely.
+if (NOT MSVC)
+    set_source_files_properties (../ffmpeg.imageio/ffmpeginput.cpp
+                             PROPERTIES COMPILE_FLAGS "-Wno-deprecated-declarations")
+endif()
+
+if (CMAKE_COMPILER_IS_GNUCC AND ${GCC_VERSION} VERSION_GREATER_EQUAL 9.0)
+    set_source_files_properties (../libutil/SHA1.cpp
+                                 PROPERTIES COMPILE_FLAGS -Wno-stringop-truncation)
+endif ()
+
+if (CMAKE_COMPILER_IS_GNUCC AND ${GCC_VERSION} VERSION_GREATER_EQUAL 6.0
+    AND ${GCC_VERSION} VERSION_LESS 7.0)
+    set_source_files_properties (../openvdb.imageio/openvdbinput.cpp
+                                 PROPERTIES COMPILE_FLAGS -Wno-error=strict-overflow)
+endif ()
+
+set (libOpenImageIO_srcs
                           imagebufalgo.cpp
+                          imagebufalgo_pixelmath.cpp
+                          imagebufalgo_channels.cpp
                           imagebufalgo_compare.cpp
                           imagebufalgo_copy.cpp
                           imagebufalgo_deep.cpp
                           imagebufalgo_draw.cpp
-                          imagebufalgo_pixelmath.cpp
+                          imagebufalgo_addsub.cpp
+                          imagebufalgo_muldiv.cpp
+                          imagebufalgo_mad.cpp
+                          imagebufalgo_minmaxchan.cpp
+                          imagebufalgo_orient.cpp
                           imagebufalgo_xform.cpp
                           imagebufalgo_yee.cpp imagebufalgo_opencv.cpp
+                          deepdata.cpp exif.cpp exif-canon.cpp
+                          formatspec.cpp
+                          icc.cpp imagebuf.cpp
+                          imageinput.cpp imageio.cpp imageioplugin.cpp
+                          imageoutput.cpp
+                          iptc.cpp xmp.cpp
+                          color_ocio.cpp
                           maketexture.cpp
-                          ../libutil/argparse.cpp
-                          ../libutil/errorhandler.cpp 
-                          ../libutil/filesystem.cpp 
-                          ../libutil/farmhash.cpp 
-                          ../libutil/filter.cpp 
-                          ../libutil/hashes.cpp 
-                          ../libutil/paramlist.cpp 
-                          ../libutil/plugin.cpp 
-                          ../libutil/SHA1.cpp 
-                          ../libutil/strutil.cpp 
-                          ../libutil/sysutil.cpp 
-                          ../libutil/timer.cpp 
-                          ../libutil/typedesc.cpp 
-                          ../libutil/ustring.cpp 
-                          ../libutil/xxhash.cpp 
-                          ../libtexture/texturesys.cpp 
-                          ../libtexture/texture3d.cpp 
-                          ../libtexture/environment.cpp 
-                          ../libtexture/texoptions.cpp 
+                          bluenoise.cpp
+                          printinfo.cpp
+                          ../libtexture/texturesys.cpp
+                          ../libtexture/texture3d.cpp
+                          ../libtexture/environment.cpp
+                          ../libtexture/texoptions.cpp
                           ../libtexture/imagecache.cpp
+                          ${libOpenImageIO_srcs}
                           ${libOpenImageIO_hdrs}
                          )
 
 
+add_library (OpenImageIO ${libOpenImageIO_srcs})
+
 # If the 'EMBEDPLUGINS' option is set, we want to compile the source for
 # all the plugins into libOpenImageIO.
 if (EMBEDPLUGINS)
-    set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
-        ../bmp.imageio/bmpinput.cpp ../bmp.imageio/bmpoutput.cpp
-        ../bmp.imageio/bmp_pvt.cpp
-        ../cineon.imageio/cineoninput.cpp ../cineon.imageio/cineonoutput.cpp
-          ../cineon.imageio/libcineon/Cineon.cpp 
-          ../cineon.imageio/libcineon/Codec.cpp ../cineon.imageio/libcineon/Reader.cpp
-          ../cineon.imageio/libcineon/Writer.cpp ../cineon.imageio/libcineon/CineonHeader.cpp
-          ../cineon.imageio/libcineon/ElementReadStream.cpp ../cineon.imageio/libcineon/InStream.cpp
-        ../dds.imageio/ddsinput.cpp ../dds.imageio/ddsoutput.cpp
-          ../dds.imageio/squish/alpha.cpp ../dds.imageio/squish/clusterfit.cpp
-          ../dds.imageio/squish/colourblock.cpp ../dds.imageio/squish/colourfit.cpp
-          ../dds.imageio/squish/colourset.cpp ../dds.imageio/squish/maths.cpp
-          ../dds.imageio/squish/rangefit.cpp ../dds.imageio/squish/singlecolourfit.cpp
-          ../dds.imageio/squish/squish.cpp
-        ../dpx.imageio/dpxinput.cpp ../dpx.imageio/dpxoutput.cpp
-          ../dpx.imageio/libdpx/DPX.cpp ../dpx.imageio/libdpx/OutStream.cpp
-          ../dpx.imageio/libdpx/RunLengthEncoding.cpp ../dpx.imageio/libdpx/Codec.cpp
-          ../dpx.imageio/libdpx/Reader.cpp ../dpx.imageio/libdpx/Writer.cpp
-          ../dpx.imageio/libdpx/DPXHeader.cpp ../dpx.imageio/libdpx/ElementReadStream.cpp
-          ../dpx.imageio/libdpx/InStream.cpp ../dpx.imageio/libdpx/DPXColorConverter.cpp
-        ../fits.imageio/fitsinput.cpp ../fits.imageio/fitsoutput.cpp
-          ../fits.imageio/fits_pvt.cpp
-        ../hdr.imageio/hdrinput.cpp ../hdr.imageio/hdroutput.cpp
-          ../hdr.imageio/rgbe.cpp
-        ../ico.imageio/icoinput.cpp ../ico.imageio/icooutput.cpp
-        ../iff.imageio/iffinput.cpp
-          ../iff.imageio/iffoutput.cpp
-          ../iff.imageio/iff_pvt.cpp
-        ../jpeg.imageio/jpeginput.cpp ../jpeg.imageio/jpegoutput.cpp
-        ../png.imageio/pnginput.cpp ../png.imageio/pngoutput.cpp
-        ../pnm.imageio/pnminput.cpp ../pnm.imageio/pnmoutput.cpp
-        ../psd.imageio/psdinput.cpp ../psd.imageio/psdoutput.cpp
-        ../psd.imageio/jpeg_memory_src.cpp
-        ../ptex.imageio/ptexinput.cpp ../ptex.imageio/ptexoutput.cpp
-        ../ptex.imageio/ptex/PtexCache.cpp ../ptex.imageio/ptex/PtexFilters.cpp
-        ../ptex.imageio/ptex/PtexHalf.cpp ../ptex.imageio/ptex/PtexReader.cpp
-        ../ptex.imageio/ptex/PtexSeparableFilter.cpp
-        ../ptex.imageio/ptex/PtexSeparableKernel.cpp
-        ../ptex.imageio/ptex/PtexTriangleFilter.cpp
-        ../ptex.imageio/ptex/PtexTriangleKernel.cpp
-        ../ptex.imageio/ptex/PtexUtils.cpp ../ptex.imageio/ptex/PtexWriter.cpp
-        ../openexr.imageio/exrinput.cpp ../openexr.imageio/exroutput.cpp
-        ../rla.imageio/rlainput.cpp ../rla.imageio/rlaoutput.cpp
-        ../sgi.imageio/sgiinput.cpp ../sgi.imageio/sgioutput.cpp
-        ../softimage.imageio/softimageinput.cpp 
-           ../softimage.imageio/softimageoutput.cpp 
-           ../softimage.imageio/softimage_pvt.cpp
-        ../targa.imageio/targainput.cpp ../targa.imageio/targaoutput.cpp
-        ../tiff.imageio/tiffinput.cpp ../tiff.imageio/tiffoutput.cpp
-        ../zfile.imageio/zfile.cpp
-        )
-    if (NOT Boost_VERSION LESS "103500")
-        # Boost < 1.35 is too old to support asio that socket needs
-        set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
-             ../socket.imageio/socketinput.cpp
-             ../socket.imageio/socketoutput.cpp 
-             ../socket.imageio/socket_pvt.cpp
-            )
-        add_definitions ("-DUSE_BOOST_ASIO=1")
-    endif ()
-    find_package (PNG REQUIRED)
-    find_package (JPEG REQUIRED)
-    find_package (TIFF REQUIRED)
-    find_package (ZLIB REQUIRED)
-    include_directories (${PNG_INCLUDE_DIR} ${JPEG_INCLUDE_DIR})
-    include_directories (${TIFF_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR})
-
-    add_definitions ("-DEMBED_PLUGINS=1")
-
-    if (FFMPEG_FOUND AND USE_FFMPEG)
-        set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
-             ../ffmpeg.imageio/ffmpeginput.cpp
-             ../ffmpeg.imageio/ffmpegoutput.cpp
-            )
-        include_directories (${FFMPEG_INCLUDE_DIR})
-        add_definitions("-DUSE_FFMPEG")
-    else ()
-        message (STATUS "FFmpeg plugin will not be built")
-    endif ()
-
-    if (FIELD3D_FOUND AND USE_FIELD3D)
-        set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
-             ../field3d.imageio/field3dinput.cpp
-             ../field3d.imageio/field3doutput.cpp
-            )
-        include_directories (${FIELD3D_INCLUDE_DIR})
-    else ()
-        message (STATUS "Field3D plugin will not be built")
-        set (FIELD3D_LIBRARY "")
-        set (HDF5_LIBRARY "")
-    endif ()
-
-    if (GIF_FOUND AND USE_GIF)
-        set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
-             ../gif.imageio/gifinput.cpp
-             ../gif.imageio/gifoutput.cpp)
-        include_directories (${GIF_INCLUDE_DIR})
-        add_definitions("-DUSE_GIF")
-    else()
-        message (STATUS "GIF plugin will not be built")
-    endif()
-
-    if (OPENJPEG_FOUND AND USE_OPENJPEG)
-        set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
-             ../jpeg2000.imageio/jpeg2000input.cpp ../jpeg2000.imageio/jpeg2000output.cpp)
-        include_directories (${OPENJPEG_INCLUDE_DIR})
-        add_definitions("-DUSE_OPENJPEG")
-    else()
-        message (STATUS "Jpeg-2000 plugin will not be built")
-    endif()
-    
-    if (LIBRAW_FOUND AND USE_LIBRAW)
-        set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
-            ../raw.imageio/rawinput.cpp ../raw.imageio/rawoutput.cpp)
-        include_directories (${LibRaw_INCLUDE_DIR})
-        add_definitions ("-DUSE_LIBRAW=1")
-    else()
-        message (STATUS "Raw plugin will not be build")
-    endif()
-
-    if (WEBP_FOUND)
-        set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
-             ../webp.imageio/webpinput.cpp
-             ../webp.imageio/webpoutput.cpp
-            )
-        include_directories (${WEBP_INCLUDE_DIR})
-        add_definitions ("-DUSE_WEBP=1")
-    else ()
-        message (STATUS "WebP plugin will not be built")
-        set (WEBP_LIBRARY "")
-    endif ()
+    target_compile_definitions (OpenImageIO
+                                PRIVATE
+                                    EMBED_PLUGINS=1
+                                    ${format_plugin_definitions})
+    target_include_directories (OpenImageIO
+                                PRIVATE ${format_plugin_include_dirs})
 
     # Organize the embedded plugins into source folders
     set (plugin_types "")
@@ -198,143 +101,179 @@ if (EMBEDPLUGINS)
                       REGULAR_EXPRESSION "^.+/${plugin}\\.imageio/.+$"
                      )
     endforeach ()
-else()
-    find_package (TIFF REQUIRED)
-    include_directories (${TIFF_INCLUDE_DIR})
 endif ()
+
+# Enable default use of OpenEXR core library for versions of the library
+# new enough to support DWA compression in exrcore.
+if (OPENEXR_VERSION VERSION_GREATER_EQUAL 3.1.10)
+    target_compile_definitions(OpenImageIO
+                               PRIVATE OIIO_OPENEXR_CORE_DEFAULT=1)
+    message (STATUS "OpenEXR core library will be used by default")
+else ()
+    target_compile_definitions(OpenImageIO
+                               PRIVATE OIIO_OPENEXR_CORE_DEFAULT=0)
+    message (STATUS "OpenEXR core library will not be used by default")
+endif ()
+
+# Some extra definitions we need to retrieve build related attributes.
+target_compile_definitions(OpenImageIO
+              PRIVATE
+                  OIIO_FREETYPE_VERSION="${FREETYPE_VERSION_STRING}"
+                  OIIO_OpenCV_VERSION="${OpenCV_VERSION}"
+                  OIIO_PYTHON_VERSION="${Python_VERSION}"
+                  OIIO_QT_VERSION="${Qt6_VERSION}${Qt5_VERSION}"
+                  OIIO_TBB_VERSION="${TBB_VERSION}"
+             )
 
 # Source groups for libutil and libtexture
 source_group ("libutil"    REGULAR_EXPRESSION ".+/libutil/.+")
 source_group ("libtexture" REGULAR_EXPRESSION ".+/libtexture/.+")
 
-if (BUILDSTATIC)
-    add_library (OpenImageIO STATIC ${libOpenImageIO_srcs})
-else ()
-    add_library (OpenImageIO SHARED ${libOpenImageIO_srcs})
+target_include_directories (OpenImageIO
+                            PUBLIC
+                                $<INSTALL_INTERFACE:include>
+                            ${OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY}
+                                ${OPENEXR_INCLUDES}
+                            PRIVATE
+                                ${ROBINMAP_INCLUDES}
+                            )
+target_include_directories (OpenImageIO SYSTEM PUBLIC ${OpenCV_INCLUDES})
+
+if (NOT BUILD_SHARED_LIBS)
+    target_compile_definitions (OpenImageIO PUBLIC OIIO_STATIC_DEFINE=1)
 endif ()
+
+# Propagate C++ minimum to downstream
+target_compile_features (OpenImageIO
+                         INTERFACE cxx_std_${DOWNSTREAM_CXX_STANDARD})
+
 target_link_libraries (OpenImageIO
-                           ${VISIBILITY_COMMAND} ${VISIBILITY_MAP_COMMAND}
-                           ${Boost_LIBRARIES})
-
-# Include FFmpeg if using it
-if (USE_FFMPEG AND FFMPEG_FOUND)
-    message (STATUS "Linking FFmpeg ${FFMPEG_LIBRARIES}")
-    target_link_libraries (OpenImageIO ${FFMPEG_LIBRARIES})
-endif ()
-
-        
-# Include OpenColorIO if using it
-if (USE_OCIO AND OCIO_FOUND)
-    message (STATUS "Linking OpenColorIO ${OCIO_LIBRARIES}")
-    target_link_libraries (OpenImageIO ${OCIO_LIBRARIES})
-endif ()
-
-
-# Include OpenCV if using it
-if (OpenCV_FOUND)
-    include_directories (${OpenCV_INCLUDE_DIR})
-    target_link_libraries (OpenImageIO opencv_core opencv_highgui)
-endif ()
-
-# Include OpenSSL if using it
-if (OPENSSL_FOUND)
-    include_directories (${OPENSSL_INCLUDE_DIR})
-    target_link_libraries (OpenImageIO ${OPENSSL_LIBRARIES})
-endif ()
-
-# Include Freetype if using it
-if (FREETYPE_FOUND)
-    include_directories (${FREETYPE_INCLUDE_DIRS})
-    target_link_libraries (OpenImageIO ${FREETYPE_LIBRARIES})
-endif ()
-
-
+        PUBLIC
+            OpenImageIO_Util
+            ${OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY}
+            ${OPENIMAGEIO_IMATH_TARGETS}
+        PRIVATE
+            ${OPENIMAGEIO_OPENEXR_TARGETS}
+            ${OpenCV_LIBRARIES}
+            ${format_plugin_libs} # Add all the target link libraries from the plugins
+            $<TARGET_NAME_IF_EXISTS:OpenColorIO::OpenColorIO>
+            $<TARGET_NAME_IF_EXISTS:OpenColorIO::OpenColorIOHeaders>
+            $<TARGET_NAME_IF_EXISTS:pugixml::pugixml>
+            $<TARGET_NAME_IF_EXISTS:TBB::tbb>
+            $<TARGET_NAME_IF_EXISTS:Freetype::Freetype>
+            ${BZIP2_LIBRARIES}
+            ZLIB::ZLIB
+            $<TARGET_NAME_IF_EXISTS:Boost::thread>
+            ${CMAKE_DL_LIBS}
+        )
 
 if (WIN32)
-    target_link_libraries (OpenImageIO psapi.lib)
+    target_link_libraries (OpenImageIO PRIVATE psapi)
+endif()
+
+if (MINGW)
+    target_link_libraries (OpenImageIO PRIVATE ws2_32)
+endif()
+
+file (GLOB iba_sources "imagebufalgo_*.cpp")
+if (MSVC)
+    # In some MSVC setups, the IBA functions with huge template expansions
+    # can run into trouble if the /bigobj flag is not used. Turn it on for
+    # these files most likely to use it.
+    # FIXME: Does anybody know if there is an advantage to limiting it to
+    # just the files that most need it? Or is it better to make it totally
+    # foolproof by using /bigobj for all our modules on Windows?
+    set_property (SOURCE imagebuf.cpp ${iba_sources}
+                  APPEND_STRING PROPERTY COMPILE_FLAGS " /bigobj ")
 endif ()
 
-add_dependencies (OpenImageIO "${CMAKE_CURRENT_SOURCE_DIR}/libOpenImageIO.map")
-
-if (EMBEDPLUGINS)
-    target_link_libraries (OpenImageIO ${PNG_LIBRARIES} ${TIFF_LIBRARIES}
-                               ${JPEG_LIBRARIES} ${ZLIB_LIBRARIES}
-                               ${FIELD3D_LIBRARY}
-                               ${HDF5_LIBRARY}
-                               ${OPENJPEG_LIBRARIES}
-                               ${WEBP_LIBRARY}
-                          )
-    link_openexr (OpenImageIO)
-    if (USE_GIF AND GIF_FOUND)
-        target_link_libraries (OpenImageIO ${GIF_LIBRARY})
-    endif ()
-
-    if (USE_LIBRAW AND LIBRAW_FOUND)
-        target_link_libraries (OpenImageIO ${LibRaw_r_LIBRARIES})
-    endif ()
+if (CMAKE_UNITY_BUILD)
+    # If doing a unity build in group mode, make each plugin dir one group (and
+    # the texture library one group), and make the rest of the non-IBA module one
+    # group together. Regardless, leave IBA modules to compile indidividually
+    # because they tend to be very expensive.
+    set_source_files_properties (
+        # ${libOpenImageIO_srcs}
+            deepdata.cpp exif.cpp exif-canon.cpp formatspec.cpp imagebuf.cpp
+            imageinput.cpp imageio.cpp imageioplugin.cpp imageoutput.cpp
+            iptc.cpp xmp.cpp color_ocio.cpp maketexture.cpp bluenoise.cpp
+        PROPERTIES
+            UNITY_GROUP oiiolib)
+    foreach (plugin_dir ${all_format_plugin_dirs} ../libtexture)
+        file (GLOB plugin_dir_sources ${plugin_dir}/*.cpp ${plugin_dir}/*/*.cpp)
+        get_filename_component (_group_name ${plugin_dir} NAME_WE)
+        set_source_files_properties (${plugin_dir_sources} PROPERTIES
+                                     UNITY_GROUP ${_group_name})
+        if (VERBOSE)
+            message (STATUS "Unity group ${_group_name} = ${plugin_dir_sources}")
+        endif ()
+    endforeach ()
+    set_property (SOURCE ${iba_sources} APPEND PROPERTY SKIP_UNITY_BUILD_INCLUSION TRUE)
 endif ()
 
-link_ilmbase (OpenImageIO)
-
-if (USE_EXTERNAL_PUGIXML)
-    target_link_libraries (OpenImageIO ${PUGIXML_LIBRARIES})
-endif ()
-
-message(STATUS "Setting SOVERSION to: ${SOVERSION}")
 set_target_properties(OpenImageIO
-                         PROPERTIES
-                         VERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}.${OIIO_VERSION_PATCH}
-                         SOVERSION ${SOVERSION}
+                      PROPERTIES
+                         VERSION     ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
+                         SOVERSION   ${SOVERSION}
+                         OUTPUT_NAME OpenImageIO${OIIO_LIBNAME_SUFFIX}
+                         POSITION_INDEPENDENT_CODE ON
+                        # UNITY_BUILD_BATCH_SIZE 4
                      )
 
-# For consistency with the linux SpComp2s, create Mac OS X SpComp2s
-# with a .so suffix instead of a .dylib suffix.
-if(DEFINED OVERRIDE_SHARED_LIBRARY_SUFFIX)
-  message(STATUS "Setting SUFFIX to: ${OVERRIDE_SHARED_LIBRARY_SUFFIX}")
-  set_target_properties(OpenImageIO
-                           PROPERTIES
-                           SUFFIX ${OVERRIDE_SHARED_LIBRARY_SUFFIX}
-                       )
-endif(DEFINED OVERRIDE_SHARED_LIBRARY_SUFFIX)
+set (OpenImageIO_LINK_FLAGS "${VISIBILITY_MAP_COMMAND} ${EXTRA_DSO_LINK_ARGS}")
+if (UNIX AND NOT APPLE)
+    # Hide symbols from any static dependent libraries embedded here.
+    set (OpenImageIO_LINK_FLAGS "${OpenImageIO_LINK_FLAGS} -Wl,--exclude-libs,ALL")
+endif ()
+set_target_properties (OpenImageIO PROPERTIES LINK_FLAGS ${OpenImageIO_LINK_FLAGS})
 
-oiio_install_targets (OpenImageIO)
+install_targets (OpenImageIO)
 
 
 # Testing
 
-# Definition needed by boost_unit_test_framework library
-# and by PTEX DLL
-if (NOT LINKSTATIC)
-    add_definitions (-DBOOST_TEST_DYN_LINK)
-    add_definitions (-DPTEX_EXPORTS)
-else()
-    add_definitions (-DPTEX_STATIC)
-endif ()
+if (OIIO_BUILD_TESTS AND BUILD_TESTING)
 
-
-if (OIIO_BUILD_TESTS)
+    add_executable (color_test color_test.cpp)
+    target_link_libraries (color_test PRIVATE OpenImageIO)
+    set_target_properties (color_test PROPERTIES FOLDER "Unit Tests")
+    add_test (unit_color ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/color_test)
 
     add_executable (imagebuf_test imagebuf_test.cpp)
+    target_link_libraries (imagebuf_test PRIVATE OpenImageIO)
     set_target_properties (imagebuf_test PROPERTIES FOLDER "Unit Tests")
-    target_link_libraries (imagebuf_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
-    link_ilmbase (imagebuf_test)
-    add_test (unit_imagebuf imagebuf_test)
+    add_test (unit_imagebuf ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagebuf_test)
+
+    add_executable (imagecache_test imagecache_test.cpp)
+    target_link_libraries (imagecache_test PRIVATE OpenImageIO)
+    set_target_properties (imagecache_test PROPERTIES FOLDER "Unit Tests")
+    add_test (unit_imagecache ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagecache_test)
 
     add_executable (imagebufalgo_test imagebufalgo_test.cpp)
+    target_link_libraries (imagebufalgo_test PRIVATE OpenImageIO ${OpenCV_LIBRARIES})
     set_target_properties (imagebufalgo_test PROPERTIES FOLDER "Unit Tests")
-    target_link_libraries (imagebufalgo_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
-    link_ilmbase (imagebufalgo_test)
-    add_test (unit_imagebufalgo imagebufalgo_test)
+    add_test (unit_imagebufalgo ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagebufalgo_test)
 
     add_executable (imagespec_test imagespec_test.cpp)
+    target_link_libraries (imagespec_test PRIVATE OpenImageIO)
     set_target_properties (imagespec_test PROPERTIES FOLDER "Unit Tests")
-    target_link_libraries (imagespec_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
-    add_test (unit_imagespec imagespec_test)
-    
-    add_executable (imagespeed_test imagespeed_test.cpp)
-    set_target_properties (imagespeed_test PROPERTIES FOLDER "Unit Tests")
-    target_link_libraries (imagespeed_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
-    link_ilmbase (imagespeed_test)
-    #add_test (imagespeed_test imagespeed_test)
+    add_test (unit_imagespec ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagespec_test)
 
-endif (OIIO_BUILD_TESTS)
+    add_executable (imageinout_test imageinout_test.cpp)
+    target_link_libraries (imageinout_test PRIVATE OpenImageIO)
+    set_target_properties (imageinout_test PROPERTIES FOLDER "Unit Tests")
+    add_test (unit_imageinout ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imageinout_test)
+
+    if (NOT DEFINED ENV{OpenImageIO_CI})
+        add_executable (imagespeed_test imagespeed_test.cpp)
+        target_link_libraries (imagespeed_test PRIVATE OpenImageIO)
+        set_target_properties (imagespeed_test PROPERTIES FOLDER "Unit Tests")
+        #add_test (imagespeed_test ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagespeed_test)
+    endif ()
+
+    add_executable (compute_test compute_test.cpp)
+    target_link_libraries (compute_test PRIVATE OpenImageIO)
+    set_target_properties (compute_test PROPERTIES FOLDER "Unit Tests")
+    add_test (unit_compute ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/compute_test)
+
+endif ()

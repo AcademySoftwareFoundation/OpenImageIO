@@ -1,0 +1,143 @@
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
+
+name: Analysis
+
+on:
+  schedule:
+    # Run nightly while we're still working our way through the warnings
+    - cron: "0 8 * * *"
+    # Run unconditionally once weekly
+    # - cron: "0 0 * * 0"
+  push:
+    # Run on pushes only to master or if the branch name contains "analysis"
+    branches:
+      - master
+      - '*analysis*'
+      - '*sonar*'
+  # Allow manual kicking off of the workflow from github.com
+  workflow_dispatch:
+  # Uncomment the following line if we want to run analysis on all PRs:
+  # pull_request:
+
+permissions: read-all
+
+# Allow subsequent pushes to the same PR or REF to cancel any previous jobs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+
+jobs:
+
+  aswf:
+    name: "SonarCloud Analysis"
+    # Exclude runs on forks, since only the main org has the SonarCloud
+    # account credentials.
+    if: github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - desc: sonar gcc9/C++14 py39 boost1.76 exr3.1 ocio2.2
+            nametag: static-analysis-sonar
+            os: ubuntu-latest
+            container: aswf/ci-osl:2023-clang15
+            vfxyear: 2023
+            cxx_std: 17
+            python_ver: "3.10"
+            simd: "avx2,f16c"
+            fmt_ver: 10.1.1
+            pybind11_ver: v2.10.0
+            coverage: 1
+            # skip_tests: 1
+            sonar: 1
+            setenvs: export SONAR_SERVER_URL="https://sonarcloud.io"
+                            BUILD_WRAPPER_OUT_DIR=/__w/OpenImageIO/OpenImageIO/bw_output
+                            OIIO_CMAKE_BUILD_WRAPPER="build-wrapper-linux-x86-64 --out-dir /__w/OpenImageIO/OpenImageIO/bw_output"
+                            CMAKE_BUILD_TYPE=Debug
+                            CMAKE_UNITY_BUILD=OFF
+                            CODECOV=1
+                            CTEST_TEST_TIMEOUT=1200
+                            OIIO_CMAKE_FLAGS="-DOIIO_TEX_IMPLEMENT_VARYINGREF=OFF"
+
+    runs-on: ${{ matrix.os }}
+    container:
+      image: ${{ matrix.container }}
+    env:
+      CXX: ${{matrix.cxx_compiler}}
+      CC: ${{matrix.cc_compiler}}
+      CMAKE_CXX_STANDARD: ${{matrix.cxx_std}}
+      USE_SIMD: ${{matrix.simd}}
+      FMT_VERSION: ${{matrix.fmt_ver}}
+      OPENEXR_VERSION: ${{matrix.openexr_ver}}
+      PYBIND11_VERSION: ${{matrix.pybind11_ver}}
+      PYTHON_VERSION: ${{matrix.python_ver}}
+      # DEBUG_CI: 1
+    steps:
+      # We would like to use harden-runner, but it flags too many false
+      # positives, every time we download a dependency. We should use it only
+      # on CI runs where we are producing artifacts that users might rely on.
+      # - name: Harden Runner
+      #   uses: step-security/harden-runner@248ae51c2e8cc9622ecf50685c8bf7150c6e8813 # v1.4.3
+      #   with:
+      #     egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: '0'
+      - name: Prepare ccache timestamp
+        id: ccache_cache_keys
+        run: echo "date=`date -u +'%Y-%m-%dT%H:%M:%SZ'`" >> $GITHUB_OUTPUT
+      - name: ccache
+        id: ccache
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        with:
+          path: /tmp/ccache
+          key: ${{github.job}}-${{matrix.nametag}}-${{steps.ccache_cache_keys.outputs.date}}
+          restore-keys: ${{github.job}}-
+      - name: Build setup
+        run: |
+            ${{matrix.setenvs}}
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            ${{matrix.depcmds}}
+            src/build-scripts/gh-installdeps.bash
+      - name:  Install sonar-scanner and build-wrapper
+        if: matrix.sonar == '1'
+        uses: sonarsource/sonarcloud-github-c-cpp@e4882e1621ad2fb48dddfa48287411bed34789b1 # v2.0.2
+      - name: Build
+        run: src/build-scripts/ci-build.bash
+      - name: Testsuite
+        if: matrix.skip_tests != '1'
+        run: src/build-scripts/ci-test.bash
+      - name: Code coverage
+        if: matrix.coverage == '1'
+        run: src/build-scripts/ci-coverage.bash
+      - name: Sonar-scanner
+        if: matrix.sonar == 1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+            which sonar-scanner
+            ls -l /__w/OpenImageIO/OpenImageIO/bw_output
+            echo "BUILD_OUTPUT_DIR is " "${{ env.BUILD_WRAPPER_OUT_DIR }}"
+            find . -name "*.gcov" -print
+            # sonar-scanner --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
+            time sonar-scanner --define sonar.host.url="${{ env.SONAR_SERVER_URL }}" --define sonar.cfamily.build-wrapper-output="$BUILD_WRAPPER_OUT_DIR" --define sonar.cfamily.gcov.reportsPath="_coverage" --define sonar.cfamily.threads="$PARALLEL"
+        # Consult https://docs.sonarcloud.io/advanced-setup/ci-based-analysis/sonarscanner-cli/ for more information and options
+
+      # - uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
+      #   if: failure()
+      #   with:
+      #     name: oiio-${{github.job}}-${{matrix.nametag}}
+      #     path: |
+      #       build/cmake-save
+      #       build/testsuite/*/*.*
+      #       !build/testsuite/oiio-images
+      #       !build/testsuite/openexr-images
+      #       !build/testsuite/fits-images
+      #       !build/testsuite/j2kp4files_v1_5
+

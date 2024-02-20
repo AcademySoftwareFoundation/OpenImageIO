@@ -1,0 +1,219 @@
+Reading ../oiio-images/targa/CBW8.TGA
+../oiio-images/targa/CBW8.TGA :  128 x  128, 1 channel, uint8 targa
+    SHA-1: E157488A1D82536C6CC5F38CA2BF3CAA397BE69A
+    channel list: Y
+    Artist: "Ricky True"
+    compression: "rle"
+    DateTime: "1990:03:24 10:00:00"
+    DocumentName: "TGA Utilities"
+    ImageDescription: "Sample 8 bit run length compressed black and white image"
+    Software: "TGAEdit 2.0"
+    thumbnail_height: 64
+    thumbnail_nchannels: 1
+    thumbnail_width: 64
+    oiio:BitsPerSample: 8
+    targa:ImageID: "Truevision(R) Sample Image"
+    targa:version: 2
+Comparing "../oiio-images/targa/CBW8.TGA" and "CBW8.TGA"
+PASS
+Reading ../oiio-images/targa/CCM8.TGA
+../oiio-images/targa/CCM8.TGA :  128 x  128, 3 channel, uint2 targa
+    SHA-1: C3CFE6424C5A9D88BB212BFE230F5B9875F434C4
+    channel list: R, G, B
+    Artist: "Ricky True"
+    compression: "rle"
+    DateTime: "1990:03:24 10:00:00"
+    DocumentName: "TGA Utilities"
+    ImageDescription: "Sample 8 bit run length compressed color mapped image"
+    Software: "TGAEdit 2.0"
+    thumbnail_height: 64
+    thumbnail_nchannels: 3
+    thumbnail_width: 64
+    oiio:BitsPerSample: 2
+    targa:ImageID: "Truevision(R) Sample Image"
+    targa:version: 2
+Comparing "../oiio-images/targa/CCM8.TGA" and "CCM8.TGA"
+PASS
+Reading ../oiio-images/targa/CTC16.TGA
+../oiio-images/targa/CTC16.TGA :  128 x  128, 3 channel, uint5 targa
+    SHA-1: C3CFE6424C5A9D88BB212BFE230F5B9875F434C4
+    channel list: R, G, B
+    Artist: "Ricky True"
+    compression: "rle"
+    DateTime: "1990:03:24 10:00:00"
+    DocumentName: "TGA Utilities"
+    ImageDescription: "Sample 16 bit run length compressed true color image"
+    Software: "TGAEdit 2.0"
+    thumbnail_height: 64
+    thumbnail_nchannels: 3
+    thumbnail_width: 64
+    oiio:BitsPerSample: 5
+    targa:alpha_type: 2
+    targa:ImageID: "Truevision(R) Sample Image"
+    targa:version: 2
+Comparing "../oiio-images/targa/CTC16.TGA" and "CTC16.TGA"
+PASS
+Reading ../oiio-images/targa/CTC24.TGA
+../oiio-images/targa/CTC24.TGA :  128 x  128, 3 channel, uint8 targa
+    SHA-1: C3CFE6424C5A9D88BB212BFE230F5B9875F434C4
+    channel list: R, G, B
+    Artist: "Ricky True"
+    compression: "rle"
+    DateTime: "1990:03:24 10:00:00"
+    DocumentName: "TGA Utilities"
+    ImageDescription: "Sample 24 bit run length compressed true color image"
+    Software: "TGAEdit 2.0"
+    thumbnail_height: 64
+    thumbnail_nchannels: 3
+    thumbnail_width: 64
+    oiio:BitsPerSample: 8
+    targa:ImageID: "Truevision(R) Sample Image"
+    targa:version: 2
+Comparing "../oiio-images/targa/CTC24.TGA" and "CTC24.TGA"
+PASS
+Reading ../oiio-images/targa/CTC32.TGA
+../oiio-images/targa/CTC32.TGA :  128 x  128, 4 channel, uint8 targa
+    SHA-1: 1ADC95BEBE9EEA8C112D40CD04AB7A8D75C4F961
+    channel list: R, G, B, A
+    Artist: "Ricky True"
+    compression: "rle"
+    DateTime: "1990:03:24 10:00:00"
+    DocumentName: "TGA Utilities"
+    ImageDescription: "Sample 32 bit run length compressed true color image"
+    Software: "TGAEdit 2.0"
+    thumbnail_height: 64
+    thumbnail_nchannels: 4
+    thumbnail_width: 64
+    oiio:BitsPerSample: 8
+    targa:alpha_type: 2
+    targa:ImageID: "Truevision(R) Sample Image"
+    targa:version: 2
+Comparing "../oiio-images/targa/CTC32.TGA" and "CTC32.TGA"
+PASS
+Reading ../oiio-images/targa/UBW8.TGA
+../oiio-images/targa/UBW8.TGA :  128 x  128, 1 channel, uint8 targa
+    SHA-1: E157488A1D82536C6CC5F38CA2BF3CAA397BE69A
+    channel list: Y
+    Artist: "Ricky True"
+    DateTime: "1990:02:23 10:00:00"
+    DocumentName: "TGA Utilities"
+    ImageDescription: "Sample 8 bit uncompressed black and white image"
+    Software: "TGAEdit 1.30"
+    thumbnail_height: 64
+    thumbnail_nchannels: 1
+    thumbnail_width: 64
+    oiio:BitsPerSample: 8
+    targa:ImageID: "Truevision(R) Sample Image"
+    targa:version: 2
+Comparing "../oiio-images/targa/UBW8.TGA" and "UBW8.TGA"
+PASS
+Reading ../oiio-images/targa/UCM8.TGA
+../oiio-images/targa/UCM8.TGA :  128 x  128, 3 channel, uint2 targa
+    SHA-1: C3CFE6424C5A9D88BB212BFE230F5B9875F434C4
+    channel list: R, G, B
+    Artist: "Ricky True"
+    DateTime: "1990:02:24 10:00:00"
+    DocumentName: "TGA Utilities"
+    ImageDescription: "Sample 8 bit uncompressed color mapped image"
+    Software: "TGAEdit 1.40"
+    thumbnail_height: 64
+    thumbnail_nchannels: 3
+    thumbnail_width: 64
+    oiio:BitsPerSample: 2
+    targa:ImageID: "Truevision(R) Sample Image"
+    targa:version: 2
+Comparing "../oiio-images/targa/UCM8.TGA" and "UCM8.TGA"
+PASS
+Reading ../oiio-images/targa/UTC16.TGA
+../oiio-images/targa/UTC16.TGA :  128 x  128, 3 channel, uint5 targa
+    SHA-1: C3CFE6424C5A9D88BB212BFE230F5B9875F434C4
+    channel list: R, G, B
+    Artist: "Ricky True"
+    DateTime: "1990:02:23 10:00:00"
+    DocumentName: "TGA Utilities"
+    ImageDescription: "Sample 16 bit uncompressed true color image"
+    Software: "TGAEdit 1.30"
+    thumbnail_height: 64
+    thumbnail_nchannels: 3
+    thumbnail_width: 64
+    oiio:BitsPerSample: 5
+    targa:alpha_type: 2
+    targa:ImageID: "Truevision(R) Sample Image"
+    targa:version: 2
+Comparing "../oiio-images/targa/UTC16.TGA" and "UTC16.TGA"
+PASS
+Reading ../oiio-images/targa/UTC24.TGA
+../oiio-images/targa/UTC24.TGA :  128 x  128, 3 channel, uint8 targa
+    SHA-1: C3CFE6424C5A9D88BB212BFE230F5B9875F434C4
+    channel list: R, G, B
+    Artist: "Ricky True"
+    DateTime: "1990:02:24 10:00:00"
+    DocumentName: "TGA Utilities"
+    ImageDescription: "Sample 24 bit uncompressed true color image"
+    Software: "TGAEdit 1.40"
+    thumbnail_height: 64
+    thumbnail_nchannels: 3
+    thumbnail_width: 64
+    oiio:BitsPerSample: 8
+    targa:ImageID: "Truevision(R) Sample Image"
+    targa:version: 2
+Comparing "../oiio-images/targa/UTC24.TGA" and "UTC24.TGA"
+PASS
+Reading ../oiio-images/targa/UTC32.TGA
+../oiio-images/targa/UTC32.TGA :  128 x  128, 4 channel, uint8 targa
+    SHA-1: 1ADC95BEBE9EEA8C112D40CD04AB7A8D75C4F961
+    channel list: R, G, B, A
+    Artist: "Ricky True"
+    DateTime: "1990:02:24 10:00:00"
+    DocumentName: "TGA Utilities"
+    ImageDescription: "Sample 32 bit uncompressed true color image"
+    Software: "TGAEdit 1.40"
+    thumbnail_height: 64
+    thumbnail_nchannels: 4
+    thumbnail_width: 64
+    oiio:BitsPerSample: 8
+    targa:alpha_type: 2
+    targa:ImageID: "Truevision(R) Sample Image"
+    targa:version: 2
+Comparing "../oiio-images/targa/UTC32.TGA" and "UTC32.TGA"
+PASS
+Reading ../oiio-images/targa/round_grill.tga
+../oiio-images/targa/round_grill.tga :  256 x  256, 4 channel, uint8 targa
+    SHA-1: D8D11F158BE59F6E56F69F399050417557132685
+    channel list: R, G, B, A
+    Software: "COREL 0.0"
+    oiio:BitsPerSample: 8
+    targa:version: 2
+Comparing "../oiio-images/targa/round_grill.tga" and "round_grill.tga"
+PASS
+Converting src/crash1.tga to crash1.exr
+iconvert ERROR copying "src/crash1.tga" to "crash1.exr" :
+	Read error: hit end of file in targa reader
+oiiotool ERROR: read : "src/crash2.tga": Palette image with no palette
+Full command line was:
+> oiiotool --oiioattrib try_all_readers 0 src/crash2.tga -o crash2.exr
+oiiotool ERROR: read : "src/crash3.tga": Palette image with no palette
+Full command line was:
+> oiiotool --oiioattrib try_all_readers 0 src/crash3.tga -o crash3.exr
+oiiotool ERROR: read : "src/crash6.tga": Read error: hit end of file in targa reader
+Full command line was:
+> oiiotool --oiioattrib try_all_readers 0 src/crash6.tga -o crash6.exr
+oiiotool ERROR: read : "src/crash1707.tga": Invalid alpha type 138. Corrupted header?
+Full command line was:
+> oiiotool --oiioattrib try_all_readers 0 src/crash1707.tga -o crash1707.exr
+oiiotool ERROR: read : "src/crash1708.tga": Corrupt palette index
+Full command line was:
+> oiiotool --oiioattrib try_all_readers 0 src/crash1708.tga -o crash1708.exr
+oiiotool ERROR: read : "src/crash3952.tga": Uncompressed image size 15231.5 MB exceeds the 1024 MB limit.
+Image claimed to be 60927x65535, 4-channel uint8. Possible corrupt input?
+If this is a valid file, raise the OIIO attribute "limits:imagesize_MB".
+Full command line was:
+> oiiotool --oiioattrib limits:imagesize_MB 1024 --oiioattrib try_all_readers 0 src/crash3952.tga -o crash3952.exr
+Reading src/1x1.tga
+src/1x1.tga          :    1 x    1, 3 channel, uint2 targa
+    SHA-1: DB9237F28F9622F7B7E73B783A8822B63BDB3708
+    channel list: R, G, B
+    oiio:BitsPerSample: 2
+    targa:version: 1
+Comparing "src/1x1.tga" and "1x1.tga"
+PASS

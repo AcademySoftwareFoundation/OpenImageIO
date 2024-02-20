@@ -1,0 +1,31 @@
+getattribute("max_open_files") 90
+getattribute("max_memory_MB") 900.0
+getattribute("searchpath") ../common
+tahoe_tiny is 128 x 96
+grid is 1000 x 1000
+full getattribute stat:cache_memory_used 0
+full getattribute stat:image_size 4036864
+full getattribute total_files 2
+full getattribute all_filenames ('../common/grid.tif', '../common/tahoe-tiny.tif')
+getattributetype stat:cache_memory_used int64
+getattributetype stat:image_size int64
+getattributetype total_files int
+getattributetype all_filenames string[2]
+untyped getattribute stat:cache_memory_used 0
+untyped getattribute stat:image_size 4036864
+untyped getattribute total_files 2
+untyped getattribute all_filenames ('../common/grid.tif', '../common/tahoe-tiny.tif')
+getpixels from grid.tif: [[[1.         0.49803925 0.49803925 1.        ]
+  [1.         0.49803925 0.49803925 1.        ]]
+
+ [[1.         0.49803925 0.49803925 1.        ]
+  [1.         0.49803925 0.49803925 1.        ]]]
+  has_error? False
+  geterror? 
+getpixels from broken.tif: None
+  has_error? True
+  geterror? Invalid image file "broken.tif": Could not open file: broken.tif: No such file or directory
+getstats beginning:
+['OpenImageIO', 'ImageCache', 'statistics']
+
+Done.

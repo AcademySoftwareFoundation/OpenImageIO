@@ -1,0 +1,35 @@
+Reading ../oiio-images/cineon/checker.cin
+../oiio-images/cineon/checker.cin :  160 x   90, 3 channel, uint10 cineon
+    SHA-1: D9F0919A57216C4A76A7D18413D5BBFEB34C52AA
+    channel list: R, G, B
+    DateTime: "2022:10:17 10:12:05+10"
+    Orientation: 1 (normal)
+    cineon:BitDepth: 10, 10, 10
+    cineon:BluePrimary: 9.15861e-41, 9.15861e-41
+    cineon:FrameId: "written by Nuke"
+    cineon:FramePosition: 16777216
+    cineon:FrameRate: 9.15861e-41
+    cineon:GreenPrimary: 9.15861e-41, 9.15861e-41
+    cineon:HighData: 1.76781e-38, 1.76781e-38, 1.76781e-38
+    cineon:HighQuantity: 8.96831e-44, 8.96831e-44, 8.96831e-44
+    cineon:ImageDescriptor: "Red, printing density", "Green, printing density", "Blue, printing density"
+    cineon:InputDevice: "Created with Nuke 12.2"
+    cineon:InputDeviceModelNumber: "Nuke"
+    cineon:InputDeviceSerialNumber: "12.2"
+    cineon:LinesPerElement: 90, 90, 90
+    cineon:LowData: 0, 0, 0
+    cineon:LowQuantity: 0, 0, 0
+    cineon:Metric: 0, 0, 0
+    cineon:Packing: "32-bit boundary, left justified, at most one pixel per cell"
+    cineon:PixelsPerLine: 160, 160, 160
+    cineon:RedPrimary: 9.15861e-41, 9.15861e-41
+    cineon:SourceImageFileName: "/net/homedirs/lg/test.cin"
+    cineon:UserData: 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... [30720 x uint8]
+    cineon:Version: "V4.5"
+    cineon:WhitePoint: 9.15861e-41, 9.15861e-41
+    cineon:XDevicePitch: -1.60948e-35
+    cineon:XOffset: 0
+    cineon:YDevicePitch: -1.60948e-35
+    cineon:YOffset: 0
+    oiio:BitsPerSample: 10
+    oiio:ColorSpace: "KodakLog"

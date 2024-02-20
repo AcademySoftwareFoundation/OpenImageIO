@@ -1,32 +1,6 @@
-/*
-  Copyright 2008 Larry Gritz and the other authors and contributors.
-  All Rights Reserved.
-
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions are
-  met:
-  * Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
-  * Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution.
-  * Neither the name of the software's owners nor the names of its
-    contributors may be used to endorse or promote products derived from
-    this software without specific prior written permission.
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-  (This is the Modified BSD License)
-*/
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: Apache-2.0
+// https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #if defined(_MSC_VER)
 // Ignore warnings about conditional expressions that always evaluate true
@@ -34,124 +8,201 @@
 // nothing wrong with such conditionals.
 // Also ignore warnings about not being able to generate default assignment
 // operators for some Qt classes included in headers below.
-#  pragma warning (disable : 4127 4512)
+#    pragma warning(disable : 4127 4512)
 #endif
 
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
-#include <cmath>
 #include <ctime>
 #include <iostream>
 #include <iterator>
 
-#include <QtGui/QApplication>
-
-#include <boost/foreach.hpp>
+#include <QApplication>
 
 #include "imageviewer.h"
-#include "OpenImageIO/timer.h"
-#include "OpenImageIO/argparse.h"
-#include "OpenImageIO/sysutil.h"
-#include "OpenImageIO/strutil.h"
-#include "OpenImageIO/imagecache.h"
-#include "OpenImageIO/filesystem.h"
+#include <OpenImageIO/argparse.h>
+#include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/imagecache.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
+#include <OpenImageIO/timer.h>
 
-OIIO_NAMESPACE_USING;
-
-
-static bool verbose = false;
-static bool foreground_mode = false;
-static std::vector<std::string> filenames;
+using namespace OIIO;
 
 
 
-static int
-parse_files (int argc, const char *argv[])
+static ArgParse
+getargs(int argc, char* argv[])
 {
-    for (int i = 0;  i < argc;  i++)
-        filenames.push_back (argv[i]);
-    return 0;
-}
-
-
-
-static void
-getargs (int argc, char *argv[])
-{
-    bool help = false;
     ArgParse ap;
-    ap.options ("iv -- image viewer\n"
-                OIIO_INTRO_STRING "\n"
-                "Usage:  iv [options] [filename...]",
-                  "%*", parse_files, "",
-                  "--help", &help, "Print help message",
-                  "-v", &verbose, "Verbose status messages",
-                  "-F", &foreground_mode, "Foreground mode",
-                  NULL);
-    if (ap.parse (argc, (const char**)argv) < 0) {
-        std::cerr << ap.geterror() << std::endl;
-        ap.usage ();
-        exit (EXIT_FAILURE);
-    }
-    if (help) {
-        ap.usage ();
-        exit (EXIT_FAILURE);
-    }
+    // clang-format off
+    ap.intro("iv -- image viewer\n"
+             OIIO_INTRO_STRING)
+      .usage("iv [options] [filename... | dirname...]")
+      .add_version(OIIO_VERSION_STRING);
+
+    ap.arg("filename")
+      .action(ArgParse::append())
+      .hidden();
+    ap.arg("-v")
+      .help("Verbose status messages")
+      .dest("verbose");
+    ap.arg("-F")
+      .help("Foreground mode")
+      .dest("foreground_mode")
+      .store_true();
+    ap.arg("--no-autopremult")
+      .help("Turn off automatic premultiplication of images with unassociated alpha")
+      .store_true();
+    ap.arg("--rawcolor")
+      .help("Do not automatically transform to RGB");
+
+#ifdef HAS_OCIO_2
+    ap.arg("--display")
+      .help("OCIO display")
+      .metavar("STRING")
+      .defaultval("")
+      .action(ArgParse::store());
+    ap.arg("--image-color-space")
+      .help("OCIO image color space")
+      .metavar("STRING")
+      .defaultval("")
+      .action(ArgParse::store());
+    ap.arg("--view")
+      .help("OCIO view")
+      .metavar("STRING")
+      .defaultval("")
+      .action(ArgParse::store());
+#endif
+    
+    ap.parse(argc, (const char**)argv);
+    return ap;
 }
 
-#ifdef WIN32
-    // if we are not in DEBUG mode this code switch the app to
-    // full windowed mode (no console and no need to define WinMain)
-    // FIXME: this should be done in CMakeLists.txt but first we have to
-    // fix Windows Debug build
-# ifdef NDEBUG
-#  pragma comment(linker, "/subsystem:windows /entry:mainCRTStartup")
-# endif
+
+
+#ifdef _MSC_VER
+// if we are not in DEBUG mode this code switch the app to
+// full windowed mode (no console and no need to define WinMain)
+// FIXME: this should be done in CMakeLists.txt but first we have to
+// fix Windows Debug build
+#    ifdef NDEBUG
+#        pragma comment(linker, "/subsystem:windows /entry:mainCRTStartup")
+#    endif
 #endif
 
 
 int
-main (int argc, char *argv[])
+main(int argc, char* argv[])
 {
-    Filesystem::convert_native_arguments (argc, (const char **)argv);
-    getargs (argc, argv);
+    // Helpful for debugging to make sure that any crashes dump a stack
+    // trace.
+    Sysutil::setup_crash_stacktrace("stdout");
 
-    if (! foreground_mode)
-        Sysutil::put_in_background (argc, argv);
+    Filesystem::convert_native_arguments(argc, (const char**)argv);
+    ArgParse ap = getargs(argc, argv);
+
+    if (!ap["foreground_mode"].get<int>())
+        Sysutil::put_in_background(argc, argv);
 
     // LG
-//    Q_INIT_RESOURCE(iv);
+    //    Q_INIT_RESOURCE(iv);
     QApplication app(argc, argv);
-    ImageViewer *mainWin = new ImageViewer;
+    
+#ifdef HAS_OCIO_2
+    std::string color_space = ap["image-color-space"].as_string("");
+    std::string display     = ap["display"].as_string("");
+    std::string view        = ap["view"].as_string("");
+    //    std::string look = ap["look"].as_string("");
+    
+    bool use_ocio = color_space != "" && display != "" && view != "";
+    
+    ImageViewer* mainWin = new ImageViewer(use_ocio, color_space, display, 
+                                           view);
+#else
+    std::string dummy;
+    ImageViewer* mainWin = new ImageViewer(false, dummy, dummy, dummy);
+#endif
+    
+    
     mainWin->show();
 
     // Set up the imagecache with parameters that make sense for iv
-    ImageCache *imagecache = ImageCache::create (true);
-    imagecache->attribute ("autotile", 256);
+    ImageCache* imagecache = ImageCache::create(true);
+    imagecache->attribute("autotile", 256);
+    imagecache->attribute("deduplicate", (int)0);
+    if (ap["no-autopremult"].get<int>())
+        imagecache->attribute("unassociatedalpha", 1);
+    if (ap["rawcolor"].get<int>())
+        mainWin->rawcolor(true);
 
     // Make sure we are the top window with the focus.
-    mainWin->raise ();
-    mainWin->activateWindow ();
+    mainWin->raise();
+    mainWin->activateWindow();
 
-    // Add the images
-    BOOST_FOREACH (const std::string &s, filenames) {
-        mainWin->add_image (s);
+    ustring uexists("exists");
+    std::vector<std::string> extensionsVector; // Vector to hold all extensions
+    auto all_extensions = OIIO::get_string_attribute("extension_list");
+    for (auto oneformat : OIIO::Strutil::splitsv(all_extensions, ";")) { // Split the extensions by semicolon
+        auto format_exts = OIIO::Strutil::splitsv(oneformat, ":", 2);
+        for (auto ext : OIIO::Strutil::splitsv(format_exts[1], ","))
+            extensionsVector.emplace_back(ext); 
     }
 
-    mainWin->current_image (0);
+    // Add the images
+    for (auto& f : ap["filename"].as_vec<std::string>()) {
+        // Check if the file exists
+        if (!Filesystem::exists(f)) {
+            std::cerr << "Error: File or directory does not exist: " << f << "\n";
+            continue;
+        }
+
+        if (Filesystem::is_directory(f)) {
+            // If f is a directory, iterate through its files
+            std::vector<std::string> files;
+            Filesystem::get_directory_entries(f, files);
+
+            std::vector<std::string> validImages;  // Vector to hold valid images
+            for (auto& file : files) {
+                std::string extension = Filesystem::extension(file).substr(1);  // Remove the leading dot
+                if (std::find(extensionsVector.begin(), extensionsVector.end(), extension) != extensionsVector.end()) {
+                    int exists = 0;
+                    bool ok = imagecache->get_image_info(ustring(file), 0, 0, uexists, OIIO::TypeInt, &exists);
+                    if (ok && exists)
+                        validImages.push_back(file);
+                }
+            }
+
+            if (validImages.empty()) {
+                std::cerr << "Error: No valid images found in directory: " << f << "\n";
+            } else {
+                std::sort(validImages.begin(), validImages.end()); // Sort the valid images lexicographically
+                for (auto& validImage : validImages) {
+                    mainWin->add_image(validImage);
+                }
+            }
+        } else {
+            mainWin->add_image(f);
+        } 
+    }
+
+    mainWin->current_image(0);
 
     int r = app.exec();
     // OK to clean up here
 
+    int verbose = ap["verbose"].get<int>();
 #ifdef NDEBUG
     if (verbose)
 #endif
     {
-        size_t mem = Sysutil::memory_used (true);
-        std::cout << "iv total memory used: " << Strutil::memformat (mem) << "\n";
+        size_t mem = Sysutil::memory_used(true);
+        std::cout << "iv total memory used: " << Strutil::memformat(mem)
+                  << "\n";
         std::cout << "\n";
-        std::cout << imagecache->getstats (1+verbose) << "\n";
+        std::cout << imagecache->getstats(1 + verbose) << "\n";
     }
-
+    shutdown();
     return r;
 }

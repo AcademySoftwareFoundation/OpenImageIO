@@ -1,8 +1,6 @@
-find_package (JPEG)
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-if (JPEG_FOUND)
-    include_directories (${JPEG_INCLUDE_DIR})
-    add_oiio_plugin (psdinput.cpp psdoutput.cpp jpeg_memory_src.cpp
-        LINK_LIBRARIES ${JPEG_LIBRARIES})
-endif ()
+add_oiio_plugin (psdinput.cpp)
 

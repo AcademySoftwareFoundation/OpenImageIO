@@ -1,0 +1,463 @@
+../common/textures/grid.tx : 1024 x 1024, 4 channel, uint8 tiff (4.00 MB)
+    MIP-map levels: 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 7DB3F1E464C5F38CAAECE8ABC8684EC66FC9FA68
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    compression: "zip"
+    DateTime: "2014:11:29 23:20:23"
+    DocumentName: "g.tif"
+    fovcot: 1
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    planarconfig: "contig"
+    ResolutionUnit: "in"
+    Software: "OpenImageIO 1.5.7dev : maketx -filter lanczos3 --resize grid.tif -o grid.tx"
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    XResolution: 72
+    YResolution: 72
+    oiio:AverageColor: "0.608983,0.608434,0.608728,1"
+    oiio:BitsPerSample: 8
+    oiio:SHA-1: "233A1D3412A54A5F49814AB7BFFD04F56F46D3D7"
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+    MIP 0 of 11 (1024 x 1024):
+      Stats Min: 0 0 0 255 (of 255)
+      Stats Max: 255 255 255 255 (of 255)
+      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
+      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats NanCount: 0 0 0 0 
+      Stats InfCount: 0 0 0 0 
+      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Constant: No
+      Monochrome: No
+    MIP 1 of 11 (512 x 512):
+      Stats Min: 0 0 0 255 (of 255)
+      Stats Max: 255 255 255 255 (of 255)
+      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
+      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats NanCount: 0 0 0 0 
+      Stats InfCount: 0 0 0 0 
+      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Constant: No
+      Monochrome: No
+    MIP 2 of 11 (256 x 256):
+      Stats Min: 0 0 0 255 (of 255)
+      Stats Max: 255 255 255 255 (of 255)
+      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
+      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats NanCount: 0 0 0 0 
+      Stats InfCount: 0 0 0 0 
+      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Constant: No
+      Monochrome: No
+    MIP 3 of 11 (128 x 128):
+      Stats Min: 0 0 0 255 (of 255)
+      Stats Max: 255 255 255 255 (of 255)
+      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
+      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats NanCount: 0 0 0 0 
+      Stats InfCount: 0 0 0 0 
+      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Constant: No
+      Monochrome: No
+    MIP 4 of 11 (64 x 64):
+      Stats Min: 0 0 0 255 (of 255)
+      Stats Max: 255 255 255 255 (of 255)
+      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
+      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats NanCount: 0 0 0 0 
+      Stats InfCount: 0 0 0 0 
+      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Constant: No
+      Monochrome: No
+    MIP 5 of 11 (32 x 32):
+      Stats Min: 0 0 0 255 (of 255)
+      Stats Max: 255 255 255 255 (of 255)
+      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
+      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats NanCount: 0 0 0 0 
+      Stats InfCount: 0 0 0 0 
+      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Constant: No
+      Monochrome: No
+    MIP 6 of 11 (16 x 16):
+      Stats Min: 0 0 0 255 (of 255)
+      Stats Max: 255 255 255 255 (of 255)
+      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
+      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats NanCount: 0 0 0 0 
+      Stats InfCount: 0 0 0 0 
+      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Constant: No
+      Monochrome: No
+    MIP 7 of 11 (8 x 8):
+      Stats Min: 0 0 0 255 (of 255)
+      Stats Max: 255 255 255 255 (of 255)
+      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
+      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats NanCount: 0 0 0 0 
+      Stats InfCount: 0 0 0 0 
+      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Constant: No
+      Monochrome: No
+    MIP 8 of 11 (4 x 4):
+      Stats Min: 0 0 0 255 (of 255)
+      Stats Max: 255 255 255 255 (of 255)
+      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
+      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats NanCount: 0 0 0 0 
+      Stats InfCount: 0 0 0 0 
+      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Constant: No
+      Monochrome: No
+    MIP 9 of 11 (2 x 2):
+      Stats Min: 0 0 0 255 (of 255)
+      Stats Max: 255 255 255 255 (of 255)
+      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
+      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats NanCount: 0 0 0 0 
+      Stats InfCount: 0 0 0 0 
+      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Constant: No
+      Monochrome: No
+    MIP 10 of 11 (1 x 1):
+      Stats Min: 0 0 0 255 (of 255)
+      Stats Max: 255 255 255 255 (of 255)
+      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
+      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats NanCount: 0 0 0 0 
+      Stats InfCount: 0 0 0 0 
+      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Constant: No
+      Monochrome: No
+Total size: 4.0 MB
+src/tiny-az.exr :    4 x    4, 3 channel, float openexr
+src/tiny-az.exr :     SHA-1: 2556575B7F2398D97FCF2C5CFCBAB741050AC155
+src/tiny-az.exr :     channel list: R, G, B
+src/tiny-az.exr :     pixel data origin: x=2, y=2
+src/tiny-az.exr :     full/display size: 20 x 20
+src/tiny-az.exr :     full/display origin: 1, 1
+src/tiny-az.exr :     compression: "zip"
+src/tiny-az.exr :     DateTime: "2022:11:23 15:17:24"
+src/tiny-az.exr :     PixelAspectRatio: 1
+src/tiny-az.exr :     screenWindowCenter: 0, 0
+src/tiny-az.exr :     screenWindowWidth: 1
+src/tiny-az.exr :     Software: "OpenImageIO 2.5.0.0spi : oiiotool -pattern constant:color=0.25,0.5,0.75 4x4 3 --origin +2+2 --fullsize 20x20+1+1 -o tiny-az.exr"
+src/tiny-az.exr :     Exif:ImageHistory: "oiiotool -pattern constant:color=0.25,0.5,0.75 4x4 3 --origin +2+2 --fullsize 20x20+1+1 -o tiny-az.exr"
+src/tiny-az.exr :     oiio:ColorSpace: "Linear"
+src/tiny-az.exr :     oiio:subimages: 1
+src/tiny-az.exr :     Stats Min: 0.250000 0.500000 0.750000 (float)
+    Stats Max: 0.250000 0.500000 0.750000 (float)
+    Stats Avg: 0.250000 0.500000 0.750000 (float)
+    Stats StdDev: 0.000000 0.000000 0.000000 (float)
+    Stats NanCount: 0 0 0 
+    Stats InfCount: 0 0 0 
+    Stats FiniteCount: 16 16 16 
+    Constant: Yes
+    Constant Color: 0.250000 0.500000 0.750000 (float)
+    Monochrome: No
+info from oiiotool:
+Reading src/tiny-az.exr
+src/tiny-az.exr      :    4 x    4, 3 channel, float openexr
+    SHA-1: 2556575B7F2398D97FCF2C5CFCBAB741050AC155
+    channel list: R, G, B
+    pixel data origin: x=2, y=2
+    full/display size: 20 x 20
+    full/display origin: 1, 1
+    compression: "zip"
+    DateTime: "2022:11:23 15:17:24"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    Software: "OpenImageIO 2.5.0.0spi : oiiotool -pattern constant:color=0.25,0.5,0.75 4x4 3 --origin +2+2 --fullsize 20x20+1+1 -o tiny-az.exr"
+    Exif:ImageHistory: "oiiotool -pattern constant:color=0.25,0.5,0.75 4x4 3 --origin +2+2 --fullsize 20x20+1+1 -o tiny-az.exr"
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+    Pixel (2, 2): 0.250000000 0.500000000 0.750000000
+    Pixel (3, 2): 0.250000000 0.500000000 0.750000000
+    Pixel (4, 2): 0.250000000 0.500000000 0.750000000
+    Pixel (5, 2): 0.250000000 0.500000000 0.750000000
+    Pixel (2, 3): 0.250000000 0.500000000 0.750000000
+    Pixel (3, 3): 0.250000000 0.500000000 0.750000000
+    Pixel (4, 3): 0.250000000 0.500000000 0.750000000
+    Pixel (5, 3): 0.250000000 0.500000000 0.750000000
+    Pixel (2, 4): 0.250000000 0.500000000 0.750000000
+    Pixel (3, 4): 0.250000000 0.500000000 0.750000000
+    Pixel (4, 4): 0.250000000 0.500000000 0.750000000
+    Pixel (5, 4): 0.250000000 0.500000000 0.750000000
+    Pixel (2, 5): 0.250000000 0.500000000 0.750000000
+    Pixel (3, 5): 0.250000000 0.500000000 0.750000000
+    Pixel (4, 5): 0.250000000 0.500000000 0.750000000
+    Pixel (5, 5): 0.250000000 0.500000000 0.750000000
+    Stats Min: 0.250000 0.500000 0.750000 (float)
+    Stats Max: 0.250000 0.500000 0.750000 (float)
+    Stats Avg: 0.250000 0.500000 0.750000 (float)
+    Stats StdDev: 0.000000 0.000000 0.000000 (float)
+    Stats NanCount: 0 0 0 
+    Stats InfCount: 0 0 0 
+    Stats FiniteCount: 16 16 16 
+    Constant: Yes
+    Constant Color: 0.250000 0.500000 0.750000 (float)
+    Monochrome: No
+src/tinydeep.exr :    4 x    4, 2 channel, deep float openexr
+    SHA-1: 941FD2E69D58EB30EE29AD3F71720C3831AAD914
+    channel list: A, Z
+    compression: "zips"
+    DateTime: "2022:11:20 22:17:31"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    Software: "OpenImageIO 2.5.0.0spi : oiiotool -pattern constant:color=1e38,0 4x4 2 --chnames Z,A --point:color=10.0,1.0 2,2 --deepen -o tinydeep.exr"
+    version: 1
+    Exif:ImageHistory: "oiiotool -pattern constant:color=1e38,0 4x4 2 --chnames Z,A --point:color=10.0,1.0 2,2 --deepen -o tinydeep.exr"
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+    openexr:chunkCount: 4
+    Stats Min: 1.000000 10.000000 (float)
+    Stats Max: 1.000000 10.000000 (float)
+    Stats Avg: 1.000000 10.000000 (float)
+    Stats StdDev: 0.000000 0.000000 (float)
+    Stats NanCount: 0 0 
+    Stats InfCount: 0 0 
+    Stats FiniteCount: 1 1 
+    Min deep samples in any pixel : 0
+    Max deep samples in any pixel : 1
+    1 pixel had the max of 1 samples, including (x=2, y=2)
+    Average deep samples per pixel: 0.06
+    Total deep samples in all pixels: 1
+    Pixels with deep samples   : 1
+    Pixels with no deep samples: 15
+    Samples/pixel histogram:
+        0     :       15 (93.8%)
+        1     :        1 ( 6.2%)
+    Minimum depth was 10 at (2, 2)
+    Maximum depth was 10 at (2, 2)
+info from oiiotool:
+Reading src/tinydeep.exr
+src/tinydeep.exr     :    4 x    4, 2 channel, deep float openexr
+    SHA-1: 941FD2E69D58EB30EE29AD3F71720C3831AAD914
+    channel list: A, Z
+    compression: "zips"
+    DateTime: "2022:11:20 22:17:31"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    Software: "OpenImageIO 2.5.0.0spi : oiiotool -pattern constant:color=1e38,0 4x4 2 --chnames Z,A --point:color=10.0,1.0 2,2 --deepen -o tinydeep.exr"
+    version: 1
+    Exif:ImageHistory: "oiiotool -pattern constant:color=1e38,0 4x4 2 --chnames Z,A --point:color=10.0,1.0 2,2 --deepen -o tinydeep.exr"
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+    openexr:chunkCount: 4
+    Pixel (0, 0): 0 samples 
+    Pixel (1, 0): 0 samples 
+    Pixel (2, 0): 0 samples 
+    Pixel (3, 0): 0 samples 
+    Pixel (0, 1): 0 samples 
+    Pixel (1, 1): 0 samples 
+    Pixel (2, 1): 0 samples 
+    Pixel (3, 1): 0 samples 
+    Pixel (0, 2): 0 samples 
+    Pixel (1, 2): 0 samples 
+    Pixel (2, 2): 1 samples : A=1.0 Z=10.0
+    Pixel (3, 2): 0 samples 
+    Pixel (0, 3): 0 samples 
+    Pixel (1, 3): 0 samples 
+    Pixel (2, 3): 0 samples 
+    Pixel (3, 3): 0 samples 
+    Stats Min: 1.000000 10.000000 (float)
+    Stats Max: 1.000000 10.000000 (float)
+    Stats Avg: 1.000000 10.000000 (float)
+    Stats StdDev: 0.000000 0.000000 (float)
+    Stats NanCount: 0 0 
+    Stats InfCount: 0 0 
+    Stats FiniteCount: 1 1 
+    Min deep samples in any pixel : 0
+    Max deep samples in any pixel : 1
+    1 pixel had the max of 1 samples, including (x=2, y=2)
+    Average deep samples per pixel: 0.06
+    Total deep samples in all pixels: 1
+    Pixels with deep samples   : 1
+    Pixels with no deep samples: 15
+    Samples/pixel histogram:
+        0     :       15 (93.8%)
+        1     :        1 ( 6.2%)
+    Minimum depth was 10 at (2, 2)
+    Maximum depth was 10 at (2, 2)
+uint8 file
+tmp.tif              :    2 x    2, 3 channel, uint8 tiff
+    SHA-1: 39754B9B5BF224DA2869627680D5853D787E794F
+    Pixel (0, 0): 64 128 191 (0.2509804 0.5019608 0.7490196)
+    Pixel (1, 0): 64 128 191 (0.2509804 0.5019608 0.7490196)
+    Pixel (0, 1): 64 128 191 (0.2509804 0.5019608 0.7490196)
+    Pixel (1, 1): 64 128 191 (0.2509804 0.5019608 0.7490196)
+    Stats Min: 64 128 191 (of 255)
+    Stats Max: 64 128 191 (of 255)
+    Stats Avg: 64.00 128.00 191.00 (of 255)
+    Stats StdDev: 0.00 0.00 0.00 (of 255)
+    Stats NanCount: 0 0 0 
+    Stats InfCount: 0 0 0 
+    Stats FiniteCount: 4 4 4 
+    Constant: Yes
+    Constant Color: 64.00 128.00 191.00 (of 255)
+    Monochrome: No
+int16 file, C format dump
+// tmp.tif              :    2 x    2, 3 channel, uint8 tiff
+uint8_t foo[2][2][3] =
+{
+  { /* (0, 0): */ { 64, 128, 191 /* (0.2509804, 0.5019608, 0.7490196) */ },
+    /* (1, 0): */ { 64, 128, 191 /* (0.2509804, 0.5019608, 0.7490196) */ } },
+  { /* (0, 1): */ { 64, 128, 191 /* (0.2509804, 0.5019608, 0.7490196) */ },
+    /* (1, 1): */ { 64, 128, 191 /* (0.2509804, 0.5019608, 0.7490196) */ } },
+};
+Reading tmp.tif
+<ImageSpec version="25">
+<SHA1>39754B9B5BF224DA2869627680D5853D787E794F</SHA1>
+<x>0</x>
+<y>0</y>
+<z>0</z>
+<width>2</width>
+<height>2</height>
+<depth>1</depth>
+<full_x>0</full_x>
+<full_y>0</full_y>
+<full_z>0</full_z>
+<full_width>2</full_width>
+<full_height>2</full_height>
+<full_depth>1</full_depth>
+<tile_width>0</tile_width>
+<tile_height>0</tile_height>
+<tile_depth>0</tile_depth>
+<format>uint8</format>
+<nchannels>3</nchannels>
+<channelnames>
+<channelname>R</channelname>
+<channelname>G</channelname>
+<channelname>B</channelname>
+</channelnames>
+<alpha_channel>-1</alpha_channel>
+<z_channel>-1</z_channel>
+<deep>0</deep>
+<attrib name="oiio:BitsPerSample" type="int">8</attrib>
+<attrib name="Orientation" type="int" description="normal">1</attrib>
+<attrib name="tiff:Compression" type="int">8</attrib>
+<attrib name="tiff:PhotometricInterpretation" type="int">2</attrib>
+<attrib name="tiff:PlanarConfiguration" type="int">1</attrib>
+<attrib name="planarconfig" type="string">contig</attrib>
+<attrib name="compression" type="string">zip</attrib>
+<attrib name="tiff:RowsPerStrip" type="int">32</attrib>
+</ImageSpec>
+src/subimage.tif :    2 x    2, 3 channel, uint8 tiff
+    3 subimages: 2x2 [u8,u8,u8], 2x2 [u8,u8,u8], 2x2 [u8,u8,u8]
+ subimage  0:    2 x    2, 3 channel, uint8 tiff
+    SHA-1: 39754B9B5BF224DA2869627680D5853D787E794F
+    channel list: R, G, B
+    compression: "zip"
+    DateTime: "2022:11:23 12:50:55"
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    Software: "OpenImageIO 2.5.0.0spi : oiiotool -pattern constant:color=0.25,0.5,0.75 2x2 3 -dup -dup --siappendall -d uint8 -o subimage.tif"
+    oiio:BitsPerSample: 8
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+    tiff:RowsPerStrip: 32
+    Stats Min: 64 128 191 (of 255)
+    Stats Max: 64 128 191 (of 255)
+    Stats Avg: 64.00 128.00 191.00 (of 255)
+    Stats StdDev: 0.00 0.00 0.00 (of 255)
+    Stats NanCount: 0 0 0 
+    Stats InfCount: 0 0 0 
+    Stats FiniteCount: 4 4 4 
+    Constant: Yes
+    Constant Color: 64.00 128.00 191.00 (of 255)
+    Monochrome: No
+ subimage  1:    2 x    2, 3 channel, uint8 tiff
+    SHA-1: 39754B9B5BF224DA2869627680D5853D787E794F
+    channel list: R, G, B
+    compression: "zip"
+    DateTime: "2022:11:23 12:50:55"
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    Software: "OpenImageIO 2.5.0.0spi : oiiotool -pattern constant:color=0.25,0.5,0.75 2x2 3 -dup -dup --siappendall -d uint8 -o subimage.tif"
+    oiio:BitsPerSample: 8
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+    tiff:RowsPerStrip: 32
+    Stats Min: 64 128 191 (of 255)
+    Stats Max: 64 128 191 (of 255)
+    Stats Avg: 64.00 128.00 191.00 (of 255)
+    Stats StdDev: 0.00 0.00 0.00 (of 255)
+    Stats NanCount: 0 0 0 
+    Stats InfCount: 0 0 0 
+    Stats FiniteCount: 4 4 4 
+    Constant: Yes
+    Constant Color: 64.00 128.00 191.00 (of 255)
+    Monochrome: No
+ subimage  2:    2 x    2, 3 channel, uint8 tiff
+    SHA-1: 39754B9B5BF224DA2869627680D5853D787E794F
+    channel list: R, G, B
+    compression: "zip"
+    DateTime: "2022:11:23 12:50:55"
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    Software: "OpenImageIO 2.5.0.0spi : oiiotool -pattern constant:color=0.25,0.5,0.75 2x2 3 -dup -dup --siappendall -d uint8 -o subimage.tif"
+    oiio:BitsPerSample: 8
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+    tiff:RowsPerStrip: 32
+    Stats Min: 64 128 191 (of 255)
+    Stats Max: 64 128 191 (of 255)
+    Stats Avg: 64.00 128.00 191.00 (of 255)
+    Stats StdDev: 0.00 0.00 0.00 (of 255)
+    Stats NanCount: 0 0 0 
+    Stats InfCount: 0 0 0 
+    Stats FiniteCount: 4 4 4 
+    Constant: Yes
+    Constant Color: 64.00 128.00 191.00 (of 255)
+    Monochrome: No
+src/mip.tif :    2 x    2, 3 channel, uint8 tiff
+    MIP-map levels: 2x2 1x1
+    SHA-1: 39754B9B5BF224DA2869627680D5853D787E794F
+    channel list: R, G, B
+    tile size: 64 x 64
+    compression: "zip"
+    DateTime: "2022:11:23 12:49:54"
+    fovcot: 1
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    Software: "OpenImageIO 2.5.0.0spi : oiiotool -pattern constant:color=0.25,0.5,0.75 2x2 3 -d uint8 -otex mip.tif"
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    oiio:AverageColor: "0.25,0.5,0.75"
+    oiio:BitsPerSample: 8
+    oiio:ConstantColor: "0.25,0.5,0.75"
+    oiio:SHA-1: "1042D991FBDE596CF8FBC5660BC809AC057D8B9A"
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+    MIP 0 of 2 (2 x 2):
+      Stats Min: 64 128 191 (of 255)
+      Stats Max: 64 128 191 (of 255)
+      Stats Avg: 64.00 128.00 191.00 (of 255)
+      Stats StdDev: 0.00 0.00 0.00 (of 255)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 4 4 4 
+      Constant: Yes
+      Constant Color: 64.00 128.00 191.00 (of 255)
+      Monochrome: No
+    MIP 1 of 2 (1 x 1):
+      Stats Min: 64 128 191 (of 255)
+      Stats Max: 64 128 191 (of 255)
+      Stats Avg: 64.00 128.00 191.00 (of 255)
+      Stats StdDev: 0.00 0.00 0.00 (of 255)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 4 4 4 
+      Constant: Yes
+      Constant Color: 64.00 128.00 191.00 (of 255)
+      Monochrome: No

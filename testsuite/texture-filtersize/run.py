@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
+
 # This test verifies that the TextureSystem is sampling the correct
 # MIPmap levels given the input derivatives.
 #
@@ -36,6 +40,6 @@
 
 
 
-command = testtex_command (parent + "/oiio-images/miplevels.tx",
+command = testtex_command (OIIO_TESTSUITE_IMAGEDIR + "/miplevels.tx",
                            " --filtertest -res 256 256 -d uint8 -o out.tif")
 outputs = [ "out.tif" ]

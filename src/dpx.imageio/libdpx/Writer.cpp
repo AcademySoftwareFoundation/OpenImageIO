@@ -35,6 +35,10 @@
 #include <cstring>
 #include <ctime>
 
+#if defined(__GNUC__)
+#    pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
+
 #include "DPX.h"
 #include "DPXStream.h"
 #include "EndianSwap.h"
@@ -95,12 +99,12 @@ void dpx::Writer::SetImageInfo(const U32 width, const U32 height)
 }
 
 		
-// returns next available or MAX_ELEMENTS if full
+// returns next available or DPX_MAX_ELEMENTS if full
 int dpx::Writer::NextAvailElement() const
 {
 	unsigned int i;
 	
-	for (i = 0; i < MAX_ELEMENTS; i++)
+	for (i = 0; i < DPX_MAX_ELEMENTS; i++)
 	{
 		if (this->header.ImageDescriptor(i) == kUndefinedDescriptor)
 			break;
@@ -141,7 +145,7 @@ void dpx::Writer::SetUserData(const long size)
 bool dpx::Writer::WriteUserData(void *data)
 {
     size_t size = this->header.UserSize();
-	if (fd->Write(data, size) != size)
+	if (!fd->WriteCheck(data, size))
 		return false;
     this->fileLoc += size;
 	return true;
@@ -156,7 +160,7 @@ void dpx::Writer::SetElement(const int num, const Descriptor desc, const U8 bitD
 			const U32 eolnPadding, const U32 eoimPadding)
 {
 	// make sure the range is good
-	if (num < 0 || num >= MAX_ELEMENTS)
+	if (num < 0 || num >= DPX_MAX_ELEMENTS)
 		return;
 
 	// set values
@@ -197,23 +201,23 @@ dpx::Writer::WritePadData(const int alignment)
 bool dpx::Writer::WriteElement(const int element, void *data, const long count)
 {
 	// make sure the range is good
-	if (element < 0 || element >= MAX_ELEMENTS)
+	if (element < 0 || element >= DPX_MAX_ELEMENTS)
 		return false;
 
 	// make sure the entry is valid
 	if (this->header.ImageDescriptor(element) == kUndefinedDescriptor)
 		return false;
 
-    // The DPX spec recommends that the image data starts on a 8K boundry.
-    if (! this->WritePadData(0x2000))
-        return false;
+	// The DPX spec recommends that the image data starts on a 8K boundary.
+	if (! this->WritePadData(0x2000))
+		return false;
 
 	// update file ptr
 	this->header.SetDataOffset(element, this->fileLoc);
 	this->fileLoc += count;
 		
 	// write
-	return (this->fd->Write(data, count) > 0);
+	return this->fd->WriteCheck(data, count);
 }
 
 
@@ -221,7 +225,7 @@ bool dpx::Writer::WriteElement(const int element, void *data, const long count)
 bool dpx::Writer::WriteElement(const int element, void *data)
 {
 	// make sure the range is good
-	if (element < 0 || element >= MAX_ELEMENTS)
+	if (element < 0 || element >= DPX_MAX_ELEMENTS)
 		return false;
 
 	// make sure the entry is valid
@@ -236,16 +240,16 @@ bool dpx::Writer::WriteElement(const int element, void *data, const DataSize siz
 	bool status = true;	
 	
 	// make sure the range is good
-	if (element < 0 || element >= MAX_ELEMENTS)
+	if (element < 0 || element >= DPX_MAX_ELEMENTS)
 		return false;
 
 	// make sure the entry is valid
 	if (this->header.ImageDescriptor(element) == kUndefinedDescriptor)
 		return false;
 
-    // The DPX spec recommends that the image data starts on a 8K boundry.
-    if (! this->WritePadData(0x2000))
-        return false;
+	// The DPX spec recommends that the image data starts on a 8K boundary.
+	if (! this->WritePadData(0x2000))
+		return false;
 
 	// mark location in headers
 	if (element == 0)
@@ -353,7 +357,7 @@ bool dpx::Writer::WriteElement(const int element, void *data, const DataSize siz
 	{
 		// end of image padding
 		this->fileLoc += eoimPad;
-		status = (this->fd->Write(blank, eoimPad) > 0);
+		status = this->fd->WriteCheck(blank, eoimPad);
 	}
 	
 	// rid of memory
@@ -369,7 +373,7 @@ bool dpx::Writer::WriteElement(const int element, void *data, const DataSize siz
 bool dpx::Writer::WriteThrough(void *data, const U32 width, const U32 height, const int noc, const int bytes, const U32 eolnPad, const U32 eoimPad, char *blank)
 {
 	bool status = true;
-	const int count = width * height * noc;
+	const size_t count = size_t(width) * size_t(height) * noc;
 	unsigned int i;
 	unsigned char *imageBuf = reinterpret_cast<unsigned char*>(data);
 	
@@ -383,14 +387,14 @@ bool dpx::Writer::WriteThrough(void *data, const U32 width, const U32 height, co
 		for (i = 0; i < height; i++)
 		{
 			// write one line
-			if (this->fd->Write(imageBuf+(width*bytes*i), bytes * width) == false)
+			if (!this->fd->WriteCheck(imageBuf+(width*bytes*i), bytes * width))
 			{
 				status = false;
 				break;
 			}
 			
 			// write end of line padding
-			if (this->fd->Write(blank, eoimPad) == false)
+			if (!this->fd->WriteCheck(blank, eoimPad))
 			{
 				status = false;
 				break;
@@ -400,7 +404,7 @@ bool dpx::Writer::WriteThrough(void *data, const U32 width, const U32 height, co
 	else
 	{
 		// write data as one chunk
-		if (this->fd->Write(imageBuf, bytes * count) == false)
+		if (!this->fd->WriteCheck(imageBuf, bytes * count))
 		{
 			status = false;
 		}
@@ -410,7 +414,7 @@ bool dpx::Writer::WriteThrough(void *data, const U32 width, const U32 height, co
 	if (status && eoimPad)
 	{
 		this->fileLoc += eoimPad;
-		status = (this->fd->Write(blank, eoimPad) > 0);
+		status = this->fd->WriteCheck(blank, eoimPad);
 	}
 	
 	return status;

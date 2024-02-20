@@ -1,33 +1,8 @@
-/*
-  Copyright 2008 Larry Gritz and the other authors and contributors.
-  All Rights Reserved.
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: Apache-2.0
+// https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions are
-  met:
-  * Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
-  * Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution.
-  * Neither the name of the software's owners nor the names of its
-    contributors may be used to endorse or promote products derived from
-    this software without specific prior written permission.
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-  (This is the Modified BSD License)
-*/
-
+// clang-format off
 
 /// \file
 ///
@@ -35,42 +10,122 @@
 /// of the compiler.
 ///
 
-#ifndef OPENIMAGEIO_HASH_H
-#define OPENIMAGEIO_HASH_H
+#pragma once
 
-#include <vector>
-#include <assert.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>   // for memcpy and memset
+#include <cassert>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <unordered_map>
 #include <utility>
+#include <vector>
 
-#include <boost/version.hpp>
+#include <OpenImageIO/export.h>
+#include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/string_view.h>
 
-#define OIIO_HAVE_BOOST_UNORDERED_MAP
-#include <boost/unordered_map.hpp>
-#include <boost/unordered_set.hpp>
+// We should never have included fmath.h here. But we did, oops. Once we're
+// allowed to break back compatibility, remove it.
+#if OIIO_VERSION < OIIO_MAKE_VERSION(3,0,0)
+#    include <OpenImageIO/fmath.h>
+#endif
 
-#include "export.h"
-#include "oiioversion.h"
-#include "fmath.h"   /* for endian */
-#include "string_view.h"   /* for endian */
+#include <OpenImageIO/span.h>
 
 
-OIIO_NAMESPACE_ENTER {
+OIIO_NAMESPACE_BEGIN
+
+using std::hash;
+using std::unordered_map;
+
+namespace fasthash {
+
+/* The MIT License
+   Copyright (C) 2012 Zilong Tan (eric.zltan@gmail.com)
+   Permission is hereby granted, free of charge, to any person
+   obtaining a copy of this software and associated documentation
+   files (the "Software"), to deal in the Software without
+   restriction, including without limitation the rights to use, copy,
+   modify, merge, publish, distribute, sublicense, and/or sell copies
+   of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+   The above copyright notice and this permission notice shall be
+   included in all copies or substantial portions of the Software.
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+   NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+   BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+   ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+   CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+   SOFTWARE.
+*/
+
+// Compression function for Merkle-Damgard construction.
+// This function is generated using the framework provided.
+static inline uint64_t mix(uint64_t h) {
+	h ^= h >> 23;
+	h *= 0x2127599bf4325c37ULL;
+	h ^= h >> 47;
+	return h;
+}
+
+inline uint64_t fasthash64(const void *buf, size_t len, uint64_t seed=1771)
+{
+	const uint64_t    m = 0x880355f21e6d1965ULL;
+	const uint64_t *pos = (const uint64_t *)buf;
+	const uint64_t *end = pos + (len / 8);
+	const unsigned char *pos2;
+	uint64_t h = seed ^ (len * m);
+	uint64_t v;
+
+	while (pos != end) {
+		// This appears to be a false positive which only affects GCC.
+		// https://godbolt.org/z/5q7Y7ndfb
+		OIIO_PRAGMA_WARNING_PUSH
+		OIIO_GCC_ONLY_PRAGMA(GCC diagnostic ignored "-Wmaybe-uninitialized")
+		v  = *pos++;
+		OIIO_PRAGMA_WARNING_PUSH
+		h ^= mix(v);
+		h *= m;
+	}
+
+	pos2 = (const unsigned char*)pos;
+	v = 0;
+
+	switch (len & 7) {
+        case 7: v ^= (uint64_t)pos2[6] << 48;
+        case 6: v ^= (uint64_t)pos2[5] << 40;
+        case 5: v ^= (uint64_t)pos2[4] << 32;
+        case 4: v ^= (uint64_t)pos2[3] << 24;
+        case 3: v ^= (uint64_t)pos2[2] << 16;
+        case 2: v ^= (uint64_t)pos2[1] << 8;
+        case 1: v ^= (uint64_t)pos2[0];
+                h ^= mix(v);
+                h *= m;
+	}
+
+	return mix(h);
+}
+
+// simplified version for hashing just a few ints
+inline uint64_t fasthash64(const std::initializer_list<uint64_t> buf) {
+	const uint64_t    m = 0x880355f21e6d1965ULL;
+	uint64_t h = (buf.size() * sizeof(uint64_t)) * m;
+	for (const uint64_t v : buf) {
+		h ^= mix(v);
+		h *= m;
+	}
+	return mix(h);
+}
+
+} // namespace fasthash
+
 
 namespace xxhash {
 
-// xxhash:  http://code.google.com/p/xxhash/
-// It's BSD licensed.
-
-// DEPRECATED
-unsigned int OIIO_API XXH_fast32 (const void* input, int len,
-                                  unsigned int seed=1771);
-
-// DEPRECATED
-unsigned int OIIO_API XXH_strong32 (const void* input, int len,
-                                    unsigned int seed=1771);
+// xxhash:  https://github.com/Cyan4973/xxHash
+// BSD 2-clause license
 
 unsigned int       OIIO_API XXH32 (const void* input, size_t length,
                                    unsigned seed=1771);
@@ -98,8 +153,24 @@ namespace bjhash {
 // Bob Jenkins "lookup3" hashes:  http://burtleburtle.net/bob/c/lookup3.c
 // It's in the public domain.
 
+OIIO_FORCEINLINE OIIO_HOSTDEVICE uint32_t
+rotl32(uint32_t x, int k)
+{
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 320
+    return __funnelshift_lc(x, x, k);
+#else
+    return (x << k) | (x >> (32 - k));
+#endif
+}
+
+OIIO_FORCEINLINE OIIO_HOSTDEVICE uint64_t
+rotl64(uint64_t x, int k)
+{
+    return (x << k) | (x >> (64 - k));
+}
+
 // Mix up the bits of a, b, and c (changing their values in place).
-inline void bjmix (uint32_t &a, uint32_t &b, uint32_t &c)
+inline OIIO_HOSTDEVICE void bjmix (uint32_t &a, uint32_t &b, uint32_t &c)
 {
     a -= c;  a ^= rotl32(c, 4);  c += b;
     b -= a;  b ^= rotl32(a, 6);  a += c;
@@ -111,7 +182,7 @@ inline void bjmix (uint32_t &a, uint32_t &b, uint32_t &c)
 
 // Mix up and combine the bits of a, b, and c (doesn't change them, but
 // returns a hash of those three original values).  21 ops
-inline uint32_t bjfinal (uint32_t a, uint32_t b, uint32_t c=0xdeadbeef)
+inline OIIO_HOSTDEVICE uint32_t bjfinal (uint32_t a, uint32_t b, uint32_t c=0xdeadbeef)
 {
     c ^= b; c -= rotl32(b,14);
     a ^= c; a -= rotl32(c,11);
@@ -153,6 +224,7 @@ uint32_t OIIO_API hashword (const uint32_t *key, size_t nwords,
 // Hash a string without pre-known length.  We use the Jenkins
 // one-at-a-time hash (http://en.wikipedia.org/wiki/Jenkins_hash_function),
 // which seems to be a good speed/quality/requirements compromise.
+// Note that this is only returning a 32 bit hash space.
 inline size_t
 strhash (const char *s)
 {
@@ -174,6 +246,7 @@ strhash (const char *s)
 // Hash a string_view.  We use the Jenkins
 // one-at-a-time hash (http://en.wikipedia.org/wiki/Jenkins_hash_function),
 // which seems to be a good speed/quality/requirements compromise.
+// Note that this is only returning a 32 bit hash space.
 inline size_t
 strhash (string_view s)
 {
@@ -229,25 +302,50 @@ inline uint64_t fmix (uint64_t k)
 namespace farmhash {
 
 // Copyright (c) 2014 Google, Inc.
-// http://code.google.com/p/farmhash/
+// https://github.com/google/farmhash
 // See OpenImageIO's hashes.cpp for the MIT license for this code.
 
 
 #if defined(FARMHASH_UINT128_T_DEFINED)
-inline uint64_t Uint128Low64(const uint128_t x) {
-  return static_cast<uint64_t>(x);
+
+OIIO_HOSTDEVICE inline constexpr uint64_t Uint128Low64(const uint128_t x) {
+    return static_cast<uint64_t>(x);
 }
-inline uint64_t Uint128High64(const uint128_t x) {
-  return static_cast<uint64_t>(x >> 64);
+
+OIIO_HOSTDEVICE inline constexpr uint64_t Uint128High64(const uint128_t x) {
+    return static_cast<uint64_t>(x >> 64);
 }
-inline uint128_t Uint128(uint64_t lo, uint64_t hi) {
-  return lo + (((uint128_t)hi) << 64);
+
+OIIO_HOSTDEVICE inline constexpr uint128_t Uint128(uint64_t lo, uint64_t hi) {
+    return lo + (((uint128_t)hi) << 64);
 }
+
+OIIO_HOSTDEVICE inline OIIO_CONSTEXPR14 void
+CopyUint128(uint128_t &dst, const uint128_t src) {
+    dst = src;
+}
+
 #else
+
 typedef std::pair<uint64_t, uint64_t> uint128_t;
-inline uint64_t Uint128Low64(const uint128_t x) { return x.first; }
-inline uint64_t Uint128High64(const uint128_t x) { return x.second; }
-inline uint128_t Uint128(uint64_t lo, uint64_t hi) { return uint128_t(lo, hi); }
+OIIO_HOSTDEVICE inline constexpr uint64_t Uint128Low64(const uint128_t x) {
+    return x.first;
+}
+
+OIIO_HOSTDEVICE inline constexpr uint64_t Uint128High64(const uint128_t x) {
+    return x.second;
+}
+
+OIIO_HOSTDEVICE inline OIIO_CONSTEXPR14 uint128_t Uint128(uint64_t lo, uint64_t hi) {
+    return uint128_t(lo, hi);
+}
+
+OIIO_HOSTDEVICE inline OIIO_CONSTEXPR14 void
+CopyUint128(uint128_t &dst, const uint128_t src) {
+    dst.first  = src.first;
+    dst.second = src.second;
+
+}
 #endif
 
 
@@ -286,7 +384,7 @@ uint64_t OIIO_API Hash64WithSeed(const char* s, size_t len, uint64_t seed);
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
 uint64_t OIIO_API Hash64WithSeeds(const char* s, size_t len,
-                       uint64_t seed0, uint64_t seed1);
+                                  uint64_t seed0, uint64_t seed1);
 
 // Hash function for a byte array.
 // May change from time to time, may differ on different platforms, may differ
@@ -304,7 +402,7 @@ uint128_t OIIO_API Hash128WithSeed(const char* s, size_t len, uint128_t seed);
 // This is intended to be a reasonably good hash function.
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
-inline uint64_t Hash128to64(uint128_t x) {
+OIIO_HOSTDEVICE inline OIIO_CONSTEXPR14 uint64_t Hash128to64(uint128_t x) {
   // Murmur-inspired hashing.
   const uint64_t kMul = 0x9ddfea08eb382d69ULL;
   uint64_t a = (Uint128Low64(x) ^ Uint128High64(x)) * kMul;
@@ -328,7 +426,7 @@ uint128_t OIIO_API Fingerprint128(const char* s, size_t len);
 
 // This is intended to be a good fingerprinting primitive.
 // See below for more overloads.
-inline uint64_t Fingerprint(uint128_t x) {
+OIIO_HOSTDEVICE inline OIIO_CONSTEXPR14 uint64_t Fingerprint(uint128_t x) {
   // Murmur-inspired hashing.
   const uint64_t kMul = 0x9ddfea08eb382d69ULL;
   uint64_t a = (Uint128Low64(x) ^ Uint128High64(x)) * kMul;
@@ -342,7 +440,7 @@ inline uint64_t Fingerprint(uint128_t x) {
 }
 
 // This is intended to be a good fingerprinting primitive.
-inline uint64_t Fingerprint(uint64_t x) {
+OIIO_HOSTDEVICE inline OIIO_CONSTEXPR14 uint64_t Fingerprint(uint64_t x) {
   // Murmur-inspired hashing.
   const uint64_t kMul = 0x9ddfea08eb382d69ULL;
   uint64_t b = x * kMul;
@@ -482,9 +580,15 @@ public:
 
     /// Append more data
     void append (const void *data, size_t size);
-    /// Append more data from a vector, without thinking about sizes.
-    template<class T> void appendvec (const std::vector<T> &v) {
-        append (&v[0], v.size()*sizeof(T));
+
+    /// Append more data from a string_view
+    void append (string_view s) {
+        append(s.data(), s.size());
+    }
+
+    /// Append more data from a span, without thinking about sizes.
+    template<class T> void append (span<T> v) {
+        append (v.data(), v.size()*sizeof(T));
     }
 
     /// Type for storing the raw bits of the hash
@@ -513,6 +617,4 @@ private:
 };
 
 
-} OIIO_NAMESPACE_EXIT
-
-#endif // OPENIMAGEIO_HASH_H
+OIIO_NAMESPACE_END

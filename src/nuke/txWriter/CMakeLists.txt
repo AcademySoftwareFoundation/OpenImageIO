@@ -1,32 +1,35 @@
-include_directories (${NUKE_INCLUDE_DIRS})
-link_directories (${NUKE_LIBRARY_DIRS})
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-add_library (txWriter SHARED
-    txWriter.cpp)
+add_library (txWriter MODULE txWriter.cpp)
 
-target_link_libraries (txWriter
-    DDImage OpenImageIO)
+target_include_directories (txWriter PUBLIC ${NUKE_INCLUDES})
+target_link_libraries (txWriter PUBLIC ${NUKE_LIBRARIES} OpenImageIO)
+install_targets (txWriter)
 
 if (WIN32)
-    add_definitions (/DFN_OS_WINDOWS /DUSE_GLEW)
+    target_compile_definitions (txWriter PRIVATE FN_OS_WINDOWS USE_GLEW)
     set_target_properties (txWriter PROPERTIES
         PREFIX ""
-        COMPILE_FLAGS "/wd4251 /W3 /O2 /MD /GL /GR /GF"
+        COMPILE_OPTIONS /wd4251 /W3 /O2 /MD /GL /GR /GF
         LINK_FLAGS "/machine:x64 /SUBSYSTEM:WINDOWS /dll")
 elseif (APPLE)
-    target_link_libraries (txWriter
-        GLEW)
-    add_definitions (-DUSE_GLEW)
+    target_link_libraries (txWriter PRIVATE GLEW)
+    target_compile_definitions (txWriter PRIVATE USE_GLEW)
     set_target_properties (txWriter PROPERTIES
         PREFIX ""
-        COMPILE_FLAGS "-arch x86_64"
+        COMPILE_OPTIONS -arch x86_64
         LINK_FLAGS "-arch x86_64 -bundle -framework QuartzCore -framework IOKit -framework CoreFoundation -framework Carbon -framework ApplicationServices -framework OpenGL -framework AGL")
+        # N.B. After CMake 3.13, use LINK_OPTIONS (list, not string)
 else ()
-    add_definitions (-DUSE_GLEW)
+    target_compile_definitions (txWriter PRIVATE USE_GLEW)
     set_target_properties (txWriter PROPERTIES
-        PREFIX ""
-        COMPILE_FLAGS "-fPIC -msse")
+        PREFIX "")
 endif ()
 
-install (TARGETS txWriter
-    LIBRARY DESTINATION "${LIB_INSTALL_DIR}/nuke")
+# Ignore Nuke 10's use of deprecated auto_ptr
+if (NOT MSVC)
+    set_source_files_properties (txWriter.cpp PROPERTIES
+                                    COMPILE_OPTIONS -Wno-deprecated-declarations)
+endif ()

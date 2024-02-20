@@ -1,0 +1,166 @@
+Constructing to be a writable 320x240,4 UINT16:
+  resolution 320x240+0+0
+  untiled
+  4 channels: ('R', 'G', 'B', 'A')
+  format =  uint16
+  alpha channel =  3
+  z channel =  -1
+  deep =  False
+Resetting to be a writable 640x480,3 Float:
+  resolution 640x480+0+0
+  untiled
+  3 channels: ('R', 'G', 'B')
+  format =  float
+  alpha channel =  -1
+  z channel =  -1
+  deep =  False
+Constructing from a bare numpy array:
+ from 3D, shape is float 0 2 0 3 0 1 0 4
+  resolution 2x3+0+0
+  untiled
+  4 channels: ('R', 'G', 'B', 'A')
+  format =  float
+  alpha channel =  3
+  z channel =  -1
+  deep =  False
+  pixel (0,1) = 0.3 0 0.8 1
+
+ from 2D uint8, shape is uint8 0 2 0 3 0 1 0 1
+
+ from 4D, shape is float 0 2 0 2 0 2 0 4
+
+Testing read of ../common/textures/grid.tx:
+channels: 4
+name: ../common/textures/grid.tx
+file_format_name: tiff
+deep: False
+orientation: 1
+oriented x,y,width,height: 0 0 1024 1024
+oriented full x,y,width,height: 0 0 1024 1024
+xyz beg/end: 0 1024 0 1024 0 1
+xyz min/max: 0 1023 0 1023 0 0
+setting full res...
+roi = 0 1024 0 1024 0 1 0 4
+full roi = 0 2048 0 2048 0 1 0 4
+setting full roi again, as ROI...
+Changing origin...
+Printing the whole spec to be sure:
+  resolution 1024x1024+15+20
+  tile size  64x64x1
+  4 channels: ('R', 'G', 'B', 'A')
+  format =  uint8
+  alpha channel =  3
+  z channel =  -1
+  deep =  False
+  oiio:BitsPerSample = 8
+  Orientation = 1
+  XResolution = 72.0
+  YResolution = 72.0
+  ResolutionUnit = "in"
+  Software = "OpenImageIO 1.5.7dev : maketx -filter lanczos3 --resize grid.tif -o grid.tx"
+  DateTime = "2014:11:29 23:20:23"
+  DocumentName = "g.tif"
+  textureformat = "Plain Texture"
+  wrapmodes = "black,black"
+  fovcot = 1.0
+  tiff:Compression = 8
+  tiff:PhotometricInterpretation = 2
+  tiff:PlanarConfiguration = 1
+  planarconfig = "contig"
+  compression = "zip"
+  PixelAspectRatio = 1.0
+  oiio:AverageColor = "0.608983,0.608434,0.608728,1"
+  oiio:SHA-1 = "233A1D3412A54A5F49814AB7BFFD04F56F46D3D7"
+
+Resetting to a different MIP level:
+  resolution 256x256+0+0
+  tile size  64x64x1
+  4 channels: ('R', 'G', 'B', 'A')
+  format =  uint8
+  alpha channel =  3
+  z channel =  -1
+  deep =  False
+  oiio:BitsPerSample = 8
+  Orientation = 1
+  XResolution = 72.0
+  YResolution = 72.0
+  ResolutionUnit = "in"
+  Software = "OpenImageIO 1.5.7dev : maketx -filter lanczos3 --resize grid.tif -o grid.tx"
+  DateTime = "2014:11:29 23:20:23"
+  DocumentName = "g.tif"
+  textureformat = "Plain Texture"
+  wrapmodes = "black,black"
+  fovcot = 1.0
+  tiff:Compression = 8
+  tiff:PhotometricInterpretation = 2
+  tiff:PlanarConfiguration = 1
+  planarconfig = "contig"
+  compression = "zip"
+  PixelAspectRatio = 1.0
+  oiio:AverageColor = "0.608983,0.608434,0.608728,1"
+  oiio:SHA-1 = "233A1D3412A54A5F49814AB7BFFD04F56F46D3D7"
+
+Making 2x2 RGB image:
+  resolution 2x2+0+0
+  untiled
+  3 channels: ('R', 'G', 'B')
+  format =  uint8
+  alpha channel =  -1
+  z channel =  -1
+  deep =  False
+Pixel 0,0 is (1.0, 0.0, 0.0)
+Pixel 1,0 is (0.0, 1.0, 0.0)
+Pixel 0,1 is (0.0, 0.0, 1.0)
+Interpolating 1,0.5 -> (0.5, 0.5, 0.0)
+Interpolating NDC 0.25,0.5 -> (0.5, 0.0, 0.5)
+Interpolating bicubic 0.25,0.5 -> (0.31944, 0.31944, 0.079861)
+Interpolating NDC bicubic 0.25,0.5 -> (0.31944, 0.079861, 0.31944)
+The whole image is:  [[[1. 0. 0.]
+  [0. 1. 0.]]
+
+ [[0. 0. 1.]
+  [0. 0. 0.]]]
+
+Saving file...
+
+Writing deep buffer...
+
+Reading back deep buffer:
+Pixel 0 1 had 3 samples
+Sample 0
+	c 0 : 0.420
+	c 1 : 0.000
+	c 2 : 0.000
+	c 3 : 0.000
+	c 4 : 42.000
+Sample 1
+	c 0 : 0.100
+	c 1 : 0.200
+	c 2 : 0.300
+	c 3 : 42.500
+	c 4 : 0.000
+Sample 2
+	c 0 : 0.470
+	c 1 : 0.000
+	c 2 : 0.000
+	c 3 : 0.000
+	c 4 : 43.000
+Writing multi-image file
+Testing uninitialized bufs
+  empty nchannels: 0
+
+Done.
+Comparing "out.tif" and "ref/out.tif"
+PASS
+Comparing "outtuple.tif" and "ref/outtuple.tif"
+PASS
+Comparing "outarray.tif" and "ref/outarray.tif"
+PASS
+Comparing "outarrayB.tif" and "ref/outarrayB.tif"
+PASS
+Comparing "outarrayH.tif" and "ref/outarrayH.tif"
+PASS
+Comparing "perchan.exr" and "ref/perchan.exr"
+PASS
+Comparing "multipart.exr" and "ref/multipart.exr"
+PASS

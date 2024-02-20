@@ -1,0 +1,125 @@
+Reading ../j2kp4files_v1_5/testfiles_jp2/file1.jp2
+../j2kp4files_v1_5/testfiles_jp2/file1.jp2 :  768 x  512, 3 channel, uint8 jpeg2000
+    SHA-1: 746B1B44D0E5EE3999B1350B2A4245D679A617F7
+    channel list: R, G, B
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "sRGB"
+Comparing "../j2kp4files_v1_5/testfiles_jp2/file1.jp2" and "file1.jp2"
+PASS
+Reading ../j2kp4files_v1_5/testfiles_jp2/file2.jp2
+../j2kp4files_v1_5/testfiles_jp2/file2.jp2 :  480 x  640, 3 channel, uint8 jpeg2000
+    SHA-1: FB4746F0C4909CE8FED60C0179B70B2EEA0C0BA9
+    channel list: R, G, B
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "sRGB"
+Comparing "../j2kp4files_v1_5/testfiles_jp2/file2.jp2" and "file2.jp2"
+PASS
+Reading ../j2kp4files_v1_5/testfiles_jp2/file3.jp2
+../j2kp4files_v1_5/testfiles_jp2/file3.jp2 :  480 x  640, 3 channel, uint8 jpeg2000
+    SHA-1: B8A8FBF015263C072B051839F6BE645E7F27C671
+    channel list: R, G, B
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "sRGB"
+Comparing "../j2kp4files_v1_5/testfiles_jp2/file3.jp2" and "file3.jp2"
+PASS
+Reading ../j2kp4files_v1_5/testfiles_jp2/file4.jp2
+../j2kp4files_v1_5/testfiles_jp2/file4.jp2 :  768 x  512, 1 channel, uint8 jpeg2000
+    SHA-1: A45171430806BA3E74705675C855A781FC04BE44
+    channel list: Y
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "sRGB"
+Comparing "../j2kp4files_v1_5/testfiles_jp2/file4.jp2" and "file4.jp2"
+PASS
+Reading ../j2kp4files_v1_5/testfiles_jp2/file5.jp2
+../j2kp4files_v1_5/testfiles_jp2/file5.jp2 :  768 x  512, 3 channel, uint8 jpeg2000
+    SHA-1: FEF67669AB05A25F8A42455206B64C789CFCA38F
+    channel list: R, G, B
+    ICCProfile: 0, 0, 2, 34, 0, 0, 0, 0, 2, 32, 0, 0, 115, 99, 110, 114, ... [546 x uint8]
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 0
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright 2001 EKC-RICC Reference"
+    ICCProfile:creation_date: "2001:08:30 13:32:37"
+    ICCProfile:creator_signature: "4a504547"
+    ICCProfile:device_class: "Input device profile"
+    ICCProfile:flags: "Embedded , Independent"
+    ICCProfile:manufacturer: "4b4f4441"
+    ICCProfile:model: "524f4d4d"
+    ICCProfile:platform_signature: ""
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "Restricted ICC profile describing ROMM-RGB"
+    ICCProfile:profile_size: 546
+    ICCProfile:profile_version: "2.2.0"
+    ICCProfile:rendering_intent: "Perceptual"
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "sRGB"
+Comparing "../j2kp4files_v1_5/testfiles_jp2/file5.jp2" and "file5.jp2"
+PASS
+Reading ../j2kp4files_v1_5/testfiles_jp2/file6.jp2
+../j2kp4files_v1_5/testfiles_jp2/file6.jp2 :  768 x  512, 1 channel, uint12 jpeg2000
+    SHA-1: 3A29DFAD0AA3F910AA2D37007989A4CC6E7BDE2A
+    channel list: Y
+    oiio:BitsPerSample: 12
+    oiio:ColorSpace: "sRGB"
+Comparing "../j2kp4files_v1_5/testfiles_jp2/file6.jp2" and "file6.jp2"
+PASS
+Reading ../j2kp4files_v1_5/testfiles_jp2/file7.jp2
+../j2kp4files_v1_5/testfiles_jp2/file7.jp2 :  480 x  640, 3 channel, uint16 jpeg2000
+    SHA-1: C1110501C2784B4AB29B98B2C6EC05C0C6C16F77
+    channel list: R, G, B
+    ICCProfile: 0, 0, 52, 20, 65, 80, 80, 76, 2, 16, 0, 0, 115, 99, 110, 114, ... [13332 x uint8]
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1095782476
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Copyright (c) 2001 Hewlett-Packard Company "
+    ICCProfile:creation_date: "2001:08:31 09:58:55"
+    ICCProfile:creator_signature: "48502020"
+    ICCProfile:device_class: "Input device profile"
+    ICCProfile:device_manufacturer_description: "Hewlett-Packard"
+    ICCProfile:device_model_description: "16-bit e-sRGB JP2 restricted to sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "48502020"
+    ICCProfile:model: "65524742"
+    ICCProfile:platform_signature: "Microsoft Corporation"
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "16-bit e-sRGB JP2 restricted (to sRGB) profile"
+    ICCProfile:profile_size: 13332
+    ICCProfile:profile_version: "2.1.0"
+    ICCProfile:rendering_intent: "Perceptual"
+    oiio:BitsPerSample: 16
+    oiio:ColorSpace: "sRGB"
+Comparing "../j2kp4files_v1_5/testfiles_jp2/file7.jp2" and "file7.jp2"
+PASS
+Reading ../j2kp4files_v1_5/testfiles_jp2/file8.jp2
+../j2kp4files_v1_5/testfiles_jp2/file8.jp2 :  700 x  400, 1 channel, uint8 jpeg2000
+    SHA-1: 593D82DE9935FC3F7963CABAAD5ACB7F8134E39A
+    channel list: Y
+    ICCProfile: 0, 0, 1, 158, 0, 0, 0, 0, 2, 32, 0, 0, 115, 99, 110, 114, ... [414 x uint8]
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 0
+    ICCProfile:color_space: "Gray"
+    ICCProfile:copyright: "Copyright 2001 EKC-RICC Reference"
+    ICCProfile:creation_date: "2002:01:23 09:26:16"
+    ICCProfile:creator_signature: "4a504547"
+    ICCProfile:device_class: "Input device profile"
+    ICCProfile:flags: "Embedded , Independent"
+    ICCProfile:manufacturer: "4b4f4441"
+    ICCProfile:model: "47524559"
+    ICCProfile:platform_signature: ""
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "Restricted ICC profile describing greyscale version of ROMM-RGB"
+    ICCProfile:profile_size: 414
+    ICCProfile:profile_version: "2.2.0"
+    ICCProfile:rendering_intent: "Perceptual"
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "sRGB"
+Comparing "../j2kp4files_v1_5/testfiles_jp2/file8.jp2" and "file8.jp2"
+PASS
+Reading ../j2kp4files_v1_5/testfiles_jp2/file9.jp2
+../j2kp4files_v1_5/testfiles_jp2/file9.jp2 :  768 x  512, 1 channel, uint8 jpeg2000
+    SHA-1: 9784D248E95A47CDB3D0B260C7FBFFE2A4A2D492
+    channel list: Y
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "sRGB"
+Comparing "../j2kp4files_v1_5/testfiles_jp2/file9.jp2" and "file9.jp2"
+PASS

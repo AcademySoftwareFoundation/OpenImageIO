@@ -1,0 +1,100 @@
+Reading gpgr.exr
+gpgr.exr             :   64 x   64, 3 channel, half openexr
+    4 subimages: 64x64 [h,h,h], 64x64 [h,h,h], 64x64 [h,h,h], 64x64 [h,h,h]
+ subimage  0:   64 x   64, 3 channel, half openexr
+    SHA-1: 0C27059220A256F197900FB4EB8C7CF63349A26B
+    channel list: R, G, B
+    Beatle: "John"
+    compression: "zip"
+    name: "layerA"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimagename: "layerA"
+    oiio:subimages: 4
+    openexr:chunkCount: 4
+ subimage  1:   64 x   64, 3 channel, half openexr
+    SHA-1: 0E19BEFEF868E356A6A4C6450DA9A7B17DD11E12
+    channel list: R, G, B
+    Beatle: "Paul"
+    compression: "zip"
+    name: "layerB"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimagename: "layerB"
+    oiio:subimages: 4
+    openexr:chunkCount: 4
+ subimage  2:   64 x   64, 3 channel, half openexr
+    SHA-1: CFAF4AFC253320AC35B8E9014C6D750768354059
+    channel list: R, G, B
+    Beatle: "George"
+    compression: "zip"
+    name: "layerC"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimagename: "layerC"
+    oiio:subimages: 4
+    openexr:chunkCount: 4
+ subimage  3:   64 x   64, 3 channel, half openexr
+    SHA-1: 5FFA4616F46509627873D2C53744E47E2F492719
+    channel list: R, G, B
+    Beatle: "Ringo"
+    compression: "zip"
+    name: "layerD"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimagename: "layerD"
+    oiio:subimages: 4
+    openexr:chunkCount: 4
+Reading mip4.tif
+mip4.tif             :   64 x   64, 4 channel, uint8 tiff
+    SHA-1: 36CE573A20E682720B020FC689E2067579DE5B37
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    compression: "zip"
+    DocumentName: "g.tif"
+    fovcot: 1
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    planarconfig: "contig"
+    ResolutionUnit: "in"
+    wrapmodes: "black,black"
+    XResolution: 72
+    YResolution: 72
+    oiio:BitsPerSample: 8
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+../common/textures/grid.tx : 1024 x 1024, 4 channel, uint8 tiff (+mipmap)
+    SHA-1: 7DB3F1E464C5F38CAAECE8ABC8684EC66FC9FA68
+unmip.tif            : 1024 x 1024, 4 channel, uint8 tiff
+    SHA-1: 7DB3F1E464C5F38CAAECE8ABC8684EC66FC9FA68
+Select nonexistent subimage
+oiiotool ERROR: --subimage : Invalid -subimage (13): subimages-4.exr has 4 subimages
+Full command line was:
+> oiiotool -echo "Select nonexistent subimage" subimages-4.exr --subimage 13 -o subimage13.exr
+Select nonexistent MIP level
+oiiotool ERROR: --selectmip : Selecting MIP level 14 of subimage 0, which has only 11 MIP levels
+Full command line was:
+> oiiotool -echo "Select nonexistent MIP level" ../common/textures/grid.tx --selectmip 14 -o mip14.tif
+Comparing "subimages-2.exr" and "ref/subimages-2.exr"
+PASS
+Comparing "subimages-4.exr" and "ref/subimages-4.exr"
+PASS
+Comparing "subimage1.exr" and "ref/subimage1.exr"
+PASS
+Comparing "subimage2.exr" and "ref/subimage2.exr"
+PASS
+Comparing "subimageD3.exr" and "ref/subimageD3.exr"
+PASS
+Comparing "subimageB1.exr" and "ref/subimageB1.exr"
+PASS
+Comparing "mip4.tif" and "ref/mip4.tif"
+PASS

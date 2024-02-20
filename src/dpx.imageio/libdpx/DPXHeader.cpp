@@ -40,6 +40,7 @@
 #include <ctime>
 #include <limits>
 
+#include <OpenImageIO/sysutil.h>
 
 #include "DPXHeader.h"
 #include "EndianSwap.h"
@@ -77,7 +78,7 @@ dpx::GenericHeader::GenericHeader()
 void dpx::GenericHeader::Reset()
 {
 	// File Information
-	this->magicNumber = MAGIC_COOKIE;
+	this->magicNumber = DPX_MAGIC_COOKIE;
 	this->imageOffset = ~0;
 	EmptyString(this->version, sizeof(this->version));
 	OIIO::Strutil::safe_strcpy(this->version, SMPTE_VERSION, sizeof(this->version));
@@ -166,9 +167,9 @@ dpx::ImageElement::ImageElement()
 {
 	this->dataSign = 0xffffffff;
 	this->lowData = 0xffffffff;
-	this->lowQuantity = 0xffffffff;
+	this->lowQuantity = R32(0xffffffff);
 	this->highData = 0xffffffff;
-	this->highQuantity = 0xffffffff;
+	this->highQuantity = R32(0xffffffff);
 	this->descriptor = kUndefinedDescriptor;
 	this->transfer = kUndefinedCharacteristic;	
 	this->colorimetric = kUndefinedCharacteristic;
@@ -231,7 +232,7 @@ bool dpx::Header::Write(OutStream *io)
 
 	// write the header to the file
 	size_t r = sizeof(GenericHeader) + sizeof(IndustryHeader);
-	if (io->Write(&(this->magicNumber), r) != r)
+	if (! io->WriteCheck(&(this->magicNumber), r))
 		return false;
 
 	// swap back - data is in file, now we need it native again
@@ -251,7 +252,7 @@ bool dpx::Header::WriteOffsetData(OutStream *io)
 		return false;
 	if (this->RequiresByteSwap())
 		SwapBytes(this->imageOffset);
-	if (io->Write(&this->imageOffset, sizeof(U32)) == false)
+	if (!io->WriteCheck(&this->imageOffset, sizeof(U32)))
 		return false;
 	if (this->RequiresByteSwap())
 		SwapBytes(this->imageOffset);
@@ -263,7 +264,7 @@ bool dpx::Header::WriteOffsetData(OutStream *io)
 		return false;
 	if (this->RequiresByteSwap())
 		SwapBytes(this->fileSize);
-	if (io->Write(&this->fileSize, sizeof(U32)) == false)
+	if (! io->WriteCheck(&this->fileSize, sizeof(U32)))
 		return false;
 	if (this->RequiresByteSwap())
 		SwapBytes(this->fileSize);
@@ -274,7 +275,7 @@ bool dpx::Header::WriteOffsetData(OutStream *io)
 		return false;
 	if (this->RequiresByteSwap())
 		SwapBytes(this->numberOfElements);
-	if (io->Write(&this->numberOfElements, sizeof(U16)) == false)
+	if (! io->WriteCheck(&this->numberOfElements, sizeof(U16)))
 		return false;
 	if (this->RequiresByteSwap())
 		SwapBytes(this->numberOfElements);
@@ -284,7 +285,7 @@ bool dpx::Header::WriteOffsetData(OutStream *io)
 	const long IMAGE_STRUCTURE = 72;	// sizeof the image data structure
 	
 	int i;
-	for (i = 0; i < MAX_ELEMENTS; i++)
+	for (i = 0; i < DPX_MAX_ELEMENTS; i++)
 	{
 			// only write if there is a defined image description
 			if (this->chan[i].descriptor == kUndefinedDescriptor)
@@ -297,7 +298,7 @@ bool dpx::Header::WriteOffsetData(OutStream *io)
 			// write
 			if (this->RequiresByteSwap())
 				SwapBytes(this->chan[i].dataOffset);
-			if (io->Write(&this->chan[i].dataOffset, sizeof(U32)) == false)
+			if (! io->WriteCheck(&this->chan[i].dataOffset, sizeof(U32)))
 				return false;
 			if (this->RequiresByteSwap())
 				SwapBytes(this->chan[i].dataOffset);
@@ -310,7 +311,7 @@ bool dpx::Header::WriteOffsetData(OutStream *io)
 
 bool dpx::Header::ValidMagicCookie(const U32 magic)
 {
-	U32 mc = MAGIC_COOKIE;
+	U32 mc = DPX_MAGIC_COOKIE;
 	
 	if (magic == mc)
 		return true;
@@ -323,7 +324,7 @@ bool dpx::Header::ValidMagicCookie(const U32 magic)
 
 bool dpx::Header::DetermineByteSwap(const U32 magic) const
 {
-	U32 mc = MAGIC_COOKIE;
+	U32 mc = DPX_MAGIC_COOKIE;
 	
 	bool byteSwap = false;
 	
@@ -357,7 +358,7 @@ bool dpx::Header::Validate()
 		SwapBytes(this->numberOfElements);
 		SwapBytes(this->pixelsPerLine);
 		SwapBytes(this->linesPerElement);
-		for (int i = 0; i < MAX_ELEMENTS; i++) 
+		for (int i = 0; i < DPX_MAX_ELEMENTS; i++) 
 		{
 			SwapBytes(this->chan[i].dataSign);
 			SwapBytes(this->chan[i].lowData);
@@ -497,7 +498,7 @@ int dpx::GenericHeader::ImageElementComponentCount(const int element) const
 
 int dpx::GenericHeader::ImageElementCount() const
 {
-	if(this->numberOfElements>0 && this->numberOfElements<=MAX_ELEMENTS)
+	if(this->numberOfElements>0 && this->numberOfElements<=DPX_MAX_ELEMENTS)
 		return this->numberOfElements;
 	
 	// If the image header does not list a valid number of elements,
@@ -505,7 +506,7 @@ int dpx::GenericHeader::ImageElementCount() const
 	
 	int i = 0;
 	
-	while (i < MAX_ELEMENTS )
+	while (i < DPX_MAX_ELEMENTS )
 	{
 		if (this->ImageDescriptor(i) == kUndefinedDescriptor)
 			break;
@@ -532,7 +533,7 @@ void dpx::Header::CalculateOffsets()
 {
 	int i;
 
-	for (i = 0; i < MAX_ELEMENTS; i++)
+	for (i = 0; i < DPX_MAX_ELEMENTS; i++)
 	{
 		// only write if there is a defined image description
 		if (this->chan[i].descriptor == kUndefinedDescriptor)
@@ -545,7 +546,7 @@ void dpx::Header::CalculateOffsets()
 
 dpx::DataSize dpx::GenericHeader::ComponentDataSize(const int element) const
 {
-	if (element < 0 || element >= MAX_ELEMENTS)
+	if (element < 0 || element >= DPX_MAX_ELEMENTS)
 		return kByte;
 		
 	dpx::DataSize ret;
@@ -567,7 +568,7 @@ dpx::DataSize dpx::GenericHeader::ComponentDataSize(const int element) const
 		ret = kDouble;
 		break;
 	default:
-		assert(0 && "Unknown bit depth");
+		// assert(0 && "Unknown bit depth");
 		ret = kDouble;
 		break;
 	}
@@ -578,7 +579,7 @@ dpx::DataSize dpx::GenericHeader::ComponentDataSize(const int element) const
 
 int dpx::GenericHeader::ComponentByteCount(const int element) const
 {
-	if (element < 0 || element >= MAX_ELEMENTS)
+	if (element < 0 || element >= DPX_MAX_ELEMENTS)
 		return kByte;
 		
 	int ret;
@@ -600,7 +601,7 @@ int dpx::GenericHeader::ComponentByteCount(const int element) const
 		ret = sizeof(R64);
 		break;
 	default:
-		assert(0 && "Unknown bit depth");
+		// assert(0 && "Unknown bit depth");
 		ret = sizeof(R64);
 		break;
 	}
@@ -632,7 +633,7 @@ int dpx::GenericHeader::DataSizeByteCount(const DataSize ds)
 		ret = sizeof(R64);
 		break;
 	default:
-		assert(0 && "Unknown data size");
+		// assert(0 && "Unknown data size");
 		ret = sizeof(R64);
 		break;
 	}
@@ -687,7 +688,7 @@ void dpx::IndustryHeader::SetFileEdgeCode(const char *edge)
 void dpx::IndustryHeader::TimeCode(char *str) const
 {
 	U32 tc = this->timeCode;
-	::sprintf(str, "%c%c:%c%c:%c%c:%c%c", 
+	::snprintf(str, 12, "%c%c:%c%c:%c%c:%c%c", 
 		Hex((tc & 0xf0000000) >> 28),  Hex((tc & 0xf000000) >> 24),
 		Hex((tc & 0xf00000) >> 20),  Hex((tc & 0xf0000) >> 16),
 		Hex((tc & 0xf000) >> 12),  Hex((tc & 0xf00) >> 8),
@@ -698,7 +699,7 @@ void dpx::IndustryHeader::TimeCode(char *str) const
 void dpx::IndustryHeader::UserBits(char *str) const
 {
 	U32 ub = this->userBits;
-	::sprintf(str, "%c%c:%c%c:%c%c:%c%c", 
+	::snprintf(str, 12, "%c%c:%c%c:%c%c:%c%c",
 		Hex((ub & 0xf0000000) >> 28),  Hex((ub & 0xf000000) >> 24),
 		Hex((ub & 0xf00000) >> 20),  Hex((ub & 0xf0000) >> 16),
 		Hex((ub & 0xf000) >> 12),  Hex((ub & 0xf00) >> 8),
@@ -709,7 +710,7 @@ void dpx::IndustryHeader::UserBits(char *str) const
 dpx::U32 dpx::IndustryHeader::TCFromString(const char *str) const
 {
 	// make sure the string is the correct length
-	if (::strlen(str) != 11)
+	if (OIIO::Strutil::safe_strlen(str, 12) != 11)
 		return U32(~0);
 
 	U32 tc = 0;
@@ -764,33 +765,33 @@ static void EmptyString(char *str, const int len)
 
 void dpx::GenericHeader::SetCreationTimeDate(const long sec)
 {
-	struct tm *tm_time;
-	char str[32];
-	
-#ifdef WIN32
+    char str[32];
+
+#ifdef _WIN32
 	_tzset();
 #endif
 
-	const time_t t = time_t(sec);
-	tm_time = ::localtime(&t);
-	::strftime(str, 32, "%Y:%m:%d:%H:%M:%S%Z", tm_time);
-	::strncpy(this->creationTimeDate, str, 24);
+    const time_t t = time_t(sec);
+    struct tm localtm;
+    OIIO::Sysutil::get_local_time(&t, &localtm);
+    ::strftime(str, 32, "%Y:%m:%d:%H:%M:%S%Z", &localtm);
+	OIIO::Strutil::safe_strcpy(this->creationTimeDate, str, 24);
 }
 
 
 void dpx::GenericHeader::SetSourceTimeDate(const long sec)
 {
-	struct tm *tm_time;
-	char str[32];
-	
-#ifdef WIN32
+    char str[32];
+
+#ifdef _WIN32
 	_tzset();
 #endif
 
-	const time_t t = time_t(sec);
-	tm_time = ::localtime(&t);
-	::strftime(str, 32, "%Y:%m:%d:%H:%M:%S%Z", tm_time);
-	::strncpy(this->sourceTimeDate, str, 24);
+    const time_t t = time_t(sec);
+    struct tm localtm;
+    OIIO::Sysutil::get_local_time(&t, &localtm);
+    ::strftime(str, 32, "%Y:%m:%d:%H:%M:%S%Z", &localtm);
+	OIIO::Strutil::safe_strcpy(this->sourceTimeDate, str, 24);
 }
 
 

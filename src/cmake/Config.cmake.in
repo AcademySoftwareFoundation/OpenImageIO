@@ -1,0 +1,79 @@
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
+
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+# add here all the find_dependency() whenever switching to config based dependencies
+if (NOT @OPENIMAGEIO_CONFIG_DO_NOT_FIND_IMATH@ AND NOT OPENIMAGEIO_CONFIG_DO_NOT_FIND_IMATH)
+    if (@OpenEXR_VERSION@ VERSION_GREATER_EQUAL 3.0)
+        find_dependency(Imath @Imath_VERSION@
+                        HINTS @Imath_DIR@)
+    elseif (@OpenEXR_VERSION@ VERSION_GREATER_EQUAL 2.4 AND @FOUND_OPENEXR_WITH_CONFIG@)
+        find_dependency(IlmBase @OpenEXR_VERSION@
+                        HINTS @IlmBase_DIR@ @OpenEXR_DIR@)
+        find_dependency(OpenEXR @OpenEXR_VERSION@
+                        HINTS @OpenEXR_DIR@)
+        find_dependency(ZLIB @ZLIB_VERSION@)  # Because OpenEXR doesn't do it
+        find_dependency(Threads)  # Because OpenEXR doesn't do it
+    endif ()
+endif ()
+
+if (NOT @OIIO_USING_FMT_LOCAL@ AND NOT @INTERNALIZE_FMT@)
+    find_dependency(fmt)
+endif ()
+
+if (NOT @BUILD_SHARED_LIBS@)
+    # This is required in static library builds, as e.g. PNG::PNG appears among
+    # INTERFACE_LINK_LIBRARIES. If the project does not know about PNG target, it will cause
+    # configuration error about unknown targets being linked in.
+    find_dependency(TIFF)
+    if (@JPEG_FOUND@)
+        find_dependency(JPEG)
+    endif()
+    if (@PNG_FOUND@)
+        find_dependency(PNG)
+    endif()
+    if (@DCMTK_FOUND@)
+        find_dependency(DCMTK)
+    endif()
+    # The following have the same problem except that INTERFACE_LINK_LIBRARIES use
+    # TARGET_NAME_IF_EXISTS, so the error only happens on link time.
+    if (@OIIO_TBB@)
+        find_dependency(TBB)
+    endif ()
+endif ()
+
+# Compute the installation prefix relative to this file. Note that cmake files are installed
+# to ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME} (see OIIO_CONFIG_INSTALL_DIR)
+get_filename_component(_CURR_INSTALL_LIBDIR "${CMAKE_CURRENT_LIST_DIR}/../../" ABSOLUTE)
+get_filename_component(_ABS_CMAKE_INSTALL_LIBDIR "@CMAKE_INSTALL_FULL_LIBDIR@" ABSOLUTE)
+get_filename_component(_ABS_CMAKE_INSTALL_INCLUDEDIR "@CMAKE_INSTALL_FULL_INCLUDEDIR@" ABSOLUTE)
+file(RELATIVE_PATH _INCLUDEDIR_RELATIVE_TO_LIBDIR
+     "${_ABS_CMAKE_INSTALL_LIBDIR}" "${_ABS_CMAKE_INSTALL_INCLUDEDIR}")
+get_filename_component(_CURR_INSTALL_INCLUDE_DIR
+                       "${_CURR_INSTALL_LIBDIR}/${_INCLUDEDIR_RELATIVE_TO_LIBDIR}" ABSOLUTE)
+
+set_and_check (@PROJECT_NAME@_INCLUDE_DIR "${_CURR_INSTALL_INCLUDE_DIR}")
+set_and_check (@PROJECT_NAME@_INCLUDES    "${_CURR_INSTALL_INCLUDE_DIR}")
+set_and_check (@PROJECT_NAME@_LIB_DIR     "${_CURR_INSTALL_LIBDIR}")
+set (@PROJECT_NAME@_PLUGIN_SEARCH_PATH    "@PLUGIN_SEARCH_PATH_NATIVE@")
+
+if (NOT @FOUND_OPENEXR_WITH_CONFIG@)
+    list (APPEND @PROJECT_NAME@_INCLUDES ${IMATH_INCLUDES} ${OPENEXR_INCLUDES})
+endif ()
+
+set (OIIO_USING_IMATH_VERSION_MAJOR @Imath_VERSION_MAJOR@)
+set (OIIO_USING_IMATH_VERSION_MINOR @Imath_VERSION_MINOR@)
+
+#...logic to determine installedPrefix from the own location...
+#set (@PROJECT_NAME@_CONFIG_DIR  "${installedPrefix}/@CONFIG_INSTALL_DIR@")
+
+include ("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake")
+
+check_required_components ("@PROJECT_NAME@")
+
+# Set a CMake variable that says if this OpenImageIO build has OCIO support
+set (@PROJECT_NAME@_HAS_OpenColorIO @OpenColorIO_FOUND@)

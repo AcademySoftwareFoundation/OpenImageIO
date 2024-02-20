@@ -1,21 +1,13 @@
-find_package (ZLIB)
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-if (ZLIB_FOUND)
-    if (WIN32)
-        add_definitions ("-DPTEX_EXPORTS")
+if (Ptex_FOUND)
+    set(ptex_target Ptex::Ptex_dynamic)
+    if (TARGET Ptex::Ptex_static AND (NOT TARGET Ptex::Ptex_dynamic OR LINKSTATIC))
+        set(ptex_target Ptex::Ptex_static)
     endif()
-    include_directories (${ZLIB_INCLUDE_DIR})
-    add_oiio_plugin (ptexinput.cpp ptexoutput.cpp
-                 ptex/PtexCache.cpp
-                 ptex/PtexFilters.cpp
-                 ptex/PtexHalf.cpp
-                 ptex/PtexReader.cpp
-                 ptex/PtexSeparableFilter.cpp
-                 ptex/PtexSeparableKernel.cpp
-                 ptex/PtexTriangleFilter.cpp
-                 ptex/PtexTriangleKernel.cpp
-                 ptex/PtexUtils.cpp
-                 ptex/PtexWriter.cpp
-                 LINK_LIBRARIES ${ZLIB_LIBRARIES} )
+    add_oiio_plugin (ptexinput.cpp
+                     LINK_LIBRARIES ${ptex_target} ZLIB::ZLIB
+                     DEFINITIONS "-DUSE_PTEX")
 endif ()
-

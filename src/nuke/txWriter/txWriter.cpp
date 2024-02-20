@@ -1,12 +1,18 @@
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: Apache-2.0
+// https://github.com/AcademySoftwareFoundation/OpenImageIO
+
+#include <sstream>
 #include <vector>
 
-#include "DDImage/Writer.h"
-#include "DDImage/Thread.h"
 #include "DDImage/Row.h"
+#include "DDImage/Thread.h"
+#include "DDImage/Version.h"
+#include "DDImage/Writer.h"
 
-#include "OpenImageIO/filter.h"
-#include "OpenImageIO/imagebuf.h"
-#include "OpenImageIO/imagebufalgo.h"
+#include <OpenImageIO/filter.h>
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
 
 
 /*
@@ -23,59 +29,65 @@
 using namespace DD::Image;
 
 
-namespace TxWriterNS
-{
+namespace TxWriterNS {
 
 
-OIIO_NAMESPACE_USING
+using namespace OIIO;
 
 // Limit the available output datatypes (for now, at least).
-static const TypeDesc::BASETYPE oiioBitDepths[] = {TypeDesc::INT8,
-                                                   TypeDesc::INT16,
-                                                   TypeDesc::INT32,
-                                                   TypeDesc::FLOAT,
-                                                   TypeDesc::DOUBLE};
+static const TypeDesc::BASETYPE oiioBitDepths[]
+    = { TypeDesc::INT8, TypeDesc::INT16, TypeDesc::INT32, TypeDesc::FLOAT,
+        TypeDesc::DOUBLE };
 
 // Knob values for above bit depths (keep them synced!)
-static const char* const bitDepthValues[] = {"8-bit integer",
-                                             "16-bit integer",
-                                             "32-bit integer",
-                                             "32-bit float",
-                                             "64-bit double",
-                                             NULL};
+static const char* const bitDepthValues[]
+    = { "8-bit integer", "16-bit integer", "32-bit integer",
+        "32-bit float",  "64-bit double",  NULL };
 
 // Knob values for NaN fix modes
-static const char* const nanFixValues[] = {"black\tblack",
-                                           "box3\tbox3 filter",
-                                           NULL};
+static const char* const nanFixValues[] = { "black\tblack", "box3\tbox3 filter",
+                                            NULL };
 
 // Knob values for "preset" modes
-static const char* const presetValues[] = {"oiio", "prman", "custom", NULL};
+static const char* const presetValues[] = { "oiio", "prman", "custom", NULL };
 
 // Knob values for planar configuration
-static const char* const planarValues[] = {"contig\tcontiguous",
-                                           "separate",
-                                           NULL};
+static const char* const planarValues[] = { "contig\tcontiguous", "separate",
+                                            NULL };
+
+// Knob values for texture mode configuration
+static const char* const txModeValues[] = {
+    "Ordinary 2D texture", "Latitude-longitude environment map",
+    "Latitude-longitude environment map (light probe)", "Shadow texture", NULL
+};
+static const ImageBufAlgo::MakeTextureMode oiiotxMode[]
+    = { ImageBufAlgo::MakeTxTexture, ImageBufAlgo::MakeTxEnvLatl,
+        ImageBufAlgo::MakeTxEnvLatlFromLightProbe, ImageBufAlgo::MakeTxShadow };
 
 
 bool gTxFiltersInitialized = false;
 static std::vector<const char*> gFilterNames;
 
 
-class txWriter : public Writer {
+class txWriter final : public Writer {
     int preset_;
     int tileW_, tileH_;
     int planarMode_;
+    int txMode_;
     int bitDepth_;
     int filter_;
+    bool highlightComp_;
+    bool detectConstant_;
+    bool detectMonochrome_;
+    bool detectOpaque_;
     bool fixNan_;
     int nanFixType_;
     bool checkNan_;
     bool verbose_;
-    bool stats_;
 
 
-    void setChannelNames(ImageSpec& spec, const ChannelSet& channels) {
+    void setChannelNames(ImageSpec& spec, const ChannelSet& channels)
+    {
         if (channels == Mask_RGB || channels == Mask_RGBA)
             return;
 
@@ -85,26 +97,18 @@ class txWriter : public Writer {
             if (index > 0)
                 buf << ",";
             switch (z) {
-                case Chan_Red:
-                    buf << "R";
-                    break;
-                case Chan_Green:
-                    buf << "G";
-                    break;
-                case Chan_Blue:
-                    buf << "B";
-                    break;
-                case Chan_Alpha:
-                    buf << "A";
-                    spec.alpha_channel = index;
-                    break;
-                case Chan_Z:
-                    buf << "Z";
-                    spec.z_channel = index;
-                    break;
-                default:
-                    buf << getName(z);
-                    break;
+            case Chan_Red: buf << "R"; break;
+            case Chan_Green: buf << "G"; break;
+            case Chan_Blue: buf << "B"; break;
+            case Chan_Alpha:
+                buf << "A";
+                spec.alpha_channel = index;
+                break;
+            case Chan_Z:
+                buf << "Z";
+                spec.z_channel = index;
+                break;
+            default: buf << getName(z); break;
             }
             index++;
         }
@@ -112,32 +116,40 @@ class txWriter : public Writer {
     }
 
 public:
-    txWriter(Write* iop) : Writer(iop),
-            preset_(0),
-            tileW_(64), tileH_(64),
-            planarMode_(0),
-            bitDepth_(3),  // float
-            filter_(0),
-            fixNan_(false),
-            nanFixType_(0),
-            checkNan_(true),
-            verbose_(false),
-            stats_(false)
+    txWriter(Write* iop)
+        : Writer(iop)
+        , preset_(0)
+        , tileW_(64)
+        , tileH_(64)
+        , planarMode_(0)  // contiguous
+        , txMode_(0)      // ordinary 2d texture
+        , bitDepth_(3)    // float
+        , filter_(0)
+        , highlightComp_(false)
+        , detectConstant_(false)
+        , detectMonochrome_(false)
+        , detectOpaque_(false)
+        , fixNan_(false)
+        , nanFixType_(0)
+        , checkNan_(true)
+        , verbose_(false)
     {
         if (!gTxFiltersInitialized) {
-            for (int i = 0, e = Filter2D::num_filters();  i < e;  ++i) {
+            for (int i = 0, e = Filter2D::num_filters(); i < e; ++i) {
                 FilterDesc d;
-                Filter2D::get_filterdesc (i, &d);
+                Filter2D::get_filterdesc(i, &d);
                 gFilterNames.push_back(d.name);
-            };
+            }
             gFilterNames.push_back(NULL);
             gTxFiltersInitialized = true;
         }
     }
 
-    void knobs(Knob_Callback cb) {
+    void knobs(Knob_Callback cb)
+    {
         Enumeration_knob(cb, &preset_, &presetValues[0], "preset");
-        Tooltip(cb, "Choose a preset for various output parameters.\n"
+        Tooltip(cb,
+                "Choose a preset for various output parameters.\n"
                 "<b>oiio</b>: Tile and planar settings optimized for OIIO.\n"
                 "<b>prman</b>: Tile and planar ettings and metadata safe for "
                 "use with prman.");
@@ -168,20 +180,48 @@ public:
         Tooltip(cb, "Planar mode of the image channels.");
         SetFlags(cb, Knob::STARTLINE);
 
+        Enumeration_knob(cb, &txMode_, &txModeValues[0], "tx_mode", "mode");
+        Tooltip(cb, "What type of texture file we are creating.");
+
         Enumeration_knob(cb, &bitDepth_, &bitDepthValues[0], "tx_datatype",
                          "datatype");
         Tooltip(cb, "The datatype of the output image.");
 
         Enumeration_knob(cb, &filter_, &gFilterNames[0], "tx_filter", "filter");
         Tooltip(cb, "The filter used to resize the image when generating mip "
-                "levels.");
+                    "levels.");
+
+        Bool_knob(cb, &highlightComp_, "highlight_compensation",
+                  "highlight compensation");
+        Tooltip(cb, "Compress dynamic range before resampling for mip levels, "
+                    "and re-expand it afterward, while also clamping negative "
+                    "pixel values to zero. This can help avoid artifacts when "
+                    "using filters with negative lobes.");
+        SetFlags(cb, Knob::STARTLINE);
+
+        Bool_knob(cb, &detectConstant_, "detect_constant", "detect constant");
+        Tooltip(cb, "Detect whether the image is entirely a single color, and "
+                    "write it as a single-tile output file if so.");
+        SetFlags(cb, Knob::STARTLINE);
+
+        Bool_knob(cb, &detectMonochrome_, "detect_monochrome",
+                  "detect monochrome");
+        Tooltip(cb, "Detect whether the image's R, G, and B values are equal "
+                    "everywhere, and write it as a single-channel (grayscale) "
+                    "image if so.");
+        ClearFlags(cb, Knob::STARTLINE);
+
+        Bool_knob(cb, &detectOpaque_, "detect_opaque", "detect opaque");
+        Tooltip(cb, "Detect whether the image's alpha channel is 1.0 "
+                    "everywhere, and drop it from the output file if so (write "
+                    "RGB instead).");
 
         Bool_knob(cb, &fixNan_, "fix_nan", "fix NaN/Inf pixels");
         Tooltip(cb, "Attempt to fix NaN/Inf pixel values in the image.");
         SetFlags(cb, Knob::STARTLINE);
 
-        k = Enumeration_knob(cb, &nanFixType_, &nanFixValues[0],
-                             "nan_fix_type", "");
+        k = Enumeration_knob(cb, &nanFixType_, &nanFixValues[0], "nan_fix_type",
+                             "");
         if (cb.makeKnobs())
             k->disable();
         else if (fixNan_)
@@ -190,7 +230,8 @@ public:
         ClearFlags(cb, Knob::STARTLINE);
 
         Bool_knob(cb, &checkNan_, "check_nan", "error on NaN/Inf");
-        Tooltip(cb, "Check for NaN/Inf pixel values in the output image, and "
+        Tooltip(cb,
+                "Check for NaN/Inf pixel values in the output image, and "
                 "error if any are found. If this is enabled, the check will be "
                 "run <b>after</b> the NaN fix process.");
         SetFlags(cb, Knob::STARTLINE);
@@ -198,13 +239,10 @@ public:
         Bool_knob(cb, &verbose_, "verbose");
         Tooltip(cb, "Toggle verbose OIIO output.");
         SetFlags(cb, Knob::STARTLINE);
-
-        Bool_knob(cb, &stats_, "oiio_stats", "output stats");
-        Tooltip(cb, "Toggle output of OIIO runtime statistics.");
-        ClearFlags(cb, Knob::STARTLINE);
     }
 
-    int knob_changed(Knob* k) {
+    int knob_changed(Knob* k)
+    {
         if (k->is("fix_nan")) {
             iop->knob("nan_fix_type")->enable(fixNan_);
             return 1;
@@ -220,10 +258,11 @@ public:
         return Writer::knob_changed(k);
     }
 
-    void execute() {
+    void execute()
+    {
         const int chanCount = num_channels();
         ChannelSet channels = channel_mask(chanCount);
-        const bool doAlpha = channels.contains(Chan_Alpha);
+        const bool doAlpha  = channels.contains(Chan_Alpha);
 
         iop->progressMessage("Preparing image");
         input0().request(0, 0, width(), height(), channels, 1);
@@ -252,25 +291,22 @@ public:
                 srcBuffer.setpixel(x, y, &lutBuffer[x * chanCount]);
         }
 
-        ImageSpec destSpec(width(), height(), chanCount, oiioBitDepths[bitDepth_]);
+        ImageSpec destSpec(width(), height(), chanCount,
+                           oiioBitDepths[bitDepth_]);
 
         setChannelNames(destSpec, channels);
 
         destSpec.attribute("maketx:filtername", gFilterNames[filter_]);
 
         switch (preset_) {
-            case 0:
-                destSpec.attribute("maketx:oiio_options", 1);
-                break;
-            case 1:
-                destSpec.attribute("maketx:prman_options", 1);
-                break;
-            default:
-                destSpec.tile_width = tileW_;
-                destSpec.tile_height = tileH_;
-                destSpec.attribute("planarconfig",
-                                   planarMode_ ? "separate" : "contig");
-                break;
+        case 0: destSpec.attribute("maketx:oiio_options", 1); break;
+        case 1: destSpec.attribute("maketx:prman_options", 1); break;
+        default:
+            destSpec.tile_width  = tileW_;
+            destSpec.tile_height = tileH_;
+            destSpec.attribute("planarconfig",
+                               planarMode_ ? "separate" : "contig");
+            break;
         }
 
         if (fixNan_) {
@@ -278,24 +314,33 @@ public:
                 destSpec.attribute("maketx:fixnan", "box3");
             else
                 destSpec.attribute("maketx:fixnan", "black");
-        }
-        else
+        } else
             destSpec.attribute("maketx:fixnan", "none");
 
-        destSpec.attribute("maketx:checknan", checkNan_);
-        destSpec.attribute("maketx:verbose", verbose_);
-        destSpec.attribute("maketx:stats", stats_);
+        destSpec.attribute("maketx:highlightcomp", (int)highlightComp_);
+        destSpec.attribute("maketx:constant_color_detect",
+                           (int)detectConstant_);
+        destSpec.attribute("maketx:monochrome_detect", (int)detectMonochrome_);
+        destSpec.attribute("maketx:opaque_detect", (int)detectOpaque_);
+        destSpec.attribute("maketx:checknan", (int)checkNan_);
+        destSpec.attribute("maketx:verbose", (int)verbose_);
 
-        OIIO::attribute("threads", (int)Thread::numCPUs);
+        std::string software = Strutil::sprintf("OpenImageIO %s, Nuke %s",
+                                                OIIO_VERSION_STRING,
+                                                applicationVersion().string());
+        destSpec.attribute("Software", software);
 
         if (aborted())
             return;
 
+        OIIO::attribute("threads", (int)Thread::numCPUs);
+
         iop->progressMessage("Writing %s", filename());
-        if (!ImageBufAlgo::make_texture(ImageBufAlgo::MakeTxTexture, srcBuffer,
-                                        filename(), destSpec, &std::cout))
-            iop->critical("ImageBufAlgo::make_texture failed to write file %s",
-                          filename());
+        std::stringstream errmsg;
+        if (!ImageBufAlgo::make_texture(oiiotxMode[txMode_], srcBuffer,
+                                        filename(), destSpec, &errmsg))
+            iop->error("ImageBufAlgo::make_texture failed to write file %s (%s)",
+                       filename(), errmsg.str().c_str());
     }
 
     const char* help() { return "Tiled, mipmapped texture format"; }
@@ -304,8 +349,12 @@ public:
 };
 
 
-}  // ~TxWriterNS
+}  // namespace TxWriterNS
 
 
-static Writer* build(Write* iop) { return new TxWriterNS::txWriter(iop); }
+static Writer*
+build(Write* iop)
+{
+    return new TxWriterNS::txWriter(iop);
+}
 const Writer::Description TxWriterNS::txWriter::d("tx\0TX\0", build);

@@ -1,4 +1,9 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 
-command += "python test_deep.py > out.txt"
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
+
+
+command += pythonbin + " src/test_deep.py > out.txt"
 

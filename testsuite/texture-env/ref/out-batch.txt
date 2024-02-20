@@ -1,0 +1,53 @@
+Created texture system
+Result of get_texture_info resolution (as int[2]) = true 256x128
+Result of get_texture_info resolution (as int[3]) = true 256x128x1
+Result of get_texture_info channels = true 4
+Result of get_texture_info channels = true 4
+Result of get_texture_info data format = true half
+Result of get_texture_info datawindow (as int[4]) = true [0 0 255 127]
+Result of get_texture_info datawindow (as int[6]) = true [0 0 0 255 127 0]
+Result of get_texture_info displaywindow (as int[4]) = true [0 0 255 127]
+Result of get_texture_info displaywindow (as int[6]) = true [0 0 0 255 127 0]
+Result of get_texture_info averagecolor = yes 0.375 0.375 0 1
+Result of get_texture_info averagealpha = yes 1
+Result of get_texture_info constantcolor = no
+Result of get_texture_info constantalpha = no
+Texture type is true LatLong Environment
+
+Testing BATCHED environment rampenv.exr, output = env.exr
+Created texture system
+Testing BATCHED environment rampenv.exr, output = env-handle.exr
+Created texture system
+Testing BATCHED environment env5chan.exr, output = 5chan.exr
+Created texture system
+Testing BATCHED environment rampenv.exr, output = subimage0.exr
+Created texture system
+Testing BATCHED environment rampenv.exr, output = subimagefred.exr
+Created texture system
+Testing BATCHED environment rampenv.exr, output = subimagemissing.exr
+ERROR: Unknown subimage "missing" in texture "rampenv.exr"
+Unknown subimage "missing" in texture "rampenv.exr"
+Created texture system
+Testing BATCHED environment rampenv.exr, output = closest-nomip.exr
+Created texture system
+Testing BATCHED environment rampenv.exr, output = bilinear-onelevel.exr
+Created texture system
+Testing BATCHED environment rampenv.exr, output = bicubic-trilinear.exr
+Comparing "env.exr" and "ref/env.exr"
+PASS
+Comparing "env-handle.exr" and "ref/env-handle.exr"
+PASS
+Comparing "5chan.exr" and "ref/5chan.exr"
+PASS
+Comparing "subimage0.exr" and "ref/subimage0.exr"
+PASS
+Comparing "subimagefred.exr" and "ref/subimagefred.exr"
+PASS
+Comparing "subimagemissing.exr" and "ref/subimagemissing.exr"
+PASS
+Comparing "closest-nomip.exr" and "ref/closest-nomip.exr"
+PASS
+Comparing "bilinear-onelevel.exr" and "ref/bilinear-onelevel.exr"
+PASS
+Comparing "bicubic-trilinear.exr" and "ref/bicubic-trilinear.exr"
+PASS

@@ -1,541 +1,368 @@
-/*
-  Copyright 2009 Larry Gritz and the other authors and contributors.
-  All Rights Reserved.
-
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions are
-  met:
-  * Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
-  * Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution.
-  * Neither the name of the software's owners nor the names of its
-    contributors may be used to endorse or promote products derived from
-    this software without specific prior written permission.
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-  (This is the Modified BSD License)
-*/
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: Apache-2.0
+// https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #include "py_oiio.h"
 
-namespace PyOpenImageIO
+namespace PyOpenImageIO {
+
+static py::object
+ImageInput_read_image(ImageInput& self, int subimage, int miplevel, int chbegin,
+                      int chend, TypeDesc format)
 {
-
-using namespace boost::python;
-
-object ImageInputWrap::open_static_regular (const std::string &filename)
-{
-    ImageInputWrap* iiw = new ImageInputWrap;
-    {
-        ScopedGILRelease gil;
-        iiw->m_input = ImageInput::open(filename);
-    }
-    if (iiw->m_input == NULL) {
-        delete iiw;
-        return object(handle<>(Py_None));
-    } else {
-        return object(iiw);
-    }
-}
-
-object ImageInputWrap::open_static_with_config (const std::string &filename,
-                                                const ImageSpec &config)
-{
-    ImageInputWrap* iiw = new ImageInputWrap;
-    {
-        ScopedGILRelease gil;
-        iiw->m_input = ImageInput::open(filename, &config);
-    }
-    if (iiw->m_input == NULL) {
-        delete iiw;
-        return object(handle<>(Py_None));
-    } else {
-        return object(iiw);
-    }
-}
-
-object ImageInputWrap::create(const std::string &filename, 
-                              const std::string &plugin_searchpath) 
-{
-    ImageInputWrap* iiw = new ImageInputWrap;
-    {
-        ScopedGILRelease gil;
-        iiw->m_input = ImageInput::create(filename, plugin_searchpath);
-    }
-    if (iiw->m_input == NULL) {
-        delete iiw;
-        return object(handle<>(Py_None));
-    }
-    else {
-         return object(iiw);
-    }
-}
-
-ImageInputWrap::~ImageInputWrap()
-{
-    delete m_input;
-}
-
-const char* ImageInputWrap::format_name() const {
-    return m_input->format_name();
-}
-
-bool ImageInputWrap::valid_file (const std::string &filename) const
-{
-    ScopedGILRelease gil;
-    return m_input->valid_file (filename);
-}
-
-bool ImageInputWrap::open_regular (const std::string &name)
-{
-    ScopedGILRelease gil;
-    ImageSpec newspec;
-    return m_input->open(name, newspec);
-}
-
-bool ImageInputWrap::open_with_config (const std::string &name, 
-                                       const ImageSpec &config)
-{
-    ScopedGILRelease gil;
-    ImageSpec newspec;
-    return m_input->open(name, newspec, config);
-}
-
-const ImageSpec& ImageInputWrap::spec() const
-{
-    return m_input->spec();
-}
-
-int ImageInputWrap::supports (const std::string &feature) const
-{
-    return m_input->supports (feature);
-}
-
-bool ImageInputWrap::close()
-{
-    return m_input->close();
-}
-
-int ImageInputWrap::current_subimage() const
-{
-    return m_input->current_subimage();
-}
-
-int ImageInputWrap::current_miplevel() const
-{
-    return m_input->current_miplevel();
-}
-
-bool ImageInputWrap::seek_subimage(int subimage, int miplevel)
-{
-    ScopedGILRelease gil;
-    ImageSpec dummyspec;
-    return m_input->seek_subimage (subimage, miplevel, dummyspec);
-}
-
-
-
-const char *
-python_array_code (TypeDesc format)
-{
-    switch (format.basetype) {
-    case TypeDesc::UINT8 :  return "B";
-    case TypeDesc::INT8 :   return "b";
-    case TypeDesc::UINT16 : return "H";
-    case TypeDesc::INT16 :  return "h";
-    case TypeDesc::UINT32 : return "I";
-    case TypeDesc::INT32 :  return "i";
-    case TypeDesc::FLOAT :  return "f";
-    case TypeDesc::DOUBLE : return "d";
-    default :               return "f";   // Punt -- return float
-    }
-}
-
-
-
-object
-C_array_to_Python_array (const char *data, TypeDesc type, size_t size)
-{
-    // Construct a Python array, convert the buffer we read into a string
-    // and then into the array.
-    object arr_module(handle<>(PyImport_ImportModule("array")));
-    object array = arr_module.attr("array")(python_array_code(type));
-#if PY_MAJOR_VERSION >= 3
-    object string_py(handle<>(PyBytes_FromStringAndSize(data, size)));
-#else
-    object string_py(handle<>(PyString_FromStringAndSize(data, size)));
-#endif
-#if (PY_MAJOR_VERSION < 3) || (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 2)
-    array.attr("fromstring")(string_py);
-#else
-    array.attr("frombytes")(string_py);
-#endif
-    return array;
-}
-
-
-
-// The read_image method is a bit different from the c++ interface. 
-// "function" is a function which takes a float, and the 
-// PyProgressCallback function is called automatically.
-object
-ImageInputWrap::read_image (TypeDesc format)
-{
-    // Allocate our own temp buffer and try to read the image into it.
+    // Allocate our own temp buffer and try to read the into into it.
     // If the read fails, return None.
-    const ImageSpec &spec = m_input->spec();
-    if (format.basetype == TypeDesc::UNKNOWN)
+    self.lock();
+    self.seek_subimage(subimage, miplevel);
+    ImageSpec spec;
+    spec.copy_dimensions(self.spec());
+    self.unlock();
+
+    if (format == TypeUnknown)
         format = spec.format;
-    size_t size = (size_t) spec.image_pixels() * spec.nchannels * format.size();
-    char *data = new char[size];
+    chend            = clamp(chend, chbegin + 1, spec.nchannels);
+    size_t nchans    = size_t(chend - chbegin);
+    size_t pixelsize = size_t(nchans * format.size());
+    size_t size      = spec.image_pixels() * pixelsize;
+    int dims         = spec.depth > 1 ? 4 : 3;
+    std::unique_ptr<char[]> data(new char[size]);
     bool ok;
     {
-        ScopedGILRelease gil;
-        ok = m_input->read_image(format, data);
-    }
-    if (! ok) {
-        delete [] data;  // never mind
-        return object(handle<>(Py_None));
-    }
-
-    object array = C_array_to_Python_array (data, format, size);
-
-    // clean up and return the array handle
-    delete [] data;
-    return array;
-}
-
-
-object
-ImageInputWrap_read_image_bt (ImageInputWrap& in, TypeDesc::BASETYPE format)
-{
-    return in.read_image (format);
-}
-
-
-object
-ImageInputWrap_read_image_default (ImageInputWrap& in)
-{
-    return in.read_image (TypeDesc::UNKNOWN);
-}
-
-
-
-object
-ImageInputWrap::read_scanline (int y, int z, TypeDesc format)
-{
-    // Allocate our own temp buffer and try to read the scanline into it.
-    // If the read fails, return None.
-    const ImageSpec &spec = m_input->spec();
-    if (format.basetype == TypeDesc::UNKNOWN)
-        format = spec.format;
-    size_t size = (size_t) spec.width * spec.nchannels * format.size();
-    char *data = new char[size];
-    bool ok;
-    {
-        ScopedGILRelease gil;
-        ok = m_input->read_scanline (y, z, format, data);
-    }
-    if (!ok) {
-        delete [] data;  // never mind
-        return object(handle<>(Py_None));
-    }
-
-    object array = C_array_to_Python_array (data, format, size);
-
-    // clean up and return the array handle
-    delete [] data;
-    return array;
-}
-
-
-object
-ImageInputWrap_read_scanline_bt (ImageInputWrap& in, int y, int z,
-                                 TypeDesc::BASETYPE format)
-{
-    return in.read_scanline (y, z, format);
-}
-
-
-object
-ImageInputWrap_read_scanline_default (ImageInputWrap& in, int y, int z)
-{
-    return in.read_scanline (y, z, TypeDesc::UNKNOWN);
-}
-
-
-
-object
-ImageInputWrap::read_scanlines (int ybegin, int yend, int z,
-                                int chbegin, int chend, TypeDesc format)
-{
-    // Allocate our own temp buffer and try to read the scanline into it.
-    // If the read fails, return None.
-    ASSERT (m_input);
-    const ImageSpec &spec = m_input->spec();
-    if (format.basetype == TypeDesc::UNKNOWN)
-        format = spec.format;
-    chend = clamp (chend, chbegin+1, spec.nchannels);
-    int nchans = chend - chbegin;
-    size_t size = (size_t) spec.width * (yend-ybegin) * nchans * format.size();
-    char *data = new char[size];
-    bool ok;
-    {
-        ScopedGILRelease gil;
-        ok = m_input->read_scanlines (ybegin, yend, z, chbegin, chend, format, data);
-    }
-    if (! ok) {
-        delete [] data;  // never mind
-        return object(handle<>(Py_None));
-    }
-
-    object array = C_array_to_Python_array (data, format, size);
-
-    // clean up and return the array handle
-    delete [] data;
-    return array;
-}
-
-
-object
-ImageInputWrap_read_scanlines_bt (ImageInputWrap& in, int ybegin, int yend,
-                                  int z, int chbegin, int chend,
-                                  TypeDesc::BASETYPE format)
-{
-    return in.read_scanlines (ybegin, yend, z, chbegin, chend, format);
-}
-
-
-object
-ImageInputWrap_read_scanlines_default (ImageInputWrap& in, int ybegin, int yend,
-                                       int z, int chbegin, int chend)
-{
-    return in.read_scanlines (ybegin, yend, z, chbegin, chend, TypeDesc::UNKNOWN);
-}
-
-
-
-object
-ImageInputWrap::read_tile (int x, int y, int z, TypeDesc format)
-{
-    // Allocate our own temp buffer and try to read the scanline into it.
-    // If the read fails, return None.
-    const ImageSpec &spec = m_input->spec();
-    if (format.basetype == TypeDesc::UNKNOWN)
-        format = spec.format;
-    size_t size = (size_t) spec.tile_pixels() * spec.nchannels * format.size();
-    char *data = new char[size];
-    bool ok;
-    {
-        ScopedGILRelease gil;
-        ok = m_input->read_tile (x, y, z, format, data);
-    }
-    if (! ok) {
-        delete [] data;  // never mind
-        return object(handle<>(Py_None));
-    }
-
-    object array = C_array_to_Python_array (data, format, size);
-
-    // clean up and return the array handle
-    delete [] data;
-    return array;
-}
-
-
-object
-ImageInputWrap_read_tile_bt (ImageInputWrap& in,
-                             int x, int y, int z, TypeDesc::BASETYPE format)
-{
-    return in.read_tile (x, y, z, format);
-}
-
-
-object
-ImageInputWrap_read_tile_default (ImageInputWrap& in,
-                                  int x, int y, int z)
-{
-    return in.read_tile (x, y, z, TypeDesc::UNKNOWN);
-}
-
-
-
-object
-ImageInputWrap::read_tiles (int xbegin, int xend, int ybegin, int yend,
-                            int zbegin, int zend, int chbegin, int chend,
-                            TypeDesc format)
-{
-    // Allocate our own temp buffer and try to read the scanline into it.
-    // If the read fails, return None.
-    const ImageSpec &spec = m_input->spec();
-    if (format.basetype == TypeDesc::UNKNOWN)
-        format = spec.format;
-    chend = clamp (chend, chbegin+1, spec.nchannels);
-    int nchans = chend - chbegin;
-    size_t size = (size_t) ((xend-xbegin) * (yend-ybegin) * 
-                            (zend-zbegin) * nchans * format.size());
-    char *data = new char[size];
-    bool ok;
-    {
-        ScopedGILRelease gil;
-        ok = m_input->read_tiles (xbegin, xend, ybegin, yend,
-                                  zbegin, zend, chbegin, chend, format, data);
-    }
-    if (! ok) {
-        delete [] data;  // never mind
-        return object(handle<>(Py_None));
-    }
-
-    object array = C_array_to_Python_array (data, format, size);
-
-    // clean up and return the array handle
-    delete [] data;
-    return array;
-}
-
-
-object
-ImageInputWrap_read_tiles_bt (ImageInputWrap& in,
-                              int xbegin, int xend, int ybegin, int yend,
-                              int zbegin, int zend, int chbegin, int chend,
-                              TypeDesc::BASETYPE format)
-{
-    return in.read_tiles (xbegin, xend, ybegin, yend, zbegin, zend,
-                          chbegin, chend, format);
-}
-
-
-object
-ImageInputWrap_read_tiles_default (ImageInputWrap& in,
-                                   int xbegin, int xend, int ybegin, int yend,
-                                   int zbegin, int zend, int chbegin, int chend)
-{
-    return in.read_tiles (xbegin, xend, ybegin, yend, zbegin, zend,
-                          chbegin, chend, TypeDesc::UNKNOWN);
-}
-
-
-
-
-object
-ImageInputWrap::read_native_deep_scanlines (int ybegin, int yend, int z,
-                                            int chbegin, int chend)
-{
-    DeepData* dd = NULL;
-    bool ok = true;
-    {
-        ScopedGILRelease gil;
-        dd = new DeepData;
-        ok = m_input->read_native_deep_scanlines (ybegin, yend, z,
-                                                  chbegin, chend, *dd);
+        py::gil_scoped_release gil;
+        ok = self.read_image(subimage, miplevel, chbegin, chend, format,
+                             data.get());
     }
     if (ok)
-        return object(dd);
-    delete dd;
-    return object(handle<>(Py_None));
+        return make_numpy_array(format, data.release(), dims, nchans,
+                                spec.width, spec.height, spec.depth);
+    else
+        return py::none();
 }
 
 
-object
-ImageInputWrap::read_native_deep_tiles (int xbegin, int xend, int ybegin, int yend,
-                                        int zbegin, int zend, int chbegin, int chend)
+
+static py::object
+ImageInput_read_scanlines(ImageInput& self, int subimage, int miplevel,
+                          int ybegin, int yend, int z, int chbegin, int chend,
+                          TypeDesc format, int dims)
 {
-    DeepData* dd = NULL;
-    bool ok = true;
+    // Allocate our own temp buffer and try to read the scanline into it.
+    // If the read fails, return None.
+    self.lock();
+    self.seek_subimage(subimage, miplevel);
+    ImageSpec spec;
+    spec.copy_dimensions(self.spec());
+    self.unlock();
+
+    if (format == TypeUnknown)
+        format = spec.format;
+    int width        = spec.width;
+    chend            = clamp(chend, chbegin + 1, spec.nchannels);
+    size_t nchans    = size_t(chend - chbegin);
+    size_t pixelsize = size_t(nchans * format.size());
+    size_t size      = size_t((yend - ybegin) * width) * pixelsize;
+    std::unique_ptr<char[]> data(new char[size]);
+    bool ok;
     {
-        ScopedGILRelease gil;
-        dd = new DeepData;
-        ok = m_input->read_native_deep_tiles (xbegin, xend, ybegin, yend,
-                                              zbegin, zend, chbegin, chend, *dd);
+        py::gil_scoped_release gil;
+        ok = self.read_scanlines(subimage, miplevel, ybegin, yend, z, chbegin,
+                                 chend, format, data.get());
     }
     if (ok)
-        return object(dd);
-    delete dd;
-    return object(handle<>(Py_None));
+        return make_numpy_array(format, data.release(), dims, nchans, width,
+                                yend - ybegin, 1);
+    else
+        return py::none();
 }
 
 
-object
-ImageInputWrap::read_native_deep_image ()
+
+static py::object
+ImageInput_read_tiles(ImageInput& self, int subimage, int miplevel, int xbegin,
+                      int xend, int ybegin, int yend, int zbegin, int zend,
+                      int chbegin, int chend, TypeDesc format)
 {
-    DeepData* dd = NULL;
-    bool ok = true;
+    // Allocate our own temp buffer and try to read the scanline into it.
+    // If the read fails, return None.
+    self.lock();
+    self.seek_subimage(subimage, miplevel);
+    ImageSpec spec;
+    spec.copy_dimensions(self.spec());
+    self.unlock();
+
+    if (format == TypeUnknown)
+        format = spec.format;
+    chend            = clamp(chend, chbegin + 1, spec.nchannels);
+    size_t nchans    = size_t(chend - chbegin);
+    size_t pixelsize = size_t(nchans * format.size());
+    size_t size      = (xend - xbegin) * (yend - ybegin) * (zend - zbegin)
+                  * pixelsize;
+    int dims = spec.tile_depth > 1 ? 4 : 3;
+    std::unique_ptr<char[]> data(new char[size]);
+    bool ok;
     {
-        ScopedGILRelease gil;
-        dd = new DeepData;
-        ok = m_input->read_native_deep_image (*dd);
+        py::gil_scoped_release gil;
+        ok = self.read_tiles(subimage, miplevel, xbegin, xend, ybegin, yend,
+                             zbegin, zend, chbegin, chend, format, data.get());
     }
     if (ok)
-        return object(dd);
-    delete dd;
-    return object(handle<>(Py_None));
+        return make_numpy_array(format, data.release(), dims, nchans,
+                                xend - xbegin, yend - ybegin, zend - zbegin);
+    else
+        return py::none();
 }
 
 
 
-std::string
-ImageInputWrap::geterror() const
+py::object
+ImageInput_read_native_deep_scanlines(ImageInput& self, int subimage,
+                                      int miplevel, int ybegin, int yend, int z,
+                                      int chbegin, int chend)
 {
-    return m_input->geterror();
+    std::unique_ptr<DeepData> dd;
+    bool ok = true;
+    {
+        py::gil_scoped_release gil;
+        dd.reset(new DeepData);
+        ok = self.read_native_deep_scanlines(subimage, miplevel, ybegin, yend,
+                                             z, chbegin, chend, *dd);
+    }
+    return ok ? py::cast(dd.release()) : py::none();
 }
 
 
 
-void declare_imageinput()
+py::object
+ImageInput_read_native_deep_tiles(ImageInput& self, int subimage, int miplevel,
+                                  int xbegin, int xend, int ybegin, int yend,
+                                  int zbegin, int zend, int chbegin, int chend)
 {
-    class_<ImageInputWrap>("ImageInput", no_init)
-        .def("create", &ImageInputWrap::create,
-             (arg("filename"), arg("plugin_searchpath")=""))
-        .staticmethod("create")
-        .def("open", &ImageInputWrap::open_static_regular,
-             (arg("filename")))
-        .def("open", &ImageInputWrap::open_static_with_config,
-             (arg("filename")))
-        .staticmethod("open")
-        .def("format_name",      &ImageInputWrap::format_name)
-        .def("valid_file",       &ImageInputWrap::valid_file)
-        // .def("open",             &ImageInputWrap::open_regular)
-        // .def("open",             &ImageInputWrap::open_with_config)
-        .def("spec",             &ImageInputWrap::spec, 
-             return_value_policy<copy_const_reference>())
-        .def("supports",         &ImageInputWrap::supports)
-        .def("close",            &ImageInputWrap::close)
-        .def("current_subimage", &ImageInputWrap::current_subimage)
-        .def("current_miplevel", &ImageInputWrap::current_miplevel)
-        .def("seek_subimage",    &ImageInputWrap::seek_subimage)
-        .def("read_scanline",    &ImageInputWrap::read_scanline)
-        .def("read_scanline",    &ImageInputWrap_read_scanline_bt)
-        .def("read_scanline",    &ImageInputWrap_read_scanline_default)
-        .def("read_scanlines",   &ImageInputWrap::read_scanlines)
-        .def("read_scanlines",   &ImageInputWrap_read_scanlines_bt)
-        .def("read_scanlines",   &ImageInputWrap_read_scanlines_default)
-        .def("read_tile",        &ImageInputWrap::read_tile)
-        .def("read_tile",        &ImageInputWrap_read_tile_bt)
-        .def("read_tile",        &ImageInputWrap_read_tile_default)
-        .def("read_tiles",       &ImageInputWrap::read_tiles)
-        .def("read_tiles",       &ImageInputWrap_read_tiles_bt)
-        .def("read_tiles",       &ImageInputWrap_read_tiles_default)
-        .def("read_image",       &ImageInputWrap::read_image)
-        .def("read_image",       &ImageInputWrap_read_image_bt)
-        .def("read_image",       &ImageInputWrap_read_image_default)
-        .def("read_native_deep_scanlines", &ImageInputWrap::read_native_deep_scanlines)
-        .def("read_native_deep_tiles",     &ImageInputWrap::read_native_deep_tiles)
-        .def("read_native_deep_image",     &ImageInputWrap::read_native_deep_image)
-        .def("geterror",         &ImageInputWrap::geterror)
-    ;
+    std::unique_ptr<DeepData> dd;
+    bool ok = true;
+    {
+        py::gil_scoped_release gil;
+        dd.reset(new DeepData);
+        ok = self.read_native_deep_tiles(subimage, miplevel, xbegin, xend,
+                                         ybegin, yend, zbegin, zend, chbegin,
+                                         chend, *dd);
+    }
+    return ok ? py::cast(dd.release()) : py::none();
 }
 
-} // namespace PyOpenImageIO
 
+
+py::object
+ImageInput_read_native_deep_image(ImageInput& self, int subimage, int miplevel)
+{
+    std::unique_ptr<DeepData> dd;
+    bool ok = true;
+    {
+        py::gil_scoped_release gil;
+        dd.reset(new DeepData);
+        ok = self.read_native_deep_image(subimage, miplevel, *dd);
+    }
+    return ok ? py::cast(dd.release()) : py::none();
+}
+
+
+
+void
+declare_imageinput(py::module& m)
+{
+    using namespace pybind11::literals;
+
+    py::class_<ImageInput>(m, "ImageInput")
+        .def_static(
+            "create",
+            [](const std::string& filename,
+               const std::string& searchpath) -> py::object {
+                auto in = ImageInput::create(filename, searchpath);
+                return in ? py::cast(in.release()) : py::none();
+            },
+            "filename"_a, "plugin_searchpath"_a = "")
+        .def_static(
+            "open",
+            [](const std::string& filename) -> py::object {
+                auto in = ImageInput::open(filename);
+                return in ? py::cast(in.release()) : py::none();
+            },
+            "filename"_a)
+        .def_static(
+            "open",
+            [](const std::string& filename,
+               const ImageSpec& config) -> py::object {
+                auto in = ImageInput::open(filename, &config);
+                return in ? py::cast(in.release()) : py::none();
+            },
+            "filename"_a, "config"_a)
+        .def("format_name", &ImageInput::format_name)
+        .def("valid_file",
+             [](ImageInput& self, const std::string& filename) {
+                 return self.valid_file(filename);
+             })
+        .def("spec", [](ImageInput& self) { return self.spec(); })
+        .def(
+            "spec",
+            [](ImageInput& self, int subimage, int miplevel) {
+                return self.spec(subimage, miplevel);
+            },
+            "subimage"_a, "miplevel"_a = 0)
+        .def(
+            "spec_dimensions",
+            [](ImageInput& self, int subimage, int miplevel) {
+                return self.spec_dimensions(subimage, miplevel);
+            },
+            "subimage"_a, "miplevel"_a = 0)
+        .def("supports",
+             [](const ImageInput& self, const std::string& feature) {
+                 return self.supports(feature);
+             })
+        .def("close", &ImageInput::close)
+        .def("current_subimage", &ImageInput::current_subimage)
+        .def("current_miplevel", &ImageInput::current_miplevel)
+        .def("seek_subimage",
+             [](ImageInput& self, int subimage, int miplevel) {
+                 py::gil_scoped_release gil;
+                 return self.seek_subimage(subimage, miplevel);
+             })
+        .def(
+            "read_image",
+            [](ImageInput& self, int subimage, int miplevel, int chbegin,
+               int chend, TypeDesc format) -> py::object {
+                return ImageInput_read_image(self, subimage, miplevel, chbegin,
+                                             chend, format);
+            },
+            "subimage"_a, "miplevel"_a, "chbegin"_a, "chend"_a,
+            "format"_a = TypeFloat)
+        .def(
+            "read_image",
+            [](ImageInput& self, int chbegin, int chend,
+               TypeDesc format) -> py::object {
+                return ImageInput_read_image(self, 0, 0, chbegin, chend,
+                                             format);
+            },
+            "chbegin"_a, "chend"_a, "format"_a = TypeFloat)
+        .def(
+            "read_image",
+            [](ImageInput& self, TypeDesc format) -> py::object {
+                return ImageInput_read_image(self, self.current_subimage(),
+                                             self.current_miplevel(), 0, 10000,
+                                             format);
+            },
+            "format"_a = TypeFloat)
+        .def(
+            "read_scanline",
+            [](ImageInput& self, int y, int z, TypeDesc format) -> py::object {
+                return ImageInput_read_scanlines(self, self.current_subimage(),
+                                                 self.current_miplevel(), y,
+                                                 y + 1, z, 0, 10000, format, 2);
+            },
+            "y"_a, "z"_a = 0, "format"_a = TypeFloat)
+        .def(
+            "read_scanlines",
+            [](ImageInput& self, int subimage, int miplevel, int ybegin,
+               int yend, int z, int chbegin, int chend,
+               TypeDesc format) -> py::object {
+                return ImageInput_read_scanlines(self, subimage, miplevel,
+                                                 ybegin, yend, z, chbegin,
+                                                 chend, format, 3);
+            },
+            "subimage"_a, "miplevel"_a, "ybegin"_a, "yend"_a, "z"_a,
+            "chbegin"_a, "chend"_a, "format"_a = TypeFloat)
+        .def(
+            "read_scanlines",
+            [](ImageInput& self, int ybegin, int yend, int z, int chbegin,
+               int chend, TypeDesc format) -> py::object {
+                return ImageInput_read_scanlines(self, self.current_subimage(),
+                                                 self.current_miplevel(),
+                                                 ybegin, yend, z, chbegin,
+                                                 chend, format, 3);
+            },
+            "ybegin"_a, "yend"_a, "z"_a, "chbegin"_a, "chend"_a,
+            "format"_a = TypeFloat)
+        .def(
+            "read_tiles",
+            [](ImageInput& self, int subimage, int miplevel, int xbegin,
+               int xend, int ybegin, int yend, int zbegin, int zend,
+               int chbegin, int chend, TypeDesc format) -> py::object {
+                return ImageInput_read_tiles(self, subimage, miplevel, xbegin,
+                                             xend, ybegin, yend, zbegin, zend,
+                                             chbegin, chend, format);
+            },
+            "subimage"_a, "miplevel"_a, "xbegin"_a, "xend"_a, "ybegin"_a,
+            "yend"_a, "zbegin"_a, "zend"_a, "chbegin"_a, "chend"_a,
+            "format"_a = TypeFloat)
+        .def(
+            "read_tiles",
+            [](ImageInput& self, int xbegin, int xend, int ybegin, int yend,
+               int zbegin, int zend, int chbegin, int chend,
+               TypeDesc format) -> py::object {
+                return ImageInput_read_tiles(self, self.current_subimage(),
+                                             self.current_miplevel(), xbegin,
+                                             xend, ybegin, yend, zbegin, zend,
+                                             chbegin, chend, format);
+            },
+            "xbegin"_a, "xend"_a, "ybegin"_a, "yend"_a, "zbegin"_a, "zend"_a,
+            "chbegin"_a, "chend"_a, "format"_a = TypeFloat)
+        .def(
+            "read_tile",
+            [](ImageInput& self, int x, int y, int z,
+               TypeDesc format) -> py::object {
+                const ImageSpec& spec(self.spec());
+                return ImageInput_read_tiles(self, self.current_subimage(),
+                                             self.current_miplevel(), x,
+                                             x + spec.tile_width, y,
+                                             y + spec.tile_height, z,
+                                             z + std::max(1, spec.tile_depth),
+                                             0, spec.nchannels, format);
+            },
+            "x"_a, "y"_a, "z"_a, "format"_a = TypeFloat)
+        .def("read_native_deep_scanlines",
+             &ImageInput_read_native_deep_scanlines, "subimage"_a, "miplevel"_a,
+             "ybegin"_a, "yend"_a, "z"_a, "chbegin"_a, "chend"_a)
+        .def(
+            "read_native_deep_scanlines",  // DEPRECATED(1.9), keep for back compatibility
+            [](ImageInput& self, int ybegin, int yend, int z, int chbegin,
+               int chend) {
+                int subimage = self.current_subimage();
+                int miplevel = self.current_miplevel();
+                return ImageInput_read_native_deep_scanlines(self, subimage,
+                                                             miplevel, ybegin,
+                                                             yend, z, chbegin,
+                                                             chend);
+            },
+            "ybegin"_a, "yend"_a, "z"_a, "chbegin"_a, "chend"_a)
+        .def("read_native_deep_tiles", &ImageInput_read_native_deep_tiles,
+             "subimage"_a, "miplevel"_a, "xbegin"_a, "xend"_a, "ybegin"_a,
+             "yend"_a, "zbegin"_a, "zend"_a, "chbegin"_a, "chend"_a)
+        .def(
+            "read_native_deep_tiles",  // DEPRECATED(1.9), keep for back compatibility
+            [](ImageInput& self, int xbegin, int xend, int ybegin, int yend,
+               int zbegin, int zend, int chbegin, int chend) {
+                return ImageInput_read_native_deep_tiles(self, 0, 0, xbegin,
+                                                         xend, ybegin, yend,
+                                                         zbegin, zend, chbegin,
+                                                         chend);
+            },
+            "xbegin"_a, "xend"_a, "ybegin"_a, "yend"_a, "zbegin"_a, "zend"_a,
+            "chbegin"_a, "chend"_a)
+        .def("read_native_deep_image", &ImageInput_read_native_deep_image,
+             "subimage"_a = 0, "miplevel"_a = 0)
+        .def(
+            "get_thumbnail",
+            [](ImageInput& self, int subimage) {
+                ImageBuf buf;
+                self.get_thumbnail(buf, subimage);
+                return buf;
+            },
+            "subimage"_a = 0)
+        .def_property_readonly("has_error", &ImageInput::has_error)
+        .def(
+            "geterror",
+            [](ImageInput& self, bool clear) {
+                return PY_STR(self.geterror(clear));
+            },
+            "clear"_a = true);
+}
+
+}  // namespace PyOpenImageIO

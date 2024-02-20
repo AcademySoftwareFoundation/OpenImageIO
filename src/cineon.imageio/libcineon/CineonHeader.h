@@ -43,6 +43,7 @@
 
 #include <cstring>
 #include <limits>
+#include <OpenImageIO/strutil.h>
 
 #if defined(_MSC_VER) && _MSC_VER < 1600
    typedef __int32 int32_t;
@@ -50,7 +51,7 @@
    typedef __int64 int64_t;
    typedef unsigned __int64 uint64_t;
 #else
-# include <stdint.h>
+# include <cstdint>
 #endif
 
 #include "CineonStream.h"
@@ -63,24 +64,17 @@
  */
 #define SPEC_VERSION		"V4.5"
 
-/*!
- * \def MAX_ELEMENTS
+   /*!
+ * \def CINEON_MAX_ELEMENTS
  * \brief Maximum number of image elements
  */
-#define MAX_ELEMENTS		8
+#define CINEON_MAX_ELEMENTS 8
 
-/*!
- * \def MAX_COMPONENTS
- * \brief Maximum number of components per image element
- */
-#define MAX_COMPONENTS		8
-
-
-/*!
- * \def MAGIC_COOKIE
+   /*!
+ * \def CINEON_MAGIC_COOKIE
  * \brief HEX value of 0x802A5FD7
  */
-#define MAGIC_COOKIE		0x802A5FD7
+#define CINEON_MAGIC_COOKIE		0x802A5FD7
 
 
 
@@ -274,8 +268,8 @@ namespace cineon
 		U8					imageOrientation;			//!< Image orientation \see Orientation
 		U8					numberOfElements;			//!< Number of elements (1-8)
 		U8					unused1[2];					//!< Unused (word alignment)
-		ImageElement		chan[MAX_ELEMENTS];			//!< Image element data structures
-		R32					whitePoint[2];				//!< White point (x, y pair)
+        ImageElement        chan[CINEON_MAX_ELEMENTS];  //!< Image element data structures
+        R32					whitePoint[2];				//!< White point (x, y pair)
 		R32					redPrimary[2];				//!< Red primary chromaticity (x, y pair)
 		R32					greenPrimary[2];			//!< Green primary chromaticity (x, y pair)
 		R32					bluePrimary[2];				//!< Blue primary chromaticity (x, y pair)
@@ -855,7 +849,7 @@ namespace cineon
 		inline void			SetXDevicePitch(const R32 size);
 
 		/*!
-		 * \brief Get the veritcal pitch of the device
+		 * \brief Get the vertical pitch of the device
 		 * \return pitch in samples/mm
 		 */
 		inline R32			YDevicePitch() const;
@@ -961,7 +955,7 @@ namespace cineon
 		 * \brief Get the film edge code information that is machine readable
 		 * \param edge buffer to write film edge code information (16+1 chars)
 		 */
-		void				FilmEdgeCode(char *edge) const;
+		void				FilmEdgeCode(char *edge, size_t size) const;
 
 		/*!
 		 * \brief Set the film edge code information that is machine readable
@@ -1055,6 +1049,7 @@ namespace cineon
 		 */
 		bool				Read(InStream *);
 
+#ifdef OIIO_DOES_NOT_NEED_THIS
 		/*!
 		 * \brief Set the Output Stream object to write header to
 		 */
@@ -1062,6 +1057,7 @@ namespace cineon
 
 		// write the offset within the header
 		bool				WriteOffsetData(OutStream *);
+#endif
 
 		/*!
 		 * \brief Validate the header
@@ -1084,7 +1080,7 @@ namespace cineon
 		 * \brief Returns the size of the header
 		 * \return 2048 as defined by the standard
 		 */
-		const U32			Size() const;
+		U32                 Size() const;
 
 		/*!
 		 * \brief Calculate all of the offset members in the header
@@ -1127,7 +1123,7 @@ namespace cineon
 		return this->DetermineByteSwap(this->magicNumber);
 	}
 
-	inline const U32 Header::Size() const
+	inline U32 Header::Size() const
 	{
 		return 2048;
 	}
@@ -1151,13 +1147,12 @@ namespace cineon
 
 	inline void GenericHeader::Version(char *v) const
 	{
-		::strncpy(v, this->version, 8);
-		v[8] = '\0';
+		OIIO::Strutil::safe_strcpy(v, this->version, 8);
 	}
 
 	inline void GenericHeader::SetVersion(const char * v)
 	{
-		::strncpy(this->version, v, 8);
+		OIIO::Strutil::safe_strcpy(this->version, v, 8);
 	}
 
 	inline U32 GenericHeader::FileSize() const
@@ -1192,35 +1187,32 @@ namespace cineon
 
 	inline void GenericHeader::FileName(char *fn) const
 	{
-		::strncpy(fn, this->fileName, 100);
-		fn[100] = '\0';
+		OIIO::Strutil::safe_strcpy(fn, this->fileName, 100);
 	}
 
 	inline void GenericHeader::SetFileName(const char *fn)
 	{
-		::strncpy(this->fileName, fn, 100);
+		OIIO::Strutil::safe_strcpy(this->fileName, fn, 100);
 	}
 
 	inline void GenericHeader::CreationDate(char *ct) const
 	{
-		::strncpy(ct, this->creationDate, 12);
-		ct[24] = '\0';
+		OIIO::Strutil::safe_strcpy(ct, this->creationDate, 12);
 	}
 
 	inline void GenericHeader::SetCreationDate(const char *ct)
 	{
-		::strncpy(this->creationDate, ct, 12);
+		OIIO::Strutil::safe_strcpy(this->creationDate, ct, 12);
 	}
 
 	inline void GenericHeader::CreationTime(char *ct) const
 	{
-		::strncpy(ct, this->creationTime, 12);
-		ct[24] = '\0';
+		OIIO::Strutil::safe_strcpy(ct, this->creationTime, 12);
 	}
 
 	inline void GenericHeader::SetCreationTime(const char *ct)
 	{
-		::strncpy(this->creationTime, ct, 12);
+		OIIO::Strutil::safe_strcpy(this->creationTime, ct, 12);
 	}
 
 	inline Orientation GenericHeader::ImageOrientation() const
@@ -1245,30 +1237,30 @@ namespace cineon
 
 	inline U32 GenericHeader::PixelsPerLine(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xffffffff;
-		return this->chan[i].pixelsPerLine;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return 0xffffffff;
+        return this->chan[i].pixelsPerLine;
 	}
 
 	inline void GenericHeader::SetPixelsPerLine(const int i, const U32 ppl)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].pixelsPerLine = ppl;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return;
+        this->chan[i].pixelsPerLine = ppl;
 	}
 
 	inline U32 GenericHeader::LinesPerElement(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xffffffff;
-		return this->chan[i].linesPerElement;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return 0xffffffff;
+        return this->chan[i].linesPerElement;
 	}
 
 	inline void GenericHeader::SetLinesPerElement(const int i, const U32 lpe)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].linesPerElement = lpe;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return;
+        this->chan[i].linesPerElement = lpe;
 	}
 
 	inline U8 GenericHeader::DataSign() const
@@ -1283,100 +1275,100 @@ namespace cineon
 
 	inline R32 GenericHeader::LowData(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return std::numeric_limits<R32>::infinity();
-		return this->chan[i].lowData;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return std::numeric_limits<R32>::infinity();
+        return this->chan[i].lowData;
 	}
 
 	inline void GenericHeader::SetLowData(const int i, const R32 data)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].lowData = data;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return;
+        this->chan[i].lowData = data;
 	}
 
 	inline R32 GenericHeader::LowQuantity(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return std::numeric_limits<R32>::max();
-		return this->chan[i].lowQuantity;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return std::numeric_limits<R32>::max();
+        return this->chan[i].lowQuantity;
 	}
 
 	inline void GenericHeader::SetLowQuantity(const int i, const R32 quant)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].lowQuantity = quant;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return;
+        this->chan[i].lowQuantity = quant;
 	}
 
 	inline R32 GenericHeader::HighData(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return std::numeric_limits<R32>::max();
-		return this->chan[i].highData;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return std::numeric_limits<R32>::max();
+        return this->chan[i].highData;
 	}
 
 	inline void GenericHeader::SetHighData(const int i, const R32 data)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].highData = data;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return;
+        this->chan[i].highData = data;
 	}
 
 	inline R32 GenericHeader::HighQuantity(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return std::numeric_limits<R32>::max();
-		return this->chan[i].highQuantity;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return std::numeric_limits<R32>::max();
+        return this->chan[i].highQuantity;
 	}
 
 	inline void GenericHeader::SetHighQuantity(const int i, const R32 quant)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].highQuantity = quant;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return;
+        this->chan[i].highQuantity = quant;
 	}
 
 	inline U8 GenericHeader::Metric(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xff;
-		return this->chan[i].designator[0];
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return 0xff;
+        return this->chan[i].designator[0];
 	}
 
 	inline void GenericHeader::SetMetric(const int i, const U8 m)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].designator[0] = m;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return;
+        this->chan[i].designator[0] = m;
 	}
 
 	inline Descriptor GenericHeader::ImageDescriptor(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return Descriptor(0xff);
-		return Descriptor(this->chan[i].designator[1]);
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return Descriptor(0xff);
+        return Descriptor(this->chan[i].designator[1]);
 	}
 
 	inline void GenericHeader::SetImageDescriptor(const int i, const Descriptor desc)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].designator[1] = (U8)desc;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return;
+        this->chan[i].designator[1] = (U8)desc;
 	}
 
 	inline U8 GenericHeader::BitDepth(const int i) const
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xff;
-		return this->chan[i].bitDepth;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return 0xff;
+        return this->chan[i].bitDepth;
 	}
 
 	inline void GenericHeader::SetBitDepth(const int i, const U8 depth)
 	{
-		if (i < 0 || i >= MAX_ELEMENTS)
-			return;
-		this->chan[i].bitDepth = depth;
+        if (i < 0 || i >= CINEON_MAX_ELEMENTS)
+            return;
+        this->chan[i].bitDepth = depth;
 	}
 
 	inline Interleave GenericHeader::ImageInterleave() const
@@ -1425,12 +1417,12 @@ namespace cineon
 
 	inline void GenericHeader::LabelText(char *desc) const
 	{
-		strncpy(desc, this->labelText, 200);
+		OIIO::Strutil::safe_strcpy(desc, this->labelText, 200);
 	}
 
 	inline void GenericHeader::SetLabelText(const char *desc)
 	{
-		::strncpy(this->labelText, desc, 200);
+		OIIO::Strutil::safe_strcpy(this->labelText, desc, 200);
 	}
 
 
@@ -1496,68 +1488,62 @@ namespace cineon
 
 	inline void GenericHeader::SourceImageFileName(char *fn) const
 	{
-		::strncpy(fn, this->sourceImageFileName, 100);
-		fn[100] = '\0';
+		OIIO::Strutil::safe_strcpy(fn, this->sourceImageFileName, 100);
 	}
 
 	inline void GenericHeader::SetSourceImageFileName(const char *fn)
 	{
-		::strncpy(this->sourceImageFileName, fn, 100);
+		OIIO::Strutil::safe_strcpy(this->sourceImageFileName, fn, 100);
 	}
 
 	inline void GenericHeader::SourceDate(char *td) const
 	{
-		::strncpy(td, this->sourceDate, 12);
-		td[12] = '\0';
+		OIIO::Strutil::safe_strcpy(td, this->sourceDate, 12);
 	}
 
 	inline void GenericHeader::SetSourceDate(const char *td)
 	{
-		::strncpy(this->sourceDate, td, 12);
+		OIIO::Strutil::safe_strcpy(this->sourceDate, td, 12);
 	}
 
 	inline void GenericHeader::SourceTime(char *td) const
 	{
-		::strncpy(td, this->sourceTime, 12);
-		td[12] = '\0';
+		OIIO::Strutil::safe_strcpy(td, this->sourceTime, 12);
 	}
 
 	inline void GenericHeader::SetSourceTime(const char *td)
 	{
-		::strncpy(this->sourceTime, td, 12);
+		OIIO::Strutil::safe_strcpy(this->sourceTime, td, 12);
 	}
 
 	inline void GenericHeader::InputDevice(char *dev) const
 	{
-		::strncpy(dev, this->inputDevice, 32);
-		dev[32] = '\0';
+		OIIO::Strutil::safe_strcpy(dev, this->inputDevice, 32);
 	}
 
 	inline void  GenericHeader::SetInputDevice(const char *dev)
 	{
-		::strncpy(this->inputDevice, dev, 32);
+		OIIO::Strutil::safe_strcpy(this->inputDevice, dev, 32);
 	}
 
 	inline void GenericHeader::InputDeviceModelNumber(char *sn) const
 	{
-		::strncpy(sn, this->inputDeviceModelNumber, 32);
-		sn[32] = '\0';
+		OIIO::Strutil::safe_strcpy(sn, this->inputDeviceModelNumber, 32);
 	}
 
 	inline void GenericHeader::SetInputDeviceModelNumber(const char *sn)
 	{
-		::strncpy(this->inputDeviceModelNumber, sn, 32);
+		OIIO::Strutil::safe_strcpy(this->inputDeviceModelNumber, sn, 32);
 	}
 
 	inline void GenericHeader::InputDeviceSerialNumber(char *sn) const
 	{
-		::strncpy(sn, this->inputDeviceSerialNumber, 32);
-		sn[32] = '\0';
+		OIIO::Strutil::safe_strcpy(sn, this->inputDeviceSerialNumber, 32);
 	}
 
 	inline void GenericHeader::SetInputDeviceSerialNumber(const char *sn)
 	{
-		::strncpy(this->inputDeviceSerialNumber, sn, 32);
+		OIIO::Strutil::safe_strcpy(this->inputDeviceSerialNumber, sn, 32);
 	}
 
 	inline R32 GenericHeader::XDevicePitch() const
@@ -1582,13 +1568,12 @@ namespace cineon
 
 	inline void IndustryHeader::Format(char *fmt) const
 	{
-		::strncpy(fmt, this->format, 32);
-		fmt[32] = '\0';
+		OIIO::Strutil::safe_strcpy(fmt, this->format, 32);
 	}
 
 	inline void IndustryHeader::SetFormat(const char *fmt)
 	{
-		::strncpy(this->format, fmt, 32);
+		OIIO::Strutil::safe_strcpy(this->format, fmt, 32);
 	}
 
 	inline U32 IndustryHeader::FramePosition() const
@@ -1613,24 +1598,22 @@ namespace cineon
 
 	inline void IndustryHeader::FrameId(char *id) const
 	{
-		::strncpy(id, this->frameId, 32);
-		id[32] = '\0';
+		OIIO::Strutil::safe_strcpy(id, this->frameId, 32);
 	}
 
 	inline void IndustryHeader::SetFrameId(const char *id)
 	{
-		::strncpy(this->frameId, id, 32);
+		OIIO::Strutil::safe_strcpy(this->frameId, id, 32);
 	}
 
 	inline void IndustryHeader::SlateInfo(char *slate) const
 	{
-		::strncpy(slate, this->slateInfo, 100);
-		slate[100] = '\0';
+		OIIO::Strutil::safe_strcpy(slate, this->slateInfo, 100);
 	}
 
 	inline void IndustryHeader::SetSlateInfo(const char *slate)
 	{
-		::strncpy(this->slateInfo, slate, 100);
+		OIIO::Strutil::safe_strcpy(this->slateInfo, slate, 100);
 	}
 
 	inline R32 GenericHeader::Gamma() const

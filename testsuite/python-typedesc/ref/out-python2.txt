@@ -1,0 +1,260 @@
+Passed BASETYPE
+Passed AGGREGATE
+Passed VECSEMANTICS
+
+type '(default)'
+    c_str "unknown"
+    basetype BASETYPE.UNKNOWN
+    aggregate AGGREGATE.SCALAR
+    vecsemantics VECSEMANTICS.NOXFORM
+    arraylen 0
+    str(t) = "unknown"
+    size = 0
+    elementtype = unknown
+    numelements = 1
+    basevalues = 1
+    elementsize = 0
+    basesize = 0
+type 'UINT8'
+    c_str "uint8"
+    basetype BASETYPE.UCHAR
+    aggregate AGGREGATE.SCALAR
+    vecsemantics VECSEMANTICS.NOXFORM
+    arraylen 0
+    str(t) = "uint8"
+    size = 1
+    elementtype = uint8
+    numelements = 1
+    basevalues = 1
+    elementsize = 1
+    basesize = 1
+type 'HALF, VEC3, COLOR'
+    c_str "colorh"
+    basetype BASETYPE.HALF
+    aggregate AGGREGATE.VEC3
+    vecsemantics VECSEMANTICS.COLOR
+    arraylen 0
+    str(t) = "colorh"
+    size = 6
+    elementtype = colorh
+    numelements = 1
+    basevalues = 3
+    elementsize = 6
+    basesize = 2
+type 'FLOAT, SCALAR, NOXFORM, array of 6'
+    c_str "float[6]"
+    basetype BASETYPE.FLOAT
+    aggregate AGGREGATE.SCALAR
+    vecsemantics VECSEMANTICS.NOXFORM
+    arraylen 6
+    str(t) = "float[6]"
+    size = 24
+    elementtype = float
+    numelements = 6
+    basevalues = 6
+    elementsize = 4
+    basesize = 4
+type 'FLOAT, VEC3, POINT, array of 2'
+    c_str "point[2]"
+    basetype BASETYPE.FLOAT
+    aggregate AGGREGATE.VEC3
+    vecsemantics VECSEMANTICS.POINT
+    arraylen 2
+    str(t) = "point[2]"
+    size = 24
+    elementtype = point
+    numelements = 2
+    basevalues = 6
+    elementsize = 12
+    basesize = 4
+type 'INT, VEC2, BOX, array of 2'
+    c_str "box2i"
+    basetype BASETYPE.INT32
+    aggregate AGGREGATE.VEC2
+    vecsemantics VECSEMANTICS.BOX
+    arraylen 2
+    str(t) = "box2i"
+    size = 16
+    elementtype = box2i
+    numelements = 2
+    basevalues = 4
+    elementsize = 8
+    basesize = 4
+type 'FLOAT, VEC3, BOX, array of 2'
+    c_str "box3"
+    basetype BASETYPE.FLOAT
+    aggregate AGGREGATE.VEC3
+    vecsemantics VECSEMANTICS.BOX
+    arraylen 2
+    str(t) = "box3"
+    size = 24
+    elementtype = box3
+    numelements = 2
+    basevalues = 6
+    elementsize = 12
+    basesize = 4
+
+type 'float[2]'
+    c_str "float[2]"
+    basetype BASETYPE.FLOAT
+    aggregate AGGREGATE.SCALAR
+    vecsemantics VECSEMANTICS.NOXFORM
+    arraylen 2
+    str(t) = "float[2]"
+    size = 8
+    elementtype = float
+    numelements = 2
+    basevalues = 2
+    elementsize = 4
+    basesize = 4
+type 'normal'
+    c_str "normal"
+    basetype BASETYPE.FLOAT
+    aggregate AGGREGATE.VEC3
+    vecsemantics VECSEMANTICS.NORMAL
+    arraylen 0
+    str(t) = "normal"
+    size = 12
+    elementtype = normal
+    numelements = 1
+    basevalues = 3
+    elementsize = 12
+    basesize = 4
+type 'uint16'
+    c_str "uint16"
+    basetype BASETYPE.UINT16
+    aggregate AGGREGATE.SCALAR
+    vecsemantics VECSEMANTICS.NOXFORM
+    arraylen 0
+    str(t) = "uint16"
+    size = 2
+    elementtype = uint16
+    numelements = 1
+    basevalues = 1
+    elementsize = 2
+    basesize = 2
+type 'box3'
+    c_str "box3"
+    basetype BASETYPE.FLOAT
+    aggregate AGGREGATE.VEC3
+    vecsemantics VECSEMANTICS.BOX
+    arraylen 2
+    str(t) = "box3"
+    size = 24
+    elementtype = box3
+    numelements = 2
+    basevalues = 6
+    elementsize = 12
+    basesize = 4
+
+uint8 == uint8? True
+uint8 == uint8? True
+uint8 == uint16 False
+uint8 != uint8? False
+uint8 != uint8? False
+uint8 != uint16 True
+vector == color False
+vector.equivalent(color) True
+equivalent(vector,color) True
+vector.equivalent(float) False
+equivalent(vector,float) False
+
+type 'TypeFloat'
+    c_str "float"
+type 'TypeColor'
+    c_str "color"
+type 'TypeString'
+    c_str "string"
+type 'TypeInt'
+    c_str "int"
+type 'TypePoint'
+    c_str "point"
+type 'TypeVector'
+    c_str "vector"
+type 'TypeNormal'
+    c_str "normal"
+type 'TypeMatrix'
+    c_str "matrix"
+type 'TypeMatrix33'
+    c_str "matrix33"
+type 'TypeMatrix44'
+    c_str "matrix"
+type 'TypeTimeCode'
+    c_str "timecode"
+type 'TypeKeyCode'
+    c_str "keycode"
+type 'TypeRational'
+    c_str "rational2i"
+type 'TypeFloat2'
+    c_str "float2"
+type 'TypeVector2'
+    c_str "vector2"
+type 'TypeFloat4'
+    c_str "float4"
+type 'TypeVector4'
+    c_str "float4"
+type 'TypeVector2i'
+    c_str "float2i"
+type 'TypeHalf'
+    c_str "half"
+
+type 'TypeFloat'
+    c_str "float"
+type 'TypeColor'
+    c_str "color"
+type 'TypeString'
+    c_str "string"
+type 'TypeInt'
+    c_str "int"
+type 'TypeUInt'
+    c_str "uint"
+type 'TypeInt64'
+    c_str "int64"
+type 'TypeUInt64'
+    c_str "uint64"
+type 'TypeInt32'
+    c_str "int"
+type 'TypeUInt32'
+    c_str "uint"
+type 'TypeInt16'
+    c_str "int16"
+type 'TypeUInt16'
+    c_str "uint16"
+type 'TypeInt8'
+    c_str "int8"
+type 'TypeUInt8'
+    c_str "uint8"
+type 'TypePoint'
+    c_str "point"
+type 'TypeVector'
+    c_str "vector"
+type 'TypeNormal'
+    c_str "normal"
+type 'TypeMatrix'
+    c_str "matrix"
+type 'TypeMatrix33'
+    c_str "matrix33"
+type 'TypeMatrix44'
+    c_str "matrix"
+type 'TypeTimeCode'
+    c_str "timecode"
+type 'TypeKeyCode'
+    c_str "keycode"
+type 'TypeFloat2'
+    c_str "float2"
+type 'TypeVector2'
+    c_str "vector2"
+type 'TypeFloat4'
+    c_str "float4"
+type 'TypeVector4'
+    c_str "float4"
+type 'TypeVector2i'
+    c_str "float2i"
+type 'TypeHalf'
+    c_str "half"
+type 'TypeRational'
+    c_str "rational2i"
+type 'TypeUInt'
+    c_str "uint"
+
+Done.

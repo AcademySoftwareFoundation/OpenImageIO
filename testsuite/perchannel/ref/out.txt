@@ -1,8 +1,14 @@
-Comparing "../../../../../openexr-images/ScanLines/Blobbies.exr" and "blob1.exr"
+Comparing "../openexr-images/ScanLines/Blobbies.exr" and "blob1.exr"
 PASS
-Comparing "../../../../../openexr-images/ScanLines/Blobbies.exr" and "blob2.exr"
+Comparing "../openexr-images/ScanLines/Blobbies.exr" and "blob2.exr"
 PASS
-Comparing "../../../../../openexr-images/Tiles/Spirals.exr" and "spiral1.exr"
+Comparing "../openexr-images/Tiles/Spirals.exr" and "spiral1.exr"
 PASS
-Comparing "../../../../../openexr-images/Tiles/Spirals.exr" and "spiral2.exr"
+Comparing "../openexr-images/Tiles/Spirals.exr" and "spiral2.exr"
 PASS
+hfhf.exr             :   64 x   64, 4 channel, half/float/half/float openexr
+    SHA-1: 6FECD5769C727E137B7580AE3B1823B06EE6F9D9
+hfhf_copy.exr        :   64 x   64, 4 channel, half/float/half/float openexr
+    SHA-1: 6FECD5769C727E137B7580AE3B1823B06EE6F9D9
+hfhf_mod.exr         :   64 x   64, 4 channel, half/float/half/float openexr
+    SHA-1: 6FECD5769C727E137B7580AE3B1823B06EE6F9D9

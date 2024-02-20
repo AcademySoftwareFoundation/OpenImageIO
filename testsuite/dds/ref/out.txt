@@ -1,0 +1,216 @@
+Reading ../oiio-images/dds/dds_bc1.dds
+../oiio-images/dds/dds_bc1.dds :   16 x    8, 4 channel, uint8 dds
+    SHA-1: A2DD1B9BF07149F6E32B177BE5A1D85A7A3C6BCF
+    channel list: R, G, B, A
+    compression: "DXT1"
+    textureformat: "Plain Texture"
+Reading ../oiio-images/dds/dds_bc1_mips.dds
+../oiio-images/dds/dds_bc1_mips.dds :   16 x    8, 4 channel, uint8 dds
+    MIP-map levels: 16x8 8x4 4x2 2x1 1x1
+    SHA-1: A2DD1B9BF07149F6E32B177BE5A1D85A7A3C6BCF
+    channel list: R, G, B, A
+    compression: "DXT1"
+    textureformat: "Plain Texture"
+Reading ../oiio-images/dds/dds_bc2.dds
+../oiio-images/dds/dds_bc2.dds :   16 x    8, 4 channel, uint8 dds
+    SHA-1: B458B3BAA7F457E06D04D0FBF93C003FFA729C97
+    channel list: R, G, B, A
+    compression: "DXT3"
+    textureformat: "Plain Texture"
+Reading ../oiio-images/dds/dds_bc3.dds
+../oiio-images/dds/dds_bc3.dds :   16 x    8, 4 channel, uint8 dds
+    SHA-1: B45BF28699FBA3CD6B52A9116FEAD7A08DD2B694
+    channel list: R, G, B, A
+    compression: "DXT5"
+    textureformat: "Plain Texture"
+Reading ../oiio-images/dds/dds_bc4.dds
+../oiio-images/dds/dds_bc4.dds :   16 x    8, 1 channel, uint8 dds
+    SHA-1: 3AB99C171DF5E3ADB494D2C09DE67C7FF53EA18C
+    channel list: Y
+    compression: "BC4"
+    textureformat: "Plain Texture"
+Reading ../oiio-images/dds/dds_bc5.dds
+../oiio-images/dds/dds_bc5.dds :   16 x    8, 2 channel, uint8 dds
+    SHA-1: 460525BD9A4E3D295F0A9878204AA0912F3825BB
+    channel list: R, G
+    compression: "BC5"
+    textureformat: "Plain Texture"
+Reading ../oiio-images/dds/dds_bc6hu.dds
+../oiio-images/dds/dds_bc6hu.dds :   16 x    8, 3 channel, half dds
+    SHA-1: 11499B6B8451F0488366EB4E7C10BEEC39C2792A
+    channel list: R, G, B
+    compression: "BC6HU"
+    textureformat: "Plain Texture"
+    oiio:ColorSpace: "linear"
+Reading ../oiio-images/dds/dds_bc6hu_hdr.dds
+../oiio-images/dds/dds_bc6hu_hdr.dds :  128 x   64, 3 channel, half dds
+    SHA-1: 86FE86288649F5375DB51CDF19C91C3651992726
+    channel list: R, G, B
+    compression: "BC6HU"
+    textureformat: "Plain Texture"
+    oiio:ColorSpace: "linear"
+Reading ../oiio-images/dds/dds_bc7.dds
+../oiio-images/dds/dds_bc7.dds :   16 x    8, 4 channel, uint8 dds
+    SHA-1: 18D1977AD74C3C19E5B30459D212EBC8C7F8BC54
+    channel list: R, G, B, A
+    compression: "BC7"
+    textureformat: "Plain Texture"
+Reading ../oiio-images/dds/dds_bgr8.dds
+../oiio-images/dds/dds_bgr8.dds :   16 x    8, 3 channel, uint8 dds
+    SHA-1: 6BF57CCCCF14021926285CE97D25AEC150324476
+    channel list: R, G, B
+    textureformat: "Plain Texture"
+    oiio:BitsPerSample: 24
+Reading ../oiio-images/dds/dds_npot_bc3.dds
+../oiio-images/dds/dds_npot_bc3.dds :   13 x    7, 4 channel, uint8 dds
+    SHA-1: 06063F63E99837BDCDA2F8864ECD55738778C1A5
+    channel list: R, G, B, A
+    compression: "DXT5"
+    textureformat: "Plain Texture"
+Reading ../oiio-images/dds/dds_npot_bc3_mips.dds
+../oiio-images/dds/dds_npot_bc3_mips.dds :   13 x    7, 4 channel, uint8 dds
+    MIP-map levels: 13x7 6x3 3x1 1x1
+    SHA-1: 06063F63E99837BDCDA2F8864ECD55738778C1A5
+    channel list: R, G, B, A
+    compression: "DXT5"
+    textureformat: "Plain Texture"
+Reading ../oiio-images/dds/dds_npot_rgba8.dds
+../oiio-images/dds/dds_npot_rgba8.dds :   13 x    7, 4 channel, uint8 dds
+    SHA-1: 6CBA3E2782498E2E92F5E4B08376A2E948FE3BAF
+    channel list: R, G, B, A
+    textureformat: "Plain Texture"
+    oiio:BitsPerSample: 32
+Reading ../oiio-images/dds/dds_npot_rgba8_mips.dds
+../oiio-images/dds/dds_npot_rgba8_mips.dds :   13 x    7, 4 channel, uint8 dds
+    MIP-map levels: 13x7 6x3 3x1 1x1
+    SHA-1: 6CBA3E2782498E2E92F5E4B08376A2E948FE3BAF
+    channel list: R, G, B, A
+    textureformat: "Plain Texture"
+    oiio:BitsPerSample: 32
+Reading ../oiio-images/dds/dds_r5g6b5.dds
+../oiio-images/dds/dds_r5g6b5.dds :   16 x    8, 3 channel, uint8 dds
+    SHA-1: 37A3BFD2B8A52006B4F07065A90BE774F276B751
+    channel list: R, G, B
+    textureformat: "Plain Texture"
+    oiio:BitsPerSample: 16
+Reading ../oiio-images/dds/dds_rgb8.dds
+../oiio-images/dds/dds_rgb8.dds :   16 x    8, 3 channel, uint8 dds
+    SHA-1: 6BF57CCCCF14021926285CE97D25AEC150324476
+    channel list: R, G, B
+    textureformat: "Plain Texture"
+    oiio:BitsPerSample: 24
+Reading ../oiio-images/dds/dds_rgba4.dds
+../oiio-images/dds/dds_rgba4.dds :   16 x    8, 4 channel, uint8 dds
+    SHA-1: E49AB2BCE799274DE4E12DCDF1B93363F34E0FA1
+    channel list: R, G, B, A
+    textureformat: "Plain Texture"
+    oiio:BitsPerSample: 16
+Reading ../oiio-images/dds/dds_rgba8.dds
+../oiio-images/dds/dds_rgba8.dds :   16 x    8, 4 channel, uint8 dds
+    SHA-1: 61986C7E2D4F402B4A268AE5187AAFAF1647C0E6
+    channel list: R, G, B, A
+    textureformat: "Plain Texture"
+    oiio:BitsPerSample: 32
+Reading ../oiio-images/dds/dds_rgba8_mips.dds
+../oiio-images/dds/dds_rgba8_mips.dds :   16 x    8, 4 channel, uint8 dds
+    MIP-map levels: 16x8 8x4 4x2 2x1 1x1
+    SHA-1: 61986C7E2D4F402B4A268AE5187AAFAF1647C0E6
+    channel list: R, G, B, A
+    textureformat: "Plain Texture"
+    oiio:BitsPerSample: 32
+Reading ../oiio-images/dds/dds_a8.dds
+../oiio-images/dds/dds_a8.dds :   24 x   20, 1 channel, uint8 dds
+    SHA-1: 497ACCA96FAAC89AE74BDE8CA7B69B37CA9C5F20
+    channel list: Y
+    textureformat: "Plain Texture"
+    oiio:BitsPerSample: 8
+Reading ../oiio-images/dds/dds_abgr8.dds
+../oiio-images/dds/dds_abgr8.dds :   24 x   20, 4 channel, uint8 dds
+    SHA-1: B84A369C1CB71B102DA57D04635B7F42116F9B16
+    channel list: R, G, B, A
+    textureformat: "Plain Texture"
+    oiio:BitsPerSample: 32
+Reading ../oiio-images/dds/dds_bc3nm.dds
+../oiio-images/dds/dds_bc3nm.dds :   24 x   20, 3 channel, uint8 dds
+    SHA-1: 04C252DA402FBF35E7D39605231356CBCA6AF006
+    channel list: R, G, B
+    compression: "DXT5"
+    textureformat: "Plain Texture"
+Reading ../oiio-images/dds/dds_bc3rxgb.dds
+../oiio-images/dds/dds_bc3rxgb.dds :   24 x   20, 4 channel, uint8 dds
+    SHA-1: 460EAC801AA68743CC3D3FC01E9BF067CD9CB67F
+    channel list: R, G, B, A
+    compression: "DXT5"
+    textureformat: "Plain Texture"
+Reading ../oiio-images/dds/dds_bc3ycocg.dds
+../oiio-images/dds/dds_bc3ycocg.dds :   24 x   20, 4 channel, uint8 dds
+    SHA-1: 485B74D1E9BEF25D8CA06880A6CAD260430CBE30
+    channel list: R, G, B, A
+    compression: "DXT5"
+    textureformat: "Plain Texture"
+Reading ../oiio-images/dds/dds_l8.dds
+../oiio-images/dds/dds_l8.dds :   24 x   20, 1 channel, uint8 dds
+    SHA-1: 2E40B849905A3F67F22F86188540DD21DB3C29C5
+    channel list: Y
+    textureformat: "Plain Texture"
+    oiio:BitsPerSample: 8
+Reading ../oiio-images/dds/dds_l8a8.dds
+../oiio-images/dds/dds_l8a8.dds :   24 x   20, 2 channel, uint8 dds
+    SHA-1: D6B33AA4813B6D181399AF0E9658D173BD505E2D
+    channel list: Y, A
+    textureformat: "Plain Texture"
+    oiio:BitsPerSample: 16
+Reading ../oiio-images/dds/dds_rgb10a2.dds
+../oiio-images/dds/dds_rgb10a2.dds :   24 x   20, 4 channel, uint8 dds
+    SHA-1: D7599C62CA35D7C4478341471A54526CB546CF0C
+    channel list: R, G, B, A
+    textureformat: "Plain Texture"
+    oiio:BitsPerSample: 32
+Reading ../oiio-images/dds/dds_rgb332.dds
+../oiio-images/dds/dds_rgb332.dds :   24 x   20, 3 channel, uint8 dds
+    SHA-1: 777DB8FC8240CA6FADF6B58870B07D83EEA84372
+    channel list: R, G, B
+    textureformat: "Plain Texture"
+    oiio:BitsPerSample: 8
+Reading ../oiio-images/dds/dds_rgb5a1.dds
+../oiio-images/dds/dds_rgb5a1.dds :   24 x   20, 4 channel, uint8 dds
+    SHA-1: C6EE5529AB29827FFF4AD941D7714EF30F3DAA75
+    channel list: R, G, B, A
+    textureformat: "Plain Texture"
+    oiio:BitsPerSample: 16
+Reading ../oiio-images/dds/broken/dds_bc3_just_header.dds
+../oiio-images/dds/broken/dds_bc3_just_header.dds :   24 x   20, 4 channel, uint8 dds
+    SHA-1: 7070E1838A7C0595287731B65FB8062C365E7BED
+    channel list: R, G, B, A
+    compression: "DXT5"
+    textureformat: "Plain Texture"
+oiiotool ERROR: read : "../oiio-images/dds/broken/dds_bc3_no_full_header.dds": Read error: hit end of file in dds reader
+Full command line was:
+> oiiotool --info -v -a --hash ../oiio-images/dds/broken/dds_bc3_no_full_header.dds
+Reading ../oiio-images/dds/broken/dds_bc7_just_header.dds
+../oiio-images/dds/broken/dds_bc7_just_header.dds :   24 x   20, 4 channel, uint8 dds
+    SHA-1: 7070E1838A7C0595287731B65FB8062C365E7BED
+    channel list: R, G, B, A
+    compression: "BC7"
+    textureformat: "Plain Texture"
+Reading ../oiio-images/dds/broken/dds_bc7_not_enough_data.dds
+../oiio-images/dds/broken/dds_bc7_not_enough_data.dds :   24 x   20, 4 channel, uint8 dds
+    SHA-1: 7070E1838A7C0595287731B65FB8062C365E7BED
+    channel list: R, G, B, A
+    compression: "BC7"
+    textureformat: "Plain Texture"
+Reading src/crash-1634.dds
+src/crash-1634.dds   :   16 x    8, 1 channel, uint8 dds
+    SHA-1: CB82FD0F9EF1B69F3F3FF14077564AC2D6C11540
+    channel list: Y
+    textureformat: "Plain Texture"
+    oiio:BitsPerSample: 16
+oiiotool ERROR: read : "src/crash-1635.dds": Unsupported DDS bit depth: 1048576 (maybe it's a corrupted file?)
+Full command line was:
+> oiiotool --info -v -a --hash src/crash-1635.dds
+Reading src/crash-3950.dds
+src/crash-3950.dds   :   16 x    1, 4 channel, uint8 dds
+    SHA-1: EAAFC1B407635293A2F156CCBA32225D37469178
+    channel list: R, G, B, A
+    compression: "DXT4"
+    textureformat: "Plain Texture"

@@ -1,0 +1,11 @@
+libpng error: IDAT: Read error: hit end of file in png reader
+iconvert ERROR copying "../oiio-images/png/broken/invalid_gray_alpha_sbit.png" to "invalid_gray_alpha_sbit.png" :
+	Read error: hit end of file in png reader
+PNG read error: IDAT: Read error: hit end of file in png reader
+libpng error: No IDATs written into file
+Comparing "../oiio-images/png/broken/invalid_gray_alpha_sbit.png" and "invalid_gray_alpha_sbit.png"
+libpng error: tEXt: Read error: hit end of file in png reader
+libpng error: tEXt: Read error: hit end of file in png reader
+idiff ERROR: Could not read invalid_gray_alpha_sbit.png:
+	Invalid image file "invalid_gray_alpha_sbit.png": Read error: hit end of file in png reader
+PNG read error: tEXt: Read error: hit end of file in png reader

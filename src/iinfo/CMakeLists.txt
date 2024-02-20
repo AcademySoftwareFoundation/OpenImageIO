@@ -1,9 +1,5 @@
-set (iinfo_srcs iinfo.cpp)
-add_executable (iinfo ${iinfo_srcs})
-set_target_properties (iinfo PROPERTIES FOLDER "Tools")
-if (MSVC)
-    set_target_properties (OpenImageIO PROPERTIES LINK_FLAGS psapi.lib)
-endif (MSVC)
-target_link_libraries (iinfo OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
-link_ilmbase (iinfo)
-oiio_install_targets (iinfo)
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
+
+fancy_add_executable (LINK_LIBRARIES OpenImageIO)

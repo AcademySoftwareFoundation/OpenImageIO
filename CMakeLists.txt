@@ -1,28 +1,87 @@
-project (OpenImageIO)
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-# Release version of the library
-set (OIIO_VERSION_MAJOR 1)
-set (OIIO_VERSION_MINOR 6)
-set (OIIO_VERSION_PATCH 3)
-set (OIIO_VERSION_RELEASE_TYPE "dev")   # "dev", "betaX", "RCY", ""
+cmake_minimum_required (VERSION 3.15)
 
-cmake_minimum_required (VERSION 2.6)
-if (NOT CMAKE_VERSION VERSION_LESS 2.8.4)
-    cmake_policy (SET CMP0017 NEW)
+set (OpenImageIO_VERSION "2.6.0.3")
+set (OpenImageIO_VERSION_OVERRIDE "" CACHE STRING
+     "Version override (use with caution)!")
+mark_as_advanced (OpenImageIO_VERSION_OVERRIDE)
+if (OpenImageIO_VERSION_OVERRIDE)
+    set (OpenImageIO_VERSION ${OpenImageIO_VERSION_OVERRIDE})
 endif ()
-message (STATUS "Project source dir = ${PROJECT_SOURCE_DIR}")
-message (STATUS "Project build dir = ${CMAKE_BINARY_DIR}")
+
+project (OpenImageIO VERSION ${OpenImageIO_VERSION}
+         HOMEPAGE_URL "https://openimageio.org"
+         LANGUAGES CXX C)
+
+set (PROJ_NAME OIIO)    # short name, caps
+string (TOLOWER ${PROJ_NAME} PROJ_NAME_LOWER)  # short name lower case
+string (TOUPPER ${PROJ_NAME} PROJ_NAME_UPPER)  # short name upper case
+set (PROJECT_VERSION_RELEASE_TYPE "dev" CACHE STRING
+    "Build type, for example: dev, beta2, RC1 (empty string for normal release)")
+set (${PROJECT_NAME}_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
+set (PROJECT_AUTHORS "Contributors to the OpenImageIO project")
+option (${PROJECT_NAME}_SUPPORTED_RELEASE
+        "Set ON for supported release branch, OFF for master" OFF)
+if (${PROJECT_NAME}_SUPPORTED_RELEASE)
+    set (${PROJECT_NAME}_DEV_RELEASE OFF)
+else ()
+    set (${PROJECT_NAME}_DEV_RELEASE ON)
+endif ()
+
+# Set PROJECT_IS_TOP_LEVEL to ON if if this is the top level project (not
+# if this is included as a subproject of something else). Note that this is
+# handled automatically for CMake >= 3.21.
+if (CMAKE_VERSION VERSION_LESS 3.21)
+    if ("${CMAKE_PROJECT_NAME}" STREQUAL "${PROJECT_NAME}")
+        set (PROJECT_IS_TOP_LEVEL ON)
+    endif ()
+endif ()
+
+# If the user wants to use Conan to build dependencies, they will have done
+# this prior to the cmake config:
+#   cd <build area>
+#   conan install <source area>
+# and that will leave a conanbuildinfo.cmake in the build area for us.
+if (EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+    include (${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+    message (STATUS "Using Conan for dependencies")
+    conan_basic_setup()
+endif()
 
 if (NOT CMAKE_BUILD_TYPE)
     set (CMAKE_BUILD_TYPE "Release")
 endif ()
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set (DEBUGMODE ON)
-endif ()
-if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-    # cmake bug workaround -- on some platforms, cmake doesn't set
-    # NDEBUG for RelWithDebInfo mode
-    add_definitions ("-DNDEBUG")
+
+# If the user hasn't configured cmake with an explicit
+# -DCMAKE_INSTALL_PREFIX=..., then set it to safely install into ./dist, to
+# help prevent the user from accidentally writing over /usr/local or whatever.
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT
+      AND PROJECT_IS_TOP_LEVEL)
+    set (CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/dist" CACHE PATH
+         "Installation location" FORCE)
+endif()
+
+message (STATUS "Configuring ${PROJECT_NAME} ${PROJECT_VERSION}")
+message (STATUS "CMake ${CMAKE_VERSION}")
+message (STATUS "CMake system           = ${CMAKE_SYSTEM}")
+message (STATUS "CMake system name      = ${CMAKE_SYSTEM_NAME}")
+message (STATUS "Project source dir     = ${PROJECT_SOURCE_DIR}")
+message (STATUS "Project build dir      = ${CMAKE_BINARY_DIR}")
+message (STATUS "Project install prefix = ${CMAKE_INSTALL_PREFIX}")
+message (STATUS "Configuration types    = ${CMAKE_CONFIGURATION_TYPES}")
+message (STATUS "Build type             = ${CMAKE_BUILD_TYPE}")
+message (STATUS "Supported release      = ${${PROJECT_NAME}_SUPPORTED_RELEASE}")
+
+# Make the build area layout look a bit more like the final dist layout
+set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+if ("${PROJECT_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
+    message (FATAL_ERROR "Not allowed to run in-source build!")
 endif ()
 
 option (CMAKE_USE_FOLDERS "Use the FOLDER target property to organize targets into folders." ON)
@@ -31,520 +90,235 @@ if (CMAKE_USE_FOLDERS)
     set_property (GLOBAL PROPERTY USE_FOLDERS ON)
 endif ()
 
-# Figure out which compiler we're using
-if (CMAKE_COMPILER_IS_GNUCC)
-    execute_process (COMMAND ${CMAKE_C_COMPILER} -dumpversion
-                     OUTPUT_VARIABLE GCC_VERSION
-                     OUTPUT_STRIP_TRAILING_WHITESPACE)
-    message (STATUS "Using gcc ${GCC_VERSION} as the compiler")
-endif ()
-message (STATUS "CMAKE_CXX_COMPILER is ${CMAKE_CXX_COMPILER}")
-message (STATUS "CMAKE_CXX_COMPILER_ID is ${CMAKE_CXX_COMPILER_ID}")
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set (CMAKE_COMPILER_IS_CLANG 1)
-    message (STATUS "Using clang as the compiler")
-endif ()
-# Second try: for earlier versions of CMake, the CMAKE_CXX_COMPILER_ID
-# appears to be unreliable and may say "GNU" despite using clang, so
-# directly match against the compiler name.
-if (CMAKE_CXX_COMPILER MATCHES "[Cc]lang")
-    set (CMAKE_COMPILER_IS_CLANG 1)
-    message (STATUS "The compiler seems to be clang")
-endif ()
-if (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
-    set (CMAKE_COMPILER_IS_INTEL 1)
-    message (STATUS "Using Intel as the compiler")
-endif ()
 
-## turn on more detailed warnings and consider warnings as errors
-set (STOP_ON_WARNING ON CACHE BOOL "Stop building if there are any compiler warnings")
-if (NOT MSVC)
-    add_definitions ("-Wall")
-    if (STOP_ON_WARNING)
-        add_definitions ("-Werror")
-    endif ()
-endif ()
-
-if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_GNUCC)
-    # CMake doesn't automatically know what do do with
-    # include_directories(SYSTEM...) when using clang or gcc.
-    set (CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-isystem ")
-    # Ensure this macro is set for stdint.h
-    add_definitions ("-D__STDC_LIMIT_MACROS")
-    # this allows native instructions to be used for sqrtf instead of a function call
-    add_definitions ("-fno-math-errno")
-endif ()
-
-if (CMAKE_COMPILER_IS_CLANG)
-    # Disable some warnings for Clang, for some things that are too awkward
-    # to change just for the sake of having no warnings.
-    add_definitions ("-Wno-unused-function")
-    add_definitions ("-Wno-overloaded-virtual")
-    add_definitions ("-Wno-unneeded-internal-declaration")
-    add_definitions ("-Wno-unused-private-field")
-    # disable warning about unused command line arguments
-    add_definitions ("-Qunused-arguments")
-    # Don't warn if we ask it not to warn about warnings it doesn't know
-    add_definitions ("-Wunknown-warning-option")
-endif ()
-
-if (CMAKE_COMPILER_IS_GNUCC AND (NOT CMAKE_COMPILER_IS_CLANG) AND (NOT ${GCC_VERSION} VERSION_LESS 4.8))
-    # suppress a warning that Boost::Python hits in g++ 4.8
-    add_definitions ("-Wno-error=unused-local-typedefs")
-    add_definitions ("-Wno-unused-local-typedefs")
-endif ()
-
-if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_GNUCC)
-    if (HIDE_SYMBOLS AND NOT DEBUGMODE)
-        # Turn default symbol visibility to hidden
-        set (VISIBILITY_COMMAND "-fvisibility=hidden -fvisibility-inlines-hidden")
-        add_definitions (${VISIBILITY_COMMAND})
-        if (CMAKE_SYSTEM_NAME MATCHES "Linux|kFreeBSD" OR CMAKE_SYSTEM_NAME STREQUAL "GNU")
-            # Linux/FreeBSD/Hurd: also hide all the symbols of dependent
-            # libraries to prevent clashes if an app using OIIO is linked
-            # against other verions of our dependencies.
-            set (VISIBILITY_MAP_COMMAND "-Wl,--version-script=${PROJECT_SOURCE_DIR}/src/libOpenImageIO/libOpenImageIO.map")
-        endif ()
-    endif ()
-endif ()
-
-
-set (VERBOSE OFF CACHE BOOL "Print lots of messages while compiling")
-set (EMBEDPLUGINS ON CACHE BOOL "Embed format plugins in libOpenImageIO")
-set (OIIO_BUILD_TOOLS ON CACHE BOOL "Build the command-line tools")
-set (OIIO_BUILD_TESTS ON CACHE BOOL "Build the unit tests")
-set (BUILDSTATIC OFF CACHE BOOL "Build static library instead of shared")
-set (LINKSTATIC OFF CACHE BOOL "Link with static external libraries when possible")
-set (HIDE_SYMBOLS OFF CACHE BOOL "Hide symbols not in the public API")
-set (USE_OPENGL ON CACHE BOOL "Include OpenGL support")
-set (USE_QT ON CACHE BOOL "Include Qt support")
-set (FORCE_OPENGL_1 OFF CACHE BOOL "Force iv to use OpenGL's fixed pipeline")
-set (USE_PYTHON ON CACHE BOOL "Build the Python bindings")
-set (USE_PYTHON3 OFF CACHE BOOL "Build the Python3 bindings")
-set (USE_FIELD3D ON CACHE BOOL "Use Field3D if found")
-set (USE_FFMPEG ON CACHE BOOL "Use FFmpeg if found")
-set (USE_OPENJPEG ON CACHE BOOL "Use OpenJpeg if found")
-set (USE_OCIO ON CACHE BOOL "Use OpenColorIO for color management if found")
-set (USE_OPENCV ON CACHE BOOL "Use OpenCV if found")
-set (USE_OPENSSL OFF CACHE BOOL "Use OpenSSL if found (for faster SHA-1)")
-set (USE_FREETYPE ON CACHE BOOL "Use Freetype if found")
-set (USE_GIF ON CACHE BOOL "Use GIF if found")
-set (USE_LIBRAW ON CACHE BOOL "Use LibRaw if found")
-set (LIBRAW_PATH "" CACHE STRING "Custom LibRaw path")
-set (NOTHREADS OFF CACHE BOOL "Compile with no threads or locking")
-set (OIIO_THREAD_ALLOW_DCLP ON CACHE BOOL "OIIO threads may use DCLP for speed")
-set (PYTHON_VERSION 2.6)
-set (PYTHON3_VERSION 3.2)
-set (USE_NUKE ON CACHE BOOL "Build Nuke plugins, if Nuke is found")
-set (Nuke_ROOT "" CACHE STRING "Where to find Nuke installation")
-set (NUKE_VERSION 7.0)
-set (USE_EXTERNAL_PUGIXML OFF CACHE BOOL
-     "Use an externally built shared library version of the pugixml library")
-set (PUGIXML_HOME "" CACHE STRING "Hint about where to find external PugiXML library")
-
-set (SOVERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}
-     CACHE STRING "Set the SO version in the SO name of the output library")
-
-set (PYLIB_INCLUDE_SONAME OFF CACHE BOOL "If ON, soname/soversion will be set for Python module library")
-set (PYLIB_LIB_PREFIX OFF CACHE BOOL "If ON, prefix the Python module with 'lib'")
-set (BUILD_OIIOUTIL_ONLY OFF CACHE BOOL "If ON, will build *only* libOpenImageIO_Util")
-set (USE_CPP11 OFF CACHE BOOL "Compile in C++11 mode")
-set (USE_LIBCPLUSPLUS OFF CACHE BOOL "Compile with clang libc++")
-set (EXTRA_CPP_ARGS "" CACHE STRING "Extra C++ command line definitions")
-set (USE_SIMD "" CACHE STRING "Use SIMD directives (0, sse2, sse3, ssse3, sse4.1, sse4.2)")
-
-if (BUILDSTATIC AND ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    # On Linux, the lack of -fPIC when building static libraries seems
-    # incompatible with the dynamic library needed for the Python bindings.
-    set (USE_PYTHON OFF)
-    set (USE_PYTHON3 OFF)
-endif()
-
-if (NOTHREADS)
-    message (STATUS "NO THREADS!")
-    add_definitions ("-DNOTHREADS=1")
+option (VERBOSE "Print lots of messages while compiling" OFF)
+if (VERBOSE)
+    set (CMAKE_MESSAGE_LOG_LEVEL "VERBOSE" CACHE STRING "CMake log level to display")
 else ()
-    if (VERBOSE)
-        message (STATUS "Building with thread support")
-        if (NOT OIIO_THREAD_ALLOW_DCLP)
-            add_definitions ("-DOIIO_THREAD_ALLOW_DCLP=0")
-        endif ()
-    endif ()
+    set (CMAKE_MESSAGE_LOG_LEVEL "STATUS" CACHE STRING "CMake log level to display")
+endif ()
+option (${PROJ_NAME}_BUILD_TOOLS "Build the command-line tools" ON)
+option (${PROJ_NAME}_BUILD_TESTS "Build the unit tests" ON)
+set (OIIO_LIBNAME_SUFFIX "" CACHE STRING
+     "Optional name appended to ${PROJECT_NAME} libraries that are built")
+option (BUILD_OIIOUTIL_ONLY "If ON, will build *only* libOpenImageIO_Util" OFF)
+option (BUILD_DOCS "If ON, build documentation and man pages." ON)
+option (INSTALL_DOCS "If ON, install documentation and man pages." ON)
+option (INSTALL_FONTS "If ON, install default fonts" ON)
+option (EMBEDPLUGINS "Embed format plugins in libOpenImageIO" ON)
+set (PLUGIN_SEARCH_PATH "" CACHE STRING "Default plugin search path")
+file (TO_NATIVE_PATH "${PLUGIN_SEARCH_PATH}" PLUGIN_SEARCH_PATH_NATIVE)
+set (CMAKE_DEBUG_POSTFIX "_d" CACHE STRING "Library naming postfix for Debug builds")
+
+if (CMAKE_UNITY_BUILD_BATCH_SIZE)
+    set (UNITY_SMALL_BATCH_SIZE "${CMAKE_UNITY_BUILD_BATCH_SIZE}" CACHE STRING "Unity batch mode size for expensive files")
+else ()
+    set (UNITY_SMALL_BATCH_SIZE 8 CACHE STRING "Unity batch mode size for expensive files")
+endif ()
+message(STATUS "CMAKE_UNITY_BUILD_MODE = ${CMAKE_UNITY_BUILD_MODE}")
+message(STATUS "CMAKE_UNITY_BUILD_BATCH_SIZE = ${CMAKE_UNITY_BUILD_BATCH_SIZE}")
+
+option (OIIO_THREAD_ALLOW_DCLP "OIIO threads may use DCLP for speed" ON)
+if (NOT OIIO_THREAD_ALLOW_DCLP)
+    add_definitions ("-DOIIO_THREAD_ALLOW_DCLP=0")
 endif ()
 
-if (EXTRA_CPP_ARGS)
-    message (STATUS "Extra C++ args: ${EXTRA_CPP_ARGS}")
-    add_definitions ("${EXTRA_CPP_ARGS}")
-endif()
-
-if (USE_CPP11)
-    message (STATUS "Building for C++11")
-    add_definitions ("-std=c++11")
-    if (CMAKE_COMPILER_IS_CLANG)
-        # C++11 doesn't like 'register' keyword, which is in Qt headers
-        add_definitions ("-Wno-deprecated-register")
-    endif ()
+set (TEX_BATCH_SIZE "" CACHE STRING "Force TextureSystem SIMD batch size (e.g. 16)")
+if (TEX_BATCH_SIZE)
+    add_definitions ("-DOIIO_TEXTURE_SIMD_BATCH_WIDTH=${TEX_BATCH_SIZE}")
 endif ()
-
-if (USE_LIBCPLUSPLUS AND CMAKE_COMPILER_IS_CLANG)
-    message (STATUS "Using libc++")
-    add_definitions ("-stdlib=libc++")
+option (OIIO_TEX_IMPLEMENT_VARYINGREF "Implement the deprecated batch texture functions taking VaryingRef params" ON)
+if (NOT OIIO_TEX_IMPLEMENT_VARYINGREF)
+    add_definitions (-DOIIO_TEX_NO_IMPLEMENT_VARYINGREF=1)
 endif ()
-
-if (NOT USE_SIMD STREQUAL "")
-    message (STATUS "Compiling with SIMD level ${USE_SIMD}")
-    if (USE_SIMD STREQUAL "0")
-        add_definitions ("-DOIIO_NO_SSE=1")
-    else ()
-        if (MSVC OR CMAKE_COMPILER_IS_INTEL)
-            add_definitions ("/arch:${USE_SIMD}")
-        else ()
-            add_definitions ("-m${USE_SIMD}")
-        endif ()
-    endif ()
-endif ()
-
-set (CMAKE_MODULE_PATH
-     "${PROJECT_SOURCE_DIR}/src/cmake/modules"
-     "${PROJECT_SOURCE_DIR}/src/cmake")
 
 # Set the default namespace
-if (NOT OIIO_NAMESPACE)
-    set (OIIO_NAMESPACE OpenImageIO CACHE STRING
-         "Specify the master OpenImageIO C++ namespace: Options include OpenImageIO OpenImageIO_<YOURFACILITY> etc."
-         FORCE)
+set (${PROJ_NAME}_NAMESPACE ${PROJECT_NAME} CACHE STRING
+     "Customized outer namespace base name (version will be added)")
+option (${PROJ_NAME}_NAMESPACE_INCLUDE_PATCH
+        "Should the inner namespace include the patch number" ${${PROJECT_NAME}_DEV_RELEASE})
+set (PROJ_NAMESPACE "${${PROJ_NAME}_NAMESPACE}")
+set (PROJ_NAMESPACE_V "${PROJ_NAMESPACE}_v${PROJECT_VERSION_MAJOR}_${PROJECT_VERSION_MINOR}")
+if (${PROJ_NAME}_NAMESPACE_INCLUDE_PATCH)
+    set (PROJ_NAMESPACE_V "${PROJ_NAMESPACE_V}_${PROJECT_VERSION_PATCH}")
+endif ()
+message(STATUS "Setting Namespace to: ${PROJ_NAMESPACE_V}")
+
+set (OIIO_SITE "" CACHE STRING "Site name for customization")
+if (OIIO_SITE)
+    add_definitions (-DOIIO_SITE_${OIIO_SITE})
 endif ()
 
-message(STATUS "Setting Namespace to: ${OIIO_NAMESPACE}")
+# Define OIIO_INTERNAL symbol only when building OIIO itself, will not be
+# defined for downstream projects using OIIO.
+add_definitions (-DOIIO_INTERNAL=1)
 
+list (APPEND CMAKE_MODULE_PATH
+      "${PROJECT_SOURCE_DIR}/src/cmake/modules"
+      "${PROJECT_SOURCE_DIR}/src/cmake")
 
-include (util_macros)
-include (oiio_macros)
-include (platform)
+include (GNUInstallDirs)
+
+# Utilities
+include (colors)
+include (check_is_enabled)
+include (checked_find_package)
+include (fancy_add_executable)
+include (add_oiio_plugin)
+
+# All the C++ and compiler related options and adjustments
+include (compiler)
+
+# Utilities and options related to finding python and making python bindings
+include (pythonutils)
+
+# Dependency finding utilities and all dependency-related options
 include (externalpackages)
 
+# Include all our testing apparatus and utils, but not if it's a subproject
+if (PROJECT_IS_TOP_LEVEL)
+    include (testing)
+else ()
+    macro (oiio_add_tests)
+    endmacro ()
+    macro (oiio_add_all_tests)
+    endmacro ()
+endif ()
 
-include_directories(
+
+include_directories (
+    BEFORE
     "${CMAKE_SOURCE_DIR}/src/include"
+    "${CMAKE_BINARY_DIR}/src/include"
+    "${CMAKE_BINARY_DIR}/include"
     "${CMAKE_BINARY_DIR}/include/OpenImageIO"
-)
-
-
-###########################################################################
-# Paths for install tree customization.  Note that relative paths are relative
-# to CMAKE_INSTALL_PREFIX.
-set (DEFAULT_BIN_INSTALL_DIR   "bin")
-set (DEFAULT_LIB_INSTALL_DIR   "lib")
-set (DEFAULT_INCLUDE_INSTALL_DIR "include/OpenImageIO")
-if (UNIX AND NOT SELF_CONTAINED_INSTALL_TREE)
-    # Try to be well-behaved and install into reasonable places according to
-    # the "standard" unix directory heirarchy
-    # TODO: Figure out how to get the correct python directory
-    set (DEFAULT_PYLIB_INSTALL_DIR "lib/python/site-packages")
-    set (DEFAULT_PYLIB3_INSTALL_DIR "lib/python3/site-packages")
-    set (DEFAULT_DOC_INSTALL_DIR "share/doc/OpenImageIO")
-    set (DEFAULT_MAN_INSTALL_DIR "share/man/man1")
-else ()
-    # Here is the "self-contained install tree" case: the expectation here is
-    # that everything OIIO related will go into its own directory, not into
-    # some standard system heirarchy.
-    set (DEFAULT_PYLIB_INSTALL_DIR "python")
-    set (DEFAULT_PYLIB3_INSTALL_DIR "python3")
-    set (DEFAULT_DOC_INSTALL_DIR "doc")
-    set (DEFAULT_MAN_INSTALL_DIR "doc/man")
-endif ()
-if (EXEC_INSTALL_PREFIX)
-    # Tack on an extra prefix to support multi-arch builds.
-    set (DEFAULT_BIN_INSTALL_DIR   "${EXEC_INSTALL_PREFIX}/${DEFAULT_BIN_INSTALL_DIR}")
-    set (DEFAULT_LIB_INSTALL_DIR   "${EXEC_INSTALL_PREFIX}/${DEFAULT_LIB_INSTALL_DIR}")
-    set (DEFAULT_PYLIB_INSTALL_DIR "${EXEC_INSTALL_PREFIX}/${DEFAULT_PYLIB_INSTALL_DIR}")
-    set (DEFAULT_PYLIB3_INSTALL_DIR "${EXEC_INSTALL_PREFIX}/${DEFAULT_PYLIB3_INSTALL_DIR}")
-endif ()
-# Set up cmake cache variables corresponding to the defaults deduced above, so
-# that the user can override them as desired:
-set (BIN_INSTALL_DIR ${DEFAULT_BIN_INSTALL_DIR} CACHE STRING
-     "Install location for binaries (relative to CMAKE_INSTALL_PREFIX or absolute)")
-set (LIB_INSTALL_DIR ${DEFAULT_LIB_INSTALL_DIR} CACHE STRING
-     "Install location for libraries (relative to CMAKE_INSTALL_PREFIX or absolute)")
-set (PYLIB_INSTALL_DIR ${DEFAULT_PYLIB_INSTALL_DIR} CACHE STRING
-     "Install location for python libraries (relative to CMAKE_INSTALL_PREFIX or absolute)")
-set (PYLIB3_INSTALL_DIR ${DEFAULT_PYLIB3_INSTALL_DIR} CACHE STRING
-     "Install location for python3 libraries (relative to CMAKE_INSTALL_PREFIX or absolute)")
-set (INCLUDE_INSTALL_DIR ${DEFAULT_INCLUDE_INSTALL_DIR} CACHE STRING
-     "Install location of header files (relative to CMAKE_INSTALL_PREFIX or absolute)")
-set (DOC_INSTALL_DIR ${DEFAULT_DOC_INSTALL_DIR} CACHE STRING
-     "Install location for documentation (relative to CMAKE_INSTALL_PREFIX or absolute)")
-if (UNIX)
-    set (MAN_INSTALL_DIR ${DEFAULT_MAN_INSTALL_DIR} CACHE STRING
-         "Install location for manual pages (relative to CMAKE_INSTALL_PREFIX or absolute)")
-endif()
-set (PLUGIN_SEARCH_PATH "" CACHE STRING "Default plugin search path")
-
-set (INSTALL_DOCS ON CACHE BOOL "Install documentation")
-
-
-###########################################################################
-# Rpath handling.
-if (CMAKE_SKIP_RPATH)
-    # We need to disallow the user from truly setting CMAKE_SKIP_RPATH, since
-    # we want to run the generated executables from the build tree in order to
-    # generate the manual page documentation.  However, we make sure the
-    # install rpath is unset so that the install tree is still free of rpaths
-    # for linux packaging purposes.
-    set (CMAKE_SKIP_RPATH FALSE)
-    unset (CMAKE_INSTALL_RPATH)
-else ()
-    set (CMAKE_INSTALL_RPATH "${LIB_INSTALL_DIR}")
-    if (NOT IS_ABSOLUTE ${CMAKE_INSTALL_RPATH})
-        set (CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${LIB_INSTALL_DIR}")
-    endif ()
-    set (CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-endif ()
-
-
-if (MSVC)
-    add_definitions (-D_CRT_SECURE_NO_DEPRECATE)
-    add_definitions (-D_CRT_SECURE_NO_WARNINGS)
-    add_definitions (-D_CRT_NONSTDC_NO_WARNINGS)
-    add_definitions (-D_SCL_SECURE_NO_WARNINGS)
-    add_definitions (-DJAS_WIN_MSVC_BUILD)
-    if(NOT LINKSTATIC)
-        add_definitions (-DBOOST_ALL_DYN_LINK)
-        add_definitions (-DOPENEXR_DLL)
-    endif ()
-    if (BUILDSTATIC)
-         add_definitions(-DOIIO_STATIC_BUILD=1)
-    endif ()
-endif (MSVC)
-
-
-# We want CTest for testing
-# N.B. This needs to be added before any of the subdirectories, or
-# their add_test commands will not register.
-include (CTest)
-
+  )
 
 # Tell CMake to process the sub-directories
 add_subdirectory (src/libutil)
+
+
+
+# Add IO plugin directories -- if we are embedding plugins, we need to visit
+# these directories BEFORE the OpenImageIO target is established (in
+# src/libOpenImageIO). For each plugin, we append to the lists of source
+# files, format libs, include directories, and definitions, all of which
+# will be used by src/libOpenImageIO.
+set (libOpenImageIO_srcs "")
+set (format_plugin_libs "")
+set (format_plugin_include_dirs "")
+set (format_plugin_definitions "")
+file (GLOB all_format_plugin_dirs src/*.imageio)
+if ("${OIIO_SITE}" STREQUAL "SPI")
+    # SPI only -- because of a workaround for a very weird linkage issue
+    # specific to our system, we need to be sure libtiff is referenced first.
+    file (GLOB tiff_format_plugin_dir src/tiff.imageio)
+    list (REMOVE_ITEM all_format_plugin_dirs ${tiff_format_plugin_dir})
+    list (INSERT all_format_plugin_dirs 0 ${tiff_format_plugin_dir})
+endif ()
+if (EMBEDPLUGINS AND NOT BUILD_OIIOUTIL_ONLY)
+    foreach (plugin_dir ${all_format_plugin_dirs})
+        add_subdirectory (${plugin_dir})
+    endforeach ()
+endif ()
 
 if (NOT BUILD_OIIOUTIL_ONLY)
     add_subdirectory (src/libOpenImageIO)
 endif ()
 
 if (OIIO_BUILD_TOOLS AND NOT BUILD_OIIOUTIL_ONLY)
-  add_subdirectory (src/iconvert)
-  add_subdirectory (src/idiff)
-  add_subdirectory (src/igrep)
-  add_subdirectory (src/iinfo)
-  add_subdirectory (src/maketx)
-  add_subdirectory (src/oiiotool)
-  add_subdirectory (src/testtex)
-  add_subdirectory (src/iv)
+    add_subdirectory (src/iconvert)
+    add_subdirectory (src/idiff)
+    add_subdirectory (src/igrep)
+    add_subdirectory (src/iinfo)
+    add_subdirectory (src/maketx)
+    add_subdirectory (src/oiiotool)
+    add_subdirectory (src/testtex)
+    add_subdirectory (src/iv)
 endif ()
 
-# Add IO plugin directories
-if (NOT EMBEDPLUGINS)
-    add_subdirectory (src/bmp.imageio)
-    add_subdirectory (src/cineon.imageio)
-    add_subdirectory (src/dds.imageio)
-    add_subdirectory (src/dpx.imageio)
-    add_subdirectory (src/ffmpeg.imageio)
-    add_subdirectory (src/field3d.imageio)
-    add_subdirectory (src/fits.imageio)
-    add_subdirectory (src/gif.imageio)
-    add_subdirectory (src/hdr.imageio)
-    add_subdirectory (src/ico.imageio)
-    add_subdirectory (src/iff.imageio)
-    add_subdirectory (src/jpeg.imageio)
-    add_subdirectory (src/jpeg2000.imageio)
-    add_subdirectory (src/openexr.imageio)
-    add_subdirectory (src/png.imageio)
-    add_subdirectory (src/pnm.imageio)
-    add_subdirectory (src/psd.imageio)
-    add_subdirectory (src/ptex.imageio)
-    add_subdirectory (src/raw.imageio)
-    add_subdirectory (src/rla.imageio)
-    add_subdirectory (src/sgi.imageio)
-    add_subdirectory (src/socket.imageio)
-    add_subdirectory (src/softimage.imageio)
-    add_subdirectory (src/targa.imageio)
-    add_subdirectory (src/tiff.imageio)
-    add_subdirectory (src/webp.imageio)
-    add_subdirectory (src/zfile.imageio)
+# Add IO plugin directories -- if we are not embedding plugins, we need to
+# do it AFTER the OpenImageIO target is established (in src/libOpenImageIO),
+# since each plugin needs libOpenImageIO to be a dependency.
+if (NOT EMBEDPLUGINS AND NOT BUILD_OIIOUTIL_ONLY)
+    foreach (plugin_dir ${all_format_plugin_dirs})
+        add_subdirectory (${plugin_dir})
+    endforeach ()
 endif ()
 
-if (USE_PYTHON AND oiio_boost_PYTHON_FOUND AND NOT BUILD_OIIOUTIL_ONLY)
+if (USE_PYTHON AND Python_Development_FOUND AND NOT BUILD_OIIOUTIL_ONLY)
     add_subdirectory (src/python)
-endif ()
-if (USE_PYTHON3 AND NOT BUILD_OIIOUTIL_ONLY)
-    #build the python3 module in a different binary directory since it will
-    #have the same name as the python2 module (e.g. OpenImageIO.so)
-    add_subdirectory (src/python src/python3)
 endif ()
 
 add_subdirectory (src/include)
-add_subdirectory (src/doc)
-add_subdirectory (src/nuke)
+if (BUILD_DOCS)
+    add_subdirectory (src/doc)
+endif ()
+add_subdirectory (src/fonts)
 
+if (NUKE_FOUND)
+    add_subdirectory (src/nuke/txReader)
+    add_subdirectory (src/nuke/txWriter)
+endif ()
 
-#########################################################################
-# Testing
-#
-# Just call oiio_add_tests(testname...) for each test.  Additional
-# optional arguments include:
-#     FOUNDVAR   specifies the name of a CMAKE variable; if not defined,
-#                    the test will not be added for 'make test' (helpful
-#                    for excluding tests for libraries not found).
-#     IMAGEDIR   specifies a directory for test images, one level higher
-#                    than where the oiio top level source lives -- a
-#                    message will be printed if not found.
-#     URL        URL where the test images can be found, will be
-#                    incorporated into the error message if the test
-#                    image directory is not found.
-#     LABEL      If set to "broken", will designate the test as one
-#                    that is known to be broken, so will only be run
-#                    for "make testall", but not "make test".
-#
+# Last minute site-specific instructions, if they exist
+if (OIIO_SITE AND EXISTS "${PROJECT_SOURCE_DIR}/site/${OIIO_SITE}/cmake/sitecustom.cmake")
+    include ("${PROJECT_SOURCE_DIR}/site/${OIIO_SITE}/cmake/sitecustom.cmake")
+endif ()
 
-# Make a copy of the testsuite into the build area
-if (DEFINED CMAKE_VERSION AND NOT CMAKE_VERSION VERSION_LESS 2.8)
-    file (COPY "${PROJECT_SOURCE_DIR}/testsuite"
-          DESTINATION "${CMAKE_BINARY_DIR}")
+# install pkgconfig file
+if (NOT MSVC)
+   configure_file(src/build-scripts/OpenImageIO.pc.in "${CMAKE_BINARY_DIR}/OpenImageIO.pc" @ONLY)
+   install (FILES "${CMAKE_BINARY_DIR}/OpenImageIO.pc"
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+            COMPONENT developer)
 endif()
 
-# List all the individual testsuite tests here:
-oiio_add_tests (gpsread misnamed-file nonwhole-tiles
-                oiiotool oiiotool-composite oiiotool-deep oiiotool-fixnan
-                oiiotool-pattern oiiotool-readerror oiiotool-text
-                perchannel dither
-                dpx ico iff png psd rla sgi
-                python-typedesc python-imagespec python-roi python-deep
-                python-imageinput python-imageoutput
-                python-imagebuf python-imagebufalgo
-                maketx
-                texture-blurtube texture-crop texture-cropover
-                texture-derivs texture-fill texture-filtersize
-                texture-interp-bicubic
-                texture-interp-bilinear
-                texture-interp-closest
-                texture-gray texture-grid
-                texture-mip-nomip texture-mip-onelevel texture-mip-trilinear
-                texture-missing texture-overscan
-                texture-pointsample texture-width0blur texture-res
-                texture-skinny texture-fat texture-wrapfill
-                texture-icwrite
-               )
+# Export the configuration files. There are also library-specific config
+# exports in the CMakeLists.txt of libOpenImageIO.
+include (CMakePackageConfigHelpers)
+
+# the file containing the exported targets
+set (OIIO_TARGETS_EXPORT_NAME "${PROJECT_NAME}Targets.cmake")
+# the version file
+set (OIIO_VERSION_CONFIG "${CMAKE_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake")
+# the config file that is actually looked for by find_package
+set (OIIO_PROJECT_CONFIG "${CMAKE_BINARY_DIR}/${PROJECT_NAME}Config.cmake")
+# where all these files will be installed
+set (OIIO_CONFIG_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
+
+# first generate the version file in the binary dir
+write_basic_package_version_file (
+        ${OIIO_VERSION_CONFIG}
+        VERSION ${PROJECT_VERSION}
+        COMPATIBILITY SameMajorVersion)
+
+# generate the Targets file in the binary dir using the targets collected in
+# OIIO_EXPORTED_TARGETS each target is added to OIIO_EXPORTED_TARGETS
+# through the macro install_target().
+export (EXPORT OIIO_EXPORTED_TARGETS FILE "${CMAKE_BINARY_DIR}/${OIIO_TARGETS_EXPORT_NAME}")
+
+# generate the config file from the template in the binary dir
+configure_package_config_file ("${PROJECT_SOURCE_DIR}/src/cmake/Config.cmake.in"
+        "${OIIO_PROJECT_CONFIG}"
+        INSTALL_DESTINATION "${OIIO_CONFIG_INSTALL_DIR}")
+
+# generate the config file from the template in the binary dir
+install (FILES "${OIIO_PROJECT_CONFIG}" "${OIIO_VERSION_CONFIG}"
+        DESTINATION "${OIIO_CONFIG_INSTALL_DIR}")
+
+# install targets files
+install (EXPORT OIIO_EXPORTED_TARGETS
+        DESTINATION ${OIIO_CONFIG_INSTALL_DIR}
+        FILE ${OIIO_TARGETS_EXPORT_NAME}
+        NAMESPACE ${PROJECT_NAME}::)
 
 
-# List testsuites which need special external reference images from the web
-# here:
-oiio_add_tests (bmp
-    IMAGEDIR bmpsuite
-    URL http://entropymine.com/jason/bmpsuite/bmpsuite.zip)
-
-oiio_add_tests (tiff-suite tiff-depths
-    IMAGEDIR libtiffpic
-    URL http://www.remotesensing.org/libtiff/images.html)
-
-oiio_add_tests (tiff-misc)
-
-oiio_add_tests (openexr-suite openexr-multires openexr-chroma openexr-v2
-    IMAGEDIR openexr-images
-    URL http://www.openexr.com/downloads.html)
-
-oiio_add_tests (gif
-    FOUNDVAR GIF_FOUND
-    IMAGEDIR oiio-images
-    URL "Recent checkout of oiio-images")
-
-oiio_add_tests (jpeg2000
-    FOUNDVAR OPENJPEG_FOUND
-    IMAGEDIR j2kp4files_v1_5
-    URL http://www.itu.int/net/ITU-T/sigdb/speimage/ImageForm-s.aspx?val=10100803)
-
-oiio_add_tests (pnm
-    IMAGEDIR oiio-images/pnm
-    URL "Recent checkout of oiio-images")
-
-oiio_add_tests (targa-tgautils
-    IMAGEDIR TGAUTILS
-    URL http://tgautils.inequation.org/)
-
-oiio_add_tests (fits
-    IMAGEDIR fits-images
-    URL http://www.cv.nrao.edu/fits/data/tests/)
-
-oiio_add_tests (webp
-    FOUNDVAR WEBP_FOUND
-    IMAGEDIR webp-images
-    URL http://code.google.com/speed/webp/gallery.html)
-
-oiio_add_tests (field3d texture-field3d
-    FOUNDVAR FIELD3D_FOUND)
-
-if (SPI_TESTS)
-  oiio_add_tests (spi
-    FOUNDVAR SPI_TESTS
-    IMAGEDIR spi-oiio-tests
-    URL "noplace -- it's SPI specific tests")
+if (PROJECT_IS_TOP_LEVEL AND BUILD_TESTING AND ${PROJ_NAME}_BUILD_TESTS)
+    oiio_setup_test_data()
+    oiio_add_all_tests()
 endif ()
 
-
-
-#########################################################################
-# Packaging
-set (CPACK_PACKAGE_VERSION_MAJOR ${OIIO_VERSION_MAJOR})
-set (CPACK_PACKAGE_VERSION_MINOR ${OIIO_VERSION_MINOR})
-set (CPACK_PACKAGE_VERSION_PATCH ${OIIO_VERSION_PATCH})
-# "Vendor" is only used in copyright notices, so we use the same thing that
-# the rest of the copyright notices say.
-set (CPACK_PACKAGE_VENDOR "Larry Gritz et al.")
-set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "OpenImageIO is an open source library for reading and writing image file formats, a nice format-agnostic image viewer, and other image-related classes and utilities.")
-set (CPACK_PACKAGE_DESCRIPTION_FILE "${PROJECT_SOURCE_DIR}/src/doc/Description.txt")
-set (CPACK_PACKAGE_FILE_NAME OpenImageIO-${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}.${OIIO_VERSION_PATCH}-${platform})
-#SET (CPACK_PACKAGE_INSTALL_DIRECTORY "${PROJECT_SOURCE_DIR}")
-file (MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/cpack")
-file (COPY "${PROJECT_SOURCE_DIR}/LICENSE" DESTINATION "${CMAKE_BINARY_DIR}/cpack")
-file (RENAME "${CMAKE_BINARY_DIR}/cpack/LICENSE" "${CMAKE_BINARY_DIR}/cpack/License.txt")
-set (CPACK_RESOURCE_FILE_LICENSE "${CMAKE_BINARY_DIR}/cpack/License.txt")
-file (COPY "${PROJECT_SOURCE_DIR}/README.rst" DESTINATION "${CMAKE_BINARY_DIR}/cpack")
-file (RENAME "${CMAKE_BINARY_DIR}/cpack/README.rst" "${CMAKE_BINARY_DIR}/cpack/Readme.rst")
-set (CPACK_RESOURCE_FILE_README "${CMAKE_BINARY_DIR}/cpack/Readme.rst")
-set (CPACK_RESOURCE_FILE_WELCOME "${PROJECT_SOURCE_DIR}/src/doc/Welcome.txt")
-#SET (CPACK_STRIP_FILES Do we need this?)
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    set (CPACK_GENERATOR "TGZ;STGZ;RPM;DEB")
-    set (CPACK_SOURCE_GENERATOR "TGZ")
+if (PROJECT_IS_TOP_LEVEL)
+    include (packaging)
 endif ()
-if (APPLE)
-    set (CPACK_GENERATOR "TGZ;STGZ;PackageMaker")
-    set (CPACK_SOURCE_GENERATOR "TGZ")
-endif ()
-if (WIN32)
-    set (CPACK_GENERATOR "NSIS")
-    set(CPACK_PACKAGE_EXECUTABLES "iv" "iv - Image Viewer")
-#    set(CPACK_CREATE_DESCTOP_LINKS "iv" "iv - Image Viewer")
-    set(CPACK_NSIS_MODIFY_PATH ON)
-    include (InstallRequiredSystemLibraries)
-endif ()
-set (CPACK_SOURCE_PACKAGE_FILE_NAME OpenImageIO-${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}.${OIIO_VERSION_PATCH}-source)
-#set (CPACK_SOURCE_STRIP_FILES Do we need this?)
-set (CPACK_SOURCE_IGNORE_FILES ".*~")
-set (CPACK_COMPONENT_UNSPECIFIED_HIDDEN TRUE)
-set (CPACK_COMPONENT_UNSPECIFIED_REQUIRED TRUE)
-set (CPACK_COMPONENTS_ALL user developer documentation Unspecified)
-set (CPACK_COMPONENT_USER_DISPLAY_NAME "Applications")
-set (CPACK_COMPONENT_DEVELOPER_DISPLAY_NAME "Developer files")
-set (CPACK_COMPONENT_DOCUMENTATION_DISPLAY_NAME "Documentation")
-set (CPACK_COMPONENT_USER_DESCRIPTION
-     "Applications: iv, iinfo, iconvert, idiff, igrep, maketx and libraries")
-set (CPACK_COMPONENT_DEVELOPER_DESCRIPTION "Include files")
-set (CPACK_COMPONENT_DOCUMENTATION_DESCRIPTION "OpenImageIO documentation")
-set (CPACK_COMPONENT_DEVELOPER_DEPENDS user)
-include (CPack)
-
-# TODO: equivalents of the old:
-#  * make doxygen
-#  * BOOST_DYNAMIC
-
-# Do TIFF, JPEG, PNG actually look in external?

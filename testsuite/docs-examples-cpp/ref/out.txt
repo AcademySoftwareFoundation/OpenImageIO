@@ -1,0 +1,42 @@
+error: Uninitialized input image
+error: Uninitialized input image
+zero1.exr            :  512 x  512, 3 channel, float openexr
+    SHA-1: 1E5F8DEF40BB0CB0F7156B9C2BAB9EFB49CFB699
+zero2.exr            :  256 x  256, 4 channel, half openexr
+    SHA-1: 6A521E1D2A632C26E53B83D2CC4B0EDECFC1E68C
+zero3.exr            :  256 x  256, 4 channel, half openexr
+    SHA-1: 1254F2956229777B721576B94A6A944ECB806A37
+zero4.exr            :  256 x  256, 4 channel, half openexr
+    SHA-1: 36EB49C5102703693C078717CE82AE05D4904680
+fill.exr             :  640 x  480, 3 channel, float openexr
+    SHA-1: D517EA07CB6DB931AE4BF6D9E9957EEF9228734E
+checker.exr          :  640 x  480, 3 channel, float openexr
+    SHA-1: 87A4424581AAFCE31E6D1134E5025B620B48BBB3
+noise1.exr           :  256 x  256, 3 channel, float openexr
+    SHA-1: 9E9278C8F5460068363D36DBD395FA59CA5986DC
+noise2.exr           :  256 x  256, 3 channel, float openexr
+    SHA-1: 0A75E8EF38846D8DC5D8BA997EB54F7A36058288
+noise3.exr           :  512 x  384, 3 channel, half openexr
+    SHA-1: 95EDBCA9953281CE63A3E18C7C04BCCB07CB4C8A
+noise4.exr           :  512 x  384, 3 channel, half openexr
+    SHA-1: 43BC1FDFA1F18635B635A57D71DB08BB347CBD46
+blue-noise.exr       :  256 x  256, 4 channel, float openexr
+    SHA-1: 36F448FE29C9DE6CFA65FC0BFCF4178DC66581C4
+point.exr            :  640 x  480, 4 channel, float openexr
+    SHA-1: A2AC7CC98AB44798EEEA76C253DE44F6E49FFB8D
+lines.exr            :  640 x  480, 4 channel, float openexr
+    SHA-1: 69C0317F92256FD30415D1FE12419DC1C514D818
+box.exr              :  640 x  480, 4 channel, float openexr
+    SHA-1: 6CBE5E98B145C5975CB930A91BAEE981C30E6B32
+text1.exr            :  640 x  480, 3 channel, float openexr
+    SHA-1: 014ECFC5EBF07F77DF24A592F43BC7CB101534AE
+text2.exr            :  640 x  480, 3 channel, float openexr
+    SHA-1: 53359E96A286F909A89ACC99A67A9ED3BADC4A7A
+cshift.exr           :  256 x  256, 4 channel, half openexr
+    SHA-1: 000F95FDC44D4DBDA8B4041C2506149C7AE28ACA
+texture.exr          :  256 x  256, 3 channel, half openexr (+mipmap)
+    SHA-1: 4074B050432CE7C664CEC4546A46E74F9A310CDC
+Comparing "simple.tif" and "ref/simple.tif"
+PASS
+Comparing "scanlines.tif" and "ref/scanlines.tif"
+PASS

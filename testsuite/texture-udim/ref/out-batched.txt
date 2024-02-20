@@ -1,0 +1,76 @@
+Created texture system
+Result of get_texture_info resolution (as int[2]) = true 256x256
+Result of get_texture_info resolution (as int[3]) = true 256x256x1
+Result of get_texture_info channels = true 3
+Result of get_texture_info channels = true 3
+Result of get_texture_info data format = true uint8
+Result of get_texture_info datawindow (as int[4]) = true [0 0 255 255]
+Result of get_texture_info datawindow (as int[6]) = true [0 0 0 255 255 0]
+Result of get_texture_info displaywindow (as int[4]) = true [0 0 255 255]
+Result of get_texture_info displaywindow (as int[6]) = true [0 0 0 255 255 0]
+Result of get_texture_info averagecolor = no
+Result of get_texture_info averagealpha = no
+Result of get_texture_info constantcolor = no
+Result of get_texture_info constantalpha = no
+Texture type is true Plain Texture
+
+Testing BATCHED 2d texture file.<UDIM>.tx, output = out.tif
+Created texture system
+Image "file.<UDIM>.tx" attrib "Make" = "pet"
+Created texture system
+Image "file.<UDIM>.tx" attrib "Model" -> not found
+Created texture system
+Result of get_texture_info resolution (as int[2]) = true 256x256
+Result of get_texture_info resolution (as int[3]) = true 256x256x1
+Result of get_texture_info channels = true 3
+Result of get_texture_info channels = true 3
+Result of get_texture_info data format = true uint8
+Result of get_texture_info datawindow (as int[4]) = true [0 0 255 255]
+Result of get_texture_info datawindow (as int[6]) = true [0 0 0 255 255 0]
+Result of get_texture_info displaywindow (as int[4]) = true [0 0 255 255]
+Result of get_texture_info displaywindow (as int[6]) = true [0 0 0 255 255 0]
+Result of get_texture_info averagecolor = no
+Result of get_texture_info averagealpha = no
+Result of get_texture_info constantcolor = no
+Result of get_texture_info constantalpha = no
+Texture type is true Plain Texture
+
+Testing BATCHED 2d texture file.%(UDIM)d.tx, output = out2.tif
+Created texture system
+Image "file.%(UDIM)d.tx" attrib "Make" = "pet"
+Created texture system
+Image "file.%(UDIM)d.tx" attrib "Model" -> not found
+Created texture system
+Temp file 0: mktest_0000.<UDIM>.tx
+    mktest_0000.1001.tx
+    mktest_0000.1002.tx
+    mktest_0000.1003.tx
+    mktest_0000.1004.tx
+    mktest_0000.1005.tx
+    mktest_0000.1006.tx
+    mktest_0000.1007.tx
+    mktest_0000.1008.tx
+    mktest_0000.1009.tx
+    mktest_0000.1010.tx
+Result of get_texture_info resolution (as int[2]) = true 1024x1024
+Result of get_texture_info resolution (as int[3]) = true 1024x1024x1
+Result of get_texture_info channels = true 4
+Result of get_texture_info channels = true 4
+Result of get_texture_info data format = true uint16
+Result of get_texture_info datawindow (as int[4]) = true [0 0 1023 1023]
+Result of get_texture_info datawindow (as int[6]) = true [0 0 0 1023 1023 0]
+Result of get_texture_info displaywindow (as int[4]) = true [0 0 1023 1023]
+Result of get_texture_info displaywindow (as int[6]) = true [0 0 0 1023 1023 0]
+Result of get_texture_info averagecolor = no
+Result of get_texture_info averagealpha = yes 1
+Result of get_texture_info constantcolor = no
+Result of get_texture_info constantalpha = no
+Texture type is true Plain Texture
+
+Testing BATCHED 2d texture mktest_0000.<UDIM>.tx, output = out3.tif
+Comparing "out.tif" and "ref/out-freetype2.7.tif"
+PASS
+Comparing "out2.tif" and "ref/out2-freetype2.7.tif"
+PASS
+Comparing "out3.tif" and "ref/out3.tif"
+PASS

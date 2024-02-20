@@ -1,0 +1,13 @@
+Reading foo.null?RES=640x480&CHANNELS=3&TYPE=uint8&PIXEL=0.25,0.5,1
+foo.null?RES=640x480&CHANNELS=3&TYPE=uint8&PIXEL=0.25,0.5,1 :  640 x  480, 3 channel, uint8 null
+    channel list: R, G, B
+    Stats Min: 64 128 255 (of 255)
+    Stats Max: 64 128 255 (of 255)
+    Stats Avg: 64.00 128.00 255.00 (of 255)
+    Stats StdDev: 0.00 0.00 0.00 (of 255)
+    Stats NanCount: 0 0 0 
+    Stats InfCount: 0 0 0 
+    Stats FiniteCount: 307200 307200 307200 
+    Constant: Yes
+    Constant Color: 64.00 128.00 255.00 (of 255)
+    Monochrome: No

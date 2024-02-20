@@ -1,0 +1,60 @@
+oiiotool ERROR: --colorconfig : Requested non-existent OCIO config "missing.ocio"
+Full command line was:
+> oiiotool --nostderr --colorconfig missing.ocio -echo "Nonexistent config"
+OCIOv2 config Ok
+Comparing "colormap-inferno.tif" and "ref/colormap-inferno.tif"
+PASS
+Comparing "colormap-custom.tif" and "ref/colormap-custom.tif"
+PASS
+Comparing "unpremult.exr" and "ref/unpremult.exr"
+PASS
+Comparing "premult.exr" and "ref/premult.exr"
+PASS
+Comparing "contrast-stretch.tif" and "ref/contrast-stretch.tif"
+PASS
+Comparing "contrast-shrink.tif" and "ref/contrast-shrink.tif"
+PASS
+Comparing "contrast-inverse.tif" and "ref/contrast-inverse.tif"
+PASS
+Comparing "contrast-threshold.tif" and "ref/contrast-threshold.tif"
+PASS
+Comparing "contrast-sigmoid5.tif" and "ref/contrast-sigmoid5.tif"
+PASS
+Comparing "display-sRGB.tif" and "ref/display-sRGB.tif"
+PASS
+Comparing "rgbfromtga.png" and "ref/rgbfromtga.png"
+PASS
+Comparing "greyalpha_sRGB.tif" and "ref/greyalpha_sRGB.tif"
+PASS
+Comparing "greyalpha_sRGB_un.tif" and "ref/greyalpha_sRGB_un.tif"
+PASS
+Comparing "grey_sRGB.tif" and "ref/grey_sRGB.tif"
+PASS
+Comparing "grey_sRGB_un.tif" and "ref/grey_sRGB_un.tif"
+PASS
+Comparing "tahoe-ccmatrix.tif" and "ref/tahoe-ccmatrix.tif"
+PASS
+Comparing "tahoe-sat0.tif" and "ref/tahoe-sat0.tif"
+PASS
+Comparing "tahoe-sat2.tif" and "ref/tahoe-sat2.tif"
+PASS
+Comparing "cmap-magma.tif" and "ref/cmap-magma.tif"
+PASS
+Comparing "cmap-inferno.tif" and "ref/cmap-inferno.tif"
+PASS
+Comparing "cmap-plasma.tif" and "ref/cmap-plasma.tif"
+PASS
+Comparing "cmap-viridis.tif" and "ref/cmap-viridis.tif"
+PASS
+Comparing "cmap-turbo.tif" and "ref/cmap-turbo.tif"
+PASS
+Comparing "cmap-blue-red.tif" and "ref/cmap-blue-red.tif"
+PASS
+Comparing "cmap-spectrum.tif" and "ref/cmap-spectrum.tif"
+PASS
+Comparing "cmap-heat.tif" and "ref/cmap-heat.tif"
+PASS
+Comparing "greyalpha_Cineon.tif" and "ref/greyalpha_Cineon.tif"
+PASS
+Comparing "greyalpha_Cineon_un.tif" and "ref/greyalpha_Cineon_un.tif"
+PASS

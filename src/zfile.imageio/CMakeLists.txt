@@ -1,6 +1,6 @@
-find_package (ZLIB)
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-if (ZLIB_FOUND)
-    include_directories (${ZLIB_INCLUDE_DIR})
-    add_oiio_plugin (zfile.cpp LINK_LIBRARIES ${ZLIB_LIBRARIES})
-endif ()
+add_oiio_plugin (zfile.cpp
+                 LINK_LIBRARIES ZLIB::ZLIB)

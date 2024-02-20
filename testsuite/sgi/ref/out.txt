@@ -9,8 +9,8 @@ Reading ref/rle-8.sgi
 ref/rle-8.sgi        :  100 x   63, 4 channel, uint8 sgi
     SHA-1: AB45F4C8F7DC146D019C1B6C5FCF45EB86884C81
     channel list: R, G, B, A
-    ImageDescription: "...rnold_SGI_Texture_Crash_Bugreport_01\Default_Pass_Main.1.sgi"
     compression: "rle"
+    ImageDescription: "...rnold_SGI_Texture_Crash_Bugreport_01\Default_Pass_Main.1.sgi"
 Comparing "ref/rle-8.sgi" and "rle-8.sgi"
 PASS
 Reading ref/norle-16.sgi
@@ -24,7 +24,7 @@ Reading ref/rle-16.sgi
 ref/rle-16.sgi       :  100 x   63, 4 channel, uint16 sgi
     SHA-1: 6F0B94D6649760B785381A551E5F08C72712D02D
     channel list: R, G, B, A
-    ImageDescription: "...rnold_SGI_Texture_Crash_Bugreport_01\Default_Pass_Main.1.sgi"
     compression: "rle"
+    ImageDescription: "...rnold_SGI_Texture_Crash_Bugreport_01\Default_Pass_Main.1.sgi"
 Comparing "ref/rle-16.sgi" and "rle-16.sgi"
 PASS

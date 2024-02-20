@@ -1,31 +1,46 @@
-if (QT4_FOUND AND OPENGL_FOUND AND GLEW_FOUND)
-    include (${QT_USE_FILE})
-    include_directories (${QT_INCLUDES} ${OPENGL_INCLUDE_DIR} ${GLEW_INCLUDES})
-    add_custom_command (OUTPUT "${CMAKE_BINARY_DIR}/src/iv/moc_imageviewer.cpp"
-                        DEPENDS imageviewer.h imageviewer.cpp
-                        COMMAND ${QT_MOC_EXECUTABLE}
-                        ARGS "${PROJECT_SOURCE_DIR}/src/iv/imageviewer.h"
-                           -o "${CMAKE_BINARY_DIR}/src/iv/moc_imageviewer.cpp"
-                        )
-    add_custom_command (OUTPUT ${CMAKE_BINARY_DIR}/src/iv/moc_ivgl.cpp
-                        DEPENDS ivgl.h ivgl.cpp
-                        COMMAND ${QT_MOC_EXECUTABLE}
-                        ARGS "${PROJECT_SOURCE_DIR}/src/iv/ivgl.h"
-                           -o "${CMAKE_BINARY_DIR}/src/iv/moc_ivgl.cpp"
-                        )
-    set (iv_srcs imageviewer.cpp ivimage.cpp ivgl.cpp ivinfowin.cpp 
-                 ivpref.cpp ivmain.cpp moc_imageviewer.cpp moc_ivgl.cpp)
-    if (FORCE_OPENGL_1)
-        add_definitions(-DFORCE_OPENGL_1)
-    endif()
-    add_executable (iv ${iv_srcs})
-    set_target_properties (iv PROPERTIES FOLDER "Tools")
-    link_ilmbase (iv)
-    target_link_libraries (iv OpenImageIO ${QT_LIBRARIES} ${OPENGL_LIBRARIES} 
-                               ${Boost_LIBRARIES} ${CMAKE_DL_LIBS}
-                               ${GLEW_LIBRARIES})
-    oiio_install_targets (iv)
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+set (OIIO_IV_EXTRA_IV_LIBRARIES "" CACHE STRING "Paths to extra libraries to force iv to link against")
+
+set (CMAKE_AUTOMOC ON)
+if (Qt5_POSITION_INDEPENDENT_CODE OR Qt6_POSITION_INDEPENDENT_CODE)
+    set (CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
+
+check_is_enabled (iv iv_enabled)
+if (iv_enabled AND (Qt5_FOUND OR Qt6_FOUND) AND OPENGL_FOUND)
+    fancy_add_executable (
+        SYSTEM_INCLUDE_DIRS
+            ${OPENGL_INCLUDE_DIR}
+        LINK_LIBRARIES
+            OpenImageIO
+            $<TARGET_NAME_IF_EXISTS:Qt5::Core>
+            $<TARGET_NAME_IF_EXISTS:Qt5::Gui>
+            $<TARGET_NAME_IF_EXISTS:Qt5::Widgets>
+            $<TARGET_NAME_IF_EXISTS:Qt5::OpenGL>
+            $<TARGET_NAME_IF_EXISTS:Qt6::Core>
+            $<TARGET_NAME_IF_EXISTS:Qt6::Gui>
+            $<TARGET_NAME_IF_EXISTS:Qt6::Widgets>
+            $<TARGET_NAME_IF_EXISTS:Qt6::OpenGLWidgets>
+            ${OPENGL_LIBRARIES}
+            $<TARGET_NAME_IF_EXISTS:OpenColorIO::OpenColorIO>
+            $<TARGET_NAME_IF_EXISTS:OpenColorIO::OpenColorIOHeaders>
+            ${OIIO_IV_EXTRA_IV_LIBRARIES}
+        )
+    if (iv_enabled AND FORCE_OPENGL_1)
+        target_compile_definitions(iv PRIVATE FORCE_OPENGL_1)
+    endif()
+    if (Qt5_FOUND)
+        target_compile_definitions(iv PRIVATE OIIO_QT_MAJOR=5)
+    endif ()
+    if (Qt6_FOUND)
+        target_compile_definitions(iv PRIVATE OIIO_QT_MAJOR=6)
+    endif ()
+    if (APPLE)
+        target_compile_definitions(iv PRIVATE GL_SILENCE_DEPRECATION)
+    endif ()
 else ()
-    message (STATUS "\n\n   WARNING: No QT/OpenGL -- 'iv' will not be built!\n")
+    message (STATUS "\n\n   WARNING: Qt or OpenGL not found -- 'iv' will not be built!\n")
 endif ()

@@ -1,0 +1,595 @@
+../oiio-images/raw/RAW_CANON_EOS_7D.CR2 : 5202 x 3465, 3 channel, uint16 raw
+    channel list: R, G, B
+    Artist: ""
+    Copyright: ""
+    DateTime: "2009-10-09 14:18:45"
+    ExposureTime: 0.003125
+    FNumber: 2.8
+    Make: "Canon"
+    Model: "EOS 7D"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: 2 (inches)
+    Software: "Firmware Version 1.0.7"
+    XResolution: 72/1 (72)
+    YResolution: 72/1 (72)
+    Canon:AEBBracketValue: 1
+    Canon:AESetting: 0 (normal AE)
+    Canon:AFAreaMode: 0
+    Canon:AFPoint: 0
+    Canon:AFPointsInFocus: 0
+    Canon:AutoExposureBracketing: 0 (off)
+    Canon:AutoISO: 0
+    Canon:AutoRotate: -1 (n/a)
+    Canon:AverageBlackLevel: 2048
+    Canon:BaseISO: 160
+    Canon:BlackMaskBottomBorder: 0
+    Canon:BlackMaskLeftBorder: 0
+    Canon:BlackMaskRightBorder: 0
+    Canon:BlackMaskTopBorder: 0
+    Canon:BulbDuration: 0
+    Canon:CameraFormat: 1
+    Canon:CameraISO: 32767
+    Canon:CameraMount: 3
+    Canon:CameraTemperature: 155
+    Canon:CameraType: 248 (EOS High-end)
+    Canon:CamID: 2147484240
+    Canon:CanonFocalUnits: 1
+    Canon:ChannelBlackLevel: 2048, 2048, 2048, 2048
+    Canon:ColorTone: 0
+    Canon:ContinuousDrive: 0 (single)
+    Canon:Contrast: 0
+    Canon:ControlMode: 0 (n/a)
+    Canon:CropInfo: 0, 0, 0, 0
+    Canon:CurAp: 2.82843
+    Canon:CurFocal: 200
+    Canon:CustomPictureStyleFileName: ""
+    Canon:DigitalZoom: 0 (none)
+    Canon:DisplayAperture: 0
+    Canon:DriveMode: 0
+    Canon:EasyMode: 1 (Manual)
+    Canon:ExposureComp: 0
+    Canon:ExposureCompensation: 0
+    Canon:ExposureMode: 0 (Easy)
+    Canon:ExposureTime: 133
+    Canon:FirmwareVersion: "Firmware Version 1.0.7"
+    Canon:FlashActivity: 0
+    Canon:FlashBits: 0 (none)
+    Canon:FlashExposureComp: 0
+    Canon:FlashExposureLock: 0
+    Canon:FlashGuideNumber: 0
+    Canon:FlashMeteringMode: 0
+    Canon:FlashMode: 0 (off)
+    Canon:FlashOutput: 0
+    Canon:FNumber: 268
+    Canon:FocalLength: 200
+    Canon:FocalPlaneXSize: 11675
+    Canon:FocalPlaneYSize: 19690
+    Canon:FocalType: 0
+    Canon:FocalUnits: 1
+    Canon:FocusContinuous: 0 (single)
+    Canon:FocusDistanceLower: 96
+    Canon:FocusDistanceUpper: 0
+    Canon:FocusMode: 0 (one-shot AF)
+    Canon:FocusRange: 2 (not known)
+    Canon:HighlightTonePriority: 0
+    Canon:ImageStabilization: 0 (Off)
+    Canon:ImageType: "Canon EOS 7D"
+    Canon:Lens: "EF 70-200mm f/2.8L IS USM"
+    Canon:LensFeatures_pre: "EF"
+    Canon:LensID: 224
+    Canon:LensModel: "EF70-200mm f/2.8L IS USM"
+    Canon:LensMount: 3
+    Canon:LensType: 224
+    Canon:MacroMode: 2 (normal)
+    Canon:ManualFlashOutput: 0 (n/a)
+    Canon:MaxAp: 2.82843
+    Canon:MaxAperture: 96
+    Canon:MaxFocal: 200
+    Canon:MaxFocalLength: 200
+    Canon:MeasuredEV: 204
+    Canon:MeasuredEV2: 0
+    Canon:MeteringMode: 0 (default)
+    Canon:MinAp: 32
+    Canon:MinAperture: 320
+    Canon:MinFocal: 70
+    Canon:MinFocalLength: 70
+    Canon:ModelID: 2147484240 (OS 7D)
+    Canon:NDFilter: -1 (n/a)
+    Canon:OpticalZoomCode: 8
+    Canon:OwnerName: ""
+    Canon:Quality: 4 (RAW)
+    Canon:RecordMode: 6 (CR2)
+    Canon:Saturation: 0
+    Canon:SelfTimer: 0
+    Canon:SelfTimer2: -1
+    Canon:SensorBottomBorder: 3511
+    Canon:SensorHeight: 3516
+    Canon:SensorLeftBorder: 168
+    Canon:SensorRightBorder: 5351
+    Canon:SensorTopBorder: 56
+    Canon:SensorWidth: 5360
+    Canon:SequenceNumber: 0
+    Canon:SerialNumber: 230101900
+    Canon:SerialNumberFormat: 2684354560
+    Canon:Sharpness: 32767
+    Canon:SlowShutter: 3 (none)
+    Canon:SpecularWhiteLevel: 12749
+    Canon:SpotMeteringMode: 0 (center)
+    Canon:SRAWQuality: 0 (n/a)
+    Canon:TargetAperture: 96
+    Canon:TargetExposureTime: 268
+    Canon:ThumbnailImageValidArea: 0, 159, 7, 112
+    Canon:WhiteBalance: 0 (Auto)
+    Canon:ZoomSourceWidth: 0
+    Canon:ZoomTargetWidth: 0
+    Exif:ApertureValue: 2.97085 (f/2.8)
+    Exif:ColorSpace: 1
+    Exif:CustomRendered: 0 (no)
+    Exif:DateTimeDigitized: "2009:10:09 14:18:45"
+    Exif:DateTimeOriginal: "2009:10:09 14:18:45"
+    Exif:ExifVersion: ""
+    Exif:ExposureBiasValue: 0/1 (0)
+    Exif:ExposureMode: 0 (auto)
+    Exif:ExposureProgram: 3 (aperture priority)
+    Exif:Flash: 16 (no flash, flash suppression)
+    Exif:FlashPixVersion: ""
+    Exif:FocalLength: 200 (200 mm)
+    Exif:FocalPlaneResolutionUnit: 2 (inches)
+    Exif:FocalPlaneXResolution: 5184000/907 (5715.55)
+    Exif:FocalPlaneYResolution: 3456000/595 (5808.4)
+    Exif:ISOSpeedRatings: 100
+    Exif:MeteringMode: 5 (pattern)
+    Exif:PhotographicSensitivity: 100
+    Exif:PixelXDimension: 5184
+    Exif:PixelYDimension: 3456
+    Exif:SceneCaptureType: 0 (standard)
+    Exif:ShutterSpeedValue: 8.32193 (1/319 s)
+    Exif:SubsecTime: "00"
+    Exif:SubsecTimeDigitized: "00"
+    Exif:SubsecTimeOriginal: "00"
+    Exif:WhiteBalance: 0 (auto)
+    oiio:ColorSpace: "linear"
+    raw:cam_mul: 2076, 1024, 1584, 1024
+    raw:cam_xyz: 0.6844, -0.0996, -0.0856, -0.3876, 1.1761, 0.2396, -0.0593, 0.1772, 0.6198, 0, 0, 0
+    raw:Demosaic: "AHD"
+    raw:HighlightMode: 0
+    raw:pre_mul: 2.18486, 0.935831, 1.25684, 0
+    raw:rgb_cam: 1.9205, -1.04135, 0.12085, 0, -0.246963, 1.75931, -0.51235, 0, -0.00695612, -0.489585, 1.49654, 0
+../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
+    channel list: R, G, B
+    Artist: "                                    "
+    Copyright: "                                                      "
+    DateTime: "2008-12-01 14:52:13"
+    ExposureTime: 0.02
+    FNumber: 5.6
+    Make: "Nikon"
+    Model: "D3X"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: 2 (inches)
+    Software: "Ver.1.00 "
+    XResolution: 738263040/16777216 (44.0039)
+    YResolution: 738263040/16777216 (44.0039)
+    Exif:ApertureValue: 4.97085 (f/5.6)
+    Exif:Contrast: 0 (normal)
+    Exif:CustomRendered: 0 (no)
+    Exif:DateTimeDigitized: "2008:12:01 14:52:13"
+    Exif:DateTimeOriginal: "2008:12:01 14:52:13"
+    Exif:DigitalZoomRatio: 16777216/16777216 (1)
+    Exif:ExposureBiasValue: 0/100663296 (0)
+    Exif:ExposureMode: 0 (auto)
+    Exif:ExposureProgram: 3 (aperture priority)
+    Exif:Flash: 0 (no flash)
+    Exif:FocalLength: 70 (70 mm)
+    Exif:FocalLengthIn35mmFilm: 70
+    Exif:GainControl: 0 (none)
+    Exif:ISOSpeedRatings: 100
+    Exif:LightSource: 0 (unknown)
+    Exif:MaxApertureValue: 503316480/167772160 (3)
+    Exif:MeteringMode: 5 (pattern)
+    Exif:PhotographicSensitivity: 100
+    Exif:Saturation: 0 (normal)
+    Exif:SceneCaptureType: 0 (standard)
+    Exif:SensingMethod: 2 (1-chip color area)
+    Exif:Sharpness: 0 (normal)
+    Exif:ShutterSpeedValue: 5.64386 (1/49 s)
+    Exif:SubjectDistanceRange: 0 (unknown)
+    Exif:SubsecTime: "00"
+    Exif:SubsecTimeDigitized: "00"
+    Exif:SubsecTimeOriginal: "00"
+    Exif:WhiteBalance: 1 (manual)
+    Exif:YCbCrPositioning: 2
+    Nikon:AFPoint: -1
+    Nikon:BodySerial: "5000322"
+    Nikon:CameraMount: 6
+    Nikon:CanonFocalUnits: 1
+    Nikon:CurFocal: 71.2719
+    Nikon:EffectiveMaxAp: 2.82843
+    Nikon:EXIF_MaxAp: 2.82843
+    Nikon:FocalLengthIn35mmFormat: 70
+    Nikon:ImageStabilization: -1
+    Nikon:LensFeatures_pre: "AF"
+    Nikon:LensFeatures_suf: "D "
+    Nikon:LensFStops: 72
+    Nikon:LensID: 6721688810291487490
+    Nikon:LensIDNumber: 93
+    Nikon:LensMount: 6
+    Nikon:LensType: 2
+    Nikon:MaxAp4MaxFocal: 2.8
+    Nikon:MaxAp4MinFocal: 2.8
+    Nikon:MaxFocal: 70
+    Nikon:MCUVersion: 99
+    Nikon:MinFocal: 28
+    oiio:ColorSpace: "linear"
+    oiio:MakerNoteOffset: 0
+    raw:cam_mul: 463, 256, 396, 256
+    raw:cam_xyz: 0.7171, -0.1986, -0.0648, -0.8085, 1.5555, 0.2718, -0.217, 0.2512, 0.7457, 0, 0, 0
+    raw:Demosaic: "AHD"
+    raw:flip: 5
+    raw:HighlightMode: 0
+    raw:Orientation: 8
+    raw:pre_mul: 2.42471, 0.923378, 1.16709, 0
+    raw:rgb_cam: 1.63112, -0.49571, -0.135406, 0, -0.0198909, 1.37114, -0.351248, 0, 0.0569128, -0.396382, 1.33947, 0
+../oiio-images/raw/RAW_FUJI_F700.RAF : 2035 x 1533, 3 channel, uint16 raw
+    channel list: R, G, B
+    Copyright: "    "
+    DateTime: "2007-01-06 14:20:22"
+    ExposureTime: 0.00125
+    FNumber: 3.6
+    Make: "Fujifilm"
+    Model: "F700"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: 2 (inches)
+    Software: "Digital Camera FinePix F700  Ver2.00"
+    XResolution: 72/1 (72)
+    YResolution: 72/1 (72)
+    Exif:ApertureValue: 3.69599 (f/3.6)
+    Exif:BrightnessValue: 773/100 (7.73)
+    Exif:ColorSpace: 1
+    Exif:CompressedBitsPerPixel: 30/10 (3)
+    Exif:CustomRendered: 0 (no)
+    Exif:DateTimeDigitized: "2007:01:06 14:20:22"
+    Exif:DateTimeOriginal: "2007:01:06 14:20:22"
+    Exif:ExifVersion: ""
+    Exif:ExposureBiasValue: 0/100 (0)
+    Exif:ExposureMode: 0 (auto)
+    Exif:ExposureProgram: 4 (shutter priority)
+    Exif:Flash: 9 (flash fired, compulsory flash)
+    Exif:FlashPixVersion: ""
+    Exif:FocalLength: 8.5 (8.5 mm)
+    Exif:FocalPlaneResolutionUnit: 3 (cm)
+    Exif:FocalPlaneXResolution: 1693/1 (1693)
+    Exif:FocalPlaneYResolution: 1693/1 (1693)
+    Exif:ISOSpeedRatings: 200
+    Exif:LightSource: 0 (unknown)
+    Exif:MaxApertureValue: 300/100 (3)
+    Exif:MeteringMode: 5 (pattern)
+    Exif:PhotographicSensitivity: 200
+    Exif:PixelXDimension: 1280
+    Exif:PixelYDimension: 960
+    Exif:SceneCaptureType: 0 (standard)
+    Exif:SensingMethod: 2 (1-chip color area)
+    Exif:Sharpness: 0 (normal)
+    Exif:ShutterSpeedValue: 9.64386 (1/799 s)
+    Exif:SubjectDistanceRange: 0 (unknown)
+    Exif:WhiteBalance: 0 (auto)
+    Exif:YCbCrPositioning: 2
+    Fujifilm:AFMode: 0
+    Fujifilm:AFPoint: -1
+    Fujifilm:AutoDynamicRange: 65535
+    Fujifilm:CanonFocalUnits: 1
+    Fujifilm:DevelopmentDynamicRange: 65535
+    Fujifilm:DynamicRange: 3
+    Fujifilm:DynamicRangeSetting: 65535
+    Fujifilm:EXIF_MaxAp: 2.82843
+    Fujifilm:ExpoMidPointShift: -999
+    Fujifilm:ExrMode: 0
+    Fujifilm:FilmMode: 65535
+    Fujifilm:FlashMode: 0
+    Fujifilm:FocusMode: 0
+    Fujifilm:FocusPixel: 320, 528
+    Fujifilm:FrameHeight: 0
+    Fujifilm:FrameRate: 0
+    Fujifilm:FrameWidth: 0
+    Fujifilm:ImageStabilization: 65535, 65535, 65535
+    Fujifilm:LensID: 18446744073709551615
+    Fujifilm:Macro: 0
+    Fujifilm:Rating: 0
+    Fujifilm:ShutterType: 0
+    Fujifilm:WB_Preset: 0
+    oiio:ColorSpace: "linear"
+    oiio:MakerNoteOffset: 0
+    raw:cam_mul: 146, 80, 110, 80
+    raw:cam_xyz: 1.0004, -0.3219, -0.1201, -0.7036, 1.5047, 0.2107, -0.1863, 0.2565, 0.7736, 0, 0, 0
+    raw:Demosaic: "AHD"
+    raw:HighlightMode: 0
+    raw:pre_mul: 2.00732, 0.93865, 1.08496, 0
+    raw:rgb_cam: 1.47493, -0.398507, -0.0764264, 0, -0.0661368, 1.35488, -0.288739, 0, 0.034223, -0.397407, 1.36318, 0
+../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
+    channel list: R, G, B
+    Artist: "                                    "
+    Copyright: "                                                      "
+    DateTime: "2008-12-01 14:52:13"
+    ExposureTime: 0.02
+    FNumber: 5.6
+    Make: "Nikon"
+    Model: "D3X"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: 2 (inches)
+    Software: "Ver.1.00 "
+    XResolution: 738263040/16777216 (44.0039)
+    YResolution: 738263040/16777216 (44.0039)
+    Exif:ApertureValue: 4.97085 (f/5.6)
+    Exif:Contrast: 0 (normal)
+    Exif:CustomRendered: 0 (no)
+    Exif:DateTimeDigitized: "2008:12:01 14:52:13"
+    Exif:DateTimeOriginal: "2008:12:01 14:52:13"
+    Exif:DigitalZoomRatio: 16777216/16777216 (1)
+    Exif:ExposureBiasValue: 0/100663296 (0)
+    Exif:ExposureMode: 0 (auto)
+    Exif:ExposureProgram: 3 (aperture priority)
+    Exif:Flash: 0 (no flash)
+    Exif:FocalLength: 70 (70 mm)
+    Exif:FocalLengthIn35mmFilm: 70
+    Exif:GainControl: 0 (none)
+    Exif:ISOSpeedRatings: 100
+    Exif:LightSource: 0 (unknown)
+    Exif:MaxApertureValue: 503316480/167772160 (3)
+    Exif:MeteringMode: 5 (pattern)
+    Exif:PhotographicSensitivity: 100
+    Exif:Saturation: 0 (normal)
+    Exif:SceneCaptureType: 0 (standard)
+    Exif:SensingMethod: 2 (1-chip color area)
+    Exif:Sharpness: 0 (normal)
+    Exif:ShutterSpeedValue: 5.64386 (1/49 s)
+    Exif:SubjectDistanceRange: 0 (unknown)
+    Exif:SubsecTime: "00"
+    Exif:SubsecTimeDigitized: "00"
+    Exif:SubsecTimeOriginal: "00"
+    Exif:WhiteBalance: 1 (manual)
+    Exif:YCbCrPositioning: 2
+    Nikon:AFPoint: -1
+    Nikon:BodySerial: "5000322"
+    Nikon:CameraMount: 6
+    Nikon:CanonFocalUnits: 1
+    Nikon:CurFocal: 71.2719
+    Nikon:EffectiveMaxAp: 2.82843
+    Nikon:EXIF_MaxAp: 2.82843
+    Nikon:FocalLengthIn35mmFormat: 70
+    Nikon:ImageStabilization: -1
+    Nikon:LensFeatures_pre: "AF"
+    Nikon:LensFeatures_suf: "D "
+    Nikon:LensFStops: 72
+    Nikon:LensID: 6721688810291487490
+    Nikon:LensIDNumber: 93
+    Nikon:LensMount: 6
+    Nikon:LensType: 2
+    Nikon:MaxAp4MaxFocal: 2.8
+    Nikon:MaxAp4MinFocal: 2.8
+    Nikon:MaxFocal: 70
+    Nikon:MCUVersion: 99
+    Nikon:MinFocal: 28
+    oiio:ColorSpace: "linear"
+    oiio:MakerNoteOffset: 0
+    raw:cam_mul: 463, 256, 396, 256
+    raw:cam_xyz: 0.7171, -0.1986, -0.0648, -0.8085, 1.5555, 0.2718, -0.217, 0.2512, 0.7457, 0, 0, 0
+    raw:Demosaic: "AHD"
+    raw:flip: 5
+    raw:HighlightMode: 0
+    raw:Orientation: 8
+    raw:pre_mul: 2.42471, 0.923378, 1.16709, 0
+    raw:rgb_cam: 1.63112, -0.49571, -0.135406, 0, -0.0198909, 1.37114, -0.351248, 0, 0.0569128, -0.396382, 1.33947, 0
+../oiio-images/raw/RAW_OLYMPUS_E3.ORF : 3720 x 2800, 3 channel, uint16 raw
+    channel list: R, G, B
+    DateTime: "2008-12-19 12:29:40"
+    ExposureTime: 0.003125
+    FNumber: 2
+    ImageDescription: "OLYMPUS DIGITAL CAMERA         "
+    Make: "Olympus"
+    Model: "E-3"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: 2 (inches)
+    Software: "Version 1.0                    "
+    XResolution: 314/1 (314)
+    YResolution: 314/1 (314)
+    Exif:ApertureValue: 2 (f/2.0)
+    Exif:ColorSpace: 1
+    Exif:Contrast: 0 (normal)
+    Exif:CustomRendered: 1 (yes)
+    Exif:DateTimeDigitized: "2008:12:19 12:29:40"
+    Exif:DateTimeOriginal: "2008:12:19 12:29:40"
+    Exif:DigitalZoomRatio: 100/100 (1)
+    Exif:ExifVersion: ""
+    Exif:ExposureBiasValue: 0/10 (0)
+    Exif:ExposureMode: 0 (auto)
+    Exif:ExposureProgram: 3 (aperture priority)
+    Exif:Flash: 8 (no flash, compulsory flash)
+    Exif:FlashPixVersion: ""
+    Exif:FocalLength: 50 (50 mm)
+    Exif:GainControl: 1 (low gain up)
+    Exif:ISOSpeedRatings: 200
+    Exif:LightSource: 0 (unknown)
+    Exif:MaxApertureValue: 512/256 (2)
+    Exif:MeteringMode: 5 (pattern)
+    Exif:PhotographicSensitivity: 200
+    Exif:Saturation: 2 (high)
+    Exif:SceneCaptureType: 0 (standard)
+    Exif:Sharpness: 1 (soft)
+    Exif:ShutterSpeedValue: 8.32193 (1/319 s)
+    Exif:WhiteBalance: 1 (manual)
+    oiio:ColorSpace: "linear"
+    oiio:MakerNoteOffset: 0
+    Olympus:AFPoint: 0
+    Olympus:AFPointSelected: 0, 0, 0, 0, 0
+    Olympus:AFResult: 0
+    Olympus:AutoFocus: 0
+    Olympus:BodySerial: "D70515922                      "
+    Olympus:CameraFormat: 8
+    Olympus:CameraMount: 8
+    Olympus:CamID: 357290750257
+    Olympus:CanonFocalUnits: 1
+    Olympus:ColorSpace: 0
+    Olympus:EXIF_MaxAp: 2
+    Olympus:FocusMode: 0, 0
+    Olympus:ImageStabilization: -1
+    Olympus:InternalBodySerial: "4031712008217001               "
+    Olympus:LensFormat: 8
+    Olympus:LensID: 256
+    Olympus:LensMount: 8
+    Olympus:LensSerial: "010211319"
+    Olympus:MaxAp4CurFocal: 2
+    Olympus:MaxAp4MaxFocal: 2
+    Olympus:MaxAp4MinFocal: 2
+    Olympus:MaxFocal: 50
+    Olympus:MinFocal: 50
+    Olympus:OlympusCropID: -1
+    Olympus:OlympusFrame: 0, 0, 0, 0
+    Olympus:OlympusSensorCalibration: 0, 0
+    raw:cam_mul: 1.92969, 1, 1.51562, 0
+    raw:cam_xyz: 0.9487, -0.2875, -0.1115, -0.7533, 1.5606, 0.201, -0.1618, 0.21, 0.7389, 0, 0, 0
+    raw:Demosaic: "AHD"
+    raw:HighlightMode: 0
+    raw:pre_mul: 2.02921, 0.940326, 1.16185, 0
+    raw:rgb_cam: 1.51654, -0.430228, -0.0863067, 0, -0.0494893, 1.30043, -0.25094, 0, 0.0301397, -0.34581, 1.31567, 0
+../oiio-images/raw/RAW_PENTAX_K200D.PEF : 2616 x 3896, 3 channel, uint16 raw
+    channel list: R, G, B
+    DateTime: "2008-08-02 16:46:42"
+    ExposureTime: 0.004
+    FNumber: 8
+    Make: "Pentax"
+    Model: "K200D"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: 2 (inches)
+    Software: "K200D Ver 1.00         "
+    XResolution: 1207959552/16777216 (72)
+    YResolution: 1207959552/16777216 (72)
+    Exif:ApertureValue: 6 (f/8.0)
+    Exif:Contrast: 0 (normal)
+    Exif:CustomRendered: 0 (no)
+    Exif:DateTimeDigitized: "2008:08:02 16:46:42"
+    Exif:DateTimeOriginal: "2008:08:02 16:46:42"
+    Exif:ExposureBiasValue: 0/167772160 (0)
+    Exif:ExposureMode: 0 (auto)
+    Exif:ExposureProgram: 2 (normal program)
+    Exif:Flash: 16 (no flash, flash suppression)
+    Exif:FocalLength: 42.5 (42.5 mm)
+    Exif:FocalLengthIn35mmFilm: 64
+    Exif:ISOSpeedRatings: 100
+    Exif:MeteringMode: 5 (pattern)
+    Exif:PhotographicSensitivity: 100
+    Exif:Saturation: 2 (high)
+    Exif:SceneCaptureType: 0 (standard)
+    Exif:SensingMethod: 2 (1-chip color area)
+    Exif:Sharpness: 2 (hard)
+    Exif:ShutterSpeedValue: 7.96578 (1/249 s)
+    Exif:SubjectDistanceRange: 3 (distant)
+    Exif:WhiteBalance: 1 (manual)
+    oiio:ColorSpace: "linear"
+    oiio:MakerNoteOffset: 0
+    Pentax:AFPoint: -1
+    Pentax:BodySerial: "0"
+    Pentax:CameraFormat: 1
+    Pentax:CameraMount: 10
+    Pentax:CamID: 77050
+    Pentax:CanonFocalUnits: 1
+    Pentax:CurAp: 8
+    Pentax:CurFocal: 42.5
+    Pentax:FocalLengthIn35mmFormat: 64
+    Pentax:FocusRangeIndex: 3
+    Pentax:ImageStabilization: -1
+    Pentax:InternalBodySerial: "8421922"
+    Pentax:LensFStops: 7
+    Pentax:LensID: 2022
+    Pentax:LensMount: 10
+    Pentax:MaxAp4CurFocal: 2.82843
+    Pentax:MinAp4CurFocal: 32
+    Pentax:MinAp4MinFocal: 32
+    Pentax:MinFocusDistance: 16
+    raw:cam_mul: 16320, 8192, 10880, 8096
+    raw:cam_xyz: 0.9186, -0.2678, -0.0907, -0.8693, 1.6517, 0.226, -0.1129, 0.1094, 0.8524, 0, 0, 0
+    raw:Demosaic: "AHD"
+    raw:flip: 5
+    raw:HighlightMode: 0
+    raw:Orientation: 8
+    raw:pre_mul: 1.97418, 0.933248, 1.0751, 0
+    raw:rgb_cam: 1.57863, -0.445628, -0.132998, 0, 0.00253779, 1.23611, -0.238651, 0, 0.0130551, -0.219984, 1.20693, 0
+../oiio-images/raw/RAW_SONY_A300.ARW : 3880 x 2608, 3 channel, uint16 raw
+    channel list: R, G, B
+    DateTime: "2008-08-10 23:16:11"
+    ExposureTime: 0.0166667
+    FNumber: 5.6
+    ImageDescription: "SONY DSC"
+    Make: "Sony"
+    Model: "DSLR-A300"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: 2 (inches)
+    Software: "DSLR-A300 v1.00"
+    XResolution: 72/1 (72)
+    YResolution: 72/1 (72)
+    Exif:ApertureValue: 4.97085 (f/5.6)
+    Exif:BrightnessValue: 137/100 (1.37)
+    Exif:ColorSpace: 1
+    Exif:CompressedBitsPerPixel: 8/1 (8)
+    Exif:Contrast: 0 (normal)
+    Exif:CustomRendered: 0 (no)
+    Exif:DateTimeDigitized: "2008:08:10 23:16:11"
+    Exif:DateTimeOriginal: "2008:08:10 23:16:11"
+    Exif:ExifVersion: ""
+    Exif:ExposureBiasValue: 0/10 (0)
+    Exif:ExposureMode: 0 (auto)
+    Exif:ExposureProgram: 3 (aperture priority)
+    Exif:Flash: 9 (flash fired, compulsory flash)
+    Exif:FlashPixVersion: ""
+    Exif:FocalLength: 35 (35 mm)
+    Exif:FocalLengthIn35mmFilm: 52
+    Exif:ISOSpeedRatings: 400
+    Exif:LightSource: 0 (unknown)
+    Exif:MaxApertureValue: 497/100 (4.97)
+    Exif:MeteringMode: 5 (pattern)
+    Exif:PhotographicSensitivity: 400
+    Exif:PixelXDimension: 3880
+    Exif:PixelYDimension: 2600
+    Exif:Saturation: 0 (normal)
+    Exif:SceneCaptureType: 0 (standard)
+    Exif:Sharpness: 0 (normal)
+    Exif:ShutterSpeedValue: 5.90689 (1/59 s)
+    Exif:WhiteBalance: 0 (auto)
+    oiio:ColorSpace: "linear"
+    oiio:MakerNoteOffset: 0
+    raw:cam_mul: 1972, 1024, 1632, 1024
+    raw:cam_xyz: 0.9847, -0.3091, -0.0928, -0.8485, 1.6345, 0.2225, -0.0715, 0.0595, 0.7103, 0, 0, 0
+    raw:Demosaic: "AHD"
+    raw:HighlightMode: 0
+    raw:pre_mul: 1.90194, 0.93433, 1.30739, 0
+    raw:rgb_cam: 1.55292, -0.400996, -0.151925, 0, -0.00496725, 1.23839, -0.233426, 0, 0.00799057, -0.19078, 1.18279, 0
+    Sony:AFPoint: -1
+    Sony:CameraFormat: 1
+    Sony:CameraMount: 1
+    Sony:CamID: 261
+    Sony:CanonFocalUnits: 1
+    Sony:CurAp: 5.65685
+    Sony:EXIF_MaxAp: 5.59834
+    Sony:FocalLengthIn35mmFormat: 52
+    Sony:ImageStabilization: -1
+    Sony:LensID: 40
+    Sony:SonyCameraType: 2
+Comparing "RAW_CANON_EOS_7D.CR2.tif" and "ref/RAW_CANON_EOS_7D.CR2.tif"
+PASS
+Comparing "RAW_NIKON_D3X.NEF.tif" and "ref/RAW_NIKON_D3X.NEF.tif"
+PASS
+Comparing "RAW_FUJI_F700.RAF.tif" and "ref/RAW_FUJI_F700.RAF.tif"
+PASS
+Comparing "RAW_NIKON_D3X.NEF.tif" and "ref/RAW_NIKON_D3X.NEF.tif"
+PASS
+Comparing "RAW_OLYMPUS_E3.ORF.tif" and "ref/RAW_OLYMPUS_E3.ORF.tif"
+PASS
+Comparing "RAW_PENTAX_K200D.PEF.tif" and "ref/RAW_PENTAX_K200D.PEF.tif"
+PASS
+Comparing "RAW_SONY_A300.ARW.tif" and "ref/RAW_SONY_A300.ARW.tif"
+PASS
