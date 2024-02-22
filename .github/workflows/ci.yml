@@ -151,6 +151,16 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             pybind11_ver: v2.10.0
+          - desc: gcc11/C++17 py3.11 boost1.82 exr3.2 ocio2.3
+            nametag: linux-vfx2024
+            runner: ubuntu-latest
+            container: aswftesting/ci-osl:2024-clang17
+            vfxyear: 2024
+            cxx_std: 17
+            python_ver: "3.11"
+            simd: "avx2,f16c"
+            fmt_ver: 10.1.1
+            pybind11_ver: v2.10.0
           - desc: oldest/hobbled gcc6.3/C++14 py2.7 boost-1.66 exr-2.4 no-sse no-ocio
             # Oldest versions of the dependencies that we can muster, and various
             # things disabled (no SSE, OCIO, or OpenCV, don't embed plugins).
