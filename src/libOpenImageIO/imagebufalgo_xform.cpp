@@ -445,7 +445,7 @@ bool
 ImageBufAlgo::warp(ImageBuf& dst, const ImageBuf& src, M33fParam M,
                    KWArgs options, ROI roi, int nthreads)
 {
-    static ustring recognized[] = { "filtername"_us,    "filterwidth"_us,
+    static const ustring recognized[] = { "filtername"_us,    "filterwidth"_us,
                                     "wrap"_us,          "edgeclamp"_us,
                                     "recompute_roi"_us, "filterptr"_us };
     IBA_check_optional(options, recognized);
