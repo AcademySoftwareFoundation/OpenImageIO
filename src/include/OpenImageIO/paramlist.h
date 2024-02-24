@@ -526,7 +526,7 @@ public:
     {
     }
 
-    /// Construct an span from an initializer_list.
+    /// Construct a span from an initializer_list.
     constexpr ParamValueSpan(std::initializer_list<ParamValue> il)
         : cspan<ParamValue>(il.begin(), il.size())
     {
