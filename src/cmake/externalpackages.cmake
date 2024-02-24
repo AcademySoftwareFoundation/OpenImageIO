@@ -206,7 +206,10 @@ checked_find_package (TBB 2017
                       SETVARIABLES OIIO_TBB
                       PREFER_CONFIG)
 
-checked_find_package (DCMTK VERSION_MIN 3.6.1)  # For DICOM images
+# DCMTK is used to read DICOM images
+checked_find_package (DCMTK VERSION_MIN 3.6.1
+                      PREFER_CONFIG)
+
 checked_find_package (FFmpeg VERSION_MIN 3.0)
 checked_find_package (GIF
                       VERSION_MIN 4
