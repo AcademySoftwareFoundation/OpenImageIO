@@ -1616,7 +1616,7 @@ bool OIIO_API histogram_draw (ImageBuf &dst,
 /// Make a 1-channel `float` image of the named kernel. The size of the
 /// image will be big enough to contain the kernel given its size (`width` x
 /// `height`) and rounded up to odd resolution so that the center of the
-/// kernel can be at the center of the middle pixel.  If width an height
+/// kernel can be at the center of the middle pixel.  If width and height
 /// are 0, the natural size of the named filter will be chosen. The kernel
 /// image will be offset so that its center is at the (0,0) coordinate.  If
 /// `normalize` is true, the values will be normalized so that they sum to
