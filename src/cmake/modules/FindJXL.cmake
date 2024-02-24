@@ -1,9 +1,9 @@
-# Module to find libjxl
-#
 # Copyright Contributors to the OpenImageIO project.
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
-
+#
+# Module to find libjxl
+#
 # Will define:
 # - JXL_FOUND
 # - JXL_INCLUDES directory to include for libjxl headers

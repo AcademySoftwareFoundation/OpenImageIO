@@ -15,12 +15,51 @@
 #include <jxl/decode_cxx.h>
 #include <jxl/resizable_parallel_runner_cxx.h>
 
-#include "jxl_pvt.h"
-
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 #define DBG if (0)
 
+class JxlInput final : public ImageInput {
+public:
+    JxlInput() { init(); }
+    ~JxlInput() override { close(); }
+    const char* format_name(void) const override { return "jxl"; }
+    int supports(string_view feature) const override
+    {
+        return (feature == "exif" || feature == "ioproxy");
+    }
+    bool valid_file(Filesystem::IOProxy* ioproxy) const override;
+
+    bool open(const std::string& name, ImageSpec& spec) override;
+    bool open(const std::string& name, ImageSpec& spec,
+              const ImageSpec& config) override;
+    bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                              void* data) override;
+    bool close() override;
+
+    const std::string& filename() const { return m_filename; }
+
+private:
+    std::string m_filename;
+    int m_next_scanline;  // Which scanline is the next to read?
+    uint32_t m_channels;
+    JxlDecoderPtr m_decoder;
+    JxlResizableParallelRunnerPtr m_runner;
+    std::unique_ptr<ImageSpec> m_config;  // Saved copy of configuration spec
+    std::vector<uint8_t> m_icc_profile;
+    std::vector<float> m_pixels;
+    // std::vector<uint8_t> m_pixels;
+
+    void init()
+    {
+        ioproxy_clear();
+        m_config.reset();
+        m_decoder = nullptr;
+        m_runner = nullptr;
+    }
+
+    void close_file() { init(); }
+};
 
 // Export version number and create function symbols
 OIIO_PLUGIN_EXPORTS_BEGIN
@@ -42,13 +81,9 @@ jxl_input_imageio_create()
     return new JxlInput;
 }
 
-OIIO_EXPORT const char* jxl_input_extensions[]
-    = { "jxl", nullptr };
+OIIO_EXPORT const char* jxl_input_extensions[] = { "jxl", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
-
-
-
 
 bool
 JxlInput::valid_file(Filesystem::IOProxy* ioproxy) const
@@ -65,20 +100,15 @@ JxlInput::valid_file(Filesystem::IOProxy* ioproxy) const
         return false;
 
     JxlSignature signature = JxlSignatureCheck(magic, sizeof(magic));
-    switch (signature)
-    {
-        case JXL_SIG_CODESTREAM:
-        case JXL_SIG_CONTAINER:
-            break;
-        default:
-            return false;
+    switch (signature) {
+    case JXL_SIG_CODESTREAM:
+    case JXL_SIG_CONTAINER: break;
+    default: return false;
     }
 
     DBG std::cout << "JxlInput::valid_file() return true\n";
     return true;
 }
-
-
 
 bool
 JxlInput::open(const std::string& name, ImageSpec& newspec,
@@ -90,8 +120,6 @@ JxlInput::open(const std::string& name, ImageSpec& newspec,
     m_config.reset(new ImageSpec(config));  // save config spec
     return open(name, newspec);
 }
-
-
 
 bool
 JxlInput::open(const std::string& name, ImageSpec& newspec)
@@ -114,30 +142,29 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
-    m_runner = JxlResizableParallelRunnerMake(nullptr);
-    if (m_runner == nullptr) {
-        DBG std::cout << "JxlThreadParallelRunnerMake failed\n";
-        return false;
-    }
-
     m_decoder = JxlDecoderMake(nullptr);
     if (m_decoder == nullptr) {
         DBG std::cout << "JxlDecoderMake failed\n";
         return false;
     }
 
-    JxlDecoderStatus status = JxlDecoderSetParallelRunner(m_decoder.get(),
-        JxlResizableParallelRunner, m_runner.get());
+    m_runner = JxlResizableParallelRunnerMake(nullptr);
+    if (m_runner == nullptr) {
+        DBG std::cout << "JxlThreadParallelRunnerMake failed\n";
+        return false;
+    }
+
+    JxlDecoderStatus status = JxlDecoderSetParallelRunner(
+        m_decoder.get(), JxlResizableParallelRunner, m_runner.get());
     if (status != JXL_DEC_SUCCESS) {
         DBG std::cout << "JxlDecoderSetParallelRunner failed\n";
         return false;
     }
 
-    status = JxlDecoderSubscribeEvents(m_decoder.get(),
-        JXL_DEC_BASIC_INFO |
-        JXL_DEC_COLOR_ENCODING |
-        JXL_DEC_FRAME |
-        JXL_DEC_FULL_IMAGE);
+    status
+        = JxlDecoderSubscribeEvents(m_decoder.get(),
+                                    JXL_DEC_BASIC_INFO | JXL_DEC_COLOR_ENCODING
+                                        | JXL_DEC_FRAME | JXL_DEC_FULL_IMAGE);
     if (status != JXL_DEC_SUCCESS) {
         DBG std::cout << "JxlDecoderSubscribeEvents failed\n";
         return false;
@@ -163,16 +190,17 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
     } else {
         auto buffer = reinterpret_cast<Filesystem::IOMemReader*>(m_io)->buffer();
         status = JxlDecoderSetInput(m_decoder.get(),
-            const_cast<unsigned char*>(buffer.data()), buffer.size());
+                                    const_cast<unsigned char*>(buffer.data()),
+                                    buffer.size());
         if (status != JXL_DEC_SUCCESS) {
             return false;
         }
     }
 
     JxlBasicInfo info;
-    uint32_t channels = 4;
-    JxlPixelFormat format = { channels, JXL_TYPE_UINT8, JXL_NATIVE_ENDIAN, 0 };
-    // JxlPixelFormat format = { channels, JXL_TYPE_FLOAT, JXL_NATIVE_ENDIAN, 0 };
+    // JxlPixelFormat format = { channels, JXL_TYPE_UINT8, JXL_NATIVE_ENDIAN, 0 };
+    JxlPixelFormat format = { m_channels, JXL_TYPE_FLOAT, JXL_NATIVE_ENDIAN,
+                              0 };
 
     for (;;) {
         JxlDecoderStatus status = JxlDecoderProcessInput(m_decoder.get());
@@ -191,29 +219,36 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
         } else if (status == JXL_DEC_BASIC_INFO) {
             DBG std::cout << "JXL_DEC_BASIC_INFO\n";
 
-            if (JXL_DEC_SUCCESS != JxlDecoderGetBasicInfo(m_decoder.get(), &info)) {
+            if (JXL_DEC_SUCCESS
+                != JxlDecoderGetBasicInfo(m_decoder.get(), &info)) {
                 errorfmt("JxlDecoderGetBasicInfo failed\n");
                 return false;
             }
+            format.num_channels = info.num_color_channels;
+            m_channels          = info.num_color_channels;
             JxlResizableParallelRunnerSetThreads(
                 m_runner.get(),
-                JxlResizableParallelRunnerSuggestThreads(info.xsize, info.ysize));
+                JxlResizableParallelRunnerSuggestThreads(info.xsize,
+                                                         info.ysize));
         } else if (status == JXL_DEC_COLOR_ENCODING) {
             DBG std::cout << "JXL_DEC_COLOR_ENCODING\n";
 
             // Get the ICC color profile of the pixel data
             size_t icc_size;
 
-            if (JXL_DEC_SUCCESS != JxlDecoderGetICCProfileSize(
-                m_decoder.get(), &format, JXL_COLOR_PROFILE_TARGET_DATA, &icc_size)) {
+            if (JXL_DEC_SUCCESS
+                != JxlDecoderGetICCProfileSize(m_decoder.get(), &format,
+                                               JXL_COLOR_PROFILE_TARGET_DATA,
+                                               &icc_size)) {
                 errorfmt("JxlDecoderGetICCProfileSize failed\n");
                 return false;
             }
             m_icc_profile.resize(icc_size);
-            if (JXL_DEC_SUCCESS != JxlDecoderGetColorAsICCProfile(
-                m_decoder.get(), &format,
-                JXL_COLOR_PROFILE_TARGET_DATA,
-                m_icc_profile.data(), m_icc_profile.size())) {
+            if (JXL_DEC_SUCCESS
+                != JxlDecoderGetColorAsICCProfile(m_decoder.get(), &format,
+                                                  JXL_COLOR_PROFILE_TARGET_DATA,
+                                                  m_icc_profile.data(),
+                                                  m_icc_profile.size())) {
                 errorfmt("JxlDecoderGetColorAsICCProfile failed\n");
                 return false;
             }
@@ -221,27 +256,31 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
             DBG std::cout << "JXL_DEC_NEED_IMAGE_OUT_BUFFER\n";
 
             size_t buffer_size;
-            if (JXL_DEC_SUCCESS != JxlDecoderImageOutBufferSize(m_decoder.get(), 
-                &format, &buffer_size)) {
+            if (JXL_DEC_SUCCESS
+                != JxlDecoderImageOutBufferSize(m_decoder.get(), &format,
+                                                &buffer_size)) {
                 errorfmt("JxlDecoderImageOutBufferSize failed\n");
                 return false;
             }
             // if (buffer_size != info.xsize * info.ysize * 16) {
-            if (buffer_size != info.xsize * info.ysize * channels * sizeof (uint8_t)) {
-                fprintf(stderr, "Invalid out buffer size %" PRIu64 " %" PRIu64 "\n",
-                    static_cast<uint64_t>(buffer_size),
-                    // static_cast<uint64_t>(info.xsize * info.ysize * 16));
-                    static_cast<uint64_t>(info.xsize * info.ysize * channels * sizeof (uint8_t)));
+            if (buffer_size
+                != info.xsize * info.ysize * m_channels * sizeof(float)) {
+                fprintf(stderr,
+                        "Invalid out buffer size %" PRIu64 " %" PRIu64 "\n",
+                        static_cast<uint64_t>(buffer_size),
+                        // static_cast<uint64_t>(info.xsize * info.ysize * 16));
+                        static_cast<uint64_t>(info.xsize * info.ysize
+                                              * m_channels * sizeof(float)));
                 return false;
             }
-            m_pixels.resize(info.xsize * info.ysize * channels);
-            void* pixels_buffer = (void*)m_pixels.data();
-            // size_t pixels_buffer_size = m_pixels.size() * sizeof(float);
-            size_t pixels_buffer_size = m_pixels.size() * sizeof(uint8_t);
-            if (JXL_DEC_SUCCESS != JxlDecoderSetImageOutBuffer(m_decoder.get(),
-                &format,
-                pixels_buffer,
-                pixels_buffer_size)) {
+            m_pixels.resize(info.xsize * info.ysize * m_channels);
+            void* pixels_buffer       = (void*)m_pixels.data();
+            size_t pixels_buffer_size = m_pixels.size() * sizeof(float);
+            // size_t pixels_buffer_size = m_pixels.size() * sizeof(uint8_t);
+            if (JXL_DEC_SUCCESS
+                != JxlDecoderSetImageOutBuffer(m_decoder.get(), &format,
+                                               pixels_buffer,
+                                               pixels_buffer_size)) {
                 errorfmt("JxlDecoderSetImageOutBuffer failed\n");
                 return false;
             }
@@ -257,7 +296,7 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
             DBG std::cout << "JXL_DEC_SUCCESS\n";
 
             // All decoding successfully finished.
-            // It's not required to call JxlDecoderReleaseInput(dec.get()) here since
+            // It's not required to call JxlDecoderReleaseInput(m_decoder.get()) here since
             // the decoder will be destroyed.
             break;
         } else {
@@ -266,27 +305,24 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
         }
     }
 
-    m_spec = ImageSpec(info.xsize, info.ysize, channels,
-        // TypeDesc::FLOAT);
-        TypeDesc::UINT8);
+    m_spec = ImageSpec(info.xsize, info.ysize, m_channels, TypeDesc::FLOAT);
+    // TypeDesc::UINT8);
     newspec = m_spec;
     return true;
 }
-
 
 bool
 JxlInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                void* data)
 {
     DBG std::cout << "JxlInput::read_native_scanline(, , " << y << ")\n";
-    uint32_t channels = 4;
-    // size_t scanline_size = channels * m_spec.width * sizeof(float);
-    size_t scanline_size = channels * m_spec.width * sizeof(uint8_t);
+    size_t scanline_size = m_spec.width * m_channels * sizeof(float);
+    // size_t scanline_size = m_spec.width * m_channels * sizeof(uint8_t);
 
     lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
-    if (y < 0/* || y >= (int)m_cinfo.output_height*/)  // out of range scanline
+    if (y < 0 /* || y >= (int)m_cinfo.output_height*/)  // out of range scanline
         return false;
     if (m_next_scanline > y) {
         // User is trying to read an earlier scanline than the one we're
@@ -303,12 +339,11 @@ JxlInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         // OIIO_DASSERT(m_next_scanline == 0 && current_subimage() == subimage);
     }
 
-    memcpy (data, (void *)((uint8_t *)(m_pixels.data()) + y * scanline_size), scanline_size);
+    memcpy(data, (void*)((uint8_t*)(m_pixels.data()) + y * scanline_size),
+           scanline_size);
 
     return true;
 }
-
-
 
 bool
 JxlInput::close()
@@ -317,10 +352,6 @@ JxlInput::close()
 
     if (ioproxy_opened()) {
         close_file();
-    }
-    if (m_decoder) {
-        JxlDecoderDestroy(m_decoder.get());
-        m_decoder = nullptr;
     }
     init();  // Reset to initial state
     return true;
