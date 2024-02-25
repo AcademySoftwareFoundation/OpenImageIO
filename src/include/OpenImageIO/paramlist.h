@@ -604,7 +604,7 @@ public:
         return p != cend() ? p->type() : TypeUnknown;
     }
 
-    /// Retrieve from list: If found its data type is reasonably convertible
+    /// Retrieve from list: If found and its data type is reasonably convertible
     /// to `type`, copy/convert the value into val[...] and return true.
     /// Otherwise, return false and don't modify what val points to.
     bool getattribute(string_view name, TypeDesc type, void* value,
