@@ -23,13 +23,57 @@
 
 OIIO_NAMESPACE_BEGIN
 
-/// ParamValue holds a parameter and a pointer to its value(s)
+/// ParamValue holds a named parameter and typed data. Usually, it owns the
+/// data (holding it in the struct itself if small enough, dynamically
+/// allocated for larger things), but it can also refer to non-owned data.
 ///
-/// Nomenclature: if you have an array of 4 colors for each of 15 points...
-///  - There are 15 VALUES
-///  - Each value has an array of 4 ELEMENTS, each of which is a color
+/// The data is usually a single value of any type described by TypeDesc
+/// (including arrays). It may also hold more than one value of the type --
+/// this is usually only used in a geometric context, such as storing a value
+/// for each vertex in a mesh. Please note the subtle distinction between the
+/// value type itself being an array, versus having multiple values as a
+/// parameter, versus the type of the value having multiple components (such
+/// as a point or color). Any combination of these may be present.
+///
+/// To clarify, if you have an array of 4 colors for each of 15 mesh
+/// vertices, that means:
+///  - There are 15 VALUES (one for each vertex)
+///  - Each value has an array of 4 ELEMENTS
+///  - Each element is a color
 ///  - A color has 3 COMPONENTS (R, G, B)
+/// Thus, it would be constructed as
+/// `ParamValue("mycolor", TypeDesc(TypeDesc::COLOR, 4), 15, ptr_to_data)`
 ///
+/// The main constructor is `ParamValue(name, type, nvalues, dataptr)`. It can
+/// be confusing at first to remember that the data argument is a pointer to
+/// the first values to copy, not the values themselves, even if the values
+/// are themselves pointers, and even if the number of values is 1. In other
+/// words, it's behaving as if you're always pointing it to an array even if
+/// the "array" has only one element. This is extra confusing for strings,
+/// because the strings themselves are `char*` (or ustring), so the pointer
+/// you need to pass is `char**`. For this reason, there are also convenience
+/// constructors for simple types such as a single int, float, or string.
+///
+/// So here are some examples:
+///
+///     // Single int:
+///     int my_int = 42;
+///     ParamValue A("foo", TypeDesc::INT, 1, &my_int); 
+///     // Three int values (say, one per vertex of a triangle):
+///     int my_int_array[3] = { 1, 2, 3 };
+///     ParamValue B("foo", TypeDesc::INT, 1, &my_int_array); 
+///     // A single value which is an array of 3 ints:
+///     ParamValue C("foo", TypeDesc(TypeDesc::INT, 3), 1, &my_int_array); 
+///     // A string -- note the trick about treating it as an array:
+///     const char* my_string = "hello";
+///     ParamValue D("foo", TypeDesc::STRING, 1, &my_string);
+///
+///     // The most common cases also have simple "duck-typed" convenience
+///     // constructors:
+///     ParamValue A("foo", 42);           // single int
+///     ParamValue B("foo", 42.0f);        // single float
+///     ParamValue C("foo", "forty two");  // single string
+
 class OIIO_UTIL_API ParamValue {
 public:
     /// Interpolation types
@@ -283,6 +327,23 @@ private:
                       FromUstring _from_ustring = FromUstring(false)) noexcept;
     void clear_value() noexcept;
 };
+
+
+
+/// Factory for a ParamValue that holds a single value of any type supported
+/// by a corresponding ParamValue constructor (such as int, float, string).
+template<typename T>
+static ParamValue make_pv(string_view name, const T& val) {
+    return ParamValue(name, val);
+}
+
+/// Factory for a ParamValue from a pointer. Passing `char*` or `const char*`
+/// will be interpreted as a C string (TypeString), but all other pointer
+/// types will just get stored as an opaque pointer (TypePointer).
+template<typename T>
+static ParamValue make_pv(string_view name, T* val) {
+    return ParamValue(name, BaseTypeFromC<T*>::value, 1, &val);
+}
 
 
 

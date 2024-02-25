@@ -206,6 +206,20 @@ test_value_types()
         OIIO_CHECK_EQUAL(p.get_string(), "1/2");
     }
 
+    // Test ptr
+    {
+        int* ptr = (int*)0xdeadbeef;
+        ParamValue p = make_pv("name", ptr);
+        OIIO_CHECK_EQUAL(p.type(), TypePointer);
+        OIIO_CHECK_EQUAL(p.get<int*>(), ptr);
+    }
+    {
+        const char* str = "foobar";
+        ParamValue p = make_pv("name", str);
+        OIIO_CHECK_EQUAL(p.type(), TypeString);
+        OIIO_CHECK_EQUAL(p.get_string(), str);
+    }
+
     // Double check that short data are "local", long data are allocated
     ParamValue pvint("", TypeInt, 1, nullptr);
     OIIO_CHECK_ASSERT(pvint.datasize() == 4);

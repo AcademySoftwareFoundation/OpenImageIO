@@ -445,7 +445,7 @@ class ustring;
 template<> struct BaseTypeFromC<ustring> { static const TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<size_t S> struct BaseTypeFromC<char[S]> { static const TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<size_t S> struct BaseTypeFromC<const char[S]> { static const TypeDesc::BASETYPE value = TypeDesc::STRING; };
-
+template<typename P> struct BaseTypeFromC<P*> { static const TypeDesc::BASETYPE value = TypeDesc::PTR; };
 
 /// A template mechanism for getting the TypeDesc from a C type.
 /// The default for simple types is just the TypeDesc based on BaseTypeFromC.
@@ -462,8 +462,12 @@ template<> struct TypeDescFromC<float> { static const constexpr TypeDesc value()
 template<> struct TypeDescFromC<half> { static const constexpr TypeDesc value() { return TypeDesc::HALF; } };
 #endif
 template<> struct TypeDescFromC<double> { static const constexpr TypeDesc value() { return TypeDesc::DOUBLE; } };
+template<> struct TypeDescFromC<char*> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
+template<> struct TypeDescFromC<const char*> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
 template<size_t S> struct TypeDescFromC<char[S]> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
 template<size_t S> struct TypeDescFromC<const char[S]> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
+template<> struct TypeDescFromC<ustring> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
+template<typename T> struct TypeDescFromC<T*> { static const constexpr TypeDesc value() { return TypeDesc::PTR; } };
 #ifdef INCLUDED_IMATHVEC_H
 template<> struct TypeDescFromC<Imath::V3f> { static const constexpr TypeDesc value() { return TypeVector; } };
 template<> struct TypeDescFromC<Imath::V2f> { static const constexpr TypeDesc value() { return TypeVector2; } };

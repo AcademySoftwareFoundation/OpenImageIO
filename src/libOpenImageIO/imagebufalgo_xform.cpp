@@ -509,7 +509,7 @@ ImageBufAlgo::warp(ImageBuf& dst, const ImageBuf& src, M33fParam M,
                    ImageBuf::WrapMode wrap, ROI roi, int nthreads)
 {
     return warp(dst, src, M,
-                { { filterptr_us, TypePointer, 1, &filter },
+                { make_pv(filterptr_us, filter),
                   { recompute_roi_us, int(recompute_roi) },
                   { wrap_us, int(wrap) } },
                 roi, nthreads);
@@ -980,8 +980,7 @@ bool
 ImageBufAlgo::resize(ImageBuf& dst, const ImageBuf& src, Filter2D* filter,
                      ROI roi, int nthreads)
 {
-    return resize(dst, src, { { filterptr_us, TypePointer, 1, &filter } }, roi,
-                  nthreads);
+    return resize(dst, src, { make_pv(filterptr_us, filter) }, roi, nthreads);
 }
 
 
@@ -1002,8 +1001,7 @@ ImageBuf
 ImageBufAlgo::resize(const ImageBuf& src, Filter2D* filter, ROI roi,
                      int nthreads)
 {
-    return resize(src, { { filterptr_us, TypePointer, 1, &filter } }, roi,
-                  nthreads);
+    return resize(src, { make_pv(filterptr_us, filter) }, roi, nthreads);
 }
 
 
@@ -1135,8 +1133,7 @@ ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, KWArgs options, ROI roi,
             logtime.stop();  // it will be picked up again by the next call...
             const Filter2D* filterraw = filterptr.get();
             ok &= ImageBufAlgo::resize(dst, src,
-                                       { { filterptr_us, TypePointer, 1,
-                                           &filterraw } },
+                                       { make_pv(filterptr_us, filterraw) },
                                        resizeroi, nthreads);
         } else {
             ok &= dst.copy(src);  // no resize is necessary
@@ -1171,7 +1168,7 @@ ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, Filter2D* filter,
                   string_view fillmode, bool exact, ROI roi, int nthreads)
 {
     return fit(dst, src,
-               { { filterptr_us, TypePointer, 1, &filter },
+               { make_pv(filterptr_us, filter),
                  { fillmode_us, fillmode },
                  { exact_us, int(exact) } },
                roi, nthreads);
@@ -1201,7 +1198,7 @@ ImageBufAlgo::fit(const ImageBuf& src, Filter2D* filter, string_view fillmode,
                   bool exact, ROI roi, int nthreads)
 {
     return fit(src,
-               { { filterptr_us, TypePointer, 1, &filter },
+               { make_pv(filterptr_us, filter),
                  { fillmode_us, fillmode },
                  { exact_us, int(exact) } },
                roi, nthreads);

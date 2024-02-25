@@ -85,12 +85,37 @@ test_type(string_view textrep, TypeDesc constructed,
 
 
 
+static void
+test_templates()
+{
+    print("Testing templates\n");
+    OIIO_CHECK_EQUAL(BaseTypeFromC<float>::value, TypeDesc::FLOAT);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<int>::value, TypeDesc::INT);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<char*>::value, TypeDesc::STRING);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<ustring>::value, TypeDesc::STRING);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<void*>::value, TypeDesc::PTR);
+    OIIO_CHECK_EQUAL(BaseTypeFromC<int*>::value, TypeDesc::PTR);
+
+    OIIO_CHECK_EQUAL(TypeDescFromC<float>::value(), TypeFloat);
+    OIIO_CHECK_EQUAL(TypeDescFromC<int>::value(), TypeInt);
+    OIIO_CHECK_EQUAL(TypeDescFromC<ustring>::value(), TypeString);
+    OIIO_CHECK_EQUAL(TypeDescFromC<char*>::value(), TypeString);
+    OIIO_CHECK_EQUAL(TypeDescFromC<const char*>::value(), TypeString);
+    OIIO_CHECK_EQUAL(TypeDescFromC<void*>::value(), TypePointer);
+    OIIO_CHECK_EQUAL(TypeDescFromC<const void*>::value(), TypePointer);
+    OIIO_CHECK_EQUAL(TypeDescFromC<int*>::value(), TypePointer);
+}
+
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
     std::cout << "TypeDesc size = " << sizeof(TypeDesc) << "\n";
     // We expect a TypeDesc to be the same size as a 64 bit int
     OIIO_CHECK_EQUAL(sizeof(TypeDesc), sizeof(uint64_t));
+
+    test_templates();
 
     test_type<float>("float", TypeDesc(TypeDesc::FLOAT), TypeFloat, 1.5f,
                      "1.5");
