@@ -69,10 +69,10 @@ OIIO_EXPORT int jxl_imageio_version = OIIO_PLUGIN_VERSION;
 OIIO_EXPORT const char*
 jxl_imageio_library_version()
 {
-#define STRINGIZE2(a) #a
-#define STRINGIZE(a) STRINGIZE2(a)
-    return "libjxl " STRINGIZE(JPEGXL_MAJOR_VERSION) "." STRINGIZE(
-        JPEGXL_MINOR_VERSION) "." STRINGIZE(JPEGXL_PATCH_VERSION);
+    return "libjxl "
+        OIIO_STRINGIZE(JPEGXL_MAJOR_VERSION) "." 
+        OIIO_STRINGIZE(JPEGXL_MINOR_VERSION) "." 
+        OIIO_STRINGIZE(JPEGXL_PATCH_VERSION);
 }
 
 OIIO_EXPORT ImageInput*
