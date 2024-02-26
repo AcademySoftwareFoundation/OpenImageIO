@@ -37,8 +37,8 @@ public:
     bool write_scanline(int y, int z, TypeDesc format, const void* data,
                         stride_t xstride) override;
     bool write_scanlines(int ybegin, int yend, int z, TypeDesc format,
-                         const void* data, stride_t xstride,
-                         stride_t ystride) override;
+                         const void* data, stride_t xstride = AutoStride,
+                         stride_t ystride = AutoStride) override;
     bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
                     stride_t xstride, stride_t ystride,
                     stride_t zstride) override;
@@ -187,6 +187,22 @@ JxlOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
                            stride_t ystride)
 {
     DBG std::cout << "JxlOutput::write_scanlines(ybegin = " << ybegin << ", yend = " << yend <<", ...)\n";
+
+    stride_t zstride = AutoStride;
+    m_spec.auto_stride(xstride, ystride, zstride, format, m_spec.nchannels,
+                       m_spec.width, m_spec.height);
+    size_t npixels = size_t(m_spec.width) * size_t(yend - ybegin);
+    size_t nvals   = npixels * size_t(m_spec.nchannels);
+    const void* origdata = data;
+
+    data = to_native_rectangle(m_spec.x, m_spec.x + m_spec.width, ybegin, yend,
+                               z, z + 1, format, data, xstride, ystride,
+                               zstride, m_scratch, m_dither, 0, ybegin, z);
+    if (data == origdata) {
+        m_scratch.assign((unsigned char*)data,
+                         (unsigned char*)data + nvals * m_spec.format.size());
+        data = m_scratch.data();
+    }
     return true;
 }
 
@@ -280,8 +296,8 @@ JxlOutput::close()
     if (m_spec.tile_width) {
         // Handle tile emulation -- output the buffered pixels
         OIIO_ASSERT(m_tilebuffer.size());
-        // ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
-        //                       m_spec.format, &m_tilebuffer[0]);
+        ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
+                              m_spec.format, &m_tilebuffer[0]);
         std::vector<unsigned char>().swap(m_tilebuffer);
     }
 
