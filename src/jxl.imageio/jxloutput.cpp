@@ -198,10 +198,12 @@ JxlOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
     data = to_native_rectangle(m_spec.x, m_spec.x + m_spec.width, ybegin, yend,
                                z, z + 1, format, data, xstride, ystride,
                                zstride, m_scratch, m_dither, 0, ybegin, z);
+
+    DBG std::cout << "data = " << data << " nvals = " << nvals <<"\n";
+
     if (data == origdata) {
         m_scratch.assign((unsigned char*)data,
                          (unsigned char*)data + nvals * m_spec.format.size());
-        data = m_scratch.data();
     }
     return true;
 }
