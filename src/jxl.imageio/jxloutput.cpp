@@ -53,7 +53,6 @@ private:
     JxlEncoderFrameSettings *m_frame_settings;
     JxlPixelFormat m_pixel_format;
 
-    int m_next_scanline;  // Which scanline is the next to write?
     unsigned int m_dither;
     std::vector<unsigned char> m_scratch;
     std::vector<unsigned char> m_tilebuffer;
@@ -159,10 +158,6 @@ JxlOutput::open(const std::string& name, const ImageSpec& newspec,
         JxlEncoderSetFrameLossless(m_frame_settings, JXL_TRUE);
     }
 
-    if (m_spec.tile_width && m_spec.tile_height) {
-        m_tilebuffer.resize(m_spec.image_bytes());
-    }
-
     JxlEncoderFrameSettingsSetOption(m_frame_settings, JXL_ENC_FRAME_SETTING_EFFORT, effort);
 
     JxlEncoderFrameSettingsSetOption(m_frame_settings, JXL_ENC_FRAME_SETTING_DECODING_SPEED, tier);
@@ -170,7 +165,9 @@ JxlOutput::open(const std::string& name, const ImageSpec& newspec,
     // Codestream level should be chosen automatically given the settings
     JxlEncoderSetBasicInfo(m_encoder.get(), &m_basic_info);
 
-    m_next_scanline = 0;
+    if (m_spec.tile_width && m_spec.tile_height) {
+        m_tilebuffer.resize(m_spec.image_bytes());
+    }
 
     return true;
 }
@@ -182,34 +179,6 @@ JxlOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     DBG std::cout << "JxlOutput::write_scanline(y = " << y << " )\n";
 
     return write_scanlines(y, y + 1, z, format, data, xstride, AutoStride);
-#if 0
-    if (y != m_next_scanline) {
-        DBG std::cout << "Attempt to write scanlines out of order\n";
-        return false;
-    }
-    if (y > m_spec.height) {
-        DBG std::cout << "Attempt to write too many scanlines\n";
-        return false;
-    }
-
-    m_spec.auto_stride(xstride, format, spec().nchannels);
-    const void* origdata = data;
-    data = to_native_scanline(format, data, xstride, m_scratch, m_dither, y, z);
-    DBG std::cout << "origdata = " << origdata << " data = " << data << "\n";
-    if (data == origdata) {
-        m_scratch.assign((unsigned char*)data,
-                         (unsigned char*)data + m_spec.scanline_bytes());
-        // data = &m_scratch[0];
-    }
-
-    m_next_scanline++;
-
-    if (y == m_spec.height - 1) {
-        save_image();
-    }
-
-    return true;
-#endif
 }
 
 bool
@@ -218,71 +187,6 @@ JxlOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
                            stride_t ystride)
 {
     DBG std::cout << "JxlOutput::write_scanlines(ybegin = " << ybegin << ", yend = " << yend <<", ...)\n";
-
-    if (yend == m_spec.height) {
-        save_image();
-    }
-#if 0
-    yend                      = std::min(yend, spec().y + spec().height);
-    bool native               = (format == TypeDesc::UNKNOWN);
-    imagesize_t scanlinebytes = spec().scanline_bytes(true);
-    size_t pixel_bytes        = m_spec.pixel_bytes(true);
-    if (native && xstride == AutoStride)
-        xstride = (stride_t)pixel_bytes;
-    stride_t zstride = AutoStride;
-    m_spec.auto_stride(xstride, ystride, zstride, format, m_spec.nchannels,
-                       m_spec.width, m_spec.height);
-
-    const imagesize_t limit = 16 * 1024
-                              * 1024;  // Allocate 16 MB, or 1 scanline
-    int chunk = std::max(1, int(limit / scanlinebytes));
-
-    bool ok = true;
-    for (; ok && ybegin < yend; ybegin += chunk) {
-        int y1         = std::min(ybegin + chunk, yend);
-        int nscanlines = y1 - ybegin;
-        const void* d  = to_native_rectangle(m_spec.x, m_spec.x + m_spec.width,
-                                             ybegin, y1, z, z + 1, format, data,
-                                             xstride, ystride, zstride,
-                                             m_scratch);
-
-        // Compute where OpenEXR needs to think the full buffers starts.
-        // OpenImageIO requires that 'data' points to where client stored
-        // the bytes to be written, but OpenEXR's frameBuffer.insert() wants
-        // where the address of the "virtual framebuffer" for the whole
-        // image.
-        char* buf = (char*)d - m_spec.x * pixel_bytes - ybegin * scanlinebytes;
-        try {
-            Imf::FrameBuffer frameBuffer;
-            size_t chanoffset = 0;
-            for (int c = 0; c < m_spec.nchannels; ++c) {
-                size_t chanbytes = m_spec.channelformat(c).size();
-                frameBuffer.insert(m_spec.channelnames[c].c_str(),
-                                   Imf::Slice(m_pixeltype[c], buf + chanoffset,
-                                              pixel_bytes, scanlinebytes));
-                chanoffset += chanbytes;
-            }
-            if (m_output_scanline) {
-                m_output_scanline->setFrameBuffer(frameBuffer);
-                m_output_scanline->writePixels(nscanlines);
-            } else if (m_scanline_output_part) {
-                m_scanline_output_part->setFrameBuffer(frameBuffer);
-                m_scanline_output_part->writePixels(nscanlines);
-            } else {
-                errorf("Attempt to write scanlines to a non-scanline file.");
-                return false;
-            }
-        } catch (const std::exception& e) {
-            errorf("Failed OpenEXR write: %s", e.what());
-            return false;
-        } catch (...) {  // catch-all for edge cases or compiler bugs
-            errorf("Failed OpenEXR write: unknown exception");
-            return false;
-        }
-
-        data = (const char*)data + ystride * nscanlines;
-    }
-#endif
     return true;
 }
 
@@ -317,7 +221,6 @@ JxlOutput::save_image()
 
     DBG std::cout << "data = " << data << " size = " << size << "\n";
 
-    // status = JxlEncoderAddImageFrame(m_frame_settings, &m_pixel_format, data, pixels_size);
     status = JxlEncoderAddImageFrame(m_frame_settings, &m_pixel_format, data, size);
     DBG std::cout << "status = " << status << "\n";
     if (status != JXL_ENC_SUCCESS) {
@@ -373,16 +276,17 @@ JxlOutput::close()
         init();
         return true;
     }
-#if 0
+
     if (m_spec.tile_width) {
         // Handle tile emulation -- output the buffered pixels
         OIIO_ASSERT(m_tilebuffer.size());
-        ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
-                              m_spec.format, &m_tilebuffer[0]);
-        m_tilebuffer.clear();
-        m_tilebuffer.shrink_to_fit();
+        // ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
+        //                       m_spec.format, &m_tilebuffer[0]);
+        std::vector<unsigned char>().swap(m_tilebuffer);
     }
-#endif
+
+    save_image();
+
     init();
     return ok;
 }
