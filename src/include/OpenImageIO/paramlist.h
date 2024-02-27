@@ -58,12 +58,12 @@ OIIO_NAMESPACE_BEGIN
 ///
 ///     // Single int:
 ///     int my_int = 42;
-///     ParamValue A("foo", TypeDesc::INT, 1, &my_int); 
+///     ParamValue A("foo", TypeDesc::INT, 1, &my_int);
 ///     // Three int values (say, one per vertex of a triangle):
 ///     int my_int_array[3] = { 1, 2, 3 };
-///     ParamValue B("foo", TypeDesc::INT, 1, &my_int_array); 
+///     ParamValue B("foo", TypeDesc::INT, 1, &my_int_array);
 ///     // A single value which is an array of 3 ints:
-///     ParamValue C("foo", TypeDesc(TypeDesc::INT, 3), 1, &my_int_array); 
+///     ParamValue C("foo", TypeDesc(TypeDesc::INT, 3), 1, &my_int_array);
 ///     // A string -- note the trick about treating it as an array:
 ///     const char* my_string = "hello";
 ///     ParamValue D("foo", TypeDesc::STRING, 1, &my_string);
@@ -333,7 +333,9 @@ private:
 /// Factory for a ParamValue that holds a single value of any type supported
 /// by a corresponding ParamValue constructor (such as int, float, string).
 template<typename T>
-static ParamValue make_pv(string_view name, const T& val) {
+static ParamValue
+make_pv(string_view name, const T& val)
+{
     return ParamValue(name, val);
 }
 
@@ -341,7 +343,9 @@ static ParamValue make_pv(string_view name, const T& val) {
 /// will be interpreted as a C string (TypeString), but all other pointer
 /// types will just get stored as an opaque pointer (TypePointer).
 template<typename T>
-static ParamValue make_pv(string_view name, T* val) {
+static ParamValue
+make_pv(string_view name, T* val)
+{
     return ParamValue(name, BaseTypeFromC<T*>::value, 1, &val);
 }
 

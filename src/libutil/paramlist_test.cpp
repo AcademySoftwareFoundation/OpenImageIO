@@ -208,14 +208,14 @@ test_value_types()
 
     // Test ptr
     {
-        int* ptr = (int*)0xdeadbeef;
+        int* ptr     = (int*)0xdeadbeef;
         ParamValue p = make_pv("name", ptr);
         OIIO_CHECK_EQUAL(p.type(), TypePointer);
         OIIO_CHECK_EQUAL(p.get<int*>(), ptr);
     }
     {
         const char* str = "foobar";
-        ParamValue p = make_pv("name", str);
+        ParamValue p    = make_pv("name", str);
         OIIO_CHECK_EQUAL(p.type(), TypeString);
         OIIO_CHECK_EQUAL(p.get_string(), str);
     }
