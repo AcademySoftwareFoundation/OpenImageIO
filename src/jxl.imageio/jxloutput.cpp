@@ -30,7 +30,9 @@ public:
     const char* format_name(void) const override { return "jxl"; }
     int supports(string_view feature) const override
     {
-        return (feature == "alpha" || feature == "nchannels" || feature == "exif" || feature == "ioproxy" || feature == "tiles");
+        return (feature == "alpha" || feature == "nchannels"
+                || feature == "exif" || feature == "ioproxy"
+                || feature == "tiles");
     }
     bool open(const std::string& name, const ImageSpec& spec,
               OpenMode mode = Create) override;
@@ -50,7 +52,7 @@ private:
     JxlEncoderPtr m_encoder;
     JxlResizableParallelRunnerPtr m_runner;
     JxlBasicInfo m_basic_info;
-    JxlEncoderFrameSettings *m_frame_settings;
+    JxlEncoderFrameSettings* m_frame_settings;
     JxlPixelFormat m_pixel_format;
 
     unsigned int m_dither;
@@ -61,7 +63,7 @@ private:
     {
         ioproxy_clear();
         m_encoder = nullptr;
-        m_runner = nullptr;
+        m_runner  = nullptr;
     }
 
     bool save_image();
@@ -92,8 +94,7 @@ JxlOutput::open(const std::string& name, const ImageSpec& newspec,
     m_filename = name;
 
     if (!check_open(mode, newspec,
-                    { 0, 1073741823, 0, 1073741823, 0, 1, 0,
-                      4099 }))
+                    { 0, 1073741823, 0, 1073741823, 0, 1, 0, 4099 }))
         return false;
 
     DBG std::cout << "m_filename = " << m_filename << "\n";
@@ -118,7 +119,8 @@ JxlOutput::open(const std::string& name, const ImageSpec& newspec,
 
     JxlEncoderAllowExpertOptions(m_encoder.get());
 
-    const uint32_t threads = JxlResizableParallelRunnerSuggestThreads(m_spec.width, m_spec.height);
+    const uint32_t threads
+        = JxlResizableParallelRunnerSuggestThreads(m_spec.width, m_spec.height);
 
     m_runner = JxlResizableParallelRunnerMake(nullptr);
     if (m_runner == nullptr) {
@@ -127,29 +129,34 @@ JxlOutput::open(const std::string& name, const ImageSpec& newspec,
     }
 
     JxlResizableParallelRunnerSetThreads(m_runner.get(), threads);
-    status = JxlEncoderSetParallelRunner(m_encoder.get(), JxlResizableParallelRunner, m_runner.get());
+    status = JxlEncoderSetParallelRunner(m_encoder.get(),
+                                         JxlResizableParallelRunner,
+                                         m_runner.get());
 
     if (status != JXL_ENC_SUCCESS) {
         error = JxlEncoderGetError(m_encoder.get());
-        DBG std::cout << "JxlEncoderSetParallelRunner failed with error " << error << "\n";
+        DBG std::cout << "JxlEncoderSetParallelRunner failed with error "
+                      << error << "\n";
         return false;
     }
 
     JxlEncoderInitBasicInfo(&m_basic_info);
-    m_basic_info.xsize = m_spec.width;
-    m_basic_info.ysize = m_spec.height;
+    m_basic_info.xsize              = m_spec.width;
+    m_basic_info.ysize              = m_spec.height;
     m_basic_info.num_color_channels = m_spec.nchannels;
-    m_basic_info.bits_per_sample = 32;
+    m_basic_info.bits_per_sample    = 32;
     // m_basic_info.exponent_bits_per_sample = 0;
     m_basic_info.exponent_bits_per_sample = 8;
 
-    DBG std::cout << "m_basic_info " << m_basic_info.xsize << "×" << m_basic_info.ysize << "×" << m_basic_info.num_color_channels << "\n";
+    DBG std::cout << "m_basic_info " << m_basic_info.xsize << "×"
+                  << m_basic_info.ysize << "×"
+                  << m_basic_info.num_color_channels << "\n";
 
     m_frame_settings = JxlEncoderFrameSettingsCreate(m_encoder.get(), nullptr);
 
     // const float quality = 100.0;
     const int effort = 7;
-    const int tier = 0;
+    const int tier   = 0;
     // Lossless only makes sense for integer modes
     if (m_basic_info.exponent_bits_per_sample == 0) {
         // Must preserve original profile for lossless mode
@@ -158,9 +165,12 @@ JxlOutput::open(const std::string& name, const ImageSpec& newspec,
         JxlEncoderSetFrameLossless(m_frame_settings, JXL_TRUE);
     }
 
-    JxlEncoderFrameSettingsSetOption(m_frame_settings, JXL_ENC_FRAME_SETTING_EFFORT, effort);
+    JxlEncoderFrameSettingsSetOption(m_frame_settings,
+                                     JXL_ENC_FRAME_SETTING_EFFORT, effort);
 
-    JxlEncoderFrameSettingsSetOption(m_frame_settings, JXL_ENC_FRAME_SETTING_DECODING_SPEED, tier);
+    JxlEncoderFrameSettingsSetOption(m_frame_settings,
+                                     JXL_ENC_FRAME_SETTING_DECODING_SPEED,
+                                     tier);
 
     // Codestream level should be chosen automatically given the settings
     JxlEncoderSetBasicInfo(m_encoder.get(), &m_basic_info);
@@ -183,23 +193,23 @@ JxlOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
 
 bool
 JxlOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
-                           const void* data, stride_t xstride,
-                           stride_t ystride)
+                           const void* data, stride_t xstride, stride_t ystride)
 {
-    DBG std::cout << "JxlOutput::write_scanlines(ybegin = " << ybegin << ", yend = " << yend <<", ...)\n";
+    DBG std::cout << "JxlOutput::write_scanlines(ybegin = " << ybegin
+                  << ", yend = " << yend << ", ...)\n";
 
     stride_t zstride = AutoStride;
     m_spec.auto_stride(xstride, ystride, zstride, format, m_spec.nchannels,
                        m_spec.width, m_spec.height);
-    size_t npixels = size_t(m_spec.width) * size_t(yend - ybegin);
-    size_t nvals   = npixels * size_t(m_spec.nchannels);
+    size_t npixels       = size_t(m_spec.width) * size_t(yend - ybegin);
+    size_t nvals         = npixels * size_t(m_spec.nchannels);
     const void* origdata = data;
 
     data = to_native_rectangle(m_spec.x, m_spec.x + m_spec.width, ybegin, yend,
                                z, z + 1, format, data, xstride, ystride,
                                zstride, m_scratch, m_dither, 0, ybegin, z);
 
-    DBG std::cout << "data = " << data << " nvals = " << nvals <<"\n";
+    DBG std::cout << "data = " << data << " nvals = " << nvals << "\n";
 
     if (data == origdata) {
         m_scratch.assign((unsigned char*)data,
@@ -228,18 +238,22 @@ JxlOutput::save_image()
 
     DBG std::cout << "JxlOutput::save_image()\n";
 
-    m_pixel_format = { m_basic_info.num_color_channels, JXL_TYPE_FLOAT, JXL_NATIVE_ENDIAN, 0 };
+    m_pixel_format = { m_basic_info.num_color_channels, JXL_TYPE_FLOAT,
+                       JXL_NATIVE_ENDIAN, 0 };
 
-    const size_t pixels_size = m_basic_info.xsize * m_basic_info.ysize * m_basic_info.num_color_channels * ((m_basic_info.bits_per_sample + 7) >> 3);
+    const size_t pixels_size = m_basic_info.xsize * m_basic_info.ysize
+                               * m_basic_info.num_color_channels
+                               * ((m_basic_info.bits_per_sample + 7) >> 3);
 
     m_scratch.resize(pixels_size);
 
     const void* data = m_scratch.data();
-    size_t size = m_scratch.size();
+    size_t size      = m_scratch.size();
 
     DBG std::cout << "data = " << data << " size = " << size << "\n";
 
-    status = JxlEncoderAddImageFrame(m_frame_settings, &m_pixel_format, data, size);
+    status = JxlEncoderAddImageFrame(m_frame_settings, &m_pixel_format, data,
+                                     size);
     DBG std::cout << "status = " << status << "\n";
     if (status != JXL_ENC_SUCCESS) {
         DBG std::cout << "JxlEncoderAddImageFrame failed.\n";
@@ -253,16 +267,17 @@ JxlOutput::save_image()
     compressed.clear();
     compressed.resize(4096);
     uint8_t* next_out = compressed.data();
-    size_t avail_out = compressed.size() - (next_out - compressed.data());
+    size_t avail_out  = compressed.size() - (next_out - compressed.data());
     JxlEncoderStatus result = JXL_ENC_NEED_MORE_OUTPUT;
     while (result == JXL_ENC_NEED_MORE_OUTPUT) {
         DBG std::cout << "calling JxlEncoderProcessOutput()\n";
-        result = JxlEncoderProcessOutput(m_encoder.get(), &next_out, &avail_out);
+        result = JxlEncoderProcessOutput(m_encoder.get(), &next_out,
+                                         &avail_out);
         DBG std::cout << "result = " << result << "\n";
         if (result == JXL_ENC_NEED_MORE_OUTPUT) {
             size_t offset = next_out - compressed.data();
             compressed.resize(compressed.size() * 2);
-            next_out = compressed.data() + offset;
+            next_out  = compressed.data() + offset;
             avail_out = compressed.size() - offset;
         }
     }

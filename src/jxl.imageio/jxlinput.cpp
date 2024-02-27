@@ -55,7 +55,7 @@ private:
         ioproxy_clear();
         m_config.reset();
         m_decoder = nullptr;
-        m_runner = nullptr;
+        m_runner  = nullptr;
     }
 
     void close_file() { init(); }
@@ -69,10 +69,8 @@ OIIO_EXPORT int jxl_imageio_version = OIIO_PLUGIN_VERSION;
 OIIO_EXPORT const char*
 jxl_imageio_library_version()
 {
-    return "libjxl "
-        OIIO_STRINGIZE(JPEGXL_MAJOR_VERSION) "." 
-        OIIO_STRINGIZE(JPEGXL_MINOR_VERSION) "." 
-        OIIO_STRINGIZE(JPEGXL_PATCH_VERSION);
+    return "libjxl " OIIO_STRINGIZE(JPEGXL_MAJOR_VERSION) "." OIIO_STRINGIZE(
+        JPEGXL_MINOR_VERSION) "." OIIO_STRINGIZE(JPEGXL_PATCH_VERSION);
 }
 
 OIIO_EXPORT ImageInput*
