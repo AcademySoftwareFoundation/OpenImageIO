@@ -58,6 +58,7 @@ private:
     unsigned int m_dither;
     std::vector<unsigned char> m_scratch;
     std::vector<unsigned char> m_tilebuffer;
+    std::vector<float> m_pixels;
 
     void init(void)
     {
@@ -211,10 +212,11 @@ JxlOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
 
     DBG std::cout << "data = " << data << " nvals = " << nvals << "\n";
 
-    if (data == origdata) {
-        m_scratch.assign((unsigned char*)data,
-                         (unsigned char*)data + nvals * m_spec.format.size());
-    }
+    std::vector<float>::iterator m_it
+        = m_pixels.begin() + m_spec.width * ybegin * m_spec.nchannels;
+
+    m_pixels.insert(m_it, (float*)data, (float*)data + nvals);
+
     return true;
 }
 
@@ -242,13 +244,12 @@ JxlOutput::save_image()
                        JXL_NATIVE_ENDIAN, 0 };
 
     const size_t pixels_size = m_basic_info.xsize * m_basic_info.ysize
-                               * m_basic_info.num_color_channels
-                               * ((m_basic_info.bits_per_sample + 7) >> 3);
+                               * m_basic_info.num_color_channels;
 
-    m_scratch.resize(pixels_size);
+    m_pixels.resize(pixels_size);
 
-    const void* data = m_scratch.data();
-    size_t size      = m_scratch.size();
+    const void* data = m_pixels.data();
+    size_t size      = m_pixels.size() * sizeof(float);
 
     DBG std::cout << "data = " << data << " size = " << size << "\n";
 
