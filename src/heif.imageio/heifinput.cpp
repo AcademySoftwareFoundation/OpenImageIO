@@ -8,6 +8,14 @@
 
 #include <libheif/heif_cxx.h>
 
+#define MAKE_LIBHEIF_VERSION(a, b, c, d) \
+    (((a) << 24) | ((b) << 16) | ((c) << 8) | (d))
+
+#if LIBHEIF_NUMERIC_VERSION >= MAKE_LIBHEIF_VERSION(1, 17, 0, 0)
+#    include <libheif/heif_properties.h>
+#endif
+
+
 
 // This plugin utilises libheif:
 //   https://github.com/strukturag/libheif
@@ -16,6 +24,7 @@
 //
 // Sources of sample images:
 //     https://github.com/nokiatech/heif/tree/gh-pages/content
+
 
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -50,6 +59,7 @@ private:
     bool m_associated_alpha        = true;
     bool m_keep_unassociated_alpha = false;
     bool m_do_associate            = false;
+    bool m_reorient                = true;
     std::unique_ptr<heif::Context> m_ctx;
     heif_item_id m_primary_id;             // id of primary image
     std::vector<heif_item_id> m_item_ids;  // ids of all other images
@@ -137,6 +147,7 @@ HeifInput::open(const std::string& name, ImageSpec& newspec,
 
     m_keep_unassociated_alpha
         = (config.get_int_attribute("oiio:UnassociatedAlpha") != 0);
+    m_reorient = config.get_int_attribute("oiio:reorient", 1);
 
     try {
         m_ctx->read_from_file(name);
@@ -200,14 +211,14 @@ HeifInput::seek_subimage(int subimage, int miplevel)
         return false;
     }
 
+    auto id     = (subimage == 0) ? m_primary_id : m_item_ids[subimage - 1];
+    m_ihandle   = m_ctx->get_image_handle(id);
+    m_has_alpha = m_ihandle.has_alpha_channel();
+    auto chroma = m_has_alpha ? heif_chroma_interleaved_RGBA
+                              : heif_chroma_interleaved_RGB;
+#if 0
     try {
-        auto id     = (subimage == 0) ? m_primary_id : m_item_ids[subimage - 1];
-        m_ihandle   = m_ctx->get_image_handle(id);
-        m_has_alpha = m_ihandle.has_alpha_channel();
-        auto chroma = m_has_alpha ? heif_chroma_interleaved_RGBA
-                                  : heif_chroma_interleaved_RGB;
-        m_himage    = m_ihandle.decode_image(heif_colorspace_RGB, chroma);
-
+        m_himage = m_ihandle.decode_image(heif_colorspace_RGB, chroma);
     } catch (const heif::Error& err) {
         std::string e = err.get_message();
         errorf("%s", e.empty() ? "unknown exception" : e.c_str());
@@ -217,6 +228,23 @@ HeifInput::seek_subimage(int subimage, int miplevel)
         errorf("%s", e.empty() ? "unknown exception" : e.c_str());
         return false;
     }
+#else
+    std::unique_ptr<heif_decoding_options, void (*)(heif_decoding_options*)>
+        options(heif_decoding_options_alloc(), heif_decoding_options_free);
+    options->ignore_transformations = !m_reorient;
+    // print("Got decoding options version {}\n", options->version);
+    struct heif_image* img_tmp = nullptr;
+    struct heif_error herr = heif_decode_image(m_ihandle.get_raw_image_handle(),
+                                               &img_tmp, heif_colorspace_RGB,
+                                               chroma, options.get());
+    if (img_tmp)
+        m_himage = heif::Image(img_tmp);
+    if (herr.code != heif_error_Ok || !img_tmp) {
+        errorfmt("Could not decode image ({})", herr.message);
+        m_ctx.reset();
+        return false;
+    }
+#endif
 
     int bits = m_himage.get_bits_per_pixel(heif_channel_interleaved);
     m_spec = ImageSpec(m_ihandle.get_width(), m_ihandle.get_height(), bits / 8,
@@ -270,21 +298,79 @@ HeifInput::seek_subimage(int subimage, int miplevel)
             decode_xmp(metacontents, m_spec);
         } else {
 #ifdef DEBUG
-            std::cout << "Don't know how to decode meta " << m
-                      << " type=" << m_ihandle.get_metadata_type(m)
-                      << " contenttype='"
-                      << m_ihandle.get_metadata_content_type(m) << "'\n";
-            std::cout << "---\n"
-                      << string_view((const char*)&metacontents[0],
-                                     metacontents.size())
-                      << "\n---\n";
+            print(
+                "Don't know how to decode meta {} type='{}' contenttype='{}'\n",
+                m, m_ihandle.get_metadata_type(m),
+                m_ihandle.get_metadata_content_type(m));
+            print("---\n{}\n---\n",
+                  string_view((const char*)metacontents.data(),
+                              metacontents.size()));
 #endif
+        }
+    }
+
+    // Try to discover the orientation. The Exif is unreliable. We have to go
+    // through the transformation properties ourselves. A tricky bit is that
+    // the C++ API doesn't give us a direct way to get the context ptr, we
+    // need to resort to some casting trickery, with knowledge that the C++
+    // heif::Context class consists solely of a std::shared_ptr to a
+    // heif_context.
+    // NO int orientation = m_spec.get_int_attribute("Orientation", 1);
+    int orientation = 1;
+    const heif_context* raw_ctx
+        = reinterpret_cast<std::shared_ptr<heif_context>*>(m_ctx.get())->get();
+    int xpcount = heif_item_get_transformation_properties(raw_ctx, id, nullptr,
+                                                          100);
+    orientation = 1;
+    xpcount     = std::min(xpcount, 100);  // clamp to some reasonable limit
+    std::vector<heif_property_id> xprops(xpcount);
+    heif_item_get_transformation_properties(raw_ctx, id, xprops.data(),
+                                            xpcount);
+    for (int i = 0; i < xpcount; ++i) {
+        auto type = heif_item_get_property_type(raw_ctx, id, xprops[i]);
+        if (type == heif_item_property_type_transform_rotation) {
+            int rot = heif_item_get_property_transform_rotation_ccw(raw_ctx, id,
+                                                                    xprops[i]);
+            // cw[] maps to one additional clockwise 90 degree turn
+            static const int cw[] = { 0, 6, 7, 8, 5, 2, 3, 4, 1 };
+            for (int i = 0; i < rot / 90; ++i)
+                orientation = cw[orientation];
+        } else if (type == heif_item_property_type_transform_mirror) {
+            int mirror = heif_item_get_property_transform_mirror(raw_ctx, id,
+                                                                 xprops[i]);
+            //                                1  2  3  4  5  6  7  8
+            static const int mirrorh[] = { 0, 2, 1, 4, 3, 6, 5, 8, 7 };
+            static const int mirrorv[] = { 0, 4, 3, 2, 1, 8, 7, 6, 5 };
+            if (mirror == heif_transform_mirror_direction_vertical) {
+                orientation = mirrorv[orientation];
+            } else if (mirror == heif_transform_mirror_direction_horizontal) {
+                orientation = mirrorh[orientation];
+            }
         }
     }
 
     // Erase the orientation metadata because libheif appears to be doing
     // the rotation-to-canonical-direction for us.
-    m_spec.erase_attribute("Orientation");
+    if (orientation != 1) {
+        if (m_reorient) {
+            // If libheif auto-reoriented, record the original orientation in
+            // "oiio:OriginalOrientation" and set the "Orientation" attribute
+            // to 1 since we're presenting the image to the caller in the
+            // usual orientation.
+            m_spec.attribute("oiio:OriginalOrientation", orientation);
+            m_spec.attribute("Orientation", 1);
+        } else {
+            // libheif supplies oriented width & height, so if we are NOT
+            // auto-reorienting and it's one of the orientations that swaps
+            // width and height, we need to do that swap ourselves.
+            // Note: all the orientations that swap width and height are 5-8,
+            // whereas 1-4 preserve aspect ratio.
+            if (orientation >= 5) {
+                std::swap(m_spec.width, m_spec.height);
+                std::swap(m_spec.full_width, m_spec.full_height);
+            }
+        }
+    }
 
     m_subimage = subimage;
     return true;
