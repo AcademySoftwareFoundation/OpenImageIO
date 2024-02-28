@@ -147,7 +147,6 @@ endif ()
 # JPEG XL
 option (USE_JXL "Enable JPEG XL support" ON)
 checked_find_package (JXL
-                      VERSION_MIN 0.8.2
                       DEFINITIONS -DUSE_JXL=1)
 
 # Pugixml setup.  Normally we just use the version bundled with oiio, but

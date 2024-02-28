@@ -15,9 +15,22 @@ find_path(JXL_INCLUDE_DIR
   NAMES jxl/decode.h jxl/encode.h)
 mark_as_advanced(JXL_INCLUDE_DIR)
 
+if (JXL_INCLUDE_DIR)
+    file (STRINGS "${JXL_INCLUDE_DIR}/jxl/version.h" TMP REGEX "^#define JPEGXL_MAJOR_VERSION .*$")
+    string (REGEX MATCHALL "[0-9]+" JPEGXL_MAJOR_VERSION ${TMP})
+    file (STRINGS "${JXL_INCLUDE_DIR}/jxl/version.h" TMP REGEX "^#define JPEGXL_MINOR_VERSION .*$")
+    string (REGEX MATCHALL "[0-9]+" JPEGXL_MINOR_VERSION ${TMP})
+    file (STRINGS "${JXL_INCLUDE_DIR}/jxl/version.h" TMP REGEX "^#define JPEGXL_PATCH_VERSION .*$")
+    string (REGEX MATCHALL "[0-9]+" JPEGXL_PATCH_VERSION ${TMP})
+    set (JXL_VERSION "${JPEGXL_MAJOR_VERSION}.${JPEGXL_MINOR_VERSION}.${JPEGXL_PATCH_VERSION}")
+endif ()
+
 find_library(JXL_LIBRARY
   NAMES jxl)
-mark_as_advanced(JXL_LIBRARY)
+mark_as_advanced (
+    JXL_LIBRARY
+    JXL_VERSION
+    )
 
 find_library(JXL_THREADS_LIBRARY
   NAMES jxl_threads)
