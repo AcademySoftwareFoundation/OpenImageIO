@@ -1099,7 +1099,7 @@ Shuffling channels
                -0.7071068, 0.7071068, 0,
                 20,        -8.284271, 1)
           Src = ImageBuf("tahoe.exr")
-          Dst = ImageBufAlgo.warp (dst, src, M, filtername="lanczos3");
+          Dst = ImageBufAlgo.warp (dst, src, M, filtername="lanczos3")
 
        .. code-tab:: bash oiiotool
 
