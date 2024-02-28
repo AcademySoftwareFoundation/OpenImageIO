@@ -52,7 +52,7 @@ public:
 
     /// This static function allocates specific filter implementation for the
     /// name you provide and returns it as a shared_ptr. It will be
-    /// automatically deleted when the last reference do it is released.
+    /// automatically deleted when the last reference to it is released.
     /// Example use:
     ///        auto myfilt = Filter1D::create_shared("box", 1.0f);
     /// If the name is not recognized, return an empty shared_ptr.
