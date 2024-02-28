@@ -842,7 +842,7 @@ bool OIIO_API fit(ImageBuf &dst, const ImageBuf &src, KWArgs options = {},
 ///     will be sized to be large enough to hold the warped image. If
 ///     zero (the default), the `dst` image will have the same ROI as
 ///     `src`. If the `dst` image already is initialized, its size will
-///     not be chaned and this option will be ignored.
+///     not be changed and this option will be ignored.
 ///
 ///   - "filterptr" : pointer to a Filter2D (default: nullptr)
 ///
