@@ -669,8 +669,8 @@ bool OIIO_API rotate (ImageBuf &dst, const ImageBuf &src,
 ///
 ///     Advanced use: It is also possible to pass a custom reconstruction
 ///     filter as a `Filter2D*`, overriding any filtername and filterwidth
-///     that may also be passed. It needs to be be passed as
-///     `ParamValue("filterptr", OIIO::TypePointer), 1, &raw_filter_ptr)`.
+///     that may also be passed. The easiest way to pass it is as:
+///     `make_pv("filterptr", raw_filter_ptr)`.
 ///     Use with caution!
 ///
 /// The caller may either (a) explicitly pass a reconstruction `filter`, or
@@ -745,8 +745,8 @@ bool OIIO_API resample (ImageBuf &dst, const ImageBuf &src,
 ///
 ///     Advanced use: It is also possible to pass a custom reconstruction
 ///     filter as a `Filter2D*`, overriding any filtername and filterwidth
-///     that may also be passed. It needs to be be passed as
-///     `ParamValue("filterptr", OIIO::TypePointer), 1, &raw_filter_ptr)`.
+///     that may also be passed. The easiest way to pass it is as:
+///     `make_pv("filterptr", raw_filter_ptr)`.
 ///     Use with caution!
 ///
 ///   - "fillmode" : string (default: "letterbox")
@@ -848,8 +848,8 @@ bool OIIO_API fit(ImageBuf &dst, const ImageBuf &src, KWArgs options = {},
 ///
 ///     Advanced use: It is also possible to pass a custom reconstruction
 ///     filter as a `Filter2D*`, overriding any filtername and filterwidth
-///     that may also be passed. It needs to be be passed as
-///     `ParamValue("filterptr", OIIO::TypePointer), 1, &raw_filter_ptr)`.
+///     that may also be passed. The easiest way to pass it is as:
+///     `make_pv("filterptr", raw_filter_ptr)`.
 ///     Use with caution!
 ///
 
