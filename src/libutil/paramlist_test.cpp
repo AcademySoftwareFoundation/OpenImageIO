@@ -423,7 +423,7 @@ test_paramlistspan()
     OIIO_CHECK_EQUAL(pl.get_string("bar"), "barbarbar?");
     OIIO_CHECK_EQUAL(pl.get_string("foo"), "42");
     OIIO_CHECK_ASSERT(pl.find("foo") != pl.cend());
-    OIIO_CHECK_ASSERT(pl.find("Foo") == pl.cend());
+    OIIO_CHECK_ASSERT(pl.find("Foo", TypeUnknown, true) == pl.cend());
     OIIO_CHECK_ASSERT(pl.find("Foo", TypeDesc::UNKNOWN, false) != pl.cend());
     OIIO_CHECK_ASSERT(pl.find("Foo", TypeDesc::UNKNOWN, true) == pl.cend());
     OIIO_CHECK_ASSERT(pl.find("foo", TypeDesc::INT) != pl.cend());

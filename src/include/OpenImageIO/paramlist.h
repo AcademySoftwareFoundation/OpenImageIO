@@ -394,17 +394,17 @@ public:
         return f != cend() ? &(*f) : nullptr;
     }
 
-    /// Case insensitive search for an integer, with default if not found.
-    /// Automatically will return an int even if the data is really
-    /// unsigned, short, or byte, but not float. It will retrieve from a
-    /// string, but only if the string is entirely a valid int format.
+    /// Search for an integer, with default if not found. Automatically will
+    /// return an int even if the data is really unsigned, short, or byte, but
+    /// not float. It will retrieve from a string, but only if the string is
+    /// entirely a valid int format.
     int get_int(string_view name, int defaultval = 0,
                 bool casesensitive = false, bool convert = true) const;
 
-    /// Case insensitive search for a float, with default if not found.
-    /// Automatically will return a float even if the data is really double
-    /// or half. It will retrieve from a string, but only if the string is
-    /// entirely a valid float format.
+    /// Search for a float, with default if not found. Automatically will
+    /// return a float even if the data is really double or half. It will
+    /// retrieve from a string, but only if the string is entirely a valid
+    /// float format.
     float get_float(string_view name, float defaultval = 0,
                     bool casesensitive = false, bool convert = true) const;
 
@@ -611,51 +611,51 @@ public:
     }
 
     const_iterator find(string_view name, TypeDesc type = TypeUnknown,
-                        bool casesensitive = true) const;
+                        bool casesensitive = false) const;
     const_iterator find(ustring name, TypeDesc type = TypeUnknown,
-                        bool casesensitive = true) const;
+                        bool casesensitive = false) const;
 
-    /// Case insensitive search for an integer, with default if not found.
-    /// Automatically will return an int even if the data is really
-    /// unsigned, short, or byte, but not float. It will retrieve from a
-    /// string, but only if the string is entirely a valid int format.
-    int get_int(string_view name, int defaultval = 0, bool casesensitive = true,
-                bool convert = true) const;
-    int get_int(ustring name, int defaultval = 0, bool casesensitive = true,
+    /// Search for an integer, with default if not found. Automatically will
+    /// return an int even if the data is really unsigned, short, or byte, but
+    /// not float. It will retrieve from a string, but only if the string is
+    /// entirely a valid int format.
+    int get_int(string_view name, int defaultval = 0,
+                bool casesensitive = false, bool convert = true) const;
+    int get_int(ustring name, int defaultval = 0, bool casesensitive = false,
                 bool convert = true) const;
 
-    /// Case insensitive search for a float, with default if not found.
-    /// Automatically will return a float even if the data is really double
-    /// or half. It will retrieve from a string, but only if the string is
-    /// entirely a valid float format.
+    /// Search for a float, with default if not found. Automatically will
+    /// return a float even if the data is really double or half. It will
+    /// retrieve from a string, but only if the string is entirely a valid
+    /// float format.
     float get_float(string_view name, float defaultval = 0,
-                    bool casesensitive = true, bool convert = true) const;
+                    bool casesensitive = false, bool convert = true) const;
     float get_float(ustring name, float defaultval = 0,
-                    bool casesensitive = true, bool convert = true) const;
+                    bool casesensitive = false, bool convert = true) const;
 
     /// Simple way to get a string attribute, with default provided.
     /// If the value is another type, it will be turned into a string.
     string_view get_string(string_view name,
                            string_view defaultval = string_view(),
-                           bool casesensitive     = true,
+                           bool casesensitive     = false,
                            bool convert           = true) const;
     string_view get_string(ustring name, string_view defaultval = string_view(),
-                           bool casesensitive = true,
+                           bool casesensitive = false,
                            bool convert       = true) const;
     ustring get_ustring(string_view name,
                         string_view defaultval = string_view(),
-                        bool casesensitive = true, bool convert = true) const;
+                        bool casesensitive = false, bool convert = true) const;
     ustring get_ustring(ustring name, string_view defaultval = string_view(),
-                        bool casesensitive = true, bool convert = true) const;
+                        bool casesensitive = false, bool convert = true) const;
 
     /// Does the span contain the named attribute?
     bool contains(string_view name, TypeDesc type = TypeUnknown,
-                  bool casesensitive = true) const
+                  bool casesensitive = false) const
     {
         return (find(name, type, casesensitive) != end());
     }
     bool contains(ustring name, TypeDesc type = TypeUnknown,
-                  bool casesensitive = true) const
+                  bool casesensitive = false) const
     {
         return (find(name, type, casesensitive) != end());
     }
