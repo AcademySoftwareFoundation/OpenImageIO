@@ -592,15 +592,20 @@ ColorConfig::Impl::classify_by_name(CSInfo& cs)
     // believe them! Woe be unto the poor soul who names a color space "sRGB"
     // or "ACEScg" and it's really something entirely different.
     if (Strutil::iequals(cs.name, "sRGB")
+        || Strutil::iequals(cs.name, "srgb_tx")
+        || Strutil::iequals(cs.name, "srgb_texture")
+        || Strutil::iequals(cs.name, "srgb texture")
         || Strutil::iequals(cs.name, "sRGB - Texture")) {
         cs.setflag(CSInfo::is_srgb, srgb_alias);
     } else if (Strutil::iequals(cs.name, "Rec709")) {
         cs.setflag(CSInfo::is_Rec709, Rec709_alias);
     } else if (Strutil::iequals(cs.name, "lin_srgb")
+               || Strutil::iequals(cs.name, "lin_rec709")
                || Strutil::iequals(cs.name, "Linear Rec.709 (sRGB)")) {
         cs.setflag(CSInfo::is_lin_srgb | CSInfo::is_linear_response,
                    lin_srgb_alias);
-    } else if (Strutil::iequals(cs.name, "ACEScg")) {
+    } else if (Strutil::iequals(cs.name, "ACEScg")
+               || Strutil::iequals(cs.name, "lin_ap1")) {
         cs.setflag(CSInfo::is_ACEScg | CSInfo::is_linear_response,
                    ACEScg_alias);
     }
@@ -728,6 +733,8 @@ ColorConfig::Impl::reclassify_heuristics(CSInfo& cs)
 void
 ColorConfig::Impl::identify_builtin_equivalents()
 {
+    if (disable_builtin_configs)
+        return;
 #if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 3, 0)
     Timer timer;
     if (auto n = IdentifyBuiltinColorSpace("srgb_tx")) {
