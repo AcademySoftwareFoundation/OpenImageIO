@@ -536,7 +536,7 @@ jobs:
             runner: windows-2019
             vsver: 2019
             generator: "Visual Studio 16 2019"
-            openexr_ver: v2.5.8
+            openexr_ver: v3.2.2
             python_ver: 3.7
             simd: sse4.2
           # - desc: windows-2022
