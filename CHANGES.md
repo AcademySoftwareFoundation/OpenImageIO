@@ -1,3 +1,8 @@
+Release 2.5.10.0 (Apr 1?, 2024) -- compared to 2.5.9.0
+------------------------------------------------------
+
+
+
 Release 2.5.9.0 (Mar 1, 2024) -- compared to 2.5.8.0
 -----------------------------------------------------
 - *oiiotool*: Overhaul and fix bugs in mixed-channel propogation [#4127](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4127)
