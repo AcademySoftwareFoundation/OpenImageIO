@@ -996,7 +996,7 @@ Shuffling channels
           // Resize the image to 640x480, using the default filter
           ImageBuf Src ("tahoe.exr");
           ROI roi (0, 640, 0, 480, 0, 1, /*chans:*/ 0, Src.nchannels());
-          ImageBuf Dst = ImageBufAlgo::resize (Src, "", 0, roi);
+          ImageBuf Dst = ImageBufAlgo::resize (Src, {}, roi);
 
        .. code-tab:: py
 
@@ -1060,14 +1060,14 @@ Shuffling channels
           // Resize to fit into a max of 640x480, preserving the aspect ratio
           ImageBuf Src ("tahoe.exr");
           ROI roi (0, 640, 0, 480, 0, 1, /*chans:*/ 0, Src.nchannels());
-          ImageBuf Dst = ImageBufAlgo::fit (Src, "", 0, true, roi);
+          ImageBuf Dst = ImageBufAlgo::fit (Src, {}, roi);
 
        .. code-tab:: py
 
           # Resize to fit into a max of 640x480, preserving the aspect ratio
           Src = ImageBuf("tahoe.exr")
           roi = ROI(0, 640, 0, 480, 0, 1, 0, Src.nchannels)
-          Dst = ImageBufAlgo.fit (Src, "", 0, True, roi)
+          Dst = ImageBufAlgo.fit (Src, roi=roi)
 
        .. code-tab:: bash oiiotool
 
@@ -1090,7 +1090,8 @@ Shuffling channels
                          -0.7071068, 0.7071068, 0,
                          20,        -8.284271,  1);
           ImageBuf Src ("tahoe.exr");
-          ImageBuf Dst = ImageBufAlgo::warp (dst, src, M, "lanczos3");
+          ParamValue options[] = { { "filtername", "lanczos3" } };
+          ImageBuf Dst = ImageBufAlgo::warp (dst, src, M, options);
 
        .. code-tab:: py
 
@@ -1098,7 +1099,7 @@ Shuffling channels
                -0.7071068, 0.7071068, 0,
                 20,        -8.284271, 1)
           Src = ImageBuf("tahoe.exr")
-          Dst = ImageBufAlgo.warp (dst, src, M, "lanczos3");
+          Dst = ImageBufAlgo.warp (dst, src, M, filtername="lanczos3")
 
        .. code-tab:: bash oiiotool
 
@@ -1862,7 +1863,9 @@ Image arithmetic
           ImageBuf Compressed = ImageBufAlgo::rangecompress (Src);
       
           // 3. Now do the resize
-          ImageBuf Dst = ImageBufAlgo::resize (Compressed, "lanczos3", 6.0f,
+          ImageBuf Dst = ImageBufAlgo::resize (Compressed,
+                                               { { "filtername", "lanczos3" }
+                                                 { "filterwidth", 6.0f } },
                                                ROI(0, 640, 0, 480));
       
           // 4. Expand range to be linear again (operate in-place)
@@ -1877,7 +1880,8 @@ Image arithmetic
           Compressed = ImageBufAlgo.rangecompress (Src)
       
           # 3. Now do the resize
-          Dst = ImageBufAlgo.resize (Compressed, "lanczos3", 6.0, ROI(0, 640, 0, 480))
+          Dst = ImageBufAlgo.resize (Compressed, filtername="lanczos3",
+                                     filterwidth=6.0, ROI(0, 640, 0, 480))
       
           # 4. Expand range to be linear again (operate in-place)
           ImageBufAlgo.rangeexpand (Dst, Dst)

@@ -191,8 +191,13 @@ private:
 
 
 
-
 namespace ImageBufAlgo {
+
+
+/// IBA::KWArgs is a span of ParamValue, used to pass keyword/value optional
+/// arguments to IBA functions.
+using KWArgs = ParamValueSpan;
+
 
 // old name (DEPRECATED 1.9)
 OIIO_DEPRECATED("use parallel_options (1.9)")
@@ -643,6 +648,31 @@ bool OIIO_API rotate (ImageBuf &dst, const ImageBuf &src,
 /// window of each correspond to each other, regardless of resolution).
 /// If `dst` is not yet initialized, it will be sized according to `roi`.
 ///
+/// The `options` list contains optional ParamValue's that control the
+/// resizing behavior.  The following options are recognized:
+///
+///   - "filtername" : string (default: "")
+///
+///     The type of reconstruction filter used to weight the `src` pixels
+///     falling underneath it for each `dst` pixel.  If the value is the
+///     empty string or not supplied, a reasonable high-quality filter will
+///     be chosen automatically (blackman-harris when upsizing, lanczos3
+///     when downsizing).
+///
+///   - "filterwidth" : float (default: 0)
+///
+///     The width of the reconstruction filter, expressed in pixel units of
+///     the `dst` image. If 0 or not supplied, the default width of the
+///     named filter will be used.
+///
+///   - "filterptr" : pointer to a Filter2D (default: nullptr)
+///
+///     Advanced use: It is also possible to pass a custom reconstruction
+///     filter as a `Filter2D*`, overriding any filtername and filterwidth
+///     that may also be passed. The easiest way to pass it is as:
+///     `make_pv("filterptr", raw_filter_ptr)`.
+///     Use with caution!
+///
 /// The caller may either (a) explicitly pass a reconstruction `filter`, or
 /// (b) specify one by `filtername` and `filterwidth`. If `filter` is
 /// `nullptr` or if `filtername` is the empty string `resize()` will choose
@@ -651,16 +681,11 @@ bool OIIO_API rotate (ImageBuf &dst, const ImageBuf &src,
 /// pixels falling underneath it for each `dst` pixel; the filter's size is
 /// expressed in pixel units of the `dst` image.
 
-ImageBuf OIIO_API resize (const ImageBuf &src,
-                          string_view filtername = "", float filterwidth=0.0f,
-                          ROI roi={}, int nthreads=0);
-ImageBuf OIIO_API resize (const ImageBuf &src, Filter2D *filter,
-                          ROI roi={}, int nthreads=0);
-bool OIIO_API resize (ImageBuf &dst, const ImageBuf &src,
-                      string_view filtername = "", float filterwidth=0.0f,
-                      ROI roi={}, int nthreads=0);
-bool OIIO_API resize (ImageBuf &dst, const ImageBuf &src, Filter2D *filter,
-                      ROI roi={}, int nthreads=0);
+ImageBuf OIIO_API resize(const ImageBuf &src, KWArgs options = {},
+                         ROI roi = {}, int nthreads = 0);
+bool OIIO_API resize(ImageBuf &dst, const ImageBuf &src, KWArgs options = {},
+                     ROI roi = {}, int nthreads=0);
+
 /// @}
 
 
@@ -692,67 +717,67 @@ bool OIIO_API resample (ImageBuf &dst, const ImageBuf &src,
 /// @defgroup fit (fit: resize the image with filtering, into a fixed size)
 /// @{
 ///
-/// Fit src into `dst` (to a size specified by `roi`, if `dst` is not
-/// initialized), resizing but preserving its original aspect ratio. Thus,
-/// it will resize to be the largest size with the same aspect ratio that
-/// can fit inside the region, but will not stretch to completely fill it in
-/// both dimensions.
+/// Resize `src` to fit into `dst` (to a size specified by `roi`, if `dst` is
+/// not initialized), preserving its original aspect ratio. Thus, it will
+/// resize to be the largest size with the same aspect ratio that can fit
+/// inside the region, but will not necessarily completely fill it in both
+/// dimensions if the source and destination image buffers do not have the
+/// same aspect ratio.
 ///
-/// The `fillmode` determines which of several methods will be used to
-/// determine how the image will fill the new frame, if its aspect ratio
-/// does not precisely match the original source aspect ratio:
-///     - "width" exactly fills the width of the new frame, either cropping
-///       or letterboxing the height if it isn't precisely the right size to
-///       preserve the original aspect ratio.
-///     - "height" exactly fills the height of the new frame, either cropping
-///       or letterboxing the width if it isn't precisely the right size to
-///       preserve the original aspect ratio.
-///     - "letterbox" (the default) chooses whichever of "width" or "height"
-///       will maximally fill the new frame with no image data lost (it will
-///       only letterbox, never crop).
+/// The `options` list contains optional ParamValue's that control the
+/// resizing behavior.  The following options are recognized:
 ///
-/// If `exact` is true, will result in an exact match on aspect ratio and
-/// centering (partial pixel shift if necessary), whereas exact=false
-/// will only preserve aspect ratio and centering to the precision of a
-/// whole pixel.
+///   - "filtername" : string (default: "")
 ///
-/// The filter is used to weight the `src` pixels falling underneath it for
-/// each `dst` pixel.  The caller may specify a reconstruction filter by
-/// name and width (expressed in pixels units of the `dst` image), or
-/// `rotate()` will choose a reasonable default high-quality default filter
-/// (lanczos3) if the empty string is passed, and a reasonable filter width
-/// if `filterwidth` is 0. (Note that some filter choices only make sense
-/// with particular width, in which case this filterwidth parameter may be
-/// ignored.)
+///     The type of reconstruction filter used to weight the `src` pixels
+///     falling underneath it for each `dst` pixel.  If the value is the
+///     empty string or not supplied, a reasonable high-quality filter will
+///     be chosen automatically (blackman-harris when upsizing, lanczos3
+///     when downsizing).
 ///
-ImageBuf OIIO_API fit (const ImageBuf &src,
-                       string_view filtername = "", float filterwidth=0.0f,
-                       string_view fillmode="letterbox", bool exact=false,
-                       ROI roi={}, int nthreads=0);
-ImageBuf OIIO_API fit (const ImageBuf &src, Filter2D *filter,
-                       string_view fillmode="letterbox", bool exact=false,
-                       ROI roi={}, int nthreads=0);
-bool OIIO_API fit (ImageBuf &dst, const ImageBuf &src,
-                   string_view filtername = "", float filterwidth=0.0f,
-                   string_view fillmode="letterbox", bool exact=false,
-                   ROI roi={}, int nthreads=0);
-bool OIIO_API fit (ImageBuf &dst, const ImageBuf &src, Filter2D *filter,
-                   string_view fillmode="letterbox", bool exact=false,
-                   ROI roi={}, int nthreads=0);
+///   - "filterwidth" : float (default: 0)
+///
+///     The width of the reconstruction filter, expressed in pixel units of
+///     the `dst` image. If 0 or not supplied, the default width of the
+///     named filter will be used.
+///
+///   - "filterptr" : pointer to a Filter2D (default: nullptr)
+///
+///     Advanced use: It is also possible to pass a custom reconstruction
+///     filter as a `Filter2D*`, overriding any filtername and filterwidth
+///     that may also be passed. The easiest way to pass it is as:
+///     `make_pv("filterptr", raw_filter_ptr)`.
+///     Use with caution!
+///
+///   - "fillmode" : string (default: "letterbox")
+///
+///     The `fillmode` determines which of several methods will be used to
+///     determine how the image will fill the new frame, if its aspect ratio
+///     does not precisely match the original source aspect ratio:
+///
+///       - "width" exactly fills the width of the new frame, either cropping
+///         or letterboxing the height if it isn't precisely the right size
+///         to preserve the original aspect ratio.
+///       - "height" exactly fills the height of the new frame, either
+///         cropping or letterboxing the width if it isn't precisely the
+///         right size to preserve the original aspect ratio.
+///       - "letterbox" (the default) chooses whichever of "width" or
+///         "height" will maximally fill the new frame with no image data
+///         lost (it will only letterbox, never crop).
+///
+///   - "exact" : int (default: 0)
+///
+///     If nonzero, will result in an exact match on aspect ratio and
+///     centering (partial pixel shift if necessary), whereas exact=false
+///     will only preserve aspect ratio and centering to the precision of a
+///     whole pixel.
+///
 
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-// DEPRECATED(2.3): old versions lacking the "fillmode" parameter
-ImageBuf OIIO_API fit (const ImageBuf &src,
-                       string_view filtername, float filterwidth,
-                       bool exact, ROI roi={}, int nthreads=0);
-ImageBuf OIIO_API fit (const ImageBuf &src, Filter2D *filter,
-                       bool exact, ROI roi={}, int nthreads=0);
-bool OIIO_API fit (ImageBuf &dst, const ImageBuf &src,
-                   string_view filtername, float filterwidth,
-                   bool exact, ROI roi={}, int nthreads=0);
-bool OIIO_API fit (ImageBuf &dst, const ImageBuf &src, Filter2D *filter,
-                   bool exact, ROI roi={}, int nthreads=0);
-#endif
+ImageBuf OIIO_API fit(const ImageBuf &src, KWArgs options = {},
+                      ROI roi={}, int nthreads=0);
+bool OIIO_API fit(ImageBuf &dst, const ImageBuf &src, KWArgs options = {},
+                  ROI roi={}, int nthreads=0);
+
 /// @}
 
 
@@ -762,58 +787,77 @@ bool OIIO_API fit (ImageBuf &dst, const ImageBuf &src, Filter2D *filter,
 /// Warp the `src` image using the supplied 3x3 transformation matrix.
 ///
 /// Only the pixels (and channels) of `dst` that are specified by `roi` will
-/// be copied from the warped `src`; the default roi is to alter all the
-/// pixels in dst. If `dst` is uninitialized, it will be sized to be an
-/// ImageBuf large enough to hold the warped image if recompute_roi is true,
-/// or will have the same ROI as src if recompute_roi is false. It is an
-/// error to pass both an uninitialized `dst` and an undefined `roi`.
+/// be copied from the warped `src`; the default is to alter all the pixels in
+/// `dst`. If `dst` is uninitialized, it will be sized to be an ImageBuf large
+/// enough to hold the warped image if recompute_roi is true, or will have the
+/// same ROI as src if recompute_roi is false. It is an error to pass both an
+/// uninitialized `dst` and an undefined `roi`.
 ///
-/// The caller may explicitly pass a reconstruction filter, or specify one
-/// by name and size, or if the name is the empty string `resize()` will
-/// choose a reasonable high-quality default if `nullptr` is passed.  The
-/// filter is used to weight the `src` pixels falling underneath it for each
-/// `dst` pixel; the filter's size is expressed in pixel units of the `dst`
-/// image.
+/// @param dst
+///         The output ImageBuf. If not already initialized, it will be sized
+///         based on `roi` (which itself will default to the size of `src`,
+///         if not specified).
+/// @param src
+///         The source ImageBuf.
+/// @param M
+///         A 3x3 matrix describing the desired spatial transformation
+///         of destination pixel coordinates to source pixel coordinates.
+/// @param roi
+///         The region of `dst` that will receive transformed pixels. If
+///         not specified, it will be all the pixels of `dst`.
+/// @param options
+///         Optional ParamValue's that may control the filtering and
+///         reconstruction.
+///
+/// The `options` list contains optional ParamValue's that may control the
+/// filtering and reconstruction.  The following options are recognized:
+///
+///   - "filtername" : string (default: "")
+///
+///     The type of reconstruction filter used to weight the `src` pixels
+///     falling underneath it for each `dst` pixel.  If the value is the
+///     empty string or not supplied, a reasonable high-quality filter will
+///     be chosen automatically.
+///
+///   - "filterwidth" : float (default: 0)
+///
+///     The width of the reconstruction filter, expressed in pixel units of
+///     the `dst` image. If 0 or not supplied, the default width of the
+///     named filter will be used.
+///
+///   - "wrap" : string (default: "black")
+///
+///     The wrap mode controlling the value of pixel lookups that need to
+///     occur beyond the boundary of the `src` image. (Could be one of:
+///     black, clamp, periodic, mirror.)
+///
+///   - "edgeclamp" : int (default: 0)
+///
+///     If nonzero, will enable special edge clamp behavior to reduce
+///     artifacts at the image edges (experimental).
+///
+///   - "recompute_roi" : int (default: 0)
+///
+///     If nonzero and `dst` is not yet initialized, the result image
+///     will be sized to be large enough to hold the warped image. If
+///     zero (the default), the `dst` image will have the same ROI as
+///     `src`. If the `dst` image already is initialized, its size will
+///     not be changed and this option will be ignored.
+///
+///   - "filterptr" : pointer to a Filter2D (default: nullptr)
+///
+///     Advanced use: It is also possible to pass a custom reconstruction
+///     filter as a `Filter2D*`, overriding any filtername and filterwidth
+///     that may also be passed. The easiest way to pass it is as:
+///     `make_pv("filterptr", raw_filter_ptr)`.
+///     Use with caution!
+///
 
-ImageBuf OIIO_API warp (const ImageBuf &src, M33fParam M,
-                        string_view filtername = string_view(),
-                        float filterwidth = 0.0f, bool recompute_roi = false,
-                        ImageBuf::WrapMode wrap = ImageBuf::WrapDefault,
-                        ROI roi={}, int nthreads=0);
-ImageBuf OIIO_API warp (const ImageBuf &src, M33fParam M,
-                        const Filter2D *filter, bool recompute_roi = false,
-                        ImageBuf::WrapMode wrap = ImageBuf::WrapDefault,
-                        ROI roi = {}, int nthreads=0);
-bool OIIO_API warp (ImageBuf &dst, const ImageBuf &src, M33fParam M,
-                    string_view filtername = string_view(),
-                    float filterwidth = 0.0f, bool recompute_roi = false,
-                    ImageBuf::WrapMode wrap = ImageBuf::WrapDefault,
-                    ROI roi={}, int nthreads=0);
-bool OIIO_API warp (ImageBuf &dst, const ImageBuf &src, M33fParam M,
-                    const Filter2D *filter, bool recompute_roi = false,
-                    ImageBuf::WrapMode wrap = ImageBuf::WrapDefault,
-                    ROI roi = {}, int nthreads=0);
+ImageBuf OIIO_API warp(const ImageBuf &src, M33fParam M,
+                       KWArgs options = {}, ROI roi = {}, int nthreads = 0);
+bool OIIO_API warp(ImageBuf &dst, const ImageBuf &src, M33fParam M,
+                   KWArgs options = {}, ROI roi = {}, int nthreads = 0);
 
-#ifdef OIIO_INTERNAL  /* experimental -- not part of public API yet */
-ImageBuf OIIO_API warp (const ImageBuf &src, M33fParam M,
-                        string_view filtername,
-                        float filterwidth, bool recompute_roi,
-                        ImageBuf::WrapMode wrap, bool edgeclamp,
-                        ROI roi={}, int nthreads=0);
-ImageBuf OIIO_API warp (const ImageBuf &src, M33fParam M,
-                        const Filter2D *filter, bool recompute_roi,
-                        ImageBuf::WrapMode wrap, bool edgeclamp,
-                        ROI roi = {}, int nthreads=0);
-bool OIIO_API warp (ImageBuf &dst, const ImageBuf &src, M33fParam M,
-                    string_view filtername,
-                    float filterwidth, bool recompute_roi,
-                    ImageBuf::WrapMode wrap, bool edgeclamp,
-                    ROI roi={}, int nthreads=0);
-bool OIIO_API warp (ImageBuf &dst, const ImageBuf &src, M33fParam M,
-                    const Filter2D *filter, bool recompute_roi,
-                    ImageBuf::WrapMode wrap, bool edgeclamp,
-                    ROI roi = {}, int nthreads=0);
-#endif  // OIIO_INTERNAL
 /// @}
 
 
@@ -1572,10 +1616,12 @@ bool OIIO_API histogram_draw (ImageBuf &dst,
 /// Make a 1-channel `float` image of the named kernel. The size of the
 /// image will be big enough to contain the kernel given its size (`width` x
 /// `height`) and rounded up to odd resolution so that the center of the
-/// kernel can be at the center of the middle pixel.  The kernel image will
-/// be offset so that its center is at the (0,0) coordinate.  If `normalize`
-/// is true, the values will be normalized so that they sum to 1.0. If
-/// `depth` > 1, a volumetric kernel will be created.  Use with caution!
+/// kernel can be at the center of the middle pixel.  If width and height
+/// are 0, the natural size of the named filter will be chosen. The kernel
+/// image will be offset so that its center is at the (0,0) coordinate.  If
+/// `normalize` is true, the values will be normalized so that they sum to
+/// 1.0. If `depth` > 1, a volumetric kernel will be created.  Use with
+/// caution!
 ///
 /// Kernel names can be: "gaussian", "sharp-gaussian", "box",
 /// "triangle", "blackman-harris", "mitchell", "b-spline", "catmull-rom",
@@ -2520,11 +2566,13 @@ bool OIIO_API deep_holdout (ImageBuf &dst, const ImageBuf &src,
 
 
 ///////////////////////////////////////////////////////////////////////
+// DEPRECATED functions follow:
+
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+
 // DEPRECATED(1.9): These are all functions that take raw pointers,
 // which we are deprecating as of 1.9, replaced by new versions that
 // take span<> for length safety.
-
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 //OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
 inline bool fill (ImageBuf &dst, const float *values,
@@ -2670,6 +2718,87 @@ inline bool render_text (ImageBuf &dst, int x, int y, string_view text,
     return render_text (dst, x, y, text, fontsize, fontname,
                         {textcolor, textcolor?dst.nchannels():0});
 }
+
+
+// DEPRECATED(2.6) versions of functions that previously directly took a
+// filter name and width, or a raw pointer to a Filter2D, and sometimes a
+// separate wrap mode. These have been replaced by the versions that use a
+// KWArgs for options including all the filtering parameters.
+ImageBuf OIIO_API warp (const ImageBuf &src, M33fParam M,
+                        string_view filtername, float filterwidth = 0.0f,
+                        bool recompute_roi = false,
+                        ImageBuf::WrapMode wrap = ImageBuf::WrapDefault,
+                        ROI roi={}, int nthreads=0);
+ImageBuf OIIO_API warp (const ImageBuf &src, M33fParam M,
+                        const Filter2D *filter, bool recompute_roi = false,
+                        ImageBuf::WrapMode wrap = ImageBuf::WrapDefault,
+                        ROI roi = {}, int nthreads=0);
+bool OIIO_API warp (ImageBuf &dst, const ImageBuf &src, M33fParam M,
+                    string_view filtername, float filterwidth = 0.0f,
+                    bool recompute_roi = false,
+                    ImageBuf::WrapMode wrap = ImageBuf::WrapDefault,
+                    ROI roi={}, int nthreads=0);
+bool OIIO_API warp (ImageBuf &dst, const ImageBuf &src, M33fParam M,
+                    const Filter2D *filter, bool recompute_roi = false,
+                    ImageBuf::WrapMode wrap = ImageBuf::WrapDefault,
+                    ROI roi = {}, int nthreads=0);
+ImageBuf OIIO_API resize (const ImageBuf &src,
+                          string_view filtername, float filterwidth=0.0f,
+                          ROI roi={}, int nthreads=0);
+ImageBuf OIIO_API resize (const ImageBuf &src, Filter2D *filter,
+                          ROI roi={}, int nthreads=0);
+bool OIIO_API resize (ImageBuf &dst, const ImageBuf &src,
+                      string_view filtername, float filterwidth=0.0f,
+                      ROI roi={}, int nthreads=0);
+bool OIIO_API resize (ImageBuf &dst, const ImageBuf &src, Filter2D *filter,
+                      ROI roi={}, int nthreads=0);
+#ifdef OIIO_INTERNAL  /* experimental -- not part of public API yet */
+ImageBuf OIIO_API warp (const ImageBuf &src, M33fParam M,
+                        string_view filtername,
+                        float filterwidth, bool recompute_roi,
+                        ImageBuf::WrapMode wrap, bool edgeclamp,
+                        ROI roi={}, int nthreads=0);
+ImageBuf OIIO_API warp (const ImageBuf &src, M33fParam M,
+                        const Filter2D *filter, bool recompute_roi,
+                        ImageBuf::WrapMode wrap, bool edgeclamp,
+                        ROI roi = {}, int nthreads=0);
+bool OIIO_API warp (ImageBuf &dst, const ImageBuf &src, M33fParam M,
+                    string_view filtername,
+                    float filterwidth, bool recompute_roi,
+                    ImageBuf::WrapMode wrap, bool edgeclamp,
+                    ROI roi={}, int nthreads=0);
+bool OIIO_API warp (ImageBuf &dst, const ImageBuf &src, M33fParam M,
+                    const Filter2D *filter, bool recompute_roi,
+                    ImageBuf::WrapMode wrap, bool edgeclamp,
+                    ROI roi = {}, int nthreads=0);
+#endif  // OIIO_INTERNAL
+
+ImageBuf OIIO_API fit (const ImageBuf &src,
+                       string_view filtername = "", float filterwidth=0.0f,
+                       string_view fillmode="letterbox", bool exact=false,
+                       ROI roi={}, int nthreads=0);
+ImageBuf OIIO_API fit (const ImageBuf &src, Filter2D *filter,
+                       string_view fillmode="letterbox", bool exact=false,
+                       ROI roi={}, int nthreads=0);
+bool OIIO_API fit (ImageBuf &dst, const ImageBuf &src,
+                   string_view filtername = "", float filterwidth=0.0f,
+                   string_view fillmode="letterbox", bool exact=false,
+                   ROI roi={}, int nthreads=0);
+bool OIIO_API fit (ImageBuf &dst, const ImageBuf &src, Filter2D *filter,
+                   string_view fillmode="letterbox", bool exact=false,
+                   ROI roi={}, int nthreads=0);
+
+// DEPRECATED(2.3): old versions lacking the "fillmode" parameter
+ImageBuf OIIO_API fit (const ImageBuf &src,
+                       string_view filtername, float filterwidth,
+                       bool exact, ROI roi={}, int nthreads=0);
+ImageBuf OIIO_API fit (const ImageBuf &src, Filter2D *filter,
+                       bool exact, ROI roi={}, int nthreads=0);
+bool OIIO_API fit (ImageBuf &dst, const ImageBuf &src,
+                   string_view filtername, float filterwidth,
+                   bool exact, ROI roi={}, int nthreads=0);
+bool OIIO_API fit (ImageBuf &dst, const ImageBuf &src, Filter2D *filter,
+                   bool exact, ROI roi={}, int nthreads=0);
 
 #endif  // DOXYGEN_SHOULD_SKIP_THIS
 
