@@ -1,6 +1,21 @@
-Release 2.5.9.0 (Mar ??, 2024) -- compared to 2.5.8.0
+Release 2.5.9.0 (Mar 1, 2024) -- compared to 2.5.8.0
 -----------------------------------------------------
-
+- *oiiotool*: Overhaul and fix bugs in mixed-channel propogation [#4127](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4127)
+- *oiiotool*: Fixes to buildinfo queries [#4150](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4150)
+- *dcmtk*: Fixes for DCMTK [#4147](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4147)
+- *build*: Address NEON issues in simd.h. [#4143](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4143)
+- *typedesc.h*: Allow TypeDesc to have all the right POD attributes [#4162](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4162) (by Scott Wilson)
+- *internals*: Various fixes for memory safety and reduce static analysis complaints [#4128](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4128)
+- *internals*: Coalesce redundant STRINGIZE macros -> OIIO_STRINGIZE [#4121](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4121)
+- *ci*: Start using macos-14 ARM runners, bump latest OCIO [#4134](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4134)
+- *ci*: Switch away from deprecated GHA idiom set-output [#4141](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4141)
+- *ci*: Add vfx platform 2024 [#4163](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4163)
+- *ci*: Fix Windows CI, need to build newer openexr and adjust boost search [#4167](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4167)
+- *tests*: Add test for filter values and 'filter_list' query [#4140](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4140)
+- *docs*: Update SECURITY and RELEASING documentation [#4138](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4138)
+- *docs*: Fix tab that was missing from the rendering on rtd [#4137](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4137)
+- *docs*: Fix python example [#4139](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4139)
+- *admin*: More updated relicensing code under Apache 2.0
 
 
 Release 2.5.8.0 (Feb 1, 2024) -- compared to 2.5.7.0
