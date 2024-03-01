@@ -57,7 +57,8 @@ time vcpkg install boost-stacktrace:x64-windows
 time vcpkg install boost-system:x64-windows
 time vcpkg install boost-thread:x64-windows
 
-# # vcpkg install zlib:x64-windows
+#vcpkg install libdeflate:x64-windows
+#vcpkg install zlib:x64-windows
 vcpkg install tiff:x64-windows
 # vcpkg install libpng:x64-windows
 # vcpkg install giflib:x64-windows
@@ -81,7 +82,7 @@ vcpkg install libjpeg-turbo:x64-windows
 # 
 # # export PATH="$PATH:$DEP_DIR/bin:$VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin"
 # export PATH="$DEP_DIR/lib:$DEP_DIR/bin:$PATH:$VCPKG_INSTALLATION_ROOT/installed/x64-windows/lib"
-export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;$VCPKG_INSTALLATION_ROOT/installed/x64-windows/lib"
+export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH:$VCPKG_INSTALLATION_ROOT/installed/x64-windows"
 # export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$VCPKG_INSTALLATION_ROOT/installed/x64-windows/lib:$DEP_DIR/lib:$DEP_DIR/bin"
 # 
 echo "All VCPkg installs:"
