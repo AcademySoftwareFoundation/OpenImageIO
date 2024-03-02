@@ -69,6 +69,13 @@ make_span(T (&arg)[N])  // span from C array of known length
     return { arg };
 }
 
+template<typename T>
+inline constexpr span<T>
+make_span(T* data, oiio_span_size_type size)  // span from ptr + size
+{
+    return { data, size };
+}
+
 template<typename T, size_t N>
 inline constexpr cspan<T>
 make_cspan(T (&arg)[N])  // cspan from C array of known length
@@ -81,6 +88,13 @@ inline constexpr cspan<T>
 make_cspan(const T& arg)  // cspan from a single value
 {
     return { &arg, 1 };
+}
+
+template<typename T>
+inline constexpr cspan<T>
+make_cspan(const T* data, oiio_span_size_type size)  // cspan from ptr + size
+{
+    return { data, size };
 }
 
 

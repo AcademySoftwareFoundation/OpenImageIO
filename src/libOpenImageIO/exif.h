@@ -44,6 +44,30 @@ dataptr(const TIFFDirEntry& td, cspan<uint8_t> data, int offset_adjustment)
 
 
 
+// Return a span that bounds offset data within the dir entry.
+// No matter what the type T, we still return a cspan<uint8_t> because it's
+// unaligned data somewhere in the middle of a byte array. We would have
+// alignment errors if we try to access it as some other type if it's not
+// properly aligned.
+template<typename T>
+inline cspan<uint8_t>
+dataspan(const TIFFDirEntry& td, cspan<uint8_t> data, int offset_adjustment,
+         size_t count)
+{
+    size_t len = tiff_data_size(td);
+    OIIO_DASSERT(len == sizeof(T) * count);
+    if (len <= 4)
+        return { (const uint8_t*)&td.tdir_offset, oiio_span_size_type(len) };
+    else {
+        int offset = td.tdir_offset + offset_adjustment;
+        if (offset < 0 || size_t(offset) + len > std::size(data))
+            return {};  // out of bounds! return empty span
+        return { data.data() + offset, oiio_span_size_type(len) };
+    }
+}
+
+
+
 struct LabelIndex {
     int value;
     const char* label;

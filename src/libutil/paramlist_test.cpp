@@ -21,12 +21,12 @@ using namespace OIIO;
 // int or float, and also return a string representation.
 template<typename T>
 static std::string
-test_numeric(T* data, int num_elements, TypeDesc type)
+test_numeric(cspan<T> data, TypeDesc type, int num_elements = 1)
 {
-    ParamValue p("name", type, num_elements, data);
+    ParamValue p("name", type, num_elements, data.data());
     int n = type.numelements() * num_elements;
     for (int i = 0; i < n; ++i)
-        OIIO_CHECK_EQUAL(p.get<T>(i), ((const T*)data)[i]);
+        OIIO_CHECK_EQUAL(p.get<T>(i), data[i]);
     if (std::numeric_limits<T>::is_integer) {
         OIIO_CHECK_EQUAL(p.get_int(), int(data[0]));
         for (int i = 0; i < n; ++i)
@@ -51,55 +51,55 @@ test_value_types()
 
     {
         int val = 42;
-        ret     = test_numeric(&val, 1, TypeDesc::INT);
+        ret     = test_numeric(make_cspan(val), TypeDesc::INT);
         OIIO_CHECK_EQUAL(ret, "42");
     }
 
     {
         unsigned int val = 42;
-        ret              = test_numeric(&val, 1, TypeDesc::UINT);
+        ret              = test_numeric(make_cspan(val), TypeDesc::UINT);
         OIIO_CHECK_EQUAL(ret, "42");
     }
 
     {
         short val = 42;
-        ret       = test_numeric(&val, 1, TypeDesc::INT16);
+        ret       = test_numeric(make_cspan(val), TypeDesc::INT16);
         OIIO_CHECK_EQUAL(ret, "42");
     }
 
     {
         unsigned short val = 42;
-        ret                = test_numeric(&val, 1, TypeDesc::UINT16);
+        ret                = test_numeric(make_cspan(val), TypeDesc::UINT16);
         OIIO_CHECK_EQUAL(ret, "42");
     }
 
     {
         char val = 42;
-        ret      = test_numeric(&val, 1, TypeDesc::INT8);
+        ret      = test_numeric(make_cspan(val), TypeDesc::INT8);
         OIIO_CHECK_EQUAL(ret, "42");
     }
 
     {
         unsigned char val = 42;
-        ret               = test_numeric(&val, 1, TypeDesc::UINT8);
+        ret               = test_numeric(make_cspan(val), TypeDesc::UINT8);
         OIIO_CHECK_EQUAL(ret, "42");
     }
 
     {
         float val = 2.25;
-        ret       = test_numeric(&val, 1, TypeDesc::FLOAT);
+        ret       = test_numeric(make_cspan(val), TypeDesc::FLOAT);
         OIIO_CHECK_EQUAL(ret, "2.25");
     }
 
     {
         double val = 2.25;
-        ret        = test_numeric(&val, 1, TypeDesc::DOUBLE);
+        ret        = test_numeric(make_cspan(val), TypeDesc::DOUBLE);
         OIIO_CHECK_EQUAL(ret, "2.25");
     }
 
     {
         half val = 2.25;
-        ret      = test_numeric(&val, 1, TypeDesc::HALF);
+        ret      = test_numeric(make_cspan(val), TypeDesc::HALF);
         OIIO_CHECK_EQUAL(ret, "2.25");
     }
 
@@ -128,36 +128,34 @@ test_value_types()
 
     {
         int imatrix[] = { 100, 200, 300, 400 };
-        ret           = test_numeric(&imatrix[0], 1, TypeInt);
+        ret           = test_numeric(make_cspan(imatrix[0]), TypeInt);
         OIIO_CHECK_EQUAL(ret, "100");
-        ret = test_numeric(imatrix, sizeof(imatrix) / sizeof(int), TypeInt);
+        ret = test_numeric(make_cspan(imatrix), TypeInt, 4);
         OIIO_CHECK_EQUAL(ret, "100, 200, 300, 400");
         OIIO_CHECK_NE(ret, "100, 200, 300, 400,");
         // Test it as an array as well
-        ret = test_numeric(&imatrix[0], 1, TypeDesc(TypeDesc::INT, 4));
+        ret = test_numeric(make_cspan(imatrix), TypeDesc(TypeDesc::INT, 4));
         OIIO_CHECK_EQUAL(ret, "100, 200, 300, 400");
     }
 
     {
         float fmatrix[] = { 10.12f, 200.34f, 300.11f, 400.9f };
-        ret             = test_numeric(&fmatrix[0], 1, TypeFloat);
+        ret             = test_numeric(make_cspan(fmatrix[0]), TypeFloat);
         OIIO_CHECK_EQUAL(ret, "10.12");
-        ret = test_numeric(fmatrix, sizeof(fmatrix) / sizeof(float), TypeFloat);
+        ret = test_numeric(make_cspan(fmatrix), TypeFloat, 4);
         OIIO_CHECK_EQUAL(ret, "10.12, 200.34, 300.11, 400.9");
         OIIO_CHECK_NE(ret, "10, 200, 300, 400");
         OIIO_CHECK_NE(ret, "10.12, 200.34, 300.11, 400.9,");
-        ret = test_numeric(&fmatrix[0], 1, TypeDesc(TypeDesc::FLOAT, 4));
+        ret = test_numeric(make_cspan(fmatrix), TypeDesc(TypeDesc::FLOAT, 4));
         OIIO_CHECK_EQUAL(ret, "10.12, 200.34, 300.11, 400.9");
     }
 
     {
         unsigned long long ullmatrix[] = { 0xffffffffffffffffULL,
                                            0xffffffffffffffffULL };
-        ret = test_numeric(&ullmatrix[0], 1, TypeDesc::UINT64);
+        ret = test_numeric(make_cspan(ullmatrix[0]), TypeDesc::UINT64);
         OIIO_CHECK_EQUAL(ret, "18446744073709551615");
-        ret = test_numeric(ullmatrix,
-                           sizeof(ullmatrix) / sizeof(unsigned long long),
-                           TypeDesc::UINT64);
+        ret = test_numeric(make_cspan(ullmatrix), TypeDesc::UINT64, 2);
         OIIO_CHECK_EQUAL(ret, "18446744073709551615, 18446744073709551615");
         OIIO_CHECK_NE(ret, "-1, -1");
         OIIO_CHECK_NE(ret, "18446744073709551615, 18446744073709551615,");
