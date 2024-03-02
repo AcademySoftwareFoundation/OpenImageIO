@@ -266,7 +266,7 @@ RLAOutput::open(const std::string& name, const ImageSpec& userspec,
         float g = Strutil::from_string<float>(colorspace);
         if (!(g >= 0.01f && g <= 10.0f /* sanity check */))
             g = m_spec.get_float_attribute("oiio:Gamma", 1.f);
-        safe_snprintf(m_rla.Gamma, sizeof(m_rla.Gamma), "%.10f", g);
+        safe_format_to(m_rla.Gamma, "{:.10}", g);
     }
 
     const ParamValue* p;
@@ -313,7 +313,7 @@ RLAOutput::open(const std::string& name, const ImageSpec& userspec,
     STRING_FIELD(Aspect, "rla:Aspect");
 
     float aspect = m_spec.get_float_attribute("PixelAspectRatio", 1.f);
-    safe_snprintf(m_rla.AspectRatio, sizeof(m_rla.AspectRatio), "%.6f", aspect);
+    safe_format_to(m_rla.AspectRatio, "{:.6}", aspect);
     Strutil::safe_strcpy(m_rla.ColorChannel,
                          m_spec.get_string_attribute("rla:ColorChannel", "rgb"),
                          sizeof(m_rla.ColorChannel));
@@ -349,13 +349,15 @@ RLAOutput::set_chromaticity(const ParamValue* p, char* dst, size_t field_size,
     if (p && p->type().basetype == TypeDesc::FLOAT) {
         switch (p->type().aggregate) {
         case TypeDesc::VEC2:
-            safe_snprintf(dst, field_size, "%.4f %.4f", ((float*)p->data())[0],
-                          ((float*)p->data())[1]);
+            safe_format_to(dst, field_size, "{:.4} {:.4}",
+                           ((const float*)p->data())[0],
+                           ((const float*)p->data())[1]);
             break;
         case TypeDesc::VEC3:
-            safe_snprintf(dst, field_size, "%.4f %.4f %.4f",
-                          ((float*)p->data())[0], ((float*)p->data())[1],
-                          ((float*)p->data())[2]);
+            safe_format_to(dst, field_size, "{:.4} {:.4} {:.4}",
+                           ((const float*)p->data())[0],
+                           ((const float*)p->data())[1],
+                           ((const float*)p->data())[2]);
             break;
         }
     } else

@@ -38,9 +38,9 @@ getargs(int argc, char* argv[])
     ap.arg("-v", &verbose)
       .help("Verbose mode");
     ap.arg("--threads %d", &numthreads)
-      .help(Strutil::sprintf("Number of threads (default: %d)", numthreads));
+      .help(Strutil::fmt::format("Number of threads (default: {})", numthreads));
     ap.arg("--iters %d", &iterations)
-      .help(Strutil::sprintf("Number of iterations (default: %d)", iterations));
+      .help(Strutil::fmt::format("Number of iterations (default: {})", iterations));
     ap.arg("--trials %d", &ntrials)
       .help("Number of trials");
     ap.arg("--wedge", &wedge)
@@ -94,9 +94,9 @@ time_thread_group()
 void
 time_thread_pool()
 {
-    std::cout << "\nTiming how long it takes to launch from thread_pool:\n";
-    std::cout << "threads\ttime (best of " << ntrials << ")\n";
-    std::cout << "-------\t----------\n";
+    print("\nTiming how long it takes to launch from thread_pool:\n");
+    print("threads\ttime (best of {})\n", ntrials);
+    print("-------\t----------\n");
     thread_pool* pool(default_thread_pool());
     for (int i = 0; threadcounts[i] <= numthreads; ++i) {
         int nt = wedge ? threadcounts[i] : numthreads;
@@ -117,8 +117,8 @@ time_thread_pool()
         double range;
         double t = time_trial(func, ntrials, its, &range);
 
-        std::cout << Strutil::sprintf("%2d\t%5.1f   launch %8.1f threads/sec\n",
-                                      nt, t, (nt * its) / t);
+        print("{:2}\t{:5.1f}   launch {:8.1f} threads/sec\n", nt, t,
+              (nt * its) / t);
         if (!wedge)
             break;  // don't loop if we're not wedging
     }

@@ -54,13 +54,13 @@ getargs(int argc, char* argv[])
     ap.arg("-v", &verbose)
       .help("Verbose mode");
     ap.arg("--threads %d", &numthreads)
-      .help(Strutil::sprintf("Number of threads (default: %d)", numthreads));
+      .help(Strutil::fmt::format("Number of threads (default: {})", numthreads));
     ap.arg("--iters %d", &iterations)
-      .help(Strutil::sprintf("Number of iterations (default: %d)", iterations));
+      .help(Strutil::fmt::format("Number of iterations (default: {})", iterations));
     ap.arg("--trials %d", &ntrials)
       .help("Number of trials");
     ap.arg("--autotile %d", &autotile_size)
-      .help(Strutil::sprintf("Autotile size (when used; default: %d)", autotile_size));
+      .help(Strutil::fmt::format("Autotile size (when used; default: {})", autotile_size));
     ap.arg("--iteronly", &iter_only)
       .help("Run ImageBuf iteration tests only (not read tests)");
     ap.arg("--noiter", &no_iter)
@@ -172,10 +172,8 @@ test_read(const std::string& explanation, void (*func)(), int autotile = 64,
     imagecache->attribute("autoscanline", autoscanline);
     double t    = time_trial(func, ntrials);
     double rate = double(total_image_pixels) / t;
-    std::cout << "  " << explanation << ": "
-              << Strutil::timeintervalformat(t, 2) << " = "
-              << Strutil::sprintf("%5.1f", rate / 1.0e6) << " Mpel/s"
-              << std::endl;
+    print("  {}: {} = {:5.1f} Mpel/s\n", explanation,
+          Strutil::timeintervalformat(t, 2), rate / 1.0e6);
 }
 
 
@@ -299,10 +297,8 @@ test_write(const std::string& explanation, void (*func)(), int tilesize = 0)
     outspec.tile_depth  = 1;
     double t            = time_trial(func, ntrials);
     double rate         = double(total_image_pixels) / t;
-    std::cout << "  " << explanation << ": "
-              << Strutil::timeintervalformat(t, 2) << " = "
-              << Strutil::sprintf("%5.1f", rate / 1.0e6) << " Mpel/s"
-              << std::endl;
+    print("  {}: {} = {:5.1f} Mpel/s\n", explanation,
+          Strutil::timeintervalformat(t, 2), rate / 1.0e6);
 }
 
 
@@ -448,10 +444,8 @@ test_pixel_iteration(const std::string& explanation,
     ib.read(0, 0, preload, TypeFloat);
     double t    = time_trial(std::bind(func, std::ref(ib), iters), ntrials);
     double rate = double(ib.spec().image_pixels()) / (t / iters);
-    std::cout << "  " << explanation << ": "
-              << Strutil::timeintervalformat(t / iters, 3) << " = "
-              << Strutil::sprintf("%5.1f", rate / 1.0e6) << " Mpel/s"
-              << std::endl;
+    print("  {}: {} = {:5.1f} Mpel/s\n", explanation,
+          Strutil::timeintervalformat(t / iters, 3), rate / 1.0e6);
 }
 
 

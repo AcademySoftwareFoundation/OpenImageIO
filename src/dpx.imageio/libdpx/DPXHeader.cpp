@@ -702,7 +702,7 @@ void dpx::IndustryHeader::UserBits(char* str) const
 {
     using OIIO::Strutil::format_to_n;
     U32 ub = this->userBits;
-    format_to_n(str, 12, "{c}{c}:{c}{c}:{c}{c}:{c}{c}",
+    format_to_n(str, 12, "{:c}{:c}:{:c}{:c}:{:c}{:c}:{:c}{:c}",
                 Hex((ub & 0xf0000000) >> 28), Hex((ub & 0xf000000) >> 24),
                 Hex((ub & 0xf00000) >> 20), Hex((ub & 0xf0000) >> 16),
                 Hex((ub & 0xf000) >> 12), Hex((ub & 0xf00) >> 8),

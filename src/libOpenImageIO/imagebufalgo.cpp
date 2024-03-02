@@ -1208,7 +1208,7 @@ ImageBufAlgo::fillholes_pushpull(ImageBuf& dst, const ImageBuf& src, ROI roi,
         ImageBufAlgo::resize(*small, *pyramid.back(), "triangle");
         divide_by_alpha(*small, get_roi(smallspec), nthreads);
         pyramid.emplace_back(small);
-        // small->write(Strutil::sprintf("push%04d.exr", small->spec().width));
+        // small->write(Strutil::fmt::format("push{:04d}.exr", small->spec().width));
     }
 
     // Now pull back up the pyramid by doing an alpha composite of level
@@ -1221,7 +1221,7 @@ ImageBufAlgo::fillholes_pushpull(ImageBuf& dst, const ImageBuf& src, ROI roi,
         ImageBuf blowup(big.spec());
         ImageBufAlgo::resize(blowup, small, "triangle");
         ImageBufAlgo::over(big, big, blowup);
-        // big.write(Strutil::sprintf("pull%04d.exr", big.spec().width));
+        // big.write(Strutil::sprintf("pull{:04}.exr", big.spec().width));
     }
 
     // Now copy the completed base layer of the pyramid back to the

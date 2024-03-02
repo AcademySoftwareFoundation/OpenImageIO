@@ -927,7 +927,7 @@ Filesystem::parse_pattern(const char* pattern_, int framepadding_override,
         }
         if (framepadding_override > 0)
             padding = framepadding_override;
-        fmt = Strutil::sprintf("%%0%dd", padding);
+        fmt = Strutil::fmt::format("%0{}d", padding);
     }
 
     // std::cout << "Format: '" << fmt << "'\n";

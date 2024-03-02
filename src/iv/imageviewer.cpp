@@ -1085,24 +1085,24 @@ ImageViewer::updateStatusBar()
         return;
     }
     std::string message;
-    message = Strutil::sprintf("(%d/%d) : ", m_current_image + 1,
-                               (int)m_images.size());
+    message = Strutil::fmt::format("({}/{}) : ", m_current_image + 1,
+                                   (int)m_images.size());
     message += cur()->shortinfo();
     statusImgInfo->setText(message.c_str());
 
     message.clear();
     switch (m_color_mode) {
     case RGBA:
-        message = Strutil::sprintf("RGBA (%d-%d)", m_current_channel,
-                                   m_current_channel + 3);
+        message = Strutil::fmt::format("RGBA ({}-{})", m_current_channel,
+                                       m_current_channel + 3);
         break;
     case RGB:
-        message = Strutil::sprintf("RGB (%d-%d)", m_current_channel,
-                                   m_current_channel + 2);
+        message = Strutil::fmt::format("RGB ({}-{})", m_current_channel,
+                                       m_current_channel + 2);
         break;
     case LUMINANCE:
-        message = Strutil::sprintf("Lum (%d-%d)", m_current_channel,
-                                   m_current_channel + 2);
+        message = Strutil::fmt::format("Lum ({}-{})", m_current_channel,
+                                       m_current_channel + 2);
         break;
     case HEATMAP: message = "Heat ";
     case SINGLE_CHANNEL:
@@ -1110,29 +1110,30 @@ ImageViewer::updateStatusBar()
             && spec->channelnames[m_current_channel].size())
             message += spec->channelnames[m_current_channel];
         else if (m_color_mode == HEATMAP) {
-            message += Strutil::sprintf("%d", m_current_channel);
+            message += Strutil::fmt::format("{}", m_current_channel);
         } else {
-            message = Strutil::sprintf("chan %d", m_current_channel);
+            message = Strutil::fmt::format("chan {}", m_current_channel);
         }
         break;
     }
-    message += Strutil::sprintf("  %g:%g  exp %+.1f  gam %.2f",
-                                zoom() >= 1 ? zoom() : 1.0f,
-                                zoom() >= 1 ? 1.0f : 1.0f / zoom(),
-                                cur()->exposure(), cur()->gamma());
+    message += Strutil::fmt::format("  {}:{}  exp {:+.1f}  gam {:.2f}",
+                                    zoom() >= 1 ? zoom() : 1.0f,
+                                    zoom() >= 1 ? 1.0f : 1.0f / zoom(),
+                                    cur()->exposure(), cur()->gamma());
     if (cur()->nsubimages() > 1) {
         if (cur()->auto_subimage()) {
-            message += Strutil::sprintf("  subimg AUTO (%d/%d)",
-                                        cur()->subimage() + 1,
-                                        cur()->nsubimages());
+            message += Strutil::fmt::format("  subimg AUTO ({}/{})",
+                                            cur()->subimage() + 1,
+                                            cur()->nsubimages());
         } else {
-            message += Strutil::sprintf("  subimg %d/%d", cur()->subimage() + 1,
-                                        cur()->nsubimages());
+            message += Strutil::fmt::format("  subimg {}/{}",
+                                            cur()->subimage() + 1,
+                                            cur()->nsubimages());
         }
     }
     if (cur()->nmiplevels() > 1) {
-        message += Strutil::sprintf("  MIP %d/%d", cur()->miplevel() + 1,
-                                    cur()->nmiplevels());
+        message += Strutil::fmt::format("  MIP {}/{}", cur()->miplevel() + 1,
+                                        cur()->nmiplevels());
     }
 
     statusViewInfo->setText(message.c_str());  // tr("iv status"));

@@ -286,7 +286,7 @@ DPXInput::seek_subimage(int subimage, int miplevel)
     default: {
         for (int i = 0; i < m_dpx.header.ImageElementComponentCount(subimage);
              i++) {
-            std::string ch = Strutil::sprintf("channel%d", i);
+            std::string ch = Strutil::fmt::format("channel{}", i);
             m_spec.channelnames.push_back(ch);
         }
     }
@@ -319,7 +319,7 @@ DPXInput::seek_subimage(int subimage, int miplevel)
         if (!std::isnan(m_dpx.header.Gamma()) && m_dpx.header.Gamma() != 0) {
             float g = float(m_dpx.header.Gamma());
             m_spec.attribute("oiio:ColorSpace",
-                             Strutil::sprintf("Gamma%.2g", g));
+                             Strutil::fmt::format("Gamma{:.2}", g));
             m_spec.attribute("oiio:Gamma", g);
             break;
         }
@@ -537,7 +537,8 @@ DPXInput::seek_subimage(int subimage, int miplevel)
         // don't set the attribute at all
         break;
     default:
-        tmpstr = Strutil::sprintf("Undefined %d", (int)m_dpx.header.Signal());
+        tmpstr = Strutil::fmt::format("Undefined {}",
+                                      (int)m_dpx.header.Signal());
         break;
     }
     if (!tmpstr.empty())

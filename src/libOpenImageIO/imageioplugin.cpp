@@ -48,8 +48,8 @@ static std::vector<ustring> format_list_vector;
 // Which format names and extensions are procedural (not reading from files)
 static std::set<std::string> procedural_plugins;
 
-static std::string pattern = Strutil::sprintf(".imageio.%s",
-                                              Plugin::plugin_extension());
+static std::string pattern = Strutil::fmt::format(".imageio.{}",
+                                                  Plugin::plugin_extension());
 
 
 inline void
@@ -135,7 +135,7 @@ declare_imageio_format_locked(const std::string& format_name,
         format_library_versions[format_name] = lib_version;
         if (library_list.length())
             library_list += std::string(";");
-        library_list += Strutil::sprintf("%s:%s", format_name, lib_version);
+        library_list += Strutil::fmt::format("{}:{}", format_name, lib_version);
         // std::cout << format_name << ": " << lib_version << "\n";
     }
 }

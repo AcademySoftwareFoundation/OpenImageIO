@@ -105,27 +105,12 @@ IvImage::shortinfo() const
 
 
 // Format name/value pairs as HTML table entries.
-std::string
-html_table_row(const char* name, const std::string& value)
+template<typename T>
+inline std::string
+html_table_row(string_view name, const T& value)
 {
-    std::string line = Strutil::sprintf("<tr><td><i>%s</i> : &nbsp;&nbsp;</td>",
-                                        name);
-    line += Strutil::sprintf("<td>%s</td></tr>\n", value.c_str());
-    return line;
-}
-
-
-std::string
-html_table_row(const char* name, int value)
-{
-    return html_table_row(name, Strutil::sprintf("%d", value));
-}
-
-
-std::string
-html_table_row(const char* name, float value)
-{
-    return html_table_row(name, Strutil::sprintf("%g", value));
+    return Strutil::fmt::format(
+        "<tr><td><i>{}</i> : &nbsp;&nbsp;</td><td>{}</td></tr>\n", name, value);
 }
 
 
@@ -136,19 +121,18 @@ IvImage::longinfo() const
     if (m_longinfo.empty()) {
         const ImageSpec& m_spec(nativespec());
         m_longinfo += "<table>";
-        //        m_longinfo += html_table_row (Strutil::sprintf("<b>%s</b>", m_name.c_str()).c_str(),
+        //        m_longinfo += html_table_row (Strutil::fmt::format("<b>{}</b>", m_name.c_str()).c_str(),
         //                                std::string());
         if (m_spec.depth <= 1)
             m_longinfo += html_table_row("Dimensions",
-                                         Strutil::sprintf("%d x %d pixels",
-                                                          m_spec.width,
-                                                          m_spec.height));
+                                         Strutil::fmt::format("{} x {} pixels",
+                                                              m_spec.width,
+                                                              m_spec.height));
         else
-            m_longinfo += html_table_row("Dimensions",
-                                         Strutil::sprintf("%d x %d x %d pixels",
-                                                          m_spec.width,
-                                                          m_spec.height,
-                                                          m_spec.depth));
+            m_longinfo += html_table_row(
+                "Dimensions",
+                Strutil::fmt::format("{} x {} x {} pixels", m_spec.width,
+                                     m_spec.height, m_spec.depth));
         m_longinfo += html_table_row("Channels", m_spec.nchannels);
         std::string chanlist;
         for (int i = 0; i < m_spec.nchannels; ++i) {
@@ -159,27 +143,30 @@ IvImage::longinfo() const
         m_longinfo += html_table_row("Channel list", chanlist);
         m_longinfo += html_table_row("File format", file_format_name());
         m_longinfo += html_table_row("Data format", m_file_dataformat.c_str());
-        m_longinfo += html_table_row(
-            "Data size", Strutil::sprintf("%.2f MB", (float)m_spec.image_bytes()
-                                                         / (1024.0 * 1024.0)));
-        m_longinfo += html_table_row("Image origin",
-                                     Strutil::sprintf("%d, %d, %d", m_spec.x,
-                                                      m_spec.y, m_spec.z));
-        m_longinfo += html_table_row("Full/display size",
-                                     Strutil::sprintf("%d x %d x %d",
-                                                      m_spec.full_width,
-                                                      m_spec.full_height,
-                                                      m_spec.full_depth));
         m_longinfo
-            += html_table_row("Full/display origin",
-                              Strutil::sprintf("%d, %d, %d", m_spec.full_x,
-                                               m_spec.full_y, m_spec.full_z));
+            += html_table_row("Data size",
+                              Strutil::fmt::format("{:.2f} MB",
+                                                   (float)m_spec.image_bytes()
+                                                       / (1024.0 * 1024.0)));
+        m_longinfo += html_table_row("Image origin",
+                                     Strutil::fmt::format("{}, {}, {}",
+                                                          m_spec.x, m_spec.y,
+                                                          m_spec.z));
+        m_longinfo += html_table_row("Full/display size",
+                                     Strutil::fmt::format("{} x {} x {}",
+                                                          m_spec.full_width,
+                                                          m_spec.full_height,
+                                                          m_spec.full_depth));
+        m_longinfo += html_table_row("Full/display origin",
+                                     Strutil::fmt::format("{}, {}, {}",
+                                                          m_spec.full_x,
+                                                          m_spec.full_y,
+                                                          m_spec.full_z));
         if (m_spec.tile_width)
-            m_longinfo += html_table_row("Scanline/tile",
-                                         Strutil::sprintf("tiled %d x %d x %d",
-                                                          m_spec.tile_width,
-                                                          m_spec.tile_height,
-                                                          m_spec.tile_depth));
+            m_longinfo += html_table_row(
+                "Scanline/tile",
+                Strutil::fmt::format("tiled {} x {} x {}", m_spec.tile_width,
+                                     m_spec.tile_height, m_spec.tile_depth));
         else
             m_longinfo += html_table_row("Scanline/tile", "scanline");
         if (m_spec.alpha_channel >= 0)
@@ -194,7 +181,7 @@ IvImage::longinfo() const
         attribs.sort(false /* sort case-insensitively */);
         for (auto&& p : attribs) {
             std::string s = m_spec.metadata_val(p, true);
-            m_longinfo += html_table_row(p.name().c_str(), s);
+            m_longinfo += html_table_row(p.name(), s);
         }
 
         m_longinfo += "</table>";
