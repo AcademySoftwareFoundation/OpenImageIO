@@ -356,7 +356,7 @@ print_info_subimage(std::ostream& out, Oiiotool& ot, int current_subimage,
             if (opt.sum) {
                 imagesize_t imagebytes = spec.image_bytes(true);
                 // totalsize += imagebytes;
-                lines[0] += format(" ({.2f} MB)",
+                lines[0] += format(" ({:.2f} MB)",
                                    (float)imagebytes / (1024.0 * 1024.0));
             }
             std::string file_format_name;

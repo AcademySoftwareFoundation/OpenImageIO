@@ -148,7 +148,7 @@ struct index_formatter : format_parser_with_separator {
 // fmtlib custom formatter that formats a type `T` as if it were an array
 // `Elem[Size]` (and it must be laid out that way in memory). The formatting
 // spec will apply to each element. For example, if the object has 3 float
-// elements and the spec is "{.3f}", then the output might be "1.234 2.345
+// elements and the spec is "{:.3f}", then the output might be "1.234 2.345
 // 3.456".
 //
 // In addition to the usual formatting spec, we also recognize the following
