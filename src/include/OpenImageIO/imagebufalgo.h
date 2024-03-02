@@ -1763,15 +1763,15 @@ enum NonFiniteFixMode
     NONFINITE_BLACK = 1,    ///< Replace non-finite values with 0.0.
     NONFINITE_BOX3 = 2,     ///< Replace non-finite values with the average
                             ///< value of any finite pixels in a 3x3 window.
-    NONFINITE_ERROR = 100,  ///< EReturn false (error), but don't change any
+    NONFINITE_ERROR = 100,  ///< Return false (error), but don't change any
                             ///< values, if any nonfinite values are found.
 };
 
 /// `fixNonFinite()` returns in image containing the values of `src` (within
-/// the ROI), while repairing  any non-finite (NaN/Inf) pixels. If
-/// pixelsFixed is not nullptr, store in it the number of pixels that
+/// the ROI), while repairing any non-finite (NaN/Inf) pixels. If
+/// `pixelsFixed` is not nullptr, store in it the number of pixels that
 /// contained non-finite value.  It is permissible to operate in-place (with
-/// `src` and  `dst` referring to the same image).
+/// `src` and `dst` referring to the same image).
 ///
 /// How the non-finite values are repaired is specified by one of the `mode`
 /// parameter, which is an enum of `NonFiniteFixMode`.
