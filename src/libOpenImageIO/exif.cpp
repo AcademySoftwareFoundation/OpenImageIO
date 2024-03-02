@@ -647,6 +647,8 @@ add_exif_item_to_spec(ImageSpec& spec, const char* name,
         if (dspan.empty())
             return;
         if (swab) {
+            // In the byte swap case, copy it into a vector because the
+            // upstream source isn't mutable.
             std::vector<uint16_t> dswab((const uint16_t*)dspan.begin(),
                                         (const uint16_t*)dspan.end());
             swap_endian(dswab.data(), dswab.size());
@@ -662,6 +664,8 @@ add_exif_item_to_spec(ImageSpec& spec, const char* name,
         if (dspan.empty())
             return;
         if (swab) {
+            // In the byte swap case, copy it into a vector because the
+            // upstream source isn't mutable.
             std::vector<uint32_t> dswab((const uint32_t*)dspan.begin(),
                                         (const uint32_t*)dspan.end());
             swap_endian(dswab.data(), dswab.size());
@@ -678,6 +682,8 @@ add_exif_item_to_spec(ImageSpec& spec, const char* name,
             return;
         float* f = OIIO_ALLOCA(float, count);
         for (size_t i = 0; i < count; ++i) {
+            // Because the values in the blob aren't 32-bit-aligned, memcpy
+            // them into ints to do the swapping.
             unsigned int num, den;
             memcpy(&num, dspan.data() + (2 * i) * sizeof(unsigned int),
                    sizeof(unsigned int));  //NOSONAR
@@ -702,6 +708,8 @@ add_exif_item_to_spec(ImageSpec& spec, const char* name,
             return;
         float* f = OIIO_ALLOCA(float, count);
         for (size_t i = 0; i < count; ++i) {
+            // Because the values in the blob aren't 32-bit-aligned, memcpy
+            // them into ints to do the swapping.
             int num, den;
             memcpy(&num, dspan.data() + (2 * i) * sizeof(int),
                    sizeof(int));  //NOSONAR
