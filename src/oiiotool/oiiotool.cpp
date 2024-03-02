@@ -11,6 +11,7 @@
 #include <iostream>
 #include <iterator>
 #include <map>
+#include <numeric>
 #include <regex>
 #include <sstream>
 #include <string>
@@ -1942,6 +1943,13 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
                 for (size_t i = 0; i < pixstat.avg.size(); ++i)
                     out << (i ? "," : "") << pixstat.avg[i];
                 result = out.str();
+            } else if (metadata == "NONFINITE_COUNT") {
+                auto pixstat    = ImageBufAlgo::computePixelStats((*img)(0, 0));
+                imagesize_t sum = std::accumulate(pixstat.nancount.begin(),
+                                                  pixstat.nancount.end(), 0)
+                                  + std::accumulate(pixstat.infcount.begin(),
+                                                    pixstat.infcount.end(), 0);
+                result = Strutil::to_string(sum);
             } else if (metadata == "META" || metadata == "METANATIVE") {
                 std::stringstream out;
                 print_info_options opt;
@@ -4878,19 +4886,23 @@ action_fixnan(Oiiotool& ot, cspan<const char*> argv)
     ImageRecRef A = ot.pop();
     ot.push(new ImageRec(*A, allsubimages ? -1 : 0, allsubimages ? -1 : 0, true,
                          false));
-    int subimages = allsubimages ? A->subimages() : 1;
+    imagesize_t total_nonfinite = 0;
+    int subimages               = allsubimages ? A->subimages() : 1;
     for (int s = 0; s < subimages; ++s) {
         int miplevels = ot.curimg->miplevels(s);
         for (int m = 0; m < miplevels; ++m) {
             const ImageBuf& Aib((*A)(s, m));
             ImageBuf& Rib((*ot.curimg)(s, m));
-            bool ok = ImageBufAlgo::fixNonFinite(Rib, Aib, mode);
-            if (!ok) {
+            int num_nonfinite = 0;
+            bool ok           = ImageBufAlgo::fixNonFinite(Rib, Aib, mode,
+                                                           &num_nonfinite);
+            if (!ok)
                 ot.error(command, Rib.geterror());
-                return;
-            }
+            total_nonfinite += num_nonfinite;
         }
     }
+    // Set user variable NONFINITE_COUNT to the number of pixels modified.
+    ot.uservars["NONFINITE_COUNT"] = int(total_nonfinite);
 }
 
 
