@@ -340,7 +340,7 @@ JxlInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
-    if (y < 0 || y > m_spec.height)  // out of range scanline
+    if (y < 0 || y >= m_spec.height)  // out of range scanline
         return false;
 
     memcpy(data, (void*)((uint8_t*)(m_pixels.data()) + y * scanline_size),
