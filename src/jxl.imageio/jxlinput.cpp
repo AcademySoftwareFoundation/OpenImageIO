@@ -2,6 +2,16 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+// JPEG XL
+
+// https://jpeg.org/jpegxl/index.html
+// https://jpegxl.info
+// https://jpegxl.info/test-page
+// https://people.csail.mit.edu/ericchan/hdr/hdr-jxl.php
+// https://saklistudio.com/jxltests
+// https://thorium.rocks
+// https://bugs.chromium.org/p/chromium/issues/detail?id=1451807
+
 #include <algorithm>
 #include <cassert>
 #include <cstdio>
@@ -61,10 +71,14 @@ private:
     void close_file() { init(); }
 };
 
+
+
 // Export version number and create function symbols
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT int jxl_imageio_version = OIIO_PLUGIN_VERSION;
+
+
 
 OIIO_EXPORT const char*
 jxl_imageio_library_version()
@@ -72,6 +86,8 @@ jxl_imageio_library_version()
     return "libjxl " OIIO_STRINGIZE(JPEGXL_MAJOR_VERSION) "." OIIO_STRINGIZE(
         JPEGXL_MINOR_VERSION) "." OIIO_STRINGIZE(JPEGXL_PATCH_VERSION);
 }
+
+
 
 OIIO_EXPORT ImageInput*
 jxl_input_imageio_create()
@@ -82,6 +98,8 @@ jxl_input_imageio_create()
 OIIO_EXPORT const char* jxl_input_extensions[] = { "jxl", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
+
+
 
 bool
 JxlInput::valid_file(Filesystem::IOProxy* ioproxy) const
@@ -99,14 +117,16 @@ JxlInput::valid_file(Filesystem::IOProxy* ioproxy) const
 
     JxlSignature signature = JxlSignatureCheck(magic, sizeof(magic));
     switch (signature) {
-    case JXL_SIG_CODESTREAM:
-    case JXL_SIG_CONTAINER: break;
-    default: return false;
+        case JXL_SIG_CODESTREAM:
+        case JXL_SIG_CONTAINER: break;
+        default: return false;
     }
 
     DBG std::cout << "JxlInput::valid_file() return true\n";
     return true;
 }
+
+
 
 bool
 JxlInput::open(const std::string& name, ImageSpec& newspec,
@@ -118,6 +138,8 @@ JxlInput::open(const std::string& name, ImageSpec& newspec,
     m_config.reset(new ImageSpec(config));  // save config spec
     return open(name, newspec);
 }
+
+
 
 bool
 JxlInput::open(const std::string& name, ImageSpec& newspec)
@@ -168,17 +190,17 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
-    std::vector<uint8_t> jxl;
+    std::unique_ptr<uint8_t[]> jxl;
 
     DBG std::cout << "proxytype = " << proxytype << "\n";
     if (proxytype == "file") {
         size_t size = m_io->size();
         DBG std::cout << "size = " << size << "\n";
-        jxl.resize(size);
-        size_t result = m_io->read(jxl.data(), size);
+	jxl.reset(new uint8_t[size]);
+        size_t result = m_io->read(jxl.get(), size);
         DBG std::cout << "result = " << result << "\n";
 
-        status = JxlDecoderSetInput(m_decoder.get(), jxl.data(), jxl.size());
+        status = JxlDecoderSetInput(m_decoder.get(), jxl.get(), size);
         if (status != JXL_DEC_SUCCESS) {
             DBG std::cout << "JxlDecoderSetInput() returned " << status << "\n";
             return false;
@@ -235,7 +257,7 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
             size_t icc_size;
 
             if (JXL_DEC_SUCCESS
-                != JxlDecoderGetICCProfileSize(m_decoder.get(), &format,
+                != JxlDecoderGetICCProfileSize(m_decoder.get(), 
                                                JXL_COLOR_PROFILE_TARGET_DATA,
                                                &icc_size)) {
                 errorfmt("JxlDecoderGetICCProfileSize failed\n");
@@ -243,7 +265,7 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
             }
             m_icc_profile.resize(icc_size);
             if (JXL_DEC_SUCCESS
-                != JxlDecoderGetColorAsICCProfile(m_decoder.get(), &format,
+                != JxlDecoderGetColorAsICCProfile(m_decoder.get(), 
                                                   JXL_COLOR_PROFILE_TARGET_DATA,
                                                   m_icc_profile.data(),
                                                   m_icc_profile.size())) {
@@ -309,6 +331,8 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
     return true;
 }
 
+
+
 bool
 JxlInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                void* data)
@@ -320,28 +344,16 @@ JxlInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
-    if (y < 0 /* || y >= (int)m_cinfo.output_height*/)  // out of range scanline
+    if (y < 0)  // out of range scanline
         return false;
-    if (m_next_scanline > y) {
-        // User is trying to read an earlier scanline than the one we're
-        // up to.  Easy fix: close the file and re-open.
-        // Don't forget to save and restore any configuration settings.
-        ImageSpec configsave;
-        if (m_config)
-            configsave = *m_config;
-        ImageSpec dummyspec;
-        // int subimage = current_subimage();
-        // if (!close() || !open(m_filename, dummyspec, configsave)
-        //     || !seek_subimage(subimage, 0))
-        //     return false;  // Somehow, the re-open failed
-        // OIIO_DASSERT(m_next_scanline == 0 && current_subimage() == subimage);
-    }
 
     memcpy(data, (void*)((uint8_t*)(m_pixels.data()) + y * scanline_size),
            scanline_size);
 
     return true;
 }
+
+
 
 bool
 JxlInput::close()

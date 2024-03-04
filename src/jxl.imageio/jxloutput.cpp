@@ -1,5 +1,5 @@
 // Copyright Contributors to the OpenImageIO project.
-// SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+// SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #include <cassert>
@@ -17,7 +17,7 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-#define DBG if (1)
+#define DBG if (0)
 
 class JxlOutput final : public ImageOutput {
 public:
@@ -45,7 +45,6 @@ public:
                     stride_t xstride, stride_t ystride,
                     stride_t zstride) override;
     bool close() override;
-    bool copy_image(ImageInput* in) override;
 
 private:
     std::string m_filename;
@@ -70,6 +69,8 @@ private:
     bool save_image();
 };
 
+
+
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageOutput*
@@ -77,6 +78,8 @@ jxl_output_imageio_create()
 {
     return new JxlOutput;
 }
+
+
 
 OIIO_EXPORT const char* jxl_output_extensions[] = { "jxl", nullptr };
 
@@ -183,6 +186,8 @@ JxlOutput::open(const std::string& name, const ImageSpec& newspec,
     return true;
 }
 
+
+
 bool
 JxlOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
                           stride_t xstride)
@@ -191,6 +196,8 @@ JxlOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
 
     return write_scanlines(y, y + 1, z, format, data, xstride, AutoStride);
 }
+
+
 
 bool
 JxlOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
@@ -204,7 +211,6 @@ JxlOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
                        m_spec.width, m_spec.height);
     size_t npixels       = size_t(m_spec.width) * size_t(yend - ybegin);
     size_t nvals         = npixels * size_t(m_spec.nchannels);
-    const void* origdata = data;
 
     data = to_native_rectangle(m_spec.x, m_spec.x + m_spec.width, ybegin, yend,
                                z, z + 1, format, data, xstride, ystride,
@@ -220,6 +226,8 @@ JxlOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
     return true;
 }
 
+
+
 bool
 JxlOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
                       stride_t xstride, stride_t ystride, stride_t zstride)
@@ -230,6 +238,8 @@ JxlOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
     return copy_tile_to_image_buffer(x, y, z, format, data, xstride, ystride,
                                      zstride, &m_tilebuffer[0]);
 }
+
+
 
 bool
 JxlOutput::save_image()
@@ -299,6 +309,8 @@ JxlOutput::save_image()
     return ok;
 }
 
+
+
 bool
 JxlOutput::close()
 {
@@ -323,16 +335,6 @@ JxlOutput::close()
 
     init();
     return ok;
-}
-
-bool
-JxlOutput::copy_image(ImageInput* in)
-{
-    if (in && !strcmp(in->format_name(), "jxl")) {
-        return true;
-    }
-
-    return ImageOutput::copy_image(in);
 }
 
 OIIO_PLUGIN_NAMESPACE_END
