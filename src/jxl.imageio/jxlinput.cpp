@@ -285,12 +285,8 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
             // if (buffer_size != info.xsize * info.ysize * 16) {
             if (buffer_size
                 != info.xsize * info.ysize * m_channels * sizeof(float)) {
-                fprintf(stderr,
-                        "Invalid out buffer size %" PRIu64 " %" PRIu64 "\n",
-                        static_cast<uint64_t>(buffer_size),
-                        // static_cast<uint64_t>(info.xsize * info.ysize * 16));
-                        static_cast<uint64_t>(info.xsize * info.ysize
-                                              * m_channels * sizeof(float)));
+                errorfmt("Invalid out buffer size {} {}\n", buffer_size,
+                         info.xsize * info.ysize * m_channels * sizeof(float));
                 return false;
             }
             m_pixels.resize(info.xsize * info.ysize * m_channels);
