@@ -117,9 +117,9 @@ JxlInput::valid_file(Filesystem::IOProxy* ioproxy) const
 
     JxlSignature signature = JxlSignatureCheck(magic, sizeof(magic));
     switch (signature) {
-        case JXL_SIG_CODESTREAM:
-        case JXL_SIG_CONTAINER: break;
-        default: return false;
+    case JXL_SIG_CODESTREAM:
+    case JXL_SIG_CONTAINER: break;
+    default: return false;
     }
 
     DBG std::cout << "JxlInput::valid_file() return true\n";
@@ -196,7 +196,7 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
     if (proxytype == "file") {
         size_t size = m_io->size();
         DBG std::cout << "size = " << size << "\n";
-	jxl.reset(new uint8_t[size]);
+        jxl.reset(new uint8_t[size]);
         size_t result = m_io->read(jxl.get(), size);
         DBG std::cout << "result = " << result << "\n";
 
@@ -257,7 +257,7 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
             size_t icc_size;
 
             if (JXL_DEC_SUCCESS
-                != JxlDecoderGetICCProfileSize(m_decoder.get(), 
+                != JxlDecoderGetICCProfileSize(m_decoder.get(),
                                                JXL_COLOR_PROFILE_TARGET_DATA,
                                                &icc_size)) {
                 errorfmt("JxlDecoderGetICCProfileSize failed\n");
@@ -265,7 +265,7 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
             }
             m_icc_profile.resize(icc_size);
             if (JXL_DEC_SUCCESS
-                != JxlDecoderGetColorAsICCProfile(m_decoder.get(), 
+                != JxlDecoderGetColorAsICCProfile(m_decoder.get(),
                                                   JXL_COLOR_PROFILE_TARGET_DATA,
                                                   m_icc_profile.data(),
                                                   m_icc_profile.size())) {
