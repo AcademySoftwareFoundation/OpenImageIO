@@ -10,6 +10,17 @@
 
 // Note: libdpx originally from: https://github.com/PatrickPalmer/dpx
 // But that seems not to be actively maintained.
+//
+// Nevertheless, because the contents of the libdpx subdirectory is "imported"
+// code, we have always strived to keep our copy as textually close to the
+// original as possible, to enable us to diff it against the original and keep
+// up with any changes (if there ever are any). So we exclude this file from
+// clang-format and try to keep changes as minimal as possible.
+//
+// At some point, we may want to consider just accepting that we forked long
+// ago and are probably the sole maintainers of this code, and just allow
+// ourselves to diverge from the original.
+
 #include "libdpx/DPX.h"
 #include "libdpx/DPXColorConverter.h"
 #include "libdpx/DPXHeader.h"
