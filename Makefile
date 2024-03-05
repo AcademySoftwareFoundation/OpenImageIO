@@ -18,9 +18,6 @@
 
 working_dir	:= ${shell pwd}
 
-# Figure out which architecture we're on
-include ${working_dir}/src/make/detectplatform.mk
-
 MY_MAKE_FLAGS ?=
 MY_NINJA_FLAGS ?=
 MY_CMAKE_FLAGS ?=
@@ -29,14 +26,6 @@ NINJA ?= ninja
 CMAKE ?= cmake
 CMAKE_BUILD_TYPE ?= Release
 
-# Site-specific build instructions
-OPENIMAGEIO_SITE ?= ${shell uname -n}
-ifneq (${shell echo ${OPENIMAGEIO_SITE} | grep imageworks.com},)
-include ${working_dir}/site/spi/Makefile-bits
-endif
-
-# Set up variables holding the names of platform-dependent directories --
-# set these after evaluating site-specific instructions
 build_dir ?= build
 dist_dir  ?= dist
 
@@ -50,7 +39,6 @@ ifneq (${VERBOSE},0)
 	MY_NINJA_FLAGS += -v
 	TEST_FLAGS += -V
 endif
-$(info OPENIMAGEIO_SITE = ${OPENIMAGEIO_SITE})
 $(info dist_dir = ${dist_dir})
 $(info INSTALL_PREFIX = ${INSTALL_PREFIX})
 endif
@@ -367,7 +355,6 @@ help:
 	@echo "  C++ compiler and build process:"
 	@echo "      VERBOSE=1                Show all compilation commands"
 	@echo "      STOP_ON_WARNING=0        Do not stop building if compiler warns"
-	@echo "      OPENIMAGEIO_SITE=xx      Use custom site build mods"
 	@echo "      MYCC=xx MYCXX=yy         Use custom compilers"
 	@echo "      CMAKE_CXX_STANDARD=14    C++ standard to build with (default is 17)"
 	@echo "      USE_LIBCPLUSPLUS=1       For clang, use libc++"
