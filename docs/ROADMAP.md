@@ -68,6 +68,8 @@ See the [Dependency proposal wiki page](https://github.com/AcademySoftwareFounda
 - [ ] [#4160](https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/4160)
   Using named keyword/value lists more extensively in imagebufalgo.h
 
+- [ ] Deprecate as much as possible of the old printf-style string formatting we use internally, instead using the fmt/std::format style everywhere. This includes changing Strutil::format to alias to Strutil::fmt::format (currently it aliases to Strutil::old::format, which uses printf style).
+
 - [ ] Remove deprecated API elements
 
   Hunt for things marked DEPRECATED and try to get rid of them where possible.
@@ -76,6 +78,16 @@ See the [Dependency proposal wiki page](https://github.com/AcademySoftwareFounda
 
 
 ## The rest
+
+Other initiatives we hope to have completed by the time of this next
+major release:
+
+- [ ] [#4164](https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/4164) Better color management
+
+  Regardless of OCIO availability, version, or contents of any configs, have universal support for the [canonical color spaces](https://github.com/AcademySoftwareFoundation/MaterialX/blob/main/documents/Specification/MaterialX.Specification.md#color-spaces-and-color-management-systems) that seem to be the common consensus of ACES, MaterialX, and USD.
+- [ ] Preliminary Rust bindings for most of the OpenImageIO APIs.
+- [ ] Python wheel construction so `pip install openimageio` will be an easy way
+      for users to install the whole banana.
 
 If there is something you think should be on the roadmap for the next major
 release but is not, please open an issue or discussion to propose it, or
