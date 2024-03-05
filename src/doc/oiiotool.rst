@@ -145,6 +145,8 @@ contents of an expression may be any of:
     (channels are comma-separated)
   * `AVGCOLOR` : the average pixel value of the image (channels are
     comma-separated)
+  * `NONFINITE_COUNT` : the number of pixel values in the image that are
+    either NaN or Inf values. (Added in OIIO 2.5.10.)
   * `META` : a multi-line string containing the full metadata of the image,
     similar to what would be printed with `oiiotool -info -v`.
   * `METABRIEF` : a string containing the brief one-line description,
