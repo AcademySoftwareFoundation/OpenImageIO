@@ -23,7 +23,6 @@ class JxlOutput final : public ImageOutput {
 public:
     JxlOutput()
     {
-        fprintf(stderr, "JxlOutput()\n");
         init();
     }
     ~JxlOutput() override { close(); }
