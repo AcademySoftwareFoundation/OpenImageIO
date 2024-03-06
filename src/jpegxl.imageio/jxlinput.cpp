@@ -76,12 +76,12 @@ private:
 // Export version number and create function symbols
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-OIIO_EXPORT int jxl_imageio_version = OIIO_PLUGIN_VERSION;
+OIIO_EXPORT int jpegxl_imageio_version = OIIO_PLUGIN_VERSION;
 
 
 
 OIIO_EXPORT const char*
-jxl_imageio_library_version()
+jpegxl_imageio_library_version()
 {
     return "libjxl " OIIO_STRINGIZE(JPEGXL_MAJOR_VERSION) "." OIIO_STRINGIZE(
         JPEGXL_MINOR_VERSION) "." OIIO_STRINGIZE(JPEGXL_PATCH_VERSION);
@@ -90,12 +90,12 @@ jxl_imageio_library_version()
 
 
 OIIO_EXPORT ImageInput*
-jxl_input_imageio_create()
+jpegxl_input_imageio_create()
 {
     return new JxlInput;
 }
 
-OIIO_EXPORT const char* jxl_input_extensions[] = { "jxl", nullptr };
+OIIO_EXPORT const char* jpegxl_input_extensions[] = { "jxl", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 

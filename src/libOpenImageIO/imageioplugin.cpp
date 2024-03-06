@@ -280,7 +280,7 @@ PLUGENTRY(ico);
 PLUGENTRY(iff);
 PLUGENTRY(jpeg);
 PLUGENTRY(jpeg2000);
-PLUGENTRY(jxl);
+PLUGENTRY(jpegxl);
 PLUGENTRY(null);
 PLUGENTRY(openexr);
 PLUGENTRY(openvdb);
@@ -384,7 +384,7 @@ catalog_builtin_plugins()
     DECLAREPLUG (jpeg2000);
 #endif
 #if defined(USE_JXL)
-    DECLAREPLUG (jxl);
+    DECLAREPLUG (jpegxl);
 #endif
 #if !defined(DISABLE_NULL)
     DECLAREPLUG (null);

@@ -70,14 +70,14 @@ private:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageOutput*
-jxl_output_imageio_create()
+jpegxl_output_imageio_create()
 {
     return new JxlOutput;
 }
 
 
 
-OIIO_EXPORT const char* jxl_output_extensions[] = { "jxl", nullptr };
+OIIO_EXPORT const char* jpegxl_output_extensions[] = { "jxl", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 
