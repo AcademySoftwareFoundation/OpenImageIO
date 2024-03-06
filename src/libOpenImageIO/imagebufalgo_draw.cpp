@@ -740,8 +740,6 @@ static const char* font_dir_prefixes[]
 static const char* font_dir_suffixes[]
     = { "fonts",       "Fonts",       "Library/Fonts",
         "share/fonts", "share/Fonts", "share/fonts/OpenImageIO" };
-static const char* default_font_name[] = { "DroidSans", "cour", "Courier New",
-                                           "FreeMono", nullptr };
 // static const char* font_extensions[]   = { "", ".ttf", ".ttc", ".pfa", ".pfb" };
 
 
@@ -883,6 +881,10 @@ namespace {  // anon
 static mutex ft_mutex;
 static FT_Library ft_library = NULL;
 static bool ft_broken        = false;
+
+static const char* default_font_name[] = { "DroidSans", "cour", "Courier New",
+                                           "FreeMono", nullptr };
+
 
 
 // Helper: given unicode and a font face, compute its size
