@@ -21,10 +21,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 class JxlOutput final : public ImageOutput {
 public:
-    JxlOutput()
-    {
-        init();
-    }
+    JxlOutput() { init(); }
     ~JxlOutput() override { close(); }
     const char* format_name(void) const override { return "jxl"; }
     int supports(string_view feature) const override
