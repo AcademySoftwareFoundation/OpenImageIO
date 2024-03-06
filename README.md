@@ -137,6 +137,9 @@ pull request (PR) mechanism.
 
 * [CONTRIBUTING](CONTRIBUTING.md) has detailed instructions about the
   development process.
+* [ROADMAP](docs/ROADMAP.md) is a high-level overview of the current
+  development priorities for the next annual release, expected in September,
+  2024.
 * [RELEASING](RELEASING.md) explains our policies and procedures for making
   releases. We have a major, possibly-compatibility-breaking, release annually
   in September/October, and minor bug fix and safe feature addition release at
