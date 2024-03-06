@@ -33,7 +33,7 @@ class JxlInput final : public ImageInput {
 public:
     JxlInput() { init(); }
     ~JxlInput() override { close(); }
-    const char* format_name(void) const override { return "jpeg xl"; }
+    const char* format_name(void) const override { return "jpegxl"; }
     int supports(string_view feature) const override
     {
         return (feature == "exif" || feature == "ioproxy");
