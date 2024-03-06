@@ -23,7 +23,7 @@ class JxlOutput final : public ImageOutput {
 public:
     JxlOutput() { init(); }
     ~JxlOutput() override { close(); }
-    const char* format_name(void) const override { return "jxl"; }
+    const char* format_name(void) const override { return "jpeg xl"; }
     int supports(string_view feature) const override
     {
         return (feature == "alpha" || feature == "nchannels"
