@@ -16,6 +16,7 @@
 #include <OpenEXR/IexThrowErrnoExc.h>
 #include <OpenEXR/ImfChannelList.h>
 #include <OpenEXR/ImfIO.h>
+#include <OpenEXR/ImfRgbaFile.h>
 
 #ifdef OPENEXR_VERSION_MAJOR
 #    define OPENEXR_CODED_VERSION                                    \

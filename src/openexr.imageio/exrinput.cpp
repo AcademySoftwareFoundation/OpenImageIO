@@ -51,7 +51,6 @@ OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wunused-parameter")
 #include <OpenEXR/ImfMultiPartInputFile.h>
 #include <OpenEXR/ImfPartType.h>
 #include <OpenEXR/ImfRationalAttribute.h>
-#include <OpenEXR/ImfRgbaFile.h>
 #include <OpenEXR/ImfStringAttribute.h>
 #include <OpenEXR/ImfStringVectorAttribute.h>
 #include <OpenEXR/ImfTiledInputPart.h>
