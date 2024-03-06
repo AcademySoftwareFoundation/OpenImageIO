@@ -14,11 +14,11 @@
 #include <OpenImageIO/Imath.h>
 #include <OpenImageIO/platform.h>
 
-#include <boost/version.hpp>
-
+#include <OpenEXR/ImfArray.h>
 #include <OpenEXR/ImfChannelList.h>
 #include <OpenEXR/ImfEnvmap.h>
 #include <OpenEXR/ImfInputFile.h>
+#include <OpenEXR/ImfRgba.h>
 #include <OpenEXR/ImfTestFile.h>
 #include <OpenEXR/ImfTiledInputFile.h>
 
@@ -51,6 +51,7 @@ OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wunused-parameter")
 #include <OpenEXR/ImfMultiPartInputFile.h>
 #include <OpenEXR/ImfPartType.h>
 #include <OpenEXR/ImfRationalAttribute.h>
+#include <OpenEXR/ImfRgbaFile.h>
 #include <OpenEXR/ImfStringAttribute.h>
 #include <OpenEXR/ImfStringVectorAttribute.h>
 #include <OpenEXR/ImfTiledInputPart.h>
@@ -731,6 +732,38 @@ suffixfound(string_view name, span<ChanNameHolder> chans)
 }
 
 
+// Returns the index of that channel name (suffix only) in the list, or -1 in case of failure.
+static int
+get_index_of_suffix(string_view name, span<ChanNameHolder> chans)
+{
+    for (size_t i = 0, n = chans.size(); i < n; ++i)
+        if (Strutil::iequals(name, chans[i].suffix))
+            return static_cast<int>(i);
+    return -1;
+}
+
+
+// Is this a luminance-chroma image, i.e., Y/BY/RY or Y/BY/RY/A or Y/BY/RY/Alpha?
+//
+// Note that extra channels are not supported.
+static bool
+is_luminance_chroma(span<ChanNameHolder> chans)
+{
+    if (chans.size() < 3 || chans.size() > 4)
+        return false;
+    if (!suffixfound("Y", chans))
+        return false;
+    if (!suffixfound("BY", chans))
+        return false;
+    if (!suffixfound("RY", chans))
+        return false;
+    if (chans.size() == 4 && !suffixfound("A", chans)
+        && !suffixfound("Alpha", chans))
+        return false;
+    return true;
+}
+
+
 }  // namespace
 
 
@@ -740,10 +773,8 @@ OpenEXRInput::PartInfo::query_channels(OpenEXRInput* in,
                                        const Imf::Header* header)
 {
     OIIO_DASSERT(!initialized);
-    bool ok        = true;
-    spec.nchannels = 0;
+    bool ok = true;
     const Imf::ChannelList& channels(header->channels());
-    std::vector<std::string> channelnames;  // Order of channels in file
     std::vector<ChanNameHolder> cnh;
     int c = 0;
     for (auto ci = channels.begin(); ci != channels.end(); ++c, ++ci)
@@ -790,6 +821,34 @@ OpenEXRInput::PartInfo::query_channels(OpenEXRInput* in,
     // Now we should have cnh sorted into the order that we want to present
     // to the OIIO client.
 
+    // Limitations for luminance-chroma images: no tiling, no deep samples, no
+    // miplevels/subimages, no extra channels.
+    luminance_chroma = is_luminance_chroma(cnh);
+    if (luminance_chroma) {
+        spec.attribute("openexr:luminancechroma", 1);
+        spec.format    = TypeDesc::HALF;
+        spec.nchannels = cnh.size();
+        if (spec.nchannels == 3) {
+            spec.channelnames  = { "R", "G", "B" };
+            spec.alpha_channel = -1;
+            spec.z_channel     = -1;
+        } else {
+            OIIO_ASSERT(spec.nchannels == 4);
+            int index_a = get_index_of_suffix("A", cnh);
+            if (index_a != -1) {
+                spec.channelnames  = { "R", "G", "B", "A" };
+                spec.alpha_channel = index_a;
+            } else {
+                spec.channelnames  = { "R", "G", "B", "Alpha" };
+                spec.alpha_channel = get_index_of_suffix("Alpha", cnh);
+                OIIO_ASSERT(spec.alpha_channel != -1);
+            }
+            spec.z_channel = -1;
+        }
+        spec.channelformats.clear();
+        return true;
+    }
+
     spec.format         = TypeDesc::UNKNOWN;
     bool all_one_format = true;
     for (int c = 0; c < spec.nchannels; ++c) {
@@ -812,7 +871,8 @@ OpenEXRInput::PartInfo::query_channels(OpenEXRInput* in,
             in->errorfmt(
                 "Subsampled channels are not supported (channel \"{}\" has sampling {},{}).",
                 cnh[c].fullname, cnh[c].xSampling, cnh[c].ySampling);
-            // FIXME: Some day, we should handle channel subsampling.
+            // FIXME: Some day, we should handle channel subsampling (beyond the luminance chroma
+            // special case, possibly replacing it).
         }
     }
     OIIO_DASSERT((int)spec.channelnames.size() == spec.nchannels);
@@ -909,8 +969,18 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
         m_deep_scanline_input_part = NULL;
         delete m_deep_tiled_input_part;
         m_deep_tiled_input_part = NULL;
+        delete m_input_rgba;
+        m_input_rgba = NULL;
         try {
-            if (part.spec.deep) {
+            if (part.luminance_chroma) {
+                if (subimage != 0 || miplevel != 0) {
+                    errorf(
+                        "Non-zero subimage or miplevel are not supported for luminance-chroma images.");
+                    return false;
+                }
+                m_input_stream->seekg(0);
+                m_input_rgba = new Imf::RgbaInputFile(*m_input_stream);
+            } else if (part.spec.deep) {
                 if (part.spec.tile_width)
                     m_deep_tiled_input_part
                         = new Imf::DeepTiledInputPart(*m_input_multipart,
@@ -933,6 +1003,7 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
             m_tiled_input_part         = NULL;
             m_deep_scanline_input_part = NULL;
             m_deep_tiled_input_part    = NULL;
+            m_input_rgba               = NULL;
             return false;
         } catch (...) {  // catch-all for edge cases or compiler bugs
             errorf("OpenEXR exception: unknown");
@@ -940,6 +1011,7 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
             m_tiled_input_part         = NULL;
             m_deep_scanline_input_part = NULL;
             m_deep_tiled_input_part    = NULL;
+            m_input_rgba               = NULL;
             return false;
         }
     }
@@ -1021,6 +1093,7 @@ OpenEXRInput::close()
     delete m_tiled_input_part;
     delete m_deep_scanline_input_part;
     delete m_deep_tiled_input_part;
+    delete m_input_rgba;
     delete m_input_stream;
     init();  // Reset to initial state
     return true;
@@ -1047,7 +1120,6 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
 }
 
 
-
 bool
 OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                     int yend, int /*z*/, int chbegin, int chend,
@@ -1059,11 +1131,6 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     chend = clamp(chend, chbegin + 1, m_spec.nchannels);
     //    std::cerr << "openexr rns " << ybegin << ' ' << yend << ", channels "
     //              << chbegin << "-" << (chend-1) << "\n";
-    if (!m_scanline_input_part) {
-        errorf(
-            "called OpenEXRInput::read_native_scanlines without an open file");
-        return false;
-    }
 
     // Compute where OpenEXR needs to think the full buffers starts.
     // OpenImageIO requires that 'data' points to where the client wants
@@ -1076,6 +1143,51 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     char* buf = (char*)data - m_spec.x * pixelbytes - ybegin * scanlinebytes;
 
     try {
+        if (part.luminance_chroma) {
+            Imath::Box2i dw = m_input_rgba->dataWindow();
+            if (dw.min.x != 0 || dw.min.y != 0
+                || dw != m_input_rgba->displayWindow()) {
+                errorf(
+                    "Non-trivial data and/or display windows are not supported for luminance-chroma images.");
+                return false;
+            }
+            int dw_width     = dw.max.x - dw.min.x + 1;
+            int dw_height    = dw.max.y - dw.min.y + 1;
+            int chunk_height = yend - ybegin;
+            // FIXME Are these assumptions correct?
+            OIIO_ASSERT(ybegin >= dw.min.y);
+            OIIO_ASSERT(yend <= dw.max.y + 1);
+            OIIO_ASSERT(chunk_height <= dw_height);
+
+            Imf::Array2D<Imf::Rgba> pixels(chunk_height, dw_width);
+            m_input_rgba->setFrameBuffer(&pixels[0][0] - dw.min.x
+                                             - ybegin * dw_width,
+                                         1, dw_width);
+            m_input_rgba->readPixels(ybegin, yend - 1);
+
+            // FIXME There is probably some optimized code for this somewhere.
+            for (int c = chbegin; c < chend; ++c) {
+                size_t chanbytes = m_spec.channelformat(c).size();
+                half* src        = &pixels[0][0].r + c;
+                half* dst        = (half*)((char*)data + c * chanbytes);
+                for (int y = ybegin; y < yend; ++y) {
+                    for (int x = 0; x < m_spec.width; ++x) {
+                        *dst = *src;
+                        src += 4;  // always advance 4 RGBA halfs
+                        dst += m_spec.nchannels;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        if (!m_scanline_input_part) {
+            errorf(
+                "called OpenEXRInput::read_native_scanlines without an open file");
+            return false;
+        }
+
         Imf::FrameBuffer frameBuffer;
         size_t chanoffset = 0;
         for (int c = chbegin; c < chend; ++c) {
@@ -1141,6 +1253,12 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
     if (!seek_subimage(subimage, miplevel))
         return false;
     chend = clamp(chend, chbegin + 1, m_spec.nchannels);
+    const PartInfo& part(m_parts[m_subimage]);
+    if (part.luminance_chroma) {
+        errorf(
+            "OpenEXRInput::read_native_tiles is not supported for luminance-chroma images");
+        return false;
+    }
 #if 0
     std::cerr << "openexr rnt " << xbegin << ' ' << xend << ' ' << ybegin 
               << ' ' << yend << ", chans " << chbegin
@@ -1157,7 +1275,6 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
     // to put the pixels being read, but OpenEXR's frameBuffer.insert()
     // wants where the address of the "virtual framebuffer" for the
     // whole image.
-    const PartInfo& part(m_parts[m_subimage]);
     size_t pixelbytes = m_spec.pixel_bytes(chbegin, chend, true);
     int firstxtile    = (xbegin - m_spec.x) / m_spec.tile_width;
     int firstytile    = (ybegin - m_spec.y) / m_spec.tile_height;
@@ -1313,6 +1430,12 @@ OpenEXRInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
     lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
+    const PartInfo& part(m_parts[m_subimage]);
+    if (part.luminance_chroma) {
+        errorf(
+            "OpenEXRInput::read_native_deep_scanlines is not supported for luminance-chroma images");
+        return false;
+    }
     if (m_deep_scanline_input_part == NULL) {
         errorf(
             "called OpenEXRInput::read_native_deep_scanlines without an open file");
@@ -1320,7 +1443,6 @@ OpenEXRInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
     }
 
     try {
-        const PartInfo& part(m_parts[m_subimage]);
         size_t npixels = (yend - ybegin) * m_spec.width;
         chend          = clamp(chend, chbegin + 1, m_spec.nchannels);
         int nchans     = chend - chbegin;
@@ -1385,6 +1507,12 @@ OpenEXRInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
     lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
+    const PartInfo& part(m_parts[m_subimage]);
+    if (part.luminance_chroma) {
+        errorf(
+            "OpenEXRInput::read_native_deep_tiles is not supported for luminance-chroma images");
+        return false;
+    }
     if (m_deep_tiled_input_part == NULL) {
         errorf(
             "called OpenEXRInput::read_native_deep_tiles without an open file");
@@ -1392,7 +1520,6 @@ OpenEXRInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
     }
 
     try {
-        const PartInfo& part(m_parts[m_subimage]);
         size_t width   = xend - xbegin;
         size_t height  = yend - ybegin;
         size_t npixels = width * height;

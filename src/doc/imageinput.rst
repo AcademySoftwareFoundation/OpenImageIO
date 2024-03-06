@@ -25,7 +25,8 @@ memory, even if that's not the way they're stored in the file):
             :language: c++
             :start-after: BEGIN-imageinput-simple
             :end-before: END-imageinput-simple
-    .. code-tab:: py
+
+    .. tab:: Python
         .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imageinput.py
             :language: py
             :start-after: BEGIN-imageinput-simple
@@ -922,6 +923,10 @@ hints are supported by each reader) are:
        cause the reader to leave alpha unassociated (versus the default of
        premultiplying color channels by alpha if the alpha channel is
        unassociated).
+   * - ``oiio:reorient``
+     - int
+     - If zero, disables any automatic reorientation that the reader may
+       ordinarily do to present te pixels in the preferred display orientation.
 
 Examples:
 

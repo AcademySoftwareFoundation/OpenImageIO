@@ -136,8 +136,8 @@ contents of an expression may be any of:
     `ImageDescription`, or `width`)
   * `filename` : the name of the file (e.g., `foo.tif`)
   * `file_extension` : the extension of the file (e.g., `tif`)
-  * `full_geom` : the "full" or "display" size)
-  * `geom` : the pixel data size in the form `640x480+0+0`)
+  * `full_geom` : the "full" or "display" size
+  * `geom` : the pixel data size in the form `640x480+0+0`
   * `nativeformat` : the pixel data type from the file.
   * `MINCOLOR` : the minimum value of each channel over the entire image
     (channels are comma-separated)
@@ -145,6 +145,8 @@ contents of an expression may be any of:
     (channels are comma-separated)
   * `AVGCOLOR` : the average pixel value of the image (channels are
     comma-separated)
+  * `NONFINITE_COUNT` : the number of pixel values in the image that are
+    either NaN or Inf values. (Added in OIIO 2.5.10.)
   * `META` : a multi-line string containing the full metadata of the image,
     similar to what would be printed with `oiiotool -info -v`.
   * `METABRIEF` : a string containing the brief one-line description,
@@ -221,6 +223,14 @@ contents of an expression may be any of:
     retrieved by `OIIO::getattribute(name, ...)`. The `name` may be enclosed
     in single or double quotes or be a single unquoted sequence of characters.
     (Added in OIIO 2.3.)
+  * `var(name)` : returns the user variable of the give name. (Added in OIIO
+    2.4.)
+  * `eq(a,b)` : returns 1 if `a` is equal to `b`, 0 otherwise. (Added in OIIO
+    2.4.)
+  * `neq(a,b)` : returns 1 if `a` is not equal to `b`, 0 otherwise. (Added in
+    OIIO 2.4.)
+  * `not(val)` : returns 1 if `val` is a false value, 0 if `val` evaluates
+     to a true value. (Added in OIIO 2.4.)
 
 
 To illustrate how this works, consider the following command, which trims
@@ -896,6 +906,11 @@ output each one to a different file, with names `sub0001.tif`,
 
     Print timing and memory statistics about the work done by
     :program:`oiiotool`.
+
+.. option:: --buildinfo
+
+    Print information about OIIO build-time options and dependencies.
+    This can be useful when reporting issues.
 
 .. option:: -a
 
@@ -2813,6 +2828,21 @@ current top image.
     +-----------------+-----------------+-----------------+-----------------+---------------+
 
 
+.. option:: --cryptomatte-colors <name>
+
+    Creates an RGB image from the input image that contains Cryptomatte
+    channels based on the given name, i.e. `<name>` followed by a 2-digit
+    number (`00`, `01`, ...) followed by the channels (`.red`, `.green`,
+    `.blue`, `.alpha`). Each Cryptomatte ID in the input will be given a
+    unique color in the output image.
+
+    This command was added in OpenImageIO 2.6.
+    
+    Example::
+    
+        oiiotool crypto.exr --cryptomatte-colors "CryptoAsset" -o matte.exr
+
+
 .. option:: --paste <location>
 
     Takes two images -- the first is the "foreground" and the second is the
@@ -4274,7 +4304,7 @@ will be printed with the command `oiiotool --colorconfiginfo`.
 
     Optional appended modifiers include:
     
-      `from=` *val*
+      `from=` *name*
         Assume the image is in the named color space. If no `from=` is
         supplied, it will try to deduce it from the image's metadata or
         previous `--iscolorspace` directives. If no such hints are
@@ -4294,7 +4324,6 @@ will be printed with the command `oiiotool --colorconfiginfo`.
         bracketed by divide-by-alpha / mult-by-alpha operations.
     
       `inverse=` *val* :
-
         If *val* is nonzero, inverts the color transformation.
 
       `:subimages=` *indices-or-names*

@@ -56,9 +56,11 @@ ImageBufAlgo::channels(ImageBuf& dst, const ImageBuf& src, int nchannels,
 {
     // Handle in-place case
     if (&dst == &src) {
-        ImageBuf tmp = src;
-        return channels(dst, tmp, nchannels, channelorder, channelvalues,
-                        newchannelnames, shuffle_channel_names, nthreads);
+        ImageBuf tmp;
+        bool ok = channels(tmp, src, nchannels, channelorder, channelvalues,
+                           newchannelnames, shuffle_channel_names, nthreads);
+        dst     = std::move(tmp);
+        return ok;
     }
 
     pvt::LoggedTimer logtime("IBA::channels");

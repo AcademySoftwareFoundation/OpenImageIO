@@ -639,85 +639,117 @@ add_exif_item_to_spec(ImageSpec& spec, const char* name,
                       int offset_adjustment = 0)
 {
     OIIO_ASSERT(dirp);
-    const uint8_t* dataptr = (const uint8_t*)pvt::dataptr(*dirp, buf,
-                                                          offset_adjustment);
-    if (!dataptr)
-        return;
     TypeDesc type = tiff_datatype_to_typedesc(*dirp);
+    size_t count  = dirp->tdir_count;
     if (dirp->tdir_type == TIFF_SHORT) {
-        std::vector<uint16_t> d((const uint16_t*)dataptr,
-                                (const uint16_t*)dataptr + dirp->tdir_count);
-        if (swab)
-            swap_endian(d.data(), d.size());
-        spec.attribute(name, type, d.data());
+        cspan<uint8_t> dspan
+            = pvt::dataspan<uint16_t>(*dirp, buf, offset_adjustment, count);
+        if (dspan.empty())
+            return;
+        if (swab) {
+            // In the byte swap case, copy it into a vector because the
+            // upstream source isn't mutable.
+            std::vector<uint16_t> dswab((const uint16_t*)dspan.begin(),
+                                        (const uint16_t*)dspan.end());
+            swap_endian(dswab.data(), dswab.size());
+            spec.attribute(name, type, dswab.data());
+        } else {
+            spec.attribute(name, type, dspan.data());
+        }
         return;
     }
     if (dirp->tdir_type == TIFF_LONG) {
-        std::vector<uint32_t> d((const uint32_t*)dataptr,
-                                (const uint32_t*)dataptr + dirp->tdir_count);
-        if (swab)
-            swap_endian(d.data(), d.size());
-        spec.attribute(name, type, d.data());
+        cspan<uint8_t> dspan
+            = pvt::dataspan<uint32_t>(*dirp, buf, offset_adjustment, count);
+        if (dspan.empty())
+            return;
+        if (swab) {
+            // In the byte swap case, copy it into a vector because the
+            // upstream source isn't mutable.
+            std::vector<uint32_t> dswab((const uint32_t*)dspan.begin(),
+                                        (const uint32_t*)dspan.end());
+            swap_endian(dswab.data(), dswab.size());
+            spec.attribute(name, type, dswab.data());
+        } else {
+            spec.attribute(name, type, dspan.data());
+        }
         return;
     }
     if (dirp->tdir_type == TIFF_RATIONAL) {
-        int n    = dirp->tdir_count;  // How many
-        float* f = OIIO_ALLOCA(float, n);
-        for (int i = 0; i < n; ++i) {
+        cspan<uint8_t> dspan
+            = pvt::dataspan<uint32_t>(*dirp, buf, offset_adjustment, 2 * count);
+        if (dspan.empty())
+            return;
+        float* f = OIIO_ALLOCA(float, count);
+        for (size_t i = 0; i < count; ++i) {
+            // Because the values in the blob aren't 32-bit-aligned, memcpy
+            // them into ints to do the swapping.
             unsigned int num, den;
-            memcpy(&num, dataptr + (2 * i) * sizeof(unsigned int),
-                   sizeof(unsigned int));
-            memcpy(&den, dataptr + (2 * i + 1) * sizeof(unsigned int),
+            memcpy(&num, dspan.data() + (2 * i) * sizeof(unsigned int),
+                   sizeof(unsigned int));  //NOSONAR
+            memcpy(&den, dspan.data() + (2 * i + 1) * sizeof(unsigned int),
                    sizeof(unsigned int));  //NOSONAR
             if (swab) {
-                swap_endian(&num);
-                swap_endian(&den);
+                num = byteswap(num);
+                den = byteswap(den);
             }
             f[i] = (float)((double)num / (double)den);
         }
         if (dirp->tdir_count == 1)
-            spec.attribute(name, *f);
+            spec.attribute(name, f[0]);
         else
-            spec.attribute(name, TypeDesc(TypeDesc::FLOAT, n), f);
+            spec.attribute(name, TypeDesc(TypeDesc::FLOAT, int(count)), f);
         return;
     }
     if (dirp->tdir_type == TIFF_SRATIONAL) {
-        int n    = dirp->tdir_count;  // How many
-        float* f = OIIO_ALLOCA(float, n);
-        for (int i = 0; i < n; ++i) {
+        cspan<uint8_t> dspan
+            = pvt::dataspan<int32_t>(*dirp, buf, offset_adjustment, 2 * count);
+        if (dspan.empty())
+            return;
+        float* f = OIIO_ALLOCA(float, count);
+        for (size_t i = 0; i < count; ++i) {
+            // Because the values in the blob aren't 32-bit-aligned, memcpy
+            // them into ints to do the swapping.
             int num, den;
-            memcpy(&num, dataptr + (2 * i) * sizeof(int), sizeof(int));
-            memcpy(&den, dataptr + (2 * i + 1) * sizeof(int),
+            memcpy(&num, dspan.data() + (2 * i) * sizeof(int),
+                   sizeof(int));  //NOSONAR
+            memcpy(&den, dspan.data() + (2 * i + 1) * sizeof(int),
                    sizeof(int));  //NOSONAR
             if (swab) {
-                swap_endian(&num);
-                swap_endian(&den);
+                num = byteswap(num);
+                den = byteswap(den);
             }
             f[i] = (float)((double)num / (double)den);
         }
         if (dirp->tdir_count == 1)
-            spec.attribute(name, *f);
+            spec.attribute(name, f[0]);
         else
-            spec.attribute(name, TypeDesc(TypeDesc::FLOAT, n), f);
+            spec.attribute(name, TypeDesc(TypeDesc::FLOAT, int(count)), f);
         return;
     }
     if (dirp->tdir_type == TIFF_ASCII) {
-        int len         = tiff_data_size(*dirp);
-        const char* ptr = (const char*)dataptr;
-        while (len && ptr[len - 1] == 0)  // Don't grab the terminating null
-            --len;
-        std::string str(ptr, len);
+        size_t len           = tiff_data_size(*dirp);
+        cspan<uint8_t> dspan = pvt::dataspan<char>(*dirp, buf,
+                                                   offset_adjustment, len);
+        if (dspan.empty())
+            return;
+        // Don't grab the terminating null
+        while (dspan.size() && dspan.back() == 0)
+            dspan = dspan.subspan(0, dspan.size() - 1);
+        std::string str(dspan.begin(), dspan.end());
         if (strlen(str.c_str()) < str.length())  // Stray \0 in the middle
             str = std::string(str.c_str());
         spec.attribute(name, str);
         return;
     }
-    if (dirp->tdir_type == TIFF_BYTE && dirp->tdir_count == 1) {
+    if (dirp->tdir_type == TIFF_BYTE && count == 1) {
         // Not sure how to handle "bytes" generally, but certainly for just
         // one, add it as an int.
-        unsigned char d;
-        d = *dataptr;  // byte stored in offset itself
-        spec.attribute(name, (int)d);
+        cspan<uint8_t> dspan = pvt::dataspan<uint8_t>(*dirp, buf,
+                                                      offset_adjustment, count);
+        if (dspan.empty())
+            return;
+        spec.attribute(name, (int)dspan[0]);
         return;
     }
 

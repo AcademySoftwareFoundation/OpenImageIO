@@ -36,6 +36,9 @@ if (NOT @BUILD_SHARED_LIBS@)
     if (@PNG_FOUND@)
         find_dependency(PNG)
     endif()
+    if (@DCMTK_FOUND@)
+        find_dependency(DCMTK)
+    endif()
     # The following have the same problem except that INTERFACE_LINK_LIBRARIES use
     # TARGET_NAME_IF_EXISTS, so the error only happens on link time.
     if (@OIIO_TBB@)

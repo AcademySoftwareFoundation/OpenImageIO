@@ -9,6 +9,7 @@
 
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/dassert.h>
+#include <OpenImageIO/filter.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/hash.h>
 #include <OpenImageIO/imageio.h>
@@ -210,6 +211,64 @@ oiio_simd_caps()
     return Strutil::join (caps, ",");
     // clang-format on
 }
+
+
+static std::string
+oiio_build_compiler()
+{
+    using Strutil::fmt::format;
+
+    std::string comp;
+#if OIIO_INTEL_CLASSIC_COMPILER_VERSION
+    comp = format("Intel icc {}", OIIO_INTEL_CLASSIC_COMPILER_VERSION);
+#elif OIIO_INTEL_LLVM_COMPILER
+    comp = format("Intel icx {}.{}", __clang_major__, __clang_minor__);
+#elif OIIO_APPLE_CLANG_VERSION
+    comp = format("Apple clang {}.{}", __clang_major__, __clang_minor__);
+#elif OIIO_CLANG_VERSION
+    comp = format("clang {}.{}", __clang_major__, __clang_minor__);
+#elif OIIO_GNUC_VERSION
+    comp = format("gcc {}.{}", __GNUC__, __GNUC_MINOR__);
+#elif OIIO_MSVS_VERSION
+    comp = format("MSVS {}", OIIO_MSVS_VERSION);
+#else
+    comp = "unknown compiler?";
+#endif
+    return comp;
+}
+
+
+static std::string
+oiio_build_platform()
+{
+    std::string platform;
+#if defined(__linux__)
+    platform = "Linux";
+#elif defined(__APPLE__)
+    platform = "MacOS";
+#elif defined(_WIN32)
+    platform = "Windows";
+#elif defined(__MINGW32__)
+    platform = "MinGW";
+#elif defined(__FreeBSD__)
+    platform = "FreeBSD";
+#else
+    platform = "UnknownOS";
+#endif
+    platform += "/";
+#if defined(__x86_64__)
+    platform += "x86_64";
+#elif defined(__i386__)
+    platform += "i386";
+#elif defined(_M_ARM64) || defined(__aarch64__) || defined(__aarch64)
+    platform += "ARM";
+#else
+    platform = "unknown arch?";
+#endif
+    return platform;
+}
+
+
 
 void
 shutdown()
@@ -417,6 +476,7 @@ attribute(string_view name, TypeDesc type, const void* val)
 bool
 getattribute(string_view name, TypeDesc type, void* val)
 {
+    using Strutil::fmt::format;
     if (name == "threads" && type == TypeInt) {
         *(int*)val = oiio_threads;
         return true;
@@ -480,6 +540,13 @@ getattribute(string_view name, TypeDesc type, void* val)
         *(ustring*)val = ustring(Strutil::join(font_list(), ";"));
         return true;
     }
+    if (name == "filter_list" && type == TypeString) {
+        std::vector<string_view> filternames;
+        for (int i = 0, e = Filter2D::num_filters(); i < e; ++i)
+            filternames.emplace_back(Filter2D::get_filterdesc(i).name);
+        *(ustring*)val = ustring(Strutil::join(filternames, ";"));
+        return true;
+    }
     if (name == "exr_threads" && type == TypeInt) {
         *(int*)val = oiio_exr_threads;
         return true;
@@ -540,8 +607,20 @@ getattribute(string_view name, TypeDesc type, void* val)
         *(ustring*)val = ustring(hw_simd_caps());
         return true;
     }
-    if (name == "oiio:simd" && type == TypeString) {
+    if ((name == "build:simd" || name == "oiio:simd") && type == TypeString) {
         *(ustring*)val = ustring(oiio_simd_caps());
+        return true;
+    }
+    if (name == "build:compiler" && type == TypeString) {
+        *(ustring*)val = ustring(oiio_build_compiler());
+        return true;
+    }
+    if (name == "build:platform" && type == TypeString) {
+        *(ustring*)val = ustring(oiio_build_platform());
+        return true;
+    }
+    if (name == "build:dependencies" && type == TypeString) {
+        *(ustring*)val = ustring(OIIO_ALL_BUILD_DEPS_FOUND);
         return true;
     }
     if (name == "resident_memory_used_MB" && type == TypeInt) {

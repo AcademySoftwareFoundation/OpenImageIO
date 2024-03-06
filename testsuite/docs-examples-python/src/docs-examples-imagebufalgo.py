@@ -263,10 +263,10 @@ def example_make_texture():
     config["maketx:filtername"] = "lanczos3"
     config["maketx:opaque_detect"] = 1
 
-    ok = ImageBufAlgo.make_texture (OpenImageIO.MakeTxTexture,
+    ok = ImageBufAlgo.make_texture (oiio.MakeTxTexture,
                                     Input, "texture.exr", config)
     if not ok :
-        print("make_texture error:", OpenImageIO.geterror())
+        print("make_texture error:", oiio.geterror())
 
     # END-imagebufalgo-make-texture
 

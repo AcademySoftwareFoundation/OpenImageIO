@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/string_view.h>
@@ -30,6 +32,9 @@ public:
 /// The filters are NOT expected to have their results normalized.
 class OIIO_UTIL_API Filter1D {
 public:
+    /// Alias for a shared pointer to a filter
+    using ref = std::shared_ptr<const Filter1D>;
+
     Filter1D(float width)
         : m_w(width)
     {
@@ -45,12 +50,22 @@ public:
     /// Return the name of the filter, e.g., "box", "gaussian"
     virtual string_view name(void) const = 0;
 
+    /// This static function allocates specific filter implementation for the
+    /// name you provide and returns it as a shared_ptr. It will be
+    /// automatically deleted when the last reference to it is released.
+    /// Example use:
+    ///        auto myfilt = Filter1D::create_shared("box", 1.0f);
+    /// If the name is not recognized, return an empty shared_ptr.
+    static ref create_shared(string_view filtername, float width);
+
     /// This static function allocates and returns an instance of the
     /// specific filter implementation for the name you provide.
     /// Example use:
-    ///        Filter1D *myfilt = Filter1::create ("box", 1);
+    ///        Filter1D *myfilt = Filter1D::create ("box", 1.0f);
     /// The caller is responsible for deleting it when it's done.
     /// If the name is not recognized, return NULL.
+    ///
+    /// Note that the create_shared method is preferred over create().
     static Filter1D* create(string_view filtername, float width);
 
     /// Destroy a filter that was created with create().
@@ -63,7 +78,7 @@ public:
     static const FilterDesc& get_filterdesc(int filternum);
 
 protected:
-    float m_w;
+    const float m_w;
 };
 
 
@@ -72,6 +87,9 @@ protected:
 /// The filters are NOT expected to have their results normalized.
 class OIIO_UTIL_API Filter2D {
 public:
+    /// Alias for a shared pointer to a filter
+    using ref = std::shared_ptr<const Filter2D>;
+
     Filter2D(float width, float height)
         : m_w(width)
         , m_h(height)
@@ -103,16 +121,29 @@ public:
     /// Return the name of the filter, e.g., "box", "gaussian"
     virtual string_view name(void) const = 0;
 
+    /// This static function allocates specific filter implementation for the
+    /// name you provide and returns it as a shared_ptr. It will be
+    /// automatically deleted when the last reference do it is released.
+    /// Example use:
+    ///        auto myfilt = Filter2D::create_shared("box", 1.0f, 1.0f);
+    /// If the name is not recognized, return an empty shared_ptr.
+    static ref create_shared(string_view filtername, float width, float height);
+
     /// This static function allocates and returns an instance of the
     /// specific filter implementation for the name you provide.
     /// Example use:
-    ///        Filter2D *myfilt = Filter2::create ("box", 1, 1);
+    ///        Filter2D *myfilt = Filter2D::create ("box", 1.0f, 1.0f);
     /// The caller is responsible for deleting it when it's done.
     /// If the name is not recognized, return NULL.
+    ///
+    /// Note that the create_shared method is preferred over create().
     static Filter2D* create(string_view filtername, float width, float height);
 
     /// Destroy a filter that was created with create().
     static void destroy(Filter2D* filt);
+
+    /// Don't destroy a filter -- used for non-owning shared_ptr.
+    static void no_destroy(const Filter2D*) {}
 
     /// Get the number of filters supported.
     static int num_filters();
@@ -121,7 +152,7 @@ public:
     static const FilterDesc& get_filterdesc(int filternum);
 
 protected:
-    float m_w, m_h;
+    const float m_w, m_h;
 };
 
 

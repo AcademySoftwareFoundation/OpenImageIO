@@ -4,7 +4,7 @@
 
 cmake_minimum_required (VERSION 3.15)
 
-set (OpenImageIO_VERSION "2.6.0.1")
+set (OpenImageIO_VERSION "2.6.1.0")
 set (OpenImageIO_VERSION_OVERRIDE "" CACHE STRING
      "Version override (use with caution)!")
 mark_as_advanced (OpenImageIO_VERSION_OVERRIDE)
@@ -197,7 +197,6 @@ include_directories (
 # Tell CMake to process the sub-directories
 add_subdirectory (src/libutil)
 
-find_or_download_robin_map ()
 
 
 # Add IO plugin directories -- if we are embedding plugins, we need to visit

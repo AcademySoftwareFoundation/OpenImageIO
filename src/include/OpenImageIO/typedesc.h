@@ -164,10 +164,7 @@ struct OIIO_UTIL_API TypeDesc {
     TypeDesc (string_view typestring);
 
     /// Copy constructor.
-    OIIO_HOSTDEVICE constexpr TypeDesc (const TypeDesc &t) noexcept
-        : basetype(t.basetype), aggregate(t.aggregate),
-          vecsemantics(t.vecsemantics), reserved(0), arraylen(t.arraylen)
-          { }
+    OIIO_HOSTDEVICE constexpr TypeDesc (const TypeDesc &t) noexcept = default;
 
 
     /// Return the name, for printing and whatnot.  For example,
@@ -180,7 +177,7 @@ struct OIIO_UTIL_API TypeDesc {
 
     /// Return the number of elements: 1 if not an array, or the array
     /// length. Invalid to call this for arrays of undetermined size.
-    OIIO_HOSTDEVICE OIIO_CONSTEXPR14 size_t numelements () const noexcept {
+    OIIO_HOSTDEVICE constexpr size_t numelements () const noexcept {
         OIIO_DASSERT_MSG (arraylen >= 0, "Called numelements() on TypeDesc "
                           "of array with unspecified length (%d)", arraylen);
         return (arraylen >= 1 ? arraylen : 1);
@@ -189,7 +186,7 @@ struct OIIO_UTIL_API TypeDesc {
     /// Return the number of basetype values: the aggregate count multiplied
     /// by the array length (or 1 if not an array). Invalid to call this
     /// for arrays of undetermined size.
-    OIIO_HOSTDEVICE OIIO_CONSTEXPR14 size_t basevalues () const noexcept {
+    OIIO_HOSTDEVICE constexpr size_t basevalues () const noexcept {
         return numelements() * aggregate;
     }
 
@@ -222,7 +219,7 @@ struct OIIO_UTIL_API TypeDesc {
 
     /// Return the type of one element, i.e., strip out the array-ness.
     ///
-    OIIO_HOSTDEVICE OIIO_CONSTEXPR14 TypeDesc elementtype () const noexcept {
+    OIIO_HOSTDEVICE constexpr TypeDesc elementtype () const noexcept {
         TypeDesc t (*this);  t.arraylen = 0;  return t;
     }
 
@@ -365,8 +362,13 @@ struct OIIO_UTIL_API TypeDesc {
 #endif
 };
 
-
-
+// Validate that TypeDesc can be used directly as POD in a C interface.
+static_assert(std::is_default_constructible<TypeDesc>(), "TypeDesc is not default constructable.");
+static_assert(std::is_trivially_copyable<TypeDesc>(), "TypeDesc is not trivially copyable.");
+static_assert(std::is_trivially_destructible<TypeDesc>(), "TypeDesc is not trivially destructible.");
+static_assert(std::is_trivially_move_constructible<TypeDesc>(), "TypeDesc is not move constructible.");
+static_assert(std::is_trivially_copy_constructible<TypeDesc>(), "TypeDesc is not copy constructible.");
+static_assert(std::is_trivially_move_assignable<TypeDesc>(), "TypeDesc is not move assignable.");
 
 // Static values for commonly used types. Because these are constexpr,
 // they should incur no runtime construction cost and should optimize nicely
@@ -445,7 +447,7 @@ class ustring;
 template<> struct BaseTypeFromC<ustring> { static const TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<size_t S> struct BaseTypeFromC<char[S]> { static const TypeDesc::BASETYPE value = TypeDesc::STRING; };
 template<size_t S> struct BaseTypeFromC<const char[S]> { static const TypeDesc::BASETYPE value = TypeDesc::STRING; };
-
+template<typename P> struct BaseTypeFromC<P*> { static const TypeDesc::BASETYPE value = TypeDesc::PTR; };
 
 /// A template mechanism for getting the TypeDesc from a C type.
 /// The default for simple types is just the TypeDesc based on BaseTypeFromC.
@@ -462,8 +464,12 @@ template<> struct TypeDescFromC<float> { static const constexpr TypeDesc value()
 template<> struct TypeDescFromC<half> { static const constexpr TypeDesc value() { return TypeDesc::HALF; } };
 #endif
 template<> struct TypeDescFromC<double> { static const constexpr TypeDesc value() { return TypeDesc::DOUBLE; } };
+template<> struct TypeDescFromC<char*> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
+template<> struct TypeDescFromC<const char*> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
 template<size_t S> struct TypeDescFromC<char[S]> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
 template<size_t S> struct TypeDescFromC<const char[S]> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
+template<> struct TypeDescFromC<ustring> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
+template<typename T> struct TypeDescFromC<T*> { static const constexpr TypeDesc value() { return TypeDesc::PTR; } };
 #ifdef INCLUDED_IMATHVEC_H
 template<> struct TypeDescFromC<Imath::V3f> { static const constexpr TypeDesc value() { return TypeVector; } };
 template<> struct TypeDescFromC<Imath::V2f> { static const constexpr TypeDesc value() { return TypeVector2; } };
@@ -620,7 +626,8 @@ struct formatter<OIIO::TypeDesc> {
     }
 
     template <typename FormatContext>
-    auto format(const OIIO::TypeDesc& t, FormatContext& ctx) -> decltype(ctx.out()) const {
+    auto format(const OIIO::TypeDesc& t, FormatContext& ctx) OIIO_FMT_CUSTOM_FORMATTER_CONST
+    {
         // C++14:   auto format(const OIIO::TypeDesc& p, FormatContext& ctx) const {
         // ctx.out() is an output iterator to write to.
         return format_to(ctx.out(), "{}", t.c_str());

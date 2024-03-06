@@ -1,5 +1,5 @@
 // Copyright Contributors to the OpenImageIO project.
-// SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+// SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
@@ -399,7 +399,11 @@ allval(const std::vector<T>& d, T v = T(0))
 }
 
 
-static tsize_t writer_readproc(thandle_t, tdata_t, tsize_t) { return 0; }
+static tsize_t
+writer_readproc(thandle_t, tdata_t, tsize_t)
+{
+    return 0;
+}
 
 static tsize_t
 writer_writeproc(thandle_t handle, tdata_t data, tsize_t size)
@@ -444,7 +448,10 @@ writer_mapproc(thandle_t, tdata_t*, toff_t*)
     return 0;
 }
 
-static void writer_unmapproc(thandle_t, tdata_t, toff_t) {}
+static void
+writer_unmapproc(thandle_t, tdata_t, toff_t)
+{
+}
 
 
 
@@ -1317,8 +1324,8 @@ TIFFOutput::compress_one_strip(void* uncompressed_buf, size_t strip_bytes,
                              height);
     *compressed_size = cbound;
     auto zok         = compress2((Bytef*)compressed_buf, compressed_size,
-                         (const Bytef*)uncompressed_buf,
-                         (unsigned long)strip_bytes, m_zipquality);
+                                 (const Bytef*)uncompressed_buf,
+                                 (unsigned long)strip_bytes, m_zipquality);
     if (zok != Z_OK)
         *ok = false;
 }

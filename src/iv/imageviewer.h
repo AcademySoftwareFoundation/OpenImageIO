@@ -21,6 +21,7 @@
 #include <vector>
 
 #include <QAction>
+#include <QActionGroup>
 #include <QCheckBox>
 #include <QDialog>
 #include <QMainWindow>
@@ -37,6 +38,8 @@
 
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imageio.h>
+
+#include "ivgl_ocio.h"
 
 using namespace OIIO;
 
@@ -143,7 +146,8 @@ class ImageViewer final : public QMainWindow {
     Q_OBJECT
 
 public:
-    ImageViewer();
+    ImageViewer(bool use_ocio, const std::string& image_color_space,
+                const std::string& display, const std::string& view);
     ~ImageViewer();
 
     enum COLOR_MODE {
@@ -240,6 +244,13 @@ public:
     void rawcolor(bool val) { m_rawcolor = val; }
     bool rawcolor() const { return m_rawcolor; }
 
+#ifdef HAS_OCIO_2
+    bool useOCIO() { return m_useOCIO; }
+    const std::string& ocioColorSpace() { return m_ocioColourSpace; }
+    const std::string& ocioDisplay() { return m_ocioDisplay; }
+    const std::string& ocioView() { return m_ocioView; }
+#endif  // HAS_OCIO_2
+
 private slots:
     void open();                ///< Dialog to open new image from file
     void reload();              ///< Reread current image from disk
@@ -298,6 +309,13 @@ private slots:
     void showInfoWindow();       ///< View extended info on image
     void showPixelviewWindow();  ///< View closeup pixel view
     void editPreferences();      ///< Edit viewer preferences
+
+#ifdef HAS_OCIO_2
+    void useOCIOAction(bool checked);
+    void ocioColorSpaceAction();
+    void ocioDisplayViewAction();
+#endif  // HAS_OCIO_2
+
 private:
     void createActions();
     void createMenus();
@@ -328,6 +346,7 @@ private:
 #ifndef QT_NO_PRINTER
     // QPrinter printer;
 #endif
+
 
     QAction *openAct, *reloadAct, *closeImgAct;
     static const unsigned int MaxRecentFiles = 10;
@@ -407,6 +426,25 @@ private:
     friend class IvInfoWindow;
     friend class IvPreferenceWindow;
     friend bool image_progress_callback(void* opaque, float done);
+
+#ifdef HAS_OCIO_2
+    friend class IvGL_OCIO;
+
+    void createOCIOMenus(QMenu* parent);
+
+    QMenu* ocioColorSpacesMenu;
+    QMenu* ocioDisplaysMenu;
+    QMenu* ocioOptimizationMenu;
+
+    QActionGroup* ocioColorSpacesGroup;
+    QActionGroup* ocioDisplayViewsGroup;
+    QActionGroup* ocioOptimizationGroup;
+
+    bool m_useOCIO;
+    std::string m_ocioColourSpace;
+    std::string m_ocioDisplay;
+    std::string m_ocioView;
+#endif  // HAS_OCIO_2
 };
 
 

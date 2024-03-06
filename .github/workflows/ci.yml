@@ -10,6 +10,8 @@ on:
     paths-ignore:
       - '**.md'
       - '**.rst'
+      - '**.analysis.yml'
+      - '**.properties'
   pull_request:
     paths-ignore:
       - '**.md'
@@ -149,6 +151,16 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             pybind11_ver: v2.10.0
+          - desc: gcc11/C++17 py3.11 boost1.82 exr3.2 ocio2.3
+            nametag: linux-vfx2024
+            runner: ubuntu-latest
+            container: aswftesting/ci-osl:2024-clang17
+            vfxyear: 2024
+            cxx_std: 17
+            python_ver: "3.11"
+            simd: "avx2,f16c"
+            fmt_ver: 10.1.1
+            pybind11_ver: v2.10.0
           - desc: oldest/hobbled gcc6.3/C++14 py2.7 boost-1.66 exr-2.4 no-sse no-ocio
             # Oldest versions of the dependencies that we can muster, and various
             # things disabled (no SSE, OCIO, or OpenCV, don't embed plugins).
@@ -171,27 +183,12 @@ jobs:
                              USE_OPENCV=0
             depcmds: sudo rm -rf /usr/local/include/OpenEXR
 
-          # Test formatting. This test entry doesn't do a full build, it
-          # just runs clang-format on everything, and passes if nothing is
-          # misformatted. Upon failure, the build artifact will be the full
-          # source code with the formatting fixed (diffs will also appear in
-          # the console output).
-          - desc: "clang-format"
-            nametag: clang-format
-            runner: ubuntu-latest
-            container: aswf/ci-osl:2022-clang12
-            vfxyear: 2022
-            cxx_std: 17
-            skip_tests: 1
-            setenvs: export BUILDTARGET=clang-format
-                            OIIO_CMAKE_FLAGS=-DUSE_PYTHON=0
-
           # Test ABI stability. `abi_check` is the version or commit that we
           # believe is the current standard against which we don't want to
           # break the ABI. Basically, we will build that version as well as
           # the current one, and compare the resulting libraries.
           - desc: abi check
-            nametag: linux-vfx2023
+            nametag: abi-check
             runner: ubuntu-latest
             container: aswftesting/ci-osl:2023-clang15
             vfxyear: 2023
@@ -202,7 +199,7 @@ jobs:
             pybind11_ver: v2.10.0
             skip_tests: 1
             # abi_check: v2.4.15.0
-            abi_check: d795a3b2cceb471a3b4ab741b4a2665d07003887
+            abi_check: 4fdde40cf2d87522d72e6b2eab601f55514e6acb
             setenvs: export OIIO_CMAKE_FLAGS="-DOIIO_BUILD_TOOLS=0 -DOIIO_BUILD_TESTS=0 -DUSE_PYTHON=0"
                             USE_OPENCV=0 USE_FFMPEG=0 USE_PYTHON=0
                             CMAKE_BUILD_TYPE=RelWithDebInfo
@@ -228,13 +225,17 @@ jobs:
       #   uses: step-security/harden-runner@248ae51c2e8cc9622ecf50685c8bf7150c6e8813 # v1.4.3
       #   with:
       #     egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
-      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.2
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+        # Note: can't upgrade to actions/checkout 4.0 because it needs newer
+        # glibc than these containers have.
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
-        run: echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
+        run: echo "date=`date -u +'%Y-%m-%dT%H:%M:%SZ'`" >> $GITHUB_OUTPUT
       - name: ccache
         id: ccache
-        uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d # v3.0.4
+        uses: actions/cache@e12d46a63a90f2fae62d114769bbf2a179198b5c # v3.3.3
+        # Note: can't upgrade to actions/cache 4.0 because it needs newer
+        # glibc than these containers have.
         with:
           path: /tmp/ccache
           key: ${{github.job}}-${{matrix.nametag}}-${{steps.ccache_cache_keys.outputs.date}}
@@ -254,7 +255,7 @@ jobs:
         run: src/build-scripts/ci-test.bash
       - name: Check out ABI standard
         if: matrix.abi_check != ''
-        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           ref: ${{matrix.abi_check}}
           path: abi_standard
@@ -269,7 +270,7 @@ jobs:
         if: matrix.abi_check != ''
         run: |
             src/build-scripts/ci-abicheck.bash ./build abi_standard/build libOpenImageIO libOpenImageIO_Util
-      - uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
+      - uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
         if: failure()
         with:
           name: oiio-${{github.job}}-${{matrix.nametag}}
@@ -296,17 +297,17 @@ jobs:
             cxx_compiler: g++-12
             cxx_std: 17
             fmt_ver: 10.1.1
-            openexr_ver: v3.2.0
+            openexr_ver: v3.2.1
             pybind11_ver: v2.11.1
             python_ver: "3.10"
             simd: avx2,f16c
-            setenvs: export LIBJPEGTURBO_VERSION=3.0.0
-                            LIBRAW_VERSION=0.20.2
-                            LIBTIFF_VERSION=v4.5.0
-                            OPENCOLORIO_VERSION=v2.3.0
+            setenvs: export LIBJPEGTURBO_VERSION=3.0.1
+                            LIBRAW_VERSION=0.21.2
+                            LIBTIFF_VERSION=v4.6.0
+                            OPENCOLORIO_VERSION=v2.3.2
                             OPENJPEG_VERSION=v2.4.0
-                            PTEX_VERSION=v2.4.0
-                            PUGIXML_VERSION=v1.13
+                            PTEX_VERSION=v2.4.2
+                            PUGIXML_VERSION=v1.14
                             USE_OPENVDB=0
                             WEBP_VERSION=v1.3.0
                             # The installed OpenVDB has a TLS conflict with Python 3.8
@@ -387,6 +388,22 @@ jobs:
             depcmds: |
               sudo rm -rf /usr/local/include/OpenEXR
               sudo rm -rf /usr/local/lib64/cmake/{IlmBase,OpenEXR}
+          # Test formatting. This test entry doesn't do a full build, it
+          # just runs clang-format on everything, and passes if nothing is
+          # misformatted. Upon failure, the build artifact will be the full
+          # source code with the formatting fixed (diffs will also appear in
+          # the console output).
+          - desc: "clang-format"
+            nametag: clang-format
+            runner: ubuntu-latest
+            cxx_std: 17
+            extra_artifacts: "src/*.*"
+            python_ver: "3.10"
+            skip_tests: 1
+            setenvs: export BUILDTARGET=clang-format
+                            OIIO_CMAKE_FLAGS=-DUSE_PYTHON=0
+                            LLVM_VERSION=17.0.6 LLVM_DISTRO_NAME=ubuntu-22.04
+                            SKIP_SYSTEM_DEPS_INSTALL=1 QT_VERSION=0
 
     runs-on: ${{ matrix.runner }}
     env:
@@ -406,13 +423,13 @@ jobs:
       #   uses: step-security/harden-runner@248ae51c2e8cc9622ecf50685c8bf7150c6e8813 # v1.4.3
       #   with:
       #     egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
-      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.2
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
-        run: echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
+        run: echo "date=`date -u +'%Y-%m-%dT%H:%M:%SZ'`" >> $GITHUB_OUTPUT
       - name: ccache
         id: ccache
-        uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d # v3.0.4
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         with:
           path: /tmp/ccache
           key: ${{github.job}}-${{matrix.nametag}}-${{ steps.ccache_cache_keys.outputs.date }}
@@ -430,13 +447,14 @@ jobs:
       - name: Testsuite
         if: matrix.skip_tests != '1'
         run: src/build-scripts/ci-test.bash
-      - uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
+      - uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
         if: failure()
         with:
           name: oiio-${{github.job}}-${{matrix.nametag}}
           path: |
             build/cmake-save
             build/testsuite/*/*.*
+            ${{ matrix.extra_artifacts }}
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
             !build/testsuite/fits-images
@@ -444,7 +462,7 @@ jobs:
 
 
   macrunner:
-    name: "${{matrix.runner}} appleclang${{matrix.aclang}}/C++${{matrix.cxx_std}} py${{matrix.python_ver}} ${{matrix.desc}} boost1.76 exr3.1 ocio2.1"
+    name: "${{matrix.runner}} appleclang${{matrix.aclang}}/C++${{matrix.cxx_std}} py${{matrix.python_ver}} ${{matrix.desc}}"
     strategy:
       fail-fast: false
       matrix:
@@ -455,28 +473,33 @@ jobs:
             cxx_std: 17
             python_ver: "3.10"
             aclang: 13
-            setenvs: export CTEST_TEST_TIMEOUT=600
           - desc: MacOS-13
             runner: macos-13
             nametag: macos13-py311
-            cxx_std: 20
+            cxx_std: 17
             python_ver: "3.11"
             aclang: 14
-            setenvs: export CTEST_TEST_TIMEOUT=600
+          - desc: MacOS-14-ARM
+            runner: macos-14
+            nametag: macos14-arm-py311
+            cxx_std: 20
+            python_ver: "3.11"
+            aclang: 15
     runs-on: ${{ matrix.runner }}
     env:
       CC: clang
       CXX: clang++
       CMAKE_CXX_STANDARD: ${{ matrix.cxx_std }}
       PYTHON_VERSION: ${{ matrix.python_ver }}
+      CTEST_TEST_TIMEOUT: 600
     steps:
-      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.2
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
-        run: echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
+        run: echo "date=`date -u +'%Y-%m-%dT%H:%M:%SZ'`" >> $GITHUB_OUTPUT
       - name: ccache
         id: ccache
-        uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d # v3.0.4
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         with:
           path: /Users/runner/.ccache
           key: ${{github.job}}-${{matrix.nametag}}-${{ steps.ccache_cache_keys.outputs.date }}
@@ -495,7 +518,7 @@ jobs:
             src/build-scripts/ci-build.bash
       - name: Testsuite
         run: src/build-scripts/ci-test.bash
-      - uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
+      - uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
         if: failure()
         with:
           name: oiio-${{github.job}}-${{matrix.nametag}}
@@ -518,7 +541,7 @@ jobs:
             runner: windows-2019
             vsver: 2019
             generator: "Visual Studio 16 2019"
-            openexr_ver: v2.5.8
+            openexr_ver: v3.2.2
             python_ver: 3.7
             simd: sse4.2
           # - desc: windows-2022
@@ -537,9 +560,9 @@ jobs:
       USE_SIMD: ${{matrix.simd}}
       CTEST_ARGS: "--timeout 180 --repeat after-timeout:6"
     steps:
-      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.2
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       - name: Setup Nuget.exe
-        uses: nuget/setup-nuget@b2bc17b761a1d88cab755a776c7922eb26eefbfa # v1.0.6
+        uses: nuget/setup-nuget@a21f25cd3998bf370fde17e3f1b4c12c175172f9 # v2.0.0
       - name: Build setup
         shell: bash
         run: |
@@ -554,7 +577,7 @@ jobs:
       - name: Testsuite
         shell: bash
         run: src/build-scripts/ci-test.bash
-      - uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
+      - uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
         if: failure()
         with:
           name: oiio-${{github.job}}-VS${{matrix.vsver}}

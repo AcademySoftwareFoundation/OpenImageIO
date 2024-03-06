@@ -207,7 +207,7 @@ catalog_plugin(const std::string& format_name,
 
     std::string version_function = format_name + "_imageio_version";
     int* plugin_version          = (int*)Plugin::getsym(handle,
-                                               version_function.c_str());
+                                                        version_function.c_str());
     if (!plugin_version || *plugin_version != OIIO_PLUGIN_VERSION) {
         Plugin::close(handle);
         return;
@@ -649,10 +649,14 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
     std::unique_ptr<ImageInput> in;
     std::map<std::string, std::string> args;
     std::string filename_stripped;
-    if (!Strutil::get_rest_arguments(filename, filename_stripped, args)) {
-        OIIO::pvt::errorfmt(
-            "ImageInput::create() called with malformed filename");
-        return in;
+
+    // Only check REST arguments if the file does not exist
+    if (!Filesystem::exists(filename)) {
+        if (!Strutil::get_rest_arguments(filename, filename_stripped, args)) {
+            OIIO::pvt::errorfmt(
+                "ImageInput::create() called with malformed filename");
+            return in;
+        }
     }
 
     if (filename_stripped.empty())

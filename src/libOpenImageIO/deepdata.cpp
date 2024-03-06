@@ -577,8 +577,8 @@ DeepData::set_all_samples(cspan<unsigned int> samples)
             set_samples(p, int(samples[p]));
     } else {
         // Data not yet allocated: copy in one shot
-        m_impl->m_nsamples.assign(&samples[0], &samples[m_npixels]);
-        m_impl->m_capacity.assign(&samples[0], &samples[m_npixels]);
+        m_impl->m_nsamples.assign(samples.data(), samples.data() + m_npixels);
+        m_impl->m_capacity.assign(samples.data(), samples.data() + m_npixels);
     }
 }
 

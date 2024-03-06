@@ -170,14 +170,17 @@ have a heading added at the top for the *next* version.
    
 3. Ensure docs are up to date:
 
-   - Actually read the [README.md](README.md), [INSTALL.md](INSTALL.md),
-     and other repository docs and make sure all the information is up to
-     date. Check the [CREDITS.md](CREDITS.md) against the recent repo history
-     to be sure new contributors are listed.
-   - Skim the primary user documentation to look for any obvious errors,
+   - [README.md](README.md): Actually read it! Make sure it all seems
+     accurate and up to date.
+   - [INSTALL.md](INSTALL.md): Be sure that it accurately reflects the
+     current minimum and latest-tested versions of each dependency.
+   - [CREDITS.md](CREDITS.md): Check against the recent repo history to be
+     sure new contributors are listed.
+   - [SECURITY.md](SECURITY.md): Make sure it accurately reflects the
+     status of which branches get updates.
+   - Skim the [user documentation](https://openimageio.readthedocs.io/) to
+     ensure it's building correctly and doesn't have any obvious errors,
      especially the parts that describe new features.
-   - If we are using any online docs (like readthedocs), make sure it is
-     building and looks correct on the web site.
 
 4. Make sure the the top-level CMakeLists.txt file is updated:
 
@@ -190,8 +193,8 @@ have a heading added at the top for the *next* version.
      release branch, `OFF` for master.
 
 5. In the https://github.com/AcademySoftwareFoundation/OpenImageIO-images project, create a branch
-   `RB-x.y` for the major/minor branch, and in the main oiio repo, update
-   src/build-scripts/install_test_images.bash to specify `-b RB-x.y` in the
+   `dev-x.y` for the major/minor branch, and in the main oiio repo, update
+   src/build-scripts/install_test_images.bash to specify `-b dev-x.y` in the
    checkout of oiio-images to ensure CI tests are against the set of test
    images corresponding to that major/minor release (just in the branch, not
    in master!).
@@ -337,11 +340,11 @@ Odds and ends to do after the tag is pushed and the announcements are sent:
 - Re-read RELEASING.md and ensure that the instructions match what you
   have done. Update as necessary.
 
-- Go to readthedocs.org, and ensure that the new release is built and visible
-  and is the default release shown (specified in the Admin section). I tend to
-  keep the latest patch of each minor release available for reference
-  indefinitely, but hide the docs for earlier patch releases within that minor
-  release series.
+- Go to [readthedocs.org](https://openimageio.readthedocs.io/), and ensure
+  that the new release is built, visible, and is the default release shown
+  (specified in the Admin section). I tend to keep the latest patch of each
+  minor release available for reference indefinitely, but hide the docs for
+  earlier patch releases within that minor release series.
 
 - Edit the top-level CMakeList.txt to update the version to the *next*
   anticipated release on the branch, in order to ensure that anybody building

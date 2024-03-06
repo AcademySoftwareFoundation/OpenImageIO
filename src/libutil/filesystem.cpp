@@ -506,7 +506,7 @@ Filesystem::unique_path(string_view model)
     // to convert char* to wchar_t* because they do not know the encoding
     // See boost/filesystem/path.hpp
     // The only correct way to do this is to do the conversion ourselves
-    std::wstring modelStr    = Strutil::utf8_to_utf16wstring(model);
+    std::wstring modelStr = Strutil::utf8_to_utf16wstring(model);
 #    else
     std::string modelStr = model.str();
 #    endif

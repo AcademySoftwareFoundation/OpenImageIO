@@ -685,6 +685,11 @@ preferred except when legacy file access is required.
    * - ``oiio:Gamma``
      - float
      - the gamma correction specified in the RGBE header (if it's gamma corrected).
+   * - ``heif:Orientation``
+     - int
+     - If the configuration option ``heif:reorient`` is nonzero and
+       reorientation was performed, this will be set to the original
+       orientation in the file.
 
 
 **Configuration settings for HDR input**
@@ -704,6 +709,14 @@ options are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+   * - ``oiio:reorient``
+     - int
+     - The default of 1 means to let libheif auto-reorient the image to
+       undo the camera's orientation (this will set a "heif:Orientation"
+       metadata to the Exif orientation code indicating the original
+       orientation of the image). If this hint is set to 0, the pixels will be
+       left in their orientation as stored in the file, and the "Orientation"
+       metadata will reflect that.
 
 **Configuration settings for HDR output**
 
@@ -750,6 +763,15 @@ currently supported for reading, but not yet writing. All pixel data is
 uint8, though we hope to add support for HDR (more than 8 bits) in the
 future.
 
+The default behavior of the HEIF reader is to reorient the image to the
+orientation indicated by the camera, and to report the "Orientation" metadata
+as 1 (indicating that the image should be displayed as returned) and set the
+"oiio:OriginalOrientation" metadata to what was originally stored in the file.
+If you want to read the image without automatic reorientation, you can set the
+configuration option "oiio:reorient" to 0, in which case the pixels will be
+left in their orientation as stored in the file, and the "Orientation"
+metadata will reflect that.
+
 **Configuration settings for HEIF input**
 
 When opening an HEIF ImageInput with a *configuration* (see
@@ -769,6 +791,12 @@ attributes are supported:
        cause the reader to leave alpha unassociated (versus the default of
        premultiplying color channels by alpha if the alpha channel is
        unassociated).
+   * - ``oiio:reorient``
+     - int
+     - If nonzero, asks libheif to reorient any images (and report them as
+       having Orientation 1). If zero, then libheif will not reorient the
+       image and the Orientation metadata will be set to reflect the camera
+       orientation.
 
 **Configuration settings for HEIF output**
 
@@ -1365,6 +1393,11 @@ The official OpenEXR site is http://www.openexr.com/.
    * - ``openexr:dwaCompressionLevel``
      - float
      - compression level for dwaa or dwab compression (default: 45.0).
+   * - ``openexr::luminancechroma``
+     - int
+     - If nonzero, indicates whether the image is a luminance-chroma image.
+       Upon reading, the subsampled Y/BY/RY(/A) channels of luminance-chroma
+       images are automatically converted to RGB(A) channels.
    * - *other*
      - 
      - All other attributes will be added to the ImageSpec by their name and
@@ -1446,6 +1479,11 @@ by :file:`libIlmImf`.
   data.  OpenImageIO's OpenEXR writer will silently convert data in formats
   (including the common UINT8 and UINT16 cases) to HALF data for output.
 
+* Subsampled channels are not supported with the exception of reading
+  luminance-chroma images with vertical and horizontal sampling rates of 2.
+  This limited support does not work when OpenEXR's C Core API in used, only
+  when OpenEXR's C++ API is used. Furthermore, it does not work in
+  combination with tiles, multiple subimages, mipmapping, or deep pixels.
 
 
 |

@@ -52,13 +52,13 @@ Comparing "noise-blue3.tif" and "ref/noise-blue3.tif"
 PASS
 Comparing "bluenoise_image3.tif" and "ref/bluenoise_image3.tif"
 PASS
-Comparing "chanshuffle.tif" and "../../../testsuite/oiiotool/ref/chanshuffle.tif"
+Comparing "chanshuffle.tif" and "../../../testsuite/oiiotool-copy/ref/chanshuffle.tif"
 PASS
-Comparing "ch-rgba.exr" and "../../../testsuite/oiiotool/ref/ch-rgba.exr"
+Comparing "ch-rgba.exr" and "../../../testsuite/oiiotool-copy/ref/ch-rgba.exr"
 PASS
-Comparing "ch-z.exr" and "../../../testsuite/oiiotool/ref/ch-z.exr"
+Comparing "ch-z.exr" and "../../../testsuite/oiiotool-copy/ref/ch-z.exr"
 PASS
-Comparing "chappend-rgbaz.exr" and "../../../testsuite/oiiotool/ref/chappend-rgbaz.exr"
+Comparing "chappend-rgbaz.exr" and "../../../testsuite/oiiotool-copy/ref/chappend-rgbaz.exr"
 PASS
 Comparing "flat.exr" and "../../../testsuite/oiiotool-deep/ref/flat.exr"
 PASS

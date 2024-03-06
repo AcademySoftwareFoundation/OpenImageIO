@@ -203,7 +203,11 @@ namespace dpx
 	// this routine expects a type of U16
 	template <typename IB, Packing METHOD>
 	void WritePackedMethodAB_10bit(IB *src, IB *dst, const int len, const bool reverse, BufferAccess &access)
-	{	
+    {
+		OIIO_DASSERT(len >= 1);
+		if (len < 1)
+			return;
+
 		// pack into the same memory space
 		U32 *dst_u32 = reinterpret_cast<U32*>(dst);
 	

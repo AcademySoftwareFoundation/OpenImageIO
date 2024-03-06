@@ -365,7 +365,7 @@ decode_icc_profile(cspan<uint8_t> iccdata, ImageSpec& spec, std::string& error)
                     // The actual data is UTF-16
                     std::u16string wstr((const char16_t*)start, len / 2);
                     if (littleendian())
-                        swap_endian(wstr.data(), int(wstr.size()));
+                        swap_endian((uint16_t*)wstr.data(), int(wstr.size()));
                     spec.attribute(tagname, Strutil::utf16_to_utf8(wstr));
                     break;
                 }

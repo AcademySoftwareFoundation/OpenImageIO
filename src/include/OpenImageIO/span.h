@@ -118,7 +118,7 @@ public:
     /// Construct from std::vector<T>.
     template<class Allocator>
     constexpr span (std::vector<T, Allocator> &v)
-        : m_data(v.size() ? &v[0] : nullptr), m_size(v.size()) {
+        : m_data(v.data()), m_size(v.size()) {
     }
 
     /// Construct from `const std::vector<T>.` This turns
@@ -126,7 +126,7 @@ public:
     /// but the data it points to will be).
     template<class Allocator>
     span (const std::vector<value_type, Allocator> &v)
-        : m_data(v.size() ? &v[0] : nullptr), m_size(v.size()) { }
+        : m_data(v.data()), m_size(v.size()) { }
 
     /// Construct from mutable element std::array
     template <size_t N>
@@ -138,7 +138,7 @@ public:
     constexpr span (const std::array<value_type, N>& arr)
         : m_data(arr.data()), m_size(N) {}
 
-    /// Construct an span from an initializer_list.
+    /// Construct a span from an initializer_list.
     constexpr span (std::initializer_list<T> il)
         : span (il.begin(), il.size()) { }
 
@@ -189,8 +189,14 @@ public:
 
     constexpr pointer data() const noexcept { return m_data; }
 
-    constexpr reference operator[] (size_type idx) const { return m_data[idx]; }
-    constexpr reference operator() (size_type idx) const { return m_data[idx]; }
+    constexpr reference operator[] (size_type idx) const {
+        OIIO_DASSERT(idx < m_size && "OIIO::span::operator[] range check");
+        return m_data[idx];
+    }
+    constexpr reference operator() (size_type idx) const {
+        OIIO_DASSERT(idx < m_size && "OIIO::span::operator() range check");
+        return m_data[idx];
+    }
     reference at (size_type idx) const {
         if (idx >= size())
             throw (std::out_of_range ("OpenImageIO::span::at"));
@@ -206,11 +212,19 @@ public:
     constexpr const_iterator cbegin() const noexcept { return m_data; }
     constexpr const_iterator cend() const noexcept { return m_data + m_size; }
 
-    constexpr reverse_iterator rbegin() const noexcept { return m_data + m_size - 1; }
-    constexpr reverse_iterator rend() const noexcept { return m_data - 1; }
+    constexpr reverse_iterator rbegin() const noexcept {
+        return reverse_iterator(m_data + m_size - 1);
+    }
+    constexpr reverse_iterator rend() const noexcept {
+        return reverse_iterator(m_data - 1);
+    }
 
-    constexpr const_reverse_iterator crbegin() const noexcept { return m_data + m_size - 1; }
-    constexpr const_reverse_iterator crend() const noexcept { return m_data - 1; }
+    constexpr const_reverse_iterator crbegin() const noexcept {
+        return const_reverse_iterator(m_data + m_size - 1);
+    }
+    constexpr const_reverse_iterator crend() const noexcept {
+        return const_reverse_iterator(m_data - 1);
+    }
 
 private:
     pointer     m_data = nullptr;
@@ -227,7 +241,7 @@ using cspan = span<const T, Extent>;
 
 /// Compare all elements of two spans for equality
 template <class T, oiio_span_size_type X, class U, oiio_span_size_type Y>
-OIIO_CONSTEXPR14 bool operator== (span<T,X> l, span<U,Y> r) {
+constexpr bool operator== (span<T,X> l, span<U,Y> r) {
 #if OIIO_CPLUSPLUS_VERSION >= 20
     return std::equal (l.begin(), l.end(), r.begin(), r.end());
 #else
@@ -241,7 +255,7 @@ OIIO_CONSTEXPR14 bool operator== (span<T,X> l, span<U,Y> r) {
 
 /// Compare all elements of two spans for inequality
 template <class T, oiio_span_size_type X, class U, oiio_span_size_type Y>
-OIIO_CONSTEXPR14 bool operator!= (span<T,X> l, span<U,Y> r) {
+constexpr bool operator!= (span<T,X> l, span<U,Y> r) {
     return !(l == r);
 }
 
@@ -249,8 +263,8 @@ OIIO_CONSTEXPR14 bool operator!= (span<T,X> l, span<U,Y> r) {
 
 /// span_strided<T> : a non-owning, mutable reference to a contiguous
 /// array with known length and optionally non-default strides through the
-/// data.  An span_strided<T> is mutable (the values in the array may
-/// be modified), whereas an span_strided<const T> is not mutable.
+/// data.  A span_strided<T> is mutable (the values in the array may
+/// be modified), whereas a span_strided<const T> is not mutable.
 template <typename T, oiio_span_size_type Extent = dynamic_extent>
 class span_strided {
     static_assert (std::is_array<T>::value == false,
@@ -293,21 +307,21 @@ public:
 
     /// Construct from std::vector<T>.
     template<class Allocator>
-    OIIO_CONSTEXPR14 span_strided (std::vector<T, Allocator> &v)
-        : span_strided(v.size() ? &v[0] : nullptr, v.size(), 1) {}
+    constexpr span_strided (std::vector<T, Allocator> &v)
+        : span_strided(v.data(), v.size(), 1) {}
 
     /// Construct from const std::vector<T>. This turns const std::vector<T>
-    /// into an span_strided<const T> (the span_strided isn't
+    /// into a span_strided<const T> (the span_strided isn't
     /// const, but the data it points to will be).
     template<class Allocator>
     constexpr span_strided (const std::vector<value_type, Allocator> &v)
-        : span_strided(v.size() ? &v[0] : nullptr, v.size(), 1) {}
+        : span_strided(v.data(), v.size(), 1) {}
 
-    /// Construct an span from an initializer_list.
+    /// Construct a span from an initializer_list.
     constexpr span_strided (std::initializer_list<T> il)
         : span_strided (il.begin(), il.size()) { }
 
-    /// Initialize from an span (stride will be 1).
+    /// Initialize from a span (stride will be 1).
     constexpr span_strided (span<T> av)
         : span_strided(av.data(), av.size(), 1) { }
 
@@ -353,7 +367,7 @@ using cspan_strided = span_strided<const T, Extent>;
 
 /// Compare all elements of two spans for equality
 template <class T, oiio_span_size_type X, class U, oiio_span_size_type Y>
-OIIO_CONSTEXPR14 bool operator== (span_strided<T,X> l, span_strided<U,Y> r) {
+constexpr bool operator== (span_strided<T,X> l, span_strided<U,Y> r) {
     auto lsize = l.size();
     if (lsize != r.size())
         return false;
@@ -365,7 +379,7 @@ OIIO_CONSTEXPR14 bool operator== (span_strided<T,X> l, span_strided<U,Y> r) {
 
 /// Compare all elements of two spans for inequality
 template <class T, oiio_span_size_type X, class U, oiio_span_size_type Y>
-OIIO_CONSTEXPR14 bool operator!= (span_strided<T,X> l, span_strided<U,Y> r) {
+constexpr bool operator!= (span_strided<T,X> l, span_strided<U,Y> r) {
     return !(l == r);
 }
 
@@ -415,6 +429,5 @@ constexpr ptrdiff_t ssize(const OIIO::span_strided<T, E>& c) {
 namespace fmt {
 template<typename T, OIIO::oiio_span_size_type Extent>
 struct formatter<OIIO::span<T, Extent>>
-    : OIIO::pvt::index_formatter<OIIO::span<T, Extent>> {
-};
+    : OIIO::pvt::index_formatter<OIIO::span<T, Extent>> {};
 }  // namespace fmt

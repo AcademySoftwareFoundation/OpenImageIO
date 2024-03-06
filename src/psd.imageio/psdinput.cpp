@@ -18,6 +18,7 @@
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
+#include <OpenImageIO/span_util.h>
 #include <OpenImageIO/tiffutils.h>
 
 // #include "jpeg_memory_src.h"
@@ -367,14 +368,16 @@ private:
                                   int alpha_channel, TypeDesc format) const;
 
     template<typename T>
-    static void cmyk_to_rgb(int n, const T* cmyk, size_t cmyk_stride, T* rgb,
-                            size_t rgb_stride)
+    static void cmyk_to_rgb(int n, cspan<T> cmyk, size_t cmyk_stride,
+                            span<T> rgb, size_t rgb_stride)
     {
-        for (; n; --n, cmyk += cmyk_stride, rgb += rgb_stride) {
-            float C = convert_type<T, float>(cmyk[0]);
-            float M = convert_type<T, float>(cmyk[1]);
-            float Y = convert_type<T, float>(cmyk[2]);
-            float K = convert_type<T, float>(cmyk[3]);
+        DASSERT(size_t(n) * cmyk_stride <= std::size(cmyk));
+        DASSERT(size_t(n) * rgb_stride <= std::size(rgb));
+        for (int i = 0; i < n; ++i) {
+            float C = convert_type<T, float>(cmyk[i * cmyk_stride + 0]);
+            float M = convert_type<T, float>(cmyk[i * cmyk_stride + 1]);
+            float Y = convert_type<T, float>(cmyk[i * cmyk_stride + 2]);
+            float K = convert_type<T, float>(cmyk[i * cmyk_stride + 3]);
 #if 0
             // WHY doesn't this work if it's cmyk?
             float R = (1.0f - C) * (1.0f - K);
@@ -388,12 +391,13 @@ private:
             float G = M * (K);
             float B = Y * (K);
 #endif
-            rgb[0] = convert_type<float, T>(R);
-            rgb[1] = convert_type<float, T>(G);
-            rgb[2] = convert_type<float, T>(B);
+            rgb[i * rgb_stride + 0] = convert_type<float, T>(R);
+            rgb[i * rgb_stride + 1] = convert_type<float, T>(G);
+            rgb[i * rgb_stride + 2] = convert_type<float, T>(B);
 
             if (cmyk_stride == 5 && rgb_stride == 4) {
-                rgb[3] = convert_type<float, T>(cmyk[4]);
+                rgb[i * rgb_stride + 3] = convert_type<float, T>(
+                    cmyk[i * cmyk_stride + 4]);
             }
         }
     }
@@ -783,32 +787,36 @@ PSDInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
             break;
         }
     } else if (m_header.color_mode == ColorMode_CMYK) {
+        oiio_span_size_type cmyklen = channel_count * spec.width;
         switch (bps) {
         case 4: {
-            std::unique_ptr<float[]> cmyk(
-                new float[channel_count * spec.width]);
+            std::unique_ptr<float[]> cmyk(new float[cmyklen]);
             interleave_row(cmyk.get(), channel_buffers, spec.width,
                            channel_count);
-            cmyk_to_rgb(spec.width, cmyk.get(), channel_count, (float*)dst,
+            cmyk_to_rgb(spec.width, make_cspan(cmyk.get(), cmyklen),
+                        channel_count,
+                        make_span((float*)dst, spec.width * spec.nchannels),
                         spec.nchannels);
             break;
         }
         case 2: {
-            std::unique_ptr<unsigned short[]> cmyk(
-                new unsigned short[channel_count * spec.width]);
+            std::unique_ptr<unsigned short[]> cmyk(new unsigned short[cmyklen]);
             interleave_row(cmyk.get(), channel_buffers, spec.width,
                            channel_count);
-            cmyk_to_rgb(spec.width, cmyk.get(), channel_count,
-                        (unsigned short*)dst, spec.nchannels);
+            cmyk_to_rgb(spec.width, make_cspan(cmyk.get(), cmyklen),
+                        channel_count,
+                        make_span((uint16_t*)dst, spec.width * spec.nchannels),
+                        spec.nchannels);
             break;
         }
         default: {
-            std::unique_ptr<unsigned char[]> cmyk(
-                new unsigned char[channel_count * spec.width]);
+            std::unique_ptr<unsigned char[]> cmyk(new unsigned char[cmyklen]);
             interleave_row(cmyk.get(), channel_buffers, spec.width,
                            channel_count);
-            cmyk_to_rgb(spec.width, cmyk.get(), channel_count,
-                        (unsigned char*)dst, spec.nchannels);
+            cmyk_to_rgb(spec.width, make_cspan(cmyk.get(), cmyklen),
+                        channel_count,
+                        make_span((uint8_t*)dst, spec.width * spec.nchannels),
+                        spec.nchannels);
             break;
         }
         }
@@ -1108,7 +1116,8 @@ PSDInput::handle_resources(ImageResourceMap& resources)
 
 
 
-bool PSDInput::load_resource_1005(uint32_t /*length*/)
+bool
+PSDInput::load_resource_1005(uint32_t /*length*/)
 {
     ResolutionInfo resinfo;
     // Fixed 16.16
@@ -1170,7 +1179,8 @@ PSDInput::load_resource_1006(uint32_t length)
 
 
 
-bool PSDInput::load_resource_1010(uint32_t /*length*/)
+bool
+PSDInput::load_resource_1010(uint32_t /*length*/)
 {
     int8_t color_id = 0;
     int32_t color   = 0;
@@ -1220,7 +1230,8 @@ PSDInput::load_resource_1039(uint32_t length)
 
 
 
-bool PSDInput::load_resource_1047(uint32_t /*length*/)
+bool
+PSDInput::load_resource_1047(uint32_t /*length*/)
 {
     if (!read_bige<int16_t>(m_transparency_index))
         return false;
@@ -1278,7 +1289,8 @@ PSDInput::load_resource_1060(uint32_t length)
 
 
 
-bool PSDInput::load_resource_1064(uint32_t /*length*/)
+bool
+PSDInput::load_resource_1064(uint32_t /*length*/)
 {
     uint32_t version;
     if (!read_bige<uint32_t>(version))
@@ -1579,7 +1591,7 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
     uint32_t width, height;
     if (channel_info.channel_id == ChannelID_LayerMask) {
         width  = (uint32_t)std::abs((int)layer.mask_data.right
-                                   - (int)layer.mask_data.left);
+                                    - (int)layer.mask_data.left);
         height = (uint32_t)std::abs((int)layer.mask_data.bottom
                                     - (int)layer.mask_data.top);
     } else {

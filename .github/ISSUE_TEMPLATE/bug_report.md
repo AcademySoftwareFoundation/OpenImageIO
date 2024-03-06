@@ -8,29 +8,40 @@ assignees: ''
 ---
 
 **Describe the bug**
+
 A clear and concise description of what the bug is. What happened, and
 what did you expect to happen instead.
 
+
+**OpenImageIO version and dependencies**
+
+Please run `oiiotool --buildinfo` and paste the output here.
+
+Also please tell us if there was anything unusual about your environment or
+nonstandard build options you used.
+
+
 **To Reproduce**
+
 Steps to reproduce the behavior:
 1. Do this...
 2. Then this...
 3. Then THIS happens (reproduce the exact error message if you can)
+4. Whereas I expected this other specific thing to happen instead.
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+If the problem occurs in your C++ or Python code that uses the OIIO APIs, can
+you also reproduce the problem using oiiotool? If so, please describe the
+exact command line that reproduces the problem. (Being able to reproduce the
+problem using only OIIO components makes it a lot easier for the developers
+investigate and makes it clear it's not your application's fault.)
+
 
 **Evidence**
-Do you have error messages? (please quote exactly) Screenshots? Example
-command lines or scripts that reliably reproduce the error? If it only
-happens with certain image files, can you attach the smallest image you
-can make that reproduces the problem?
 
-**Platform information:**
- - OIIO branch/version:
- - OS:
- - C++ compiler:
- - Any non-default build flags when you build OIIO:
+- Error messages (paste them here exactly)
+- Screenshots (if helpful)
+- Example input: If the problem only happens with certain image files, please
+  attach the smallest image you can make that reproduces the problem.
 
 
 **IF YOU ALREADY HAVE A CODE FIX:** There is no need to file a separate issue,

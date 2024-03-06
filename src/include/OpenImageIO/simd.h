@@ -77,6 +77,13 @@
 // OIIO_SIMD_HAS_SIMD8 : nonzero if vfloat8, vint8, vbool8 are defined
 // OIIO_SIMD_HAS_SIMD16 : nonzero if vfloat16, vint16, vbool16 are defined
 
+#ifdef OIIO_NO_SIMD /* Request to disable all SIMD */
+#  define OIIO_NO_SSE 1
+#  define OIIO_NO_AVX 1
+#  define OIIO_NO_AVX2 1
+#  define OIIO_NO_NEON 1
+#endif
+
 #if defined(_M_ARM64) || defined(__aarch64__) || defined(__aarch64)
 #  ifndef __ARM_NEON__
 #      define __ARM_NEON__
@@ -272,12 +279,6 @@
 #endif
 #ifdef False
 #    undef False
-#endif
-
-
-// Without SSE, we need to fall back on Imath for matrix44 invert
-#if !OIIO_SIMD_SSE && !defined(__CUDA_ARCH__)
-#   include <OpenImageIO/Imath.h>
 #endif
 
 
@@ -926,10 +927,7 @@ public:
 
 private:
     // The actual data representation
-    union {
-        simd_t   m_simd;
-        uint16_t m_bits;
-    };
+    simd_t m_simd;
 };
 
 
@@ -2029,6 +2027,10 @@ public:
     void load (const half *values);
 #endif /* _HALF_H_ or _IMATH_H_ */
 
+    /// Load the first 2 elements from lo[0..1] and the second two elements
+    /// from hi[0..1].
+    void load_pairs(const float* lo, const float* hi);
+
     void store (float *values) const;
 
     /// Store the first n values into memory
@@ -2124,6 +2126,12 @@ OIIO_FORCEINLINE vfloat4 shuffle (const vfloat4& a);
 
 /// shuffle<i>(a) is the same as shuffle<i,i,i,i>(a)
 template<int i> OIIO_FORCEINLINE vfloat4 shuffle (const vfloat4& a);
+
+/// Return { a[i0], a[i1], b[i2], b[i3] }, where i0..i3 are the extracted
+/// 2-bit indices packed into the template parameter i (going from the low
+/// 2-bit pair to the high 2-bit pair).
+template<int i> OIIO_FORCEINLINE vfloat4
+shuffle(const vfloat4& a, const vfloat4& b);
 
 /// Helper: as rapid as possible extraction of one component, when the
 /// index is fixed.
@@ -3916,19 +3924,15 @@ OIIO_FORCEINLINE bool none (const vbool8& v) { return reduce_or(v) == false; }
 
 OIIO_FORCEINLINE int vbool16::operator[] (int i) const {
     OIIO_DASSERT(i >= 0 && i < elements);
-#if OIIO_SIMD_AVX >= 512
-    return (int(m_simd) >> i) & 1;
-#else
-    return (m_bits >> i) & 1;
-#endif
+    return (static_cast<uint16_t>(m_simd) >> i) & 1;
 }
 
 OIIO_FORCEINLINE void vbool16::setcomp (int i, bool value) {
     OIIO_DASSERT(i >= 0 && i < elements);
-    int bits = m_bits;
+    int bits = static_cast<uint16_t>(m_simd);
     bits &= (0xffff ^ (1<<i));
     bits |= (int(value)<<i);
-    m_bits = bits;
+    m_simd = static_cast<simd_t>(bits);
 }
 
 
@@ -4011,11 +4015,7 @@ OIIO_FORCEINLINE const vbool16& vbool16::operator= (const vbool16 & other) {
 
 
 OIIO_FORCEINLINE int vbool16::bitmask () const {
-#if OIIO_SIMD_AVX >= 512
-    return int(m_simd);
-#else
-    return int(m_bits);
-#endif
+    return static_cast<int>(m_simd);
 }
 
 
@@ -4034,13 +4034,13 @@ OIIO_FORCEINLINE const vbool16 vbool16::True () {
 
 
 OIIO_FORCEINLINE void vbool16::store (bool *values) const {
-    SIMD_DO (values[i] = m_bits & (1<<i));
+    SIMD_DO (values[i] = m_simd & (1<<i));
 }
 
 OIIO_FORCEINLINE void vbool16::store (bool *values, int n) const {
     OIIO_DASSERT (n >= 0 && n <= elements);
     for (int i = 0; i < n; ++i)
-        values[i] = m_bits & (1<<i);
+        values[i] = m_simd & (1<<i);
 }
 
 
@@ -4066,7 +4066,7 @@ OIIO_FORCEINLINE vbool16 operator! (const vbool16 & a) {
 #if OIIO_SIMD_AVX >= 512
     return _mm512_knot (a.simd());
 #else
-    return vbool16 (a.m_bits ^ 0xffff);
+    return vbool16 (a.m_simd ^ 0xffff);
 #endif
 }
 
@@ -4074,7 +4074,7 @@ OIIO_FORCEINLINE vbool16 operator& (const vbool16 & a, const vbool16 & b) {
 #if OIIO_SIMD_AVX >= 512
     return _mm512_kand (a.simd(), b.simd());
 #else
-    return vbool16 (a.m_bits & b.m_bits);
+    return vbool16 (a.m_simd & b.m_simd);
 #endif
 }
 
@@ -4082,7 +4082,7 @@ OIIO_FORCEINLINE vbool16 operator| (const vbool16 & a, const vbool16 & b) {
 #if OIIO_SIMD_AVX >= 512
     return _mm512_kor (a.simd(), b.simd());
 #else
-    return vbool16 (a.m_bits | b.m_bits);
+    return vbool16 (a.m_simd | b.m_simd);
 #endif
 }
 
@@ -4090,7 +4090,7 @@ OIIO_FORCEINLINE vbool16 operator^ (const vbool16& a, const vbool16& b) {
 #if OIIO_SIMD_AVX >= 512
     return _mm512_kxor (a.simd(), b.simd());
 #else
-    return vbool16 (a.m_bits ^ b.m_bits);
+    return vbool16 (a.m_simd ^ b.m_simd);
 #endif
 }
 
@@ -4117,7 +4117,7 @@ OIIO_FORCEINLINE vbool16 operator== (const vbool16 & a, const vbool16 & b) {
 #if OIIO_SIMD_AVX >= 512
     return _mm512_kxnor (a.simd(), b.simd());
 #else
-    return vbool16 (!(a.m_bits ^ b.m_bits));
+    return vbool16 (!(a.m_simd ^ b.m_simd));
 #endif
 }
 
@@ -4125,7 +4125,7 @@ OIIO_FORCEINLINE vbool16 operator!= (const vbool16 & a, const vbool16 & b) {
 #if OIIO_SIMD_AVX >= 512
     return _mm512_kxor (a.simd(), b.simd());
 #else
-    return vbool16 (a.m_bits ^ b.m_bits);
+    return vbool16 (a.m_simd ^ b.m_simd);
 #endif
 }
 
@@ -4795,9 +4795,9 @@ OIIO_FORCEINLINE void vint4::store (unsigned char *values) const {
     _mm_store_ss((float*)values, _mm_castsi128_ps(val8));
 #elif OIIO_SIMD_NEON
     vint4 clamped = m_simd & vint4(0xff);
-    simd_t val16 = vcombine_s16(vqmovn_s32(clamped), vdup_n_s16(0));
-    simd_t val8 = vcombine_u8(vqmovun_s16(val16), vdup_n_u8(0));
-    vst1q_lane_u32((uint32_t*)values, val8, 0);
+    int16x8_t val16 = vcombine_s16(vqmovn_s32(clamped), vdup_n_s16(0));
+    uint8x16_t val8 = vcombine_u8(vqmovun_s16(val16), vdup_n_u8(0));
+    vst1q_lane_u32((uint32_t*)values, vreinterpretq_u32_u8(val8), 0);
 #else
     SIMD_DO (values[i] = m_val[i]);
 #endif
@@ -6897,6 +6897,19 @@ OIIO_FORCEINLINE void vfloat4::load (const half *values) {
 }
 #endif /* _HALF_H_ or _IMATH_H_ */
 
+OIIO_FORCEINLINE void
+vfloat4::load_pairs(const float* lo, const float* hi)
+{
+#if OIIO_SIMD_SSE
+    m_simd = _mm_loadh_pi(_mm_loadl_pi(Zero(), (__m64*)lo), (__m64*)hi);
+#else
+    m_val[0] = lo[0];
+    m_val[1] = lo[1];
+    m_val[2] = hi[0];
+    m_val[3] = hi[1];
+#endif
+}
+
 OIIO_FORCEINLINE void vfloat4::store (float *values) const {
 #if OIIO_SIMD_SSE
     // Use an unaligned store -- it's just as fast when the memory turns
@@ -7337,6 +7350,18 @@ template<> OIIO_FORCEINLINE vfloat4 shuffle<3> (const vfloat4& a) {
 }
 #endif
 
+
+template<int i>
+OIIO_FORCEINLINE vfloat4
+shuffle(const vfloat4& a, const vfloat4& b)
+{
+#if OIIO_SIMD_SSE
+    return vfloat4(_mm_shuffle_ps(a, b, i));
+#else
+    return vfloat4(a[i & 0x03], a[(i >> 2) & (0x03)],
+                   b[(i >> 4) & 0x03], b[(i >> 6) & (0x03)]);
+#endif
+}
 
 
 /// Helper: as rapid as possible extraction of one component, when the
@@ -8464,23 +8489,40 @@ OIIO_FORCEINLINE bool operator!= (M44fParam a, const matrix44 &b) {
 }
 
 
-#if OIIO_SIMD_SSE
-OIIO_FORCEINLINE matrix44 matrix44::inverse() const {
+
+inline matrix44 matrix44::inverse() const
+{
     // Adapted from this code from Intel:
     // ftp://download.intel.com/design/pentiumiii/sml/24504301.pdf
     vfloat4 minor0, minor1, minor2, minor3;
-    vfloat4 row0, row1, row2, row3;
     vfloat4 det, tmp1;
-    const float *src = (const float *)this;
-    vfloat4 zero = vfloat4::Zero();
-    tmp1 = vfloat4(_mm_loadh_pi(_mm_loadl_pi(zero, (__m64*)(src)), (__m64*)(src+ 4)));
-    row1 = vfloat4(_mm_loadh_pi(_mm_loadl_pi(zero, (__m64*)(src+8)), (__m64*)(src+12)));
-    row0 = vfloat4(_mm_shuffle_ps(tmp1, row1, 0x88));
-    row1 = vfloat4(_mm_shuffle_ps(row1, tmp1, 0xDD));
-    tmp1 = vfloat4(_mm_loadh_pi(_mm_loadl_pi(tmp1, (__m64*)(src+ 2)), (__m64*)(src+ 6)));
-    row3 = vfloat4(_mm_loadh_pi(_mm_loadl_pi(zero, (__m64*)(src+10)), (__m64*)(src+14)));
-    row2 = vfloat4(_mm_shuffle_ps(tmp1, row3, 0x88));
-    row3 = vfloat4(_mm_shuffle_ps(row3, tmp1, 0xDD));
+#if 0
+    // Original code looked like this:
+    vfloat4 row0, row1, row2, row3;
+    const float *src = (const float *)&msrc;
+    tmp1.load_pairs(src, src+ 4);
+    row1.load_pairs(src+8, src+12);
+    row0 = shuffle<0x88>(tmp1, row1);
+    row1 = shuffle<0xDD>(row1, tmp1);
+    tmp1.load_pairs(src+ 2, src+ 6);
+    row3.load_pairs(src+10, src+14);
+    row2 = shuffle<0x88>(tmp1, row3);
+    row3 = shuffle<0xDD>(row3, tmp1);
+#else
+    // But this is simpler and easier to understand:
+    matrix44 Mt = this->transposed();
+    vfloat4 row0 = Mt[0];
+    vfloat4 row1 = shuffle<2,3,0,1>(Mt[1]);
+    vfloat4 row2 = Mt[2];
+    vfloat4 row3 = shuffle<2,3,0,1>(Mt[3]);
+#endif
+    // At this point, the row variables should contain the following indices
+    // of the original input matrix:
+    // row0 = 0 4 8 12
+    // row1 = 9 13 1 5
+    // row2 = 2 6 10 14
+    // row3 = 11 15 3 7
+
     // -----------------------------------------------
     tmp1 = row2 * row3;
     tmp1 = shuffle<1,0,3,2>(tmp1);
@@ -8535,20 +8577,13 @@ OIIO_FORCEINLINE matrix44 matrix44::inverse() const {
     minor3 = (row1 * tmp1) + minor3;
     // -----------------------------------------------
     det = row0 * minor0;
-    det = shuffle<2,3,0,1>(det) + det;
-    det = vfloat4(_mm_add_ss(shuffle<1,0,3,2>(det), det));
-    tmp1 = vfloat4(_mm_rcp_ss(det));
-    det = vfloat4(_mm_sub_ss(_mm_add_ss(tmp1, tmp1), _mm_mul_ss(det, _mm_mul_ss(tmp1, tmp1))));
-    det = shuffle<0>(det);
+    float det0 = reduce_add(det);
+    float tmp1_0 = 1.0f / det0;
+    det0 = (tmp1_0 + tmp1_0) - (det0 * tmp1_0 * tmp1_0);
+    det = vfloat4(det0);
     return matrix44 (det*minor0, det*minor1, det*minor2, det*minor3);
 }
-#elif defined(INCLUDED_IMATHMATRIX_H)
-OIIO_FORCEINLINE matrix44 matrix44::inverse() const {
-    return matrix44 (((Imath::M44f*)this)->inverse());
-}
-#else
-#error "Don't know how to compute matrix44::inverse()"
-#endif
+
 
 
 inline std::ostream& operator<< (std::ostream& cout, const matrix44 &M) {
@@ -10152,7 +10187,7 @@ OIIO_FORCEINLINE vfloat16 floor (const vfloat16& a)
 OIIO_FORCEINLINE vfloat16 round (const vfloat16& a)
 {
 #if OIIO_SIMD_AVX >= 512
-    return _mm512_roundscale_ps (a, (1<<4) | 3); // scale=1, round to nearest smaller mag int
+    return _mm512_roundscale_ps (a, (_MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC));
 #else
     return vfloat16(round(a.lo()), round(a.hi()));
 #endif

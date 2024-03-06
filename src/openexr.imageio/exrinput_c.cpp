@@ -14,8 +14,6 @@
 #include <OpenImageIO/Imath.h>
 #include <OpenImageIO/platform.h>
 
-#include <boost/version.hpp>
-
 #include "exr_pvt.h"
 
 #include <OpenEXR/openexr.h>

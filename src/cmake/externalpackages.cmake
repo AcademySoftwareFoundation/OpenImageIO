@@ -101,7 +101,7 @@ checked_find_package (TIFF REQUIRED
 checked_find_package (OpenEXR REQUIRED
                       VERSION_MIN 2.4
                       RECOMMEND_MIN 3.1
-                      PRINT IMATH_INCLUDES OPENEXR_INCLUDES)
+                      PRINT IMATH_INCLUDES OPENEXR_INCLUDES Imath_VERSION)
 # Force Imath includes to be before everything else to ensure that we have
 # the right Imath/OpenEXR version, not some older version in the system
 # library. This shouldn't be necessary, except for the common case of people
@@ -158,6 +158,9 @@ endif()
 
 # From pythonutils.cmake
 find_python()
+if (USE_PYTHON)
+    checked_find_package (pybind11 REQUIRED VERSION_MIN 2.4.2)
+endif ()
 
 
 ###########################################################################
@@ -197,7 +200,10 @@ checked_find_package (TBB 2017
                       SETVARIABLES OIIO_TBB
                       PREFER_CONFIG)
 
-checked_find_package (DCMTK VERSION_MIN 3.6.1)  # For DICOM images
+# DCMTK is used to read DICOM images
+checked_find_package (DCMTK VERSION_MIN 3.6.1
+                      PREFER_CONFIG)
+
 checked_find_package (FFmpeg VERSION_MIN 3.0)
 checked_find_package (GIF
                       VERSION_MIN 4
@@ -237,7 +243,7 @@ checked_find_package (OpenVDB
                       DEFINITIONS  -DUSE_OPENVDB=1)
 if (OpenVDB_FOUND AND OpenVDB_VERSION VERSION_GREATER_EQUAL 10.1 AND CMAKE_CXX_STANDARD VERSION_LESS 17)
     message (WARNING "${ColorYellow}OpenVDB >= 10.1 (we found ${OpenVDB_VERSION}) can only be used when we build with C++17 or higher. Disabling OpenVDB support.${ColorReset}")
-    set (OpeVDB_FOUND 0)
+    set (OpenVDB_FOUND 0)
 endif ()
 
 checked_find_package (Ptex PREFER_CONFIG)
@@ -249,12 +255,14 @@ if (NOT Ptex_FOUND OR NOT Ptex_VERSION)
 endif ()
 
 checked_find_package (WebP)
+# Note: When WebP 1.1 (released late 2019) is our minimum, we can use their
+# exported configs and remove our FindWebP.cmake module.
 
 option (USE_R3DSDK "Enable R3DSDK (RED camera) support" OFF)
-checked_find_package (R3DSDK)  # RED camera
+checked_find_package (R3DSDK NO_RECORD_NOTFOUND)  # RED camera
 
 set (NUKE_VERSION "7.0" CACHE STRING "Nuke version to target")
-checked_find_package (Nuke)
+checked_find_package (Nuke NO_RECORD_NOTFOUND)
 
 
 # Qt -- used for iv
@@ -313,6 +321,8 @@ macro (find_or_download_robin_map)
     checked_find_package (Robinmap REQUIRED)
 endmacro()
 
+find_or_download_robin_map ()
+
 
 ###########################################################################
 # fmtlib
@@ -332,7 +342,7 @@ macro (find_or_download_fmt)
     # If an external copy wasn't found and we requested that missing
     # packages be built, or we we are forcing a local copy to be built, then
     # download and build it.
-    if ((BUILD_MISSING_FMT AND NOT FMT_FOUND) OR BUILD_FMT_FORCE)
+    if ((BUILD_MISSING_FMT AND NOT fmt_FOUND) OR BUILD_FMT_FORCE)
         message (STATUS "Downloading local fmtlib/fmt")
         set (FMT_INSTALL_DIR "${PROJECT_SOURCE_DIR}/ext/fmt")
         set (FMT_GIT_REPOSITORY "https://github.com/fmtlib/fmt")
@@ -350,16 +360,31 @@ macro (find_or_download_fmt)
         endif ()
         set (FMT_INCLUDE_DIR "${FMT_INSTALL_DIR}/include")
         set (OIIO_USING_FMT_LOCAL TRUE)
+        if (EXISTS "${FMT_INCLUDE_DIR}/fmt/base.h")
+            file (STRINGS "${FMT_INCLUDE_DIR}/fmt/base.h" TMP REGEX "^#define FMT_VERSION .*$")
+        else ()
+            file (STRINGS "${FMT_INCLUDE_DIR}/fmt/core.h" TMP REGEX "^#define FMT_VERSION .*$")
+        endif ()
+        string (REGEX MATCHALL "[0-9]+" FMT_VERSION_NUMERIC ${TMP})
+        math(EXPR FMT_VERSION_PATCH "${FMT_VERSION_NUMERIC} % 100")
+        math(EXPR FMT_VERSION_MINOR "(${FMT_VERSION_NUMERIC} / 100) % 100")
+        math(EXPR FMT_VERSION_MAJOR "${FMT_VERSION_NUMERIC} / 10000")
+        set (fmt_VERSION "${FMT_VERSION_MAJOR}.${FMT_VERSION_MINOR}.${FMT_VERSION_PATCH}")
+        list (APPEND CFP_ALL_BUILD_DEPS_FOUND "${pkgname} ${${pkgname}_VERSION}")
     else ()
+        get_target_property(FMT_INCLUDE_DIR fmt::fmt-header-only INTERFACE_INCLUDE_DIRECTORIES)
         set (OIIO_USING_FMT_LOCAL FALSE)
+        checked_find_package (fmt REQUIRED
+                              VERSION_MIN 7.0)
     endif ()
-    checked_find_package (fmt REQUIRED
-                          VERSION_MIN 7.0)
 endmacro()
 
 find_or_download_fmt()
 
-if (FMT_VERSION VERSION_EQUAL 90100
+if (fmt_VERSION VERSION_EQUAL 9.1.0
         AND GCC_VERSION VERSION_GREATER 0.0 AND NOT GCC_VERSION VERSION_GREATER 7.2)
     message (WARNING "${ColorRed}fmt 9.1 is known to not work with gcc <= 7.2${ColorReset}")
 endif ()
+
+list (SORT CFP_ALL_BUILD_DEPS_FOUND COMPARE STRING CASE INSENSITIVE)
+message (STATUS "All build dependencies: ${CFP_ALL_BUILD_DEPS_FOUND}")

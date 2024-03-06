@@ -171,12 +171,13 @@ private:
     struct PartInfo {
         std::atomic_bool initialized;
         ImageSpec spec;
-        int topwidth;      ///< Width of top mip level
-        int topheight;     ///< Height of top mip level
-        int levelmode;     ///< The level mode
-        int roundingmode;  ///< Rounding mode
-        bool cubeface;     ///< It's a cubeface environment map
-        int nmiplevels;    ///< How many MIP levels are there?
+        int topwidth;           ///< Width of top mip level
+        int topheight;          ///< Height of top mip level
+        int levelmode;          ///< The level mode
+        int roundingmode;       ///< Rounding mode
+        bool cubeface;          ///< It's a cubeface environment map
+        bool luminance_chroma;  ///< It's a luminance chroma image
+        int nmiplevels;         ///< How many MIP levels are there?
         Imath::Box2i top_datawindow;
         Imath::Box2i top_displaywindow;
         std::vector<Imf::PixelType> pixeltype;  ///< Imf pixel type for each chan
@@ -194,6 +195,7 @@ private:
             , levelmode(p.levelmode)
             , roundingmode(p.roundingmode)
             , cubeface(p.cubeface)
+            , luminance_chroma(p.luminance_chroma)
             , nmiplevels(p.nmiplevels)
             , top_datawindow(p.top_datawindow)
             , top_displaywindow(p.top_displaywindow)
@@ -215,6 +217,7 @@ private:
     Imf::TiledInputPart* m_tiled_input_part;
     Imf::DeepScanLineInputPart* m_deep_scanline_input_part;
     Imf::DeepTiledInputPart* m_deep_tiled_input_part;
+    Imf::RgbaInputFile* m_input_rgba;
     Filesystem::IOProxy* m_io = nullptr;
     std::unique_ptr<Filesystem::IOProxy> m_local_io;
     int m_subimage;                     ///< What subimage are we looking at?
@@ -230,6 +233,7 @@ private:
         m_tiled_input_part         = NULL;
         m_deep_scanline_input_part = NULL;
         m_deep_tiled_input_part    = NULL;
+        m_input_rgba               = NULL;
         m_subimage                 = -1;
         m_miplevel                 = -1;
         m_io                       = nullptr;
