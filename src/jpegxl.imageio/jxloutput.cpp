@@ -263,7 +263,8 @@ JxlOutput::save_image()
                                      size);
     DBG std::cout << "status = " << status << "\n";
     if (status != JXL_ENC_SUCCESS) {
-        DBG std::cout << "JxlEncoderAddImageFrame failed.\n";
+        JxlEncoderError err = JxlEncoderGetError(m_encoder.get());
+        DBG std::cout << "JxlEncoderAddImageFrame failed with error " << err << "\n";
         return false;
     }
 
