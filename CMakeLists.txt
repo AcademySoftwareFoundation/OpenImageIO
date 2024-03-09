@@ -144,10 +144,6 @@ if (${PROJ_NAME}_NAMESPACE_INCLUDE_PATCH)
 endif ()
 message(STATUS "Setting Namespace to: ${PROJ_NAMESPACE_V}")
 
-set (OIIO_SITE "" CACHE STRING "Site name for customization")
-if (OIIO_SITE)
-    add_definitions (-DOIIO_SITE_${OIIO_SITE})
-endif ()
 
 # Define OIIO_INTERNAL symbol only when building OIIO itself, will not be
 # defined for downstream projects using OIIO.
