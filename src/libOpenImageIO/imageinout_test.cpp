@@ -368,6 +368,18 @@ test_all_formats()
             OIIO_CHECK_ASSERT(ok && "Failed read/write comparison");
             if (ok)
                 std::cout << term.ansi("green", "OK\n");
+            else {
+                const float* read_pixels = (const float*)pixels.data();
+                size_t n = pixels.size() / sizeof(float);
+                float sum_of_absolute_differences = 0.0;
+
+                for (size_t i = 0; i < n; i++) {
+                    float difference = read_pixels[i] - orig_pixels[i];
+                    sum_of_absolute_differences += fabs(difference);
+                    std::cout << "["<< i << "] " << orig_pixels[i] << " " << read_pixels[i] << " δ " << difference << "\n";
+                }
+                std::cout << "sum of absolute differences " << sum_of_absolute_differences << "\n";
+            }
         } else {
             (void)OIIO::geterror();  // discard error
         }
