@@ -244,8 +244,9 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
                 errorfmt("JxlDecoderGetBasicInfo failed\n");
                 return false;
             }
-            format.num_channels = info.num_color_channels;
-            m_channels          = info.num_color_channels;
+            format.num_channels = info.num_color_channels
+                                  + info.num_extra_channels;
+            m_channels = info.num_color_channels + info.num_extra_channels;
             JxlResizableParallelRunnerSetThreads(
                 m_runner.get(),
                 JxlResizableParallelRunnerSuggestThreads(info.xsize,
@@ -282,7 +283,6 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
                 errorfmt("JxlDecoderImageOutBufferSize failed\n");
                 return false;
             }
-            // if (buffer_size != info.xsize * info.ysize * 16) {
             if (buffer_size
                 != info.xsize * info.ysize * m_channels * sizeof(float)) {
                 errorfmt("Invalid out buffer size {} {}\n", buffer_size,

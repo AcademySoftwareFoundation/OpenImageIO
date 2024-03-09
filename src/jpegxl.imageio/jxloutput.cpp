@@ -135,18 +135,29 @@ JxlOutput::open(const std::string& name, const ImageSpec& newspec,
 
     if (status != JXL_ENC_SUCCESS) {
         error = JxlEncoderGetError(m_encoder.get());
-        DBG std::cout << "JxlEncoderSetParallelRunner failed with error "
-                      << error << "\n";
+        errorfmt("JxlEncoderSetParallelRunner failed with error {}",
+                 (int)error);
         return false;
     }
 
     JxlEncoderInitBasicInfo(&m_basic_info);
-    m_basic_info.xsize              = m_spec.width;
-    m_basic_info.ysize              = m_spec.height;
-    m_basic_info.num_color_channels = m_spec.nchannels;
-    m_basic_info.bits_per_sample    = 32;
+
+    DBG std::cout << "m_spec " << m_spec.width << "×" << m_spec.height << "×"
+                  << m_spec.nchannels << "\n";
+    m_basic_info.xsize           = m_spec.width;
+    m_basic_info.ysize           = m_spec.height;
+    m_basic_info.bits_per_sample = 32;
     // m_basic_info.exponent_bits_per_sample = 0;
     m_basic_info.exponent_bits_per_sample = 8;
+
+    if (m_spec.nchannels >= 4) {
+        m_basic_info.num_color_channels = 3;
+        m_basic_info.num_extra_channels = m_spec.nchannels - 3;
+        m_basic_info.alpha_bits         = m_basic_info.bits_per_sample;
+        m_basic_info.alpha_exponent_bits = m_basic_info.exponent_bits_per_sample;
+    } else {
+        m_basic_info.num_color_channels = m_spec.nchannels;
+    }
 
     DBG std::cout << "m_basic_info " << m_basic_info.xsize << "×"
                   << m_basic_info.ysize << "×"
@@ -174,6 +185,29 @@ JxlOutput::open(const std::string& name, const ImageSpec& newspec,
 
     // Codestream level should be chosen automatically given the settings
     JxlEncoderSetBasicInfo(m_encoder.get(), &m_basic_info);
+
+    if (m_basic_info.num_extra_channels > 0) {
+        for (int i = 0; i < m_basic_info.num_extra_channels; i++) {
+            JxlExtraChannelType type = JXL_CHANNEL_ALPHA;
+            JxlExtraChannelInfo extra_channel_info;
+
+            JxlEncoderInitExtraChannelInfo(type, &extra_channel_info);
+
+            extra_channel_info.bits_per_sample = m_basic_info.alpha_bits;
+            extra_channel_info.exponent_bits_per_sample
+                = m_basic_info.alpha_exponent_bits;
+            // extra_channel_info.alpha_premultiplied = premultiply;
+
+            status = JxlEncoderSetExtraChannelInfo(m_encoder.get(), i,
+                                                   &extra_channel_info);
+            if (status != JXL_ENC_SUCCESS) {
+                error = JxlEncoderGetError(m_encoder.get());
+                errorfmt("JxlEncoderSetExtraChannelInfo failed with error {}",
+                         (int)error);
+                return false;
+            }
+        }
+    }
 
     if (m_spec.tile_width && m_spec.tile_height) {
         m_tilebuffer.resize(m_spec.image_bytes());
@@ -241,16 +275,19 @@ bool
 JxlOutput::save_image()
 {
     JxlEncoderStatus status;
+    JxlEncoderError error;
     std::vector<uint8_t> compressed;
     bool ok = true;
 
     DBG std::cout << "JxlOutput::save_image()\n";
 
-    m_pixel_format = { m_basic_info.num_color_channels, JXL_TYPE_FLOAT,
-                       JXL_NATIVE_ENDIAN, 0 };
+    m_pixel_format = { m_basic_info.num_color_channels
+                           + m_basic_info.num_extra_channels,
+                       JXL_TYPE_FLOAT, JXL_NATIVE_ENDIAN, 0 };
 
     const size_t pixels_size = m_basic_info.xsize * m_basic_info.ysize
-                               * m_basic_info.num_color_channels;
+                               * (m_basic_info.num_color_channels
+                                  + m_basic_info.num_extra_channels);
 
     m_pixels.resize(pixels_size);
 
@@ -263,8 +300,8 @@ JxlOutput::save_image()
                                      size);
     DBG std::cout << "status = " << status << "\n";
     if (status != JXL_ENC_SUCCESS) {
-        JxlEncoderError err = JxlEncoderGetError(m_encoder.get());
-        DBG std::cout << "JxlEncoderAddImageFrame failed with error " << err << "\n";
+        error = JxlEncoderGetError(m_encoder.get());
+        errorfmt("JxlEncoderAddImageFrame failed with error {}", (int)error);
         return false;
     }
 
