@@ -309,6 +309,7 @@ HeifInput::seek_subimage(int subimage, int miplevel)
         }
     }
 
+#if LIBHEIF_NUMERIC_VERSION >= MAKE_LIBHEIF_VERSION(1, 16, 0, 0)
     // Try to discover the orientation. The Exif is unreliable. We have to go
     // through the transformation properties ourselves. A tricky bit is that
     // the C++ API doesn't give us a direct way to get the context ptr, we
@@ -321,7 +322,6 @@ HeifInput::seek_subimage(int subimage, int miplevel)
         = reinterpret_cast<std::shared_ptr<heif_context>*>(m_ctx.get())->get();
     int xpcount = heif_item_get_transformation_properties(raw_ctx, id, nullptr,
                                                           100);
-    orientation = 1;
     xpcount     = std::min(xpcount, 100);  // clamp to some reasonable limit
     std::vector<heif_property_id> xprops(xpcount);
     heif_item_get_transformation_properties(raw_ctx, id, xprops.data(),
@@ -348,6 +348,11 @@ HeifInput::seek_subimage(int subimage, int miplevel)
             }
         }
     }
+#else
+    // Prior to libheif 1.16, the get_transformation_properties API was not
+    // available, so we have to rely on the Exif orientation tag.
+    int orientation = m_spec.get_int_attribute("Orientation", 1);
+#endif
 
     // Erase the orientation metadata because libheif appears to be doing
     // the rotation-to-canonical-direction for us.

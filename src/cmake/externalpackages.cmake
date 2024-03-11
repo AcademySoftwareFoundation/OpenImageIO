@@ -212,8 +212,8 @@ checked_find_package (GIF
 
 # For HEIF/HEIC/AVIF formats
 checked_find_package (Libheif VERSION_MIN 1.3
-                      RECOMMEND_MIN 1.7
-                      RECOMMEND_MIN_REASON "for AVIF support")
+                      RECOMMEND_MIN 1.16
+                      RECOMMEND_MIN_REASON "for orientation support")
 if (APPLE AND LIBHEIF_VERSION VERSION_GREATER_EQUAL 1.10 AND LIBHEIF_VERSION VERSION_LESS 1.11)
     message (WARNING "Libheif 1.10 on Apple is known to be broken, disabling libheif support")
     set (Libheif_FOUND 0)
