@@ -85,7 +85,7 @@ inline uint64_t fasthash64(const void *buf, size_t len, uint64_t seed=1771)
 		OIIO_PRAGMA_WARNING_PUSH
 		OIIO_GCC_ONLY_PRAGMA(GCC diagnostic ignored "-Wmaybe-uninitialized")
 		v  = *pos++;
-		OIIO_PRAGMA_WARNING_PUSH
+		OIIO_PRAGMA_WARNING_POP
 		h ^= mix(v);
 		h *= m;
 	}
