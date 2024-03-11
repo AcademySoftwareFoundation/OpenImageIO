@@ -464,12 +464,16 @@ test_comparisons()
     OIIO_CHECK_EQUAL(Strutil::ifind("abcdeabcde", "BC"), 1);
     OIIO_CHECK_EQUAL(Strutil::ifind("abcdeabcde", "ac"), std::string::npos);
     OIIO_CHECK_EQUAL(Strutil::ifind("abcdeabcde", ""), 0);
+    OIIO_CHECK_EQUAL(Strutil::ifind("Xabcdeabcde", "x"), 0);
+    OIIO_CHECK_EQUAL(Strutil::ifind("abcdeabcdeX", "x"), 10);
     OIIO_CHECK_EQUAL(Strutil::ifind("", "abc"), std::string::npos);
     OIIO_CHECK_EQUAL(Strutil::ifind("", ""), std::string::npos);
     OIIO_CHECK_EQUAL(Strutil::irfind("abcdeabcde", "bc"), 6);
     OIIO_CHECK_EQUAL(Strutil::irfind("abcdeabcde", "BC"), 6);
     OIIO_CHECK_EQUAL(Strutil::irfind("abcdeabcde", "ac"), std::string::npos);
     OIIO_CHECK_EQUAL(Strutil::irfind("abcdeabcde", ""), 10);
+    OIIO_CHECK_EQUAL(Strutil::irfind("Xabcdeabcde", "x"), 0);
+    OIIO_CHECK_EQUAL(Strutil::irfind("abcdeabcdeX", "x"), 10);
     OIIO_CHECK_EQUAL(Strutil::irfind("", "abc"), std::string::npos);
     OIIO_CHECK_EQUAL(Strutil::irfind("", ""), std::string::npos);
 

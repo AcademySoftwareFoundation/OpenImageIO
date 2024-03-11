@@ -3,6 +3,7 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
+#include <algorithm>
 #include <cmath>
 #include <codecvt>
 #include <cstdarg>
@@ -20,9 +21,6 @@
 #if defined(__APPLE__) || defined(__FreeBSD__)
 #    include <xlocale.h>
 #endif
-
-#include <boost/algorithm/string.hpp>
-#include <boost/algorithm/string/find.hpp>
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/platform.h>
@@ -527,7 +525,6 @@ Strutil::ends_with(string_view a, string_view b)
     if (asize < bsize)  // a can't start with b if a is smaller
         return false;
     return strncmp(a.data() + asize - bsize, b.data(), bsize) == 0;
-    // return boost::algorithm::ends_with(a, b);
 }
 
 
@@ -539,7 +536,6 @@ Strutil::iends_with(string_view a, string_view b)
     if (asize < bsize)  // a can't start with b if a is smaller
         return false;
     return strncasecmp(a.data() + asize - bsize, b.data(), bsize) == 0;
-    // return boost::algorithm::iends_with(a, b, std::locale::classic());
 }
 
 
@@ -547,9 +543,6 @@ bool
 Strutil::contains(string_view a, string_view b)
 {
     return find(a, b) != string_view::npos;
-    // We used to use the boost contains, but it seems to be about 2x more
-    // expensive than (find() != npos).
-    // return boost::algorithm::contains(a, b);
 }
 
 
@@ -557,9 +550,6 @@ bool
 Strutil::icontains(string_view a, string_view b)
 {
     return ifind(a, b) != string_view::npos;
-    // We used to use the boost icontains, but it seems to be about 2x more
-    // expensive than (ifind() != npos).
-    // return boost::algorithm::icontains(a, b, std::locale::classic());
 }
 
 
@@ -600,8 +590,19 @@ Strutil::ifind(string_view a, string_view b)
         return string_view::npos;
     if (b.empty())
         return 0;
-    auto f = boost::algorithm::ifind_first(a, b, std::locale::classic());
-    return f.empty() ? string_view::npos : f.begin() - a.data();
+
+    if (b.size() <= a.size()) {
+        const char* start = a.data();
+        const char* last  = a.data() + a.size() - b.size();
+        while (start <= last) {
+            if (Strutil::strncasecmp(start, b.data(), b.size()) == 0) {
+                return size_t(start - a.data());
+            }
+            start++;
+        }
+    }
+
+    return string_view::npos;
 }
 
 
@@ -612,22 +613,36 @@ Strutil::irfind(string_view a, string_view b)
         return string_view::npos;
     if (b.empty())
         return a.size();
-    auto f = boost::algorithm::ifind_last(a, b, std::locale::classic());
-    return f.empty() ? string_view::npos : f.begin() - a.data();
+
+    if (b.size() <= a.size()) {
+        const char* start = a.data() + (a.size() - b.size());
+        while (start >= a.data()) {
+            if (Strutil::strncasecmp(start, b.data(), b.size()) == 0) {
+                return size_t(start - a.data());
+            }
+            start--;
+        }
+    }
+
+    return string_view::npos;
 }
 
 
 void
 Strutil::to_lower(std::string& a)
 {
-    boost::algorithm::to_lower(a, std::locale::classic());
+    const std::locale& loc = std::locale::classic();
+    std::transform(a.cbegin(), a.cend(), a.begin(),
+                   [&loc](char c) { return std::tolower(c, loc); });
 }
 
 
 void
 Strutil::to_upper(std::string& a)
 {
-    boost::algorithm::to_upper(a, std::locale::classic());
+    const std::locale& loc = std::locale::classic();
+    std::transform(a.cbegin(), a.cend(), a.begin(),
+                   [&loc](char c) { return std::toupper(c, loc); });
 }
 
 
@@ -636,7 +651,6 @@ bool
 Strutil::StringIEqual::operator()(const char* a, const char* b) const noexcept
 {
     return Strutil::strcasecmp(a, b) == 0;
-    // return boost::algorithm::iequals(a, b, std::locale::classic());
 }
 
 
@@ -644,8 +658,6 @@ bool
 Strutil::StringILess::operator()(const char* a, const char* b) const noexcept
 {
     return Strutil::strcasecmp(a, b) < 0;
-    // return boost::algorithm::ilexicographical_compare(a, b,
-    //                                                   std::locale::classic());
 }
 
 
