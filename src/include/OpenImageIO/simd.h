@@ -4411,7 +4411,7 @@ vint4::gather_mask (const vbool_t& mask, const value_t *baseptr, const vint_t& v
 #if OIIO_SIMD_AVX >= 2
     m_simd = _mm_mask_i32gather_epi32 (m_simd, baseptr, vindex, _mm_cvtps_epi32(mask), scale);
 #else
-    SIMD_CONSTRUCT (mask[i] ? *(const value_t *)((const char *)baseptr + vindex[i]*scale) : 0);
+    SIMD_DO (if (mask[i]) m_val[i] = *(const value_t *)((const char *)baseptr + vindex[i]*scale));
 #endif
 }
 
@@ -5294,7 +5294,7 @@ vint8::gather_mask (const vbool_t& mask, const value_t *baseptr, const vint_t& v
 #if OIIO_SIMD_AVX >= 2
     m_simd = _mm256_mask_i32gather_epi32 (m_simd, baseptr, vindex, _mm256_cvtps_epi32(mask), scale);
 #else
-    SIMD_CONSTRUCT (mask[i] ? *(const value_t *)((const char *)baseptr + vindex[i]*scale) : 0);
+    SIMD_DO (if (mask[i]) m_val[i] = *(const value_t *)((const char *)baseptr + vindex[i]*scale));
 #endif
 }
 
@@ -7058,7 +7058,7 @@ vfloat4::gather_mask (const vbool_t& mask, const value_t *baseptr, const vint_t&
 #if OIIO_SIMD_AVX >= 2
     m_simd = _mm_mask_i32gather_ps (m_simd, baseptr, vindex, mask, scale);
 #else
-    SIMD_CONSTRUCT (mask[i] ? *(const value_t *)((const char *)baseptr + vindex[i]*scale) : 0);
+    SIMD_DO (if (mask[i]) m_val[i] = *(const value_t *)((const char *)baseptr + vindex[i]*scale));
 #endif
 }
 
@@ -8966,7 +8966,7 @@ vfloat8::gather_mask (const vbool_t& mask, const value_t *baseptr, const vint_t&
 #if OIIO_SIMD_AVX >= 2
     m_simd = _mm256_mask_i32gather_ps (m_simd, baseptr, vindex, mask, scale);
 #else
-    SIMD_CONSTRUCT (mask[i] ? *(const value_t *)((const char *)baseptr + vindex[i]*scale) : 0);
+    SIMD_DO (if (mask[i]) m_val[i] = *(const value_t *)((const char *)baseptr + vindex[i]*scale));
 #endif
 }
 
