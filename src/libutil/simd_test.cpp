@@ -607,9 +607,9 @@ test_gatherscatter()
     OIIO_CHECK_SIMD_EQUAL(g, VEC::Iota());
 
     BOOL mask = BOOL::from_bitmask(0x55555555);  // every other one
-    ELEM every_other_iota[] = { 0, 0, 2, 0, 4, 0, 6, 0, 8, 0, 10, 0, 12, 0, 14, 0 };
-    gm = 0;
+    gm = 42;
     gm.gather_mask (mask, gather_source.data(), indices);
+    ELEM every_other_iota[] = { 0, 42, 2, 42, 4, 42, 6, 42, 8, 42, 10, 42, 12, 42, 14, 42 };
     OIIO_CHECK_SIMD_EQUAL (gm, VEC(every_other_iota));
 
     std::vector<ELEM> scatter_out (bufsize, (ELEM)-1);
@@ -622,7 +622,7 @@ test_gatherscatter()
         OIIO_CHECK_EQUAL (scatter_out[i], ((i%3) == 1 && (i&1) ? i/3 : -1));
 
     benchmark ("gather", [&](const ELEM *d){ VEC v; v.gather (d, indices); return v; }, gather_source.data());
-    benchmark ("gather_mask", [&](const ELEM *d){ VEC v; v.gather_mask (mask, d, indices); return v; }, gather_source.data());
+    benchmark ("gather_mask", [&](const ELEM *d){ VEC v = ELEM(0); v.gather_mask (mask, d, indices); return v; }, gather_source.data());
     benchmark ("scatter", [&](ELEM *d){ g.scatter (d, indices); return g; }, scatter_out.data());
     benchmark ("scatter_mask", [&](ELEM *d){ g.scatter_mask (mask, d, indices); return g; }, scatter_out.data());
 }
@@ -1939,6 +1939,25 @@ test_matrix()
 
 
 
+static void
+test_trivially_copyable()
+{
+    print("\nTesting trivially_copyable on all SIMD classes\n");
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vbool4>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vint4>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vfloat4>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vfloat3>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<matrix44>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vbool8>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vint8>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vfloat8>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vbool16>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vint16>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vfloat16>::value);
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -2094,6 +2113,7 @@ main(int argc, char* argv[])
     test_special();
     test_metaprogramming();
     test_matrix();
+    test_trivially_copyable();
 
     std::cout << "\nTotal time: " << Strutil::timeintervalformat(timer())
               << "\n";
