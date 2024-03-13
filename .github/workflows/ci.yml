@@ -483,6 +483,7 @@ jobs:
             cxx_std: 17
             python_ver: "3.11"
             aclang: 14
+            simd: sse4.2,avx2
           - desc: MacOS-14-ARM
             runner: macos-14
             nametag: macos14-arm-py311
@@ -495,6 +496,7 @@ jobs:
       CXX: clang++
       CMAKE_CXX_STANDARD: ${{ matrix.cxx_std }}
       PYTHON_VERSION: ${{ matrix.python_ver }}
+      USE_SIMD: ${{matrix.simd}}
       CTEST_TEST_TIMEOUT: 600
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
