@@ -8059,14 +8059,6 @@ OIIO_FORCEINLINE vint4 AxBxCxDx (const vint4& a, const vint4& b,
 //////////////////////////////////////////////////////////////////////
 // vfloat3 implementation
 
-// OIIO_FORCEINLINE vfloat3::vfloat3 (const vfloat3 &other)  : vfloat4(other) {
-// #if OIIO_SIMD_SSE || OIIO_SIMD_NEON
-//     m_simd = other.m_simd;
-// #else
-//     SIMD_CONSTRUCT_PAD (other[i]);
-// #endif
-// }
-
 OIIO_FORCEINLINE vfloat3::vfloat3 (const vfloat4 &other) {
 #if OIIO_SIMD_SSE || OIIO_SIMD_NEON
     m_simd = other.simd();
