@@ -547,15 +547,15 @@ jobs:
             generator: "Visual Studio 16 2019"
             openexr_ver: v3.2.2
             python_ver: 3.7
-            simd: sse4.2
+            # simd: sse4.2
           # - desc: windows-2022
           #   runner: windows-2022
           #   vsver: 2022
           #   generator: "Visual Studio 17 2022"
-          #   openexr_ver: main
+          #   openexr_ver: v3.2.2
           #   # v3.1.4
           #   python_ver: 3.7
-          #   simd: sse4.2
+          #   # simd: AVX2
     runs-on: ${{ matrix.runner }}
     env:
       PYTHON_VERSION: ${{matrix.python_ver}}

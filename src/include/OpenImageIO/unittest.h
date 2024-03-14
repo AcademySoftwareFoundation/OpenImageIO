@@ -231,16 +231,17 @@ static OIIO::pvt::UnitTestFailureCounter unit_test_failures;
                        << "'\n"),                                             \
             (void)++unit_test_failures))
 
-#define OIIO_CHECK_SIMD_EQUAL_THRESH(x, y, eps)                               \
-    (all(abs((x) - (y)) <= (eps))                                             \
-         ? ((void)0)                                                          \
-         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")     \
-                       << __FILE__ << ":" << __LINE__ << ":\n"                \
-                       << "FAILED: "                                          \
-                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x \
-                       << " == " << #y << "\n"                                \
-                       << "\tvalues were '" << (x) << "' and '" << (y)        \
-                       << "'\n"),                                             \
+#define OIIO_CHECK_SIMD_EQUAL_THRESH(x, y, eps)                                \
+    ((all(abs((x) - (y)) <= eps))                                              \
+         ? ((void)0)                                                           \
+         : (Strutil::print("{}{}:{}:\nFAILED: {}{} == {}\n",                   \
+                           OIIO::Sysutil::Term(std::cout).ansi("red,bold"),    \
+                           __FILE__, __LINE__,                                 \
+                           OIIO::Sysutil::Term(std::cout).ansi("normal"), #x,  \
+                           #y),                                                \
+            Strutil::print(                                                    \
+                "\tvalues were '{:.8g}' and '{:.8g}', diff was {:.8g}\n", (x), \
+                (y), abs((x) - (y))),                                          \
             (void)++unit_test_failures))
 
 
