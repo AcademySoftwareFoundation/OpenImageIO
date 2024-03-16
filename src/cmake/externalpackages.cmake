@@ -144,6 +144,12 @@ if (NOT TARGET libjpeg-turbo::jpeg) # Try to find the non-turbo version
     checked_find_package (JPEG REQUIRED)
 endif ()
 
+# JPEG XL
+option (USE_JXL "Enable JPEG XL support" ON)
+checked_find_package (JXL
+                      VERSION_MIN 0.10.1
+                      DEFINITIONS -DUSE_JXL=1)
+
 # Pugixml setup.  Normally we just use the version bundled with oiio, but
 # some linux distros are quite particular about having separate packages so we
 # allow this to be overridden to use the distro-provided package if desired.
