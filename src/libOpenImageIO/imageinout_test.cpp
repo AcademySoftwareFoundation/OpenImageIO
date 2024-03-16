@@ -218,6 +218,30 @@ test_write_proxy(string_view formatname, string_view extension,
 
 
 
+bool
+test_pixel_match(cspan<float> a, cspan<float> b, float eps = 1.0e-6f)
+{
+    if (a.size() != b.size())
+        return false;
+    int printed   = 0;
+    bool ok       = true;
+    float maxdiff = 0.0f;
+    for (size_t i = 0, e = a.size(); i < e; ++i) {
+        float diff = fabsf(a[i] - b[i]);
+        if (diff > eps) {
+            maxdiff = std::max(maxdiff, diff);
+            ok      = false;
+            if (printed++ < 16)
+                print("\t[{}] {} {}, diff = {}\n", i, a[i], b[i], diff);
+        }
+    }
+    if (!ok)
+        print("\tmax diff = {}\n", maxdiff);
+    return ok;
+}
+
+
+
 // Helper for test_all_formats: read the pixels of the given disk file into
 // a buffer, then use an IOProxy to read the "file" from the buffer, and
 // the pixels ought to match those of ImageBuf buf.
@@ -229,6 +253,13 @@ test_read_proxy(string_view formatname, string_view extension,
     Sysutil::Term term(stdout);
     std::cout << "    Reading Proxy " << formatname << " ... ";
     std::cout.flush();
+
+    auto nvalues = oiio_span_size_type(buf.spec().image_pixels()
+                                       * buf.spec().nchannels);
+    float eps    = 0.0f;
+    // Allow lossy formats to have a little more error
+    if (formatname == "heif" || formatname == "jpegxl")
+        eps = 0.001f;
 
     // Read the disk file into readbuf as a blob -- just a byte-for-byte
     // copy of the file, but in memory.
@@ -244,8 +275,10 @@ test_read_proxy(string_view formatname, string_view extension,
     if (in) {
         std::vector<unsigned char> readpixels;
         ok &= checked_read(in.get(), memname, readpixels, true);
-        ok &= memcmp(readpixels.data(), buf.localpixels(), readpixels.size())
-              == 0;
+        OIIO_ASSERT(readpixels.size() == nvalues * sizeof(float));
+        ok &= test_pixel_match({ (const float*)readpixels.data(), nvalues },
+                               { (const float*)buf.localpixels(), nvalues },
+                               eps);
         OIIO_CHECK_ASSERT(
             ok && "Read proxy with ImageInput didn't match original");
     } else {
@@ -266,9 +299,8 @@ test_read_proxy(string_view formatname, string_view extension,
     OIIO_ASSERT(buf.localpixels());
     OIIO_CHECK_EQUAL(buf.spec().format, inbuf.spec().format);
     OIIO_CHECK_EQUAL(buf.spec().image_bytes(), inbuf.spec().image_bytes());
-    ok2 &= memcmp(inbuf.localpixels(), buf.localpixels(),
-                  buf.spec().image_bytes())
-           == 0;
+    ok2 &= test_pixel_match({ (const float*)inbuf.localpixels(), nvalues },
+                            { (const float*)buf.localpixels(), nvalues }, eps);
     OIIO_CHECK_ASSERT(ok2 && "Read proxy with ImageBuf didn't match original");
     ok &= ok2;
 
@@ -321,6 +353,10 @@ test_all_formats()
         // Skip "formats" that aren't amenable to this kind of testing
         if (formatname == "null" || formatname == "term")
             continue;
+        float eps = 0.0f;
+        // Allow lossy formats to have a little more error
+        if (formatname == "heif" || formatname == "jpegxl")
+            eps = 0.001f;
 
         if (onlyformat.size() && formatname != onlyformat)
             continue;
@@ -364,26 +400,14 @@ test_all_formats()
             ok = checked_read(in.get(), filename, pixels);
             if (!ok)
                 continue;
-            ok = memcmp(orig_pixels, pixels.data(), pixels.size()) == 0;
-            OIIO_CHECK_ASSERT(ok && "Failed read/write comparison");
+            auto nvalues = oiio_span_size_type(buf.spec().image_pixels()
+                                               * buf.spec().nchannels);
+            ok           = test_pixel_match({ orig_pixels, nvalues },
+                                            { (const float*)pixels.data(), nvalues },
+                                            eps);
             if (ok)
                 std::cout << term.ansi("green", "OK\n");
-            else {
-                const float* read_pixels = (const float*)pixels.data();
-                size_t n                 = pixels.size() / sizeof(float);
-                float sum_of_absolute_differences = 0.0;
-                int printed = 0;
-                for (size_t i = 0; i < n; i++) {
-                    float difference = read_pixels[i] - orig_pixels[i];
-                    sum_of_absolute_differences += fabs(difference);
-                    if (printed++ < 10)
-                        std::cout << "[" << i << "] " << orig_pixels[i] << " "
-                                  << read_pixels[i] << ", diff = " << difference
-                                  << "\n";
-                }
-                std::cout << "sum of absolute differences "
-                          << sum_of_absolute_differences << "\n";
-            }
+            OIIO_CHECK_ASSERT(ok && "Failed read/write comparison");
         } else {
             (void)OIIO::geterror();  // discard error
         }
