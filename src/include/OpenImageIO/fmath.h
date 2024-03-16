@@ -1852,7 +1852,7 @@ template<typename T>
 OIIO_FORCEINLINE OIIO_HOSTDEVICE T fast_exp2 (const T& xval) {
     using namespace simd;
     typedef typename T::vint_t intN;
-#if OIIO_SIMD_SSE
+#if OIIO_SIMD_SSE && !OIIO_MSVS_BEFORE_2022
     // See float specialization for explanations
     T x = clamp (xval, T(-126.0f), T(126.0f));
     intN m (x); x -= T(m);

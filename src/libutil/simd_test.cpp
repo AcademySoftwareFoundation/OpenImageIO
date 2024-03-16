@@ -1611,8 +1611,8 @@ void test_mathfuncs ()
     VEC expA = mkvec<VEC> (0.367879441171442f, 1.0f, 2.718281828459045f, 90.0171313005218f);
     OIIO_CHECK_SIMD_EQUAL (exp(A), expA);
     OIIO_CHECK_SIMD_EQUAL_THRESH (log(expA), A, 1e-6f);
-    OIIO_CHECK_SIMD_EQUAL (fast_exp(A),
-                mkvec<VEC>(fast_exp(A[0]), fast_exp(A[1]), fast_exp(A[2]), fast_exp(A[3])));
+    OIIO_CHECK_SIMD_EQUAL_THRESH (fast_exp(A),
+                mkvec<VEC>(fast_exp(A[0]), fast_exp(A[1]), fast_exp(A[2]), fast_exp(A[3])), 1e-5f);
     OIIO_CHECK_SIMD_EQUAL_THRESH (fast_log(expA),
                 mkvec<VEC>(fast_log(expA[0]), fast_log(expA[1]), fast_log(expA[2]), fast_log(expA[3])), 0.00001f);
     OIIO_CHECK_SIMD_EQUAL_THRESH (fast_pow_pos(VEC(2.0f), A),
@@ -1939,6 +1939,25 @@ test_matrix()
 
 
 
+static void
+test_trivially_copyable()
+{
+    print("\nTesting trivially_copyable on all SIMD classes\n");
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vbool4>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vint4>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vfloat4>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vfloat3>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<matrix44>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vbool8>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vint8>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vfloat8>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vbool16>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vint16>::value);
+    OIIO_CHECK_ASSERT(std::is_trivially_copyable<vfloat16>::value);
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -2094,6 +2113,7 @@ main(int argc, char* argv[])
     test_special();
     test_metaprogramming();
     test_matrix();
+    test_trivially_copyable();
 
     std::cout << "\nTotal time: " << Strutil::timeintervalformat(timer())
               << "\n";
