@@ -372,12 +372,14 @@ test_all_formats()
                 const float* read_pixels = (const float*)pixels.data();
                 size_t n                 = pixels.size() / sizeof(float);
                 float sum_of_absolute_differences = 0.0;
-
+                int printed = 0;
                 for (size_t i = 0; i < n; i++) {
                     float difference = read_pixels[i] - orig_pixels[i];
                     sum_of_absolute_differences += fabs(difference);
-                    std::cout << "[" << i << "] " << orig_pixels[i] << " "
-                              << read_pixels[i] << " δ " << difference << "\n";
+                    if (printed++ < 10)
+                        std::cout << "[" << i << "] " << orig_pixels[i] << " "
+                                  << read_pixels[i] << ", diff = " << difference
+                                  << "\n";
                 }
                 std::cout << "sum of absolute differences "
                           << sum_of_absolute_differences << "\n";
