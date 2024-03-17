@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#include <boost/container/flat_map.hpp>
+#include <tsl/robin_map.h>
 
 #include <OpenImageIO/Imath.h>
 
@@ -113,6 +113,16 @@ public:
                           b.view, b.file, b.inverse);
     }
 
+    friend bool operator==(const ColorProcCacheKey& a,
+                           const ColorProcCacheKey& b)
+    {
+        return std::tie(a.hash, a.inputColorSpace, a.outputColorSpace,
+                        a.context_key, a.context_value, a.looks, a.display,
+                        a.view, a.file, a.inverse)
+               == std::tie(b.hash, b.inputColorSpace, b.outputColorSpace,
+                           b.context_key, b.context_value, b.looks, b.display,
+                           b.view, b.file, b.inverse);
+    }
     ustring inputColorSpace;
     ustring outputColorSpace;
     ustring context_key;
@@ -126,8 +136,13 @@ public:
 };
 
 
+struct ColorProcCacheKeyHasher {
+    size_t operator()(const ColorProcCacheKey& c) const { return c.hash; }
+};
 
-typedef boost::container::flat_map<ColorProcCacheKey, ColorProcessorHandle>
+
+typedef tsl::robin_map<ColorProcCacheKey, ColorProcessorHandle,
+                       ColorProcCacheKeyHasher>
     ColorProcessorMap;
 
 
