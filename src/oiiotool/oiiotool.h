@@ -9,7 +9,7 @@
 #include <memory>
 #include <stack>
 
-#include <boost/container/flat_set.hpp>
+#include <tsl/robin_set.h>
 
 #include <OpenImageIO/half.h>
 
@@ -1099,7 +1099,7 @@ protected:
     std::vector<ImageBuf*> m_img;
     std::vector<string_view> m_args;
     ParamValueList m_options;
-    typedef boost::container::flat_set<int> FastIntSet;
+    typedef tsl::robin_set<int> FastIntSet;
     FastIntSet subimage_includes;  // Subimages to operate on (empty == all)
     FastIntSet subimage_excludes;  // Subimages to skip for the op
     setup_func_t m_setup_func;
