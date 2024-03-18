@@ -20,6 +20,7 @@
 #include <OpenEXR/ImfOutputFile.h>
 #include <OpenEXR/ImfTiledOutputFile.h>
 
+#include "exr_pvt.h"
 #define OPENEXR_CODED_VERSION                                    \
     (OPENEXR_VERSION_MAJOR * 10000 + OPENEXR_VERSION_MINOR * 100 \
      + OPENEXR_VERSION_PATCH)
@@ -118,6 +119,7 @@ public:
     bool open(const std::string& name, int subimages,
               const ImageSpec* specs) override;
     bool close() override;
+    bool copy_image(ImageInput* in) override;
     bool write_scanline(int y, int z, TypeDesc format, const void* data,
                         stride_t xstride) override;
     bool write_scanlines(int ybegin, int yend, int z, TypeDesc format,
@@ -1399,6 +1401,60 @@ OpenEXROutput::write_scanline(int y, int z, TypeDesc format, const void* data,
 
     return true;
 #endif
+}
+
+
+
+bool
+OpenEXROutput::copy_image(ImageInput* in)
+{
+    if (in && !strcmp(in->format_name(), "openexr")) {
+        if (OpenEXRInput* exr_in = dynamic_cast<OpenEXRInput*>(in)) {
+            // Copy over pixels without decompression.
+            try {
+                if (m_output_scanline && exr_in->m_scanline_input_part) {
+                    m_output_scanline->copyPixels(
+                        *exr_in->m_scanline_input_part);
+                    return true;
+                } else if (m_output_tiled && exr_in->m_tiled_input_part
+                           && m_nmiplevels == 0) {
+                    m_output_tiled->copyPixels(*exr_in->m_tiled_input_part);
+                    return true;
+                } else if (m_scanline_output_part
+                           && exr_in->m_scanline_input_part) {
+                    m_scanline_output_part->copyPixels(
+                        *exr_in->m_scanline_input_part);
+                    return true;
+                } else if (m_tiled_output_part && exr_in->m_tiled_input_part
+                           && m_nmiplevels == 0) {
+                    m_tiled_output_part->copyPixels(
+                        *exr_in->m_tiled_input_part);
+                    return true;
+                } else if (m_deep_scanline_output_part
+                           && exr_in->m_deep_scanline_input_part) {
+                    m_deep_scanline_output_part->copyPixels(
+                        *exr_in->m_deep_scanline_input_part);
+                    return true;
+                } else if (m_deep_tiled_output_part
+                           && exr_in->m_deep_tiled_input_part
+                           && m_nmiplevels == 0) {
+                    m_deep_tiled_output_part->copyPixels(
+                        *exr_in->m_deep_tiled_input_part);
+                    return true;
+                }
+            } catch (const std::exception& e) {
+                errorf(
+                    "Failed OpenEXR copy: %s, falling back to the default image copy routine.",
+                    e.what());
+                return false;
+            } catch (...) {  // catch-all for edge cases or compiler bugs
+                errorf(
+                    "Failed OpenEXR copy: unknown exception, falling back to the default image copy routine.");
+                return false;
+            }
+        }
+    }
+    return ImageOutput::copy_image(in);
 }
 
 
