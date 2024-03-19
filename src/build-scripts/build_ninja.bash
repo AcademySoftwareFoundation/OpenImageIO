@@ -14,8 +14,18 @@ NINJA_VERSION=${NINJA_VERSION:=1.10.2}
 NINJA_BRANCH=${NINJA_BRANCH:=v${NINJA_VERSION}}
 NINJA_INSTALL_DIR=${NINJA_INSTALL_DIR:=${LOCAL_DEPS_DIR}/dist/bin}
 
-if [ ! -f $DOWNLOADS_DIR/ninja-${NINJA_VERSION}.zip ]; then
-    curl --location ${NINJA_REPO}/archive/${NINJA_BRANCH}.tar.gz -o $DOWNLOADS_DIR/ninja-${NINJA_BRANCH}.tar.gz
+# Check if the directories exist, create them if not
+if [ ! -d "$LOCAL_DEPS_DIR" ]; then
+    mkdir -p "$LOCAL_DEPS_DIR"
+fi
+
+if [ ! -d "$DOWNLOADS_DIR" ]; then
+    mkdir -p "$DOWNLOADS_DIR"
+fi
+
+# Check if the tar exist, download it if not
+if [ ! -f $DOWNLOADS_DIR/ninja-v${NINJA_VERSION}.tar.gz ]; then
+    curl --location ${NINJA_REPO}/archive/refs/tags/${NINJA_BRANCH}.tar.gz -o $DOWNLOADS_DIR/ninja-${NINJA_BRANCH}.tar.gz
 fi
 
 tar xf $DOWNLOADS_DIR/ninja-${NINJA_BRANCH}.tar.gz
