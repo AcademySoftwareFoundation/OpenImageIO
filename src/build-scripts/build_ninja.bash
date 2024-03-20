@@ -14,14 +14,7 @@ NINJA_VERSION=${NINJA_VERSION:=1.10.2}
 NINJA_BRANCH=${NINJA_BRANCH:=v${NINJA_VERSION}}
 NINJA_INSTALL_DIR=${NINJA_INSTALL_DIR:=${LOCAL_DEPS_DIR}/dist/bin}
 
-# Check if the directories exist, create them if not
-if [ ! -d "$LOCAL_DEPS_DIR" ]; then
-    mkdir -p "$LOCAL_DEPS_DIR"
-fi
-
-if [ ! -d "$DOWNLOADS_DIR" ]; then
-    mkdir -p "$DOWNLOADS_DIR"
-fi
+mkdir -p "$DOWNLOADS_DIR"
 
 # Check if the tar exist, download it if not
 if [ ! -f $DOWNLOADS_DIR/ninja-v${NINJA_VERSION}.tar.gz ]; then
