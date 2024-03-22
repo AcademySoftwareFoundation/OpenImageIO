@@ -46,9 +46,8 @@ if [[ -z $DEP_DOWNLOAD_ONLY ]]; then
     time cmake -S . -B ${PYBIND11_BUILD_DIR} -DCMAKE_BUILD_TYPE=Release \
                -DCMAKE_INSTALL_PREFIX=${PYBIND11_INSTALL_DIR} \
                -DPYBIND11_TEST=OFF \
-               -DCMAKE_MODULE_PATH=${CONAN_CMAKE_FILES} \
-               ${PYBIND11_BUILD_OPTS} ..
-    time cmake --build . --config Release --target install
+               ${PYBIND11_BUILD_OPTS}
+    time cmake --build ${PYBIND11_BUILD_DIR} --config Release --target install
 fi
 
 # ls -R ${PYBIND11_INSTALL_DIR}
