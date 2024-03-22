@@ -45,7 +45,6 @@ testtex = "OpenImageIO._commands:testtex"
 requires = [
     "scikit-build-core",
     "cmake>=3.12",
-    "ninja",
-    "numpy"
+    "oldest-supported-numpy"
 ]
 build-backend = "scikit_build_core.build"
