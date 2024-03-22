@@ -255,12 +255,12 @@ if (OpenVDB_FOUND AND OpenVDB_VERSION VERSION_GREATER_EQUAL 10.1 AND CMAKE_CXX_S
     set (OpenVDB_FOUND 0)
 endif ()
 
-checked_find_package (ptex PREFER_CONFIG)
-if (NOT ptex_FOUND OR NOT ptex_VERSION)
+checked_find_package (Ptex PREFER_CONFIG)
+if (NOT Ptex_FOUND OR NOT Ptex_VERSION)
     # Fallback for inadequate Ptex exported configs. This will eventually
     # disappear when we can 100% trust Ptex's exports.
-    unset (ptex_FOUND)
-    checked_find_package (ptex)
+    unset (Ptex_FOUND)
+    checked_find_package (Ptex)
 endif ()
 
 checked_find_package (WebP)
