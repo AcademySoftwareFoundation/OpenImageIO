@@ -226,7 +226,7 @@ if (APPLE AND LIBHEIF_VERSION VERSION_GREATER_EQUAL 1.10 AND LIBHEIF_VERSION VER
     set (libheif_FOUND 0)
 endif ()
 
-checked_find_package (libraw
+checked_find_package (LibRaw
                       VERSION_MIN 0.18
                       RECOMMEND_MIN 0.18
                       RECOMMEND_MIN_REASON "for ACES support and better camera metadata"
