@@ -139,7 +139,6 @@ message(STATUS "Setting Namespace to: ${PROJ_NAMESPACE_V}")
 add_definitions (-DOIIO_INTERNAL=1)
 
 list (APPEND CMAKE_MODULE_PATH
-      "${PROJECT_SOURCE_DIR}/build"
       "${PROJECT_SOURCE_DIR}/src/cmake/modules"
       "${PROJECT_SOURCE_DIR}/src/cmake")
 
