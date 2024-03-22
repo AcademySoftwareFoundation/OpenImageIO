@@ -59,10 +59,9 @@ git checkout ${OPENCOLORIO_VERSION} --force
 time cmake -S . -B ${OPENCOLORIO_BUILD_DIR} \
            -DCMAKE_BUILD_TYPE=${OPENCOLORIO_BUILD_TYPE} \
            -DCMAKE_INSTALL_PREFIX=${OPENCOLORIO_INSTALL_DIR} \
-           -DCMAKE_CXX_FLAGS_RELEASE="${OPENCOLORIO_CXX_FLAGS}" \
-           -Dyaml-cpp_CXX_FLAGS="${OPENCOLORIO_YAML_CXX_FLAGS}" \
-           ${OPENCOLORIO_BUILDOPTS} ${OPENCOLORIO_SOURCE_DIR}
-time cmake --build . --config Release --target install
+           -DCMAKE_CXX_FLAGS="${OPENCOLORIO_CXX_FLAGS}" \
+           ${OPENCOLORIO_BUILDOPTS}
+time cmake --build ${OPENCOLORIO_BUILD_DIR} --config Release --target install
 popd
 
 # ls -R ${OPENCOLORIO_INSTALL_DIR}
