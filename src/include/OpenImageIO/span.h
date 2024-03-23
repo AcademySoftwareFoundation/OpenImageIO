@@ -89,8 +89,8 @@ public:
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
     static constexpr size_type extent = Extent;
 
-    /// Default constructor -- the span points to nothing.
-    constexpr span () noexcept { }
+    /// Default constructor -- the span will be `{nullptr,0}`.
+    constexpr span () noexcept = default;
 
     /// Copy constructor (copies the span pointer and length, NOT the data).
     template<class U, oiio_span_size_type N>
@@ -143,11 +143,7 @@ public:
         : span (il.begin(), il.size()) { }
 
     /// Assignment copies the pointer and length, not the data.
-    span& operator= (const span &copy) {
-        m_data = copy.data();
-        m_size = copy.size();
-        return *this;
-    }
+    constexpr span& operator= (const span &copy) = default;
 
     /// Subview containing the first Count elements of the span.
     template<size_type Count>
