@@ -356,7 +356,7 @@ help:
 	@echo "      VERBOSE=1                Show all compilation commands"
 	@echo "      STOP_ON_WARNING=0        Do not stop building if compiler warns"
 	@echo "      MYCC=xx MYCXX=yy         Use custom compilers"
-	@echo "      CMAKE_CXX_STANDARD=14    C++ standard to build with (default is 17)"
+	@echo "      CMAKE_CXX_STANDARD=20    C++ standard to build with (default is 17)"
 	@echo "      USE_LIBCPLUSPLUS=1       For clang, use libc++"
 	@echo "      GLIBCXX_USE_CXX11_ABI=1  For gcc, use the new string ABI"
 	@echo "      EXTRA_CPP_ARGS=          Additional args to the C++ command"
