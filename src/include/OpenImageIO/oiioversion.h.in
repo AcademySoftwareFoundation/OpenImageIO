@@ -185,7 +185,7 @@ namespace @PROJ_NAME@ = @PROJ_NAMESPACE_V@;
 #define OIIO_USING_IMATH_VERSION_MAJOR @Imath_VERSION_MAJOR@
 #define OIIO_USING_IMATH_VERSION_MINOR @Imath_VERSION_MINOR@
 
-// Which CPP standard (11, 14, etc.) was this copy of OIIO *built* with?
+// Which CPP standard (17, 20, etc.) was this copy of OIIO *built* with?
 #define OIIO_BUILD_CPP @CMAKE_CXX_STANDARD@
 
 // DEPRECATED(2.1): old macros separately giving compatibility.

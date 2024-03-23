@@ -194,10 +194,10 @@ public:
     constexpr iterator end() const noexcept { return m_chars + m_len; }
     constexpr const_iterator cbegin() const noexcept { return m_chars; }
     constexpr const_iterator cend() const noexcept { return m_chars + m_len; }
-    OIIO_CONSTEXPR17 reverse_iterator rbegin() const noexcept { return reverse_iterator (end()); }
-    OIIO_CONSTEXPR17 reverse_iterator rend() const noexcept { return reverse_iterator (begin()); }
-    OIIO_CONSTEXPR17 const_reverse_iterator crbegin() const noexcept { return const_reverse_iterator (cend()); }
-    OIIO_CONSTEXPR17 const_reverse_iterator crend() const noexcept { return const_reverse_iterator (cbegin()); }
+    constexpr reverse_iterator rbegin() const noexcept { return reverse_iterator (end()); }
+    constexpr reverse_iterator rend() const noexcept { return reverse_iterator (begin()); }
+    constexpr const_reverse_iterator crbegin() const noexcept { return const_reverse_iterator (cend()); }
+    constexpr const_reverse_iterator crend() const noexcept { return const_reverse_iterator (cbegin()); }
 
     // capacity
     constexpr size_type size() const noexcept { return m_len; }
@@ -212,7 +212,7 @@ public:
     /// checking!).
     constexpr const_reference operator[](size_type pos) const { return m_chars[pos]; }
     /// Element access with bounds checking and exception if out of bounds.
-    OIIO_CONSTEXPR17 const_reference at(size_t pos) const
+    constexpr const_reference at(size_t pos) const
     {
         if (pos >= m_len)
             throw(std::out_of_range("OpenImageIO::string_view::at"));
@@ -247,7 +247,7 @@ public:
         return basic_string_view(data() + pos, n);
     }
 
-    OIIO_CONSTEXPR17 int compare (basic_string_view x) const noexcept {
+    constexpr int compare (basic_string_view x) const noexcept {
         // N.B. char_traits<char>::compare is constexpr for C++17
         const int cmp = traits_type::compare (m_chars, x.m_chars, (std::min)(m_len, x.m_len));
         return cmp != 0 ? cmp : int(m_len) - int(x.m_len);
@@ -360,37 +360,37 @@ public:
         return npos;
     }
 
-    friend OIIO_CONSTEXPR17 bool
+    friend constexpr bool
     operator==(basic_string_view x, basic_string_view y) noexcept
     {
         return x.size() == y.size() ? (x.compare(y) == 0) : false;
     }
 
-    friend OIIO_CONSTEXPR17 bool
+    friend constexpr bool
     operator!=(basic_string_view x, basic_string_view y) noexcept
     {
         return x.size() == y.size() ? (x.compare(y) != 0) : true;
     }
 
-    friend OIIO_CONSTEXPR17 bool
+    friend constexpr bool
     operator<(basic_string_view x, basic_string_view y) noexcept
     {
         return x.compare(y) < 0;
     }
 
-    friend OIIO_CONSTEXPR17 bool
+    friend constexpr bool
     operator>(basic_string_view x, basic_string_view y) noexcept
     {
         return x.compare(y) > 0;
     }
 
-    friend OIIO_CONSTEXPR17 bool
+    friend constexpr bool
     operator<=(basic_string_view x, basic_string_view y) noexcept
     {
         return x.compare(y) <= 0;
     }
 
-    friend OIIO_CONSTEXPR17 bool
+    friend constexpr bool
     operator>=(basic_string_view x, basic_string_view y) noexcept
     {
         return x.compare(y) >= 0;
