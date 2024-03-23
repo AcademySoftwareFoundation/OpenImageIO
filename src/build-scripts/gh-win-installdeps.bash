@@ -25,9 +25,7 @@ export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$DEP_DIR/lib:$VCPKG_INSTALLATION_ROOT/i
 #ls -l "C:/Program Files (x86)/Microsoft Visual Studio" && true
 
 
-if [[ "$PYTHON_VERSION" == "3.6" ]] ; then
-    export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;/c/hostedtoolcache/windows/Python/3.6.8/x64"
-elif [[ "$PYTHON_VERSION" == "3.7" ]] ; then
+if [[ "$PYTHON_VERSION" == "3.7" ]] ; then
     export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;/c/hostedtoolcache/windows/Python/3.7.9/x64"
     export Python_EXECUTABLE="/c/hostedtoolcache/windows/Python/3.7.9/x64/python.exe"
     export PYTHONPATH=$OpenImageIO_ROOT/lib/python${PYTHON_VERSION}/site-packages

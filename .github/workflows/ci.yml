@@ -332,26 +332,22 @@ jobs:
           - desc: debug gcc9/C++17, sse4.2, exr2.4
             nametag: linux-gcc9-cpp17-debug
             runner: ubuntu-20.04
-            container:
-              image: ubuntu-18.04
             cxx_compiler: g++-9
             cxx_std: 17
-            python_ver: 2.7
+            python_ver: 3.8
             simd: sse4.2
             openexr_ver: v2.4.3
             pybind11_ver: v2.6.2
             setenvs: export CMAKE_BUILD_TYPE=Debug
                             PUGIXML_VERSION=v1.9
                             CTEST_TEST_TIMEOUT=1200
-
           - desc: static libs gcc9 C++17 exr2.4
             nametag: linux-static
             runner: ubuntu-20.04
-            container:
-              image: ubuntu-18.04
             cxx_compiler: g++-9
             cxx_std: 17
             openexr_ver: v2.4.3
+            python_ver: 3.8
             pybind11_ver: v2.6.2
             setenvs: export BUILD_SHARED_LIBS=OFF
             depcmds: |

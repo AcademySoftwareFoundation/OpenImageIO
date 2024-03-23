@@ -5,7 +5,6 @@
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
-from __future__ import absolute_import
 import os
 
 # print("ociover =", ociover)

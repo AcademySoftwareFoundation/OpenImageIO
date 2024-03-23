@@ -4,9 +4,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-from __future__ import print_function
-from __future__ import absolute_import
 import OpenImageIO as oiio
+
 import numpy as np
 
 

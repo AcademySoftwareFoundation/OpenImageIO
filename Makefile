@@ -389,7 +389,7 @@ help:
 	@echo "      USE_EXTERNAL_PUGIXML=1   Use the system PugiXML, not the one in OIIO"
 	@echo "      USE_QT=0                 Skip anything that needs Qt"
 	@echo "      USE_PYTHON=0             Don't build the Python binding"
-	@echo "      PYTHON_VERSION=2.6       Specify the Python version"
+	@echo "      PYTHON_VERSION=3.9       Specify the Python version"
 	@echo "      USE_NUKE=0               Don't build Nuke plugins"
 	@echo "      Nuke_ROOT=path           Custom Nuke installation"
 	@echo "      NUKE_VERSION=ver         Custom Nuke version"
