@@ -113,7 +113,7 @@ public:
     /// Construct from a fixed-length C array.  Template magic automatically
     /// finds the length from the declared type of the array.
     template<size_t N>
-    constexpr span (T (&data)[N]) : m_data(data), m_size(N) { }
+    constexpr span (T (&data)[N]) noexcept : m_data(data), m_size(N) { }
 
     /// Construct from std::vector<T>.
     template<class Allocator>
@@ -125,21 +125,21 @@ public:
     /// `const std::vector<T>` into a `span<const T>` (the span isn't const,
     /// but the data it points to will be).
     template<class Allocator>
-    span (const std::vector<value_type, Allocator> &v)
+    span (const std::vector<value_type, Allocator> &v) noexcept
         : m_data(v.data()), m_size(v.size()) { }
 
     /// Construct from mutable element std::array
     template <size_t N>
-    constexpr span (std::array<value_type, N> &arr)
+    constexpr span (std::array<value_type, N> &arr) noexcept
         : m_data(arr.data()), m_size(N) {}
 
     /// Construct from read-only element std::array
     template <size_t N>
-    constexpr span (const std::array<value_type, N>& arr)
+    constexpr span (const std::array<value_type, N>& arr) noexcept
         : m_data(arr.data()), m_size(N) {}
 
     /// Construct a span from an initializer_list.
-    constexpr span (std::initializer_list<T> il)
+    constexpr span (std::initializer_list<T> il) noexcept
         : span (il.begin(), il.size()) { }
 
     /// Assignment copies the pointer and length, not the data.
