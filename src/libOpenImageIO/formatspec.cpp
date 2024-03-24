@@ -473,19 +473,21 @@ ImageSpec::find_attribute(string_view name, ParamValue& tmpparam,
     // some special cases -- assemblies of multiple fields or attributes
     if (MATCH("geom", TypeString)) {
         ustring s = (depth <= 1 && full_depth <= 1)
-                        ? ustring::sprintf("%dx%d%+d%+d", width, height, x, y)
-                        : ustring::sprintf("%dx%dx%d%+d%+d%+d", width, height,
-                                           depth, x, y, z);
+                        ? ustring::fmtformat("{}x{}{:+d}{:+d}", width, height,
+                                             x, y)
+                        : ustring::fmtformat("{}x{}x{}{:+d}{:+d}{:+d}", width,
+                                             height, depth, x, y, z);
         tmpparam.init("geom", TypeString, 1, &s);
         return &tmpparam;
     }
     if (MATCH("full_geom", TypeString)) {
         ustring s = (depth <= 1 && full_depth <= 1)
-                        ? ustring::sprintf("%dx%d%+d%+d", full_width,
-                                           full_height, full_x, full_y)
-                        : ustring::sprintf("%dx%dx%d%+d%+d%+d", full_width,
-                                           full_height, full_depth, full_x,
-                                           full_y, full_z);
+                        ? ustring::fmtformat("{}x{}{:+d}{:+d}", full_width,
+                                             full_height, full_x, full_y)
+                        : ustring::fmtformat("{}x{}x{}{:+d}{:+d}{:+d}",
+                                             full_width, full_height,
+                                             full_depth, full_x, full_y,
+                                             full_z);
         tmpparam.init("full_geom", TypeString, 1, &s);
         return &tmpparam;
     }
@@ -641,7 +643,8 @@ static std::string
 explain_apertureapex(const ParamValue& p, const void* /*extradata*/)
 {
     if (p.type() == TypeDesc::FLOAT)
-        return Strutil::sprintf("f/%2.1f", powf(2.0f, *(float*)p.data() / 2.0f));
+        return Strutil::fmt::format("f/{:2.1f}",
+                                    powf(2.0f, *(float*)p.data() / 2.0f));
     return std::string();
 }
 
@@ -649,15 +652,15 @@ static std::string
 explain_ExifFlash(const ParamValue& p, const void* /*extradata*/)
 {
     int val = p.get_int();
-    return Strutil::sprintf("%s%s%s%s%s%s%s%s",
-                           (val & 1) ? "flash fired" : "no flash",
-                           (val & 6) == 4 ? ", no strobe return" : "",
-                           (val & 6) == 6 ? ", strobe return" : "",
-                           (val & 24) == 8 ? ", compulsory flash" : "",
-                           (val & 24) == 16 ? ", flash suppression" : "",
-                           (val & 24) == 24 ? ", auto flash" : "",
-                           (val & 32) ? ", no flash available" : "",
-                           (val & 64) ? ", red-eye reduction" : "");
+    return Strutil::fmt::format("{}{}{}{}{}{}{}{}",
+                                (val & 1) ? "flash fired" : "no flash",
+                                (val & 6) == 4 ? ", no strobe return" : "",
+                                (val & 6) == 6 ? ", strobe return" : "",
+                                (val & 24) == 8 ? ", compulsory flash" : "",
+                                (val & 24) == 16 ? ", flash suppression" : "",
+                                (val & 24) == 24 ? ", auto flash" : "",
+                                (val & 32) ? ", no flash available" : "",
+                                (val & 64) ? ", red-eye reduction" : "");
 }
 
 static LabelIndex ExifExposureProgram_table[] = {
@@ -853,7 +856,7 @@ ImageSpec::metadata_val(const ParamValue& p, bool human)
     // strings, so we need to correct for that here.
     TypeDesc ptype = p.type();
     if (ptype == TypeString && p.nvalues() == 1)
-        out = Strutil::sprintf("\"%s\"", Strutil::escape_chars(out));
+        out = Strutil::fmt::format("\"{}\"", Strutil::escape_chars(out));
     if (human) {
         const ExplanationTableEntry* exp = nullptr;
         for (const auto& e : explanation)
@@ -873,7 +876,8 @@ ImageSpec::metadata_val(const ParamValue& p, bool human)
                     nice += ", ";
                 int num = p.get<int>(2 * i + 0), den = p.get<int>(2 * i + 1);
                 if (den)
-                    nice += Strutil::sprintf("%g", float(num) / float(den));
+                    nice += Strutil::fmt::format("{:g}",
+                                                 float(num) / float(den));
                 else
                     nice += "inf";
             }
@@ -948,10 +952,10 @@ extended_format_name(TypeDesc type, int bits)
         // file than the data type we are passing.
         if (type == TypeDesc::UINT8 || type == TypeDesc::UINT16
             || type == TypeDesc::UINT32 || type == TypeDesc::UINT64)
-            return ustring::sprintf("uint%d", bits).c_str();
+            return ustring::fmtformat("uint{}", bits).c_str();
         if (type == TypeDesc::INT8 || type == TypeDesc::INT16
             || type == TypeDesc::INT32 || type == TypeDesc::INT64)
-            return ustring::sprintf("int%d", bits).c_str();
+            return ustring::fmtformat("int{}", bits).c_str();
     }
     return type.c_str();  // use the name implied by type
 }
@@ -961,16 +965,16 @@ extended_format_name(TypeDesc type, int bits)
 inline std::string
 format_res(const ImageSpec& spec, int w, int h, int d)
 {
-    return (spec.depth > 1) ? Strutil::sprintf("%d x %d x %d", w, h, d)
-                            : Strutil::sprintf("%d x %d", w, h);
+    return (spec.depth > 1) ? Strutil::fmt::format("{} x {} x {}", w, h, d)
+                            : Strutil::fmt::format("{} x {}", w, h);
 }
 
 
 inline std::string
 format_offset(const ImageSpec& spec, int x, int y, int z)
 {
-    return (spec.depth > 1) ? Strutil::sprintf("%d, %d, %d", x, y, z)
-                            : Strutil::sprintf("%d, %d", x, y);
+    return (spec.depth > 1) ? Strutil::fmt::format("{}, {}, {}", x, y, z)
+                            : Strutil::fmt::format("{}, {}", x, y);
 }
 
 
@@ -1051,55 +1055,54 @@ ImageSpec::serialize(SerialFormat fmt, SerialVerbose verbose) const
     // Text case:
     //
 
-    using Strutil::sprintf;
+    using Strutil::fmt::format;
     std::stringstream out;
 
-    out << ((depth > 1) ? sprintf("%4d x %4d x %4d", width, height, depth)
-                        : sprintf("%4d x %4d", width, height));
-    out << sprintf(", %d channel, %s%s", nchannels, deep ? "deep " : "",
-                   depth > 1 ? "volume " : "");
+    if (depth > 1)
+        print(out, "{:4} x {:4} x {:4}", width, height, depth);
+    else
+        print(out, "{:4} x {:4}", width, height);
+    print(out, ", {} channel, {}{}", nchannels, deep ? "deep " : "",
+          depth > 1 ? "volume " : "");
     if (channelformats.size()) {
         for (size_t c = 0; c < channelformats.size(); ++c)
-            out << sprintf("%s%s", c ? "/" : "", channelformats[c].c_str());
+            print(out, "{}{}", c ? "/" : "", channelformats[c]);
     } else {
         int bits = get_int_attribute("oiio:BitsPerSample", 0);
-        out << extended_format_name(this->format, bits);
+        print(out, "{}", extended_format_name(this->format, bits));
     }
-    out << '\n';
+    print(out, "\n");
 
     if (verbose >= SerialDetailed) {
-        out << "    channel list: ";
+        print(out, "    channel list: ");
         for (int i = 0; i < nchannels; ++i) {
             if (i < (int)channelnames.size())
-                out << channelnames[i];
+                print(out, "{}", channelnames[i]);
             else
-                out << "unknown";
+                print(out, "unknown");
             if (i < (int)channelformats.size())
-                out << " (" << channelformats[i] << ")";
+                print(out, " ({})", channelformats[i]);
             if (i < nchannels - 1)
-                out << ", ";
+                print(out, ", ");
         }
-        out << '\n';
+        print(out, "\n");
         if (x || y || z) {
-            out << "    pixel data origin: "
-                << ((depth > 1) ? sprintf("x=%d, y=%d, z=%d", x, y, z)
-                                : sprintf("x=%d, y=%d", x, y))
-                << '\n';
+            print(out, "    pixel data origin: {}\n",
+                  ((depth > 1) ? format("x={}, y={}, z={}", x, y, z)
+                               : format("x={}, y={}", x, y)));
         }
         if (full_x || full_y || full_z
             || (full_width != width && full_width != 0)
             || (full_height != height && full_height != 0)
             || (full_depth != depth && full_depth != 0)) {
-            out << "    full/display size: "
-                << format_res(*this, full_width, full_height, full_depth)
-                << '\n';
-            out << "    full/display origin: "
-                << format_offset(*this, full_x, full_y, full_z) << '\n';
+            print(out, "    full/display size: {}\n",
+                  format_res(*this, full_width, full_height, full_depth));
+            print(out, "    full/display origin: {}\n",
+                  format_offset(*this, full_x, full_y, full_z));
         }
         if (tile_width) {
-            out << "    tile size: "
-                << format_res(*this, tile_width, tile_height, tile_depth)
-                << '\n';
+            print(out, "    tile size: {}\n",
+                  format_res(*this, tile_width, tile_height, tile_depth));
         }
 
         // Sort the metadata alphabetically, case-insensitive, but making
@@ -1109,11 +1112,11 @@ ImageSpec::serialize(SerialFormat fmt, SerialVerbose verbose) const
         attribs.sort(false /* sort case-insensitively */);
 
         for (auto&& p : attribs) {
-            Strutil::print(out, "    {}: ", p.name());
+            print(out, "    {}: ", p.name());
             std::string s = metadata_val(p, verbose == SerialDetailedHuman);
             if (s == "1.#INF")
                 s = "inf";
-            out << s << '\n';
+            print(out, "{}\n", s);
         }
     }
 

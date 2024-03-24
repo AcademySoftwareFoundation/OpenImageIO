@@ -748,7 +748,7 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
                                         m_spec.channelnames[i]);
                     else
                         inknames.insert(inknames.size(),
-                                        Strutil::sprintf("ink%d", i));
+                                        Strutil::fmt::format("ink{}", i));
                 }
                 TIFFSetField(m_tif, TIFFTAG_INKNAMES, int(inknames.size() + 1),
                              &inknames[0]);
@@ -852,11 +852,11 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
         time(&now);
         struct tm mytm;
         Sysutil::get_local_time(&now, &mytm);
-        std::string date = Strutil::sprintf("%4d:%02d:%02d %02d:%02d:%02d",
-                                            mytm.tm_year + 1900,
-                                            mytm.tm_mon + 1, mytm.tm_mday,
-                                            mytm.tm_hour, mytm.tm_min,
-                                            mytm.tm_sec);
+        std::string date
+            = Strutil::fmt::format("{:4d}:{:02d}:{:02d} {:02d}:{:02d}:{:02d}",
+                                   mytm.tm_year + 1900, mytm.tm_mon + 1,
+                                   mytm.tm_mday, mytm.tm_hour, mytm.tm_min,
+                                   mytm.tm_sec);
         m_spec.attribute("DateTime", date);
     }
 

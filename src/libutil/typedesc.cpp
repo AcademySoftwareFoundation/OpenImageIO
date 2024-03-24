@@ -230,7 +230,7 @@ TypeDesc::c_str() const
         alen   = arraylen > 2 ? (arraylen / 2) : (arraylen < 0 ? -1 : 0);
     }
     if (alen > 0)
-        result += Strutil::sprintf("[%d]", alen);
+        result += Strutil::fmt::format("[{}]", alen);
     else if (alen < 0)
         result += "[]";
     return ustring(result).c_str();
@@ -565,7 +565,7 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt)
             for (size_t i = 0, e = type.numelements(); i < e; ++i, val += 2) {
                 if (i)
                     out += ", ";
-                out += Strutil::sprintf("%u/%u", val[0], val[1]);
+                out += Strutil::fmt::format("{}/{}", val[0], val[1]);
             }
             return out;
         } else if (type == TypeTimeCode) {
@@ -576,8 +576,8 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt)
             int minutes    = bcdToBinary(bitField(t, 16, 22));
             int seconds    = bcdToBinary(bitField(t, 8, 14));
             int frame      = bcdToBinary(bitField(t, 0, 5));
-            return Strutil::sprintf("%02d:%02d:%02d:%02d", hours, minutes,
-                                    seconds, frame);
+            return Strutil::fmt::format("{:02d}:{:02d}:{:02d}:{:02d}", hours,
+                                        minutes, seconds, frame);
         }
         return fmt.use_sprintf
                    ? sprint_type(type, fmt.uint_fmt ? fmt.uint_fmt : "%u", fmt,
@@ -591,7 +591,7 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt)
             for (size_t i = 0, e = type.numelements(); i < e; ++i, val += 2) {
                 if (i)
                     out += ", ";
-                out += Strutil::sprintf("%d/%d", val[0], val[1]);
+                out += Strutil::fmt::format("{}/{}", val[0], val[1]);
             }
             return out;
         }
@@ -642,9 +642,9 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt)
     }
     default:
 #ifndef NDEBUG
-        return Strutil::sprintf("<unknown data type> (base %d, agg %d vec %d)",
-                                type.basetype, type.aggregate,
-                                type.vecsemantics);
+        return Strutil::fmt::format(
+            "<unknown data type> (base {}, agg {} vec {})", type.basetype,
+            type.aggregate, type.vecsemantics);
 #endif
         break;
     }

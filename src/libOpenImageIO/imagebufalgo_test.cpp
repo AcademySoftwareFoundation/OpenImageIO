@@ -52,9 +52,9 @@ getargs(int argc, char* argv[])
     ap.arg("-v", &verbose)
       .help("Verbose mode");
     ap.arg("--threads %d", &numthreads)
-      .help(Strutil::sprintf("Number of threads (default: %d)", numthreads));
+      .help(Strutil::fmt::format("Number of threads (default: {})", numthreads));
     ap.arg("--iters %d", &iterations)
-      .help(Strutil::sprintf("Number of iterations (default: %d)", iterations));
+      .help(Strutil::fmt::format("Number of iterations (default: {})", iterations));
     ap.arg("--trials %d", &ntrials)
       .help("Number of trials");
     ap.arg("--wedge", &wedge)
@@ -1034,11 +1034,10 @@ void
 benchmark_parallel_image(int res, int iters)
 {
     using namespace ImageBufAlgo;
-    std::cout << "\nTime old parallel_image for " << res << "x" << res
-              << std::endl;
+    print("\nTime old parallel_image for {}x{}\n", res, res);
 
-    std::cout << "  threads time    rate   (best of " << ntrials << ")\n";
-    std::cout << "  ------- ------- -------\n";
+    print("  threads time    rate   (best of {})\n", ntrials);
+    print("  ------- ------- -------\n");
     ImageSpec spec(res, res, 3, TypeDesc::FLOAT);
     ImageBuf X(spec), Y(spec);
     float one[] = { 1, 1, 1 };
@@ -1063,16 +1062,16 @@ benchmark_parallel_image(int res, int iters)
         };
         double range;
         double t = time_trial(func, ntrials, iters, &range) / iters;
-        std::cout << Strutil::sprintf("  %4d   %7.3f ms  %5.1f Mpels/s\n", nt,
-                                      t * 1000, double(res * res) / t / 1.0e6);
+        print("  {:4}   {:7.3f} ms  {:5.1f} Mpels/s\n", nt, t * 1000,
+              double(res * res) / t / 1.0e6);
         if (!wedge)
             break;  // don't loop if we're not wedging
     }
 
-    std::cout << "\nTime new parallel_image for " << res << "x" << res << "\n";
+    print("\nTime new parallel_image for {}x{}\n", res, res);
 
-    std::cout << "  threads time    rate   (best of " << ntrials << ")\n";
-    std::cout << "  ------- ------- -------\n";
+    print("  threads time    rate   (best of {})\n", ntrials);
+    print("  ------- ------- -------\n");
     for (int i = 0; threadcounts[i] <= numthreads; ++i) {
         int nt = wedge ? threadcounts[i] : numthreads;
         // default_thread_pool()->resize (nt);
@@ -1080,8 +1079,8 @@ benchmark_parallel_image(int res, int iters)
         auto func = [&]() { parallel_image(Y.roi(), nt, exercise); };
         double range;
         double t = time_trial(func, ntrials, iters, &range) / iters;
-        std::cout << Strutil::sprintf("  %4d   %6.2f ms  %5.1f Mpels/s\n", nt,
-                                      t * 1000, double(res * res) / t / 1.0e6);
+        print("  {:4}   {:6.2f} ms  {:5.1f} Mpels/s\n", nt, t * 1000,
+              double(res * res) / t / 1.0e6);
         if (!wedge)
             break;  // don't loop if we're not wedging
     }

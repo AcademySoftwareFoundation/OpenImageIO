@@ -110,10 +110,10 @@ private:
             swap_endian(s, 2);
             swap_endian(&i);
         }
-        out << Strutil::sprintf("%d/%u %d/%u %d/%u %d/%u (%d %d) (%u)\n",
-                                u.c[0], ((char*)u.c)[0], u.c[1],
-                                ((char*)u.c)[1], u.c[2], ((char*)u.c)[2],
-                                u.c[3], ((char*)u.c)[3], s[0], s[1], i);
+        print(out,
+              "{:d}/{:d} {:d}/{:d} {:d}/{:d} {:d}/{:d} ({:d} {:d}) ({:d})\n",
+              u.c[0], ((char*)u.c)[0], u.c[1], ((char*)u.c)[1], u.c[2],
+              ((char*)u.c)[2], u.c[3], ((char*)u.c)[3], s[0], s[1], i);
         ioseek(pos);
     }
 };

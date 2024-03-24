@@ -44,7 +44,7 @@ getargs(int argc, char* argv[])
       .usage("simd_test [options]");
 
     ap.arg("--iterations %d", &iterations)
-      .help(Strutil::sprintf("Number of iterations (default: %d)", iterations));
+      .help(Strutil::fmt::format("Number of iterations (default: {})", iterations));
     ap.arg("--trials %d", &ntrials)
       .help("Number of trials");
 
@@ -529,7 +529,8 @@ void test_conversion_loadstore_int ()
 template<typename VEC>
 void test_vint_to_uint16s ()
 {
-    test_heading (Strutil::sprintf("test converting %s to uint16", VEC::type_name()));
+    test_heading (Strutil::fmt::format("test converting {} to uint16",
+                                       VEC::type_name()));
     VEC ival = VEC::Iota (0xffff0000);
     unsigned short buf[VEC::elements];
     ival.store (buf);
@@ -545,7 +546,8 @@ void test_vint_to_uint16s ()
 template<typename VEC>
 void test_vint_to_uint8s ()
 {
-    test_heading (Strutil::sprintf("test converting %s to uint8", VEC::type_name()));
+    test_heading (Strutil::fmt::format("test converting {} to uint8",
+                                       VEC::type_name()));
     VEC ival = VEC::Iota (0xffffff00);
     unsigned char buf[VEC::elements];
     ival.store (buf);

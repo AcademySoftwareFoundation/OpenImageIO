@@ -414,18 +414,20 @@ FitsInput::convert_date(const std::string& date)
     std::string ndate;
     if (date[4] == '-') {
         // YYYY-MM-DDThh:mm:ss convention is used since 1 January 2000
-        ndate = Strutil::sprintf("%04u:%02u:%02u", stoi(&date[0]),
-                                 stoi(&date[5]), stoi(&date[8]));
+        ndate = Strutil::fmt::format("{:04d}:{:02d}:{:02d}", stoi(&date[0]),
+                                     stoi(&date[5]), stoi(&date[8]));
         if (date.size() >= 11 && date[10] == 'T')
-            ndate += Strutil::sprintf(" %02u:%02u:%02u", stoi(&date[11]),
-                                      stoi(&date[14]), stoi(&date[17]));
+            ndate += Strutil::fmt::format(" {:02d}:{:02d}:{:02d}",
+                                          stoi(&date[11]), stoi(&date[14]),
+                                          stoi(&date[17]));
         return ndate;
     }
 
     if (date[2] == '/') {
         // DD/MM/YY convention was used before 1 January 2000
-        ndate = Strutil::sprintf("19%02u:%02u:%02u 00:00:00", stoi(&date[6]),
-                                 stoi(&date[3]), stoi(&date[0]));
+        ndate = Strutil::fmt::format("19{:02d}:{:02d}:{:02d} 00:00:00",
+                                     stoi(&date[6]), stoi(&date[3]),
+                                     stoi(&date[0]));
         return ndate;
     }
     // unrecognized format

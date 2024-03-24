@@ -159,6 +159,10 @@ using old::format;
 #endif
 
 
+// format_to comes from fmt library
+using ::fmt::format_to;
+using ::fmt::format_to_n;
+
 
 /// Strutil::printf (fmt, ...)
 /// Strutil::fprintf (FILE*, fmt, ...)

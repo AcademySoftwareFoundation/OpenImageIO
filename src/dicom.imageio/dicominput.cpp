@@ -269,7 +269,8 @@ DICOMInput::read_metadata()
             std::string tagname = tag.getTagName();
             if (ignore_tags.find(tagname) != ignore_tags.end())
                 continue;
-            std::string name = Strutil::sprintf("dicom:%s", tag.getTagName());
+            std::string name = Strutil::fmt::format("dicom:{}",
+                                                    tag.getTagName());
             DcmEVR evr       = tag.getEVR();
             // VR codes explained:
             // http://dicom.nema.org/Dicom/2013/output/chtml/part05/sect_6.2.html

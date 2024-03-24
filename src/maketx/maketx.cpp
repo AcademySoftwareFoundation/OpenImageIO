@@ -448,8 +448,8 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
     configspec.attribute("maketx:cdfbits", cdfbits);
 
     std::string cmdline
-        = Strutil::sprintf("OpenImageIO %s : %s", OIIO_VERSION_STRING,
-                           command_line_string(argc, argv, sansattrib));
+        = Strutil::fmt::format("OpenImageIO {} : {}", OIIO_VERSION_STRING,
+                               command_line_string(argc, argv, sansattrib));
     configspec.attribute("Software", cmdline);
     configspec.attribute("maketx:full_command_line", cmdline);
 

@@ -199,10 +199,10 @@ FitsOutput::create_fits_header(void)
         if (keyname == "DateTime") {
             using Strutil::stoi;
             keyname = "Date";
-            value   = Strutil::sprintf("%04u-%02u-%02uT%02u:%02u:%02u",
-                                       stoi(&value[0]), stoi(&value[5]),
-                                       stoi(&value[8]), stoi(&value[11]),
-                                       stoi(&value[14]), stoi(&value[17]));
+            value = Strutil::fmt::format("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}",
+                                         stoi(&value[0]), stoi(&value[5]),
+                                         stoi(&value[8]), stoi(&value[11]),
+                                         stoi(&value[14]), stoi(&value[17]));
         }
 
         header += create_card(keyname, value);

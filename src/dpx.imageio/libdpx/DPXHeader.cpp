@@ -40,6 +40,7 @@
 #include <ctime>
 #include <limits>
 
+#include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 
 #include "DPXHeader.h"
@@ -685,25 +686,27 @@ void dpx::IndustryHeader::SetFileEdgeCode(const char *edge)
 }
 
 
-void dpx::IndustryHeader::TimeCode(char *str) const
+void dpx::IndustryHeader::TimeCode(char* str) const
 {
-	U32 tc = this->timeCode;
-	::snprintf(str, 12, "%c%c:%c%c:%c%c:%c%c", 
-		Hex((tc & 0xf0000000) >> 28),  Hex((tc & 0xf000000) >> 24),
-		Hex((tc & 0xf00000) >> 20),  Hex((tc & 0xf0000) >> 16),
-		Hex((tc & 0xf000) >> 12),  Hex((tc & 0xf00) >> 8),
-		Hex((tc & 0xf0) >> 4),  Hex(tc & 0xf));
+    using OIIO::Strutil::format_to_n;
+    U32 tc = this->timeCode;
+    format_to_n(str, 12, "{:c}{:c}:{:c}{:c}:{:c}{:c}:{:c}{:c}",
+                Hex((tc & 0xf0000000) >> 28), Hex((tc & 0xf000000) >> 24),
+                Hex((tc & 0xf00000) >> 20), Hex((tc & 0xf0000) >> 16),
+                Hex((tc & 0xf000) >> 12), Hex((tc & 0xf00) >> 8),
+                Hex((tc & 0xf0) >> 4), Hex(tc & 0xf));
 }
 
 
-void dpx::IndustryHeader::UserBits(char *str) const
+void dpx::IndustryHeader::UserBits(char* str) const
 {
-	U32 ub = this->userBits;
-	::snprintf(str, 12, "%c%c:%c%c:%c%c:%c%c",
-		Hex((ub & 0xf0000000) >> 28),  Hex((ub & 0xf000000) >> 24),
-		Hex((ub & 0xf00000) >> 20),  Hex((ub & 0xf0000) >> 16),
-		Hex((ub & 0xf000) >> 12),  Hex((ub & 0xf00) >> 8),
-		Hex((ub & 0xf0) >> 4),  Hex(ub & 0xf));
+    using OIIO::Strutil::format_to_n;
+    U32 ub = this->userBits;
+    format_to_n(str, 12, "{:c}{:c}:{:c}{:c}:{:c}{:c}:{:c}{:c}",
+                Hex((ub & 0xf0000000) >> 28), Hex((ub & 0xf000000) >> 24),
+                Hex((ub & 0xf00000) >> 20), Hex((ub & 0xf0000) >> 16),
+                Hex((ub & 0xf000) >> 12), Hex((ub & 0xf00) >> 8),
+                Hex((ub & 0xf0) >> 4), Hex(ub & 0xf));
 }
 
 

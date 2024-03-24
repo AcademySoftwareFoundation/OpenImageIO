@@ -315,7 +315,7 @@ HdrInput::RGBE_ReadHeader()
                 m_spec.attribute("oiio:ColorSpace", "linear");
             else
                 m_spec.attribute("oiio:ColorSpace",
-                                 Strutil::sprintf("Gamma%.2g", g));
+                                 Strutil::fmt::format("Gamma{:.2g}", g));
 
         } else if (Strutil::parse_values(line,
                                          "EXPOSURE=", span<float>(tempf))) {
