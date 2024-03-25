@@ -23,7 +23,7 @@
 
 #include <vector>
 
-#include <QOpenGLFunctions>
+#include <QOpenGLExtraFunctions>
 #include <QOpenGLWidget>
 
 #include <OpenImageIO/imagebuf.h>
@@ -35,8 +35,7 @@ class IvImage;
 class ImageViewer;
 
 
-
-class IvGL final : public QOpenGLWidget, protected QOpenGLFunctions {
+class IvGL : public QOpenGLWidget, protected QOpenGLExtraFunctions {
     Q_OBJECT
 public:
     IvGL(QWidget* parent, ImageViewer& viewer);
