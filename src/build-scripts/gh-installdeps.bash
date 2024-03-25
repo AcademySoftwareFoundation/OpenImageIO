@@ -118,13 +118,7 @@ else
 
     export CMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu:$CMAKE_PREFIX_PATH
 
-    if [[ "$CXX" == "g++-6" ]] ; then
-        time sudo apt-get install -y g++-6
-    elif [[ "$CXX" == "g++-7" ]] ; then
-        time sudo apt-get install -y g++-7
-    elif [[ "$CXX" == "g++-8" ]] ; then
-        time sudo apt-get install -y g++-8
-    elif [[ "$CXX" == "g++-9" ]] ; then
+    if [[ "$CXX" == "g++-9" ]] ; then
         time sudo apt-get install -y g++-9
     elif [[ "$CXX" == "g++-10" ]] ; then
         time sudo apt-get install -y g++-10
@@ -132,6 +126,8 @@ else
         time sudo apt-get install -y g++-11
     elif [[ "$CXX" == "g++-12" ]] ; then
         time sudo apt-get install -y g++-12
+    elif [[ "$CXX" == "g++-13" ]] ; then
+        time sudo apt-get install -y g++-13
     fi
 
     if [[ "$CXX" == "icpc" || "$CC" == "icc" || "$USE_ICC" != "" || "$USE_ICX" != "" ]] ; then

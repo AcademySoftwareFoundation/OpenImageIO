@@ -210,7 +210,7 @@ dump_data(std::ostream& out, ImageInput* input,
         }
 
     } else {
-        OIIO_UNUSED_OK bool ok = true;
+        OIIO_MAYBE_UNUSED bool ok = true;
         PRINTINFO_DISPATCH_TYPES(ok, "dump_flat_data", dump_flat_data,
                                  spec.format, out, input, opt, subimage);
     }

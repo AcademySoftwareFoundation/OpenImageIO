@@ -12,8 +12,8 @@ endif ()
 
 message (STATUS "Building ${PROJECT_NAME} ${PROJECT_VERSION} - ${CMAKE_BUILD_TYPE}")
 
-# Use C++14
-set (CMAKE_CXX_STANDARD 14 CACHE STRING "C++ standard to prefer (14, 17, etc.)")
+# Use C++17
+set (CMAKE_CXX_STANDARD 17 CACHE STRING "C++ standard to prefer (17, 20, etc.)")
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
 

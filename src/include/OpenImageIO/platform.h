@@ -64,7 +64,7 @@
 // OIIO_INLINE_CONSTEXPR : inline constexpr variables, added in C++17. For
 //                         older C++, static constexpr.
 //
-// Note: oiioversion.h defines OIIO_BUILD_CPP (set to 14, 17, etc.)
+// Note: oiioversion.h defines OIIO_BUILD_CPP (set to 17, 20, etc.)
 // reflecting what OIIO itself was *built* with.  In contrast,
 // OIIO_CPLUSPLUS_VERSION defined below will be set to the right number for
 // the C++ standard being compiled RIGHT NOW. These two things may be the
@@ -77,18 +77,13 @@
 #    define OIIO_CONSTEXPR17 constexpr
 #    define OIIO_CONSTEXPR20 constexpr
 #    define OIIO_INLINE_CONSTEXPR inline constexpr
-#elif (__cplusplus >= 201703L)
+#elif (__cplusplus >= 201703L) || (defined(_MSC_VER) && _MSC_VER >= 1914)
 #    define OIIO_CPLUSPLUS_VERSION 17
 #    define OIIO_CONSTEXPR17 constexpr
 #    define OIIO_CONSTEXPR20 /* not constexpr before C++20 */
 #    define OIIO_INLINE_CONSTEXPR inline constexpr
-#elif (__cplusplus >= 201402L) || (defined(_MSC_VER) && _MSC_VER >= 1914)
-#    define OIIO_CPLUSPLUS_VERSION 14
-#    define OIIO_CONSTEXPR17 /* not constexpr before C++17 */
-#    define OIIO_CONSTEXPR20 /* not constexpr before C++20 */
-#    define OIIO_INLINE_CONSTEXPR static constexpr
 #else
-#    error "This version of OIIO is meant to work only with C++14 and above"
+#    error "This version of OIIO is meant to work only with C++17 and above"
 #endif
 
 // DEPRECATED(2.3): use C++14 constexpr
@@ -111,12 +106,6 @@
 // On gcc & clang, __has_attribute can test for __attribute__((attr))
 #ifndef __has_attribute
 #    define __has_attribute(x) 0
-#endif
-
-// In C++17 (and some compilers before that), __has_include("blah.h") or
-// __has_include(<blah.h>) can test for presence of an include file.
-#ifndef __has_include
-#    define __has_include(x) 0
 #endif
 
 
@@ -389,7 +378,7 @@
 #endif
 
 
-// OIIO_FORCELINE is a function attribute that attempts to make the function
+// OIIO_FORCEINLINE is a function attribute that attempts to make the function
 // always inline. On many compilers regular 'inline' is only advisory. Put
 // this attribute before the function return type, just like you would use
 // 'inline'.
@@ -431,15 +420,11 @@
 #    define OIIO_CONST_FUNC
 #endif
 
-// OIIO_MAYBE_UNUSED is a function or variable attribute that assures the
-// compiler that it's fine for the item to appear to be unused.
-#if OIIO_CPLUSPLUS_VERSION >= 17 || __has_cpp_attribute(maybe_unused)
-#    define OIIO_MAYBE_UNUSED [[maybe_unused]]
-#elif defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER) || __has_attribute(unused)
-#    define OIIO_MAYBE_UNUSED __attribute__((unused))
-#else
-#    define OIIO_MAYBE_UNUSED
-#endif
+// OIIO_MAYBE_UNUSED is an annotator for function or variable attribute that
+// assures the compiler that it's fine for the item to appear to be unused.
+// Consider this deprecated (as of OIIO 3.0), you should favor C++17's
+// [[maybe_unused]] attribute.
+#define OIIO_MAYBE_UNUSED [[maybe_unused]]
 
 // DEPRECATED(1.9) name:
 #define OIIO_UNUSED_OK OIIO_MAYBE_UNUSED
@@ -455,26 +440,18 @@
 
 
 // OIIO_DEPRECATED before a function declaration marks it as deprecated in
-// a way that will generate compile warnings if it is called.
-#if OIIO_CPLUSPLUS_VERSION >= 14 || __has_cpp_attribute(deprecated)
-#    define OIIO_DEPRECATED(msg) [[deprecated(msg)]]
-#elif defined(__GNUC__) || defined(__clang__) || __has_attribute(deprecated)
-#    define OIIO_DEPRECATED(msg) __attribute__((deprecated(msg)))
-#elif defined(_MSC_VER)
-#    define OIIO_DEPRECATED(msg) __declspec(deprecated(msg))
-#else
-#    define OIIO_DEPRECATED(msg)
-#endif
+// a way that will generate compile warnings if it is called. This should
+// itself be considered deprecated (as of OIIO 3.0) and code should use
+// [[deprecated(msg)]] instead.
+#define OIIO_DEPRECATED(msg) [[deprecated(msg)]]
 
 
 // OIIO_FALLTHROUGH at the end of a `case` label's statements documents that
 // the switch statement case is intentionally falling through to the code
 // for the next case.
-#if OIIO_CPLUSPLUS_VERSION >= 17 || __has_cpp_attribute(fallthrough)
-#    define OIIO_FALLTHROUGH [[fallthrough]]
-#else
-#    define OIIO_FALLTHROUGH
-#endif
+// Consider this deprecated (as of OIIO 3.0), you should favor C++17's
+// [[fallthrough]] attribute.
+#define OIIO_FALLTHROUGH [[fallthrough]]
 
 
 // OIIO_NODISCARD following a function declaration documents that the

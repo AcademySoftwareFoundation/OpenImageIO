@@ -224,7 +224,10 @@ test_file_status()
     std::cout << "Testing is_directory, is_regular, is_executable\n";
     OIIO_CHECK_ASSERT(Filesystem::is_regular("testfile"));
     OIIO_CHECK_ASSERT(!Filesystem::is_directory("testfile"));
+#ifndef _WIN32
+    // Directories look "executable" on Unix, not on Windows
     OIIO_CHECK_ASSERT(!Filesystem::is_executable("testfile"));
+#endif
     OIIO_CHECK_ASSERT(!Filesystem::is_regular("testdir"));
     OIIO_CHECK_ASSERT(Filesystem::is_directory("testdir"));
     OIIO_CHECK_ASSERT(!Filesystem::is_executable("testdir"));
