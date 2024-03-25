@@ -517,8 +517,9 @@ Filesystem::unique_path(string_view model)
     std::lock_guard<std::mutex> lock(mutex);
     std::string name;
     while (true) {
-        name = model.str();
-        for (size_t i = 0, e = model.size(); i < e; ++i)
+        name = modelStr;
+        // Replace the '%' characters in the name with random hex digits
+        for (size_t i = 0, e = modelStr.size(); i < e; ++i)
             if (name[i] == '%')
                 name[i] = chrs[pick(rg)];
         if (!exists(name))
