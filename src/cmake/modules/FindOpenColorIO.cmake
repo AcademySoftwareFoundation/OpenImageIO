@@ -91,6 +91,7 @@ find_package_handle_standard_args (OpenColorIO
     )
 
 if (OpenColorIO_FOUND)
+    set (OpenColorIO_VERSION ${OPENCOLORIO_VERSION})
     set (OPENCOLORIO_INCLUDES ${OPENCOLORIO_INCLUDE_DIR})
     set (OPENCOLORIO_LIBRARIES ${OPENCOLORIO_LIBRARY})
     set (OPENCOLORIO_DEFINITIONS "")
