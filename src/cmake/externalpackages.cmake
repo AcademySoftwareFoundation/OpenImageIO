@@ -36,7 +36,7 @@ include (FindThreads)
 # Boost setup
 if (MSVC)
     # Disable automatic linking using pragma comment(lib,...) of boost libraries upon including of a header
-    add_definitions (-DBOOST_ALL_NO_LIB=1)
+    proj_add_compile_definitions (BOOST_ALL_NO_LIB=1)
 endif ()
 
 # If the build system hasn't been specifically told how to link Boost, link it the same way as other
@@ -48,7 +48,7 @@ endif ()
 if (MSVC)
     # Not linking Boost as static libraries: either an explicit setting or LINKSTATIC is FALSE:
     if (NOT Boost_USE_STATIC_LIBS)
-        add_definitions (-DBOOST_ALL_DYN_LINK=1)
+        proj_add_compile_definitions (BOOST_ALL_DYN_LINK=1)
     endif ()
 endif ()
 
@@ -109,7 +109,7 @@ checked_find_package (OpenEXR REQUIRED
 # install version of 2.x.
 include_directories(BEFORE ${IMATH_INCLUDES} ${OPENEXR_INCLUDES})
 if (MSVC AND NOT LINKSTATIC)
-    add_definitions (-DOPENEXR_DLL) # Is this needed for new versions?
+    proj_add_compile_definitions (OPENEXR_DLL) # Is this needed for new versions?
 endif ()
 if (OpenEXR_VERSION VERSION_GREATER_EQUAL 3.0)
     set (OIIO_USING_IMATH 3)
@@ -191,7 +191,7 @@ if (OpenColorIO_FOUND)
     option (OIIO_DISABLE_BUILTIN_OCIO_CONFIGS
            "For deveoper debugging/testing ONLY! Disable OCIO 2.2 builtin configs." OFF)
     if (OIIO_DISABLE_BUILTIN_OCIO_CONFIGS OR "$ENV{OIIO_DISABLE_BUILTIN_OCIO_CONFIGS}")
-        add_compile_definitions(OIIO_DISABLE_BUILTIN_OCIO_CONFIGS)
+        proj_add_compile_definitions(OIIO_DISABLE_BUILTIN_OCIO_CONFIGS)
     endif ()
 else ()
     set (OpenColorIO_FOUND 0)

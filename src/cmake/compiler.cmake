@@ -24,6 +24,28 @@ message (VERBOSE "CMAKE_CXX_COMPILE_FEATURES = ${CMAKE_CXX_COMPILE_FEATURES}")
 
 
 ###########################################################################
+# The proj_add_compile_definitions, proj_add_compile_options, and
+# proj_add_link_options are like the global add_compile_definitions (etc), but
+# they merely add to ${PROJECT_NAME}_blah lists, which are expected to be
+# added to library and executable targets in our project. The point is that
+# we really shouldn't be polluting the global definitions, in case our
+# cmake files are included in an "outer" project.
+#
+macro (proj_add_compile_definitions)
+    list (APPEND ${PROJECT_NAME}_compile_definitions ${ARGN})
+endmacro ()
+
+macro (proj_add_compile_options)
+    list (APPEND ${PROJECT_NAME}_compile_options ${ARGN})
+endmacro ()
+
+macro (proj_add_link_options)
+    list (APPEND ${PROJECT_NAME}_link_options ${ARGN})
+endmacro ()
+
+
+
+###########################################################################
 # C++ language standard
 #
 set (CMAKE_CXX_MINIMUM 14)
@@ -92,12 +114,12 @@ else ()
 endif()
 option (EXTRA_WARNINGS "Enable lots of extra pedantic warnings" OFF)
 if (NOT MSVC)
-    add_compile_options ("-Wall")
+    proj_add_compile_options ("-Wall")
     if (EXTRA_WARNINGS)
-        add_compile_options ("-Wextra")
+        proj_add_compile_options ("-Wextra")
     endif ()
     if (STOP_ON_WARNING)
-        add_compile_options ("-Werror")
+        proj_add_compile_options ("-Werror")
     endif ()
 endif ()
 
@@ -135,35 +157,35 @@ endif ()
 #
 if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_APPLECLANG)
     # Clang-specific options
-    add_compile_options ("-Wno-unused-function")
-    add_compile_options ("-Wno-overloaded-virtual")
-    add_compile_options ("-Wno-unneeded-internal-declaration")
-    add_compile_options ("-Wno-unused-private-field")
-    add_compile_options ("-Wno-tautological-compare")
+    proj_add_compile_options ("-Wno-unused-function")
+    proj_add_compile_options ("-Wno-overloaded-virtual")
+    proj_add_compile_options ("-Wno-unneeded-internal-declaration")
+    proj_add_compile_options ("-Wno-unused-private-field")
+    proj_add_compile_options ("-Wno-tautological-compare")
     # disable warning about unused command line arguments
-    add_compile_options ("-Qunused-arguments")
+    proj_add_compile_options ("-Qunused-arguments")
     # Don't warn if we ask it not to warn about warnings it doesn't know
-    add_compile_options ("-Wunknown-warning-option")
+    proj_add_compile_options ("-Wunknown-warning-option")
     if (CLANG_VERSION_STRING VERSION_GREATER_EQUAL 3.6 OR
         APPLECLANG_VERSION_STRING VERSION_GREATER 6.1)
-        add_compile_options ("-Wno-unused-local-typedefs")
+        proj_add_compile_options ("-Wno-unused-local-typedefs")
     endif ()
     if (CLANG_VERSION_STRING VERSION_GREATER_EQUAL 3.9)
         # Don't warn about using unknown preprocessor symbols in `#if`
-        add_compile_options ("-Wno-expansion-to-defined")
+        proj_add_compile_options ("-Wno-expansion-to-defined")
     endif ()
     if (CMAKE_GENERATOR MATCHES "Xcode")
-        add_compile_options ("-Wno-shorten-64-to-32")
+        proj_add_compile_options ("-Wno-shorten-64-to-32")
     endif ()
 endif ()
 
 if (CMAKE_COMPILER_IS_GNUCC AND NOT (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_APPLECLANG))
     # gcc specific options
-    add_compile_options ("-Wno-unused-local-typedefs")
-    add_compile_options ("-Wno-unused-result")
+    proj_add_compile_options ("-Wno-unused-local-typedefs")
+    proj_add_compile_options ("-Wno-unused-result")
     if (NOT ${GCC_VERSION} VERSION_LESS 7.0)
-        add_compile_options ("-Wno-aligned-new")
-        add_compile_options ("-Wno-noexcept-type")
+        proj_add_compile_options ("-Wno-aligned-new")
+        proj_add_compile_options ("-Wno-noexcept-type")
     endif ()
 endif ()
 
@@ -171,30 +193,30 @@ if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG)
     # Options common to gcc and clang
 
     # Ensure this macro is set for stdint.h
-    add_definitions ("-D__STDC_LIMIT_MACROS")
-    add_definitions ("-D__STDC_CONSTANT_MACROS")
+    proj_add_compile_definitions ("-D__STDC_LIMIT_MACROS")
+    proj_add_compile_definitions ("-D__STDC_CONSTANT_MACROS")
 endif ()
 
 if (INTELCLANG_VERSION_STRING VERSION_GREATER_EQUAL 2022.1.0)
     # New versions of icx warn about changing certain floating point options
-    add_compile_options ("-Wno-overriding-t-option")
+    proj_add_compile_options ("-Wno-overriding-t-option")
 endif ()
 
 if (MSVC)
     # Microsoft specific options
-    add_compile_options (/W1)
-    add_compile_options (/MP)
-    add_definitions (-D_CRT_SECURE_NO_DEPRECATE)
-    add_definitions (-D_CRT_SECURE_NO_WARNINGS)
-    add_definitions (-D_CRT_NONSTDC_NO_WARNINGS)
-    add_definitions (-D_SCL_SECURE_NO_WARNINGS)
-    add_definitions (-DJAS_WIN_MSVC_BUILD)
+    proj_add_compile_options (/W1)
+    proj_add_compile_options (/MP)
+    proj_add_compile_definitions (-D_CRT_SECURE_NO_DEPRECATE)
+    proj_add_compile_definitions (-D_CRT_SECURE_NO_WARNINGS)
+    proj_add_compile_definitions (-D_CRT_NONSTDC_NO_WARNINGS)
+    proj_add_compile_definitions (-D_SCL_SECURE_NO_WARNINGS)
+    proj_add_compile_definitions (-DJAS_WIN_MSVC_BUILD)
 endif (MSVC)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD"
     AND ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "i386")
     # For FreeBSD, minimum arch of i586 is needed for atomic cpu instructions
-    add_compile_options (-march=i586)
+    proj_add_compile_options (-march=i586)
 endif ()
 
 # Fast-math mode may go faster, but it breaks IEEE and also makes inconsistent
@@ -202,21 +224,21 @@ endif ()
 option (ENABLE_FAST_MATH "Use fast math (may break IEEE fp rules)" OFF)
 if (ENABLE_FAST_MATH)
     if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG)
-        add_compile_options ("-ffast-math")
+        proj_add_compile_options ("-ffast-math")
     elseif (MSVC)
-        add_compile_options ("/fp:fast")
+        proj_add_compile_options ("/fp:fast")
     endif ()
 else ()
     if (CMAKE_COMPILER_IS_INTELCLANG)
         # Intel icx is fast-math by default, so if we don't want that, we need
         # to explicitly disable it.
-        add_compile_options ("-fno-fast-math")
+        proj_add_compile_options ("-fno-fast-math")
     endif ()
 endif ()
 
 if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG)
     # this allows native instructions to be used for sqrtf instead of a function call
-    add_compile_options ("-fno-math-errno")
+    proj_add_compile_options ("-fno-math-errno")
 endif ()
 
 
@@ -285,7 +307,7 @@ endif ()
 set (GLIBCXX_USE_CXX11_ABI "" CACHE STRING "For gcc, use the new C++11 library ABI (0|1)")
 if (CMAKE_COMPILER_IS_GNUCC AND ${GCC_VERSION} VERSION_GREATER_EQUAL 5.0)
     if (NOT ${GLIBCXX_USE_CXX11_ABI} STREQUAL "")
-        add_definitions ("-D_GLIBCXX_USE_CXX11_ABI=${GLIBCXX_USE_CXX11_ABI}")
+        proj_add_compile_definitions ("-D_GLIBCXX_USE_CXX11_ABI=${GLIBCXX_USE_CXX11_ABI}")
     endif ()
 endif ()
 
@@ -309,20 +331,20 @@ if (NOT USE_SIMD STREQUAL "")
         foreach (feature ${SIMD_FEATURE_LIST})
             message (VERBOSE "SIMD feature: ${feature}")
             if (MSVC OR CMAKE_COMPILER_IS_INTEL)
-                set (SIMD_COMPILE_FLAGS ${SIMD_COMPILE_FLAGS} "/arch:${feature}")
+                list (APPEND SIMD_COMPILE_FLAGS "/arch:${feature}")
             else ()
-                set (SIMD_COMPILE_FLAGS ${SIMD_COMPILE_FLAGS} "-m${feature}")
+                list (APPEND SIMD_COMPILE_FLAGS "-m${feature}")
             endif ()
             if (feature STREQUAL "fma" AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
                 # If fma is requested, for numerical accuracy sake, turn it
                 # off by default except when we explicitly use madd. At some
                 # future time, we should look at this again carefully and
                 # see if we want to use it more widely by ffp-contract=fast.
-                add_compile_options ("-ffp-contract=off")
+                proj_add_compile_options ("-ffp-contract=off")
             endif ()
         endforeach()
     endif ()
-    add_compile_options (${SIMD_COMPILE_FLAGS})
+    proj_add_compile_options (${SIMD_COMPILE_FLAGS})
 endif ()
 
 
@@ -382,10 +404,10 @@ endif ()
 if (USE_STD_FILESYSTEM)
     # Note: std::filesystem seems unreliable for gcc until 9
     message (STATUS "Compiler supports std::filesystem")
-    add_definitions (-DUSE_STD_FILESYSTEM)
+    proj_add_compile_definitions (-DUSE_STD_FILESYSTEM)
 else ()
     message (STATUS "Using Boost::filesystem")
-    add_definitions (-DUSE_BOOST_FILESYSTEM)
+    proj_add_compile_definitions (-DUSE_BOOST_FILESYSTEM)
 endif ()
 cmake_pop_check_state ()
 
@@ -396,9 +418,9 @@ cmake_pop_check_state ()
 option (CODECOV "Build code coverage tests" OFF)
 if (CODECOV AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
     message (STATUS "Compiling for code coverage analysis")
-    add_compile_options (-ftest-coverage -fprofile-arcs)
-    add_link_options (-ftest-coverage -fprofile-arcs)
-    add_definitions ("-D${PROJ_NAME}_CODE_COVERAGE=1")
+    proj_add_compile_options (-ftest-coverage -fprofile-arcs)
+    proj_add_link_options (-ftest-coverage -fprofile-arcs)
+    proj_add_compile_definitions ("-D${PROJ_NAME}_CODE_COVERAGE=1")
 endif ()
 
 
@@ -411,15 +433,15 @@ if (SANITIZE AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
     string (REPLACE "," ";" SANITIZE_FEATURE_LIST ${SANITIZE})
     foreach (feature ${SANITIZE_FEATURE_LIST})
         message (STATUS "  sanitize feature: ${feature}")
-        add_compile_options (-fsanitize=${feature})
-        add_link_options (-fsanitize=${feature})
+        proj_add_compile_options (-fsanitize=${feature})
+        proj_add_link_options (-fsanitize=${feature})
     endforeach()
-    add_compile_options (-g -fno-omit-frame-pointer)
+    proj_add_compile_options (-g -fno-omit-frame-pointer)
     if (CMAKE_COMPILER_IS_GNUCC)
         # turn on glibcxx extra annotations to find vector writes past end
-        add_definitions ("-D_GLIBCXX_SANITIZE_VECTOR=1")
+        proj_add_compile_definitions ("-D_GLIBCXX_SANITIZE_VECTOR=1")
     endif ()
-    add_definitions ("-D${PROJECT_NAME}_SANITIZE=1")
+    proj_add_compile_definitions ("-D${PROJECT_NAME}_SANITIZE=1")
 endif ()
 
 
@@ -442,7 +464,7 @@ endif ()
 set (FORTIFY_SOURCE "0" CACHE STRING "Turn on Fortification level (0, 1, 2, 3)")
 if (FORTIFY_SOURCE AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
     message (STATUS "Compiling with _FORTIFY_SOURCE=${FORTIFY_SOURCE}")
-    add_compile_options (-D_FORTIFY_SOURCE=${FORTIFY_SOURCE})
+    proj_add_compile_options (-D_FORTIFY_SOURCE=${FORTIFY_SOURCE})
 endif ()
 
 
@@ -541,7 +563,7 @@ endif ()
 set (EXTRA_CPP_ARGS "" CACHE STRING "Extra C++ command line definitions")
 if (EXTRA_CPP_ARGS)
     message (STATUS "Extra C++ args: ${EXTRA_CPP_ARGS}")
-    add_compile_options (${EXTRA_CPP_ARGS})
+    proj_add_compile_options (${EXTRA_CPP_ARGS})
 endif()
 set (EXTRA_DSO_LINK_ARGS "" CACHE STRING "Extra command line definitions when building DSOs")
 
@@ -569,7 +591,7 @@ message(VERBOSE "Setting SOVERSION to: ${SOVERSION}")
 #
 option (BUILD_SHARED_LIBS "Build shared libraries (set to OFF to build static libs)" ON)
 if (NOT BUILD_SHARED_LIBS)
-    add_definitions (-D${PROJ_NAME}_STATIC_DEFINE=1)
+    proj_add_compile_definitions (-D${PROJ_NAME}_STATIC_DEFINE=1)
 endif ()
 
 
@@ -594,7 +616,7 @@ endif ()
 # We expect our own CI runs to define env variable ${PROJECT_NAME}_CI
 #
 if (DEFINED ENV{${PROJECT_NAME}_CI})
-    add_definitions (-D${PROJ_NAME}_CI=1 -DBUILD_CI=1)
+    proj_add_compile_definitions (-D${PROJ_NAME}_CI=1 -DBUILD_CI=1)
     if (APPLE)
         # Keep Mono framework from being incorrectly searched for include
         # files on GitHub Actions CI.
