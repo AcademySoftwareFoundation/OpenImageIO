@@ -507,15 +507,16 @@ Filesystem::unique_path(string_view model)
     // See boost/filesystem/path.hpp
     // The only correct way to do this is to do the conversion ourselves
     std::wstring modelStr = Strutil::utf8_to_utf16wstring(model);
+    std::wstring name;
 #    else
     std::string modelStr = model.str();
+    std::string name;
 #    endif
     static const char chrs[] = "0123456789abcdef";
     static std::mt19937 rg { std::random_device {}() };
     static std::uniform_int_distribution<size_t> pick(0, 15);
     static std::mutex mutex;
     std::lock_guard<std::mutex> lock(mutex);
-    std::string name;
     while (true) {
         name = modelStr;
         // Replace the '%' characters in the name with random hex digits
@@ -525,7 +526,11 @@ Filesystem::unique_path(string_view model)
         if (!exists(name))
             break;
     }
+#    if defined(_WIN32)
+    return Strutil::utf16_to_utf8(name);
+#    else
     return name;
+#    endif
 #endif
 }
 
