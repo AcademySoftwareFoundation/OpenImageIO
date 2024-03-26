@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-if (FFmpeg_FOUND)
+if (FFmpeg_FOUND OR ffmpeg_FOUND)
     if (LINKSTATIC)
         set (_static_suffixes .lib .a)
         set (_static_libraries_found 0)
@@ -26,9 +26,10 @@ if (FFmpeg_FOUND)
     endif()
 
     add_oiio_plugin (ffmpeginput.cpp
-                     INCLUDE_DIRS ${FFMPEG_INCLUDES}
+                     INCLUDE_DIRS ${FFMPEG_INCLUDES} ${ffmpeg_INCLUDES}
                      LINK_LIBRARIES ${FFMPEG_LIBRARIES}
                                     ${BZIP2_LIBRARIES}
+                                    ffmpeg::avcodec ffmpeg::avformat ffmpeg::avutil ffmpeg::swscale
                      DEFINITIONS "-DUSE_FFMPEG"
                                  "-DOIIO_FFMPEG_VERSION=\"${FFMPEG_VERSION}\"")
 else()

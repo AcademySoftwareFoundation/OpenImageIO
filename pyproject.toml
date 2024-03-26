@@ -1,0 +1,50 @@
+[project]
+name = "OpenImageIO"
+version = "2.6.0.2"
+description = "Reading, writing, and processing images in a wide variety of file formats, using a format-agnostic API, aimed at VFX applications."
+authors = [
+    {name = "Larry Gritz", email = "lg@larrygritz.com"},
+]
+readme = "README.md"
+license = {text = "Apache-2.0, BSD-3-Clause"}
+keywords = [""]
+maintainers = [
+    {name = "Larry Gritz", email = "lg@larrygritz.com"},
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Multimedia :: Video :: Display",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "http://openimageio.org/"
+Source = "https://github.com/OpenImageIO/oiio"
+Documentation = "https://openimageio.readthedocs.io"
+Issues = "https://github.com/OpenImageIO/oiio/issues"
+
+[project.scripts]
+iconvert = "OpenImageIO._commands:iconvert"
+idiff = "OpenImageIO._commands:idiff"
+igrep = "OpenImageIO._commands:igrep"
+iinfo = "OpenImageIO._commands:iinfo"
+maketx = "OpenImageIO._commands:maketx"
+oiiotool = "OpenImageIO._commands:oiiotool"
+testtex = "OpenImageIO._commands:testtex"
+
+[build-system]
+requires = [
+    "scikit-build-core",
+    "cmake>=3.12",
+    "oldest-supported-numpy"
+]
+build-backend = "scikit_build_core.build"
