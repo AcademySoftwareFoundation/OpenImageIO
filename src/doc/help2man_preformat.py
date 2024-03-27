@@ -8,8 +8,6 @@
 # and munge such that txt2man generates a simple man page with not-too-horrible
 # formatting.
 
-from __future__ import print_function
-from __future__ import absolute_import
 import sys
 
 lines = [l.rstrip().replace('\t', ' '*8) for l in sys.stdin.readlines()]
