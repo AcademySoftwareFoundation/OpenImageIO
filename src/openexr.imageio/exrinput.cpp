@@ -113,9 +113,31 @@ static std::map<std::string, std::string> exr_tag_to_oiio_std {
     { "pixelAspectRatio", "PixelAspectRatio" },
     { "xDensity", "XResolution" },
     { "expTime", "ExposureTime" },
+    { "aperture", "FNumber" },
+    { "isoSpeed", "Iso", },
+    { "focus", "Focus", },
+    { "cameraCCTSetting", "openexr:CameraTemperature", },
+    { "cameraTintSetting", "openexr:CameraTint", },
+    { "nominalFocalLength", "NominalFocalLength", },
+    { "pinholeFocalLength", "PinholeFocalLength", },
+    { "effectiveFocalLength", "EffectiveFocalLength", },
+    { "entrancePupilOffset", "EntrancePupilOffset", },
+    { "sensorPhotositePitch", "SensorPhotositePitch", },
+    { "cameraMake", "Make", },
+    { "cameraModel", "Model", },
+    { "cameraSerialNumber", "SerialNumber", },
+    { "cameraFirmwareVersion", "FirmwareVersion", },
+    { "cameraUuid", "CameraUuid", },
+    { "cameraLabel", "CameraLabel", },
+    { "lensMake", "LensMake", },
+    { "lensModel", "LensModel", },
+    { "lensSerialNumber", "LensSerialNumber", },
+    { "lensFirmwareVersion", "LensFirmwareVersion", },
+    { "longitude", "Longitude", },
+    { "latitude", "Latitude", },
+    { "altitude", "Altitude", },
     // Ones we don't rename -- OpenEXR convention matches ours
     { "wrapmodes", "wrapmodes" },
-    { "aperture", "FNumber" },
     // Ones to prefix with openexr:
     { "chunkCount", "openexr:chunkCount" },
     { "maxSamplesPerPixel", "openexr:maxSamplesPerPixel" },
@@ -135,10 +157,7 @@ static std::map<std::string, std::string> exr_tag_to_oiio_std {
     // preview
     // screenWindowCenter
     // adoptedNeutral
-    // renderingTransform, lookModTransform
     // utcOffset
-    // longitude latitude altitude
-    // focus isoSpeed
 };
 
 
