@@ -1434,10 +1434,13 @@ PSDInput::load_layers()
     // The only time it is legal for this section to be empty is if we have a 16 or 32- bit file in which case we 
     // must read the layer data from the "Lr16" or "Lr32" tagged blocks accordingly. Note that if this is a 16- or
     // 32-bit file we read the layer info from load_layers_16_32() instead
-    if (!layer_info.length && (m_header.depth == 16 || m_header.depth == 32))
+    if (!layer_info.length && (m_header.depth == 16 || m_header.depth == 32)) {
         return true;
-    else
+    } else if (!layer_info.length) {
+        errorfmt(
+            "[LayerInfo], 0 length layer info is only supported in 16- 32- bit files");
         return false;
+    }
 
     ok &= read_bige<int16_t>(layer_info.layer_count);
     if (layer_info.layer_count < 0) {
