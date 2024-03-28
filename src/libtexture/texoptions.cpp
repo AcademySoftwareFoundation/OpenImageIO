@@ -36,6 +36,18 @@ static const ustring wrap_type_name[] = {
     ustring()
 };
 
+static const ustringhash wrap_type_hash[] = {
+    // MUST match the order of TextureOptions::Wrap
+    ustringhash("default"),
+    ustringhash("black"),
+    ustringhash("clamp"),
+    ustringhash("periodic"),
+    ustringhash("mirror"),
+    ustringhash("periodic_pow2"),
+    ustringhash("periodic_sharedborder"),
+    ustringhash()
+};
+
 }  // end anonymous namespace
 
 
@@ -139,6 +151,15 @@ Tex::decode_wrapmode(ustring name)
 {
     for (int i = 0; i < (int)Tex::Wrap::Last; ++i)
         if (name == wrap_type_name[i])
+            return (Wrap)i;
+    return Tex::Wrap::Default;
+}
+
+Tex::Wrap
+Tex::decode_wrapmode(ustringhash name)
+{
+    for (int i = 0; i < (int)Tex::Wrap::Last; ++i)
+        if (name == wrap_type_hash[i])
             return (Wrap)i;
     return Tex::Wrap::Default;
 }
