@@ -1349,6 +1349,75 @@ The official OpenEXR site is http://www.openexr.com/.
    * - ``FNumber``
      - float
      - aperture
+   * - ``Iso``
+     - float
+     - isoSpeed
+   * - ``TStop``
+     - float
+     - Stop
+   * - ``Focus``
+     - float
+     - focus
+   * - ``CameraTemperature``
+     - float
+     - cameraCCTSetting
+   * - ``CameraTint``
+     - float
+     - cameraTintSetting
+   * - ``NominalFocalLength``
+     - float
+     - nominalFocalLength
+   * - ``PinholeFocalLength``
+     - float
+     - pinholeFocalLength
+   * - ``EffectiveFocalLength``
+     - float
+     - effectiveFocalLength
+   * - ``EntrancePupilOffset``
+     - float
+     - entrancePupilOffset
+   * - ``SensorPhotositePitch``
+     - float
+     - sensorPhotositePitch
+   * - ``Make``
+     - string
+     - cameraMake
+   * - ``CameraModel``
+     - string
+     - cameraModel
+   * - ``CameraSerialNumber``
+     - string
+     - cameraSerialNumber
+   * - ``CameraFirmwareVersion``
+     - string
+     - cameraFirmwareVersion
+   * - ``CameraUuid``
+     - string
+     - cameraUuid
+   * - ``CameraLabel``
+     - string
+     - cameraLabel
+   * - ``LensMake``
+     - string
+     - lensMake
+   * - ``LensModel``
+     - string
+     - lensModel
+   * - ``LensSerialNumber``
+     - string
+     - lensSerialNumber
+   * - ``LensFirmwareVersion``
+     - string
+     - lensFirmwareVersion
+   * - ``Longitude``
+     - float
+     - longitude
+   * - ``Latitude``
+     - float
+     - latitude
+   * - ``Altitude``
+     - float
+     - altitude
    * - ``compression``
      - string
      - one of: ``"none"``, ``"rle"``, ``"zip"``, ``"zips"``, ``"piz"``,
