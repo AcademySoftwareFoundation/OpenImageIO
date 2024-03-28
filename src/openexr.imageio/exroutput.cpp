@@ -896,7 +896,7 @@ static ExrMeta exr_meta_translation[] = {
     ExrMeta("EffectiveFocalLength", "effectiveFocalLength", TypeFloat),
     ExrMeta("EntrancePupilOffset", "entrancePupilOffset", TypeFloat),
     ExrMeta("SensorPhotositePitch", "sensorPhotositePitch", TypeFloat),
-    ExrMeta("CameraMake", "cameraMake", TypeString),
+    ExrMeta("Make", "cameraMake", TypeString),
     ExrMeta("CameraModel", "cameraModel", TypeString),
     ExrMeta("CameraSerialNumber", "cameraSerialNumber", TypeString),
     ExrMeta("CameraFirmwareVersion", "cameraFirmwareVersion", TypeString),
