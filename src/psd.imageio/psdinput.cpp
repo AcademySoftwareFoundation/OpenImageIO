@@ -277,6 +277,9 @@ private:
     //Global Additional Layer Info
     bool load_global_additional();
 
+    //Layers for 16- and 32-bit documents
+    bool load_layers_16_32(uint64_t length);
+
     //Image Data Section
     bool load_image_data();
 
@@ -1428,8 +1431,13 @@ PSDInput::load_layers()
     if (!ok)
         return false;
 
-    if (!layer_info.length)
+    // The only time it is legal for this section to be empty is if we have a 16 or 32- bit file in which case we 
+    // must read the layer data from the "Lr16" or "Lr32" tagged blocks accordingly. Note that if this is a 16- or
+    // 32-bit file we read the layer info from load_layers_16_32() instead
+    if (!layer_info.length && (m_header.depth == 16 || m_header.depth == 32))
         return true;
+    else
+        return false;
 
     ok &= read_bige<int16_t>(layer_info.layer_count);
     if (layer_info.layer_count < 0) {
@@ -1672,7 +1680,10 @@ PSDInput::load_global_mask_info()
     uint32_t length;
 
     // This section should be at least 17 bytes, but some files lack
-    // global mask info and additional layer info, not covered in the spec
+    // global mask info and additional layer info, not covered in the spec.
+    // More modern photoshop files appear to omit this section entirely.
+    // We leave this code here though in case we want to deal with older photoshop files
+    // although it is not currently used anywhere else
     if (remaining < 17) {
         return ioseek(m_layer_mask_info.end);
     }
@@ -1735,17 +1746,72 @@ PSDInput::load_global_additional()
         // Long story short these are aligned to 4 bytes but that is not
         // included in the stored length and the specs do not mention it.
 
-        // round up to multiple of 4
-        length = (length + 3) & ~3;
-        remaining -= length;
-        // skip it for now
-        ok &= ioseek(length, SEEK_CUR);
+        // Load 16 and 32-bit layer data
+        if (std::memcmp(key, "Lr16", 4) == 0 || std::memcmp(key, "Lr32", 4) == 0){
+            uint64_t begin_offset = iotell();
+            ok &= load_layers_16_32(length);
+            uint64_t size = iotell() - begin_offset;
+            remaining -= size;
+
+        } else {
+            // round up to multiple of 4
+            length = (length + 3) & ~3;
+            remaining -= length;
+            // skip it for now
+            ok &= ioseek(length, SEEK_CUR);
+        }  
     }
     // finished with the layer and mask information section, seek to the end
     ok &= ioseek(m_layer_mask_info.end);
     return ok;
 }
 
+
+bool
+PSDInput::load_layers_16_32(uint64_t length)
+{
+    // Notice that, bar the reading of the length marker, reading this section is identical to 
+    bool ok = true;
+
+    if (length == 0)
+        return false;
+
+    LayerMaskInfo::LayerInfo& layer_info = m_layer_mask_info.layer_info;
+    // The layer info length must have been 0 in the actual layer info section
+    OIIO_ASSERT(layer_info.length == 0);
+    layer_info.length = length;
+
+    uint64_t begin = iotell();
+
+    // We read the layer info as we would usually since the section is exactly the same 
+    ok &= read_bige<int16_t>(layer_info.layer_count);
+    if (layer_info.layer_count < 0) {
+        m_image_data.transparency = true;
+        layer_info.layer_count    = -layer_info.layer_count;
+    }
+    m_layers.resize(layer_info.layer_count);
+    for (int16_t layer_nbr = 0; layer_nbr < layer_info.layer_count;
+         ++layer_nbr) {
+        Layer& layer = m_layers[layer_nbr];
+        if (!load_layer(layer))
+            return false;
+    }
+    for (int16_t layer_nbr = 0; layer_nbr < layer_info.layer_count;
+         ++layer_nbr) {
+        Layer& layer = m_layers[layer_nbr];
+        if (!load_layer_channels(layer))
+            return false;
+    }
+
+    // This section, like the other tagged blocks are padded to 4 bytes
+    uint64_t length_read = iotell() - begin;
+    int64_t remaining = length - length_read; 
+    OIIO_ASSERT(remaining > 0);
+    OIIO_ASSERT(remaining < 4);
+    ioseek(remaining, SEEK_CUR);
+
+    return ok;
+}
 
 
 bool
