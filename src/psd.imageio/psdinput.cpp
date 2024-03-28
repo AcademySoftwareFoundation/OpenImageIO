@@ -14,6 +14,7 @@
 #include <map>
 #include <memory>
 #include <vector>
+#include <zlib.h>
 
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagebuf.h>
@@ -421,8 +422,17 @@ private:
 
     int read_pascal_string(std::string& s, uint16_t mod_padding);
 
+    // Swap a planar bytespan representing the bytes of a float vector to its 
+    // interleaved byte order. This is per scanline
+    void float_planar_to_interleaved(span<unsigned char> data, size_t width);
+
+    // All the compression modes known to photoshop
     bool decompress_packbits(const char* src, char* dst, uint32_t packed_length,
                              uint32_t unpacked_length);
+    bool decompress_zip(span<unsigned char> src, span<unsigned char> dest);
+    bool decompress_zip_prediction(span<unsigned char> src,
+                                   span<unsigned char> dest,
+                                   const uint32_t width, const uint32_t height);
 
     // These are AdditionalInfo entries that, for PSBs, have an 8-byte length
     static const char* additional_info_psb[];
@@ -1640,12 +1650,14 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
                                           + channel_info.rle_lengths[i - 1];
         }
         break;
-    // These two aren't currently supported. They would likely
-    // require large changes in the code as they probably don't
-    // support random access like the other modes. I doubt these are
-    // used much and I haven't found any test images.
-    case Compression_ZIP:
+    case Compression_ZIP: 
+        // We dont need to explicitly store the data_length as its already been read
+        channel_info.data_pos = iotell(); 
+        break;
     case Compression_ZIP_Predict:
+        // We dont need to explicitly store the data_length as its already been read
+        channel_info.data_pos = iotell();
+        break;
     default:
         errorfmt("[Layer Channel] unsupported compression {}",
                  channel_info.compression);
@@ -1985,6 +1997,13 @@ PSDInput::read_channel_row(const ChannelInfo& channel_info, uint32_t row,
     case Compression_Raw:
         if (!ioread(data, channel_info.row_length))
             return false;
+
+        if (!bigendian()) {
+            switch (m_header.depth) {
+            case 16: swap_endian((uint16_t*)data, m_spec.width); break;
+            case 32: swap_endian((uint32_t*)data, m_spec.width); break;
+            }
+        }
         break;
     case Compression_RLE: {
         uint32_t rle_length = channel_info.rle_lengths[row];
@@ -1998,20 +2017,6 @@ PSDInput::read_channel_row(const ChannelInfo& channel_info, uint32_t row,
     }
     }
 
-    if (!bigendian()) {
-        switch (m_header.depth) {
-        case 16: swap_endian((uint16_t*)data, m_spec.width); break;
-        case 32:
-            swap_endian((uint32_t*)data, m_spec.width);
-            // if (row == 131)
-            //     printf ("%x %x %x %x\n",
-            //             ((uint32_t*)data)[0], ((uint32_t*)data)[1],
-            //             ((uint32_t*)data)[2], ((uint32_t*)data)[3]);
-            // convert_type<float,uint32_t> ((float *)&data[0],
-            //                               (uint32_t*)&data[1], m_spec.width);
-            break;
-        }
-    }
     return true;
 }
 
@@ -2128,6 +2133,49 @@ PSDInput::read_pascal_string(std::string& s, uint16_t mod_padding)
 
 
 
+void
+PSDInput::float_planar_to_interleaved(span<unsigned char> data, size_t width)
+{
+    constexpr size_t size_float = 4u;
+    const size_t size           = width * size_float;
+    std::vector<bool> visited(size, false);
+
+    // Iterate all items in the visited vec and return the first
+    // item we havent visited yet
+    auto next_unvisisted = [&](size_t index) -> size_t {
+        size_t i;
+        for (i = index; i < size && visited[i]; i++)
+            ;
+        return i;
+    };
+
+    // Get the interleaved index from the planar index
+    auto interleaved_index = [=](int planar_index) -> size_t {
+        const size_t i = planar_index % width;
+        const size_t k = planar_index / width;
+        return size_float * i + k;
+    };
+
+    size_t data_idx  = 0;  // The data index we are working on (0 - size)
+    size_t data_idx_next = 0;
+    while ((data_idx = next_unvisisted(++data_idx_next)) < size) {
+        visited[data_idx]           = true;
+        const size_t data_idx_start = data_idx;
+        while (true) {
+            const size_t i = interleaved_index(data_idx);
+            if (i == data_idx)
+                break;
+            std::swap(data[i], data[data_idx_start]);
+            if (i == data_idx_start)
+                break;
+            data_idx   = i;
+            visited[i] = true;
+        }
+    }
+}
+
+
+
 bool
 PSDInput::decompress_packbits(const char* src, char* dst,
                               uint32_t packed_length, uint32_t unpacked_length)
@@ -2176,8 +2224,113 @@ PSDInput::decompress_packbits(const char* src, char* dst,
             dst += length;
         }
     }
+
+    if (!bigendian()) {
+        switch (m_header.depth) {
+        case 16: swap_endian((uint16_t*)dst, m_spec.width); break;
+        case 32: swap_endian((uint32_t*)dst, m_spec.width); break;
+        }
+    }
+
     return true;
 }
+
+
+
+bool
+PSDInput::decompress_zip(span<unsigned char> src, span<unsigned char> dest)
+{
+    bool ok = true;
+
+    z_stream stream {};
+    stream.zfree    = Z_NULL;
+    stream.opaque   = Z_NULL;
+    stream.avail_in = src.size();
+    stream.next_in  = src.data();
+    stream.avail_out = dest.size();
+    stream.next_out  = dest.data();
+    
+    if (inflate(&stream, Z_FINISH) != Z_STREAM_END) {
+        errorfmt(
+            "unable to decode zip compressed data: src_size={}, dst_size={}",
+            src.size(), dest.size());
+        return false;
+    }
+
+    if (inflateEnd(&stream) != Z_OK) {
+        errorfmt(
+            "zip compression inflate cleanup failed with: src_size={}, dst_size={}",
+            src.size(), dest.size());
+        return false;
+    }
+
+    return true;
+}
+
+
+
+bool
+PSDInput::decompress_zip_prediction(span<unsigned char> src,
+                                    span<unsigned char> dest,
+                                    const uint32_t width, const uint32_t height)
+{
+    OIIO_ASSERT(width * height * (m_header.depth / 8) == dest.size());
+    bool ok = true;
+    // Decompress into dest first and then apply the prediction decoding
+    // on dest
+    ok &= decompress_zip(src, dest);
+
+    switch (m_header.depth) {
+    case 8:
+        for (uint64_t y = 0; y < height; ++y) {
+            // Index x beginning at one since we look behind to calculate
+            // the offset
+            for (uint64_t x = 1; x < width; ++x) {
+                dest[y * width + x] += dest[y * width + x - 1];
+            };
+        };
+        break;
+    case 16: 
+        // 16-bit data requires endian swapping at this point already for the 
+        // prediction decoding to work correctly
+        if (!bigendian())
+            swap_endian((uint16_t*)dest.data(), dest.size());
+        span<uint16_t> destView(dest);
+        for (uint64_t y = 0; y < height; ++y) {
+            // Index x beginning at one since we look behind to calculate
+            // the offset
+            for (uint64_t x = 1; x < width; ++x) {
+                destView[y * width + x] += destView[y * width + x - 1];
+            };
+        };
+        break;
+    case 32: 
+        // 32-bit files actually have the float bytes stored in planar fashion on disk
+        // which are then prediction encoded. Thus we first decode the bytes itself
+        uint64_t index = 0;
+        for (uint64_t y = 0; y < height; ++y) {
+            ++index;
+            for (uint64_t x = 1; x < width * sizeof(float); ++x) {
+                // Simple differencing: decode by adding the difference to the previous value
+                dest[index] += + dest[index - 1];
+                ++index;
+            }
+        }
+        // We now shuffle the byte order back into place from planar to interleaved
+        float_planar_to_interleaved(dest, width);
+
+        // Finally we byteswap if necessary 
+        if (!bigendian())
+            swap_endian((uint32_t*)dest.data(), dest.size());
+        break;
+    default: 
+        errorfmt("Unknown bitdepth: {} encountered", m_header.depth);
+        return false;
+    }
+    
+
+    return ok;
+};
 
 
 
