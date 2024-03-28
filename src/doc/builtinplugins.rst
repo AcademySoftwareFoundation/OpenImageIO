@@ -1358,10 +1358,10 @@ The official OpenEXR site is http://www.openexr.com/.
    * - ``Focus``
      - float
      - focus
-   * - ``CameraTemperature``
+   * - ``openexr:CameraTemperature``
      - float
      - cameraCCTSetting
-   * - ``CameraTint``
+   * - ``openexr:CameraTint``
      - float
      - cameraTintSetting
    * - ``NominalFocalLength``
@@ -1382,13 +1382,13 @@ The official OpenEXR site is http://www.openexr.com/.
    * - ``Make``
      - string
      - cameraMake
-   * - ``CameraModel``
+   * - ``Model``
      - string
      - cameraModel
-   * - ``CameraSerialNumber``
+   * - ``SerialNumber``
      - string
      - cameraSerialNumber
-   * - ``CameraFirmwareVersion``
+   * - ``FirmwareVersion``
      - string
      - cameraFirmwareVersion
    * - ``CameraUuid``
