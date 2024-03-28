@@ -2069,8 +2069,8 @@ PSDInput::read_channel_row(ChannelInfo& channel_info, uint32_t row, char* data)
                         == static_cast<uint64_t>(channel_info.width)
                                * channel_info.height * (m_header.depth / 8));
             // We simply copy over the row into destination
-            uint64_t row_index = static_cast<uint64_t>(row)
-                                 * channel_info.width;
+            uint64_t row_index = static_cast<uint64_t>(row) * channel_info.width
+                                 * (m_header.depth / 8);
             std::memcpy(data, channel_info.decompressed_data.data() + row_index,
                         channel_info.row_length);
         } break;
@@ -2079,8 +2079,8 @@ PSDInput::read_channel_row(ChannelInfo& channel_info, uint32_t row, char* data)
                         == static_cast<uint64_t>(channel_info.width)
                                * channel_info.height * (m_header.depth / 8));
             // We simply copy over the row into destination
-            uint64_t row_index = static_cast<uint64_t>(row)
-                                 * channel_info.width;
+            uint64_t row_index = static_cast<uint64_t>(row) * channel_info.width
+                                 * (m_header.depth / 8);
             std::memcpy(data, channel_info.decompressed_data.data() + row_index,
                         channel_info.row_length);
         } break;
@@ -2369,7 +2369,7 @@ PSDInput::decompress_zip_prediction(span<char> src, span<char> dest,
             // 32-bit files actually have the float bytes stored in planar fashion on disk
             // which are then prediction encoded. Thus we first decode the bytes itself
             uint64_t index = 0;
-            for (uint64_t y = 0; y < 1; ++y) {
+            for (uint64_t y = 0; y < height; ++y) {
                 ++index;
                 for (uint64_t x = 1; x < (width * sizeof(float)); ++x) {
                     uint8_t value = dest[index] + dest[index - 1];
@@ -2383,7 +2383,7 @@ PSDInput::decompress_zip_prediction(span<char> src, span<char> dest,
 
             // Finally we byteswap if necessary
             if (!bigendian())
-                swap_endian((uint32_t*)dest.data(), dest.size() / 4);
+                byteswap_span(span<uint32_t>(reinterpret_cast<uint32_t*>(dest.data()), dest.size() /4));
         }
         break;
     default: 
