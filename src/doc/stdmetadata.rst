@@ -353,6 +353,26 @@ The following metadata items are specific to photos or captured images.
     Distance between centers of sensor photosites, in microns.
 
 
+
+GPS
+===
+
+The following GPS-related metadata items are specific.
+
+.. option:: "Longitude" : float
+
+    The degrees, minutes, and seconds of longitude.
+
+.. option:: "Latitude" : float
+
+    The degrees, minutes, and seconds of latitude.
+
+.. option:: "Altitude" : float
+
+    Absolute value of the altitude, in meters, relative to sea level.
+
+
+
 Thumbnails / postage stamps / preview images
 ============================================
 
