@@ -284,13 +284,73 @@ The following metadata items are specific to photos or captured images.
 
     For captured or scanned image, the model of the camera or scanner.
 
+.. option:: "Focus" : float
+
+    The camera's focus distance of the captured image.
+
 .. option:: "ExposureTime" : float
 
     The exposure time (in seconds) of the captured image.
 
+.. option:: "Iso" : float
+
+    The ISO speed of the captured image.
+
+.. option:: "TStop" : float
+
+    The stop of the camera when it captured the image.
+
 .. option:: "FNumber" : float
 
     The f/stop of the camera when it captured the image.
+
+.. option:: "openexr:CameraTemperature" : float
+
+    Color temperature in Kelvin of the camera when it captured the image.
+
+.. option:: "openexr:CameraTint" : float
+
+    Green/magenta tint of the camera when it captured the image.
+
+.. option:: "NominalFocalLength" : float
+
+    Mumber printed on barrel of a prime lens, or number next to index mark on a zoom lens, in units of millimeters.
+
+.. option:: "PinholeFocalLength" : float
+
+    In the simplest model of image formation, the distance between the pinhole and the image plane, in units of millimeters.
+
+.. option:: "EffectiveFocalLength" : float
+
+    In the thick lens model, the effective focal length is the distance between the front focal point and the front nodal point, or equivalently the back focal point and the back nodal point, in units of millimeters.
+
+.. option:: "SerialNumber" : string
+
+    For captured or scanned image, the Serial Number of the camera or scanner.
+
+.. option:: "FirmwareVersion" : string
+
+    For captured or scanned image, the Firmware Version of the camera or scanner.
+
+.. option:: "LensMake" : string
+
+    Manufacturer or vendor of the lens.
+
+.. option:: "LensModel" : string
+
+    Model name or model number of the lens.
+
+.. option:: "LensSerialNumber" : string
+
+    Serial number of the lens.
+
+.. option:: "LensFirmwareVersion" : string
+
+    Firmware version of the lens.
+
+.. option:: "SensorPhotositePitch" : float
+
+    Distance between centers of sensor photosites, in microns.
 
 
 Thumbnails / postage stamps / preview images
