@@ -523,7 +523,11 @@ Filesystem::unique_path(string_view model)
         for (size_t i = 0, e = modelStr.size(); i < e; ++i)
             if (name[i] == '%')
                 name[i] = chrs[pick(rg)];
+#    if defined(_WIN32)
+        if (!exists(Strutil::utf16_to_utf8(name)))
+#    else
         if (!exists(name))
+#    endif
             break;
     }
 #    if defined(_WIN32)
