@@ -1358,25 +1358,25 @@ The official OpenEXR site is http://www.openexr.com/.
    * - ``Focus``
      - float
      - focus
-   * - ``openexr:CameraTemperature``
+   * - ``WhiteBalanceTemperature``
      - float
      - cameraCCTSetting
-   * - ``openexr:CameraTint``
+   * - ``WhiteBalanceTint``
      - float
      - cameraTintSetting
-   * - ``NominalFocalLength``
+   * - ``FocalLengthNominal``
      - float
      - nominalFocalLength
-   * - ``PinholeFocalLength``
+   * - ``FocalLengthPinhole``
      - float
      - pinholeFocalLength
-   * - ``EffectiveFocalLength``
+   * - ``FocalLengthEffective``
      - float
      - effectiveFocalLength
-   * - ``EntrancePupilOffset``
+   * - ``EntrancePupil``
      - float
      - entrancePupilOffset
-   * - ``SensorPhotositePitch``
+   * - ``PhotositeSensor``
      - float
      - sensorPhotositePitch
    * - ``Make``
@@ -1391,10 +1391,10 @@ The official OpenEXR site is http://www.openexr.com/.
    * - ``FirmwareVersion``
      - string
      - cameraFirmwareVersion
-   * - ``CameraUuid``
+   * - ``Uuid``
      - string
      - cameraUuid
-   * - ``CameraLabel``
+   * - ``Label``
      - string
      - cameraLabel
    * - ``LensMake``
