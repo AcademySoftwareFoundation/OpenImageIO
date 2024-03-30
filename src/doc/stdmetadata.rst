@@ -284,10 +284,6 @@ The following metadata items are specific to photos or captured images.
 
     For captured or scanned image, the model of the camera or scanner.
 
-.. option:: "Focus" : float
-
-    The camera's focus distance of the captured image.
-
 .. option:: "ExposureTime" : float
 
     The exposure time (in seconds) of the captured image.
@@ -304,23 +300,23 @@ The following metadata items are specific to photos or captured images.
 
     The f/stop of the camera when it captured the image.
 
-.. option:: "openexr:CameraTemperature" : float
+.. option:: "WhiteBalanceTemperature" : float
 
     Color temperature in Kelvin of the camera when it captured the image.
 
-.. option:: "openexr:CameraTint" : float
+.. option:: "WhiteBalanceTint" : float
 
     Green/magenta tint of the camera when it captured the image.
 
-.. option:: "NominalFocalLength" : float
+.. option:: "FocalLengthNominal" : float
 
     Mumber printed on barrel of a prime lens, or number next to index mark on a zoom lens, in units of millimeters.
 
-.. option:: "PinholeFocalLength" : float
+.. option:: "FocalLengthPinhole" : float
 
     In the simplest model of image formation, the distance between the pinhole and the image plane, in units of millimeters.
 
-.. option:: "EffectiveFocalLength" : float
+.. option:: "FocalLengthEffective" : float
 
     In the thick lens model, the effective focal length is the distance between the front focal point and the front nodal point, or equivalently the back focal point and the back nodal point, in units of millimeters.
 
@@ -331,6 +327,10 @@ The following metadata items are specific to photos or captured images.
 .. option:: "FirmwareVersion" : string
 
     For captured or scanned image, the Firmware Version of the camera or scanner.
+
+.. option:: "EntrancePupil" : float
+
+    The axial distance from the image plane to the entrance pupil, in units of millimeters.
 
 .. option:: "LensMake" : string
 
@@ -348,9 +348,17 @@ The following metadata items are specific to photos or captured images.
 
     Firmware version of the lens.
 
-.. option:: "SensorPhotositePitch" : float
+.. option:: "PhotositeSensor" : float
 
     Distance between centers of sensor photosites, in microns.
+
+.. option:: "Uuid" : string
+
+    Identifies this camera uniquely among all cameras from all vendors.
+
+.. option:: "Label" : string
+
+    Text label identifying how the camera was used or assigned.
 
 
 
@@ -1149,6 +1157,10 @@ SMPTE metadata
 
     SMPTE key code, encoded as an array of 7 32-bit integers (as a
     `TypeDesc`, it will be tagged with vecsemantics `KEYCODE`).
+
+.. option:: "Focus" : float
+
+    The camera's focus distance of the captured image.
 
 
 
