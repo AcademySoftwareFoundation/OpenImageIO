@@ -2375,7 +2375,7 @@ PSDInput::decompress_zip_prediction(span<char> src, span<char> dest,
         if (!bigendian())
             byteswap_span(
                 span<uint32_t>(reinterpret_cast<uint32_t*>(dest.data()),
-                               dest.size() /4));
+                               dest.size() / 4));
     } break;
     default:
         errorfmt("Unknown bitdepth: {} encountered", m_header.depth);
