@@ -584,7 +584,7 @@ Reading ../oiio-images/psd_rgb_8.psd
     stRef:originalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
 Reading ../oiio-images/psd_rgb_16.psd
 ../oiio-images/psd_rgb_16.psd :  320 x  240, 3 channel, uint16 psd
-    SHA-1: E42334B0F0684E3C3BF9125F2920B07C44C17B11
+    SHA-1: 591F6850EB0B548DF2CE7177661440CB812E5C31
     channel list: R, G, B
     Artist: "Daniel Wyatt"
     DateTime: "2007-01-18T15:49:21"
@@ -655,7 +655,7 @@ Reading ../oiio-images/psd_rgb_16.psd
     stRef:originalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
 Reading ../oiio-images/psd_rgb_32.psd
 ../oiio-images/psd_rgb_32.psd :  320 x  240, 3 channel, float psd
-    SHA-1: 63CF8F7B010D24EFD3C41F51C16D8D285FE07313
+    SHA-1: B7F8CE4B4259A92AA13333EA8112C3E37C6BAB39
     channel list: R, G, B
     Artist: "Daniel Wyatt"
     DateTime: "2007-01-18T15:49:21"
