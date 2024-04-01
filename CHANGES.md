@@ -1,3 +1,7 @@
+Release 2.5.11.0 (May 1?, 2024) -- compared to 2.5.10.0
+-------------------------------------------------------
+
+
 Release 2.5.10.1 (Apr 1, 2024) -- compared to 2.5.9.0
 ------------------------------------------------------
 - *oiiotool*: Expression substitution now understands pseudo-metadata `NONFINITE_COUNT` that returns the number of nonfinite values in the image, thus allowing decision making about fixnan [#4171](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4171)
