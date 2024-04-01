@@ -430,7 +430,7 @@ private:
 
     int read_pascal_string(std::string& s, uint16_t mod_padding);
 
-    // Swap a planar bytespan representing the bytes of a float vector to its 
+    // Swap a planar bytespan representing the bytes of a float vector to its
     // interleaved byte order. This is per scanline
     void float_planar_to_interleaved(span<char> data, size_t width,
                                      size_t height);
@@ -1697,8 +1697,8 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
             return false;
 
         decompress_zip_prediction(compressed_data,
-                                    channel_info.decompressed_data, width,
-                                    height);
+                                  channel_info.decompressed_data, width,
+                                  height);
     } break;
     default:
         errorfmt("[Layer Channel] unsupported compression {}",
@@ -1805,7 +1805,7 @@ PSDInput::load_global_additional()
 
         // Load 16 and 32-bit layer data
         if (std::memcmp(key, "Lr16", 4) == 0 
-            || std::memcmp(key, "Lr32", 4) == 0){
+            || std::memcmp(key, "Lr32", 4) == 0) {
             uint64_t begin_offset = iotell();
             ok &= load_layers_16_32(length);
             uint64_t size = iotell() - begin_offset;
@@ -1816,7 +1816,7 @@ PSDInput::load_global_additional()
             remaining -= length;
             // skip it for now
             ok &= ioseek(length, SEEK_CUR);
-        }  
+        }
     }
     // finished with the layer and mask information section, seek to the end
     ok &= ioseek(m_layer_mask_info.end);
@@ -1841,7 +1841,7 @@ PSDInput::load_layers_16_32(uint64_t length)
 
     uint64_t begin = iotell();
 
-    // We read the layer info as we would usually since the section is exactly the same 
+    // We read the layer info as we would usually since the section is exactly the same
     ok &= read_bige<int16_t>(layer_info.layer_count);
     if (layer_info.layer_count < 0) {
         m_image_data.transparency = true;
@@ -2032,7 +2032,6 @@ PSDInput::read_channel_row(ChannelInfo& channel_info, uint32_t row, char* data)
                  channel_info.row_pos.size());
         return false;
     }
-
     
     switch (channel_info.compression) {
     case Compression_Raw:
@@ -2200,7 +2199,7 @@ PSDInput::read_pascal_string(std::string& s, uint16_t mod_padding)
 void
 PSDInput::float_planar_to_interleaved(span<char> data, size_t width, 
                                       size_t height)
-{   
+{
     std::vector<char> buffer(data.size());
 
     // Shuffle from planar 1111... 2222... 3333... 4444... byte order to 1234 1234 1234 1234...
@@ -2293,7 +2292,7 @@ PSDInput::decompress_zip(span<char> src, span<char> dest)
     stream.next_in   = (Bytef*)src.data();
     stream.avail_out = dest.size();
     stream.next_out  = (Bytef*)dest.data();
-    
+
     if (inflateInit(&stream) != Z_OK) {
         errorfmt(
             "zip compression inflate init failed with: src_size={}, dst_size={}",
@@ -2374,9 +2373,11 @@ PSDInput::decompress_zip_prediction(span<char> src, span<char> dest,
 
         // Finally we byteswap if necessary
         if (!bigendian())
-            byteswap_span(span<uint32_t>(reinterpret_cast<uint32_t*>(dest.data()), dest.size() /4));
+            byteswap_span(
+                span<uint32_t>(reinterpret_cast<uint32_t*>(dest.data()),
+                    dest.size() /4));
     } break;
-    default: 
+    default:
         errorfmt("Unknown bitdepth: {} encountered", m_header.depth);
         return false;
     }
