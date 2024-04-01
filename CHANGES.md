@@ -1,4 +1,4 @@
-Release 2.5.10.0 (Apr 1, 2024) -- compared to 2.5.9.0
+Release 2.5.10.1 (Apr 1, 2024) -- compared to 2.5.9.0
 ------------------------------------------------------
 - *oiiotool*: Expression substitution now understands pseudo-metadata `NONFINITE_COUNT` that returns the number of nonfinite values in the image, thus allowing decision making about fixnan [#4171](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4171)
 - *color managements*: Automatically recognize some additional color space name synonyms: "srgb_texture", "lin_rec709" and "lin_ap1". Also add common permutation "srgb_tx" and "srgb texture" as additional aliases for "srgb". [#4166](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4166)
