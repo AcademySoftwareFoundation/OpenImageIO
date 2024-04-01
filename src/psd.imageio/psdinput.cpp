@@ -1785,7 +1785,6 @@ PSDInput::load_global_additional()
     uint64_t remaining = m_layer_mask_info.length
                          - (iotell() - m_layer_mask_info.begin);
     bool ok = true;
-    int index = 0;
     while (ok && remaining >= 12) {
         if (!ioread(signature, 4))
             return false;
@@ -2292,8 +2291,6 @@ PSDInput::decompress_packbits(const char* src, char* dst,
 bool
 PSDInput::decompress_zip(span<char> src, span<char> dest)
 {
-    bool ok = true;
-
     z_stream stream {};
     stream.zfree    = Z_NULL;
     stream.opaque   = Z_NULL;
