@@ -200,8 +200,8 @@ jobs:
             fmt_ver: 10.1.1
             pybind11_ver: v2.10.0
             skip_tests: 1
-            # abi_check: v2.4.15.0
-            abi_check: 4fdde40cf2d87522d72e6b2eab601f55514e6acb
+            # abi_check: v2.6.2.0
+            abi_check: 0caf97bc5faeb239a7179a5e604ea5af86f304f0
             setenvs: export OIIO_CMAKE_FLAGS="-DOIIO_BUILD_TOOLS=0 -DOIIO_BUILD_TESTS=0 -DUSE_PYTHON=0"
                             USE_OPENCV=0 USE_FFMPEG=0 USE_PYTHON=0
                             CMAKE_BUILD_TYPE=RelWithDebInfo
