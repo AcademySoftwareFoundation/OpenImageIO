@@ -1827,7 +1827,7 @@ PSDInput::load_global_additional()
 bool
 PSDInput::load_layers_16_32(uint64_t length)
 {
-    // Notice that, bar the reading of the length marker, reading this section is identical to 
+    // Notice that, bar the reading of the length marker, reading this section is identical to
     // the normal layer info section
     bool ok = true;
 
