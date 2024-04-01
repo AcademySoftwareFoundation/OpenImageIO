@@ -1804,7 +1804,7 @@ PSDInput::load_global_additional()
         // included in the stored length and the specs do not mention it.
 
         // Load 16 and 32-bit layer data
-        if (std::memcmp(key, "Lr16", 4) == 0 
+        if (std::memcmp(key, "Lr16", 4) == 0
             || std::memcmp(key, "Lr32", 4) == 0) {
             uint64_t begin_offset = iotell();
             ok &= load_layers_16_32(length);
@@ -2032,7 +2032,7 @@ PSDInput::read_channel_row(ChannelInfo& channel_info, uint32_t row, char* data)
                  channel_info.row_pos.size());
         return false;
     }
-    
+
     switch (channel_info.compression) {
     case Compression_Raw:
         if (!ioseek(channel_info.row_pos[row]))
@@ -2197,7 +2197,7 @@ PSDInput::read_pascal_string(std::string& s, uint16_t mod_padding)
 
 
 void
-PSDInput::float_planar_to_interleaved(span<char> data, size_t width, 
+PSDInput::float_planar_to_interleaved(span<char> data, size_t width,
                                       size_t height)
 {
     std::vector<char> buffer(data.size());
@@ -2375,7 +2375,7 @@ PSDInput::decompress_zip_prediction(span<char> src, span<char> dest,
         if (!bigendian())
             byteswap_span(
                 span<uint32_t>(reinterpret_cast<uint32_t*>(dest.data()),
-                    dest.size() /4));
+                               dest.size() /4));
     } break;
     default:
         errorfmt("Unknown bitdepth: {} encountered", m_header.depth);
