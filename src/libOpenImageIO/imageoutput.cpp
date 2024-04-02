@@ -518,17 +518,31 @@ ImageOutput::write_image(TypeDesc format, const void* data, stride_t xstride,
         int rps   = m_spec.get_int_attribute("tiff:RowsPerStrip", 64);
         int chunk = std::max(1, (1 << 26) / int(m_spec.scanline_bytes(true)));
         chunk     = round_to_multiple(chunk, rps);
+
+        const bool isDecreasingY = !strcmp(format_name(), "openexr")
+                                   && m_spec.get_string_attribute(
+                                          "openexr:lineOrder")
+                                          == "decreasingY";
+        const int yStart = isDecreasingY ? ((m_spec.height - 1) / chunk) * chunk
+                                         : 0;
+        const int yDelta = isDecreasingY ? -chunk : chunk;
+
         for (int z = 0; z < m_spec.depth; ++z)
-            for (int y = 0; y < m_spec.height && ok; y += chunk) {
+            for (int y = yStart; ((isDecreasingY && y >= 0)
+                                  || (!isDecreasingY && y < m_spec.height))
+                                 && ok;
+                 y += yDelta) {
                 int yend      = std::min(y + m_spec.y + chunk,
                                          m_spec.y + m_spec.height);
                 const char* d = (const char*)data + z * zstride + y * ystride;
                 ok &= write_scanlines(y + m_spec.y, yend, z + m_spec.z, format,
                                       d, xstride, ystride);
                 if (progress_callback
-                    && progress_callback(progress_callback_data,
-                                         (float)(z * m_spec.height + y)
-                                             / (m_spec.height * m_spec.depth)))
+                    && progress_callback(
+                        progress_callback_data,
+                        (float)(z * m_spec.height
+                                + (isDecreasingY ? (m_spec.height - y) : y))
+                            / (m_spec.height * m_spec.depth)))
                     return ok;
             }
     }

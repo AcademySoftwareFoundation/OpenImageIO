@@ -1418,8 +1418,20 @@ ImageBuf::write(ImageOutput* out, ProgressCallback progress_callback,
             int chunk = clamp(round_to_multiple(int(budget / slsize), 64), 1,
                               1024);
             std::unique_ptr<char[]> tmp(new char[chunk * slsize]);
+
+            const bool isDecreasingY = !strcmp(out->format_name(), "openexr")
+                                       && outspec.get_string_attribute(
+                                              "openexr:lineOrder")
+                                              == "decreasingY";
+            const int yStart = isDecreasingY
+                                   ? ((outspec.height - 1) / chunk) * chunk
+                                   : 0;
+            const int yDelta = isDecreasingY ? -chunk : chunk;
             for (int z = 0; z < outspec.depth; ++z) {
-                for (int y = 0; y < outspec.height && ok; y += chunk) {
+                for (int y = yStart; ((isDecreasingY && y >= 0)
+                                      || (!isDecreasingY && y < outspec.height))
+                                     && ok;
+                     y += yDelta) {
                     int yend = std::min(y + outspec.y + chunk,
                                         outspec.y + outspec.height);
                     ok &= get_pixels(ROI(outspec.x, outspec.x + outspec.width,
@@ -1430,10 +1442,11 @@ ImageBuf::write(ImageOutput* out, ProgressCallback progress_callback,
                                                z + outspec.z, bufformat,
                                                &tmp[0]);
                     if (progress_callback
-                        && progress_callback(progress_callback_data,
-                                             (float)(z * outspec.height + y)
-                                                 / (outspec.height
-                                                    * outspec.depth)))
+                        && progress_callback(
+                            progress_callback_data,
+                            (float)(z * outspec.height
+                                    + (isDecreasingY ? (outspec.height - y) : y))
+                                / (outspec.height * outspec.depth)))
                         return ok;
                 }
             }

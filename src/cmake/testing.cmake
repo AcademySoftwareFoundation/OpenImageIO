@@ -278,7 +278,7 @@ macro (oiio_add_all_tests)
                     IMAGEDIR j2kp4files_v1_5
                     URL http://www.itu.int/net/ITU-T/sigdb/speimage/ImageForm-s.aspx?val=10100803)
     set (all_openexr_tests
-         openexr-suite openexr-multires openexr-chroma
+         openexr-suite openexr-multires openexr-chroma openexr-decreasingy
          openexr-v2 openexr-window perchannel oiiotool-deep)
     if (USE_PYTHON AND NOT SANITIZE)
         list (APPEND all_openexr_tests openexr-copy)
