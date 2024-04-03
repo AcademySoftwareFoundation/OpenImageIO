@@ -1485,7 +1485,7 @@ OpenEXROutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
                               * 1024;  // Allocate 16 MB, or 1 scanline
     int chunk = std::max(1, int(limit / scanlinebytes));
 
-    bool ok         = true;
+    bool ok                  = true;
     const bool isDecreasingY = m_spec.get_string_attribute("openexr:lineOrder")
                                == "decreasingY";
 
