@@ -332,19 +332,19 @@ The following metadata items are specific to photos or captured images.
 
     The axial distance from the image plane to the entrance pupil, in units of millimeters.
 
-.. option:: "LensMake" : string
+.. option:: "MakeLens" : string
 
     Manufacturer or vendor of the lens.
 
-.. option:: "LensModel" : string
+.. option:: "ModelLens" : string
 
     Model name or model number of the lens.
 
-.. option:: "LensSerialNumber" : string
+.. option:: "SerialNumberLens" : string
 
     Serial number of the lens.
 
-.. option:: "LensFirmwareVersion" : string
+.. option:: "FirmwareVersionLens" : string
 
     Firmware version of the lens.
 
@@ -359,25 +359,6 @@ The following metadata items are specific to photos or captured images.
 .. option:: "Label" : string
 
     Text label identifying how the camera was used or assigned.
-
-
-
-GPS
-===
-
-The following GPS-related metadata items are specific.
-
-.. option:: "Longitude" : float
-
-    The degrees, minutes, and seconds of longitude.
-
-.. option:: "Latitude" : float
-
-    The degrees, minutes, and seconds of latitude.
-
-.. option:: "Altitude" : float
-
-    Absolute value of the altitude, in meters, relative to sea level.
 
 
 
