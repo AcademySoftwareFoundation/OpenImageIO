@@ -1397,25 +1397,25 @@ The official OpenEXR site is http://www.openexr.com/.
    * - ``Label``
      - string
      - cameraLabel
-   * - ``LensMake``
+   * - ``MakeLens``
      - string
      - lensMake
-   * - ``LensModel``
+   * - ``ModelLens``
      - string
      - lensModel
-   * - ``LensSerialNumber``
+   * - ``SerialNumberLens``
      - string
      - lensSerialNumber
-   * - ``LensFirmwareVersion``
+   * - ``FirmwareVersionLens``
      - string
      - lensFirmwareVersion
-   * - ``Longitude``
+   * - ``GPS:Longitude``
      - float
      - longitude
-   * - ``Latitude``
+   * - ``GPS:Latitude``
      - float
      - latitude
-   * - ``Altitude``
+   * - ``GPS:Altitude``
      - float
      - altitude
    * - ``compression``
