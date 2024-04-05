@@ -288,6 +288,7 @@ PLUGENTRY(png);
 PLUGENTRY(pnm);
 PLUGENTRY_RO(psd);
 PLUGENTRY_RO(ptex);
+PLUGENTRY_RO(r3d);
 PLUGENTRY_RO(raw);
 PLUGENTRY(rla);
 PLUGENTRY(sgi);
@@ -403,6 +404,9 @@ catalog_builtin_plugins()
 #endif
 #if defined(USE_PTEX) && !defined(DISABLE_PTEX)
     DECLAREPLUG_RO (ptex);
+#endif
+#if defined(USE_R3DSDK) && !defined(DISABLE_R3D)
+    DECLAREPLUG_RO (r3d);
 #endif
 #if defined(USE_LIBRAW) && !defined(DISABLE_RAW)
     DECLAREPLUG_RO (raw);
