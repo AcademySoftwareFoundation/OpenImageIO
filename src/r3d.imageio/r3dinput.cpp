@@ -15,27 +15,28 @@
 #include <R3DSDKCuda.h>
 #include <R3DSDKDefinitions.h>
 
-#include <cuda_runtime.h>
-#include <vector>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <cuda_runtime.h>
+#include <vector>
 
-#include <mutex>
-#include <thread>
 #include <condition_variable>
 #include <functional>
+#include <iostream>
 #include <list>
 #include <map>
-#include <vector>
-#include <unistd.h>
+#include <mutex>
+#include <thread>
 #include <time.h>
-#include <iostream>
+#include <unistd.h>
+#include <vector>
 
-unsigned char * AlignedMalloc(size_t & sizeNeeded)
+unsigned char*
+AlignedMalloc(size_t& sizeNeeded)
 {
     // alloc 15 bytes more to make sure we can align the buffer in case it isn't
-    unsigned char * buffer = (unsigned char *)malloc(sizeNeeded + 15U);
+    unsigned char* buffer = (unsigned char*)malloc(sizeNeeded + 15U);
 
     if (!buffer)
         return nullptr;
@@ -47,7 +48,7 @@ unsigned char * AlignedMalloc(size_t & sizeNeeded)
 
     // check if it's already aligned, if it is we're done
     if ((ptr % 16U) == 0U)
-      return buffer;
+        return buffer;
 
     // calculate how many bytes we need
     sizeNeeded = 16U - (ptr % 16U);
@@ -61,8 +62,16 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 class R3dInput final : public ImageInput {
 public:
-    R3dInput() { initialize(); reset(); }
-    ~R3dInput() override { close(); terminate(); }
+    R3dInput()
+    {
+        initialize();
+        reset();
+    }
+    ~R3dInput() override
+    {
+        close();
+        terminate();
+    }
     const char* format_name(void) const override { return "r3d"; }
     int supports(string_view feature) const override
     {
@@ -91,9 +100,9 @@ public:
 private:
     std::string m_filename;
     std::unique_ptr<ImageSpec> m_config;  // Saved copy of configuration spec
-    R3DSDK::Clip *m_clip;
+    R3DSDK::Clip* m_clip;
     R3DSDK::VideoDecodeJob m_job;
-    unsigned char *m_image_buffer;
+    unsigned char* m_image_buffer;
     size_t m_adjusted;
     int m_frames;
     int m_channels;
@@ -113,14 +122,14 @@ private:
 
         ioproxy_clear();
         m_config.reset();
-        m_clip = nullptr;
+        m_clip             = nullptr;
         m_next_scanline    = 0;
         m_read_frame       = false;
         m_subimage         = 0;
         m_last_search_pos  = 0;
         m_last_decoded_pos = 0;
-        m_image_buffer = nullptr;
-        m_adjusted = 0;
+        m_image_buffer     = nullptr;
+        m_adjusted         = 0;
     }
 
     void close_file() { reset(); }
@@ -157,9 +166,10 @@ R3dInput::initialize()
 
     // initialize SDK
     // R3DSDK::InitializeStatus init_status = R3DSDK::InitializeSdk(".", OPTION_RED_CUDA);
-    R3DSDK::InitializeStatus init_status = R3DSDK::InitializeSdk("/opt/R3DSDKv8_5_1/Redistributable/linux", OPTION_RED_NONE);
-    if (init_status != R3DSDK::ISInitializeOK)
-    {
+    R3DSDK::InitializeStatus init_status
+        = R3DSDK::InitializeSdk("/opt/R3DSDKv8_5_1/Redistributable/linux",
+                                OPTION_RED_NONE);
+    if (init_status != R3DSDK::ISInitializeOK) {
         R3DSDK::FinalizeSdk();
         DBG std::cout << "Failed to load R3DSDK Lib: " << init_status << "\n";
         return;
@@ -170,12 +180,11 @@ R3dInput::initialize()
     // open CUDA device
     RED_CUDA = OpenCUDA(CUDA_DEVICE_ID);
 
-    if (RED_CUDA == NULL)
-    {
+    if (RED_CUDA == NULL) {
         R3DSDK::FinalizeSdk();
         DBG std::cout << "Failed to initialize CUDA\n";
     }
-#endif // GPU
+#endif  // GPU
 }
 
 
@@ -206,8 +215,7 @@ R3dInput::open(const std::string& name, ImageSpec& newspec)
     m_clip = new R3DSDK::Clip(m_filename.c_str());
 
     // let the user know if this failed
-    if (m_clip->Status() != R3DSDK::LSClipLoaded)
-    {
+    if (m_clip->Status() != R3DSDK::LSClipLoaded) {
         DBG std::cout << "Error loading " << m_filename << "\n";
 
         delete m_clip;
@@ -218,19 +226,20 @@ R3dInput::open(const std::string& name, ImageSpec& newspec)
     DBG std::cout << "Loaded " << m_filename << "\n";
 
     // calculate how much ouput memory we're going to need
-    size_t width = m_clip->Width();
+    size_t width  = m_clip->Width();
     size_t height = m_clip->Height();
 
     m_channels = 3;
 
     DBG std::cout << "Video frame count " << m_clip->VideoFrameCount() << "\n";
 
-    m_frames = m_clip->VideoFrameCount();
+    m_frames     = m_clip->VideoFrameCount();
     m_nsubimages = m_frames;
 
-    DBG std::cout << "Video framerate " << m_clip->VideoAudioFramerate() << "\n";
+    DBG std::cout << "Video framerate " << m_clip->VideoAudioFramerate()
+                  << "\n";
 
-    m_fps    = m_clip->VideoAudioFramerate();
+    m_fps = m_clip->VideoAudioFramerate();
 
     // three channels (RGB) in 16-bit (2 bytes) requires this much memory:
     size_t memNeeded = width * height * m_channels * sizeof(uint16_t);
@@ -241,9 +250,9 @@ R3dInput::open(const std::string& name, ImageSpec& newspec)
     // alloc this memory 16-byte aligned
     m_image_buffer = AlignedMalloc(m_adjusted);
 
-    if (m_image_buffer == NULL)
-    {
-        DBG std::cout << "Failed to allocate " << static_cast<int>(memNeeded) << " bytes of memory for output image\n";
+    if (m_image_buffer == NULL) {
+        DBG std::cout << "Failed to allocate " << static_cast<int>(memNeeded)
+                      << " bytes of memory for output image\n";
 
         return false;
     }
@@ -270,7 +279,7 @@ R3dInput::open(const std::string& name, ImageSpec& newspec)
     m_spec.attribute("oiio:subimages", int(m_frames));
     m_spec.attribute("oiio:BitsPerSample", 16);
 
-    newspec = m_spec;
+    newspec         = m_spec;
     m_next_scanline = 0;
     return true;
 }
@@ -291,10 +300,10 @@ R3dInput::read_frame(int pos)
         DBG std::cout << "Failed to decode frame " << pos << "\n";
     }
 
-    m_last_search_pos = pos;
+    m_last_search_pos  = pos;
     m_last_decoded_pos = pos;
-    m_read_frame = true;
-    m_next_scanline = 0;
+    m_read_frame       = true;
+    m_next_scanline    = 0;
 }
 
 
@@ -302,7 +311,8 @@ R3dInput::read_frame(int pos)
 bool
 R3dInput::seek_subimage(int subimage, int miplevel)
 {
-    DBG std::cout << "R3dInput::seek_subimage(" << subimage << ", " << miplevel << ")\n";
+    DBG std::cout << "R3dInput::seek_subimage(" << subimage << ", " << miplevel
+                  << ")\n";
 
     if (subimage < 0 || subimage >= m_nsubimages || miplevel > 0) {
         return false;
@@ -347,21 +357,21 @@ R3dInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     }
 
     uint16_t *r, *g, *b;
-    uint16_t *d = (uint16_t *)data;
+    uint16_t* d          = (uint16_t*)data;
     size_t scanline_size = m_spec.width * sizeof(uint16_t);
-    size_t plane_size = scanline_size * m_spec.height;
+    size_t plane_size    = scanline_size * m_spec.height;
 
-    r = (uint16_t *)((uint8_t*)m_image_buffer + y * scanline_size);
-    g = (uint16_t *)((uint8_t*)m_image_buffer + y * scanline_size + plane_size);
-    b = (uint16_t *)((uint8_t*)m_image_buffer + y * scanline_size + 2 * plane_size);
+    r = (uint16_t*)((uint8_t*)m_image_buffer + y * scanline_size);
+    g = (uint16_t*)((uint8_t*)m_image_buffer + y * scanline_size + plane_size);
+    b = (uint16_t*)((uint8_t*)m_image_buffer + y * scanline_size
+                    + 2 * plane_size);
 
-    for (int x = 0; x < m_spec.width; x++)
-    {
+    for (int x = 0; x < m_spec.width; x++) {
         *d++ = r[x];
         *d++ = g[x];
         *d++ = b[x];
     }
-    
+
     return true;
 }
 
@@ -389,7 +399,7 @@ double
 R3dInput::fps() const
 {
     DBG std::cout << "R3dInput::fps()\n";
-    return (double) m_fps;
+    return (double)m_fps;
 }
 
 
@@ -406,7 +416,7 @@ R3dInput::close()
     if (m_image_buffer) {
         free(m_image_buffer - m_adjusted);
         m_image_buffer = nullptr;
-        m_adjusted = 0;
+        m_adjusted     = 0;
     }
     reset();  // Reset to initial state
     return true;
