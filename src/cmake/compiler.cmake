@@ -48,10 +48,10 @@ endmacro ()
 ###########################################################################
 # C++ language standard
 #
-set (CMAKE_CXX_MINIMUM 14)
+set (CMAKE_CXX_MINIMUM 17)
 set (CMAKE_CXX_STANDARD 17 CACHE STRING
      "C++ standard to build with (14, 17, 20, etc.) Minimum is ${CMAKE_CXX_MINIMUM}.")
-set (DOWNSTREAM_CXX_STANDARD 14 CACHE STRING
+set (DOWNSTREAM_CXX_STANDARD 17 CACHE STRING
      "C++ minimum standard to impose on downstream clients")
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
@@ -387,29 +387,6 @@ if (NOT MSVC AND NOT APPLE AND NOT ANDROID)
         message (VERBOSE "Compiler supports std::atomic, no libatomic necessary")
     endif ()
 endif ()
-
-
-###########################################################################
-# Check if we need have std::filesystem on this platform.
-#
-cmake_push_check_state ()
-set (CMAKE_REQUIRED_DEFINITIONS ${CSTD_FLAGS})
-check_cxx_source_compiles("#include <filesystem>
-      int main() { std::filesystem::path p; return 0; }"
-      USE_STD_FILESYSTEM)
-if (USE_STD_FILESYSTEM AND GCC_VERSION AND GCC_VERSION VERSION_LESS 9.0)
-    message (STATUS "Excluding USE_STD_FILESYSTEM because gcc is ${GCC_VERSION}")
-    set (USE_STD_FILESYSTEM OFF)
-endif ()
-if (USE_STD_FILESYSTEM)
-    # Note: std::filesystem seems unreliable for gcc until 9
-    message (STATUS "Compiler supports std::filesystem")
-    proj_add_compile_definitions (-DUSE_STD_FILESYSTEM)
-else ()
-    message (STATUS "Using Boost::filesystem")
-    proj_add_compile_definitions (-DUSE_BOOST_FILESYSTEM)
-endif ()
-cmake_pop_check_state ()
 
 
 ###########################################################################

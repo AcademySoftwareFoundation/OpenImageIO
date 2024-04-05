@@ -53,9 +53,6 @@ if (MSVC)
 endif ()
 
 set (Boost_COMPONENTS thread)
-if (NOT USE_STD_FILESYSTEM)
-    list (APPEND Boost_COMPONENTS filesystem)
-endif ()
 message (STATUS "Boost_COMPONENTS = ${Boost_COMPONENTS}")
 # The FindBoost.cmake interface is broken if it uses boost's installed
 # cmake output (e.g. boost 1.70.0, cmake <= 3.14). Specifically it fails
@@ -232,8 +229,8 @@ if (LibRaw_FOUND AND LibRaw_VERSION VERSION_LESS 0.20 AND CMAKE_CXX_STANDARD VER
     # Currently, we issue the above warning and let them take their chances.
     # If we wish to disable the LibRaw<0.20/C++17 combination that may fail,
     # just uncomment the following two lines.
-    # set (LibRaw_FOUND 0)
-    # set (LIBRAW_FOUND 0)
+    set (LibRaw_FOUND 0)
+    set (LIBRAW_FOUND 0)
 endif ()
 
 checked_find_package (OpenJPEG VERSION_MIN 2.0

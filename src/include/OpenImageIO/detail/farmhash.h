@@ -83,19 +83,13 @@
 // Make static inline 'const expr, if possible.  Also, try to make CUDA friendly
 // for device code.
 #undef STATIC_INLINE
-#if OIIO_CPLUSPLUS_VERSION >= 14
-#  define HASH_CAN_USE_CONSTEXPR 1
-#endif
-#define STATIC_INLINE OIIO_HOSTDEVICE inline OIIO_CONSTEXPR14
+#define HASH_CAN_USE_CONSTEXPR 1
+#define STATIC_INLINE OIIO_HOSTDEVICE inline constexpr
 
 // FARMHASH PORTABILITY LAYER: Runtime error if misconfigured
 
 #ifndef FARMHASH_DIE_IF_MISCONFIGURED
-#ifdef HASH_CAN_USE_CONSTEXPR
 #define FARMHASH_DIE_IF_MISCONFIGURED
-#else
-#define FARMHASH_DIE_IF_MISCONFIGURED do { *(char*)(len % 17) = 0; } while (0)
-#endif
 #endif
 
 // FARMHASH PORTABILITY LAYER: endianness and byteswapping functions
