@@ -5,8 +5,6 @@
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #import OpenImageIO as oiio
-from __future__ import division
-from __future__ import absolute_import
 import shutil
 import os
 
