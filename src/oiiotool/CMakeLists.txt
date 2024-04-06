@@ -8,5 +8,4 @@ fancy_add_executable (SYSTEM_INCLUDE_DIRS
                         OpenImageIO
                         $<TARGET_NAME_IF_EXISTS:OpenEXR::OpenEXR>
                         $<TARGET_NAME_IF_EXISTS:OpenEXR::IlmImf>
-                        ${OPENEXR_LIBRARIES}
                      )

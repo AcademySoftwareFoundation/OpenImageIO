@@ -129,7 +129,7 @@ ls -R -l "$DEP_DIR"
 
 
 # source src/build-scripts/build_openexr.bash
-# export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;$ILMBASE_ROOT;$OPENEXR_ROOT"
+# export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;$OPENEXR_ROOT"
 # source src/build-scripts/build_opencolorio.bash
 
 
