@@ -14,12 +14,6 @@
 #include <openvdb/openvdb.h>
 #include <openvdb/tools/Dense.h>
 
-// Try to use the long form/abi version string introduced in 5.0
-#if OPENVDB_LIBRARY_MAJOR_VERSION_NUMBER <= 4
-#    define OIIO_OPENVDB_VERSION OPENVDB_LIBRARY_VERSION_STRING
-#else
-#    define OIIO_OPENVDB_VERSION OPENVDB_LIBRARY_ABI_VERSION_STRING
-#endif
 
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -598,7 +592,7 @@ OIIO_EXPORT int openvdb_imageio_version = OIIO_PLUGIN_VERSION;
 OIIO_EXPORT const char*
 openvdb_imageio_library_version()
 {
-    return "OpenVDB " OIIO_OPENVDB_VERSION;
+    return "OpenVDB " OPENVDB_LIBRARY_ABI_VERSION_STRING;
 }
 
 OIIO_PLUGIN_EXPORTS_END
