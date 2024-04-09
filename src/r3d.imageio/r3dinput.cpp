@@ -2,6 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+// R3D SDK can be downloaded from the following site:
+// https://www.red.com/download/r3d-sdk
+//
+// The code has been tested with the version 8.5.1 installed in
+// /opt/R3DSDKv8_5_1 directory and setting up the variable
+// export R3DSDK_ROOT="/opt/R3DSDKv8_5_1"
+
 #include <algorithm>
 #include <cassert>
 #include <cstdio>
