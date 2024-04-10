@@ -12,8 +12,6 @@
 
 #include <tsl/robin_map.h>
 
-#include <boost/thread/tss.hpp>
-
 #include <OpenImageIO/Imath.h>
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/hash.h>
@@ -41,8 +39,6 @@ namespace pvt {
 #define FILE_CACHE_SHARDS 64
 #define TILE_CACHE_SHARDS 128
 
-using boost::thread_specific_ptr;
-
 struct TileID;
 class ImageCacheImpl;
 class ImageCachePerThreadInfo;
@@ -55,7 +51,7 @@ texture_type_name(TexFormat f);
 
 
 /// Structure to hold IC and TS statistics.  We combine into a single
-/// structure to minimize the number of costly thread_specific_ptr
+/// structure to minimize the number of costly ImageCachePerThreadInfo
 /// retrievals.  If somebody is using the ImageCache without a
 /// TextureSystem, a few extra stats come along for the ride, but this
 /// has no performance penalty.
@@ -1167,7 +1163,6 @@ private:
     /// Clear the fingerprint list, thread-safe.
     void clear_fingerprints();
 
-    thread_specific_ptr<ImageCachePerThreadInfo> m_perthread_info;
     std::vector<ImageCachePerThreadInfo*> m_all_perthread_info;
     static spin_mutex m_perthread_info_mutex;  ///< Thread safety for perthread
     int m_max_open_files;

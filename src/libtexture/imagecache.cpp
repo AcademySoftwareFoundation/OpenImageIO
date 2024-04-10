@@ -67,6 +67,15 @@ static ustring s_constantalpha("constantalpha");
 
 static thread_local tsl::robin_map<const ImageCacheImpl*, std::string> error_messages;
 
+struct ImageCachePerThreadInfoDeleter {
+    void operator()(ImageCachePerThreadInfo* info) const {
+        ImageCacheImpl::cleanup_perthread_info(info);
+    }
+};
+using ImageCachePerThreadInfoUniquePtr = std::unique_ptr<ImageCachePerThreadInfo, ImageCachePerThreadInfoDeleter>;
+static thread_local tsl::robin_map<const ImageCacheImpl*, ImageCachePerThreadInfoUniquePtr> imagecache_per_thread_infos;
+
+
 // Functor to compare filenames
 static bool
 filename_compare(const ImageCacheFileRef& a, const ImageCacheFileRef& b)
@@ -1649,7 +1658,6 @@ ImageCacheTile::data(int x, int y, int z, int c) const
 
 
 ImageCacheImpl::ImageCacheImpl()
-    : m_perthread_info(&cleanup_perthread_info)
 {
     init();
 }
@@ -3826,15 +3834,20 @@ ImageCacheImpl::destroy_thread_info(ImageCachePerThreadInfo* thread_info)
 ImageCachePerThreadInfo*
 ImageCacheImpl::get_perthread_info(ImageCachePerThreadInfo* p)
 {
-    if (!p)
-        p = m_perthread_info.get();
     if (!p) {
-        p = new ImageCachePerThreadInfo;
-        m_perthread_info.reset(p);
-        // printf ("New perthread %p\n", (void *)p);
-        spin_lock lock(m_perthread_info_mutex);
-        m_all_perthread_info.push_back(p);
-        p->shared = true;  // both the IC and the thread point to it
+        // user has not provided an ImageCachePerThreadInfo yet
+        ImageCachePerThreadInfoUniquePtr& ptr = imagecache_per_thread_infos[this];
+        p = ptr.get();
+        if (!p)
+        {
+            // this thread doesn't have a ImageCachePerThreadInfo for this ImageCacheImpl yet
+            p = new ImageCachePerThreadInfo;
+            ptr.reset(p);
+            // printf ("New perthread %p\n", (void *)p);
+            spin_lock lock(m_perthread_info_mutex);
+            m_all_perthread_info.push_back(p);
+            p->shared = true;  // both the IC and the thread point to it
+        }
     }
     if (p->purge) {  // has somebody requested a tile purge?
         // This is safe, because it's our thread.
