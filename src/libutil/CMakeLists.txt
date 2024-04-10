@@ -45,6 +45,8 @@ function (setup_oiio_util_library targetname)
     target_include_directories (${targetname}
             PUBLIC
                 $<INSTALL_INTERFACE:include>
+            PRIVATE
+                ${ROBINMAP_INCLUDES}
             )
     target_link_libraries (${targetname}
             PUBLIC
