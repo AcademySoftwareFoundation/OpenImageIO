@@ -55,8 +55,6 @@ function (setup_oiio_util_library targetname)
                 ${OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY}
                 ${OPENIMAGEIO_IMATH_TARGETS}
             PRIVATE
-                $<TARGET_NAME_IF_EXISTS:Boost::filesystem>
-                $<TARGET_NAME_IF_EXISTS:Boost::thread>
                 $<TARGET_NAME_IF_EXISTS:TBB::tbb>
                 # ${CMAKE_DL_LIBS}
             )
