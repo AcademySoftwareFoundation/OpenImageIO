@@ -30,7 +30,7 @@ using namespace pvt;
 
 
 // store an error message per thread, for a specific ImageInput
-static thread_local tsl::robin_map<const ImageOutput*, std::string> error_messages;
+static thread_local tsl::robin_map<const ImageOutput*, std::string> output_error_messages;
 
 
 class ImageOutput::Impl {
@@ -262,7 +262,7 @@ ImageOutput::append_error(string_view message) const
 {
     if (message.size() && message.back() == '\n')
         message.remove_suffix(1);
-    std::string& err_str = error_messages[this];
+    std::string& err_str = output_error_messages[this];
     OIIO_DASSERT(
         err_str.size() < 1024 * 1024 * 16
         && "Accumulated error messages > 16MB. Try checking return codes!");
@@ -674,8 +674,8 @@ ImageOutput::copy_tile_to_image_buffer(int x, int y, int z, TypeDesc format,
 bool
 ImageOutput::has_error() const
 {
-    auto iter = error_messages.find(this);
-    if (iter == error_messages.end())
+    auto iter = output_error_messages.find(this);
+    if (iter == output_error_messages.end())
         return false;
     return iter.value().size() > 0;
 }
@@ -686,8 +686,8 @@ std::string
 ImageOutput::geterror(bool clear) const
 {
     std::string e;
-    auto iter = error_messages.find(this);
-    if (iter != error_messages.end()) {
+    auto iter = output_error_messages.find(this);
+    if (iter != output_error_messages.end()) {
         e = iter.value();
         if (clear)
             iter.value().clear();
