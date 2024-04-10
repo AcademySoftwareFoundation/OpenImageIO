@@ -1120,8 +1120,10 @@ ImageInput::geterror(bool clear) const
     auto iter = input_error_messages.find(this);
     if (iter != input_error_messages.end()) {
         e = iter.value();
-        if (clear)
+        if (clear) {
             iter.value().clear();
+            iter.value().shrink_to_fit();
+        }
     }
     return e;
 }

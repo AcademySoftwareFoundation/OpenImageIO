@@ -689,8 +689,10 @@ ImageOutput::geterror(bool clear) const
     auto iter = output_error_messages.find(this);
     if (iter != output_error_messages.end()) {
         e = iter.value();
-        if (clear)
+        if (clear) {
             iter.value().clear();
+            iter.value().shrink_to_fit();
+        }
     }
     return e;
 }
