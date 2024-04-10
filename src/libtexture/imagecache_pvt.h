@@ -1209,10 +1209,6 @@ private:
     int m_statslevel;           ///< Statistics level
     int m_max_errors_per_file;  ///< Max errors to print for each file.
 
-    /// Saved error string, per-thread
-    ///
-    mutable thread_specific_ptr<std::string> m_errormessage;
-
     // For debugging -- keep track of who holds the tile and file mutex
 
 private:

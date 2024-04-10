@@ -8,6 +8,8 @@
 #include <memory>
 #include <vector>
 
+#include <tsl/robin_map.h>
+
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/filesystem.h>
@@ -19,21 +21,18 @@
 
 #include "imageio_pvt.h"
 
-#include <boost/thread/tss.hpp>
-using boost::thread_specific_ptr;
-
 
 OIIO_NAMESPACE_BEGIN
 using namespace pvt;
 
 
+// store an error message per thread, for a specific ImageInput
+static thread_local tsl::robin_map<const ImageInput*, std::string> error_messages;
 
 class ImageInput::Impl {
 public:
     // So we can lock this ImageInput for the thread-safe methods.
     std::recursive_mutex m_mutex;
-    // Thread-specific error message for this ImageInput.
-    thread_specific_ptr<std::string> m_errormessage;
     int m_threads = 0;
 
     // The IOProxy object we will use for all I/O operations.
@@ -1090,18 +1089,14 @@ ImageInput::append_error(string_view message) const
 {
     if (message.size() && message.back() == '\n')
         message.remove_suffix(1);
-    std::string* errptr = m_impl->m_errormessage.get();
-    if (!errptr) {
-        errptr = new std::string;
-        m_impl->m_errormessage.reset(errptr);
-    }
+    std::string& err_str = error_messages[this];
     OIIO_DASSERT(
-        errptr->size() < 1024 * 1024 * 16
+        err_str.size() < 1024 * 1024 * 16
         && "Accumulated error messages > 16MB. Try checking return codes!");
-    if (errptr->size() < 1024 * 1024 * 16) {
-        if (errptr->size() && errptr->back() != '\n')
-            *errptr += '\n';
-        *errptr += std::string(message);
+    if (err_str.size() < 1024 * 1024 * 16) {
+        if (err_str.size() && err_str.back() != '\n')
+            err_str += '\n';
+        err_str.append(message.begin(), message.end());
     }
 }
 
@@ -1110,8 +1105,10 @@ ImageInput::append_error(string_view message) const
 bool
 ImageInput::has_error() const
 {
-    std::string* errptr = m_impl->m_errormessage.get();
-    return (errptr && errptr->size());
+    auto iter = error_messages.find(this);
+    if (iter == error_messages.end())
+        return false;
+    return iter.value().size() > 0;
 }
 
 
@@ -1120,11 +1117,11 @@ std::string
 ImageInput::geterror(bool clear) const
 {
     std::string e;
-    std::string* errptr = m_impl->m_errormessage.get();
-    if (errptr) {
-        e = *errptr;
+    auto iter = error_messages.find(this);
+    if (iter != error_messages.end()) {
+        e = iter.value();
         if (clear)
-            errptr->clear();
+            iter.value().clear();
     }
     return e;
 }
