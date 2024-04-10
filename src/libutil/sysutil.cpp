@@ -61,18 +61,14 @@
 #endif
 
 #include <OpenImageIO/dassert.h>
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/ustring.h>
 
-#include <boost/version.hpp>
-#if BOOST_VERSION >= 106500
-#    ifndef _GNU_SOURCE
-#        define _GNU_SOURCE
-#    endif
-#    if !defined(OIIO_DISABLE_BOOST_STACKTRACE)
-#        include <boost/stacktrace.hpp>
-#    endif
+#if __has_include(<stacktrace>) && __cpp_lib_stacktrace >= 202011L
+#    include <stacktrace>
+#    define HAVE_STACKTRACE 1
 #endif
 
 OIIO_INTEL_PRAGMA(warning disable 2196)
@@ -646,12 +642,21 @@ aligned_free(void* ptr)
 
 
 
+// Notes on stacktrace:
+//
+// To shed the boost dependency, we are disabling stacktrace for now. It's not
+// vital and probably not worth keeping boost just for that.
+//
+// C++23 has std::stacktrace, so as compilers add support for this, we will
+// phase it back in.
+
+
 std::string
 Sysutil::stacktrace()
 {
-#if BOOST_VERSION >= 106500 && !defined(OIIO_DISABLE_BOOST_STACKTRACE)
+#ifdef HAVE_STACKTRACE
     std::stringstream out;
-    out << boost::stacktrace::stacktrace();
+    out << std::stacktrace::current();
     return out.str();
 #else
     return "";
@@ -660,8 +665,7 @@ Sysutil::stacktrace()
 
 
 
-#if BOOST_VERSION >= 106500 && !defined(OIIO_DISABLE_BOOST_STACKTRACE)
-
+#ifdef HAVE_STACKTRACE
 static std::string stacktrace_filename;
 static std::mutex stacktrace_filename_mutex;
 
@@ -675,14 +679,12 @@ stacktrace_signal_handler(int signum)
         else if (stacktrace_filename == "stderr")
             std::cerr << Sysutil::stacktrace();
         else {
-#    if BOOST_VERSION >= 106500 && !defined(OIIO_DISABLE_BOOST_STACKTRACE)
-            boost::stacktrace::safe_dump_to(stacktrace_filename.c_str());
-#    endif
+            Filesystem::write_text_file(stacktrace_filename,
+                                        Sysutil::stacktrace());
         }
     }
     ::raise(SIGABRT);
 }
-
 #endif
 
 
@@ -690,14 +692,15 @@ stacktrace_signal_handler(int signum)
 bool
 Sysutil::setup_crash_stacktrace(string_view filename)
 {
-#if BOOST_VERSION >= 106500 && !defined(OIIO_DISABLE_BOOST_STACKTRACE)
+#ifdef HAVE_STACKTRACE
     std::lock_guard<std::mutex> lock(stacktrace_filename_mutex);
     stacktrace_filename = filename;
     ::signal(SIGSEGV, &stacktrace_signal_handler);
     ::signal(SIGABRT, &stacktrace_signal_handler);
     return true;
-#endif
+#else
     return false;
+#endif
 }
 
 

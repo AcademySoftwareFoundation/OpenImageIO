@@ -78,8 +78,6 @@ endif ()
 include_directories (SYSTEM "${Boost_INCLUDE_DIRS}")
 link_directories ("${Boost_LIBRARY_DIRS}")
 
-option (OIIO_DISABLE_BOOST_STACKTRACE "Disable use of Boost stacktrace." OFF)
-
 # end Boost setup
 ###########################################################################
 
