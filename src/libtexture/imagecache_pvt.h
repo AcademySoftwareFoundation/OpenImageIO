@@ -12,7 +12,6 @@
 
 #include <tsl/robin_map.h>
 
-#include <boost/container/flat_map.hpp>
 #include <boost/thread/tss.hpp>
 
 #include <OpenImageIO/Imath.h>
