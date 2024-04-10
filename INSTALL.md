@@ -41,8 +41,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
        not support Python < 3.6.)
      * NumPy
  * If you want support for camera "RAW" formats:
-     * LibRaw >= 0.18 (tested though 0.21.2; if
-       building with C++17 or higher, LibRaw >= 0.20 is necessary)
+     * **LibRaw >= 0.20** (tested though 0.21.2)
  * If you want support for a wide variety of video formats:
      * ffmpeg >= 3.0 (tested through 6.1)
  * If you want support for jpeg 2000 images:

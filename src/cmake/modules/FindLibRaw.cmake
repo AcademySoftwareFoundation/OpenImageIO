@@ -75,6 +75,7 @@ FIND_PACKAGE_HANDLE_STANDARD_ARGS(LibRaw
                                   REQUIRED_VARS LibRaw_LIBRARIES LibRaw_r_LIBRARIES LibRaw_INCLUDE_DIR
                                   VERSION_VAR LibRaw_VERSION_STRING
                                  )
+set(LibRaw_VERSION ${LibRaw_VERSION_STRING})
 
 MARK_AS_ADVANCED(LibRaw_VERSION_STRING
                  LibRaw_INCLUDE_DIR
