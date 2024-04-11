@@ -1488,31 +1488,30 @@ OpenEXROutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
     bool ok                  = true;
     const bool isDecreasingY = m_spec.get_string_attribute("openexr:lineOrder")
                                == "decreasingY";
+    const int nAvailableScanLines = yend - ybegin;
+    const int numChunks           = nAvailableScanLines > 0
+                                        ? 1 + ((nAvailableScanLines - 1) / chunk)
+                                        : 0;
+    const int yLoopStart = isDecreasingY ? ybegin + (numChunks - 1) * chunk
+                                         : ybegin;
+    const int yDelta     = isDecreasingY ? -chunk : chunk;
+    const int yLoopEnd   = yLoopStart + numChunks * yDelta;
+    for (int y = yLoopStart; ok && y != yLoopEnd; y += yDelta) {
+        int y1         = std::min(y + chunk, yend);
+        int nscanlines = y1 - y;
 
-    int yChunkStart = isDecreasingY ? ybegin + ((yend - ybegin) / chunk) * chunk
-                                    : ybegin;
-    const int yDelta = isDecreasingY ? -chunk : chunk;
-    for (; ok
-           && ((isDecreasingY && yChunkStart >= ybegin)
-               || (!isDecreasingY && yChunkStart < yend));
-         yChunkStart += yDelta) {
-        int y1         = std::min(yChunkStart + chunk, yend);
-        int nscanlines = y1 - yChunkStart;
-
-        const void* dataStart = (const char*)data
-                                + (yChunkStart - ybegin) * ystride;
+        const void* dataStart = (const char*)data + (y - ybegin) * ystride;
         const void* d = to_native_rectangle(m_spec.x, m_spec.x + m_spec.width,
-                                            yChunkStart, y1, z, z + 1, format,
-                                            dataStart, xstride, ystride,
-                                            zstride, m_scratch);
+                                            y, y1, z, z + 1, format, dataStart,
+                                            xstride, ystride, zstride,
+                                            m_scratch);
 
         // Compute where OpenEXR needs to think the full buffers starts.
         // OpenImageIO requires that 'data' points to where client stored
         // the bytes to be written, but OpenEXR's frameBuffer.insert() wants
         // where the address of the "virtual framebuffer" for the whole
         // image.
-        char* buf = (char*)d - m_spec.x * pixel_bytes
-                    - yChunkStart * scanlinebytes;
+        char* buf = (char*)d - m_spec.x * pixel_bytes - y * scanlinebytes;
         try {
             Imf::FrameBuffer frameBuffer;
             size_t chanoffset = 0;

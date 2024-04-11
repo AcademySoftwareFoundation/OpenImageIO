@@ -1419,19 +1419,22 @@ ImageBuf::write(ImageOutput* out, ProgressCallback progress_callback,
                               1024);
             std::unique_ptr<char[]> tmp(new char[chunk * slsize]);
 
+            // Special handling for flipped vertical scanline order. Right now, OpenEXR
+            // is the only format that allows it, so we special case it by name. For
+            // just one format, trying to be more general just seems even more awkward.
             const bool isDecreasingY = !strcmp(out->format_name(), "openexr")
                                        && outspec.get_string_attribute(
                                               "openexr:lineOrder")
                                               == "decreasingY";
-            const int yStart = isDecreasingY
-                                   ? ((outspec.height - 1) / chunk) * chunk
-                                   : 0;
-            const int yDelta = isDecreasingY ? -chunk : chunk;
+            const int numChunks  = outspec.height > 0
+                                       ? 1 + ((outspec.height - 1) / chunk)
+                                       : 0;
+            const int yLoopStart = isDecreasingY ? (numChunks - 1) * chunk : 0;
+            const int yDelta     = isDecreasingY ? -chunk : chunk;
+            const int yLoopEnd   = yLoopStart + numChunks * yDelta;
+
             for (int z = 0; z < outspec.depth; ++z) {
-                for (int y = yStart; ((isDecreasingY && y >= 0)
-                                      || (!isDecreasingY && y < outspec.height))
-                                     && ok;
-                     y += yDelta) {
+                for (int y = yLoopStart; y != yLoopEnd && ok; y += yDelta) {
                     int yend = std::min(y + outspec.y + chunk,
                                         outspec.y + outspec.height);
                     ok &= get_pixels(ROI(outspec.x, outspec.x + outspec.width,

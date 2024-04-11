@@ -519,19 +519,22 @@ ImageOutput::write_image(TypeDesc format, const void* data, stride_t xstride,
         int chunk = std::max(1, (1 << 26) / int(m_spec.scanline_bytes(true)));
         chunk     = round_to_multiple(chunk, rps);
 
+        // Special handling for flipped vertical scanline order. Right now, OpenEXR
+        // is the only format that allows it, so we special case it by name. For
+        // just one format, trying to be more general just seems even more awkward.
         const bool isDecreasingY = !strcmp(format_name(), "openexr")
                                    && m_spec.get_string_attribute(
                                           "openexr:lineOrder")
                                           == "decreasingY";
-        const int yStart = isDecreasingY ? ((m_spec.height - 1) / chunk) * chunk
-                                         : 0;
-        const int yDelta = isDecreasingY ? -chunk : chunk;
+        const int numChunks  = m_spec.height > 0
+                                   ? 1 + ((m_spec.height - 1) / chunk)
+                                   : 0;
+        const int yLoopStart = isDecreasingY ? (numChunks - 1) * chunk : 0;
+        const int yDelta     = isDecreasingY ? -chunk : chunk;
+        const int yLoopEnd   = yLoopStart + numChunks * yDelta;
 
         for (int z = 0; z < m_spec.depth; ++z)
-            for (int y = yStart; ((isDecreasingY && y >= 0)
-                                  || (!isDecreasingY && y < m_spec.height))
-                                 && ok;
-                 y += yDelta) {
+            for (int y = yLoopStart; y != yLoopEnd && ok; y += yDelta) {
                 int yend      = std::min(y + m_spec.y + chunk,
                                          m_spec.y + m_spec.height);
                 const char* d = (const char*)data + z * zstride + y * ystride;
