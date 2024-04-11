@@ -27,7 +27,8 @@ using namespace pvt;
 
 
 // store an error message per thread, for a specific ImageInput
-static thread_local tsl::robin_map<const ImageInput*, std::string> input_error_messages;
+static thread_local tsl::robin_map<const ImageInput*, std::string>
+    input_error_messages;
 
 class ImageInput::Impl {
 public:

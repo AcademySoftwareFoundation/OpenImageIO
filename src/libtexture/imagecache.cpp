@@ -65,10 +65,13 @@ static ustring s_averagecolor("averagecolor"), s_averagealpha("averagealpha");
 static ustring s_constantcolor("constantcolor");
 static ustring s_constantalpha("constantalpha");
 
-static thread_local tsl::robin_map<const ImageCacheImpl*, std::string> imcache_error_messages;
+static thread_local tsl::robin_map<const ImageCacheImpl*, std::string>
+    imcache_error_messages;
 
-static std::atomic_int64_t imagecache_id_atomic = 0; // constantly increasing, so we can avoid
-static thread_local tsl::robin_map<uint64_t, ImageCachePerThreadInfo*> imagecache_per_thread_infos;
+// constantly increasing, so we can avoid issues if an ImageCache pointer is re-used after being freed
+static std::atomic_int64_t imagecache_id_atomic = 0;
+static thread_local tsl::robin_map<uint64_t, ImageCachePerThreadInfo*>
+    imagecache_per_thread_infos;
 
 
 // Functor to compare filenames
@@ -3842,10 +3845,10 @@ ImageCacheImpl::get_perthread_info(ImageCachePerThreadInfo* p)
 {
     if (!p) {
         // user has not provided an ImageCachePerThreadInfo yet
-        ImageCachePerThreadInfo*& ptr = imagecache_per_thread_infos[imagecache_id];
+        ImageCachePerThreadInfo*& ptr
+            = imagecache_per_thread_infos[imagecache_id];
         p = ptr;
-        if (!p)
-        {
+        if (!p) {
             // this thread doesn't have a ImageCachePerThreadInfo for this ImageCacheImpl yet
             ptr = p = new ImageCachePerThreadInfo;
             // printf ("New perthread %p\n", (void *)p);

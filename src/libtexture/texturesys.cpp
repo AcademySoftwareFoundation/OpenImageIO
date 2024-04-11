@@ -893,7 +893,8 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
     return ok;
 }
 
-static thread_local tsl::robin_map<const TextureSystemImpl*, std::string> txsys_error_messages;
+static thread_local tsl::robin_map<const TextureSystemImpl*, std::string>
+    txsys_error_messages;
 
 bool
 TextureSystemImpl::has_error() const

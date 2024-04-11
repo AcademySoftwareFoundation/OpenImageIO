@@ -30,7 +30,8 @@ using namespace pvt;
 
 
 // store an error message per thread, for a specific ImageInput
-static thread_local tsl::robin_map<const ImageOutput*, std::string> output_error_messages;
+static thread_local tsl::robin_map<const ImageOutput*, std::string>
+    output_error_messages;
 
 
 class ImageOutput::Impl {
