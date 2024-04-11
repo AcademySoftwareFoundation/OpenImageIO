@@ -67,14 +67,8 @@ static ustring s_constantalpha("constantalpha");
 
 static thread_local tsl::robin_map<const ImageCacheImpl*, std::string> imcache_error_messages;
 
-struct ImageCachePerThreadInfoDeleter {
-    void operator()(ImageCachePerThreadInfo* info) const {
-        ImageCacheImpl::cleanup_perthread_info(info);
-    }
-};
-using ImageCachePerThreadInfoUniquePtr = std::unique_ptr<ImageCachePerThreadInfo, ImageCachePerThreadInfoDeleter>;
 static std::atomic_int64_t imagecache_id_atomic = 0; // constantly increasing, so we can avoid
-static thread_local tsl::robin_map<uint64_t, ImageCachePerThreadInfoUniquePtr> imagecache_per_thread_infos;
+static thread_local tsl::robin_map<uint64_t, ImageCachePerThreadInfo*> imagecache_per_thread_infos;
 
 
 // Functor to compare filenames
@@ -1719,7 +1713,12 @@ ImageCacheImpl::init()
 ImageCacheImpl::~ImageCacheImpl()
 {
     printstats();
-    erase_perthread_info();
+    // All the per_thread_infos get destroyed here, regardless of if they were created implicitly
+    // or manually by the caller
+    {
+        spin_lock lock(m_perthread_info_mutex);
+        m_all_perthread_info.clear();
+    }
 }
 
 
@@ -1729,7 +1728,7 @@ ImageCacheImpl::mergestats(ImageCacheStatistics& stats) const
 {
     stats.init();
     spin_lock lock(m_perthread_info_mutex);
-    for (auto p : m_all_perthread_info)
+    for (auto& p : m_all_perthread_info)
         if (p)
             stats.merge(p->m_stats);
 }
@@ -3813,7 +3812,7 @@ ImageCacheImpl::create_thread_info()
     ImageCachePerThreadInfo* p = new ImageCachePerThreadInfo;
     // printf ("New perthread %p\n", (void *)p);
     spin_lock lock(m_perthread_info_mutex);
-    m_all_perthread_info.push_back(p);
+    m_all_perthread_info.emplace_back(p);
     return p;
 }
 
@@ -3824,14 +3823,16 @@ ImageCacheImpl::destroy_thread_info(ImageCachePerThreadInfo* thread_info)
 {
     if (!thread_info)
         return;
+    // the ImageCache owns the thread_infos associated with it,
+    // so all we need to do is find the entry and reset the unique pointer
+    // to fully destroy the object
     spin_lock lock(m_perthread_info_mutex);
-    for (size_t i = 0; i < m_all_perthread_info.size(); ++i) {
-        if (m_all_perthread_info[i] == thread_info) {
-            m_all_perthread_info[i] = nullptr;
+    for (auto& p : m_all_perthread_info) {
+        if (p.get() == thread_info) {
+            p.reset();
             break;
         }
     }
-    delete thread_info;
 }
 
 
@@ -3841,16 +3842,15 @@ ImageCacheImpl::get_perthread_info(ImageCachePerThreadInfo* p)
 {
     if (!p) {
         // user has not provided an ImageCachePerThreadInfo yet
-        ImageCachePerThreadInfoUniquePtr& ptr = imagecache_per_thread_infos[imagecache_id];
-        p = ptr.get();
+        ImageCachePerThreadInfo*& ptr = imagecache_per_thread_infos[imagecache_id];
+        p = ptr;
         if (!p)
         {
             // this thread doesn't have a ImageCachePerThreadInfo for this ImageCacheImpl yet
-            p = new ImageCachePerThreadInfo;
-            ptr.reset(p);
+            ptr = p = new ImageCachePerThreadInfo;
             // printf ("New perthread %p\n", (void *)p);
             spin_lock lock(m_perthread_info_mutex);
-            m_all_perthread_info.push_back(p);
+            m_all_perthread_info.emplace_back(p);
         }
     }
     if (p->purge) {  // has somebody requested a tile purge?
@@ -3863,41 +3863,6 @@ ImageCacheImpl::get_perthread_info(ImageCachePerThreadInfo* p)
     }
     return p;
 }
-
-
-
-void
-ImageCacheImpl::erase_perthread_info()
-{
-    spin_lock lock(m_perthread_info_mutex);
-    for (size_t i = 0; i < m_all_perthread_info.size(); ++i) {
-        ImageCachePerThreadInfo* p = m_all_perthread_info[i];
-        if (p) {
-            // Clear the microcache.
-            p->tile     = nullptr;
-            p->lasttile = nullptr;
-            p->m_thread_files.clear();
-            m_all_perthread_info[i] = nullptr;
-        }
-    }
-}
-
-
-
-void
-ImageCacheImpl::cleanup_perthread_info(ImageCachePerThreadInfo* p)
-{
-    spin_lock lock(m_perthread_info_mutex);
-    if (p) {
-        // Clear the microcache.
-        p->tile     = nullptr;
-        p->lasttile = nullptr;
-        // This method should only be called via ImageCachePerThreadInfoDeleter
-        delete p;
-    }
-}
-
-
 
 void
 ImageCacheImpl::purge_perthread_microcaches()

@@ -1103,19 +1103,6 @@ public:
     Perthread* create_thread_info() override;
     void destroy_thread_info(Perthread* thread_info) override;
 
-    /// Called when the IC is destroyed.  We have a list of all the
-    /// perthread pointers -- go through and delete the ones for which we
-    /// hold the only remaining pointer.
-    void erase_perthread_info();
-
-    /// This is called when the thread terminates.  If p->m_imagecache
-    /// is non-NULL, there's still an imagecache alive that might want
-    /// the per-thread info (say, for statistics, though it's safe to
-    /// clear its tile microcache), so don't delete the perthread info
-    /// (it will be owned thereafter by the IC).  If there is no IC still
-    /// depending on it (signalled by m_imagecache == NULL), delete it.
-    static void cleanup_perthread_info(Perthread* thread_info);
-
     /// Ensure that the max_memory_bytes is at least newsize bytes.
     /// Override the previous value if necessary, with thread-safety.
     void set_min_cache_size(long long newsize);
@@ -1163,7 +1150,7 @@ private:
     void clear_fingerprints();
 
     uint64_t imagecache_id;
-    std::vector<ImageCachePerThreadInfo*> m_all_perthread_info;
+    std::vector<std::unique_ptr<ImageCachePerThreadInfo>> m_all_perthread_info;
     static spin_mutex m_perthread_info_mutex;  ///< Thread safety for perthread
     int m_max_open_files;
     atomic_ll m_max_memory_bytes;
