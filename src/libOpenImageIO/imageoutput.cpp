@@ -544,7 +544,7 @@ ImageOutput::write_image(TypeDesc format, const void* data, stride_t xstride,
                     && progress_callback(
                         progress_callback_data,
                         (float)(z * m_spec.height
-                                + (isDecreasingY ? (m_spec.height - y) : y))
+                                + (isDecreasingY ? (m_spec.height - 1 - y) : y))
                             / (m_spec.height * m_spec.depth)))
                     return ok;
             }

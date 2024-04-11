@@ -1448,7 +1448,8 @@ ImageBuf::write(ImageOutput* out, ProgressCallback progress_callback,
                         && progress_callback(
                             progress_callback_data,
                             (float)(z * outspec.height
-                                    + (isDecreasingY ? (outspec.height - y) : y))
+                                    + (isDecreasingY ? (outspec.height - 1 - y)
+                                                     : y))
                                 / (outspec.height * outspec.depth)))
                         return ok;
                 }
