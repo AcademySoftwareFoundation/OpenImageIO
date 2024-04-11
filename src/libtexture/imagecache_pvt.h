@@ -750,7 +750,6 @@ public:
     ImageCacheTileRef tile, lasttile;
     atomic_int purge;  // If set, tile ptrs need purging!
     ImageCacheStatistics m_stats;
-    bool shared = false;  // Pointed to by the IC and thread_specific_ptr
 
     ImageCachePerThreadInfo()
     {
@@ -1163,6 +1162,7 @@ private:
     /// Clear the fingerprint list, thread-safe.
     void clear_fingerprints();
 
+    uint64_t imagecache_id;
     std::vector<ImageCachePerThreadInfo*> m_all_perthread_info;
     static spin_mutex m_perthread_info_mutex;  ///< Thread safety for perthread
     int m_max_open_files;

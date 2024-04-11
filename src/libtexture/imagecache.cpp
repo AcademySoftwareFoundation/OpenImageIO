@@ -73,7 +73,8 @@ struct ImageCachePerThreadInfoDeleter {
     }
 };
 using ImageCachePerThreadInfoUniquePtr = std::unique_ptr<ImageCachePerThreadInfo, ImageCachePerThreadInfoDeleter>;
-static thread_local tsl::robin_map<const ImageCacheImpl*, ImageCachePerThreadInfoUniquePtr> imagecache_per_thread_infos;
+static std::atomic_int64_t imagecache_id_atomic = 0; // constantly increasing, so we can avoid
+static thread_local tsl::robin_map<uint64_t, ImageCachePerThreadInfoUniquePtr> imagecache_per_thread_infos;
 
 
 // Functor to compare filenames
@@ -1659,6 +1660,7 @@ ImageCacheTile::data(int x, int y, int z, int c) const
 
 ImageCacheImpl::ImageCacheImpl()
 {
+    imagecache_id = imagecache_id_atomic.fetch_add(1);
     init();
 }
 
@@ -3812,7 +3814,6 @@ ImageCacheImpl::create_thread_info()
     // printf ("New perthread %p\n", (void *)p);
     spin_lock lock(m_perthread_info_mutex);
     m_all_perthread_info.push_back(p);
-    p->shared = true;  // both the IC and the caller point to it
     return p;
 }
 
@@ -3826,7 +3827,7 @@ ImageCacheImpl::destroy_thread_info(ImageCachePerThreadInfo* thread_info)
     spin_lock lock(m_perthread_info_mutex);
     for (size_t i = 0; i < m_all_perthread_info.size(); ++i) {
         if (m_all_perthread_info[i] == thread_info) {
-            m_all_perthread_info[i] = NULL;
+            m_all_perthread_info[i] = nullptr;
             break;
         }
     }
@@ -3840,7 +3841,7 @@ ImageCacheImpl::get_perthread_info(ImageCachePerThreadInfo* p)
 {
     if (!p) {
         // user has not provided an ImageCachePerThreadInfo yet
-        ImageCachePerThreadInfoUniquePtr& ptr = imagecache_per_thread_infos[this];
+        ImageCachePerThreadInfoUniquePtr& ptr = imagecache_per_thread_infos[imagecache_id];
         p = ptr.get();
         if (!p)
         {
@@ -3850,7 +3851,6 @@ ImageCacheImpl::get_perthread_info(ImageCachePerThreadInfo* p)
             // printf ("New perthread %p\n", (void *)p);
             spin_lock lock(m_perthread_info_mutex);
             m_all_perthread_info.push_back(p);
-            p->shared = true;  // both the IC and the thread point to it
         }
     }
     if (p->purge) {  // has somebody requested a tile purge?
@@ -3874,18 +3874,10 @@ ImageCacheImpl::erase_perthread_info()
         ImageCachePerThreadInfo* p = m_all_perthread_info[i];
         if (p) {
             // Clear the microcache.
-            p->tile     = NULL;
-            p->lasttile = NULL;
-            if (p->shared) {
-                // Pointed to by both thread-specific-ptr and our list.
-                // Just remove from out list, then ownership is only
-                // by the thread-specific-ptr.
-                p->shared = false;
-            } else {
-                // Only pointed to by us -- delete it!
-                delete p;
-            }
-            m_all_perthread_info[i] = NULL;
+            p->tile     = nullptr;
+            p->lasttile = nullptr;
+            p->m_thread_files.clear();
+            m_all_perthread_info[i] = nullptr;
         }
     }
 }
@@ -3898,12 +3890,10 @@ ImageCacheImpl::cleanup_perthread_info(ImageCachePerThreadInfo* p)
     spin_lock lock(m_perthread_info_mutex);
     if (p) {
         // Clear the microcache.
-        p->tile     = NULL;
-        p->lasttile = NULL;
-        if (!p->shared)  // If we own it, delete it
-            delete p;
-        else
-            p->shared = false;  // thread disappearing, no longer shared
+        p->tile     = nullptr;
+        p->lasttile = nullptr;
+        // This method should only be called via ImageCachePerThreadInfoDeleter
+        delete p;
     }
 }
 
