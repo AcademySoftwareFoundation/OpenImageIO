@@ -110,15 +110,17 @@ OIIO_API size_t
 max_open_files();
 
 /// Return a string containing a readable stack trace from the point where
-/// it was called. Return an empty string if not supported on this platform.
+/// it was called. Return an empty string if not supported on this platform
+/// or this build of OpenImageIO.
 OIIO_API std::string
 stacktrace();
 
 /// Turn on automatic stacktrace dump to the named file if the program
 /// crashes. Return true if this is properly set up, false if it is not
-/// possible on this platform. The name may be "stdout" or "stderr" to
-/// merely print the trace to stdout or stderr, respectively. If the name
-/// is "", it will disable the auto-stacktrace printing.
+/// possible on this platform or with this build of OpenImageIO. The name may
+/// be "stdout" or "stderr" to merely print the trace to stdout or stderr,
+/// respectively. If the name is "", it will disable the auto-stacktrace
+/// printing.
 OIIO_API bool
 setup_crash_stacktrace(string_view filename);
 

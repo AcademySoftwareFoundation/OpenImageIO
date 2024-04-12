@@ -64,6 +64,12 @@ function (setup_oiio_util_library targetname)
                 # ${CMAKE_DL_LIBS}
             )
 
+    if (GCC_VERSION VERSION_GREATER_EQUAL 12.0
+        AND CMAKE_CXX_STANDARD VERSION_GREATER_EQUAL 23)
+        target_link_libraries (${targetname}
+                               PRIVATE stdc++_libbacktrace)
+    endif ()
+
     if (INTERNALIZE_FMT OR OIIO_USING_FMT_LOCAL)
         add_dependencies(${targetname} fmt_internal_target)
     else ()
