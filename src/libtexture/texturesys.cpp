@@ -351,8 +351,16 @@ TextureSystemImpl::init()
 }
 
 
+static thread_local tsl::robin_map<const TextureSystemImpl*, std::string>
+    txsys_error_messages;
 
-TextureSystemImpl::~TextureSystemImpl() { printstats(); }
+
+TextureSystemImpl::~TextureSystemImpl() {
+    printstats();
+    // Erase any leftover errors from this thread
+    // TODO: can we clear other threads' errors?
+    txsys_error_messages.erase(this);
+}
 
 
 
@@ -892,9 +900,6 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
     }
     return ok;
 }
-
-static thread_local tsl::robin_map<const TextureSystemImpl*, std::string>
-    txsys_error_messages;
 
 bool
 TextureSystemImpl::has_error() const
