@@ -921,7 +921,7 @@ TextureSystemImpl::geterror(bool clear) const
     if (iter != txsys_error_messages.end()) {
         e = iter.value();
         if (clear)
-            txsys_error_messages.erase(this);
+            txsys_error_messages.erase(iter);
     }
     return e;
 }
