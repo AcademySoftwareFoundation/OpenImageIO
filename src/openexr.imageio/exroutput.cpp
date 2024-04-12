@@ -1485,21 +1485,33 @@ OpenEXROutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
                               * 1024;  // Allocate 16 MB, or 1 scanline
     int chunk = std::max(1, int(limit / scanlinebytes));
 
-    bool ok = true;
-    for (; ok && ybegin < yend; ybegin += chunk) {
-        int y1         = std::min(ybegin + chunk, yend);
-        int nscanlines = y1 - ybegin;
-        const void* d  = to_native_rectangle(m_spec.x, m_spec.x + m_spec.width,
-                                             ybegin, y1, z, z + 1, format, data,
-                                             xstride, ystride, zstride,
-                                             m_scratch);
+    bool ok                  = true;
+    const bool isDecreasingY = m_spec.get_string_attribute("openexr:lineOrder")
+                               == "decreasingY";
+    const int nAvailableScanLines = yend - ybegin;
+    const int numChunks           = nAvailableScanLines > 0
+                                        ? 1 + ((nAvailableScanLines - 1) / chunk)
+                                        : 0;
+    const int yLoopStart = isDecreasingY ? ybegin + (numChunks - 1) * chunk
+                                         : ybegin;
+    const int yDelta     = isDecreasingY ? -chunk : chunk;
+    const int yLoopEnd   = yLoopStart + numChunks * yDelta;
+    for (int y = yLoopStart; ok && y != yLoopEnd; y += yDelta) {
+        int y1         = std::min(y + chunk, yend);
+        int nscanlines = y1 - y;
+
+        const void* dataStart = (const char*)data + (y - ybegin) * ystride;
+        const void* d = to_native_rectangle(m_spec.x, m_spec.x + m_spec.width,
+                                            y, y1, z, z + 1, format, dataStart,
+                                            xstride, ystride, zstride,
+                                            m_scratch);
 
         // Compute where OpenEXR needs to think the full buffers starts.
         // OpenImageIO requires that 'data' points to where client stored
         // the bytes to be written, but OpenEXR's frameBuffer.insert() wants
         // where the address of the "virtual framebuffer" for the whole
         // image.
-        char* buf = (char*)d - m_spec.x * pixel_bytes - ybegin * scanlinebytes;
+        char* buf = (char*)d - m_spec.x * pixel_bytes - y * scanlinebytes;
         try {
             Imf::FrameBuffer frameBuffer;
             size_t chanoffset = 0;
@@ -1527,8 +1539,6 @@ OpenEXROutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
             errorf("Failed OpenEXR write: unknown exception");
             return false;
         }
-
-        data = (const char*)data + ystride * nscanlines;
     }
 
     // If we allocated more than 1M, free the memory.  It's not wasteful,
