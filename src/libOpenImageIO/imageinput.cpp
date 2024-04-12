@@ -81,7 +81,8 @@ ImageInput::ImageInput()
 
 
 
-ImageInput::~ImageInput() {
+ImageInput::~ImageInput()
+{
     // Erase any leftover errors from this thread
     // TODO: can we clear other threads' errors?
     input_error_messages.erase(this);

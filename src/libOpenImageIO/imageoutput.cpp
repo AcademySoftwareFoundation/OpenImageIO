@@ -84,7 +84,8 @@ ImageOutput::ImageOutput()
 
 
 
-ImageOutput::~ImageOutput() {
+ImageOutput::~ImageOutput()
+{
     // Erase any leftover errors from this thread
     // TODO: can we clear other threads' errors?
     output_error_messages.erase(this);

@@ -355,7 +355,8 @@ static thread_local tsl::robin_map<const TextureSystemImpl*, std::string>
     txsys_error_messages;
 
 
-TextureSystemImpl::~TextureSystemImpl() {
+TextureSystemImpl::~TextureSystemImpl()
+{
     printstats();
     // Erase any leftover errors from this thread
     // TODO: can we clear other threads' errors?
