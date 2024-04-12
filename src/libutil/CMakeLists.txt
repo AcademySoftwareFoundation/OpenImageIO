@@ -42,6 +42,9 @@ function (setup_oiio_util_library targetname)
                                ${${PROJECT_NAME}_compile_definitions})
     target_compile_options(${targetname} PRIVATE
                                ${${PROJECT_NAME}_compile_options})
+    target_link_options(${targetname} PRIVATE
+                               ${${PROJECT_NAME}_link_options})
+
     target_include_directories (${targetname}
             PUBLIC
                 $<INSTALL_INTERFACE:include>
