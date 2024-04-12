@@ -518,17 +518,34 @@ ImageOutput::write_image(TypeDesc format, const void* data, stride_t xstride,
         int rps   = m_spec.get_int_attribute("tiff:RowsPerStrip", 64);
         int chunk = std::max(1, (1 << 26) / int(m_spec.scanline_bytes(true)));
         chunk     = round_to_multiple(chunk, rps);
+
+        // Special handling for flipped vertical scanline order. Right now, OpenEXR
+        // is the only format that allows it, so we special case it by name. For
+        // just one format, trying to be more general just seems even more awkward.
+        const bool isDecreasingY = !strcmp(format_name(), "openexr")
+                                   && m_spec.get_string_attribute(
+                                          "openexr:lineOrder")
+                                          == "decreasingY";
+        const int numChunks  = m_spec.height > 0
+                                   ? 1 + ((m_spec.height - 1) / chunk)
+                                   : 0;
+        const int yLoopStart = isDecreasingY ? (numChunks - 1) * chunk : 0;
+        const int yDelta     = isDecreasingY ? -chunk : chunk;
+        const int yLoopEnd   = yLoopStart + numChunks * yDelta;
+
         for (int z = 0; z < m_spec.depth; ++z)
-            for (int y = 0; y < m_spec.height && ok; y += chunk) {
+            for (int y = yLoopStart; y != yLoopEnd && ok; y += yDelta) {
                 int yend      = std::min(y + m_spec.y + chunk,
                                          m_spec.y + m_spec.height);
                 const char* d = (const char*)data + z * zstride + y * ystride;
                 ok &= write_scanlines(y + m_spec.y, yend, z + m_spec.z, format,
                                       d, xstride, ystride);
                 if (progress_callback
-                    && progress_callback(progress_callback_data,
-                                         (float)(z * m_spec.height + y)
-                                             / (m_spec.height * m_spec.depth)))
+                    && progress_callback(
+                        progress_callback_data,
+                        (float)(z * m_spec.height
+                                + (isDecreasingY ? (m_spec.height - 1 - y) : y))
+                            / (m_spec.height * m_spec.depth)))
                     return ok;
             }
     }
