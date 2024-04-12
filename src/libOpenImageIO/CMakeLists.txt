@@ -82,6 +82,8 @@ target_compile_definitions(OpenImageIO PRIVATE
                            ${${PROJECT_NAME}_compile_definitions})
 target_compile_options(OpenImageIO PRIVATE
                            ${${PROJECT_NAME}_compile_options})
+target_link_options(OpenImageIO PRIVATE
+                           ${${PROJECT_NAME}_link_options})
 
 # If the 'EMBEDPLUGINS' option is set, we want to compile the source for
 # all the plugins into libOpenImageIO.
