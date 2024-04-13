@@ -64,7 +64,7 @@ public:
     const char* format_name(void) const override { return "openvdb"; }
     int supports(string_view feature) const override
     {
-        return (feature == "arbitrary_metadata");
+        return (feature == "arbitrary_metadata" || feature == "multiimage");
     }
     bool valid_file(const std::string& filename) const override;
     bool open(const std::string& name, ImageSpec& newspec) override;
@@ -528,6 +528,9 @@ OpenVDBInput::open(const std::string& filename, ImageSpec& newspec)
     }
     m_name       = filename;
     m_nsubimages = (int)m_layers.size();
+
+    for (auto& lr : m_layers)
+        lr.spec.attribute("oiio:subimages", m_nsubimages);
 
     bool ok = seek_subimage(0, 0);
     newspec = ImageInput::spec();

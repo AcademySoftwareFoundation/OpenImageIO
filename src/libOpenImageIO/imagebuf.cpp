@@ -1057,6 +1057,9 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
         m_blackpixel.resize(
             round_to_multiple(m_xstride, OIIO_SIMD_MAX_SIZE_BYTES));
         // ^^^ NB make it big enough for SIMD
+        m_nsubimages = input->supports("multiimage")
+                           ? m_spec.get_int_attribute("oiio:subimages")
+                           : 1;
 
         // Go ahead and read any thumbnail that exists. Is that bad?
         if (m_spec["thumbnail_width"].get<int>()

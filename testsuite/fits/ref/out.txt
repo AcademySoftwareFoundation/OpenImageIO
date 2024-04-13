@@ -17,6 +17,7 @@ Simple 8-bit ramp pattern for testing of FITS readers"
     Extend: "T"
     Object: "Ramp 8-bit"
     Origin: "ESO"
+    oiio:subimages: 1
 Comparing "../fits-images/pg93/tst0001.fits" and "tst0001.fits"
 PASS
 Reading ../fits-images/pg93/tst0003.fits
@@ -40,6 +41,7 @@ Simple 32-bit ramp pattern for testing of FITS readers"
     Extend: "T"
     Object: "Ramp 32-bit"
     Origin: "ESO"
+    oiio:subimages: 1
 Comparing "../fits-images/pg93/tst0003.fits" and "tst0003.fits"
 PASS
 Reading ../fits-images/pg93/tst0005.fits
@@ -59,6 +61,7 @@ Simple 32-bit FP sine wave pattern for testing of FITS readers"
     Extend: "T"
     Object: "Wave 32-bit FP"
     Origin: "ESO"
+    oiio:subimages: 1
 Comparing "../fits-images/pg93/tst0005.fits" and "tst0005.fits"
 PASS
 Reading ../fits-images/pg93/tst0006.fits
@@ -78,6 +81,7 @@ Simple 64-bit FP sine wave pattern for testing of FITS readers"
     Extend: "T"
     Object: "Wave 64-bit fp"
     Origin: "ESO"
+    oiio:subimages: 1
 Comparing "../fits-images/pg93/tst0006.fits" and "tst0006.fits"
 PASS
 Reading ../fits-images/pg93/tst0007.fits
@@ -134,6 +138,7 @@ So best of luck with the decoding"
     DateTime: "1992:08:20 00:00:00"
     Object: "IEEE 32-bit test"
     Origin: "ESO"
+    oiio:subimages: 1
 Comparing "../fits-images/pg93/tst0007.fits" and "tst0007.fits"
 PASS
 Reading ../fits-images/pg93/tst0008.fits
@@ -189,6 +194,7 @@ So best of luck with the decoding"
     DateTime: "1992:08:20 00:00:00"
     Object: "IEEE 64-bit test"
     Origin: "ESO"
+    oiio:subimages: 1
 Comparing "../fits-images/pg93/tst0008.fits" and "tst0008.fits"
 PASS
 Reading ../fits-images/pg93/tst0013.fits
@@ -246,6 +252,7 @@ ESO DET NCORRS = 'Double '"
     Time-sid: 36564
     Tm-end: 70121
     Tm-start: 69932
+    oiio:subimages: 1
 Comparing "../fits-images/pg93/tst0013.fits" and "tst0013.fits"
 PASS
 Reading ../fits-images/ftt4b/file001.fits
@@ -256,6 +263,7 @@ Reading ../fits-images/ftt4b/file001.fits
     Extend: "T"
     Object: "SNG - CAT."
     Origin: "ESO"
+    oiio:subimages: 1
 Comparing "../fits-images/ftt4b/file001.fits" and "file001.fits"
 PASS
 Reading ../fits-images/ftt4b/file002.fits
@@ -266,6 +274,7 @@ Reading ../fits-images/ftt4b/file002.fits
     Extend: "T"
     Object: "PGSNC - SN.CAT."
     Origin: "ESO"
+    oiio:subimages: 1
 Comparing "../fits-images/ftt4b/file002.fits" and "file002.fits"
 PASS
 Reading ../fits-images/ftt4b/file003.fits
@@ -479,6 +488,7 @@ AIPS   CLEAN NITER= 12000 PRODUCT=1"
     Observer: "LISZ"
     Obsra: 252.167
     Origin: "AIPSNRAO node CVAX       15JUL84"
+    oiio:subimages: 1
 Comparing "../fits-images/ftt4b/file003.fits" and "file003.fits"
 PASS
 Reading ../fits-images/ftt4b/file009.fits
@@ -561,6 +571,7 @@ VLACV ANT   N=22 X=  1021.275 Y= -2683.726 Z= -1494.627 ST='CW6'"
     Pzero4: 0
     Pzero5: 0
     Telescop: "VLA"
+    oiio:subimages: 1
 Comparing "../fits-images/ftt4b/file009.fits" and "file009.fits"
 PASS
 Reading ../fits-images/ftt4b/file012.fits
@@ -698,5 +709,6 @@ AIPS   CLEAN NITER= 12000 PRODUCT=1"
     Observer: "LAIN"
     Origin: "AIPS"
     Tables: 1
+    oiio:subimages: 1
 Comparing "../fits-images/ftt4b/file012.fits" and "file012.fits"
 PASS

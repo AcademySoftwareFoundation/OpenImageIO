@@ -39,7 +39,7 @@ public:
     const char* format_name(void) const override { return "dpx"; }
     int supports(string_view feature) const override
     {
-        return (feature == "ioproxy");
+        return (feature == "ioproxy" || feature == "multiimage");
     }
     bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     bool open(const std::string& name, ImageSpec& newspec) override;
@@ -307,6 +307,8 @@ DPXInput::seek_subimage(int subimage, int miplevel)
     default: orientation = 0; break;
     }
     m_spec.attribute("Orientation", orientation);
+
+    m_spec.attribute("oiio:subimages", (int)m_dpx.header.ImageElementCount());
 
     // image linearity
     switch (m_dpx.header.Transfer(subimage)) {
