@@ -308,11 +308,18 @@ private:
 /// Texture options for a batch of Tex::BatchWidth points and run mask.
 class OIIO_API TextureOptBatch {
 public:
+    using simd_t = simd::VecType<float, Tex::BatchWidth>::type;
+
     /// Create a TextureOptBatch with all fields initialized to reasonable
     /// defaults.
     TextureOptBatch () {
-        for (int i = 0; i < Tex::BatchWidth; ++i)
-            rnd[i] = -1.0f;
+        *((simd_t*)&sblur) = simd_t::Zero();
+        *((simd_t*)&tblur) = simd_t::Zero();
+        *((simd_t*)&rblur) = simd_t::Zero();
+        *((simd_t*)&swidth) = simd_t::One();
+        *((simd_t*)&twidth) = simd_t::One();
+        *((simd_t*)&rwidth) = simd_t::One();
+        *((simd_t*)&rnd) = simd_t(-1.0f);
     }
 
     // Options that may be different for each point we're texturing
