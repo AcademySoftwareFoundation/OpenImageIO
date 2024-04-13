@@ -48,6 +48,7 @@ endif()
 set(R3DSDK_INCLUDE_DIR ${R3DSDK_ROOT}/Include)
 find_library(R3DSDK_LIBRARY NAMES ${R3DSDK_LIB_NAME}
              PATHS ${R3DSDK_ROOT}/Lib/linux64/
+                   ${R3DSDK_ROOT}/Lib/mac64/
                    ${R3DSDK_ROOT}/Lib/win64/
              NO_DEFAULT_PATH
             )
@@ -62,6 +63,9 @@ if(R3DSDK_FOUND)
     if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
         set(R3DSDK_LIBRARIES ${R3DSDK_LIBRARY} dl)
         set(R3DSDK_RUNTIME_LIBRARIES ${R3DSDK_ROOT}/Redistributable/linux)
+    elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+        set(R3DSDK_LIBRARIES ${R3DSDK_LIBRARY} dl)
+        set(R3DSDK_RUNTIME_LIBRARIES ${R3DSDK_ROOT}/Redistributable/mac)
     else()
         set(R3DSDK_LIBRARIES ${R3DSDK_LIBRARY})
         set(R3DSDK_RUNTIME_LIBRARIES ${R3DSDK_ROOT}/Redistributable/win)
