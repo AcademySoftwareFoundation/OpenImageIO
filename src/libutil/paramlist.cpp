@@ -310,7 +310,7 @@ ParamValue::get_string_indexed(int index) const
         if (element.vecsemantics == TypeDesc::RATIONAL
             && element.aggregate == TypeDesc::VEC2) {
             const int* val = (const int*)data() + 2 * index;
-            out            = Strutil::fmt::format("{}/{}}", val[0], val[1]);
+            out            = Strutil::fmt::format("{}/{}", val[0], val[1]);
         } else if (type() == TypeTimeCode) {
             out += tostring(TypeTimeCode, data());
         } else {
