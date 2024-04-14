@@ -352,7 +352,13 @@ TextureSystemImpl::init()
 
 
 
-TextureSystemImpl::~TextureSystemImpl() { printstats(); }
+TextureSystemImpl::~TextureSystemImpl() {
+    printstats();
+    // Erase any leftover errors from this thread
+    // TODO: can we clear other threads' errors?
+    // TODO: potentially unsafe due to the static destruction order fiasco
+    // txsys_error_messages.erase(this);
+}
 
 
 

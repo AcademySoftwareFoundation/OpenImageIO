@@ -84,7 +84,13 @@ ImageOutput::ImageOutput()
 
 
 
-ImageOutput::~ImageOutput() {}
+ImageOutput::~ImageOutput()
+{
+    // Erase any leftover errors from this thread
+    // TODO: can we clear other threads' errors?
+    // TODO: potentially unsafe due to the static destruction order fiasco
+    // output_error_messages.erase(this);
+}
 
 
 

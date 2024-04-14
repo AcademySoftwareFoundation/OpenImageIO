@@ -1722,6 +1722,10 @@ ImageCacheImpl::~ImageCacheImpl()
         spin_lock lock(m_perthread_info_mutex);
         m_all_perthread_info.clear();
     }
+    // Erase any leftover errors from this thread
+    // TODO: can we clear other threads' errors?
+    // TODO: potentially unsafe due to the static destruction order fiasco
+    // imcache_error_messages.erase(this);
 }
 
 
