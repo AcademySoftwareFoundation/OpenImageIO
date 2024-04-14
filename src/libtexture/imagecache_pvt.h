@@ -12,8 +12,6 @@
 
 #include <tsl/robin_map.h>
 
-#include <boost/thread/tss.hpp>
-
 #include <OpenImageIO/Imath.h>
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/hash.h>
@@ -41,8 +39,6 @@ namespace pvt {
 #define FILE_CACHE_SHARDS 64
 #define TILE_CACHE_SHARDS 128
 
-using boost::thread_specific_ptr;
-
 struct TileID;
 class ImageCacheImpl;
 class ImageCachePerThreadInfo;
@@ -55,7 +51,7 @@ texture_type_name(TexFormat f);
 
 
 /// Structure to hold IC and TS statistics.  We combine into a single
-/// structure to minimize the number of costly thread_specific_ptr
+/// structure to minimize the number of costly ImageCachePerThreadInfo
 /// retrievals.  If somebody is using the ImageCache without a
 /// TextureSystem, a few extra stats come along for the ride, but this
 /// has no performance penalty.
@@ -754,7 +750,6 @@ public:
     ImageCacheTileRef tile, lasttile;
     atomic_int purge;  // If set, tile ptrs need purging!
     ImageCacheStatistics m_stats;
-    bool shared = false;  // Pointed to by the IC and thread_specific_ptr
 
     ImageCachePerThreadInfo()
     {
@@ -1108,19 +1103,6 @@ public:
     Perthread* create_thread_info() override;
     void destroy_thread_info(Perthread* thread_info) override;
 
-    /// Called when the IC is destroyed.  We have a list of all the
-    /// perthread pointers -- go through and delete the ones for which we
-    /// hold the only remaining pointer.
-    void erase_perthread_info();
-
-    /// This is called when the thread terminates.  If p->m_imagecache
-    /// is non-NULL, there's still an imagecache alive that might want
-    /// the per-thread info (say, for statistics, though it's safe to
-    /// clear its tile microcache), so don't delete the perthread info
-    /// (it will be owned thereafter by the IC).  If there is no IC still
-    /// depending on it (signalled by m_imagecache == NULL), delete it.
-    static void cleanup_perthread_info(Perthread* thread_info);
-
     /// Ensure that the max_memory_bytes is at least newsize bytes.
     /// Override the previous value if necessary, with thread-safety.
     void set_min_cache_size(long long newsize);
@@ -1167,8 +1149,8 @@ private:
     /// Clear the fingerprint list, thread-safe.
     void clear_fingerprints();
 
-    thread_specific_ptr<ImageCachePerThreadInfo> m_perthread_info;
-    std::vector<ImageCachePerThreadInfo*> m_all_perthread_info;
+    uint64_t imagecache_id;
+    std::vector<std::unique_ptr<ImageCachePerThreadInfo>> m_all_perthread_info;
     static spin_mutex m_perthread_info_mutex;  ///< Thread safety for perthread
     int m_max_open_files;
     atomic_ll m_max_memory_bytes;
@@ -1208,10 +1190,6 @@ private:
     atomic_ll m_mem_used;       ///< Memory being used for tiles
     int m_statslevel;           ///< Statistics level
     int m_max_errors_per_file;  ///< Max errors to print for each file.
-
-    /// Saved error string, per-thread
-    ///
-    mutable thread_specific_ptr<std::string> m_errormessage;
 
     // For debugging -- keep track of who holds the tile and file mutex
 

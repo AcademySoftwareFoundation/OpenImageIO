@@ -170,7 +170,6 @@ target_link_libraries (OpenImageIO
             $<TARGET_NAME_IF_EXISTS:Freetype::Freetype>
             ${BZIP2_LIBRARIES}
             ZLIB::ZLIB
-            $<TARGET_NAME_IF_EXISTS:Boost::thread>
             ${CMAKE_DL_LIBS}
         )
 

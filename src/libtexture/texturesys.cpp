@@ -352,7 +352,13 @@ TextureSystemImpl::init()
 
 
 
-TextureSystemImpl::~TextureSystemImpl() { printstats(); }
+TextureSystemImpl::~TextureSystemImpl() {
+    printstats();
+    // Erase any leftover errors from this thread
+    // TODO: can we clear other threads' errors?
+    // TODO: potentially unsafe due to the static destruction order fiasco
+    // txsys_error_messages.erase(this);
+}
 
 
 
@@ -893,13 +899,16 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
     return ok;
 }
 
-
+static thread_local tsl::robin_map<const TextureSystemImpl*, std::string>
+    txsys_error_messages;
 
 bool
 TextureSystemImpl::has_error() const
 {
-    std::string* errptr = m_errormessage.get();
-    return (errptr && errptr->size());
+    auto iter = txsys_error_messages.find(this);
+    if (iter == txsys_error_messages.end())
+        return false;
+    return iter.value().size() > 0;
 }
 
 
@@ -908,11 +917,11 @@ std::string
 TextureSystemImpl::geterror(bool clear) const
 {
     std::string e;
-    std::string* errptr = m_errormessage.get();
-    if (errptr) {
-        e = *errptr;
+    auto iter = txsys_error_messages.find(this);
+    if (iter != txsys_error_messages.end()) {
+        e = iter.value();
         if (clear)
-            errptr->clear();
+            txsys_error_messages.erase(iter);
     }
     return e;
 }
@@ -924,17 +933,13 @@ TextureSystemImpl::append_error(string_view message) const
 {
     if (message.size() && message.back() == '\n')
         message.remove_suffix(1);
-    std::string* errptr = m_errormessage.get();
-    if (!errptr) {
-        errptr = new std::string;
-        m_errormessage.reset(errptr);
-    }
+    std::string& err_str = txsys_error_messages[this];
     OIIO_DASSERT(
-        errptr->size() < 1024 * 1024 * 16
+        err_str.size() < 1024 * 1024 * 16
         && "Accumulated error messages > 16MB. Try checking return codes!");
-    if (errptr->size() && errptr->back() != '\n')
-        *errptr += '\n';
-    *errptr += std::string(message);
+    if (err_str.size() && err_str.back() != '\n')
+        err_str += '\n';
+    err_str.append(message.begin(), message.end());
 }
 
 
