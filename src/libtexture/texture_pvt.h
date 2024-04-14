@@ -568,9 +568,6 @@ private:
         StochasticStrategy_Texel = 4   // single FIS texel probe
     };
 
-    /// Saved error string, per-thread
-    ///
-    mutable thread_specific_ptr<std::string> m_errormessage;
     std::unique_ptr<Filter1D> hq_filter;  // Better filter for magnification
     int m_statslevel;
     friend class TextureSystem;
