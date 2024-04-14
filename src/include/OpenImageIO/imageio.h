@@ -1565,30 +1565,6 @@ public:
     virtual bool read_native_deep_image (int subimage, int miplevel,
                                          DeepData &deepdata);
 
-#ifndef OIIO_DOXYGEN
-    // DEPRECATED(1.9), Now just used for back compatibility:
-    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
-    bool read_native_deep_scanlines (int ybegin, int yend, int z,
-                             int chbegin, int chend, DeepData &deepdata) {
-        return read_native_deep_scanlines (current_subimage(), current_miplevel(),
-                                           ybegin, yend, z,
-                                           chbegin, chend, deepdata);
-    }
-    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
-    bool read_native_deep_tiles (int xbegin, int xend, int ybegin, int yend,
-                                 int zbegin, int zend, int chbegin, int chend,
-                                 DeepData &deepdata) {
-        return read_native_deep_tiles (current_subimage(), current_miplevel(),
-                                       xbegin, xend, ybegin, yend,
-                                       zbegin, zend, chbegin, chend, deepdata);
-    }
-    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
-    bool read_native_deep_image (DeepData &deepdata) {
-        return read_native_deep_image (current_subimage(), current_miplevel(),
-                                       deepdata);
-    }
-#endif
-
     /// @}
 
     /// @{

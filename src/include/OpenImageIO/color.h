@@ -328,12 +328,6 @@ public:
     /// Return a filename or other identifier for the config we're using.
     std::string configname() const;
 
-    // DEPRECATED(1.9) -- no longer necessary, because it's a shared ptr
-    OIIO_DEPRECATED("no longer necessary (1.9)")
-    static void deleteColorProcessor(const ColorProcessorHandle& /*processor*/)
-    {
-    }
-
     /// Return if OpenImageIO was built with OCIO support
     static bool supportsOpenColorIO();
 

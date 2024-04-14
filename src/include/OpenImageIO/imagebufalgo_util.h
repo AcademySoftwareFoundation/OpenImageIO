@@ -90,17 +90,6 @@ parallel_image(ROI roi, std::function<void(ROI)> f)
 
 
 
-// DEPRECATED(1.8) -- eventually enable the OIIO_DEPRECATION
-template<class Func>
-OIIO_DEPRECATED("switch to new parallel_image (1.8)")
-void parallel_image(Func f, ROI roi, int nthreads = 0,
-                    SplitDir splitdir = Split_Y)
-{
-    parallel_image(roi, paropt(nthreads, paropt::SplitDir(splitdir)), f);
-}
-
-
-
 /// Common preparation for IBA functions: Given an ROI (which may or may not
 /// be the default ROI::All()), destination image (which may or may not yet
 /// be allocated), and optional input images, adjust roi if necessary and

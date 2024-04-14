@@ -508,18 +508,6 @@ public:
                ProgressCallback progress_callback = nullptr,
                void* progress_callback_data       = nullptr) const;
 
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-    // DEPRECATED(1.9): old version did not have the data type
-    OIIO_DEPRECATED("use other write() that takes the dtype argument (1.9)")
-    bool write(string_view filename, string_view fileformat,
-               ProgressCallback progress_callback = nullptr,
-               void* progress_callback_data       = nullptr) const
-    {
-        return write(filename, TypeUnknown, fileformat, progress_callback,
-                     progress_callback_data);
-    }
-#endif  // DOXYGEN_SHOULD_SKIP_THIS
-
     /// Set the pixel data format that will be used for subsequent `write()`
     /// calls that do not themselves request a specific data type request.
     ///

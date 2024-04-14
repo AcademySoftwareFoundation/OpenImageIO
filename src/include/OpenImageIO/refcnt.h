@@ -20,8 +20,6 @@
 
 OIIO_NAMESPACE_BEGIN
 
-using std::shared_ptr;  // DEPRECATED(1.8)
-
 
 
 /// A simple intrusive pointer, modeled after std::shared_ptr.

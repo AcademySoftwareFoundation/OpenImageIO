@@ -451,6 +451,7 @@ public:
     /// Utility: Parse a single wrap mode (e.g., "periodic") or a
     /// comma-separated wrap modes string (e.g., "black,clamp") into
     /// separate Wrap enums for s and t.
+    OIIO_DEPRECATED("TextureOptions is deprecated, use TextureOpt (1.8)")
     static void parse_wrapmodes(const char* wrapmodes,
                                 TextureOptions::Wrap& swrapcode,
                                 TextureOptions::Wrap& twrapcode)
