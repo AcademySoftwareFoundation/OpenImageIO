@@ -88,15 +88,15 @@ ImageOutput_write_tile(ImageOutput& self, int x, int y, int z,
 {
     const ImageSpec& spec(self.spec());
     if (spec.tile_width == 0) {
-        self.errorf("Cannot write tiles to a scanline file.");
+        self.errorfmt("Cannot write tiles to a scanline file.");
         return false;
     }
     oiio_bufinfo buf(buffer.request(), spec.nchannels, spec.tile_width,
                      spec.tile_height, spec.tile_depth,
                      spec.tile_depth > 1 ? 3 : 2);
     if (!buf.data || buf.error.size()) {
-        self.errorf("Pixel data array error: %s",
-                    buf.error.size() ? buf.error.c_str() : "unspecified");
+        self.errorfmt("Pixel data array error: {}",
+                      buf.error.size() ? buf.error.c_str() : "unspecified");
         return false;  // failed sanity checks
     }
     if (buf.size < self.spec().tile_pixels() * self.spec().nchannels) {
@@ -116,14 +116,14 @@ ImageOutput_write_tiles(ImageOutput& self, int xbegin, int xend, int ybegin,
 {
     const ImageSpec& spec(self.spec());
     if (spec.tile_width == 0) {
-        self.errorf("Cannot write tiles to a scanline file.");
+        self.errorfmt("Cannot write tiles to a scanline file.");
         return false;
     }
     oiio_bufinfo buf(buffer.request(), spec.nchannels, xend - xbegin,
                      yend - ybegin, zend - zbegin, spec.tile_depth > 1 ? 3 : 2);
     if (!buf.data || buf.error.size()) {
-        self.errorf("Pixel data array error: %s",
-                    buf.error.size() ? buf.error.c_str() : "unspecified");
+        self.errorfmt("Pixel data array error: {}",
+                      buf.error.size() ? buf.error.c_str() : "unspecified");
         return false;  // failed sanity checks
     }
     if (static_cast<int>(buf.size) < (xend - xbegin) * (yend - ybegin)
@@ -148,8 +148,8 @@ ImageOutput_write_image(ImageOutput& self, py::buffer& buffer)
                      spec.depth, spec.depth > 1 ? 3 : 2);
     if (!buf.data || buf.size < spec.image_pixels() * spec.nchannels
         || buf.error.size()) {
-        self.errorf("Pixel data array error: %s",
-                    buf.error.size() ? buf.error.c_str() : "unspecified");
+        self.errorfmt("Pixel data array error: {}",
+                      buf.error.size() ? buf.error.c_str() : "unspecified");
         return false;  // failed sanity checks
     }
     py::gil_scoped_release gil;

@@ -662,7 +662,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
             m_spec.erase_attribute("raw:ColorSpace");
             m_spec.erase_attribute("raw:Exposure");
         } else {
-            errorf("raw:Demosaic set to unknown value");
+            errorfmt("raw:Demosaic set to unknown value");
             return false;
         }
         // Set the attribute in the output spec
@@ -726,7 +726,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
     // 3+ = Recovery
     int highlight_mode = config.get_int_attribute("raw:HighlightMode", 0);
     if (highlight_mode < 0 || highlight_mode > 9) {
-        errorf("raw:HighlightMode invalid value. range 0-9");
+        errorfmt("raw:HighlightMode invalid value. range 0-9");
         return false;
     }
     m_processor->imgdata.params.highlight = highlight_mode;
@@ -1360,22 +1360,22 @@ RawInput::process()
     if (!m_image) {
         int ret = m_processor->dcraw_process();
         if (ret != LIBRAW_SUCCESS) {
-            errorf("Processing image failed, %s", libraw_strerror(ret));
+            errorfmt("Processing image failed, {}", libraw_strerror(ret));
             return false;
         }
 
         m_image = m_processor->dcraw_make_mem_image(&ret);
         if (!m_image) {
-            errorf("LibRaw failed to create in memory image");
+            errorfmt("LibRaw failed to create in memory image");
             return false;
         }
 
         if (m_image->type != LIBRAW_IMAGE_BITMAP) {
-            errorf("LibRaw did not return expected image type");
+            errorfmt("LibRaw did not return expected image type");
             return false;
         }
         if (m_image->colors != 1 && m_image->colors != 3) {
-            errorf("LibRaw did not return a 1 or 3 channel image");
+            errorfmt("LibRaw did not return a 1 or 3 channel image");
             return false;
         }
     }

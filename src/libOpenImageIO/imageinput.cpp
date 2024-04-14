@@ -1049,7 +1049,7 @@ ImageInput::read_native_deep_image(int subimage, int miplevel,
         return false;
 
     if (spec.depth > 1) {
-        errorf(
+        errorfmt(
             "read_native_deep_image is not supported for volume (3D) images.");
         return false;
         // FIXME? - not implementing 3D deep images for now.  The only
