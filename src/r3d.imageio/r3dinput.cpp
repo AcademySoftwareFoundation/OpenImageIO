@@ -35,7 +35,11 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#ifdef GPU
+#ifdef CUDA
 #include <cuda_runtime.h>
+#endif // CUDA
+#endif // GPU
 #include <vector>
 
 #include <condition_variable>
