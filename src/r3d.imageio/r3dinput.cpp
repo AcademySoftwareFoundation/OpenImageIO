@@ -19,7 +19,17 @@
 #include <OpenImageIO/tiffutils.h>
 
 #include <R3DSDK.h>
+#ifdef GPU
+#ifdef CUDA
 #include <R3DSDKCuda.h>
+#endif // CUDA
+#ifdef OpenCL
+#include <R3DSDKOpenCL.h>
+#endif // OpenCL
+#ifdef Metal
+#include <R3DSDKMetal.h>
+#endif // Metal
+#endif // GPU
 #include <R3DSDKDefinitions.h>
 
 #include <cstdio>
