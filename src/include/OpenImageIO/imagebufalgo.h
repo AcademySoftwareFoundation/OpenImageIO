@@ -199,11 +199,6 @@ namespace ImageBufAlgo {
 using KWArgs = ParamValueSpan;
 
 
-// old name (DEPRECATED 1.9)
-OIIO_DEPRECATED("use parallel_options (1.9)")
-typedef parallel_options parallel_image_options;
-
-
 /// Create an all-black `float` image of size and channels as described by
 /// the ROI.
 ImageBuf OIIO_API zero (ROI roi, int nthreads=0);
@@ -1636,16 +1631,6 @@ bool OIIO_API histogram_draw (ImageBuf &dst,
 /// to retrieve an error message.
 ImageBuf OIIO_API make_kernel (string_view name, float width, float height,
                                float depth = 1.0f, bool normalize = true);
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-// DEPRECATED(1.9):
-OIIO_DEPRECATED("use version that returns ImageBuf (1.9)")
-inline bool make_kernel (ImageBuf &dst, string_view name,
-                         float width, float height, float depth = 1.0f,
-                         bool normalize = true) {
-    dst = make_kernel (name, width, height, depth, normalize);
-    return ! dst.has_error();
-}
-#endif
 
 
 /// Return the convolution of `src` and a `kernel`. If `roi` is not defined,
@@ -2461,16 +2446,6 @@ ImageBuf OIIO_API capture_image (int cameranum = 0,
                                  TypeDesc convert=TypeUnknown);
 
 
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-// DEPRECATED(1.9):
-OIIO_DEPRECATED("use version that returns ImageBuf (1.9)")
-inline bool capture_image (ImageBuf &dst, int cameranum = 0,
-                           TypeDesc convert=TypeUnknown) {
-    dst = capture_image (cameranum, convert);
-    return !dst.has_error();
-}
-#endif  // DOXYGEN_SHOULD_SKIP_THIS
-
 
 #if defined(__OPENCV_CORE_TYPES_H__) || defined(OPENCV_CORE_TYPES_H)
 // These declarations are only visible if the OpenCV headers have already
@@ -2481,13 +2456,6 @@ inline bool capture_image (ImageBuf &dst, int cameranum = 0,
 // avoided, giving preference to from_OpenCV.
 ImageBuf OIIO_API from_IplImage (const IplImage *ipl,
                                  TypeDesc convert=TypeUnknown);
-// DEPRECATED(1.9):
-OIIO_DEPRECATED("use from_OpenCV (1.9)")
-inline bool from_IplImage (ImageBuf &dst, const IplImage *ipl,
-                           TypeDesc convert=TypeUnknown) {
-    dst = from_IplImage (ipl, convert);
-    return ! dst.has_error();
-}
 
 // DEPRECATED(2.0). The OpenCV 1.x era IplImage-based functions should be
 // avoided, giving preference to from_OpenCV.

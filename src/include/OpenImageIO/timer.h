@@ -276,8 +276,3 @@ private:
 
 
 OIIO_NAMESPACE_END
-
-
-// DEPRECATED(1.8): for back compatibility with old inclusion of some
-// functions that used to be here but are now in benchmark.h, include it.
-#include <OpenImageIO/benchmark.h>
