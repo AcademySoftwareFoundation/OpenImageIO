@@ -40,7 +40,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - desc: sonar gcc9/C++14 py39 boost1.76 exr3.1 ocio2.2
+          - desc: sonar gcc9/C++14 py39 exr3.1 ocio2.2
             nametag: static-analysis-sonar
             os: ubuntu-latest
             container: aswf/ci-osl:2023-clang15

@@ -26,7 +26,7 @@ echo "Before my brew installs:"
 brew list --versions
 
 # All cases except for clang-format target, we need the dependencies.
-brew install --display-times -q gcc ccache cmake ninja boost || true
+brew install --display-times -q gcc ccache cmake ninja || true
 brew link --overwrite gcc
 brew install --display-times -q python@${PYTHON_VERSION} || true
 brew unlink python@3.8 || true

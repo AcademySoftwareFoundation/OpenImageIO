@@ -257,7 +257,6 @@ against dynamic libraries:
 * OpenEXR, Ilmbase, and Half © 2006, Industrial Light & Magic. http://www.openexr.com
 * zlib © 1995-2005 Jean-loup Gailly and Mark Adler. http://www.zlib.net
 * libpng © 1998-2008 Glenn Randers-Pehrson, et al. http://www.libpng.org
-* Boost © various authors. http://www.boost.org
 * GLEW © 2002-2007 Milan Ikits, et al. http://glew.sourceforge.net
 * Ptex © 2009 Disney Enterprises, Inc. http://ptex.us
 * GIFLIB © 1997 Eric S. Raymond (MIT Licensed). http://giflib.sourceforge.net/

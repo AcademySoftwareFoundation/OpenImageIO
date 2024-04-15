@@ -2392,7 +2392,7 @@ declare_imagebufalgo(py::module& m)
         .def_readonly("nfail", &ImageBufAlgo::CompareResults::nfail)
         .def_readonly("error", &ImageBufAlgo::CompareResults::error);
 
-    // Use a boost::python::scope to put this all inside "ImageBufAlgo"
+    // Put this all inside "ImageBufAlgo"
     py::class_<IBA_dummy>(m, "ImageBufAlgo")
         .def_static("zero", &IBA_zero, "dst"_a, "roi"_a = ROI::All(),
                     "nthreads"_a = 0)

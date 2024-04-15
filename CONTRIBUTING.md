@@ -255,9 +255,9 @@ capitalize new words: `class CustomerList;` In general, local variables
 should start with lower case. Macros should be `ALL_CAPS`, if used at all.
 
 If your class is extremely similar to, or modeled after, something in the
-standard library, Boost, or something else we interoperate with, it's ok to
+standard library, or something else we interoperate with, it's ok to
 use their naming conventions. For example, very general utility classes and
-templates (the kind of thing you would normally find in std or boost) should
+templates (the kind of thing you would normally find in std) should
 be lower case with underscores separating words, as they would be if they
 were standards.
 
@@ -290,10 +290,8 @@ Namespaces: yes, use them!
 
 ### Third-party libraries
 
-Prefer C++11 `std` rather than Boost, where both can do the same task.
-Feel free to use Boost classes you already see in the code base, but don't
-use any Boost you don't see us already using, without first checking with
-the project leader.
+Prefer C++17 `std` rather than other libraries, where both can do the same
+task.
 
 Please do use Imath vector, matrix, and utility classes where applicable.
 Don't write your own vector or matrix code!

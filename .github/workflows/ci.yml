@@ -34,7 +34,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - desc: gcc9/C++17 py3.7 boost1.73 exr2.5 ocio2.0
+          - desc: gcc9/C++17 py3.7 exr2.5 ocio2.0
             nametag: linux-vfx2021
             runner: ubuntu-latest
             container: aswf/ci-osl:2021
@@ -57,7 +57,7 @@ jobs:
             python_ver: 3.7
             simd: "avx2,f16c"
             fmt_ver: 8.1.1
-          - desc: gcc9/C++17 py39 boost1.76 exr3.1 ocio2.1
+          - desc: gcc9/C++17 py39 exr3.1 ocio2.1
             nametag: linux-vfx2022
             runner: ubuntu-latest
             container: aswf/ci-osl:2022-clang11
@@ -79,7 +79,7 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 9.1.0
             pybind11_ver: v2.8.1
-          - desc: icc/C++17 py3.9 boost1.76 exr3.1 ocio2.1 qt5.15
+          - desc: icc/C++17 py3.9 exr3.1 ocio2.1 qt5.15
             nametag: linux-vfx2022-icc
             runner: ubuntu-latest
             container: aswf/ci-osl:2022
@@ -94,7 +94,7 @@ jobs:
                             OIIO_EXTRA_CPP_ARGS="-fp-model=precise"
             # For icc, use fp-model precise to eliminate needless LSB errors
             # that make test results differ from other platforms.
-          - desc: icx/C++17 py3.9 boost1.76 exr3.1 ocio2.1 qt5.15
+          - desc: icx/C++17 py3.9 exr3.1 ocio2.1 qt5.15
             nametag: linux-vfx2022-icx
             runner: ubuntu-latest
             container: aswf/ci-osl:2022
@@ -120,7 +120,7 @@ jobs:
                             CMAKE_BUILD_TYPE=Debug
                             CTEST_TEST_TIMEOUT=1200
                             CTEST_EXCLUSIONS="broken|png-damaged"
-          - desc: gcc11/C++17 py3.10 boost1.80 exr3.1 ocio2.2
+          - desc: gcc11/C++17 py3.10 exr3.1 ocio2.2
             nametag: linux-vfx2023
             runner: ubuntu-latest
             container: aswftesting/ci-osl:2023-clang15
@@ -130,7 +130,7 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             pybind11_ver: v2.10.0
-          - desc: gcc11/C++17 py3.11 boost1.82 exr3.2 ocio2.3
+          - desc: gcc11/C++17 py3.11 exr3.2 ocio2.3
             nametag: linux-vfx2024
             runner: ubuntu-latest
             container: aswftesting/ci-osl:2024-clang17
@@ -140,7 +140,7 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             pybind11_ver: v2.10.0
-          - desc: oldest/hobbled gcc9.3/C++17 py3.7 boost-1.66 exr-2.4 no-sse no-ocio
+          - desc: oldest/hobbled gcc9.3/C++17 py3.7 exr-2.4 no-sse no-ocio
             # Oldest versions of the dependencies that we can muster, and various
             # things disabled (no SSE, OCIO, or OpenCV, don't embed plugins).
             nametag: linux-oldest
@@ -292,7 +292,7 @@ jobs:
                             USE_OPENVDB=0
                             WEBP_VERSION=v1.3.0
                             # The installed OpenVDB has a TLS conflict with Python 3.8
-          - desc: bleeding edge gcc13 C++20 py3.10 OCIO/libtiff/exr-master boost1.74 avx2
+          - desc: bleeding edge gcc13 C++20 py3.10 OCIO/libtiff/exr-master avx2
             nametag: linux-bleeding-edge
             runner: ubuntu-22.04
             cc_compiler: gcc-13

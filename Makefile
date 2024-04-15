@@ -383,7 +383,6 @@ help:
 	@echo "          LibRaw  OpenColorIO  OpenCV  OpenGL  OpenJpeg  OpenVDB"
 	@echo "          PTex  R3DSDK  TBB  TIFF  Webp"
 	@echo "  Finding and Using Dependencies:"
-	@echo "      BOOST_ROOT=path          Custom Boost installation"
 	@echo "      OPENEXR_ROOT=path        Custom OpenEXR installation"
 	@echo "      ILMBASE_ROOT=path        Custom IlmBase installation"
 	@echo "      USE_EXTERNAL_PUGIXML=1   Use the system PugiXML, not the one in OIIO"
