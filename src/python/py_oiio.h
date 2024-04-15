@@ -81,8 +81,6 @@ namespace detail {
 
 namespace PyOpenImageIO {
 
-//using namespace boost::python;
-
 using namespace OIIO;
 
 // clang-format off

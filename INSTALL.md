@@ -25,7 +25,6 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.6)
  * libjpeg >= 8 (tested through jpeg9e), or **libjpeg-turbo >= 2.1** (tested
    through 3.0)
- * Boost >= 1.53 (recommended: at least 1.66; tested through 1.84)
  * **[fmtlib](https://github.com/fmtlib/fmt) >= 7.0** (tested through 10.1).
    If not found at build time, this will be automatically downloaded unless
    the build sets `-DBUILD_MISSING_FMT=OFF`.
@@ -180,7 +179,6 @@ Building OpenImageIO on Linux or OS X
 
 The following dependencies must be installed to build the core of
 OpenImageIO:
-* Boost
 * libjpeg
 * libtiff
 * libpng
@@ -276,15 +274,9 @@ Building on Windows
 
 You will need to have Git, CMake and Visual Studio installed.
 
-The minimal set of dependencies for OIIO is: Boost, zlib, libTIFF, OpenEXR, and libjpeg or libjpeg-turbo. If you have them built somewhere then you skip
+The minimal set of dependencies for OIIO is: zlib, libTIFF, OpenEXR, and libjpeg or libjpeg-turbo. If you have them built somewhere then you skip
 the section below, and will only have to point OIIO build process so their locations.
 
-* Boost: get the boost source archive, extract into `{BOOST_ROOT}`.
-  ```
-  cd {BOOST_ROOT}
-  bootstrap
-  b2
-  ```
 * zlib: this will build it, and then delete the non-static library, so they don't get picked up:
   ```
   cd {ZLIB_ROOT}
@@ -327,7 +319,6 @@ dependencies.
 cd {OIIO_ROOT}
 git clone https://github.com/AcademySoftwareFoundation/OpenImageIO .
 cmake -S . -B build -DVERBOSE=ON -DCMAKE_BUILD_TYPE=Release ^
-  -DBoost_USE_STATIC_LIBS=ON -DBoost_NO_WARN_NEW_VERSIONS=ON -DBoost_ROOT={BOOST_ROOT} ^
   -DZLIB_ROOT={ZLIB_ROOT}\build ^
   -DTIFF_ROOT={TIFF_ROOT}\build ^
   -DOpenEXR_ROOT={EXR_ROOT}\build\dist ^

@@ -39,15 +39,8 @@
 #    include <windows.h>
 #endif
 
-#if 0
 
-// Use boost::lockfree::queue for the task queue
-#    include <boost/lockfree/queue.hpp>
-template<typename T> using Queue = boost::lockfree::queue<T>;
-
-#else
-
-#    include <queue>
+#include <queue>
 
 OIIO_NAMESPACE_BEGIN
 namespace pvt {
@@ -91,7 +84,6 @@ private:
 }  // namespace pvt
 OIIO_NAMESPACE_END
 
-#endif
 
 
 OIIO_NAMESPACE_BEGIN
