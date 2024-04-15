@@ -48,12 +48,6 @@ echo "---------------"
 # vcpkg update
 # 
 
-time vcpkg install boost-container:x64-windows
-time vcpkg install boost-filesystem:x64-windows
-time vcpkg install boost-math:x64-windows
-time vcpkg install boost-system:x64-windows
-time vcpkg install boost-thread:x64-windows
-
 #vcpkg install libdeflate:x64-windows
 #vcpkg install zlib:x64-windows
 vcpkg install tiff:x64-windows

@@ -7,7 +7,6 @@
 ###########################################################################
 
 if (NOT VERBOSE)
-    set (Boost_FIND_QUIETLY true)
     set (PkgConfig_FIND_QUIETLY true)
     set (Threads_FIND_QUIETLY true)
 endif ()
@@ -30,56 +29,6 @@ include (ExternalProject)
 option (BUILD_MISSING_DEPS "Try to download and build any missing dependencies" OFF)
 
 include (FindThreads)
-
-
-###########################################################################
-# Boost setup
-if (MSVC)
-    # Disable automatic linking using pragma comment(lib,...) of boost libraries upon including of a header
-    proj_add_compile_definitions (BOOST_ALL_NO_LIB=1)
-endif ()
-
-# If the build system hasn't been specifically told how to link Boost, link it the same way as other
-# OIIO dependencies:
-if (NOT DEFINED Boost_USE_STATIC_LIBS)
-    set (Boost_USE_STATIC_LIBS "${LINKSTATIC}")
-endif ()
-
-if (MSVC)
-    # Not linking Boost as static libraries: either an explicit setting or LINKSTATIC is FALSE:
-    if (NOT Boost_USE_STATIC_LIBS)
-        proj_add_compile_definitions (BOOST_ALL_DYN_LINK=1)
-    endif ()
-endif ()
-
-set (Boost_COMPONENTS thread)
-message (STATUS "Boost_COMPONENTS = ${Boost_COMPONENTS}")
-# The FindBoost.cmake interface is broken if it uses boost's installed
-# cmake output (e.g. boost 1.70.0, cmake <= 3.14). Specifically it fails
-# to set the expected variables printed below. So until that's fixed
-# force FindBoost.cmake to use the original brute force path.
-if (NOT DEFINED Boost_NO_BOOST_CMAKE)
-    set (Boost_NO_BOOST_CMAKE ON)
-endif ()
-
-checked_find_package (Boost REQUIRED
-                      VERSION_MIN 1.53
-                      COMPONENTS ${Boost_COMPONENTS}
-                      RECOMMEND_MIN 1.66
-                      RECOMMEND_MIN_REASON "Boost 1.66 is the oldest version our CI tests against"
-                      PRINT Boost_INCLUDE_DIRS Boost_LIBRARIES )
-
-# On Linux, Boost 1.55 and higher seems to need to link against -lrt
-if (CMAKE_SYSTEM_NAME MATCHES "Linux"
-      AND ${Boost_VERSION} VERSION_GREATER_EQUAL 105500)
-    list (APPEND Boost_LIBRARIES "rt")
-endif ()
-
-include_directories (SYSTEM "${Boost_INCLUDE_DIRS}")
-link_directories ("${Boost_LIBRARY_DIRS}")
-
-# end Boost setup
-###########################################################################
 
 
 ###########################################################################

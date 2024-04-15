@@ -73,7 +73,6 @@ else
 
     time sudo apt-get -q install -y \
         git cmake ninja-build ccache g++ \
-        libboost-dev libboost-thread-dev libboost-filesystem-dev \
         libilmbase-dev libopenexr-dev \
         libtiff-dev libgif-dev libpng-dev
     if [[ "${SKIP_SYSTEM_DEPS_INSTALL}" != "1" ]] ; then

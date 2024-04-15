@@ -89,10 +89,6 @@ function (setup_oiio_util_library targetname)
         target_compile_definitions (${targetname} PUBLIC OIIO_STATIC_DEFINE=1)
     endif ()
 
-    if (OIIO_DISABLE_BOOST_STACKTRACE)
-        target_compile_definitions (${targetname} PRIVATE OIIO_DISABLE_BOOST_STACKTRACE)
-    endif ()
-
     # Propagate C++ minimum to downstream consumers
     target_compile_features (${targetname}
                              INTERFACE cxx_std_${DOWNSTREAM_CXX_STANDARD})
