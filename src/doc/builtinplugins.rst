@@ -1252,7 +1252,7 @@ control aspects of the writing itself:
        Default: 7. Higher numbers allow more computation at the expense of time.
        For lossless, generally it will produce smaller files.
        For lossy, higher effort should more accurately reach the target quality.
-   * - ``jpegxl:tier``
+   * - ``jpegxl:speed``
    	 - int
      - Sets the decoding speed tier for the provided options. Minimum is 0
        (slowest to decode, best quality/density), and maximum is 4 (fastest to
