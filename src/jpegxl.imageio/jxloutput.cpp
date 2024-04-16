@@ -279,7 +279,7 @@ JxlOutput::open(const std::string& name, const ImageSpec& newspec,
 
     // Preprocessing (maybe not works yet)
     if (m_spec.find_attribute("jpegxl:photon_noise_iso") && !lossless) {
-        JxlEncoderFrameSettingsSetOption(
+        JxlEncoderFrameSettingsSetFloatOption(
             m_frame_settings, JXL_ENC_FRAME_SETTING_PHOTON_NOISE,
             m_spec.get_float_attribute("jpegxl:photon_noise_iso", 0.0f));
 
