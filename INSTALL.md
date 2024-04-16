@@ -290,7 +290,7 @@ the section below, and will only have to point OIIO build process so their locat
   cd {TIFF_ROOT}
   git clone https://gitlab.com/libtiff/libtiff.git .
   cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=.
-  cmake --build build --target install
+  cmake --build build --config Release --target install
   ```
 * libjpeg-turbo:
   ```
@@ -315,14 +315,18 @@ the section below, and will only have to point OIIO build process so their locat
 
 Now get the OIIO source and do one-time CMake configuration step. Replace `{*_ROOT}` below with folders where you have put the 3rd party
 dependencies.
+
+Note: For the `Imath_LIBRARY`, you might need to correct the `Imath-*.lib` file name that was built on your machine.
 ```
 cd {OIIO_ROOT}
 git clone https://github.com/AcademySoftwareFoundation/OpenImageIO .
 cmake -S . -B build -DVERBOSE=ON -DCMAKE_BUILD_TYPE=Release ^
   -DZLIB_ROOT={ZLIB_ROOT}\build ^
   -DTIFF_ROOT={TIFF_ROOT}\build ^
-  -DOpenEXR_ROOT={EXR_ROOT}\build\dist ^
-  -DImath_DIR={EXR_ROOT}\build\dist\lib\cmake\Imath ^
+  -DOpenEXR_ROOT={EXR_ROOT}\dist ^
+  -DImath_DIR={EXR_ROOT}\dist\lib\cmake\Imath ^
+  -DImath_INCLUDE_DIR={EXR_ROOT}\dist\include\Imath ^
+  -DImath_LIBRARY={EXR_ROOT}\dist\lib\Imath-3_2.lib ^
   -DJPEG_ROOT={JPEG_ROOT}\build ^
   -DUSE_PYTHON=0 -DUSE_QT=0 -DBUILD_SHARED_LIBS=0 -DLINKSTATIC=1
 ```
