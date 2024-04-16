@@ -53,15 +53,11 @@ private:
     JxlBasicInfo m_basic_info;
     JxlEncoderFrameSettings* m_frame_settings;
     JxlPixelFormat m_pixel_format;
-    
+
     unsigned int m_dither;
     std::vector<unsigned char> m_scratch;
     std::vector<unsigned char> m_tilebuffer;
-<<<<<<< HEAD
     std::vector<unsigned char> m_scanbuffer;  // hack
-=======
-    std::vector<unsigned char> m_scanbuffer; // hack
->>>>>>> 3ab245d07 (JpegXL output plugin)
 
     void init(void)
     {
@@ -197,7 +193,6 @@ JxlOutput::open(const std::string& name, const ImageSpec& newspec,
     m_frame_settings = JxlEncoderFrameSettingsCreate(m_encoder.get(), nullptr);
 
     // JpegXL Compression Settings
-<<<<<<< HEAD
 
     bool lossless = true;
 
@@ -205,15 +200,6 @@ JxlOutput::open(const std::string& name, const ImageSpec& newspec,
     if (m_spec.find_attribute("jpegxl:distance")) {
         const float distance = m_spec.get_float_attribute("jpegxl:distance",
                                                           0.0f);
-=======
-    
-    bool lossless = true;
-     
-    // Distance Mutually exclusive with quality
-    if (m_spec.find_attribute("jpegxl:distance")) {
-        const float distance = 
-            m_spec.get_float_attribute("jpegxl:distance", 0.0f);
->>>>>>> 3ab245d07 (JpegXL output plugin)
 
         m_basic_info.uses_original_profile = distance == 0.0f ? JXL_TRUE
                                                               : JXL_FALSE;
@@ -253,29 +239,13 @@ JxlOutput::open(const std::string& name, const ImageSpec& newspec,
     }
 
     const int effort = m_spec.get_int_attribute("jpegxl:effort", 7);
-<<<<<<< HEAD
-    const int speed  = m_spec.get_int_attribute("jpegxl:speed", 0);
-=======
-    const int tier   = m_spec.get_int_attribute("jpegxl:tier", 0);
->>>>>>> 3ab245d07 (JpegXL output plugin)
+    const int speed   = m_spec.get_int_attribute("jpegxl:speed", 0);
     JxlEncoderFrameSettingsSetOption(m_frame_settings,
                                      JXL_ENC_FRAME_SETTING_EFFORT, effort);
 
     JxlEncoderFrameSettingsSetOption(m_frame_settings,
                                      JXL_ENC_FRAME_SETTING_DECODING_SPEED,
                                      speed);
-
-    // Preprocessing (maybe not works yet)
-    if (m_spec.find_attribute("jpegxl:photon_noise_iso") && !lossless) {
-        JxlEncoderFrameSettingsSetFloatOption(
-            m_frame_settings, JXL_ENC_FRAME_SETTING_PHOTON_NOISE,
-            m_spec.get_float_attribute("jpegxl:photon_noise_iso", 0.0f));
-
-        DBG std::cout << "Photon noise set to "
-                      << m_spec.get_float_attribute("jpegxl:photon_noise_iso",
-                                                    0.0f)
-                      << "\n";
-    }
 
     // Preprocessing (maybe not works yet)
     if (m_spec.find_attribute("jpegxl:photon_noise_iso") && !lossless) {
@@ -355,13 +325,7 @@ JxlOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
 
     // add data to m_scanbuffer
     m_scanbuffer.insert(m_scanbuffer.end(), (unsigned char*)data,
-<<<<<<< HEAD
                         (unsigned char*)data + nvals * m_spec.format.size());
-=======
-        				(unsigned char*)data + nvals * m_spec.format.size());
-
-    //save_image(data);
->>>>>>> 3ab245d07 (JpegXL output plugin)
 
     return true;
 }
@@ -402,16 +366,11 @@ JxlOutput::save_image(const void* data)
     bool ok = true;
 
     JxlDataType jxl_type = JXL_TYPE_FLOAT;
-<<<<<<< HEAD
     size_t jxl_bytes     = 1;
-=======
-    size_t jxl_bytes = 1;
->>>>>>> 3ab245d07 (JpegXL output plugin)
 
     DBG std::cout << "JxlOutput::save_image()\n";
 
     switch (m_spec.format.basetype) {
-<<<<<<< HEAD
     case TypeDesc::UINT8:
         jxl_type  = JXL_TYPE_UINT8;
         jxl_bytes = 1;
@@ -433,36 +392,11 @@ JxlOutput::save_image(const void* data)
 
     m_pixel_format = { m_basic_info.num_color_channels
                            + m_basic_info.num_extra_channels,
-=======
-        case TypeDesc::UINT8:
-			jxl_type = JXL_TYPE_UINT8;
-            jxl_bytes = 1;
-			break;
-        case TypeDesc::UINT16:
-            jxl_type = JXL_TYPE_UINT16;
-            jxl_bytes = 2;
-            break;
-        case TypeDesc::HALF:
-            jxl_type = JXL_TYPE_FLOAT16;
-            jxl_bytes = 2;
-			break;
-        case TypeDesc::FLOAT:
-			jxl_type = JXL_TYPE_FLOAT;
-            jxl_bytes = 4;
-			break;
-		default:
-			errorfmt("Unsupported data type {}", m_spec.format);
-			return false;
-    }
-
-    m_pixel_format = { m_basic_info.num_color_channels
-                       + m_basic_info.num_extra_channels,
->>>>>>> 3ab245d07 (JpegXL output plugin)
                        jxl_type, JXL_NATIVE_ENDIAN, 0 };
 
     const size_t pixels_size = m_basic_info.xsize * m_basic_info.ysize
                                * (m_basic_info.num_color_channels
-                               + m_basic_info.num_extra_channels);
+                                  + m_basic_info.num_extra_channels);
 
     size_t size = pixels_size * jxl_bytes;
 
