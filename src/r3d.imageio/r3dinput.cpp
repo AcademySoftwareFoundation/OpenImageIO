@@ -16,6 +16,8 @@
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/tiffutils.h>
 
 #include <R3DSDK.h>
@@ -79,7 +81,14 @@ AlignedMalloc(size_t& sizeNeeded)
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-#define DBG if (1)
+#if 0 || !defined(NDEBUG) /* allow color configuration debugging */
+static bool colordebug = Strutil::stoi(Sysutil::getenv("OIIO_COLOR_DEBUG"));
+#    define DBG(...)    \
+        if (colordebug) \
+        Strutil::print(__VA_ARGS__)
+#else
+#    define DBG(...)
+#endif
 
 class R3dInput final : public ImageInput {
 public:
@@ -139,7 +148,7 @@ private:
     void initialize();
     void reset()
     {
-        DBG std::cout << "R3dInput::reset()\n";
+        DBG("R3dInput::reset()\n");
 
         ioproxy_clear();
         m_config.reset();
@@ -183,7 +192,7 @@ OIIO_PLUGIN_EXPORTS_END
 void
 R3dInput::initialize()
 {
-    DBG std::cout << "R3dInput::initialize()\n";
+    DBG("R3dInput::initialize()\n");
 
     // initialize SDK
     // R3DSDK::InitializeStatus init_status = R3DSDK::InitializeSdk(".", OPTION_RED_CUDA);
@@ -192,18 +201,18 @@ R3dInput::initialize()
                                 OPTION_RED_NONE);
     if (init_status != R3DSDK::ISInitializeOK) {
         R3DSDK::FinalizeSdk();
-        DBG std::cout << "Failed to load R3DSDK Lib: " << init_status << "\n";
+        DBG("Failed to load R3DSDK Library\n");
         return;
     }
 
-    DBG std::cout << "SDK VERSION: " << R3DSDK::GetSdkVersion() << "\n";
+    DBG("SDK VERSION: {}\n", R3DSDK::GetSdkVersion());
 #ifdef GPU
     // open CUDA device
     RED_CUDA = OpenCUDA(CUDA_DEVICE_ID);
 
     if (RED_CUDA == NULL) {
         R3DSDK::FinalizeSdk();
-        DBG std::cout << "Failed to initialize CUDA\n";
+        DBG("Failed to initialize CUDA\n");
     }
 #endif  // GPU
 }
@@ -214,7 +223,7 @@ bool
 R3dInput::open(const std::string& name, ImageSpec& newspec,
                const ImageSpec& config)
 {
-    DBG std::cout << "R3dInput::open(name, newspec, config)\n";
+    DBG("R3dInput::open(name, newspec, config)\n");
 
     ioproxy_retrieve_from_config(config);
     m_config.reset(new ImageSpec(config));  // save config spec
@@ -226,25 +235,25 @@ R3dInput::open(const std::string& name, ImageSpec& newspec,
 bool
 R3dInput::open(const std::string& name, ImageSpec& newspec)
 {
-    DBG std::cout << "R3dInput::open(name, newspec)\n";
+    DBG("R3dInput::open(name, newspec)\n");
 
     m_filename = name;
 
-    DBG std::cout << "m_filename = " << m_filename << "\n";
+    DBG("m_filename = {}\n", m_filename);
 
     // load the clip
     m_clip = new R3DSDK::Clip(m_filename.c_str());
 
     // let the user know if this failed
     if (m_clip->Status() != R3DSDK::LSClipLoaded) {
-        DBG std::cout << "Error loading " << m_filename << "\n";
+        DBG("Error loading {}\n", m_filename);
 
         delete m_clip;
         m_clip = nullptr;
         return false;
     }
 
-    DBG std::cout << "Loaded " << m_filename << "\n";
+    DBG("Loaded {}\n", m_filename);
 
     // calculate how much ouput memory we're going to need
     size_t width  = m_clip->Width();
@@ -252,13 +261,12 @@ R3dInput::open(const std::string& name, ImageSpec& newspec)
 
     m_channels = 3;
 
-    DBG std::cout << "Video frame count " << m_clip->VideoFrameCount() << "\n";
+    DBG("Video frame count {}\n", m_clip->VideoFrameCount());
 
     m_frames     = m_clip->VideoFrameCount();
     m_nsubimages = m_frames;
 
-    DBG std::cout << "Video framerate " << m_clip->VideoAudioFramerate()
-                  << "\n";
+    DBG("Video framerate {}\n", m_clip->VideoAudioFramerate());
 
     m_fps = m_clip->VideoAudioFramerate();
 
@@ -272,8 +280,8 @@ R3dInput::open(const std::string& name, ImageSpec& newspec)
     m_image_buffer = AlignedMalloc(m_adjusted);
 
     if (m_image_buffer == NULL) {
-        DBG std::cout << "Failed to allocate " << static_cast<int>(memNeeded)
-                      << " bytes of memory for output image\n";
+        DBG("Failed to allocate {} bytes of memory for output image\n",
+            static_cast<int>(memNeeded));
 
         return false;
     }
@@ -310,7 +318,7 @@ R3dInput::open(const std::string& name, ImageSpec& newspec)
 void
 R3dInput::read_frame(int pos)
 {
-    DBG std::cout << "R3dInput::read_frame(" << pos << ")\n";
+    DBG("R3dInput::read_frame({})\n", pos);
 
     if (m_last_decoded_pos + 1 != pos) {
         seek(pos);
@@ -318,7 +326,7 @@ R3dInput::read_frame(int pos)
 
     R3DSDK::DecodeStatus status = m_clip->DecodeVideoFrame(pos, m_job);
     if (status != R3DSDK::DSDecodeOK) {
-        DBG std::cout << "Failed to decode frame " << pos << "\n";
+        DBG("Failed to decode frame {}\n", pos);
     }
 
     m_last_search_pos  = pos;
@@ -332,8 +340,7 @@ R3dInput::read_frame(int pos)
 bool
 R3dInput::seek_subimage(int subimage, int miplevel)
 {
-    DBG std::cout << "R3dInput::seek_subimage(" << subimage << ", " << miplevel
-                  << ")\n";
+    DBG("R3dInput::seek_subimage({}, {})\n", subimage, miplevel);
 
     if (subimage < 0 || subimage >= m_nsubimages || miplevel > 0) {
         return false;
@@ -352,7 +359,7 @@ bool
 R3dInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                void* data)
 {
-    DBG std::cout << "R3dInput::read_native_scanline(, , " << y << ")\n";
+    DBG("R3dInput::read_native_scanline(, , {})\n", y);
 
     lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
@@ -401,7 +408,7 @@ R3dInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
 bool
 R3dInput::seek(int frame)
 {
-    DBG std::cout << "R3dInput::seek(" << frame << ")\n";
+    DBG("R3dInput::seek({})\n", frame);
     return true;
 }
 
@@ -410,7 +417,7 @@ R3dInput::seek(int frame)
 int64_t
 R3dInput::time_stamp(int frame) const
 {
-    DBG std::cout << "R3dInput::time_stamp(" << frame << ")\n";
+    DBG("R3dInput::time_stamp({})\n", frame);
     return 0;
 }
 
@@ -419,7 +426,7 @@ R3dInput::time_stamp(int frame) const
 double
 R3dInput::fps() const
 {
-    DBG std::cout << "R3dInput::fps()\n";
+    DBG("R3dInput::fps()\n");
     return (double)m_fps;
 }
 
@@ -428,7 +435,7 @@ R3dInput::fps() const
 bool
 R3dInput::close()
 {
-    DBG std::cout << "R3dInput::close()\n";
+    DBG("R3dInput::close()\n");
 
     if (m_clip) {
         delete m_clip;
@@ -448,7 +455,7 @@ R3dInput::close()
 void
 R3dInput::terminate()
 {
-    DBG std::cout << "R3dInput::terminate()\n";
+    DBG("R3dInput::terminate()\n");
     R3DSDK::FinalizeSdk();
 }
 
