@@ -55,30 +55,6 @@
 #include <unistd.h>
 #include <vector>
 
-unsigned char*
-AlignedMalloc(size_t& sizeNeeded)
-{
-    // alloc 15 bytes more to make sure we can align the buffer in case it isn't
-    unsigned char* buffer = (unsigned char*)malloc(sizeNeeded + 15U);
-
-    if (!buffer)
-        return nullptr;
-
-    sizeNeeded = 0U;
-
-    // cast to a 32-bit or 64-bit (depending on platform) integer so we can do the math
-    uintptr_t ptr = (uintptr_t)buffer;
-
-    // check if it's already aligned, if it is we're done
-    if ((ptr % 16U) == 0U)
-        return buffer;
-
-    // calculate how many bytes we need
-    sizeNeeded = 16U - (ptr % 16U);
-
-    return buffer + sizeNeeded;
-}
-
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 #if 0 || !defined(NDEBUG) /* allow color configuration debugging */
@@ -133,7 +109,6 @@ private:
     R3DSDK::Clip* m_clip;
     R3DSDK::VideoDecodeJob m_job;
     unsigned char* m_image_buffer;
-    size_t m_adjusted;
     int m_frames;
     int m_channels;
     float m_fps;
@@ -159,7 +134,6 @@ private:
         m_last_search_pos  = 0;
         m_last_decoded_pos = 0;
         m_image_buffer     = nullptr;
-        m_adjusted         = 0;
     }
 
     void close_file() { reset(); }
@@ -273,11 +247,8 @@ R3dInput::open(const std::string& name, ImageSpec& newspec)
     // three channels (RGB) in 16-bit (2 bytes) requires this much memory:
     size_t memNeeded = width * height * m_channels * sizeof(uint16_t);
 
-    // make a copy for AlignedMalloc (it will change it)
-    m_adjusted = memNeeded;
-
     // alloc this memory 16-byte aligned
-    m_image_buffer = AlignedMalloc(m_adjusted);
+    m_image_buffer = static_cast<unsigned char*>(aligned_malloc(memNeeded, 16));
 
     if (m_image_buffer == NULL) {
         DBG("Failed to allocate {} bytes of memory for output image\n",
@@ -442,9 +413,8 @@ R3dInput::close()
         m_clip = nullptr;
     }
     if (m_image_buffer) {
-        free(m_image_buffer - m_adjusted);
+        aligned_free(m_image_buffer);
         m_image_buffer = nullptr;
-        m_adjusted     = 0;
     }
     reset();  // Reset to initial state
     return true;
