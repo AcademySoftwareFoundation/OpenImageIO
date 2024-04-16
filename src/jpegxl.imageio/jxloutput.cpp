@@ -17,7 +17,7 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-#define DBG if (1)
+#define DBG if (0)
 
 class JxlOutput final : public ImageOutput {
 public:
