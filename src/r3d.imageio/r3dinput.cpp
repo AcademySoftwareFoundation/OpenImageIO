@@ -20,26 +20,26 @@
 
 #include <R3DSDK.h>
 #ifdef GPU
-#ifdef CUDA
-#include <R3DSDKCuda.h>
-#endif // CUDA
-#ifdef OpenCL
-#include <R3DSDKOpenCL.h>
-#endif // OpenCL
-#ifdef Metal
-#include <R3DSDKMetal.h>
-#endif // Metal
-#endif // GPU
+#    ifdef CUDA
+#        include <R3DSDKCuda.h>
+#    endif  // CUDA
+#    ifdef OpenCL
+#        include <R3DSDKOpenCL.h>
+#    endif  // OpenCL
+#    ifdef Metal
+#        include <R3DSDKMetal.h>
+#    endif  // Metal
+#endif      // GPU
 #include <R3DSDKDefinitions.h>
 
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #ifdef GPU
-#ifdef CUDA
-#include <cuda_runtime.h>
-#endif // CUDA
-#endif // GPU
+#    ifdef CUDA
+#        include <cuda_runtime.h>
+#    endif  // CUDA
+#endif      // GPU
 #include <vector>
 
 #include <condition_variable>
