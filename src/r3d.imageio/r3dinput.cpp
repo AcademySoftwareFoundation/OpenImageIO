@@ -179,7 +179,7 @@ R3dInput::initialize()
 #else
 #    error "Unknown OS"
 #endif
-                          );
+        );
     // initialize SDK
     // R3DSDK::InitializeStatus init_status = R3DSDK::InitializeSdk(".", OPTION_RED_CUDA);
     R3DSDK::InitializeStatus init_status
