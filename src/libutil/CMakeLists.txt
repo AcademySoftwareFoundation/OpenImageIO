@@ -61,7 +61,7 @@ function (setup_oiio_util_library targetname)
                 $<TARGET_NAME_IF_EXISTS:Boost::filesystem>
                 $<TARGET_NAME_IF_EXISTS:Boost::thread>
                 $<TARGET_NAME_IF_EXISTS:TBB::tbb>
-                # ${CMAKE_DL_LIBS}
+                ${CMAKE_DL_LIBS}
             )
 
     if (GCC_VERSION VERSION_GREATER_EQUAL 12.0
