@@ -1197,20 +1197,40 @@ the `set_ioproxy()` methods.
 
 .. _sec-bundledplugins-jpegxl:
 
-JPEG-XL
+JPEG XL
 ===============================================
 
-JPEG-XL is a new image format that is designed to be a successor to JPEG
-and to provide better compression and quality. JPEG-XL files use the file
-extension :file:`.jxl`. The official JPEG-XL format specification and other
+JPEG XL is a new image format that is designed to be a successor to JPEG
+and to provide better compression and quality. JPEG XL files use the file
+extension :file:`.jxl`. The official JPEG XL format specification and other
 helpful info may be found at: https://jpeg.org/jpegxl/
 
-**Configuration settings for JPEG-XL input**
+**Configuration settings for JPEG XL input**
 
+When opening a JPEG XL ImageInput with a *configuration* (see
+Section :ref:`sec-input with-config`), the following special configuration
+attributes are supported:
 
-**Configuration settings for JPEG-XL output**
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
 
-When opening a JPEG-XL ImageOutput, the following special metadata tokens
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
+   * - ``jpegxl:speed``
+   	 - int
+     - Sets the decoding speed tier for the provided options. Minimum is 0
+       (slowest to decode, best quality/density), and maximum is 4 (fastest to
+       decode, at the cost of some quality/density). Default is 0.
+       
+**Configuration settings for JPEG XL output**
+
+When opening a JPEG XL ImageOutput, the following special metadata tokens
 control aspects of the writing itself:
 
 .. list-table::
@@ -1219,7 +1239,7 @@ control aspects of the writing itself:
 
    * - Output Configuration Attribute
 	 - Type
-	 - JPEG-XL header data or explanation
+	 - JPEG XL header data or explanation
    * - ``oiio:dither``
      - int
      - If nonzero and outputting UINT8 values in the file from a source of
@@ -1252,11 +1272,6 @@ control aspects of the writing itself:
        Default: 7. Higher numbers allow more computation at the expense of time.
        For lossless, generally it will produce smaller files.
        For lossy, higher effort should more accurately reach the target quality.
-   * - ``jpegxl:speed``
-   	 - int
-     - Sets the decoding speed tier for the provided options. Minimum is 0
-       (slowest to decode, best quality/density), and maximum is 4 (fastest to
-       decode, at the cost of some quality/density). Default is 0.
    * - ``jpegxl:photon_noise_iso``
      - float
      - ISO_FILM_SPEED. Adds noise to the image emulating photographic film or
