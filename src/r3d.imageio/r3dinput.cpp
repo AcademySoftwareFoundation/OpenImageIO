@@ -50,6 +50,7 @@
 #include <list>
 #include <map>
 #include <mutex>
+#include <string_view>
 #include <thread>
 #include <time.h>
 #include <unistd.h>
@@ -167,11 +168,22 @@ R3dInput::initialize()
 {
     DBG("R3dInput::initialize()\n");
 
+    std::string library_path
+        = Sysutil::getenv("OIIO_R3D_LIBRARY_PATH",
+#if defined(__linux__)
+                          "/opt/R3DSDKv8_5_1/Redistributable/linux"
+#elif defined(__APPLE__)
+                          "/Library/R3DSDKv8_5_1/Redistributable/mac"
+#elif defined(__WINDOWS__)
+                          "C:\\R3DSDKv8_5_1\\Redistributable\\win"
+#else
+#error "Unknown OS"
+#endif
+                          );
     // initialize SDK
     // R3DSDK::InitializeStatus init_status = R3DSDK::InitializeSdk(".", OPTION_RED_CUDA);
     R3DSDK::InitializeStatus init_status
-        = R3DSDK::InitializeSdk("/opt/R3DSDKv8_5_1/Redistributable/linux",
-                                OPTION_RED_NONE);
+        = R3DSDK::InitializeSdk(library_path.c_str(), OPTION_RED_NONE);
     if (init_status != R3DSDK::ISInitializeOK) {
         R3DSDK::FinalizeSdk();
         DBG("Failed to load R3DSDK Library\n");
