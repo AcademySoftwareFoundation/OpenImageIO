@@ -177,7 +177,7 @@ R3dInput::initialize()
 #elif defined(__WINDOWS__)
                           "C:\\R3DSDKv8_5_1\\Redistributable\\win"
 #else
-#error "Unknown OS"
+#    error "Unknown OS"
 #endif
                           );
     // initialize SDK
