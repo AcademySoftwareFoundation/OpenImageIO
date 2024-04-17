@@ -118,7 +118,6 @@ private:
     int m_last_decoded_pos;
     bool m_read_frame;
     int m_next_scanline;
-    // std::vector<uint16_t> m_pixels;
 
     void initialize();
     void reset()
@@ -330,7 +329,7 @@ bool
 R3dInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                void* data)
 {
-    DBG("R3dInput::read_native_scanline(, , {})\n", y);
+    DBG("R3dInput::read_native_scanline({}, {}, {})\n", subimage, miplevel, y);
 
     lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
@@ -355,6 +354,7 @@ R3dInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         OIIO_DASSERT(m_next_scanline == 0 && current_subimage() == subimage);
     }
 
+#ifdef PLANAR
     uint16_t *r, *g, *b;
     uint16_t* d          = (uint16_t*)data;
     size_t scanline_size = m_spec.width * sizeof(uint16_t);
@@ -372,6 +372,26 @@ R3dInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     }
 
     return true;
+#else
+    bool result;
+
+    for (int channel = 0; channel < m_spec.nchannels; channel++) {
+        result = copy_image(1, m_spec.width, 1, m_spec.depth,
+                            m_image_buffer + y * m_spec.width * sizeof(uint16_t)
+                                + channel * m_spec.width * m_spec.height
+                                      * sizeof(uint16_t),
+                            sizeof(uint16_t), sizeof(uint16_t),
+                            m_spec.width * sizeof(uint16_t),
+                            m_spec.width * m_spec.height * sizeof(uint16_t),
+                            (void*)((uint16_t*)data + channel),
+                            m_spec.nchannels * sizeof(uint16_t),
+                            m_spec.nchannels * m_spec.width * sizeof(uint16_t),
+                            AutoStride);
+        if (!result)
+            return result;
+    }
+    return true;
+#endif  // PLANAR
 }
 
 
