@@ -239,7 +239,7 @@ JxlOutput::open(const std::string& name, const ImageSpec& newspec,
     }
 
     const int effort = m_spec.get_int_attribute("jpegxl:effort", 7);
-    const int speed   = m_spec.get_int_attribute("jpegxl:speed", 0);
+    const int speed  = m_spec.get_int_attribute("jpegxl:speed", 0);
     JxlEncoderFrameSettingsSetOption(m_frame_settings,
                                      JXL_ENC_FRAME_SETTING_EFFORT, effort);
 
@@ -254,8 +254,9 @@ JxlOutput::open(const std::string& name, const ImageSpec& newspec,
             m_spec.get_float_attribute("jpegxl:photon_noise_iso", 0.0f));
 
         DBG std::cout << "Photon noise set to "
-					  << m_spec.get_float_attribute(
-                          "jpegxl:photon_noise_iso", 0.0f) << "\n";
+                      << m_spec.get_float_attribute("jpegxl:photon_noise_iso",
+                                                    0.0f)
+                      << "\n";
     }
 
     // Codestream level should be chosen automatically given the settings
