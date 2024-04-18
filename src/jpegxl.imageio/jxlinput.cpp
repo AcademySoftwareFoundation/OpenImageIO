@@ -58,8 +58,6 @@ private:
     std::unique_ptr<ImageSpec> m_config;  // Saved copy of configuration spec
     std::vector<uint8_t> m_icc_profile;
     uint8_t* m_buffer;
-    //std::vector<float> m_pixels;
-    // std::vector<uint8_t> m_pixels;
 
     void init()
     {
@@ -222,7 +220,6 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
     JxlPixelFormat format;
     JxlDataType jxl_data_type;
     TypeDesc m_data_type;
-    // JxlPixelFormat format = { channels, JXL_TYPE_UINT8, JXL_NATIVE_ENDIAN, 0 };
 
     for (;;) {
         JxlDecoderStatus status = JxlDecoderProcessInput(m_decoder.get());
@@ -317,12 +314,6 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
                 return false;
             }
 
-            //m_pixels.resize(info.xsize * info.ysize * m_channels);
-            //void* pixels_buffer       = (void*)m_pixels.data();
-            //size_t pixels_buffer_size = m_pixels.size() * info.bits_per_sample
-            //                          / 8;
-            // size_t pixels_buffer_size = m_pixels.size() * sizeof(uint8_t);
-            // allocate buffer
             m_buffer = new uint8_t[buffer_size];
 
             if (JXL_DEC_SUCCESS
@@ -353,7 +344,7 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
     }
 
     m_spec = ImageSpec(info.xsize, info.ysize, m_channels, m_data_type);
-    // TypeDesc::UINT8);
+
     newspec = m_spec;
     return true;
 }
@@ -374,10 +365,7 @@ JxlInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     if (y < 0 || y >= m_spec.height)  // out of range scanline
         return false;
 
-    //memcpy(data, (void*)((uint8_t*)(m_pixels.data()) + y * scanline_size),
-    //       scanline_size);
-    memcpy(data, (void*)(m_buffer + y * scanline_size),
-        		   scanline_size);
+    memcpy(data, (void*)(m_buffer + y * scanline_size), scanline_size);
 
     return true;
 }
