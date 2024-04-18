@@ -256,7 +256,7 @@ R3dInput::open(const std::string& name, ImageSpec& newspec)
     m_fps = m_clip->VideoAudioFramerate();
 
     // three channels (RGB) in 16-bit (2 bytes) requires this much memory:
-    size_t memNeeded = width * height * m_channels * sizeof(uint16_t);
+    size_t memNeeded = m_channels * width * height * sizeof(uint16_t);
 
     // alloc this memory 16-byte aligned
     m_image_buffer = static_cast<unsigned char*>(aligned_malloc(memNeeded, 16));
@@ -268,8 +268,6 @@ R3dInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
-    m_job.BytesPerRow = width * sizeof(uint16_t);
-
     // letting the decoder know how big the buffer is (we do that here
     // since AlignedMalloc below will overwrite the value in this
     m_job.OutputBufferSize = memNeeded;
@@ -280,9 +278,14 @@ R3dInput::open(const std::string& name, ImageSpec& newspec)
     m_job.OutputBuffer = m_image_buffer;
 
     // store the image in a 16-bit planar RGB format
-    m_job.PixelType = R3DSDK::PixelType_16Bit_RGB_Planar;
+#ifdef PLANAR
+    m_job.PixelType   = R3DSDK::PixelType_16Bit_RGB_Planar;
+    m_job.BytesPerRow = width * sizeof(uint16_t);
+#else
     // Interleaved RGB decoding in 16-bits per pixel
-    // m_job.PixelType = R3DSDK::PixelType_16Bit_RGB_Interleaved;
+    m_job.PixelType   = R3DSDK::PixelType_16Bit_RGB_Interleaved;
+    m_job.BytesPerRow = m_channels * width * sizeof(uint16_t);
+#endif  // PLANAR
 
     m_spec = ImageSpec(width, height, m_channels, TypeDesc::UINT16);
     m_spec.attribute("FramesPerSecond", TypeFloat, &m_fps);
@@ -384,7 +387,7 @@ R3dInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     }
 
     return true;
-#else
+#elif defined(PLANAR_COPY_IMAGE)
     bool result;
 
     for (int channel = 0; channel < m_spec.nchannels; channel++) {
@@ -403,7 +406,13 @@ R3dInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
             return result;
     }
     return true;
-#endif  // PLANAR
+#else
+    return copy_image(
+        m_spec.nchannels, m_spec.width, 1, m_spec.depth,
+        m_image_buffer + y * m_spec.nchannels * m_spec.width * sizeof(uint16_t),
+        m_spec.nchannels * sizeof(uint16_t), AutoStride, AutoStride, AutoStride,
+        data, AutoStride, AutoStride, AutoStride);
+#endif // PLANAR
 }
 
 
