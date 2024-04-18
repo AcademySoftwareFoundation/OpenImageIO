@@ -26,6 +26,10 @@
 
 using namespace OIIO;
 
+#ifndef OIIOTOOL_METADATA_HISTORY_DEFAULT
+#    define OIIOTOOL_METADATA_HISTORY_DEFAULT 0
+#endif
+
 
 // # FIXME: Refactor all statics into a struct
 
@@ -181,6 +185,13 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
     bool cdf                   = false;
     float cdfsigma             = 1.0f / 6;
     int cdfbits                = 8;
+#if OIIOTOOL_METADATA_HISTORY_DEFAULT
+    bool metadata_history = Strutil::from_string<int>(
+        getenv("OIIOTOOL_METADATA_HISTORY", "1"));
+#else
+    bool metadata_history = Strutil::from_string<int>(
+        getenv("OIIOTOOL_METADATA_HISTORY"));
+#endif
     std::string incolorspace;
     std::string outcolorspace;
     std::string colorconfigname;
@@ -275,6 +286,10 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
       .help("Sets string metadata attribute (name, value)");
     ap.arg("--sansattrib", &sansattrib)
       .help("Write command line into Software & ImageHistory but remove --sattrib and --attrib options");
+    ap.arg("--history", &metadata_history)
+      .help("Write full command line into Exif:ImageHistory, Software metadata attributes");
+    ap.arg("--no-history %!", &metadata_history)
+      .help("Do not write full command line into Exif:ImageHistory, Software metadata attributes");
     ap.arg("--constant-color-detect", &constant_color_detect)
       .help("Create 1-tile textures from constant color inputs");
     ap.arg("--monochrome-detect", &monochrome_detect)
@@ -447,9 +462,10 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
     configspec.attribute("maketx:cdfsigma", cdfsigma);
     configspec.attribute("maketx:cdfbits", cdfbits);
 
-    std::string cmdline
-        = Strutil::fmt::format("OpenImageIO {} : {}", OIIO_VERSION_STRING,
-                               command_line_string(argc, argv, sansattrib));
+    std::string cmdline = command_line_string(argc, argv, sansattrib);
+    cmdline = Strutil::fmt::format("OpenImageIO {} : {}", OIIO_VERSION_STRING,
+                                   metadata_history ? cmdline
+                                                    : SHA1(cmdline).digest());
     configspec.attribute("Software", cmdline);
     configspec.attribute("maketx:full_command_line", cmdline);
 

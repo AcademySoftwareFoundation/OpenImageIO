@@ -53,6 +53,10 @@ using pvt::print_info_options;
 #    define OIIO_UNIT_TESTS 1
 #endif
 
+#ifndef OIIOTOOL_METADATA_HISTORY_DEFAULT
+#    define OIIOTOOL_METADATA_HISTORY_DEFAULT 0
+#endif
+
 
 
 // Macro to fully set up the "action" function that straightforwardly calls
@@ -170,13 +174,20 @@ Oiiotool::clear_options()
     output_dither             = false;
     output_force_tiles        = false;
     metadata_nosoftwareattrib = false;
-    diff_warnthresh           = 1.0e-6f;
-    diff_warnpercent          = 0;
-    diff_hardwarn             = std::numeric_limits<float>::max();
-    diff_failthresh           = 1.0e-6f;
-    diff_failpercent          = 0;
-    diff_hardfail             = std::numeric_limits<float>::max();
-    m_pending_callback        = nullptr;
+#if OIIOTOOL_METADATA_HISTORY_DEFAULT
+    metadata_history = Strutil::from_string<int>(
+        getenv("OIIOTOOL_METADATA_HISTORY", "1"));
+#else
+    metadata_history = Strutil::from_string<int>(
+        getenv("OIIOTOOL_METADATA_HISTORY"));
+#endif
+    diff_warnthresh    = 1.0e-6f;
+    diff_warnpercent   = 0;
+    diff_hardwarn      = std::numeric_limits<float>::max();
+    diff_failthresh    = 1.0e-6f;
+    diff_failpercent   = 0;
+    diff_hardfail      = std::numeric_limits<float>::max();
+    m_pending_callback = nullptr;
     m_pending_argv.clear();
     frame_number        = 0;
     frame_padding       = 0;
@@ -946,18 +957,22 @@ adjust_output_options(string_view filename, ImageSpec& spec,
     // entire command line (eg. when we have loaded it up with metadata attributes
     // that will make it into the header anyway).
     if (!ot.metadata_nosoftwareattrib) {
+        std::string cmdline;
+        if (ot.metadata_history) {
+            cmdline = ot.full_command_line;
+        } else {
+            cmdline = SHA1(ot.full_command_line).digest();
+        }
         std::string history = spec.get_string_attribute("Exif:ImageHistory");
-        if (!Strutil::iends_with(history,
-                                 ot.full_command_line)) {  // don't add twice
+        if (ot.metadata_history && !Strutil::iends_with(history, cmdline)) {
             if (history.length() && !Strutil::iends_with(history, "\n"))
                 history += std::string("\n");
-            history += ot.full_command_line;
+            history += cmdline;
             spec.attribute("Exif:ImageHistory", history);
         }
-
         std::string software = Strutil::fmt::format("OpenImageIO {} : {}",
                                                     OIIO_VERSION_STRING,
-                                                    ot.full_command_line);
+                                                    cmdline);
         spec.attribute("Software", software);
     }
 
@@ -6849,8 +6864,12 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--clear-keywords")
       .help("Clear all keywords")
       .OTACTION(clear_keywords);
+    ap.arg("--history", &ot.metadata_history)
+      .help("Write full command line into Exif:ImageHistory, Software metadata attributes");
+    ap.arg("--no-history %!", &ot.metadata_history)
+      .help("Do not write full command line into Exif:ImageHistory, Software metadata attributes");
     ap.arg("--nosoftwareattrib", &ot.metadata_nosoftwareattrib)
-      .help("Do not write command line into Exif:ImageHistory, Software metadata attributes");
+      .help("Do not write any Exif:ImageHistory or Software metadata attributes");
     ap.arg("--sansattrib", &sansattrib)
       .help("Write command line into Software & ImageHistory but remove --sattrib and --attrib options");
     ap.arg("--orientation %d:ORIENT")
