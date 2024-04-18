@@ -65,6 +65,7 @@ private:
         m_config.reset();
         m_decoder = nullptr;
         m_runner  = nullptr;
+        m_buffer  = nullptr;
     }
 
     void close_file() { init(); }
@@ -380,6 +381,12 @@ JxlInput::close()
     if (ioproxy_opened()) {
         close_file();
     }
+
+    if (m_buffer) {
+        delete[] m_buffer;
+        m_buffer = nullptr;
+    }
+
     init();  // Reset to initial state
     return true;
 }
