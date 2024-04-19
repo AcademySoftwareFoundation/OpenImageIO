@@ -365,4 +365,4 @@ inside the source code.
     images it outputs. The default if this is not set is to only write the
     name and version of the software and an indecipherable hash of the command
     line, but not the full human-readable command line. (This was added in
-    OpenImageIO 2.5.0.)
+    OpenImageIO 2.5.11.)

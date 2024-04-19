@@ -1975,10 +1975,10 @@ current top image.
 
     Prior to OpenImageIO 2.5.11, the full information was always written, but
     could be overridden with `--nosoftwareattrib`. Beginning with 2.5.11, the
-    default changed only say the software name and version (unless the
+    default changed to only write the software name and version (unless the
     `OIIOTOOL_METADATA_HISTORY` environment variable is set), and require the
-    new `--history` option to cause the command line arguments to be saved as
-    meetadata.
+    new `--history` option to cause the command line arguments to be written
+    as metadata.
 
 .. option:: --sansattrib
 
