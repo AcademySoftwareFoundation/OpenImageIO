@@ -60,7 +60,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 #if 0 || !defined(NDEBUG) /* allow R3D configuration debugging */
 static bool r3d_debug = Strutil::stoi(Sysutil::getenv("OIIO_R3D_DEBUG"));
-#    define DBG(...)    \
+#    define DBG(...)   \
         if (r3d_debug) \
         Strutil::print(__VA_ARGS__)
 #else
