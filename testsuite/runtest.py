@@ -138,7 +138,7 @@ if int(os.getenv('TESTSUITE_CLEANUP_ON_SUCCESS', '0')) :
 
 image_extensions = [ ".tif", ".tx", ".exr", ".jpg", ".png", ".rla",
                      ".dpx", ".iff", ".psd", ".bmp", ".fits", ".ico",
-                     ".jp2", ".sgi", ".tga", ".TGA", ".zfile" ]
+                     ".jp2", ".jxl", ".sgi", ".tga", ".TGA", ".zfile" ]
 
 # print ("srcdir = " + srcdir)
 # print ("tmpdir = " + tmpdir)

@@ -1222,11 +1222,6 @@ attributes are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
-   * - ``jpegxl:speed``
-   	 - int
-     - Sets the decoding speed tier for the provided options. Minimum is 0
-       (slowest to decode, best quality/density), and maximum is 4 (fastest to
-       decode, at the cost of some quality/density). Default is 0.
        
 **Configuration settings for JPEG XL output**
 
@@ -1272,9 +1267,16 @@ control aspects of the writing itself:
        Default: 7. Higher numbers allow more computation at the expense of time.
        For lossless, generally it will produce smaller files.
        For lossy, higher effort should more accurately reach the target quality.
+   * - ``jpegxl:speed``
+     - int
+     - Sets the encoding speed tier for the provided options. Minimum is 0
+       (slowest to encode, best quality/density), and maximum is 4 (fastest to
+       encode, at the cost of some quality/density). Default is 0.
+       (Note: in libjxl it named JXL_ENC_FRAME_SETTING_DECODING_SPEED. But it
+       is about encoding speed and compression quality, not decoding speed.)
    * - ``jpegxl:photon_noise_iso``
      - float
-     - ISO_FILM_SPEED. Adds noise to the image emulating photographic film or
+     - (ISO_FILM_SPEED) Adds noise to the image emulating photographic film or
        sensor noise. Higher number = grainier image, e.g. 100 gives a low
        amount of noise, 3200 gives a lot of noise. Default is 0.
        Encoded as metadata in the image.
