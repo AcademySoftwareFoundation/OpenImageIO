@@ -278,15 +278,9 @@ R3dInput::open(const std::string& name, ImageSpec& newspec)
     // store the image here
     m_job.OutputBuffer = m_image_buffer;
 
-    // store the image in a 16-bit planar RGB format
-#ifdef PLANAR
-    m_job.PixelType   = R3DSDK::PixelType_16Bit_RGB_Planar;
-    m_job.BytesPerRow = width * sizeof(uint16_t);
-#else
     // Interleaved RGB decoding in 16-bits per pixel
     m_job.PixelType   = R3DSDK::PixelType_16Bit_RGB_Interleaved;
     m_job.BytesPerRow = m_channels * width * sizeof(uint16_t);
-#endif  // PLANAR
 
     m_spec = ImageSpec(width, height, m_channels, TypeDesc::UINT16);
     m_spec.attribute("FramesPerSecond", TypeFloat, &m_fps);
@@ -370,50 +364,11 @@ R3dInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         OIIO_DASSERT(m_next_scanline == 0 && current_subimage() == subimage);
     }
 
-#ifdef PLANAR
-    uint16_t *r, *g, *b;
-    uint16_t* d          = (uint16_t*)data;
-    size_t scanline_size = m_spec.width * sizeof(uint16_t);
-    size_t plane_size    = scanline_size * m_spec.height;
-
-    r = (uint16_t*)((uint8_t*)m_image_buffer + y * scanline_size);
-    g = (uint16_t*)((uint8_t*)m_image_buffer + y * scanline_size + plane_size);
-    b = (uint16_t*)((uint8_t*)m_image_buffer + y * scanline_size
-                    + 2 * plane_size);
-
-    for (int x = 0; x < m_spec.width; x++) {
-        *d++ = r[x];
-        *d++ = g[x];
-        *d++ = b[x];
-    }
-
-    return true;
-#elif defined(PLANAR_COPY_IMAGE)
-    bool result;
-
-    for (int channel = 0; channel < m_spec.nchannels; channel++) {
-        result = copy_image(1, m_spec.width, 1, m_spec.depth,
-                            m_image_buffer + y * m_spec.width * sizeof(uint16_t)
-                                + channel * m_spec.width * m_spec.height
-                                      * sizeof(uint16_t),
-                            sizeof(uint16_t), sizeof(uint16_t),
-                            m_spec.width * sizeof(uint16_t),
-                            m_spec.width * m_spec.height * sizeof(uint16_t),
-                            (void*)((uint16_t*)data + channel),
-                            m_spec.nchannels * sizeof(uint16_t),
-                            m_spec.nchannels * m_spec.width * sizeof(uint16_t),
-                            AutoStride);
-        if (!result)
-            return result;
-    }
-    return true;
-#else
     return copy_image(
         m_spec.nchannels, m_spec.width, 1, m_spec.depth,
         m_image_buffer + y * m_spec.nchannels * m_spec.width * sizeof(uint16_t),
         m_spec.nchannels * sizeof(uint16_t), AutoStride, AutoStride, AutoStride,
         data, AutoStride, AutoStride, AutoStride);
-#endif // PLANAR
 }
 
 
