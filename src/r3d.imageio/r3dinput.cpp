@@ -148,7 +148,8 @@ OIIO_EXPORT int r3d_imageio_version = OIIO_PLUGIN_VERSION;
 OIIO_EXPORT const char*
 r3d_imageio_library_version()
 {
-    return "R3D";
+    // Note: SDK version can differ from the actual library loaded
+    return "R3D 8.5.1";
 }
 
 OIIO_EXPORT ImageInput*
