@@ -1952,10 +1952,33 @@ current top image.
         are not set, only the first subimage will be changed, or all subimages
         if the `-a` command line flag was used.
 
-.. option:: --nosoftwareattrib
+.. option:: --history
+            --no-history
+            --nosoftwareattrib
 
-    When set, this prevents the normal adjustment of "Software" and
-    "ImageHistory" metadata to reflect what :program:`oiiotool` is doing.
+    By default, oiiotool writes "OpenImageIO <version>" and a SHA-1 hash of
+    the command line as the "Software" metadata in output images.
+    
+    The `--history` option appends the full command line arguments and appends
+    that information to the "ImageHistory" metadata as well. This behavior is
+    "opt-in" because some users may find it undesirable for metadata in the
+    image to potentially reveal any proprietary information that might have
+    been present in the command line arguments.
+    
+    If the `OIIOTOOL_METADATA_HISTORY` environment variable is set to a
+    nonzero integer value, the `--history` option will be enabled by default,
+    but can be disabled on the command line with `--no-history`.
+
+    The `--nosoftwareattrib` option prevents even the minimal default information
+    from being written, so that no information about the software is written
+    to any metadata field.
+
+    Prior to OpenImageIO 2.5.11, the full information was always written, but
+    could be overridden with `--nosoftwareattrib`. Beginning with 2.5.11, the
+    default changed to only write the software name and version (unless the
+    `OIIOTOOL_METADATA_HISTORY` environment variable is set), and require the
+    new `--history` option to cause the command line arguments to be written
+    as metadata.
 
 .. option:: --sansattrib
 

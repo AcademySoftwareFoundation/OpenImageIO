@@ -357,3 +357,12 @@ inside the source code.
     use for its thread pool. If both are set, ``OPENIMAGEIO_THREADS`` will
     take precedence. If neither is set, the default will be 0, which means
     to use as many threads as there are physical cores on the machine.
+
+``OIIOTOOL_METADATA_HISTORY``
+
+    If set to a nonzero integer value, `oiiotool` will by default write the
+    command line into the ImageHistory and Software metadata fields of any
+    images it outputs. The default if this is not set is to only write the
+    name and version of the software and an indecipherable hash of the command
+    line, but not the full human-readable command line. (This was added in
+    OpenImageIO 2.5.11.)

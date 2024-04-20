@@ -49,8 +49,6 @@ Reading noattribs.jpg
 noattribs.jpg        : 2048 x 1536, 3 channel, uint8 jpeg
     SHA-1: A74C7DF2B01825DCB6881407AE77C11DC56AB741
     channel list: R, G, B
-    Exif:ExifVersion: "0230"
-    Exif:FlashPixVersion: "0100"
     jpeg:subsampling: "4:2:0"
     oiio:ColorSpace: "sRGB"
 initial keywords=
@@ -123,8 +121,6 @@ tahoe-icc.jpg        :  128 x   96, 3 channel, uint8 jpeg
     ResolutionUnit: "in"
     XResolution: 72
     YResolution: 72
-    Exif:ExifVersion: "0230"
-    Exif:FlashPixVersion: "0100"
     ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
     ICCProfile:cmm_type: 1094992453
     ICCProfile:color_space: "RGB"
