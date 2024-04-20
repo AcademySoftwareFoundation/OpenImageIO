@@ -126,6 +126,7 @@ public:
     bool output_dither;
     bool output_force_tiles;  // for debugging
     bool metadata_nosoftwareattrib;
+    bool metadata_history;
 
     // Options for --diff
     float diff_warnthresh;

@@ -578,6 +578,11 @@ public:
     SHA1 (const void *data=NULL, size_t size=0);
     ~SHA1 ();
 
+    SHA1 (string_view str) : SHA1(str.data(), str.size()) { }
+
+    template<typename T>
+    SHA1 (span<T> v) : SHA1(v.data(), v.size()) { }
+
     /// Append more data
     void append (const void *data, size_t size);
 
@@ -587,7 +592,7 @@ public:
     }
 
     /// Append more data from a span, without thinking about sizes.
-    template<class T> void append (span<T> v) {
+    template<typename T> void append (span<T> v) {
         append (v.data(), v.size()*sizeof(T));
     }
 
