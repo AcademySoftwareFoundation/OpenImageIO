@@ -5,16 +5,7 @@
 
 #pragma once
 
-// Determine which Imath we're dealing with and include the appropriate path
-// to half.h.
-
-#if defined(__has_include) && __has_include(<Imath/half.h>)
-#    include <Imath/half.h>
-#elif @OIIO_USING_IMATH@ >= 3
-#    include <Imath/half.h>
-#else
-#    include <OpenEXR/half.h>
-#endif
+#include <Imath/half.h>
 
 
 #if defined(FMT_VERSION) && !defined(OIIO_HALF_FORMATTER)

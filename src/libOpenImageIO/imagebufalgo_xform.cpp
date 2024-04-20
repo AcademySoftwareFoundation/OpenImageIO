@@ -19,11 +19,7 @@
 #include <OpenImageIO/imagebufalgo_util.h>
 #include <OpenImageIO/thread.h>
 
-#if OIIO_USING_IMATH >= 3
-#    include <Imath/ImathBox.h>
-#else
-#    include <OpenEXR/ImathBox.h>
-#endif
+#include <Imath/ImathBox.h>
 
 OIIO_NAMESPACE_BEGIN
 

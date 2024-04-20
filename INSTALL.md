@@ -20,8 +20,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * Compilers: **gcc 9.3** - 13.1, **clang 5** - 17, MSVS 2017 - 2019 (**v19.14
    and up**), **Intel icc 19+**, Intel OneAPI C++ compiler 2022+.
  * **CMake >= 3.15** (tested through 3.28)
- * **OpenEXR/Imath >= 2.4** (recommended: 3.1 or higher; tested through 3.2
-   and main) (ADVISORY: We expect that OIIO 2.6 in 2024 will require OpenEXR >= 3.1)
+ * **OpenEXR/Imath >= 3.1** (tested through 3.2
+   and main) 
  * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.6)
  * libjpeg >= 8 (tested through jpeg9e), or **libjpeg-turbo >= 2.1** (tested
    through 3.0)

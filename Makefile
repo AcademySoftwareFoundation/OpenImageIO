@@ -79,10 +79,6 @@ ifneq (${OPENEXR_ROOT},)
 MY_CMAKE_FLAGS += -DOPENEXR_ROOT:STRING=${OPENEXR_ROOT}
 endif
 
-ifneq (${ILMBASE_ROOT},)
-MY_CMAKE_FLAGS += -DILMBASE_ROOT:STRING=${ILMBASE_ROOT}
-endif
-
 ifneq (${NUKE_VERSION},)
 MY_CMAKE_FLAGS += -DNUKE_VERSION:STRING=${NUKE_VERSION}
 endif
@@ -384,7 +380,6 @@ help:
 	@echo "          PTex  R3DSDK  TBB  TIFF  Webp"
 	@echo "  Finding and Using Dependencies:"
 	@echo "      OPENEXR_ROOT=path        Custom OpenEXR installation"
-	@echo "      ILMBASE_ROOT=path        Custom IlmBase installation"
 	@echo "      USE_EXTERNAL_PUGIXML=1   Use the system PugiXML, not the one in OIIO"
 	@echo "      USE_QT=0                 Skip anything that needs Qt"
 	@echo "      USE_PYTHON=0             Don't build the Python binding"

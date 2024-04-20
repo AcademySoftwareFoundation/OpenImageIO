@@ -34,18 +34,19 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - desc: gcc9/C++17 py3.7 exr2.5 ocio2.0
+          - desc: gcc9/C++17 py3.7 exr3.1 ocio2.0
             nametag: linux-vfx2021
             runner: ubuntu-latest
             container: aswf/ci-osl:2021
             vfxyear: 2021
             cxx_std: 17
+            openexr_ver: v3.1.13
             python_ver: 3.7
             simd: "avx2,f16c"
             fmt_ver: 7.1.0
             pybind11_ver: v2.7.0
-            setenvs: export PUGIXML_VERSION=v1.9 WEBP_VERSION=v1.1.0
-          - desc: clang10/C++17 avx2 exr2.5 ocio2.0
+            setenvs: export PUGIXML_VERSION=v1.9 WEBP_VERSION=v1.1.0 USE_OPENVDB=0
+          - desc: clang10/C++14 avx2 exr3.1 ocio2.0
             nametag: linux-clang10-cpp14
             runner: ubuntu-latest
             container: aswf/ci-osl:2021-clang10
@@ -53,10 +54,12 @@ jobs:
             cc_compiler: clang
             cxx_compiler: clang++
             cxx_std: 17
+            openexr_ver: v3.1.13
             pybind11_ver: v2.6.2
             python_ver: 3.7
             simd: "avx2,f16c"
             fmt_ver: 8.1.1
+            setenvs: export USE_OPENVDB=0
           - desc: gcc9/C++17 py39 exr3.1 ocio2.1
             nametag: linux-vfx2022
             runner: ubuntu-latest
@@ -140,7 +143,7 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             pybind11_ver: v2.10.0
-          - desc: oldest/hobbled gcc9.3/C++17 py3.7 exr-2.4 no-sse no-ocio
+          - desc: oldest/hobbled gcc9.3/C++17 py3.7 exr-3.1 no-sse no-ocio
             # Oldest versions of the dependencies that we can muster, and various
             # things disabled (no SSE, OCIO, or OpenCV, don't embed plugins).
             nametag: linux-oldest
@@ -149,7 +152,7 @@ jobs:
             vfxyear: 2021
             cxx_std: 17
             fmt_ver: 7.0.1
-            openexr_ver: v2.4.0
+            openexr_ver: v3.1.0
             pybind11_ver: v2.4.2
             python_ver: 3.7
             simd: 0
@@ -278,7 +281,7 @@ jobs:
             cxx_compiler: g++-12
             cxx_std: 17
             fmt_ver: 10.1.1
-            openexr_ver: v3.2.1
+            openexr_ver: v3.2.4
             pybind11_ver: v2.11.1
             python_ver: "3.10"
             simd: avx2,f16c
@@ -321,7 +324,7 @@ jobs:
             cc_compiler: clang
             cxx_std: 20
             fmt_ver: 10.1.1
-            openexr_ver: v3.1.11
+            openexr_ver: v3.1.13
             pybind11_ver: v2.9.2
             python_ver: 3.8
             simd: avx2,f16c
@@ -329,14 +332,14 @@ jobs:
                             OPENCOLORIO_VERSION=v2.1.2
                             USE_OPENVDB=0
                             # The installed OpenVDB has a TLS conflict with Python 3.8
-          - desc: debug gcc9/C++17, sse4.2, exr2.4
+          - desc: debug gcc9/C++17, sse4.2, exr3.1
             nametag: linux-gcc9-cpp17-debug
             runner: ubuntu-20.04
             cxx_compiler: g++-9
             cxx_std: 17
             python_ver: 3.8
             simd: sse4.2
-            openexr_ver: v2.4.3
+            openexr_ver: v3.1.13
             pybind11_ver: v2.6.2
             setenvs: export CMAKE_BUILD_TYPE=Debug
                             PUGIXML_VERSION=v1.9
@@ -346,7 +349,7 @@ jobs:
             runner: ubuntu-20.04
             cxx_compiler: g++-9
             cxx_std: 17
-            openexr_ver: v2.4.3
+            openexr_ver: v3.1.13
             python_ver: 3.8
             pybind11_ver: v2.6.2
             setenvs: export BUILD_SHARED_LIBS=OFF
@@ -363,6 +366,7 @@ jobs:
             runner: ubuntu-latest
             cxx_std: 17
             extra_artifacts: "src/*.*"
+            openexr_ver: v3.1.13
             python_ver: "3.10"
             skip_tests: 1
             setenvs: export BUILDTARGET=clang-format
@@ -508,14 +512,14 @@ jobs:
             runner: windows-2019
             vsver: 2019
             generator: "Visual Studio 16 2019"
-            openexr_ver: v3.2.2
+            openexr_ver: v3.2.4
             python_ver: 3.7
             # simd: sse4.2
           - desc: windows-2022
             runner: windows-2022
             vsver: 2022
             generator: "Visual Studio 17 2022"
-            openexr_ver: v3.2.2
+            openexr_ver: v3.2.4
             python_ver: "3.9"
             # simd: sse4.2
     runs-on: ${{ matrix.runner }}
