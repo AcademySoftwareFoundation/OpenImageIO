@@ -353,7 +353,7 @@ JxlOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
 {
     DBG std::cout << "JxlOutput::write_tiles()\n";
 
-    // Call the parent class default implementation of write_tiles, which 
+    // Call the parent class default implementation of write_tiles, which
     // will loop over the tiles and write each one individually.
     return ImageOutput::write_tiles(xbegin, xend, ybegin, yend, zbegin, zend,
                                     format, data, xstride, ystride, zstride);
