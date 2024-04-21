@@ -77,6 +77,13 @@ ImageInput::operator delete(void* ptr)
 ImageInput::ImageInput()
     : m_impl(new Impl, impl_deleter)
 {
+    // Ensure that if this ImageInput has the same address as a previous one
+    // that has been destroyed, we don't somehow inherit its error state!
+    auto iter = input_error_messages.find(this);
+    if (iter != input_error_messages.end()) {
+        // print("Recycled ImageInput had error state\n");
+        input_error_messages.erase(iter);
+    }
 }
 
 

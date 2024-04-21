@@ -49,6 +49,9 @@ spin_mutex ImageCacheImpl::m_perthread_info_mutex;
 
 namespace {  // anonymous
 
+static thread_local tsl::robin_map<const ImageCacheImpl*, std::string>
+    imcache_error_messages;
+
 static std::shared_ptr<ImageCacheImpl> shared_image_cache;
 static spin_mutex shared_image_cache_mutex;
 
@@ -64,9 +67,6 @@ static ustring s_datawindow("datawindow"), s_displaywindow("displaywindow");
 static ustring s_averagecolor("averagecolor"), s_averagealpha("averagealpha");
 static ustring s_constantcolor("constantcolor");
 static ustring s_constantalpha("constantalpha");
-
-static thread_local tsl::robin_map<const ImageCacheImpl*, std::string>
-    imcache_error_messages;
 
 // constantly increasing, so we can avoid issues if an ImageCache pointer is re-used after being freed
 static std::atomic_int64_t imagecache_id_atomic = 0;
@@ -1680,6 +1680,14 @@ ImageCacheImpl::set_max_open_files(int max_open_files)
 void
 ImageCacheImpl::init()
 {
+    // Ensure that if this IC has the same address as a previous one
+    // that has been destroyed, we don't somehow inherit its error state!
+    auto iter = imcache_error_messages.find(this);
+    if (iter != imcache_error_messages.end()) {
+        // print("Recycled ImageCache had error state\n");
+        imcache_error_messages.erase(iter);
+    }
+
     set_max_open_files(100);
     m_max_memory_bytes     = 1024LL * 1024 * 1024;  // 1 GB default cache size
     m_autotile             = 0;

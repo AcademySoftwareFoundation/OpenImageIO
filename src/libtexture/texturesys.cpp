@@ -53,6 +53,9 @@ static spin_mutex shared_texturesys_mutex;
 static bool do_unit_test_texture    = false;
 static float unit_test_texture_blur = 0.0f;
 
+static thread_local tsl::robin_map<const TextureSystemImpl*, std::string>
+    txsys_error_messages;
+
 static vfloat4 u8scale(1.0f / 255.0f);
 static vfloat4 u16scale(1.0f / 65535.0f);
 
@@ -333,6 +336,14 @@ TextureSystemImpl::TextureSystemImpl(ImageCache* imagecache)
 void
 TextureSystemImpl::init()
 {
+    // Ensure that if this TS has the same address as a previous one
+    // that has been destroyed, we don't somehow inherit its error state!
+    auto iter = txsys_error_messages.find(this);
+    if (iter != txsys_error_messages.end()) {
+        // print("Recycled TextureSystem had error state\n");
+        txsys_error_messages.erase(iter);
+    }
+
     m_Mw2c.makeIdentity();
     m_gray_to_rgb       = false;
     m_flip_t            = false;
@@ -900,8 +911,7 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
     return ok;
 }
 
-static thread_local tsl::robin_map<const TextureSystemImpl*, std::string>
-    txsys_error_messages;
+
 
 bool
 TextureSystemImpl::has_error() const

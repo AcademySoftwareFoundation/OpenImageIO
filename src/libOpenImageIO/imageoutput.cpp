@@ -80,6 +80,13 @@ ImageOutput::operator delete(void* ptr)
 ImageOutput::ImageOutput()
     : m_impl(new Impl, impl_deleter)
 {
+    // Ensure that if this ImageOutput has the same address as a previous one
+    // that has been destroyed, we don't somehow inherit its error state!
+    auto iter = output_error_messages.find(this);
+    if (iter != output_error_messages.end()) {
+        // print("Recycled ImageOutput had error state\n");
+        output_error_messages.erase(iter);
+    }
 }
 
 
