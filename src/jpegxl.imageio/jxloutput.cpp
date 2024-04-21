@@ -263,7 +263,7 @@ JxlOutput::open(const std::string& name, const ImageSpec& newspec,
     JxlEncoderSetBasicInfo(m_encoder.get(), &m_basic_info);
 
     if (m_basic_info.num_extra_channels > 0) {
-        for (int i = 0; i < m_basic_info.num_extra_channels; i++) {
+        for (uint32_t i = 0; i < m_basic_info.num_extra_channels; i++) {
             JxlExtraChannelType type = JXL_CHANNEL_ALPHA;
             JxlExtraChannelInfo extra_channel_info;
 
@@ -351,9 +351,12 @@ JxlOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
                        int zend, TypeDesc format, const void* data,
                        stride_t xstride, stride_t ystride, stride_t zstride)
 {
-    // placeholder
+    DBG std::cout << "JxlOutput::write_tiles()\n";
 
-    return true;
+    // Call the parent class default implementation of write_tiles, which 
+    // will loop over the tiles and write each one individually.
+    return ImageOutput::write_tiles(xbegin, xend, ybegin, yend, zbegin, zend,
+                                    format, data, xstride, ystride, zstride);
 };
 
 
