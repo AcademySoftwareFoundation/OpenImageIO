@@ -187,7 +187,7 @@ JxlOutput::open(const std::string& name, const ImageSpec& newspec,
     JxlEncoderSetBasicInfo(m_encoder.get(), &m_basic_info);
 
     if (m_basic_info.num_extra_channels > 0) {
-        for (int i = 0; i < m_basic_info.num_extra_channels; i++) {
+        for (uint32_t i = 0; i < m_basic_info.num_extra_channels; i++) {
             JxlExtraChannelType type = JXL_CHANNEL_ALPHA;
             JxlExtraChannelInfo extra_channel_info;
 
