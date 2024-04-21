@@ -53,8 +53,8 @@ static spin_mutex shared_texturesys_mutex;
 static bool do_unit_test_texture    = false;
 static float unit_test_texture_blur = 0.0f;
 
-static thread_local tsl::robin_map<const TextureSystemImpl*, std::string>
-    txsys_error_messages;
+static thread_local tsl::robin_map<int64_t, std::string> txsys_error_messages;
+static std::atomic_int64_t txsys_next_id(0);
 
 static vfloat4 u8scale(1.0f / 255.0f);
 static vfloat4 u16scale(1.0f / 65535.0f);
@@ -326,6 +326,7 @@ texture_type_name(TexFormat f)
 
 
 TextureSystemImpl::TextureSystemImpl(ImageCache* imagecache)
+    : m_id(++txsys_next_id)
 {
     m_imagecache = (ImageCacheImpl*)imagecache;
     init();
@@ -336,14 +337,6 @@ TextureSystemImpl::TextureSystemImpl(ImageCache* imagecache)
 void
 TextureSystemImpl::init()
 {
-    // Ensure that if this TS has the same address as a previous one
-    // that has been destroyed, we don't somehow inherit its error state!
-    auto iter = txsys_error_messages.find(this);
-    if (iter != txsys_error_messages.end()) {
-        // print("Recycled TextureSystem had error state\n");
-        txsys_error_messages.erase(iter);
-    }
-
     m_Mw2c.makeIdentity();
     m_gray_to_rgb       = false;
     m_flip_t            = false;
@@ -369,7 +362,7 @@ TextureSystemImpl::~TextureSystemImpl()
     // Erase any leftover errors from this thread
     // TODO: can we clear other threads' errors?
     // TODO: potentially unsafe due to the static destruction order fiasco
-    // txsys_error_messages.erase(this);
+    // txsys_error_messages.erase(m_id);
 }
 
 
@@ -916,7 +909,7 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
 bool
 TextureSystemImpl::has_error() const
 {
-    auto iter = txsys_error_messages.find(this);
+    auto iter = txsys_error_messages.find(m_id);
     if (iter == txsys_error_messages.end())
         return false;
     return iter.value().size() > 0;
@@ -928,7 +921,7 @@ std::string
 TextureSystemImpl::geterror(bool clear) const
 {
     std::string e;
-    auto iter = txsys_error_messages.find(this);
+    auto iter = txsys_error_messages.find(m_id);
     if (iter != txsys_error_messages.end()) {
         e = iter.value();
         if (clear)
@@ -944,7 +937,7 @@ TextureSystemImpl::append_error(string_view message) const
 {
     if (message.size() && message.back() == '\n')
         message.remove_suffix(1);
-    std::string& err_str = txsys_error_messages[this];
+    std::string& err_str = txsys_error_messages[m_id];
     OIIO_DASSERT(
         err_str.size() < 1024 * 1024 * 16
         && "Accumulated error messages > 16MB. Try checking return codes!");

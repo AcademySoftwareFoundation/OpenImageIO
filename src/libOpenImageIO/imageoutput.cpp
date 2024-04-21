@@ -30,16 +30,22 @@ using namespace pvt;
 
 
 // store an error message per thread, for a specific ImageInput
-static thread_local tsl::robin_map<const ImageOutput*, std::string>
-    output_error_messages;
+static thread_local tsl::robin_map<uint64_t, std::string> output_error_messages;
+static std::atomic_int64_t output_next_id(0);
 
 
 class ImageOutput::Impl {
 public:
+    Impl()
+        : m_id(++output_next_id)
+    {
+    }
+
     // Unneeded?
     //  // So we can lock this ImageOutput for the thread-safe methods.
     //  std::recursive_mutex m_mutex;
 
+    uint64_t m_id;
     int m_threads = 0;
 
     // The IOProxy object we will use for all I/O operations.
@@ -80,13 +86,6 @@ ImageOutput::operator delete(void* ptr)
 ImageOutput::ImageOutput()
     : m_impl(new Impl, impl_deleter)
 {
-    // Ensure that if this ImageOutput has the same address as a previous one
-    // that has been destroyed, we don't somehow inherit its error state!
-    auto iter = output_error_messages.find(this);
-    if (iter != output_error_messages.end()) {
-        // print("Recycled ImageOutput had error state\n");
-        output_error_messages.erase(iter);
-    }
 }
 
 
@@ -276,7 +275,7 @@ ImageOutput::append_error(string_view message) const
 {
     if (message.size() && message.back() == '\n')
         message.remove_suffix(1);
-    std::string& err_str = output_error_messages[this];
+    std::string& err_str = output_error_messages[m_impl->m_id];
     OIIO_DASSERT(
         err_str.size() < 1024 * 1024 * 16
         && "Accumulated error messages > 16MB. Try checking return codes!");
@@ -705,7 +704,7 @@ ImageOutput::copy_tile_to_image_buffer(int x, int y, int z, TypeDesc format,
 bool
 ImageOutput::has_error() const
 {
-    auto iter = output_error_messages.find(this);
+    auto iter = output_error_messages.find(m_impl->m_id);
     if (iter == output_error_messages.end())
         return false;
     return iter.value().size() > 0;
@@ -717,7 +716,7 @@ std::string
 ImageOutput::geterror(bool clear) const
 {
     std::string e;
-    auto iter = output_error_messages.find(this);
+    auto iter = output_error_messages.find(m_impl->m_id);
     if (iter != output_error_messages.end()) {
         e = iter.value();
         if (clear)
