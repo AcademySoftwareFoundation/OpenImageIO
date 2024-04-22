@@ -551,9 +551,10 @@ private:
                            float dsdy, float dtdy, float sblur, float tblur);
 
     ImageCacheImpl* m_imagecache = nullptr;
-    bool m_imagecache_owner      = false;  ///< True if we own the ImageCache
-    Imath::M44f m_Mw2c;                    ///< world-to-"common" matrix
-    Imath::M44f m_Mc2w;                    ///< common-to-world matrix
+    uint64_t m_id;                    // A unique ID for this TextureSystem
+    Imath::M44f m_Mw2c;               ///< world-to-"common" matrix
+    Imath::M44f m_Mc2w;               ///< common-to-world matrix
+    bool m_imagecache_owner = false;  ///< True if we own the ImageCache
     bool m_gray_to_rgb;       ///< automatically copy gray to rgb channels?
     bool m_flip_t;            ///< Flip direction of t coord?
     int m_max_tile_channels;  ///< narrow tile ID channel range when

@@ -27,13 +27,20 @@ using namespace pvt;
 
 
 // store an error message per thread, for a specific ImageInput
-static thread_local tsl::robin_map<const ImageInput*, std::string>
-    input_error_messages;
+static thread_local tsl::robin_map<uint64_t, std::string> input_error_messages;
+static std::atomic_int64_t input_next_id(0);
+
 
 class ImageInput::Impl {
 public:
+    Impl()
+        : m_id(++input_next_id)
+    {
+    }
+
     // So we can lock this ImageInput for the thread-safe methods.
     std::recursive_mutex m_mutex;
+    uint64_t m_id;
     int m_threads = 0;
 
     // The IOProxy object we will use for all I/O operations.
@@ -86,7 +93,7 @@ ImageInput::~ImageInput()
     // Erase any leftover errors from this thread
     // TODO: can we clear other threads' errors?
     // TODO: potentially unsafe due to the static destruction order fiasco
-    // input_error_messages.erase(this);
+    // input_error_messages.erase(m_impl->m_id);
 }
 
 
@@ -1096,7 +1103,7 @@ ImageInput::append_error(string_view message) const
 {
     if (message.size() && message.back() == '\n')
         message.remove_suffix(1);
-    std::string& err_str = input_error_messages[this];
+    std::string& err_str = input_error_messages[m_impl->m_id];
     OIIO_DASSERT(
         err_str.size() < 1024 * 1024 * 16
         && "Accumulated error messages > 16MB. Try checking return codes!");
@@ -1112,7 +1119,7 @@ ImageInput::append_error(string_view message) const
 bool
 ImageInput::has_error() const
 {
-    auto iter = input_error_messages.find(this);
+    auto iter = input_error_messages.find(m_impl->m_id);
     if (iter == input_error_messages.end())
         return false;
     return iter.value().size() > 0;
@@ -1124,7 +1131,7 @@ std::string
 ImageInput::geterror(bool clear) const
 {
     std::string e;
-    auto iter = input_error_messages.find(this);
+    auto iter = input_error_messages.find(m_impl->m_id);
     if (iter != input_error_messages.end()) {
         e = iter.value();
         if (clear)
