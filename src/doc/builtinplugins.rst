@@ -1766,22 +1766,23 @@ and :ref:`sec-imageinput-ioproxy`) as well as the `set_ioproxy()` methods.
 PNM / Netpbm
 ===============================================
 
-The Netpbm project, a.k.a. PNM (portable "any" map) defines PBM, PGM,
-and PPM (portable bitmap, portable graymap, portable pixmap) files.
+The Netpbm project, a.k.a. PNM (portable "any" map) defines PBM, PGM, PPM
+and later added PFM (portable float map) as a set of simple image formats
+(portable bitmap, portable graymap, portable pixmap) files.
 Without loss of generality, we will refer to these all collectively as
-"PNM."  These files have extensions :file:`.pbm`, :file:`.pgm`, and
-:file:`.ppm` and customarily correspond to bi-level bitmaps, 1-channel
-grayscale, and 3-channel RGB files, respectively, or :file:`.pnm` for
-those who reject the nonsense about naming the files depending on the
+"PNM."  These files have extensions :file:`.pbm`, :file:`.pgm`,
+:file:`.ppm`, :file:`.pfm` and customarily correspond to bi-level bitmaps,
+1-channel grayscale, and 3-channel RGB files, respectively, or :file:`.pnm`
+for those who reject the nonsense about naming the files depending on the
 number of channels and bitdepth.
 
-PNM files are not much good for anything, but because of their
-historical significance and extreme simplicity (that causes many
-"amateur" programs to write images in these formats), OpenImageIO
-supports them.  PNM files do not support floating point images, anything
-other than 1 or 3 channels, no tiles, no multi-image, no MIPmapping.
-It's not a smart choice unless you are sending your images back to the
-1980's via a time machine.
+PNM files widely used in the Unix world as simple ASCII or binary image 
+files that are easy to read and write. They are not compressed, and are
+not particularly efficient for large images. They are not widely used in
+the professional graphics world, but because of their historical
+significance and extreme simplicity, OpenImageIO supports them.
+PNM files do not support anything other than 1 or 3 channels, no tiles,
+no multi-image, no MIPmapping.
 
 **Attributes**
 
@@ -1801,6 +1802,7 @@ It's not a smart choice unless you are sending your images back to the
      - nonzero if the file itself used the PNM binary format, 0 if it used
        ASCII.  The PNM writer honors this attribute in the ImageSpec to
        determine whether to write an ASCII or binary file.
+       Float PFM files are always written in binary format.
 
 **Configuration settings for PNM input**
 

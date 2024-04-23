@@ -3,12 +3,14 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #include <fstream>
+#include <cstdio>
 
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
+#define DBG if (0)
 
 class PNMOutput final : public ImageOutput {
 public:
@@ -30,7 +32,10 @@ public:
 
 private:
     std::string m_filename;  // Stash the filename
-    unsigned int m_max_val, m_pnm_type;
+    unsigned int m_max_val;
+    unsigned int m_pnm_type;
+    std::string m_pfn_type;
+
     unsigned int m_dither;
     std::vector<unsigned char> m_scratch;
     std::vector<unsigned char> m_tilebuffer;
@@ -39,6 +44,7 @@ private:
 
     bool write_ascii_binary(const unsigned char* data, const stride_t stride);
     bool write_raw_binary(const unsigned char* data, const stride_t stride);
+    bool write_float(const float* data, const stride_t stride);
 
     template<class T>
     bool write_ascii(const T* data, const stride_t stride,
@@ -58,8 +64,8 @@ pnm_output_imageio_create()
     return new PNMOutput;
 }
 
-OIIO_EXPORT const char* pnm_output_extensions[] = { "ppm", "pgm", "pbm", "pnm",
-                                                    nullptr };
+OIIO_EXPORT const char* pnm_output_extensions[] = { "ppm", "pgm", "pbm",
+                                                    "pnm", "pfm", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 
@@ -141,6 +147,23 @@ PNMOutput::write_raw(const T* data, const stride_t stride, unsigned int max_val)
 
 
 bool
+PNMOutput::write_float(const float* data, const stride_t stride)
+{
+    int nc = m_spec.nchannels;
+    for (int x = 0; x < m_spec.width; x++) {
+        unsigned int pixel = x * stride;
+        for (int c = 0; c < nc; c++) {
+            float val = data[pixel + c];
+            if (!iowrite(&val, sizeof(val)))
+                return false;
+        }
+    }
+    return true;
+}
+
+
+
+bool
 PNMOutput::open(const std::string& name, const ImageSpec& userspec,
                 OpenMode mode)
 {
@@ -148,33 +171,84 @@ PNMOutput::open(const std::string& name, const ImageSpec& userspec,
                     uint64_t(OpenChecks::Disallow2Channel)))
         return false;
 
-    m_spec.set_format(TypeDesc::UINT8);  // Force 8 bit output
-    int bits_per_sample = m_spec.get_int_attribute("oiio:BitsPerSample", 8);
-    m_dither            = (m_spec.format == TypeDesc::UINT8)
-                              ? m_spec.get_int_attribute("oiio:dither", 0)
-                              : 0;
+    DBG std::cerr << "Bit depth: " << m_spec.format << "\n";
+
+    m_pnm_type = 0;
+    m_pfn_type = "";
+
+
+    int bits_per_sample = 0;
+    if (m_spec.find_attribute("oiio:BitsPerSample")) {
+        bits_per_sample = m_spec.get_int_attribute("oiio:BitsPerSample", 8);
+    }
+
+    bool p_binary = m_spec.get_int_attribute("pnm:binary", 1);
 
     if (bits_per_sample == 1)
-        m_pnm_type = 4;
-    else if (m_spec.nchannels == 1)
-        m_pnm_type = 5;
-    else
-        m_pnm_type = 6;
-    if (!m_spec.get_int_attribute("pnm:binary", 1))
-        m_pnm_type -= 3;
+        m_pnm_type = p_binary ? 4 : 1;
+    else if (m_spec.nchannels == 1) {
+        if (m_spec.format.basetype != TypeDesc::FLOAT) {
+            m_pnm_type = p_binary ? 5 : 2;
+        } else {
+            m_pfn_type = "f";
+        }
+    } else if (bits_per_sample != 0)
+        m_pnm_type = p_binary ? 6 : 4;
+    else {
+        // no bits per sample specified
+        // format from the spec
+        switch (m_spec.format.basetype) {
+        case TypeDesc::UINT8:
+        case TypeDesc::UINT16: m_pnm_type = p_binary ? 6 : 3; break;
+        case TypeDesc::FLOAT:
+            // PFM format always binary body
+            m_pfn_type = (m_spec.nchannels == 1) ? "f" : "F";
+            break;
+        default:
+            errorfmt("PNM does not support %s", m_spec.format.c_str());
+            return false;
+        }
+    };
+
+    //if (!m_spec.get_int_attribute("pnm:binary", 1))
+    //    m_pnm_type -= 3;
+
+    m_dither = (m_spec.format == TypeDesc::UINT8)
+                   ? m_spec.get_int_attribute("oiio:dither", 0)
+                   : 0;
 
     ioproxy_retrieve_from_config(m_spec);
     if (!ioproxy_use_or_open(name))
         return false;
 
-    m_max_val = (1 << bits_per_sample) - 1;
     // Write header
     bool ok = true;
-    ok &= iowritefmt("P{}\n", m_pnm_type);
-    ok &= iowritefmt("{} {}\n", m_spec.width, m_spec.height);
-    if (m_pnm_type != 1 && m_pnm_type != 4)  // only non-monochrome
-        ok &= iowritefmt("{}\n", m_max_val);
+    if (bits_per_sample != 0) {
+        // user specified bits per sample
+        if (m_pfn_type == "") {
+            ok &= iowritefmt("P{}\n", m_pnm_type);
+            m_max_val = (bits_per_sample == 16) ? 65535 : 255;
+        } else {
+            ok &= iowritefmt("P{}\n", m_pfn_type);
+        }
+    } else {
+        // no bits per sample specified
+        if (m_pfn_type == "") {
+            m_max_val = (m_spec.format == TypeDesc::UINT16) ? 65535 : 255;
+            ok &= iowritefmt("P{}\n", m_pnm_type);
+        } else {
+            ok &= iowritefmt("P{}\n", m_pfn_type);
+        }
+    }
 
+    ok &= iowritefmt("{} {}\n", m_spec.width, m_spec.height);
+    
+    if (m_pnm_type != 1 && m_pnm_type != 4) {  // only non-monochrome
+        if (m_pfn_type == "")
+			ok &= iowritefmt("{}\n", m_max_val);
+        else
+            ok &= iowritefmt("{}\n", "-1.0");
+    }
     // If user asked for tiles -- which this format doesn't support, emulate
     // it by buffering the whole image.
     if (m_spec.tile_width && m_spec.tile_height)
@@ -222,6 +296,12 @@ PNMOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
         xstride = spec().nchannels;
 
     switch (m_pnm_type) {
+    case 0:
+        if (m_pfn_type != "") {
+            xstride = spec().nchannels;
+            return write_float((float*)data, xstride);
+        } else
+            return false;
     case 1: return write_ascii_binary((unsigned char*)data, xstride);
     case 2:
     case 3:
