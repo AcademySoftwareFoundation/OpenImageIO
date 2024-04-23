@@ -136,7 +136,7 @@ PNGInput::open(const std::string& name, ImageSpec& newspec)
     if (ioproxy()->pread(sig, sizeof(sig), 0) != sizeof(sig)
         || png_sig_cmp(sig, 0, 8)) {
         if (!has_error())
-            errorf("Not a PNG file");
+            errorfmt("Not a PNG file");
         return false;  // Read failed
     }
 
@@ -283,7 +283,7 @@ PNGInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
             // std::cerr << "reading scanline " << m_next_scanline << "\n";
             std::string s = PNG_pvt::read_next_scanline(m_png, data);
             if (s.length()) {
-                errorf("%s", s);
+                errorfmt("{}", s);
                 return false;
             }
             if (m_err)

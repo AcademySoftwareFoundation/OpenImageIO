@@ -433,11 +433,11 @@ JpgOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
 {
     y -= m_spec.y;
     if (y != m_next_scanline) {
-        errorf("Attempt to write scanlines out of order to %s", m_filename);
+        errorfmt("Attempt to write scanlines out of order to {}", m_filename);
         return false;
     }
     if (y >= (int)m_cinfo.image_height) {
-        errorf("Attempt to write too many scanlines to %s", m_filename);
+        errorfmt("Attempt to write too many scanlines to {}", m_filename);
         return false;
     }
     assert(y == (int)m_cinfo.next_scanline);

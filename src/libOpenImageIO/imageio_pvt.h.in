@@ -59,12 +59,6 @@ OIIO_API const std::vector<std::string>& font_list();
 // For internal use - use error() below for a nicer interface.
 void append_error(string_view message);
 
-/// Use errorf() privately only. Formatting is printf notation, but typesafe.
-template<typename... Args>
-inline void errorf (const char* fmt, const Args&... args) {
-    append_error(Strutil::sprintf (fmt, args...));
-}
-
 /// Use errorfmt() privately only. Formatting notation is like std::format.
 template<typename... Args>
 inline void errorfmt (const char* fmt, const Args&... args) {

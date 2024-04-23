@@ -45,12 +45,12 @@ oiio_exr_error_handler(exr_const_context_t ctxt, exr_result_t code,
             oiioexr_filebuf_struct* fb = static_cast<oiioexr_filebuf_struct*>(
                 userdata);
             if (fb->m_img) {
-                fb->m_img->errorf("EXR Error (%s): %s %s",
-                                  (fb->m_io ? fb->m_io->filename().c_str()
-                                            : "<unknown>"),
-                                  exr_get_error_code_as_string(code),
-                                  msg ? msg
-                                      : exr_get_default_error_message(code));
+                fb->m_img->errorfmt("EXR Error ({}): {} {}",
+                                    (fb->m_io ? fb->m_io->filename().c_str()
+                                              : "<unknown>"),
+                                    exr_get_error_code_as_string(code),
+                                    msg ? msg
+                                        : exr_get_default_error_message(code));
                 return;
             }
         }
@@ -349,11 +349,11 @@ OpenEXRCoreInput::open(const std::string& name, ImageSpec& newspec,
     // Quick check to immediately reject nonexistent or non-exr files.
     //KDTDISABLE quick checks are still file iOPs, let the file open handle this
     //KDTDISABLE if (!m_io && !Filesystem::is_regular(name)) {
-    //KDTDISABLE     errorf("Could not open file \"%s\"", name);
+    //KDTDISABLE     errorfmt("Could not open file \"{}\"", name);
     //KDTDISABLE     return false;
     //KDTDISABLE }
     //KDTDISABLE if (!valid_file(name, m_io)) {
-    //KDTDISABLE     errorf("\"%s\" is not an OpenEXR file", name);
+    //KDTDISABLE     errorfmt("\"{}\" is not an OpenEXR file", name);
     //KDTDISABLE     return false;
     //KDTDISABLE }
 
@@ -394,8 +394,8 @@ OpenEXRCoreInput::open(const std::string& name, ImageSpec& newspec,
         // If the proxy couldn't be opened in read mode, try to
         // return an error.
         std::string e = m_userdata.m_io->error();
-        errorf("Could not open \"%s\" (%s)", name,
-               e.size() ? e : std::string("unknown error"));
+        errorfmt("Could not open \"{}\" ({})", name,
+                 e.size() ? e : std::string("unknown error"));
         return false;
     }
     m_userdata.m_io->seek(0);
@@ -453,7 +453,7 @@ OpenEXRCoreInput::init_part(int subimage, int miplevel)
         lock_guard lock(*this);
         if (!part.initialized) {
             if (!seek_subimage(subimage, miplevel)) {
-                errorf("Unable to initialize part");
+                errorfmt("Unable to initialize part");
                 return part.spec;
             }
         }
@@ -667,8 +667,8 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
                     spec.attribute(oname, TypeRational, r);
                 } else {
                     // TODO: find a way to allow the client to accept "close" rational values
-                    OIIO::debugf(
-                        "Don't know what to do with OpenEXR Rational attribute %s with value %d / %u that we cannot represent exactly",
+                    OIIO::debugfmt(
+                        "Don't know what to do with OpenEXR Rational attribute {} with value {} / {} that we cannot represent exactly",
                         oname, n, d);
                 }
             }
@@ -895,7 +895,7 @@ OpenEXRCoreInput::PartInfo::query_channels(OpenEXRCoreInput* in,
     }
     spec.nchannels = int(cnh.size());
     if (!spec.nchannels) {
-        in->errorf("No channels found");
+        in->errorfmt("No channels found");
         return false;
     }
 
@@ -913,7 +913,7 @@ OpenEXRCoreInput::PartInfo::query_channels(OpenEXRCoreInput* in,
         span<CChanNameHolder> layerspan(&(*layerbegin), layerend - layerbegin);
         // Strutil::printf("layerspan:\n");
         // for (auto& c : layerspan)
-        //     Strutil::printf("  %s = %s . %s\n", c.fullname, c.layer, c.suffix);
+        //     Strutil::print("  {} = {} . {}\n", c.fullname, c.layer, c.suffix);
         if (suffixfound("X", layerspan)
             && (suffixfound("Y", layerspan) || suffixfound("Z", layerspan))) {
             // If "X", and at least one of "Y" and "Z", are found among the
@@ -1122,7 +1122,7 @@ OpenEXRCoreInput::read_native_scanline(int subimage, int miplevel, int y, int z,
                                        void* data)
 {
     if (!m_exr_context) {
-        errorf(
+        errorfmt(
             "called OpenEXRInput::read_native_scanline without an open file");
         return false;
     }
@@ -1140,7 +1140,7 @@ OpenEXRCoreInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                         int yend, int z, void* data)
 {
     if (!m_exr_context) {
-        errorf(
+        errorfmt(
             "called OpenEXRInput::read_native_scanlines without an open file");
         return false;
     }
@@ -1159,7 +1159,7 @@ OpenEXRCoreInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                         int chend, void* data)
 {
     if (!m_exr_context) {
-        errorf(
+        errorfmt(
             "called OpenEXRInput::read_native_scanlines without an open file");
         return false;
     }
@@ -1314,7 +1314,7 @@ OpenEXRCoreInput::read_native_tile(int subimage, int miplevel, int x, int y,
                                    int z, void* data)
 {
     if (!m_exr_context) {
-        errorf("called OpenEXRInput::read_native_tile without an open file");
+        errorfmt("called OpenEXRInput::read_native_tile without an open file");
         return false;
     }
 
@@ -1409,7 +1409,7 @@ OpenEXRCoreInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                                     int zend, void* data)
 {
     if (!m_exr_context) {
-        errorf("called OpenEXRInput::read_native_tile without an open file");
+        errorfmt("called OpenEXRInput::read_native_tile without an open file");
         return false;
     }
 
@@ -1428,7 +1428,7 @@ OpenEXRCoreInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                                     void* data)
 {
     if (!m_exr_context) {
-        errorf("called OpenEXRInput::read_native_tile without an open file");
+        errorfmt("called OpenEXRInput::read_native_tile without an open file");
         return false;
     }
 
@@ -1665,7 +1665,7 @@ OpenEXRCoreInput::read_native_deep_scanlines(int subimage, int miplevel,
                                              DeepData& deepdata)
 {
     if (!m_exr_context) {
-        errorf(
+        errorfmt(
             "called OpenEXRInput::read_native_deep_scanlines without an open file");
         return false;
     }
@@ -1704,7 +1704,7 @@ OpenEXRCoreInput::read_native_deep_scanlines(int subimage, int miplevel,
         return false;
 
     if (scansperchunk != 1) {
-        errorf("Expect 1 scanline per chunk for deep scanlines");
+        errorfmt("Expect 1 scanline per chunk for deep scanlines");
         return false;
     }
 
@@ -1832,7 +1832,7 @@ OpenEXRCoreInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
                                          DeepData& deepdata)
 {
     if (!m_exr_context) {
-        errorf(
+        errorfmt(
             "called OpenEXRInput::read_native_deep_tiles without an open file");
         return false;
     }

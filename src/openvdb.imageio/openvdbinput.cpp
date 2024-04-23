@@ -320,13 +320,13 @@ openVDB(const std::string& filename, const ImageInput* errReport)
             return file;
 
     } catch (const std::exception& e) {
-        errReport->errorf("Could not open '%s': %s", filename, e.what());
+        errReport->errorfmt("Could not open '{}': {}", filename, e.what());
         return nullptr;
     } catch (...) {
         errhint = "Unknown exception thrown";
     }
 
-    errReport->errorf("Could not open '%s': %s", filename, errhint);
+    errReport->errorfmt("Could not open '{}': {}", filename, errhint);
     return nullptr;
 }
 
@@ -529,7 +529,7 @@ OpenVDBInput::open(const std::string& filename, ImageSpec& newspec)
         }
     } catch (const std::exception& e) {
         init();  // Reset to initial state
-        errorf("Could not open '%s': %s", filename, e.what());
+        errorfmt("Could not open '{}': {}", filename, e.what());
         return false;
     }
     m_name       = filename;

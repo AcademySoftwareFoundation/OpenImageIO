@@ -399,7 +399,7 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
 
     // commit!
     if (!m_dpx.WriteHeader()) {
-        errorf("Failed to write DPX header");
+        errorfmt("Failed to write DPX header");
         close();
         return false;
     }
@@ -407,7 +407,7 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
     // write the user data
     if (user && user->datasize() > 0 && user->datasize() <= 1024 * 1024) {
         if (!m_dpx.WriteUserData((void*)user->data())) {
-            errorf("Failed to write user data");
+            errorfmt("Failed to write user data");
             close();
             return false;
         }
@@ -487,7 +487,7 @@ DPXOutput::prep_subimage(int s, bool allocate)
     if (spec_s.format == TypeDesc::UINT16) {
         m_bitdepth = spec_s.get_int_attribute("oiio:BitsPerSample", 16);
         if (m_bitdepth != 10 && m_bitdepth != 12 && m_bitdepth != 16) {
-            errorf("Unsupported bit depth %d", m_bitdepth);
+            errorfmt("Unsupported bit depth {}", m_bitdepth);
             return false;
         }
     }
@@ -536,7 +536,7 @@ DPXOutput::prep_subimage(int s, bool allocate)
         m_bytes = dpx::QueryNativeBufferSize(m_desc, m_datasize, spec_s.width,
                                              1);
         if (m_bytes == 0 && !m_rawcolor) {
-            errorf("Unable to deliver native format data from source data");
+            errorfmt("Unable to deliver native format data from source data");
             return false;
         } else if (m_bytes < 0) {
             // no need to allocate another buffer
@@ -571,8 +571,8 @@ DPXOutput::write_buffer()
         ok = m_dpx.WriteElement(m_subimage, m_buf.data(), m_datasize);
         if (!ok) {
             const char* err = strerror(errno);
-            errorf("DPX write failed (%s)",
-                   (err && err[0]) ? err : "unknown error");
+            errorfmt("DPX write failed ({})",
+                     (err && err[0]) ? err : "unknown error");
         }
         m_write_pending = false;
     }

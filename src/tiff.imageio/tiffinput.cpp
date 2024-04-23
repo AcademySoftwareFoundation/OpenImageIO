@@ -269,8 +269,8 @@ private:
         if (!passcount && readcount > 0) {
             return TIFFGetField(m_tif, tag, dest);
         }
-        // OIIO::debugf(" stgf %s tag %d %s datatype %d passcount %d readcount %d\n",
-        //              name, tag, type, int(TIFFFieldDataType(field)), passcount, readcount);
+        // OIIO::debugfmt(" stgf {} tag {} {} datatype {} passcount {} readcount {}\n",
+        //                name, tag, type, int(TIFFFieldDataType(field)), passcount, readcount);
         return false;
     }
 

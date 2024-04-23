@@ -62,15 +62,15 @@ IffInput::open(const std::string& name, ImageSpec& spec)
 
     m_fd = Filesystem::fopen(m_filename, "rb");
     if (!m_fd) {
-        errorf("Could not open file \"%s\"", name);
+        errorfmt("Could not open file \"{}\"", name);
         return false;
     }
 
     // we read header of the file that we think is IFF file
     std::string err;
     if (!m_iff_header.read_header(m_fd, err)) {
-        errorf("\"%s\": could not read iff header (%s)", m_filename,
-               err.size() ? err : std::string("unknown"));
+        errorfmt("\"{}\": could not read iff header ({})", m_filename,
+                 err.size() ? err : std::string("unknown"));
         close();
         return false;
     }
@@ -95,7 +95,7 @@ IffInput::open(const std::string& name, ImageSpec& spec)
         // only 1 subimage for IFF
         m_spec.tile_depth = 1;
     } else {
-        errorf("\"%s\": wrong tile size", m_filename);
+        errorfmt("\"{}\": wrong tile size", m_filename);
         close();
         return false;
     }
@@ -421,8 +421,8 @@ IffInput::readimg()
                 }
 
             } else {
-                errorf("\"%s\": unsupported number of bits per pixel for tile",
-                       m_filename);
+                errorfmt("\"{}\": unsupported number of bits per pixel for tile",
+                         m_filename);
                 return false;
             }
 

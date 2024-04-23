@@ -584,15 +584,6 @@ public:
     /// Error reporting for ImageRec: call this with printf-like arguments.
     /// Note however that this is fully typesafe!
     template<typename... Args>
-    OIIO_DEPRECATED("Use errorfmt instead")
-    void errorf(const char* fmt, const Args&... args) const
-    {
-        append_error(Strutil::sprintf(fmt, args...));
-    }
-
-    /// Error reporting for ImageRec: call this with printf-like arguments.
-    /// Note however that this is fully typesafe!
-    template<typename... Args>
     void errorfmt(const char* fmt, const Args&... args) const
     {
         append_error(Strutil::fmt::format(fmt, args...));

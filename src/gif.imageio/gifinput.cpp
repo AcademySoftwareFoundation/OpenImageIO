@@ -335,7 +335,7 @@ GIFInput::read_subimage_data()
         colormap       = m_gif_file->SColorMap->Colors;
         colormap_count = m_gif_file->SColorMap->ColorCount;
     } else {
-        errorf("Neither local nor global colormap present.");
+        errorfmt("Neither local nor global colormap present.");
         return false;
     }
 
@@ -472,13 +472,13 @@ GIFInput::report_last_error(void)
     // error was for *this* file.  So if you're using giflib prior to
     // version 5, beware.
 #if GIFLIB_MAJOR >= 5
-    errorf("%s", GifErrorString(m_gif_file->Error));
+    errorfmt("{}", GifErrorString(m_gif_file->Error));
 #elif GIFLIB_MAJOR == 4 && GIFLIB_MINOR >= 2
     spin_lock lock(gif_error_mutex);
-    errorf("%s", GifErrorString());
+    errorfmt("{}", GifErrorString());
 #else
     spin_lock lock(gif_error_mutex);
-    errorf("GIF error %d", GifLastError());
+    errorfmt("GIF error {}", GifLastError());
 #endif
 }
 

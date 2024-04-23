@@ -139,13 +139,13 @@ DPXInput::open(const std::string& name, ImageSpec& newspec)
 
     m_stream = new InStream(ioproxy());
     if (!m_stream) {
-        errorf("Could not open file \"%s\"", name);
+        errorfmt("Could not open file \"{}\"", name);
         return false;
     }
 
     m_dpx.SetInStream(m_stream);
     if (!m_dpx.ReadHeader()) {
-        errorf("Could not read header");
+        errorfmt("Could not read header");
         close();
         return false;
     }
@@ -203,7 +203,7 @@ DPXInput::seek_subimage(int subimage, int miplevel)
         break;
     case dpx::kFloat: typedesc = TypeDesc::FLOAT; break;
     case dpx::kDouble: typedesc = TypeDesc::DOUBLE; break;
-    default: errorf("Invalid component data size"); return false;
+    default: errorfmt("Invalid component data size"); return false;
     }
     m_spec = ImageSpec(m_dpx.header.Width(), m_dpx.header.Height(),
                        m_dpx.header.ImageElementComponentCount(subimage),
