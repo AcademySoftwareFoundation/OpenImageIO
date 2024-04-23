@@ -232,7 +232,7 @@ bool
 ImageOutput::write_deep_image(const DeepData& deepdata)
 {
     if (m_spec.depth > 1) {
-        errorf("write_deep_image is not supported for volume (3D) images.");
+        errorfmt("write_deep_image is not supported for volume (3D) images.");
         return false;
         // FIXME? - not implementing 3D deep images for now.  The only
         // format that supports deep images at this time is OpenEXR, and
@@ -571,7 +571,7 @@ bool
 ImageOutput::copy_image(ImageInput* in)
 {
     if (!in) {
-        errorf("copy_image: no input supplied");
+        errorfmt("copy_image: no input supplied");
         return false;
     }
 
@@ -580,9 +580,9 @@ ImageOutput::copy_image(ImageInput* in)
     if (inspec.width != spec().width || inspec.height != spec().height
         || inspec.depth != spec().depth
         || inspec.nchannels != spec().nchannels) {
-        errorf("Could not copy %d x %d x %d channels to %d x %d x %d channels",
-               inspec.width, inspec.height, inspec.nchannels, spec().width,
-               spec().height, spec().nchannels);
+        errorfmt("Could not copy {} x {} x {} channels to {} x {} x {} channels",
+                 inspec.width, inspec.height, inspec.nchannels, spec().width,
+                 spec().height, spec().nchannels);
         return false;
     }
 
@@ -602,7 +602,7 @@ ImageOutput::copy_image(ImageInput* in)
         if (ok)
             ok = write_deep_image(deepdata);
         else
-            errorf("%s", in->geterror());  // copy err from in to out
+            errorfmt("{}", in->geterror());  // copy err from in to out
         return ok;
     }
 
@@ -617,7 +617,7 @@ ImageOutput::copy_image(ImageInput* in)
     if (ok)
         ok = write_image(format, &pixels[0]);
     else
-        errorf("%s", in->geterror());  // copy err from in to out
+        errorfmt("{}", in->geterror());  // copy err from in to out
     return ok;
 }
 
@@ -685,7 +685,7 @@ ImageOutput::copy_tile_to_image_buffer(int x, int y, int z, TypeDesc format,
                                        void* image_buffer, TypeDesc buf_format)
 {
     if (!m_spec.tile_width || !m_spec.tile_height) {
-        errorf("Called write_tile for non-tiled image.");
+        errorfmt("Called write_tile for non-tiled image.");
         return false;
     }
     const ImageSpec& spec(this->spec());

@@ -398,8 +398,8 @@ OpenEXROutput::open(const std::string& name, const ImageSpec& userspec,
                 // If the proxy couldn't be opened in write mode, try to
                 // return an error.
                 std::string e = m_io->error();
-                errorf("Could not open \"%s\" (%s)", name,
-                       e.size() ? e : std::string("unknown error"));
+                errorfmt("Could not open \"{}\" ({})", name,
+                         e.size() ? e : std::string("unknown error"));
                 return false;
             }
             m_output_stream.reset(new OpenEXROutputStream(name.c_str(), m_io));
@@ -413,18 +413,18 @@ OpenEXROutput::open(const std::string& name, const ImageSpec& userspec,
                                         m_headers[m_subimage]));
             }
         } catch (const std::exception& e) {
-            errorf("Could not open \"%s\" (%s)", name, e.what());
+            errorfmt("Could not open \"{}\" ({})", name, e.what());
             m_output_scanline = NULL;
             m_output_tiled    = NULL;
             return false;
         } catch (...) {  // catch-all for edge cases or compiler bugs
-            errorf("Could not open \"%s\" (unknown exception)", name);
+            errorfmt("Could not open \"{}\" (unknown exception)", name);
             m_output_scanline = NULL;
             m_output_tiled    = NULL;
             return false;
         }
         if (!m_output_scanline && !m_output_tiled) {
-            errorf("Unknown error opening EXR file");
+            errorfmt("Unknown error opening EXR file");
             return false;
         }
 
@@ -435,13 +435,13 @@ OpenEXROutput::open(const std::string& name, const ImageSpec& userspec,
         // OpenEXR 2.x supports subimages, but we only allow it to use the
         // open(name,subimages,specs[]) variety.
         if (m_subimagespecs.size() == 0 || !m_output_multipart) {
-            errorf("%s not opened properly for subimages", format_name());
+            errorfmt("{} not opened properly for subimages", format_name());
             return false;
         }
         // Move on to next subimage
         ++m_subimage;
         if (m_subimage >= m_nsubimages) {
-            errorf("More subimages than originally declared.");
+            errorfmt("More subimages than originally declared.");
             return false;
         }
         // Close the current subimage, open the next one
@@ -461,19 +461,19 @@ OpenEXROutput::open(const std::string& name, const ImageSpec& userspec,
                     new Imf::DeepScanLineOutputPart(*m_output_multipart,
                                                     m_subimage));
             } else {
-                errorf(
+                errorfmt(
                     "Called open with AppendSubimage mode, but no appropriate part is found. Application bug?");
                 return false;
             }
         } catch (const std::exception& e) {
-            errorf("OpenEXR exception: %s", e.what());
+            errorfmt("OpenEXR exception: {}", e.what());
             m_scanline_output_part.reset();
             m_tiled_output_part.reset();
             m_deep_scanline_output_part.reset();
             m_deep_tiled_output_part.reset();
             return false;
         } catch (...) {  // catch-all for edge cases or compiler bugs
-            errorf("OpenEXR exception: unknown exception");
+            errorfmt("OpenEXR exception: unknown exception");
             m_scanline_output_part.reset();
             m_tiled_output_part.reset();
             m_deep_scanline_output_part.reset();
@@ -488,7 +488,7 @@ OpenEXROutput::open(const std::string& name, const ImageSpec& userspec,
 
     if (mode == AppendMIPLevel) {
         if (!m_output_scanline && !m_output_tiled) {
-            errorf("Cannot append a MIP level if no file has been opened");
+            errorfmt("Cannot append a MIP level if no file has been opened");
             return false;
         }
         if (m_spec.tile_width && m_levelmode != Imf::ONE_LEVEL) {
@@ -497,7 +497,7 @@ OpenEXROutput::open(const std::string& name, const ImageSpec& userspec,
             // tile sizes.
             if (userspec.tile_width != m_spec.tile_width
                 || userspec.tile_height != m_spec.tile_height) {
-                errorf(
+                errorfmt(
                     "OpenEXR tiles must have the same size on all MIPmap levels");
                 return false;
             }
@@ -509,12 +509,12 @@ OpenEXROutput::open(const std::string& name, const ImageSpec& userspec,
             ++m_miplevel;
             return true;
         } else {
-            errorf("Cannot add MIP level to a non-MIPmapped file");
+            errorfmt("Cannot add MIP level to a non-MIPmapped file");
             return false;
         }
     }
 
-    errorf("Unknown open mode %d", int(mode));
+    errorfmt("Unknown open mode {}", int(mode));
     return false;
 }
 
@@ -525,7 +525,7 @@ OpenEXROutput::open(const std::string& name, int subimages,
                     const ImageSpec* specs)
 {
     if (subimages < 1) {
-        errorf("OpenEXR does not support %d subimages.", subimages);
+        errorfmt("OpenEXR does not support {} subimages.", subimages);
         return false;
     }
 
@@ -555,7 +555,7 @@ OpenEXROutput::open(const std::string& name, int subimages,
             return false;
         deep |= m_subimagespecs[s].deep;
         if (m_subimagespecs[s].deep != m_subimagespecs[0].deep) {
-            errorf(
+            errorfmt(
                 "OpenEXR does not support mixed deep/nondeep multi-part image files");
             return false;
         }
@@ -584,11 +584,11 @@ OpenEXROutput::open(const std::string& name, int subimages,
                                                               subimages));
     } catch (const std::exception& e) {
         m_output_stream.reset();
-        errorf("OpenEXR exception: %s", e.what());
+        errorfmt("OpenEXR exception: {}", e.what());
         return false;
     } catch (...) {  // catch-all for edge cases or compiler bugs
         m_output_stream.reset();
-        errorf("OpenEXR exception: unknown exception");
+        errorfmt("OpenEXR exception: unknown exception");
         return false;
     }
     try {
@@ -610,7 +610,7 @@ OpenEXROutput::open(const std::string& name, int subimages,
             }
         }
     } catch (const std::exception& e) {
-        errorf("OpenEXR exception: %s", e.what());
+        errorfmt("OpenEXR exception: {}", e.what());
         m_output_stream.reset();
         m_scanline_output_part.reset();
         m_tiled_output_part.reset();
@@ -618,7 +618,7 @@ OpenEXROutput::open(const std::string& name, int subimages,
         m_deep_tiled_output_part.reset();
         return false;
     } catch (...) {  // catch-all for edge cases or compiler bugs
-        errorf("OpenEXR exception: unknown exception");
+        errorfmt("OpenEXR exception: unknown exception");
         m_output_stream.reset();
         m_scanline_output_part.reset();
         m_tiled_output_part.reset();
@@ -1343,7 +1343,7 @@ OpenEXROutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     return write_scanlines(y, y + 1, z, format, data, xstride, AutoStride);
 #else
     if (!(m_output_scanline || m_scanline_output_part)) {
-        errorf("called OpenEXROutput::write_scanline without an open file");
+        errorfmt("called OpenEXROutput::write_scanline without an open file");
         return false;
     }
 
@@ -1379,14 +1379,14 @@ OpenEXROutput::write_scanline(int y, int z, TypeDesc format, const void* data,
             m_scanline_output_part->setFrameBuffer(frameBuffer);
             m_scanline_output_part->writePixels(1);
         } else {
-            errorf("Attempt to write scanline to a non-scanline file.");
+            errorfmt("Attempt to write scanline to a non-scanline file.");
             return false;
         }
     } catch (const std::exception& e) {
-        errorf("Failed OpenEXR write: %s", e.what());
+        errorfmt("Failed OpenEXR write: {}", e.what());
         return false;
     } catch (...) {  // catch-all for edge cases or compiler bugs
-        errorf("Failed OpenEXR write: unknown exception");
+        errorfmt("Failed OpenEXR write: unknown exception");
         return false;
     }
 
@@ -1436,12 +1436,12 @@ OpenEXROutput::copy_image(ImageInput* in)
                     return true;
                 }
             } catch (const std::exception& e) {
-                errorf(
-                    "Failed OpenEXR copy: %s, falling back to the default image copy routine.",
+                errorfmt(
+                    "Failed OpenEXR copy: {}, falling back to the default image copy routine.",
                     e.what());
                 return false;
             } catch (...) {  // catch-all for edge cases or compiler bugs
-                errorf(
+                errorfmt(
                     "Failed OpenEXR copy: unknown exception, falling back to the default image copy routine.");
                 return false;
             }
@@ -1458,7 +1458,7 @@ OpenEXROutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
                                stride_t ystride)
 {
     if (!(m_output_scanline || m_scanline_output_part)) {
-        errorf("called OpenEXROutput::write_scanlines without an open file");
+        errorfmt("called OpenEXROutput::write_scanlines without an open file");
         return false;
     }
 
@@ -1520,14 +1520,14 @@ OpenEXROutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
                 m_scanline_output_part->setFrameBuffer(frameBuffer);
                 m_scanline_output_part->writePixels(nscanlines);
             } else {
-                errorf("Attempt to write scanlines to a non-scanline file.");
+                errorfmt("Attempt to write scanlines to a non-scanline file.");
                 return false;
             }
         } catch (const std::exception& e) {
-            errorf("Failed OpenEXR write: %s", e.what());
+            errorfmt("Failed OpenEXR write: {}", e.what());
             return false;
         } catch (...) {  // catch-all for edge cases or compiler bugs
-            errorf("Failed OpenEXR write: unknown exception");
+            errorfmt("Failed OpenEXR write: unknown exception");
             return false;
         }
     }
@@ -1572,11 +1572,12 @@ OpenEXROutput::write_tiles(int xbegin, int xend, int ybegin, int yend,
     //    std::cerr << "exr::write_tiles " << xbegin << ' ' << xend
     //              << ' ' << ybegin << ' ' << yend << "\n";
     if (!(m_output_tiled || m_tiled_output_part)) {
-        errorf("called OpenEXROutput::write_tiles without an open file");
+        errorfmt("called OpenEXROutput::write_tiles without an open file");
         return false;
     }
     if (!m_spec.valid_tile_range(xbegin, xend, ybegin, yend, zbegin, zend)) {
-        errorf("called OpenEXROutput::write_tiles with an invalid tile range");
+        errorfmt(
+            "called OpenEXROutput::write_tiles with an invalid tile range");
         return false;
     }
 
@@ -1646,14 +1647,14 @@ OpenEXROutput::write_tiles(int xbegin, int xend, int ybegin, int yend,
                                             firstytile + nytiles - 1,
                                             m_miplevel, m_miplevel);
         } else {
-            errorf("Attempt to write tiles for a non-tiled file.");
+            errorfmt("Attempt to write tiles for a non-tiled file.");
             return false;
         }
     } catch (const std::exception& e) {
-        errorf("Failed OpenEXR write: %s", e.what());
+        errorfmt("Failed OpenEXR write: {}", e.what());
         return false;
     } catch (...) {  // catch-all for edge cases or compiler bugs
-        errorf("Failed OpenEXR write: unknown exception");
+        errorfmt("Failed OpenEXR write: unknown exception");
         return false;
     }
 
@@ -1667,13 +1668,13 @@ OpenEXROutput::write_deep_scanlines(int ybegin, int yend, int /*z*/,
                                     const DeepData& deepdata)
 {
     if (m_deep_scanline_output_part == NULL) {
-        errorf(
+        errorfmt(
             "called OpenEXROutput::write_deep_scanlines without an open file");
         return false;
     }
     if (m_spec.width * (yend - ybegin) != deepdata.pixels()
         || m_spec.nchannels != deepdata.channels()) {
-        errorf(
+        errorfmt(
             "called OpenEXROutput::write_deep_scanlines with non-matching DeepData size");
         return false;
     }
@@ -1723,10 +1724,10 @@ OpenEXROutput::write_deep_scanlines(int ybegin, int yend, int /*z*/,
         // Write the pixels
         m_deep_scanline_output_part->writePixels(yend - ybegin);
     } catch (const std::exception& e) {
-        errorf("Failed OpenEXR write: %s", e.what());
+        errorfmt("Failed OpenEXR write: {}", e.what());
         return false;
     } catch (...) {  // catch-all for edge cases or compiler bugs
-        errorf("Failed OpenEXR write: unknown exception");
+        errorfmt("Failed OpenEXR write: unknown exception");
         return false;
     }
 
@@ -1740,12 +1741,12 @@ OpenEXROutput::write_deep_tiles(int xbegin, int xend, int ybegin, int yend,
                                 int zbegin, int zend, const DeepData& deepdata)
 {
     if (m_deep_tiled_output_part == NULL) {
-        errorf("called OpenEXROutput::write_deep_tiles without an open file");
+        errorfmt("called OpenEXROutput::write_deep_tiles without an open file");
         return false;
     }
     if ((xend - xbegin) * (yend - ybegin) * (zend - zbegin) != deepdata.pixels()
         || m_spec.nchannels != deepdata.channels()) {
-        errorf(
+        errorfmt(
             "called OpenEXROutput::write_deep_tiles with non-matching DeepData size");
         return false;
     }
@@ -1808,10 +1809,10 @@ OpenEXROutput::write_deep_tiles(int xbegin, int xend, int ybegin, int yend,
                                              firstytile + ytiles - 1,
                                              m_miplevel, m_miplevel);
     } catch (const std::exception& e) {
-        errorf("Failed OpenEXR write: %s", e.what());
+        errorfmt("Failed OpenEXR write: {}", e.what());
         return false;
     } catch (...) {  // catch-all for edge cases or compiler bugs
-        errorf("Failed OpenEXR write: unknown exception");
+        errorfmt("Failed OpenEXR write: unknown exception");
         return false;
     }
 
