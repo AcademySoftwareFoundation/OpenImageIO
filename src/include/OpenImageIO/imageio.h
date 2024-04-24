@@ -2854,6 +2854,11 @@ OIIO_API std::string geterror(bool clear = true);
 ///    Colon-separated (or semicolon-separated) list of directories to search
 ///    for dynamically-loaded format plugins.
 ///
+/// - `int plugin_search_system_paths`
+///
+///    Search for plugins using LD_LIBRARY_PATH and DYLD_LIBRARY_PATH
+///    environment variables. Enabled by default.
+///
 /// - `int try_all_readers`
 ///
 ///    When nonzero (the default), a call to `ImageInput::create()` or

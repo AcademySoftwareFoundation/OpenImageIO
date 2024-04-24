@@ -468,13 +468,17 @@ pvt::catalog_all_plugins(std::string searchpath)
     std::call_once(builtin_flag, catalog_builtin_plugins);
 
     std::unique_lock<std::recursive_mutex> lock(imageio_mutex);
+
     append_if_env_exists(searchpath, "OIIO_LIBRARY_PATH", true);
+
+    if (pvt::plugin_search_system_paths) {
 #ifdef __APPLE__
-    append_if_env_exists(searchpath, "DYLD_LIBRARY_PATH");
+        append_if_env_exists(searchpath, "DYLD_LIBRARY_PATH");
 #endif
 #if defined(__linux__) || defined(__FreeBSD__)
-    append_if_env_exists(searchpath, "LD_LIBRARY_PATH");
+        append_if_env_exists(searchpath, "LD_LIBRARY_PATH");
 #endif
+    }
 
     size_t patlen = pattern.length();
     std::vector<std::string> dirs;

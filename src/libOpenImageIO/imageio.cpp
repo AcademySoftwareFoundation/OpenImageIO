@@ -55,6 +55,7 @@ int limit_imagesize_MB(std::min(32 * 1024,
                                 int(Sysutil::physical_memory() >> 20)));
 ustring font_searchpath(Sysutil::getenv("OPENIMAGEIO_FONTS"));
 ustring plugin_searchpath(OIIO_DEFAULT_PLUGIN_SEARCHPATH);
+int plugin_search_system_paths(1);
 std::string format_list;         // comma-separated list of all formats
 std::string input_format_list;   // comma-separated list of readable formats
 std::string output_format_list;  // comma-separated list of writable formats
@@ -398,6 +399,10 @@ attribute(string_view name, TypeDesc type, const void* val)
         plugin_searchpath = ustring(*(const char**)val);
         return true;
     }
+    if (name == "plugin_search_system_paths" && type == TypeInt) {
+        plugin_search_system_paths = *(const int*)val;
+        return true;
+    }
     if (name == "exr_threads" && type == TypeInt) {
         oiio_exr_threads = OIIO::clamp(*(const int*)val, -1, maxthreads);
         return true;
@@ -495,6 +500,10 @@ getattribute(string_view name, TypeDesc type, void* val)
     }
     if (name == "plugin_searchpath" && type == TypeString) {
         *(ustring*)val = plugin_searchpath;
+        return true;
+    }
+    if (name == "plugin_search_system_paths" && type == TypeInt) {
+        *(int*)val = plugin_search_system_paths;
         return true;
     }
     if (name == "format_list" && type == TypeString) {

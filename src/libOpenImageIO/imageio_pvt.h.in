@@ -33,6 +33,7 @@ extern atomic_int oiio_read_chunk;
 extern atomic_int oiio_try_all_readers;
 extern ustring font_searchpath;
 extern ustring plugin_searchpath;
+extern int plugin_search_system_paths;
 extern std::string format_list;
 extern std::string input_format_list;
 extern std::string output_format_list;
