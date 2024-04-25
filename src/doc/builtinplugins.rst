@@ -1797,12 +1797,6 @@ no multi-image, no MIPmapping.
      - int
      - The true bits per sample of the file (1 for true PBM files, even
        though OIIO will report the ``format`` as UINT8).
-   * - ``pnm:binary``
-     - int
-     - nonzero if the file itself used the PNM binary format, 0 if it used
-       ASCII.  The PNM writer honors this attribute in the ImageSpec to
-       determine whether to write an ASCII or binary file.
-       Float PFM files are always written in binary format.
 
 **Configuration settings for PNM input**
 
@@ -1821,6 +1815,13 @@ attributes are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+   * - ``pnm:bigendian``
+     - int
+     - If nonzero, the PNM file is big-endian (the default is little-endian).  
+   * - ``pnm:pfmflip``
+      - int
+      - If nonzero, the PFM (float) file is flipped upside-down (the default
+      is flipped).
 
 **Configuration settings for PNM output**
 
@@ -1843,6 +1844,19 @@ control aspects of the writing itself:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by writing to a memory buffer.
+   * - ``pnm:bigendian``
+     - int
+     - If nonzero, the PNM file is big-endian (the default is little-endian).
+   * - ``pnm:binary``
+     - int
+     - nonzero if the file itself used the PNM binary format, 0 if it used
+       ASCII.  The PNM writer honors this attribute in the ImageSpec to
+       determine whether to write an ASCII or binary file.
+       Float PFM files are always written in binary format.
+   * - ``pnm:pfmflip``
+      - int
+      - If nonzero, the PFM (float) file is flipped upside-down (the default
+      is flipped).
 
 **Custom I/O Overrides**
 
