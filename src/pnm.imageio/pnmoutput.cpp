@@ -247,7 +247,7 @@ PNMOutput::open(const std::string& name, const ImageSpec& userspec,
         if (m_pfn_type == "")
 			ok &= iowritefmt("{}\n", m_max_val);
         else
-            ok &= iowritefmt("{}\n", "-1.0");
+            ok &= iowritefmt("{}\n", "-1.0000");
     }
     // If user asked for tiles -- which this format doesn't support, emulate
     // it by buffering the whole image.

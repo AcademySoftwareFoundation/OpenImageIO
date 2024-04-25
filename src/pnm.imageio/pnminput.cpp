@@ -4,6 +4,7 @@
 
 #include <cstdlib>
 #include <fstream>
+#include <cstdio>
 #include <string>
 
 #include <OpenImageIO/filesystem.h>
@@ -11,6 +12,8 @@
 #include <OpenImageIO/imageio.h>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
+
+#define DBG if (1)
 
 //
 // Documentation on the PNM formats can be found at:
@@ -200,11 +203,15 @@ PNMInput::read_file_scanline(void* data, int y)
     bool good    = true;
     // If y is farther ahead, skip scanlines to get to it
     for (; good && m_y_next <= y; ++m_y_next) {
+
         // PFM files are bottom-to-top, so we need to seek to the right spot
-        if (m_pnm_type == PF || m_pnm_type == Pf) {
-            int file_scanline = m_spec.height - 1 - (y - m_spec.y);
-            auto offset       = file_scanline * m_spec.scanline_bytes();
-            m_remaining       = m_after_header.substr(offset);
+        int flp = m_spec.get_int_attribute("pnm:pfmflip", 1);
+        if (flp == 1) {
+            if (m_pnm_type == PF || m_pnm_type == Pf) {
+                int file_scanline = m_spec.height - 1 - (y - m_spec.y);
+                auto offset       = file_scanline * m_spec.scanline_bytes();
+                m_remaining       = m_after_header.substr(offset);
+            }
         }
 
         if ((m_pnm_type >= P4 && m_pnm_type <= P6) || m_pnm_type == PF
@@ -219,6 +226,7 @@ PNMInput::read_file_scanline(void* data, int y)
             if (size_t(numbytes) > m_remaining.size())
                 return false;
             buf.assign(m_remaining.begin(), m_remaining.begin() + numbytes);
+
             m_remaining.remove_prefix(numbytes);
         }
 
@@ -339,7 +347,13 @@ PNMInput::open(const std::string& name, ImageSpec& newspec,
                const ImageSpec& config)
 {
     ioproxy_retrieve_from_config(config);
-    return open(name, newspec);
+    if (!open(name, newspec)) {
+        errorfmt("Could parse spec for file \"%s\"", name);
+        return false;
+    }
+
+    m_spec["pnm:pfmflip"] = config.get_int_attribute("pnm:pfmflip", 1);
+    return true;
 }
 
 
