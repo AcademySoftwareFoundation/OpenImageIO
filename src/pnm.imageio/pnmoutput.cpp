@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-#include <fstream>
 #include <cstdio>
+#include <fstream>
 
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
@@ -245,7 +245,7 @@ PNMOutput::open(const std::string& name, const ImageSpec& userspec,
     
     if (m_pnm_type != 1 && m_pnm_type != 4) {  // only non-monochrome
         if (m_pfn_type == "")
-			ok &= iowritefmt("{}\n", m_max_val);
+            ok &= iowritefmt("{}\n", m_max_val);
         else
             ok &= iowritefmt("{}\n", "-1.0000");
     }

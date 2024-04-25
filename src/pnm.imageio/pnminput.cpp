@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+#include <cstdio>
 #include <cstdlib>
 #include <fstream>
-#include <cstdio>
 #include <string>
 
 #include <OpenImageIO/filesystem.h>
@@ -13,7 +13,7 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-#define DBG if (1)
+#define DBG if (0)
 
 //
 // Documentation on the PNM formats can be found at:
@@ -203,9 +203,8 @@ PNMInput::read_file_scanline(void* data, int y)
     bool good    = true;
     // If y is farther ahead, skip scanlines to get to it
     for (; good && m_y_next <= y; ++m_y_next) {
-
         // PFM files are bottom-to-top, so we need to seek to the right spot
-        int flp = m_spec.get_int_attribute("pnm:pfmflip", 1);
+        int flp = m_spec.get_int_attribute("pnm:pfmflip", 0);
         if (flp == 1) {
             if (m_pnm_type == PF || m_pnm_type == Pf) {
                 int file_scanline = m_spec.height - 1 - (y - m_spec.y);
