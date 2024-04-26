@@ -10,7 +10,7 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-#define DBG if (0)
+#define DBG if (1)
 
 class PNMOutput final : public ImageOutput {
 public:
@@ -26,6 +26,9 @@ public:
     bool close() override;
     bool write_scanline(int y, int z, TypeDesc format, const void* data,
                         stride_t xstride) override;
+    bool write_scanlines(int ybegin, int yend, int z, TypeDesc format,
+                         const void* data, stride_t xstride = AutoStride,
+                         stride_t ystride = AutoStride) override;
     bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
                     stride_t xstride, stride_t ystride,
                     stride_t zstride) override;
@@ -270,8 +273,8 @@ PNMOutput::close()
     if (m_spec.tile_width) {
         // Handle tile emulation -- output the buffered pixels
         OIIO_DASSERT(m_tilebuffer.size());
-        ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
-                              m_spec.format, &m_tilebuffer[0]);
+        ok &= ImageOutput::write_scanlines(m_spec.y, m_spec.y + m_spec.height,
+                                           0, m_spec.format, &m_tilebuffer[0]);
         m_tilebuffer.shrink_to_fit();
     }
 
@@ -321,6 +324,39 @@ PNMOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     }
 
     return false;
+}
+
+
+
+bool
+PNMOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
+                           const void* data, stride_t xstride, stride_t ystride)
+{
+    DBG std::cerr << "PNMOutput::write_scanlines()\n";
+
+    if (m_spec.get_int_attribute("pnm:pfmflip", 1) == 1) {
+        DBG std::cerr << "Flipping PFM vertically\n";
+
+        // Default implementation: write each scanline individually
+        stride_t native_pixel_bytes = (stride_t)m_spec.pixel_bytes(true);
+        if (format == TypeDesc::UNKNOWN && xstride == AutoStride)
+            xstride = native_pixel_bytes;
+        stride_t zstride = AutoStride;
+        m_spec.auto_stride(xstride, ystride, zstride, format, m_spec.nchannels,
+                           m_spec.width, yend - ybegin);
+
+        // start at the last scanline
+        data    = (char*)data + (yend - ybegin - 1) * ystride;
+        bool ok = true;
+        for (int y = ybegin; ok && y < yend; ++y) {
+            ok &= write_scanline(y, z, format, data, xstride);
+            data = (char*)data - ystride;
+        }
+        return ok;
+    }
+
+    return ImageOutput::write_scanlines(ybegin, yend, z, format, data, xstride,
+                                        ystride);
 }
 
 
