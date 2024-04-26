@@ -340,7 +340,8 @@ PNMOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
 {
     DBG std::cerr << "PNMOutput::write_scanlines()\n";
 
-    if (m_spec.get_int_attribute("pnm:pfmflip", 1) == 1) {
+    if (m_spec.get_int_attribute("pnm:pfmflip", 1) == 1
+        && format == TypeDesc::FLOAT) {
         DBG std::cerr << "Flipping PFM vertically\n";
 
         // Default implementation: write each scanline individually
