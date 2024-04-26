@@ -104,12 +104,17 @@ bool
 PNMOutput::write_ascii(const T* data, const stride_t stride,
                        unsigned int max_val)
 {
+    DBG std::cerr << "PNMOutput::write_ascii()\n";
     int nc = m_spec.nchannels;
+    bool big = m_spec.get_int_attribute("pnm:bigendian", 0) == 1;
+    DBG std::cerr << "bigendian: " << big << "\n";
     for (int x = 0; x < m_spec.width; x++) {
         unsigned int pixel = x * stride;
         for (int c = 0; c < nc; c++) {
             unsigned int val = data[pixel + c];
-            val              = val * max_val / std::numeric_limits<T>::max();
+            val = val * max_val / std::numeric_limits<T>::max();
+            if (big)
+                swap_endian(&val, 1);
             if (!iowritefmt("{}\n", val))
                 return false;
         }
@@ -123,17 +128,21 @@ template<class T>
 bool
 PNMOutput::write_raw(const T* data, const stride_t stride, unsigned int max_val)
 {
-    int nc = m_spec.nchannels;
+    DBG std::cerr << "PNMOutput::write_raw()\n";
+    int nc   = m_spec.nchannels;
+    bool big = m_spec.get_int_attribute("pnm:bigendian", 0) == 1;
     for (int x = 0; x < m_spec.width; x++) {
         unsigned int pixel = x * stride;
         for (int c = 0; c < nc; c++) {
-            unsigned int val = data[pixel + c];
-            val              = val * max_val / std::numeric_limits<T>::max();
+            uint16_t val = data[pixel + c];
+            val          = val * max_val / std::numeric_limits<T>::max();
             if (sizeof(T) == 2) {
                 // Writing a 16bit ppm file
                 // I'll adopt the practice of Netpbm and write the MSB first
                 uint8_t byte[2] = { static_cast<uint8_t>(val >> 8),
                                     static_cast<uint8_t>(val & 0xff) };
+                if (big)
+                    std::swap(byte[0], byte[1]);
                 if (!iowrite(&byte, 2))
                     return false;
             } else {
@@ -190,34 +199,35 @@ PNMOutput::open(const std::string& name, const ImageSpec& userspec,
 
     bool p_binary = m_spec.get_int_attribute("pnm:binary", 1);
 
-    if (bits_per_sample == 1)
+
+    if (bits_per_sample == 1) {
+        // black and white
         m_pnm_type = p_binary ? 4 : 1;
-    else if (m_spec.nchannels == 1) {
-        if (m_spec.format.basetype != TypeDesc::FLOAT) {
-            m_pnm_type = p_binary ? 5 : 2;
-        } else {
-            m_pfn_type = "f";
-        }
-    } else if (bits_per_sample != 0)
-        m_pnm_type = p_binary ? 6 : 4;
-    else {
-        // no bits per sample specified
-        // format from the spec
+    } else if (bits_per_sample == 8 || bits_per_sample == 16) {
+        // 8 or 16 bit
+        m_pnm_type = (m_spec.nchannels == 1) ? (p_binary ? 5 : 2)
+                                             : (p_binary ? 6 : 3);
+    } else if (bits_per_sample == 32) {
+        // 32 bit float
+        m_pfn_type = (m_spec.nchannels == 1) ? "f" : "F";
+    } else if (bits_per_sample == 0) {
         switch (m_spec.format.basetype) {
         case TypeDesc::UINT8:
-        case TypeDesc::UINT16: m_pnm_type = p_binary ? 6 : 3; break;
+        case TypeDesc::UINT16:
+            m_pnm_type = (m_spec.nchannels == 1) ? (p_binary ? 5 : 2)
+                                                 : (p_binary ? 6 : 3);
+            break;
         case TypeDesc::FLOAT:
-            // PFM format always binary body
             m_pfn_type = (m_spec.nchannels == 1) ? "f" : "F";
             break;
         default:
             errorfmt("PNM does not support %s", m_spec.format.c_str());
             return false;
         }
-    };
-
-    //if (!m_spec.get_int_attribute("pnm:binary", 1))
-    //    m_pnm_type -= 3;
+    } else {
+        errorfmt("PNM does not support %s", m_spec.format.c_str());
+        return false;
+    }
 
     m_dither = (m_spec.format == TypeDesc::UINT8)
                    ? m_spec.get_int_attribute("oiio:dither", 0)
@@ -315,15 +325,19 @@ PNMOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     case 1: return write_ascii_binary((unsigned char*)data, xstride);
     case 2:
     case 3:
-        if (m_max_val > std::numeric_limits<unsigned char>::max())
+        if (m_max_val > std::numeric_limits<unsigned char>::max()) {
+            xstride /= 2;
             return write_ascii((unsigned short*)data, xstride, m_max_val);
+        }
         else
             return write_ascii((unsigned char*)data, xstride, m_max_val);
     case 4: return write_raw_binary((unsigned char*)data, xstride);
     case 5:
     case 6:
-        if (m_max_val > std::numeric_limits<unsigned char>::max())
+        if (m_max_val > std::numeric_limits<unsigned char>::max()) {
+            xstride /= 2;
             return write_raw((unsigned short*)data, xstride, m_max_val);
+        }
         else
             return write_raw((unsigned char*)data, xstride, m_max_val);
     default: return false;
