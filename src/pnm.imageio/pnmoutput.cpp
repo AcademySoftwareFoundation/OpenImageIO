@@ -242,7 +242,7 @@ PNMOutput::open(const std::string& name, const ImageSpec& userspec,
     }
 
     ok &= iowritefmt("{} {}\n", m_spec.width, m_spec.height);
-    
+
 
     if (m_pnm_type != 1 && m_pnm_type != 4) {  // only non-monochrome
         if (m_pfn_type == "")
