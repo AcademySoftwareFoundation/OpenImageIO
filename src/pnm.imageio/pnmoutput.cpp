@@ -159,7 +159,7 @@ PNMOutput::write_float(const float* data, const stride_t stride)
         for (int c = 0; c < nc; c++) {
             float val = data[pixel + c];
             if (big)
-                swap_endian(&val, 4);
+                swap_endian(&val, 1);
             if (!iowrite(&val, sizeof(val)))
                 return false;
         }
