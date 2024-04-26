@@ -10,7 +10,7 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-#define DBG if (1)
+#define DBG if (0)
 
 class PNMOutput final : public ImageOutput {
 public:
@@ -152,11 +152,14 @@ PNMOutput::write_raw(const T* data, const stride_t stride, unsigned int max_val)
 bool
 PNMOutput::write_float(const float* data, const stride_t stride)
 {
-    int nc = m_spec.nchannels;
+    int nc   = m_spec.nchannels;
+    bool big = m_spec.get_int_attribute("pnm:bigendian", 0) == 1;
     for (int x = 0; x < m_spec.width; x++) {
         unsigned int pixel = x * stride;
         for (int c = 0; c < nc; c++) {
             float val = data[pixel + c];
+            if (big)
+                swap_endian(&val, 4);
             if (!iowrite(&val, sizeof(val)))
                 return false;
         }
@@ -250,8 +253,11 @@ PNMOutput::open(const std::string& name, const ImageSpec& userspec,
     if (m_pnm_type != 1 && m_pnm_type != 4) {  // only non-monochrome
         if (m_pfn_type == "")
             ok &= iowritefmt("{}\n", m_max_val);
-        else
-            ok &= iowritefmt("{}\n", "-1.0000");
+        else {
+            bool big = m_spec.get_int_attribute("pnm:bigendian", 0) == 1;
+            std::string scale = big ? "1.0000" : "-1.0000";
+            ok &= iowritefmt("{}\n", scale);
+        }
     }
     // If user asked for tiles -- which this format doesn't support, emulate
     // it by buffering the whole image.
