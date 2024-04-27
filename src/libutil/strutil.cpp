@@ -3,16 +3,24 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
+#include <OpenImageIO/platform.h>
+
+// Special dance to disable warnings in the included files related to
+// the deprecation of unicode conversion functions.
+OIIO_PRAGMA_WARNING_PUSH
+OIIO_CLANG_PRAGMA(clang diagnostic ignored "-Wdeprecated-declarations")
+#include <codecvt>
+#include <locale>
+OIIO_PRAGMA_WARNING_POP
+
 #include <algorithm>
 #include <cmath>
-#include <codecvt>
 #include <cstdarg>
 #include <cstdint>
 #include <cstdlib>
 #include <ctime>
 #include <iostream>
 #include <limits>
-#include <locale>
 #include <mutex>
 #include <numeric>
 #include <sstream>
@@ -23,7 +31,6 @@
 #endif
 
 #include <OpenImageIO/dassert.h>
-#include <OpenImageIO/platform.h>
 #include <OpenImageIO/string_view.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/thread.h>
