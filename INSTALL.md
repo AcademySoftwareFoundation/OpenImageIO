@@ -18,7 +18,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * The default build mode is C++17. This can be controlled by via the
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=14`, etc.
      * ADVISORY: We expect that OIIO 2.6 in 2024 will require C++17 or higher.
- * Compilers: gcc 6.1 - 13.1, clang 3.4 - 17, MSVS 2017 - 2019,
+ * Compilers: gcc 6.1 - 13.1, clang 3.4 - 18, MSVS 2017 - 2019,
    Intel icc 17+, Intel OneAPI C++ compiler 2022+.
  * **CMake >= 3.15** (tested through 3.28)
  * **OpenEXR/Imath >= 2.4** (recommended: 3.1 or higher; tested through 3.2
