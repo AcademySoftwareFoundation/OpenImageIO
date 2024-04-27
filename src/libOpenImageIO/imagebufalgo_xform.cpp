@@ -1591,7 +1591,7 @@ check_st_warp_args(ImageBuf& dst, const ImageBuf& src, const ImageBuf& stbuf,
 {
     // Validate ST buffer
     if (!stbuf.initialized()) {
-        dst.error("ImageBufAlgo::st_warp : Uninitialized ST buffer");
+        dst.errorfmt("ImageBufAlgo::st_warp : Uninitialized ST buffer");
         return false;
     }
 
@@ -1690,7 +1690,7 @@ ImageBufAlgo::st_warp(const ImageBuf& src, const ImageBuf& stbuf,
     bool ok = st_warp(result, src, stbuf, filter, chan_s, chan_t, flip_s,
                       flip_t, roi, nthreads);
     if (!ok && !result.has_error()) {
-        result.error("ImageBufAlgo::st_warp : Unknown error");
+        result.errorfmt("ImageBufAlgo::st_warp : Unknown error");
     }
     return result;
 }
@@ -1707,7 +1707,7 @@ ImageBufAlgo::st_warp(const ImageBuf& src, const ImageBuf& stbuf,
     bool ok = st_warp(result, src, stbuf, filtername, filterwidth, chan_s,
                       chan_t, flip_s, flip_t, roi, nthreads);
     if (!ok && !result.has_error()) {
-        result.error("ImageBufAlgo::st_warp : Unknown error");
+        result.errorfmt("ImageBufAlgo::st_warp : Unknown error");
     }
     return result;
 }
