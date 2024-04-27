@@ -48,6 +48,7 @@
 #    define FMT_USE_FLOAT128 0
 #endif
 
+// Suppress certain warnings generated in the fmt headers themselves
 OIIO_PRAGMA_WARNING_PUSH
 #if OIIO_GNUC_VERSION >= 70000
 #    pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
@@ -57,6 +58,9 @@ OIIO_PRAGMA_WARNING_PUSH
 #endif
 #if OIIO_INTEL_LLVM_COMPILER
 #    pragma GCC diagnostic ignored "-Wtautological-constant-compare"
+#endif
+#if OIIO_CLANG_VERSION >= 180000
+#    pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
 #include <OpenImageIO/detail/fmt/format.h>
