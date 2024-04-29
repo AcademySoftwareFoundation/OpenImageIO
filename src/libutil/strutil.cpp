@@ -1872,4 +1872,30 @@ Strutil::edit_distance(string_view a, string_view b, EditDistMetric metric)
     return levenshtein_distance(a, b);
 }
 
+
+
+/// Interpret a string as a boolean value using the following heuristic:
+///   - If the string is a valid numeric value (represents an integer or
+///     floating point value), return true if it's non-zero, false if it's
+///     zero.
+///   - If the string is one of "false", "no", or "off", or if it contains
+///     only whitespace, return false.
+///   - All other non-empty strings return true.
+/// The comparisons are case-insensitive and ignore leading and trailing
+/// whitespace.
+bool
+Strutil::eval_as_bool(string_view value)
+{
+    Strutil::trim_whitespace(value);
+    if (Strutil::string_is_int(value)) {
+        return Strutil::stoi(value) != 0;
+    } else if (Strutil::string_is_float(value)) {
+        return Strutil::stof(value) != 0.0f;
+    } else {
+        return !(value.empty() || Strutil::iequals(value, "false")
+                 || Strutil::iequals(value, "no")
+                 || Strutil::iequals(value, "off"));
+    }
+}
+
 OIIO_NAMESPACE_END
