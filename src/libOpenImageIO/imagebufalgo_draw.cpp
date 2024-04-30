@@ -883,7 +883,7 @@ static FT_Library ft_library = NULL;
 static bool ft_broken        = false;
 
 static const char* default_font_name[] = { "DroidSans", "cour", "Courier New",
-                                           "FreeMono", nullptr };
+                                           "FreeMono" };
 
 
 
