@@ -60,6 +60,7 @@ Reading ../oiio-images/pnm/test-1.pfm
     channel list: R, G, B
     oiio:ColorSpace: "Rec709"
     pnm:bigendian: 0
+    pnm:binary: 1
     pnm:pfmflip: 1
 Reading ../oiio-images/pnm/test-2.pfm
 ../oiio-images/pnm/test-2.pfm :  240 x  240, 3 channel, float pnm
@@ -67,6 +68,7 @@ Reading ../oiio-images/pnm/test-2.pfm
     channel list: R, G, B
     oiio:ColorSpace: "Rec709"
     pnm:bigendian: 0
+    pnm:binary: 1
     pnm:pfmflip: 1
 Reading ../oiio-images/pnm/test-3.pfm
 ../oiio-images/pnm/test-3.pfm :  240 x  240, 3 channel, float pnm
@@ -74,4 +76,5 @@ Reading ../oiio-images/pnm/test-3.pfm
     channel list: R, G, B
     oiio:ColorSpace: "Rec709"
     pnm:bigendian: 1
+    pnm:binary: 1
     pnm:pfmflip: 1
