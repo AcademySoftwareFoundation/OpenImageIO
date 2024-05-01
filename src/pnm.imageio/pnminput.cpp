@@ -191,6 +191,7 @@ unpack_floats(const unsigned char* read, float* write, imagesize_t numsamples,
 bool
 PNMInput::read_file_scanline(void* data, int y)
 {
+    DBG std::cerr << "PNMInput::read_file_scanline(" << y << ")\n";
     if (y < m_y_next) {
         // If being asked to backtrack to an earlier scanline, reset all the
         // way to the beginning, right after the header.
@@ -319,6 +320,7 @@ PNMInput::read_file_header()
         int bps = int(ceilf(logf(m_max_val + 1) / logf(2)));
         if (bps < 8)
             m_spec.attribute("oiio:BitsPerSample", bps);
+        m_spec.attribute("pnm:pfmflip", 0);
     } else {
         //Read scaling factor
         if (!nextVal(m_scaling_factor))
@@ -333,6 +335,7 @@ PNMInput::read_file_header()
         m_spec = ImageSpec(width, height, m_pnm_type == PF ? 3 : 1,
                            TypeDesc::FLOAT);
         m_spec.attribute("pnm:bigendian", m_scaling_factor < 0 ? 0 : 1);
+        m_spec.attribute("pnm:binary", 1);
     }
     m_spec.attribute("oiio:ColorSpace", "Rec709");
     return true;
