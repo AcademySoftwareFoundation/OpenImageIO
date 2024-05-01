@@ -47,7 +47,7 @@ private:
 
     bool write_ascii_binary(const unsigned char* data, const stride_t stride);
     bool write_raw_binary(const unsigned char* data, const stride_t stride);
-    bool write_float(const float* data, const stride_t stride);
+    bool write_float(const void* data, TypeDesc format, const stride_t stride);
 
     template<class T>
     bool write_ascii(const T* data, const stride_t stride,
@@ -105,14 +105,16 @@ PNMOutput::write_ascii(const T* data, const stride_t stride,
                        unsigned int max_val)
 {
     DBG std::cerr << "PNMOutput::write_ascii()\n";
-    int nc = m_spec.nchannels;
+    int nc   = m_spec.nchannels;
     bool big = m_spec.get_int_attribute("pnm:bigendian", 0) == 1;
     DBG std::cerr << "bigendian: " << big << "\n";
+    stride_t m_stride = stride / sizeof(T);
+
     for (int x = 0; x < m_spec.width; x++) {
-        unsigned int pixel = x * stride;
+        unsigned int pixel = x * m_stride;
         for (int c = 0; c < nc; c++) {
             unsigned int val = data[pixel + c];
-            val = val * max_val / std::numeric_limits<T>::max();
+            val              = val * max_val / std::numeric_limits<T>::max();
             if (big)
                 swap_endian(&val, 1);
             if (!iowritefmt("{}\n", val))
@@ -128,21 +130,22 @@ template<class T>
 bool
 PNMOutput::write_raw(const T* data, const stride_t stride, unsigned int max_val)
 {
-    DBG std::cerr << "PNMOutput::write_raw()\n";
-    int nc   = m_spec.nchannels;
-    bool big = m_spec.get_int_attribute("pnm:bigendian", 0) == 1;
+    //DBG std::cerr << "PNMOutput::write_raw()\n";
+    int nc            = m_spec.nchannels;
+    bool big          = m_spec.get_int_attribute("pnm:bigendian", 0) == 1;
+    stride_t m_stride = stride / sizeof(T);
+
     for (int x = 0; x < m_spec.width; x++) {
-        unsigned int pixel = x * stride;
+        unsigned int pixel = x * m_stride;
         for (int c = 0; c < nc; c++) {
-            uint16_t val = data[pixel + c];
-            val          = val * max_val / std::numeric_limits<T>::max();
+            unsigned int val = data[pixel + c];
+            val              = val * max_val / std::numeric_limits<T>::max();
             if (sizeof(T) == 2) {
                 // Writing a 16bit ppm file
-                // I'll adopt the practice of Netpbm and write the MSB first
-                uint8_t byte[2] = { static_cast<uint8_t>(val >> 8),
-                                    static_cast<uint8_t>(val & 0xff) };
-                if (big)
-                    std::swap(byte[0], byte[1]);
+                uint8_t byte[2] = { big ? static_cast<uint8_t>(val & 0xff)
+                                        : static_cast<uint8_t>(val >> 8),
+                                    big ? static_cast<uint8_t>(val >> 8)
+                                        : static_cast<uint8_t>(val & 0xff) };
                 if (!iowrite(&byte, 2))
                     return false;
             } else {
@@ -159,19 +162,55 @@ PNMOutput::write_raw(const T* data, const stride_t stride, unsigned int max_val)
 
 
 bool
-PNMOutput::write_float(const float* data, const stride_t stride)
+PNMOutput::write_float(const void* data, TypeDesc format, const stride_t stride)
 {
     int nc   = m_spec.nchannels;
     bool big = m_spec.get_int_attribute("pnm:bigendian", 0) == 1;
-    for (int x = 0; x < m_spec.width; x++) {
-        unsigned int pixel = x * stride;
-        for (int c = 0; c < nc; c++) {
-            float val = data[pixel + c];
-            if (big)
-                swap_endian(&val, 1);
-            if (!iowrite(&val, sizeof(val)))
-                return false;
+    stride_t m_stride;
+
+    switch (format.basetype) {
+    case TypeDesc::HALF:
+        m_stride = stride / sizeof(half);
+        for (int x = 0; x < m_spec.width; x++) {
+            unsigned int pixel = x * m_stride;
+            for (int c = 0; c < nc; c++) {
+                half* d   = (half*)data;
+                float val = static_cast<float>(d[pixel + c]);
+                if (big)
+                    swap_endian(&val, 1);
+                if (!iowrite(&val, sizeof(val)))
+                    return false;
+            }
         }
+        break;
+    case TypeDesc::FLOAT:
+        m_stride = stride / sizeof(float);
+        for (int x = 0; x < m_spec.width; x++) {
+            unsigned int pixel = x * m_stride;
+            for (int c = 0; c < nc; c++) {
+                float* d  = (float*)data;
+                float val = d[pixel + c];
+                if (big)
+                    swap_endian(&val, 1);
+                if (!iowrite(&val, sizeof(val)))
+                    return false;
+            }
+        }
+        break;
+    case TypeDesc::DOUBLE:
+        m_stride = stride / sizeof(double);
+        for (int x = 0; x < m_spec.width; x++) {
+            unsigned int pixel = x * m_stride;
+            for (int c = 0; c < nc; c++) {
+                double* d = (double*)data;
+                float val = static_cast<float>(d[pixel + c]);
+                if (big)
+                    swap_endian(&val, 1);
+                if (!iowrite(&val, sizeof(val)))
+                    return false;
+            }
+        }
+        break;
     }
     return true;
 }
@@ -191,14 +230,13 @@ PNMOutput::open(const std::string& name, const ImageSpec& userspec,
     m_pnm_type = 0;
     m_pfn_type = "";
 
-
     int bits_per_sample = 0;
     if (m_spec.find_attribute("oiio:BitsPerSample")) {
         bits_per_sample = m_spec.get_int_attribute("oiio:BitsPerSample", 8);
     }
 
     bool p_binary = m_spec.get_int_attribute("pnm:binary", 1);
-
+    DBG std::cerr << "p_binary: " << p_binary << "\n";
 
     if (bits_per_sample == 1) {
         // black and white
@@ -217,15 +255,17 @@ PNMOutput::open(const std::string& name, const ImageSpec& userspec,
             m_pnm_type = (m_spec.nchannels == 1) ? (p_binary ? 5 : 2)
                                                  : (p_binary ? 6 : 3);
             break;
+        case TypeDesc::HALF:
         case TypeDesc::FLOAT:
+        case TypeDesc::DOUBLE:
             m_pfn_type = (m_spec.nchannels == 1) ? "f" : "F";
             break;
         default:
-            errorfmt("PNM does not support %s", m_spec.format.c_str());
+            errorfmt("PNM does not support {}\n", m_spec.format.c_str());
             return false;
         }
     } else {
-        errorfmt("PNM does not support %s", m_spec.format.c_str());
+        errorfmt("PNM does not support {}\n", m_spec.format.c_str());
         return false;
     }
 
@@ -304,6 +344,7 @@ bool
 PNMOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
                           stride_t xstride)
 {
+    //DBG std::cerr << "PNMOutput::write_scanline()\n";
     if (!ioproxy_opened())
         return false;
     if (z)
@@ -312,34 +353,32 @@ PNMOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     m_spec.auto_stride(xstride, format, spec().nchannels);
     const void* origdata = data;
     data = to_native_scanline(format, data, xstride, m_scratch, m_dither, y, z);
-    if (data != origdata)  // a conversion happened...
-        xstride = spec().nchannels;
+    if (data != origdata) {  // a conversion happened...
+        xstride = m_spec.pixel_bytes(true);
+    }
 
     switch (m_pnm_type) {
     case 0:
         if (m_pfn_type != "") {
-            xstride = spec().nchannels;
-            return write_float((float*)data, xstride);
+            return write_float(data, m_spec.format, xstride);
         } else
             return false;
     case 1: return write_ascii_binary((unsigned char*)data, xstride);
     case 2:
     case 3:
         if (m_max_val > std::numeric_limits<unsigned char>::max()) {
-            xstride /= 2;
             return write_ascii((unsigned short*)data, xstride, m_max_val);
-        }
-        else
+        } else {
             return write_ascii((unsigned char*)data, xstride, m_max_val);
+        }
     case 4: return write_raw_binary((unsigned char*)data, xstride);
     case 5:
     case 6:
         if (m_max_val > std::numeric_limits<unsigned char>::max()) {
-            xstride /= 2;
             return write_raw((unsigned short*)data, xstride, m_max_val);
-        }
-        else
+        } else {
             return write_raw((unsigned char*)data, xstride, m_max_val);
+        }
     default: return false;
     }
 
