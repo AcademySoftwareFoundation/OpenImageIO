@@ -111,9 +111,11 @@ JxlOutput::open(const std::string& name, const ImageSpec& newspec,
 
     switch (m_spec.format.basetype) {
     case TypeDesc::UINT8:
-    case TypeDesc::UINT16:
+    case TypeDesc::UINT16: m_spec.set_format(m_spec.format); break;
+    case TypeDesc::UINT32: m_spec.set_format(TypeDesc::UINT16); break;
     case TypeDesc::HALF:
     case TypeDesc::FLOAT: m_spec.set_format(m_spec.format); break;
+    case TypeDesc::DOUBLE: m_spec.set_format(TypeDesc::FLOAT); break;
     default: errorfmt("Unsupported data type {}", m_spec.format); return false;
     }
 
@@ -163,6 +165,7 @@ JxlOutput::open(const std::string& name, const ImageSpec& newspec,
         m_basic_info.exponent_bits_per_sample = 0;
         break;
     case TypeDesc::UINT16:
+    case TypeDesc::UINT32:
         m_basic_info.bits_per_sample          = 16;
         m_basic_info.exponent_bits_per_sample = 0;
         break;
@@ -171,6 +174,7 @@ JxlOutput::open(const std::string& name, const ImageSpec& newspec,
         m_basic_info.exponent_bits_per_sample = 5;
         break;
     case TypeDesc::FLOAT:
+    case TypeDesc::DOUBLE:
         m_basic_info.bits_per_sample          = 32;
         m_basic_info.exponent_bits_per_sample = 8;
         break;
@@ -380,6 +384,7 @@ JxlOutput::save_image(const void* data)
         jxl_bytes = 1;
         break;
     case TypeDesc::UINT16:
+    case TypeDesc::UINT32:
         jxl_type  = JXL_TYPE_UINT16;
         jxl_bytes = 2;
         break;
@@ -388,6 +393,7 @@ JxlOutput::save_image(const void* data)
         jxl_bytes = 2;
         break;
     case TypeDesc::FLOAT:
+    case TypeDesc::DOUBLE:
         jxl_type  = JXL_TYPE_FLOAT;
         jxl_bytes = 4;
         break;
