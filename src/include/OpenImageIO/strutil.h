@@ -1159,6 +1159,19 @@ OIIO_UTIL_API size_t
 edit_distance(string_view a, string_view b,
               EditDistMetric metric = EditDistMetric::Levenshtein);
 
+
+/// Evaluate a string as a boolean value using the following heuristic:
+///   - If the string is a valid numeric value (represents an integer or
+///     floating point value), return true if it's non-zero, false if it's
+///     zero.
+///   - If the string is one of "false", "no", or "off", or if it contains
+///     only whitespace, return false.
+///   - All other non-empty strings return true.
+/// The comparisons are case-insensitive and ignore leading and trailing
+/// whitespace.
+OIIO_UTIL_API bool
+eval_as_bool(string_view value);
+
 }  // namespace Strutil
 
 

@@ -1677,6 +1677,53 @@ test_base64_encode()
 
 
 
+void
+test_eval_as_bool()
+{
+    using namespace Strutil;
+    print("testing eval_as_bool()\n");
+
+    // Test cases for integer values
+    OIIO_CHECK_EQUAL(eval_as_bool("0"), false);
+    OIIO_CHECK_EQUAL(eval_as_bool("1"), true);
+    OIIO_CHECK_EQUAL(eval_as_bool("-1"), true);
+    OIIO_CHECK_EQUAL(eval_as_bool("10"), true);
+    OIIO_CHECK_EQUAL(eval_as_bool("-10"), true);
+
+    // Test cases for floating-point values
+    OIIO_CHECK_EQUAL(eval_as_bool("0.0"), false);
+    OIIO_CHECK_EQUAL(eval_as_bool("1.0"), true);
+    OIIO_CHECK_EQUAL(eval_as_bool("-1.0"), true);
+    OIIO_CHECK_EQUAL(eval_as_bool("10.5"), true);
+    OIIO_CHECK_EQUAL(eval_as_bool("-10.5"), true);
+
+    // Test cases for string values
+    OIIO_CHECK_EQUAL(eval_as_bool(""), false);
+    OIIO_CHECK_EQUAL(eval_as_bool("false"), false);
+    OIIO_CHECK_EQUAL(eval_as_bool("FALSE"), false);
+    OIIO_CHECK_EQUAL(eval_as_bool("no"), false);
+    OIIO_CHECK_EQUAL(eval_as_bool("NO"), false);
+    OIIO_CHECK_EQUAL(eval_as_bool("off"), false);
+    OIIO_CHECK_EQUAL(eval_as_bool("OFF"), false);
+
+    OIIO_CHECK_EQUAL(eval_as_bool("true"), true);
+    OIIO_CHECK_EQUAL(eval_as_bool("TRUE"), true);
+    OIIO_CHECK_EQUAL(eval_as_bool("yes"), true);
+    OIIO_CHECK_EQUAL(eval_as_bool("YES"), true);
+    OIIO_CHECK_EQUAL(eval_as_bool("on"), true);
+    OIIO_CHECK_EQUAL(eval_as_bool("ON"), true);
+    OIIO_CHECK_EQUAL(eval_as_bool("OpenImageIO"), true);
+
+    // Test whitespace, case insensitivity, other tricky cases
+    OIIO_CHECK_EQUAL(eval_as_bool("   "), false);
+    OIIO_CHECK_EQUAL(eval_as_bool("\t \n"), false);
+    OIIO_CHECK_EQUAL(eval_as_bool(" faLsE"), false);
+    OIIO_CHECK_EQUAL(eval_as_bool("\tOFf"), false);
+    OIIO_CHECK_EQUAL(eval_as_bool("off OpenImageIO"), true);
+}
+
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -1712,6 +1759,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_datetime();
     test_edit_distance();
     test_base64_encode();
+    test_eval_as_bool();
 
     Strutil::debug("debug message\n");
 
