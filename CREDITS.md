@@ -4,10 +4,12 @@ by first name.
 If you know of somebody that I missed or have corrections, please email:
 lg@openimageio.org
 
+* Aaron Colwell
 * Adam Mains
 * Akihiro Yamasaki
 * Alan Jones
 * Alejandro Conty
+* Alex Guirre
 * Alex Hughes
 * Alex Schworer
 * Alexander Kuleshov
@@ -19,6 +21,8 @@ lg@openimageio.org
 * Aman Shah
 * Ananth Garre
 * Anders Langlands
+* Andy Chan
+* AngryLoki
 * Angus Davis
 * Anthony Nemoff
 * Aras Pranckevičius
@@ -41,11 +45,13 @@ lg@openimageio.org
 * Changlin Hsieh
 * Chris Crosetto
 * Chris Foster
+* Chris Hellmuth
 * Chris Kulla
 * Chris Whalen
 * Christoph Willing
 * Cliff Stein
 * Clément Champetier
+* D-Spirits
 * Dalai Felinto
 * Dan Wexler
 * Daniel Dresser
@@ -58,11 +64,13 @@ lg@openimageio.org
 * Dieter De Baets
 * Dinko Galetik
 * Dominik Bartkiewicz
+* Dominik Wójt
 * Duncan Chan
 * Dustin Rodrigues
 * Edgar Velazquez-Armendariz
 * Eloi Du Bois
 * Elvic Liang
+* Emil Dohne
 * Fabien Castan
 * Fabien Servant
 * Fredrik Averpil
@@ -101,6 +109,7 @@ lg@openimageio.org
 * Julien Enche
 * Justin Israel
 * Justina Mikonyte
+* Kaarrot
 * Kazuki Takahashi
 * Kevin Brightwell
 * Kimball Thurston
@@ -154,6 +163,7 @@ lg@openimageio.org
 * Paul Molodowitch
 * Pavel Karneliuk
 * Pete Larabell
+* Peter Kovář
 * Philip Nemec
 * Pino Toscano
 * Povilas Kanapickas
@@ -177,6 +187,7 @@ lg@openimageio.org
 * SebTV
 * Seifeddine Dridi
 * Sergey Sharybin
+* Sergio Rojas
 * Shane Ambler
 * Simon Boorer
 * Solomon Boulos
@@ -191,6 +202,7 @@ lg@openimageio.org
 * Tim Grant
 * Tom Knowles
 * Troy James Sobotka
+* Vic P
 * Vinod Khare
 * Vishal Agrawal
 * Vitor Franchi
