@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-#include <cstdio>
 #include <cstdlib>
 #include <fstream>
 #include <string>
@@ -12,8 +11,6 @@
 #include <OpenImageIO/imageio.h>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
-
-#define DBG if (0)
 
 //
 // Documentation on the PNM formats can be found at:
@@ -191,7 +188,6 @@ unpack_floats(const unsigned char* read, float* write, imagesize_t numsamples,
 bool
 PNMInput::read_file_scanline(void* data, int y)
 {
-    DBG std::cerr << "PNMInput::read_file_scanline(" << y << ")\n";
     if (y < m_y_next) {
         // If being asked to backtrack to an earlier scanline, reset all the
         // way to the beginning, right after the header.
@@ -206,11 +202,9 @@ PNMInput::read_file_scanline(void* data, int y)
     for (; good && m_y_next <= y; ++m_y_next) {
         // PFM files are bottom-to-top, so we need to seek to the right spot
         if (m_pnm_type == PF || m_pnm_type == Pf) {
-            if (m_spec.get_int_attribute("pnm:pfmflip", 1) == 1) {
-                int file_scanline = m_spec.height - 1 - (y - m_spec.y);
-                auto offset       = file_scanline * m_spec.scanline_bytes();
-                m_remaining       = m_after_header.substr(offset);
-            }
+            int file_scanline = m_spec.height - 1 - (y - m_spec.y);
+            auto offset       = file_scanline * m_spec.scanline_bytes();
+            m_remaining       = m_after_header.substr(offset);
         }
 
         if ((m_pnm_type >= P4 && m_pnm_type <= P6) || m_pnm_type == PF
@@ -225,7 +219,6 @@ PNMInput::read_file_scanline(void* data, int y)
             if (size_t(numbytes) > m_remaining.size())
                 return false;
             buf.assign(m_remaining.begin(), m_remaining.begin() + numbytes);
-
             m_remaining.remove_prefix(numbytes);
         }
 
@@ -320,7 +313,6 @@ PNMInput::read_file_header()
         int bps = int(ceilf(logf(m_max_val + 1) / logf(2)));
         if (bps < 8)
             m_spec.attribute("oiio:BitsPerSample", bps);
-        m_spec.attribute("pnm:pfmflip", 0);
     } else {
         //Read scaling factor
         if (!nextVal(m_scaling_factor))
@@ -335,7 +327,6 @@ PNMInput::read_file_header()
         m_spec = ImageSpec(width, height, m_pnm_type == PF ? 3 : 1,
                            TypeDesc::FLOAT);
         m_spec.attribute("pnm:bigendian", m_scaling_factor < 0 ? 0 : 1);
-        m_spec.attribute("pnm:binary", 1);
     }
     m_spec.attribute("oiio:ColorSpace", "Rec709");
     return true;
@@ -348,13 +339,7 @@ PNMInput::open(const std::string& name, ImageSpec& newspec,
                const ImageSpec& config)
 {
     ioproxy_retrieve_from_config(config);
-    if (!open(name, newspec)) {
-        errorfmt("Could parse spec for file \"%s\"", name);
-        return false;
-    }
-
-    m_spec["pnm:pfmflip"] = config.get_int_attribute("pnm:pfmflip", 1);
-    return true;
+    return open(name, newspec);
 }
 
 
