@@ -1,5 +1,13 @@
-Release 2.5.11.0 (May 1?, 2024) -- compared to 2.5.10.0
+Release 2.5.11.0 (May 1, 2024) -- compared to 2.5.10.0
 -------------------------------------------------------
+  - *dds*: DDS support more DXGI formats [#4220](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4220) (by alexguirre)
+  - *psd*: Add support for 16- and 32-bit Photoshop file reads [#4208](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4208) (by EmilDohne)
+  - *fix(fmt.h)*: Fix build break from recent fmt change [#4227](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4227)
+  - *fix(openexr)*: Fix out-of-bounds reads when using OpenEXR decreasingY lineOrder. [#4215](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4215) (by Aaron Colwell)
+  - *fix*: Don't use (DY)LD_LIBRARY_PATH as plugin search paths [#4245](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4245) (by Brecht Van Lommel)
+  - *fix*: Fix crash when no default fonts are found [#4249](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4249)
+  - *build*: Disable clang18 warnings about deprecated unicode conversion [#4246](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4246)
+  - *security*: Better documentation of past CVE fixes in SECURITY.md [#4238](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4238)
 
 
 Release 2.5.10.1 (Apr 1, 2024) -- compared to 2.5.9.0
@@ -22,7 +30,6 @@ Release 2.5.10.1 (Apr 1, 2024) -- compared to 2.5.9.0
 - *ci*: Enable Windows 2022 CI tests [#4195](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4195)
 - *docs*: Fix some typos and add missing oiiotool expression explanations [#4169](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4169)
 - *admin*: Add a ROADMAP document [#4161](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4161)
-
 
 
 Release 2.5.9.0 (Mar 1, 2024) -- compared to 2.5.8.0

@@ -26,26 +26,26 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.6)
  * libjpeg >= 8 (tested through jpeg9e), or **libjpeg-turbo >= 2.1** (tested
    through 3.0)
- * Boost >= 1.53 (recommended: at least 1.66; tested through 1.84)
- * **[fmtlib](https://github.com/fmtlib/fmt) >= 7.0** (tested through 10.1).
+ * Boost >= 1.53 (recommended: at least 1.66; tested through 1.85)
+ * **[fmtlib](https://github.com/fmtlib/fmt) >= 7.0** (tested through 10.2).
    If not found at build time, this will be automatically downloaded unless
    the build sets `-DBUILD_MISSING_FMT=OFF`.
 
 ### Optional dependencies -- features may be disabled if not found
  * If you are building the `iv` viewer (which will be disabled if any of
    these are not found):
-     * Qt5 >= 5.6 (tested through 5.15) or Qt6 (tested through 6.6)
+     * Qt5 >= 5.6 (tested through 5.15) or Qt6 (tested through 6.7)
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
-     * Python >= 2.7 (tested against 2.7, 3.7, 3.8, 3.9, 3.10, 3.11)
-     * pybind11 >= 2.4.2 (Tested through 2.11. Note that pybind11 v2.10+ does
+     * Python >= 2.7 (tested against 2.7, 3.7, 3.8, 3.9, 3.10, 3.12)
+     * pybind11 >= 2.4.2 (Tested through 2.12. Note that pybind11 v2.10+ does
        not support Python < 3.6.)
      * NumPy
  * If you want support for camera "RAW" formats:
      * LibRaw >= 0.18 (tested though 0.21.2; if
        building with C++17 or higher, LibRaw >= 0.20 is necessary)
  * If you want support for a wide variety of video formats:
-     * ffmpeg >= 3.0 (tested through 6.1)
+     * ffmpeg >= 3.0 (tested through 7.0)
  * If you want support for jpeg 2000 images:
      * OpenJpeg >= 2.0 (tested through 2.5; we recommend 2.4 or higher
        for multithreading support)
@@ -68,7 +68,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for DICOM medical image files:
      * DCMTK >= 3.6.1 (tested through 3.6.8)
  * If you want support for WebP images:
-     * WebP >= 0.6.1 (tested through 1.3.2)
+     * WebP >= 0.6.1 (tested through 1.4)
  * If you want support for OpenColorIO color transformations:
      * OpenColorIO >= 1.1 (tested through 2.3; 2.0+ is recommended)
  * If you want support for Ptex:
