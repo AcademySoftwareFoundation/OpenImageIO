@@ -1121,7 +1121,7 @@ control_if(Oiiotool& ot, cspan<const char*> argv)
     if (ot.running()) {
         // string_view command = ot.express(argv[0]);
         string_view value = ot.express(argv[1]);
-        cond              = eval_as_bool(value);
+        cond              = Strutil::eval_as_bool(value);
         // Strutil::print("while: val='{}' cond={}\n", value, cond);
     } else {
         // If not running in the outer scope, don't even evaluate the
@@ -1184,7 +1184,7 @@ control_while(Oiiotool& ot, cspan<const char*> argv)
     if (ot.running()) {
         // string_view command = ot.express(argv[0]);
         string_view value = ot.express(argv[1]);
-        cond              = eval_as_bool(value);
+        cond              = Strutil::eval_as_bool(value);
         // Strutil::print("while: val='{}' cond={}\n", value, cond);
     } else {
         // If not running in the outer scope, don't even evaluate the
