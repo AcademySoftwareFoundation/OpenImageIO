@@ -506,7 +506,7 @@ static void
 test_uncaught_error()
 {
     ImageBuf buf;
-    buf.error("Boo!");
+    buf.errorfmt("Boo!");
     // buf exists scope and is destroyed without anybody retrieving the error.
 }
 

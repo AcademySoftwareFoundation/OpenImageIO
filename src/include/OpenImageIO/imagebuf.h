@@ -1056,15 +1056,6 @@ public:
         error(Strutil::fmt::format(fmt, args...));
     }
 
-    /// Error reporting for ImageBuf: call this with printf-like arguments
-    /// to report an error. It is not necessary to have the error message
-    /// contain a trailing newline.
-    template<typename... Args>
-    void errorf(const char* fmt, const Args&... args) const
-    {
-        error(Strutil::sprintf(fmt, args...));
-    }
-
     /// Error reporting for ImageBuf: call this with Strutil::format
     /// formatting conventions.  It is not necessary to have the error
     /// message contain a trailing newline. Beware, this is in transition,
@@ -1074,15 +1065,6 @@ public:
                                       const Args&... args) const
     {
         error(Strutil::format(fmt, args...));
-    }
-
-    // Error reporting for ImageBuf: call this with Python / {fmt} /
-    // std::format style formatting specification.
-    template<typename... Args>
-    OIIO_DEPRECATED("use `errorfmt` instead")
-    void fmterror(const char* fmt, const Args&... args) const
-    {
-        error(Strutil::fmt::format(fmt, args...));
     }
 
     /// Returns `true` if the ImageBuf has had an error and has an error
