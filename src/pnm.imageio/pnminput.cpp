@@ -349,7 +349,7 @@ PNMInput::open(const std::string& name, ImageSpec& newspec,
 {
     ioproxy_retrieve_from_config(config);
     if (!open(name, newspec)) {
-        errorfmt("Could parse spec for file \"%s\"", name);
+        errorfmt("Could not parse spec for file \"%s\"", name);
         return false;
     }
 
