@@ -1696,9 +1696,21 @@ significance and extreme simplicity, OpenImageIO supports them.
 PNM files do not support anything other than 1 or 3 channels, no tiles,
 no multi-image, no MIPmapping.
 
-The pbm, pgm, and ppm varieties are stored with scanlines ordered in the file as top-to-bottom (the same as the usual OIIO convention), but the float-based pfm files are conventionally ordered in the file as bottom-to-top. Therefore, by default, reading and writing of the pfm variety will automatically flip the image so that an application calling the OpenImageIO API can, as usual, assume that scanline 0 is the visual "top" (even though it is actually the last scanline stored in the file).
+The pbm, pgm, and ppm varieties are stored with scanlines ordered in the
+file as top-to-bottom (the same as the usual OIIO convention), but the
+float-based pfm files are conventionally ordered in the file as
+bottom-to-top. Therefore, by default, reading and writing of the pfm
+variety will automatically flip the image so that an application calling
+the OpenImageIO API can, as usual, assume that scanline 0 is the visual
+"top" (even though it is actually the last scanline stored in the file).
 
-Both the reader and writer accept configuration hints "pnm:pfmflip" (default: 1), which if set to 0 will disable this flipping and ensure that scanline 0 is written as the first in the file (therefore representing what PFM assumes is the visual "bottom" of the image). This hint only affects PFM files and has no effect on the pbm, pgm, or ppm varieties.
+Both the reader and writer accept configuration hints "pnm:pfmflip"
+(default: 1), which if set to 0 will disable this flipping and ensure
+that scanline 0 is written as the first in the file (therefore
+representing what PFM assumes is the visual "bottom" of the image).
+This hint only affects PFM files and has no effect on the pbm, pgm,
+or ppm varieties.
+
 **Attributes**
 
 .. list-table::
@@ -1740,7 +1752,11 @@ attributes are supported:
      - If nonzero, the PNM file is big-endian (the default is little-endian).  
    * - ``pnm:pfmflip``
       - int
-      - If this configuration hint is present and is zero, the automatic vertical flipping of PFM image will be disabled (i.e., scanline 0 will really be the first one stored in the file). If nonzero (the default), float PFM files will store scanline 0 as the last scanline in the file (i.e. the visual "top" of the image).
+      - If this configuration hint is present and is zero, the automatic
+      vertical flipping of PFM image will be disabled (i.e., scanline 0 will
+      really be the first one stored in the file). If nonzero (the default),
+      float PFM files will store scanline 0 as the last scanline in the file
+      (i.e. the visual "top" of the image).
 
 **Configuration settings for PNM output**
 
@@ -1774,7 +1790,12 @@ control aspects of the writing itself:
        Float PFM files are always written in binary format.
    * - ``pnm:pfmflip``
       - int
-      - If this configuration hint is present and is zero, for PFM files, scanline 0 will really be stored first in the file, thus disabling the usual automatically flipping that accounts for PFM files conventionally being stored in bottom-to-top order. If nonzero (the default), float PFM files will store scanline 0 as the last scanline in the file (i.e. the visual "top" of the image).
+      - If this configuration hint is present and is zero, for PFM files,
+      scanline 0 will really be stored first in the file, thus disabling the
+      usual automatically flipping that accounts for PFM files conventionally
+      being stored in bottom-to-top order. If nonzero (the default), float
+      PFM files will store scanline 0 as the last scanline in the file (i.e.
+      the visual "top" of the image).
 
 **Custom I/O Overrides**
 
