@@ -1678,22 +1678,38 @@ and :ref:`sec-imageinput-ioproxy`) as well as the `set_ioproxy()` methods.
 PNM / Netpbm
 ===============================================
 
-The Netpbm project, a.k.a. PNM (portable "any" map) defines PBM, PGM,
-and PPM (portable bitmap, portable graymap, portable pixmap) files.
+The Netpbm project, a.k.a. PNM (portable "any" map) defines PBM, PGM, PPM
+and later added PFM (portable float map) as a set of simple image formats
+(portable bitmap, portable graymap, portable pixmap) files.
 Without loss of generality, we will refer to these all collectively as
-"PNM."  These files have extensions :file:`.pbm`, :file:`.pgm`, and
-:file:`.ppm` and customarily correspond to bi-level bitmaps, 1-channel
-grayscale, and 3-channel RGB files, respectively, or :file:`.pnm` for
-those who reject the nonsense about naming the files depending on the
+"PNM."  These files have extensions :file:`.pbm`, :file:`.pgm`,
+:file:`.ppm`, :file:`.pfm` and customarily correspond to bi-level bitmaps,
+1-channel grayscale, and 3-channel RGB files, respectively, or :file:`.pnm`
+for those who reject the nonsense about naming the files depending on the
 number of channels and bitdepth.
 
-PNM files are not much good for anything, but because of their
-historical significance and extreme simplicity (that causes many
-"amateur" programs to write images in these formats), OpenImageIO
-supports them.  PNM files do not support floating point images, anything
-other than 1 or 3 channels, no tiles, no multi-image, no MIPmapping.
-It's not a smart choice unless you are sending your images back to the
-1980's via a time machine.
+PNM files are widely used in the Unix world as simple ASCII or binary image 
+files that are easy to read and write. They are not compressed, and are
+not particularly efficient for large images. They are not widely used in
+the professional graphics world, but because of their historical
+significance and extreme simplicity, OpenImageIO supports them.
+PNM files do not support anything other than 1 or 3 channels, no tiles,
+no multi-image, no MIPmapping.
+
+The pbm, pgm, and ppm varieties are stored with scanlines ordered in the
+file as top-to-bottom (the same as the usual OIIO convention), but the
+float-based pfm files are conventionally ordered in the file as
+bottom-to-top. Therefore, by default, reading and writing of the pfm
+variety will automatically flip the image so that an application calling
+the OpenImageIO API can, as usual, assume that scanline 0 is the visual
+"top" (even though it is actually the last scanline stored in the file).
+
+Both the reader and writer accept configuration hints "pnm:pfmflip"
+(default: 1), which if set to 0 will disable this flipping and ensure
+that scanline 0 is written as the first in the file (therefore
+representing what PFM assumes is the visual "bottom" of the image).
+This hint only affects PFM files and has no effect on the pbm, pgm,
+or ppm varieties.
 
 **Attributes**
 
@@ -1731,6 +1747,16 @@ attributes are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+   * - ``pnm:bigendian``
+     - int
+     - If nonzero, the PNM file is big-endian (the default is little-endian).  
+   * - ``pnm:pfmflip``
+      - int
+      - If this configuration hint is present and is zero, the automatic
+      vertical flipping of PFM image will be disabled (i.e., scanline 0 will
+      really be the first one stored in the file). If nonzero (the default),
+      float PFM files will store scanline 0 as the last scanline in the file
+      (i.e. the visual "top" of the image).
 
 **Configuration settings for PNM output**
 
@@ -1753,6 +1779,23 @@ control aspects of the writing itself:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by writing to a memory buffer.
+   * - ``pnm:bigendian``
+     - int
+     - If nonzero, the PNM file is big-endian (the default is little-endian).
+   * - ``pnm:binary``
+     - int
+     - nonzero if the file itself used the PNM binary format, 0 if it used
+       ASCII.  The PNM writer honors this attribute in the ImageSpec to
+       determine whether to write an ASCII or binary file.
+       Float PFM files are always written in binary format.
+   * - ``pnm:pfmflip``
+      - int
+      - If this configuration hint is present and is zero, for PFM files,
+      scanline 0 will really be stored first in the file, thus disabling the
+      usual automatically flipping that accounts for PFM files conventionally
+      being stored in bottom-to-top order. If nonzero (the default), float
+      PFM files will store scanline 0 as the last scanline in the file (i.e.
+      the visual "top" of the image).
 
 **Custom I/O Overrides**
 
