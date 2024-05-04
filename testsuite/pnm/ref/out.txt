@@ -54,15 +54,18 @@ Reading ../oiio-images/pnm/test-1.pfm
     channel list: R, G, B
     oiio:ColorSpace: "Rec709"
     pnm:bigendian: 0
+    pnm:binary: 1
 Reading ../oiio-images/pnm/test-2.pfm
 ../oiio-images/pnm/test-2.pfm :  240 x  240, 3 channel, float pnm
     SHA-1: 312B084985EF1B9C20D35A9D7A5DC8E8EAEB25A0
     channel list: R, G, B
     oiio:ColorSpace: "Rec709"
     pnm:bigendian: 0
+    pnm:binary: 1
 Reading ../oiio-images/pnm/test-3.pfm
 ../oiio-images/pnm/test-3.pfm :  240 x  240, 3 channel, float pnm
     SHA-1: 613A9639725F51ADC8B6F8F5A38DB5EFF0B3A628
     channel list: R, G, B
     oiio:ColorSpace: "Rec709"
     pnm:bigendian: 1
+    pnm:binary: 1
