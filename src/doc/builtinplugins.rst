@@ -1732,8 +1732,7 @@ attributes are supported:
      - If nonzero, the PNM file is big-endian (the default is little-endian).  
    * - ``pnm:pfmflip``
       - int
-      - If nonzero, the PFM (float) file is flipped upside-down (the default
-      is flipped).
+      - If this configuration hint is present and is zero, the automatic vertical flipping of PFM image will be disabled (i.e., scanline 0 will really be the first one stored in the file). If nonzero (the default), float PFM files will store scanline 0 as the last scanline in the file (i.e. the visual "top" of the image).
 
 **Configuration settings for PNM output**
 
