@@ -1766,8 +1766,7 @@ control aspects of the writing itself:
        Float PFM files are always written in binary format.
    * - ``pnm:pfmflip``
       - int
-      - If nonzero, the PFM (float) file is flipped upside-down (the default
-      is flipped).
+      - If this configuration hint is present and is zero, for PFM files, scanline 0 will really be stored first in the file, thus disabling the usual automatically flipping that accounts for PFM files conventionally being stored in bottom-to-top order. If nonzero (the default), float PFM files will store scanline 0 as the last scanline in the file (i.e. the visual "top" of the image).
 
 **Custom I/O Overrides**
 
