@@ -1712,6 +1712,11 @@ Both the reader and writer accept configuration hints "pnm:pfmflip" (default: 1)
      - int
      - The true bits per sample of the file (1 for true PBM files, even
        though OIIO will report the ``format`` as UINT8).
+   * - ``pnm:binary``
+     - int
+     - nonzero if the file itself used the PNM binary format, 0 if it used
+       ASCII.  The PNM writer honors this attribute in the ImageSpec to
+       determine whether to write an ASCII or binary file.
 
 **Configuration settings for PNM input**
 
