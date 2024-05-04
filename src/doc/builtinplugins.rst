@@ -1688,7 +1688,7 @@ Without loss of generality, we will refer to these all collectively as
 for those who reject the nonsense about naming the files depending on the
 number of channels and bitdepth.
 
-PNM files widely used in the Unix world as simple ASCII or binary image 
+PNM files are widely used in the Unix world as simple ASCII or binary image 
 files that are easy to read and write. They are not compressed, and are
 not particularly efficient for large images. They are not widely used in
 the professional graphics world, but because of their historical
