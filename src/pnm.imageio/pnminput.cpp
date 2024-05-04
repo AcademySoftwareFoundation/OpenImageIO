@@ -51,6 +51,7 @@ private:
     string_view m_remaining;
     string_view m_after_header;
     int m_y_next;
+    bool m_pfm_flip;
 
     void init()
     {
@@ -206,7 +207,7 @@ PNMInput::read_file_scanline(void* data, int y)
     for (; good && m_y_next <= y; ++m_y_next) {
         // PFM files are bottom-to-top, so we need to seek to the right spot
         if (m_pnm_type == PF || m_pnm_type == Pf) {
-            if (m_spec.get_int_attribute("pnm:pfmflip", 1) == 1) {
+            if (m_pfm_flip) {
                 int file_scanline = m_spec.height - 1 - (y - m_spec.y);
                 auto offset       = file_scanline * m_spec.scanline_bytes();
                 m_remaining       = m_after_header.substr(offset);
@@ -320,7 +321,6 @@ PNMInput::read_file_header()
         int bps = int(ceilf(logf(m_max_val + 1) / logf(2)));
         if (bps < 8)
             m_spec.attribute("oiio:BitsPerSample", bps);
-        m_spec.attribute("pnm:pfmflip", 0);
     } else {
         //Read scaling factor
         if (!nextVal(m_scaling_factor))
@@ -348,12 +348,14 @@ PNMInput::open(const std::string& name, ImageSpec& newspec,
                const ImageSpec& config)
 {
     ioproxy_retrieve_from_config(config);
+
     if (!open(name, newspec)) {
         errorfmt("Could not parse spec for file \"%s\"", name);
         return false;
     }
 
-    m_spec["pnm:pfmflip"] = config.get_int_attribute("pnm:pfmflip", 1);
+    m_pfm_flip = config.get_int_attribute("pnm:pfmflip", 1);
+
     return true;
 }
 
