@@ -253,7 +253,7 @@ The following are the steps for making the release:
 6. Push it to GitHub: `git push OpenImageIO release --tags`
 
    (This example assumes "OpenImageIO" is the name of the remote for the
-   GitHub `OpenImageIO/oiio` repo.)
+   GitHub `AcademySoftwareFoundation/OpenImageIO` repo.)
 
 7. Draft a release on GitHub: On https://github.com/AcademySoftwareFoundation/OpenImageIO/releases
    select "Draft a new release." Choose the new tag you just pushed. Make the

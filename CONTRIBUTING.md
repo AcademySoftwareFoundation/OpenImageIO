@@ -143,8 +143,9 @@ The best way to submit changes is via GitHub Pull Request. GitHub has a
 All code must be formally reviewed before being merged into the official
 repository. The protocol is like this:
 
-1. Get a GitHub account, fork OpenImageIO/oiio to create your own repository
-on GitHub, and then clone it to get a repository on your local machine.
+1. Get a GitHub account, fork AcademySoftwareFoundation/OpenImageIO to create
+your own repository on GitHub, and then clone it to get a repository on your
+local machine.
 
 1. Edit, compile, and test your changes. Run clang-format (see the
 instructions on coding style below).
