@@ -50,7 +50,8 @@ static const Imath::C3f test_colors[n_test_colors]
 
 
 #if 0 || !defined(NDEBUG) /* allow color configuration debugging */
-static bool colordebug = Strutil::stoi(Sysutil::getenv("OIIO_COLOR_DEBUG"));
+static bool colordebug = Strutil::stoi(Sysutil::getenv("OIIO_DEBUG_COLOR"))
+                       || Strutil::stoi(Sysutil::getenv("OIIO_DEBUG_ALL"));
 #    define DBG(...)    \
         if (colordebug) \
         Strutil::print(__VA_ARGS__)

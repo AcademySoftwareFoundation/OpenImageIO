@@ -57,9 +57,8 @@ oiio_exr_error_handler(exr_const_context_t ctxt, exr_result_t code,
     }
 
     // this should only happen from valid_file check, do we care?
-    //std::cerr << "EXR error with no valid context ("
-    //          << exr_get_error_code_as_string(code) << "): " << msg
-    //          << std::endl;
+    // print(std::cerr, "EXR error with no valid context ({}): {}\n",
+    //       exr_get_error_code_as_string(code), msg);
 }
 
 static int64_t
@@ -417,8 +416,9 @@ OpenEXRCoreInput::open(const std::string& name, ImageSpec& newspec,
         m_userdata.m_io = nullptr;
         return false;
     }
-#if ENABLE_READ_DEBUG_PRINTS
-    exr_print_context_info(m_exr_context, 1);
+#if ENABLE_EXR_DEBUG_PRINTS || !defined(NDEBUG) /* allow debugging */
+    if (exrdebug)
+        exr_print_context_info(m_exr_context, 1);
 #endif
     rv = exr_get_count(m_exr_context, &m_nsubimages);
     if (rv != EXR_ERR_SUCCESS) {
@@ -659,7 +659,7 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
                 r[1] = static_cast<int>(d);
                 spec.attribute(oname, TypeRational, r);
             } else {
-                int f = static_cast<int>(gcd(int64_t(n), int64_t(d)));
+                int f = static_cast<int>(std::gcd(int64_t(n), int64_t(d)));
                 if (f > 1) {
                     int r[2];
                     r[0] = n / f;
@@ -732,7 +732,8 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
         case EXR_ATTR_TILEDESC:
         default:
 #if 0
-            std::cerr << "  unknown attribute type '" << attr->type_name << "' in name: '" << attr->name << "'" << std::endl;
+            print(std::cerr, "  unknown attribute type '{}' in name '{}'\n",
+                  attr->type_name, attr->name);
 #endif
             break;
         }
@@ -1180,16 +1181,10 @@ OpenEXRCoreInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     if (rv != EXR_ERR_SUCCESS)
         return false;
 
-#if ENABLE_READ_DEBUG_PRINTS
-    {
-        lock_guard lock(*this);
-        std::cerr << "exr rns " << m_userdata.m_io->filename() << ":"
-                  << subimage << ":" << miplevel << " scans (" << ybegin << '-'
-                  << yend << "|" << (yend - ybegin) << ")[" << chbegin << "-"
-                  << (chend - 1) << "] -> pb " << pixelbytes << " sb "
-                  << scanlinebytes << " spc " << scansperchunk << std::endl;
-    }
-#endif
+    DBGEXR("exr rns {}:{}:{}  scans ({}-{}|{}}[{}-{}] -> pb {} sb {} spc {}\n",
+           m_userdata.m_io->filename(), subimage, miplevel, ybegin, yend,
+           yend - ybegin, chbegin, chend - 1, pixelbytes, scanlinebytes,
+           scansperchunk);
     int endy        = spec.y + spec.height;
     yend            = std::min(endy, yend);
     int ychunkstart = spec.y
@@ -1357,13 +1352,10 @@ OpenEXRCoreInput::read_native_tile(int subimage, int miplevel, int x, int y,
                                   scanlinebytes);
     }
 
-#if ENABLE_READ_DEBUG_PRINTS
-    std::cerr << "openexr rnt single " << m_userdata.m_io->filename() << " si "
-              << subimage << " mip " << miplevel << " pos " << x << ' ' << y
-              << "\n -> tile " << tx << ", " << ty << ", pixbytes "
-              << pixelbytes << " scan " << scanlinebytes << " tilesz " << tilew
-              << "x" << tileh << std::endl;
-#endif
+    DBGEXR(
+        "openexr rnt single {} si {} mip {} pos {} {} -> tile {} {} pixbytes {} scan {} tilesz {}x{}\n",
+        m_userdata.m_io->filename(), subimage, miplevel, x, y, tx, ty,
+        pixelbytes, scanlinebytes, tilew, tileh);
 
     uint8_t* cdata    = static_cast<uint8_t*>(data);
     size_t chanoffset = 0;
@@ -1378,12 +1370,9 @@ OpenEXRCoreInput::read_native_tile(int subimage, int miplevel, int x, int y,
                 curchan.user_line_stride
                     = scanlinebytes;  //curchan.width * pixelbytes;
                 chanoffset += chanbytes;
-#if ENABLE_READ_DEBUG_PRINTS
-                std::cerr << " chan " << c << " tile " << tx << ", " << ty
-                          << ": linestride " << curchan.user_line_stride
-                          << " tilesize " << curchan.width << " x "
-                          << curchan.height << std::endl;
-#endif
+                DBGEXR(" chan {} tile {}, {}: linestride {} tilesize {} x {}\n",
+                       c, tx, ty, curchan.user_line_stride, curchan.width,
+                       curchan.height);
                 break;
             }
         }
@@ -1464,19 +1453,11 @@ OpenEXRCoreInput::read_native_tiles(int subimage, int miplevel, int xbegin,
 
     size_t scanlinebytes = size_t(nxtiles) * size_t(tilew) * pixelbytes;
 
-#if ENABLE_READ_DEBUG_PRINTS
-    {
-        lock_guard lock(*this);
-        std::cerr << "exr rnt " << m_userdata.m_io->filename() << ":"
-                  << subimage << ":" << miplevel << " (" << xbegin << ' '
-                  << xend << ' ' << ybegin << ' ' << yend << "|"
-                  << (xend - xbegin) << "x" << (yend - ybegin) << ")["
-                  << chbegin << "-" << (chend - 1) << "] -> t " << firstxtile
-                  << ", " << firstytile << " n " << nxtiles << ", " << nytiles
-                  << " pb " << pixelbytes << " sb " << scanlinebytes << " tsz "
-                  << tilew << "x" << tileh << std::endl;
-    }
-#endif
+    DBGEXR(
+        "exr rnt {}:{}:{} ({}-{}|{}x{})[{}-{}] -> t {}, {} n {}, {} pb {} sb {} tsz {}x{}\n",
+        m_userdata.m_io->filename(), subimage, miplevel, xbegin, xend,
+        xend - xbegin, ybegin, yend, chbegin, chend - 1, firstxtile, firstytile,
+        nxtiles, nytiles, pixelbytes, scanlinebytes, tilew, tileh);
 
     std::atomic<bool> ok(true);
     parallel_for_2D(
