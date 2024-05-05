@@ -2,10 +2,17 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+#include <OpenImageIO/platform.h>
+
+OIIO_PRAGMA_WARNING_PUSH
+OIIO_CLANG_PRAGMA(clang diagnostic ignored "-Wdeprecated-declarations")
+// Force include of locale header with deprecated warnings turned off to
+// combat clang18 vs unicode deprecation warnings.
+#include <locale>
+OIIO_PRAGMA_WARNING_POP
+
 #include <cstdlib>
 #include <string>
-
-#include <OpenImageIO/platform.h>
 
 #ifdef _WIN32
 #    include <windows.h>
