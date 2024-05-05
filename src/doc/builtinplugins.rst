@@ -1195,6 +1195,94 @@ the `set_ioproxy()` methods.
 
 |
 
+.. _sec-bundledplugins-jpegxl:
+
+JPEG XL
+===============================================
+
+JPEG XL is a new image format that is designed to be a successor to JPEG
+and to provide better compression and quality. JPEG XL files use the file
+extension :file:`.jxl`. The official JPEG XL format specification and other
+helpful info may be found at: https://jpeg.org/jpegxl/
+
+**Configuration settings for JPEG XL input**
+
+When opening a JPEG XL ImageInput with a *configuration* (see
+Section :ref:`sec-input with-config`), the following special configuration
+attributes are supported:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
+       
+**Configuration settings for JPEG XL output**
+
+When opening a JPEG XL ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+	 - Type
+	 - JPEG XL header data or explanation
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by writing to a memory buffer.
+   * - ``oiio:UnassociatedAlpha``
+     - int
+     - If nonzero, indicates that the data being passed is already in
+       unassociated form (non-premultiplied colors) and should stay that way
+       for output rather than being assumed to be associated and get automatic
+       un-association to store in the file.
+   * - ``compression``
+	 - string
+	 - If supplied, must be ``"jpegxl"``, but may optionally have a quality
+	   value appended, like ``"jpegxl:90"``. Quality can be 0-100, with 100
+	   meaning lossless.
+   * - ``jpegxl:distance``
+	 - float
+     - Target visual distance in JND units, lower = higher quality.
+       0.0 = mathematically lossless. 1.0 = visually lossless.
+       Recommended range: 0.5 .. 3.0. Allowed range: 0.0 ... 25.0. 
+       Mutually exclusive with ``*compression jpegxl:*```.
+   * - ``jpegxl:effort``
+     - int
+	 - Encoder effort setting. Range: 1 .. 10.
+       Default: 7. Higher numbers allow more computation at the expense of time.
+       For lossless, generally it will produce smaller files.
+       For lossy, higher effort should more accurately reach the target quality.
+   * - ``jpegxl:speed``
+     - int
+     - Sets the encoding speed tier for the provided options. Minimum is 0
+       (slowest to encode, best quality/density), and maximum is 4 (fastest to
+       encode, at the cost of some quality/density). Default is 0.
+       (Note: in libjxl it named JXL_ENC_FRAME_SETTING_DECODING_SPEED. But it
+       is about encoding speed and compression quality, not decoding speed.)
+   * - ``jpegxl:photon_noise_iso``
+     - float
+     - (ISO_FILM_SPEED) Adds noise to the image emulating photographic film or
+       sensor noise. Higher number = grainier image, e.g. 100 gives a low
+       amount of noise, 3200 gives a lot of noise. Default is 0.
+       Encoded as metadata in the image.
+
+|
+
 .. _sec-bundledplugins-ffmpeg:
 
 Movie formats (using ffmpeg)
