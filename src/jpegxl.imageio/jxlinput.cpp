@@ -57,7 +57,7 @@ private:
     JxlResizableParallelRunnerPtr m_runner;
     std::unique_ptr<ImageSpec> m_config;  // Saved copy of configuration spec
     std::vector<uint8_t> m_icc_profile;
-    uint8_t* m_buffer;
+    std::unique_ptr<uint8_t[]> m_buffer;
 
     void init()
     {
@@ -315,11 +315,11 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
                 return false;
             }
 
-            m_buffer = new uint8_t[buffer_size];
+            m_buffer.reset(new uint8_t[buffer_size]);
 
             if (JXL_DEC_SUCCESS
                 != JxlDecoderSetImageOutBuffer(m_decoder.get(), &format,
-                                               m_buffer, buffer_size)) {
+                                               m_buffer.get(), buffer_size)) {
                 errorfmt("JxlDecoderSetImageOutBuffer failed\n");
                 return false;
             }
@@ -366,7 +366,7 @@ JxlInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     if (y < 0 || y >= m_spec.height)  // out of range scanline
         return false;
 
-    memcpy(data, (void*)(m_buffer + y * scanline_size), scanline_size);
+    memcpy(data, (void*)(m_buffer.get() + y * scanline_size), scanline_size);
 
     return true;
 }
@@ -383,7 +383,7 @@ JxlInput::close()
     }
 
     if (m_buffer) {
-        delete[] m_buffer;
+        m_buffer.reset();
         m_buffer = nullptr;
     }
 
