@@ -40,6 +40,10 @@ public:
     bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
                     stride_t xstride, stride_t ystride,
                     stride_t zstride) override;
+    bool write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
+                     int zend, TypeDesc format, const void* data,
+                     stride_t xstride, stride_t ystride,
+                     stride_t zstride) override;
     bool close() override;
 
 private:
@@ -53,7 +57,7 @@ private:
     unsigned int m_dither;
     std::vector<unsigned char> m_scratch;
     std::vector<unsigned char> m_tilebuffer;
-    std::vector<float> m_pixels;
+    std::vector<unsigned char> m_scanbuffer;  // hack
 
     void init(void)
     {
@@ -62,7 +66,7 @@ private:
         m_runner  = nullptr;
     }
 
-    bool save_image();
+    bool save_image(const void* data);
 };
 
 
@@ -105,7 +109,15 @@ JxlOutput::open(const std::string& name, const ImageSpec& newspec,
         return false;
     }
 
-    m_spec.set_format(TypeFloat);
+    switch (m_spec.format.basetype) {
+    case TypeDesc::UINT8:
+    case TypeDesc::UINT16: m_spec.set_format(m_spec.format); break;
+    case TypeDesc::UINT32: m_spec.set_format(TypeDesc::UINT16); break;
+    case TypeDesc::HALF:
+    case TypeDesc::FLOAT: m_spec.set_format(m_spec.format); break;
+    case TypeDesc::DOUBLE: m_spec.set_format(TypeDesc::FLOAT); break;
+    default: errorfmt("Unsupported data type {}", m_spec.format); return false;
+    }
 
     m_dither = (m_spec.format == TypeDesc::UINT8)
                    ? m_spec.get_int_attribute("oiio:dither", 0)
@@ -144,11 +156,30 @@ JxlOutput::open(const std::string& name, const ImageSpec& newspec,
 
     DBG std::cout << "m_spec " << m_spec.width << "×" << m_spec.height << "×"
                   << m_spec.nchannels << "\n";
-    m_basic_info.xsize           = m_spec.width;
-    m_basic_info.ysize           = m_spec.height;
-    m_basic_info.bits_per_sample = 32;
-    // m_basic_info.exponent_bits_per_sample = 0;
-    m_basic_info.exponent_bits_per_sample = 8;
+    m_basic_info.xsize = m_spec.width;
+    m_basic_info.ysize = m_spec.height;
+
+    switch (m_spec.format.basetype) {
+    case TypeDesc::UINT8:
+        m_basic_info.bits_per_sample          = 8;
+        m_basic_info.exponent_bits_per_sample = 0;
+        break;
+    case TypeDesc::UINT16:
+    case TypeDesc::UINT32:
+        m_basic_info.bits_per_sample          = 16;
+        m_basic_info.exponent_bits_per_sample = 0;
+        break;
+    case TypeDesc::HALF:
+        m_basic_info.bits_per_sample          = 16;
+        m_basic_info.exponent_bits_per_sample = 5;
+        break;
+    case TypeDesc::FLOAT:
+    case TypeDesc::DOUBLE:
+        m_basic_info.bits_per_sample          = 32;
+        m_basic_info.exponent_bits_per_sample = 8;
+        break;
+    default: errorfmt("Unsupported data type {}", m_spec.format); return false;
+    }
 
     if (m_spec.nchannels >= 4) {
         m_basic_info.num_color_channels = 3;
@@ -165,23 +196,72 @@ JxlOutput::open(const std::string& name, const ImageSpec& newspec,
 
     m_frame_settings = JxlEncoderFrameSettingsCreate(m_encoder.get(), nullptr);
 
-    // const float quality = 100.0;
-    const int effort = 7;
-    const int tier   = 0;
-    // Lossless only makes sense for integer modes
-    if (m_basic_info.exponent_bits_per_sample == 0) {
-        // Must preserve original profile for lossless mode
-        m_basic_info.uses_original_profile = JXL_TRUE;
-        JxlEncoderSetFrameDistance(m_frame_settings, 0.0);
-        JxlEncoderSetFrameLossless(m_frame_settings, JXL_TRUE);
+    // JpegXL Compression Settings
+
+    bool lossless = true;
+
+    // Distance Mutually exclusive with quality
+    if (m_spec.find_attribute("jpegxl:distance")) {
+        const float distance = m_spec.get_float_attribute("jpegxl:distance",
+                                                          0.0f);
+
+        m_basic_info.uses_original_profile = distance == 0.0f ? JXL_TRUE
+                                                              : JXL_FALSE;
+        JxlEncoderSetFrameDistance(m_frame_settings, distance);
+        JxlEncoderSetFrameLossless(m_frame_settings,
+                                   distance == 0.0f ? JXL_TRUE : JXL_FALSE);
+
+        lossless = distance == 0.0f;
+
+        DBG std::cout << "Compression distance set to " << distance << "\n";
+
+    } else {
+        auto compqual = m_spec.decode_compression_metadata("jpegxl", 100);
+        if (Strutil::iequals(compqual.first, "jpegxl")) {
+            if (compqual.second == 100) {
+                m_basic_info.uses_original_profile = JXL_TRUE;
+                JxlEncoderSetFrameDistance(m_frame_settings, 0.0);
+                JxlEncoderSetFrameLossless(m_frame_settings, JXL_TRUE);
+
+                lossless = true;
+            } else {
+                m_basic_info.uses_original_profile = JXL_FALSE;
+                JxlEncoderSetFrameDistance(
+                    m_frame_settings,
+                    1.0f / static_cast<float>(compqual.second));
+                JxlEncoderSetFrameLossless(m_frame_settings, JXL_FALSE);
+            }
+        } else {  // default to lossless
+            m_basic_info.uses_original_profile = JXL_TRUE;
+            JxlEncoderSetFrameDistance(m_frame_settings, 0.0);
+            JxlEncoderSetFrameLossless(m_frame_settings, JXL_TRUE);
+
+            lossless = true;
+        }
+
+        DBG std::cout << "compression set to " << compqual.second << "\n";
     }
 
+    const int effort = m_spec.get_int_attribute("jpegxl:effort", 7);
+    const int speed  = m_spec.get_int_attribute("jpegxl:speed", 0);
     JxlEncoderFrameSettingsSetOption(m_frame_settings,
                                      JXL_ENC_FRAME_SETTING_EFFORT, effort);
 
     JxlEncoderFrameSettingsSetOption(m_frame_settings,
                                      JXL_ENC_FRAME_SETTING_DECODING_SPEED,
-                                     tier);
+                                     speed);
+
+    // Preprocessing (maybe not works yet)
+    if (m_spec.find_attribute("jpegxl:photon_noise_iso") && !lossless) {
+        JxlEncoderFrameSettingsSetFloatOption(
+            m_frame_settings, JXL_ENC_FRAME_SETTING_PHOTON_NOISE,
+            m_spec.get_float_attribute("jpegxl:photon_noise_iso", 0.0f));
+
+        DBG std::cout << "Photon noise set to "
+                      << m_spec.get_float_attribute("jpegxl:photon_noise_iso",
+                                                    0.0f)
+                      << "\n";
+    }
 
     // Codestream level should be chosen automatically given the settings
     JxlEncoderSetBasicInfo(m_encoder.get(), &m_basic_info);
@@ -248,10 +328,9 @@ JxlOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
 
     DBG std::cout << "data = " << data << " nvals = " << nvals << "\n";
 
-    std::vector<float>::iterator m_it
-        = m_pixels.begin() + m_spec.width * ybegin * m_spec.nchannels;
-
-    m_pixels.insert(m_it, (float*)data, (float*)data + nvals);
+    // add data to m_scanbuffer
+    m_scanbuffer.insert(m_scanbuffer.end(), (unsigned char*)data,
+                        (unsigned char*)data + nvals * m_spec.format.size());
 
     return true;
 }
@@ -272,27 +351,64 @@ JxlOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
 
 
 bool
-JxlOutput::save_image()
+JxlOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
+                       int zend, TypeDesc format, const void* data,
+                       stride_t xstride, stride_t ystride, stride_t zstride)
+{
+    DBG std::cout << "JxlOutput::write_tiles()\n";
+
+    // Call the parent class default implementation of write_tiles, which
+    // will loop over the tiles and write each one individually.
+    return ImageOutput::write_tiles(xbegin, xend, ybegin, yend, zbegin, zend,
+                                    format, data, xstride, ystride, zstride);
+};
+
+
+
+bool
+JxlOutput::save_image(const void* data)
 {
     JxlEncoderStatus status;
     JxlEncoderError error;
     std::vector<uint8_t> compressed;
     bool ok = true;
 
+    JxlDataType jxl_type = JXL_TYPE_FLOAT;
+    size_t jxl_bytes     = 1;
+
     DBG std::cout << "JxlOutput::save_image()\n";
+
+    switch (m_spec.format.basetype) {
+    case TypeDesc::UINT8:
+        jxl_type  = JXL_TYPE_UINT8;
+        jxl_bytes = 1;
+        break;
+    case TypeDesc::UINT16:
+    case TypeDesc::UINT32:
+        jxl_type  = JXL_TYPE_UINT16;
+        jxl_bytes = 2;
+        break;
+    case TypeDesc::HALF:
+        jxl_type  = JXL_TYPE_FLOAT16;
+        jxl_bytes = 2;
+        break;
+    case TypeDesc::FLOAT:
+    case TypeDesc::DOUBLE:
+        jxl_type  = JXL_TYPE_FLOAT;
+        jxl_bytes = 4;
+        break;
+    default: errorfmt("Unsupported data type {}", m_spec.format); return false;
+    }
 
     m_pixel_format = { m_basic_info.num_color_channels
                            + m_basic_info.num_extra_channels,
-                       JXL_TYPE_FLOAT, JXL_NATIVE_ENDIAN, 0 };
+                       jxl_type, JXL_NATIVE_ENDIAN, 0 };
 
     const size_t pixels_size = m_basic_info.xsize * m_basic_info.ysize
                                * (m_basic_info.num_color_channels
                                   + m_basic_info.num_extra_channels);
 
-    m_pixels.resize(pixels_size);
-
-    const void* data = m_pixels.data();
-    size_t size      = m_pixels.size() * sizeof(float);
+    size_t size = pixels_size * jxl_bytes;
 
     DBG std::cout << "data = " << data << " size = " << size << "\n";
 
@@ -365,7 +481,8 @@ JxlOutput::close()
         std::vector<unsigned char>().swap(m_tilebuffer);
     }
 
-    save_image();
+    //save_image();
+    save_image(m_scanbuffer.data());
 
     init();
     return ok;
