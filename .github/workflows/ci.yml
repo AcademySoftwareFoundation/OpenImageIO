@@ -430,7 +430,7 @@ jobs:
             !build/testsuite/j2kp4files_v1_5
 
 
-  macrunner:
+  macos:
     name: "${{matrix.runner}} appleclang${{matrix.aclang}}/C++${{matrix.cxx_std}} py${{matrix.python_ver}} ${{matrix.desc}}"
     strategy:
       fail-fast: false
@@ -439,12 +439,16 @@ jobs:
           - desc: MacOS-12
             runner: macos-12
             nametag: macos12-py310
+            cc_compiler: clang
+            cxx_compiler: clang++
             cxx_std: 17
             python_ver: "3.10"
             aclang: 13
           - desc: MacOS-13
             runner: macos-13
             nametag: macos13-py311
+            cc_compiler: clang
+            cxx_compiler: clang++
             cxx_std: 17
             python_ver: "3.11"
             aclang: 14
@@ -452,13 +456,15 @@ jobs:
           - desc: MacOS-14-ARM
             runner: macos-14
             nametag: macos14-arm-py311
+            cc_compiler: clang
+            cxx_compiler: clang++
             cxx_std: 20
             python_ver: "3.11"
             aclang: 15
     runs-on: ${{ matrix.runner }}
     env:
-      CC: clang
-      CXX: clang++
+      CXX: ${{matrix.cxx_compiler}}
+      CC: ${{matrix.cc_compiler}}
       CMAKE_CXX_STANDARD: ${{ matrix.cxx_std }}
       PYTHON_VERSION: ${{ matrix.python_ver }}
       USE_SIMD: ${{matrix.simd}}
