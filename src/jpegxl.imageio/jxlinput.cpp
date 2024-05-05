@@ -382,11 +382,7 @@ JxlInput::close()
         close_file();
     }
 
-    if (m_buffer) {
-        m_buffer.reset();
-        m_buffer = nullptr;
-    }
-
+    m_buffer.reset();
     init();  // Reset to initial state
     return true;
 }
