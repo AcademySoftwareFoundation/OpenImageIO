@@ -20,7 +20,9 @@ if [[ `which brew` == "" ]] ; then
 fi
 
 
-#brew update >/dev/null
+if [[ "${DO_BREW_UPDATE:=0}" != "0" ]] ; then
+    brew update >/dev/null
+fi
 echo ""
 echo "Before my brew installs:"
 brew list --versions
@@ -48,6 +50,10 @@ fi
 if [[ "${USE_QT}" != "0" ]] ; then
     brew install --display-times -q qt${QT_VERSION}
 fi
+if [[ "${USE_LLVM:=0}" != "0" ]] || [[ "${LLVMBREWVER}" != "" ]]; then
+    brew install --display-times -q llvm${LLVMBREWVER}
+    export PATH=/usr/local/opt/llvm/bin:$PATH
+fi
 
 echo ""
 echo "After brew installs:"
@@ -61,7 +67,6 @@ pip${PYTHON_VERSION} install numpy
 export PATH=/usr/local/opt/qt5/bin:$PATH
 export PATH=/usr/local/opt/python/libexec/bin:$PATH
 export PYTHONPATH=/usr/local/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH
-#export PATH=/usr/local/opt/llvm/bin:$PATH
 
 # Save the env for use by other stages
 src/build-scripts/save-env.bash
