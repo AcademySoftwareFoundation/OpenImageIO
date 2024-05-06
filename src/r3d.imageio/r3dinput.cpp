@@ -58,7 +58,7 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-#if 0 || !defined(NDEBUG) /* allow R3D configuration debugging */
+#if 0 || !defined(NDEBUG) // allow R3D configuration debugging
 static bool r3d_debug = Strutil::stoi(Sysutil::getenv("OIIO_R3D_DEBUG"));
 #    define DBG(...)   \
         if (r3d_debug) \
@@ -82,11 +82,17 @@ public:
     const char* format_name(void) const override { return "r3d"; }
     int supports(string_view feature) const override
     {
-        return (feature == "ioproxy");
+        if (feature == "multiimage" || feature == "appendsubimage"
+            || feature == "random_access" || feature == "ioproxy")
+            return true;
+        return false;
     }
-    bool open(const std::string& name, ImageSpec& spec) override;
-    bool open(const std::string& name, ImageSpec& spec,
+    bool open(const std::string& name, ImageSpec& newspec,
               const ImageSpec& config) override;
+    bool open(const std::string& name, ImageSpec& newspec) override
+    {
+        return open(name, newspec, ImageSpec());
+    }
     bool seek_subimage(int subimage, int miplevel) override;
     bool read_native_scanline(int subimage, int miplevel, int y, int z,
                               void* data) override;
@@ -213,15 +219,6 @@ R3dInput::open(const std::string& name, ImageSpec& newspec,
 
     ioproxy_retrieve_from_config(config);
     m_config.reset(new ImageSpec(config));  // save config spec
-    return open(name, newspec);
-}
-
-
-
-bool
-R3dInput::open(const std::string& name, ImageSpec& newspec)
-{
-    DBG("R3dInput::open(name, newspec)\n");
 
     m_filename = name;
 
@@ -241,9 +238,44 @@ R3dInput::open(const std::string& name, ImageSpec& newspec)
 
     DBG("Loaded {}\n", m_filename);
 
+    int hint = 0;
+    if (m_config) {
+        hint = m_config->get_int_attribute("oiio:hint");
+        DBG("hint = {}\n", hint);
+    }
+
+    R3DSDK::VideoDecodeMode mode = R3DSDK::DECODE_FULL_RES_PREMIUM;
+    int scale = 1;
+
+    switch (hint)
+    {
+        case 0:
+            mode = R3DSDK::DECODE_FULL_RES_PREMIUM;
+            scale = 1;
+            break;
+        case 1:
+            mode = R3DSDK::DECODE_HALF_RES_GOOD;
+            scale = 2;
+            break;
+        case 2:
+            mode = R3DSDK::DECODE_QUARTER_RES_GOOD;
+            scale = 4;
+            break;
+        case 3:
+            mode = R3DSDK::DECODE_EIGHT_RES_GOOD;
+            scale = 8;
+            break;
+        case 4:
+            mode = R3DSDK::DECODE_SIXTEENTH_RES_GOOD;
+            scale = 16;
+            break;
+    }
+
     // calculate how much ouput memory we're going to need
-    size_t width  = m_clip->Width();
-    size_t height = m_clip->Height();
+    size_t width  = m_clip->Width() / scale;
+    size_t height = m_clip->Height() / scale;
+
+    DBG("{}×{}\n", width, height);
 
     m_channels = 3;
 
@@ -256,24 +288,25 @@ R3dInput::open(const std::string& name, ImageSpec& newspec)
 
     m_fps = m_clip->VideoAudioFramerate();
 
+    DBG("File list count {}\n", m_clip->FileListCount());
+
     // three channels (RGB) in 16-bit (2 bytes) requires this much memory:
     size_t memNeeded = m_channels * width * height * sizeof(uint16_t);
 
     // alloc this memory 16-byte aligned
     m_image_buffer = static_cast<unsigned char*>(aligned_malloc(memNeeded, 16));
 
-    if (m_image_buffer == NULL) {
+    if (m_image_buffer == nullptr) {
         DBG("Failed to allocate {} bytes of memory for output image\n",
             static_cast<int>(memNeeded));
 
         return false;
     }
 
-    // letting the decoder know how big the buffer is (we do that here
-    // since AlignedMalloc below will overwrite the value in this
+    // letting the decoder know how big the buffer is
     m_job.OutputBufferSize = memNeeded;
 
-    m_job.Mode = R3DSDK::DECODE_FULL_RES_PREMIUM;
+    m_job.Mode = mode;
 
     // store the image here
     m_job.OutputBuffer = m_image_buffer;
@@ -282,8 +315,25 @@ R3dInput::open(const std::string& name, ImageSpec& newspec)
     m_job.PixelType   = R3DSDK::PixelType_16Bit_RGB_Interleaved;
     m_job.BytesPerRow = m_channels * width * sizeof(uint16_t);
 
+    m_job.ImageProcessing = NULL;
+    m_job.HdrProcessing = NULL;
+
     m_spec = ImageSpec(width, height, m_channels, TypeDesc::UINT16);
-    m_spec.attribute("FramesPerSecond", TypeFloat, &m_fps);
+
+    int frame_rate_numerator = m_clip->MetadataItemAsInt(R3DSDK::RMD_FRAMERATE_NUMERATOR);
+    int frame_rate_denominator = m_clip->MetadataItemAsInt(R3DSDK::RMD_FRAMERATE_DENOMINATOR);
+    int frame_rate[2] = { frame_rate_numerator, frame_rate_denominator };
+
+    bool record_frame_rate_exists = m_clip->MetadataExists(R3DSDK::RMD_RECORD_FRAMERATE_NUMERATOR);
+    if (record_frame_rate_exists) {
+        int record_frame_rate_numerator = m_clip->MetadataItemAsInt(R3DSDK::RMD_RECORD_FRAMERATE_NUMERATOR);
+        int record_frame_rate_denominator = m_clip->MetadataItemAsInt(R3DSDK::RMD_RECORD_FRAMERATE_DENOMINATOR);
+        int record_frame_rate[2] = { record_frame_rate_numerator, record_frame_rate_denominator };
+        m_spec.attribute("FramesPerSecond", TypeRational, &record_frame_rate);
+    } else {
+        m_spec.attribute("FramesPerSecond", TypeRational, &frame_rate);
+    }
+
     m_spec.attribute("oiio:Movie", true);
     m_spec.attribute("oiio:subimages", int(m_frames));
     m_spec.attribute("oiio:BitsPerSample", 16);
@@ -304,8 +354,8 @@ R3dInput::read_frame(int pos)
         seek(pos);
     }
 
-    R3DSDK::DecodeStatus status = m_clip->DecodeVideoFrame(pos, m_job);
-    if (status != R3DSDK::DSDecodeOK) {
+    R3DSDK::DecodeStatus decode_status = m_clip->DecodeVideoFrame(pos, m_job);
+    if (decode_status != R3DSDK::DSDecodeOK) {
         DBG("Failed to decode frame {}\n", pos);
     }
 
@@ -320,7 +370,7 @@ R3dInput::read_frame(int pos)
 bool
 R3dInput::seek_subimage(int subimage, int miplevel)
 {
-    DBG("R3dInput::seek_subimage({}, {})\n", subimage, miplevel);
+    // DBG("R3dInput::seek_subimage({}, {})\n", subimage, miplevel);
 
     if (subimage < 0 || subimage >= m_nsubimages || miplevel > 0) {
         return false;
@@ -339,7 +389,7 @@ bool
 R3dInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                void* data)
 {
-    DBG("R3dInput::read_native_scanline({}, {}, {})\n", subimage, miplevel, y);
+    // DBG("R3dInput::read_native_scanline({}, {}, {})\n", subimage, miplevel, y);
 
     lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
@@ -403,10 +453,12 @@ R3dInput::fps() const
 bool
 R3dInput::close()
 {
+    lock_guard lock(*this);
     DBG("R3dInput::close()\n");
+    DBG("m_filename = {}\n", m_filename);
 
     if (m_clip) {
-        delete m_clip;
+        // delete m_clip;
         m_clip = nullptr;
     }
     if (m_image_buffer) {
