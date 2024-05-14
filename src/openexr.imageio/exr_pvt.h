@@ -105,8 +105,9 @@ public:
     {
         return (feature == "arbitrary_metadata"
                 || feature == "exif"  // Because of arbitrary_metadata
+                || feature == "ioproxy"
                 || feature == "iptc"  // Because of arbitrary_metadata
-                || feature == "ioproxy");
+                || feature == "multiimage");
     }
     bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     bool open(const std::string& name, ImageSpec& newspec,

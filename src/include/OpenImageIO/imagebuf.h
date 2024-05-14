@@ -878,9 +878,16 @@ public:
     /// contained only one image.
     int subimage() const;
 
-    /// Return the number of subimages in the file this ImageBuf refers to.
-    /// This will always be 1 for an ImageBuf that was not constructed as a
-    /// direct reference to a file.
+    /// Return the number of subimages in the file this ImageBuf refers to, if
+    /// it can be determined efficiently. This will always be 1 for an
+    /// ImageBuf that was not constructed as a direct reference to a file, or
+    /// for an ImageBuf that refers to a file type that is not capable of
+    /// containing multiple subimages.
+    ///
+    /// Note that a return value of 0 indicates that the number of subimages
+    /// cannot easily be known without reading the entire image file to
+    /// discover the total. To compute this yourself, you would need check
+    /// every subimage successively until you get an error.
     int nsubimages() const;
 
     /// Return the index of the miplevel with a file's subimage that the
