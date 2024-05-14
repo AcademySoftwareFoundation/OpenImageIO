@@ -336,6 +336,8 @@ FitsInput::read_fits_header(void)
     m_spec.full_height = m_spec.height;
     m_spec.full_depth  = m_spec.depth;
 
+    m_spec.attribute("oiio:subimages", (int)m_subimages.size());
+
     // if (m_spec.width < 1 || m_spec.height < 1 || m_spec.depth < 1 ||
     //     m_spec.nchannels < 1) {
     //     errorfmt("Don't know now to read empty (0 pixel) FITS image");

@@ -290,6 +290,9 @@ options are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+   * - ``oiio:subimages``
+     - int
+     - The number of "image elements" (subimages) in the file.
 
 
 **Configuration settings for DPX output**
@@ -547,6 +550,9 @@ storage.  Currently, OpenImageIO only supports 2D FITS data (images), not 3D
    * - ``Hierarch``
      - string
      - FITS "HIERARCH" (*)
+   * - ``oiio:subimages``
+     - int
+     - The number of subimages in the file.
    * - *other*
      - 
      - all other FITS keywords will be added to the ImageSpec as arbitrary
@@ -1304,6 +1310,10 @@ Apple M4V               :file:`.m4v`
 MPEG-1/MPEG-2           :file:`.mpg`
 =====================   ====================================================
 
+The format list include may other file types as well. We rely on the
+:program:`ffmpeg` library to read these files, so the actual list of supported
+formats may vary depending on the version of :program:`ffmpeg` that was linked
+into OpenImageIO.
 
 Currently, these files may only be read. Write support may be added in a
 future release.  Also, currently, these files simply look to OIIO like
@@ -1326,10 +1336,7 @@ Some special attributes are used for movie files:
      - Nonzero value for movie files
    * - ``oiio:subimages``
      - int
-     - The number of frames in the movie, positive if it can be known
-       without reading the entire file. Zero or not present if the number
-       of frames cannot be determinend from reading from just the file
-       header.
+     - The number of frames (subimages) in the movie.
    * - ``FramesPerSecond``
      - int[2] (rational)
      - Frames per second
@@ -1465,6 +1472,9 @@ The official OpenEXR site is http://www.openexr.com/.
    * - ``captureRate``
      - int[2]
      - Frames per second capture rate (vecsemantics will be marked as RATIONAL)
+   * - ``oiio:subimages``
+     - int
+     - The number of "parts" (subimages) in the file.
    * - ``smpte:TimeCode``
      - int[2]
      - SMPTE time code (vecsemantics will be marked as TIMECODE)
@@ -1607,6 +1617,9 @@ report as tiled, using the leaf dimension size.
    * - ``oiio:subimagename``
      - string
      - unique layer name
+   * - ``oiio:subimages``
+     - int
+     - The number of "layers" (subimages) in the file.
    * - ``openvdb:indextoworld``
      - matrix of doubles
      - conversion of voxel index to world space coordinates.
