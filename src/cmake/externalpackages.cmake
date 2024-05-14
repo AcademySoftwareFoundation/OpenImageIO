@@ -90,6 +90,17 @@ link_directories ("${Boost_LIBRARY_DIRS}")
 # that we will not complete the build if they are not found.
 
 checked_find_package (ZLIB REQUIRED)  # Needed by several packages
+
+# Help set up this target for libtiff config file when using static libtiff
+if (NOT TARGET CMath::CMath)
+    find_library (MATH_LIBRARY m)
+    if (NOT MATH_LIBRARY-NOTFOUND)
+        add_library (CMath::CMath UNKNOWN IMPORTED)
+        set_property (TARGET CMath::CMath
+                      APPEND PROPERTY IMPORTED_LOCATION  ${MATH_LIBRARY})
+    endif ()
+endif ()
+
 checked_find_package (TIFF REQUIRED
                       VERSION_MIN 3.9
                       RECOMMEND_MIN 4.0
