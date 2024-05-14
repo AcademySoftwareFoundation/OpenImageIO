@@ -90,6 +90,10 @@ public:
     FFmpegInput();
     ~FFmpegInput() override;
     const char* format_name(void) const override { return "FFmpeg movie"; }
+    int supports(string_view feature) const override
+    {
+        return (feature == "multiimage");
+    }
     bool valid_file(const std::string& name) const override;
     bool open(const std::string& name, ImageSpec& spec) override;
     bool close(void) override;

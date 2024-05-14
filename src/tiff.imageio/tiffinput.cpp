@@ -103,7 +103,8 @@ public:
     bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     int supports(string_view feature) const override
     {
-        return (feature == "exif" || feature == "iptc" || feature == "ioproxy");
+        return (feature == "exif" || feature == "iptc" || feature == "ioproxy"
+                || feature == "multiimage");
         // N.B. No support for arbitrary metadata.
     }
     bool open(const std::string& name, ImageSpec& newspec) override;

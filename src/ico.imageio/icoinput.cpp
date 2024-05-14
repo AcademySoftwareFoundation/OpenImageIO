@@ -27,7 +27,7 @@ public:
     const char* format_name(void) const override { return "ico"; }
     int supports(string_view feature) const override
     {
-        return feature == "ioproxy";
+        return (feature == "ioproxy" || feature == "multiimage");
     }
     bool open(const std::string& name, ImageSpec& newspec) override;
     bool open(const std::string& name, ImageSpec& newspec,
