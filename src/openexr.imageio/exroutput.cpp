@@ -393,7 +393,6 @@ OpenEXROutput::open(const std::string& name, const ImageSpec& userspec,
                 m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Write);
                 m_local_io.reset(m_io);
             }
-            OIIO_ASSERT(m_io);
             if (m_io->mode() != Filesystem::IOProxy::Write) {
                 // If the proxy couldn't be opened in write mode, try to
                 // return an error.
@@ -577,7 +576,6 @@ OpenEXROutput::open(const std::string& name, int subimages,
             m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Write);
             m_local_io.reset(m_io);
         }
-        OIIO_ASSERT(m_io);
         if (m_io->mode() != Filesystem::IOProxy::Write) {
             // If the proxy couldn't be opened in write mode, try to
             // return an error.
