@@ -402,7 +402,6 @@ OpenEXROutput::open(const std::string& name, const ImageSpec& userspec,
                 m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Write);
                 m_local_io.reset(m_io);
             }
-            OIIO_ASSERT(m_io);
             if (m_io->mode() != Filesystem::IOProxy::Write) {
                 // If the proxy couldn't be opened in write mode, try to
                 // return an error.
@@ -582,13 +581,20 @@ OpenEXROutput::open(const std::string& name, int subimages,
 
     // Create an ImfMultiPartOutputFile
     try {
-        // m_output_stream.reset (new OpenEXROutputStream (name.c_str())();
-        // m_output_multipart.reset (new Imf::MultiPartOutputFile (*m_output_stream,
-        //                                          &m_headers[0], subimages)();
-        // FIXME: Oops, looks like OpenEXR 2.0 currently lacks a
-        // MultiPartOutputFile ctr that takes an OStream, so we can't
-        // do this quite yet.
-        m_output_multipart.reset(new Imf::MultiPartOutputFile(name.c_str(),
+        if (!m_io) {
+            m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Write);
+            m_local_io.reset(m_io);
+        }
+        if (m_io->mode() != Filesystem::IOProxy::Write) {
+            // If the proxy couldn't be opened in write mode, try to
+            // return an error.
+            std::string e = m_io->error();
+            errorfmt("Could not open \"{}\" ({})", name,
+                     e.size() ? e : std::string("unknown error"));
+            return false;
+        }
+        m_output_stream.reset(new OpenEXROutputStream(name.c_str(), m_io));
+        m_output_multipart.reset(new Imf::MultiPartOutputFile(*m_output_stream,
                                                               &m_headers[0],
                                                               subimages));
     } catch (const std::exception& e) {
