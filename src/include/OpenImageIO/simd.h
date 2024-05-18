@@ -5686,7 +5686,7 @@ OIIO_FORCEINLINE vint8 bitcast_to_int (const vbool8& x)
 #if OIIO_SIMD_AVX
     return _mm256_castps_si256 (x.simd());
 #else
-    return *(vint8 *)&x;
+    return vint8(bitcast_to_int(x.lo()), bitcast_to_int(x.hi()));
 #endif
 }
 
@@ -7738,9 +7738,9 @@ OIIO_FORCEINLINE vfloat4 andnot (const vfloat4& a, const vfloat4& b) {
 #if OIIO_SIMD_SSE
     return _mm_andnot_ps (a.simd(), b.simd());
 #else
-    const int *ai = (const int *)&a;
-    const int *bi = (const int *)&b;
-    return bitcast_to_float (vint4(~(ai[0]) & bi[0],
+    vint4 ai = bitcast_to_int(a);
+    vint4 bi = bitcast_to_int(b);
+    return bitcast_to_float(vint4(~(ai[0]) & bi[0],
                                   ~(ai[1]) & bi[1],
                                   ~(ai[2]) & bi[2],
                                   ~(ai[3]) & bi[3]));
@@ -9157,7 +9157,7 @@ OIIO_FORCEINLINE vint8 bitcast_to_int (const vfloat8& x)
 #if OIIO_SIMD_AVX
     return _mm256_castps_si256 (x.simd());
 #else
-    return *(vint8 *)&x;
+    return vint8(bitcast_to_int(x.lo()), bitcast_to_int(x.hi()));
 #endif
 }
 
@@ -9166,7 +9166,7 @@ OIIO_FORCEINLINE vfloat8 bitcast_to_float (const vint8& x)
 #if OIIO_SIMD_AVX
     return _mm256_castsi256_ps (x.simd());
 #else
-    return *(vfloat8 *)&x;
+    return vfloat8(bitcast_to_float(x.lo()), bitcast_to_float(x.hi()));
 #endif
 }
 
@@ -9395,9 +9395,9 @@ OIIO_FORCEINLINE vfloat8 andnot (const vfloat8& a, const vfloat8& b) {
 #if OIIO_SIMD_AVX
     return _mm256_andnot_ps (a.simd(), b.simd());
 #else
-    const int *ai = (const int *)&a;
-    const int *bi = (const int *)&b;
-    return bitcast_to_float (vint8(~(ai[0]) & bi[0],
+    vint8 ai = bitcast_to_int(a);
+    vint8 bi = bitcast_to_int(b);
+    return bitcast_to_float(vint8(~(ai[0]) & bi[0],
                                   ~(ai[1]) & bi[1],
                                   ~(ai[2]) & bi[2],
                                   ~(ai[3]) & bi[3],
@@ -10030,7 +10030,7 @@ OIIO_FORCEINLINE vint16 bitcast_to_int (const vfloat16& x)
 #if OIIO_SIMD_AVX >= 512
     return _mm512_castps_si512 (x.simd());
 #else
-    return *(vint16 *)&x;
+    return vint16(bitcast_to_int(x.lo()), bitcast_to_int(x.hi()));
 #endif
 }
 
@@ -10039,7 +10039,7 @@ OIIO_FORCEINLINE vfloat16 bitcast_to_float (const vint16& x)
 #if OIIO_SIMD_AVX >= 512
     return _mm512_castsi512_ps (x.simd());
 #else
-    return *(vfloat16 *)&x;
+    return vfloat16(bitcast_to_float(x.lo()), bitcast_to_float(x.hi()));
 #endif
 }
 
