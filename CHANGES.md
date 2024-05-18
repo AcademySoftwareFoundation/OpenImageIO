@@ -1,3 +1,8 @@
+Release 2.5.12.0 (June 1?, 2024) -- compared to 2.5.11.0
+-------------------------------------------------------
+
+
+
 Release 2.5.11.0 (May 1, 2024) -- compared to 2.5.10.0
 -------------------------------------------------------
   - *dds*: DDS support more DXGI formats [#4220](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4220) (by alexguirre)
