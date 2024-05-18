@@ -598,7 +598,8 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
             }
         } else {
 #if 0
-            std::cerr << "  unknown attribute " << type << ' ' << name << "\n";
+            print(std::cerr, "  unknown attribute '{}' name '{}'\n",
+                  type, name);
 #endif
         }
     }
@@ -1128,8 +1129,8 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     if (!seek_subimage(subimage, miplevel))
         return false;
     chend = clamp(chend, chbegin + 1, m_spec.nchannels);
-    //    std::cerr << "openexr rns " << ybegin << ' ' << yend << ", channels "
-    //              << chbegin << "-" << (chend-1) << "\n";
+    DBGEXR("openexr rns {} {}-{}, channels {}-{}", ybegin, yend, chbegin,
+           chend - 1);
 
     // Compute where OpenEXR needs to think the full buffers starts.
     // OpenImageIO requires that 'data' points to where the client wants
@@ -1258,11 +1259,8 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
             "OpenEXRInput::read_native_tiles is not supported for luminance-chroma images");
         return false;
     }
-#if 0
-    std::cerr << "openexr rnt " << xbegin << ' ' << xend << ' ' << ybegin 
-              << ' ' << yend << ", chans " << chbegin
-              << "-" << (chend-1) << "\n";
-#endif
+    DBGEXR("openexr rnt {} {}-{}, chans {}-{}", xbegin, xend, ybegin, yend,
+           chend - 1);
     if (!m_tiled_input_part
         || !m_spec.valid_tile_range(xbegin, xend, ybegin, yend, zbegin, zend)) {
         errorfmt("called OpenEXRInput::read_native_tiles without an open file");

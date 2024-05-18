@@ -10,6 +10,8 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/string_view.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/typedesc.h>
 
 #include <ImathBox.h>
@@ -33,10 +35,24 @@
 #    define OPENEXR_HAS_FLOATVECTOR 0
 #endif
 
-#define ENABLE_READ_DEBUG_PRINTS 0
-
+#define ENABLE_EXR_DEBUG_PRINTS 0
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
+
+// Lots of debugging printf turned on for DEBUG builds or if you define
+// ENABLE_EXR_DEBUG_PRINTS above, *AND* the "OIIO_DEBUG_OPENEXR" environment
+// variable is set to something numerically non-zero.
+#if ENABLE_EXR_DEBUG_PRINTS || !defined(NDEBUG) /* allow debugging */
+static bool exrdebug = Strutil::stoi(Sysutil::getenv("OIIO_DEBUG_OPENEXR"))
+                       || Strutil::stoi(Sysutil::getenv("OIIO_DEBUG_ALL"));
+#    define DBGEXR(...) \
+        if (exrdebug)   \
+        Strutil::print(__VA_ARGS__)
+#else
+#    define DBGEXR(...)
+#endif
+
+
 
 #if OIIO_CPLUSPLUS_VERSION >= 17 || defined(__cpp_lib_gcd_lcm)
 using std::gcd;
@@ -53,6 +69,7 @@ gcd(M a, N b)
     return a;
 }
 #endif
+
 
 
 // Split a full channel name into layer and suffix.
