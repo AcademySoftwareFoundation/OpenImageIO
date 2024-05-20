@@ -1182,7 +1182,7 @@ OpenEXRCoreInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     if (rv != EXR_ERR_SUCCESS)
         return false;
 
-    DBGEXR("exr rns {}:{}:{}  scans ({}-{}|{}}[{}-{}] -> pb {} sb {} spc {}\n",
+    DBGEXR("exr rns {}:{}:{}  scans ({}-{}|{})[{}-{}] -> pb {} sb {} spc {}\n",
            m_userdata.m_io->filename(), subimage, miplevel, ybegin, yend,
            yend - ybegin, chbegin, chend - 1, pixelbytes, scanlinebytes,
            scansperchunk);
