@@ -1129,7 +1129,7 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     if (!seek_subimage(subimage, miplevel))
         return false;
     chend = clamp(chend, chbegin + 1, m_spec.nchannels);
-    DBGEXR("openexr rns {} {}-{}, channels {}-{}", ybegin, yend, chbegin,
+    DBGEXR("openexr rns {}-{}, channels {}-{}", ybegin, yend, chbegin,
            chend - 1);
 
     // Compute where OpenEXR needs to think the full buffers starts.
