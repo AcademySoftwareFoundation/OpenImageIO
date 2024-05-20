@@ -117,7 +117,7 @@ declare_imagecache(py::module& m)
         .def("resolve_filename",
              [](ImageCacheWrap& ic, const std::string& filename) {
                  py::gil_scoped_release gil;
-                 return PY_STR(ic.m_cache->resolve_filename(filename));
+                 return ic.m_cache->resolve_filename(filename);
              })
         // .def("get_image_info", &ImageCacheWrap::get_image_info)
         .def(
@@ -147,14 +147,14 @@ declare_imagecache(py::module& m)
         .def(
             "geterror",
             [](ImageCacheWrap& self, bool clear) {
-                return PY_STR(self.m_cache->geterror(clear));
+                return self.m_cache->geterror(clear);
             },
             "clear"_a = true)
         .def(
             "getstats",
             [](ImageCacheWrap& ic, int level) {
                 py::gil_scoped_release gil;
-                return PY_STR(ic.m_cache->getstats(level));
+                return ic.m_cache->getstats(level);
             },
             "level"_a = 1)
         .def(

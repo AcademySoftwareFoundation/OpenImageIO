@@ -363,11 +363,16 @@ private:
     bool m_broken;                 ///< has errors; can't be used properly
     bool m_allow_release = true;   ///< Allow the file to release()?
     std::string m_broken_message;  ///< Error message for why it's broken
+#if __cpp_lib_atomic_shared_ptr >= 201711L /* C++20 has atomic<shared_pr> */
+    // Open ImageInput, NULL if closed
+    std::atomic<std::shared_ptr<ImageInput>> m_input;
+#else
     std::shared_ptr<ImageInput> m_input;  ///< Open ImageInput, NULL if closed
         // Note that m_input, the shared pointer itself, is NOT safe to
         // access directly. ALWAYS retrieve its value with get_imageinput
         // (it's thread-safe to use that result) and set its value with
         // set_imageinput -- those are guaranteed thread-safe.
+#endif
     std::vector<SubimageInfo> m_subimages;  ///< Info on each subimage
     TexFormat m_texformat;                  ///< Which texture format
     TextureOpt::Wrap m_swrap;               ///< Default wrap modes
