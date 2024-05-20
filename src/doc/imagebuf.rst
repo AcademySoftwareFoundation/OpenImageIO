@@ -230,6 +230,13 @@ Miscellaneous
 .. doxygenfunction:: OIIO::ImageBuf::pixelindex
 .. doxygenfunction:: OIIO::ImageBuf::WrapMode_from_string
 
+.. cpp:function:: void lock() const
+                  void unlock() const
+
+    Manually lock or unlock the mutex that protects the ImageBuf from
+    concurrent access by multiple threads. Use with caution -- this should
+    almost never be needed in ordinary user code.
+
 
 
 Iterators -- the fast way of accessing individual pixels
