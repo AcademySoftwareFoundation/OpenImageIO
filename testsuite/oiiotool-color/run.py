@@ -99,12 +99,12 @@ if float(ociover) >= 2.2 :
 # TODO: should test applying a file transform
 
 # test various behaviors and misbehaviors related to OCIO configs.
-command += oiiotool ("--nostderr --colorconfig missing.ocio -echo 'Nonexistent config'", failureok=True)
+command += oiiotool ("--nostderr --colorconfig missing.ocio -echo \"Nonexistent config\"", failureok=True)
 
 #   What happens when we read an OCIOv2 config? In particular, when building
 #   against OCIOv1, we should at worst have an error message, not crash with
 #   an uncaught exception.
-command += oiiotool ("--nostderr --colorconfig ../common/OpenColorIO/ocio-v2_demo.ocio -echo 'OCIOv2 config Ok'", failureok=True)
+command += oiiotool ("--nostderr --colorconfig ../common/OpenColorIO/ocio-v2_demo.ocio -echo \"OCIOv2 config Ok\"", failureok=True)
 
 
 # To add more tests, just append more lines like the above and also add
