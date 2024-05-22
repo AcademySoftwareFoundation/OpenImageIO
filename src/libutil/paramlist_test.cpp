@@ -206,7 +206,7 @@ test_value_types()
 
     // Test ptr
     {
-        int* ptr     = (int*)0xdeadbeef;
+        int* ptr     = (int*)intptr_t(0xdeadbeef);
         ParamValue p = make_pv("name", ptr);
         OIIO_CHECK_EQUAL(p.type(), TypePointer);
         OIIO_CHECK_EQUAL(p.get<int*>(), ptr);
