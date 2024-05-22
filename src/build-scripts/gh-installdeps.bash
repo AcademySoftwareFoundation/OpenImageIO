@@ -100,12 +100,11 @@ else
     # Nonstandard python versions
     if [[ "${PYTHON_VERSION}" == "3.9" ]] ; then
         time sudo apt-get -q install -y python3.9-dev python3-numpy
-        pip3 --version
-        pip3 install numpy
     elif [[ "$PYTHON_VERSION" == "2.7" ]] ; then
         time sudo apt-get -q install -y python-dev python-numpy
-    else
-        pip3 install numpy
+    fi
+    if [[ "${PIP_INSTALLS:=numpy}" != "none" ]] ; then
+        time pip3 install ${PIP_INSTALLS}
     fi
 
     if [[ "$USE_LIBHEIF" != "0" ]] ; then
@@ -132,6 +131,10 @@ else
         time sudo apt-get install -y g++-11
     elif [[ "$CXX" == "g++-12" ]] ; then
         time sudo apt-get install -y g++-12
+    elif [[ "$CXX" == "g++-13" ]] ; then
+        time sudo apt-get install -y g++-13
+    elif [[ "$CXX" == "g++-14" ]] ; then
+        time sudo apt-get install -y g++-14
     fi
 
     if [[ "$CXX" == "icpc" || "$CC" == "icc" || "$USE_ICC" != "" || "$USE_ICX" != "" ]] ; then
