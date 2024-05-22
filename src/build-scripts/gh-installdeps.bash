@@ -101,7 +101,9 @@ else
         time sudo apt-get -q install -y python3.9-dev python3-numpy
         pip3 --version
     fi
-    pip3 install numpy
+    if [[ "${PIP_INSTALLS:=numpy}" != "none" ]] ; then
+        time pip3 install ${PIP_INSTALLS}
+    fi
 
     if [[ "$USE_LIBHEIF" != "0" ]] ; then
        sudo add-apt-repository ppa:strukturag/libde265 || true
@@ -123,6 +125,8 @@ else
         time sudo apt-get install -y g++-12
     elif [[ "$CXX" == "g++-13" ]] ; then
         time sudo apt-get install -y g++-13
+    elif [[ "$CXX" == "g++-14" ]] ; then
+        time sudo apt-get install -y g++-14
     fi
 
     if [[ "$CXX" == "icpc" || "$CC" == "icc" || "$USE_ICC" != "" || "$USE_ICX" != "" ]] ; then
