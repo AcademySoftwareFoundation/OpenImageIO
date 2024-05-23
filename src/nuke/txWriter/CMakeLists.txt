@@ -4,10 +4,6 @@
 
 add_library (txWriter MODULE txWriter.cpp)
 
-target_compile_definitions(txWriter PRIVATE
-                           ${${PROJECT_NAME}_compile_definitions})
-target_compile_options(txWriter PRIVATE
-                           ${${PROJECT_NAME}_compile_options})
 target_include_directories (txWriter PUBLIC ${NUKE_INCLUDES})
 target_link_libraries (txWriter PUBLIC ${NUKE_LIBRARIES} OpenImageIO)
 install_targets (txWriter)

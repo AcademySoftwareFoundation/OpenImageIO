@@ -186,7 +186,7 @@ if(NOT TBB_FOUND)
   ##################################
   
   if(TBB_tbb_LIBRARY MATCHES "debug")
-    set(TBB_DEFINITIONS "-DTBB_USE_DEBUG=1")
+    set(TBB_DEFINITIONS "TBB_USE_DEBUG=1")
   endif()
   
   ##################################

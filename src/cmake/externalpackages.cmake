@@ -66,7 +66,7 @@ checked_find_package (OpenEXR REQUIRED
 # install version of 2.x.
 include_directories(BEFORE ${IMATH_INCLUDES} ${OPENEXR_INCLUDES})
 if (MSVC AND NOT LINKSTATIC)
-    proj_add_compile_definitions (OPENEXR_DLL) # Is this needed for new versions?
+    add_compile_definitions (OPENEXR_DLL) # Is this needed for new versions?
 endif ()
 set (OIIO_USING_IMATH 3)
 set (OPENIMAGEIO_IMATH_TARGETS
@@ -82,7 +82,7 @@ set (OPENIMAGEIO_CONFIG_DO_NOT_FIND_IMATH OFF CACHE BOOL
 # JPEG -- prefer JPEG-Turbo to regular libjpeg
 checked_find_package (libjpeg-turbo
                       VERSION_MIN 2.1
-                      DEFINITIONS -DUSE_JPEG_TURBO=1)
+                      DEFINITIONS USE_JPEG_TURBO=1)
 if (NOT TARGET libjpeg-turbo::jpeg) # Try to find the non-turbo version
     checked_find_package (JPEG REQUIRED)
 endif ()
@@ -91,7 +91,7 @@ endif ()
 option (USE_JXL "Enable JPEG XL support" ON)
 checked_find_package (JXL
                       VERSION_MIN 0.10.1
-                      DEFINITIONS -DUSE_JXL=1)
+                      DEFINITIONS USE_JXL=1)
 
 # Pugixml setup.  Normally we just use the version bundled with oiio, but
 # some linux distros are quite particular about having separate packages so we
@@ -100,7 +100,7 @@ option (USE_EXTERNAL_PUGIXML "Use an externally built shared library version of 
 if (USE_EXTERNAL_PUGIXML)
     checked_find_package (pugixml REQUIRED
                           VERSION_MIN 1.8
-                          DEFINITIONS -DUSE_EXTERNAL_PUGIXML=1)
+                          DEFINITIONS USE_EXTERNAL_PUGIXML=1)
 else ()
     message (STATUS "Using internal PugiXML")
 endif()
@@ -124,24 +124,24 @@ if (NOT BZIP2_FOUND)
 endif ()
 
 checked_find_package (Freetype
-                   DEFINITIONS  -DUSE_FREETYPE=1 )
+                   DEFINITIONS USE_FREETYPE=1 )
 
 checked_find_package (OpenColorIO
-                      DEFINITIONS  -DUSE_OCIO=1 -DUSE_OPENCOLORIO=1
+                      DEFINITIONS  USE_OCIO=1 USE_OPENCOLORIO=1
                       # PREFER_CONFIG
                       )
 if (OpenColorIO_FOUND)
     option (OIIO_DISABLE_BUILTIN_OCIO_CONFIGS
            "For deveoper debugging/testing ONLY! Disable OCIO 2.2 builtin configs." OFF)
     if (OIIO_DISABLE_BUILTIN_OCIO_CONFIGS OR "$ENV{OIIO_DISABLE_BUILTIN_OCIO_CONFIGS}")
-        proj_add_compile_definitions(OIIO_DISABLE_BUILTIN_OCIO_CONFIGS)
+        add_compile_definitions(OIIO_DISABLE_BUILTIN_OCIO_CONFIGS)
     endif ()
 else ()
     set (OpenColorIO_FOUND 0)
 endif ()
 
 checked_find_package (OpenCV 3.0
-                   DEFINITIONS  -DUSE_OPENCV=1)
+                      DEFINITIONS USE_OPENCV=1)
 
 # Intel TBB
 set (TBB_USE_DEBUG_BUILD OFF)
@@ -180,7 +180,7 @@ checked_find_package (OpenJPEG VERSION_MIN 2.0
 checked_find_package (OpenVDB
                       VERSION_MIN  9.0
                       DEPS         TBB
-                      DEFINITIONS  -DUSE_OPENVDB=1)
+                      DEFINITIONS  USE_OPENVDB=1)
 
 checked_find_package (Ptex PREFER_CONFIG)
 if (NOT Ptex_FOUND OR NOT Ptex_VERSION)

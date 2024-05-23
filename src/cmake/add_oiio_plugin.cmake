@@ -12,7 +12,7 @@
 #                   [ SRC source1 ... ]
 #                   [ INCLUDE_DIRS include_dir1 ... ]
 #                   [ LINK_LIBRARIES external_lib1 ... ]
-#                   [ DEFINITIONS -DFOO=bar ... ])
+#                   [ DEFINITIONS FOO=bar ... ])
 #
 # The plugin name can be specified with NAME, otherwise is inferred from the
 # subdirectory name. The source files of the binary can be specified with
