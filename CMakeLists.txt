@@ -144,6 +144,7 @@ include (GNUInstallDirs)
 
 # Utilities
 include (colors)
+include (set_utils)
 include (check_is_enabled)
 include (checked_find_package)
 include (fancy_add_executable)
