@@ -298,7 +298,7 @@ endif ()
 # the proper compiler directives added to generate code for those ISA
 # capabilities.
 #
-set (USE_SIMD "" CACHE STRING "Use SIMD directives (0, sse2, sse3, ssse3, sse4.1, sse4.2, avx, avx2, avx512f, f16c, aes)")
+set_cache (USE_SIMD "" "Use SIMD directives (0, sse2, sse3, ssse3, sse4.1, sse4.2, avx, avx2, avx512f, f16c, aes)")
 set (SIMD_COMPILE_FLAGS "")
 message (STATUS "Compiling with SIMD level ${USE_SIMD}")
 if (NOT USE_SIMD STREQUAL "")
@@ -306,7 +306,7 @@ if (NOT USE_SIMD STREQUAL "")
         set (SIMD_COMPILE_FLAGS ${SIMD_COMPILE_FLAGS} "-DOIIO_NO_SIMD=1")
     else ()
         set(_highest_msvc_arch 0)
-        string (REPLACE "," ";" SIMD_FEATURE_LIST ${USE_SIMD})
+        string (REPLACE "," ";" SIMD_FEATURE_LIST "${USE_SIMD}")
         foreach (feature ${SIMD_FEATURE_LIST})
             message (VERBOSE "SIMD feature: ${feature}")
             if (MSVC OR CMAKE_COMPILER_IS_INTEL)

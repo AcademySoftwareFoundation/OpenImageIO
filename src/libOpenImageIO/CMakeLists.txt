@@ -136,6 +136,7 @@ target_include_directories (OpenImageIO
                                 ${OPENEXR_INCLUDES}
                             PRIVATE
                                 ${ROBINMAP_INCLUDES}
+                                ${OPENIMAGEIO_OPENCOLORIO_INCLUDES}
                             )
 target_include_directories (OpenImageIO SYSTEM PUBLIC ${OpenCV_INCLUDES})
 
@@ -208,6 +209,7 @@ if (CMAKE_UNITY_BUILD)
         endif ()
     endforeach ()
     set_property (SOURCE ${iba_sources} APPEND PROPERTY SKIP_UNITY_BUILD_INCLUSION TRUE)
+    set_property (SOURCE ../openvdb.imageio/openvdbinput.cpp APPEND PROPERTY SKIP_UNITY_BUILD_INCLUSION TRUE)
 endif ()
 
 set_target_properties(OpenImageIO

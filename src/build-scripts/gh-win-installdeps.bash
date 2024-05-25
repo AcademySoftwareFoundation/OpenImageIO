@@ -114,16 +114,18 @@ source src/build-scripts/build_pybind11.bash
 echo "CMAKE_PREFIX_PATH = $CMAKE_PREFIX_PATH"
 
 
-OPENEXR_CXX_FLAGS=" /W1 /EHsc /DWIN32=1 "
-#OPENEXR_BUILD_TYPE=$CMAKE_BUILD_TYPE
-OPENEXR_INSTALL_DIR=$DEP_DIR
-source src/build-scripts/build_openexr.bash
-export PATH="$OPENEXR_INSTALL_DIR/bin:$OPENEXR_INSTALL_DIR/lib:$PATH"
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PATH
-# the above line is admittedly sketchy
+if [[ "$OPENEXR_VERSION" != "" ]] ; then
+    OPENEXR_CXX_FLAGS=" /W1 /EHsc /DWIN32=1 "
+    #OPENEXR_BUILD_TYPE=$CMAKE_BUILD_TYPE
+    OPENEXR_INSTALL_DIR=$DEP_DIR
+    source src/build-scripts/build_openexr.bash
+    export PATH="$OPENEXR_INSTALL_DIR/bin:$OPENEXR_INSTALL_DIR/lib:$PATH"
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PATH
+    # the above line is admittedly sketchy
+fi
 
-cp $DEP_DIR/lib/*.lib $DEP_DIR/bin
-cp $DEP_DIR/bin/*.dll $DEP_DIR/lib
+cp $DEP_DIR/lib/*.lib $DEP_DIR/bin || true
+cp $DEP_DIR/bin/*.dll $DEP_DIR/lib || true
 echo "DEP_DIR $DEP_DIR :"
 ls -R -l "$DEP_DIR"
 

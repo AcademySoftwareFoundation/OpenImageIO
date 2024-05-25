@@ -59,5 +59,6 @@ popd
 # Set up paths. These will only affect the caller if this script is
 # run with 'source' rather than in a separate shell.
 export LIBTIFF_ROOT=$LIBTIFF_INSTALL_DIR
+export Tiff_ROOT=$LIBTIFF_INSTALL_DIR
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${LIBTIFF_INSTALL_DIR}/lib
 

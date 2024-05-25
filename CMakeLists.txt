@@ -49,7 +49,7 @@ list (APPEND CMAKE_MODULE_PATH
 include (colors)
 include (set_utils)
 include (check_is_enabled)
-include (checked_find_package)
+include (dependency_utils)
 include (fancy_add_executable)
 
 # If the user wants to use Conan to build dependencies, they will have done
