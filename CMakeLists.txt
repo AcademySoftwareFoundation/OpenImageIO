@@ -40,6 +40,18 @@ if (CMAKE_VERSION VERSION_LESS 3.21)
     endif ()
 endif ()
 
+# Set up module path for our own cmake modules and add some esential ones
+list (APPEND CMAKE_MODULE_PATH
+      "${PROJECT_SOURCE_DIR}/src/cmake/modules"
+      "${PROJECT_SOURCE_DIR}/src/cmake")
+
+# Utilities
+include (colors)
+include (set_utils)
+include (check_is_enabled)
+include (checked_find_package)
+include (fancy_add_executable)
+
 # If the user wants to use Conan to build dependencies, they will have done
 # this prior to the cmake config:
 #   cd <build area>
@@ -136,17 +148,9 @@ endif ()
 message(STATUS "Setting Namespace to: ${PROJ_NAMESPACE_V}")
 
 
-list (APPEND CMAKE_MODULE_PATH
-      "${PROJECT_SOURCE_DIR}/src/cmake/modules"
-      "${PROJECT_SOURCE_DIR}/src/cmake")
-
 include (GNUInstallDirs)
 
-# Utilities
-include (colors)
-include (check_is_enabled)
-include (checked_find_package)
-include (fancy_add_executable)
+# Utilities for build instructions of the format-reading plugins
 include (add_oiio_plugin)
 
 # All the C++ and compiler related options and adjustments
