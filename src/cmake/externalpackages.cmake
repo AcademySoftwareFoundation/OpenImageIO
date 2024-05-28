@@ -258,6 +258,7 @@ checked_find_package (OpenVDB
 if (OpenVDB_FOUND AND OpenVDB_VERSION VERSION_GREATER_EQUAL 10.1 AND CMAKE_CXX_STANDARD VERSION_LESS 17)
     message (WARNING "${ColorYellow}OpenVDB >= 10.1 (we found ${OpenVDB_VERSION}) can only be used when we build with C++17 or higher. Disabling OpenVDB support.${ColorReset}")
     set (OpenVDB_FOUND 0)
+    add_compile_definitions(DISABLE_OPENVDB=1)
 endif ()
 
 checked_find_package (Ptex PREFER_CONFIG)
