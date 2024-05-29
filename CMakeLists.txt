@@ -119,9 +119,18 @@ message(STATUS "CMAKE_UNITY_BUILD_MODE = ${CMAKE_UNITY_BUILD_MODE}")
 message(STATUS "CMAKE_UNITY_BUILD_BATCH_SIZE = ${CMAKE_UNITY_BUILD_BATCH_SIZE}")
 
 option (OIIO_THREAD_ALLOW_DCLP "OIIO threads may use DCLP for speed" ON)
+if (NOT OIIO_THREAD_ALLOW_DCLP)
+    add_compile_definitions (OIIO_THREAD_ALLOW_DCLP=0)
+endif ()
 
 set (TEX_BATCH_SIZE "" CACHE STRING "Force TextureSystem SIMD batch size (e.g. 16)")
+if (TEX_BATCH_SIZE)
+    add_compile_definitions (OIIO_TEXTURE_SIMD_BATCH_WIDTH=${TEX_BATCH_SIZE})
+endif ()
 option (OIIO_TEX_IMPLEMENT_VARYINGREF "Implement the deprecated batch texture functions taking VaryingRef params" ON)
+if (NOT OIIO_TEX_IMPLEMENT_VARYINGREF)
+    add_compile_definitions (OIIO_TEX_NO_IMPLEMENT_VARYINGREF=1)
+endif ()
 
 # Set the default namespace
 set (${PROJ_NAME}_NAMESPACE ${PROJECT_NAME} CACHE STRING
@@ -139,6 +148,10 @@ message(STATUS "Setting Namespace to: ${PROJ_NAMESPACE_V}")
 list (APPEND CMAKE_MODULE_PATH
       "${PROJECT_SOURCE_DIR}/src/cmake/modules"
       "${PROJECT_SOURCE_DIR}/src/cmake")
+
+# Define OIIO_INTERNAL symbol only when building OIIO itself, will not be
+# defined for downstream projects using OIIO.
+add_compile_definitions (OIIO_INTERNAL=1)
 
 include (GNUInstallDirs)
 
@@ -176,23 +189,6 @@ include_directories (
     "${CMAKE_BINARY_DIR}/include"
     "${CMAKE_BINARY_DIR}/include/OpenImageIO"
   )
-
-
-# Define OIIO_INTERNAL symbol only when building OIIO itself, will not be
-# defined for downstream projects using OIIO.
-proj_add_compile_definitions (OIIO_INTERNAL=1)
-
-if (NOT OIIO_THREAD_ALLOW_DCLP)
-    proj_add_compile_definitions (OIIO_THREAD_ALLOW_DCLP=0)
-endif ()
-if (TEX_BATCH_SIZE)
-    proj_add_compile_definitions (OIIO_TEXTURE_SIMD_BATCH_WIDTH=${TEX_BATCH_SIZE})
-endif ()
-if (NOT OIIO_TEX_IMPLEMENT_VARYINGREF)
-    proj_add_compile_definitions (OIIO_TEX_NO_IMPLEMENT_VARYINGREF=1)
-endif ()
-
-
 
 # Tell CMake to process the sub-directories
 add_subdirectory (src/libutil)

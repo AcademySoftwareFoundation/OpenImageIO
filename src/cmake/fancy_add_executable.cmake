@@ -20,7 +20,7 @@
 #   fancy_add_executable ([ NAME targetname ... ]
 #                         [ SRC source1 ... ]
 #                         [ INCLUDE_DIRS include_dir1 ... ]
-#                         [ DEFINITIONS -DFOO=bar ... ])
+#                         [ DEFINITIONS FOO=bar ... ])
 #                         [ COMPILE_OPTIONS -Wno-foo ... ]
 #                         [ LINK_LIBRARIES external_lib1 ... ]
 #                         [ FOLDER foldername ]
@@ -50,13 +50,9 @@ macro (fancy_add_executable)
             target_include_directories (${_target_NAME} SYSTEM PRIVATE ${_target_SYSTEM_INCLUDE_DIRS})
         endif ()
         target_compile_definitions (${_target_NAME} PRIVATE
-                                        ${${PROJECT_NAME}_compile_definitions}
                                         ${_target_DEFINITIONS})
         target_compile_options (${_target_NAME} PRIVATE
-                                    ${${PROJECT_NAME}_compile_options}
                                     ${_target_COMPILE_OPTIONS})
-        target_link_options (${_target_NAME} PRIVATE
-                                 ${${PROJECT_NAME}_link_options})
         if (_target_LINK_LIBRARIES)
             target_link_libraries (${_target_NAME} PRIVATE ${_target_LINK_LIBRARIES})
         endif ()
