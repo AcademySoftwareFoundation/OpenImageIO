@@ -39,8 +39,8 @@ endfunction ()
 #     turned off explicitly from one of these sources.
 #   * Print a message if the package is enabled but not found. This is based
 #     on ${Pkgname}_FOUND or $PKGNAME_FOUND.
-#   * Optional DEFINITIONS <string>... are passed to
-#     proj_add_compile_definitions if the package is found.
+#   * Optional DEFINITIONS <string>... are passed to add_compile_definitions
+#     if the package is found.
 #   * Optional SETVARIABLES <id>... is a list of CMake variables to set to
 #     TRUE if the package is found (they will not be set or changed if the
 #     package is not found).
@@ -153,7 +153,7 @@ macro (checked_find_package pkgname)
                 endif ()
             endforeach ()
             message (STATUS "${ColorGreen}Found ${pkgname} ${${pkgname}_VERSION} ${_config_status}${ColorReset}")
-            proj_add_compile_definitions (${_pkg_DEFINITIONS})
+            add_compile_definitions (${_pkg_DEFINITIONS})
             foreach (_v IN LISTS _pkg_SETVARIABLES)
                 set (${_v} TRUE)
             endforeach ()
