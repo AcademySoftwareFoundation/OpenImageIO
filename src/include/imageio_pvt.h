@@ -50,31 +50,40 @@ extern atomic_ll IB_local_mem_current;
 extern atomic_ll IB_local_mem_peak;
 extern std::atomic<float> IB_total_open_time;
 extern std::atomic<float> IB_total_image_read_time;
-extern OIIO_UTIL_API int oiio_use_tbb; // This lives in libOpenImageIO_Util
-OIIO_API const std::vector<std::string>& font_dirs();
-OIIO_API const std::vector<std::string>& font_file_list();
-OIIO_API const std::vector<std::string>& font_list();
+extern OIIO_UTIL_API int oiio_use_tbb;  // This lives in libOpenImageIO_Util
+OIIO_API const std::vector<std::string>&
+font_dirs();
+OIIO_API const std::vector<std::string>&
+font_file_list();
+OIIO_API const std::vector<std::string>&
+font_list();
 
 
 // For internal use - use error() below for a nicer interface.
-void append_error(string_view message);
+void
+append_error(string_view message);
 
 /// Use errorfmt() privately only. Formatting notation is like std::format.
 template<typename... Args>
-inline void errorfmt (const char* fmt, const Args&... args) {
+inline void
+errorfmt(const char* fmt, const Args&... args)
+{
     append_error(Strutil::fmt::format(fmt, args...));
 }
 
 // Make sure all plugins are inventoried. For internal use only.
-void catalog_all_plugins (std::string searchpath);
+void
+catalog_all_plugins(std::string searchpath);
 
 // Inexpensive check if a file extension or format name corresponds to a
 // procedural input plugin.
-bool is_procedural_plugin(const std::string& name);
+bool
+is_procedural_plugin(const std::string& name);
 
 /// Given the format, set the default quantization range.
-void get_default_quantize (TypeDesc format, long long &quant_min,
-                           long long &quant_max) noexcept;
+void
+get_default_quantize(TypeDesc format, long long& quant_min,
+                     long long& quant_max) noexcept;
 
 /// Turn potentially non-contiguous-stride data (e.g. "RGBxRGBx") into
 /// contiguous-stride ("RGBRGB"), for any format or stride values
@@ -82,64 +91,73 @@ void get_default_quantize (TypeDesc format, long long &quant_min,
 /// memory to hold the contiguous rectangle.  Return a ptr to where the
 /// contiguous data ended up, which is either dst or src (if the strides
 /// indicated that data were already contiguous).
-const void *contiguize (const void *src, int nchannels,
-                        stride_t xstride, stride_t ystride, stride_t zstride, 
-                        void *dst, int width, int height, int depth,
-                        TypeDesc format);
+const void*
+contiguize(const void* src, int nchannels, stride_t xstride, stride_t ystride,
+           stride_t zstride, void* dst, int width, int height, int depth,
+           TypeDesc format);
 
 /// Turn contiguous data from any format into float data.  Return a
 /// pointer to the converted data (which may still point to src if no
 /// conversion was necessary).
-const float *convert_to_float (const void *src, float *dst, int nvals,
-                               TypeDesc format);
+const float*
+convert_to_float(const void* src, float* dst, int nvals, TypeDesc format);
 
 /// Turn contiguous float data into any format.  Return a pointer to the
 /// converted data (which may still point to src if no conversion was
 /// necessary).
-const void *convert_from_float (const float *src, void *dst,
-                                size_t nvals, TypeDesc format);
+const void*
+convert_from_float(const float* src, void* dst, size_t nvals, TypeDesc format);
 
 /// A version of convert_from_float that will break up big jobs with
 /// multiple threads.
-const void *parallel_convert_from_float (const float *src, void *dst,
-                                         size_t nvals, TypeDesc format);
+const void*
+parallel_convert_from_float(const float* src, void* dst, size_t nvals,
+                            TypeDesc format);
 
 /// Internal utility: Error checking on the spec -- if it contains texture-
 /// specific metadata but there are clues it's not actually a texture file
 /// written by maketx or `oiiotool -otex`, then assume these metadata are
 /// wrong and delete them. Return true if we think it's one of these
 /// incorrect files and it was fixed.
-OIIO_API bool check_texture_metadata_sanity (ImageSpec &spec);
+OIIO_API bool
+check_texture_metadata_sanity(ImageSpec& spec);
 
 /// Internal function to log time recorded by an OIIO::timer(). It will only
 /// trigger a read of the time if the "log_times" attribute is set or the
 /// OPENIMAGEIO_LOG_TIMES env variable is set.
-OIIO_API void log_time(string_view key, const Timer& timer, int count = 1);
+OIIO_API void
+log_time(string_view key, const Timer& timer, int count = 1);
 
 /// Get the timing report from log_time entries.
-OIIO_API std::string timing_report ();
+OIIO_API std::string
+timing_report();
 
 /// An object that, if oiio_log_times is nonzero, logs time until its
 /// destruction. If oiio_log_times is 0, it does nothing.
 class LoggedTimer {
 public:
-    LoggedTimer (string_view name) : m_timer(oiio_log_times) {
+    LoggedTimer(string_view name)
+        : m_timer(oiio_log_times)
+    {
         if (oiio_log_times)
             m_name = name;
     }
-    ~LoggedTimer () {
+    ~LoggedTimer()
+    {
         if (oiio_log_times)
-            log_time (m_name, m_timer, m_count);
+            log_time(m_name, m_timer, m_count);
     }
     // Stop the timer. An optional count_offset will be added to the
     // "invocations count" of the underlying timer, if a single invocation
     // does not correctly describe the thing being timed.
-    void stop(int count_offset = 0) {
+    void stop(int count_offset = 0)
+    {
         m_timer.stop();
         m_count += count_offset;
     }
-    void start () { m_timer.start(); }
-    void rename (string_view name) { m_name = name; }
+    void start() { m_timer.start(); }
+    void rename(string_view name) { m_name = name; }
+
 private:
     Timer m_timer;
     std::string m_name;
@@ -216,10 +234,4 @@ print_stats(std::ostream& out, string_view indent, const ImageBuf& input,
 
 OIIO_NAMESPACE_END
 
-//Define a default plugin search path
-#define OIIO_DEFAULT_PLUGIN_SEARCHPATH "@PLUGIN_SEARCH_PATH_NATIVE@"
-
-// List of build-time dependencies (semicolon separated)
-#define OIIO_ALL_BUILD_DEPS_FOUND "@CFP_ALL_BUILD_DEPS_FOUND@"
-
-#endif // OPENIMAGEIO_IMAGEIO_PVT_H
+#endif  // OPENIMAGEIO_IMAGEIO_PVT_H
