@@ -291,9 +291,9 @@ the section below, and will only have to point OIIO build process so their locat
   ```
   cd {ZLIB_ROOT}
   git clone https://github.com/madler/zlib .
-  cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=.
+  cmake -S . -B build -DCMAKE_INSTALL_PREFIX=.
   cmake --build build --config Release --target install
-  del build\lib\zlib.lib
+  del build\Release\zlib.lib
   ```
 * libTIFF:
   ```
@@ -306,8 +306,6 @@ the section below, and will only have to point OIIO build process so their locat
   ```
   cd {JPEG_ROOT}
   git clone https://github.com/libjpeg-turbo/libjpeg-turbo .
-  mkdir build
-  cd build
   cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DENABLE_SHARED=OFF -DCMAKE_INSTALL_PREFIX=.
   cmake --build build --config Release --target install
   ```
@@ -331,10 +329,13 @@ git clone https://github.com/AcademySoftwareFoundation/OpenImageIO .
 cmake -S . -B build -DVERBOSE=ON -DCMAKE_BUILD_TYPE=Release ^
   -DBoost_USE_STATIC_LIBS=ON -DBoost_NO_WARN_NEW_VERSIONS=ON -DBoost_ROOT={BOOST_ROOT} ^
   -DZLIB_ROOT={ZLIB_ROOT}\build ^
-  -DTIFF_ROOT={TIFF_ROOT}\build ^
-  -DOpenEXR_ROOT={EXR_ROOT}\build\dist ^
-  -DImath_DIR={EXR_ROOT}\build\dist\lib\cmake\Imath ^
-  -DJPEG_ROOT={JPEG_ROOT}\build ^
+  -DTIFF_ROOT={TIFF_ROOT} ^
+  -DOpenEXR_ROOT={EXR_ROOT}\dist ^
+  -DImath_DIR={EXR_ROOT}\dist\lib\cmake\Imath ^
+  -DImath_INCLUDE_DIR={EXR_ROOT}\dist\include\Imath ^
+  -DImath_LIBRARY={EXR_ROOT}\dist\lib\Imath-3_2.lib ^
+  -DJPEG_ROOT={JPEG_ROOT} ^
+  -Dlibjpeg-turbo_ROOT={JPEG_ROOT} ^
   -DUSE_PYTHON=0 -DUSE_QT=0 -DBUILD_SHARED_LIBS=0 -DLINKSTATIC=1
 ```
 
