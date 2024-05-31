@@ -38,9 +38,6 @@ macro (set_from_env var)
             endif ()
         elseif (DEFINED _sfe_DEFAULT)
             set (${var} ${_sfe_DEFAULT})
-            if (_sfe_VERBOSE OR VERBOSE)
-                message (VERBOSE "set ${_sfe_NAME} = ${_sfe_DEFAULT}")
-            endif ()
         endif ()
     endif ()
 endmacro ()
@@ -50,7 +47,8 @@ endmacro ()
 # Wrapper for CMake `set()` functionality with extensions:
 # - If an env variable of the same name exists, it overrides the default
 #   value.
-# - In verbose mode, print the value and whether it came from the env.
+# - In verbose mode or if the optional VERBOSE argument is passed, print the
+#   value and whether it came from the env.
 # - CACHE optional token makes it a cache variable.
 # - ADVANCED optional token sets it as "mark_as_advanced" without the need
 #   for a separate call (only applies to cache variables.)
@@ -62,7 +60,7 @@ endmacro ()
 macro (super_set name value)
     cmake_parse_arguments(_sce   # prefix
         # noValueKeywords:
-        "FORCE;ADVANCED;FILEPATH;PATH;BOOL;STRING;CACHE"
+        "FORCE;ADVANCED;FILEPATH;PATH;BOOL;STRING;CACHE;VERBOSE"
         # singleValueKeywords:
         "DOC"
         # multiValueKeywords:
@@ -85,10 +83,14 @@ macro (super_set name value)
     set_if_not (_sce_DOC "empty")
     set_from_env (_sce_val ENVVAR ${name} NAME ${name} DEFAULT ${value})
     if (_sce_CACHE)
-        message (STATUS "set (${name} ${_sce_val} CACHE ${_sce_type} ${_sce_DOC} ${_sce_extra_args})")
-        set (${name} ${_sce_val} CACHE ${_sce_type} ${_sce_DOC} ${_sce_extra_args})
+        set (${name} ${_sce_val} CACHE ${_sce_type} "${_sce_DOC}" ${_sce_extra_args})
     else ()
         set (${name} ${_sce_val} ${_sce_extra_args})
+    endif ()
+    if (_sce_VERBOSE)
+        message (STATUS "${name} = ${${name}}")
+    else ()
+        message (VERBOSE "${name} = ${${name}}")
     endif ()
     if (_sce_ADVANCED)
         mark_as_advanced (${name})
@@ -101,7 +103,7 @@ endmacro ()
 
 # `set(... CACHE ...)` workalike using super_set underneath.
 macro (set_cache name value docstring)
-    super_set (${name} "${value}" DOC ${docstring} ${ARGN})
+    super_set (${name} "${value}" DOC ${docstring} CACHE ${ARGN})
 endmacro ()
 
 
