@@ -3,9 +3,9 @@
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 if (VERBOSE)
-   message (STATUS "Create imagio_pvt.h from imageio_pvt.h.in")
+   message (STATUS "Create buildopts.h from buildopts.h.in")
 endif ()
-configure_file (imageio_pvt.h.in "${CMAKE_BINARY_DIR}/include/imageio_pvt.h" @ONLY)
+configure_file (buildopts.h.in "${CMAKE_BINARY_DIR}/include/buildopts.h" @ONLY)
 
 file (GLOB libOpenImageIO_hdrs ../include/OpenImageIO/*.h)
 

@@ -21,6 +21,7 @@
 #include <OpenImageIO/timer.h>
 #include <OpenImageIO/typedesc.h>
 
+#include "buildopts.h"
 #include "imageio_pvt.h"
 
 OIIO_NAMESPACE_BEGIN
