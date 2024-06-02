@@ -122,7 +122,8 @@ if (NOT BZIP2_FOUND)
 endif ()
 
 checked_find_package (Freetype
-                   DEFINITIONS USE_FREETYPE=1 )
+                      VERSION_MIN 2.10.0
+                      DEFINITIONS USE_FREETYPE=1 )
 
 checked_find_package (OpenColorIO
                       VERSION_MIN 1.1

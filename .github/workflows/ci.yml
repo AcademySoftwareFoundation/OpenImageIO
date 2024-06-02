@@ -46,6 +46,7 @@ jobs:
             fmt_ver: 7.1.0
             pybind11_ver: v2.7.0
             setenvs: export PUGIXML_VERSION=v1.9 WEBP_VERSION=v1.1.0 USE_OPENVDB=0
+                            FREETYPE_VERSION=VER-2-10-0
           - desc: clang10/C++17 avx2 exr3.1 ocio2.0
             nametag: linux-clang10-cpp14
             runner: ubuntu-latest
@@ -60,6 +61,7 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 8.1.1
             setenvs: export USE_OPENVDB=0
+                            FREETYPE_VERSION=VER-2-11-0
           - desc: gcc9/C++17 py39 exr3.1 ocio2.1
             nametag: linux-vfx2022
             runner: ubuntu-latest
@@ -70,6 +72,7 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 8.1.1
             pybind11_ver: v2.9.0
+            setenvs: export FREETYPE_VERSION=VER-2-12-0
           - desc: clang13/C++17 py39 avx2 exr3.1 ocio2.1
             nametag: linux-vfx2022-clang13
             runner: ubuntu-latest
@@ -82,6 +85,7 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 9.1.0
             pybind11_ver: v2.8.1
+            setenvs: export FREETYPE_VERSION=VER-2-12-0
           - desc: icc/C++17 py3.9 exr3.1 ocio2.1 qt5.15
             nametag: linux-vfx2022-icc
             runner: ubuntu-latest
@@ -95,6 +99,7 @@ jobs:
             pybind11_ver: v2.9.0
             setenvs: export USE_ICC=1 USE_OPENVDB=0
                             OIIO_EXTRA_CPP_ARGS="-fp-model=precise"
+                            FREETYPE_VERSION=VER-2-13-0
             # For icc, use fp-model precise to eliminate needless LSB errors
             # that make test results differ from other platforms.
           - desc: icx/C++17 py3.9 exr3.1 ocio2.1 qt5.15
@@ -109,6 +114,7 @@ jobs:
             simd: "avx2,f16c"
             pybind11_ver: v2.9.0
             setenvs: export USE_OPENVDB=0
+                            FREETYPE_VERSION=VER-2-13-0
           - desc: sanitizers
             nametag: sanitizer
             runner: ubuntu-latest
@@ -123,6 +129,7 @@ jobs:
                             CMAKE_BUILD_TYPE=Debug
                             CTEST_TEST_TIMEOUT=1200
                             CTEST_EXCLUSIONS="broken|png-damaged"
+                            FREETYPE_VERSION=VER-2-13-0
           - desc: gcc11/C++17 py3.10 exr3.1 ocio2.2
             nametag: linux-vfx2023
             runner: ubuntu-latest
@@ -133,6 +140,7 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             pybind11_ver: v2.10.0
+            setenvs: export FREETYPE_VERSION=VER-2-13-0
           - desc: gcc11/C++17 py3.11 exr3.2 ocio2.3
             nametag: linux-vfx2024
             runner: ubuntu-latest
@@ -143,6 +151,7 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             pybind11_ver: v2.10.0
+            setenvs: export FREETYPE_VERSION=VER-2-13-2
           - desc: oldest/hobbled gcc9.3/C++17 py3.7 exr-3.1 no-sse no-ocio
             # Oldest versions of the dependencies that we can muster, and various
             # things disabled (no SSE, OCIO, or OpenCV, don't embed plugins).
@@ -163,6 +172,7 @@ jobs:
                              USE_JPEGTURBO=0
                              USE_OPENCOLORIO=0
                              USE_OPENCV=0
+                             FREETYPE_VERSION=VER-2-10-0
             depcmds: sudo rm -rf /usr/local/include/OpenEXR
 
           # Test ABI stability. `abi_check` is the version or commit that we
@@ -185,6 +195,7 @@ jobs:
             setenvs: export OIIO_CMAKE_FLAGS="-DOIIO_BUILD_TOOLS=0 -DOIIO_BUILD_TESTS=0 -DUSE_PYTHON=0"
                             USE_OPENCV=0 USE_FFMPEG=0 USE_PYTHON=0
                             CMAKE_BUILD_TYPE=RelWithDebInfo
+                            FREETYPE_VERSION=VER-2-13-0
 
     runs-on: ${{ matrix.runner }}
     container:
@@ -294,6 +305,7 @@ jobs:
                             PUGIXML_VERSION=v1.14
                             USE_OPENVDB=0
                             WEBP_VERSION=v1.3.0
+                            FREETYPE_VERSION=VER-2-13-2
                             # The installed OpenVDB has a TLS conflict with Python 3.8
           - desc: bleeding edge gcc14 C++20 py3.12 OCIO/libtiff/exr-master avx2
             nametag: linux-bleeding-edge
@@ -320,6 +332,7 @@ jobs:
                             PIP_INSTALLS="none"
                             USE_OPENVDB=0
                             SKIP_APT_GET_UPDATE=1
+                            FREETYPE_VERSION=master
                             # The installed OpenVDB has a TLS conflict with Python 3.8
                             # Disabling the `apt-get update` in gh-installdeps.bash 
                             # addresses a job killing problem in the GHA Ubuntu
