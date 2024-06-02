@@ -1,3 +1,8 @@
+Release 2.5.13.0 (July 1?, 2024) -- compared to 2.5.11.0
+-------------------------------------------------------
+
+
+
 Release 2.5.12.0 (June 1, 2024) -- compared to 2.5.11.0
 -------------------------------------------------------
 - *exr*: Add IOProxy support for EXR multipart output [#4263](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4263) [#4264](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4264) (by jreichel-nvidia)
