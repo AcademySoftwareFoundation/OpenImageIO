@@ -134,8 +134,8 @@ checked_find_package (Freetype
                    DEFINITIONS USE_FREETYPE=1 )
 
 checked_find_package (OpenColorIO
-                      VERSION_MIN 2.1
-                      VERSION_MAX 3.0
+                      VERSION_MIN 1.1
+                      VERSION_MAX 2.9
                       BUILD_LOCAL missing
                       DEFINITIONS  USE_OCIO=1 USE_OPENCOLORIO=1
                       # PREFER_CONFIG
