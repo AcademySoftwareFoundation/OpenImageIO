@@ -10,6 +10,15 @@ set_cache (${PROJECT_NAME}_OPTIONAL_DEPS ""
 set_option (${PROJECT_NAME}_ALWAYS_PREFER_CONFIG
             "Prefer a dependency's exported config file if it's available" OFF)
 
+set_cache (${PROJECT_NAME}_BUILD_MISSING_DEPS ""
+     "Try to download and build any of these missing dependencies (or 'all')")
+set_cache (${PROJECT_NAME}_BUILD_LOCAL_DEPS ""
+     "Force local builds of these dependencies if possible (or 'all')")
+
+set_cache (${PROJECT_NAME}_LOCAL_DEPS_ROOT "${PROJECT_BINARY_DIR}/deps"
+           "Directory were we do local builds of dependencies")
+list (APPEND CMAKE_PREFIX_PATH ${${PROJECT_NAME}_LOCAL_DEPS_ROOT}/dist)
+
 # Build type for locally built dependencies. Default to the same build type
 # as the current project.
 set_cache (${PROJECT_NAME}_DEPENDENCY_BUILD_TYPE ${CMAKE_BUILD_TYPE}
@@ -31,6 +40,16 @@ endif ()
 # Track all build deps we find with checked_find_package
 set (CFP_ALL_BUILD_DEPS_FOUND "")
 
+# Track all build deps we failed to find with checked_find_package
+set (CFP_ALL_BUILD_DEPS_NOTFOUND "")
+set (CFP_LOCALLY_BUILDABLE_DEPS_NOTFOUND "")
+
+# Track all build deps we found but were of inadequate version
+set (CFP_ALL_BUILD_DEPS_BADVERSION "")
+set (CFP_LOCALLY_BUILDABLE_DEPS_BADVERSION "")
+
+
+
 # Utility function to list the names and values of all variables matching
 # the pattern (case-insensitive)
 function (dump_matching_variables pattern)
@@ -46,28 +65,65 @@ function (dump_matching_variables pattern)
 endfunction ()
 
 
+# Helper: Print a report about missing dependencies and give insructions on
+# how to turn on automatic local dependency building.
+function (print_package_notfound_report)
+    if (CFP_ALL_BUILD_DEPS_NOTFOUND OR CFP_ALL_BUILD_DEPS_BADVERSION)
+        message (STATUS)
+        message (STATUS "${ColorBoldYellow}=========================================================================${ColorReset}")
+        message (STATUS)
+        if (CFP_ALL_BUILD_DEPS_NOTFOUND)
+            message (STATUS "${ColorBoldWhite}The following dependencies were not found:${ColorReset}")
+            foreach (_pkg IN LISTS CFP_ALL_BUILD_DEPS_NOTFOUND)
+                message (STATUS "    ${_pkg}")
+            endforeach ()
+        endif ()
+        if (CFP_ALL_BUILD_DEPS_BADVERSION)
+            message (STATUS "${ColorBoldWhite}The following dependencies were found but were too old:${ColorReset}")
+            foreach (_pkg IN LISTS CFP_ALL_BUILD_DEPS_BADVERSION)
+                message (STATUS "    ${_pkg}")
+            endforeach ()
+        endif ()
+        if (CFP_LOCALLY_BUILDABLE_DEPS_NOTFOUND OR CFP_LOCALLY_BUILDABLE_DEPS_BADVERSION)
+            message (STATUS)
+            message (STATUS "${ColorBoldWhite}For some of these, we can build them locally:${ColorReset}")
+            foreach (_pkg IN LISTS CFP_LOCALLY_BUILDABLE_DEPS_NOTFOUND CFP_LOCALLY_BUILDABLE_DEPS_BADVERSION)
+                message (STATUS "    ${_pkg}")
+            endforeach ()
+            message (STATUS "${ColorBoldWhite}To build them automatically if not found, build again with option:${ColorReset}")
+            message (STATUS "    ${ColorBoldGreen}-D${PROJECT_NAME}_BUILD_MISSING_DEPS=all${ColorReset}")
+        endif ()
+        message (STATUS)
+        message (STATUS "${ColorBoldYellow}=========================================================================${ColorReset}")
+        message (STATUS)
+    endif ()
+endfunction ()
+
+
+
 # Helper: called if a package is not found, print error messages, including
 # a fatal error if the package was required.
 function (handle_package_notfound pkgname required)
     message (STATUS "${ColorRed}${pkgname} library not found ${ColorReset}")
     if (${pkgname}_ROOT)
-        message (STATUS "${ColorRed}    ${pkgname}_ROOT was: ${${pkgname}_ROOT} ${ColorReset}")
+        message (STATUS "    ${pkgname}_ROOT was: ${${pkgname}_ROOT}")
     elseif ($ENV{${pkgname}_ROOT})
-        message (STATUS "${ColorRed}    ENV ${pkgname}_ROOT was: ${${pkgname}_ROOT} ${ColorReset}")
+        message (STATUS "    ENV ${pkgname}_ROOT was: ${${pkgname}_ROOT}")
     else ()
-        message (STATUS "${ColorRed}    Try setting ${pkgname}_ROOT ? ${ColorReset}")
+        message (STATUS "    Try setting ${pkgname}_ROOT ?")
     endif ()
     if (EXISTS "${PROJECT_SOURCE_DIR}/src/build-scripts/build_${pkgname}.bash")
-        message (STATUS "${ColorRed}    Maybe this will help:  src/build-scripts/build_${pkgname}.bash ${ColorReset}")
+        message (STATUS "    Maybe this will help:  src/build-scripts/build_${pkgname}.bash")
     elseif (EXISTS "${PROJECT_SOURCE_DIR}/src/build-scripts/build_${pkgname_upper}.bash")
-        message (STATUS "${ColorRed}    Maybe this will help:  src/build-scripts/build_${pkgname_upper}.bash ${ColorReset}")
+        message (STATUS "    Maybe this will help:  src/build-scripts/build_${pkgname_upper}.bash")
     elseif (EXISTS "${PROJECT_SOURCE_DIR}/src/build-scripts/build_${pkgname_lower}.bash")
-            message (STATUS "${ColorRed}    Maybe this will help:  src/build-scripts/build_${pkgname_lower}.bash ${ColorReset}")
+            message (STATUS "    Maybe this will help:  src/build-scripts/build_${pkgname_lower}.bash")
     elseif (EXISTS "${PROJECT_SOURCE_DIR}/src/build-scripts/build_lib${pkgname_lower}.bash")
-            message (STATUS "${ColorRed}    Maybe this will help:  src/build-scripts/build_lib${pkgname_lower}.bash ${ColorReset}")
+            message (STATUS "    Maybe this will help:  src/build-scripts/build_lib${pkgname_lower}.bash")
     endif ()
     if (required)
-        message (FATAL_ERROR "${ColorRed}${pkgname} is required, aborting.${ColorReset}")
+        print_package_notfound_report()
+        message (FATAL_ERROR "${pkgname} is required, aborting.")
     endif ()
 endfunction ()
 
@@ -167,7 +223,11 @@ macro (checked_find_package pkgname)
             OR ${PROJECT_NAME}_BUILD_MISSING_DEPS STREQUAL "all")
         set_if_not (_pkg_BUILD_LOCAL "missing")
     endif ()
-    if (_pkg_BUILD_LOCAL AND NOT EXISTS "${PROJECT_SOURCE_DIR}/src/cmake/build_${pkgname}.cmake")
+    set (${pkgname}_local_build_script "${PROJECT_SOURCE_DIR}/src/cmake/build_${pkgname}.cmake")
+    if (EXISTS ${${pkgname}_local_build_script})
+        set (${pkgname}_local_build_script_exists TRUE)
+    endif ()
+    if (_pkg_BUILD_LOCAL AND NOT EXISTS "${${pkgname}_local_build_script}")
         unset (_pkg_BUILD_LOCAL)
     endif ()
     set (_quietskip false)
@@ -215,6 +275,19 @@ macro (checked_find_package pkgname)
         if (NOT ${pkgname}_FOUND AND NOT ${pkgname_upper}_FOUND AND NOT _pkg_BUILD_LOCAL STREQUAL "always" AND NOT _pkg_CONFIG)
             find_package (${pkgname} ${_${pkgname}_version_range} ${_pkg_UNPARSED_ARGUMENTS})
         endif()
+        if (NOT ${pkgname}_FOUND AND NOT ${pkgname_upper}_FOUND)
+            list (APPEND CFP_ALL_BUILD_DEPS_NOTFOUND ${pkgname})
+            if (${pkgname}_local_build_script_exists)
+                list (APPEND CFP_LOCALLY_BUILDABLE_DEPS_NOTFOUND ${pkgname})
+            endif ()
+        endif ()
+        # Some FindPackage modules set nonstandard variables for the versions
+        if (NOT ${pkgname}_VERSION AND ${pkgname_upper}_VERSION)
+            set (${pkgname}_VERSION ${${pkgname_upper}_VERSION})
+        endif ()
+        if (NOT ${pkgname}_VERSION AND ${pkgname_upper}_VERSION_STRING)
+            set (${pkgname}_VERSION ${${pkgname_upper}_VERSION_STRING})
+        endif ()
         # If the package was found but the version is outside the required
         # range, unset the relevant variables so that we can try again fresh.
         if ((${pkgname}_FOUND OR ${pkgname_upper}_FOUND)
@@ -223,6 +296,10 @@ macro (checked_find_package pkgname)
             if ((_pkg_VERSION_MIN AND ${pkgname}_VERSION VERSION_LESS _pkg_VERSION_MIN)
                   OR (_pkg_VERSION_MAX AND ${pkgname}_VERSION VERSION_GREATER _pkg_VERSION_MAX))
                 message (STATUS "${ColorRed}${pkgname} ${${pkgname}_VERSION} is outside the required range ${_pkg_VERSION_MIN}...${_pkg_VERSION_MAX} ${ColorReset}")
+                list (APPEND CFP_ALL_BUILD_DEPS_BADVERSION ${pkgname})
+                if (${pkgname}_local_build_script_exists)
+                    list (APPEND CFP_LOCALLY_BUILDABLE_DEPS_BADVERSION ${pkgname})
+                endif ()
                 unset (${pkgname}_FOUND)
                 unset (${pkgname}_VERSION)
                 unset (${pkgname}_INCLUDE)
@@ -242,10 +319,10 @@ macro (checked_find_package pkgname)
         # package locally.
         if (NOT ${pkgname}_FOUND AND NOT ${pkgname_upper}_FOUND
             AND (_pkg_BUILD_LOCAL STREQUAL "always" OR _pkg_BUILD_LOCAL STREQUAL "missing")
-            AND EXISTS "${PROJECT_SOURCE_DIR}/src/cmake/build_${pkgname}.cmake")
+            AND EXISTS "${${pkgname}_local_build_script}")
             message (STATUS "${ColorMagenta}Building package ${pkgname} ${${pkgname}_VERSION} locally${ColorReset}")
             list(APPEND CMAKE_MESSAGE_INDENT "        ")
-            include(${PROJECT_SOURCE_DIR}/src/cmake/build_${pkgname}.cmake)
+            include("${${pkgname}_local_build_script}")
             list(POP_BACK CMAKE_MESSAGE_INDENT)
             set (${pkgname}_FOUND TRUE)
             set (${pkgname}_LOCAL_BUILD TRUE)

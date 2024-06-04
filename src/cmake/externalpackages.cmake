@@ -21,20 +21,10 @@ message (STATUS "*     -DUSE_Package=OFF or set environment var USE_Package=OFF 
 message (STATUS "${ColorReset}")
 
 
-set_cache (${PROJECT_NAME}_BUILD_MISSING_DEPS "all"
-     "Try to download and build any of these missing dependencies (or 'all')")
-set_cache (${PROJECT_NAME}_BUILD_LOCAL_DEPS ""
-     "Force local builds of these dependencies if possible (or 'all')")
-
 set (OIIO_LOCAL_DEPS_PATH "${CMAKE_SOURCE_DIR}/ext/dist" CACHE STRING
      "Local area for dependencies added to CMAKE_PREFIX_PATH")
 list (APPEND CMAKE_PREFIX_PATH ${OIIO_LOCAL_DEPS_ROOT})
 
-set_cache (${PROJECT_NAME}_LOCAL_DEPS_ROOT "${PROJECT_BINARY_DIR}/deps"
-           "Directory were we do local builds of dependencies")
-list (APPEND CMAKE_PREFIX_PATH ${${PROJECT_NAME}_LOCAL_DEPS_ROOT}/dist)
-# set (${PROJECT_NAME}_LOCAL_DEPS_BUILD "${${PROJECT_NAME}_LOCAL_DEPS_ROOT}/build")
-# set (${PROJECT_NAME}_LOCAL_DEPS_INSTALL "${${PROJECT_NAME}_LOCAL_DEPS_ROOT}/install")
 
 
 include (FindThreads)
@@ -64,13 +54,13 @@ checked_find_package (TIFF REQUIRED
 # IlmBase & OpenEXR
 checked_find_package (Imath REQUIRED
     VERSION_MIN 3.1
-    BUILD_LOCAL missing
+    # BUILD_LOCAL missing
     PRINT IMATH_INCLUDES OPENEXR_INCLUDES Imath_VERSION
 )
 
 checked_find_package (OpenEXR REQUIRED
     VERSION_MIN 3.1
-    BUILD_LOCAL missing
+    # BUILD_LOCAL missing
     PRINT IMATH_INCLUDES OPENEXR_INCLUDES Imath_VERSION
     )
 
@@ -136,9 +126,8 @@ checked_find_package (Freetype
 checked_find_package (OpenColorIO
                       VERSION_MIN 1.1
                       VERSION_MAX 2.9
-                      BUILD_LOCAL missing
+                      # BUILD_LOCAL missing
                       DEFINITIONS  USE_OCIO=1 USE_OPENCOLORIO=1
-                      # PREFER_CONFIG
                       )
 if (OpenColorIO_FOUND)
     option (OIIO_DISABLE_BUILTIN_OCIO_CONFIGS

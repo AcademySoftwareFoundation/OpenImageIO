@@ -320,3 +320,5 @@ endif ()
 if (PROJECT_IS_TOP_LEVEL)
     include (packaging)
 endif ()
+
+print_package_notfound_report ()
