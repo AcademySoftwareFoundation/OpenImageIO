@@ -42,10 +42,11 @@ build_dependency_with_cmake(OpenColorIO
 # Set some things up that we'll need for a subsequent find_package to work
 
 #list (APPEND CMAKE_PREFIX_PATH ${OpenColorIO_LOCAL_INSTALL_DIR})
-#set (OpenColorIO_ROOT ${OpenColorIO_LOCAL_INSTALL_DIR})
+set (OpenColorIO_ROOT ${OpenColorIO_LOCAL_INSTALL_DIR})
 set (OpenColorIO_DIR ${OpenColorIO_LOCAL_INSTALL_DIR})
 
 # Signal to caller that we need to find again at the installed location
 set (OpenColorIO_REFIND TRUE)
+set (OpenColorIO_REFIND_ARGS CONFIG)
 
 install_local_dependency_libs (OpenColorIO OpenColorIO)

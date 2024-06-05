@@ -23,8 +23,11 @@ message (STATUS "${ColorReset}")
 
 set (OIIO_LOCAL_DEPS_PATH "${CMAKE_SOURCE_DIR}/ext/dist" CACHE STRING
      "Local area for dependencies added to CMAKE_PREFIX_PATH")
-list (APPEND CMAKE_PREFIX_PATH ${OIIO_LOCAL_DEPS_ROOT})
+list (APPEND CMAKE_PREFIX_PATH ${OIIO_LOCAL_DEPS_PATH})
 
+# Tell CMake that find_package should try to find the highest matching version
+# of a package, rather than the first one it finds.
+set(CMAKE_FIND_PACKAGE_SORT_ORDER NATURAL)
 
 
 include (FindThreads)
@@ -54,13 +57,11 @@ checked_find_package (TIFF REQUIRED
 # IlmBase & OpenEXR
 checked_find_package (Imath REQUIRED
     VERSION_MIN 3.1
-    # BUILD_LOCAL missing
     PRINT IMATH_INCLUDES OPENEXR_INCLUDES Imath_VERSION
 )
 
 checked_find_package (OpenEXR REQUIRED
     VERSION_MIN 3.1
-    # BUILD_LOCAL missing
     PRINT IMATH_INCLUDES OPENEXR_INCLUDES Imath_VERSION
     )
 
@@ -126,7 +127,6 @@ checked_find_package (Freetype
 checked_find_package (OpenColorIO
                       VERSION_MIN 1.1
                       VERSION_MAX 2.9
-                      # BUILD_LOCAL missing
                       DEFINITIONS  USE_OCIO=1 USE_OPENCOLORIO=1
                       )
 if (OpenColorIO_FOUND)

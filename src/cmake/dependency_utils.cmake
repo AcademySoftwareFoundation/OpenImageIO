@@ -48,6 +48,9 @@ set (CFP_LOCALLY_BUILDABLE_DEPS_NOTFOUND "")
 set (CFP_ALL_BUILD_DEPS_BADVERSION "")
 set (CFP_LOCALLY_BUILDABLE_DEPS_BADVERSION "")
 
+# Which dependencies did we build locally
+set (CFP_LOCALLY_BUILT_DEPS "")
+
 
 
 # Utility function to list the names and values of all variables matching
@@ -75,13 +78,21 @@ function (print_package_notfound_report)
         if (CFP_ALL_BUILD_DEPS_NOTFOUND)
             message (STATUS "${ColorBoldWhite}The following dependencies were not found:${ColorReset}")
             foreach (_pkg IN LISTS CFP_ALL_BUILD_DEPS_NOTFOUND)
-                message (STATUS "    ${_pkg}")
+                if (_pkg IN_LIST CFP_LOCALLY_BUILT_DEPS)
+                    message (STATUS "    ${_pkg} ${ColorMagenta}(BUILT LOCALLY)${ColorReset}")
+                else ()
+                    message (STATUS "    ${_pkg}")
+                endif ()
             endforeach ()
         endif ()
         if (CFP_ALL_BUILD_DEPS_BADVERSION)
             message (STATUS "${ColorBoldWhite}The following dependencies were found but were too old:${ColorReset}")
             foreach (_pkg IN LISTS CFP_ALL_BUILD_DEPS_BADVERSION)
-                message (STATUS "    ${_pkg}")
+                if (_pkg IN_LIST CFP_LOCALLY_BUILT_DEPS)
+                    message (STATUS "    ${_pkg} ${ColorMagenta}(BUILT LOCALLY)${ColorReset}")
+                else ()
+                    message (STATUS "    ${_pkg}")
+                endif ()
             endforeach ()
         endif ()
         if (CFP_LOCALLY_BUILDABLE_DEPS_NOTFOUND OR CFP_LOCALLY_BUILDABLE_DEPS_BADVERSION)
@@ -126,6 +137,47 @@ function (handle_package_notfound pkgname required)
         message (FATAL_ERROR "${pkgname} is required, aborting.")
     endif ()
 endfunction ()
+
+
+# Check whether the package's version (in pkgversion) lies within versionmin
+# and versionmax (inclusive). Store TRUE result variable if the version was in
+# range, FALSE if it was out of range. If it did not match, clear a bunch of
+# variables that may have been set by the find_package call (including
+# clearing the package's FOUND variable).
+function (reject_out_of_range_versions pkgname pkgversion versionmin versionmax result)
+    set (${result} FALSE PARENT_SCOPE)
+    string (TOUPPER ${pkgname} pkgname_upper)
+    # message (STATUS "roorv: ${pkgname} ${pkgversion} ${versionmin} ${versionmax}")
+    if (NOT ${pkgname}_FOUND AND NOT ${pkgname_upper}_FOUND)
+        message (STATUS "${pkgname} was not found")
+    elseif ("${pkgversion}" STREQUAL "")
+        message (ERROR "${pkgname} found but version was empty")
+    elseif (pkgversion VERSION_LESS versionmin
+            OR pkgversion VERSION_GREATER versionmax)
+        # message (STATUS "${ColorRed}${pkgname} ${pkgversion} is outside the required range ${versionmin}...${versionmax} ${ColorReset}")
+        # list (APPEND CFP_ALL_BUILD_DEPS_BADVERSION ${pkgname})
+        # if (${pkgname}_local_build_script_exists)
+        #     list (APPEND CFP_LOCALLY_BUILDABLE_DEPS_BADVERSION ${pkgname})
+        # endif ()
+        unset (${pkgname}_FOUND PARENT_SCOPE)
+        unset (${pkgname}_VERSION PARENT_SCOPE)
+        unset (${pkgname}_INCLUDE PARENT_SCOPE)
+        unset (${pkgname}_INCLUDES PARENT_SCOPE)
+        unset (${pkgname}_LIBRARY PARENT_SCOPE)
+        unset (${pkgname}_LIBRARIES PARENT_SCOPE)
+        unset (${pkgname_upper}_FOUND PARENT_SCOPE)
+        unset (${pkgname_upper}_VERSION PARENT_SCOPE)
+        unset (${pkgname_upper}_INCLUDE PARENT_SCOPE)
+        unset (${pkgname_upper}_INCLUDES PARENT_SCOPE)
+        unset (${pkgname_upper}_LIBRARY PARENT_SCOPE)
+        unset (${pkgname_upper}_LIBRARIES PARENT_SCOPE)
+    else ()
+        # Version matched the range
+        set (${result} TRUE PARENT_SCOPE)
+        # message (STATUS "${pkgname} ${pkgversion} is INSIDE the required range ${versionmin}...${versionmax}")
+    endif ()
+endfunction ()
+
 
 
 # checked_find_package(Pkgname ...) is a wrapper for find_package, with the
@@ -182,6 +234,21 @@ endfunction ()
 #     is "all", it will behave as if set to "always", and if the variable
 #     ${PROJECT_NAME}_BUILD_MISSING_DEPS contains the package name or is
 #     "all", it will behave as if set to "missing".
+#   * Optional NO_FP_RANGE_CHECK avoids passing the version range to
+#     find_package itself.
+#
+# Explanation about local builds:
+#
+# If the package isn't found externally in the usual places or doesn't meet
+# the version criteria, we check for the existance of a file at
+# `src/build-scripts/build_<pkgname>.cmake`. If that exists, we include and
+# execute it. The script can do whatever it wants, but should either (a)
+# somehow set up the link targets that would have been found had the package
+# had been found, or (b) set the variable `<pkgname>_REFIND` to a true value
+# and have done something to ensure that the package will be found if we try a
+# second time. For (b), typically that might mean downloading the package and
+# building it locally, and then setting the `<pkgname>_ROOT` to where it's
+# installed.
 #
 # N.B. This needs to be a macro, not a function, because the find modules
 # will set(blah val PARENT_SCOPE) and we need that to be the global scope,
@@ -192,7 +259,7 @@ macro (checked_find_package pkgname)
     #
     cmake_parse_arguments(_pkg   # prefix
         # noValueKeywords:
-        "REQUIRED;CONFIG;PREFER_CONFIG;DEBUG;NO_RECORD_NOTFOUND"
+        "REQUIRED;CONFIG;PREFER_CONFIG;DEBUG;NO_RECORD_NOTFOUND;NO_FP_RANGE_CHECK"
         # singleValueKeywords:
         "ENABLE;ISDEPOF;VERSION_MIN;VERSION_MAX;RECOMMEND_MIN;RECOMMEND_MIN_REASON;BUILD_LOCAL"
         # multiValueKeywords:
@@ -249,13 +316,19 @@ macro (checked_find_package pkgname)
     endif ()
     set (_config_status "")
     unset (_${pkgname}_version_range)
-    if (_pkg_BUILD_LOCAL)
+    if (_pkg_BUILD_LOCAL AND NOT _pkg_NO_FP_RANGE_CHECK)
+        # SKIP THIS -- I find it unreliable because the package's exported
+        # PKGConfigVersion.cmake has might have arbitrary rules. Use our own
+        # MIN_VERSION and MAX_VERSION parameters to manually check instead.
+        #
         if (_pkg_VERSION_MIN AND _pkg_VERSION_MAX AND CMAKE_VERSION VERSION_GREATER_EQUAL 3.19)
             set (_${pkgname}_version_range "${_pkg_VERSION_MIN}...<${_pkg_VERSION_MAX}")
         elseif (_pkg_VERSION_MIN)
             set (_${pkgname}_version_range "${_pkg_VERSION_MIN}")
         endif ()
     endif ()
+    set_if_not (_pkg_VERSION_MIN "0.0.1")
+    set_if_not (_pkg_VERSION_MAX "10000.0.0")
     #
     # Now we try to find or build
     #
@@ -268,6 +341,9 @@ macro (checked_find_package pkgname)
             # was already found, or we're forcing a local build
         elseif (_pkg_CONFIG OR _pkg_PREFER_CONFIG OR ${PROJECT_NAME}_ALWAYS_PREFER_CONFIG)
             find_package (${pkgname} ${_${pkgname}_version_range} CONFIG ${_pkg_UNPARSED_ARGUMENTS})
+            reject_out_of_range_versions (${pkgname} "${${pkgname}_VERSION}"
+                                          ${_pkg_VERSION_MIN} ${_pkg_VERSION_MAX}
+                                          _pkg_version_in_range)
             if (${pkgname}_FOUND OR ${pkgname_upper}_FOUND)
                 set (_config_status "from CONFIG")
             endif ()
@@ -290,28 +366,16 @@ macro (checked_find_package pkgname)
         endif ()
         # If the package was found but the version is outside the required
         # range, unset the relevant variables so that we can try again fresh.
-        if ((${pkgname}_FOUND OR ${pkgname_upper}_FOUND)
-              AND ${pkgname}_VERSION
-              AND (_pkg_VERSION_MIN OR _pkg_VERSION_MAX))
-            if ((_pkg_VERSION_MIN AND ${pkgname}_VERSION VERSION_LESS _pkg_VERSION_MIN)
-                  OR (_pkg_VERSION_MAX AND ${pkgname}_VERSION VERSION_GREATER _pkg_VERSION_MAX))
+        if ((${pkgname}_FOUND OR ${pkgname_upper}_FOUND) AND ${pkgname}_VERSION)
+            reject_out_of_range_versions (${pkgname} ${${pkgname}_VERSION}
+                                          ${_pkg_VERSION_MIN} ${_pkg_VERSION_MAX}
+                                          _pkg_version_in_range)
+            if (NOT _pkg_version_in_range)
                 message (STATUS "${ColorRed}${pkgname} ${${pkgname}_VERSION} is outside the required range ${_pkg_VERSION_MIN}...${_pkg_VERSION_MAX} ${ColorReset}")
                 list (APPEND CFP_ALL_BUILD_DEPS_BADVERSION ${pkgname})
                 if (${pkgname}_local_build_script_exists)
                     list (APPEND CFP_LOCALLY_BUILDABLE_DEPS_BADVERSION ${pkgname})
                 endif ()
-                unset (${pkgname}_FOUND)
-                unset (${pkgname}_VERSION)
-                unset (${pkgname}_INCLUDE)
-                unset (${pkgname}_INCLUDES)
-                unset (${pkgname}_LIBRARY)
-                unset (${pkgname}_LIBRARIES)
-                unset (${pkgname_upper}_FOUND)
-                unset (${pkgname_upper}_VERSION)
-                unset (${pkgname_upper}_INCLUDE)
-                unset (${pkgname_upper}_INCLUDES)
-                unset (${pkgname_upper}_LIBRARY)
-                unset (${pkgname_upper}_LIBRARIES)
             endif ()
         endif ()
         # If we haven't found the package yet and are allowed to build a local
@@ -324,15 +388,21 @@ macro (checked_find_package pkgname)
             list(APPEND CMAKE_MESSAGE_INDENT "        ")
             include("${${pkgname}_local_build_script}")
             list(POP_BACK CMAKE_MESSAGE_INDENT)
-            set (${pkgname}_FOUND TRUE)
+            # set (${pkgname}_FOUND TRUE)
             set (${pkgname}_LOCAL_BUILD TRUE)
+            list (APPEND CFP_LOCALLY_BUILT_DEPS ${pkgname})
+            list (REMOVE_ITEM CFP_LOCALLY_BUILDABLE_DEPS_NOTFOUND ${pkgname})
         endif()
         # If the local build instrctions set <pkgname>_REFIND, then try a find
         # again to pick up the local one, at which point we can proceed as if
-        # it had been found externally all along.
+        # it had been found externally all along. The local build script can
+        # also optionally set the following hints:
+        #   ${pkgname}_REFIND_VERSION : the version that was just installed,
+        #                               to specifically find.
+        #   ${pkgname}_REFIND_ARGS    : additional arguments to pass to find_package
         if (${pkgname}_REFIND)
-            message (STATUS "Refinding ${pkgname}")
-            find_package (${pkgname} ${_${pkgname}_version_range} ${_pkg_UNPARSED_ARGUMENTS} ${${pkgname}_REFIND_ARGS})
+            message (STATUS "Refinding ${pkgname} with ${pkgname}_ROOT=${${pkgname}_ROOT}")
+            find_package (${pkgname} ${_pkg_UNPARSED_ARGUMENTS} ${${pkgname}_REFIND_ARGS})
             unset (${pkgname}_REFIND)
         endif()
         # It's all downhill from here: if we found the package, follow the

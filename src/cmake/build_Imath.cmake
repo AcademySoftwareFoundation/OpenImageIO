@@ -39,5 +39,7 @@ build_dependency_with_cmake(Imath
 
 # Signal to caller that we need to find again at the installed location
 set (Imath_REFIND TRUE)
+set (Imath_REFIND_ARGS CONFIG)
+set (Imath_REFIND_VERSION ${Imath_BUILD_VERSION})
 
 install_local_dependency_libs (Imath Imath)

@@ -43,6 +43,8 @@ build_dependency_with_cmake(OpenEXR
 
 # Signal to caller that we need to find again at the installed location
 set (OpenEXR_REFIND TRUE)
+set (OpenEXR_REFIND_ARGS CONFIG)
+set (OpenEXR_REFIND_VERSION ${OpenEXR_BUILD_VERSION})
 
 install_local_dependency_libs (OpenEXR OpenEXR)
 install_local_dependency_libs (OpenEXR IlmThread)

@@ -538,6 +538,7 @@ jobs:
             # openexr_ver: v3.2.4
             python_ver: "3.9"
             # simd: sse4.2
+            # setenvs: export OpenImageIO_BUILD_MISSING_DEPS=none
     runs-on: ${{ matrix.runner }}
     env:
       PYTHON_VERSION: ${{matrix.python_ver}}

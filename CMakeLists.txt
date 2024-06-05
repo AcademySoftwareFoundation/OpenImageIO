@@ -49,7 +49,6 @@ list (APPEND CMAKE_MODULE_PATH
 include (colors)
 include (set_utils)
 include (check_is_enabled)
-include (dependency_utils)
 include (fancy_add_executable)
 
 # If the user wants to use Conan to build dependencies, they will have done
@@ -168,6 +167,9 @@ include (add_oiio_plugin)
 
 # All the C++ and compiler related options and adjustments
 include (compiler)
+
+# Dependency finding utilities and all dependency-related options
+include (dependency_utils)
 
 # Utilities and options related to finding python and making python bindings
 include (pythonutils)
