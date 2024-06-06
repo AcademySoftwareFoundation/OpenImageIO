@@ -66,7 +66,7 @@ if [[ "$ASWF_ORG" != ""  ]] ; then
         icpx --version
     fi
 
-else
+elif [[ "$USE_CONAN" != "1" ]] ; then
     # Using native Ubuntu runner
 
     if [[ "${SKIP_APT_GET_UPDATE}" != "1" ]] ; then
@@ -203,6 +203,17 @@ fi
 if [[ "$LIBJPEGTURBO_VERSION" != "" ]] ; then
     source src/build-scripts/build_libjpeg-turbo.bash
 fi
+
+if [[ "$LIBAOM_VERSION" != "" ]] ; then
+    source src/build-scripts/build_libaom.bash
+fi
+
+if [[ "$LIBDE265_VERSION" != "" ]] ; then
+    source src/build-scripts/build_libde265.bash
+fi
+
+if [[ "$LIBHEIF_VERSION" != "" ]] ; then
+    source src/build-scripts/build_libheif.bash
 
 if [[ "$USE_ICC" != "" ]] ; then
     # We used gcc for the prior dependency builds, but use icc for OIIO itself
