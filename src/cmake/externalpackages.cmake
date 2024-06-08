@@ -127,6 +127,7 @@ checked_find_package (Freetype
 checked_find_package (OpenColorIO
                       VERSION_MIN 1.1
                       VERSION_MAX 2.9
+                      NO_FP_RANGE_CHECK
                       DEFINITIONS  USE_OCIO=1 USE_OPENCOLORIO=1
                       )
 if (OpenColorIO_FOUND)
