@@ -114,7 +114,6 @@ jobs:
             simd: "avx2,f16c"
             pybind11_ver: v2.9.0
             setenvs: export USE_OPENVDB=0
-                            FREETYPE_VERSION=VER-2-13-0
           - desc: sanitizers
             nametag: sanitizer
             runner: ubuntu-latest
@@ -129,7 +128,6 @@ jobs:
                             CMAKE_BUILD_TYPE=Debug
                             CTEST_TEST_TIMEOUT=1200
                             CTEST_EXCLUSIONS="broken|png-damaged"
-                            FREETYPE_VERSION=VER-2-13-0
           - desc: gcc11/C++17 py3.10 exr3.1 ocio2.2
             nametag: linux-vfx2023
             runner: ubuntu-latest
@@ -140,7 +138,6 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             pybind11_ver: v2.10.0
-            setenvs: export FREETYPE_VERSION=VER-2-13-0
           - desc: gcc11/C++17 py3.11 exr3.2 ocio2.3
             nametag: linux-vfx2024
             runner: ubuntu-latest
@@ -151,7 +148,6 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             pybind11_ver: v2.10.0
-            setenvs: export FREETYPE_VERSION=VER-2-13-2
           - desc: oldest/hobbled gcc9.3/C++17 py3.7 exr-3.1 no-sse no-ocio
             # Oldest versions of the dependencies that we can muster, and various
             # things disabled (no SSE, OCIO, or OpenCV, don't embed plugins).
@@ -193,9 +189,8 @@ jobs:
             # abi_check: v2.6.2.0
             abi_check: e83cd7c44916105034f2d539a5e55a6c6f178a7f
             setenvs: export OIIO_CMAKE_FLAGS="-DOIIO_BUILD_TOOLS=0 -DOIIO_BUILD_TESTS=0 -DUSE_PYTHON=0"
-                            USE_OPENCV=0 USE_FFMPEG=0 USE_PYTHON=0
+                            USE_OPENCV=0 USE_FFMPEG=0 USE_PYTHON=0 USE_FREETYPE=0
                             CMAKE_BUILD_TYPE=RelWithDebInfo
-                            FREETYPE_VERSION=VER-2-13-0
 
     runs-on: ${{ matrix.runner }}
     container:
