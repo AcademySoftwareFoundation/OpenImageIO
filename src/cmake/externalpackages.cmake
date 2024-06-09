@@ -224,7 +224,7 @@ endif ()
 
 # Tessil/robin-map
 checked_find_package (Robinmap REQUIRED
-                      VERSION_MIN 0.6.2
+                      VERSION_MIN 1.2.0
                       BUILD_LOCAL missing
                      )
 
