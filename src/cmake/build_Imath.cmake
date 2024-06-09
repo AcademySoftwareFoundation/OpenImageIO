@@ -42,4 +42,6 @@ set (Imath_REFIND TRUE)
 set (Imath_REFIND_ARGS CONFIG)
 set (Imath_REFIND_VERSION ${Imath_BUILD_VERSION})
 
-install_local_dependency_libs (Imath Imath)
+if (Imath_BUILD_SHARED_LIBS)
+    install_local_dependency_libs (Imath Imath)
+endif ()

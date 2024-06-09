@@ -49,4 +49,6 @@ set (OpenColorIO_DIR ${OpenColorIO_LOCAL_INSTALL_DIR})
 set (OpenColorIO_REFIND TRUE)
 set (OpenColorIO_REFIND_ARGS CONFIG)
 
-install_local_dependency_libs (OpenColorIO OpenColorIO)
+if (OpenColorIO_BUILD_SHARED_LIBS)
+    install_local_dependency_libs (OpenColorIO OpenColorIO)
+endif ()
