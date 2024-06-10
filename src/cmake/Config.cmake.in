@@ -8,20 +8,11 @@ include(CMakeFindDependencyMacro)
 
 # add here all the find_dependency() whenever switching to config based dependencies
 if (NOT @OPENIMAGEIO_CONFIG_DO_NOT_FIND_IMATH@ AND NOT OPENIMAGEIO_CONFIG_DO_NOT_FIND_IMATH)
-    if (@OpenEXR_VERSION@ VERSION_GREATER_EQUAL 3.0)
-        find_dependency(Imath @Imath_VERSION@
-                        HINTS @Imath_DIR@)
-    elseif (@OpenEXR_VERSION@ VERSION_GREATER_EQUAL 2.4 AND @FOUND_OPENEXR_WITH_CONFIG@)
-        find_dependency(IlmBase @OpenEXR_VERSION@
-                        HINTS @IlmBase_DIR@ @OpenEXR_DIR@)
-        find_dependency(OpenEXR @OpenEXR_VERSION@
-                        HINTS @OpenEXR_DIR@)
-        find_dependency(ZLIB @ZLIB_VERSION@)  # Because OpenEXR doesn't do it
-        find_dependency(Threads)  # Because OpenEXR doesn't do it
-    endif ()
+    find_dependency(Imath @Imath_VERSION@
+                    HINTS @Imath_DIR@)
 endif ()
 
-if (NOT @OIIO_USING_FMT_LOCAL@ AND NOT @INTERNALIZE_FMT@)
+if (NOT @fmt_LOCAL_BUILD@ AND NOT @OIIO_INTERNALIZE_FMT@)
     find_dependency(fmt)
 endif ()
 

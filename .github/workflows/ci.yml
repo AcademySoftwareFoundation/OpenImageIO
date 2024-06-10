@@ -46,7 +46,7 @@ jobs:
             fmt_ver: 7.1.0
             pybind11_ver: v2.7.0
             setenvs: export PUGIXML_VERSION=v1.9 WEBP_VERSION=v1.1.0 USE_OPENVDB=0
-          - desc: clang10/C++14 avx2 exr3.1 ocio2.0
+          - desc: clang10/C++17 avx2 exr3.1 ocio2.0
             nametag: linux-clang10-cpp14
             runner: ubuntu-latest
             container: aswf/ci-osl:2021-clang10
@@ -528,16 +528,17 @@ jobs:
             runner: windows-2019
             vsver: 2019
             generator: "Visual Studio 16 2019"
-            openexr_ver: v3.2.4
+            # openexr_ver: v3.2.4
             python_ver: 3.7
             # simd: sse4.2
           - desc: windows-2022
             runner: windows-2022
             vsver: 2022
             generator: "Visual Studio 17 2022"
-            openexr_ver: v3.2.4
+            # openexr_ver: v3.2.4
             python_ver: "3.9"
             # simd: sse4.2
+            # setenvs: export OpenImageIO_BUILD_MISSING_DEPS=none
     runs-on: ${{ matrix.runner }}
     env:
       PYTHON_VERSION: ${{matrix.python_ver}}
@@ -570,6 +571,7 @@ jobs:
           path: |
             build/cmake-save
             build/testsuite/*/*.*
+            build/deps/dist/*/*.cmake
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
             !build/testsuite/fits-images

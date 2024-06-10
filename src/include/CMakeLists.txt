@@ -64,7 +64,7 @@ install (FILES ${detail_headers}
          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/detail
          COMPONENT developer)
 
-if (INTERNALIZE_FMT OR OIIO_USING_FMT_LOCAL)
+if (OIIO_INTERNALIZE_FMT OR fmt_LOCAL_BUILD)
     set (fmt_headers_base_names)
     foreach (header_name core.h format-inl.h format.h ostream.h printf.h
              std.h base.h chrono.h)
