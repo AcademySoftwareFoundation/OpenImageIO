@@ -961,10 +961,12 @@ resolve_font(string_view font_, std::string& result)
     if (!Filesystem::is_regular(font)) {
         // A font name was specified but it's not a full path, look for it
         auto f = font_file_map.find(font);
-        if (f != font_file_map.end())
+        if (f != font_file_map.end()) {
             font = f->second;
-        else
-            font = std::string();
+        } else {
+            result = Strutil::fmt::format("Could not find font \"{}\"", font);
+            return false;
+        }
     }
 
     if (!Filesystem::is_regular(font)) {
