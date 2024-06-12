@@ -248,6 +248,8 @@ endif ()
 
 if (USE_PYTHON AND Python3_Development_FOUND AND NOT BUILD_OIIOUTIL_ONLY)
     add_subdirectory (src/python)
+else ()
+    message (STATUS "Not building Python bindings: USE_PYTHON=${USE_PYTHON}, Python3_Development_FOUND=${Python3_Development_FOUND}")
 endif ()
 
 add_subdirectory (src/include)

@@ -47,8 +47,8 @@ macro (find_python)
 
     # Give hints to subsequent pybind11 searching to ensure that it finds
     # exactly the same version that we found.
-    set (PythonInterp_FIND_VERSION PYTHON3_VERSION_FOUND)
-    set (PythonInterp_FIND_VERSION_MAJOR ${Python3_VERSION_MAJOR})
+    set (PythonInterp3_FIND_VERSION PYTHON_VERSION_FOUND)
+    set (PythonInterp3_FIND_VERSION_MAJOR ${Python3_VERSION_MAJOR})
 
     if (NOT DEFINED PYTHON_SITE_DIR)
         set (PYTHON_SITE_DIR "${CMAKE_INSTALL_LIBDIR}/python${PYTHON_VERSION_FOUND}/site-packages/OpenImageIO")
