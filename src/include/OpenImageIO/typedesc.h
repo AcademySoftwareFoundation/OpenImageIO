@@ -164,8 +164,7 @@ struct OIIO_UTIL_API TypeDesc {
     TypeDesc (string_view typestring);
 
     /// Copy constructor.
-    OIIO_HOSTDEVICE constexpr TypeDesc (const TypeDesc &t) noexcept = default;
-
+    constexpr TypeDesc (const TypeDesc &t) noexcept = default;
 
     /// Return the name, for printing and whatnot.  For example,
     /// "float", "int[5]", "normal"
