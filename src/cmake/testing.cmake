@@ -105,7 +105,7 @@ macro (oiio_add_tests)
                 set (_testname "${_testname}-broken")
             endif ()
 
-            set (_runtest ${Python_EXECUTABLE} "${CMAKE_SOURCE_DIR}/testsuite/runtest.py" ${_testdir})
+            set (_runtest ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/testsuite/runtest.py" ${_testdir})
             if (MSVC_IDE)
                 set (_runtest ${_runtest} --devenv-config $<CONFIGURATION>
                                           --solution-path "${CMAKE_BINARY_DIR}" )

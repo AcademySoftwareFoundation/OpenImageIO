@@ -19,8 +19,8 @@ endif ()
 # Python cannot be found, it will be a fatal error.
 macro (find_python)
     if (NOT VERBOSE)
-        set (PythonInterp_FIND_QUIETLY true)
-        set (PythonLibs_FIND_QUIETLY true)
+        set (PythonInterp3_FIND_QUIETLY true)
+        set (PythonLibs3_FIND_QUIETLY true)
     endif ()
 
     # Attempt to find the desired version, but fall back to other
@@ -32,23 +32,23 @@ macro (find_python)
             list (APPEND _req EXACT)
         endif ()
     endif ()
-    checked_find_package (Python ${PYTHON_VERSION}
+    checked_find_package (Python3 ${PYTHON_VERSION}
                           ${_req}
                           VERSION_MIN 3.7
                           COMPONENTS Interpreter Development
-                          PRINT Python_VERSION Python_EXECUTABLE
-                                Python_LIBRARIES
-                                Python_Development_FOUND
-                                Python_Interpreter_FOUND )
+                          PRINT Python3_VERSION Python3_EXECUTABLE
+                                Python3_LIBRARIES
+                                Python3_Development_FOUND
+                                Python3_Interpreter_FOUND )
 
     # The version that was found may not be the default or user
     # defined one.
-    set (PYTHON_VERSION_FOUND ${Python_VERSION_MAJOR}.${Python_VERSION_MINOR})
+    set (PYTHON_VERSION_FOUND ${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR})
 
     # Give hints to subsequent pybind11 searching to ensure that it finds
     # exactly the same version that we found.
-    set (PythonInterp_FIND_VERSION PYTHON_VERSION_FOUND)
-    set (PythonInterp_FIND_VERSION_MAJOR ${Python_VERSION_MAJOR})
+    set (PythonInterp3_FIND_VERSION PYTHON_VERSION_FOUND)
+    set (PythonInterp3_FIND_VERSION_MAJOR ${Python3_VERSION_MAJOR})
 
     if (NOT DEFINED PYTHON_SITE_DIR)
         set (PYTHON_SITE_DIR "${CMAKE_INSTALL_LIBDIR}/python${PYTHON_VERSION_FOUND}/site-packages/OpenImageIO")

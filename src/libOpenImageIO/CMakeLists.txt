@@ -120,7 +120,7 @@ target_compile_definitions(OpenImageIO
               PRIVATE
                   OIIO_FREETYPE_VERSION="${FREETYPE_VERSION_STRING}"
                   OIIO_OpenCV_VERSION="${OpenCV_VERSION}"
-                  OIIO_PYTHON_VERSION="${Python_VERSION}"
+                  OIIO_PYTHON_VERSION="${Python3_VERSION}"
                   OIIO_QT_VERSION="${Qt6_VERSION}${Qt5_VERSION}"
                   OIIO_TBB_VERSION="${TBB_VERSION}"
              )
