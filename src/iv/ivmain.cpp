@@ -118,6 +118,13 @@ main(int argc, char* argv[])
     
     bool use_ocio = color_space != "" && display != "" && view != "";
     
+#ifdef OCIO_HAS_BUILTIN_CONFIGS
+    std::string ocioenv = Sysutil::getenv("OCIO");
+    if (ocioenv.empty() || !Filesystem::exists(ocioenv)) {
+        setenv("OCIO", "ocio://default", 1);
+    }
+#endif
+
     ImageViewer* mainWin = new ImageViewer(use_ocio, color_space, display, 
                                            view);
 #else
