@@ -386,6 +386,12 @@ attribute(string_view name, TypeDesc type, const void* val)
         default_thread_pool()->resize(ot - 1);
         return true;
     }
+    if (Strutil::starts_with(name, "gpu:")
+        || Strutil::starts_with(name, "cuda:")) {
+        return pvt::gpu_attribute(name, type, val);
+    }
+
+    // Things below here need to buarded by the attrib_mutex
     spin_lock lock(attrib_mutex);
     if (name == "read_chunk" && type == TypeInt) {
         oiio_read_chunk = *(const int*)val;
@@ -485,6 +491,12 @@ getattribute(string_view name, TypeDesc type, void* val)
         *(ustring*)val = ustring(OIIO_VERSION_STRING);
         return true;
     }
+    if (Strutil::starts_with(name, "gpu:")
+        || Strutil::starts_with(name, "cuda:")) {
+        return pvt::gpu_getattribute(name, type, val);
+    }
+
+    // Things below here need to buarded by the attrib_mutex
     spin_lock lock(attrib_mutex);
     if (name == "read_chunk" && type == TypeInt) {
         *(int*)val = oiio_read_chunk;

@@ -59,6 +59,7 @@ OIIO_API const std::vector<std::string>&
 font_list();
 
 
+
 // For internal use - use error() below for a nicer interface.
 void
 append_error(string_view message);
@@ -229,6 +230,53 @@ compute_sha1(ImageInput* input, int subimage, int miplevel, std::string& err);
 OIIO_API bool
 print_stats(std::ostream& out, string_view indent, const ImageBuf& input,
             const ImageSpec& spec, ROI roi, std::string& err);
+
+
+enum class ComputeDevice : int {
+    CPU  = 0,
+    CUDA = 1,
+    // Might expand later...
+};
+
+// Which compute device is currently active, and should be used by any
+// OIIO facilities that know how to use it.
+OIIO_API ComputeDevice
+compute_device();
+
+#if 0
+/// Return true if CUDA is available to OpenImageIO at this time -- support
+/// enabled at build time, and has already been turned on with enable_cuda()
+/// or with OIIO::attribute("cuda", 1), and hardware is present and was
+/// successfully initialized.
+OIIO_API bool
+openimageio_cuda();
+#endif
+
+// Set an attribute related to OIIO's use of GPUs/compute devices. This is a
+// strictly internal function. User code should just call OIIO::attribute()
+// and GPU-related attributes will be directed here automatically.
+OIIO_API bool
+gpu_attribute(string_view name, TypeDesc type, const void* val);
+
+// Retrieve an attribute related to OIIO's use of GPUs/compute devices. This
+// is a strictly internal function. User code should just call
+// OIIO::getattribute() and GPU-related attributes will be directed here
+// automatically.
+OIIO_API bool
+gpu_getattribute(string_view name, TypeDesc type, void* val);
+
+
+/// Allocate compute device memory
+OIIO_API void*
+device_malloc(size_t size);
+
+/// Allocate unified compute device memory -- visible on both CPU & GPU
+OIIO_API void*
+device_unified_malloc(size_t size);
+
+/// Free compute device memory
+OIIO_API void
+device_free(void* mem);
 
 }  // namespace pvt
 

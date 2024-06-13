@@ -177,6 +177,8 @@ include (pythonutils)
 # Dependency finding utilities and all dependency-related options
 include (externalpackages)
 
+include (cuda_macros)
+
 # Include all our testing apparatus and utils, but not if it's a subproject
 if (PROJECT_IS_TOP_LEVEL)
     include (testing)

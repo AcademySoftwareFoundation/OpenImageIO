@@ -72,7 +72,8 @@ fi
 export PAR_MAKEFLAGS=-j${PARALLEL}
 export CMAKE_BUILD_PARALLEL_LEVEL=${CMAKE_BUILD_PARALLEL_LEVEL:=${PARALLEL}}
 export CTEST_PARALLEL_LEVEL=${CTEST_PARALLEL_LEVEL:=${PARALLEL}}
-
+export OIIO_USE_CUDA=1
+export CUDAToolkit_ROOT=/usr/local/cuda
 
 mkdir -p build dist
 
