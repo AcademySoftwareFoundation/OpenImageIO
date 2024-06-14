@@ -461,6 +461,18 @@ public:
             bin.unlock();
     }
 
+    /// Removes all items from the map.
+    void clear()
+    {
+        for (size_t b = 0; b < BINS; b++) {
+            m_bins[b].lock();
+            BinMap_t map;
+            std::swap(m_bins[b].map, map);
+            m_size -= map.size();
+            m_bins[b].unlock();
+        }
+    }
+
     /// Return true if the entire map is empty.
     bool empty() { return m_size == 0; }
 
