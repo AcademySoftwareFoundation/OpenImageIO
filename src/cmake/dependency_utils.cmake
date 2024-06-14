@@ -597,3 +597,12 @@ macro (install_local_dependency_libs pkgname libname)
     endif ()
     unset (_lib_files)
 endmacro ()
+
+
+# If the target `newalias` doesn't yet exist but `realtarget` does, create an
+# alias for `newalias` to mean the real target.
+macro (alias_library_if_not_exists newalias realtarget)
+    if (NOT TARGET ${newalias} AND TARGET ${realtarget})
+        add_library(${newalias} ALIAS ${realtarget})
+    endif ()
+endmacro ()

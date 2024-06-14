@@ -22,7 +22,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * **CMake >= 3.15** (tested through 3.29)
  * **OpenEXR/Imath >= 3.1** (tested through 3.2
    and main) 
- * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.6)
+ * **libTIFF >= 4.0** (tested through 4.6)
  * libjpeg >= 8 (tested through jpeg9e), or **libjpeg-turbo >= 2.1** (tested
    through 3.0)
  * **[fmtlib](https://github.com/fmtlib/fmt) >= 7.0** (tested through 10.2).

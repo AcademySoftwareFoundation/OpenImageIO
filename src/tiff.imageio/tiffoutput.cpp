@@ -43,10 +43,8 @@
 #    define OIIO_TIFFLIB_VERSION 40003
 #elif TIFFLIB_VERSION >= 20111221
 #    define OIIO_TIFFLIB_VERSION 40000
-#elif TIFFLIB_VERSION >= 20090820
-#    define OIIO_TIFFLIB_VERSION 30900
 #else
-#    error "libtiff 3.9.0 or later is required"
+#    error "libtiff 4.0.0 or later is required"
 #endif
 // clang-format on
 
