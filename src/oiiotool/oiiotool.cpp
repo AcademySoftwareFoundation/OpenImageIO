@@ -6160,8 +6160,8 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--threads %d:N")
       .help("Number of threads (default 0 == #cores)")
       .OTACTION(set_threads);
-    ap.arg("--cuda")
-      .help("Enable CUDA if available")
+    ap.arg("--gpu")
+      .help("[EXPERIMENTAL] Use GPU if available (options: device=...)")
       .action([&](cspan<const char*>){
                   OIIO::attribute("gpu:device", "CUDA");
               });
