@@ -22,3 +22,4 @@ set (Robinmap_ROOT ${Robinmap_INSTALL_DIR})
 
 # Signal to caller that we need to find again at the installed location
 set (Robinmap_REFIND TRUE)
+set (Robinmap_VERSION ${Robinmap_BUILD_VERSION})

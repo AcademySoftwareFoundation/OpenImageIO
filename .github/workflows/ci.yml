@@ -389,6 +389,7 @@ jobs:
                             OIIO_CMAKE_FLAGS=-DUSE_PYTHON=0
                             LLVM_VERSION=17.0.6 LLVM_DISTRO_NAME=ubuntu-22.04
                             SKIP_SYSTEM_DEPS_INSTALL=1 QT_VERSION=0
+                            OpenImageIO_BUILD_MISSING_DEPS=none
 
     runs-on: ${{ matrix.runner }}
     env:
