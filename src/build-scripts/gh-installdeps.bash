@@ -24,6 +24,9 @@ if [[ "$ASWF_ORG" != ""  ]] ; then
     if [[ "${USE_FFMPEG}" != "0" ]] ; then
         sudo yum install -y ffmpeg ffmpeg-devel && true
     fi
+    if [[ "${USE_FREETYPE:-1}" != "0" ]] ; then
+        sudo yum install -y freetype freetype-devel && true
+    fi
     if [[ "${EXTRA_DEP_PACKAGES}" != "" ]] ; then
         time sudo yum install -y ${EXTRA_DEP_PACKAGES}
     fi
@@ -202,6 +205,10 @@ fi
 
 if [[ "$LIBJPEGTURBO_VERSION" != "" ]] ; then
     source src/build-scripts/build_libjpeg-turbo.bash
+fi
+
+if [[ "$FREETYPE_VERSION" != "" ]] ; then
+    source src/build-scripts/build_Freetype.bash
 fi
 
 if [[ "$USE_ICC" != "" ]] ; then

@@ -4,7 +4,7 @@
 
 file (GLOB public_fonts "*/*.ttf")
 
-if (INSTALL_FONTS AND FREETYPE_FOUND)
+if (INSTALL_FONTS AND (Freetype_FOUND OR FREETYPE_FOUND))
     install (FILES ${public_fonts}
              DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/fonts/OpenImageIO
              COMPONENT fonts)
