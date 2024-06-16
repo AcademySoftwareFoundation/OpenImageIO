@@ -36,8 +36,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
      * **Python >= 3.7** (tested through 3.12)
-     * pybind11 >= 2.4.2 (Tested through 2.12. Note that pybind11 v2.10+ does
-       not support Python < 3.6.)
+     * **pybind11 >= 2.7** (tested through 2.12)
      * NumPy
  * If you want support for camera "RAW" formats:
      * **LibRaw >= 0.20** (tested though 0.21.2)
