@@ -501,8 +501,10 @@
 // function decorators needed when compiling for CUDA devices.
 #ifdef __CUDACC__
 #    define OIIO_HOSTDEVICE __host__ __device__
+#    define OIIO_DEVICE __device__
 #else
 #    define OIIO_HOSTDEVICE
+#    define OIIO_DEVICE
 #endif
 
 
