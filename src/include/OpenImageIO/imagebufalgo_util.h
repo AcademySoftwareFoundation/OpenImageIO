@@ -506,6 +506,59 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
     IBA_FIX_PERCHAN_LEN (av, len, 0.0f, av.size() ? av.back() : 0.0f);
 
 
+
+/// Simple image per-pixel unary operation: Given a source image `src`, return
+/// an image of the same dimensions (and same data type, unless prepflags
+/// includes the `IBAprep_DST_FLOAT_PIXELS` flag, which will result in a float
+/// pixel result image) where each pixel is the result of running the
+/// caller-supplied function `op` on the corresponding pixel values of `src`.
+/// The `op` function should take two `span<float>` arguments, the first
+/// referencing a destination pixel, and the second being a reference to the
+/// corresponding source pixel. The `op` function should return `true` if the
+/// operation was successful, or `false` if there was an error.
+///
+/// The `perpixel_op` function is thread-safe and will parallelize the
+/// operation across multiple threads if `nthreads` is not equal to 1
+/// (following the usual ImageBufAlgo `nthreads` rules), and also takes care
+/// of all the pixel loops and conversions to and from `float` values.
+///
+/// An example (using the binary op version) of how to implement a simple
+/// pixel-by-pixel `add()` operation that is the equivalent of
+/// `ImageBufAlgo::add()`:
+///
+/// ```
+///    // Assume ImageBuf A, B are the inputs, ImageBuf R is the output
+///    R = ImageBufAlgo::perpixel_op(A, B,
+///            [](span<float> r, cspan<float> a, cspan<float> b) {
+///                for (size_t c = 0, nc = size_t(r.size()); c < nc; ++c)
+///                    r[c] = a[c] + b[c];
+///                return true;
+///            });
+/// ```
+///
+/// Caveats:
+/// * The operation must be one that can be applied independently to each
+///   pixel.
+/// * If the input image is not `float`-valued pixels, there may be some
+///   inefficiency due to the need to convert the pixels to `float` and back,
+///   since there is no type templating and thus no opportunity to supply a
+///   version of the operation that allows specialization to any other pixel
+///   data types
+//
+OIIO_NODISCARD OIIO_API
+ImageBuf
+perpixel_op(const ImageBuf& src, bool(*op)(span<float>, cspan<float>),
+            int prepflags = ImageBufAlgo::IBAprep_DEFAULT, int nthreads = 0);
+
+/// A version of perpixel_op that performs a binary operation, taking two
+/// source images and a 3-argument `op` function that receives a destination
+/// and two source pixels.
+OIIO_NODISCARD OIIO_API
+ImageBuf
+perpixel_op(const ImageBuf& srcA, const ImageBuf& srcB,
+            bool(*op)(span<float>, cspan<float>, cspan<float>),
+            int prepflags = ImageBufAlgo::IBAprep_DEFAULT, int nthreads = 0);
+
 }  // end namespace ImageBufAlgo
 
 // clang-format on

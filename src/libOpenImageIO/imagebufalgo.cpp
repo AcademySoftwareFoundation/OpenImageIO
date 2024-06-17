@@ -348,6 +348,146 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
 
 
 
+ImageBuf
+ImageBufAlgo::perpixel_op(const ImageBuf& src,
+                          bool (*op)(span<float>, cspan<float>), int prepflags,
+                          int nthreads)
+{
+    using namespace ImageBufAlgo;
+    ImageBuf result;
+    ROI roi;
+    if (!IBAprep(roi, &result, &src, prepflags))
+        return result;
+    bool ok = true;
+    if (result.pixeltype() == TypeFloat && src.pixeltype() == TypeFloat) {
+        // Source image (and therefore the destination we created) have float
+        // pixels, so just iterate and call the user's op.
+        parallel_image(roi, nthreads, [&](ROI roi) {
+            int nc = roi.nchannels();
+            ImageBuf::ConstIterator<float> s(src, roi);
+            ImageBuf::Iterator<float> d(result, roi);
+            for (; !s.done(); ++s, ++d) {
+                bool r = op(span<float>((float*)d.rawptr(),
+                                        oiio_span_size_type(nc)),
+                            cspan<float>((const float*)s.rawptr(),
+                                         oiio_span_size_type(nc)));
+                if (!r)
+                    ok = false;
+            }
+        });
+    } else {
+        // Input has non-float images, so do conversions in and out.
+        parallel_image(roi, nthreads, [&](ROI roi) {
+            int nc      = roi.nchannels();
+            float* vals = OIIO_ALLOCA(float, 2 * nc);
+            span<float> spel(vals, nc);
+            span<float> dpel(vals + nc, nc);
+            ImageBuf::ConstIterator<float> s(src, roi);
+            ImageBuf::Iterator<float> d(result, roi);
+            for (; !d.done(); ++d, ++s) {
+                s.store<float>(spel);
+                bool r = op(dpel, spel);
+                if (!r)
+                    ok = false;
+                d.load<float>(dpel);
+            }
+        });
+    }
+    if (!ok)
+        result.errorfmt("Error in perpixel_op");
+    return result;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::perpixel_op(const ImageBuf& srcA, const ImageBuf& srcB,
+                          bool (*op)(span<float>, cspan<float>, cspan<float>),
+                          int prepflags, int nthreads)
+{
+    using namespace ImageBufAlgo;
+    ImageBuf result;
+    ROI roi;
+    if (!IBAprep(roi, &result, &srcA, &srcB, prepflags))
+        return result;
+    bool ok = true;
+    if (result.pixeltype() == TypeFloat && srcA.pixeltype() == TypeFloat
+        && srcB.pixeltype() == TypeFloat) {
+        // Source images (and therefore the destination we created) have float
+        // pixels, so just iterate and call the user's op.
+        parallel_image(roi, nthreads, [&](ROI roi) {
+            int nc = roi.nchannels();
+            ImageBuf::ConstIterator<float> sa(srcA, roi);
+            ImageBuf::ConstIterator<float> sb(srcB, roi);
+            ImageBuf::Iterator<float> d(result, roi);
+            for (; !d.done(); ++sa, ++sb, ++d) {
+                bool r = op(span<float>((float*)d.rawptr(),
+                                        oiio_span_size_type(nc)),
+                            cspan<float>((const float*)sa.rawptr(),
+                                         oiio_span_size_type(nc)),
+                            cspan<float>((const float*)sb.rawptr(),
+                                         oiio_span_size_type(nc)));
+                if (!r)
+                    ok = false;
+            }
+        });
+#if 0
+    // EXPERIMENTAL: Do we get a speed gain specializing for other types?
+    } else if (result.pixeltype() == TypeUInt8
+               && srcA.pixeltype() == TypeUInt8
+               && srcB.pixeltype() == TypeUInt8) {
+        // Source images (and therefore the destination we created) have float
+        // pixels, so just iterate and call the user's op.
+        parallel_image(roi, nthreads, [&](ROI roi) {
+            int nc      = roi.nchannels();
+            float* vals = OIIO_ALLOCA(float, 3 * nc);
+            span<float> sapel(vals, nc);
+            span<float> sbpel(vals + nc, nc);
+            span<float> dpel(vals + 2 * nc, nc);
+            ImageBuf::ConstIterator<uint8_t> sa(srcA, roi);
+            ImageBuf::ConstIterator<uint8_t> sb(srcB, roi);
+            ImageBuf::Iterator<uint8_t> d(result, roi);
+            for (; !d.done(); ++sa, ++sb, ++d) {
+                for (int c = 0; c < nc; ++c)
+                    sapel[c] = sa[c];
+                for (int c = 0; c < nc; ++c)
+                    sbpel[c] = sb[c];
+                bool r = op(dpel, sapel, sbpel);
+                if (!r)
+                    ok = false;
+                for (int c = 0; c < nc; ++c)
+                    d[c] = dpel[c];
+            }
+        });
+#endif
+    } else {
+        // Input has non-float images, so do conversions in and out.
+        parallel_image(roi, nthreads, [&](ROI roi) {
+            int nc      = roi.nchannels();
+            float* vals = OIIO_ALLOCA(float, 3 * nc);
+            span<float> sapel(vals, nc);
+            span<float> sbpel(vals + nc, nc);
+            span<float> dpel(vals + 2 * nc, nc);
+            ImageBuf::ConstIterator<float> sa(srcA, roi);
+            ImageBuf::ConstIterator<float> sb(srcB, roi);
+            ImageBuf::Iterator<float> d(result, roi);
+            for (; !d.done(); ++sa, ++sb, ++d) {
+                sa.store<float>(sapel);
+                sb.store<float>(sbpel);
+                bool r = op(dpel, sapel, sbpel);
+                if (!r)
+                    ok = false;
+                d.load<float>(dpel);
+            }
+        });
+    }
+    if (!ok)
+        result.errorfmt("Error in perpixel_op");
+    return result;
+}
+
+
+
 // DEPRECATED(2.3): Replaced by TypeDesc::type_merge(BASETYPE,BASETYPE)
 TypeDesc::BASETYPE
 ImageBufAlgo::type_merge(TypeDesc::BASETYPE a, TypeDesc::BASETYPE b)
