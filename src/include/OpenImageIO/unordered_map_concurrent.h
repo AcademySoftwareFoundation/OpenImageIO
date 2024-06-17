@@ -464,12 +464,17 @@ public:
     /// Removes all items from the map.
     void clear()
     {
+        if (empty())
+            return;
         for (size_t b = 0; b < BINS; b++) {
-            m_bins[b].lock();
             BinMap_t map;
-            std::swap(m_bins[b].map, map);
-            m_size -= map.size();
-            m_bins[b].unlock();
+            Bin& bin(m_bins[b]);
+            bin.lock();
+            if (!bin.map.empty()) {
+                bin.map.swap(map);
+                m_size -= map.size();
+            }
+            bin.unlock();
         }
     }
 
