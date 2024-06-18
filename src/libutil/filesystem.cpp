@@ -1337,7 +1337,7 @@ size_t
 Filesystem::IOVecOutput::pread(void* buf, size_t size, int64_t offset)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
-    size = std::min(size, m_buf.size() - offset);
+    size = std::min(size, size_t(m_buf.size() - offset));
     memcpy(buf, &m_buf[offset], size);
     return size;
 }
