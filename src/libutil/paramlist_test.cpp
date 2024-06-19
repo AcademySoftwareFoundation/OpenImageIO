@@ -498,6 +498,7 @@ test_implied_construction()
     pvl["f"]    = 2.5f;
     pvl["s"]    = "forty two";
     pvl["i42s"] = "42";
+    pvl["zero"] = 0;
     print_pvspan("Testing of PVS from PVL", pvl);
 
     ParamValueSpan pvs(pvl);
@@ -511,6 +512,13 @@ test_implied_construction()
     OIIO_CHECK_EQUAL(pvs.get_float("i"), 1.0f);
     OIIO_CHECK_EQUAL(pvs.get_float("i42s"), 42.0f);
     OIIO_CHECK_EQUAL(pvs.get_string("i"), "1");
+    OIIO_CHECK_EQUAL(pvs.get_string("zero"), "0");
+    OIIO_CHECK_EQUAL(pvs.get_int("zero"), 0);
+    OIIO_CHECK_EQUAL(pvs.get_bool("zero"), false);
+    OIIO_CHECK_EQUAL(pvs.get_bool("i"), true);
+    OIIO_CHECK_EQUAL(pvs.get_bool("f"), true);
+    OIIO_CHECK_EQUAL(pvs.get_bool("s"), true);
+    OIIO_CHECK_EQUAL(pvs.get_bool("unknown"), false);
 }
 
 
