@@ -774,6 +774,34 @@ ParamValueSpan::get_ustring(ustring name, string_view defaultval,
 
 
 bool
+ParamValueSpan::get_bool(ustring name, bool defaultval,
+                         bool casesensitive) const
+{
+    auto p = find(name, TypeUnknown, casesensitive);
+    if (p == cend())
+        return defaultval;
+    if (p->type().basetype == TypeDesc::INT)
+        return p->get_int() ? 1 : 0;
+    return Strutil::eval_as_bool(p->get_string());
+}
+
+
+
+bool
+ParamValueSpan::get_bool(string_view name, bool defaultval,
+                         bool casesensitive) const
+{
+    auto p = find(name, TypeUnknown, casesensitive);
+    if (p == cend())
+        return defaultval;
+    if (p->type().basetype == TypeDesc::INT)
+        return p->get_int() ? 1 : 0;
+    return Strutil::eval_as_bool(p->get_string());
+}
+
+
+
+bool
 ParamValueSpan::getattribute(string_view name, TypeDesc type, void* value,
                              bool casesensitive) const
 {
