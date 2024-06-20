@@ -12,7 +12,7 @@ Making Tiled MIP-Map Texture Files With `maketx` or `oiiotool`
 Overview
 ========
 
-The TextureSystem (Chapter :ref:`chap-texturesystem_`) will exhibit much
+The TextureSystem (Chapter :ref:`chap-texturesystem`) will exhibit much
 higher performance if the image files it uses as textures are tiled (versus
 scanline) orientation, have multiple subimages at different resolutions
 (MIP-mapped), and include a variety of header or metadata fields
@@ -56,7 +56,7 @@ Where *input* and *output* name the input image and desired output filename.
 The input files may be of any image format recognized by OpenImageIO (i.e.,
 for which ImageInput plugins are available).  The file format of the output
 image will be inferred from the file extension of the output filename (e.g.,
-:filename:`foo.tif` will write a TIFF file).
+`foo.tif` will write a TIFF file).
 
 Command-line arguments are:
 
@@ -511,7 +511,7 @@ Command-line arguments are:
 .. sec-oiiotooltex:
 
 `oiiotool`
-=========
+==========
 
 The :program:`oiiotool` utility (Chapter :ref:`chap-oiiotool`) is capable of
 writing textures using the `-otex` option, lat-long environment maps using the
@@ -630,9 +630,9 @@ detailed explanations of each, for the corresponding :program:`maketx`
 option):
 
 
-=======================     ============================================
+=========================   ============================================
 Appended Option             `maketx` equivalent
-=======================     ============================================
+=========================   ============================================
 `wrap=` *string*            `--wrap`
 `swrap=` *string*           `--swrap`
 `twrap=` *string*           `--twrap`
@@ -651,7 +651,7 @@ Appended Option             `maketx` equivalent
 `uvslopes_scale=` *float*   `--uvslopes-scale`
 `prman_metadata=1`          `--prman`
 `prman_options=1`           `--prman-metadata`
-=======================     ============================================
+=========================   ============================================
 
 
 Examples
