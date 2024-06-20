@@ -440,6 +440,27 @@ TYPEDEF_HIDES_STRUCT   = NO
 
 LOOKUP_CACHE_SIZE      = 0
 
+# The NUM_PROC_THREADS specifies the number of threads doxygen is allowed to use
+# during processing. When set to 0 doxygen will based this on the number of
+# cores available in the system. You can set it explicitly to a value larger
+# than 0 to get more control over the balance between CPU load and processing
+# speed. At this moment only the input processing can be done using multiple
+# threads. Since this is still an experimental feature the default is set to 1,
+# which effectively disables parallel processing. Please report any issues you
+# encounter. Generating dot graphs in parallel is controlled by the
+# DOT_NUM_THREADS setting.
+# Minimum value: 0, maximum value: 32, default value: 1.
+
+NUM_PROC_THREADS       = 0
+
+# If the TIMESTAMP tag is set different from NO then each generated page will
+# contain the date or date and time when the page was generated. Setting this to
+# NO can help when comparing the output of multiple runs.
+# Possible values are: YES, NO, DATETIME and DATE.
+# The default value is: NO.
+
+TIMESTAMP              = NO
+
 #---------------------------------------------------------------------------
 # Build related configuration options
 #---------------------------------------------------------------------------

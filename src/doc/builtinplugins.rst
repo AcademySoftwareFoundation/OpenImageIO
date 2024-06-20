@@ -1764,12 +1764,12 @@ attributes are supported:
      - int
      - If nonzero, the PNM file is big-endian (the default is little-endian).  
    * - ``pnm:pfmflip``
-      - int
-      - If this configuration hint is present and is zero, the automatic
-      vertical flipping of PFM image will be disabled (i.e., scanline 0 will
-      really be the first one stored in the file). If nonzero (the default),
-      float PFM files will store scanline 0 as the last scanline in the file
-      (i.e. the visual "top" of the image).
+     - int
+     - If this configuration hint is present and is zero, the automatic
+       vertical flipping of PFM image will be disabled (i.e., scanline 0 will
+       really be the first one stored in the file). If nonzero (the default),
+       float PFM files will store scanline 0 as the last scanline in the file
+       (i.e. the visual "top" of the image).
 
 **Configuration settings for PNM output**
 
@@ -1802,13 +1802,13 @@ control aspects of the writing itself:
        determine whether to write an ASCII or binary file.
        Float PFM files are always written in binary format.
    * - ``pnm:pfmflip``
-      - int
-      - If this configuration hint is present and is zero, for PFM files,
-      scanline 0 will really be stored first in the file, thus disabling the
-      usual automatically flipping that accounts for PFM files conventionally
-      being stored in bottom-to-top order. If nonzero (the default), float
-      PFM files will store scanline 0 as the last scanline in the file (i.e.
-      the visual "top" of the image).
+     - int
+     - If this configuration hint is present and is zero, for PFM files,
+       scanline 0 will really be stored first in the file, thus disabling the
+       usual automatically flipping that accounts for PFM files conventionally
+       being stored in bottom-to-top order. If nonzero (the default), float
+       PFM files will store scanline 0 as the last scanline in the file (i.e.
+       the visual "top" of the image).
 
 **Custom I/O Overrides**
 
