@@ -207,7 +207,7 @@ ifneq (${CLANG_FORMAT_EXCLUDES},)
 endif
 
 ifneq (${BUILD_MISSING_DEPS},)
-  MY_CMAKE_FLAGS += -DBUILD_MISSING_DEPS:BOOL=${BUILD_MISSING_DEPS}
+  MY_CMAKE_FLAGS += -DOpenImageIO_BUILD_MISSING_DEPS:STRING=all
 endif
 
 
@@ -236,6 +236,8 @@ profile:
 # generating makefiles to build the project.  For speed, it only does this when
 # ${build_dir}/Makefile doesn't already exist, in which case we rely on the
 # cmake generated makefiles to regenerate themselves when necessary.
+# When building missing dependencies, once configuration step completes,
+# rerun the configuration so that CMake rescans newly installed packages.
 config:
 	@ (if [ ! -e ${build_dir}/${BUILDSENTINEL} ] ; then \
 		${CMAKE} -E make_directory ${build_dir} ; \
@@ -243,6 +245,9 @@ config:
 		${CMAKE} -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE} \
 			 -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX} \
 			 ${MY_CMAKE_FLAGS} ${working_dir} ; \
+		if [ "${BUILD_MISSING_DEPS}" = "1" ] ; then \
+				${CMAKE} ${working_dir} ; \
+			  fi ; \
 	 fi)
 
 
