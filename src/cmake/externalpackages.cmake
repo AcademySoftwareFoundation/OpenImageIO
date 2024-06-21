@@ -64,7 +64,6 @@ checked_find_package (OpenEXR REQUIRED
 # the right Imath/OpenEXR version, not some older version in the system
 # library.
 include_directories(BEFORE ${IMATH_INCLUDES} ${OPENEXR_INCLUDES})
-set (OIIO_USING_IMATH 3)
 set (OPENIMAGEIO_IMATH_TARGETS Imath::Imath)
 set (OPENIMAGEIO_OPENEXR_TARGETS OpenEXR::OpenEXR)
 set (OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY "PRIVATE" CACHE STRING
