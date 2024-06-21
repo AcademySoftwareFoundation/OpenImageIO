@@ -13,7 +13,8 @@
 #ifndef OIIO_IMATH_H_INCLUDED
 #define OIIO_IMATH_H_INCLUDED 1
 
-#define OIIO_USING_IMATH @OIIO_USING_IMATH@
+// DEPRECATED(3.0)
+#define OIIO_USING_IMATH 3
 
 #include <Imath/ImathColor.h>
 #include <Imath/ImathMatrix.h>
