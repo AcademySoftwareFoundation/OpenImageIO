@@ -47,6 +47,7 @@ function (setup_oiio_util_library targetname)
 
     target_include_directories (${targetname}
             PUBLIC
+                $<BUILD_INTERFACE:${OpenImageIO_LOCAL_DEPS_ROOT}/include>
                 $<INSTALL_INTERFACE:include>
             PRIVATE
                 ${ROBINMAP_INCLUDES}
