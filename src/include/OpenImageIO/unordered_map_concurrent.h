@@ -461,6 +461,23 @@ public:
             bin.unlock();
     }
 
+    /// Removes all items from the map.
+    void clear()
+    {
+        if (empty())
+            return;
+        for (size_t b = 0; b < BINS; b++) {
+            BinMap_t map;
+            Bin& bin(m_bins[b]);
+            bin.lock();
+            if (!bin.map.empty()) {
+                bin.map.swap(map);
+                m_size -= map.size();
+            }
+            bin.unlock();
+        }
+    }
+
     /// Return true if the entire map is empty.
     bool empty() { return m_size == 0; }
 

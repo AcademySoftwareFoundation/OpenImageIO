@@ -3532,13 +3532,7 @@ ImageCacheImpl::invalidate_all(bool force)
     // to do it all in one shot.
     if (force) {
         // Clear the whole tile cache
-        std::vector<TileID> tiles_to_delete;
-        for (TileCache::iterator t = m_tilecache.begin(), e = m_tilecache.end();
-             t != e; ++t) {
-            tiles_to_delete.push_back(t->second->id());
-        }
-        for (const TileID& id : tiles_to_delete)
-            m_tilecache.erase(id);
+        m_tilecache.clear();
         // Invalidate (close and clear spec) all individual files
         for (FilenameMap::iterator fileit = m_files.begin(), e = m_files.end();
              fileit != e; ++fileit) {
