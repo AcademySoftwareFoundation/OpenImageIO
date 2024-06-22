@@ -66,6 +66,7 @@ set (libOpenImageIO_srcs
                           maketexture.cpp
                           bluenoise.cpp
                           printinfo.cpp
+                          oiio_gpu.cpp
                           ../libtexture/texturesys.cpp
                           ../libtexture/texture3d.cpp
                           ../libtexture/environment.cpp
@@ -174,6 +175,8 @@ endif()
 if (MINGW)
     target_link_libraries (OpenImageIO PRIVATE ws2_32)
 endif()
+
+oiio_cuda_target (OpenImageIO)
 
 file (GLOB iba_sources "imagebufalgo_*.cpp")
 if (MSVC)

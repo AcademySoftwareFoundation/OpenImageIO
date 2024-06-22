@@ -929,6 +929,13 @@ output each one to a different file, with names `sub0001.tif`,
     default (also if n=0) is to use as many threads as there are cores
     present in the hardware.
 
+.. option:: --gpu <n>
+
+    EXPERIMENTAL: Enable a GPU or other compute acceleration device, if
+    available.
+
+    This was added in OIIO 3.0.
+
 .. option:: --cache <size>
 
     Causes images to be read through an ImageCache and set the underlying

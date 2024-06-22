@@ -37,6 +37,12 @@ message (STATUS "Building with C++${CMAKE_CXX_STANDARD}, downstream minimum C++$
 if (CMAKE_CXX_STANDARD VERSION_LESS CMAKE_CXX_MINIMUM)
     message (FATAL_ERROR "C++${CMAKE_CXX_STANDARD} is not supported, minimum is C++${CMAKE_CXX_MINIMUM}")
 endif ()
+# Remember the -std flags we need will be used later for custom Cuda builds
+set (CSTD_FLAGS "")
+if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_INTEL)
+    set (CSTD_FLAGS "-std=c++${CMAKE_CXX_STANDARD}")
+endif ()
+
 
 ###########################################################################
 # Figure out which compiler we're using
@@ -218,7 +224,6 @@ if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG)
     # this allows native instructions to be used for sqrtf instead of a function call
     add_compile_options ("-fno-math-errno")
 endif ()
-
 
 # We will use this for ccache and timing
 set (MY_RULE_LAUNCH "")

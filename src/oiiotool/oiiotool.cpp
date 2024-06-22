@@ -5931,17 +5931,24 @@ print_build_info(Oiiotool& ot, std::ostream& out)
 
     auto platform = format("OIIO {} | {}", OIIO_VERSION_STRING,
                            OIIO::get_string_attribute("build:platform"));
-    print("{}\n", Strutil::wordwrap(platform, columns, 4));
+    print(out, "{}\n", Strutil::wordwrap(platform, columns, 4));
 
     auto buildinfo = format("    Build compiler: {} | C++{}/{}",
                             OIIO::get_string_attribute("build:compiler"),
                             OIIO_CPLUSPLUS_VERSION, __cplusplus);
-    print("{}\n", Strutil::wordwrap(buildinfo, columns, 4));
+    print(out, "{}\n", Strutil::wordwrap(buildinfo, columns, 4));
 
     auto hwbuildfeats
         = format("    HW features enabled at build: {}",
                  OIIO::get_string_attribute("build:simd", "no SIMD"));
-    print("{}\n", Strutil::wordwrap(hwbuildfeats, columns, 4));
+    print(out, "{}\n", Strutil::wordwrap(hwbuildfeats, columns, 4));
+#ifdef OIIO_USE_CUDA
+    int cudaver = OIIO::get_int_attribute("cuda:build_version");
+    print(out, "    CUDA {}.{}.{} support enabled at build time\n",
+          cudaver / 10000, (cudaver / 100) % 100, cudaver % 100);
+#else
+    print(out, "    No CUDA support (disabled / unavailable at build time)\n");
+#endif
 
     std::string libs = OIIO::get_string_attribute("build:dependencies");
     if (libs.size()) {
@@ -5991,7 +5998,23 @@ print_help_end(Oiiotool& ot, std::ostream& out)
                                        Sysutil::physical_memory()
                                            / float(1 << 30),
                                        OIIO::get_string_attribute("hw:simd"));
-    print(out, "{}\n", Strutil::wordwrap(hwinfo, columns, 4));
+    print(out, "{}\n", Strutil::wordwrap(hwinfo, columns, 4, " ", ","));
+    if (OIIO::get_int_attribute("cuda:devices_found")
+        /*pvt::compute_device() == pvt::ComputeDevice::CUDA*/) {
+        auto compinfo = Strutil::fmt::format(
+            "Compute hardware available{}: CUDA on {}, driver {}, runtime {}, compat {}, memory {:.1f} GB",
+            pvt::compute_device() == pvt::ComputeDevice::CUDA
+                ? ""
+                : " (but not enabled)",
+            OIIO::get_string_attribute("cuda:device_name"),
+            OIIO::get_int_attribute("cuda:driver_version"),
+            OIIO::get_int_attribute("cuda:runtime_version"),
+            OIIO::get_int_attribute("cuda:compatibility"),
+            OIIO::get_int_attribute("cuda:total_memory_MB") / 1024.0);
+        print(out, "{}\n", Strutil::wordwrap(compinfo, columns, 4, " ", ","));
+    } else {
+        print(out, "    No compute specific hardware enabled.\n");
+    }
 
     // Print the path to the docs. If found, use the one installed in the
     // same area is this executable, otherwise just point to the copy on
@@ -6137,6 +6160,11 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--threads %d:N")
       .help("Number of threads (default 0 == #cores)")
       .OTACTION(set_threads);
+    ap.arg("--gpu")
+      .help("[EXPERIMENTAL] Use GPU if available (options: device=...)")
+      .action([&](cspan<const char*>){
+                  OIIO::attribute("gpu:device", "CUDA");
+              });
     ap.arg("--no-autopremult")
       .help("Turn off automatic premultiplication of images with unassociated alpha")
       .OTACTION(unset_autopremult);
