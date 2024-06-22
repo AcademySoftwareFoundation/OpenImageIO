@@ -1876,7 +1876,7 @@ Lab or duotone modes.
 
 **Custom I/O Overrides**
 
-PSD output supports the "custom I/O" feature via the special ``"oiio:ioproxy"``
+PSD input supports the "custom I/O" feature via the special ``"oiio:ioproxy"``
 attributes (see Sections :ref:`sec-imageoutput-ioproxy` and
 :ref:`sec-imageinput-ioproxy`) as well as the `set_ioproxy()` methods.
 
