@@ -181,16 +181,16 @@ parse_param(string_view paramname, string_view val, ImageSpec& spec)
             // Surrounded by quotes? it's a string (strip off the quotes)
             val.remove_prefix(1);
             val.remove_suffix(1);
-            type = TypeDesc::TypeString;
+            type = TypeString;
         } else if (Strutil::string_is<int>(val)) {
             // Looks like an int, is an int
-            type = TypeDesc::TypeInt;
+            type = TypeInt;
         } else if (Strutil::string_is<float>(val)) {
             // Looks like a float, is a float
-            type = TypeDesc::TypeFloat;
+            type = TypeFloat;
         } else {
             // Everything else is assumed a string
-            type = TypeDesc::TypeString;
+            type = TypeString;
         }
     }
 
