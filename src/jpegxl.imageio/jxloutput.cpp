@@ -11,9 +11,9 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/tiffutils.h>
 
+#include <jxl/decode.h>
 #include <jxl/encode.h>
 #include <jxl/encode_cxx.h>
-#include <jxl/decode.h>
 #include <jxl/resizable_parallel_runner_cxx.h>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -451,11 +451,12 @@ JxlOutput::save_metadata(ImageSpec& m_spec, JxlEncoderPtr& encoder)
                 if (!box.bytes) {
                     DBG std::cerr << "Box data is nullptr.\n";
                     continue;
-				}
+                }
                 if (!box.bytes->empty()) {
                     if (JXL_ENC_SUCCESS
                         != JxlEncoderAddBox(m_encoder.get(), box.type,
-                                            box.bytes->data(), box.bytes->size(),
+                                            box.bytes->data(),
+                                            box.bytes->size(),
                                             compress_boxes)) {
                         errorfmt("JxlEncoderAddBox() failed {}.", box.type);
                         return false;
