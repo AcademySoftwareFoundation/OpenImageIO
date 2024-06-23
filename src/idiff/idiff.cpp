@@ -143,9 +143,9 @@ read_input(const std::string& filename, ImageBuf& img, ImageCache* cache,
 inline void
 safe_double_print(double val)
 {
-    if (OIIO::isnan(val))
+    if (std::isnan(val))
         print("nan\n");
-    else if (OIIO::isinf(val))
+    else if (std::isinf(val))
         print("inf\n");
     else
         print("{:g}\n", val);

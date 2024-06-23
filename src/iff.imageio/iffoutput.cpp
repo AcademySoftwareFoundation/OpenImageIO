@@ -50,8 +50,10 @@ private:
     template<typename T> bool write(const T* buf, size_t nitems = 1)
     {
         if (littleendian()
-            && (is_same<T, uint16_t>::value || is_same<T, int16_t>::value
-                || is_same<T, uint32_t>::value || is_same<T, int32_t>::value)) {
+            && (std::is_same<T, uint16_t>::value
+                || std::is_same<T, int16_t>::value
+                || std::is_same<T, uint32_t>::value
+                || std::is_same<T, int32_t>::value)) {
             T* newbuf = OIIO_ALLOCA(T, nitems);
             memcpy(newbuf, buf, nitems * sizeof(T));
             swap_endian(newbuf, nitems);
