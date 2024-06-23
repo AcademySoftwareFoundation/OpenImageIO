@@ -269,7 +269,7 @@ ImageBufAlgo::from_OpenCV(const cv::Mat& mat, TypeDesc convert, ROI roi,
     parallel_convert_image(spec.nchannels, spec.width, spec.height, 1,
                            mat.ptr(), srcformat, pixelsize, linestep, 0,
                            dst.pixeladdr(roi.xbegin, roi.ybegin), dstformat,
-                           spec.pixel_bytes(), spec.scanline_bytes(), 0, -1, -1,
+                           spec.pixel_bytes(), spec.scanline_bytes(), 0,
                            nthreads);
 
     // OpenCV uses BGR ordering

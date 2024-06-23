@@ -505,7 +505,7 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
             fmt = OIIO::Filesystem::extension(fmt, false);
         else
             fmt = m_filename.string();
-        inp = ImageInput::create(fmt, false, &configspec,
+        inp = ImageInput::create(fmt, false, &configspec, nullptr,
                                  m_imagecache.plugin_searchpath());
     }
     if (!inp) {
@@ -564,7 +564,8 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
         int max_mip_res = imagecache().max_mip_res();
         int nmip        = 0;
         do {
-            tempspec = nativespec;
+            nativespec = inp->spec(nsubimages, nmip);
+            tempspec   = nativespec;
             if (nmip == 0) {
                 // Things to do on MIP level 0, i.e. once per subimage
                 si.init(*this, tempspec, imagecache().forcefloat());
@@ -623,7 +624,7 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
             LevelInfo levelinfo(tempspec, nativespec);
             si.levels.push_back(levelinfo);
             ++nmip;
-        } while (inp->seek_subimage(nsubimages, nmip, nativespec));
+        } while (inp->seek_subimage(nsubimages, nmip));
 
         // Special work for non-MIPmapped images -- but only if "automip"
         // is on, it's a non-mipmapped image, and it doesn't have a
@@ -691,7 +692,7 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
             si.minwh[m] = std::min(si.spec(m).width, si.spec(m).height);
         si.minwh[nmip] = 0;  // One past the end, set to 0
         ++nsubimages;
-    } while (inp->seek_subimage(nsubimages, 0, nativespec));
+    } while (inp->seek_subimage(nsubimages, 0));
     OIIO_DASSERT((size_t)nsubimages == m_subimages.size());
 
     m_total_imagesize_ondisk = imagesize_t(Filesystem::file_size(m_filename));
@@ -3302,14 +3303,15 @@ ImageCacheImpl::get_pixels(ImageCacheFile* file,
                     // Special case for a contiguous span within one tile
                     int spanend   = std::min(tx + spec.tile_width, xend);
                     stride_t span = spanend - x;
-                    convert_types(cachetype, data, format, xptr,
-                                  result_nchans * span);
+                    convert_pixel_values(cachetype, data, format, xptr,
+                                         result_nchans * span);
                     x += (span - 1);
                     xptr += xstride * (span - 1);
                     // no need to increment data, since next read will
                     // be from a different tile
                 } else {
-                    convert_types(cachetype, data, format, xptr, result_nchans);
+                    convert_pixel_values(cachetype, data, format, xptr,
+                                         result_nchans);
                     data += cache_stride;
                 }
             }
