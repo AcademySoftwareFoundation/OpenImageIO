@@ -4980,7 +4980,7 @@ OIIO_FORCEINLINE vint4 rotl(const vint4& x, int s) {
 }
 
 // DEPRECATED (2.1)
-OIIO_DEPRECATED("Use rotl32 instead")
+OIIO_DEPRECATED("Use rotl instead")
 OIIO_FORCEINLINE vint4 rotl32 (const vint4& x, const unsigned int k) {
     return rotl(x, k);
 }
