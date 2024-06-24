@@ -1017,7 +1017,7 @@ void test_arithmetic ()
     benchmark2 ("operator/", do_div<VEC>, a, b);
     benchmark  ("abs", do_abs<VEC>, a);
     benchmark  ("reduce_add", [](const VEC& a){ return vreduce_add(a); }, a);
-    if (is_same<VEC,vfloat3>::value) {  // For vfloat3, compare to Imath
+    if (std::is_same<VEC,vfloat3>::value) {  // For vfloat3, compare to Imath
         Imath::V3f a(2.51f,1.0f,1.0f), b(3.1f,1.0f,1.0f);
         benchmark2 ("add Imath::V3f", do_add<Imath::V3f>, a, b, 3 /*work*/);
         benchmark2 ("add Imath::V3f with simd", add_vec_simd, a, b, 3 /*work*/);

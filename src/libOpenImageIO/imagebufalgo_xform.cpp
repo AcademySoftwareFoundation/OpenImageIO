@@ -724,9 +724,10 @@ resize_(ImageBuf& dst, const ImageBuf& src, const Filter2D* filter, ROI roi,
         // Special case: src and dst are local memory, float buffers, and we're
         // operating on all channels, <= 4.
         bool special
-            = ((is_same<DSTTYPE, float>::value || is_same<DSTTYPE, half>::value)
-               && (is_same<SRCTYPE, float>::value
-                   || is_same<SRCTYPE, half>::value)
+            = ((std::is_same<DSTTYPE, float>::value
+                || std::is_same<DSTTYPE, half>::value)
+               && (std::is_same<SRCTYPE, float>::value
+                   || std::is_same<SRCTYPE, half>::value)
                // && dst.localpixels() // has to be, because it's writable
                && src.localpixels()
                // && R.contains_roi(roi)  // has to be, because IBAPrep

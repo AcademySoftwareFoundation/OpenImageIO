@@ -79,17 +79,19 @@ OIIO_NAMESPACE_BEGIN
 #endif
 
 
+#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2,0,0) \
+    && OIIO_VERSION_LESS(2,7,0) && !defined(OIIO_INTERNAL)
 // Helper template to let us tell if two types are the same.
 // C++11 defines this, keep in OIIO namespace for back compat.
 // DEPRECATED(2.0) -- clients should switch OIIO::is_same -> std::is_same.
 using std::is_same;
-
 
 // For back compatibility: expose these in the OIIO namespace.
 // DEPRECATED(2.0) -- clients should switch OIIO:: -> std:: for these.
 using std::isfinite;
 using std::isinf;
 using std::isnan;
+#endif
 
 
 // Define math constants just in case they aren't included (Windows is a
@@ -196,9 +198,14 @@ floor2(int x) noexcept
 }
 
 
+#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2,1,0) \
+    && OIIO_VERSION_LESS(2,7,0) && !defined(OIIO_INTERNAL)
 // Old names -- DEPRECATED(2.1)
+OIIO_DEPRECATED("use ceil2")
 inline OIIO_HOSTDEVICE int pow2roundup(int x) { return ceil2(x); }
+OIIO_DEPRECATED("use floor2")
 inline OIIO_HOSTDEVICE int pow2rounddown(int x) { return floor2(x); }
+#endif
 
 
 

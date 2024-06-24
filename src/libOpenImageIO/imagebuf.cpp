@@ -1957,7 +1957,7 @@ copy_pixels_impl(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads = 0)
     std::atomic<bool> ok(true);
     ImageBufAlgo::parallel_image(roi, { "copy_pixels", nthreads }, [&](ROI roi) {
         int nchannels = roi.nchannels();
-        if (is_same<D, S>::value) {
+        if (std::is_same<D, S>::value) {
             // If both bufs are the same type, just directly copy the values
             if (src.localpixels() && roi.chbegin == 0
                 && roi.chend == dst.nchannels()
