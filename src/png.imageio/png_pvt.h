@@ -8,6 +8,7 @@
 #include <zlib.h>
 
 #include <OpenImageIO/Imath.h>
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
@@ -574,7 +575,8 @@ put_parameter(png_structp& sp, png_infop& ip, const std::string& _name,
 ///
 inline const std::string
 write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
-           std::vector<png_text>& text, bool& convert_alpha, float& gamma)
+           std::vector<png_text>& text, bool& convert_alpha, bool& srgb,
+           float& gamma)
 {
     // Force either 16 or 8 bit integers
     if (spec.format == TypeDesc::UINT8 || spec.format == TypeDesc::INT8)
@@ -598,11 +600,14 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
 
     gamma = spec.get_float_attribute("oiio:Gamma", 1.0);
 
+    const ColorConfig& colorconfig = ColorConfig::default_colorconfig();
     string_view colorspace = spec.get_string_attribute("oiio:ColorSpace");
-    if (Strutil::iequals(colorspace, "Linear")) {
+    if (colorconfig.equivalent(colorspace, "scene_linear")
+        || colorconfig.equivalent(colorspace, "linear")) {
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG gAMA chunk";
         png_set_gAMA(sp, ip, 1.0);
+        srgb = false;
     } else if (Strutil::istarts_with(colorspace, "Gamma")) {
         Strutil::parse_word(colorspace);
         float g = Strutil::from_string<float>(colorspace);
@@ -611,10 +616,12 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG gAMA chunk";
         png_set_gAMA(sp, ip, 1.0f / gamma);
-    } else if (Strutil::iequals(colorspace, "sRGB")) {
+        srgb = false;
+    } else if (colorconfig.equivalent(colorspace, "sRGB")) {
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG gAMA and cHRM chunk";
         png_set_sRGB_gAMA_and_cHRM(sp, ip, PNG_sRGB_INTENT_ABSOLUTE);
+        srgb = true;
     }
 
     // Write ICC profile, if we have anything
