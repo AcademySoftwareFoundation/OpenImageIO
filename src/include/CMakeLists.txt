@@ -86,7 +86,7 @@ if (OIIO_INTERNALIZE_FMT OR fmt_LOCAL_BUILD)
     add_custom_command (OUTPUT ${fmt_headers_internal}
                         DEPENDS ${fmt_headers} ${fmt_internal_directory}
                         COMMAND
-                            ${CMAKE_COMMAND} -E copy
+                            ${CMAKE_COMMAND} -E copy_if_different
                             ${fmt_headers}
                             ${fmt_internal_directory})
     add_custom_target (fmt_internal_target DEPENDS ${fmt_headers_internal})
@@ -96,13 +96,17 @@ else ()
          ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/ostream.h
          ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/printf.h )
     foreach (f format.h ostream.h printf.h)
-        file (WRITE "${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/${f}"
-                    "#include <fmt/${f}>")
+        if (NOT EXISTS "${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/${f}")
+            file (WRITE "${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/${f}"
+                        "#include <fmt/${f}>")
+        endif ()
     endforeach ()
     if (fmt_VERSION VERSION_GREATER_EQUAL 9)
         list (APPEND fmt_headers ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/std.h)
-        file (WRITE "${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/std.h"
-                    "#include <fmt/std.h>")
+        if (NOT EXISTS "${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/std.h")
+            file (WRITE "${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/std.h"
+                        "#include <fmt/std.h>")
+        endif ()
     endif ()
 endif ()
 install (FILES ${fmt_headers}
