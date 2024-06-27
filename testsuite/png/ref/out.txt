@@ -40,15 +40,15 @@ exif.png             :   64 x   64, 3 channel, uint8 png
     Exif:ImageHistory: "oiiotool -no-autopremult SLEEP_MM.png -cut 1x1+227+1211 -o kaka.png"
     oiio:ColorSpace: "Gamma2.2"
     oiio:Gamma: 2.2
-    Stats Min: 185 185 185 127 (of 255)
-    Stats Max: 185 185 185 127 (of 255)
-    Stats Avg: 185.00 185.00 185.00 127.00 (of 255)
+    Stats Min: 186 186 186 127 (of 255)
+    Stats Max: 186 186 186 127 (of 255)
+    Stats Avg: 186.00 186.00 186.00 127.00 (of 255)
     Stats StdDev: 0.00 0.00 0.00 0.00 (of 255)
     Stats NanCount: 0 0 0 0 
     Stats InfCount: 0 0 0 0 
     Stats FiniteCount: 1 1 1 1 
     Constant: Yes
-    Constant Color: 185.00 185.00 185.00 127.00 (of 255)
+    Constant Color: 186.00 186.00 186.00 127.00 (of 255)
     Monochrome: No
 smallalpha.png       :    1 x    1, 4 channel, uint8 png
     Pixel (0, 0): 240 108 119 1 (0.94117653 0.42352945 0.4666667 0.003921569)

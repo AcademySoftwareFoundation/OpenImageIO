@@ -236,27 +236,31 @@ PNGInput::associateAlpha(T* data, int size, int channels, int alpha_channel,
                 for (int c = 0; c < channels; c++) {
                     if (c != alpha_channel) {
                         float f = sRGB_to_linear(val[c]);
-                        val[c] = linear_to_sRGB(f * alpha);
+                        val[c]  = linear_to_sRGB(f * alpha);
                     }
                 }
             }
         }
     } else if (gamma == 1.0f) {
-        T max = std::numeric_limits<T>::max();
-        for (int x = 0; x < size; ++x, data += channels)
-            for (int c = 0; c < channels; c++)
-                if (c != alpha_channel) {
-                    unsigned int f = data[c];
-                    data[c]        = (f * data[alpha_channel]) / max;
-                }
+        for (int x = 0; x < size; ++x, data += channels) {
+            DataArrayProxy<T, float> val(data);
+            float alpha = val[alpha_channel];
+            if (alpha != 0.0f && alpha != 1.0f) {
+                for (int c = 0; c < channels; c++)
+                    if (c != alpha_channel)
+                        data[c] = data[c] * alpha;
+            }
+        }
     } else {  // With gamma correction
         float inv_gamma = 1.0f / gamma;
         for (int x = 0; x < size; ++x, data += channels) {
             DataArrayProxy<T, float> val(data);
             float alpha = val[alpha_channel];
-            for (int c = 0; c < channels; c++)
-                if (c != alpha_channel)
-                    val[c] = powf((powf(data[c], inv_gamma)) * alpha, gamma);
+            if (alpha != 0.0f && alpha != 1.0f) {
+                for (int c = 0; c < channels; c++)
+                    if (c != alpha_channel)
+                        val[c] = powf((powf(val[c], gamma)) * alpha, inv_gamma);
+            }
         }
     }
 }
