@@ -648,6 +648,15 @@ public:
     ustring get_ustring(ustring name, string_view defaultval = string_view(),
                         bool casesensitive = false, bool convert = true) const;
 
+    /// Search for the attribute and return its "truth-like" value: false if
+    /// it exists but is empty, or is a numeric value equal to 0, or a string
+    /// value that is "0", "no", "off", or "false". Otherwise, any non-empty
+    /// value returns true.
+    bool get_bool(string_view name, bool defaultval = false,
+                  bool casesensitive = false) const;
+    bool get_bool(ustring name, bool defaultval = false,
+                  bool casesensitive = false) const;
+
     /// Does the span contain the named attribute?
     bool contains(string_view name, TypeDesc type = TypeUnknown,
                   bool casesensitive = false) const
