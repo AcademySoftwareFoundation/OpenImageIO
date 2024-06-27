@@ -44,9 +44,11 @@ private:
     int m_subimage;                    ///< What subimage are we looking at?
     Imath::Color3f m_bg;               ///< Background color
     int m_next_scanline;
-    bool m_keep_unassociated_alpha;       ///< Do not convert unassociated alpha
+    bool m_keep_unassociated_alpha;  ///< Do not convert unassociated alpha
+    bool m_srgb   = false;           ///< It's an sRGB image (not gamma)
+    bool m_err    = false;
+    float m_gamma = 1.0f;
     std::unique_ptr<ImageSpec> m_config;  // Saved copy of configuration spec
-    bool m_err = false;
 
     /// Reset everything to initial state
     ///
@@ -58,7 +60,9 @@ private:
         m_buf.clear();
         m_next_scanline           = 0;
         m_keep_unassociated_alpha = false;
+        m_srgb                    = false;
         m_err                     = false;
+        m_gamma                   = 1.0;
         m_config.reset();
         ioproxy_clear();
     }
@@ -82,6 +86,10 @@ private:
             png_chunk_error(png_ptr, pnginput->geterror(false).c_str());
         }
     }
+
+    template<class T>
+    static void associateAlpha(T* data, int size, int channels,
+                               int alpha_channel, bool srgb, float gamma);
 };
 
 
@@ -159,6 +167,12 @@ PNGInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
+    m_gamma                = m_spec.get_float_attribute("oiio:Gamma", 1.0f);
+    string_view colorspace = m_spec.get_string_attribute("oiio:ColorSpace",
+                                                         "sRGB");
+    const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+    m_srgb = colorconfig.equivalent(colorspace, "sRGB");
+
     newspec         = spec();
     m_next_scanline = 0;
 
@@ -208,34 +222,45 @@ PNGInput::close()
 
 
 template<class T>
-static void
-png_associateAlpha(T* data, int size, int channels, int alpha_channel,
-                   float gamma)
+void
+PNGInput::associateAlpha(T* data, int size, int channels, int alpha_channel,
+                         bool srgb, float gamma)
 {
-    T max = std::numeric_limits<T>::max();
-    if (gamma == 1) {
-        for (int x = 0; x < size; ++x, data += channels)
-            for (int c = 0; c < channels; c++)
-                if (c != alpha_channel) {
-                    unsigned int f = data[c];
-                    data[c]        = (f * data[alpha_channel]) / max;
-                }
-    } else {  //With gamma correction
-        float inv_max = 1.0 / max;
+    // We need to transform to linear space, associate the alpha, and then
+    // transform back.
+    if (srgb) {
         for (int x = 0; x < size; ++x, data += channels) {
-            float alpha_associate = pow(data[alpha_channel] * inv_max, gamma);
-            // We need to transform to linear space, associate the alpha, and
-            // then transform back.  That is, if D = data[c], we want
-            //
-            // D' = max * ( (D/max)^(1/gamma) * (alpha/max) ) ^ gamma
-            //
-            // This happens to simplify to something which looks like
-            // multiplying by a nonlinear alpha:
-            //
-            // D' = D * (alpha/max)^gamma
-            for (int c = 0; c < channels; c++)
-                if (c != alpha_channel)
-                    data[c] = static_cast<T>(data[c] * alpha_associate);
+            DataArrayProxy<T, float> val(data);
+            float alpha = val[alpha_channel];
+            if (alpha != 0.0f && alpha != 1.0f) {
+                for (int c = 0; c < channels; c++) {
+                    if (c != alpha_channel) {
+                        float f = sRGB_to_linear(val[c]);
+                        val[c]  = linear_to_sRGB(f * alpha);
+                    }
+                }
+            }
+        }
+    } else if (gamma == 1.0f) {
+        for (int x = 0; x < size; ++x, data += channels) {
+            DataArrayProxy<T, float> val(data);
+            float alpha = val[alpha_channel];
+            if (alpha != 0.0f && alpha != 1.0f) {
+                for (int c = 0; c < channels; c++)
+                    if (c != alpha_channel)
+                        data[c] = data[c] * alpha;
+            }
+        }
+    } else {  // With gamma correction
+        float inv_gamma = 1.0f / gamma;
+        for (int x = 0; x < size; ++x, data += channels) {
+            DataArrayProxy<T, float> val(data);
+            float alpha = val[alpha_channel];
+            if (alpha != 0.0f && alpha != 1.0f) {
+                for (int c = 0; c < channels; c++)
+                    if (c != alpha_channel)
+                        val[c] = powf((powf(val[c], gamma)) * alpha, inv_gamma);
+            }
         }
     }
 }
@@ -295,13 +320,13 @@ PNGInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     // PNG specifically dictates unassociated (un-"premultiplied") alpha.
     // Convert to associated unless we were requested not to do so.
     if (m_spec.alpha_channel != -1 && !m_keep_unassociated_alpha) {
-        float gamma = m_spec.get_float_attribute("oiio:Gamma", 1.0f);
         if (m_spec.format == TypeDesc::UINT16)
-            png_associateAlpha((unsigned short*)data, m_spec.width,
-                               m_spec.nchannels, m_spec.alpha_channel, gamma);
+            associateAlpha((unsigned short*)data, m_spec.width,
+                           m_spec.nchannels, m_spec.alpha_channel, m_srgb,
+                           m_gamma);
         else
-            png_associateAlpha((unsigned char*)data, m_spec.width,
-                               m_spec.nchannels, m_spec.alpha_channel, gamma);
+            associateAlpha((unsigned char*)data, m_spec.width, m_spec.nchannels,
+                           m_spec.alpha_channel, m_srgb, m_gamma);
     }
 
     return true;
