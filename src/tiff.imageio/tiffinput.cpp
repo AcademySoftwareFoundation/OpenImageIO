@@ -1671,7 +1671,9 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                                 m_rgbadata.data(),
                                                 ORIENTATION_TOPLEFT, 0);
             if (!ok) {
-                errorfmt("Unknown error trying to read TIFF as RGBA");
+                std::string err = oiio_tiff_last_error();
+                errorfmt("Unknown error trying to read TIFF as RGBA ({})",
+                         err.size() ? err.c_str() : "unknown error");
                 return false;
             }
         }
@@ -2052,7 +2054,9 @@ TIFFInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
         m_rgbadata.resize(m_spec.tile_pixels());
         bool ok = TIFFReadRGBATile(m_tif, x, y, m_rgbadata.data());
         if (!ok) {
-            errorfmt("Unknown error trying to read TIFF as RGBA");
+            std::string err = oiio_tiff_last_error();
+            errorfmt("Unknown error trying to read TIFF as RGBA ({})",
+                     err.size() ? err.c_str() : "unknown error");
             return false;
         }
         // Copy, and use stride magic to reverse top-to-bottom, because

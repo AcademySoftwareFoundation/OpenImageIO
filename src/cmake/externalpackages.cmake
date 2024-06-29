@@ -79,6 +79,7 @@ checked_find_package (libjpeg-turbo
 if (TARGET libjpeg-turbo::jpeg) # Try to find the non-turbo version
     # Doctor it so libjpeg-turbo is aliased as JPEG::JPEG
     alias_library_if_not_exists (JPEG::JPEG libjpeg-turbo::jpeg)
+    set (JPEG_FOUND TRUE)
 else ()
     # Try to find the non-turbo version
     checked_find_package (JPEG REQUIRED)

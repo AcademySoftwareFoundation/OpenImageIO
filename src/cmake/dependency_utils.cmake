@@ -24,7 +24,8 @@ include_directories(BEFORE ${${PROJECT_NAME}_LOCAL_DEPS_ROOT}/include)
 # as the current project.
 set_cache (${PROJECT_NAME}_DEPENDENCY_BUILD_TYPE ${CMAKE_BUILD_TYPE}
            "Build type for locally built dependencies")
-
+set_option (${PROJECT_NAME}_DEPENDENCY_BUILD_VERBOSE
+            "Make dependency builds extra verbose" OFF)
 if (MSVC)
     # I haven't been able to get Windows local dependency builds to work with
     # static libraries, so default to shared libraries on Windows until we can
@@ -516,22 +517,37 @@ macro (build_dependency_with_cmake pkgname)
     set (${pkgname}_LOCAL_INSTALL_DIR "${${PROJECT_NAME}_LOCAL_DEPS_ROOT}/dist")
     message (STATUS "Downloading local ${_pkg_GIT_REPOSITORY}")
 
+    set (_pkg_quiet OUTPUT_QUIET)
+
     # Clone the repo if we don't already have it
     find_package (Git REQUIRED)
     if (NOT IS_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR})
         execute_process(COMMAND ${GIT_EXECUTABLE} clone ${_pkg_GIT_REPOSITORY}
-                                -b ${_pkg_GIT_TAG} --depth 1
-                                ${${pkgname}_LOCAL_SOURCE_DIR})
+                                -b ${_pkg_GIT_TAG} --depth 1 -q
+                                ${${pkgname}_LOCAL_SOURCE_DIR}
+                        ${_pkg_quiet})
         if (NOT IS_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR})
             message (FATAL_ERROR "Could not download ${_pkg_GIT_REPOSITORY}")
         endif ()
     endif ()
     execute_process(COMMAND ${GIT_EXECUTABLE} checkout ${_pkg_GIT_TAG}
-                    WORKING_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR})
-
-    set (_pkg_quiet OUTPUT_QUIET)
+                    WORKING_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR}
+                    ${_pkg_quiet})
 
     # Configure the package
+    if (${PROJECT_NAME}_DEPENDENCY_BUILD_VERBOSE)
+        set (_pkg_cmake_verbose -DCMAKE_VERBOSE_MAKEFILE=ON
+                                -DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE
+                                -DCMAKE_RULE_MESSAGES=ON
+                                )
+    else ()
+        set (_pkg_cmake_verbose -DCMAKE_VERBOSE_MAKEFILE=OFF
+                                -DCMAKE_MESSAGE_LOG_LEVEL=ERROR
+                                -DCMAKE_RULE_MESSAGES=OFF
+                                -Wno-dev
+                                )
+    endif ()
+
     execute_process (COMMAND
         ${CMAKE_COMMAND}
             # Put things in our special local build areas
@@ -542,10 +558,8 @@ macro (build_dependency_with_cmake pkgname)
                 -DCMAKE_BUILD_TYPE=${${PROJECT_NAME}_DEPENDENCY_BUILD_TYPE}
             # Shhhh
                 -DCMAKE_MESSAGE_INDENT="        "
-                -DCMAKE_MESSAGE_LOG_LEVEL=WARNING
                 -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF
-                -DCMAKE_VERBOSE_MAKEFILE=OFF
-                -DCMAKE_RULE_MESSAGES=OFF
+                ${_pkg_cmake_verbose}
             # Build args passed by caller
                 ${_pkg_CMAKE_ARGS}
         ${pkg_quiet}
