@@ -656,6 +656,19 @@ ParamValueList::merge(const ParamValueList& other, bool override)
 
 
 
+size_t
+ParamValueList::memsize() const noexcept
+{
+    size_t s = sizeof(*this);              // Size of the ParamValueList itself
+    s += capacity() * sizeof(ParamValue);  // Size of the PV vector
+    for (const auto& pv : *this)
+        if (pv.is_nonlocal())
+            s += pv.datasize();  // Size of heap-allocated data
+    return s;
+}
+
+
+
 ParamValueSpan::const_iterator
 ParamValueSpan::find(ustring name, TypeDesc type, bool casesensitive) const
 {
