@@ -1842,6 +1842,7 @@ ImageCacheImpl::getstats(int level) const
     imagesize_t total_redundant_bytes = 0;
     size_t total_untiled = 0, total_unmipped = 0, total_duplicates = 0;
     size_t total_constant              = 0;
+    size_t total_imagespec_size        = 0;
     double total_iotime                = 0;
     double total_input_mutex_wait_time = 0;
     std::vector<ImageCacheFileRef> files;
@@ -1868,6 +1869,11 @@ ImageCacheImpl::getstats(int level) const
                 found_untiled |= si.untiled;
                 found_unmipped |= si.unmipped;
                 found_const &= si.is_constant_image;
+                for (int m = 0, mend = file->miplevels(s); m < mend; ++m) {
+                    const ImageCacheFile::LevelInfo& li(file->levelinfo(s, m));
+                    total_imagespec_size += li.spec.memsize();
+                    total_imagespec_size += li.nativespec.memsize();
+                }
             }
             total_untiled += found_untiled;
             total_unmipped += found_unmipped;
@@ -1990,6 +1996,8 @@ ImageCacheImpl::getstats(int level) const
                   "    Failure reads followed by unexplained success:"
                   " {} files, {} tiles\n",
                   stats.file_retry_success, stats.tile_retry_success);
+        print(out, "    Total ImageSpec size : {}\n",
+              Strutil::memformat(total_imagespec_size));
     }
 
     if (level >= 2 && files.size()) {
