@@ -12,10 +12,12 @@ on:
       - '**.rst'
       - '**.analysis.yml'
       - '**.properties'
+      - 'docs/**'
   pull_request:
     paths-ignore:
       - '**.md'
       - '**.rst'
+      - 'docs/**'
   schedule:
     # Full nightly build
     - cron: "0 8 * * *"
