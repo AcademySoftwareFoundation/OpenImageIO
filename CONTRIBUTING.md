@@ -98,15 +98,28 @@ the author.
   equipment, and you're SURE you are the sole owner of any intellectual
   property you contribute.
 
-The easiest way to sign CLAs is digitally [using EasyCLA](https://corporate.v1.easycla.lfx.linuxfoundation.org).
+Please note that it is extremely common (nearly ubiquitous in the US and
+Canada, and maybe other places) for full-time employees of technology and
+entertainment companies to have IP clauses in their employment agreement (in
+that pile of paperwork you sign on your first day of work and then promptly
+forget about) that give the company rights to any code you write, even on your
+own time. The OpenImageIO project expects you to know and follow the rules of
+your employer and to have them sign a corporate CLA if necessary.
+
+The easiest way to sign CLAs is digitally [using
+EasyCLA](https://corporate.v1.easycla.lfx.linuxfoundation.org). There are
+detailed step-by-step instructions about using the EasyCLA system for
+[corporate CLAs](https://docs.linuxfoundation.org/lfx/easycla/v2-current/contributors/corporate-contributor)
+and [individual CLAs](https://docs.linuxfoundation.org/lfx/easycla/v2-current/contributors/individual-contributor#github).
+
 Companies who prefer not to use the online tools may sign, scan, and email
 the executed copy to manager@lfprojects.org.
 
-The CLA allows a company to name a "CLA Manager" (who does not need
-signatory power) who has the ability to use the online system to add or
-delete individual employees of the company who are authorized to submit pull
-requests, without needing to get an executive to amend and sign the
-agreement each time.
+The corporate CLA allows a company to name a "CLA Manager" (who does not need
+signatory power) who has the ability to use the online system to add or delete
+individual employees of the company who are authorized to submit pull
+requests, without needing to get an executive to amend and sign the agreement
+each time.
 
 Please note that these CLAs are based on the Apache 2.0 CLAs, and differ
 minimally, only as much as was required to correctly describe the EasyCLA
