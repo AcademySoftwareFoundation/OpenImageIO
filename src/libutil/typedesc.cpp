@@ -188,7 +188,7 @@ TypeDesc::c_str() const
     //     result = "float2";
     // else if (aggregate == VEC4 && basetype == FLOAT && vecsemantics == NOXFORM)
     //     result = "float4";
-    else if (vecsemantics == NOXFORM) {
+    else if (vecsemantics == NOXFORM && basetype == FLOAT) {
         switch (aggregate) {
         case VEC2: result = "float2"; break;
         case VEC3: result = "float3"; break;
@@ -198,6 +198,22 @@ TypeDesc::c_str() const
         }
         if (basetype != FLOAT)
             result += basetype_code[basetype];
+    } else if (vecsemantics == NOXFORM) {
+        switch (aggregate) {
+        case VEC2:
+        case VEC3:
+        case VEC4:
+            result = Strutil::fmt::format("vector{}{}", int(aggregate),
+                                          basetype_code[basetype]);
+            break;
+        case MATRIX33:
+            result = Strutil::fmt::format("matrix33{}",
+                                          basetype_code[basetype]);
+            break;
+        case MATRIX44:
+            result = Strutil::fmt::format("matrix{}", basetype_code[basetype]);
+            break;
+        }
     } else {
         // Special names for vector semantics
         const char* vec = "";

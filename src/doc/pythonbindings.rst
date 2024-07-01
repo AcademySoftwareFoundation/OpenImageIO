@@ -125,7 +125,8 @@ described in detail in Section :ref:`sec-typedesc`, is replicated for Python.
 .. py:data:: TypeUnknown TypeString TypeFloat TypeHalf
              TypeInt TypeUInt TypeInt16 TypeUInt16
              TypeColor TypePoint TypeVector TypeNormal
-             TypeFloat2 TypeVector2 TypeFloat4 TypeVector2i
+             TypeFloat2 TypeVector2 TypeFloat4
+             TypeVector2i TypeVector3i
              TypeMatrix TypeMatrix33
              TypeTimeCode TypeKeyCode TypeRational TypePointer
 

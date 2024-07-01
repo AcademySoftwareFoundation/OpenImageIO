@@ -404,6 +404,7 @@ OIIO_INLINE_CONSTEXPR TypeDesc TypeUInt8 (TypeDesc::UINT8);
 OIIO_INLINE_CONSTEXPR TypeDesc TypeInt64 (TypeDesc::INT64);
 OIIO_INLINE_CONSTEXPR TypeDesc TypeUInt64 (TypeDesc::UINT64);
 OIIO_INLINE_CONSTEXPR TypeDesc TypeVector2i(TypeDesc::INT, TypeDesc::VEC2);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeVector3i(TypeDesc::INT, TypeDesc::VEC3);
 OIIO_INLINE_CONSTEXPR TypeDesc TypeBox2(TypeDesc::FLOAT, TypeDesc::VEC2, TypeDesc::BOX, 2);
 OIIO_INLINE_CONSTEXPR TypeDesc TypeBox3(TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::BOX, 2);
 OIIO_INLINE_CONSTEXPR TypeDesc TypeBox2i(TypeDesc::INT, TypeDesc::VEC2, TypeDesc::BOX, 2);
@@ -483,6 +484,7 @@ template<> struct TypeDescFromC<Imath::V3f> { static const constexpr TypeDesc va
 template<> struct TypeDescFromC<Imath::V2f> { static const constexpr TypeDesc value() { return TypeVector2; } };
 template<> struct TypeDescFromC<Imath::V4f> { static const constexpr TypeDesc value() { return TypeVector4; } };
 template<> struct TypeDescFromC<Imath::V2i> { static const constexpr TypeDesc value() { return TypeVector2i; } };
+template<> struct TypeDescFromC<Imath::V3i> { static const constexpr TypeDesc value() { return TypeVector3i; } };
 #endif
 #ifdef INCLUDED_IMATHCOLOR_H
 template<> struct TypeDescFromC<Imath::Color3f> { static const constexpr TypeDesc value() { return TypeColor; } };
