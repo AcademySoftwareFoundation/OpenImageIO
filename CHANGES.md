@@ -1,6 +1,11 @@
-Release 2.5.13.0 (July 1?, 2024) -- compared to 2.5.11.0
+Release 2.5.13.0 (July 1, 2024) -- compared to 2.5.12.0
 -------------------------------------------------------
-
+- *fix*: Various PSD files fail to load correctly [#4302](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4302) (by Jesse Yurkovich)
+- *fix*: Improve error messages when a font is not found [#4284](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4284)
+- *platform.h*: In platform.h, define OIIO_DEVICE macro [#4290](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4290)
+- *ci*: Typo in build_libtiff.bash [#4280](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4280)
+- *docs*: Update INSTALL.md for windows [#4279](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4279) (by Mel Massadian)
+- *docs*: Fixes to formatting and sphinx warnings [#4301](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4301)
 
 
 Release 2.5.12.0 (June 1, 2024) -- compared to 2.5.11.0
