@@ -268,26 +268,25 @@ The following are the steps for making the release:
 
    For a monthly patch release:
 
-    > We have tagged v1.2.3.4 as the latest production release and moved the
+    > We have tagged v2.5.1.0 as the latest production release and moved the
     > "release" branch marker to that point.  This is guaranteed to be API,
-    > ABI, and link back-compatible with prior 1.2 releases. Release notes
-    > are below.
-    >
-    > (Paste the full set of 1.2 changes here, just copy the appropriate
-    > part of CHANGES.md)
+    > ABI, and link back-compatible with prior 2.5 releases. Release notes
+    > can be found at *LINK TO THE GITHUB RELEASE PAGE.*
 
    For an annual major/minor release:
 
-    > OpenImageIO version 1.2 has been released! Officially tagged as
-    > "v1.2.3.4", we have also moved the "release" branch tag to this
-    > position. Henceforth, 1.2 is the supported production release family.
-    > The API is now frozen -- we promise that subsequent 1.2.x releases
+    > OpenImageIO version 3.0 has been released! Officially tagged as
+    > "v3.0.0.0", we have also moved the "release" branch tag to this
+    > position. Henceforth, 3.0 is the supported production release family.
+    > The API is now frozen -- we promise that subsequent 3.0.x releases
     > (which should happen monthly) will not break back-compatibility of API,
     > ABI, or linkage, compared to this release. Please note that this release
-    > is *not* ABI or link compatible with 1.1 or older releases.
+    > is *not* ABI or link compatible with 2.5 or older releases.
     > 
-    > Release notes for 1.2 outlining all the changes since last year's
-    > release are below.
+    > Release notes for 3.0 outlining all the changes since last year's
+    > release can be found at *LINK TO THE GITHUB RELEASE PAGE.*
+    > (Optionally, you can include a brief summary of the most important
+    > changes in this email.)
     > 
     > Please note that a few of the build and runtime dependencies have
     > changed their minimum supported versions. (List here any important
@@ -301,35 +300,35 @@ The following are the steps for making the release:
     > backward-compatible with prior versions, warn about that here.)
     > 
     > Enjoy, and please report any problems. We will continue to make patch
-    > releases to the 1.2 family roughly monthly, which will contain bug fixes
+    > releases to the 3.0 family roughly monthly, which will contain bug fixes
     > and non-breaking enhancements.
     > 
-    > The older 1.1 series of releases is now considered obsolete. We will
-    > continue for now to make 1.1 patch releases, but over time, these will
+    > The older 2.5 series of releases is now considered obsolete. We will
+    > continue for now to make 2.4 patch releases, but over time, these will
     > become less frequent and be reserved for only the most critical bug
     > fixes.
     > 
-    > The "master" branch is now progressing toward an eventual 1.3 release next
-    > summer. As usual, you are welcome to use master for real work, but we do
+    > The "master" branch is now progressing toward an eventual 3.1 release next
+    > fall. As usual, you are welcome to use master for real work, but we do
     > not make any compatibility guarantees and don't guarantee continuing API
     > compatibility in master.
     >
-    > (Paste the full set of 1.2 changes here, just copy the appropriate
+    > (Paste the full set of 3.0 changes here, just copy the appropriate
     > part of CHANGES.md)
 
    For a beta leading up to the annual major/minor release:
 
-    > OpenImageIO version 1.2 is now in beta, tagged as "v1.2.3.4-beta". We
+    > OpenImageIO version 3.0 is now in beta, tagged as "v3.0.0.0-beta". We
     > will try very hard not to make any further API or ABI changes between
     > now and the final release (unless it is absolutely necessary to fix
-    > an important problem identified during beta testing). The final 1.2
+    > an important problem identified during beta testing). The final 3.0
     > release is scheduled for [DATE GOES HERE], so please try building and
     > testing the beta so we are sure to find any problems.
     > 
-    > Release notes for 1.2 outlining all the changes since last year's
+    > Release notes for 3.0 outlining all the changes since last year's
     > release are below.
     > 
-    > (Paste the full set of 1.2 changes here, just copy the appropriate
+    > (Paste the full set of 3.0 changes here, just copy the appropriate
     > part of CHANGES.md)
 
 
