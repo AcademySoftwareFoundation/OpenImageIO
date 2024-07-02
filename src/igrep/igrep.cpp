@@ -62,7 +62,6 @@ grep_file(const std::string& filename, std::regex& re,
             std::cerr << geterror() << "\n";
         return false;
     }
-    ImageSpec spec = in->spec();
 
     if (file_match) {
         bool match = false;
@@ -83,6 +82,7 @@ grep_file(const std::string& filename, std::regex& re,
     do {
         if (!all_subimages && subimage > 0)
             break;
+        ImageSpec spec = in->spec(subimage);
         for (auto&& p : spec.extra_attribs) {
             TypeDesc t = p.type();
             if (t.elementtype() == TypeDesc::STRING) {
@@ -108,7 +108,7 @@ grep_file(const std::string& filename, std::regex& re,
                 }
             }
         }
-    } while (in->seek_subimage(++subimage, 0, spec));
+    } while (in->seek_subimage(++subimage, 0));
 
     if (invert_match) {
         found = !found;

@@ -176,7 +176,8 @@ declare_imageinput(py::module& m)
             "create",
             [](const std::string& filename,
                const std::string& searchpath) -> py::object {
-                auto in = ImageInput::create(filename, searchpath);
+                auto in = ImageInput::create(filename, false, nullptr, nullptr,
+                                             searchpath);
                 return in ? py::cast(in.release()) : py::none();
             },
             "filename"_a, "plugin_searchpath"_a = "")

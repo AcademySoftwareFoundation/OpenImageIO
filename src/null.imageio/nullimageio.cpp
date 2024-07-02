@@ -320,8 +320,8 @@ NullInput::open(const std::string& name, ImageSpec& newspec,
         // Convert float to the native type
         fvalue.resize(m_topspec.nchannels, 0.0f);
         m_value.resize(m_topspec.pixel_bytes());
-        convert_types(TypeFloat, fvalue.data(), m_topspec.format,
-                      m_value.data(), m_topspec.nchannels);
+        convert_pixel_values(TypeFloat, fvalue.data(), m_topspec.format,
+                             m_value.data(), m_topspec.nchannels);
     }
 
     bool ok = seek_subimage(0, 0);
