@@ -11,10 +11,18 @@ on:
     # Run on pushes to master, but only the main repo, not forks
     branches: [ "master" ]
     if: github.event.pull_request.head.repo.full_name == github.repository
+    paths-ignore:
+      - '**.md'
+      - '**.rst'
+      - 'docs/**'
   pull_request:
     # Only run on individual PRs if the workflow file itself is changed.
     paths:
       - .github/workflows/scorecard.yml
+    paths-ignore:
+      - '**.md'
+      - '**.rst'
+      - 'docs/**'
 
 # Declare default permissions as read only.
 permissions: read-all
