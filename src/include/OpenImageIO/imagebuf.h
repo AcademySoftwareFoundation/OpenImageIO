@@ -1316,6 +1316,16 @@ public:
         // Clear the error flag
         void clear_error() { m_readerror = false; }
 
+        // Store into `span<T> dest` the channel values of the pixel the
+        // iterator points to.
+        template<typename T = float> void store(span<T> dest) const
+        {
+            OIIO_DASSERT(dest.size() >= oiio_span_size_type(m_nchannels));
+            convert_pixel_values(TypeDesc::BASETYPE(m_pixeltype), m_proxydata,
+                                 TypeDescFromC<T>::value(), dest.data(),
+                                 m_nchannels);
+        }
+
     protected:
         friend class ImageBuf;
         friend class ImageBufImpl;
@@ -1338,6 +1348,7 @@ public:
         char* m_proxydata = nullptr;
         WrapMode m_wrap   = WrapBlack;
         bool m_readerror  = false;
+        unsigned char m_pixeltype;
 
         // Helper called by ctrs -- set up some locally cached values
         // that are copied or derived from the ImageBuf.
@@ -1499,6 +1510,17 @@ public:
         IteratorValRef operator[](int i) { return IteratorValRef(*this, i); }
 
         void* rawptr() const { return m_proxydata; }
+
+        // Load values from `span<T> src` into the pixel the iterator refers
+        // to, doing any conversions necessary.
+        template<typename T = float> void load(cspan<T> src)
+        {
+            OIIO_DASSERT(src.size() >= oiio_span_size_type(m_nchannels));
+            ensure_writable();
+            convert_pixel_values(TypeDescFromC<T>::value(), src.data(),
+                                 TypeDesc::BASETYPE(m_pixeltype), m_proxydata,
+                                 m_nchannels);
+        }
 
         /// Set the number of deep data samples at this pixel. (Only use
         /// this if deep_alloc() has not yet been called on the buffer.)

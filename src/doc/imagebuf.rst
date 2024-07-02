@@ -204,7 +204,7 @@ Deep data in an ImageBuf
 Error Handling
 ==============
 
-.. doxygenfunction:: OIIO::ImageBuf::errorf
+.. doxygenfunction:: OIIO::ImageBuf::errorfmt
 .. doxygenfunction:: OIIO::ImageBuf::has_error
 .. doxygenfunction:: OIIO::ImageBuf::geterror
 
@@ -236,6 +236,82 @@ Miscellaneous
     Manually lock or unlock the mutex that protects the ImageBuf from
     concurrent access by multiple threads. Use with caution -- this should
     almost never be needed in ordinary user code.
+
+
+
+Writing your own image processing functions
+===========================================
+
+In this section, we will discuss how to write functions that operate
+pixel by pixel on an ImageBuf. There are several different approaches
+to this, with different trade-offs in terms of speed, flexibility, and
+simplicity of implementation.
+
+Simple pixel-by-pixel access with `ImageBufAlgo::perpixel_op()`
+---------------------------------------------------------------
+
+Pros:
+
+* You only need to supply the inner loop body, the part that does the work
+  for a single pixel.
+* You can assume that all pixel data are float values.
+
+Cons/Limitations:
+
+* The operation must be one where each output pixel depends only on the
+  corresponding pixel of the input images.
+* Currently, the operation must be unary (one input image to produce one
+  output image), or binary (two input images, one output image). At this time,
+  there are not options to operate on a single image in-place, or to have more
+  than two input images, but this may be extended in the future.
+* Operating on `float`-based images is "full speed," but if the input images
+  are not `float`, the automatic conversions will add some expense. In
+  practice, we find working on non-float images to be about half the speed of
+  float images, but this may be acceptable in exchange for the simplicity of
+  this approach, especially for operations where you expect inputs to be float
+  typically.
+
+.. doxygenfunction:: perpixel_op(const ImageBuf &src, bool (*op)(span<float>, cspan<float>), int prepflags = ImageBufAlgo::IBAprep_DEFAULT, int nthreads = 0)
+
+.. doxygenfunction:: perpixel_op(const ImageBuf &srcA, const ImageBuf &srcB, bool (*op)(span<float>, cspan<float>, cspan<float>), int prepflags = ImageBufAlgo::IBAprep_DEFAULT, int nthreads = 0)
+
+Examples:
+
+.. code-block:: cpp
+
+    // Assume ImageBuf A, B are the inputs, ImageBuf R is the output
+
+    /////////////////////////////////////////////////////////////////
+    // Approach 1: using a standalone function to add two images
+    bool my_add (span<float> r, cspan<float> a, cspan<float> b) {
+        for (size_t c = 0, nc = size_t(r.size()); c < nc; ++c)
+            r[c] = a[c] + b[c];
+        return true;
+    }
+
+    R = ImageBufAlgo::perpixel_op(A, B, my_add);
+
+    /////////////////////////////////////////////////////////////////
+    // Approach 2: using a "functor" class to add two images
+    struct Adder {
+        bool operator() (span<float> r, cspan<float> a, cspan<float> b) {
+            for (size_t c = 0, nc = size_t(r.size()); c < nc; ++c)
+                r[c] = a[c] + b[c];
+            return true;
+        }
+    };
+
+    Adder adder;
+    R = ImageBufAlgo::perpixel_op(A, B, adder);
+    
+    /////////////////////////////////////////////////////////////////
+    // Approach 3: using a lambda to add two images
+    R = ImageBufAlgo::perpixel_op(A, B,
+            [](span<float> r, cspan<float> a, cspan<float> b) {
+                for (size_t c = 0, nc = size_t(r.size()); c < nc; ++c)
+                    r[c] = a[c] + b[c];
+                return true;
+            });
 
 
 
