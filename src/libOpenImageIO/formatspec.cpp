@@ -1251,4 +1251,24 @@ ImageSpec::set_colorspace(string_view colorspace)
 }
 
 
+
+size_t
+ImageSpec::memsize() const
+{
+    size_t s = sizeof(this);
+    s += channelformats.capacity() * sizeof(TypeDesc);
+    s += channelnames.capacity() * sizeof(std::string);
+    // N.B. We're not counting the memory of the strings themselves. To be
+    // exact would require us to figure out which strings have heap allocation
+    // and which are stored inline using the "short string" optimization.
+    // Considering that most channel names are short strings, this is probably
+    // accurate enough.
+    s += extra_attribs.memsize() - sizeof(extra_attribs);
+    // N.B. extra_attribs.memsize() includes the size of the ParamValueList
+    // itself, so we have to subtract that out to avoid double counting it,
+    // since it's also included in sizeof(*this).
+    return s;
+}
+
+
 OIIO_NAMESPACE_END

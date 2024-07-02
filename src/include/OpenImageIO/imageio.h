@@ -793,6 +793,10 @@ public:
         return nchannels == 0 && format == TypeUnknown;
     }
 
+    /// Return the total memory used by the ImageSpec, including this object
+    /// itself, and all the metadata and other allocated fields within.
+    size_t memsize() const;
+
     /// Array indexing by string will create an AttrDelegate that enables a
     /// convenient shorthand for adding and retrieving values from the spec:
     ///

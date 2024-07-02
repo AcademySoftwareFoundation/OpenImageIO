@@ -530,6 +530,12 @@ public:
         shrink_to_fit();
     }
 
+    /// Return the total memory used by the ParamValueList, including this
+    /// object itself, all the ParamValue entries (including allocated but
+    /// unused capacity of the vector), and any heap memory allocated by the
+    /// ParamValue entries to hold their data.
+    size_t memsize() const noexcept;
+
     /// Array indexing by integer will return a reference to the ParamValue
     /// in that position of the list.
     ParamValue& operator[](int index)
