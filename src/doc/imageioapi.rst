@@ -48,7 +48,7 @@ in the outer OpenImageIO scope:
     TypeMatrix33 TypeMatrix44 TypeMatrix TypeHalf
     TypeInt TypeUInt TypeInt32 TypeUInt32 TypeInt64 TypeUInt64
     TypeInt16 TypeUInt16 TypeInt8 TypeUInt8
-    TypeFloat2 TypeVector2 TypeVector2i TypeFloat4
+    TypeFloat2 TypeVector2 TypeVector2i TypeVector3i TypeFloat4
     TypeString TypeTimeCode TypeKeyCode
     TypeBox2 TypeBox2i TypeBox3 TypeBox3i
     TypeRational TypePointer
