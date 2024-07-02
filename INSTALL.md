@@ -20,8 +20,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * Compilers: **gcc 9.3** - 14.1, **clang 5** - 18, MSVS 2017 - 2019 (**v19.14
    and up**), **Intel icc 19+**, Intel OneAPI C++ compiler 2022+.
  * **CMake >= 3.15** (tested through 3.29)
- * **OpenEXR/Imath >= 3.1** (tested through 3.2
-   and main) 
+ * **Imath >= 3.1** (tested through 3.1.x and main)
+ * **OpenEXR >= 3.1** (tested through 3.2 and main)
  * **libTIFF >= 4.0** (tested through 4.6)
  * libjpeg >= 8 (tested through jpeg9e), or **libjpeg-turbo >= 2.1** (tested
    through 3.0)
@@ -181,7 +181,8 @@ OpenImageIO:
 * libjpeg
 * libtiff
 * libpng
-* OpenEXR.
+* Imath
+* OpenEXR
 
 These can be installed using the standard package managers on your system.
 Optionally, to build the image viewing tools, you will need Qt and OpenGL.
@@ -273,7 +274,7 @@ Building on Windows
 
 You will need to have Git, CMake and Visual Studio installed.
 
-The minimal set of dependencies for OIIO is: zlib, libTIFF, OpenEXR, and libjpeg or libjpeg-turbo. If you have them built somewhere then you skip
+The minimal set of dependencies for OIIO is: zlib, libTIFF, Imath, OpenEXR, and libjpeg or libjpeg-turbo. If you have them built somewhere then you skip
 the section below, and will only have to point OIIO build process so their locations.
 
 * zlib: this will build it, and then delete the non-static library, so they don't get picked up:
