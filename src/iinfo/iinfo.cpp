@@ -243,8 +243,9 @@ static void
 print_info_subimage(int current_subimage, int max_subimages, ImageSpec& spec,
                     ImageInput* input, const std::string& filename)
 {
-    if (!input->seek_subimage(current_subimage, 0, spec))
+    if (!input->seek_subimage(current_subimage, 0))
         return;
+    spec = input->spec(current_subimage);
 
     if (!metamatch.empty()
         && !std::regex_search(
@@ -274,9 +275,9 @@ print_info_subimage(int current_subimage, int max_subimages, ImageSpec& spec,
         print("\n");
     }
     // Count MIP levels
-    ImageSpec mipspec;
-    while (input->seek_subimage(current_subimage, nmip, mipspec)) {
+    while (input->seek_subimage(current_subimage, nmip)) {
         if (printres) {
+            ImageSpec mipspec = input->spec_dimensions(current_subimage, nmip);
             if (nmip == 1)
                 print("    MIP-map levels: {}x{}", spec.width, spec.height);
             print(" {}x{}", mipspec.width, mipspec.height);
@@ -291,8 +292,7 @@ print_info_subimage(int current_subimage, int max_subimages, ImageSpec& spec,
         if (filenameprefix)
             print("{} : ", filename);
         // Before sha-1, be sure to point back to the highest-res MIP level
-        ImageSpec tmpspec;
-        input->seek_subimage(current_subimage, 0, tmpspec);
+        input->seek_subimage(current_subimage, 0);
         print_sha1(input, current_subimage, 0);
     }
 
@@ -302,8 +302,7 @@ print_info_subimage(int current_subimage, int max_subimages, ImageSpec& spec,
     if (compute_stats
         && (metamatch.empty() || std::regex_search("stats", field_re))) {
         for (int m = 0; m < nmip; ++m) {
-            ImageSpec mipspec;
-            input->seek_subimage(current_subimage, m, mipspec);
+            ImageSpec mipspec = input->spec_dimensions(current_subimage, m);
             if (filenameprefix)
                 print("{} : ", filename);
             if (nmip > 1 && (subimages || m == 0)) {
@@ -314,7 +313,7 @@ print_info_subimage(int current_subimage, int max_subimages, ImageSpec& spec,
         }
     }
 
-    if (!input->seek_subimage(current_subimage, 0, spec))
+    if (!input->seek_subimage(current_subimage, 0))
         return;
 }
 
@@ -334,23 +333,24 @@ print_info(const std::string& filename, size_t namefieldlength,
     std::vector<int> num_of_miplevels;
     {
         int nmip = 1;
-        while (input->seek_subimage(input->current_subimage(), nmip, spec)) {
+        while (input->seek_subimage(input->current_subimage(), nmip)) {
             ++nmip;
             any_mipmapping = true;
         }
         num_of_miplevels.push_back(nmip);
     }
-    while (input->seek_subimage(num_of_subimages, 0, spec)) {
+    while (input->seek_subimage(num_of_subimages, 0)) {
         // maybe we should do this more gently?
         ++num_of_subimages;
         int nmip = 1;
-        while (input->seek_subimage(input->current_subimage(), nmip, spec)) {
+        while (input->seek_subimage(input->current_subimage(), nmip)) {
             ++nmip;
             any_mipmapping = true;
         }
         num_of_miplevels.push_back(nmip);
     }
-    input->seek_subimage(0, 0, spec);  // re-seek to the first
+    // input->seek_subimage(0, 0);  // re-seek to the first
+    spec = input->spec(0, 0);
 
     if (metamatch.empty()
         || std::regex_search("resolution, width, height, depth, channels",
@@ -388,7 +388,7 @@ print_info(const std::string& filename, size_t namefieldlength,
         // info about num of subimages and their resolutions
         print("    {} subimages: ", num_of_subimages);
         for (int i = 0; i < num_of_subimages; ++i) {
-            input->seek_subimage(i, 0, spec);
+            spec     = input->spec(i, 0);
             int bits = spec.get_int_attribute("oiio:BitsPerSample",
                                               spec.format.size() * 8);
             if (i)

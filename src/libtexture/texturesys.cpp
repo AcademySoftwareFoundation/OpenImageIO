@@ -884,11 +884,13 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
                 const char* data;
                 if (tile
                     && (data = (const char*)tile->data(x, y, z, chbegin))) {
-                    convert_types(texfile->datatype(subimage), data, format,
-                                  result, actualchannels);
+                    convert_pixel_values(texfile->datatype(subimage), data,
+                                         format, result, actualchannels);
                     for (int c = actualchannels; c < nchannels; ++c)
-                        convert_types(TypeDesc::FLOAT, &options.fill, format,
-                                      (char*)result + c * formatchannelsize, 1);
+                        convert_pixel_values(TypeFloat, &options.fill, format,
+                                             (char*)result
+                                                 + c * formatchannelsize,
+                                             1);
                 } else {
                     memset(result, 0, formatpixelsize);
                 }

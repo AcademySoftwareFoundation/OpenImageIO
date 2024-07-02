@@ -198,7 +198,7 @@ declare_imageoutput(py::module& m)
             "create",
             [](const std::string& filename,
                const std::string& searchpath) -> py::object {
-                auto out(ImageOutput::create(filename, searchpath));
+                auto out(ImageOutput::create(filename, nullptr, searchpath));
                 return out ? py::cast(out.release()) : py::none();
             },
             "filename"_a, "plugin_searchpath"_a = "")
