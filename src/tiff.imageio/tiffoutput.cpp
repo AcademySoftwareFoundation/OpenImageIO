@@ -398,9 +398,10 @@ allval(const std::vector<T>& d, T v = T(0))
 
 
 static tsize_t
-writer_readproc(thandle_t, tdata_t, tsize_t)
+writer_readproc(thandle_t handle, tdata_t data, tsize_t size)
 {
-    return 0;
+    auto io = static_cast<Filesystem::IOProxy*>(handle);
+    return io->read(data, size);
 }
 
 static tsize_t
