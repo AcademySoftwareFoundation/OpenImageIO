@@ -1187,6 +1187,84 @@ test_yee()
 
 
 
+template<typename T>
+static void
+test_simple_perpixel()
+{
+    TypeDesc td = TypeDescFromC<T>::value();
+    print("test_simple_perpixel {}\n", td);
+    {
+        print("  unary op\n");
+        ImageBuf src = filled_image({ 0.25f, 0.5f, 0.75f, 1.0f }, 4, 4, td);
+        ImageBuf result
+            = ImageBufAlgo::perpixel_op(src, [](span<float> d, cspan<float> s) {
+                  for (size_t c = 0, nc = size_t(d.size()); c < nc; ++c)
+                      d[c] = s[nc - 1 - c];
+                  return true;
+              });
+        OIIO_CHECK_EQUAL(result.spec().format, td);
+        for (ImageBuf::ConstIterator<T> r(result); !r.done(); ++r) {
+            OIIO_CHECK_EQUAL(r[0], 1.0f);
+            OIIO_CHECK_EQUAL(r[1], 0.75f);
+            OIIO_CHECK_EQUAL(r[2], 0.5f);
+            OIIO_CHECK_EQUAL(r[3], 0.25f);
+        }
+    }
+    {
+        print("  binary op\n");
+        ImageBuf srcA   = filled_image({ 0.25f, 0.5f, 0.75f, 1.0f }, 4, 4, td);
+        ImageBuf srcB   = filled_image({ 1.0f, 2.0f, 3.0f, 4.0f }, 4, 4, td);
+        ImageBuf result = ImageBufAlgo::perpixel_op(
+            srcA, srcB, [](span<float> d, cspan<float> a, cspan<float> b) {
+                for (size_t c = 0, nc = size_t(d.size()); c < nc; ++c)
+                    d[c] = a[c] + b[c];
+                return true;
+            });
+        OIIO_CHECK_EQUAL(result.spec().format, td);
+        for (ImageBuf::ConstIterator<T> r(result); !r.done(); ++r) {
+            OIIO_CHECK_EQUAL(r[0], 1.25f);
+            OIIO_CHECK_EQUAL(r[1], 2.5f);
+            OIIO_CHECK_EQUAL(r[2], 3.75f);
+            OIIO_CHECK_EQUAL(r[3], 5.0f);
+        }
+    }
+
+    if (td == TypeFloat) {
+        // Timing test: how much more expensive is the perpixel_op than the
+        // fully optimized per-type version?
+        Benchmarker bench;
+        bench.units(Benchmarker::Unit::ms);
+        ImageBuf af(ImageSpec(2048, 2048, 4, TypeFloat));
+        ImageBuf bf(ImageSpec(2048, 2048, 4, TypeFloat));
+        ImageBuf au8(ImageSpec(2048, 2048, 4, TypeUInt8));
+        ImageBuf bu8(ImageSpec(2048, 2048, 4, TypeUInt8));
+        bench("  IBA::add() float",
+              [&]() { ImageBuf r = ImageBufAlgo::add(af, bf); });
+        bench("  IBA::add() u8",
+              [&]() { ImageBuf r = ImageBufAlgo::add(au8, bu8); });
+        bench("  IBA::perpixel_op<float> add", [&]() {
+            ImageBuf r = ImageBufAlgo::perpixel_op(
+                af, bf,  //
+                [](span<float> r, cspan<float> a, cspan<float> b) {
+                    for (size_t c = 0, nc = size_t(r.size()); c < nc; ++c)
+                        r[c] = a[c] + b[c];
+                    return true;
+                });
+        });
+        bench("  IBA::perpixel_op<u8> add", [&]() {
+            ImageBuf r = ImageBufAlgo::perpixel_op(
+                au8, bu8,  //
+                [](span<float> r, cspan<float> a, cspan<float> b) {
+                    for (size_t c = 0, nc = size_t(r.size()); c < nc; ++c)
+                        r[c] = a[c] + b[c];
+                    return true;
+                });
+        });
+    }
+}
+
+
+
 int
 main(int argc, char** argv)
 {
@@ -1227,6 +1305,8 @@ main(int argc, char** argv)
     test_opencv();
     test_color_management();
     test_yee();
+    test_simple_perpixel<float>();
+    test_simple_perpixel<half>();
 
     benchmark_parallel_image(64, iterations * 64);
     benchmark_parallel_image(512, iterations * 16);

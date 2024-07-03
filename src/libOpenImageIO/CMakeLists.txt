@@ -254,7 +254,9 @@ if (OIIO_BUILD_TESTS AND BUILD_TESTING)
     add_test (unit_imagecache ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagecache_test)
 
     fancy_add_executable (NAME imagebufalgo_test SRC imagebufalgo_test.cpp
-                          LINK_LIBRARIES OpenImageIO ${OpenCV_LIBRARIES}
+                          LINK_LIBRARIES OpenImageIO
+                                         ${OpenCV_LIBRARIES}
+                                         ${OPENIMAGEIO_IMATH_TARGETS}
                           FOLDER "Unit Tests" NO_INSTALL)
     add_test (unit_imagebufalgo ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagebufalgo_test)
 

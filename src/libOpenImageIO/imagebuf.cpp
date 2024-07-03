@@ -3163,6 +3163,7 @@ ImageBuf::IteratorBase::init_ib(WrapMode wrap, bool write)
     m_y            = 1 << 31;
     m_z            = 1 << 31;
     m_wrap         = (wrap == WrapDefault ? WrapBlack : wrap);
+    m_pixeltype    = spec.format.basetype;
 }
 
 
