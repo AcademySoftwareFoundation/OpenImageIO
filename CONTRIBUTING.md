@@ -147,6 +147,84 @@ leverage this [command line tool](https://github.com/coderanger/dco) for
 automatically adding the signoff message on commits.
 
 
+Commit messages
+---------------
+
+### Summary heuristic
+
+Look at the commit history of the project to get a sense of the style and
+level of detail that is expected in commit messages.
+
+### General guidelines and expectations
+
+The first line of the commit message should be a short (less than 80
+characters) summary of the change, prefixed with the general nature of the
+change (see below).
+
+The rest of the commit message should be a more detailed explanation of the
+changes. Some commits are self-explanatory and don't need more than the
+summary line. Others may need a more detailed explanation. Hallmarks of
+a good commit message include:
+
+* An explanation of why the change is necessary and what you hope to
+  accomplish with it.
+* A description of any major user- or developer-facing changes that people
+  should be aware of: changes in APIs or behaviors, new features, etc.
+* An explanation of any tricky implementation details or design decisions that
+  might not be immediately obvious to someone reading the code.
+* Guideposts for somebody reviewing the code to understand the rationale and
+  have any supporting background information to fully understanding the code
+  changes.
+
+Remember that at some point in the future, a developer unfamiliar with your
+change (maybe you, long after you've forgotten the details) might need to
+understand or fix your patch. Keep that person in mind as your audience and
+strive to write a commit message that explains the context in a way that saves
+them time and effort. Be the hero in the story of their future debugging
+effort!
+
+### Using "conventional commits" prefixes
+
+We strive to follow the recommendations known as [conventional
+commits](https://www.conventionalcommits.org/), which means that we would like
+merged commit messages to have their first line start with one of the
+following prefixes:
+
+- `feat:`  new features
+- `fix:`  bug fixes
+- `perf:`  performance improvements
+- `api:`  changes to the public APIs
+- `int:`  changes to code internals that don't affect the public API
+- `build:`  changes to the build system
+- `test:`  changes to the test suite or unit tests
+- `ci:`  changes to the CI system
+- `docs:`  changes to the documentation
+- `refactor:`  code refactoring
+- `style:`  formatting or other stylistic non-functional changes to the code
+- `admin:`  project administration or policy changes
+- `revert:`  reverting a previous commit
+
+Obviously, some (if not most) PRs may qualify for more than one of these
+categories (for example, a new feature may also introduce a new API call, add
+tests, and include new documentation). If that is the case, use your best
+judgment to pick the category that best captures the essence or most important
+aspect of the change. When ambiguous, consider the list above to be a priority
+ranking (e.g., a change that fixes a bug and adds a new test should be listed
+under `fix:`, because that appears first in the list).
+
+It is also encouraged, when it makes sense to do so, to put a subcategory in
+parenthesis after the prefix, like `fix(exr):` or `feat(IBA):`. It's ok to use
+obvious abbreviations for major classes or subsections: IB=ImageBuf,
+IBA=ImageBufAlgo, IC=ImageCace, TS=TextureSystem, etc. If there is no clear
+single format or class that is the man focus of the patch, then you can omit
+the subcategory.
+
+API or ABI-breaking changes should additionally be marked with an exclamation
+point at the end of the prefix, like `feat!:` or `api!:` to make it easily
+identifiable as a breaking change from the first line of the commit message.
+
+
+
 Pull Requests and Code Review
 -----------------------------
 
