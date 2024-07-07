@@ -13,9 +13,16 @@ set -ex
 # Install system packages when those are acceptable for dependencies.
 #
 if [[ "$ASWF_ORG" != ""  ]] ; then
-    # Using ASWF CentOS container
+    # Using ASWF container
 
     #ls /etc/yum.repos.d
+
+    if [[ "$ASWF_VFXPLATFORM_VERSION" == "2021" || "$ASWF_VFXPLATFORM_VERSION" == "2022" ]] ; then
+        # CentOS 7 based containers need the now-nonexistant centos repo to be
+        # excluded or all the subsequent yum install commands will fail.
+        yum-config-manager --disable centos-sclo-rh && true
+        sed -i 's,^mirrorlist=,#,; s,^#baseurl=http://mirror\.centos\.org/centos/$releasever,baseurl=https://vault.centos.org/7.9.2009,' /etc/yum.repos.d/CentOS-Base.repo
+    fi
 
     sudo yum install -y giflib giflib-devel && true
     if [[ "${USE_OPENCV}" != "0" ]] ; then
