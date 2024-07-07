@@ -340,6 +340,16 @@ inside the source code.
         imagecache->attribute ("options", value);
 
 
+``OPENIMAGEIO_PLUGIN_PATH``
+
+    A colon-separated list of directories to search for OpenImageIO plugins
+    (dynamicaly loadable libraries that implement image format readers
+    and writers).
+
+    This is a new name beginning with OpenImageIO 2.6.3. The old name
+    ``OIIO_LIBRARY_PATH`` is still supported, but deprecated.
+
+
 ``OPENIMAGEIO_TEXTURE_OPTIONS``
 
     Allows you to seed the options for any TextureSystem created.

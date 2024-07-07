@@ -468,6 +468,8 @@ pvt::catalog_all_plugins(std::string searchpath)
     std::call_once(builtin_flag, catalog_builtin_plugins);
 
     std::unique_lock<std::recursive_mutex> lock(imageio_mutex);
+    append_if_env_exists(searchpath, "OPENIMAGEIO_PLUGIN_PATH", true);
+    // obsolete name:
     append_if_env_exists(searchpath, "OIIO_LIBRARY_PATH", true);
 
     size_t patlen = pattern.length();
