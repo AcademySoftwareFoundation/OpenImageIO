@@ -798,6 +798,8 @@ ImageViewer::readSettings(bool ui_is_set_up)
     slideShowDuration->setValue(
         settings.value("slideShowDuration", 10).toInt());
 
+    OIIO::attribute("imagebuf:use_imagecache", 1);
+
     ImageCache* imagecache = ImageCache::create(true);
     imagecache->attribute("automip", autoMipmap->isChecked());
     imagecache->attribute("max_memory_MB", (float)maxMemoryIC->value());
