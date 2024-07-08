@@ -384,14 +384,12 @@ JxlOutput::save_metadata(ImageSpec& m_spec, JxlEncoderPtr& encoder)
     encode_iptc_iim(m_spec, iptc);
 
     bool use_boxes = m_spec.get_int_attribute("jpegxl:use_boxes", 1) == 1;
-    int compress_boxes
-        = m_spec.get_int_attribute("jpegxl:compress_boxes", 0) == 0
-              ? 0
-              : 1;  // TODO: change to 1 for compression by default
+    int compress_boxes = m_spec.get_int_attribute("jpegxl:compress_boxes", 1);
 
     if (use_boxes) {
         if (JXL_ENC_SUCCESS != JxlEncoderUseBoxes(m_encoder.get())) {
-            errorfmt("JxlEncoderUseBoxes() failed.\n");
+            JxlEncoderError error = JxlEncoderGetError(m_encoder.get());
+            errorfmt("JxlEncoderUseBoxes() failed {}.", (int)error);
             return false;
         }
         DBG std::cerr << "JxlEncoderUseBoxes() ok\n";
@@ -437,14 +435,18 @@ JxlOutput::save_metadata(ImageSpec& m_spec, JxlEncoderPtr& encoder)
             const char* type;
             const std::vector<uint8_t>* bytes;
             const bool enable;
-        } boxes[] = { { "Exif", exif_data,
-                        m_spec.get_int_attribute("jpegxl:exif_box", 1) == 1 },
-                      { "xml ", &xmp_data,
-                        m_spec.get_int_attribute("jpegxl:xmp_box", 1) == 1 },
-                      { "jumb", jumbf_data,
-                        m_spec.get_int_attribute("jpegxl:jumb_box", 0) == 1 },
-                      { "xml ", iptc_data,
-                        m_spec.get_int_attribute("jpegxl:iptc_box", 0) == 1 } };
+        };
+
+        const BoxInfo boxes[]
+            = { { "Exif", exif_data,
+                  m_spec.get_int_attribute("jpegxl:exif_box", 1) == 1 },
+                { "xml ", &xmp_data,
+                  m_spec.get_int_attribute("jpegxl:xmp_box", 1) == 1 },
+                { "jumb", jumbf_data,
+                  m_spec.get_int_attribute("jpegxl:jumb_box", 0) == 1 },
+                { "xml ", iptc_data,
+                  m_spec.get_int_attribute("jpegxl:iptc_box", 0) == 1 } };
+
         for (const auto& box : boxes) {
             // check if box_data is not nullptr
             if (box.enable) {
@@ -521,6 +523,11 @@ JxlOutput::save_image(const void* data)
 
     // Write EXIF info
     bool metadata_success = save_metadata(m_spec, m_encoder);
+    if (!metadata_success) {
+        error = JxlEncoderGetError(m_encoder.get());
+        errorfmt("save_metadata failed with error {}", (int)error);
+        return false;
+    }
 
     status = JxlEncoderAddImageFrame(m_frame_settings, &m_pixel_format, data,
                                      size);
