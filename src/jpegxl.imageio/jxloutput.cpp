@@ -383,7 +383,7 @@ JxlOutput::save_metadata(ImageSpec& m_spec, JxlEncoderPtr& encoder)
     std::vector<char> iptc;
     encode_iptc_iim(m_spec, iptc);
 
-    bool use_boxes = m_spec.get_int_attribute("jpegxl:use_boxes", 1) == 1;
+    bool use_boxes     = m_spec.get_int_attribute("jpegxl:use_boxes", 1) == 1;
     int compress_boxes = m_spec.get_int_attribute("jpegxl:compress_boxes", 1);
 
     if (use_boxes) {
