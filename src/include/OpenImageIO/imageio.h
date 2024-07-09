@@ -1503,7 +1503,7 @@ public:
                              ProgressCallback progress_callback=NULL,
                              void *progress_callback_data=NULL);
 
-#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2,0,0) && !defined(OIIO_DOXYGEN)
+#if !defined(OIIO_DOXYGEN)
     // DEPRECATED versions of read_image (pre-1.9 OIIO). These will
     // eventually be removed. Try to replace these calls with ones to the
     // new variety of read_image that takes an explicit subimage and
