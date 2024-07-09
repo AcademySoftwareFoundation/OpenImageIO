@@ -568,7 +568,7 @@ DeepData::set_samples(int64_t pixel, int samps)
 void
 DeepData::set_all_samples(cspan<unsigned int> samples)
 {
-    if (samples.size() != m_npixels)
+    if (std::ssize(samples) != m_npixels)
         return;
     OIIO_DASSERT(m_impl);
     if (m_impl->m_allocated) {

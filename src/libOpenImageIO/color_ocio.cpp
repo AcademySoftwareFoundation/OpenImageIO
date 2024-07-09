@@ -564,11 +564,11 @@ ColorConfig::Impl::test_conversion_yields(const char* from, const char* to,
     if (!proc)
         return false;
     OIIO_DASSERT(test_colors.size() == result_colors.size());
-    int n              = std::ssize(test_colors);
+    auto n             = test_colors.size();
     Imath::C3f* colors = OIIO_ALLOCA(Imath::C3f, n);
     std::copy(test_colors.data(), test_colors.data() + n, colors);
-    proc->apply((float*)colors, n, 1, 3, sizeof(float), 3 * sizeof(float),
-                n * 3 * sizeof(float));
+    proc->apply((float*)colors, int(n), 1, 3, sizeof(float), 3 * sizeof(float),
+                int(n) * 3 * sizeof(float));
     return close_colors({ colors, n }, result_colors);
 }
 

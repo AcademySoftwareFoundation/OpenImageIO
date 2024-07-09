@@ -2180,7 +2180,7 @@ public:
     }
     OpSetColorSpace(Oiiotool& ot, string_view opname, int argc,
                     const char* argv[])
-        : OpSetColorSpace(ot, opname, { argv, argc })
+        : OpSetColorSpace(ot, opname, { argv, span_size_t(argc) })
     {
     }
     bool setup() override
@@ -4901,7 +4901,8 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
     TypeDesc input_dataformat(fileoptions.get_string("type"));
     std::string channel_set = fileoptions["ch"];
 
-    for (int i = 0; i < argv.size(); i++) {  // FIXME: this loop is pointless
+    for (int i = 0; i < std::ssize(argv); i++) {
+        // FIXME: this loop is pointless, since there is ever only one arg
         OTScopedTimer timer(ot, command);
         string_view filename = ot.express(argv[i]);
         auto found           = ot.image_labels.find(filename);

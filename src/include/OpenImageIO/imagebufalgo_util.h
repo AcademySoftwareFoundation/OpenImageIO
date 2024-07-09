@@ -588,12 +588,12 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
 // were no entries at all. This is used in many IBA functions that take
 // constant per-channel values.
 #define IBA_FIX_PERCHAN_LEN(av,len,missing,zdef)                        \
-    if (av.size() < len) {                                              \
+    if (std::ssize(av) < len) {                                          \
         int nc = len;                                                   \
         float *vals = OIIO_ALLOCA(float, nc);                           \
         for (int i = 0;  i < nc;  ++i)                                  \
-            vals[i] = i < av.size() ? av[i] : (i ? vals[i-1] : zdef);   \
-        av = cspan<float>(vals, nc);                                    \
+            vals[i] = i < std::ssize(av) ? av[i] : (i ? vals[i-1] : zdef);  \
+        av = cspan<float>(vals, span_size_t(nc));                       \
     }
 
 // Default IBA_FIX_PERCHAN_LEN, with zdef=0.0 and missing = the last value

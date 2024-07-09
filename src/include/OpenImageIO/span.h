@@ -21,30 +21,26 @@
 
 OIIO_NAMESPACE_BEGIN
 
-// By default, our span::size() is a signed value, because we wrote this at
-// a time that the draft of std::span said it should be signed. The final
-// C++20 std::span ended up with an unsigned size, like all the other STL
-// classes. We will eventually conform by switching, but not until we are at
-// OIIO 3.0, allowing source code API-breaking incompatibilities. In the
-// mean time, we allow a back door to experiment with standard conformance
-// by pre-defining OIIO_SPAN_SIZE_IS_UNSIGNED=1.
-#if OIIO_VERSION_GREATER_EQUAL(3,0,0)
+// Our pre-3.0 implementation had span::size() as a signed value, because we
+// wrote it at a time that the draft of std::span said it should be signed.
+// The final C++20 std::span ended up with an unsigned size, like all the
+// other STL classes. It took us until OIIO 3.0 (or the in-progress 2.6.3)
+// before we were able to break compatibility by switching it to match
+// std::span::size() returning a size_t.
+#ifndef OIIO_SPAN_SIZE_IS_UNSIGNED
 #    define OIIO_SPAN_SIZE_IS_UNSIGNED
 #endif
 
-#ifdef OIIO_SPAN_SIZE_IS_UNSIGNED
-using oiio_span_size_type = size_t;
-#else
-using oiio_span_size_type = ptrdiff_t;
-#endif
+using span_size_t = size_t;
+using oiio_span_size_type = OIIO::span_size_t;  // back-compat alias
 
-OIIO_INLINE_CONSTEXPR oiio_span_size_type dynamic_extent = -1;
+OIIO_INLINE_CONSTEXPR span_size_t dynamic_extent = -1;
 
 
 
 /// `span<T>` is a non-owning, non-copying, non-allocating reference to a
-/// contiguous array of T objects known length. A 'span` encapsulates both a
-/// pointer and a length, and thus is a safer way of passing pointers around
+/// contiguous array of T objects of known length. A 'span` encapsulates both
+/// a pointer and a length, and thus is a safer way of passing pointers around
 /// (because the function called knows how long the array is). A function
 /// that might ordinarily take a `T*` and a length could instead just take a
 /// `span<T>`.
@@ -70,17 +66,14 @@ OIIO_INLINE_CONSTEXPR oiio_span_size_type dynamic_extent = -1;
 /// structure (unless you are really sure you know what you're doing).
 ///
 
-template <typename T, oiio_span_size_type Extent = dynamic_extent>
+template <typename T, span_size_t Extent = dynamic_extent>
 class span {
     static_assert (std::is_array<T>::value == false, "can't have span of an array");
 public:
     using element_type = T;
     using value_type = typename std::remove_cv<T>::type;
-    using size_type = oiio_span_size_type;
+    using size_type = span_size_t;
     using difference_type = ptrdiff_t;
-#if OIIO_VERSION < OIIO_MAKE_VERSION(3,0,0)
-    using index_type = size_type;  // DEPRECATED(3.0)
-#endif
     using pointer = element_type*;
     using reference = element_type&;
     using iterator = element_type*;
@@ -93,7 +86,7 @@ public:
     constexpr span () noexcept = default;
 
     /// Copy constructor (copies the span pointer and length, NOT the data).
-    template<class U, oiio_span_size_type N>
+    template<class U, span_size_t N>
     constexpr span (const span<U,N> &copy) noexcept
         : m_data(copy.data()), m_size(copy.size()) { }
     /// Copy constructor (copies the span pointer and length, NOT the data).
@@ -230,27 +223,27 @@ private:
 
 
 /// cspan<T> is a synonym for a non-mutable span<const T>.
-template <typename T, oiio_span_size_type Extent = dynamic_extent>
+template <typename T, span_size_t Extent = dynamic_extent>
 using cspan = span<const T, Extent>;
 
 
 
 /// Compare all elements of two spans for equality
-template <class T, oiio_span_size_type X, class U, oiio_span_size_type Y>
+template <class T, span_size_t X, class U, span_size_t Y>
 constexpr bool operator== (span<T,X> l, span<U,Y> r) {
 #if OIIO_CPLUSPLUS_VERSION >= 20
     return std::equal (l.begin(), l.end(), r.begin(), r.end());
 #else
     auto lsize = l.size();
     bool same = (lsize == r.size());
-    for (ptrdiff_t i = 0; same && i < lsize; ++i)
+    for (span_size_t i = 0; same && i < lsize; ++i)
         same &= (l[i] == r[i]);
     return same;
 #endif
 }
 
 /// Compare all elements of two spans for inequality
-template <class T, oiio_span_size_type X, class U, oiio_span_size_type Y>
+template <class T, span_size_t X, class U, span_size_t Y>
 constexpr bool operator!= (span<T,X> l, span<U,Y> r) {
     return !(l == r);
 }
@@ -261,18 +254,15 @@ constexpr bool operator!= (span<T,X> l, span<U,Y> r) {
 /// array with known length and optionally non-default strides through the
 /// data.  A span_strided<T> is mutable (the values in the array may
 /// be modified), whereas a span_strided<const T> is not mutable.
-template <typename T, oiio_span_size_type Extent = dynamic_extent>
+template <typename T, span_size_t Extent = dynamic_extent>
 class span_strided {
     static_assert (std::is_array<T>::value == false,
                    "can't have span_strided of an array");
 public:
     using element_type = T;
     using value_type = typename std::remove_cv<T>::type;
-    using size_type  = oiio_span_size_type;
+    using size_type  = span_size_t;
     using difference_type = ptrdiff_t;
-#if OIIO_VERSION < OIIO_MAKE_VERSION(3,0,0)
-    using index_type = size_type;  // DEPRECATED(3.0)
-#endif
     using stride_type = ptrdiff_t;
     using pointer = element_type*;
     using reference = element_type&;
@@ -356,25 +346,25 @@ private:
 
 
 /// cspan_strided<T> is a synonym for a non-mutable span_strided<const T>.
-template <typename T, oiio_span_size_type Extent = dynamic_extent>
+template <typename T, span_size_t Extent = dynamic_extent>
 using cspan_strided = span_strided<const T, Extent>;
 
 
 
 /// Compare all elements of two spans for equality
-template <class T, oiio_span_size_type X, class U, oiio_span_size_type Y>
+template <class T, span_size_t X, class U, span_size_t Y>
 constexpr bool operator== (span_strided<T,X> l, span_strided<U,Y> r) {
     auto lsize = l.size();
     if (lsize != r.size())
         return false;
-    for (ptrdiff_t i = 0; i < lsize; ++i)
+    for (span_size_t i = 0; i < lsize; ++i)
         if (l[i] != r[i])
             return false;
     return true;
 }
 
 /// Compare all elements of two spans for inequality
-template <class T, oiio_span_size_type X, class U, oiio_span_size_type Y>
+template <class T, span_size_t X, class U, span_size_t Y>
 constexpr bool operator!= (span_strided<T,X> l, span_strided<U,Y> r) {
     return !(l == r);
 }
@@ -387,12 +377,12 @@ OIIO_NAMESPACE_END
 // Declare std::size and std::ssize for our span.
 namespace std {
 
-template<class T, OIIO::oiio_span_size_type E = OIIO::dynamic_extent>
+template<class T, OIIO::span_size_t E = OIIO::dynamic_extent>
 constexpr size_t size(const OIIO::span<T, E>& c) {
     return static_cast<size_t>(c.size());
 }
 
-template<class T, OIIO::oiio_span_size_type E = OIIO::dynamic_extent>
+template<class T, OIIO::span_size_t E = OIIO::dynamic_extent>
 constexpr size_t size(const OIIO::span_strided<T, E>& c) {
     return static_cast<size_t>(c.size());
 }
@@ -400,12 +390,12 @@ constexpr size_t size(const OIIO::span_strided<T, E>& c) {
 
 #if OIIO_CPLUSPLUS_VERSION < 20
 // C++20 and beyond already have these declared.
-template<class T, OIIO::oiio_span_size_type E = OIIO::dynamic_extent>
+template<class T, OIIO::span_size_t E = OIIO::dynamic_extent>
 constexpr ptrdiff_t ssize(const OIIO::span<T, E>& c) {
     return static_cast<ptrdiff_t>(c.size());
 }
 
-template<class T, OIIO::oiio_span_size_type E = OIIO::dynamic_extent>
+template<class T, OIIO::span_size_t E = OIIO::dynamic_extent>
 constexpr ptrdiff_t ssize(const OIIO::span_strided<T, E>& c) {
     return static_cast<ptrdiff_t>(c.size());
 }
@@ -423,7 +413,7 @@ constexpr ptrdiff_t ssize(const OIIO::span_strided<T, E>& c) {
 
 /// Custom fmtlib formatters for span/cspan types.
 namespace fmt {
-template<typename T, OIIO::oiio_span_size_type Extent>
+template<typename T, OIIO::span_size_t Extent>
 struct formatter<OIIO::span<T, Extent>>
     : OIIO::pvt::index_formatter<OIIO::span<T, Extent>> {};
 }  // namespace fmt

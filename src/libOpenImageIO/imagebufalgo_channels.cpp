@@ -38,7 +38,7 @@ channels_(ImageBuf& dst, const ImageBuf& src, cspan<int> channelorder,
                 int cc = channelorder[c];
                 if (cc >= 0 && cc < nchannels)
                     d[c] = s[cc];
-                else if (channelvalues.size() > c)
+                else if (std::ssize(channelvalues) > c)
                     d[c] = channelvalues[c];
             }
         }
@@ -90,7 +90,7 @@ ImageBufAlgo::channels(ImageBuf& dst, const ImageBuf& src, int nchannels,
     bool inorder = true;
     for (int c = 0; c < nchannels; ++c) {
         inorder &= (channelorder[c] == c);
-        if (newchannelnames.size() > c && newchannelnames[c].size()
+        if (std::ssize(newchannelnames) > c && newchannelnames[c].size()
             && c < int(src.spec().channelnames.size()))
             inorder &= (newchannelnames[c] == src.spec().channelnames[c]);
     }
@@ -109,7 +109,7 @@ ImageBufAlgo::channels(ImageBuf& dst, const ImageBuf& src, int nchannels,
     for (int c = 0; c < nchannels; ++c) {
         int csrc = channelorder[c];
         // If the user gave an explicit name for this channel, use it...
-        if (newchannelnames.size() > c && newchannelnames[c].size())
+        if (std::ssize(newchannelnames) > c && newchannelnames[c].size())
             newspec.channelnames[c] = newchannelnames[c];
         // otherwise, if shuffle_channel_names, use the channel name of
         // the src channel we're using (otherwise stick to the default name)
@@ -155,8 +155,8 @@ ImageBufAlgo::channels(ImageBuf& dst, const ImageBuf& src, int nchannels,
                 int csrc = channelorder[c];
                 if (csrc < 0) {
                     // Replacing the channel with a new value
-                    float val = channelvalues.size() > c ? channelvalues[c]
-                                                         : 0.0f;
+                    float val = std::ssize(channelvalues) > c ? channelvalues[c]
+                                                              : 0.0f;
                     for (int s = 0, ns = dstdata.samples(p); s < ns; ++s)
                         dstdata.set_deep_value(p, c, s, val);
                 } else {

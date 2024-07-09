@@ -532,7 +532,8 @@ ArgParse::Impl::parse_args(int xargc, const char** xargv)
                     if (option->has_callback())
                         option->invoke_callback(1 + n, m_argv + i);
                     if (option->m_action) {
-                        option->m_action(*option, { m_argv + i, n + 1 });
+                        option->m_action(*option,
+                                         { m_argv + i, span_size_t(n + 1) });
                     } else {
                         m_params[option->dest()] = m_argv[i + 1];
                     }

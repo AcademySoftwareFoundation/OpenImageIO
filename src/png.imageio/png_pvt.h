@@ -260,7 +260,8 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
                            profile_data);
             std::string errormsg;
             bool ok = decode_icc_profile(
-                cspan<uint8_t>((const uint8_t*)profile_data, profile_length),
+                cspan<uint8_t>((const uint8_t*)profile_data,
+                               span_size_t(profile_length)),
                 spec, errormsg);
             if (!ok) {
                 // errorfmt("Could not decode ICC profile: {}\n", errormsg);
@@ -337,7 +338,7 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     png_uint_32 num_exif = 0;
     png_bytep exif_data  = nullptr;
     if (png_get_eXIf_1(sp, ip, &num_exif, &exif_data)) {
-        decode_exif(cspan<uint8_t>(exif_data, num_exif), spec);
+        decode_exif(cspan<uint8_t>(exif_data, span_size_t(num_exif)), spec);
     }
 #endif
 
