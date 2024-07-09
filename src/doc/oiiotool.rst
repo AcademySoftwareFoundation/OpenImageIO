@@ -982,6 +982,10 @@ output each one to a different file, with names `sub0001.tif`,
     sign), it will be saved as `int`; if it also contains a decimal point, it
     will be saved as a `float`; otherwise, it will be saved as a `string`.
 
+    The name of the variable must be in the form of an "identifier" (a
+    sequence of alphanumeric characters and underscores, starting with a
+    letter or underscore).
+
     This command was added in OIIO 2.4.0.
 
     Examples::
@@ -2241,6 +2245,10 @@ current top image.
     Thereafter, the label name may be used to refer to that saved image, in
     the usual manner that an ordinary input image would be specified by
     filename.
+
+    The name of the label must be in the form of an "identifier" (a sequence
+    of alphanumeric characters and underscores, starting with a letter or
+    underscore).
 
 
 :program:`oiiotool` commands that make entirely new images

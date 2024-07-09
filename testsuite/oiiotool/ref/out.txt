@@ -4,6 +4,10 @@
        0  < 0,0,0
     6400  > 1,0.9,1
    59136  within range
+This should make an error:
+oiiotool ERROR: --label : Invalid label name "2hot2handle"
+Full command line was:
+> oiiotool -echo "This should make an error:" --create 1x1 3 --label 2hot2handle -o out.tif
 --printstats:
  128 x   96, 3 channel, float tiff
     Stats Min: 0 0 0 (of 255)

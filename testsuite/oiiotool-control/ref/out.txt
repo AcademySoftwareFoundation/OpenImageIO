@@ -58,6 +58,10 @@ Testing --set of implied types:
   i = 42, f = 3.5, s = hello world
 Testing --set of various explicit types:
   i = 42, f = 3.5, s = hello world, tc = 01:02:03:04, rat = 1/2
+This should make an error:
+oiiotool ERROR: -set : Invalid variable name "3"
+Full command line was:
+> oiiotool -echo "This should make an error:" -set 3 5
 Expr getattribute(limits:channels) = 1024
 Testing if with true cond (expect output):
   inside if clause, i=42

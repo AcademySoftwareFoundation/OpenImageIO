@@ -88,6 +88,8 @@ command += oiiotool ('-echo "Testing --set of various explicit types:" ' +
                      '-set:type=timecode tc 01:02:03:04 ' +
                      '-set:type=rational rat 1/2 ' +
                      '-echo "  i = {i}, f = {f}, s = {s}, tc = {tc}, rat = {rat}"')
+command += oiiotool ('-echo "This should make an error:" ' +
+                     '-set 3 5')
 
 # Test getattribute in an expression
 command += oiiotool ('-echo "Expr getattribute(\"limits:channels\") = {getattribute(\"limits:channels\")}"')
@@ -134,7 +136,9 @@ command += oiiotool ("../common/tahoe-tiny.tif"
 
 # Test IMG[]
 command += oiiotool ("../common/tahoe-tiny.tif ../common/tahoe-small.tif " +
-                     "--echo \"Stack holds [0] = {IMG[0].filename}, [1] = {IMG[1].filename}\"")
+                     "--echo \"Stack holds [0] = {IMG[0].filename}, [1] = {IMG[1].filename}\" " +
+                     "--set i 1 " +
+                     "--echo \"Stack holds [{i}] = {IMG[i].filename}\" ")
 
 # Test some special attribute evaluation names
 command += oiiotool ("../common/tahoe-tiny.tif " +
