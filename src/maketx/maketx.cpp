@@ -91,7 +91,7 @@ colorconvert_help_string()
 
     s += " (choices: ";
     ColorConfig colorconfig;
-    if (colorconfig.error() || colorconfig.getNumColorSpaces() == 0) {
+    if (colorconfig.has_error() || colorconfig.getNumColorSpaces() == 0) {
         s += "NONE";
     } else {
         for (int i = 0; i < colorconfig.getNumColorSpaces(); ++i) {

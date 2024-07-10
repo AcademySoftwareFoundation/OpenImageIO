@@ -1622,14 +1622,14 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         }
 
         ColorConfig colorconfig(colorconfigname);
-        if (colorconfig.error()) {
+        if (colorconfig.has_error()) {
             errorfmt("Error Creating ColorConfig: {}", colorconfig.geterror());
             return false;
         }
 
         ColorProcessorHandle processor
             = colorconfig.createColorProcessor(incolorspace, outcolorspace);
-        if (!processor || colorconfig.error()) {
+        if (!processor || colorconfig.has_error()) {
             errorfmt("Error Creating Color Processor: {}",
                      colorconfig.geterror());
             return false;
