@@ -1919,7 +1919,7 @@ main(int argc, const char* argv[])
             int tries = nt <= 2 ? std::min(lowtrials, ntrials) : ntrials;
             double range;
             float t = (float)time_trial(std::bind(launch_tex_threads, nt, its),
-                                        tries, &range);
+                                        tries, 1, &range);
             if (single_thread_time == 0.0f)
                 single_thread_time = t * nt;
             float speedup    = single_thread_time / t;

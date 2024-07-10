@@ -318,6 +318,9 @@ private:
 /// DEPRECATED(1.8): This may be considered obsolete, probably the
 /// Benchmarker class is a better solution.
 template<typename FUNC>
+#ifndef OIIO_INTERNAL
+OIIO_DEPRECATED("use Benchmarker instead")
+#endif
 double
 time_trial(FUNC func, int ntrials = 1, int nrepeats = 1, double* range = NULL)
 {
@@ -338,14 +341,6 @@ time_trial(FUNC func, int ntrials = 1, int nrepeats = 1, double* range = NULL)
     if (range)
         *range = maxtime - mintime;
     return mintime;
-}
-
-/// Version without repeats.
-template<typename FUNC>
-double
-time_trial(FUNC func, int ntrials, double* range)
-{
-    return time_trial(func, ntrials, 1, range);
 }
 
 

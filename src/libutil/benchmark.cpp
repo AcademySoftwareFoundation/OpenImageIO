@@ -204,7 +204,7 @@ timed_thread_wedge(function_view<void(int)> task, function_view<void()> pretask,
                 threads.join_all();
                 posttask();
             },
-            ntrials, &range);
+            ntrials, 1, &range);
         if (out) {
             double one_thread_time = times[0] * threadcounts[0];
             double ideal           = one_thread_time / nthreads;
