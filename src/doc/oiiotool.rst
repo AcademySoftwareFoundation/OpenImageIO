@@ -126,9 +126,10 @@ contents of an expression may be any of:
   The *imagename* may be one of:
 
   * `TOP` : the top or current image;
+  * `BOTTOM` : the image at the bottom of the stack;
   * `IMG[index]` : if `index` evaluates to an integer `i`, the i-th image on
     the stack (thus `TOP` is a synonym for `IMG[0]`, the next image on the
-    stack is `IMG[1]`, etc.);
+    stack is `IMG[1]`, ..., and `BOTTOM` is a synonmym for `IMG[NIMAGES-1]`);
   * `IMG[name]` : an image named by filename or by label name.
 
   Remember that the positions on the stack (including `TOP`) refer to *at that

@@ -149,11 +149,14 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
             return false;
 
     } else if (Strutil::starts_with(s, "TOP")
+               || Strutil::starts_with(s, "BOTTOM")
                || Strutil::starts_with(s, "IMG[")) {
         // metadata substitution
         ImageRecRef img;
         if (Strutil::parse_prefix(s, "TOP")) {
             img = curimg;
+        } else if (Strutil::parse_prefix(s, "BOTTOM")) {
+            img = (image_stack.size() <= 1) ? curimg : image_stack[0];
         } else if (Strutil::parse_prefix(s, "IMG[")) {
             std::string until_bracket = Strutil::parse_until(s, "]");
             if (until_bracket.empty() || !Strutil::parse_char(s, ']')) {
