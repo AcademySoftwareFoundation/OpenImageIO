@@ -75,9 +75,9 @@ IvImage::read_iv(int subimage, int miplevel, bool force, TypeDesc format,
                                        progress_callback_data);
 
     if (m_image_valid && secondary_data && spec().format == TypeDesc::UINT8) {
-        m_corrected_image.reset("", ImageSpec(spec().width, spec().height,
-                                              std::min(spec().nchannels, 4),
-                                              spec().format));
+        m_corrected_image.reset(ImageSpec(spec().width, spec().height,
+                                          std::min(spec().nchannels, 4),
+                                          spec().format));
     } else {
         m_corrected_image.clear();
     }

@@ -514,26 +514,8 @@ ImageBuf::ImageBuf(string_view filename, int subimage, int miplevel,
 
 
 
-ImageBuf::ImageBuf(string_view filename, ImageCache* imagecache)
-    : m_impl(new ImageBufImpl(filename, 0, 0, imagecache), &impl_deleter)
-{
-}
-
-
-
 ImageBuf::ImageBuf(const ImageSpec& spec, InitializePixels zero)
     : m_impl(new ImageBufImpl("", 0, 0, NULL, &spec), &impl_deleter)
-{
-    m_impl->alloc(spec);
-    if (zero == InitializePixels::Yes && !deep())
-        ImageBufAlgo::zero(*this);
-}
-
-
-
-ImageBuf::ImageBuf(string_view filename, const ImageSpec& spec,
-                   InitializePixels zero)
-    : m_impl(new ImageBufImpl(filename, 0, 0, NULL, &spec), &impl_deleter)
 {
     m_impl->alloc(spec);
     if (zero == InitializePixels::Yes && !deep())
@@ -546,14 +528,6 @@ ImageBuf::ImageBuf(const ImageSpec& spec, void* buffer, stride_t xstride,
                    stride_t ystride, stride_t zstride)
     : m_impl(new ImageBufImpl("", 0, 0, NULL, &spec, buffer, nullptr, nullptr,
                               xstride, ystride, zstride),
-             &impl_deleter)
-{
-}
-
-
-
-ImageBuf::ImageBuf(string_view filename, const ImageSpec& spec, void* buffer)
-    : m_impl(new ImageBufImpl(filename, 0, 0, NULL, &spec, buffer),
              &impl_deleter)
 {
 }
@@ -803,14 +777,6 @@ ImageBuf::reset(string_view filename, int subimage, int miplevel,
 
 
 void
-ImageBuf::reset(string_view filename, ImageCache* imagecache)
-{
-    m_impl->reset(filename, 0, 0, imagecache, nullptr, nullptr);
-}
-
-
-
-void
 ImageBufImpl::reset(string_view filename, const ImageSpec& spec,
                     const ImageSpec* nativespec, void* buffer, stride_t xstride,
                     stride_t ystride, stride_t zstride)
@@ -846,17 +812,6 @@ ImageBufImpl::reset(string_view filename, const ImageSpec& spec,
     }
     if (nativespec)
         m_nativespec = *nativespec;
-}
-
-
-
-void
-ImageBuf::reset(string_view filename, const ImageSpec& spec,
-                InitializePixels zero)
-{
-    m_impl->reset(filename, spec);
-    if (initialized() && zero == InitializePixels::Yes && !deep())
-        ImageBufAlgo::zero(*this);
 }
 
 
@@ -1589,14 +1544,6 @@ ImageBuf::make_writable(bool keep_cache_type)
 
 
 
-bool
-ImageBuf::make_writeable(bool keep_cache_type)
-{
-    return make_writable(keep_cache_type);
-}
-
-
-
 void
 ImageBufImpl::copy_metadata(const ImageBufImpl& src)
 {
@@ -1754,6 +1701,15 @@ ImageBuf::uname(void) const
 {
     return m_impl->m_name;
 }
+
+
+
+void
+ImageBuf::set_name(string_view name)
+{
+    m_impl->m_name = name;
+}
+
 
 
 string_view
@@ -2066,7 +2022,7 @@ ImageBuf::copy(const ImageBuf& src, TypeDesc format)
         ImageSpec newspec(src.spec());
         newspec.set_format(format);
         newspec.channelformats.clear();
-        reset(src.name(), newspec);
+        reset(newspec);
     }
     return this->copy_pixels(src);
 }
@@ -2190,20 +2146,6 @@ ImageBuf::interppixel(float x, float y, float* pixel, WrapMode wrap) const
 
 void
 ImageBuf::interppixel_NDC(float x, float y, float* pixel, WrapMode wrap) const
-{
-    const ImageSpec& spec(m_impl->spec());
-    interppixel(static_cast<float>(spec.full_x)
-                    + x * static_cast<float>(spec.full_width),
-                static_cast<float>(spec.full_y)
-                    + y * static_cast<float>(spec.full_height),
-                pixel, wrap);
-}
-
-
-
-void
-ImageBuf::interppixel_NDC_full(float x, float y, float* pixel,
-                               WrapMode wrap) const
 {
     const ImageSpec& spec(m_impl->spec());
     interppixel(static_cast<float>(spec.full_x)
@@ -2999,18 +2941,6 @@ ImageBuf::retile(int x, int y, int z, ImageCache::Tile*& tile, int& tilexbegin,
                  int& tileybegin, int& tilezbegin, int& tilexend,
                  bool& haderror, bool exists, WrapMode wrap) const
 {
-    return m_impl->retile(x, y, z, tile, tilexbegin, tileybegin, tilezbegin,
-                          tilexend, haderror, exists, wrap);
-}
-
-
-// DEPRECATED(2.4)
-const void*
-ImageBuf::retile(int x, int y, int z, ImageCache::Tile*& tile, int& tilexbegin,
-                 int& tileybegin, int& tilezbegin, int& tilexend, bool exists,
-                 WrapMode wrap) const
-{
-    bool haderror;
     return m_impl->retile(x, y, z, tile, tilexbegin, tileybegin, tilezbegin,
                           tilexend, haderror, exists, wrap);
 }

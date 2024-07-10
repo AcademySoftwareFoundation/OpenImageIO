@@ -67,18 +67,26 @@ long-deprecated API facets. This document lists the deprecations and removals.
   severefmt, messagefmt, debugfmt, respectively, which all use the std::format
   notation.
 
+## imagebuf.h
+
+* Add deprecation warnings to the varieties of ImageBuf constructor and
+  `reset()` that don't take subimage and miplevel parameters, which have been
+  marked as deprecated since OIIO 2.2. The equivalent is to just pass `0` for
+  both of those parameters.
+* The misspelled `ImageBuf::make_writeable()` has been given deprecation
+  warnings. Since OIIO 2.2, we have used the correct spelling,
+  `make_writable`.
+* The `ImageBuf::error()` method that uses printf-style formatting conventions
+  now has deprecation warnings. Use `ImageBuf::errorfmt()` instead.
+* The `ImageBuf::interppixel_NDC_full()` method, which has been marked as
+  deprecated since OIIO 1.5, now has deprecation warnings. Use
+  `interppixel_NDC()` instead.
+
 ## missingmath.h
 
 * This header has been removed entirely. It has was originally needed for
   pre-C++11 MSVS, but has been unused since OIIO 2.0 (other than transitively
   including fmath.h).
-
-## parallel.h
-
-* Removed several varieties of `parallel_for` functions where the task
-  functions took a thread ID argument in addition to the range, which have
-  been considered deprecated since OIIO 2.3. Please use task functions that do
-  not take a thread ID parameter.
 
 ## paramlist.h
 
@@ -87,6 +95,13 @@ long-deprecated API facets. This document lists the deprecations and removals.
   whether the value was copied. If you need to override the usual copy
   behavior, please use the newer variety of constructors that instead use a
   "strong" type where you pass `ParamValue:Copy(bool)`.
+
+## parallel.h
+
+* Removed several varieties of `parallel_for` functions where the task
+  functions took a thread ID argument in addition to the range, which have
+  been considered deprecated since OIIO 2.3. Please use task functions that do
+  not take a thread ID parameter.
 
 ## strutil.h
 

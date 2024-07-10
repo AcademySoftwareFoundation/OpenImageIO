@@ -1034,8 +1034,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         src.reset(new ImageBuf(*input));
     } else {
         // Image buffer supplied that has pixels -- wrap it
-        src.reset(new ImageBuf(input->name(), input->spec(),
-                               (void*)input->localpixels()));
+        src.reset(new ImageBuf(input->spec(), (void*)input->localpixels()));
     }
     OIIO_DASSERT(src.get());
 
@@ -1324,8 +1323,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
             newspec.full_width  = newspec.width;
             newspec.full_height = newspec.height;
             newspec.full_depth  = newspec.depth;
-            std::string name    = std::string(src->name()) + ".constant_color";
-            src->reset(name, newspec);
+            src->reset(newspec);
             ImageBufAlgo::fill(*src, &constantColor[0]);
             if (verbose) {
                 outstream << "  Constant color image detected. ";

@@ -1326,7 +1326,7 @@ ImageBufAlgo::fft(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
     std::swap(specT.full_width, specT.full_height);
 
     // Resize dst
-    dst.reset(dst.name(), spec);
+    dst.reset(spec);
 
     // Copy src to a 2-channel (for "complex") float buffer
     ImageBuf A(spec);
@@ -1416,7 +1416,7 @@ ImageBufAlgo::ifft(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
     spec.nchannels = 1;
     spec.channelnames.clear();
     spec.channelnames.emplace_back("R");
-    dst.reset(dst.name(), spec);
+    dst.reset(spec);
     ROI Broi   = get_roi(B.spec());
     Broi.chend = 1;
     ImageBufAlgo::transpose(dst, B, Broi, nthreads);
