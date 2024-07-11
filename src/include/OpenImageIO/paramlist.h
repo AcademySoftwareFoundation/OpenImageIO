@@ -90,31 +90,6 @@ public:
 
     ParamValue() noexcept { m_data.ptr = nullptr; }
 
-#if OIIO_VERSION_LESS(3, 0, 0) && !defined(OIIO_DOXYGEN)
-    // DEPRECATED(2.4): Use the ones with strongly typed bool parameters
-    ParamValue(const ustring& _name, TypeDesc _type, int _nvalues,
-               const void* _value, bool _copy) noexcept
-    {
-        init_noclear(_name, _type, _nvalues, _value, Copy(_copy));
-    }
-    ParamValue(const ustring& _name, TypeDesc _type, int _nvalues,
-               Interp _interp, const void* _value, bool _copy) noexcept
-    {
-        init_noclear(_name, _type, _nvalues, _interp, _value, Copy(_copy));
-    }
-    ParamValue(string_view _name, TypeDesc _type, int _nvalues,
-               const void* _value, bool _copy) noexcept
-    {
-        init_noclear(ustring(_name), _type, _nvalues, _value, Copy(_copy));
-    }
-    ParamValue(string_view _name, TypeDesc _type, int _nvalues, Interp _interp,
-               const void* _value, bool _copy) noexcept
-    {
-        init_noclear(ustring(_name), _type, _nvalues, _interp, _value,
-                     Copy(_copy));
-    }
-#endif
-
     ParamValue(const ustring& _name, TypeDesc _type, int _nvalues,
                const void* _value, Copy _copy = Copy(true)) noexcept
     {
@@ -186,31 +161,6 @@ public:
     }
 
     ~ParamValue() noexcept { clear_value(); }
-
-#if OIIO_VERSION_LESS(3, 0, 0) && !defined(OIIO_DOXYGEN)
-    // DEPRECATED(2.4): Use the ones with strongly typed bool parameters
-    void init(ustring _name, TypeDesc _type, int _nvalues, Interp _interp,
-              const void* _value, bool _copy) noexcept
-    {
-        clear_value();
-        init_noclear(_name, _type, _nvalues, _interp, _value, Copy(_copy));
-    }
-    void init(ustring _name, TypeDesc _type, int _nvalues, const void* _value,
-              bool _copy) noexcept
-    {
-        init(_name, _type, _nvalues, INTERP_CONSTANT, _value, Copy(_copy));
-    }
-    void init(string_view _name, TypeDesc _type, int _nvalues,
-              const void* _value, bool _copy) noexcept
-    {
-        init(ustring(_name), _type, _nvalues, _value, Copy(_copy));
-    }
-    void init(string_view _name, TypeDesc _type, int _nvalues, Interp _interp,
-              const void* _value, bool _copy) noexcept
-    {
-        init(ustring(_name), _type, _nvalues, _interp, _value, Copy(_copy));
-    }
-#endif
 
     void init(ustring _name, TypeDesc _type, int _nvalues, Interp _interp,
               const void* _value, Copy _copy) noexcept
