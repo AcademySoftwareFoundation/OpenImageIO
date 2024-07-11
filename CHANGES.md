@@ -2,18 +2,23 @@ Release 2.6 (Fall 2024) -- compared to 2.5
 -------------------------------------------------
 
 ### New minimum dependencies and compatibility changes:
-* *C++*: Move to C++17 minimum [#4199](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4199) (2.6.2.0)
-* *Python*: 3.7 minimum [#4200](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4200) (2.6.2.0)
+* *C++*: Move to C++17 standard minimum (from 14), which also implies a minimum gcc 9.3 (raised from 6.3)
+  [#4199](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4199)
+  (2.6.2.0)
+* *Python*: 3.7 minimum. [#4200](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4200) (2.6.2.0)
 * *OpenEXR/Imath*: minimum raised to 3.1 (from 2.4) [#4223](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4223) (2.6.2.0)
 * *OpenVDB*: Raise OpenVDB minimum to 9.0 [#4218](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4218) (2.6.2.0)
 * *LibRaw*: Raise minimum LibRaw to 0.20 (from 0.18) [#4217](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4217) (2.6.2.0)
 * *Boost*: Is no longer a dependency! [#4191](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4191) (by Christopher Kulla) [#4221](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4221) (by Christopher Kulla) [#4222](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4222) [#4233](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4233) (2.6.2.0)
-* *Freetype*: minimum raised to 2.10 (from no previously stated minimum, but we had been testing as far back as 2.8).
+* *Freetype*: minimum raised to 2.10 (from no previously stated minimum, but we had been testing as far back as 2.8) [#4283](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4283) (2.6.2.0)
+* *Robin-map*: minimum raised to 1.2.0 [#4287](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4287) (2.6.2.0)
+* *Pybind11*: 2.7 minimum [#4297](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4297) (2.6.2.0)
+* *libtiff*: 4.0 minimum (raised from 3.9) [#4296](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4296) (2.6.2.0)
 
 ### ⛰️  New features and public API changes:
 
-- *python*: Implement ImageCache.get_imagespec() [#3982](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3982) (2.6.0.0, 2.5.3.1-beta2)
-- *oiiotool*:
+* *python*: Implement ImageCache.get_imagespec() [#3982](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3982) (2.6.0.0, 2.5.3.1-beta2)
+* *oiiotool*:
     - Do immediate reads without relying on an ImageCache, unless
       the `--cache` option is used, which now both enables the use of an
       underlying IC as well as setting its size.
@@ -22,24 +27,36 @@ Release 2.6 (Fall 2024) -- compared to 2.5
     - New `--buildinfo` command prints build information, including
       version, compiler, and all library dependencies. [#4124](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4124) (2.6.0.3) [#4150](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4150) (2.6.0.3)
     - *oiiotool*: Change command line embedding for oiiotool & maketx output [#4237](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4237) (2.6.2.0)
-- *Utilities*:
+* *Utilities*:
     - *iv*: Implement Directory Argument Loading for iv [#4010](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4010) (by Chaitanya Sharma) (2.6.0.1)
     - *iv*: Split off the current image in iv into a separate window [#4017](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4017) (by Anton Dukhovnikov) (2.6.0.1)
     - *iv*: OCIO color managed display [#4031](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4031) (by Anton Dukhovnikov) (2.6.0.2)
     - *idiff*: Allow users to specify a directory as the 2nd argument [#4015](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4015) (by David Aguilar) (2.6.0.1)
-- New global attribute queries via OIIO::getattribute():
+* New global attribute queries via OIIO::getattribute():
     - "build:platform", "build:compiler", "build:dependencies" [#4124](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4124) (2.6.0.3)
     - "build:simd" is the new preferred synonym for the old name "oiio:simd" [#4124](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4124) (2.6.0.3)
-- *ImageBuf/ImageBufAlgo*:
+* *ImageBuf/ImageBufAlgo*:
     - Start using optional keyword/value params for some ImageBufAlgo functions. [#4149](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4149)
     - Only back ImageBuf with ImageCache when passed an IC
       [#3986](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3986) (2.6.0.1, 2.5.3.1)
     - Make ImageBuf::Iterator lazy in its making the image writable [#4033](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4033) (2.6.0.2)
-- *New image file format support:*
+* *New image file format support:*
     - *JPEG XL*: Initial JPEG XL support for image input/output [#4055](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4055) (by Peter Kovář)
     - *R3D*: Add initial support to read R3D files. Note that this capability will only be enabled if OIIO is built with the R3D SDK installed and available to be found by the build system. [#4216](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4216) (by Peter Kovář) (2.6.2.0)
-- *TextureSystem*: Overload decode_wrapmode to support ustringhash [#4207](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4207) (by Chris Hellmuth) (2.6.1.0)
-
+* *TextureSystem*: Overload decode_wrapmode to support ustringhash [#4207](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4207) (by Chris Hellmuth) (2.6.1.0)
+* *API Deprecations*:
+    - Various other minor deprecations of things that had been marked as
+      deprecated for a while in fmath.h [#4309](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4309) (2.6.2.0), typedesc.h [#4311](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4311) (2.6.2.0), simd.h [#4308](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4308) (2.6.2.0), assorted [#4234](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4234) (2.6.2.0).
+* *Build system dependency self-builders*: the cmake-based build system has
+  been enhanced to give a report of what dependencies it found, what was
+  missing, what was found but was a version too old for our requirement.
+  If the `OpenImageIO_BUILD_MISSING_DEPS` cmake variable is set to "all"
+  (or a list of specific packages), the build system will attempt to
+  build certain missing dependencies locally. Currently, this works for
+  fmt, freetype, Imath, libtiff, OpenColorIO, OpenEXR, pybind11, Robinmap.
+  Additional dependencies will learn to self-build over time.
+  [#4242](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4242)
+  [#4294](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4294)
 
 ### 🚀  Performance improvements:
   - *oiiotool*: `--mosaic` improvements to type conversion avoid unnecessary
@@ -61,10 +78,12 @@ Release 2.6 (Fall 2024) -- compared to 2.5
   - *heic*: Don't auto-transform camera-rotated images [#4142](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4142) (2.6.0.3) [#4184](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4184) (2.6.1.0)
   - *iff*: Refactor iffoutput.cpp for memory safety [#4144](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4144) (2.6.0.3)
   - *jpeg2000*: Include the headers we need to discern version [#4073](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4073) (2.6.0.2)
+  - *jxl*: JPEG-XL improvements [#4252](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4252) (by Vlad (Kuzmin) Erium) (2.6.2.0)
   - *openexr*: Handle edge case of exr attribute that interferes with our hints [#4008](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4008) (2.6.0.1)
   - *openexr*: Add support for luminance-chroma OpenEXR images. [#4070](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4070) (by jreichel-nvidia) (2.6.0.3)
   - *(openexr)*: Implement copy_image for OpenEXR [#4004](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4004) (by Andy Chan) (2.6.1.0)
   - *openexr*: Fix out-of-bounds reads when using OpenEXR decreasingY lineOrder. [#4215](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4215) (by Aaron Colwell) (2.6.2.0)
+  - *exr*: Add proxy support for EXR multipart output [#4263](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4263) [#4264](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4264) (by jreichel-nvidia) (2.6.2.0)
   - *png*: New output compression mode names recognized: "none", "pngfast".
     Also some minor speedups to PNG writes.
     [#3980](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3980) (2.6.0.0)
@@ -72,7 +91,10 @@ Release 2.6 (Fall 2024) -- compared to 2.5
   - *png*: A variety of minor optimizations to the PNG writer [#3980](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3980)
   - *png*: Improve png write with alpha is low [#3985](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3985) (2.6.0.1)
   - *png*: Fix crash for writing large PNGs with alpha [#4074](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4074) (2.6.0.2)
+  - *png*: Correctly read PNGs with partial alpha [#4315](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4315) (2.6.2.0)
+  - *pnm*: Improvements to pnm plugin [#4253](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4253) (by Vlad (Kuzmin) Erium) (2.6.2.0)
   - *psd*: Add support for 16- and 32-bit Photoshop file reads [#4208](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4208) (by EmilDohne) (2.6.2.0)
+  - *psd*: Various PSD files fail to load correctly [#4302](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4302) (by Jesse Yurkovich) (2.6.2.0)
   - *raw*: LibRaw wavelet denoise options [#4028](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4028) (by Vlad (Kuzmin) Erium) (2.6.0.1)
   - *raw*: Avoid buffer overrun for flip direction cases [#4100](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4100) (2.6.0.3)
   - *ImageBuf*: Fix crash when mutable Iterator used with read-IB [#3997](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3997) (2.6.0.1)
@@ -83,23 +105,29 @@ Release 2.6 (Fall 2024) -- compared to 2.5
   - *fix(ImageInput)*: Only check REST arguments if the file does not exist, avoiding problems for filenames that legitimately contain a `?` character. [#4085](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4085) (by AdamMainsTL) (2.6.0.2)
   - *fix*: Certain int->float type conversions in TypeDesc/ParamValueList [#4132](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4132) (2.6.0.3)
   - *color management*: Automatically recognize some additional color space name synonyms: "srgb_texture", "lin_rec709" and "lin_ap1". Also add common permutation "srgb_tx" and "srgb texture" as additional aliases for "srgb". [#4166](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4166)
-  - *TS*: Fix missing initialization in TextureOptBatch [#4226](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4226) (2.6.2.0)
   - *security*: Don't use (DY)LD_LIBRARY_PATH as plugin search paths [#4245](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4245) (by Brecht Van Lommel) (2.6.2.0)
   - *fix*: Fix crash when no default fonts are found [#4249](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4249) (2.6.2.0)
+  - *TS*: Fix missing initialization in TextureOptBatch [#4226](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4226) (2.6.2.0)
+  - *iv*: If OCIO env is not set or doesn't exist, have iv use built-in config [#4285](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4285) (2.6.2.0)
+  - *IB*: Improve IB::nsubimages and other related fixes [#4228](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4228) (2.6.2.0)
+  - *IC*: Simplify tile cache clearing. [#4292](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4292) (by Curtis Black) (2.6.2.0)
 
 ### 🔧  Internals and developer goodies
   - *int*: Prevent infinite loop in bit_range_convert [#3996](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3996) (by Jesse Yurkovich) (2.6.0.1)
   - *int*: More switching fprintf/etc to new style print [#4056](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4056) (2.6.0.1)
   - *int*: Various fixes for memory safety and reduce static analysis complaints [#4128](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4128) (2.6.0.3)
   - *int*: Use OIIO functions for byte swapping to make Sonar happy [#4174](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4174) (2.6.1.0)
-  - *int*: More conversion to new string formatting [#4189](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4189) (2.6.1.0)
+  - *int*: More conversion to new string formatting [#4189](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4189) (2.6.1.0) [#4231](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4231) (2.6.2.0) [#4247](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4247) (2.6.2.0) [#4258](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4258) (2.6.2.0)
   - *bit.h*: Move bitcast, byteswap, and rotl/rotr to new bit.h [#4106](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4106) (2.6.0.3)
   - *bit.h*: OIIO::bitcast adjustments [#4101](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4101) (2.6.0.3)
   - *filesystem.h*: Filesystem::unique_path wasn't using the unicode rectified string [#4203](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4203) (2.6.1.0)
+  - *fmath.h*: One more fast_exp fix [#4275](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4275) (2.6.2.0)
   - *fmt.h*: Fix build break from recent fmt change [#4227](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4227) (2.6.2.0)
   - *hash.h*: Mismatched pragma push/pop in hash.h [#4182](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4182) (2.6.1.0)
   - *oiioversion.h*: Coalesce redundant STRINGIZE macros -> OIIO_STRINGIZE [#4121](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4121) (2.6.0.3)
   - *platform.h*: Belatedly change OIIO_CONSTEXPR14 to constexpr [#4153](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4153) (2.6.0.3)
+  - *paramlist.h*: Add ParamValueSpan::get_bool() [#4303](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4303) (2.6.2.0)
+  - *platform.h*: In platform.h, define OIIO_DEVICE macro [#4290](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4290) (2.6.2.0)
   - *simd.h*: Fix leaking of Imath.h into public headers [#4062](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4062) (2.6.0.2)
   - *simd.h*: Make all-architecture matrix44::inverse() [#4076](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4076) (2.6.0.2)
   - *simd.h*: AVX-512 round function [#4119](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4119) (by AngryLoki) (2.6.0.3)
@@ -107,17 +135,23 @@ Release 2.6 (Fall 2024) -- compared to 2.5
   - *simd.h*: Address NEON issues [#4143](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4143) (2.6.0.3)
   - *simd.h*: Gather_mask was wrong for no-simd fallback [#4183](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4183) (2.6.1.0)
   - *simd.h*: For simd types, use default for ctrs and assignment where applicable [#4187](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4187) (2.6.1.0)
+  - *simd.h*: Fix longstanding probem with 16-wide bitcast for 8-wide HW [#4268](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4268) (2.6.2.0)
   - *span.h*: Span and range checking enhancements [#4125](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4125) (2.6.0.3)
   - *span.h*: Make span default ctr and assignment be `= default` [#4198](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4198) (2.6.1.0)
   - *strutil.h*: Add `Strutil::eval_as_bool()` [#4250](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4250) (2.6.2.0)
   - *sysutil.h*: Deprecate Sysutil::physical_concurrency() [#4034](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4034) (2.6.0.1)
   - *texture.h*: Overload decode_wrapmode to support ustringhash [#4207](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4207) (by Chris Hellmuth) (2.6.1.0)
   - *typedesc.h*: Allow TypeDesc to have all the right POD attributes [#4162](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4162) (by Scott Wilson) (2.6.0.3)
+  - *typedesc.h*: Add TypeDesc::Vector3i [#4316](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4316) (2.6.2.0)
   - *ustring.h*: Make sure C++ knows ustring & ustringhash are trivially copyable [#4110](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4110) (2.6.0.3)
+  - *ustring.h*: Address ignored annotation nvcc warnings on explicitly-defaulted functions [#4291](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4291) (by Chris Hellmuth) (2.6.2.0)
   - *style*: Update our formatting standard to clang-format 17.0 and C++17 [#4096](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4096) (2.6.0.3)
   - *int*: Use spans to solve a number of memory safety issues [#4148](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4148) (2.6.1.0)
   - *cleanup*: Convert more old errorf() to errorfmt() [#4231](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4231) (2.6.2.0)
   - *fix*: Error retrieval safeguards for recycled objects [#4239](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4239) (2.6.2.0)
+  - *fix*: Improve error messages when a font is not found [#4284](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4284) (2.6.2.0)
+  - *refactor*: Oiiotool break out expression eval methods into separate file [#4256](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4256) (2.6.2.0)
+  - *refactor*: Move most of imageio_pvt.h.in to just a regular .h [#4277](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4277) (2.6.2.0)
 
 ### 🏗  Build/test/CI and platform ports:
 * CMake build system and scripts:
@@ -139,12 +173,22 @@ Release 2.6 (Fall 2024) -- compared to 2.5
   - *build*: Fix buld_ninja.bash to make directories and download correctly [#4192](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4192) (by Sergio Rojas) (2.6.1.0)
   - *build*: Need additional include [#4194](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4194) (2.6.1.0)
   - *build*: Make an OpenImageIO_Util_static library and target [#4190](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4190) (2.6.1.0)
-  - *build*: Switch to target-based definitions [#4193](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4193) (2.6.1.0)
+  - *build*: Switch to target-based definitions [#4193](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4193) (2.6.1.0) then mostly revert it [#4273](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4273) (2.6.2.0).
   - *build*: iv build issues with glTexImage3D [#4202](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4202) (by Vlad (Kuzmin) Erium) (2.6.1.0)
   - *build*: Restore internals of strhash to compile correctly on 32 bit architectures [#4213](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4213) (2.6.1.0)
   - *build*: LibOpenImageIO_Util does need DL libs, we removed it incorrectly [#4230](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4230) (2.6.2.0)
   - *build*: Fix missing target_link_options for libraries (by kaarrot) (2.6.2.0)
   - *build*: Disable clang18 warnings about deprecated unicode conversion [#4246](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4246) (2.6.2.0)
+  - *build*: More warning elimination for clang18 [#4257](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4257) (2.6.2.0)
+  - *build*: Add CMath target for the sake of static libtiff [#4261](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4261) (2.6.2.0)
+  - *build*: Add appropriate compiler defines and flags for SIMD with MSVC [#4266](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4266) (by Jesse Yurkovich) (2.6.2.0)
+  - *build*: Fix warning on windows [#4272](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4272) (2.6.2.0)
+  - *build*: Gcc-14 support, testing, CI [#4270](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4270) (2.6.2.0)
+  - *build*: New set_utils.cmake for various handy "set()" wrappers [#4274](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4274) (2.6.2.0) [#4281](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4281) (2.6.2.0)
+  - *build*: Upgrade to more modern python3 finding [#4288](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4288) (2.6.2.0)
+  - *build*: Add missing includes to libutil CMake target. [#4306](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4306) (by kaarrot) (2.6.2.0)
+  - *build*: Avoid rebuilds due to processing of fmt headers [#4313](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4313) (by Jesse Yurkovich) (2.6.2.0)
+  - *build*: Rudimentary CUDA support infrastructure (experimental) [#4293](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4293) (2.6.2.0)
   - *fix*: Fixed the sign compare causing build failure [#4240](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4240) (by Peter Kovář) (2.6.2.0)
 * Dependency support:
   - *deps/OpenVDB*: Protect against mismatch of OpenVDB vs C++ [#4023](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4023) (2.6.0.1)
@@ -170,6 +214,8 @@ Release 2.6 (Fall 2024) -- compared to 2.5
   - *tests*: Fix docs test, used wrong namespace [#4090](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4090) (2.6.0.2)
   - *tests/fixes*: Fixes to reduce problems identified by static analysis [#4113](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4113) (2.6.0.3)
   - *tests*: Add test for filter values and 'filter_list' query [#4140](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4140) (2.6.0.3)
+  - *tests*: Add new heif test output [#4262](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4262) (2.6.2.0)
+  - *tests*: Fix windows quoting for test [#4271](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4271) (2.6.2.0)
   - *ci*: Some straggler repo renames in the workflows [#4025](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4025) (2.6.0.1)
   - *ci*: CI tests on MacOS ARM, and fixes found consequently [#4026](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4026) (2.6.0.1)
   - *ci*: Nomenclature change 'os' to 'runner' for clarity [#4036](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4036) (2.6.0.1)
@@ -193,9 +239,11 @@ Release 2.6 (Fall 2024) -- compared to 2.5
   - *ci*: Enable Windows 2022 CI tests [#4195](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4195) (2.6.1.0)
   - *ci*: Update scrorecard workflow to fix breakage [#4201](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4201) (2.6.1.0)
   - *ci*: Fix broken Windows CI by building our own libtiff [#4214](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4214) (2.6.2.0)
+  - *ci*: Typo in build_libtiff.bash [#4280](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4280) (2.6.2.0)
+  - *ci*: For Windows CI, build only release of vcpkg packages [#4282](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4282) (2.6.2.0)
+  - *ci*: New tets: oldest, hobbled, localbuilds [#4295](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4295) (2.6.2.0)
 * Platform support:
   - *win*: Fix building failed from source on Windows [#4235](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4235) (by Vic P) (2.6.2.0)
-
 
 ### 📚  Notable documentation changes:
   - Start the process of ensuring that all code examples in the docs are built
@@ -218,6 +266,9 @@ Release 2.6 (Fall 2024) -- compared to 2.5
   - *docs*: Fix tab that was missing from the rendering on rtd [#4137](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4137) (2.6.0.3)
   - *docs*: Fix python example [#4139](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4139) (2.6.0.3)
   - *docs*: Fix some typos and add missing oiiotool expression explanations [#4169](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4169) (2.6.1.0)
+  - *docs*: Update INSTALL.md for windows [#4279](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4279) (by Mel Massadian) (2.6.2.0)
+  - *doc*: Add missing documentation of ImageBuf locking methods [#4267](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4267) (2.6.2.0)
+  - *doc*: Fixes to formatting and sphinx warnings [#4301](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4301) (2.6.2.0)
 
 ### 🏢  Project Administration
   - *admin*: Repo rename -- fix all URL references [#3998](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3998) [#3999](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3999)
@@ -226,8 +277,9 @@ Release 2.6 (Fall 2024) -- compared to 2.5
   - *admin*: Account for duplicate emails in the .mailmap [#4075](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4075) (2.6.0.2)
   - *admin*: Add a ROADMAP document [#4161](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4161) (2.6.1.0)
   - *docs*: Better documentation of past CVE fixes in SECURITY.md [#4238](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4238) (2.6.2.0)
+  - *admin*: More CLA explanation and how-to links [#4318](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4318) (2.6.2.0)
 
-
+---
 
 
 Release 2.5.11.0 (May 1, 2024) -- compared to 2.5.10.0

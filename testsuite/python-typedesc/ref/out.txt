@@ -194,7 +194,9 @@ type 'TypeFloat4'
 type 'TypeVector4'
     c_str "float4"
 type 'TypeVector2i'
-    c_str "float2i"
+    c_str "vector2i"
+type 'TypeVector3i'
+    c_str "vector3i"
 type 'TypeHalf'
     c_str "half"
 
@@ -249,7 +251,9 @@ type 'TypeFloat4'
 type 'TypeVector4'
     c_str "float4"
 type 'TypeVector2i'
-    c_str "float2i"
+    c_str "vector2i"
+type 'TypeVector3i'
+    c_str "vector3i"
 type 'TypeHalf'
     c_str "half"
 type 'TypeRational'

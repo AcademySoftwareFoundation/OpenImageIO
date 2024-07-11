@@ -90,6 +90,102 @@ parallel_image(ROI roi, std::function<void(ROI)> f)
 
 
 
+/// Common preparation for IBA functions (or work-alikes): Given an ROI (which
+/// may or may not be the default ROI::All()), destination image (which may or
+/// may not yet be allocated), and optional input images (presented as a span
+/// of pointers to ImageBufs), adjust `roi` if necessary and allocate pixels
+/// for `dst` if necessary.  If `dst` is already initialized, it will keep its
+/// "full" (aka display) window, otherwise its full/display window will be set
+/// to the union of inputs' full/display windows.  If `dst` is uninitialized
+/// and `force_spec` is not nullptr, use `*force_spec` as `dst`'s new spec
+/// rather than using the first input image.  Also, if any inputs are
+/// specified but not initialized or are broken, it's an error, so return
+/// false. If all is ok, return true.
+///
+/// The `options` list contains optional ParamValue's that control the
+/// behavior, including what input configurations are considered errors, and
+/// policies for how an uninitialized output is constructed from knowledge of
+/// the input images.  The following options are recognized:
+///
+///   - "require_alpha" : int (default: 0)
+///
+///     If nonzero, require all inputs and output to have an alpha channel.
+///
+///   - "require_z" : int (default: 0)
+///
+///     If nonzero, require all inputs and output to have a z channel.
+///
+///   - "require_same_nchannels" : int (default: 0)
+///
+///     If nonzero, require all inputs and output to have the same number of
+///     channels.
+///
+///   - "copy_roi_full" : int (default: 1)
+///
+///     Copy the src's roi_full. This is the default behavior. Set to 0 to
+///     disable copying roi_full from src to dst.
+///
+///   - "support_volume" : int (default: 1)
+///
+///     Support volumetric (3D) images. This is the default behavior. Set to 0
+///     to disable support for 3D images.
+///
+///   - "copy_metadata" : string (default: "true")
+///
+///     If set to "true-like" value, copy most "safe" metadata from the first
+///     input image to the destination image. If set to "all", copy all
+///     metadata from the first input image to the destination image, even
+///     dubious things. If set to a "false-like" value, do not copy any
+///     metadata from the input images to the destination image.
+///
+///   - "clamp_mutual_nchannels" : int (default: 0)
+///
+///     If nonzero, clamp roi.chend to the minimum number of channels of any
+///     of the input images.
+///
+///   - "support_deep" : string (default: "false")
+///
+///     If "false-like" (the default), deep images (having multiple depth
+///     values per pixel) are not supported. If set to a true-like value
+///     (e.g., "1", "on", "true", "yes"), deep images are allowed, but not
+///     required, and if any input or output image is deep, they all must be
+///     deep. If set to "mixed", any mixture of deep and non-deep images may
+///     be supplied. If set to "required", all input and output images must be
+///     deep.
+///
+///   - "dst_float_pixels" : int (default: 0)
+///
+///     If nonzero and dst is uninitialized, then initialize it to float
+///     regardless of the pixel types of the input images.
+///
+///   - "minimize_nchannels" : int (default: 0)
+///
+///     If nonzero and dst is uninitialized and the multiple input images do
+///     not all have the same number of channels, initialize `dst` to have the
+///     smallest number of channels of any input. (If 0, the default, an
+///     uninitialized `dst` will be given the maximum of the number of
+///     channels of all input images.)
+///
+///   - "require_matching_channels" : int (default: 0)
+///
+///     If nonzero, require all input images to have the same channel *names*,
+///     in the same order.
+///
+///   - "merge_metadata" : int (default: 0)
+///
+///     If nonzero, merge all inputs' metadata into the `dst` image's
+///     metadata.
+///
+///   - "fill_zero_alloc" : int (default: 0)
+///
+///     If nonzero and `dst` is uninitialized, fill `dst` with 0 values if we
+///     allocate space for it.
+///
+bool
+IBAprep(ROI& roi, ImageBuf& dst, cspan<const ImageBuf*> srcs = {},
+        KWArgs options = {}, ImageSpec* force_spec = nullptr);
+
+
 /// Common preparation for IBA functions: Given an ROI (which may or may not
 /// be the default ROI::All()), destination image (which may or may not yet
 /// be allocated), and optional input images, adjust roi if necessary and
@@ -505,6 +601,67 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
 #define IBA_FIX_PERCHAN_LEN_DEF(av,len)                                 \
     IBA_FIX_PERCHAN_LEN (av, len, 0.0f, av.size() ? av.back() : 0.0f);
 
+
+
+/// Simple image per-pixel unary operation: Given a source image `src`, return
+/// an image of the same dimensions (and same data type, unless `options`
+/// includes the "dst_float_pixels" hint turned on, which will result in a
+/// float pixel result image) where each pixel is the result of running the
+/// caller-supplied function `op` on the corresponding pixel values of `src`.
+/// The `op` function should take two `span<float>` arguments, the first
+/// referencing a destination pixel, and the second being a reference to the
+/// corresponding source pixel. The `op` function should return `true` if the
+/// operation was successful, or `false` if there was an error.
+///
+/// The `perpixel_op` function is thread-safe and will parallelize the
+/// operation across multiple threads if `nthreads` is not equal to 1
+/// (following the usual ImageBufAlgo `nthreads` rules), and also takes care
+/// of all the pixel loops and conversions to and from `float` values.
+///
+/// The `options` keyword/value list contains additional controls. It supports
+/// all hints described by `IBAPrep()` as well as the following:
+///
+///   - "nthreads" : int (default: 0)
+///
+///     Controls the number of threads (0 signalling to use all available
+///     threads in the pool.
+///
+/// An example (using the binary op version) of how to implement a simple
+/// pixel-by-pixel `add()` operation that is the equivalent of
+/// `ImageBufAlgo::add()`:
+///
+/// ```
+///    // Assume ImageBuf A, B are the inputs, ImageBuf R is the output
+///    R = ImageBufAlgo::perpixel_op(A, B,
+///            [](span<float> r, cspan<float> a, cspan<float> b) {
+///                for (size_t c = 0, nc = size_t(r.size()); c < nc; ++c)
+///                    r[c] = a[c] + b[c];
+///                return true;
+///            });
+/// ```
+///
+/// Caveats:
+/// * The operation must be one that can be applied independently to each
+///   pixel.
+/// * If the input image is not `float`-valued pixels, there may be some
+///   inefficiency due to the need to convert the pixels to `float` and back,
+///   since there is no type templating and thus no opportunity to supply a
+///   version of the operation that allows specialization to any other pixel
+///   data types
+//
+OIIO_NODISCARD OIIO_API
+ImageBuf
+perpixel_op(const ImageBuf& src, bool(*op)(span<float>, cspan<float>),
+            KWArgs options = {});
+
+/// A version of perpixel_op that performs a binary operation, taking two
+/// source images and a 3-argument `op` function that receives a destination
+/// and two source pixels.
+OIIO_NODISCARD OIIO_API
+ImageBuf
+perpixel_op(const ImageBuf& srcA, const ImageBuf& srcB,
+            bool(*op)(span<float>, cspan<float>, cspan<float>),
+            KWArgs options = {});
 
 }  // end namespace ImageBufAlgo
 

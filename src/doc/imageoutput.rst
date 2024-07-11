@@ -1647,7 +1647,7 @@ user's home directory is :file:`/home/tom`), and if not found there, will
 then check the directory :file:`/shared/plugins`.
 
 The first search path it will check is that stored in the environment
-variable ``OIIO_LIBRARY_PATH``.  It will check each directory in turn, in
+variable ``OPENIMAGEIO_PLUGIN_PATH``.  It will check each directory in turn, in
 the order that they are listed in the variable.  If no adequate plugin is
 found in any of the directories listed in this environment variable, then it
 will check the custom searchpath passed as the optional second argument to

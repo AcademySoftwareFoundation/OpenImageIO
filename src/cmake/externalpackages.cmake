@@ -49,11 +49,6 @@ if (NOT TARGET CMath::CMath)
     endif ()
 endif ()
 
-checked_find_package (TIFF REQUIRED
-                      VERSION_MIN 3.9
-                      RECOMMEND_MIN 4.0
-                      RECOMMEND_MIN_REASON "to support >4GB files")
-
 # IlmBase & OpenEXR
 checked_find_package (Imath REQUIRED
     VERSION_MIN 3.1
@@ -69,7 +64,6 @@ checked_find_package (OpenEXR REQUIRED
 # the right Imath/OpenEXR version, not some older version in the system
 # library.
 include_directories(BEFORE ${IMATH_INCLUDES} ${OPENEXR_INCLUDES})
-set (OIIO_USING_IMATH 3)
 set (OPENIMAGEIO_IMATH_TARGETS Imath::Imath)
 set (OPENIMAGEIO_OPENEXR_TARGETS OpenEXR::OpenEXR)
 set (OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY "PRIVATE" CACHE STRING
@@ -81,9 +75,19 @@ set (OPENIMAGEIO_CONFIG_DO_NOT_FIND_IMATH OFF CACHE BOOL
 checked_find_package (libjpeg-turbo
                       VERSION_MIN 2.1
                       DEFINITIONS USE_JPEG_TURBO=1)
-if (NOT TARGET libjpeg-turbo::jpeg) # Try to find the non-turbo version
+if (TARGET libjpeg-turbo::jpeg) # Try to find the non-turbo version
+    # Doctor it so libjpeg-turbo is aliased as JPEG::JPEG
+    alias_library_if_not_exists (JPEG::JPEG libjpeg-turbo::jpeg)
+    set (JPEG_FOUND TRUE)
+else ()
+    # Try to find the non-turbo version
     checked_find_package (JPEG REQUIRED)
 endif ()
+
+
+checked_find_package (TIFF REQUIRED
+                      VERSION_MIN 4.0)
+alias_library_if_not_exists (TIFF::TIFF TIFF::tiff)
 
 # JPEG XL
 option (USE_JXL "Enable JPEG XL support" ON)

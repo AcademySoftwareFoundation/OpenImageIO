@@ -12,7 +12,7 @@ Comparing "../oiio-images/oiio-logo-no-alpha.png" and "oiio-logo-no-alpha.png"
 PASS
 Reading ../oiio-images/oiio-logo-with-alpha.png
 ../oiio-images/oiio-logo-with-alpha.png :  135 x  135, 4 channel, uint8 png
-    SHA-1: 8AED04DCCE8F83B068C537DC0982A42EFBE431B6
+    SHA-1: 9F3C517AC714A93C0FE93F8B4B40C68338504DC8
     channel list: R, G, B, A
     Comment: "Created with GIMP"
     DateTime: "2009:03:26 18:44:26"
@@ -27,6 +27,25 @@ exif.png             :   64 x   64, 3 channel, uint8 png
     SHA-1: 7CB41FEA50720B48BE0C145E1473982B23E9AB77
     channel list: R, G, B
     oiio:ColorSpace: "sRGB"
+   1 x    1, 4 channel, float png
+    channel list: R, G, B, A
+    ResolutionUnit: "inch"
+    Software: "OpenImageIO 2.4.1.1dev : oiiotool -no-autopremult SLEEP_MM.png -cut 1x1+227+1211 -o kaka.png"
+    XResolution: 299.999
+    YResolution: 299.999
+    Exif:ImageHistory: "oiiotool -no-autopremult SLEEP_MM.png -cut 1x1+227+1211 -o kaka.png"
+    oiio:ColorSpace: "Gamma2.2"
+    oiio:Gamma: 2.2
+    Stats Min: 186 186 186 127 (of 255)
+    Stats Max: 186 186 186 127 (of 255)
+    Stats Avg: 186.00 186.00 186.00 127.00 (of 255)
+    Stats StdDev: 0.00 0.00 0.00 0.00 (of 255)
+    Stats NanCount: 0 0 0 0 
+    Stats InfCount: 0 0 0 0 
+    Stats FiniteCount: 1 1 1 1 
+    Constant: Yes
+    Constant Color: 186.00 186.00 186.00 127.00 (of 255)
+    Monochrome: No
 smallalpha.png       :    1 x    1, 4 channel, uint8 png
     Pixel (0, 0): 240 108 119 1 (0.94117653 0.42352945 0.4666667 0.003921569)
 Comparing "test16.png" and "ref/test16.png"

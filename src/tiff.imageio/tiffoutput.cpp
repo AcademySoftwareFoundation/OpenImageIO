@@ -43,10 +43,8 @@
 #    define OIIO_TIFFLIB_VERSION 40003
 #elif TIFFLIB_VERSION >= 20111221
 #    define OIIO_TIFFLIB_VERSION 40000
-#elif TIFFLIB_VERSION >= 20090820
-#    define OIIO_TIFFLIB_VERSION 30900
 #else
-#    error "libtiff 3.9.0 or later is required"
+#    error "libtiff 4.0.0 or later is required"
 #endif
 // clang-format on
 
@@ -400,9 +398,10 @@ allval(const std::vector<T>& d, T v = T(0))
 
 
 static tsize_t
-writer_readproc(thandle_t, tdata_t, tsize_t)
+writer_readproc(thandle_t handle, tdata_t data, tsize_t size)
 {
-    return 0;
+    auto io = static_cast<Filesystem::IOProxy*>(handle);
+    return io->read(data, size);
 }
 
 static tsize_t

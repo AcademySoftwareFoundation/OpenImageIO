@@ -63,8 +63,10 @@ private:
         if (!ioread(buf, sizeof(T), nitems))
             return false;
         if (littleendian()
-            && (is_same<T, uint16_t>::value || is_same<T, int16_t>::value
-                || is_same<T, uint32_t>::value || is_same<T, int32_t>::value)) {
+            && (std::is_same<T, uint16_t>::value
+                || std::is_same<T, int16_t>::value
+                || std::is_same<T, uint32_t>::value
+                || std::is_same<T, int32_t>::value)) {
             swap_endian(buf, nitems);
         }
         return true;

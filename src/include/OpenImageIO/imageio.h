@@ -66,11 +66,6 @@ typedef bool (*ProgressCallback)(void *opaque_data, float portion_done);
 
 
 
-// Deprecated typedefs. Just use ParamValue and ParamValueList directly.
-typedef ParamValue ImageIOParameter;
-typedef ParamValueList ImageIOParameterList;
-
-
 // Forward declaration of IOProxy
 namespace Filesystem {
     class IOProxy;
@@ -952,18 +947,24 @@ public:
                       ioproxy, plugin_searchpath);
     }
 
-    // DEPRECATED(2.2): back compatible version
-    static unique_ptr create (const std::string& filename, bool do_open,
-                              const ImageSpec *config,
-                              string_view plugin_searchpath);
-    // DEPRECATED(2.1) This method should no longer be used, it is redundant.
-    static unique_ptr create (const std::string& filename,
-                              const std::string& plugin_searchpath);
-
     /// @}
 
-    // DEPRECATED(2.1)
-    static void destroy (ImageInput *x);
+#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2,2,0) && OIIO_VERSION_LESS(2,7,0) \
+    && !defined(OIIO_DOXYGEN) && !defined(OIIO_INTERNAL)
+    OIIO_DEPRECATED("Use the modern form of create instead (2.2)")
+    static unique_ptr create (const std::string& filename, bool do_open,
+                              const ImageSpec *config,
+                              string_view plugin_searchpath) {
+        return create(filename, do_open, config, nullptr, plugin_searchpath);
+    }
+    OIIO_DEPRECATED("Use the modern form of create instead (2.1)")
+    static unique_ptr create (const std::string& filename,
+                              const std::string& plugin_searchpath) {
+        return create(filename, false, nullptr, nullptr, plugin_searchpath);
+    }
+    OIIO_DEPRECATED("destroy is no longer needed (2.1)")
+    static void destroy (ImageInput *x) { delete x; }
+#endif
 
 protected:
     ImageInput ();
@@ -1190,21 +1191,29 @@ public:
         return subimage == current_subimage() && miplevel == current_miplevel();
     }
 
+#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2,0,0) && !defined(OIIO_DOXYGEN)
     // Old version for backwards-compatibility: pass reference to newspec.
     // Some day this will be deprecated.
+    OIIO_DEPRECATED("Prefer the version that doesn't take an ImageSpec argument (2.0)")
     bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec) {
         bool ok = seek_subimage (subimage, miplevel);
         if (ok)
             newspec = spec();
         return ok;
     }
+#endif
 
-    // DEPRECATED(2.1)
+#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2,1,0) && !defined(OIIO_DOXYGEN)
     // Seek to the given subimage -- backwards-compatible call that
     // doesn't worry about MIP-map levels at all.
+    OIIO_DEPRECATED("Prefer the version that takes a mipmap argument (2.1)")
     bool seek_subimage (int subimage, ImageSpec &newspec) {
-        return seek_subimage (subimage, 0 /* miplevel */, newspec);
+        bool ok = seek_subimage (subimage, 0 /* miplevel */);
+        if (ok)
+            newspec = spec(subimage);
+        return ok;
     }
+#endif
 
     /// @{
     /// @name Reading pixels
@@ -1317,7 +1326,8 @@ public:
                                  stride_t xstride=AutoStride,
                                  stride_t ystride=AutoStride);
 
-#ifndef OIIO_DOXYGEN
+#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2,0,0) \
+    && !defined(OIIO_DOXYGEN) && !defined(OIIO_INTERNAL)
     // DEPRECATED versions of read_scanlines (pre-1.9 OIIO). These will
     // eventually be removed. Try to replace these calls with ones to the
     // new variety of read_scanlines that takes an explicit subimage and
@@ -1326,13 +1336,21 @@ public:
     bool read_scanlines (int ybegin, int yend, int z,
                          TypeDesc format, void *data,
                          stride_t xstride=AutoStride,
-                         stride_t ystride=AutoStride);
+                         stride_t ystride=AutoStride) {
+        lock_guard lock(*this);
+        return read_scanlines(current_subimage(), current_miplevel(), ybegin, yend,
+                              z, 0, m_spec.nchannels, format, data, xstride, ystride);
+    }
     OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
     bool read_scanlines (int ybegin, int yend, int z,
                          int chbegin, int chend,
                          TypeDesc format, void *data,
                          stride_t xstride=AutoStride,
-                         stride_t ystride=AutoStride);
+                         stride_t ystride=AutoStride) {
+        lock_guard lock(*this);
+        return read_scanlines(current_subimage(), current_miplevel(), ybegin, yend,
+                              z, chbegin, chend, format, data, xstride, ystride);
+    }
 #endif
 
     /// Read the tile whose upper-left origin is (x,y,z) into `data[]`,
@@ -1424,7 +1442,7 @@ public:
                              stride_t xstride=AutoStride, stride_t ystride=AutoStride,
                              stride_t zstride=AutoStride);
 
-#ifndef OIIO_DOXYGEN
+#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2,0,0) && !defined(OIIO_DOXYGEN)
     // DEPRECATED versions of read_tiles (pre-1.9 OIIO). These will
     // eventually be removed. Try to replace these calls with ones to the
     // new variety of read_tiles that takes an explicit subimage and
@@ -1485,7 +1503,7 @@ public:
                              ProgressCallback progress_callback=NULL,
                              void *progress_callback_data=NULL);
 
-#ifndef OIIO_DOXYGEN
+#if !defined(OIIO_DOXYGEN)
     // DEPRECATED versions of read_image (pre-1.9 OIIO). These will
     // eventually be removed. Try to replace these calls with ones to the
     // new variety of read_image that takes an explicit subimage and
@@ -1681,12 +1699,22 @@ public:
     std::string geterror(bool clear = true) const;
 
     /// Error reporting for the plugin implementation: call this with
+    /// std::format-like arguments. It is not necessary to have the error
+    /// message contain a trailing newline.
+    template<typename... Args>
+    void errorfmt(const char* fmt, const Args&... args) const {
+        append_error(Strutil::fmt::format (fmt, args...));
+    }
+
+#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2, 6, 3) && \
+    !defined(OIIO_INTERNAL) && !defined(OIIO_DOXYGEN)
+    /// Error reporting for the plugin implementation: call this with
     /// Strutil::format-like arguments. It is not necessary to have the
     /// error message contain a trailing newline.
     /// Use with caution! Some day this will change to be fmt-like rather
     /// than printf-like.
     template<typename... Args>
-    OIIO_FORMAT_DEPRECATED
+    OIIO_DEPRECATED("use errorfmt instead, with std::format-like arguments (3.0)")
     void error(const char* fmt, const Args&... args) const {
         append_error(Strutil::format (fmt, args...));
     }
@@ -1695,27 +1723,20 @@ public:
     /// printf-like arguments. It is not necessary to have the error message
     /// contain a trailing newline.
     template<typename... Args>
-    OIIO_FORMAT_DEPRECATED
+    OIIO_DEPRECATED("use errorfmt instead, with std::format-like arguments (3.0)")
     void errorf(const char* fmt, const Args&... args) const {
         append_error(Strutil::sprintf (fmt, args...));
-    }
-
-    /// Error reporting for the plugin implementation: call this with
-    /// std::format-like arguments. It is not necessary to have the error
-    /// message contain a trailing newline.
-    template<typename... Args>
-    void errorfmt(const char* fmt, const Args&... args) const {
-        append_error(Strutil::fmt::format (fmt, args...));
     }
 
     // Error reporting for the plugin implementation: call this with
     // std::format-like arguments. It is not necessary to have the
     // error message contain a trailing newline.
     template<typename... Args>
-    OIIO_DEPRECATED("use `errorfmt` instead")
+    OIIO_DEPRECATED("use `errorfmt` instead (2.3)")
     void fmterror(const char* fmt, const Args&... args) const {
         append_error(Strutil::fmt::format (fmt, args...));
     }
+#endif
 
     /// Set the threading policy for this ImageInput, controlling the
     /// maximum amount of parallelizing thread "fan-out" that might occur
@@ -1862,10 +1883,6 @@ private:
     std::unique_ptr<Impl, decltype(&impl_deleter)> m_impl;
 
     void append_error(string_view message) const; // add to error message
-    // Deprecated:
-    OIIO_DEPRECATED("Deprecated")
-    static unique_ptr create (const std::string& filename, bool do_open,
-                              const std::string& plugin_searchpath);
 };
 
 
@@ -1924,14 +1941,19 @@ public:
                       Strutil::utf16_to_utf8(plugin_searchpath));
     }
 
-    // DEPRECATED(2.2)
-    static unique_ptr create (const std::string &filename,
-                              const std::string &plugin_searchpath);
-
     /// @}
 
-    // @deprecated
-    static void destroy (ImageOutput *x);
+#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2,2,0) \
+    && !defined(OIIO_DOXYGEN) && !defined(OIIO_INTERNAL)
+    OIIO_DEPRECATED("Obsolete version (2.2)")
+    static unique_ptr create (const std::string &filename,
+                              const std::string &plugin_searchpath) {
+        return create(filename, nullptr, plugin_searchpath);
+    }
+
+    OIIO_DEPRECATED("destroy is no longer needed")
+    static void destroy (ImageOutput *x) { delete x; }
+#endif
 
 protected:
     ImageOutput ();
@@ -2477,12 +2499,22 @@ public:
     std::string geterror(bool clear = true) const;
 
     /// Error reporting for the plugin implementation: call this with
+    /// std::format-like arguments. It is not necessary to have the error
+    /// message contain a trailing newline.
+    template<typename... Args>
+    void errorfmt(const char* fmt, const Args&... args) const {
+        append_error(Strutil::fmt::format (fmt, args...));
+    }
+
+#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2, 6, 3) && \
+    !defined(OIIO_INTERNAL) && !defined(OIIO_DOXYGEN)
+    /// Error reporting for the plugin implementation: call this with
     /// `Strutil::format`-like arguments. It is not necessary to have the
     /// error message contain a trailing newline.
     /// Use with caution! Some day this will change to be fmt-like rather
     /// than printf-like.
     template<typename... Args>
-    OIIO_FORMAT_DEPRECATED
+    OIIO_DEPRECATED("use errorfmt instead, with std::format-like arguments (3.0)")
     void error(const char* fmt, const Args&... args) const {
         append_error(Strutil::format (fmt, args...));
     }
@@ -2491,27 +2523,20 @@ public:
     /// printf-like arguments. It is not necessary to have the error message
     /// contain a trailing newline.
     template<typename... Args>
-    OIIO_FORMAT_DEPRECATED
+    OIIO_DEPRECATED("use errorfmt instead, with std::format-like arguments (3.0)")
     void errorf(const char* fmt, const Args&... args) const {
         append_error(Strutil::sprintf (fmt, args...));
-    }
-
-    /// Error reporting for the plugin implementation: call this with
-    /// std::format-like arguments. It is not necessary to have the error
-    /// message contain a trailing newline.
-    template<typename... Args>
-    void errorfmt(const char* fmt, const Args&... args) const {
-        append_error(Strutil::fmt::format (fmt, args...));
     }
 
     // Error reporting for the plugin implementation: call this with
     // std::format-like arguments. It is not necessary to have the error
     // message contain a trailing newline.
     template<typename... Args>
-    OIIO_DEPRECATED("use `errorfmt` instead")
+    OIIO_DEPRECATED("use `errorfmt` instead (2.3)")
     void fmterror(const char* fmt, const Args&... args) const {
         append_error(Strutil::fmt::format (fmt, args...));
     }
+#endif
 
     /// Set the threading policy for this ImageOutput, controlling the
     /// maximum amount of parallelizing thread "fan-out" that might occur
@@ -3237,12 +3262,6 @@ get_extension_map()
 OIIO_API bool convert_pixel_values (TypeDesc src_type, const void *src,
                                     TypeDesc dst_type, void *dst, int n = 1);
 
-/// DEPRECATED(2.1): old name
-inline bool convert_types (TypeDesc src_type, const void *src,
-                           TypeDesc dst_type, void *dst, int n = 1) {
-    return convert_pixel_values (src_type, src, dst_type, dst, n);
-}
-
 
 /// Helper routine for data conversion: Convert an image of nchannels x
 /// width x height x depth from src to dst.  The src and dst may have
@@ -3260,18 +3279,6 @@ OIIO_API bool convert_image (int nchannels, int width, int height, int depth,
                              void *dst, TypeDesc dst_type,
                              stride_t dst_xstride, stride_t dst_ystride,
                              stride_t dst_zstride);
-/// DEPRECATED(2.0) -- the alpha_channel, z_channel were never used
-inline bool convert_image(int nchannels, int width, int height, int depth,
-            const void *src, TypeDesc src_type,
-            stride_t src_xstride, stride_t src_ystride, stride_t src_zstride,
-            void *dst, TypeDesc dst_type,
-            stride_t dst_xstride, stride_t dst_ystride, stride_t dst_zstride,
-            int /*alpha_channel*/, int /*z_channel*/ = -1)
-{
-    return convert_image(nchannels, width, height, depth, src, src_type,
-                         src_xstride, src_ystride, src_zstride, dst, dst_type,
-                         dst_xstride, dst_ystride, dst_zstride);
-}
 
 
 /// A version of convert_image that will break up big jobs into multiple
@@ -3284,19 +3291,7 @@ OIIO_API bool parallel_convert_image (
                void *dst, TypeDesc dst_type,
                stride_t dst_xstride, stride_t dst_ystride,
                stride_t dst_zstride, int nthreads=0);
-/// DEPRECATED(2.0) -- the alpha_channel, z_channel were never used
-inline bool parallel_convert_image(
-            int nchannels, int width, int height, int depth,
-            const void *src, TypeDesc src_type,
-            stride_t src_xstride, stride_t src_ystride, stride_t src_zstride,
-            void *dst, TypeDesc dst_type,
-            stride_t dst_xstride, stride_t dst_ystride, stride_t dst_zstride,
-            int /*alpha_channel*/, int /*z_channel*/, int nthreads=0)
-{
-    return parallel_convert_image (nchannels, width, height, depth,
-           src, src_type, src_xstride, src_ystride, src_zstride,
-           dst, dst_type, dst_xstride, dst_ystride, dst_zstride, nthreads);
-}
+
 
 /// Add random [-ditheramplitude,ditheramplitude] dither to the color channels
 /// of the image.  Dither will not be added to the alpha or z channel.  The
@@ -3368,18 +3363,80 @@ void debugfmt (const char* fmt, Args&&... args)
     Strutil::debug(fmt, std::forward<Args>(args)...);
 }
 
+
+
+// to force correct linkage on some systems
+OIIO_API void _ImageIO_force_link ();
+
+
+//////////////////////////////////////////////////////////////////////////
+// DEPRECATED things
+//
+// These are all hidden from ocumentation and internal use, and should trigger
+// deprecation warnings if used externally. They will most likely be removed
+// entirely before the final release of OIIO 3.0.
+//
+#if !defined(OIIO_INTERNAL) && !defined(OIIO_DOXYGEN)
+
+#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(1,9,0) && !defined(OIIO_INTERNAL)
+// Deprecated typedefs. Just use ParamValue and ParamValueList directly.
+OIIO_DEPRECATED("Use ParamValue instead") typedef ParamValue ImageIOParameter;
+OIIO_DEPRECATED("Use ParamValueList instead") typedef ParamValueList ImageIOParameterList;
+#endif
+
+#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2, 0, 0)
+// DEPRECATED(2.0) -- the alpha_channel, z_channel were never used
+OIIO_DEPRECATED("Deprecated version (2.0)")
+inline bool convert_image(int nchannels, int width, int height, int depth,
+            const void *src, TypeDesc src_type,
+            stride_t src_xstride, stride_t src_ystride, stride_t src_zstride,
+            void *dst, TypeDesc dst_type,
+            stride_t dst_xstride, stride_t dst_ystride, stride_t dst_zstride,
+            int /*alpha_channel*/, int /*z_channel*/ = -1)
+{
+    return convert_image(nchannels, width, height, depth, src, src_type,
+                         src_xstride, src_ystride, src_zstride, dst, dst_type,
+                         dst_xstride, dst_ystride, dst_zstride);
+}
+
+// DEPRECATED(2.0) -- the alpha_channel, z_channel were never used
+OIIO_DEPRECATED("Deprecated version (2.0)")
+inline bool parallel_convert_image(
+            int nchannels, int width, int height, int depth,
+            const void *src, TypeDesc src_type,
+            stride_t src_xstride, stride_t src_ystride, stride_t src_zstride,
+            void *dst, TypeDesc dst_type,
+            stride_t dst_xstride, stride_t dst_ystride, stride_t dst_zstride,
+            int /*alpha_channel*/, int /*z_channel*/, int nthreads=0)
+{
+    return parallel_convert_image (nchannels, width, height, depth,
+           src, src_type, src_xstride, src_ystride, src_zstride,
+           dst, dst_type, dst_xstride, dst_ystride, dst_zstride, nthreads);
+}
+#endif
+
+#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2, 1, 0)
+// DEPRECATED(2.1): old name
+OIIO_DEPRECATED("use convert_pixel_values instead (2.1)")
+inline bool convert_types (TypeDesc src_type, const void *src,
+                           TypeDesc dst_type, void *dst, int n = 1) {
+    return convert_pixel_values (src_type, src, dst_type, dst, n);
+}
+#endif
+
+#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2, 6, 3)
 // (Unfortunate old synonym)
 template<typename... Args>
 OIIO_DEPRECATED("use `debugfmt` instead")
-void fmtdebug (const char* fmt, const Args&... args)
+inline void fmtdebug (const char* fmt, const Args&... args)
 {
     debug (Strutil::fmt::format(fmt, args...));
 }
 
 /// debug output with printf conventions.
 template<typename... Args>
-OIIO_FORMAT_DEPRECATED
-void debugf (const char* fmt, const Args&... args)
+OIIO_DEPRECATED("use `debugfmt` instead, with std::format-like arguments (3.0)")
+inline void debugf (const char* fmt, const Args&... args)
 {
     debug (Strutil::sprintf(fmt, args...));
 }
@@ -3387,15 +3444,16 @@ void debugf (const char* fmt, const Args&... args)
 /// debug output with the same conventions as Strutil::format. Beware, this
 /// will change one day!
 template<typename T1, typename... Args>
-OIIO_FORMAT_DEPRECATED
-void debug (const char* fmt, const T1& v1, const Args&... args)
+OIIO_DEPRECATED("use `debugfmt` instead, with std::format-like arguments (3.0)")
+inline void debug (const char* fmt, const T1& v1, const Args&... args)
 {
     debug (Strutil::format(fmt, v1, args...));
 }
+#endif
 
-
-// to force correct linkage on some systems
-OIIO_API void _ImageIO_force_link ();
+#endif
+//
+//////////////////////////////////////////////////////////////////////////
 
 OIIO_NAMESPACE_END
 

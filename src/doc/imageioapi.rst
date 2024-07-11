@@ -48,7 +48,7 @@ in the outer OpenImageIO scope:
     TypeMatrix33 TypeMatrix44 TypeMatrix TypeHalf
     TypeInt TypeUInt TypeInt32 TypeUInt32 TypeInt64 TypeUInt64
     TypeInt16 TypeUInt16 TypeInt8 TypeUInt8
-    TypeFloat2 TypeVector2 TypeVector2i TypeFloat4
+    TypeFloat2 TypeVector2 TypeVector2i TypeVector3i TypeFloat4
     TypeString TypeTimeCode TypeKeyCode
     TypeBox2 TypeBox2i TypeBox3 TypeBox3i
     TypeRational TypePointer
@@ -286,6 +286,8 @@ just exist in the OIIO namespace as general utilities. (See
 
 .. doxygenfunction:: get_extension_map
 
+|
+
  .. _sec-startupshutdown:
 
 Startup and Shutdown
@@ -336,6 +338,16 @@ inside the source code.
     variable will be passed to a call to::
 
         imagecache->attribute ("options", value);
+
+
+``OPENIMAGEIO_PLUGIN_PATH``
+
+    A colon-separated list of directories to search for OpenImageIO plugins
+    (dynamicaly loadable libraries that implement image format readers
+    and writers).
+
+    This is a new name beginning with OpenImageIO 2.6.3. The old name
+    ``OIIO_LIBRARY_PATH`` is still supported, but deprecated.
 
 
 ``OPENIMAGEIO_TEXTURE_OPTIONS``

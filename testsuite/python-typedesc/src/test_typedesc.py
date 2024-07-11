@@ -159,6 +159,7 @@ try:
     breakdown_test (oiio.TypeDesc.TypeFloat4,   "TypeFloat4",   verbose=False)
     breakdown_test (oiio.TypeDesc.TypeVector4,  "TypeVector4",  verbose=False)
     breakdown_test (oiio.TypeDesc.TypeVector2i, "TypeVector2i", verbose=False)
+    breakdown_test (oiio.TypeDesc.TypeVector3i, "TypeVector3i", verbose=False)
     breakdown_test (oiio.TypeDesc.TypeHalf,     "TypeHalf",     verbose=False)
     print ("")
 
@@ -189,6 +190,7 @@ try:
     breakdown_test (oiio.TypeFloat4,   "TypeFloat4",   verbose=False)
     breakdown_test (oiio.TypeVector4,  "TypeVector4",  verbose=False)
     breakdown_test (oiio.TypeVector2i, "TypeVector2i", verbose=False)
+    breakdown_test (oiio.TypeVector3i, "TypeVector3i", verbose=False)
     breakdown_test (oiio.TypeHalf,     "TypeHalf",     verbose=False)
     breakdown_test (oiio.TypeRational, "TypeRational", verbose=False)
     breakdown_test (oiio.TypeUInt,     "TypeUInt",     verbose=False)

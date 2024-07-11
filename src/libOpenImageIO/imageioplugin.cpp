@@ -468,6 +468,8 @@ pvt::catalog_all_plugins(std::string searchpath)
     std::call_once(builtin_flag, catalog_builtin_plugins);
 
     std::unique_lock<std::recursive_mutex> lock(imageio_mutex);
+    append_if_env_exists(searchpath, "OPENIMAGEIO_PLUGIN_PATH", true);
+    // obsolete name:
     append_if_env_exists(searchpath, "OIIO_LIBRARY_PATH", true);
 
     size_t patlen = pattern.length();
@@ -589,54 +591,6 @@ ImageOutput::create(string_view filename, Filesystem::IOProxy* ioproxy,
         }
     }
     return out;
-}
-
-
-
-// DEPRECATED(2.2)
-std::unique_ptr<ImageOutput>
-ImageOutput::create(const std::string& filename,
-                    const std::string& plugin_searchpath)
-{
-    return create(filename, nullptr, plugin_searchpath);
-}
-
-
-
-void
-ImageOutput::destroy(ImageOutput* x)
-{
-    delete x;
-}
-
-
-
-// DEPRECATED(2.1)
-std::unique_ptr<ImageInput>
-ImageInput::create(const std::string& filename,
-                   const std::string& plugin_searchpath)
-{
-    return create(filename, false, nullptr, plugin_searchpath);
-}
-
-
-
-// DEPRECATED(2.1)
-std::unique_ptr<ImageInput>
-ImageInput::create(const std::string& filename, bool do_open,
-                   const std::string& plugin_searchpath)
-{
-    return create(filename, do_open, nullptr, plugin_searchpath);
-}
-
-
-
-// DEPRECATED(2.2)
-std::unique_ptr<ImageInput>
-ImageInput::create(const std::string& filename, bool do_open,
-                   const ImageSpec* config, string_view plugin_searchpath)
-{
-    return create(filename, do_open, config, nullptr, plugin_searchpath);
 }
 
 
@@ -835,14 +789,6 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
     }
 
     return std::unique_ptr<ImageInput>(create_function());
-}
-
-
-
-void
-ImageInput::destroy(ImageInput* x)
-{
-    delete x;
 }
 
 

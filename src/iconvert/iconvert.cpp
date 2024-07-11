@@ -375,8 +375,7 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
 
     bool ok                      = true;
     bool mip_to_subimage_warning = false;
-    for (int subimage = 0; ok && in->seek_subimage(subimage, 0, inspec);
-         ++subimage) {
+    for (int subimage = 0; ok && in->seek_subimage(subimage, 0); ++subimage) {
         if (subimage > 0 && !out->supports("multiimage")) {
             print(stderr,
                   "iconvert WARNING: {} does not support multiple subimages.\n"
@@ -388,6 +387,7 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
         int miplevel = 0;
         do {
             // Copy the spec, with possible change in format
+            inspec            = in->spec(subimage, miplevel);
             ImageSpec outspec = inspec;
             bool nocopy = adjust_spec(in.get(), out.get(), inspec, outspec);
             if (miplevel > 0) {
@@ -473,7 +473,7 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
             }
 
             ++miplevel;
-        } while (ok && in->seek_subimage(subimage, miplevel, inspec));
+        } while (ok && in->seek_subimage(subimage, miplevel));
     }
 
     out->close();
