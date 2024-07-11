@@ -2316,7 +2316,7 @@ colorconvert_impl(ImageBuf& R, const ImageBuf& A,
         unpremult = false;
     // clang-format off
     parallel_image(
-        roi, parallel_options(nthreads),
+        roi, paropt(nthreads),
         [&, unpremult, channelsToCopy, processor](ROI roi) {
             int width = roi.width();
             // Temporary space to hold one RGBA scanline
