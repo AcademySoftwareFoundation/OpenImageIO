@@ -1502,6 +1502,16 @@ void test_parse ()
     OIIO_CHECK_EQUAL (ss, ""); OIIO_CHECK_EQUAL (s, "");
     s = "(blah"; ss = parse_nested (s);
     OIIO_CHECK_EQUAL (ss, ""); OIIO_CHECK_EQUAL (s, "(blah");
+
+    OIIO_CHECK_EQUAL(string_is_identifier("valid"), true);
+    OIIO_CHECK_EQUAL(string_is_identifier("_underscore"), true);
+    OIIO_CHECK_EQUAL(string_is_identifier("with123numbers"), true);
+    OIIO_CHECK_EQUAL(string_is_identifier("123invalidStart"), false);
+    OIIO_CHECK_EQUAL(string_is_identifier("invalid-char"), false);
+    OIIO_CHECK_EQUAL(string_is_identifier(""), false);
+    OIIO_CHECK_EQUAL(string_is_identifier("a"), true);
+    OIIO_CHECK_EQUAL(string_is_identifier("_"), true);
+    OIIO_CHECK_EQUAL(string_is_identifier("1"), false);
 }
 
 

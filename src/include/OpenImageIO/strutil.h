@@ -1120,6 +1120,14 @@ string_view OIIO_UTIL_API parse_line(string_view& str, bool eat = true) noexcept
 /// match.
 string_view OIIO_UTIL_API parse_nested (string_view &str, bool eat=true) noexcept;
 
+/// Does the string follow the lexical rule of a C identifier?
+inline bool
+string_is_identifier(string_view str)
+{
+    // If a leading identifier is the entirety of str, it's an ident.
+    string_view ident = parse_identifier(str);
+    return (!ident.empty() && str.empty());
+}
 
 /// Look within `str` for the pattern:
 ///     head nonwhitespace_chars whitespace
