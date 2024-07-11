@@ -1286,8 +1286,32 @@ control aspects of the writing itself:
        sensor noise. Higher number = grainier image, e.g. 100 gives a low
        amount of noise, 3200 gives a lot of noise. Default is 0.
        Encoded as metadata in the image.
-
-|
+   * - ``jpegxl:use_boxes``
+     - int (bool)
+     - If nonzero, will enable metadata (Exif, XMP, jumb, iptc) writing to the
+     output file. Default is 1.
+   * - ``jpegxl:compress_boxes``
+     - int (bool)
+     - If nonzero, will enable metadata compression. Default is 1.
+   * - ``jpegxl:exif_box``
+     - int (bool)
+     - If nonzero, will enable Exif metadata writing to the output file.
+     Default is 1.
+   * - ``jpegxl:xmp_box``
+     - int (bool)
+     - If nonzero, will enable XMP metadata writing to the output file.
+     Default is 1.
+   * - ``jpegxl:jumb_box``
+     - int (bool)
+     - If nonzero, will enable JUMBF metadata writing to the output file.
+     Default is 0.
+     (dows not supported at this moment in OIIO)
+   * - ``jpegxl:iptc_box``
+     - int (bool)
+     - If nonzero, will enable IPTC metadata writing to the output file.
+     Default is 0.
+     (Do not work as expected at this moment. Box is written but content
+     unreadable in exif readers)
 
 .. _sec-bundledplugins-ffmpeg:
 

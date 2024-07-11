@@ -11,6 +11,7 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/tiffutils.h>
 
+#include <jxl/decode.h>
 #include <jxl/encode.h>
 #include <jxl/encode_cxx.h>
 #include <jxl/resizable_parallel_runner_cxx.h>
@@ -67,6 +68,7 @@ private:
     }
 
     bool save_image(const void* data);
+    bool save_metadata(ImageSpec& m_spec, JxlEncoderPtr& m_encoder);
 };
 
 
@@ -366,6 +368,113 @@ JxlOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
 
 
 bool
+JxlOutput::save_metadata(ImageSpec& m_spec, JxlEncoderPtr& encoder)
+{
+    DBG std::cout << "JxlOutput::save_metadata()\n";
+
+    // Write EXIF info
+    std::vector<char> exif = { 0, 0, 0, 0 };
+    encode_exif(m_spec, exif);
+
+    // Write XMP packet, if we have anything
+    std::string xmp = encode_xmp(m_spec, true);
+
+    // Write IPTC IIM metadata tags, if we have anything
+    std::vector<char> iptc;
+    encode_iptc_iim(m_spec, iptc);
+
+    bool use_boxes     = m_spec.get_int_attribute("jpegxl:use_boxes", 1) == 1;
+    int compress_boxes = m_spec.get_int_attribute("jpegxl:compress_boxes", 1);
+
+    if (use_boxes) {
+        if (JXL_ENC_SUCCESS != JxlEncoderUseBoxes(m_encoder.get())) {
+            JxlEncoderError error = JxlEncoderGetError(m_encoder.get());
+            errorfmt("JxlEncoderUseBoxes() failed {}.", (int)error);
+            return false;
+        }
+        DBG std::cerr << "JxlEncoderUseBoxes() ok\n";
+
+        // Exif
+        std::vector<uint8_t>* exif_data = nullptr;
+        if (!exif.empty())
+            exif_data = reinterpret_cast<std::vector<uint8_t>*>(&exif);
+
+        // XMP
+        std::vector<uint8_t> xmp_data;
+
+        if (!xmp.empty()) {
+            xmp_data.insert(xmp_data.end(), xmp.c_str(),
+                            xmp.c_str() + xmp.length());
+        }
+
+        // IPTC
+        std::vector<uint8_t>* iptc_data = nullptr;
+        if (!iptc.empty()) {
+            static char photoshop[] = "Photoshop 3.0";
+            std::vector<char> head(photoshop,
+                                   photoshop + strlen(photoshop) + 1);
+            static char _8BIM[] = "8BIM";
+            head.insert(head.end(), _8BIM, _8BIM + 4);
+            head.push_back(4);  // 0x0404
+            head.push_back(4);
+            head.push_back(0);  // four bytes of zeroes
+            head.push_back(0);
+            head.push_back(0);
+            head.push_back(0);
+            head.push_back((char)(iptc.size() >> 8));  // size of block
+            head.push_back((char)(iptc.size() & 0xff));
+            iptc.insert(iptc.begin(), head.begin(), head.end());
+
+            iptc_data = reinterpret_cast<std::vector<uint8_t>*>(&iptc);
+        }
+
+        // Jumbf
+        std::vector<uint8_t>* jumbf_data = nullptr;
+
+        struct BoxInfo {
+            const char* type;
+            const std::vector<uint8_t>* bytes;
+            const bool enable;
+        };
+
+        const BoxInfo boxes[]
+            = { { "Exif", exif_data,
+                  m_spec.get_int_attribute("jpegxl:exif_box", 1) == 1 },
+                { "xml ", &xmp_data,
+                  m_spec.get_int_attribute("jpegxl:xmp_box", 1) == 1 },
+                { "jumb", jumbf_data,
+                  m_spec.get_int_attribute("jpegxl:jumb_box", 0) == 1 },
+                { "xml ", iptc_data,
+                  m_spec.get_int_attribute("jpegxl:iptc_box", 0) == 1 } };
+
+        for (const auto& box : boxes) {
+            // check if box_data is not nullptr
+            if (box.enable) {
+                if (!box.bytes) {
+                    DBG std::cerr << "Box data is nullptr.\n";
+                    continue;
+                }
+                if (!box.bytes->empty()) {
+                    if (JXL_ENC_SUCCESS
+                        != JxlEncoderAddBox(m_encoder.get(), box.type,
+                                            box.bytes->data(),
+                                            box.bytes->size(),
+                                            compress_boxes)) {
+                        errorfmt("JxlEncoderAddBox() failed {}.", box.type);
+                        return false;
+                    }
+                }
+            }
+        }
+        JxlEncoderCloseBoxes(m_encoder.get());
+    }
+
+    return true;
+}
+
+
+
+bool
 JxlOutput::save_image(const void* data)
 {
     JxlEncoderStatus status;
@@ -412,6 +521,14 @@ JxlOutput::save_image(const void* data)
 
     DBG std::cout << "data = " << data << " size = " << size << "\n";
 
+    // Write EXIF info
+    bool metadata_success = save_metadata(m_spec, m_encoder);
+    if (!metadata_success) {
+        error = JxlEncoderGetError(m_encoder.get());
+        errorfmt("save_metadata failed with error {}", (int)error);
+        return false;
+    }
+
     status = JxlEncoderAddImageFrame(m_frame_settings, &m_pixel_format, data,
                                      size);
     DBG std::cout << "status = " << status << "\n";
@@ -420,6 +537,7 @@ JxlOutput::save_image(const void* data)
         errorfmt("JxlEncoderAddImageFrame failed with error {}", (int)error);
         return false;
     }
+
 
     // No more image frames nor metadata boxes to add
     DBG std::cout << "calling JxlEncoderCloseInput()\n";
