@@ -431,7 +431,7 @@ JxlOutput::save_metadata(ImageSpec& m_spec, JxlEncoderPtr& encoder)
         // Jumbf
         std::vector<uint8_t>* jumbf_data = nullptr;
 
-        const struct BoxInfo {
+        struct BoxInfo {
             const char* type;
             const std::vector<uint8_t>* bytes;
             const bool enable;
