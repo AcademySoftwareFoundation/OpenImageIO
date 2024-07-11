@@ -98,7 +98,10 @@ hardware_concurrency();
 OIIO_DEPRECATED(
     "unreliable, replace with hardware_concurrency() [DEPRECATED in 2.6.0.0]")
 inline unsigned int
-physical_concurrency() { return hardware_concurrency(); }
+physical_concurrency()
+{
+    return hardware_concurrency();
+}
 #endif
 
 /// Get the maximum number of open file handles allowed on this system.
