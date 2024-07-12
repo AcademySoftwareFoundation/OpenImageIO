@@ -287,8 +287,8 @@ public:
         bool full_pixel_range    = false;  ///< data window matches image window
         bool is_constant_image   = false;  ///< Is the image a constant color?
         bool has_average_color   = false;  ///< We have an average color
-        std::vector<float> average_color;  ///< Average color
         spin_mutex average_color_mutex;    ///< protect average_color
+        std::vector<float> average_color;  ///< Average color
         std::unique_ptr<Imath::M44f> Mlocal;  ///< shadows/volumes: world-to-local
         // The scale/offset accounts for crops or overscans, converting
         // 0-1 texture space relative to the "display/full window" into
