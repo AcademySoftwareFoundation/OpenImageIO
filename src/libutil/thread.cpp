@@ -449,14 +449,6 @@ thread_pool::is_worker(std::thread::id id) const
 }
 
 
-// DEPRECATED(2.1)
-bool
-thread_pool::is_worker(std::thread::id id)
-{
-    return m_impl->is_worker(id);
-}
-
-
 bool
 thread_pool::very_busy() const
 {
