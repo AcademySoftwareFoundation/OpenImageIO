@@ -217,11 +217,12 @@ ImageCacheStatistics::merge(const ImageCacheStatistics& s)
 
 
 
-ImageCacheFile::LevelInfo::LevelInfo(const ImageSpec& spec_,
+ImageCacheFile::LevelInfo::LevelInfo(std::unique_ptr<ImageSpec> spec_,
                                      const ImageSpec& nativespec_)
-    : spec(spec_)
+    : m_spec(std::move(spec_))
     , nativespec(nativespec_)
 {
+    const ImageSpec& spec = m_spec ? *m_spec : nativespec;
     full_pixel_range
         = (spec.x == spec.full_x && spec.y == spec.full_y
            && spec.z == spec.full_z && spec.width == spec.full_width
@@ -251,16 +252,21 @@ ImageCacheFile::LevelInfo::LevelInfo(const ImageSpec& spec_,
 
 
 ImageCacheFile::LevelInfo::LevelInfo(const LevelInfo& src)
-    : spec(src.spec)
-    , nativespec(src.nativespec)
-    , full_pixel_range(src.full_pixel_range)
-    , onetile(src.onetile)
-    , polecolorcomputed(src.polecolorcomputed)
-    , polecolor(src.polecolor)
+    : nativespec(src.nativespec)
     , nxtiles(src.nxtiles)
     , nytiles(src.nytiles)
     , nztiles(src.nztiles)
+    , full_pixel_range(src.full_pixel_range)
+    , onetile(src.onetile)
+    , polecolorcomputed(src.polecolorcomputed)
 {
+    if (src.m_spec)
+        m_spec = std::make_unique<ImageSpec>(*src.m_spec);
+    const ImageSpec& spec = m_spec ? *m_spec : nativespec;
+    if (src.polecolor) {
+        polecolor.reset(new float[2 * spec.nchannels]);
+        std::copy_n(src.polecolor.get(), 2 * spec.nchannels, polecolor.get());
+    }
     int nwords = round_to_multiple(nxtiles * nytiles * nztiles, 64) / 64;
     tiles_read = new atomic_ll[nwords];
     for (int i = 0; i < nwords; ++i)
@@ -566,6 +572,7 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
         do {
             nativespec = inp->spec(nsubimages, nmip);
             tempspec   = nativespec;
+            bool tmpspecmodified = false;
             if (nmip == 0) {
                 // Things to do on MIP level 0, i.e. once per subimage
                 si.init(*this, tempspec, imagecache().forcefloat());
@@ -599,6 +606,7 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
                     tempspec.tile_height = tempspec.height;
                     tempspec.tile_depth  = tempspec.depth;
                 }
+                tmpspecmodified = true;
             }
             // If a request was made for a maximum MIP resolution to use for
             // texture lookups and this level is too big, bump up this
@@ -621,8 +629,14 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
             }
             // ImageCache can't store differing formats per channel
             tempspec.channelformats.clear();
-            LevelInfo levelinfo(tempspec, nativespec);
-            si.levels.push_back(levelinfo);
+            if (tmpspecmodified) {
+                LevelInfo levelinfo(std::make_unique<ImageSpec>(tempspec),
+                                    nativespec);
+                si.levels.push_back(levelinfo);
+            } else {
+                LevelInfo levelinfo(nativespec);
+                si.levels.push_back(levelinfo);
+            }
             ++nmip;
         } while (inp->seek_subimage(nsubimages, nmip));
 
@@ -664,7 +678,7 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
                     s.tile_depth  = d;
                 }
                 ++nmip;
-                LevelInfo levelinfo(s, s);
+                LevelInfo levelinfo(s);
                 si.levels.push_back(levelinfo);
             }
         }
@@ -1584,18 +1598,18 @@ ImageCacheTile::read(ImageCachePerThreadInfo* thread_info)
     if (m_valid) {
         ImageCacheFile::LevelInfo& lev(
             file.levelinfo(m_id.subimage(), m_id.miplevel()));
-        m_tile_width = lev.spec.tile_width;
+        const ImageSpec& spec(lev.spec());
+        m_tile_width = spec.tile_width;
         OIIO_DASSERT(m_tile_width > 0);
-        int whichtile = ((m_id.x() - lev.spec.x) / lev.spec.tile_width)
-                        + ((m_id.y() - lev.spec.y) / lev.spec.tile_height)
-                              * lev.nxtiles
-                        + ((m_id.z() - lev.spec.z) / lev.spec.tile_depth)
+        int whichtile = ((m_id.x() - spec.x) / spec.tile_width)
+                        + ((m_id.y() - spec.y) / spec.tile_height) * lev.nxtiles
+                        + ((m_id.z() - spec.z) / spec.tile_depth)
                               * (lev.nxtiles * lev.nytiles);
         int index       = whichtile / 64;
         int64_t bitmask = int64_t(1ULL << (whichtile & 63));
         int64_t oldval  = lev.tiles_read[index].fetch_or(bitmask);
         if (oldval & bitmask)  // Was it previously read?
-            file.register_redundant_tile(lev.spec.tile_bytes());
+            file.register_redundant_tile(spec.tile_bytes());
     } else {
         // (! m_valid)
         m_used = false;  // Don't let it hold mem if invalid
@@ -3587,8 +3601,9 @@ ImageCacheImpl::invalidate_all(bool force)
             if (sub.untiled) {
                 for (int m = 0, mend = f->miplevels(s); m < mend; ++m) {
                     const ImageCacheFile::LevelInfo& level(f->levelinfo(s, m));
-                    if (level.spec.tile_width != m_autotile
-                        || level.spec.tile_height != m_autotile) {
+                    const ImageSpec& spec(level.spec());
+                    if (spec.tile_width != m_autotile
+                        || spec.tile_height != m_autotile) {
                         all_files.push_back(name);
                         break;
                     }
