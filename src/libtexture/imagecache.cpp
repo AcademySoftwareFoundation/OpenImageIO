@@ -570,8 +570,8 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
         int max_mip_res = imagecache().max_mip_res();
         int nmip        = 0;
         do {
-            nativespec = inp->spec(nsubimages, nmip);
-            tempspec   = nativespec;
+            nativespec           = inp->spec(nsubimages, nmip);
+            tempspec             = nativespec;
             bool tmpspecmodified = false;
             if (nmip == 0) {
                 // Things to do on MIP level 0, i.e. once per subimage
