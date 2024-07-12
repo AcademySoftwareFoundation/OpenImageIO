@@ -29,7 +29,6 @@
 #include <OpenImageIO/timer.h>
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/ustring.h>
-#include <OpenImageIO/varyingref.h>
 
 #include "imagecache_pvt.h"
 #include "imageio_pvt.h"

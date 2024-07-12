@@ -68,3 +68,22 @@ long-deprecated API facets. This document lists the deprecations and removals.
   notation.
 
 
+# texture.h
+
+* Removed stochastic-related tokens from the MipMode and InterpMode enums.
+  These were originally experimental but never removed.
+* Removed the `bias` field from the TextureOpt structure. This was originally
+  there for the sake of shadow maps, but was never used because we never
+  implemented shadow maps in OIIO's TextureSystem.
+* Removed the TextureOptions, which hasn't been used since OIIO 1.x. We
+  switched to the alternate TextureOpt structure in OIIO 2.0.
+* Fully removed the long-deprecated methods of TextureSystem that operated
+  on batches using the VaryingRef class. These were replaced by alternatives
+  a long time ago.
+
+# varyinref.h
+
+* This header has been removed completely, since we no longer use the classes
+  it defines.
+
+

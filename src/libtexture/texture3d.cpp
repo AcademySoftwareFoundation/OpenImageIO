@@ -18,7 +18,6 @@
 #include <OpenImageIO/texture.h>
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/ustring.h>
-#include <OpenImageIO/varyingref.h>
 
 #include "imagecache_pvt.h"
 #include "texture_pvt.h"
@@ -197,66 +196,6 @@ TextureSystemImpl::texture3d(TextureHandle* texture_handle_,
         fill_gray_channels(spec, nchannels, result, dresultds, dresultdt,
                            dresultdr);
     return ok;
-}
-
-
-
-bool
-TextureSystemImpl::texture3d(ustring filename, TextureOptions& options,
-                             Runflag* runflags, int beginactive, int endactive,
-                             VaryingRef<Imath::V3f> P,
-                             VaryingRef<Imath::V3f> dPdx,
-                             VaryingRef<Imath::V3f> dPdy,
-                             VaryingRef<Imath::V3f> dPdz, int nchannels,
-                             float* result, float* dresultds, float* dresultdt,
-                             float* dresultdr)
-{
-#ifdef OIIO_TEX_NO_IMPLEMENT_VARYINGREF
-    return false;
-#else
-    Perthread* thread_info        = get_perthread_info();
-    TextureHandle* texture_handle = get_texture_handle(filename, thread_info);
-    return texture3d(texture_handle, thread_info, options, runflags,
-                     beginactive, endactive, P, dPdx, dPdy, dPdz, nchannels,
-                     result, dresultds, dresultdt, dresultdr);
-#endif
-}
-
-
-
-bool
-TextureSystemImpl::texture3d(
-    TextureHandle* texture_handle, Perthread* thread_info,
-    TextureOptions& options, Runflag* runflags, int beginactive, int endactive,
-    VaryingRef<Imath::V3f> P, VaryingRef<Imath::V3f> dPdx,
-    VaryingRef<Imath::V3f> dPdy, VaryingRef<Imath::V3f> dPdz, int nchannels,
-    float* result, float* dresultds, float* dresultdt, float* dresultdr)
-{
-#ifdef OIIO_TEX_NO_IMPLEMENT_VARYINGREF
-    return false;
-#else
-    bool ok = true;
-    result += beginactive * nchannels;
-    if (dresultds) {
-        dresultds += beginactive * nchannels;
-        dresultdt += beginactive * nchannels;
-    }
-    for (int i = beginactive; i < endactive; ++i) {
-        if (runflags[i]) {
-            TextureOpt opt(options, i);
-            ok &= texture3d(texture_handle, thread_info, opt, P[i], dPdx[i],
-                            dPdy[i], dPdz[i], 4, result, dresultds, dresultdt,
-                            dresultdr);
-        }
-        result += nchannels;
-        if (dresultds) {
-            dresultds += nchannels;
-            dresultdt += nchannels;
-            dresultdr += nchannels;
-        }
-    }
-    return ok;
-#endif
 }
 
 

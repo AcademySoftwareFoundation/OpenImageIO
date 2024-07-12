@@ -28,7 +28,6 @@
 #include <OpenImageIO/thread.h>
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/ustring.h>
-#include <OpenImageIO/varyingref.h>
 
 #include "imagecache_pvt.h"
 #include "texture_pvt.h"
@@ -1060,68 +1059,6 @@ TextureSystemImpl::fill_gray_channels(const ImageSpec& spec, int nchannels,
             }
         }
     }
-}
-
-
-
-bool
-TextureSystemImpl::texture(ustring filename, TextureOptions& options,
-                           Runflag* runflags, int beginactive, int endactive,
-                           VaryingRef<float> s, VaryingRef<float> t,
-                           VaryingRef<float> dsdx, VaryingRef<float> dtdx,
-                           VaryingRef<float> dsdy, VaryingRef<float> dtdy,
-                           int nchannels, float* result, float* dresultds,
-                           float* dresultdt)
-{
-#ifdef OIIO_TEX_NO_IMPLEMENT_VARYINGREF
-    return false;
-#else
-    Perthread* thread_info        = get_perthread_info();
-    TextureHandle* texture_handle = get_texture_handle(filename, thread_info);
-    return texture(texture_handle, thread_info, options, runflags, beginactive,
-                   endactive, s, t, dsdx, dtdx, dsdy, dtdy, nchannels, result,
-                   dresultds, dresultdt);
-#endif
-}
-
-
-
-bool
-TextureSystemImpl::texture(TextureHandle* texture_handle,
-                           Perthread* thread_info, TextureOptions& options,
-                           Runflag* runflags, int beginactive, int endactive,
-                           VaryingRef<float> s, VaryingRef<float> t,
-                           VaryingRef<float> dsdx, VaryingRef<float> dtdx,
-                           VaryingRef<float> dsdy, VaryingRef<float> dtdy,
-                           int nchannels, float* result, float* dresultds,
-                           float* dresultdt)
-{
-#ifdef OIIO_TEX_NO_IMPLEMENT_VARYINGREF
-    return false;
-#else
-    if (!texture_handle)
-        return false;
-    bool ok = true;
-    result += beginactive * nchannels;
-    if (dresultds) {
-        dresultds += beginactive * nchannels;
-        dresultdt += beginactive * nchannels;
-    }
-    for (int i = beginactive; i < endactive; ++i) {
-        if (runflags[i]) {
-            TextureOpt opt(options, i);
-            ok &= texture(texture_handle, thread_info, opt, s[i], t[i], dsdx[i],
-                          dtdx[i], dsdy[i], dtdy[i], nchannels, result,
-                          dresultds, dresultdt);
-        }
-        result += nchannels;
-        if (dresultds) {
-            dresultds += nchannels;
-            dresultdt += nchannels;
-        }
-    }
-    return ok;
-#endif
 }
 
 
