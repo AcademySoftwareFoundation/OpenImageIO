@@ -13,7 +13,6 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/simd.h>
 #include <OpenImageIO/ustring.h>
-#include <OpenImageIO/varyingref.h>
 #include <OpenImageIO/vecparam.h>
 
 
@@ -111,8 +110,6 @@ enum class MipMode {
     OneLevel,   ///< Use just one mipmap level
     Trilinear,  ///< Use two MIPmap levels (trilinear)
     Aniso,      ///< Use two MIPmap levels w/ anisotropic
-    StochasticTrilinear, ///< DEPRECATED Stochastic trilinear
-    StochasticAniso, ///< DEPRECATED Stochastic anisotropic
 };
 
 /// Interp mode determines how we sample within a mipmap level
@@ -210,8 +207,6 @@ public:
         MipModeOneLevel,   ///< Use just one mipmap level
         MipModeTrilinear,  ///< Use two MIPmap levels (trilinear)
         MipModeAniso,      ///< Use two MIPmap levels w/ anisotropic
-        MipModeStochasticTrilinear, ///< DEPRECATED Stochastic trilinear
-        MipModeStochasticAniso, ///< DEPRECATED Stochastic anisotropic
     };
 
     /// Interp mode determines how we sample within a mipmap level
@@ -257,10 +252,7 @@ public:
     float fill;                 ///< Fill value for missing channels
     const float* missingcolor;  ///< Color for missing texture
     float time;                 ///< Time (for time-dependent texture lookups)
-    union {
-        float bias;                 ///< Bias for shadows (DEPRECATED)
-        float rnd;                  ///< Stratified sample value
-    };
+    float rnd;                  ///< Stratified sample value
     int samples;                ///< Number of samples for shadows
 
     // For 3D volume texture lookups only:
@@ -354,119 +346,6 @@ private:
 
     friend class pvt::TextureSystemImpl;
 };
-
-
-
-// DEPRECATED(1.8)
-// Encapsulate all the options needed for texture lookups.  Making
-// these options all separate parameters to the texture API routines is
-// very ugly and also a big pain whenever we think of new options to
-// add.  So instead we collect all those little options into one
-// structure that can just be passed by reference to the texture API
-// routines.
-class OIIO_API TextureOptions {
-public:
-    /// Wrap mode describes what happens when texture coordinates describe
-    /// a value outside the usual [0,1] range where a texture is defined.
-    enum Wrap {
-        WrapDefault,               ///< Use the default found in the file
-        WrapBlack,                 ///< Black outside [0..1]
-        WrapClamp,                 ///< Clamp to [0..1]
-        WrapPeriodic,              ///< Periodic mod 1
-        WrapMirror,                ///< Mirror the image
-        WrapPeriodicPow2,          ///< Periodic, but only for powers of 2!!!
-        WrapPeriodicSharedBorder,  ///< Periodic with shared border (env)
-        WrapLast                   ///< Mark the end -- don't use this!
-    };
-
-    /// Mip mode determines if/how we use mipmaps
-    ///
-    enum MipMode {
-        MipModeDefault,    ///< Default high-quality lookup
-        MipModeNoMIP,      ///< Just use highest-res image, no MIP mapping
-        MipModeOneLevel,   ///< Use just one mipmap level
-        MipModeTrilinear,  ///< Use two MIPmap levels (trilinear)
-        MipModeAniso       ///< Use two MIPmap levels w/ anisotropic
-    };
-
-    /// Interp mode determines how we sample within a mipmap level
-    ///
-    enum InterpMode {
-        InterpClosest,      ///< Force closest texel
-        InterpBilinear,     ///< Force bilinear lookup within a mip level
-        InterpBicubic,      ///< Force cubic lookup within a mip level
-        InterpSmartBicubic  ///< Bicubic when magnifying, else bilinear
-    };
-
-    /// Create a TextureOptions with all fields initialized to reasonable
-    /// defaults.
-    OIIO_DEPRECATED("no longer used since OIIO 1.8")
-    TextureOptions();
-
-    /// Convert a TextureOpt for one point into a TextureOptions with
-    /// uniform values.
-    OIIO_DEPRECATED("no longer used since OIIO 1.8")
-    TextureOptions(const TextureOpt& opt);
-
-    // Options that must be the same for all points we're texturing at once
-    int firstchannel;          ///< First channel of the lookup
-    int subimage;              ///< Subimage or face ID
-    ustring subimagename;      ///< Subimage name
-    Wrap swrap;                ///< Wrap mode in the s direction
-    Wrap twrap;                ///< Wrap mode in the t direction
-    MipMode mipmode;           ///< Mip mode
-    InterpMode interpmode;     ///< Interpolation mode
-    int anisotropic;           ///< Maximum anisotropic ratio
-    bool conservative_filter;  ///< True == over-blur rather than alias
-
-    // Options that may be different for each point we're texturing
-    VaryingRef<float> sblur, tblur;    ///< Blur amount
-    VaryingRef<float> swidth, twidth;  ///< Multiplier for derivatives
-    VaryingRef<float> time;            ///< Time
-    VaryingRef<float> bias;            ///< Bias
-    VaryingRef<float> fill;            ///< Fill value for missing channels
-    VaryingRef<float> missingcolor;    ///< Color for missing texture
-    VaryingRef<int> samples;           ///< Number of samples
-
-    // For 3D volume texture lookups only:
-    Wrap rwrap;                ///< Wrap mode in the r direction
-    VaryingRef<float> rblur;   ///< Blur amount in the r direction
-    VaryingRef<float> rwidth;  ///< Multiplier for derivatives in r direction
-
-    /// Utility: Return the Wrap enum corresponding to a wrap name:
-    /// "default", "black", "clamp", "periodic", "mirror".
-    static Wrap decode_wrapmode(const char* name)
-    {
-        return (Wrap)Tex::decode_wrapmode(name);
-    }
-    static Wrap decode_wrapmode(ustring name)
-    {
-        return (Wrap)Tex::decode_wrapmode(name);
-    }
-    static Wrap decode_wrapmode(ustringhash name)
-    {
-        return (Wrap)Tex::decode_wrapmode(name);
-    }
-
-    /// Utility: Parse a single wrap mode (e.g., "periodic") or a
-    /// comma-separated wrap modes string (e.g., "black,clamp") into
-    /// separate Wrap enums for s and t.
-    OIIO_DEPRECATED("TextureOptions is deprecated, use TextureOpt (1.8)")
-    static void parse_wrapmodes(const char* wrapmodes,
-                                TextureOptions::Wrap& swrapcode,
-                                TextureOptions::Wrap& twrapcode)
-    {
-        Tex::parse_wrapmodes(wrapmodes, *(Tex::Wrap*)&swrapcode,
-                             *(Tex::Wrap*)&twrapcode);
-    }
-
-private:
-    // Options set INTERNALLY by libtexture after the options are passed
-    // by the user.  Users should not attempt to alter these!
-    friend class pvt::TextureSystemImpl;
-    friend class TextureOpt;
-};
-
 
 
 
@@ -1202,28 +1081,6 @@ public:
                           float *dresultds=nullptr,
                           float *dresultdt=nullptr) = 0;
 
-#ifndef OIIO_DOXYGEN
-    // Old multi-point API call.
-    // DEPRECATED (1.8)
-    OIIO_DEPRECATED("no longer support this multi-point call (1.8)")
-    virtual bool texture (ustring filename, TextureOptions &options,
-                          Runflag *runflags, int beginactive, int endactive,
-                          VaryingRef<float> s, VaryingRef<float> t,
-                          VaryingRef<float> dsdx, VaryingRef<float> dtdx,
-                          VaryingRef<float> dsdy, VaryingRef<float> dtdy,
-                          int nchannels, float *result,
-                          float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
-    OIIO_DEPRECATED("no longer support this multi-point call (1.8)")
-    virtual bool texture (TextureHandle *texture_handle,
-                          Perthread *thread_info, TextureOptions &options,
-                          Runflag *runflags, int beginactive, int endactive,
-                          VaryingRef<float> s, VaryingRef<float> t,
-                          VaryingRef<float> dsdx, VaryingRef<float> dtdx,
-                          VaryingRef<float> dsdy, VaryingRef<float> dtdy,
-                          int nchannels, float *result,
-                          float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
-#endif
-
     /// Perform filtered 3D volumetric texture lookups on a batch of
     /// positions from the same texture, all at once. The "point-like"
     /// parameters `P`, `dPdx`, `dPdy`, and `dPdz` are each a pointers to
@@ -1290,32 +1147,6 @@ public:
                             float *dresultds=nullptr, float *dresultdt=nullptr,
                             float *dresultdr=nullptr) = 0;
 
-#ifndef OIIO_DOXYGEN
-    // Retrieve a 3D texture lookup at many points at once.
-    // DEPRECATED(1.8)
-    OIIO_DEPRECATED("no longer support this multi-point call (1.8)")
-    virtual bool texture3d (ustring filename, TextureOptions &options,
-                            Runflag *runflags, int beginactive, int endactive,
-                            VaryingRef<Imath::V3f> P,
-                            VaryingRef<Imath::V3f> dPdx,
-                            VaryingRef<Imath::V3f> dPdy,
-                            VaryingRef<Imath::V3f> dPdz,
-                            int nchannels, float *result,
-                            float *dresultds=nullptr, float *dresultdt=nullptr,
-                            float *dresultdr=nullptr) = 0;
-    OIIO_DEPRECATED("no longer support this multi-point call (1.8)")
-    virtual bool texture3d (TextureHandle *texture_handle,
-                            Perthread *thread_info, TextureOptions &options,
-                            Runflag *runflags, int beginactive, int endactive,
-                            VaryingRef<Imath::V3f> P,
-                            VaryingRef<Imath::V3f> dPdx,
-                            VaryingRef<Imath::V3f> dPdy,
-                            VaryingRef<Imath::V3f> dPdz,
-                            int nchannels, float *result,
-                            float *dresultds=nullptr, float *dresultdt=nullptr,
-                            float *dresultdr=nullptr) = 0;
-#endif
-
     /// Perform filtered directional environment map lookups on a batch of
     /// directions from the same texture, all at once. The "point-like"
     /// parameters `R`, `dRdx`, and `dRdy` are each a pointers to arrays of
@@ -1377,29 +1208,6 @@ public:
                               int nchannels, float *result,
                               float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
 
-#ifndef OIIO_DOXYGEN
-    // Retrieve an environment map lookup for direction R, for many
-    // points at once.
-    // DEPRECATED(1.8)
-    OIIO_DEPRECATED("no longer support this multi-point call (1.8)")
-    virtual bool environment (ustring filename, TextureOptions &options,
-                              Runflag *runflags, int beginactive, int endactive,
-                              VaryingRef<Imath::V3f> R,
-                              VaryingRef<Imath::V3f> dRdx,
-                              VaryingRef<Imath::V3f> dRdy,
-                              int nchannels, float *result,
-                              float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
-    OIIO_DEPRECATED("no longer support this multi-point call (1.8)")
-    virtual bool environment (TextureHandle *texture_handle,
-                              Perthread *thread_info, TextureOptions &options,
-                              Runflag *runflags, int beginactive, int endactive,
-                              VaryingRef<Imath::V3f> R,
-                              VaryingRef<Imath::V3f> dRdx,
-                              VaryingRef<Imath::V3f> dRdy,
-                              int nchannels, float *result,
-                              float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
-#endif
-
     // Batched shadow lookups
     virtual bool shadow (ustring filename,
                          TextureOptBatch &options, Tex::RunMask mask,
@@ -1409,28 +1217,6 @@ public:
                          TextureOptBatch &options, Tex::RunMask mask,
                          const float *P, const float *dPdx, const float *dPdy,
                          float *result, float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
-
-#ifndef OIIO_DOXYGEN
-    // Retrieve a shadow lookup for position P at many points at once.
-    // DEPRECATED(1.8)
-    OIIO_DEPRECATED("no longer support this multi-point call (1.8)")
-    virtual bool shadow (ustring filename, TextureOptions &options,
-                         Runflag *runflags, int beginactive, int endactive,
-                         VaryingRef<Imath::V3f> P,
-                         VaryingRef<Imath::V3f> dPdx,
-                         VaryingRef<Imath::V3f> dPdy,
-                         float *result,
-                         float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
-    OIIO_DEPRECATED("no longer support this multi-point call (1.8)")
-    virtual bool shadow (TextureHandle *texture_handle, Perthread *thread_info,
-                         TextureOptions &options,
-                         Runflag *runflags, int beginactive, int endactive,
-                         VaryingRef<Imath::V3f> P,
-                         VaryingRef<Imath::V3f> dPdx,
-                         VaryingRef<Imath::V3f> dPdy,
-                         float *result,
-                         float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
-#endif
 
     /// @}
 

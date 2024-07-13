@@ -20,7 +20,6 @@
 #include <OpenImageIO/thread.h>
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/ustring.h>
-#include <OpenImageIO/varyingref.h>
 
 #include "imagecache_pvt.h"
 #include "texture_pvt.h"
@@ -207,67 +206,6 @@ using namespace simd;
 namespace pvt {
 
 
-bool
-TextureSystemImpl::environment(ustring filename, TextureOptions& options,
-                               Runflag* runflags, int beginactive,
-                               int endactive, VaryingRef<Imath::V3f> R,
-                               VaryingRef<Imath::V3f> dRdx,
-                               VaryingRef<Imath::V3f> dRdy, int nchannels,
-                               float* result, float* dresultds,
-                               float* dresultdt)
-{
-#ifdef OIIO_TEX_NO_IMPLEMENT_VARYINGREF
-    return false;
-#else
-    Perthread* thread_info        = get_perthread_info();
-    TextureHandle* texture_handle = get_texture_handle(filename, thread_info);
-    return environment(texture_handle, thread_info, options, runflags,
-                       beginactive, endactive, R, dRdx, dRdy, nchannels, result,
-                       dresultds, dresultdt);
-#endif
-}
-
-
-
-bool
-TextureSystemImpl::environment(TextureHandle* texture_handle,
-                               Perthread* thread_info, TextureOptions& options,
-                               Runflag* runflags, int beginactive,
-                               int endactive, VaryingRef<Imath::V3f> R,
-                               VaryingRef<Imath::V3f> dRdx,
-                               VaryingRef<Imath::V3f> dRdy, int nchannels,
-                               float* result, float* dresultds,
-                               float* dresultdt)
-{
-#ifdef OIIO_TEX_NO_IMPLEMENT_VARYINGREF
-    return false;
-#else
-    if (!texture_handle)
-        return false;
-    bool ok = true;
-    result += beginactive * nchannels;
-    if (dresultds) {
-        dresultds += beginactive * nchannels;
-        dresultdt += beginactive * nchannels;
-    }
-    for (int i = beginactive; i < endactive; ++i) {
-        if (runflags[i]) {
-            TextureOpt opt(options, i);
-            ok &= environment(texture_handle, thread_info, opt, R[i], dRdx[i],
-                              dRdy[i], nchannels, result, dresultds, dresultdt);
-        }
-        result += nchannels;
-        if (dresultds) {
-            dresultds += nchannels;
-            dresultdt += nchannels;
-        }
-    }
-    return ok;
-#endif
-}
-
-
-
 /// Convert a direction vector to latlong st coordinates
 ///
 inline void
@@ -448,8 +386,7 @@ TextureSystemImpl::environment(TextureHandle* texture_handle_,
 
     TextureOpt::MipMode mipmode = options.mipmode;
     bool aniso                  = (mipmode == TextureOpt::MipModeDefault
-                  || mipmode == TextureOpt::MipModeAniso
-                  || mipmode == TextureOpt::MipModeStochasticAniso);
+                  || mipmode == TextureOpt::MipModeAniso);
 
     float aspect, trueaspect, filtwidth;
     int nsamples;

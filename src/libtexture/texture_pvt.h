@@ -159,19 +159,6 @@ public:
                  const float* dsdy, const float* dtdy, int nchannels,
                  float* result, float* dresultds = nullptr,
                  float* dresultdt = nullptr) override;
-    bool texture(ustring filename, TextureOptions& options, Runflag* runflags,
-                 int beginactive, int endactive, VaryingRef<float> s,
-                 VaryingRef<float> t, VaryingRef<float> dsdx,
-                 VaryingRef<float> dtdx, VaryingRef<float> dsdy,
-                 VaryingRef<float> dtdy, int nchannels, float* result,
-                 float* dresultds = NULL, float* dresultdt = NULL) override;
-    bool texture(TextureHandle* texture_handle, Perthread* thread_info,
-                 TextureOptions& options, Runflag* runflags, int beginactive,
-                 int endactive, VaryingRef<float> s, VaryingRef<float> t,
-                 VaryingRef<float> dsdx, VaryingRef<float> dtdx,
-                 VaryingRef<float> dsdy, VaryingRef<float> dtdy, int nchannels,
-                 float* result, float* dresultds = NULL,
-                 float* dresultdt = NULL) override;
 
     bool texture3d(ustring filename, TextureOpt& options, V3fParam P,
                    V3fParam dPdx, V3fParam dPdy, V3fParam dPdz, int nchannels,
@@ -194,19 +181,6 @@ public:
                    int nchannels, float* result, float* dresultds = nullptr,
                    float* dresultdt = nullptr,
                    float* dresultdr = nullptr) override;
-    bool texture3d(ustring filename, TextureOptions& options, Runflag* runflags,
-                   int beginactive, int endactive, VaryingRef<Imath::V3f> P,
-                   VaryingRef<Imath::V3f> dPdx, VaryingRef<Imath::V3f> dPdy,
-                   VaryingRef<Imath::V3f> dPdz, int nchannels, float* result,
-                   float* dresultds = NULL, float* dresultdt = NULL,
-                   float* dresultdr = NULL) override;
-    bool texture3d(TextureHandle* texture_handle, Perthread* thread_info,
-                   TextureOptions& options, Runflag* runflags, int beginactive,
-                   int endactive, VaryingRef<Imath::V3f> P,
-                   VaryingRef<Imath::V3f> dPdx, VaryingRef<Imath::V3f> dPdy,
-                   VaryingRef<Imath::V3f> dPdz, int nchannels, float* result,
-                   float* dresultds = NULL, float* dresultdt = NULL,
-                   float* dresultdr = NULL) override;
 
     bool shadow(ustring /*filename*/, TextureOpt& /*options*/, V3fParam /*P*/,
                 V3fParam /*dPdx*/, V3fParam /*dPdy*/, float* /*result*/,
@@ -236,24 +210,6 @@ public:
     {
         return false;
     }
-    bool shadow(ustring /*filename*/, TextureOptions& /*options*/,
-                Runflag* /*runflags*/, int /*beginactive*/, int /*endactive*/,
-                VaryingRef<Imath::V3f> /*P*/, VaryingRef<Imath::V3f> /*dPdx*/,
-                VaryingRef<Imath::V3f> /*dPdy*/, float* /*result*/,
-                float* /*dresultds*/, float* /*dresultdt*/) override
-    {
-        return false;
-    }
-    bool shadow(TextureHandle* /*texture_handle*/, Perthread* /*thread_info*/,
-                TextureOptions& /*options*/, Runflag* /*runflags*/,
-                int /*beginactive*/, int /*endactive*/,
-                VaryingRef<Imath::V3f> /*P*/, VaryingRef<Imath::V3f> /*dPdx*/,
-                VaryingRef<Imath::V3f> /*dPdy*/, float* /*result*/,
-                float* /*dresultds*/, float* /*dresultdt*/) override
-    {
-        return false;
-    }
-
 
     bool environment(ustring filename, TextureOpt& options, V3fParam R,
                      V3fParam dRdx, V3fParam dRdy, int nchannels, float* result,
@@ -272,17 +228,6 @@ public:
                      const float* R, const float* dRdx, const float* dRdy,
                      int nchannels, float* result, float* dresultds = nullptr,
                      float* dresultdt = nullptr) override;
-    bool environment(ustring filename, TextureOptions& options,
-                     Runflag* runflags, int beginactive, int endactive,
-                     VaryingRef<Imath::V3f> R, VaryingRef<Imath::V3f> dRdx,
-                     VaryingRef<Imath::V3f> dRdy, int nchannels, float* result,
-                     float* dresultds = NULL, float* dresultdt = NULL) override;
-    bool environment(TextureHandle* texture_handle, Perthread* thread_info,
-                     TextureOptions& options, Runflag* runflags,
-                     int beginactive, int endactive, VaryingRef<Imath::V3f> R,
-                     VaryingRef<Imath::V3f> dRdx, VaryingRef<Imath::V3f> dRdy,
-                     int nchannels, float* result, float* dresultds = NULL,
-                     float* dresultdt = NULL) override;
 
     std::string resolve_filename(const std::string& filename) const override;
 
