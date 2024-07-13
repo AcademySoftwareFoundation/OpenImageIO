@@ -67,8 +67,33 @@ long-deprecated API facets. This document lists the deprecations and removals.
   severefmt, messagefmt, debugfmt, respectively, which all use the std::format
   notation.
 
+## missingmath.h
 
-# texture.h
+* This header has been removed entirely. It has was originally needed for
+  pre-C++11 MSVS, but has been unused since OIIO 2.0 (other than transitively
+  including fmath.h).
+
+## parallel.h
+
+* Removed several varieties of `parallel_for` functions where the task
+  functions took a thread ID argument in addition to the range, which have
+  been considered deprecated since OIIO 2.3. Please use task functions that do
+  not take a thread ID parameter.
+
+## paramlist.h
+
+* Removed some ParamValue constructor variants that have been deprecated since
+  OIIO 2.4. The removed variants took an optional `bool` parameter indicating
+  whether the value was copied. If you need to override the usual copy
+  behavior, please use the newer variety of constructors that instead use a
+  "strong" type where you pass `ParamValue:Copy(bool)`.
+
+## strutil.h
+
+* Added deprecation warnings to all the old (printf-convention) string
+  `format()` function.
+
+## texture.h
 
 * Removed stochastic-related tokens from the MipMode and InterpMode enums.
   These were originally experimental but never removed.
@@ -81,7 +106,28 @@ long-deprecated API facets. This document lists the deprecations and removals.
   on batches using the VaryingRef class. These were replaced by alternatives
   a long time ago.
 
-# varyinref.h
+## thread.h
+
+* `OIIO::yield()` now has a deprecation warning, having been marked as
+  deprecatd since OIIO 2.4. Use `std::this_thread::yield()`.
+
+## tiffutils.h
+
+* Removed the version of decode_exif that takes a pointer and length
+  (deprecated since 1.8). Use the version that takes a `string_view`, or the
+  one that takes a `cspan<uint8_t>`.
+
+## type_traits.h
+
+* Removed the `OIIO::void_t` template, which now should be replaced with
+  `std::void_t`.
+
+## ustring.h
+
+* Removed old `ustringHash` (which was just an alias for `std::hash<ustring>`,
+  which should be used instead.
+
+## varyingref.h
 
 * This header has been removed completely, since we no longer use the classes
   it defines.
