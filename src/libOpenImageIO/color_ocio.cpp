@@ -2316,7 +2316,7 @@ colorconvert_impl(ImageBuf& R, const ImageBuf& A,
         unpremult = false;
     // clang-format off
     parallel_image(
-        roi, parallel_options(nthreads),
+        roi, paropt(nthreads),
         [&, unpremult, channelsToCopy, processor](ROI roi) {
             int width = roi.width();
             // Temporary space to hold one RGBA scanline
@@ -2402,7 +2402,7 @@ colorconvert_impl_float_rgba(ImageBuf& R, const ImageBuf& A,
     OIIO_ASSERT(R.localpixels() && A.localpixels()
                 && R.spec().format == TypeFloat && A.spec().format == TypeFloat
                 && R.nchannels() == 4 && A.nchannels() == 4);
-    parallel_image(roi, parallel_options(nthreads), [&](ROI roi) {
+    parallel_image(roi, paropt(nthreads), [&](ROI roi) {
         int width = roi.width();
         // Temporary space to hold one RGBA scanline
         vfloat4* scanline;

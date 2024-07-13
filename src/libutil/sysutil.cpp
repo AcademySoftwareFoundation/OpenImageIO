@@ -296,15 +296,6 @@ Sysutil::getenv(string_view name, string_view defaultval)
 
 
 
-string_view
-Sysutil::getenv(string_view name)
-{
-    const char* env = ::getenv(std::string(name).c_str());
-    return string_view(env ? env : "");
-}
-
-
-
 void
 Sysutil::usleep(unsigned long useconds)
 {
@@ -588,14 +579,6 @@ Sysutil::put_in_background(int argc, char* argv[])
 
 unsigned int
 Sysutil::hardware_concurrency()
-{
-    return std::thread::hardware_concurrency();
-}
-
-
-
-unsigned int
-Sysutil::physical_concurrency()
 {
     return std::thread::hardware_concurrency();
 }

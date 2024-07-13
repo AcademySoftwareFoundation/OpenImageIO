@@ -1037,17 +1037,6 @@ operator""_ush(const char* str, std::size_t len)
 
 
 
-#if OIIO_VERSION_LESS(3, 0, 0)
-/// Deprecated -- This is too easy to confuse with the ustringhash class. And
-/// also it is unnecessary if you use std::hash<ustring>. This will be removed
-/// in OIIO 3.0.
-using ustringHash
-    OIIO_DEPRECATED("Use std::hash<ustring> instead of ustringHash")
-    = std::hash<ustring>;
-#endif
-
-
-
 /// Functor class to use for comparisons when sorting ustrings, if you
 /// want the strings sorted lexicographically.
 class ustringLess {

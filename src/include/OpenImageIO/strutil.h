@@ -41,14 +41,7 @@
 #    define OIIO_FORMAT_IS_FMT 0
 #endif
 
-// If OIIO_HIDE_FORMAT is defined, mark the old-style format functions as
-// deprecated. (This is a debugging aid for downstream projects who want to
-// root out any places where they might be using the old one).
-#ifdef OIIO_HIDE_FORMAT
-#    define OIIO_FORMAT_DEPRECATED OIIO_DEPRECATED("old style (printf-like) formatting version of this function is deprecated")
-#else
-#    define OIIO_FORMAT_DEPRECATED
-#endif
+#define OIIO_FORMAT_DEPRECATED OIIO_DEPRECATED("old style (printf-like) formatting version of this function is deprecated")
 
 // If OIIO_PRINT_IS_SYNCHRONIZED is not defined, assume unsynchronized.
 #ifndef OIIO_PRINT_IS_SYNCHRONIZED

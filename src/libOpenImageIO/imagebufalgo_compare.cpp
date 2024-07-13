@@ -134,7 +134,7 @@ computePixelStats_(const ImageBuf& src, ImageBufAlgo::PixelStats& stats,
     stats.reset(nchannels);
     OIIO::spin_mutex mutex;  // protect the shared stats when merging
 
-    parallel_options opt(nthreads);
+    paropt opt(nthreads);
     if (src.deep()) {
         parallel_for_chunked(roi.ybegin, roi.yend, 64,
                              [&](int64_t ybegin, int64_t yend) {

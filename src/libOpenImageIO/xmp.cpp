@@ -515,24 +515,6 @@ decode_xmp_node(pugi::xml_node node, ImageSpec& spec, int level = 1,
 
 
 
-// DEPRECATED(2.1)
-bool
-decode_xmp(const std::string& xml, ImageSpec& spec)
-{
-    return decode_xmp(string_view(xml), spec);
-}
-
-
-
-// DEPRECATED(2.1)
-bool
-decode_xmp(const char* xml, ImageSpec& spec)
-{
-    return decode_xmp(string_view(xml), spec);
-}
-
-
-
 bool
 decode_xmp(cspan<uint8_t> xml, ImageSpec& spec)
 {

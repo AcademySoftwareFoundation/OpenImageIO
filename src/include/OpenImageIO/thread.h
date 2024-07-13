@@ -90,6 +90,7 @@ typedef std::lock_guard<std::recursive_timed_mutex> recursive_timed_lock_guard;
 
 /// Yield the processor for the rest of the timeslice.
 /// DEPRECATED(2.4): Use std::this_thread::yield() instead.
+OIIO_DEPRECATED("Use std::this_thread::yield() [2.4]")
 inline void
 yield() noexcept
 {
@@ -725,6 +726,7 @@ public:
     /// can be used to limit a pool thread from unadvisedly adding its own
     /// subtasks to clog up the pool.
     /// DEPRECATED(2.1) -- use is_worker() instead.
+    OIIO_DEPRECATED("use is_worker [2.1]")
     bool this_thread_is_in_pool() const;
 
     /// Register a thread (not already in the thread pool itself) as working
@@ -737,8 +739,6 @@ public:
     /// the pool?
     bool is_worker(std::thread::id id) const;
     bool is_worker() const { return is_worker(std::this_thread::get_id()); }
-    // Non-const versions: DEPRECATED(2.1)
-    bool is_worker(std::thread::id id);
 
     /// How many jobs are waiting to run?  (Use with caution! Can be out of
     /// date by the time you look at it.)
