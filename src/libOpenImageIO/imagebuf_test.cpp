@@ -29,6 +29,15 @@ test_wrap(wrap_impl wrap, int coord, int origin, int width)
 void
 test_wrapmodes()
 {
+    OIIO_CHECK_EQUAL(ImageBuf::WrapMode_from_string("black"),
+                     ImageBuf::WrapBlack);
+    OIIO_CHECK_EQUAL(ImageBuf::WrapMode_from_string("mirror"),
+                     ImageBuf::WrapMirror);
+    OIIO_CHECK_EQUAL(ImageBuf::WrapMode_from_string("unknown"),
+                     ImageBuf::WrapDefault);
+    OIIO_CHECK_EQUAL("black", ImageBuf::wrapmode_name(ImageBuf::WrapBlack));
+    OIIO_CHECK_EQUAL("mirror", ImageBuf::wrapmode_name(ImageBuf::WrapMirror));
+
     const int ori    = 0;
     const int w      = 4;
     static int val[] = { -7, -6, -5, -4, -3, -2, -1, 0, 1,

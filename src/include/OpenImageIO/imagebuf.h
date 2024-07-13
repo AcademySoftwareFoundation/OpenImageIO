@@ -1165,6 +1165,8 @@ public:
     /// name, this will return `WrapDefault`.
     static WrapMode WrapMode_from_string(string_view name);
 
+    /// Return the name corresponding to the wrap mode.
+    static ustring wrapmode_name(WrapMode wrap);
 
     friend class IteratorBase;
 
