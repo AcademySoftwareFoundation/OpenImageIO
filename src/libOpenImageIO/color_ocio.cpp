@@ -935,14 +935,6 @@ ColorConfig::has_error() const
 
 
 
-bool
-ColorConfig::error() const
-{
-    return has_error();
-}
-
-
-
 std::string
 ColorConfig::geterror(bool clear) const
 {
@@ -2073,30 +2065,6 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
 
 
 ColorProcessorHandle
-ColorConfig::createDisplayTransform(string_view display, string_view view,
-                                    string_view inputColorSpace,
-                                    string_view looks, string_view context_key,
-                                    string_view context_value) const
-{
-    return createDisplayTransform(ustring(display), ustring(view),
-                                  ustring(inputColorSpace), ustring(looks),
-                                  false, ustring(context_key),
-                                  ustring(context_value));
-}
-
-ColorProcessorHandle
-ColorConfig::createDisplayTransform(ustring display, ustring view,
-                                    ustring inputColorSpace, ustring looks,
-                                    ustring context_key,
-                                    ustring context_value) const
-{
-    return createDisplayTransform(display, view, inputColorSpace, looks, false,
-                                  context_key, context_value);
-}
-
-
-
-ColorProcessorHandle
 ColorConfig::createFileTransform(string_view name, bool inverse) const
 {
     return createFileTransform(ustring(name), inverse);
@@ -2260,7 +2228,7 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src, string_view from,
                                                 colorconfig->resolve(to),
                                                 context_key, context_value);
         if (!processor) {
-            if (colorconfig->error())
+            if (colorconfig->has_error())
                 dst.errorfmt("{}", colorconfig->geterror());
             else
 #ifdef USE_OCIO
@@ -2578,7 +2546,7 @@ ImageBufAlgo::ociolook(ImageBuf& dst, const ImageBuf& src, string_view looks,
                                                      colorconfig->resolve(to),
                                                      inverse, key, value);
         if (!processor) {
-            if (colorconfig->error())
+            if (colorconfig->has_error())
                 dst.errorfmt("{}", colorconfig->geterror());
             else
 #ifdef USE_OCIO
@@ -2643,7 +2611,7 @@ ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
                                                   colorconfig->resolve(from),
                                                   looks, inverse, key, value);
         if (!processor) {
-            if (colorconfig->error())
+            if (colorconfig->has_error())
                 dst.errorfmt("{}", colorconfig->geterror());
             else
 #ifdef USE_OCIO
@@ -2725,7 +2693,7 @@ ImageBufAlgo::ociofiletransform(ImageBuf& dst, const ImageBuf& src,
             colorconfig = &ColorConfig::default_colorconfig();
         processor = colorconfig->createFileTransform(name, inverse);
         if (!processor) {
-            if (colorconfig->error())
+            if (colorconfig->has_error())
                 dst.errorfmt("{}", colorconfig->geterror());
             else
 #ifdef USE_OCIO

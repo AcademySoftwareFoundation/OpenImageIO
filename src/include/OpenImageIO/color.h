@@ -90,7 +90,8 @@ public:
     bool has_error() const;
 
     /// DEPRECATED(2.4), old name for has_error().
-    bool error() const;
+    OIIO_DEPRECATED("Use has_error()")
+    bool error() const { return has_error(); }
 
     /// This routine will return the error string (and by default, clear any
     /// error flags).  If no error has occurred since the last time
@@ -268,16 +269,26 @@ public:
                            ustring context_key   = ustring(),
                            ustring context_value = ustring()) const;
 
-    // OIIO_DEPRECATED("prefer the kind that takes an `inverse` parameter (2.5)")
+    OIIO_DEPRECATED("prefer the kind that takes an `inverse` parameter (2.5)")
     ColorProcessorHandle
     createDisplayTransform(string_view display, string_view view,
                            string_view inputColorSpace, string_view looks,
                            string_view context_key,
-                           string_view context_value = "") const;
-    // OIIO_DEPRECATED("prefer the kind that takes an `inverse` parameter (2.5)")
+                           string_view context_value = "") const
+    {
+        return createDisplayTransform(ustring(display), ustring(view),
+                                      ustring(inputColorSpace), ustring(looks),
+                                      false, ustring(context_key),
+                                      ustring(context_value));
+    }
+    OIIO_DEPRECATED("prefer the kind that takes an `inverse` parameter (2.5)")
     ColorProcessorHandle createDisplayTransform(
         ustring display, ustring view, ustring inputColorSpace, ustring looks,
-        ustring context_key, ustring context_value = ustring()) const;
+        ustring context_key, ustring context_value = ustring()) const
+    {
+        return createDisplayTransform(display, view, inputColorSpace, looks,
+                                      false, context_key, context_value);
+    }
 
     /// Construct a processor to perform color transforms determined by an
     /// OpenColorIO FileTransform. It is possible that this will return an
