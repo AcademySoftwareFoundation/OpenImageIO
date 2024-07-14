@@ -748,8 +748,9 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
                     outstream << "WARNING: Custom mip level \"" << mipimages[0]
                               << " had the wrong number of channels.\n";
                     std::shared_ptr<ImageBuf> t(new ImageBuf(smallspec));
-                    ImageBufAlgo::channels(*t, *small, outspec.nchannels, NULL,
-                                           NULL, NULL, true);
+                    ImageBufAlgo::channels(*t, *small, outspec.nchannels,
+                                           cspan<int>(), cspan<float>(),
+                                           cspan<std::string>(), true);
                     std::swap(t, small);
                 }
                 smallspec.tile_width  = outspec.tile_width;
@@ -829,7 +830,8 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
                             errorfmt("{}", sharp->geterror());
                         std::swap(img, sharp);
                     }
-                    ImageBufAlgo::resize(*small, *img, filter);
+                    ImageBufAlgo::resize(*small, *img,
+                                         { make_pv("filterptr", filter) });
                     if (sharpen > 0.0f && !sharpen_first) {
                         std::shared_ptr<ImageBuf> sharp(new ImageBuf);
                         bool uok = ImageBufAlgo::unsharp_mask(*sharp, *small,
@@ -1326,7 +1328,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
             newspec.full_height = newspec.height;
             newspec.full_depth  = newspec.depth;
             src->reset(newspec);
-            ImageBufAlgo::fill(*src, &constantColor[0]);
+            ImageBufAlgo::fill(*src, constantColor);
             if (verbose) {
                 outstream << "  Constant color image detected. ";
                 outstream << "Creating " << newspec.width << "x"
@@ -1345,8 +1347,9 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
             outstream
                 << "  Alpha==1 image detected. Dropping the alpha channel.\n";
         std::shared_ptr<ImageBuf> newsrc(new ImageBuf(src->spec()));
-        ImageBufAlgo::channels(*newsrc, *src, src->nchannels() - 1, NULL, NULL,
-                               NULL, true);
+        ImageBufAlgo::channels(*newsrc, *src, src->nchannels() - 1,
+                               cspan<int>(), cspan<float>(),
+                               cspan<std::string>(), true);
         std::swap(src, newsrc);  // N.B. the old src will delete
     }
 
@@ -1366,7 +1369,8 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
                 outstream,
                 "  Monochrome image detected. Converting to single channel texture.\n");
         std::shared_ptr<ImageBuf> newsrc(new ImageBuf(src->spec()));
-        ImageBufAlgo::channels(*newsrc, *src, 1, NULL, NULL, NULL, true);
+        ImageBufAlgo::channels(*newsrc, *src, 1, cspan<int>(), cspan<float>(),
+                               cspan<std::string>(), true);
         newsrc->specmod().default_channel_names();
         std::swap(src, newsrc);
     }
@@ -1378,8 +1382,8 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
             outstream << "  Overriding number of channels to " << nchannels
                       << std::endl;
         std::shared_ptr<ImageBuf> newsrc(new ImageBuf(src->spec()));
-        ImageBufAlgo::channels(*newsrc, *src, nchannels, NULL, NULL, NULL,
-                               true);
+        ImageBufAlgo::channels(*newsrc, *src, nchannels, cspan<int>(),
+                               cspan<float>(), cspan<std::string>(), true);
         std::swap(src, newsrc);
     }
 
@@ -1648,9 +1652,8 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         if (isConstantColor) {
             if (constantColor.size() < 3)
                 constantColor.resize(3, constantColor[0]);
-            if (!ImageBufAlgo::colorconvert(
-                    &constantColor[0], static_cast<int>(constantColor.size()),
-                    processor.get(), unpremult)) {
+            if (!ImageBufAlgo::colorconvert(constantColor, processor.get(),
+                                            unpremult)) {
                 errorfmt("Error applying color conversion to constant color.");
                 return false;
             }
@@ -1659,10 +1662,8 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         if (compute_average_color) {
             if (pixel_stats.avg.size() < 3)
                 pixel_stats.avg.resize(3, pixel_stats.avg[0]);
-            if (!ImageBufAlgo::colorconvert(&pixel_stats.avg[0],
-                                            static_cast<int>(
-                                                pixel_stats.avg.size()),
-                                            processor.get(), unpremult)) {
+            if (!ImageBufAlgo::colorconvert(pixel_stats.avg, processor.get(),
+                                            unpremult)) {
                 errorfmt("Error applying color conversion to average color.");
                 return false;
             }
@@ -1755,7 +1756,8 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
                 errorfmt("Could not make filter \"{}\"", resize_filter);
                 return false;
             }
-            ImageBufAlgo::resize(*toplevel, *src, filter);
+            ImageBufAlgo::resize(*toplevel, *src,
+                                 { make_pv("filterptr", filter) });
             Filter2D::destroy(filter);
         }
     }

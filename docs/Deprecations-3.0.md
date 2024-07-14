@@ -12,6 +12,9 @@ which only occur once every several years, we allow removal of functionality.
 OpenImageIO v3.0 is a major release that includes removal of many
 long-deprecated API facets. This document lists the deprecations and removals.
 
+NOTE: This is an in-progress document. Some things currently only warning
+about being deprecated will be removed in the final 3.0 release.
+
 ### Glossary
 
 - "Marked as deprecated" means that we consider an API facet to be obsolete,
@@ -29,6 +32,7 @@ long-deprecated API facets. This document lists the deprecations and removals.
 
 ---
 
+---
 
 ## array_view.h
 
@@ -81,6 +85,37 @@ long-deprecated API facets. This document lists the deprecations and removals.
 * The `ImageBuf::interppixel_NDC_full()` method, which has been marked as
   deprecated since OIIO 1.5, now has deprecation warnings. Use
   `interppixel_NDC()` instead.
+
+## imagebufalgo.h
+
+* The old versions (deprecated since 2.0) of IBA::compare() and
+  computePixelStats() that took a reference to the CompareResults or
+  PixelStats structure now have deprecation warnings. Use the versions that
+  return the structure instead.
+* The deprecated (often since as far back as 2.0) versions of functions that
+  took raw pointers to color values now have deprecations warnings. Use the
+  versions that take `span<>` or `cspan<>` instead. These include versions of:
+  isConstantColor, isConstantChannel, isMonochrome, isConstantChannel,
+  colorconvert, fill, checker, add, sub, absdiff, mul, div, mad, pow,
+  channel_sum, channels, clamp, color_count, color_range_check, render_text.
+* The `histogram()` function that takes a reference to a result vector
+  (deprecated since 2.0 and previously warned) has been removed. Use the
+  version that returns the vector instead. The `histogram_draw()` (deprecated
+  since 2.0 and previously warned) has been removed and has no replacement
+  since it was always silly.
+* The versions of ociodisplay that lacked an `inverse` parameter, which were
+  marked as deprecated since 2.5, now have deprecation warnings. Use the
+  version that takes an `inverse` bool.
+* The OpenCV-related functions that take old-style IplImage pointers
+  (deprecated since 2.0) have been removed. Use the modern ones that use
+  cv::Mat.
+* The pre-KWArgs versions of resize, warp, and fit now have deprecation
+  warnings. Use the versions that take KWArgs instead.
+
+## imagebufalgo_util.h
+
+* IBA::type_merge, deprecated since 2.3, now has a deprecation warning.
+  Instead, use TypeDesc::basetype_merge().
 
 ## missingmath.h
 

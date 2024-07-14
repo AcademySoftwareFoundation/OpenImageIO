@@ -250,15 +250,18 @@ enum IBAprep_flags {
 
 
 
-// DEPRECATED(2.3): Prefer TypeDesc::basetype_merge().
-TypeDesc::BASETYPE OIIO_API type_merge (TypeDesc::BASETYPE a, TypeDesc::BASETYPE b);
+OIIO_DEPRECATED("Use TypeDesc::basetype_merge [2.3]")
+inline TypeDesc::BASETYPE type_merge (TypeDesc::BASETYPE a, TypeDesc::BASETYPE b)
+{
+    return TypeDesc::basetype_merge(a, b);
+}
 
-// DEPRECATED(2.3): Prefer TypeDesc::basetype_merge().
+OIIO_DEPRECATED("Use TypeDesc::basetype_merge [2.3]")
 inline TypeDesc type_merge (TypeDesc a, TypeDesc b) {
     return TypeDesc::basetype_merge(a, b);
 }
 
-// DEPRECATED(2.3): Prefer TypeDesc::basetype_merge().
+OIIO_DEPRECATED("Use TypeDesc::basetype_merge [2.3]")
 inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
 {
     return TypeDesc::basetype_merge(TypeDesc::basetype_merge(a,b), c);

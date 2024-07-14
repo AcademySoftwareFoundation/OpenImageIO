@@ -248,7 +248,7 @@ ImageBuf_test_appbuffer_strided()
     // Wrap the whole buffer, fill with green
     ImageBuf wrapped(ImageSpec(res, res, nchans, TypeFloat), mem);
     const float green[nchans] = { 0.0f, 1.0f, 0.0f };
-    ImageBufAlgo::fill(wrapped, green);
+    ImageBufAlgo::fill(wrapped, cspan<float>(green));
     float color[nchans] = { -1, -1, -1 };
     OIIO_CHECK_ASSERT(ImageBufAlgo::isConstantColor(wrapped, 0.0f, color)
                       && color[0] == 0.0f && color[1] == 1.0f
@@ -260,7 +260,7 @@ ImageBuf_test_appbuffer_strided()
                      2 * nchans * sizeof(float) /* every other pixel */,
                      2 * res * nchans * sizeof(float) /* ever other line */);
     const float red[nchans] = { 1.0f, 0.0f, 0.0f };
-    ImageBufAlgo::fill(strided, red);
+    ImageBufAlgo::fill(strided, cspan<float>(red));
 
     // The strided IB ought to look all-red
     OIIO_CHECK_ASSERT(ImageBufAlgo::isConstantColor(strided, 0.0f, color)
@@ -409,7 +409,7 @@ test_read_channel_subset()
     // FIrst, write a test image with 6 channels
     static float color6[] = { 0.6f, 0.5f, 0.4f, 0.3f, 0.2f, 0.1f };
     ImageBuf A(ImageSpec(2, 2, 6, TypeDesc::FLOAT));
-    ImageBufAlgo::fill(A, color6);
+    ImageBufAlgo::fill(A, cspan<float>(color6));
     A.write("sixchans.tif");
     std::cout << " Start with image:\n";
     print(A);

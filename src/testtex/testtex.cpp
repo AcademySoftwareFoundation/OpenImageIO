@@ -1733,7 +1733,8 @@ make_temp_noise_file(string_view filename, int seed)
     float c3[4] = { hashrand(1, 0, 0, 0, seed + 23 * 3),
                     hashrand(0, 1, 0, 0, seed + 23 * 3),
                     hashrand(0, 0, 1, 0, seed + 23 * 3), 1.0f };
-    ImageBufAlgo::fill(buf, c0, c1, c2, c3);
+    ImageBufAlgo::fill(buf, cspan<float>(c0), cspan<float>(c1),
+                       cspan<float>(c2), cspan<float>(c3));
     ImageSpec config;
     ImageBufAlgo::make_texture(ImageBufAlgo::MakeTxTexture, buf, filename,
                                config);

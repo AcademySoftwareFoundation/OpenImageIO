@@ -2987,7 +2987,7 @@ TextureSystemImpl::visualize_ellipse(const std::string& name, float dsdx,
     static float grey[3]  = { 0.5, 0.5, 0.5 };
     static float red[3]   = { 1, 0, 0 };
     static float green[3] = { 0, 1, 0 };
-    ImageBufAlgo::fill(ib, grey);
+    ImageBufAlgo::fill(ib, cspan<float>(grey));
 
     // scan all the pixels, darken the ellipse interior (no blur considered)
     for (int j = 0; j < h; ++j) {
