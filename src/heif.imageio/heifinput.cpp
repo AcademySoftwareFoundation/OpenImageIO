@@ -247,8 +247,9 @@ HeifInput::seek_subimage(int subimage, int miplevel)
 #endif
 
     int bits = m_himage.get_bits_per_pixel(heif_channel_interleaved);
-    m_spec = ImageSpec(m_ihandle.get_width(), m_ihandle.get_height(), bits / 8,
-                       TypeUInt8);
+    m_spec   = ImageSpec(m_himage.get_width(heif_channel_interleaved),
+                         m_himage.get_height(heif_channel_interleaved), bits / 8,
+                         TypeUInt8);
 
     m_spec.attribute("oiio:ColorSpace", "sRGB");
 
