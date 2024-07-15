@@ -2270,6 +2270,10 @@ enum MakeTextureMode {
 ///                           Semicolon-separated list of alternate images
 ///                           to be used for individual MIPmap levels,
 ///                           rather than simply downsizing. (default: "")
+///    - `maketx:mipmap_metadata` (int) :
+///                           If nonzero, will propagate metadata to every MIP
+///                           level. The default (0) only writes metadata to
+///                           the highest-resolution level. (0)
 ///    - `maketx:full_command_line` (string) :
 ///                           The command or program used to generate this
 ///                           call, will be embedded in the metadata.
