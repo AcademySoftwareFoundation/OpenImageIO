@@ -1,3 +1,8 @@
+Release 2.5.13.1 (July 15, 2024) -- compared to 2.5.13.0
+--------------------------------------------------------
+- fix(heic): Correctly set imagespec size for heif images.
+ [security advisory](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-jjm9-9m4m-c8p2) (by Gerrard Tai)
+
 Release 2.5.13.0 (July 1, 2024) -- compared to 2.5.12.0
 -------------------------------------------------------
 - *fix*: Various PSD files fail to load correctly [#4302](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4302) (by Jesse Yurkovich)
