@@ -1,3 +1,8 @@
+Release 2.5.14.0 (Aug 1?, 2024) -- compared to 2.5.13.1
+--------------------------------------------------------
+
+
+
 Release 2.5.13.1 (July 15, 2024) -- compared to 2.5.13.0
 --------------------------------------------------------
 - fix(heic): Correctly set imagespec size for heif images.
