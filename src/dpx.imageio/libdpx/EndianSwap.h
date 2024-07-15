@@ -55,9 +55,9 @@ SwapBytes(T& value)
 
 template<typename T>
 void
-SwapBuffer(T* buf, unsigned int len)
+SwapBuffer(T* buf, size_t len)
 {
-    OIIO::byteswap_span(OIIO::span<T>(buf, len));
+    OIIO::byteswap_span(OIIO::span<T>(buf, OIIO::span_size_t(len)));
 }
 
 #else

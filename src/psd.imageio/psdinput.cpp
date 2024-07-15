@@ -808,7 +808,7 @@ PSDInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
             break;
         }
     } else if (m_header.color_mode == ColorMode_CMYK) {
-        oiio_span_size_type cmyklen = channel_count * spec.width;
+        span_size_t cmyklen = channel_count * spec.width;
         switch (bps) {
         case 4: {
             std::unique_ptr<float[]> cmyk(new float[cmyklen]);
@@ -842,11 +842,13 @@ PSDInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         }
         }
     } else if (m_header.color_mode == ColorMode_Indexed) {
-        if (!indexed_to_rgb({ (unsigned char*)dst, spec.width * spec.nchannels },
+        if (!indexed_to_rgb({ (unsigned char*)dst,
+                              span_size_t(spec.width * spec.nchannels) },
                             channel_buffers[0], spec.width))
             return false;
     } else if (m_header.color_mode == ColorMode_Bitmap) {
-        if (!bitmap_to_rgb({ (unsigned char*)dst, spec.width * spec.nchannels },
+        if (!bitmap_to_rgb({ (unsigned char*)dst,
+                             span_size_t(spec.width * spec.nchannels) },
                            channel_buffers[0], spec.width))
             return false;
     } else {

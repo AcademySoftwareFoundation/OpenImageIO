@@ -183,7 +183,7 @@ private:
              bool force = true, unsigned short ignval = 0)
     {
         if (force || !allval(data, ignval)) {
-            int size = data.size() > 1 ? data.size() : 0;
+            int size = data.size() > 1 ? std::ssize(data) : 0;
             m_spec.attribute(prefixedname(prefix, name),
                              TypeDesc(TypeDesc::UINT16, size), data.data());
         }
@@ -192,7 +192,7 @@ private:
              bool force = true, unsigned char ignval = 0)
     {
         if (force || !allval(data, ignval)) {
-            int size = data.size() > 1 ? data.size() : 0;
+            int size = data.size() > 1 ? std::ssize(data) : 0;
             m_spec.attribute(prefixedname(prefix, name),
                              TypeDesc(TypeDesc::UINT8, size), data.data());
         }
@@ -201,7 +201,7 @@ private:
              bool force = true, float ignval = 0)
     {
         if (force || !allval(data, ignval)) {
-            int size = data.size() > 1 ? data.size() : 0;
+            int size = data.size() > 1 ? std::ssize(data) : 0;
             m_spec.attribute(prefixedname(prefix, name),
                              TypeDesc(TypeDesc::FLOAT, size), data.data());
         }
@@ -210,7 +210,7 @@ private:
              bool force = true, float ignval = 0)
     {
         float* d = OIIO_ALLOCA(float, data.size());
-        for (auto i = 0; i < data.size(); ++i)
+        for (size_t i = 0; i < std::size(data); ++i)
             d[i] = data[i];
         add(prefix, name, cspan<float>(d, data.size()), force, ignval);
     }

@@ -466,12 +466,13 @@ isConstantColor_(const ImageBuf& src, float threshold, span<float> color,
     }
 
     if (color.size()) {
+        int colsize = int(color.size());
         ImageBuf::ConstIterator<T, float> s(src, roi);
-        for (int c = 0; c < roi.chbegin && c < color.size(); ++c)
+        for (int c = 0; c < roi.chbegin && c < colsize; ++c)
             color[c] = 0.0f;
-        for (int c = roi.chbegin; c < roi.chend && c < color.size(); ++c)
+        for (int c = roi.chbegin; c < roi.chend && c < colsize; ++c)
             color[c] = s[c];
-        for (int c = roi.chend; c < src.nchannels() && c < color.size(); ++c)
+        for (int c = roi.chend; c < src.nchannels() && c < colsize; ++c)
             color[c] = 0.0f;
     }
     return result ? true : false;
@@ -658,7 +659,7 @@ ImageBufAlgo::color_count(const ImageBuf& src, imagesize_t* count, int ncolors,
         roi = get_roi(src.spec());
     roi.chend = std::min(roi.chend, src.nchannels());
 
-    if (color.size() < ncolors * src.nchannels()) {
+    if (std::ssize(color) < ncolors * src.nchannels()) {
         src.errorfmt(
             "ImageBufAlgo::color_count: not enough room in 'color' array");
         return false;

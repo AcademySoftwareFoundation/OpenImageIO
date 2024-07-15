@@ -254,8 +254,8 @@ test_read_proxy(string_view formatname, string_view extension,
     std::cout << "    Reading Proxy " << formatname << " ... ";
     std::cout.flush();
 
-    auto nvalues = oiio_span_size_type(buf.spec().image_pixels()
-                                       * buf.spec().nchannels);
+    auto nvalues = span_size_t(buf.spec().image_pixels()
+                               * buf.spec().nchannels);
     float eps    = 0.0f;
     // Allow lossy formats to have a little more error
     if (formatname == "heif" || formatname == "jpegxl")
@@ -400,8 +400,8 @@ test_all_formats()
             ok = checked_read(in.get(), filename, pixels);
             if (!ok)
                 continue;
-            auto nvalues = oiio_span_size_type(buf.spec().image_pixels()
-                                               * buf.spec().nchannels);
+            auto nvalues = span_size_t(buf.spec().image_pixels()
+                                       * buf.spec().nchannels);
             ok           = test_pixel_match({ orig_pixels, nvalues },
                                             { (const float*)pixels.data(), nvalues },
                                             eps);
