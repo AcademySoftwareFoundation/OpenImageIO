@@ -34,6 +34,8 @@ None known
 
 Most recent fixes listed first, more or less
 
+- CVE-2024-40630: Fixed incorrect image size for certain HEIC files.
+  [advisory](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-jjm9-9m4m-c8p2) (Fixed in 2.5.13.1)
 - CVE-2023-42295: Fix signed integer overflow when computing total number of pixels while reading BMP files. [#3948](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3948) (by xiaoxiaoafeifei) (Fixed in 2.5.3.0/2.6.0.1)
 - CVE-2023-36183: Heap-buffer-overflow while reading ICO files [#3872](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3872)  (by xiaoxiaoafeifei)
 - TALOS-2023-1709 / CVE-2023-24472: Race condition in TIFF reader. [#3772](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3772) (2.5.1.0/2.4.8.1)
