@@ -1981,13 +1981,13 @@ TextureSystemImpl::pole_color(TextureFile& texturefile,
 {
     if (!levelinfo.onetile)
         return NULL;  // Only compute color for one-tile MIP levels
-    const ImageSpec& spec(levelinfo.spec);
+    const ImageSpec& spec(levelinfo.spec());
     if (!levelinfo.polecolorcomputed) {
         static spin_mutex mutex;  // Protect everybody's polecolor
         spin_lock lock(mutex);
         if (!levelinfo.polecolorcomputed) {
-            OIIO_DASSERT(levelinfo.polecolor.size() == 0);
-            levelinfo.polecolor.resize(2 * spec.nchannels);
+            OIIO_DASSERT(!levelinfo.polecolor);
+            levelinfo.polecolor.reset(new float[2 * spec.nchannels]);
             OIIO_DASSERT(tile->id().nchannels() == spec.nchannels
                          && "pole_color doesn't work for channel subsets");
             int pixelsize                = tile->pixelsize();

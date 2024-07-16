@@ -164,11 +164,11 @@ public:
     }
     const ImageSpec& spec(int subimage, int miplevel) const
     {
-        return levelinfo(subimage, miplevel).spec;
+        return levelinfo(subimage, miplevel).spec();
     }
     ImageSpec& spec(int subimage, int miplevel)
     {
-        return levelinfo(subimage, miplevel).spec;
+        return levelinfo(subimage, miplevel).spec();
     }
     const ImageSpec& nativespec(int subimage, int miplevel) const
     {
@@ -250,18 +250,27 @@ public:
     /// Info for each MIP level that isn't in the ImageSpec, or that we
     /// precompute.
     struct LevelInfo {
-        ImageSpec spec;         ///< ImageSpec for the mip level
-        ImageSpec nativespec;   ///< Native ImageSpec for the mip level
+        std::unique_ptr<ImageSpec> m_spec;  ///< ImageSpec for the mip level,
+            // only specified if different from nativespec
+        ImageSpec nativespec;  ///< Native ImageSpec for the mip level
+        mutable std::unique_ptr<float[]> polecolor;  ///< Pole colors
+        atomic_ll* tiles_read;  ///< Bitfield for tiles read at least once
+        int nxtiles, nytiles, nztiles;  ///< Number of tiles in each dimension
         bool full_pixel_range;  ///< pixel data window matches image window
         bool onetile;           ///< Whole level fits on one tile
-        mutable bool polecolorcomputed;        ///< Pole color was computed
-        mutable std::vector<float> polecolor;  ///< Pole colors
-        int nxtiles, nytiles, nztiles;  ///< Number of tiles in each dimension
-        atomic_ll* tiles_read;  ///< Bitfield for tiles read at least once
-        LevelInfo(const ImageSpec& spec,
+        mutable bool polecolorcomputed;  ///< Pole color was computed
+
+        LevelInfo(std::unique_ptr<ImageSpec> spec,
                   const ImageSpec& nativespec);  ///< Initialize based on spec
-        LevelInfo(const LevelInfo& src);         // needed for vector<LevelInfo>
+        LevelInfo(const ImageSpec& nativespec)
+            : LevelInfo(nullptr, nativespec)
+        {
+        }
+        LevelInfo(const LevelInfo& src);  // needed for vector<LevelInfo>
         ~LevelInfo() { delete[] tiles_read; }
+
+        ImageSpec& spec() { return m_spec ? *m_spec : nativespec; }
+        const ImageSpec& spec() const { return m_spec ? *m_spec : nativespec; }
     };
 
     /// Info for each subimage
@@ -278,8 +287,8 @@ public:
         bool full_pixel_range    = false;  ///< data window matches image window
         bool is_constant_image   = false;  ///< Is the image a constant color?
         bool has_average_color   = false;  ///< We have an average color
-        std::vector<float> average_color;  ///< Average color
         spin_mutex average_color_mutex;    ///< protect average_color
+        std::vector<float> average_color;  ///< Average color
         std::unique_ptr<Imath::M44f> Mlocal;  ///< shadows/volumes: world-to-local
         // The scale/offset accounts for crops or overscans, converting
         // 0-1 texture space relative to the "display/full window" into
@@ -294,8 +303,8 @@ public:
         SubimageInfo() {}
         void init(ImageCacheFile& icfile, const ImageSpec& spec,
                   bool forcefloat);
-        ImageSpec& spec(int m) { return levels[m].spec; }
-        const ImageSpec& spec(int m) const { return levels[m].spec; }
+        ImageSpec& spec(int m) { return levels[m].spec(); }
+        const ImageSpec& spec(int m) const { return levels[m].spec(); }
         const ImageSpec& nativespec(int m) const
         {
             return levels[m].nativespec;
