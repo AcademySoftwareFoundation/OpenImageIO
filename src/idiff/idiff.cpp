@@ -126,7 +126,7 @@ read_input(const std::string& filename, ImageBuf& img, ImageCache* cache,
         && img.miplevel() == miplevel)
         return true;
 
-    img.reset(filename, cache);
+    img.reset(filename, 0, 0, cache);
     if (img.read(subimage, miplevel, false, TypeFloat))
         return true;
 

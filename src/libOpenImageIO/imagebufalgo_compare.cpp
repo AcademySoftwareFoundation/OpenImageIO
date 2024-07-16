@@ -1118,7 +1118,7 @@ ImageBufAlgo::histogram_draw(ImageBuf& R,
     if (R.spec().format != TypeFloat || R.nchannels() != 1
         || R.spec().width != bins) {
         ImageSpec newspec = ImageSpec(bins, height, 1, TypeDesc::FLOAT);
-        R.reset("dummy", newspec);
+        R.reset(newspec);
     }
 
     // Fill output image R with white color.

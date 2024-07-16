@@ -94,7 +94,7 @@ ImageRec::ImageRec(ImageRec& img, int subimage_to_copy, int miplevel_to_copy,
             } else {
                 // The other image is not modified, and we don't need to be
                 // writable, either.
-                ib      = new ImageBuf(img.name(), srcib.imagecache());
+                ib      = new ImageBuf(img.name(), 0, 0, srcib.imagecache());
                 bool ok = ib->read(srcsub, srcmip, false /*force*/,
                                    img.m_input_dataformat /*convert*/);
                 OIIO_ASSERT(ok);
