@@ -2904,15 +2904,29 @@ ImageBuf::do_wrap(int& x, int& y, int& z, WrapMode wrap) const
 
 
 
+static const ustring wrapnames[] = { ustring("default"), ustring("black"),
+                                     ustring("clamp"), ustring("periodic"),
+                                     ustring("mirror") };
+
+
 ImageBuf::WrapMode
 ImageBuf::WrapMode_from_string(string_view name)
 {
-    static const char* names[] = { "default",  "black",  "clamp",
-                                   "periodic", "mirror", nullptr };
-    for (int i = 0; names[i]; ++i)
-        if (name == names[i])
+    int i = 0;
+    for (auto w : wrapnames) {
+        if (name == w)
             return WrapMode(i);
+        ++i;
+    }
     return WrapDefault;  // name not found
+}
+
+
+ustring
+ImageBuf::wrapmode_name(WrapMode wrap)
+{
+    unsigned int w(wrap);
+    return w <= 4 ? wrapnames[w] : wrapnames[0];
 }
 
 
