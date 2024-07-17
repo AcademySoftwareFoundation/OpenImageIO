@@ -1077,6 +1077,10 @@ control aspects of the writing itself:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by writing to a memory buffer.
+   * - ``jpeg:iptc``
+     - int (1)
+     - If zero, will suppress writing the IPTC metadata block to the
+       JPEG file.
    * - ``jpeg:progressive``
      - int
      - If nonzero, will write a progressive JPEG file.

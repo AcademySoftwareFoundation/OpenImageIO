@@ -179,7 +179,7 @@ encode_iptc_iim_one_tag(int tag, string_view data, std::vector<char>& iptc)
 
 
 
-void
+bool
 encode_iptc_iim(const ImageSpec& spec, std::vector<char>& iptc)
 {
     iptc.clear();
@@ -206,6 +206,7 @@ encode_iptc_iim(const ImageSpec& spec, std::vector<char>& iptc)
                 encode_iptc_iim_one_tag(iimtag[i].tag, p->get_string(0), iptc);
         }
     }
+    return iptc.size() != 0;
 }
 
 
