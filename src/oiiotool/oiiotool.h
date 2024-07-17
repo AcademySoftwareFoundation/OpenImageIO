@@ -259,6 +259,17 @@ public:
         return r;
     }
 
+    void popbottom()
+    {
+        if (image_stack.size()) {
+            // There are images on the full stack -- get rid of the bottom
+            image_stack.erase(image_stack.begin());
+        } else {
+            // Nothing on the stack, so get rid of the current image
+            curimg = ImageRecRef();
+        }
+    }
+
     ImageRecRef top() { return curimg; }
 
     // How many images are on the stack?
