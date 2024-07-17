@@ -2649,33 +2649,6 @@ ImageBufAlgo::ociodisplay(const ImageBuf& src, string_view display,
 
 
 
-// DEPRECATED(2.5)
-bool
-ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
-                          string_view display, string_view view,
-                          string_view from, string_view looks, bool unpremult,
-                          string_view key, string_view value,
-                          const ColorConfig* colorconfig, ROI roi, int nthreads)
-{
-    return ociodisplay(dst, src, display, view, from, looks, unpremult, false,
-                       key, value, colorconfig, roi, nthreads);
-}
-
-
-
-// DEPRECATED(2.5)
-ImageBuf
-ImageBufAlgo::ociodisplay(const ImageBuf& src, string_view display,
-                          string_view view, string_view from, string_view looks,
-                          bool unpremult, string_view key, string_view value,
-                          const ColorConfig* colorconfig, ROI roi, int nthreads)
-{
-    return ociodisplay(src, display, view, from, looks, unpremult, false, key,
-                       value, colorconfig, roi, nthreads);
-}
-
-
-
 bool
 ImageBufAlgo::ociofiletransform(ImageBuf& dst, const ImageBuf& src,
                                 string_view name, bool unpremult, bool inverse,

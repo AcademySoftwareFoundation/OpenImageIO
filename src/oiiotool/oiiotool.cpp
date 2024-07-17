@@ -2642,9 +2642,8 @@ action_channels(Oiiotool& ot, cspan<const char*> argv)
         for (int m = 0, miplevels = R->miplevels(s); m < miplevels; ++m) {
             // Shuffle the indexed/named channels
             bool ok = ImageBufAlgo::channels((*R)(s, m), (*A)(s, m),
-                                             (int)channels.size(), &channels[0],
-                                             &values[0], &newchannelnames[0],
-                                             false);
+                                             (int)channels.size(), channels,
+                                             values, newchannelnames, false);
             if (!ok) {
                 ot.error(command, (*R)(s, m).geterror());
                 break;
@@ -2918,7 +2917,7 @@ action_colorcount(Oiiotool& ot, cspan<const char*> argv)
 
     imagesize_t* count = OIIO_ALLOCA(imagesize_t, ncolors);
     bool ok = ImageBufAlgo::color_count((*ot.curimg)(0, 0), count, ncolors,
-                                        &colorvalues[0], &eps[0]);
+                                        colorvalues, eps);
     if (ok) {
         for (int col = 0; col < ncolors; ++col)
             Strutil::print("{:8}  {}\n", count[col], colorstrings[col]);
@@ -2952,8 +2951,8 @@ action_rangecheck(Oiiotool& ot, cspan<const char*> argv)
 
     imagesize_t lowcount = 0, highcount = 0, inrangecount = 0;
     bool ok = ImageBufAlgo::color_range_check((*ot.curimg)(0, 0), &lowcount,
-                                              &highcount, &inrangecount,
-                                              &low[0], &high[0]);
+                                              &highcount, &inrangecount, low,
+                                              high);
     if (ok) {
         Strutil::print("{:8}  < {}\n", lowcount, lowarg);
         Strutil::print("{:8}  > {}\n", highcount, higharg);
@@ -3379,9 +3378,10 @@ OIIOTOOL_OP(warp, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
         ok &= ImageBufAlgo::rangecompress(tmpimg, *src);
         src = &tmpimg;
     }
-    ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string(wrapname);
-    ok &= ImageBufAlgo::warp(*img[0], *src, *(Imath::M33f*)&M[0], filtername,
-                             0.0f, recompute_roi, wrap);
+    ok &= ImageBufAlgo::warp(*img[0], *src, *(Imath::M33f*)&M[0],
+                             { { "filtername", filtername },
+                               { "recompute_roi", int(recompute_roi) },
+                               { "wrap", wrapname } });
     if (highlightcomp && ok) {
         // re-expand the range in place
         ok &= ImageBufAlgo::rangeexpand(*img[0], *img[0]);
@@ -3526,7 +3526,7 @@ action_pattern(Oiiotool& ot, cspan<const char*> argv)
         auto options = ot.extract_options(pattern);
         std::vector<float> fill(nchans, 1.0f);
         Strutil::extract_from_list_string(fill, options.get_string("color"));
-        ok = ImageBufAlgo::fill(ib, &fill[0]);
+        ok = ImageBufAlgo::fill(ib, fill);
     } else if (Strutil::istarts_with(pattern, "fill")) {
         auto options = ot.extract_options(pattern);
         std::vector<float> topleft(nchans, 1.0f);
@@ -3541,22 +3541,21 @@ action_pattern(Oiiotool& ot, cspan<const char*> argv)
                                                                  "bottomleft"))
             && Strutil::extract_from_list_string(
                 bottomright, options.get_string("bottomright"))) {
-            ok = ImageBufAlgo::fill(ib, &topleft[0], &topright[0],
-                                    &bottomleft[0], &bottomright[0]);
+            ok = ImageBufAlgo::fill(ib, topleft, topright, bottomleft,
+                                    bottomright);
         } else if (Strutil::extract_from_list_string(topleft,
                                                      options.get_string("top"))
                    && Strutil::extract_from_list_string(
                        bottomleft, options.get_string("bottom"))) {
-            ok = ImageBufAlgo::fill(ib, &topleft[0], &bottomleft[0]);
+            ok = ImageBufAlgo::fill(ib, topleft, bottomleft);
         } else if (Strutil::extract_from_list_string(topleft,
                                                      options.get_string("left"))
                    && Strutil::extract_from_list_string(
                        topright, options.get_string("right"))) {
-            ok = ImageBufAlgo::fill(ib, &topleft[0], &topright[0], &topleft[0],
-                                    &topright[0]);
+            ok = ImageBufAlgo::fill(ib, topleft, topright, topleft, topright);
         } else if (Strutil::extract_from_list_string(
                        topleft, options.get_string("color"))) {
-            ok = ImageBufAlgo::fill(ib, &topleft[0]);
+            ok = ImageBufAlgo::fill(ib, topleft);
         }
     } else if (Strutil::istarts_with(pattern, "checker")) {
         auto options = ot.extract_options(pattern);
@@ -3567,8 +3566,8 @@ action_pattern(Oiiotool& ot, cspan<const char*> argv)
         std::vector<float> color2(nchans, 1.0f);
         Strutil::extract_from_list_string(color1, options.get_string("color1"));
         Strutil::extract_from_list_string(color2, options.get_string("color2"));
-        ok = ImageBufAlgo::checker(ib, width, height, depth, &color1[0],
-                                   &color2[0], 0, 0, 0);
+        ok = ImageBufAlgo::checker(ib, width, height, depth, color1, color2, 0,
+                                   0, 0);
     } else if (Strutil::istarts_with(pattern, "noise")) {
         auto options     = ot.extract_options(pattern);
         std::string type = options.get_string("type", "gaussian");
@@ -3976,10 +3975,12 @@ public:
         }
         if (do_warp[current_subimage()])
             ok &= ImageBufAlgo::warp(*img[0], *src, M[current_subimage()],
-                                     filtername, 0.0f, false,
-                                     ImageBuf::WrapDefault, edgeclamp);
+                                     { { "filtername", filtername },
+                                       { "recompute_roi", 0 },
+                                       { "edgeclamp", edgeclamp } });
         else
-            ok &= ImageBufAlgo::resize(*img[0], *src, filtername, 0.0f,
+            ok &= ImageBufAlgo::resize(*img[0], *src,
+                                       { { "filtername", filtername } },
                                        img[0]->roi());
         if (highlightcomp && ok) {
             // re-expand the range in place
@@ -4096,7 +4097,7 @@ action_fit(Oiiotool& ot, cspan<const char*> argv)
     bool pad               = options.get_int("pad");
     std::string filtername = options["filter"];
     std::string fillmode   = options["fillmode"];
-    bool exact             = options.get_int("exact");
+    int exact              = options.get_int("exact");
     bool highlightcomp     = options.get_int("highlightcomp");
 
     int subimages = allsubimages ? A->subimages() : 1;
@@ -4117,7 +4118,10 @@ action_fit(Oiiotool& ot, cspan<const char*> argv)
         newspec.x = newspec.full_x = fit_full_x;
         newspec.y = newspec.full_y = fit_full_y;
         (*R)(s, 0).reset(newspec);
-        ImageBufAlgo::fit((*R)(s, 0), *src, filtername, 0.0f, fillmode, exact);
+        ImageBufAlgo::fit((*R)(s, 0), *src,
+                          { { "filtername", filtername },
+                            { "fillmode", fillmode },
+                            { "exact", exact } });
         if (highlightcomp) {
             // re-expand the range in place
             ImageBufAlgo::rangeexpand((*R)(s, 0), (*R)(s, 0));
@@ -4662,28 +4666,27 @@ action_fill(Oiiotool& ot, cspan<const char*> argv)
                                                                  "bottomleft"))
             && Strutil::extract_from_list_string(
                 bottomright, options.get_string("bottomright"))) {
-            ok = ImageBufAlgo::fill(Rib, &topleft[0], &topright[0],
-                                    &bottomleft[0], &bottomright[0],
-                                    ROI(x, x + w, y, y + h));
+            ok = ImageBufAlgo::fill(Rib, topleft, topright, bottomleft,
+                                    bottomright, ROI(x, x + w, y, y + h));
         } else if (Strutil::extract_from_list_string(topleft,
                                                      options.get_string("top"))
                    && Strutil::extract_from_list_string(
                        bottomleft, options.get_string("bottom"))) {
-            ok = ImageBufAlgo::fill(Rib, &topleft[0], &bottomleft[0],
+            ok = ImageBufAlgo::fill(Rib, topleft, bottomleft,
                                     ROI(x, x + w, y, y + h));
         } else if (Strutil::extract_from_list_string(topleft,
                                                      options.get_string("left"))
                    && Strutil::extract_from_list_string(
                        topright, options.get_string("right"))) {
-            ok = ImageBufAlgo::fill(Rib, &topleft[0], &topright[0], &topleft[0],
-                                    &topright[0], ROI(x, x + w, y, y + h));
+            ok = ImageBufAlgo::fill(Rib, topleft, topright, topleft, topright,
+                                    ROI(x, x + w, y, y + h));
         } else if (Strutil::extract_from_list_string(
                        topleft, options.get_string("color"))) {
-            ok = ImageBufAlgo::fill(Rib, &topleft[0], ROI(x, x + w, y, y + h));
+            ok = ImageBufAlgo::fill(Rib, topleft, ROI(x, x + w, y, y + h));
         } else {
             ot.warning(command,
                        "No recognized fill parameters: filling with white.");
-            ok = ImageBufAlgo::fill(Rib, &topleft[0], ROI(x, x + w, y, y + h));
+            ok = ImageBufAlgo::fill(Rib, topleft, ROI(x, x + w, y, y + h));
         }
         if (!ok) {
             ot.error(command, Rib.geterror());
@@ -4733,8 +4736,7 @@ action_clamp(Oiiotool& ot, cspan<const char*> argv)
         for (int m = 0, miplevels = R->miplevels(s); m < miplevels; ++m) {
             ImageBuf& Rib((*R)(s, m));
             ImageBuf& Aib((*A)(s, m));
-            bool ok = ImageBufAlgo::clamp(Rib, Aib, &min[0], &max[0],
-                                          clampalpha01);
+            bool ok = ImageBufAlgo::clamp(Rib, Aib, min, max, clampalpha01);
             if (!ok) {
                 ot.error(command, Rib.geterror());
                 return;

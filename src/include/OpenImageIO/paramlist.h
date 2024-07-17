@@ -530,6 +530,8 @@ public:
     //   - operator[int]
     //   - begin(), end(), cbegin(), cend()
 
+    ParamValueSpan() = default;
+
     ParamValueSpan(cspan<ParamValue> p)
         : cspan<ParamValue>(p)
     {

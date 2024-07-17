@@ -164,7 +164,8 @@ ImageBufAlgo::mad(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_,
     // To avoid the full cross-product of dst/A/B/C types, force any of
     // A,B,C that are images to all be the same data type, copying if we
     // have to.
-    TypeDesc abc_type = type_merge(A ? A->spec().format : TypeUnknown,
+    TypeDesc abc_type
+        = TypeDesc::basetype_merge(A ? A->spec().format : TypeUnknown,
                                    B ? B->spec().format : TypeUnknown,
                                    C ? C->spec().format : TypeUnknown);
     ImageBuf Anew, Bnew, Cnew;

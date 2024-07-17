@@ -271,8 +271,10 @@ main(int argc, char* argv[])
     float green[3] = { 0, 1, 0 };
     float blue[3]  = { 0, 0, 1 };
     float black[3] = { 0, 0, 0 };
-    ImageBufAlgo::fill(imgA, red, green, red, green);
-    ImageBufAlgo::fill(imgB, blue, blue, black, black);
+    ImageBufAlgo::fill(imgA, cspan<float>(red), cspan<float>(green),
+                       cspan<float>(red), cspan<float>(green));
+    ImageBufAlgo::fill(imgB, cspan<float>(blue), cspan<float>(blue),
+                       cspan<float>(black), cspan<float>(black));
     // imgA.write ("A.exr");
     // imgB.write ("B.exr");
 

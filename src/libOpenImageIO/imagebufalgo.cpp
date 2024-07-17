@@ -761,15 +761,6 @@ ImageBufAlgo::perpixel_op(const ImageBuf& srcA, const ImageBuf& srcB,
 
 
 
-// DEPRECATED(2.3): Replaced by TypeDesc::type_merge(BASETYPE,BASETYPE)
-TypeDesc::BASETYPE
-ImageBufAlgo::type_merge(TypeDesc::BASETYPE a, TypeDesc::BASETYPE b)
-{
-    return TypeDesc::basetype_merge(a, b);
-}
-
-
-
 template<typename DSTTYPE, typename SRCTYPE>
 static bool
 convolve_(ImageBuf& dst, const ImageBuf& src, const ImageBuf& kernel,
@@ -1618,7 +1609,8 @@ ImageBufAlgo::fillholes_pushpull(ImageBuf& dst, const ImageBuf& src, ROI roi,
         ImageSpec smallspec(w, h, src.nchannels(), TypeDesc::FLOAT);
         smallspec.alpha_channel = topspec.alpha_channel;
         ImageBuf* small         = new ImageBuf(smallspec);
-        ImageBufAlgo::resize(*small, *pyramid.back(), "triangle");
+        ImageBufAlgo::resize(*small, *pyramid.back(),
+                             { { "filtername", "triangle" } });
         divide_by_alpha(*small, get_roi(smallspec), nthreads);
         pyramid.emplace_back(small);
         // small->write(Strutil::fmt::format("push{:04d}.exr", small->spec().width));
@@ -1632,7 +1624,7 @@ ImageBufAlgo::fillholes_pushpull(ImageBuf& dst, const ImageBuf& src, ROI roi,
     for (int i = (int)pyramid.size() - 2; i >= 0; --i) {
         ImageBuf &big(*pyramid[i]), &small(*pyramid[i + 1]);
         ImageBuf blowup(big.spec());
-        ImageBufAlgo::resize(blowup, small, "triangle");
+        ImageBufAlgo::resize(blowup, small, { { "filtername", "triangle" } });
         ImageBufAlgo::over(big, big, blowup);
         // big.write(Strutil::sprintf("pull{:04}.exr", big.spec().width));
     }

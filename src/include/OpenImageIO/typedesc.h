@@ -335,6 +335,9 @@ struct OIIO_UTIL_API TypeDesc {
     /// guess for one that can handle both without any loss of range or
     /// precision.
     static BASETYPE basetype_merge(TypeDesc a, TypeDesc b);
+    static BASETYPE basetype_merge(TypeDesc a, TypeDesc b, TypeDesc c) {
+        return basetype_merge(basetype_merge(a, b), c);
+    }
 
 #if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(1,8,0) && OIIO_VERSION_LESS(2,7,0) && !defined(OIIO_DOXYGEN)
     // DEPRECATED(1.8): These static const member functions were mildly

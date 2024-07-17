@@ -559,67 +559,6 @@ ImageBufAlgo::warp(const ImageBuf& src, M33fParam M, string_view filtername,
 
 
 bool
-ImageBufAlgo::warp(ImageBuf& dst, const ImageBuf& src, M33fParam M,
-                   const Filter2D* filter, bool recompute_roi,
-                   ImageBuf::WrapMode wrap, bool edgeclamp, ROI roi,
-                   int nthreads)
-{
-    return warp_impl(dst, src, M, filter, recompute_roi, wrap, edgeclamp, roi,
-                     nthreads);
-}
-
-
-
-bool
-ImageBufAlgo::warp(ImageBuf& dst, const ImageBuf& src, M33fParam M,
-                   string_view filtername, float filterwidth,
-                   bool recompute_roi, ImageBuf::WrapMode wrap, bool edgeclamp,
-                   ROI roi, int nthreads)
-{
-    // Set up a shared pointer with custom deleter to make sure any
-    // filter we allocate here is properly destroyed.
-    auto filter = get_warp_filter(filtername, filterwidth, dst);
-    if (!filter) {
-        return false;  // error issued in get_warp_filter
-    }
-    return warp(dst, src, M, filter.get(), recompute_roi, wrap, edgeclamp, roi,
-                nthreads);
-}
-
-
-
-ImageBuf
-ImageBufAlgo::warp(const ImageBuf& src, M33fParam M, const Filter2D* filter,
-                   bool recompute_roi, ImageBuf::WrapMode wrap, bool edgeclamp,
-                   ROI roi, int nthreads)
-{
-    ImageBuf result;
-    bool ok = warp(result, src, M, filter, recompute_roi, wrap, edgeclamp, roi,
-                   nthreads);
-    if (!ok && !result.has_error())
-        result.errorfmt("ImageBufAlgo::warp() error");
-    return result;
-}
-
-
-
-ImageBuf
-ImageBufAlgo::warp(const ImageBuf& src, M33fParam M, string_view filtername,
-                   float filterwidth, bool recompute_roi,
-                   ImageBuf::WrapMode wrap, bool edgeclamp, ROI roi,
-                   int nthreads)
-{
-    ImageBuf result;
-    bool ok = warp(result, src, M, filtername, filterwidth, recompute_roi, wrap,
-                   edgeclamp, roi, nthreads);
-    if (!ok && !result.has_error())
-        result.errorfmt("ImageBufAlgo::warp() error");
-    return result;
-}
-
-
-
-bool
 ImageBufAlgo::rotate(ImageBuf& dst, const ImageBuf& src, float angle,
                      float center_x, float center_y, Filter2D* filter,
                      bool recompute_roi, ROI roi, int nthreads)
@@ -974,47 +913,6 @@ ImageBufAlgo::resize(const ImageBuf& src, KWArgs options, ROI roi, int nthreads)
 
 
 bool
-ImageBufAlgo::resize(ImageBuf& dst, const ImageBuf& src, Filter2D* filter,
-                     ROI roi, int nthreads)
-{
-    return resize(dst, src, { make_pv(filterptr_us, filter) }, roi, nthreads);
-}
-
-
-
-bool
-ImageBufAlgo::resize(ImageBuf& dst, const ImageBuf& src, string_view filtername,
-                     float filterwidth, ROI roi, int nthreads)
-{
-    return resize(dst, src,
-                  { { filtername_us, filtername },
-                    { filterwidth_us, filterwidth } },
-                  roi, nthreads);
-}
-
-
-
-ImageBuf
-ImageBufAlgo::resize(const ImageBuf& src, Filter2D* filter, ROI roi,
-                     int nthreads)
-{
-    return resize(src, { make_pv(filterptr_us, filter) }, roi, nthreads);
-}
-
-
-ImageBuf
-ImageBufAlgo::resize(const ImageBuf& src, string_view filtername,
-                     float filterwidth, ROI roi, int nthreads)
-{
-    return resize(src,
-                  { { filtername_us, filtername },
-                    { filterwidth_us, filterwidth } },
-                  roi, nthreads);
-}
-
-
-
-bool
 ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, KWArgs options, ROI roi,
                   int nthreads)
 {
@@ -1155,100 +1053,6 @@ ImageBufAlgo::fit(const ImageBuf& src, KWArgs options, ROI roi, int nthreads)
     if (!ok && !result.has_error())
         result.errorfmt("ImageBufAlgo::fit() error");
     return result;
-}
-
-
-
-// DEPRECATED(2.6) versions without the "options" parameter
-bool
-ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, Filter2D* filter,
-                  string_view fillmode, bool exact, ROI roi, int nthreads)
-{
-    return fit(dst, src,
-               { make_pv(filterptr_us, filter),
-                 { fillmode_us, fillmode },
-                 { exact_us, int(exact) } },
-               roi, nthreads);
-}
-
-
-
-// DEPRECATED(2.6) versions without the "options" parameter
-bool
-ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, string_view filtername,
-                  float fwidth, string_view fillmode, bool exact, ROI roi,
-                  int nthreads)
-{
-    return fit(dst, src,
-               { { filtername_us, filtername },
-                 { filterwidth_us, fwidth },
-                 { fillmode_us, fillmode },
-                 { exact_us, int(exact) } },
-               roi, nthreads);
-}
-
-
-
-// DEPRECATED(2.6) versions without the "options" parameter
-ImageBuf
-ImageBufAlgo::fit(const ImageBuf& src, Filter2D* filter, string_view fillmode,
-                  bool exact, ROI roi, int nthreads)
-{
-    return fit(src,
-               { make_pv(filterptr_us, filter),
-                 { fillmode_us, fillmode },
-                 { exact_us, int(exact) } },
-               roi, nthreads);
-}
-
-
-// DEPRECATED(2.6) versions without the "options" parameter
-ImageBuf
-ImageBufAlgo::fit(const ImageBuf& src, string_view filtername,
-                  float filterwidth, string_view fillmode, bool exact, ROI roi,
-                  int nthreads)
-{
-    return fit(src,
-               { { filtername_us, filtername },
-                 { filterwidth_us, filterwidth },
-                 { fillmode_us, fillmode },
-                 { exact_us, int(exact) } },
-               roi, nthreads);
-}
-
-
-
-// DEPRECATED(2.3) versions without the "mode" parameter
-ImageBuf
-ImageBufAlgo::fit(const ImageBuf& src, string_view filtername,
-                  float filterwidth, bool exact, ROI roi, int nthreads)
-{
-    return fit(src, filtername, filterwidth, "letterbox", exact, roi, nthreads);
-}
-
-// DEPRECATED(2.3) versions without the "mode" parameter
-ImageBuf
-ImageBufAlgo::fit(const ImageBuf& src, Filter2D* filter, bool exact, ROI roi,
-                  int nthreads)
-{
-    return fit(src, filter, "letterbox", exact, roi, nthreads);
-}
-
-// DEPRECATED(2.3) versions without the "mode" parameter
-bool
-ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, string_view filtername,
-                  float filterwidth, bool exact, ROI roi, int nthreads)
-{
-    return fit(dst, src, filtername, filterwidth, "letterbox", exact, roi,
-               nthreads);
-}
-
-// DEPRECATED(2.3) versions without the "mode" parameter
-bool
-ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, Filter2D* filter,
-                  bool exact, ROI roi, int nthreads)
-{
-    return fit(dst, src, filter, "letterbox", exact, roi, nthreads);
 }
 
 
@@ -1394,9 +1198,12 @@ ImageBufAlgo::rotate(ImageBuf& dst, const ImageBuf& src, float angle,
     M.translate(Imath::V2f(-center_x, -center_y));
     M.rotate(angle);
     M *= Imath::M33f().translate(Imath::V2f(center_x, center_y));
-    return ImageBufAlgo::warp(dst, src, M, filtername, filterwidth,
-                              recompute_roi, ImageBuf::WrapBlack, roi,
-                              nthreads);
+    return ImageBufAlgo::warp(dst, src, M,
+                              { { "filtername", filtername },
+                                { "filterwidth", filterwidth },
+                                { "recompute_roi", int(recompute_roi) },
+                                { "wrap", "black" } },
+                              roi, nthreads);
 }
 
 

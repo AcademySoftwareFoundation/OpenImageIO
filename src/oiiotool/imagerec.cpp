@@ -343,9 +343,9 @@ ImageRec::read(ReadPolicy readpolicy, string_view channel_set)
                 std::swap(allchan_buf, ib);
                 ok = ImageBufAlgo::channels(*ib, *allchan_buf,
                                             (int)channel_set_channels.size(),
-                                            &channel_set_channels[0],
-                                            &channel_set_values[0],
-                                            &newchannelnames[0], false);
+                                            channel_set_channels,
+                                            channel_set_values, newchannelnames,
+                                            false);
             }
             if (!ok)
                 errorfmt("{}", ib->geterror());

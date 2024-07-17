@@ -163,7 +163,7 @@ test_zero_fill()
 
     // Test fill of whole image
     const float arbitrary2[CHANNELS] = { 0.6f, 0.7f, 0.3f, 0.9f };
-    ImageBufAlgo::fill(A, arbitrary2);
+    ImageBufAlgo::fill(A, cspan<float>(arbitrary2));
     for (int j = 0; j < HEIGHT; ++j) {
         for (int i = 0; i < WIDTH; ++i) {
             float pixel[CHANNELS];
@@ -177,7 +177,8 @@ test_zero_fill()
     const float arbitrary3[CHANNELS] = { 0.42f, 0.43f, 0.44f, 0.45f };
     {
         const int xbegin = 3, xend = 5, ybegin = 0, yend = 4;
-        ImageBufAlgo::fill(A, arbitrary3, ROI(xbegin, xend, ybegin, yend));
+        ImageBufAlgo::fill(A, cspan<float>(arbitrary3),
+                           ROI(xbegin, xend, ybegin, yend));
         for (int j = 0; j < HEIGHT; ++j) {
             for (int i = 0; i < WIDTH; ++i) {
                 float pixel[CHANNELS];
@@ -201,13 +202,13 @@ test_zero_fill()
     ImageBuf buf_rgba_uint16(ImageSpec(1000, 1000, 4, TypeDesc::UINT16));
     float vals[] = { 0, 0, 0, 0 };
     bench("  IBA::fill float[4] ",
-          [&]() { ImageBufAlgo::fill(buf_rgba_float, vals); });
+          [&]() { ImageBufAlgo::fill(buf_rgba_float, cspan<float>(vals)); });
     bench("  IBA::fill uint8[4] ",
-          [&]() { ImageBufAlgo::fill(buf_rgba_uint8, vals); });
+          [&]() { ImageBufAlgo::fill(buf_rgba_uint8, cspan<float>(vals)); });
     bench("  IBA::fill uint16[4] ",
-          [&]() { ImageBufAlgo::fill(buf_rgba_uint16, vals); });
+          [&]() { ImageBufAlgo::fill(buf_rgba_uint16, cspan<float>(vals)); });
     bench("  IBA::fill half[4] ",
-          [&]() { ImageBufAlgo::fill(buf_rgba_half, vals); });
+          [&]() { ImageBufAlgo::fill(buf_rgba_half, cspan<float>(vals)); });
 }
 
 
@@ -226,8 +227,8 @@ test_copy()
     ImageBuf A(spec), B(spec);
     float red[4]   = { 1, 0, 0, 1 };
     float green[4] = { 0, 0, 0.5, 0.5 };
-    ImageBufAlgo::fill(A, red);
-    ImageBufAlgo::fill(B, green);
+    ImageBufAlgo::fill(A, cspan<float>(red));
+    ImageBufAlgo::fill(B, cspan<float>(green));
     ImageBufAlgo::copy(A, B, TypeUnknown, roi);
     for (ImageBuf::ConstIterator<float> r(A); !r.done(); ++r) {
         if (roi.contains(r.x(), r.y())) {
@@ -300,7 +301,7 @@ test_crop()
     arbitrary1[1] = 0.3f;
     arbitrary1[2] = 0.4f;
     arbitrary1[3] = 0.5f;
-    ImageBufAlgo::fill(A, arbitrary1);
+    ImageBufAlgo::fill(A, cspan<float>(arbitrary1));
 
     // Test CUT crop
     ImageBufAlgo::crop(B, A, ROI(xbegin, xend, ybegin, yend));
@@ -340,7 +341,7 @@ test_paste()
     ImageSpec Bspec(8, 8, 3, TypeDesc::FLOAT);
     ImageBuf B(Bspec);
     float gray[3] = { 0.1f, 0.1f, 0.1f };
-    ImageBufAlgo::fill(B, gray);
+    ImageBufAlgo::fill(B, cspan<float>(gray));
 
     // Paste a few pixels from A into B -- include offsets
     ImageBufAlgo::paste(B, 2, 2, 0, 1 /* chan offset */,
@@ -376,8 +377,8 @@ test_channel_append()
     ImageBuf A(spec);
     ImageBuf B(spec);
     float Acolor = 0.1, Bcolor = 0.2;
-    ImageBufAlgo::fill(A, &Acolor);
-    ImageBufAlgo::fill(B, &Bcolor);
+    ImageBufAlgo::fill(A, Acolor);
+    ImageBufAlgo::fill(B, Bcolor);
 
     ImageBuf R = ImageBufAlgo::channel_append(A, B);
     OIIO_CHECK_EQUAL(R.spec().width, spec.width);
@@ -481,13 +482,13 @@ test_mad()
     // Create buffers
     ImageBuf A(spec);
     const float Aval[CHANNELS] = { 0.1f, 0.2f, 0.3f, 0.4f };
-    ImageBufAlgo::fill(A, Aval);
+    ImageBufAlgo::fill(A, cspan<float>(Aval));
     ImageBuf B(spec);
     const float Bval[CHANNELS] = { 1, 2, 3, 4 };
-    ImageBufAlgo::fill(B, Bval);
+    ImageBufAlgo::fill(B, cspan<float>(Bval));
     ImageBuf C(spec);
     const float Cval[CHANNELS] = { 0.01f, 0.02f, 0.03f, 0.04f };
-    ImageBufAlgo::fill(C, Cval);
+    ImageBufAlgo::fill(C, cspan<float>(Cval));
 
     // Test multiplication of images
     ImageBuf R(spec);
@@ -500,7 +501,7 @@ test_mad()
 
     // Test multiplication of image and constant color
     ImageBuf D(spec);
-    ImageBufAlgo::mad(D, A, Bval, Cval);
+    ImageBufAlgo::mad(D, A, cspan<float>(Bval), cspan<float>(Cval));
     auto comp = ImageBufAlgo::compare(R, D, 1e-6f, 1e-6f);
     OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
 }
@@ -573,7 +574,7 @@ test_over(TypeDesc dtype = TypeFloat)
 
     ImageBuf FG         = filled_image({ 0.0f, 0.0f, 0.0f, 0.0f }, dtype);
     const float FGval[] = { 0.0f, 0.5f, 0.0f, 0.5f };
-    ImageBufAlgo::fill(FG, FGval, roi);
+    ImageBufAlgo::fill(FG, cspan<float>(FGval), roi);
 
     // value it should be where composited
     const float comp_val[] = { 0.25f, 0.5f, 0.0f, 0.75f };
@@ -595,7 +596,7 @@ test_over(TypeDesc dtype = TypeFloat)
     ImageSpec onekfloat(1000, 1000, 4, TypeFloat);
     BG = filled_image(BGval, 1000, 1000);
     FG = filled_image({ 0.0f, 0.0f, 0.0f, 0.0f }, 1000, 1000);
-    ImageBufAlgo::fill(FG, FGval, ROI(250, 750, 100, 900));
+    ImageBufAlgo::fill(FG, cspan<float>(FGval), ROI(250, 750, 100, 900));
     R.reset(onekfloat);
     bench("  IBA::over ", [&]() { ImageBufAlgo::over(R, FG, BG); });
 }
@@ -620,7 +621,7 @@ test_zover()
 
     ImageBuf B         = filled_image({ 0.0f, 0.0f, 0.0f, 1.0f, 15.0f }, spec);
     const float Bval[] = { 1.0f, 1.0f, 1.0f, 1.0f, 5.0f };
-    ImageBufAlgo::fill(B, Bval, roi);
+    ImageBufAlgo::fill(B, cspan<float>(Bval), roi);
 
     // Test zover
     ImageBuf R = ImageBufAlgo::zover(A, B, true);
@@ -648,8 +649,8 @@ test_compare()
     ImageBuf A(spec);
     ImageBuf B(spec);
     const float grey[CHANNELS] = { 0.5f, 0.5f, 0.5f };
-    ImageBufAlgo::fill(A, grey);
-    ImageBufAlgo::fill(B, grey);
+    ImageBufAlgo::fill(A, cspan<float>(grey));
+    ImageBufAlgo::fill(B, cspan<float>(grey));
 
     // Introduce some minor differences
     const int NDIFFS = 10;
@@ -718,26 +719,28 @@ test_isConstantColor()
     ImageSpec spec(WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
     ImageBuf A(spec);
     const float col[CHANNELS] = { 0.25, 0.5, 0.75 };
-    ImageBufAlgo::fill(A, col);
+    ImageBufAlgo::fill(A, cspan<float>(col));
 
     float thecolor[CHANNELS] = { 0, 0, 0 };
     OIIO_CHECK_EQUAL(ImageBufAlgo::isConstantColor(A), true);
-    OIIO_CHECK_EQUAL(ImageBufAlgo::isConstantColor(A, thecolor), true);
+    OIIO_CHECK_EQUAL(ImageBufAlgo::isConstantColor(A, 0.0f, thecolor), true);
     OIIO_CHECK_EQUAL(col[0], thecolor[0]);
     OIIO_CHECK_EQUAL(col[1], thecolor[1]);
     OIIO_CHECK_EQUAL(col[2], thecolor[2]);
 
     // Now introduce a difference
-    const float another[CHANNELS] = { 0.25f, 0.51f, 0.75f };
-    A.setpixel(2, 2, 0, another, 3);
+    A.setpixel(2, 2, 0, { 0.25f, 0.51f, 0.75f });
     OIIO_CHECK_EQUAL(ImageBufAlgo::isConstantColor(A), false);
-    OIIO_CHECK_EQUAL(ImageBufAlgo::isConstantColor(A, thecolor), false);
+    OIIO_CHECK_EQUAL(ImageBufAlgo::isConstantColor(A, 0.0f,
+                                                   span<float>(thecolor)),
+                     false);
     // But not with lower threshold
     OIIO_CHECK_EQUAL(ImageBufAlgo::isConstantColor(A, 0.015f), true);
 
     // Make sure ROI works
     ROI roi(0, WIDTH, 0, 2, 0, 1, 0, CHANNELS);  // should match for this ROI
-    OIIO_CHECK_EQUAL(ImageBufAlgo::isConstantColor(A, 0.0f, {}, roi), true);
+    OIIO_CHECK_EQUAL(ImageBufAlgo::isConstantColor(A, 0.0f, span<float>(), roi),
+                     true);
 }
 
 
@@ -750,14 +753,12 @@ test_isConstantChannel()
     const int WIDTH = 10, HEIGHT = 10, CHANNELS = 3;
     ImageSpec spec(WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
     ImageBuf A(spec);
-    const float col[CHANNELS] = { 0.25f, 0.5f, 0.75f };
-    ImageBufAlgo::fill(A, col);
+    ImageBufAlgo::fill(A, { 0.25f, 0.5f, 0.75f });
 
     OIIO_CHECK_EQUAL(ImageBufAlgo::isConstantChannel(A, 1, 0.5f), true);
 
     // Now introduce a difference
-    const float another[CHANNELS] = { 0.25f, 0.51f, 0.75f };
-    A.setpixel(2, 2, 0, another, 3);
+    A.setpixel(2, 2, 0, { 0.25f, 0.51f, 0.75f });
     // It should still pass if within the threshold
     OIIO_CHECK_EQUAL(ImageBufAlgo::isConstantChannel(A, 1, 0.5f, 0.015f), true);
     // But not with lower threshold
@@ -767,8 +768,8 @@ test_isConstantChannel()
 
     // Make sure ROI works
     ROI roi(0, WIDTH, 0, 2, 0, 1, 0, CHANNELS);  // should match for this ROI
-    OIIO_CHECK_EQUAL(ImageBufAlgo::isConstantChannel(A, 1, 0.5f, roi = roi),
-                     true);
+    OIIO_CHECK_ASSERT(
+        ImageBufAlgo::isConstantChannel(A, 1, 0.5f, 0.0f, roi = roi));
 }
 
 
@@ -781,8 +782,7 @@ test_isMonochrome()
     const int WIDTH = 10, HEIGHT = 10, CHANNELS = 3;
     ImageSpec spec(WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
     ImageBuf A(spec);
-    const float col[CHANNELS] = { 0.25f, 0.25f, 0.25f };
-    ImageBufAlgo::fill(A, col);
+    ImageBufAlgo::fill(A, { 0.25f, 0.25f, 0.25f });
 
     OIIO_CHECK_EQUAL(ImageBufAlgo::isMonochrome(A), true);
 
@@ -799,7 +799,7 @@ test_isMonochrome()
 
     // Make sure ROI works
     ROI roi(0, WIDTH, 0, 2, 0, 1, 0, CHANNELS);  // should match for this ROI
-    OIIO_CHECK_EQUAL(ImageBufAlgo::isMonochrome(A, roi), true);
+    OIIO_CHECK_EQUAL(ImageBufAlgo::isMonochrome(A, 0.0f, roi), true);
 }
 
 
@@ -852,13 +852,13 @@ histogram_computation_test()
     ImageBuf A(spec);
 
     float value[] = { 0.2f };
-    ImageBufAlgo::fill(A, value, ROI(0, INPUT_WIDTH, 0, 8));
+    ImageBufAlgo::fill(A, cspan<float>(value), ROI(0, INPUT_WIDTH, 0, 8));
 
     value[0] = 0.5f;
-    ImageBufAlgo::fill(A, value, ROI(0, INPUT_WIDTH, 8, 24));
+    ImageBufAlgo::fill(A, cspan<float>(value), ROI(0, INPUT_WIDTH, 8, 24));
 
     value[0] = 0.8f;
-    ImageBufAlgo::fill(A, value, ROI(0, INPUT_WIDTH, 24, 64));
+    ImageBufAlgo::fill(A, cspan<float>(value), ROI(0, INPUT_WIDTH, 24, 64));
 
     // Compute A's histogram.
     std::vector<imagesize_t> hist = ImageBufAlgo::histogram(A, INPUT_CHANNEL,
@@ -888,7 +888,7 @@ test_maketx_from_imagebuf()
     ImageSpec spec(WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
     ImageBuf A(spec);
     float pink[] = { 0.5f, 0.3f, 0.3f }, green[] = { 0.1f, 0.5f, 0.1f };
-    ImageBufAlgo::checker(A, 4, 4, 4, pink, green);
+    ImageBufAlgo::checker(A, 4, 4, 4, cspan<float>(pink), cspan<float>(green));
 
     // Write it
     const char* pgname = "oiio-pgcheck.tx";
@@ -1040,9 +1040,8 @@ benchmark_parallel_image(int res, int iters)
     print("  ------- ------- -------\n");
     ImageSpec spec(res, res, 3, TypeDesc::FLOAT);
     ImageBuf X(spec), Y(spec);
-    float one[] = { 1, 1, 1 };
     ImageBufAlgo::zero(Y);
-    ImageBufAlgo::fill(X, one);
+    ImageBufAlgo::fill(X, { 1.0f, 1.0f, 1.0f });
     float a = 0.5f;
 
     // Lambda that does some exercise (a basic SAXPY)

@@ -278,7 +278,7 @@ RLAInput::seek_subimage(int subimage, int miplevel)
                             ? get_channel_typedesc(m_rla.AuxChannelType,
                                                    m_rla.NumOfAuxBits)
                             : TypeUnknown;
-    TypeDesc maxtype  = ImageBufAlgo::type_merge(col_type, mat_type, aux_type);
+    TypeDesc maxtype  = TypeDesc::basetype_merge(col_type, mat_type, aux_type);
     if (maxtype == TypeUnknown) {
         errorfmt("Failed channel bytes sanity check");
         return false;  // failed sanity check
