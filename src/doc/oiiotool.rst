@@ -123,12 +123,18 @@ contents of an expression may be any of:
   If there is no metadata whose name matches, the expression will not have any
   substitution made and an error will be issued.
   
-  The *imagename* may be one of: `TOP` (the top or current image), `IMG[i]`
-  describing the i-th image on the stack (thus `TOP` is a synonym for
-  `IMG[0]`, the next image on the stack is `IMG[1]`, etc.), or `IMG[name]`
-  to denote an image named by filename or by label name. Remember that the
-  positions on the stack (including `TOP`) refer to *at that moment*, with
-  successive commands changing the contents of the top image.
+  The *imagename* may be one of:
+
+  * `TOP` : the top or current image;
+  * `BOTTOM` : the image at the bottom of the stack;
+  * `IMG[index]` : if `index` evaluates to an integer `i`, the i-th image on
+    the stack (thus `TOP` is a synonym for `IMG[0]`, the next image on the
+    stack is `IMG[1]`, ..., and `BOTTOM` is a synonmym for `IMG[NIMAGES-1]`);
+  * `IMG[name]` : an image named by filename or by label name.
+
+  Remember that the positions on the stack (including `TOP`) refer to *at that
+  moment*, with successive commands changing the contents of the top image. If
+  the
   
   The *metadata* may be any of:
   
@@ -981,6 +987,10 @@ output each one to a different file, with names `sub0001.tif`,
     value: if the value contains only numerals (with optional leading minus
     sign), it will be saved as `int`; if it also contains a decimal point, it
     will be saved as a `float`; otherwise, it will be saved as a `string`.
+
+    The name of the variable must be in the form of an "identifier" (a
+    sequence of alphanumeric characters and underscores, starting with a
+    letter or underscore).
 
     This command was added in OIIO 2.4.0.
 
@@ -2241,6 +2251,10 @@ current top image.
     Thereafter, the label name may be used to refer to that saved image, in
     the usual manner that an ordinary input image would be specified by
     filename.
+
+    The name of the label must be in the form of an "identifier" (a sequence
+    of alphanumeric characters and underscores, starting with a letter or
+    underscore).
 
 
 :program:`oiiotool` commands that make entirely new images

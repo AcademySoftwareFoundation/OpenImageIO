@@ -149,34 +149,70 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
             return false;
 
     } else if (Strutil::starts_with(s, "TOP")
+               || Strutil::starts_with(s, "BOTTOM")
                || Strutil::starts_with(s, "IMG[")) {
         // metadata substitution
         ImageRecRef img;
         if (Strutil::parse_prefix(s, "TOP")) {
             img = curimg;
+        } else if (Strutil::parse_prefix(s, "BOTTOM")) {
+            img = (image_stack.size() <= 1) ? curimg : image_stack[0];
         } else if (Strutil::parse_prefix(s, "IMG[")) {
-            int index = -1;
-            if (Strutil::parse_int(s, index) && Strutil::parse_char(s, ']')
-                && index >= 0 && index <= (int)image_stack.size()) {
-                if (index == 0)
-                    img = curimg;
-                else
-                    img = image_stack[image_stack.size() - index];
-            } else {
-                string_view name = Strutil::parse_until(s, "]");
-                auto found       = image_labels.find(name);
-                if (found != image_labels.end())
-                    img = found->second;
-                else
-                    img = ImageRecRef(new ImageRec(name, imagecache));
-                Strutil::parse_char(s, ']');
+            std::string until_bracket = Strutil::parse_until(s, "]");
+            if (until_bracket.empty() || !Strutil::parse_char(s, ']')) {
+                express_error(expr, until_bracket,
+                              "malformed IMG[] specification");
+                result = orig;
+                return false;
+            }
+            auto labelfound = image_labels.find(until_bracket);
+            if (labelfound != image_labels.end()) {
+                // Found an image label
+                img = labelfound->second;
+            } else if (Strutil::string_is_int(until_bracket)) {
+                // It's an integer... don't process more quite yet
+            } else if (Filesystem::exists(until_bracket)) {
+                // It's the name of an image file
+                img = ImageRecRef(new ImageRec(until_bracket, imagecache));
+            }
+            if (!img) {
+                // Not a label, int, or file. Evaluate it as an expression.
+                // Evaluate it as an expression and hope it's an integer or
+                // the name of an image?
+                until_bracket = express_impl(until_bracket);
+                if (Strutil::string_is_int(until_bracket)) {
+                    // Between brackets (including an expanded variable) is an
+                    // integer -- it's an index into the image stack (error if out
+                    // of range).
+                    int index = Strutil::stoi(until_bracket);
+                    if (index >= 0 && index <= (int)image_stack.size()) {
+                        img = (index == 0)
+                                  ? curimg
+                                  : image_stack[image_stack.size() - index];
+                    } else {
+                        express_error(expr, until_bracket,
+                                      "out-of-range IMG[] index");
+                        result = orig;
+                        return false;
+                    }
+                } else if (Filesystem::exists(until_bracket)) {
+                    // It's the name of an image file
+                    img = ImageRecRef(new ImageRec(until_bracket, imagecache));
+                }
+            }
+            if (!img || img->has_error()) {
+                express_error(expr, until_bracket, "not a valid image");
+                result = orig;
+                return false;
             }
         }
-        if (!img.get()) {
+        if (!img || img->has_error()) {
             express_error(expr, s, "not a valid image");
             result = orig;
             return false;
         }
+        OIIO_ASSERT(img);
+        img->read();
         bool using_bracket = false;
         if (Strutil::parse_char(s, '[')) {
             using_bracket = true;

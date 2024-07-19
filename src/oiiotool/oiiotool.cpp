@@ -699,8 +699,13 @@ unset_autopremult(Oiiotool& ot, cspan<const char*> argv)
 static void
 action_label(Oiiotool& ot, cspan<const char*> argv)
 {
-    string_view labelname      = ot.express(argv[1]);
-    ot.image_labels[labelname] = ot.curimg;
+    string_view command = ot.express(argv[0]);
+    string_view name    = ot.express(argv[1]);
+    if (!Strutil::string_is_identifier(name)) {
+        ot.errorfmt(command, "Invalid label name \"{}\"", name);
+        return;
+    }
+    ot.image_labels[name] = ot.curimg;
 }
 
 
@@ -1397,7 +1402,13 @@ set_user_variable(Oiiotool& ot, cspan<const char*> argv)
     string_view command = ot.express(argv[0]);
     string_view name    = ot.express(argv[1]);
     string_view value   = ot.express(argv[2]);
-    auto options        = ot.extract_options(command);
+
+    if (!Strutil::string_is_identifier(name)) {
+        ot.errorfmt(command, "Invalid variable name \"{}\"", name);
+        return 0;
+    }
+
+    auto options = ot.extract_options(command);
     TypeDesc type(options["type"].as_string());
 
     set_attribute_helper(ot.uservars, name, value, type);
