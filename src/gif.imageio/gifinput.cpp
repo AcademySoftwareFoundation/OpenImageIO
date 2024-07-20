@@ -19,7 +19,7 @@
 
 // for older giflib versions
 #ifndef GIFLIB_MAJOR
-#    define GIFLIB_MAJOR 4
+#    error "GIFLIB 5.0 minimum required"
 #endif
 
 #ifndef DISPOSAL_UNSPECIFIED
@@ -132,12 +132,8 @@ OIIO_EXPORT const char* gif_input_extensions[] = { "gif", NULL };
 OIIO_EXPORT const char*
 gif_imageio_library_version()
 {
-#if defined(GIFLIB_MAJOR) && defined(GIFLIB_MINOR) && defined(GIFLIB_RELEASE)
     return "gif_lib " OIIO_STRINGIZE(GIFLIB_MAJOR) "." OIIO_STRINGIZE(
         GIFLIB_MINOR) "." OIIO_STRINGIZE(GIFLIB_RELEASE);
-#else
-    return "gif_lib unknown version";
-#endif
 }
 
 OIIO_PLUGIN_EXPORTS_END
@@ -408,20 +404,12 @@ GIFInput::seek_subimage(int subimage, int miplevel)
     if (!m_gif_file) {
         if (!ioproxy_use_or_open(m_filename))
             return false;
-#if GIFLIB_MAJOR >= 5
         int giflib_error;
         m_gif_file = DGifOpen(this, readFunc, &giflib_error);
         if (!m_gif_file) {
             errorfmt("{}", GifErrorString(giflib_error));
             return false;
         }
-#else
-        m_gif_file = DGifOpen(this, readFunc);
-        if (!m_gif_file) {
-            errorfmt("Error opening GIF");
-            return false;
-        }
-#endif
         m_subimage = -1;
         m_canvas.resize(m_gif_file->SWidth * m_gif_file->SHeight * 4);
     }
@@ -459,27 +447,12 @@ GIFInput::seek_subimage(int subimage, int miplevel)
 
 
 
-static spin_mutex gif_error_mutex;
-
-
 void
 GIFInput::report_last_error(void)
 {
-    // N.B. Only GIFLIB_MAJOR >= 5 looks properly thread-safe, in that the
-    // error is guaranteed to be specific to this open file.  We use a  spin
-    // mutex to prevent a thread clash for older versions, but it still
-    // appears to be a global call, so we can't be absolutely sure that the
-    // error was for *this* file.  So if you're using giflib prior to
-    // version 5, beware.
-#if GIFLIB_MAJOR >= 5
+    // GIFLIB_MAJOR >= 5 looks properly thread-safe, in that the error is
+    // guaranteed to be specific to this open file.
     errorfmt("{}", GifErrorString(m_gif_file->Error));
-#elif GIFLIB_MAJOR == 4 && GIFLIB_MINOR >= 2
-    spin_lock lock(gif_error_mutex);
-    errorfmt("{}", GifErrorString());
-#else
-    spin_lock lock(gif_error_mutex);
-    errorfmt("GIF error {}", GifLastError());
-#endif
 }
 
 
