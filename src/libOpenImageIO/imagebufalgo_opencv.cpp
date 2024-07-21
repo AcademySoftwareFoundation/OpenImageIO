@@ -28,6 +28,8 @@
 #    if OIIO_OPENCV_VERSION >= 40000
 #        include <opencv2/core/core_c.h>
 #        include <opencv2/imgproc/imgproc_c.h>
+#    else
+#        error "OpenCV 4.0 is the minimum supported version"
 #    endif
 #endif
 
@@ -161,12 +163,7 @@ ImageBufAlgo::to_OpenCV(cv::Mat& dst, const ImageBuf& src, ROI roi,
         dstFormat     = CV_MAKETYPE(CV_16S, chans);
         dstSpecFormat = TypeInt16;
     } else if (spec.format == TypeDesc(TypeDesc::HALF)) {
-#    if OIIO_OPENCV_VERSION >= 40000
         dstFormat = CV_MAKETYPE(CV_16F, chans);
-#    else
-        dstFormat     = CV_MAKETYPE(CV_32F, chans);
-        dstSpecFormat = TypeFloat;
-#    endif
     } else if (spec.format == TypeDesc(TypeDesc::FLOAT)) {
         dstFormat = CV_MAKETYPE(CV_32F, chans);
     } else if (spec.format == TypeDesc(TypeDesc::DOUBLE)) {
