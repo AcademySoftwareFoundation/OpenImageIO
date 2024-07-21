@@ -155,7 +155,34 @@ have a heading added at the top for the *next* version.
    pages), and that the [INSTALL.md](../INSTALL.md) file correctly documents
    the version ranges that we expect to work and that we actively test.
 
-2. Release notes: [CHANGES.md](../CHANGES.md) should be updated to reflect
+2. Update deprecations: Deprecations tend to happen in stages, spread over a
+   few releases, taking steps forward depending on what kind of release is
+   occurring:
+
+   - Tweak releases (a.b.c.d -> a.b.c.D+1): should not introduce new
+     deprecations.
+   - Monthly patch releases (a.b.c.d -> a.b.C+1.0): advertise that a function
+     is deprecated in its comments, documentation, and release notes. Remember
+     that these releases are not allowed to break ABI/link compatibility.
+   - Annual minor releases (a.b.c.d -> a.B+1.0.0): functions previously
+     marked/documented as deprecated should receive deprecation warnings by
+     adding `OIIO_DEPRECATED` macros to function or class declarations where
+     possible, if that has not already been done. Use good judgment about
+     whether to add these warnings, or postpone to a later release, based on
+     the amount of disruption that they will likely cause, and how important
+     it is to rapidly discourage people from using the deprecated function.
+     For a minor release, we don't allow backwards-incompatible API changes,
+     so only *remove* a function if there is another function that will accept
+     the same call signature in the source code. It's allowed to break ABI for
+     minor releases, so it's ok/encouraged to make a deprecated function from
+     linked to inline, for example (which might allow it to be removed later
+     without an ABI change).
+   - Major releases (a.b.c.d -> A+1.b.c.d): API compatibility breaks are
+     allowed here, so this is the time to completely remove any functions that
+     have already had a full minor release where they had been given
+     deprecation warning macros.
+   
+3. Release notes: [CHANGES.md](../CHANGES.md) should be updated to reflect
    all the new features and fixes. Looking at the notes from older releases
    should provide a good example of what we're aiming for.
 
@@ -168,7 +195,7 @@ have a heading added at the top for the *next* version.
      internals and developer goodies, testing/CI/ports, etc.) and ordered for
      readability and relevance.
    
-3. Ensure docs are up to date:
+4. Ensure docs are up to date:
 
    - [README.md](README.md): Actually read it! Make sure it all seems
      accurate and up to date.
@@ -182,7 +209,7 @@ have a heading added at the top for the *next* version.
      ensure it's building correctly and doesn't have any obvious errors,
      especially the parts that describe new features.
 
-4. Make sure the the top-level CMakeLists.txt file is updated:
+5. Make sure the the top-level CMakeLists.txt file is updated:
 
    - The `OpenImageIO_VERSION` should be correct.
    - The `PROJECT_VERSION_RELEASE_TYPE` variable should be set to "alpha" or
@@ -192,14 +219,14 @@ have a heading added at the top for the *next* version.
    - The `${PROJECT_NAME}_SUPPORTED_RELEASE` variable should be `ON` for any
      release branch, `OFF` for master.
 
-5. In the https://github.com/AcademySoftwareFoundation/OpenImageIO-images project, create a branch
+6. In the https://github.com/AcademySoftwareFoundation/OpenImageIO-images project, create a branch
    `dev-x.y` for the major/minor branch, and in the main oiio repo, update
    src/build-scripts/install_test_images.bash to specify `-b dev-x.y` in the
    checkout of oiio-images to ensure CI tests are against the set of test
    images corresponding to that major/minor release (just in the branch, not
    in master!).
 
-6. Make sure everything passes the usual CI workflow. Also check the daily or
+7. Make sure everything passes the usual CI workflow. Also check the daily or
    weekly "analysis" workflows to make sure there aren't any important
    warnings that should be fixed.
 
