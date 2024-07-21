@@ -199,9 +199,7 @@ if (NOT Ptex_FOUND OR NOT Ptex_VERSION)
     checked_find_package (Ptex)
 endif ()
 
-checked_find_package (WebP)
-# Note: When WebP 1.1 (released late 2019) is our minimum, we can use their
-# exported configs and remove our FindWebP.cmake module.
+checked_find_package (WebP VERSION_MIN 1.1)
 
 option (USE_R3DSDK "Enable R3DSDK (RED camera) support" OFF)
 checked_find_package (R3DSDK NO_RECORD_NOTFOUND)  # RED camera
