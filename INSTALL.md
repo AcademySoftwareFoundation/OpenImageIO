@@ -38,6 +38,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * **Python >= 3.7** (tested through 3.12)
      * **pybind11 >= 2.7** (tested through 2.12)
      * NumPy
+ * If you want support for PNG files:
+     * **libPNG >= 1.6.0** (tested though 1.6.43)
  * If you want support for camera "RAW" formats:
      * **LibRaw >= 0.20** (tested though 0.21.2)
  * If you want support for a wide variety of video formats:
