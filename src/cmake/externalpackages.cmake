@@ -149,7 +149,7 @@ else ()
 endif ()
 include_directories(BEFORE ${OPENCOLORIO_INCLUDES})
 
-checked_find_package (OpenCV 3.0
+checked_find_package (OpenCV 4.0
                       DEFINITIONS USE_OPENCV=1)
 
 # Intel TBB
