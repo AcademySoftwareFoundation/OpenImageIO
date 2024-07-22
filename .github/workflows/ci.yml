@@ -150,7 +150,7 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             pybind11_ver: v2.12.0
-          - desc: oldest/hobbled gcc9.3/C++17 py3.7 exr-3.1 no-sse no-ocio
+          - desc: oldest gcc9.3/C++17 py3.7 exr-3.1 no-sse no-ocio
             # Oldest versions of the dependencies that we can muster, and various
             # things disabled (no SSE, OCIO, or OpenCV, don't embed plugins).
             nametag: linux-oldest
@@ -164,7 +164,7 @@ jobs:
             python_ver: 3.7
             setenvs: export  CMAKE_VERSION=3.15.5
                              PTEX_VERSION=v2.3.2
-                             WEBP_VERSION=v1.0.0
+                             WEBP_VERSION=v1.1.0
             depcmds: sudo rm -rf /usr/local/include/OpenEXR
           - desc: hobbled gcc9.3/C++17 py3.7 exr-3.1 no-sse no-ocio
             # Use the oldest supported versions of required dependencies, and
@@ -183,7 +183,7 @@ jobs:
             setenvs: export  EMBEDPLUGINS=0
                              CMAKE_VERSION=3.15.5
                              PTEX_VERSION=v2.3.2
-                             WEBP_VERSION=v1.0.0
+                             WEBP_VERSION=v1.1.0
                              USE_JPEGTURBO=0
                              USE_OPENCOLORIO=0
                              USE_OPENCV=0
@@ -319,7 +319,7 @@ jobs:
                             OPENJPEG_VERSION=v2.4.0
                             PTEX_VERSION=v2.4.2
                             PUGIXML_VERSION=v1.14
-                            WEBP_VERSION=v1.3.0
+                            WEBP_VERSION=v1.4.0
                             FREETYPE_VERSION=VER-2-13-2
                             EXTRA_DEP_PACKAGES="libboost-dev"
           - desc: bleeding edge gcc14 C++20 py3.12 OCIO/libtiff/exr-master avx2
@@ -367,7 +367,7 @@ jobs:
                             OPENJPEG_VERSION=v2.4.0
                             PTEX_VERSION=v2.4.2
                             PUGIXML_VERSION=v1.14
-                            WEBP_VERSION=v1.3.0
+                            WEBP_VERSION=v1.4.0
                             EXTRA_DEP_PACKAGES="libboost-dev"
           - desc: clang14 C++20 avx2 exr3.1 ocio2.1
             nametag: linux-clang14
