@@ -56,8 +56,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
    or for capturing images from a camera:
      * **OpenCV 4.x** (tested through 4.10)
  * If you want support for GIF images:
-     * giflib >= 4.1 (tested through 5.2; 5.0+ is strongly recommended for
-       stability and thread safety)
+     * **giflib >= 5.0** (tested through 5.2)
  * If you want support for HEIF/HEIC or AVIF images:
      * libheif >= 1.3 (1.7 required for AVIF support, 1.16 required for
        correct orientation support, tested through 1.17.6)

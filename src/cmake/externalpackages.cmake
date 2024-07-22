@@ -162,10 +162,8 @@ checked_find_package (TBB 2017
 checked_find_package (DCMTK CONFIG VERSION_MIN 3.6.1)
 
 checked_find_package (FFmpeg VERSION_MIN 4.0)
-checked_find_package (GIF
-                      VERSION_MIN 4
-                      RECOMMEND_MIN 5.0
-                      RECOMMEND_MIN_REASON "for stability and thread safety")
+
+checked_find_package (GIF VERSION_MIN 5.0)
 
 # For HEIF/HEIC/AVIF formats
 checked_find_package (Libheif VERSION_MIN 1.3
