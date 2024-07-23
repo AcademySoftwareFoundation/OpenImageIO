@@ -35,10 +35,11 @@ macro (find_python)
     checked_find_package (Python3 ${PYTHON_VERSION}
                           ${_req}
                           VERSION_MIN 3.7
-                          COMPONENTS Interpreter Development
+                          COMPONENTS Interpreter Development.Module
                           PRINT Python3_VERSION Python3_EXECUTABLE
                                 Python3_LIBRARIES
                                 Python3_Development_FOUND
+                                Python3_Development.Module_FOUND
                                 Python3_Interpreter_FOUND )
 
     # The version that was found may not be the default or user
