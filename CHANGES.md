@@ -317,6 +317,36 @@ Release 2.6 (Fall 2024) -- compared to 2.5
 ---
 
 
+Release 2.5.13.1 (July 15, 2024) -- compared to 2.5.13.0
+--------------------------------------------------------
+- fix(heic): Correctly set imagespec size for heif images.
+ [security advisory](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-jjm9-9m4m-c8p2) CVE-2024-40630 (by Gerrard Tai)
+
+Release 2.5.13.0 (July 1, 2024) -- compared to 2.5.12.0
+-------------------------------------------------------
+- *fix*: Various PSD files fail to load correctly [#4302](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4302) (by Jesse Yurkovich)
+- *fix*: Improve error messages when a font is not found [#4284](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4284)
+- *platform.h*: In platform.h, define OIIO_DEVICE macro [#4290](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4290)
+- *ci*: Typo in build_libtiff.bash [#4280](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4280)
+- *docs*: Update INSTALL.md for windows [#4279](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4279) (by Mel Massadian)
+- *docs*: Fixes to formatting and sphinx warnings [#4301](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4301)
+
+
+Release 2.5.12.0 (June 1, 2024) -- compared to 2.5.11.0
+-------------------------------------------------------
+- *exr*: Add IOProxy support for EXR multipart output [#4263](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4263) [#4264](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4264) (by jreichel-nvidia)
+- *pnm*: Improvements to pnm plugin: support for uint16 and 32-float, "pnm:bigendian" and "pnm:pfmflip" controls for output. [#4253](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4253) (by Vlad (Kuzmin) Erium)
+- *ImageBuf*: Improve behavior of IB::nsubimages and other related fixes [#4228](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4228)
+- *simd.h*: Fix longstanding problem with 16-wide bitcast for 8-wide HW [#4268](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4268)
+- *strutil.h*: Add Strutil::eval_as_bool [#4250](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4250)
+- *tests*: Add new heif test output [#4262](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4262)
+- *tests*: Fix windows quoting for test [#4271](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4271)
+- *build*: More warning elimination for clang18 [#4257](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4257)
+- *build*: Add appropriate compiler defines and flags for SIMD with MSVC [#4266](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4266) (by Jesse Yurkovich)
+- *build*: Gcc-14 support, testing, CI [#4270](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4270)
+- *docs*: Fix stray references to the old repo home [#4255](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4255)
+
+
 Release 2.5.11.0 (May 1, 2024) -- compared to 2.5.10.0
 -------------------------------------------------------
 - *dds*: DDS support more DXGI formats [#4220](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4220) (by alexguirre)
