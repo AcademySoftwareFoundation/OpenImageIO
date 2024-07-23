@@ -30,7 +30,19 @@ find_library (LIBHEIF_LIBRARY heif
               DOC "The directory where libheif libraries reside")
 
 if (LIBHEIF_INCLUDE_DIR)
-    file(STRINGS "${LIBHEIF_INCLUDE_DIR}/libheif/heif_version.h" TMP REGEX "^#define LIBHEIF_VERSION[ \t].*$")
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        # msvc
+        set(PREPROCESS_COMMAND ${CMAKE_CXX_COMPILER} /E "${LIBHEIF_INCLUDE_DIR}/libheif/heif_version.h")
+    else ()
+        # clang, gcc or icc
+        set(PREPROCESS_COMMAND ${CMAKE_CXX_COMPILER} -E -dD -P "${LIBHEIF_INCLUDE_DIR}/libheif/heif_version.h")
+    endif ()
+    execute_process(
+        COMMAND ${PREPROCESS_COMMAND}
+        OUTPUT_VARIABLE PREPROCESS_OUTPUT
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    string(REGEX MATCH "#define LIBHEIF_VERSION[ \t]+[^\n]+" TMP "${PREPROCESS_OUTPUT}")
     string(REGEX MATCHALL "[0-9.]+" LIBHEIF_VERSION ${TMP})
 endif ()
 
