@@ -1,0 +1,110 @@
+[project]
+name = "OpenImageIO"
+dynamic = ["version"]
+description = "Reading, writing, and processing images in a wide variety of file formats, using a format-agnostic API, aimed at VFX applications."
+authors = [
+    {name = "Larry Gritz", email = "lg@larrygritz.com"},
+]
+maintainers = [
+    {name = "Larry Gritz", email = "lg@larrygritz.com"},
+]
+readme = "README.md"
+license = {text = "Apache-2.0, BSD-3-Clause"}
+keywords = [""]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Multimedia :: Video :: Display",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = []
+requires-python = ">= 3.9"
+
+[project.urls]
+Homepage = "https://openimageio.org/"
+Source = "https://github.com/AcademySoftwareFoundation/OpenImageIO"
+Documentation = "https://openimageio.readthedocs.io"
+Issues = "https://github.com/AcademySoftwareFoundation/OpenImageIO/issues"
+
+[project.scripts]
+iconvert = "OpenImageIO.command_line:main"
+idiff = "OpenImageIO.command_line:main"
+igrep = "OpenImageIO.command_line:main"
+iinfo = "OpenImageIO.command_line:main"
+maketx = "OpenImageIO.command_line:main"
+oiiotool = "OpenImageIO.command_line:main"
+testtex = "OpenImageIO.command_line:main"
+
+[build-system]
+build-backend = "scikit_build_core.build"
+requires = [
+    "scikit-build-core>=0.9.8",
+    "pybind11",
+    "oldest-supported-numpy",
+]
+
+[tool.scikit-build.metadata.version]
+provider = "scikit_build_core.metadata.regex"
+input = "CMakeLists.txt"  # path to the CMakeLists.txt setting OpenImageIO_VERSION
+regex = 'set \(OpenImageIO_VERSION "(?P<value>[0-9a-z.]+)"\)'
+
+[tool.scikit-build]
+cmake.verbose = false
+cmake.version = ">=3.29.1"
+experimental = false
+build-dir = "build_wheels"
+wheel.install-dir = "OpenImageIO"
+wheel.packages = [
+    "src/python/OpenImageIO", # path to python cli shims 
+]
+
+cmake.args = [
+    # OpenImageIO-2.6+ has a mechanism for building, linking, and 
+    # distributing missing dependencies. See src/cmake for details.
+    "-DOpenImageIO_BUILD_MISSING_DEPS=all",
+    # Place the compiled python module under the OpenImageIO namespace.
+    # This is to avoid creating a separate package for the cli shims.
+    '-DPYTHON_SITE_DIR=${SKBUILD_PLATLIB_DIR}/OpenImageIO',
+    "-DCMAKE_INSTALL_LIBDIR=lib",
+]
+
+[tool.cibuildwheel]
+build-verbosity = 1
+build = "cp39-* cp310-* cp311-* cp312-* pp*"
+skip = [
+    #"pp*",
+    "*musllinux*",
+]
+before-build = "pipx install repairwheel"
+
+[tool.cibuildwheel.linux.environment]
+# Suppress warnings that cause linux cibuildwheels build to fail
+CXXFLAGS = "-Wno-error=stringop-overflow= -Wno-pragmas" 
+
+[tool.cibuildwheel.linux]
+# Repairwheel is a tool that gathers shared libraries and 
+# adjusts the rpath of the compiled wheels. The OIIO build
+# process places any missing dependencies it compiles in
+# the build_wheels/deps/dist/{lib,lib64} directories.
+repair-wheel-command = """\
+repairwheel \
+    -l build_wheels/deps/dist/lib \
+    -l build_wheels/deps/dist/lib64 \
+    -l build_wheels/lib \
+    -o {dest_dir} \
+    {wheel}
+"""
+
+[tool.cibuildwheel.macos]
+repair-wheel-command = "repairwheel -l build_wheels/lib -l build_wheels/deps/dist/lib -o {dest_dir} {wheel}"
+
+[tool.cibuildwheel.windows]
+repair-wheel-command = "repairwheel -o {dest_dir} {wheel}"
