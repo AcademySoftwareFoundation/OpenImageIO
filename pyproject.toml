@@ -4,9 +4,11 @@ dynamic = ["version"]
 description = "Reading, writing, and processing images in a wide variety of file formats, using a format-agnostic API, aimed at VFX applications."
 authors = [
     {name = "Larry Gritz", email = "lg@larrygritz.com"},
+    {name = "OpenImageIO Contributors", email = "oiio-dev@lists.aswf.io"}
 ]
 maintainers = [
     {name = "Larry Gritz", email = "lg@larrygritz.com"},
+    {name = "OpenImageIO Contributors", email="oiio-dev@lists.aswf.io"},
 ]
 readme = "README.md"
 license = {text = "Apache-2.0, BSD-3-Clause"}
@@ -52,9 +54,11 @@ requires = [
 ]
 
 [tool.scikit-build.metadata.version]
+# Match the project version to the OpenImageIO_VERSION value set in CMakeLists.txt.
 provider = "scikit_build_core.metadata.regex"
 input = "CMakeLists.txt"  # path to the CMakeLists.txt setting OpenImageIO_VERSION
 regex = 'set \(OpenImageIO_VERSION "(?P<value>[0-9a-z.]+)"\)'
+# TODO: More robust method for detecting potential "dev" suffix.
 
 [tool.scikit-build]
 cmake.verbose = false
