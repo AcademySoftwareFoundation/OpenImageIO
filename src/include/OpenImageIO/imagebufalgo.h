@@ -580,8 +580,8 @@ bool OIIO_API circular_shift (ImageBuf &dst, const ImageBuf &src,
 ///
 /// Rotate the `src` image by the `angle` (in radians, with positive angles
 /// clockwise). When `center_x` and `center_y` are supplied, they denote the
-/// center of rotation; in their absence, the rotation will be about the
-/// center of the image's display window.
+/// center of rotation, in pixel coordinates; in their absence, the rotation
+/// will be about the center of the image's display window.
 ///
 /// Only the pixels (and channels) of `dst` that are specified by `roi` will
 /// be copied from the rotated `src`; the default `roi` is to alter all the
