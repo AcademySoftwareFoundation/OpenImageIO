@@ -85,6 +85,18 @@ else ()
 endif ()
 
 
+# libdeflate
+checked_find_package (libdeflate 
+                      VERSION_MIN 1.18)
+# If found, doctor library so libdeflate is aliased as Deflate::Deflate
+# (required for TIFF)
+if (TARGET libdeflate::libdeflate_static)
+    alias_library_if_not_exists (Deflate::Deflate libdeflate::libdeflate_static)
+elseif (TARGET libdeflate::libdeflate)
+    alias_library_if_not_exists (Deflate::Deflate libdeflate::libdeflate)
+endif()
+
+
 checked_find_package (TIFF REQUIRED
                       VERSION_MIN 4.0)
 alias_library_if_not_exists (TIFF::TIFF TIFF::tiff)

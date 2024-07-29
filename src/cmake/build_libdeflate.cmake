@@ -20,6 +20,7 @@ build_dependency_with_cmake(libdeflate
     GIT_TAG         ${libdeflate_GIT_TAG}
     CMAKE_ARGS
         -D BUILD_SHARED_LIBS=${libdeflate_BUILD_SHARED_LIBS}
+        -D LIBDEFLATE_BUILD_SHARED_LIB=${libdeflate_BUILD_SHARED_LIBS}
         -D CMAKE_POSITION_INDEPENDENT_CODE=ON
         -D CMAKE_INSTALL_LIBDIR=lib
         -D LIBDEFLATE_BUILD_GZIP=OFF
