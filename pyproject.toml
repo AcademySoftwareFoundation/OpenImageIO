@@ -37,13 +37,13 @@ Documentation = "https://openimageio.readthedocs.io"
 Issues = "https://github.com/AcademySoftwareFoundation/OpenImageIO/issues"
 
 [project.scripts]
-iconvert = "OpenImageIO.command_line:main"
-idiff = "OpenImageIO.command_line:main"
-igrep = "OpenImageIO.command_line:main"
-iinfo = "OpenImageIO.command_line:main"
-maketx = "OpenImageIO.command_line:main"
-oiiotool = "OpenImageIO.command_line:main"
-testtex = "OpenImageIO.command_line:main"
+iconvert = "OpenImageIO:_command_line"
+idiff = "OpenImageIO:_command_line"
+igrep = "OpenImageIO:_command_line"
+iinfo = "OpenImageIO:_command_line"
+maketx = "OpenImageIO:_command_line"
+oiiotool = "OpenImageIO:_command_line"
+testtex = "OpenImageIO:_command_line"
 
 [build-system]
 build-backend = "scikit_build_core.build"
@@ -51,64 +51,56 @@ requires = [
     "scikit-build-core>=0.9.8",
     "pybind11",
     "oldest-supported-numpy",
+    "repairwheel>=0.3.1",
 ]
 
 [tool.scikit-build.metadata.version]
-# Match the project version to the OpenImageIO_VERSION value set in CMakeLists.txt.
 provider = "scikit_build_core.metadata.regex"
 input = "CMakeLists.txt"  # path to the CMakeLists.txt setting OpenImageIO_VERSION
 regex = 'set \(OpenImageIO_VERSION "(?P<value>[0-9a-z.]+)"\)'
-# TODO: More robust method for detecting potential "dev" suffix.
 
 [tool.scikit-build]
 cmake.verbose = false
 cmake.version = ">=3.29.1"
-experimental = false
 build-dir = "build_wheels"
 wheel.install-dir = "OpenImageIO"
-wheel.packages = [
-    "src/python/OpenImageIO", # path to python cli shims 
-]
+wheel.packages = []
 
 cmake.args = [
     # OpenImageIO-2.6+ has a mechanism for building, linking, and 
     # distributing missing dependencies. See src/cmake for details.
     "-DOpenImageIO_BUILD_MISSING_DEPS=all",
-    # Place the compiled python module under the OpenImageIO namespace.
-    # This is to avoid creating a separate package for the cli shims.
-    '-DPYTHON_SITE_DIR=${SKBUILD_PLATLIB_DIR}/OpenImageIO',
+    # Make OIIO build the python module relative to scikit-build's
+    # expected install location.
+    '-DPYTHON_SITE_DIR=${SKBUILD_PLATLIB_DIR}',
     "-DCMAKE_INSTALL_LIBDIR=lib",
 ]
 
 [tool.cibuildwheel]
 build-verbosity = 1
-build = "cp39-* cp310-* cp311-* cp312-* pp*"
+build = "cp39-* cp310-* cp311-* cp312-* cp313-* pp*"
 skip = [
-    #"pp*",
+    "pp*",
+    #"cp39-*",
+    #"cp310-*",
+    #"cp311-*",
+    #"cp312-*",
+    "cp313-*",
     "*musllinux*",
 ]
-before-build = "pipx install repairwheel"
-
-[tool.cibuildwheel.linux.environment]
-# Suppress warnings that cause linux cibuildwheels build to fail
-CXXFLAGS = "-Wno-error=stringop-overflow= -Wno-pragmas" 
-
-[tool.cibuildwheel.linux]
 # Repairwheel is a tool that gathers shared libraries and 
 # adjusts the rpath of the compiled wheels. The OIIO build
 # process places any missing dependencies it compiles in
 # the build_wheels/deps/dist/{lib,lib64} directories.
+before-build = "pipx install repairwheel"
 repair-wheel-command = """\
 repairwheel \
     -l build_wheels/deps/dist/lib \
-    -l build_wheels/deps/dist/lib64 \
     -l build_wheels/lib \
     -o {dest_dir} \
     {wheel}
 """
 
-[tool.cibuildwheel.macos]
-repair-wheel-command = "repairwheel -l build_wheels/lib -l build_wheels/deps/dist/lib -o {dest_dir} {wheel}"
-
-[tool.cibuildwheel.windows]
-repair-wheel-command = "repairwheel -o {dest_dir} {wheel}"
+[tool.cibuildwheel.linux.environment]
+# Suppress warnings that cause linux cibuildwheels build to fail
+CXXFLAGS = "-Wno-error=stringop-overflow= -Wno-pragmas" 
