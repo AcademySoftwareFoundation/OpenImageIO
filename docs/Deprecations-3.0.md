@@ -138,6 +138,16 @@ about being deprecated will be removed in the final 3.0 release.
   been considered deprecated since OIIO 2.3. Please use task functions that do
   not take a thread ID parameter.
 
+## platform.h
+
+* Removed macros `OIIO_CONSTEXPR`, `OIIO_CONSTEXPR14`, and
+  `OIIO_CONSTEXPR_OR_CONST` and deprecated `OIIO_CONSTEXPR17` (use regular C++
+  `constexpr` in place of all of these). Removed macro `OIIO_NOEXCEPT` (use
+  C++ `noexcept`).
+* Removed macro `OIIO_UNUSED_OK`, which had been deprecated since 2.0. Marked
+  `OIIO_MAYBE_UNUSED` as deprecated as well, now that C++17 is the minimum,
+  there's no reason not to directly use the C++ attribute `[[maybe_unused]]`.
+
 ## strutil.h
 
 * Added deprecation warnings to all the old (printf-convention) string

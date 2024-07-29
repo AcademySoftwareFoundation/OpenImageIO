@@ -265,11 +265,6 @@ if (NUKE_FOUND)
     add_subdirectory (src/nuke/txWriter)
 endif ()
 
-# Last minute site-specific instructions, if they exist
-if (OIIO_SITE AND EXISTS "${PROJECT_SOURCE_DIR}/site/${OIIO_SITE}/cmake/sitecustom.cmake")
-    include ("${PROJECT_SOURCE_DIR}/site/${OIIO_SITE}/cmake/sitecustom.cmake")
-endif ()
-
 # install pkgconfig file
 if (NOT MSVC)
    configure_file(src/build-scripts/OpenImageIO.pc.in "${CMAKE_BINARY_DIR}/OpenImageIO.pc" @ONLY)
