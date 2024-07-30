@@ -152,7 +152,9 @@ using old::format;
 #endif
 
 
-// format_to comes from fmt library
+// More things we wrap from fmt library
+using ::fmt::format_args;
+using ::fmt::make_format_args;
 using ::fmt::format_to;
 using ::fmt::format_to_n;
 

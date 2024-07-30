@@ -169,16 +169,14 @@ ImageBufAlgo::to_OpenCV(cv::Mat& dst, const ImageBuf& src, ROI roi,
     } else if (spec.format == TypeDesc(TypeDesc::DOUBLE)) {
         dstFormat = CV_MAKETYPE(CV_64F, chans);
     } else {
-        OIIO::pvt::errorfmt(
-            "to_OpenCV() doesn't know how to make a cv::Mat of {}",
-            spec.format);
+        OIIO::errorfmt("to_OpenCV() doesn't know how to make a cv::Mat of {}",
+                       spec.format);
         return false;
     }
     dst.create(roi.height(), roi.width(), dstFormat);
     if (dst.empty()) {
-        OIIO::pvt::errorfmt(
-            "to_OpenCV() was unable to create cv::Mat of {}x{} {}", roi.width(),
-            roi.height(), dstSpecFormat);
+        OIIO::errorfmt("to_OpenCV() was unable to create cv::Mat of {}x{} {}",
+                       roi.width(), roi.height(), dstSpecFormat);
         return false;
     }
 
@@ -189,7 +187,7 @@ ImageBufAlgo::to_OpenCV(cv::Mat& dst, const ImageBuf& src, ROI roi,
                   dst.ptr(), pixelsize, linestep, AutoStride);
     bool converted = ImageBufAlgo::copy(cvib, src);
     if (!converted) {
-        OIIO::pvt::errorfmt(
+        OIIO::errorfmt(
             "to_OpenCV() was unable to convert source {} to cv::Mat of {}",
             spec.format, dstSpecFormat);
         return false;
@@ -204,7 +202,7 @@ ImageBufAlgo::to_OpenCV(cv::Mat& dst, const ImageBuf& src, ROI roi,
 
     return true;
 #else
-    OIIO::pvt::errorfmt(
+    OIIO::errorfmt(
         "to_OpenCV() not supported -- no OpenCV support at compile time");
     return false;
 #endif

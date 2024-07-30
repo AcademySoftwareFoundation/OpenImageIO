@@ -364,7 +364,7 @@ debug(string_view message)
 
 
 void
-pvt::log_time(string_view key, const Timer& timer, int count)
+log_time(string_view key, const Timer& timer, int count)
 {
     timing_log(key, timer, count);
 }

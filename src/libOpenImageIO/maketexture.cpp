@@ -615,7 +615,7 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
              std::ostream& outstream, double& stat_writetime,
              double& stat_miptime, size_t& peak_mem)
 {
-    using OIIO::pvt::errorfmt;
+    using OIIO::errorfmt;
     using OIIO::Strutil::sync::print;  // Be sure to use synchronized one
     bool envlatlmode       = (mode == ImageBufAlgo::MakeTxEnvLatl);
     bool orig_was_overscan = (img->spec().x || img->spec().y || img->spec().z
@@ -981,7 +981,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
                   std::string filename, std::string outputfilename,
                   const ImageSpec& _configspec, std::ostream* outstream_ptr)
 {
-    using OIIO::pvt::errorfmt;
+    using OIIO::errorfmt;
     using OIIO::Strutil::sync::print;  // Be sure to use synchronized one
     OIIO_ASSERT(mode >= 0 && mode < ImageBufAlgo::_MakeTxLast);
     double stat_readtime         = 0;

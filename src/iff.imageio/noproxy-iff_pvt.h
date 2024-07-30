@@ -145,7 +145,7 @@ public:
         try {
             close();
         } catch (const std::exception& e) {
-            OIIO::pvt::errorfmt("{}", e.what());
+            OIIO::errorfmt("{}", e.what());
         }
     }
     const char* format_name(void) const override { return "iff"; }
@@ -228,7 +228,7 @@ public:
         try {
             close();
         } catch (const std::exception& e) {
-            OIIO::pvt::errorfmt("{}", e.what());
+            OIIO::errorfmt("{}", e.what());
         }
     }
     const char* format_name(void) const override { return "iff"; }
