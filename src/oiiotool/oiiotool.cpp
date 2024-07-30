@@ -43,6 +43,10 @@
 #    include <OpenImageIO/unittest.h>
 #endif
 
+#ifdef USE_OPENCV
+#    include <OpenImageIO/imagebufalgo_opencv.h>
+#endif
+
 using namespace OIIO;
 using namespace OiioTool;
 using namespace ImageBufAlgo;
@@ -3716,14 +3720,19 @@ action_capture(Oiiotool& ot, cspan<const char*> argv)
     OIIO_DASSERT(argv.size() == 1);
     string_view command = ot.express(argv[0]);
     OTScopedTimer timer(ot, command);
+
+#ifdef USE_OPENCV
     auto options = ot.extract_options(command);
     int camera   = options.get_int("camera");
-
-    ImageBuf ib = ImageBufAlgo::capture_image(camera /*, TypeDesc::FLOAT*/);
+    ImageBuf ib  = ImageBufAlgo::capture_image(camera /*, TypeDesc::FLOAT*/);
     if (ib.has_error()) {
         ot.error(command, ib.geterror());
         return;
     }
+#else
+    ot.warning(command, "capture requires OpenCV support");
+    ImageBuf ib(ImageSpec(640, 480, 3, TypeDesc::FLOAT));
+#endif
     ImageRecRef img(new ImageRec("capture", ib.spec(), ot.imagecache));
     (*img)().copy(ib);
     ot.push(img);
