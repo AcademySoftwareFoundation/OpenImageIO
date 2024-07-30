@@ -126,6 +126,19 @@ macro (setup_python_module)
 #                               SUFFIX ".pyd")
 #    endif()
 
+    if (SKBUILD)
+        set (PYTHON_SITE_DIR .)
+        # When building python wheels, set RPATH to a relative path to 
+        # the distribution's lib directory.
+        if (APPLE)
+            set_target_properties (${target_name} PROPERTIES 
+                    INSTALL_RPATH "@loader_path/${CMAKE_INSTALL_LIBDIR}")
+        else ()
+            set_target_properties (${target_name} PROPERTIES
+                    INSTALL_RPATH "$ORIGIN/${CMAKE_INSTALL_LIBDIR}")
+        endif ()
+    endif ()
+
     # In the build area, put it in lib/python so it doesn't clash with the
     # non-python libraries of the same name (which aren't prefixed by "lib"
     # on Windows).

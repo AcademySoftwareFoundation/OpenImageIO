@@ -65,15 +65,11 @@ cmake.version = ">=3.29.1"
 build-dir = "build_wheels"
 wheel.install-dir = "OpenImageIO"
 wheel.packages = []
-
 cmake.args = [
     # OpenImageIO-2.6+ has a mechanism for building, linking, and 
     # distributing missing dependencies. See src/cmake for details.
     "-DOpenImageIO_BUILD_MISSING_DEPS=all",
-    # Make OIIO build the python module relative to scikit-build's
-    # expected install location.
-    '-DPYTHON_SITE_DIR=${SKBUILD_PLATLIB_DIR}',
-    "-DCMAKE_INSTALL_LIBDIR=lib",
+    "-DOpenImageIO_BUILD_LOCAL_DEPS=all",
 ]
 
 [tool.cibuildwheel]
