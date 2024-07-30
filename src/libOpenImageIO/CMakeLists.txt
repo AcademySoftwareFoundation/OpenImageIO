@@ -55,7 +55,7 @@ set (libOpenImageIO_srcs
                           imagebufalgo_minmaxchan.cpp
                           imagebufalgo_orient.cpp
                           imagebufalgo_xform.cpp
-                          imagebufalgo_yee.cpp imagebufalgo_opencv.cpp
+                          imagebufalgo_yee.cpp
                           deepdata.cpp exif.cpp exif-canon.cpp
                           formatspec.cpp
                           icc.cpp imagebuf.cpp
@@ -120,7 +120,6 @@ endif ()
 target_compile_definitions(OpenImageIO
               PRIVATE
                   OIIO_FREETYPE_VERSION="${FREETYPE_VERSION_STRING}"
-                  OIIO_OpenCV_VERSION="${OpenCV_VERSION}"
                   OIIO_PYTHON_VERSION="${Python3_VERSION}"
                   OIIO_QT_VERSION="${Qt6_VERSION}${Qt5_VERSION}"
                   OIIO_TBB_VERSION="${TBB_VERSION}"
@@ -138,7 +137,6 @@ target_include_directories (OpenImageIO
                             PRIVATE
                                 ${ROBINMAP_INCLUDES}
                             )
-target_include_directories (OpenImageIO SYSTEM PUBLIC ${OpenCV_INCLUDES})
 
 if (NOT BUILD_SHARED_LIBS)
     target_compile_definitions (OpenImageIO PUBLIC OIIO_STATIC_DEFINE=1)
@@ -155,7 +153,6 @@ target_link_libraries (OpenImageIO
             ${OPENIMAGEIO_IMATH_TARGETS}
         PRIVATE
             ${OPENIMAGEIO_OPENEXR_TARGETS}
-            ${OpenCV_LIBRARIES}
             ${format_plugin_libs} # Add all the target link libraries from the plugins
             OpenColorIO::OpenColorIO
             $<TARGET_NAME_IF_EXISTS:OpenColorIO::OpenColorIOHeaders>
@@ -253,6 +250,9 @@ if (OIIO_BUILD_TESTS AND BUILD_TESTING)
     add_test (unit_imagecache ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagecache_test)
 
     fancy_add_executable (NAME imagebufalgo_test SRC imagebufalgo_test.cpp
+                          SYSTEM_INCLUDE_DIRS
+                                ${ROBINMAP_INCLUDES}
+                                ${OpenCV_INCLUDES}            
                           LINK_LIBRARIES OpenImageIO
                                          ${OpenCV_LIBRARIES}
                                          ${OPENIMAGEIO_IMATH_TARGETS}

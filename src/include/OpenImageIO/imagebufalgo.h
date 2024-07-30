@@ -23,14 +23,6 @@
 
 #include <limits>
 
-#if !defined(__OPENCV_CORE_TYPES_H__) && !defined(OPENCV_CORE_TYPES_H)
-struct IplImage;  // Forward declaration; used by Intel Image lib & OpenCV
-namespace cv {
-    class Mat;
-}
-#endif
-
-
 
 OIIO_NAMESPACE_BEGIN
 
@@ -2343,36 +2335,6 @@ bool OIIO_API make_texture (MakeTextureMode mode,
                             const ImageSpec &config,
                             std::ostream *outstream = nullptr);
 /// @}
-
-
-/// Convert an OpenCV cv::Mat into an ImageBuf, copying the pixels (optionally
-/// converting to the pixel data type specified by `convert`, if not UNKNOWN,
-/// which means to preserve the original data type if possible).  Return true
-/// if ok, false if it was not able to make the conversion from Mat to
-/// ImageBuf. Any error messages can be retrieved by calling `geterror()` on
-/// the returned ImageBuf. If OpenImageIO was compiled without OpenCV support,
-/// this function will return false.
-OIIO_API ImageBuf
-from_OpenCV (const cv::Mat& mat, TypeDesc convert = TypeUnknown,
-             ROI roi={}, int nthreads=0);
-
-/// Construct an OpenCV cv::Mat containing the contents of ImageBuf src, and
-/// return true. If it is not possible, or if OpenImageIO was compiled without
-/// OpenCV support, then return false. Any error messages can be retrieved by
-/// calling OIIO::geterror(). Note that OpenCV only supports up to 4 channels,
-/// so >4 channel images will be truncated in the conversion.
-OIIO_API bool to_OpenCV (cv::Mat& dst, const ImageBuf& src,
-                         ROI roi={}, int nthreads=0);
-
-
-/// Capture a still image from a designated camera.  If able to do so,
-/// store the image in dst and return true.  If there is no such device,
-/// or support for camera capture is not available (such as if OpenCV
-/// support was not enabled at compile time), return false and do not
-/// alter dst.
-ImageBuf OIIO_API capture_image (int cameranum = 0,
-                                 TypeDesc convert=TypeUnknown);
-
 
 
 /// Return the "deep" equivalent of the "flat" input `src`. Turning a flat

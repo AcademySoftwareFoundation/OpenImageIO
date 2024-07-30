@@ -86,6 +86,14 @@ about being deprecated will be removed in the final 3.0 release.
   deprecated since OIIO 1.5, now has deprecation warnings. Use
   `interppixel_NDC()` instead.
 
+## imageio.h
+
+* The global OIIO::attribute query "opencv_version" has been removed. The
+  libOpenImageIO library itself no longer has OpenCV as a dependency or links
+  against it. (However, the IBA functions involving OpenCV still exist and are
+  defined in `imagebufalgo_opencv.h` as inline functions, so it is up to the
+  application calling these API functions to find and link against OpenCV.)
+
 ## imagebufalgo.h
 
 * The old versions (deprecated since 2.0) of IBA::compare() and
@@ -111,6 +119,8 @@ about being deprecated will be removed in the final 3.0 release.
   cv::Mat.
 * The pre-KWArgs versions of resize, warp, and fit now have deprecation
   warnings. Use the versions that take KWArgs instead.
+* The OpenCV-related functions `to_OpenCV()`, `from_OpenCV()`, and
+  `capture_image()` have moved to the `imagebufalgo_opencv.h` header.
 
 ## imagebufalgo_util.h
 
@@ -192,4 +202,11 @@ about being deprecated will be removed in the final 3.0 release.
 * This header has been removed completely, since we no longer use the classes
   it defines.
 
+
+## python bindings
+
+* The `ImageBufAlgo.capture_image()` function has been removed from the
+  Python bindings. Python scripts that wish to capture images from live
+  cameras should use OpenCV or other capture APIs of choice and then
+  pass the results to OIIO to construct an ImageBuf.
 
