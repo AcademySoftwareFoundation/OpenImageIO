@@ -36,6 +36,7 @@ Source = "https://github.com/AcademySoftwareFoundation/OpenImageIO"
 Documentation = "https://openimageio.readthedocs.io"
 Issues = "https://github.com/AcademySoftwareFoundation/OpenImageIO/issues"
 
+
 [project.scripts]
 iconvert = "OpenImageIO:_command_line"
 idiff = "OpenImageIO:_command_line"
@@ -48,28 +49,27 @@ testtex = "OpenImageIO:_command_line"
 [build-system]
 build-backend = "scikit_build_core.build"
 requires = [
-    "scikit-build-core>=0.9.8",
+    "scikit-build-core>=0.9.8,<1",
     "pybind11",
     "oldest-supported-numpy",
-    "repairwheel>=0.3.1",
 ]
 
 [tool.scikit-build.metadata.version]
+# Dynamically parse the version from the CMakeLists.txt file.
 provider = "scikit_build_core.metadata.regex"
-input = "CMakeLists.txt"  # path to the CMakeLists.txt setting OpenImageIO_VERSION
+input = "CMakeLists.txt" 
 regex = 'set \(OpenImageIO_VERSION "(?P<value>[0-9a-z.]+)"\)'
 
 [tool.scikit-build]
 cmake.verbose = false
 cmake.version = ">=3.29.1"
-build-dir = "build_wheels"
 wheel.install-dir = "OpenImageIO"
-wheel.packages = []
 cmake.args = [
     # OpenImageIO-2.6+ has a mechanism for building, linking, and 
     # distributing missing dependencies. See src/cmake for details.
     "-DOpenImageIO_BUILD_MISSING_DEPS=all",
-    "-DOpenImageIO_BUILD_LOCAL_DEPS=all",
+    # Always locally build TIFF to prevent problems with cached rebuilds.
+    "-DOpenImageIO_BUILD_LOCAL_DEPS=TIFF",
 ]
 
 [tool.cibuildwheel]
@@ -78,9 +78,9 @@ build = "cp39-* cp310-* cp311-* cp312-* cp313-* pp*"
 skip = [
     "pp*",
     #"cp39-*",
-    #"cp310-*",
-    #"cp311-*",
-    #"cp312-*",
+    "cp310-*",
+    "cp311-*",
+    "cp312-*",
     "cp313-*",
     "*musllinux*",
 ]
@@ -91,12 +91,16 @@ skip = [
 before-build = "pipx install repairwheel"
 repair-wheel-command = """\
 repairwheel \
-    -l build_wheels/deps/dist/lib \
-    -l build_wheels/lib \
+    -l ${SKBUILD_BUILD_DIR}/deps/dist/lib \
+    -l ${SKBUILD_BUILD_DIR}/lib \
     -o {dest_dir} \
     {wheel}
 """
 
+[tool.cibuildwheel.macos.environment]
+SKBUILD_BUILD_DIR = "/tmp/build_wheels"
+
 [tool.cibuildwheel.linux.environment]
-# Suppress warnings that cause linux cibuildwheels build to fail
-CXXFLAGS = "-Wno-error=stringop-overflow= -Wno-pragmas" 
+# Suppress warnings that cause linux cibuildwheel build to fail
+CXXFLAGS = "-Wno-error=stringop-overflow= -Wno-pragmas"
+SKBUILD_BUILD_DIR = "/tmp/build_wheels"

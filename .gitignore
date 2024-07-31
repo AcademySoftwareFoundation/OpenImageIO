@@ -11,6 +11,7 @@ ext/
 .DS_Store
 *.pyc
 _coverage/
+wheelhouse/
 
 # Exclude test files I tend to leave around at the top level. The leading
 # slash ensures that files with these extensions within subdirectories are not
