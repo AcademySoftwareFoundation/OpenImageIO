@@ -68,8 +68,6 @@ cmake.args = [
     # OpenImageIO-2.6+ has a mechanism for building, linking, and 
     # distributing missing dependencies. See src/cmake for details.
     "-DOpenImageIO_BUILD_MISSING_DEPS=all",
-    # Always locally build TIFF to prevent problems with cached rebuilds.
-    "-DOpenImageIO_BUILD_LOCAL_DEPS=TIFF",
 ]
 
 [tool.cibuildwheel]
@@ -77,9 +75,9 @@ build-verbosity = 1
 build = "cp39-* cp310-* cp311-* cp312-* cp313-* pp*"
 skip = [
     "pp*",
-    #"cp39-*",
-    "cp310-*",
-    "cp311-*",
+    "cp39-*",
+    #"cp310-*",
+    #"cp311-*",
     "cp312-*",
     "cp313-*",
     "*musllinux*",
@@ -97,10 +95,14 @@ repairwheel \
     {wheel}
 """
 
+
 [tool.cibuildwheel.macos.environment]
 SKBUILD_BUILD_DIR = "/tmp/build_wheels"
+SKBUILD_CMAKE_ARGS = "-DOpenImageIO_BUILD_LOCAL_DEPS=TIFF; -DOpenImageIO_BUILD_MISSING_DEPS=all"
+
 
 [tool.cibuildwheel.linux.environment]
 # Suppress warnings that cause linux cibuildwheel build to fail
 CXXFLAGS = "-Wno-error=stringop-overflow= -Wno-pragmas"
 SKBUILD_BUILD_DIR = "/tmp/build_wheels"
+SKBUILD_CMAKE_ARGS = "-DOpenImageIO_BUILD_LOCAL_DEPS=TIFF; -DOpenImageIO_BUILD_MISSING_DEPS=all"
