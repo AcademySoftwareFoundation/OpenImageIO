@@ -34,6 +34,9 @@ include (FindThreads)
 
 ###########################################################################
 # Boost setup
+if (${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.30")
+    set (boost_config CONFIG)
+endif ()
 if (MSVC)
     # Disable automatic linking using pragma comment(lib,...) of boost libraries upon including of a header
     add_definitions (-DBOOST_ALL_NO_LIB=1)
@@ -65,7 +68,7 @@ if (NOT DEFINED Boost_NO_BOOST_CMAKE)
     set (Boost_NO_BOOST_CMAKE ON)
 endif ()
 
-checked_find_package (Boost REQUIRED
+checked_find_package (Boost ${boost_config} REQUIRED
                       VERSION_MIN 1.53
                       COMPONENTS ${Boost_COMPONENTS}
                       RECOMMEND_MIN 1.66
