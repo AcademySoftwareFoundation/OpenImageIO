@@ -2097,6 +2097,26 @@ bool OIIO_API repremult (ImageBuf &dst, const ImageBuf &src,
 /// @}
 
 
+/// @defgroup demosaic (Demosaicing algorithms)
+/// @{
+///
+
+enum BayerPattern : unsigned int {
+    // Bit 0 is horizontal shift, bit 1 is vertical shift
+    BayerPatternRGGB = 0,   //00
+    BayerPatternGRBG = 1,   //01
+    BayerPatternGBRG = 2,   //10
+    BayerPatternBGGR = 3    //11
+};
+
+ImageBuf OIIO_API bayer_demosaic (const ImageBuf& src,
+                                  BayerPattern bayer_pattern, ROI roi,
+                                  int nthreads = 0);
+
+bool OIIO_API bayer_demosaic(ImageBuf& dst, const ImageBuf& src,
+                             BayerPattern bayer_pattern, ROI roi,
+                             int nthreads = 0);
+/// @}
 
 enum MakeTextureMode {
     MakeTxTexture, MakeTxShadow, MakeTxEnvLatl,
