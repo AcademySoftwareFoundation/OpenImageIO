@@ -20,7 +20,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * ADVISORY: We expect that OIIO 2.6 in 2024 will require C++17 or higher.
  * Compilers: gcc 6.1 - 14.1, clang 3.4 - 18, MSVS 2017 - 2019,
    Intel icc 17+, Intel OneAPI C++ compiler 2022+.
- * **CMake >= 3.15** (tested through 3.28)
+ * **CMake >= 3.15** (tested through 3.30)
  * **OpenEXR/Imath >= 2.4** (recommended: 3.1 or higher; tested through 3.2
    and main) (ADVISORY: We expect that OIIO 2.6 in 2024 will require OpenEXR >= 3.1)
  * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.6)

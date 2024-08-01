@@ -1,6 +1,16 @@
 Release 2.5.14.0 (Aug 1?, 2024) -- compared to 2.5.13.1
 --------------------------------------------------------
-
+- *fix (png)*: Correctly read PNGs with partial alpha [#4315](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4315) (2.5.14.0)
+- *fix(ImageBuf)*: Copy/paste error in the ImageBuf iterator copy constructor [#4365](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4365) (by Anton Dukhovnikov)
+- *perf/TS*: Only write full metadata to the first mip level [#4320](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4320) (2.5.14.0)
+- *dev(strutil.h)*: Strutil::string_is_identifier() [#4333](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4333) (2.5.14.0)
+- *build*: Avoid rebuilds due to processing of fmt headers [#4313](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4313) (by Jesse Yurkovich) (2.5.14.0)
+- *build*: Fix boost vs cmake 3.30 problem.
+- *ci*: Sanitizer new warnings about signed/unsigned offsets in openexr [#4351](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4351) (2.5.14.0)
+- *docs*: Clarify that `IBA::rotate` params are pixel coordinates [#4358](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4358) (2.5.14.0)
+- *admin*: More CLA explanation and how-to links [#4318](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4318) (2.5.14.0)
+- *admin*: Document my git-cliff workflow for release notes [#4319](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4319) (2.5.14.0)
+- *security*: Document CVE-2024-40630 resolution (2.5.14.0)
 
 
 Release 2.5.13.1 (July 15, 2024) -- compared to 2.5.13.0
