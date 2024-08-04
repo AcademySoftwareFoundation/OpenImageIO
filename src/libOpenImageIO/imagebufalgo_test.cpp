@@ -1264,49 +1264,57 @@ static void
 test_demosaic()
 {
     print("Testing demosaic\n");
-    
-    std::string inputs[] = {
-        "/Users/ad/Desktop/TestRaw/Image1.NEF",
-        "/Users/ad/Desktop/TestRaw/Image2.DNG",
-        "/Users/ad/Desktop/TestRaw/Image3.RW2"
-    };
-    
-    ImageBufAlgo::BayerPattern patterns[] = {
-        ImageBufAlgo::BayerPatternGRBG,
-        ImageBufAlgo::BayerPatternGRBG,
-        ImageBufAlgo::BayerPatternBGGR
-    };
-    
-    for (int i = 0; i < 3; i++)
-    {
-        
-        ImageSpec hint = OIIO::ImageSpec();
+
+    std::string inputs[] = { "/Users/ad/Desktop/TestRaw/Image1.NEF",
+                             "/Users/ad/Desktop/TestRaw/Image2.DNG",
+                             "/Users/ad/Desktop/TestRaw/Image3.RW2" };
+
+    ImageBufAlgo::BayerPattern patterns[] = { ImageBufAlgo::BayerPatternGRBG,
+                                              ImageBufAlgo::BayerPatternGRBG,
+                                              ImageBufAlgo::BayerPatternBGGR };
+
+    for (int i = 0; i < 3; i++) {
+        ImageSpec hint       = OIIO::ImageSpec();
         hint["raw:Demosaic"] = "none";
-        
+
         std::string path = inputs[i];
-        
+
         ImageBuf src = OIIO::ImageBuf(path, 0, 0, nullptr, &hint, nullptr);
-        bool result = src.init_spec(path, 0, 0);
-        if (result)
-        {
-            auto & spec = src.spec();
+        bool result  = src.init_spec(path, 0, 0);
+        if (result) {
+            auto& spec    = src.spec();
             auto channels = spec.nchannels;
             result = src.read(0, 0, 0, channels, true, OIIO::TypeDesc::FLOAT);
         }
-        
-        ImageBuf dst;
-        
-        print("Demosaicing {}...", path);
-        bool r = ImageBufAlgo::bayer_demosaic(dst, src, patterns[i], ROI(), 0);
-        OIIO_CHECK_ASSERT(r);
-        print("Done\n");
-        
-        dst = ImageBufAlgo::mul(dst, 7.0);
 
-        auto imageOutput = OIIO::ImageOutput::create("exr");
-        r = imageOutput->open(path + ".exr", dst.spec());
-        r = dst.write(imageOutput.get());
-        
+        ImageBuf dst;
+
+        //        {
+        //            print("Demosaicing {}...", path);
+        //            bool r = ImageBufAlgo::bayer_demosaic_linear(dst, src, patterns[i], ROI(), 1);
+        //            OIIO_CHECK_ASSERT(r);
+        //            print("Done\n");
+        //
+        //            dst = ImageBufAlgo::mul(dst, 10.0);
+        //
+        //            auto imageOutput = OIIO::ImageOutput::create("exr");
+        //            r = imageOutput->open(path + "_lin.exr", dst.spec());
+        //            r = dst.write(imageOutput.get());
+        //        }
+
+        {
+            print("Demosaicing {}...", path);
+            bool r = ImageBufAlgo::bayer_demosaic_MHC(dst, src, patterns[i],
+                                                      ROI(), 1);
+            OIIO_CHECK_ASSERT(r);
+            print("Done\n");
+
+            dst = ImageBufAlgo::mul(dst, 10.0);
+
+            auto imageOutput = OIIO::ImageOutput::create("exr");
+            r                = imageOutput->open(path + "_mhc.exr", dst.spec());
+            r                = dst.write(imageOutput.get());
+        }
     }
 }
 
@@ -1325,41 +1333,41 @@ main(int argc, char** argv)
 
     getargs(argc, argv);
 
-//    test_type_merge();
-//    test_zero_fill();
-//    test_copy();
-//    test_crop();
-//    test_paste();
-//    test_channel_append();
-//    test_add();
-//    test_sub();
-//    test_mul();
-//    test_mad();
-//    test_min();
-//    test_max();
-//    test_over(TypeFloat);
-//    test_over(TypeHalf);
-//    test_zover();
-//    test_compare();
-//    test_isConstantColor();
-//    test_isConstantChannel();
-//    test_isMonochrome();
-//    test_computePixelStats();
-//    histogram_computation_test();
-//    test_maketx_from_imagebuf();
-//    test_IBAprep();
-//    test_validate_st_warp_checks();
-//    test_opencv();
-//    test_color_management();
-//    test_yee();
-//    test_simple_perpixel<float>();
-//    test_simple_perpixel<half>();
+    //    test_type_merge();
+    //    test_zero_fill();
+    //    test_copy();
+    //    test_crop();
+    //    test_paste();
+    //    test_channel_append();
+    //    test_add();
+    //    test_sub();
+    //    test_mul();
+    //    test_mad();
+    //    test_min();
+    //    test_max();
+    //    test_over(TypeFloat);
+    //    test_over(TypeHalf);
+    //    test_zover();
+    //    test_compare();
+    //    test_isConstantColor();
+    //    test_isConstantChannel();
+    //    test_isMonochrome();
+    //    test_computePixelStats();
+    //    histogram_computation_test();
+    //    test_maketx_from_imagebuf();
+    //    test_IBAprep();
+    //    test_validate_st_warp_checks();
+    //    test_opencv();
+    //    test_color_management();
+    //    test_yee();
+    //    test_simple_perpixel<float>();
+    //    test_simple_perpixel<half>();
     test_demosaic();
 
-//    benchmark_parallel_image(64, iterations * 64);
-//    benchmark_parallel_image(512, iterations * 16);
-//    benchmark_parallel_image(1024, iterations * 4);
-//    benchmark_parallel_image(2048, iterations);
+    //    benchmark_parallel_image(64, iterations * 64);
+    //    benchmark_parallel_image(512, iterations * 16);
+    //    benchmark_parallel_image(1024, iterations * 4);
+    //    benchmark_parallel_image(2048, iterations);
 
     return unit_test_failures;
 }

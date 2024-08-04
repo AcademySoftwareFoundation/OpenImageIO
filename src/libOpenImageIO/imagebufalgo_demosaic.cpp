@@ -13,192 +13,357 @@
 
 OIIO_NAMESPACE_BEGIN
 
-template<class Rtype, class Atype>
-static bool
-bayer_demosaic_impl(ImageBuf& dst, const ImageBuf& src,
-                    ImageBufAlgo::BayerPattern bayer_pattern, ROI roi,
-                    int nthreads)
-{
-    int x_offset = (bayer_pattern >> 0) & 1;
-    int y_offset = (bayer_pattern >> 1) & 1;
+template<class Rtype, class Atype, int size> class BayerDemosaicing {
+public:
+    struct Window {
+        struct Row {
+            ImageBuf::ConstIterator<Atype> iterator;
+            Atype data[size];
+        };
 
-    const ImageSpec& spec = src.spec();
-    int src_xbegin        = spec.x;
-    int src_xend          = spec.x + spec.width;
-    int src_ybegin        = spec.y;
-    int src_yend          = spec.y + spec.height;
+        std::vector<Row> rows;
 
-    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
-        Atype box[3][3];
+        int col_mapping[size];
 
-        ImageBuf::Iterator<Rtype> it(dst, roi);
+        int src_xbegin;
+        int src_xend;
+        int src_ybegin;
+        int src_yend;
+        int x;
 
-        for (int y = roi.ybegin; y < roi.yend; y++) {
-            int line_index[3] = { 0, 1, 2 };
+        Window(int y, int xbegin, const ImageBuf& src)
+        {
+            const ImageSpec& spec = src.spec();
+            src_xbegin            = spec.x;
+            src_xend              = spec.x + spec.width;
+            src_ybegin            = spec.y;
+            src_yend              = spec.y + spec.height;
+            x                     = xbegin;
 
-            if (y <= src_ybegin)
-                line_index[0] = 2;
-            if (y > src_yend - 2)
-                line_index[2] = 0;
+            int central = size / 2;
 
-            // This holds up to 3 lines' pixel iterators.
-            // The first or the last one can be unused if we are
-            // On the top or bottom line of the image.
-            // The objects constructed here are just placeholders,
-            // as the iterator doesn't have a default constuctor.
-            ImageBuf::ConstIterator<Atype> line_iter[3]
-                = { ImageBuf::ConstIterator<Atype>(src),
-                    ImageBuf::ConstIterator<Atype>(src),
-                    ImageBuf::ConstIterator<Atype>(src) };
+            int skip = src_xbegin - xbegin + central;
+            if (skip < 0)
+                skip = 0;
 
-            for (int x = roi.xbegin; x < roi.xend; x++) {
-                if (x == roi.xbegin) {
-                    // Fetch initial box state
+            int xstart = xbegin - central + skip;
 
-                    if (roi.xbegin > src_xbegin) {
-                        for (int i = 0; i < 3; i++) {
-                            if (line_index[i] == i) {
-                                auto it = ImageBuf::ConstIterator<Atype>(
-                                    src, roi.xbegin - 1, y - 1 + i, 0);
-                                box[i][0] = it[0];
-                                it++;
-                                box[i][1] = it[0];
-                                it++;
-                                box[i][2] = it[0];
-                                it++;
-                                line_iter[i] = it;
-                            }
-                        }
-                    } else {
-                        for (int i = 0; i < 3; i++) {
-                            if (line_index[i] == i) {
-                                auto it = ImageBuf::ConstIterator<Atype>(
-                                    src, roi.xbegin, y - 1 + i, 0);
-                                box[i][1] = it[0];
-                                it++;
-                                box[i][2] = it[0];
-                                it++;
-                                box[i][0]    = box[i][2];
-                                line_iter[i] = it;
-                            }
-                        }
-                    }
-                } else {
-                    // Update the box state
+            for (int i = 0; i < size; i++) {
+                col_mapping[i] = i;
+            }
 
-                    if (x < src_xend - 1) {
-                        for (int i = 0; i < 3; i++) {
-                            if (line_index[i] == i) {
-                                auto& it  = line_iter[i];
-                                box[i][0] = box[i][1];
-                                box[i][1] = box[i][2];
-                                box[i][2] = it[0];
-                                it++;
-                            }
-                        }
-                    } else {
-                        for (int i = 0; i < 3; i++) {
-                            if (line_index[i] == i) {
-                                Atype tmp = box[i][0];
-                                box[i][0] = box[i][1];
-                                box[i][1] = box[i][2];
-                                box[i][2] = tmp;
-                            }
-                        }
-                    }
+            for (int i = 0; i < size; i++) {
+                int index  = i;
+                int offset = i - central;
+
+                if ((y + offset <= src_ybegin) || (y + offset > src_yend - 1)) {
+                    index = central - offset;
                 }
 
-                Rtype r = 0;
-                Rtype g = 0;
-                Rtype b = 0;
+                int ystart = y - central + index;
+                Row row
+                    = { ImageBuf::ConstIterator<Atype>(src, xstart, ystart) };
 
-                if ((x + x_offset) & 1) {
-                    if ((y + y_offset) & 1) {
-                        // RGR
-                        // GBG
-                        // RGR
-
-                        r += box[line_index[0]][0];
-                        r += box[line_index[0]][2];
-                        r += box[line_index[2]][0];
-                        r += box[line_index[2]][2];
-                        r /= (Rtype)4;
-
-                        g += box[line_index[0]][1];
-                        g += box[line_index[2]][1];
-                        g += box[line_index[1]][0];
-                        g += box[line_index[1]][2];
-                        g /= (Rtype)4;
-
-                        b = box[line_index[1]][1];
-                    } else {
-                        // GBG
-                        // RGR
-                        // GBG
-
-                        r += box[line_index[1]][0];
-                        r += box[line_index[1]][2];
-                        r /= (Rtype)2;
-
-                        g = box[line_index[1]][1];
-
-                        b += box[line_index[0]][1];
-                        b += box[line_index[2]][1];
-                        b /= (Rtype)2;
-                    }
-                } else {
-                    if ((y + y_offset) & 1) {
-                        // GRG
-                        // BGB
-                        // GRG
-
-                        r += box[line_index[0]][1];
-                        r += box[line_index[2]][1];
-                        r /= (Rtype)2;
-
-                        g = box[line_index[1]][1];
-
-                        b += box[line_index[1]][0];
-                        b += box[line_index[1]][2];
-                        b /= (Rtype)2;
-                    } else {
-                        // BGB
-                        // GRG
-                        // BGB
-
-                        r = box[line_index[1]][1];
-
-                        g += box[line_index[0]][1];
-                        g += box[line_index[2]][1];
-                        g += box[line_index[1]][0];
-                        g += box[line_index[1]][2];
-                        g /= (Rtype)4;
-
-                        b += box[line_index[0]][0];
-                        b += box[line_index[0]][2];
-                        b += box[line_index[2]][0];
-                        b += box[line_index[2]][2];
-                        b /= (Rtype)4;
-                    }
+                for (int j = skip; j < size; j++) {
+                    row.data[j] = row.iterator[0];
+                    row.iterator++;
                 }
 
-                it[0] = r;
-                it[1] = g;
-                it[2] = b;
+                for (int j = 0; j < skip; j++) {
+                    row.data[j] = row.data[size - 1 - j];
+                }
 
-                it++;
+                rows.push_back(row);
             }
         }
-    });
+
+        void update()
+        {
+            x++;
+
+            int curr = col_mapping[0];
+            for (int i = 0; i < size - 1; i++) {
+                col_mapping[i] = col_mapping[i + 1];
+            }
+            col_mapping[size - 1] = curr;
+
+            if (x + size / 2 < src_xend) {
+                for (int i = 0; i < size; i++) {
+                    Row& row       = rows[i];
+                    row.data[curr] = row.iterator[0];
+                    row.iterator++;
+                }
+            } else {
+                int off = ((x + size / 2 - src_xend) + 1) * 2;
+                off     = curr + size - off;
+
+                for (int i = 0; i < size; i++) {
+                    Row& row       = rows[i];
+                    row.data[curr] = row.data[off];
+                }
+            }
+        };
+
+        Atype operator()(int row, int col)
+        {
+            int index = col_mapping[col];
+            return rows[row].data[index];
+        }
+    };
+
+    virtual void calc_red(Window& window, ImageBuf::Iterator<Rtype>& out,
+                          int chbegin)
+        = 0;
+    virtual void calc_blue(Window& window, ImageBuf::Iterator<Rtype>& out,
+                           int chbegin)
+        = 0;
+    virtual void calc_green_in_red(Window& window,
+                                   ImageBuf::Iterator<Rtype>& out, int chbegin)
+        = 0;
+    virtual void calc_green_in_blue(Window& window,
+                                    ImageBuf::Iterator<Rtype>& out, int chbegin)
+        = 0;
+
+    bool process(ImageBuf& dst, const ImageBuf& src,
+                 ImageBufAlgo::BayerPattern bayer_pattern, ROI roi,
+                 int nthreads)
+    {
+        int x_offset = (bayer_pattern >> 0) & 1;
+        int y_offset = (bayer_pattern >> 1) & 1;
+
+        ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+            ImageBuf::Iterator<Rtype> it(dst, roi);
+
+            for (int y = roi.ybegin; y < roi.yend; y++) {
+                Window window(y, roi.xbegin, src);
+
+
+                void (BayerDemosaicing::*calc_0)(Window(&),
+                                                 ImageBuf::Iterator<Rtype>&,
+                                                 int)
+                    = nullptr;
+                void (BayerDemosaicing::*calc_1)(Window(&),
+                                                 ImageBuf::Iterator<Rtype>&,
+                                                 int)
+                    = nullptr;
+
+                if ((roi.xbegin + x_offset) & 1) {
+                    if ((y + y_offset) & 1) {
+                        calc_0 = &BayerDemosaicing::calc_blue;
+                        calc_1 = &BayerDemosaicing::calc_green_in_blue;
+                    } else {
+                        calc_0 = &BayerDemosaicing::calc_green_in_red;
+                        calc_1 = &BayerDemosaicing::calc_red;
+                    }
+                } else {
+                    if ((y + y_offset) & 1) {
+                        calc_0 = &BayerDemosaicing::calc_green_in_blue;
+                        calc_1 = &BayerDemosaicing::calc_blue;
+                    } else {
+                        calc_0 = &BayerDemosaicing::calc_red;
+                        calc_1 = &BayerDemosaicing::calc_green_in_red;
+                    }
+                }
+
+                int x = roi.xbegin;
+                while (x < roi.xend - 1) {
+                    if (x != roi.xbegin) {
+                        window.update();
+                    }
+
+                    (this->*calc_0)(window, it, 0);
+                    it++;
+                    x++;
+
+                    window.update();
+                    (this->*calc_1)(window, it, 0);
+                    it++;
+                    x++;
+                }
+
+                if (x < roi.xend) {
+                    window.update();
+                    (this->*calc_0)(window, it, 0);
+                    it++;
+                    x++;
+                }
+            }
+        });
+
+        return true;
+    };
+};
+
+
+
+template<class Rtype, class Atype, int size = 3>
+class LinearBayerDemosaicing : public BayerDemosaicing<Rtype, Atype, size> {
+public:
+    void calc_red(typename BayerDemosaicing<Rtype, Atype, size>::Window& window,
+                  ImageBuf::Iterator<Rtype>& out, int chbegin) override
+    {
+        out[chbegin + 0] = window(1, 1);
+
+        out[chbegin + 1] = (window(0, 1) + window(2, 1) + window(1, 0)
+                            + window(1, 2))
+                           / (Rtype)4;
+
+        out[chbegin + 2] = (window(0, 0) + window(0, 2) + window(2, 0)
+                            + window(2, 2))
+                           / (Rtype)4;
+    }
+
+    void calc_blue(typename BayerDemosaicing<Rtype, Atype, size>::Window& window,
+                   ImageBuf::Iterator<Rtype>& out, int chbegin) override
+    {
+        out[chbegin + 0] = (window(0, 0) + window(0, 2) + window(2, 0)
+                            + window(2, 2))
+                           / (Rtype)4;
+
+        out[chbegin + 1] = (window(0, 1) + window(2, 1) + window(1, 0)
+                            + window(1, 2))
+                           / (Rtype)4;
+
+        out[chbegin + 2] = window(1, 1);
+    }
+
+    void calc_green_in_red(
+        typename BayerDemosaicing<Rtype, Atype, size>::Window& window,
+        ImageBuf::Iterator<Rtype>& out, int chbegin) override
+    {
+        out[chbegin + 0] = (window(1, 0) + window(1, 2)) / (Rtype)2;
+
+        out[chbegin + 1] = window(1, 1);
+
+        out[chbegin + 2] = (window(0, 1) + window(2, 1)) / (Rtype)2;
+    }
+
+    void calc_green_in_blue(
+        typename BayerDemosaicing<Rtype, Atype, size>::Window& window,
+        ImageBuf::Iterator<Rtype>& out, int chbegin) override
+    {
+        out[chbegin + 0] = (window(0, 1) + window(2, 1)) / (Rtype)2;
+
+        out[chbegin + 1] = window(1, 1);
+
+        out[chbegin + 2] = (window(1, 0) + window(1, 2)) / (Rtype)2;
+    }
+};
+
+template<class Rtype, class Atype, int size = 5>
+class MHCBayerDemosaicing : public BayerDemosaicing<Rtype, Atype, size> {
+private:
+    inline void
+    mix1(typename BayerDemosaicing<Rtype, Atype, size>::Window& window,
+         Atype& out_mix1, Atype& out_mix2)
+    {
+        Atype tmp = window(0, 2) + window(4, 2) + window(2, 0) + window(2, 4);
+        out_mix1
+            = (8 * window(2, 2)
+               + 4 * (window(1, 2) + window(3, 2) + window(2, 1) + window(2, 3))
+               - 2 * tmp)
+              / 16;
+        out_mix2
+            = (12 * window(2, 2)
+               + 4 * (window(1, 1) + window(1, 3) + window(3, 1) + window(3, 3))
+               - 3 * tmp)
+              / 16;
+    }
+
+    inline void
+    mix2(typename BayerDemosaicing<Rtype, Atype, size>::Window& window,
+         Atype& out_mix1, Atype& out_mix2)
+    {
+        Atype tmp = window(1, 1) + window(1, 3) + window(3, 1) + window(3, 3);
+
+        out_mix1 = (10 * window(2, 2) + 8 * (window(2, 1) + window(2, 3))
+                    - 2 * (tmp + window(2, 0) + window(2, 4))
+                    + 1 * (window(0, 2) + window(4, 2)))
+                   / 16;
+        out_mix2 = (10 * window(2, 2) + 8 * (window(1, 2) + window(3, 2))
+                    - 2 * (tmp + window(0, 2) + window(4, 2))
+                    + 1 * (window(2, 0) + window(2, 4)))
+                   / 16;
+    }
+
+public:
+    void calc_red(typename BayerDemosaicing<Rtype, Atype, size>::Window& window,
+                  ImageBuf::Iterator<Rtype>& out, int chbegin) override
+    {
+        Atype val1, val2;
+        mix1(window, val1, val2);
+
+        out[chbegin + 0] = window(2, 2);
+        out[chbegin + 1] = val1;
+        out[chbegin + 2] = val2;
+    }
+
+    void calc_blue(typename BayerDemosaicing<Rtype, Atype, size>::Window& window,
+                   ImageBuf::Iterator<Rtype>& out, int chbegin) override
+    {
+        Atype val1, val2;
+        mix1(window, val1, val2);
+
+        out[chbegin + 0] = val2;
+        out[chbegin + 1] = val1;
+        out[chbegin + 2] = window(2, 2);
+    }
+
+    void calc_green_in_red(
+        typename BayerDemosaicing<Rtype, Atype, size>::Window& window,
+        ImageBuf::Iterator<Rtype>& out, int chbegin) override
+    {
+        Atype val1, val2;
+        mix2(window, val1, val2);
+
+        out[chbegin + 0] = val1;
+        out[chbegin + 1] = window(2, 2);
+        out[chbegin + 2] = val2;
+    }
+
+    void calc_green_in_blue(
+        typename BayerDemosaicing<Rtype, Atype, size>::Window& window,
+        ImageBuf::Iterator<Rtype>& out, int chbegin) override
+    {
+        Atype val1, val2;
+        mix2(window, val1, val2);
+
+        out[chbegin + 0] = val2;
+        out[chbegin + 1] = window(2, 2);
+        out[chbegin + 2] = val1;
+    }
+};
+
+
+
+template<class Rtype, class Atype>
+static bool
+bayer_demosaic_linear_impl(ImageBuf& dst, const ImageBuf& src,
+                           ImageBufAlgo::BayerPattern bayer_pattern, ROI roi,
+                           int nthreads)
+{
+    LinearBayerDemosaicing<Rtype, Atype> obj;
+    return obj.process(dst, src, bayer_pattern, roi, nthreads);
+}
+
+template<class Rtype, class Atype>
+static bool
+bayer_demosaic_MHC_impl(ImageBuf& dst, const ImageBuf& src,
+                        ImageBufAlgo::BayerPattern bayer_pattern, ROI roi,
+                        int nthreads)
+{
+    MHCBayerDemosaicing<Rtype, Atype> obj;
+    return obj.process(dst, src, bayer_pattern, roi, nthreads);
 
     return true;
 }
 
 bool
-ImageBufAlgo::bayer_demosaic(ImageBuf& dst, const ImageBuf& src,
-                             BayerPattern bayer_pattern, ROI roi, int nthreads)
+ImageBufAlgo::bayer_demosaic_linear(ImageBuf& dst, const ImageBuf& src,
+                                    BayerPattern bayer_pattern, ROI roi,
+                                    int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::bayer_demosaic");
+    pvt::LoggedTimer logtime("IBA::bayer_demosaic_linear");
 
     ROI dst_roi = roi;
     if (!dst_roi.defined()) {
@@ -218,20 +383,66 @@ ImageBufAlgo::bayer_demosaic(ImageBuf& dst, const ImageBuf& src,
     IBAprep(dst_roi, &dst, &src, nullptr, &dst_spec);
 
     bool ok;
-    OIIO_DISPATCH_COMMON_TYPES2(ok, "bayer_demosaic", bayer_demosaic_impl,
-                                dst.spec().format, src.spec().format, dst, src,
-                                bayer_pattern, dst_roi, nthreads);
+    OIIO_DISPATCH_COMMON_TYPES2(ok, "bayer_demosaic_linear",
+                                bayer_demosaic_linear_impl, dst.spec().format,
+                                src.spec().format, dst, src, bayer_pattern,
+                                dst_roi, nthreads);
     return ok;
 }
 
 ImageBuf
-ImageBufAlgo::bayer_demosaic(const ImageBuf& src, BayerPattern bayer_pattern,
-                             ROI roi, int nthreads)
+ImageBufAlgo::bayer_demosaic_linear(const ImageBuf& src,
+                                    BayerPattern bayer_pattern, ROI roi,
+                                    int nthreads)
 {
     ImageBuf result;
     bool ok = add(result, src, bayer_pattern, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorfmt("ImageBufAlgo::bayer_demosaic() error");
+        result.errorfmt("ImageBufAlgo::bayer_demosaic_linear() error");
+    return result;
+}
+
+bool
+ImageBufAlgo::bayer_demosaic_MHC(ImageBuf& dst, const ImageBuf& src,
+                                 BayerPattern bayer_pattern, ROI roi,
+                                 int nthreads)
+{
+    pvt::LoggedTimer logtime("IBA::bayer_demosaic_MHC");
+
+    ROI dst_roi = roi;
+    if (!dst_roi.defined()) {
+        dst_roi = src.roi_full();
+    }
+
+    dst_roi.chbegin = 0;
+    dst_roi.chend   = 2;
+
+    ImageSpec dst_spec = src.spec();
+    dst_spec.nchannels = 3;
+    dst_spec.default_channel_names();
+    dst_spec.channelformats.clear();
+    dst_spec.alpha_channel = -1;
+    dst_spec.z_channel     = -1;
+
+    IBAprep(dst_roi, &dst, &src, nullptr, &dst_spec);
+
+    bool ok;
+    OIIO_DISPATCH_COMMON_TYPES2(ok, "bayer_demosaic_MHC",
+                                bayer_demosaic_MHC_impl, dst.spec().format,
+                                src.spec().format, dst, src, bayer_pattern,
+                                dst_roi, nthreads);
+    return ok;
+}
+
+ImageBuf
+ImageBufAlgo::bayer_demosaic_MHC(const ImageBuf& src,
+                                 BayerPattern bayer_pattern, ROI roi,
+                                 int nthreads)
+{
+    ImageBuf result;
+    bool ok = add(result, src, bayer_pattern, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.errorfmt("ImageBufAlgo::bayer_demosaic_MHC() error");
     return result;
 }
 

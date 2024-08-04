@@ -2109,13 +2109,22 @@ enum BayerPattern : unsigned int {
     BayerPatternBGGR = 3    //11
 };
 
-ImageBuf OIIO_API bayer_demosaic (const ImageBuf& src,
-                                  BayerPattern bayer_pattern, ROI roi,
-                                  int nthreads = 0);
+ImageBuf OIIO_API bayer_demosaic_linear (const ImageBuf& src,
+                                         BayerPattern bayer_pattern, ROI roi,
+                                         int nthreads = 0);
 
-bool OIIO_API bayer_demosaic(ImageBuf& dst, const ImageBuf& src,
-                             BayerPattern bayer_pattern, ROI roi,
-                             int nthreads = 0);
+bool OIIO_API bayer_demosaic_linear(ImageBuf& dst, const ImageBuf& src,
+                                    BayerPattern bayer_pattern, ROI roi,
+                                    int nthreads = 0);
+
+
+ImageBuf OIIO_API bayer_demosaic_MHC (const ImageBuf& src,
+                                      BayerPattern bayer_pattern, ROI roi,
+                                      int nthreads = 0);
+
+bool OIIO_API bayer_demosaic_MHC(ImageBuf& dst, const ImageBuf& src,
+                                 BayerPattern bayer_pattern, ROI roi,
+                                 int nthreads = 0);
 /// @}
 
 enum MakeTextureMode {
