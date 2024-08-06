@@ -1982,7 +1982,7 @@ current top image.
     image to potentially reveal any proprietary information that might have
     been present in the command line arguments.
     
-    If the `OIIOTOOL_METADATA_HISTORY` environment variable is set to a
+    If the `OPENIMAGEIO_METADATA_HISTORY` environment variable is set to a
     nonzero integer value, the `--history` option will be enabled by default,
     but can be disabled on the command line with `--no-history`.
 
@@ -1993,7 +1993,7 @@ current top image.
     Prior to OpenImageIO 2.5.11, the full information was always written, but
     could be overridden with `--nosoftwareattrib`. Beginning with 2.5.11, the
     default changed to only write the software name and version (unless the
-    `OIIOTOOL_METADATA_HISTORY` environment variable is set), and require the
+    `OPENIMAGEIO_METADATA_HISTORY` environment variable is set), and require the
     new `--history` option to cause the command line arguments to be written
     as metadata.
 
