@@ -58,15 +58,15 @@ macro (fancy_add_executable)
         endif ()
         set_target_properties (${_target_NAME} PROPERTIES FOLDER ${_target_FOLDER})
         if (SKBUILD) 
-            # to a relative path to the distributio
-            # When building cli tools with scikit-build, set RPATHn's lib directory.
+            # When building cli tools with scikit-build, set RPATH
+            # to a relative path to the distribution's lib directory.
             if (APPLE)
                 set_target_properties (${_target_NAME} PROPERTIES 
                         INSTALL_RPATH "@loader_path/../${CMAKE_INSTALL_LIBDIR}")
             else ()
                 set_target_properties (${_target_NAME} PROPERTIES 
                         INSTALL_RPATH "$ORIGIN/../${CMAKE_INSTALL_LIBDIR}")
-            endif ()               
+            endif ()
         endif ()
         check_is_enabled (INSTALL_${_target_NAME} _target_NAME_INSTALL_enabled)
         if (CMAKE_UNITY_BUILD AND UNITY_BUILD_MODE STREQUAL GROUP)
