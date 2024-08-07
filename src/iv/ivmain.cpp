@@ -58,7 +58,6 @@ getargs(int argc, char* argv[])
     ap.arg("--rawcolor")
       .help("Do not automatically transform to RGB");
 
-#ifdef HAS_OCIO_2
     ap.arg("--display")
       .help("OCIO display")
       .metavar("STRING")
@@ -74,7 +73,6 @@ getargs(int argc, char* argv[])
       .metavar("STRING")
       .defaultval("")
       .action(ArgParse::store());
-#endif
     
     ap.parse(argc, (const char**)argv);
     return ap;
@@ -110,28 +108,18 @@ main(int argc, char* argv[])
     //    Q_INIT_RESOURCE(iv);
     QApplication app(argc, argv);
     
-#ifdef HAS_OCIO_2
     std::string color_space = ap["image-color-space"].as_string("");
     std::string display     = ap["display"].as_string("");
     std::string view        = ap["view"].as_string("");
     //    std::string look = ap["look"].as_string("");
     
     bool use_ocio = color_space != "" && display != "" && view != "";
-    
-#ifdef OCIO_HAS_BUILTIN_CONFIGS
     std::string ocioenv = Sysutil::getenv("OCIO");
-    if (ocioenv.empty() || !Filesystem::exists(ocioenv)) {
+    if (ocioenv.empty() || !Filesystem::exists(ocioenv))
         setenv("OCIO", "ocio://default", 1);
-    }
-#endif
 
     ImageViewer* mainWin = new ImageViewer(use_ocio, color_space, display, 
                                            view);
-#else
-    std::string dummy;
-    ImageViewer* mainWin = new ImageViewer(false, dummy, dummy, dummy);
-#endif
-    
     
     mainWin->show();
 

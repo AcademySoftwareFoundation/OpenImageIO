@@ -43,7 +43,7 @@ cmake -S $OIIO_SRC_DIR -B $OIIO_BUILD_DIR -G "$CMAKE_GENERATOR" \
         $OIIO_CMAKE_FLAGS -DVERBOSE=1
 
 # Save a copy of the generated files for debugging broken CI builds.
-mkdir ${OIIO_BUILD_DIR}/cmake-save || /bin/true
+mkdir ${OIIO_BUILD_DIR}/cmake-save || true
 cp -r ${OIIO_BUILD_DIR}/CMake* ${OIIO_BUILD_DIR}/*.cmake ${OIIO_BUILD_DIR}/cmake-save
 
 : ${BUILDTARGET:=install}

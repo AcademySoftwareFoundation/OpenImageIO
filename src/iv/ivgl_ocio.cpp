@@ -7,7 +7,6 @@
 
 #include <QLabel>
 
-#ifdef HAS_OCIO_2
 
 IvGL_OCIO::IvGL_OCIO(QWidget* parent, ImageViewer& viewer)
     : IvGL(parent, viewer)
@@ -360,15 +359,15 @@ IvGL_OCIO::allocate_all_textures(unsigned start_index)
         unsigned height                    = 0;
         GpuShaderDesc::TextureType channel = GpuShaderDesc::TEXTURE_RGB_CHANNEL;
         Interpolation interpolation        = INTERP_LINEAR;
-#    ifdef HAS_OCIO_2_3
+#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 3, 0)
         GpuShaderCreator::TextureDimensions dimensions
             = GpuShaderCreator::TextureDimensions::TEXTURE_2D;
         m_shader_desc->getTexture(idx, textureName, samplerName, width, height,
                                   channel, dimensions, interpolation);
-#    else
+#else
         m_shader_desc->getTexture(idx, textureName, samplerName, width, height,
                                   channel, interpolation);
-#    endif
+#endif
 
         if (!textureName || !*textureName || !samplerName || !*samplerName
             || width == 0) {
@@ -407,6 +406,5 @@ IvGL_OCIO::use_all_textures()
     }
 }
 
-#endif  // HAS_OCIO_2
 
 //OIIO_PRAGMA_WARNING_POP
