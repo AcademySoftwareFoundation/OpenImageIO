@@ -459,6 +459,9 @@ RawInput::open_raw(bool unpack, const std::string& name,
     // Turn off maximum threshold value (unless set to non-zero)
     m_processor->imgdata.params.adjust_maximum_thr
         = config.get_float_attribute("raw:adjust_maximum_thr", 0.0f);
+    // Set camera minimum value if "raw:user_black" is not negative
+    m_processor->imgdata.params.user_black
+        = config.get_int_attribute("raw:user_black", -1);
     // Set camera maximum value if "raw:user_sat" is not 0
     m_processor->imgdata.params.user_sat
         = config.get_int_attribute("raw:user_sat", 0);
@@ -502,21 +505,34 @@ RawInput::open_raw(bool unpack, const std::string& name,
         params.user_mul[2] = norm[2];
         params.user_mul[3] = norm[3];
     } else {
-        // Set user white balance coefficients.
-        // Only has effect if "raw:use_camera_wb" is equal to 0,
-        // i.e. we are not using the camera white balance
-        auto p = config.find_attribute("raw:user_mul");
-        if (p && p->type() == TypeDesc(TypeDesc::FLOAT, 4)) {
-            m_processor->imgdata.params.user_mul[0] = p->get<float>(0);
-            m_processor->imgdata.params.user_mul[1] = p->get<float>(1);
-            m_processor->imgdata.params.user_mul[2] = p->get<float>(2);
-            m_processor->imgdata.params.user_mul[3] = p->get<float>(3);
-        }
-        if (p && p->type() == TypeDesc(TypeDesc::DOUBLE, 4)) {
-            m_processor->imgdata.params.user_mul[0] = p->get<double>(0);
-            m_processor->imgdata.params.user_mul[1] = p->get<double>(1);
-            m_processor->imgdata.params.user_mul[2] = p->get<double>(2);
-            m_processor->imgdata.params.user_mul[3] = p->get<double>(3);
+        if (config.get_int_attribute("raw:use_auto_wb", 0) == 1) {
+            m_processor->imgdata.params.use_auto_wb = 1;
+        } else {
+            auto p = config.find_attribute("raw:greybox");
+            if (p && p->type() == TypeDesc(TypeDesc::INT, 4)) {
+                // p->get<int>() didn't work for me here
+                m_processor->imgdata.params.greybox[0] = p->get_int_indexed(0);
+                m_processor->imgdata.params.greybox[1] = p->get_int_indexed(1);
+                m_processor->imgdata.params.greybox[2] = p->get_int_indexed(2);
+                m_processor->imgdata.params.greybox[3] = p->get_int_indexed(3);
+            } else {
+                // Set user white balance coefficients.
+                // Only has effect if "raw:use_camera_wb" is equal to 0,
+                // i.e. we are not using the camera white balance
+                auto p = config.find_attribute("raw:user_mul");
+                if (p && p->type() == TypeDesc(TypeDesc::FLOAT, 4)) {
+                    m_processor->imgdata.params.user_mul[0] = p->get<float>(0);
+                    m_processor->imgdata.params.user_mul[1] = p->get<float>(1);
+                    m_processor->imgdata.params.user_mul[2] = p->get<float>(2);
+                    m_processor->imgdata.params.user_mul[3] = p->get<float>(3);
+                }
+                if (p && p->type() == TypeDesc(TypeDesc::DOUBLE, 4)) {
+                    m_processor->imgdata.params.user_mul[0] = p->get<double>(0);
+                    m_processor->imgdata.params.user_mul[1] = p->get<double>(1);
+                    m_processor->imgdata.params.user_mul[2] = p->get<double>(2);
+                    m_processor->imgdata.params.user_mul[3] = p->get<double>(3);
+                }
+            }
         }
     }
 
@@ -1319,6 +1335,34 @@ RawInput::get_colorinfo()
         cspan<float>(&(m_processor->imgdata.color.cam_xyz[0][0]),
                      &(m_processor->imgdata.color.cam_xyz[3][3])),
         false, 0.f);
+
+    if (m_processor->imgdata.idata.dng_version) {
+        add("raw", "dng:version", m_processor->imgdata.idata.dng_version);
+
+        auto const& c = m_processor->imgdata.rawdata.color;
+
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
+        add("raw", "dng:baseline_exposure", c.dng_levels.baseline_exposure);
+#else
+        add("raw", "dng:baseline_exposure", c.baseline_exposure);
+#endif
+
+        for (int i = 0; i < 2; i++) {
+            std::string index = std::to_string(i + 1);
+            add("raw", "dng:calibration_illuminant" + index,
+                c.dng_color[i].illuminant);
+
+            add("raw", "dng:color_matrix" + index,
+                cspan<float>(&(c.dng_color[i].colormatrix[0][0]),
+                             &(c.dng_color[i].colormatrix[3][3])),
+                false, 0.f);
+
+            add("raw", "dng:camera_calibration" + index,
+                cspan<float>(&(c.dng_color[i].calibration[0][0]),
+                             &(c.dng_color[i].calibration[3][4])),
+                false, 0.f);
+        }
+    }
 }
 
 
