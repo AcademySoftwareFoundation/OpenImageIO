@@ -7,11 +7,10 @@ authors = [
     {name = "OpenImageIO Contributors", email = "oiio-dev@lists.aswf.io"}
 ]
 maintainers = [
-    {name = "Larry Gritz", email = "lg@larrygritz.com"},
     {name = "OpenImageIO Contributors", email="oiio-dev@lists.aswf.io"},
 ]
 readme = "README.md"
-license = {text = "Apache-2.0, BSD-3-Clause"}
+license = {text = "Apache-2.0"}
 keywords = [""]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -22,6 +21,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: Apache Software License",
     "Topic :: Multimedia :: Graphics",
     "Topic :: Multimedia :: Video",
     "Topic :: Multimedia :: Video :: Display",
@@ -49,10 +49,28 @@ testtex = "OpenImageIO:_command_line"
 [build-system]
 build-backend = "scikit_build_core.build"
 requires = [
-    "scikit-build-core>=0.9.8,<1",
+    "scikit-build-core>=0.10,<1",
     "pybind11",
-    "oldest-supported-numpy",
+    #"invoke",
+    #"repairwheel",
 ]
+
+[tool.scikit-build]
+minimum-version = "build-system.requires"
+cmake.version = "CMakeLists.txt"
+wheel.expand-macos-universal-tags = false
+wheel.install-dir = "OpenImageIO"
+wheel.license-files = [
+    "LICENSE.md",
+    "THIRD-PARTY.md"
+]
+
+[tool.scikit-build.cmake.define]
+# OpenImageIO-2.6+ has a mechanism for building, linking, and 
+# distributing missing dependencies. See src/cmake for details.
+OpenImageIO_BUILD_MISSING_DEPS = "all"
+CMAKE_INSTALL_LIBDIR = "lib"
+CMAKE_BUILD_TYPE = "MinSizeRel"  # Optimize for size (not speed)
 
 [tool.scikit-build.metadata.version]
 # Dynamically parse the version from the CMakeLists.txt file.
@@ -60,21 +78,14 @@ provider = "scikit_build_core.metadata.regex"
 input = "CMakeLists.txt" 
 regex = 'set \(OpenImageIO_VERSION "(?P<value>[0-9a-z.]+)"\)'
 
-[tool.scikit-build]
-cmake.verbose = false
-cmake.version = ">=3.29.1"
-wheel.install-dir = "OpenImageIO"
-cmake.args = [
-    # OpenImageIO-2.6+ has a mechanism for building, linking, and 
-    # distributing missing dependencies. See src/cmake for details.
-    "-DOpenImageIO_BUILD_MISSING_DEPS=all",
-]
-
 [tool.cibuildwheel]
 build-verbosity = 1
 build = "cp39-* cp310-* cp311-* cp312-* cp313-* pp*"
 skip = [
-    "pp*",
+    #"pp*",
+    "pp38-*",
+    "pp39-*",
+    "pp310-*",
     "cp39-*",
     #"cp310-*",
     #"cp311-*",
