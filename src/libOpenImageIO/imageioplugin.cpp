@@ -526,7 +526,7 @@ ImageOutput::create(string_view filename, Filesystem::IOProxy* ioproxy,
 {
     std::unique_ptr<ImageOutput> out;
     if (filename.empty()) {  // Can't even guess if no filename given
-        OIIO::pvt::errorfmt("ImageOutput::create() called with no filename");
+        OIIO::errorfmt("ImageOutput::create() called with no filename");
         return out;
     }
 
@@ -563,9 +563,9 @@ ImageOutput::create(string_view filename, Filesystem::IOProxy* ioproxy,
                 const char* msg
                     = "ImageOutput::create() could not find any ImageOutput plugins!  Perhaps you need to set OIIO_LIBRARY_PATH.\n";
                 Strutil::print(stderr, "{}", msg);
-                OIIO::pvt::errorfmt("{}", msg);
+                OIIO::errorfmt("{}", msg);
             } else
-                OIIO::pvt::errorfmt(
+                OIIO::errorfmt(
                     "OpenImageIO could not find a format writer for \"{}\". "
                     "Is it a file format that OpenImageIO doesn't know about?\n",
                     filename);
@@ -582,7 +582,7 @@ ImageOutput::create(string_view filename, Filesystem::IOProxy* ioproxy,
     }
     if (out && ioproxy) {
         if (!out->supports("ioproxy")) {
-            OIIO::pvt::errorfmt(
+            OIIO::errorfmt(
                 "ImageOutput::create called with IOProxy, but format {} does not support IOProxy",
                 out->format_name());
             out.reset();
@@ -609,7 +609,7 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
     // Only check REST arguments if the file does not exist
     if (!Filesystem::exists(filename)) {
         if (!Strutil::get_rest_arguments(filename, filename_stripped, args)) {
-            OIIO::pvt::errorfmt(
+            OIIO::errorfmt(
                 "ImageInput::create() called with malformed filename");
             return in;
         }
@@ -619,7 +619,7 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
         filename_stripped = filename;
 
     if (filename_stripped.empty()) {  // Can't even guess if no filename given
-        OIIO::pvt::errorfmt("ImageInput::create() called with no filename");
+        OIIO::errorfmt("ImageInput::create() called with no filename");
         return in;
     }
 
@@ -770,18 +770,18 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
                 = "ImageInput::create() could not find any ImageInput plugins!\n"
                   "    Perhaps you need to set OIIO_LIBRARY_PATH.\n";
             Strutil::print(stderr, "{}", msg);
-            OIIO::pvt::errorfmt("{}", msg);
+            OIIO::errorfmt("{}", msg);
         } else if (!specific_error.empty()) {
             // Pass along any specific error message we got from our
             // best guess of the format.
-            OIIO::pvt::errorfmt("{}", specific_error);
+            OIIO::errorfmt("{}", specific_error);
         } else if (Filesystem::exists(filename))
-            pvt::errorfmt(
+            OIIO::errorfmt(
                 "OpenImageIO could not find a format reader for \"{}\". "
                 "Is it a file format that OpenImageIO doesn't know about?\n",
                 filename);
         else
-            OIIO::pvt::errorfmt(
+            OIIO::errorfmt(
                 "Image \"{}\" does not exist. Also, it is not the name of an image format that OpenImageIO recognizes.\n",
                 filename);
         OIIO_DASSERT(!in);

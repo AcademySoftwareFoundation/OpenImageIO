@@ -164,7 +164,7 @@ ImageInput::open(const std::string& filename, const ImageSpec* config,
         // error, delete the ImageInput we allocated, and return NULL.
         std::string err = in->geterror();
         if (err.size())
-            OIIO::pvt::errorfmt("{}", err);
+            OIIO::errorfmt("{}", err);
         in.reset();
     }
 

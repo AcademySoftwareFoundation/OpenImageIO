@@ -60,18 +60,6 @@ font_list();
 
 
 
-// For internal use - use error() below for a nicer interface.
-void
-append_error(string_view message);
-
-/// Use errorfmt() privately only. Formatting notation is like std::format.
-template<typename... Args>
-inline void
-errorfmt(const char* fmt, const Args&... args)
-{
-    append_error(Strutil::fmt::format(fmt, args...));
-}
-
 // Make sure all plugins are inventoried. For internal use only.
 void
 catalog_all_plugins(std::string searchpath);
@@ -122,12 +110,6 @@ parallel_convert_from_float(const float* src, void* dst, size_t nvals,
 /// incorrect files and it was fixed.
 OIIO_API bool
 check_texture_metadata_sanity(ImageSpec& spec);
-
-/// Internal function to log time recorded by an OIIO::timer(). It will only
-/// trigger a read of the time if the "log_times" attribute is set or the
-/// OPENIMAGEIO_LOG_TIMES env variable is set.
-OIIO_API void
-log_time(string_view key, const Timer& timer, int count = 1);
 
 /// Get the timing report from log_time entries.
 OIIO_API std::string
