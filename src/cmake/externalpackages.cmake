@@ -118,7 +118,7 @@ endif ()
 # Dependencies for optional formats and features. If these are not found,
 # we will continue building, but the related functionality will be disabled.
 
-checked_find_package (PNG)
+checked_find_package (PNG VERSION_MIN 1.6.0)
 
 checked_find_package (BZip2)   # Used by ffmpeg and freetype
 if (NOT BZIP2_FOUND)
@@ -149,7 +149,7 @@ else ()
 endif ()
 include_directories(BEFORE ${OPENCOLORIO_INCLUDES})
 
-checked_find_package (OpenCV 3.0
+checked_find_package (OpenCV 4.0
                       DEFINITIONS USE_OPENCV=1)
 
 # Intel TBB
@@ -161,11 +161,9 @@ checked_find_package (TBB 2017
 # DCMTK is used to read DICOM images
 checked_find_package (DCMTK CONFIG VERSION_MIN 3.6.1)
 
-checked_find_package (FFmpeg VERSION_MIN 3.0)
-checked_find_package (GIF
-                      VERSION_MIN 4
-                      RECOMMEND_MIN 5.0
-                      RECOMMEND_MIN_REASON "for stability and thread safety")
+checked_find_package (FFmpeg VERSION_MIN 4.0)
+
+checked_find_package (GIF VERSION_MIN 5.0)
 
 # For HEIF/HEIC/AVIF formats
 checked_find_package (Libheif VERSION_MIN 1.3
@@ -199,9 +197,7 @@ if (NOT Ptex_FOUND OR NOT Ptex_VERSION)
     checked_find_package (Ptex)
 endif ()
 
-checked_find_package (WebP)
-# Note: When WebP 1.1 (released late 2019) is our minimum, we can use their
-# exported configs and remove our FindWebP.cmake module.
+checked_find_package (WebP VERSION_MIN 1.1)
 
 option (USE_R3DSDK "Enable R3DSDK (RED camera) support" OFF)
 checked_find_package (R3DSDK NO_RECORD_NOTFOUND)  # RED camera

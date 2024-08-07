@@ -3129,7 +3129,7 @@ ImageBuf::IteratorBase::operator=(const IteratorBase& i)
     m_rng_zend   = i.m_rng_zend;
     m_x          = i.m_x;
     m_y          = i.m_y;
-    m_y          = i.m_y;
+    m_z          = i.m_z;
     return *this;
 }
 

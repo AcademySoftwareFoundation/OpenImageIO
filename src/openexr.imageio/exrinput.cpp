@@ -1140,7 +1140,8 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     const PartInfo& part(m_parts[m_subimage]);
     size_t pixelbytes    = m_spec.pixel_bytes(chbegin, chend, true);
     size_t scanlinebytes = (size_t)m_spec.width * pixelbytes;
-    char* buf = (char*)data - m_spec.x * pixelbytes - ybegin * scanlinebytes;
+    char* buf            = (char*)data - m_spec.x * stride_t(pixelbytes)
+                - ybegin * stride_t(scanlinebytes);
 
     try {
         if (part.luminance_chroma) {

@@ -11,7 +11,7 @@ set -ex
 
 # Repo and branch/tag/commit of webp to download if we don't have it yet
 WEBP_REPO=${WEBP_REPO:=https://github.com/webmproject/libwebp.git}
-WEBP_VERSION=${WEBP_VERSION:=v1.1.0}
+WEBP_VERSION=${WEBP_VERSION:=v1.4.0}
 
 # Where to put webp repo source (default to the ext area)
 LOCAL_DEPS_DIR=${LOCAL_DEPS_DIR:=${PWD}/ext}
@@ -47,7 +47,7 @@ if [[ -z $DEP_DOWNLOAD_ONLY ]]; then
                -DWEBP_BUILD_GIF2WEBPx=OFF \
                -DWEBP_BUILD_IMG2WEBP=OFF \
                -DWEBP_BUILD_EXTRAS=OFF \
-               -DBUILD_SHARED_LIBS=ON \
+               -DBUILD_SHARED_LIBS=${WEBP_BUILD_SHARED_LIBS:-ON} \
                ${WEBP_CONFIG_OPTS}
     time cmake --build ${WEBP_BUILD_DIR} --target install
 fi
