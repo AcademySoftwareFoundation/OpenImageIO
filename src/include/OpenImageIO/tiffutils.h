@@ -189,8 +189,9 @@ OIIO_API bool decode_iptc_iim (const void *iptc, int length, ImageSpec &spec);
 /// for multiple format plugins to support embedding IPTC metadata
 /// without having to duplicate functionality within each plugin.  Note
 /// that IIM is actually considered obsolete and is replaced by an XML
-/// scheme called XMP.
-OIIO_API void encode_iptc_iim (const ImageSpec &spec, std::vector<char> &iptc);
+/// scheme called XMP. Return true if it was successful and any items
+/// were encoded.
+OIIO_API bool encode_iptc_iim (const ImageSpec &spec, std::vector<char> &iptc);
 
 /// Add metadata to spec based on XMP data in an XML block.  Return true
 /// if all is ok, false if the xml was somehow malformed.  This is a
