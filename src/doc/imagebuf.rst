@@ -452,57 +452,28 @@ For the remainder of this section, we will assume that you have a
 Example: Visiting all pixels to compute an average color
 --------------------------------------------------------
 
-.. code-block:: cpp
+   .. tabs::
 
-    void print_channel_averages (const std::string &filename)
-    {
-        // Set up the ImageBuf and read the file
-        ImageBuf buf (filename);
-        bool ok = buf.read (0, 0, true, TypeDesc::FLOAT);  // Force a float buffer
-        if (! ok)
-            return;
-    
-        // Initialize a vector to contain the running total
-        int nc = buf.nchannels();
-        std::vector<float> total (n, 0.0f);
-    
-        // Iterate over all pixels of the image, summing channels separately
-        for (ImageBuf::ConstIterator<float> it (buf);  ! it.done();  ++it)
-            for (int c = 0;  c < nc;  ++c)
-                total[c] += it[c];
-    
-        // Print the averages
-        imagesize_t npixels = buf.spec().image_pixels();
-        for (int c = 0;  c < nc;  ++c)
-            std::cout << "Channel " << c << " avg = " (total[c] / npixels) << "\n";
-    }
+      .. tab:: C++
+            .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebuf.cpp
+             :language: c++
+             :start-after: BEGIN-imagebuf-get-pixel-average
+             :end-before: END-imagebuf-get-pixel-average
+             :dedent: 4
 
-
-.. _sec-make-black:
 
 Example: Set all pixels in a region to black
 --------------------------------------------
 
-.. code-block:: cpp
 
-    bool make_black (ImageBuf &buf, ROI region)
-    {
-        if (buf.spec().format != TypeDesc::FLOAT)
-            return false;    // Assume it's a float buffer
-    
-        // Clamp the region's channel range to the channels in the image
-        roi.chend = std::min (roi.chend, buf.nchannels);
-    
-        // Iterate over all pixels in the region...
-        for (ImageBuf::Iterator<float> it (buf, region);  ! it.done();  ++it) {
-            if (! it.exists())   // Make sure the iterator is pointing
-                continue;        //   to a pixel in the data window
-            for (int c = roi.chbegin;  c < roi.chend;  ++c)
-                it[c] = 0.0f;  // clear the value
-        }
-        return true;
-    }
+   .. tabs::
 
+      .. tab:: C++
+            .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebuf.cpp
+             :language: c++
+             :start-after: BEGIN-imagebuf-set-region-black
+             :end-before: END-imagebuf-set-region-black
+             :dedent: 4
 
 Dealing with buffer data types
 ==============================
@@ -557,37 +528,14 @@ Strategy 2: Template your iterating functions based on buffer type
 Consider the following alternate version of the `make_black` function
 from Section `Example: Set all pixels in a region to black`_ ::
 
-    template<typename BUFT>
-    static bool make_black_impl (ImageBuf &buf, ROI region)
-    {
-        // Clamp the region's channel range to the channels in the image
-        roi.chend = std::min (roi.chend, buf.nchannels);
-    
-        // Iterate over all pixels in the region...
-        for (ImageBuf::Iterator<BUFT> it (buf, region);  ! it.done();  ++it) {
-            if (! it.exists())   // Make sure the iterator is pointing
-                continue;        //   to a pixel in the data window
-            for (int c = roi.chbegin;  c < roi.chend;  ++c)
-                it[c] = 0.0f;  // clear the value
-        }
-        return true;
-    }
-    
-    bool make_black (ImageBuf &buf, ROI region)
-    {
-        if (buf.spec().format == TypeDesc::FLOAT)
-            return make_black_impl<float> (buf, region);
-        else if (buf.spec().format == TypeDesc::HALF)
-            return make_black_impl<half> (buf, region);
-        else if (buf.spec().format == TypeDesc::UINT8)
-            return make_black_impl<unsigned char> (buf, region);
-        else if (buf.spec().format == TypeDesc::UINT16)
-            return make_black_impl<unsigned short> (buf, region);
-        else {
-            buf.error ("Unsupported pixel data format %s", buf.spec().format);
-            return false;
-        }
-    }
+   .. tabs::
+
+      .. tab:: C++
+            .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebuf.cpp
+             :language: c++
+             :start-after: BEGIN-imagebuf-iterator-template
+             :end-before: END-imagebuf-iterator-template
+             :dedent: 4
 
 In this example, we make an implementation that is templated on the buffer
 type, and then a wrapper that calls the appropriate template specialization
@@ -598,22 +546,14 @@ In fact, :file:`imagebufalgo_util.h` provides a macro to do this (and
 several variants, which will be discussed in more detail in the next
 chapter).  You could rewrite the example even more simply::
 
-    #include <OpenImageIO/imagebufalgo_util.h>
-    
-    template<typename BUFT>
-    static bool make_black_impl (ImageBuf &buf, ROI region)
-    {
-        ... same as before ...
-    }
-    
-    bool make_black (ImageBuf &buf, ROI region)
-    {
-        bool ok;
-        OIIO_DISPATCH_COMMON_TYPES (ok, "make_black", make_black_impl,
-                                     buf.spec().format, buf, region);
-        return ok;
-    }
+   .. tabs::
+
+      .. tab:: C++
+            .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebuf.cpp
+             :language: c++
+             :start-after: BEGIN-imagebuf-disptach
+             :end-before: END-imagebuf-dispatch
+             :dedent: 4
 
 This other type-dispatching helper macros will be discussed in more
 detail in Chapter :ref:`chap-imagebufalgo`.
-

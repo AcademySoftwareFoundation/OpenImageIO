@@ -1,3 +1,13 @@
+findaverages.exr     :  640 x  480, 3 channel, float openexr
+    SHA-1: E8D3C267CBC4BBDE41343DCA008773A3E55B8159
+set-region-black.exr :  640 x  480, 3 channel, float openexr
+    SHA-1: 7006ED82385E7BCD1FB338B9D3DBFF754541E980
+set-region-black-template-dispatch.exr :  640 x  480, 3 channel, half openexr
+    SHA-1: FEB8B385D8784C4A16F3164D9B1A0F9113D64C86
+set-region-black-template-float.exr :  640 x  480, 3 channel, float openexr
+    SHA-1: 7006ED82385E7BCD1FB338B9D3DBFF754541E980
+set-region-black-template-uint8.exr :  640 x  480, 3 channel, half openexr
+    SHA-1: 9E09138C84FC4FDA52A6D76AED751B6551BB3417
 error: Uninitialized input image
 error: Uninitialized input image
 zero1.exr            :  512 x  512, 3 channel, float openexr
