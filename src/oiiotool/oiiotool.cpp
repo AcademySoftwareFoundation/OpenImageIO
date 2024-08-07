@@ -53,8 +53,8 @@ using pvt::print_info_options;
 #    define OIIO_UNIT_TESTS 1
 #endif
 
-#ifndef OIIOTOOL_METADATA_HISTORY_DEFAULT
-#    define OIIOTOOL_METADATA_HISTORY_DEFAULT 0
+#ifndef OPENIMAGEIO_METADATA_HISTORY_DEFAULT
+#    define OPENIMAGEIO_METADATA_HISTORY_DEFAULT 0
 #endif
 
 
@@ -174,12 +174,12 @@ Oiiotool::clear_options()
     output_dither             = false;
     output_force_tiles        = false;
     metadata_nosoftwareattrib = false;
-#if OIIOTOOL_METADATA_HISTORY_DEFAULT
+#if OPENIMAGEIO_METADATA_HISTORY_DEFAULT
     metadata_history = Strutil::from_string<int>(
-        getenv("OIIOTOOL_METADATA_HISTORY", "1"));
+        getenv("OPENIMAGEIO_METADATA_HISTORY", "1"));
 #else
     metadata_history = Strutil::from_string<int>(
-        getenv("OIIOTOOL_METADATA_HISTORY"));
+        getenv("OPENIMAGEIO_METADATA_HISTORY"));
 #endif
     diff_warnthresh    = 1.0e-6f;
     diff_warnpercent   = 0;
