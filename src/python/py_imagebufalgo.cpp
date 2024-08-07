@@ -2327,25 +2327,6 @@ IBA_histogram(const ImageBuf& src, int channel = 0, int bins = 256,
 
 
 bool
-IBA_capture_image(ImageBuf& dst, int cameranum,
-                  TypeDesc::BASETYPE convert = TypeDesc::UNKNOWN)
-{
-    py::gil_scoped_release gil;
-    dst = ImageBufAlgo::capture_image(cameranum, convert);
-    return !dst.has_error();
-}
-
-ImageBuf
-IBA_capture_image_ret(int cameranum,
-                      TypeDesc::BASETYPE convert = TypeDesc::UNKNOWN)
-{
-    py::gil_scoped_release gil;
-    return ImageBufAlgo::capture_image(cameranum, convert);
-}
-
-
-
-bool
 IBA_make_texture_ib(ImageBufAlgo::MakeTextureMode mode, const ImageBuf& buf,
                     const std::string& outputfilename, const ImageSpec& config)
 {
@@ -3012,11 +2993,6 @@ declare_imagebufalgo(py::module& m)
                     "src"_a, "roi"_a = ROI::All(), "nthreads"_a = 0)
         .def_static("fillholes_pushpull", &IBA_fillholes_pushpull_ret, "src"_a,
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
-
-        .def_static("capture_image", &IBA_capture_image, "dst"_a,
-                    "cameranum"_a = 0, "convert"_a = TypeDesc::UNKNOWN)
-        .def_static("capture_image", &IBA_capture_image_ret, "cameranum"_a = 0,
-                    "convert"_a = TypeDesc::UNKNOWN)
 
         .def_static("over", &IBA_over, "dst"_a, "A"_a, "B"_a,
                     "roi"_a = ROI::All(), "nthreads"_a = 0)

@@ -63,7 +63,7 @@ endmacro()
 # pybind11
 
 macro (setup_python_module)
-    cmake_parse_arguments (lib "" "TARGET;MODULE" "SOURCES;LIBS" ${ARGN})
+    cmake_parse_arguments (lib "" "TARGET;MODULE" "SOURCES;LIBS;INCLUDES;SYSTEM_INCLUDE_DIRS" ${ARGN})
     # Arguments: <prefix> <options> <one_value_keywords> <multi_value_keywords> args...
 
     set (target_name ${lib_TARGET})
@@ -79,6 +79,10 @@ macro (setup_python_module)
 #    add_library (${target_name} MODULE ${lib_SOURCES})
 #
     # Declare the libraries it should link against
+    target_include_directories (${target_name}
+                                PRIVATE ${lib_INCLUDES})
+    target_include_directories (${target_name}
+                                SYSTEM PRIVATE ${lib_SYSTEM_INCLUDE_DIRS})
     target_link_libraries (${target_name}
                            PRIVATE ${lib_LIBS})
 

@@ -4,8 +4,9 @@
 
 fancy_add_executable (SYSTEM_INCLUDE_DIRS
                         ${ROBINMAP_INCLUDES}
+                        ${OpenCV_INCLUDES}
                       LINK_LIBRARIES
                         OpenImageIO
                         $<TARGET_NAME_IF_EXISTS:OpenEXR::OpenEXR>
-                        $<TARGET_NAME_IF_EXISTS:OpenEXR::IlmImf>
+                        ${OpenCV_LIBRARIES}
                      )

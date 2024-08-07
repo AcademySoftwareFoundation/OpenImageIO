@@ -10,14 +10,6 @@
 
 #include <OpenImageIO/platform.h>
 
-#if USE_OPENCV
-// Suppress gcc 11 / C++20 errors about opencv 4 headers
-#    if OIIO_GNUC_VERSION >= 110000 && OIIO_CPLUSPLUS_VERSION >= 20
-#        pragma GCC diagnostic ignored "-Wdeprecated-enum-enum-conversion"
-#    endif
-#    include <opencv2/opencv.hpp>
-#endif
-
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/color.h>
@@ -28,6 +20,10 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/timer.h>
 #include <OpenImageIO/unittest.h>
+
+#if USE_OPENCV
+#    include <OpenImageIO/imagebufalgo_opencv.h>
+#endif
 
 using namespace OIIO;
 

@@ -15,12 +15,9 @@
 
 find_path (OpenCV_INCLUDE_DIR
            NAMES opencv4/opencv2/opencv.hpp opencv2/opencv.hpp
-           PATHS
-               /opt/local/include
-               /usr/local/opt/opencv4
-               /usr/local/opt/opencv3
+           PATHS /opt/local/include /usr/local/opt/opencv4
            PATH_SUFFIXES opencv4
-           )
+          )
 
 set (_ocv_include_root "${OpenCV_INCLUDE_DIR}")
 if (OpenCV_INCLUDE_DIR AND EXISTS "${OpenCV_INCLUDE_DIR}/opencv4/opencv2/core/version.hpp")
