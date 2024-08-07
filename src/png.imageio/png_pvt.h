@@ -303,15 +303,22 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     int unit;
     png_uint_32 resx, resy;
     if (png_get_pHYs(sp, ip, &resx, &resy, &unit)) {
-        float scale = 1;
         if (unit == PNG_RESOLUTION_METER) {
             // Convert to inches, to match most other formats
-            scale = 2.54 / 100.0;
+            float scale = 2.54f / 100.0f;
+            float rx    = resx * scale;
+            float ry    = resy * scale;
+            // Round to nearest 0.1
+            rx = std::round(10.0f * rx) / 10.0f;
+            ry = std::round(10.0f * ry) / 10.0f;
             spec.attribute("ResolutionUnit", "inch");
-        } else
+            spec.attribute("XResolution", rx);
+            spec.attribute("YResolution", ry);
+        } else {
             spec.attribute("ResolutionUnit", "none");
-        spec.attribute("XResolution", (float)resx * scale);
-        spec.attribute("YResolution", (float)resy * scale);
+            spec.attribute("XResolution", (float)resx);
+            spec.attribute("YResolution", (float)resy);
+        }
     }
 
     float aspect = (float)png_get_pixel_aspect_ratio(sp, ip);
