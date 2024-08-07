@@ -1,3 +1,38 @@
+Stack holds [0] = d.tif, [1] = c.tif, [2] = b.tif
+TOP = d.tif, BOTTOM = a.tif
+Stack bottom to top:
+  a.tif
+  b.tif
+  c.tif
+  d.tif
+after --stackreverse:
+  d.tif
+  c.tif
+  b.tif
+  a.tif
+after --stackreverse:
+  a.tif
+  b.tif
+  c.tif
+  d.tif
+after --pop:
+  a.tif
+  b.tif
+  c.tif
+after --popbottom:
+  b.tif
+  c.tif
+after --stackclear:
+Re-add a, b, c, d:
+  a.tif
+  b.tif
+  c.tif
+  d.tif
+--stackextract 2:
+  a.tif
+  c.tif
+  d.tif
+  b.tif
 42+2 = 44
 42-2 = 40
 42*2 = 84
@@ -113,6 +148,20 @@ Testing for i 5,10,2 (expect output 5,7,9):
   i = 5
   i = 7
   i = 9
+ 
+Testing for i 10,5,-1 (expect output 10..6):
+  i = 10
+  i = 9
+  i = 8
+  i = 7
+  i = 6
+ 
+Testing for i 10,5 (expect output 10..6):
+  i = 10
+  i = 9
+  i = 8
+  i = 7
+  i = 6
  
 Testing endfor without for:
 oiiotool ERROR: -endfor : endfor without matching for
