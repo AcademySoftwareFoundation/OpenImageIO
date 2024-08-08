@@ -80,20 +80,12 @@ regex = 'set \(OpenImageIO_VERSION "(?P<value>[0-9a-z.]+)"\)'
 
 [tool.cibuildwheel]
 build-verbosity = 1
-build = "cp39-* cp310-* cp311-* cp312-* cp313-* pp*"
+build = "pp* cp*"
 skip = [
-    #"pp*",
-    "pp38-*",
-    "pp39-*",
-    "pp310-*",
-    "cp39-*",
-    #"cp310-*",
-    #"cp311-*",
-    "cp312-*",
-    "cp313-*",
     "*musllinux*",
 ]
-before-build = "pipx install repairwheel && pipx install invoke"
+#before-build = "pipx install repairwheel && pipx install invoke"
+before-build = "pip install repairwheel && pip install invoke"
 repair-wheel-command = "invoke wheel-repair --build-dir ${SKBUILD_BUILD_DIR} --wheel-path {wheel} --output-dir {dest_dir}"
 
 [tool.cibuildwheel.macos.environment]
