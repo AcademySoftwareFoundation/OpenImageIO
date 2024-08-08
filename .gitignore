@@ -27,10 +27,3 @@ gastest.o
 /*.log
 
 
-
-
-
-
-requirements-dev.lock
-requirements.lock
-#gastest.o
