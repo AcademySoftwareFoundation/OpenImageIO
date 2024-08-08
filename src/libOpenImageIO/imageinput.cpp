@@ -755,6 +755,8 @@ ImageInput::read_native_tile(int /*subimage*/, int /*miplevel*/, int /*x*/,
     // The base class read_native_tile fails. A format reader that supports
     // tiles MUST overload this virtual method that reads a single tile
     // (all channels).
+    errorfmt("ImageInput::read_native_tile call unimplemented for {}",
+             format_name());
     return false;
 }
 
