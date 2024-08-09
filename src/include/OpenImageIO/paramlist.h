@@ -16,6 +16,7 @@
 
 #include <OpenImageIO/attrdelegate.h>
 #include <OpenImageIO/export.h>
+#include <OpenImageIO/memory.h>
 #include <OpenImageIO/strongparam.h>
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/ustring.h>
@@ -276,9 +277,15 @@ private:
                       Copy _copy                = Copy(true),
                       FromUstring _from_ustring = FromUstring(false)) noexcept;
     void clear_value() noexcept;
+
+    /// declare a friend heapsize definition
+    template<typename T> friend size_t pvt::heapsize(const T&);
 };
 
-
+/// heapsize specialization for `ParamValue`
+template<>
+OIIO_API size_t
+pvt::heapsize<ParamValue>(const ParamValue&);
 
 /// Factory for a ParamValue that holds a single value of any type supported
 /// by a corresponding ParamValue constructor (such as int, float, string).
