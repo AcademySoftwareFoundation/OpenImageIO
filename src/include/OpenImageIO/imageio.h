@@ -1778,6 +1778,11 @@ public:
     /// `ImageInput*`.
     typedef ImageInput* (*Creator)();
 
+    /// Memory tracking method.
+    /// Return the total heap memory allocated by `ImageOutput`.
+    /// Overridable version of heapsize defined in memory.h.
+    virtual size_t heapsize() const;
+
 protected:
     ImageSpec m_spec;  // format spec of the current open subimage/MIPlevel
                        // BEWARE using m_spec directly -- not thread-safe
@@ -2569,6 +2574,11 @@ public:
     /// Call signature of a function that creates and returns an
     /// `ImageOutput*`.
     typedef ImageOutput* (*Creator)();
+
+    /// Memory tracking method.
+    /// Return the total heap memory allocated by `ImageOutput`.
+    /// Overridable version of heapsize defined in memory.h.
+    virtual size_t heapsize() const;
 
 protected:
     /// @{
