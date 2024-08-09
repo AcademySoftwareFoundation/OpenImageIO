@@ -16,6 +16,7 @@
 
 #include <OpenImageIO/atomic.h>
 #include <OpenImageIO/dassert.h>
+#include <OpenImageIO/memory.h>
 
 
 OIIO_NAMESPACE_BEGIN
@@ -230,6 +231,25 @@ intrusive_ptr_release(T* x)
 
 // Preprocessor flags for some capabilities added incrementally.
 #define OIIO_REFCNT_HAS_RELEASE 1 /* intrusive_ptr::release() */
+
+
+/// Memory tracking. Specializes the base memory tracking functions from memory.h.
+
+// heapsize specialization for `intrusive_ptr`
+template<typename T>
+inline size_t
+pvt::heapsize(intrusive_ptr<T> ref)
+{
+    return ref ? pvt::footprint(*ref.get()) : 0;
+}
+
+// footprint specialization for `intrusive_ptr`
+template<typename T>
+inline size_t
+pvt::footprint(intrusive_ptr<T> ref)
+{
+    return sizeof(intrusive_ptr<T>) + pvt::heapsize(ref);
+}
 
 
 OIIO_NAMESPACE_END

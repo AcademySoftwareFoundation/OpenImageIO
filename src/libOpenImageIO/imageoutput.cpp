@@ -1021,4 +1021,32 @@ ImageOutput::check_open(OpenMode mode, const ImageSpec& userspec, ROI range,
 
 
 
+template <>
+inline size_t
+pvt::heapsize<ImageOutput::Impl>(const ImageOutput::Impl& impl)
+{
+    return impl.m_io_local ? sizeof(Filesystem::IOProxy) : 0;
+}
+
+
+
+size_t
+ImageOutput::heapsize() const
+{
+    size_t size = pvt::heapsize(m_impl);
+    size += pvt::heapsize(m_spec);
+    return size;
+}
+
+
+
+template<>
+size_t
+pvt::heapsize<ImageOutput>(const ImageOutput& output)
+{
+    return output.heapsize();
+}
+
+
+
 OIIO_NAMESPACE_END

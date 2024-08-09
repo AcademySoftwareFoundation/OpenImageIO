@@ -257,6 +257,8 @@ public:
     ///           all files referenced by calls to the ImageCache. (The
     ///           array is of `ustring` or `char*`.)
     ///
+    /// - `int64 stat:cache_footprint` :
+    ///           Total bytes used by image cache.
     /// - `int64 stat:cache_memory_used` :
     ///           Total bytes used by tile cache.
     ///

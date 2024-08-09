@@ -1337,4 +1337,34 @@ ImageInput::check_open(const ImageSpec& spec, ROI range, uint64_t /*flags*/)
     return true;  // all is ok
 }
 
+
+
+template <>
+inline size_t
+pvt::heapsize<ImageInput::Impl>(const ImageInput::Impl& impl)
+{
+    return impl.m_io_local ? sizeof(Filesystem::IOProxy) : 0;
+}
+
+
+
+size_t
+ImageInput::heapsize() const
+{
+    size_t size = pvt::heapsize(m_impl);
+    size += pvt::heapsize(m_spec);
+    return size;
+}
+
+
+
+template<>
+size_t
+pvt::heapsize<ImageInput>(const ImageInput& input)
+{
+    return input.heapsize();
+}
+
+
+
 OIIO_NAMESPACE_END
