@@ -1021,4 +1021,15 @@ ImageOutput::check_open(OpenMode mode, const ImageSpec& userspec, ROI range,
 
 
 
+template<>
+size_t
+pvt::heapsize<ImageOutput>(const ImageOutput& output)
+{
+    //! TODO: change ImageOutput API to add a virtual heapsize() function
+    //! to allow per image output override, and call that function here.
+    return pvt::heapsize(output.m_spec);
+}
+
+
+
 OIIO_NAMESPACE_END

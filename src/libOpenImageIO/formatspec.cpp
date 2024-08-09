@@ -1251,4 +1251,17 @@ ImageSpec::set_colorspace(string_view colorspace)
 }
 
 
+
+template<>
+size_t
+pvt::heapsize<ImageSpec>(const ImageSpec& is)
+{
+    size_t size = pvt::heapsize(is.channelformats);
+    size += pvt::heapsize(is.channelnames);
+    size += pvt::heapsize(is.extra_attribs);
+    return size;
+}
+
+
+
 OIIO_NAMESPACE_END

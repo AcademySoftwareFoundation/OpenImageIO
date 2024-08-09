@@ -36,6 +36,7 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/thread.h>
 #include <OpenImageIO/typedesc.h>
+#include <OpenImageIO/memory.h>
 
 OIIO_NAMESPACE_BEGIN
 
@@ -1884,6 +1885,9 @@ private:
     std::unique_ptr<Impl, decltype(&impl_deleter)> m_impl;
 
     void append_error(string_view message) const; // add to error message
+
+    /// declare a friend heapsize definition
+    template <typename T> friend size_t pvt::heapsize(const T&);
 };
 
 
@@ -2788,7 +2792,23 @@ private:
     std::unique_ptr<Impl, decltype(&impl_deleter)> m_impl;
 
     void append_error(string_view message) const; // add to m_errmessage
+
+    /// declare a friend heapsize definition
+    template <typename T> friend size_t pvt::heapsize(const T&);
 };
+
+
+
+/// Memory tracking. Specializes the base memory tracking functions from memory.h.
+
+// heapsize specialization for `ImageSpec`
+template <> OIIO_API size_t pvt::heapsize<ImageSpec>(const ImageSpec&);
+
+// heapsize specialization for `ImageInput`
+template <> OIIO_API size_t pvt::heapsize<ImageInput>(const ImageInput&);
+
+// heapsize specialization for `ImageOutput`
+template <> OIIO_API size_t pvt::heapsize<ImageOutput>(const ImageOutput&);
 
 
 

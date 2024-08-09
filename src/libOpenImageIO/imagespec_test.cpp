@@ -313,6 +313,8 @@ test_imagespec_from_xml()
     std::cout << "test_imagespec_from_xml\n";
     ImageSpec spec;
     spec.from_xml(imagespec_xml_string);
+    print("  spec heapsize = {}\n", pvt::heapsize(spec));
+    print("  spec footprint = {}\n", pvt::footprint(spec));
 
     OIIO_CHECK_EQUAL(spec.nchannels, 4);
     OIIO_CHECK_EQUAL(spec.width, 1920);
@@ -331,6 +333,8 @@ test_imagespec_from_xml()
 int
 main(int /*argc*/, char* /*argv*/[])
 {
+    print("sizeof(ImageSpec) = {}\n", sizeof(ImageSpec));
+
     test_imagespec_pixels();
     test_imagespec_metadata_val();
     test_imagespec_attribute_from_string();
