@@ -2,7 +2,11 @@ New code entering the OpenImageIO repository from July 1 2023 onward is
 subject to the [Apache 2.0 license](LICENSE.md).
 
 Code dating from earlier than July 1 2023 was contributed under the [BSD
-3-clause license](LICENSE-BSD-3-Clause.md), unless relicensed below.
+3-clause license](https://opensource.org/license/bsd-3-clause), unless
+relicensed below.
+
+Stragglers who haven't relicensed yet, it's never too late, just sign onto the
+PR: https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3905
 
 The following copyright holders agree that all of their contributions
 originally submitted to this project under the 3-Clause BSD License are hereby
@@ -137,9 +141,13 @@ the Developer Certificate of Origin, version 1.1:
 - Damien Courtois (ix-dcourtois)
 - Carl Rand (crand)
 - Gregor Mückl (gmueckl)
+- Jep Hill (jephill)
+- John Haddon (johnhaddon)
+...
 
-**Prior authors, please submit a PR against this file that adds your name
-above. If, at the time of your prior contributions, you were employed by a
+**Prior authors, please follow the directions for adding your name to
+[this PR](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3905).
+If, at the time of your prior contributions, you were employed by a
 company who would have owned your IP output, then please have someone from
 that company who is authorized to do so submit a PR to add their company’s
 name to the list under the statement in this file.**
