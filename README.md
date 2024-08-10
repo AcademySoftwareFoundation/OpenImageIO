@@ -80,7 +80,7 @@ For original code, we use the [Apache-2.0 license](LICENSE.md), and for
 documentation, the [Creative Commons Attribution 4.0 Unported
 License](http://creativecommons.org/licenses/by/4.0/). In 2023 we asked
 historical users to [relicense](RELICENSING.md) from the original BSD-3-clause
-license to Apache-2.0, and over 99.75% of lines of code have been relicensed
+license to Apache-2.0, and over 99.86% of lines of code have been relicensed
 to Apache-2.0. A small amount of code incorporated into this repository from
 other projects are covered by compatible [third-party open source
 licenses](THIRD-PARTY.md).
