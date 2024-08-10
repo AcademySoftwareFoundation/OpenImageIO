@@ -69,17 +69,9 @@ macro (oiio_add_tests)
             set (_test_disabled 1)
         endif ()
     endforeach ()
-    if (OpenColorIO_VERSION VERSION_GREATER_EQUAL 2.2
-          AND NOT (OIIO_DISABLE_BUILTIN_OCIO_CONFIGS OR "$ENV{OIIO_DISABLE_BUILTIN_OCIO_CONFIGS}"))
-        # For OCIO 2.2+, have the testsuite use the default built-in config
-        list (APPEND _ats_ENVIRONMENT "OCIO=ocio://default"
-                                      "OIIO_TESTSUITE_OCIOCONFIG=ocio://default")
-    else ()
-        # For OCIO 2.1 and earlier, have the testsuite use one we have in
-        # the testsuite directory.
-        list (APPEND _ats_ENVIRONMENT "OCIO=../common/OpenColorIO/nuke-default/config.ocio"
-                                      "OIIO_TESTSUITE_OCIOCONFIG=../common/OpenColorIO/nuke-default/config.ocio")
-    endif ()
+    # For OCIO 2.2+, have the testsuite use the default built-in config
+    list (APPEND _ats_ENVIRONMENT "OCIO=ocio://default"
+                                  "OIIO_TESTSUITE_OCIOCONFIG=ocio://default")
     if (_test_disabled)
         message (STATUS "Skipping test(s) ${_ats_UNPARSED_ARGUMENTS} because of disabled ${_ats_ENABLEVAR}")
     elseif (_ats_IMAGEDIR AND NOT EXISTS ${_ats_testdir})
