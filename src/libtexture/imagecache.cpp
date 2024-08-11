@@ -30,6 +30,8 @@
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/ustring.h>
 
+#include "imagecache_memory_print.h"
+#include "imagecache_memory_pvt.h"
 #include "imagecache_pvt.h"
 #include "imageio_pvt.h"
 
@@ -2004,6 +2006,8 @@ ImageCacheImpl::getstats(int level) const
                   "    Failure reads followed by unexplained success:"
                   " {} files, {} tiles\n",
                   stats.file_retry_success, stats.tile_retry_success);
+
+        printImageCacheMemory(out, *this);
     }
 
     if (level >= 2 && files.size()) {
@@ -2464,6 +2468,7 @@ ImageCacheImpl::getattribute(string_view name, TypeDesc type, void* val) const
 
     if (Strutil::starts_with(name, "stat:")) {
         // Stats we can just grab
+        ATTR_DECODE("stat:cache_footprint", long long, footprint(*this));
         ATTR_DECODE("stat:cache_memory_used", long long, m_mem_used);
         ATTR_DECODE("stat:tiles_created", int, m_stat_tiles_created);
         ATTR_DECODE("stat:tiles_current", int, m_stat_tiles_current);
