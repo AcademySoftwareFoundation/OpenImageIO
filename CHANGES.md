@@ -1,4 +1,8 @@
-Release 2.5.14.0 (Aug 1?, 2024) -- compared to 2.5.13.1
+Release 2.5.15.0 (Sep 1?, 2024) -- compared to 2.5.14.0
+--------------------------------------------------------
+
+
+Release 2.5.14.0 (Aug 1, 2024) -- compared to 2.5.13.1
 --------------------------------------------------------
 - *fix (png)*: Correctly read PNGs with partial alpha [#4315](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4315) (2.5.14.0)
 - *fix(ImageBuf)*: Copy/paste error in the ImageBuf iterator copy constructor [#4365](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4365) (by Anton Dukhovnikov)
