@@ -423,7 +423,7 @@ endif ()
 ###########################################################################
 # Sanitizer options
 #
-set (SANITIZE "" CACHE STRING "Build code using sanitizer (address, thread)")
+set_cache (SANITIZE "" "Build code using sanitizer (address, thread, undefined)")
 if (SANITIZE AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
     message (STATUS "Compiling for sanitizer=${SANITIZE}")
     string (REPLACE "," ";" SANITIZE_FEATURE_LIST ${SANITIZE})
