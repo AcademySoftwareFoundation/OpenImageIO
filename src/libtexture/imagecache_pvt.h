@@ -16,6 +16,7 @@
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/hash.h>
 #include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/memory.h>
 #include <OpenImageIO/refcnt.h>
 #include <OpenImageIO/texture.h>
 #include <OpenImageIO/timer.h>
@@ -42,6 +43,7 @@ namespace pvt {
 struct TileID;
 class ImageCacheImpl;
 class ImageCachePerThreadInfo;
+struct ImageCacheFootprint;
 
 const char*
 texture_format_name(TexFormat f);
@@ -466,6 +468,12 @@ private:
     friend class ImageCacheImpl;
     friend class TextureSystemImpl;
     friend struct SubimageInfo;
+
+    /// Memory tracking. Specializes the base memory tracking functions from memory.h.
+    /// declare a friend heapsize definition
+    template<typename T> friend inline size_t heapsize(const T&);
+    /// declare a friend image cache footprint definition
+    friend inline size_t footprint(const ImageCacheImpl&, ImageCacheFootprint&);
 };
 
 
@@ -1197,7 +1205,9 @@ private:
     spin_mutex m_fingerprints_mutex;  ///< Protect m_fingerprints
     FingerprintMap m_fingerprints;    ///< Map fingerprints to files
 
-    TileCache m_tilecache;          ///< Our in-memory tile cache
+    /// FIXME: if unordered_map_concurrent had const iterators,
+    /// m_tilecache wouldn't need to be mutable
+    mutable TileCache m_tilecache;  ///< Our in-memory tile cache
     TileID m_tile_sweep_id;         ///< Sweeper for "clock" paging algorithm
     spin_mutex m_tile_sweep_mutex;  ///< Ensure only one in check_max_mem
 
@@ -1236,6 +1246,11 @@ private:
             // done it with nobody else interfering.
         } while (llstat->compare_exchange_strong(*llnewval, *lloldval));
     }
+
+    /// declare a friend heapsize definition
+    template<typename T> friend inline size_t heapsize(const T&);
+    /// declare a friend image cache footprint definition
+    friend inline size_t footprint(const ImageCacheImpl&, ImageCacheFootprint&);
 };
 
 
