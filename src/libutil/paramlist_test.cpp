@@ -274,14 +274,30 @@ test_from_string()
 
 
 
+void
+populate_pvl(ParamValueList& pl)
+{
+    pl["foo"]  = 42;
+    pl["pi"]   = float(M_PI);
+    pl["bar"]  = "barbarbar?";
+    pl["bar2"] = std::string("barbarbar?");
+    pl["bar3"] = ustring("barbarbar?");
+    pl["bar4"] = string_view("barbarbar?");
+    pl["red"]  = Imath::Color3f(1.0f, 0.0f, 0.0f);
+    pl["xy"]   = Imath::V3f(0.5f, 0.5f, 0.0f);
+    pl["Tx"]   = Imath::M44f(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 42, 0, 0, 1);
+}
+
+
+
 static void
 test_paramlist()
 {
     std::cout << "test_paramlist\n";
     ParamValueList pl;
-    pl.emplace_back("foo", int(42));
-    pl.emplace_back("pi", float(M_PI));
-    pl.emplace_back("bar", "barbarbar?");
+    populate_pvl(pl);
+    print("ParamValueList pl heapsize is: {}\n", pvt::heapsize(pl));
+    print("ParamValueList pl footprint is: {}\n", pvt::footprint(pl));
 
     OIIO_CHECK_EQUAL(pl.get_int("foo"), 42);
     OIIO_CHECK_EQUAL(pl.get_int("pi", 4), 4);  // should fail int
@@ -344,15 +360,7 @@ test_delegates()
 {
     std::cout << "test_delegates\n";
     ParamValueList pl;
-    pl["foo"]  = 42;
-    pl["pi"]   = float(M_PI);
-    pl["bar"]  = "barbarbar?";
-    pl["bar2"] = std::string("barbarbar?");
-    pl["bar3"] = ustring("barbarbar?");
-    pl["bar4"] = string_view("barbarbar?");
-    pl["red"]  = Imath::Color3f(1.0f, 0.0f, 0.0f);
-    pl["xy"]   = Imath::V3f(0.5f, 0.5f, 0.0f);
-    pl["Tx"]   = Imath::M44f(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 42, 0, 0, 1);
+    populate_pvl(pl);
 
     OIIO_CHECK_EQUAL(pl["absent"].get<int>(), 0);
     OIIO_CHECK_EQUAL(pl["absent"].type(), TypeUnknown);
@@ -402,15 +410,7 @@ test_paramlistspan()
 {
     std::cout << "test_paramlistspan\n";
     ParamValueList pvlist;
-    pvlist.emplace_back("foo", int(42));
-    pvlist.emplace_back("pi", float(M_PI));
-    pvlist.emplace_back("bar", "barbarbar?");
-    pvlist["bar2"] = std::string("barbarbar?");
-    pvlist["bar3"] = ustring("barbarbar?");
-    pvlist["bar4"] = string_view("barbarbar?");
-    pvlist["red"]  = Imath::Color3f(1.0f, 0.0f, 0.0f);
-    pvlist["xy"]   = Imath::V3f(0.5f, 0.5f, 0.0f);
-    pvlist["Tx"] = Imath::M44f(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 42, 0, 0, 1);
+    populate_pvl(pvlist);
 
     ParamValueSpan pl(pvlist);
     OIIO_CHECK_EQUAL(pl.get_int("foo"), 42);
@@ -526,7 +526,9 @@ test_implied_construction()
 int
 main(int /*argc*/, char* /*argv*/[])
 {
-    std::cout << "ParamValue size = " << sizeof(ParamValue) << "\n";
+    print("sizeof(ParamValue) is: {}\n", sizeof(ParamValue));
+    print("sizeof(ParamValueList) is: {}\n", sizeof(ParamValueList));
+
     test_value_types();
     test_from_string();
     test_paramlist();

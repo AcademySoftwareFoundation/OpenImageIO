@@ -383,6 +383,17 @@ ParamValue::clear_value() noexcept
 
 
 
+template<>
+size_t
+pvt::heapsize<ParamValue>(const ParamValue& pv)
+{
+    return (pv.m_nonlocal && pv.m_copy)
+               ? pv.m_nvalues * static_cast<int>(pv.m_type.size())
+               : 0;
+}
+
+
+
 ParamValueList::const_iterator
 ParamValueList::find(ustring name, TypeDesc type, bool casesensitive) const
 {
