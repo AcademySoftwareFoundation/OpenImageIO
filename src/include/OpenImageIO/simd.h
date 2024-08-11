@@ -46,11 +46,6 @@
 
 #include <OpenImageIO/detail/fmt.h>
 
-// Without SSE, we need to fall back on Imath for matrix44 invert
-#if !OIIO_SIMD_SSE
-#   include <OpenImageIO/Imath.h>
-#endif
-
 
 //////////////////////////////////////////////////////////////////////////
 // Sort out which SIMD capabilities we have and set definitions
