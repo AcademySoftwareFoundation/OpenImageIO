@@ -9,10 +9,7 @@ namespace PyOpenImageIO {
 // Make a special wrapper to help with the weirdo way we use create/destroy.
 class ImageCacheWrap {
 public:
-    struct ICDeleter {
-        void operator()(ImageCache* p) const { ImageCache::destroy(p); }
-    };
-    std::unique_ptr<ImageCache, ICDeleter> m_cache;
+    std::shared_ptr<ImageCache> m_cache;
 
     ImageCacheWrap(bool shared = true)
         : m_cache(ImageCache::create(shared))
@@ -23,7 +20,7 @@ public:
     ~ImageCacheWrap() {}  // will call the deleter on the IC
     static void destroy(ImageCacheWrap* x, bool teardown = false)
     {
-        ImageCache::destroy(x->m_cache.release(), teardown);
+        ImageCache::destroy(x->m_cache, teardown);
     }
     py::object get_pixels(const std::string& filename, int subimage,
                           int miplevel, int xbegin, int xend, int ybegin,

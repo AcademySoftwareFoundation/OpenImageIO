@@ -306,7 +306,7 @@ test_open_with_config()
 {
     // N.B. This function must run after ImageBuf_test_appbuffer, which
     // writes "A.tif".
-    ImageCache* ic = ImageCache::create(false);
+    auto ic = ImageCache::create(false);
     ImageSpec config;
     config.attribute("oiio:DebugOpenConfig!", 1);
     ImageBuf A("A_imagebuf_test.tif", 0, 0, ic, &config);
@@ -315,7 +315,6 @@ test_open_with_config()
     // Clear A because it would be unwise to let the ImageBuf outlive the
     // custom ImageCache we passed it to use.
     A.clear();
-    ic->destroy(ic);
 }
 
 

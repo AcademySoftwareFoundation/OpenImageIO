@@ -140,7 +140,7 @@ public:
     ImageRecRef curimg;                    // current image
     std::vector<ImageRecRef> image_stack;  // stack of previous images
     std::map<std::string, ImageRecRef> image_labels;  // labeled images
-    ImageCache* imagecache = nullptr;                 // back ptr to ImageCache
+    std::shared_ptr<ImageCache> imagecache;           // back ptr to ImageCache
     ColorConfig colorconfig;                          // OCIO color config
     Timer total_runtime;
     // total_readtime is the amount of time for direct reads, and does not
@@ -434,7 +434,7 @@ private:
 /// and potentially MIPmap levels for each subimage.
 class ImageRec {
 public:
-    ImageRec(const std::string& name, ImageCache* imagecache)
+    ImageRec(const std::string& name, std::shared_ptr<ImageCache> imagecache)
         : m_name(name)
         , m_imagecache(imagecache)
     {
@@ -471,7 +471,7 @@ public:
 
     // Initialize an ImageRec with the given spec.
     ImageRec(const std::string& name, const ImageSpec& spec,
-             ImageCache* imagecache);
+             std::shared_ptr<ImageCache> imagecache);
 
     ImageRec(const ImageRec& copy) = delete;  // Disallow copy ctr
 
@@ -618,7 +618,7 @@ private:
     std::vector<SubimageRec> m_subimages;
     std::time_t m_time;  //< Modification time of the input file
     TypeDesc m_input_dataformat;
-    ImageCache* m_imagecache = nullptr;
+    std::shared_ptr<ImageCache> m_imagecache;
     mutable std::string m_err;
     std::unique_ptr<ImageSpec> m_configspec;
 

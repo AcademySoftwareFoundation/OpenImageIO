@@ -37,7 +37,7 @@ class TextureSystemImpl final : public TextureSystem {
 public:
     typedef ImageCacheFile TextureFile;
 
-    TextureSystemImpl(ImageCache* imagecache);
+    TextureSystemImpl(std::shared_ptr<ImageCache> imagecache);
     ~TextureSystemImpl() override;
 
     bool attribute(string_view name, TypeDesc type, const void* val) override;
@@ -283,7 +283,10 @@ public:
 
     /// Return an opaque, non-owning pointer to the underlying ImageCache
     /// (if there is one).
-    ImageCache* imagecache() const override { return m_imagecache; }
+    std::shared_ptr<ImageCache> imagecache() const override
+    {
+        return m_imagecache_sp;
+    }
 
 private:
     typedef ImageCacheTileRef TileRef;
@@ -495,6 +498,7 @@ private:
     void visualize_ellipse(const std::string& name, float dsdx, float dtdx,
                            float dsdy, float dtdy, float sblur, float tblur);
 
+    std::shared_ptr<ImageCache> m_imagecache_sp;
     ImageCacheImpl* m_imagecache = nullptr;
     uint64_t m_id;                    // A unique ID for this TextureSystem
     Imath::M44f m_Mw2c;               ///< world-to-"common" matrix

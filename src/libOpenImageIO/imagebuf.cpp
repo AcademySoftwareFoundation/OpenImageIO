@@ -89,7 +89,7 @@ set_roi_full(ImageSpec& spec, const ROI& newroi)
 class ImageBufImpl {
 public:
     ImageBufImpl(string_view filename, int subimage, int miplevel,
-                 ImageCache* imagecache = nullptr,
+                 std::shared_ptr<ImageCache> imagecache = {},
                  const ImageSpec* spec = nullptr, void* buffer = nullptr,
                  const ImageSpec* config      = nullptr,
                  Filesystem::IOProxy* ioproxy = nullptr,
@@ -100,7 +100,7 @@ public:
 
     void clear();
     void reset(string_view name, int subimage, int miplevel,
-               ImageCache* imagecache, const ImageSpec* config,
+               std::shared_ptr<ImageCache> imagecache, const ImageSpec* config,
                Filesystem::IOProxy* ioproxy);
     // Reset the buf to blank, given the spec. If nativespec is also
     // supplied, use it for the "native" spec, otherwise make the nativespec
@@ -252,7 +252,7 @@ public:
     // Invalidate the file in our imagecache and the shared one
     void invalidate(ustring filename, bool force)
     {
-        ImageCache* shared_imagecache = ImageCache::create(true);
+        auto shared_imagecache = ImageCache::create(true);
         OIIO_DASSERT(shared_imagecache);
         if (m_imagecache)
             m_imagecache->invalidate(filename, force);  // *our* IC
@@ -298,11 +298,11 @@ private:
     stride_t m_zstride;
     stride_t m_channel_stride;
     bool m_contiguous;
-    ImageCache* m_imagecache = nullptr;  ///< ImageCache to use
-    TypeDesc m_cachedpixeltype;          ///< Data type stored in the cache
-    DeepData m_deepdata;                 ///< Deep data
-    size_t m_allocated_size;             ///< How much memory we've allocated
-    std::vector<char> m_blackpixel;      ///< Pixel-sized zero bytes
+    std::shared_ptr<ImageCache> m_imagecache;  ///< ImageCache to use
+    TypeDesc m_cachedpixeltype;            ///< Data type stored in the cache
+    DeepData m_deepdata;                   ///< Deep data
+    size_t m_allocated_size;               ///< How much memory we've allocated
+    std::vector<char> m_blackpixel;        ///< Pixel-sized zero bytes
     std::vector<TypeDesc> m_write_format;  /// Pixel data format to use for write()
     int m_write_tile_width;
     int m_write_tile_height;
@@ -348,8 +348,9 @@ ImageBuf::impl_deleter(ImageBufImpl* todel)
 
 
 ImageBufImpl::ImageBufImpl(string_view filename, int subimage, int miplevel,
-                           ImageCache* imagecache, const ImageSpec* spec,
-                           void* buffer, const ImageSpec* config,
+                           std::shared_ptr<ImageCache> imagecache,
+                           const ImageSpec* spec, void* buffer,
+                           const ImageSpec* config,
                            Filesystem::IOProxy* ioproxy, stride_t xstride,
                            stride_t ystride, stride_t zstride)
     : m_storage(ImageBuf::UNINITIALIZED)
@@ -503,8 +504,8 @@ ImageBuf::ImageBuf()
 
 
 ImageBuf::ImageBuf(string_view filename, int subimage, int miplevel,
-                   ImageCache* imagecache, const ImageSpec* config,
-                   Filesystem::IOProxy* ioproxy)
+                   std::shared_ptr<ImageCache> imagecache,
+                   const ImageSpec* config, Filesystem::IOProxy* ioproxy)
     : m_impl(new ImageBufImpl(filename, subimage, miplevel, imagecache,
                               nullptr /*spec*/, nullptr /*buffer*/, config,
                               ioproxy),
@@ -710,7 +711,7 @@ ImageBufImpl::clear()
     m_zstride        = 0;
     m_channel_stride = 0;
     m_contiguous     = false;
-    m_imagecache     = nullptr;
+    m_imagecache.reset();
     m_deepdata.free();
     m_blackpixel.clear();
     m_write_format.clear();
@@ -735,8 +736,8 @@ ImageBuf::clear()
 
 void
 ImageBufImpl::reset(string_view filename, int subimage, int miplevel,
-                    ImageCache* imagecache, const ImageSpec* config,
-                    Filesystem::IOProxy* ioproxy)
+                    std::shared_ptr<ImageCache> imagecache,
+                    const ImageSpec* config, Filesystem::IOProxy* ioproxy)
 {
     clear();
     m_name = ustring(filename);
@@ -768,7 +769,7 @@ ImageBufImpl::reset(string_view filename, int subimage, int miplevel,
 
 void
 ImageBuf::reset(string_view filename, int subimage, int miplevel,
-                ImageCache* imagecache, const ImageSpec* config,
+                std::shared_ptr<ImageCache> imagecache, const ImageSpec* config,
                 Filesystem::IOProxy* ioproxy)
 {
     m_impl->reset(filename, subimage, miplevel, imagecache, config, ioproxy);
@@ -899,7 +900,7 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
 
     // If we weren't given an imagecache but "imagebuf:use_imagecache"
     // attribute was set, use a shared IC.
-    if (m_imagecache == nullptr && pvt::imagebuf_use_imagecache)
+    if (!m_imagecache && pvt::imagebuf_use_imagecache)
         m_imagecache = ImageCache::create(true);
 
     if (m_imagecache) {
@@ -1849,7 +1850,7 @@ ImageBuf::cachedpixels() const
 
 
 
-ImageCache*
+std::shared_ptr<ImageCache>
 ImageBuf::imagecache() const
 {
     return m_impl->m_imagecache;

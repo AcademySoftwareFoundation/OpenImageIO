@@ -24,6 +24,9 @@
 // Does invalidate() support the optional `force` flag?
 #define OIIO_IMAGECACHE_INVALIDATE_FORCE 1
 
+// Does ImageCache::create() return a shared pointer?
+#define OIIO_IMAGECACHE_CREATE_SHARED 1
+
 
 
 OIIO_NAMESPACE_BEGIN
@@ -56,8 +59,7 @@ public:
     /// or destroy the concrete implementation, so two static methods of
     /// ImageCache are provided:
 
-    /// Create a ImageCache and return a raw pointer to it.  This should
-    /// only be freed by passing it to `ImageCache::destroy()`!
+    /// Create a ImageCache and return a shared pointer to it.
     ///
     /// @param  shared
     ///     If `true`, the pointer returned will be a shared ImageCache (so
@@ -66,22 +68,20 @@ public:
     ///     completely unique ImageCache will be created and returned.
     ///
     /// @returns
-    ///     A raw pointer to an ImageCache, which can only be freed with
+    ///     A shared pointer to an ImageCache, which can only be freed with
     ///     `ImageCache::destroy()`.
     ///
     /// @see    ImageCache::destroy
-    static ImageCache* create(bool shared = true);
+    static std::shared_ptr<ImageCache> create(bool shared = true);
 
-    /// Destroy an allocated ImageCache, including freeing all system
-    /// resources that it holds.
-    ///
-    /// It is safe to destroy even a shared ImageCache, as the implementation
-    /// of `destroy()` will recognize a shared one and only truly release
-    /// its resources if it has been requested to be destroyed as many times as
-    /// shared ImageCache's were created.
+    /// Release the shared_ptr to an ImageCache, including freeing all
+    /// system resources that it holds if no one else is still using it. This
+    /// is not strictly necessary to call, simply destroying the shared_ptr
+    /// will do the same thing, but this call is for backward compatibility
+    /// and is helpful if you want to use the teardown option.
     ///
     /// @param  cache
-    ///     Raw pointer to the ImageCache to destroy.
+    ///     Shared pointer to the ImageCache to destroy.
     ///
     /// @param  teardown
     ///     For a shared ImageCache, if the `teardown` parameter is
@@ -89,7 +89,7 @@ public:
     ///     nobody else is still holding a reference (otherwise, it will
     ///     leave it intact). This parameter has no effect if `cache` was
     ///     not the single globally shared ImageCache.
-    static void destroy(ImageCache* cache, bool teardown = false);
+    static void destroy(std::shared_ptr<ImageCache>& cache, bool teardown = false);
 
     /// @}
 
