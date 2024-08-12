@@ -136,20 +136,10 @@ checked_find_package (yaml-cpp
 checked_find_package (OpenColorIO REQUIRED
                       VERSION_MIN 2.2
                       VERSION_MAX 2.9
-                      NO_FP_RANGE_CHECK
-                      DEFINITIONS  USE_OCIO=1 USE_OPENCOLORIO=1
-                      )
-if (OpenColorIO_FOUND)
-    option (OIIO_DISABLE_BUILTIN_OCIO_CONFIGS
-           "For deveoper debugging/testing ONLY! Disable OCIO 2.2 builtin configs." OFF)
-    if (OIIO_DISABLE_BUILTIN_OCIO_CONFIGS OR "$ENV{OIIO_DISABLE_BUILTIN_OCIO_CONFIGS}")
-        add_compile_definitions(OIIO_DISABLE_BUILTIN_OCIO_CONFIGS)
-    endif ()
-    if (NOT OPENCOLORIO_INCLUDES)
-        get_target_property(OPENCOLORIO_INCLUDES OpenColorIO::OpenColorIO INTERFACE_INCLUDE_DIRECTORIES)
-    endif ()
-else ()
-    set (OpenColorIO_FOUND 0)
+                      PREFER_CONFIG
+                     )
+if (NOT OPENCOLORIO_INCLUDES)
+    get_target_property(OPENCOLORIO_INCLUDES OpenColorIO::OpenColorIO INTERFACE_INCLUDE_DIRECTORIES)
 endif ()
 include_directories(BEFORE ${OPENCOLORIO_INCLUDES})
 

@@ -23,6 +23,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * **Imath >= 3.1** (tested through 3.1.x and main)
  * **OpenEXR >= 3.1** (tested through 3.2 and main)
  * **libTIFF >= 4.0** (tested through 4.6)
+ * **OpenColorIO >= 2.2** (tested through 2.3)
  * libjpeg >= 8 (tested through jpeg9e), or **libjpeg-turbo >= 2.1** (tested
    through 3.0)
  * **[fmtlib](https://github.com/fmtlib/fmt) >= 7.0** (tested through 10.2).
@@ -66,8 +67,6 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * DCMTK >= 3.6.1 (tested through 3.6.8)
  * If you want support for WebP images:
      * **WebP >= 1.1** (tested through 1.4)
- * If you want support for OpenColorIO color transformations:
-     * OpenColorIO >= 1.1 (tested through 2.3; 2.0+ is recommended)
  * If you want support for Ptex:
      * Ptex >= 2.3.1 (probably works for older; tested through 2.4.2)
  * If you want to be able to do font rendering into images:
