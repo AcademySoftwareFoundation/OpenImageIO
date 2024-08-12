@@ -137,7 +137,6 @@ target_include_directories (OpenImageIO
                                 ${OPENEXR_INCLUDES}
                             PRIVATE
                                 ${ROBINMAP_INCLUDES}
-                                ${OPENIMAGEIO_OPENCOLORIO_INCLUDES}
                             )
 target_include_directories (OpenImageIO SYSTEM PUBLIC ${OpenCV_INCLUDES})
 
@@ -158,7 +157,7 @@ target_link_libraries (OpenImageIO
             ${OPENIMAGEIO_OPENEXR_TARGETS}
             ${OpenCV_LIBRARIES}
             ${format_plugin_libs} # Add all the target link libraries from the plugins
-            $<TARGET_NAME_IF_EXISTS:OpenColorIO::OpenColorIO>
+            OpenColorIO::OpenColorIO
             $<TARGET_NAME_IF_EXISTS:OpenColorIO::OpenColorIOHeaders>
             $<TARGET_NAME_IF_EXISTS:pugixml::pugixml>
             $<TARGET_NAME_IF_EXISTS:TBB::tbb>
