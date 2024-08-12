@@ -801,21 +801,24 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
         TIFFSetField(m_tif, TIFFTAG_PREDICTOR, m_predictor);
 
     // ExtraSamples tag
-    if ((m_spec.alpha_channel >= 0 || m_spec.nchannels > 3)
+    if (((m_spec.alpha_channel >= 0 && m_spec.alpha_channel < m_spec.nchannels)
+         || m_spec.nchannels > 3)
         && m_photometric != PHOTOMETRIC_SEPARATED
         && m_spec.get_int_attribute("tiff:write_extrasamples", 1)) {
         bool unass = m_spec.get_int_attribute("oiio:UnassociatedAlpha", 0);
         int defaultchans = m_spec.nchannels >= 3 ? 3 : 1;
         short e          = m_spec.nchannels - defaultchans;
-        std::vector<unsigned short> extra(e);
-        for (int c = 0; c < e; ++c) {
-            if (m_spec.alpha_channel == (c + defaultchans))
-                extra[c] = unass ? EXTRASAMPLE_UNASSALPHA
-                                 : EXTRASAMPLE_ASSOCALPHA;
-            else
-                extra[c] = EXTRASAMPLE_UNSPECIFIED;
+        if (e > 0) {
+            std::vector<unsigned short> extra(e);
+            for (int c = 0; c < e; ++c) {
+                if (m_spec.alpha_channel == (c + defaultchans))
+                    extra[c] = unass ? EXTRASAMPLE_UNASSALPHA
+                                     : EXTRASAMPLE_ASSOCALPHA;
+                else
+                    extra[c] = EXTRASAMPLE_UNSPECIFIED;
+            }
+            TIFFSetField(m_tif, TIFFTAG_EXTRASAMPLES, e, extra.data());
         }
-        TIFFSetField(m_tif, TIFFTAG_EXTRASAMPLES, e, &extra[0]);
     }
 
     ParamValue* param;

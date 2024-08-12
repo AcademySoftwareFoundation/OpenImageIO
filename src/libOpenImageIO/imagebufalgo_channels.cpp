@@ -76,9 +76,9 @@ ImageBufAlgo::channels(ImageBuf& dst, const ImageBuf& src, int nchannels,
         return false;
     }
 
-    // If channelorder is NULL, it will be interpreted as
+    // If channelorder is empty, it will be interpreted as
     // {0, 1, ..., nchannels-1}.
-    int* local_channelorder = NULL;
+    int* local_channelorder = nullptr;
     if (channelorder.empty()) {
         local_channelorder = OIIO_ALLOCA(int, nchannels);
         for (int c = 0; c < nchannels; ++c)
