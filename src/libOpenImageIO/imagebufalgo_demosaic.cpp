@@ -13,6 +13,13 @@
 
 OIIO_NAMESPACE_BEGIN
 
+namespace {
+
+static const ustring algorithm_us("algorithm");
+static const ustring pattern_us("pattern");
+
+}  // namespace
+
 template<class Rtype, class Atype, int size> class BayerDemosaicing {
 public:
     struct Window {
@@ -125,11 +132,26 @@ public:
         = 0;
 
     bool process(ImageBuf& dst, const ImageBuf& src,
-                 ImageBufAlgo::BayerPattern bayer_pattern, ROI roi,
-                 int nthreads)
+                 const std::string& bayer_pattern, ROI roi, int nthreads)
     {
-        int x_offset = (bayer_pattern >> 0) & 1;
-        int y_offset = (bayer_pattern >> 1) & 1;
+        int x_offset, y_offset;
+
+        if (bayer_pattern == "RGGB") {
+            x_offset = 0;
+            y_offset = 0;
+        } else if (bayer_pattern == "GRBG") {
+            x_offset = 1;
+            y_offset = 0;
+        } else if (bayer_pattern == "GBBR") {
+            x_offset = 0;
+            y_offset = 1;
+        } else if (bayer_pattern == "BGGR") {
+            x_offset = 1;
+            y_offset = 1;
+        } else {
+            dst.errorfmt("ImageBufAlgo::bayer_demosaic() invalid pattern");
+            return false;
+        }
 
         ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
             ImageBuf::Iterator<Rtype> it(dst, roi);
@@ -339,7 +361,7 @@ public:
 template<class Rtype, class Atype>
 static bool
 bayer_demosaic_linear_impl(ImageBuf& dst, const ImageBuf& src,
-                           ImageBufAlgo::BayerPattern bayer_pattern, ROI roi,
+                           const std::string& bayer_pattern, ROI roi,
                            int nthreads)
 {
     LinearBayerDemosaicing<Rtype, Atype> obj;
@@ -349,8 +371,7 @@ bayer_demosaic_linear_impl(ImageBuf& dst, const ImageBuf& src,
 template<class Rtype, class Atype>
 static bool
 bayer_demosaic_MHC_impl(ImageBuf& dst, const ImageBuf& src,
-                        ImageBufAlgo::BayerPattern bayer_pattern, ROI roi,
-                        int nthreads)
+                        const std::string& bayer_pattern, ROI roi, int nthreads)
 {
     MHCBayerDemosaicing<Rtype, Atype> obj;
     return obj.process(dst, src, bayer_pattern, roi, nthreads);
@@ -358,12 +379,37 @@ bayer_demosaic_MHC_impl(ImageBuf& dst, const ImageBuf& src,
     return true;
 }
 
+
 bool
-ImageBufAlgo::bayer_demosaic_linear(ImageBuf& dst, const ImageBuf& src,
-                                    BayerPattern bayer_pattern, ROI roi,
-                                    int nthreads)
+ImageBufAlgo::bayer_demosaic(ImageBuf& dst, const ImageBuf& src, KWArgs options,
+                             ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::bayer_demosaic_linear");
+    bool ok = false;
+    pvt::LoggedTimer logtime("IBA::bayer_demosaic");
+
+    std::string algorithm = "linear";
+    std::string pattern   = "RGGB";
+
+    for (auto&& pv : options) {
+        if (pv.name() == algorithm_us) {
+            if (pv.type() == TypeString) {
+                algorithm = pv.get_string();
+            } else {
+                dst.errorfmt(
+                    "ImageBufAlgo::bayer_demosaic() invalid algorithm");
+            }
+        } else if (pv.name() == pattern_us) {
+            if (pv.type() == TypeString) {
+                pattern = pv.get_string();
+            } else {
+                dst.errorfmt("ImageBufAlgo::bayer_demosaic() invalid pattern");
+            }
+        } else {
+            dst.errorfmt("ImageBufAlgo::bayer_demosaic() unknown parameter {}",
+                         pv.name());
+        }
+    }
+
 
     ROI dst_roi = roi;
     if (!dst_roi.defined()) {
@@ -382,67 +428,35 @@ ImageBufAlgo::bayer_demosaic_linear(ImageBuf& dst, const ImageBuf& src,
 
     IBAprep(dst_roi, &dst, &src, nullptr, &dst_spec);
 
-    bool ok;
-    OIIO_DISPATCH_COMMON_TYPES2(ok, "bayer_demosaic_linear",
-                                bayer_demosaic_linear_impl, dst.spec().format,
-                                src.spec().format, dst, src, bayer_pattern,
-                                dst_roi, nthreads);
-    return ok;
-}
 
-ImageBuf
-ImageBufAlgo::bayer_demosaic_linear(const ImageBuf& src,
-                                    BayerPattern bayer_pattern, ROI roi,
-                                    int nthreads)
-{
-    ImageBuf result;
-    bool ok = add(result, src, bayer_pattern, roi, nthreads);
-    if (!ok && !result.has_error())
-        result.errorfmt("ImageBufAlgo::bayer_demosaic_linear() error");
-    return result;
-}
 
-bool
-ImageBufAlgo::bayer_demosaic_MHC(ImageBuf& dst, const ImageBuf& src,
-                                 BayerPattern bayer_pattern, ROI roi,
-                                 int nthreads)
-{
-    pvt::LoggedTimer logtime("IBA::bayer_demosaic_MHC");
-
-    ROI dst_roi = roi;
-    if (!dst_roi.defined()) {
-        dst_roi = src.roi_full();
+    if (algorithm == "linear") {
+        OIIO_DISPATCH_COMMON_TYPES2(ok, "bayer_demosaic_linear",
+                                    bayer_demosaic_linear_impl,
+                                    dst.spec().format, src.spec().format, dst,
+                                    src, pattern, dst_roi, nthreads);
+    } else if (algorithm == "MHC") {
+        OIIO_DISPATCH_COMMON_TYPES2(ok, "bayer_demosaic_MHC",
+                                    bayer_demosaic_MHC_impl, dst.spec().format,
+                                    src.spec().format, dst, src, pattern,
+                                    dst_roi, nthreads);
+    } else {
+        dst.errorfmt("ImageBufAlgo::bayer_demosaic() invalid algorithm");
     }
 
-    dst_roi.chbegin = 0;
-    dst_roi.chend   = 2;
 
-    ImageSpec dst_spec = src.spec();
-    dst_spec.nchannels = 3;
-    dst_spec.default_channel_names();
-    dst_spec.channelformats.clear();
-    dst_spec.alpha_channel = -1;
-    dst_spec.z_channel     = -1;
 
-    IBAprep(dst_roi, &dst, &src, nullptr, &dst_spec);
-
-    bool ok;
-    OIIO_DISPATCH_COMMON_TYPES2(ok, "bayer_demosaic_MHC",
-                                bayer_demosaic_MHC_impl, dst.spec().format,
-                                src.spec().format, dst, src, bayer_pattern,
-                                dst_roi, nthreads);
-    return ok;
+    return true;
 }
 
 ImageBuf
-ImageBufAlgo::bayer_demosaic_MHC(const ImageBuf& src,
-                                 BayerPattern bayer_pattern, ROI roi,
-                                 int nthreads)
+ImageBufAlgo::bayer_demosaic(const ImageBuf& src, KWArgs options, ROI roi,
+                             int nthreads)
 {
     ImageBuf result;
-    bool ok = add(result, src, bayer_pattern, roi, nthreads);
+    bool ok = bayer_demosaic(result, src, options, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorfmt("ImageBufAlgo::bayer_demosaic_MHC() error");
+        result.errorfmt("ImageBufAlgo::bayer_demosaic() error");
     return result;
 }
 
