@@ -293,6 +293,8 @@ ImageRec::read(ReadPolicy readpolicy, string_view channel_set)
             std::vector<std::string> newchannelnames;
             std::vector<int> channel_set_channels;
             std::vector<float> channel_set_values;
+            int new_alpha_channel = -1;
+            int new_z_channel     = -1;
             int chbegin = 0, chend = -1;
             if (channel_set.size()) {
                 decode_channel_set(ib->nativespec(), channel_set,
@@ -306,6 +308,10 @@ ImageRec::read(ReadPolicy readpolicy, string_view channel_set)
                              && channel_set_channels[c]
                                     != channel_set_channels[c - 1] + 1)
                         post_channel_set_action = true;  // non-consecutive chans
+                    if (channel_set_channels[c] == ib->spec().alpha_channel)
+                        new_alpha_channel = c;
+                    if (channel_set_channels[c] == ib->spec().z_channel)
+                        new_z_channel = c;
                 }
                 if (ib->deep())
                     post_channel_set_action = true;
@@ -349,6 +355,11 @@ ImageRec::read(ReadPolicy readpolicy, string_view channel_set)
             }
             if (!ok)
                 errorfmt("{}", ib->geterror());
+            if (channel_set.size()) {
+                // Adjust the spec to reflect the new channel set
+                ib->specmod().alpha_channel = new_alpha_channel;
+                ib->specmod().z_channel     = new_z_channel;
+            }
 
             allok &= ok;
             // Remove any existing SHA-1 hash from the spec.
