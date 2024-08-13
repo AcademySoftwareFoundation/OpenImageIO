@@ -28,7 +28,6 @@
 #include <OpenImageIO/thread.h>
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/ustring.h>
-#include <OpenImageIO/varyingref.h>
 
 #include "imagecache_pvt.h"
 #include "texture_pvt.h"
@@ -52,6 +51,9 @@ static TextureSystemImpl* shared_texturesys = NULL;
 static spin_mutex shared_texturesys_mutex;
 static bool do_unit_test_texture    = false;
 static float unit_test_texture_blur = 0.0f;
+
+static thread_local tsl::robin_map<int64_t, std::string> txsys_error_messages;
+static std::atomic_int64_t txsys_next_id(0);
 
 static vfloat4 u8scale(1.0f / 255.0f);
 static vfloat4 u16scale(1.0f / 65535.0f);
@@ -323,6 +325,7 @@ texture_type_name(TexFormat f)
 
 
 TextureSystemImpl::TextureSystemImpl(ImageCache* imagecache)
+    : m_id(++txsys_next_id)
 {
     m_imagecache = (ImageCacheImpl*)imagecache;
     init();
@@ -352,7 +355,14 @@ TextureSystemImpl::init()
 
 
 
-TextureSystemImpl::~TextureSystemImpl() { printstats(); }
+TextureSystemImpl::~TextureSystemImpl()
+{
+    printstats();
+    // Erase any leftover errors from this thread
+    // TODO: can we clear other threads' errors?
+    // TODO: potentially unsafe due to the static destruction order fiasco
+    // txsys_error_messages.erase(m_id);
+}
 
 
 
@@ -873,11 +883,13 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
                 const char* data;
                 if (tile
                     && (data = (const char*)tile->data(x, y, z, chbegin))) {
-                    convert_types(texfile->datatype(subimage), data, format,
-                                  result, actualchannels);
+                    convert_pixel_values(texfile->datatype(subimage), data,
+                                         format, result, actualchannels);
                     for (int c = actualchannels; c < nchannels; ++c)
-                        convert_types(TypeDesc::FLOAT, &options.fill, format,
-                                      (char*)result + c * formatchannelsize, 1);
+                        convert_pixel_values(TypeFloat, &options.fill, format,
+                                             (char*)result
+                                                 + c * formatchannelsize,
+                                             1);
                 } else {
                     memset(result, 0, formatpixelsize);
                 }
@@ -898,8 +910,10 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
 bool
 TextureSystemImpl::has_error() const
 {
-    std::string* errptr = m_errormessage.get();
-    return (errptr && errptr->size());
+    auto iter = txsys_error_messages.find(m_id);
+    if (iter == txsys_error_messages.end())
+        return false;
+    return iter.value().size() > 0;
 }
 
 
@@ -908,11 +922,11 @@ std::string
 TextureSystemImpl::geterror(bool clear) const
 {
     std::string e;
-    std::string* errptr = m_errormessage.get();
-    if (errptr) {
-        e = *errptr;
+    auto iter = txsys_error_messages.find(m_id);
+    if (iter != txsys_error_messages.end()) {
+        e = iter.value();
         if (clear)
-            errptr->clear();
+            txsys_error_messages.erase(iter);
     }
     return e;
 }
@@ -924,17 +938,13 @@ TextureSystemImpl::append_error(string_view message) const
 {
     if (message.size() && message.back() == '\n')
         message.remove_suffix(1);
-    std::string* errptr = m_errormessage.get();
-    if (!errptr) {
-        errptr = new std::string;
-        m_errormessage.reset(errptr);
-    }
+    std::string& err_str = txsys_error_messages[m_id];
     OIIO_DASSERT(
-        errptr->size() < 1024 * 1024 * 16
+        err_str.size() < 1024 * 1024 * 16
         && "Accumulated error messages > 16MB. Try checking return codes!");
-    if (errptr->size() && errptr->back() != '\n')
-        *errptr += '\n';
-    *errptr += std::string(message);
+    if (err_str.size() && err_str.back() != '\n')
+        err_str += '\n';
+    err_str.append(message.begin(), message.end());
 }
 
 
@@ -1049,68 +1059,6 @@ TextureSystemImpl::fill_gray_channels(const ImageSpec& spec, int nchannels,
             }
         }
     }
-}
-
-
-
-bool
-TextureSystemImpl::texture(ustring filename, TextureOptions& options,
-                           Runflag* runflags, int beginactive, int endactive,
-                           VaryingRef<float> s, VaryingRef<float> t,
-                           VaryingRef<float> dsdx, VaryingRef<float> dtdx,
-                           VaryingRef<float> dsdy, VaryingRef<float> dtdy,
-                           int nchannels, float* result, float* dresultds,
-                           float* dresultdt)
-{
-#ifdef OIIO_TEX_NO_IMPLEMENT_VARYINGREF
-    return false;
-#else
-    Perthread* thread_info        = get_perthread_info();
-    TextureHandle* texture_handle = get_texture_handle(filename, thread_info);
-    return texture(texture_handle, thread_info, options, runflags, beginactive,
-                   endactive, s, t, dsdx, dtdx, dsdy, dtdy, nchannels, result,
-                   dresultds, dresultdt);
-#endif
-}
-
-
-
-bool
-TextureSystemImpl::texture(TextureHandle* texture_handle,
-                           Perthread* thread_info, TextureOptions& options,
-                           Runflag* runflags, int beginactive, int endactive,
-                           VaryingRef<float> s, VaryingRef<float> t,
-                           VaryingRef<float> dsdx, VaryingRef<float> dtdx,
-                           VaryingRef<float> dsdy, VaryingRef<float> dtdy,
-                           int nchannels, float* result, float* dresultds,
-                           float* dresultdt)
-{
-#ifdef OIIO_TEX_NO_IMPLEMENT_VARYINGREF
-    return false;
-#else
-    if (!texture_handle)
-        return false;
-    bool ok = true;
-    result += beginactive * nchannels;
-    if (dresultds) {
-        dresultds += beginactive * nchannels;
-        dresultdt += beginactive * nchannels;
-    }
-    for (int i = beginactive; i < endactive; ++i) {
-        if (runflags[i]) {
-            TextureOpt opt(options, i);
-            ok &= texture(texture_handle, thread_info, opt, s[i], t[i], dsdx[i],
-                          dtdx[i], dsdy[i], dtdy[i], nchannels, result,
-                          dresultds, dresultdt);
-        }
-        result += nchannels;
-        if (dresultds) {
-            dresultds += nchannels;
-            dresultdt += nchannels;
-        }
-    }
-    return ok;
-#endif
 }
 
 
@@ -2033,13 +1981,13 @@ TextureSystemImpl::pole_color(TextureFile& texturefile,
 {
     if (!levelinfo.onetile)
         return NULL;  // Only compute color for one-tile MIP levels
-    const ImageSpec& spec(levelinfo.spec);
+    const ImageSpec& spec(levelinfo.spec());
     if (!levelinfo.polecolorcomputed) {
         static spin_mutex mutex;  // Protect everybody's polecolor
         spin_lock lock(mutex);
         if (!levelinfo.polecolorcomputed) {
-            OIIO_DASSERT(levelinfo.polecolor.size() == 0);
-            levelinfo.polecolor.resize(2 * spec.nchannels);
+            OIIO_DASSERT(!levelinfo.polecolor);
+            levelinfo.polecolor.reset(new float[2 * spec.nchannels]);
             OIIO_DASSERT(tile->id().nchannels() == spec.nchannels
                          && "pole_color doesn't work for channel subsets");
             int pixelsize                = tile->pixelsize();
@@ -3039,7 +2987,7 @@ TextureSystemImpl::visualize_ellipse(const std::string& name, float dsdx,
     static float grey[3]  = { 0.5, 0.5, 0.5 };
     static float red[3]   = { 1, 0, 0 };
     static float green[3] = { 0, 1, 0 };
-    ImageBufAlgo::fill(ib, grey);
+    ImageBufAlgo::fill(ib, cspan<float>(grey));
 
     // scan all the pixels, darken the ellipse interior (no blur considered)
     for (int j = 0; j < h; ++j) {

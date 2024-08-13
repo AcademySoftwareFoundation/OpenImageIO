@@ -164,7 +164,7 @@ TermOutput::output()
     // Resize the image as needed
     if (w > maxw && m_fit) {
         ROI newsize(0, maxw, 0, int(std::round(yscale * float(maxw) / w * h)));
-        m_buf = ImageBufAlgo::resize(m_buf, /*filter=*/nullptr, newsize);
+        m_buf = ImageBufAlgo::resize(m_buf, ImageBufAlgo::KWArgs(), newsize);
         w     = newsize.width();
         h     = newsize.height();
     }

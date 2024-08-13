@@ -43,10 +43,8 @@
 #    define OIIO_TIFFLIB_VERSION 40003
 #elif TIFFLIB_VERSION >= 20111221
 #    define OIIO_TIFFLIB_VERSION 40000
-#elif TIFFLIB_VERSION >= 20090820
-#    define OIIO_TIFFLIB_VERSION 30900
 #else
-#    error "libtiff 3.9.0 or later is required"
+#    error "libtiff 4.0.0 or later is required"
 #endif
 // clang-format on
 
@@ -400,9 +398,10 @@ allval(const std::vector<T>& d, T v = T(0))
 
 
 static tsize_t
-writer_readproc(thandle_t, tdata_t, tsize_t)
+writer_readproc(thandle_t handle, tdata_t data, tsize_t size)
 {
-    return 0;
+    auto io = static_cast<Filesystem::IOProxy*>(handle);
+    return io->read(data, size);
 }
 
 static tsize_t
@@ -802,21 +801,24 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
         TIFFSetField(m_tif, TIFFTAG_PREDICTOR, m_predictor);
 
     // ExtraSamples tag
-    if ((m_spec.alpha_channel >= 0 || m_spec.nchannels > 3)
+    if (((m_spec.alpha_channel >= 0 && m_spec.alpha_channel < m_spec.nchannels)
+         || m_spec.nchannels > 3)
         && m_photometric != PHOTOMETRIC_SEPARATED
         && m_spec.get_int_attribute("tiff:write_extrasamples", 1)) {
         bool unass = m_spec.get_int_attribute("oiio:UnassociatedAlpha", 0);
         int defaultchans = m_spec.nchannels >= 3 ? 3 : 1;
         short e          = m_spec.nchannels - defaultchans;
-        std::vector<unsigned short> extra(e);
-        for (int c = 0; c < e; ++c) {
-            if (m_spec.alpha_channel == (c + defaultchans))
-                extra[c] = unass ? EXTRASAMPLE_UNASSALPHA
-                                 : EXTRASAMPLE_ASSOCALPHA;
-            else
-                extra[c] = EXTRASAMPLE_UNSPECIFIED;
+        if (e > 0) {
+            std::vector<unsigned short> extra(e);
+            for (int c = 0; c < e; ++c) {
+                if (m_spec.alpha_channel == (c + defaultchans))
+                    extra[c] = unass ? EXTRASAMPLE_UNASSALPHA
+                                     : EXTRASAMPLE_ASSOCALPHA;
+                else
+                    extra[c] = EXTRASAMPLE_UNSPECIFIED;
+            }
+            TIFFSetField(m_tif, TIFFTAG_EXTRASAMPLES, e, extra.data());
         }
-        TIFFSetField(m_tif, TIFFTAG_EXTRASAMPLES, e, &extra[0]);
     }
 
     ParamValue* param;

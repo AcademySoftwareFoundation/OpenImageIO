@@ -17,34 +17,34 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * **C++17 or higher** (also builds with C++20)
      * The default build mode is C++17. This can be controlled by via the
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=20`, etc.
- * Compilers: **gcc 9.3** - 13.1, **clang 5** - 17, MSVS 2017 - 2019 (**v19.14
+ * Compilers: **gcc 9.3** - 14.1, **clang 5** - 18, MSVS 2017 - 2019 (**v19.14
    and up**), **Intel icc 19+**, Intel OneAPI C++ compiler 2022+.
- * **CMake >= 3.15** (tested through 3.28)
- * **OpenEXR/Imath >= 2.4** (recommended: 3.1 or higher; tested through 3.2
-   and main) (ADVISORY: We expect that OIIO 2.6 in 2024 will require OpenEXR >= 3.1)
- * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.6)
+ * **CMake >= 3.15** (tested through 3.29)
+ * **Imath >= 3.1** (tested through 3.1.x and main)
+ * **OpenEXR >= 3.1** (tested through 3.2 and main)
+ * **libTIFF >= 4.0** (tested through 4.6)
+ * **OpenColorIO >= 2.2** (tested through 2.3)
  * libjpeg >= 8 (tested through jpeg9e), or **libjpeg-turbo >= 2.1** (tested
    through 3.0)
- * Boost >= 1.53 (recommended: at least 1.66; tested through 1.84)
- * **[fmtlib](https://github.com/fmtlib/fmt) >= 7.0** (tested through 10.1).
+ * **[fmtlib](https://github.com/fmtlib/fmt) >= 7.0** (tested through 10.2).
    If not found at build time, this will be automatically downloaded unless
    the build sets `-DBUILD_MISSING_FMT=OFF`.
 
 ### Optional dependencies -- features may be disabled if not found
  * If you are building the `iv` viewer (which will be disabled if any of
    these are not found):
-     * Qt5 >= 5.6 (tested through 5.15) or Qt6 (tested through 6.6)
+     * Qt5 >= 5.6 (tested through 5.15) or Qt6 (tested through 6.7)
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
-     * Python >= 2.7 (tested against 2.7, 3.7, 3.8, 3.9, 3.10, 3.11)
-     * pybind11 >= 2.4.2 (Tested through 2.11. Note that pybind11 v2.10+ does
-       not support Python < 3.6.)
+     * **Python >= 3.7** (tested through 3.12)
+     * **pybind11 >= 2.7** (tested through 2.12)
      * NumPy
+ * If you want support for PNG files:
+     * **libPNG >= 1.6.0** (tested though 1.6.43)
  * If you want support for camera "RAW" formats:
-     * LibRaw >= 0.18 (tested though 0.21.2; if
-       building with C++17 or higher, LibRaw >= 0.20 is necessary)
+     * **LibRaw >= 0.20** (tested though 0.21.2)
  * If you want support for a wide variety of video formats:
-     * ffmpeg >= 3.0 (tested through 6.1)
+     * **ffmpeg >= 4.0** (tested through 7.0)
  * If you want support for jpeg 2000 images:
      * OpenJpeg >= 2.0 (tested through 2.5; we recommend 2.4 or higher
        for multithreading support)
@@ -55,10 +55,9 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * TBB >= 2018 (tested through 2021 and OneTBB)
  * If you want support for converting to and from OpenCV data structures,
    or for capturing images from a camera:
-     * OpenCV 3.x, or 4.x (tested through 4.9)
+     * **OpenCV 4.x** (tested through 4.10)
  * If you want support for GIF images:
-     * giflib >= 4.1 (tested through 5.2; 5.0+ is strongly recommended for
-       stability and thread safety)
+     * **giflib >= 5.0** (tested through 5.2)
  * If you want support for HEIF/HEIC or AVIF images:
      * libheif >= 1.3 (1.7 required for AVIF support, 1.16 required for
        correct orientation support, tested through 1.17.6)
@@ -67,13 +66,11 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for DICOM medical image files:
      * DCMTK >= 3.6.1 (tested through 3.6.8)
  * If you want support for WebP images:
-     * WebP >= 0.6.1 (tested through 1.3.2)
- * If you want support for OpenColorIO color transformations:
-     * OpenColorIO >= 1.1 (tested through 2.3; 2.0+ is recommended)
+     * **WebP >= 1.1** (tested through 1.4)
  * If you want support for Ptex:
      * Ptex >= 2.3.1 (probably works for older; tested through 2.4.2)
  * If you want to be able to do font rendering into images:
-     * Freetype (minimum unknown, tested 2.8 through 2.13)
+     * **Freetype >= 2.10.0** (tested through 2.13)
  * We use PugiXML for XML parsing. There is a version embedded in the OIIO
    tree, but if you want to use an external, system-installed version (as
    may be required by some software distributions with policies against
@@ -181,11 +178,11 @@ Building OpenImageIO on Linux or OS X
 
 The following dependencies must be installed to build the core of
 OpenImageIO:
-* Boost
 * libjpeg
 * libtiff
 * libpng
-* OpenEXR.
+* Imath
+* OpenEXR
 
 These can be installed using the standard package managers on your system.
 Optionally, to build the image viewing tools, you will need Qt and OpenGL.
@@ -277,36 +274,28 @@ Building on Windows
 
 You will need to have Git, CMake and Visual Studio installed.
 
-The minimal set of dependencies for OIIO is: Boost, zlib, libTIFF, OpenEXR, and libjpeg or libjpeg-turbo. If you have them built somewhere then you skip
+The minimal set of dependencies for OIIO is: zlib, libTIFF, Imath, OpenEXR, and libjpeg or libjpeg-turbo. If you have them built somewhere then you skip
 the section below, and will only have to point OIIO build process so their locations.
 
-* Boost: get the boost source archive, extract into `{BOOST_ROOT}`.
-  ```
-  cd {BOOST_ROOT}
-  bootstrap
-  b2
-  ```
 * zlib: this will build it, and then delete the non-static library, so they don't get picked up:
   ```
   cd {ZLIB_ROOT}
   git clone https://github.com/madler/zlib .
-  cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=.
+  cmake -S . -B build -DCMAKE_INSTALL_PREFIX=.
   cmake --build build --config Release --target install
-  del build\lib\zlib.lib
+  del build\Release\zlib.lib
   ```
 * libTIFF:
   ```
   cd {TIFF_ROOT}
   git clone https://gitlab.com/libtiff/libtiff.git .
   cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=.
-  cmake --build build --target install
+  cmake --build build --config Release --target install
   ```
 * libjpeg-turbo:
   ```
   cd {JPEG_ROOT}
   git clone https://github.com/libjpeg-turbo/libjpeg-turbo .
-  mkdir build
-  cd build
   cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DENABLE_SHARED=OFF -DCMAKE_INSTALL_PREFIX=.
   cmake --build build --config Release --target install
   ```
@@ -324,16 +313,20 @@ the section below, and will only have to point OIIO build process so their locat
 
 Now get the OIIO source and do one-time CMake configuration step. Replace `{*_ROOT}` below with folders where you have put the 3rd party
 dependencies.
+
+Note: For the `Imath_LIBRARY`, you might need to correct the `Imath-*.lib` file name that was built on your machine.
 ```
 cd {OIIO_ROOT}
 git clone https://github.com/AcademySoftwareFoundation/OpenImageIO .
 cmake -S . -B build -DVERBOSE=ON -DCMAKE_BUILD_TYPE=Release ^
-  -DBoost_USE_STATIC_LIBS=ON -DBoost_NO_WARN_NEW_VERSIONS=ON -DBoost_ROOT={BOOST_ROOT} ^
   -DZLIB_ROOT={ZLIB_ROOT}\build ^
-  -DTIFF_ROOT={TIFF_ROOT}\build ^
-  -DOpenEXR_ROOT={EXR_ROOT}\build\dist ^
-  -DImath_DIR={EXR_ROOT}\build\dist\lib\cmake\Imath ^
-  -DJPEG_ROOT={JPEG_ROOT}\build ^
+  -DTIFF_ROOT={TIFF_ROOT} ^
+  -DOpenEXR_ROOT={EXR_ROOT}\dist ^
+  -DImath_DIR={EXR_ROOT}\dist\lib\cmake\Imath ^
+  -DImath_INCLUDE_DIR={EXR_ROOT}\dist\include\Imath ^
+  -DImath_LIBRARY={EXR_ROOT}\dist\lib\Imath-3_2.lib ^
+  -DJPEG_ROOT={JPEG_ROOT} ^
+  -Dlibjpeg-turbo_ROOT={JPEG_ROOT} ^
   -DUSE_PYTHON=0 -DUSE_QT=0 -DBUILD_SHARED_LIBS=0 -DLINKSTATIC=1
 ```
 

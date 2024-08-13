@@ -310,7 +310,7 @@ ParamValue::get_string_indexed(int index) const
         if (element.vecsemantics == TypeDesc::RATIONAL
             && element.aggregate == TypeDesc::VEC2) {
             const int* val = (const int*)data() + 2 * index;
-            out            = Strutil::fmt::format("{}/{}}", val[0], val[1]);
+            out            = Strutil::fmt::format("{}/{}", val[0], val[1]);
         } else if (type() == TypeTimeCode) {
             out += tostring(TypeTimeCode, data());
         } else {
@@ -379,6 +379,17 @@ ParamValue::clear_value() noexcept
     m_data.ptr = nullptr;
     m_copy     = false;
     m_nonlocal = false;
+}
+
+
+
+template<>
+size_t
+pvt::heapsize<ParamValue>(const ParamValue& pv)
+{
+    return (pv.m_nonlocal && pv.m_copy)
+               ? pv.m_nvalues * static_cast<int>(pv.m_type.size())
+               : 0;
 }
 
 
@@ -769,6 +780,34 @@ ParamValueSpan::get_ustring(ustring name, string_view defaultval,
 {
     auto p = find(name, convert ? TypeUnknown : TypeString, casesensitive);
     return (p == cend()) ? ustring(defaultval) : p->get_ustring();
+}
+
+
+
+bool
+ParamValueSpan::get_bool(ustring name, bool defaultval,
+                         bool casesensitive) const
+{
+    auto p = find(name, TypeUnknown, casesensitive);
+    if (p == cend())
+        return defaultval;
+    if (p->type().basetype == TypeDesc::INT)
+        return p->get_int() ? 1 : 0;
+    return Strutil::eval_as_bool(p->get_string());
+}
+
+
+
+bool
+ParamValueSpan::get_bool(string_view name, bool defaultval,
+                         bool casesensitive) const
+{
+    auto p = find(name, TypeUnknown, casesensitive);
+    if (p == cend())
+        return defaultval;
+    if (p->type().basetype == TypeDesc::INT)
+        return p->get_int() ? 1 : 0;
+    return Strutil::eval_as_bool(p->get_string());
 }
 
 

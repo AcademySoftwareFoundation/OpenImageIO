@@ -1,5 +1,5 @@
 // Copyright Contributors to the OpenImageIO project.
-// SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+// SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
@@ -29,8 +29,9 @@
 #include <OpenImageIO/timer.h>
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/ustring.h>
-#include <OpenImageIO/varyingref.h>
 
+#include "imagecache_memory_print.h"
+#include "imagecache_memory_pvt.h"
 #include "imagecache_pvt.h"
 #include "imageio_pvt.h"
 
@@ -49,6 +50,7 @@ spin_mutex ImageCacheImpl::m_perthread_info_mutex;
 
 namespace {  // anonymous
 
+static thread_local tsl::robin_map<uint64_t, std::string> imcache_error_messages;
 static std::shared_ptr<ImageCacheImpl> shared_image_cache;
 static spin_mutex shared_image_cache_mutex;
 
@@ -64,6 +66,11 @@ static ustring s_datawindow("datawindow"), s_displaywindow("displaywindow");
 static ustring s_averagecolor("averagecolor"), s_averagealpha("averagealpha");
 static ustring s_constantcolor("constantcolor");
 static ustring s_constantalpha("constantalpha");
+
+// constantly increasing, so we can avoid issues if an ImageCache pointer is re-used after being freed
+static std::atomic_int64_t imagecache_next_id = 0;
+static thread_local tsl::robin_map<uint64_t, ImageCachePerThreadInfo*>
+    imagecache_per_thread_infos;
 
 
 // Functor to compare filenames
@@ -211,11 +218,12 @@ ImageCacheStatistics::merge(const ImageCacheStatistics& s)
 
 
 
-ImageCacheFile::LevelInfo::LevelInfo(const ImageSpec& spec_,
+ImageCacheFile::LevelInfo::LevelInfo(std::unique_ptr<ImageSpec> spec_,
                                      const ImageSpec& nativespec_)
-    : spec(spec_)
+    : m_spec(std::move(spec_))
     , nativespec(nativespec_)
 {
+    const ImageSpec& spec = m_spec ? *m_spec : nativespec;
     full_pixel_range
         = (spec.x == spec.full_x && spec.y == spec.full_y
            && spec.z == spec.full_z && spec.width == spec.full_width
@@ -245,16 +253,21 @@ ImageCacheFile::LevelInfo::LevelInfo(const ImageSpec& spec_,
 
 
 ImageCacheFile::LevelInfo::LevelInfo(const LevelInfo& src)
-    : spec(src.spec)
-    , nativespec(src.nativespec)
-    , full_pixel_range(src.full_pixel_range)
-    , onetile(src.onetile)
-    , polecolorcomputed(src.polecolorcomputed)
-    , polecolor(src.polecolor)
+    : nativespec(src.nativespec)
     , nxtiles(src.nxtiles)
     , nytiles(src.nytiles)
     , nztiles(src.nztiles)
+    , full_pixel_range(src.full_pixel_range)
+    , onetile(src.onetile)
+    , polecolorcomputed(src.polecolorcomputed)
 {
+    if (src.m_spec)
+        m_spec = std::make_unique<ImageSpec>(*src.m_spec);
+    const ImageSpec& spec = m_spec ? *m_spec : nativespec;
+    if (src.polecolor) {
+        polecolor.reset(new float[2 * spec.nchannels]);
+        std::copy_n(src.polecolor.get(), 2 * spec.nchannels, polecolor.get());
+    }
     int nwords = round_to_multiple(nxtiles * nytiles * nztiles, 64) / 64;
     tiles_read = new atomic_ll[nwords];
     for (int i = 0; i < nwords; ++i)
@@ -499,7 +512,7 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
             fmt = OIIO::Filesystem::extension(fmt, false);
         else
             fmt = m_filename.string();
-        inp = ImageInput::create(fmt, false, &configspec,
+        inp = ImageInput::create(fmt, false, &configspec, nullptr,
                                  m_imagecache.plugin_searchpath());
     }
     if (!inp) {
@@ -558,7 +571,9 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
         int max_mip_res = imagecache().max_mip_res();
         int nmip        = 0;
         do {
-            tempspec = nativespec;
+            nativespec           = inp->spec(nsubimages, nmip);
+            tempspec             = nativespec;
+            bool tmpspecmodified = false;
             if (nmip == 0) {
                 // Things to do on MIP level 0, i.e. once per subimage
                 si.init(*this, tempspec, imagecache().forcefloat());
@@ -592,6 +607,7 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
                     tempspec.tile_height = tempspec.height;
                     tempspec.tile_depth  = tempspec.depth;
                 }
+                tmpspecmodified = true;
             }
             // If a request was made for a maximum MIP resolution to use for
             // texture lookups and this level is too big, bump up this
@@ -614,10 +630,16 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
             }
             // ImageCache can't store differing formats per channel
             tempspec.channelformats.clear();
-            LevelInfo levelinfo(tempspec, nativespec);
-            si.levels.push_back(levelinfo);
+            if (tmpspecmodified) {
+                LevelInfo levelinfo(std::make_unique<ImageSpec>(tempspec),
+                                    nativespec);
+                si.levels.push_back(levelinfo);
+            } else {
+                LevelInfo levelinfo(nativespec);
+                si.levels.push_back(levelinfo);
+            }
             ++nmip;
-        } while (inp->seek_subimage(nsubimages, nmip, nativespec));
+        } while (inp->seek_subimage(nsubimages, nmip));
 
         // Special work for non-MIPmapped images -- but only if "automip"
         // is on, it's a non-mipmapped image, and it doesn't have a
@@ -657,7 +679,7 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
                     s.tile_depth  = d;
                 }
                 ++nmip;
-                LevelInfo levelinfo(s, s);
+                LevelInfo levelinfo(s);
                 si.levels.push_back(levelinfo);
             }
         }
@@ -685,7 +707,7 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
             si.minwh[m] = std::min(si.spec(m).width, si.spec(m).height);
         si.minwh[nmip] = 0;  // One past the end, set to 0
         ++nsubimages;
-    } while (inp->seek_subimage(nsubimages, 0, nativespec));
+    } while (inp->seek_subimage(nsubimages, 0));
     OIIO_DASSERT((size_t)nsubimages == m_subimages.size());
 
     m_total_imagesize_ondisk = imagesize_t(Filesystem::file_size(m_filename));
@@ -1577,18 +1599,18 @@ ImageCacheTile::read(ImageCachePerThreadInfo* thread_info)
     if (m_valid) {
         ImageCacheFile::LevelInfo& lev(
             file.levelinfo(m_id.subimage(), m_id.miplevel()));
-        m_tile_width = lev.spec.tile_width;
+        const ImageSpec& spec(lev.spec());
+        m_tile_width = spec.tile_width;
         OIIO_DASSERT(m_tile_width > 0);
-        int whichtile = ((m_id.x() - lev.spec.x) / lev.spec.tile_width)
-                        + ((m_id.y() - lev.spec.y) / lev.spec.tile_height)
-                              * lev.nxtiles
-                        + ((m_id.z() - lev.spec.z) / lev.spec.tile_depth)
+        int whichtile = ((m_id.x() - spec.x) / spec.tile_width)
+                        + ((m_id.y() - spec.y) / spec.tile_height) * lev.nxtiles
+                        + ((m_id.z() - spec.z) / spec.tile_depth)
                               * (lev.nxtiles * lev.nytiles);
         int index       = whichtile / 64;
         int64_t bitmask = int64_t(1ULL << (whichtile & 63));
         int64_t oldval  = lev.tiles_read[index].fetch_or(bitmask);
         if (oldval & bitmask)  // Was it previously read?
-            file.register_redundant_tile(lev.spec.tile_bytes());
+            file.register_redundant_tile(spec.tile_bytes());
     } else {
         // (! m_valid)
         m_used = false;  // Don't let it hold mem if invalid
@@ -1648,8 +1670,8 @@ ImageCacheTile::data(int x, int y, int z, int c) const
 
 
 ImageCacheImpl::ImageCacheImpl()
-    : m_perthread_info(&cleanup_perthread_info)
 {
+    imagecache_id = imagecache_next_id.fetch_add(1);
     init();
 }
 
@@ -1708,7 +1730,16 @@ ImageCacheImpl::init()
 ImageCacheImpl::~ImageCacheImpl()
 {
     printstats();
-    erase_perthread_info();
+    // All the per_thread_infos get destroyed here, regardless of if they were created implicitly
+    // or manually by the caller
+    {
+        spin_lock lock(m_perthread_info_mutex);
+        m_all_perthread_info.clear();
+    }
+    // Erase any leftover errors from this thread
+    // TODO: can we clear other threads' errors?
+    // TODO: potentially unsafe due to the static destruction order fiasco
+    // imcache_error_messages.erase(imagecache_id);
 }
 
 
@@ -1718,7 +1749,7 @@ ImageCacheImpl::mergestats(ImageCacheStatistics& stats) const
 {
     stats.init();
     spin_lock lock(m_perthread_info_mutex);
-    for (auto p : m_all_perthread_info)
+    for (auto& p : m_all_perthread_info)
         if (p)
             stats.merge(p->m_stats);
 }
@@ -1975,6 +2006,8 @@ ImageCacheImpl::getstats(int level) const
                   "    Failure reads followed by unexplained success:"
                   " {} files, {} tiles\n",
                   stats.file_retry_success, stats.tile_retry_success);
+
+        printImageCacheMemory(out, *this);
     }
 
     if (level >= 2 && files.size()) {
@@ -2435,6 +2468,7 @@ ImageCacheImpl::getattribute(string_view name, TypeDesc type, void* val) const
 
     if (Strutil::starts_with(name, "stat:")) {
         // Stats we can just grab
+        ATTR_DECODE("stat:cache_footprint", long long, footprint(*this));
         ATTR_DECODE("stat:cache_memory_used", long long, m_mem_used);
         ATTR_DECODE("stat:tiles_created", int, m_stat_tiles_created);
         ATTR_DECODE("stat:tiles_current", int, m_stat_tiles_current);
@@ -2718,9 +2752,7 @@ ImageCacheImpl::get_image_info(ImageCacheFile* file,
         // for the file to be nonexistent or broken!
         if ((*(int*)data = (file && !file->broken())) == 0) {
             // eat any error generated by find_file
-            std::string* errptr = m_errormessage.get();
-            if (errptr)
-                errptr->clear();
+            imcache_error_messages.erase(imagecache_id);
             (void)OIIO::geterror(true);  // Suppress global errors
         }
         return true;
@@ -2748,9 +2780,7 @@ ImageCacheImpl::get_image_info(ImageCacheFile* file,
     if (file->broken()) {
         if (file->errors_should_issue()) {
             // eat any earlier messages
-            std::string* errptr = m_errormessage.get();
-            if (errptr)
-                errptr->clear();
+            imcache_error_messages.erase(imagecache_id);
             error("Invalid image file \"{}\": {}", file->filename(),
                   file->broken_error_message());
         }
@@ -3291,14 +3321,15 @@ ImageCacheImpl::get_pixels(ImageCacheFile* file,
                     // Special case for a contiguous span within one tile
                     int spanend   = std::min(tx + spec.tile_width, xend);
                     stride_t span = spanend - x;
-                    convert_types(cachetype, data, format, xptr,
-                                  result_nchans * span);
+                    convert_pixel_values(cachetype, data, format, xptr,
+                                         result_nchans * span);
                     x += (span - 1);
                     xptr += xstride * (span - 1);
                     // no need to increment data, since next read will
                     // be from a different tile
                 } else {
-                    convert_types(cachetype, data, format, xptr, result_nchans);
+                    convert_pixel_values(cachetype, data, format, xptr,
+                                         result_nchans);
                     data += cache_stride;
                 }
             }
@@ -3521,13 +3552,7 @@ ImageCacheImpl::invalidate_all(bool force)
     // to do it all in one shot.
     if (force) {
         // Clear the whole tile cache
-        std::vector<TileID> tiles_to_delete;
-        for (TileCache::iterator t = m_tilecache.begin(), e = m_tilecache.end();
-             t != e; ++t) {
-            tiles_to_delete.push_back(t->second->id());
-        }
-        for (const TileID& id : tiles_to_delete)
-            m_tilecache.erase(id);
+        m_tilecache.clear();
         // Invalidate (close and clear spec) all individual files
         for (FilenameMap::iterator fileit = m_files.begin(), e = m_files.end();
              fileit != e; ++fileit) {
@@ -3580,8 +3605,9 @@ ImageCacheImpl::invalidate_all(bool force)
             if (sub.untiled) {
                 for (int m = 0, mend = f->miplevels(s); m < mend; ++m) {
                     const ImageCacheFile::LevelInfo& level(f->levelinfo(s, m));
-                    if (level.spec.tile_width != m_autotile
-                        || level.spec.tile_height != m_autotile) {
+                    const ImageSpec& spec(level.spec());
+                    if (spec.tile_width != m_autotile
+                        || spec.tile_height != m_autotile) {
                         all_files.push_back(name);
                         break;
                     }
@@ -3798,8 +3824,7 @@ ImageCacheImpl::create_thread_info()
     ImageCachePerThreadInfo* p = new ImageCachePerThreadInfo;
     // printf ("New perthread %p\n", (void *)p);
     spin_lock lock(m_perthread_info_mutex);
-    m_all_perthread_info.push_back(p);
-    p->shared = true;  // both the IC and the caller point to it
+    m_all_perthread_info.emplace_back(p);
     return p;
 }
 
@@ -3810,14 +3835,16 @@ ImageCacheImpl::destroy_thread_info(ImageCachePerThreadInfo* thread_info)
 {
     if (!thread_info)
         return;
+    // the ImageCache owns the thread_infos associated with it,
+    // so all we need to do is find the entry and reset the unique pointer
+    // to fully destroy the object
     spin_lock lock(m_perthread_info_mutex);
-    for (size_t i = 0; i < m_all_perthread_info.size(); ++i) {
-        if (m_all_perthread_info[i] == thread_info) {
-            m_all_perthread_info[i] = NULL;
+    for (auto& p : m_all_perthread_info) {
+        if (p.get() == thread_info) {
+            p.reset();
             break;
         }
     }
-    delete thread_info;
 }
 
 
@@ -3825,15 +3852,18 @@ ImageCacheImpl::destroy_thread_info(ImageCachePerThreadInfo* thread_info)
 ImageCachePerThreadInfo*
 ImageCacheImpl::get_perthread_info(ImageCachePerThreadInfo* p)
 {
-    if (!p)
-        p = m_perthread_info.get();
     if (!p) {
-        p = new ImageCachePerThreadInfo;
-        m_perthread_info.reset(p);
-        // printf ("New perthread %p\n", (void *)p);
-        spin_lock lock(m_perthread_info_mutex);
-        m_all_perthread_info.push_back(p);
-        p->shared = true;  // both the IC and the thread point to it
+        // user has not provided an ImageCachePerThreadInfo yet
+        ImageCachePerThreadInfo*& ptr
+            = imagecache_per_thread_infos[imagecache_id];
+        p = ptr;
+        if (!p) {
+            // this thread doesn't have a ImageCachePerThreadInfo for this ImageCacheImpl yet
+            ptr = p = new ImageCachePerThreadInfo;
+            // printf ("New perthread %p\n", (void *)p);
+            spin_lock lock(m_perthread_info_mutex);
+            m_all_perthread_info.emplace_back(p);
+        }
     }
     if (p->purge) {  // has somebody requested a tile purge?
         // This is safe, because it's our thread.
@@ -3845,51 +3875,6 @@ ImageCacheImpl::get_perthread_info(ImageCachePerThreadInfo* p)
     }
     return p;
 }
-
-
-
-void
-ImageCacheImpl::erase_perthread_info()
-{
-    spin_lock lock(m_perthread_info_mutex);
-    for (size_t i = 0; i < m_all_perthread_info.size(); ++i) {
-        ImageCachePerThreadInfo* p = m_all_perthread_info[i];
-        if (p) {
-            // Clear the microcache.
-            p->tile     = NULL;
-            p->lasttile = NULL;
-            if (p->shared) {
-                // Pointed to by both thread-specific-ptr and our list.
-                // Just remove from out list, then ownership is only
-                // by the thread-specific-ptr.
-                p->shared = false;
-            } else {
-                // Only pointed to by us -- delete it!
-                delete p;
-            }
-            m_all_perthread_info[i] = NULL;
-        }
-    }
-}
-
-
-
-void
-ImageCacheImpl::cleanup_perthread_info(ImageCachePerThreadInfo* p)
-{
-    spin_lock lock(m_perthread_info_mutex);
-    if (p) {
-        // Clear the microcache.
-        p->tile     = NULL;
-        p->lasttile = NULL;
-        if (!p->shared)  // If we own it, delete it
-            delete p;
-        else
-            p->shared = false;  // thread disappearing, no longer shared
-    }
-}
-
-
 
 void
 ImageCacheImpl::purge_perthread_microcaches()
@@ -3906,8 +3891,10 @@ ImageCacheImpl::purge_perthread_microcaches()
 bool
 ImageCacheImpl::has_error() const
 {
-    std::string* errptr = m_errormessage.get();
-    return (errptr && errptr->size());
+    auto iter = imcache_error_messages.find(imagecache_id);
+    if (iter == imcache_error_messages.end())
+        return false;
+    return iter.value().size() > 0;
 }
 
 
@@ -3916,11 +3903,11 @@ std::string
 ImageCacheImpl::geterror(bool clear) const
 {
     std::string e;
-    std::string* errptr = m_errormessage.get();
-    if (errptr) {
-        e = *errptr;
+    auto iter = imcache_error_messages.find(imagecache_id);
+    if (iter != imcache_error_messages.end()) {
+        e = iter.value();
         if (clear)
-            errptr->clear();
+            imcache_error_messages.erase(iter);
     }
     return e;
 }
@@ -3932,18 +3919,13 @@ ImageCacheImpl::append_error(string_view message) const
 {
     if (message.size() && message.back() == '\n')
         message.remove_suffix(1);
-    std::string* errptr = m_errormessage.get();
-    if (!errptr) {
-        errptr = new std::string;
-        m_errormessage.reset(errptr);
-    }
-    OIIO_DASSERT(errptr != NULL);
+    std::string& err_str = imcache_error_messages[imagecache_id];
     OIIO_DASSERT(
-        errptr->size() < 1024 * 1024 * 16
+        err_str.size() < 1024 * 1024 * 16
         && "Accumulated error messages > 16MB. Try checking return codes!");
-    if (errptr->size() && errptr->back() != '\n')
-        *errptr += '\n';
-    *errptr += std::string(message);
+    if (err_str.size() && err_str.back() != '\n')
+        err_str += '\n';
+    err_str.append(message.begin(), message.end());
 }
 
 

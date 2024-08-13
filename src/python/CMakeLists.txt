@@ -11,12 +11,6 @@ setup_python_module (TARGET    PyOpenImageIO
                      LIBS      OpenImageIO ${OPENIMAGEIO_IMATH_TARGETS}
                      )
 
-target_compile_definitions(PyOpenImageIO PRIVATE
-                           ${${PROJECT_NAME}_compile_definitions})
-target_compile_options(PyOpenImageIO PRIVATE
-                           ${${PROJECT_NAME}_compile_options})
-
-
 # Unity builds: If in unity group mode, make the python bindings one group. If
 # in unity batch mode, use the smaller batch size because these tend to be
 # expensive files to compile.

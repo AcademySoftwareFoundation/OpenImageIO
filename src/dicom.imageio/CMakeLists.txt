@@ -5,7 +5,7 @@
 if (DCMTK_FOUND)
     add_oiio_plugin (dicominput.cpp
                      LINK_LIBRARIES DCMTK::DCMTK
-                     DEFINITIONS "-DUSE_DCMTK=1")
+                     DEFINITIONS "USE_DCMTK=1")
 else ()
     message (WARNING "DICOM plugin will not be built, no DCMTK")
 endif ()

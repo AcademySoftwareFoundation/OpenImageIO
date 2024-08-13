@@ -155,7 +155,34 @@ have a heading added at the top for the *next* version.
    pages), and that the [INSTALL.md](../INSTALL.md) file correctly documents
    the version ranges that we expect to work and that we actively test.
 
-2. Release notes: [CHANGES.md](../CHANGES.md) should be updated to reflect
+2. Update deprecations: Deprecations tend to happen in stages, spread over a
+   few releases, taking steps forward depending on what kind of release is
+   occurring:
+
+   - Tweak releases (a.b.c.d -> a.b.c.D+1): should not introduce new
+     deprecations.
+   - Monthly patch releases (a.b.c.d -> a.b.C+1.0): advertise that a function
+     is deprecated in its comments, documentation, and release notes. Remember
+     that these releases are not allowed to break ABI/link compatibility.
+   - Annual minor releases (a.b.c.d -> a.B+1.0.0): functions previously
+     marked/documented as deprecated should receive deprecation warnings by
+     adding `OIIO_DEPRECATED` macros to function or class declarations where
+     possible, if that has not already been done. Use good judgment about
+     whether to add these warnings, or postpone to a later release, based on
+     the amount of disruption that they will likely cause, and how important
+     it is to rapidly discourage people from using the deprecated function.
+     For a minor release, we don't allow backwards-incompatible API changes,
+     so only *remove* a function if there is another function that will accept
+     the same call signature in the source code. It's allowed to break ABI for
+     minor releases, so it's ok/encouraged to make a deprecated function from
+     linked to inline, for example (which might allow it to be removed later
+     without an ABI change).
+   - Major releases (a.b.c.d -> A+1.b.c.d): API compatibility breaks are
+     allowed here, so this is the time to completely remove any functions that
+     have already had a full minor release where they had been given
+     deprecation warning macros.
+   
+3. Release notes: [CHANGES.md](../CHANGES.md) should be updated to reflect
    all the new features and fixes. Looking at the notes from older releases
    should provide a good example of what we're aiming for.
 
@@ -168,7 +195,7 @@ have a heading added at the top for the *next* version.
      internals and developer goodies, testing/CI/ports, etc.) and ordered for
      readability and relevance.
    
-3. Ensure docs are up to date:
+4. Ensure docs are up to date:
 
    - [README.md](README.md): Actually read it! Make sure it all seems
      accurate and up to date.
@@ -182,7 +209,7 @@ have a heading added at the top for the *next* version.
      ensure it's building correctly and doesn't have any obvious errors,
      especially the parts that describe new features.
 
-4. Make sure the the top-level CMakeLists.txt file is updated:
+5. Make sure the the top-level CMakeLists.txt file is updated:
 
    - The `OpenImageIO_VERSION` should be correct.
    - The `PROJECT_VERSION_RELEASE_TYPE` variable should be set to "alpha" or
@@ -192,14 +219,14 @@ have a heading added at the top for the *next* version.
    - The `${PROJECT_NAME}_SUPPORTED_RELEASE` variable should be `ON` for any
      release branch, `OFF` for master.
 
-5. In the https://github.com/AcademySoftwareFoundation/OpenImageIO-images project, create a branch
+6. In the https://github.com/AcademySoftwareFoundation/OpenImageIO-images project, create a branch
    `dev-x.y` for the major/minor branch, and in the main oiio repo, update
    src/build-scripts/install_test_images.bash to specify `-b dev-x.y` in the
    checkout of oiio-images to ensure CI tests are against the set of test
    images corresponding to that major/minor release (just in the branch, not
    in master!).
 
-6. Make sure everything passes the usual CI workflow. Also check the daily or
+7. Make sure everything passes the usual CI workflow. Also check the daily or
    weekly "analysis" workflows to make sure there aren't any important
    warnings that should be fixed.
 
@@ -241,7 +268,7 @@ The following are the steps for making the release:
 
 2. Edit CHANGES.md to reflect the correct date of the release and ensure it
    includes any last-minute changes that were made during beta or release
-   candidate stages.
+   candidate stages. Please see the section "Generating release notes" below.
 
 3. Push it to **your** GitHub, make sure it passes CI.
    
@@ -253,7 +280,7 @@ The following are the steps for making the release:
 6. Push it to GitHub: `git push OpenImageIO release --tags`
 
    (This example assumes "OpenImageIO" is the name of the remote for the
-   GitHub `OpenImageIO/oiio` repo.)
+   GitHub `AcademySoftwareFoundation/OpenImageIO` repo.)
 
 7. Draft a release on GitHub: On https://github.com/AcademySoftwareFoundation/OpenImageIO/releases
    select "Draft a new release." Choose the new tag you just pushed. Make the
@@ -268,26 +295,25 @@ The following are the steps for making the release:
 
    For a monthly patch release:
 
-    > We have tagged v1.2.3.4 as the latest production release and moved the
+    > We have tagged v2.5.1.0 as the latest production release and moved the
     > "release" branch marker to that point.  This is guaranteed to be API,
-    > ABI, and link back-compatible with prior 1.2 releases. Release notes
-    > are below.
-    >
-    > (Paste the full set of 1.2 changes here, just copy the appropriate
-    > part of CHANGES.md)
+    > ABI, and link back-compatible with prior 2.5 releases. Release notes
+    > can be found at *LINK TO THE GITHUB RELEASE PAGE.*
 
    For an annual major/minor release:
 
-    > OpenImageIO version 1.2 has been released! Officially tagged as
-    > "v1.2.3.4", we have also moved the "release" branch tag to this
-    > position. Henceforth, 1.2 is the supported production release family.
-    > The API is now frozen -- we promise that subsequent 1.2.x releases
+    > OpenImageIO version 3.0 has been released! Officially tagged as
+    > "v3.0.0.0", we have also moved the "release" branch tag to this
+    > position. Henceforth, 3.0 is the supported production release family.
+    > The API is now frozen -- we promise that subsequent 3.0.x releases
     > (which should happen monthly) will not break back-compatibility of API,
     > ABI, or linkage, compared to this release. Please note that this release
-    > is *not* ABI or link compatible with 1.1 or older releases.
+    > is *not* ABI or link compatible with 2.5 or older releases.
     > 
-    > Release notes for 1.2 outlining all the changes since last year's
-    > release are below.
+    > Release notes for 3.0 outlining all the changes since last year's
+    > release can be found at *LINK TO THE GITHUB RELEASE PAGE.*
+    > (Optionally, you can include a brief summary of the most important
+    > changes in this email.)
     > 
     > Please note that a few of the build and runtime dependencies have
     > changed their minimum supported versions. (List here any important
@@ -301,35 +327,35 @@ The following are the steps for making the release:
     > backward-compatible with prior versions, warn about that here.)
     > 
     > Enjoy, and please report any problems. We will continue to make patch
-    > releases to the 1.2 family roughly monthly, which will contain bug fixes
+    > releases to the 3.0 family roughly monthly, which will contain bug fixes
     > and non-breaking enhancements.
     > 
-    > The older 1.1 series of releases is now considered obsolete. We will
-    > continue for now to make 1.1 patch releases, but over time, these will
+    > The older 2.5 series of releases is now considered obsolete. We will
+    > continue for now to make 2.4 patch releases, but over time, these will
     > become less frequent and be reserved for only the most critical bug
     > fixes.
     > 
-    > The "master" branch is now progressing toward an eventual 1.3 release next
-    > summer. As usual, you are welcome to use master for real work, but we do
+    > The "master" branch is now progressing toward an eventual 3.1 release next
+    > fall. As usual, you are welcome to use master for real work, but we do
     > not make any compatibility guarantees and don't guarantee continuing API
     > compatibility in master.
     >
-    > (Paste the full set of 1.2 changes here, just copy the appropriate
+    > (Paste the full set of 3.0 changes here, just copy the appropriate
     > part of CHANGES.md)
 
    For a beta leading up to the annual major/minor release:
 
-    > OpenImageIO version 1.2 is now in beta, tagged as "v1.2.3.4-beta". We
+    > OpenImageIO version 3.0 is now in beta, tagged as "v3.0.0.0-beta". We
     > will try very hard not to make any further API or ABI changes between
     > now and the final release (unless it is absolutely necessary to fix
-    > an important problem identified during beta testing). The final 1.2
+    > an important problem identified during beta testing). The final 3.0
     > release is scheduled for [DATE GOES HERE], so please try building and
     > testing the beta so we are sure to find any problems.
     > 
-    > Release notes for 1.2 outlining all the changes since last year's
+    > Release notes for 3.0 outlining all the changes since last year's
     > release are below.
     > 
-    > (Paste the full set of 1.2 changes here, just copy the appropriate
+    > (Paste the full set of 3.0 changes here, just copy the appropriate
     > part of CHANGES.md)
 
 
@@ -353,3 +379,86 @@ Odds and ends to do after the tag is pushed and the announcements are sent:
   (blank) heading for the next patch or release.
 
 
+## Generating release notes
+
+We strongly encourage the use of "conventional commit" prefixes in commit
+messages. See [CONTRIBUTING.md](CONTRIBUTING.md#commit-messages) for details.
+
+Many PRs are submitted (even by the author of this section you are now
+reading!) without the conventional commit prefix. The person who approves and
+merges the commit should take responsibility during the merge process to edit
+the commit message to add the appropriate prefix (and for that matter, to edit
+any part of the commit message for clarity). But at the end of the day, if we
+end up with some commits lacking a conventional commit prefix, it's no big
+deal -- we can fix it all up by hand when we make the release notes. But
+having CC prefixes in as many commit messages possible helps make the release
+notes process be simpler and more automated.
+
+We have been using the [git-cliff](https://github.com/orhun/git-cliff) tool
+as the starting point for relese notes. The command we use is:
+
+    git cliff -c src/doc/cliff.toml -d v1.2.3.4..HEAD > cliff.out.md
+
+where v1.2.3.4 in this example is the tag of the last release. You could also
+use commit hashes to denote the range of changes you want to document.
+
+**For monthly patch releases**
+
+We have found that the git-cliff output is most of what we need for the patch
+releases, and can be copied into the CHANGES.md file with only some minor
+editing needed. The template for the patch release notes can be found in
+[Changes-skeleton-patch.md](docs/dev/Changes-skeleton-patch.md).
+
+* Get rid of the headings that git-cliff generates. We don't use the headings
+  for the patch releases.
+* Add prefixes to any commits that don't have them (they will be marked as
+  "uncategorized" by git-cliff), and feel free to change any of the existing
+  prefixes that you think are wrong or could be improved for clarity.
+* Rearrange the order of the entries to be logical and readable. I prefer the
+  order: feature enhancements, bug fixes, build system fixes that might impact
+  users, internal changes, test improvements, documentation and administrative
+  changes.
+* For patch releases, feel free to omit any entries that you think are not
+  user-facing and are too minor to be worth mentioning in the release notes.
+
+Strive to keep the release notes just long enough for users to know if the
+patch contains any fixes relevant to them, but short enough to be read at a
+glance and without extraneous detail.
+
+Here is an example of well-constructed monthly patch release notes:
+https://github.com/AcademySoftwareFoundation/OpenImageIO/releases/tag/v2.5.12.0
+
+**For annual major/minor releases**
+
+For major releases, the git-cliff output is just a starting point and need
+significant editing to get the detail and quality level we expect for our
+major releases. A simple bullet list of commits is not sufficient -- we aim
+for a prose-based description of important changes that "tell the story" of
+the year's work and will be thoroughly understood by our stakeholders who need
+to understand what has changed.
+
+* Copy all the headings from [Changes-skeleton-major.md](docs/dev/Changes-skeleton-major.md)
+  or the previous year's release notes to get the skeleton of the major and
+  minor headers that you fit everything into. Note that it mostly corresponds
+  to sections of the git-cliff output, but with a more carefully constructed
+  hierarchy of categories.
+* Add prefixes to any commits that don't have them (they will be marked as
+  "uncategorized" by git-cliff), and feel free to change any of the existing
+  prefixes that you think are wrong or could be improved for clarity.
+* Rearrange the git-cliff output into the hierarchy of our preferred major
+  release notes organization. Within each section and subsection, group
+  similar changes together. The chronological order of the commits isn't as
+  important as clearly explaining what changed over the course of the year.
+* The git-cliff output is a good starting point for populating the notes with
+  every PR, plus automatically adding a reference and link to the PR and the
+  name of the author of the patch.
+* Look with a skeptical eye at the one-line bullet points from git-cliff (i.e,
+  from the first line of each PR's commit message). Often, they are too terse
+  or tend to [bury the lede](https://www.dictionary.com/e/slang/bury-the-lede/).
+  Expand into as much explanation is necessary for users who need to know
+  about the change or feature to know whether it is relevant and have some
+  idea what to do or that they should look at the relevant PRs for more
+  detail.
+
+Here is an example of well-constructed annual major release notes:
+https://github.com/AcademySoftwareFoundation/OpenImageIO/releases/tag/v2.5.4.0

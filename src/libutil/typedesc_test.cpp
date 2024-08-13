@@ -8,11 +8,8 @@
 
 #include <OpenImageIO/Imath.h>
 
-#if OIIO_USING_IMATH >= 3
-#    include <Imath/ImathBox.h>
-#else
-#    include <OpenEXR/ImathBox.h>
-#endif
+#include <Imath/ImathBox.h>
+
 #include <OpenEXR/ImfKeyCode.h>
 #include <OpenEXR/ImfTimeCode.h>
 

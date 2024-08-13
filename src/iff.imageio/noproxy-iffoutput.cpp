@@ -58,7 +58,7 @@ IffOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     //       ...
 
     if (mode != Create) {
-        errorf("%s does not support subimages or MIP levels", format_name());
+        errorfmt("{} does not support subimages or MIP levels", format_name());
         return false;
     }
 
@@ -74,7 +74,7 @@ IffOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 
     m_fd = Filesystem::fopen(m_filename, "wb");
     if (!m_fd) {
-        errorf("Could not open \"%s\"", m_filename);
+        errorfmt("Could not open \"{}\"", m_filename);
         return false;
     }
 
@@ -97,8 +97,8 @@ IffOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     uint64_t xtiles = tile_width_size(m_spec.width);
     uint64_t ytiles = tile_height_size(m_spec.height);
     if (xtiles * ytiles >= (1 << 16)) {  // The format can't store it!
-        errorf(
-            "Too high a resolution (%dx%d), exceeds maximum of 64k tiles in the image\n",
+        errorfmt(
+            "Too high a resolution ({}x{}), exceeds maximum of 64k tiles in the image\n",
             m_spec.width, m_spec.height);
         close();
         return false;
@@ -116,7 +116,7 @@ IffOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     m_iff_header.date           = m_spec.get_string_attribute("DateTime");
 
     if (!write_header(m_iff_header)) {
-        errorf("\"%s\": could not write iff header", m_filename);
+        errorfmt("\"{}\": could not write iff header", m_filename);
         close();
         return false;
     }

@@ -123,7 +123,7 @@ JpgInput::jpegerror(my_error_ptr /*myerr*/, bool fatal)
     // Send the error message to the ImageInput
     char errbuf[JMSG_LENGTH_MAX];
     (*m_cinfo.err->format_message)((j_common_ptr)&m_cinfo, errbuf);
-    errorf("JPEG error: %s (\"%s\")", errbuf, filename());
+    errorfmt("JPEG error: {} (\"{}\")", errbuf, filename());
 
     // Shut it down and clean it up
     if (fatal) {
@@ -182,15 +182,15 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
     // Check magic number to assure this is a JPEG file
     uint8_t magic[2] = { 0, 0 };
     if (m_io->pread(magic, sizeof(magic), 0) != sizeof(magic)) {
-        errorf("Empty file \"%s\"", name);
+        errorfmt("Empty file \"{}\"", name);
         close_file();
         return false;
     }
 
     if (magic[0] != JPEG_MAGIC1 || magic[1] != JPEG_MAGIC2) {
         close_file();
-        errorf(
-            "\"%s\" is not a JPEG file, magic number doesn't match (was 0x%x%x)",
+        errorfmt(
+            "\"{}\" is not a JPEG file, magic number doesn't match (was 0x{:x}{:x})",
             name, int(magic[0]), int(magic[1]));
         return false;
     }
@@ -228,7 +228,7 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
 
     // read the file parameters
     if (jpeg_read_header(&m_cinfo, FALSE) != JPEG_HEADER_OK || m_fatalerr) {
-        errorf("Bad JPEG header for \"%s\"", filename());
+        errorfmt("Bad JPEG header for \"{}\"", filename());
         return false;
     }
 
@@ -469,7 +469,7 @@ JpgInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         // Keep reading until we've read the scanline we really need
         if (jpeg_read_scanlines(&m_cinfo, (JSAMPLE**)&readdata, 1) != 1
             || m_fatalerr) {
-            errorf("JPEG failed scanline read (\"%s\")", filename());
+            errorfmt("JPEG failed scanline read (\"{}\")", filename());
             return false;
         }
     }

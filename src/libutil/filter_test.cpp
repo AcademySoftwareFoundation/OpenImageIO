@@ -105,11 +105,11 @@ graph_1d()
     ImageBuf graph(ImageSpec(graphxres, graphyres, 3, TypeDesc::UINT8));
     float white[3] = { 1, 1, 1 };
     float black[3] = { 0, 0, 0 };
-    ImageBufAlgo::fill(graph, white);
+    ImageBufAlgo::fill(graph, cspan<float>(white));
     ImageBufAlgo::render_line(graph, 0, graphyzero, graphxres - 1, graphyzero,
-                              black);
+                              cspan<float>(black));
     ImageBufAlgo::render_line(graph, graphxzero, 0, graphxzero, graphyres - 1,
-                              black);
+                              cspan<float>(black));
     int lastx = 0, lasty = 0;
     for (int i = 0, e = Filter1D::num_filters(); i < e; ++i) {
         FilterDesc filtdesc;
@@ -124,7 +124,7 @@ graph_1d()
         if (filtdesc.name != f->name())
             filtname = Strutil::fmt::format("{} ({})", filtname, f->name());
         ImageBufAlgo::render_text(graph, 10, 20 + i * 20, filtname, 16,
-                                  "" /*font name*/, color);
+                                  "" /*font name*/, cspan<float>(color));
         for (int x = 0; x < graphxres; ++x) {
             float xx = float(x - graphxzero) / graphunit;
             float yy = (*f)(xx)*scale;
@@ -152,7 +152,7 @@ graph_2d()
     ImageBuf graph(ImageSpec(graphxres, graphyres, 3, TypeDesc::UINT8));
     float white[3] = { 1, 1, 1 };
     float black[3] = { 0, 0, 0 };
-    ImageBufAlgo::fill(graph, white);
+    ImageBufAlgo::fill(graph, cspan<float>(white));
     ImageBufAlgo::render_line(graph, 0, graphyzero, graphxres - 1, graphyzero,
                               black);
     ImageBufAlgo::render_line(graph, graphxzero, 0, graphxzero, graphyres - 1,
@@ -172,13 +172,14 @@ graph_2d()
         if (filtdesc.name != f->name())
             filtname = Strutil::fmt::format("{} ({})", filtname, f->name());
         ImageBufAlgo::render_text(graph, 10, 20 + i * 20, filtname, 16,
-                                  "" /*font name*/, color);
+                                  "" /*font name*/, cspan<float>(color));
         for (int x = 0; x < graphxres; ++x) {
             float xx = float(x - graphxzero) / graphunit;
             float yy = (*f)(xx, 0.0f) * scale;
             int y    = int(graphyzero - yy * graphunit);
             if (x > 0)
-                ImageBufAlgo::render_line(graph, lastx, lasty, x, y, color);
+                ImageBufAlgo::render_line(graph, lastx, lasty, x, y,
+                                          cspan<float>(color));
             lastx = x;
             lasty = y;
         }

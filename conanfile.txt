@@ -3,7 +3,6 @@ zlib/1.2.11
 libtiff/4.0.9
 libpng/1.6.37
 openexr/2.4.0
-boost/1.70.0
 libjpeg/9c
 libjpeg-turbo/2.0.2
 giflib/5.1.4

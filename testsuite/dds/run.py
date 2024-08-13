@@ -36,6 +36,16 @@ files = [
     "dds_rgb10a2.dds",
     "dds_rgb332.dds",
     "dds_rgb5a1.dds",
+    "dds_dxgi_bc1_srgb.dds",
+    "dds_dxgi_bc2_srgb.dds",
+    "dds_dxgi_bc3_srgb.dds",
+    "dds_dxgi_bc7_srgb.dds",
+    "dds_dxgi_rgba8_srgb.dds",
+    "dds_dxgi_bgra8_srgb.dds",
+    "dds_dxgi_bgrx8_srgb.dds",
+    "dds_dxgi_rgb10a2.dds",
+    "dds_dxgi_r16.dds",
+
     # In some CI matrix cases a PtexReader
     # also attempts to read this, and outputs
     # a "PtexReader error: read failed (EOF)"

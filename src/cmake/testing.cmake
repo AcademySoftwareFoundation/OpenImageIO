@@ -69,17 +69,9 @@ macro (oiio_add_tests)
             set (_test_disabled 1)
         endif ()
     endforeach ()
-    if (OpenColorIO_VERSION VERSION_GREATER_EQUAL 2.2
-          AND NOT (OIIO_DISABLE_BUILTIN_OCIO_CONFIGS OR "$ENV{OIIO_DISABLE_BUILTIN_OCIO_CONFIGS}"))
-        # For OCIO 2.2+, have the testsuite use the default built-in config
-        list (APPEND _ats_ENVIRONMENT "OCIO=ocio://default"
-                                      "OIIO_TESTSUITE_OCIOCONFIG=ocio://default")
-    else ()
-        # For OCIO 2.1 and earlier, have the testsuite use one we have in
-        # the testsuite directory.
-        list (APPEND _ats_ENVIRONMENT "OCIO=../common/OpenColorIO/nuke-default/config.ocio"
-                                      "OIIO_TESTSUITE_OCIOCONFIG=../common/OpenColorIO/nuke-default/config.ocio")
-    endif ()
+    # For OCIO 2.2+, have the testsuite use the default built-in config
+    list (APPEND _ats_ENVIRONMENT "OCIO=ocio://default"
+                                  "OIIO_TESTSUITE_OCIOCONFIG=ocio://default")
     if (_test_disabled)
         message (STATUS "Skipping test(s) ${_ats_UNPARSED_ARGUMENTS} because of disabled ${_ats_ENABLEVAR}")
     elseif (_ats_IMAGEDIR AND NOT EXISTS ${_ats_testdir})
@@ -105,7 +97,7 @@ macro (oiio_add_tests)
                 set (_testname "${_testname}-broken")
             endif ()
 
-            set (_runtest ${Python_EXECUTABLE} "${CMAKE_SOURCE_DIR}/testsuite/runtest.py" ${_testdir})
+            set (_runtest ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/testsuite/runtest.py" ${_testdir})
             if (MSVC_IDE)
                 set (_runtest ${_runtest} --devenv-config $<CONFIGURATION>
                                           --solution-path "${CMAKE_BINARY_DIR}" )
@@ -278,7 +270,7 @@ macro (oiio_add_all_tests)
                     IMAGEDIR j2kp4files_v1_5
                     URL http://www.itu.int/net/ITU-T/sigdb/speimage/ImageForm-s.aspx?val=10100803)
     set (all_openexr_tests
-         openexr-suite openexr-multires openexr-chroma
+         openexr-suite openexr-multires openexr-chroma openexr-decreasingy
          openexr-v2 openexr-window perchannel oiiotool-deep)
     if (USE_PYTHON AND NOT SANITIZE)
         list (APPEND all_openexr_tests openexr-copy)

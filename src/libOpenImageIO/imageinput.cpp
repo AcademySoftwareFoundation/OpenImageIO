@@ -8,6 +8,8 @@
 #include <memory>
 #include <vector>
 
+#include <tsl/robin_map.h>
+
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/filesystem.h>
@@ -19,21 +21,26 @@
 
 #include "imageio_pvt.h"
 
-#include <boost/thread/tss.hpp>
-using boost::thread_specific_ptr;
-
 
 OIIO_NAMESPACE_BEGIN
 using namespace pvt;
 
 
+// store an error message per thread, for a specific ImageInput
+static thread_local tsl::robin_map<uint64_t, std::string> input_error_messages;
+static std::atomic_int64_t input_next_id(0);
+
 
 class ImageInput::Impl {
 public:
+    Impl()
+        : m_id(++input_next_id)
+    {
+    }
+
     // So we can lock this ImageInput for the thread-safe methods.
     std::recursive_mutex m_mutex;
-    // Thread-specific error message for this ImageInput.
-    thread_specific_ptr<std::string> m_errormessage;
+    uint64_t m_id;
     int m_threads = 0;
 
     // The IOProxy object we will use for all I/O operations.
@@ -81,7 +88,13 @@ ImageInput::ImageInput()
 
 
 
-ImageInput::~ImageInput() {}
+ImageInput::~ImageInput()
+{
+    // Erase any leftover errors from this thread
+    // TODO: can we clear other threads' errors?
+    // TODO: potentially unsafe due to the static destruction order fiasco
+    // input_error_messages.erase(m_impl->m_id);
+}
 
 
 
@@ -151,7 +164,7 @@ ImageInput::open(const std::string& filename, const ImageSpec* config,
         // error, delete the ImageInput we allocated, and return NULL.
         std::string err = in->geterror();
         if (err.size())
-            OIIO::pvt::errorfmt("{}", err);
+            OIIO::errorfmt("{}", err);
         in.reset();
     }
 
@@ -240,8 +253,8 @@ ImageInput::read_scanline(int y, int z, TypeDesc format, void* data,
         return false;
     if (m_spec.channelformats.empty()) {
         // No per-channel formats -- do the conversion in one shot
-        ok = contiguous ? convert_types(m_spec.format, buf, format, data,
-                                        scanline_values)
+        ok = contiguous ? convert_pixel_values(m_spec.format, buf, format, data,
+                                               scanline_values)
                         : convert_image(m_spec.nchannels, m_spec.width, 1, 1,
                                         buf, m_spec.format, AutoStride,
                                         AutoStride, AutoStride, data, format,
@@ -265,30 +278,6 @@ ImageInput::read_scanline(int y, int z, TypeDesc format, void* data,
         errorfmt("ImageInput::read_scanline : no support for format {}",
                  m_spec.format);
     return ok;
-}
-
-
-
-bool
-ImageInput::read_scanlines(int ybegin, int yend, int z, TypeDesc format,
-                           void* data, stride_t xstride, stride_t ystride)
-{
-    lock_guard lock(*this);
-    return read_scanlines(current_subimage(), current_miplevel(), ybegin, yend,
-                          z, 0, m_spec.nchannels, format, data, xstride,
-                          ystride);
-}
-
-
-
-bool
-ImageInput::read_scanlines(int ybegin, int yend, int z, int chbegin, int chend,
-                           TypeDesc format, void* data, stride_t xstride,
-                           stride_t ystride)
-{
-    lock_guard lock(*this);
-    return read_scanlines(current_subimage(), current_miplevel(), ybegin, yend,
-                          z, chbegin, chend, format, data, xstride, ystride);
 }
 
 
@@ -372,8 +361,8 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
         if (spec.channelformats.empty()) {
             // No per-channel formats -- do the conversion in one shot
             if (contiguous) {
-                ok = convert_types(spec.format, &buf[0], format, data,
-                                   chunkvalues);
+                ok = convert_pixel_values(spec.format, &buf[0], format, data,
+                                          chunkvalues);
             } else {
                 ok = parallel_convert_image(nchans, spec.width, nscanlines, 1,
                                             &buf[0], spec.format, AutoStride,
@@ -529,8 +518,8 @@ ImageInput::read_tile(int x, int y, int z, TypeDesc format, void* data,
         return false;
     if (m_spec.channelformats.empty()) {
         // No per-channel formats -- do the conversion in one shot
-        ok = contiguous ? convert_types(m_spec.format, &buf[0], format, data,
-                                        tile_values)
+        ok = contiguous ? convert_pixel_values(m_spec.format, &buf[0], format,
+                                               data, tile_values)
                         : convert_image(m_spec.nchannels, m_spec.tile_width,
                                         m_spec.tile_height, m_spec.tile_depth,
                                         &buf[0], m_spec.format, AutoStride,
@@ -890,9 +879,14 @@ ImageInput::read_image(TypeDesc format, void* data, stride_t xstride,
                        ProgressCallback progress_callback,
                        void* progress_callback_data)
 {
-    return read_image(current_subimage(), current_miplevel(), 0, -1, format,
-                      data, xstride, ystride, zstride, progress_callback,
-                      progress_callback_data);
+    int subimage, miplevel;
+    {
+        lock_guard lock(*this);
+        subimage = current_subimage();
+        miplevel = current_miplevel();
+    }
+    return read_image(subimage, miplevel, 0, -1, format, data, xstride, ystride,
+                      zstride, progress_callback, progress_callback_data);
 }
 
 
@@ -1043,7 +1037,7 @@ ImageInput::read_native_deep_image(int subimage, int miplevel,
         return false;
 
     if (spec.depth > 1) {
-        errorf(
+        errorfmt(
             "read_native_deep_image is not supported for volume (3D) images.");
         return false;
         // FIXME? - not implementing 3D deep images for now.  The only
@@ -1090,18 +1084,14 @@ ImageInput::append_error(string_view message) const
 {
     if (message.size() && message.back() == '\n')
         message.remove_suffix(1);
-    std::string* errptr = m_impl->m_errormessage.get();
-    if (!errptr) {
-        errptr = new std::string;
-        m_impl->m_errormessage.reset(errptr);
-    }
+    std::string& err_str = input_error_messages[m_impl->m_id];
     OIIO_DASSERT(
-        errptr->size() < 1024 * 1024 * 16
+        err_str.size() < 1024 * 1024 * 16
         && "Accumulated error messages > 16MB. Try checking return codes!");
-    if (errptr->size() < 1024 * 1024 * 16) {
-        if (errptr->size() && errptr->back() != '\n')
-            *errptr += '\n';
-        *errptr += std::string(message);
+    if (err_str.size() < 1024 * 1024 * 16) {
+        if (err_str.size() && err_str.back() != '\n')
+            err_str += '\n';
+        err_str.append(message.begin(), message.end());
     }
 }
 
@@ -1110,8 +1100,10 @@ ImageInput::append_error(string_view message) const
 bool
 ImageInput::has_error() const
 {
-    std::string* errptr = m_impl->m_errormessage.get();
-    return (errptr && errptr->size());
+    auto iter = input_error_messages.find(m_impl->m_id);
+    if (iter == input_error_messages.end())
+        return false;
+    return iter.value().size() > 0;
 }
 
 
@@ -1120,11 +1112,11 @@ std::string
 ImageInput::geterror(bool clear) const
 {
     std::string e;
-    std::string* errptr = m_impl->m_errormessage.get();
-    if (errptr) {
-        e = *errptr;
+    auto iter = input_error_messages.find(m_impl->m_id);
+    if (iter != input_error_messages.end()) {
+        e = iter.value();
         if (clear)
-            errptr->clear();
+            input_error_messages.erase(iter);
     }
     return e;
 }
@@ -1344,5 +1336,18 @@ ImageInput::check_open(const ImageSpec& spec, ROI range, uint64_t /*flags*/)
 
     return true;  // all is ok
 }
+
+
+
+template<>
+size_t
+pvt::heapsize<ImageInput>(const ImageInput& input)
+{
+    //! TODO: change ImageInput API to add a virtual heapsize() function
+    //! to allow per image input override, and call that function here.
+    return pvt::heapsize(input.m_spec);
+}
+
+
 
 OIIO_NAMESPACE_END

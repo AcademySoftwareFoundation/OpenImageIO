@@ -134,7 +134,7 @@ computePixelStats_(const ImageBuf& src, ImageBufAlgo::PixelStats& stats,
     stats.reset(nchannels);
     OIIO::spin_mutex mutex;  // protect the shared stats when merging
 
-    parallel_options opt(nthreads);
+    paropt opt(nthreads);
     if (src.deep()) {
         parallel_for_chunked(roi.ybegin, roi.yend, 64,
                              [&](int64_t ybegin, int64_t yend) {
@@ -205,17 +205,6 @@ ImageBufAlgo::computePixelStats(const ImageBuf& src, ROI roi, int nthreads)
     if (!ok)
         stats.reset(0);
     return stats;
-}
-
-
-
-// Deprecated:
-bool
-ImageBufAlgo::computePixelStats(PixelStats& stats, const ImageBuf& src, ROI roi,
-                                int nthreads)
-{
-    stats = computePixelStats(src, roi, nthreads);
-    return stats.min.size() == (size_t)src.nchannels();
 }
 
 
@@ -387,17 +376,6 @@ ImageBufAlgo::compare(const ImageBuf& A, const ImageBuf& B, float failthresh,
 
 
 
-bool
-ImageBufAlgo::compare(const ImageBuf& A, const ImageBuf& B, float failthresh,
-                      float warnthresh, ImageBufAlgo::CompareResults& result,
-                      ROI roi, int nthreads)
-{
-    result = compare(A, B, failthresh, warnthresh, roi, nthreads);
-    return result.error == false;
-}
-
-
-
 template<typename T>
 static bool
 isConstantColor_(const ImageBuf& src, float threshold, span<float> color,
@@ -466,12 +444,13 @@ isConstantColor_(const ImageBuf& src, float threshold, span<float> color,
     }
 
     if (color.size()) {
+        int colsize = int(color.size());
         ImageBuf::ConstIterator<T, float> s(src, roi);
-        for (int c = 0; c < roi.chbegin && c < color.size(); ++c)
+        for (int c = 0; c < roi.chbegin && c < colsize; ++c)
             color[c] = 0.0f;
-        for (int c = roi.chbegin; c < roi.chend && c < color.size(); ++c)
+        for (int c = roi.chbegin; c < roi.chend && c < colsize; ++c)
             color[c] = s[c];
-        for (int c = roi.chend; c < src.nchannels() && c < color.size(); ++c)
+        for (int c = roi.chend; c < src.nchannels() && c < colsize; ++c)
             color[c] = 0.0f;
     }
     return result ? true : false;
@@ -658,7 +637,7 @@ ImageBufAlgo::color_count(const ImageBuf& src, imagesize_t* count, int ncolors,
         roi = get_roi(src.spec());
     roi.chend = std::min(roi.chend, src.nchannels());
 
-    if (color.size() < ncolors * src.nchannels()) {
+    if (std::ssize(color) < ncolors * src.nchannels()) {
         src.errorfmt(
             "ImageBufAlgo::color_count: not enough room in 'color' array");
         return false;
@@ -786,28 +765,28 @@ ImageBufAlgo::nonzero_region(const ImageBuf& src, ROI roi, int nthreads)
     for (; roi.ybegin < roi.yend; --roi.yend) {
         ROI test    = roi;
         test.ybegin = roi.yend - 1;
-        if (!isConstantColor(src, &color[0], test, nthreads) || color != zero)
+        if (!isConstantColor(src, 0.0f, color, test, nthreads) || color != zero)
             break;
     }
     // Trim top
     for (; roi.ybegin < roi.yend; ++roi.ybegin) {
         ROI test  = roi;
         test.yend = roi.ybegin + 1;
-        if (!isConstantColor(src, &color[0], test, nthreads) || color != zero)
+        if (!isConstantColor(src, 0.0f, color, test, nthreads) || color != zero)
             break;
     }
     // Trim right
     for (; roi.xbegin < roi.xend; --roi.xend) {
         ROI test    = roi;
         test.xbegin = roi.xend - 1;
-        if (!isConstantColor(src, &color[0], test, nthreads) || color != zero)
+        if (!isConstantColor(src, 0.0f, color, test, nthreads) || color != zero)
             break;
     }
     // Trim left
     for (; roi.xbegin < roi.xend; ++roi.xbegin) {
         ROI test  = roi;
         test.xend = roi.xbegin + 1;
-        if (!isConstantColor(src, &color[0], test, nthreads) || color != zero)
+        if (!isConstantColor(src, 0.0f, color, test, nthreads) || color != zero)
             break;
     }
     if (roi.depth() > 1) {
@@ -815,7 +794,7 @@ ImageBufAlgo::nonzero_region(const ImageBuf& src, ROI roi, int nthreads)
         for (; roi.zbegin < roi.zend; --roi.zend) {
             ROI test    = roi;
             test.zbegin = roi.zend - 1;
-            if (!isConstantColor(src, &color[0], test, nthreads)
+            if (!isConstantColor(src, 0.0f, color, test, nthreads)
                 || color != zero)
                 break;
         }
@@ -823,7 +802,7 @@ ImageBufAlgo::nonzero_region(const ImageBuf& src, ROI roi, int nthreads)
         for (; roi.zbegin < roi.zend; ++roi.zbegin) {
             ROI test  = roi;
             test.zend = roi.zbegin + 1;
-            if (!isConstantColor(src, &color[0], test, nthreads)
+            if (!isConstantColor(src, 0.0f, color, test, nthreads)
                 || color != zero)
                 break;
         }
@@ -997,151 +976,6 @@ ImageBufAlgo::histogram(const ImageBuf& src, int channel, int bins, float min,
         h.clear();
     return h;
 }
-
-
-
-/// histogram_impl -----------------------------------------------------------
-/// Fully type-specialized version of histogram.
-///
-/// Pixel values in min->max range are mapped to 0->(bins-1) range, so that
-/// each value is placed in the appropriate bin. The formula used is:
-/// y = (x-min) * bins/(max-min), where y is the value in the 0->(bins-1)
-/// range and x is the value in the min->max range. There is one special
-/// case x==max for which the formula is not used and x is assigned to the
-/// last bin at position (bins-1) in the vector histogram.
-/// --------------------------------------------------------------------------
-template<class Atype>
-static bool
-histogram_impl_old(const ImageBuf& A, int channel,
-                   std::vector<imagesize_t>& histogram, int bins, float min,
-                   float max, imagesize_t* submin, imagesize_t* supermax,
-                   ROI roi)
-{
-    // Double check A's type.
-    if (A.spec().format != BaseTypeFromC<Atype>::value) {
-        A.errorfmt("Unsupported pixel data format '{}'", A.spec().format);
-        return false;
-    }
-
-    // Initialize.
-    ImageBuf::ConstIterator<Atype, float> a(A, roi);
-    float ratio      = bins / (max - min);
-    int bins_minus_1 = bins - 1;
-    bool submin_ok   = submin != NULL;
-    bool supermax_ok = supermax != NULL;
-    if (submin_ok)
-        *submin = 0;
-    if (supermax_ok)
-        *supermax = 0;
-    histogram.assign(bins, 0);
-
-    // Compute histogram.
-    for (; !a.done(); a++) {
-        float c = a[channel];
-        if (c >= min && c < max) {
-            // Map range min->max to 0->(bins-1).
-            histogram[(int)((c - min) * ratio)]++;
-        } else if (c == max) {
-            histogram[bins_minus_1]++;
-        } else {
-            if (submin_ok && c < min)
-                (*submin)++;
-            else if (supermax_ok)
-                (*supermax)++;
-        }
-    }
-    return true;
-}
-
-
-
-bool
-ImageBufAlgo::histogram(const ImageBuf& A, int channel,
-                        std::vector<imagesize_t>& histogram, int bins,
-                        float min, float max, imagesize_t* submin,
-                        imagesize_t* supermax, ROI roi)
-{
-    pvt::LoggedTimer logtimer("IBA::histogram");
-    if (A.spec().format != TypeFloat) {
-        A.errorfmt("Unsupported pixel data format '{}'", A.spec().format);
-        return false;
-    }
-
-    if (A.nchannels() == 0) {
-        A.errorfmt("Input image must have at least 1 channel");
-        return false;
-    }
-
-    if (channel < 0 || channel >= A.nchannels()) {
-        A.errorfmt("Invalid channel {} for input image with channels 0 to {}",
-                   channel, A.nchannels() - 1);
-        return false;
-    }
-
-    if (bins < 1) {
-        A.errorfmt("The number of bins must be at least 1");
-        return false;
-    }
-
-    if (max <= min) {
-        A.errorfmt("Invalid range, min must be strictly smaller than max");
-        return false;
-    }
-
-    // Specified ROI -> use it. Unspecified ROI -> initialize from A.
-    if (!roi.defined())
-        roi = get_roi(A.spec());
-
-    histogram_impl_old<float>(A, channel, histogram, bins, min, max, submin,
-                              supermax, roi);
-
-    return !A.has_error();
-}
-
-
-
-bool
-ImageBufAlgo::histogram_draw(ImageBuf& R,
-                             const std::vector<imagesize_t>& histogram)
-{
-    pvt::LoggedTimer logtimer("IBA::histogram_draw");
-    // Fail if there are no bins to draw.
-    int bins = histogram.size();
-    if (bins == 0) {
-        R.errorfmt("There are no bins to draw, the histogram is empty");
-        return false;
-    }
-
-    // Check R and modify it if needed.
-    int height = R.spec().height;
-    if (R.spec().format != TypeFloat || R.nchannels() != 1
-        || R.spec().width != bins) {
-        ImageSpec newspec = ImageSpec(bins, height, 1, TypeDesc::FLOAT);
-        R.reset("dummy", newspec);
-    }
-
-    // Fill output image R with white color.
-    ImageBuf::Iterator<float, float> r(R);
-    for (; !r.done(); ++r)
-        r[0] = 1;
-
-    // Draw histogram left->right, bottom->up.
-    imagesize_t max = *std::max_element(histogram.begin(), histogram.end());
-    for (int b = 0; b < bins; b++) {
-        int bin_height = (int)((float)histogram[b] / (float)max * height
-                               + 0.5f);
-        if (bin_height != 0) {
-            // Draw one bin at column b.
-            for (int j = 1; j <= bin_height; j++) {
-                int row = height - j;
-                r.pos(b, row);
-                r[0] = 0;
-            }
-        }
-    }
-    return true;
-}
-
 
 
 OIIO_NAMESPACE_END

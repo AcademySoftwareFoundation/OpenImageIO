@@ -14,13 +14,46 @@
 redirect += " 2>&1"
 failureok = True
 
+# Make some temp files
+command += oiiotool ('-pattern:type=uint8 constant:color=1,0,0 2x2 3 -o a.tif ' +
+                     '-pattern:type=uint8 constant:color=0,1,0 2x2 3 -o b.tif ' +
+                     '-pattern:type=uint8 constant:color=0,0,1 2x2 3 -o c.tif ' +
+                     '-pattern:type=uint8 constant:color=1,1,1 2x2 3 -o d.tif ')
+
+# Test TOP, BOTTOM, IMG[]
+# TOP should be c.tif, BOTTOM should be a.tif
+command += oiiotool ("a.tif b.tif c.tif d.tif " +
+                     "--echo \"Stack holds [0] = {IMG[0].filename}, [1] = {IMG[1].filename}, [2] = {IMG[2].filename}\" " +
+                     "--echo \"TOP = {TOP.filename}, BOTTOM = {BOTTOM.filename}\" "
+                     )
+# Test --pop, --popbottom, --stackreverse, --stackclear, --stackextract
+command += oiiotool (
+      "a.tif b.tif c.tif d.tif "
+    + "--echo \"Stack bottom to top:\" "
+    + "--for i 0,{NIMAGES} --echo \"  {IMG[NIMAGES-1-i].filename}\" --endfor "
+    + "--echo \"after --stackreverse:\" --stackreverse "
+    + "--for i 0,{NIMAGES} --echo \"  {IMG[NIMAGES-1-i].filename}\" --endfor "
+    + "--echo \"after --stackreverse:\" --stackreverse "
+    + "--for i 0,{NIMAGES} --echo \"  {IMG[NIMAGES-1-i].filename}\" --endfor "
+    + "--echo \"after --pop:\" --pop "
+    + "--for i 0,{NIMAGES} --echo \"  {IMG[NIMAGES-1-i].filename}\" --endfor "
+    + "--echo \"after --popbottom:\" --popbottom "
+    + "--for i 0,{NIMAGES} --echo \"  {IMG[NIMAGES-1-i].filename}\" --endfor "
+    + "--echo \"after --stackclear:\" --stackclear "
+    + "--for i 0,{NIMAGES} --echo \"  {IMG[NIMAGES-1-i].filename}\" --endfor "
+    + "--echo \"Re-add a, b, c, d:\" "
+    + "a.tif b.tif c.tif d.tif "
+    + "--for i 0,{NIMAGES} --echo \"  {IMG[NIMAGES-1-i].filename}\" --endfor "
+    + "--echo \"--stackextract 2:\" --stackextract 2 "
+    + "--for i 0,{NIMAGES} --echo \"  {IMG[NIMAGES-1-i].filename}\" --endfor "
+    )
+
 # test expression substitution
 command += oiiotool ('-echo "42+2 = {42+2}" ' +
                      '-echo "42-2 = {42-2}" ' +
                      '-echo "42*2 = {42*2}" ' +
-                     '-echo "42/2 = {42/2}"')
-
-command += oiiotool ('-echo "42<41 = {42<41}" ' +
+                     '-echo "42/2 = {42/2}" ' +
+                     '-echo "42<41 = {42<41}" ' +
                      '-echo "42<42 = {42<42}" ' +
                      '-echo "42<43 = {42<43}" ' +
                      '-echo "42<=41 = {42<=41}" ' +
@@ -40,9 +73,8 @@ command += oiiotool ('-echo "42<41 = {42<41}" ' +
                      '-echo "42!=43 = {42!=43}" ' +
                      '-echo "42<=>41 = {42<=>41}" ' +
                      '-echo "42<=>42 = {42<=>42}" ' +
-                     '-echo "42<=>43 = {42<=>43}" ')
-
-command += oiiotool ('-echo "(1==2)&&(2==2) = {(1==2)&&(2==2)}" ' +
+                     '-echo "42<=>43 = {42<=>43}" ' +
+                     '-echo "(1==2)&&(2==2) = {(1==2)&&(2==2)}" ' +
                      '-echo "(1==1)&&(2==2) = {(1==1)&&(2==2)}" ' +
                      '-echo "(1==2)&&(1==2) = {(1==2)&&(1==2)}" ' +
                      '-echo "(1==2)||(2==2) = {(1==2)||(2==2)}" ' +
@@ -51,12 +83,11 @@ command += oiiotool ('-echo "(1==2)&&(2==2) = {(1==2)&&(2==2)}" ' +
                      '-echo "not(1==1) = {not(1==1)}" ' +
                      '-echo "not(1==2) = {not(1==2)}" ' +
                      '-echo "!(1==1) = {!(1==1)}" ' +
-                     '-echo "!(1==2) = {!(1==2)}"')
-
-command += oiiotool ('-echo "eq(foo,foo) = {eq(\'foo\',\'foo\')}" ' +
+                     '-echo "!(1==2) = {!(1==2)}" ' +
+                     '-echo "eq(foo,foo) = {eq(\'foo\',\'foo\')}" ' +
                      '-echo "eq(foo,bar) = {eq(\'foo\',\'bar\')}" ' +
                      '-echo "neq(foo,foo) = {neq(\'foo\',\'foo\')}" ' +
-                     '-echo "neq(foo,bar) = {neq(\'foo\',\'bar\')}"')
+                     '-echo "neq(foo,bar) = {neq(\'foo\',\'bar\')}" ')
 
 command += oiiotool ('-echo "16+5={16+5}" -echo "16-5={16-5}" -echo "16*5={16*5}"')
 command += oiiotool ('-echo "16/5={16/5}" -echo "16//5={16//5}" -echo "16%5={16%5}"')
@@ -88,6 +119,8 @@ command += oiiotool ('-echo "Testing --set of various explicit types:" ' +
                      '-set:type=timecode tc 01:02:03:04 ' +
                      '-set:type=rational rat 1/2 ' +
                      '-echo "  i = {i}, f = {f}, s = {s}, tc = {tc}, rat = {rat}"')
+command += oiiotool ('-echo "This should make an error:" ' +
+                     '-set 3 5')
 
 # Test getattribute in an expression
 command += oiiotool ('-echo "Expr getattribute(\"limits:channels\") = {getattribute(\"limits:channels\")}"')
@@ -105,11 +138,16 @@ command += oiiotool ('-echo "Testing while (expect output 0..2):" -set i 0 --whi
 command += oiiotool ('-echo "Testing endwhile without while:" -endwhile -echo " "')
 
 # Test --for --endfor
-command += oiiotool ('-echo "Testing for i 5 (expect output 0..4):" --for i 5 --echo "  i = {i}" --endfor -echo " "')
-command += oiiotool ('-echo "Testing for i 5,10 (expect output 5..9):" --for i 5,10 --echo "  i = {i}" --endfor -echo " "')
-command += oiiotool ('-echo "Testing for i 5,10,2 (expect output 5,7,9):" --for i 5,10,2 --echo "  i = {i}" --endfor -echo " "')
+command += oiiotool (
+      '-echo "Testing for i 5 (expect output 0..4):" --for i 5 --echo "  i = {i}" --endfor -echo " " '
+    + '-echo "Testing for i 5,10 (expect output 5..9):" --for i 5,10 --echo "  i = {i}" --endfor -echo " " '
+    + '-echo "Testing for i 5,10,2 (expect output 5,7,9):" --for i 5,10,2 --echo "  i = {i}" --endfor -echo " " '
+    + '-echo "Testing for i 10,5,-1 (expect output 10..6):" --for i 10,5,-1 --echo "  i = {i}" --endfor -echo " " '
+    + '-echo "Testing for i 10,5 (expect output 10..6):" --for i 10,5 --echo "  i = {i}" --endfor -echo " " '
+    )
 command += oiiotool ('-echo "Testing endfor without for:" -endfor -echo " "')
 command += oiiotool ('-echo "Testing for i 5,10,2,8 (bad range):" --for i 5,10,2,8 --echo "  i = {i}" --endfor -echo " "')
+
 
 # test sequences
 command += oiiotool ("../common/tahoe-tiny.tif -o copyA.1-10#.jpg")
@@ -132,9 +170,13 @@ command += oiiotool ("../common/tahoe-tiny.tif"
                      + " --echo \"\\nMeta native: {TOP.METANATIVE}\""
                      + " --echo \"\\nStats:\\n{TOP.STATS}\\n\"")
 
-# Test IMG[]
-command += oiiotool ("../common/tahoe-tiny.tif ../common/tahoe-small.tif " +
-                     "--echo \"Stack holds [0] = {IMG[0].filename}, [1] = {IMG[1].filename}\"")
+# Test IMG[], TOP, BOTTOM
+command += oiiotool ("../common/tahoe-tiny.tif ../common/tahoe-small.tif ../common/grid.tif " +
+                     "--echo \"Stack holds [0] = {IMG[0].filename}, [1] = {IMG[1].filename}, [2] = {IMG[2].filename}\" " +
+                     "--echo \"TOP = {TOP.filename}, BOTTOM = {BOTTOM.filename}\" " +
+                     "--set i 1 " +
+                     "--echo \"Stack holds [{i}] = {IMG[i].filename}\" "
+                     )
 
 # Test some special attribute evaluation names
 command += oiiotool ("../common/tahoe-tiny.tif " +

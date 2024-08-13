@@ -188,7 +188,7 @@ SoftimageInput::read_native_scanline(int subimage, int miplevel, int y,
 
         // Let's seek to the scanline's data
         if (fsetpos(m_fd, &m_scanline_markers[y])) {
-            errorf("Failed to seek to scanline %d in \"%s\"", y, m_filename);
+            errorfmt("Failed to seek to scanline {} in \"{}\"", y, m_filename);
             close();
             return false;
         }
@@ -199,9 +199,8 @@ SoftimageInput::read_native_scanline(int subimage, int miplevel, int y,
         if (m_scanline_markers.size() < m_pic_header.height) {
             if (fsetpos(m_fd,
                         &m_scanline_markers[m_scanline_markers.size() - 1])) {
-                errorf("Failed to restore to scanline %llu in \"%s\"",
-                       (long long unsigned int)m_scanline_markers.size() - 1,
-                       m_filename);
+                errorfmt("Failed to restore to scanline {} in \"{}\"",
+                         m_scanline_markers.size() - 1, m_filename);
                 close();
                 return false;
             }
@@ -234,23 +233,23 @@ SoftimageInput::read_next_scanline(void* data)
     for (auto& cp : m_channel_packets) {
         if (cp.type & UNCOMPRESSED) {
             if (!read_pixels_uncompressed(cp, data)) {
-                errorf("Failed to read uncompressed pixel data from \"%s\"",
-                       m_filename);
+                errorfmt("Failed to read uncompressed pixel data from \"{}\"",
+                         m_filename);
                 close();
                 return false;
             }
         } else if (cp.type & PURE_RUN_LENGTH) {
             if (!read_pixels_pure_run_length(cp, data)) {
-                errorf(
-                    "Failed to read pure run length encoded pixel data from \"%s\"",
+                errorfmt(
+                    "Failed to read pure run length encoded pixel data from \"{}\"",
                     m_filename);
                 close();
                 return false;
             }
         } else if (cp.type & MIXED_RUN_LENGTH) {
             if (!read_pixels_mixed_run_length(cp, data)) {
-                errorf(
-                    "Failed to read mixed run length encoded pixel data from \"%s\"",
+                errorfmt(
+                    "Failed to read mixed run length encoded pixel data from \"{}\"",
                     m_filename);
                 close();
                 return false;

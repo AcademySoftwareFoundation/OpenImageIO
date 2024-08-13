@@ -38,10 +38,6 @@
 #include <OpenImageIO/texture.h>
 #include <OpenImageIO/typedesc.h>
 
-#if PY_MAJOR_VERSION < 3
-OIIO_CLANG_PRAGMA(GCC diagnostic ignored "-Wunused-value")
-#endif
-
 #include <pybind11/numpy.h>
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
@@ -49,14 +45,9 @@ OIIO_CLANG_PRAGMA(GCC diagnostic ignored "-Wunused-value")
 namespace py = pybind11;
 
 
-#if PY_MAJOR_VERSION == 2
-// Preferred Python string caster for Python2 is py::bytes, so it's a byte
-// string (not unicode).
-#    define PY_STR py::bytes
-#else
 // Python3 is always unicode, so return a true str
-#    define PY_STR py::str
-#endif
+#define PY_STR py::str
+
 
 
 namespace pybind11 {
@@ -89,8 +80,6 @@ namespace detail {
 
 
 namespace PyOpenImageIO {
-
-//using namespace boost::python;
 
 using namespace OIIO;
 

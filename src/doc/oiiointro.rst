@@ -230,7 +230,7 @@ OpenImageIO incorporates, distributes, or contains derived works of:
 
 * The SHA-1 implementation we use is public domain by Dominik Reichl  http://www.dominik-reichl.de/
 * PugiXML © 2006-2009 by Arseny Kapoulkine (based on work © 2003 Kristen Wegner), MIT license. http://pugixml.org/
-* DPX reader/writer © 2009 Patrick A. Palmer, BSD 3-clause license. https://github.com/patrickpalmer/dpx}
+* DPX reader/writer © 2009 Patrick A. Palmer, BSD 3-clause license. https://github.com/patrickpalmer/dpx
 * lookup3 code by Bob Jenkins, Public Domain. http://burtleburtle.net/bob/c/lookup3.c
 * xxhash © 2014 Yann Collet, BSD 2-clause license. https://github.com/Cyan4973/xxHash
 * farmhash © 2014 Google, Inc., MIT license. https://github.com/google/farmhash
@@ -244,8 +244,8 @@ OpenImageIO incorporates, distributes, or contains derived works of:
 * fmt library © Victor Zverovich. MIT license. https://github.com/fmtlib/fmt
 * UTF-8 decoder © 2008-2009 Bjoern Hoehrmann, MIT license. http://bjoern.hoehrmann.de/utf-8/decoder/dfa
 * Base-64 encoder © René Nyffenegger, Zlib license. http://www.adp-gmbh.ch/cpp/common/base64.html
-* stb_sprintf © 2017 Sean Barrett, public domain (or MIT license where that   may not apply). https://github.com/nothings/stb
-* bcdec.h bySergii "iOrange" Kudlai, MIT or Unlicense. https://github.com/iOrange/bcdec
+* stb_sprintf © 2017 Sean Barrett, public domain (or MIT license where that may not apply). https://github.com/nothings/stb
+* bcdec.h by Sergii "iOrange" Kudlai, MIT or Unlicense. https://github.com/iOrange/bcdec
 
 OpenImageIO Has the following build-time dependencies (using
 system installs, referencing as git submodules, or downloading as part of
@@ -257,7 +257,6 @@ against dynamic libraries:
 * OpenEXR, Ilmbase, and Half © 2006, Industrial Light & Magic. http://www.openexr.com
 * zlib © 1995-2005 Jean-loup Gailly and Mark Adler. http://www.zlib.net
 * libpng © 1998-2008 Glenn Randers-Pehrson, et al. http://www.libpng.org
-* Boost © various authors. http://www.boost.org
 * GLEW © 2002-2007 Milan Ikits, et al. http://glew.sourceforge.net
 * Ptex © 2009 Disney Enterprises, Inc. http://ptex.us
 * GIFLIB © 1997 Eric S. Raymond (MIT Licensed). http://giflib.sourceforge.net/

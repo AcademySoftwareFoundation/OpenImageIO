@@ -249,8 +249,8 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
 
     // Write IPTC IIM metadata tags, if we have anything
     std::vector<char> iptc;
-    encode_iptc_iim(m_spec, iptc);
-    if (iptc.size()) {
+    if (m_spec.get_int_attribute("jpeg:iptc", 1)
+        && encode_iptc_iim(m_spec, iptc)) {
         static char photoshop[] = "Photoshop 3.0";
         std::vector<char> head(photoshop, photoshop + strlen(photoshop) + 1);
         static char _8BIM[] = "8BIM";
@@ -433,11 +433,11 @@ JpgOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
 {
     y -= m_spec.y;
     if (y != m_next_scanline) {
-        errorf("Attempt to write scanlines out of order to %s", m_filename);
+        errorfmt("Attempt to write scanlines out of order to {}", m_filename);
         return false;
     }
     if (y >= (int)m_cinfo.image_height) {
-        errorf("Attempt to write too many scanlines to %s", m_filename);
+        errorfmt("Attempt to write too many scanlines to {}", m_filename);
         return false;
     }
     assert(y == (int)m_cinfo.next_scanline);

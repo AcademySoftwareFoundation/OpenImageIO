@@ -9,6 +9,8 @@
 #include <memory>
 #include <vector>
 
+#include <tsl/robin_map.h>
+
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/filesystem.h>
@@ -21,23 +23,29 @@
 
 #include "imageio_pvt.h"
 
-#include <boost/thread/tss.hpp>
-using boost::thread_specific_ptr;
 
 
 OIIO_NAMESPACE_BEGIN
 using namespace pvt;
 
 
+// store an error message per thread, for a specific ImageInput
+static thread_local tsl::robin_map<uint64_t, std::string> output_error_messages;
+static std::atomic_int64_t output_next_id(0);
+
 
 class ImageOutput::Impl {
 public:
+    Impl()
+        : m_id(++output_next_id)
+    {
+    }
+
     // Unneeded?
     //  // So we can lock this ImageOutput for the thread-safe methods.
     //  std::recursive_mutex m_mutex;
 
-    // Thread-specific error message for this ImageOutput.
-    thread_specific_ptr<std::string> m_errormessage;
+    uint64_t m_id;
     int m_threads = 0;
 
     // The IOProxy object we will use for all I/O operations.
@@ -82,7 +90,13 @@ ImageOutput::ImageOutput()
 
 
 
-ImageOutput::~ImageOutput() {}
+ImageOutput::~ImageOutput()
+{
+    // Erase any leftover errors from this thread
+    // TODO: can we clear other threads' errors?
+    // TODO: potentially unsafe due to the static destruction order fiasco
+    // output_error_messages.erase(this);
+}
 
 
 
@@ -218,7 +232,7 @@ bool
 ImageOutput::write_deep_image(const DeepData& deepdata)
 {
     if (m_spec.depth > 1) {
-        errorf("write_deep_image is not supported for volume (3D) images.");
+        errorfmt("write_deep_image is not supported for volume (3D) images.");
         return false;
         // FIXME? - not implementing 3D deep images for now.  The only
         // format that supports deep images at this time is OpenEXR, and
@@ -261,17 +275,13 @@ ImageOutput::append_error(string_view message) const
 {
     if (message.size() && message.back() == '\n')
         message.remove_suffix(1);
-    std::string* errptr = m_impl->m_errormessage.get();
-    if (!errptr) {
-        errptr = new std::string;
-        m_impl->m_errormessage.reset(errptr);
-    }
+    std::string& err_str = output_error_messages[m_impl->m_id];
     OIIO_DASSERT(
-        errptr->size() < 1024 * 1024 * 16
+        err_str.size() < 1024 * 1024 * 16
         && "Accumulated error messages > 16MB. Try checking return codes!");
-    if (errptr->size() && errptr->back() != '\n')
-        *errptr += '\n';
-    *errptr += std::string(message);
+    if (err_str.size() && err_str.back() != '\n')
+        err_str += '\n';
+    err_str.append(message.begin(), message.end());
 }
 
 
@@ -518,17 +528,34 @@ ImageOutput::write_image(TypeDesc format, const void* data, stride_t xstride,
         int rps   = m_spec.get_int_attribute("tiff:RowsPerStrip", 64);
         int chunk = std::max(1, (1 << 26) / int(m_spec.scanline_bytes(true)));
         chunk     = round_to_multiple(chunk, rps);
+
+        // Special handling for flipped vertical scanline order. Right now, OpenEXR
+        // is the only format that allows it, so we special case it by name. For
+        // just one format, trying to be more general just seems even more awkward.
+        const bool isDecreasingY = !strcmp(format_name(), "openexr")
+                                   && m_spec.get_string_attribute(
+                                          "openexr:lineOrder")
+                                          == "decreasingY";
+        const int numChunks  = m_spec.height > 0
+                                   ? 1 + ((m_spec.height - 1) / chunk)
+                                   : 0;
+        const int yLoopStart = isDecreasingY ? (numChunks - 1) * chunk : 0;
+        const int yDelta     = isDecreasingY ? -chunk : chunk;
+        const int yLoopEnd   = yLoopStart + numChunks * yDelta;
+
         for (int z = 0; z < m_spec.depth; ++z)
-            for (int y = 0; y < m_spec.height && ok; y += chunk) {
+            for (int y = yLoopStart; y != yLoopEnd && ok; y += yDelta) {
                 int yend      = std::min(y + m_spec.y + chunk,
                                          m_spec.y + m_spec.height);
                 const char* d = (const char*)data + z * zstride + y * ystride;
                 ok &= write_scanlines(y + m_spec.y, yend, z + m_spec.z, format,
                                       d, xstride, ystride);
                 if (progress_callback
-                    && progress_callback(progress_callback_data,
-                                         (float)(z * m_spec.height + y)
-                                             / (m_spec.height * m_spec.depth)))
+                    && progress_callback(
+                        progress_callback_data,
+                        (float)(z * m_spec.height
+                                + (isDecreasingY ? (m_spec.height - 1 - y) : y))
+                            / (m_spec.height * m_spec.depth)))
                     return ok;
             }
     }
@@ -544,7 +571,7 @@ bool
 ImageOutput::copy_image(ImageInput* in)
 {
     if (!in) {
-        errorf("copy_image: no input supplied");
+        errorfmt("copy_image: no input supplied");
         return false;
     }
 
@@ -553,9 +580,9 @@ ImageOutput::copy_image(ImageInput* in)
     if (inspec.width != spec().width || inspec.height != spec().height
         || inspec.depth != spec().depth
         || inspec.nchannels != spec().nchannels) {
-        errorf("Could not copy %d x %d x %d channels to %d x %d x %d channels",
-               inspec.width, inspec.height, inspec.nchannels, spec().width,
-               spec().height, spec().nchannels);
+        errorfmt("Could not copy {} x {} x {} channels to {} x {} x {} channels",
+                 inspec.width, inspec.height, inspec.nchannels, spec().width,
+                 spec().height, spec().nchannels);
         return false;
     }
 
@@ -575,7 +602,7 @@ ImageOutput::copy_image(ImageInput* in)
         if (ok)
             ok = write_deep_image(deepdata);
         else
-            errorf("%s", in->geterror());  // copy err from in to out
+            errorfmt("{}", in->geterror());  // copy err from in to out
         return ok;
     }
 
@@ -590,7 +617,7 @@ ImageOutput::copy_image(ImageInput* in)
     if (ok)
         ok = write_image(format, &pixels[0]);
     else
-        errorf("%s", in->geterror());  // copy err from in to out
+        errorfmt("{}", in->geterror());  // copy err from in to out
     return ok;
 }
 
@@ -658,7 +685,7 @@ ImageOutput::copy_tile_to_image_buffer(int x, int y, int z, TypeDesc format,
                                        void* image_buffer, TypeDesc buf_format)
 {
     if (!m_spec.tile_width || !m_spec.tile_height) {
-        errorf("Called write_tile for non-tiled image.");
+        errorfmt("Called write_tile for non-tiled image.");
         return false;
     }
     const ImageSpec& spec(this->spec());
@@ -677,8 +704,10 @@ ImageOutput::copy_tile_to_image_buffer(int x, int y, int z, TypeDesc format,
 bool
 ImageOutput::has_error() const
 {
-    std::string* errptr = m_impl->m_errormessage.get();
-    return (errptr && errptr->size());
+    auto iter = output_error_messages.find(m_impl->m_id);
+    if (iter == output_error_messages.end())
+        return false;
+    return iter.value().size() > 0;
 }
 
 
@@ -687,11 +716,11 @@ std::string
 ImageOutput::geterror(bool clear) const
 {
     std::string e;
-    std::string* errptr = m_impl->m_errormessage.get();
-    if (errptr) {
-        e = *errptr;
+    auto iter = output_error_messages.find(m_impl->m_id);
+    if (iter != output_error_messages.end()) {
+        e = iter.value();
         if (clear)
-            errptr->clear();
+            output_error_messages.erase(iter);
     }
     return e;
 }
@@ -988,6 +1017,17 @@ ImageOutput::check_open(OpenMode mode, const ImageSpec& userspec, ROI range,
     }
 
     return true;  // all is ok
+}
+
+
+
+template<>
+size_t
+pvt::heapsize<ImageOutput>(const ImageOutput& output)
+{
+    //! TODO: change ImageOutput API to add a virtual heapsize() function
+    //! to allow per image output override, and call that function here.
+    return pvt::heapsize(output.m_spec);
 }
 
 

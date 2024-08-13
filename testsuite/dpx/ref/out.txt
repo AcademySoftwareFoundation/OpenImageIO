@@ -36,6 +36,7 @@ Reading ../oiio-images/dpx_nuke_10bits_rgb.dpx
     dpx:XScannedSize: 0
     dpx:YScannedSize: 0
     oiio:BitsPerSample: 10
+    oiio:subimages: 1
     smpte:TimeCode: 00:00:00:00
 Comparing "../oiio-images/dpx_nuke_10bits_rgb.dpx" and "dpx_nuke_10bits_rgb.dpx"
 PASS
@@ -77,6 +78,7 @@ Reading ../oiio-images/dpx_nuke_16bits_rgba.dpx
     dpx:XScannedSize: 0
     dpx:YScannedSize: 0
     oiio:BitsPerSample: 10
+    oiio:subimages: 1
     smpte:TimeCode: 00:00:00:00
 Comparing "../oiio-images/dpx_nuke_16bits_rgba.dpx" and "dpx_nuke_16bits_rgba.dpx"
 PASS
@@ -100,6 +102,7 @@ stereo.dpx           :   80 x   60, 3 channel, uint10 dpx
     dpx:Transfer: "Undefined"
     dpx:Version: "V2.0"
     oiio:BitsPerSample: 10
+    oiio:subimages: 2
     Stats Min: 0 0 0 (of 1023)
     Stats Max: 1023 1023 1023 (of 1023)
     Stats Avg: 18.64 18.64 18.64 (of 1023)
@@ -124,6 +127,7 @@ stereo.dpx           :   80 x   60, 3 channel, uint10 dpx
     dpx:Transfer: "Undefined"
     dpx:Version: "V2.0"
     oiio:BitsPerSample: 10
+    oiio:subimages: 2
     Stats Min: 0 0 0 (of 1023)
     Stats Max: 1023 1023 1023 (of 1023)
     Stats Avg: 24.44 24.44 24.44 (of 1023)
@@ -151,5 +155,6 @@ grey.dpx             :  512 x  512, 1 channel, uint10 dpx
     dpx:Transfer: "Undefined"
     dpx:Version: "V2.0"
     oiio:BitsPerSample: 10
+    oiio:subimages: 1
 Comparing "grey.dpx" and "ref/grey.tif"
 PASS

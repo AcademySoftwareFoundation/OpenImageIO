@@ -471,7 +471,7 @@ protected:
 };
 
 
-/// IOProxy subclass for reading or writing (but not both) that wraps C
+/// IOProxy subclass for reading or writing (plus re-reading) that wraps C
 /// stdio 'FILE'.
 class OIIO_UTIL_API IOFile : public IOProxy {
 public:
@@ -521,7 +521,9 @@ public:
     {
     }
     const char* proxytype() const override { return "vecoutput"; }
+    size_t read(void* buf, size_t size) override;
     size_t write(const void* buf, size_t size) override;
+    size_t pread(void* buf, size_t size, int64_t offset) override;
     size_t pwrite(const void* buf, size_t size, int64_t offset) override;
     size_t size() const override { return m_buf.size(); }
 

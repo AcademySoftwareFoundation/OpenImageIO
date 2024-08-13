@@ -290,6 +290,9 @@ options are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+   * - ``oiio:subimages``
+     - int
+     - The number of "image elements" (subimages) in the file.
 
 
 **Configuration settings for DPX output**
@@ -547,6 +550,9 @@ storage.  Currently, OpenImageIO only supports 2D FITS data (images), not 3D
    * - ``Hierarch``
      - string
      - FITS "HIERARCH" (*)
+   * - ``oiio:subimages``
+     - int
+     - The number of subimages in the file.
    * - *other*
      - 
      - all other FITS keywords will be added to the ImageSpec as arbitrary
@@ -1071,6 +1077,10 @@ control aspects of the writing itself:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by writing to a memory buffer.
+   * - ``jpeg:iptc``
+     - int (1)
+     - If zero, will suppress writing the IPTC metadata block to the
+       JPEG file.
    * - ``jpeg:progressive``
      - int
      - If nonzero, will write a progressive JPEG file.
@@ -1195,6 +1205,118 @@ the `set_ioproxy()` methods.
 
 |
 
+.. _sec-bundledplugins-jpegxl:
+
+JPEG XL
+===============================================
+
+JPEG XL is a new image format that is designed to be a successor to JPEG
+and to provide better compression and quality. JPEG XL files use the file
+extension :file:`.jxl`. The official JPEG XL format specification and other
+helpful info may be found at: https://jpeg.org/jpegxl/
+
+**Configuration settings for JPEG XL input**
+
+When opening a JPEG XL ImageInput with a *configuration* (see
+Section :ref:`sec-input with-config`), the following special configuration
+attributes are supported:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
+       
+**Configuration settings for JPEG XL output**
+
+When opening a JPEG XL ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+     - Type
+     - JPEG XL header data or explanation
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by writing to a memory buffer.
+   * - ``oiio:UnassociatedAlpha``
+     - int
+     - If nonzero, indicates that the data being passed is already in
+       unassociated form (non-premultiplied colors) and should stay that way
+       for output rather than being assumed to be associated and get automatic
+       un-association to store in the file.
+   * - ``compression``
+     - string
+     - If supplied, must be ``"jpegxl"``, but may optionally have a quality
+       value appended, like ``"jpegxl:90"``. Quality can be 0-100, with 100
+       meaning lossless.
+   * - ``jpegxl:distance``
+     - float
+     - Target visual distance in JND units, lower = higher quality.
+       0.0 = mathematically lossless. 1.0 = visually lossless.
+       Recommended range: 0.5 .. 3.0. Allowed range: 0.0 ... 25.0. 
+       Mutually exclusive with ``*compression jpegxl:*```.
+   * - ``jpegxl:effort``
+     - int
+     - Encoder effort setting. Range: 1 .. 10.
+       Default: 7. Higher numbers allow more computation at the expense of time.
+       For lossless, generally it will produce smaller files.
+       For lossy, higher effort should more accurately reach the target quality.
+   * - ``jpegxl:speed``
+     - int
+     - Sets the encoding speed tier for the provided options. Minimum is 0
+       (slowest to encode, best quality/density), and maximum is 4 (fastest to
+       encode, at the cost of some quality/density). Default is 0.
+       (Note: in libjxl it named JXL_ENC_FRAME_SETTING_DECODING_SPEED. But it
+       is about encoding speed and compression quality, not decoding speed.)
+   * - ``jpegxl:photon_noise_iso``
+     - float
+     - (ISO_FILM_SPEED) Adds noise to the image emulating photographic film or
+       sensor noise. Higher number = grainier image, e.g. 100 gives a low
+       amount of noise, 3200 gives a lot of noise. Default is 0.
+       Encoded as metadata in the image.
+   * - ``jpegxl:use_boxes``
+     - int (bool)
+     - If nonzero, will enable metadata (Exif, XMP, jumb, iptc) writing to the
+     output file. Default is 1.
+   * - ``jpegxl:compress_boxes``
+     - int (bool)
+     - If nonzero, will enable metadata compression. Default is 1.
+   * - ``jpegxl:exif_box``
+     - int (bool)
+     - If nonzero, will enable Exif metadata writing to the output file.
+     Default is 1.
+   * - ``jpegxl:xmp_box``
+     - int (bool)
+     - If nonzero, will enable XMP metadata writing to the output file.
+     Default is 1.
+   * - ``jpegxl:jumb_box``
+     - int (bool)
+     - If nonzero, will enable JUMBF metadata writing to the output file.
+     Default is 0.
+     (dows not supported at this moment in OIIO)
+   * - ``jpegxl:iptc_box``
+     - int (bool)
+     - If nonzero, will enable IPTC metadata writing to the output file.
+     Default is 0.
+     (Do not work as expected at this moment. Box is written but content
+     unreadable in exif readers)
+
 .. _sec-bundledplugins-ffmpeg:
 
 Movie formats (using ffmpeg)
@@ -1216,6 +1338,10 @@ Apple M4V               :file:`.m4v`
 MPEG-1/MPEG-2           :file:`.mpg`
 =====================   ====================================================
 
+The format list include may other file types as well. We rely on the
+:program:`ffmpeg` library to read these files, so the actual list of supported
+formats may vary depending on the version of :program:`ffmpeg` that was linked
+into OpenImageIO.
 
 Currently, these files may only be read. Write support may be added in a
 future release.  Also, currently, these files simply look to OIIO like
@@ -1238,10 +1364,7 @@ Some special attributes are used for movie files:
      - Nonzero value for movie files
    * - ``oiio:subimages``
      - int
-     - The number of frames in the movie, positive if it can be known
-       without reading the entire file. Zero or not present if the number
-       of frames cannot be determinend from reading from just the file
-       header.
+     - The number of frames (subimages) in the movie.
    * - ``FramesPerSecond``
      - int[2] (rational)
      - Frames per second
@@ -1377,6 +1500,9 @@ The official OpenEXR site is http://www.openexr.com/.
    * - ``captureRate``
      - int[2]
      - Frames per second capture rate (vecsemantics will be marked as RATIONAL)
+   * - ``oiio:subimages``
+     - int
+     - The number of "parts" (subimages) in the file.
    * - ``smpte:TimeCode``
      - int[2]
      - SMPTE time code (vecsemantics will be marked as TIMECODE)
@@ -1519,6 +1645,9 @@ report as tiled, using the leaf dimension size.
    * - ``oiio:subimagename``
      - string
      - unique layer name
+   * - ``oiio:subimages``
+     - int
+     - The number of "layers" (subimages) in the file.
    * - ``openvdb:indextoworld``
      - matrix of doubles
      - conversion of voxel index to world space coordinates.
@@ -1678,22 +1807,38 @@ and :ref:`sec-imageinput-ioproxy`) as well as the `set_ioproxy()` methods.
 PNM / Netpbm
 ===============================================
 
-The Netpbm project, a.k.a. PNM (portable "any" map) defines PBM, PGM,
-and PPM (portable bitmap, portable graymap, portable pixmap) files.
+The Netpbm project, a.k.a. PNM (portable "any" map) defines PBM, PGM, PPM
+and later added PFM (portable float map) as a set of simple image formats
+(portable bitmap, portable graymap, portable pixmap) files.
 Without loss of generality, we will refer to these all collectively as
-"PNM."  These files have extensions :file:`.pbm`, :file:`.pgm`, and
-:file:`.ppm` and customarily correspond to bi-level bitmaps, 1-channel
-grayscale, and 3-channel RGB files, respectively, or :file:`.pnm` for
-those who reject the nonsense about naming the files depending on the
+"PNM."  These files have extensions :file:`.pbm`, :file:`.pgm`,
+:file:`.ppm`, :file:`.pfm` and customarily correspond to bi-level bitmaps,
+1-channel grayscale, and 3-channel RGB files, respectively, or :file:`.pnm`
+for those who reject the nonsense about naming the files depending on the
 number of channels and bitdepth.
 
-PNM files are not much good for anything, but because of their
-historical significance and extreme simplicity (that causes many
-"amateur" programs to write images in these formats), OpenImageIO
-supports them.  PNM files do not support floating point images, anything
-other than 1 or 3 channels, no tiles, no multi-image, no MIPmapping.
-It's not a smart choice unless you are sending your images back to the
-1980's via a time machine.
+PNM files are widely used in the Unix world as simple ASCII or binary image 
+files that are easy to read and write. They are not compressed, and are
+not particularly efficient for large images. They are not widely used in
+the professional graphics world, but because of their historical
+significance and extreme simplicity, OpenImageIO supports them.
+PNM files do not support anything other than 1 or 3 channels, no tiles,
+no multi-image, no MIPmapping.
+
+The pbm, pgm, and ppm varieties are stored with scanlines ordered in the
+file as top-to-bottom (the same as the usual OIIO convention), but the
+float-based pfm files are conventionally ordered in the file as
+bottom-to-top. Therefore, by default, reading and writing of the pfm
+variety will automatically flip the image so that an application calling
+the OpenImageIO API can, as usual, assume that scanline 0 is the visual
+"top" (even though it is actually the last scanline stored in the file).
+
+Both the reader and writer accept configuration hints "pnm:pfmflip"
+(default: 1), which if set to 0 will disable this flipping and ensure
+that scanline 0 is written as the first in the file (therefore
+representing what PFM assumes is the visual "bottom" of the image).
+This hint only affects PFM files and has no effect on the pbm, pgm,
+or ppm varieties.
 
 **Attributes**
 
@@ -1731,6 +1876,16 @@ attributes are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+   * - ``pnm:bigendian``
+     - int
+     - If nonzero, the PNM file is big-endian (the default is little-endian).  
+   * - ``pnm:pfmflip``
+     - int
+     - If this configuration hint is present and is zero, the automatic
+       vertical flipping of PFM image will be disabled (i.e., scanline 0 will
+       really be the first one stored in the file). If nonzero (the default),
+       float PFM files will store scanline 0 as the last scanline in the file
+       (i.e. the visual "top" of the image).
 
 **Configuration settings for PNM output**
 
@@ -1753,6 +1908,23 @@ control aspects of the writing itself:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by writing to a memory buffer.
+   * - ``pnm:bigendian``
+     - int
+     - If nonzero, the PNM file is big-endian (the default is little-endian).
+   * - ``pnm:binary``
+     - int
+     - nonzero if the file itself used the PNM binary format, 0 if it used
+       ASCII.  The PNM writer honors this attribute in the ImageSpec to
+       determine whether to write an ASCII or binary file.
+       Float PFM files are always written in binary format.
+   * - ``pnm:pfmflip``
+     - int
+     - If this configuration hint is present and is zero, for PFM files,
+       scanline 0 will really be stored first in the file, thus disabling the
+       usual automatically flipping that accounts for PFM files conventionally
+       being stored in bottom-to-top order. If nonzero (the default), float
+       PFM files will store scanline 0 as the last scanline in the file (i.e.
+       the visual "top" of the image).
 
 **Custom I/O Overrides**
 
@@ -1820,7 +1992,7 @@ Lab or duotone modes.
 
 **Custom I/O Overrides**
 
-PSD output supports the "custom I/O" feature via the special ``"oiio:ioproxy"``
+PSD input supports the "custom I/O" feature via the special ``"oiio:ioproxy"``
 attributes (see Sections :ref:`sec-imageoutput-ioproxy` and
 :ref:`sec-imageinput-ioproxy`) as well as the `set_ioproxy()` methods.
 
@@ -1894,7 +2066,23 @@ options are supported:
      - If nonzero, will use libraw's exposure correction. (Default: 0)
    * - ``raw:use_camera_wb``
      - int
-     - If 1, use libraw's camera white balance adjustment. (Default: 1)
+     - If 1, use libraw's camera white balance adjustment. Takes precedence
+       over ``raw:use_auto_wb``, ``raw:greybox``, ``raw:user_mul``. 
+       (Default: 1)
+   * - ``raw:use_auto_wb``
+     - int
+     - If 1, white balance automatically by averaging over the entire image.
+       Only applies if ``raw:use_camera_wb`` is not equal to 0. Takes 
+       precedence over ``raw:greybox``, ``raw:user_mul``.
+       (Default: 0)
+   * - ``raw:greybox``
+     - int[4]
+     - White balance by averaging over the given box. The four values are the 
+       X and Y coordinate of the top-left corner, the width and the height.
+       Only applies if the size is non-zero, and ``raw:use_camera_wb`` is not 
+       equal to 0, ``raw:use_auto_wb`` is not equal to 0. Takes 
+       precedence over ``raw:user_mul``.
+       (Default: 0, 0, 0, 0; meaning no correction.)
    * - ``raw:use_camera_matrix``
      - int
      - Whether to use the embedded color profile, if it's present: 0 =
@@ -1902,6 +2090,10 @@ options are supported:
    * - ``raw:adjust_maximum_thr``
      - float
      - If nonzero, auto-adjusting maximum value. (Default:0.0)
+   * - ``raw:user_black``
+     - int
+     - If not negative, sets the camera minimum value that will be normalized to
+       appear 0. (Default: -1)
    * - ``raw:user_sat``
      - int
      - If nonzero, sets the camera maximum value that will be normalized to
@@ -1918,7 +2110,8 @@ options are supported:
    * - ``raw:user_mul``
      - float[4]
      - Sets user white balance coefficients. Only applies if ``raw:use_camera_wb``
-       is not equal to 0.
+       is not equal to 0, ``raw:use_auto_wb`` is not equal to 0, and the 
+       ``raw:greybox`` box is zero size.
    * - ``raw:ColorSpace``
      - string
      - Which color primaries to use for the returned pixel values: ``raw``,

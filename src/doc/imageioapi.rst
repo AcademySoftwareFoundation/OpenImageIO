@@ -48,7 +48,7 @@ in the outer OpenImageIO scope:
     TypeMatrix33 TypeMatrix44 TypeMatrix TypeHalf
     TypeInt TypeUInt TypeInt32 TypeUInt32 TypeInt64 TypeUInt64
     TypeInt16 TypeUInt16 TypeInt8 TypeUInt8
-    TypeFloat2 TypeVector2 TypeVector2i TypeFloat4
+    TypeFloat2 TypeVector2 TypeVector2i TypeVector3i TypeFloat4
     TypeString TypeTimeCode TypeKeyCode
     TypeBox2 TypeBox2i TypeBox3 TypeBox3i
     TypeRational TypePointer
@@ -286,6 +286,8 @@ just exist in the OIIO namespace as general utilities. (See
 
 .. doxygenfunction:: get_extension_map
 
+|
+
  .. _sec-startupshutdown:
 
 Startup and Shutdown
@@ -338,6 +340,16 @@ inside the source code.
         imagecache->attribute ("options", value);
 
 
+``OPENIMAGEIO_PLUGIN_PATH``
+
+    A colon-separated list of directories to search for OpenImageIO plugins
+    (dynamicaly loadable libraries that implement image format readers
+    and writers).
+
+    This is a new name beginning with OpenImageIO 2.6.3. The old name
+    ``OIIO_LIBRARY_PATH`` is still supported, but deprecated.
+
+
 ``OPENIMAGEIO_TEXTURE_OPTIONS``
 
     Allows you to seed the options for any TextureSystem created.
@@ -357,3 +369,12 @@ inside the source code.
     use for its thread pool. If both are set, ``OPENIMAGEIO_THREADS`` will
     take precedence. If neither is set, the default will be 0, which means
     to use as many threads as there are physical cores on the machine.
+
+``OPENIMAGEIO_METADATA_HISTORY``
+
+    If set to a nonzero integer value, `oiiotool` and `maketx` will by default
+    write the command line into the ImageHistory and Software metadata fields of any
+    images it outputs. The default if this is not set is to only write the
+    name and version of the software and an indecipherable hash of the command
+    line, but not the full human-readable command line. (This was added in
+    OpenImageIO 2.5.11.)

@@ -15,7 +15,7 @@ LIBTIFF_BUILD_DIR=${LIBTIFF_BUILD_DIR:=${LOCAL_DEPS_DIR}/libtiff}
 LIBTIFF_INSTALL_DIR=${LIBTIFF_INSTALL_DIR:=${PWD}/ext/dist}
 LIBTIFF_VERSION=${LIBTIFF_VERSION:=v4.3.0}
 LIBTIFF_BUILD_TYPE=${LIBTIFF_BUILD_TYPE:=Release}
-if [[ `uname` == `Linux` ]] ; then
+if [[ `uname` == "Linux" ]] ; then
     LIBTIFF_CXX_FLAGS=${LIBTIFF_CXX_FLAGS:="-O3 -Wno-unused-function -Wno-deprecated-declarations -Wno-cast-qual -Wno-write-strings"}
 fi
 LIBTIFF_BUILDOPTS="${LIBTIFF_BUILDOPTS}"
@@ -59,5 +59,6 @@ popd
 # Set up paths. These will only affect the caller if this script is
 # run with 'source' rather than in a separate shell.
 export LIBTIFF_ROOT=$LIBTIFF_INSTALL_DIR
+export Tiff_ROOT=$LIBTIFF_INSTALL_DIR
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${LIBTIFF_INSTALL_DIR}/lib
 

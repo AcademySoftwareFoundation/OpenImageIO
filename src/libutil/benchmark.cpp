@@ -147,7 +147,7 @@ operator<<(std::ostream& out, const Benchmarker& bench)
         print(out, "{:16}: {}", bench.m_name,
               Strutil::timeintervalformat(avg, 2));
     else
-        print(out, "{:16}: {:6.1} {} (+/-{:4.1}{}), ", bench.name(), avg,
+        print(out, "{:16}: {:6.1f} {} (+/- {:.1f}{}), ", bench.name(), avg,
               unitname, stddev, unitname);
     if (bench.avg() < 0.25e-9) {
         // Less than 1/4 ns iteration time is probably an error
@@ -155,9 +155,10 @@ operator<<(std::ostream& out, const Benchmarker& bench)
         return out;
     }
     if (bench.work() == 1)
-        print(out, "{:6.1} {:c}/s", (1.0f / ratescale) / bench.avg(), rateunit);
+        print(out, "{:6.1f} {:c}/s", (1.0f / ratescale) / bench.avg(),
+              rateunit);
     else
-        print(out, "{:6.1} {:c}vals/s, {:.1} {:c}calls/s",
+        print(out, "{:6.1f} {:c}vals/s, {:.1} {:c}calls/s",
               (bench.work() / ratescale) / bench.avg(), rateunit,
               (1.0f / ratescale) / bench.avg(), rateunit);
     if (bench.verbose() >= 2)
@@ -203,7 +204,7 @@ timed_thread_wedge(function_view<void(int)> task, function_view<void()> pretask,
                 threads.join_all();
                 posttask();
             },
-            ntrials, &range);
+            ntrials, 1, &range);
         if (out) {
             double one_thread_time = times[0] * threadcounts[0];
             double ideal           = one_thread_time / nthreads;

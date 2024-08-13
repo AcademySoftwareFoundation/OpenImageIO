@@ -338,14 +338,6 @@ declare_imagebuf(py::module& m)
                 return self.make_writable(keep_cache_type);
             },
             "keep_cache_type"_a = false)
-        // DEPRECATED(2.2): nonstandard spelling
-        .def(
-            "make_writeable",
-            [](ImageBuf& self, bool keep_cache_type) {
-                py::gil_scoped_release gil;
-                return self.make_writable(keep_cache_type);
-            },
-            "keep_cache_type"_a = false)
         .def("set_write_format", &ImageBuf_set_write_format)
         // FIXME -- write(ImageOut&)
         .def("set_write_tiles", &ImageBuf::set_write_tiles, "width"_a = 0,

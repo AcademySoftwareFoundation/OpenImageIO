@@ -16,6 +16,7 @@
 
 #include <OpenImageIO/attrdelegate.h>
 #include <OpenImageIO/export.h>
+#include <OpenImageIO/memory.h>
 #include <OpenImageIO/strongparam.h>
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/ustring.h>
@@ -90,31 +91,6 @@ public:
 
     ParamValue() noexcept { m_data.ptr = nullptr; }
 
-#if OIIO_VERSION_LESS(3, 0, 0) && !defined(OIIO_DOXYGEN)
-    // DEPRECATED(2.4): Use the ones with strongly typed bool parameters
-    ParamValue(const ustring& _name, TypeDesc _type, int _nvalues,
-               const void* _value, bool _copy) noexcept
-    {
-        init_noclear(_name, _type, _nvalues, _value, Copy(_copy));
-    }
-    ParamValue(const ustring& _name, TypeDesc _type, int _nvalues,
-               Interp _interp, const void* _value, bool _copy) noexcept
-    {
-        init_noclear(_name, _type, _nvalues, _interp, _value, Copy(_copy));
-    }
-    ParamValue(string_view _name, TypeDesc _type, int _nvalues,
-               const void* _value, bool _copy) noexcept
-    {
-        init_noclear(ustring(_name), _type, _nvalues, _value, Copy(_copy));
-    }
-    ParamValue(string_view _name, TypeDesc _type, int _nvalues, Interp _interp,
-               const void* _value, bool _copy) noexcept
-    {
-        init_noclear(ustring(_name), _type, _nvalues, _interp, _value,
-                     Copy(_copy));
-    }
-#endif
-
     ParamValue(const ustring& _name, TypeDesc _type, int _nvalues,
                const void* _value, Copy _copy = Copy(true)) noexcept
     {
@@ -186,31 +162,6 @@ public:
     }
 
     ~ParamValue() noexcept { clear_value(); }
-
-#if OIIO_VERSION_LESS(3, 0, 0) && !defined(OIIO_DOXYGEN)
-    // DEPRECATED(2.4): Use the ones with strongly typed bool parameters
-    void init(ustring _name, TypeDesc _type, int _nvalues, Interp _interp,
-              const void* _value, bool _copy) noexcept
-    {
-        clear_value();
-        init_noclear(_name, _type, _nvalues, _interp, _value, Copy(_copy));
-    }
-    void init(ustring _name, TypeDesc _type, int _nvalues, const void* _value,
-              bool _copy) noexcept
-    {
-        init(_name, _type, _nvalues, INTERP_CONSTANT, _value, Copy(_copy));
-    }
-    void init(string_view _name, TypeDesc _type, int _nvalues,
-              const void* _value, bool _copy) noexcept
-    {
-        init(ustring(_name), _type, _nvalues, _value, Copy(_copy));
-    }
-    void init(string_view _name, TypeDesc _type, int _nvalues, Interp _interp,
-              const void* _value, bool _copy) noexcept
-    {
-        init(ustring(_name), _type, _nvalues, _interp, _value, Copy(_copy));
-    }
-#endif
 
     void init(ustring _name, TypeDesc _type, int _nvalues, Interp _interp,
               const void* _value, Copy _copy) noexcept
@@ -326,9 +277,15 @@ private:
                       Copy _copy                = Copy(true),
                       FromUstring _from_ustring = FromUstring(false)) noexcept;
     void clear_value() noexcept;
+
+    /// declare a friend heapsize definition
+    template<typename T> friend size_t pvt::heapsize(const T&);
 };
 
-
+/// heapsize specialization for `ParamValue`
+template<>
+OIIO_API size_t
+pvt::heapsize<ParamValue>(const ParamValue&);
 
 /// Factory for a ParamValue that holds a single value of any type supported
 /// by a corresponding ParamValue constructor (such as int, float, string).
@@ -580,6 +537,8 @@ public:
     //   - operator[int]
     //   - begin(), end(), cbegin(), cend()
 
+    ParamValueSpan() = default;
+
     ParamValueSpan(cspan<ParamValue> p)
         : cspan<ParamValue>(p)
     {
@@ -647,6 +606,15 @@ public:
                         bool casesensitive = false, bool convert = true) const;
     ustring get_ustring(ustring name, string_view defaultval = string_view(),
                         bool casesensitive = false, bool convert = true) const;
+
+    /// Search for the attribute and return its "truth-like" value: false if
+    /// it exists but is empty, or is a numeric value equal to 0, or a string
+    /// value that is "0", "no", "off", or "false". Otherwise, any non-empty
+    /// value returns true.
+    bool get_bool(string_view name, bool defaultval = false,
+                  bool casesensitive = false) const;
+    bool get_bool(ustring name, bool defaultval = false,
+                  bool casesensitive = false) const;
 
     /// Does the span contain the named attribute?
     bool contains(string_view name, TypeDesc type = TypeUnknown,

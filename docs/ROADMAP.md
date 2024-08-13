@@ -33,8 +33,8 @@ here](https://github.com/AcademySoftwareFoundation/OpenImageIO/discussions/4151)
 See the [Dependency proposal wiki page](https://github.com/AcademySoftwareFoundation/OpenImageIO/discussions/4151)
 
 * [ ] Big required upgrades with potentially widespread impact on the code base
-  - [ ] C++17 [#4155](https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/4155)
-  - [ ] Python 3.7 [#4157](https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/4157)
+  - [x] C++17 [#4155](https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/4155)
+  - [x] Python 3.7 [#4157](https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/4157)
   - [ ] OpenEXR/Imath 3.1 [#4156](https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/4156)
 
 * [ ] Miscellaneous optional upgrades whose changes will be very localized
@@ -51,7 +51,7 @@ See the [Dependency proposal wiki page](https://github.com/AcademySoftwareFounda
   - [ ] pybind11 2.6 or 2.7 (from 2.4).
 
 
-- [ ] [#4156](https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/4156) Eliminate the last few places where we use Boost and eliminate it as a dependency.
+- [x] [#4158](https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/4158) Eliminate the last few places where we use Boost and eliminate it as a dependency.
 
 <br>
 

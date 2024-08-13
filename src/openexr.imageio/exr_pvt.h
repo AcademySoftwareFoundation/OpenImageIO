@@ -10,6 +10,8 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/string_view.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/typedesc.h>
 
 #include <ImathBox.h>
@@ -18,40 +20,27 @@
 #include <OpenEXR/ImfIO.h>
 #include <OpenEXR/ImfRgbaFile.h>
 
-#ifdef OPENEXR_VERSION_MAJOR
-#    define OPENEXR_CODED_VERSION                                    \
-        (OPENEXR_VERSION_MAJOR * 10000 + OPENEXR_VERSION_MINOR * 100 \
-         + OPENEXR_VERSION_PATCH)
-#else
-#    define OPENEXR_CODED_VERSION 20000
-#endif
+#define OPENEXR_CODED_VERSION                                    \
+    (OPENEXR_VERSION_MAJOR * 10000 + OPENEXR_VERSION_MINOR * 100 \
+     + OPENEXR_VERSION_PATCH)
 
-#if OPENEXR_CODED_VERSION >= 20400 \
-    || __has_include(<OpenEXR/ImfFloatVectorAttribute.h>)
-#    define OPENEXR_HAS_FLOATVECTOR 1
-#else
-#    define OPENEXR_HAS_FLOATVECTOR 0
-#endif
+#define OPENEXR_HAS_FLOATVECTOR 1
 
-#define ENABLE_READ_DEBUG_PRINTS 0
-
+#define ENABLE_EXR_DEBUG_PRINTS 0
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-#if OIIO_CPLUSPLUS_VERSION >= 17 || defined(__cpp_lib_gcd_lcm)
-using std::gcd;
+// Lots of debugging printf turned on for DEBUG builds or if you define
+// ENABLE_EXR_DEBUG_PRINTS above, *AND* the "OIIO_DEBUG_OPENEXR" environment
+// variable is set to something numerically non-zero.
+#if ENABLE_EXR_DEBUG_PRINTS || !defined(NDEBUG) /* allow debugging */
+static bool exrdebug = Strutil::stoi(Sysutil::getenv("OIIO_DEBUG_OPENEXR"))
+                       || Strutil::stoi(Sysutil::getenv("OIIO_DEBUG_ALL"));
+#    define DBGEXR(...) \
+        if (exrdebug)   \
+        Strutil::print(__VA_ARGS__)
 #else
-template<class M, class N, class T = std::common_type_t<M, N>>
-inline T
-gcd(M a, N b)
-{
-    while (b) {
-        T t = b;
-        b   = a % b;
-        a   = t;
-    }
-    return a;
-}
+#    define DBGEXR(...)
 #endif
 
 
@@ -91,21 +80,12 @@ public:
             throw Iex::IoExc("Unexpected end of file.");
         return n;
     }
-#if OIIO_USING_IMATH >= 3
     uint64_t tellg() override { return m_io->tell(); }
     void seekg(uint64_t pos) override
     {
         if (!m_io->seek(pos))
             throw Iex::IoExc("File input failed.");
     }
-#else
-    Imath::Int64 tellg() override { return m_io->tell(); }
-    void seekg(Imath::Int64 pos) override
-    {
-        if (!m_io->seek(pos))
-            throw Iex::IoExc("File input failed.");
-    }
-#endif
     void clear() override {}
 
 private:
@@ -123,8 +103,9 @@ public:
     {
         return (feature == "arbitrary_metadata"
                 || feature == "exif"  // Because of arbitrary_metadata
+                || feature == "ioproxy"
                 || feature == "iptc"  // Because of arbitrary_metadata
-                || feature == "ioproxy");
+                || feature == "multiimage");
     }
     bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     bool open(const std::string& name, ImageSpec& newspec,

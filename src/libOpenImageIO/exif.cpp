@@ -11,7 +11,7 @@
 #include <sstream>
 #include <vector>
 
-#include <boost/container/flat_map.hpp>
+#include <tsl/robin_map.h>
 
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
@@ -27,8 +27,8 @@ using namespace pvt;
 
 class TagMap::Impl {
 public:
-    typedef boost::container::flat_map<int, const TagInfo*> tagmap_t;
-    typedef boost::container::flat_map<std::string, const TagInfo*> namemap_t;
+    typedef tsl::robin_map<int, const TagInfo*> tagmap_t;
+    typedef tsl::robin_map<std::string, const TagInfo*> namemap_t;
     // Name map is lower case so it's effectively case-insensitive
 
     Impl(string_view mapname, cspan<TagInfo> tag_table)
@@ -568,11 +568,11 @@ enum GPSTag {
 
 static const TagInfo gps_tag_table[] = {
     // clang-format off
-    { GPSTAG_VERSIONID,		"GPS:VersionID",	TIFF_BYTE, 4, version4uint8_handler }, 
+    { GPSTAG_VERSIONID,		"GPS:VersionID",	TIFF_BYTE, 4, version4uint8_handler },
     { GPSTAG_LATITUDEREF,	"GPS:LatitudeRef",	TIFF_ASCII, 2 },
     { GPSTAG_LATITUDE,		"GPS:Latitude",		TIFF_RATIONAL, 3 },
     { GPSTAG_LONGITUDEREF,	"GPS:LongitudeRef",	TIFF_ASCII, 2 },
-    { GPSTAG_LONGITUDE,		"GPS:Longitude",	TIFF_RATIONAL, 3 }, 
+    { GPSTAG_LONGITUDE,		"GPS:Longitude",	TIFF_RATIONAL, 3 },
     { GPSTAG_ALTITUDEREF,	"GPS:AltitudeRef",	TIFF_BYTE, 1 },
     { GPSTAG_ALTITUDE,		"GPS:Altitude",		TIFF_RATIONAL, 1 },
     { GPSTAG_TIMESTAMP,		"GPS:TimeStamp",	TIFF_RATIONAL, 3 },
@@ -590,7 +590,7 @@ static const TagInfo gps_tag_table[] = {
     { GPSTAG_DESTLATITUDEREF,	"GPS:DestLatitudeRef",	TIFF_ASCII, 2 },
     { GPSTAG_DESTLATITUDE,	"GPS:DestLatitude",	TIFF_RATIONAL, 3 },
     { GPSTAG_DESTLONGITUDEREF,	"GPS:DestLongitudeRef",	TIFF_ASCII, 2 },
-    { GPSTAG_DESTLONGITUDE,	"GPS:DestLongitude",	TIFF_RATIONAL, 3 }, 
+    { GPSTAG_DESTLONGITUDE,	"GPS:DestLongitude",	TIFF_RATIONAL, 3 },
     { GPSTAG_DESTBEARINGREF,	"GPS:DestBearingRef",	TIFF_ASCII, 2 },
     { GPSTAG_DESTBEARING,	"GPS:DestBearing",	TIFF_RATIONAL, 1 },
     { GPSTAG_DESTDISTANCEREF,	"GPS:DestDistanceRef",	TIFF_ASCII, 2 },
@@ -756,7 +756,7 @@ add_exif_item_to_spec(ImageSpec& spec, const char* name,
 #if 0
     if (dirp->tdir_type == TIFF_UNDEFINED || dirp->tdir_type == TIFF_BYTE) {
         // Add it as bytes
-        const void *addr = dirp->tdir_count <= 4 ? (const void *) &dirp->tdir_offset 
+        const void *addr = dirp->tdir_count <= 4 ? (const void *) &dirp->tdir_offset
                                                  : (const void *) &buf[dirp->tdir_offset];
         spec.attribute (name, TypeDesc(TypeDesc::UINT8, dirp->tdir_count), addr);
     }
@@ -1240,15 +1240,6 @@ decode_exif(cspan<uint8_t> exif, ImageSpec& spec)
 
 
 
-// DEPRECATED (1.8)
-bool
-decode_exif(const void* exif, int length, ImageSpec& spec)
-{
-    return decode_exif(cspan<uint8_t>((const uint8_t*)exif, length), spec);
-}
-
-
-
 template<class T>
 inline void
 append(std::vector<char>& blob, T v, endian endianreq = endian::native)
@@ -1264,15 +1255,6 @@ appendvec(std::vector<char>& blob, const std::vector<T>& v)
 {
     blob.insert(blob.end(), (const char*)v.data(),
                 (const char*)(v.data() + v.size()));
-}
-
-
-
-// DEPRECATED(2.1)
-void
-encode_exif(const ImageSpec& spec, std::vector<char>& blob)
-{
-    encode_exif(spec, blob, endian::native);
 }
 
 

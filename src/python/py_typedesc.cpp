@@ -150,6 +150,7 @@ declare_typedesc(py::module& m)
         .def_readonly_static("TypeFloat2", &TypeFloat2)
         .def_readonly_static("TypeVector2", &TypeVector2)
         .def_readonly_static("TypeVector2i", &TypeVector2i)
+        .def_readonly_static("TypeVector3i", &TypeVector3i)
         .def_readonly_static("TypeFloat4", &TypeFloat4)
         .def_readonly_static("TypeVector4", &TypeVector4);
 
@@ -192,6 +193,7 @@ declare_typedesc(py::module& m)
     m.attr("TypeFloat4")   = TypeFloat4;
     m.attr("TypeVector4")  = TypeVector4;
     m.attr("TypeVector2i") = TypeVector2i;
+    m.attr("TypeVector3i") = TypeVector3i;
     m.attr("TypeBox2")     = TypeBox2;
     m.attr("TypeBox3")     = TypeBox3;
     m.attr("TypeBox2i")    = TypeBox2i;

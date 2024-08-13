@@ -53,6 +53,10 @@ using pvt::print_info_options;
 #    define OIIO_UNIT_TESTS 1
 #endif
 
+#ifndef OPENIMAGEIO_METADATA_HISTORY_DEFAULT
+#    define OPENIMAGEIO_METADATA_HISTORY_DEFAULT 0
+#endif
+
 
 
 // Macro to fully set up the "action" function that straightforwardly calls
@@ -170,13 +174,20 @@ Oiiotool::clear_options()
     output_dither             = false;
     output_force_tiles        = false;
     metadata_nosoftwareattrib = false;
-    diff_warnthresh           = 1.0e-6f;
-    diff_warnpercent          = 0;
-    diff_hardwarn             = std::numeric_limits<float>::max();
-    diff_failthresh           = 1.0e-6f;
-    diff_failpercent          = 0;
-    diff_hardfail             = std::numeric_limits<float>::max();
-    m_pending_callback        = nullptr;
+#if OPENIMAGEIO_METADATA_HISTORY_DEFAULT
+    metadata_history = Strutil::from_string<int>(
+        getenv("OPENIMAGEIO_METADATA_HISTORY", "1"));
+#else
+    metadata_history = Strutil::from_string<int>(
+        getenv("OPENIMAGEIO_METADATA_HISTORY"));
+#endif
+    diff_warnthresh    = 1.0e-6f;
+    diff_warnpercent   = 0;
+    diff_hardwarn      = std::numeric_limits<float>::max();
+    diff_failthresh    = 1.0e-6f;
+    diff_failpercent   = 0;
+    diff_hardfail      = std::numeric_limits<float>::max();
+    m_pending_callback = nullptr;
     m_pending_argv.clear();
     frame_number        = 0;
     frame_padding       = 0;
@@ -688,8 +699,13 @@ unset_autopremult(Oiiotool& ot, cspan<const char*> argv)
 static void
 action_label(Oiiotool& ot, cspan<const char*> argv)
 {
-    string_view labelname      = ot.express(argv[1]);
-    ot.image_labels[labelname] = ot.curimg;
+    string_view command = ot.express(argv[0]);
+    string_view name    = ot.express(argv[1]);
+    if (!Strutil::string_is_identifier(name)) {
+        ot.errorfmt(command, "Invalid label name \"{}\"", name);
+        return;
+    }
+    ot.image_labels[name] = ot.curimg;
 }
 
 
@@ -946,18 +962,22 @@ adjust_output_options(string_view filename, ImageSpec& spec,
     // entire command line (eg. when we have loaded it up with metadata attributes
     // that will make it into the header anyway).
     if (!ot.metadata_nosoftwareattrib) {
+        std::string cmdline;
+        if (ot.metadata_history) {
+            cmdline = ot.full_command_line;
+        } else {
+            cmdline = SHA1(ot.full_command_line).digest();
+        }
         std::string history = spec.get_string_attribute("Exif:ImageHistory");
-        if (!Strutil::iends_with(history,
-                                 ot.full_command_line)) {  // don't add twice
+        if (ot.metadata_history && !Strutil::iends_with(history, cmdline)) {
             if (history.length() && !Strutil::iends_with(history, "\n"))
                 history += std::string("\n");
-            history += ot.full_command_line;
+            history += cmdline;
             spec.attribute("Exif:ImageHistory", history);
         }
-
         std::string software = Strutil::fmt::format("OpenImageIO {} : {}",
                                                     OIIO_VERSION_STRING,
-                                                    ot.full_command_line);
+                                                    cmdline);
         spec.attribute("Software", software);
     }
 
@@ -1095,23 +1115,6 @@ set_dataformat(Oiiotool& ot, cspan<const char*> argv)
 
 
 
-static bool
-eval_as_bool(string_view value)
-{
-    Strutil::trim_whitespace(value);
-    if (Strutil::string_is_int(value)) {
-        return Strutil::stoi(value) != 0;
-    } else if (Strutil::string_is_float(value)) {
-        return Strutil::stof(value) != 0.0f;
-    } else {
-        return !(value.empty() || Strutil::iequals(value, "false")
-                 || Strutil::iequals(value, "no")
-                 || Strutil::iequals(value, "off"));
-    }
-}
-
-
-
 // --if
 static void
 control_if(Oiiotool& ot, cspan<const char*> argv)
@@ -1122,7 +1125,7 @@ control_if(Oiiotool& ot, cspan<const char*> argv)
     if (ot.running()) {
         // string_view command = ot.express(argv[0]);
         string_view value = ot.express(argv[1]);
-        cond              = eval_as_bool(value);
+        cond              = Strutil::eval_as_bool(value);
         // Strutil::print("while: val='{}' cond={}\n", value, cond);
     } else {
         // If not running in the outer scope, don't even evaluate the
@@ -1185,7 +1188,7 @@ control_while(Oiiotool& ot, cspan<const char*> argv)
     if (ot.running()) {
         // string_view command = ot.express(argv[0]);
         string_view value = ot.express(argv[1]);
-        cond              = eval_as_bool(value);
+        cond              = Strutil::eval_as_bool(value);
         // Strutil::print("while: val='{}' cond={}\n", value, cond);
     } else {
         // If not running in the outer scope, don't even evaluate the
@@ -1231,12 +1234,30 @@ control_for(Oiiotool& ot, cspan<const char*> argv)
         std::string variable = ot.express(argv[1]);
         string_view range    = ot.express(argv[2]);
 
+        float val = 0, limit = 0, step = 1;
+        bool valid     = true;
         auto rangevals = Strutil::extract_from_list_string<float>(range);
-        if (rangevals.size() == 1)
-            rangevals.insert(rangevals.begin(), 0.0f);  // supply missing start
-        if (rangevals.size() == 2)
-            rangevals.push_back(1.0f);  // supply missing step
-        if (rangevals.size() != 3) {
+        if (rangevals.size() == 1) {
+            val   = 0.0f;
+            limit = rangevals[0];
+            step  = limit >= 0.0f ? 1.0f : -1.0f;
+        } else if (rangevals.size() == 2) {
+            val   = rangevals[0];
+            limit = rangevals[1];
+            step  = limit >= val ? 1.0f : -1.0f;
+        } else if (rangevals.size() == 3) {
+            val   = rangevals[0];
+            limit = rangevals[1];
+            step  = rangevals[2];
+        } else {
+            valid = false;
+        }
+        // step can't be zero or be opposite direction of val -> limit
+        valid &= (step != 0.0f);
+        if ((val < limit && step < 0.0f) || (val > limit && step > 0.0f))
+            valid = false;
+
+        if (!valid) {
             ot.errorfmt(argv[0], "Invalid range \"{}\"", range);
             return;
         }
@@ -1246,24 +1267,22 @@ control_for(Oiiotool& ot, cspan<const char*> argv)
         // There are two cases here: either we are hitting this --for
         // for the first time (need to initialize and set up the control
         // record), or we are re-iterating on a loop we already set up.
-        float val;
         if (ot.control_stack.empty()
             || ot.control_stack.top().start_arg != ot.ap.current_arg()) {
             // First time through the loop. Note that we recognize our first
             // time by the fact that the top of the control stack doesn't have
             // a start_arg that is this --for command.
-            val = rangevals[0];
             ot.push_control("for", ot.ap.current_arg(), true);
             // Strutil::print("First for!\n");
         } else {
             // We've started this loop already, this is at least our 2nd time
             // through. Just increment the variable and update the condition
             // for another pass through the loop.
-            val = ot.uservars.get_float(variable) + rangevals[2];
+            val = ot.uservars.get_float(variable) + step;
             // Strutil::print("Repeat for!\n");
         }
         ot.uservars.attribute(variable, val);
-        bool cond                        = val < rangevals[1];
+        bool cond = step >= 0.0f ? val < limit : val > limit;
         ot.control_stack.top().condition = cond;
         ot.ap.running(ot.running());
         // Strutil::print("for {} {} : {}={} cond={} (now running={})\n", variable,
@@ -1399,7 +1418,13 @@ set_user_variable(Oiiotool& ot, cspan<const char*> argv)
     string_view command = ot.express(argv[0]);
     string_view name    = ot.express(argv[1]);
     string_view value   = ot.express(argv[2]);
-    auto options        = ot.extract_options(command);
+
+    if (!Strutil::string_is_identifier(name)) {
+        ot.errorfmt(command, "Invalid variable name \"{}\"", name);
+        return 0;
+    }
+
+    auto options = ot.extract_options(command);
     TypeDesc type(options["type"].as_string());
 
     set_attribute_helper(ot.uservars, name, value, type);
@@ -1720,536 +1745,6 @@ unit_test_adjust_geometry(Oiiotool& ot)
                       && x == -42 && y == -42 && w == -42 && h == -42);
 }
 #endif
-
-
-
-void
-Oiiotool::express_error(const string_view expr, const string_view s,
-                        string_view explanation)
-{
-    int offset = expr.rfind(s) + 1;
-    errorfmt("expression", "{} at char {} of '{}'", explanation, offset, expr);
-}
-
-
-
-// If str starts with what looks like a function call "name(" (allowing for
-// whitespace before the paren), eat those chars from str and return true.
-// Otherwise return false and leave str unchanged.
-inline bool
-parse_function_start_if(string_view& str, string_view name)
-{
-    string_view s = str;
-    if (Strutil::parse_identifier_if(s, name) && Strutil::parse_char(s, '(')) {
-        str = s;
-        return true;
-    }
-    return false;
-}
-
-
-
-bool
-Oiiotool::express_parse_atom(const string_view expr, string_view& s,
-                             std::string& result)
-{
-    // std::cout << " Entering express_parse_atom, s='" << s << "'\n";
-
-    string_view orig = s;
-    float floatval;
-
-    Strutil::skip_whitespace(s);
-
-    // handle + - ! prefixes
-    bool negative = false;
-    bool invert   = false;
-    while (s.size()) {
-        if (Strutil::parse_char(s, '-')) {
-            negative = !negative;
-        } else if (Strutil::parse_char(s, '+')) {
-            // no op
-        } else if (Strutil::parse_char(s, '!')) {
-            invert = !invert;
-        } else {
-            break;
-        }
-    }
-
-    if (Strutil::parse_char(s, '(')) {
-        // handle parentheses
-        if (express_parse_summands(expr, s, result)) {
-            if (!Strutil::parse_char(s, ')')) {
-                express_error(expr, s, "missing `)'");
-                result = orig;
-                return false;
-            }
-        } else {
-            result = orig;
-            return false;
-        }
-
-    } else if (parse_function_start_if(s, "getattribute")) {
-        // "{getattribute(name)}" retrieves global attribute `name`
-        bool ok = true;
-        Strutil::skip_whitespace(s);
-        string_view name;
-        if (s.size() && (s.front() == '\"' || s.front() == '\''))
-            ok = Strutil::parse_string(s, name);
-        else {
-            name = Strutil::parse_until(s, ")");
-        }
-        if (name.size()) {
-            std::string rs;
-            int ri;
-            float rf;
-            if (OIIO::getattribute(name, rs))
-                result = rs;
-            else if (OIIO::getattribute(name, ri))
-                result = Strutil::to_string(ri);
-            else if (OIIO::getattribute(name, rf))
-                result = Strutil::to_string(rf);
-            else
-                ok = false;
-        }
-        return Strutil::parse_char(s, ')') && ok;
-    } else if (parse_function_start_if(s, "var")) {
-        // "{var(name)}" retrieves user variable `name`
-        bool ok = true;
-        Strutil::skip_whitespace(s);
-        string_view name;
-        if (s.size() && (s.front() == '\"' || s.front() == '\''))
-            ok = Strutil::parse_string(s, name);
-        else {
-            name = Strutil::parse_until(s, ")");
-        }
-        if (name.size()) {
-            result = uservars[name];
-        }
-        return Strutil::parse_char(s, ')') && ok;
-    } else if (parse_function_start_if(s, "eq")) {
-        std::string left, right;
-        bool ok = express_parse_atom(s, s, left) && Strutil::parse_char(s, ',');
-        ok &= express_parse_atom(s, s, right) && Strutil::parse_char(s, ')');
-        result = left == right ? "1" : "0";
-        // Strutil::print("eq: left='{}', right='{}' ok={} result={}\n", left,
-        //                right, ok, result);
-        if (!ok)
-            return false;
-    } else if (parse_function_start_if(s, "neq")) {
-        std::string left, right;
-        bool ok = express_parse_atom(s, s, left) && Strutil::parse_char(s, ',');
-        ok &= express_parse_atom(s, s, right) && Strutil::parse_char(s, ')');
-        result = left != right ? "1" : "0";
-        // Strutil::print("neq: left='{}', right='{}' ok={} result={}\n", left,
-        //                right, ok, result);
-        if (!ok)
-            return false;
-    } else if (parse_function_start_if(s, "not")) {
-        std::string val;
-        bool ok = express_parse_summands(s, s, val)
-                  && Strutil::parse_char(s, ')');
-        result = eval_as_bool(val) ? "0" : "1";
-        if (!ok)
-            return false;
-
-    } else if (Strutil::starts_with(s, "TOP")
-               || Strutil::starts_with(s, "IMG[")) {
-        // metadata substitution
-        ImageRecRef img;
-        if (Strutil::parse_prefix(s, "TOP")) {
-            img = curimg;
-        } else if (Strutil::parse_prefix(s, "IMG[")) {
-            int index = -1;
-            if (Strutil::parse_int(s, index) && Strutil::parse_char(s, ']')
-                && index >= 0 && index <= (int)image_stack.size()) {
-                if (index == 0)
-                    img = curimg;
-                else
-                    img = image_stack[image_stack.size() - index];
-            } else {
-                string_view name = Strutil::parse_until(s, "]");
-                auto found       = image_labels.find(name);
-                if (found != image_labels.end())
-                    img = found->second;
-                else
-                    img = ImageRecRef(new ImageRec(name, imagecache));
-                Strutil::parse_char(s, ']');
-            }
-        }
-        if (!img.get()) {
-            express_error(expr, s, "not a valid image");
-            result = orig;
-            return false;
-        }
-        bool using_bracket = false;
-        if (Strutil::parse_char(s, '[')) {
-            using_bracket = true;
-        } else if (!Strutil::parse_char(s, '.')) {
-            express_error(expr, s, "expected `.` or `[`");
-            result = orig;
-            return false;
-        }
-        string_view metadata;
-        char quote             = s.size() ? s.front() : ' ';
-        bool metadata_in_quote = quote == '\"' || quote == '\'';
-        if (metadata_in_quote)
-            Strutil::parse_string(s, metadata);
-        else
-            metadata = Strutil::parse_identifier(s, ":");
-        if (using_bracket) {
-            if (!Strutil::parse_char(s, ']')) {
-                express_error(expr, s, "expected `]`");
-                result = orig;
-                return false;
-            }
-        }
-        if (metadata.size()) {
-            read(img);
-            ParamValue tmpparam;
-            if (metadata == "nativeformat") {
-                result = img->nativespec(0, 0)->format.c_str();
-            } else if (auto p = img->spec(0, 0)->find_attribute(metadata,
-                                                                tmpparam)) {
-                std::string val = ImageSpec::metadata_val(*p);
-                if (p->type().basetype == TypeDesc::STRING) {
-                    // metadata_val returns strings double quoted, strip
-                    val.erase(0, 1);
-                    val.erase(val.size() - 1, 1);
-                }
-                result = val;
-            } else if (metadata == "filename")
-                result = img->name();
-            else if (metadata == "file_extension")
-                result = Filesystem::extension(img->name());
-            else if (metadata == "file_noextension") {
-                std::string filename = img->name();
-                std::string ext      = Filesystem::extension(img->name());
-                result = filename.substr(0, filename.size() - ext.size());
-            } else if (metadata == "MINCOLOR") {
-                auto pixstat = ImageBufAlgo::computePixelStats((*img)(0, 0));
-                std::stringstream out;
-                for (size_t i = 0; i < pixstat.min.size(); ++i)
-                    out << (i ? "," : "") << pixstat.min[i];
-                result = out.str();
-            } else if (metadata == "MAXCOLOR") {
-                auto pixstat = ImageBufAlgo::computePixelStats((*img)(0, 0));
-                std::stringstream out;
-                for (size_t i = 0; i < pixstat.max.size(); ++i)
-                    out << (i ? "," : "") << pixstat.max[i];
-                result = out.str();
-            } else if (metadata == "AVGCOLOR") {
-                auto pixstat = ImageBufAlgo::computePixelStats((*img)(0, 0));
-                std::stringstream out;
-                for (size_t i = 0; i < pixstat.avg.size(); ++i)
-                    out << (i ? "," : "") << pixstat.avg[i];
-                result = out.str();
-            } else if (metadata == "NONFINITE_COUNT") {
-                auto pixstat    = ImageBufAlgo::computePixelStats((*img)(0, 0));
-                imagesize_t sum = std::accumulate(pixstat.nancount.begin(),
-                                                  pixstat.nancount.end(), 0)
-                                  + std::accumulate(pixstat.infcount.begin(),
-                                                    pixstat.infcount.end(), 0);
-                result = Strutil::to_string(sum);
-            } else if (metadata == "META" || metadata == "METANATIVE") {
-                std::stringstream out;
-                print_info_options opt;
-                opt.verbose   = true;
-                opt.subimages = true;
-                opt.native    = (metadata == "METANATIVE");
-                std::string error;
-                OiioTool::print_info(out, *this, img.get(), opt, error);
-                result = out.str();
-                if (result.size() && result.back() == '\n')
-                    result.pop_back();
-            } else if (metadata == "METABRIEF"
-                       || metadata == "METANATIVEBRIEF") {
-                std::stringstream out;
-                print_info_options opt;
-                opt.verbose   = false;
-                opt.subimages = false;
-                opt.native    = (metadata == "METANATIVEBRIEF");
-                std::string error;
-                OiioTool::print_info(out, *this, img.get(), opt, error);
-                result = out.str();
-                if (result.size() && result.back() == '\n')
-                    result.pop_back();
-            } else if (metadata == "STATS") {
-                std::stringstream out;
-                // OiioTool::print_stats(out, *this, (*img)());
-
-                std::string err;
-                if (!pvt::print_stats(out, "", (*img)(), (*img)().nativespec(),
-                                      ROI(), err))
-                    errorfmt("stats", "unable to compute: {}", err);
-
-                result = out.str();
-                if (result.size() && result.back() == '\n')
-                    result.pop_back();
-            } else if (using_bracket) {
-                // For the TOP[meta] syntax, if the metadata doesn't exist,
-                // return the empty string, and do not make an error.
-                result = "";
-            } else {
-                express_error(expr, s,
-                              Strutil::fmt::format("unknown attribute name '{}'",
-                                                   metadata));
-                result = orig;
-                return false;
-            }
-        }
-    } else if (Strutil::parse_float(s, floatval)) {
-        result = Strutil::fmt::format("{:g}", floatval);
-    } else if (Strutil::parse_char(s, '\"', true, false)
-               || Strutil::parse_char(s, '\'', true, false)) {
-        string_view r;
-        Strutil::parse_string(s, r);
-        result = r;
-    }
-    // Test some special identifiers
-    else if (Strutil::parse_identifier_if(s, "FRAME_NUMBER")) {
-        result = Strutil::to_string(frame_number);
-    } else if (Strutil::parse_identifier_if(s, "FRAME_NUMBER_PAD")) {
-        std::string fmt = frame_padding == 0
-                              ? std::string("{}")
-                              : Strutil::fmt::format("\"{{:0{}d}}\"",
-                                                     frame_padding);
-        result          = Strutil::fmt::format(fmt, frame_number);
-    } else if (Strutil::parse_identifier_if(s, "NIMAGES")) {
-        result = Strutil::to_string(image_stack_depth());
-    } else {
-        string_view id = Strutil::parse_identifier(s, false);
-        if (id.size() && uservars.contains(id)) {
-            result = uservars[id];
-            Strutil::parse_identifier(s, true);  // eat the id
-        } else {
-            express_error(expr, s, "syntax error");
-            result = orig;
-            return false;
-        }
-    }
-
-    if (negative)
-        result = "-" + result;
-    if (invert)
-        result = eval_as_bool(result) ? "0" : "1";
-
-    // std::cout << " Exiting express_parse_atom, result='" << result << "'\n";
-
-    return true;
-}
-
-
-
-bool
-Oiiotool::express_parse_factors(const string_view expr, string_view& s,
-                                std::string& result)
-{
-    // std::cout << " Entering express_parse_factors, s='" << s << "'\n";
-
-    string_view orig = s;
-    std::string atom;
-    float lval, rval;
-
-    // parse the first factor
-    if (!express_parse_atom(expr, s, atom)) {
-        result = orig;
-        return false;
-    }
-
-    if (atom.size() >= 2 && atom.front() == '\"' && atom.back() == '\"') {
-        // Double quoted is string, return it
-        result = atom;
-    } else if (Strutil::string_is<float>(atom)) {
-        // lval is a number
-        lval = Strutil::from_string<float>(atom);
-        while (s.size()) {
-            enum class Ops { mul, div, idiv, imod };
-            Ops op;
-            if (Strutil::parse_char(s, '*'))
-                op = Ops::mul;
-            else if (Strutil::parse_prefix(s, "//"))
-                op = Ops::idiv;
-            else if (Strutil::parse_char(s, '/'))
-                op = Ops::div;
-            else if (Strutil::parse_char(s, '%'))
-                op = Ops::imod;
-            else {
-                // no more factors
-                break;
-            }
-
-            // parse the next factor
-            if (!express_parse_atom(expr, s, atom)) {
-                result = orig;
-                return false;
-            }
-
-            if (!Strutil::string_is<float>(atom)) {
-                express_error(
-                    expr, s,
-                    Strutil::fmt::format("expected number but got '{}'", atom));
-                result = orig;
-                return false;
-            }
-
-            // rval is a number, so we can math
-            rval = Strutil::from_string<float>(atom);
-            if (op == Ops::mul)
-                lval *= rval;
-            else if (op == Ops::div)
-                lval /= rval;
-            else if (op == Ops::idiv) {
-                int ilval(lval), irval(rval);
-                lval = float(rval ? ilval / irval : 0);
-            } else if (op == Ops::imod) {
-                int ilval(lval), irval(rval);
-                lval = float(rval ? ilval % irval : 0);
-            }
-        }
-
-        result = Strutil::fmt::format("{:g}", lval);
-
-    } else {
-        // atom is not a number, so we're done
-        result = atom;
-    }
-
-    // std::cout << " Exiting express_parse_factors, result='" << result << "'\n";
-
-    return true;
-}
-
-
-
-bool
-Oiiotool::express_parse_summands(const string_view expr, string_view& s,
-                                 std::string& result)
-{
-    // std::cout << " Entering express_parse_summands, s='" << s << "'\n";
-
-    string_view orig = s;
-    std::string atom;
-
-    // parse the first summand
-    if (!express_parse_factors(expr, s, atom)) {
-        result = orig;
-        return false;
-    }
-
-    if (atom.size() >= 2 && atom.front() == '\"' && atom.back() == '\"') {
-        // Double quoted is string, strip it
-        result = atom.substr(1, atom.size() - 2);
-    } else if (Strutil::string_is<float>(atom)) {
-        // lval is a number
-        float lval = Strutil::from_string<float>(atom);
-        while (s.size()) {
-            Strutil::skip_whitespace(s);
-            string_view op = Strutil::parse_while(s, "+-<=>!&|");
-            if (op == "") {
-                // no more summands
-                break;
-            }
-
-            // parse the next summand
-            if (!express_parse_factors(expr, s, atom)) {
-                result = orig;
-                return false;
-            }
-
-            if (!Strutil::string_is<float>(atom)) {
-                express_error(expr, s,
-                              Strutil::fmt::format("'{}' is not a number",
-                                                   atom));
-                result = orig;
-                return false;
-            }
-
-            // rval is also a number, we can math
-            float rval = Strutil::from_string<float>(atom);
-            if (op == "+") {
-                lval += rval;
-            } else if (op == "-") {
-                lval -= rval;
-            } else if (op == "<") {
-                lval = (lval < rval) ? 1 : 0;
-            } else if (op == ">") {
-                lval = (lval > rval) ? 1 : 0;
-            } else if (op == "<=") {
-                lval = (lval <= rval) ? 1 : 0;
-            } else if (op == ">=") {
-                lval = (lval >= rval) ? 1 : 0;
-            } else if (op == "==") {
-                lval = (lval == rval) ? 1 : 0;
-            } else if (op == "!=") {
-                lval = (lval != rval) ? 1 : 0;
-            } else if (op == "<=>") {
-                lval = (lval < rval) ? -1 : (lval > rval ? 1 : 0);
-            } else if (op == "&&" || op == "&") {
-                lval = (lval != 0.0f && rval != 0.0f) ? 1 : 0;
-            } else if (op == "||" || op == "|") {
-                lval = (lval != 0.0f || rval != 0.0f) ? 1 : 0;
-            }
-        }
-
-        result = Strutil::fmt::format("{:g}", lval);
-
-    } else {
-        // atom is not a number, so we're done
-        result = atom;
-    }
-
-    // std::cout << " Exiting express_parse_summands, result='" << result << "'\n";
-
-    return true;
-}
-
-
-
-// Expression evaluation and substitution for a single expression
-std::string
-Oiiotool::express_impl(string_view s)
-{
-    std::string result;
-    string_view orig = s;
-    if (!express_parse_summands(orig, s, result)) {
-        result = orig;
-    }
-    return result;
-}
-
-
-
-// Perform expression evaluation and substitution on a string
-string_view
-Oiiotool::express(string_view str)
-{
-    if (!eval_enable)
-        return str;  // Expression evaluation disabled
-
-    string_view s = str;
-    // eg. s="ab{cde}fg"
-    size_t openbrace = s.find('{');
-    if (openbrace == s.npos)
-        return str;  // No open brace found -- no expression substitution
-
-    string_view prefix = s.substr(0, openbrace);
-    s.remove_prefix(openbrace);
-    // eg. s="{cde}fg", prefix="ab"
-    string_view expr = Strutil::parse_nested(s);
-    if (expr.empty())
-        return str;  // No corresponding close brace found -- give up
-    // eg. prefix="ab", expr="{cde}", s="fg", prefix="ab"
-    OIIO_ASSERT(expr.front() == '{' && expr.back() == '}');
-    expr.remove_prefix(1);
-    expr.remove_suffix(1);
-    // eg. expr="cde"
-    ustring result = ustring::fmtformat("{}{}{}", prefix, express_impl(expr),
-                                        express(s));
-    if (debug)
-        std::cout << "Expanding expression \"" << str << "\" -> \"" << result
-                  << "\"\n";
-    return result;
-}
 
 
 
@@ -2712,7 +2207,7 @@ public:
     }
     OpSetColorSpace(Oiiotool& ot, string_view opname, int argc,
                     const char* argv[])
-        : OpSetColorSpace(ot, opname, { argv, argc })
+        : OpSetColorSpace(ot, opname, { argv, span_size_t(argc) })
     {
     }
     bool setup() override
@@ -3174,9 +2669,8 @@ action_channels(Oiiotool& ot, cspan<const char*> argv)
         for (int m = 0, miplevels = R->miplevels(s); m < miplevels; ++m) {
             // Shuffle the indexed/named channels
             bool ok = ImageBufAlgo::channels((*R)(s, m), (*A)(s, m),
-                                             (int)channels.size(), &channels[0],
-                                             &values[0], &newchannelnames[0],
-                                             false);
+                                             (int)channels.size(), channels,
+                                             values, newchannelnames, false);
             if (!ok) {
                 ot.error(command, (*R)(s, m).geterror());
                 break;
@@ -3450,7 +2944,7 @@ action_colorcount(Oiiotool& ot, cspan<const char*> argv)
 
     imagesize_t* count = OIIO_ALLOCA(imagesize_t, ncolors);
     bool ok = ImageBufAlgo::color_count((*ot.curimg)(0, 0), count, ncolors,
-                                        &colorvalues[0], &eps[0]);
+                                        colorvalues, eps);
     if (ok) {
         for (int col = 0; col < ncolors; ++col)
             Strutil::print("{:8}  {}\n", count[col], colorstrings[col]);
@@ -3484,8 +2978,8 @@ action_rangecheck(Oiiotool& ot, cspan<const char*> argv)
 
     imagesize_t lowcount = 0, highcount = 0, inrangecount = 0;
     bool ok = ImageBufAlgo::color_range_check((*ot.curimg)(0, 0), &lowcount,
-                                              &highcount, &inrangecount,
-                                              &low[0], &high[0]);
+                                              &highcount, &inrangecount, low,
+                                              high);
     if (ok) {
         Strutil::print("{:8}  < {}\n", lowcount, lowarg);
         Strutil::print("{:8}  > {}\n", highcount, higharg);
@@ -3911,9 +3405,10 @@ OIIOTOOL_OP(warp, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
         ok &= ImageBufAlgo::rangecompress(tmpimg, *src);
         src = &tmpimg;
     }
-    ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string(wrapname);
-    ok &= ImageBufAlgo::warp(*img[0], *src, *(Imath::M33f*)&M[0], filtername,
-                             0.0f, recompute_roi, wrap);
+    ok &= ImageBufAlgo::warp(*img[0], *src, *(Imath::M33f*)&M[0],
+                             { { "filtername", filtername },
+                               { "recompute_roi", int(recompute_roi) },
+                               { "wrap", wrapname } });
     if (highlightcomp && ok) {
         // re-expand the range in place
         ok &= ImageBufAlgo::rangeexpand(*img[0], *img[0]);
@@ -3960,6 +3455,16 @@ action_pop(Oiiotool& ot, cspan<const char*> argv)
 
 
 
+// --popbottom
+static void
+action_popbottom(Oiiotool& ot, cspan<const char*> argv)
+{
+    OIIO_DASSERT(argv.size() == 1);
+    ot.popbottom();
+}
+
+
+
 // --dup
 static void
 action_dup(Oiiotool& ot, cspan<const char*> argv)
@@ -3984,6 +3489,64 @@ action_swap(Oiiotool& ot, cspan<const char*> argv)
     ImageRecRef A(ot.pop());
     ot.push(B);
     ot.push(A);
+}
+
+
+
+// --stackreverse
+static void
+action_stackreverse(Oiiotool& ot, cspan<const char*> argv)
+{
+    OIIO_DASSERT(argv.size() == 1);
+    string_view command = ot.express(argv[0]);
+    if (!ot.curimg) {
+        ot.error(command, "requires at least one loaded images");
+        return;
+    }
+    if (ot.image_stack.empty())
+        return;  // only curimg -- reversing does nothing
+    ot.image_stack.push_back(ot.curimg);
+    std::reverse(ot.image_stack.begin(), ot.image_stack.end());
+    ot.curimg = ot.image_stack.back();
+    ot.image_stack.pop_back();
+}
+
+
+
+// --stackextract
+static void
+action_stackextract(Oiiotool& ot, cspan<const char*> argv)
+{
+    OIIO_DASSERT(argv.size() == 2);
+    string_view command = ot.express(argv[0]);
+    int index           = Strutil::stoi(ot.express(argv[1]));
+    if (index < 0 || index >= ot.image_stack_depth()) {
+        ot.errorfmt(command, "index {} out of range for stack depth {}", index,
+                    ot.image_stack_depth());
+        return;
+    }
+    if (ot.image_stack.empty())
+        return;  // only curimg -- extract does nothing
+    ot.image_stack.push_back(ot.curimg);
+    // Transform the index to the index of the stack data structure
+    index = int(ot.image_stack.size()) - 1 - index;
+    // Copy that item for safe keeping
+    ImageRecRef newtop = ot.image_stack[index];
+    // Remove it from the stack
+    ot.image_stack.erase(ot.image_stack.begin() + size_t(index));
+    // Now put it back on the top
+    ot.curimg = newtop;
+}
+
+
+
+// --stackclear
+static void
+action_stackclear(Oiiotool& ot, cspan<const char*> argv)
+{
+    OIIO_DASSERT(argv.size() == 1);
+    ot.image_stack.clear();
+    ot.curimg = ImageRecRef();
 }
 
 
@@ -4058,7 +3621,7 @@ action_pattern(Oiiotool& ot, cspan<const char*> argv)
         auto options = ot.extract_options(pattern);
         std::vector<float> fill(nchans, 1.0f);
         Strutil::extract_from_list_string(fill, options.get_string("color"));
-        ok = ImageBufAlgo::fill(ib, &fill[0]);
+        ok = ImageBufAlgo::fill(ib, fill);
     } else if (Strutil::istarts_with(pattern, "fill")) {
         auto options = ot.extract_options(pattern);
         std::vector<float> topleft(nchans, 1.0f);
@@ -4073,22 +3636,21 @@ action_pattern(Oiiotool& ot, cspan<const char*> argv)
                                                                  "bottomleft"))
             && Strutil::extract_from_list_string(
                 bottomright, options.get_string("bottomright"))) {
-            ok = ImageBufAlgo::fill(ib, &topleft[0], &topright[0],
-                                    &bottomleft[0], &bottomright[0]);
+            ok = ImageBufAlgo::fill(ib, topleft, topright, bottomleft,
+                                    bottomright);
         } else if (Strutil::extract_from_list_string(topleft,
                                                      options.get_string("top"))
                    && Strutil::extract_from_list_string(
                        bottomleft, options.get_string("bottom"))) {
-            ok = ImageBufAlgo::fill(ib, &topleft[0], &bottomleft[0]);
+            ok = ImageBufAlgo::fill(ib, topleft, bottomleft);
         } else if (Strutil::extract_from_list_string(topleft,
                                                      options.get_string("left"))
                    && Strutil::extract_from_list_string(
                        topright, options.get_string("right"))) {
-            ok = ImageBufAlgo::fill(ib, &topleft[0], &topright[0], &topleft[0],
-                                    &topright[0]);
+            ok = ImageBufAlgo::fill(ib, topleft, topright, topleft, topright);
         } else if (Strutil::extract_from_list_string(
                        topleft, options.get_string("color"))) {
-            ok = ImageBufAlgo::fill(ib, &topleft[0]);
+            ok = ImageBufAlgo::fill(ib, topleft);
         }
     } else if (Strutil::istarts_with(pattern, "checker")) {
         auto options = ot.extract_options(pattern);
@@ -4099,8 +3661,8 @@ action_pattern(Oiiotool& ot, cspan<const char*> argv)
         std::vector<float> color2(nchans, 1.0f);
         Strutil::extract_from_list_string(color1, options.get_string("color1"));
         Strutil::extract_from_list_string(color2, options.get_string("color2"));
-        ok = ImageBufAlgo::checker(ib, width, height, depth, &color1[0],
-                                   &color2[0], 0, 0, 0);
+        ok = ImageBufAlgo::checker(ib, width, height, depth, color1, color2, 0,
+                                   0, 0);
     } else if (Strutil::istarts_with(pattern, "noise")) {
         auto options     = ot.extract_options(pattern);
         std::string type = options.get_string("type", "gaussian");
@@ -4508,10 +4070,12 @@ public:
         }
         if (do_warp[current_subimage()])
             ok &= ImageBufAlgo::warp(*img[0], *src, M[current_subimage()],
-                                     filtername, 0.0f, false,
-                                     ImageBuf::WrapDefault, edgeclamp);
+                                     { { "filtername", filtername },
+                                       { "recompute_roi", 0 },
+                                       { "edgeclamp", edgeclamp } });
         else
-            ok &= ImageBufAlgo::resize(*img[0], *src, filtername, 0.0f,
+            ok &= ImageBufAlgo::resize(*img[0], *src,
+                                       { { "filtername", filtername } },
                                        img[0]->roi());
         if (highlightcomp && ok) {
             // re-expand the range in place
@@ -4628,7 +4192,7 @@ action_fit(Oiiotool& ot, cspan<const char*> argv)
     bool pad               = options.get_int("pad");
     std::string filtername = options["filter"];
     std::string fillmode   = options["fillmode"];
-    bool exact             = options.get_int("exact");
+    int exact              = options.get_int("exact");
     bool highlightcomp     = options.get_int("highlightcomp");
 
     int subimages = allsubimages ? A->subimages() : 1;
@@ -4649,7 +4213,10 @@ action_fit(Oiiotool& ot, cspan<const char*> argv)
         newspec.x = newspec.full_x = fit_full_x;
         newspec.y = newspec.full_y = fit_full_y;
         (*R)(s, 0).reset(newspec);
-        ImageBufAlgo::fit((*R)(s, 0), *src, filtername, 0.0f, fillmode, exact);
+        ImageBufAlgo::fit((*R)(s, 0), *src,
+                          { { "filtername", filtername },
+                            { "fillmode", fillmode },
+                            { "exact", exact } });
         if (highlightcomp) {
             // re-expand the range in place
             ImageBufAlgo::rangeexpand((*R)(s, 0), (*R)(s, 0));
@@ -5194,28 +4761,27 @@ action_fill(Oiiotool& ot, cspan<const char*> argv)
                                                                  "bottomleft"))
             && Strutil::extract_from_list_string(
                 bottomright, options.get_string("bottomright"))) {
-            ok = ImageBufAlgo::fill(Rib, &topleft[0], &topright[0],
-                                    &bottomleft[0], &bottomright[0],
-                                    ROI(x, x + w, y, y + h));
+            ok = ImageBufAlgo::fill(Rib, topleft, topright, bottomleft,
+                                    bottomright, ROI(x, x + w, y, y + h));
         } else if (Strutil::extract_from_list_string(topleft,
                                                      options.get_string("top"))
                    && Strutil::extract_from_list_string(
                        bottomleft, options.get_string("bottom"))) {
-            ok = ImageBufAlgo::fill(Rib, &topleft[0], &bottomleft[0],
+            ok = ImageBufAlgo::fill(Rib, topleft, bottomleft,
                                     ROI(x, x + w, y, y + h));
         } else if (Strutil::extract_from_list_string(topleft,
                                                      options.get_string("left"))
                    && Strutil::extract_from_list_string(
                        topright, options.get_string("right"))) {
-            ok = ImageBufAlgo::fill(Rib, &topleft[0], &topright[0], &topleft[0],
-                                    &topright[0], ROI(x, x + w, y, y + h));
+            ok = ImageBufAlgo::fill(Rib, topleft, topright, topleft, topright,
+                                    ROI(x, x + w, y, y + h));
         } else if (Strutil::extract_from_list_string(
                        topleft, options.get_string("color"))) {
-            ok = ImageBufAlgo::fill(Rib, &topleft[0], ROI(x, x + w, y, y + h));
+            ok = ImageBufAlgo::fill(Rib, topleft, ROI(x, x + w, y, y + h));
         } else {
             ot.warning(command,
                        "No recognized fill parameters: filling with white.");
-            ok = ImageBufAlgo::fill(Rib, &topleft[0], ROI(x, x + w, y, y + h));
+            ok = ImageBufAlgo::fill(Rib, topleft, ROI(x, x + w, y, y + h));
         }
         if (!ok) {
             ot.error(command, Rib.geterror());
@@ -5265,8 +4831,7 @@ action_clamp(Oiiotool& ot, cspan<const char*> argv)
         for (int m = 0, miplevels = R->miplevels(s); m < miplevels; ++m) {
             ImageBuf& Rib((*R)(s, m));
             ImageBuf& Aib((*A)(s, m));
-            bool ok = ImageBufAlgo::clamp(Rib, Aib, &min[0], &max[0],
-                                          clampalpha01);
+            bool ok = ImageBufAlgo::clamp(Rib, Aib, min, max, clampalpha01);
             if (!ok) {
                 ot.error(command, Rib.geterror());
                 return;
@@ -5433,7 +4998,8 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
     TypeDesc input_dataformat(fileoptions.get_string("type"));
     std::string channel_set = fileoptions["ch"];
 
-    for (int i = 0; i < argv.size(); i++) {  // FIXME: this loop is pointless
+    for (int i = 0; i < std::ssize(argv); i++) {
+        // FIXME: this loop is pointless, since there is ever only one arg
         OTScopedTimer timer(ot, command);
         string_view filename = ot.express(argv[i]);
         auto found           = ot.image_labels.find(filename);
@@ -6463,17 +6029,24 @@ print_build_info(Oiiotool& ot, std::ostream& out)
 
     auto platform = format("OIIO {} | {}", OIIO_VERSION_STRING,
                            OIIO::get_string_attribute("build:platform"));
-    print("{}\n", Strutil::wordwrap(platform, columns, 4));
+    print(out, "{}\n", Strutil::wordwrap(platform, columns, 4));
 
     auto buildinfo = format("    Build compiler: {} | C++{}/{}",
                             OIIO::get_string_attribute("build:compiler"),
                             OIIO_CPLUSPLUS_VERSION, __cplusplus);
-    print("{}\n", Strutil::wordwrap(buildinfo, columns, 4));
+    print(out, "{}\n", Strutil::wordwrap(buildinfo, columns, 4));
 
     auto hwbuildfeats
         = format("    HW features enabled at build: {}",
                  OIIO::get_string_attribute("build:simd", "no SIMD"));
-    print("{}\n", Strutil::wordwrap(hwbuildfeats, columns, 4));
+    print(out, "{}\n", Strutil::wordwrap(hwbuildfeats, columns, 4));
+#ifdef OIIO_USE_CUDA
+    int cudaver = OIIO::get_int_attribute("cuda:build_version");
+    print(out, "    CUDA {}.{}.{} support enabled at build time\n",
+          cudaver / 10000, (cudaver / 100) % 100, cudaver % 100);
+#else
+    print(out, "    No CUDA support (disabled / unavailable at build time)\n");
+#endif
 
     std::string libs = OIIO::get_string_attribute("build:dependencies");
     if (libs.size()) {
@@ -6523,7 +6096,23 @@ print_help_end(Oiiotool& ot, std::ostream& out)
                                        Sysutil::physical_memory()
                                            / float(1 << 30),
                                        OIIO::get_string_attribute("hw:simd"));
-    print(out, "{}\n", Strutil::wordwrap(hwinfo, columns, 4));
+    print(out, "{}\n", Strutil::wordwrap(hwinfo, columns, 4, " ", ","));
+    if (OIIO::get_int_attribute("cuda:devices_found")
+        /*pvt::compute_device() == pvt::ComputeDevice::CUDA*/) {
+        auto compinfo = Strutil::fmt::format(
+            "Compute hardware available{}: CUDA on {}, driver {}, runtime {}, compat {}, memory {:.1f} GB",
+            pvt::compute_device() == pvt::ComputeDevice::CUDA
+                ? ""
+                : " (but not enabled)",
+            OIIO::get_string_attribute("cuda:device_name"),
+            OIIO::get_int_attribute("cuda:driver_version"),
+            OIIO::get_int_attribute("cuda:runtime_version"),
+            OIIO::get_int_attribute("cuda:compatibility"),
+            OIIO::get_int_attribute("cuda:total_memory_MB") / 1024.0);
+        print(out, "{}\n", Strutil::wordwrap(compinfo, columns, 4, " ", ","));
+    } else {
+        print(out, "    No compute specific hardware enabled.\n");
+    }
 
     // Print the path to the docs. If found, use the one installed in the
     // same area is this executable, otherwise just point to the copy on
@@ -6630,7 +6219,7 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("-n", &ot.dryrun)
       .help("No saved output (dry run)");
     ap.arg("--no-error-exit", ot.noerrexit)
-      .help("Do not exit upon error, try to process additional comands (danger!)");
+      .help("Do not exit upon error, try to process additional commands (danger!)");
     ap.arg("-a", &ot.allsubimages)
       .help("Do operations on all subimages/miplevels");
     ap.arg("--debug", &ot.debug)
@@ -6669,6 +6258,11 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--threads %d:N")
       .help("Number of threads (default 0 == #cores)")
       .OTACTION(set_threads);
+    ap.arg("--gpu")
+      .help("[EXPERIMENTAL] Use GPU if available (options: device=...)")
+      .action([&](cspan<const char*>){
+                  OIIO::attribute("gpu:device", "CUDA");
+              });
     ap.arg("--no-autopremult")
       .help("Turn off automatic premultiplication of images with unassociated alpha")
       .OTACTION(unset_autopremult);
@@ -6849,8 +6443,12 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--clear-keywords")
       .help("Clear all keywords")
       .OTACTION(clear_keywords);
+    ap.arg("--history", &ot.metadata_history)
+      .help("Write full command line into Exif:ImageHistory, Software metadata attributes");
+    ap.arg("--no-history %!", &ot.metadata_history)
+      .help("Do not write full command line into Exif:ImageHistory, Software metadata attributes");
     ap.arg("--nosoftwareattrib", &ot.metadata_nosoftwareattrib)
-      .help("Do not write command line into Exif:ImageHistory, Software metadata attributes");
+      .help("Do not write any Exif:ImageHistory or Software metadata attributes");
     ap.arg("--sansattrib", &sansattrib)
       .help("Write command line into Software & ImageHistory but remove --sattrib and --attrib options");
     ap.arg("--orientation %d:ORIENT")
@@ -7194,6 +6792,9 @@ Oiiotool::getargs(int argc, char* argv[])
       .OTACTION(action_flatten);
 
     ap.separator("Image stack manipulation:");
+    ap.arg("--label %s")
+      .help("Label the top image")
+      .OTACTION(action_label);
     ap.arg("--dup")
       .help("Duplicate the current image (push a copy onto the stack)")
       .OTACTION(action_dup);
@@ -7203,9 +6804,18 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--pop")
       .help("Throw away the current image")
       .OTACTION(action_pop);
-    ap.arg("--label %s")
-      .help("Label the top image")
-      .OTACTION(action_label);
+    ap.arg("--popbottom")
+      .help("Throw away the image on the bottom of the stack")
+      .OTACTION(action_popbottom);
+    ap.arg("--stackreverse")
+      .help("Throw away the image on the bottom of the stack")
+      .OTACTION(action_stackreverse);
+    ap.arg("--stackextract %d:INDEX")
+      .help("Move an indexed stack item to the top of the stack")
+      .OTACTION(action_stackextract);
+    ap.arg("--stackclear")
+      .help("Remove all images from the stack, leaving it empty")
+      .OTACTION(action_stackclear);
 
     ap.separator("Color management:");
     ap.arg("--colorconfiginfo")

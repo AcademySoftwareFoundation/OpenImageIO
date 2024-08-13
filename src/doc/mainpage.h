@@ -70,7 +70,6 @@ rely on them in their own apps.
 \li \ref timer.h : A simple \ref Timer class.
 \li \ref typedesc.h : The TypeDesc class.
 \li \ref ustring.h : The ustring class.
-\li \ref varyingref.h : The VaryingRef template.
 
  */
 

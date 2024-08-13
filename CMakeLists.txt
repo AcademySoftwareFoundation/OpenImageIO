@@ -4,7 +4,7 @@
 
 cmake_minimum_required (VERSION 3.15)
 
-set (OpenImageIO_VERSION "2.6.2.0")
+set (OpenImageIO_VERSION "2.6.3.0")
 set (OpenImageIO_VERSION_OVERRIDE "" CACHE STRING
      "Version override (use with caution)!")
 mark_as_advanced (OpenImageIO_VERSION_OVERRIDE)
@@ -39,6 +39,17 @@ if (CMAKE_VERSION VERSION_LESS 3.21)
         set (PROJECT_IS_TOP_LEVEL ON)
     endif ()
 endif ()
+
+# Set up module path for our own cmake modules and add some esential ones
+list (APPEND CMAKE_MODULE_PATH
+      "${PROJECT_SOURCE_DIR}/src/cmake/modules"
+      "${PROJECT_SOURCE_DIR}/src/cmake")
+
+# Utilities
+include (colors)
+include (set_utils)
+include (check_is_enabled)
+include (fancy_add_executable)
 
 # If the user wants to use Conan to build dependencies, they will have done
 # this prior to the cmake config:
@@ -119,9 +130,18 @@ message(STATUS "CMAKE_UNITY_BUILD_MODE = ${CMAKE_UNITY_BUILD_MODE}")
 message(STATUS "CMAKE_UNITY_BUILD_BATCH_SIZE = ${CMAKE_UNITY_BUILD_BATCH_SIZE}")
 
 option (OIIO_THREAD_ALLOW_DCLP "OIIO threads may use DCLP for speed" ON)
+if (NOT OIIO_THREAD_ALLOW_DCLP)
+    add_compile_definitions (OIIO_THREAD_ALLOW_DCLP=0)
+endif ()
 
 set (TEX_BATCH_SIZE "" CACHE STRING "Force TextureSystem SIMD batch size (e.g. 16)")
+if (TEX_BATCH_SIZE)
+    add_compile_definitions (OIIO_TEXTURE_SIMD_BATCH_WIDTH=${TEX_BATCH_SIZE})
+endif ()
 option (OIIO_TEX_IMPLEMENT_VARYINGREF "Implement the deprecated batch texture functions taking VaryingRef params" ON)
+if (NOT OIIO_TEX_IMPLEMENT_VARYINGREF)
+    add_compile_definitions (OIIO_TEX_NO_IMPLEMENT_VARYINGREF=1)
+endif ()
 
 # Set the default namespace
 set (${PROJ_NAME}_NAMESPACE ${PROJECT_NAME} CACHE STRING
@@ -136,27 +156,28 @@ endif ()
 message(STATUS "Setting Namespace to: ${PROJ_NAMESPACE_V}")
 
 
-list (APPEND CMAKE_MODULE_PATH
-      "${PROJECT_SOURCE_DIR}/src/cmake/modules"
-      "${PROJECT_SOURCE_DIR}/src/cmake")
+# Define OIIO_INTERNAL symbol only when building OIIO itself, will not be
+# defined for downstream projects using OIIO.
+add_compile_definitions (OIIO_INTERNAL=1)
 
 include (GNUInstallDirs)
 
-# Utilities
-include (colors)
-include (check_is_enabled)
-include (checked_find_package)
-include (fancy_add_executable)
+# Utilities for build instructions of the format-reading plugins
 include (add_oiio_plugin)
 
 # All the C++ and compiler related options and adjustments
 include (compiler)
+
+# Dependency finding utilities and all dependency-related options
+include (dependency_utils)
 
 # Utilities and options related to finding python and making python bindings
 include (pythonutils)
 
 # Dependency finding utilities and all dependency-related options
 include (externalpackages)
+
+include (cuda_macros)
 
 # Include all our testing apparatus and utils, but not if it's a subproject
 if (PROJECT_IS_TOP_LEVEL)
@@ -176,23 +197,6 @@ include_directories (
     "${CMAKE_BINARY_DIR}/include"
     "${CMAKE_BINARY_DIR}/include/OpenImageIO"
   )
-
-
-# Define OIIO_INTERNAL symbol only when building OIIO itself, will not be
-# defined for downstream projects using OIIO.
-proj_add_compile_definitions (OIIO_INTERNAL=1)
-
-if (NOT OIIO_THREAD_ALLOW_DCLP)
-    proj_add_compile_definitions (OIIO_THREAD_ALLOW_DCLP=0)
-endif ()
-if (TEX_BATCH_SIZE)
-    proj_add_compile_definitions (OIIO_TEXTURE_SIMD_BATCH_WIDTH=${TEX_BATCH_SIZE})
-endif ()
-if (NOT OIIO_TEX_IMPLEMENT_VARYINGREF)
-    proj_add_compile_definitions (OIIO_TEX_NO_IMPLEMENT_VARYINGREF=1)
-endif ()
-
-
 
 # Tell CMake to process the sub-directories
 add_subdirectory (src/libutil)
@@ -244,8 +248,10 @@ if (NOT EMBEDPLUGINS AND NOT BUILD_OIIOUTIL_ONLY)
     endforeach ()
 endif ()
 
-if (USE_PYTHON AND Python_Development_FOUND AND NOT BUILD_OIIOUTIL_ONLY)
+if (USE_PYTHON AND Python3_Development_FOUND AND NOT BUILD_OIIOUTIL_ONLY)
     add_subdirectory (src/python)
+else ()
+    message (STATUS "Not building Python bindings: USE_PYTHON=${USE_PYTHON}, Python3_Development_FOUND=${Python3_Development_FOUND}")
 endif ()
 
 add_subdirectory (src/include)
@@ -257,11 +263,6 @@ add_subdirectory (src/fonts)
 if (NUKE_FOUND)
     add_subdirectory (src/nuke/txReader)
     add_subdirectory (src/nuke/txWriter)
-endif ()
-
-# Last minute site-specific instructions, if they exist
-if (OIIO_SITE AND EXISTS "${PROJECT_SOURCE_DIR}/site/${OIIO_SITE}/cmake/sitecustom.cmake")
-    include ("${PROJECT_SOURCE_DIR}/site/${OIIO_SITE}/cmake/sitecustom.cmake")
 endif ()
 
 # install pkgconfig file
@@ -320,3 +321,5 @@ endif ()
 if (PROJECT_IS_TOP_LEVEL)
     include (packaging)
 endif ()
+
+print_package_notfound_report ()

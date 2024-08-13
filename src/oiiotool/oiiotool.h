@@ -1,5 +1,5 @@
 // Copyright Contributors to the OpenImageIO project.
-// SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+// SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
@@ -9,7 +9,7 @@
 #include <memory>
 #include <stack>
 
-#include <boost/container/flat_set.hpp>
+#include <tsl/robin_set.h>
 
 #include <OpenImageIO/half.h>
 
@@ -126,6 +126,7 @@ public:
     bool output_dither;
     bool output_force_tiles;  // for debugging
     bool metadata_nosoftwareattrib;
+    bool metadata_history;
 
     // Options for --diff
     float diff_warnthresh;
@@ -256,6 +257,17 @@ public:
             curimg = ImageRecRef();
         }
         return r;
+    }
+
+    void popbottom()
+    {
+        if (image_stack.size()) {
+            // There are images on the full stack -- get rid of the bottom
+            image_stack.erase(image_stack.begin());
+        } else {
+            // Nothing on the stack, so get rid of the current image
+            curimg = ImageRecRef();
+        }
     }
 
     ImageRecRef top() { return curimg; }
@@ -579,15 +591,6 @@ public:
         m_configspec.reset(new ImageSpec(spec));
     }
     void clear_configspec() { m_configspec.reset(); }
-
-    /// Error reporting for ImageRec: call this with printf-like arguments.
-    /// Note however that this is fully typesafe!
-    template<typename... Args>
-    OIIO_DEPRECATED("Use errorfmt instead")
-    void errorf(const char* fmt, const Args&... args) const
-    {
-        append_error(Strutil::sprintf(fmt, args...));
-    }
 
     /// Error reporting for ImageRec: call this with printf-like arguments.
     /// Note however that this is fully typesafe!
@@ -1099,7 +1102,7 @@ protected:
     std::vector<ImageBuf*> m_img;
     std::vector<string_view> m_args;
     ParamValueList m_options;
-    typedef boost::container::flat_set<int> FastIntSet;
+    typedef tsl::robin_set<int> FastIntSet;
     FastIntSet subimage_includes;  // Subimages to operate on (empty == all)
     FastIntSet subimage_excludes;  // Subimages to skip for the op
     setup_func_t m_setup_func;

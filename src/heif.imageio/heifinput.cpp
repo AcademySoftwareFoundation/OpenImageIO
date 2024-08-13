@@ -166,11 +166,11 @@ HeifInput::open(const std::string& name, ImageSpec& newspec,
 
     } catch (const heif::Error& err) {
         std::string e = err.get_message();
-        errorf("%s", e.empty() ? "unknown exception" : e.c_str());
+        errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
         return false;
     } catch (const std::exception& err) {
         std::string e = err.what();
-        errorf("%s", e.empty() ? "unknown exception" : e.c_str());
+        errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
         return false;
     }
 
@@ -221,11 +221,11 @@ HeifInput::seek_subimage(int subimage, int miplevel)
         m_himage = m_ihandle.decode_image(heif_colorspace_RGB, chroma);
     } catch (const heif::Error& err) {
         std::string e = err.get_message();
-        errorf("%s", e.empty() ? "unknown exception" : e.c_str());
+        errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
         return false;
     } catch (const std::exception& err) {
         std::string e = err.what();
-        errorf("%s", e.empty() ? "unknown exception" : e.c_str());
+        errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
         return false;
     }
 #else
@@ -247,8 +247,9 @@ HeifInput::seek_subimage(int subimage, int miplevel)
 #endif
 
     int bits = m_himage.get_bits_per_pixel(heif_channel_interleaved);
-    m_spec = ImageSpec(m_ihandle.get_width(), m_ihandle.get_height(), bits / 8,
-                       TypeUInt8);
+    m_spec   = ImageSpec(m_himage.get_width(heif_channel_interleaved),
+                         m_himage.get_height(heif_channel_interleaved), bits / 8,
+                         TypeUInt8);
 
     m_spec.attribute("oiio:ColorSpace", "sRGB");
 
@@ -397,7 +398,7 @@ HeifInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     const uint8_t* hdata = m_himage.get_plane(heif_channel_interleaved,
                                               &ystride);
     if (!hdata) {
-        errorf("Unknown read error");
+        errorfmt("Unknown read error");
         return false;
     }
     hdata += (y - m_spec.y) * ystride;

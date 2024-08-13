@@ -121,7 +121,7 @@ main(int argc, char* argv[])
         int its = iterations / nt;
 
         double range;
-        double t = time_trial(std::bind(test_spin_rw, nt, its), ntrials,
+        double t = time_trial(std::bind(test_spin_rw, nt, its), ntrials, 1,
                               &range);
 
         Strutil::printf("%2d\t%s\t%5.1fs, range %.1f\t(%d iters/thread)\n", nt,

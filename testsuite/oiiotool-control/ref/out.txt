@@ -1,3 +1,38 @@
+Stack holds [0] = d.tif, [1] = c.tif, [2] = b.tif
+TOP = d.tif, BOTTOM = a.tif
+Stack bottom to top:
+  a.tif
+  b.tif
+  c.tif
+  d.tif
+after --stackreverse:
+  d.tif
+  c.tif
+  b.tif
+  a.tif
+after --stackreverse:
+  a.tif
+  b.tif
+  c.tif
+  d.tif
+after --pop:
+  a.tif
+  b.tif
+  c.tif
+after --popbottom:
+  b.tif
+  c.tif
+after --stackclear:
+Re-add a, b, c, d:
+  a.tif
+  b.tif
+  c.tif
+  d.tif
+--stackextract 2:
+  a.tif
+  c.tif
+  d.tif
+  b.tif
 42+2 = 44
 42-2 = 40
 42*2 = 84
@@ -58,6 +93,10 @@ Testing --set of implied types:
   i = 42, f = 3.5, s = hello world
 Testing --set of various explicit types:
   i = 42, f = 3.5, s = hello world, tc = 01:02:03:04, rat = 1/2
+This should make an error:
+oiiotool ERROR: -set : Invalid variable name "3"
+Full command line was:
+> oiiotool -echo "This should make an error:" -set 3 5
 Expr getattribute(limits:channels) = 1024
 Testing if with true cond (expect output):
   inside if clause, i=42
@@ -109,6 +148,20 @@ Testing for i 5,10,2 (expect output 5,7,9):
   i = 5
   i = 7
   i = 9
+ 
+Testing for i 10,5,-1 (expect output 10..6):
+  i = 10
+  i = 9
+  i = 8
+  i = 7
+  i = 6
+ 
+Testing for i 10,5 (expect output 10..6):
+  i = 10
+  i = 9
+  i = 8
+  i = 7
+  i = 6
  
 Testing endfor without for:
 oiiotool ERROR: -endfor : endfor without matching for
@@ -255,7 +308,9 @@ Stats FiniteCount: 12288 12288 12288
 Constant: No
 Monochrome: No
 
-Stack holds [0] = ../common/tahoe-small.tif, [1] = ../common/tahoe-tiny.tif
+Stack holds [0] = ../common/grid.tif, [1] = ../common/tahoe-small.tif, [2] = ../common/tahoe-tiny.tif
+TOP = ../common/grid.tif, BOTTOM = ../common/tahoe-tiny.tif
+Stack holds [1] = ../common/tahoe-small.tif
 filename=../common/tahoe-tiny.tif file_extension=.tif file_noextension=../common/tahoe-tiny
 MINCOLOR=0,0,0 MAXCOLOR=0.745098,1,1 AVGCOLOR=0.101942,0.216695,0.425293
 Testing NIMAGES:

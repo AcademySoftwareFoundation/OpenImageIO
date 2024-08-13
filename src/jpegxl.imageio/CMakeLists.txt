@@ -6,7 +6,7 @@ if (JXL_FOUND)
     add_oiio_plugin (jxlinput.cpp jxloutput.cpp
                      INCLUDE_DIRS ${JXL_INCLUDE_DIRS}
                      LINK_LIBRARIES ${JXL_LIBRARIES}
-                     DEFINITIONS "-DUSE_JXL")
+                     DEFINITIONS "USE_JXL")
 else()
     message (WARNING "JPEG XL plugin will not be built")
 endif()

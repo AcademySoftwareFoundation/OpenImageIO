@@ -42,7 +42,7 @@ template<class T> using auto_ptr = unique_ptr<T>;
 #include <libraw/libraw.h>
 #include <libraw/libraw_version.h>
 
-#if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 18, 0)
+#if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 20, 0)
 #    error "OpenImageIO does not support such an old LibRaw"
 #endif
 
@@ -183,7 +183,7 @@ private:
              bool force = true, unsigned short ignval = 0)
     {
         if (force || !allval(data, ignval)) {
-            int size = data.size() > 1 ? data.size() : 0;
+            int size = data.size() > 1 ? std::ssize(data) : 0;
             m_spec.attribute(prefixedname(prefix, name),
                              TypeDesc(TypeDesc::UINT16, size), data.data());
         }
@@ -192,7 +192,7 @@ private:
              bool force = true, unsigned char ignval = 0)
     {
         if (force || !allval(data, ignval)) {
-            int size = data.size() > 1 ? data.size() : 0;
+            int size = data.size() > 1 ? std::ssize(data) : 0;
             m_spec.attribute(prefixedname(prefix, name),
                              TypeDesc(TypeDesc::UINT8, size), data.data());
         }
@@ -201,7 +201,7 @@ private:
              bool force = true, float ignval = 0)
     {
         if (force || !allval(data, ignval)) {
-            int size = data.size() > 1 ? data.size() : 0;
+            int size = data.size() > 1 ? std::ssize(data) : 0;
             m_spec.attribute(prefixedname(prefix, name),
                              TypeDesc(TypeDesc::FLOAT, size), data.data());
         }
@@ -210,7 +210,7 @@ private:
              bool force = true, float ignval = 0)
     {
         float* d = OIIO_ALLOCA(float, data.size());
-        for (auto i = 0; i < data.size(); ++i)
+        for (size_t i = 0; i < std::size(data); ++i)
             d[i] = data[i];
         add(prefix, name, cspan<float>(d, data.size()), force, ignval);
     }
@@ -236,14 +236,10 @@ raw_input_imageio_create()
 }
 
 OIIO_EXPORT const char* raw_input_extensions[]
-    = { "bay", "bmq", "cr2",
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
-        "cr3",
-#endif
-        "crw", "cs1", "dc2", "dcr", "dng", "erf", "fff",  "hdr",  "k25",
-        "kdc", "mdc", "mos", "mrw", "nef", "orf", "pef",  "pxn",  "raf",
-        "raw", "rdc", "sr2", "srf", "x3f", "arw", "3fr",  "cine", "ia",
-        "kc2", "mef", "nrw", "qtk", "rw2", "sti", "rwl",  "srw",  "drf",
+    = { "bay", "bmq", "cr2", "cr3", "crw", "cs1", "dc2",  "dcr", "dng", "erf",
+        "fff", "hdr", "k25", "kdc", "mdc", "mos", "mrw",  "nef", "orf", "pef",
+        "pxn", "raf", "raw", "rdc", "sr2", "srf", "x3f",  "arw", "3fr", "cine",
+        "ia",  "kc2", "mef", "nrw", "qtk", "rw2", "sti",  "rwl", "srw", "drf",
         "dsc", "ptx", "cap", "iiq", "rwz", "cr3", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
@@ -463,6 +459,9 @@ RawInput::open_raw(bool unpack, const std::string& name,
     // Turn off maximum threshold value (unless set to non-zero)
     m_processor->imgdata.params.adjust_maximum_thr
         = config.get_float_attribute("raw:adjust_maximum_thr", 0.0f);
+    // Set camera minimum value if "raw:user_black" is not negative
+    m_processor->imgdata.params.user_black
+        = config.get_int_attribute("raw:user_black", -1);
     // Set camera maximum value if "raw:user_sat" is not 0
     m_processor->imgdata.params.user_sat
         = config.get_int_attribute("raw:user_sat", 0);
@@ -506,21 +505,34 @@ RawInput::open_raw(bool unpack, const std::string& name,
         params.user_mul[2] = norm[2];
         params.user_mul[3] = norm[3];
     } else {
-        // Set user white balance coefficients.
-        // Only has effect if "raw:use_camera_wb" is equal to 0,
-        // i.e. we are not using the camera white balance
-        auto p = config.find_attribute("raw:user_mul");
-        if (p && p->type() == TypeDesc(TypeDesc::FLOAT, 4)) {
-            m_processor->imgdata.params.user_mul[0] = p->get<float>(0);
-            m_processor->imgdata.params.user_mul[1] = p->get<float>(1);
-            m_processor->imgdata.params.user_mul[2] = p->get<float>(2);
-            m_processor->imgdata.params.user_mul[3] = p->get<float>(3);
-        }
-        if (p && p->type() == TypeDesc(TypeDesc::DOUBLE, 4)) {
-            m_processor->imgdata.params.user_mul[0] = p->get<double>(0);
-            m_processor->imgdata.params.user_mul[1] = p->get<double>(1);
-            m_processor->imgdata.params.user_mul[2] = p->get<double>(2);
-            m_processor->imgdata.params.user_mul[3] = p->get<double>(3);
+        if (config.get_int_attribute("raw:use_auto_wb", 0) == 1) {
+            m_processor->imgdata.params.use_auto_wb = 1;
+        } else {
+            auto p = config.find_attribute("raw:greybox");
+            if (p && p->type() == TypeDesc(TypeDesc::INT, 4)) {
+                // p->get<int>() didn't work for me here
+                m_processor->imgdata.params.greybox[0] = p->get_int_indexed(0);
+                m_processor->imgdata.params.greybox[1] = p->get_int_indexed(1);
+                m_processor->imgdata.params.greybox[2] = p->get_int_indexed(2);
+                m_processor->imgdata.params.greybox[3] = p->get_int_indexed(3);
+            } else {
+                // Set user white balance coefficients.
+                // Only has effect if "raw:use_camera_wb" is equal to 0,
+                // i.e. we are not using the camera white balance
+                auto p = config.find_attribute("raw:user_mul");
+                if (p && p->type() == TypeDesc(TypeDesc::FLOAT, 4)) {
+                    m_processor->imgdata.params.user_mul[0] = p->get<float>(0);
+                    m_processor->imgdata.params.user_mul[1] = p->get<float>(1);
+                    m_processor->imgdata.params.user_mul[2] = p->get<float>(2);
+                    m_processor->imgdata.params.user_mul[3] = p->get<float>(3);
+                }
+                if (p && p->type() == TypeDesc(TypeDesc::DOUBLE, 4)) {
+                    m_processor->imgdata.params.user_mul[0] = p->get<double>(0);
+                    m_processor->imgdata.params.user_mul[1] = p->get<double>(1);
+                    m_processor->imgdata.params.user_mul[2] = p->get<double>(2);
+                    m_processor->imgdata.params.user_mul[3] = p->get<double>(3);
+                }
+            }
         }
     }
 
@@ -666,7 +678,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
             m_spec.erase_attribute("raw:ColorSpace");
             m_spec.erase_attribute("raw:Exposure");
         } else {
-            errorf("raw:Demosaic set to unknown value");
+            errorfmt("raw:Demosaic set to unknown value");
             return false;
         }
         // Set the attribute in the output spec
@@ -730,7 +742,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
     // 3+ = Recovery
     int highlight_mode = config.get_int_attribute("raw:HighlightMode", 0);
     if (highlight_mode < 0 || highlight_mode > 9) {
-        errorf("raw:HighlightMode invalid value. range 0-9");
+        errorfmt("raw:HighlightMode invalid value. range 0-9");
         return false;
     }
     m_processor->imgdata.params.highlight = highlight_mode;
@@ -858,12 +870,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
         m_spec.attribute("Artist", other.artist);
     if (other.parsed_gps.gpsparsed) {
         add("GPS", "Latitude", other.parsed_gps.latitude, false, 0.0f);
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
         add("GPS", "Longitude", other.parsed_gps.longitude, false, 0.0f);
-#else
-        add("GPS", "Longitude", other.parsed_gps.longtitude, false,
-            0.0f);  // N.B. wrong spelling!
-#endif
         add("GPS", "TimeStamp", other.parsed_gps.gpstimestamp, false, 0.0f);
         add("GPS", "Altitude", other.parsed_gps.altitude, false, 0.0f);
         add("GPS", "LatitudeRef", string_view(&other.parsed_gps.latref, 1),
@@ -875,7 +882,6 @@ RawInput::open_raw(bool unpack, const std::string& name,
         add("GPS", "Status", string_view(&other.parsed_gps.gpsstatus, 1),
             false);
     }
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
     const libraw_makernotes_t& makernotes(m_processor->imgdata.makernotes);
     const libraw_metadata_common_t& common(makernotes.common);
     // float FlashEC;
@@ -894,24 +900,6 @@ RawInput::open_raw(bool unpack, const std::string& name,
     add("Exif", "CameraElevationAngle", common.exifCameraElevationAngle, false,
         0.0f);
     // float real_ISO;
-#elif LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 19, 0)
-    // float FlashEC;
-    // float FlashGN;
-    // float CameraTemperature;
-    // float SensorTemperature;
-    // float SensorTemperature2;
-    // float LensTemperature;
-    // float AmbientTemperature;
-    // float BatteryTemperature;
-    // float exifAmbientTemperature;
-    add("Exif", "Humidity", other.exifHumidity, false, 0.0f);
-    add("Exif", "Pressure", other.exifPressure, false, 0.0f);
-    add("Exif", "WaterDepth", other.exifWaterDepth, false, 0.0f);
-    add("Exif", "Acceleration", other.exifAcceleration, false, 0.0f);
-    add("Exif", "CameraElevationAngle", other.exifCameraElevationAngle, false,
-        0.0f);
-    // float real_ISO;
-#endif
 
     // libraw reoriented the image for us, so squash any orientation
     // metadata we may have found in the Exif. Preserve the original as
@@ -1039,12 +1027,10 @@ RawInput::get_makernotes_canon()
     MAKER(BlackMaskRightBorder, 0);
     MAKER(BlackMaskBottomBorder, 0);
 #endif
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 19, 0)
     // Extra added with libraw 0.19:
     // unsigned int mn.multishot[4]
     MAKER(AFMicroAdjMode, 0);
     MAKER(AFMicroAdjValue, 0.0f);
-#endif
 }
 
 
@@ -1052,7 +1038,6 @@ RawInput::get_makernotes_canon()
 void
 RawInput::get_makernotes_nikon()
 {
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 19, 0)
     auto const& mn(m_processor->imgdata.makernotes.nikon);
     MAKER(ExposureBracketValue, 0.0f);
     MAKERF(ActiveDLighting);
@@ -1060,7 +1045,7 @@ RawInput::get_makernotes_nikon()
     MAKERF(ImageStabilization);
     MAKER(VibrationReduction, 0);
     MAKERF(VRMode);
-#    if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 21, 0)
+#if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 21, 0)
     MAKER(FocusMode, 0);
     MAKERF(AFPoint);
     MAKER(AFPointsInFocus, 0);
@@ -1080,7 +1065,7 @@ RawInput::get_makernotes_nikon()
         MAKER(AFAreaHeight, 0);
         MAKER(ContrastDetectAFInFocus, 0);
     }
-#    endif
+#endif
     MAKER(FlashSetting, 0);
     MAKER(FlashType, 0);
     MAKERF(FlashExposureCompensation);
@@ -1109,7 +1094,6 @@ RawInput::get_makernotes_nikon()
     MAKERF(AFFineTune);
     MAKERF(AFFineTuneIndex);
     MAKERF(AFFineTuneAdj);
-#endif
 }
 
 
@@ -1118,13 +1102,7 @@ void
 RawInput::get_makernotes_olympus()
 {
     auto const& mn(m_processor->imgdata.makernotes.olympus);
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
     MAKERF(SensorCalibration);
-#else
-    MAKERF(OlympusCropID);
-    MAKERF(OlympusFrame); /* upper left XY, lower right XY */
-    MAKERF(OlympusSensorCalibration);
-#endif
     MAKERF(FocusMode);
     MAKERF(AutoFocus);
     MAKERF(AFPoint);
@@ -1133,11 +1111,9 @@ RawInput::get_makernotes_olympus()
     MAKERF(AFResult);
     // MAKERF(ImageStabilization);  Removed after 0.19
     MAKERF(ColorSpace);
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 19, 0)
     MAKERF(AFFineTune);
     if (mn.AFFineTune)
         MAKERF(AFFineTuneAdj);
-#endif
 }
 
 
@@ -1145,12 +1121,10 @@ RawInput::get_makernotes_olympus()
 void
 RawInput::get_makernotes_panasonic()
 {
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 19, 0)
     auto const& mn(m_processor->imgdata.makernotes.panasonic);
     MAKERF(Compression);
     MAKER(BlackLevelDim, 0);
     MAKERF(BlackLevel);
-#endif
 }
 
 
@@ -1158,7 +1132,6 @@ RawInput::get_makernotes_panasonic()
 void
 RawInput::get_makernotes_pentax()
 {
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 19, 0)
     auto const& mn(m_processor->imgdata.makernotes.pentax);
     MAKERF(FocusMode);
     MAKERF(AFPointsInFocus);
@@ -1166,7 +1139,6 @@ RawInput::get_makernotes_pentax()
     MAKERF(AFPointSelected);
     MAKERF(FocusPosition);
     MAKERF(AFAdjustment);
-#endif
 }
 
 
@@ -1174,7 +1146,6 @@ RawInput::get_makernotes_pentax()
 void
 RawInput::get_makernotes_kodak()
 {
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 19, 0)
     auto const& mn(m_processor->imgdata.makernotes.kodak);
     MAKERF(BlackLevelTop);
     MAKERF(BlackLevelBottom);
@@ -1188,7 +1159,6 @@ RawInput::get_makernotes_kodak()
     // float romm_camFlash[3][3];
     // float romm_camCustom[3][3];
     // float romm_camAuto[3][3];
-#endif
 }
 
 
@@ -1198,21 +1168,12 @@ RawInput::get_makernotes_fuji()
 {
     auto const& mn(m_processor->imgdata.makernotes.fuji);
 
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
     add(m_make, "ExpoMidPointShift", mn.ExpoMidPointShift);
     add(m_make, "DynamicRange", mn.DynamicRange);
     add(m_make, "FilmMode", mn.FilmMode);
     add(m_make, "DynamicRangeSetting", mn.DynamicRangeSetting);
     add(m_make, "DevelopmentDynamicRange", mn.DevelopmentDynamicRange);
     add(m_make, "AutoDynamicRange", mn.AutoDynamicRange);
-#else
-    add(m_make, "ExpoMidPointShift", mn.FujiExpoMidPointShift);
-    add(m_make, "DynamicRange", mn.FujiDynamicRange);
-    add(m_make, "FilmMode", mn.FujiFilmMode);
-    add(m_make, "DynamicRangeSetting", mn.FujiDynamicRangeSetting);
-    add(m_make, "DevelopmentDynamicRange", mn.FujiDevelopmentDynamicRange);
-    add(m_make, "AutoDynamicRange", mn.FujiAutoDynamicRange);
-#endif
 
     MAKERF(FocusMode);
     MAKERF(AFMode);
@@ -1238,27 +1199,14 @@ RawInput::get_makernotes_sony()
 {
     auto const& mn(m_processor->imgdata.makernotes.sony);
 
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
     MAKERF(CameraType);
-#else
-    MAKERF(SonyCameraType);
-#endif
 
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 19, 0)
     // uchar Sony0x9400_version; /* 0 if not found/deciphered, 0xa, 0xb, 0xc following exiftool convention */
     // uchar Sony0x9400_ReleaseMode2;
     // unsigned Sony0x9400_SequenceImageNumber;
     // uchar Sony0x9400_SequenceLength1;
     // unsigned Sony0x9400_SequenceFileNumber;
     // uchar Sony0x9400_SequenceLength2;
-#    if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 20, 0)
-    if (mn.raw_crop.cwidth || mn.raw_crop.cheight) {
-        add(m_make, "cropleft", mn.raw_crop.cleft, true);
-        add(m_make, "croptop", mn.raw_crop.ctop, true);
-        add(m_make, "cropwidth", mn.raw_crop.cwidth, true);
-        add(m_make, "cropheight", mn.raw_crop.cheight, true);
-    }
-#    endif
     MAKERF(AFMicroAdjValue);
     MAKERF(AFMicroAdjOn);
     MAKER(AFMicroAdjRegisteredLenses, 0);
@@ -1275,7 +1223,6 @@ RawInput::get_makernotes_sony()
     add(m_make, "DateTime", mn.SonyDateTime);
     // MAKERF(TimeStamp);  Removed after 0.19, is in 'other'
     MAKER(ShotNumberSincePowerUp, 0);
-#endif
 }
 
 
@@ -1330,29 +1277,17 @@ RawInput::get_lensinfo()
         MAKER(Adapter, 0);
         MAKER(AttachmentID, 0ULL);
         MAKER(Attachment, 0);
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
         MAKER(FocalUnits, 0);
-#else
-        MAKER(CanonFocalUnits, 0);
-#endif
         MAKER(FocalLengthIn35mmFormat, 0.0f);
     }
 
     if (Strutil::iequals(m_make, "Nikon")) {
         auto const& mn(m_processor->imgdata.lens.nikon);
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
         add(m_make, "EffectiveMaxAp", mn.EffectiveMaxAp);
         add(m_make, "LensIDNumber", mn.LensIDNumber);
         add(m_make, "LensFStops", mn.LensFStops);
         add(m_make, "MCUVersion", mn.MCUVersion);
         add(m_make, "LensType", mn.LensType);
-#else
-        add(m_make, "EffectiveMaxAp", mn.NikonEffectiveMaxAp);
-        add(m_make, "LensIDNumber", mn.NikonLensIDNumber);
-        add(m_make, "LensFStops", mn.NikonLensFStops);
-        add(m_make, "MCUVersion", mn.NikonMCUVersion);
-        add(m_make, "LensType", mn.NikonLensType);
-#endif
     }
     if (Strutil::iequals(m_make, "DNG")) {
         auto const& mn(m_processor->imgdata.lens.dng);
@@ -1400,6 +1335,34 @@ RawInput::get_colorinfo()
         cspan<float>(&(m_processor->imgdata.color.cam_xyz[0][0]),
                      &(m_processor->imgdata.color.cam_xyz[3][3])),
         false, 0.f);
+
+    if (m_processor->imgdata.idata.dng_version) {
+        add("raw", "dng:version", m_processor->imgdata.idata.dng_version);
+
+        auto const& c = m_processor->imgdata.rawdata.color;
+
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
+        add("raw", "dng:baseline_exposure", c.dng_levels.baseline_exposure);
+#else
+        add("raw", "dng:baseline_exposure", c.baseline_exposure);
+#endif
+
+        for (int i = 0; i < 2; i++) {
+            std::string index = std::to_string(i + 1);
+            add("raw", "dng:calibration_illuminant" + index,
+                c.dng_color[i].illuminant);
+
+            add("raw", "dng:color_matrix" + index,
+                cspan<float>(&(c.dng_color[i].colormatrix[0][0]),
+                             &(c.dng_color[i].colormatrix[3][3])),
+                false, 0.f);
+
+            add("raw", "dng:camera_calibration" + index,
+                cspan<float>(&(c.dng_color[i].calibration[0][0]),
+                             &(c.dng_color[i].calibration[3][4])),
+                false, 0.f);
+        }
+    }
 }
 
 
@@ -1441,22 +1404,22 @@ RawInput::process()
     if (!m_image) {
         int ret = m_processor->dcraw_process();
         if (ret != LIBRAW_SUCCESS) {
-            errorf("Processing image failed, %s", libraw_strerror(ret));
+            errorfmt("Processing image failed, {}", libraw_strerror(ret));
             return false;
         }
 
         m_image = m_processor->dcraw_make_mem_image(&ret);
         if (!m_image) {
-            errorf("LibRaw failed to create in memory image");
+            errorfmt("LibRaw failed to create in memory image");
             return false;
         }
 
         if (m_image->type != LIBRAW_IMAGE_BITMAP) {
-            errorf("LibRaw did not return expected image type");
+            errorfmt("LibRaw did not return expected image type");
             return false;
         }
         if (m_image->colors != 1 && m_image->colors != 3) {
-            errorf("LibRaw did not return a 1 or 3 channel image");
+            errorfmt("LibRaw did not return a 1 or 3 channel image");
             return false;
         }
     }

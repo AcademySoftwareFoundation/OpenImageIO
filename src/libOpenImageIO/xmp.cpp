@@ -5,7 +5,7 @@
 
 #include <iostream>
 
-#include <boost/container/flat_map.hpp>
+#include <tsl/robin_map.h>
 
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
@@ -222,7 +222,7 @@ static XMPtag xmptag[] = {
 
 
 class XMPtagMap {
-    typedef boost::container::flat_map<std::string, const XMPtag*> tagmap_t;
+    typedef tsl::robin_map<std::string, const XMPtag*> tagmap_t;
     // Key is lower case so it's effectively case-insensitive
 public:
     XMPtagMap(const XMPtag* tag_table)
@@ -512,24 +512,6 @@ decode_xmp_node(pugi::xml_node node, ImageSpec& spec, int level = 1,
 
 
 }  // anonymous namespace
-
-
-
-// DEPRECATED(2.1)
-bool
-decode_xmp(const std::string& xml, ImageSpec& spec)
-{
-    return decode_xmp(string_view(xml), spec);
-}
-
-
-
-// DEPRECATED(2.1)
-bool
-decode_xmp(const char* xml, ImageSpec& spec)
-{
-    return decode_xmp(string_view(xml), spec);
-}
 
 
 

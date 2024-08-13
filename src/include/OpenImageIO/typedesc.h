@@ -164,8 +164,7 @@ struct OIIO_UTIL_API TypeDesc {
     TypeDesc (string_view typestring);
 
     /// Copy constructor.
-    OIIO_HOSTDEVICE constexpr TypeDesc (const TypeDesc &t) noexcept = default;
-
+    constexpr TypeDesc (const TypeDesc &t) noexcept = default;
 
     /// Return the name, for printing and whatnot.  For example,
     /// "float", "int[5]", "normal"
@@ -336,30 +335,40 @@ struct OIIO_UTIL_API TypeDesc {
     /// guess for one that can handle both without any loss of range or
     /// precision.
     static BASETYPE basetype_merge(TypeDesc a, TypeDesc b);
+    static BASETYPE basetype_merge(TypeDesc a, TypeDesc b, TypeDesc c) {
+        return basetype_merge(basetype_merge(a, b), c);
+    }
 
+#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(1,8,0) && OIIO_VERSION_LESS(2,7,0) && !defined(OIIO_DOXYGEN)
     // DEPRECATED(1.8): These static const member functions were mildly
     // problematic because they required external linkage (and possibly
     // even static initialization order fiasco) and were a memory reference
     // that incurred some performance penalty and inability to optimize.
     // Please instead use the out-of-class constexpr versions below.  We
     // will eventually remove these.
-#ifndef OIIO_DOXYGEN
-    static const TypeDesc TypeFloat;
-    static const TypeDesc TypeColor;
-    static const TypeDesc TypeString;
-    static const TypeDesc TypeInt;
-    static const TypeDesc TypeHalf;
-    static const TypeDesc TypePoint;
-    static const TypeDesc TypeVector;
-    static const TypeDesc TypeNormal;
-    static const TypeDesc TypeMatrix;
-    static const TypeDesc TypeMatrix33;
-    static const TypeDesc TypeMatrix44;
-    static const TypeDesc TypeTimeCode;
-    static const TypeDesc TypeKeyCode;
-    static const TypeDesc TypeFloat4;
-    static const TypeDesc TypeRational;
+#ifdef __INTEL_COMPILER
+#    define OIIO_DEPRECATED_TYPEDESC_STATICS
+#else
+#    define OIIO_DEPRECATED_TYPEDESC_STATICS \
+        OIIO_DEPRECATED("Use the version that takes a tostring_formatting struct (1.8)")
 #endif
+    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeFloat;
+    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeColor;
+    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeString;
+    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeInt;
+    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeHalf;
+    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypePoint;
+    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeVector;
+    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeNormal;
+    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeMatrix;
+    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeMatrix33;
+    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeMatrix44;
+    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeTimeCode;
+    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeKeyCode;
+    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeFloat4;
+    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeRational;
+#endif
+#undef OIIO_DEPRECATED_TYPEDESC_STATICS
 };
 
 // Validate that TypeDesc can be used directly as POD in a C interface.
@@ -398,6 +407,7 @@ OIIO_INLINE_CONSTEXPR TypeDesc TypeUInt8 (TypeDesc::UINT8);
 OIIO_INLINE_CONSTEXPR TypeDesc TypeInt64 (TypeDesc::INT64);
 OIIO_INLINE_CONSTEXPR TypeDesc TypeUInt64 (TypeDesc::UINT64);
 OIIO_INLINE_CONSTEXPR TypeDesc TypeVector2i(TypeDesc::INT, TypeDesc::VEC2);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeVector3i(TypeDesc::INT, TypeDesc::VEC3);
 OIIO_INLINE_CONSTEXPR TypeDesc TypeBox2(TypeDesc::FLOAT, TypeDesc::VEC2, TypeDesc::BOX, 2);
 OIIO_INLINE_CONSTEXPR TypeDesc TypeBox3(TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::BOX, 2);
 OIIO_INLINE_CONSTEXPR TypeDesc TypeBox2i(TypeDesc::INT, TypeDesc::VEC2, TypeDesc::BOX, 2);
@@ -411,7 +421,9 @@ OIIO_INLINE_CONSTEXPR TypeDesc TypeUstringhash(TypeDesc::USTRINGHASH);
 
 
 
+#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2,1,0) && OIIO_VERSION_LESS(2,7,0)
 // DEPRECATED(2.1)
+OIIO_DEPRECATED("Use the version that takes a tostring_formatting struct")
 OIIO_UTIL_API
 std::string tostring (TypeDesc type, const void *data,
                       const char *float_fmt,                // E.g. "%g"
@@ -420,7 +432,7 @@ std::string tostring (TypeDesc type, const void *data,
                       const char *aggregate_sep = ",",      // E.g. ", "
                       const char array_delim[2] = "{}",     // Both sides of array
                       const char *array_sep = ",");         // E.g. "; "
-
+#endif
 
 
 /// A template mechanism for getting the a base type from C type
@@ -475,6 +487,7 @@ template<> struct TypeDescFromC<Imath::V3f> { static const constexpr TypeDesc va
 template<> struct TypeDescFromC<Imath::V2f> { static const constexpr TypeDesc value() { return TypeVector2; } };
 template<> struct TypeDescFromC<Imath::V4f> { static const constexpr TypeDesc value() { return TypeVector4; } };
 template<> struct TypeDescFromC<Imath::V2i> { static const constexpr TypeDesc value() { return TypeVector2i; } };
+template<> struct TypeDescFromC<Imath::V3i> { static const constexpr TypeDesc value() { return TypeVector3i; } };
 #endif
 #ifdef INCLUDED_IMATHCOLOR_H
 template<> struct TypeDescFromC<Imath::Color3f> { static const constexpr TypeDesc value() { return TypeColor; } };

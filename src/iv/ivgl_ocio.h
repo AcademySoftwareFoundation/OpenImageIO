@@ -6,23 +6,14 @@
 #ifndef OPENIMAGEIO_IVGL_OCIO_H
 #define OPENIMAGEIO_IVGL_OCIO_H
 
-#ifdef USE_OCIO
-#    include <OpenColorIO/OpenColorIO.h>
-#    if OCIO_VERSION_MAJOR >= 2
-#        define HAS_OCIO_2
-#        if OCIO_VERSION_MAJOR == 2
-#            if OCIO_VERSION_MINOR >= 3
-#                define HAS_OCIO_2_3
-#            endif
-#        endif
-#    endif
-#endif
+#include <OpenColorIO/OpenColorIO.h>
 
-#ifdef HAS_OCIO_2
-#    include "ivgl.h"
+#define MAKE_OCIO_VERSION_HEX(maj, min, patch) \
+    (((maj) << 24) | ((min) << 16) | (patch))
 
-#    include <OpenColorIO/OpenColorIO.h>
-#    include <vector>
+#include "ivgl.h"
+
+#include <vector>
 
 using namespace OIIO;
 
@@ -104,5 +95,4 @@ private:
                                 Interpolation interpolation);
 };
 
-#endif  // HAS_OCIO_2
 #endif  // OPENIMAGEIO_IVGL_OCIO_H

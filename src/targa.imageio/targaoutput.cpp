@@ -718,7 +718,8 @@ TGAOutput::set_thumbnail(const ImageBuf& thumb)
         } else {
             roi.xend = (int)roundf(256.0f * ratio);
         }
-        m_thumb = ImageBufAlgo::resize(thumb, "", 0.0f, roi, this->threads());
+        m_thumb = ImageBufAlgo::resize(thumb, ImageBufAlgo::KWArgs(), roi,
+                                       this->threads());
         if (thumb.pixeltype() != TypeUInt8)
             m_thumb = ImageBufAlgo::copy(m_thumb, TypeUInt8);
     } else {

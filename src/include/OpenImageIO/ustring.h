@@ -796,11 +796,10 @@ public:
     ~ustringhash() noexcept = default;
 
     /// Copy construct a ustringhash from another ustringhash.
-    OIIO_HOSTDEVICE constexpr ustringhash(const ustringhash& str) noexcept
-        = default;
+    constexpr ustringhash(const ustringhash& str) noexcept = default;
 
     /// Move construct a ustringhash from another ustringhash.
-    OIIO_HOSTDEVICE ustringhash(ustringhash&& str) noexcept = default;
+    ustringhash(ustringhash&& str) noexcept = default;
 
     /// Construct from a ustring
     ustringhash(const ustring& str) noexcept
@@ -864,9 +863,8 @@ public:
     }
 
     /// Assign from a ustringhash
-    OIIO_HOSTDEVICE constexpr ustringhash& operator=(const ustringhash& str)
-        = default;
-    OIIO_HOSTDEVICE ustringhash& operator=(ustringhash&& str) = default;
+    constexpr ustringhash& operator=(const ustringhash& str) = default;
+    ustringhash& operator=(ustringhash&& str)                = default;
 
     /// Assign from a ustring
     ustringhash& operator=(const ustring& str)
@@ -1036,17 +1034,6 @@ operator""_ush(const char* str, std::size_t len)
 {
     return ustringhash(str, len);
 }
-
-
-
-#if OIIO_VERSION_LESS(3, 0, 0)
-/// Deprecated -- This is too easy to confuse with the ustringhash class. And
-/// also it is unnecessary if you use std::hash<ustring>. This will be removed
-/// in OIIO 3.0.
-using ustringHash
-    OIIO_DEPRECATED("Use std::hash<ustring> instead of ustringHash")
-    = std::hash<ustring>;
-#endif
 
 
 

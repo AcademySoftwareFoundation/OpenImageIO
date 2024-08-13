@@ -42,9 +42,15 @@ function (setup_oiio_util_library targetname)
                                ${${PROJECT_NAME}_compile_definitions})
     target_compile_options(${targetname} PRIVATE
                                ${${PROJECT_NAME}_compile_options})
+    target_link_options(${targetname} PRIVATE
+                               ${${PROJECT_NAME}_link_options})
+
     target_include_directories (${targetname}
             PUBLIC
+                $<BUILD_INTERFACE:${OpenImageIO_LOCAL_DEPS_ROOT}/include>
                 $<INSTALL_INTERFACE:include>
+            PRIVATE
+                ${ROBINMAP_INCLUDES}
             )
     target_link_libraries (${targetname}
             PUBLIC
@@ -53,13 +59,17 @@ function (setup_oiio_util_library targetname)
                 ${OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY}
                 ${OPENIMAGEIO_IMATH_TARGETS}
             PRIVATE
-                $<TARGET_NAME_IF_EXISTS:Boost::filesystem>
-                $<TARGET_NAME_IF_EXISTS:Boost::thread>
                 $<TARGET_NAME_IF_EXISTS:TBB::tbb>
-                # ${CMAKE_DL_LIBS}
+                ${CMAKE_DL_LIBS}
             )
 
-    if (INTERNALIZE_FMT OR OIIO_USING_FMT_LOCAL)
+    if (GCC_VERSION VERSION_GREATER_EQUAL 12.0
+        AND CMAKE_CXX_STANDARD VERSION_GREATER_EQUAL 23)
+        target_link_libraries (${targetname}
+                               PRIVATE stdc++_libbacktrace)
+    endif ()
+
+    if (OIIO_INTERNALIZE_FMT OR fmt_LOCAL_BUILD)
         add_dependencies(${targetname} fmt_internal_target)
     else ()
         target_link_libraries (${targetname}
@@ -78,10 +88,6 @@ function (setup_oiio_util_library targetname)
 
     if (NOT BUILD_SHARED_LIBS OR targetname MATCHES "static")
         target_compile_definitions (${targetname} PUBLIC OIIO_STATIC_DEFINE=1)
-    endif ()
-
-    if (OIIO_DISABLE_BOOST_STACKTRACE)
-        target_compile_definitions (${targetname} PRIVATE OIIO_DISABLE_BOOST_STACKTRACE)
     endif ()
 
     # Propagate C++ minimum to downstream consumers
