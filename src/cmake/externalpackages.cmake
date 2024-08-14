@@ -156,13 +156,9 @@ checked_find_package (FFmpeg VERSION_MIN 4.0)
 checked_find_package (GIF VERSION_MIN 5.0)
 
 # For HEIF/HEIC/AVIF formats
-checked_find_package (Libheif VERSION_MIN 1.3
+checked_find_package (Libheif VERSION_MIN 1.11
                       RECOMMEND_MIN 1.16
                       RECOMMEND_MIN_REASON "for orientation support")
-if (APPLE AND LIBHEIF_VERSION VERSION_GREATER_EQUAL 1.10 AND LIBHEIF_VERSION VERSION_LESS 1.11)
-    message (WARNING "Libheif 1.10 on Apple is known to be broken, disabling libheif support")
-    set (Libheif_FOUND 0)
-endif ()
 
 checked_find_package (LibRaw
                       VERSION_MIN 0.20.0
