@@ -2,10 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-// clang-format off
-
-
-
 #pragma once
 
 #include <OpenImageIO/imageio.h>
@@ -31,16 +27,13 @@
 
 OIIO_NAMESPACE_BEGIN
 
-// Forward declaration
+// Forward declarations
 class TextureOpt;
 
-namespace pvt {
-// Forward declaration
-class ImageCacheImpl;
+class ImageCachePerThreadInfo;
 class ImageCacheFile;
 class ImageCacheTile;
-class ImageCachePerThreadInfo;
-};  // namespace pvt
+class ImageCacheImpl;
 
 
 
@@ -89,7 +82,8 @@ public:
     ///     nobody else is still holding a reference (otherwise, it will
     ///     leave it intact). This parameter has no effect if `cache` was
     ///     not the single globally shared ImageCache.
-    static void destroy(std::shared_ptr<ImageCache>& cache, bool teardown = false);
+    static void destroy(std::shared_ptr<ImageCache>& cache,
+                        bool teardown = false);
 
     /// @}
 
@@ -354,16 +348,30 @@ public:
     ///                 (including it being an unrecognized attribute or not
     ///                 of the correct type).
     ///
-    virtual bool attribute (string_view name, TypeDesc type,
-                            const void *val) = 0;
+    bool attribute(string_view name, TypeDesc type, const void* val);
 
     /// Specialized `attribute()` for setting a single `int` value.
-    virtual bool attribute (string_view name, int val) = 0;
+    bool attribute(string_view name, int val)
+    {
+        return attribute(name, TypeInt, &val);
+    }
     /// Specialized `attribute()` for setting a single `float` value.
-    virtual bool attribute (string_view name, float val) = 0;
-    virtual bool attribute (string_view name, double val) = 0;
+    bool attribute(string_view name, float val)
+    {
+        return attribute(name, TypeFloat, &val);
+    }
+    bool attribute(string_view name, double val)
+    {
+        float f = (float)val;
+        return attribute(name, TypeFloat, &f);
+    }
     /// Specialized `attribute()` for setting a single string value.
-    virtual bool attribute (string_view name, string_view val) = 0;
+    bool attribute(string_view name, string_view val)
+    {
+        std::string valstr(val);
+        const char* s = valstr.c_str();
+        return attribute(name, TypeString, &s);
+    }
 
     /// Get the named attribute, store it in `*val`. All of the attributes
     /// that may be set with the `attribute() call` may also be queried with
@@ -399,26 +407,48 @@ public:
     ///                 attribute was retrieved, or `false` upon failure
     ///                 (including it being an unrecognized attribute or not
     ///                 of the correct type).
-    virtual bool getattribute (string_view name, TypeDesc type,
-                               void *val) const = 0;
+    bool getattribute(string_view name, TypeDesc type, void* val) const;
 
     /// Specialized `attribute()` for retrieving a single `int` value.
-    virtual bool getattribute (string_view name, int &val) const = 0;
+    bool getattribute(string_view name, int& val) const
+    {
+        return getattribute(name, TypeInt, &val);
+    }
     /// Specialized `attribute()` for retrieving a single `float` value.
-    virtual bool getattribute (string_view name, float &val) const = 0;
-    virtual bool getattribute (string_view name, double &val) const = 0;
+    bool getattribute(string_view name, float& val) const
+    {
+        return getattribute(name, TypeFloat, &val);
+    }
+    bool getattribute(string_view name, double& val) const
+    {
+        float f;
+        bool ok = getattribute(name, TypeFloat, &f);
+        if (ok)
+            val = f;
+        return ok;
+    }
     /// Specialized `attribute()` for retrieving a single `string` value
     /// as a `char*`.
-    virtual bool getattribute (string_view name, char **val) const = 0;
+    bool getattribute(string_view name, char** val) const
+    {
+        return getattribute(name, TypeString, val);
+    }
     /// Specialized `attribute()` for retrieving a single `string` value
     /// as a `std::string`.
-    virtual bool getattribute (string_view name, std::string &val) const = 0;
+    bool getattribute(string_view name, std::string& val) const
+    {
+        ustring s;
+        bool ok = getattribute(name, TypeString, &s);
+        if (ok)
+            val = s.string();
+        return ok;
+    }
 
     /// If the named attribute is known, return its data type. If no such
     /// attribute exists, return `TypeUnknown`.
     ///
     /// This was added in version 2.5.
-    virtual TypeDesc getattributetype(string_view name) const = 0;
+    TypeDesc getattributetype(string_view name) const;
 
     /// @}
 
@@ -456,7 +486,7 @@ public:
     /// Define an opaque data type that allows us to have a pointer to
     /// certain per-thread information that the ImageCache maintains. Any
     /// given one of these should NEVER be shared between running threads.
-    typedef pvt::ImageCachePerThreadInfo Perthread;
+    using Perthread = ImageCachePerThreadInfo;
 
     /// Retrieve a Perthread, unique to the calling thread. This is a
     /// thread-specific pointer that will always return the Perthread for a
@@ -469,19 +499,19 @@ public:
     /// thread_info is not NULL, it won't create a new one or retrieve a
     /// TSP, but it will do other necessary housekeeping on the Perthread
     /// information.
-    virtual Perthread* get_perthread_info(Perthread* thread_info = NULL) = 0;
+    Perthread* get_perthread_info(Perthread* thread_info = NULL);
 
     /// Create a new Perthread. It is the caller's responsibility to
     /// eventually destroy it using `destroy_thread_info()`.
-    virtual Perthread* create_thread_info() = 0;
+    Perthread* create_thread_info();
 
     /// Destroy a Perthread that was allocated by `create_thread_info()`.
-    virtual void destroy_thread_info(Perthread* thread_info) = 0;
+    void destroy_thread_info(Perthread* thread_info);
 
     /// Define an opaque data type that allows us to have a handle to an
     /// image (already having its name resolved) but without exposing any
     /// internals.
-    typedef pvt::ImageCacheFile ImageHandle;
+    using ImageHandle = ImageCacheFile;
 
     /// Retrieve an opaque handle for fast texture lookups, or nullptr upon
     /// failure.  The filename is presumed to be UTF-8 encoded. The `options`,
@@ -489,26 +519,27 @@ public:
     /// texture option choices. (Currently unused, but reserved for the future
     /// or for alternate IC implementations.) The opaque pointer `thread_info`
     /// is thread-specific information returned by `get_perthread_info()`.
-    virtual ImageHandle* get_image_handle(ustring filename,
-                                      Perthread* thread_info = nullptr,
-                                      const TextureOpt* options = nullptr) = 0;
+    ImageHandle* get_image_handle(ustring filename,
+                                  Perthread* thread_info    = nullptr,
+                                  const TextureOpt* options = nullptr);
 
     /// Get an ImageHandle using a UTF-16 encoded wstring filename.
     ImageHandle* get_image_handle(const std::wstring& filename,
-                                  Perthread* thread_info = nullptr,
-                                  const TextureOpt* options = nullptr) {
+                                  Perthread* thread_info    = nullptr,
+                                  const TextureOpt* options = nullptr)
+    {
         return get_image_handle(ustring(Strutil::utf16_to_utf8(filename)),
                                 thread_info, options);
     }
 
     /// Return true if the image handle (previously returned by
     /// `get_image_handle()`) is a valid image that can be subsequently read.
-    virtual bool good(ImageHandle* file) = 0;
+    bool good(ImageHandle* file);
 
     /// Given a handle, return the filename for that image.
     ///
     /// This method was added in OpenImageIO 2.3.
-    virtual ustring filename_from_handle(ImageHandle* handle) = 0;
+    ustring filename_from_handle(ImageHandle* handle);
 
     /// @}
 
@@ -519,7 +550,7 @@ public:
 
     /// Given possibly-relative `filename` (UTF-8 encoded), resolve it and use
     /// the true path to the file, with searchpath logic applied.
-    virtual std::string resolve_filename(const std::string& filename) const = 0;
+    std::string resolve_filename(const std::string& filename) const;
 
     /// Get information or metadata about the named image and store it in
     /// `*data`.
@@ -684,14 +715,14 @@ public:
     ///             Except for the `"exists"` query, a file that does not
     ///             exist or could not be read properly as an image also
     ///             constitutes a query failure that will return `false`.
-    virtual bool get_image_info (ustring filename, int subimage, int miplevel,
-                         ustring dataname, TypeDesc datatype, void *data) = 0;
+    bool get_image_info(ustring filename, int subimage, int miplevel,
+                        ustring dataname, TypeDesc datatype, void* data);
     /// A more efficient variety of `get_image_info()` for cases where you
     /// can use an `ImageHandle*` to specify the image and optionally have a
     /// `Perthread*` for the calling thread.
-    virtual bool get_image_info (ImageHandle *file, Perthread *thread_info,
-                         int subimage, int miplevel,
-                         ustring dataname, TypeDesc datatype, void *data) = 0;
+    bool get_image_info(ImageHandle* file, Perthread* thread_info, int subimage,
+                        int miplevel, ustring dataname, TypeDesc datatype,
+                        void* data);
 
     /// Copy the ImageSpec associated with the named image (the first
     /// subimage & miplevel by default, or as set by `subimage` and
@@ -716,16 +747,14 @@ public:
     ///             as being unable to find, open, or read the file, or if
     ///             it does not contain the designated subimage or MIP
     ///             level).
-    virtual bool get_imagespec (ustring filename, ImageSpec &spec,
-                                int subimage=0, int miplevel=0,
-                                bool native=false) = 0;
+    bool get_imagespec(ustring filename, ImageSpec& spec, int subimage = 0,
+                       int miplevel = 0, bool native = false);
     /// A more efficient variety of `get_imagespec()` for cases where you
     /// can use an `ImageHandle*` to specify the image and optionally have a
     /// `Perthread*` for the calling thread.
-    virtual bool get_imagespec (ImageHandle *file, Perthread *thread_info,
-                                ImageSpec &spec,
-                                int subimage=0, int miplevel=0,
-                                bool native=false) = 0;
+    bool get_imagespec(ImageHandle* file, Perthread* thread_info,
+                       ImageSpec& spec, int subimage = 0, int miplevel = 0,
+                       bool native = false);
 
     /// Return a pointer to an ImageSpec associated with the named image
     /// (the first subimage & MIP level by default, or as set by `subimage`
@@ -754,15 +783,14 @@ public:
     ///             A pointer to the spec, if the image is found and able to
     ///             be opened and read by an available image format plugin,
     ///             and the designated subimage and MIP level exists.
-    virtual const ImageSpec *imagespec (ustring filename, int subimage=0,
-                                        int miplevel=0, bool native=false) = 0;
+    const ImageSpec* imagespec(ustring filename, int subimage = 0,
+                               int miplevel = 0, bool native = false);
     /// A more efficient variety of `imagespec()` for cases where you can
     /// use an `ImageHandle*` to specify the image and optionally have a
     /// `Perthread*` for the calling thread.
-    virtual const ImageSpec *imagespec (ImageHandle *file,
-                                        Perthread *thread_info,
-                                        int subimage=0, int miplevel=0,
-                                        bool native=false) = 0;
+    const ImageSpec* imagespec(ImageHandle* file, Perthread* thread_info,
+                               int subimage = 0, int miplevel = 0,
+                               bool native = false);
 
     /// Copy into `thumbnail` any associated thumbnail associated with this
     /// image (for the first subimage by default, or as set by `subimage`).
@@ -779,13 +807,12 @@ public:
     ///             `true` upon success, `false` upon failure failure (such
     ///             as being unable to find, open, or read the file, or if
     ///             it does not contain a thumbnail).
-    virtual bool get_thumbnail (ustring filename, ImageBuf& thumbnail,
-                                int subimage=0) = 0;
+    bool get_thumbnail(ustring filename, ImageBuf& thumbnail, int subimage = 0);
     /// A more efficient variety of `get_thumbnail()` for cases where you
     /// can use an `ImageHandle*` to specify the image and optionally have a
     /// `Perthread*` for the calling thread.
-    virtual bool get_thumbnail (ImageHandle *file, Perthread *thread_info,
-                                ImageBuf& thumbnail, int subimage=0) = 0;
+    bool get_thumbnail(ImageHandle* file, Perthread* thread_info,
+                       ImageBuf& thumbnail, int subimage = 0);
     /// @}
 
     /// @{
@@ -835,38 +862,36 @@ public:
     ///
     /// @returns
     ///             `true` for success, `false` for failure.
-    virtual bool get_pixels (ustring filename,
-                    int subimage, int miplevel, int xbegin, int xend,
-                    int ybegin, int yend, int zbegin, int zend,
-                    int chbegin, int chend, TypeDesc format, void *result,
-                    stride_t xstride=AutoStride, stride_t ystride=AutoStride,
-                    stride_t zstride=AutoStride,
-                    int cache_chbegin = 0, int cache_chend = -1) = 0;
+    bool get_pixels(ustring filename, int subimage, int miplevel, int xbegin,
+                    int xend, int ybegin, int yend, int zbegin, int zend,
+                    int chbegin, int chend, TypeDesc format, void* result,
+                    stride_t xstride = AutoStride,
+                    stride_t ystride = AutoStride,
+                    stride_t zstride = AutoStride, int cache_chbegin = 0,
+                    int cache_chend = -1);
     /// A more efficient variety of `get_pixels()` for cases where you can
     /// use an `ImageHandle*` to specify the image and optionally have a
     /// `Perthread*` for the calling thread.
-    virtual bool get_pixels (ImageHandle *file, Perthread *thread_info,
-                    int subimage, int miplevel, int xbegin, int xend,
-                    int ybegin, int yend, int zbegin, int zend,
-                    int chbegin, int chend, TypeDesc format, void *result,
-                    stride_t xstride=AutoStride, stride_t ystride=AutoStride,
-                    stride_t zstride=AutoStride,
-                    int cache_chbegin = 0, int cache_chend = -1) = 0;
+    bool get_pixels(ImageHandle* file, Perthread* thread_info, int subimage,
+                    int miplevel, int xbegin, int xend, int ybegin, int yend,
+                    int zbegin, int zend, int chbegin, int chend,
+                    TypeDesc format, void* result,
+                    stride_t xstride = AutoStride,
+                    stride_t ystride = AutoStride,
+                    stride_t zstride = AutoStride, int cache_chbegin = 0,
+                    int cache_chend = -1);
 
     /// A simplified `get_pixels()` where all channels are retrieved,
     /// strides are assumed to be contiguous.
-    virtual bool get_pixels (ustring filename, int subimage, int miplevel,
-                             int xbegin, int xend, int ybegin, int yend,
-                             int zbegin, int zend,
-                             TypeDesc format, void *result) = 0;
+    bool get_pixels(ustring filename, int subimage, int miplevel, int xbegin,
+                    int xend, int ybegin, int yend, int zbegin, int zend,
+                    TypeDesc format, void* result);
     /// A more efficient variety of `get_pixels()` for cases where you can
     /// use an `ImageHandle*` to specify the image and optionally have a
     /// `Perthread*` for the calling thread.
-    virtual bool get_pixels (ImageHandle *file, Perthread *thread_info,
-                             int subimage, int miplevel,
-                             int xbegin, int xend, int ybegin, int yend,
-                             int zbegin, int zend,
-                             TypeDesc format, void *result) = 0;
+    bool get_pixels(ImageHandle* file, Perthread* thread_info, int subimage,
+                    int miplevel, int xbegin, int xend, int ybegin, int yend,
+                    int zbegin, int zend, TypeDesc format, void* result);
     /// @}
 
     /// @{
@@ -886,11 +911,11 @@ public:
     /// If `force` is true, this invalidation will happen unconditionally; if
     /// false, the file will only be invalidated if it has been changed since
     /// it was first opened by the ImageCache.
-    virtual void invalidate(ustring filename, bool force = true) = 0;
+    void invalidate(ustring filename, bool force = true);
 
     /// A more efficient variety of `invalidate()` for cases where you
     /// already have an `ImageHandle*` for the file you want to invalidate.
-    virtual void invalidate(ImageHandle* file, bool force = true) = 0;
+    void invalidate(ImageHandle* file, bool force = true);
 
     /// Invalidate all loaded tiles and close open file handles.  This is
     /// safe to do even if other procedures are currently holding
@@ -902,21 +927,21 @@ public:
     /// wasteful it is, but if `force` is false, in actuality files will
     /// only be invalidated if their modification times have been changed
     /// since they were first opened.
-    virtual void invalidate_all(bool force = false) = 0;
+    void invalidate_all(bool force = false);
 
     /// Close any open file handles associated with a named file (UTF-8
     /// encoded), but do not invalidate any image spec information or pixels
     /// associated with the files.  A client might do this in order to release
     /// OS file handle resources, or to make it safe for other processes to
     /// modify image files on disk.
-    virtual void close (ustring filename) = 0;
+    void close(ustring filename);
 
     /// `close()` all files known to the cache.
-    virtual void close_all () = 0;
+    void close_all();
 
     /// An opaque data type that allows us to have a pointer to a tile but
     /// without exposing any internals.
-    typedef pvt::ImageCacheTile Tile;
+    using Tile = ImageCacheTile;
 
     /// Find the tile specified by an image filename (UTF-8 encoded), subimage
     /// & miplevel, the coordinates of a pixel, and optionally a channel
@@ -926,30 +951,28 @@ public:
     /// called on the tile pointer the same number of times that `get_tile()`
     /// was called (reference counting). This is thread-safe! If `chend <
     /// chbegin`, it will retrieve a tile containing all channels in the file.
-    virtual Tile * get_tile (ustring filename, int subimage, int miplevel,
-                             int x, int y, int z,
-                             int chbegin = 0, int chend = -1) = 0;
+    Tile* get_tile(ustring filename, int subimage, int miplevel, int x, int y,
+                   int z, int chbegin = 0, int chend = -1);
     /// A slightly more efficient variety of `get_tile()` for cases where
     /// you can use an `ImageHandle*` to specify the image and optionally
     /// have a `Perthread*` for the calling thread.
     ///
     /// @see `get_pixels()`
-    virtual Tile * get_tile (ImageHandle *file, Perthread *thread_info,
-                             int subimage, int miplevel,
-                             int x, int y, int z,
-                             int chbegin = 0, int chend = -1) = 0;
+    Tile* get_tile(ImageHandle* file, Perthread* thread_info, int subimage,
+                   int miplevel, int x, int y, int z, int chbegin = 0,
+                   int chend = -1);
 
     /// After finishing with a tile, release_tile will allow it to
     /// once again be purged from the tile cache if required.
-    virtual void release_tile(Tile* tile) const = 0;
+    void release_tile(Tile* tile) const;
 
     /// Retrieve the data type of the pixels stored in the tile, which may
     /// be different than the type of the pixels in the disk file.
-    virtual TypeDesc tile_format(const Tile* tile) const = 0;
+    TypeDesc tile_format(const Tile* tile) const;
 
     /// Retrieve the ROI describing the pixels and channels stored in the
     /// tile.
-    virtual ROI tile_roi(const Tile* tile) const = 0;
+    ROI tile_roi(const Tile* tile) const;
 
     /// For a tile retrieved by `get_tile()`, return a pointer to the pixel
     /// data itself, and also store in `format` the data type that the
@@ -957,7 +980,7 @@ public:
     /// data type of the pixels in the disk file).   This method should only
     /// be called on a tile that has been requested by `get_tile()` but has
     /// not yet been released with `release_tile()`.
-    virtual const void* tile_pixels(Tile* tile, TypeDesc& format) const = 0;
+    const void* tile_pixels(Tile* tile, TypeDesc& format) const;
 
     /// The add_file() call causes a file to be opened or added to the
     /// cache. There is no reason to use this method unless you are
@@ -989,9 +1012,8 @@ public:
     /// ImageCache. But if replace is true, any existing entry will be
     /// invalidated, closed and overwritten. So any subsequent access will
     /// see the new file. Existing texture handles will still be valid.
-    virtual bool add_file (ustring filename, ImageInput::Creator creator=nullptr,
-                           const ImageSpec *config=nullptr,
-                           bool replace = false) = 0;
+    bool add_file(ustring filename, ImageInput::Creator creator = nullptr,
+                  const ImageSpec* config = nullptr, bool replace = false);
 
     /// Preemptively add a tile corresponding to the named image, at the
     /// given subimage, MIP level, and channel range.  The tile added is the
@@ -1003,11 +1025,11 @@ public:
     /// data is assumed to be in some kind of persistent storage and will
     /// not be copied, nor will its pixels take up additional memory in the
     /// cache.
-    virtual bool add_tile (ustring filename, int subimage, int miplevel,
-                     int x, int y, int z, int chbegin, int chend,
-                     TypeDesc format, const void *buffer,
-                     stride_t xstride=AutoStride, stride_t ystride=AutoStride,
-                     stride_t zstride=AutoStride, bool copy = true) = 0;
+    bool add_tile(ustring filename, int subimage, int miplevel, int x, int y,
+                  int z, int chbegin, int chend, TypeDesc format,
+                  const void* buffer, stride_t xstride = AutoStride,
+                  stride_t ystride = AutoStride, stride_t zstride = AutoStride,
+                  bool copy = true);
 
     /// @}
 
@@ -1015,40 +1037,44 @@ public:
     /// @name Errors and statistics
 
     /// Is there a pending error message waiting to be retrieved?
-    virtual bool has_error() const = 0;
+    bool has_error() const;
 
     /// Return the text of all pending error messages issued against this
     /// ImageCache, and clear the pending error message unless `clear` is
     /// false. If no error message is pending, it will return an empty
     /// string.
-    virtual std::string geterror(bool clear = true) const = 0;
+    std::string geterror(bool clear = true) const;
 
     /// Returns a big string containing useful statistics about the
     /// ImageCache operations, suitable for saving to a file or outputting
     /// to the terminal. The `level` indicates the amount of detail in
     /// the statistics, with higher numbers (up to a maximum of 5) yielding
     /// more and more esoteric information.
-    virtual std::string getstats(int level = 1) const = 0;
+    std::string getstats(int level = 1) const;
 
     /// Reset most statistics to be as they were with a fresh ImageCache.
     /// Caveat emptor: this does not flush the cache itelf, so the resulting
     /// statistics from the next set of texture requests will not match the
     /// number of tile reads, etc., that would have resulted from a new
     /// ImageCache.
-    virtual void reset_stats() = 0;
+    void reset_stats();
 
     /// @}
 
-    virtual ~ImageCache() {}
+    ImageCache();
+    ~ImageCache();
 
-protected:
+private:
+    friend class TextureSystem;
+    friend class TextureSystemImpl;
+
+    // PIMPL idiom
+    using Impl = ImageCacheImpl;
+    static void impl_deleter(Impl*);
+    std::unique_ptr<Impl, decltype(&impl_deleter)> m_impl;
+
     // User code should never directly construct or destruct an ImageCache.
     // Always use ImageCache::create() and ImageCache::destroy().
-    ImageCache(void) {}
-private:
-    // Make delete private and unimplemented in order to prevent apps
-    // from calling it.  Instead, they should call ImageCache::destroy().
-    void operator delete(void* /*todel*/) {}
 };
 
 

@@ -47,7 +47,54 @@ float2float(float val)
 
 }  // end anonymous namespace
 
-namespace pvt {  // namespace pvt
+bool
+TextureSystem::texture3d(ustring filename, TextureOpt& options, V3fParam P,
+                         V3fParam dPdx, V3fParam dPdy, V3fParam dPdz,
+                         int nchannels, float* result, float* dresultds,
+                         float* dresultdt, float* dresultdr)
+{
+    return m_impl->texture3d(filename, options, P, dPdx, dPdy, dPdz, nchannels,
+                             result, dresultds, dresultdt, dresultdr);
+}
+
+
+bool
+TextureSystem::texture3d(TextureHandle* texture_handle, Perthread* thread_info,
+                         TextureOpt& options, V3fParam P, V3fParam dPdx,
+                         V3fParam dPdy, V3fParam dPdz, int nchannels,
+                         float* result, float* dresultds, float* dresultdt,
+                         float* dresultdr)
+{
+    return m_impl->texture3d(texture_handle, thread_info, options, P, dPdx,
+                             dPdy, dPdz, nchannels, result, dresultds,
+                             dresultdt, dresultdr);
+}
+
+
+bool
+TextureSystem::texture3d(ustring filename, TextureOptBatch& options,
+                         Tex::RunMask mask, const float* P, const float* dPdx,
+                         const float* dPdy, const float* dPdz, int nchannels,
+                         float* result, float* dresultds, float* dresultdt,
+                         float* dresultdr)
+{
+    return m_impl->texture3d(filename, options, mask, P, dPdx, dPdy, dPdz,
+                             nchannels, result, dresultds, dresultdt,
+                             dresultdr);
+}
+
+
+bool
+TextureSystem::texture3d(TextureHandle* texture_handle, Perthread* thread_info,
+                         TextureOptBatch& options, Tex::RunMask mask,
+                         const float* P, const float* dPdx, const float* dPdy,
+                         const float* dPdz, int nchannels, float* result,
+                         float* dresultds, float* dresultdt, float* dresultdr)
+{
+    return m_impl->texture3d(texture_handle, thread_info, options, mask, P,
+                             dPdx, dPdy, dPdz, nchannels, result, dresultds,
+                             dresultdt, dresultdr);
+}
 
 
 
@@ -713,7 +760,5 @@ TextureSystemImpl::texture3d(ustring filename, TextureOptBatch& options,
                      dPdz, nchannels, result, dresultds, dresultdt, dresultdr);
 }
 
-
-}  // end namespace pvt
 
 OIIO_NAMESPACE_END

@@ -81,6 +81,26 @@ static const OIIO_SIMD4_ALIGN vbool4 channel_masks[5] = {
 }  // end anonymous namespace
 
 
+
+void
+TextureSystem::impl_deleter(TextureSystemImpl* todel)
+{
+    delete todel;
+}
+
+
+
+TextureSystem::TextureSystem(std::shared_ptr<ImageCache> imagecache)
+    : m_impl(new TextureSystemImpl(imagecache), &impl_deleter)
+{
+}
+
+
+
+TextureSystem::~TextureSystem() {}
+
+
+
 std::shared_ptr<TextureSystem>
 TextureSystem::create(bool shared, std::shared_ptr<ImageCache> imagecache)
 {
@@ -96,7 +116,7 @@ TextureSystem::create(bool shared, std::shared_ptr<ImageCache> imagecache)
         // as the shared one.
         spin_lock guard(shared_texturesys_mutex);
         if (!shared_texturesys)
-            shared_texturesys = std::make_shared<TextureSystemImpl>(
+            shared_texturesys = std::make_shared<TextureSystem>(
                 ImageCache::create(true));
         return shared_texturesys;
     }
@@ -107,8 +127,8 @@ TextureSystem::create(bool shared, std::shared_ptr<ImageCache> imagecache)
         imagecache = ImageCache::create(false);
         own_ic     = true;
     }
-    auto ts                = std::make_shared<TextureSystemImpl>(imagecache);
-    ts->m_imagecache_owner = own_ic;
+    auto ts = std::make_shared<TextureSystem>(imagecache);
+    ts->m_impl->m_imagecache_owner = own_ic;
     OIIO_PRAGMA_WARNING_POP
     return ts;
 }
@@ -121,8 +141,8 @@ TextureSystem::destroy(std::shared_ptr<TextureSystem>& ts,
 {
     if (!ts)
         return;
-    TextureSystemImpl* impl = (TextureSystemImpl*)ts.get();
     if (teardown_imagecache) {
+        TextureSystemImpl* impl = ts->m_impl.get();
         if (impl->m_imagecache_owner)
             ImageCache::destroy(impl->m_imagecache_sp, true);
         impl->m_imagecache = nullptr;
@@ -134,7 +154,346 @@ TextureSystem::destroy(std::shared_ptr<TextureSystem>& ts,
 
 
 
-namespace pvt {  // namespace pvt
+TextureSystem::Perthread*
+TextureSystem::get_perthread_info(Perthread* thread_info)
+{
+    return m_impl->get_perthread_info(
+        (TextureSystemImpl::Perthread*)thread_info);
+}
+
+
+
+TextureSystem::Perthread*
+TextureSystem::create_thread_info()
+{
+    return m_impl->create_thread_info();
+}
+
+
+
+void
+TextureSystem::destroy_thread_info(Perthread* threadinfo)
+{
+    m_impl->destroy_thread_info((TextureSystemImpl::Perthread*)threadinfo);
+}
+
+
+
+bool
+TextureSystem::attribute(string_view name, TypeDesc type, const void* val)
+{
+    return m_impl->attribute(name, type, val);
+}
+
+
+
+TypeDesc
+TextureSystem::getattributetype(string_view name) const
+{
+    return m_impl->getattributetype(name);
+}
+
+
+
+bool
+TextureSystem::getattribute(string_view name, TypeDesc type, void* val) const
+{
+    return m_impl->getattribute(name, type, val);
+}
+
+
+
+TextureSystem::TextureHandle*
+TextureSystem::get_texture_handle(ustring filename, Perthread* thread_info,
+                                  const TextureOpt* options)
+{
+    return m_impl->get_texture_handle(
+        filename, (TextureSystemImpl::Perthread*)thread_info, options);
+}
+
+
+
+bool
+TextureSystem::good(TextureHandle* texture_handle)
+{
+    return m_impl->good(texture_handle);
+}
+
+
+
+ustring
+TextureSystem::filename_from_handle(TextureHandle* handle)
+{
+    return m_impl->filename_from_handle(handle);
+}
+
+
+
+int
+TextureSystem::get_colortransform_id(ustring fromspace, ustring tospace) const
+{
+    return m_impl->get_colortransform_id(fromspace, tospace);
+}
+
+
+int
+TextureSystem::get_colortransform_id(ustringhash fromspace,
+                                     ustringhash tospace) const
+{
+    return m_impl->get_colortransform_id(fromspace, tospace);
+}
+
+
+
+bool
+TextureSystem::texture(ustring filename, TextureOpt& options, float s, float t,
+                       float dsdx, float dtdx, float dsdy, float dtdy,
+                       int nchannels, float* result, float* dresultds,
+                       float* dresultdt)
+{
+    return m_impl->texture(filename, options, s, t, dsdx, dtdx, dsdy, dtdy,
+                           nchannels, result, dresultds, dresultdt);
+}
+
+
+bool
+TextureSystem::texture(TextureHandle* texture_handle, Perthread* thread_info,
+                       TextureOpt& options, float s, float t, float dsdx,
+                       float dtdx, float dsdy, float dtdy, int nchannels,
+                       float* result, float* dresultds, float* dresultdt)
+{
+    return m_impl->texture(texture_handle, thread_info, options, s, t, dsdx,
+                           dtdx, dsdy, dtdy, nchannels, result, dresultds,
+                           dresultdt);
+}
+
+
+bool
+TextureSystem::texture(ustring filename, TextureOptBatch& options,
+                       Tex::RunMask mask, const float* s, const float* t,
+                       const float* dsdx, const float* dtdx, const float* dsdy,
+                       const float* dtdy, int nchannels, float* result,
+                       float* dresultds, float* dresultdt)
+{
+    return m_impl->texture(filename, options, mask, s, t, dsdx, dtdx, dsdy,
+                           dtdy, nchannels, result, dresultds, dresultdt);
+}
+
+
+bool
+TextureSystem::texture(TextureHandle* texture_handle, Perthread* thread_info,
+                       TextureOptBatch& options, Tex::RunMask mask,
+                       const float* s, const float* t, const float* dsdx,
+                       const float* dtdx, const float* dsdy, const float* dtdy,
+                       int nchannels, float* result, float* dresultds,
+                       float* dresultdt)
+{
+    return m_impl->texture(texture_handle, thread_info, options, mask, s, t,
+                           dsdx, dtdx, dsdy, dtdy, nchannels, result, dresultds,
+                           dresultdt);
+}
+
+
+
+std::string
+TextureSystem::resolve_filename(const std::string& filename) const
+{
+    return m_impl->resolve_filename(filename);
+}
+
+
+
+bool
+TextureSystem::get_texture_info(ustring filename, int subimage,
+                                ustring dataname, TypeDesc datatype, void* data)
+{
+    return m_impl->get_texture_info(filename, subimage, dataname, datatype,
+                                    data);
+}
+
+
+bool
+TextureSystem::get_texture_info(TextureHandle* texture_handle,
+                                Perthread* thread_info, int subimage,
+                                ustring dataname, TypeDesc datatype, void* data)
+{
+    return m_impl->get_texture_info(texture_handle, thread_info, subimage,
+                                    dataname, datatype, data);
+}
+
+
+bool
+TextureSystem::get_imagespec(ustring filename, int subimage, ImageSpec& spec)
+{
+    return m_impl->get_imagespec(filename, subimage, spec);
+}
+
+
+bool
+TextureSystem::get_imagespec(TextureHandle* texture_handle,
+                             Perthread* thread_info, int subimage,
+                             ImageSpec& spec)
+{
+    return m_impl->get_imagespec(texture_handle, thread_info, subimage, spec);
+}
+
+
+const ImageSpec*
+TextureSystem::imagespec(ustring filename, int subimage)
+{
+    return m_impl->imagespec(filename, subimage);
+}
+
+
+const ImageSpec*
+TextureSystem::imagespec(TextureHandle* texture_handle, Perthread* thread_info,
+                         int subimage)
+{
+    return m_impl->imagespec(texture_handle, thread_info, subimage);
+}
+
+
+bool
+TextureSystem::get_texels(ustring filename, TextureOpt& options, int miplevel,
+                          int xbegin, int xend, int ybegin, int yend,
+                          int zbegin, int zend, int chbegin, int chend,
+                          TypeDesc format, void* result)
+{
+    return m_impl->get_texels(filename, options, miplevel, xbegin, xend, ybegin,
+                              yend, zbegin, zend, chbegin, chend, format,
+                              result);
+}
+
+
+bool
+TextureSystem::get_texels(TextureHandle* texture_handle, Perthread* thread_info,
+                          TextureOpt& options, int miplevel, int xbegin,
+                          int xend, int ybegin, int yend, int zbegin, int zend,
+                          int chbegin, int chend, TypeDesc format, void* result)
+{
+    return m_impl->get_texels(texture_handle, thread_info, options, miplevel,
+                              xbegin, xend, ybegin, yend, zbegin, zend, chbegin,
+                              chend, format, result);
+}
+
+
+
+bool
+TextureSystem::is_udim(ustring filename)
+{
+    return m_impl->is_udim(filename);
+}
+
+
+bool
+TextureSystem::is_udim(TextureHandle* udimfile)
+{
+    return m_impl->is_udim(udimfile);
+}
+
+
+
+TextureSystem::TextureHandle*
+TextureSystem::resolve_udim(ustring udimpattern, float s, float t)
+{
+    return m_impl->resolve_udim(udimpattern, s, t);
+}
+
+
+TextureSystem::TextureHandle*
+TextureSystem::resolve_udim(TextureHandle* udimfile, Perthread* thread_info,
+                            float s, float t)
+{
+    return m_impl->resolve_udim(udimfile, thread_info, s, t);
+}
+
+
+
+void
+TextureSystem::inventory_udim(ustring udimpattern,
+                              std::vector<ustring>& filenames, int& nutiles,
+                              int& nvtiles)
+{
+    m_impl->inventory_udim(udimpattern, filenames, nutiles, nvtiles);
+}
+
+
+void
+TextureSystem::inventory_udim(TextureHandle* udimfile, Perthread* thread_info,
+                              std::vector<ustring>& filenames, int& nutiles,
+                              int& nvtiles)
+{
+    m_impl->inventory_udim(udimfile, thread_info, filenames, nutiles, nvtiles);
+}
+
+
+
+void
+TextureSystem::invalidate(ustring filename, bool force)
+{
+    m_impl->invalidate(filename, force);
+}
+
+
+void
+TextureSystem::invalidate_all(bool force)
+{
+    m_impl->invalidate_all(force);
+}
+
+
+
+void
+TextureSystem::close(ustring filename)
+{
+    m_impl->close(filename);
+}
+
+
+void
+TextureSystem::close_all()
+{
+    m_impl->close_all();
+}
+
+
+
+bool
+TextureSystem::has_error() const
+{
+    return m_impl->has_error();
+}
+
+
+std::string
+TextureSystem::geterror(bool clear) const
+{
+    return m_impl->geterror(clear);
+}
+
+
+
+std::string
+TextureSystem::getstats(int level, bool icstats) const
+{
+    return m_impl->getstats(level, icstats);
+}
+
+
+void
+TextureSystem::reset_stats()
+{
+    m_impl->reset_stats();
+}
+
+
+
+std::shared_ptr<ImageCache>
+TextureSystem::imagecache() const
+{
+    return m_impl->m_imagecache_sp;
+}
+
 
 
 EightBitConverter<float> TextureSystemImpl::uchar2float;
@@ -144,7 +503,6 @@ EightBitConverter<float> TextureSystemImpl::uchar2float;
 // Wrap functions wrap 'coord' around 'width', and return true if the
 // result is a valid pixel coordinate, false if black should be used
 // instead.
-
 
 bool
 TextureSystemImpl::wrap_periodic_sharedborder(int& coord, int origin, int width)
@@ -174,6 +532,7 @@ const TextureSystemImpl::wrap_impl TextureSystemImpl::wrap_functions[] = {
 };
 
 
+namespace pvt {
 
 simd::vbool4
 wrap_black_simd(simd::vint4& coord_, const simd::vint4& origin,
@@ -312,12 +671,15 @@ texture_type_name(TexFormat f)
 }
 
 
+}  // namespace pvt
+
+
 
 TextureSystemImpl::TextureSystemImpl(std::shared_ptr<ImageCache> imagecache)
     : m_id(++txsys_next_id)
 {
-    m_imagecache_sp = imagecache;
-    m_imagecache    = (ImageCacheImpl*)m_imagecache_sp.get();
+    m_imagecache_sp = std::move(imagecache);
+    m_imagecache    = (ImageCacheImpl*)m_imagecache_sp->m_impl.get();
     init();
 }
 
@@ -337,7 +699,7 @@ TextureSystemImpl::init()
     // Allow environment variable to override default options
     const char* options = getenv("OPENIMAGEIO_TEXTURE_OPTIONS");
     if (options)
-        attribute("options", options);
+        attribute("options", TypeString, &options);
 
     if (do_unit_test_texture)
         unit_test_texture();
@@ -2449,33 +2811,33 @@ TextureSystemImpl::sample_bilinear(
 
 namespace {
 
-    // Evaluate Bspline weights for both value and derivatives (if dw is not
-    // NULL) into w[0..3] and dw[0..3]. This is the canonical version for
-    // reference, but we don't actually call it, instead favoring the much
-    // harder to read SIMD versions below.
-    template<typename T>
-    inline void evalBSplineWeights_and_derivs(T* w, T fraction, T* dw = NULL)
-    {
-        T one_frac = 1.0 - fraction;
-        w[0]       = T(1.0 / 6.0) * one_frac * one_frac * one_frac;
-        w[1]       = T(2.0 / 3.0)
-               - T(0.5) * fraction * fraction * (T(2.0) - fraction);
-        w[2] = T(2.0 / 3.0)
-               - T(0.5) * one_frac * one_frac * (T(2.0) - one_frac);
-        w[3] = T(1.0 / 6.0) * fraction * fraction * fraction;
-        if (dw) {
-            dw[0] = T(-0.5) * one_frac * one_frac;
-            dw[1] = T(0.5) * fraction * (T(3.0) * fraction - T(4.0));
-            dw[2] = T(-0.5) * one_frac * (T(3.0) * one_frac - T(4.0));
-            dw[3] = T(0.5) * fraction * fraction;
-        }
+// Evaluate Bspline weights for both value and derivatives (if dw is not
+// NULL) into w[0..3] and dw[0..3]. This is the canonical version for
+// reference, but we don't actually call it, instead favoring the much
+// harder to read SIMD versions below.
+template<typename T>
+inline void
+evalBSplineWeights_and_derivs(T* w, T fraction, T* dw = NULL)
+{
+    T one_frac = 1.0 - fraction;
+    w[0]       = T(1.0 / 6.0) * one_frac * one_frac * one_frac;
+    w[1] = T(2.0 / 3.0) - T(0.5) * fraction * fraction * (T(2.0) - fraction);
+    w[2] = T(2.0 / 3.0) - T(0.5) * one_frac * one_frac * (T(2.0) - one_frac);
+    w[3] = T(1.0 / 6.0) * fraction * fraction * fraction;
+    if (dw) {
+        dw[0] = T(-0.5) * one_frac * one_frac;
+        dw[1] = T(0.5) * fraction * (T(3.0) * fraction - T(4.0));
+        dw[2] = T(-0.5) * one_frac * (T(3.0) * one_frac - T(4.0));
+        dw[3] = T(0.5) * fraction * fraction;
     }
+}
 
-    // Evaluate the 4 Bspline weights (no derivs), returning them as a vfloat4.
-    // The fraction also comes in as a vfloat4 (assuming the same value in all 4
-    // slots).
-    inline vfloat4 evalBSplineWeights(const vfloat4& fraction)
-    {
+// Evaluate the 4 Bspline weights (no derivs), returning them as a vfloat4.
+// The fraction also comes in as a vfloat4 (assuming the same value in all 4
+// slots).
+inline vfloat4
+evalBSplineWeights(const vfloat4& fraction)
+{
 #if 0
     // Version that's easy to read and understand:
     float one_frac = 1.0f - fraction;
@@ -2486,24 +2848,25 @@ namespace {
     w[3] = 0.0f          + (1.0f / 6.0f) * fraction * fraction * fraction;
     return w;
 #else
-        // Not as clear, but fastest version I've been able to achieve:
-        OIIO_SIMD_FLOAT4_CONST4(A, 0.0f, 2.0f / 3.0f, 2.0f / 3.0f, 0.0f);
-        OIIO_SIMD_FLOAT4_CONST4(B, 1.0f / 6.0f, -0.5f, -0.5f, 1.0f / 6.0f);
-        OIIO_SIMD_FLOAT4_CONST4(om1m1o, 1.0f, -1.0f, -1.0f, 1.0f);
-        OIIO_SIMD_FLOAT4_CONST4(z22z, 0.0f, 2.0f, 2.0f, 0.0f);
-        simd::vfloat4 one_frac = vfloat4::One() - fraction;
-        simd::vfloat4 ofof     = AxBxAyBy(one_frac,
-                                          fraction);  // 1-frac, frac, 1-frac, frac
-        simd::vfloat4 C = (*(vfloat4*)&om1m1o) * ofof + (*(vfloat4*)&z22z);
-        return (*(vfloat4*)&A) + (*(vfloat4*)&B) * ofof * ofof * C;
+    // Not as clear, but fastest version I've been able to achieve:
+    OIIO_SIMD_FLOAT4_CONST4(A, 0.0f, 2.0f / 3.0f, 2.0f / 3.0f, 0.0f);
+    OIIO_SIMD_FLOAT4_CONST4(B, 1.0f / 6.0f, -0.5f, -0.5f, 1.0f / 6.0f);
+    OIIO_SIMD_FLOAT4_CONST4(om1m1o, 1.0f, -1.0f, -1.0f, 1.0f);
+    OIIO_SIMD_FLOAT4_CONST4(z22z, 0.0f, 2.0f, 2.0f, 0.0f);
+    simd::vfloat4 one_frac = vfloat4::One() - fraction;
+    simd::vfloat4 ofof     = AxBxAyBy(one_frac,
+                                      fraction);  // 1-frac, frac, 1-frac, frac
+    simd::vfloat4 C        = (*(vfloat4*)&om1m1o) * ofof + (*(vfloat4*)&z22z);
+    return (*(vfloat4*)&A) + (*(vfloat4*)&B) * ofof * ofof * C;
 #endif
-    }
+}
 
-    // Evaluate Bspline weights for both value and derivatives (if dw is not
-    // NULL), returning the 4 coefficients for each as vfloat4's.
-    inline void evalBSplineWeights_and_derivs(simd::vfloat4* w, float fraction,
-                                              simd::vfloat4* dw = NULL)
-    {
+// Evaluate Bspline weights for both value and derivatives (if dw is not
+// NULL), returning the 4 coefficients for each as vfloat4's.
+inline void
+evalBSplineWeights_and_derivs(simd::vfloat4* w, float fraction,
+                              simd::vfloat4* dw = NULL)
+{
 #if 0
     // Version that's easy to read and understand:
     float one_frac = 1.0f - fraction;
@@ -2518,21 +2881,21 @@ namespace {
         (*dw)[3] =  0.5f * fraction * (1.0f * fraction - 0.0f);
     }
 #else
-        // Not as clear, but fastest version I've been able to achieve:
-        OIIO_SIMD_FLOAT4_CONST4(A, 0.0f, 2.0f / 3.0f, 2.0f / 3.0f, 0.0f);
-        OIIO_SIMD_FLOAT4_CONST4(B, 1.0f / 6.0f, -0.5f, -0.5f, 1.0f / 6.0f);
-        float one_frac = 1.0f - fraction;
-        simd::vfloat4 ofof(one_frac, fraction, one_frac, fraction);
-        simd::vfloat4 C(one_frac, 2.0f - fraction, 2.0f - one_frac, fraction);
-        *w = (*(vfloat4*)&A) + (*(vfloat4*)&B) * ofof * ofof * C;
-        if (dw) {
-            const simd::vfloat4 D(-0.5f, 0.5f, -0.5f, 0.5f);
-            const simd::vfloat4 E(1.0f, 3.0f, 3.0f, 1.0f);
-            const simd::vfloat4 F(0.0f, 4.0f, 4.0f, 0.0f);
-            *dw = D * ofof * (E * ofof - F);
-        }
-#endif
+    // Not as clear, but fastest version I've been able to achieve:
+    OIIO_SIMD_FLOAT4_CONST4(A, 0.0f, 2.0f / 3.0f, 2.0f / 3.0f, 0.0f);
+    OIIO_SIMD_FLOAT4_CONST4(B, 1.0f / 6.0f, -0.5f, -0.5f, 1.0f / 6.0f);
+    float one_frac = 1.0f - fraction;
+    simd::vfloat4 ofof(one_frac, fraction, one_frac, fraction);
+    simd::vfloat4 C(one_frac, 2.0f - fraction, 2.0f - one_frac, fraction);
+    *w = (*(vfloat4*)&A) + (*(vfloat4*)&B) * ofof * ofof * C;
+    if (dw) {
+        const simd::vfloat4 D(-0.5f, 0.5f, -0.5f, 0.5f);
+        const simd::vfloat4 E(1.0f, 3.0f, 3.0f, 1.0f);
+        const simd::vfloat4 F(0.0f, 4.0f, 4.0f, 0.0f);
+        *dw = D * ofof * (E * ofof - F);
     }
+#endif
+}
 
 }  // anonymous namespace
 
@@ -3090,8 +3453,6 @@ TextureSystemImpl::unit_test_texture()
     }
 }
 
-}  // end namespace pvt
-
 
 
 void
@@ -3113,9 +3474,6 @@ TextureSystem::unit_test_hash()
     auto imagecache = ImageCache::create();
 
     // Set up the ImageCacheFiles outside of the timing loop
-    using OIIO::pvt::ImageCacheFile;
-    using OIIO::pvt::ImageCacheFileRef;
-    using OIIO::pvt::ImageCacheImpl;
     std::vector<ImageCacheFileRef> icf;
     for (int f = 0; f < nfiles; ++f) {
         ustring filename = ustring::fmtformat("{:06}.tif", f);
@@ -3129,7 +3487,7 @@ TextureSystem::unit_test_hash()
     for (int f = 0; f < nfiles; ++f) {
         for (int y = 0; y < res; y += tilesize) {
             for (int x = 0; x < res; x += tilesize, ++i) {
-                OIIO::pvt::TileID id(*icf[f], 0, 0, x, y, 0, 0, 1);
+                TileID id(*icf[f], 0, 0, x, y, 0, 0, 1);
                 size_t h = id.hash();
                 hh += h;
             }
@@ -3147,7 +3505,7 @@ TextureSystem::unit_test_hash()
     for (int f = 0; f < nfiles; ++f) {
         for (int y = 0; y < res; y += tilesize) {
             for (int x = 0; x < res; x += tilesize, ++i) {
-                OIIO::pvt::TileID id(*icf[f], 0, 0, x, y, 0, 0, 1);
+                TileID id(*icf[f], 0, 0, x, y, 0, 0, 1);
                 size_t h = id.hash();
                 ++fourbits[h & 0xf];
                 ++eightbits[h & 0xff];
