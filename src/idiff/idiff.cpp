@@ -419,7 +419,7 @@ main(int argc, char* argv[])
     }
 
     imagecache->invalidate_all(true);
-    imagecache.reset();
+    imagecache.reset();  // Be sure to free cache before the shutdown below
     shutdown();
     return ret;
 }

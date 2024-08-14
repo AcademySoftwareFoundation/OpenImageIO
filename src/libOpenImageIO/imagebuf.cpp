@@ -402,7 +402,8 @@ ImageBufImpl::ImageBufImpl(string_view filename, int subimage, int miplevel,
     } else if (filename.length() > 0) {
         // filename being nonempty means this ImageBuf refers to a file.
         OIIO_DASSERT(buffer == nullptr);
-        reset(filename, subimage, miplevel, imagecache, config, ioproxy);
+        reset(filename, subimage, miplevel, std::move(imagecache), config,
+              ioproxy);
     } else {
         OIIO_DASSERT(buffer == nullptr);
     }
@@ -506,9 +507,9 @@ ImageBuf::ImageBuf()
 ImageBuf::ImageBuf(string_view filename, int subimage, int miplevel,
                    std::shared_ptr<ImageCache> imagecache,
                    const ImageSpec* config, Filesystem::IOProxy* ioproxy)
-    : m_impl(new ImageBufImpl(filename, subimage, miplevel, imagecache,
-                              nullptr /*spec*/, nullptr /*buffer*/, config,
-                              ioproxy),
+    : m_impl(new ImageBufImpl(filename, subimage, miplevel,
+                              std::move(imagecache), nullptr /*spec*/,
+                              nullptr /*buffer*/, config, ioproxy),
              &impl_deleter)
 {
 }
@@ -748,7 +749,7 @@ ImageBufImpl::reset(string_view filename, int subimage, int miplevel,
     }
     m_current_subimage = subimage;
     m_current_miplevel = miplevel;
-    m_imagecache       = imagecache;
+    m_imagecache       = std::move(imagecache);
     if (config)
         m_configspec.reset(new ImageSpec(*config));
     m_rioproxy = ioproxy;
@@ -772,7 +773,8 @@ ImageBuf::reset(string_view filename, int subimage, int miplevel,
                 std::shared_ptr<ImageCache> imagecache, const ImageSpec* config,
                 Filesystem::IOProxy* ioproxy)
 {
-    m_impl->reset(filename, subimage, miplevel, imagecache, config, ioproxy);
+    m_impl->reset(filename, subimage, miplevel, std::move(imagecache), config,
+                  ioproxy);
 }
 
 
