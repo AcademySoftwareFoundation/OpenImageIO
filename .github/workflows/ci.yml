@@ -124,13 +124,13 @@ jobs:
           - desc: sanitizers
             nametag: sanitizer
             runner: ubuntu-latest
-            container: aswf/ci-osl:2022-clang13
-            vfxyear: 2022
+            container: aswf/ci-osl:2024-clang17
+            vfxyear: 2024
             cc_compiler: clang
             cxx_compiler: clang++
             cxx_std: 17
             opencolorio_ver: v2.3.2
-            python_ver: 3.9
+            python_ver: "3.11"
             setenvs: export SANITIZE=address,undefined
                             OIIO_CMAKE_FLAGS="-DSANITIZE=address,undefined -DUSE_PYTHON=0"
                             CMAKE_BUILD_TYPE=Debug
