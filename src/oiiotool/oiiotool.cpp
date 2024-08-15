@@ -53,8 +53,8 @@ using pvt::print_info_options;
 #    define OIIO_UNIT_TESTS 1
 #endif
 
-#ifndef OIIOTOOL_METADATA_HISTORY_DEFAULT
-#    define OIIOTOOL_METADATA_HISTORY_DEFAULT 0
+#ifndef OPENIMAGEIO_METADATA_HISTORY_DEFAULT
+#    define OPENIMAGEIO_METADATA_HISTORY_DEFAULT 0
 #endif
 
 
@@ -174,12 +174,12 @@ Oiiotool::clear_options()
     output_dither             = false;
     output_force_tiles        = false;
     metadata_nosoftwareattrib = false;
-#if OIIOTOOL_METADATA_HISTORY_DEFAULT
+#if OPENIMAGEIO_METADATA_HISTORY_DEFAULT
     metadata_history = Strutil::from_string<int>(
-        getenv("OIIOTOOL_METADATA_HISTORY", "1"));
+        getenv("OPENIMAGEIO_METADATA_HISTORY", "1"));
 #else
     metadata_history = Strutil::from_string<int>(
-        getenv("OIIOTOOL_METADATA_HISTORY"));
+        getenv("OPENIMAGEIO_METADATA_HISTORY"));
 #endif
     diff_warnthresh    = 1.0e-6f;
     diff_warnpercent   = 0;
@@ -1234,12 +1234,30 @@ control_for(Oiiotool& ot, cspan<const char*> argv)
         std::string variable = ot.express(argv[1]);
         string_view range    = ot.express(argv[2]);
 
+        float val = 0, limit = 0, step = 1;
+        bool valid     = true;
         auto rangevals = Strutil::extract_from_list_string<float>(range);
-        if (rangevals.size() == 1)
-            rangevals.insert(rangevals.begin(), 0.0f);  // supply missing start
-        if (rangevals.size() == 2)
-            rangevals.push_back(1.0f);  // supply missing step
-        if (rangevals.size() != 3) {
+        if (rangevals.size() == 1) {
+            val   = 0.0f;
+            limit = rangevals[0];
+            step  = limit >= 0.0f ? 1.0f : -1.0f;
+        } else if (rangevals.size() == 2) {
+            val   = rangevals[0];
+            limit = rangevals[1];
+            step  = limit >= val ? 1.0f : -1.0f;
+        } else if (rangevals.size() == 3) {
+            val   = rangevals[0];
+            limit = rangevals[1];
+            step  = rangevals[2];
+        } else {
+            valid = false;
+        }
+        // step can't be zero or be opposite direction of val -> limit
+        valid &= (step != 0.0f);
+        if ((val < limit && step < 0.0f) || (val > limit && step > 0.0f))
+            valid = false;
+
+        if (!valid) {
             ot.errorfmt(argv[0], "Invalid range \"{}\"", range);
             return;
         }
@@ -1249,24 +1267,22 @@ control_for(Oiiotool& ot, cspan<const char*> argv)
         // There are two cases here: either we are hitting this --for
         // for the first time (need to initialize and set up the control
         // record), or we are re-iterating on a loop we already set up.
-        float val;
         if (ot.control_stack.empty()
             || ot.control_stack.top().start_arg != ot.ap.current_arg()) {
             // First time through the loop. Note that we recognize our first
             // time by the fact that the top of the control stack doesn't have
             // a start_arg that is this --for command.
-            val = rangevals[0];
             ot.push_control("for", ot.ap.current_arg(), true);
             // Strutil::print("First for!\n");
         } else {
             // We've started this loop already, this is at least our 2nd time
             // through. Just increment the variable and update the condition
             // for another pass through the loop.
-            val = ot.uservars.get_float(variable) + rangevals[2];
+            val = ot.uservars.get_float(variable) + step;
             // Strutil::print("Repeat for!\n");
         }
         ot.uservars.attribute(variable, val);
-        bool cond                        = val < rangevals[1];
+        bool cond = step >= 0.0f ? val < limit : val > limit;
         ot.control_stack.top().condition = cond;
         ot.ap.running(ot.running());
         // Strutil::print("for {} {} : {}={} cond={} (now running={})\n", variable,
@@ -3439,6 +3455,16 @@ action_pop(Oiiotool& ot, cspan<const char*> argv)
 
 
 
+// --popbottom
+static void
+action_popbottom(Oiiotool& ot, cspan<const char*> argv)
+{
+    OIIO_DASSERT(argv.size() == 1);
+    ot.popbottom();
+}
+
+
+
 // --dup
 static void
 action_dup(Oiiotool& ot, cspan<const char*> argv)
@@ -3463,6 +3489,64 @@ action_swap(Oiiotool& ot, cspan<const char*> argv)
     ImageRecRef A(ot.pop());
     ot.push(B);
     ot.push(A);
+}
+
+
+
+// --stackreverse
+static void
+action_stackreverse(Oiiotool& ot, cspan<const char*> argv)
+{
+    OIIO_DASSERT(argv.size() == 1);
+    string_view command = ot.express(argv[0]);
+    if (!ot.curimg) {
+        ot.error(command, "requires at least one loaded images");
+        return;
+    }
+    if (ot.image_stack.empty())
+        return;  // only curimg -- reversing does nothing
+    ot.image_stack.push_back(ot.curimg);
+    std::reverse(ot.image_stack.begin(), ot.image_stack.end());
+    ot.curimg = ot.image_stack.back();
+    ot.image_stack.pop_back();
+}
+
+
+
+// --stackextract
+static void
+action_stackextract(Oiiotool& ot, cspan<const char*> argv)
+{
+    OIIO_DASSERT(argv.size() == 2);
+    string_view command = ot.express(argv[0]);
+    int index           = Strutil::stoi(ot.express(argv[1]));
+    if (index < 0 || index >= ot.image_stack_depth()) {
+        ot.errorfmt(command, "index {} out of range for stack depth {}", index,
+                    ot.image_stack_depth());
+        return;
+    }
+    if (ot.image_stack.empty())
+        return;  // only curimg -- extract does nothing
+    ot.image_stack.push_back(ot.curimg);
+    // Transform the index to the index of the stack data structure
+    index = int(ot.image_stack.size()) - 1 - index;
+    // Copy that item for safe keeping
+    ImageRecRef newtop = ot.image_stack[index];
+    // Remove it from the stack
+    ot.image_stack.erase(ot.image_stack.begin() + size_t(index));
+    // Now put it back on the top
+    ot.curimg = newtop;
+}
+
+
+
+// --stackclear
+static void
+action_stackclear(Oiiotool& ot, cspan<const char*> argv)
+{
+    OIIO_DASSERT(argv.size() == 1);
+    ot.image_stack.clear();
+    ot.curimg = ImageRecRef();
 }
 
 
@@ -6135,7 +6219,7 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("-n", &ot.dryrun)
       .help("No saved output (dry run)");
     ap.arg("--no-error-exit", ot.noerrexit)
-      .help("Do not exit upon error, try to process additional comands (danger!)");
+      .help("Do not exit upon error, try to process additional commands (danger!)");
     ap.arg("-a", &ot.allsubimages)
       .help("Do operations on all subimages/miplevels");
     ap.arg("--debug", &ot.debug)
@@ -6708,6 +6792,9 @@ Oiiotool::getargs(int argc, char* argv[])
       .OTACTION(action_flatten);
 
     ap.separator("Image stack manipulation:");
+    ap.arg("--label %s")
+      .help("Label the top image")
+      .OTACTION(action_label);
     ap.arg("--dup")
       .help("Duplicate the current image (push a copy onto the stack)")
       .OTACTION(action_dup);
@@ -6717,9 +6804,18 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--pop")
       .help("Throw away the current image")
       .OTACTION(action_pop);
-    ap.arg("--label %s")
-      .help("Label the top image")
-      .OTACTION(action_label);
+    ap.arg("--popbottom")
+      .help("Throw away the image on the bottom of the stack")
+      .OTACTION(action_popbottom);
+    ap.arg("--stackreverse")
+      .help("Throw away the image on the bottom of the stack")
+      .OTACTION(action_stackreverse);
+    ap.arg("--stackextract %d:INDEX")
+      .help("Move an indexed stack item to the top of the stack")
+      .OTACTION(action_stackextract);
+    ap.arg("--stackclear")
+      .help("Remove all images from the stack, leaving it empty")
+      .OTACTION(action_stackclear);
 
     ap.separator("Color management:");
     ap.arg("--colorconfiginfo")

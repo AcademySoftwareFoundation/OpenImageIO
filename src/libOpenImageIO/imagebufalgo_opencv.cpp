@@ -28,6 +28,8 @@
 #    if OIIO_OPENCV_VERSION >= 40000
 #        include <opencv2/core/core_c.h>
 #        include <opencv2/imgproc/imgproc_c.h>
+#    else
+#        error "OpenCV 4.0 is the minimum supported version"
 #    endif
 #endif
 
@@ -161,27 +163,20 @@ ImageBufAlgo::to_OpenCV(cv::Mat& dst, const ImageBuf& src, ROI roi,
         dstFormat     = CV_MAKETYPE(CV_16S, chans);
         dstSpecFormat = TypeInt16;
     } else if (spec.format == TypeDesc(TypeDesc::HALF)) {
-#    if OIIO_OPENCV_VERSION >= 40000
         dstFormat = CV_MAKETYPE(CV_16F, chans);
-#    else
-        dstFormat     = CV_MAKETYPE(CV_32F, chans);
-        dstSpecFormat = TypeFloat;
-#    endif
     } else if (spec.format == TypeDesc(TypeDesc::FLOAT)) {
         dstFormat = CV_MAKETYPE(CV_32F, chans);
     } else if (spec.format == TypeDesc(TypeDesc::DOUBLE)) {
         dstFormat = CV_MAKETYPE(CV_64F, chans);
     } else {
-        OIIO::pvt::errorfmt(
-            "to_OpenCV() doesn't know how to make a cv::Mat of {}",
-            spec.format);
+        OIIO::errorfmt("to_OpenCV() doesn't know how to make a cv::Mat of {}",
+                       spec.format);
         return false;
     }
     dst.create(roi.height(), roi.width(), dstFormat);
     if (dst.empty()) {
-        OIIO::pvt::errorfmt(
-            "to_OpenCV() was unable to create cv::Mat of {}x{} {}", roi.width(),
-            roi.height(), dstSpecFormat);
+        OIIO::errorfmt("to_OpenCV() was unable to create cv::Mat of {}x{} {}",
+                       roi.width(), roi.height(), dstSpecFormat);
         return false;
     }
 
@@ -192,7 +187,7 @@ ImageBufAlgo::to_OpenCV(cv::Mat& dst, const ImageBuf& src, ROI roi,
                   dst.ptr(), pixelsize, linestep, AutoStride);
     bool converted = ImageBufAlgo::copy(cvib, src);
     if (!converted) {
-        OIIO::pvt::errorfmt(
+        OIIO::errorfmt(
             "to_OpenCV() was unable to convert source {} to cv::Mat of {}",
             spec.format, dstSpecFormat);
         return false;
@@ -207,7 +202,7 @@ ImageBufAlgo::to_OpenCV(cv::Mat& dst, const ImageBuf& src, ROI roi,
 
     return true;
 #else
-    OIIO::pvt::errorfmt(
+    OIIO::errorfmt(
         "to_OpenCV() not supported -- no OpenCV support at compile time");
     return false;
 #endif

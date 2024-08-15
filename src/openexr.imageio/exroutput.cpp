@@ -1508,7 +1508,8 @@ OpenEXROutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
         // the bytes to be written, but OpenEXR's frameBuffer.insert() wants
         // where the address of the "virtual framebuffer" for the whole
         // image.
-        char* buf = (char*)d - m_spec.x * pixel_bytes - y * scanlinebytes;
+        char* buf = (char*)d - m_spec.x * stride_t(pixel_bytes)
+                    - y * stride_t(scanlinebytes);
         try {
             Imf::FrameBuffer frameBuffer;
             size_t chanoffset = 0;

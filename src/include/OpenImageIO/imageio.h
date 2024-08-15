@@ -36,11 +36,13 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/thread.h>
 #include <OpenImageIO/typedesc.h>
+#include <OpenImageIO/memory.h>
 
 OIIO_NAMESPACE_BEGIN
 
 class DeepData;
 class ImageBuf;
+class Timer;
 
 
 /// Type we use for stride lengths between pixels, scanlines, or image
@@ -1883,6 +1885,9 @@ private:
     std::unique_ptr<Impl, decltype(&impl_deleter)> m_impl;
 
     void append_error(string_view message) const; // add to error message
+
+    /// declare a friend heapsize definition
+    template <typename T> friend size_t pvt::heapsize(const T&);
 };
 
 
@@ -2787,7 +2792,23 @@ private:
     std::unique_ptr<Impl, decltype(&impl_deleter)> m_impl;
 
     void append_error(string_view message) const; // add to m_errmessage
+
+    /// declare a friend heapsize definition
+    template <typename T> friend size_t pvt::heapsize(const T&);
 };
+
+
+
+/// Memory tracking. Specializes the base memory tracking functions from memory.h.
+
+// heapsize specialization for `ImageSpec`
+template <> OIIO_API size_t pvt::heapsize<ImageSpec>(const ImageSpec&);
+
+// heapsize specialization for `ImageInput`
+template <> OIIO_API size_t pvt::heapsize<ImageInput>(const ImageInput&);
+
+// heapsize specialization for `ImageOutput`
+template <> OIIO_API size_t pvt::heapsize<ImageOutput>(const ImageOutput&);
 
 
 
@@ -3363,7 +3384,22 @@ void debugfmt (const char* fmt, Args&&... args)
     Strutil::debug(fmt, std::forward<Args>(args)...);
 }
 
+namespace pvt {
+// For internal use - use errorfmt() below for a nicer interface.
+OIIO_API void append_error(string_view message);
+}
 
+/// error logging (mostly for OIIO internals) with `std::format` conventions.
+template<typename... Args>
+inline void errorfmt(const char* fmt, Args&&... args)
+{
+    pvt::append_error(string_view(Strutil::fmt::format(fmt, args...)));
+}
+
+/// Internal function to log time recorded by an OIIO::timer(). It will only
+/// trigger a read of the time if the "log_times" attribute is set or the
+/// OPENIMAGEIO_LOG_TIMES env variable is set.
+OIIO_API void log_time(string_view key, const Timer& timer, int count = 1);
 
 // to force correct linkage on some systems
 OIIO_API void _ImageIO_force_link ();

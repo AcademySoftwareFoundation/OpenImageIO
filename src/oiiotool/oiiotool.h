@@ -1,5 +1,5 @@
 // Copyright Contributors to the OpenImageIO project.
-// SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+// SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
@@ -257,6 +257,17 @@ public:
             curimg = ImageRecRef();
         }
         return r;
+    }
+
+    void popbottom()
+    {
+        if (image_stack.size()) {
+            // There are images on the full stack -- get rid of the bottom
+            image_stack.erase(image_stack.begin());
+        } else {
+            // Nothing on the stack, so get rid of the current image
+            curimg = ImageRecRef();
+        }
     }
 
     ImageRecRef top() { return curimg; }

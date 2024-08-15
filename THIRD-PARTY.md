@@ -9,15 +9,15 @@ In no particular order:
 
 -------------------------------------------------------------------------
 
-BSD 3-Clause License
+BSD 3-Clause License (https://opensource.org/license/bsd-3-clause)
 SPDX-License-Identifier: BSD-3-Clause
 
 * OpenImageIO prior to July 1, 2023
 
   Code that was contributed to OpenImageIO prior to July 1 2023, and has not
-  yet been [relicensed](RELICENSING.md), was contributed under the [BSD
-  3-clause license](LICENSE-BSD.md). Currently, this is less than 2% of the
-  codebase (by lines of code).
+  yet been [relicensed](RELICENSING.md), was contributed under the BSD
+  3-clause license. Currently, less than 0.15% of the codebase (by lines of
+  code) remains under this license.
 
 * Gelato, Copyright (c) 2004 by NVIDIA Corp.
 

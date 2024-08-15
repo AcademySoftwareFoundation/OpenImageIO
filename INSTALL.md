@@ -23,6 +23,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * **Imath >= 3.1** (tested through 3.1.x and main)
  * **OpenEXR >= 3.1** (tested through 3.2 and main)
  * **libTIFF >= 4.0** (tested through 4.6)
+ * **OpenColorIO >= 2.2** (tested through 2.3)
  * libjpeg >= 8 (tested through jpeg9e), or **libjpeg-turbo >= 2.1** (tested
    through 3.0)
  * **[fmtlib](https://github.com/fmtlib/fmt) >= 7.0** (tested through 10.2).
@@ -38,10 +39,12 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * **Python >= 3.7** (tested through 3.12)
      * **pybind11 >= 2.7** (tested through 2.12)
      * NumPy
+ * If you want support for PNG files:
+     * **libPNG >= 1.6.0** (tested though 1.6.43)
  * If you want support for camera "RAW" formats:
      * **LibRaw >= 0.20** (tested though 0.21.2)
  * If you want support for a wide variety of video formats:
-     * ffmpeg >= 3.0 (tested through 7.0)
+     * **ffmpeg >= 4.0** (tested through 7.0)
  * If you want support for jpeg 2000 images:
      * OpenJpeg >= 2.0 (tested through 2.5; we recommend 2.4 or higher
        for multithreading support)
@@ -52,10 +55,9 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * TBB >= 2018 (tested through 2021 and OneTBB)
  * If you want support for converting to and from OpenCV data structures,
    or for capturing images from a camera:
-     * OpenCV 3.x, or 4.x (tested through 4.9)
+     * **OpenCV 4.x** (tested through 4.10)
  * If you want support for GIF images:
-     * giflib >= 4.1 (tested through 5.2; 5.0+ is strongly recommended for
-       stability and thread safety)
+     * **giflib >= 5.0** (tested through 5.2)
  * If you want support for HEIF/HEIC or AVIF images:
      * libheif >= 1.3 (1.7 required for AVIF support, 1.16 required for
        correct orientation support, tested through 1.17.6)
@@ -64,9 +66,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for DICOM medical image files:
      * DCMTK >= 3.6.1 (tested through 3.6.8)
  * If you want support for WebP images:
-     * WebP >= 0.6.1 (tested through 1.4)
- * If you want support for OpenColorIO color transformations:
-     * OpenColorIO >= 1.1 (tested through 2.3; 2.0+ is recommended)
+     * **WebP >= 1.1** (tested through 1.4)
  * If you want support for Ptex:
      * Ptex >= 2.3.1 (probably works for older; tested through 2.4.2)
  * If you want to be able to do font rendering into images:

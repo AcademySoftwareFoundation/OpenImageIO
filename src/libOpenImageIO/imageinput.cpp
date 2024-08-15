@@ -164,7 +164,7 @@ ImageInput::open(const std::string& filename, const ImageSpec* config,
         // error, delete the ImageInput we allocated, and return NULL.
         std::string err = in->geterror();
         if (err.size())
-            OIIO::pvt::errorfmt("{}", err);
+            OIIO::errorfmt("{}", err);
         in.reset();
     }
 
@@ -1336,5 +1336,18 @@ ImageInput::check_open(const ImageSpec& spec, ROI range, uint64_t /*flags*/)
 
     return true;  // all is ok
 }
+
+
+
+template<>
+size_t
+pvt::heapsize<ImageInput>(const ImageInput& input)
+{
+    //! TODO: change ImageInput API to add a virtual heapsize() function
+    //! to allow per image input override, and call that function here.
+    return pvt::heapsize(input.m_spec);
+}
+
+
 
 OIIO_NAMESPACE_END

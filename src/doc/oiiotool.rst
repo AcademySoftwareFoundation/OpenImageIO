@@ -273,11 +273,12 @@ The usual programming constructs are supported:
 * Iteration : `--for` *variable* *range* *commands...* `--endfor`
 
   The range is a sequence of one to three comma-separated numbers: *begin*,
-  *end*, and *step*; *begin* and *end* (step is assumed to be 1); or just
-  *end* (begin assumed to be 0, step assumed to be 1). As in Python, the range
-  has an "exclusive end" -- when the *variable* is equal to *end*, the loop
-  will terminate, without actually running the commands for the *end* value
-  itself.
+  *end*, and *step*; *begin* and *end* (step is assumed to be 1 if *begin*
+  `<`` *end*, or -1 if *begin* `>` *end); or just *end* (begin assumed to be
+  0, step assumed to be 1 or -1, depending on the relationship between *begin*
+  and *end*). As in Python, the range has an "exclusive end" -- when the
+  *variable* is equal to *end*, the loop will terminate, without actually
+  running the commands for the *end* value itself.
 
 Section :ref:`sec-oiiotool-control-flow-commands` contains more detailed
 descriptions of these commands and some examples to more clearly illustrate
@@ -1023,11 +1024,12 @@ output each one to a different file, with names `sub0001.tif`,
     for each iteration. The range may be one, two, or three numbers
     separated by commas, indicating
 
-    - *end* : Iterate from 0 to *end*, incrementing by 1 each time.
-    - *begin* ``,`` *end* : Iterate from *begin* to *end*, incrementing
-       by 1 each time.
+    - *end* : Iterate from 0 to *end*, incrementing by 1 each iteration (or
+      decrementing, if *end* `<` 0).
+    - *begin* ``,`` *end* : Iterate from *begin* to *end*, incrementing by
+      1 each iteration (or  decrementing by 1, if *end* `<` *begin*).
     - *begin* ``,`` *end* ``,`` *step* : Iterate from *begin* to *end*,
-      incrementing by *step* each time.
+      adding *step* to the value after each iteration.
 
     Note that the *end* value is "exclusive," that is, the loop will
     terminate once the value is equal to end, and the loop body will
@@ -1053,6 +1055,13 @@ output each one to a different file, with names `sub0001.tif`,
         5
         7
         9
+
+        $ oiiotool --for i 5,0,-1 --echo "i = {i}" --endfor
+        5
+        4
+        3
+        2
+        1
 
 .. option:: --while <condition> commands... --endwhile
 
@@ -1982,7 +1991,7 @@ current top image.
     image to potentially reveal any proprietary information that might have
     been present in the command line arguments.
     
-    If the `OIIOTOOL_METADATA_HISTORY` environment variable is set to a
+    If the `OPENIMAGEIO_METADATA_HISTORY` environment variable is set to a
     nonzero integer value, the `--history` option will be enabled by default,
     but can be disabled on the command line with `--no-history`.
 
@@ -1993,7 +2002,7 @@ current top image.
     Prior to OpenImageIO 2.5.11, the full information was always written, but
     could be overridden with `--nosoftwareattrib`. Beginning with 2.5.11, the
     default changed to only write the software name and version (unless the
-    `OIIOTOOL_METADATA_HISTORY` environment variable is set), and require the
+    `OPENIMAGEIO_METADATA_HISTORY` environment variable is set), and require the
     new `--history` option to cause the command line arguments to be written
     as metadata.
 
@@ -2230,10 +2239,16 @@ current top image.
 :program:`oiiotool` commands that adjust the image stack
 ========================================================
 
-.. option:: --pop
+.. option:: --label <name>
 
-    Pop the image stack, discarding the current image and thereby making the
-    next image on the stack into the new current image.
+    Gives a name to (and saves) the current image at the top of the stack.
+    Thereafter, the label name may be used to refer to that saved image, in
+    the usual manner that an ordinary input image would be specified by
+    filename.
+
+    The name of the label must be in the form of an "identifier" (a sequence
+    of alphanumeric characters and underscores, starting with a letter or
+    underscore).
 
 .. option:: --dup
 
@@ -2245,16 +2260,31 @@ current top image.
 
     Swap the current image and the next one on the stack.
 
-.. option:: --label <name>
+.. option:: --pop
 
-    Gives a name to (and saves) the current image at the top of the stack.
-    Thereafter, the label name may be used to refer to that saved image, in
-    the usual manner that an ordinary input image would be specified by
-    filename.
+    Pop the image stack, discarding the current image and thereby making the
+    next image on the stack into the new current image.
 
-    The name of the label must be in the form of an "identifier" (a sequence
-    of alphanumeric characters and underscores, starting with a letter or
-    underscore).
+.. option:: --popbottom
+
+    Remove and discard the bottom image from the image stack.
+    (Added in OIIO 3.0.)
+
+.. option:: --stackreverse
+
+    Reverse the order of the entire stack, i.e. making the top be the new
+    bottom and the old bottom be the new top. (Added in OIIO 3.0.)
+
+.. option:: --stackextract <index>
+
+    Move the indexed item (0 for the top of the stack, 1 for the next item
+    down, etc.) to the top of the stack, preserving the relative order of all
+    other items. (Added in OIIO 3.0.)
+
+.. option:: --stackclear <index>
+
+    Remove all items from the stack, leaving it empty and with no "current"
+    image. (Added in OIIO 3.0.)
 
 
 :program:`oiiotool` commands that make entirely new images

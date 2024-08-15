@@ -94,6 +94,7 @@ jobs:
             container: aswf/ci-osl:2022
             vfxyear: 2022
             cxx_std: 17
+            opencolorio_ver: v2.2.1
             python_ver: 3.9
             # simd: "avx2,f16c"
             fmt_ver: 7.1.3
@@ -104,7 +105,7 @@ jobs:
                             FREETYPE_VERSION=VER-2-13-0
             # For icc, use fp-model precise to eliminate needless LSB errors
             # that make test results differ from other platforms.
-          - desc: icx/C++17 py3.9 exr3.1 ocio2.1 qt5.15
+          - desc: icx/C++17 py3.9 exr3.1 ocio2.2 qt5.15
             nametag: linux-vfx2022-icx
             runner: ubuntu-latest
             container: aswf/ci-osl:2022
@@ -112,10 +113,14 @@ jobs:
             cc_compiler: icx
             cxx_compiler: icpx
             cxx_std: 17
+            opencolorio_ver: v2.3.2
             python_ver: 3.9
-            simd: "avx2,f16c"
             pybind11_ver: v2.9.0
+            simd: "avx2,f16c"
             setenvs: export USE_OPENVDB=0
+                            OPENCOLORIO_CXX=g++
+            # OCIO doesn't build with icx, so we have to force the ocio build
+            # to use g++.
           - desc: sanitizers
             nametag: sanitizer
             runner: ubuntu-latest
@@ -124,6 +129,7 @@ jobs:
             cc_compiler: clang
             cxx_compiler: clang++
             cxx_std: 17
+            opencolorio_ver: v2.3.2
             python_ver: 3.9
             setenvs: export SANITIZE=address,undefined
                             OIIO_CMAKE_FLAGS="-DSANITIZE=address,undefined -DUSE_PYTHON=0"
@@ -150,42 +156,42 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             pybind11_ver: v2.12.0
-          - desc: oldest/hobbled gcc9.3/C++17 py3.7 exr-3.1 no-sse no-ocio
-            # Oldest versions of the dependencies that we can muster, and various
-            # things disabled (no SSE, OCIO, or OpenCV, don't embed plugins).
+          - desc: oldest gcc9.3/C++17 py3.7 exr-3.1
+            # Oldest versions of the dependencies that we support.
             nametag: linux-oldest
             runner: ubuntu-latest
             container: aswf/ci-osl:2021
             vfxyear: 2021
             cxx_std: 17
             fmt_ver: 7.0.1
+            opencolorio_ver: v2.2.1
             openexr_ver: v3.1.0
             pybind11_ver: v2.7.0
             python_ver: 3.7
             setenvs: export  CMAKE_VERSION=3.15.5
                              PTEX_VERSION=v2.3.2
-                             WEBP_VERSION=v1.0.0
+                             WEBP_VERSION=v1.1.0
             depcmds: sudo rm -rf /usr/local/include/OpenEXR
-          - desc: hobbled gcc9.3/C++17 py3.7 exr-3.1 no-sse no-ocio
+          - desc: hobbled gcc9.3/C++17 py3.7 exr-3.1 no-sse
             # Use the oldest supported versions of required dependencies, and
-            # disable most optional dependencies and features (no SSE, OCIO,
-            # or OpenCV, don't embed plugins).
+            # disable most optional dependencies and features (no SSE or
+            # OpenCV, don't embed plugins).
             nametag: linux-disabled
             runner: ubuntu-latest
             container: aswf/ci-osl:2021
             vfxyear: 2021
             cxx_std: 17
             fmt_ver: 7.0.1
+            opencolorio_ver: v2.2.1
             openexr_ver: v3.1.0
-            pybind11_ver: v2.7.0
+            pybind11_ver: v2.4.2
             python_ver: 3.7
             simd: 0
             setenvs: export  EMBEDPLUGINS=0
                              CMAKE_VERSION=3.15.5
                              PTEX_VERSION=v2.3.2
-                             WEBP_VERSION=v1.0.0
+                             WEBP_VERSION=v1.1.0
                              USE_JPEGTURBO=0
-                             USE_OPENCOLORIO=0
                              USE_OPENCV=0
                              FREETYPE_VERSION=VER-2-10-0
             depcmds: sudo rm -rf /usr/local/include/OpenEXR
@@ -220,6 +226,7 @@ jobs:
       CMAKE_CXX_STANDARD: ${{matrix.cxx_std}}
       USE_SIMD: ${{matrix.simd}}
       FMT_VERSION: ${{matrix.fmt_ver}}
+      OPENCOLORIO_VERSION: ${{matrix.opencolorio_ver}}
       OPENEXR_VERSION: ${{matrix.openexr_ver}}
       PYBIND11_VERSION: ${{matrix.pybind11_ver}}
       PYTHON_VERSION: ${{matrix.python_ver}}
@@ -308,6 +315,7 @@ jobs:
             cxx_compiler: g++-12
             cxx_std: 17
             fmt_ver: 10.1.1
+            opencolorio_ver: v2.3.2
             openexr_ver: v3.2.4
             pybind11_ver: v2.12.0
             python_ver: "3.10"
@@ -315,11 +323,10 @@ jobs:
             setenvs: export LIBJPEGTURBO_VERSION=3.0.1
                             LIBRAW_VERSION=0.21.2
                             LIBTIFF_VERSION=v4.6.0
-                            OPENCOLORIO_VERSION=v2.3.2
                             OPENJPEG_VERSION=v2.4.0
                             PTEX_VERSION=v2.4.2
                             PUGIXML_VERSION=v1.14
-                            WEBP_VERSION=v1.3.0
+                            WEBP_VERSION=v1.4.0
                             FREETYPE_VERSION=VER-2-13-2
                             EXTRA_DEP_PACKAGES="libboost-dev"
           - desc: bleeding edge gcc14 C++20 py3.12 OCIO/libtiff/exr-master avx2
@@ -329,6 +336,7 @@ jobs:
             cxx_compiler: g++-14
             cxx_std: 20
             fmt_ver: master
+            opencolorio_ver: main
             openexr_ver: main
             pybind11_ver: master
             python_ver: "3.12"
@@ -336,7 +344,6 @@ jobs:
             setenvs: export LIBJPEGTURBO_VERSION=main
                             LIBRAW_VERSION=master
                             LIBTIFF_VERSION=master
-                            OPENCOLORIO_VERSION=main
                             OPENJPEG_VERSION=master
                             PTEX_VERSION=main
                             PUGIXML_VERSION=master
@@ -367,7 +374,7 @@ jobs:
                             OPENJPEG_VERSION=v2.4.0
                             PTEX_VERSION=v2.4.2
                             PUGIXML_VERSION=v1.14
-                            WEBP_VERSION=v1.3.0
+                            WEBP_VERSION=v1.4.0
                             EXTRA_DEP_PACKAGES="libboost-dev"
           - desc: clang14 C++20 avx2 exr3.1 ocio2.1
             nametag: linux-clang14
@@ -376,12 +383,12 @@ jobs:
             cc_compiler: clang
             cxx_std: 20
             fmt_ver: 10.1.1
+            opencolorio_ver: v2.2.1
             openexr_ver: v3.1.13
             pybind11_ver: v2.12.0
             python_ver: 3.8
             simd: avx2,f16c
             setenvs: export LLVM_VERSION=14.0.0
-                            OPENCOLORIO_VERSION=v2.1.2
                             USE_OPENVDB=0
                             # The installed OpenVDB has a TLS conflict with Python 3.8
           - desc: debug gcc9/C++17, sse4.2, exr3.1
@@ -425,7 +432,8 @@ jobs:
                             OIIO_CMAKE_FLAGS=-DUSE_PYTHON=0
                             LLVM_VERSION=17.0.6 LLVM_DISTRO_NAME=ubuntu-22.04
                             SKIP_SYSTEM_DEPS_INSTALL=1 QT_VERSION=0
-                            OpenImageIO_BUILD_MISSING_DEPS=none
+                            xOpenImageIO_BUILD_MISSING_DEPS=missing
+                            OpenImageIO_OPTIONAL_DEPS=ALL
 
     runs-on: ${{ matrix.runner }}
     env:
@@ -434,6 +442,7 @@ jobs:
       CMAKE_CXX_STANDARD: ${{matrix.cxx_std}}
       USE_SIMD: ${{matrix.simd}}
       FMT_VERSION: ${{matrix.fmt_ver}}
+      OPENCOLORIO_VERSION: ${{matrix.opencolorio_ver}}
       OPENEXR_VERSION: ${{matrix.openexr_ver}}
       PYBIND11_VERSION: ${{matrix.pybind11_ver}}
       PYTHON_VERSION: ${{matrix.python_ver}}

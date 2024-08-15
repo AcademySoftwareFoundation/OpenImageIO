@@ -1077,6 +1077,10 @@ control aspects of the writing itself:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by writing to a memory buffer.
+   * - ``jpeg:iptc``
+     - int (1)
+     - If zero, will suppress writing the IPTC metadata block to the
+       JPEG file.
    * - ``jpeg:progressive``
      - int
      - If nonzero, will write a progressive JPEG file.
@@ -2062,7 +2066,23 @@ options are supported:
      - If nonzero, will use libraw's exposure correction. (Default: 0)
    * - ``raw:use_camera_wb``
      - int
-     - If 1, use libraw's camera white balance adjustment. (Default: 1)
+     - If 1, use libraw's camera white balance adjustment. Takes precedence
+       over ``raw:use_auto_wb``, ``raw:greybox``, ``raw:user_mul``. 
+       (Default: 1)
+   * - ``raw:use_auto_wb``
+     - int
+     - If 1, white balance automatically by averaging over the entire image.
+       Only applies if ``raw:use_camera_wb`` is not equal to 0. Takes 
+       precedence over ``raw:greybox``, ``raw:user_mul``.
+       (Default: 0)
+   * - ``raw:greybox``
+     - int[4]
+     - White balance by averaging over the given box. The four values are the 
+       X and Y coordinate of the top-left corner, the width and the height.
+       Only applies if the size is non-zero, and ``raw:use_camera_wb`` is not 
+       equal to 0, ``raw:use_auto_wb`` is not equal to 0. Takes 
+       precedence over ``raw:user_mul``.
+       (Default: 0, 0, 0, 0; meaning no correction.)
    * - ``raw:use_camera_matrix``
      - int
      - Whether to use the embedded color profile, if it's present: 0 =
@@ -2070,6 +2090,10 @@ options are supported:
    * - ``raw:adjust_maximum_thr``
      - float
      - If nonzero, auto-adjusting maximum value. (Default:0.0)
+   * - ``raw:user_black``
+     - int
+     - If not negative, sets the camera minimum value that will be normalized to
+       appear 0. (Default: -1)
    * - ``raw:user_sat``
      - int
      - If nonzero, sets the camera maximum value that will be normalized to
@@ -2086,7 +2110,8 @@ options are supported:
    * - ``raw:user_mul``
      - float[4]
      - Sets user white balance coefficients. Only applies if ``raw:use_camera_wb``
-       is not equal to 0.
+       is not equal to 0, ``raw:use_auto_wb`` is not equal to 0, and the 
+       ``raw:greybox`` box is zero size.
    * - ``raw:ColorSpace``
      - string
      - Which color primaries to use for the returned pixel values: ``raw``,
