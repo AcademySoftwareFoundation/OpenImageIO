@@ -111,7 +111,7 @@ HeifOutput::open(const std::string& name, const ImageSpec& newspec,
         m_himage.add_plane(heif_channel_interleaved, newspec.width,
                            newspec.height, 8 * m_spec.nchannels /*bit depth*/);
 
-        m_encoder = heif::Encoder(heif_compression_HEVC);
+        m_encoder      = heif::Encoder(heif_compression_HEVC);
         auto compqual  = m_spec.decode_compression_metadata("", 75);
         auto extension = Filesystem::extension(m_filename);
         if (compqual.first == "avif"
