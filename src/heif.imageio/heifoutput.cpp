@@ -81,12 +81,8 @@ heif_output_imageio_create()
     return new HeifOutput;
 }
 
-OIIO_EXPORT const char* heif_output_extensions[] = { "heif",  "heic",
-                                                     "heics", "hif",
-#if LIBHEIF_HAVE_VERSION(1, 7, 0)
-                                                     "avif",
-#endif
-                                                     nullptr };
+OIIO_EXPORT const char* heif_output_extensions[] = { "heif", "heic", "heics",
+                                                     "hif",  "avif", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 
@@ -115,15 +111,13 @@ HeifOutput::open(const std::string& name, const ImageSpec& newspec,
         m_himage.add_plane(heif_channel_interleaved, newspec.width,
                            newspec.height, 8 * m_spec.nchannels /*bit depth*/);
 
-        m_encoder = heif::Encoder(heif_compression_HEVC);
-#if LIBHEIF_HAVE_VERSION(1, 7, 0)
+        m_encoder      = heif::Encoder(heif_compression_HEVC);
         auto compqual  = m_spec.decode_compression_metadata("", 75);
         auto extension = Filesystem::extension(m_filename);
         if (compqual.first == "avif"
             || (extension == ".avif" && compqual.first == "")) {
             m_encoder = heif::Encoder(heif_compression_AV1);
         }
-#endif
     } catch (const heif::Error& err) {
         std::string e = err.get_message();
         errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
