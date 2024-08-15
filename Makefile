@@ -180,10 +180,6 @@ ifeq (${CODECOV},1)
   MY_CMAKE_FLAGS += -DCODECOV:BOOL=${CODECOV}
 endif
 
-ifneq (${SANITIZE},)
-  MY_CMAKE_FLAGS += -DSANITIZE=${SANITIZE}
-endif
-
 ifneq (${CLANG_TIDY},)
   MY_CMAKE_FLAGS += -DCLANG_TIDY:BOOL=1
 endif
@@ -360,7 +356,7 @@ help:
 	@echo "      USE_CCACHE=0             Disable ccache (even if available)"
 	@echo "      UNITY=BATCH              Do a 'Unity' build (BATCH or GROUP or nothing)"
 	@echo "      CODECOV=1                Enable code coverage tests"
-	@echo "      SANITIZE=name1,...       Enable sanitizers (address, leak, thread)"
+	@echo "      SANITIZE=name1,...       Enable sanitizers (address, leak, thread, undefined)"
 	@echo "      CLANG_TIDY=1             Run clang-tidy on all source (can be modified"
 	@echo "                                  by CLANG_TIDY_ARGS=... and CLANG_TIDY_FIX=1"
 	@echo "      CLANG_FORMAT_INCLUDES=... CLANG_FORMAT_EXCLUDES=..."
