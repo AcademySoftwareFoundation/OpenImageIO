@@ -21,6 +21,7 @@ if (NOT @BUILD_SHARED_LIBS@)
     # INTERFACE_LINK_LIBRARIES. If the project does not know about PNG target, it will cause
     # configuration error about unknown targets being linked in.
     find_dependency(TIFF)
+    find_dependency(OpenColorIO)
     if (@JPEG_FOUND@)
         find_dependency(JPEG)
     endif()
