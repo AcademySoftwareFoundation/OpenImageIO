@@ -43,7 +43,6 @@ extern int oiio_log_times;
 extern int openexr_core;
 extern int limit_channels;
 extern int limit_imagesize_MB;
-extern int opencv_version;
 extern int imagebuf_print_uncaught_errors;
 extern int imagebuf_use_imagecache;
 extern atomic_ll IB_local_mem_current;

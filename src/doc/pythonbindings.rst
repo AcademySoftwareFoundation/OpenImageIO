@@ -3698,18 +3698,6 @@ Import / export
 
 
 
-.. py:method:: ImageBuf ImageBufAlgo::capture_image (cameranum, convert = OpenImageIO.UNKNOWN)
-
-    Capture a still image from a designated camera.
-
-    Example:
-
-    .. code-block:: python
-
-        WebcamImage = ImageBufAlgo.capture_image (0, OpenImageIO.UINT8)
-        WebcamImage.write ("webcam.jpg")
-
-
 
 Functions specific to deep images
 ---------------------------------
