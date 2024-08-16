@@ -127,6 +127,11 @@ about being deprecated will be removed in the final 3.0 release.
 * IBA::type_merge, deprecated since 2.3, now has a deprecation warning.
   Instead, use TypeDesc::basetype_merge().
 
+## imagecache.h
+
+* `ImageCache::create()` now returns a `std::shared_ptr<ImageCache>` instead
+  of a raw pointer.
+
 ## missingmath.h
 
 * This header has been removed entirely. It has was originally needed for
@@ -165,6 +170,8 @@ about being deprecated will be removed in the final 3.0 release.
 
 ## texture.h
 
+* `TextureSystem::create()` now returns a `std::shared_ptr<TextureSystem>`
+  instead of a raw pointer.
 * Removed stochastic-related tokens from the MipMode and InterpMode enums.
   These were originally experimental but never removed.
 * Removed the `bias` field from the TextureOpt structure. This was originally
