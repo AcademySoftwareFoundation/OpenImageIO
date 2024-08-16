@@ -53,7 +53,7 @@ static void
 test_get_pixels_errors()
 {
     Strutil::print("\nTesting get_pixels error handling\n");
-    ImageCache* ic = ImageCache::create();
+    std::shared_ptr<ImageCache> ic = ImageCache::create();
     float fpixels[4 * 4 * 3];
     const int fpixelsize = 3 * sizeof(float);
 
@@ -121,7 +121,7 @@ test_get_pixels_cachechannels(int chbegin = 0, int chend = 4,
     std::cout << "\nTesting IC get_pixels of chans [" << chbegin << "," << chend
               << ") with cache range [" << cache_chbegin << "," << cache_chend
               << "):\n";
-    ImageCache* imagecache = ImageCache::create(false /*not shared*/);
+    auto imagecache = ImageCache::create(false);
 
     // Create a 10 channel file
     ustring filename("tenchannels.tif");
@@ -151,8 +151,6 @@ test_get_pixels_cachechannels(int chbegin = 0, int chend = 4,
     }
     for (int c = 2 * nc; c < 2 * nchans; ++c)
         OIIO_CHECK_EQUAL(p[c], -1.0f);
-
-    ImageCache::destroy(imagecache);
 }
 
 
@@ -172,7 +170,7 @@ NullInputCreator()
 void
 test_app_buffer()
 {
-    ImageCache* imagecache = ImageCache::create(false /*not shared*/);
+    auto imagecache = ImageCache::create(false /*not shared*/);
 
     // Add a file entry with a "null" ImageInput proxy configured to look
     // like a 2x2 RGB float image.
@@ -226,8 +224,6 @@ test_app_buffer()
     OIIO_CHECK_EQUAL(testpixel[0], pixels[1][1][0]);
     OIIO_CHECK_EQUAL(testpixel[1], pixels[1][1][1]);
     OIIO_CHECK_EQUAL(testpixel[2], pixels[1][1][2]);
-
-    ImageCache::destroy(imagecache);
 }
 
 
@@ -236,8 +232,8 @@ void
 test_custom_threadinfo()
 {
     Strutil::print("\nTesting creating/destroying custom IC and thread info\n");
-    ImageCache* imagecache = ImageCache::create(true);
-    auto threadinfo        = imagecache->create_thread_info();
+    auto imagecache = ImageCache::create(true);
+    auto threadinfo = imagecache->create_thread_info();
     OIIO_CHECK_ASSERT(threadinfo != nullptr);
     imagecache->destroy_thread_info(threadinfo);
     imagecache->close_all();
@@ -249,7 +245,7 @@ void
 test_tileptr()
 {
     Strutil::print("\nTesting tile ptr things\n");
-    ImageCache* imagecache = ImageCache::create();
+    auto imagecache        = ImageCache::create();
     auto hand              = imagecache->get_image_handle(checkertex);
     ImageCache::Tile* tile = imagecache->get_tile(hand, nullptr, 0, 0, 4, 4, 0);
     OIIO_CHECK_ASSERT(tile != nullptr);
@@ -277,7 +273,7 @@ static void
 test_imagespec()
 {
     Strutil::print("\nTesting imagespec retrieval\n");
-    ImageCache* ic = ImageCache::create();
+    auto ic = ImageCache::create();
 
     {  // basic get_imagespec()
         ImageSpec spec;
@@ -350,7 +346,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_custom_threadinfo();
     test_imagespec();
 
-    ImageCache* ic = ImageCache::create();
+    auto ic = ImageCache::create();
     Strutil::print("\n\n{}\n", ic->getstats(5));
     ic->reset_stats();
 

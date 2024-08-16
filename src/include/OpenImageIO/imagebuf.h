@@ -77,7 +77,7 @@ enum class InitializePixels { No = 0, Yes = 1 };
 /// translate into a different data format than appears in the file).
 ///
 /// ImageBuf data coming from disk files may optionally be backed by
-/// ImageCache, by explicitly passing an `ImageCache*` to the ImageBuf
+/// ImageCache, by explicitly passing an ImageCache to the ImageBuf
 /// constructor or `reset()` method (pass `ImageCache::create()` to get a
 /// pointer to the default global ImageCache), or by having previously set the
 /// global OIIO attribute `"imagebuf:use_imagecache"` to a nonzero value. When
@@ -186,9 +186,9 @@ public:
     ///         ensure that it remains valid for the lifetime of the ImageBuf.
     ///
     explicit ImageBuf(string_view name, int subimage = 0, int miplevel = 0,
-                      ImageCache* imagecache       = nullptr,
-                      const ImageSpec* config      = nullptr,
-                      Filesystem::IOProxy* ioproxy = nullptr);
+                      std::shared_ptr<ImageCache> imagecache = {},
+                      const ImageSpec* config                = nullptr,
+                      Filesystem::IOProxy* ioproxy           = nullptr);
 
     /// Construct a writable ImageBuf with the given specification
     /// (including resolution, data type, metadata, etc.). The ImageBuf will
@@ -270,9 +270,9 @@ public:
     /// as if newly constructed with the same arguments, as a read-only
     /// representation of an existing image file.
     void reset(string_view name, int subimage = 0, int miplevel = 0,
-               ImageCache* imagecache       = nullptr,
-               const ImageSpec* config      = nullptr,
-               Filesystem::IOProxy* ioproxy = nullptr);
+               std::shared_ptr<ImageCache> imagecache = {},
+               const ImageSpec* config                = nullptr,
+               Filesystem::IOProxy* ioproxy           = nullptr);
 
     /// Destroy any previous contents of the ImageBuf and re-initialize it
     /// as if newly constructed with the same arguments, as a read/write
@@ -1005,9 +1005,9 @@ public:
     /// image being in RAM somewhere?
     bool cachedpixels() const;
 
-    /// A pointer to the underlying ImageCache, or nullptr if this ImageBuf
-    /// is not backed by an ImageCache.
-    ImageCache* imagecache() const;
+    /// A shared pointer to the underlying ImageCache, or empty if this
+    /// ImageBuf is not backed by an ImageCache.
+    std::shared_ptr<ImageCache> imagecache() const;
 
     /// Return the address where pixel `(x,y,z)`, channel `ch`, is stored in
     /// the image buffer.  Use with extreme caution!  Will return `nullptr`
@@ -1151,7 +1151,7 @@ public:
     // Deprecated things -- might be removed at any time
 
     OIIO_DEPRECATED("Use `ImageBuf(name, 0, 0, imagecache, nullptr)` (2.2)")
-    ImageBuf(string_view name, ImageCache* imagecache)
+    ImageBuf(string_view name, std::shared_ptr<ImageCache> imagecache)
         : ImageBuf(name, 0, 0, imagecache)
     {
     }
@@ -1164,7 +1164,7 @@ public:
     }
 
     OIIO_DEPRECATED("Use `reset(name, 0, 0, imagecache)` (2.2)")
-    void reset(string_view name, ImageCache* imagecache)
+    void reset(string_view name, std::shared_ptr<ImageCache> imagecache)
     {
         reset(name, 0, 0, imagecache);
     }

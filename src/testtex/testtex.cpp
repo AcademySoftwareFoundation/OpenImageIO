@@ -56,7 +56,7 @@ static bool test_construction   = false;
 static bool test_gettexels      = false;
 static bool test_getimagespec   = false;
 static bool filtertest          = false;
-static TextureSystem* texsys    = NULL;
+static std::shared_ptr<TextureSystem> texsys;
 static std::string searchpath;
 static bool batch         = false;
 static bool nowarp        = false;
@@ -1649,7 +1649,7 @@ test_icwrite(int testicwrite)
 
     // The global "shared" ImageCache will be the same one the
     // TextureSystem uses.
-    ImageCache* ic = ImageCache::create();
+    std::shared_ptr<ImageCache> ic = ImageCache::create();
 
     // Set up the fake file and add it
     int tw = 64, th = 64;  // tile width and height

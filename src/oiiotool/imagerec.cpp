@@ -182,7 +182,7 @@ ImageRec::ImageRec(ImageBufRef img, bool copy_pixels)
 
 
 ImageRec::ImageRec(const std::string& name, const ImageSpec& spec,
-                   ImageCache* imagecache)
+                   std::shared_ptr<ImageCache> imagecache)
     : m_name(name)
     , m_elaborated(true)
     , m_pixels_modified(true)
