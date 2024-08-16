@@ -1809,7 +1809,8 @@ TIFFOutput::fix_bitdepth(void* data, int nvals)
             v[i] = bit_range_convert<32, 24>(v[i]);
         bit_pack(cspan<unsigned int>(v, v + nvals), v, 24);
     } else {
-        OIIO_ASSERT(0 && "unsupported bit conversion -- shouldn't reach here");
+        errorfmt("unsupported bit conversion: {} -> {}", spec().format,
+                 m_bitspersample);
     }
 }
 
