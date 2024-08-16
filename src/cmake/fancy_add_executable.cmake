@@ -20,6 +20,7 @@
 #   fancy_add_executable ([ NAME targetname ... ]
 #                         [ SRC source1 ... ]
 #                         [ INCLUDE_DIRS include_dir1 ... ]
+#                         [ SYSTEM_INCLUDE_DIRS include_dir1 ... ]
 #                         [ DEFINITIONS FOO=bar ... ])
 #                         [ COMPILE_OPTIONS -Wno-foo ... ]
 #                         [ LINK_LIBRARIES external_lib1 ... ]

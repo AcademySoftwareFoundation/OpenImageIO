@@ -3134,12 +3134,6 @@ inline bool attribute (string_view name, string_view val) {
 ///   OpenImageiO, or "0.0.0" if no OpenColorIO support has been enabled.
 ///   (Added in OpenImageIO 2.4.6)
 ///
-/// - `int opencv_version`
-///
-///   Returns the encoded version (such as 40701 for 4.7.1) of the OpenCV that
-///   is used by OpenImageIO, or 0 if no OpenCV support has been enabled.
-///   (Added in OpenImageIO 2.5.2)
-///
 /// - `string hw:simd`
 /// - `string build:simd` (read-only)
 ///

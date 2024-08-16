@@ -2,68 +2,109 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+/// @file
+///
+/// This file contains ImageBufAlgo functions that involve interoperability
+/// with OpenCV. Please read these guidelines carefully:
+///
+/// * Only `#include <OpenImageIO/imagebufalgo_opencv.h>` AFTER including
+///   the necessary OpenCV headers. These functions use the cv::Mat type
+///   from OpenCV.
+/// * These functions are inline, in order to make it unnecessary for
+///   libOpenImageIO itself to link against OpenCV.
+/// * However, since the implementation of the functions in this header make
+///   calls to OpenCV, it is necessary for any application calling these
+///   functions, the application is responsible for finding OpenCV and
+///   linking against the OpenCV libraries.
+///
 
-/// \file
-/// Implementation of ImageBufAlgo algorithms related to OpenCV.
-/// These are nonfunctional if OpenCV is not found at build time.
 
-#include <OpenImageIO/platform.h>
+#pragma once
+#define OPENIMAGEIO_IMAGEBUFALGO_OPENCV_H
 
-#ifdef USE_OPENCV
-#    include <opencv2/core/version.hpp>
-#    ifdef CV_VERSION_EPOCH
-#        define OIIO_OPENCV_VERSION                            \
-            (10000 * CV_VERSION_EPOCH + 100 * CV_VERSION_MAJOR \
-             + CV_VERSION_MINOR)
-#    else
-#        define OIIO_OPENCV_VERSION                            \
-            (10000 * CV_VERSION_MAJOR + 100 * CV_VERSION_MINOR \
-             + CV_VERSION_REVISION)
-#    endif
-#    if OIIO_GNUC_VERSION >= 110000 && OIIO_CPLUSPLUS_VERSION >= 20
-// Suppress gcc 11 / C++20 errors about opencv 4 headers
-#        pragma GCC diagnostic ignored "-Wdeprecated-enum-enum-conversion"
-#    endif
-#    include <opencv2/opencv.hpp>
-#    if OIIO_OPENCV_VERSION >= 40000
-#        include <opencv2/core/core_c.h>
-#        include <opencv2/imgproc/imgproc_c.h>
-#    else
-#        error "OpenCV 4.0 is the minimum supported version"
-#    endif
-#endif
-
-#include <algorithm>
-#include <iostream>
-#include <map>
-#include <vector>
-
-#include <OpenImageIO/dassert.h>
-#include <OpenImageIO/half.h>
-#include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
+#include <OpenImageIO/platform.h>
 #include <OpenImageIO/sysutil.h>
-#include <OpenImageIO/thread.h>
+#include <OpenImageIO/timer.h>
 
-#include "imageio_pvt.h"
+#if !__has_include(<opencv2/core/version.hpp>)
+#    error "This header requires OpenCV"
+#endif
 
-// using namespace cv;
+#include <opencv2/core/version.hpp>
+#ifdef CV_VERSION_EPOCH
+#    define OIIO_OPENCV_VERSION \
+        (10000 * CV_VERSION_EPOCH + 100 * CV_VERSION_MAJOR + CV_VERSION_MINOR)
+#else
+#    define OIIO_OPENCV_VERSION                            \
+        (10000 * CV_VERSION_MAJOR + 100 * CV_VERSION_MINOR \
+         + CV_VERSION_REVISION)
+#endif
+OIIO_PRAGMA_WARNING_PUSH
+#if OIIO_GNUC_VERSION >= 110000 || OIIO_CLANG_VERSION >= 120000 \
+    || OIIO_APPLE_CLANG_VERSION >= 120000
+#    pragma GCC diagnostic ignored "-Wdeprecated-enum-enum-conversion"
+// #    pragma GCC diagnostic ignored "-Wdeprecated-anon-enum-enum-conversion"
+// #    pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#endif
+#include <opencv2/opencv.hpp>
+#if OIIO_OPENCV_VERSION >= 40000
+#    include <opencv2/core/core_c.h>
+#    include <opencv2/imgproc/imgproc_c.h>
+#else
+#    error "OpenCV 4.0 is the minimum supported version"
+#endif
+OIIO_PRAGMA_WARNING_POP
+
+
 
 OIIO_NAMESPACE_BEGIN
 
+namespace ImageBufAlgo {
+
+/// Convert an OpenCV cv::Mat into an ImageBuf, copying the pixels (optionally
+/// converting to the pixel data type specified by `convert`, if not UNKNOWN,
+/// which means to preserve the original data type if possible).  Return true
+/// if ok, false if it was not able to make the conversion from Mat to
+/// ImageBuf. Any error messages can be retrieved by calling `geterror()` on
+/// the returned ImageBuf. If OpenImageIO was compiled without OpenCV support,
+/// this function will return false.
+inline ImageBuf
+from_OpenCV(const cv::Mat& mat, TypeDesc convert = TypeUnknown, ROI roi = {},
+            int nthreads = 0);
+
+/// Construct an OpenCV cv::Mat containing the contents of ImageBuf src, and
+/// return true. If it is not possible, or if OpenImageIO was compiled without
+/// OpenCV support, then return false. Any error messages can be retrieved by
+/// calling OIIO::geterror(). Note that OpenCV only supports up to 4 channels,
+/// so >4 channel images will be truncated in the conversion.
+inline bool
+to_OpenCV(cv::Mat& dst, const ImageBuf& src, ROI roi = {}, int nthreads = 0);
+
+/// Capture a still image from a designated camera.  If able to do so,
+/// store the image in dst and return true.  If there is no such device,
+/// or support for camera capture is not available (such as if OpenCV
+/// support was not enabled at compile time), return false and do not
+/// alter dst.
+inline ImageBuf
+capture_image(int cameranum = 0, TypeDesc convert = TypeUnknown);
+
+}  // namespace ImageBufAlgo
+
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Implementation details follow.
+//
+// ^^^ All declarations and documentation is above ^^^
+//
+// vvv Below is the implementation.
+//
+//////////////////////////////////////////////////////////////////////////
 
 namespace pvt {
-#ifdef USE_OPENCV
-int opencv_version = OIIO_OPENCV_VERSION;
-#else
-int opencv_version = 0;
-#endif
-}  // namespace pvt
-
-
-
-namespace ImageBufAlgo {
 
 // Templated fast swap of R and B channels.
 template<class Rtype>
@@ -81,16 +122,16 @@ RBswap(ImageBuf& R, ROI roi, int nthreads)
     return true;
 }
 
-}  // end namespace ImageBufAlgo
+}  // namespace pvt
 
 
-ImageBuf
+
+inline ImageBuf
 ImageBufAlgo::from_OpenCV(const cv::Mat& mat, TypeDesc convert, ROI roi,
                           int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::from_OpenCV");
+    Timer timer;
     ImageBuf dst;
-#ifdef USE_OPENCV
     TypeDesc srcformat;
     switch (mat.depth()) {
     case CV_8U: srcformat = TypeDesc::UINT8; break;
@@ -104,7 +145,7 @@ ImageBufAlgo::from_OpenCV(const cv::Mat& mat, TypeDesc convert, ROI roi,
         return dst;
     }
 
-    TypeDesc dstformat = (convert != TypeDesc::UNKNOWN) ? convert : srcformat;
+    TypeDesc dstformat = (convert.is_unknown()) ? srcformat : convert;
     ROI matroi(0, mat.cols, 0, mat.rows, 0, 1, 0, mat.channels());
     roi = roi_intersection(roi, matroi);
     ImageSpec spec(roi, dstformat);
@@ -121,26 +162,21 @@ ImageBufAlgo::from_OpenCV(const cv::Mat& mat, TypeDesc convert, ROI roi,
     // OpenCV uses BGR ordering
     if (spec.nchannels >= 3) {
         OIIO_MAYBE_UNUSED bool ok = true;
-        OIIO_DISPATCH_TYPES(ok, "from_OpenCV R/B swap", RBswap, dstformat, dst,
-                            roi, nthreads);
+        OIIO_DISPATCH_TYPES(ok, "from_OpenCV R/B swap", pvt::RBswap, dstformat,
+                            dst, roi, nthreads);
     }
 
-#else
-    dst.errorfmt(
-        "from_OpenCV() not supported -- no OpenCV support at compile time");
-#endif
-
+    log_time("IBA::from_OpenCV", timer);
     return dst;
 }
 
 
 
-bool
+inline bool
 ImageBufAlgo::to_OpenCV(cv::Mat& dst, const ImageBuf& src, ROI roi,
                         int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::to_OpenCV");
-#ifdef USE_OPENCV
+    Timer timer;
     if (!roi.defined())
         roi = src.roi();
     roi.chend              = std::min(roi.chend, src.nchannels());
@@ -169,14 +205,14 @@ ImageBufAlgo::to_OpenCV(cv::Mat& dst, const ImageBuf& src, ROI roi,
     } else if (spec.format == TypeDesc(TypeDesc::DOUBLE)) {
         dstFormat = CV_MAKETYPE(CV_64F, chans);
     } else {
-        OIIO::errorfmt("to_OpenCV() doesn't know how to make a cv::Mat of {}",
-                       spec.format);
-        return false;
+        // Punt, make 8 bit
+        dstFormat = CV_MAKETYPE(CV_8S, chans);
     }
     dst.create(roi.height(), roi.width(), dstFormat);
     if (dst.empty()) {
         OIIO::errorfmt("to_OpenCV() was unable to create cv::Mat of {}x{} {}",
                        roi.width(), roi.height(), dstSpecFormat);
+        log_time("IBA::to_OpenCV", timer);
         return false;
     }
 
@@ -190,6 +226,7 @@ ImageBufAlgo::to_OpenCV(cv::Mat& dst, const ImageBuf& src, ROI roi,
         OIIO::errorfmt(
             "to_OpenCV() was unable to convert source {} to cv::Mat of {}",
             spec.format, dstSpecFormat);
+        log_time("IBA::to_OpenCV", timer);
         return false;
     }
 
@@ -200,89 +237,57 @@ ImageBufAlgo::to_OpenCV(cv::Mat& dst, const ImageBuf& src, ROI roi,
         cv::cvtColor(dst, dst, cv::COLOR_RGBA2BGRA);
     }
 
+    log_time("IBA::to_OpenCV", timer);
     return true;
-#else
-    OIIO::errorfmt(
-        "to_OpenCV() not supported -- no OpenCV support at compile time");
-    return false;
-#endif
 }
 
 
 
-namespace {
-
-#ifdef USE_OPENCV
-static mutex opencv_mutex;
-
-class CameraHolder {
-public:
-    CameraHolder() {}
-    // Destructor frees all cameras
-    ~CameraHolder() {}
-    // Get the capture device, creating a new one if necessary.
-    cv::VideoCapture* operator[](int cameranum)
-    {
-        auto i = m_cvcaps.find(cameranum);
-        if (i != m_cvcaps.end())
-            return i->second.get();
-        auto cvcam = new cv::VideoCapture(cameranum);
-        m_cvcaps[cameranum].reset(cvcam);
-        return cvcam;
-    }
-
-private:
-    std::map<int, std::unique_ptr<cv::VideoCapture>> m_cvcaps;
-};
-
-static CameraHolder cameras;
-#endif
-
-}  // namespace
-
-
-
-ImageBuf
+inline ImageBuf
 ImageBufAlgo::capture_image(int cameranum, TypeDesc convert)
 {
-    pvt::LoggedTimer logtime("IBA::capture_image");
+    Timer timer;
     ImageBuf dst;
-#ifdef USE_OPENCV
     cv::Mat frame;
     {
         // This block is mutex-protected
+        static std::map<int, std::unique_ptr<cv::VideoCapture>> cameras;
+        static mutex opencv_mutex;
         lock_guard lock(opencv_mutex);
-        auto cvcam = cameras[cameranum];
+        auto& cvcam = cameras[cameranum];
         if (!cvcam) {
-            dst.errorfmt("Could not create a capture camera (OpenCV error)");
-            return dst;  // failed somehow
+            cvcam.reset(new cv::VideoCapture(cameranum));
+            if (!cvcam) {
+                dst.errorfmt(
+                    "Could not create a capture camera (OpenCV error)");
+                log_time("IBA::capture_image", timer);
+                return dst;  // failed somehow
+            }
         }
         (*cvcam) >> frame;
         if (frame.empty()) {
             dst.errorfmt("Could not cvQueryFrame (OpenCV error)");
+            log_time("IBA::capture_image", timer);
             return dst;  // failed somehow
         }
     }
 
-    logtime.stop();
+    // logtime.stop();
     dst = from_OpenCV(frame, convert);
-    logtime.start();
+    // logtime.start();
     if (!dst.has_error()) {
         time_t now;
         time(&now);
         struct tm tmtime;
         Sysutil::get_local_time(&now, &tmtime);
         std::string datetime
-            = Strutil::sprintf("{:4d}:{:02d}:{:02d} {:02d}:{:02d}:{:02d}",
-                               tmtime.tm_year + 1900, tmtime.tm_mon + 1,
-                               tmtime.tm_mday, tmtime.tm_hour, tmtime.tm_min,
-                               tmtime.tm_sec);
+            = Strutil::fmt::format("{:4d}:{:02d}:{:02d} {:02d}:{:02d}:{:02d}",
+                                   tmtime.tm_year + 1900, tmtime.tm_mon + 1,
+                                   tmtime.tm_mday, tmtime.tm_hour,
+                                   tmtime.tm_min, tmtime.tm_sec);
         dst.specmod().attribute("DateTime", datetime);
     }
-#else
-    dst.errorfmt(
-        "capture_image not supported -- no OpenCV support at compile time");
-#endif
+    log_time("IBA::capture_image", timer);
     return dst;
 }
 
