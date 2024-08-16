@@ -75,6 +75,7 @@ getargs(int argc, char* argv[])
       .action(ArgParse::store());
     
     ap.parse(argc, (const char**)argv);
+    // clang-format on
     return ap;
 }
 
@@ -113,13 +114,13 @@ main(int argc, char* argv[])
     std::string view        = ap["view"].as_string("");
     //    std::string look = ap["look"].as_string("");
     
-    bool use_ocio = color_space != "" && display != "" && view != "";
+    bool use_ocio       = color_space != "" && display != "" && view != "";
     std::string ocioenv = Sysutil::getenv("OCIO");
     if (ocioenv.empty() || !Filesystem::exists(ocioenv)) {
 #ifdef _MSC_VER
-    _putenv_s("OCIO", "ocio://default");
+        _putenv_s("OCIO", "ocio://default");
 #else
-    setenv("OCIO", "ocio://default", 1);
+        setenv("OCIO", "ocio://default", 1);
 #endif
     }
 
