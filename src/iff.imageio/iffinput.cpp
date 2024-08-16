@@ -145,7 +145,7 @@ IffInput::open(const std::string& name, ImageSpec& spec)
     // limited to images.
     //
     // The openimageio IFF implementation deals specifically with Maya IFF
-    // images with it's data blocks structured as follows:
+    // images with its data blocks structured as follows:
     //
     // Header:
     // FOR4 <size> CIMG
