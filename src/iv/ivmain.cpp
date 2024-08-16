@@ -75,7 +75,6 @@ getargs(int argc, char* argv[])
       .action(ArgParse::store());
     
     ap.parse(argc, (const char**)argv);
-    // clang-format on
     return ap;
 }
 
