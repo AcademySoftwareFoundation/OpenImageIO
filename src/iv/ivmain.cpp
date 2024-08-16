@@ -129,7 +129,7 @@ main(int argc, char* argv[])
     mainWin->show();
 
     // Set up the imagecache with parameters that make sense for iv
-    ImageCache* imagecache = ImageCache::create(true);
+    auto imagecache = ImageCache::create(true);
     imagecache->attribute("autotile", 256);
     imagecache->attribute("deduplicate", (int)0);
     if (ap["no-autopremult"].get<int>())

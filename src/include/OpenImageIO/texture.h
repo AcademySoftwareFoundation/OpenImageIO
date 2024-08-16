@@ -27,6 +27,9 @@
 #define OIIO_TEXTURESYSTEM_SUPPORTS_STOCHASTIC 1
 #define OIIO_TEXTURESYSTEM_SUPPORTS_DECODE_BY_USTRINGHASH 1
 
+// Does TextureSystem::create() return a shared pointer?
+#define OIIO_TEXTURESYSTEM_CREATE_SHARED 1
+
 #ifndef INCLUDED_IMATHVEC_H
 // Placeholder declaration for Imath::V3f if no Imath headers have been
 // included.
@@ -365,8 +368,7 @@ public:
     /// or destroy the concrete implementation, so two static methods of
     /// TextureSystem are provided:
 
-    /// Create a TextureSystem and return a pointer to it.  This should only
-    /// be freed by passing it to TextureSystem::destroy()!
+    /// Create a TextureSystem and return a shared pointer to it.
     ///
     /// @param  shared
     ///     If `shared` is `true`, the pointer returned will be a shared
@@ -376,32 +378,30 @@ public:
     ///     completely unique TextureCache will be created and returned.
     ///
     /// @param  imagecache
-    ///     If `shared` is `false` and `imagecache` is not `nullptr`, the
+    ///     If `shared` is `false` and `imagecache` is not empty, the
     ///     TextureSystem will use this as its underlying ImageCache. In
     ///     that case, it is the caller who is responsible for eventually
     ///     freeing the ImageCache after the TextureSystem is destroyed.  If
-    ///     `shared` is `false` and `imagecache` is `nullptr`, then a custom
+    ///     `shared` is `false` and `imagecache` is empty, then a custom
     ///     ImageCache will be created, owned by the TextureSystem, and
     ///     automatically freed when the TS destroys.
     ///
     /// @returns
-    ///     A raw pointer to a TextureSystem, which can only be freed with
-    ///     `TextureSystem::destroy()`.
+    ///     A shared pointer to a TextureSystem which will be destroyed only
+    ///     when the last shared_ptr to it is destroyed.
     ///
     /// @see    TextureSystem::destroy
-    static TextureSystem *create (bool shared=true,
-                                  ImageCache *imagecache=nullptr);
+    static std::shared_ptr<TextureSystem> create(bool shared=true,
+                                 std::shared_ptr<ImageCache> imagecache = {});
 
-    /// Destroy an allocated TextureSystem, including freeing all system
-    /// resources that it holds.
-    ///
-    /// It is safe to destroy even a shared TextureSystem, as the
-    /// implementation of `destroy()` will recognize a shared one and only
-    /// truly release its resources if it has been requested to be destroyed
-    /// as many times as shared TextureSystem's were created.
+    /// Release the shared_ptr to a TextureSystem, including freeing all
+    /// system resources that it holds if no one else is still using it. This
+    /// is not strictly necessary to call, simply destroying the shared_ptr
+    /// will do the same thing, but this call is for backward compatibility
+    /// and is helpful if you want to use the teardown_imagecache option.
     ///
     /// @param  ts
-    ///     Raw pointer to the TextureSystem to destroy.
+    ///     Shared pointer to the TextureSystem to destroy.
     ///
     /// @param  teardown_imagecache
     ///     For a shared TextureSystem, if the `teardown_imagecache`
@@ -409,8 +409,8 @@ public:
     ///     cache if nobody else is still holding a reference (otherwise, it
     ///     will leave it intact). This parameter has no effect if `ts` was
     ///     not the single globally shared TextureSystem.
-    static void destroy (TextureSystem *ts,
-                         bool teardown_imagecache = false);
+    static void destroy(std::shared_ptr<TextureSystem>& ts,
+                        bool teardown_imagecache = false);
 
     /// @}
 
@@ -1652,7 +1652,7 @@ public:
 
     /// Return an opaque, non-owning pointer to the underlying ImageCache
     /// (if there is one).
-    virtual ImageCache *imagecache () const = 0;
+    virtual std::shared_ptr<ImageCache> imagecache() const = 0;
 
     virtual ~TextureSystem () { }
 

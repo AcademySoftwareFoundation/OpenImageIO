@@ -44,14 +44,11 @@ public:
 // Make a special wrapper to help with the weirdo way we use create/destroy.
 class TextureSystemWrap {
 public:
-    struct TSDeleter {
-        void operator()(TextureSystem* p) const { TextureSystem::destroy(p); }
-    };
-    std::unique_ptr<TextureSystem, TSDeleter> m_texsys;
+    std::shared_ptr<TextureSystem> m_texsys;
 
 
     TextureSystemWrap(bool shared = true)
-        : m_texsys(TextureSystem::create(shared, nullptr))
+        : m_texsys(TextureSystem::create(shared))
     {
     }
     TextureSystemWrap(const TextureSystemWrap&) = delete;
@@ -59,7 +56,7 @@ public:
     ~TextureSystemWrap() {}  // will call the deleter on the m_texsys
     static void destroy(TextureSystemWrap* x)
     {
-        TextureSystem::destroy(x->m_texsys.release());
+        TextureSystem::destroy(x->m_texsys);
     }
 };
 

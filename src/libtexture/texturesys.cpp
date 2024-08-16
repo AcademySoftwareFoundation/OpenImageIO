@@ -47,7 +47,7 @@ namespace {  // anonymous
 // The only easy way to fix this is to make shared_texturesys be an ordinary
 // pointer and just let it leak (who cares? the app is done, and it only
 // contains a few hundred bytes).
-static TextureSystemImpl* shared_texturesys = NULL;
+static std::shared_ptr<TextureSystem> shared_texturesys;
 static spin_mutex shared_texturesys_mutex;
 static bool do_unit_test_texture    = false;
 static float unit_test_texture_blur = 0.0f;
@@ -81,14 +81,14 @@ static const OIIO_SIMD4_ALIGN vbool4 channel_masks[5] = {
 }  // end anonymous namespace
 
 
-TextureSystem*
-TextureSystem::create(bool shared, ImageCache* imagecache)
+std::shared_ptr<TextureSystem>
+TextureSystem::create(bool shared, std::shared_ptr<ImageCache> imagecache)
 {
     // Because the shared_texturesys is never deleted (by design)
     // we silence the otherwise useful compiler warning on newer GCC versions
     OIIO_PRAGMA_WARNING_PUSH
 #if OIIO_GNUC_VERSION > 100000
-    OIIO_GCC_ONLY_PRAGMA(GCC diagnostic ignored "-Wmismatched-new-delete")
+    // OIIO_GCC_ONLY_PRAGMA(GCC diagnostic ignored "-Wmismatched-new-delete")
 #endif
     if (shared) {
         // They requested a shared texture system.  If a shared one already
@@ -96,11 +96,8 @@ TextureSystem::create(bool shared, ImageCache* imagecache)
         // as the shared one.
         spin_lock guard(shared_texturesys_mutex);
         if (!shared_texturesys)
-            shared_texturesys = new TextureSystemImpl(ImageCache::create(true));
-#if 0
-        std::cerr << " shared TextureSystem is "
-                  << (void *)shared_texturesys << "\n";
-#endif
+            shared_texturesys = std::make_shared<TextureSystemImpl>(
+                ImageCache::create(true));
         return shared_texturesys;
     }
 
@@ -110,11 +107,8 @@ TextureSystem::create(bool shared, ImageCache* imagecache)
         imagecache = ImageCache::create(false);
         own_ic     = true;
     }
-    TextureSystemImpl* ts  = new TextureSystemImpl(imagecache);
+    auto ts                = std::make_shared<TextureSystemImpl>(imagecache);
     ts->m_imagecache_owner = own_ic;
-#if 0
-    std::cerr << "creating new ImageCache " << (void *)ts << "\n";
-#endif
     OIIO_PRAGMA_WARNING_POP
     return ts;
 }
@@ -122,25 +116,20 @@ TextureSystem::create(bool shared, ImageCache* imagecache)
 
 
 void
-TextureSystem::destroy(TextureSystem* x, bool teardown_imagecache)
+TextureSystem::destroy(std::shared_ptr<TextureSystem>& ts,
+                       bool teardown_imagecache)
 {
-    // std::cerr << "Destroying TS " << (void *)x << "\n";
-    if (!x)
+    if (!ts)
         return;
-    TextureSystemImpl* impl = (TextureSystemImpl*)x;
+    TextureSystemImpl* impl = (TextureSystemImpl*)ts.get();
     if (teardown_imagecache) {
         if (impl->m_imagecache_owner)
-            ImageCache::destroy(impl->m_imagecache, true);
+            ImageCache::destroy(impl->m_imagecache_sp, true);
         impl->m_imagecache = nullptr;
+        impl->m_imagecache_sp.reset();
     }
 
-    spin_lock guard(shared_texturesys_mutex);
-    if (impl == shared_texturesys) {
-        // This is the shared TS, so don't really delete it.
-    } else {
-        // Not a shared cache, we are the only owner, so truly destroy it.
-        delete x;
-    }
+    ts.reset();
 }
 
 
@@ -324,10 +313,11 @@ texture_type_name(TexFormat f)
 
 
 
-TextureSystemImpl::TextureSystemImpl(ImageCache* imagecache)
+TextureSystemImpl::TextureSystemImpl(std::shared_ptr<ImageCache> imagecache)
     : m_id(++txsys_next_id)
 {
-    m_imagecache = (ImageCacheImpl*)imagecache;
+    m_imagecache_sp = imagecache;
+    m_imagecache    = (ImageCacheImpl*)m_imagecache_sp.get();
     init();
 }
 
@@ -3120,7 +3110,7 @@ TextureSystem::unit_test_hash()
     Strutil::print("Testing hashing with {} files of {}x{} with {}x{} tiles:",
                    nfiles, res, res, tilesize, tilesize);
 
-    ImageCache* imagecache = ImageCache::create();
+    auto imagecache = ImageCache::create();
 
     // Set up the ImageCacheFiles outside of the timing loop
     using OIIO::pvt::ImageCacheFile;
@@ -3129,8 +3119,8 @@ TextureSystem::unit_test_hash()
     std::vector<ImageCacheFileRef> icf;
     for (int f = 0; f < nfiles; ++f) {
         ustring filename = ustring::fmtformat("{:06}.tif", f);
-        icf.push_back(
-            new ImageCacheFile(*(ImageCacheImpl*)imagecache, NULL, filename));
+        icf.push_back(new ImageCacheFile(*(ImageCacheImpl*)imagecache.get(),
+                                         nullptr, filename));
     }
 
     // First, just try to do raw timings of the hash
@@ -3208,10 +3198,7 @@ TextureSystem::unit_test_hash()
             max = sixteenbits[i];
     }
     Strutil::print("16-bit hash buckets range from {} to {}\n", min, max);
-
     Strutil::print("\n");
-
-    ImageCache::destroy(imagecache);
 #endif
 }
 

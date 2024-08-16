@@ -502,7 +502,7 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
 
     if (ignore_unassoc) {
         configspec.attribute("maketx:ignore_unassoc", (int)ignore_unassoc);
-        ImageCache* ic = ImageCache::create();  // get the shared one
+        auto ic = ImageCache::create();  // get the shared one
         ic->attribute("unassociatedalpha", (int)ignore_unassoc);
     }
 
@@ -532,7 +532,7 @@ main(int argc, char* argv[])
     OIIO::attribute("threads", nthreads);
 
     // N.B. This will apply to the default IC that any ImageBuf's get.
-    ImageCache* ic = ImageCache::create();   // get the shared one
+    auto ic = ImageCache::create();          // get the shared one
     ic->attribute("forcefloat", 1);          // Force float upon read
     ic->attribute("max_memory_MB", 1024.0);  // 1 GB cache
 

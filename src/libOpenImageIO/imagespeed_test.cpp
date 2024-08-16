@@ -34,7 +34,7 @@ static std::string output_filename;
 static std::string output_format;
 static std::vector<char> buffer;
 static ImageSpec bufspec, outspec;
-static ImageCache* imagecache         = NULL;
+static std::shared_ptr<ImageCache> imagecache;
 static imagesize_t total_image_pixels = 0;
 static float cache_size               = 0;
 
@@ -611,6 +611,5 @@ main(int argc, char** argv)
     if (verbose)
         std::cout << "\n" << imagecache->getstats(2) << "\n";
 
-    ImageCache::destroy(imagecache);
     return unit_test_failures;
 }

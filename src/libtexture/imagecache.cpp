@@ -51,7 +51,7 @@ spin_mutex ImageCacheImpl::m_perthread_info_mutex;
 namespace {  // anonymous
 
 static thread_local tsl::robin_map<uint64_t, std::string> imcache_error_messages;
-static std::shared_ptr<ImageCacheImpl> shared_image_cache;
+static std::shared_ptr<ImageCache> shared_image_cache;
 static spin_mutex shared_image_cache_mutex;
 
 // Make some static ustring constants to avoid strcmp's
@@ -3934,53 +3934,41 @@ ImageCacheImpl::append_error(string_view message) const
 
 
 
-ImageCache*
+std::shared_ptr<ImageCache>
 ImageCache::create(bool shared)
 {
     if (shared) {
         // They requested a shared cache.  If a shared cache already
         // exists, just return it, otherwise record the new cache.
         spin_lock guard(shared_image_cache_mutex);
-        if (!shared_image_cache.get())
-            shared_image_cache.reset(aligned_new<ImageCacheImpl>(),
-                                     aligned_delete<ImageCacheImpl>);
-
-#if 0
-        std::cerr << " shared ImageCache is "
-                  << (void *)shared_image_cache.get() << "\n";
-#endif
-        return shared_image_cache.get();
+        if (!shared_image_cache)
+            shared_image_cache = std::make_shared<ImageCacheImpl>();
+        return shared_image_cache;
     }
 
     // Doesn't need a shared cache
-    ImageCacheImpl* ic = aligned_new<ImageCacheImpl>();
-#if 0
-    std::cerr << "creating new ImageCache " << (void *)ic << "\n";
-#endif
-    return ic;
+    return std::make_shared<ImageCacheImpl>();
 }
 
 
 
 void
-ImageCache::destroy(ImageCache* x, bool teardown)
+ImageCache::destroy(std::shared_ptr<ImageCache>& cache, bool teardown)
 {
-    if (!x)
+    if (!cache)
         return;
     spin_lock guard(shared_image_cache_mutex);
-    if (x == shared_image_cache.get()) {
+    if (cache.get() == shared_image_cache.get()) {
         // This is the shared cache, so don't really delete it. Invalidate
         // it fully, closing the files and throwing out any tiles that
         // nobody is currently holding references to.  But only delete the
         // IC fully if 'teardown' is true, and even then, it won't destroy
         // until nobody else is still holding a shared_ptr to it.
-        ((ImageCacheImpl*)x)->invalidate_all(teardown);
+        cache->invalidate_all(teardown);
         if (teardown)
             shared_image_cache.reset();
-    } else {
-        // Not a shared cache, we are the only owner, so truly destroy it.
-        aligned_delete(x);
     }
+    cache.reset();
 }
 
 

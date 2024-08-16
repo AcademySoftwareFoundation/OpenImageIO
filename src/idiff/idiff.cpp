@@ -119,8 +119,9 @@ getargs(int argc, char* argv[])
 
 
 static bool
-read_input(const std::string& filename, ImageBuf& img, ImageCache* cache,
-           int subimage = 0, int miplevel = 0)
+read_input(const std::string& filename, ImageBuf& img,
+           std::shared_ptr<ImageCache> cache, int subimage = 0,
+           int miplevel = 0)
 {
     if (img.subimage() >= 0 && img.subimage() == subimage
         && img.miplevel() == miplevel)
@@ -232,7 +233,7 @@ main(int argc, char* argv[])
 
     // Create a private ImageCache so we can customize its cache size
     // and instruct it store everything internally as floats.
-    ImageCache* imagecache = ImageCache::create(true);
+    std::shared_ptr<ImageCache> imagecache = ImageCache::create(true);
     imagecache->attribute("forcefloat", 1);
     if (sizeof(void*) == 4)  // 32 bit or 64?
         imagecache->attribute("max_memory_MB", 512.0);
@@ -418,7 +419,6 @@ main(int argc, char* argv[])
     }
 
     imagecache->invalidate_all(true);
-    ImageCache::destroy(imagecache);
     shutdown();
     return ret;
 }
