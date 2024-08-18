@@ -1269,17 +1269,19 @@ test_demosaic()
                              "/Users/ad/Desktop/TestRaw/Image2.DNG",
                              "/Users/ad/Desktop/TestRaw/Image3.RW2" };
 
-    std::string patterns[] = { "GRBG", "GRBG", "BGGR" };
+    std::string layouts[] = { "GRBG", "GRBG", "BGGR" };
 
     std::string algos[] = { "linear", "MHC" };
 
-    for (auto& algo : algos) {
-        for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 2; j++) {
+            auto const& algo = algos[j];
+
             ImageSpec hint       = OIIO::ImageSpec();
             hint["raw:Demosaic"] = "none";
 
-            std::string path    = inputs[i];
-            std::string pattern = patterns[i];
+            std::string path   = inputs[i];
+            std::string layout = layouts[i];
 
             ImageBuf src = OIIO::ImageBuf(path, 0, 0, nullptr, &hint, nullptr);
             bool result  = src.init_spec(path, 0, 0);
@@ -1291,9 +1293,11 @@ test_demosaic()
 
                 print("Demosaicing {}...", path);
                 ImageBuf dst;
-                bool r = ImageBufAlgo::bayer_demosaic(
-                    dst, src, { { "algorithm", algo }, { "pattern", pattern } },
-                    ROI(), 1);
+                bool r = ImageBufAlgo::demosaic(dst, src,
+                                                { { "pattern", "bayer" },
+                                                  { "algorithm", algo },
+                                                  { "layout", layout } },
+                                                ROI(), 1);
                 OIIO_CHECK_ASSERT(r);
                 print("Done\n");
 

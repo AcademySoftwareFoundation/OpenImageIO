@@ -2097,18 +2097,12 @@ bool OIIO_API repremult (ImageBuf &dst, const ImageBuf &src,
 /// @}
 
 
-/// @defgroup demosaic (Demosaicing algorithms)
-/// @{
-///
+ImageBuf OIIO_API demosaic (const ImageBuf& src, KWArgs options = {},
+                            ROI roi = {}, int nthreads = 0);
 
-ImageBuf OIIO_API bayer_demosaic (const ImageBuf& src, KWArgs options = {},
-                                  ROI roi = {}, int nthreads = 0);
-
-bool OIIO_API bayer_demosaic (ImageBuf& dst, const ImageBuf& src,
-                              KWArgs options = {}, ROI roi = {},
-                              int nthreads = 0);
-
-/// @}
+/// Write to an existing image `dst` (allocating if it is uninitialized).
+bool OIIO_API demosaic (ImageBuf& dst, const ImageBuf& src, KWArgs options = {},
+                        ROI roi = {}, int nthreads = 0);
 
 enum MakeTextureMode {
     MakeTxTexture, MakeTxShadow, MakeTxEnvLatl,
