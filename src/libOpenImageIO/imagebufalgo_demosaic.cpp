@@ -371,9 +371,9 @@ ImageBufAlgo::demosaic(ImageBuf& dst, const ImageBuf& src, KWArgs options,
     bool ok = false;
     pvt::LoggedTimer logtime("IBA::demosaic");
 
-    std::string pattern   = "bayer";
-    std::string algorithm = "linear";
-    std::string layout    = "";
+    std::string pattern;
+    std::string algorithm;
+    std::string layout;
 
     for (auto&& pv : options) {
         if (pv.name() == pattern_us) {
@@ -418,8 +418,14 @@ ImageBufAlgo::demosaic(ImageBuf& dst, const ImageBuf& src, KWArgs options,
 
     IBAprep(dst_roi, &dst, &src, nullptr, &dst_spec);
 
+    if (pattern.length() == 0)
+        pattern = "bayer";
 
     if (pattern == "bayer") {
+        if (algorithm.length() == 0) {
+            algorithm = "linear";
+        }
+
         if (layout.length() == 0) {
             layout = "RGGB";
         }
