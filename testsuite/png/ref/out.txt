@@ -12,7 +12,7 @@ Comparing "../oiio-images/oiio-logo-no-alpha.png" and "oiio-logo-no-alpha.png"
 PASS
 Reading ../oiio-images/oiio-logo-with-alpha.png
 ../oiio-images/oiio-logo-with-alpha.png :  135 x  135, 4 channel, uint8 png
-    SHA-1: 9F3C517AC714A93C0FE93F8B4B40C68338504DC8
+    SHA-1: 8AED04DCCE8F83B068C537DC0982A42EFBE431B6
     channel list: R, G, B, A
     Comment: "Created with GIMP"
     DateTime: "2009:03:26 18:44:26"
