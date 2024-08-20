@@ -693,9 +693,13 @@ sincos (double x, double* sine, double* cosine)
 }
 
 
-inline OIIO_HOSTDEVICE float sign (float x)
+
+/// Return -1 if x<0, 0 if x==0, 1 if x>0. For floating point types, this is
+/// not friendly to NaN inputs!
+template<typename T>
+inline OIIO_HOSTDEVICE T sign(T x)
 {
-    return x < 0.0f ? -1.0f : (x==0.0f ? 0.0f : 1.0f);
+    return x < T(0) ? T(-1) : (x == T(0) ? T(0) : T(1));
 }
 
 

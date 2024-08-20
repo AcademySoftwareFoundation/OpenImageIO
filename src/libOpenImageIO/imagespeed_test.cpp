@@ -280,7 +280,7 @@ time_write_tiles_row_at_a_time()
 static void
 time_write_imagebuf()
 {
-    ImageBuf ib(bufspec, &buffer[0]);  // wrap the buffer
+    ImageBuf ib(bufspec, span(buffer));  // wrap the buffer
     auto out = ImageOutput::create(output_filename);
     OIIO_ASSERT(out);
     bool ok = out->open(output_filename, outspec);
