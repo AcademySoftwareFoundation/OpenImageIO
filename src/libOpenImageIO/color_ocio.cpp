@@ -1074,10 +1074,15 @@ ColorConfig::Impl::isColorSpaceLinear(string_view name) const
 {
 #if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 2, 0)
     if (config_ && !disable_builtin_configs && !disable_ocio) {
-        return config_->isColorSpaceLinear(c_str(name),
-                                           OCIO::REFERENCE_SPACE_SCENE)
-               || config_->isColorSpaceLinear(c_str(name),
-                                              OCIO::REFERENCE_SPACE_DISPLAY);
+        try {
+            return config_->isColorSpaceLinear(c_str(name),
+                                               OCIO::REFERENCE_SPACE_SCENE)
+                   || config_->isColorSpaceLinear(c_str(name),
+                                                  OCIO::REFERENCE_SPACE_DISPLAY);
+        } catch (const std::exception& e) {
+            error("ColorConfig error: {}", e.what());
+            return false;
+        }
     }
 #endif
     return Strutil::iequals(name, "linear")
