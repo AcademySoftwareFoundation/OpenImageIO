@@ -1205,7 +1205,7 @@ the Python versions allocate and return an array holding the pixel values
     explicit subimage/miplevel.
 
 
-.. py:method:: ImageOutput.get_thumbnail(subimage: int = 0) -> ImageBuf
+.. py:method:: ImageInput.get_thumbnail(subimage: int = 0) -> ImageBuf
 
     Retrieve an ImageBuf containing reduced-resolution("thumbnail") version
     of the image. If no thumbnail could be retrieved, an empty ImageBuf
