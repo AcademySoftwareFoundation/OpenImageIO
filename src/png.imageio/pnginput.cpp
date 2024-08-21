@@ -232,7 +232,7 @@ PNGInput::associateAlpha(T* data, int size, int channels, int alpha_channel,
         for (int x = 0; x < size; ++x, data += channels) {
             DataArrayProxy<T, float> val(data);
             float alpha = val[alpha_channel];
-            if (alpha != 0.0f && alpha != 1.0f) {
+            if (alpha != 1.0f) {
                 for (int c = 0; c < channels; c++) {
                     if (c != alpha_channel) {
                         float f = sRGB_to_linear(val[c]);
@@ -245,7 +245,7 @@ PNGInput::associateAlpha(T* data, int size, int channels, int alpha_channel,
         for (int x = 0; x < size; ++x, data += channels) {
             DataArrayProxy<T, float> val(data);
             float alpha = val[alpha_channel];
-            if (alpha != 0.0f && alpha != 1.0f) {
+            if (alpha != 1.0f) {
                 for (int c = 0; c < channels; c++)
                     if (c != alpha_channel)
                         data[c] = data[c] * alpha;
@@ -256,7 +256,7 @@ PNGInput::associateAlpha(T* data, int size, int channels, int alpha_channel,
         for (int x = 0; x < size; ++x, data += channels) {
             DataArrayProxy<T, float> val(data);
             float alpha = val[alpha_channel];
-            if (alpha != 0.0f && alpha != 1.0f) {
+            if (alpha != 1.0f) {
                 for (int c = 0; c < channels; c++)
                     if (c != alpha_channel)
                         val[c] = powf((powf(val[c], gamma)) * alpha, inv_gamma);
