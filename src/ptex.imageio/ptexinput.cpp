@@ -66,6 +66,8 @@ private:
         m_subimage = -1;
         m_miplevel = -1;
     }
+
+    void get_ptex_metadata(PtexMetaData* pmeta);
 };
 
 
@@ -190,6 +192,29 @@ PtexInput::seek_subimage(int subimage, int miplevel)
         wrapmode += "periodic";
     m_spec.attribute("wrapmode", wrapmode);
 
+    // Add the arbitrary metadata. For Ptex, we only add full metadata to the
+    // first MIP level of the first subimage. The PTex format doesn't permit
+    // metadata to differ per-face anyway.
+    if (subimage == 0 && miplevel == 0) {
+        if (PtexMetaData* pmeta = m_ptex->getMetaData()) {
+            get_ptex_metadata(pmeta);
+            pmeta->release();
+        }
+    }
+
+    facedata->release();
+    return true;
+}
+
+
+
+void
+PtexInput::get_ptex_metadata(PtexMetaData* pmeta)
+{
+    if (!pmeta)
+        return;
+
+        // Helper macro to get metadata of a specific type
 #define GETMETA(pmeta, key, ptype, basetype, typedesc, value) \
     {                                                         \
         const ptype* v;                                       \
@@ -199,47 +224,40 @@ PtexInput::seek_subimage(int subimage, int miplevel)
         value    = (const void*)v;                            \
     }
 
-    PtexMetaData* pmeta = m_ptex->getMetaData();
-    if (pmeta) {
-        int n = pmeta->numKeys();
-        for (int i = 0; i < n; ++i) {
-            const char* key = NULL;
-            Ptex::MetaDataType ptype;
-            pmeta->getKey(i, key, ptype);
-            OIIO_DASSERT(key);
-            const char* vchar;
-            const void* value;
-            TypeDesc typedesc;
-            switch (ptype) {
-            case Ptex::mdt_string:
-                pmeta->getValue(key, vchar);
-                value    = &vchar;
-                typedesc = TypeDesc::STRING;
-                break;
-            case Ptex::mdt_int8:
-                GETMETA(pmeta, key, int8_t, TypeDesc::INT8, typedesc, value);
-                break;
-            case Ptex::mdt_int16:
-                GETMETA(pmeta, key, int16_t, TypeDesc::INT16, typedesc, value);
-                break;
-            case Ptex::mdt_int32:
-                GETMETA(pmeta, key, int32_t, TypeDesc::INT32, typedesc, value);
-                break;
-            case Ptex::mdt_float:
-                GETMETA(pmeta, key, float, TypeDesc::FLOAT, typedesc, value);
-                break;
-            case Ptex::mdt_double:
-                GETMETA(pmeta, key, double, TypeDesc::DOUBLE, typedesc, value);
-                break;
-            default: continue;
-            }
-            m_spec.attribute(key, typedesc, value);
+    int n = pmeta->numKeys();
+    for (int i = 0; i < n; ++i) {
+        const char* key = NULL;
+        Ptex::MetaDataType ptype;
+        pmeta->getKey(i, key, ptype);
+        OIIO_DASSERT(key);
+        const char* vchar;
+        const void* value;
+        TypeDesc typedesc;
+        switch (ptype) {
+        case Ptex::mdt_string:
+            pmeta->getValue(key, vchar);
+            value    = &vchar;
+            typedesc = TypeDesc::STRING;
+            break;
+        case Ptex::mdt_int8:
+            GETMETA(pmeta, key, int8_t, TypeDesc::INT8, typedesc, value);
+            break;
+        case Ptex::mdt_int16:
+            GETMETA(pmeta, key, int16_t, TypeDesc::INT16, typedesc, value);
+            break;
+        case Ptex::mdt_int32:
+            GETMETA(pmeta, key, int32_t, TypeDesc::INT32, typedesc, value);
+            break;
+        case Ptex::mdt_float:
+            GETMETA(pmeta, key, float, TypeDesc::FLOAT, typedesc, value);
+            break;
+        case Ptex::mdt_double:
+            GETMETA(pmeta, key, double, TypeDesc::DOUBLE, typedesc, value);
+            break;
+        default: continue;
         }
-        pmeta->release();
+        m_spec.attribute(key, typedesc, value);
     }
-
-    facedata->release();
-    return true;
 }
 
 
