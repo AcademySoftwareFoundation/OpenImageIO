@@ -1,0 +1,64 @@
+Computing diff of "new" vs "-demosaic"
+  Mean error = 1.65269e-05
+  RMS error = 0.000247841
+  Peak SNR = 72.1165
+  Max error  = 0.004184126853942871 @ (0, 239, R)  values are 1, 0, 1 vs 0.9958159, 0, 0.9968652
+  996 pixels (1.3%) over 0.001
+  0 pixels (0%) over 0.006
+WARNING
+Computing diff of "new" vs "-demosaic"
+  Mean error = 1.65269e-05
+  RMS error = 0.000247841
+  Peak SNR = 72.1165
+  Max error  = 0.004184126853942871 @ (0, 239, R)  values are 1, 0, 1 vs 0.9958159, 0.0015673981, 1
+  996 pixels (1.3%) over 0.001
+  0 pixels (0%) over 0.006
+WARNING
+Computing diff of "new" vs "-demosaic"
+  Mean error = 1.07156e-05
+  RMS error = 0.00019264
+  Peak SNR = 74.3051
+  Max error  = 0.0041841003112494946 @ (0, 0, R)  values are 0, 0, 1 vs 0.0041841003, 0, 0.9968652
+  678 pixels (0.883%) over 0.001
+  0 pixels (0%) over 0.006
+WARNING
+Computing diff of "new" vs "-demosaic"
+  Mean error = 1.07155e-05
+  RMS error = 0.00019264
+  Peak SNR = 74.3051
+  Max error  = 0.0041841003112494946 @ (0, 0, R)  values are 0, 0, 1 vs 0.0041841003, 0.0015673981, 1
+  678 pixels (0.883%) over 0.001
+  0 pixels (0%) over 0.006
+WARNING
+Computing diff of "new" vs "-demosaic"
+  Mean error = 3.44911e-05
+  RMS error = 0.000338449
+  Peak SNR = 69.4102
+  Max error  = 0.006272852420806885 @ (0, 0, B)  values are 0, 0, 1 vs 0, -0.0005246521, 0.99372715
+  1711 pixels (2.23%) over 0.001
+  122 pixels (0.159%) over 0.006
+WARNING
+Computing diff of "new" vs "-demosaic"
+  Mean error = 3.54847e-05
+  RMS error = 0.000340989
+  Peak SNR = 69.3498
+  Max error  = 0.00653513940051198 @ (0, 1, R)  values are 0.0041841003, 0, 1 vs 0.01071924, 0.003134787, 1
+  1711 pixels (2.23%) over 0.001
+  2 pixels (0.0026%) over 0.006
+WARNING
+Computing diff of "new" vs "-demosaic"
+  Mean error = 2.50716e-05
+  RMS error = 0.000283293
+  Peak SNR = 70.9757
+  Max error  = 0.006272792816162109 @ (0, 1, B)  values are 0.0041841003, 0, 1 vs 0.0041841003, -0.0005246522, 0.9937272
+  1235 pixels (1.61%) over 0.001
+  121 pixels (0.158%) over 0.006
+WARNING
+Computing diff of "new" vs "-demosaic"
+  Mean error = 2.61027e-05
+  RMS error = 0.000286769
+  Peak SNR = 70.8561
+  Max error  = 0.006535172462463379 @ (0, 0, R)  values are 0, 0, 1 vs 0.0065351725, 0.003134787, 1
+  1235 pixels (1.61%) over 0.001
+  2 pixels (0.0026%) over 0.006
+WARNING

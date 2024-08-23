@@ -23,7 +23,13 @@ static const ustring layout_us("layout");
 
 template<class Rtype, class Atype, int size> class BayerDemosaicing {
 protected:
+    
+    /// Sliding window, holds `size*size` pixel values to filter over.
+    /// The `size` is expected to be an odd number, so the pixel being
+    /// processed is always in the middle.
     struct Window {
+        /// A single row of the sliding window, holds `size` pixel values and
+        /// the source iterator.
         struct Row {
             ImageBuf::ConstIterator<Atype> iterator;
             Atype data[size];
@@ -31,7 +37,9 @@ protected:
 
         std::vector<Row> rows;
 
-        int col_mapping[size];
+        /// Column mapping. Insead of shifting every pixel value as the sliding
+        /// window advances, we just rotate the indices in this table.
+        int column_mapping[size];
 
         int src_xbegin;
         int src_xend;
@@ -41,6 +49,9 @@ protected:
 
         Window(int y, int xbegin, const ImageBuf& src)
         {
+            assert(size >= 3);
+            assert(size % 2 == 1);
+            
             const ImageSpec& spec = src.spec();
             src_xbegin            = spec.x;
             src_xend              = spec.x + spec.width;
@@ -57,7 +68,7 @@ protected:
             int xstart = xbegin - central + skip;
 
             for (int i = 0; i < size; i++) {
-                col_mapping[i] = i;
+                column_mapping[i] = i;
             }
 
             for (int i = 0; i < size; i++) {
@@ -85,15 +96,21 @@ protected:
             }
         }
 
+        /// Advances the sliding window to the right by one pixel. Rotates the
+        /// indices in the `column_mapping`. Fetches the rightmost column
+        /// from the source, if available. If we have reached the right border
+        /// and there are no more pixels to fetch, duplicates the values we
+        /// have fetched 2 steps ago, as the Bayer pattern repeats every 2
+        /// columns.
         void update()
         {
             x++;
 
-            int curr = col_mapping[0];
+            int curr = column_mapping[0];
             for (int i = 0; i < size - 1; i++) {
-                col_mapping[i] = col_mapping[i + 1];
+                column_mapping[i] = column_mapping[i + 1];
             }
-            col_mapping[size - 1] = curr;
+            column_mapping[size - 1] = curr;
 
             if (x + size / 2 < src_xend) {
                 for (int i = 0; i < size; i++) {
@@ -102,19 +119,17 @@ protected:
                     row.iterator++;
                 }
             } else {
-                int off = ((x + size / 2 - src_xend) + 1) * 2;
-                off     = curr + size - off;
-
+                int src = column_mapping[size - 3];
                 for (int i = 0; i < size; i++) {
                     Row& row       = rows[i];
-                    row.data[curr] = row.data[off];
+                    row.data[curr] = row.data[src];
                 }
             }
         };
 
         float operator()(int row, int col)
         {
-            int index = col_mapping[col];
+            int index = column_mapping[col];
             return rows[row].data[index];
         }
     };
@@ -122,6 +137,8 @@ protected:
     typedef void (*Decoder)(Window& window, ImageBuf::Iterator<Rtype>& out,
                             int chbegin);
 
+    /// The decoder function pointers in RGGB order.
+    /// All subclasses must initialize this table.
     Decoder decoders[2][2] = { { nullptr, nullptr }, { nullptr, nullptr } };
 
 public:
@@ -136,7 +153,7 @@ public:
         } else if (layout == "GRBG") {
             x_offset = 1;
             y_offset = 0;
-        } else if (layout == "GBBR") {
+        } else if (layout == "GBRG") {
             x_offset = 0;
             y_offset = 1;
         } else if (layout == "BGGR") {
@@ -187,7 +204,7 @@ public:
                 // Process the rightmost pixel if needed.
                 if (x < roi.xend) {
                     window.update();
-                    (calc_0)(window, it, 0);
+                    (calc_1)(window, it, 0);
                     it++;
                 }
             }
@@ -434,12 +451,12 @@ ImageBufAlgo::demosaic(ImageBuf& dst, const ImageBuf& src, KWArgs options,
             OIIO_DISPATCH_COMMON_TYPES2(ok, "bayer_demosaic_linear",
                                         bayer_demosaic_linear_impl,
                                         dst.spec().format, src.spec().format,
-                                        dst, src, layout, dst_roi, nthreads);
+                                        dst, src, layout, dst_roi, 1);
         } else if (algorithm == "MHC") {
             OIIO_DISPATCH_COMMON_TYPES2(ok, "bayer_demosaic_MHC",
                                         bayer_demosaic_MHC_impl,
                                         dst.spec().format, src.spec().format,
-                                        dst, src, layout, dst_roi, nthreads);
+                                        dst, src, layout, dst_roi, 1);
         } else {
             dst.errorfmt("ImageBufAlgo::demosaic() invalid algorithm");
         }
