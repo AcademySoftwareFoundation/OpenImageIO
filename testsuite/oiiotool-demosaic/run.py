@@ -20,12 +20,7 @@ make_pattern_GBRG = "--pattern constant:color=0,1,0 {}x{} 3 -for y \"1,{{TOP.hei
 
 make_pattern_BGGR = "--pattern constant:color=0,1,0 {}x{} 3 -for y \"1,{{TOP.height}},2\" -for x \"1,{{TOP.width}},2\" -point:color=1,0,0 \"{{x}},{{y}}\" -point:color=0,0,1 \"{{x-1}},{{y-1}}\" -endfor -endfor ".format(width, height)
 
-
-
-mosaic = ""
 test = " --fail 0.006 --hardfail 0.01 --failpercent 2 --warn 0.001 --diff "
-
-print(make_test_image + make_pattern_RGGB + "--mul --chsum ")
 
 layouts = {
     "RGGB": make_pattern_RGGB,
