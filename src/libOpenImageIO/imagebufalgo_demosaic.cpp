@@ -23,7 +23,6 @@ static const ustring layout_us("layout");
 
 template<class Rtype, class Atype, int size> class BayerDemosaicing {
 protected:
-    
     /// Sliding window, holds `size*size` pixel values to filter over.
     /// The `size` is expected to be an odd number, so the pixel being
     /// processed is always in the middle.
@@ -51,7 +50,7 @@ protected:
         {
             assert(size >= 3);
             assert(size % 2 == 1);
-            
+
             const ImageSpec& spec = src.spec();
             src_xbegin            = spec.x;
             src_xend              = spec.x + spec.width;
