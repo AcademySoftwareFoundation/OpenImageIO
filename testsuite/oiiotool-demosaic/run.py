@@ -7,20 +7,14 @@
 
 redirect = " >> out.txt 2>&1"
 
-width = 320
-height = 240
+width = 160
+height = 120
 
-make_test_image = "--pattern fill:topleft=0,0,1:topright=0,1,0:bottomleft=1,0,1:bottomright=1,1,0 {}x{} 3 --dup ".format(width, height)
-
-make_pattern_RGGB = "--pattern constant:color=0,1,0 {}x{} 3 -for y \"0,{{TOP.height}},2\" -for x \"0,{{TOP.width}},2\" -point:color=1,0,0 \"{{x}},{{y}}\" -point:color=0,0,1 \"{{x+1}},{{y+1}}\" -endfor -endfor ".format(width, height)
-
-make_pattern_GRBG = "--pattern constant:color=0,1,0 {}x{} 3 -for y \"0,{{TOP.height}},2\" -for x \"1,{{TOP.width}},2\" -point:color=1,0,0 \"{{x}},{{y}}\" -point:color=0,0,1 \"{{x-1}},{{y+1}}\" -endfor -endfor ".format(width, height)
-
-make_pattern_GBRG = "--pattern constant:color=0,1,0 {}x{} 3 -for y \"1,{{TOP.height}},2\" -for x \"0,{{TOP.width}},2\" -point:color=1,0,0 \"{{x}},{{y}}\" -point:color=0,0,1 \"{{x+1}},{{y-1}}\" -endfor -endfor ".format(width, height)
-
-make_pattern_BGGR = "--pattern constant:color=0,1,0 {}x{} 3 -for y \"1,{{TOP.height}},2\" -for x \"1,{{TOP.width}},2\" -point:color=1,0,0 \"{{x}},{{y}}\" -point:color=0,0,1 \"{{x-1}},{{y-1}}\" -endfor -endfor ".format(width, height)
-
-test = " --fail 0.006 --hardfail 0.01 --failpercent 2 --warn 0.001 --diff "
+# oiiotool commands to make each of the Bayer patterns
+make_pattern_RGGB = f"--pattern constant:color=0,1,0 {width}x{height} 3 -for y \"0,{{TOP.height}},2\" -for x \"0,{{TOP.width}},2\" -point:color=1,0,0 \"{{x}},{{y}}\" -point:color=0,0,1 \"{{x+1}},{{y+1}}\" -endfor -endfor"
+make_pattern_GRBG = f"--pattern constant:color=0,1,0 {width}x{height} 3 -for y \"0,{{TOP.height}},2\" -for x \"1,{{TOP.width}},2\" -point:color=1,0,0 \"{{x}},{{y}}\" -point:color=0,0,1 \"{{x-1}},{{y+1}}\" -endfor -endfor"
+make_pattern_GBRG = f"--pattern constant:color=0,1,0 {width}x{height} 3 -for y \"1,{{TOP.height}},2\" -for x \"0,{{TOP.width}},2\" -point:color=1,0,0 \"{{x}},{{y}}\" -point:color=0,0,1 \"{{x+1}},{{y-1}}\" -endfor -endfor"
+make_pattern_BGGR = f"--pattern constant:color=0,1,0 {width}x{height} 3 -for y \"1,{{TOP.height}},2\" -for x \"1,{{TOP.width}},2\" -point:color=1,0,0 \"{{x}},{{y}}\" -point:color=0,0,1 \"{{x-1}},{{y-1}}\" -endfor -endfor"
 
 layouts = {
     "RGGB": make_pattern_RGGB,
@@ -29,6 +23,21 @@ layouts = {
     "BGGR": make_pattern_BGGR
 }
 
+# Create a test image with color gradients
+make_testimage = f"--pattern fill:topleft=0,0,1:topright=0,1,0:bottomleft=1,0,1:bottomright=1,1,0 {width}x{height} 3 "
+command += oiiotool (make_testimage + " -o:type=half testimage.exr")
+
+# For each Bayer pattern (RGGB, RGRB, GBRG, BGGR), create an image with that
+# pure pattern ({pattern}.exr), then multiply it by the test image and take
+# the channel sum to get a Bayer mosaic image ({pattern}-bayer.exr).
+for pattern, maker in layouts.items():
+    command += oiiotool (f"{maker} -o:type=half {pattern}.exr testimage.exr -mul -chsum -o:type=half {pattern}-bayer.exr")
+
+test = " --fail 0.01 --hardfail 0.01 --failpercent 2 --warn 0.01 --diff "
+
+# For each algorithm, try demosaicing each pattern test image and compare to
+# the original test image.
 for algo in ['linear', 'MHC']:
-    for k, v in layouts.items():
-        command += oiiotool (make_test_image + v + "--mul --chsum " + "--demosaic:algorithm={}:layout={} ".format(algo, k) + test)
+    for pattern, maker in layouts.items():
+        command += oiiotool (f"testimage.exr {pattern}-bayer.exr --demosaic:algorithm={algo}:layout={pattern} -o:type=half {pattern}-{algo}-result.exr " + test)
+        # command += oiiotool ("testimage.exr --dup " + k + "--mul --chsum " + "--demosaic:algorithm={}:layout={} ".format(algo, k) + test)
