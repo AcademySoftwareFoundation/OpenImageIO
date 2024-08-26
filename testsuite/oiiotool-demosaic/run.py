@@ -33,11 +33,19 @@ command += oiiotool (make_testimage + " -o:type=half testimage.exr")
 for pattern, maker in layouts.items():
     command += oiiotool (f"{maker} -o:type=half {pattern}.exr testimage.exr -mul -chsum -o:type=half {pattern}-bayer.exr")
 
-test = " --fail 0.01 --hardfail 0.01 --failpercent 2 --warn 0.01 --diff "
+test = " --fail 0.0005 --hardfail 0.0005 --warn 0.0005 --diff "
 
 # For each algorithm, try demosaicing each pattern test image and compare to
 # the original test image.
 for algo in ['linear', 'MHC']:
     for pattern, maker in layouts.items():
-        command += oiiotool (f"testimage.exr {pattern}-bayer.exr --demosaic:algorithm={algo}:layout={pattern} -o:type=half {pattern}-{algo}-result.exr " + test)
-        # command += oiiotool ("testimage.exr --dup " + k + "--mul --chsum " + "--demosaic:algorithm={}:layout={} ".format(algo, k) + test)
+        command += oiiotool (f"testimage.exr {pattern}-bayer.exr --demosaic:algorithm={algo}:layout={pattern} -o:type=half {pattern}-{algo}-result.exr ")
+        
+        crop = 2
+        
+        if crop > 0:
+            cut_cmd = f"-cut {{TOP.width-{crop}*2}}x{{TOP.height-{crop}*2}}+{{TOP.x+{crop}}}+{{TOP.y+{crop}}} "
+        else:
+            cut_cmd = ""
+                    
+        command += oiiotool ("testimage.exr " + cut_cmd + f"{pattern}-{algo}-result.exr " + cut_cmd + test)

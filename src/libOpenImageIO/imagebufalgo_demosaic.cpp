@@ -71,14 +71,13 @@ protected:
             }
 
             for (int i = 0; i < size; i++) {
-                int index  = i;
-                int offset = i - central;
-
-                if ((y + offset <= src_ybegin) || (y + offset > src_yend - 1)) {
-                    index = central - offset;
+                int ystart = y - central + i;
+                if (ystart < src_ybegin) {
+                    ystart = src_ybegin + (src_ybegin - ystart) % 2;
+                } else if (ystart > src_yend - 1) {
+                    ystart = src_yend - 1 - (ystart - src_yend + 1) % 2;
                 }
 
-                int ystart = y - central + index;
                 Row row
                     = { ImageBuf::ConstIterator<Atype>(src, xstart, ystart) };
 
@@ -88,7 +87,7 @@ protected:
                 }
 
                 for (int j = 0; j < skip; j++) {
-                    row.data[j] = row.data[size - 1 - j];
+                    row.data[j] = row.data[skip + (skip - j) % 2];
                 }
 
                 rows.push_back(row);
@@ -450,12 +449,12 @@ ImageBufAlgo::demosaic(ImageBuf& dst, const ImageBuf& src, KWArgs options,
             OIIO_DISPATCH_COMMON_TYPES2(ok, "bayer_demosaic_linear",
                                         bayer_demosaic_linear_impl,
                                         dst.spec().format, src.spec().format,
-                                        dst, src, layout, dst_roi, 1);
+                                        dst, src, layout, dst_roi, nthreads);
         } else if (algorithm == "MHC") {
             OIIO_DISPATCH_COMMON_TYPES2(ok, "bayer_demosaic_MHC",
                                         bayer_demosaic_MHC_impl,
                                         dst.spec().format, src.spec().format,
-                                        dst, src, layout, dst_roi, 1);
+                                        dst, src, layout, dst_roi, nthreads);
         } else {
             dst.errorfmt("ImageBufAlgo::demosaic() invalid algorithm");
         }
