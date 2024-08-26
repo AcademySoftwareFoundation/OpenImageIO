@@ -2096,7 +2096,38 @@ bool OIIO_API repremult (ImageBuf &dst, const ImageBuf &src,
                          ROI roi={}, int nthreads=0);
 /// @}
 
+/// Performs demosaicing of a raw digital camera image. Expects the `src` to be a single channel image.
+/// Returns a three channel RGB image with the color channels reconstructed using the selected algorithm.
+///
+/// @param  options
+///         Optional ParamValue's that may control the reconstruction.
+///
+/// The `options` list contains optional ParamValue's that may control the reconstruction.
+/// The following options are recognized:
+///
+///   - "pattern" : string (default: "bayer")
+///
+///     The type of image sensor color filter array. Currently only the Bayer-pattern images are supported.
+///
+///   - "algorithm" : string (default: "linear")
+///
+///     The demosaicing algorithm, pattern-specific.
+///     The following algorithms are supported for Bayer-pattern images:
+///     - `linear` - simple bilinear demosaicing. Fast, but can produce artefacts along sharp edges.
+///     - `MHC` - Malvar-He-Cutler linear demosaicing algorithm. Slower than `linear`, but produces 
+///       significantly better results.
+///
+///   - "layout" : string (default: "RGGB")
+///
+///     The order the color filter array elements are arranged in, pattern-specific.
+///
 
+ImageBuf OIIO_API demosaic (const ImageBuf& src, KWArgs options = {},
+                            ROI roi = {}, int nthreads = 0);
+
+/// Write to an existing image `dst` (allocating if it is uninitialized).
+bool OIIO_API demosaic (ImageBuf& dst, const ImageBuf& src, KWArgs options = {},
+                        ROI roi = {}, int nthreads = 0);
 
 enum MakeTextureMode {
     MakeTxTexture, MakeTxShadow, MakeTxEnvLatl,
