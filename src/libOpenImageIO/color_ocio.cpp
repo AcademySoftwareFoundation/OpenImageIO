@@ -105,7 +105,7 @@ public:
                         a.view, a.file, a.namedtransform, a.inverse)
                < std::tie(b.hash, b.inputColorSpace, b.outputColorSpace,
                           b.context_key, b.context_value, b.looks, b.display,
-                          b.view, b.file, a.namedtransform, b.inverse);
+                          b.view, b.file, b.namedtransform, b.inverse);
     }
 
     friend bool operator==(const ColorProcCacheKey& a,
@@ -116,7 +116,7 @@ public:
                         a.view, a.file, a.namedtransform, a.inverse)
                == std::tie(b.hash, b.inputColorSpace, b.outputColorSpace,
                            b.context_key, b.context_value, b.looks, b.display,
-                           b.view, b.file, a.namedtransform, b.inverse);
+                           b.view, b.file, b.namedtransform, b.inverse);
     }
     ustring inputColorSpace;
     ustring outputColorSpace;
