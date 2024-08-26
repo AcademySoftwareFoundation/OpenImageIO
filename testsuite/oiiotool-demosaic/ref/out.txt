@@ -1,0 +1,16 @@
+Computing diff of "testimage.exr" vs "RGGB-linear-result.exr"
+PASS
+Computing diff of "testimage.exr" vs "GRBG-linear-result.exr"
+PASS
+Computing diff of "testimage.exr" vs "GBRG-linear-result.exr"
+PASS
+Computing diff of "testimage.exr" vs "BGGR-linear-result.exr"
+PASS
+Computing diff of "testimage.exr" vs "RGGB-MHC-result.exr"
+PASS
+Computing diff of "testimage.exr" vs "GRBG-MHC-result.exr"
+PASS
+Computing diff of "testimage.exr" vs "GBRG-MHC-result.exr"
+PASS
+Computing diff of "testimage.exr" vs "BGGR-MHC-result.exr"
+PASS

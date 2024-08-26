@@ -1099,7 +1099,7 @@ Shuffling channels
                -0.7071068, 0.7071068, 0,
                 20,        -8.284271, 1)
           Src = ImageBuf("tahoe.exr")
-          Dst = ImageBufAlgo.warp (dst, src, M, filtername="lanczos3")
+          Dst = ImageBufAlgo.warp (Src, M, filtername="lanczos3")
 
        .. code-tab:: bash oiiotool
 
@@ -1107,6 +1107,39 @@ Shuffling channels
 
 |
 
+
+.. doxygenfunction:: demosaic(const ImageBuf &src, KWArgs options = {}, ROI roi = {}, int nthreads = 0)
+..
+
+  Result-as-parameter version:
+
+  .. doxygenfunction:: demosaic(ImageBuf &dst, const ImageBuf &src, KWArgs options = {}, ROI roi = {}, int nthreads = 0)
+  ..
+
+  Examples:
+
+    .. tabs::
+
+       .. code-tab:: c++
+
+          ImageSpec hint;
+          hint["raw:Demosaic"] = "none";
+          ImageBuf Src ("test.cr3", 0, 0, nullptr, &hint);
+          ParamValue options[] = { { "layout", "GRBG" } };
+          ImageBuf Dst = ImageBufAlgo::demosaic (Src, options);
+
+       .. code-tab:: py
+
+          hint = ImageSpec()
+          hint["raw:Demosaic"] = "none"
+          Src = ImageBuf("test.cr3", 0, 0, hint)
+          Dst = OpenImageIO.ImageBufAlgo.demosaic(Src, layout="GRBG")
+
+       .. code-tab:: bash oiiotool
+
+          oiiotool -iconfig raw:Demosaic none -i test.cr3 --demosaic:layout=GRBG -o out.exr
+
+|
 
 
 

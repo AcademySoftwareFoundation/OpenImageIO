@@ -141,6 +141,7 @@ macro (oiio_add_all_tests)
                     oiiotool-pattern
                     oiiotool-readerror
                     oiiotool-subimage oiiotool-text oiiotool-xform
+                    oiiotool-demosaic
                     diff
                     dither dup-channels
                     jpeg-corrupt
