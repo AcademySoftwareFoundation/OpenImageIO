@@ -158,6 +158,12 @@ parallel_image(ROI roi, std::function<void(ROI)> f)
 ///     If nonzero and dst is uninitialized, then initialize it to float
 ///     regardless of the pixel types of the input images.
 ///
+///   - "dst_datatype" : string (default: "")
+///
+///     If not empty and dst is uninitialized, then initialize it to the data
+///     type indicated by the string regardless of the pixel types of any
+///     input images.
+///
 ///   - "minimize_nchannels" : int (default: 0)
 ///
 ///     If nonzero and dst is uninitialized and the multiple input images do
