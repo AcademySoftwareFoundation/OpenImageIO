@@ -523,10 +523,12 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
             m_spec.attribute(tag->key, tag->value);
         }
     }
+    tag = NULL;
     while ((tag = av_dict_get(m_format_context->streams[m_video_stream]->metadata, "", tag,
                               AV_DICT_IGNORE_SUFFIX))) {
         m_spec.attribute(tag->key, tag->value);
     }
+    tag = NULL;
     while ((tag = av_dict_get(m_format_context->metadata, "", tag,
                               AV_DICT_IGNORE_SUFFIX))) {
         m_spec.attribute(tag->key, tag->value);
