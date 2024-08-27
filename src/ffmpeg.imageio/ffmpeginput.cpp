@@ -514,19 +514,19 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
                          NULL, NULL, NULL);
 
     AVDictionaryEntry* tag = NULL;
-    while ((tag = av_dict_get(m_format_context->metadata, "", tag,
-                              AV_DICT_IGNORE_SUFFIX))) {
-        m_spec.attribute(tag->key, tag->value);
-    }
-    while ((tag = av_dict_get(m_format_context->streams[m_video_stream]->metadata, "", tag,
-                              AV_DICT_IGNORE_SUFFIX))) {
-        m_spec.attribute(tag->key, tag->value);
-    }
     if (m_data_stream >= 0) {
         while ((tag = av_dict_get(m_format_context->streams[m_data_stream]->metadata, "", tag,
                                   AV_DICT_IGNORE_SUFFIX))) {
             m_spec.attribute(tag->key, tag->value);
         }
+    }
+    while ((tag = av_dict_get(m_format_context->streams[m_video_stream]->metadata, "", tag,
+                              AV_DICT_IGNORE_SUFFIX))) {
+        m_spec.attribute(tag->key, tag->value);
+    }
+    while ((tag = av_dict_get(m_format_context->metadata, "", tag,
+                              AV_DICT_IGNORE_SUFFIX))) {
+        m_spec.attribute(tag->key, tag->value);
     }
     int rat[2] = { m_frame_rate.num, m_frame_rate.den };
     m_spec.attribute("FramesPerSecond", TypeRational, &rat);
