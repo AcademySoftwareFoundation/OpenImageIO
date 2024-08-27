@@ -263,7 +263,8 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
             if (first_data_stream < 0) {
                 first_data_stream = i;
             }
-            if (m_format_context->streams[i]->disposition == AV_DISPOSITION_DEFAULT) {
+            if (m_format_context->streams[i]->disposition
+                == AV_DISPOSITION_DEFAULT) {
                 if (m_data_stream < 0) {
                     m_data_stream = i;
                     break;
@@ -311,7 +312,7 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
                                & AV_CODEC_CAP_DELAY);
 
     AVStream* stream = m_format_context->streams[m_video_stream];
-    m_frame_rate = av_guess_frame_rate(m_format_context, stream, NULL);
+    m_frame_rate     = av_guess_frame_rate(m_format_context, stream, NULL);
 
     m_frames     = stream->nb_frames;
     m_start_time = stream->start_time;
@@ -511,14 +512,16 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
 
     AVDictionaryEntry* tag = NULL;
     if (m_data_stream >= 0) {
-        while ((tag = av_dict_get(m_format_context->streams[m_data_stream]->metadata, "", tag,
-                                  AV_DICT_IGNORE_SUFFIX))) {
+        while ((
+            tag = av_dict_get(m_format_context->streams[m_data_stream]->metadata,
+                              "", tag, AV_DICT_IGNORE_SUFFIX))) {
             m_spec.attribute(tag->key, tag->value);
         }
     }
     tag = NULL;
-    while ((tag = av_dict_get(m_format_context->streams[m_video_stream]->metadata, "", tag,
-                              AV_DICT_IGNORE_SUFFIX))) {
+    while (
+        (tag = av_dict_get(m_format_context->streams[m_video_stream]->metadata,
+                           "", tag, AV_DICT_IGNORE_SUFFIX))) {
         m_spec.attribute(tag->key, tag->value);
     }
     tag = NULL;
