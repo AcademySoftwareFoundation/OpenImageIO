@@ -316,6 +316,9 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
     if (stream->avg_frame_rate.num != 0 && stream->avg_frame_rate.den != 0) {
         m_frame_rate = stream->avg_frame_rate;
     }
+    else if (stream->r_frame_rate.num != 0 && stream->r_frame_rate.den != 0) {
+        m_frame_rate = stream->r_frame_rate;
+    }
 
     m_frames     = stream->nb_frames;
     m_start_time = stream->start_time;
