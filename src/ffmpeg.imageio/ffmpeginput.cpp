@@ -311,12 +311,7 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
                                & AV_CODEC_CAP_DELAY);
 
     AVStream* stream = m_format_context->streams[m_video_stream];
-    if (stream->avg_frame_rate.num != 0 && stream->avg_frame_rate.den != 0) {
-        m_frame_rate = stream->avg_frame_rate;
-    }
-    else if (stream->r_frame_rate.num != 0 && stream->r_frame_rate.den != 0) {
-        m_frame_rate = stream->r_frame_rate;
-    }
+    m_frame_rate = av_guess_frame_rate(m_format_context, stream, NULL);
 
     m_frames     = stream->nb_frames;
     m_start_time = stream->start_time;
