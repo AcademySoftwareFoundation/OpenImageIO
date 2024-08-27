@@ -39,6 +39,7 @@ extern std::string output_format_list;
 extern std::string extension_list;
 extern std::string library_list;
 extern OIIO_UTIL_API int oiio_print_debug;
+extern OIIO_UTIL_API int oiio_print_uncaught_errors;
 extern int oiio_log_times;
 extern int openexr_core;
 extern int limit_channels;

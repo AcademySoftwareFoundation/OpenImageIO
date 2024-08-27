@@ -172,7 +172,84 @@ OIIO_UTIL_API int
 OIIO_UTIL_API int
     oiio_print_debug(oiio_debug_env ? Strutil::stoi(oiio_debug_env) : 1);
 #endif
+OIIO_UTIL_API int oiio_print_uncaught_errors(1);
 }  // namespace pvt
+
+
+
+// ErrorHolder houses a string, with the addition that when it is destroyed,
+// it will disgorge any un-retrieved error messages, in an effort to help
+// beginning users diagnose their problems if they have forgotten to call
+// geterror().
+struct ErrorHolder {
+    std::string error_msg;
+
+    ~ErrorHolder()
+    {
+        if (!error_msg.empty() && pvt::oiio_print_uncaught_errors) {
+            OIIO::print(
+                "OpenImageIO exited with a pending error message that was never\n"
+                "retrieved via OIIO::geterror(). This was the error message:\n{}\n",
+                error_msg);
+        }
+    }
+};
+
+
+// To avoid thread oddities, we have the storage area buffering error
+// messages for append_error()/geterror() be thread-specific.
+static thread_local ErrorHolder error_msg_holder;
+
+
+void
+Strutil::pvt::append_error(string_view message)
+{
+    // Remove a single trailing newline
+    if (message.size() && message.back() == '\n')
+        message.remove_suffix(1);
+    std::string& error_msg(error_msg_holder.error_msg);
+    OIIO_ASSERT(
+        error_msg.size() < 1024 * 1024 * 16
+        && "Accumulated error messages > 16MB. Try checking return codes!");
+    // If we are appending to existing error messages, separate them with
+    // a single newline.
+    if (error_msg.size() && error_msg.back() != '\n')
+        error_msg += '\n';
+    error_msg += std::string(message);
+
+    // Remove a single trailing newline
+    if (message.size() && message.back() == '\n')
+        message.remove_suffix(1);
+    error_msg = std::string(message);
+}
+
+
+bool
+Strutil::pvt::has_error()
+{
+    std::string& error_msg(error_msg_holder.error_msg);
+    return !error_msg.empty();
+}
+
+
+std::string
+Strutil::pvt::geterror(bool clear)
+{
+    std::string& error_msg(error_msg_holder.error_msg);
+    std::string e = error_msg;
+    if (clear)
+        error_msg.clear();
+    return e;
+}
+
+
+void
+pvt::log_fmt_error(const char* message)
+{
+    print("fmt exception: {}\n", message);
+    Strutil::pvt::append_error(std::string("fmt exception: ") + message);
+}
+
 
 
 void
