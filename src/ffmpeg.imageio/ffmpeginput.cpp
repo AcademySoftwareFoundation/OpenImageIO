@@ -122,6 +122,7 @@ private:
     std::vector<uint8_t> m_rgb_buffer;
     std::vector<int> m_video_indexes;
     int m_video_stream;
+    int m_data_stream;
     int64_t m_frames;
     int m_last_search_pos;
     int m_last_decoded_pos;
@@ -144,6 +145,7 @@ private:
         m_rgb_buffer.clear();
         m_video_indexes.clear();
         m_video_stream     = -1;
+        m_data_stream      = -1;
         m_frames           = 0;
         m_last_search_pos  = 0;
         m_last_decoded_pos = 0;
@@ -249,6 +251,26 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
             }
             m_video_indexes.push_back(i);  // needed for later use
             break;
+        }
+    }
+    for (unsigned int i = 0; i < m_format_context->nb_streams; i++) {
+        if (stream_codec(i)->codec_type == AVMEDIA_TYPE_DATA &&
+            m_format_context->streams[i]->disposition == AV_DISPOSITION_DEFAULT) {
+            if (m_data_stream < 0) {
+                m_data_stream = i;
+            }
+            break;
+        }
+    }
+    if (m_data_stream == -1) {
+        // no default data stream was found, check for others
+        for (unsigned int i = 0; i < m_format_context->nb_streams; i++) {
+            if (stream_codec(i)->codec_type == AVMEDIA_TYPE_DATA) {
+                if (m_data_stream < 0) {
+                    m_data_stream = i;
+                }
+                break;
+            }
         }
     }
     if (m_video_stream == -1) {
@@ -495,6 +517,16 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
     while ((tag = av_dict_get(m_format_context->metadata, "", tag,
                               AV_DICT_IGNORE_SUFFIX))) {
         m_spec.attribute(tag->key, tag->value);
+    }
+    while ((tag = av_dict_get(m_format_context->streams[m_video_stream]->metadata, "", tag,
+                              AV_DICT_IGNORE_SUFFIX))) {
+        m_spec.attribute(tag->key, tag->value);
+    }
+    if (m_data_stream >= 0) {
+        while ((tag = av_dict_get(m_format_context->streams[m_data_stream]->metadata, "", tag,
+                                  AV_DICT_IGNORE_SUFFIX))) {
+            m_spec.attribute(tag->key, tag->value);
+        }
     }
     int rat[2] = { m_frame_rate.num, m_frame_rate.den };
     m_spec.attribute("FramesPerSecond", TypeRational, &rat);
