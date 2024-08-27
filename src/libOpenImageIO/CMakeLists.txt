@@ -55,6 +55,8 @@ set (libOpenImageIO_srcs
                           imagebufalgo_minmaxchan.cpp
                           imagebufalgo_orient.cpp
                           imagebufalgo_xform.cpp
+                          imagebufalgo_demosaic.cpp
+                          imagebufalgo_yee.cpp
                           imagebufalgo_yee.cpp
                           deepdata.cpp exif.cpp exif-canon.cpp
                           formatspec.cpp
