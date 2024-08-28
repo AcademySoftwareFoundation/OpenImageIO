@@ -495,7 +495,9 @@ public:
     ///     freeing the ImageCache after the TextureSystem is destroyed.  If
     ///     `shared` is `false` and `imagecache` is `nullptr`, then a custom
     ///     ImageCache will be created, owned by the TextureSystem, and
-    ///     automatically freed when the TS destroys.
+    ///     automatically freed when the TS destroys. If `shared` is true,
+    ///     this parameter will not be used, since the global shared
+    ///     TextureSystem uses the global shared ImageCache.
     ///
     /// @returns
     ///     A raw pointer to a TextureSystem, which can only be freed with
