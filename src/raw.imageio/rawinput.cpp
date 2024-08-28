@@ -688,6 +688,41 @@ RawInput::open_raw(bool unpack, const std::string& name,
         m_spec.attribute("raw:Demosaic", "AHD");
     }
 
+
+    if (m_spec.nchannels != 1) {
+        ushort left   = 0;
+        ushort top    = 0;
+        ushort width  = 0;
+        ushort height = 0;
+
+        if (m_processor->imgdata.sizes.raw_inset_crops[0].cwidth > 0) {
+            left   = m_processor->imgdata.sizes.raw_inset_crops[0].cleft;
+            top    = m_processor->imgdata.sizes.raw_inset_crops[0].ctop;
+            width  = m_processor->imgdata.sizes.raw_inset_crops[0].cwidth;
+            height = m_processor->imgdata.sizes.raw_inset_crops[0].cheight;
+        }
+
+        if (width > 0) {
+            if (m_processor->imgdata.sizes.flip & 1) {
+                left = m_processor->imgdata.sizes.width - width - left;
+            }
+
+            if (m_processor->imgdata.sizes.flip & 2) {
+                top = m_processor->imgdata.sizes.height - height - top;
+            }
+
+            if (m_processor->imgdata.sizes.flip & 4) {
+                std::swap(left, top);
+                std::swap(width, height);
+            }
+
+            m_spec.full_x      = left;
+            m_spec.full_y      = top;
+            m_spec.full_width  = width;
+            m_spec.full_height = height;
+        }
+    }
+
     // Wavelets denoise before demosaic
     // Use wavelets to erase noise while preserving real detail.
     // The best threshold should be somewhere between 100 and 1000.
