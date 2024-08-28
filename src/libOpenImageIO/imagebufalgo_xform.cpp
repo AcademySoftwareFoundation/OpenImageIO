@@ -499,6 +499,19 @@ ImageBufAlgo::warp(ImageBuf& dst, const ImageBuf& src, M33fParam M,
 
 
 
+ImageBuf
+ImageBufAlgo::warp(const ImageBuf& src, M33fParam M, KWArgs options, ROI roi,
+                   int nthreads)
+{
+    ImageBuf result;
+    bool ok = warp(result, src, M, options, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.errorfmt("ImageBufAlgo::warp() error");
+    return result;
+}
+
+
+
 bool
 ImageBufAlgo::warp(ImageBuf& dst, const ImageBuf& src, M33fParam M,
                    const Filter2D* filter, bool recompute_roi,
