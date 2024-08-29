@@ -695,31 +695,55 @@ RawInput::open_raw(bool unpack, const std::string& name,
         ushort width  = 0;
         ushort height = 0;
 
-        if (m_processor->imgdata.sizes.raw_inset_crops[0].cwidth > 0) {
+        ushort image_width  = m_processor->imgdata.sizes.width;
+        ushort image_height = m_processor->imgdata.sizes.height;
+
+        ushort left_margin = m_processor->imgdata.sizes.left_margin;
+        ushort top_margin  = m_processor->imgdata.sizes.top_margin;
+
+
+        if (m_processor->imgdata.sizes.raw_inset_crops[0].cwidth != 0) {
             left   = m_processor->imgdata.sizes.raw_inset_crops[0].cleft;
             top    = m_processor->imgdata.sizes.raw_inset_crops[0].ctop;
             width  = m_processor->imgdata.sizes.raw_inset_crops[0].cwidth;
             height = m_processor->imgdata.sizes.raw_inset_crops[0].cheight;
+
+            if (left == 65535) {
+                left = (image_width - width) / 2;
+            }
+
+            if (top == 65535) {
+                top = (image_height - height) / 2;
+            }
         }
 
         if (width > 0) {
             if (m_processor->imgdata.sizes.flip & 1) {
-                left = m_processor->imgdata.sizes.width - width - left;
+                left = image_width - width - left;
             }
 
             if (m_processor->imgdata.sizes.flip & 2) {
-                top = m_processor->imgdata.sizes.height - height - top;
+                top = image_height - height - top;
             }
 
-            if (m_processor->imgdata.sizes.flip & 4) {
-                std::swap(left, top);
-                std::swap(width, height);
-            }
+            if (top >= top_margin && left >= left_margin) {
+                top -= top_margin;
+                left -= left_margin;
 
-            m_spec.full_x      = left;
-            m_spec.full_y      = top;
-            m_spec.full_width  = width;
-            m_spec.full_height = height;
+                if (m_processor->imgdata.sizes.flip & 4) {
+                    std::swap(left, top);
+                    std::swap(width, height);
+                    std::swap(image_width, image_height);
+                }
+
+                if ((left + width <= image_width)
+                    && (top + height <= image_height)) {
+                    m_spec.full_x      = left;
+                    m_spec.full_y      = top;
+                    m_spec.full_width  = width;
+                    m_spec.full_height = height;
+                }
+            }
         }
     }
 
