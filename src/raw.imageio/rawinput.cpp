@@ -688,60 +688,72 @@ RawInput::open_raw(bool unpack, const std::string& name,
         m_spec.attribute("raw:Demosaic", "AHD");
     }
 
+    // Apply crop. If the user has provided a custom crop with `raw:cropbox`,
+    // use that. Otherwise crop to the imgdata.sizes.raw_inset_crops[0] if
+    // available. That should match the crop used in the in-camera jpeg in
+    // most cases. The crop is set as a 'display window', so the whole image
+    // pixels are still available.
+    {
+        ushort crop_left   = 0;
+        ushort crop_top    = 0;
+        ushort crop_width  = 0;
+        ushort crop_height = 0;
+        ushort left_margin = 0;
+        ushort top_margin  = 0;
 
-    if (m_spec.nchannels != 1) {
-        ushort left   = 0;
-        ushort top    = 0;
-        ushort width  = 0;
-        ushort height = 0;
-
-        ushort image_width  = m_processor->imgdata.sizes.width;
-        ushort image_height = m_processor->imgdata.sizes.height;
-
-        ushort left_margin = m_processor->imgdata.sizes.left_margin;
-        ushort top_margin  = m_processor->imgdata.sizes.top_margin;
-
-
-        if (m_processor->imgdata.sizes.raw_inset_crops[0].cwidth != 0) {
-            left   = m_processor->imgdata.sizes.raw_inset_crops[0].cleft;
-            top    = m_processor->imgdata.sizes.raw_inset_crops[0].ctop;
-            width  = m_processor->imgdata.sizes.raw_inset_crops[0].cwidth;
-            height = m_processor->imgdata.sizes.raw_inset_crops[0].cheight;
-
-            if (left == 65535) {
-                left = (image_width - width) / 2;
-            }
-
-            if (top == 65535) {
-                top = (image_height - height) / 2;
-            }
+        auto p = config.find_attribute("raw:cropbox");
+        if (p && p->type() == TypeDesc(TypeDesc::INT, 4)) {
+            crop_left   = p->get_int_indexed(0);
+            crop_top    = p->get_int_indexed(1);
+            crop_width  = p->get_int_indexed(2);
+            crop_height = p->get_int_indexed(3);
+        } else if (m_processor->imgdata.sizes.raw_inset_crops[0].cwidth != 0) {
+            crop_left   = m_processor->imgdata.sizes.raw_inset_crops[0].cleft;
+            crop_top    = m_processor->imgdata.sizes.raw_inset_crops[0].ctop;
+            crop_width  = m_processor->imgdata.sizes.raw_inset_crops[0].cwidth;
+            crop_height = m_processor->imgdata.sizes.raw_inset_crops[0].cheight;
+            left_margin = m_processor->imgdata.sizes.left_margin;
+            top_margin  = m_processor->imgdata.sizes.top_margin;
         }
 
-        if (width > 0) {
+        if (crop_width > 0 && crop_height > 0) {
+            ushort image_width  = m_processor->imgdata.sizes.width;
+            ushort image_height = m_processor->imgdata.sizes.height;
+
+            // If crop_left is undefined, assume central crop.
+            if (crop_left == 65535) {
+                crop_left = (image_width - crop_width) / 2;
+            }
+
+            // If crop_top is undefined, assume central crop.
+            if (crop_top == 65535) {
+                crop_top = (image_height - crop_height) / 2;
+            }
+
             if (m_processor->imgdata.sizes.flip & 1) {
-                left = image_width - width - left;
+                crop_left = image_width - crop_width - crop_left;
             }
 
             if (m_processor->imgdata.sizes.flip & 2) {
-                top = image_height - height - top;
+                crop_top = image_height - crop_height - crop_top;
             }
 
-            if (top >= top_margin && left >= left_margin) {
-                top -= top_margin;
-                left -= left_margin;
+            if (crop_top >= top_margin && crop_left >= left_margin) {
+                crop_top -= top_margin;
+                crop_left -= left_margin;
 
                 if (m_processor->imgdata.sizes.flip & 4) {
-                    std::swap(left, top);
-                    std::swap(width, height);
+                    std::swap(crop_left, crop_top);
+                    std::swap(crop_width, crop_height);
                     std::swap(image_width, image_height);
                 }
 
-                if ((left + width <= image_width)
-                    && (top + height <= image_height)) {
-                    m_spec.full_x      = left;
-                    m_spec.full_y      = top;
-                    m_spec.full_width  = width;
-                    m_spec.full_height = height;
+                if ((crop_left + crop_width <= image_width)
+                    && (crop_top + crop_height <= image_height)) {
+                    m_spec.full_x      = crop_left;
+                    m_spec.full_y      = crop_top;
+                    m_spec.full_width  = crop_width;
+                    m_spec.full_height = crop_height;
                 }
             }
         }
