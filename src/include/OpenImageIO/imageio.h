@@ -1778,6 +1778,16 @@ public:
     /// `ImageInput*`.
     typedef ImageInput* (*Creator)();
 
+    /// Memory tracking method.
+    /// Return the total heap memory allocated by `ImageInput`.
+    /// Overridable version of heapsize defined in memory.h.
+    virtual size_t heapsize() const;
+
+    /// Memory tracking method.
+    /// Return the total memory footprint of `ImageInput`.
+    /// Overridable version of footprint defined in memory.h.
+    virtual size_t footprint() const;
+
 protected:
     ImageSpec m_spec;  // format spec of the current open subimage/MIPlevel
                        // BEWARE using m_spec directly -- not thread-safe
@@ -1886,7 +1896,7 @@ private:
 
     void append_error(string_view message) const; // add to error message
 
-    /// declare a friend heapsize definition
+    /// declare friend heapsize and footprint definitions
     template <typename T> friend size_t pvt::heapsize(const T&);
 };
 
@@ -2570,6 +2580,16 @@ public:
     /// `ImageOutput*`.
     typedef ImageOutput* (*Creator)();
 
+    /// Memory tracking method.
+    /// Return the total heap memory allocated by `ImageOutput`.
+    /// Overridable version of heapsize defined in memory.h.
+    virtual size_t heapsize() const;
+
+    /// Memory tracking method.
+    /// Return the total memory footprint of `ImageOutput`.
+    /// Overridable version of footprint defined in memory.h.
+    virtual size_t footprint() const;
+
 protected:
     /// @{
     /// @name Helper functions for ImageOutput implementations.
@@ -2793,7 +2813,7 @@ private:
 
     void append_error(string_view message) const; // add to m_errmessage
 
-    /// declare a friend heapsize definition
+    /// declare friend heapsize and footprint definitions
     template <typename T> friend size_t pvt::heapsize(const T&);
 };
 
@@ -2804,11 +2824,13 @@ private:
 // heapsize specialization for `ImageSpec`
 template <> OIIO_API size_t pvt::heapsize<ImageSpec>(const ImageSpec&);
 
-// heapsize specialization for `ImageInput`
+// heapsize and footprint specializations for `ImageInput`
 template <> OIIO_API size_t pvt::heapsize<ImageInput>(const ImageInput&);
+template <> OIIO_API size_t pvt::footprint<ImageInput>(const ImageInput&);
 
-// heapsize specialization for `ImageOutput`
+// heapsize and footprint specializations for `ImageOutput`
 template <> OIIO_API size_t pvt::heapsize<ImageOutput>(const ImageOutput&);
+template <> OIIO_API size_t pvt::footprint<ImageOutput>(const ImageOutput&);
 
 
 
