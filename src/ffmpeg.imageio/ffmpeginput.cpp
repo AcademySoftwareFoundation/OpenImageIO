@@ -257,24 +257,13 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
         errorfmt("\"{}\" could not find a valid videostream", file_name);
         return false;
     }
-    int first_data_stream = -1;
     for (unsigned int i = 0; i < m_format_context->nb_streams; i++) {
         if (stream_codec(i)->codec_type == AVMEDIA_TYPE_DATA) {
-            if (first_data_stream < 0) {
-                first_data_stream = i;
-            }
-            if (m_format_context->streams[i]->disposition
-                == AV_DISPOSITION_DEFAULT) {
-                if (m_data_stream < 0) {
-                    m_data_stream = i;
-                    break;
-                }
+            if (m_data_stream < 0) {
+                m_data_stream = i;
+                break;
             }
         }
-    }
-    if (m_data_stream == -1) {
-        // no default data stream was found, use the first one found
-        m_data_stream = first_data_stream;
     }
 
     // codec context for videostream
@@ -511,23 +500,29 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
                          NULL, NULL, NULL);
 
     AVDictionaryEntry* tag = NULL;
+    while ((tag = av_dict_get(m_format_context->metadata, "", tag,
+                              AV_DICT_IGNORE_SUFFIX))) {
+        m_spec.attribute(tag->key, tag->value);
+    }
+    tag = NULL;
     if (m_data_stream >= 0) {
         while ((
             tag = av_dict_get(m_format_context->streams[m_data_stream]->metadata,
                               "", tag, AV_DICT_IGNORE_SUFFIX))) {
-            m_spec.attribute(tag->key, tag->value);
+            if (strcmp(tag->key, "timecode") == 0) {
+                m_spec.attribute("ffmpeg:timecode", tag->value);
+                break;
+            }
         }
     }
     tag = NULL;
     while (
         (tag = av_dict_get(m_format_context->streams[m_video_stream]->metadata,
                            "", tag, AV_DICT_IGNORE_SUFFIX))) {
-        m_spec.attribute(tag->key, tag->value);
-    }
-    tag = NULL;
-    while ((tag = av_dict_get(m_format_context->metadata, "", tag,
-                              AV_DICT_IGNORE_SUFFIX))) {
-        m_spec.attribute(tag->key, tag->value);
+        if (strcmp(tag->key, "timecode") == 0) {
+            m_spec.attribute("ffmpeg:timecode", tag->value);
+            break;
+        }
     }
     int rat[2] = { m_frame_rate.num, m_frame_rate.den };
     m_spec.attribute("FramesPerSecond", TypeRational, &rat);
