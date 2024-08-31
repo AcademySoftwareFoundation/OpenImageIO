@@ -1368,6 +1368,9 @@ Some special attributes are used for movie files:
    * - ``FramesPerSecond``
      - int[2] (rational)
      - Frames per second
+   * - ``ffmpeg:TimeCode``
+     - string
+     - Start time timecode
 
 
 
