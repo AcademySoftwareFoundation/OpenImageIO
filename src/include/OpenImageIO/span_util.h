@@ -99,25 +99,50 @@ make_cspan(const T* data, span_size_t size)  // cspan from ptr + size
 
 
 
+/// Convert a span of any type to a span of bytes covering the same range of
+/// memory.
+template<typename T, span_size_t Extent>
+span<const std::byte,
+     ((Extent == dynamic_extent) ? dynamic_extent : sizeof(T) * Extent)>
+as_bytes(span<T, Extent> s) noexcept
+{
+    return { reinterpret_cast<const std::byte*>(s.data()), s.size_bytes() };
+}
+
+
+
+/// Convert a span of any type to a span of mutable bytes covering the same
+/// range of memory.
+template<class T, span_size_t Extent, OIIO_ENABLE_IF(!std::is_const<T>::value)>
+span<std::byte,
+     ((Extent == dynamic_extent) ? dynamic_extent : sizeof(T) * Extent)>
+as_writable_bytes(span<T, Extent> s) noexcept
+{
+    return { reinterpret_cast<std::byte*>(s.data()), s.size_bytes() };
+}
+
+
+
 /// Try to copy `n` items of type `T` from `src[srcoffset...]` to
 /// `dst[dstoffset...]`. Don't read or write outside the respective span
 /// boundaries. Return the number of items actually copied, which should be
 /// `n` if the operation was fully successful, but may be less if the request
 /// could not be satisfied while staying within the span bounds.
 ///
+/// If `n` is not supplied, it will default to filling as much of `src` (from
+/// `srcoffset` to its end) as will fit into `dst`. If `srcoffset` is not
+/// supplied, it will default to 0 (the beginning of `src`).
+///
 /// This is intended to be used as a memory-safe replacement for memcpy if
 /// you're using spans.
 template<typename T>
 size_t
-spancpy(span<T> dst, size_t dstoffset, cspan<T> src, size_t srcoffset, size_t n)
+spancpy(span<T> dst, size_t dstoffset, cspan<T> src, size_t srcoffset = 0,
+        size_t n = size_t(-1))
 {
     // Where do the requests end (limited by span boundaries)?
-    size_t dstend = std::min(dstoffset + n, std::size(dst));
-    size_t srcend = std::min(srcoffset + n, std::size(src));
-    // How many can/should we copy?
-    size_t ndst = dstend - dstoffset;
-    size_t nsrc = srcend - srcoffset;
-    n           = std::min(ndst, nsrc);
+    n = std::min(n, src.size() - srcoffset);
+    n = std::min(n, dst.size() - dstoffset);
     memcpy(dst.data() + dstoffset, src.data() + srcoffset, n * sizeof(T));
     return n;
 }
@@ -130,16 +155,17 @@ spancpy(span<T> dst, size_t dstoffset, cspan<T> src, size_t srcoffset, size_t n)
 /// if the request could not be satisfied while staying within the span
 /// bounds.
 ///
+/// If `n` is not supplied, it will default to filling from `offset` to the
+/// end of the span.
+///
 /// This is intended to be used as a memory-safe replacement for memset if
 /// you're using spans.
 template<typename T>
 size_t
-spanset(span<T> dst, size_t offset, const T& val, size_t n)
+spanset(span<T> dst, size_t offset, const T& val, size_t n = size_t(-1))
 {
     // Where does the request end (limited by span boundary)?
-    size_t dstend = std::min(offset + n, std::size(dst));
-    // How many can/should we copy?
-    n = dstend - offset;
+    n = std::min(n, dst.size() - offset);
     for (size_t i = 0; i < n; ++i)
         dst[offset + i] = val;
     return n;
@@ -153,16 +179,18 @@ spanset(span<T> dst, size_t offset, const T& val, size_t n)
 /// may be less if the request could not be satisfied while staying within the
 /// span bounds.
 ///
+/// If `n` is not supplied, it will default to filling from `offset` to the
+/// end of the span. If `offset` is not supplied, it will default 0 (the
+/// beginning of the span).
+///
 /// This is intended to be used as a memory-safe replacement for
 /// `memset(ptr,0,n)` if you're using spans.
 template<typename T>
 size_t
-spanzero(span<T> dst, size_t offset, size_t n)
+spanzero(span<T> dst, size_t offset = 0, size_t n = size_t(-1))
 {
     // Where does the request end (limited by span boundary)?
-    size_t dstend = std::min(offset + n, std::size(dst));
-    // How many can/should we copy?
-    n = dstend - offset;
+    n = std::min(n, dst.size() - offset);
     memset(dst.data() + offset, 0, n * sizeof(T));
     return n;
 }
