@@ -1,4 +1,4 @@
-../oiio-images/raw/RAW_CANON_EOS_7D.CR2 : 5202 x 3464, 3 channel, uint16 raw
+../oiio-images/raw/RAW_CANON_EOS_7D.CR2 : 5202 x 3465, 3 channel, uint16 raw
     channel list: R, G, B
     full/display size: 5184 x 3456
     full/display origin: 10, 4
@@ -11,13 +11,15 @@
     PixelAspectRatio: 1
     Software: "Firmware Version 1.0.7"
     Canon:AESetting: 0 (normal AE)
+    Canon:AFAreaMode: 0
     Canon:AFPoint: 0
-    Canon:AverageBlackLevel: 2047
+    Canon:AverageBlackLevel: 2048
     Canon:BodySerial: "230101900"
     Canon:CameraFormat: 1
-    Canon:CameraMount: 5
+    Canon:CameraMount: 3
     Canon:CamID: 2147484240
-    Canon:ChannelBlackLevel: 2047, 2047, 2048, 2048
+    Canon:CanonFocalUnits: 1
+    Canon:ChannelBlackLevel: 2048, 2048, 2048, 2048
     Canon:ContinuousDrive: 0 (single)
     Canon:CurAp: 2.82843
     Canon:CurFocal: 200
@@ -27,14 +29,14 @@
     Canon:FlashExposureLock: 0
     Canon:FlashMeteringMode: 0
     Canon:FlashMode: 0 (off)
-    Canon:FocalUnits: 1
+    Canon:FocusContinuous: 0 (single)
     Canon:FocusMode: 0 (one-shot AF)
+    Canon:HighlightTonePriority: 0
     Canon:ImageStabilization: 0 (Off)
     Canon:Lens: "EF 70-200mm f/2.8L IS USM"
     Canon:LensFeatures_pre: "EF"
-    Canon:LensFormat: 2
     Canon:LensID: 224
-    Canon:LensMount: 5
+    Canon:LensMount: 3
     Canon:MaxAp: 2.82843
     Canon:MaxFocal: 200
     Canon:MeteringMode: 0 (default)
@@ -122,12 +124,15 @@
     Exif:SubsecTimeOriginal: "00"
     Exif:WhiteBalance: 1 (manual)
     Nikon:ActiveDLighting: 0
+    Nikon:AFAreaMode: 0
     Nikon:AFFineTune: 0
     Nikon:AFFineTuneAdj: 0
     Nikon:AFFineTuneIndex: 255
-    Nikon:AFPoint: -1
+    Nikon:AFPoint: 0
     Nikon:BodySerial: "5000322"
-    Nikon:CameraMount: 27
+    Nikon:CameraMount: 6
+    Nikon:CanonFocalUnits: 1
+    Nikon:ContrastDetectAF: 0
     Nikon:CurFocal: 71.2719
     Nikon:EffectiveMaxAp: 2.82843
     Nikon:EXIF_MaxAp: 2.82843
@@ -143,14 +148,13 @@
     Nikon:FlashMode: 0
     Nikon:FlashSource: 0
     Nikon:FocalLengthIn35mmFormat: 70
-    Nikon:FocalUnits: 1
     Nikon:ImageStabilization: 0, 0, 0, 0, 0, 0, 0
     Nikon:LensFeatures_pre: "AF"
-    Nikon:LensFeatures_suf: "D"
+    Nikon:LensFeatures_suf: "D "
     Nikon:LensFStops: 72
     Nikon:LensID: 6721688810291487490
     Nikon:LensIDNumber: 93
-    Nikon:LensMount: 27
+    Nikon:LensMount: 6
     Nikon:LensType: 2
     Nikon:MaxAp4MaxFocal: 2.8
     Nikon:MaxAp4MinFocal: 2.8
@@ -159,6 +163,7 @@
     Nikon:ME_WB: 0, 0, 0, 0
     Nikon:MinFocal: 28
     Nikon:NEFCompression: 3
+    Nikon:PhaseDetectAF: 0
     Nikon:ShootingMode: 0
     Nikon:VRMode: 0
     oiio:ColorSpace: "linear"
@@ -213,8 +218,7 @@
     Fujifilm:AFMode: 0
     Fujifilm:AFPoint: -1
     Fujifilm:AutoDynamicRange: 65535
-    Fujifilm:CameraMount: 43
-    Fujifilm:CamID: 390101
+    Fujifilm:CanonFocalUnits: 1
     Fujifilm:DevelopmentDynamicRange: 65535
     Fujifilm:DynamicRange: 3
     Fujifilm:DynamicRangeSetting: 65535
@@ -223,24 +227,25 @@
     Fujifilm:ExrMode: 0
     Fujifilm:FilmMode: 65535
     Fujifilm:FlashMode: 0
-    Fujifilm:FocalUnits: 1
     Fujifilm:FocusMode: 0
     Fujifilm:FocusPixel: 320, 528
+    Fujifilm:FrameHeight: 0
+    Fujifilm:FrameRate: 0
+    Fujifilm:FrameWidth: 0
     Fujifilm:ImageStabilization: 65535, 65535, 65535
     Fujifilm:LensID: 18446744073709551615
-    Fujifilm:LensMount: 43
     Fujifilm:Macro: 0
     Fujifilm:Rating: 0
     Fujifilm:ShutterType: 0
     Fujifilm:WB_Preset: 0
     oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
-    raw:cam_mul: 131, 80, 97, 80
+    raw:cam_mul: 131.532, 80, 97.3451, 80
     raw:cam_xyz: 1.0004, -0.3219, -0.1201, -0.7036, 1.5047, 0.2107, -0.1863, 0.2565, 0.7736, 0, 0, 0
     raw:Demosaic: "AHD"
     raw:HighlightMode: 0
     raw:pre_mul: 2.0073, 0.938645, 1.0849, 0
-    raw:rgb_cam: 1.47494, -0.398506, -0.0764295, 0, -0.0661385, 1.3549, -0.288761, 0, 0.034221, -0.397378, 1.36316, 0
+    raw:rgb_cam: 1.47494, -0.398506, -0.0764295, 0, -0.0661386, 1.3549, -0.288761, 0, 0.034221, -0.397378, 1.36316, 0
 ../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
     channel list: R, G, B
     Artist: "                                    "
@@ -281,12 +286,15 @@
     Exif:SubsecTimeOriginal: "00"
     Exif:WhiteBalance: 1 (manual)
     Nikon:ActiveDLighting: 0
+    Nikon:AFAreaMode: 0
     Nikon:AFFineTune: 0
     Nikon:AFFineTuneAdj: 0
     Nikon:AFFineTuneIndex: 255
-    Nikon:AFPoint: -1
+    Nikon:AFPoint: 0
     Nikon:BodySerial: "5000322"
-    Nikon:CameraMount: 27
+    Nikon:CameraMount: 6
+    Nikon:CanonFocalUnits: 1
+    Nikon:ContrastDetectAF: 0
     Nikon:CurFocal: 71.2719
     Nikon:EffectiveMaxAp: 2.82843
     Nikon:EXIF_MaxAp: 2.82843
@@ -302,14 +310,13 @@
     Nikon:FlashMode: 0
     Nikon:FlashSource: 0
     Nikon:FocalLengthIn35mmFormat: 70
-    Nikon:FocalUnits: 1
     Nikon:ImageStabilization: 0, 0, 0, 0, 0, 0, 0
     Nikon:LensFeatures_pre: "AF"
-    Nikon:LensFeatures_suf: "D"
+    Nikon:LensFeatures_suf: "D "
     Nikon:LensFStops: 72
     Nikon:LensID: 6721688810291487490
     Nikon:LensIDNumber: 93
-    Nikon:LensMount: 27
+    Nikon:LensMount: 6
     Nikon:LensType: 2
     Nikon:MaxAp4MaxFocal: 2.8
     Nikon:MaxAp4MinFocal: 2.8
@@ -318,6 +325,7 @@
     Nikon:ME_WB: 0, 0, 0, 0
     Nikon:MinFocal: 28
     Nikon:NEFCompression: 3
+    Nikon:PhaseDetectAF: 0
     Nikon:ShootingMode: 0
     Nikon:VRMode: 0
     oiio:ColorSpace: "linear"
@@ -369,35 +377,33 @@
     Exif:WhiteBalance: 1 (manual)
     oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
-    Olympus:AFFineTune: 255
-    Olympus:AFFineTuneAdj: -32768, -32768, -32768
-    Olympus:AFPoint: 17
+    Olympus:AFFineTune: 0
+    Olympus:AFPoint: 0
     Olympus:AFPointSelected: 0, 0, 0, 0, 0
-    Olympus:AFResult: 65535
+    Olympus:AFResult: 0
     Olympus:AutoFocus: 0
     Olympus:BodySerial: "D70515922                      "
     Olympus:CameraFormat: 8
-    Olympus:CameraMount: 9
+    Olympus:CameraMount: 8
     Olympus:CamID: 357290750257
+    Olympus:CanonFocalUnits: 1
     Olympus:ColorSpace: 0
-    Olympus:DriveMode: 0
     Olympus:EXIF_MaxAp: 2
-    Olympus:ExposureMode: 3
-    Olympus:FocalUnits: 1
-    Olympus:FocusMode: 10, 0
-    Olympus:ImageStabilization: 1
+    Olympus:FocusMode: 0, 0
+    Olympus:ImageStabilization: -1
     Olympus:InternalBodySerial: "4031712008217001               "
     Olympus:LensFormat: 8
     Olympus:LensID: 256
-    Olympus:LensMount: 9
+    Olympus:LensMount: 8
     Olympus:LensSerial: "010211319"
     Olympus:MaxAp4CurFocal: 2
     Olympus:MaxAp4MaxFocal: 2
     Olympus:MaxAp4MinFocal: 2
     Olympus:MaxFocal: 50
-    Olympus:MeteringMode: 5
     Olympus:MinFocal: 50
-    Olympus:SensorCalibration: 0, 0
+    Olympus:OlympusCropID: -1
+    Olympus:OlympusFrame: 0, 0, 0, 0
+    Olympus:OlympusSensorCalibration: 0, 0
     raw:cam_mul: 1.92969, 1, 1.51562, 0
     raw:cam_xyz: 0.9487, -0.2875, -0.1115, -0.7533, 1.5606, 0.201, -0.1618, 0.21, 0.7389, 0, 0, 0
     raw:Demosaic: "AHD"
@@ -430,16 +436,11 @@
     oiio:ColorSpace: "linear"
     Panasonic:AFPoint: -1
     Panasonic:BlackLevel: 0, 0, 0, 0, 0, 0, 0, 0
-    Panasonic:CameraFormat: 8
-    Panasonic:CameraMount: 10
+    Panasonic:CanonFocalUnits: 1
     Panasonic:Compression: 34316
     Panasonic:EXIF_MaxAp: 3.49827
-    Panasonic:FocalUnits: 1
     Panasonic:ImageStabilization: -1
     Panasonic:LensID: 18446744073709551615
-    Panasonic:LensMount: 44
-    raw:cam_mul: 584, 263, 355, 0
-    raw:cam_xyz: 0.8199, -0.2065, -0.1056, -0.8124, 1.6156, 0.2033, -0.2458, 0.3022, 0.722, 0, 0, 0
     raw:Demosaic: "AHD"
     raw:HighlightMode: 0
     raw:pre_mul: 2.18431, 0.939146, 1.16999, 0
@@ -480,27 +481,27 @@
     oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
     Pentax:AFAdjustment: 0
-    Pentax:AFPoint: -2
-    Pentax:AFPointSelected: 65534, 32
-    Pentax:AFPointsInFocus: 5
+    Pentax:AFPoint: -1
+    Pentax:AFPointSelected: 65534
+    Pentax:AFPointsInFocus: 0
+    Pentax:BodySerial: "0"
     Pentax:CameraFormat: 1
-    Pentax:CameraMount: 33
+    Pentax:CameraMount: 10
     Pentax:CamID: 77050
+    Pentax:CanonFocalUnits: 1
     Pentax:CurAp: 8
     Pentax:CurFocal: 42.5
     Pentax:DriveMode: 1, 0, 0, 0
     Pentax:FocalLengthIn35mmFormat: 64
-    Pentax:FocalUnits: 1
-    Pentax:FocusMode: 16, 1
+    Pentax:FocusMode: 16
     Pentax:FocusPosition: 0
     Pentax:FocusRangeIndex: 3
-    Pentax:ImageStabilization: 7
+    Pentax:ImageStabilization: -1
     Pentax:InternalBodySerial: "8421922"
     Pentax:LensFStops: 7
     Pentax:LensID: 2022
-    Pentax:LensMount: 33
+    Pentax:LensMount: 10
     Pentax:MaxAp4CurFocal: 2.82843
-    Pentax:MeteringMode: 0
     Pentax:MinAp4CurFocal: 32
     Pentax:MinAp4MinFocal: 32
     Pentax:MinFocusDistance: 16
@@ -560,27 +561,23 @@
     raw:HighlightMode: 0
     raw:pre_mul: 1.90192, 0.934325, 1.3073, 0
     raw:rgb_cam: 1.55293, -0.400994, -0.151933, 0, -0.00496778, 1.23841, -0.233446, 0, 0.0079905, -0.190766, 1.18278, 0
-    Sony:AFMicroAdjOn: -1
-    Sony:AFMicroAdjRegisteredLenses: 255
-    Sony:AFMicroAdjValue: 127
+    Sony:AFMicroAdjOn: 0
+    Sony:AFMicroAdjValue: 0
     Sony:AFPoint: -1
     Sony:CameraFormat: 1
-    Sony:CameraMount: 25
-    Sony:CameraType: 2
+    Sony:CameraMount: 1
     Sony:CamID: 261
+    Sony:CanonFocalUnits: 1
     Sony:CurAp: 5.65685
     Sony:DateTime: ""
-    Sony:DriveMode: 1
     Sony:EXIF_MaxAp: 5.59834
     Sony:firmware: 1
     Sony:FocalLengthIn35mmFormat: 52
-    Sony:FocalUnits: 1
-    Sony:FocusMode: 4
     Sony:group2010: 0
     Sony:ImageCount3_offset: 65535
-    Sony:ImageStabilization: 1
+    Sony:ImageStabilization: -1
     Sony:LensID: 40
-    Sony:LensMount: 25
+    Sony:SonyCameraType: 2
 Comparing "RAW_CANON_EOS_7D.CR2.tif" and "ref/RAW_CANON_EOS_7D.CR2.tif"
 PASS
 Comparing "RAW_NIKON_D3X.NEF.tif" and "ref/RAW_NIKON_D3X.NEF.tif"
