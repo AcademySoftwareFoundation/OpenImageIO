@@ -1,5 +1,7 @@
 ../oiio-images/raw/RAW_CANON_EOS_7D.CR2 : 5202 x 3464, 3 channel, uint16 raw
     channel list: R, G, B
+    full/display size: 5184 x 3456
+    full/display origin: 10, 4
     DateTime: "2009-10-09 14:18:45"
     ExposureTime: 0.003125
     FNumber: 2.8
@@ -340,6 +342,8 @@
     raw:rgb_cam: 1.63112, -0.49571, -0.135412, 0, -0.0198918, 1.37117, -0.351275, 0, 0.0569094, -0.396354, 1.33944, 0
 ../oiio-images/raw/RAW_OLYMPUS_E3.ORF : 3720 x 2800, 3 channel, uint16 raw
     channel list: R, G, B
+    full/display size: 3648 x 2736
+    full/display origin: 46, 56
     DateTime: "2008-12-19 12:29:40"
     ExposureTime: 0.003125
     FNumber: 2
@@ -412,6 +416,8 @@
     raw:rgb_cam: 1.51654, -0.430227, -0.0863105, 0, -0.0494907, 1.30045, -0.250959, 0, 0.0301381, -0.345784, 1.31565, 0
 ../oiio-images/raw/RAW_PANASONIC_G1.RW2 : 4016 x 3016, 3 channel, uint16 raw
     channel list: R, G, B
+    full/display size: 4000 x 3000
+    full/display origin: 8, 4
     DateTime: "2008-12-10 15:06:33"
     ExposureTime: 0.0025
     FNumber: 6.3
@@ -450,6 +456,8 @@
     raw:rgb_cam: 1.57485, -0.535818, -0.0390291, 0, -0.0341545, 1.28465, -0.250491, 0, 0.0659772, -0.433534, 1.36756, 0
 ../oiio-images/raw/RAW_PENTAX_K200D.PEF : 2616 x 3896, 3 channel, uint16 raw
     channel list: R, G, B
+    full/display size: 2592 x 3872
+    full/display origin: 8, 16
     DateTime: "2008-08-02 16:46:42"
     ExposureTime: 0.004
     FNumber: 8
@@ -515,6 +523,8 @@
     raw:rgb_cam: 1.57863, -0.445627, -0.133005, 0, 0.00253742, 1.23613, -0.23867, 0, 0.0130546, -0.219968, 1.20691, 0
 ../oiio-images/raw/RAW_SONY_A300.ARW : 3880 x 2608, 3 channel, uint16 raw
     channel list: R, G, B
+    full/display size: 3872 x 2592
+    full/display origin: 4, 8
     DateTime: "2008-08-10 23:16:11"
     ExposureTime: 0.0166667
     FNumber: 5.6
