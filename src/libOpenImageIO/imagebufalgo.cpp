@@ -504,6 +504,13 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf& dst, cspan<const ImageBuf*> srcs,
             spec.nchannels = roi.chend;
             spec.default_channel_names();
         }
+
+        // If the user passed a dst_format, use it.
+        TypeDesc requested_format(options.get_string("dst_format"));
+        if (requested_format != TypeUnknown) {
+            spec.set_format(requested_format);
+        }
+
         // Set the image dimensions based on ROI.
         set_roi(spec, roi);
         if (full_roi.defined())
