@@ -510,7 +510,7 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
             tag = av_dict_get(m_format_context->streams[m_data_stream]->metadata,
                               "", tag, AV_DICT_IGNORE_SUFFIX))) {
             if (strcmp(tag->key, "timecode") == 0) {
-                m_spec.attribute("ffmpeg:timecode", tag->value);
+                m_spec.attribute("ffmpeg:TimeCode", tag->value);
                 break;
             }
         }
@@ -520,7 +520,7 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
         (tag = av_dict_get(m_format_context->streams[m_video_stream]->metadata,
                            "", tag, AV_DICT_IGNORE_SUFFIX))) {
         if (strcmp(tag->key, "timecode") == 0) {
-            m_spec.attribute("ffmpeg:timecode", tag->value);
+            m_spec.attribute("ffmpeg:TimeCode", tag->value);
             break;
         }
     }
