@@ -33,30 +33,44 @@ ImageBuf_from_buffer(const py::buffer& buffer)
         return ib;
     }
 
+    int width = 1, height = 1, depth = 1, nchans = 1;
+    stride_t xstride = AutoStride, ystride = AutoStride, zstride = AutoStride;
     if (info.ndim == 3) {
         // Assume [y][x][c]
-        ImageSpec spec(info.shape[1], info.shape[0], info.shape[2], format);
-        ib.reset(spec, InitializePixels::No);
-        ib.set_pixels(get_roi(spec), format, info.ptr, info.strides[1],
-                      info.strides[0]);
+        width   = info.shape[1];
+        height  = info.shape[0];
+        nchans  = info.shape[2];
+        xstride = info.strides[1];
+        ystride = info.strides[0];
     } else if (info.ndim == 2) {
         // Assume [y][x], single channel
-        ImageSpec spec(info.shape[1], info.shape[0], 1, format);
-        ib.reset(spec, InitializePixels::No);
-        ib.set_pixels(get_roi(spec), format, info.ptr, info.strides[1],
-                      info.strides[0]);
+        width   = info.shape[1];
+        height  = info.shape[0];
+        xstride = info.strides[1];
+        ystride = info.strides[0];
     } else if (info.ndim == 4) {
         // Assume volume [z][y][x][c]
-        ImageSpec spec(info.shape[2], info.shape[1], info.shape[3], format);
-        spec.depth      = info.shape[0];
-        spec.full_depth = spec.depth;
-        ib.reset(spec, InitializePixels::No);
-        ib.set_pixels(get_roi(spec), format, info.ptr, info.strides[2],
-                      info.strides[1], info.strides[0]);
+        width   = info.shape[2];
+        height  = info.shape[1];
+        depth   = info.shape[0];
+        nchans  = info.shape[3];
+        xstride = info.strides[2];
+        ystride = info.strides[1];
+        zstride = info.strides[0];
     } else {
         ib.errorfmt(
             "ImageBuf-from-numpy-array must have 2, 3, or 4 dimensions");
+        return ib;
     }
+
+    ImageSpec spec(width, height, nchans, format);
+    spec.depth      = depth;
+    spec.full_depth = depth;
+    ib.reset(spec, InitializePixels::No);
+    auto bufspan = cspan_from_buffer(info.ptr, format, nchans, width, height,
+                                     depth, xstride, ystride, zstride);
+    ib.set_pixels(get_roi(spec), format, bufspan, nullptr, xstride, ystride,
+                  zstride);
     return ib;
 }
 
@@ -68,9 +82,9 @@ ImageBuf_getpixel(const ImageBuf& buf, int x, int y, int z = 0,
 {
     ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string(wrapname);
     int nchans              = buf.nchannels();
-    float* pixel            = OIIO_ALLOCA(float, nchans);
-    buf.getpixel(x, y, z, pixel, nchans, wrap);
-    return C_to_tuple(pixel, nchans);
+    span<float> pixel       = OIIO_ALLOCA_SPAN(float, nchans);
+    buf.getpixel(x, y, z, pixel, wrap);
+    return C_to_tuple(pixel);
 }
 
 
@@ -81,9 +95,9 @@ ImageBuf_interppixel(const ImageBuf& buf, float x, float y,
 {
     ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string(wrapname);
     int nchans              = buf.nchannels();
-    float* pixel            = OIIO_ALLOCA(float, nchans);
+    span<float> pixel       = OIIO_ALLOCA_SPAN(float, nchans);
     buf.interppixel(x, y, pixel, wrap);
-    return C_to_tuple(pixel, nchans);
+    return C_to_tuple(pixel);
 }
 
 
@@ -94,9 +108,9 @@ ImageBuf_interppixel_NDC(const ImageBuf& buf, float x, float y,
 {
     ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string(wrapname);
     int nchans              = buf.nchannels();
-    float* pixel            = OIIO_ALLOCA(float, nchans);
+    span<float> pixel       = OIIO_ALLOCA_SPAN(float, nchans);
     buf.interppixel_NDC(x, y, pixel, wrap);
-    return C_to_tuple(pixel, nchans);
+    return C_to_tuple(pixel);
 }
 
 
@@ -107,9 +121,9 @@ ImageBuf_interppixel_bicubic(const ImageBuf& buf, float x, float y,
 {
     ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string(wrapname);
     int nchans              = buf.nchannels();
-    float* pixel            = OIIO_ALLOCA(float, nchans);
+    span<float> pixel       = OIIO_ALLOCA_SPAN(float, nchans);
     buf.interppixel_bicubic(x, y, pixel, wrap);
-    return C_to_tuple(pixel, nchans);
+    return C_to_tuple(pixel);
 }
 
 
@@ -120,9 +134,9 @@ ImageBuf_interppixel_bicubic_NDC(const ImageBuf& buf, float x, float y,
 {
     ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string(wrapname);
     int nchans              = buf.nchannels();
-    float* pixel            = OIIO_ALLOCA(float, nchans);
+    span<float> pixel       = OIIO_ALLOCA_SPAN(float, nchans);
     buf.interppixel_bicubic_NDC(x, y, pixel, wrap);
-    return C_to_tuple(pixel, nchans);
+    return C_to_tuple(pixel);
 }
 
 
@@ -164,8 +178,8 @@ ImageBuf_get_pixels(const ImageBuf& buf, TypeDesc format, ROI roi = ROI::All())
     roi.chend = std::min(roi.chend, buf.nchannels());
 
     size_t size = (size_t)roi.npixels() * roi.nchannels() * format.size();
-    std::unique_ptr<char[]> data(new char[size]);
-    if (buf.get_pixels(roi, format, &data[0]))
+    std::unique_ptr<std::byte[]> data(new std::byte[size]);
+    if (buf.get_pixels(roi, format, make_span(data.get(), size)))
         return make_numpy_array(format, data.release(),
                                 buf.spec().depth > 1 ? 4 : 3, roi.nchannels(),
                                 roi.width(), roi.height(), roi.depth());
@@ -217,8 +231,11 @@ ImageBuf_set_pixels_buffer(ImageBuf& self, ROI roi, py::buffer& buffer)
     }
 
     py::gil_scoped_release gil;
-    return self.set_pixels(roi, buf.format, buf.data, buf.xstride, buf.ystride,
-                           buf.zstride);
+    auto bufspan = cspan_from_buffer(buf.data, buf.format, roi.nchannels(),
+                                     roi.width(), roi.height(), roi.depth(),
+                                     buf.xstride, buf.ystride, buf.zstride);
+    return self.set_pixels(roi, buf.format, bufspan, nullptr, buf.xstride,
+                           buf.ystride, buf.zstride);
 }
 
 

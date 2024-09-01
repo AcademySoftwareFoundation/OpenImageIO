@@ -140,9 +140,9 @@ test_zero_fill()
 
     // Set a pixel to an odd value, make sure it takes
     const float arbitrary1[CHANNELS] = { 0.2f, 0.3f, 0.4f, 0.5f };
-    A.setpixel(1, 1, arbitrary1);
+    A.setpixel(1, 1, make_span(arbitrary1));
     float pixel[CHANNELS];  // test pixel
-    A.getpixel(1, 1, pixel);
+    A.getpixel(1, 1, make_span(pixel));
     for (int c = 0; c < CHANNELS; ++c)
         OIIO_CHECK_EQUAL(pixel[c], arbitrary1[c]);
 
@@ -151,7 +151,7 @@ test_zero_fill()
     for (int j = 0; j < HEIGHT; ++j) {
         for (int i = 0; i < WIDTH; ++i) {
             float pixel[CHANNELS];
-            A.getpixel(i, j, pixel);
+            A.getpixel(i, j, make_span(pixel));
             for (int c = 0; c < CHANNELS; ++c)
                 OIIO_CHECK_EQUAL(pixel[c], 0.0f);
         }
@@ -163,7 +163,7 @@ test_zero_fill()
     for (int j = 0; j < HEIGHT; ++j) {
         for (int i = 0; i < WIDTH; ++i) {
             float pixel[CHANNELS];
-            A.getpixel(i, j, pixel);
+            A.getpixel(i, j, make_span(pixel));
             for (int c = 0; c < CHANNELS; ++c)
                 OIIO_CHECK_EQUAL(pixel[c], arbitrary2[c]);
         }
@@ -178,7 +178,7 @@ test_zero_fill()
         for (int j = 0; j < HEIGHT; ++j) {
             for (int i = 0; i < WIDTH; ++i) {
                 float pixel[CHANNELS];
-                A.getpixel(i, j, pixel);
+                A.getpixel(i, j, make_span(pixel));
                 if (j >= ybegin && j < yend && i >= xbegin && i < xend) {
                     for (int c = 0; c < CHANNELS; ++c)
                         OIIO_CHECK_EQUAL(pixel[c], arbitrary3[c]);
@@ -307,7 +307,7 @@ test_crop()
     OIIO_CHECK_EQUAL(B.spec().width, xend - xbegin);
     OIIO_CHECK_EQUAL(B.spec().y, ybegin);
     OIIO_CHECK_EQUAL(B.spec().height, yend - ybegin);
-    float* pixel = OIIO_ALLOCA(float, CHANNELS);
+    span<float> pixel = OIIO_ALLOCA_SPAN(float, CHANNELS);
     for (int j = 0; j < B.spec().height; ++j) {
         for (int i = 0; i < B.spec().width; ++i) {
             B.getpixel(i + B.xbegin(), j + B.ybegin(), pixel);
@@ -345,19 +345,19 @@ test_paste()
 
     // Spot check
     float a[3], b[3];
-    B.getpixel(1, 1, 0, b);
+    B.getpixel(1, 1, 0, make_span(b));
     OIIO_CHECK_EQUAL(b[0], gray[0]);
     OIIO_CHECK_EQUAL(b[1], gray[1]);
     OIIO_CHECK_EQUAL(b[2], gray[2]);
 
-    B.getpixel(2, 2, 0, b);
-    A.getpixel(1, 1, 0, a);
+    B.getpixel(2, 2, 0, make_span(b));
+    A.getpixel(1, 1, 0, make_span(a));
     OIIO_CHECK_EQUAL(b[0], gray[0]);
     OIIO_CHECK_EQUAL(b[1], a[0]);
     OIIO_CHECK_EQUAL(b[2], a[1]);
 
-    B.getpixel(3, 4, 0, b);
-    A.getpixel(2, 3, 0, a);
+    B.getpixel(3, 4, 0, make_span(b));
+    A.getpixel(2, 3, 0, make_span(a));
     OIIO_CHECK_EQUAL(b[0], gray[0]);
     OIIO_CHECK_EQUAL(b[1], a[0]);
     OIIO_CHECK_EQUAL(b[2], a[1]);
@@ -784,7 +784,7 @@ test_isMonochrome()
 
     // Now introduce a tiny difference
     const float another[CHANNELS] = { 0.25f, 0.25f, 0.26f };
-    A.setpixel(2, 2, 0, another, 3);
+    A.setpixel(2, 2, 0, make_span(another));
     // It should still pass if within the threshold
     OIIO_CHECK_EQUAL(ImageBufAlgo::isMonochrome(A, 0.015f), true);
     // But not with lower threshold
@@ -807,10 +807,10 @@ test_computePixelStats()
     std::cout << "test computePixelStats\n";
     ImageBuf img(ImageSpec(2, 2, 3, TypeDesc::FLOAT));
     float black[3] = { 0, 0, 0 }, white[3] = { 1, 1, 1 };
-    img.setpixel(0, 0, black);
-    img.setpixel(1, 0, white);
-    img.setpixel(0, 1, black);
-    img.setpixel(1, 1, white);
+    img.setpixel(0, 0, make_span(black));
+    img.setpixel(1, 0, make_span(white));
+    img.setpixel(0, 1, make_span(black));
+    img.setpixel(1, 1, make_span(white));
     auto stats = ImageBufAlgo::computePixelStats(img);
     for (int c = 0; c < 3; ++c) {
         OIIO_CHECK_EQUAL(stats.min[c], 0.0f);

@@ -116,7 +116,7 @@ public:
     /// color space correction when indicated.
     void pixel_transform(bool srgb_to_linear, int color_mode, int channel);
 
-    bool get_pixels(ROI roi, TypeDesc format, void* result)
+    bool get_pixels(ROI roi, TypeDesc format, span<std::byte> result)
     {
         if (m_corrected_image.localpixels())
             return m_corrected_image.get_pixels(roi, format, result);

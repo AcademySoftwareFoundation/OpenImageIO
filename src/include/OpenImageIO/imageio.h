@@ -3370,6 +3370,19 @@ OIIO_API bool copy_image (int nchannels, int width, int height, int depth,
                           void *dst, stride_t dst_xstride,
                           stride_t dst_ystride, stride_t dst_zstride);
 
+/// Helper: manufacture a span given an image pointer, format, size, and
+/// strides. Use with caution! This is making a lot of assumptions that the
+/// data pointer really does point to memory that's ok to access according to
+/// the sizes and strides you give.
+OIIO_API span<std::byte>
+span_from_buffer(void* data, TypeDesc format, int nchannels, int width,
+                 int height, int depth, stride_t xstride = AutoStride, stride_t ystride = AutoStride,
+                 stride_t zstride = AutoStride);
+OIIO_API cspan<std::byte>
+cspan_from_buffer(const void* data, TypeDesc format, int nchannels, int width,
+                 int height, int depth, stride_t xstride = AutoStride, stride_t ystride = AutoStride,
+                 stride_t zstride = AutoStride);
+
 
 // All the wrap_foo functions implement a wrap mode, wherein coord is
 // altered to be origin <= coord < origin+width.  The return value
