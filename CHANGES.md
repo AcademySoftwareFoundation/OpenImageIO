@@ -1,3 +1,8 @@
+Release 2.5.16.0 (Oct 1?, 2024) -- compared to 2.5.15.0
+--------------------------------------------------------
+
+
+
 Release 2.5.15.0 (Sep 1, 2024) -- compared to 2.5.14.0
 --------------------------------------------------------
 - *ffmpeg*: Add proper detection of new FFmpeg versions [#4394](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4394) (by Darby Johnston)
