@@ -1342,12 +1342,46 @@ ImageInput::check_open(const ImageSpec& spec, ROI range, uint64_t /*flags*/)
 
 
 template<>
+inline size_t
+pvt::heapsize<ImageInput::Impl>(const ImageInput::Impl& impl)
+{
+    return impl.m_io_local ? sizeof(Filesystem::IOProxy) : 0;
+}
+
+
+
+size_t
+ImageInput::heapsize() const
+{
+    size_t size = pvt::heapsize(m_impl);
+    size += pvt::heapsize(m_spec);
+    return size;
+}
+
+
+
+size_t
+ImageInput::footprint() const
+{
+    return sizeof(ImageInput) + heapsize();
+}
+
+
+
+template<>
 size_t
 pvt::heapsize<ImageInput>(const ImageInput& input)
 {
-    //! TODO: change ImageInput API to add a virtual heapsize() function
-    //! to allow per image input override, and call that function here.
-    return pvt::heapsize(input.m_spec);
+    return input.heapsize();
+}
+
+
+
+template<>
+size_t
+pvt::footprint<ImageInput>(const ImageInput& input)
+{
+    return input.footprint();
 }
 
 
