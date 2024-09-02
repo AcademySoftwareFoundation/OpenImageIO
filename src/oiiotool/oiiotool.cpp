@@ -2389,6 +2389,20 @@ OIIOTOOL_OP(ociofiletransform, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
 
 
 
+// --ocionamedtransform
+OIIOTOOL_OP(ocionamedtransform, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
+    string_view name         = op.args(1);
+    std::string contextkey   = op.options()["key"];
+    std::string contextvalue = op.options()["value"];
+    bool unpremult           = op.options().get_int("unpremult");
+    bool inverse             = op.options().get_int("inverse");
+    return ImageBufAlgo::ocionamedtransform(*img[0], *img[1], name, unpremult,
+                                            inverse, contextkey, contextvalue,
+                                            &ot.colorconfig);
+});
+
+
+
 static void
 output_tiles(Oiiotool& ot, cspan<const char*>)
 {
@@ -6035,6 +6049,15 @@ print_ocio_info(Oiiotool& ot, std::ostream& out)
             out << "\n";
         }
     }
+
+    int nnamed_transforms = ot.colorconfig.getNumNamedTransforms();
+    if (nnamed_transforms) {
+        out << "Named transforms:\n";
+        for (int i = 0; i < nnamed_transforms; ++i) {
+            const char* x = ot.colorconfig.getNamedTransformNameByIndex(i);
+            out << "    - " << quote_if_spaces(x) << "\n";
+        }
+    }
     if (!ot.colorconfig.supportsOpenColorIO())
         out << "No OpenColorIO support was enabled at build time.\n";
 }
@@ -6871,6 +6894,9 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--ociofiletransform %s:FILENAME")
       .help("Apply the named OCIO filetransform (options: inverse=, unpremult=)")
       .OTACTION(action_ociofiletransform);
+    ap.arg("--ocionamedtransform %s:NAME")
+      .help("Apply the named OCIO namedtransform (options: inverse=, key=, value=, unpremult=)")
+      .OTACTION(action_ocionamedtransform);
     ap.arg("--unpremult")
       .help("Divide all color channels of the current image by the alpha to \"un-premultiply\"")
       .OTACTION(action_unpremult);

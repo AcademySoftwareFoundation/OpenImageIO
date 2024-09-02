@@ -2055,6 +2055,50 @@ bool OIIO_API ociofiletransform (ImageBuf &dst, const ImageBuf &src,
                                  ROI roi={}, int nthreads=0);
 
 
+/// Return the pixels of `src` within the ROI, applying an OpenColorIO
+/// "named" transform to the pixel values. In-place operations
+/// (`dst` == `src`) are supported.
+///
+/// The first three channels are presumed to be the color to be
+/// transformed, and the fourth channel (if it exists) is presumed to be
+/// alpha. Any additional channels will be simply copied unaltered.
+///
+/// @param  name
+///             The name of the OCIO NamedTransform to apply.
+/// @param  unpremult
+///             If true, unpremultiply the image (divide the RGB channels by
+///             alpha if it exists and is nonzero) before color conversion,
+///             then repremult after the after the color conversion. Passing
+///             unpremult=false skips this step, which may be desirable if
+///             you know that the image is "unassociated alpha" (a.k.a.,
+///             "not pre-multiplied colors").
+/// @param  inverse
+///             If `true`, it will apply the NamedTransform in the inverse
+///             direction.
+/// @param  context_key/context_value
+///             Optional key/value to establish a context (for example, a
+///             shot-specific transform).
+/// @param  colorconfig
+///             An optional `ColorConfig*` specifying an OpenColorIO
+///             configuration. If not supplied, the default OpenColorIO
+///             color configuration found by examining the `$OCIO`
+///             environment variable will be used instead.
+ImageBuf OIIO_API ocionamedtransform (const ImageBuf &src, string_view name,
+                                      bool unpremult=true, bool inverse=false,
+                                      string_view context_key="",
+                                      string_view context_value="",
+                                      const ColorConfig* colorconfig = nullptr,
+                                      ROI roi={}, int nthreads=0);
+/// Write to an existing image `dst` (allocating if it is uninitialized).
+bool OIIO_API ocionamedtransform (ImageBuf &dst, const ImageBuf &src,
+                                  string_view name, bool unpremult=true,
+                                  bool inverse=false,
+                                  string_view context_key="",
+                                  string_view context_value="",
+                                  const ColorConfig* colorconfig = nullptr,
+                                  ROI roi={}, int nthreads=0);
+
+
 /// @defgroup premult (Premultiply or un-premultiply color by alpha)
 /// @{
 ///

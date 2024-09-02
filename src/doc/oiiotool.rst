@@ -4439,6 +4439,39 @@ will be printed with the command `oiiotool --colorconfiginfo`.
 
         oiiotool in.jpg --ociofiletransform footransform.csp -o out.jpg
 
+
+.. option:: --ocionamedtransform <name>
+
+    Replace the current image with a new image whose pixels are transformed
+    using the named OpenColorIO named transform.  Optional appended arguments
+    include:
+
+    - `key=` *name*, `value=` *str*
+
+      Adds a key/value pair to the "context" that OpenColorIO will used
+      when applying the look. Multiple key/value pairs may be specified by
+      making each one a comma-separated list.
+    
+    - `inverse=` *val* :
+
+      If *val* is nonzero, inverts the color transformation.
+
+    - `unpremult=` *val* :
+
+      If the numeric *val* is nonzero, the pixel values will be
+      "un-premultipled" (divided by alpha) prior to the actual color
+      conversion, and then re-multipled by alpha afterwards. The default is
+      0, meaning the color transformation not will be automatically
+      bracketed by divide-by-alpha / mult-by-alpha operations.
+
+      `:subimages=` *indices-or-names*
+        Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+
+    Examples::
+
+        oiiotool in.exr --ocionamedtransform:inverse=1 srgb_crv -o out.jpg
+
+
 .. option:: --unpremult
 
     Divide all color channels (those not alpha or z) of the current image by
