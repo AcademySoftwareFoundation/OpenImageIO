@@ -25,10 +25,7 @@ OIIO_NAMESPACE_BEGIN
 class ImageBuf;
 class ImageBufImpl;  // Opaque type for the unique_ptr.
 class ImageCache;
-
-namespace pvt {
 class ImageCacheTile;
-};  // namespace pvt
 
 
 
@@ -1369,7 +1366,7 @@ public:
         int m_rng_xbegin, m_rng_xend, m_rng_ybegin, m_rng_yend, m_rng_zbegin,
             m_rng_zend;
         int m_x, m_y, m_z;
-        pvt::ImageCacheTile* m_tile = nullptr;
+        ImageCacheTile* m_tile = nullptr;
         int m_tilexbegin, m_tileybegin, m_tilezbegin;
         int m_tilexend;
         int m_nchannels;
@@ -1638,7 +1635,7 @@ protected:
     // tile for the given pixel, and return the ptr to the actual pixel
     // within the tile. If any read errors occur, set haderror=true (but
     // if there are no errors, do not modify haderror).
-    const void* retile(int x, int y, int z, pvt::ImageCacheTile*& tile,
+    const void* retile(int x, int y, int z, ImageCacheTile*& tile,
                        int& tilexbegin, int& tileybegin, int& tilezbegin,
                        int& tilexend, bool& haderr, bool exists,
                        WrapMode wrap) const;
