@@ -6395,6 +6395,12 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--crash")
       .hidden()
       .action(crash_me);
+    ap.arg("--test-bad-format")
+      .hidden()
+      .action([&](cspan<const char*>){
+                  print("{}\n", Strutil::fmt::format("hey hey {:d} {}",
+                                                     "foo", "bar", "oops"));
+              });
 
     ap.separator("Commands that read images:");
     ap.arg("-i %s:FILENAME")

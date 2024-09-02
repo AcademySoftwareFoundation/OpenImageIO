@@ -281,7 +281,11 @@ using sync::print;
 
 
 namespace pvt {
+// Internal use only
 OIIO_UTIL_API void debug(string_view str);
+OIIO_UTIL_API void append_error(string_view str);
+OIIO_UTIL_API bool has_error();
+OIIO_UTIL_API std::string geterror(bool clear);
 }
 
 /// `debug(format, ...)` prints debugging message when attribute "debug" is
