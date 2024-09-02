@@ -63,6 +63,7 @@ lg@openimageio.org
 * Daniel Flehner Heen
 * Daniel Wyatt
 * Danny Greenstein
+* Darby Johnston
 * David Aguilar
 * David Gordon
 * Deepak Gopinath

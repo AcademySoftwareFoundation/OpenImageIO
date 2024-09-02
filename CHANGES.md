@@ -1,5 +1,13 @@
-Release 2.5.15.0 (Sep 1?, 2024) -- compared to 2.5.14.0
+Release 2.5.15.0 (Sep 1, 2024) -- compared to 2.5.14.0
 --------------------------------------------------------
+- *ffmpeg*: Add proper detection of new FFmpeg versions [#4394](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4394) (by Darby Johnston)
+- *ffmpeg*: Retrieve timecode metadata [#4396](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4396) (by Darby Johnston)
+- *png*: Bug in associateAlpha botched alpha=0 pixels [#4386](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4386)
+- *raw*: Expose additional white balancing hints [#4360](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4360) (by Anton Dukhovnikov)
+- *oiiotool*: `-i:ch=...` didn't fix up alpha and z channels [#4373](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4373)
+- *fix*: Catch potential OCIO exception that we were missing [#4379](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4379)
+- *build*: Finish removing Imath include [#4371](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4371) (by Thiago Ize)
+- *tests*: Adjust RB-2.5 simd_test to allow a little more slop on fast_exp [#4372](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4372)
 
 
 Release 2.5.14.0 (Aug 1, 2024) -- compared to 2.5.13.1
