@@ -4,7 +4,7 @@
 
 
 /// \file
-/// Non-public classes used internally by ImgeCacheImpl.
+/// Non-public classes used internally by ImageCacheImpl.
 
 
 #ifndef OPENIMAGEIO_IMAGECACHE_PVT_H
@@ -25,7 +25,6 @@
 
 OIIO_NAMESPACE_BEGIN
 
-namespace pvt {
 
 #ifndef NDEBUG
 #    define IMAGECACHE_TIME_STATS 1
@@ -40,15 +39,20 @@ namespace pvt {
 #define FILE_CACHE_SHARDS 64
 #define TILE_CACHE_SHARDS 128
 
+
+
 struct TileID;
 class ImageCacheImpl;
-class ImageCachePerThreadInfo;
 struct ImageCacheFootprint;
+
+namespace pvt {
 
 const char*
 texture_format_name(TexFormat f);
 const char*
 texture_type_name(TexFormat f);
+
+}  // namespace pvt
 
 
 
@@ -107,6 +111,9 @@ struct ImageCacheStatistics {
 
 
 
+namespace pvt {
+
+
 struct UdimInfo {
     ustring filename;
     std::atomic<ImageCacheFile*> icfile { nullptr };
@@ -137,6 +144,8 @@ struct UdimInfo {
     }
 };
 
+}  // namespace pvt
+
 
 
 /// Unique in-memory record for each image file on disk.  Note that
@@ -150,6 +159,10 @@ struct UdimInfo {
 /// thread-specific IC data including microcache and statistics.
 ///
 class OIIO_API ImageCacheFile final : public RefCnt {
+    using TexFormat = pvt::TexFormat;
+    using EnvLayout = pvt::EnvLayout;
+    using UdimInfo  = pvt::UdimInfo;
+
 public:
     ImageCacheFile(ImageCacheImpl& imagecache,
                    ImageCachePerThreadInfo* thread_info, ustring filename,
@@ -367,6 +380,8 @@ public:
     // Return the regex wildcard matching pattern for a udim spec.
     static std::string udim_to_wildcard(string_view udimpattern);
 
+    size_t heapsize() const;
+
 private:
     ustring m_filename_original;   ///< original filename before search path
     ustring m_filename;            ///< Filename
@@ -468,12 +483,6 @@ private:
     friend class ImageCacheImpl;
     friend class TextureSystemImpl;
     friend struct SubimageInfo;
-
-    /// Memory tracking. Specializes the base memory tracking functions from memory.h.
-    /// declare a friend heapsize definition
-    template<typename T> friend inline size_t heapsize(const T&);
-    /// declare a friend image cache footprint definition
-    friend inline size_t footprint(const ImageCacheImpl&, ImageCacheFootprint&);
 };
 
 
@@ -732,10 +741,8 @@ private:
     int m_tile_width { 0 };            ///< Tile width
     bool m_valid { false };            ///< Valid pixels
     bool m_nofree { false };  ///< We do NOT own the pixels, do not free!
-    volatile bool m_pixels_ready {
-        false
-    };                        ///< The pixels have been read from disk
-    atomic_int m_used { 1 };  ///< Used recently
+    volatile bool m_pixels_ready { false };  // Pixels have been read from disk
+    atomic_int m_used { 1 };                 ///< Used recently
 };
 
 
@@ -752,6 +759,7 @@ typedef unordered_map_concurrent<
     TileID, ImageCacheTileRef, TileID::Hasher, std::equal_to<TileID>,
     TILE_CACHE_SHARDS, tsl::robin_map<TileID, ImageCacheTileRef, TileID::Hasher>>
     TileCache;
+
 
 
 /// A very small amount of per-thread data that saves us from locking
@@ -796,6 +804,13 @@ public:
         auto f = m_thread_files.find(n);
         return f == m_thread_files.end() ? nullptr : f->second;
     }
+
+    size_t heapsize() const
+    {
+        /// TODO: this should take into account the two last tiles, if their refcount is zero.
+        constexpr size_t sizeofPair = sizeof(ustring) + sizeof(ImageCacheFile*);
+        return m_thread_files.size() * sizeofPair;
+    }
 };
 
 
@@ -805,60 +820,65 @@ public:
 /// Some of the methods require a pointer to the thread-specific IC data
 /// including microcache and statistics.
 ///
-class ImageCacheImpl final : public ImageCache {
+class ImageCacheImpl {
 public:
-    ImageCacheImpl();
-    ~ImageCacheImpl() override;
+    using Perthread   = ImageCachePerThreadInfo;
+    using ImageHandle = ImageCacheFile;
+    using Tile        = ImageCacheTile;
+    friend class TextureSystem;
+    friend class TextureSystemImpl;
 
-    bool attribute(string_view name, TypeDesc type, const void* val) override;
-    bool attribute(string_view name, int val) override
+    ImageCacheImpl();
+    ~ImageCacheImpl();
+
+    bool attribute(string_view name, TypeDesc type, const void* val);
+    bool attribute(string_view name, int val)
     {
-        return attribute(name, TypeDesc::INT, &val);
+        return attribute(name, TypeInt, &val);
     }
-    bool attribute(string_view name, float val) override
+    bool attribute(string_view name, float val)
     {
-        return attribute(name, TypeDesc::FLOAT, &val);
+        return attribute(name, TypeFloat, &val);
     }
-    bool attribute(string_view name, double val) override
+    bool attribute(string_view name, double val)
     {
         float f = (float)val;
-        return attribute(name, TypeDesc::FLOAT, &f);
+        return attribute(name, TypeFloat, &f);
     }
-    bool attribute(string_view name, string_view val) override
+    bool attribute(string_view name, string_view val)
     {
         std::string valstr(val);
         const char* s = valstr.c_str();
-        return attribute(name, TypeDesc::STRING, &s);
+        return attribute(name, TypeString, &s);
     }
 
-    TypeDesc getattributetype(string_view name) const override;
+    TypeDesc getattributetype(string_view name) const;
 
-    bool getattribute(string_view name, TypeDesc type,
-                      void* val) const override;
-    bool getattribute(string_view name, int& val) const override
+    bool getattribute(string_view name, TypeDesc type, void* val) const;
+    bool getattribute(string_view name, int& val) const
     {
-        return getattribute(name, TypeDesc::INT, &val);
+        return getattribute(name, TypeInt, &val);
     }
-    bool getattribute(string_view name, float& val) const override
+    bool getattribute(string_view name, float& val) const
     {
-        return getattribute(name, TypeDesc::FLOAT, &val);
+        return getattribute(name, TypeFloat, &val);
     }
-    bool getattribute(string_view name, double& val) const override
+    bool getattribute(string_view name, double& val) const
     {
         float f;
-        bool ok = getattribute(name, TypeDesc::FLOAT, &f);
+        bool ok = getattribute(name, TypeFloat, &f);
         if (ok)
             val = f;
         return ok;
     }
-    bool getattribute(string_view name, char** val) const override
+    bool getattribute(string_view name, char** val) const
     {
-        return getattribute(name, TypeDesc::STRING, val);
+        return getattribute(name, TypeString, val);
     }
-    bool getattribute(string_view name, std::string& val) const override
+    bool getattribute(string_view name, std::string& val) const
     {
         ustring s;
-        bool ok = getattribute(name, TypeDesc::STRING, &s);
+        bool ok = getattribute(name, TypeString, &s);
         if (ok)
             val = s.string();
         return ok;
@@ -882,7 +902,7 @@ public:
     void get_commontoworld(Imath::M44f& result) const { result = m_Mc2w; }
     int max_errors_per_file() const { return m_max_errors_per_file; }
 
-    std::string resolve_filename(const std::string& filename) const override;
+    std::string resolve_filename(const std::string& filename) const;
 
     // Set m_max_open_files, with logic to try to clamp reasonably.
     void set_max_open_files(int m);
@@ -890,12 +910,11 @@ public:
     /// Get information about the given image.
     ///
     bool get_image_info(ustring filename, int subimage, int miplevel,
-                        ustring dataname, TypeDesc datatype,
-                        void* data) override;
+                        ustring dataname, TypeDesc datatype, void* data);
     bool get_image_info(ImageCacheFile* file,
                         ImageCachePerThreadInfo* thread_info, int subimage,
                         int miplevel, ustring dataname, TypeDesc datatype,
-                        void* data) override;
+                        void* data);
 
     /// Get the ImageSpec associated with the named image.  If the file
     /// is found and is an image format that can be read, store a copy
@@ -903,18 +922,17 @@ public:
     /// the file was not found or could not be opened as an image file
     /// by any available ImageIO plugin.
     bool get_imagespec(ustring filename, ImageSpec& spec, int subimage = 0,
-                       int miplevel = 0, bool native = false) override;
+                       int miplevel = 0, bool native = false);
     bool get_imagespec(ImageCacheFile* file,
                        ImageCachePerThreadInfo* thread_info, ImageSpec& spec,
-                       int subimage = 0, int miplevel = 0,
-                       bool native = false) override;
+                       int subimage = 0, int miplevel = 0, bool native = false);
 
     const ImageSpec* imagespec(ustring filename, int subimage = 0,
-                               int miplevel = 0, bool native = false) override;
+                               int miplevel = 0, bool native = false);
     const ImageSpec* imagespec(ImageCacheFile* file,
                                ImageCachePerThreadInfo* thread_info = NULL,
                                int subimage = 0, int miplevel = 0,
-                               bool native = false) override;
+                               bool native = false);
 
     ImageCacheFile* resolve_udim(ImageCacheFile* udimfile,
                                  Perthread* thread_info, int utile, int vtile);
@@ -922,26 +940,25 @@ public:
                         std::vector<ustring>& filenames, int& nutiles,
                         int& nvtiles);
 
-    bool get_thumbnail(ustring filename, ImageBuf& thumbnail,
-                       int subimage = 0) override;
+    bool get_thumbnail(ustring filename, ImageBuf& thumbnail, int subimage = 0);
     bool get_thumbnail(ImageHandle* file, Perthread* thread_info,
-                       ImageBuf& thumbnail, int subimage = 0) override;
+                       ImageBuf& thumbnail, int subimage = 0);
 
     // Retrieve a rectangle of raw unfiltered pixels.
     bool get_pixels(ustring filename, int subimage, int miplevel, int xbegin,
                     int xend, int ybegin, int yend, int zbegin, int zend,
-                    TypeDesc format, void* result) override;
+                    TypeDesc format, void* result);
     bool get_pixels(ImageCacheFile* file, ImageCachePerThreadInfo* thread_info,
                     int subimage, int miplevel, int xbegin, int xend,
                     int ybegin, int yend, int zbegin, int zend, TypeDesc format,
-                    void* result) override;
+                    void* result);
     bool get_pixels(ustring filename, int subimage, int miplevel, int xbegin,
                     int xend, int ybegin, int yend, int zbegin, int zend,
                     int chbegin, int chend, TypeDesc format, void* result,
                     stride_t xstride = AutoStride,
                     stride_t ystride = AutoStride,
                     stride_t zstride = AutoStride, int cache_chbegin = 0,
-                    int cache_chend = -1) override;
+                    int cache_chend = -1);
     bool get_pixels(ImageCacheFile* file, ImageCachePerThreadInfo* thread_info,
                     int subimage, int miplevel, int xbegin, int xend,
                     int ybegin, int yend, int zbegin, int zend, int chbegin,
@@ -949,7 +966,7 @@ public:
                     stride_t xstride = AutoStride,
                     stride_t ystride = AutoStride,
                     stride_t zstride = AutoStride, int cache_chbegin = 0,
-                    int cache_chend = -1) override;
+                    int cache_chend = -1);
 
     // Find the ImageCacheFile record for the named image, adding an entry
     // if it is not already in the cache. This returns a plain old pointer,
@@ -976,7 +993,7 @@ public:
 
     ImageCacheFile* get_image_handle(ustring filename,
                                      ImageCachePerThreadInfo* thread_info,
-                                     const TextureOpt* options) override
+                                     const TextureOpt* options)
     {
         if (!thread_info)
             thread_info = get_perthread_info();
@@ -984,12 +1001,9 @@ public:
         return verify_file(file, thread_info);
     }
 
-    bool good(ImageCacheFile* handle) override
-    {
-        return handle && !handle->broken();
-    }
+    bool good(ImageCacheFile* handle) { return handle && !handle->broken(); }
 
-    ustring filename_from_handle(ImageCacheFile* handle) override
+    ustring filename_from_handle(ImageCacheFile* handle)
     {
         return handle ? handle->filename() : ustring();
     }
@@ -1040,41 +1054,40 @@ public:
     }
 
     Tile* get_tile(ustring filename, int subimage, int miplevel, int x, int y,
-                   int z, int chbegin, int chend) override;
+                   int z, int chbegin, int chend);
     Tile* get_tile(ImageHandle* file, Perthread* thread_info, int subimage,
-                   int miplevel, int x, int y, int z, int chbegin,
-                   int chend) override;
-    void release_tile(Tile* tile) const override;
-    TypeDesc tile_format(const Tile* tile) const override;
-    ROI tile_roi(const Tile* tile) const override;
-    const void* tile_pixels(Tile* tile, TypeDesc& format) const override;
+                   int miplevel, int x, int y, int z, int chbegin, int chend);
+    void release_tile(Tile* tile) const;
+    TypeDesc tile_format(const Tile* tile) const;
+    ROI tile_roi(const Tile* tile) const;
+    const void* tile_pixels(Tile* tile, TypeDesc& format) const;
     bool add_file(ustring filename, ImageInput::Creator creator,
-                  const ImageSpec* config, bool replace) override;
+                  const ImageSpec* config, bool replace);
     bool add_tile(ustring filename, int subimage, int miplevel, int x, int y,
                   int z, int chbegin, int chend, TypeDesc format,
                   const void* buffer, stride_t xstride, stride_t ystride,
-                  stride_t zstride, bool copy) override;
+                  stride_t zstride, bool copy);
 
     /// Return the numerical subimage index for the given subimage name,
     /// as stored in the "oiio:subimagename" metadata.  Return -1 if no
     /// subimage matches its name.
     int subimage_from_name(ImageCacheFile* file, ustring subimagename);
 
-    bool has_error() const override;
-    std::string geterror(bool clear = true) const override;
-    std::string getstats(int level = 1) const override;
-    void reset_stats() override;
-    void invalidate(ustring filename, bool force) override;
-    void invalidate(ImageHandle* file, bool force) override;
-    void invalidate_all(bool force = false) override;
-    void close(ustring filename) override;
-    void close_all() override;
+    bool has_error() const;
+    std::string geterror(bool clear = true) const;
+    std::string getstats(int level = 1) const;
+    void reset_stats();
+    void invalidate(ustring filename, bool force);
+    void invalidate(ImageHandle* file, bool force);
+    void invalidate_all(bool force = false);
+    void close(ustring filename);
+    void close_all();
 
     /// Merge all the per-thread statistics into one set of stats.
     ///
     void mergestats(ImageCacheStatistics& merged) const;
 
-    void operator delete(void* todel) { ::delete ((char*)todel); }
+    // void operator delete(void* todel) { ::delete ((char*)todel); }
 
     /// Called when a new file is opened, so that the system can track
     /// the number of simultaneously-opened files.
@@ -1121,9 +1134,9 @@ public:
     /// Append a string to the current error message
     void append_error(string_view message) const;
 
-    Perthread* get_perthread_info(Perthread* thread_info = NULL) override;
-    Perthread* create_thread_info() override;
-    void destroy_thread_info(Perthread* thread_info) override;
+    Perthread* get_perthread_info(Perthread* thread_info = NULL);
+    Perthread* create_thread_info();
+    void destroy_thread_info(Perthread* thread_info);
 
     /// Ensure that the max_memory_bytes is at least newsize bytes.
     /// Override the previous value if necessary, with thread-safety.
@@ -1135,6 +1148,9 @@ public:
     int max_mip_res() const noexcept { return m_max_mip_res; }
 
     ustring colorspace() const noexcept { return m_colorspace; }
+
+    size_t heapsize() const;
+    size_t footprint(ImageCacheFootprint& output) const;
 
 private:
     void init();
@@ -1246,16 +1262,8 @@ private:
             // done it with nobody else interfering.
         } while (llstat->compare_exchange_strong(*llnewval, *lloldval));
     }
-
-    /// declare a friend heapsize definition
-    template<typename T> friend inline size_t heapsize(const T&);
-    /// declare a friend image cache footprint definition
-    friend inline size_t footprint(const ImageCacheImpl&, ImageCacheFootprint&);
 };
 
-
-
-}  // end namespace pvt
 
 OIIO_NAMESPACE_END
 

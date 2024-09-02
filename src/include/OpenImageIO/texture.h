@@ -45,11 +45,11 @@ OIIO_NAMESPACE_BEGIN
 // Forward declarations
 
 class ImageCache;
+class TextureSystemImpl;
 
 
 namespace pvt {
 
-class TextureSystemImpl;
 
 // Used internally by TextureSystem.  Unfortunately, this is the only
 // clean place to store it.  Sorry, users, this isn't really for you.
@@ -295,7 +295,7 @@ private:
     // Options set INTERNALLY by libtexture after the options are passed
     // by the user.  Users should not attempt to alter these!
     int envlayout;  // Layout for environment wrap
-    friend class pvt::TextureSystemImpl;
+    friend class TextureSystemImpl;
 };
 
 
@@ -347,8 +347,11 @@ private:
     // by the user.  Users should not attempt to alter these!
     int envlayout = 0;               // Layout for environment wrap
 
-    friend class pvt::TextureSystemImpl;
+    friend class TextureSystemImpl;
 };
+
+
+// clang-format on
 
 
 
@@ -393,8 +396,8 @@ public:
     ///     when the last shared_ptr to it is destroyed.
     ///
     /// @see    TextureSystem::destroy
-    static std::shared_ptr<TextureSystem> create(bool shared=true,
-                                 std::shared_ptr<ImageCache> imagecache = {});
+    static std::shared_ptr<TextureSystem>
+    create(bool shared = true, std::shared_ptr<ImageCache> imagecache = {});
 
     /// Release the shared_ptr to a TextureSystem, including freeing all
     /// system resources that it holds if no one else is still using it. This
@@ -568,15 +571,30 @@ public:
     ///                 (including it being an unrecognized attribute or not
     ///                 of the correct type).
     ///
-    virtual bool attribute (string_view name, TypeDesc type, const void *val) = 0;
+    bool attribute(string_view name, TypeDesc type, const void* val);
 
     /// Specialized `attribute()` for setting a single `int` value.
-    virtual bool attribute (string_view name, int val) = 0;
+    bool attribute(string_view name, int val)
+    {
+        return attribute(name, TypeInt, &val);
+    }
     /// Specialized `attribute()` for setting a single `float` value.
-    virtual bool attribute (string_view name, float val) = 0;
-    virtual bool attribute (string_view name, double val) = 0;
+    bool attribute(string_view name, float val)
+    {
+        return attribute(name, TypeFloat, &val);
+    }
+    bool attribute(string_view name, double val)
+    {
+        float f = (float)val;
+        return attribute(name, TypeFloat, &f);
+    }
     /// Specialized `attribute()` for setting a single string value.
-    virtual bool attribute (string_view name, string_view val) = 0;
+    bool attribute(string_view name, string_view val)
+    {
+        std::string valstr(val);
+        const char* s = valstr.c_str();
+        return attribute(name, TypeDesc::STRING, &s);
+    }
 
     /// Get the named attribute of the texture system, store it in `*val`.
     /// All of the attributes that may be set with the `attribute() call`
@@ -612,26 +630,48 @@ public:
     ///                 attribute was retrieved, or `false` upon failure
     ///                 (including it being an unrecognized attribute or not
     ///                 of the correct type).
-    virtual bool getattribute (string_view name,
-                               TypeDesc type, void *val) const = 0;
+    bool getattribute(string_view name, TypeDesc type, void* val) const;
 
     /// Specialized `attribute()` for retrieving a single `int` value.
-    virtual bool getattribute(string_view name, int& val) const = 0;
+    bool getattribute(string_view name, int& val) const
+    {
+        return getattribute(name, TypeInt, &val);
+    }
     /// Specialized `attribute()` for retrieving a single `float` value.
-    virtual bool getattribute(string_view name, float& val) const = 0;
-    virtual bool getattribute(string_view name, double& val) const = 0;
+    bool getattribute(string_view name, float& val) const
+    {
+        return getattribute(name, TypeFloat, &val);
+    }
+    bool getattribute(string_view name, double& val) const
+    {
+        float f;
+        bool ok = getattribute(name, TypeFloat, &f);
+        if (ok)
+            val = f;
+        return ok;
+    }
     /// Specialized `attribute()` for retrieving a single `string` value
     /// as a `char*`.
-    virtual bool getattribute(string_view name, char** val) const = 0;
+    bool getattribute(string_view name, char** val) const
+    {
+        return getattribute(name, TypeString, val);
+    }
     /// Specialized `attribute()` for retrieving a single `string` value
     /// as a `std::string`.
-    virtual bool getattribute(string_view name, std::string& val) const = 0;
+    bool getattribute(string_view name, std::string& val) const
+    {
+        const char* s;
+        bool ok = getattribute(name, TypeString, &s);
+        if (ok)
+            val = s;
+        return ok;
+    }
 
     /// If the named attribute is known, return its data type. If no such
     /// attribute exists, return `TypeUnknown`.
     ///
     /// This was added in version 2.5.
-    virtual TypeDesc getattributetype (string_view name) const = 0;
+    TypeDesc getattributetype(string_view name) const;
 
     /// @}
 
@@ -682,14 +722,14 @@ public:
     /// thread_info is not nullptr, it won't create a new one or retrieve a
     /// TSP, but it will do other necessary housekeeping on the Perthread
     /// information.
-    virtual Perthread* get_perthread_info(Perthread* thread_info = nullptr) = 0;
+    Perthread* get_perthread_info(Perthread* thread_info = nullptr);
 
     /// Create a new Perthread. It is the caller's responsibility to
     /// eventually destroy it using `destroy_thread_info()`.
-    virtual Perthread* create_thread_info() = 0;
+    Perthread* create_thread_info();
 
     /// Destroy a Perthread that was allocated by `create_thread_info()`.
-    virtual void destroy_thread_info(Perthread* threadinfo) = 0;
+    void destroy_thread_info(Perthread* threadinfo);
 
     /// Define an opaque data type that allows us to have a handle to a
     /// texture (already having its name resolved) but without exposing
@@ -702,13 +742,14 @@ public:
     /// (currently: the colorspace). The opaque pointer `thread_info` is
     /// thread-specific information returned by `get_perthread_info()`. Return
     /// nullptr if something has gone horribly wrong.
-    virtual TextureHandle* get_texture_handle(ustring filename,
-                                      Perthread* thread_info = nullptr,
-                                      const TextureOpt* options = nullptr) = 0;
+    TextureHandle* get_texture_handle(ustring filename,
+                                      Perthread* thread_info    = nullptr,
+                                      const TextureOpt* options = nullptr);
     /// Get a TextureHandle using a UTF-16 encoded wstring filename.
     TextureHandle* get_texture_handle(const std::wstring& filename,
-                                      Perthread* thread_info = nullptr,
-                                      const TextureOpt* options = nullptr) {
+                                      Perthread* thread_info    = nullptr,
+                                      const TextureOpt* options = nullptr)
+    {
         return get_texture_handle(ustring(Strutil::utf16_to_utf8(filename)),
                                   thread_info, options);
     }
@@ -716,21 +757,19 @@ public:
     /// Return true if the texture handle (previously returned by
     /// `get_image_handle()`) is a valid texture that can be subsequently
     /// read.
-    virtual bool good(TextureHandle* texture_handle) = 0;
+    bool good(TextureHandle* texture_handle);
 
     /// Given a handle, return the UTF-8 encoded filename for that texture.
     ///
     /// This method was added in OpenImageIO 2.3.
-    virtual ustring filename_from_handle(TextureHandle* handle) = 0;
+    ustring filename_from_handle(TextureHandle* handle);
 
     /// Retrieve an id for a color transformation by name. This ID can be used
     /// as the value for TextureOpt::colortransformid. The returned value will
     /// be -1 if either color space is unknown, and 0 for a null
     /// transformation.
-    virtual int get_colortransform_id(ustring fromspace,
-                                      ustring tospace) const = 0;
-    virtual int get_colortransform_id(ustringhash fromspace,
-                                      ustringhash tospace) const = 0;
+    int get_colortransform_id(ustring fromspace, ustring tospace) const;
+    int get_colortransform_id(ustringhash fromspace, ustringhash tospace) const;
     /// @}
 
     /// @{
@@ -814,20 +853,17 @@ public:
     ///             found or could not be opened by any available ImageIO
     ///             plugin.
     ///
-    virtual bool texture (ustring filename, TextureOpt &options,
-                          float s, float t, float dsdx, float dtdx,
-                          float dsdy, float dtdy,
-                          int nchannels, float *result,
-                          float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
+    bool texture(ustring filename, TextureOpt& options, float s, float t,
+                 float dsdx, float dtdx, float dsdy, float dtdy, int nchannels,
+                 float* result, float* dresultds = nullptr,
+                 float* dresultdt = nullptr);
 
     /// Slightly faster version of texture() lookup if the app already has a
     /// texture handle and per-thread info.
-    virtual bool texture (TextureHandle *texture_handle,
-                          Perthread *thread_info, TextureOpt &options,
-                          float s, float t, float dsdx, float dtdx,
-                          float dsdy, float dtdy,
-                          int nchannels, float *result,
-                          float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
+    bool texture(TextureHandle* texture_handle, Perthread* thread_info,
+                 TextureOpt& options, float s, float t, float dsdx, float dtdx,
+                 float dsdy, float dtdy, int nchannels, float* result,
+                 float* dresultds = nullptr, float* dresultdt = nullptr);
 
 
     /// Perform a filtered 3D volumetric texture lookup on a position
@@ -909,40 +945,19 @@ public:
     ///             found or could not be opened by any available ImageIO
     ///             plugin.
     ///
-    virtual bool texture3d (ustring filename, TextureOpt &options,
-                            V3fParam P, V3fParam dPdx,
-                            V3fParam dPdy, V3fParam dPdz,
-                            int nchannels, float *result,
-                            float *dresultds=nullptr, float *dresultdt=nullptr,
-                            float *dresultdr=nullptr) = 0;
+    bool texture3d(ustring filename, TextureOpt& options, V3fParam P,
+                   V3fParam dPdx, V3fParam dPdy, V3fParam dPdz, int nchannels,
+                   float* result, float* dresultds = nullptr,
+                   float* dresultdt = nullptr, float* dresultdr = nullptr);
 
     /// Slightly faster version of texture3d() lookup if the app already has
     /// a texture handle and per-thread info.
-    virtual bool texture3d (TextureHandle *texture_handle,
-                            Perthread *thread_info, TextureOpt &options,
-                            V3fParam P, V3fParam dPdx,
-                            V3fParam dPdy, V3fParam dPdz,
-                            int nchannels, float *result,
-                            float *dresultds=nullptr, float *dresultdt=nullptr,
-                            float *dresultdr=nullptr) = 0;
+    bool texture3d(TextureHandle* texture_handle, Perthread* thread_info,
+                   TextureOpt& options, V3fParam P, V3fParam dPdx,
+                   V3fParam dPdy, V3fParam dPdz, int nchannels, float* result,
+                   float* dresultds = nullptr, float* dresultdt = nullptr,
+                   float* dresultdr = nullptr);
 
-
-    // Retrieve a shadow lookup for a single position P.
-    //
-    // Return true if the file is found and could be opened by an
-    // available ImageIO plugin, otherwise return false.
-    virtual bool shadow (ustring filename, TextureOpt &options,
-                         V3fParam P, V3fParam dPdx,
-                         V3fParam dPdy, float *result,
-                         float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
-
-    // Slightly faster version of texture3d() lookup if the app already
-    // has a texture handle and per-thread info.
-    virtual bool shadow (TextureHandle *texture_handle, Perthread *thread_info,
-                         TextureOpt &options,
-                         V3fParam P, V3fParam dPdx,
-                         V3fParam dPdy, float *result,
-                         float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
 
     /// Perform a filtered directional environment map lookup in the
     /// direction of vector `R`, from the texture identified by `filename`,
@@ -1000,18 +1015,16 @@ public:
     ///             `true` upon success, or `false` if the file was not
     ///             found or could not be opened by any available ImageIO
     ///             plugin.
-    virtual bool environment (ustring filename, TextureOpt &options,
-                              V3fParam R, V3fParam dRdx,
-                              V3fParam dRdy, int nchannels, float *result,
-                              float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
+    bool environment(ustring filename, TextureOpt& options, V3fParam R,
+                     V3fParam dRdx, V3fParam dRdy, int nchannels, float* result,
+                     float* dresultds = nullptr, float* dresultdt = nullptr);
 
     /// Slightly faster version of environment() if the app already has a
     /// texture handle and per-thread info.
-    virtual bool environment (TextureHandle *texture_handle,
-                              Perthread *thread_info, TextureOpt &options,
-                              V3fParam R, V3fParam dRdx,
-                              V3fParam dRdy, int nchannels, float *result,
-                              float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
+    bool environment(TextureHandle* texture_handle, Perthread* thread_info,
+                     TextureOpt& options, V3fParam R, V3fParam dRdx,
+                     V3fParam dRdy, int nchannels, float* result,
+                     float* dresultds = nullptr, float* dresultdt = nullptr);
 
     /// @}
 
@@ -1065,23 +1078,19 @@ public:
     ///             found or could not be opened by any available ImageIO
     ///             plugin.
     ///
-    virtual bool texture (ustring filename, TextureOptBatch &options,
-                          Tex::RunMask mask, const float *s, const float *t,
-                          const float *dsdx, const float *dtdx,
-                          const float *dsdy, const float *dtdy,
-                          int nchannels, float *result,
-                          float *dresultds=nullptr,
-                          float *dresultdt=nullptr) = 0;
+    bool texture(ustring filename, TextureOptBatch& options, Tex::RunMask mask,
+                 const float* s, const float* t, const float* dsdx,
+                 const float* dtdx, const float* dsdy, const float* dtdy,
+                 int nchannels, float* result, float* dresultds = nullptr,
+                 float* dresultdt = nullptr);
     /// Slightly faster version of texture() lookup if the app already has a
     /// texture handle and per-thread info.
-    virtual bool texture (TextureHandle *texture_handle,
-                          Perthread *thread_info, TextureOptBatch &options,
-                          Tex::RunMask mask, const float *s, const float *t,
-                          const float *dsdx, const float *dtdx,
-                          const float *dsdy, const float *dtdy,
-                          int nchannels, float *result,
-                          float *dresultds=nullptr,
-                          float *dresultdt=nullptr) = 0;
+    bool texture(TextureHandle* texture_handle, Perthread* thread_info,
+                 TextureOptBatch& options, Tex::RunMask mask, const float* s,
+                 const float* t, const float* dsdx, const float* dtdx,
+                 const float* dsdy, const float* dtdy, int nchannels,
+                 float* result, float* dresultds = nullptr,
+                 float* dresultdt = nullptr);
 
     /// Perform filtered 3D volumetric texture lookups on a batch of
     /// positions from the same texture, all at once. The "point-like"
@@ -1131,23 +1140,18 @@ public:
     ///             found or could not be opened by any available ImageIO
     ///             plugin.
     ///
-    virtual bool texture3d (ustring filename,
-                            TextureOptBatch &options, Tex::RunMask mask,
-                            const float *P, const float *dPdx,
-                            const float *dPdy, const float *dPdz,
-                            int nchannels, float *result,
-                            float *dresultds=nullptr, float *dresultdt=nullptr,
-                            float *dresultdr=nullptr) = 0;
+    bool texture3d(ustring filename, TextureOptBatch& options,
+                   Tex::RunMask mask, const float* P, const float* dPdx,
+                   const float* dPdy, const float* dPdz, int nchannels,
+                   float* result, float* dresultds = nullptr,
+                   float* dresultdt = nullptr, float* dresultdr = nullptr);
     /// Slightly faster version of texture3d() lookup if the app already
     /// has a texture handle and per-thread info.
-    virtual bool texture3d (TextureHandle *texture_handle,
-                            Perthread *thread_info,
-                            TextureOptBatch &options, Tex::RunMask mask,
-                            const float *P, const float *dPdx,
-                            const float *dPdy, const float *dPdz,
-                            int nchannels, float *result,
-                            float *dresultds=nullptr, float *dresultdt=nullptr,
-                            float *dresultdr=nullptr) = 0;
+    bool texture3d(TextureHandle* texture_handle, Perthread* thread_info,
+                   TextureOptBatch& options, Tex::RunMask mask, const float* P,
+                   const float* dPdx, const float* dPdy, const float* dPdz,
+                   int nchannels, float* result, float* dresultds = nullptr,
+                   float* dresultdt = nullptr, float* dresultdr = nullptr);
 
     /// Perform filtered directional environment map lookups on a batch of
     /// directions from the same texture, all at once. The "point-like"
@@ -1197,28 +1201,17 @@ public:
     ///             found or could not be opened by any available ImageIO
     ///             plugin.
     ///
-    virtual bool environment (ustring filename,
-                              TextureOptBatch &options, Tex::RunMask mask,
-                              const float *R, const float *dRdx, const float *dRdy,
-                              int nchannels, float *result,
-                              float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
+    bool environment(ustring filename, TextureOptBatch& options,
+                     Tex::RunMask mask, const float* R, const float* dRdx,
+                     const float* dRdy, int nchannels, float* result,
+                     float* dresultds = nullptr, float* dresultdt = nullptr);
     /// Slightly faster version of environment() if the app already has a
     /// texture handle and per-thread info.
-    virtual bool environment (TextureHandle *texture_handle, Perthread *thread_info,
-                              TextureOptBatch &options, Tex::RunMask mask,
-                              const float *R, const float *dRdx, const float *dRdy,
-                              int nchannels, float *result,
-                              float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
-
-    // Batched shadow lookups
-    virtual bool shadow (ustring filename,
-                         TextureOptBatch &options, Tex::RunMask mask,
-                         const float *P, const float *dPdx, const float *dPdy,
-                         float *result, float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
-    virtual bool shadow (TextureHandle *texture_handle, Perthread *thread_info,
-                         TextureOptBatch &options, Tex::RunMask mask,
-                         const float *P, const float *dPdx, const float *dPdy,
-                         float *result, float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
+    bool environment(TextureHandle* texture_handle, Perthread* thread_info,
+                     TextureOptBatch& options, Tex::RunMask mask,
+                     const float* R, const float* dRdx, const float* dRdy,
+                     int nchannels, float* result, float* dresultds = nullptr,
+                     float* dresultdt = nullptr);
 
     /// @}
 
@@ -1229,7 +1222,7 @@ public:
 
     /// Given possibly-relative 'filename' (UTF-8 encoded), resolve it using
     /// the search path rules and return the full resolved filename.
-    virtual std::string resolve_filename (const std::string &filename) const=0;
+    std::string resolve_filename(const std::string& filename) const;
 
     /// Get information or metadata about the named texture and store it in
     /// `*data`.
@@ -1414,15 +1407,15 @@ public:
     ///             Except for the `"exists"` query, a file that does not
     ///             exist or could not be read properly as an image also
     ///             constitutes a query failure that will return `false`.
-    virtual bool get_texture_info (ustring filename, int subimage,
-                          ustring dataname, TypeDesc datatype, void *data) = 0;
+    bool get_texture_info(ustring filename, int subimage, ustring dataname,
+                          TypeDesc datatype, void* data);
 
     /// A more efficient variety of `get_texture_info()` for cases where you
     /// can use a `TextureHandle*` to specify the image and optionally have
     /// a `Perthread*` for the calling thread.
-    virtual bool get_texture_info (TextureHandle *texture_handle,
-                          Perthread *thread_info, int subimage,
-                          ustring dataname, TypeDesc datatype, void *data) = 0;
+    bool get_texture_info(TextureHandle* texture_handle, Perthread* thread_info,
+                          int subimage, ustring dataname, TypeDesc datatype,
+                          void* data);
 
     /// Copy the ImageSpec associated with the named texture (the first
     /// subimage by default, or as set by `subimage`).
@@ -1440,14 +1433,12 @@ public:
     ///             as being unable to find, open, or read the file, or if
     ///             it does not contain the designated subimage or MIP
     ///             level).
-    virtual bool get_imagespec (ustring filename, int subimage,
-                                ImageSpec &spec) = 0;
+    bool get_imagespec(ustring filename, int subimage, ImageSpec& spec);
     /// A more efficient variety of `get_imagespec()` for cases where you
     /// can use a `TextureHandle*` to specify the image and optionally have
     /// a `Perthread*` for the calling thread.
-    virtual bool get_imagespec (TextureHandle *texture_handle,
-                                Perthread *thread_info, int subimage,
-                                ImageSpec &spec) = 0;
+    bool get_imagespec(TextureHandle* texture_handle, Perthread* thread_info,
+                       int subimage, ImageSpec& spec);
 
     /// Return a pointer to an ImageSpec associated with the named texture
     /// if the file is found and is an image format that can be read,
@@ -1470,13 +1461,13 @@ public:
     ///             A pointer to the spec, if the image is found and able to
     ///             be opened and read by an available image format plugin,
     ///             and the designated subimage exists.
-    virtual const ImageSpec *imagespec (ustring filename, int subimage=0) = 0;
+    const ImageSpec* imagespec(ustring filename, int subimage = 0);
     /// A more efficient variety of `imagespec()` for cases where you can
     /// use a `TextureHandle*` to specify the image and optionally have a
     /// `Perthread*` for the calling thread.
-    virtual const ImageSpec *imagespec (TextureHandle *texture_handle,
-                                        Perthread *thread_info = nullptr,
-                                        int subimage=0) = 0;
+    const ImageSpec* imagespec(TextureHandle* texture_handle,
+                               Perthread* thread_info = nullptr,
+                               int subimage           = 0);
 
     /// For a texture specified by name, retrieve the rectangle of raw
     /// unfiltered texels from the subimage specified in `options` and at
@@ -1519,20 +1510,17 @@ public:
     ///
     /// @returns
     ///             `true` for success, `false` for failure.
-    virtual bool get_texels (ustring filename, TextureOpt &options,
-                             int miplevel, int xbegin, int xend,
-                             int ybegin, int yend, int zbegin, int zend,
-                             int chbegin, int chend,
-                             TypeDesc format, void *result) = 0;
+    bool get_texels(ustring filename, TextureOpt& options, int miplevel,
+                    int xbegin, int xend, int ybegin, int yend, int zbegin,
+                    int zend, int chbegin, int chend, TypeDesc format,
+                    void* result);
     /// A more efficient variety of `get_texels()` for cases where you can
     /// use a `TextureHandle*` to specify the image and optionally have a
     /// `Perthread*` for the calling thread.
-    virtual bool get_texels (TextureHandle *texture_handle,
-                             Perthread *thread_info, TextureOpt &options,
-                             int miplevel, int xbegin, int xend,
-                             int ybegin, int yend, int zbegin, int zend,
-                             int chbegin, int chend,
-                             TypeDesc format, void *result) = 0;
+    bool get_texels(TextureHandle* texture_handle, Perthread* thread_info,
+                    TextureOpt& options, int miplevel, int xbegin, int xend,
+                    int ybegin, int yend, int zbegin, int zend, int chbegin,
+                    int chend, TypeDesc format, void* result);
 
     /// @}
 
@@ -1543,12 +1531,12 @@ public:
     /// Is the UTF-8 encoded filename a UDIM pattern?
     ///
     /// This method was added in OpenImageIO 2.3.
-    virtual bool is_udim(ustring filename) = 0;
+    bool is_udim(ustring filename);
 
     /// Does the handle refer to a file that's a UDIM pattern?
     ///
     /// This method was added in OpenImageIO 2.3.
-    virtual bool is_udim(TextureHandle* udimfile) = 0;
+    bool is_udim(TextureHandle* udimfile);
 
     /// For a UDIM filename pattern (UTF-8 encoded) and texture coordinates,
     /// return the TextureHandle pointer for the concrete tile file it refers
@@ -1556,17 +1544,15 @@ public:
     /// allowed to be sparse).
     ///
     /// This method was added in OpenImageIO 2.3.
-    virtual TextureHandle* resolve_udim(ustring udimpattern,
-                                        float s, float t) = 0;
+    TextureHandle* resolve_udim(ustring udimpattern, float s, float t);
 
     /// A more efficient variety of `resolve_udim()` for cases where you
     /// have the `TextureHandle*` that corresponds to the "virtual" UDIM
     /// file and optionally have a `Perthread*` for the calling thread.
     ///
     /// This method was added in OpenImageIO 2.3.
-    virtual TextureHandle* resolve_udim(TextureHandle* udimfile,
-                                        Perthread* thread_info,
-                                        float s, float t) = 0;
+    TextureHandle* resolve_udim(TextureHandle* udimfile, Perthread* thread_info,
+                                float s, float t);
 
     /// Produce a full inventory of the set of concrete files comprising the
     /// UDIM set specified by UTF-8 encoded `udimpattern`.  The apparent
@@ -1579,19 +1565,17 @@ public:
     /// `utile + vtile * nvtiles`.
     ///
     /// This method was added in OpenImageIO 2.3.
-    virtual void inventory_udim(ustring udimpattern,
-                                std::vector<ustring>& filenames,
-                                int& nutiles, int& nvtiles) = 0;
+    void inventory_udim(ustring udimpattern, std::vector<ustring>& filenames,
+                        int& nutiles, int& nvtiles);
 
     /// A more efficient variety of `inventory_udim()` for cases where you
     /// have the `TextureHandle*` that corresponds to the "virtual" UDIM
     /// file and optionally have a `Perthread*` for the calling thread.
     ///
     /// This method was added in OpenImageIO 2.3.
-    virtual void inventory_udim(TextureHandle* udimfile,
-                                Perthread* thread_info,
-                                std::vector<ustring>& filenames,
-                                int& nutiles, int& nvtiles) = 0;
+    void inventory_udim(TextureHandle* udimfile, Perthread* thread_info,
+                        std::vector<ustring>& filenames, int& nutiles,
+                        int& nvtiles);
     /// @}
 
     /// @{
@@ -1602,11 +1586,11 @@ public:
     /// encoded), including loaded texture tiles from that texture, and close
     /// any open file handle associated with the file. This calls
     /// `ImageCache::invalidate(filename,force)` on the underlying ImageCache.
-    virtual void invalidate (ustring filename, bool force = true) = 0;
+    void invalidate(ustring filename, bool force = true);
 
     /// Invalidate all cached data for all textures.  This calls
     /// `ImageCache::invalidate_all(force)` on the underlying ImageCache.
-    virtual void invalidate_all (bool force=false) = 0;
+    void invalidate_all(bool force = false);
 
     /// Close any open file handles associated with a UTF-8 encoded filename,
     /// but do not invalidate any image spec information or pixels associated
@@ -1614,10 +1598,10 @@ public:
     /// handle resources, or to make it safe for other processes to modify
     /// textures on disk.  This calls `ImageCache::close(force)` on the
     /// underlying ImageCache.
-    virtual void close (ustring filename) = 0;
+    void close(ustring filename);
 
     /// `close()` all files known to the cache.
-    virtual void close_all () = 0;
+    void close_all();
 
     /// @}
 
@@ -1625,13 +1609,13 @@ public:
     /// @name Errors and statistics
 
     /// Is there a pending error message waiting to be retrieved?
-    virtual bool has_error() const = 0;
+    bool has_error() const;
 
     /// Return the text of all pending error messages issued against this
     /// TextureSystem, and clear the pending error message unless `clear` is
     /// false. If no error message is pending, it will return an empty
     /// string.
-    virtual std::string geterror(bool clear = true) const = 0;
+    std::string geterror(bool clear = true) const;
 
     /// Returns a big string containing useful statistics about the
     /// TextureSystem operations, suitable for saving to a file or
@@ -1641,34 +1625,36 @@ public:
     /// the returned string will also contain all the statistics of the
     /// underlying ImageCache, but if false will only contain
     /// texture-specific statistics.
-    virtual std::string getstats (int level=1, bool icstats=true) const = 0;
+    std::string getstats(int level = 1, bool icstats = true) const;
 
     /// Reset most statistics to be as they were with a fresh TextureSystem.
     /// Caveat emptor: this does not flush the cache itself, so the resulting
     /// statistics from the next set of texture requests will not match the
     /// number of tile reads, etc., that would have resulted from a new
     /// TextureSystem.
-    virtual void reset_stats () = 0;
+    void reset_stats();
 
     /// @}
 
     /// Return an opaque, non-owning pointer to the underlying ImageCache
     /// (if there is one).
-    virtual std::shared_ptr<ImageCache> imagecache() const = 0;
-
-    virtual ~TextureSystem () { }
+    std::shared_ptr<ImageCache> imagecache() const;
 
     // For testing -- do not use
     static void unit_test_hash();
 
-protected:
+    TextureSystem(std::shared_ptr<ImageCache> imagecache);
+    ~TextureSystem();
+
+private:
+    // PIMPL idiom
+    using Impl = TextureSystemImpl;
+    // class Impl;
+    static void impl_deleter(Impl*);
+    std::unique_ptr<Impl, decltype(&impl_deleter)> m_impl;
+
     // User code should never directly construct or destruct a TextureSystem.
     // Always use TextureSystem::create() and TextureSystem::destroy().
-    TextureSystem (void) { }
-private:
-    // Make delete private and unimplemented in order to prevent apps
-    // from calling it.  Instead, they should call TextureSystem::destroy().
-    void operator delete(void* /*todel*/) {}
 };
 
 
