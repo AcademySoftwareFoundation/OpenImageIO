@@ -2128,6 +2128,66 @@ IBA_ociofiletransform_colorconfig_ret(const ImageBuf& src,
 
 
 
+bool
+IBA_ocionamedtransform(ImageBuf& dst, const ImageBuf& src,
+                       const std::string& name, bool unpremult, bool inverse,
+                       const std::string& context_key,
+                       const std::string& context_value, ROI roi = ROI::All(),
+                       int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::ocionamedtransform(dst, src, name, unpremult, inverse,
+                                            context_key, context_value, NULL,
+                                            roi, nthreads);
+}
+
+
+bool
+IBA_ocionamedtransform_colorconfig(ImageBuf& dst, const ImageBuf& src,
+                                   const std::string& name, bool unpremult,
+                                   bool inverse, const std::string& context_key,
+                                   const std::string& context_value,
+                                   const std::string& colorconfig = "",
+                                   ROI roi = ROI::All(), int nthreads = 0)
+{
+    ColorConfig config(colorconfig);
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::ocionamedtransform(dst, src, name, unpremult, inverse,
+                                            context_key, context_value, &config,
+                                            roi, nthreads);
+}
+
+
+
+ImageBuf
+IBA_ocionamedtransform_ret(const ImageBuf& src, const std::string& name,
+                           bool unpremult, bool inverse,
+                           const std::string& context_key,
+                           const std::string& context_value,
+                           ROI roi = ROI::All(), int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::ocionamedtransform(src, name, unpremult, inverse,
+                                            context_key, context_value, NULL,
+                                            roi, nthreads);
+}
+
+
+ImageBuf
+IBA_ocionamedtransform_colorconfig_ret(
+    const ImageBuf& src, const std::string& name, bool unpremult, bool inverse,
+    const std::string& context_key, const std::string& context_value,
+    const std::string& colorconfig = "", ROI roi = ROI::All(), int nthreads = 0)
+{
+    ColorConfig config(colorconfig);
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::ocionamedtransform(src, name, unpremult, inverse,
+                                            context_key, context_value, &config,
+                                            roi, nthreads);
+}
+
+
+
 py::object
 IBA_isConstantColor(const ImageBuf& src, float threshold, ROI roi = ROI::All(),
                     int nthreads = 0)
@@ -2832,6 +2892,27 @@ declare_imagebufalgo(py::module& m)
                     "src"_a, "name"_a, "unpremult"_a = true,
                     "inverse"_a = false, "colorconfig"_a = "",
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
+
+        .def_static("ocionamedtransform", &IBA_ocionamedtransform, "dst"_a,
+                    "src"_a, "name"_a, "unpremult"_a = true,
+                    "inverse"_a = false, "context_key"_a = "",
+                    "context_value"_a = "", "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
+        .def_static("ocionamedtransform", &IBA_ocionamedtransform_colorconfig,
+                    "dst"_a, "src"_a, "name"_a, "unpremult"_a = true,
+                    "inverse"_a = false, "context_key"_a = "",
+                    "context_value"_a = "", "colorconfig"_a = "",
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("ocionamedtransform", &IBA_ocionamedtransform_ret, "src"_a,
+                    "name"_a, "unpremult"_a = true, "inverse"_a = false,
+                    "context_key"_a = "", "context_value"_a = "",
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("ocionamedtransform",
+                    &IBA_ocionamedtransform_colorconfig_ret, "src"_a, "name"_a,
+                    "unpremult"_a = true, "inverse"_a = false,
+                    "context_key"_a = "", "context_value"_a = "",
+                    "colorconfig"_a = "", "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
 
         .def_static("computePixelStats", &IBA_computePixelStats, "src"_a,
                     "stats"_a, "roi"_a = ROI::All(), "nthreads"_a = 0)

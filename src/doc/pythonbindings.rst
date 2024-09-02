@@ -3623,6 +3623,19 @@ Color manipulation
         Dst = ImageBufAlgo.ociofiletransform (Src, "foottransform.csp")
 
 
+.. py:method:: ImageBuf ImageBufAlgo.ocionamedtransform (src, name, unpremult=True, inverse=False, context_key="", context_value="", colorconfig="", roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.ocionamedtransform (dst, src, name, unpremult=True, inverse=False, context_key="", context_value="", colorconfig="", roi=ROI.All, nthreads=0)
+
+    Apply an OpenColorIO "named" transform to the pixel values.
+
+    Example:
+
+    .. code-block:: python
+
+        Src = ImageBuf ("tahoe.dpx")
+        Dst = ImageBufAlgo.ocionamedtransform (Src, "log_to_lin",
+                                context_key="SHOT", context_value="pe0012")
+
 
 .. py:method:: ImageBuf ImageBufAlgo.unpremult (src, roi=ROI.All, nthreads=0)
                bool ImageBufAlgo.unpremult (dst, src, roi=ROI.All, nthreads=0)

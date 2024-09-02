@@ -107,7 +107,14 @@ declare_colorconfig(py::module& m)
              [](const ColorConfig& self, const std::string& color_space) {
                  return self.getAliases(color_space);
              })
-
+        .def("getNumNamedTransforms", &ColorConfig::getNumNamedTransforms)
+        .def("getNamedTransformNameByIndex",
+             &ColorConfig::getNamedTransformNameByIndex)
+        .def("getNamedTransformNames", &ColorConfig::getNamedTransformNames)
+        .def("getNamedTransformAliases",
+             [](const ColorConfig& self, const std::string& named_transform) {
+                 return self.getNamedTransformAliases(named_transform);
+             })
         .def("getColorSpaceFromFilepath",
              [](const ColorConfig& self, const std::string& str) {
                  return std::string(self.getColorSpaceFromFilepath(str));

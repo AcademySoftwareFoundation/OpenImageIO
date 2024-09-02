@@ -144,6 +144,19 @@ public:
     /// Retrieve the full list of known look names, as a vector of strings.
     std::vector<std::string> getLookNames() const;
 
+    /// Get the number of NamedTransforms defined in this configuration
+    int getNumNamedTransforms() const;
+
+    /// Query the name of the specified NamedTransform.
+    const char* getNamedTransformNameByIndex(int index) const;
+
+    /// Retrieve the full list of known NamedTransforms, as a vector of strings
+    std::vector<std::string> getNamedTransformNames() const;
+
+    /// Retrieve the full list of aliases for the named NamedTransform.
+    std::vector<std::string>
+    getNamedTransformAliases(string_view named_transform) const;
+
     /// Is the color space known to be linear? This is very conservative, and
     /// will return false if it's not sure.
     bool isColorSpaceLinear(string_view name) const;
@@ -304,6 +317,25 @@ public:
                                              bool inverse = false) const;
     ColorProcessorHandle createFileTransform(ustring name,
                                              bool inverse = false) const;
+
+    /// Construct a processor to perform color transforms determined by an
+    /// OpenColorIO NamedTransform. It is possible that this will return an
+    /// empty handle if the NamedTransform doesn't exist or is not allowed.
+    ///
+    /// The handle is actually a shared_ptr, so when you're done with a
+    /// ColorProcess, just discard it. ColorProcessor(s) remain valid even
+    /// if the ColorConfig that created them no longer exists.
+    ///
+    /// Created ColorProcessors are cached, so asking for the same color
+    /// space transformation multiple times shouldn't be very expensive.
+    ColorProcessorHandle
+    createNamedTransform(string_view name, bool inverse = false,
+                         string_view context_key   = "",
+                         string_view context_value = "") const;
+    ColorProcessorHandle
+    createNamedTransform(ustring name, bool inverse = false,
+                         ustring context_key   = ustring(),
+                         ustring context_value = ustring()) const;
 
     /// Construct a processor to perform color transforms specified by a
     /// 4x4 matrix.

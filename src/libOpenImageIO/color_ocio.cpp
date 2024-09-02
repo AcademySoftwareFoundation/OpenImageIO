@@ -76,23 +76,25 @@ public:
     ColorProcCacheKey(ustring in, ustring out, ustring key = ustring(),
                       ustring val = ustring(), ustring looks = ustring(),
                       ustring display = ustring(), ustring view = ustring(),
-                      ustring file = ustring(), bool inverse = false)
+                      ustring file           = ustring(),
+                      ustring namedtransform = ustring(), bool inverse = false)
         : inputColorSpace(in)
         , outputColorSpace(out)
         , context_key(key)
         , context_value(val)
         , looks(looks)
         , file(file)
+        , namedtransform(namedtransform)
         , inverse(inverse)
     {
         hash = inputColorSpace.hash() + 14033ul * outputColorSpace.hash()
                + 823ul * context_key.hash() + 28411ul * context_value.hash()
                + 1741ul
                      * (looks.hash() + display.hash() + view.hash()
-                        + file.hash())
+                        + file.hash() + namedtransform.hash())
                + (inverse ? 6421 : 0);
-        // N.B. no separate multipliers for looks, display, view, file
-        // because they're never used for the same lookup.
+        // N.B. no separate multipliers for looks, display, view, file,
+        // namedtransform, because they're never used for the same lookup.
     }
 
     friend bool operator<(const ColorProcCacheKey& a,
@@ -100,10 +102,10 @@ public:
     {
         return std::tie(a.hash, a.inputColorSpace, a.outputColorSpace,
                         a.context_key, a.context_value, a.looks, a.display,
-                        a.view, a.file, a.inverse)
+                        a.view, a.file, a.namedtransform, a.inverse)
                < std::tie(b.hash, b.inputColorSpace, b.outputColorSpace,
                           b.context_key, b.context_value, b.looks, b.display,
-                          b.view, b.file, b.inverse);
+                          b.view, b.file, b.namedtransform, b.inverse);
     }
 
     friend bool operator==(const ColorProcCacheKey& a,
@@ -111,10 +113,10 @@ public:
     {
         return std::tie(a.hash, a.inputColorSpace, a.outputColorSpace,
                         a.context_key, a.context_value, a.looks, a.display,
-                        a.view, a.file, a.inverse)
+                        a.view, a.file, a.namedtransform, a.inverse)
                == std::tie(b.hash, b.inputColorSpace, b.outputColorSpace,
                            b.context_key, b.context_value, b.looks, b.display,
-                           b.view, b.file, b.inverse);
+                           b.view, b.file, b.namedtransform, b.inverse);
     }
     ustring inputColorSpace;
     ustring outputColorSpace;
@@ -124,6 +126,7 @@ public:
     ustring display;
     ustring view;
     ustring file;
+    ustring namedtransform;
     bool inverse;
     size_t hash;
 };
@@ -1243,6 +1246,54 @@ ColorConfig::getDisplayViewLooks(const std::string& display,
 
 
 
+int
+ColorConfig::getNumNamedTransforms() const
+{
+    if (getImpl()->config_ && !disable_ocio)
+        return getImpl()->config_->getNumNamedTransforms();
+    return 0;
+}
+
+
+
+const char*
+ColorConfig::getNamedTransformNameByIndex(int index) const
+{
+    if (getImpl()->config_ && !disable_ocio)
+        return getImpl()->config_->getNamedTransformNameByIndex(index);
+    return nullptr;
+}
+
+
+
+std::vector<std::string>
+ColorConfig::getNamedTransformNames() const
+{
+    std::vector<std::string> result;
+    for (int i = 0, e = getNumNamedTransforms(); i != e; ++i)
+        result.emplace_back(getNamedTransformNameByIndex(i));
+    return result;
+}
+
+
+
+std::vector<std::string>
+ColorConfig::getNamedTransformAliases(string_view named_transform) const
+{
+    std::vector<std::string> result;
+    auto config = getImpl()->config_;
+    if (config) {
+        auto nt = config->getNamedTransform(c_str(named_transform));
+        if (nt) {
+            for (int i = 0, e = nt->getNumAliases(); i < e; ++i)
+                result.emplace_back(nt->getAlias(i));
+        }
+    }
+    return result;
+}
+
+
+
 std::string
 ColorConfig::configname() const
 {
@@ -1809,7 +1860,8 @@ ColorConfig::createLookTransform(ustring looks, ustring inputColorSpace,
     // exists, just return it.
     ColorProcCacheKey prockey(inputColorSpace, outputColorSpace, context_key,
                               context_value, looks, ustring() /*display*/,
-                              ustring() /*view*/, ustring() /*file*/, inverse);
+                              ustring() /*view*/, ustring() /*file*/,
+                              ustring() /*namedtransform*/, inverse);
     ColorProcessorHandle handle = getImpl()->findproc(prockey);
     if (handle)
         return handle;
@@ -1893,7 +1945,8 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
     // exists, just return it.
     ColorProcCacheKey prockey(inputColorSpace, ustring() /*outputColorSpace*/,
                               context_key, context_value, looks, display, view,
-                              ustring() /*file*/, inverse);
+                              ustring() /*file*/, ustring() /*namedtransform*/,
+                              inverse);
     ColorProcessorHandle handle = getImpl()->findproc(prockey);
     if (handle)
         return handle;
@@ -1958,8 +2011,8 @@ ColorConfig::createFileTransform(ustring name, bool inverse) const
                               ustring() /*outputColorSpace*/,
                               ustring() /*context_key*/,
                               ustring() /*context_value*/, ustring() /*looks*/,
-                              ustring() /*display*/, ustring() /*view*/, name,
-                              inverse);
+                              ustring() /*display*/, ustring() /*view*/,
+                              ustring() /*file*/, name, inverse);
     ColorProcessorHandle handle = getImpl()->findproc(prockey);
     if (handle)
         return handle;
@@ -1979,6 +2032,69 @@ ColorConfig::createFileTransform(ustring name, bool inverse) const
         OCIO::TransformDirection dir    = inverse ? OCIO::TRANSFORM_DIR_INVERSE
                                                   : OCIO::TRANSFORM_DIR_FORWARD;
         OCIO::ConstContextRcPtr context = config->getCurrentContext();
+        OCIO::ConstProcessorRcPtr p;
+        try {
+            // Get the processor corresponding to this transform.
+            p = config->getProcessor(context, transform, dir);
+            getImpl()->clear_error();
+            handle = ColorProcessorHandle(new ColorProcessor_OCIO(p));
+        } catch (OCIO::Exception& e) {
+            getImpl()->error(e.what());
+        } catch (...) {
+            getImpl()->error(
+                "An unknown error occurred in OpenColorIO, getProcessor");
+        }
+    }
+
+    return getImpl()->addproc(prockey, handle);
+}
+
+
+
+ColorProcessorHandle
+ColorConfig::createNamedTransform(string_view name, bool inverse,
+                                  string_view context_key,
+                                  string_view context_value) const
+{
+    return createNamedTransform(ustring(name), inverse, ustring(context_key),
+                                ustring(context_value));
+}
+
+
+
+ColorProcessorHandle
+ColorConfig::createNamedTransform(ustring name, bool inverse,
+                                  ustring context_key,
+                                  ustring context_value) const
+{
+    // First, look up the requested processor in the cache. If it already
+    // exists, just return it.
+    ColorProcCacheKey prockey(ustring() /*inputColorSpace*/,
+                              ustring() /*outputColorSpace*/, context_key,
+                              context_value, ustring() /*looks*/,
+                              ustring() /*display*/, ustring() /*view*/,
+                              ustring() /*file*/, name, inverse);
+    ColorProcessorHandle handle = getImpl()->findproc(prockey);
+    if (handle)
+        return handle;
+
+    // Ask OCIO to make a Processor that can handle the requested
+    // transformation.
+    if (getImpl()->config_ && !disable_ocio) {
+        OCIO::ConstConfigRcPtr config = getImpl()->config_;
+        auto transform                = config->getNamedTransform(name.c_str());
+        OCIO::TransformDirection dir  = inverse ? OCIO::TRANSFORM_DIR_INVERSE
+                                                : OCIO::TRANSFORM_DIR_FORWARD;
+        auto context                  = config->getCurrentContext();
+        auto keys                     = Strutil::splits(context_key, ",");
+        auto values                   = Strutil::splits(context_value, ",");
+        if (keys.size() && values.size() && keys.size() == values.size()) {
+            OCIO::ContextRcPtr ctx = context->createEditableCopy();
+            for (size_t i = 0; i < keys.size(); ++i)
+                ctx->setStringVar(keys[i].c_str(), values[i].c_str());
+            context = ctx;
+        }
+
         OCIO::ConstProcessorRcPtr p;
         try {
             // Get the processor corresponding to this transform.
@@ -2547,6 +2663,54 @@ ImageBufAlgo::ociofiletransform(const ImageBuf& src, string_view name,
                                 colorconfig, roi, nthreads);
     if (!ok && !result.has_error())
         result.errorfmt("ImageBufAlgo::ociofiletransform() error");
+    return result;
+}
+
+
+
+bool
+ImageBufAlgo::ocionamedtransform(ImageBuf& dst, const ImageBuf& src,
+                                 string_view name, bool unpremult, bool inverse,
+                                 string_view key, string_view value,
+                                 const ColorConfig* colorconfig, ROI roi,
+                                 int nthreads)
+{
+    pvt::LoggedTimer logtime("IBA::ocionamedtransform");
+    ColorProcessorHandle processor;
+    {
+        if (!colorconfig)
+            colorconfig = &ColorConfig::default_colorconfig();
+        processor = colorconfig->createNamedTransform(name, inverse, key,
+                                                      value);
+        if (!processor) {
+            if (colorconfig->has_error())
+                dst.errorfmt("{}", colorconfig->geterror());
+            else
+                dst.errorfmt(
+                    "Could not construct the color transform (unknown error)");
+            return false;
+        }
+    }
+
+    logtime.stop();  // transition to colorconvert
+    bool ok = colorconvert(dst, src, processor.get(), unpremult, roi, nthreads);
+    return ok;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::ocionamedtransform(const ImageBuf& src, string_view name,
+                                 bool unpremult, bool inverse, string_view key,
+                                 string_view value,
+                                 const ColorConfig* colorconfig, ROI roi,
+                                 int nthreads)
+{
+    ImageBuf result;
+    bool ok = ocionamedtransform(result, src, name, unpremult, inverse, key,
+                                 value, colorconfig, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.errorfmt("ImageBufAlgo::ocionamedtransform() error");
     return result;
 }
 
