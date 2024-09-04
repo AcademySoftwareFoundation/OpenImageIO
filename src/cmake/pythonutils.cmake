@@ -32,10 +32,20 @@ macro (find_python)
             list (APPEND _req EXACT)
         endif ()
     endif ()
+
+    # Support building on manylinux docker images, which do not contain
+    # the Development.Embedded component.
+    # https://pybind11.readthedocs.io/en/stable/compiling.html#findpython-mode
+    if (${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.18.0" AND NOT WIN32)
+        set (_py_components Interpreter Development.Module)
+    else ()
+        set (_py_components Interpreter Development)
+    endif ()
+
     checked_find_package (Python3 ${PYTHON_VERSION}
                           ${_req}
                           VERSION_MIN 3.7
-                          COMPONENTS Interpreter Development.Module
+                          COMPONENTS ${_py_components}
                           PRINT Python3_VERSION Python3_EXECUTABLE
                                 Python3_LIBRARIES
                                 Python3_Development_FOUND
