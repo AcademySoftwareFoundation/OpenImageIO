@@ -19,7 +19,6 @@
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
-#include <OpenImageIO/span_util.h>
 #include <OpenImageIO/tiffutils.h>
 
 // #include "jpeg_memory_src.h"
