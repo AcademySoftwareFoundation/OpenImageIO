@@ -57,6 +57,7 @@ requires = [
 
 [tool.scikit-build]
 minimum-version = "build-system.requires"
+cmake.verbose = true
 cmake.version = "CMakeLists.txt"
 wheel.expand-macos-universal-tags = false
 wheel.install-dir = "OpenImageIO"
