@@ -8,7 +8,6 @@
 
 #include <OpenImageIO/image_view.h>
 #include <OpenImageIO/span.h>
-#include <OpenImageIO/span_util.h>
 #include <OpenImageIO/strided_ptr.h>
 #include <OpenImageIO/unittest.h>
 
