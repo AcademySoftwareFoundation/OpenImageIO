@@ -20,22 +20,25 @@ if [[ "$ASWF_ORG" != ""  ]] ; then
     if [[ "$ASWF_VFXPLATFORM_VERSION" == "2021" || "$ASWF_VFXPLATFORM_VERSION" == "2022" ]] ; then
         # CentOS 7 based containers need the now-nonexistant centos repo to be
         # excluded or all the subsequent yum install commands will fail.
-        yum-config-manager --disable centos-sclo-rh && true
+        yum-config-manager --disable centos-sclo-rh || true
         sed -i 's,^mirrorlist=,#,; s,^#baseurl=http://mirror\.centos\.org/centos/$releasever,baseurl=https://vault.centos.org/7.9.2009,' /etc/yum.repos.d/CentOS-Base.repo
     fi
 
-    sudo yum install -y giflib giflib-devel && true
+    sudo yum install -y giflib giflib-devel || true
     if [[ "${USE_OPENCV}" != "0" ]] ; then
-        sudo yum install -y opencv opencv-devel && true
+        sudo yum install -y opencv opencv-devel || true
     fi
     if [[ "${USE_FFMPEG}" != "0" ]] ; then
-        sudo yum install -y ffmpeg ffmpeg-devel && true
+        sudo yum install -y ffmpeg ffmpeg-devel || true
     fi
     if [[ "${USE_FREETYPE:-1}" != "0" ]] ; then
-        sudo yum install -y freetype freetype-devel && true
+        sudo yum install -y freetype freetype-devel || true
     fi
     if [[ "${EXTRA_DEP_PACKAGES}" != "" ]] ; then
-        time sudo yum install -y ${EXTRA_DEP_PACKAGES}
+        time sudo yum install -y ${EXTRA_DEP_PACKAGES} || true
+    fi
+    if [[ "${PIP_INSTALLS}" != "" ]] ; then
+        time pip3 install ${PIP_INSTALLS} || true
     fi
 
     if [[ "${CONAN_LLVM_VERSION}" != "" ]] ; then
@@ -107,11 +110,6 @@ else
         time sudo apt-get -q install -y ${EXTRA_DEP_PACKAGES}
     fi
 
-    # Nonstandard python versions
-    # if [[ "${PYTHON_VERSION}" == "3.9" ]] ; then
-    #     time sudo apt-get -q install -y python3.9-dev python3-numpy
-    #     pip3 --version
-    # fi
     time sudo apt-get -q install -y python3-numpy
     if [[ "${PIP_INSTALLS}" != "" ]] ; then
         time pip3 install ${PIP_INSTALLS}
