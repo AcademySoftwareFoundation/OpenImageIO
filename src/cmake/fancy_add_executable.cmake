@@ -63,7 +63,7 @@ macro (fancy_add_executable)
             if (APPLE)
                 set_target_properties (${_target_NAME} PROPERTIES 
                         INSTALL_RPATH "@loader_path/../${CMAKE_INSTALL_LIBDIR}")
-            else ()
+            elseif (LINUX)
                 set_target_properties (${_target_NAME} PROPERTIES 
                         INSTALL_RPATH "$ORIGIN/../${CMAKE_INSTALL_LIBDIR}")
             endif ()

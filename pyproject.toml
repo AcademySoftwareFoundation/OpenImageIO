@@ -27,8 +27,8 @@ classifiers = [
     "Topic :: Multimedia :: Video :: Display",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-dependencies = []
-requires-python = ">= 3.9"
+dependencies = ["numpy"]
+requires-python = ">= 3.7"
 
 [project.urls]
 Homepage = "https://openimageio.org/"
@@ -51,13 +51,11 @@ build-backend = "scikit_build_core.build"
 requires = [
     "scikit-build-core>=0.10,<1",
     "pybind11",
-    #"invoke",
-    #"repairwheel",
 ]
 
 [tool.scikit-build]
 minimum-version = "build-system.requires"
-cmake.verbose = true
+build.verbose = true
 cmake.version = "CMakeLists.txt"
 wheel.expand-macos-universal-tags = false
 wheel.install-dir = "OpenImageIO"
@@ -70,7 +68,6 @@ wheel.license-files = [
 # OpenImageIO-2.6+ has a mechanism for building, linking, and 
 # distributing missing dependencies. See src/cmake for details.
 OpenImageIO_BUILD_MISSING_DEPS = "all"
-CMAKE_INSTALL_LIBDIR = "lib"
 CMAKE_BUILD_TYPE = "MinSizeRel"  # Optimize for size (not speed)
 
 [tool.scikit-build.metadata.version]
@@ -79,21 +76,38 @@ provider = "scikit_build_core.metadata.regex"
 input = "CMakeLists.txt" 
 regex = 'set \(OpenImageIO_VERSION "(?P<value>[0-9a-z.]+)"\)'
 
+# On Linux and macOS, we want to install libraries to lib to help
+# with RPATH issues. This is not necessary on Windows.
+[[tool.scikit-build.overrides]]
+if.any.platform-system = "linux"
+inherit.cmake.define = "append"
+cmake.define.CMAKE_INSTALL_LIBDIR = "lib"
+
+[[tool.scikit-build.overrides]]
+if.any.platform-system = "darwin"
+inherit.cmake.define = "append"
+cmake.define.CMAKE_INSTALL_LIBDIR = "lib"
+
 [tool.cibuildwheel]
 build-verbosity = 1
 build = "pp* cp*"
 skip = [
-    "*musllinux*",
+    "*musllinux*",  # building with musl seems to work, but the repairwheel step seems to fail...
 ]
 before-build = "pip install repairwheel && pip install invoke"
 repair-wheel-command = "invoke wheel-repair --build-dir ${SKBUILD_BUILD_DIR} --wheel-path {wheel} --output-dir {dest_dir}"
 
 [tool.cibuildwheel.macos.environment]
+# Specify a build directory so the repairwheel command can (re)find
+# dependency libraries built by OpenImageIO.
 SKBUILD_BUILD_DIR = "/tmp/build_wheels"
+# Always (re)build the TIFF library; otherwise, OIIO has trouble
+# with libdeflate when building successive permutations of python
+# wheels against the build cache.
 SKBUILD_CMAKE_ARGS = "-DOpenImageIO_BUILD_LOCAL_DEPS=TIFF; -DOpenImageIO_BUILD_MISSING_DEPS=all"
 
 [tool.cibuildwheel.linux.environment]
-# Suppress warnings that cause linux cibuildwheel build to fail
-CXXFLAGS = "-Wno-error=stringop-overflow= -Wno-pragmas"
 SKBUILD_BUILD_DIR = "/tmp/build_wheels"
 SKBUILD_CMAKE_ARGS = "-DOpenImageIO_BUILD_LOCAL_DEPS=TIFF; -DOpenImageIO_BUILD_MISSING_DEPS=all"
+# Suppress warnings that cause linux cibuildwheel build to fail
+CXXFLAGS = "-Wno-error=stringop-overflow= -Wno-pragmas"
