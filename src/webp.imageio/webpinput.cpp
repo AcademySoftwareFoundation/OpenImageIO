@@ -308,14 +308,18 @@ WebpInput::read_current_subimage()
                                        m_spec.scanline_bytes());
             // WebP requires unassociated alpha, and it's sRGB.
             // Handle this all by wrapping an IB around it.
-            ImageBuf fullbuf(m_spec, m_decoded_image.get());
+            ImageBuf fullbuf(m_spec,
+                             span<std::byte>((std::byte*)m_decoded_image.get(),
+                                             m_spec.image_bytes()));
             ImageBufAlgo::premult(fullbuf, fullbuf);
         }
     } else {
         // This subimage writes *atop* the prior image, we must composite
         ImageSpec fullspec(m_spec.width, m_spec.height, m_spec.nchannels,
                            m_spec.format);
-        ImageBuf fullbuf(fullspec, m_decoded_image.get());
+        ImageBuf fullbuf(fullspec,
+                         span<std::byte>((std::byte*)m_decoded_image.get(),
+                                         fullspec.image_bytes()));
         ImageSpec fragspec(m_iter.width, m_iter.height, 4, TypeUInt8);
         fragspec.x = m_iter.x_offset;
         fragspec.y = m_iter.y_offset;

@@ -218,9 +218,11 @@ ImageBufAlgo::to_OpenCV(cv::Mat& dst, const ImageBuf& src, ROI roi,
 
     size_t pixelsize = dstSpecFormat.size() * chans;
     size_t linestep  = pixelsize * roi.width();
+    size_t bufsize   = linestep * roi.height();
     // Make an IB that wraps the OpenCV buffer, then IBA:: copy to it
     ImageBuf cvib(ImageSpec(roi.width(), roi.height(), chans, dstSpecFormat),
-                  dst.ptr(), pixelsize, linestep, AutoStride);
+                  make_span((std::byte*)dst.ptr(), bufsize), nullptr, pixelsize,
+                  linestep);
     bool converted = ImageBufAlgo::copy(cvib, src);
     if (!converted) {
         OIIO::errorfmt(

@@ -880,9 +880,10 @@ ImageCacheFile::read_tile(ImageCachePerThreadInfo* thread_info,
         if (id.colortransformid() > 0) {
             // print("CONVERT id {} {},{} to cs {}\n", filename(), id.x(), id.y(),
             //       id.colortransformid());
-            ImageBuf wrapper(ImageSpec(spec.tile_width, spec.tile_height,
-                                       spec.nchannels, format),
-                             data);
+            ImageSpec tilespec(spec.tile_width, spec.tile_height,
+                               spec.nchannels, format);
+            ImageBuf wrapper(tilespec, make_cspan((const std::byte*)data,
+                                                  tilespec.image_bytes()));
             ImageBufAlgo::colorconvert(
                 wrapper, wrapper,
                 ColorConfig::default_colorconfig().getColorSpaceNameByIndex(
