@@ -10,7 +10,8 @@ on:
     paths-ignore:
       - '**.md'
       - '**.rst'
-      - '**.analysis.yml'
+      - '**/analysis.yml'
+      - '**/docs.yml'
       - '**.properties'
       - 'docs/**'
   pull_request:
@@ -265,6 +266,7 @@ jobs:
             ${{matrix.depcmds}}
             src/build-scripts/gh-installdeps.bash
       - name: Build
+        if: matrix.skip_build != '1'
         run: src/build-scripts/ci-build.bash
       - name: Testsuite
         if: matrix.skip_tests != '1'
@@ -286,15 +288,22 @@ jobs:
         if: matrix.abi_check != ''
         run: |
             src/build-scripts/ci-abicheck.bash ./build abi_standard/build libOpenImageIO libOpenImageIO_Util
+      - name: Build Docs
+        if: matrix.build_docs == '1'
+        run: |
+            cd src/doc
+            time make doxygen
+            time make sphinx
       - uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
         # Note: versions of upload-artifact >= 4.0 can't run on the ASWF
         # containers because they need a newer glibc than they have.
-        if: failure()
+        if: ${{ failure() || matrix.build_docs == '1'}}
         with:
           name: oiio-${{github.job}}-${{matrix.nametag}}
           path: |
             build/cmake-save
             build/compat_reports
+            build/sphinx
             build/testsuite/*/*.*
             !build/testsuite/oiio-images
             !build/testsuite/openexr-images
