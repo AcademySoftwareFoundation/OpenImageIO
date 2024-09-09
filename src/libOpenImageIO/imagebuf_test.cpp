@@ -81,7 +81,7 @@ iterator_read_test()
             { { 0, 2, 8 }, { 1, 2, 9 }, { 2, 2, 10 }, { 3, 2, 11 } },
             { { 0, 3, 12 }, { 1, 3, 13 }, { 2, 3, 14 }, { 3, 3, 15 } } };
     ImageSpec spec(WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
-    ImageBuf A(spec, buf);
+    ImageBuf A(spec, cspan<float>(&buf[0][0][0], HEIGHT * WIDTH * CHANNELS));
 
     ITERATOR p(A);
     OIIO_CHECK_EQUAL(p[0], 0.0f);
@@ -134,7 +134,7 @@ iterator_wrap_test(ImageBuf::WrapMode wrap, std::string wrapname)
             { { 0, 2, 8 }, { 1, 2, 9 }, { 2, 2, 10 }, { 3, 2, 11 } },
             { { 0, 3, 12 }, { 1, 3, 13 }, { 2, 3, 14 }, { 3, 3, 15 } } };
     ImageSpec spec(WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
-    ImageBuf A(spec, buf);
+    ImageBuf A(spec, cspan<float>(&buf[0][0][0], HEIGHT * WIDTH * CHANNELS));
 
     std::cout << "iterator_wrap_test " << wrapname << ":";
     int i        = 0;
@@ -201,7 +201,7 @@ ImageBuf_test_appbuffer()
     };
     // clang-format on
     ImageSpec spec(WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
-    ImageBuf A(spec, buf);
+    ImageBuf A(spec, span<float>(&buf[0][0][0], HEIGHT * WIDTH * CHANNELS));
 
     // Make sure A now points to the buffer
     OIIO_CHECK_EQUAL((void*)A.pixeladdr(0, 0, 0), (void*)buf);
@@ -246,7 +246,8 @@ ImageBuf_test_appbuffer_strided()
     memset(mem, 0, res * res * nchans * sizeof(float));
 
     // Wrap the whole buffer, fill with green
-    ImageBuf wrapped(ImageSpec(res, res, nchans, TypeFloat), mem);
+    ImageBuf wrapped(ImageSpec(res, res, nchans, TypeFloat),
+                     span<float>(&mem[0][0][0], res * res * nchans));
     const float green[nchans] = { 0.0f, 1.0f, 0.0f };
     ImageBufAlgo::fill(wrapped, cspan<float>(green));
     float color[nchans] = { -1, -1, -1 };
@@ -256,7 +257,9 @@ ImageBuf_test_appbuffer_strided()
 
     // Do a strided wrap in the interior: a 3x3 image with extra spacing
     // between pixels and rows, and fill it with red.
-    ImageBuf strided(ImageSpec(3, 3, nchans, TypeFloat), &mem[4][4][0],
+    ImageBuf strided(ImageSpec(3, 3, nchans, TypeFloat),
+                     span<float>(&mem[0][0][0], res * res * nchans),
+                     &mem[4][4][0],
                      2 * nchans * sizeof(float) /* every other pixel */,
                      2 * res * nchans * sizeof(float) /* ever other line */);
     const float red[nchans] = { 1.0f, 0.0f, 0.0f };

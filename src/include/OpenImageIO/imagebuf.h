@@ -20,6 +20,23 @@
 #include <memory>
 
 
+// Signal that this version of ImageBuf has constructors from spans
+#define OIIO_IMAGEBUF_SPAN_CTR 1
+
+// If before this header is included, OIIO_IMAGEBUF_DEPRECATE_RAW_PTR is
+// defined, then we will deprecate the methods taking raw pointers. This is
+// helpful for downstream apps aiming to transition to the new span-based API
+// and want to ensure they are not using the old raw pointer API.
+// #define OIIO_IMAGEBUF_DEPRECATE_RAW_PTR
+#ifdef OIIO_IMAGEBUF_DEPRECATE_RAW_PTR
+#    define OIIO_IB_DEPRECATE_RAW_PTR \
+        [[deprecated("Prefer the version that takes a span")]]
+#else
+#    define OIIO_IB_DEPRECATE_RAW_PTR
+#endif
+
+
+
 OIIO_NAMESPACE_BEGIN
 
 class ImageBuf;
@@ -224,7 +241,7 @@ public:
 
     /// Construct a writable ImageBuf that "wraps" existing pixel memory
     /// owned by the calling application. The ImageBuf does not own the
-    /// pixel storage and will will not free/delete that memory, even when
+    /// pixel storage and will not free/delete that memory, even when
     /// the ImageBuf is destroyed. Upon successful initialization, the
     /// storage will be reported as `APPBUFFER`.
     ///
@@ -235,16 +252,38 @@ public:
     ///             format), the ImageBuf will remain in an UNINITIALIZED
     ///             state.
     /// @param buffer
-    ///             A pointer to the caller-owned memory containing the
-    ///             storage for the pixels. It must be already allocated
-    ///             with enough space to hold a full image as described by
-    ///             `spec`.
+    ///             A span delineating the extent of the safely accessible
+    ///             memory comprising the pixel data.
+    /// @param buforigin
+    ///            A pointer to the first pixel of the buffer. If null, it
+    ///            will be assumed to be the beginning of the buffer. (This
+    ///            parameter is useful if any negative strides are used to
+    ///            give an unusual layout of pixels within the buffer.)
     /// @param  xstride/ystride/zstride
     ///             The distance in bytes between successive pixels,
     ///             scanlines, and image planes in the buffer (or
     ///             `AutoStride` to indicate "contiguous" data in any of
     ///             those dimensions).
     ///
+    template<typename T>
+    ImageBuf(const ImageSpec& spec, span<T> buffer, void* buforigin = nullptr,
+             stride_t xstride = AutoStride, stride_t ystride = AutoStride,
+             stride_t zstride = AutoStride)
+        : ImageBuf(spec, as_bytes(buffer), buforigin, xstride, ystride, zstride)
+    {
+    }
+    // Special base case for read-only byte spans, this one does the hard work.
+    ImageBuf(const ImageSpec& spec, cspan<std::byte> buffer,
+             void* buforigin = nullptr, stride_t xstride = AutoStride,
+             stride_t ystride = AutoStride, stride_t zstride = AutoStride);
+    // Special base case for mutable byte spans, this one does the hard work.
+    ImageBuf(const ImageSpec& spec, span<std::byte> buffer,
+             void* buforigin = nullptr, stride_t xstride = AutoStride,
+             stride_t ystride = AutoStride, stride_t zstride = AutoStride);
+
+    // Unsafe constructor of an ImageBuf that wraps an existing buffer, where
+    // only the origin pointer and the strides are given. Use with caution!
+    OIIO_IB_DEPRECATE_RAW_PTR
     ImageBuf(const ImageSpec& spec, void* buffer, stride_t xstride = AutoStride,
              stride_t ystride = AutoStride, stride_t zstride = AutoStride);
 
@@ -293,9 +332,51 @@ public:
         set_name(name);
     }
 
-    /// Destroy any previous contents of the ImageBuf and re-initialize it
-    /// as if newly constructed with the same arguments, to "wrap" existing
-    /// pixel memory owned by the calling application.
+    /// Destroy any previous contents of the ImageBuf and re-initialize it as
+    /// if newly constructed with the same arguments, to "wrap" existing pixel
+    /// memory owned by the calling application.
+    ///
+    /// @param spec
+    ///            An ImageSpec describing the image and its metadata.
+    /// @param buffer
+    ///             A span delineating the extent of the safely accessible
+    ///             memory comprising the pixel data.
+    /// @param buforigin
+    ///            A pointer to the first pixel of the buffer. If null, it
+    ///            will be assumed to be the beginning of the buffer. (This
+    ///            parameter is useful if any negative strides are used to
+    ///            give an unusual layout of pixels within the buffer.)
+    /// @param xstride/ystride/zstride
+    ///            The distance in bytes between successive pixels,
+    ///            scanlines, and image planes in the buffer (or
+    ///            `AutoStride` to indicate "contiguous" data in any of
+    ///            those dimensions).
+    template<typename T>
+    void reset(const ImageSpec& spec, span<T> buffer,
+               const void* buforigin = nullptr, stride_t xstride = AutoStride,
+               stride_t ystride = AutoStride, stride_t zstride = AutoStride)
+    {
+        // The general case for non-byte data types just converts to bytes and
+        // calls the byte version.
+        reset(spec, as_writable_bytes(buffer), buforigin, xstride, ystride,
+              zstride);
+    }
+    // Special base case for read-only byte spans, this one does the hard work.
+    void reset(const ImageSpec& spec, cspan<std::byte> buffer,
+               const void* buforigin = nullptr, stride_t xstride = AutoStride,
+               stride_t ystride = AutoStride, stride_t zstride = AutoStride);
+    // Special base case for mutable byte spans, this one does the hard work.
+    void reset(const ImageSpec& spec, span<std::byte> buffer,
+               const void* buforigin = nullptr, stride_t xstride = AutoStride,
+               stride_t ystride = AutoStride, stride_t zstride = AutoStride);
+
+    /// Unsafe reset of a "wrapped" buffer, mostly for backward compatibility.
+    /// This version does not pass a span that explicitly delineates the
+    /// memory bounds, but only passes a raw pointer and assumes that the
+    /// caller has ensured that the buffer pointed to is big enough to
+    /// accommodate accessing any valid pixel as describes by the spec and the
+    /// strides. Use with caution!
+    OIIO_IB_DEPRECATE_RAW_PTR
     void reset(const ImageSpec& spec, void* buffer,
                stride_t xstride = AutoStride, stride_t ystride = AutoStride,
                stride_t zstride = AutoStride);

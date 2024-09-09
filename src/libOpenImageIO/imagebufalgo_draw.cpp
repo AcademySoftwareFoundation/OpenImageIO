@@ -719,7 +719,9 @@ const ImageBuf&
 ImageBufAlgo::bluenoise_image()
 {
     // This ImageBuf "wraps" the table.
-    static const ImageBuf img(bnspec(), pvt::bluenoise_table);
+    using namespace pvt;
+    static ImageBuf img(bnspec(), make_cspan(&bluenoise_table[0][0][0],
+                                             bntable_res * bntable_res * 4));
     return img;
 }
 
