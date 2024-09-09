@@ -26,6 +26,12 @@ for chapter in [ "imageioapi", "imageoutput", "imageinput", "writingplugins",
 # hashes merely check that the images don't change, but saves us the space
 # of checking in a full copy of the image if it's not needed.
 hashes = [
+    # Outputs from the ImageBuf chapter:
+    "findaverages.exr",
+    "set-region-black.exr",
+    "set-region-black-template-dispatch.exr",
+    "set-region-black-template-float.exr",
+    "set-region-black-template-uint8.exr",
     # Outputs from the ImageBufAlgo chapter:
     "zero1.exr",
     "zero2.exr",
