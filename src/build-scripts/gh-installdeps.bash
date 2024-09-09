@@ -108,11 +108,12 @@ else
     fi
 
     # Nonstandard python versions
-    if [[ "${PYTHON_VERSION}" == "3.9" ]] ; then
-        time sudo apt-get -q install -y python3.9-dev python3-numpy
-        pip3 --version
-    fi
-    if [[ "${PIP_INSTALLS:=numpy}" != "none" ]] ; then
+    # if [[ "${PYTHON_VERSION}" == "3.9" ]] ; then
+    #     time sudo apt-get -q install -y python3.9-dev python3-numpy
+    #     pip3 --version
+    # fi
+    time sudo apt-get -q install -y python3-numpy
+    if [[ "${PIP_INSTALLS}" != "" ]] ; then
         time pip3 install ${PIP_INSTALLS}
     fi
 
@@ -125,20 +126,6 @@ else
     fi
 
     export CMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu:$CMAKE_PREFIX_PATH
-
-    if [[ "$CXX" == "g++-9" ]] ; then
-        time sudo apt-get install -y g++-9
-    elif [[ "$CXX" == "g++-10" ]] ; then
-        time sudo apt-get install -y g++-10
-    elif [[ "$CXX" == "g++-11" ]] ; then
-        time sudo apt-get install -y g++-11
-    elif [[ "$CXX" == "g++-12" ]] ; then
-        time sudo apt-get install -y g++-12
-    elif [[ "$CXX" == "g++-13" ]] ; then
-        time sudo apt-get install -y g++-13
-    elif [[ "$CXX" == "g++-14" ]] ; then
-        time sudo apt-get install -y g++-14
-    fi
 
     if [[ "$CXX" == "icpc" || "$CC" == "icc" || "$USE_ICC" != "" || "$USE_ICX" != "" ]] ; then
         time sudo apt-get -q install -y wget
