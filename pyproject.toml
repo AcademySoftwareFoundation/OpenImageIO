@@ -1,5 +1,6 @@
 [project]
 name = "OpenImageIO"
+# Align the Python module version with the C++ library version. 
 dynamic = ["version"]
 description = "Reading, writing, and processing images in a wide variety of file formats, using a format-agnostic API, aimed at VFX applications."
 authors = [
@@ -17,6 +18,7 @@ classifiers = [
     "Natural Language :: English",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -38,6 +40,7 @@ Issues = "https://github.com/AcademySoftwareFoundation/OpenImageIO/issues"
 
 
 [project.scripts]
+# Use the convention below to expose CLI tools as Python scripts.
 iconvert = "OpenImageIO:_command_line"
 idiff = "OpenImageIO:_command_line"
 igrep = "OpenImageIO:_command_line"
@@ -54,10 +57,12 @@ requires = [
 ]
 
 [tool.scikit-build]
-minimum-version = "build-system.requires"
 build.verbose = true
+# Pin the minimum scikit-build-core version to that speciied above in the build-system.requires
+minimum-version = "build-system.requires"
+# Pin the minimum CMake version to that specified in the CMakeLists.txt file.
 cmake.version = "CMakeLists.txt"
-wheel.expand-macos-universal-tags = false
+wheel.expand-macos-universal-tags = true
 wheel.install-dir = "OpenImageIO"
 wheel.license-files = [
     "LICENSE.md",
@@ -68,7 +73,11 @@ wheel.license-files = [
 # OpenImageIO-2.6+ has a mechanism for building, linking, and 
 # distributing missing dependencies. See src/cmake for details.
 OpenImageIO_BUILD_MISSING_DEPS = "all"
-CMAKE_BUILD_TYPE = "MinSizeRel"  # Optimize for size (not speed)
+# Optimize for size (not speed)
+CMAKE_BUILD_TYPE = "MinSizeRel"
+# Live dangerously. Don't build tests.
+OIIO_BUILD_TESTS = "0"
+
 
 [tool.scikit-build.metadata.version]
 # Dynamically parse the version from the CMakeLists.txt file.
@@ -76,25 +85,42 @@ provider = "scikit_build_core.metadata.regex"
 input = "CMakeLists.txt" 
 regex = 'set \(OpenImageIO_VERSION "(?P<value>[0-9a-z.]+)"\)'
 
-# On Linux and macOS, we want to install libraries to lib to help
+# On Linux and macOS, we want to install libraries to `lib` to help
 # with RPATH issues. This is not necessary on Windows.
 [[tool.scikit-build.overrides]]
-if.any.platform-system = "linux"
+if.platform-system = "linux"
 inherit.cmake.define = "append"
 cmake.define.CMAKE_INSTALL_LIBDIR = "lib"
 
 [[tool.scikit-build.overrides]]
-if.any.platform-system = "darwin"
+if.platform-system = "darwin"
 inherit.cmake.define = "append"
 cmake.define.CMAKE_INSTALL_LIBDIR = "lib"
+
+# On macOS, make sure dependencies are built for the correct architecture. 
+[[tool.scikit-build.overrides]]
+if.platform-system = "darwin"
+if.platform-machine  = "arm64"
+inherit.cmake.define = "append"
+cmake.define.CMAKE_OSX_ARCHITECTURES = "arm64"
+
+[[tool.scikit-build.overrides]]
+if.platform-system = "darwin"
+if.platform-machine  = "x86_64"
+inherit.cmake.define = "append"
+cmake.define.CMAKE_OSX_ARCHITECTURES = "x86_64"
 
 [tool.cibuildwheel]
 build-verbosity = 1
-build = "pp* cp*"
+build = "pp* cp39*"
 skip = [
-    "*musllinux*",  # building with musl seems to work, but the repairwheel step seems to fail...
+    # Building with musl seems to work, but the repairwheel step seems to fail...
+    # This may be a bug in repairwheel (or auditwheel)?
+    "*musllinux*",  
 ]
+# Our custom repair-wheel-command requires the `invoke` and `repairwheel` python packages.
 before-build = "pip install repairwheel && pip install invoke"
+# See tasks.py in the root of the repository for the details of the following command.
 repair-wheel-command = "invoke wheel-repair --build-dir ${SKBUILD_BUILD_DIR} --wheel-path {wheel} --output-dir {dest_dir}"
 
 [tool.cibuildwheel.macos.environment]
