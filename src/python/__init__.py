@@ -2,7 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-import os, sys, platform, subprocess
+import os
+import sys
+import platform
+import subprocess
 
 
 if platform.system() == "Windows":
