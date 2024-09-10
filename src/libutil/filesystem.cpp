@@ -1309,7 +1309,7 @@ Filesystem::IOFile::size() const
 }
 
 void
-Filesystem::IOFile::flush() const
+Filesystem::IOFile::flush()
 {
     if (m_file)
         fflush(m_file);
