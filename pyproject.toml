@@ -74,7 +74,7 @@ wheel.license-files = [
 # distributing missing dependencies. See src/cmake for details.
 OpenImageIO_BUILD_MISSING_DEPS = "all"
 # Optimize for size (not speed)
-CMAKE_BUILD_TYPE = "MinSizeRel"
+#CMAKE_BUILD_TYPE = "MinSizeRel"
 # Live dangerously. Don't build tests.
 OIIO_BUILD_TESTS = "0"
 
