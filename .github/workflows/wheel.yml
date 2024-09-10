@@ -25,7 +25,9 @@ on:
       - src/cmake/pythonutils.cmake
   schedule:
     # Nightly build
-    - cron: "0 0 * * *"
+    - cron:  "0 8 * * *"
+  workflow_dispatch:
+    # This allows manual triggering of the workflow from the web
 
 jobs:
   # Linux jobs run in Docker containers (manylinux), so the latest OS version
