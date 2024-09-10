@@ -56,6 +56,7 @@ void example_output_error1()
     // END-imagebufalgo-output-error1
 }
 
+
 void example_output_error2()
 {
     print("example_output_error2\n");
@@ -103,6 +104,7 @@ void example_zero()
     C.write("zero4.exr", TypeHalf);
 }
 
+
 void example_fill()
 {
     print("example_fill\n");
@@ -121,6 +123,7 @@ void example_fill()
     A.write("fill.exr", TypeHalf);
 }
 
+
 void example_checker()
 {
     print("example_checker\n");
@@ -136,6 +139,7 @@ void example_checker()
 
     A.write("checker.exr", TypeHalf);
 }
+
 
 void example_noise1()
 {
@@ -166,6 +170,7 @@ void example_noise1()
     D.write("noise4.exr", TypeHalf);
 }
 
+
 void example_noise2()
 {
     print("example_noise2\n");
@@ -175,6 +180,7 @@ void example_noise2()
 
     A.write("blue-noise.exr", TypeHalf);
 }
+
 
 void example_point()
 {
@@ -187,6 +193,7 @@ void example_point()
 
     A.write("point.exr", TypeHalf);
 }
+
 
 void example_lines()
 {
@@ -201,6 +208,7 @@ void example_lines()
     A.write("lines.exr", TypeHalf);
 }
 
+
 void example_box()
 {
     print("example_box\n");
@@ -214,6 +222,7 @@ void example_box()
 
     A.write("box.exr", TypeHalf);
 }
+
 
 void example_text1()
 {
@@ -238,6 +247,7 @@ void example_text1()
     ImgB.write("text2.exr", TypeHalf);
 }
 
+
 void example_text2()
 {
     print("example_text2\n");
@@ -254,6 +264,7 @@ void example_text2()
     }
     // END-imagebufalgo-text2
 }
+
 
 // Section: Image transformation and data movement
 
@@ -289,6 +300,7 @@ void example_channels()
     BRGA.write("channels-brga.exr");
 }
 
+
 void example_channel_append()
 {
     print("example_channel_append\n");
@@ -302,6 +314,7 @@ void example_channel_append()
     RGBAZ.write("channel-append.exr", TypeHalf);
 }
 
+
 void example_copy()
 {
     print("example_copy\n");
@@ -313,6 +326,7 @@ void example_copy()
 
     B.write("copy.exr");
 }
+
 
 void example_crop()
 {
@@ -327,6 +341,7 @@ void example_crop()
     B.write("crop.exr");
 }
 
+
 void example_cut()
 {
     print("example_cut\n");
@@ -340,6 +355,7 @@ void example_cut()
     B.write("cut.exr");
 }
 
+
 void example_paste()
 {
     print("example_paste\n");
@@ -352,6 +368,7 @@ void example_paste()
 
     Bg.write("paste.exr");
 }
+
 
 void example_rotate_n()
 {
@@ -368,6 +385,7 @@ void example_rotate_n()
     R270.write("rotate-270.exr");
 }
 
+
 void example_flip_flop_transpose()
 {
     print("example_flip_flop_transpose\n");
@@ -382,6 +400,7 @@ void example_flip_flop_transpose()
     B2.write("flop.exr");
     B3.write("transpose.exr");
 }
+
 
 void example_reorient()
 {
@@ -398,15 +417,17 @@ void example_reorient()
     A.write("reorient.exr");
 }
 
+
 void example_circular_shift()
 {
     print("example_circular_shift\n");
     // BEGIN-imagebufalgo-cshift
     ImageBuf A("grid.exr");
     ImageBuf B = ImageBufAlgo::circular_shift(A, 70, 30);
-    B.write("cshift.exr");
     // END-imagebufalgo-cshift
+    B.write("cshift.exr");
 }
+
 
 void example_rotate()
 {
@@ -415,7 +436,9 @@ void example_rotate()
     ImageBuf Src ("grid.exr");
     ImageBuf Dst = ImageBufAlgo::rotate (Src, 45.0);
     // END-imagebufalgo-rotate-angle
+    Dst.write("rotate-45.tif", TypeUInt8);
 }
+
 
 void example_resize()
 {
@@ -423,10 +446,12 @@ void example_resize()
     // BEGIN-imagebufalgo-resize
     // Resize the image to 640x480, using the default filter
     ImageBuf Src("grid.exr");
-    ROI roi(0, 640, 0, 480, 0, 1, /*chans:*/ 0, Src.nchannels());
+    ROI roi(0, 320, 0, 240, 0, 1, /*chans:*/ 0, Src.nchannels());
     ImageBuf Dst = ImageBufAlgo::resize(Src, {}, roi);
     // END-imagebufalgo-resize
+    Dst.write("resize.tif", TypeUInt8);
 }
+
 
 void example_resample()
 {
@@ -437,7 +462,9 @@ void example_resample()
     ROI roi(0, 320, 0, 240, 0, 1, /*chans:*/ 0, Src.nchannels());
     ImageBuf Dst = ImageBufAlgo::resample(Src, true, roi);
     // END-imagebufalgo-resample
+    Dst.write("resample.exr");
 }
+
 
 void example_fit()
 {
@@ -445,10 +472,12 @@ void example_fit()
     // BEGIN-imagebufalgo-fit
     // Resize to fit into a max of 640x480, preserving the aspect ratio
     ImageBuf Src("grid.exr");
-    ROI roi(0, 640, 0, 480, 0, 1, /*chans:*/ 0, Src.nchannels());
+    ROI roi(0, 320, 0, 240, 0, 1, /*chans:*/ 0, Src.nchannels());
     ImageBuf Dst = ImageBufAlgo::fit(Src, {}, roi);
     // END-imagebufalgo-fit
+    Dst.write("fit.tif", TypeUInt8);
 }
+
 
 void example_warp()
 {
@@ -460,6 +489,7 @@ void example_warp()
     ImageBuf Src("grid.exr");
     ImageBuf Dst = ImageBufAlgo::warp(Src, M, { { "filtername", "lanczos3" } });
     // END-imagebufalgo-warp
+    Dst.write("warp.exr");
 }
 
 

@@ -24,7 +24,10 @@ for chapter in [ "imageioapi", "imageoutput", "imageinput", "writingplugins",
     command += run_app(prefix + "docs-examples-" + chapter)
 
 # hashes merely check that the images don't change, but saves us the space
-# of checking in a full copy of the image if it's not needed.
+# of checking in a full copy of the image if it's not needed. This is not
+# suitable if the image may change slightly from platform to platform or
+# with different versions of dependencies, for that we should use the
+# full reference image comparison with appropriate thresholds.
 hashes = [
     # Outputs from the ImageBufAlgo chapter:
     "zero1.exr",
@@ -57,6 +60,11 @@ hashes = [
     "rotate-270.exr",
     "flip.exr",
     "flop.exr",
+    "rotate-45.tif",
+    "resize.tif",
+    "resample.exr",
+    "fit.tif",
+    "warp.exr",
     "transpose.exr",
     "reorient.exr",
     "cshift.exr",
@@ -71,6 +79,10 @@ outputs = [
     # Outputs from the ImageOutput chapter:
     "simple.tif", "scanlines.tif",
     # Outputs from the ImageInput chapter:
+
+    # Outputs from the ImageBuf chapter:
+
+    # Outputs from the ImageBufAlgo chapter:
 
     # ... etc ... other chapters ...
 
