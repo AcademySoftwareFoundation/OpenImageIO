@@ -105,6 +105,7 @@ SKBUILD_BUILD_DIR = "/tmp/build_wheels"
 # with libdeflate when building successive permutations of python
 # wheels against the build cache.
 SKBUILD_CMAKE_ARGS = "-DOpenImageIO_BUILD_LOCAL_DEPS=TIFF; -DOpenImageIO_BUILD_MISSING_DEPS=all"
+MACOSX_DEPLOYMENT_TARGET = "10.15"
 
 [tool.cibuildwheel.linux.environment]
 SKBUILD_BUILD_DIR = "/tmp/build_wheels"
