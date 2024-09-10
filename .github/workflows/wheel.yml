@@ -7,9 +7,9 @@ name: Wheel
 on:
   push:
     # Workflow run on tags for v2.6 and v3 only.
-    tags:
-      - v2.6.*
-      - v3.*
+    # tags:
+    #   - v2.6.*
+    #   - v3.*
   pull_request:
     # Workflow run on pull_request only when related files change.
     branches-ignore:
