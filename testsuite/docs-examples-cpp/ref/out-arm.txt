@@ -89,15 +89,15 @@ flip.exr             :  256 x  256, 4 channel, half openexr
 flop.exr             :  256 x  256, 4 channel, half openexr
     SHA-1: 7C10717DB4F2E21F0B4F6D5404C660CA8B504F5E
 rotate-45.tif        :  256 x  256, 4 channel, uint8 tiff
-    SHA-1: 2D4AECFD398F9E0AA0051888D0EE7CDC1E438A5A
+    SHA-1: E2E41264B7BD250C3AACF9F6161A0FA86B22FA57
 resize.tif           :  320 x  240, 4 channel, uint8 tiff
     SHA-1: 6FD1A7A97729CD6D51A22ADE0709CC4DFDC3C826
 resample.exr         :  320 x  240, 4 channel, half openexr
-    SHA-1: 5C0CC0A293FCD30B2AE44A0BED7D27DB9B8C8E50
+    SHA-1: 16FC7DCFE01DC312593B00B9F90D71BAF3D52450
 fit.tif              :  240 x  240, 4 channel, uint8 tiff
-    SHA-1: AC77B6A4BFF3E42EB207CFDADEE6BCED4653D2B4
+    SHA-1: 5474A93DED5F9F44E561B70A53F509677961AB34
 warp.exr             :  256 x  256, 4 channel, half openexr
-    SHA-1: EEB460766F07B47C647D630B568F25FFEEBF5A62
+    SHA-1: 7EA7EB6798E051B5F4EB3722498371E55869BC91
 transpose.exr        :  256 x  256, 4 channel, half openexr
     SHA-1: FAD57FB60460383D3D2D24B346F35A44846CCC39
 reorient.exr         :  256 x  256, 4 channel, half openexr
