@@ -3,6 +3,13 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
+// TRICK: skip deprecated functions in IBA
+#define DOXYGEN_SHOULD_SKIP_THIS
+
+#include <Imath/ImathMatrix.h>
+
+
+
 ///////////////////////////////////////////////////////////////////////////
 // This file contains code examples from the ImageBufAlgo chapter of the
 // main OpenImageIO documentation.
@@ -15,6 +22,7 @@
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 using namespace OIIO;
+
 
 void example1()
 {
@@ -37,6 +45,7 @@ void example1()
 
 void example_output_error1()
 {
+    print("example_output_error1\n");
     ImageBuf fg, bg;
 
     // BEGIN-imagebufalgo-output-error1
@@ -47,8 +56,10 @@ void example_output_error1()
     // END-imagebufalgo-output-error1
 }
 
+
 void example_output_error2()
 {
+    print("example_output_error2\n");
     ImageBuf fg, bg;
 
     // BEGIN-imagebufalgo-output-error2
@@ -65,6 +76,7 @@ void example_output_error2()
 
 void example_zero()
 {
+    print("example_zero\n");
     ImageBuf A("grid.exr");
     ImageBuf B("grid.exr");
     ImageBuf C("grid.exr");
@@ -86,44 +98,52 @@ void example_zero()
     ImageBufAlgo::zero (C, ROI (0, 100, 0, 100));
     // END-imagebufalgo-zero
 
-    zero.write("zero1.exr");
-    A.write("zero2.exr");
-    B.write("zero3.exr");
-    C.write("zero4.exr");
+    zero.write("zero1.exr", TypeHalf);
+    A.write("zero2.exr", TypeHalf);
+    B.write("zero3.exr", TypeHalf);
+    C.write("zero4.exr", TypeHalf);
 }
+
 
 void example_fill()
 {
+    print("example_fill\n");
     // BEGIN-imagebufalgo-fill
     // Create a new 640x480 RGB image, with a top-to-bottom gradient
     // from red to pink
     float pink[3] = { 1, 0.7, 0.7 };
-    float red[3] = { 1, 0, 0 };
-    ImageBuf A = ImageBufAlgo::fill (red, pink, ROI(0, 640, 0, 480, 0, 1, 0, 3));
+    float red[3]  = { 1, 0, 0 };
+    ImageBuf A    = ImageBufAlgo::fill(red, cspan<float>(pink),
+                                       ROI(0, 640, 0, 480, 0, 1, 0, 3));
 
     // Draw a filled red rectangle overtop existing image A.
-    ImageBufAlgo::fill (A, red, ROI(50, 100, 75, 175));
+    ImageBufAlgo::fill (A, cspan<float>(red), ROI(50, 100, 75, 175));
     // END-imagebufalgo-fill
 
-    A.write("fill.exr");
+    A.write("fill.exr", TypeHalf);
 }
+
 
 void example_checker()
 {
+    print("example_checker\n");
     // BEGIN-imagebufalgo-checker
     // Create a new 640x480 RGB image, fill it with a two-toned gray
     // checkerboard, the checkers being 64x64 pixels each.
-    ImageBuf A (ImageSpec(640, 480, 3, TypeDesc::FLOAT));
-    float dark[3] = { 0.1, 0.1, 0.1 };
+    ImageBuf A(ImageSpec(640, 480, 3, TypeDesc::FLOAT));
+    float dark[3]  = { 0.1, 0.1, 0.1 };
     float light[3] = { 0.4, 0.4, 0.4 };
-    ImageBufAlgo::checker (A, 64, 64, 1, dark, light, 0, 0, 0);
+    ImageBufAlgo::checker(A, 64, 64, 1, cspan<float>(dark), cspan<float>(light),
+                          0, 0, 0);
     // END-imagebufalgo-checker
 
-    A.write("checker.exr");
+    A.write("checker.exr", TypeHalf);
 }
+
 
 void example_noise1()
 {
+    print("example_noise1\n");
     // BEGIN-imagebufalgo-noise1
     // Create a new 256x256 field of grayscale white noise on [0,1)
     ImageBuf A = ImageBufAlgo::noise ("uniform", 0.0f /*min*/, 1.0f /*max*/,
@@ -144,34 +164,40 @@ void example_noise1()
                         true /*mono*/, 1 /*seed*/);
     // END-imagebufalgo-noise1
 
-    A.write("noise1.exr");
-    B.write("noise2.exr");
-    C.write("noise3.exr");
-    D.write("noise4.exr");
+    A.write("noise1.exr", TypeHalf);
+    B.write("noise2.exr", TypeHalf);
+    C.write("noise3.exr", TypeHalf);
+    D.write("noise4.exr", TypeHalf);
 }
+
 
 void example_noise2()
 {
+    print("example_noise2\n");
     // BEGIN-imagebufalgo-noise2
     const ImageBuf& A = ImageBufAlgo::bluenoise_image();
     // END-imagebufalgo-noise2
 
-    A.write("blue-noise.exr");
+    A.write("blue-noise.exr", TypeHalf);
 }
+
 
 void example_point()
 {
+    print("example_point\n");
     // BEGIN-imagebufalgo-point
     ImageBuf A (ImageSpec (640, 480, 4, TypeDesc::FLOAT));
     float red[4] = { 1, 0, 0, 1 };
     ImageBufAlgo::render_point (A, 50, 100, red);
     // END-imagebufalgo-point
 
-    A.write("point.exr");
+    A.write("point.exr", TypeHalf);
 }
+
 
 void example_lines()
 {
+    print("example_lines\n");
     // BEGIN-imagebufalgo-lines
     ImageBuf A (ImageSpec (640, 480, 4, TypeDesc::FLOAT));
     float red[4] = { 1, 0, 0, 1 };
@@ -179,11 +205,13 @@ void example_lines()
     ImageBufAlgo::render_line (A, 250, 20, 100, 190, red, true);
     // END-imagebufalgo-lines
 
-    A.write("lines.exr");
+    A.write("lines.exr", TypeHalf);
 }
+
 
 void example_box()
 {
+    print("example_box\n");
     // BEGIN-imagebufalgo-box
     ImageBuf A (ImageSpec (640, 480, 4, TypeDesc::FLOAT));
     float cyan[4] = { 0, 1, 1, 1 };
@@ -192,33 +220,37 @@ void example_box()
     ImageBufAlgo::render_box (A, 100, 50, 180, 140, yellow_transparent, true);
     // END-imagebufalgo-box
 
-    A.write("box.exr");
+    A.write("box.exr", TypeHalf);
 }
+
 
 void example_text1()
 {
+    print("example_text1\n");
     ImageBuf ImgA = ImageBufAlgo::zero(ROI(0, 640, 0, 480, 0, 1, 0, 3));
     ImageBuf ImgB = ImageBufAlgo::zero(ROI(0, 640, 0, 480, 0, 1, 0, 3));
 
     // BEGIN-imagebufalgo-text1
-    ImageBufAlgo::render_text (ImgA, 50, 100, "Hello, world");
+    ImageBufAlgo::render_text(ImgA, 50, 100, "Hello, world");
     float red[] = { 1, 0, 0, 1 };
-    ImageBufAlgo::render_text (ImgA, 100, 200, "Go Big Red!",
-                              60, "" /*font name*/, red);
+    ImageBufAlgo::render_text(ImgA, 100, 200, "Go Big Red!", 60,
+                              "" /*font name*/, cspan<float>(red));
 
     float white[] = { 1, 1, 1, 1 };
-    ImageBufAlgo::render_text (ImgB, 320, 240, "Centered",
-                              60, "" /*font name*/, white,
+    ImageBufAlgo::render_text(ImgB, 320, 240, "Centered", 60, "" /*font name*/,
+                              cspan<float>(white),
                               ImageBufAlgo::TextAlignX::Center,
                               ImageBufAlgo::TextAlignY::Center);
     // END-imagebufalgo-text1
 
-    ImgA.write("text1.exr");
-    ImgB.write("text2.exr");
+    ImgA.write("text1.exr", TypeHalf);
+    ImgB.write("text2.exr", TypeHalf);
 }
+
 
 void example_text2()
 {
+    print("example_text2\n");
     // BEGIN-imagebufalgo-text2
     // Render text centered in the image, using text_size to find out
     // the size we will need and adjusting the coordinates.
@@ -233,17 +265,232 @@ void example_text2()
     // END-imagebufalgo-text2
 }
 
+
 // Section: Image transformation and data movement
+
+void example_channels()
+{
+    print("example_channels\n");
+    ImageBuf RGBA("grid.exr");
+
+    // BEGIN-imagebufalgo-channels
+    // Copy the first 3 channels of an RGBA, drop the alpha
+    ImageBuf RGB = ImageBufAlgo::channels(RGBA, 3, {} /*default ordering*/);
+
+    // Copy just the alpha channel, making a 1-channel image
+    ImageBuf Alpha = ImageBufAlgo::channels(RGBA, 1, 3 /*alpha_channel*/);
+
+    // Swap the R and B channels
+    ImageBuf BRGA;
+    bool success = ImageBufAlgo::channels(BRGA, RGBA, 4, { 2, 1, 0, 3 }, {},
+                                          { "R", "G", "B", "A" });
+
+    // Add an alpha channel with value 1.0 everywhere to an RGB image,
+    // keep the other channels with their old ordering, values, and
+    // names.
+    RGBA = ImageBufAlgo::channels(RGB, 4, { 0, 1, 2, -1 },
+                                  { 0 /*ignore*/, 0 /*ignore*/, 0 /*ignore*/,
+                                    1.0 },
+                                  { "", "", "", "A" });
+    // END-imagebufalgo-channels
+
+    RGBA.write("channels-rgba.exr");
+    RGB.write("channels-rgb.exr");
+    Alpha.write("channels-alpha.exr");
+    BRGA.write("channels-brga.exr");
+}
+
+
+void example_channel_append()
+{
+    print("example_channel_append\n");
+    ImageBuf Z(ImageSpec(640, 480, 1, TypeDesc::FLOAT));
+
+    // BEGIN-imagebufalgo-channel-append
+    ImageBuf RGBA("grid.exr");
+    ImageBuf RGBAZ = ImageBufAlgo::channel_append(RGBA, Z);
+    // END-imagebufalgo-channel-append
+
+    RGBAZ.write("channel-append.exr", TypeHalf);
+}
+
+
+void example_copy()
+{
+    print("example_copy\n");
+    // BEGIN-imagebufalgo-copy
+    // Set B to be a copy of A, but converted to float
+    ImageBuf A("grid.exr");
+    ImageBuf B = ImageBufAlgo::copy(A, TypeDesc::FLOAT);
+    // END-imagebufalgo-copy
+
+    B.write("copy.exr");
+}
+
+
+void example_crop()
+{
+    print("example_crop\n");
+    // BEGIN-imagebufalgo-crop
+    // Set B to be a 200x100 region of A starting at (50,50), trimming
+    // the exterior away but leaving that region in its original position.
+    ImageBuf A("grid.exr");
+    ImageBuf B = ImageBufAlgo::crop(A, ROI(50, 250, 50, 150));
+    // END-imagebufalgo-crop
+
+    B.write("crop.exr");
+}
+
+
+void example_cut()
+{
+    print("example_cut\n");
+    // BEGIN-imagebufalgo-cut
+    // Set B to be a 200x100 region of A starting at (50,50), but
+    // moved to the upper left corner so its new origin is (0,0).
+    ImageBuf A("grid.exr");
+    ImageBuf B = ImageBufAlgo::cut(A, ROI(50, 250, 50, 150));
+    // END-imagebufalgo-cut
+
+    B.write("cut.exr");
+}
+
+
+void example_paste()
+{
+    print("example_paste\n");
+    // BEGIN-imagebufalgo-paste
+    // Paste Fg on top of Bg, offset by (100,100)
+    ImageBuf Bg("grid.exr");
+    ImageBuf Fg("tahoe.tif");
+    ImageBufAlgo::paste(Bg, 100, 100, 0, 0, Fg);
+    // END-imagebufalgo-paste
+
+    Bg.write("paste.exr");
+}
+
+
+void example_rotate_n()
+{
+    print("example_rotate_n\n");
+    // BEGIN-imagebufalgo-rotate-n
+    ImageBuf A("grid.exr");
+    ImageBuf R90  = ImageBufAlgo::rotate90(A);
+    ImageBuf R180 = ImageBufAlgo::rotate180(A);
+    ImageBuf R270 = ImageBufAlgo::rotate270(A);
+    // END-imagebufalgo-rotate-n
+
+    R90.write("rotate-90.exr");
+    R180.write("rotate-180.exr");
+    R270.write("rotate-270.exr");
+}
+
+
+void example_flip_flop_transpose()
+{
+    print("example_flip_flop_transpose\n");
+    // BEGIN-imagebufalgo-flip-flop-transpose
+    ImageBuf A("grid.exr");
+    ImageBuf B1 = ImageBufAlgo::flip(A);
+    ImageBuf B2 = ImageBufAlgo::flop(A);
+    ImageBuf B3 = ImageBufAlgo::transpose(A);
+    // END-imagebufalgo-flip-flop-transpose
+
+    B1.write("flip.exr");
+    B2.write("flop.exr");
+    B3.write("transpose.exr");
+}
+
+
+void example_reorient()
+{
+    print("example_reorient\n");
+    ImageBuf tmp("grid.exr");
+    tmp.specmod().attribute("Orientation", 8);
+    tmp.write("grid-vertical.exr");
+
+    // BEGIN-imagebufalgo-reorient
+    ImageBuf A("grid-vertical.exr");
+    A = ImageBufAlgo::reorient(A);
+    // END-imagebufalgo-reorient
+
+    A.write("reorient.exr");
+}
+
 
 void example_circular_shift()
 {
+    print("example_circular_shift\n");
     // BEGIN-imagebufalgo-cshift
     ImageBuf A("grid.exr");
     ImageBuf B = ImageBufAlgo::circular_shift(A, 70, 30);
-    B.write("cshift.exr");
     // END-imagebufalgo-cshift
+    B.write("cshift.exr");
 }
 
+
+void example_rotate()
+{
+    print("example_rotate\n");
+    // BEGIN-imagebufalgo-rotate-angle
+    ImageBuf Src ("grid.exr");
+    ImageBuf Dst = ImageBufAlgo::rotate (Src, 45.0);
+    // END-imagebufalgo-rotate-angle
+    Dst.write("rotate-45.tif", TypeUInt8);
+}
+
+
+void example_resize()
+{
+    print("example_resize\n");
+    // BEGIN-imagebufalgo-resize
+    // Resize the image to 640x480, using the default filter
+    ImageBuf Src("grid.exr");
+    ROI roi(0, 320, 0, 240, 0, 1, /*chans:*/ 0, Src.nchannels());
+    ImageBuf Dst = ImageBufAlgo::resize(Src, {}, roi);
+    // END-imagebufalgo-resize
+    Dst.write("resize.tif", TypeUInt8);
+}
+
+
+void example_resample()
+{
+    print("example_resample\n");
+    // BEGIN-imagebufalgo-resample
+    // Resample quickly to 320x240, with default interpolation
+    ImageBuf Src("grid.exr");
+    ROI roi(0, 320, 0, 240, 0, 1, /*chans:*/ 0, Src.nchannels());
+    ImageBuf Dst = ImageBufAlgo::resample(Src, true, roi);
+    // END-imagebufalgo-resample
+    Dst.write("resample.exr");
+}
+
+
+void example_fit()
+{
+    print("example_fit\n");
+    // BEGIN-imagebufalgo-fit
+    // Resize to fit into a max of 640x480, preserving the aspect ratio
+    ImageBuf Src("grid.exr");
+    ROI roi(0, 320, 0, 240, 0, 1, /*chans:*/ 0, Src.nchannels());
+    ImageBuf Dst = ImageBufAlgo::fit(Src, {}, roi);
+    // END-imagebufalgo-fit
+    Dst.write("fit.tif", TypeUInt8);
+}
+
+
+void example_warp()
+{
+    print("example_warp\n");
+    // BEGIN-imagebufalgo-warp
+    Imath::M33f M( 0.7071068, 0.7071068, 0,
+                  -0.7071068, 0.7071068, 0,
+                   20,       -8.284271,  1);
+    ImageBuf Src("grid.exr");
+    ImageBuf Dst = ImageBufAlgo::warp(Src, M, { { "filtername", "lanczos3" } });
+    // END-imagebufalgo-warp
+    Dst.write("warp.exr");
+}
 
 
 // Section: Image Arithmetic
@@ -269,6 +516,7 @@ void example_circular_shift()
 
 void example_make_texture()
 {
+    print("example_make_texture\n");
     // BEGIN-imagebufalgo-make-texture
     ImageBuf Input ("grid.exr");
     ImageSpec config;
@@ -282,9 +530,6 @@ void example_make_texture()
         std::cout << "make_texture error: " << OIIO::geterror() << "\n";
     // END-imagebufalgo-make-texture
 }
-
-
-
 
 
 int main(int /*argc*/, char** /*argv*/)
@@ -310,7 +555,21 @@ int main(int /*argc*/, char** /*argv*/)
     example_text2();
 
     // Section: Image transformation and data movement
+    example_channels();
+    example_channel_append();
+    example_copy();
+    example_crop();
+    example_cut();
+    example_paste();
+    example_rotate_n();
+    example_flip_flop_transpose();
+    example_reorient();
     example_circular_shift();
+    example_rotate();
+    example_resize();
+    example_resample();
+    example_fit();
+    example_warp();
 
     // Section: Image Arithmetic
 
