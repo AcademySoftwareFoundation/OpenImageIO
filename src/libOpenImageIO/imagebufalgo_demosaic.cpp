@@ -31,7 +31,7 @@ protected:
         /// the source iterator.
         struct Row {
             ImageBuf::ConstIterator<Atype> iterator;
-            Atype data[size];
+            float data[size];
         };
 
         std::vector<Row> rows;
@@ -270,7 +270,7 @@ private:
     mix1(typename BayerDemosaicing<Rtype, Atype, size>::Window& w,
          float& out_mix1, float& out_mix2)
     {
-        Atype tmp = w(0, 2) + w(4, 2) + w(2, 0) + w(2, 4);
+        float tmp = w(0, 2) + w(4, 2) + w(2, 0) + w(2, 4);
         out_mix1  = (8.0f * w(2, 2)
                     + 4.0f * (w(1, 2) + w(3, 2) + w(2, 1) + w(2, 3))
                     - 2.0f * tmp)
