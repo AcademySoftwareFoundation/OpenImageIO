@@ -60,6 +60,9 @@ SPDX-License-Identifier: BSD-3-Clause
   The test image in testsuite/cryptomatte/src/cryptoasset.exr is a small crop
   of a sample image from the Cryptomatte project.
 
+* WebP (c) Copyright 2010 Google Inc.
+  https://developers.google.com/speed/webp
+
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
@@ -304,4 +307,3 @@ Public domain
 -------------------------------------------------------------------------
 
 If we have left anything out, it is unintentional. Please let us know.
-
