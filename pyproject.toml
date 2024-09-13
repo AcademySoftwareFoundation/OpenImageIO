@@ -100,6 +100,11 @@ skip = [
     # This may be a bug in repairwheel (or auditwheel)?
     "*musllinux*",  
 ]
+# If the following command returns code 0, we know the CLI Python scripts
+# are able to import the OpenImageIO module, which is able to invoke the
+# CLI binary executables and find and load all shared libraries. The 
+# '--help' flag outputs a list of dependencies with which OIIO was compiled.
+test-command = "oiiotool --help"
 
 [tool.cibuildwheel.macos.environment]
 # Optimize for size (not speed)
