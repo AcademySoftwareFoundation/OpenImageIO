@@ -110,8 +110,21 @@ macro (oiio_add_tests)
                              "OIIO_TESTSUITE_ROOT=${_testsuite}"
                              "OIIO_TESTSUITE_SRC=${_testsrcdir}"
                              "OIIO_TESTSUITE_CUR=${_testdir}"
-                             "PYTHONPATH=$<SHELL_PATH:${CMAKE_BINARY_DIR}/lib/python/site-packages;$ENV{PYTHONPATH}>"
                              ${_ats_ENVIRONMENT})
+            if (NOT DEFINED ENV{GITHUB_ACTIONS})
+              # the github actions run all the tests from the dist tree
+              # and do an install prior to running the tests so skip
+              # setting these here
+              if (NOT DEFINED ENV{OpenImageIO_ROOT})
+                # this will ensure the appropriate fonts are found
+                set_property(TEST ${_testname} APPEND PROPERTY ENVIRONMENT
+                  "OpenImageIO_ROOT=${CMAKE_SOURCE_DIR}/src")
+              endif()
+              if (USE_PYTHON)
+                set_property(TEST ${_testname} APPEND PROPERTY ENVIRONMENT
+                  "PYTHONPATH=$<SHELL_PATH:${CMAKE_BINARY_DIR}/lib/python${PYTHON_VERSION}/site-packages/$<CONFIG>;$ENV{PYTHONPATH}>")
+              endif()
+            endif()
             if (NOT ${_ats_testdir} STREQUAL "")
                 set_property(TEST ${_testname} APPEND PROPERTY ENVIRONMENT
                              "OIIO_TESTSUITE_IMAGEDIR=${_ats_testdir}")
