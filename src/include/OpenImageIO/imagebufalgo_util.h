@@ -7,6 +7,7 @@
 
 #include <functional>
 
+#include <OpenImageIO/function_view.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/parallel.h>
 
@@ -610,6 +611,8 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
 #define IBA_FIX_PERCHAN_LEN_DEF(av,len)                                 \
     IBA_FIX_PERCHAN_LEN (av, len, 0.0f, av.size() ? av.back() : 0.0f);
 
+// clang-format on
+
 
 
 /// Simple image per-pixel unary operation: Given a source image `src`, return
@@ -658,22 +661,20 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
 ///   version of the operation that allows specialization to any other pixel
 ///   data types
 //
-OIIO_NODISCARD OIIO_API
-ImageBuf
-perpixel_op(const ImageBuf& src, bool(*op)(span<float>, cspan<float>),
+OIIO_NODISCARD OIIO_API ImageBuf
+perpixel_op(const ImageBuf& src,
+            function_view<bool(span<float>, cspan<float>)> op,
             KWArgs options = {});
 
 /// A version of perpixel_op that performs a binary operation, taking two
 /// source images and a 3-argument `op` function that receives a destination
 /// and two source pixels.
-OIIO_NODISCARD OIIO_API
-ImageBuf
+OIIO_NODISCARD OIIO_API ImageBuf
 perpixel_op(const ImageBuf& srcA, const ImageBuf& srcB,
-            bool(*op)(span<float>, cspan<float>, cspan<float>),
+            function_view<bool(span<float>, cspan<float>, cspan<float>)> op,
             KWArgs options = {});
 
 }  // end namespace ImageBufAlgo
 
-// clang-format on
 
 OIIO_NAMESPACE_END
