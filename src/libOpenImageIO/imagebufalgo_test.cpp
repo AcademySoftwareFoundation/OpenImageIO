@@ -1182,6 +1182,29 @@ test_yee()
 
 
 
+// Raw function to reverse channels
+bool
+chan_reverse(span<float> d, cspan<float> s)
+{
+    for (size_t c = 0, nc = size_t(d.size()); c < nc; ++c)
+        d[c] = s[nc - 1 - c];
+    return true;
+}
+
+// Functor to reverse channels
+class ChannelReverser {
+public:
+    ChannelReverser() {}
+    bool operator()(span<float> d, cspan<float> s)
+    {
+        for (size_t c = 0, nc = size_t(d.size()); c < nc; ++c)
+            d[c] = s[nc - 1 - c];
+        return true;
+    }
+};
+
+
+
 template<typename T>
 static void
 test_simple_perpixel()
@@ -1191,12 +1214,33 @@ test_simple_perpixel()
     {
         print("  unary op\n");
         ImageBuf src = filled_image({ 0.25f, 0.5f, 0.75f, 1.0f }, 4, 4, td);
-        ImageBuf result
-            = ImageBufAlgo::perpixel_op(src, [](span<float> d, cspan<float> s) {
-                  for (size_t c = 0, nc = size_t(d.size()); c < nc; ++c)
-                      d[c] = s[nc - 1 - c];
-                  return true;
-              });
+        ImageBuf result;
+        // Test with raw function pointer
+        result = ImageBufAlgo::perpixel_op(src, chan_reverse);
+        OIIO_CHECK_EQUAL(result.spec().format, td);
+        for (ImageBuf::ConstIterator<T> r(result); !r.done(); ++r) {
+            OIIO_CHECK_EQUAL(r[0], 1.0f);
+            OIIO_CHECK_EQUAL(r[1], 0.75f);
+            OIIO_CHECK_EQUAL(r[2], 0.5f);
+            OIIO_CHECK_EQUAL(r[3], 0.25f);
+        }
+        // Test with functor
+        result = ImageBufAlgo::perpixel_op(src, ChannelReverser());
+        OIIO_CHECK_EQUAL(result.spec().format, td);
+        for (ImageBuf::ConstIterator<T> r(result); !r.done(); ++r) {
+            OIIO_CHECK_EQUAL(r[0], 1.0f);
+            OIIO_CHECK_EQUAL(r[1], 0.75f);
+            OIIO_CHECK_EQUAL(r[2], 0.5f);
+            OIIO_CHECK_EQUAL(r[3], 0.25f);
+        }
+        // Test with lambda, including variable capture
+        float bias = 0.0;  // Force capture of this variable
+        result     = ImageBufAlgo::perpixel_op(src, [&](span<float> d,
+                                                    cspan<float> s) {
+            for (size_t c = 0, nc = size_t(d.size()); c < nc; ++c)
+                d[c] = s[nc - 1 - c] + bias;
+            return true;
+        });
         OIIO_CHECK_EQUAL(result.spec().format, td);
         for (ImageBuf::ConstIterator<T> r(result); !r.done(); ++r) {
             OIIO_CHECK_EQUAL(r[0], 1.0f);
@@ -1210,7 +1254,7 @@ test_simple_perpixel()
         ImageBuf srcA   = filled_image({ 0.25f, 0.5f, 0.75f, 1.0f }, 4, 4, td);
         ImageBuf srcB   = filled_image({ 1.0f, 2.0f, 3.0f, 4.0f }, 4, 4, td);
         ImageBuf result = ImageBufAlgo::perpixel_op(
-            srcA, srcB, [](span<float> d, cspan<float> a, cspan<float> b) {
+            srcA, srcB, [&](span<float> d, cspan<float> a, cspan<float> b) {
                 for (size_t c = 0, nc = size_t(d.size()); c < nc; ++c)
                     d[c] = a[c] + b[c];
                 return true;

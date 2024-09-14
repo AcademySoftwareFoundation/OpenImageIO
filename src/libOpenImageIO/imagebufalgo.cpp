@@ -629,7 +629,8 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf& dst, cspan<const ImageBuf*> srcs,
 
 ImageBuf
 ImageBufAlgo::perpixel_op(const ImageBuf& src,
-                          bool (*op)(span<float>, cspan<float>), KWArgs options)
+                          function_view<bool(span<float>, cspan<float>)> op,
+                          KWArgs options)
 {
     using namespace ImageBufAlgo;
     ImageBuf result;
@@ -680,9 +681,10 @@ ImageBufAlgo::perpixel_op(const ImageBuf& src,
 
 
 ImageBuf
-ImageBufAlgo::perpixel_op(const ImageBuf& srcA, const ImageBuf& srcB,
-                          bool (*op)(span<float>, cspan<float>, cspan<float>),
-                          KWArgs options)
+ImageBufAlgo::perpixel_op(
+    const ImageBuf& srcA, const ImageBuf& srcB,
+    function_view<bool(span<float>, cspan<float>, cspan<float>)> op,
+    KWArgs options)
 {
     using namespace ImageBufAlgo;
     ImageBuf result;
