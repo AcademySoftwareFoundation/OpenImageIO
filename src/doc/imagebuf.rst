@@ -271,9 +271,9 @@ Cons/Limitations:
   this approach, especially for operations where you expect inputs to be float
   typically.
 
-.. doxygenfunction:: perpixel_op(const ImageBuf &src, bool (*op)(span<float>, cspan<float>), int prepflags = ImageBufAlgo::IBAprep_DEFAULT, int nthreads = 0)
+.. doxygenfunction:: perpixel_op(const ImageBuf &src, function_view<bool(span<float>, cspan<float>)> op, KWArgs options = {})
 
-.. doxygenfunction:: perpixel_op(const ImageBuf &srcA, const ImageBuf &srcB, bool (*op)(span<float>, cspan<float>, cspan<float>), int prepflags = ImageBufAlgo::IBAprep_DEFAULT, int nthreads = 0)
+.. doxygenfunction:: perpixel_op(const ImageBuf &srcA, const ImageBuf& srcB, function_view<bool(span<float>, cspan<float>, cspan<float>)> op, KWArgs options = {})
 
 Examples:
 
