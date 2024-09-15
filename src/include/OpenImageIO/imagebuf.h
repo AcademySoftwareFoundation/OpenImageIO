@@ -1027,7 +1027,7 @@ public:
     /// spec in the ImageBuf to reset the "full" image size (a.k.a.
     /// "display window") to
     ///
-    ///     [xbegin,xend) x [ybegin,yend) x [zbegin,zend)`
+    /// `[xbegin,xend) x [ybegin,yend) x [zbegin,zend)`
     ///
     /// This does not affect the size of the pixel data window.
     void set_full(int xbegin, int xend, int ybegin, int yend, int zbegin,
