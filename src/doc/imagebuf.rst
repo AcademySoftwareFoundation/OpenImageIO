@@ -47,8 +47,8 @@ Making an empty or uninitialized ImageBuf
 Constructing a readable ImageBuf
 --------------------------------
 
-.. doxygenfunction:: OIIO::ImageBuf::ImageBuf(string_view name, int subimage = 0, int miplevel = 0, ImageCache *imagecache = nullptr, const ImageSpec *config = nullptr, Filesystem::IOProxy *ioproxy = nullptr)
-.. doxygenfunction:: OIIO::ImageBuf::reset(string_view name, int subimage = 0, int miplevel = 0, ImageCache *imagecache = nullptr, const ImageSpec *config = nullptr, Filesystem::IOProxy *ioproxy = nullptr)
+.. doxygenfunction:: OIIO::ImageBuf::ImageBuf(string_view name, int subimage = 0, int miplevel = 0, std::shared_ptr<ImageCache> imagecache = {}, const ImageSpec *config = nullptr, Filesystem::IOProxy *ioproxy = nullptr)
+.. doxygenfunction:: OIIO::ImageBuf::reset(string_view name, int subimage = 0, int miplevel = 0, std::shared_ptr<ImageCache> imagecache = {}, const ImageSpec *config = nullptr, Filesystem::IOProxy *ioproxy = nullptr)
 
 
 Constructing a writable ImageBuf

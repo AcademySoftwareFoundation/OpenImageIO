@@ -1293,29 +1293,28 @@ control aspects of the writing itself:
    * - ``jpegxl:use_boxes``
      - int (bool)
      - If nonzero, will enable metadata (Exif, XMP, jumb, iptc) writing to the
-     output file. Default is 1.
+       output file. Default is 1.
    * - ``jpegxl:compress_boxes``
      - int (bool)
      - If nonzero, will enable metadata compression. Default is 1.
    * - ``jpegxl:exif_box``
      - int (bool)
      - If nonzero, will enable Exif metadata writing to the output file.
-     Default is 1.
+       Default is 1.
    * - ``jpegxl:xmp_box``
      - int (bool)
      - If nonzero, will enable XMP metadata writing to the output file.
-     Default is 1.
+       Default is 1.
    * - ``jpegxl:jumb_box``
      - int (bool)
      - If nonzero, will enable JUMBF metadata writing to the output file.
-     Default is 0.
-     (dows not supported at this moment in OIIO)
+       Default is 0. (dows not supported at this moment in OIIO)
    * - ``jpegxl:iptc_box``
      - int (bool)
      - If nonzero, will enable IPTC metadata writing to the output file.
-     Default is 0.
-     (Do not work as expected at this moment. Box is written but content
-     unreadable in exif readers)
+       Default is 0.
+       (Does not work as expected at this moment. Box is written but content
+       unreadable in exif readers.)
 
 .. _sec-bundledplugins-ffmpeg:
 
