@@ -241,7 +241,7 @@ contents of an expression may be any of:
 
 To illustrate how this works, consider the following command, which trims
 a four-pixel border from all sides and outputs a new image prefixed with
-"cropped_", without needing to know the resolution or filename of the
+"`cropped_`", without needing to know the resolution or filename of the
 original image::
 
     oiiotool input.exr -cut "{TOP.width-2*4}x{TOP.height-2*4}+{TOP.x+4}+{TOP.y+4}" \
@@ -2781,8 +2781,7 @@ current top image.
       `max=` *vals*
         Specify the maximum range value(s), default 1.0.
       `scontrast=` *vals*
-        Specify sigmoidal contrast slope value(s),
-      default 1.0.
+        Specify sigmoidal contrast slope value(s), default 1.0.
       `sthresh=` *vals*
         Specify sigmoidal threshold value(s) giving the position of maximum
         slope, default 0.5.
@@ -4113,11 +4112,11 @@ current top image.
            -fill:topleft=.1,.1,.1:topright=1,0,0:bottomleft=0,1,0:botromright=0,0,1 \
                640x480 -o gradient.tif
 
-    .. |textimg1| image:: figures/gradient.jpg
+    .. |gradimg1| image:: figures/gradient.jpg
        :width: 2.0 in
-    .. |textimg2| image:: figures/gradienth.jpg
+    .. |gradimg2| image:: figures/gradienth.jpg
        :width: 2.0 in
-    .. |textimg2| image:: figures/gradient4.jpg
+    .. |gradimg3| image:: figures/gradient4.jpg
        :width: 2.0 in
     ..
 
@@ -4175,7 +4174,7 @@ current top image.
        :width: 2.0 in
     .. |textimg2| image:: figures/textcentered.jpg
        :width: 2.0 in
-    .. |textimg2| image:: figures/textshadowed.jpg
+    .. |textimg3| image:: figures/textshadowed.jpg
        :width: 2.0 in
     ..
     

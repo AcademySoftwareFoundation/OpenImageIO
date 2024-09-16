@@ -47,8 +47,8 @@ Making an empty or uninitialized ImageBuf
 Constructing a readable ImageBuf
 --------------------------------
 
-.. doxygenfunction:: OIIO::ImageBuf::ImageBuf(string_view name, int subimage = 0, int miplevel = 0, ImageCache *imagecache = nullptr, const ImageSpec *config = nullptr, Filesystem::IOProxy *ioproxy = nullptr)
-.. doxygenfunction:: OIIO::ImageBuf::reset(string_view name, int subimage = 0, int miplevel = 0, ImageCache *imagecache = nullptr, const ImageSpec *config = nullptr, Filesystem::IOProxy *ioproxy = nullptr)
+.. doxygenfunction:: OIIO::ImageBuf::ImageBuf(string_view name, int subimage = 0, int miplevel = 0, std::shared_ptr<ImageCache> imagecache = {}, const ImageSpec *config = nullptr, Filesystem::IOProxy *ioproxy = nullptr)
+.. doxygenfunction:: OIIO::ImageBuf::reset(string_view name, int subimage = 0, int miplevel = 0, std::shared_ptr<ImageCache> imagecache = {}, const ImageSpec *config = nullptr, Filesystem::IOProxy *ioproxy = nullptr)
 
 
 Constructing a writable ImageBuf
@@ -271,9 +271,9 @@ Cons/Limitations:
   this approach, especially for operations where you expect inputs to be float
   typically.
 
-.. doxygenfunction:: perpixel_op(const ImageBuf &src, bool (*op)(span<float>, cspan<float>), int prepflags = ImageBufAlgo::IBAprep_DEFAULT, int nthreads = 0)
+.. doxygenfunction:: perpixel_op(const ImageBuf &src, function_view<bool(span<float>, cspan<float>)> op, KWArgs options = {})
 
-.. doxygenfunction:: perpixel_op(const ImageBuf &srcA, const ImageBuf &srcB, bool (*op)(span<float>, cspan<float>, cspan<float>), int prepflags = ImageBufAlgo::IBAprep_DEFAULT, int nthreads = 0)
+.. doxygenfunction:: perpixel_op(const ImageBuf &srcA, const ImageBuf& srcB, function_view<bool(span<float>, cspan<float>, cspan<float>)> op, KWArgs options = {})
 
 Examples:
 

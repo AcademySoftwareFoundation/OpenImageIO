@@ -412,7 +412,7 @@ public:
     virtual const char* proxytype () const = 0;
     virtual void close () { }
     virtual bool opened () const { return mode() != Closed; }
-    virtual int64_t tell () { return m_pos; }
+    virtual int64_t tell() const { return m_pos; }
     // Seek to the position, returning true on success, false on failure.
     // Note the difference between this and std::fseek() which returns 0 on
     // success, and -1 on failure.
@@ -440,7 +440,7 @@ public:
 
     // Return the total size of the proxy data, in bytes.
     virtual size_t size () const { return 0; }
-    virtual void flush () const { }
+    virtual void flush() { }
 
     Mode mode () const { return m_mode; }
     const std::string& filename () const { return m_filename; }
@@ -491,7 +491,7 @@ public:
     size_t pread(void* buf, size_t size, int64_t offset) override;
     size_t pwrite(const void* buf, size_t size, int64_t offset) override;
     size_t size() const override;
-    void flush() const override;
+    void flush() override;
 
     // Access the FILE*
     FILE* handle() const { return m_file; }
