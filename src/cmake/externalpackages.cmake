@@ -129,14 +129,12 @@ checked_find_package (Freetype
                       VERSION_MIN 2.10.0
                       DEFINITIONS USE_FREETYPE=1 )
 
-
 checked_find_package (yaml-cpp
                       VERSION_MIN 0.6.0 )  # Used by OpenColorIO
 
 checked_find_package (OpenColorIO REQUIRED
                       VERSION_MIN 2.2
                       VERSION_MAX 2.9
-                      PREFER_CONFIG
                      )
 if (NOT OPENCOLORIO_INCLUDES)
     get_target_property(OPENCOLORIO_INCLUDES OpenColorIO::OpenColorIO INTERFACE_INCLUDE_DIRECTORIES)

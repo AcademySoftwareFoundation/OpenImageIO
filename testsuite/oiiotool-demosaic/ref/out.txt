@@ -1,16 +1,64 @@
-Computing diff of "testimage.exr" vs "RGGB-linear-result.exr"
+Computing diff of "testimage_float.exr" vs "result_float_RGGB-linear.exr"
 PASS
-Computing diff of "testimage.exr" vs "GRBG-linear-result.exr"
+Computing diff of "testimage_float.exr" vs "result_float_GRBG-linear.exr"
 PASS
-Computing diff of "testimage.exr" vs "GBRG-linear-result.exr"
+Computing diff of "testimage_float.exr" vs "result_float_GBRG-linear.exr"
 PASS
-Computing diff of "testimage.exr" vs "BGGR-linear-result.exr"
+Computing diff of "testimage_float.exr" vs "result_float_BGGR-linear.exr"
 PASS
-Computing diff of "testimage.exr" vs "RGGB-MHC-result.exr"
+Computing diff of "testimage_float.exr" vs "result_float_RGGB-MHC.exr"
 PASS
-Computing diff of "testimage.exr" vs "GRBG-MHC-result.exr"
+Computing diff of "testimage_float.exr" vs "result_float_GRBG-MHC.exr"
 PASS
-Computing diff of "testimage.exr" vs "GBRG-MHC-result.exr"
+Computing diff of "testimage_float.exr" vs "result_float_GBRG-MHC.exr"
 PASS
-Computing diff of "testimage.exr" vs "BGGR-MHC-result.exr"
+Computing diff of "testimage_float.exr" vs "result_float_BGGR-MHC.exr"
+PASS
+Computing diff of "testimage_half.exr" vs "result_half_RGGB-linear.exr"
+PASS
+Computing diff of "testimage_half.exr" vs "result_half_GRBG-linear.exr"
+PASS
+Computing diff of "testimage_half.exr" vs "result_half_GBRG-linear.exr"
+PASS
+Computing diff of "testimage_half.exr" vs "result_half_BGGR-linear.exr"
+PASS
+Computing diff of "testimage_half.exr" vs "result_half_RGGB-MHC.exr"
+PASS
+Computing diff of "testimage_half.exr" vs "result_half_GRBG-MHC.exr"
+PASS
+Computing diff of "testimage_half.exr" vs "result_half_GBRG-MHC.exr"
+PASS
+Computing diff of "testimage_half.exr" vs "result_half_BGGR-MHC.exr"
+PASS
+Computing diff of "testimage_uint16.tiff" vs "result_uint16_RGGB-linear.tiff"
+PASS
+Computing diff of "testimage_uint16.tiff" vs "result_uint16_GRBG-linear.tiff"
+PASS
+Computing diff of "testimage_uint16.tiff" vs "result_uint16_GBRG-linear.tiff"
+PASS
+Computing diff of "testimage_uint16.tiff" vs "result_uint16_BGGR-linear.tiff"
+PASS
+Computing diff of "testimage_uint16.tiff" vs "result_uint16_RGGB-MHC.tiff"
+PASS
+Computing diff of "testimage_uint16.tiff" vs "result_uint16_GRBG-MHC.tiff"
+PASS
+Computing diff of "testimage_uint16.tiff" vs "result_uint16_GBRG-MHC.tiff"
+PASS
+Computing diff of "testimage_uint16.tiff" vs "result_uint16_BGGR-MHC.tiff"
+PASS
+Computing diff of "testimage_uint8.tiff" vs "result_uint8_RGGB-linear.tiff"
+PASS
+Computing diff of "testimage_uint8.tiff" vs "result_uint8_GRBG-linear.tiff"
+PASS
+Computing diff of "testimage_uint8.tiff" vs "result_uint8_GBRG-linear.tiff"
+PASS
+Computing diff of "testimage_uint8.tiff" vs "result_uint8_BGGR-linear.tiff"
+PASS
+Computing diff of "testimage_uint8.tiff" vs "result_uint8_RGGB-MHC.tiff"
+PASS
+Computing diff of "testimage_uint8.tiff" vs "result_uint8_GRBG-MHC.tiff"
+PASS
+Computing diff of "testimage_uint8.tiff" vs "result_uint8_GBRG-MHC.tiff"
+PASS
+Computing diff of "testimage_uint8.tiff" vs "result_uint8_BGGR-MHC.tiff"
 PASS
