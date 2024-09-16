@@ -301,6 +301,8 @@ jobs:
   upload_pypi:
     needs: [sdist, linux, macos, windows]
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
     steps:
       - uses: actions/setup-python@v5
@@ -312,6 +314,3 @@ jobs:
           merge-multiple: true
 
       - uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
