@@ -10,7 +10,7 @@ set_cache (PNG_BUILD_VERSION 1.6.43 "PNG version for local builds")
 set (PNG_GIT_REPOSITORY "https://github.com/glennrp/libpng")
 set (PNG_GIT_TAG "v${PNG_BUILD_VERSION}")
 
-set_cache (PNG_BUILD_SHARED_LIBS ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
+set_cache (PNG_BUILD_SHARED_LIBS OFF #${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
            DOC "Should execute a local PNG build, if necessary, build shared libraries" ADVANCED)
 
 string (MAKE_C_IDENTIFIER ${PNG_BUILD_VERSION} PNG_VERSION_IDENT)
