@@ -24,11 +24,12 @@ build_dependency_with_cmake(PNG
         -D PNG_EXECUTABLES=OFF
         -D PNG_TESTS=OFF
         -D CMAKE_POSITION_INDEPENDENT_CODE=ON
+        -D CMAKE_INSTALL_LIBDIR=lib
     )
 
 # Set some things up that we'll need for a subsequent find_package to work
 set (PNG_ROOT ${PNG_LOCAL_INSTALL_DIR})
-
+set (PNG_DIR ${PNG_LOCAL_INSTALL_DIR})
 # Signal to caller that we need to find again at the installed location
 set (PNG_REFIND TRUE)
 set (PNG_REFIND_VERSION ${PNG_BUILD_VERSION})
