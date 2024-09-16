@@ -132,7 +132,6 @@ checked_find_package (Freetype
 checked_find_package (OpenColorIO REQUIRED
                       VERSION_MIN 2.2
                       VERSION_MAX 2.9
-                      PREFER_CONFIG
                      )
 if (NOT OPENCOLORIO_INCLUDES)
     get_target_property(OPENCOLORIO_INCLUDES OpenColorIO::OpenColorIO INTERFACE_INCLUDE_DIRECTORIES)
