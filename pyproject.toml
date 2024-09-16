@@ -58,6 +58,8 @@ requires = [
 
 [tool.scikit-build]
 build.verbose = true
+# Exclude unnecessary directories from the source distribution.
+sdist.exclude = [".github", "testsuite", "ASWF", "docs"]
 # Pin the minimum scikit-build-core and CMake versions to those specified
 # in build-system.requires and CMakeLists.txt, respectively.
 minimum-version = "build-system.requires"
