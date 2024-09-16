@@ -206,6 +206,37 @@ jobs:
           - build: CPython 3.12 64 bits
             python: cp312-macosx_x86_64
             arch: x86_64
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        name: Install Python
+        with:
+          python-version: '3.8'
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.16.5
+        env:
+          CIBW_BUILD: ${{ matrix.python }}
+          CIBW_ARCHS: ${{ matrix.arch }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cibw-wheels-${{ matrix.python }}
+          path: ./wheelhouse/*.whl
+
+  macos_arm64:
+    name: Build wheels on macOS (Apple Silicon)
+    runs-on: macos-14
+    # Don't run on OIIO forks
+    if: |
+      github.event_name != 'schedule' ||
+      github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+
+    strategy:
+      matrix:
+        include:
           # -------------------------------------------------------------------
           # CPython ARM 64 bits
           # -------------------------------------------------------------------
@@ -299,7 +330,7 @@ jobs:
 
 
   upload_pypi:
-    needs: [sdist, linux, macos, windows]
+    needs: [sdist, linux, macos, macos_arm64, windows]
     runs-on: ubuntu-latest
     permissions:
       id-token: write
