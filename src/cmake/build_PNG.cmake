@@ -23,6 +23,7 @@ build_dependency_with_cmake(PNG
         -D PNG_SHARED=${PNG_BUILD_SHARED_LIBS}
         -D PNG_EXECUTABLES=OFF
         -D PNG_TESTS=OFF
+        -D CMAKE_POSITION_INDEPENDENT_CODE=ON
     )
 
 # Set some things up that we'll need for a subsequent find_package to work
