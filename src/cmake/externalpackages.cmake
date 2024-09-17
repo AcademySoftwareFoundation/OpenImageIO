@@ -133,7 +133,9 @@ checked_find_package (Freetype
                       DEFINITIONS USE_FREETYPE=1 )
 
 checked_find_package (yaml-cpp
-                      VERSION_MIN 0.6.0 )  # Used by OpenColorIO
+                      VERSION_MIN 0.6.0 
+                      ISDEPOF OpenColorIO
+                      )  # Used by OpenColorIO
 
 checked_find_package (OpenColorIO REQUIRED
                       VERSION_MIN 2.2
