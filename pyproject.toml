@@ -23,6 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "License :: OSI Approved :: Apache Software License",
     "Topic :: Multimedia :: Graphics",
     "Topic :: Multimedia :: Video",
@@ -30,7 +31,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = ["numpy"]
-requires-python = ">= 3.7"
+requires-python = ">= 3.8"
 
 [project.urls]
 Homepage = "https://openimageio.org/"
@@ -52,8 +53,9 @@ testtex = "OpenImageIO:_command_line"
 [build-system]
 build-backend = "scikit_build_core.build"
 requires = [
-    "scikit-build-core>=0.10,<1",
+    "scikit-build-core>=0.10.6,<1",
     "pybind11",
+    "oldest-supported-numpy",
 ]
 
 [tool.scikit-build]
@@ -95,9 +97,17 @@ if.platform-machine  = "x86_64"
 inherit.cmake.define = "append"
 cmake.define.CMAKE_OSX_ARCHITECTURES = "x86_64"
 
+[[tool.scikit-build.overrides]]
+if.platform-system = "linux"
+inherit.cmake.define = "append"
+cmake.define.CMAKE_CXX_FLAGS = "-Wno-error=stringop-overflow -Wno-pragmas"
+
 [tool.cibuildwheel]
 build-verbosity = 1
 skip = [
+    # Skip 32-bit builds
+    "*-win32",
+    "*-manylinux_i686",
     # Building with musl seems to work, but the repair-wheel step seems to fail...
     # This may be a bug in repairwheel (or auditwheel)?
     "*musllinux*",  
@@ -107,10 +117,23 @@ skip = [
 # CLI binary executables and find and load all shared libraries. The 
 # '--help' flag outputs a list of dependencies with which OIIO was compiled.
 test-command = "oiiotool --help"
+# Enable free-threaded support
+free-threaded-support = true
+manylinux-x86_64-image = "manylinux_2_28"
+manylinux-aarch64-image = "manylinux_2_28"
+manylinux-pypy_x86_64-image = "manylinux_2_28"
+manylinux-pypy_aarch64-image = "manylinux_2_28"
+musllinux-x86_64-image = "musllinux_1_2"
+musllinux-aarch64-image = "musllinux_1_2"
+
+# For CIBW-based builds, optimize for size, not speed.
+[[tool.cibuildwheel.overrides]]
+select = "*"
+inherit.environment = "append"
+environment.SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
+
 
 [tool.cibuildwheel.macos.environment]
-# Optimize for size (not speed)
-SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
 # Specify a build directory so the repairwheel command can (re)find
 # dependency libraries built by OpenImageIO.
 SKBUILD_BUILD_DIR = "/tmp/build_oiio_wheels"
@@ -121,21 +144,26 @@ SKBUILD_CMAKE_ARGS = "-DOpenImageIO_BUILD_LOCAL_DEPS=TIFF; -DOpenImageIO_BUILD_M
 MACOSX_DEPLOYMENT_TARGET = "10.15"
 
 [tool.cibuildwheel.linux.environment]
-SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
 SKBUILD_BUILD_DIR = "/tmp/build_oiio_wheels"
 SKBUILD_CMAKE_ARGS = "-DOpenImageIO_BUILD_LOCAL_DEPS=TIFF; -DOpenImageIO_BUILD_MISSING_DEPS=all"
 # Suppress warnings that cause linux cibuildwheel build to fail
-CXXFLAGS = "-Wno-error=stringop-overflow= -Wno-pragmas"
+CXXFLAGS = "-Wno-error=stringop-overflow -Wno-pragmas"
 
-[tool.cibuildwheel.linux.windows]
-SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
 
 # On macOS and Linux, run a custom repair-wheel-command after the build.
 # See tasks.py for more details.
 [tool.cibuildwheel.macos]
-before-build = "pip install repairwheel && pip install invoke"
+before-build = "pip install 'repairwheel' && pip install invoke"
 repair-wheel-command = "invoke wheel-repair --build-dir ${SKBUILD_BUILD_DIR} --wheel-path {wheel} --output-dir {dest_dir}"
 
 [tool.cibuildwheel.linux]
 before-build = "pip install repairwheel && pip install invoke"
 repair-wheel-command = "invoke wheel-repair --build-dir ${SKBUILD_BUILD_DIR} --wheel-path {wheel} --output-dir {dest_dir}"
+
+
+[[tool.cibuildwheel.overrides]]
+select = "{c,p}p3{7,8}-*"
+manylinux-x86_64-image = "manylinux2014"
+manylinux-aarch64-image = "manylinux2014"
+manylinux-pypy_x86_64-image = "manylinux2014"
+manylinux-pypy-aarch64-image = "manylinux2014"
