@@ -118,7 +118,8 @@ skip = [
 # '--help' flag outputs a list of dependencies with which OIIO was compiled.
 test-command = "oiiotool --help"
 # Enable free-threaded support
-free-threaded-support = true
+#free-threaded-support = true
+# Default images to use when building manylinux wheels locally.
 manylinux-x86_64-image = "manylinux_2_28"
 manylinux-aarch64-image = "manylinux_2_28"
 manylinux-pypy_x86_64-image = "manylinux_2_28"
