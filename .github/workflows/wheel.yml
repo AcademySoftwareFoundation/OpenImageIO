@@ -179,7 +179,7 @@ jobs:
 
   macos:
     name: Build wheels on macOS
-    runs-on: macos-12
+    runs-on: macos-13
     # Don't run on OIIO forks
     if: |
       github.event_name != 'schedule' ||
@@ -227,7 +227,7 @@ jobs:
           path: ./wheelhouse/*.whl
 
   macos_arm64:
-    name: Build wheels on macOS (Apple Silicon)
+    name: Build wheels on macOS ARM64
     runs-on: macos-14
     # Don't run on OIIO forks
     if: |
@@ -334,7 +334,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
-    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && (startsWith(github.event.ref, 'refs/tags/v2.6') || startsWith(github.event.ref, 'refs/tags/v3'))
     steps:
       - uses: actions/setup-python@v5
 
