@@ -144,7 +144,7 @@ macro (oiio_add_all_tests)
                     oiiotool-demosaic
                     diff
                     dither dup-channels
-                    jpeg-corrupt
+                    jpeg-corrupt jpeg-metadata
                     maketx oiiotool-maketx
                     misnamed-file
                     missingcolor
