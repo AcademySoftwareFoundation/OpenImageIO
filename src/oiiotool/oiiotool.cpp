@@ -202,6 +202,27 @@ Oiiotool::clear_options()
 
 
 
+ColorConfig&
+Oiiotool::colorconfig()
+{
+    // It's safe to check the pointer and if it exists, return it, since
+    // once it's created, it will never be changed.
+    if (ColorConfig* cc = m_colorconfig.get())
+        return *cc;
+
+    // Otherwise, we need to create it. But we need to be thread-safe.
+    static std::mutex colorconfig_mutex;
+    std::lock_guard lock(colorconfig_mutex);
+    if (!m_colorconfig) {
+        if (debug)
+            print("oiiotool Creating ColorConfig\n");
+        m_colorconfig.reset(new ColorConfig);
+    }
+    return *m_colorconfig.get();
+}
+
+
+
 void
 Oiiotool::clear_input_config()
 {
@@ -2192,9 +2213,9 @@ static void
 set_colorconfig(Oiiotool& ot, cspan<const char*> argv)
 {
     OIIO_DASSERT(argv.size() == 2);
-    ot.colorconfig.reset(argv[1]);
-    if (ot.colorconfig.has_error()) {
-        ot.errorfmt("--colorconfig", "{}", ot.colorconfig.geterror());
+    ot.colorconfig().reset(argv[1]);
+    if (ot.colorconfig().has_error()) {
+        ot.errorfmt("--colorconfig", "{}", ot.colorconfig().geterror());
     }
 }
 
@@ -2279,7 +2300,7 @@ public:
         }
         bool ok = ImageBufAlgo::colorconvert(*img[0], *img[1], fromspace,
                                              tospace, unpremult, contextkey,
-                                             contextvalue, &ot.colorconfig);
+                                             contextvalue, &ot.colorconfig());
         if (!ok && !strict) {
             // The color transform failed, but we were told not to be
             // strict, so ignore the error and just copy destination to
@@ -2354,7 +2375,7 @@ OIIOTOOL_OP(ociolook, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
         tospace = img[1]->spec().get_string_attribute("oiio:Colorspace");
     return ImageBufAlgo::ociolook(*img[0], *img[1], lookname, fromspace,
                                   tospace, unpremult, inverse, contextkey,
-                                  contextvalue, &ot.colorconfig);
+                                  contextvalue, &ot.colorconfig());
 });
 
 
@@ -2373,7 +2394,8 @@ OIIOTOOL_OP(ociodisplay, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
         fromspace = img[1]->spec().get_string_attribute("oiio:Colorspace");
     return ImageBufAlgo::ociodisplay(*img[0], *img[1], displayname, viewname,
                                      fromspace, looks, unpremult, inverse,
-                                     contextkey, contextvalue, &ot.colorconfig);
+                                     contextkey, contextvalue,
+                                     &ot.colorconfig());
 });
 
 
@@ -2384,7 +2406,7 @@ OIIOTOOL_OP(ociofiletransform, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
     bool inverse     = op.options().get_int("inverse");
     bool unpremult   = op.options().get_int("unpremult");
     return ImageBufAlgo::ociofiletransform(*img[0], *img[1], name, unpremult,
-                                           inverse, &ot.colorconfig);
+                                           inverse, &ot.colorconfig());
 });
 
 
@@ -2398,7 +2420,7 @@ OIIOTOOL_OP(ocionamedtransform, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
     bool inverse             = op.options().get_int("inverse");
     return ImageBufAlgo::ocionamedtransform(*img[0], *img[1], name, unpremult,
                                             inverse, contextkey, contextvalue,
-                                            &ot.colorconfig);
+                                            &ot.colorconfig());
 });
 
 
@@ -5161,7 +5183,7 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
         if (autocc) {
             // Try to deduce the color space it's in
             std::string colorspace(
-                ot.colorconfig.getColorSpaceFromFilepath(filename));
+                ot.colorconfig().getColorSpaceFromFilepath(filename));
             if (colorspace.size() && ot.debug)
                 print("  From {}, we deduce color space \"{}\"\n", filename,
                       colorspace);
@@ -5173,9 +5195,9 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
                     print("  Metadata of {} indicates color space \"{}\"\n",
                           colorspace, filename);
             }
-            std::string linearspace = ot.colorconfig.resolve("linear");
+            std::string linearspace = ot.colorconfig().resolve("linear");
             if (colorspace.size()
-                && !ot.colorconfig.equivalent(colorspace, linearspace)) {
+                && !ot.colorconfig().equivalent(colorspace, linearspace)) {
                 std::string cmd = "colorconvert:strict=0";
                 if (autoccunpremult)
                     cmd += ":unpremult=1";
@@ -5459,12 +5481,12 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
     // automatically set -d based on the name if --autocc is used.
     bool autocc          = fileoptions.get_int("autocc", ot.autocc);
     bool autoccunpremult = fileoptions.get_int("unpremult", ot.autoccunpremult);
-    std::string outcolorspace = ot.colorconfig.getColorSpaceFromFilepath(
+    std::string outcolorspace = ot.colorconfig().getColorSpaceFromFilepath(
         filename);
     if (autocc && outcolorspace.size()) {
         TypeDesc type;
         int bits;
-        type = ot.colorconfig.getColorSpaceDataType(outcolorspace, &bits);
+        type = ot.colorconfig().getColorSpaceDataType(outcolorspace, &bits);
         if (type.basetype != TypeDesc::UNKNOWN) {
             if (ot.debug)
                 std::cout << "  Deduced data type " << type << " (" << bits
@@ -5482,7 +5504,7 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
         }
     }
     if (autocc) {
-        string_view linearspace = ot.colorconfig.resolve("linear");
+        string_view linearspace = ot.colorconfig().resolve("linear");
         std::string currentspace
             = ir->spec()->get_string_attribute("oiio:ColorSpace", linearspace);
         // Special cases where we know formats should be particular color
@@ -5978,24 +6000,24 @@ print_ocio_info(Oiiotool& ot, std::ostream& out)
     using Strutil::print;
     int columns = Sysutil::terminal_columns() - 1;
 
-    int ociover = ot.colorconfig.OpenColorIO_version_hex();
-    if (ociover)
+    ColorConfig& colorconfig = ot.colorconfig();
+    if (int ociover = colorconfig.OpenColorIO_version_hex())
         out << "OpenColorIO " << (ociover >> 24) << '.'
             << ((ociover >> 16) & 0xff) << '.' << ((ociover >> 8) & 0xff);
     else
         out << "No OpenColorIO";
-    out << "\nColor config: " << ot.colorconfig.configname() << "\n";
+    out << "\nColor config: " << colorconfig.configname() << "\n";
     out << "Known color spaces: \n";
-    const char* linear = ot.colorconfig.getColorSpaceNameByRole("linear");
-    for (int i = 0, e = ot.colorconfig.getNumColorSpaces(); i < e; ++i) {
-        const char* n = ot.colorconfig.getColorSpaceNameByIndex(i);
+    const char* linear = colorconfig.getColorSpaceNameByRole("linear");
+    for (int i = 0, e = colorconfig.getNumColorSpaces(); i < e; ++i) {
+        const char* n = colorconfig.getColorSpaceNameByIndex(i);
         out << "    - " << quote_if_spaces(n);
-        if ((linear && !ot.colorconfig.equivalent(n, "linear")
-             && ot.colorconfig.equivalent(n, linear))
-            || ot.colorconfig.isColorSpaceLinear(n))
+        if ((linear && !colorconfig.equivalent(n, "linear")
+             && colorconfig.equivalent(n, linear))
+            || colorconfig.isColorSpaceLinear(n))
             out << " (linear)";
         out << "\n";
-        auto aliases = ot.colorconfig.getAliases(n);
+        auto aliases = colorconfig.getAliases(n);
         if (aliases.size()) {
             std::stringstream s;
             s << "      aliases: " << join_with_quotes(aliases, ", ");
@@ -6003,41 +6025,41 @@ print_ocio_info(Oiiotool& ot, std::ostream& out)
         }
     }
 
-    int roles = ot.colorconfig.getNumRoles();
+    int roles = colorconfig.getNumRoles();
     if (roles) {
         print(out, "Known roles:\n");
         for (int i = 0; i < roles; ++i) {
-            const char* r = ot.colorconfig.getRoleByIndex(i);
+            const char* r = colorconfig.getRoleByIndex(i);
             print(out, "    - {} -> {}\n", quote_if_spaces(r),
-                  quote_if_spaces(ot.colorconfig.getColorSpaceNameByRole(r)));
+                  quote_if_spaces(colorconfig.getColorSpaceNameByRole(r)));
         }
     }
 
-    int nlooks = ot.colorconfig.getNumLooks();
+    int nlooks = colorconfig.getNumLooks();
     if (nlooks) {
         print(out, "Known looks:\n");
         for (int i = 0; i < nlooks; ++i)
             print(out, "    - {}\n",
-                  quote_if_spaces(ot.colorconfig.getLookNameByIndex(i)));
+                  quote_if_spaces(colorconfig.getLookNameByIndex(i)));
     }
 
-    const char* default_display = ot.colorconfig.getDefaultDisplayName();
-    int ndisplays               = ot.colorconfig.getNumDisplays();
+    const char* default_display = colorconfig.getDefaultDisplayName();
+    int ndisplays               = colorconfig.getNumDisplays();
     if (ndisplays) {
         out << "Known displays: (* indicates default)\n";
         for (int i = 0; i < ndisplays; ++i) {
-            const char* d = ot.colorconfig.getDisplayNameByIndex(i);
+            const char* d = colorconfig.getDisplayNameByIndex(i);
             out << "    - " << quote_if_spaces(d);
             if (!strcmp(d, default_display))
                 out << " (*)";
-            const char* default_view = ot.colorconfig.getDefaultViewName(d);
-            int nviews               = ot.colorconfig.getNumViews(d);
+            const char* default_view = colorconfig.getDefaultViewName(d);
+            int nviews               = colorconfig.getNumViews(d);
             if (nviews) {
                 out << "\n      ";
                 std::stringstream s;
                 s << "views: ";
                 for (int i = 0; i < nviews; ++i) {
-                    const char* v = ot.colorconfig.getViewNameByIndex(d, i);
+                    const char* v = colorconfig.getViewNameByIndex(d, i);
                     s << quote_if_spaces(v);
                     if (!strcmp(v, default_view))
                         s << " (*)";
@@ -6050,15 +6072,15 @@ print_ocio_info(Oiiotool& ot, std::ostream& out)
         }
     }
 
-    int nnamed_transforms = ot.colorconfig.getNumNamedTransforms();
+    int nnamed_transforms = colorconfig.getNumNamedTransforms();
     if (nnamed_transforms) {
         out << "Named transforms:\n";
         for (int i = 0; i < nnamed_transforms; ++i) {
-            const char* x = ot.colorconfig.getNamedTransformNameByIndex(i);
+            const char* x = colorconfig.getNamedTransformNameByIndex(i);
             out << "    - " << quote_if_spaces(x) << "\n";
         }
     }
-    if (!ot.colorconfig.supportsOpenColorIO())
+    if (!colorconfig.supportsOpenColorIO())
         out << "No OpenColorIO support was enabled at build time.\n";
 }
 
@@ -6115,12 +6137,12 @@ print_help_end(Oiiotool& ot, std::ostream& out)
     out << formatted_format_list("Input", "input_format_list") << "\n";
     out << formatted_format_list("Output", "output_format_list") << "\n";
 
-    if (int ociover = ot.colorconfig.OpenColorIO_version_hex())
+    if (int ociover = ot.colorconfig().OpenColorIO_version_hex())
         print(out, "OpenColorIO {}.{}.{}\n", (ociover >> 24),
               ((ociover >> 16) & 0xff), ((ociover >> 8) & 0xff));
     else
         print(out, "No OpenColorIO\n");
-    print(out, "    Color config: {}\n", ot.colorconfig.configname());
+    print(out, "    Color config: {}\n", ot.colorconfig().configname());
     print(out, "    Run `oiiotool --colorconfiginfo` for a "
                "full color management inventory.\n");
 
