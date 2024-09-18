@@ -1112,6 +1112,43 @@ Shuffling channels
 |
 
 
+.. doxygengroup:: st_warp
+..
+
+..
+  Examples:
+
+    FIX ME! This is not complete, examples need to be added to docs-examples-imagebufalgo.{cpp,py}
+    .. tabs::
+
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-st_warp
+              :end-before: END-imagebufalgo-st_warp
+              :dedent: 4
+
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-st_warp
+              :end-before: END-imagebufalgo-st_warp
+              :dedent: 4
+
+       .. tab:: oiiotool
+         .. code-block:: bash
+
+             oiiotool mandrill.tif distortion_st.tif --st_warp -o mandrill_distorted.tif
+
+             # Using an `st` map authored in terms of a lower-left origin (e.g. by
+             # Nuke), so flip the vertical (`t`) coordinate.
+             oiiotool mandrill.tif st_from_nuke.tif --st_warp:filter=triangle:flip_t=1 -o mandrill_distorted.tif
+
+             oiiotool grid.exr --st_warp 0.7071068,0.7071068,0,-0.7071068,0.7071068,0,20,-8.284271,1 -o out.exr
+
+|
+
+
 .. doxygenfunction:: demosaic(const ImageBuf &src, KWArgs options = {}, ROI roi = {}, int nthreads = 0)
 ..
 
