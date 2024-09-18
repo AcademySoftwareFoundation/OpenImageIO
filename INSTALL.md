@@ -22,8 +22,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * **CMake >= 3.15** (tested through 3.29)
  * **Imath >= 3.1** (tested through 3.1.x and main)
  * **OpenEXR >= 3.1** (tested through 3.2 and main)
- * **libTIFF >= 4.0** (tested through 4.6)
- * **OpenColorIO >= 2.2** (tested through 2.3)
+ * **libTIFF >= 4.0** (tested through 4.7)
+ * **OpenColorIO >= 2.2** (tested through 2.3 and main)
  * libjpeg >= 8 (tested through jpeg9e), or **libjpeg-turbo >= 2.1** (tested
    through 3.0)
  * **[fmtlib](https://github.com/fmtlib/fmt) >= 7.0** (tested through 10.2).
@@ -42,7 +42,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for PNG files:
      * **libPNG >= 1.6.0** (tested though 1.6.43)
  * If you want support for camera "RAW" formats:
-     * **LibRaw >= 0.20** (tested though 0.21.2)
+     * **LibRaw >= 0.20** (tested though 0.21.3 and master)
  * If you want support for a wide variety of video formats:
      * **ffmpeg >= 4.0** (tested through 7.0)
  * If you want support for jpeg 2000 images:

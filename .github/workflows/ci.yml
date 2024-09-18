@@ -331,7 +331,7 @@ jobs:
             simd: avx2,f16c
             setenvs: export LIBJPEGTURBO_VERSION=3.0.3
                             LIBRAW_VERSION=0.21.2
-                            LIBTIFF_VERSION=v4.6.0
+                            LIBTIFF_VERSION=v4.7.0
                             OPENJPEG_VERSION=v2.5.2
                             PTEX_VERSION=v2.4.3
                             PUGIXML_VERSION=v1.14
@@ -377,8 +377,8 @@ jobs:
             python_ver: "3.10"
             simd: avx2,f16c
             setenvs: export OpenImageIO_BUILD_LOCAL_DEPS=all
-                            LIBJPEGTURBO_VERSION=3.0.1
-                            LIBRAW_VERSION=0.21.2
+                            LIBJPEGTURBO_VERSION=3.0.4
+                            LIBRAW_VERSION=0.21.3
                             OPENJPEG_VERSION=v2.4.0
                             PTEX_VERSION=v2.4.2
                             PUGIXML_VERSION=v1.14
