@@ -24,7 +24,7 @@ set (PROJECT_VERSION_RELEASE_TYPE "dev" CACHE STRING
 set (${PROJECT_NAME}_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
 set (PROJECT_AUTHORS "Contributors to the OpenImageIO project")
 option (${PROJECT_NAME}_SUPPORTED_RELEASE
-        "Set ON for supported release branch, OFF for master" OFF)
+        "Set ON for supported release branches, OFF for 'main'" OFF)
 if (${PROJECT_NAME}_SUPPORTED_RELEASE)
     set (${PROJECT_NAME}_DEV_RELEASE OFF)
 else ()

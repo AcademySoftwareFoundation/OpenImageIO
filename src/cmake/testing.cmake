@@ -389,7 +389,7 @@ function (oiio_get_test_data name)
         # Test data directory didn't exist -- fetch it
         message (STATUS "Cloning ${name} from ${_ogtd_REPO}")
         if (NOT _ogtd_BRANCH)
-            set (_ogtd_BRANCH master)
+            set (_ogtd_BRANCH main)
         endif ()
         find_package (Git)
         if (Git_FOUND AND GIT_EXECUTABLE)

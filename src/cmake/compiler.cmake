@@ -573,7 +573,7 @@ if (${PROJECT_NAME}_SUPPORTED_RELEASE)
     set (SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
          CACHE STRING "Set the SO version for dynamic libraries")
 else ()
-    # Development master makes no ABI stability guarantee, so we make the
+    # Main development branch makes no ABI stability guarantee, so we make the
     # SO naming capture down to the major.minor.patch level.
     set (SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
          CACHE STRING "Set the SO version for dynamic libraries")
