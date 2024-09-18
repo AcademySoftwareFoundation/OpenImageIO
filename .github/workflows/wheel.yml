@@ -240,6 +240,14 @@ jobs:
         name: Install Python
         with:
           python-version: '3.8'
+      
+      - name: Install Docker
+        run: |
+          brew install --cask docker
+          open /Applications/Docker.app
+          while ! docker system info; do sleep 1; done
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.21.1
