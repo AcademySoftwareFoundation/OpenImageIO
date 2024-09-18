@@ -219,19 +219,52 @@ jobs:
           # -------------------------------------------------------------------
           - build: CPython 3.8 ARM 64 bits
             python: cp38-macosx_arm64
-            arch: auto
+            arch: arm64
           - build: CPython 3.9 ARM 64 bits
             python: cp39-macosx_arm64
-            arch: auto
+            arch: arm64
           - build: CPython 3.10 ARM 64 bits
             python: cp310-macosx_arm64
-            arch: auto
+            arch: arm64
           - build: CPython 3.11 ARM 64 bits
             python: cp311-macosx_arm64
-            arch: auto
+            arch: arm64
           - build: CPython 3.12 ARM 64 bits
             python: cp312-macosx_arm64
-            arch: auto
+            arch: arm64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        name: Install Python
+        with:
+          python-version: '3.8'
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.21.1
+        env:
+          CIBW_BUILD: ${{ matrix.python }}
+          CIBW_ARCHS: ${{ matrix.arch }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cibw-wheels-${{ matrix.python }}
+          path: ./wheelhouse/*.whl
+
+
+
+  macos_arm64_cross:
+    name: Build Linux wheels on macOS ARM64
+    runs-on: macos-14
+    # Don't run on OIIO forks
+    if: |
+      github.event_name != 'schedule' ||
+      github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+
+    strategy:
+      matrix:
+        include:
           # -------------------------------------------------------------------
           # CPython ARM 64 bits manylinux2014
           # -------------------------------------------------------------------
@@ -268,8 +301,7 @@ jobs:
         uses: pypa/cibuildwheel@v2.21.1
         env:
           CIBW_BUILD: ${{ matrix.python }}
-          #CIBW_ARCHS: ${{ matrix.arch }}
-          #CIBW_ARCHS_MACOS: ${{ matrix.arch }}
+          CIBW_PLATFORM: linux
           CIBW_ARCHS_LINUX: ${{ matrix.arch }}
           CIBW_MANYLINUX_AARCH64_IMAGE: ${{ matrix.manylinux }}
 
@@ -277,7 +309,6 @@ jobs:
         with:
           name: cibw-wheels-${{ matrix.python }}
           path: ./wheelhouse/*.whl
-
   # ---------------------------------------------------------------------------
   # Windows Wheels
   # ---------------------------------------------------------------------------
@@ -333,7 +364,7 @@ jobs:
 
 
   upload_pypi:
-    needs: [sdist, linux, macos, macos_arm64, windows]
+    needs: [sdist, linux, macos, macos_arm64,macos_arm64_cross, windows]
     runs-on: ubuntu-latest
     permissions:
       id-token: write
