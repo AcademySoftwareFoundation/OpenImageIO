@@ -1,6 +1,6 @@
 These are all the release notes for versions 0.1 (Sept 2008) - 0.10 (Feb 2012).
 For the full release notes of all versions, see:
-[CHANGES](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/master/CHANGES.md).
+[CHANGES](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/CHANGES.md).
 
 
 Release 0.10.5 (20 Feb 2012)

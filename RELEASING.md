@@ -51,27 +51,27 @@ Tweak (fully forward and backward compatible) releases are not regularly
 scheduled, and only happen sporadically, when a critical fix is needed in
 between scheduled patch releases.
 
-### Things are different in "master"
+### Things are different in "main"
 
-The "master" branch is where ongoing development occurs without any
+The "main" branch is where ongoing development occurs without any
 compatibility guarantees. We don't always know if the next year's release from
-master will turn out to be major (API breaking) or minor (only ABI breaking).
+main will turn out to be major (API breaking) or minor (only ABI breaking).
 
 Some studios or products need the most up-to-date enhancements, and thus tend
-to build OIIO from the "master" branch rather than using tagged releases. For
-these users, we try to set version numbers and occasionally tag in master, to
-send a signal about which points in master seem safe to rely on various
+to build OIIO from the "main" branch rather than using tagged releases. For
+these users, we try to set version numbers and occasionally tag in main, to
+send a signal about which points in main seem safe to rely on various
 compatibility levels. However, the rules are slightly different than we use
 for releases.
 
-In the "master" branch:
+In the "main" branch:
 
-- TWEAK changes within "master" only guarantee ABI back-compatibility, but may
+- TWEAK changes within "main" only guarantee ABI back-compatibility, but may
   have additions or non-bug-fix behavior changes (akin to patch releases
   within a release branch).
-- PATCH changes within "master" are allowed to break ABI or API (changes that
-  would require minor or major releases, if they were not in "master").
-- Beware of unmarked breaks in compatibility of commits in master that are
+- PATCH changes within "main" are allowed to break ABI or API (changes that
+  would require minor or major releases, if they were not in "main").
+- Beware of unmarked breaks in compatibility of commits in main that are
   in between developer preview tags.
 
 
@@ -83,7 +83,7 @@ In the "master" branch:
 (and thus the branch markers will move over time). Branch names obey the
 following conventions:
 
-- `master` is the area for arbitrary changes intended for the next year's
+- `main` is the area for arbitrary changes intended for the next year's
   major or minor release.
 - `dev-1.2` are the areas for staging additions to the next month's patch
   release for the designated minor version series.
@@ -101,7 +101,7 @@ conventions:
 - `v1.2.3.4-alpha`, `v1.2.3.4-beta`, or `v1.2.3.4-RC1` are pre-releases for an
   upcoming public stable release, at the alpha, beta, or release candidate
   stages, respectively.
-- `v1.2.3.4-dev` is a "developer preview" within "master." It is not an official
+- `v1.2.3.4-dev` is a "developer preview" within "main." It is not an official
   supported release, and while the numbering may indicate compatibility versus
   other recent developer previews, they should not be assumed to be compatible
   with any prior official stable releases.
@@ -118,7 +118,7 @@ in general should be ignored by anyone who didn't make the tag or branch.
 ### Soft freeze for monthly tweak releases:
 
 We freely backport *safe*, non-ABI-breaking changes by cherry-picking them
-from master to the supported branch continually throughout most of the month.
+from main to the supported branch continually throughout most of the month.
 
 In the seven days before the new month, we do a "soft freeze" where only
 important bug fixes are backported. Hold on to any other patches you wish to
@@ -133,18 +133,18 @@ project during this soft freeze.
 By mid-June (about 1-2 months before the beta of a new annual big release),
 you should branch and mark it as an alpha.
 
-At the tip of "master", create a new branch named `dev-MAJOR.MINOR` that will
+At the tip of "main", create a new branch named `dev-MAJOR.MINOR` that will
 be the staging area for the next release.
 
-Customarily, at that point we add a commit to master (but not to the new
-dev-MAJ.MIN branch) that bumps master's version to the next minor level, to
-avoid any confusion between builds from master versus what will be the next
-release branch. This starts the divergence between master and the release
+Customarily, at that point we add a commit to main (but not to the new
+dev-MAJ.MIN branch) that bumps main's version to the next minor level, to
+avoid any confusion between builds from main versus what will be the next
+release branch. This starts the divergence between main and the release
 branch, and henceforth, any big or compatibility-breaking changes will only be
-committed to master and not backported to the release branch. (Though we are
+committed to main and not backported to the release branch. (Though we are
 loose about this rule during the alpha period and allow continued breaking
 changes in the alpha, but by the time we call it beta, we allow no more
-breaking changes.) Also at this stage, the master branch's CHANGES.md should
+breaking changes.) Also at this stage, the main branch's CHANGES.md should
 have a heading added at the top for the *next* version.
 
 
@@ -214,17 +214,17 @@ have a heading added at the top for the *next* version.
    - The `OpenImageIO_VERSION` should be correct.
    - The `PROJECT_VERSION_RELEASE_TYPE` variable should be set to "alpha" or
      "beta" if appropriate, "RC" for release candidate, or empty string `""`
-     for most supported releases, and "dev" only for the master branch or
+     for most supported releases, and "dev" only for the main branch or
      developer previews.
    - The `${PROJECT_NAME}_SUPPORTED_RELEASE` variable should be `ON` for any
-     release branch, `OFF` for master.
+     release branch, `OFF` for main.
 
 6. In the https://github.com/AcademySoftwareFoundation/OpenImageIO-images project, create a branch
    `dev-x.y` for the major/minor branch, and in the main oiio repo, update
    src/build-scripts/install_test_images.bash to specify `-b dev-x.y` in the
    checkout of oiio-images to ensure CI tests are against the set of test
    images corresponding to that major/minor release (just in the branch, not
-   in master!).
+   in main!).
 
 7. Make sure everything passes the usual CI workflow. Also check the daily or
    weekly "analysis" workflows to make sure there aren't any important
@@ -335,10 +335,10 @@ The following are the steps for making the release:
     > become less frequent and be reserved for only the most critical bug
     > fixes.
     > 
-    > The "master" branch is now progressing toward an eventual 3.1 release next
-    > fall. As usual, you are welcome to use master for real work, but we do
+    > The "main" branch is now progressing toward an eventual 3.1 release next
+    > fall. As usual, you are welcome to use main for real work, but we do
     > not make any compatibility guarantees and don't guarantee continuing API
-    > compatibility in master.
+    > compatibility in main.
     >
     > (Paste the full set of 3.0 changes here, just copy the appropriate
     > part of CHANGES.md)
