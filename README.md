@@ -4,7 +4,7 @@
   <img src="ASWF/logos/openimageio-horizontal-gradient.png">
 </p>
 
-[![License](https://img.shields.io/badge/license-Apache2.0-blue.svg?style=flat-square)](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/master/LICENSE.md)
+[![License](https://img.shields.io/badge/license-Apache2.0-blue.svg?style=flat-square)](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/LICENSE.md)
 [![CI](https://github.com/AcademySoftwareFoundation/OpenImageIO/actions/workflows/ci.yml/badge.svg)](https://github.com/AcademySoftwareFoundation/OpenImageIO/actions/workflows/ci.yml)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2694/badge)](https://bestpractices.coreinfrastructure.org/projects/2694)
 [![latest packaged version(s)](https://repology.org/badge/latest-versions/openimageio.svg)](https://repology.org/project/openimageio/versions)
