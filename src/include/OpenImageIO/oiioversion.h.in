@@ -39,7 +39,7 @@
 // prior release.
 //
 // Note that these designations only apply to released branches. Changes
-// in the main development branch ("master") do not make any compatibility
+// in the main development branch ("main") do not make any compatibility
 // guarantees at all.
 //
 #define OIIO_VERSION_MAJOR @PROJECT_VERSION_MAJOR@

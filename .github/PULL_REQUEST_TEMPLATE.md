@@ -19,8 +19,10 @@
 
 <!-- Put an 'x' in the boxes as you complete the checklist items -->
 
-- [ ] I have read the [contribution guidelines](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/master/CONTRIBUTING.md).
-- [ ] I have updated the documentation, if applicable.
+- [ ] I have read the [contribution guidelines](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/CONTRIBUTING.md).
+- [ ] I have updated the documentation, if applicable. (Check if there is no
+  need to update the documentation, for example if this is a bug fix that
+  doesn't change the API.)
 - [ ] I have ensured that the change is tested somewhere in the testsuite
   (adding new test cases if necessary).
 - [ ] If I added or modified a C++ API call, I have also amended the

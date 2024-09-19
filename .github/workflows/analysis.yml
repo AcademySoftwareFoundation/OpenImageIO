@@ -11,9 +11,9 @@ on:
     # Run unconditionally once weekly
     # - cron: "0 0 * * 0"
   push:
-    # Run on pushes only to master or if the branch name contains "analysis"
+    # Run on pushes only to main or if the branch name contains "analysis"
     branches:
-      - master
+      - main
       - '*analysis*'
       - '*sonar*'
     paths-ignore:

@@ -312,7 +312,7 @@ jobs:
                             USE_OPENVDB=0
                             WEBP_VERSION=v1.3.0
                             # The installed OpenVDB has a TLS conflict with Python 3.8
-          - desc: bleeding edge gcc14 C++20 py3.12 OCIO/libtiff/exr-master boost1.74 avx2
+          - desc: bleeding edge gcc14 C++20 py3.12 OCIO/libtiff/exr-main boost1.74 avx2
             nametag: linux-bleeding-edge
             runner: ubuntu-24.04
             cc_compiler: gcc-14
