@@ -2696,6 +2696,26 @@ Image transformations and data movement
 
 
 
+.. py:method:: ImageBuf ImageBufAlgo.st_warp (src, M, filtername="", filtersize=0.0, wrap="default", recompute_roi=False, roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.st_warp (dst, src, M, filtername="", filtersize=0.0, wrap="default", recompute_roi=False, roi=ROI.All, nthreads=0)
+
+    Compute a warped (transformed) copy of `src`, with the warp specified by
+    `M` consisting of 9 floating-point numbers representing a 3x3
+    transformation matrix.  If the filter and size are not specified, an
+    appropriate default will be chosen.
+
+    Example:
+
+    .. code-block:: python
+
+        # distortion_st.tif is a map where every pixel value contains the 2D
+        # coordinate of where to copy from.
+        Distort = ImageBuf("distortion_st.tif")
+        Src = ImageBuf("tahoe.exr")
+        Dst = ImageBufAlgo.st_warp(Src, Distort)
+
+
+
 .. py:method:: ImageBuf ImageBufAlgo.resize (src, filtername="", filtersize=0.0, roi=ROI.All, nthreads=0)
                bool ImageBufAlgo.resize (dst, src, filtername="", filtersize=0.0, roi=ROI.All, nthreads=0)
 
