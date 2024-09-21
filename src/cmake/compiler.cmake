@@ -421,6 +421,16 @@ endif ()
 
 
 ###########################################################################
+# Profiling
+#
+set_cache (PROFILER "" "Build executables with profiler support (choices: gperftools)")
+if (PROFILER STREQUAL "gperftools")
+    find_library(PROFILER_LIBRARIES NAMES profiler)
+    message (STATUS "Compiling for profiling with ${PROFILER}, found ${PROFILER_LIBRARIES}")
+endif ()
+
+
+###########################################################################
 # Sanitizer options
 #
 set_cache (SANITIZE "" "Build code using sanitizer (address, thread, undefined)")
