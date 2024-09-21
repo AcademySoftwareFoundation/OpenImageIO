@@ -1,8 +1,8 @@
 # Copyright Contributors to the OpenImageIO project.
-# SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+# SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-cmake_minimum_required (VERSION 3.15)
+cmake_minimum_required (VERSION 3.18.2)
 
 set (OpenImageIO_VERSION "2.6.7.0")
 set (OpenImageIO_VERSION_OVERRIDE "" CACHE STRING
