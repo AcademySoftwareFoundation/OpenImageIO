@@ -169,7 +169,7 @@ jobs:
             openexr_ver: v3.1.0
             pybind11_ver: v2.7.0
             python_ver: 3.7
-            setenvs: export  CMAKE_VERSION=3.15.5
+            setenvs: export  CMAKE_VERSION=3.18.0
                              PTEX_VERSION=v2.3.2
                              WEBP_VERSION=v1.1.0
             depcmds: sudo rm -rf /usr/local/include/OpenEXR
@@ -189,7 +189,7 @@ jobs:
             python_ver: 3.7
             simd: 0
             setenvs: export  EMBEDPLUGINS=0
-                             CMAKE_VERSION=3.15.5
+                             CMAKE_VERSION=3.18.0
                              PTEX_VERSION=v2.3.2
                              WEBP_VERSION=v1.1.0
                              USE_JPEGTURBO=0
