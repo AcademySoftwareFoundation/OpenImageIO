@@ -1138,7 +1138,7 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
                 int rx  = x + i + slot->bitmap_left;
                 float b = slot->bitmap.buffer[slot->bitmap.pitch * j + i]
                           / 255.0f;
-                textimg.setpixel(rx, ry, &b, 1);
+                textimg.setpixel(rx, ry, b);
             }
         }
         // increment pen position
@@ -1160,7 +1160,7 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
     roi = roi_intersection(textroi, R.roi());
 
     // Now fill in the pixels of our destination image
-    float* pixelcolor = OIIO_ALLOCA(float, nchannels);
+    span<float> pixelcolor = OIIO_ALLOCA_SPAN(float, nchannels);
     ImageBuf::ConstIterator<float> t(textimg, roi, ImageBuf::WrapBlack);
     ImageBuf::ConstIterator<float> a(alphaimg, roi, ImageBuf::WrapBlack);
     ImageBuf::Iterator<float> r(R, roi);

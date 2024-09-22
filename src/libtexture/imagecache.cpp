@@ -964,9 +964,9 @@ ImageCacheFile::read_unmipped(ImageCachePerThreadInfo* thread_info,
     // lookups form the next finer subimage.
     const ImageSpec& upspec(
         this->spec(subimage, miplevel - 1));  // next higher level
-    float* bilerppels = OIIO_ALLOCA(float, 4 * nchans);
-    float* resultpel  = OIIO_ALLOCA(float, nchans);
-    bool ok           = true;
+    span<float> bilerppels = OIIO_ALLOCA_SPAN(float, 4 * nchans);
+    span<float> resultpel  = OIIO_ALLOCA_SPAN(float, nchans);
+    bool ok                = true;
     // FIXME(volume) -- loop over z, too
     for (int j = y0; j <= y1; ++j) {
         float yf = (j + 0.5f) / spec.full_height;
@@ -979,15 +979,19 @@ ImageCacheFile::read_unmipped(ImageCachePerThreadInfo* thread_info,
             ok &= imagecache().get_pixels(this, thread_info, subimage,
                                           miplevel - 1, xlow, xlow + 2, ylow,
                                           ylow + 2, 0, 1, chbegin, chend,
-                                          TypeDesc::FLOAT, bilerppels);
-            bilerp(bilerppels + 0, bilerppels + nchans, bilerppels + 2 * nchans,
-                   bilerppels + 3 * nchans, xfrac, yfrac, nchans, resultpel);
+                                          TypeFloat, bilerppels.data());
+            bilerp(bilerppels.data() + 0, bilerppels.data() + nchans,
+                   bilerppels.data() + 2 * nchans,
+                   bilerppels.data() + 3 * nchans, xfrac, yfrac, nchans,
+                   resultpel.data());
             lores.setpixel(i - x0, j - y0, resultpel);
         }
     }
 
     // Now convert and copy those values out to the caller's buffer
-    lores.get_pixels(ROI(0, tw, 0, th, 0, 1, 0, nchans), format, data);
+    lores.get_pixels(ROI(0, tw, 0, th, 0, 1, 0, nchans), format,
+                     make_span((std::byte*)data,
+                               size_t(tw * th * nchans) * format.size()));
 
     // Restore the microcache to the way it was before.
     thread_info->tile     = oldtile;

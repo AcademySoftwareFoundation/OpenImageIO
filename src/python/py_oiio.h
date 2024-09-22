@@ -392,6 +392,18 @@ C_to_tuple(cspan<T> vals)
 
 template<typename T>
 inline py::tuple
+C_to_tuple(span<T> vals)
+{
+    size_t size = vals.size();
+    py::tuple result(size);
+    for (size_t i = 0; i < size; ++i)
+        result[i] = typename PyTypeForCType<T>::type(vals[i]);
+    return result;
+}
+
+
+template<typename T>
+inline py::tuple
 C_to_tuple(const T* vals, size_t size)
 {
     py::tuple result(size);
