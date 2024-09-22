@@ -176,6 +176,7 @@ Begin sequence iteration 0
   copyB.#.jpg -> copyB.0001.jpg
 Reading ./copyA.0001.jpg
 Output: copyB.0001.jpg
+oiiotool Creating ColorConfig
 Writing copyB.0001.jpg
 
 Begin sequence iteration 1
@@ -183,6 +184,7 @@ Begin sequence iteration 1
   copyB.#.jpg -> copyB.0002.jpg
 Reading ./copyA.0002.jpg
 Output: copyB.0002.jpg
+oiiotool Creating ColorConfig
 Writing copyB.0002.jpg
 
 Begin sequence iteration 2
@@ -190,6 +192,7 @@ Begin sequence iteration 2
   copyB.#.jpg -> copyB.0003.jpg
 Reading ./copyA.0003.jpg
 Output: copyB.0003.jpg
+oiiotool Creating ColorConfig
 Writing copyB.0003.jpg
 
 Begin sequence iteration 3
@@ -197,6 +200,7 @@ Begin sequence iteration 3
   copyB.#.jpg -> copyB.0004.jpg
 Reading ./copyA.0004.jpg
 Output: copyB.0004.jpg
+oiiotool Creating ColorConfig
 Writing copyB.0004.jpg
 
 Begin sequence iteration 4
@@ -204,6 +208,7 @@ Begin sequence iteration 4
   copyB.#.jpg -> copyB.0005.jpg
 Reading ./copyA.0005.jpg
 Output: copyB.0005.jpg
+oiiotool Creating ColorConfig
 Writing copyB.0005.jpg
 
 Begin sequence iteration 5
@@ -211,6 +216,7 @@ Begin sequence iteration 5
   copyB.#.jpg -> copyB.0006.jpg
 Reading ./copyA.0006.jpg
 Output: copyB.0006.jpg
+oiiotool Creating ColorConfig
 Writing copyB.0006.jpg
 
 Begin sequence iteration 6
@@ -218,6 +224,7 @@ Begin sequence iteration 6
   copyB.#.jpg -> copyB.0007.jpg
 Reading ./copyA.0007.jpg
 Output: copyB.0007.jpg
+oiiotool Creating ColorConfig
 Writing copyB.0007.jpg
 
 Begin sequence iteration 7
@@ -225,6 +232,7 @@ Begin sequence iteration 7
   copyB.#.jpg -> copyB.0008.jpg
 Reading ./copyA.0008.jpg
 Output: copyB.0008.jpg
+oiiotool Creating ColorConfig
 Writing copyB.0008.jpg
 
 Begin sequence iteration 8
@@ -232,6 +240,7 @@ Begin sequence iteration 8
   copyB.#.jpg -> copyB.0009.jpg
 Reading ./copyA.0009.jpg
 Output: copyB.0009.jpg
+oiiotool Creating ColorConfig
 Writing copyB.0009.jpg
 
 Begin sequence iteration 9
@@ -239,6 +248,7 @@ Begin sequence iteration 9
   copyB.#.jpg -> copyB.0010.jpg
 Reading ./copyA.0010.jpg
 Output: copyB.0010.jpg
+oiiotool Creating ColorConfig
 Writing copyB.0010.jpg
 
 copyA.0001.jpg       :  128 x   96, 3 channel, uint8 jpeg
