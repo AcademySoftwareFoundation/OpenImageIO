@@ -118,10 +118,7 @@ endif ()
 # Dependencies for optional formats and features. If these are not found,
 # we will continue building, but the related functionality will be disabled.
 
-checked_find_package (PNG
-                      VERSION_MIN 1.6.0
-                      PREFER_CONFIG  # Config added in 1.6.44
-                      )
+checked_find_package (PNG VERSION_MIN 1.6.0)
 
 checked_find_package (BZip2)   # Used by ffmpeg and freetype
 if (NOT BZIP2_FOUND)
