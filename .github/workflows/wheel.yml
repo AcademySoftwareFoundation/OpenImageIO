@@ -73,7 +73,6 @@ jobs:
     if: |
       github.event_name != 'schedule' ||
       github.repository == 'AcademySoftwareFoundation/OpenImageIO'
-
     strategy:
       matrix:
         include:
@@ -100,6 +99,10 @@ jobs:
             manylinux: manylinux_2_28
             python: cp312-manylinux_x86_64
             arch: x86_64
+          - build: CPython 3.13 64 bits manylinux_2_28
+            manylinux: manylinux_2_28
+            python: cp313-manylinux_x86_64
+            arch: x86_64
           # -------------------------------------------------------------------
           # CPython 64 bits manylinux2014
           # -------------------------------------------------------------------
@@ -123,7 +126,10 @@ jobs:
             manylinux: manylinux2014
             python: cp312-manylinux_x86_64
             arch: x86_64
-          
+          - build: CPython 3.13 64 bits manylinux2014
+            manylinux: manylinux2014
+            python: cp313-manylinux_x86_64
+            arch: x86_64
 
     steps:
       - uses: actions/checkout@v4
@@ -131,7 +137,7 @@ jobs:
       - uses: actions/setup-python@v5
         name: Install Python
         with:
-          python-version: '3.8'
+          python-version: '3.9'
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -150,82 +156,88 @@ jobs:
           name: cibw-wheels-${{ matrix.python }}-${{ matrix.manylinux }}
           path: ./wheelhouse/*.whl
 
+  # ---------------------------------------------------------------------------
+  # Linux ARM Wheels
+  # ---------------------------------------------------------------------------
 
-  
-  linux_aarch64:
-    name: Build ARM64 wheels on Linux
-    runs-on: ubuntu-latest
-    # Don't run on OIIO forks
-    if: |
-      github.event_name != 'schedule' ||
-      github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+  linux-arm:
+      name: Build wheels on Linux ARM
+      runs-on: ubuntu-latest
+      # Don't run on OIIO forks
+      if: |
+        github.event_name != 'schedule' ||
+        github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+      strategy:
+        matrix:
+          include:
+            # -------------------------------------------------------------------
+            # CPython ARM 64 bits manylinux2014
+            # -------------------------------------------------------------------
+            - build: CPython 3.8 ARM 64 bits manylinux2014
+              manylinux: manylinux2014
+              python: cp38-manylinux_aarch64
+              arch: aarch64
+            - build: CPython 3.9 ARM 64 bits manylinux2014
+              manylinux: manylinux2014
+              python: cp39-manylinux_aarch64
+              arch: aarch64
+            - build: CPython 3.10 ARM 64 bits manylinux2014
+              manylinux: manylinux2014
+              python: cp310-manylinux_aarch64
+              arch: aarch64
+            - build: CPython 3.11 ARM 64 bits manylinux2014
+              manylinux: manylinux2014
+              python: cp311-manylinux_aarch64
+              arch: aarch64
+            - build: CPython 3.12 ARM 64 bits manylinux2014
+              manylinux: manylinux2014
+              python: cp312-manylinux_aarch64
+              arch: aarch64
+            - build: CPython 3.13 ARM 64 bits manylinux2014
+              manylinux: manylinux2014
+              python: cp313-manylinux_aarch64
+              arch: aarch64
 
-    # strategy:
-    #   matrix:
-    #     arch: [arm64]
-    #     include:
-    #       # -------------------------------------------------------------------
-    #       # CPython ARM 64 bits manylinux2014
-    #       # -------------------------------------------------------------------
-    #       - build: CPython 3.8 ARM 64 bits manylinux2014
-    #         manylinux: manylinux2014
-    #         python: cp38-manylinux_aarch64
-    #         arch: aarch64
-    #       - build: CPython 3.9 ARM 64 bits manylinux2014
-    #         manylinux: manylinux2014
-    #         python: cp39-manylinux_aarch64
-    #         arch: aarch64
-    #       - build: CPython 3.10 ARM 64 bits manylinux2014
-    #         manylinux: manylinux2014
-    #         python: cp310-manylinux_aarch64
-    #         arch: aarch64
-    #       - build: CPython 3.11 ARM 64 bits manylinux2014
-    #         manylinux: manylinux2014
-    #         python: cp311-manylinux_aarch64
-    #         arch: aarch64
-    #       - build: CPython 3.12 ARM 64 bits manylinux2014
-    #         manylinux: manylinux2014
-    #         python: cp312-manylinux_aarch64
-    #         arch: aarch64
-    
-    steps:
-      - uses: actions/checkout@v4
+      steps:
+        - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        name: Install Python
-        with:
-          python-version: '3.10'
-      
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: all
-      
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v2.21.1
-        with:
-          output-dir: wheelhouse
+        - uses: actions/setup-python@v5
+          name: Install Python
+          with:
+            python-version: '3.9'
 
-        env:
-          CIBW_ARCHS: aarch64
+        - name: Set up QEMU
+          uses: docker/setup-qemu-action@v3
+          with:
+            platforms: all
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: wheelhouse
-          path: ./wheelhouse/*.whl
-          
+        - name: Build wheels
+          uses: pypa/cibuildwheel@v2.21.1
+          env:
+            CIBW_BUILD: ${{ matrix.python }}
+            CIBW_ARCHS: ${{ matrix.arch }}
+            CIBW_MANYLINUX_AARCH64_IMAGE: ${{ matrix.manylinux }}
+            # Apparently, the x86_64 runners aren't able to execute tests
+            # tests for ARM wheels. 
+            # TODO: Re-enable tests when linux ARM runners are available
+            CIBW_TEST_SKIP: '*'
+
+        - uses: actions/upload-artifact@v4
+          with:
+            name: cibw-wheels-${{ matrix.python }}-${{ matrix.manylinux }}
+            path: ./wheelhouse/*.whl
+
   # ---------------------------------------------------------------------------
   # macOS Wheels
   # ---------------------------------------------------------------------------
 
   macos:
     name: Build wheels on macOS
-    runs-on: macos-13
+    runs-on: macos-12
     # Don't run on OIIO forks
     if: |
       github.event_name != 'schedule' ||
       github.repository == 'AcademySoftwareFoundation/OpenImageIO'
-
     strategy:
       matrix:
         include:
@@ -247,14 +259,17 @@ jobs:
           - build: CPython 3.12 64 bits
             python: cp312-macosx_x86_64
             arch: x86_64
-    
+          - build: CPython 3.13 64 bits
+            python: cp313-macosx_x86_64
+            arch: x86_64
+
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         name: Install Python
         with:
-          python-version: '3.8'
+          python-version: '3.9'
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.21.1
@@ -267,14 +282,17 @@ jobs:
           name: cibw-wheels-${{ matrix.python }}
           path: ./wheelhouse/*.whl
 
-  macos_arm64:
-    name: Build wheels on macOS ARM64
+  # ---------------------------------------------------------------------------
+  # macOS ARM Wheels
+  # ---------------------------------------------------------------------------
+
+  macos-arm:
+    name: Build wheels on macOS ARM
     runs-on: macos-14
     # Don't run on OIIO forks
     if: |
       github.event_name != 'schedule' ||
       github.repository == 'AcademySoftwareFoundation/OpenImageIO'
-
     strategy:
       matrix:
         include:
@@ -296,6 +314,9 @@ jobs:
           - build: CPython 3.12 ARM 64 bits
             python: cp312-macosx_arm64
             arch: arm64
+          - build: CPython 3.13 ARM 64 bits
+            python: cp313-macosx_arm64
+            arch: arm64
 
     steps:
       - uses: actions/checkout@v4
@@ -303,8 +324,8 @@ jobs:
       - uses: actions/setup-python@v5
         name: Install Python
         with:
-          python-version: '3.8'
-    
+          python-version: '3.9'
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.21.1
         env:
@@ -315,8 +336,6 @@ jobs:
         with:
           name: cibw-wheels-${{ matrix.python }}
           path: ./wheelhouse/*.whl
-
-
 
   # ---------------------------------------------------------------------------
   # Windows Wheels
@@ -329,7 +348,6 @@ jobs:
     if: |
       github.event_name != 'schedule' ||
       github.repository == 'AcademySoftwareFoundation/OpenImageIO'
-
     strategy:
       matrix:
         include:
@@ -351,6 +369,9 @@ jobs:
           - build: CPython 3.12 64 bits
             python: cp312-win_amd64
             arch: AMD64
+          - build: CPython 3.13 64 bits
+            python: cp313-win_amd64
+            arch: AMD64
 
     steps:
       - uses: actions/checkout@v4
@@ -358,7 +379,7 @@ jobs:
       - uses: actions/setup-python@v5
         name: Install Python
         with:
-          python-version: '3.8'
+          python-version: '3.9'
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.21.1
@@ -373,7 +394,7 @@ jobs:
 
 
   upload_pypi:
-    needs: [sdist, linux, linux_aarch64, macos, macos_arm64, windows]
+    needs: [sdist, linux, linux-arm, macos, macos-arm, windows]
     runs-on: ubuntu-latest
     permissions:
       id-token: write
