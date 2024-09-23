@@ -141,7 +141,7 @@ public:
     std::vector<ImageRecRef> image_stack;  // stack of previous images
     std::map<std::string, ImageRecRef> image_labels;  // labeled images
     std::shared_ptr<ImageCache> imagecache;           // back ptr to ImageCache
-    ColorConfig colorconfig;                          // OCIO color config
+    std::unique_ptr<ColorConfig> m_colorconfig;       // OCIO color config
     Timer total_runtime;
     // total_readtime is the amount of time for direct reads, and does not
     // count time spent inside ImageCache.
@@ -369,6 +369,8 @@ public:
 
     // Merge stats from another Oiiotool
     void merge_stats(const Oiiotool& ot);
+
+    ColorConfig& colorconfig();
 
 private:
     CallbackFunction m_pending_callback;

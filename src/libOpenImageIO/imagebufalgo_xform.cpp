@@ -1094,7 +1094,7 @@ resample_(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
         float dstfh          = dstspec.full_height;
         float dstpixelwidth  = 1.0f / dstfw;
         float dstpixelheight = 1.0f / dstfh;
-        float* pel           = OIIO_ALLOCA(float, nchannels);
+        span<float> pel      = OIIO_ALLOCA_SPAN(float, nchannels);
 
         ImageBuf::Iterator<DSTTYPE> out(dst, roi);
         ImageBuf::ConstIterator<SRCTYPE> srcpel(src);

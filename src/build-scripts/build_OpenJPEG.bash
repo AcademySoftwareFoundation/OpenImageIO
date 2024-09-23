@@ -11,7 +11,7 @@ set -ex
 
 # Repo and branch/tag/commit of OpenJPEG to download if we don't have it yet
 OPENJPEG_REPO=${OPENJPEG_REPO:=https://github.com/uclouvain/openjpeg.git}
-OPENJPEG_VERSION=${OPENJPEG_VERSION:=v2.4.0}
+OPENJPEG_VERSION=${OPENJPEG_VERSION:=v2.5.2}
 
 # Where to put OpenJPEG repo source (default to the ext area)
 LOCAL_DEPS_DIR=${LOCAL_DEPS_DIR:=${PWD}/ext}

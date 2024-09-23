@@ -722,10 +722,10 @@ plain_tex_region(ImageBuf& image, ustring filename, Mapping2D mapping,
         // Save filtered pixels back to the image.
         for (int i = 0; i < nchannels; ++i)
             result[i] *= scalefactor;
-        image.setpixel(p.x(), p.y(), result);
+        image.setpixel(p.x(), p.y(), make_span(result, nchannels));
         if (test_derivs) {
-            image_ds->setpixel(p.x(), p.y(), dresultds);
-            image_dt->setpixel(p.x(), p.y(), dresultdt);
+            image_ds->setpixel(p.x(), p.y(), make_span(dresultds, nchannels));
+            image_dt->setpixel(p.x(), p.y(), make_span(dresultdt, nchannels));
         }
     }
 }
@@ -985,7 +985,7 @@ tex3d_region(ImageBuf& image, ustring filename, Mapping3D mapping, ROI roi)
         // Save filtered pixels back to the image.
         for (int i = 0; i < nchannels; ++i)
             result[i] *= scalefactor;
-        image.setpixel(p.x(), p.y(), result);
+        image.setpixel(p.x(), p.y(), make_span(result, nchannels));
     }
 }
 
@@ -1161,11 +1161,11 @@ env_region(ImageBuf& image, ustring filename, MappingEnv mapping,
         // Save filtered pixels back to the image.
         for (int i = 0; i < nchannels; ++i)
             result[i] *= scalefactor;
-        image.setpixel(p.x(), p.y(), result);
+        image.setpixel(p.x(), p.y(), make_span(result, nchannels));
         if (image_ds)
-            image_ds->setpixel(p.x(), p.y(), dresultds);
+            image_ds->setpixel(p.x(), p.y(), make_span(dresultds, nchannels));
         if (image_dt)
-            image_dt->setpixel(p.x(), p.y(), dresultdt);
+            image_dt->setpixel(p.x(), p.y(), make_span(dresultdt, nchannels));
     }
 }
 
@@ -1381,7 +1381,8 @@ test_getimagespec_gettexels(ustring filename)
     for (int y = 0; y < h; ++y)
         for (int x = 0; x < w; ++x) {
             imagesize_t texoffset = (y * w + x) * spec.nchannels;
-            buf.setpixel(x, y, &tmp[texoffset]);
+            buf.setpixel(x, y,
+                         make_span(tmp.data() + texoffset, spec.nchannels));
         }
     TypeDesc fmt(dataformatname);
     if (fmt != TypeDesc::UNKNOWN)

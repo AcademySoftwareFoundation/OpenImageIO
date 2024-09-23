@@ -11,7 +11,7 @@ set -ex
 
 # Repo and branch/tag/commit of libjpeg-turbo to download if we don't have it yet
 LIBJPEGTURBO_REPO=${LIBJPEGTURBO_REPO:=https://github.com/libjpeg-turbo/libjpeg-turbo.git}
-LIBJPEGTURBO_VERSION=${LIBJPEGTURBO_VERSION:=3.0.0}
+LIBJPEGTURBO_VERSION=${LIBJPEGTURBO_VERSION:=3.0.4}
 
 # Where to put libjpeg-turbo repo source (default to the ext area)
 LOCAL_DEPS_DIR=${LOCAL_DEPS_DIR:=${PWD}/ext}

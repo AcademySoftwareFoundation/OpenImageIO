@@ -558,6 +558,35 @@ spanzero(span<T> dst, size_t offset = 0, size_t n = size_t(-1))
 }
 
 
+
+/// Does the byte span `query` lie entirely within the safe `bounds` span?
+inline bool
+span_within(cspan<std::byte> bounds, cspan<std::byte> query)
+{
+    return query.data() >= bounds.data()
+           && query.data() + query.size() <= bounds.data() + bounds.size();
+}
+
+
+
+/// Verify the `ptr[0..len-1]` lies entirely within the given span `s`, which
+/// does not need to be the same data type.  Return true if that is the case,
+/// false if it extends beyond the safe limits fo the span.
+template<typename SpanType, typename PtrType>
+inline bool
+check_span(span<SpanType> s, const PtrType* ptr, size_t len = 1)
+{
+    return span_within(as_bytes(s), as_bytes(make_cspan(ptr, len)));
+}
+
+
+
+/// OIIO_ALLOCASPAN is used to allocate smallish amount of memory on the
+/// stack, equivalent of C99 type var_name[size], and then return a span
+/// encompassing it.
+#define OIIO_ALLOCA_SPAN(type, size) span<type>(OIIO_ALLOCA(type, size), size)
+
+
 OIIO_NAMESPACE_END
 
 

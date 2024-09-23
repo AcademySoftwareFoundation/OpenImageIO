@@ -3349,15 +3349,15 @@ TextureSystemImpl::visualize_ellipse(const std::string& name, float dsdx,
             float x  = (i - w / 2) / scale;
             float d2 = ABCF[0] * x * x + ABCF[1] * x * y + ABCF[2] * y * y;
             if (d2 < 1.0f)
-                ib.setpixel(i, h - 1 - j, dark);
+                ib.setpixel(i, h - 1 - j, make_span(dark));
         }
     }
 
     // Draw red and green axes for the dx and dy derivatives, respectively
     ImageBufAlgo::render_line(ib, w / 2, h / 2, w / 2 + int(dsdx * scale),
-                              h / 2 - int(dtdx * scale), red);
+                              h / 2 - int(dtdx * scale), make_span(red));
     ImageBufAlgo::render_line(ib, w / 2, h / 2, w / 2 + int(dsdy * scale),
-                              h / 2 - int(dtdy * scale), green);
+                              h / 2 - int(dtdy * scale), make_span(green));
 
     // Draw yellow and blue axes for the ellipse axes, with blur
     ImageBufAlgo::render_line(ib, w / 2, h / 2,

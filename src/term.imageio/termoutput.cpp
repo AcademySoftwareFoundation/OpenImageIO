@@ -93,7 +93,12 @@ TermOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     }
     ROI roi(m_spec.x, m_spec.x + m_spec.width, y, y + 1, z, z + 1, 0,
             m_spec.nchannels);
-    return m_buf.set_pixels(roi, format, data, xstride);
+    // N.B. Unsafely assume an impied span given pointer and sizes/strides.
+    // Some day, write_scanline should be updated to take a span directly.
+    auto dataspan = cspan_from_buffer(data, format, m_spec.nchannels,
+                                      roi.width(), roi.height(), roi.depth(),
+                                      xstride, AutoStride, AutoStride);
+    return m_buf.set_pixels(roi, format, dataspan, nullptr, xstride);
 }
 
 
@@ -106,7 +111,13 @@ TermOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
             std::min(y + m_spec.tile_height, m_spec.y + m_spec.height), z,
             std::min(z + m_spec.tile_depth, m_spec.z + m_spec.depth), 0,
             m_spec.nchannels);
-    return m_buf.set_pixels(roi, format, data, xstride, ystride, zstride);
+    // N.B. Unsafely assume an impied span given pointer and sizes/strides.
+    // Some day, write_tile should be updated to take a span directly.
+    auto dataspan = cspan_from_buffer(data, format, m_spec.nchannels,
+                                      roi.width(), roi.height(), roi.depth(),
+                                      xstride, ystride, zstride);
+    return m_buf.set_pixels(roi, format, dataspan, nullptr, xstride, ystride,
+                            zstride);
 }
 
 
@@ -177,9 +188,9 @@ TermOutput::output()
         print(s, "P3\n{} {}\n255\n", m_buf.spec().width, m_buf.spec().height);
         for (int y = m_buf.ybegin(), ye = m_buf.yend(); y < ye; y += 1) {
             for (int x = m_buf.xbegin(), xe = m_buf.xend(); x < xe; ++x) {
-                unsigned char rgb[3];
+                uint8_t rgb[3];
                 m_buf.get_pixels(ROI(x, x + 1, y, y + 1, 0, 1, 0, 3),
-                                 TypeDesc::UINT8, &rgb);
+                                 make_span(rgb));
                 print(s, "{} {} {}\n", int(rgb[0]), int(rgb[1]), int(rgb[2]));
             }
         }
@@ -195,9 +206,9 @@ TermOutput::output()
         int z = m_buf.spec().z;
         for (int y = m_buf.ybegin(), ye = m_buf.yend(); y < ye; y += 2) {
             for (int x = m_buf.xbegin(), xe = m_buf.xend(); x < xe; ++x) {
-                unsigned char rgb[2][3];
+                uint8_t rgb[2][3];
                 m_buf.get_pixels(ROI(x, x + 1, y, y + 2, z, z + 1, 0, 3),
-                                 TypeDesc::UINT8, &rgb);
+                                 make_span((uint8_t*)rgb, 2 * 3));
                 print(outfile, "{}{}\x5C\x75\x32\x35\x38\x30",
                       term.ansi_fgcolor(rgb[0][0], rgb[0][1], rgb[0][2]),
                       term.ansi_bgcolor(rgb[1][0], rgb[1][1], rgb[1][2]));
@@ -213,9 +224,9 @@ TermOutput::output()
         int z = m_buf.spec().z;
         for (int y = m_buf.ybegin(), ye = m_buf.yend(); y < ye; ++y) {
             for (int x = m_buf.xbegin(), xe = m_buf.xend(); x < xe; ++x) {
-                unsigned char rgb[3];
+                uint8_t rgb[3];
                 m_buf.get_pixels(ROI(x, x + 1, y, y + 1, z, z + 1, 0, 3),
-                                 TypeDesc::UINT8, &rgb);
+                                 make_span(rgb));
                 print(outfile, "{} ",
                       term.ansi_bgcolor(rgb[0], rgb[1], rgb[2]));
             }
@@ -233,7 +244,7 @@ TermOutput::output()
             for (int x = m_buf.xbegin(), xe = m_buf.xend(); x < xe; ++x) {
                 simd::vfloat4 rgborig;
                 m_buf.get_pixels(ROI(x, x + 1, y, y + 1, z, z + 1, 0, 3),
-                                 TypeDesc::FLOAT, &rgborig);
+                                 span<float>((float*)&rgborig, 4));
                 rgborig += leftover;
                 simd::vfloat4 rgb = 5.0f * rgborig;
                 simd::vint4 rgbi;
@@ -255,7 +266,7 @@ TermOutput::output()
             for (int x = m_buf.xbegin(), xe = m_buf.xend(); x < xe; ++x) {
                 simd::vfloat4 rgborig;
                 m_buf.get_pixels(ROI(x, x + 1, y, y + 1, z, z + 1, 0, 3),
-                                 TypeDesc::FLOAT, &rgborig);
+                                 span<float>((float*)&rgborig, 4));
                 simd::vfloat4 rgb = 5.0f * rgborig;
                 simd::vint4 rgbi;
                 OIIO_MAYBE_UNUSED simd::vfloat4 frac = floorfrac(rgb, &rgbi);

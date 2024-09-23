@@ -138,8 +138,8 @@ datestring(time_t t)
 
 template<class SRCTYPE>
 static void
-interppixel_NDC_clamped(const ImageBuf& buf, float x, float y, float* pixel,
-                        bool envlatlmode)
+interppixel_NDC_clamped(const ImageBuf& buf, float x, float y,
+                        span<float> pixel, bool envlatlmode)
 {
     int fx = buf.spec().full_x;
     int fy = buf.spec().full_y;
@@ -190,7 +190,7 @@ interppixel_NDC_clamped(const ImageBuf& buf, float x, float y, float* pixel,
     }
 
     // Bilinearly interpolate
-    bilerp(p0, p1, p2, p3, xfrac, yfrac, n, pixel);
+    bilerp(p0, p1, p2, p3, xfrac, yfrac, n, pixel.data());
 }
 
 
@@ -211,12 +211,12 @@ resize_block_(ImageBuf& dst, const ImageBuf& src, ROI roi, bool envlatlmode)
            || srcspec.z + srcspec.depth < srcspec.full_z + srcspec.full_depth);
 
     const ImageSpec& dstspec(dst.spec());
-    float* pel    = OIIO_ALLOCA(float, dstspec.nchannels);
-    float xoffset = (float)dstspec.full_x;
-    float yoffset = (float)dstspec.full_y;
-    float xscale  = 1.0f / (float)dstspec.full_width;
-    float yscale  = 1.0f / (float)dstspec.full_height;
-    int nchannels = dst.nchannels();
+    span<float> pel = OIIO_ALLOCA_SPAN(float, dstspec.nchannels);
+    float xoffset   = (float)dstspec.full_x;
+    float yoffset   = (float)dstspec.full_y;
+    float xscale    = 1.0f / (float)dstspec.full_width;
+    float yscale    = 1.0f / (float)dstspec.full_height;
+    int nchannels   = dst.nchannels();
     OIIO_DASSERT(dst.spec().format == TypeFloat);
     ImageBuf::Iterator<float> d(dst, roi);
     for (int y = y0; y < y1; ++y) {
@@ -335,7 +335,7 @@ check_nan_block(const ImageBuf& src, ROI roi, int& found_nonfinite)
 {
     int x0 = roi.xbegin, x1 = roi.xend, y0 = roi.ybegin, y1 = roi.yend;
     const ImageSpec& spec(src.spec());
-    float* pel = OIIO_ALLOCA(float, spec.nchannels);
+    span<float> pel = OIIO_ALLOCA_SPAN(float, spec.nchannels);
     for (int y = y0; y < y1; ++y) {
         for (int x = x0; x < x1; ++x) {
             src.getpixel(x, y, pel);
@@ -385,7 +385,7 @@ lightprobe_to_envlatl(ImageBuf& dst, const ImageBuf& src, bool y_is_up,
         const ImageSpec& dstspec(dst.spec());
         int nchannels = dstspec.nchannels;
 
-        float* pixel = OIIO_ALLOCA(float, nchannels);
+        span<float> pixel = OIIO_ALLOCA_SPAN(float, nchannels);
         float dw = dstspec.width, dh = dstspec.height;
         for (ImageBuf::Iterator<float> d(dst, roi); !d.done(); ++d) {
             Imath::V3f V = latlong_to_dir((d.x() + 0.5f) / dw,
@@ -445,7 +445,7 @@ normal_gradient(const ImageBuf& src, const ImageBuf::Iterator<float>& dstpix,
 {
     // assume a normal defined in the tangent space
     float n[3];
-    src.getpixel(dstpix.x(), dstpix.y(), n, 3);
+    src.getpixel(dstpix.x(), dstpix.y(), make_span(n));
     *h     = -1.0f;
     *dh_ds = -n[0] / n[2];
     *dh_dt = -n[1] / n[2];
@@ -540,9 +540,9 @@ bump_to_bumpslopes(ImageBuf& dst, const ImageBuf& src,
 static void
 fix_latl_edges(ImageBuf& buf)
 {
-    int n        = buf.nchannels();
-    float* left  = OIIO_ALLOCA(float, n);
-    float* right = OIIO_ALLOCA(float, n);
+    int n             = buf.nchannels();
+    span<float> left  = OIIO_ALLOCA_SPAN(float, n);
+    span<float> right = OIIO_ALLOCA_SPAN(float, n);
 
     // Make the whole first and last row be solid, since they are exactly
     // on the pole

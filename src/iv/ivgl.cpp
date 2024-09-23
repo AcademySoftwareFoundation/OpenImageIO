@@ -785,9 +785,10 @@ IvGL::paint_pixelview()
                                      m_viewer.current_color_mode());
         }
 
-        void* zoombuffer = OIIO_ALLOCA(char, (xend - xbegin) * (yend - ybegin)
-                                                 * nchannels
-                                                 * spec.channel_bytes());
+        auto zoombuffer = OIIO_ALLOCA_SPAN(std::byte,
+                                           (xend - xbegin) * (yend - ybegin)
+                                               * nchannels
+                                               * spec.channel_bytes());
         if (!m_use_shaders) {
             img->get_pixels(ROI(spec.x + xbegin, spec.x + xend, spec.y + ybegin,
                                 spec.y + yend),
@@ -805,7 +806,7 @@ IvGL::paint_pixelview()
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
         glBindTexture(GL_TEXTURE_2D, m_pixelview_tex);
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, xend - xbegin, yend - ybegin,
-                        glformat, gltype, zoombuffer);
+                        glformat, gltype, zoombuffer.data());
         print_error("After tsi2d");
     } else {
         smin = -1;
@@ -1527,12 +1528,14 @@ IvGL::load_texture(int x, int y, int width, int height)
     // may not be resident at once.
     if (!m_use_shaders) {
         m_current_image->get_pixels(ROI(x, x + width, y, y + height),
-                                    spec.format, &m_tex_buffer[0]);
+                                    spec.format,
+                                    as_writable_bytes(make_span(m_tex_buffer)));
     } else {
         m_current_image->get_pixels(ROI(x, x + width, y, y + height, 0, 1,
                                         m_viewer.current_channel(),
                                         m_viewer.current_channel() + nchannels),
-                                    spec.format, &m_tex_buffer[0]);
+                                    spec.format,
+                                    as_writable_bytes(make_span(m_tex_buffer)));
     }
 
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo_objects[m_last_pbo_used]);
