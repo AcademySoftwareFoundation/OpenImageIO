@@ -15,6 +15,9 @@ set_cache (OpenColorIO_BUILD_SHARED_LIBS  ON
 # it all work with the static dependencies, it just makes things complicated
 # downstream.
 
+checked_find_package (yaml-cpp
+                      VERSION_MIN 0.6.0 )  # Used by OpenColorIO
+
 # Clear variables from the failed find_package
 unset (OPENCOLORIO_LIBRARY)
 unset (OPENCOLORIO_INCLUDE_DIR)
