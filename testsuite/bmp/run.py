@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-# save the error output
+# save the error outputs
 redirect = " >> out.txt 2>&1 "
 failureok = 1
 
