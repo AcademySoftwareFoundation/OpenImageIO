@@ -386,6 +386,17 @@ ImageViewer::createActions()
     //    toggleImageAct->setEnabled(true);
     connect(toggleImageAct, SIGNAL(triggered()), this, SLOT(toggleImage()));
 
+    showDataWindowAct = new QAction(tr("Show Data Window"), this);
+    showDataWindowAct->setCheckable(true);
+    connect(showDataWindowAct, SIGNAL(triggered()), this,
+            SLOT(toggleDataWindow()));
+
+    showDisplayWindowAct = new QAction(tr("Show Display Window"), this);
+    showDisplayWindowAct->setCheckable(true);
+    connect(showDisplayWindowAct, SIGNAL(triggered()), this,
+            SLOT(toggleDisplayWindow()));
+    showDisplayWindowAct->setChecked(true);  // Show display window by default
+
     slideShowAct = new QAction(tr("Start Slide Show"), this);
     connect(slideShowAct, SIGNAL(triggered()), this, SLOT(slideShow()));
 
@@ -674,6 +685,8 @@ ImageViewer::createMenus()
     viewMenu->addAction(prevImageAct);
     viewMenu->addAction(nextImageAct);
     viewMenu->addAction(toggleImageAct);
+    viewMenu->addAction(showDataWindowAct);
+    viewMenu->addAction(showDisplayWindowAct);
     viewMenu->addSeparator();
     viewMenu->addAction(zoomInAct);
     viewMenu->addAction(zoomOutAct);
@@ -1345,6 +1358,22 @@ void
 ImageViewer::toggleImage()
 {
     current_image(m_last_image);
+}
+
+
+
+void
+ImageViewer::toggleDataWindow()
+{
+    ((QOpenGLWidget*)(glwin))->update();
+}
+
+
+
+void
+ImageViewer::toggleDisplayWindow()
+{
+    ((QOpenGLWidget*)(glwin))->update();
 }
 
 
@@ -2113,8 +2142,8 @@ ImageViewer::fitWindowToImage(bool zoomok, bool minsize)
     // (or we failed to open it).
     if (!img || !img->image_valid())
         return;
-        // FIXME -- figure out a way to make it exactly right, even for the
-        // main window border, etc.
+    // FIXME -- figure out a way to make it exactly right, even for the
+    // main window border, etc.
 #ifdef __APPLE__
     int extraw = 0;  //12; // width() - minimumWidth();
     int extrah = statusBar()->height()
@@ -2250,7 +2279,7 @@ calc_subimage_from_zoom(const IvImage* img, int& subimage, float& zoom,
 {
     int rel_subimage = std::trunc(std::log2(1.0f / zoom));
     subimage         = clamp<int>(img->subimage() + rel_subimage, 0,
-                          img->nsubimages() - 1);
+                                  img->nsubimages() - 1);
     if (!(img->subimage() == 0 && zoom > 1)
         && !(img->subimage() == img->nsubimages() - 1 && zoom < 1)) {
         float pow_zoom = powf(2.0f, (float)rel_subimage);

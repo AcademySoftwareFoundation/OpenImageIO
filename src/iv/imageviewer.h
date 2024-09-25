@@ -223,6 +223,16 @@ public:
         return showPixelviewWindowAct && showPixelviewWindowAct->isChecked();
     }
 
+    bool datawindowOn(void) const
+    {
+        return showDataWindowAct && showDataWindowAct->isChecked();
+    }
+
+    bool displaywindowOn(void) const
+    {
+        return showDisplayWindowAct && showDisplayWindowAct->isChecked();
+    }
+
     bool pixelviewFollowsMouse(void) const
     {
         return pixelviewFollowsMouseBox
@@ -273,6 +283,8 @@ private slots:
     void prevImage();                  ///< View previous image in sequence
     void nextImage();                  ///< View next image in sequence
     void toggleImage();                ///< View most recently viewed image
+    void toggleDataWindow();           ///< Toggle data window overlay
+    void toggleDisplayWindow();        ///< Toggle display window overlay
     void exposureMinusOneTenthStop();  ///< Decrease exposure 1/10 stop
     void exposureMinusOneHalfStop();   ///< Decrease exposure 1/2 stop
     void exposurePlusOneTenthStop();   ///< Increase exposure 1/10 stop
@@ -374,6 +386,8 @@ private:
     QAction* showInfoWindowAct;
     QAction* editPreferencesAct;
     QAction* showPixelviewWindowAct;
+    QAction* showDataWindowAct;
+    QAction* showDisplayWindowAct;
     QMenu *fileMenu, *editMenu, /**imageMenu,*/ *viewMenu, *toolsMenu,
         *helpMenu;
     QMenu* openRecentMenu;
