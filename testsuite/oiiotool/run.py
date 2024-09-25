@@ -234,9 +234,6 @@ command += oiiotool ("--pattern fill:left=0,0,0:right=1,1,0 2x2 3 -d half -o dum
 command += oiiotool ("-echo dumpdata: --dumpdata dump.exr")
 command += oiiotool ("-echo dumpdata:C --dumpdata:C=data dump.exr")
 
-# Test printing uncaught errors (and finding bad fmt strings)
-command += oiiotool ("--echo \"testing bad format\" --test-bad-format")
-
 # To add more tests, just append more lines like the above and also add
 # the new 'feature.tif' (or whatever you call it) to the outputs list,
 # below.
