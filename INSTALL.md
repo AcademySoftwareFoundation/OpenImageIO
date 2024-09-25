@@ -26,9 +26,11 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * **OpenColorIO >= 2.2** (tested through 2.3 and main)
  * libjpeg >= 8 (tested through jpeg9e), or **libjpeg-turbo >= 2.1** (tested
    through 3.0)
- * **[fmtlib](https://github.com/fmtlib/fmt) >= 7.0** (tested through 10.2).
+ * **[fmtlib](https://github.com/fmtlib/fmt) >= 7.0 < 11**
    If not found at build time, this will be automatically downloaded unless
    the build sets `-DBUILD_MISSING_FMT=OFF`.
+ * **JXL >= 0.10.1**
+
 
 ### Optional dependencies -- features may be disabled if not found
  * If you are building the `iv` viewer (which will be disabled if any of
