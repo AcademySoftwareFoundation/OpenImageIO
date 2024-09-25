@@ -766,7 +766,7 @@ public:
         return get_imagespec(file, thread_info, spec, subimage);
     }
 
-    /// Return a pointer to an ImageSpec associated with the named image file.
+    /// Return a pointer to an ImageSpec that describes the named image file.
     /// If the file is found and is an image format that can be read,
     /// otherwise return `nullptr`.
     ///
@@ -814,11 +814,13 @@ public:
     }
 
     /// Copy the image dimensions (x, y, z, width, height, depth, full*,
-    /// nchannels, format) and data types associated with the named image
+    /// nchannels, format) and data types that describes the named image
     /// cache file for the specified subimage and miplevel. It does *not*
     /// copy arbitrary named metadata or channel names (thus, for an
     /// `ImageSpec` with lots of metadata, it is much less expensive than
-    /// copying the whole thing with `operator=()`).
+    /// copying the whole thing with `operator=()`). The associated
+    /// metadata and channels names can be retrieved with `imagespec()`
+    /// or `get_imagespec`.
     ///
     /// @param  filename
     ///             The name of the image, as a UTF-8 encoded ustring.
