@@ -624,7 +624,7 @@ map_env_latlong(const int& x, const int& y, Imath::Vec3<float>& R,
     float dphi_dy   = float(M_PI) * dv_dy;  // dphi_dx = 0
 
     R    = Imath::Vec3<float>(fast_sin(phi) * fast_sin(theta), fast_cos(phi),
-                              -fast_sin(phi) * fast_cos(theta));
+                           -fast_sin(phi) * fast_cos(theta));
     dRdx = Imath::Vec3<float>(fast_sin(phi) * fast_cos(theta) * dtheta_dx,
                               float(0.0f),
                               fast_sin(phi) * fast_sin(theta) * dtheta_dx);
