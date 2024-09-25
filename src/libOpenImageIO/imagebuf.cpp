@@ -1076,9 +1076,11 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
         m_imagecache->get_image_info(m_name, subimage, miplevel, s_fileformat,
                                      TypeString, &fmt);
         m_fileformat = ustring(fmt);
-        m_imagecache->get_imagespec(m_name, m_spec, subimage, miplevel);
-        m_imagecache->get_imagespec(m_name, m_nativespec, subimage, miplevel,
-                                    true);
+
+        m_imagecache->get_imagespec(m_name, m_nativespec, subimage);
+        m_spec = m_nativespec;
+        m_imagecache->get_cache_dimensions(m_name, m_spec, subimage, miplevel);
+
         m_xstride = m_spec.pixel_bytes();
         m_ystride = m_spec.scanline_bytes();
         m_zstride = clamped_mult64(m_ystride, (imagesize_t)m_spec.height);

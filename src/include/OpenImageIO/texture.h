@@ -1433,12 +1433,12 @@ public:
     ///             as being unable to find, open, or read the file, or if
     ///             it does not contain the designated subimage or MIP
     ///             level).
-    bool get_imagespec(ustring filename, int subimage, ImageSpec& spec);
+    bool get_imagespec(ustring filename, ImageSpec& spec, int subimage = 0);
     /// A more efficient variety of `get_imagespec()` for cases where you
     /// can use a `TextureHandle*` to specify the image and optionally have
     /// a `Perthread*` for the calling thread.
     bool get_imagespec(TextureHandle* texture_handle, Perthread* thread_info,
-                       int subimage, ImageSpec& spec);
+                       ImageSpec& spec, int subimage = 0);
 
     /// Return a pointer to an ImageSpec associated with the named texture
     /// if the file is found and is an image format that can be read,

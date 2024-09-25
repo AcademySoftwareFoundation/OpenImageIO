@@ -313,17 +313,18 @@ test_imagespec()
                        ic->geterror());
     }
     {  // imagespec() for out of range subimage
-        const ImageSpec* spec = ic->imagespec(checkertex, 10, 0);
+        const ImageSpec* spec = ic->imagespec(checkertex, 10);
         OIIO_CHECK_ASSERT(spec == nullptr && ic->has_error());
         Strutil::print("imagespec() out-of-range subimage:\n  {}\n",
                        ic->geterror());
     }
-    {  // imagespec() for out of range mip level
-        const ImageSpec* spec = ic->imagespec(checkertex, 0, 100);
-        OIIO_CHECK_ASSERT(spec == nullptr && ic->has_error());
-        Strutil::print("imagespec() out-of-range subimage:\n  {}\n",
-                       ic->geterror());
-    }
+    //! TODO: get_cache_dimensions tests
+    // {  // imagespec() for out of range mip level
+    //     const ImageSpec* spec = ic->imagespec(checkertex, 0, 100);
+    //     OIIO_CHECK_ASSERT(spec == nullptr && ic->has_error());
+    //     Strutil::print("imagespec() out-of-range subimage:\n  {}\n",
+    //                    ic->geterror());
+    // }
 }
 
 

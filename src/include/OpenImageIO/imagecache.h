@@ -724,42 +724,29 @@ public:
                         int miplevel, ustring dataname, TypeDesc datatype,
                         void* data);
 
-    /// Copy the ImageSpec associated with the named image (the first
-    /// subimage & miplevel by default, or as set by `subimage` and
-    /// `miplevel`).
+    /// Copy the ImageSpec associated with the named image file.
     ///
     /// @param  filename
     ///             The name of the image, as a UTF-8 encoded ustring.
     /// @param  spec
     ///             ImageSpec into which will be copied the spec for the
     ///             requested image.
-    /// @param  subimage/miplevel
-    ///             The subimage and MIP level to query.
-    /// @param  native
-    ///             If `false` (the default), then the spec retrieved will
-    ///             accurately describe the image stored internally in the
-    ///             cache, whereas if `native` is `true`, the spec retrieved
-    ///             will reflect the contents of the original file.  These
-    ///             may differ due to use of certain ImageCache settings
-    ///             such as `"forcefloat"` or `"autotile"`.
+    /// @param  subimage
+    ///             The subimage to query.
     /// @returns
     ///             `true` upon success, `false` upon failure failure (such
     ///             as being unable to find, open, or read the file, or if
-    ///             it does not contain the designated subimage or MIP
-    ///             level).
-    bool get_imagespec(ustring filename, ImageSpec& spec, int subimage = 0,
-                       int miplevel = 0, bool native = false);
+    ///             it does not contain the designated subimage.
+    bool get_imagespec(ustring filename, ImageSpec& spec, int subimage = 0);
     /// A more efficient variety of `get_imagespec()` for cases where you
     /// can use an `ImageHandle*` to specify the image and optionally have a
     /// `Perthread*` for the calling thread.
     bool get_imagespec(ImageHandle* file, Perthread* thread_info,
-                       ImageSpec& spec, int subimage = 0, int miplevel = 0,
-                       bool native = false);
+                       ImageSpec& spec, int subimage = 0);
 
-    /// Return a pointer to an ImageSpec associated with the named image
-    /// (the first subimage & MIP level by default, or as set by `subimage`
-    /// and `miplevel`) if the file is found and is an image format that can
-    /// be read, otherwise return `nullptr`.
+    /// Return a pointer to an ImageSpec associated with the named image file.
+    /// If the file is found and is an image format that can be read,
+    /// otherwise return `nullptr`.
     ///
     /// This method is much more efficient than `get_imagespec()`, since it
     /// just returns a pointer to the spec held internally by the ImageCache
@@ -770,27 +757,45 @@ public:
     ///
     /// @param  filename
     ///             The name of the image, as a UTF-8 encoded ustring.
-    /// @param  subimage/miplevel
-    ///             The subimage and MIP level to query.
-    /// @param  native
-    ///             If `false` (the default), then the spec retrieved will
-    ///             accurately describe the image stored internally in the
-    ///             cache, whereas if `native` is `true`, the spec retrieved
-    ///             will reflect the contents of the original file.  These
-    ///             may differ due to use of certain ImageCache settings
-    ///             such as `"forcefloat"` or `"autotile"`.
+    /// @param  subimage
+    ///             The subimage to query.
     /// @returns
     ///             A pointer to the spec, if the image is found and able to
     ///             be opened and read by an available image format plugin,
-    ///             and the designated subimage and MIP level exists.
-    const ImageSpec* imagespec(ustring filename, int subimage = 0,
-                               int miplevel = 0, bool native = false);
+    ///             and the designated subimage exists.
+    const ImageSpec* imagespec(ustring filename, int subimage = 0);
     /// A more efficient variety of `imagespec()` for cases where you can
     /// use an `ImageHandle*` to specify the image and optionally have a
     /// `Perthread*` for the calling thread.
     const ImageSpec* imagespec(ImageHandle* file, Perthread* thread_info,
-                               int subimage = 0, int miplevel = 0,
-                               bool native = false);
+                               int subimage = 0);
+
+    /// Copy the image dimensions (x, y, z, width, height, depth, full*,
+    /// nchannels, format) and data types associated with the named image
+    /// cache file for the specified subimage and miplevel. It does *not*
+    /// copy arbitrary named metadata or channel names (thus, for an
+    /// `ImageSpec` with lots of metadata, it is much less expensive than
+    /// copying the whole thing with `operator=()`).
+    ///
+    /// @param  filename
+    ///             The name of the image, as a UTF-8 encoded ustring.
+    /// @param  spec
+    ///             ImageSpec into which will be copied the dimensions
+    ///             for the requested image.
+    /// @param  subimage/miplevel
+    ///             The subimage and mip level to query.
+    /// @returns
+    ///             `true` upon success, `false` upon failure failure (such
+    ///             as being unable to find, open, or read the file, or if
+    ///             it does not contain the designated subimage or mip level.
+    bool get_cache_dimensions(ustring filename, ImageSpec& spec,
+                              int subimage = 0, int miplevel = 0);
+    /// A more efficient variety of `get_cache_dimensions()` for cases where
+    /// you can use an `ImageHandle*` to specify the image and optionally
+    /// have a `Perthread*` for the calling thread.
+    bool get_cache_dimensions(ImageHandle* file, Perthread* thread_info,
+                              ImageSpec& spec, int subimage = 0,
+                              int miplevel = 0);
 
     /// Copy into `thumbnail` any associated thumbnail associated with this
     /// image (for the first subimage by default, or as set by `subimage`).
