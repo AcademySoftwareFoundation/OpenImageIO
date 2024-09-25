@@ -3107,7 +3107,7 @@ ImageCacheImpl::get_cache_dimensions(ustring filename, ImageSpec& spec,
     ImageCacheFile* file = find_file(filename, thread_info, nullptr);
     if (!file) {
         error("Image file \"{}\" not found", filename);
-        return NULL;
+        return false;
     }
     return get_cache_dimensions(file, thread_info, spec, subimage, miplevel);
 }
@@ -3122,7 +3122,7 @@ ImageCacheImpl::get_cache_dimensions(ImageCacheFile* file,
 {
     if (!file) {
         error("Image file handle was NULL");
-        return NULL;
+        return false;
     }
     if (!thread_info)
         thread_info = get_perthread_info();
@@ -3131,23 +3131,23 @@ ImageCacheImpl::get_cache_dimensions(ImageCacheFile* file,
         if (file->errors_should_issue())
             error("Invalid image file \"{}\": {}", file->filename(),
                   file->broken_error_message());
-        return NULL;
+        return false;
     }
     if (file->is_udim()) {
         error("Cannot retrieve ImageSpec of a UDIM-like virtual file");
-        return NULL;  // UDIM-like files don't have an ImageSpec
+        return false;  // UDIM-like files don't have an ImageSpec
     }
     if (subimage < 0 || subimage >= file->subimages()) {
         if (file->errors_should_issue())
             error("Unknown subimage {} (out of {})", subimage,
                   file->subimages());
-        return NULL;
+        return false;
     }
     if (miplevel < 0 || miplevel >= file->miplevels(subimage)) {
         if (file->errors_should_issue())
             error("Unknown mip level {} (out of {})", miplevel,
                   file->miplevels(subimage));
-        return NULL;
+        return false;
     }
     //! copy dimensions from mip level ImageSpec
     //! TODO: store nativespec in SubImageInfo, and extra overrides in LevelInfo
