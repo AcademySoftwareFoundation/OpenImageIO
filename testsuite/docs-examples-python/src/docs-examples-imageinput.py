@@ -50,6 +50,7 @@ def simple_read():
         inp.close()
 # END-imageinput-simple
 
+
 def scanlines_read() :
     filename = "scanlines.tif"
 
