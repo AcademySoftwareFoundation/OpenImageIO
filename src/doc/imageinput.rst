@@ -145,32 +145,19 @@ Individual scanlines may be read using the ``read_scanline()`` API call:
 
 .. tabs::
 
-    .. code-tab:: c++
+   .. tab:: C++
+      .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imageinput.cpp
+          :language: c++
+          :start-after: BEGIN-imageinput-scanlines
+          :end-before: END-imageinput-scanlines
+          :dedent: 4
 
-        auto inp = ImageInput::open (filename);
-        const ImageSpec &spec = inp->spec();
-        if (spec.tile_width == 0) {
-            auto scanline = std::unique_ptr<unsigned char[]>(new unsigned char[spec.width * spec.nchannels]);
-            for (int y = 0;  y < yres;  ++y) {
-                inp->read_scanline (y, 0, TypeDesc::UINT8, &scanline[0]);
-                // ... process data in scanline[0..width*channels-1] ...
-            }
-        } else {
-             //... handle tiles, or reject the file ...
-        }
-        inp->close ();
-
-    .. code-tab:: py
-
-        inp = ImageInput.open (filename)
-        spec = inp.spec()
-        if spec.tile_width == 0 :
-            for y in range(yres) :
-                scanline = inp.read_scanline (y, 0, "uint8")
-                # ... process data in scanline[0..width*channels-1] ...
-        else :
-            # ... handle tiles, or reject the file ...
-        inp.close ()
+   .. tab:: Python
+      .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imageinput.py
+          :language: py
+          :start-after: BEGIN-imageinput-scanlines
+          :end-before: END-imageinput-scanlines
+          :dedent: 8
 
 The first two arguments to ``read_scanline()`` specify which scanline
 is being read by its vertical (``y``) scanline number (beginning with 0)

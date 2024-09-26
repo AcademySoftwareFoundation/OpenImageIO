@@ -51,15 +51,33 @@ void simple_read()
     inp->read_image(0, 0, 0, nchannels, TypeDesc::UINT8, &pixels[0]);
     inp->close();
 }
-
 // END-imageinput-simple
 
+void scanlines_read()
+{
+    const char* filename = "scanlines.tif";
 
+// BEGIN-imageinput-scanlines
+    auto inp = ImageInput::open (filename);
+    const ImageSpec &spec = inp->spec();
+    if (spec.tile_width == 0) {
+        auto scanline = std::unique_ptr<unsigned char[]>(new unsigned char[spec.width * spec.nchannels]);
+        for (int y = 0;  y < spec.height;  ++y) {
+            inp->read_scanline (y, 0, TypeDesc::UINT8, &scanline[0]);
+            // ... process data in scanline[0..width*channels-1] ...
+        }
+    } else {
+            //... handle tiles, or reject the file ...
+    }
+    inp->close ();
+// END-imageinput-scanlines
+}
 
 int main(int /*argc*/, char** /*argv*/)
 {
     // Each example function needs to get called here, or it won't execute
     // as part of the test.
     simple_read();
+    scanlines_read();
     return 0;
 }

@@ -50,9 +50,23 @@ def simple_read():
         inp.close()
 # END-imageinput-simple
 
+def scanlines_read() :
+    filename = "scanlines.tif"
 
+    # BEGIN-imageoutput-scanlines
+    inp = oiio.ImageInput.open (filename)
+    spec = inp.spec()
+    if spec.tile_width == 0 :
+        for y in range(spec.height) :
+            scanline = inp.read_scanline (y, 0, "uint8")
+            # ... process data in scanline[0..width*channels-1] ...
+    # else :
+        # ... handle tiles, or reject the file ...
+    inp.close ()
+    # END-imageoutput-scanlines
 
 if __name__ == '__main__':
     # Each example function needs to get called here, or it won't execute
     # as part of the test.
     simple_read()
+    scanlines_read()
