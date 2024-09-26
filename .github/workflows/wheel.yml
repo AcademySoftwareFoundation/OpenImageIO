@@ -276,6 +276,7 @@ jobs:
         env:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
+          
 
       - uses: actions/upload-artifact@v4
         with:
@@ -331,7 +332,8 @@ jobs:
         env:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
-          CIBW_BEFORE_ALL: "brew install libpng"
+          # Disable the PNG plugin until we can figure out why the system PNG is causing problems
+          ENABLE_PNG: 'OFF'
 
       - uses: actions/upload-artifact@v4
         with:
