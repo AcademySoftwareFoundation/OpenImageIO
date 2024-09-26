@@ -54,7 +54,7 @@ def simple_read():
 def scanlines_read() :
     filename = "scanlines.tif"
 
-    # BEGIN-imageoutput-scanlines
+    # BEGIN-imageinput-scanlines
     inp = oiio.ImageInput.open (filename)
     spec = inp.spec()
     if spec.tile_width == 0 :
@@ -64,7 +64,7 @@ def scanlines_read() :
     # else :
         # ... handle tiles, or reject the file ...
     inp.close ()
-    # END-imageoutput-scanlines
+    # END-imageinput-scanlines
 
 if __name__ == '__main__':
     # Each example function needs to get called here, or it won't execute
