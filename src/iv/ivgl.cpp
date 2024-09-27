@@ -946,12 +946,15 @@ IvGL::paint_datawindow()
     glDisable(GL_TEXTURE_2D);
     glUseProgram(0);
 
-    glColor4f(0.5f, 0.5f, 0.5f, 1.f);
     const float xmin = spec.x;
     const float xmax = spec.x + spec.width;
     const float ymin = spec.y;
     const float ymax = spec.y + spec.height;
+    glPushAttrib(GL_ENABLE_BIT);
+    glEnable(GL_COLOR_LOGIC_OP);
+    glLogicOp(GL_XOR);
     gl_rect_border(xmin, ymin, xmax, ymax);
+    glPopAttrib();
 }
 
 
@@ -965,12 +968,15 @@ IvGL::paint_displaywindow()
     glDisable(GL_TEXTURE_2D);
     glUseProgram(0);
 
-    glColor4f(0.5f, 0.5f, 0.5f, 1.f);
     const float xmin = spec.full_x;
     const float xmax = spec.full_x + spec.full_width;
     const float ymin = spec.full_y;
     const float ymax = spec.full_y + spec.full_height;
+    glPushAttrib(GL_ENABLE_BIT);
+    glEnable(GL_COLOR_LOGIC_OP);
+    glLogicOp(GL_XOR);
     gl_rect_dotted_border(xmin, ymin, xmax, ymax);
+    glPopAttrib();
 }
 
 

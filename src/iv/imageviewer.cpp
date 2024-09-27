@@ -386,16 +386,15 @@ ImageViewer::createActions()
     //    toggleImageAct->setEnabled(true);
     connect(toggleImageAct, SIGNAL(triggered()), this, SLOT(toggleImage()));
 
-    showDataWindowAct = new QAction(tr("Show Data Window"), this);
+    showDataWindowAct = new QAction(tr("Show Data Window (solid line)"), this);
     showDataWindowAct->setCheckable(true);
     connect(showDataWindowAct, SIGNAL(triggered()), this,
             SLOT(toggleDataWindow()));
 
-    showDisplayWindowAct = new QAction(tr("Show Display Window"), this);
+    showDisplayWindowAct = new QAction(tr("Show Display Window (dotted line)"), this);
     showDisplayWindowAct->setCheckable(true);
     connect(showDisplayWindowAct, SIGNAL(triggered()), this,
             SLOT(toggleDisplayWindow()));
-    showDisplayWindowAct->setChecked(true);  // Show display window by default
 
     slideShowAct = new QAction(tr("Start Slide Show"), this);
     connect(slideShowAct, SIGNAL(triggered()), this, SLOT(slideShow()));
