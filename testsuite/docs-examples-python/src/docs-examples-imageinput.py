@@ -66,6 +66,25 @@ def scanlines_read() :
     inp.close ()
     # END-imageinput-scanlines
 
+def tiles_read() :
+    filename = "tiled.tif"
+
+     # BEGIN-imageinput-tiles
+    inp = ImageInput.open(filename)
+    spec = inp.spec()
+    if spec.tile_width == 0 :
+        # ... read scanline by scanline ...
+    else :
+        # Tiles
+        tilesize = spec.tile_width * spec.tile_height;
+        for y in range(0, yres, spec.tile_height) :
+            for x in range(0, xres, spec.tile_width) :
+                tile = inp.read_tile (x, y, 0, "uint8")
+                # ... process the pixels in tile[][] ..
+    inp.close ();
+    # END-imageinput-tiles
+
+
 def error_checking():
 # BEGIN-imageinput-errorchecking
     import OpenImageIO as oiio
@@ -91,9 +110,12 @@ def error_checking():
         return
 # END-imageinput-errorchecking
 
+
+
 if __name__ == '__main__':
     # Each example function needs to get called here, or it won't execute
     # as part of the test.
     simple_read()
     scanlines_read()
+    tiles_read()
     error_checking()
