@@ -1279,8 +1279,6 @@ Image arithmetic
               :end-before: END-imagebufalgo-absdiff
               :dedent: 4
 
-       .. code-tab:: py
-
        .. tab:: Python
           .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
               :language: py
@@ -1313,8 +1311,6 @@ Image arithmetic
               :end-before: END-imagebufalgo-abs
               :dedent: 4
 
-       .. code-tab:: py
-
        .. tab:: Python
           .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
               :language: py
@@ -1345,8 +1341,6 @@ Image arithmetic
               :start-after: BEGIN-imagebufalgo-mul
               :end-before: END-imagebufalgo-mul
               :dedent: 4
-
-       .. code-tab:: py
 
        .. tab:: Python
           .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
@@ -1384,8 +1378,6 @@ Image arithmetic
               :start-after: BEGIN-imagebufalgo-div
               :end-before: END-imagebufalgo-div
               :dedent: 4
-
-       .. code-tab:: py
 
        .. tab:: Python
           .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
