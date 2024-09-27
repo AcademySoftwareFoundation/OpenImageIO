@@ -1516,6 +1516,13 @@ RawInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     if (!m_process) {
         // The user has selected not to apply any debayering.
 
+        if (m_processor->imgdata.rawdata.raw_image == nullptr) {
+            errorfmt(
+                "Raw undebayered data is not available for this file \"{}\"",
+                m_filename);
+            return false;
+        }
+
         // The raw_image buffer might contain junk pixels that are usually trimmed off
         // we must index into the raw buffer, taking these into account
         auto& sizes        = m_processor->imgdata.sizes;
