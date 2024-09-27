@@ -66,8 +66,34 @@ def scanlines_read() :
     inp.close ()
     # END-imageinput-scanlines
 
+def error_checking():
+# BEGIN-imageinput-errorchecking
+    import OpenImageIO as oiio
+    import numpy as np
+
+    filename = "tahoe.tif"
+    inp = oiio.ImageInput.open(filename)
+    if inp is None :
+        print("Could not open", filename, ", error =", oiio.geterror())
+        return
+    spec = inp.spec()
+    xres = spec.width
+    yres = spec.height
+    nchannels = spec.nchannels
+
+    pixels = inp.read_image(0, 0, 0, nchannels, "uint8")
+    if pixels is None :
+        print("Could not read pixels from", filename, ", error =", inp.geterror())
+        return
+
+    if not inp.close() :
+        print("Error closing", filename, ", error =", inp.geterror())
+        return
+# END-imageinput-errorchecking
+
 if __name__ == '__main__':
     # Each example function needs to get called here, or it won't execute
     # as part of the test.
     simple_read()
     scanlines_read()
+    error_checking()
