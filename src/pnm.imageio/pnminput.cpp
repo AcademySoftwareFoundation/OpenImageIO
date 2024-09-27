@@ -372,6 +372,7 @@ PNMInput::open(const std::string& name, ImageSpec& newspec)
     m_file_contents.resize(m_io->size());
     m_io->pread(m_file_contents.data(), m_file_contents.size(), 0);
     m_remaining = string_view(m_file_contents.data(), m_file_contents.size());
+    m_pfm_flip  = false;
 
     if (!read_file_header())
         return false;
