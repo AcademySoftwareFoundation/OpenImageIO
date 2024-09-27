@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 
 # Copyright Contributors to the OpenImageIO project.
 # SPDX-License-Identifier: Apache-2.0
@@ -64,7 +64,15 @@ hashes = [
     "transpose.exr",
     "reorient.exr",
     "cshift.exr",
-    "texture.exr"
+    "texture.exr",
+    "add.exr",
+    "add_cspan.exr",
+    "sub.exr",
+    "absdiff.exr",
+    "abs.exr",
+    "mul.exr",
+    "div.exr"
+
 ]
 for file in hashes :
     command += info_command(file, verbose=False)

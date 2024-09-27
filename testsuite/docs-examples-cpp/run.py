@@ -68,7 +68,14 @@ hashes = [
     "transpose.exr",
     "reorient.exr",
     "cshift.exr",
-    "texture.exr"
+    "texture.exr",
+    "add.exr",
+    "add-cspan.exr",
+    "sub.exr",
+    "absdiff.exr",
+    "abs.exr",
+    "mul.exr",
+    "div.exr"
 ]
 for file in hashes :
     command += info_command(file, verbose=False)

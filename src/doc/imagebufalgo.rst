@@ -56,7 +56,7 @@ Most ImageBufAlgo functions that produce image data come in two forms:
 
 
 2. Pass a destination ImageBuf reference as the first parameter.
-   
+
    The function is passed a *destination* ImageBuf where the results will
    be stored, and the return value is a `bool` that is `true` if the
    function succeeds or `false` if the function fails. Upon failure, the
@@ -268,7 +268,7 @@ checker() -- make a checker pattern
   Examples:
 
     .. tabs::
-  
+
        .. tab:: C++
              .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
               :language: c++
@@ -454,7 +454,7 @@ Drawing shapes: points, lines, boxes
   Examples:
 
     .. tabs::
-  
+
        .. tab:: C++
              .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
               :language: c++
@@ -491,7 +491,7 @@ Drawing text
   Examples:
 
     .. tabs::
-  
+
        .. tab:: C++
              .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
               :language: c++
@@ -536,7 +536,7 @@ Drawing text
   Examples:
 
     .. tabs::
-  
+
        .. tab:: C++
              .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
               :language: c++
@@ -587,7 +587,7 @@ Shuffling channels
               :start-after: BEGIN-imagebufalgo-channels
               :end-before: END-imagebufalgo-channels
               :dedent: 4
-      
+
        .. tab:: oiiotool
          .. code-block:: bash
 
@@ -911,7 +911,7 @@ Shuffling channels
   Examples:
 
     .. tabs::
-  
+
        .. tab:: C++
 
           .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
@@ -1199,26 +1199,24 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
-          // Add images A and B
-          ImageBuf A ("a.exr");
-          ImageBuf B ("b.exr");
-          ImageBuf Sum = ImageBufAlgo::add (A, B);
-      
-          // Add 0.2 to channels 0-2, but not to channel 3
-          ImageBuf Sum = ImageBufAlgo::add (A, { 0.2f, 0.2f, 0.2f, 0.0f });
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-add
+              :end-before: END-imagebufalgo-add
+              :dedent: 4
 
        .. code-tab:: py
 
-          # Add images A and B
-          A = ImageBuf("a.exr")
-          B = ImageBuf("b.exr")
-          sum = ImageBufAlgo.add (A, B)
-
-          # Add 0.2 to channels 0-2, but not to channel 3
-          Sum = ImageBufAlgo.add (A, (0.2, 0.2, 0.2, 0.0))
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-add
+              :end-before: END-imagebufalgo-add
+              :dedent: 4
 
        .. code-tab:: bash oiiotool
 
@@ -1240,18 +1238,22 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
 
-          ImageBuf A ("a.exr");
-          ImageBuf B ("b.exr");
-          ImageBuf Diff = ImageBufAlgo::sub (A, B);
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-sub
+              :end-before: END-imagebufalgo-sub
+              :dedent: 4
 
        .. code-tab:: py
 
-          A = ImageBuf("a.exr")
-          B = ImageBuf("b.exr")
-          Diff = ImageBufAlgo.sub (A, B)
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-sub
+              :end-before: END-imagebufalgo-sub
+              :dedent: 4
 
        .. code-tab:: bash oiiotool
 
@@ -1269,18 +1271,23 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
 
-          ImageBuf A ("a.exr");
-          ImageBuf B ("b.exr");
-          ImageBuf Diff = ImageBufAlgo::absdiff (A, B);
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-absdiff
+              :end-before: END-imagebufalgo-absdiff
+              :dedent: 4
 
        .. code-tab:: py
 
-          A = ImageBuf("a.exr")
-          B = ImageBuf("b.exr")
-          Diff = ImageBufAlgo.absdiff (A, B)
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-absdiff
+              :end-before: END-imagebufalgo-absdiff
+              :dedent: 4
+
 
        .. code-tab:: bash oiiotool
 
@@ -1298,16 +1305,22 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
 
-          ImageBuf A ("a.exr");
-          ImageBuf Abs = ImageBufAlgo::abs (A);
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-abs
+              :end-before: END-imagebufalgo-abs
+              :dedent: 4
 
        .. code-tab:: py
 
-          A = ImageBuf("a.exr")
-          Abs = ImageBufAlgo.abs (A)
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-abs
+              :end-before: END-imagebufalgo-abs
+              :dedent: 4
 
        .. code-tab:: bash oiiotool
 
@@ -1325,26 +1338,22 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
 
-          // Pixel-by-pixel, channel-by-channel multiplication of A and B
-          ImageBuf A ("a.exr");
-          ImageBuf B ("b.exr");
-          ImageBuf Product = ImageBufAlgo::mul (A, B);
-
-          // In-place reduce intensity of A's channels 0-2 by 50%
-          ImageBufAlgo::mul (A, A, { 0.5f, 0.5f, 0.5f, 1.0f });
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-mul
+              :end-before: END-imagebufalgo-mul
+              :dedent: 4
 
        .. code-tab:: py
 
-          # Pixel-by-pixel, channel-by-channel multiplication of A and B
-          A = ImageBuf("a.exr")
-          B = ImageBuf("b.exr")
-          Product = ImageBufAlgo.mul (A, B)
-
-          # In-place reduce intensity of A's channels 0-2 by 50%
-          ImageBufAlgo.mul (A, A, (0.5, 0.5, 0.5, 1.0))
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-mul
+              :end-before: END-imagebufalgo-mul
+              :dedent: 4
 
        .. code-tab:: bash oiiotool
 
@@ -1366,26 +1375,24 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
-          // Pixel-by-pixel, channel-by-channel division of A by B
-          ImageBuf A ("a.exr");
-          ImageBuf B ("b.exr");
-          ImageBuf Ratio = ImageBufAlgo::div (A, B);
-
-          // In-place reduce intensity of A's channels 0-2 by 50%
-          ImageBufAlgo::div (A, A, { 2.0f, 2.0f, 2.0f, 1.0f });
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-div
+              :end-before: END-imagebufalgo-div
+              :dedent: 4
 
        .. code-tab:: py
 
-          # Pixel-by-pixel, channel-by-channel division of A by B
-          A = ImageBuf("a.exr")
-          B = ImageBuf("b.exr")
-          Ratio = ImageBufAlgo.div (A, B)
-
-          # In-place reduce intensity of A's channels 0-2 by 50%
-          ImageBufAlgo.div (A, A, (2.0, 2.0, 2.0, 1.0))
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-div
+              :end-before: END-imagebufalgo-div
+              :dedent: 4
 
        .. code-tab:: bash oiiotool
 
@@ -1407,7 +1414,7 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           // Pixel-by-pixel, channel-by-channel A * B + C
@@ -1452,7 +1459,7 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf A ("a.exr");
@@ -1481,7 +1488,7 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf A ("a.exr");
@@ -1510,7 +1517,7 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           // Invert all channels of A
@@ -1575,7 +1582,7 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           // Gamma-correct by 2.2 channels 0-2 of the image, in-place
@@ -1610,7 +1617,7 @@ Image arithmetic
     (assuming Rec709 primaries and a linear scale):
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           // Compute luminance via a weighted sum of R,G,B
@@ -1642,25 +1649,25 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           // min of images A and B, assign to MinImage
           ImageBuf A ("a.exr");
           ImageBuf B ("b.exr");
           ImageBuf MinImage = ImageBufAlgo::min (Sum, A, B);
-      
+
           // Squash negative values in A by taking max(A, 0.0) for all channels
           ImageBuf A ("a.exr");
           ImageBufAlgo::max (A, A, 0.0f);
 
           // Clamp image buffer A in-place to the [0,1] range for all pixels.
           ImageBufAlgo::clamp (A, A, 0.0f, 1.0f);
-      
+
           // Just clamp alpha to [0,1] in-place
           ImageBufAlgo::clamp (A, A, -std::numeric_limits<float>::max(),
                                std::numeric_limits<float>::max(), true);
-      
+
           // Clamp R & G to [0,0.5], leave other channels alone
           std::vector<float> min (A.nchannels(), -std::numeric_limits<float>::max());
           std::vector<float> max (A.nchannels(), std::numeric_limits<float>::max());
@@ -1674,17 +1681,17 @@ Image arithmetic
           A = ImageBuf("a.exr")
           B = ImageBuf("b.exr")
           MinImage = ImageBufAlgo.min (Sum, A, B)
-      
+
           # Squash negative values in A by taking max(A, 0.0) for all channels
           A = ImageBuf("a.exr")
           ImageBufAlgo.max (A, A, 0.0)
 
           # Clamp image buffer A in-place to the [0,1] range for all pixels.
           ImageBufAlgo.clamp (A, A, 0.0, 1.0)
-      
+
           # Just clamp alpha to [0,1] in-place
           ImageBufAlgo.clamp (A, A, -1.0e30, 1.0e30, True)
-      
+
           # Clamp R & G to [0,0.5], leave other channels alone
           ImageBufAlgo.clamp (A, A, (0, 0, -1.0e30, -1.0e30),
                               (0.5, 0.5, 1.0e30, 1.0e30), False)
@@ -1693,16 +1700,16 @@ Image arithmetic
 
           # min of images A and B, assign to MinImage
           oiiotool a.exr b.exr --min -o minimage.exr
-      
+
           # Squash negative values in A by taking max(A, 0.0) for all channels
           oiiotool.exr a.exr --maxc 0 -o a.exr
 
           # Clamp image buffer A in-place to the [0,1] range for all pixels.
           oiiotool.exr a.exr --clamp:min=0:max=1 -o a.exr
-      
+
           # Just clamp alpha to [0,1] in-place
           oiiotool.exr a.exr --clamp:min=,,,0:max=,,,1 -o a.exr
-      
+
           # Clamp R & G to [0,0.5], leave other channels alone
           oiiotool.exr a.exr --clamp:min=0,0,,,:max=1,1,,, -o a.exr
 
@@ -1715,7 +1722,7 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           // Computes the maximum of R, G, B.
@@ -1746,7 +1753,7 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf A ("tahoe.tif");
@@ -1869,7 +1876,7 @@ Image arithmetic
        // scale) and map to a spectrum-like palette:
        ImageBuf A ("a.exr");
        ImageBuf B = ImageBufAlgo::color_map (A, -1, "turbo");
-   
+
        // Use a custom color map
        float mymap[] = { 0.25, 0.25, 0.25,  0, 0.5, 0,  1, 0, 0 };
        B = ImageBufAlgo::color_map (A, -1 /* use luminance */,
@@ -1882,7 +1889,7 @@ Image arithmetic
        # scale) and map to a spectrum-like palette:
        A = ImageBuf("a.exr")
        B = ImageBufAlgo.color_map (A, -1, "turbo")
-   
+
        # Use a custom color map
        B = ImageBufAlgo.color_map (A, -1, (0.25, 0.25, 0.25,  0, 0.5, 0,  1, 0, 0))
 
@@ -1891,7 +1898,7 @@ Image arithmetic
        # Use luminance of a.exr (assuming Rec709 primaries and a linear
        # scale) and map to a spectrum-like palette:
        oiiotool a.exr --colormap turbo -o b.exr
-   
+
        # Use a custom color map
        oiiotool a.exr --colormap turbo 0.25,0.25,0.25,0,0.5,0,1,0,0 -o b.exr
 
@@ -1927,36 +1934,36 @@ Image arithmetic
     resize, then re-expand the range.
 
     .. tabs::
-  
+
        .. code-tab:: c++
-      
+
           // 1. Read the original image
           ImageBuf Src ("tahoeHDR.exr");
-      
+
           // 2. Range compress to a logarithmic scale
           ImageBuf Compressed = ImageBufAlgo::rangecompress (Src);
-      
+
           // 3. Now do the resize
           ImageBuf Dst = ImageBufAlgo::resize (Compressed,
                                                { { "filtername", "lanczos3" }
                                                  { "filterwidth", 6.0f } },
                                                ROI(0, 640, 0, 480));
-      
+
           // 4. Expand range to be linear again (operate in-place)
           ImageBufAlgo::rangeexpand (Dst, Dst);
 
        .. code-tab:: py
-      
+
           # 1. Read the original image
           Src = ImageBuf("tahoeHDR.exr")
-      
+
           # 2. Range compress to a logarithmic scale
           Compressed = ImageBufAlgo.rangecompress (Src)
-      
+
           # 3. Now do the resize
           Dst = ImageBufAlgo.resize (Compressed, filtername="lanczos3",
                                      filterwidth=6.0, ROI(0, 640, 0, 480))
-      
+
           # 4. Expand range to be linear again (operate in-place)
           ImageBufAlgo.rangeexpand (Dst, Dst)
 
@@ -2062,8 +2069,8 @@ Image comparison and statistics
            std::cout << "Average error was " << comp.meanerror << "\n";
            std::cout << "RMS error was " << comp.rms_error << "\n";
            std::cout << "PSNR was " << comp.PSNR << "\n";
-           std::cout << "largest error was " << comp.maxerror 
-                     << " on pixel (" << comp.maxx << "," << comp.maxy 
+           std::cout << "largest error was " << comp.maxerror
+                     << " on pixel (" << comp.maxx << "," << comp.maxy
                      << "," << comp.maxz << "), channel " << comp.maxc << "\n";
        }
 
@@ -2221,10 +2228,10 @@ Image comparison and statistics
         ImageBuf A ("a.exr");
         ROI roi = get_roi (A.spec());
         roi.chend = std::min (roi.chend, 4);  // only compare RGBA
-    
+
         float low[] = {0, 0, 0, 0};
         float high[] = {1, 1, 1, 1};
-    
+
         imagesize_t lowcount, highcount, inrangecount;
         ImageBufAlgo::color_range_check (A, &lowcount, &highcount, &inrangecount,
                                          low, high, roi);
@@ -2237,10 +2244,10 @@ Image comparison and statistics
         A = ImageBuf("a.exr")
         roi = A.roi.copy()
         roi.chend = min (roi.chend, 4)  # only compare RGBA
-    
+
         low = (0, 0, 0, 0)
         high = (1, 1, 1, 1)
-    
+
         lowcount, highcount, inrangecount = ImageBufAlgo.color_range_check (A, low, high, roi)
         print(lowcount, "pixels had components < 0")
         print(highcount, "pixels had components > 1")
@@ -2537,7 +2544,7 @@ Image Enhancement / Restoration
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf Src ("tahoe.exr");
@@ -2566,7 +2573,7 @@ Image Enhancement / Restoration
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf Src ("holes.exr");
@@ -2578,7 +2585,7 @@ Image Enhancement / Restoration
           Filled = ImageBufAlgo.fillholes_pushpull (Src)
 
        .. code-tab:: bash oiiotool
-                 
+
           oiiotool holes.exr --fillholes -o filled.exr
 
 |
@@ -2592,7 +2599,7 @@ Image Enhancement / Restoration
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf Noisy ("tahoe.exr");
@@ -2635,7 +2642,7 @@ Image Enhancement / Restoration
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf Blurry ("tahoe.exr");
@@ -2690,14 +2697,14 @@ are often constructed from them:
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf Source ("source.tif");
-      
+
           ImageBuf Dilated = ImageBufAlgo::dilate (Source, 3, 3);
           ImageBuf Eroded  = ImageBufAlgo::erode (Source, 3, 3);
-      
+
           // Morphological "open" is dilate(erode((source))
           ImageBuf Opened = ImageBufAlgo::dilate (Eroded, 3, 3);
           // Morphological "close" is erode(dilate(source))
@@ -2712,10 +2719,10 @@ are often constructed from them:
        .. code-tab:: py
 
           Source = ImageBuf("source.tif")
-      
+
           Dilated = ImageBufAlgo.dilate (Source, 3, 3)
           Eroded  = ImageBufAlgo.erode (Source, 3, 3)
-      
+
           # Morphological "open" is dilate(erode((source))
           Opened = ImageBufAlgo.dilate (Eroded, 3, 3)
           # Morphological "close" is erode(dilate(source))
@@ -2731,7 +2738,7 @@ are often constructed from them:
 
           oiiotool source.tif --dilate 3x3 -o dilated.tif
           oiiotool source.tif --erode 3x3 -o eroded.tif
-      
+
           # Morphological "open" is dilate(erode((source))
           oiiotool source.tif --erode 3x3 --dilate 3x3 -o opened.tif
           # Morphological "close" is erode(dilate(source))
@@ -2789,7 +2796,7 @@ Color space conversion
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf Src ("tahoe.jpg");
@@ -2815,7 +2822,7 @@ Color space conversion
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf Src ("tahoe.exr");
@@ -2835,8 +2842,8 @@ Color space conversion
           dst = ImageBufAlgo.colormatrixtransform (Src, M)
 
        .. code-tab:: bash oiiotool
-              
-          oiiotool tahoe.exr --colormatrixtransform 0.8047379,0.5058794,-0.3106172,0,-0.3106172,0.8047379,0.5058794,0.5058794,-0.3106172,0,0,0,0,1,0 -o tahoe_matrix.exr 
+
+          oiiotool tahoe.exr --colormatrixtransform 0.8047379,0.5058794,-0.3106172,0,-0.3106172,0.8047379,0.5058794,0.5058794,-0.3106172,0,0,0,0,1,0 -o tahoe_matrix.exr
 
 
 .. |ccmat1| image:: figures/tahoe-small.jpg
@@ -2862,7 +2869,7 @@ Color space conversion
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf Src ("tahoe.jpg");
@@ -2890,7 +2897,7 @@ Color space conversion
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf Src ("tahoe.exr");
@@ -2918,7 +2925,7 @@ Color space conversion
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf Src ("tahoe.exr");
@@ -2941,19 +2948,19 @@ Color space conversion
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           // Convert from unassociated alpha to associated alpha by
           // straightforward multiplication of color by alpha.
           ImageBuf Unassoc;  // Assume somehow this has unassociated alpha
           ImageBuf Assoc = ImageBufAlgo::premult (Unassoc);
-      
+
           // Convert in-place from associated alpha to unassociated alpha,
           // preserving the color of alpha==0 pixels.
           ImageBuf A;
           ImageBufAlgo::unpremult (A, A);
-      
+
           // Finish the round-trip back to associated, still preserving the
           // color of alpha==0 pixels. This should result in exactly the same
           // pixel values we started with (within precision limits).
@@ -2965,12 +2972,12 @@ Color space conversion
           # straightforward multiplication of color by alpha.
           Unassoc = ImageBuf(...)  # Assume somehow this has unassociated alpha
           Assoc = ImageBufAlgo.premult (Unassoc)
-      
+
           # Convert in-place from associated alpha to unassociated alpha,
           # preserving the color of alpha==0 pixels.
           A = ImageBuf(...)
           ImageBufAlgo.unpremult (A, A)
-      
+
           # Finish the round-trip back to associated, still preserving the
           # color of alpha==0 pixels. This should result in exactly the same
           # pixel values we started with (within precision limits).
@@ -2981,11 +2988,11 @@ Color space conversion
           # Convert from unassociated alpha to associated alpha by
           # straightforward multiplication of color by alpha.
           oiiotool unassoc.tif --premult -o assoc.tif
-      
+
           # Convert in-place from associated alpha to unassociated alpha,
           # preserving the color of alpha==0 pixels.
           oiiotool A.tif --unpremult -o A.tif
-      
+
           # Finish the round-trip back to associated, still preserving the
           # color of alpha==0 pixels. This should result in exactly the same
           # pixel values we started with (within precision limits).
@@ -3021,14 +3028,14 @@ Import / export
 
       .. tab:: oiiotool
          .. sourcecode:: bash
-         
+
             oiiotool in.exr -otex:hilightcomp=1:filtername=lanczos3:opaque_detect=1 texture.exr
 
       .. tab:: maketx
          .. sourcecode:: bash
 
             maketx in.exr --hicomp --filter lanczos3 --opaque-detect -o texture.exr
-      
+
 |
 
 OpenCV interoperability is performed by the `from_OpenCV()` and
@@ -3071,7 +3078,7 @@ Functions specific to deep images
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf Flat ("RGBAZ.exr");
@@ -3097,7 +3104,7 @@ Functions specific to deep images
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf Deep ("deepalpha.exr");
@@ -3123,7 +3130,7 @@ Functions specific to deep images
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf DeepA ("hardsurf.exr");
@@ -3151,7 +3158,7 @@ Functions specific to deep images
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf Src ("image.exr");
