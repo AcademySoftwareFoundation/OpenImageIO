@@ -1,0 +1,199 @@
+       0  0,0,0
+   59136  1,.5,.5
+    6400  0,1,0
+       0  < 0,0,0
+    6400  > 1,0.9,1
+   59136  within range
+This should make an error:
+oiiotool ERROR: --label : Invalid label name "2hot2handle"
+Full command line was:
+> oiiotool -echo "This should make an error:" --create 1x1 3 --label 2hot2handle -o out.tif
+--printstats:
+ 128 x   96, 3 channel, float tiff
+    Stats Min: 0 0 0 (of 255)
+    Stats Max: 190 255 255 (of 255)
+    Stats Avg: 26.00 55.26 108.45 (of 255)
+    Stats StdDev: 32.31 59.12 95.51 (of 255)
+    Stats NanCount: 0 0 0 
+    Stats InfCount: 0 0 0 
+    Stats FiniteCount: 12288 12288 12288 
+    Constant: No
+    Monochrome: No
+ 128 x   96, 3 channel, float tiff
+    Stats Min: 1 3 9 (of 255)
+    Stats Max: 14 28 67 (of 255)
+    Stats Avg: 6.05 8.30 18.13 (of 255)
+    Stats StdDev: 3.07 4.69 10.19 (of 255)
+    Stats NanCount: 0 0 0 
+    Stats InfCount: 0 0 0 
+    Stats FiniteCount: 100 100 100 
+    Constant: No
+    Monochrome: No
+ 
+Reading black.tif
+    oiio:DebugOpenConfig!: 42
+Reading add_rgb_rgba.exr
+add_rgb_rgba.exr     :   64 x   64, 4 channel, float openexr
+    SHA-1: 9CCAC57A0A0D45F40EF14337A95207094D008E02
+    channel list: R, G, B, A
+    compression: "zip"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+dumpdata:
+dump.exr             :    2 x    2, 3 channel, half openexr
+    Pixel (0, 0): 0.000000000 0.000000000 0.000000000
+    Pixel (1, 0): 1.000000000 1.000000000 0.000000000
+    Pixel (0, 1): 0.000000000 0.000000000 0.000000000
+    Pixel (1, 1): 1.000000000 1.000000000 0.000000000
+dumpdata:C
+// dump.exr             :    2 x    2, 3 channel, half openexr
+half data[2][2][3] =
+{
+  { /* (0, 0): */ { 0.000000000, 0.000000000, 0.000000000 },
+    /* (1, 0): */ { 1.000000000, 1.000000000, 0.000000000 } },
+  { /* (0, 1): */ { 0.000000000, 0.000000000, 0.000000000 },
+    /* (1, 1): */ { 1.000000000, 1.000000000, 0.000000000 } },
+};
+testing bad format
+fmt exception: invalid type specifier
+hey hey 0x4fec69 bar
+OpenImageIO exited with a pending error message that was never
+retrieved via OIIO::geterror(). This was the error message:
+fmt exception: invalid type specifier
+Comparing "filled.tif" and "ref/filled.tif"
+PASS
+Comparing "autotrim.tif" and "ref/autotrim.tif"
+PASS
+Comparing "trim.tif" and "ref/trim.tif"
+PASS
+Comparing "trimsubimages.tif" and "ref/trimsubimages.tif"
+PASS
+Comparing "add.exr" and "ref/add.exr"
+PASS
+Comparing "cadd1.exr" and "ref/cadd1.exr"
+PASS
+Comparing "cadd2.exr" and "ref/cadd2.exr"
+PASS
+Comparing "sub.exr" and "ref/sub.exr"
+PASS
+Comparing "subc.exr" and "ref/subc.exr"
+PASS
+Comparing "mul.exr" and "ref/mul.exr"
+PASS
+Comparing "cmul1.exr" and "ref/cmul1.exr"
+PASS
+Comparing "cmul2.exr" and "ref/cmul2.exr"
+PASS
+Comparing "div.exr" and "ref/div.exr"
+PASS
+Comparing "divc1.exr" and "ref/divc1.exr"
+PASS
+Comparing "divc2.exr" and "ref/divc2.exr"
+PASS
+Comparing "mad.exr" and "ref/mad.exr"
+PASS
+Comparing "invert.tif" and "ref/invert.tif"
+PASS
+Comparing "cpow1.exr" and "ref/cpow1.exr"
+PASS
+Comparing "cpow2.exr" and "ref/cpow2.exr"
+PASS
+Comparing "normalize.exr" and "ref/normalize.exr"
+PASS
+Comparing "normalize_scale.exr" and "ref/normalize_scale.exr"
+PASS
+Comparing "normalize_offsetin.exr" and "ref/normalize_offsetin.exr"
+PASS
+Comparing "normalize_offsetscaleout.exr" and "ref/normalize_offsetscaleout.exr"
+PASS
+Comparing "normalize_offsetscale.exr" and "ref/normalize_offsetscale.exr"
+PASS
+Comparing "abs.exr" and "ref/abs.exr"
+PASS
+Comparing "absdiff.exr" and "ref/absdiff.exr"
+PASS
+Comparing "absdiffc.exr" and "ref/absdiffc.exr"
+PASS
+Comparing "chsum.tif" and "ref/chsum.tif"
+PASS
+Comparing "tahoe-filled.tif" and "ref/tahoe-filled.tif"
+PASS
+Comparing "growholes.tif" and "ref/growholes.tif"
+PASS
+Comparing "rangecompress.tif" and "ref/rangecompress.tif"
+PASS
+Comparing "rangeexpand.tif" and "ref/rangeexpand.tif"
+PASS
+Comparing "rangecompress-luma.tif" and "ref/rangecompress-luma.tif"
+PASS
+Comparing "rangeexpand-luma.tif" and "ref/rangeexpand-luma.tif"
+PASS
+Comparing "min.exr" and "ref/min.exr"
+PASS
+Comparing "cmin1.exr" and "ref/cmin1.exr"
+PASS
+Comparing "cmin2.exr" and "ref/cmin2.exr"
+PASS
+Comparing "max.exr" and "ref/max.exr"
+PASS
+Comparing "cmax1.exr" and "ref/cmax1.exr"
+PASS
+Comparing "cmax2.exr" and "ref/cmax2.exr"
+PASS
+Comparing "maxchan.tif" and "ref/maxchan.tif"
+PASS
+Comparing "minchan.tif" and "ref/minchan.tif"
+PASS
+Comparing "grid-clamped.tif" and "ref/grid-clamped.tif"
+PASS
+Comparing "bsplinekernel.exr" and "ref/bsplinekernel.exr"
+PASS
+Comparing "bspline-blur.tif" and "ref/bspline-blur.tif"
+PASS
+Comparing "gauss5x5-blur.tif" and "ref/gauss5x5-blur.tif"
+PASS
+Comparing "tahoe-median.tif" and "ref/tahoe-median.tif"
+PASS
+Comparing "dilate.tif" and "ref/dilate.tif"
+PASS
+Comparing "erode.tif" and "ref/erode.tif"
+PASS
+Comparing "unsharp.tif" and "ref/unsharp.tif"
+PASS
+Comparing "unsharp-median.tif" and "ref/unsharp-median.tif"
+PASS
+Comparing "tahoe-laplacian.tif" and "ref/tahoe-laplacian.tif"
+PASS
+Comparing "fft.exr" and "ref/fft.exr"
+PASS
+Comparing "ifft.exr" and "ref/ifft.exr"
+PASS
+Comparing "polar.exr" and "ref/polar.exr"
+PASS
+Comparing "unpolar.exr" and "ref/unpolar.exr"
+PASS
+Comparing "subimages-2.exr" and "ref/subimages-2.exr"
+PASS
+Comparing "subimages-4.exr" and "ref/subimages-4.exr"
+PASS
+Comparing "subimageD3.exr" and "ref/subimageD3.exr"
+PASS
+Comparing "subimageB1.exr" and "ref/subimageB1.exr"
+PASS
+Comparing "subimage-noB.exr" and "ref/subimage-noB.exr"
+PASS
+Comparing "subimage-individual.exr" and "ref/subimage-individual.exr"
+PASS
+Comparing "subimage1.exr" and "ref/subimage1.exr"
+PASS
+Comparing "labeladd.exr" and "ref/labeladd.exr"
+PASS
+Comparing "const5-rgb.tif" and "ref/const5-rgb.tif"
+PASS
+Comparing "box_over_missing2.tif" and "ref/box_over_missing2.tif"
+PASS
+Comparing "box_over_missing3.tif" and "ref/box_over_missing3.tif"
+PASS
