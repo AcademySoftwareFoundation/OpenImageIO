@@ -14,6 +14,11 @@ else :
 command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.exr grid.exr")
 command += run_app("cmake -E copy " + test_source_dir + "/../common/tahoe-small.tif tahoe.tif")
 
+# Copy the grid to both a tiled and scanline version
+command += oiio_app("iconvert") + "../common/grid.tif --scanline scanline.tif > out.txt ;" 
+command += oiio_app("iconvert") + "../common/grid.tif --tile 64 64 tiled.tif > out.txt ;" 
+
+
 # Build
 command += run_app("cmake -S " + test_source_dir + " -B build -DCMAKE_BUILD_TYPE=Release >> build.txt 2>&1", silent=True)
 command += run_app("cmake --build build --config Release >> build.txt 2>&1", silent=True)

@@ -14,6 +14,10 @@ refdirlist += [ "../docs-examples-cpp/ref" ]
 command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.exr grid.exr")
 command += run_app("cmake -E copy " + test_source_dir + "/../common/tahoe-small.tif tahoe.tif")
 
+# Copy the grid to both a tiled and scanline version
+command += oiio_app("iconvert") + "../common/grid.tif --scanline scanline.tif > out.txt ;" 
+command += oiio_app("iconvert") + "../common/grid.tif --tile 64 64 tiled.tif > out.txt ;" 
+
 # Run the examples for each chapter
 for chapter in [ "imageioapi", "imageoutput", "imageinput", "writingplugins",
                  "imagecache", "texturesys", "imagebuf", "imagebufalgo" ] :

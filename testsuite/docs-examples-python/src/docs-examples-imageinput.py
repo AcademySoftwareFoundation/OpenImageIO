@@ -77,12 +77,12 @@ def tiles_read() :
         pass
     else :
         # Tiles
-        tilesize = spec.tile_width * spec.tile_height;
+        tilesize = spec.tile_width * spec.tile_height
         for y in range(0, spec.height, spec.tile_height) :
             for x in range(0, spec.width, spec.tile_width) :
                 tile = inp.read_tile (x, y, 0, "uint8")
                 # ... process the pixels in tile[][] ..
-    inp.close ();
+    inp.close ()
     # END-imageinput-tiles
 
 
