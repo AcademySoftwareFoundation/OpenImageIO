@@ -336,7 +336,8 @@ test_get_cache_dimensions()
 
     {  // get_cache_dimensions() for nonexistant file
         ImageSpec spec;
-        OIIO_CHECK_FALSE(ic->get_cache_dimensions(ustring("noexist.exr"), spec));
+        OIIO_CHECK_FALSE(
+            ic->get_cache_dimensions(ustring("noexist.exr"), spec));
         OIIO_CHECK_ASSERT(ic->has_error());
         Strutil::print("get_cache_dimensions() of non-existant file:\n  {}\n",
                        ic->geterror());
@@ -345,8 +346,9 @@ test_get_cache_dimensions()
         ImageSpec spec;
         const bool valid = ic->get_cache_dimensions(nullptr, nullptr, spec);
         OIIO_CHECK_ASSERT(!valid && ic->has_error());
-        Strutil::print("get_cache_dimensions(handle) of non-existant file:\n  {}\n",
-                       ic->geterror());
+        Strutil::print(
+            "get_cache_dimensions(handle) of non-existant file:\n  {}\n",
+            ic->geterror());
     }
     {  // get_cache_dimensions() for out of range subimage
         ImageSpec spec;
