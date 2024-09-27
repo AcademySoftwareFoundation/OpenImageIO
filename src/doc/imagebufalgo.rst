@@ -1307,15 +1307,15 @@ Image arithmetic
        .. tab:: C++
              .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
               :language: c++
-              :start-after: BEGIN-imagebufalgo-abs
-              :end-before: END-imagebufalgo-abs
+              :start-after: BEGIN-imagebufalgo-absolute
+              :end-before: END-imagebufalgo-absolute
               :dedent: 4
 
        .. tab:: Python
           .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
               :language: py
-              :start-after: BEGIN-imagebufalgo-abs
-              :end-before: END-imagebufalgo-abs
+              :start-after: BEGIN-imagebufalgo-absolute
+              :end-before: END-imagebufalgo-absolute
               :dedent: 4
 
        .. code-tab:: bash oiiotool

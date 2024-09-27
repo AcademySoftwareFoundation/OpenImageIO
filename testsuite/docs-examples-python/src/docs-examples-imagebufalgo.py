@@ -470,10 +470,10 @@ def example_absdiff():
 
 def example_abs():
     print("example_abs")
-    # BEGIN-imagebufalgo-abs
+    # BEGIN-imagebufalgo-absolute
     A = ImageBuf("grid.exr")
     Abs = ImageBufAlgo.abs (A)
-    # END--imagebufalgo-abs
+    # END--imagebufalgo-absolute
     Abs.write("abs.exr", "half")
 
 def example_mul():

@@ -535,10 +535,10 @@ void example_absdiff()
 void example_abs()
 {
     print("example_abs\n");
-    // BEGIN-imagebufalgo-abs
+    // BEGIN-imagebufalgo-absolute
     ImageBuf A("grid.exr");
     ImageBuf Abs = ImageBufAlgo::abs(A);
-    // END-imagebufalgo-abs
+    // END-imagebufalgo-absolute
     Abs.write("abs.exr");
 }
 
