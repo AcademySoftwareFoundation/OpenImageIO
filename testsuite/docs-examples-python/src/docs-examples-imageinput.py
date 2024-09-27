@@ -70,15 +70,16 @@ def tiles_read() :
     filename = "tiled.tif"
 
      # BEGIN-imageinput-tiles
-    inp = ImageInput.open(filename)
+    inp = oiio.ImageInput.open(filename)
     spec = inp.spec()
     if spec.tile_width == 0 :
         # ... read scanline by scanline ...
+        pass
     else :
         # Tiles
         tilesize = spec.tile_width * spec.tile_height;
-        for y in range(0, yres, spec.tile_height) :
-            for x in range(0, xres, spec.tile_width) :
+        for y in range(0, spec.height, spec.tile_height) :
+            for x in range(0, spec.width, spec.tile_width) :
                 tile = inp.read_tile (x, y, 0, "uint8")
                 # ... process the pixels in tile[][] ..
     inp.close ();
