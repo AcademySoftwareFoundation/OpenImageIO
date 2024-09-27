@@ -73,11 +73,47 @@ void scanlines_read()
 // END-imageinput-scanlines
 }
 
+
+// BEGIN-imageinput-errorchecking
+#include <OpenImageIO/imageio.h>
+using namespace OIIO;
+
+void error_checking()
+{
+    const char *filename = "tahoe.tif";
+    auto inp = ImageInput::open (filename);
+    if (! inp) {
+        std::cerr << "Could not open " << filename
+                  << ", error = " << OIIO::geterror() << "\n";
+        return;
+    }
+    const ImageSpec &spec = inp->spec();
+    int xres = spec.width;
+    int yres = spec.height;
+    int nchannels = spec.nchannels;
+    auto pixels = std::unique_ptr<unsigned char[]>(new unsigned char[xres * yres * nchannels]);
+
+    if (! inp->read_image(0, 0, 0, nchannels, TypeDesc::UINT8, &pixels[0])) {
+        std::cerr << "Could not read pixels from " << filename
+                  << ", error = " << inp->geterror() << "\n";
+        return;
+    }
+
+    if (! inp->close ()) {
+        std::cerr << "Error closing " << filename
+                  << ", error = " << inp->geterror() << "\n";
+        return;
+    }
+}
+// END-imageinput-errorchecking
+
+
 int main(int /*argc*/, char** /*argv*/)
 {
     // Each example function needs to get called here, or it won't execute
     // as part of the test.
     simple_read();
     scanlines_read();
+    error_checking();
     return 0;
 }
