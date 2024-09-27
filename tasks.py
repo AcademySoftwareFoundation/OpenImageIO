@@ -2,15 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-import invoke
-import logging
 from pathlib import Path
-import os
 import shutil
-import tempfile
-import zipfile
+import invoke
+from repairwheel._vendor.auditwheel.wheeltools import InWheelCtx
 
-logger = logging.getLogger(__name__)
 
 DIRS_TO_REMOVE = ['lib', 'lib64', 'share', 'include']
 
@@ -18,8 +14,7 @@ def _wheel_edit(wheel_path, dirs_to_remove=DIRS_TO_REMOVE):
     """
     Edit the contents of the repaired wheel to remove the 'lib', 'share', and 'include' directories.
     """
-    from repairwheel._vendor.auditwheel.wheeltools import InWheelCtx
-
+    
     with InWheelCtx(wheel_path, wheel_path) as ctx:
         root = Path(ctx.path)
         for dir_name in dirs_to_remove:
