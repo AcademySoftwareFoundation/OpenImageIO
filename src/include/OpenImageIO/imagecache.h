@@ -733,6 +733,7 @@ public:
     /// `"forcefloat"` or `"autotile"`). If you really need to know the
     /// in-cache data type, tile size, or how the resolution or tiling changes
     /// on a particular MIP level, you should use `get_cache_dimensions()`.
+    ///
     /// @param  filename
     ///             The name of the image, as a UTF-8 encoded ustring.
     /// @param  spec
