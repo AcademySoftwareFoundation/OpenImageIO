@@ -655,12 +655,8 @@ IvGL::paintGL()
         }
     }
 
-    if (m_viewer.datawindowOn()) {
-        paint_datawindow();
-    }
-
-    if (m_viewer.displaywindowOn()) {
-        paint_displaywindow();
+    if (m_viewer.windowguidesOn()) {
+        paint_windowguides();
     }
 
     glPopMatrix();
@@ -938,44 +934,35 @@ IvGL::paint_pixelview()
 
 
 void
-IvGL::paint_datawindow()
+IvGL::paint_windowguides()
 {
     IvImage* img = m_current_image;
     const ImageSpec& spec(img->spec());
 
     glDisable(GL_TEXTURE_2D);
     glUseProgram(0);
-
-    const float xmin = spec.x;
-    const float xmax = spec.x + spec.width;
-    const float ymin = spec.y;
-    const float ymax = spec.y + spec.height;
     glPushAttrib(GL_ENABLE_BIT);
     glEnable(GL_COLOR_LOGIC_OP);
     glLogicOp(GL_XOR);
-    gl_rect_border(xmin, ymin, xmax, ymax);
-    glPopAttrib();
-}
 
+    // Data window
+    {
+        const float xmin = spec.x;
+        const float xmax = spec.x + spec.width;
+        const float ymin = spec.y;
+        const float ymax = spec.y + spec.height;
+        gl_rect_border(xmin, ymin, xmax, ymax);
+    }
 
+    // Display window
+    {
+        const float xmin = spec.full_x;
+        const float xmax = spec.full_x + spec.full_width;
+        const float ymin = spec.full_y;
+        const float ymax = spec.full_y + spec.full_height;
+        gl_rect_dotted_border(xmin, ymin, xmax, ymax);
+    }
 
-void
-IvGL::paint_displaywindow()
-{
-    IvImage* img = m_current_image;
-    const ImageSpec& spec(img->spec());
-
-    glDisable(GL_TEXTURE_2D);
-    glUseProgram(0);
-
-    const float xmin = spec.full_x;
-    const float xmax = spec.full_x + spec.full_width;
-    const float ymin = spec.full_y;
-    const float ymax = spec.full_y + spec.full_height;
-    glPushAttrib(GL_ENABLE_BIT);
-    glEnable(GL_COLOR_LOGIC_OP);
-    glLogicOp(GL_XOR);
-    gl_rect_dotted_border(xmin, ymin, xmax, ymax);
     glPopAttrib();
 }
 

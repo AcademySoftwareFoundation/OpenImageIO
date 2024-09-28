@@ -386,15 +386,10 @@ ImageViewer::createActions()
     //    toggleImageAct->setEnabled(true);
     connect(toggleImageAct, SIGNAL(triggered()), this, SLOT(toggleImage()));
 
-    showDataWindowAct = new QAction(tr("Show Data Window (solid line)"), this);
-    showDataWindowAct->setCheckable(true);
-    connect(showDataWindowAct, SIGNAL(triggered()), this,
-            SLOT(toggleDataWindow()));
-
-    showDisplayWindowAct = new QAction(tr("Show Display Window (dotted line)"), this);
-    showDisplayWindowAct->setCheckable(true);
-    connect(showDisplayWindowAct, SIGNAL(triggered()), this,
-            SLOT(toggleDisplayWindow()));
+    toggleWindowGuidesAct = new QAction(tr("Show display and data window borders"), this);
+    toggleWindowGuidesAct->setCheckable(true);
+    connect(toggleWindowGuidesAct, SIGNAL(triggered()), this,
+            SLOT(toggleWindowGuides()));
 
     slideShowAct = new QAction(tr("Start Slide Show"), this);
     connect(slideShowAct, SIGNAL(triggered()), this, SLOT(slideShow()));
@@ -684,8 +679,7 @@ ImageViewer::createMenus()
     viewMenu->addAction(prevImageAct);
     viewMenu->addAction(nextImageAct);
     viewMenu->addAction(toggleImageAct);
-    viewMenu->addAction(showDataWindowAct);
-    viewMenu->addAction(showDisplayWindowAct);
+    viewMenu->addAction(toggleWindowGuidesAct);
     viewMenu->addSeparator();
     viewMenu->addAction(zoomInAct);
     viewMenu->addAction(zoomOutAct);
@@ -1362,15 +1356,7 @@ ImageViewer::toggleImage()
 
 
 void
-ImageViewer::toggleDataWindow()
-{
-    ((QOpenGLWidget*)(glwin))->update();
-}
-
-
-
-void
-ImageViewer::toggleDisplayWindow()
+ImageViewer::toggleWindowGuides()
 {
     ((QOpenGLWidget*)(glwin))->update();
 }
