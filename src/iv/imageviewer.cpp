@@ -386,7 +386,8 @@ ImageViewer::createActions()
     //    toggleImageAct->setEnabled(true);
     connect(toggleImageAct, SIGNAL(triggered()), this, SLOT(toggleImage()));
 
-    toggleWindowGuidesAct = new QAction(tr("Show display and data window borders"), this);
+    toggleWindowGuidesAct
+        = new QAction(tr("Show display and data window borders"), this);
     toggleWindowGuidesAct->setCheckable(true);
     connect(toggleWindowGuidesAct, SIGNAL(triggered()), this,
             SLOT(toggleWindowGuides()));
