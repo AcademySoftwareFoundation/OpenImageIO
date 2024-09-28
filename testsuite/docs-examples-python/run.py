@@ -13,6 +13,8 @@ refdirlist += [ "../docs-examples-cpp/ref" ]
 # Prep:
 command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.exr grid.exr")
 command += run_app("cmake -E copy " + test_source_dir + "/../common/tahoe-small.tif tahoe.tif")
+command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.exr A.exr")
+command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.exr B.exr")
 
 # Run the examples for each chapter
 for chapter in [ "imageioapi", "imageoutput", "imageinput", "writingplugins",

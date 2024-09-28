@@ -440,8 +440,8 @@ def example_add():
     print("example_add")
     # BEGIN-imagebufalgo-add
     # Add images A and B
-    A = ImageBuf("grid.exr")
-    B = ImageBuf("grid.exr")
+    A = ImageBuf("A.exr")
+    B = ImageBuf("B.exr")
     Sum = ImageBufAlgo.add (A, B)
 
     # Add 0.2 to channels 0-2, but not to channel 3
@@ -453,8 +453,8 @@ def example_add():
 def example_sub():
     print("example_sub")
     # BEGIN-imagebufalgo-sub
-    A = ImageBuf("grid.exr")
-    B = ImageBuf("grid.exr")
+    A = ImageBuf("A.exr")
+    B = ImageBuf("B.exr")
     Diff = ImageBufAlgo.sub (A, B)
     # END-imagebufalgo-sub
     Diff.write("sub.exr", "half")
@@ -462,8 +462,8 @@ def example_sub():
 def example_absdiff():
     print("example_absdiff")
     # BEGIN-imagebufalgo-absdiff
-    A = ImageBuf("grid.exr")
-    B = ImageBuf("grid.exr")
+    A = ImageBuf("A.exr")
+    B = ImageBuf("B.exr")
     Diff = ImageBufAlgo.absdiff (A, B)
     # END--imagebufalgo-absdiff
     Diff.write("absdiff.exr", "half")
@@ -480,8 +480,8 @@ def example_mul():
     print("example_mul")
     # BEGIN-imagebufalgo-mul
     # Pixel-by-pixel, channel-by-channel multiplication of A and B
-    A = ImageBuf("grid.exr")
-    B = ImageBuf("grid.exr")
+    A = ImageBuf("A.exr")
+    B = ImageBuf("B.exr")
     Product = ImageBufAlgo.mul (A, B)
 
     # In-place reduce intensity of A's channels 0-2 by 50%
@@ -493,8 +493,8 @@ def example_div():
     print("example_div")
     # BEGIN-imagebufalgo-div
     # Pixel-by-pixel, channel-by-channel division of A by B
-    A = ImageBuf("grid.exr")
-    B = ImageBuf("grid.exr")
+    A = ImageBuf("A.exr")
+    B = ImageBuf("B.exr")
     Ratio = ImageBufAlgo.div (A, B)
 
     # In-place reduce intensity of A's channels 0-2 by 50%
