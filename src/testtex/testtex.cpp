@@ -1350,7 +1350,7 @@ test_getimagespec_gettexels(ustring filename)
 {
     ImageSpec spec;
     int miplevel = 0;
-    if (!texsys->get_imagespec(filename, 0, spec)) {
+    if (!texsys->get_imagespec(filename, spec, 0)) {
         Strutil::print(std::cerr, "Could not get spec for {}\n", filename);
         std::string e = texsys->geterror();
         if (!e.empty())
@@ -1425,12 +1425,12 @@ do_tex_thread_workout(int iterations, int mythread)
     ImageSpec spec0;
     if (texsys->is_udim(filenames[0])) {
         auto th = texsys->resolve_udim(filenames[0], 0.5f, 0.5f);
-        if (!th || !texsys->get_imagespec(th, nullptr, 0, spec0)) {
+        if (!th || !texsys->get_imagespec(th, nullptr, spec0, 0)) {
             Strutil::print(std::cerr, "Unexpected error with {}: {}\n",
                            filenames[0], texsys->geterror());
         }
     } else {
-        bool ok = texsys->get_imagespec(filenames[0], 0, spec0);
+        bool ok = texsys->get_imagespec(filenames[0], spec0, 0);
         if (!ok) {
             Strutil::print(std::cerr, "Unexpected error: {}\n",
                            texsys->geterror());
@@ -1854,7 +1854,7 @@ main(int argc, const char* argv[])
     if (test_getimagespec) {
         ImageSpec spec;
         for (int i = 0; i < iters; ++i) {
-            texsys->get_imagespec(filenames[0], 0, spec);
+            texsys->get_imagespec(filenames[0], spec, 0);
         }
         iters = 0;
     }

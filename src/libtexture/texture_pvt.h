@@ -199,9 +199,9 @@ public:
                           int subimage, ustring dataname, TypeDesc datatype,
                           void* data);
 
-    bool get_imagespec(ustring filename, int subimage, ImageSpec& spec);
+    bool get_imagespec(ustring filename, ImageSpec& spec, int subimage);
     bool get_imagespec(TextureHandle* texture_handle, Perthread* thread_info,
-                       int subimage, ImageSpec& spec);
+                       ImageSpec& spec, int subimage);
 
     const ImageSpec* imagespec(ustring filename, int subimage = 0);
     const ImageSpec* imagespec(TextureHandle* texture_handle,
