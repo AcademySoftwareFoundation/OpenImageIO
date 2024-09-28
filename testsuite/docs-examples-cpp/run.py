@@ -13,6 +13,9 @@ else :
 # Prep:
 command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.exr grid.exr")
 command += run_app("cmake -E copy " + test_source_dir + "/../common/tahoe-small.tif tahoe.tif")
+command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.exr A.exr")
+command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.exr B.exr")
+
 
 # Copy the grid to both a tiled and scanline version
 command += oiio_app("iconvert") + "../common/grid.tif --scanline scanline.tif > out.txt ;" 
@@ -73,7 +76,14 @@ hashes = [
     "transpose.exr",
     "reorient.exr",
     "cshift.exr",
-    "texture.exr"
+    "texture.exr",
+    "add.exr",
+    "add-cspan.exr",
+    "sub.exr",
+    "absdiff.exr",
+    "abs.exr",
+    "mul.exr",
+    "div.exr"
 ]
 for file in hashes :
     command += info_command(file, verbose=False)

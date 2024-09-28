@@ -494,7 +494,86 @@ void example_warp()
 
 
 // Section: Image Arithmetic
+void example_add()
+{
+    print("example_add\n");
+    // BEGIN-imagebufalgo-add
+    // Add images A and B
+    ImageBuf A ("A.exr");
+    ImageBuf B ("B.exr");
+    ImageBuf Sum = ImageBufAlgo::add(A, B);
 
+    // Add 0.2 to channels 0-2, but not to channel 3
+    ImageBuf SumCspan = ImageBufAlgo::add(A, { 0.2f, 0.2f, 0.2f, 0.0f });
+    // END-imagebufalgo-add
+    Sum.write("add.exr");
+    SumCspan.write("add-cspan.exr");
+}
+
+void example_sub()
+{
+    print("example_sub\n");
+    // BEGIN-imagebufalgo-sub
+    ImageBuf A ("A.exr");
+    ImageBuf B ("B.exr");
+    ImageBuf Diff = ImageBufAlgo::sub(A, B);
+    // END-imagebufalgo-sub
+    Diff.write("sub.exr");
+}
+
+void example_absdiff()
+{
+    print("example_absdiff\n");
+    // BEGIN-imagebufalgo-absdiff
+    ImageBuf A ("A.exr");
+    ImageBuf B ("B.exr");
+    ImageBuf Diff = ImageBufAlgo::absdiff (A, B);
+    // END-imagebufalgo-absdiff
+    Diff.write("absdiff.exr");
+}
+
+void example_abs()
+{
+    print("example_abs\n");
+    // BEGIN-imagebufalgo-absolute
+    ImageBuf A("grid.exr");
+    ImageBuf Abs = ImageBufAlgo::abs(A);
+    // END-imagebufalgo-absolute
+    Abs.write("abs.exr");
+}
+
+void example_mul()
+{
+    print("example_mul\n");
+    // BEGIN-imagebufalgo-mul
+    // Pixel-by-pixel, channel-by-channel multiplication of A and B
+    ImageBuf A ("A.exr");
+    ImageBuf B ("B.exr");
+    ImageBuf Product = ImageBufAlgo::mul (A, B);
+
+    // In-place reduce intensity of A's channels 0-2 by 50%
+    ImageBufAlgo::mul (A, A, { 0.5f, 0.5f, 0.5f, 1.0f });
+    // END-imagebufalgo-mul
+    Product.write("mul.exr");
+}
+
+
+void example_div()
+{
+    print("example_div\n");
+    // BEGIN-imagebufalgo-div
+    // Pixel-by-pixel, channel-by-channel division of A by B
+    ImageBuf A ("A.exr");
+    ImageBuf B ("B.exr");
+    ImageBuf Ratio = ImageBufAlgo::div (A, B);
+
+    // In-place reduce intensity of A's channels 0-2 by 50%
+    ImageBufAlgo::div (A, A, { 2.0f, 2.0f, 2.0f, 1.0f });
+    // END-imagebufalgo-div
+    Ratio.write("div.exr");
+}
+
+//TODO: mad and onwards
 
 // Section: Image comparison and statistics
 
@@ -572,6 +651,12 @@ int main(int /*argc*/, char** /*argv*/)
     example_warp();
 
     // Section: Image Arithmetic
+    example_add();
+    example_sub();
+    example_absdiff();
+    example_abs();
+    example_mul();
+    example_div();
 
     // Section: Image comparison and statistics
 

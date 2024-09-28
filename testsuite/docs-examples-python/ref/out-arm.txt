@@ -28,6 +28,12 @@ example_resize
 example_resample
 example_fit
 example_warp
+example_add
+example_sub
+example_absdiff
+example_abs
+example_mul
+example_div
 example_make_texture
 zero1.exr            :  512 x  512, 3 channel, half openexr
     SHA-1: 95823C334FCE55968E8D2827CCD1CF77CEE19ABD
@@ -107,6 +113,20 @@ cshift.exr           :  256 x  256, 4 channel, half openexr
     SHA-1: 000F95FDC44D4DBDA8B4041C2506149C7AE28ACA
 texture.exr          :  256 x  256, 3 channel, half openexr (+mipmap)
     SHA-1: 4074B050432CE7C664CEC4546A46E74F9A310CDC
+add.exr              :  256 x  256, 4 channel, half openexr
+    SHA-1: EA465A4FEA171DDF7D382931AE1FF1E37C4977F8
+add_cspan.exr        :  256 x  256, 4 channel, half openexr
+    SHA-1: 3E8E6F104951D3D156891708478193AAE6C5859F
+sub.exr              :  256 x  256, 4 channel, half openexr
+    SHA-1: 6A521E1D2A632C26E53B83D2CC4B0EDECFC1E68C
+absdiff.exr          :  256 x  256, 4 channel, half openexr
+    SHA-1: 6A521E1D2A632C26E53B83D2CC4B0EDECFC1E68C
+abs.exr              :  256 x  256, 4 channel, half openexr
+    SHA-1: A670546F9AB515ABEC009BFE4C4FF6AF4D628FBA
+mul.exr              :  256 x  256, 4 channel, half openexr
+    SHA-1: ECCDBBBF088912F0B77B887D6B8B480C3F93615E
+div.exr              :  256 x  256, 4 channel, half openexr
+    SHA-1: 6A85C923DB82C893C0D88028386F1C58604A4757
 Comparing "simple.tif" and "../docs-examples-cpp/ref/simple.tif"
 PASS
 Comparing "scanlines.tif" and "../docs-examples-cpp/ref/scanlines.tif"
