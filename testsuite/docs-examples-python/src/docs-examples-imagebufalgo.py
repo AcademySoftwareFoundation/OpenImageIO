@@ -465,7 +465,7 @@ def example_absdiff():
     A = ImageBuf("A.exr")
     B = ImageBuf("B.exr")
     Diff = ImageBufAlgo.absdiff (A, B)
-    # END--imagebufalgo-absdiff
+    # END-imagebufalgo-absdiff
     Diff.write("absdiff.exr", "half")
 
 def example_abs():
@@ -473,7 +473,7 @@ def example_abs():
     # BEGIN-imagebufalgo-absolute
     A = ImageBuf("grid.exr")
     Abs = ImageBufAlgo.abs (A)
-    # END--imagebufalgo-absolute
+    # END-imagebufalgo-absolute
     Abs.write("abs.exr", "half")
 
 def example_mul():
@@ -486,7 +486,7 @@ def example_mul():
 
     # In-place reduce intensity of A's channels 0-2 by 50%
     ImageBufAlgo.mul (A, A, (0.5, 0.5, 0.5, 1.0))
-    # END--imagebufalgo-mul
+    # END-imagebufalgo-mul
     Product.write("mul.exr", "half")
 
 def example_div():
@@ -499,7 +499,7 @@ def example_div():
 
     # In-place reduce intensity of A's channels 0-2 by 50%
     ImageBufAlgo.div (A, A, (2.0, 2.0, 2.0, 1.0))
-    # END--imagebufalgo-div
+    # END-imagebufalgo-div
     Ratio.write("div.exr", "half")
 
 #TODO: mad and onwards
