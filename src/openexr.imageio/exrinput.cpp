@@ -1024,7 +1024,7 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
     m_miplevel = miplevel;
     m_spec     = part.spec;
 
-    if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1 << 16, 0, 1 << 16 }))
+    if (!check_open(m_spec, { 0, 1 << 20, 0, 1 << 20, 0, 1 << 16, 0, 1 << 12 }))
         return false;
 
     if (miplevel == 0 && part.levelmode == Imf::ONE_LEVEL) {

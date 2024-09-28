@@ -163,7 +163,7 @@ PNGInput::open(const std::string& name, ImageSpec& newspec)
                                  m_interlace_type, m_bg, m_spec,
                                  m_keep_unassociated_alpha);
     if (!ok || m_err
-        || check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 4 })) {
+        || !check_open(m_spec, { 0, 1 << 16, 0, 1 << 16, 0, 1, 0, 4 })) {
         close();
         return false;
     }
