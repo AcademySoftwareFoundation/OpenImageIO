@@ -74,6 +74,32 @@ void scanlines_read()
 }
 
 
+
+void tiles_read()
+{
+    const char* filename = "tiled.tif";
+
+// BEGIN-imageinput-tiles
+    auto inp = ImageInput::open(filename);
+    const ImageSpec &spec = inp->spec();
+    if (spec.tile_width == 0) {
+        // ... read scanline by scanline ...
+    } else {
+        // Tiles
+        int tilesize = spec.tile_width * spec.tile_height;
+        auto tile = std::unique_ptr<unsigned char[]>(new unsigned char[tilesize * spec.nchannels]);
+        for (int y = 0;  y < spec.height;  y += spec.tile_height) {
+            for (int x = 0;  x < spec.width;  x += spec.tile_width) {
+                inp->read_tile(x, y, 0, TypeDesc::UINT8, &tile[0]);
+                // ... process the pixels in tile[] ..
+            }
+        }
+    }
+    inp->close ();
+// END-imageinput-tiles
+}
+
+
 // BEGIN-imageinput-errorchecking
 #include <OpenImageIO/imageio.h>
 using namespace OIIO;
@@ -108,12 +134,14 @@ void error_checking()
 // END-imageinput-errorchecking
 
 
+
 int main(int /*argc*/, char** /*argv*/)
 {
     // Each example function needs to get called here, or it won't execute
     // as part of the test.
     simple_read();
     scanlines_read();
+    tiles_read();
     error_checking();
     return 0;
 }
