@@ -473,6 +473,32 @@ gl_rect(float xmin, float ymin, float xmax, float ymax, float z = 0,
 
 
 static void
+gl_rect_border(float xmin, float ymin, float xmax, float ymax, float z = 0)
+{
+    glBegin(GL_LINE_LOOP);
+    glVertex3f(xmin, ymin, z);
+    glVertex3f(xmax, ymin, z);
+    glVertex3f(xmax, ymax, z);
+    glVertex3f(xmin, ymax, z);
+    glEnd();
+}
+
+
+
+static void
+gl_rect_dotted_border(float xmin, float ymin, float xmax, float ymax,
+                      float z = 0)
+{
+    glPushAttrib(GL_ENABLE_BIT);
+    glLineStipple(1, 0xF0F0);
+    glEnable(GL_LINE_STIPPLE);
+    gl_rect_border(xmin, ymin, xmax, ymax, z);
+    glPopAttrib();
+}
+
+
+
+static void
 handle_orientation(int orientation, int width, int height, float& scale_x,
                    float& scale_y, float& rotate_z, float& point_x,
                    float& point_y, bool pixel = false)
@@ -632,6 +658,10 @@ IvGL::paintGL()
             gl_rect(xstart, ystart, xstart + tile_width, ystart + tile_height,
                     0, smin, tmin, smax, tmax);
         }
+    }
+
+    if (m_viewer.windowguidesOn()) {
+        paint_windowguides();
     }
 
     glPopMatrix();
@@ -904,6 +934,41 @@ IvGL::paint_pixelview()
 
     glPopAttrib();
     glPopMatrix();
+}
+
+
+
+void
+IvGL::paint_windowguides()
+{
+    IvImage* img = m_current_image;
+    const ImageSpec& spec(img->spec());
+
+    glDisable(GL_TEXTURE_2D);
+    glUseProgram(0);
+    glPushAttrib(GL_ENABLE_BIT);
+    glEnable(GL_COLOR_LOGIC_OP);
+    glLogicOp(GL_XOR);
+
+    // Data window
+    {
+        const float xmin = spec.x;
+        const float xmax = spec.x + spec.width;
+        const float ymin = spec.y;
+        const float ymax = spec.y + spec.height;
+        gl_rect_border(xmin, ymin, xmax, ymax);
+    }
+
+    // Display window
+    {
+        const float xmin = spec.full_x;
+        const float xmax = spec.full_x + spec.full_width;
+        const float ymin = spec.full_y;
+        const float ymax = spec.full_y + spec.full_height;
+        gl_rect_dotted_border(xmin, ymin, xmax, ymax);
+    }
+
+    glPopAttrib();
 }
 
 
