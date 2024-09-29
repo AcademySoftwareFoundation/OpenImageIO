@@ -323,18 +323,18 @@ TextureSystem::get_texture_info(TextureHandle* texture_handle,
 
 
 bool
-TextureSystem::get_imagespec(ustring filename, int subimage, ImageSpec& spec)
+TextureSystem::get_imagespec(ustring filename, ImageSpec& spec, int subimage)
 {
-    return m_impl->get_imagespec(filename, subimage, spec);
+    return m_impl->get_imagespec(filename, spec, subimage);
 }
 
 
 bool
 TextureSystem::get_imagespec(TextureHandle* texture_handle,
-                             Perthread* thread_info, int subimage,
-                             ImageSpec& spec)
+                             Perthread* thread_info, ImageSpec& spec,
+                             int subimage)
 {
-    return m_impl->get_imagespec(texture_handle, thread_info, subimage, spec);
+    return m_impl->get_imagespec(texture_handle, thread_info, spec, subimage);
 }
 
 
@@ -1001,8 +1001,8 @@ TextureSystemImpl::get_texture_info(TextureHandle* texture_handle,
 
 
 bool
-TextureSystemImpl::get_imagespec(ustring filename, int subimage,
-                                 ImageSpec& spec)
+TextureSystemImpl::get_imagespec(ustring filename, ImageSpec& spec,
+                                 int subimage)
 {
     bool ok = m_imagecache->get_imagespec(filename, spec, subimage);
     if (!ok) {
@@ -1017,8 +1017,8 @@ TextureSystemImpl::get_imagespec(ustring filename, int subimage,
 
 bool
 TextureSystemImpl::get_imagespec(TextureHandle* texture_handle,
-                                 Perthread* thread_info, int subimage,
-                                 ImageSpec& spec)
+                                 Perthread* thread_info, ImageSpec& spec,
+                                 int subimage)
 {
     bool ok
         = m_imagecache->get_imagespec((ImageCache::ImageHandle*)texture_handle,

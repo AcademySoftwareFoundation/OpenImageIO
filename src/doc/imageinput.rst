@@ -196,39 +196,19 @@ scanline image and you should read pixels using ``read_scanline()``, not
 
 .. tabs::
 
-    .. code-tab:: c++
+   .. tab:: C++
+      .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imageinput.cpp
+          :language: c++
+          :start-after: BEGIN-imageinput-tiles
+          :end-before: END-imageinput-tiles
+          :dedent: 4
 
-        auto inp = ImageInput::open(filename);
-        const ImageSpec &spec = inp->spec();
-        if (spec.tile_width == 0) {
-            // ... read scanline by scanline ...
-        } else {
-            // Tiles
-            int tilesize = spec.tile_width * spec.tile_height;
-            auto tile = std::unique_ptr<unsigned char[]>(new unsigned char[tilesize * spec.nchannels]);
-            for (int y = 0;  y < yres;  y += spec.tile_height) {
-                for (int x = 0;  x < xres;  x += spec.tile_width) {
-                    inp->read_tile(x, y, 0, TypeDesc::UINT8, &tile[0]);
-                    // ... process the pixels in tile[] ..
-                }
-            }
-        }
-        inp->close ();
-
-    .. code-tab:: py
-
-        inp = ImageInput.open(filename)
-        spec = inp.spec()
-        if spec.tile_width == 0 :
-            # ... read scanline by scanline ...
-        else :
-            # Tiles
-            tilesize = spec.tile_width * spec.tile_height;
-            for y in range(0, yres, spec.tile_height) :
-                for x in range(0, xres, spec.tile_width) :
-                    tile = inp.read_tile (x, y, 0, "uint8")
-                    # ... process the pixels in tile[][] ..
-        inp.close ();
+   .. tab:: Python
+      .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imageinput.py
+          :language: py
+          :start-after: BEGIN-imageinput-tiles
+          :end-before: END-imageinput-tiles
+          :dedent: 8
 
 The first three arguments to ``read_tile()`` specify which tile is
 being read by the pixel coordinates of any pixel contained in the
@@ -1043,61 +1023,18 @@ Section :ref:`sec-imageinput-made-simple`, but this time it is fully
 elaborated with error checking and reporting:
 
 .. tabs::
-    
-   .. code-tab:: c++
-    
-        #include <OpenImageIO/imageio.h>
-        using namespace OIIO;
-        ...
 
-        const char *filename = "foo.jpg";
-        auto inp = ImageInput::open (filename);
-        if (! inp) {
-            std::cerr << "Could not open " << filename
-                      << ", error = " << OIIO::geterror() << "\n";
-            return;
-        }
-        const ImageSpec &spec = inp->spec();
-        int xres = spec.width;
-        int yres = spec.height;
-        int nchannels = spec.nchannels;
-        auto pixels = std::unique_ptr<unsigned char[]>(new unsigned char[xres * yres * nchannels]);
+    .. tab:: C++
+        .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imageinput.cpp
+            :language: c++
+            :start-after: BEGIN-imageinput-errorchecking
+            :end-before: END-imageinput-errorchecking
 
-        if (! inp->read_image(0, 0, 0, nchannels, TypeDesc::UINT8, &pixels[0])) {
-            std::cerr << "Could not read pixels from " << filename
-                      << ", error = " << inp->geterror() << "\n";
-            return;
-        }
-
-        if (! inp->close ()) {
-            std::cerr << "Error closing " << filename
-                      << ", error = " << inp->geterror() << "\n";
-            return;
-        }
-
-   .. code-tab:: py
-    
-        import OpenImageIO as oiio
-        import numpy as np
-
-        filename = "foo.jpg"
-        inp = ImageInput::open(filename)
-        if inp is None :
-            print("Could not open", filename, ", error =", oiio.geterror())
-            return
-        spec = inp.spec()
-        xres = spec.width
-        yres = spec.height
-        nchannels = spec.nchannels
-
-        pixels = inp.read_image(0, 0, 0, nchannels, "uint8")
-        if pixels is None :
-            print("Could not read pixels from", filename, ", error =", inp.geterror())
-            return
-
-        if not inp.close() :
-            print("Error closing", filename, ", error =", inp.geterror())
-            return
+    .. tab:: Python
+        .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imageinput.py
+            :language: py
+            :start-after: BEGIN-imageinput-errorchecking
+            :end-before: END-imageinput-errorchecking
 
 
 .. _sec-imageinput-class-reference:

@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 
 # Copyright Contributors to the OpenImageIO project.
 # SPDX-License-Identifier: Apache-2.0
@@ -13,6 +13,12 @@ refdirlist += [ "../docs-examples-cpp/ref" ]
 # Prep:
 command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.exr grid.exr")
 command += run_app("cmake -E copy " + test_source_dir + "/../common/tahoe-small.tif tahoe.tif")
+command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.exr A.exr")
+command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.exr B.exr")
+
+# Copy the grid to both a tiled and scanline version
+command += oiio_app("iconvert") + "../common/grid.tif --scanline scanline.tif > out.txt ;" 
+command += oiio_app("iconvert") + "../common/grid.tif --tile 64 64 tiled.tif > out.txt ;" 
 
 # Run the examples for each chapter
 for chapter in [ "imageioapi", "imageoutput", "imageinput", "writingplugins",
@@ -64,7 +70,15 @@ hashes = [
     "transpose.exr",
     "reorient.exr",
     "cshift.exr",
-    "texture.exr"
+    "texture.exr",
+    "add.exr",
+    "add_cspan.exr",
+    "sub.exr",
+    "absdiff.exr",
+    "abs.exr",
+    "mul.exr",
+    "div.exr"
+
 ]
 for file in hashes :
     command += info_command(file, verbose=False)

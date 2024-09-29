@@ -436,7 +436,73 @@ def example_warp():
 
 
 # Section: Image Arithmetic
+def example_add():
+    print("example_add")
+    # BEGIN-imagebufalgo-add
+    # Add images A and B
+    A = ImageBuf("A.exr")
+    B = ImageBuf("B.exr")
+    Sum = ImageBufAlgo.add (A, B)
 
+    # Add 0.2 to channels 0-2, but not to channel 3
+    Sum_cspan = ImageBufAlgo.add (A, (0.2, 0.2, 0.2, 0.0))
+    # END-imagebufalgo-add
+    Sum.write("add.exr", "half")
+    Sum_cspan.write("add_cspan.exr", "half")
+
+def example_sub():
+    print("example_sub")
+    # BEGIN-imagebufalgo-sub
+    A = ImageBuf("A.exr")
+    B = ImageBuf("B.exr")
+    Diff = ImageBufAlgo.sub (A, B)
+    # END-imagebufalgo-sub
+    Diff.write("sub.exr", "half")
+
+def example_absdiff():
+    print("example_absdiff")
+    # BEGIN-imagebufalgo-absdiff
+    A = ImageBuf("A.exr")
+    B = ImageBuf("B.exr")
+    Diff = ImageBufAlgo.absdiff (A, B)
+    # END-imagebufalgo-absdiff
+    Diff.write("absdiff.exr", "half")
+
+def example_abs():
+    print("example_abs")
+    # BEGIN-imagebufalgo-absolute
+    A = ImageBuf("grid.exr")
+    Abs = ImageBufAlgo.abs (A)
+    # END-imagebufalgo-absolute
+    Abs.write("abs.exr", "half")
+
+def example_mul():
+    print("example_mul")
+    # BEGIN-imagebufalgo-mul
+    # Pixel-by-pixel, channel-by-channel multiplication of A and B
+    A = ImageBuf("A.exr")
+    B = ImageBuf("B.exr")
+    Product = ImageBufAlgo.mul (A, B)
+
+    # In-place reduce intensity of A's channels 0-2 by 50%
+    ImageBufAlgo.mul (A, A, (0.5, 0.5, 0.5, 1.0))
+    # END-imagebufalgo-mul
+    Product.write("mul.exr", "half")
+
+def example_div():
+    print("example_div")
+    # BEGIN-imagebufalgo-div
+    # Pixel-by-pixel, channel-by-channel division of A by B
+    A = ImageBuf("A.exr")
+    B = ImageBuf("B.exr")
+    Ratio = ImageBufAlgo.div (A, B)
+
+    # In-place reduce intensity of A's channels 0-2 by 50%
+    ImageBufAlgo.div (A, A, (2.0, 2.0, 2.0, 1.0))
+    # END-imagebufalgo-div
+    Ratio.write("div.exr", "half")
+
+#TODO: mad and onwards
 
 # Section: Image comparison and statistics
 
@@ -511,6 +577,12 @@ if __name__ == '__main__':
     example_warp()
 
     # Section: Image Arithmetic
+    example_add()
+    example_sub()
+    example_absdiff()
+    example_abs()
+    example_mul()
+    example_div()
 
     # Section: Image comparison and statistics
 
