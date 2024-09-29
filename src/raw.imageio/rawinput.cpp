@@ -453,12 +453,9 @@ RawInput::open_raw(bool unpack, const std::string& name,
     // Output 16 bit images
     m_processor->imgdata.params.output_bps = 16;
 
-    // exposing max_raw_memory_mb setting
-    static_assert(sizeof(m_processor->imgdata.rawparams.max_raw_memory_mb)
-                      == sizeof(int),
-                  "Sizes must match");
-    config.getattribute("raw:max_raw_memory_mb", TypeDesc::INT,
-                        &m_processor->imgdata.rawparams.max_raw_memory_mb);
+    // Exposing max_raw_memory_mb setting. Default max is 2048.
+    m_processor->imgdata.rawparams.max_raw_memory_mb
+        = config.get_int_attribute("raw:max_raw_memory_mb", 2048);
 
 
     // Disable exposure correction (unless config "raw:auto_bright" == 1)

@@ -2179,6 +2179,10 @@ options are supported:
        0 - do not use FBDD noise reduction, 1 - light FBDD reduction,
        2 (and more) - full FBDD reduction
        (Default: 0)
+   * - ``raw:max_raw_memory_mb``
+     - int
+     - Max memory allocation for processing of raw images. This exposes max_raw_memory_mb in libraw.
+       (Default: 2048)
 
 
 |
