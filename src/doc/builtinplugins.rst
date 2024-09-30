@@ -2181,7 +2181,7 @@ options are supported:
        (Default: 0)
    * - ``raw:max_raw_memory_mb``
      - int
-     - Maximum memory allocation for processing of raw buffer. Stop processing if
+     - Maximum memory allocation for processing of raw images. Stop processing if
        raw buffer size grows larger than that value (in megabytes).
        (Default: 2048)
 
