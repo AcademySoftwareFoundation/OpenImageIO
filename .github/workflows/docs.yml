@@ -12,11 +12,13 @@ on:
       - '**/analysis.yml'
       - '**.properties'
       - '**.cpp'
+      - '**.cmake'
   pull_request:
     paths-ignore:
       - '**/analysis.yml'
       - '**.properties'
       - '**.cpp'
+      - '**.cmake'
   schedule:
     # Full nightly build
     - cron: "0 8 * * *"

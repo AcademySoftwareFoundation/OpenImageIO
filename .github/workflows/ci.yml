@@ -317,7 +317,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - desc: latest releases gcc13 C++20 py3.12 avx2 exr3.2 ocio2.3
+          - desc: latest releases gcc13 C++20 py3.12 avx2 exr3.3 ocio2.3
             nametag: linux-latest-releases
             runner: ubuntu-24.04
             cc_compiler: gcc-13
@@ -325,7 +325,7 @@ jobs:
             cxx_std: 20
             fmt_ver: 11.0.2
             opencolorio_ver: v2.3.2
-            openexr_ver: v3.2.4
+            openexr_ver: v3.3.0
             pybind11_ver: v2.13.5
             python_ver: "3.12"
             simd: avx2,f16c
