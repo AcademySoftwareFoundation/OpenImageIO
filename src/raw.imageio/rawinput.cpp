@@ -453,6 +453,11 @@ RawInput::open_raw(bool unpack, const std::string& name,
     // Output 16 bit images
     m_processor->imgdata.params.output_bps = 16;
 
+    // Exposing max_raw_memory_mb setting. Default max is 2048.
+    m_processor->imgdata.rawparams.max_raw_memory_mb
+        = config.get_int_attribute("raw:max_raw_memory_mb", 2048);
+
+
     // Disable exposure correction (unless config "raw:auto_bright" == 1)
     m_processor->imgdata.params.no_auto_bright
         = !config.get_int_attribute("raw:auto_bright", 0);
@@ -1515,6 +1520,13 @@ RawInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
 
     if (!m_process) {
         // The user has selected not to apply any debayering.
+
+        if (m_processor->imgdata.rawdata.raw_image == nullptr) {
+            errorfmt(
+                "Raw undebayered data is not available for this file \"{}\"",
+                m_filename);
+            return false;
+        }
 
         // The raw_image buffer might contain junk pixels that are usually trimmed off
         // we must index into the raw buffer, taking these into account

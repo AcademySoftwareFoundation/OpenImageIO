@@ -364,8 +364,7 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
         if (nsubimages > 1) {
             subimagespecs.resize(nsubimages);
             for (int i = 0; i < nsubimages; ++i) {
-                ImageSpec inspec = *imagecache->imagespec(ufilename, i, 0,
-                                                          true /*native*/);
+                ImageSpec inspec = *imagecache->imagespec(ufilename, i);
                 subimagespecs[i] = inspec;
                 adjust_spec(in.get(), out.get(), inspec, subimagespecs[i]);
             }
