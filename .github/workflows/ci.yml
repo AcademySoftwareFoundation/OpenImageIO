@@ -506,14 +506,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - desc: MacOS-12
-            runner: macos-12
-            nametag: macos12-py310
-            cc_compiler: clang
-            cxx_compiler: clang++
-            cxx_std: 17
-            python_ver: "3.10"
-            aclang: 13
           - desc: MacOS-13
             runner: macos-13
             nametag: macos13-py311
@@ -525,11 +517,11 @@ jobs:
             simd: sse4.2,avx2
           - desc: MacOS-14-ARM
             runner: macos-14
-            nametag: macos14-arm-py311
+            nametag: macos14-arm-py312
             cc_compiler: clang
             cxx_compiler: clang++
             cxx_std: 20
-            python_ver: "3.11"
+            python_ver: "3.12"
             aclang: 15
     runs-on: ${{ matrix.runner }}
     env:
