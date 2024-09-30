@@ -57,12 +57,6 @@ half data[2][2][3] =
   { /* (0, 1): */ { 0.000000000, 0.000000000, 0.000000000 },
     /* (1, 1): */ { 1.000000000, 1.000000000, 0.000000000 } },
 };
-testing bad format
-fmt exception: invalid format specifier
-hey hey foo bar
-OpenImageIO exited with a pending error message that was never
-retrieved via OIIO::geterror(). This was the error message:
-fmt exception: invalid format specifier
 Comparing "filled.tif" and "ref/filled.tif"
 PASS
 Comparing "autotrim.tif" and "ref/autotrim.tif"
