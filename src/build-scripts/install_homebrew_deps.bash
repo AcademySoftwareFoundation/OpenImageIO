@@ -44,7 +44,7 @@ brew install --display-times -q freetype libraw dcmtk pybind11 numpy || true
 brew install --display-times -q ffmpeg libheif ptex || true
 brew install --display-times -q tbb || true
 brew install --display-times -q openvdb || true
-if [[ "${USE_OPENCV}" != "0" ]] && [[ "${USE_OPENCV:=1}" != "0" ]] ; then
+if [[ "${USE_OPENCV}" != "0" ]] && [[ "${INSTALL_OPENCV:=1}" != "0" ]] ; then
     brew install --display-times -q opencv || true
 fi
 if [[ "${USE_QT:=1}" != "0" ]] && [[ "${INSTALL_QT:=1}" != "0" ]] ; then

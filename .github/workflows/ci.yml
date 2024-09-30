@@ -512,7 +512,7 @@ jobs:
             cc_compiler: clang
             cxx_compiler: clang++
             cxx_std: 17
-            python_ver: "3.10"
+            python_ver: "3.11"
             aclang: 13
             setenvs: export INSTALL_QT=0 INSTALL_OPENCV=0
           - desc: MacOS-13
