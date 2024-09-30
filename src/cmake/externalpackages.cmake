@@ -57,6 +57,7 @@ checked_find_package (Imath REQUIRED
 
 checked_find_package (OpenEXR REQUIRED
     VERSION_MIN 3.1
+    NO_FP_RANGE_CHECK
     PRINT IMATH_INCLUDES OPENEXR_INCLUDES Imath_VERSION
     )
 

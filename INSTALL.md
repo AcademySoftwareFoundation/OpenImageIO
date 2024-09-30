@@ -19,9 +19,9 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=20`, etc.
  * Compilers: **gcc 9.3** - 14.1, **clang 5** - 18, MSVS 2017 - 2019 (**v19.14
    and up**), **Intel icc 19+**, Intel OneAPI C++ compiler 2022+.
- * **CMake >= 3.15** (tested through 3.29)
+ * **CMake >= 3.15** (tested through 3.30)
  * **Imath >= 3.1** (tested through 3.1.x and main)
- * **OpenEXR >= 3.1** (tested through 3.2 and main)
+ * **OpenEXR >= 3.1** (tested through 3.3 and main)
  * **libTIFF >= 4.0** (tested through 4.7)
  * **OpenColorIO >= 2.2** (tested through 2.3 and main)
  * libjpeg >= 8 (tested through jpeg9e), or **libjpeg-turbo >= 2.1** (tested
@@ -49,7 +49,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * OpenJpeg >= 2.0 (tested through 2.5; we recommend 2.4 or higher
        for multithreading support)
  * If you want support for OpenVDB files:
-     * OpenVDB >= 5.0 (tested through 11.0). Note that using OpenVDB >= 10.0
+     * OpenVDB >= 9.0 (tested through 11.0). Note that using OpenVDB >= 10.0
        requires that you compile OIIO with C++17 or higher.
  * If you want to use TBB as the thread pool:
      * TBB >= 2018 (tested through 2021 and OneTBB)
