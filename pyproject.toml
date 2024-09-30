@@ -76,6 +76,8 @@ wheel.install-dir = "OpenImageIO"
 OpenImageIO_BUILD_MISSING_DEPS = "all"
 # Don't build tests. Dramatically improves build time.
 OIIO_BUILD_TESTS = "0"
+# Prefer linking static dependencies when possible.
+LINKSTATIC = "1"
 
 
 # Dynamically set the package version metadata by pasrsing CMakeLists.txt.
