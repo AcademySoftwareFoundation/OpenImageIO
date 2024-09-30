@@ -512,8 +512,9 @@ jobs:
             cc_compiler: clang
             cxx_compiler: clang++
             cxx_std: 17
-            python_ver: "3.10"
+            python_ver: "3.11"
             aclang: 13
+            setenvs: export INSTALL_QT=0 INSTALL_OPENCV=0
           - desc: MacOS-13
             runner: macos-13
             nametag: macos13-py311
@@ -525,11 +526,11 @@ jobs:
             simd: sse4.2,avx2
           - desc: MacOS-14-ARM
             runner: macos-14
-            nametag: macos14-arm-py311
+            nametag: macos14-arm-py312
             cc_compiler: clang
             cxx_compiler: clang++
             cxx_std: 20
-            python_ver: "3.11"
+            python_ver: "3.12"
             aclang: 15
     runs-on: ${{ matrix.runner }}
     env:
