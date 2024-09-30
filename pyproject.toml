@@ -55,7 +55,7 @@ build-backend = "scikit_build_core.build"
 requires = [
     "scikit-build-core>=0.10.6,<1",
     "pybind11",
-    #"numpy>=2.0,<3"
+    "numpy>=2.0,<3"
 ]
 
 [tool.scikit-build]
