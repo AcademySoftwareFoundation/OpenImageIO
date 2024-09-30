@@ -155,7 +155,7 @@ SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
 # On macOS and Linux, run a custom repair-wheel-command after the build.
 # See tasks.py for more details.
 [tool.cibuildwheel.macos]
-before-build = "pip install 'repairwheel' && pip install invoke"
+before-build = "pip install 'repairwheel' && pip install invoke && brew uninstall --ignore-dependencies freetype"
 repair-wheel-command = "invoke wheel-repair --build-dir ${SKBUILD_BUILD_DIR} --wheel-path {wheel} --output-dir {dest_dir}"
 
 [tool.cibuildwheel.linux]
