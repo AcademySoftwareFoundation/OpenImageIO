@@ -275,7 +275,7 @@ jobs:
           # Disable HEIF and WebP plugins until we can provide local
           # build recipes that do not include GPL-licensed dynamic libraries.
           USE_Libheif: 'OFF'
-          USE_WebP: 'OFF'
+          # USE_WebP: 'OFF'
 
       - uses: actions/upload-artifact@v4
         with:
