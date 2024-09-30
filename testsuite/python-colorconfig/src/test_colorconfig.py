@@ -9,7 +9,7 @@ import OpenImageIO as oiio
 
 
 try:
-    config = oiio.ColorConfig('ocio://cg-config-v1.0.0_aces-v1.3_ocio-v2.1')
+    config = oiio.ColorConfig()
     print ("getNumColorSpaces =", config.getNumColorSpaces())
     print ("getColorSpaceNames =", config.getColorSpaceNames())
     print ("Index of 'lin_srgb' =", config.getColorSpaceIndex('lin_srgb'))
