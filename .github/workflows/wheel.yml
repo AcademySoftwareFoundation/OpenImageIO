@@ -229,7 +229,7 @@ jobs:
 
   macos:
     name: Build wheels on macOS
-    runs-on: macos-13
+    runs-on: macos-12
     # Don't run on OIIO forks
     if: |
       github.event_name != 'schedule' ||
@@ -274,7 +274,7 @@ jobs:
           CIBW_ARCHS: ${{ matrix.arch }}
           # Disable HEIF and WebP plugins until we can provide local
           # build recipes that do not include GPL-licensed dynamic libraries.
-          USE_libheif: 'OFF'
+          USE_Libheif: 'OFF'
           USE_WebP: 'OFF'
 
       - uses: actions/upload-artifact@v4
