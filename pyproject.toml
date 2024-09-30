@@ -143,7 +143,7 @@ SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
 
 [tool.cibuildwheel.linux.environment]
 SKBUILD_BUILD_DIR = "/tmp/build_oiio_wheels"
-SKBUILD_CMAKE_ARGS = "-DOpenImageIO_BUILD_LOCAL_DEPS=TIFF; -DOpenImageIO_BUILD_MISSING_DEPS=all"
+SKBUILD_CMAKE_ARGS = "-DOpenImageIO_BUILD_LOCAL_DEPS=all; -DOpenImageIO_BUILD_MISSING_DEPS=all"
 # Suppress warnings that cause linux cibuildwheel build to fail
 CXXFLAGS = "-Wno-error=stringop-overflow -Wno-pragmas"
 SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
