@@ -140,10 +140,10 @@ pull request (PR) mechanism.
 * [ROADMAP](docs/ROADMAP.md) is a high-level overview of the current
   development priorities for the next annual release, expected in September,
   2024.
-* [RELEASING](RELEASING.md) explains our policies and procedures for making
-  releases. We have a major, possibly-compatibility-breaking, release annually
-  in September/October, and minor bug fix and safe feature addition release at
-  the beginning of every month.
+* [RELEASING](docs/dev/RELEASING.md) explains our policies and procedures for
+  making releases. We have a major, possibly-compatibility-breaking, release
+  annually in September/October, and minor bug fix and safe feature addition
+  release at the beginning of every month.
 * [Building the docs](src/doc/Building_the_docs.md) has instructions for
   building the documentation locally, which may be helpful if you are editing
   the documentation in nontrivial ways and want to preview the appearance.

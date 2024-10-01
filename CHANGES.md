@@ -5438,5 +5438,5 @@ Notable documentation changes:
 --------------
 
 For older release notes, see:
-* [CHANGES-0.x](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/master/src/doc/CHANGES-0.x.md).
-* [CHANGES-1.x](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/master/src/doc/CHANGES-1.x.md).
+* [CHANGES-0.x](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/src/doc/CHANGES-0.x.md).
+* [CHANGES-1.x](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/src/doc/CHANGES-1.x.md).
