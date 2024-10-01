@@ -291,21 +291,21 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - desc: latest releases gcc12 C++17 avx2 exr3.2 ocio2.3
+          - desc: latest releases gcc12 C++17 avx2 exr3.3 ocio2.4
             nametag: linux-latest-releases
             runner: ubuntu-22.04
             cc_compiler: gcc-12
             cxx_compiler: g++-12
             cxx_std: 17
-            fmt_ver: 10.1.1
-            openexr_ver: v3.2.1
-            pybind11_ver: v2.11.1
+            fmt_ver: 11.0.2
+            openexr_ver: v3.3.0
+            pybind11_ver: v2.13.5
             python_ver: "3.10"
             simd: avx2,f16c
             setenvs: export LIBJPEGTURBO_VERSION=3.0.1
                             LIBRAW_VERSION=0.21.2
                             LIBTIFF_VERSION=v4.6.0
-                            OPENCOLORIO_VERSION=v2.3.2
+                            OPENCOLORIO_VERSION=v2.4.0
                             OPENJPEG_VERSION=v2.4.0
                             PTEX_VERSION=v2.4.2
                             PUGIXML_VERSION=v1.14
