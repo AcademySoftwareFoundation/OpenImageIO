@@ -1,5 +1,15 @@
-Release 2.5.16.0 (Oct 1?, 2024) -- compared to 2.5.15.0
+Release 2.5.16.0 (Oct 1, 2024) -- compared to 2.5.15.0
 --------------------------------------------------------
+- *ImageInput*: Fix: Initialize pixels of partial tile conversion buffer to avoid possible floating point exceptionså. [#4462](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4462) (by Bram Stolk)
+- *iv*: Fix: Iv shows constant brown and GL error messages on start-up. [#4451](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4451) (by David Adler)
+- *iv*: Fix: Initialize variables before we use them. [#4457](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4457) (by Bram Stolk)
+- *pnm*: Fix: Initialize m_pfm_flip before use to avoid UB. [#4446](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4446) (by Bram Stolk)
+- *raw*: Fix: Check for nullptr in raw input plugin [#4448](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4448) (by Anton Dukhovnikov)
+- *ci*: Streamline the old MacOS-12 CI test [#4465](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4465)
+- *ci*: Test against OCIO 2.4 [#4467](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4467) and OpenEXR 3.3 [#4466](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4466)
+- *docs*: Clarify TextureSystem::create use of imagecache when shared=true [#4399](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4399)
+- *docs*: Switch license name in docs [#4407](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4407)
+- *admin*: Change docs and comments references master -> main [#4435](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4435)
 
 
 
