@@ -15,6 +15,8 @@ command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.e
 command += run_app("cmake -E copy " + test_source_dir + "/../common/tahoe-small.tif tahoe.tif")
 command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.exr A.exr")
 command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.exr B.exr")
+command += run_app("cmake -E copy " + test_source_dir + "/../common/with_nans.tif with_nans.tif")
+command += run_app("cmake -E copy " + test_source_dir + "/../common/checker_with_alpha.exr checker_with_alpha.exr")
 
 # Copy the grid to both a tiled and scanline version
 command += oiio_app("iconvert") + "../common/grid.tif --scanline scanline.tif > out.txt ;" 
@@ -77,8 +79,10 @@ hashes = [
     "absdiff.exr",
     "abs.exr",
     "mul.exr",
-    "div.exr"
-
+    "div.exr",
+    "checker_with_alpha_filled.exr",
+    "tahoe_median_filter.tif",
+    "tahoe_unsharp_mask.tif"
 ]
 for file in hashes :
     command += info_command(file, verbose=False)

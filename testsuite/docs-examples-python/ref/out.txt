@@ -34,6 +34,10 @@ example_absdiff
 example_abs
 example_mul
 example_div
+example_fixNonFinite
+example_fillholes_pushpull
+example_median_filter
+example_unsharp_mask
 example_make_texture
 zero1.exr            :  512 x  512, 3 channel, half openexr
     SHA-1: 95823C334FCE55968E8D2827CCD1CF77CEE19ABD
@@ -127,6 +131,12 @@ mul.exr              :  256 x  256, 4 channel, half openexr
     SHA-1: ECCDBBBF088912F0B77B887D6B8B480C3F93615E
 div.exr              :  256 x  256, 4 channel, half openexr
     SHA-1: 6A85C923DB82C893C0D88028386F1C58604A4757
+checker_with_alpha_filled.exr :  256 x  256, 4 channel, half openexr
+    SHA-1: B245E027638D5C1BA2608FEDDB3BB9B5E9FA3A44
+tahoe_median_filter.tif :  512 x  384, 3 channel, uint8 tiff
+    SHA-1: A0B2E3A10A16EA8CC905F144C5F91B6A0964A177
+tahoe_unsharp_mask.tif :  512 x  384, 3 channel, uint8 tiff
+    SHA-1: D3B56074F48EC5D3ADDA4BDE1F487192ABE9BA76
 Comparing "simple.tif" and "../docs-examples-cpp/ref/simple.tif"
 PASS
 Comparing "scanlines.tif" and "../docs-examples-cpp/ref/scanlines.tif"

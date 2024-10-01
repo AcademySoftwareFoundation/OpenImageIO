@@ -2535,24 +2535,27 @@ Image Enhancement / Restoration
 
   Examples:
 
-    .. tabs::
+   .. tabs::
 
-       .. code-tab:: c++
+      .. tab:: C++
+         .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-fixNonFinite
+              :end-before: END-imagebufalgo-fixNonFinite
+              :dedent: 4
 
-          ImageBuf Src ("tahoe.exr");
-          int pixelsFixed = 0;
-          ImageBufAlgo::fixNonFinite (Src, Src, ImageBufAlgo::NONFINITE_BOX3,
-                                      &pixelsFixed);
-          std::cout << "Repaired " << pixelsFixed << " non-finite pixels\n";
+      .. tab:: Python
+         .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-fixNonFinite
+              :end-before: END-imagebufalgo-fixNonFinite
+              :dedent: 4
 
-       .. code-tab:: py
+      .. tab:: oiiotool
+         .. sourcecode:: bash
 
-          Src = ImageBuf("tahoe.exr")
-          ImageBufAlgo.fixNonFinite (Src, Src, "box3", oiio.NONFINITE_BOX3)
+            oiiotool with_nans.tif --fixnan box3 -o with_nans_fixed.tif
 
-       .. code-tab:: bash oiiotool
-
-          oiiotool tahoe.exr --fixnan box3 -o fixed.exr
 
 |
 
@@ -2564,21 +2567,27 @@ Image Enhancement / Restoration
 
   Examples:
 
-    .. tabs::
 
-       .. code-tab:: c++
+   .. tabs::
 
-          ImageBuf Src ("holes.exr");
-          ImageBuf Filled = ImageBufAlgo::fillholes_pushpull (Src);
+      .. tab:: C++
+         .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-fillholes_pushpull
+              :end-before: END-imagebufalgo-fillholes_pushpull
+              :dedent: 4
 
-       .. code-tab:: py
+      .. tab:: Python
+         .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-fillholes_pushpull
+              :end-before: END-imagebufalgo-fillholes_pushpull
+              :dedent: 4
 
-          Src = ImageBuf("holes.exr")
-          Filled = ImageBufAlgo.fillholes_pushpull (Src)
+      .. tab:: oiiotool
+         .. sourcecode:: bash
 
-       .. code-tab:: bash oiiotool
-
-          oiiotool holes.exr --fillholes -o filled.exr
+            oiiotool checker_with_alpha.exr --fillholes -o checker_with_alpha_filled.exr
 
 |
 
@@ -2590,21 +2599,27 @@ Image Enhancement / Restoration
 
   Examples:
 
-    .. tabs::
 
-       .. code-tab:: c++
+   .. tabs::
 
-          ImageBuf Noisy ("tahoe.exr");
-          ImageBuf Clean = ImageBufAlgo::median_filter (Noisy, 3, 3);
+      .. tab:: C++
+         .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-median_filter
+              :end-before: END-imagebufalgo-median_filter
+              :dedent: 4
 
-       .. code-tab:: py
+      .. tab:: Python
+         .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-median_filter
+              :end-before: END-imagebufalgo-median_filter
+              :dedent: 4
 
-          Noisy = ImageBuf("tahoe.exr")
-          Clean = ImageBufAlgo.median_filter (Noisy, 3, 3)
+      .. tab:: oiiotool
+         .. sourcecode:: bash
 
-       .. code-tab:: bash oiiotool
-
-          oiiotool tahoe.exr --median 3x3 -o clean.exr
+            oiiotool tahoe.tif --median 3x3 -o tahoe_median_filter.tif
 
 ..
 
@@ -2633,21 +2648,26 @@ Image Enhancement / Restoration
 
   Examples:
 
-    .. tabs::
+   .. tabs::
 
-       .. code-tab:: c++
+      .. tab:: C++
+         .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-unsharp_mask
+              :end-before: END-imagebufalgo-unsharp_mask
+              :dedent: 4
 
-          ImageBuf Blurry ("tahoe.exr");
-          ImageBuf Sharp = ImageBufAlgo::unsharp_mask (Blurry, "gaussian", 5.0f);
+      .. tab:: Python
+         .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-unsharp_mask
+              :end-before: END-imagebufalgo-unsharp_mask
+              :dedent: 4
 
-       .. code-tab:: py
+      .. tab:: oiiotool
+         .. sourcecode:: bash
 
-          Blurry ImageBuf("tahoe.exr")
-          Sharp = ImageBufAlgo.unsharp_mask (Blurry, "gaussian", 5.0)
-
-       .. code-tab:: bash oiiotool
-
-          oiiotool tahoe.exr --unsharp:kernel=gaussian:width=5 -o sharp.exr
+            oiiotool tahoe.tif --unsharp:kernel=gaussian:width=5 -o tahoe_unsharp_mask.tif
 
 |
 
