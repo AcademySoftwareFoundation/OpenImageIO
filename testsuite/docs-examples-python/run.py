@@ -15,6 +15,7 @@ command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.e
 command += run_app("cmake -E copy " + test_source_dir + "/../common/tahoe-small.tif tahoe.tif")
 command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.exr A.exr")
 command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.exr B.exr")
+command += run_app("cmake -E copy " + test_source_dir + "/../common/unpremult.tif unpremult.tif")
 
 # Copy the grid to both a tiled and scanline version
 command += oiio_app("iconvert") + "../common/grid.tif --scanline scanline.tif > out.txt ;" 
