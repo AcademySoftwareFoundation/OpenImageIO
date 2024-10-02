@@ -275,7 +275,9 @@ jobs:
           # Disable HEIF and WebP plugins until we can provide local
           # build recipes that do not include GPL-licensed dynamic libraries.
           USE_Libheif: 'OFF'
-          # USE_WebP: 'OFF'
+          # Make sure the OIIO build's version of freetype is linked
+          CIBW_BEFORE_ALL: |
+            brew uninstall --ignore-dependencies harfbuzz fontconfig cairo freetype
 
       - uses: actions/upload-artifact@v4
         with:
