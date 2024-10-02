@@ -139,7 +139,6 @@ jobs:
         with:
           python-version: '3.9'
 
-
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.21.1
         env:
@@ -272,8 +271,8 @@ jobs:
         env:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
-          # Disable HEIF and WebP plugins until we can provide local
-          # build recipes that do not include GPL-licensed dynamic libraries.
+          # TODO: Re-enable HEIF when we provide a build recipe that does 
+          # not include GPL-licensed dynamic libraries.
           USE_Libheif: 'OFF'
           # Make sure the OIIO build's version of freetype is linked
           CIBW_BEFORE_ALL: |
@@ -335,7 +334,7 @@ jobs:
         env:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
-          # Disable the PNG plugin until we can figure out why the system PNG is causing problems
+          #TODO: Re-enable the PNG plugin until we can figure out why the system PNG is causing problems
           ENABLE_PNG: 'OFF'
 
       - uses: actions/upload-artifact@v4
@@ -404,7 +403,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
-    if: github.event_name == 'push' && (startsWith(github.event.ref, 'refs/tags/v2.6') || startsWith(github.event.ref, 'refs/tags/v3'))
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v3')
     steps:
       - uses: actions/setup-python@v5
 
