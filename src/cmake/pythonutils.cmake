@@ -36,10 +36,10 @@ macro (find_python)
     # Support building on manylinux docker images, which do not contain
     # the Development.Embedded component.
     # https://pybind11.readthedocs.io/en/stable/compiling.html#findpython-mode
-    if (${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.18.0" AND NOT WIN32)
-        set (_py_components Interpreter Development.Module)
-    else ()
+    if (WIN32)
         set (_py_components Interpreter Development)
+    else ()
+        set (_py_components Interpreter Development.Module)
     endif ()
 
     checked_find_package (Python3 ${PYTHON_VERSION}

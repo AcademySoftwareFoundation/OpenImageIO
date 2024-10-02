@@ -249,10 +249,10 @@ if (NOT EMBEDPLUGINS AND NOT BUILD_OIIOUTIL_ONLY)
 endif ()
 
 
-if (${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.18.0" AND NOT WIN32)
-    set (_py_dev_found Python3_Development.Module_FOUND)
+if (WIN32)
+    set (_py_dev_found Python3_Development_FOUND)    
 else ()
-    set (_py_dev_found Python3_Development_FOUND)
+    set (_py_dev_found Python3_Development.Module_FOUND)
 endif ()
 if (USE_PYTHON AND ${_py_dev_found} AND NOT BUILD_OIIOUTIL_ONLY)
     add_subdirectory (src/python)
