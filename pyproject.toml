@@ -12,9 +12,7 @@ maintainers = [
 ]
 readme = "README.md"
 license = {text = "Apache-2.0"}
-keywords = [""]
 classifiers = [
-    "Development Status :: 4 - Beta",
     "Natural Language :: English",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
@@ -30,7 +28,6 @@ classifiers = [
     "Topic :: Multimedia :: Video :: Display",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-dependencies = ["numpy"]
 requires-python = ">= 3.8"
 
 [project.urls]
@@ -55,21 +52,19 @@ build-backend = "scikit_build_core.build"
 requires = [
     "scikit-build-core>=0.10.6,<1",
     "pybind11",
-    "numpy>=2.0,<3"
 ]
 
 [tool.scikit-build]
 build.verbose = true
 # Exclude unnecessary directories from the source distribution.
 sdist.exclude = [".github", "testsuite", "ASWF", "docs"]
-# Pin the minimum scikit-build-core and CMake versions to those specified
-# in build-system.requires and CMakeLists.txt, respectively.
+# Pin minimum scikit-build-core to that specified in build-system.requires.
 minimum-version = "build-system.requires"
+# Pin minimum CMake version to that specified in CMakeLists.txt.
 cmake.version = "CMakeLists.txt"
 wheel.license-files = ["LICENSE.md", "THIRD-PARTY.md"]
 # Make sure the package is structured as expected.
 wheel.install-dir = "OpenImageIO"
-
 
 [tool.scikit-build.cmake.define]
 # Build missing dependencies. See src/cmake for details.
@@ -79,30 +74,12 @@ OIIO_BUILD_TESTS = "0"
 # Prefer linking static dependencies when possible.
 LINKSTATIC = "1"
 
-
 # Dynamically set the package version metadata by pasrsing CMakeLists.txt.
 [tool.scikit-build.metadata.version]
 provider = "scikit_build_core.metadata.regex"
 input = "CMakeLists.txt" 
 regex = 'set \(OpenImageIO_VERSION "(?P<value>[0-9a-z.]+)"\)'
 
-# On macOS, make sure dependencies are built for the correct architecture. 
-[[tool.scikit-build.overrides]]
-if.platform-system = "darwin"
-if.platform-machine  = "arm64"
-inherit.cmake.define = "append"
-cmake.define.CMAKE_OSX_ARCHITECTURES = "arm64"
-
-[[tool.scikit-build.overrides]]
-if.platform-system = "darwin"
-if.platform-machine  = "x86_64"
-inherit.cmake.define = "append"
-cmake.define.CMAKE_OSX_ARCHITECTURES = "x86_64"
-
-[[tool.scikit-build.overrides]]
-if.platform-system = "linux"
-inherit.cmake.define = "append"
-cmake.define.CMAKE_CXX_FLAGS = "-Wno-error=stringop-overflow -Wno-pragmas"
 
 [tool.cibuildwheel]
 build-verbosity = 1
@@ -114,35 +91,28 @@ skip = [
     # This may be a bug in repairwheel (or auditwheel)?
     "*musllinux*",  
 ]
-# If the following command returns code 0, we know the CLI Python scripts
-# are able to import the OpenImageIO module, which is able to invoke the
-# CLI binary executables and find and load all shared libraries. The 
-# '--help' flag outputs a list of dependencies with which OIIO was compiled.
-test-command = "oiiotool --help"
-
+test-command = "oiiotool --buildinfo"
 
 [tool.cibuildwheel.macos.environment]
-# Specify a build directory so the repairwheel command can (re)find
+# Specify a persistent build directory so the repairwheel command can (re)find
 # dependency libraries built by OpenImageIO.
 SKBUILD_BUILD_DIR = "/tmp/build_oiio_wheels"
-# Always (re)build the TIFF library; otherwise, OIIO has trouble
-# with libdeflate during successive incremental builds.
+# Always (re)build the TIFF library; see #4439 for more details.
 SKBUILD_CMAKE_ARGS = "-DOpenImageIO_BUILD_LOCAL_DEPS=TIFF; -DOpenImageIO_BUILD_MISSING_DEPS=all"
-# std::filesystem is only available in macOS 10.15 and later.
+# C++17 - std::filesystem is only available in macOS 10.15 and later.
 MACOSX_DEPLOYMENT_TARGET = "10.15"
-# Optimize for size (not speed)
+# Optimize for size (not speed).
 SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
 
 [tool.cibuildwheel.linux.environment]
 SKBUILD_BUILD_DIR = "/tmp/build_oiio_wheels"
 SKBUILD_CMAKE_ARGS = "-DOpenImageIO_BUILD_LOCAL_DEPS=all; -DOpenImageIO_BUILD_MISSING_DEPS=all"
+SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
 # Suppress warnings that cause linux cibuildwheel build to fail
 CXXFLAGS = "-Wno-error=stringop-overflow -Wno-pragmas"
-SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
 
 [tool.cibuildwheel.windows.environment]
 SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
-
 
 # On macOS and Linux, run a custom repair-wheel-command after the build.
 # See tasks.py for more details.
