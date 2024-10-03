@@ -1693,7 +1693,7 @@ enum NonFiniteFixMode
                             ///< values, if any nonfinite values are found.
 };
 
-/// `fixNonFinite()` returns in image containing the values of `src` (within
+/// `fixNonFinite()` returns an image containing the values of `src` (within
 /// the ROI), while repairing any non-finite (NaN/Inf) pixels. If
 /// `pixelsFixed` is not nullptr, store in it the number of pixels that
 /// contained non-finite value.  It is permissible to operate in-place (with

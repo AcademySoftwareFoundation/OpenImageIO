@@ -23,7 +23,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * **Imath >= 3.1** (tested through 3.1.x and main)
  * **OpenEXR >= 3.1** (tested through 3.3 and main)
  * **libTIFF >= 4.0** (tested through 4.7)
- * **OpenColorIO >= 2.2** (tested through 2.3 and main)
+ * **OpenColorIO >= 2.2** (tested through 2.4 and main)
  * libjpeg >= 8 (tested through jpeg9e), or **libjpeg-turbo >= 2.1** (tested
    through 3.0)
  * **[fmtlib](https://github.com/fmtlib/fmt) >= 7.0** (tested through 11.0).
