@@ -4,6 +4,10 @@
 
 name: Wheel
 
+permissions:
+  contents: read
+  id-token: write
+
 on:
   push:
     # Workflow run on tags for v2.6 and v3 only.
@@ -49,7 +53,7 @@ jobs:
 
     steps:
 
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
     - name: Build SDist
       run: pipx run build --sdist
@@ -57,7 +61,7 @@ jobs:
     - name: Check metadata
       run: pipx run twine check dist/*
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
       with:
         name: cibw-sdist
         path: dist/*.tar.gz
@@ -79,10 +83,10 @@ jobs:
           # -------------------------------------------------------------------
           # CPython 64 bits manylinux_2_28
           # -------------------------------------------------------------------
-          # - build: CPython 3.8 64 bits manylinux_2_28
-          #   manylinux: manylinux_2_28
-          #   python: cp38-manylinux_x86_64
-          #   arch: x86_64
+          - build: CPython 3.8 64 bits manylinux_2_28
+            manylinux: manylinux_2_28
+            python: cp38-manylinux_x86_64
+            arch: x86_64
           - build: CPython 3.9 64 bits manylinux_2_28
             manylinux: manylinux_2_28
             python: cp39-manylinux_x86_64
@@ -106,10 +110,10 @@ jobs:
           # -------------------------------------------------------------------
           # CPython 64 bits manylinux2014
           # -------------------------------------------------------------------
-          # - build: CPython 3.8 64 bits manylinux2014
-          #   manylinux: manylinux2014
-          #   python: cp38-manylinux_x86_64
-          #   arch: x86_64
+          - build: CPython 3.8 64 bits manylinux2014
+            manylinux: manylinux2014
+            python: cp38-manylinux_x86_64
+            arch: x86_64
           - build: CPython 3.9 64 bits manylinux2014
             manylinux: manylinux2014
             python: cp39-manylinux_x86_64
@@ -132,21 +136,21 @@ jobs:
             arch: x86_64
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
         name: Install Python
         with:
           python-version: '3.9'
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.21.1
+        uses: pypa/cibuildwheel@d4a2945fcc8d13f20a1b99d461b8e844d5fc6e23 # v2.21.1
         env:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
           CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: cibw-wheels-${{ matrix.python }}-${{ matrix.manylinux }}
           path: ./wheelhouse/*.whl
@@ -168,10 +172,10 @@ jobs:
             # -------------------------------------------------------------------
             # CPython ARM 64 bits manylinux2014
             # -------------------------------------------------------------------
-            # - build: CPython 3.8 ARM 64 bits manylinux2014
-            #   manylinux: manylinux2014
-            #   python: cp38-manylinux_aarch64
-            #   arch: aarch64
+            - build: CPython 3.8 ARM 64 bits manylinux2014
+              manylinux: manylinux2014
+              python: cp38-manylinux_aarch64
+              arch: aarch64
             - build: CPython 3.9 ARM 64 bits manylinux2014
               manylinux: manylinux2014
               python: cp39-manylinux_aarch64
@@ -194,20 +198,20 @@ jobs:
               arch: aarch64
 
       steps:
-        - uses: actions/checkout@v4
+        - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-        - uses: actions/setup-python@v5
+        - uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
           name: Install Python
           with:
             python-version: '3.9'
 
         - name: Set up QEMU
-          uses: docker/setup-qemu-action@v3
+          uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
           with:
             platforms: all
 
         - name: Build wheels
-          uses: pypa/cibuildwheel@v2.21.1
+          uses: pypa/cibuildwheel@d4a2945fcc8d13f20a1b99d461b8e844d5fc6e23 # v2.21.1
           env:
             CIBW_BUILD: ${{ matrix.python }}
             CIBW_ARCHS: ${{ matrix.arch }}
@@ -217,7 +221,7 @@ jobs:
             # TODO: Re-enable tests when linux ARM runners are available
             CIBW_TEST_SKIP: '*'
 
-        - uses: actions/upload-artifact@v4
+        - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
           with:
             name: cibw-wheels-${{ matrix.python }}-${{ matrix.manylinux }}
             path: ./wheelhouse/*.whl
@@ -239,9 +243,9 @@ jobs:
           # -------------------------------------------------------------------
           # CPython 64 bits
           # -------------------------------------------------------------------
-          # - build: CPython 3.8 64 bits
-          #   python: cp38-macosx_x86_64
-          #   arch: x86_64
+          - build: CPython 3.8 64 bits
+            python: cp38-macosx_x86_64
+            arch: x86_64
           - build: CPython 3.9 64 bits
             python: cp39-macosx_x86_64
             arch: x86_64
@@ -259,15 +263,15 @@ jobs:
             arch: x86_64
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
         name: Install Python
         with:
           python-version: '3.9'
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.21.1
+        uses: pypa/cibuildwheel@d4a2945fcc8d13f20a1b99d461b8e844d5fc6e23 # v2.21.1
         env:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
@@ -278,7 +282,7 @@ jobs:
           CIBW_BEFORE_ALL: |
             brew uninstall --ignore-dependencies harfbuzz fontconfig cairo freetype
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: cibw-wheels-${{ matrix.python }}
           path: ./wheelhouse/*.whl
@@ -300,9 +304,9 @@ jobs:
           # -------------------------------------------------------------------
           # CPython ARM 64 bits
           # -------------------------------------------------------------------
-          # - build: CPython 3.8 ARM 64 bits
-          #   python: cp38-macosx_arm64
-          #   arch: arm64
+          - build: CPython 3.8 ARM 64 bits
+            python: cp38-macosx_arm64
+            arch: arm64
           - build: CPython 3.9 ARM 64 bits
             python: cp39-macosx_arm64
             arch: arm64
@@ -320,9 +324,9 @@ jobs:
             arch: arm64
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
         name: Install Python
         # https://cibuildwheel.pypa.io/en/stable/faq/#macos-building-cpython-38-wheels-on-arm64
         with:
@@ -330,7 +334,7 @@ jobs:
         
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.21.1
+        uses: pypa/cibuildwheel@d4a2945fcc8d13f20a1b99d461b8e844d5fc6e23 # v2.21.1
         env:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
@@ -340,7 +344,7 @@ jobs:
           #TODO: Re-enable the PNG plugin until we can figure out why the system PNG is causing problems
           ENABLE_PNG: 'OFF'
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: cibw-wheels-${{ matrix.python }}
           path: ./wheelhouse/*.whl
@@ -362,9 +366,9 @@ jobs:
           # -------------------------------------------------------------------
           # CPython 64 bits
           # -------------------------------------------------------------------
-          # - build: CPython 3.8 64 bits
-          #   python: cp38-win_amd64
-          #   arch: AMD64
+          - build: CPython 3.8 64 bits
+            python: cp38-win_amd64
+            arch: AMD64
           - build: CPython 3.9 64 bits
             python: cp39-win_amd64
             arch: AMD64
@@ -382,20 +386,20 @@ jobs:
             arch: AMD64
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
         name: Install Python
         with:
           python-version: '3.9'
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.21.1
+        uses: pypa/cibuildwheel@d4a2945fcc8d13f20a1b99d461b8e844d5fc6e23 # v2.21.1
         env:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: cibw-wheels-${{ matrix.python }}
           path: ./wheelhouse/*.whl
@@ -408,12 +412,12 @@ jobs:
       id-token: write
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v3')
     steps:
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           pattern: cibw-*
           path: dist
           merge-multiple: true
 
-      - uses: pypa/gh-action-pypi-publish@release/v1
+      - uses: pypa/gh-action-pypi-publish@897895f1e160c830e369f9779632ebc134688e1b # release/v1
