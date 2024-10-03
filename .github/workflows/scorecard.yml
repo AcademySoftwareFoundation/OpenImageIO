@@ -17,8 +17,6 @@ on:
       - 'docs/**'
   pull_request:
     # Only run on individual PRs if the workflow file itself is changed.
-    paths:
-      - .github/workflows/scorecard.yml
     paths-ignore:
       - '**.md'
       - '**.rst'
