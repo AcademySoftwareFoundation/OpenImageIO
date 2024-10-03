@@ -334,6 +334,9 @@ jobs:
         env:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
+          # Make sure the OIIO build's version of freetype is linked
+          CIBW_BEFORE_ALL: |
+            brew uninstall --ignore-dependencies harfbuzz fontconfig cairo freetype
           #TODO: Re-enable the PNG plugin until we can figure out why the system PNG is causing problems
           ENABLE_PNG: 'OFF'
 
