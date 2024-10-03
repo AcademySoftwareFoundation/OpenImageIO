@@ -19,7 +19,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=20`, etc.
  * Compilers: **gcc 9.3** - 14.1, **clang 5** - 18, MSVS 2017 - 2019 (**v19.14
    and up**), **Intel icc 19+**, Intel OneAPI C++ compiler 2022+.
- * **CMake >= 3.18** (tested through 3.30)
+ * **CMake >= 3.18.2** (tested through 3.30)
  * **Imath >= 3.1** (tested through 3.1.x and main)
  * **OpenEXR >= 3.1** (tested through 3.3 and main)
  * **libTIFF >= 4.0** (tested through 4.7)
