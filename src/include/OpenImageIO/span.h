@@ -138,46 +138,52 @@ public:
     /// Assignment copies the pointer and length, not the data.
     constexpr span& operator= (const span &copy) = default;
 
-    /// Subview containing the first Count elements of the span.
+    /// Subspan containing the first Count elements of the span.
     template<size_type Count>
     constexpr span<element_type, Count> first () const {
         return { m_data, Count };
     }
-    /// Subview containing the last Count elements of the span.
+    /// Subspan containing the last Count elements of the span.
     template<size_type Count>
     constexpr span<element_type, Count> last () const {
         return { m_data + m_size - Count, Count };
     }
 
+    /// Subspan starting at templated Offset and containing Count elements.
     template<size_type Offset, size_type Count = dynamic_extent>
     constexpr span<element_type, Count> subspan () const {
         return { m_data + Offset, Count != dynamic_extent ? Count : (Extent != dynamic_extent ? Extent - Offset : m_size - Offset) };
     }
 
+    /// Subspan containing just the first element.
     constexpr span<element_type, dynamic_extent> first (size_type count) const {
         return { m_data, count };
     }
 
+    /// Subspan containing just the last element.
     constexpr span<element_type, dynamic_extent> last (size_type count) const {
         return { m_data + ( m_size - count ), count };
     }
 
+    /// Subspan starting atoOffset and containing count elements.
     constexpr span<element_type, dynamic_extent>
     subspan (size_type offset, size_type count = dynamic_extent) const {
         return { m_data + offset, count == dynamic_extent ? m_size - offset : count };
     }
 
-    // Note: size() currently returns a signed value. But eventually, we
-    // will conform to std::span<>::size() which returns size_t. In the mean
-    // time, apps may choose to avoid the size() method and instead use
-    // std::size(myspan) and std::ssize(myspan), which already conform to
-    // std's practice of returning size_t and ptrdiff_t, respectively.
+    /// Return the number of elements in the span.
     constexpr size_type size() const noexcept { return m_size; }
+    /// Return the size in bytes of the range of the span.
     constexpr size_type size_bytes() const noexcept { return size()*sizeof(T); }
+    /// Is the span empty (containing 0 elements)?
     constexpr bool empty() const noexcept { return m_size == 0; }
 
+    /// Return the underlying data pointer to the first element.
     constexpr pointer data() const noexcept { return m_data; }
 
+    /// Element access. For debug build, does bounds check with assertion. For
+    /// optimized builds, there is no bounds check.  Note: this is different
+    /// from C++ std::span, which never bounds checks `operator[]`.
     constexpr reference operator[] (size_type idx) const {
         OIIO_DASSERT(idx < m_size && "OIIO::span::operator[] range check");
         return m_data[idx];
@@ -186,31 +192,45 @@ public:
         OIIO_DASSERT(idx < m_size && "OIIO::span::operator() range check");
         return m_data[idx];
     }
+    /// Bounds-checked access, throws an assertion if out of range.
     reference at (size_type idx) const {
         if (idx >= size())
             throw (std::out_of_range ("OpenImageIO::span::at"));
         return m_data[idx];
     }
 
+    /// The first element of the span.
     constexpr reference front() const noexcept { return m_data[0]; }
+    /// The last element of the span.
     constexpr reference back() const noexcept { return m_data[size()-1]; }
 
+    /// Iterator pointing to the beginning of the span.
     constexpr iterator begin() const noexcept { return m_data; }
+    /// Iterator pointing to the end (one past the last element) of the span.
     constexpr iterator end() const noexcept { return m_data + m_size; }
 
+    /// Const iterator pointing to the beginning of the span.
     constexpr const_iterator cbegin() const noexcept { return m_data; }
+    /// Const iterator pointing to the end (one past the last element) of the
+    /// span.
     constexpr const_iterator cend() const noexcept { return m_data + m_size; }
 
+    /// Reverse iterator pointing to the last element of the span.
     constexpr reverse_iterator rbegin() const noexcept {
         return reverse_iterator(m_data + m_size - 1);
     }
+    /// Reverse iterator pointing to "reverse end" (one element before the
+    /// first element) of the span.
     constexpr reverse_iterator rend() const noexcept {
         return reverse_iterator(m_data - 1);
     }
 
+    /// Const reverse iterator pointing to the last element of the span.
     constexpr const_reverse_iterator crbegin() const noexcept {
         return const_reverse_iterator(m_data + m_size - 1);
     }
+    /// Const reverse iterator pointing to "reverse end" (one element before
+    /// the first element) of the span.
     constexpr const_reverse_iterator crend() const noexcept {
         return const_reverse_iterator(m_data - 1);
     }
