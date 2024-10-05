@@ -94,6 +94,15 @@ about being deprecated will be removed in the final 3.0 release.
   defined in `imagebufalgo_opencv.h` as inline functions, so it is up to the
   application calling these API functions to find and link against OpenCV.)
 
+## imagebuf.h
+
+* The style of ImageBuf constructor that "wraps" a caller-owned memory buffer
+  now has a new, preferred, version that takes a `span<>` or `cspan<>` instead
+  of a raw pointer. The old versions is considered deprecated.
+* New span-based versions of get_pixels, set_pixels, setpixel, getpixel,
+  interppixel, interppixel_NDC, interppixel_bicubic, interppixel_bicubic_NDC.
+  These are preferred over the old versions that took raw pointers.
+
 ## imagebufalgo.h
 
 * The old versions (deprecated since 2.0) of IBA::compare() and
