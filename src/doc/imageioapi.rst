@@ -285,6 +285,12 @@ just exist in the OIIO namespace as general utilities. (See
 
 .. doxygenfunction:: get_extension_map
 
+.. doxygenfunction:: OIIO::set_colorspace
+
+.. doxygenfunction:: OIIO::set_colorspace_rec709_gamma
+
+.. doxygenfunction:: OIIO::equivalent_colorspace
+
 |
 
  .. _sec-startupshutdown:

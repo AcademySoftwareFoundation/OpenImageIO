@@ -169,7 +169,7 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     // This is not very smart, but it seems that as a practical matter,
     // all Cineon files are log. So ignore the gamma field and just set
     // the color space to KodakLog.
-    m_spec.attribute("oiio:ColorSpace", "KodakLog");
+    m_spec.set_colorspace("KodakLog");
 #else
     // image linearity
     // FIXME: making this more robust would require the per-channel transfer
@@ -177,19 +177,18 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     switch (m_cin.header.ImageDescriptor(0)) {
     case cineon::kRec709Red:
     case cineon::kRec709Green:
-    case cineon::kRec709Blue: m_spec.attribute("oiio:ColorSpace", "Rec709");
+    case cineon::kRec709Blue: m_spec.set_colorspace("Rec709");
     default:
         // either grayscale or printing density
         if (!std::isinf(m_cin.header.Gamma()) && m_cin.header.Gamma() != 0.0f)
             // actual gamma value is read later on
-            m_spec.attribute("oiio:ColorSpace",
-                             Strutil::fmt::format("Gamma{:.2g}", g));
+            set_colorspace_rec709_gamma(m_spec, float(m_cin.header.Gamma()));
         break;
     }
 
     // gamma exponent
     if (!std::isinf(m_cin.header.Gamma()) && m_cin.header.Gamma() != 0.0f)
-        m_spec.attribute("oiio:Gamma", (float)m_cin.header.Gamma());
+        set_colorspace_rec709_gamma(m_spec, float(m_cin.header.Gamma()));
 #endif
 
     // general metadata

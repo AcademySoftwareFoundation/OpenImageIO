@@ -570,11 +570,14 @@ RawInput::open_raw(bool unpack, const std::string& name,
         m_processor->imgdata.params.gamm[0]      = 1.0 / 2.4;
         m_processor->imgdata.params.gamm[1]      = 12.92;
     } else if (Strutil::iequals(cs, "sRGB-linear")
+               || Strutil::iequals(cs, "lin_srgb")
+               || Strutil::iequals(cs, "lin_rec709")
                || Strutil::iequals(cs, "linear") /* DEPRECATED */) {
         // Request "sRGB" primaries, linear response
         m_processor->imgdata.params.output_color = 1;
         m_processor->imgdata.params.gamm[0]      = 1.0;
         m_processor->imgdata.params.gamm[1]      = 1.0;
+        cs                                       = "lin_rec709";
     } else if (Strutil::iequals(cs, "Adobe")) {
         // Request Adobe color space with 2.2 gamma (no linear toe)
         m_processor->imgdata.params.output_color = 2;
@@ -613,7 +616,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
 #endif
     } else if (Strutil::iequals(cs, "Rec2020")) {
 #if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0)
-        // ACES linear
+        // Rec2020
         m_processor->imgdata.params.output_color = 8;
         m_processor->imgdata.params.gamm[0]      = 1.0;
         m_processor->imgdata.params.gamm[1]      = 1.0;
@@ -626,7 +629,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
         errorfmt("raw:ColorSpace set to unknown value \"{}\"", cs);
         return false;
     }
-    m_spec.attribute("oiio:ColorSpace", cs);
+    m_spec.set_colorspace(cs);
 
     // Exposure adjustment
     float exposure = config.get_float_attribute("raw:Exposure", -1.0f);
