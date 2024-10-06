@@ -107,7 +107,7 @@ public:
 
     /// Construct from char*, use strlen to determine length.
     constexpr basic_string_view(const CharT* chars) noexcept
-        : m_chars(chars), m_len(chars ? cestrlen(chars) : 0) { }
+        : m_chars(chars), m_len(chars ? Traits::length(chars) : 0) { }
 
     /// Construct from std::string. Remember that a string_view doesn't have
     /// its own copy of the characters, so don't use the `string_view` after
@@ -477,20 +477,6 @@ private:
             if (!traits::find(s.data(), s.length(), *first))
                 return first;
         return last;
-    }
-
-    // Guaranteed constexpr length of a C string
-    static constexpr size_t cestrlen(const charT* chars) {
-#if OIIO_CPLUSPLUS_VERSION >= 17
-        return Traits::length(chars);
-#else
-        if (chars == nullptr)
-            return 0;
-        size_t len = 0;
-        while (chars[len] != 0)
-            len++;
-        return len;
-#endif
     }
 
     class traits_eq {

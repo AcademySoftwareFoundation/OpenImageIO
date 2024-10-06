@@ -147,22 +147,10 @@ declare_paramvalue(py::module& m)
                                [](const ParamValue& self) {
                                    return PY_STR(self.name().string());
                                })
-#if OIIO_VERSION_LESS(3, 0, 0)
-        .def_property_readonly("type",
-                               [](const ParamValue& self) {
-                                   return PY_STR(self.type().c_str());
-                               })
-    // FIXME: This implementation of `type` is almost certainly a
-    // mistake. This should return p.type(), just a TypeDesc, not a
-    // string. I think this was an error introduced in the Python
-    // binding overhaul of OIIO 2.0.  We can't break back compatibility
-    // by changing it until 3.0. It should really look like this:
-#else
         .def_property_readonly("type",
                                [](const ParamValue& self) {
                                    return self.type();
                                })
-#endif
         .def_property_readonly("value",
                                [](const ParamValue& self) {
                                    return make_pyobject(self.data(),
