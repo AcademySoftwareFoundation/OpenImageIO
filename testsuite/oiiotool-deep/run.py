@@ -65,7 +65,7 @@ command += info_command ("-v --info --hash --stats --dumpdata tinydeep.exr",
 command += oiiotool ("--fail 100 src/deep-nosamples.exr src/deep-onesample.exr --diff")
 command += oiiotool ("--fail 100 src/deep-onesample.exr src/deep-nosamples.exr --diff")
  # Recipe for creating the files:
- # spec = oiio.ImageSpec (1, 1, 1, oiio.TypeDesc.TypeFloat)
+ # spec = oiio.ImageSpec (1, 1, 1, oiio.TypeFloat)
  # spec.channelnames = ("Z")
  # spec.deep = True
  # buf = oiio.ImageBuf (spec)

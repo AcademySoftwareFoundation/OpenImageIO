@@ -2481,164 +2481,6 @@ bool OIIO_API deep_holdout (ImageBuf &dst, const ImageBuf &src,
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
-// DEPRECATED(1.9): These are all functions that take raw pointers,
-// which we are deprecating as of 1.9, replaced by new versions that
-// take span<> for length safety.
-
-OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
-inline bool fill (ImageBuf &dst, const float *values,
-                  ROI roi={}, int nthreads=0) {
-    int nc (roi.defined() ? roi.nchannels() : dst.nchannels());
-    return fill (dst, {values, span_size_t(nc)}, roi, nthreads);
-}
-OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
-inline bool fill (ImageBuf &dst, const float *top, const float *bottom,
-                  ROI roi={}, int nthreads=0) {
-    int nc (roi.defined() ? roi.nchannels() : dst.nchannels());
-    return fill (dst, {top, span_size_t(nc)}, {bottom, span_size_t(nc)}, roi, nthreads);
-}
-OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
-inline bool fill (ImageBuf &dst, const float *topleft, const float *topright,
-                  const float *bottomleft, const float *bottomright,
-                  ROI roi={}, int nthreads=0) {
-    int nc (roi.defined() ? roi.nchannels() : dst.nchannels());
-    return fill (dst, {topleft, span_size_t(nc)}, {topright, span_size_t(nc)}, {bottomleft, span_size_t(nc)},
-                 {bottomright, span_size_t(nc)}, roi, nthreads);
-}
-
-OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
-inline bool checker (ImageBuf &dst, int width, int height, int depth,
-                     const float *color1, const float *color2,
-                     int xoffset=0, int yoffset=0, int zoffset=0,
-                     ROI roi={}, int nthreads=0) {
-    int nc (roi.defined() ? roi.nchannels() : dst.nchannels());
-    return checker (dst, width, height, depth,
-                    {color1,span_size_t(nc)}, {color2,span_size_t(nc)},
-                    xoffset, yoffset, zoffset, roi, nthreads);
-}
-
-OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
-inline bool add (ImageBuf &dst, const ImageBuf &A, const float *B,
-                 ROI roi={}, int nthreads=0) {
-    return add (dst, A, {B,A.nchannels()}, roi, nthreads);
-}
-OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
-inline bool sub (ImageBuf &dst, const ImageBuf &A, const float *B,
-                 ROI roi={}, int nthreads=0) {
-    return sub (dst, A, {B,A.nchannels()}, roi, nthreads);
-}
-OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
-inline bool absdiff (ImageBuf &dst, const ImageBuf &A, const float *B,
-                     ROI roi={}, int nthreads=0) {
-    return absdiff (dst, A, cspan<float>(B,span_size_t(A.nchannels())), roi, nthreads);
-}
-OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
-inline bool mul (ImageBuf &dst, const ImageBuf &A, const float *B,
-                 ROI roi={}, int nthreads=0) {
-    return mul (dst, A, {B, int(A.nchannels())}, roi, nthreads);
-}
-OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
-inline bool div (ImageBuf &dst, const ImageBuf &A, const float *B,
-                 ROI roi={}, int nthreads=0) {
-    return div (dst, A, {B, int(A.nchannels())}, roi, nthreads);
-}
-OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
-inline bool mad (ImageBuf &dst, const ImageBuf &A, const float *B,
-                 const ImageBuf &C, ROI roi={}, int nthreads=0) {
-    return mad (dst, A, {B, int(A.nchannels())}, C, roi, nthreads);
-}
-OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
-inline bool mad (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
-                 const float *C, ROI roi={}, int nthreads=0) {
-    return mad (dst, A, {C, int(A.nchannels())}, B, roi, nthreads);
-}
-OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
-inline bool mad (ImageBuf &dst, const ImageBuf &A, const float *B,
-                 const float *C, ROI roi={}, int nthreads=0) {
-    return mad (dst, A, {B, int(A.nchannels())}, {C, int(A.nchannels())}, roi, nthreads);
-}
-
-OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
-inline bool pow (ImageBuf &dst, const ImageBuf &A, const float *B,
-                 ROI roi={}, int nthreads=0) {
-    return pow (dst, A, {B, span_size_t(A.nchannels())}, roi, nthreads);
-}
-
-OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
-inline bool channel_sum (ImageBuf &dst, const ImageBuf &src,
-                         const float *weights=nullptr, ROI roi={},
-                         int nthreads=0) {
-    return channel_sum (dst, src, {weights, span_size_t(src.nchannels())},
-                        roi, nthreads);
-}
-
-OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
-inline bool channels (ImageBuf &dst, const ImageBuf &src,
-                      int nchannels, const int *channelorder,
-                      const float *channelvalues=nullptr,
-                      const std::string *newchannelnames=nullptr,
-                      bool shuffle_channel_names=false, int nthreads=0) {
-    return channels (dst, src, nchannels,
-                     { channelorder, span_size_t(channelorder?nchannels:0) },
-                     { channelvalues, span_size_t(channelvalues?nchannels:0) },
-                     { newchannelnames, span_size_t(newchannelnames?nchannels:0) },
-                     shuffle_channel_names, nthreads);
-}
-
-OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
-inline bool clamp (ImageBuf &dst, const ImageBuf &src,
-                   const float *min=nullptr, const float *max=nullptr,
-                   bool clampalpha01 = false,
-                   ROI roi={}, int nthreads=0) {
-    return clamp (dst, src, { min, span_size_t(min ? src.nchannels() : 0) },
-                  { max, span_size_t(max ? src.nchannels() : 0) }, clampalpha01,
-                  roi, nthreads);
-}
-
-OIIO_DEPRECATED("use version that takes span<> instead of raw pointer (2.0)")
-inline bool isConstantColor (const ImageBuf &src, float *color,
-                             ROI roi={}, int nthreads=0) {
-    int nc = roi.defined() ? std::min(roi.chend,src.nchannels()) : src.nchannels();
-    return isConstantColor (src, 0.0f, {color, span_size_t(color ? nc : 0) },
-                            roi, nthreads);
-}
-
-OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
-inline bool color_count (const ImageBuf &src, imagesize_t *count,
-                         int ncolors, const float *color,
-                         const float *eps=nullptr,
-                         ROI roi={}, int nthreads=0) {
-    return color_count (src, count, ncolors,
-                        { color, span_size_t(ncolors*src.nchannels()) },
-                        eps ? cspan<float>(eps,span_size_t(src.nchannels())) : cspan<float>(),
-                        roi, nthreads);
-}
-
-OIIO_DEPRECATED("use version that takes span<> instead of raw pointer (2.0)")
-inline bool color_range_check (const ImageBuf &src, imagesize_t *lowcount,
-                               imagesize_t *highcount, imagesize_t *inrangecount,
-                               const float *low, const float *high,
-                               ROI roi={}, int nthreads=0) {
-    return color_range_check (src, lowcount, highcount, inrangecount,
-                              {low,span_size_t(src.nchannels())}, {high,span_size_t(src.nchannels())},
-                              roi, nthreads);
-}
-
-OIIO_DEPRECATED("use version that takes cspan<> instead of raw pointer (2.0)")
-inline bool render_text (ImageBuf &dst, int x, int y, string_view text,
-                         int fontsize, string_view fontname,
-                         const float *textcolor) {
-    return render_text (dst, x, y, text, fontsize, fontname,
-                        {textcolor, textcolor?span_size_t(dst.nchannels()):0});
-}
-
-OIIO_DEPRECATED("Use the that takes a span. [2.1]")
-inline bool colorconvert (float *color, int nchannels,
-                          const ColorProcessor *processor, bool unpremult) {
-    return colorconvert ({color,span_size_t(nchannels)}, processor, unpremult);
-}
-
-
 OIIO_DEPRECATED("prefer the kind that takes an `inverse` parameter (2.5)")
 inline ImageBuf ociodisplay (const ImageBuf &src,
                             string_view display, string_view view,
@@ -2686,7 +2528,7 @@ bool OIIO_API warp (ImageBuf &dst, const ImageBuf &src, M33fParam M,
                     const Filter2D *filter, bool recompute_roi = false,
                     ImageBuf::WrapMode wrap = ImageBuf::WrapDefault,
                     ROI roi = {}, int nthreads=0);
-OIIO_DEPRECATED("prefer the kind that takes keyword args (2.6)")
+OIIO_DEPRECATED("prefer the kind that takes keyword args (3.0)")
 inline ImageBuf resize(const ImageBuf &src,
                        string_view filtername, float filterwidth=0.0f,
                        ROI roi={}, int nthreads=0) {
@@ -2694,12 +2536,12 @@ inline ImageBuf resize(const ImageBuf &src,
                         { "filterwidth", filterwidth } },
                   roi, nthreads);
 }
-OIIO_DEPRECATED("prefer the kind that takes keyword args (2.6)")
+OIIO_DEPRECATED("prefer the kind that takes keyword args (3.0)")
 inline ImageBuf resize(const ImageBuf &src, Filter2D *filter,
                        ROI roi={}, int nthreads=0) {
     return resize(src, { make_pv("filterptr", filter) }, roi, nthreads);
 }
-OIIO_DEPRECATED("prefer the kind that takes keyword args (2.6)")
+OIIO_DEPRECATED("prefer the kind that takes keyword args (3.0)")
 inline bool resize (ImageBuf &dst, const ImageBuf &src,
                     string_view filtername, float filterwidth,
                     ROI roi={}, int nthreads=0) {
@@ -2707,13 +2549,13 @@ inline bool resize (ImageBuf &dst, const ImageBuf &src,
                               { "filterwidth", filterwidth } },
                   roi, nthreads);
 }
-OIIO_DEPRECATED("prefer the kind that takes keyword args (2.6)")
+OIIO_DEPRECATED("prefer the kind that takes keyword args (3.0)")
 inline bool resize(ImageBuf &dst, const ImageBuf &src, Filter2D *filter,
                    ROI roi={}, int nthreads=0) {
     return resize(dst, src, { make_pv("filterptr", filter) }, roi, nthreads);
 }
 
-OIIO_DEPRECATED("prefer the kind that takes keyword args (2.6)")
+OIIO_DEPRECATED("prefer the kind that takes keyword args (3.0)")
 inline ImageBuf fit(const ImageBuf &src,
                     string_view filtername = "", float filterwidth=0.0f,
                     string_view fillmode="letterbox", bool exact=false,
@@ -2723,7 +2565,7 @@ inline ImageBuf fit(const ImageBuf &src,
                  { "fillmode", fillmode }, { "exact", int(exact) } },
                roi, nthreads);
 }
-OIIO_DEPRECATED("prefer the kind that takes keyword args (2.6)")
+OIIO_DEPRECATED("prefer the kind that takes keyword args (3.0)")
 inline ImageBuf fit(const ImageBuf &src, Filter2D *filter,
                     string_view fillmode="letterbox", bool exact=false,
                     ROI roi={}, int nthreads=0) {
@@ -2731,7 +2573,7 @@ inline ImageBuf fit(const ImageBuf &src, Filter2D *filter,
                       { "exact", int(exact) } },
                roi, nthreads);
 }
-OIIO_DEPRECATED("prefer the kind that takes keyword args (2.6)")
+OIIO_DEPRECATED("prefer the kind that takes keyword args (3.0)")
 inline bool fit(ImageBuf &dst, const ImageBuf &src,
                 string_view filtername = "", float filterwidth=0.0f,
                 string_view fillmode="letterbox", bool exact=false,
@@ -2741,7 +2583,7 @@ inline bool fit(ImageBuf &dst, const ImageBuf &src,
                  { "fillmode", fillmode }, { "exact", int(exact) } },
                roi, nthreads);
 }
-OIIO_DEPRECATED("prefer the kind that takes keyword args (2.6)")
+OIIO_DEPRECATED("prefer the kind that takes keyword args (3.0)")
 inline bool fit(ImageBuf &dst, const ImageBuf &src, Filter2D *filter,
                 string_view fillmode="letterbox", bool exact=false,
                 ROI roi={}, int nthreads=0) {
@@ -2751,7 +2593,7 @@ inline bool fit(ImageBuf &dst, const ImageBuf &src, Filter2D *filter,
 }
 
 // DEPRECATED(2.3): old versions lacking the "fillmode" parameter
-OIIO_DEPRECATED("prefer the kind that takes keyword args (2.6)")
+OIIO_DEPRECATED("prefer the kind that takes keyword args (3.0)")
 inline ImageBuf fit(const ImageBuf &src,
                     string_view filtername, float filterwidth,
                     bool exact, ROI roi={}, int nthreads=0)
@@ -2761,14 +2603,14 @@ inline ImageBuf fit(const ImageBuf &src,
                  { "fillmode", "letterbox" }, { "exact", int(exact) } },
                roi, nthreads);
 }
-OIIO_DEPRECATED("prefer the kind that takes keyword args (2.3)")
+OIIO_DEPRECATED("prefer the kind that takes keyword args (3.0)")
 inline ImageBuf fit(const ImageBuf &src, Filter2D *filter,
                     bool exact, ROI roi={}, int nthreads=0) {
     return fit(src, { make_pv("filterptr", filter),
                       { "fillmode", "letterbox" }, { "exact", int(exact) } },
                roi, nthreads);
 }
-OIIO_DEPRECATED("prefer the kind that takes keyword args (2.3)")
+OIIO_DEPRECATED("prefer the kind that takes keyword args (3.0)")
 inline bool fit(ImageBuf &dst, const ImageBuf &src,
                 string_view filtername, float filterwidth,
                 bool exact, ROI roi={}, int nthreads=0) {
@@ -2777,30 +2619,13 @@ inline bool fit(ImageBuf &dst, const ImageBuf &src,
                  { "fillmode", "letterbox" }, { "exact", int(exact) } },
                roi, nthreads);
 }
-OIIO_DEPRECATED("prefer the kind that takes keyword args (2.3)")
+OIIO_DEPRECATED("prefer the kind that takes keyword args (3.0)")
 inline bool fit(ImageBuf &dst, const ImageBuf &src, Filter2D *filter,
                 bool exact, ROI roi={}, int nthreads=0) {
     return fit(dst, src,
                { make_pv("filterptr", filter), { "fillmode", "letterbox" },
                  { "exact", int(exact) } },
                roi, nthreads);
-}
-
-OIIO_DEPRECATED("Use isConstantColor with span<float> color")
-inline bool isConstantColor (const ImageBuf &src, span<float> color,
-                             ROI roi={}, int nthreads=0) {
-    return isConstantColor (src, 0.0f, color, roi, nthreads);
-}
-
-OIIO_DEPRECATED("Use isConstantChannel with the threshold parameter")
-inline bool isConstantChannel (const ImageBuf &src, int channel, float val,
-                               ROI roi, int nthreads=0) {
-    return isConstantChannel (src, channel, val, 0.0f, roi, nthreads);
-}
-
-OIIO_DEPRECATED("Use isMonochrome with the threshold dparameter")
-inline bool isMonochrome (const ImageBuf &src, ROI roi, int nthreads=0) {
-    return isMonochrome (src, 0.0f, roi, nthreads);
 }
 
 #endif  // DOXYGEN_SHOULD_SKIP_THIS

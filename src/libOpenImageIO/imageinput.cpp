@@ -550,43 +550,6 @@ ImageInput::read_tile(int x, int y, int z, TypeDesc format, void* data,
 
 
 bool
-ImageInput::read_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
-                       int zend, TypeDesc format, void* data, stride_t xstride,
-                       stride_t ystride, stride_t zstride)
-{
-    int subimage, miplevel, chend;
-    {
-        lock_guard lock(*this);
-        subimage = current_subimage();
-        miplevel = current_miplevel();
-        chend    = spec().nchannels;
-    }
-    return read_tiles(subimage, miplevel, xbegin, xend, ybegin, yend, zbegin,
-                      zend, 0, chend, format, data, xstride, ystride, zstride);
-}
-
-
-
-bool
-ImageInput::read_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
-                       int zend, int chbegin, int chend, TypeDesc format,
-                       void* data, stride_t xstride, stride_t ystride,
-                       stride_t zstride)
-{
-    int subimage, miplevel;
-    {
-        lock_guard lock(*this);
-        subimage = current_subimage();
-        miplevel = current_miplevel();
-    }
-    return read_tiles(subimage, miplevel, xbegin, xend, ybegin, yend, zbegin,
-                      zend, chbegin, chend, format, data, xstride, ystride,
-                      zstride);
-}
-
-
-
-bool
 ImageInput::read_tiles(int subimage, int miplevel, int xbegin, int xend,
                        int ybegin, int yend, int zbegin, int zend, int chbegin,
                        int chend, TypeDesc format, void* data, stride_t xstride,
@@ -871,43 +834,6 @@ ImageInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
         }
     }
     return true;
-}
-
-
-
-bool
-ImageInput::read_image(TypeDesc format, void* data, stride_t xstride,
-                       stride_t ystride, stride_t zstride,
-                       ProgressCallback progress_callback,
-                       void* progress_callback_data)
-{
-    int subimage, miplevel;
-    {
-        lock_guard lock(*this);
-        subimage = current_subimage();
-        miplevel = current_miplevel();
-    }
-    return read_image(subimage, miplevel, 0, -1, format, data, xstride, ystride,
-                      zstride, progress_callback, progress_callback_data);
-}
-
-
-
-bool
-ImageInput::read_image(int chbegin, int chend, TypeDesc format, void* data,
-                       stride_t xstride, stride_t ystride, stride_t zstride,
-                       ProgressCallback progress_callback,
-                       void* progress_callback_data)
-{
-    int subimage, miplevel;
-    {
-        lock_guard lock(*this);
-        subimage = current_subimage();
-        miplevel = current_miplevel();
-    }
-    return read_image(subimage, miplevel, chbegin, chend, format, data, xstride,
-                      ystride, zstride, progress_callback,
-                      progress_callback_data);
 }
 
 

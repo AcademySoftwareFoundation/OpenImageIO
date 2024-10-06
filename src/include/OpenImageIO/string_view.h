@@ -510,11 +510,6 @@ using wstring_view = basic_string_view<wchar_t>;
 
 
 
-// DEPRECATED name equivalence
-OIIO_DEPRECATED("Use string_view (2.3)")
-typedef string_view string_ref;
-
-
 /// Return a safe pointer to a null-terminated C string with the contents of
 /// the string_view.
 ///

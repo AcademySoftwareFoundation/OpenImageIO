@@ -433,6 +433,14 @@
 // [[deprecated(msg)]] instead.
 #define OIIO_DEPRECATED(msg) [[deprecated(msg)]]
 
+// OIIO_DEPRECATED_EXTERNAL marks things deprecated for downstream apps, but
+// still is allowed for internal use. Generally, this is used when we want to
+// deprecate for users but can't quite extract it internally yet.
+#ifndef OIIO_INTERNAL
+#  define OIIO_DEPRECATED_EXTERNAL(msg) [[deprecated(msg)]]
+#else
+#  define OIIO_DEPRECATED_EXTERNAL(msg)
+#endif
 
 // OIIO_FALLTHROUGH at the end of a `case` label's statements documents that
 // the switch statement case is intentionally falling through to the code

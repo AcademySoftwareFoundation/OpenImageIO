@@ -974,17 +974,6 @@ Strutil::utf8_to_utf16wstring(string_view str) noexcept
 
 
 
-#if OPENIMAGEIO_VERSION < 30000
-// DEPRECATED(2.5) and slated for removal in 3.0.
-std::wstring
-Strutil::utf8_to_utf16(string_view str) noexcept
-{
-    return utf8_to_utf16wstring(str);
-}
-#endif
-
-
-
 std::string
 Strutil::utf16_to_utf8(const std::wstring& str) noexcept
 {

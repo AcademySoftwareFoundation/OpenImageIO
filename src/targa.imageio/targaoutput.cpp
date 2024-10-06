@@ -273,23 +273,6 @@ TGAOutput::write_tga20_data_fields()
             if (!write(tw) || !write(th)
                 || !write(m_thumb.localpixels(), m_thumb.spec().image_bytes()))
                 return false;
-        } else {
-            // Old API -- honor it for a while
-            // DEPRECATED(2.3)
-            unsigned char tw = m_spec.get_int_attribute("thumbnail_width", 0);
-            unsigned char th = m_spec.get_int_attribute("thumbnail_width", 0);
-            int tc = m_spec.get_int_attribute("thumbnail_nchannels", 0);
-            if (tw && th && tc == m_spec.nchannels) {
-                ParamValue* p = m_spec.find_attribute("thumbnail_image");
-                if (p) {
-                    ofs_thumb = (uint32_t)iotell();
-                    // dump thumbnail size
-                    if (!write(tw) || !write(th)
-                        || !write(p->data(), p->datasize())) {
-                        return false;
-                    }
-                }
-            }
         }
 
         // prepare the footer
