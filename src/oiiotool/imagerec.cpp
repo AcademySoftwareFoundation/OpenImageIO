@@ -299,7 +299,8 @@ ImageRec::read(ReadPolicy readpolicy, string_view channel_set)
             int new_z_channel     = -1;
             int chbegin = 0, chend = -1;
             if (channel_set.size()) {
-                decode_channel_set(ib->nativespec(), channel_set,
+                //! TODO: now that nativespec() is deprecated what should we do here ?
+                decode_channel_set(ib->spec(), channel_set,
                                    newchannelnames, channel_set_channels,
                                    channel_set_values, eh);
                 for (size_t c = 0, e = channel_set_channels.size(); c < e;
@@ -332,11 +333,11 @@ ImageRec::read(ReadPolicy readpolicy, string_view channel_set)
             TypeDesc convert = TypeDesc::FLOAT;
             if (m_input_dataformat != TypeDesc::UNKNOWN) {
                 convert = m_input_dataformat;
-                if (m_input_dataformat != ib->nativespec().format)
+                if (m_input_dataformat != ib->file_format())
                     m_subimages[s].m_was_direct_read = false;
                 forceread = true;
             } else if (readpolicy & ReadNative)
-                convert = ib->nativespec().format;
+                convert = ib->file_format();
             if (!forceread && convert != TypeDesc::UINT8
                 && convert != TypeDesc::UINT16 && convert != TypeDesc::HALF
                 && convert != TypeDesc::FLOAT) {
@@ -377,11 +378,13 @@ ImageRec::read(ReadPolicy readpolicy, string_view channel_set)
             m_subimages[s].m_specs[m]     = ib->spec();
             // For ImageRec purposes, we need to restore a few of the
             // native settings.
-            const ImageSpec& nativespec(ib->nativespec());
+
+            //! TODO: now that nativespec() is deprecated what should we do here ?
+            const ImageSpec& spec(ib->spec());
             // m_subimages[s].m_specs[m].format = nativespec.format;
-            m_subimages[s].m_specs[m].tile_width  = nativespec.tile_width;
-            m_subimages[s].m_specs[m].tile_height = nativespec.tile_height;
-            m_subimages[s].m_specs[m].tile_depth  = nativespec.tile_depth;
+            m_subimages[s].m_specs[m].tile_width  = spec.tile_width;
+            m_subimages[s].m_specs[m].tile_height = spec.tile_height;
+            m_subimages[s].m_specs[m].tile_depth  = spec.tile_depth;
         }
     }
 

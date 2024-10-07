@@ -310,7 +310,7 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
                 // OiioTool::print_stats(out, *this, (*img)());
 
                 std::string err;
-                if (!pvt::print_stats(out, "", (*img)(), (*img)().nativespec(),
+                if (!pvt::print_stats(out, "", (*img)(), (*img)().spec(),
                                       ROI(), err))
                     errorfmt("stats", "unable to compute: {}", err);
 
