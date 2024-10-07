@@ -3143,10 +3143,6 @@ ImageCacheImpl::get_cache_dimensions(ImageCacheFile* file,
                   file->subimages());
         return false;
     }
-
-    //! force mip level to zero for now
-    //! TODO: store nativespec in SubImageInfo, and extra overrides in LevelInfo
-    constexpr int miplevel = 0;
     if (miplevel < 0 || miplevel >= file->miplevels(subimage)) {
         if (file->errors_should_issue())
             error("Unknown mip level {} (out of {})", miplevel,

@@ -366,11 +366,8 @@ private:
     int m_nmiplevels;               ///< # of MIP levels in the current subimage
     mutable int m_threads;          ///< thread policy for this image
     ImageSpec m_spec;               ///< Describes the image (size, etc)
-    //! TODO: remove m_nativespec and store only "native channels formats"
+    //! TODO: remove m_nativespec
     ImageSpec m_nativespec;         ///< Describes the true native image
-    // TypeDesc format;                ///< Data format of the channels as in the associated file.
-    // std:vector<TypeDesc> channelformats; ///< Optional per-channel data formats as in the associated file.
-    //     ///< This will be empty if all native channels have the same format.
     std::unique_ptr<char[]> m_pixels;  ///< Pixel data, if local and we own it
     char* m_localpixels;               ///< Pointer to local pixels
     span<std::byte> m_bufspan;         ///< Bounded buffer for local pixels
@@ -946,8 +943,7 @@ ImageBufImpl::reset(string_view filename, const ImageSpec& spec,
     m_current_miplevel = 0;
     if (buforigin || bufspan.size()) {
         m_spec           = spec;
-        //! TODO: ultimattely remove m_nativespec and only update
-        //!  m_file_format and m_file_channelformats
+        //! TODO: remove m_nativespec
         m_nativespec     = nativespec ? *nativespec : spec;
 
         m_channel_stride = stride_t(spec.format.size());
@@ -1755,15 +1751,16 @@ ImageBufImpl::copy_metadata(const ImageBufImpl& src)
     m_spec.full_width  = srcspec.full_width;
     m_spec.full_height = srcspec.full_height;
     m_spec.full_depth  = srcspec.full_depth;
-    //! TODO: now that nativespec() is deprecated what should we do here ?
-    // if (src.cachedpixels()) {
-    //     // If we're copying metadata from a cached image, be sure to
-    //     // get the file's tile size, not the cache's tile size.
-    //     m_spec.tile_width  = src.nativespec().tile_width;
-    //     m_spec.tile_height = src.nativespec().tile_height;
-    //     m_spec.tile_depth  = src.nativespec().tile_depth;
-    // }
-    // else
+    if (src.cachedpixels()) {
+        // If we're copying metadata from a cached image, be sure to
+        // get the file's tile size, not the cache's tile size.
+        //! TOCHECK: is it actually correct to do as follows ?
+        const ImageSpec& nativespec = *m_imagecache->imagespec(m_name);
+        m_spec.tile_width  = nativespec.tile_width;
+        m_spec.tile_height = nativespec.tile_height;
+        m_spec.tile_depth  = nativespec.tile_depth;
+    }
+    else
     {
         m_spec.tile_width  = srcspec.tile_width;
         m_spec.tile_height = srcspec.tile_height;
