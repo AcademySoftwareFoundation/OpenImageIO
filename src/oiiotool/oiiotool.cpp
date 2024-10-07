@@ -5648,7 +5648,7 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
         for (int s = 0, send = ir->subimages(); s < send; ++s) {
             for (int m = 0, mend = ir->miplevels(s); m < mend && ok; ++m) {
                 ImageSpec spec = *ir->spec(s, m);
-                adjust_output_options(filename, spec, ir->nativespec(s, m), ot,
+                adjust_output_options(filename, spec, ir->nativespec(s), ot,
                                       supports_tiles, fileoptions,
                                       (*ir)[s].was_direct_read());
                 if (s > 0 || m > 0) {  // already opened first subimage/level

@@ -1255,6 +1255,7 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
     m_current_subimage = subimage;
     m_current_miplevel = miplevel;
 
+    //! NOTE: m_imagecache can be null, make sure there is a fallback solution
     const ImageSpec& nativespec = *m_imagecache->imagespec(m_name, m_current_subimage);
     if (chend < 0 || chend > nativespec.nchannels)
         chend = nativespec.nchannels;

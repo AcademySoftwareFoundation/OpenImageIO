@@ -247,6 +247,19 @@ ImageRec::read_nativespec()
 
 
 
+const ImageSpec*
+ImageRec::nativespec(int subimg) const
+{
+    if (subimg < subimages())
+    {
+        ustring uname(name());
+        return m_imagecache->imagespec(uname, subimg);
+    }
+    return nullptr;
+}
+
+
+
 bool
 ImageRec::read(ReadPolicy readpolicy, string_view channel_set)
 {
