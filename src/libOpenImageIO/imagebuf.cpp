@@ -1255,11 +1255,10 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
     m_current_subimage = subimage;
     m_current_miplevel = miplevel;
 
-    //! TODO: should we pass the number of channels of nativespec()
-    // or consider chbeing/chend are correctly set ?
-    // if (chend < 0 || chend > nativespec().nchannels)
-    //     chend = nativespec().nchannels;
-    // bool use_channel_subset = (chbegin != 0 || chend != nativespec().nchannels);
+    const ImageSpec& nativespec = *m_imagecache->imagespec(m_name, m_current_subimage);
+    if (chend < 0 || chend > nativespec.nchannels)
+        chend = nativespec.nchannels;
+    bool use_channel_subset = (chbegin != 0 || chend != nativespec.nchannels);
 
     if (m_spec.deep) {
         Timer timer;
@@ -1322,9 +1321,8 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
         force            = true;
         m_spec.nchannels = chend - chbegin;
         m_spec.channelnames.resize(m_spec.nchannels);
-        /// TODO: what to do here ? if we remove m_nativespec, we won't have the channelnames anymore..
         for (int c = 0; c < m_spec.nchannels; ++c)
-            m_spec.channelnames[c] = m_nativespec.channelnames[c + chbegin];
+            m_spec.channelnames[c] = nativespec.channelnames[c + chbegin];
         const std::vector<TypeDesc>& cformats = file_channelformats();
         if (cformats.size()) {
             m_spec.channelformats.resize(m_spec.nchannels);
