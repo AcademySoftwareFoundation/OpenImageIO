@@ -99,6 +99,27 @@ void tiles_read()
 // END-imageinput-tiles
 }
 
+void unassociatedalpha()
+{
+    const char* filename = "unpremult.tif";
+
+// BEGIN-imageinput-unassociatedalpha
+    // Set up an ImageSpec that holds the configuration hints.
+    ImageSpec config;
+    config["oiio:UnassociatedAlpha"] = 1;
+
+    // Open the file, passing in the config.
+    auto inp = ImageInput::open (filename, &config);
+    const ImageSpec &spec = inp->spec();
+    auto pixels = std::unique_ptr<unsigned char[]>(new unsigned char[spec.image_pixels() * spec.nchannels]);
+    inp->read_image (0, 0, 0, spec.nchannels, TypeDesc::UINT8, &pixels[0]);
+    if (spec.get_int_attribute("oiio:UnassociatedAlpha"))
+        printf("pixels holds unassociated alpha\n");
+    else
+        printf("pixels holds associated alpha\n");
+// END-imageinput-unassociatedalpha
+}
+
 
 // BEGIN-imageinput-errorchecking
 #include <OpenImageIO/imageio.h>
@@ -142,6 +163,7 @@ int main(int /*argc*/, char** /*argv*/)
     simple_read();
     scanlines_read();
     tiles_read();
+    unassociatedalpha();
     error_checking();
     return 0;
 }
