@@ -329,6 +329,8 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
 
     read_icc_profile(&m_cinfo, m_spec);  /// try to read icc profile
 
+    m_use_uhdr = read_uhdr(m_io);  /// try to interpret as Ultra HDR image
+
     newspec = m_spec;
     return true;
 }
@@ -406,6 +408,44 @@ JpgInput::read_icc_profile(j_decompress_ptr cinfo, ImageSpec& spec)
 
 
 
+bool
+JpgInput::read_uhdr(Filesystem::IOProxy* ioproxy)
+{
+    const size_t buffer_size = ioproxy->size();
+    std::vector<unsigned char> buffer(buffer_size);
+    ioproxy->pread(buffer.data(), buffer_size, 0);
+
+    const bool detect_uhdr = is_uhdr_image(buffer.data(), buffer.size());
+    if (!detect_uhdr)
+        return false;
+
+    m_uhdr_dec = uhdr_create_decoder();
+
+    uhdr_compressed_image_t uhdr_compressed;
+    uhdr_compressed.data = buffer.data();
+    uhdr_compressed.data_sz = buffer.size();
+    uhdr_compressed.capacity = buffer.size();
+    uhdr_dec_set_image(m_uhdr_dec, &uhdr_compressed);
+
+    uhdr_error_info_t err_info = uhdr_decode(m_uhdr_dec);
+
+    if (err_info.error_code != UHDR_CODEC_OK) {
+        errorfmt("Ultra HDR decoding failed with error code {}", int(err_info.error_code));
+        if (err_info.has_detail != 0)
+            errorfmt("Additional error details: {}", err_info.detail);
+        return false;
+    }
+
+    uhdr_raw_image_t* uhdr_raw = uhdr_get_decoded_image(m_uhdr_dec);
+    ImageSpec newspec = ImageSpec(uhdr_raw->w, uhdr_raw->h, 4, TypeDesc::HALF);
+    newspec.extra_attribs = m_spec.extra_attribs;
+    m_spec = newspec;
+
+    return true;
+}
+
+
+
 static void
 cmyk_to_rgb(int n, const unsigned char* cmyk, size_t cmyk_stride,
             unsigned char* rgb, size_t rgb_stride)
@@ -453,6 +493,17 @@ JpgInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         OIIO_DASSERT(m_next_scanline == 0 && current_subimage() == subimage);
     }
 
+    if (m_use_uhdr) {
+        uhdr_raw_image_t* uhdr_raw = uhdr_get_decoded_image(m_uhdr_dec);
+
+        const size_t row_size = uhdr_raw->stride[UHDR_PLANE_PACKED] * 8;
+        unsigned char* top_left = static_cast<unsigned char *>(uhdr_raw->planes[UHDR_PLANE_PACKED]);
+        unsigned char* row_data_start = top_left + row_size * y;
+        memcpy(data, row_data_start, row_size);
+
+        return true;
+    }
+
     // Set up our custom error handler
     if (setjmp(m_jerr.setjmp_buffer)) {
         // Jump to here if there's a libjpeg internal error
@@ -494,6 +545,9 @@ JpgInput::close()
         if (m_decomp_create)
             jpeg_destroy_decompress(&m_cinfo);
         m_decomp_create = false;
+        if (m_use_uhdr)
+            uhdr_release_decoder(m_uhdr_dec);
+        m_use_uhdr = false;
         close_file();
     }
     init();  // Reset to initial state

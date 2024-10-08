@@ -32,6 +32,8 @@ extern "C" {
 #    define OIIO_JPEG_LIB_VERSION JPEG_LIB_VERSION
 #endif
 
+#include "ultrahdr_api.h"
+
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -95,6 +97,8 @@ private:
     jvirt_barray_ptr* m_coeffs;
     std::vector<unsigned char> m_cmyk_buf;  // For CMYK translation
     std::unique_ptr<ImageSpec> m_config;    // Saved copy of configuration spec
+    bool m_use_uhdr;
+    uhdr_codec_private_t* m_uhdr_dec;
 
     void init()
     {
@@ -106,6 +110,8 @@ private:
         m_jerr.jpginput = this;
         ioproxy_clear();
         m_config.reset();
+        m_use_uhdr      = false;
+        m_uhdr_dec      = NULL;
     }
 
     // Rummage through the JPEG "APP1" marker pointed to by buf, decoding
@@ -116,6 +122,8 @@ private:
     void jpeg_decode_iptc(const unsigned char* buf);
 
     bool read_icc_profile(j_decompress_ptr cinfo, ImageSpec& spec);
+
+    bool read_uhdr(Filesystem::IOProxy* ioproxy);
 
     void close_file() { init(); }
 
