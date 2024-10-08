@@ -323,15 +323,6 @@ Strutil::vsprintf(const char* fmt, va_list ap)
 
 
 std::string
-Strutil::vformat(const char* fmt, va_list ap)
-{
-    // For now, just treat as a synonym for vsprintf
-    return vsprintf(fmt, ap);
-}
-
-
-
-std::string
 Strutil::memformat(long long bytes, int digits)
 {
     const long long KB = (1 << 10);
