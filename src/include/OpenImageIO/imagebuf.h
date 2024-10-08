@@ -1604,6 +1604,30 @@ public:
                                  m_nchannels);
         }
 
+        /// Set the number of deep data samples at this pixel. (Only use
+        /// this if deep_alloc() has not yet been called on the buffer.)
+        void set_deep_samples(int n)
+        {
+            ensure_writable();
+            return const_cast<ImageBuf*>(m_ib)->set_deep_samples(m_x, m_y, m_z,
+                                                                 n);
+        }
+
+        /// Set the deep data value of sample s of channel c. (Only use this
+        /// if deep_alloc() has been called.)
+        void set_deep_value(int c, int s, float value)
+        {
+            ensure_writable();
+            return const_cast<ImageBuf*>(m_ib)->set_deep_value(m_x, m_y, m_z, c,
+                                                               s, value);
+        }
+        void set_deep_value(int c, int s, uint32_t value)
+        {
+            ensure_writable();
+            return const_cast<ImageBuf*>(m_ib)->set_deep_value(m_x, m_y, m_z, c,
+                                                               s, value);
+        }
+
     protected:
         friend class ImageBuf;
         friend class ImageBufImpl;
@@ -1798,30 +1822,6 @@ public:
             convert_pixel_values(TypeDescFromC<T>::value(), src.data(),
                                  TypeDesc::BASETYPE(m_pixeltype), m_proxydata,
                                  m_nchannels);
-        }
-
-        /// Set the number of deep data samples at this pixel. (Only use
-        /// this if deep_alloc() has not yet been called on the buffer.)
-        void set_deep_samples(int n)
-        {
-            ensure_writable();
-            return const_cast<ImageBuf*>(m_ib)->set_deep_samples(m_x, m_y, m_z,
-                                                                 n);
-        }
-
-        /// Set the deep data value of sample s of channel c. (Only use this
-        /// if deep_alloc() has been called.)
-        void set_deep_value(int c, int s, float value)
-        {
-            ensure_writable();
-            return const_cast<ImageBuf*>(m_ib)->set_deep_value(m_x, m_y, m_z, c,
-                                                               s, value);
-        }
-        void set_deep_value(int c, int s, uint32_t value)
-        {
-            ensure_writable();
-            return const_cast<ImageBuf*>(m_ib)->set_deep_value(m_x, m_y, m_z, c,
-                                                               s, value);
         }
     };
 
