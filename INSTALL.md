@@ -357,6 +357,28 @@ produce a dynamic-linked version.
 
 3. Execute the PowerShell command from where vcpkg is located in directory. ``vcpkg install openimageio``
 
+
+Python-based Builds and Installs
+--------------------------------
+
+**Installing from prebuilt binary distributions**
+
+If you're only interested in the Python module and the CLI tools, you can install with `pip` or `uv`:
+
+> ```pip install OpenImageIO```
+
+**Building and installing from source**
+
+If you have a C++ compiler installed, you can also use the Python build-backend to compile and install
+from source by navigating to the root of the repository and running: ```pip install .```
+
+This will download and install CMake and Ninja if necessary, and invoke the CMake build system; which,
+in turn, will build missing dependencies, compile OIIO, and install the Python module, the libraries, 
+the headers, and the CLI tools to a platform-specific, Python-specific location. 
+
+See the [scikit-build-core docs](https://scikit-build-core.readthedocs.io/en/latest/configuration.html#configuring-cmake-arguments-and-defines)
+for more information on customizing and overriding build-tool options and CMake arguments.
+
 Test Images
 -----------
 

@@ -45,6 +45,7 @@ if [[ -z $DEP_DOWNLOAD_ONLY ]]; then
                -Dtiff-tests=${LIBTIFF_BUILD_TESTS:-OFF} \
                -Dtiff-docs=${LIBTIFF_BUILD_TESTS:-OFF} \
                -Dlibdeflate=ON \
+               -Dwebp=OFF \ 
                ${LIBTIFF_BUILDOPTS}
     time cmake --build build --target install
 fi
