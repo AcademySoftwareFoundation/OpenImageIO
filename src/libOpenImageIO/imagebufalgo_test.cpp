@@ -8,6 +8,9 @@
 #include <iostream>
 #include <string>
 
+// Must be first to ensure that half is defined before typedesc.h included
+#include <OpenImageIO/half.h>
+
 #include <OpenImageIO/platform.h>
 
 #include <OpenImageIO/argparse.h>
