@@ -85,6 +85,8 @@ else ()
     checked_find_package (JPEG REQUIRED)
 endif ()
 
+checked_find_package (libuhdr REQUIRED)
+
 
 checked_find_package (TIFF REQUIRED
                       VERSION_MIN 4.0)
