@@ -1037,6 +1037,10 @@ anywhere near the acceptance of the original JPEG/JFIF format.
        reader/writer, and you should assume that nearly everything described
        Appendix :ref:`chap-stdmetadata` is properly translated when using
        JPEG files.
+   * - *other*
+     -
+     - Extra attributes will be read from comment blocks in the JPEG file,
+       and can optionally be written if ``jpeg:com_attributes`` is enabled.
 
 **Configuration settings for JPEG input**
 
@@ -1084,6 +1088,10 @@ control aspects of the writing itself:
    * - ``jpeg:progressive``
      - int
      - If nonzero, will write a progressive JPEG file.
+   * - ``jpeg:com_attributes``
+     - int
+     - If nonzero, extra attributes will be written into the file as comment
+       blocks.
 
 
 **Custom I/O Overrides**
