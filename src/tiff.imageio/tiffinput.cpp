@@ -1254,6 +1254,9 @@ TIFFInput::readspec(bool read_meta)
             // should be interpreted to be sRGB.
             if (m_spec.get_int_attribute("Exif:ColorSpace") != 0xffff)
                 m_spec.attribute("oiio:ColorSpace", "sRGB");
+            // NOTE: We must set "oiio:ColorSpace" explicitly, not call
+            // set_colorspace, or it will erase several other TIFF attribs we
+            // need to preserve.
         }
         // TIFFReadEXIFDirectory seems to do something to the internal state
         // that requires a TIFFSetDirectory to set things straight again.

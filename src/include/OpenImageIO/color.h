@@ -371,6 +371,23 @@ public:
     /// Return a filename or other identifier for the config we're using.
     std::string configname() const;
 
+    /// Set the spec's metadata to presume that color space is `name` (or to
+    /// assume nothing about the color space if `name` is empty). The core
+    /// operation is to set the "oiio:ColorSpace" attribute, but it also removes
+    /// or alters several other attributes that may hint color space in ways that
+    /// might be contradictory or no longer true.
+    ///
+    /// @version 3.0
+    void set_colorspace(ImageSpec& spec, string_view name) const;
+
+    /// Set the spec's metadata to reflect Rec709 color primaries and the given
+    /// gamma. The core operation is to set the "oiio:ColorSpace" attribute, but
+    /// it also removes or alters several other attributes that may hint color
+    /// space in ways that might be contradictory or no longer true.
+    ///
+    /// @version 3.0
+    void set_colorspace_rec709_gamma(ImageSpec& spec, float gamma) const;
+
     /// Return if OpenImageIO was built with OCIO support
     static bool supportsOpenColorIO();
 

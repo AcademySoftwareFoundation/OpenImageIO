@@ -6,7 +6,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagebuf.h>
@@ -370,8 +370,17 @@ TGAOutput::write_tga20_data_fields()
         }
 
         // gamma -- two shorts, giving a ratio
+        const ColorConfig& colorconfig = ColorConfig::default_colorconfig();
         string_view colorspace = m_spec.get_string_attribute("oiio:ColorSpace");
-        if (Strutil::istarts_with(colorspace, "Gamma")) {
+        if (colorconfig.equivalent(colorspace, "g22_rec709")) {
+            m_gamma = 2.2f;
+            write(uint16_t(m_gamma * 10.0f));
+            write(uint16_t(10));
+        } else if (colorconfig.equivalent(colorspace, "g18_rec709")) {
+            m_gamma = 1.8f;
+            write(uint16_t(m_gamma * 10.0f));
+            write(uint16_t(10));
+        } else if (Strutil::istarts_with(colorspace, "Gamma")) {
             // Extract gamma value from color space, if it's there
             Strutil::parse_word(colorspace);
             float g = Strutil::from_string<float>(colorspace);
@@ -381,7 +390,7 @@ TGAOutput::write_tga20_data_fields()
             // NOTE: the spec states that only 1 decimal place of precision
             // is needed, thus the expansion by 10
             // numerator
-            write(uint16_t(m_gamma * 10.0f));
+            write(uint16_t(std::round(m_gamma * 10.0f)));
             write(uint16_t(10));
         } else {
             // just dump two zeros in there

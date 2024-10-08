@@ -41,14 +41,14 @@ Reading ../oiio-images/dds/dds_bc6hu.dds
     channel list: R, G, B
     compression: "BC6HU"
     textureformat: "Plain Texture"
-    oiio:ColorSpace: "linear"
+    oiio:ColorSpace: "lin_rec709"
 Reading ../oiio-images/dds/dds_bc6hu_hdr.dds
 ../oiio-images/dds/dds_bc6hu_hdr.dds :  128 x   64, 3 channel, half dds
     SHA-1: 86FE86288649F5375DB51CDF19C91C3651992726
     channel list: R, G, B
     compression: "BC6HU"
     textureformat: "Plain Texture"
-    oiio:ColorSpace: "linear"
+    oiio:ColorSpace: "lin_rec709"
 Reading ../oiio-images/dds/dds_bc7.dds
 ../oiio-images/dds/dds_bc7.dds :   16 x    8, 4 channel, uint8 dds
     SHA-1: 18D1977AD74C3C19E5B30459D212EBC8C7F8BC54

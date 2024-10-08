@@ -3254,6 +3254,33 @@ inline string_view get_string_attribute (string_view name,
 }
 
 
+/// Set the metadata of the `spec` to presume that color space is `name` (or
+/// to assume nothing about the color space if `name` is empty). The core
+/// operation is to set the "oiio:ColorSpace" attribute, but it also removes
+/// or alters several other attributes that may hint color space in ways that
+/// might be contradictory or no longer true. This uses the current default
+/// color config to adjudicate color space name equivalencies.
+///
+/// @version 3.0
+OIIO_API void set_colorspace(ImageSpec& spec, string_view name);
+
+/// Set the metadata of the `spec` to reflect Rec709 color primaries and the
+/// given gamma. The core operation is to set the "oiio:ColorSpace" attribute,
+/// but it also removes or alters several other attributes that may hint color
+/// space in ways that might be contradictory or no longer true. This uses the
+/// current default color config to adjudicate color space name equivalencies.
+///
+/// @version 3.0
+OIIO_API void set_colorspace_rec709_gamma(ImageSpec& spec, float gamma);
+
+
+/// Are the two named color spaces equivalent, based on the default color
+/// config in effect?
+///
+/// @version 3.0
+OIIO_API bool equivalent_colorspace(string_view a, string_view b);
+
+
 /// Register the input and output 'create' routines and list of file
 /// extensions for a particular format.
 OIIO_API void declare_imageio_format (const std::string &format_name,

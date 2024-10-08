@@ -732,7 +732,6 @@ Section :ref:`sec-ImageSpec`, is replicated for Python.
         spec.set_colorspace ("sRGB")
 
 
-
 .. py:method:: ImageSpec.undefined ()
 
     Returns `True` for a newly initialized (undefined) ImageSpec.
@@ -3883,6 +3882,53 @@ details.
     .. code-block:: python
 
         formats = oiio.get_string_attribute ("format_list")
+
+
+.. py:method:: set_colorspace (spec, name)
+
+    Set the metadata of the `spec` to presume that color space is `name` (or
+    to assume nothing about the color space if `name` is empty).
+
+    Example:
+
+    .. code-block:: python
+
+        spec = oiio.ImageSpec()
+        oiio.set_colorspace (spec, "lin_rec709")
+
+    This function was added in OpenImageIO 3.0.
+
+
+.. py:method:: set_colorspace_rec709_gamma (spec, name)
+
+    Set the metadata of the `spec` to reflect Rec709 color primaries and the
+    given gamma.
+
+    Example:
+
+    .. code-block:: python
+
+        spec = oiio.ImageSpec()
+        oiio.set_colorspace_rec709_gamma (spec, 2.2)
+
+    This function was added in OpenImageIO 3.0.
+
+
+.. py:method:: equivalent_colorspace (a, b)
+
+    Return `True` if the color spaces `a` and `b` are equivalent in the
+    default active color config.
+
+    Example:
+
+    .. code-block:: python
+
+        # ib is an ImageBuf
+        cs = ib.spec().get_string_attribute("oiio:ColorSpace")
+        if oiio.equivalent_colorspace(cs, "sRGB") :
+            print ("The image is sRGB")
+
+    This function was added in OpenImageIO 3.0.
 
 
 .. py:method:: is_imageio_format_name (name)

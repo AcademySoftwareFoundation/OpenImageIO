@@ -1817,12 +1817,9 @@ bool OIIO_API erode (ImageBuf &dst, const ImageBuf &src,
 /// transformed, and the fourth channel (if it exists) is presumed to be
 /// alpha. Any additional channels will be simply copied unaltered.
 ///
-/// If OIIO was built with OpenColorIO support enabled, then the
-/// transformation may be between any two spaces supported by the active
+/// The transformation may be between any two spaces supported by the active
 /// OCIO configuration, or may be a "look" transformation created by
-/// `ColorConfig::createLookTransform`.  If OIIO was not built with
-/// OpenColorIO support enabled, then the only transformations available are
-/// from "sRGB" to "linear" and vice versa.
+/// `ColorConfig::createLookTransform`.
 ///
 /// @param  fromspace/tospace
 ///             For the varieties of `colorconvert()` that use named color
@@ -1927,7 +1924,8 @@ bool OIIO_API colormatrixtransform (ImageBuf &dst, const ImageBuf &src,
 ///             The looks to apply (comma-separated).
 /// @param  fromspace/tospace
 ///             For the varieties of `colorconvert()` that use named color
-///             spaces, these specify the color spaces by name.
+///             spaces, these specify the color spaces by name.  If either
+///             is the empty string, it will use `"scene_linear"`.
 /// @param  unpremult
 ///             If true, unpremultiply the image (divide the RGB channels by
 ///             alpha if it exists and is nonzero) before color conversion,
@@ -1979,7 +1977,7 @@ bool OIIO_API ociolook (ImageBuf &dst, const ImageBuf &src, string_view looks,
 ///             If `fromspace` is not supplied, it will assume that the
 ///             source color space is whatever is indicated by the source
 ///             image's metadata or filename, and if that cannot be deduced,
-///             it will be assumed to be scene linear.
+///             it will be assumed to be `"scene_linear"`.
 /// @param  looks
 ///             The looks to apply (comma-separated). This may be empty,
 ///             in which case no "look" is used. Note: this parameter value

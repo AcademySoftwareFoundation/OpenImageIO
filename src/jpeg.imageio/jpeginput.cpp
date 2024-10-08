@@ -257,7 +257,7 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
         return false;
 
     // Assume JPEG is in sRGB unless the Exif or XMP tags say otherwise.
-    m_spec.attribute("oiio:ColorSpace", "sRGB");
+    m_spec.set_colorspace("sRGB");
 
     if (m_cinfo.jpeg_color_space == JCS_CMYK)
         m_spec.attribute("jpeg:ColorSpace", "CMYK");
