@@ -583,6 +583,60 @@ void example_div()
 
 // Section: Image enhancement / restoration
 
+void example_fixNonFinite()
+{
+    print("example_fixNonFinite\n");
+    // BEGIN-imagebufalgo-fixNonFinite
+    ImageBuf Src ("with_nans.tif");
+    int pixelsFixed = 0;
+    ImageBufAlgo::fixNonFinite (Src, Src, ImageBufAlgo::NONFINITE_BOX3,
+                            &pixelsFixed);
+    std::cout << "Repaired " << pixelsFixed << " non-finite pixels\n";
+    // END-imagebufalgo-fixNonFinite
+
+    // fixing the nans seems nondeterministic - so not writing out the image
+    // Src.write("with_nans_fixed.tif");
+
+}
+
+
+void example_fillholes_pushpull()
+{
+    print("example_fillholes_pushpull\n");
+    // BEGIN-imagebufalgo-fillholes_pushpull
+
+    ImageBuf Src ("checker_with_alpha.exr");
+    ImageBuf Filled = ImageBufAlgo::fillholes_pushpull (Src);
+
+    // END-imagebufalgo-fillholes_pushpull
+    Filled.write("checker_with_alpha_filled.exr");
+
+}
+
+
+void example_median_filter()
+{
+    print("example_median_filter\n");
+    // BEGIN-imagebufalgo-median_filter
+    ImageBuf Noisy ("tahoe.tif");
+    ImageBuf Clean = ImageBufAlgo::median_filter (Noisy, 3, 3);
+    // END-imagebufalgo-median_filter
+    Clean.write("tahoe_median_filter.tif");
+
+}
+
+
+void example_unsharp_mask()
+{
+    print("example_unsharp_mask\n");
+    // BEGIN-imagebufalgo-unsharp_mask
+    ImageBuf Blurry ("tahoe.tif");
+    ImageBuf Sharp = ImageBufAlgo::unsharp_mask (Blurry, "gaussian", 5.0f);
+    // END-imagebufalgo-unsharp_mask
+    Sharp.write("tahoe_unsharp_mask.tif");
+
+}
+
 
 // Section: Morphological filters
 
@@ -663,6 +717,11 @@ int main(int /*argc*/, char** /*argv*/)
     // Section: Convolution and frequency-space algorithms
 
     // Section: Image enhancement / restoration
+
+    example_fixNonFinite();
+    example_fillholes_pushpull();
+    example_median_filter();
+    example_unsharp_mask();
 
     // Section: Morphological filters
 

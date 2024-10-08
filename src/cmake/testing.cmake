@@ -193,7 +193,7 @@ macro (oiio_add_all_tests)
                     texture-filtersize
                     texture-filtersize-stochastic
                     texture-res texture-maxres
-                    IMAGEDIR oiio-images URL "Recent checkout of oiio-images"
+                    IMAGEDIR oiio-images URL "Recent checkout of OpenImageIO-images"
                    )
 
     # Add tests that require the Python bindings.
@@ -234,20 +234,20 @@ macro (oiio_add_all_tests)
                     IMAGEDIR oiio-images/bmpsuite)
     oiio_add_tests (cineon
                     ENABLEVAR ENABLE_CINEON
-                    IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
+                    IMAGEDIR oiio-images URL "Recent checkout of OpenImageIO-images")
     oiio_add_tests (dpx
                     ENABLEVAR ENABLE_DPX
-                    IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
+                    IMAGEDIR oiio-images/dpx URL "Recent checkout of OpenImageIO-images")
     oiio_add_tests (dds
                     ENABLEVAR ENABLE_DDS
-                    IMAGEDIR oiio-images/dds URL "Recent checkout of oiio-images")
+                    IMAGEDIR oiio-images/dds URL "Recent checkout of OpenImageIO-images")
     oiio_add_tests (fits
                     ENABLEVAR ENABLE_FITS
                     IMAGEDIR fits-images
                     URL http://www.cv.nrao.edu/fits/data/tests/)
     oiio_add_tests (gif
                     FOUNDVAR GIF_FOUND ENABLEVAR ENABLE_GIF
-                    IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
+                    IMAGEDIR oiio-images/gif URL "Recent checkout of OpenImageIO-images")
     oiio_add_tests (hdr
                     ENABLEVAR ENABLE_HDR
                     IMAGEDIR openexr-images
@@ -259,13 +259,13 @@ macro (oiio_add_all_tests)
                     URL http://github.com/AcademySoftwareFoundation/openexr-images)
     oiio_add_tests (ico
                     ENABLEVAR ENABLE_ICO
-                    IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
+                    IMAGEDIR oiio-images/ico URL "Recent checkout of OpenImageIO-images")
     oiio_add_tests (iff
                     ENABLEVAR ENABLE_IFF
-                    IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
+                    IMAGEDIR oiio-images URL "Recent checkout of OpenImageIO-images")
     oiio_add_tests (jpeg2000
                     FOUNDVAR OPENJPEG_FOUND
-                    IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
+                    IMAGEDIR oiio-images URL "Recent checkout of OpenImageIO-images")
     oiio_add_tests (jpeg2000-j2kp4files
                     FOUNDVAR OPENJPEG_FOUND
                     IMAGEDIR j2kp4files_v1_5
@@ -307,13 +307,13 @@ macro (oiio_add_all_tests)
                     FOUNDVAR OpenVDB_FOUND ENABLEVAR ENABLE_OpenVDB)
     oiio_add_tests (png png-damaged
                     ENABLEVAR ENABLE_PNG
-                    IMAGEDIR oiio-images)
+                    IMAGEDIR oiio-images/png)
     oiio_add_tests (pnm
                     ENABLEVAR ENABLE_PNM
                     IMAGEDIR oiio-images)
     oiio_add_tests (psd psd-colormodes
                     ENABLEVAR ENABLE_PSD
-                    IMAGEDIR oiio-images)
+                    IMAGEDIR oiio-images/psd)
     oiio_add_tests (ptex
                     FOUNDVAR PTEX_FOUND ENABLEVAR ENABLE_PTEX)
     oiio_add_tests (raw
@@ -321,7 +321,7 @@ macro (oiio_add_all_tests)
                     IMAGEDIR oiio-images/raw)
     oiio_add_tests (rla
                     ENABLEVAR ENABLE_RLA
-                    IMAGEDIR oiio-images)
+                    IMAGEDIR oiio-images/rla)
     oiio_add_tests (sgi
                     ENABLEVAR ENABLE_SGI
                     IMAGEDIR oiio-images)
@@ -406,7 +406,8 @@ endfunction()
 
 function (oiio_setup_test_data)
     oiio_get_test_data (oiio-images
-                        REPO https://github.com/AcademySoftwareFoundation/OpenImageIO-images.git)
+                        REPO https://github.com/AcademySoftwareFoundation/OpenImageIO-images.git
+                        BRANCH dev-${OpenImageIO_VERSION_MAJOR}.${OpenImageIO_VERSION_MINOR})
     oiio_get_test_data (openexr-images
                         REPO https://github.com/AcademySoftwareFoundation/openexr-images.git
                         BRANCH main)

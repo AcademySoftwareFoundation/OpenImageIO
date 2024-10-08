@@ -44,9 +44,9 @@ OIIO_NAMESPACE_BEGIN
 /// through APIs through blind pointers.  These are some simple classes
 /// that provide a simple type descriptor system.  This is not meant to
 /// be comprehensive -- for example, there is no provision for structs,
-/// unions, pointers, const, or 'nested' type definitions.  Just simple
-/// integer and floating point, *common* aggregates such as 3-points,
-/// and reasonably-lengthed arrays thereof.
+/// unions, typed pointers, const, or 'nested' type definitions.  Just simple
+/// integer and floating point, *common* aggregates such as 3-points, and
+/// reasonably-lengthed arrays thereof.
 ///
 /////////////////////////////////////////////////////////////////////////////
 
@@ -83,7 +83,7 @@ struct OIIO_UTIL_API TypeDesc {
         DOUBLE,             ///< 64-bit IEEE floating point values, (C/C++ `double`).
         STRING,             ///< Character string.
         PTR,                ///< A pointer value.
-        USTRINGHASH,        ///< The hash of a ustring
+        USTRINGHASH,        ///< A uint64 that is the hash of a ustring.
         LASTBASE
     };
 

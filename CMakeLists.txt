@@ -1,8 +1,8 @@
 # Copyright Contributors to the OpenImageIO project.
-# SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+# SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-cmake_minimum_required (VERSION 3.15)
+cmake_minimum_required (VERSION 3.18.2)
 
 set (OpenImageIO_VERSION "2.6.7.0")
 set (OpenImageIO_VERSION_OVERRIDE "" CACHE STRING
@@ -87,9 +87,11 @@ message (STATUS "Build type             = ${CMAKE_BUILD_TYPE}")
 message (STATUS "Supported release      = ${${PROJECT_NAME}_SUPPORTED_RELEASE}")
 
 # Make the build area layout look a bit more like the final dist layout
-set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+if (PROJECT_IS_TOP_LEVEL)
+    set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+    set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+    set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+endif()
 
 if ("${PROJECT_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
     message (FATAL_ERROR "Not allowed to run in-source build!")

@@ -128,10 +128,10 @@ public:
     ///           value), any untiled images will be read and cached as if
     ///           they were constructed in tiles of size:
     ///
-    ///               - `autotile * autotile`
-    ///                     if `autoscanline` is 0
-    ///               - `width * autotile`
-    ///                     if `autoscanline` is nonzero.
+    ///           - `autotile * autotile`
+    ///                 if `autoscanline` is 0
+    ///           - `width * autotile`
+    ///                 if `autoscanline` is nonzero.
     ///
     ///           In both cases, this should lead more efficient caching.
     ///           The `autoscanline` determines whether the "virtual tiles"

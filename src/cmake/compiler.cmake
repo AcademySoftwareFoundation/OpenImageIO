@@ -421,12 +421,22 @@ endif ()
 
 
 ###########################################################################
-# Profiling
+# Runtime profiling
 #
 set_cache (PROFILER "" "Build executables with profiler support (choices: gperftools)")
 if (PROFILER STREQUAL "gperftools")
     find_library(PROFILER_LIBRARIES NAMES profiler)
     message (STATUS "Compiling for profiling with ${PROFILER}, found ${PROFILER_LIBRARIES}")
+endif ()
+
+
+###########################################################################
+# Build profiling
+#
+set_option (${PROJ_NAME}_BUILD_PROFILER "Profile the build process" OFF)
+if (${PROJ_NAME}_BUILD_PROFILER AND CMAKE_COMPILER_IS_CLANG)
+    add_compile_options (-ftime-trace)
+    message (STATUS "Profiling the build process")
 endif ()
 
 

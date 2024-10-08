@@ -512,6 +512,41 @@ def example_div():
 
 # Section: Image enhancement / restoration
 
+def example_fixNonFinite():
+    print("example_fixNonFinite")
+    # BEGIN-imagebufalgo-fixNonFinite
+    Src = ImageBuf("with_nans.tif")
+    ImageBufAlgo.fixNonFinite (Src, Src, oiio.NONFINITE_BOX3)
+    # END-imagebufalgo-fixNonFinite
+
+    # fixing the nans seems nondeterministic - so not writing out the image
+    # Src.write("with_nans_fixed.tif")
+
+def example_fillholes_pushpull():
+    print("example_fillholes_pushpull")
+    # BEGIN-imagebufalgo-fillholes_pushpull
+    Src = ImageBuf("checker_with_alpha.exr")
+    Filled = ImageBufAlgo.fillholes_pushpull(Src)
+    # END-imagebufalgo-fillholes_pushpull
+    Filled.write("checker_with_alpha_filled.exr")
+
+
+def example_median_filter():
+    print("example_median_filter")
+    # BEGIN-imagebufalgo-median_filter
+    Noisy = ImageBuf("tahoe.tif")
+    Clean = ImageBufAlgo.median_filter (Noisy, 3, 3)
+    # END-imagebufalgo-median_filter
+    Clean.write("tahoe_median_filter.tif")
+
+
+def example_unsharp_mask():
+    print("example_unsharp_mask")
+    # BEGIN-imagebufalgo-unsharp_mask
+    Blurry = ImageBuf("tahoe.tif")
+    Sharp = ImageBufAlgo.unsharp_mask (Blurry, "gaussian", 5.0)
+    # END-imagebufalgo-unsharp_mask
+    Sharp.write("tahoe_unsharp_mask.tif")
 
 # Section: Morphological filters
 
@@ -589,6 +624,10 @@ if __name__ == '__main__':
     # Section: Convolution and frequency-space algorithms
 
     # Section: Image enhancement / restoration
+    example_fixNonFinite()
+    example_fillholes_pushpull()
+    example_median_filter()
+    example_unsharp_mask()
 
     # Section: Morphological filters
 
