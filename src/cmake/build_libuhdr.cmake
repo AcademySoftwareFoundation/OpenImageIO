@@ -10,7 +10,7 @@ set_cache (libuhdr_BUILD_VERSION 1.2.0 "libuhdr version for local builds")
 set (libuhdr_GIT_REPOSITORY "https://github.com/google/libultrahdr")
 set (libuhdr_GIT_TAG "v${libuhdr_BUILD_VERSION}")
 
-set_cache (libuhdr_BUILD_SHARED_LIBS ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
+set_cache (libuhdr_BUILD_SHARED_LIBS OFF
            DOC "Should execute a local libuhdr build, if necessary, build shared libraries" ADVANCED)
 
 build_dependency_with_cmake(libuhdr
@@ -18,9 +18,21 @@ build_dependency_with_cmake(libuhdr
     GIT_REPOSITORY  ${libuhdr_GIT_REPOSITORY}
     GIT_TAG         ${libuhdr_GIT_TAG}
     CMAKE_ARGS
-        -D BUILD_SHARED_LIBS=${libdeflate_BUILD_SHARED_LIBS}
+        -D BUILD_SHARED_LIBS=${libuhdr_BUILD_SHARED_LIBS}
         -D CMAKE_INSTALL_LIBDIR=lib
+        -D CMAKE_POSITION_INDEPENDENT_CODE=ON
+        -D UHDR_BUILD_EXAMPLES=FALSE
+        -D UHDR_ENABLE_LOGS=TRUE
     )
+
+if (WIN32)
+    file (GLOB _lib_files "${libuhdr_LOCAL_BUILD_DIR}/Release/*.lib")
+    file (COPY ${_lib_files} DESTINATION ${libuhdr_LOCAL_INSTALL_DIR}/lib)
+    unset (_lib_files)
+    file (GLOB _header_files "${libuhdr_LOCAL_SOURCE_DIR}/ultrahdr_api.h")
+    file (COPY ${_header_files} DESTINATION ${libuhdr_LOCAL_INSTALL_DIR}/include)
+    unset (_header_files)
+endif ()
 
 set (libuhdr_ROOT ${libuhdr_LOCAL_INSTALL_DIR})
 
