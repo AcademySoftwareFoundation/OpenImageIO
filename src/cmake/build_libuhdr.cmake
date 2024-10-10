@@ -18,8 +18,9 @@ build_dependency_with_cmake(libuhdr
     GIT_REPOSITORY  ${libuhdr_GIT_REPOSITORY}
     GIT_TAG         ${libuhdr_GIT_TAG}
     CMAKE_ARGS
-        -D BUILD_SHARED_LIBS=${libdeflate_BUILD_SHARED_LIBS}
+        -D BUILD_SHARED_LIBS=${libuhdr_BUILD_SHARED_LIBS}
         -D CMAKE_INSTALL_LIBDIR=lib
+        -D CMAKE_POSITION_INDEPENDENT_CODE=ON
     )
 
 set (libuhdr_ROOT ${libuhdr_LOCAL_INSTALL_DIR})
