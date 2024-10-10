@@ -429,15 +429,16 @@ JpgInput::read_uhdr(Filesystem::IOProxy* ioproxy)
     m_uhdr_dec = uhdr_create_decoder();
 
     uhdr_compressed_image_t uhdr_compressed;
-    uhdr_compressed.data = buffer.data();
-    uhdr_compressed.data_sz = buffer.size();
+    uhdr_compressed.data     = buffer.data();
+    uhdr_compressed.data_sz  = buffer.size();
     uhdr_compressed.capacity = buffer.size();
     uhdr_dec_set_image(m_uhdr_dec, &uhdr_compressed);
 
     uhdr_error_info_t err_info = uhdr_decode(m_uhdr_dec);
 
     if (err_info.error_code != UHDR_CODEC_OK) {
-        errorfmt("Ultra HDR decoding failed with error code {}", int(err_info.error_code));
+        errorfmt("Ultra HDR decoding failed with error code {}",
+                 int(err_info.error_code));
         if (err_info.has_detail != 0)
             errorfmt("Additional error details: {}", err_info.detail);
         uhdr_release_decoder(m_uhdr_dec);
@@ -451,15 +452,15 @@ JpgInput::read_uhdr(Filesystem::IOProxy* ioproxy)
     switch (uhdr_raw->fmt) {
     case UHDR_IMG_FMT_32bppRGBA8888:
         nchannels = 4;
-        desc = TypeDesc::UINT8;
+        desc      = TypeDesc::UINT8;
         break;
     case UHDR_IMG_FMT_64bppRGBAHalfFloat:
         nchannels = 4;
-        desc = TypeDesc::HALF;
+        desc      = TypeDesc::HALF;
         break;
     case UHDR_IMG_FMT_24bppRGB888:
         nchannels = 3;
-        desc = TypeDesc::UINT8;
+        desc      = TypeDesc::UINT8;
         break;
     default:
         errorfmt("Unsupported Ultra HDR image format: {}", int(uhdr_raw->fmt));
@@ -469,7 +470,7 @@ JpgInput::read_uhdr(Filesystem::IOProxy* ioproxy)
 
     ImageSpec newspec = ImageSpec(uhdr_raw->w, uhdr_raw->h, nchannels, desc);
     newspec.extra_attribs = m_spec.extra_attribs;
-    m_spec = newspec;
+    m_spec                = newspec;
 
     return true;
 #else
@@ -532,14 +533,15 @@ JpgInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
 
         unsigned int nbytes;
         switch (uhdr_raw->fmt) {
-        case UHDR_IMG_FMT_32bppRGBA8888:      nbytes = 4; break;
+        case UHDR_IMG_FMT_32bppRGBA8888: nbytes = 4; break;
         case UHDR_IMG_FMT_64bppRGBAHalfFloat: nbytes = 8; break;
-        case UHDR_IMG_FMT_24bppRGB888:        nbytes = 3; break;
-        default:                              return false;
+        case UHDR_IMG_FMT_24bppRGB888: nbytes = 3; break;
+        default: return false;
         }
 
-        const size_t row_size = uhdr_raw->stride[UHDR_PLANE_PACKED] * nbytes;
-        unsigned char* top_left = static_cast<unsigned char *>(uhdr_raw->planes[UHDR_PLANE_PACKED]);
+        const size_t row_size   = uhdr_raw->stride[UHDR_PLANE_PACKED] * nbytes;
+        unsigned char* top_left = static_cast<unsigned char*>(
+            uhdr_raw->planes[UHDR_PLANE_PACKED]);
         unsigned char* row_data_start = top_left + row_size * y;
         memcpy(data, row_data_start, row_size);
 

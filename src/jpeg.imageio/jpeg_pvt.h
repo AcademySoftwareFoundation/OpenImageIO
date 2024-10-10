@@ -114,9 +114,9 @@ private:
         m_jerr.jpginput = this;
         ioproxy_clear();
         m_config.reset();
-        m_use_uhdr      = false;
+        m_use_uhdr = false;
 #if defined(USE_UHDR)
-        m_uhdr_dec      = NULL;
+        m_uhdr_dec = NULL;
 #endif
     }
 
