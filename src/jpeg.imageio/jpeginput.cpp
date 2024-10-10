@@ -329,7 +329,13 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
 
     read_icc_profile(&m_cinfo, m_spec);  /// try to read icc profile
 
-    m_use_uhdr = read_uhdr(m_io);  /// try to interpret as Ultra HDR image
+    // Try to interpret as Ultra HDR image.
+    // The libultrahdr API requires to load the whole file content in memory
+    // therefore we first check for the presence of the "hdrgm:Version" metadata
+    // to avoid this costly process when not necessary.
+    // https://developer.android.com/media/platform/hdr-image-format#signal_of_the_format
+    if (m_spec.find_attribute("hdrgm:Version"))
+        m_use_uhdr = read_uhdr(m_io);
 
     newspec = m_spec;
     return true;
