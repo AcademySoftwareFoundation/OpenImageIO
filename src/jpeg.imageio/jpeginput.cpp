@@ -417,6 +417,7 @@ JpgInput::read_icc_profile(j_decompress_ptr cinfo, ImageSpec& spec)
 bool
 JpgInput::read_uhdr(Filesystem::IOProxy* ioproxy)
 {
+#if defined(USE_UHDR)
     const size_t buffer_size = ioproxy->size();
     std::vector<unsigned char> buffer(buffer_size);
     ioproxy->pread(buffer.data(), buffer_size, 0);
@@ -471,6 +472,9 @@ JpgInput::read_uhdr(Filesystem::IOProxy* ioproxy)
     m_spec = newspec;
 
     return true;
+#else
+    return false;
+#endif
 }
 
 
@@ -522,6 +526,7 @@ JpgInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         OIIO_DASSERT(m_next_scanline == 0 && current_subimage() == subimage);
     }
 
+#if defined(USE_UHDR)
     if (m_use_uhdr) {
         uhdr_raw_image_t* uhdr_raw = uhdr_get_decoded_image(m_uhdr_dec);
 
@@ -540,6 +545,7 @@ JpgInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
 
         return true;
     }
+#endif
 
     // Set up our custom error handler
     if (setjmp(m_jerr.setjmp_buffer)) {
@@ -582,9 +588,11 @@ JpgInput::close()
         if (m_decomp_create)
             jpeg_destroy_decompress(&m_cinfo);
         m_decomp_create = false;
+#if defined(USE_UHDR)
         if (m_use_uhdr)
             uhdr_release_decoder(m_uhdr_dec);
         m_use_uhdr = false;
+#endif
         close_file();
     }
     init();  // Reset to initial state
