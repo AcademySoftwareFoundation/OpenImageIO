@@ -439,6 +439,7 @@ JpgInput::read_uhdr(Filesystem::IOProxy* ioproxy)
         errorfmt("Ultra HDR decoding failed with error code {}", int(err_info.error_code));
         if (err_info.has_detail != 0)
             errorfmt("Additional error details: {}", err_info.detail);
+        uhdr_release_decoder(m_uhdr_dec);
         return false;
     }
 
@@ -461,6 +462,7 @@ JpgInput::read_uhdr(Filesystem::IOProxy* ioproxy)
         break;
     default:
         errorfmt("Unsupported Ultra HDR image format: {}", int(uhdr_raw->fmt));
+        uhdr_release_decoder(m_uhdr_dec);
         return false;
     }
 
