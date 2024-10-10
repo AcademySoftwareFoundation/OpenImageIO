@@ -85,8 +85,6 @@ else ()
     checked_find_package (JPEG REQUIRED)
 endif ()
 
-checked_find_package (libuhdr REQUIRED)
-
 
 checked_find_package (TIFF REQUIRED
                       VERSION_MIN 4.0)
@@ -226,6 +224,10 @@ checked_find_package (fmt REQUIRED
                       BUILD_LOCAL missing
                      )
 get_target_property(FMT_INCLUDE_DIR fmt::fmt-header-only INTERFACE_INCLUDE_DIRECTORIES)
+
+
+# Ultra HDR
+checked_find_package (libuhdr)
 
 
 ###########################################################################
