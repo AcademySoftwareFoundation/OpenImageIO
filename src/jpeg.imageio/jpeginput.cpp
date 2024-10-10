@@ -443,7 +443,28 @@ JpgInput::read_uhdr(Filesystem::IOProxy* ioproxy)
     }
 
     uhdr_raw_image_t* uhdr_raw = uhdr_get_decoded_image(m_uhdr_dec);
-    ImageSpec newspec = ImageSpec(uhdr_raw->w, uhdr_raw->h, 4, TypeDesc::HALF);
+
+    int nchannels;
+    TypeDesc desc;
+    switch (uhdr_raw->fmt) {
+    case UHDR_IMG_FMT_32bppRGBA8888:
+        nchannels = 4;
+        desc = TypeDesc::UINT8;
+        break;
+    case UHDR_IMG_FMT_64bppRGBAHalfFloat:
+        nchannels = 4;
+        desc = TypeDesc::HALF;
+        break;
+    case UHDR_IMG_FMT_24bppRGB888:
+        nchannels = 3;
+        desc = TypeDesc::UINT8;
+        break;
+    default:
+        errorfmt("Unsupported Ultra HDR image format: {}", int(uhdr_raw->fmt));
+        return false;
+    }
+
+    ImageSpec newspec = ImageSpec(uhdr_raw->w, uhdr_raw->h, nchannels, desc);
     newspec.extra_attribs = m_spec.extra_attribs;
     m_spec = newspec;
 
@@ -502,7 +523,15 @@ JpgInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     if (m_use_uhdr) {
         uhdr_raw_image_t* uhdr_raw = uhdr_get_decoded_image(m_uhdr_dec);
 
-        const size_t row_size = uhdr_raw->stride[UHDR_PLANE_PACKED] * 8;
+        unsigned int nbytes;
+        switch (uhdr_raw->fmt) {
+        case UHDR_IMG_FMT_32bppRGBA8888:      nbytes = 4; break;
+        case UHDR_IMG_FMT_64bppRGBAHalfFloat: nbytes = 8; break;
+        case UHDR_IMG_FMT_24bppRGB888:        nbytes = 3; break;
+        default:                              return false;
+        }
+
+        const size_t row_size = uhdr_raw->stride[UHDR_PLANE_PACKED] * nbytes;
         unsigned char* top_left = static_cast<unsigned char *>(uhdr_raw->planes[UHDR_PLANE_PACKED]);
         unsigned char* row_data_start = top_left + row_size * y;
         memcpy(data, row_data_start, row_size);
