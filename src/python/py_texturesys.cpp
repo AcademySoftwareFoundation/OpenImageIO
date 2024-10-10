@@ -156,9 +156,7 @@ declare_textureopt(py::module& m)
         .def_readwrite("fill", &TextureOptWrap::fill)
         .def_property("missingcolor", &TextureOptWrap::get_missingcolor,
                       &TextureOptWrap::set_missingcolor)
-        .def_readwrite("time", &TextureOptWrap::time)
         .def_readwrite("rnd", &TextureOptWrap::rnd)
-        .def_readwrite("samples", &TextureOptWrap::samples)
         .def_property(
             "rwrap",
             [](const TextureOptWrap& texopt) { return (Tex::Wrap)texopt.rwrap; },
