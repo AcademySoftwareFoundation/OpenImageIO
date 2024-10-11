@@ -143,18 +143,19 @@ Color information
     
     - `"scene_linear"` :  Color pixel values are known to be scene-linear and
       using facility-default color primaries as defined by the OpenColorIO
-      configuration. Note that `"linear"` is treated as a synonym. (Note: when
-      no color config is found, this are presumed to use sRGB/Rec709 color
-      primaries when built against OpenColorIO 2.1 or earlier, or when no OCIO
-      support is available, but is presumed to be ACEScg when built against
-      OCIO 2.2 or higher and using its built-in config.)
-    - `"lin_srgb"` :  Color pixel values are known to be linear and
-      using sRGB/Rec709 color primaries.
+      configuration.
+    - `"lin_srgb"`, `"lin_rec709"` :  Color pixel values are known to be
+      linear and using sRGB/Rec709 color primaries. Note that `"linear"` is
+      treated as a synonym.
     - `"sRGB"` :  Using standard sRGB response and primaries.
     - `"Rec709"` :  Using standard Rec709 response and primaries.
     - `"ACEScg"` :  ACEScg color space encoding.
     - `"AdobeRGB"` :  Adobe RGB color space.
     - `"KodakLog"` :  Kodak logarithmic color space.
+    - `"g22_rec709"` : Rec709/sRGB primaries, but using a response curve
+      corresponding to gamma 2.2.
+    - `"g18_rec709"` : Rec709/sRGB primaries, but using a response curve
+      corresponding to gamma 1.8.
     - `"GammaX.Y"` :  Color values have been gamma corrected
       (raised to the power :math:`1/\gamma`). The `X.Y` is the numeric value
       of the gamma exponent.
@@ -230,7 +231,7 @@ Disk file format info/hints
     `piz`, `pxr24`, `b44`, `b44a`, `dwaa`, or `dwab`.
 
     he compression name is permitted to have a quality value to be appended
-    fter a colon, for example `dwaa:60`.  The exact meaning and range of
+    after a colon, for example `dwaa:60`.  The exact meaning and range of
     he quality value can vary between different file formats and compression
     odes, and some don't support quality values at all (it will be ignored if
     ot supported, or if out of range).

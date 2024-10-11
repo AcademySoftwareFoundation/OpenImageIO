@@ -179,6 +179,9 @@ SPDX-License-Identifier: Apache-2.0
   This is licensed under the Apache 2.0 license with LLVM Exceptions.
   https://llvm.org/docs/DeveloperPolicy.html#open-source-licensing-terms
 
+* ninjatracing.py utility for build profiling is Apache-2.0 licensed
+  and comes from https://github.com/nico/ninjatracing.
+  Copyright 2018 Nico Weber.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

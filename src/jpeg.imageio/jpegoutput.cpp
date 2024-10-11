@@ -229,7 +229,8 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
                           comment.size() + 1);
     }
 
-    if (Strutil::iequals(m_spec.get_string_attribute("oiio:ColorSpace"), "sRGB"))
+    if (equivalent_colorspace(m_spec.get_string_attribute("oiio:ColorSpace"),
+                              "sRGB"))
         m_spec.attribute("Exif:ColorSpace", 1);
 
     // Write EXIF info

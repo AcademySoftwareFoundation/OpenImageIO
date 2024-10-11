@@ -337,7 +337,7 @@ PNMInput::read_file_header()
         m_spec.attribute("pnm:bigendian", m_scaling_factor < 0 ? 0 : 1);
         m_spec.attribute("pnm:binary", 1);
     }
-    m_spec.attribute("oiio:ColorSpace", "Rec709");
+    m_spec.set_colorspace("Rec709");
     return true;
 }
 

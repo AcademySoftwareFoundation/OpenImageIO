@@ -148,6 +148,40 @@ namespace pvt {
 void
 set_exr_threads();
 
+
+// Split a full channel name into layer and suffix.
+void
+split_name(string_view fullname, string_view& layer, string_view& suffix)
+{
+    size_t dot = fullname.find_last_of('.');
+    if (dot == string_view::npos) {
+        suffix = fullname;
+        layer  = string_view();
+    } else {
+        layer  = string_view(fullname.data(), dot + 1);
+        suffix = string_view(fullname.data() + dot + 1,
+                             fullname.size() - dot - 1);
+    }
+}
+
+
+inline bool
+str_equal_either(string_view str, string_view a, string_view b)
+{
+    return Strutil::iequals(str, a) || Strutil::iequals(str, b);
+}
+
+
+// Do the channels appear to be R, G, B (or known common aliases)?
+bool
+channels_are_rgb(const ImageSpec& spec)
+{
+    return spec.nchannels >= 3
+           && str_equal_either(spec.channel_name(0), "R", "Red")
+           && str_equal_either(spec.channel_name(1), "G", "Green")
+           && str_equal_either(spec.channel_name(2), "B", "Blue");
+}
+
 }  // namespace pvt
 
 
@@ -357,8 +391,13 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
 
     spec.deep = Strutil::istarts_with(header->type(), "deep");
 
-    // Unless otherwise specified, exr files are assumed to be linear.
-    spec.attribute("oiio:ColorSpace", "Linear");
+    // Unless otherwise specified, exr files are assumed to be linear Rec709
+    // if the channels appear to be R, G, B.  I know this suspect, but I'm
+    // betting that this heuristic will guess the right thing that users want
+    // more often than if we pretending we have no idea what the color space
+    // is.
+    if (pvt::channels_are_rgb(spec))
+        spec.set_colorspace("lin_rec709");
 
     if (levelmode != Imf::ONE_LEVEL)
         spec.attribute("openexr:roundingmode", roundingmode);
@@ -666,7 +705,7 @@ struct ChanNameHolder {
         , xSampling(exrchan.xSampling)
         , ySampling(exrchan.ySampling)
     {
-        split_name(fullname, layer, suffix);
+        pvt::split_name(fullname, layer, suffix);
     }
 
     // Compute canoninical channel list sort priority

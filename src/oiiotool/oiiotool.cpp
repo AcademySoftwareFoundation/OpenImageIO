@@ -5195,7 +5195,7 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
                     print("  Metadata of {} indicates color space \"{}\"\n",
                           colorspace, filename);
             }
-            std::string linearspace = ot.colorconfig().resolve("linear");
+            std::string linearspace = ot.colorconfig().resolve("scene_linear");
             if (colorspace.size()
                 && !ot.colorconfig().equivalent(colorspace, linearspace)) {
                 std::string cmd = "colorconvert:strict=0";
@@ -5504,7 +5504,7 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
         }
     }
     if (autocc) {
-        string_view linearspace = ot.colorconfig().resolve("linear");
+        string_view linearspace = ot.colorconfig().resolve("scene_linear");
         std::string currentspace
             = ir->spec()->get_string_attribute("oiio:ColorSpace", linearspace);
         // Special cases where we know formats should be particular color
@@ -6008,12 +6008,16 @@ print_ocio_info(Oiiotool& ot, std::ostream& out)
         out << "No OpenColorIO";
     out << "\nColor config: " << colorconfig.configname() << "\n";
     out << "Known color spaces: \n";
-    const char* linear = colorconfig.getColorSpaceNameByRole("linear");
+    const char* linear       = colorconfig.getColorSpaceNameByRole("linear");
+    const char* scene_linear = colorconfig.getColorSpaceNameByRole(
+        "scene_linear");
     for (int i = 0, e = colorconfig.getNumColorSpaces(); i < e; ++i) {
         const char* n = colorconfig.getColorSpaceNameByIndex(i);
         out << "    - " << quote_if_spaces(n);
-        if ((linear && !colorconfig.equivalent(n, "linear")
-             && colorconfig.equivalent(n, linear))
+        if ((scene_linear && !colorconfig.equivalent(n, "scene_linear")
+             && colorconfig.equivalent(n, scene_linear))
+            || (linear && !colorconfig.equivalent(n, "linear")
+                && colorconfig.equivalent(n, linear))
             || colorconfig.isColorSpaceLinear(n))
             out << " (linear)";
         out << "\n";

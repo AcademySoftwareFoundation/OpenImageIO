@@ -224,23 +224,18 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     int srgb_intent;
     double gamma = 0.0;
     if (png_get_sRGB(sp, ip, &srgb_intent)) {
-        spec.attribute("oiio:ColorSpace", "sRGB");
+        spec.set_colorspace("sRGB");
     } else if (png_get_gAMA(sp, ip, &gamma) && gamma > 0.0) {
         // Round gamma to the nearest hundredth to prevent stupid
         // precision choices and make it easier for apps to make
         // decisions based on known gamma values. For example, you want
         // 2.2, not 2.19998.
         float g = float(1.0 / gamma);
-        g       = roundf(100.0 * g) / 100.0f;
-        spec.attribute("oiio:Gamma", g);
-        if (g == 1.0f)
-            spec.attribute("oiio:ColorSpace", "linear");
-        else
-            spec.attribute("oiio:ColorSpace",
-                           Strutil::fmt::format("Gamma{:.2g}", g));
+        g       = roundf(100.0f * g) / 100.0f;
+        set_colorspace_rec709_gamma(spec, g);
     } else {
         // If there's no info at all, assume sRGB.
-        spec.attribute("oiio:ColorSpace", "sRGB");
+        set_colorspace(spec, "sRGB");
     }
 
     if (png_get_valid(sp, ip, PNG_INFO_iCCP)) {
@@ -607,7 +602,7 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
     const ColorConfig& colorconfig = ColorConfig::default_colorconfig();
     string_view colorspace = spec.get_string_attribute("oiio:ColorSpace");
     if (colorconfig.equivalent(colorspace, "scene_linear")
-        || colorconfig.equivalent(colorspace, "linear")) {
+        || colorconfig.equivalent(colorspace, "lin_rec709")) {
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG gAMA chunk";
         png_set_gAMA(sp, ip, 1.0);
@@ -617,6 +612,18 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
         float g = Strutil::from_string<float>(colorspace);
         if (g >= 0.01f && g <= 10.0f /* sanity check */)
             gamma = g;
+        if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+            return "Could not set PNG gAMA chunk";
+        png_set_gAMA(sp, ip, 1.0f / gamma);
+        srgb = false;
+    } else if (colorconfig.equivalent(colorspace, "g22_rec709")) {
+        gamma = 2.2f;
+        if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+            return "Could not set PNG gAMA chunk";
+        png_set_gAMA(sp, ip, 1.0f / gamma);
+        srgb = false;
+    } else if (colorconfig.equivalent(colorspace, "g18_rec709")) {
+        gamma = 1.8f;
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG gAMA chunk";
         png_set_gAMA(sp, ip, 1.0f / gamma);
