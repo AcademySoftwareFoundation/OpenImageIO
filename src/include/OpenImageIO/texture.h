@@ -223,41 +223,29 @@ public:
 
     /// Create a TextureOpt with all fields initialized to reasonable
     /// defaults.
-    OIIO_HOSTDEVICE
-    TextureOpt_v2()
-        : firstchannel(0), subimage(0),
-        swrap(Wrap::Default), twrap(Wrap::Default), rwrap(Wrap::Default),
-        mipmode(MipMode::Default), interpmode(InterpMode::SmartBicubic),
-        conservative_filter(true), anisotropic(32),
-        sblur(0.0f), tblur(0.0f), rblur(0.0f),
-        swidth(1.0f), twidth(1.0f), rwidth(1.0f),
-        fill(0.0f), missingcolor(nullptr),
-        rnd(-1.0f),
-        colortransformid(0),
-        envlayout(0)
-    { }
+    OIIO_HOSTDEVICE TextureOpt_v2() { }
 
     /// Convert a TextureOptions for one index into a TextureOpt.
     ///
     TextureOpt_v2(const TextureOptions& opt, int index);
 
-    int firstchannel;           ///< First channel of the lookup
-    int subimage;               ///< Subimage or face ID
-    ustring subimagename;       ///< Subimage name
-    Wrap swrap;                 ///< Wrap mode in the s direction
-    Wrap twrap;                 ///< Wrap mode in the t direction
-    Wrap rwrap;                 ///< Wrap mode in the r direction (volume)
-    MipMode mipmode;            ///< Mip mode
-    InterpMode interpmode;      ///< Interpolation mode
-    bool conservative_filter;   ///< True == over-blur rather than alias
-    uint16_t anisotropic;       ///< Maximum anisotropic ratio
-    float sblur, tblur, rblur;  ///< Blur amount
-    float swidth, twidth;       ///< Multiplier for derivatives
-    float rwidth;               ///< Multiplier for derivs in r direction
-    float fill;                 ///< Fill value for missing channels
-    const float* missingcolor;  ///< Color for missing texture
-    float rnd;                  ///< Stratified sample value
-    int colortransformid;       ///< Color space id of the texture
+    int firstchannel = 0;           ///< First channel of the lookup
+    int subimage = 0;               ///< Subimage or face ID
+    ustring subimagename;           ///< Subimage name
+    Wrap swrap = Wrap::Default;     ///< Wrap mode in the s direction
+    Wrap twrap = Wrap::Default;     ///< Wrap mode in the t direction
+    Wrap rwrap = Wrap::Default;     ///< Wrap mode in the r direction (volume)
+    MipMode mipmode = MipMode::Default;  ///< Mip mode
+    InterpMode interpmode = InterpMode::SmartBicubic;  ///< Interpolation mode
+    bool conservative_filter = true;  ///< True == over-blur rather than alias
+    uint16_t anisotropic = 32;        ///< Maximum anisotropic ratio
+    float sblur = 0, tblur = 0, rblur = 0;  ///< Blur amount
+    float swidth = 1, twidth = 1;   ///< Multiplier for derivatives
+    float rwidth = 1;               ///< Multiplier for derivs in r direction
+    float fill = 0;                 ///< Fill value for missing channels
+    const float* missingcolor = nullptr;  ///< Color for missing texture
+    float rnd = -1;                 ///< Stratified sample value
+    int colortransformid = 0;       ///< Color space id of the texture
 
     /// Utility: Return the Wrap enum corresponding to a wrap name:
     /// "default", "black", "clamp", "periodic", "mirror".
@@ -286,7 +274,7 @@ public:
 private:
     // Options set INTERNALLY by libtexture after the options are passed
     // by the user.  Users should not attempt to alter these!
-    int envlayout;  // Layout for environment wrap
+    int envlayout = 0;  // Layout for environment wrap
     friend class TextureSystemImpl;
 };
 
