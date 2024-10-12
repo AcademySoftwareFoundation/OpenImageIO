@@ -38,7 +38,7 @@
 // behave like sprintf (OIIO_FORMAT_IS_FMT==0) or like python / {fmt} /
 // C++20ish std::format (OIIO_FORMAT_IS_FMT==1).
 #ifndef OIIO_FORMAT_IS_FMT
-#    define OIIO_FORMAT_IS_FMT 0
+#    define OIIO_FORMAT_IS_FMT 1
 #endif
 
 #define OIIO_FORMAT_DEPRECATED OIIO_DEPRECATED("old style (printf-like) formatting version of this function is deprecated")
@@ -309,15 +309,6 @@ std::string OIIO_UTIL_API vsprintf (const char *fmt, va_list ap)
 #endif
     ;
 
-/// Return a std::string formatted like Strutil::format, but passed
-/// already as a va_list.  This is not guaranteed type-safe and is not
-/// extensible like format(). Use with caution!
-OIIO_DEPRECATED("use `vsprintf` instead")
-std::string OIIO_UTIL_API vformat (const char *fmt, va_list ap)
-#if defined(__GNUC__) && !defined(__CUDACC__)
-    __attribute__ ((format (printf, 1, 0) ))
-#endif
-    ;
 
 /// Return a string expressing a number of bytes, in human readable form.
 ///  - memformat(153)           -> "153 B"
