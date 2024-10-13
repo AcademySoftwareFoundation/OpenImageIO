@@ -669,26 +669,6 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt)
 
 
 
-#if OIIO_VERSION_LESS(2, 7, 0)
-// Old deprecated one
-std::string
-tostring(TypeDesc type, const void* data, const char* float_fmt,
-         const char* string_fmt, const char aggregate_delim[2],
-         const char* aggregate_sep, const char array_delim[2],
-         const char* array_sep)
-{
-    tostring_formatting fmt("%d", float_fmt, string_fmt, "%p",
-                            std::string(aggregate_delim + 0, 1).c_str(),
-                            std::string(aggregate_delim + 1, 1).c_str(),
-                            aggregate_sep,
-                            std::string(array_delim + 0, 1).c_str(),
-                            std::string(array_delim + 1, 1).c_str(), array_sep);
-    return tostring(type, data, fmt);
-}
-#endif
-
-
-
 namespace {
 
 template<typename T = int>
@@ -928,37 +908,5 @@ TypeDesc::basetype_merge(TypeDesc at, TypeDesc bt)
     // we prefer float.
     return FLOAT;
 }
-
-
-
-#if OIIO_VERSION_LESS(2, 7, 0)
-// Static members of pre-constructed types
-// DEPRECATED(1.8)
-OIIO_PRAGMA_WARNING_PUSH
-OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wdeprecated-declarations")
-const TypeDesc TypeDesc::TypeFloat(TypeDesc::FLOAT);
-const TypeDesc TypeDesc::TypeColor(TypeDesc::FLOAT, TypeDesc::VEC3,
-                                   TypeDesc::COLOR);
-const TypeDesc TypeDesc::TypePoint(TypeDesc::FLOAT, TypeDesc::VEC3,
-                                   TypeDesc::POINT);
-const TypeDesc TypeDesc::TypeVector(TypeDesc::FLOAT, TypeDesc::VEC3,
-                                    TypeDesc::VECTOR);
-const TypeDesc TypeDesc::TypeNormal(TypeDesc::FLOAT, TypeDesc::VEC3,
-                                    TypeDesc::NORMAL);
-const TypeDesc TypeDesc::TypeMatrix33(TypeDesc::FLOAT, TypeDesc::MATRIX33);
-const TypeDesc TypeDesc::TypeMatrix44(TypeDesc::FLOAT, TypeDesc::MATRIX44);
-const TypeDesc TypeDesc::TypeMatrix = TypeDesc::TypeMatrix44;
-const TypeDesc TypeDesc::TypeString(TypeDesc::STRING);
-const TypeDesc TypeDesc::TypeInt(TypeDesc::INT);
-const TypeDesc TypeDesc::TypeHalf(TypeDesc::HALF);
-const TypeDesc TypeDesc::TypeTimeCode(TypeDesc::UINT, TypeDesc::SCALAR,
-                                      TypeDesc::TIMECODE, 2);
-const TypeDesc TypeDesc::TypeKeyCode(TypeDesc::INT, TypeDesc::SCALAR,
-                                     TypeDesc::KEYCODE, 7);
-const TypeDesc TypeDesc::TypeFloat4(TypeDesc::FLOAT, TypeDesc::VEC4);
-const TypeDesc TypeDesc::TypeRational(TypeDesc::INT, TypeDesc::VEC2,
-                                      TypeDesc::RATIONAL);
-OIIO_PRAGMA_WARNING_PUSH
-#endif
 
 OIIO_NAMESPACE_END

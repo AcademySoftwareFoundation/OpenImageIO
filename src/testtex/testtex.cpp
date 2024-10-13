@@ -829,7 +829,6 @@ plain_tex_region_batch(ImageBuf& image, ustring filename, Mapping2DWide mapping,
             }
             if (stochastic) {
                 // Hash the pixel coords to get a pseudo-random variant
-#if OIIO_VERSION_GREATER_EQUAL(2, 4, 0)
                 constexpr float inv
                     = 1.0f / float(std::numeric_limits<uint32_t>::max());
                 for (int i = 0; i < BatchWidth; ++i) {
@@ -840,7 +839,6 @@ plain_tex_region_batch(ImageBuf& image, ustring filename, Mapping2DWide mapping,
                     else
                         opt.rnd[i] = bjhash::bjfinal(x + i, y) * inv;
                 }
-#endif
             }
 
             int npoints  = std::min(BatchWidth, roi.xend - x);

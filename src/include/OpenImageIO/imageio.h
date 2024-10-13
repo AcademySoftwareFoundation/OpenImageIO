@@ -951,23 +951,6 @@ public:
 
     /// @}
 
-#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2,2,0) && OIIO_VERSION_LESS(2,7,0) \
-    && !defined(OIIO_DOXYGEN) && !defined(OIIO_INTERNAL)
-    OIIO_DEPRECATED("Use the modern form of create instead (2.2)")
-    static unique_ptr create (const std::string& filename, bool do_open,
-                              const ImageSpec *config,
-                              string_view plugin_searchpath) {
-        return create(filename, do_open, config, nullptr, plugin_searchpath);
-    }
-    OIIO_DEPRECATED("Use the modern form of create instead (2.1)")
-    static unique_ptr create (const std::string& filename,
-                              const std::string& plugin_searchpath) {
-        return create(filename, false, nullptr, nullptr, plugin_searchpath);
-    }
-    OIIO_DEPRECATED("destroy is no longer needed (2.1)")
-    static void destroy (ImageInput *x) { delete x; }
-#endif
-
 protected:
     ImageInput ();
 public:
