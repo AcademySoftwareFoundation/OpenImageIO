@@ -752,14 +752,15 @@ public:
     bool get_imagespec(ImageHandle* file, Perthread* thread_info,
                        ImageSpec& spec, int subimage = 0);
 
-    /// DEPRECATED old API. Note that the miplevel and native parameters are ignored:
-    /// it will always get the native spec of miplevel 0. We recommend switching to
-    /// the new API.
+    /// DEPRECATED(3.0) old API. Note that the miplevel and native parameters
+    /// are ignored: it will always get the native spec of miplevel 0. We
+    /// recommend switching to the new API.
     bool get_imagespec(ustring filename, ImageSpec& spec, int subimage,
                        int miplevel, bool native = false)
     {
         return get_imagespec(filename, spec, subimage);
     }
+    /// DEPRECATED(3.0) old API.
     bool get_imagespec(ImageHandle* file, Perthread* thread_info,
                        ImageSpec& spec, int subimage, int miplevel,
                        bool native = false)
@@ -801,14 +802,15 @@ public:
     const ImageSpec* imagespec(ImageHandle* file, Perthread* thread_info,
                                int subimage = 0);
 
-    /// DEPRECATED old API. Note that the miplevel and native parameters are ignored:
-    /// it will always get the native spec of miplevel 0. We recommend switching to
-    /// the new API.
+    /// DEPRECATED(3.0) old API. Note that the miplevel and native parameters
+    /// are ignored: it will always get the native spec of miplevel 0. We
+    /// recommend switching to the new API.
     const ImageSpec* imagespec(ustring filename, int subimage, int miplevel,
                                bool native = false)
     {
         return imagespec(filename, subimage);
     }
+    /// DEPRECATED(3.0) old API.
     const ImageSpec* imagespec(ImageHandle* file, Perthread* thread_info,
                                int subimage, int miplevel, bool native = false)
     {

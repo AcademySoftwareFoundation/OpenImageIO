@@ -1423,8 +1423,8 @@ public:
     bool get_imagespec(TextureHandle* texture_handle, Perthread* thread_info,
                        ImageSpec& spec, int subimage = 0);
 
-    /// DEPRECATED old API. Note that the spec and subimage parameters are
-    /// inverted. We recommend switching to the new API.
+    /// DEPRECATED(3.0) old API. Note that the spec and subimage parameters
+    /// are inverted. We recommend switching to the new API.
     bool get_imagespec(ustring filename, int subimage, ImageSpec& spec)
     {
         return get_imagespec(filename, spec, subimage);

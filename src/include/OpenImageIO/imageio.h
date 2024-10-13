@@ -1300,43 +1300,13 @@ public:
     /// @returns            `true` upon success, or `false` upon failure.
     ///
     /// @note This call was changed for OpenImageIO 2.0 to include the
-    ///     explicit subimage and miplevel parameters. The previous
-    ///     versions, which lacked subimage and miplevel parameters (thus
-    ///     were dependent on a prior call to `seek_subimage`) are
-    ///     considered deprecated.
+    ///     explicit subimage and miplevel parameters.
     virtual bool read_scanlines (int subimage, int miplevel,
                                  int ybegin, int yend, int z,
                                  int chbegin, int chend,
                                  TypeDesc format, void *data,
                                  stride_t xstride=AutoStride,
                                  stride_t ystride=AutoStride);
-
-#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2,0,0) \
-    && !defined(OIIO_DOXYGEN) && !defined(OIIO_INTERNAL)
-    // DEPRECATED versions of read_scanlines (pre-1.9 OIIO). These will
-    // eventually be removed. Try to replace these calls with ones to the
-    // new variety of read_scanlines that takes an explicit subimage and
-    // miplevel. These old versions are NOT THREAD-SAFE.
-    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
-    bool read_scanlines (int ybegin, int yend, int z,
-                         TypeDesc format, void *data,
-                         stride_t xstride=AutoStride,
-                         stride_t ystride=AutoStride) {
-        lock_guard lock(*this);
-        return read_scanlines(current_subimage(), current_miplevel(), ybegin, yend,
-                              z, 0, m_spec.nchannels, format, data, xstride, ystride);
-    }
-    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
-    bool read_scanlines (int ybegin, int yend, int z,
-                         int chbegin, int chend,
-                         TypeDesc format, void *data,
-                         stride_t xstride=AutoStride,
-                         stride_t ystride=AutoStride) {
-        lock_guard lock(*this);
-        return read_scanlines(current_subimage(), current_miplevel(), ybegin, yend,
-                              z, chbegin, chend, format, data, xstride, ystride);
-    }
-#endif
 
     /// Read the tile whose upper-left origin is (x,y,z) into `data[]`,
     /// converting if necessary from the native data format of the file into
@@ -1427,23 +1397,6 @@ public:
                              stride_t xstride=AutoStride, stride_t ystride=AutoStride,
                              stride_t zstride=AutoStride);
 
-#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2,0,0) && !defined(OIIO_DOXYGEN)
-    // DEPRECATED versions of read_tiles (pre-1.9 OIIO). These will
-    // eventually be removed. Try to replace these calls with ones to the
-    // new variety of read_tiles that takes an explicit subimage and
-    // miplevel. These old versions are NOT THREAD-SAFE.
-    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
-    bool read_tiles (int xbegin, int xend, int ybegin, int yend,
-                     int zbegin, int zend, TypeDesc format, void *data,
-                     stride_t xstride=AutoStride, stride_t ystride=AutoStride,
-                     stride_t zstride=AutoStride);
-    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
-    bool read_tiles (int xbegin, int xend, int ybegin, int yend,
-                     int zbegin, int zend, int chbegin, int chend,
-                     TypeDesc format, void *data, stride_t xstride=AutoStride,
-                     stride_t ystride=AutoStride, stride_t zstride=AutoStride);
-#endif
-
     /// Read the entire image of `spec.width x spec.height x spec.depth`
     /// pixels into a buffer with the given strides and in the desired
     /// data format.
@@ -1487,33 +1440,6 @@ public:
                              stride_t zstride=AutoStride,
                              ProgressCallback progress_callback=NULL,
                              void *progress_callback_data=NULL);
-
-#if !defined(OIIO_DOXYGEN)
-    // DEPRECATED versions of read_image (pre-1.9 OIIO). These will
-    // eventually be removed. Try to replace these calls with ones to the
-    // new variety of read_image that takes an explicit subimage and
-    // miplevel. These old versions are NOT THREAD-SAFE.
-    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
-    virtual bool read_image (TypeDesc format, void *data,
-                             stride_t xstride=AutoStride,
-                             stride_t ystride=AutoStride,
-                             stride_t zstride=AutoStride,
-                             ProgressCallback progress_callback=NULL,
-                             void *progress_callback_data=NULL);
-    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
-    virtual bool read_image (int chbegin, int chend,
-                             TypeDesc format, void *data,
-                             stride_t xstride=AutoStride,
-                             stride_t ystride=AutoStride,
-                             stride_t zstride=AutoStride,
-                             ProgressCallback progress_callback=NULL,
-                             void *progress_callback_data=NULL);
-    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
-    bool read_image (float *data) {
-        return read_image (current_subimage(), current_miplevel(),
-                           0, -1, TypeFloat, data);
-    }
-#endif
 
     /// Read deep scanlines containing pixels (*,y,z), for all y in the
     /// range [ybegin,yend) into `deepdata`. This will fail if it is not a
@@ -3452,43 +3378,6 @@ OIIO_API void _ImageIO_force_link ();
 // entirely before the final release of OIIO 3.0.
 //
 #if !defined(OIIO_INTERNAL) && !defined(OIIO_DOXYGEN)
-
-#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(1,9,0) && !defined(OIIO_INTERNAL)
-// Deprecated typedefs. Just use ParamValue and ParamValueList directly.
-OIIO_DEPRECATED("Use ParamValue instead") typedef ParamValue ImageIOParameter;
-OIIO_DEPRECATED("Use ParamValueList instead") typedef ParamValueList ImageIOParameterList;
-#endif
-
-#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2, 0, 0)
-// DEPRECATED(2.0) -- the alpha_channel, z_channel were never used
-OIIO_DEPRECATED("Deprecated version (2.0)")
-inline bool convert_image(int nchannels, int width, int height, int depth,
-            const void *src, TypeDesc src_type,
-            stride_t src_xstride, stride_t src_ystride, stride_t src_zstride,
-            void *dst, TypeDesc dst_type,
-            stride_t dst_xstride, stride_t dst_ystride, stride_t dst_zstride,
-            int /*alpha_channel*/, int /*z_channel*/ = -1)
-{
-    return convert_image(nchannels, width, height, depth, src, src_type,
-                         src_xstride, src_ystride, src_zstride, dst, dst_type,
-                         dst_xstride, dst_ystride, dst_zstride);
-}
-
-// DEPRECATED(2.0) -- the alpha_channel, z_channel were never used
-OIIO_DEPRECATED("Deprecated version (2.0)")
-inline bool parallel_convert_image(
-            int nchannels, int width, int height, int depth,
-            const void *src, TypeDesc src_type,
-            stride_t src_xstride, stride_t src_ystride, stride_t src_zstride,
-            void *dst, TypeDesc dst_type,
-            stride_t dst_xstride, stride_t dst_ystride, stride_t dst_zstride,
-            int /*alpha_channel*/, int /*z_channel*/, int nthreads=0)
-{
-    return parallel_convert_image (nchannels, width, height, depth,
-           src, src_type, src_xstride, src_ystride, src_zstride,
-           dst, dst_type, dst_xstride, dst_ystride, dst_zstride, nthreads);
-}
-#endif
 
 #if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2, 1, 0)
 // DEPRECATED(2.1): old name

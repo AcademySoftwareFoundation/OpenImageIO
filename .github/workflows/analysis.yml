@@ -64,7 +64,6 @@ jobs:
                             CMAKE_UNITY_BUILD=OFF
                             CODECOV=1
                             CTEST_TEST_TIMEOUT=1200
-                            OIIO_CMAKE_FLAGS="-DOIIO_TEX_IMPLEMENT_VARYINGREF=OFF"
 
     runs-on: ${{ matrix.os }}
     container:
