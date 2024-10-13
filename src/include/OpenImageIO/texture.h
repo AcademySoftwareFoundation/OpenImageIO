@@ -32,6 +32,7 @@
 
 // Revision of the TextureOpt class
 #define OIIO_TEXTUREOPT_VERSION 2
+#define OIIO_TEXTUREOPTBATCH_VERSION 2
 
 
 #ifndef INCLUDED_IMATHVEC_H
@@ -284,13 +285,13 @@ using TextureOpt = TextureOpt_v2;
 
 
 /// Texture options for a batch of Tex::BatchWidth points and run mask.
-class OIIO_API TextureOptBatch {
+class OIIO_API TextureOptBatch_v2 {
 public:
     using simd_t = simd::VecType<float, Tex::BatchWidth>::type;
 
     /// Create a TextureOptBatch with all fields initialized to reasonable
     /// defaults.
-    TextureOptBatch () {
+    TextureOptBatch_v2() {
         *((simd_t*)&sblur) = simd_t::Zero();
         *((simd_t*)&tblur) = simd_t::Zero();
         *((simd_t*)&rblur) = simd_t::Zero();
@@ -333,6 +334,8 @@ private:
     friend class TextureSystemImpl;
 };
 
+
+using TextureOptBatch = TextureOptBatch_v2;
 
 // clang-format on
 
