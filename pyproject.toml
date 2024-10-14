@@ -33,7 +33,7 @@ requires-python = ">= 3.8"
 [project.urls]
 Homepage = "https://openimageio.org/"
 Source = "https://github.com/AcademySoftwareFoundation/OpenImageIO"
-Documentation = "https://openimageio.readthedocs.io"
+Documentation = "https://docs.openimageio.org"
 Issues = "https://github.com/AcademySoftwareFoundation/OpenImageIO/issues"
 
 
