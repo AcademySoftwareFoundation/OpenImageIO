@@ -34,6 +34,12 @@ about being deprecated will be removed in the final 3.0 release.
 
 ---
 
+## argparse.h
+
+* Several long-deprecated old method names now will give deprecation warnings
+  if used. Most notable are `parse()` (you should use `parse_args()` instead)
+  and `usage()` (use `print_help()` instead).
+
 ## array_view.h
 
 * This header has been eliminated. It originally had the template `array_view`,
@@ -202,6 +208,9 @@ about being deprecated will be removed in the final 3.0 release.
 
 ## strutil.h
 
+* The default behavior of `Strutil::format()` has been changed to use the
+  `std::format` conventions. If you want the old behavior, use
+  `Strutil::old::format()` instead.
 * Added deprecation warnings to all the old (printf-convention) string
   `format()` function.
 

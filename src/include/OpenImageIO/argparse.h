@@ -764,7 +764,7 @@ public:
     int options(const char* intro, ...);
 
     // old name
-    OIIO_DEPRECATED_EXTERNAL("(2.2)")
+    OIIO_DEPRECATED_EXTERNAL("Use parse_args() instead. (2.2)")
     int parse(int argc, const char** argv) { return parse_args(argc, argv); }
 
     // Type for a callback that writes something to the output stream.
@@ -778,7 +778,7 @@ public:
     void set_postoption_help(callback_t callback);
 
     // DEPRECATED(2.2) synonym for `print_help()`.
-    OIIO_DEPRECATED_EXTERNAL("(2.2)")
+    OIIO_DEPRECATED_EXTERNAL("Use print_help() instead. (2.2)")
     void usage() const { print_help(); }
 };
 
