@@ -1,4 +1,4 @@
-Release 3.0 (beta 1 - Oct 14, 2024) -- compared to 2.5.16.0
+Release 3.0 (beta 1 - Oct 15, 2024) -- compared to 2.5.16.0
 -----------------------------------------------------------
 Executive Summary / Highlights:
 
@@ -9,6 +9,7 @@ Executive Summary / Highlights:
   --ocionamedtransform, --popbottom, --stackreverse, --stackclear,
   --stackextract; improved --for behavior for reverse direction.
 - Lots of long-deprecated API calls have been removed entirely.
+  Please see [the detailed deprecation list](docs/Deprecations-3.0.md).
 - New ImageBufAlgo: perpixel_op, demosaic, ocionamedtransform.
 - ImageBuf now by default does not use ImageCache to mediate file images,
   unless you explicitly ask for it.
