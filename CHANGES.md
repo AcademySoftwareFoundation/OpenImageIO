@@ -1,3 +1,31 @@
+Release 3.1 (target: Sept 2025?) -- compared to 3.0
+---------------------------------------------------
+### New minimum dependencies and compatibility changes:
+
+### ⛰️  New features and public API changes:
+
+### 🚀  Performance improvements:
+
+### 🐛  Fixes and feature enhancements:
+
+### 🔧  Internals and developer goodies
+
+### 🏗  Build/test/CI and platform ports:
+* CMake build system and scripts:
+* Dependency support:
+* Testing and Continuous integration (CI) systems:
+* Platform support:
+
+### 📚  Notable documentation changes:
+
+### 🏢  Project Administration
+
+
+
+---
+---
+
+
 Release 3.0 (beta 1 - Oct 15, 2024) -- compared to 2.5.16.0
 -----------------------------------------------------------
 Executive Summary / Highlights:
