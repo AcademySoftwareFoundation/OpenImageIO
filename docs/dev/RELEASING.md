@@ -205,7 +205,7 @@ have a heading added at the top for the *next* version.
      sure new contributors are listed.
    - [SECURITY.md](SECURITY.md): Make sure it accurately reflects the
      status of which branches get updates.
-   - Skim the [user documentation](https://openimageio.readthedocs.io/) to
+   - Skim the [user documentation](https://docs.openimageio.org) to
      ensure it's building correctly and doesn't have any obvious errors,
      especially the parts that describe new features.
 
@@ -366,11 +366,11 @@ Odds and ends to do after the tag is pushed and the announcements are sent:
 - Re-read RELEASING.md and ensure that the instructions match what you
   have done. Update as necessary.
 
-- Go to [readthedocs.org](https://openimageio.readthedocs.io/), and ensure
-  that the new release is built, visible, and is the default release shown
-  (specified in the Admin section). I tend to keep the latest patch of each
-  minor release available for reference indefinitely, but hide the docs for
-  earlier patch releases within that minor release series.
+- Go to [OIIO's docs hosted on readthedocs.org](https://docs.openimageio.org),
+  and ensure that the new release is built, visible, and is the default
+  release shown (specified in the Admin section). I tend to keep the latest
+  patch of each minor release available for reference indefinitely, but hide
+  the docs for earlier patch releases within that minor release series.
 
 - Edit the top-level CMakeList.txt to update the version to the *next*
   anticipated release on the branch, in order to ensure that anybody building
