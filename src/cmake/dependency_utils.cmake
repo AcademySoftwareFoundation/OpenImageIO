@@ -553,7 +553,9 @@ macro (build_dependency_with_cmake pkgname)
     if (CMAKE_IGNORE_PREFIX_PATH)
         list (APPEND _pkg_CMAKE_ARGS -DCMAKE_IGNORE_PREFIX_PATH=${CMAKE_IGNORE_PREFIX_PATH})
     endif ()
-
+    if (CMAKE_SYSTEM_INCLUDE_PATH)
+        list (APPEND _pkg_CMAKE_ARGS -DCMAKE_SYSTEM_INCLUDE_PATH=${CMAKE_SYSTEM_INCLUDE_PATH})
+    endif ()
     execute_process (COMMAND
         ${CMAKE_COMMAND}
             # Put things in our special local build areas

@@ -128,8 +128,10 @@ option (IGNORE_HOMEBREWED_DEPS "If ON, will ignore homebrew-installed dependenci
 # https://gitlab.kitware.com/cmake/cmake/-/issues/21918#note_920016
 if (IGNORE_HOMEBREWED_DEPS)
     set (CMAKE_IGNORE_PATH)
+    set (CMAKE_SYSTEM_INCLUDE_PATH)
     foreach (_prefix  /opt/homebrew /usr/local /usr/X11 /usr/X11R6)
         list (APPEND CMAKE_IGNORE_PATH ${_prefix}/lib ${_prefix}/bin ${_prefix}/include)
+        list (REMOVE_ITEM CMAKE_SYSTEM_INCLUDE_PATH ${_prefix}/include)
     endforeach ()
     message (STATUS "Ignoring homebrewed dependencies.")
 endif ()
