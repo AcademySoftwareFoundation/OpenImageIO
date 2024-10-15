@@ -278,11 +278,6 @@ jobs:
           # TODO: Re-enable HEIF when we provide a build recipe that does 
           # not include GPL-licensed dynamic libraries.
           USE_Libheif: 'OFF'
-          # Ignore dependencies installed by homebrew (e.g. freetype)
-          SKBUILD_CMAKE_ARGS: |
-            -DOpenImageIO_BUILD_LOCAL_DEPS=TIFF; 
-            -DOpenImageIO_BUILD_MISSING_DEPS=all; 
-            -DCMAKE_IGNORE_PREFIX_PATH=/opt/homebrew
 
       - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
@@ -340,11 +335,6 @@ jobs:
         env:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
-          # Ignore dependencies installed by homebrew (e.g. freetype)
-          SKBUILD_CMAKE_ARGS: |
-            -DOpenImageIO_BUILD_LOCAL_DEPS=TIFF; 
-            -DOpenImageIO_BUILD_MISSING_DEPS=all; 
-            -DCMAKE_IGNORE_PREFIX_PATH=/opt/homebrew
           #TODO: Re-enable the PNG plugin until we can figure out why the system PNG is causing problems
           ENABLE_PNG: 'OFF'
 

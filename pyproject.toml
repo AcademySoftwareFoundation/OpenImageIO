@@ -98,7 +98,7 @@ test-command = "oiiotool --buildinfo"
 # dependency libraries built by OpenImageIO.
 SKBUILD_BUILD_DIR = "/tmp/build_oiio_wheels"
 # Always (re)build the TIFF library; see #4439 for more details.
-SKBUILD_CMAKE_ARGS = "-DOpenImageIO_BUILD_LOCAL_DEPS=TIFF; -DOpenImageIO_BUILD_MISSING_DEPS=all"
+SKBUILD_CMAKE_ARGS = "-DOpenImageIO_BUILD_LOCAL_DEPS=TIFF; -DOpenImageIO_BUILD_MISSING_DEPS=all; -DLINKSTATIC=1; -DIGNORE_HOMEBREWED_DEPS=1"
 # C++17 - std::filesystem is only available in macOS 10.15 and later.
 MACOSX_DEPLOYMENT_TARGET = "10.15"
 # Optimize for size (not speed).
@@ -106,7 +106,7 @@ SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
 
 [tool.cibuildwheel.linux.environment]
 SKBUILD_BUILD_DIR = "/tmp/build_oiio_wheels"
-SKBUILD_CMAKE_ARGS = "-DOpenImageIO_BUILD_LOCAL_DEPS=all; -DOpenImageIO_BUILD_MISSING_DEPS=all"
+SKBUILD_CMAKE_ARGS = "-DOpenImageIO_BUILD_LOCAL_DEPS=all; -DOpenImageIO_BUILD_MISSING_DEPS=all; -DLINKSTATIC=1"
 SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
 # Suppress warnings that cause linux cibuildwheel build to fail
 CXXFLAGS = "-Wno-error=stringop-overflow -Wno-pragmas"

@@ -122,6 +122,18 @@ option (EMBEDPLUGINS "Embed format plugins in libOpenImageIO" ON)
 set (PLUGIN_SEARCH_PATH "" CACHE STRING "Default plugin search path")
 file (TO_NATIVE_PATH "${PLUGIN_SEARCH_PATH}" PLUGIN_SEARCH_PATH_NATIVE)
 set (CMAKE_DEBUG_POSTFIX "_d" CACHE STRING "Library naming postfix for Debug builds")
+option (IGNORE_HOMEBREWED_DEPS "If ON, will ignore homebrew-installed dependencies" OFF)
+
+# Ignore prefixes for dependencies managed by homebrew on macOS
+# https://gitlab.kitware.com/cmake/cmake/-/issues/21918#note_920016
+if (IGNORE_HOMEBREWED_DEPS)
+    set (CMAKE_IGNORE_PATH)
+    foreach (_prefix  /opt/homebrew /usr/local /usr/X11 /usr/X11R6)
+        list (APPEND CMAKE_IGNORE_PATH ${_prefix}/lib ${_prefix}/bin ${_prefix}/include)
+    endforeach ()
+    message (STATUS "Ignoring homebrewed dependencies.")
+endif ()
+
 
 if (CMAKE_UNITY_BUILD_BATCH_SIZE)
     set (UNITY_SMALL_BATCH_SIZE "${CMAKE_UNITY_BUILD_BATCH_SIZE}" CACHE STRING "Unity batch mode size for expensive files")

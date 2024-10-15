@@ -546,6 +546,14 @@ macro (build_dependency_with_cmake pkgname)
                                 )
     endif ()
 
+    # Make sure to inherit the CMAKE_IGNORE_PATH and CMAKE_IGNORE_PREFIX_PATHs
+    if (CMAKE_IGNORE_PATH)
+        list (APPEND _pkg_CMAKE_ARGS -DCMAKE_IGNORE_PATH=${CMAKE_IGNORE_PATH})
+    endif ()
+    if (CMAKE_IGNORE_PREFIX_PATH)
+        list (APPEND _pkg_CMAKE_ARGS -DCMAKE_IGNORE_PREFIX_PATH=${CMAKE_IGNORE_PREFIX_PATH})
+    endif ()
+
     execute_process (COMMAND
         ${CMAKE_COMMAND}
             # Put things in our special local build areas

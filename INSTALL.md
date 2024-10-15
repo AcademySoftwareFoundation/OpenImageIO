@@ -230,19 +230,20 @@ Make targets you should know about:
 
 Additionally, a few helpful modifiers alter some build-time options:
 
-|  Target                   |  Command                                       |
-| ------------------------- | ---------------------------------------------- |
-| make VERBOSE=1 ...        |  Show all compilation commands                 |
-| make STOP_ON_WARNING=0    |  Do not stop building if compiler warns        |
-| make EMBEDPLUGINS=0 ...   |  Don't compile the plugins into libOpenImageIO |
-| make USE_OPENGL=0 ...     |  Skip anything that needs OpenGL               |
-| make USE_QT=0 ...         |  Skip anything that needs Qt                   |
-| make MYCC=xx MYCXX=yy ... |  Use custom compilers                          |
-| make USE_PYTHON=0 ...     |  Don't build the Python binding                |
-| make BUILD_SHARED_LIBS=0  |  Build static library instead of shared        |
-| make LINKSTATIC=1 ...     |  Link with static external libraries when possible |
-| make SOVERSION=nn ...     |  Include the specified major version number in the shared object metadata |
-| make NAMESPACE=name       |   Wrap everything in another namespace         |
+|  Target                       |  Command                                                                  |
+| ----------------------------- | ------------------------------------------------------------------------- |
+| make VERBOSE=1 ...            |  Show all compilation commands                                            |
+| make STOP_ON_WARNING=0        |  Do not stop building if compiler warns                                   |
+| make EMBEDPLUGINS=0 ...       |  Don't compile the plugins into libOpenImageIO                            |
+| make USE_OPENGL=0 ...         |  Skip anything that needs OpenGL                                          |
+| make USE_QT=0 ...             |  Skip anything that needs Qt                                              |
+| make MYCC=xx MYCXX=yy ...     |  Use custom compilers                                                     |
+| make USE_PYTHON=0 ...         |  Don't build the Python binding                                           |
+| make BUILD_SHARED_LIBS=0      |  Build static library instead of shared                                   |
+| make IGNORE_HOMEBREWED_DEPS=1 |  Ignore homebrew-managed dependencies                                     |
+| make LINKSTATIC=1 ...         |  Link with static external libraries when possible                        |
+| make SOVERSION=nn ...         |  Include the specified major version number in the shared object metadata |
+| make NAMESPACE=name           |  Wrap everything in another namespace                                     |
 
 The command 'make help' will list all possible options.
 
