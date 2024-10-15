@@ -326,11 +326,28 @@ initialize_opt(TextureOptBatch& opt)
     opt.fill = (fill >= 0.0f) ? fill : 1.0f;
     if (missing[0] >= 0)
         opt.missingcolor = (float*)&missing;
+
+#if OIIO_TEXTUREOPTBATCH_VERSION == 1
+    // Current layout of TextureOptBatch_v1
+    Wrap sw, tw;
+    Tex::parse_wrapmodes(wrapmodes.c_str(), sw, tw);
+    opt.swrap       = int(sw);
+    opt.twrap       = int(tw);
+    opt.rwrap       = opt.swrap;
+    opt.anisotropic = anisomax;
+    opt.mipmode     = int(mipmode);     // ideal: MipMode(mipmode);
+    opt.interpmode  = int(interpmode);  // ideal: InterpMode(interpmode);
+#else
+    // Some day, maybe for TextureOptBatch_v2, we'd like to switch to this to
+    // completely match the types and layout of TextureOpt.
     Tex::parse_wrapmodes(wrapmodes.c_str(), opt.swrap, opt.twrap);
     opt.rwrap       = opt.swrap;
     opt.anisotropic = anisomax;
     opt.mipmode     = MipMode(mipmode);
     opt.interpmode  = InterpMode(interpmode);
+#endif
+
+
     if (subimage >= 0)
         opt.subimage = subimage;
     else if (!subimagename.empty())

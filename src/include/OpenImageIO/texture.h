@@ -32,6 +32,16 @@
 
 // Revision of the TextureOpt class
 #define OIIO_TEXTUREOPT_VERSION 2
+#define OIIO_TEXTUREOPTBATCH_VERSION 1
+
+// Preprocessor utility: Concatenation
+#define OIIO_CONCAT_HELPER(a,b) a ## b
+#define OIIO_CONCAT_VERSION(a,b) OIIO_CONCAT_HELPER(a,b)
+
+#define TextureOpt_current \
+    OIIO_CONCAT_VERSION(TextureOpt_v, OIIO_TEXTUREOPT_VERSION)
+#define TextureOptBatch_current \
+    OIIO_CONCAT_VERSION(TextureOptBatch_v, OIIO_TEXTUREOPTBATCH_VERSION)
 
 
 #ifndef INCLUDED_IMATHVEC_H
@@ -279,18 +289,18 @@ private:
 };
 
 
-using TextureOpt = TextureOpt_v2;
+using TextureOpt = TextureOpt_current;
 
 
 
 /// Texture options for a batch of Tex::BatchWidth points and run mask.
-class OIIO_API TextureOptBatch {
+class OIIO_API TextureOptBatch_current {
 public:
     using simd_t = simd::VecType<float, Tex::BatchWidth>::type;
 
     /// Create a TextureOptBatch with all fields initialized to reasonable
     /// defaults.
-    TextureOptBatch () {
+    TextureOptBatch_current() {
         *((simd_t*)&sblur) = simd_t::Zero();
         *((simd_t*)&tblur) = simd_t::Zero();
         *((simd_t*)&rblur) = simd_t::Zero();
@@ -314,13 +324,31 @@ public:
     int firstchannel = 0;                 ///< First channel of the lookup
     int subimage = 0;                     ///< Subimage or face ID
     ustring subimagename;                 ///< Subimage name
+#if OIIO_TEXTUREOPTBATCH_VERSION == 1
+    // Required at the moment by OSL
+    // N.B. We'd like the following types to be Tex::Wrap, MipMode, and
+    // InterpMode, and to adjust the size of anisotropic and interpmode, like
+    // we did for TextureOpt. But it requires extensive changes on the OSL
+    // side. We'll come back to that later, maybe that is for
+    // TextureOptBatch_v2.
+    int swrap = int(Tex::Wrap::Default); ///< Wrap mode in the s direction
+    int twrap = int(Tex::Wrap::Default); ///< Wrap mode in the t direction
+    int rwrap = int(Tex::Wrap::Default); ///< Wrap mode in the r direction (volumetric)
+    int mipmode = int(Tex::MipMode::Default);  ///< Mip mode
+    int interpmode = int(Tex::InterpMode::SmartBicubic);  ///< Interpolation mode
+    int anisotropic = 32;                 ///< Maximum anisotropic ratio
+    int conservative_filter = 1;          ///< True: over-blur rather than alias
+#else
+    // Ideal would be for v2:
     Tex::Wrap swrap = Tex::Wrap::Default; ///< Wrap mode in the s direction
     Tex::Wrap twrap = Tex::Wrap::Default; ///< Wrap mode in the t direction
     Tex::Wrap rwrap = Tex::Wrap::Default; ///< Wrap mode in the r direction (volumetric)
     Tex::MipMode mipmode = Tex::MipMode::Default;  ///< Mip mode
     Tex::InterpMode interpmode = Tex::InterpMode::SmartBicubic;  ///< Interpolation mode
+    // FIXME: fix the following order and type for v3 to match TextureOpt
     int anisotropic = 32;                 ///< Maximum anisotropic ratio
     int conservative_filter = 1;          ///< True: over-blur rather than alias
+#endif
     float fill = 0.0f;                    ///< Fill value for missing channels
     const float *missingcolor = nullptr;  ///< Color for missing texture
     int colortransformid = 0;             ///< Color space id of the texture
@@ -333,6 +361,8 @@ private:
     friend class TextureSystemImpl;
 };
 
+
+using TextureOptBatch = TextureOptBatch_current;
 
 // clang-format on
 
