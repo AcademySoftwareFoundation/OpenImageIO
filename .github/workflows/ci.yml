@@ -358,11 +358,11 @@ jobs:
                             PUGIXML_VERSION=master
                             WEBP_VERSION=main
                             OIIO_CMAKE_FLAGS="-DFORTIFY_SOURCE=2"
-                            QT_VERSION=6
                             EXTRA_DEP_PACKAGES="python3.12-dev python3-numpy"
                             USE_OPENVDB=0
                             SKIP_APT_GET_UPDATE=1
                             FREETYPE_VERSION=master
+                            QT_VERSION=0 INSTALL_OPENCV=0
                             # The installed OpenVDB has a TLS conflict with Python 3.8
                             # Disabling the `apt-get update` in gh-installdeps.bash 
                             # addresses a job killing problem in the GHA Ubuntu
