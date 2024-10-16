@@ -4,7 +4,7 @@
 
 cmake_minimum_required (VERSION 3.18.2)
 
-set (OpenImageIO_VERSION "3.0.0.0")
+set (OpenImageIO_VERSION "3.1.0.0")
 set (OpenImageIO_VERSION_OVERRIDE "" CACHE STRING
      "Version override (use with caution)!")
 mark_as_advanced (OpenImageIO_VERSION_OVERRIDE)
@@ -19,12 +19,12 @@ project (OpenImageIO VERSION ${OpenImageIO_VERSION}
 set (PROJ_NAME OIIO)    # short name, caps
 string (TOLOWER ${PROJ_NAME} PROJ_NAME_LOWER)  # short name lower case
 string (TOUPPER ${PROJ_NAME} PROJ_NAME_UPPER)  # short name upper case
-set (PROJECT_VERSION_RELEASE_TYPE "beta1" CACHE STRING
+set (PROJECT_VERSION_RELEASE_TYPE "dev" CACHE STRING
     "Build type, for example: dev, beta2, RC1 (empty string for normal release)")
 set (${PROJECT_NAME}_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
 set (PROJECT_AUTHORS "Contributors to the OpenImageIO project")
 option (${PROJECT_NAME}_SUPPORTED_RELEASE
-        "Set ON for supported release branches, OFF for 'main'" ON)
+        "Set ON for supported release branches, OFF for 'main'" OFF)
 if (${PROJECT_NAME}_SUPPORTED_RELEASE)
     set (${PROJECT_NAME}_DEV_RELEASE OFF)
 else ()
