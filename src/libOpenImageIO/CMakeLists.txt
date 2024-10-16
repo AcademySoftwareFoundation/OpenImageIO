@@ -229,15 +229,8 @@ if (UNIX AND NOT APPLE)
 endif ()
 set_target_properties (OpenImageIO PROPERTIES LINK_FLAGS ${OpenImageIO_LINK_FLAGS})
 
-if (SKBUILD)
-        # Don't create multiple copies of the same library
-        install (TARGETS OpenImageIO
-                 LIBRARY DESTINATION lib
-                 NAMELINK_SKIP
-                )
-else ()
-    install_targets (OpenImageIO)
-endif ()
+install_targets (OpenImageIO)
+
 
 # Testing
 

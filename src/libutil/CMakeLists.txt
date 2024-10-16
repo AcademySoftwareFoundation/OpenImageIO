@@ -104,16 +104,8 @@ function (setup_oiio_util_library targetname)
 
     set_target_properties (${targetname} PROPERTIES
                            LINK_FLAGS ${OpenImageIO_Util_LINK_FLAGS})
-    
-    if (SKBUILD)
-        # Don't create multiple copies of the same library
-        install (TARGETS ${targetname}
-                 LIBRARY DESTINATION lib
-                 NAMELINK_SKIP
-                )
-    else ()
-        install_targets ($(targetname))
-    endif ()
+
+    install_targets (${targetname})
 endfunction()
 
 
