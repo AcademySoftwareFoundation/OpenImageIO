@@ -483,6 +483,74 @@ endmacro()
 
 
 
+
+# Function: remove_prefixes_from_variable
+# Removes specified directory prefixes from a given environment variable or CMake variable.
+#
+# Parameters:
+#   VAR_TYPE  - Type of variable to modify:
+#               'ENV'   for environment variables
+#               'CMAKE' for CMake variables
+#   VAR_NAME  - Name of the variable to modify.
+#   PREFIXES  - List of directory prefixes to remove from the variable's value.
+#
+# Description:
+#   This function updates the specified variable by removing any paths that start
+#   with the given prefixes. It is useful for excluding certain directories
+#   (e.g., Homebrew paths) from environment variables or CMake variables to prevent
+#   unintended dependencies during the build process.
+#
+# Usage Example:
+#   remove_prefixes_from_variable(ENV LD_LIBRARY_PATH "/opt/homebrew" "/usr/local")
+#   remove_prefixes_from_variable(CMAKE CMAKE_PREFIX_PATH "${HOMEBREW_PREFIXES}")
+function(remove_prefixes_from_variable VAR_TYPE VAR_NAME PREFIXES)
+    # Retrieve the original value based on the variable type
+    if(VAR_TYPE STREQUAL "ENV")
+        if(DEFINED ENV{${VAR_NAME}})
+            set(_original_value "$ENV{${VAR_NAME}}")
+        else()
+            return()
+        endif()
+    elseif(VAR_TYPE STREQUAL "CMAKE")
+        if(DEFINED ${VAR_NAME})
+            set(_original_value "${${VAR_NAME}}")
+        else()
+            return()
+        endif()
+    else()
+        message(FATAL_ERROR "Invalid VAR_TYPE: ${VAR_TYPE}. Expected 'ENV' or 'CMAKE'.")
+    endif()
+
+    # Convert the variable value into a list of paths
+    string(REPLACE ":" ";" _path_list "${_original_value}")
+
+    foreach(_prefix ${PREFIXES})
+        # Normalize the prefix path
+        file(TO_CMAKE_PATH "${_prefix}" _norm_prefix)
+        foreach(_path IN LISTS _path_list)
+            # Normalize paths to avoid issues with different formats
+            file(TO_CMAKE_PATH "${_path}" _norm_path)
+            # Check if the normalized path starts with the normalized prefix
+            string(FIND "${_norm_path}" "${_norm_prefix}" _pos)
+            if(_pos EQUAL 0)
+                list(REMOVE_ITEM _path_list "${_path}")
+            endif()
+        endforeach()
+    endforeach()
+
+    # Convert the list back to the appropriate separator
+    string(REPLACE ";" ":" _new_value "${_path_list}")
+
+    # Update the variable based on the variable type
+    if(VAR_TYPE STREQUAL "ENV")
+        set(ENV{${VAR_NAME}} "${_new_value}")
+        message(STATUS "${ColorYellow}Updated environment variable ${VAR_NAME}: ${_new_value}")
+    else()
+        set(${VAR_NAME} "${_new_value}" PARENT_SCOPE)
+        message(STATUS "${ColorYellow}Updated CMake variable ${VAR_NAME}: ${_new_value}")
+    endif()
+endfunction()
+
 # Helper to build a dependency with CMake. Given a package name, git repo and
 # tag, and optional cmake args, it will clone the repo into the surrounding
 # project's build area, configures, and build sit, and installs it into a
@@ -546,16 +614,12 @@ macro (build_dependency_with_cmake pkgname)
                                 )
     endif ()
 
-    # Make sure to inherit the CMAKE_IGNORE_PATH and CMAKE_IGNORE_PREFIX_PATHs
+    # Make sure to inherit IGNORE_PATH / SYSTEM_IGNORE_PATH etc.
+    set(_pkg_CMAKE_ARGS ${_pkg_CMAKE_ARGS} ${_pkg_CMAKE_ARGS})
     if (CMAKE_IGNORE_PATH)
-        list (APPEND _pkg_CMAKE_ARGS -DCMAKE_IGNORE_PATH=${CMAKE_IGNORE_PATH})
-    endif ()
-    if (CMAKE_IGNORE_PREFIX_PATH)
-        list (APPEND _pkg_CMAKE_ARGS -DCMAKE_IGNORE_PREFIX_PATH=${CMAKE_IGNORE_PREFIX_PATH})
-    endif ()
-    if (CMAKE_SYSTEM_INCLUDE_PATH)
-        list (APPEND _pkg_CMAKE_ARGS -DCMAKE_SYSTEM_INCLUDE_PATH=${CMAKE_SYSTEM_INCLUDE_PATH})
-    endif ()
+        string(REPLACE ";" "\\;" CMAKE_IGNORE_PATH_ESCAPED "${CMAKE_IGNORE_PATH}")
+        list(APPEND _pkg_CMAKE_ARGS "-DCMAKE_IGNORE_PATH=${CMAKE_IGNORE_PATH_ESCAPED}")
+    endif()
     execute_process (COMMAND
         ${CMAKE_COMMAND}
             # Put things in our special local build areas

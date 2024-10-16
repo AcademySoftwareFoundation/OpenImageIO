@@ -122,19 +122,7 @@ option (EMBEDPLUGINS "Embed format plugins in libOpenImageIO" ON)
 set (PLUGIN_SEARCH_PATH "" CACHE STRING "Default plugin search path")
 file (TO_NATIVE_PATH "${PLUGIN_SEARCH_PATH}" PLUGIN_SEARCH_PATH_NATIVE)
 set (CMAKE_DEBUG_POSTFIX "_d" CACHE STRING "Library naming postfix for Debug builds")
-option (IGNORE_HOMEBREWED_DEPS "If ON, will ignore homebrew-installed dependencies" OFF)
 
-# Ignore prefixes for dependencies managed by homebrew on macOS
-# https://gitlab.kitware.com/cmake/cmake/-/issues/21918#note_920016
-if (IGNORE_HOMEBREWED_DEPS)
-    set (CMAKE_IGNORE_PATH)
-    set (CMAKE_SYSTEM_INCLUDE_PATH)
-    foreach (_prefix  /opt/homebrew /usr/local /usr/X11 /usr/X11R6 /opt/X11)
-        list (APPEND CMAKE_IGNORE_PATH ${_prefix}/lib ${_prefix}/bin ${_prefix}/include)
-        list (REMOVE_ITEM CMAKE_SYSTEM_INCLUDE_PATH ${_prefix}/include)
-    endforeach ()
-    message (STATUS "Ignoring homebrewed dependencies.")
-endif ()
 
 
 if (CMAKE_UNITY_BUILD_BATCH_SIZE)
@@ -186,6 +174,38 @@ include (compiler)
 
 # Dependency finding utilities and all dependency-related options
 include (dependency_utils)
+
+option (IGNORE_HOMEBREWED_DEPS "If ON, will ignore homebrew-installed dependencies" OFF)
+if (IGNORE_HOMEBREWED_DEPS)
+    # Define the list of prefixes to ignore
+    set (HOMEBREW_PREFIXES
+         /opt/homebrew
+         /usr/local
+         /usr/X11
+         /usr/X11R6
+         /opt/X11
+    )
+    message (STATUS "Ignoring Homebrew dependencies and adjusted environment and CMake variables accordingly.")
+    foreach (_cmake_var
+             CMAKE_SYSTEM_INCLUDE_PATH
+             CMAKE_SYSTEM_LIBRARY_PATH
+             CMAKE_PREFIX_PATH)
+        remove_prefixes_from_variable (CMAKE ${_cmake_var} "${HOMEBREW_PREFIXES}")
+    endforeach ()
+
+    # Adjust CMAKE_IGNORE_PATH
+    foreach (_prefix IN LISTS HOMEBREW_PREFIXES)
+        list (APPEND CMAKE_IGNORE_PATH
+              "${_prefix}"
+              "${_prefix}/lib"
+              "${_prefix}/bin"
+              "${_prefix}/include"
+             )
+    endforeach ()
+
+    message (STATUS "CMAKE_IGNORE_PATH: ${CMAKE_IGNORE_PATH}")
+endif ()
+
 
 # Utilities and options related to finding python and making python bindings
 include (pythonutils)
