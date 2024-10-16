@@ -24,7 +24,6 @@ on:
     paths:
       - .github/workflows/wheel.yml
       - pyproject.toml
-      - tasks.py
       - src/python/OpenImageIO/*.py
       - src/cmake/pythonutils.cmake
   schedule:

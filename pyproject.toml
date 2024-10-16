@@ -126,6 +126,10 @@ skip = [
     "*musllinux*",  
 ]
 test-command = "oiiotool --buildinfo"
+# Prevent CIBW's default repair-wheel command from running, because it fails to
+# recognize that the wheel isn't broken to begin with, and ends up creating
+# additional copies of the shared libraries in the wheel.
+repair-wheel-command = ""
 
 [tool.cibuildwheel.macos.environment]
 # Specify a persistent build directory so the repairwheel command can (re)find
@@ -147,13 +151,3 @@ CXXFLAGS = "-Wno-error=stringop-overflow -Wno-pragmas"
 
 [tool.cibuildwheel.windows.environment]
 SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
-
-# On macOS and Linux, run a custom repair-wheel-command after the build.
-# See tasks.py for more details.
-[tool.cibuildwheel.macos]
-before-build = "pip install repairwheel invoke"
-repair-wheel-command = "invoke wheel-repair --build-dir ${SKBUILD_BUILD_DIR} --wheel-path {wheel} --output-dir {dest_dir}"
-
-[tool.cibuildwheel.linux]
-before-build = "pip install repairwheel invoke"
-repair-wheel-command = "invoke wheel-repair --build-dir ${SKBUILD_BUILD_DIR} --wheel-path {wheel} --output-dir {dest_dir}"
