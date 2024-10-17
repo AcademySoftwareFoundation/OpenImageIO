@@ -626,17 +626,6 @@ Filesystem::read_text_file(string_view filename, std::string& str, size_t size)
     return true;
 }
 
-#if OIIO_VERSION_LESS(2, 6, 0)
-// Backwards link compatibility with the old 2-argument version
-namespace Filesystem {
-bool
-read_text_file(string_view filename, std::string& str)
-{
-    return read_text_file(filename, str, 0);
-}
-}  // namespace Filesystem
-#endif
-
 
 
 /// Read the entire contents of the named file and place it in str,

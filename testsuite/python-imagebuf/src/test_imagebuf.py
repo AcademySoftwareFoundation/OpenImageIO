@@ -233,7 +233,7 @@ try:
     print ("Interpolating NDC 0.25,0.5 ->", ftupstr(b.interppixel_NDC(0.25,0.5)))
     print ("Interpolating bicubic 0.25,0.5 ->", ftupstr(b.interppixel_bicubic(1.0,0.5)))
     print ("Interpolating NDC bicubic 0.25,0.5 ->", ftupstr(b.interppixel_bicubic_NDC(0.25,0.5)))
-    print ("The whole image is: ", b.get_pixels(oiio.TypeDesc.TypeFloat))
+    print ("The whole image is: ", b.get_pixels(oiio.TypeFloat))
     print ("")
     print ("Saving file...")
     b.write ("out.tif")

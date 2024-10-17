@@ -1495,38 +1495,6 @@ IBA_fit_ret(const ImageBuf& src, const std::string& filtername = "",
 
 
 
-// DEPRECATED(2.3)
-bool
-IBA_fit_old(ImageBuf& dst, const ImageBuf& src,
-            const std::string& filtername = "", float filterwidth = 0.0f,
-            bool exact = false, ROI roi = ROI::All(), int nthreads = 0)
-{
-    py::gil_scoped_release gil;
-    return ImageBufAlgo::fit(dst, src,
-                             { { "filtername", filtername },
-                               { "filterwidth", filterwidth },
-                               { "fillmode", "letterbox" },
-                               { "exact", int(exact) } },
-                             roi, nthreads);
-}
-
-// DEPRECATED(2.3)
-ImageBuf
-IBA_fit_ret_old(const ImageBuf& src, const std::string& filtername = "",
-                float filterwidth = 0.0f, bool exact = false,
-                ROI roi = ROI::All(), int nthreads = 0)
-{
-    py::gil_scoped_release gil;
-    return ImageBufAlgo::fit(src,
-                             { { "filtername", filtername },
-                               { "filterwidth", filterwidth },
-                               { "fillmode", "letterbox" },
-                               { "exact", int(exact) } },
-                             roi, nthreads);
-}
-
-
-
 bool
 IBA_make_kernel(ImageBuf& dst, const std::string& name, float width,
                 float height, float depth, bool normalize)
@@ -3013,13 +2981,6 @@ declare_imagebufalgo(py::module& m)
         .def_static("fit", &IBA_fit_ret, "src"_a, "filtername"_a = "",
                     "filterwidth"_a = 0.0f, "fillmode"_a = "letterbox",
                     "exact"_a = false, "roi"_a = ROI::All(), "nthreads"_a = 0)
-        // DEPRECATED(2.3) versions
-        .def_static("fit", &IBA_fit_old, "dst"_a, "src"_a, "filtername"_a = "",
-                    "filterwidth"_a = 0.0f, "exact"_a = false,
-                    "roi"_a = ROI::All(), "nthreads"_a = 0)
-        .def_static("fit", &IBA_fit_ret_old, "src"_a, "filtername"_a = "",
-                    "filterwidth"_a = 0.0f, "exact"_a = false,
-                    "roi"_a = ROI::All(), "nthreads"_a = 0)
 
         .def_static("make_kernel", &IBA_make_kernel, "dst"_a, "name"_a,
                     "width"_a, "height"_a, "depth"_a = 1.0f,

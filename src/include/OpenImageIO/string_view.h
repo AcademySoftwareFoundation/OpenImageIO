@@ -107,7 +107,7 @@ public:
 
     /// Construct from char*, use strlen to determine length.
     constexpr basic_string_view(const CharT* chars) noexcept
-        : m_chars(chars), m_len(chars ? cestrlen(chars) : 0) { }
+        : m_chars(chars), m_len(chars ? Traits::length(chars) : 0) { }
 
     /// Construct from std::string. Remember that a string_view doesn't have
     /// its own copy of the characters, so don't use the `string_view` after
@@ -479,20 +479,6 @@ private:
         return last;
     }
 
-    // Guaranteed constexpr length of a C string
-    static constexpr size_t cestrlen(const charT* chars) {
-#if OIIO_CPLUSPLUS_VERSION >= 17
-        return Traits::length(chars);
-#else
-        if (chars == nullptr)
-            return 0;
-        size_t len = 0;
-        while (chars[len] != 0)
-            len++;
-        return len;
-#endif
-    }
-
     class traits_eq {
     public:
         constexpr traits_eq (CharT ch) noexcept : ch(ch) {}
@@ -508,11 +494,6 @@ private:
 using string_view = basic_string_view<char>;
 using wstring_view = basic_string_view<wchar_t>;
 
-
-
-// DEPRECATED name equivalence
-OIIO_DEPRECATED("Use string_view (2.3)")
-typedef string_view string_ref;
 
 
 /// Return a safe pointer to a null-terminated C string with the contents of

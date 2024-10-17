@@ -96,7 +96,7 @@ decisions, etc. Please be aware of our [Code of Conduct](CODE_OF_CONDUCT.md).
 💁 User Documentation
 ---------------------
 
-[OpenImageIO Documentation on ReadTheDocs](https://openimageio.readthedocs.io/)
+[OpenImageIO Documentation](https://docs.openimageio.org)
 is the best place to start if you are interested in how to use OpenImageIO,
 its APIs, its component programs (once they are built). There is also a [PDF
 version](https://readthedocs.org/projects/openimageio/downloads/pdf/latest/).

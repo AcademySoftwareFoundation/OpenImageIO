@@ -4,7 +4,7 @@
 
 cmake_minimum_required (VERSION 3.18.2)
 
-set (OpenImageIO_VERSION "2.6.7.0")
+set (OpenImageIO_VERSION "3.1.0.0")
 set (OpenImageIO_VERSION_OVERRIDE "" CACHE STRING
      "Version override (use with caution)!")
 mark_as_advanced (OpenImageIO_VERSION_OVERRIDE)
@@ -141,10 +141,6 @@ endif ()
 set (TEX_BATCH_SIZE "" CACHE STRING "Force TextureSystem SIMD batch size (e.g. 16)")
 if (TEX_BATCH_SIZE)
     add_compile_definitions (OIIO_TEXTURE_SIMD_BATCH_WIDTH=${TEX_BATCH_SIZE})
-endif ()
-option (OIIO_TEX_IMPLEMENT_VARYINGREF "Implement the deprecated batch texture functions taking VaryingRef params" ON)
-if (NOT OIIO_TEX_IMPLEMENT_VARYINGREF)
-    add_compile_definitions (OIIO_TEX_NO_IMPLEMENT_VARYINGREF=1)
 endif ()
 
 # Set the default namespace

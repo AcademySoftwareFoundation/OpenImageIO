@@ -6187,7 +6187,7 @@ print_help_end(Oiiotool& ot, std::ostream& out)
     // same area is this executable, otherwise just point to the copy on
     // GitHub corresponding to our version of the softare.
     print(out, "Full OIIO documentation can be found at\n");
-    print(out, "    https://openimageio.readthedocs.io\n");
+    print(out, "    https://docs.openimageio.org\n");
 }
 
 

@@ -65,8 +65,8 @@ static bool use_handle    = false;
 static bool use_bluenoise = false;
 static float cachesize    = -1;
 static int maxfiles       = -1;
-static int mipmode        = TextureOpt::MipModeDefault;
-static int interpmode     = TextureOpt::InterpSmartBicubic;
+static int mipmode        = int(TextureOpt::MipModeDefault);
+static int interpmode     = int(TextureOpt::InterpSmartBicubic);
 static int stochastic     = 0;
 static float missing[4]   = { -1, 0, 0, 1 };
 static float fill         = -1;  // -1 signifies unset
@@ -326,11 +326,28 @@ initialize_opt(TextureOptBatch& opt)
     opt.fill = (fill >= 0.0f) ? fill : 1.0f;
     if (missing[0] >= 0)
         opt.missingcolor = (float*)&missing;
+
+#if OIIO_TEXTUREOPTBATCH_VERSION == 1
+    // Current layout of TextureOptBatch_v1
+    Wrap sw, tw;
+    Tex::parse_wrapmodes(wrapmodes.c_str(), sw, tw);
+    opt.swrap       = int(sw);
+    opt.twrap       = int(tw);
+    opt.rwrap       = opt.swrap;
+    opt.anisotropic = anisomax;
+    opt.mipmode     = int(mipmode);     // ideal: MipMode(mipmode);
+    opt.interpmode  = int(interpmode);  // ideal: InterpMode(interpmode);
+#else
+    // Some day, maybe for TextureOptBatch_v2, we'd like to switch to this to
+    // completely match the types and layout of TextureOpt.
     Tex::parse_wrapmodes(wrapmodes.c_str(), opt.swrap, opt.twrap);
     opt.rwrap       = opt.swrap;
     opt.anisotropic = anisomax;
     opt.mipmode     = MipMode(mipmode);
     opt.interpmode  = InterpMode(interpmode);
+#endif
+
+
     if (subimage >= 0)
         opt.subimage = subimage;
     else if (!subimagename.empty())
@@ -829,7 +846,6 @@ plain_tex_region_batch(ImageBuf& image, ustring filename, Mapping2DWide mapping,
             }
             if (stochastic) {
                 // Hash the pixel coords to get a pseudo-random variant
-#if OIIO_VERSION_GREATER_EQUAL(2, 4, 0)
                 constexpr float inv
                     = 1.0f / float(std::numeric_limits<uint32_t>::max());
                 for (int i = 0; i < BatchWidth; ++i) {
@@ -840,7 +856,6 @@ plain_tex_region_batch(ImageBuf& image, ustring filename, Mapping2DWide mapping,
                     else
                         opt.rnd[i] = bjhash::bjfinal(x + i, y) * inv;
                 }
-#endif
             }
 
             int npoints  = std::min(BatchWidth, roi.xend - x);

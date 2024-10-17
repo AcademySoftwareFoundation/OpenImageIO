@@ -24,12 +24,6 @@
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/string_view.h>
 
-// We should never have included fmath.h here. But we did, oops. Once we're
-// allowed to break back compatibility, remove it.
-#if OIIO_VERSION < OIIO_MAKE_VERSION(3,0,0)
-#    include <OpenImageIO/fmath.h>
-#endif
-
 #include <OpenImageIO/span.h>
 
 

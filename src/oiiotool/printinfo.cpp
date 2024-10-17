@@ -528,7 +528,7 @@ OiioTool::print_info(std::ostream& out, Oiiotool& ot, ImageRec* img,
 
     for (int s = 0, nsubimages = img->subimages(); s < nsubimages; ++s) {
         const ImageSpec* spec = opt.native ? img->nativespec(s) : img->spec(s);
-        DASSERT(spec != nullptr);
+        OIIO_DASSERT(spec != nullptr);
         print_info_subimage(out, ot, s, nsubimages, img->miplevels(s), *spec,
                             img, nullptr, "", opt, field_re, field_exclude_re,
                             serformat, verbose);

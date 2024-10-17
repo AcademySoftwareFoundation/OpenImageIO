@@ -3101,7 +3101,7 @@ TextureSystemImpl::sample_bicubic(
                         bool ok = find_tile(id, thread_info, sample == 0);
                         if (!ok)
                             error("{}", m_imagecache->geterror());
-                        DASSERT(thread_info->tile->id() == id);
+                        OIIO_DASSERT(thread_info->tile->id() == id);
                         if (!thread_info->tile->valid())
                             return false;
                     }

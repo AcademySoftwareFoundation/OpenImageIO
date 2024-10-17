@@ -1023,38 +1023,9 @@ add_dither(int nchannels, int width, int height, int depth, float* data,
            unsigned int ditherseed, int chorigin, int xorigin, int yorigin,
            int zorigin)
 {
-#if OIIO_VERSION < OIIO_MAKE_VERSION(2, 4, 0)
-    // Old: uniform random noise
-    ImageSpec::auto_stride(xstride, ystride, zstride, sizeof(float), nchannels,
-                           width, height);
-    char* plane = (char*)data;
-    for (int z = 0; z < depth; ++z, plane += zstride) {
-        char* scanline = plane;
-        for (int y = 0; y < height; ++y, scanline += ystride) {
-            char* pixel = scanline;
-            uint32_t ba = (z + zorigin) * 1311 + yorigin + y;
-            uint32_t bb = ditherseed + (chorigin << 24);
-            uint32_t bc = xorigin;
-            for (int x = 0; x < width; ++x, pixel += xstride) {
-                float* val = (float*)pixel;
-                for (int c = 0; c < nchannels; ++c, ++val, ++bc) {
-                    bjhash::bjmix(ba, bb, bc);
-                    int channel = c + chorigin;
-                    if (channel == alpha_channel || channel == z_channel)
-                        continue;
-                    float dither
-                        = bc / float(std::numeric_limits<uint32_t>::max());
-                    *val += ditheramplitude * (dither - 0.5f);
-                }
-            }
-        }
-    }
-#else
-    // New: Use blue noise for our dither
     add_bluenoise(nchannels, width, height, depth, data, xstride, ystride,
                   zstride, ditheramplitude, alpha_channel, z_channel,
                   ditherseed, chorigin, xorigin, yorigin, zorigin);
-#endif
 }
 
 

@@ -669,16 +669,6 @@ public:
         return ustring(Strutil::fmt::format(fmt, args...));
     }
 
-    /// NOTE: Semi-DEPRECATED! This will someday switch to behave like
-    /// fmt::format (or future std::format) but for now, it is back
-    /// compatible and equivalent to sprintf.
-    template<typename... Args>
-    OIIO_FORMAT_DEPRECATED static ustring format(const char* fmt,
-                                                 const Args&... args)
-    {
-        return ustring(Strutil::format(fmt, args...));
-    }
-
     /// Concatenate two strings, returning a ustring, implemented carefully
     /// to not perform any redundant copies or allocations.
     static ustring concat(string_view s, string_view t);
