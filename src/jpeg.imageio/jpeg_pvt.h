@@ -99,7 +99,7 @@ private:
     jvirt_barray_ptr* m_coeffs;
     std::vector<unsigned char> m_cmyk_buf;  // For CMYK translation
     std::unique_ptr<ImageSpec> m_config;    // Saved copy of configuration spec
-    bool m_is_uhdr;
+    bool m_is_uhdr;                         // Is interpreted as Ultra HDR image
 #if defined(USE_UHDR)
     uhdr_codec_private_t* m_uhdr_dec;
 #endif

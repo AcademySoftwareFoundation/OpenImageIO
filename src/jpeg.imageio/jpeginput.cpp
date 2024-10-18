@@ -418,22 +418,33 @@ bool
 JpgInput::read_uhdr(Filesystem::IOProxy* ioproxy)
 {
 #if defined(USE_UHDR)
+    // Read entire file content into buffer.
     const size_t buffer_size = ioproxy->size();
     std::vector<unsigned char> buffer(buffer_size);
     ioproxy->pread(buffer.data(), buffer_size, 0);
 
+    // Check if this is an actual Ultra HDR image.
     const bool detect_uhdr = is_uhdr_image(buffer.data(), buffer.size());
     if (!detect_uhdr)
         return false;
 
+    // Create Ultra HDR decoder.
+    // Do not forget to release it once we don't need it,
+    // i.e if this function returns false
+    // or when we call close().
     m_uhdr_dec = uhdr_create_decoder();
 
+    // Prepare decoder input.
+    // Note: we currently do not override any of the
+    // default settings.
     uhdr_compressed_image_t uhdr_compressed;
     uhdr_compressed.data     = buffer.data();
     uhdr_compressed.data_sz  = buffer.size();
     uhdr_compressed.capacity = buffer.size();
     uhdr_dec_set_image(m_uhdr_dec, &uhdr_compressed);
 
+    // Decode Ultra HDR image
+    // and check for decoding errors.
     uhdr_error_info_t err_info = uhdr_decode(m_uhdr_dec);
 
     if (err_info.error_code != UHDR_CODEC_OK) {
@@ -445,6 +456,9 @@ JpgInput::read_uhdr(Filesystem::IOProxy* ioproxy)
         return false;
     }
 
+    // Update spec with decoded image properties.
+    // Note: we currently only support a subset of all possible
+    // Ultra HDR image formats.
     uhdr_raw_image_t* uhdr_raw = uhdr_get_decoded_image(m_uhdr_dec);
 
     int nchannels;
