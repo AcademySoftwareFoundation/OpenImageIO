@@ -335,7 +335,7 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
     // to avoid this costly process when not necessary.
     // https://developer.android.com/media/platform/hdr-image-format#signal_of_the_format
     if (m_spec.find_attribute("hdrgm:Version"))
-        m_use_uhdr = read_uhdr(m_io);
+        m_is_uhdr = read_uhdr(m_io);
 
     newspec = m_spec;
     return true;
@@ -528,7 +528,7 @@ JpgInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     }
 
 #if defined(USE_UHDR)
-    if (m_use_uhdr) {
+    if (m_is_uhdr) {
         uhdr_raw_image_t* uhdr_raw = uhdr_get_decoded_image(m_uhdr_dec);
 
         unsigned int nbytes;
@@ -591,9 +591,9 @@ JpgInput::close()
             jpeg_destroy_decompress(&m_cinfo);
         m_decomp_create = false;
 #if defined(USE_UHDR)
-        if (m_use_uhdr)
+        if (m_is_uhdr)
             uhdr_release_decoder(m_uhdr_dec);
-        m_use_uhdr = false;
+        m_is_uhdr = false;
 #endif
         close_file();
     }
