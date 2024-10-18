@@ -33,7 +33,7 @@ extern "C" {
 #endif
 
 #if defined(USE_UHDR)
-#    include "ultrahdr_api.h"
+#    include <ultrahdr_api.h>
 #endif
 
 
