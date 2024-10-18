@@ -202,11 +202,6 @@ ifneq (${CLANG_FORMAT_EXCLUDES},)
   MY_CMAKE_FLAGS += -DCLANG_FORMAT_EXCLUDES:STRING=${CLANG_FORMAT_EXCLUDES}
 endif
 
-ifneq (${BUILD_MISSING_DEPS},)
-  MY_CMAKE_FLAGS += -DBUILD_MISSING_DEPS:BOOL=${BUILD_MISSING_DEPS}
-endif
-
-
 #$(info MY_CMAKE_FLAGS = ${MY_CMAKE_FLAGS})
 #$(info MY_MAKE_FLAGS = ${MY_MAKE_FLAGS})
 
@@ -395,7 +390,6 @@ help:
 	@echo "                                  0, sse2, sse3, ssse3, sse4.1, sse4.2, f16c,"
 	@echo "                                  avx, avx2, avx512f)"
 	@echo "      TEX_BATCH_SIZE=16        Override TextureSystem SIMD batch size"
-	@echo "      BUILD_MISSING_DEPS=1     Try to download/build missing dependencies"
 	@echo "  make test, extra options:"
 	@echo "      TEST=regex               Run only tests matching the regex"
 	@echo ""
