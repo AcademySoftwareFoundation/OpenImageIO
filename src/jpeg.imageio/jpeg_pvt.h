@@ -32,6 +32,10 @@ extern "C" {
 #    define OIIO_JPEG_LIB_VERSION JPEG_LIB_VERSION
 #endif
 
+#if defined(USE_UHDR)
+#    include <ultrahdr_api.h>
+#endif
+
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -95,6 +99,10 @@ private:
     jvirt_barray_ptr* m_coeffs;
     std::vector<unsigned char> m_cmyk_buf;  // For CMYK translation
     std::unique_ptr<ImageSpec> m_config;    // Saved copy of configuration spec
+    bool m_is_uhdr;                         // Is interpreted as Ultra HDR image
+#if defined(USE_UHDR)
+    uhdr_codec_private_t* m_uhdr_dec;
+#endif
 
     void init()
     {
@@ -106,6 +114,10 @@ private:
         m_jerr.jpginput = this;
         ioproxy_clear();
         m_config.reset();
+        m_is_uhdr = false;
+#if defined(USE_UHDR)
+        m_uhdr_dec = NULL;
+#endif
     }
 
     // Rummage through the JPEG "APP1" marker pointed to by buf, decoding
@@ -116,6 +128,8 @@ private:
     void jpeg_decode_iptc(const unsigned char* buf);
 
     bool read_icc_profile(j_decompress_ptr cinfo, ImageSpec& spec);
+
+    bool read_uhdr(Filesystem::IOProxy* ioproxy);
 
     void close_file() { init(); }
 
