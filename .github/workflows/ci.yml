@@ -104,6 +104,7 @@ jobs:
             setenvs: export USE_ICC=1 USE_OPENVDB=0
                             OIIO_EXTRA_CPP_ARGS="-fp-model=precise"
                             FREETYPE_VERSION=VER-2-13-0
+                            DISABLE_libuhdr=1
             # For icc, use fp-model precise to eliminate needless LSB errors
             # that make test results differ from other platforms.
           - desc: icx/C++17 py3.9 exr3.1 ocio2.2 qt5.15
