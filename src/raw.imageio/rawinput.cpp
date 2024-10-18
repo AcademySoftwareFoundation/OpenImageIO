@@ -453,10 +453,11 @@ RawInput::open_raw(bool unpack, const std::string& name,
     // Output 16 bit images
     m_processor->imgdata.params.output_bps = 16;
 
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0)
     // Exposing max_raw_memory_mb setting. Default max is 2048.
     m_processor->imgdata.rawparams.max_raw_memory_mb
         = config.get_int_attribute("raw:max_raw_memory_mb", 2048);
-
+#endif
 
     // Disable exposure correction (unless config "raw:auto_bright" == 1)
     m_processor->imgdata.params.no_auto_bright
@@ -715,7 +716,9 @@ RawInput::open_raw(bool unpack, const std::string& name,
             crop_top    = p->get_int_indexed(1);
             crop_width  = p->get_int_indexed(2);
             crop_height = p->get_int_indexed(3);
-        } else if (m_processor->imgdata.sizes.raw_inset_crops[0].cwidth != 0) {
+        }
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0)
+        else if (m_processor->imgdata.sizes.raw_inset_crops[0].cwidth != 0) {
             crop_left   = m_processor->imgdata.sizes.raw_inset_crops[0].cleft;
             crop_top    = m_processor->imgdata.sizes.raw_inset_crops[0].ctop;
             crop_width  = m_processor->imgdata.sizes.raw_inset_crops[0].cwidth;
@@ -723,7 +726,16 @@ RawInput::open_raw(bool unpack, const std::string& name,
             left_margin = m_processor->imgdata.sizes.left_margin;
             top_margin  = m_processor->imgdata.sizes.top_margin;
         }
-
+#else
+        else if (m_processor->imgdata.sizes.raw_inset_crop.cwidth != 0) {
+            crop_left   = m_processor->imgdata.sizes.raw_inset_crop.cleft;
+            crop_top    = m_processor->imgdata.sizes.raw_inset_crop.ctop;
+            crop_width  = m_processor->imgdata.sizes.raw_inset_crop.cwidth;
+            crop_height = m_processor->imgdata.sizes.raw_inset_crop.cheight;
+            left_margin = m_processor->imgdata.sizes.left_margin;
+            top_margin  = m_processor->imgdata.sizes.top_margin;
+        }
+#endif
         if (crop_width > 0 && crop_height > 0) {
             ushort image_width  = m_processor->imgdata.sizes.width;
             ushort image_height = m_processor->imgdata.sizes.height;
