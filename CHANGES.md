@@ -19,7 +19,7 @@ Executive Summary / Highlights:
 - Improved and more consistent color space name nomenclature.
 - Build system now is capable of auto-downloading and building several
   of the most important dependencies if they are missing at build time.
-- Pease note that the development branch in the GitHub repo is now named
+- Please note that the development branch in the GitHub repo is now named
   `main` instead of `master`.
 
 Full details of all changes follow.
