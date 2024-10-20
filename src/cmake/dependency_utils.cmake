@@ -426,7 +426,7 @@ macro (checked_find_package pkgname)
         #   ${pkgname}_REFIND_ARGS    : additional arguments to pass to find_package
         if (${pkgname}_REFIND)
             message (STATUS "Refinding ${pkgname} with ${pkgname}_ROOT=${${pkgname}_ROOT}")
-            find_package (${pkgname} ${_pkg_UNPARSED_ARGUMENTS} ${${pkgname}_REFIND_ARGS})
+            find_package (${pkgname} ${${pkgname}_REFIND_VERSION} REQUIRED ${_pkg_UNPARSED_ARGUMENTS} ${${pkgname}_REFIND_ARGS})
             unset (${pkgname}_REFIND)
         endif()
         # It's all downhill from here: if we found the package, follow the
