@@ -416,38 +416,44 @@ public:
     /// @{
     /// @name  Reading and Writing disk images
 
-    /// Read the particular subimage and MIP level of the image.  Generally,
-    /// this will skip the expensive read if the file has already been read
-    /// into the ImageBuf (at the specified subimage and MIP level).  It
-    /// will clear and re-allocate memory if the previously allocated space
-    /// was not appropriate for the size or data type of the image being
-    /// read.
+    /// Read the particular subimage and MIP level of the image, if it has not
+    /// already been read. It will clear and re-allocate memory if the
+    /// previously allocated space was not appropriate for the size or data
+    /// type of the image being read.
     ///
-    /// In general, `read()` will try not to do any I/O at the time of the
-    /// `read()` call, but rather to have the ImageBuf "backed" by an
-    /// ImageCache, which will do the file I/O on demand, as pixel values
-    /// are needed, and in that case the ImageBuf doesn't actually allocate
-    /// memory for the pixels (the data lives in the ImageCache).  However,
-    /// there are several conditions for which the ImageCache will be
-    /// bypassed, the ImageBuf will allocate "local" memory, and the disk
-    /// file will be read directly into allocated buffer at the time of the
-    /// `read()` call: (a) if the `force` parameter is `true`; (b) if the
-    /// `convert` parameter requests a data format conversion to a type that
-    /// is not the native file type and also is not one of the internal
-    /// types supported by the ImageCache (specifically, `float` and
-    /// `uint8`); (c) if the ImageBuf already has local pixel memory
-    /// allocated, or "wraps" an application buffer.
+    /// In general, calling `read()` should be unnecessary for most uses of
+    /// ImageBuf. When an ImageBuf is created (or when `reset()` is called),
+    /// usually the opening of the file and reading of the header is deferred
+    /// until the spec is accessed or needed, and the reading of the pixel
+    /// values is usually deferred until pixel values are needed, at which
+    /// point these things happen automatically. That is, every ImageBuf
+    /// method that needs pixel values will call `read()` itself if it has
+    /// not previously been called.
     ///
-    /// Note that `read()` is not strictly necessary. If you are happy with
-    /// the filename, subimage and MIP level specified by the ImageBuf
-    /// constructor (or the last call to `reset()`), and you want the
-    /// storage to be backed by the ImageCache (including storing the
-    /// pixels in whatever data format that implies), then the file contents
-    /// will be automatically read the first time you make any other
-    /// ImageBuf API call that requires the spec or pixel values.  The only
-    /// reason to call `read()` yourself is if you are changing the
-    /// filename, subimage, or MIP level, or if you want to use `force=true`
-    /// or a specific `convert` value to force data format conversion.
+    /// There are a few situations where you want to call read() explicitly,
+    /// after the ImageBuf is constructed but before any other methods have
+    /// been called that would implicitly read the file:
+    ///
+    /// 1. If you want to request that the internal buffer be a specific
+    ///    pixel data type that might differ from the pixel data type in
+    ///    the file itself (conveyed by the `convert` parameter).
+    /// 2. You want the ImageBuf to read and contain only a subset of the
+    ///    channels in the file (conveyed by the `chmin` and `chmax`
+    ///    parameters on the version of `read()` that accepts them).
+    /// 3. The ImageBuf has been set up to be backed by ImageCache, but you
+    ///    want to force it to read the whole file into memory now (conveyed
+    ///    by the `force` parameter, or if the `convert` parameter specifies
+    ///    a type that is not the native file type and also cannot be
+    ///    accommodated directly by the cache).
+    /// 4. For whatever reason, you want to force a full read of the pixels
+    ///    to occur at this point in program execution, rather than at some
+    ///    undetermined future time when you first need to access those
+    ///    pixels.
+    ///
+    /// The `read()` function should not be used to *change* an already
+    /// established subimage, MIP level, pixel data type, or channel range
+    /// of a file that has already read its pixels. You should use the
+    /// `reset()` method for that purpose.
     ///
     /// @param subimage/miplevel
     ///             The subimage and MIP level to read.
@@ -460,7 +466,7 @@ public:
     ///             `IMAGECACHE`, if the ImageBuf was originally constructed
     ///             or reset with an ImageCache specified).
     /// @param  convert
-    ///             If set to a specific type (not`UNKNOWN`), the ImageBuf
+    ///             If set to a specific type (not `UNKNOWN`), the ImageBuf
     ///             memory will be allocated for that type specifically and
     ///             converted upon read.
     /// @param  progress_callback/progress_callback_data
@@ -1219,6 +1225,7 @@ public:
     bool contains_roi(const ROI& roi) const;
 
     bool pixels_valid(void) const;
+    bool pixels_read(void) const;
 
     /// The data type of the pixels stored in the buffer (equivalent to
     /// `spec().format`).
@@ -1242,7 +1249,7 @@ public:
     /// Z plane stride within the localpixels memory.
     stride_t z_stride() const;
 
-    /// Is the data layout "contiguous", i.e.,
+    /// Is this an in-memory buffer with the data layout "contiguous", i.e.,
     /// ```
     ///     pixel_stride == nchannels * pixeltype().size()
     ///     scanline_stride == pixel_stride * spec().width
