@@ -225,6 +225,10 @@ checked_find_package (fmt REQUIRED
 get_target_property(FMT_INCLUDE_DIR fmt::fmt-header-only INTERFACE_INCLUDE_DIRECTORIES)
 
 
+# Ultra HDR
+checked_find_package (libuhdr)
+
+
 ###########################################################################
 
 list (SORT CFP_ALL_BUILD_DEPS_FOUND COMPARE STRING CASE INSENSITIVE)
