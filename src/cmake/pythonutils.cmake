@@ -32,13 +32,24 @@ macro (find_python)
             list (APPEND _req EXACT)
         endif ()
     endif ()
+
+    # Support building on manylinux docker images, which do not contain
+    # the Development.Embedded component.
+    # https://pybind11.readthedocs.io/en/stable/compiling.html#findpython-mode
+    if (WIN32)
+        set (_py_components Interpreter Development)
+    else ()
+        set (_py_components Interpreter Development.Module)
+    endif ()
+
     checked_find_package (Python3 ${PYTHON_VERSION}
                           ${_req}
                           VERSION_MIN 3.7
-                          COMPONENTS Interpreter Development
+                          COMPONENTS ${_py_components}
                           PRINT Python3_VERSION Python3_EXECUTABLE
                                 Python3_LIBRARIES
                                 Python3_Development_FOUND
+                                Python3_Development.Module_FOUND
                                 Python3_Interpreter_FOUND )
 
     # The version that was found may not be the default or user
@@ -128,6 +139,10 @@ macro (setup_python_module)
 #                               DEBUG_POSTFIX "_d"
 #                               SUFFIX ".pyd")
 #    endif()
+
+    if (SKBUILD)
+        set (PYTHON_SITE_DIR .)
+    endif ()
 
     # In the build area, put it in lib/python so it doesn't clash with the
     # non-python libraries of the same name (which aren't prefixed by "lib"

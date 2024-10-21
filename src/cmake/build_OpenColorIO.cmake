@@ -39,6 +39,8 @@ build_dependency_with_cmake(OpenColorIO
         -D OCIO_BUILD_TESTS=OFF
         -D OCIO_USE_OIIO_FOR_APPS=OFF
         -D OCIO_INSTALL_DOCS=OFF
+        # Disable versioning in OCIO shared library name
+        -D OCIO_USE_SOVERSION=OFF
         # Make OCIO build all its dependencies statically
         -D OCIO_INSTALL_EXT_PACKAGES=MISSING
         # Give the library a custom name and symbol namespace so it can't
