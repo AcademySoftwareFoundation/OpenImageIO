@@ -142,15 +142,6 @@ macro (setup_python_module)
 
     if (SKBUILD)
         set (PYTHON_SITE_DIR .)
-        # When building python wheels, set RPATH to a relative path to 
-        # the distribution's lib directory.
-        if (APPLE)
-            set_target_properties (${target_name} PROPERTIES 
-                    INSTALL_RPATH "@loader_path/${CMAKE_INSTALL_LIBDIR}")
-        elseif (LINUX)
-            set_target_properties (${target_name} PROPERTIES
-                    INSTALL_RPATH "$ORIGIN/${CMAKE_INSTALL_LIBDIR}")
-        endif ()
     endif ()
 
     # In the build area, put it in lib/python so it doesn't clash with the

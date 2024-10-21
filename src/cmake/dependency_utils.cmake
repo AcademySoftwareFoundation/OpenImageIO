@@ -614,12 +614,13 @@ macro (build_dependency_with_cmake pkgname)
                                 )
     endif ()
 
-    # Make sure to inherit IGNORE_PATH / SYSTEM_IGNORE_PATH etc.
+    # Make sure to inherit CMAKE_IGNORE_PATH
     set(_pkg_CMAKE_ARGS ${_pkg_CMAKE_ARGS} ${_pkg_CMAKE_ARGS})
     if (CMAKE_IGNORE_PATH)
         string(REPLACE ";" "\\;" CMAKE_IGNORE_PATH_ESCAPED "${CMAKE_IGNORE_PATH}")
         list(APPEND _pkg_CMAKE_ARGS "-DCMAKE_IGNORE_PATH=${CMAKE_IGNORE_PATH_ESCAPED}")
     endif()
+
     execute_process (COMMAND
         ${CMAKE_COMMAND}
             # Put things in our special local build areas
