@@ -9,16 +9,20 @@ on:
     # Skip jobs when only cpp files are changed. The materials for
     # docs are all in md, rst, and .h files.
     paths-ignore:
+      - '**/ci.yml'
       - '**/analysis.yml'
       - '**.properties'
-      - '**.cpp'
+      - 'src/**.cpp'
       - '**.cmake'
+      - '**/run.py'
   pull_request:
     paths-ignore:
+      - '**/ci.yml'
       - '**/analysis.yml'
       - '**.properties'
-      - '**.cpp'
+      - 'src/**.cpp'
       - '**.cmake'
+      - '**/run.py'
   schedule:
     # Full nightly build
     - cron: "0 8 * * *"
