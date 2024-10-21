@@ -35,102 +35,103 @@
     MIP 1 of 11 (512 x 512):
       Stats Min: 0 0 0 255 (of 255)
       Stats Max: 255 255 255 255 (of 255)
-      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
-      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats Avg: 153.82 153.67 153.75 255.00 (of 255)
+      Stats StdDev: 70.25 70.16 70.21 0.00 (of 255)
       Stats NanCount: 0 0 0 0 
       Stats InfCount: 0 0 0 0 
-      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Stats FiniteCount: 262144 262144 262144 262144 
       Constant: No
       Monochrome: No
     MIP 2 of 11 (256 x 256):
       Stats Min: 0 0 0 255 (of 255)
       Stats Max: 255 255 255 255 (of 255)
-      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
-      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats Avg: 154.37 154.24 154.31 255.00 (of 255)
+      Stats StdDev: 64.32 64.28 64.33 0.00 (of 255)
       Stats NanCount: 0 0 0 0 
       Stats InfCount: 0 0 0 0 
-      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Stats FiniteCount: 65536 65536 65536 65536 
       Constant: No
       Monochrome: No
     MIP 3 of 11 (128 x 128):
       Stats Min: 0 0 0 255 (of 255)
       Stats Max: 255 255 255 255 (of 255)
-      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
-      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats Avg: 155.63 155.49 155.56 255.00 (of 255)
+      Stats StdDev: 56.95 56.92 56.89 0.00 (of 255)
       Stats NanCount: 0 0 0 0 
       Stats InfCount: 0 0 0 0 
-      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Stats FiniteCount: 16384 16384 16384 16384 
       Constant: No
       Monochrome: No
     MIP 4 of 11 (64 x 64):
-      Stats Min: 0 0 0 255 (of 255)
-      Stats Max: 255 255 255 255 (of 255)
-      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
-      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats Min: 17 23 18 255 (of 255)
+      Stats Max: 247 247 249 255 (of 255)
+      Stats Avg: 155.94 155.81 155.89 255.00 (of 255)
+      Stats StdDev: 52.47 52.34 52.44 0.00 (of 255)
       Stats NanCount: 0 0 0 0 
       Stats InfCount: 0 0 0 0 
-      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Stats FiniteCount: 4096 4096 4096 4096 
       Constant: No
       Monochrome: No
     MIP 5 of 11 (32 x 32):
-      Stats Min: 0 0 0 255 (of 255)
-      Stats Max: 255 255 255 255 (of 255)
-      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
-      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats Min: 55 50 55 255 (of 255)
+      Stats Max: 235 234 235 255 (of 255)
+      Stats Avg: 156.16 156.03 156.11 255.00 (of 255)
+      Stats StdDev: 50.28 50.22 50.34 0.00 (of 255)
       Stats NanCount: 0 0 0 0 
       Stats InfCount: 0 0 0 0 
-      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Stats FiniteCount: 1024 1024 1024 1024 
       Constant: No
       Monochrome: No
     MIP 6 of 11 (16 x 16):
-      Stats Min: 0 0 0 255 (of 255)
-      Stats Max: 255 255 255 255 (of 255)
-      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
-      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats Min: 78 77 78 255 (of 255)
+      Stats Max: 217 215 216 255 (of 255)
+      Stats Avg: 156.27 156.18 156.25 255.00 (of 255)
+      Stats StdDev: 48.66 48.93 48.99 0.00 (of 255)
       Stats NanCount: 0 0 0 0 
       Stats InfCount: 0 0 0 0 
-      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Stats FiniteCount: 256 256 256 256 
       Constant: No
       Monochrome: No
     MIP 7 of 11 (8 x 8):
-      Stats Min: 0 0 0 255 (of 255)
-      Stats Max: 255 255 255 255 (of 255)
-      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
-      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats Min: 93 93 93 255 (of 255)
+      Stats Max: 214 213 214 255 (of 255)
+      Stats Avg: 156.45 156.28 156.45 255.00 (of 255)
+      Stats StdDev: 47.08 48.06 48.01 0.00 (of 255)
       Stats NanCount: 0 0 0 0 
       Stats InfCount: 0 0 0 0 
-      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Stats FiniteCount: 64 64 64 64 
       Constant: No
       Monochrome: No
     MIP 8 of 11 (4 x 4):
-      Stats Min: 0 0 0 255 (of 255)
-      Stats Max: 255 255 255 255 (of 255)
-      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
-      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats Min: 102 103 103 255 (of 255)
+      Stats Max: 207 211 212 255 (of 255)
+      Stats Avg: 157.06 156.88 156.75 255.00 (of 255)
+      Stats StdDev: 44.74 46.80 46.81 0.00 (of 255)
       Stats NanCount: 0 0 0 0 
       Stats InfCount: 0 0 0 0 
-      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Stats FiniteCount: 16 16 16 16 
       Constant: No
       Monochrome: No
     MIP 9 of 11 (2 x 2):
-      Stats Min: 0 0 0 255 (of 255)
-      Stats Max: 255 255 255 255 (of 255)
-      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
-      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats Min: 120 114 114 255 (of 255)
+      Stats Max: 194 199 199 255 (of 255)
+      Stats Avg: 157.00 156.75 156.75 255.00 (of 255)
+      Stats StdDev: 37.00 42.25 42.25 0.00 (of 255)
       Stats NanCount: 0 0 0 0 
       Stats InfCount: 0 0 0 0 
-      Stats FiniteCount: 1048576 1048576 1048576 1048576 
+      Stats FiniteCount: 4 4 4 4 
       Constant: No
       Monochrome: No
     MIP 10 of 11 (1 x 1):
-      Stats Min: 0 0 0 255 (of 255)
-      Stats Max: 255 255 255 255 (of 255)
-      Stats Avg: 153.27 153.13 153.20 255.00 (of 255)
-      Stats StdDev: 78.83 78.77 78.80 0.00 (of 255)
+      Stats Min: 157 157 157 255 (of 255)
+      Stats Max: 157 157 157 255 (of 255)
+      Stats Avg: 157.00 157.00 157.00 255.00 (of 255)
+      Stats StdDev: 0.00 0.00 0.00 0.00 (of 255)
       Stats NanCount: 0 0 0 0 
       Stats InfCount: 0 0 0 0 
-      Stats FiniteCount: 1048576 1048576 1048576 1048576 
-      Constant: No
+      Stats FiniteCount: 1 1 1 1 
+      Constant: Yes
+      Constant Color: 157.00 157.00 157.00 255.00 (of 255)
       Monochrome: No
 Total size: 4.0 MB
 src/tiny-az.exr :    4 x    4, 3 channel, float openexr
@@ -455,7 +456,7 @@ src/mip.tif :    2 x    2, 3 channel, uint8 tiff
       Stats StdDev: 0.00 0.00 0.00 (of 255)
       Stats NanCount: 0 0 0 
       Stats InfCount: 0 0 0 
-      Stats FiniteCount: 4 4 4 
+      Stats FiniteCount: 1 1 1 
       Constant: Yes
       Constant Color: 64.00 128.00 191.00 (of 255)
       Monochrome: No
