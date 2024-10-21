@@ -129,7 +129,6 @@ test-command = "oiiotool --buildinfo"
 # Prevent CIBW's default repair-wheel command from running, because it fails to
 # recognize that the wheel isn't broken to begin with, and ends up creating
 # additional copies of the shared libraries in the wheel.
-repair-wheel-command = ""
 
 [tool.cibuildwheel.macos.environment]
 # Specify a persistent build directory so the repairwheel command can (re)find
