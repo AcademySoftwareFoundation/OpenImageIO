@@ -10,9 +10,15 @@ import subprocess
 
 logger = logging.getLogger(__name__)
 
+_here = os.path.abspath(os.path.dirname(__file__))
+
+# Set $OpenImageIO_ROOT if not already set *before* importing the OpenImageIO module.
+if not os.getenv("OpenImageIO_ROOT"):
+    if all([os.path.exists(os.path.join(_here, i)) for i in ["share", "bin", "lib"]]): 
+        os.environ["OpenImageIO_ROOT"] = _here
+
 if platform.system() == "Windows":
     # Python wheel module is dynamically linked to the OIIO DLL present in the bin folder.
-    _here = os.path.abspath(os.path.dirname(__file__))
     _bin_dir = os.path.join(_here, "bin")
     if os.path.exists(_bin_dir):
         if sys.version_info >= (3, 8):
@@ -38,8 +44,6 @@ if platform.system() == "Windows":
 
 from .OpenImageIO import * # type: ignore # noqa: F401, F403, E402
 
-__version__ = VERSION_STRING # type: ignore # noqa: F405
-
 __status__ = "production"
 
 __author__ = "OpenImageIO Contributors"
@@ -50,11 +54,12 @@ __license__ = "SPDX-License-Identifier: Apache-2.0"
 
 __copyright__ = "Copyright Contributors to the OpenImageIO Project"
 
-__doc__ = """OpenImageIO is a toolset for reading, writing, and manipulating image files of 
+__doc__ = """
+OpenImageIO is a toolset for reading, writing, and manipulating image files of 
 any image file format relevant to VFX / animation via a format-agnostic API 
 with a feature set, scalability, and robustness needed for feature film 
 production.
-"""
+"""[1:-1]
 
 
 def _call_program(name, args):
