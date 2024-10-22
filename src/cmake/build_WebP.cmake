@@ -10,7 +10,7 @@ set_cache (WebP_BUILD_VERSION 1.4.0 "WebP version for local builds")
 set (WebP_GIT_REPOSITORY "https://github.com/webmproject/libwebp.git")
 set (WebP_GIT_TAG "v${WebP_BUILD_VERSION}")
 
-set_cache (WebP_BUILD_SHARED_LIBS ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
+set_cache (WebP_BUILD_SHARED_LIBS OFF # ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
            DOC "Should execute a local WebP build; if necessary, build shared libraries" ADVANCED)
 
 string (MAKE_C_IDENTIFIER ${WebP_BUILD_VERSION} WebP_VERSION_IDENT)
