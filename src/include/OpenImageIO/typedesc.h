@@ -44,9 +44,9 @@ OIIO_NAMESPACE_BEGIN
 /// through APIs through blind pointers.  These are some simple classes
 /// that provide a simple type descriptor system.  This is not meant to
 /// be comprehensive -- for example, there is no provision for structs,
-/// unions, pointers, const, or 'nested' type definitions.  Just simple
-/// integer and floating point, *common* aggregates such as 3-points,
-/// and reasonably-lengthed arrays thereof.
+/// unions, typed pointers, const, or 'nested' type definitions.  Just simple
+/// integer and floating point, *common* aggregates such as 3-points, and
+/// reasonably-lengthed arrays thereof.
 ///
 /////////////////////////////////////////////////////////////////////////////
 
@@ -83,7 +83,7 @@ struct OIIO_UTIL_API TypeDesc {
         DOUBLE,             ///< 64-bit IEEE floating point values, (C/C++ `double`).
         STRING,             ///< Character string.
         PTR,                ///< A pointer value.
-        USTRINGHASH,        ///< The hash of a ustring
+        USTRINGHASH,        ///< A uint64 that is the hash of a ustring.
         LASTBASE
     };
 
@@ -338,37 +338,6 @@ struct OIIO_UTIL_API TypeDesc {
     static BASETYPE basetype_merge(TypeDesc a, TypeDesc b, TypeDesc c) {
         return basetype_merge(basetype_merge(a, b), c);
     }
-
-#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(1,8,0) && OIIO_VERSION_LESS(2,7,0) && !defined(OIIO_DOXYGEN)
-    // DEPRECATED(1.8): These static const member functions were mildly
-    // problematic because they required external linkage (and possibly
-    // even static initialization order fiasco) and were a memory reference
-    // that incurred some performance penalty and inability to optimize.
-    // Please instead use the out-of-class constexpr versions below.  We
-    // will eventually remove these.
-#ifdef __INTEL_COMPILER
-#    define OIIO_DEPRECATED_TYPEDESC_STATICS
-#else
-#    define OIIO_DEPRECATED_TYPEDESC_STATICS \
-        OIIO_DEPRECATED("Use the version that takes a tostring_formatting struct (1.8)")
-#endif
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeFloat;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeColor;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeString;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeInt;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeHalf;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypePoint;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeVector;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeNormal;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeMatrix;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeMatrix33;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeMatrix44;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeTimeCode;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeKeyCode;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeFloat4;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeRational;
-#endif
-#undef OIIO_DEPRECATED_TYPEDESC_STATICS
 };
 
 // Validate that TypeDesc can be used directly as POD in a C interface.
@@ -419,20 +388,6 @@ OIIO_INLINE_CONSTEXPR TypeDesc TypeRational(TypeDesc::INT, TypeDesc::VEC2, TypeD
 OIIO_INLINE_CONSTEXPR TypeDesc TypePointer(TypeDesc::PTR);
 OIIO_INLINE_CONSTEXPR TypeDesc TypeUstringhash(TypeDesc::USTRINGHASH);
 
-
-
-#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2,1,0) && OIIO_VERSION_LESS(2,7,0)
-// DEPRECATED(2.1)
-OIIO_DEPRECATED("Use the version that takes a tostring_formatting struct")
-OIIO_UTIL_API
-std::string tostring (TypeDesc type, const void *data,
-                      const char *float_fmt,                // E.g. "%g"
-                      const char *string_fmt = "%s",        // E.g. "\"%s\""
-                      const char aggregate_delim[2] = "()", // Both sides of vector
-                      const char *aggregate_sep = ",",      // E.g. ", "
-                      const char array_delim[2] = "{}",     // Both sides of array
-                      const char *array_sep = ",");         // E.g. "; "
-#endif
 
 
 /// A template mechanism for getting the a base type from C type

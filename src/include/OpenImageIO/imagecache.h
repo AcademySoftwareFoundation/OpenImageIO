@@ -28,7 +28,7 @@
 OIIO_NAMESPACE_BEGIN
 
 // Forward declarations
-class TextureOpt;
+class TextureOpt_v2;
 
 class ImageCachePerThreadInfo;
 class ImageCacheFile;
@@ -128,10 +128,10 @@ public:
     ///           value), any untiled images will be read and cached as if
     ///           they were constructed in tiles of size:
     ///
-    ///               - `autotile * autotile`
-    ///                     if `autoscanline` is 0
-    ///               - `width * autotile`
-    ///                     if `autoscanline` is nonzero.
+    ///           - `autotile * autotile`
+    ///                 if `autoscanline` is 0
+    ///           - `width * autotile`
+    ///                 if `autoscanline` is nonzero.
     ///
     ///           In both cases, this should lead more efficient caching.
     ///           The `autoscanline` determines whether the "virtual tiles"
@@ -520,13 +520,13 @@ public:
     /// or for alternate IC implementations.) The opaque pointer `thread_info`
     /// is thread-specific information returned by `get_perthread_info()`.
     ImageHandle* get_image_handle(ustring filename,
-                                  Perthread* thread_info    = nullptr,
-                                  const TextureOpt* options = nullptr);
+                                  Perthread* thread_info       = nullptr,
+                                  const TextureOpt_v2* options = nullptr);
 
     /// Get an ImageHandle using a UTF-16 encoded wstring filename.
     ImageHandle* get_image_handle(const std::wstring& filename,
-                                  Perthread* thread_info    = nullptr,
-                                  const TextureOpt* options = nullptr)
+                                  Perthread* thread_info       = nullptr,
+                                  const TextureOpt_v2* options = nullptr)
     {
         return get_image_handle(ustring(Strutil::utf16_to_utf8(filename)),
                                 thread_info, options);
@@ -724,42 +724,53 @@ public:
                         int miplevel, ustring dataname, TypeDesc datatype,
                         void* data);
 
-    /// Copy the ImageSpec associated with the named image (the first
-    /// subimage & miplevel by default, or as set by `subimage` and
-    /// `miplevel`).
+    /// Copy the ImageSpec that describes the named image file.
+    ///
+    /// Note that the spec returned describes the file as it exists in the
+    /// file, at the base (highest-resolution) MIP level of that subimage.
+    /// Certain aspects of the in-cache representation may differ from the
+    /// file (due to ImageCache implementation strategy or options like
+    /// `"forcefloat"` or `"autotile"`). If you really need to know the
+    /// in-cache data type, tile size, or how the resolution or tiling changes
+    /// on a particular MIP level, you should use `get_cache_dimensions()`.
     ///
     /// @param  filename
     ///             The name of the image, as a UTF-8 encoded ustring.
     /// @param  spec
     ///             ImageSpec into which will be copied the spec for the
     ///             requested image.
-    /// @param  subimage/miplevel
-    ///             The subimage and MIP level to query.
-    /// @param  native
-    ///             If `false` (the default), then the spec retrieved will
-    ///             accurately describe the image stored internally in the
-    ///             cache, whereas if `native` is `true`, the spec retrieved
-    ///             will reflect the contents of the original file.  These
-    ///             may differ due to use of certain ImageCache settings
-    ///             such as `"forcefloat"` or `"autotile"`.
+    /// @param  subimage
+    ///             The subimage to query.
     /// @returns
     ///             `true` upon success, `false` upon failure failure (such
     ///             as being unable to find, open, or read the file, or if
-    ///             it does not contain the designated subimage or MIP
-    ///             level).
-    bool get_imagespec(ustring filename, ImageSpec& spec, int subimage = 0,
-                       int miplevel = 0, bool native = false);
+    ///             it does not contain the designated subimage.
+    bool get_imagespec(ustring filename, ImageSpec& spec, int subimage = 0);
     /// A more efficient variety of `get_imagespec()` for cases where you
     /// can use an `ImageHandle*` to specify the image and optionally have a
     /// `Perthread*` for the calling thread.
     bool get_imagespec(ImageHandle* file, Perthread* thread_info,
-                       ImageSpec& spec, int subimage = 0, int miplevel = 0,
-                       bool native = false);
+                       ImageSpec& spec, int subimage = 0);
 
-    /// Return a pointer to an ImageSpec associated with the named image
-    /// (the first subimage & MIP level by default, or as set by `subimage`
-    /// and `miplevel`) if the file is found and is an image format that can
-    /// be read, otherwise return `nullptr`.
+    /// DEPRECATED(3.0) old API. Note that the miplevel and native parameters
+    /// are ignored: it will always get the native spec of miplevel 0. We
+    /// recommend switching to the new API.
+    bool get_imagespec(ustring filename, ImageSpec& spec, int subimage,
+                       int miplevel, bool native = false)
+    {
+        return get_imagespec(filename, spec, subimage);
+    }
+    /// DEPRECATED(3.0) old API.
+    bool get_imagespec(ImageHandle* file, Perthread* thread_info,
+                       ImageSpec& spec, int subimage, int miplevel,
+                       bool native = false)
+    {
+        return get_imagespec(file, thread_info, spec, subimage);
+    }
+
+    /// Return a pointer to an ImageSpec that describes the named image file.
+    /// If the file is found and is an image format that can be read,
+    /// otherwise return `nullptr`.
     ///
     /// This method is much more efficient than `get_imagespec()`, since it
     /// just returns a pointer to the spec held internally by the ImageCache
@@ -768,29 +779,72 @@ public:
     /// (even other threads) calls `invalidate()` on the file, or
     /// `invalidate_all()`, or destroys the ImageCache.
     ///
+    /// Note that the spec returned describes the file as it exists in the
+    /// file, at the base (highest-resolution) MIP level of that subimage.
+    /// Certain aspects of the in-cache representation may differ from the
+    /// file (due to ImageCache implementation strategy or options like
+    /// `"forcefloat"` or `"autotile"`). If you really need to know the
+    /// in-cache data type, tile size, or how the resolution or tiling changes
+    /// on a particular MIP level, you should use `get_cache_dimensions()`.
+    ///
     /// @param  filename
     ///             The name of the image, as a UTF-8 encoded ustring.
-    /// @param  subimage/miplevel
-    ///             The subimage and MIP level to query.
-    /// @param  native
-    ///             If `false` (the default), then the spec retrieved will
-    ///             accurately describe the image stored internally in the
-    ///             cache, whereas if `native` is `true`, the spec retrieved
-    ///             will reflect the contents of the original file.  These
-    ///             may differ due to use of certain ImageCache settings
-    ///             such as `"forcefloat"` or `"autotile"`.
+    /// @param  subimage
+    ///             The subimage to query.
     /// @returns
     ///             A pointer to the spec, if the image is found and able to
     ///             be opened and read by an available image format plugin,
-    ///             and the designated subimage and MIP level exists.
-    const ImageSpec* imagespec(ustring filename, int subimage = 0,
-                               int miplevel = 0, bool native = false);
+    ///             and the designated subimage exists.
+    const ImageSpec* imagespec(ustring filename, int subimage = 0);
     /// A more efficient variety of `imagespec()` for cases where you can
     /// use an `ImageHandle*` to specify the image and optionally have a
     /// `Perthread*` for the calling thread.
     const ImageSpec* imagespec(ImageHandle* file, Perthread* thread_info,
-                               int subimage = 0, int miplevel = 0,
-                               bool native = false);
+                               int subimage = 0);
+
+    /// DEPRECATED(3.0) old API. Note that the miplevel and native parameters
+    /// are ignored: it will always get the native spec of miplevel 0. We
+    /// recommend switching to the new API.
+    const ImageSpec* imagespec(ustring filename, int subimage, int miplevel,
+                               bool native = false)
+    {
+        return imagespec(filename, subimage);
+    }
+    /// DEPRECATED(3.0) old API.
+    const ImageSpec* imagespec(ImageHandle* file, Perthread* thread_info,
+                               int subimage, int miplevel, bool native = false)
+    {
+        return imagespec(file, thread_info, subimage);
+    }
+
+    /// Copy the image dimensions (x, y, z, width, height, depth, full*,
+    /// nchannels, format) and data types that describes the named image
+    /// cache file for the specified subimage and miplevel. It does *not*
+    /// copy arbitrary named metadata or channel names (thus, for an
+    /// `ImageSpec` with lots of metadata, it is much less expensive than
+    /// copying the whole thing with `operator=()`). The associated
+    /// metadata and channels names can be retrieved with `imagespec()`
+    /// or `get_imagespec`.
+    ///
+    /// @param  filename
+    ///             The name of the image, as a UTF-8 encoded ustring.
+    /// @param  spec
+    ///             ImageSpec into which will be copied the dimensions
+    ///             for the requested image.
+    /// @param  subimage/miplevel
+    ///             The subimage and mip level to query.
+    /// @returns
+    ///             `true` upon success, `false` upon failure failure (such
+    ///             as being unable to find, open, or read the file, or if
+    ///             it does not contain the designated subimage or mip level.
+    bool get_cache_dimensions(ustring filename, ImageSpec& spec,
+                              int subimage = 0, int miplevel = 0);
+    /// A more efficient variety of `get_cache_dimensions()` for cases where
+    /// you can use an `ImageHandle*` to specify the image and optionally
+    /// have a `Perthread*` for the calling thread.
+    bool get_cache_dimensions(ImageHandle* file, Perthread* thread_info,
+                              ImageSpec& spec, int subimage = 0,
+                              int miplevel = 0);
 
     /// Copy into `thumbnail` any associated thumbnail associated with this
     /// image (for the first subimage by default, or as set by `subimage`).

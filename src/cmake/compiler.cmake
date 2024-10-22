@@ -421,6 +421,26 @@ endif ()
 
 
 ###########################################################################
+# Runtime profiling
+#
+set_cache (PROFILER "" "Build executables with profiler support (choices: gperftools)")
+if (PROFILER STREQUAL "gperftools")
+    find_library(PROFILER_LIBRARIES NAMES profiler)
+    message (STATUS "Compiling for profiling with ${PROFILER}, found ${PROFILER_LIBRARIES}")
+endif ()
+
+
+###########################################################################
+# Build profiling
+#
+set_option (${PROJ_NAME}_BUILD_PROFILER "Profile the build process" OFF)
+if (${PROJ_NAME}_BUILD_PROFILER AND CMAKE_COMPILER_IS_CLANG)
+    add_compile_options (-ftime-trace)
+    message (STATUS "Profiling the build process")
+endif ()
+
+
+###########################################################################
 # Sanitizer options
 #
 set_cache (SANITIZE "" "Build code using sanitizer (address, thread, undefined)")
@@ -573,7 +593,7 @@ if (${PROJECT_NAME}_SUPPORTED_RELEASE)
     set (SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
          CACHE STRING "Set the SO version for dynamic libraries")
 else ()
-    # Development master makes no ABI stability guarantee, so we make the
+    # Main development branch makes no ABI stability guarantee, so we make the
     # SO naming capture down to the major.minor.patch level.
     set (SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
          CACHE STRING "Set the SO version for dynamic libraries")

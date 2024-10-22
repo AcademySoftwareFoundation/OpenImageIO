@@ -15,7 +15,7 @@ getNumRoles = 9
 getRoles = ['aces_interchange', 'cie_xyz_d65_interchange', 'color_picking', 'color_timing', 'compositing_log', 'data', 'matte_paint', 'scene_linear', 'texture_paint']
 aliases of 'scene_linear' are ['ACES - ACEScg', 'lin_ap1']
 resolve('foo'): foo
-resolve('linear'): ACEScg
+resolve('linear'): Linear Rec.709 (sRGB)
 resolve('scene_linear'): ACEScg
 resolve('lin_srgb'): Linear Rec.709 (sRGB)
 resolve('srgb'): sRGB - Texture

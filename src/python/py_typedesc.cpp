@@ -126,33 +126,9 @@ declare_typedesc(py::module& m)
 
         // Conversion to string
         .def("__str__", [](TypeDesc t) { return PY_STR(t.c_str()); })
-        .def("__repr__",
-             [](TypeDesc t) {
-                 return PY_STR("<TypeDesc '" + std::string(t.c_str()) + "'>");
-             })
-
-        // Static members of pre-constructed types
-        // DEPRECATED(1.8)
-        .def_readonly_static("TypeFloat", &TypeFloat)
-        .def_readonly_static("TypeColor", &TypeColor)
-        .def_readonly_static("TypeString", &TypeString)
-        .def_readonly_static("TypeInt", &TypeInt)
-        .def_readonly_static("TypeHalf", &TypeHalf)
-        .def_readonly_static("TypePoint", &TypePoint)
-        .def_readonly_static("TypeVector", &TypeVector)
-        .def_readonly_static("TypeNormal", &TypeNormal)
-        .def_readonly_static("TypeMatrix", &TypeMatrix)
-        .def_readonly_static("TypeMatrix33", &TypeMatrix33)
-        .def_readonly_static("TypeMatrix44", &TypeMatrix44)
-        .def_readonly_static("TypeTimeCode", &TypeTimeCode)
-        .def_readonly_static("TypeKeyCode", &TypeKeyCode)
-        .def_readonly_static("TypeRational", &TypeRational)
-        .def_readonly_static("TypeFloat2", &TypeFloat2)
-        .def_readonly_static("TypeVector2", &TypeVector2)
-        .def_readonly_static("TypeVector2i", &TypeVector2i)
-        .def_readonly_static("TypeVector3i", &TypeVector3i)
-        .def_readonly_static("TypeFloat4", &TypeFloat4)
-        .def_readonly_static("TypeVector4", &TypeVector4);
+        .def("__repr__", [](TypeDesc t) {
+            return PY_STR("<TypeDesc '" + std::string(t.c_str()) + "'>");
+        });
 
     // Declare that a BASETYPE is implicitly convertible to a TypeDesc.
     // This keeps us from having to separately declare func(TypeDesc)

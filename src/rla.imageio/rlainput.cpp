@@ -402,13 +402,7 @@ RLAInput::seek_subimage(int subimage, int miplevel)
         // decisions based on known gamma values. For example, you want
         // 2.2, not 2.19998.
         gamma = roundf(100.0 * gamma) / 100.0f;
-        if (gamma == 1.f)
-            m_spec.attribute("oiio:ColorSpace", "Linear");
-        else {
-            m_spec.attribute("oiio:ColorSpace",
-                             Strutil::fmt::format("Gamma{:.2g}", gamma));
-            m_spec.attribute("oiio:Gamma", gamma);
-        }
+        set_colorspace_rec709_gamma(m_spec, gamma);
     }
 
     float aspect = Strutil::stof(m_rla.AspectRatio);

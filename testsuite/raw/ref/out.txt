@@ -51,7 +51,6 @@
     Canon:SpecularWhiteLevel: 12749
     Canon:SpotMeteringMode: 0 (center)
     Exif:ApertureValue: 2.97085 (f/2.8)
-    Exif:ColorSpace: 1
     Exif:CustomRendered: 0 (no)
     Exif:DateTimeDigitized: "2009:10:09 14:18:45"
     Exif:DateTimeOriginal: "2009:10:09 14:18:45"
@@ -76,7 +75,7 @@
     Exif:SubsecTimeDigitized: "00"
     Exif:SubsecTimeOriginal: "00"
     Exif:WhiteBalance: 0 (auto)
-    oiio:ColorSpace: "linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:MakerNoteOffset: 0
     raw:cam_mul: 2076, 1024, 1584, 1024
     raw:cam_xyz: 0.6844, -0.0996, -0.0856, -0.3876, 1.1761, 0.2396, -0.0593, 0.1772, 0.6198, 0, 0, 0
@@ -166,7 +165,7 @@
     Nikon:PhaseDetectAF: 0
     Nikon:ShootingMode: 0
     Nikon:VRMode: 0
-    oiio:ColorSpace: "linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:MakerNoteOffset: 0
     raw:cam_mul: 463, 256, 396, 256
     raw:cam_xyz: 0.7171, -0.1986, -0.0648, -0.8085, 1.5555, 0.2718, -0.217, 0.2512, 0.7457, 0, 0, 0
@@ -187,7 +186,6 @@
     Software: "Digital Camera FinePix F700  Ver2.00"
     Exif:ApertureValue: 3.69599 (f/3.6)
     Exif:BrightnessValue: 773/100 (7.73)
-    Exif:ColorSpace: 1
     Exif:CompressedBitsPerPixel: 30/10 (3)
     Exif:CustomRendered: 0 (no)
     Exif:DateTimeDigitized: "2007:01:06 14:20:22"
@@ -238,7 +236,7 @@
     Fujifilm:Rating: 0
     Fujifilm:ShutterType: 0
     Fujifilm:WB_Preset: 0
-    oiio:ColorSpace: "linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:MakerNoteOffset: 0
     raw:cam_mul: 131.532, 80, 97.3451, 80
     raw:cam_xyz: 1.0004, -0.3219, -0.1201, -0.7036, 1.5047, 0.2107, -0.1863, 0.2565, 0.7736, 0, 0, 0
@@ -328,7 +326,7 @@
     Nikon:PhaseDetectAF: 0
     Nikon:ShootingMode: 0
     Nikon:VRMode: 0
-    oiio:ColorSpace: "linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:MakerNoteOffset: 0
     raw:cam_mul: 463, 256, 396, 256
     raw:cam_xyz: 0.7171, -0.1986, -0.0648, -0.8085, 1.5555, 0.2718, -0.217, 0.2512, 0.7457, 0, 0, 0
@@ -351,7 +349,6 @@
     PixelAspectRatio: 1
     Software: "Version 1.0                    "
     Exif:ApertureValue: 2 (f/2.0)
-    Exif:ColorSpace: 1
     Exif:Contrast: 0 (normal)
     Exif:CustomRendered: 1 (yes)
     Exif:DateTimeDigitized: "2008:12:19 12:29:40"
@@ -375,7 +372,7 @@
     Exif:Sharpness: 1 (soft)
     Exif:ShutterSpeedValue: 8.32193 (1/319 s)
     Exif:WhiteBalance: 1 (manual)
-    oiio:ColorSpace: "linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:MakerNoteOffset: 0
     Olympus:AFFineTune: 0
     Olympus:AFPoint: 0
@@ -433,7 +430,7 @@
     Exif:MaxApertureValue: 925/256 (3.61328)
     Exif:MeteringMode: 5 (pattern)
     Exif:ShutterSpeedValue: 8.64386 (1/399 s)
-    oiio:ColorSpace: "linear"
+    oiio:ColorSpace: "lin_rec709"
     Panasonic:AFPoint: -1
     Panasonic:BlackLevel: 0, 0, 0, 0, 0, 0, 0, 0
     Panasonic:CanonFocalUnits: 1
@@ -478,7 +475,7 @@
     Exif:ShutterSpeedValue: 7.96578 (1/249 s)
     Exif:SubjectDistanceRange: 3 (distant)
     Exif:WhiteBalance: 1 (manual)
-    oiio:ColorSpace: "linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:MakerNoteOffset: 0
     Pentax:AFAdjustment: 0
     Pentax:AFPoint: -1
@@ -527,7 +524,6 @@
     Software: "DSLR-A300 v1.00"
     Exif:ApertureValue: 4.97085 (f/5.6)
     Exif:BrightnessValue: 137/100 (1.37)
-    Exif:ColorSpace: 1
     Exif:CompressedBitsPerPixel: 8/1 (8)
     Exif:Contrast: 0 (normal)
     Exif:CustomRendered: 0 (no)
@@ -553,7 +549,7 @@
     Exif:Sharpness: 0 (normal)
     Exif:ShutterSpeedValue: 5.90689 (1/59 s)
     Exif:WhiteBalance: 0 (auto)
-    oiio:ColorSpace: "linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:MakerNoteOffset: 0
     raw:cam_mul: 1972, 1024, 1632, 1024
     raw:cam_xyz: 0.9847, -0.3091, -0.0928, -0.8485, 1.6345, 0.2225, -0.0715, 0.0595, 0.7103, 0, 0, 0

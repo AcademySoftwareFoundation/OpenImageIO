@@ -282,9 +282,11 @@ ImageRec::read(ReadPolicy readpolicy, string_view channel_set)
             // relying on the cache to read their frames on demand rather
             // than reading the whole movie up front, even though each frame
             // individually would be well below the threshold.
-            imagesize_t imgbytes
-                = m_imagecache->imagespec(uname, s, m)->image_bytes();
-            bool forceread = (s == 0 && m == 0
+            ImageSpec spec;
+            m_imagecache->get_imagespec(uname, spec, s);
+            m_imagecache->get_cache_dimensions(uname, spec, s, m);
+            imagesize_t imgbytes = spec.image_bytes();
+            bool forceread       = (s == 0 && m == 0
                               && imgbytes * subimages < 50 * 1024 * 1024);
             ImageBufRef ib(
                 new ImageBuf(name(), s, m, m_imagecache, configspec()));

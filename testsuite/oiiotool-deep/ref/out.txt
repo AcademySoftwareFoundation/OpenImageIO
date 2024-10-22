@@ -12,7 +12,6 @@ allhalf.exr          :  160 x  120, 2 channel, deep half openexr
     version: 1
     worldToCamera: 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 1.5, 0, 4, 1
     worldToNDC: 2.41421, 0, 0, 0, 0, 3.21895, 0, 0, 0, 0, -1.00671, -1, 3.62132, 0, 3.92617, 4
-    oiio:ColorSpace: "Linear"
     oiio:subimages: 1
     openexr:chunkCount: 6
     Stats Min: 0.011902 3.031250 (float)
@@ -56,7 +55,6 @@ swaptypes.exr        :  160 x  120, 2 channel, deep float/half openexr
     version: 1
     worldToCamera: 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 1.5, 0, 4, 1
     worldToNDC: 2.41421, 0, 0, 0, 0, 3.21895, 0, 0, 0, 0, -1.00671, -1, 3.62132, 0, 3.92617, 4
-    oiio:ColorSpace: "Linear"
     oiio:subimages: 1
     openexr:chunkCount: 6
     Stats Min: 0.011902 3.031250 (float)
@@ -95,7 +93,6 @@ tinydeep.exr         :    4 x    4, 2 channel, deep float openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     version: 1
-    oiio:ColorSpace: "Linear"
     oiio:subimages: 1
     openexr:chunkCount: 4
     Pixel (0, 0): 0 samples 

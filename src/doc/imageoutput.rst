@@ -888,12 +888,12 @@ color space:
    .. code-tab:: c++
 
       ImageSpec spec (width, length, channels, format);
-      spec.attribute ("oiio:ColorSpace", "scene_linear");
+      spec.set_colorspace("scene_linear");
 
    .. code-tab:: py
 
       spec = ImageSpec(width, length, channels, format)
-      spec.attribute ("oiio:ColorSpace", "scene_linear")
+      spec.set_colorspace("scene_linear")
 
 If a particular ``ImageOutput`` implementation is required (by the rules of
 the file format it writes) to have pixels in a fixed color space,

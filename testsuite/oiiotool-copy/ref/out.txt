@@ -13,7 +13,7 @@ allhalf.exr          :   38 x   38, 5 channel, half openexr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
 Reading rgbahalf-zfloat.exr
 rgbahalf-zfloat.exr  :   38 x   38, 5 channel, half/half/half/half/float openexr
@@ -26,7 +26,7 @@ rgbahalf-zfloat.exr  :   38 x   38, 5 channel, half/half/half/half/float openexr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
 explicit -d uint save result: 
 uint8.tif            :  128 x  128, 3 channel, uint8 tiff
@@ -66,7 +66,7 @@ chname.exr           :   38 x   38, 5 channel, float openexr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
 Reading green.exr
 green.exr            :   64 x   64, 3 channel, half openexr
@@ -76,7 +76,7 @@ green.exr            :   64 x   64, 3 channel, half openexr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
 Reading greenmeta.exr
 greenmeta.exr        :   64 x   64, 3 channel, half openexr
@@ -89,7 +89,7 @@ greenmeta.exr        :   64 x   64, 3 channel, half openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     weight: 20.5
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
 Reading nometamerge.exr
 nometamerge.exr      :   64 x   64, 6 channel, float openexr
@@ -100,7 +100,7 @@ nometamerge.exr      :   64 x   64, 6 channel, float openexr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
 Reading metamerge.exr
 metamerge.exr        :   64 x   64, 6 channel, float openexr
@@ -112,7 +112,7 @@ metamerge.exr        :   64 x   64, 6 channel, float openexr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
 Testing -o with no image
 oiiotool WARNING: -o : out.tif did not have any current image to output.

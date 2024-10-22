@@ -951,23 +951,6 @@ public:
 
     /// @}
 
-#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2,2,0) && OIIO_VERSION_LESS(2,7,0) \
-    && !defined(OIIO_DOXYGEN) && !defined(OIIO_INTERNAL)
-    OIIO_DEPRECATED("Use the modern form of create instead (2.2)")
-    static unique_ptr create (const std::string& filename, bool do_open,
-                              const ImageSpec *config,
-                              string_view plugin_searchpath) {
-        return create(filename, do_open, config, nullptr, plugin_searchpath);
-    }
-    OIIO_DEPRECATED("Use the modern form of create instead (2.1)")
-    static unique_ptr create (const std::string& filename,
-                              const std::string& plugin_searchpath) {
-        return create(filename, false, nullptr, nullptr, plugin_searchpath);
-    }
-    OIIO_DEPRECATED("destroy is no longer needed (2.1)")
-    static void destroy (ImageInput *x) { delete x; }
-#endif
-
 protected:
     ImageInput ();
 public:
@@ -1317,43 +1300,13 @@ public:
     /// @returns            `true` upon success, or `false` upon failure.
     ///
     /// @note This call was changed for OpenImageIO 2.0 to include the
-    ///     explicit subimage and miplevel parameters. The previous
-    ///     versions, which lacked subimage and miplevel parameters (thus
-    ///     were dependent on a prior call to `seek_subimage`) are
-    ///     considered deprecated.
+    ///     explicit subimage and miplevel parameters.
     virtual bool read_scanlines (int subimage, int miplevel,
                                  int ybegin, int yend, int z,
                                  int chbegin, int chend,
                                  TypeDesc format, void *data,
                                  stride_t xstride=AutoStride,
                                  stride_t ystride=AutoStride);
-
-#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2,0,0) \
-    && !defined(OIIO_DOXYGEN) && !defined(OIIO_INTERNAL)
-    // DEPRECATED versions of read_scanlines (pre-1.9 OIIO). These will
-    // eventually be removed. Try to replace these calls with ones to the
-    // new variety of read_scanlines that takes an explicit subimage and
-    // miplevel. These old versions are NOT THREAD-SAFE.
-    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
-    bool read_scanlines (int ybegin, int yend, int z,
-                         TypeDesc format, void *data,
-                         stride_t xstride=AutoStride,
-                         stride_t ystride=AutoStride) {
-        lock_guard lock(*this);
-        return read_scanlines(current_subimage(), current_miplevel(), ybegin, yend,
-                              z, 0, m_spec.nchannels, format, data, xstride, ystride);
-    }
-    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
-    bool read_scanlines (int ybegin, int yend, int z,
-                         int chbegin, int chend,
-                         TypeDesc format, void *data,
-                         stride_t xstride=AutoStride,
-                         stride_t ystride=AutoStride) {
-        lock_guard lock(*this);
-        return read_scanlines(current_subimage(), current_miplevel(), ybegin, yend,
-                              z, chbegin, chend, format, data, xstride, ystride);
-    }
-#endif
 
     /// Read the tile whose upper-left origin is (x,y,z) into `data[]`,
     /// converting if necessary from the native data format of the file into
@@ -1444,23 +1397,6 @@ public:
                              stride_t xstride=AutoStride, stride_t ystride=AutoStride,
                              stride_t zstride=AutoStride);
 
-#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2,0,0) && !defined(OIIO_DOXYGEN)
-    // DEPRECATED versions of read_tiles (pre-1.9 OIIO). These will
-    // eventually be removed. Try to replace these calls with ones to the
-    // new variety of read_tiles that takes an explicit subimage and
-    // miplevel. These old versions are NOT THREAD-SAFE.
-    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
-    bool read_tiles (int xbegin, int xend, int ybegin, int yend,
-                     int zbegin, int zend, TypeDesc format, void *data,
-                     stride_t xstride=AutoStride, stride_t ystride=AutoStride,
-                     stride_t zstride=AutoStride);
-    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
-    bool read_tiles (int xbegin, int xend, int ybegin, int yend,
-                     int zbegin, int zend, int chbegin, int chend,
-                     TypeDesc format, void *data, stride_t xstride=AutoStride,
-                     stride_t ystride=AutoStride, stride_t zstride=AutoStride);
-#endif
-
     /// Read the entire image of `spec.width x spec.height x spec.depth`
     /// pixels into a buffer with the given strides and in the desired
     /// data format.
@@ -1504,33 +1440,6 @@ public:
                              stride_t zstride=AutoStride,
                              ProgressCallback progress_callback=NULL,
                              void *progress_callback_data=NULL);
-
-#if !defined(OIIO_DOXYGEN)
-    // DEPRECATED versions of read_image (pre-1.9 OIIO). These will
-    // eventually be removed. Try to replace these calls with ones to the
-    // new variety of read_image that takes an explicit subimage and
-    // miplevel. These old versions are NOT THREAD-SAFE.
-    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
-    virtual bool read_image (TypeDesc format, void *data,
-                             stride_t xstride=AutoStride,
-                             stride_t ystride=AutoStride,
-                             stride_t zstride=AutoStride,
-                             ProgressCallback progress_callback=NULL,
-                             void *progress_callback_data=NULL);
-    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
-    virtual bool read_image (int chbegin, int chend,
-                             TypeDesc format, void *data,
-                             stride_t xstride=AutoStride,
-                             stride_t ystride=AutoStride,
-                             stride_t zstride=AutoStride,
-                             ProgressCallback progress_callback=NULL,
-                             void *progress_callback_data=NULL);
-    OIIO_DEPRECATED("replace with version that takes subimage & miplevel parameters (2.0)")
-    bool read_image (float *data) {
-        return read_image (current_subimage(), current_miplevel(),
-                           0, -1, TypeFloat, data);
-    }
-#endif
 
     /// Read deep scanlines containing pixels (*,y,z), for all y in the
     /// range [ybegin,yend) into `deepdata`. This will fail if it is not a
@@ -3254,6 +3163,33 @@ inline string_view get_string_attribute (string_view name,
 }
 
 
+/// Set the metadata of the `spec` to presume that color space is `name` (or
+/// to assume nothing about the color space if `name` is empty). The core
+/// operation is to set the "oiio:ColorSpace" attribute, but it also removes
+/// or alters several other attributes that may hint color space in ways that
+/// might be contradictory or no longer true. This uses the current default
+/// color config to adjudicate color space name equivalencies.
+///
+/// @version 3.0
+OIIO_API void set_colorspace(ImageSpec& spec, string_view name);
+
+/// Set the metadata of the `spec` to reflect Rec709 color primaries and the
+/// given gamma. The core operation is to set the "oiio:ColorSpace" attribute,
+/// but it also removes or alters several other attributes that may hint color
+/// space in ways that might be contradictory or no longer true. This uses the
+/// current default color config to adjudicate color space name equivalencies.
+///
+/// @version 3.0
+OIIO_API void set_colorspace_rec709_gamma(ImageSpec& spec, float gamma);
+
+
+/// Are the two named color spaces equivalent, based on the default color
+/// config in effect?
+///
+/// @version 3.0
+OIIO_API bool equivalent_colorspace(string_view a, string_view b);
+
+
 /// Register the input and output 'create' routines and list of file
 /// extensions for a particular format.
 OIIO_API void declare_imageio_format (const std::string &format_name,
@@ -3370,6 +3306,19 @@ OIIO_API bool copy_image (int nchannels, int width, int height, int depth,
                           void *dst, stride_t dst_xstride,
                           stride_t dst_ystride, stride_t dst_zstride);
 
+/// Helper: manufacture a span given an image pointer, format, size, and
+/// strides. Use with caution! This is making a lot of assumptions that the
+/// data pointer really does point to memory that's ok to access according to
+/// the sizes and strides you give.
+OIIO_API span<std::byte>
+span_from_buffer(void* data, TypeDesc format, int nchannels, int width,
+                 int height, int depth, stride_t xstride = AutoStride, stride_t ystride = AutoStride,
+                 stride_t zstride = AutoStride);
+OIIO_API cspan<std::byte>
+cspan_from_buffer(const void* data, TypeDesc format, int nchannels, int width,
+                 int height, int depth, stride_t xstride = AutoStride, stride_t ystride = AutoStride,
+                 stride_t zstride = AutoStride);
+
 
 // All the wrap_foo functions implement a wrap mode, wherein coord is
 // altered to be origin <= coord < origin+width.  The return value
@@ -3429,43 +3378,6 @@ OIIO_API void _ImageIO_force_link ();
 // entirely before the final release of OIIO 3.0.
 //
 #if !defined(OIIO_INTERNAL) && !defined(OIIO_DOXYGEN)
-
-#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(1,9,0) && !defined(OIIO_INTERNAL)
-// Deprecated typedefs. Just use ParamValue and ParamValueList directly.
-OIIO_DEPRECATED("Use ParamValue instead") typedef ParamValue ImageIOParameter;
-OIIO_DEPRECATED("Use ParamValueList instead") typedef ParamValueList ImageIOParameterList;
-#endif
-
-#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2, 0, 0)
-// DEPRECATED(2.0) -- the alpha_channel, z_channel were never used
-OIIO_DEPRECATED("Deprecated version (2.0)")
-inline bool convert_image(int nchannels, int width, int height, int depth,
-            const void *src, TypeDesc src_type,
-            stride_t src_xstride, stride_t src_ystride, stride_t src_zstride,
-            void *dst, TypeDesc dst_type,
-            stride_t dst_xstride, stride_t dst_ystride, stride_t dst_zstride,
-            int /*alpha_channel*/, int /*z_channel*/ = -1)
-{
-    return convert_image(nchannels, width, height, depth, src, src_type,
-                         src_xstride, src_ystride, src_zstride, dst, dst_type,
-                         dst_xstride, dst_ystride, dst_zstride);
-}
-
-// DEPRECATED(2.0) -- the alpha_channel, z_channel were never used
-OIIO_DEPRECATED("Deprecated version (2.0)")
-inline bool parallel_convert_image(
-            int nchannels, int width, int height, int depth,
-            const void *src, TypeDesc src_type,
-            stride_t src_xstride, stride_t src_ystride, stride_t src_zstride,
-            void *dst, TypeDesc dst_type,
-            stride_t dst_xstride, stride_t dst_ystride, stride_t dst_zstride,
-            int /*alpha_channel*/, int /*z_channel*/, int nthreads=0)
-{
-    return parallel_convert_image (nchannels, width, height, depth,
-           src, src_type, src_xstride, src_ystride, src_zstride,
-           dst, dst_type, dst_xstride, dst_ystride, dst_zstride, nthreads);
-}
-#endif
 
 #if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2, 1, 0)
 // DEPRECATED(2.1): old name

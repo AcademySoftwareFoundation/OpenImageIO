@@ -243,7 +243,7 @@ HeifInput::seek_subimage(int subimage, int miplevel)
                          m_himage.get_height(heif_channel_interleaved), bits / 8,
                          TypeUInt8);
 
-    m_spec.attribute("oiio:ColorSpace", "sRGB");
+    m_spec.set_colorspace("sRGB");
 
 #if LIBHEIF_HAVE_VERSION(1, 12, 0)
     // Libheif >= 1.12 added API call to find out if the image is associated

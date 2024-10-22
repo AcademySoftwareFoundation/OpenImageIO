@@ -219,7 +219,7 @@ ImageBuf_test_appbuffer()
 
     // Make sure we can write to the buffer
     float pix[CHANNELS] = { 0.0, 42.0, 0 };
-    A.setpixel(3, 2, 0, pix);
+    A.setpixel(3, 2, 0, make_span(pix));
     OIIO_CHECK_EQUAL(buf[2][3][1], 42.0);
 
     // Make sure we can copy-construct the ImageBuf and it points to the
@@ -289,7 +289,7 @@ ImageBuf_test_appbuffer_strided()
         for (int y = 0; y < res; ++y) {
             for (int x = 0; x < res; ++x) {
                 float pixel[nchans];
-                test.getpixel(x, y, pixel);
+                test.getpixel(x, y, make_span(pixel));
                 if ((x == 4 || x == 6 || x == 8)
                     && (y == 4 || y == 6 || y == 8)) {
                     OIIO_CHECK_ASSERT(cspan<float>(pixel) == cspan<float>(red));
@@ -357,16 +357,16 @@ test_set_get_pixels()
 {
     std::cout << "\nTesting set_pixels, get_pixels:\n";
     const int nchans = 3;
-    ImageBuf A(ImageSpec(4, 4, nchans, TypeDesc::FLOAT));
+    ImageBuf A(ImageSpec(4, 4, nchans, TypeFloat));
     ImageBufAlgo::zero(A);
     std::cout << " Cleared:\n";
     print(A);
     float newdata[2 * 2 * nchans] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 };
-    A.set_pixels(ROI(1, 3, 1, 3), TypeDesc::FLOAT, newdata);
+    A.set_pixels(ROI(1, 3, 1, 3), make_span(newdata));
     std::cout << " After set:\n";
     print(A);
     float retrieved[2 * 2 * nchans] = { 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9 };
-    A.get_pixels(ROI(1, 3, 1, 3, 0, 1), TypeDesc::FLOAT, retrieved);
+    A.get_pixels(ROI(1, 3, 1, 3, 0, 1), make_span(retrieved));
     OIIO_CHECK_ASSERT(0 == memcmp(retrieved, newdata, 2 * 2 * nchans));
 }
 
@@ -383,22 +383,23 @@ time_get_pixels()
     ImageBufAlgo::zero(A);
 
     // bench.work (size_t(xres*yres*nchans));
-    std::unique_ptr<float[]> fbuf(new float[xres * yres * nchans]);
+    size_t nvals = size_t(xres * yres * nchans);
+    std::vector<float> fbuf(nvals);
     bench("get_pixels 1Mpelx4 float[4]->float[4] ",
-          [&]() { A.get_pixels(A.roi(), TypeFloat, fbuf.get()); });
+          [&]() { A.get_pixels(A.roi(), make_span(fbuf)); });
     bench("get_pixels 1Mpelx4 float[4]->float[3] ", [&]() {
         ROI roi3   = A.roi();
         roi3.chend = 3;
-        A.get_pixels(roi3, TypeFloat, fbuf.get());
+        A.get_pixels(roi3, make_span(fbuf));
     });
 
-    std::unique_ptr<uint8_t[]> ucbuf(new uint8_t[xres * yres * nchans]);
+    std::vector<uint8_t> ucbuf(nvals);
     bench("get_pixels 1Mpelx4 float[4]->uint8[4] ",
-          [&]() { A.get_pixels(A.roi(), TypeUInt8, ucbuf.get()); });
+          [&]() { A.get_pixels(A.roi(), make_span(ucbuf)); });
 
-    std::unique_ptr<uint16_t[]> usbuf(new uint16_t[xres * yres * nchans]);
+    std::vector<uint16_t> usbuf(nvals);
     bench("get_pixels 1Mpelx4 float[4]->uint16[4] ",
-          [&]() { A.get_pixels(A.roi(), TypeUInt8, usbuf.get()); });
+          [&]() { A.get_pixels(A.roi(), make_span(usbuf)); });
 }
 
 
@@ -492,7 +493,7 @@ test_write_over()
     // Read the image
     float pixel[3];
     ImageBuf A("tmp-green.tif");
-    A.getpixel(4, 4, pixel);
+    A.getpixel(4, 4, make_span(pixel));
     OIIO_CHECK_ASSERT(pixel[0] == 0 && pixel[1] == 1 && pixel[2] == 0);
     A.reset();  // make sure A isn't held open, we're about to remove it
 
@@ -504,7 +505,7 @@ test_write_over()
     // We expect it to have the new color, not have the underlying
     // ImageCache misremember the old color!
     ImageBuf B("tmp-green.tif");
-    B.getpixel(4, 4, pixel);
+    B.getpixel(4, 4, make_span(pixel));
     OIIO_CHECK_ASSERT(pixel[0] == 1 && pixel[1] == 0 && pixel[2] == 0);
     B.reset();  // make sure B isn't held open, we're about to remove it
 

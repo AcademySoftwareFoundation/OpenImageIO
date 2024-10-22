@@ -13,6 +13,15 @@ else :
 # Prep:
 command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.exr grid.exr")
 command += run_app("cmake -E copy " + test_source_dir + "/../common/tahoe-small.tif tahoe.tif")
+command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.exr A.exr")
+command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.exr B.exr")
+command += run_app("cmake -E copy " + test_source_dir + "/../common/with_nans.tif with_nans.tif")
+command += run_app("cmake -E copy " + test_source_dir + "/../common/checker_with_alpha.exr checker_with_alpha.exr")
+
+# Copy the grid to both a tiled and scanline version
+command += oiio_app("iconvert") + "../common/grid.tif --scanline scanline.tif > out.txt ;" 
+command += oiio_app("iconvert") + "../common/grid.tif --tile 64 64 tiled.tif > out.txt ;" 
+
 
 # Build
 command += run_app("cmake -S " + test_source_dir + " -B build -DCMAKE_BUILD_TYPE=Release >> build.txt 2>&1", silent=True)
@@ -68,7 +77,17 @@ hashes = [
     "transpose.exr",
     "reorient.exr",
     "cshift.exr",
-    "texture.exr"
+    "texture.exr",
+    "add.exr",
+    "add-cspan.exr",
+    "sub.exr",
+    "absdiff.exr",
+    "abs.exr",
+    "mul.exr",
+    "div.exr",
+    "checker_with_alpha_filled.exr",
+    "tahoe_median_filter.tif",
+    "tahoe_unsharp_mask.tif"
 ]
 for file in hashes :
     command += info_command(file, verbose=False)

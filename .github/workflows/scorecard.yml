@@ -8,8 +8,8 @@ on:
   # Only the default branch is supported.
   branch_protection_rule:
   push:
-    # Run on pushes to master, but only the main repo, not forks
-    branches: [ "master" ]
+    # Run on pushes to main, but only the main repo, not forks
+    branches: [ "main" ]
     if: github.event.pull_request.head.repo.full_name == github.repository
     paths-ignore:
       - '**.md'
@@ -17,8 +17,6 @@ on:
       - 'docs/**'
   pull_request:
     # Only run on individual PRs if the workflow file itself is changed.
-    paths:
-      - .github/workflows/scorecard.yml
     paths-ignore:
       - '**.md'
       - '**.rst'

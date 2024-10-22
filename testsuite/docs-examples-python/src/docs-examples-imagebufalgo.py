@@ -436,7 +436,73 @@ def example_warp():
 
 
 # Section: Image Arithmetic
+def example_add():
+    print("example_add")
+    # BEGIN-imagebufalgo-add
+    # Add images A and B
+    A = ImageBuf("A.exr")
+    B = ImageBuf("B.exr")
+    Sum = ImageBufAlgo.add (A, B)
 
+    # Add 0.2 to channels 0-2, but not to channel 3
+    Sum_cspan = ImageBufAlgo.add (A, (0.2, 0.2, 0.2, 0.0))
+    # END-imagebufalgo-add
+    Sum.write("add.exr", "half")
+    Sum_cspan.write("add_cspan.exr", "half")
+
+def example_sub():
+    print("example_sub")
+    # BEGIN-imagebufalgo-sub
+    A = ImageBuf("A.exr")
+    B = ImageBuf("B.exr")
+    Diff = ImageBufAlgo.sub (A, B)
+    # END-imagebufalgo-sub
+    Diff.write("sub.exr", "half")
+
+def example_absdiff():
+    print("example_absdiff")
+    # BEGIN-imagebufalgo-absdiff
+    A = ImageBuf("A.exr")
+    B = ImageBuf("B.exr")
+    Diff = ImageBufAlgo.absdiff (A, B)
+    # END-imagebufalgo-absdiff
+    Diff.write("absdiff.exr", "half")
+
+def example_abs():
+    print("example_abs")
+    # BEGIN-imagebufalgo-absolute
+    A = ImageBuf("grid.exr")
+    Abs = ImageBufAlgo.abs (A)
+    # END-imagebufalgo-absolute
+    Abs.write("abs.exr", "half")
+
+def example_mul():
+    print("example_mul")
+    # BEGIN-imagebufalgo-mul
+    # Pixel-by-pixel, channel-by-channel multiplication of A and B
+    A = ImageBuf("A.exr")
+    B = ImageBuf("B.exr")
+    Product = ImageBufAlgo.mul (A, B)
+
+    # In-place reduce intensity of A's channels 0-2 by 50%
+    ImageBufAlgo.mul (A, A, (0.5, 0.5, 0.5, 1.0))
+    # END-imagebufalgo-mul
+    Product.write("mul.exr", "half")
+
+def example_div():
+    print("example_div")
+    # BEGIN-imagebufalgo-div
+    # Pixel-by-pixel, channel-by-channel division of A by B
+    A = ImageBuf("A.exr")
+    B = ImageBuf("B.exr")
+    Ratio = ImageBufAlgo.div (A, B)
+
+    # In-place reduce intensity of A's channels 0-2 by 50%
+    ImageBufAlgo.div (A, A, (2.0, 2.0, 2.0, 1.0))
+    # END-imagebufalgo-div
+    Ratio.write("div.exr", "half")
+
+#TODO: mad and onwards
 
 # Section: Image comparison and statistics
 
@@ -446,6 +512,41 @@ def example_warp():
 
 # Section: Image enhancement / restoration
 
+def example_fixNonFinite():
+    print("example_fixNonFinite")
+    # BEGIN-imagebufalgo-fixNonFinite
+    Src = ImageBuf("with_nans.tif")
+    ImageBufAlgo.fixNonFinite (Src, Src, oiio.NONFINITE_BOX3)
+    # END-imagebufalgo-fixNonFinite
+
+    # fixing the nans seems nondeterministic - so not writing out the image
+    # Src.write("with_nans_fixed.tif")
+
+def example_fillholes_pushpull():
+    print("example_fillholes_pushpull")
+    # BEGIN-imagebufalgo-fillholes_pushpull
+    Src = ImageBuf("checker_with_alpha.exr")
+    Filled = ImageBufAlgo.fillholes_pushpull(Src)
+    # END-imagebufalgo-fillholes_pushpull
+    Filled.write("checker_with_alpha_filled.exr")
+
+
+def example_median_filter():
+    print("example_median_filter")
+    # BEGIN-imagebufalgo-median_filter
+    Noisy = ImageBuf("tahoe.tif")
+    Clean = ImageBufAlgo.median_filter (Noisy, 3, 3)
+    # END-imagebufalgo-median_filter
+    Clean.write("tahoe_median_filter.tif")
+
+
+def example_unsharp_mask():
+    print("example_unsharp_mask")
+    # BEGIN-imagebufalgo-unsharp_mask
+    Blurry = ImageBuf("tahoe.tif")
+    Sharp = ImageBufAlgo.unsharp_mask (Blurry, "gaussian", 5.0)
+    # END-imagebufalgo-unsharp_mask
+    Sharp.write("tahoe_unsharp_mask.tif")
 
 # Section: Morphological filters
 
@@ -511,12 +612,22 @@ if __name__ == '__main__':
     example_warp()
 
     # Section: Image Arithmetic
+    example_add()
+    example_sub()
+    example_absdiff()
+    example_abs()
+    example_mul()
+    example_div()
 
     # Section: Image comparison and statistics
 
     # Section: Convolution and frequency-space algorithms
 
     # Section: Image enhancement / restoration
+    example_fixNonFinite()
+    example_fillholes_pushpull()
+    example_median_filter()
+    example_unsharp_mask()
 
     # Section: Morphological filters
 

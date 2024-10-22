@@ -496,7 +496,7 @@ main(int argc, char** argv)
     imagesize_t maxpelchans = 0;
     for (auto&& fn : input_filename) {
         ImageSpec spec;
-        if (!imagecache->get_imagespec(fn, spec, 0, 0, true)) {
+        if (!imagecache->get_imagespec(fn, spec)) {
             std::cout << "File \"" << fn << "\" could not be opened.\n";
             return -1;
         }

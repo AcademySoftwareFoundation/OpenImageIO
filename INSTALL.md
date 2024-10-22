@@ -17,16 +17,16 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * **C++17 or higher** (also builds with C++20)
      * The default build mode is C++17. This can be controlled by via the
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=20`, etc.
- * Compilers: **gcc 9.3** - 14.1, **clang 5** - 18, MSVS 2017 - 2019 (**v19.14
+ * Compilers: **gcc 9.3** - 14.2, **clang 5** - 19, MSVS 2017 - 2019 (**v19.14
    and up**), **Intel icc 19+**, Intel OneAPI C++ compiler 2022+.
- * **CMake >= 3.15** (tested through 3.29)
+ * **CMake >= 3.18.2** (tested through 3.30)
  * **Imath >= 3.1** (tested through 3.1.x and main)
- * **OpenEXR >= 3.1** (tested through 3.2 and main)
- * **libTIFF >= 4.0** (tested through 4.6)
- * **OpenColorIO >= 2.2** (tested through 2.3)
+ * **OpenEXR >= 3.1** (tested through 3.3 and main)
+ * **libTIFF >= 4.0** (tested through 4.7)
+ * **OpenColorIO >= 2.2** (tested through 2.4 and main)
  * libjpeg >= 8 (tested through jpeg9e), or **libjpeg-turbo >= 2.1** (tested
    through 3.0)
- * **[fmtlib](https://github.com/fmtlib/fmt) >= 7.0** (tested through 10.2).
+ * **[fmtlib](https://github.com/fmtlib/fmt) >= 7.0** (tested through 11.0).
    If not found at build time, this will be automatically downloaded unless
    the build sets `-DBUILD_MISSING_FMT=OFF`.
 
@@ -42,14 +42,14 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for PNG files:
      * **libPNG >= 1.6.0** (tested though 1.6.43)
  * If you want support for camera "RAW" formats:
-     * **LibRaw >= 0.20** (tested though 0.21.2)
+     * **LibRaw >= 0.20** (tested though 0.21.3 and master)
  * If you want support for a wide variety of video formats:
      * **ffmpeg >= 4.0** (tested through 7.0)
  * If you want support for jpeg 2000 images:
      * OpenJpeg >= 2.0 (tested through 2.5; we recommend 2.4 or higher
        for multithreading support)
  * If you want support for OpenVDB files:
-     * OpenVDB >= 5.0 (tested through 11.0). Note that using OpenVDB >= 10.0
+     * OpenVDB >= 9.0 (tested through 11.0). Note that using OpenVDB >= 10.0
        requires that you compile OIIO with C++17 or higher.
  * If you want to use TBB as the thread pool:
      * TBB >= 2018 (tested through 2021 and OneTBB)

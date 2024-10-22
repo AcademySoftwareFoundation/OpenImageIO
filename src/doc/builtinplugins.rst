@@ -2179,6 +2179,11 @@ options are supported:
        0 - do not use FBDD noise reduction, 1 - light FBDD reduction,
        2 (and more) - full FBDD reduction
        (Default: 0)
+   * - ``raw:max_raw_memory_mb``
+     - int
+     - Maximum memory allocation for processing of raw images. Stop processing if
+       raw buffer size grows larger than that value (in megabytes).
+       (Default: 2048)
 
 
 |

@@ -760,20 +760,25 @@ public:
     // The format string is followed by a list of pointers to the argument
     // variables, just like scanf.  A NULL terminates the list.  Multiple
     // calls to options() will append additional options.
+    OIIO_DEPRECATED_EXTERNAL("(2.2)")
     int options(const char* intro, ...);
 
     // old name
-    // DEPRECATED(2.2)
+    OIIO_DEPRECATED_EXTERNAL("Use parse_args() instead. (2.2)")
     int parse(int argc, const char** argv) { return parse_args(argc, argv); }
 
     // Type for a callback that writes something to the output stream.
+    OIIO_DEPRECATED_EXTERNAL("(2.2)")
     typedef std::function<void(const ArgParse& ap, std::ostream&)> callback_t;
     // Set callbacks to run that will print any matter you want as part
     // of the verbose usage, before and after the options are detailed.
+    OIIO_DEPRECATED_EXTERNAL("(2.2)")
     void set_preoption_help(callback_t callback);
+    OIIO_DEPRECATED_EXTERNAL("(2.2)")
     void set_postoption_help(callback_t callback);
 
     // DEPRECATED(2.2) synonym for `print_help()`.
+    OIIO_DEPRECATED_EXTERNAL("Use print_help() instead. (2.2)")
     void usage() const { print_help(); }
 };
 
