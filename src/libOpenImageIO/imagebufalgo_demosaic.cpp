@@ -96,9 +96,9 @@ protected:
                 Row row = { .iterator      = ImageBuf::ConstIterator<Atype>(src,
                                                                             xstart,
                                                                             ystart),
-                            .x_offset      = x_off,
                             .white_balance = { white_balance[y_off],
-                                               white_balance[y_off + 1] } };
+                                               white_balance[y_off + 1] },
+                            .x_offset      = x_off };
 
                 for (int j = skip; j < size; j++) {
                     row.data[j] = row.fetch();
