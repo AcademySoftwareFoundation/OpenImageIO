@@ -93,12 +93,9 @@ protected:
                 int x_off = (xstart + x_offset) % 2;
                 int y_off = ((ystart + y_offset) % 2) * 2;
 
-                Row row = { .iterator      = ImageBuf::ConstIterator<Atype>(src,
-                                                                            xstart,
-                                                                            ystart),
-                            .white_balance = { white_balance[y_off],
-                                               white_balance[y_off + 1] },
-                            .x_offset      = x_off };
+                Row row = { ImageBuf::ConstIterator<Atype>(src, xstart, ystart),
+                            { white_balance[y_off], white_balance[y_off + 1] },
+                            x_off };
 
                 for (int j = skip; j < size; j++) {
                     row.data[j] = row.fetch();
