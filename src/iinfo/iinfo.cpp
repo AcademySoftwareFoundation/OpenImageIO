@@ -60,9 +60,6 @@ static bool
 read_input(const std::string& filename, ImageBuf& img, int subimage = 0,
            int miplevel = 0)
 {
-    if (img.subimage() >= 0 && img.subimage() == subimage)
-        return true;
-
     if (img.read(subimage, miplevel, false, TypeDesc::FLOAT))
         return true;
 

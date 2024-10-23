@@ -225,9 +225,6 @@ static bool
 read_input(Oiiotool& ot, const std::string& filename, ImageBuf& img,
            int subimage = 0, int miplevel = 0)
 {
-    if (img.subimage() >= 0 && img.subimage() == subimage)
-        return true;
-
     img.reset(filename, subimage, miplevel, nullptr, &ot.input_config);
     if (img.init_spec(filename, subimage, miplevel)) {
         // Force a read now for reasonable-sized first images in the
