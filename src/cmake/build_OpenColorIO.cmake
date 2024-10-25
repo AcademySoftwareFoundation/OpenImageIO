@@ -6,10 +6,10 @@
 # OpenColorIO by hand!
 ######################################################################
 
-set_cache (OpenColorIO_BUILD_VERSION 2.3.2 "OpenColorIO version for local builds")
+set_cache (OpenColorIO_BUILD_VERSION 2.4.0 "OpenColorIO version for local builds")
 set (OpenColorIO_GIT_REPOSITORY "https://github.com/AcademySoftwareFoundation/OpenColorIO")
 set (OpenColorIO_GIT_TAG "v${OpenColorIO_BUILD_VERSION}")
-set_cache (OpenColorIO_BUILD_SHARED_LIBS  ON
+set_cache (OpenColorIO_BUILD_SHARED_LIBS  OFF #ON
            DOC "Should a local OpenColorIO build, if necessary, build shared libraries" ADVANCED)
 # We would prefer to build a static OCIO, but haven't figured out how to make
 # it all work with the static dependencies, it just makes things complicated
@@ -25,12 +25,19 @@ unset (OpenColorIO_DIR)
 
 string (MAKE_C_IDENTIFIER ${OpenColorIO_BUILD_VERSION} OpenColorIO_VERSION_IDENT)
 
+
+checked_find_package(expat REQUIRED VERSION_MIN 2.5)
+checked_find_package(pystring REQUIRED VERSION_MIN 1.1.3)
+checked_find_package(yaml-cpp REQUIRED VERSION_MIN 0.6.0)
+checked_find_package(minizip-ng REQUIRED VERSION_MIN 3.0.0)
+
 build_dependency_with_cmake(OpenColorIO
     VERSION         ${OpenColorIO_BUILD_VERSION}
     GIT_REPOSITORY  ${OpenColorIO_GIT_REPOSITORY}
     GIT_TAG         ${OpenColorIO_GIT_TAG}
     CMAKE_ARGS
         -D BUILD_SHARED_LIBS=${OpenColorIO_BUILD_SHARED_LIBS}
+        -D CMAKE_POSITION_INDEPENDENT_CODE=ON
         -D CMAKE_INSTALL_LIBDIR=lib
         # Don't built unnecessary parts of OCIO
         -D OCIO_BUILD_APPS=OFF
@@ -60,4 +67,6 @@ find_package (OpenColorIO ${OpenColorIO_BUILD_VERSION} EXACT CONFIG REQUIRED)
 
 if (OpenColorIO_BUILD_SHARED_LIBS)
     install_local_dependency_libs (OpenColorIO OpenColorIO)
+else ()
+    list (APPEND CMAKE_PREFIX_PATH "${OpenColorIO_LOCAL_BUILD_DIR}/ext/dist")
 endif ()
