@@ -206,6 +206,13 @@ about being deprecated will be removed in the final 3.0 release.
 * The old OIIO_SIMD_HAS_FLOAT8 macro has been removed. It was deprecated since
   OIIO 1.8.
 
+## string_view.h
+
+* The string_view::c_str() method has been marked as deprecated, since
+  it is not present in C++17 std::string_view. If you must use this
+  functionality (with caution about when it is safe), then use the
+  freestanding OIIO::c_str(string_view) function instead.
+
 ## strutil.h
 
 * The default behavior of `Strutil::format()` has been changed to use the
