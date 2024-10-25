@@ -121,11 +121,6 @@ endif ()
 
 checked_find_package (PNG VERSION_MIN 1.6.0)
 
-checked_find_package (BZip2)   # Used by ffmpeg and freetype
-if (NOT BZIP2_FOUND)
-    set (BZIP2_LIBRARIES "")  # TODO: why does it break without this?
-endif ()
-
 checked_find_package (Freetype
                       VERSION_MIN 2.10.0
                       DEFINITIONS USE_FREETYPE=1 )
@@ -190,6 +185,13 @@ checked_find_package (R3DSDK NO_RECORD_NOTFOUND)  # RED camera
 
 set (NUKE_VERSION "7.0" CACHE STRING "Nuke version to target")
 checked_find_package (Nuke NO_RECORD_NOTFOUND)
+
+if (FFmpeg_FOUND OR FREETYPE_FOUND)
+    checked_find_package (BZip2)   # Used by ffmpeg and freetype
+    if (NOT BZIP2_FOUND)
+        set (BZIP2_LIBRARIES "")  # TODO: why does it break without this?
+    endif ()
+endif()
 
 
 # Qt -- used for iv
