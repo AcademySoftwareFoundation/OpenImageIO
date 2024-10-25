@@ -719,7 +719,7 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
     if (verbose) {
         size_t mem = Sysutil::memory_used(true);
         peak_mem   = std::max(peak_mem, mem);
-        print(outstream, "    {:-15s} ({})  write {}\n", formatres(outspec),
+        print(outstream, "    {:15s} ({})  write {}\n", formatres(outspec),
               Strutil::memformat(mem), Strutil::timeintervalformat(wtime, 2));
     }
 
@@ -884,7 +884,7 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
             if (verbose) {
                 size_t mem = Sysutil::memory_used(true);
                 peak_mem   = std::max(peak_mem, mem);
-                print(outstream, "    {:-15s} ({})  downres {} write {}\n",
+                print(outstream, "    {:15s} ({})  downres {} write {}\n",
                       formatres(smallspec), Strutil::memformat(mem),
                       Strutil::timeintervalformat(this_miptime, 2),
                       Strutil::timeintervalformat(wtime, 2));
@@ -992,14 +992,14 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     size_t peak_mem              = 0;
     Timer alltime;
 
-#define STATUS(task, timer)                                 \
-    {                                                       \
-        size_t mem = Sysutil::memory_used(true);            \
-        peak_mem   = std::max(peak_mem, mem);               \
-        if (verbose)                                        \
-            print(outstream, "  {:-25s} {}   ({})\n", task, \
-                  Strutil::timeintervalformat(timer, 2),    \
-                  Strutil::memformat(mem));                 \
+#define STATUS(task, timer)                                \
+    {                                                      \
+        size_t mem = Sysutil::memory_used(true);           \
+        peak_mem   = std::max(peak_mem, mem);              \
+        if (verbose)                                       \
+            print(outstream, "  {:25s} {}   ({})\n", task, \
+                  Strutil::timeintervalformat(timer, 2),   \
+                  Strutil::memformat(mem));                \
     }
 
     ImageSpec configspec = _configspec;
