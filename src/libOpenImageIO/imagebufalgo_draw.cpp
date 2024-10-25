@@ -1121,6 +1121,11 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
     // Glyph by glyph, fill in our textimg buffer
     int origx = x;
     for (auto ch : utext) {
+        // on Windows a newline is encoded as '\r\n'
+        // we simply ignore carriage return here
+        if (ch == '\r') {
+            continue;
+        }
         if (ch == '\n') {
             x = origx;
             y += fontsize;
