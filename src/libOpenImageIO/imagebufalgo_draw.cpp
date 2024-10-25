@@ -1104,9 +1104,9 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
     if (alignx == TextAlignX::Center)
         x -= (textroi.width() / 2 + textroi.xbegin);
     if (aligny == TextAlignY::Top)
-        y += textroi.height();
+        y -= textroi.ybegin;
     if (aligny == TextAlignY::Bottom)
-        y -= textroi.height();
+        y -= textroi.yend;
     if (aligny == TextAlignY::Center)
         y -= (textroi.height() / 2 + textroi.ybegin);
 
