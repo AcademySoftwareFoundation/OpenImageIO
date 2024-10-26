@@ -23,6 +23,8 @@
 #include <OpenImageIO/tiffutils.h>
 #include <OpenImageIO/timer.h>
 
+#include "imageio_pvt.h"
+
 
 // clang-format off
 #ifdef TIFFLIB_MAJOR_VERSION
@@ -1340,6 +1342,7 @@ TIFFOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
                             const void* data, stride_t xstride,
                             stride_t ystride)
 {
+    pvt::LoggedTimer("TIFFOutput::write_scanlines");
     // If the stars all align properly, try to write strips, and use the
     // thread pool to parallelize the compression. This can give a large
     // speedup (5x or more!) because the zip compression dwarfs the
@@ -1566,6 +1569,7 @@ TIFFOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
                         int zend, TypeDesc format, const void* data,
                         stride_t xstride, stride_t ystride, stride_t zstride)
 {
+    pvt::LoggedTimer("TIFFOutput::write_tiles");
     if (!m_spec.valid_tile_range(xbegin, xend, ybegin, yend, zbegin, zend))
         return false;
 

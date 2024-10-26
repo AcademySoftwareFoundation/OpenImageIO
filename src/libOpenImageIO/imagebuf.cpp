@@ -937,6 +937,8 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
         && m_current_subimage == subimage && m_current_miplevel == miplevel)
         return true;  // Already done
 
+    pvt::LoggedTimer logtime("IB::init_spec");
+
     m_name = filename;
 
     // If we weren't given an imagecache but "imagebuf:use_imagecache"
@@ -1109,6 +1111,7 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
         return false;
     }
 
+    pvt::LoggedTimer logtime("IB::read");
     m_current_subimage = subimage;
     m_current_miplevel = miplevel;
     if (chend < 0 || chend > nativespec().nchannels)
@@ -1354,6 +1357,7 @@ ImageBuf::write(ImageOutput* out, ProgressCallback progress_callback,
     }
     bool ok = true;
     ok &= m_impl->validate_pixels();
+    pvt::LoggedTimer("IB::write inner");
     if (out->supports("thumbnail") && has_thumbnail()) {
         auto thumb = get_thumbnail();
         // Strutil::print("IB::write: has thumbnail ROI {}\n", thumb->roi());
@@ -1468,6 +1472,7 @@ ImageBuf::write(string_view _filename, TypeDesc dtype, string_view _fileformat,
                 ProgressCallback progress_callback,
                 void* progress_callback_data) const
 {
+    pvt::LoggedTimer("IB::write");
     string_view filename   = _filename.size() ? _filename : string_view(name());
     string_view fileformat = _fileformat.size() ? _fileformat : filename;
     if (filename.size() == 0) {

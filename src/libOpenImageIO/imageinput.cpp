@@ -298,6 +298,7 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
                            int z, int chbegin, int chend, TypeDesc format,
                            void* data, stride_t xstride, stride_t ystride)
 {
+    pvt::LoggedTimer logtime("II::read_scanlines");
     ImageSpec spec;
     int rps = 0;
     {
@@ -923,6 +924,7 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
                        ProgressCallback progress_callback,
                        void* progress_callback_data)
 {
+    pvt::LoggedTimer logtime("II::read_image");
     ImageSpec spec;
     int rps = 0;
     {
