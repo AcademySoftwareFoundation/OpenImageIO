@@ -487,6 +487,7 @@ ImageOutput::write_image(TypeDesc format, const void* data, stride_t xstride,
                          ProgressCallback progress_callback,
                          void* progress_callback_data)
 {
+    pvt::LoggedTimer("ImageOutput::write image");
     bool native          = (format == TypeDesc::UNKNOWN);
     stride_t pixel_bytes = native ? (stride_t)m_spec.pixel_bytes(native)
                                   : format.size() * m_spec.nchannels;
