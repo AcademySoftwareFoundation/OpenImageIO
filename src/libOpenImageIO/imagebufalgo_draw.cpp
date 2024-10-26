@@ -733,9 +733,9 @@ static std::vector<std::string> all_font_files;
 static std::vector<std::string> all_fonts;
 static std::unordered_map<std::string, std::string> font_file_map;
 static std::mutex font_search_mutex;
-static bool fonts_are_enumerated = false;
-static const char* font_dir_envvars[]
-    = { "OPENIMAGEIO_FONTS", "OpenImageIO_ROOT" };
+static bool fonts_are_enumerated      = false;
+static const char* font_dir_envvars[] = { "OPENIMAGEIO_FONTS",
+                                          "OpenImageIO_ROOT" };
 static const char* font_dir_suffixes[]
     = { "fonts",       "Fonts",       "Library/Fonts",
         "share/fonts", "share/Fonts", "share/fonts/OpenImageIO" };
@@ -799,24 +799,29 @@ enumerate_fonts()
     // Find all the existing dirs from specific environment variables.
     for (auto s : font_dir_envvars)
         fontpath_add_from_searchpath(Sysutil::getenv(s));
+
     // Add system font directories
 #ifdef _WIN32
     fontpath_add_one_dir(std::string(Sysutil::getenv("SystemRoot")) + "/Fonts");
-    fontpath_add_one_dir(std::string(Sysutil::getenv("LOCALAPPDATA")) + "/Microsoft/Windows/Fonts");
+    fontpath_add_one_dir(std::string(Sysutil::getenv("LOCALAPPDATA"))
+                         + "/Microsoft/Windows/Fonts");
 #endif
 #ifdef __APPLE__
     fontpath_add_one_dir("/Library/Fonts");
     fontpath_add_one_dir("/System/Library/Fonts");
     fontpath_add_one_dir("/System/Library/Fonts/Supplemental");
-    fontpath_add_one_dir(std::string(Sysutil::getenv("HOME")) + "/Library/Fonts");
+    fontpath_add_one_dir(std::string(Sysutil::getenv("HOME"))
+                         + "/Library/Fonts");
 #endif
 #ifdef __linux__
     fontpath_add_one_dir("/usr/share/fonts", 1);
     fontpath_add_one_dir("/usr/local/share/fonts", 1);
     fontpath_add_one_dir(std::string(Sysutil::getenv("HOME")) + "/.fonts", 1);
-    fontpath_add_one_dir(std::string(Sysutil::getenv("HOME")) + "/.local/share/fonts", 1);
+    fontpath_add_one_dir(std::string(Sysutil::getenv("HOME"))
+                             + "/.local/share/fonts",
+                         1);
 #endif
-    // Find font directories one level up from the place 
+    // Find font directories one level up from the place
     // where the currently running binary lives.
     std::string this_program = OIIO::Sysutil::this_program_path();
     if (this_program.size()) {
