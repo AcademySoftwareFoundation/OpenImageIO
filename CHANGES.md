@@ -1,6 +1,11 @@
+Release 2.5.17.0 (Nov 1, 2024) -- compared to 2.5.16.0
+--------------------------------------------------------
+
+
+
 Release 2.5.16.0 (Oct 1, 2024) -- compared to 2.5.15.0
 --------------------------------------------------------
-- *ImageInput*: Fix: Initialize pixels of partial tile conversion buffer to avoid possible floating point exceptionså. [#4462](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4462) (by Bram Stolk)
+- *ImageInput*: Fix: Initialize pixels of partial tile conversion buffer to avoid possible floating point exceptions. [#4462](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4462) (by Bram Stolk)
 - *iv*: Fix: Iv shows constant brown and GL error messages on start-up. [#4451](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4451) (by David Adler)
 - *iv*: Fix: Initialize variables before we use them. [#4457](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4457) (by Bram Stolk)
 - *pnm*: Fix: Initialize m_pfm_flip before use to avoid UB. [#4446](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4446) (by Bram Stolk)
