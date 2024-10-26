@@ -307,7 +307,8 @@ ImageBufAlgo::crop(const ImageBuf& src, ROI roi, int nthreads)
 bool
 ImageBufAlgo::cut(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::cut");
+    // pvt::LoggedTimer logtime("IBA::cut");
+    // Don't log, because all the work is inside crop, which already logs
     bool ok = crop(dst, src, roi, nthreads);
     if (!ok)
         return false;
