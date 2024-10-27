@@ -2383,14 +2383,13 @@ IBA_demosaic_ret(const ImageBuf& src, const std::string& pattern = "",
                  int nthreads = 0)
 {
     py::gil_scoped_release gil;
-    float white_balance[4] = {wb_r, wb_g1, wb_g2, wb_b};
+    float white_balance[4] = { wb_r, wb_g1, wb_g2, wb_b };
     ParamValue pv("white_balance", TypeFloat, 4, white_balance);
     return ImageBufAlgo::demosaic(src,
                                   { { "pattern", pattern },
                                     { "algorithm", algorithm },
                                     { "layout", layout },
-                                    pv
-                                  },
+                                    pv },
                                   roi, nthreads);
 }
 
