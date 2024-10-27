@@ -928,8 +928,8 @@ text_size_from_unicode(cspan<uint32_t> utext, FT_Face face, int fontsize)
 }
 
 
-// Read available font families and styles. 
-static void 
+// Read available font families and styles.
+static void
 init_font_families()
 {
     // skip if already initialized
@@ -950,19 +950,19 @@ init_font_families()
 
     // read available fonts
     std::unordered_set<std::string> font_family_set;
-    std::unordered_map<std::string, std::unordered_set<std::string>> font_style_set;
+    std::unordered_map<std::string, std::unordered_set<std::string>>
+        font_style_set;
     const std::vector<std::string>& font_files = pvt::font_file_list();
-    for (const std::string& filename : font_files)
-    {
+    for (const std::string& filename : font_files) {
         // Load the font.
         FT_Face face;
-        int error = FT_New_Face(ft_library, filename.c_str(), 0 /* face index */, &face);
+        int error = FT_New_Face(ft_library, filename.c_str(),
+                                0 /* face index */, &face);
         if (error)
             continue;
 
         // Ignore if the font fmaily name is not defined.
-        if (!face->family_name)
-        {
+        if (!face->family_name) {
             FT_Done_Face(face);
             continue;
         }
@@ -972,7 +972,8 @@ init_font_families()
         font_family_set.insert(family);
 
         // Store the font style.
-        std::string style = face->style_name ? std::string(face->style_name) : std::string();
+        std::string style = face->style_name ? std::string(face->style_name)
+                                             : std::string();
         if (!style.empty()) {
             std::unordered_set<std::string>& styles = font_style_set[family];
             styles.insert(style);
@@ -992,12 +993,13 @@ init_font_families()
     }
 
     // Sort font families.
-    s_font_families = std::vector<std::string>(font_family_set.begin(), font_family_set.end());
+    s_font_families = std::vector<std::string>(font_family_set.begin(),
+                                               font_family_set.end());
     std::sort(s_font_families.begin(), s_font_families.end());
-    
+
     // Sort font styles.
     for (auto it : font_style_set) {
-        const std::string& family = it.first;
+        const std::string& family                   = it.first;
         std::unordered_set<std::string>& styles_set = it.second;
         std::vector<std::string> styles(styles_set.begin(), styles_set.end());
         std::sort(styles.begin(), styles.end());
@@ -1052,7 +1054,8 @@ resolve_font(string_view font_, std::string& result)
 
         // first look for a font with the given family and style
         init_font_families();
-        if (s_font_filename_per_family.find(font) != s_font_filename_per_family.end())
+        if (s_font_filename_per_family.find(font)
+            != s_font_filename_per_family.end())
             f = s_font_filename_per_family[font];
 
         // then look for a font with the given filename
