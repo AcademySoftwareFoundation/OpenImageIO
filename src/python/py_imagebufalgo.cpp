@@ -2377,22 +2377,29 @@ IBA_make_texture_filename(ImageBufAlgo::MakeTextureMode mode,
 ImageBuf
 IBA_demosaic_ret(const ImageBuf& src, const std::string& pattern = "",
                  const std::string& algorithm = "",
-                 const std::string& layout = "", ROI roi = ROI::All(),
+                 const std::string& layout = "", const float wb_r = 1.0f,
+                 const float wb_g1 = 1.0f, const float wb_g2 = 1.0f,
+                 const float wb_b = 1.0f, ROI roi = ROI::All(),
                  int nthreads = 0)
 {
     py::gil_scoped_release gil;
+    float white_balance[4] = {wb_r, wb_g1, wb_g2, wb_b};
+    ParamValue pv("white_balance", TypeFloat, 4, white_balance);
     return ImageBufAlgo::demosaic(src,
                                   { { "pattern", pattern },
                                     { "algorithm", algorithm },
-                                    { "layout", layout } },
+                                    { "layout", layout },
+                                    pv
+                                  },
                                   roi, nthreads);
 }
 
 bool
 IBA_demosaic(ImageBuf& dst, const ImageBuf& src,
              const std::string& pattern = "", const std::string& algorithm = "",
-             const std::string& layout = "", ROI roi = ROI::All(),
-             int nthreads = 0)
+             const std::string& layout = "", const float wb_r = 1.0f,
+             const float wb_g1 = 1.0f, const float wb_g2 = 1.0f,
+             const float wb_b = 1.0f, ROI roi = ROI::All(), int nthreads = 0)
 {
     py::gil_scoped_release gil;
     return ImageBufAlgo::demosaic(dst, src,
@@ -3106,10 +3113,12 @@ declare_imagebufalgo(py::module& m)
 
         .def_static("demosaic", &IBA_demosaic, "dst"_a, "src"_a,
                     "pattern"_a = "", "algorithm"_a = "", "layout"_a = "",
-                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+                    "wb_r"_a = 1.0f, "wb_g1"_a = 1.0f, "wb_g2"_a = 1.0f,
+                    "wb_b"_a = 1.0f, "roi"_a = ROI::All(), "nthreads"_a = 0)
         .def_static("demosaic", &IBA_demosaic_ret, "src"_a, "pattern"_a = "",
-                    "algorithm"_a = "", "layout"_a = "", "roi"_a = ROI::All(),
-                    "nthreads"_a = 0);
+                    "algorithm"_a = "", "layout"_a = "", "wb_r"_a = 1.0f,
+                    "wb_g1"_a = 1.0f, "wb_g2"_a = 1.0f, "wb_b"_a = 1.0f,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0);
 }
 
 }  // namespace PyOpenImageIO
