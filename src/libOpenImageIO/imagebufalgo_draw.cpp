@@ -800,7 +800,7 @@ enumerate_fonts()
     for (auto s : font_dir_envvars)
         fontpath_add_from_searchpath(Sysutil::getenv(s));
 
-    // Add system font directories
+        // Add system font directories
 #ifdef _WIN32
     fontpath_add_one_dir(std::string(Sysutil::getenv("SystemRoot")) + "/Fonts");
     fontpath_add_one_dir(std::string(Sysutil::getenv("LOCALAPPDATA"))
