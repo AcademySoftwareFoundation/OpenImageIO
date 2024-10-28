@@ -1,3 +1,4 @@
+pixels holds unassociated alpha
 example1
 example_output_error1
 error: Uninitialized input image

@@ -902,37 +902,19 @@ Examples:
     automatically be converted to associated alpha.
 
     .. tabs::
-    
-       .. code-tab:: c++
-    
-          // Set up an ImageSpec that holds the configuration hints.
-          ImageSpec config;
-          config["oiio:UnassociatedAlpha"] = 1;
-    
-          // Open the file, passing in the config.
-          auto inp = ImageInput::open (filename, config);
-          const ImageSpec &spec = inp->spec();
-          auto pixels = std::unique_ptr<unsigned char[]>(new unsigned char[spec.image_pixels() * spec.nchannels]);
-          inp->read_image (0, 0, 0, spec.nchannels, TypeDesc::UINT8, pixels.data());
-          if (spec.get_int_attribute("oiio:UnassociatedAlpha"))
-              printf("pixels holds unassociated alpha\n");
-          else
-              printf("pixels holds associated alpha\n");
 
-       .. code-tab:: py
-    
-          # Set up an ImageSpec that holds the configuration hints.
-          config = ImageSpec()
-          config["oiio:UnassociatedAlpha"] = 1
-    
-          # Open the file, passing in the config.
-          inp = ImageInput.open (filename, config)
-          spec = inp.spec()
-          pixels = inp.read_image (0, 0, 0, spec.nchannels, "uint8")
-          if (spec["oiio:UnassociatedAlpha"] == 1)
-              print("pixels holds unassociated alpha")
-          else
-              print("pixels holds associated alpha")
+        .. tab:: C++
+            .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imageinput.cpp
+                :language: c++
+                :start-after: BEGIN-imageinput-unassociatedalpha
+                :end-before: END-imageinput-unassociatedalpha
+
+        .. tab:: Python
+            .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imageinput.py
+                :language: py
+                :start-after: BEGIN-imageinput-unassociatedalpha
+                :end-before: END-imageinput-unassociatedalpha
+
 
 .. _sec-imageinput-ioproxy:
 

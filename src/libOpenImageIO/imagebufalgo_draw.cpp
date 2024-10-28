@@ -7,6 +7,7 @@
 #include <limits>
 #include <set>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <OpenImageIO/half.h>
 
@@ -732,13 +733,9 @@ static std::vector<std::string> all_font_files;
 static std::vector<std::string> all_fonts;
 static std::unordered_map<std::string, std::string> font_file_map;
 static std::mutex font_search_mutex;
-static bool fonts_are_enumerated = false;
-static const char* font_dir_prefix_envvars[]
-    = { "OPENIMAGEIO_FONTS", "HOME", "SystemRoot", "OpenImageIO_ROOT" };
-static const char* font_dir_prefixes[]
-    = { "/Library/Fonts", "/System/Library/Fonts",
-        "C:/Windows",     "/usr",
-        "/usr/local",     "/opt/local" };
+static bool fonts_are_enumerated      = false;
+static const char* font_dir_envvars[] = { "OPENIMAGEIO_FONTS",
+                                          "OpenImageIO_ROOT" };
 static const char* font_dir_suffixes[]
     = { "fonts",       "Fonts",       "Library/Fonts",
         "share/fonts", "share/Fonts", "share/fonts/OpenImageIO" };
@@ -799,10 +796,33 @@ enumerate_fonts()
     // Find all the existing dirs from the font search path to populate
     // font_search_dirs.
     fontpath_add_from_searchpath(pvt::font_searchpath);
-    for (auto s : font_dir_prefix_envvars)
+    // Find all the existing dirs from specific environment variables.
+    for (auto s : font_dir_envvars)
         fontpath_add_from_searchpath(Sysutil::getenv(s));
-    for (auto s : font_dir_prefixes)
-        fontpath_add_from_dir(s);
+
+        // Add system font directories
+#ifdef _WIN32
+    fontpath_add_one_dir(std::string(Sysutil::getenv("SystemRoot")) + "/Fonts");
+    fontpath_add_one_dir(std::string(Sysutil::getenv("LOCALAPPDATA"))
+                         + "/Microsoft/Windows/Fonts");
+#endif
+#ifdef __APPLE__
+    fontpath_add_one_dir("/Library/Fonts");
+    fontpath_add_one_dir("/System/Library/Fonts");
+    fontpath_add_one_dir("/System/Library/Fonts/Supplemental");
+    fontpath_add_one_dir(std::string(Sysutil::getenv("HOME"))
+                         + "/Library/Fonts");
+#endif
+#ifdef __linux__
+    fontpath_add_one_dir("/usr/share/fonts", 1);
+    fontpath_add_one_dir("/usr/local/share/fonts", 1);
+    fontpath_add_one_dir(std::string(Sysutil::getenv("HOME")) + "/.fonts", 1);
+    fontpath_add_one_dir(std::string(Sysutil::getenv("HOME"))
+                             + "/.local/share/fonts",
+                         1);
+#endif
+    // Find font directories one level up from the place
+    // where the currently running binary lives.
     std::string this_program = OIIO::Sysutil::this_program_path();
     if (this_program.size()) {
         std::string path = Filesystem::parent_path(this_program);
@@ -810,20 +830,29 @@ enumerate_fonts()
         fontpath_add_from_dir(path);
     }
 
-    // Get list of directories one level deeper than the font_search_dirs
-    auto dirs = font_search_dirs;
-    for (auto& dir : font_search_dirs) {
-        std::vector<std::string> filenames;
-        Filesystem::get_directory_entries(dir, filenames, false);
-        for (auto& f : filenames)
-            if (f.size() && Filesystem::is_directory(f))
-                dirs.push_back(f);
+    // Make sure folders are not duplicated
+    std::vector<std::string> tmp_font_search_dirs = font_search_dirs;
+    font_search_dirs.clear();
+    std::unordered_set<std::string> font_search_dir_set;
+    for (const std::string& dir : tmp_font_search_dirs) {
+        std::string target_dir = dir;
+#ifdef _WIN32
+        // Windows is not case-sensitive, compare lower case paths
+        target_dir = Strutil::lower(target_dir);
+        // unify path separators
+        target_dir = Strutil::replace(target_dir, "/", "\\", true);
+#endif
+        if (font_search_dir_set.find(target_dir) != font_search_dir_set.end())
+            continue;
+
+        font_search_dirs.push_back(dir);
+        font_search_dir_set.insert(target_dir);
     }
 
     // Look for all the font files in dirs, populate font_file_set and font_set
     std::set<std::string> font_set;
     std::set<std::string> font_file_set;
-    for (auto& dir : dirs) {
+    for (auto& dir : font_search_dirs) {
         std::vector<std::string> filenames;
         Filesystem::get_directory_entries(dir, filenames, false);
         for (auto& f : filenames) {
@@ -1104,9 +1133,9 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
     if (alignx == TextAlignX::Center)
         x -= (textroi.width() / 2 + textroi.xbegin);
     if (aligny == TextAlignY::Top)
-        y += textroi.height();
+        y -= textroi.ybegin;
     if (aligny == TextAlignY::Bottom)
-        y -= textroi.height();
+        y -= textroi.yend;
     if (aligny == TextAlignY::Center)
         y -= (textroi.height() / 2 + textroi.ybegin);
 
@@ -1123,6 +1152,11 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
     // Glyph by glyph, fill in our textimg buffer
     int origx = x;
     for (auto ch : utext) {
+        // on Windows a newline is encoded as '\r\n'
+        // we simply ignore carriage return here
+        if (ch == '\r') {
+            continue;
+        }
         if (ch == '\n') {
             x = origx;
             y += fontsize;
