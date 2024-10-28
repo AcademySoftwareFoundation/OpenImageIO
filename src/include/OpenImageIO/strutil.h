@@ -1002,7 +1002,7 @@ bool OIIO_UTIL_API
 parse_values(string_view& str, string_view prefix, span<int> values,
              string_view sep = "", string_view postfix = "",
              bool eat = true) noexcept;
-/// parse_values for int.
+/// parse_values for float.
 bool OIIO_UTIL_API
 parse_values(string_view& str, string_view prefix, span<float> values,
              string_view sep = "", string_view postfix = "",
