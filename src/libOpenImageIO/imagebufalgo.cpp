@@ -354,7 +354,7 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf& dst, cspan<const ImageBuf*> srcs,
                       KWArgs options, ImageSpec* force_spec)
 {
     // OIIO_ASSERT(dst);
-    // Helper: ANY_SRC returns true if any of the source images s satisfy the
+    // Helper: ANY_SRC returns true if any of the source images satisfy the
     // condition cond.
 #define ANY_SRC(cond)                     \
     std::any_of(srcs.begin(), srcs.end(), \
