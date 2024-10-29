@@ -3680,8 +3680,8 @@ Color manipulation
         ImageBufAlgo.unpremult (A, A)
 
 
-.. py:method:: ImageBuf ImageBufAlgo.demosaic (src, pattern="", algorithm="", layout="", white_balance=py::none(), "roi=ROI.All, nthreads=0)
-                bool ImageBufAlgo.demosaic (dst, src, pattern="", algorithm="", layout="", white_balance=py::none(), "roi=ROI.All, nthreads=0)
+.. py:method:: ImageBuf ImageBufAlgo.demosaic (src, pattern="", algorithm="", layout="", white_balance=py::none(), roi=ROI.All, nthreads=0)
+                bool ImageBufAlgo.demosaic (dst, src, pattern="", algorithm="", layout="", white_balance=py::none(), roi=ROI.All, nthreads=0)
     Demosaic a raw digital camera image.
 
     `demosaic` can currently process Bayer pattern images (pattern="bayer")
