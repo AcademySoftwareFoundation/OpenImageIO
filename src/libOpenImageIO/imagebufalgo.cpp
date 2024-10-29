@@ -1008,7 +1008,7 @@ ImageBufAlgo::unsharp_mask(ImageBuf& dst, const ImageBuf& src,
             return false;
         }
     } else {
-        ImageBuf K = make_kernel(kernel, 1, width);
+        ImageBuf K = make_kernel(kernel, width, width);
         if (K.has_error()) {
             dst.errorfmt("{}", K.geterror());
             return false;
