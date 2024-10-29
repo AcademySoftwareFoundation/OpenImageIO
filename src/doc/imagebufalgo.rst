@@ -1178,8 +1178,8 @@ Shuffling channels
           hint = ImageSpec()
           hint["raw:Demosaic"] = "none"
           Src = ImageBuf("test.cr3", 0, 0, hint)
-          Dst = OpenImageIO.ImageBufAlgo.demosaic(Src, layout="GRBG", wb_r=2.0,
-              wb_g1=0.8, wb_g2=1.2, wb_b=1.5)
+          Dst = OpenImageIO.ImageBufAlgo.demosaic(Src, layout="GRBG",
+              white_balance = (2.0, 0.8, 1.2, 1.5))
 
        .. code-tab:: bash oiiotool
 

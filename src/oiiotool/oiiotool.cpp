@@ -3469,15 +3469,13 @@ OIIOTOOL_OP(demosaic, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
 
     std::string wb = op.options()["white_balance"];
     string_view str(wb);
-    float white_balance[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    if (str.size() && Strutil::parse_float(str, white_balance[0])
-        && Strutil::parse_char(str, ',')
-        && Strutil::parse_float(str, white_balance[1])
-        && Strutil::parse_char(str, ',')
-        && Strutil::parse_float(str, white_balance[2])
-        && Strutil::parse_char(str, ',')
-        && Strutil::parse_float(str, white_balance[3])) {
-        ParamValue pv("white_balance", TypeFloat, 4, white_balance);
+    float f3[3];
+    float f4[4];
+    if (Strutil::parse_values(str, "", f4, ",") && str.empty()) {
+        ParamValue pv("white_balance", TypeFloat, 4, f4);
+        list.push_back(pv);
+    } else if (Strutil::parse_values(str, "", f3, ",") && str.empty()) {
+        ParamValue pv("white_balance", TypeFloat, 3, f3);
         list.push_back(pv);
     }
 

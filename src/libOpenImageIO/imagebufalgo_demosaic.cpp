@@ -429,6 +429,11 @@ ImageBufAlgo::demosaic(ImageBuf& dst, const ImageBuf& src, KWArgs options,
             if (pv.type() == TypeFloat && pv.nvalues() == 4) {
                 for (size_t i = 0; i < 4; i++)
                     white_balance[i] = pv.get_float_indexed(i);
+            } else if (pv.type() == TypeFloat && pv.nvalues() == 3) {
+                white_balance[0] = pv.get_float_indexed(0);
+                white_balance[1] = pv.get_float_indexed(1);
+                white_balance[2] = white_balance[1];
+                white_balance[3] = pv.get_float_indexed(2);
             } else {
                 dst.errorfmt("ImageBufAlgo::demosaic() invalid white balance");
             }
