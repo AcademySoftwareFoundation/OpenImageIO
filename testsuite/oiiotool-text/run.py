@@ -38,8 +38,13 @@ command += oiiotool ("--pattern checker:color1=.2,0,0:color2=0,.2,0 320x240 3 "
             "--text:x=20:y=120:color=.5,.5,.5,.5:size=50 \"Hello, world\" "
             "-d uint8 -o textalpha.tif")
 
+# test lookup font by family and style name
+command += oiiotool ("--create 320x240 3 "
+            "\"--text:x=25:y=120:font=Droid Serif Bold:size=40\" \"Hello, world\" "
+            "-d uint8 -o fontbyfamily.tif")
+
 # Outputs to check against references
-outputs = [ "text.tif", "aligned.tif", "textshadowed.tif", "textalpha.tif" ]
+outputs = [ "text.tif", "aligned.tif", "textshadowed.tif", "textalpha.tif", "fontbyfamily.tif" ]
 
 # Test Unicode characters. But only when not on Windows, because I just
 # can't figure out how to get Unicode chars on the command line properly
