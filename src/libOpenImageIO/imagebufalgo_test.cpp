@@ -16,6 +16,7 @@
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/color.h>
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/half.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
@@ -1109,8 +1110,10 @@ test_opencv()
     OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
 
     // Regression test: reading from ImageBuf-backed image to OpenCV
-    auto loaded_image = OIIO::ImageBuf("../../testsuite/common/tahoe-tiny.tif",
-                                       0, 0, ImageCache::create());
+    std::string filename = "testsuite/common/tahoe-tiny.tif";
+    if (!Filesystem::exists(filename))
+        filename = "../../testsuite/common/tahoe-tiny.tif";
+    auto loaded_image = OIIO::ImageBuf(filename, 0, 0, ImageCache::create());
     OIIO_CHECK_ASSERT(loaded_image.initialized());
     if (!loaded_image.initialized()) {
         std::cout << loaded_image.geterror() << 'n';
