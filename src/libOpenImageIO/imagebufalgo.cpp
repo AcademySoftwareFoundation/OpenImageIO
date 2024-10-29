@@ -947,23 +947,6 @@ ImageBufAlgo::make_kernel(string_view name, float width, float height,
 
 
 
-// Helper function for unsharp mask to perform the thresholding
-static bool
-threshold_to_zero(ImageBuf& dst, float threshold, ROI roi, int nthreads)
-{
-    OIIO_DASSERT(dst.spec().format.basetype == TypeDesc::FLOAT);
-
-    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
-        for (ImageBuf::Iterator<float> p(dst, roi); !p.done(); ++p)
-            for (int c = roi.chbegin; c < roi.chend; ++c)
-                if (fabsf(p[c]) < threshold)
-                    p[c] = 0.0f;
-    });
-    return true;
-}
-
-
-
 template<class Rtype>
 static bool
 unsharp_impl(ImageBuf& dst, const ImageBuf& blr, const ImageBuf& src,
@@ -978,7 +961,7 @@ unsharp_impl(ImageBuf& dst, const ImageBuf& blr, const ImageBuf& src,
         for (ImageBuf::Iterator<Rtype> d(dst, roi); !d.done(); ++s, ++d, ++b) {
             for (int c = roi.chbegin; c < roi.chend; ++c) {
                 const float diff     = s[c] - b[c];
-                const float abs_diff = std::fabsf(diff);
+                const float abs_diff = fabsf(diff);
                 if (abs_diff > threshold) {
                     d[c] = s[c] + contrast * diff;
                 } else {
