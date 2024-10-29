@@ -4184,7 +4184,7 @@ current top image.
 
 
 
-.. option:: --demosaic <words>
+.. option:: --demosaic
 
     Demosaic a raw digital camera image.
 
