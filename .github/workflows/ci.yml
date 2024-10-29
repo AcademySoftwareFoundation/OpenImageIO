@@ -477,16 +477,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - desc: MacOS-12
-            runner: macos-12
-            nametag: macos12-py310
-            cc_compiler: clang
-            cxx_compiler: clang++
-            cxx_std: 17
-            python_ver: "3.11"
-            aclang: 13
-            setenvs: export INSTALL_QT=0 INSTALL_OPENCV=0
-          - desc: MacOS-13
+          - desc: MacOS-13-Intel
             runner: macos-13
             nametag: macos13-py311
             cc_compiler: clang
@@ -495,6 +486,7 @@ jobs:
             python_ver: "3.11"
             aclang: 14
             simd: sse4.2,avx2
+            setenvs: export MACOSX_DEPLOYMENT_TARGET=12.0
           - desc: MacOS-14-ARM
             runner: macos-14
             nametag: macos14-arm-py312
@@ -503,6 +495,14 @@ jobs:
             cxx_std: 20
             python_ver: "3.12"
             aclang: 15
+          - desc: MacOS-15-ARM
+            runner: macos-15
+            nametag: macos15-arm-py313
+            cc_compiler: clang
+            cxx_compiler: clang++
+            cxx_std: 20
+            python_ver: "3.13"
+            aclang: 16
     runs-on: ${{ matrix.runner }}
     env:
       CXX: ${{matrix.cxx_compiler}}
