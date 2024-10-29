@@ -992,8 +992,23 @@ ImageBufAlgo::unsharp_mask(ImageBuf& dst, const ImageBuf& src,
 
     if (kernel == "median") {
         median_filter(Blurry, src, ceilf(width), 0, roi, nthreads);
+    } else if (width > 3.0) {
+        ImageBuf K = make_kernel(kernel, 1, width);
+        ImageBuf Kt = ImageBufAlgo::transpose(K);
+        if (K.has_error()) {
+            dst.errorfmt("{}", K.geterror());
+            return false;
+        }
+        if (!convolve(Blurry, src, K, true, roi, nthreads)) {
+            dst.errorfmt("{}", Blurry.geterror());
+            return false;
+        }
+        if (!convolve(Blurry, Blurry, Kt, true, roi, nthreads)) {
+            dst.errorfmt("{}", Blurry.geterror());
+            return false;
+        }
     } else {
-        ImageBuf K = make_kernel(kernel, width, width);
+        ImageBuf K  = make_kernel(kernel, 1, width);
         if (K.has_error()) {
             dst.errorfmt("{}", K.geterror());
             return false;
