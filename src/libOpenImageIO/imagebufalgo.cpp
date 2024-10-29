@@ -964,6 +964,35 @@ threshold_to_zero(ImageBuf& dst, float threshold, ROI roi, int nthreads)
 
 
 
+template<class Rtype>
+static bool
+unsharp_impl(ImageBuf& dst, const ImageBuf& blr, const ImageBuf& src,
+             const float contrast, const float threshold, ROI roi, int nthreads)
+{
+    OIIO_DASSERT(dst.spec().nchannels == src.spec().nchannels
+                 && dst.spec().nchannels == blr.spec().nchannels);
+    // source + contrast * ((source - blurred) > threshold ? (source - blurred) : 0)
+    // -> source + (contrast * (source - blurred)) > (threshold * contrast) ? (contrast * (source - blurred) : 0)
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        ImageBuf::ConstIterator<Rtype> s(src, roi);
+        ImageBuf::ConstIterator<float> b(blr, roi);
+        for (ImageBuf::Iterator<Rtype> d(dst, roi); !d.done(); ++s, ++d, ++b) {
+            for (int c = roi.chbegin; c < roi.chend; ++c) {
+                const float diff             = s[c] - b[c];
+                const float abs_diff         = fabsf(diff);
+                if (abs_diff > threshold) {
+                    d[c] = s[c] + contrast * diff;
+                } else {
+                    d[c] = s[c];
+                }
+            }
+        }
+    });
+    return true;
+}
+
+
+
 bool
 ImageBufAlgo::unsharp_mask(ImageBuf& dst, const ImageBuf& src,
                            string_view kernel, float width, float contrast,
@@ -993,25 +1022,10 @@ ImageBufAlgo::unsharp_mask(ImageBuf& dst, const ImageBuf& src,
         }
     }
 
-    // Compute the difference between the source image and the blurry
-    // version.  (We store it in the same buffer we used for the difference
-    // image.)
-    ImageBuf& Diff(Blurry);
-    bool ok = sub(Diff, src, Blurry, roi, nthreads);
-
-    if (ok && threshold > 0.0f)
-        ok = threshold_to_zero(Diff, threshold, roi, nthreads);
-
-    // Scale the difference image by the contrast
-    if (ok)
-        ok = mul(Diff, Diff, contrast, roi, nthreads);
-    if (!ok) {
-        dst.errorfmt("{}", Diff.geterror());
-        return false;
-    }
-
-    // Add the scaled difference to the original, to get the final answer
-    ok = add(dst, src, Diff, roi, nthreads);
+    bool ok;
+    OIIO_DISPATCH_COMMON_TYPES(ok, "unsharp_mask", unsharp_impl,
+                               dst.spec().format, dst, Blurry, src, contrast,
+                               threshold, roi, nthreads);
 
     return ok;
 }
