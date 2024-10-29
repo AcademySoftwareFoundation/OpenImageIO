@@ -181,6 +181,7 @@ lg@openimageio.org
 * Paul Molodowitch
 * Pavel Karneliuk
 * Pete Larabell
+* Peter Horvath
 * Peter Kovář
 * Philip Nemec
 * Pino Toscano
