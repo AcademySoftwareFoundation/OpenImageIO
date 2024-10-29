@@ -971,15 +971,14 @@ unsharp_impl(ImageBuf& dst, const ImageBuf& blr, const ImageBuf& src,
 {
     OIIO_DASSERT(dst.spec().nchannels == src.spec().nchannels
                  && dst.spec().nchannels == blr.spec().nchannels);
-    // source + contrast * ((source - blurred) > threshold ? (source - blurred) : 0)
-    // -> source + (contrast * (source - blurred)) > (threshold * contrast) ? (contrast * (source - blurred) : 0)
+
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         ImageBuf::ConstIterator<Rtype> s(src, roi);
         ImageBuf::ConstIterator<float> b(blr, roi);
         for (ImageBuf::Iterator<Rtype> d(dst, roi); !d.done(); ++s, ++d, ++b) {
             for (int c = roi.chbegin; c < roi.chend; ++c) {
-                const float diff             = s[c] - b[c];
-                const float abs_diff         = fabsf(diff);
+                const float diff     = s[c] - b[c];
+                const float abs_diff = std::fabsf(diff);
                 if (abs_diff > threshold) {
                     d[c] = s[c] + contrast * diff;
                 } else {
