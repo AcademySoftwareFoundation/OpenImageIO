@@ -38,6 +38,7 @@ lg@openimageio.org
 * Blair Tennessy
 * Blazej Floch
 * Brad Smith
+* Bram Stolk
 * Brecht Van Lommel
 * Brent Davis
 * Brian Hall
@@ -64,6 +65,7 @@ lg@openimageio.org
 * Daniel Wyatt
 * Danny Greenstein
 * Darby Johnston
+* David Adler
 * David Aguilar
 * David Gordon
 * Deepak Gopinath
@@ -130,6 +132,7 @@ lg@openimageio.org
 * Leonid Onokhov
 * Leszek Godlewski
 * Loïc Vital
+* Luc Touraille
 * Lucas Panian
 * Lucille Caillaud
 * Lukas Schrangl
@@ -175,6 +178,7 @@ lg@openimageio.org
 * Paul Molodowitch
 * Pavel Karneliuk
 * Pete Larabell
+* Peter Horvath
 * Peter Kovář
 * Philip Nemec
 * Pino Toscano

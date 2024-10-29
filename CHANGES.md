@@ -1,6 +1,16 @@
 Release 2.5.17.0 (Nov 1, 2024) -- compared to 2.5.16.0
 --------------------------------------------------------
-
+- *iinfo*: fix: iinfo was not reading MIP levels correctly [#4498](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4498)
+- *text rendering*: Windows newline shows invalid character in text render [#4501](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4501) (by peterhorvath111)
+- *fix*: Address fmt exceptions for left justification [#4510](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4510)
+- *perf*: Additional timing logging for performance investigations [#4506](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4506)
+- *strutil.h*: Fix typo in description of Strutil::parse_values [#4512](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4512)
+- *build*: Don't change CMAKE_XXX_OUTPUT_DIRECTORY when built as subdir [#4417](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4417) (by Luc Touraille)
+- *deps*: Search for libbz2 only if FFmpeg or FreeType is enabled. [#4505](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4505) (by jreichel-nvidia)
+- *tests*: Fixup after directory refactor of OpenImageIO-images [#4473](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4473)
+- *ci*: Make scrorecards workflow not fail constantly [#4471](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4471)
+- *ci*: Retire deprecated macos12 runner, try beta macos15 [#4514](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4514)
+- *docs*: Update to vanity URL for the docs [#4494](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4494)
 
 
 Release 2.5.16.0 (Oct 1, 2024) -- compared to 2.5.15.0
