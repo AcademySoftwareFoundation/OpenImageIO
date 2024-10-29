@@ -137,7 +137,7 @@ SKBUILD_BUILD_DIR = "/tmp/build_oiio_wheels"
 # Always (re)build the TIFF library; see #4439 for more details.
 SKBUILD_CMAKE_ARGS = "-DOpenImageIO_BUILD_LOCAL_DEPS=TIFF; -DOpenImageIO_BUILD_MISSING_DEPS=all; -DLINKSTATIC=1; -DIGNORE_HOMEBREWED_DEPS=1; -DCMAKE_INSTALL_LIBDIR=lib"
 # C++17 - std::filesystem is only available in macOS 10.15 and later.
-MACOSX_DEPLOYMENT_TARGET = "10.15"
+MACOSX_DEPLOYMENT_TARGET = "11"
 # Optimize for size (not speed).
 SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
 
