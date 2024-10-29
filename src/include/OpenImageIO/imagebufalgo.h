@@ -2163,6 +2163,9 @@ bool OIIO_API repremult (ImageBuf &dst, const ImageBuf &src,
 ///
 ///     The order the color filter array elements are arranged in, pattern-specific.
 ///
+///   - "white-balance" : float[3] or float[4] (default: {1.0, 1.0, 1.0, 1.0})
+///
+///     Optional white-balancing weights. Can contain either three (RGB), or four (RGGB) values.
 
 ImageBuf OIIO_API demosaic (const ImageBuf& src, KWArgs options = {},
                             ROI roi = {}, int nthreads = 0);
