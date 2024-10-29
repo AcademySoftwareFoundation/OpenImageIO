@@ -3680,6 +3680,24 @@ Color manipulation
         ImageBufAlgo.unpremult (A, A)
 
 
+.. py:method:: ImageBuf ImageBufAlgo.demosaic (src, pattern="", algorithm="", layout="", white_balance=py::none(), "roi=ROI.All, nthreads=0)
+                bool ImageBufAlgo.demosaic (dst, src, pattern="", algorithm="", layout="", white_balance=py::none(), "roi=ROI.All, nthreads=0)
+    Demosaic a raw digital camera image.
+
+    `demosaic` can currently process Bayer pattern images (pattern="bayer")
+    using two algorithms: "linear" (simple bilinear demosaicing), and "MHC"
+    (Malvar-He-Cutler algorithm). The optional white_balance parameter can take
+    a tuple of three (RGB), or four (RGGB) values.
+
+    Example:
+
+    .. code-block:: python
+
+        Src = ImageBuf("test.cr3", 0, 0, hint)
+        Dst = OpenImageIO.ImageBufAlgo.demosaic(Src, layout="GRBG",
+            white_balance = (2.0, 0.8, 1.2, 1.5))
+
+
 
 
 .. _sec-iba-py-importexport:
