@@ -287,6 +287,7 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
                            int z, int chbegin, int chend, TypeDesc format,
                            void* data, stride_t xstride, stride_t ystride)
 {
+    pvt::LoggedTimer logtime("II::read_scanlines");
     ImageSpec spec;
     int rps = 0;
     {
@@ -301,6 +302,7 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
         // For scanline files, we also need one piece of metadata
         if (!spec.tile_width)
             rps = m_spec.get_int_attribute("tiff:RowsPerStrip", 64);
+        // FIXME: does the above search of metadata have a significant cost?
     }
     if (spec.image_bytes() < 1) {
         errorfmt("Invalid image size {} x {} ({} chans)", m_spec.width,
@@ -329,7 +331,10 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
     bool contiguous                = (xstride == (stride_t)buffer_pixel_bytes
                        && ystride == (stride_t)buffer_scanline_bytes);
 
-    if (native && contiguous) {
+    // no_type_convert is true if asking for data in the native format
+    bool no_type_convert = (format == spec.format
+                            && spec.channelformats.empty());
+    if ((native || no_type_convert) && contiguous) {
         if (chbegin == 0 && chend == spec.nchannels)
             return read_native_scanlines(subimage, miplevel, ybegin, yend, z,
                                          data);
@@ -845,6 +850,7 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
                        ProgressCallback progress_callback,
                        void* progress_callback_data)
 {
+    pvt::LoggedTimer logtime("II::read_image");
     ImageSpec spec;
     int rps = 0;
     {

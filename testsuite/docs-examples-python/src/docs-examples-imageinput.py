@@ -86,6 +86,24 @@ def tiles_read() :
     # END-imageinput-tiles
 
 
+def unassociated_alpha():
+    filename = "unpremult.tif"
+
+    # BEGIN-imageinput-unassociatedalpha
+    # Set up an ImageSpec that holds the configuration hints.
+    config = oiio.ImageSpec()
+    config["oiio:UnassociatedAlpha"] = 1
+
+    # Open the file, passing in the config.
+    inp = oiio.ImageInput.open (filename, config)
+    spec = inp.spec()
+    pixels = inp.read_image (0, 0, 0, spec.nchannels, "uint8")
+    if (spec["oiio:UnassociatedAlpha"] == 1):
+        print("pixels holds unassociated alpha")
+    else:
+        print("pixels holds associated alpha")
+    # END-imageinput-unassociatedalpha
+
 def error_checking():
 # BEGIN-imageinput-errorchecking
     import OpenImageIO as oiio
@@ -119,4 +137,5 @@ if __name__ == '__main__':
     simple_read()
     scanlines_read()
     tiles_read()
+    unassociated_alpha()
     error_checking()
