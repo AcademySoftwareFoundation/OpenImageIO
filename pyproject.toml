@@ -39,13 +39,8 @@ Issues = "https://github.com/AcademySoftwareFoundation/OpenImageIO/issues"
 
 [project.scripts]
 # Use the convention below to expose CLI tools as Python scripts.
-iconvert = "OpenImageIO:_command_line"
-idiff = "OpenImageIO:_command_line"
-igrep = "OpenImageIO:_command_line"
-iinfo = "OpenImageIO:_command_line"
 maketx = "OpenImageIO:_command_line"
 oiiotool = "OpenImageIO:_command_line"
-testtex = "OpenImageIO:_command_line"
 
 [build-system]
 build-backend = "scikit_build_core.build"
@@ -65,6 +60,8 @@ cmake.version = "CMakeLists.txt"
 wheel.license-files = ["LICENSE.md", "THIRD-PARTY.md"]
 # Make sure the package is structured as expected.
 wheel.install-dir = "OpenImageIO"
+# Only install the user and fonts components.
+install.components = ["user", "fonts"]
 
 [tool.scikit-build.cmake.define]
 # Build missing dependencies. See src/cmake for details.
@@ -97,23 +94,6 @@ if.platform-machine  = "x86_64"
 inherit.cmake.define = "append"
 cmake.define.CMAKE_OSX_ARCHITECTURES = "x86_64"
 
-# Provide CMAKE_PREFIX_PATH hint for downstream scikit-build-based projets
-# See https://scikit-build-core.readthedocs.io/en/latest/cmakelists.html#finding-other-packages
-[project.entry-points."cmake.prefix"]
-any = "OpenImageIO.lib.cmake.OpenImageIO"
-
-# Touch a few __init__.py files so the above entry-point is recognized.
-[[tool.scikit-build.generate]]
-path = "OpenImageIO/lib/__init__.py"
-template = " "
-
-[[tool.scikit-build.generate]]
-path = "OpenImageIO/lib/cmake/__init__.py"
-template = " "
-
-[[tool.scikit-build.generate]]
-path = "OpenImageIO/lib/cmake/OpenImageIO/__init__.py"
-template = " "
 
 [tool.cibuildwheel]
 build-verbosity = 1

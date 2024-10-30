@@ -670,7 +670,7 @@ macro (install_local_dependency_libs pkgname libname)
             "${${pkgname}_LOCAL_INSTALL_DIR}/lib/*${libname}*"
             "${${pkgname}_LOCAL_INSTALL_DIR}/lib/${${PROJECT_NAME}_DEPENDENCY_BUILD_TYPE}/*${libname}*"
          )
-    install (FILES ${_lib_files} TYPE LIB)
+    install (FILES ${_lib_files} TYPE LIB COMPONENT user)
     # message("${pkgname}_LOCAL_INSTALL_DIR = ${${pkgname}_LOCAL_INSTALL_DIR}")
     # message("  lib files = ${_lib_files}")
     if (WIN32)
@@ -680,7 +680,7 @@ macro (install_local_dependency_libs pkgname libname)
                 "${${pkgname}_LOCAL_INSTALL_DIR}/bin/${${PROJECT_NAME}_DEPENDENCY_BUILD_TYPE}/*${libname}*.dll"
              )
         # message("  dll files = ${_lib_files}")
-        install (FILES ${_lib_files} TYPE BIN)
+        install (FILES ${_lib_files} TYPE BIN COMPONENT user)
     endif ()
     unset (_lib_files)
 endmacro ()
