@@ -994,7 +994,7 @@ ImageBufAlgo::unsharp_mask(ImageBuf& dst, const ImageBuf& src,
     if (kernel == "median") {
         median_filter(Blurry, src, ceilf(width), 0, roi, nthreads);
     } else if (width > 3.0) {
-        ImageBuf K  = make_kernel(kernel, width, 1);
+        ImageBuf K  = make_kernel(kernel, 1, width);
         ImageBuf Kt = ImageBufAlgo::transpose(K);
         if (K.has_error()) {
             dst.errorfmt("{}", K.geterror());
