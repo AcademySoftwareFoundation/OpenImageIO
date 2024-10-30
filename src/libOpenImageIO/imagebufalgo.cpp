@@ -988,22 +988,23 @@ ImageBufAlgo::unsharp_mask(ImageBuf& dst, const ImageBuf& src,
     // Blur the source image, store in Blurry
     ImageSpec BlurrySpec = src.spec();
     BlurrySpec.set_format(TypeDesc::FLOAT);  // force float
+    ImageBuf fst_pass(BlurrySpec);
     ImageBuf Blurry(BlurrySpec);
 
     if (kernel == "median") {
         median_filter(Blurry, src, ceilf(width), 0, roi, nthreads);
     } else if (width > 3.0) {
-        ImageBuf K  = make_kernel(kernel, 1, width);
+        ImageBuf K  = make_kernel(kernel, width, 1);
         ImageBuf Kt = ImageBufAlgo::transpose(K);
         if (K.has_error()) {
             dst.errorfmt("{}", K.geterror());
             return false;
         }
-        if (!convolve(Blurry, src, K, true, roi, nthreads)) {
-            dst.errorfmt("{}", Blurry.geterror());
+        if (!convolve(fst_pass, src, K, true, roi, nthreads)) {
+            dst.errorfmt("{}", fst_pass.geterror());
             return false;
         }
-        if (!convolve(Blurry, Blurry, Kt, true, roi, nthreads)) {
+        if (!convolve(Blurry, fst_pass, Kt, true, roi, nthreads)) {
             dst.errorfmt("{}", Blurry.geterror());
             return false;
         }
