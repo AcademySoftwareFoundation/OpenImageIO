@@ -80,7 +80,6 @@ provider = "scikit_build_core.metadata.regex"
 input = "CMakeLists.txt" 
 regex = 'set \(OpenImageIO_VERSION "(?P<value>[0-9a-z.]+)"\)'
 
-
 # On macOS, ensure dependencies are only built for the target architecture.
 [[tool.scikit-build.overrides]]
 if.platform-system = "darwin"
@@ -94,7 +93,6 @@ if.platform-machine  = "x86_64"
 inherit.cmake.define = "append"
 cmake.define.CMAKE_OSX_ARCHITECTURES = "x86_64"
 
-
 [tool.cibuildwheel]
 build-verbosity = 1
 skip = [
@@ -106,27 +104,19 @@ skip = [
     "*musllinux*",  
 ]
 test-command = "oiiotool --buildinfo"
-# Prevent CIBW's default repair-wheel command from running, because it fails to
-# recognize that the wheel isn't broken to begin with, and ends up creating
-# additional copies of the shared libraries in the wheel.
 
 [tool.cibuildwheel.macos.environment]
-# Specify a persistent build directory so the repairwheel command can (re)find
-# dependency libraries built by OpenImageIO.
-SKBUILD_BUILD_DIR = "/tmp/build_oiio_wheels"
-# Always (re)build the TIFF library; see #4439 for more details.
-SKBUILD_CMAKE_ARGS = "-DOpenImageIO_BUILD_LOCAL_DEPS=TIFF; -DOpenImageIO_BUILD_MISSING_DEPS=all; -DLINKSTATIC=1; -DIGNORE_HOMEBREWED_DEPS=1; -DCMAKE_INSTALL_LIBDIR=lib"
-# C++17 - std::filesystem is only available in macOS 10.15 and later.
+SKBUILD_CMAKE_ARGS = "-DLINKSTATIC=1; -DIGNORE_HOMEBREWED_DEPS=1"
+# C++17 - std::filesystem is only available in macOS 10.15 and later; ARM compatibility introduced in 11.
 MACOSX_DEPLOYMENT_TARGET = "11"
 # Optimize for size (not speed).
 SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
 
 [tool.cibuildwheel.linux.environment]
-SKBUILD_BUILD_DIR = "/tmp/build_oiio_wheels"
-SKBUILD_CMAKE_ARGS = "-DOpenImageIO_BUILD_LOCAL_DEPS=all; -DOpenImageIO_BUILD_MISSING_DEPS=all; -DLINKSTATIC=1; -DCMAKE_INSTALL_LIBDIR=lib"
-SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
+SKBUILD_CMAKE_ARGS = "-DLINKSTATIC=1"
 # Suppress warnings that cause linux cibuildwheel build to fail
 CXXFLAGS = "-Wno-error=stringop-overflow -Wno-pragmas"
+SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
 
 [tool.cibuildwheel.windows.environment]
 SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
