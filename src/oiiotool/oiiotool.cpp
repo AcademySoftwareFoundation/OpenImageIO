@@ -76,6 +76,18 @@ using pvt::print_info_options;
         op();                                                        \
     }
 
+// Lke OIIOTOOL_OP, but designate the op as "inplace" -- which means it
+// uses the input image itself as the destination.
+#define OIIOTOOL_INPLACE_OP(name, ninputs, ...)                      \
+    static void action_##name(Oiiotool& ot, cspan<const char*> argv) \
+    {                                                                \
+        if (ot.postpone_callback(ninputs, action_##name, argv))      \
+            return;                                                  \
+        OiiotoolOp op(ot, "-" #name, argv, ninputs, __VA_ARGS__);    \
+        op.inplace(true);                                            \
+        op();                                                        \
+    }
+
 // Canned setup for an op that uses one image on the stack.
 #define UNARY_IMAGE_OP(name, impl)                                 \
     OIIOTOOL_OP(name, 1, [](OiiotoolOp& op, span<ImageBuf*> img) { \
@@ -4940,7 +4952,7 @@ OIIOTOOL_OP(contrast, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
 
 // --box
 // clang-format off
-OIIOTOOL_OP(box, 1, nullptr, ([&](OiiotoolOp& op, span<ImageBuf*> img) {
+OIIOTOOL_INPLACE_OP(box, 1, nullptr, ([&](OiiotoolOp& op, span<ImageBuf*> img) {
     img[0]->copy(*img[1]);
     const ImageSpec& Rspec(img[0]->spec());
     int x1, y1, x2, y2;
@@ -4963,7 +4975,7 @@ OIIOTOOL_OP(box, 1, nullptr, ([&](OiiotoolOp& op, span<ImageBuf*> img) {
 
 
 // --line
-OIIOTOOL_OP(line, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
+OIIOTOOL_INPLACE_OP(line, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
     img[0]->copy(*img[1]);
     const ImageSpec& Rspec(img[0]->spec());
     std::vector<int> points;
@@ -4983,7 +4995,7 @@ OIIOTOOL_OP(line, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
 
 
 // --point
-OIIOTOOL_OP(point, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
+OIIOTOOL_INPLACE_OP(point, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
     img[0]->copy(*img[1]);
     const ImageSpec& Rspec(img[0]->spec());
     std::vector<int> points;
@@ -5000,7 +5012,7 @@ OIIOTOOL_OP(point, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
 
 
 // --text
-OIIOTOOL_OP(text, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
+OIIOTOOL_INPLACE_OP(text, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
     img[0]->copy(*img[1]);
     const ImageSpec& Rspec(img[0]->spec());
     int x            = op.options().get_int("x", Rspec.x + Rspec.width / 2);
