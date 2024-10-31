@@ -4,11 +4,8 @@
 
 import os
 import sys
-import logging
 import platform
 import subprocess
-
-logger = logging.getLogger(__name__)
 
 _here = os.path.abspath(os.path.dirname(__file__))
 
