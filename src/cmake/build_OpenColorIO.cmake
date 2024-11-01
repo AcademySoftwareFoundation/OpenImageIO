@@ -64,13 +64,6 @@ set (OpenColorIO_DIR ${OpenColorIO_LOCAL_INSTALL_DIR})
 # set (OpenColorIO_REFIND_ARGS CONFIG)
 find_package (OpenColorIO ${OpenColorIO_BUILD_VERSION} EXACT CONFIG REQUIRED)
 
-# Try to find the static dependencies that OCIO needs in its own build
-# directory. If they aren't found for some reason, we'll fall back to
-# building them locally.
-
-#list (APPEND CMAKE_PREFIX_PATH "${OpenColorIO_LOCAL_BUILD_DIR}/ext/dist")
-
-
 if (OpenColorIO_BUILD_SHARED_LIBS)
     install_local_dependency_libs (OpenColorIO OpenColorIO)
 endif ()
