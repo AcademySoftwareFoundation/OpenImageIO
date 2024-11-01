@@ -40,12 +40,17 @@ build_dependency_with_cmake(expat
     )
 
 # Set some things up that we'll need for a subsequent find_package to work
+set (expat_REFIND TRUE)
 set (expat_VERSION ${expat_BUILD_VERSION})
 set (expat_DIR ${expat_ROOT}/lib/cmake/expat-${expat_VERSION})
 
-# Signal to caller that we need to find again at the installed location
-set (expat_REFIND TRUE)
-set (expat_REFIND_VERSION ${expat_BUILD_VERSION})
+if (WIN32)
+    # Set the expat_LIBRARY variable to the full path to ${EXPAT_LIBRARIES}.
+    # For some reason, find_package(expat) behaves differently on Windows
+    find_package (EXPAT ${expat_BUILD_VERSION} EXACT REQUIRED)
+    set_cache(expat_LIBRARY ${EXPAT_LIBRARIES} "Full path to the expat library")
+    message(STATUS "expat_LIBRARY = ${expat_LIBRARY}")
+endif ()
 
 if (expat_BUILD_SHARED_LIBS)
     install_local_dependency_libs (expat expat)
