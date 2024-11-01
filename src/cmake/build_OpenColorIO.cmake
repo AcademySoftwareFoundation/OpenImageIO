@@ -25,12 +25,6 @@ unset (OpenColorIO_DIR)
 
 string (MAKE_C_IDENTIFIER ${OpenColorIO_BUILD_VERSION} OpenColorIO_VERSION_IDENT)
 
-
-checked_find_package(expat REQUIRED VERSION_MIN 2.5)
-checked_find_package(pystring REQUIRED VERSION_MIN 1.1.3)
-checked_find_package(yaml-cpp REQUIRED VERSION_MIN 0.6.0)
-checked_find_package(minizip-ng REQUIRED VERSION_MIN 3.0.0)
-
 build_dependency_with_cmake(OpenColorIO
     VERSION         ${OpenColorIO_BUILD_VERSION}
     GIT_REPOSITORY  ${OpenColorIO_GIT_REPOSITORY}
@@ -65,8 +59,18 @@ set (OpenColorIO_DIR ${OpenColorIO_LOCAL_INSTALL_DIR})
 # set (OpenColorIO_REFIND_ARGS CONFIG)
 find_package (OpenColorIO ${OpenColorIO_BUILD_VERSION} EXACT CONFIG REQUIRED)
 
+# Try to find the static dependencies that OCIO needs in its own build
+# directory. If they aren't found for some reason, we'll fall back to
+# building them locally.
+
+list (APPEND CMAKE_PREFIX_PATH "${OpenColorIO_LOCAL_BUILD_DIR}/ext/dist")
+
+checked_find_package(expat REQUIRED VERSION_MIN 2.5)
+checked_find_package(pystring REQUIRED VERSION_MIN 1.1.3)
+checked_find_package(yaml-cpp REQUIRED VERSION_MIN 0.6.0)
+checked_find_package(minizip-ng REQUIRED VERSION_MIN 3.0.0)
+
+
 if (OpenColorIO_BUILD_SHARED_LIBS)
     install_local_dependency_libs (OpenColorIO OpenColorIO)
-else ()
-    list (APPEND CMAKE_PREFIX_PATH "${OpenColorIO_LOCAL_BUILD_DIR}/ext/dist")
 endif ()
