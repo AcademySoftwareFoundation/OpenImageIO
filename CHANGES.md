@@ -1,3 +1,8 @@
+Release 2.5.18.0 (? 2024) -- compared to 2.5.17.0
+--------------------------------------------------------
+
+
+
 Release 2.5.17.0 (Nov 1, 2024) -- compared to 2.5.16.0
 --------------------------------------------------------
 - *iinfo*: fix: iinfo was not reading MIP levels correctly [#4498](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4498)
