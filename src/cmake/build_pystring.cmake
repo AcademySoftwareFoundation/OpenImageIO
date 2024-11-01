@@ -29,11 +29,14 @@ build_dependency_with_cmake(pystring
         -D CMAKE_INSTALL_LIBDIR=lib
 )
 
-set (pystring_ROOT ${pystring_LOCAL_INSTALL_DIR})
+#set (pystring_ROOT ${pystring_LOCAL_INSTALL_DIR})
 set (pystring_VERSION ${pystring_BUILD_VERSION})
+
 set (pystring_REFIND TRUE)
 set (pystring_REFIND_ARGS REQUIRED)
 set (pystring_REFIND_VERSION ${pystring_BUILD_VERSION})
+
+#find_package(pystring REQUIRED)
 
 if (pystring_BUILD_SHARED_LIBS)
     install_local_dependency_libs (pystring pystring)
