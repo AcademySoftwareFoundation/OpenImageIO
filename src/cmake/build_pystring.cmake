@@ -32,7 +32,7 @@ build_dependency_with_cmake(pystring
 set (pystring_VERSION ${pystring_BUILD_VERSION})
 
 set (pystring_REFIND TRUE)
-set (pystring_REFIND_ARGS REQUIRED)
+# set (pystring_REFIND_ARGS REQUIRED)
 set (pystring_REFIND_VERSION ${pystring_BUILD_VERSION})
 
 
