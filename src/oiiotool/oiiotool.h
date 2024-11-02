@@ -338,6 +338,8 @@ public:
     int do_action_diff(ImageRecRef ir0, ImageRecRef ir1, Oiiotool& options,
                        int perceptual = 0);
 
+    int do_action_flipdiff(ImageRecRef ir0, ImageRecRef ir1, Oiiotool& options);
+
     using print_info_options = pvt::print_info_options;
 
     print_info_options info_opts()

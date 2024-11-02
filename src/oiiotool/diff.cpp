@@ -169,3 +169,70 @@ Oiiotool::do_action_diff(ImageRecRef ir0, ImageRecRef ir1, Oiiotool& ot,
     fflush(stdout);
     return ret;
 }
+
+
+
+int
+Oiiotool::do_action_flipdiff(ImageRecRef ir0, ImageRecRef ir1, Oiiotool& ot)
+{
+    print("Computing diff of \"{}\" vs \"{}\"\n", ir0->name(), ir1->name());
+    read(ir0);
+    read(ir1);
+
+    int ret = DiffErrOK;
+    for (int subimage = 0; subimage < ir0->subimages(); ++subimage) {
+        if (subimage > 0 && !ot.allsubimages)
+            break;
+        if (subimage >= ir1->subimages())
+            break;
+
+        for (int m = 0; m < ir0->miplevels(subimage); ++m) {
+            if (m > 0 && !ot.allsubimages)
+                break;
+            if (m > 0 && ir0->miplevels(subimage) != ir1->miplevels(subimage)) {
+                print("Files do not match in their number of MIPmap levels\n");
+                ret = DiffErrDifferentSize;
+                break;
+            }
+
+            ImageBuf& img0((*ir0)(subimage, m));
+            ImageBuf& img1((*ir1)(subimage, m));
+            int npels = img0.spec().width * img0.spec().height
+                        * img0.spec().depth;
+            if (npels == 0)
+                npels = 1;  // Avoid divide by zero for 0x0 images
+            OIIO_ASSERT(img0.spec().format == TypeDesc::FLOAT);
+
+            // Compare the two images.
+            //
+            ImageBufAlgo::CompareResults cr;
+            
+            
+            cr = ImageBufAlgo::compare_flip(img0, img1);
+          
+
+            
+        }
+    }
+
+    if (ot.allsubimages && ir0->subimages() != ir1->subimages()) {
+        print("Images had differing numbers of subimages ({} vs {})\n",
+              ir0->subimages(), ir1->subimages());
+        ret = DiffErrFail;
+    }
+    if (!ot.allsubimages && (ir0->subimages() > 1 || ir1->subimages() > 1)) {
+        print("Only compared the first subimage (of {} and {}, respectively)\n",
+              ir0->subimages(), ir1->subimages());
+    }
+
+    if (ret == DiffErrOK)
+        print("PASS\n");
+    else if (ret == DiffErrWarn)
+        print("WARNING\n");
+    else {
+        print("FAILURE\n");
+        ot.return_value = ret;
+    }
+    fflush(stdout);
+    return ret;
+}

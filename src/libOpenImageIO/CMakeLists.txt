@@ -46,6 +46,7 @@ set (libOpenImageIO_srcs
                           imagebufalgo_pixelmath.cpp
                           imagebufalgo_channels.cpp
                           imagebufalgo_compare.cpp
+                          imagebufalgo_flipdiff.cpp
                           imagebufalgo_copy.cpp
                           imagebufalgo_deep.cpp
                           imagebufalgo_draw.cpp

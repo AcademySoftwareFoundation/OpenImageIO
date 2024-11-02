@@ -3008,6 +3008,29 @@ action_pdiff(Oiiotool& ot, cspan<const char*> argv)
 
 
 
+// --flipdiff
+static void
+action_flipdiff(Oiiotool& ot, cspan<const char*> argv)
+{
+    print("\nweeee\n");
+
+    if (ot.postpone_callback(2, action_flipdiff, argv))
+        return;
+    string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
+
+    int ret = ot.do_action_flipdiff(ot.image_stack.back(), ot.curimg, ot);
+    if (ret != DiffErrOK && ret != DiffErrWarn)
+        ot.return_value = EXIT_FAILURE;
+
+    if (ret != DiffErrOK && ret != DiffErrWarn && ret != DiffErrFail)
+        ot.error(command, "Diff failed");
+
+    ot.printed_info = true;  // because taking the diff has output
+}
+
+
+
 BINARY_IMAGE_OP(add, ImageBufAlgo::add);          // --add
 BINARY_IMAGE_OP(sub, ImageBufAlgo::sub);          // --sub
 BINARY_IMAGE_OP(mul, ImageBufAlgo::mul);          // --mul
@@ -6395,6 +6418,9 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--pdiff")
       .help("Print report on the perceptual difference of two images (modified by --fail, --failpercent, --hardfail, --warn, --warnpercent --hardwarn)")
       .OTACTION(action_pdiff);
+    ap.arg("--flipdiff")
+      .help("Print report on the flip difference of two images (modified by --fail, --failpercent, --hardfail, --warn, --warnpercent --hardwarn)")
+      .OTACTION(action_flipdiff);
     ap.arg("--add")
       .help("Add two images")
       .OTACTION(action_add);

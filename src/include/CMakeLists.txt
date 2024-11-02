@@ -30,6 +30,9 @@ endif()
 string (REGEX REPLACE "\\." "_" MANGLED_SOVERSION ${SOVERSION})
 set (OIIO_VERSION_NS "v${MANGLED_SOVERSION}")
 
+#for flip comparisons
+option(FLIP_ENABLE_CUDA "Include CUDA version of flip" OFF)
+
 
 # Generate version.h
 set (versionfile oiioversion.h)

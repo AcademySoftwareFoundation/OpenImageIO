@@ -1431,6 +1431,11 @@ CompareResults OIIO_API compare (const ImageBuf &A, const ImageBuf &B,
                                  float failthresh, float warnthresh,
                                  ROI roi={}, int nthreads=0);
 
+
+//compare two images usinf the nvidia flip arlgorithm
+CompareResults OIIO_API compare_flip (const ImageBuf &A, const ImageBuf &Bcd);
+
+
 /// Compare two images using Hector Yee's perceptual metric, returning
 /// the number of pixels that fail the comparison.  Only the first three
 /// channels (or first three channels specified by `roi`) are compared.
