@@ -70,7 +70,7 @@ macro (add_oiio_plugin)
             target_compile_definitions (${_plugin_NAME} PRIVATE
                                         ${_plugin_DEFINITIONS}
                                         OpenImageIO_EXPORTS)
-            target_include_directories (${_plugin_NAME} PRIVATE ${_plugin_INCLUDE_DIRS})
+            target_include_directories (${_plugin_NAME} BEFORE PRIVATE ${_plugin_INCLUDE_DIRS})
             target_link_libraries (${_plugin_NAME} PUBLIC OpenImageIO
                                                    PRIVATE ${_plugin_LINK_LIBRARIES})
             set_target_properties (${_plugin_NAME} PROPERTIES PREFIX "" FOLDER "Plugins")
