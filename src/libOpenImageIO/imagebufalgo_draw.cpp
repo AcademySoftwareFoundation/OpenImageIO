@@ -1345,26 +1345,25 @@ ImageBufAlgo::font_styles(string_view family)
 
 
 const std::string
-ImageBufAlgo::font_filename(string_view family, 
-                            string_view style)
+ImageBufAlgo::font_filename(string_view family, string_view style)
 {
-   if (family.empty())
-      return std::string();
+    if (family.empty())
+        return std::string();
 
 #ifdef USE_FREETYPE
     lock_guard ft_lock(ft_mutex);
     init_font_families();
 #endif
 
-   std::string font = family;
-   if (!style.empty())
-      font = Strutil::fmt::format("{} {}", family, style);
+    std::string font = family;
+    if (!style.empty())
+        font = Strutil::fmt::format("{} {}", family, style);
 
-   auto it = s_font_filename_per_family.find(font);
-   if (it != s_font_filename_per_family.end())
-      return it->second;
-   else
-      return std::string();
+    auto it = s_font_filename_per_family.find(font);
+    if (it != s_font_filename_per_family.end())
+        return it->second;
+    else
+        return std::string();
 }
 
 
