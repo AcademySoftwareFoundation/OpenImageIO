@@ -17,15 +17,24 @@ set_cache (Freetype_BUILD_SHARED_LIBS  OFF
 
 string (MAKE_C_IDENTIFIER ${Freetype_BUILD_VERSION} Freetype_VERSION_IDENT)
 
+set( _freetype_CMAKE_ARGS
+    -D BUILD_SHARED_LIBS=${Freetype_BUILD_SHARED_LIBS}
+    -D CMAKE_POSITION_INDEPENDENT_CODE=ON
+    -D CMAKE_INSTALL_LIBDIR=lib
+)
+
+# Conditionally disable support for PNG-compressed OpenType embedded bitmaps on Apple Silicon
+# https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4423#issuecomment-2455034286
+if ( APPLE AND ( CMAKE_SYSTEM_PROCESSOR MATCHES "arm64" OR CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64" ) )
+    list( APPEND _freetype_CMAKE_ARGS -D FT_DISABLE_PNG=ON )
+endif ()
+
 build_dependency_with_cmake(Freetype
     VERSION         ${Freetype_BUILD_VERSION}
     GIT_REPOSITORY  ${Freetype_GIT_REPOSITORY}
     GIT_TAG         ${Freetype_GIT_TAG}
-    CMAKE_ARGS
-        -D BUILD_SHARED_LIBS=${Freetype_BUILD_SHARED_LIBS}
-        -D CMAKE_POSITION_INDEPENDENT_CODE=ON
-        -D CMAKE_INSTALL_LIBDIR=lib
-    )
+    CMAKE_ARGS      ${_freetype_CMAKE_ARGS}
+)
 
 # Set some things up that we'll need for a subsequent find_package to work
 
