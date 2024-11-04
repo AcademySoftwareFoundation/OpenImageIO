@@ -386,6 +386,37 @@ ROI OIIO_API text_size (string_view text, int fontsize=16,
                         string_view fontname="");
 
 
+/// Return the list of available font families in alphabetical order,
+/// such as "Arial", "Times New Roman", etc.
+/// Fonts are read from system font folders, folders defined by
+/// the global `font_searchpath` attribute or the `OPENIMAGEIO_FONTS`
+/// or `OpenImageIO_ROOT` environment variables.
+const std::vector<std::string>& OIIO_API font_families();
+
+
+/// Return the list of available font styles of a given font family,
+/// such as "Regular", "Bold", "Italic", etc.
+///
+/// @param  family
+///             Font family name.
+///
+const std::vector<std::string> OIIO_API font_styles(string_view family);
+
+
+/// Return the font filename that defines the font with the given 
+/// family and style, or an empty string if the font does not exist.
+///
+/// @param  family
+///             Font family name.
+///
+/// @param  style
+///             Font style name. If not given that means the 'Regular'
+///             style (if exists).
+///
+const std::string OIIO_API font_filename(string_view family, 
+                                         string_view style = "");
+
+
 /// Generic channel shuffling: return (or store in `dst`) a copy of `src`,
 /// but with channels in the order `channelorder[0..nchannels-1]` (or set to
 /// a constant value, designated by `channelorder[i] = -1` and having the

@@ -1318,4 +1318,55 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
 
 
 
+const std::vector<std::string>&
+ImageBufAlgo::font_families()
+{
+#ifdef USE_FREETYPE
+    lock_guard ft_lock(ft_mutex);
+    init_font_families();
+#endif
+    return s_font_families;
+}
+
+
+const std::vector<std::string>
+ImageBufAlgo::font_styles(string_view family)
+{
+#ifdef USE_FREETYPE
+    lock_guard ft_lock(ft_mutex);
+    init_font_families();
+#endif
+    auto it = s_font_styles.find(family);
+    if (it != s_font_styles.end())
+        return it->second;
+    else
+        return std::vector<std::string>();
+}
+
+
+const std::string
+ImageBufAlgo::font_filename(string_view family, 
+                            string_view style)
+{
+   if (family.empty())
+      return std::string();
+
+#ifdef USE_FREETYPE
+    lock_guard ft_lock(ft_mutex);
+    init_font_families();
+#endif
+
+   std::string font = family;
+   if (!style.empty())
+      font = Strutil::fmt::format("{} {}", family, style);
+
+   auto it = s_font_filename_per_family.find(font);
+   if (it != s_font_filename_per_family.end())
+      return it->second;
+   else
+      return std::string();
+}
+
+
+
 OIIO_NAMESPACE_END
