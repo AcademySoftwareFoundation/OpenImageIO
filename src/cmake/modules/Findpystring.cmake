@@ -1,8 +1,8 @@
-include (FindPackageHandleStandardArgs)
-
 # Copyright Contributors to the OpenImageIO project.
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
+
+include (FindPackageHandleStandardArgs)
 
 # Find include directory
 find_path(pystring_INCLUDE_DIR
@@ -36,16 +36,12 @@ find_package_handle_standard_args(pystring
     )
     set(pystring_FOUND ${pystring_FOUND})
 
-###############################################################################
-### Configure target ###
 
 if(pystring_FOUND AND NOT TARGET pystring::pystring)
     add_library(pystring::pystring UNKNOWN IMPORTED GLOBAL)
     set(_pystring_TARGET_CREATE TRUE)
 endif()
 
-###############################################################################
-### Configure target ###
 
 if(_pystring_TARGET_CREATE)
     set_target_properties(pystring::pystring PROPERTIES
@@ -55,7 +51,4 @@ if(_pystring_TARGET_CREATE)
 
     mark_as_advanced(pystring_INCLUDE_DIR pystring_LIBRARY pystring_VERSION)
 endif()
-
-
-
 
