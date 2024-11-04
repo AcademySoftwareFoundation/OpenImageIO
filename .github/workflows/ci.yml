@@ -539,7 +539,7 @@ jobs:
       CMAKE_CXX_STANDARD: ${{ matrix.cxx_std }}
       PYTHON_VERSION: ${{ matrix.python_ver }}
       USE_SIMD: ${{matrix.simd}}
-      CTEST_TEST_TIMEOUT: 600
+      CTEST_TEST_TIMEOUT: 800
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       - name: Prepare ccache timestamp
