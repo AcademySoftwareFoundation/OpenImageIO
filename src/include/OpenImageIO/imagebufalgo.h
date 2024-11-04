@@ -391,7 +391,7 @@ ROI OIIO_API text_size (string_view text, int fontsize=16,
 /// Fonts are read from system font folders, folders defined by
 /// the global `font_searchpath` attribute or the `OPENIMAGEIO_FONTS`
 /// or `OpenImageIO_ROOT` environment variables.
-const std::vector<std::string>& OIIO_API font_families();
+OIIO_API const std::vector<std::string>& font_families();
 
 
 /// Return the list of available font styles of a given font family,
@@ -400,7 +400,7 @@ const std::vector<std::string>& OIIO_API font_families();
 /// @param  family
 ///             Font family name.
 ///
-const std::vector<std::string> OIIO_API font_styles(string_view family);
+OIIO_API const std::vector<std::string> font_styles(string_view family);
 
 
 /// Return the font filename that defines the font with the given 
@@ -413,7 +413,7 @@ const std::vector<std::string> OIIO_API font_styles(string_view family);
 ///             Font style name. If not given that means the 'Regular'
 ///             style (if exists).
 ///
-const std::string OIIO_API font_filename(string_view family, 
+OIIO_API const std::string font_filename(string_view family, 
                                          string_view style = "");
 
 
@@ -1628,9 +1628,7 @@ bool OIIO_API convolve (ImageBuf &dst, const ImageBuf &src, const ImageBuf &kern
 /// Laplacian kernel,
 ///
 ///                     [ 0  1  0 ]
-///                     [ 1 -4  1 ]
 ///                     [ 0  1  0 ]
-///
 ImageBuf OIIO_API laplacian (const ImageBuf &src, ROI roi={}, int nthreads=0);
 /// Write to an existing image `dst` (allocating if it is uninitialized).
 bool OIIO_API laplacian (ImageBuf &dst, const ImageBuf &src,
