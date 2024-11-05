@@ -33,7 +33,11 @@ build_dependency_with_cmake(Freetype
     VERSION         ${Freetype_BUILD_VERSION}
     GIT_REPOSITORY  ${Freetype_GIT_REPOSITORY}
     GIT_TAG         ${Freetype_GIT_TAG}
-    CMAKE_ARGS      ${_freetype_CMAKE_ARGS}
+    CMAKE_ARGS
+        -D BUILD_SHARED_LIBS=${Freetype_BUILD_SHARED_LIBS}
+        -D CMAKE_POSITION_INDEPENDENT_CODE=ON
+        -D CMAKE_INSTALL_LIBDIR=lib
+        ${_freetype_EXTRA_CMAKE_ARGS}
 )
 
 # Set some things up that we'll need for a subsequent find_package to work
