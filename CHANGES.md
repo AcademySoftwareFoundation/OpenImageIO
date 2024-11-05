@@ -21,6 +21,7 @@ Beta 2 - Oct 29, 2024 (changes vs beta1)
   - *docs*: Convert ImageInput-unassociatedalpha examples from docs to tests [#4468](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4468) (by pfranz)
   - *docs*: Fix typo in description of Strutil::parse_values [#4512](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4512)
 
+Release Candidate 1 - Nov 4, 2024 (no code changes vs beta2)
 
 **Executive Summary / Highlights:**
 
