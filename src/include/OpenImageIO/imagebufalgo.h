@@ -1628,7 +1628,9 @@ bool OIIO_API convolve (ImageBuf &dst, const ImageBuf &src, const ImageBuf &kern
 /// Laplacian kernel,
 ///
 ///                     [ 0  1  0 ]
+///                     [ 1 -4  1 ]
 ///                     [ 0  1  0 ]
+///
 ImageBuf OIIO_API laplacian (const ImageBuf &src, ROI roi={}, int nthreads=0);
 /// Write to an existing image `dst` (allocating if it is uninitialized).
 bool OIIO_API laplacian (ImageBuf &dst, const ImageBuf &src,
