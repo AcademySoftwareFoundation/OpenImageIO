@@ -121,8 +121,12 @@ jobs:
             simd: "avx2,f16c"
             setenvs: export USE_OPENVDB=0
                             OPENCOLORIO_CXX=g++
+                            UHDR_CMAKE_C_COMPILER=gcc
+                            UHDR_CMAKE_CXX_COMPILER=g++
             # OCIO doesn't build with icx, so we have to force the ocio build
             # to use g++.
+            # Building libuhdr with icx results in test failures
+            # so we force using gcc/g++.
           - desc: sanitizers
             nametag: sanitizer
             runner: ubuntu-latest
