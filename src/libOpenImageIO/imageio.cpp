@@ -518,8 +518,8 @@ getattribute(string_view name, TypeDesc type, void* val)
         std::vector<string_view> tokens;
         Strutil::split(name, tokens, ":");
         string_view family = tokens.size() >= 1 ? tokens[1] : string_view();
-        string_view style = tokens.size() >= 2 ? tokens[2] : string_view();
-        *(ustring*)val = ustring(font_filename(family, style));
+        string_view style  = tokens.size() >= 2 ? tokens[2] : string_view();
+        *(ustring*)val     = ustring(font_filename(family, style));
         return true;
     }
     if (name == "filter_list" && type == TypeString) {

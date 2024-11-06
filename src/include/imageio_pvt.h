@@ -62,9 +62,7 @@ font_family_list();
 OIIO_API const std::vector<std::string>
 font_style_list(string_view family);
 OIIO_API const std::string
-font_filename(string_view family, 
-              string_view style = "");
-
+font_filename(string_view family, string_view style = "");
 
 
 // Make sure all plugins are inventoried. For internal use only.
