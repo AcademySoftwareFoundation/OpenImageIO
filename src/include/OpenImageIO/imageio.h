@@ -3039,6 +3039,21 @@ inline bool attribute (string_view name, string_view val) {
 ///   full paths), and all the directories that OpenImageIO will search for
 ///   fonts.  (Added in OpenImageIO 2.5)
 ///
+/// - `string font_family_list`
+///
+///   A semicolon-separated list of all the font family names that
+///   OpenImageIO can find.  (Added in OpenImageIO 3.0)
+///
+/// - `string font_style_list:family`
+///
+///   A semicolon-separated list of all the font style names that
+///   belong to the given font family.  (Added in OpenImageIO 3.0)
+///
+/// - `string font_filename:family:style`
+///
+///   The font file (with full path) that defines the given font
+///   family and style.  (Added in OpenImageIO 3.0)
+///
 /// - `string filter_list`
 ///
 ///   A semicolon-separated list of all built-in 2D filters. (Added in
