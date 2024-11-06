@@ -1455,7 +1455,7 @@ without alteration while modifying the image description metadata:
   
       // Create the output file and copy the image
       auto out = ImageOutput::create ("output.jpg");
-      out->open (output, out_spec);
+      out->open ("output.jpg", out_spec);
       out->copy_image (in);
   
       // Clean up
@@ -1473,7 +1473,7 @@ without alteration while modifying the image description metadata:
   
       # Create the output file and copy the image
       out = ImageOutput.create ("output.jpg")
-      out.open (output, out_spec)
+      out.open ("output.jpg", out_spec)
       out.copy_image (inp)
   
       # Clean up
