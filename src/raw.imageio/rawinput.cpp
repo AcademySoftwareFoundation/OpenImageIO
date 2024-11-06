@@ -248,7 +248,7 @@ namespace {
 std::string
 libraw_filter_to_str(unsigned int filters, const char* cdesc)
 {
-    char result[5] = { 0 };
+    char result[5] = { 0, 0, 0, 0, 0 };
     for (size_t i = 0; i < 4; i++) {
         size_t index = filters & 3;  // Grab the last 2 bits
         result[i]    = cdesc[index];
