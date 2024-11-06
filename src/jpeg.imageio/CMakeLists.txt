@@ -4,6 +4,10 @@
 
 if (libuhdr_FOUND)
     set (UHDR_DEFS USE_UHDR)
+else ()
+    set (LIBUHDR_INCLUDE_DIR "")
+    set (LIBUHDR_LIBRARY "")
+    set (UHDR_DEFS "")
 endif ()
 
 add_oiio_plugin (jpeginput.cpp jpegoutput.cpp
@@ -12,5 +16,5 @@ add_oiio_plugin (jpeginput.cpp jpegoutput.cpp
                      $<TARGET_NAME_IF_EXISTS:libjpeg-turbo::jpeg>
                      $<TARGET_NAME_IF_EXISTS:JPEG::JPEG>
                      ${LIBUHDR_LIBRARY}
-                 DEFINITIONS ${UHDR_DEFS}
+                 DEFINITIONS "${UHDR_DEFS}"
                  )

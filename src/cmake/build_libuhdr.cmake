@@ -13,6 +13,13 @@ set (libuhdr_GIT_TAG "v${libuhdr_BUILD_VERSION}")
 set_cache (libuhdr_BUILD_SHARED_LIBS OFF
            DOC "Should execute a local libuhdr build, if necessary, build shared libraries" ADVANCED)
 
+if (TARGET libjpeg-turbo::jpeg)
+    # We've had some trouble with libuhdr finding the JPEG resources it needs to
+    # build if we're using libjpeg-turbo, libuhdr needs an extra nudge.
+    get_target_property(JPEG_INCLUDE_DIR JPEG::JPEG INTERFACE_INCLUDE_DIRECTORIES)
+    get_target_property(JPEG_LIBRARY JPEG::JPEG INTERFACE_LINK_LIBRARIES)
+endif ()
+
 build_dependency_with_cmake(libuhdr
     VERSION         ${libuhdr_BUILD_VERSION}
     GIT_REPOSITORY  ${libuhdr_GIT_REPOSITORY}
@@ -22,7 +29,10 @@ build_dependency_with_cmake(libuhdr
         -D CMAKE_INSTALL_LIBDIR=lib
         -D CMAKE_POSITION_INDEPENDENT_CODE=ON
         -D UHDR_BUILD_EXAMPLES=FALSE
+        -D UHDR_BUILD_DEPS=FALSE
         -D UHDR_ENABLE_LOGS=TRUE
+        -D JPEG_INCLUDE_DIR=${JPEG_INCLUDE_DIR}
+        -D JPEG_LIBRARY=${JPEG_LIBRARY}
     )
 
 if (WIN32)
