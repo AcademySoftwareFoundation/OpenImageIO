@@ -483,7 +483,7 @@ JpgInput::read_uhdr(Filesystem::IOProxy* ioproxy)
     }
 
     ImageSpec newspec = ImageSpec(uhdr_raw->w, uhdr_raw->h, nchannels, desc);
-    newspec.extra_attribs = m_spec.extra_attribs;
+    newspec.extra_attribs = std::move(m_spec.extra_attribs);
     m_spec                = newspec;
 
     return true;
