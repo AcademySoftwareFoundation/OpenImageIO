@@ -505,6 +505,23 @@ getattribute(string_view name, TypeDesc type, void* val)
         *(ustring*)val = ustring(Strutil::join(font_list(), ";"));
         return true;
     }
+    if (name == "font_family_list" && type == TypeString) {
+        *(ustring*)val = ustring(Strutil::join(font_family_list(), ";"));
+        return true;
+    }
+    if (Strutil::starts_with(name, "font_style_list:") && type == TypeString) {
+        string_view family = name.substr(strlen("font_style_list:"));
+        *(ustring*)val = ustring(Strutil::join(font_style_list(family), ";"));
+        return true;
+    }
+    if (Strutil::starts_with(name, "font_filename:") && type == TypeString) {
+        std::vector<string_view> tokens;
+        Strutil::split(name, tokens, ":");
+        string_view family = tokens.size() >= 1 ? tokens[1] : string_view();
+        string_view style = tokens.size() >= 2 ? tokens[2] : string_view();
+        *(ustring*)val = ustring(font_filename(family, style));
+        return true;
+    }
     if (name == "filter_list" && type == TypeString) {
         std::vector<string_view> filternames;
         for (int i = 0, e = Filter2D::num_filters(); i < e; ++i)

@@ -1319,7 +1319,7 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
 
 
 const std::vector<std::string>&
-ImageBufAlgo::font_families()
+pvt::font_family_list()
 {
 #ifdef USE_FREETYPE
     lock_guard ft_lock(ft_mutex);
@@ -1330,7 +1330,7 @@ ImageBufAlgo::font_families()
 
 
 const std::vector<std::string>
-ImageBufAlgo::font_styles(string_view family)
+pvt::font_style_list(string_view family)
 {
 #ifdef USE_FREETYPE
     lock_guard ft_lock(ft_mutex);
@@ -1345,7 +1345,7 @@ ImageBufAlgo::font_styles(string_view family)
 
 
 const std::string
-ImageBufAlgo::font_filename(string_view family, string_view style)
+pvt::font_filename(string_view family, string_view style)
 {
     if (family.empty())
         return std::string();
