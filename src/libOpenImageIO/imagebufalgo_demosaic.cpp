@@ -446,7 +446,7 @@ ImageBufAlgo::demosaic(ImageBuf& dst, const ImageBuf& src, KWArgs options,
 
     ROI dst_roi = roi;
     if (!dst_roi.defined()) {
-        dst_roi = src.roi_full();
+        dst_roi = src.roi();
     }
 
     dst_roi.chbegin = 0;
