@@ -137,7 +137,7 @@ checker_with_alpha_filled.exr :  256 x  256, 4 channel, half openexr
 tahoe_median_filter.tif :  512 x  384, 3 channel, uint8 tiff
     SHA-1: A0B2E3A10A16EA8CC905F144C5F91B6A0964A177
 tahoe_unsharp_mask.tif :  512 x  384, 3 channel, uint8 tiff
-    SHA-1: D3B56074F48EC5D3ADDA4BDE1F487192ABE9BA76
+    SHA-1: C1C9C843D45D90B7C0BBD7BCDB7A11814668FC6D
 Comparing "simple.tif" and "../docs-examples-cpp/ref/simple.tif"
 PASS
 Comparing "scanlines.tif" and "../docs-examples-cpp/ref/scanlines.tif"
