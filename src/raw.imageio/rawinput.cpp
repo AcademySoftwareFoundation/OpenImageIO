@@ -245,28 +245,16 @@ OIIO_EXPORT const char* raw_input_extensions[]
 OIIO_PLUGIN_EXPORTS_END
 
 namespace {
-const char*
-libraw_filter_to_str(unsigned int filters)
+std::string
+libraw_filter_to_str(unsigned int filters, const char* cdesc)
 {
-    // Convert the libraw filter pattern description
-    // into a slightly more human readable string
-    // LibRaw/internal/defines.h:166
-    switch (filters) {
-    // CYGM
-    case 0xe1e4e1e4: return "GMYC";
-    case 0x1b4e4b1e: return "CYGM";
-    case 0x1e4b4e1b: return "YCGM";
-    case 0xb4b4b4b4: return "GMCY";
-    case 0x1e4e1e4e: return "CYMG";
-
-    // RGB
-    case 0x16161616: return "BGRG";
-    case 0x61616161: return "GRGB";
-    case 0x49494949: return "GBGR";
-    case 0x94949494: return "RGBG";
-    default: break;
+    char result[5] = { 0, 0, 0, 0, 0 };
+    for (size_t i = 0; i < 4; i++) {
+        size_t index = filters & 3;  // Grab the last 2 bits
+        result[i]    = cdesc[index];
+        filters >>= 2;
     }
-    return "";
+    return result;
 }
 }  // namespace
 
@@ -490,22 +478,16 @@ RawInput::open_raw(bool unpack, const std::string& name,
     if (config.get_int_attribute("raw:use_camera_wb", 1) == 1) {
         auto& color  = m_processor->imgdata.color;
         auto& params = m_processor->imgdata.params;
-        auto& idata  = m_processor->imgdata.idata;
 
-        auto is_rgbg_or_bgrg = [&](unsigned int filters) {
-            std::string filter(libraw_filter_to_str(filters));
-            return filter == "RGBG" || filter == "BGRG";
-        };
         float norm[4] = { color.cam_mul[0], color.cam_mul[1], color.cam_mul[2],
                           color.cam_mul[3] };
 
-        if (is_rgbg_or_bgrg(idata.filters)) {
-            // normalize white balance around green
-            norm[0] /= norm[1];
-            norm[1] /= norm[1];
-            norm[2] /= norm[3] > 0 ? norm[3] : norm[1];
-            norm[3] /= norm[3] > 0 ? norm[3] : norm[1];
-        }
+        //        // normalize white balance around green
+        //        norm[0] /= norm[1];
+        //        norm[2] /= norm[3] > 0 ? norm[3] : norm[1];
+        //        norm[3] /= norm[3] > 0 ? norm[3] : norm[1];
+        //        norm[1] /= norm[1];
+
         params.user_mul[0] = norm[0];
         params.user_mul[1] = norm[1];
         params.user_mul[2] = norm[2];
@@ -676,7 +658,8 @@ RawInput::open_raw(bool unpack, const std::string& name,
 
             // Put the details about the filter pattern into the metadata
             std::string filter(
-                libraw_filter_to_str(m_processor->imgdata.idata.filters));
+                libraw_filter_to_str(m_processor->imgdata.idata.filters,
+                                     m_processor->imgdata.idata.cdesc));
             if (filter.empty()) {
                 filter = "unknown";
             }
