@@ -48,6 +48,7 @@ atomic_int oiio_try_all_readers(1);
 #endif
 // Should we use "Exr core C library"?
 int openexr_core(OIIO_OPENEXR_CORE_DEFAULT);
+int jpeg_com_attributes(1);
 int tiff_half(0);
 int tiff_multithread(1);
 int dds_bc5normal(0);
@@ -366,6 +367,10 @@ attribute(string_view name, TypeDesc type, const void* val)
         openexr_core = *(const int*)val;
         return true;
     }
+    if (name == "jpeg:com_attributes" && type == TypeInt) {
+        jpeg_com_attributes = *(const int*)val;
+        return true;
+    }
     if (name == "tiff:half" && type == TypeInt) {
         tiff_half = *(const int*)val;
         return true;
@@ -535,6 +540,10 @@ getattribute(string_view name, TypeDesc type, void* val)
     }
     if (name == "openexr:core" && type == TypeInt) {
         *(int*)val = openexr_core;
+        return true;
+    }
+    if (name == "jpeg:com_attributes" && type == TypeInt) {
+        *(int*)val = jpeg_com_attributes;
         return true;
     }
     if (name == "tiff:half" && type == TypeInt) {
