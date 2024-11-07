@@ -42,6 +42,7 @@ extern OIIO_UTIL_API int oiio_print_debug;
 extern OIIO_UTIL_API int oiio_print_uncaught_errors;
 extern int oiio_log_times;
 extern int openexr_core;
+extern int jpeg_com_attributes;
 extern int limit_channels;
 extern int limit_imagesize_MB;
 extern int imagebuf_print_uncaught_errors;
