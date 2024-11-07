@@ -1105,6 +1105,18 @@ via the `ImageInput::set_ioproxy()` method and the special
   mode and do not support tiled image input or output.
 
 
+**Ultra HDR**
+
+JPEG input also suports Ultra HDR images.
+Ultra HDR is an image format that encodes a high dynamic range image
+in a JPEG image file by including a gain map in addition to the
+primary image.
+See https://developer.android.com/media/platform/hdr-image-format for
+a complete reference on the Ultra HDR image format.
+In the specific case of reading an Ultra HDR image, JPEG input will also
+support alpha channels and high dynamic range imagery (`half` pixels).
+
+
 
 |
 
