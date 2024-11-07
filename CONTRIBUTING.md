@@ -13,7 +13,7 @@ Contributing to OpenImageIO
 >
 
 Code contributions to OpenImageIO are always welcome, and [nearly 200
-people](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/master/CREDITS.md) have done
+people](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/CREDITS.md) have done
 so over the years.  Please review this document to get a briefing on our
 process.
 
@@ -87,13 +87,13 @@ safety, as it prevents any possible future disputes between code authors and
 their employers or anyone else who might think they might own the IP output of
 the author.
 
-* [Corporate CLA](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/master/ASWF/CLA-corporate.md) :
+* [Corporate CLA](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/ASWF/CLA-corporate.md) :
   If you are writing the code as part of your job, or if there is any
   possibility that your employers might think they own any intellectual
   property you create. This needs to be executed by someone who has
   signatory power for the company.
 
-* [Individual CLA](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/master/ASWF/CLA-individual.md) :
+* [Individual CLA](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/ASWF/CLA-individual.md) :
   If you are an individual writing the code on your own time, using your own
   equipment, and you're SURE you are the sole owner of any intellectual
   property you contribute.
@@ -265,7 +265,7 @@ of give and take. Please don't take it hard if your first try is not
 accepted. It happens to all of us.
 
 1. After approval, one of the senior developers (with commit approval to the
-official main repository) will merge your fixes into the master branch.
+official main repository) will merge your fixes into the main branch.
 
 
 Coding Style

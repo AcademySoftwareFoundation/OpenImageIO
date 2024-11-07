@@ -921,18 +921,22 @@ public:
     /// of its specification in spec and return true.  Return false if
     /// the file was not found or could not be opened as an image file
     /// by any available ImageIO plugin.
-    bool get_imagespec(ustring filename, ImageSpec& spec, int subimage = 0,
-                       int miplevel = 0, bool native = false);
+    bool get_imagespec(ustring filename, ImageSpec& spec, int subimage = 0);
     bool get_imagespec(ImageCacheFile* file,
                        ImageCachePerThreadInfo* thread_info, ImageSpec& spec,
-                       int subimage = 0, int miplevel = 0, bool native = false);
+                       int subimage = 0);
 
-    const ImageSpec* imagespec(ustring filename, int subimage = 0,
-                               int miplevel = 0, bool native = false);
+    const ImageSpec* imagespec(ustring filename, int subimage = 0);
     const ImageSpec* imagespec(ImageCacheFile* file,
                                ImageCachePerThreadInfo* thread_info = NULL,
-                               int subimage = 0, int miplevel = 0,
-                               bool native = false);
+                               int subimage                         = 0);
+
+    bool get_cache_dimensions(ustring filename, ImageSpec& spec,
+                              int subimage = 0, int miplevel = 0);
+    bool get_cache_dimensions(ImageCacheFile* file,
+                              ImageCachePerThreadInfo* thread_info,
+                              ImageSpec& spec, int subimage = 0,
+                              int miplevel = 0);
 
     ImageCacheFile* resolve_udim(ImageCacheFile* udimfile,
                                  Perthread* thread_info, int utile, int vtile);

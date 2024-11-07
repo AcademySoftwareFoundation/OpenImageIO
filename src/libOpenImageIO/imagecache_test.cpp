@@ -300,12 +300,6 @@ test_imagespec()
         Strutil::print("imagespec() of non-existant file:\n  {}\n",
                        ic->geterror());
     }
-    {  // imagespec() for nonexistant file
-        const ImageSpec* spec = ic->imagespec(ustring("noexist.exr"));
-        OIIO_CHECK_ASSERT(spec == nullptr && ic->has_error());
-        Strutil::print("imagespec() of non-existant file:\n  {}\n",
-                       ic->geterror());
-    }
     {  // imagespec() for null handle
         const ImageSpec* spec = ic->imagespec(nullptr, nullptr);
         OIIO_CHECK_ASSERT(spec == nullptr && ic->has_error());
@@ -313,15 +307,61 @@ test_imagespec()
                        ic->geterror());
     }
     {  // imagespec() for out of range subimage
-        const ImageSpec* spec = ic->imagespec(checkertex, 10, 0);
+        const ImageSpec* spec = ic->imagespec(checkertex, 10);
         OIIO_CHECK_ASSERT(spec == nullptr && ic->has_error());
         Strutil::print("imagespec() out-of-range subimage:\n  {}\n",
                        ic->geterror());
     }
-    {  // imagespec() for out of range mip level
-        const ImageSpec* spec = ic->imagespec(checkertex, 0, 100);
-        OIIO_CHECK_ASSERT(spec == nullptr && ic->has_error());
-        Strutil::print("imagespec() out-of-range subimage:\n  {}\n",
+}
+
+
+
+static void
+test_get_cache_dimensions()
+{
+    Strutil::print("\nTesting cache dimensions retrieval\n");
+    auto ic = ImageCache::create();
+
+    {  // basic get_cache_dimensions()
+        ImageSpec spec;
+        OIIO_CHECK_ASSERT(ic->get_cache_dimensions(checkertex, spec));
+        OIIO_CHECK_EQUAL(spec.width, 256);
+    }
+    {  // basic get_cache_dimensions() with handle
+        auto hand = ic->get_image_handle(checkertex);
+        ImageSpec spec;
+        OIIO_CHECK_ASSERT(ic->get_cache_dimensions(hand, nullptr, spec));
+        OIIO_CHECK_EQUAL(spec.width, 256);
+    }
+
+    {  // get_cache_dimensions() for nonexistant file
+        ImageSpec spec;
+        OIIO_CHECK_FALSE(
+            ic->get_cache_dimensions(ustring("noexist.exr"), spec));
+        OIIO_CHECK_ASSERT(ic->has_error());
+        Strutil::print("get_cache_dimensions() of non-existant file:\n  {}\n",
+                       ic->geterror());
+    }
+    {  // get_cache_dimensions() for null handle
+        ImageSpec spec;
+        const bool valid = ic->get_cache_dimensions(nullptr, nullptr, spec);
+        OIIO_CHECK_ASSERT(!valid && ic->has_error());
+        Strutil::print(
+            "get_cache_dimensions(handle) of non-existant file:\n  {}\n",
+            ic->geterror());
+    }
+    {  // get_cache_dimensions() for out of range subimage
+        ImageSpec spec;
+        const bool valid = ic->get_cache_dimensions(checkertex, spec, 10);
+        OIIO_CHECK_ASSERT(!valid && ic->has_error());
+        Strutil::print("get_cache_dimensions() out-of-range subimage:\n  {}\n",
+                       ic->geterror());
+    }
+    {  // get_cache_dimensions() for out of range mip level
+        ImageSpec spec;
+        const bool valid = ic->get_cache_dimensions(checkertex, spec, 0, 100);
+        OIIO_CHECK_ASSERT(!valid && ic->has_error());
+        Strutil::print("get_cache_dimensions() out-of-range miplevel:\n  {}\n",
                        ic->geterror());
     }
 }
@@ -345,6 +385,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_get_pixels_errors();
     test_custom_threadinfo();
     test_imagespec();
+    test_get_cache_dimensions();
 
     auto ic = ImageCache::create();
     Strutil::print("\n\n{}\n", ic->getstats(5));

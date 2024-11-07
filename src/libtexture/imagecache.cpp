@@ -964,9 +964,9 @@ ImageCacheFile::read_unmipped(ImageCachePerThreadInfo* thread_info,
     // lookups form the next finer subimage.
     const ImageSpec& upspec(
         this->spec(subimage, miplevel - 1));  // next higher level
-    float* bilerppels = OIIO_ALLOCA(float, 4 * nchans);
-    float* resultpel  = OIIO_ALLOCA(float, nchans);
-    bool ok           = true;
+    span<float> bilerppels = OIIO_ALLOCA_SPAN(float, 4 * nchans);
+    span<float> resultpel  = OIIO_ALLOCA_SPAN(float, nchans);
+    bool ok                = true;
     // FIXME(volume) -- loop over z, too
     for (int j = y0; j <= y1; ++j) {
         float yf = (j + 0.5f) / spec.full_height;
@@ -979,15 +979,19 @@ ImageCacheFile::read_unmipped(ImageCachePerThreadInfo* thread_info,
             ok &= imagecache().get_pixels(this, thread_info, subimage,
                                           miplevel - 1, xlow, xlow + 2, ylow,
                                           ylow + 2, 0, 1, chbegin, chend,
-                                          TypeDesc::FLOAT, bilerppels);
-            bilerp(bilerppels + 0, bilerppels + nchans, bilerppels + 2 * nchans,
-                   bilerppels + 3 * nchans, xfrac, yfrac, nchans, resultpel);
+                                          TypeFloat, bilerppels.data());
+            bilerp(bilerppels.data() + 0, bilerppels.data() + nchans,
+                   bilerppels.data() + 2 * nchans,
+                   bilerppels.data() + 3 * nchans, xfrac, yfrac, nchans,
+                   resultpel.data());
             lores.setpixel(i - x0, j - y0, resultpel);
         }
     }
 
     // Now convert and copy those values out to the caller's buffer
-    lores.get_pixels(ROI(0, tw, 0, th, 0, 1, 0, nchans), format, data);
+    lores.get_pixels(ROI(0, tw, 0, th, 0, 1, 0, nchans), format,
+                     make_span((std::byte*)data,
+                               size_t(tw * th * nchans) * format.size()));
 
     // Restore the microcache to the way it was before.
     thread_info->tile     = oldtile;
@@ -3010,10 +3014,9 @@ ImageCacheImpl::get_image_info(ImageCacheFile* file,
 
 
 bool
-ImageCacheImpl::get_imagespec(ustring filename, ImageSpec& spec, int subimage,
-                              int miplevel, bool native)
+ImageCacheImpl::get_imagespec(ustring filename, ImageSpec& spec, int subimage)
 {
-    const ImageSpec* specptr = imagespec(filename, subimage, miplevel, native);
+    const ImageSpec* specptr = imagespec(filename, subimage);
     if (specptr) {
         spec = *specptr;
         return true;
@@ -3027,11 +3030,9 @@ ImageCacheImpl::get_imagespec(ustring filename, ImageSpec& spec, int subimage,
 bool
 ImageCacheImpl::get_imagespec(ImageCacheFile* file,
                               ImageCachePerThreadInfo* thread_info,
-                              ImageSpec& spec, int subimage, int miplevel,
-                              bool native)
+                              ImageSpec& spec, int subimage)
 {
-    const ImageSpec* specptr = imagespec(file, thread_info, subimage, miplevel,
-                                         native);
+    const ImageSpec* specptr = imagespec(file, thread_info, subimage);
     if (specptr) {
         spec = *specptr;
         return true;
@@ -3043,8 +3044,7 @@ ImageCacheImpl::get_imagespec(ImageCacheFile* file,
 
 
 const ImageSpec*
-ImageCacheImpl::imagespec(ustring filename, int subimage, int miplevel,
-                          bool native)
+ImageCacheImpl::imagespec(ustring filename, int subimage)
 {
     ImageCachePerThreadInfo* thread_info = get_perthread_info();
     ImageCacheFile* file = find_file(filename, thread_info, nullptr);
@@ -3052,15 +3052,14 @@ ImageCacheImpl::imagespec(ustring filename, int subimage, int miplevel,
         error("Image file \"{}\" not found", filename);
         return NULL;
     }
-    return imagespec(file, thread_info, subimage, miplevel, native);
+    return imagespec(file, thread_info, subimage);
 }
 
 
 
 const ImageSpec*
 ImageCacheImpl::imagespec(ImageCacheFile* file,
-                          ImageCachePerThreadInfo* thread_info, int subimage,
-                          int miplevel, bool native)
+                          ImageCachePerThreadInfo* thread_info, int subimage)
 {
     if (!file) {
         error("Image file handle was NULL");
@@ -3085,15 +3084,77 @@ ImageCacheImpl::imagespec(ImageCacheFile* file,
                   file->subimages());
         return NULL;
     }
+
+    //! force mip level to zero for now
+    //! TODO: store nativespec in SubImageInfo, and extra overrides in LevelInfo
+    constexpr int miplevel = 0;
     if (miplevel < 0 || miplevel >= file->miplevels(subimage)) {
         if (file->errors_should_issue())
             error("Unknown mip level {} (out of {})", miplevel,
                   file->miplevels(subimage));
         return NULL;
     }
-    const ImageSpec* spec = native ? &file->nativespec(subimage, miplevel)
-                                   : &file->spec(subimage, miplevel);
-    return spec;
+    return &file->nativespec(subimage, miplevel);
+}
+
+
+
+bool
+ImageCacheImpl::get_cache_dimensions(ustring filename, ImageSpec& spec,
+                                     int subimage, int miplevel)
+{
+    ImageCachePerThreadInfo* thread_info = get_perthread_info();
+    ImageCacheFile* file = find_file(filename, thread_info, nullptr);
+    if (!file) {
+        error("Image file \"{}\" not found", filename);
+        return false;
+    }
+    return get_cache_dimensions(file, thread_info, spec, subimage, miplevel);
+}
+
+
+
+bool
+ImageCacheImpl::get_cache_dimensions(ImageCacheFile* file,
+                                     ImageCachePerThreadInfo* thread_info,
+                                     ImageSpec& spec, int subimage,
+                                     int miplevel)
+{
+    if (!file) {
+        error("Image file handle was NULL");
+        return false;
+    }
+    if (!thread_info)
+        thread_info = get_perthread_info();
+    file = verify_file(file, thread_info, true);
+    if (file->broken()) {
+        if (file->errors_should_issue())
+            error("Invalid image file \"{}\": {}", file->filename(),
+                  file->broken_error_message());
+        return false;
+    }
+    if (file->is_udim()) {
+        error("Cannot retrieve ImageSpec of a UDIM-like virtual file");
+        return false;  // UDIM-like files don't have an ImageSpec
+    }
+    if (subimage < 0 || subimage >= file->subimages()) {
+        if (file->errors_should_issue())
+            error("Unknown subimage {} (out of {})", subimage,
+                  file->subimages());
+        return false;
+    }
+    if (miplevel < 0 || miplevel >= file->miplevels(subimage)) {
+        if (file->errors_should_issue())
+            error("Unknown mip level {} (out of {})", miplevel,
+                  file->miplevels(subimage));
+        return false;
+    }
+    //! copy dimensions from mip level ImageSpec
+    //! TODO: store nativespec in SubImageInfo, and extra overrides in LevelInfo
+    //! and simply copy extra overrides here
+    const ImageSpec& mipspec = file->spec(subimage, miplevel);
+    spec.copy_dimensions(mipspec);
+    return true;
 }
 
 
@@ -4215,36 +4276,50 @@ ImageCache::get_image_info(ImageHandle* file, Perthread* thread_info,
 
 
 bool
-ImageCache::get_imagespec(ustring filename, ImageSpec& spec, int subimage,
-                          int miplevel, bool native)
+ImageCache::get_imagespec(ustring filename, ImageSpec& spec, int subimage)
 {
-    return m_impl->get_imagespec(filename, spec, subimage, miplevel, native);
+    return m_impl->get_imagespec(filename, spec, subimage);
 }
 
 
 bool
 ImageCache::get_imagespec(ImageHandle* file, Perthread* thread_info,
-                          ImageSpec& spec, int subimage, int miplevel,
-                          bool native)
+                          ImageSpec& spec, int subimage)
 {
-    return m_impl->get_imagespec(file, thread_info, spec, subimage, miplevel,
-                                 native);
+    return m_impl->get_imagespec(file, thread_info, spec, subimage);
 }
 
 
 
 const ImageSpec*
-ImageCache::imagespec(ustring filename, int subimage, int miplevel, bool native)
+ImageCache::imagespec(ustring filename, int subimage)
 {
-    return m_impl->imagespec(filename, subimage, miplevel, native);
+    return m_impl->imagespec(filename, subimage);
 }
 
 
 const ImageSpec*
-ImageCache::imagespec(ImageHandle* file, Perthread* thread_info, int subimage,
-                      int miplevel, bool native)
+ImageCache::imagespec(ImageHandle* file, Perthread* thread_info, int subimage)
 {
-    return m_impl->imagespec(file, thread_info, subimage, miplevel, native);
+    return m_impl->imagespec(file, thread_info, subimage);
+}
+
+
+
+bool
+ImageCache::get_cache_dimensions(ustring filename, ImageSpec& spec,
+                                 int subimage, int miplevel)
+{
+    return m_impl->get_cache_dimensions(filename, spec, subimage, miplevel);
+}
+
+
+bool
+ImageCache::get_cache_dimensions(ImageHandle* file, Perthread* thread_info,
+                                 ImageSpec& spec, int subimage, int miplevel)
+{
+    return m_impl->get_cache_dimensions(file, thread_info, spec, subimage,
+                                        miplevel);
 }
 
 

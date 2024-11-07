@@ -732,7 +732,6 @@ Section :ref:`sec-ImageSpec`, is replicated for Python.
         spec.set_colorspace ("sRGB")
 
 
-
 .. py:method:: ImageSpec.undefined ()
 
     Returns `True` for a newly initialized (undefined) ImageSpec.
@@ -2696,6 +2695,26 @@ Image transformations and data movement
 
 
 
+.. py:method:: ImageBuf ImageBufAlgo.st_warp (src, M, filtername="", filtersize=0.0, wrap="default", recompute_roi=False, roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.st_warp (dst, src, M, filtername="", filtersize=0.0, wrap="default", recompute_roi=False, roi=ROI.All, nthreads=0)
+
+    Compute a warped (transformed) copy of `src`, with the warp specified by
+    `M` consisting of 9 floating-point numbers representing a 3x3
+    transformation matrix.  If the filter and size are not specified, an
+    appropriate default will be chosen.
+
+    Example:
+
+    .. code-block:: python
+
+        # distortion_st.tif is a map where every pixel value contains the 2D
+        # coordinate of where to copy from.
+        Distort = ImageBuf("distortion_st.tif")
+        Src = ImageBuf("tahoe.exr")
+        Dst = ImageBufAlgo.st_warp(Src, Distort)
+
+
+
 .. py:method:: ImageBuf ImageBufAlgo.resize (src, filtername="", filtersize=0.0, roi=ROI.All, nthreads=0)
                bool ImageBufAlgo.resize (dst, src, filtername="", filtersize=0.0, roi=ROI.All, nthreads=0)
 
@@ -3863,6 +3882,53 @@ details.
     .. code-block:: python
 
         formats = oiio.get_string_attribute ("format_list")
+
+
+.. py:method:: set_colorspace (spec, name)
+
+    Set the metadata of the `spec` to presume that color space is `name` (or
+    to assume nothing about the color space if `name` is empty).
+
+    Example:
+
+    .. code-block:: python
+
+        spec = oiio.ImageSpec()
+        oiio.set_colorspace (spec, "lin_rec709")
+
+    This function was added in OpenImageIO 3.0.
+
+
+.. py:method:: set_colorspace_rec709_gamma (spec, name)
+
+    Set the metadata of the `spec` to reflect Rec709 color primaries and the
+    given gamma.
+
+    Example:
+
+    .. code-block:: python
+
+        spec = oiio.ImageSpec()
+        oiio.set_colorspace_rec709_gamma (spec, 2.2)
+
+    This function was added in OpenImageIO 3.0.
+
+
+.. py:method:: equivalent_colorspace (a, b)
+
+    Return `True` if the color spaces `a` and `b` are equivalent in the
+    default active color config.
+
+    Example:
+
+    .. code-block:: python
+
+        # ib is an ImageBuf
+        cs = ib.spec().get_string_attribute("oiio:ColorSpace")
+        if oiio.equivalent_colorspace(cs, "sRGB") :
+            print ("The image is sRGB")
+
+    This function was added in OpenImageIO 3.0.
 
 
 .. py:method:: is_imageio_format_name (name)

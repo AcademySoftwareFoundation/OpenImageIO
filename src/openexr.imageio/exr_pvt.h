@@ -44,20 +44,17 @@ static bool exrdebug = Strutil::stoi(Sysutil::getenv("OIIO_DEBUG_OPENEXR"))
 #endif
 
 
+namespace pvt {
+
 // Split a full channel name into layer and suffix.
-inline void
-split_name(string_view fullname, string_view& layer, string_view& suffix)
-{
-    size_t dot = fullname.find_last_of('.');
-    if (dot == string_view::npos) {
-        suffix = fullname;
-        layer  = string_view();
-    } else {
-        layer  = string_view(fullname.data(), dot + 1);
-        suffix = string_view(fullname.data() + dot + 1,
-                             fullname.size() - dot - 1);
-    }
-}
+void
+split_name(string_view fullname, string_view& layer, string_view& suffix);
+
+// Do the channels appear to be R, G, B (or known common aliases)?
+bool
+channels_are_rgb(const ImageSpec& spec);
+
+}  // namespace pvt
 
 
 

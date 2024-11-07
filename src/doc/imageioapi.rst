@@ -51,20 +51,19 @@ in the outer OpenImageIO scope:
     TypeFloat2 TypeVector2 TypeVector2i TypeVector3i TypeFloat4
     TypeString TypeTimeCode TypeKeyCode
     TypeBox2 TypeBox2i TypeBox3 TypeBox3i
-    TypeRational TypePointer
+    TypeRational TypePointer TypeUstringhash
 
 The only types commonly used to store *pixel values* in image files
-are scalars of ``UINT8``, ``UINT16``, `float`, and ``half``
-(the last only used by OpenEXR, to the best of our knowledge).
+are scalars of ``UINT8``, ``UINT16``, `float`, and ``half``.
 
-Note that the `TypeDesc` (which is also used for applications other
-than images) can describe many types not used by
-OpenImageIO.  Please ignore this extra complexity; only the above simple types are understood by
-OpenImageIO as pixel storage data types, though a few others, including
-`string` and ``MATRIX44`` aggregates, are occasionally used for
-*metadata* for certain image file formats (see
-Sections :ref:`sec-imageoutput-metadata`, :ref:`sec-imageinput-metadata`,
-and the documentation of individual ImageIO plugins for details).
+Note that the `TypeDesc` (which is also used for applications other than
+images) can describe many types not used by OpenImageIO.  Please ignore this
+extra complexity; only the above simple types are understood by OpenImageIO as
+pixel storage data types, though a few others, including `string` and
+``MATRIX44`` aggregates, are occasionally used for *metadata* for certain
+image file formats (see Sections :ref:`sec-imageoutput-metadata`,
+:ref:`sec-imageinput-metadata`, and the documentation of individual ImageIO
+plugins for details).
 
 
 
@@ -286,6 +285,12 @@ just exist in the OIIO namespace as general utilities. (See
 
 .. doxygenfunction:: get_extension_map
 
+.. doxygenfunction:: OIIO::set_colorspace
+
+.. doxygenfunction:: OIIO::set_colorspace_rec709_gamma
+
+.. doxygenfunction:: OIIO::equivalent_colorspace
+
 |
 
  .. _sec-startupshutdown:
@@ -307,13 +312,13 @@ There are a few special environment variables that can be used to control
 OpenImageIO at times that it is not convenient to set options individually from
 inside the source code.
 
-``OPENIMAGEIO_FONTS``
+.. cpp:var:: OPENIMAGEIO_FONTS
 
     A searchpath for finding fonts (for example, when using by
     `ImageBufAlgo::render_text` or `oiiotool --text`). This may contain a
     list of directories separated by ":" or ";".
 
-``OPENIMAGEIO_OPTIONS``
+.. cpp:var:: OPENIMAGEIO_OPTIONS
 
     Allows you to seed the global OpenImageIO-wide options.
 
@@ -326,7 +331,7 @@ inside the source code.
 
         OIIO::attribute ("options", value);
 
-``OPENIMAGEIO_IMAGECACHE_OPTIONS``
+.. cpp:var:: OPENIMAGEIO_IMAGECACHE_OPTIONS
 
     Allows you to seed the options for any ImageCache created.
 
@@ -340,7 +345,7 @@ inside the source code.
         imagecache->attribute ("options", value);
 
 
-``OPENIMAGEIO_PLUGIN_PATH``
+.. cpp:var:: OPENIMAGEIO_PLUGIN_PATH
 
     A colon-separated list of directories to search for OpenImageIO plugins
     (dynamicaly loadable libraries that implement image format readers
@@ -350,7 +355,7 @@ inside the source code.
     ``OIIO_LIBRARY_PATH`` is still supported, but deprecated.
 
 
-``OPENIMAGEIO_TEXTURE_OPTIONS``
+.. cpp:var:: OPENIMAGEIO_TEXTURE_OPTIONS
 
     Allows you to seed the options for any TextureSystem created.
 
@@ -363,14 +368,15 @@ inside the source code.
 
         texturesys->attribute ("options", value);
 
-``OPENIMAGEIO_THREADS``, ``CUE_THREADS``
+.. cpp:var:: OPENIMAGEIO_THREADS
+             CUE_THREADS
 
     Either of these sets the default number of threads that OpenImageIO will
     use for its thread pool. If both are set, ``OPENIMAGEIO_THREADS`` will
     take precedence. If neither is set, the default will be 0, which means
     to use as many threads as there are physical cores on the machine.
 
-``OPENIMAGEIO_METADATA_HISTORY``
+.. cpp:var:: OPENIMAGEIO_METADATA_HISTORY
 
     If set to a nonzero integer value, `oiiotool` and `maketx` will by default
     write the command line into the ImageHistory and Software metadata fields of any

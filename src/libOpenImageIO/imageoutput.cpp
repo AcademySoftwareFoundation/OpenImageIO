@@ -177,8 +177,13 @@ ImageOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
                     ok &= write_tile(x, y, z, format, tilestart, xstride,
                                      ystride, zstride);
                 } else {
-                    if (!buf.get())
-                        buf.reset(new char[pixelsize * m_spec.tile_pixels()]);
+                    if (!buf.get()) {
+                        const size_t sz = pixelsize * m_spec.tile_pixels();
+                        buf.reset(new char[sz]);
+                        // Not all pixels will be initialized, so we set them to zero here.
+                        // This will avoid generation of NaN, FPEs and valgrind errors.
+                        memset(buf.get(), 0, sz);
+                    }
                     OIIO::copy_image(m_spec.nchannels, xw, yh, zd, tilestart,
                                      pixelsize, xstride, ystride, zstride,
                                      &buf[0], pixelsize,
@@ -482,6 +487,7 @@ ImageOutput::write_image(TypeDesc format, const void* data, stride_t xstride,
                          ProgressCallback progress_callback,
                          void* progress_callback_data)
 {
+    pvt::LoggedTimer("ImageOutput::write image");
     bool native          = (format == TypeDesc::UNKNOWN);
     stride_t pixel_bytes = native ? (stride_t)m_spec.pixel_bytes(native)
                                   : format.size() * m_spec.nchannels;

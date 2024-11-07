@@ -453,6 +453,12 @@ RawInput::open_raw(bool unpack, const std::string& name,
     // Output 16 bit images
     m_processor->imgdata.params.output_bps = 16;
 
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0)
+    // Exposing max_raw_memory_mb setting. Default max is 2048.
+    m_processor->imgdata.rawparams.max_raw_memory_mb
+        = config.get_int_attribute("raw:max_raw_memory_mb", 2048);
+#endif
+
     // Disable exposure correction (unless config "raw:auto_bright" == 1)
     m_processor->imgdata.params.no_auto_bright
         = !config.get_int_attribute("raw:auto_bright", 0);
@@ -565,11 +571,14 @@ RawInput::open_raw(bool unpack, const std::string& name,
         m_processor->imgdata.params.gamm[0]      = 1.0 / 2.4;
         m_processor->imgdata.params.gamm[1]      = 12.92;
     } else if (Strutil::iequals(cs, "sRGB-linear")
+               || Strutil::iequals(cs, "lin_srgb")
+               || Strutil::iequals(cs, "lin_rec709")
                || Strutil::iequals(cs, "linear") /* DEPRECATED */) {
         // Request "sRGB" primaries, linear response
         m_processor->imgdata.params.output_color = 1;
         m_processor->imgdata.params.gamm[0]      = 1.0;
         m_processor->imgdata.params.gamm[1]      = 1.0;
+        cs                                       = "lin_rec709";
     } else if (Strutil::iequals(cs, "Adobe")) {
         // Request Adobe color space with 2.2 gamma (no linear toe)
         m_processor->imgdata.params.output_color = 2;
@@ -608,7 +617,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
 #endif
     } else if (Strutil::iequals(cs, "Rec2020")) {
 #if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0)
-        // ACES linear
+        // Rec2020
         m_processor->imgdata.params.output_color = 8;
         m_processor->imgdata.params.gamm[0]      = 1.0;
         m_processor->imgdata.params.gamm[1]      = 1.0;
@@ -621,7 +630,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
         errorfmt("raw:ColorSpace set to unknown value \"{}\"", cs);
         return false;
     }
-    m_spec.attribute("oiio:ColorSpace", cs);
+    m_spec.set_colorspace(cs);
 
     // Exposure adjustment
     float exposure = config.get_float_attribute("raw:Exposure", -1.0f);
@@ -707,7 +716,9 @@ RawInput::open_raw(bool unpack, const std::string& name,
             crop_top    = p->get_int_indexed(1);
             crop_width  = p->get_int_indexed(2);
             crop_height = p->get_int_indexed(3);
-        } else if (m_processor->imgdata.sizes.raw_inset_crops[0].cwidth != 0) {
+        }
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0)
+        else if (m_processor->imgdata.sizes.raw_inset_crops[0].cwidth != 0) {
             crop_left   = m_processor->imgdata.sizes.raw_inset_crops[0].cleft;
             crop_top    = m_processor->imgdata.sizes.raw_inset_crops[0].ctop;
             crop_width  = m_processor->imgdata.sizes.raw_inset_crops[0].cwidth;
@@ -715,7 +726,16 @@ RawInput::open_raw(bool unpack, const std::string& name,
             left_margin = m_processor->imgdata.sizes.left_margin;
             top_margin  = m_processor->imgdata.sizes.top_margin;
         }
-
+#else
+        else if (m_processor->imgdata.sizes.raw_inset_crop.cwidth != 0) {
+            crop_left   = m_processor->imgdata.sizes.raw_inset_crop.cleft;
+            crop_top    = m_processor->imgdata.sizes.raw_inset_crop.ctop;
+            crop_width  = m_processor->imgdata.sizes.raw_inset_crop.cwidth;
+            crop_height = m_processor->imgdata.sizes.raw_inset_crop.cheight;
+            left_margin = m_processor->imgdata.sizes.left_margin;
+            top_margin  = m_processor->imgdata.sizes.top_margin;
+        }
+#endif
         if (crop_width > 0 && crop_height > 0) {
             ushort image_width  = m_processor->imgdata.sizes.width;
             ushort image_height = m_processor->imgdata.sizes.height;
@@ -1515,6 +1535,13 @@ RawInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
 
     if (!m_process) {
         // The user has selected not to apply any debayering.
+
+        if (m_processor->imgdata.rawdata.raw_image == nullptr) {
+            errorfmt(
+                "Raw undebayered data is not available for this file \"{}\"",
+                m_filename);
+            return false;
+        }
 
         // The raw_image buffer might contain junk pixels that are usually trimmed off
         // we must index into the raw buffer, taking these into account

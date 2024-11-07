@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/Academ SoftwareFoundation/OpenImageIO
 
-set_cache (libjpeg-turbo_BUILD_VERSION 3.0.3 "libjpeg-turbo version for local builds")
+set_cache (libjpeg-turbo_BUILD_VERSION 3.0.4 "libjpeg-turbo version for local builds")
 set (libjpeg-turbo_GIT_REPOSITORY "https://github.com/libjpeg-turbo/libjpeg-turbo")
 set (libjpeg-turbo_GIT_TAG "${libjpeg-turbo_BUILD_VERSION}")
 set_cache (libjpeg-turbo_BUILD_SHARED_LIBS OFF #${LOCAL_BUILD_SHARED_LIBS_DEFAULT}

@@ -330,7 +330,7 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
     m_spec.full_height = m_image->y1;
 
     m_spec.attribute("oiio:BitsPerSample", maxPrecision);
-    m_spec.attribute("oiio:ColorSpace", "sRGB");
+    m_spec.set_colorspace("sRGB");
 
     if (m_image->icc_profile_len && m_image->icc_profile_buf) {
         m_spec.attribute("ICCProfile",

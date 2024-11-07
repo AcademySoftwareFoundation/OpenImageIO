@@ -354,7 +354,7 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf& dst, cspan<const ImageBuf*> srcs,
                       KWArgs options, ImageSpec* force_spec)
 {
     // OIIO_ASSERT(dst);
-    // Helper: ANY_SRC returns true if any of the source images s satisfy the
+    // Helper: ANY_SRC returns true if any of the source images satisfy the
     // condition cond.
 #define ANY_SRC(cond)                     \
     std::any_of(srcs.begin(), srcs.end(), \
@@ -923,7 +923,7 @@ ImageBufAlgo::make_kernel(string_view name, float width, float height,
     } else if (Strutil::iequals(name, "laplacian") && w == 3 && h == 3
                && d == 1) {
         const float vals[9] = { 0, 1, 0, 1, -4, 1, 0, 1, 0 };
-        dst.set_pixels(dst.roi(), TypeDesc::FLOAT, vals, sizeof(float),
+        dst.set_pixels(dst.roi(), make_cspan(vals), sizeof(float),
                        h * sizeof(float));
         normalize = false;  // sums to zero, so don't normalize it */
     } else {

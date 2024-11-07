@@ -177,7 +177,7 @@ ImageBufAlgo::deepen(ImageBuf& dst, const ImageBuf& src, float zvalue, ROI roi,
         return false;
     }
 
-    float* pixel = OIIO_ALLOCA(float, nc);
+    span<float> pixel = OIIO_ALLOCA_SPAN(float, nc);
 
     // First, figure out which pixels get a sample and which do not
     for (int z = roi.zbegin; z < roi.zend; ++z)

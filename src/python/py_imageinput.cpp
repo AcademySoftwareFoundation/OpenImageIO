@@ -321,32 +321,9 @@ declare_imageinput(py::module& m)
         .def("read_native_deep_scanlines",
              &ImageInput_read_native_deep_scanlines, "subimage"_a, "miplevel"_a,
              "ybegin"_a, "yend"_a, "z"_a, "chbegin"_a, "chend"_a)
-        .def(
-            "read_native_deep_scanlines",  // DEPRECATED(1.9), keep for back compatibility
-            [](ImageInput& self, int ybegin, int yend, int z, int chbegin,
-               int chend) {
-                int subimage = self.current_subimage();
-                int miplevel = self.current_miplevel();
-                return ImageInput_read_native_deep_scanlines(self, subimage,
-                                                             miplevel, ybegin,
-                                                             yend, z, chbegin,
-                                                             chend);
-            },
-            "ybegin"_a, "yend"_a, "z"_a, "chbegin"_a, "chend"_a)
         .def("read_native_deep_tiles", &ImageInput_read_native_deep_tiles,
              "subimage"_a, "miplevel"_a, "xbegin"_a, "xend"_a, "ybegin"_a,
              "yend"_a, "zbegin"_a, "zend"_a, "chbegin"_a, "chend"_a)
-        .def(
-            "read_native_deep_tiles",  // DEPRECATED(1.9), keep for back compatibility
-            [](ImageInput& self, int xbegin, int xend, int ybegin, int yend,
-               int zbegin, int zend, int chbegin, int chend) {
-                return ImageInput_read_native_deep_tiles(self, 0, 0, xbegin,
-                                                         xend, ybegin, yend,
-                                                         zbegin, zend, chbegin,
-                                                         chend);
-            },
-            "xbegin"_a, "xend"_a, "ybegin"_a, "yend"_a, "zbegin"_a, "zend"_a,
-            "chbegin"_a, "chend"_a)
         .def("read_native_deep_image", &ImageInput_read_native_deep_image,
              "subimage"_a = 0, "miplevel"_a = 0)
         .def(

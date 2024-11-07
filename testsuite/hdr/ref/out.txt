@@ -2,7 +2,7 @@ Reading MtTamWest.hdr
 MtTamWest.hdr        : 1214 x  732, 3 channel, float hdr
     channel list: R, G, B
     Orientation: 1 (normal)
-    oiio:ColorSpace: "lin_srgb"
+    oiio:ColorSpace: "lin_rec709"
     Stats Min: 0.000183 0.000240 0.000000 (float)
     Stats Max: 3.875000 3.875000 4.875000 (float)
     Stats Avg: 0.220837 0.352995 0.493945 (float)

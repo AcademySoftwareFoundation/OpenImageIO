@@ -116,7 +116,7 @@ public:
     /// color space correction when indicated.
     void pixel_transform(bool srgb_to_linear, int color_mode, int channel);
 
-    bool get_pixels(ROI roi, TypeDesc format, void* result)
+    bool get_pixels(ROI roi, TypeDesc format, span<std::byte> result)
     {
         if (m_corrected_image.localpixels())
             return m_corrected_image.get_pixels(roi, format, result);
@@ -223,6 +223,11 @@ public:
         return showPixelviewWindowAct && showPixelviewWindowAct->isChecked();
     }
 
+    bool windowguidesOn(void) const
+    {
+        return toggleWindowGuidesAct && toggleWindowGuidesAct->isChecked();
+    }
+
     bool pixelviewFollowsMouse(void) const
     {
         return pixelviewFollowsMouseBox
@@ -268,11 +273,12 @@ private slots:
     /// change the zoom, even to fit on screen. If minsize is true, do not
     /// resize smaller than default_width x default_height.
     void fitWindowToImage(bool zoomok = true, bool minsize = false);
-    void fullScreenToggle();           ///< Toggle full screen mode
-    void about();                      ///< Show "about iv" dialog
-    void prevImage();                  ///< View previous image in sequence
-    void nextImage();                  ///< View next image in sequence
-    void toggleImage();                ///< View most recently viewed image
+    void fullScreenToggle();    ///< Toggle full screen mode
+    void about();               ///< Show "about iv" dialog
+    void prevImage();           ///< View previous image in sequence
+    void nextImage();           ///< View next image in sequence
+    void toggleImage();         ///< View most recently viewed image
+    void toggleWindowGuides();  ///< Toggle data and display window overlay
     void exposureMinusOneTenthStop();  ///< Decrease exposure 1/10 stop
     void exposureMinusOneHalfStop();   ///< Decrease exposure 1/2 stop
     void exposurePlusOneTenthStop();   ///< Increase exposure 1/10 stop
@@ -374,6 +380,7 @@ private:
     QAction* showInfoWindowAct;
     QAction* editPreferencesAct;
     QAction* showPixelviewWindowAct;
+    QAction* toggleWindowGuidesAct;
     QMenu *fileMenu, *editMenu, /**imageMenu,*/ *viewMenu, *toolsMenu,
         *helpMenu;
     QMenu* openRecentMenu;

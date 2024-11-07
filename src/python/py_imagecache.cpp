@@ -120,14 +120,23 @@ declare_imagecache(py::module& m)
         .def(
             "get_imagespec",
             [](const ImageCacheWrap& ic, const std::string& filename,
-               int subimage, int miplevel, bool native) {
+               int subimage) {
                 ImageSpec spec;
-                ic.m_cache->get_imagespec(ustring(filename), spec, subimage,
-                                          miplevel, native);
+                ic.m_cache->get_imagespec(ustring(filename), spec, subimage);
                 return spec;
             },
-            "filename"_a, "subimage"_a = 0, "miplevel"_a = 0,
-            "native"_a = false)
+            "filename"_a, "subimage"_a = 0)
+        .def(
+            "get_cache_dimensions",
+            [](const ImageCacheWrap& ic, const std::string& filename,
+               int subimage, int miplevel) {
+                ImageSpec spec;
+                ic.m_cache->get_imagespec(ustring(filename), spec, subimage);
+                ic.m_cache->get_cache_dimensions(ustring(filename), spec,
+                                                 subimage, miplevel);
+                return spec;
+            },
+            "filename"_a, "subimage"_a = 0, "miplevel"_a = 0)
         // .def("get_thumbnail", &ImageCacheWrap::get_thumbnail,
         //      "subimage"_a=0)
         .def("get_pixels", &ImageCacheWrap::get_pixels, "filename"_a,

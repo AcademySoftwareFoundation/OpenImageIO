@@ -826,7 +826,7 @@ simplePixelHashSHA1(const ImageBuf& src, string_view extrainfo, ROI roi)
     // Do it a few scanlines at a time
     int chunk = std::max(1, int(16 * 1024 * 1024 / scanline_bytes));
 
-    std::vector<unsigned char> tmp;
+    std::vector<std::byte> tmp;
     if (!localpixels)
         tmp.resize(chunk * scanline_bytes);
 
@@ -839,7 +839,7 @@ simplePixelHashSHA1(const ImageBuf& src, string_view extrainfo, ROI roi)
                            size_t(scanline_bytes * (y1 - y)));
             } else {
                 src.get_pixels(ROI(roi.xbegin, roi.xend, y, y1, z, z + 1),
-                               src.spec().format, &tmp[0]);
+                               src.spec().format, tmp);
                 sha.append(&tmp[0], size_t(scanline_bytes) * (y1 - y));
             }
         }

@@ -9,7 +9,7 @@ increasingY-resize.exr : 4080 x 3072, 3 channel, half openexr
     screenWindowWidth: 1
     XResolution: 72
     YResolution: 72
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
 Reading increasingY-copy.exr
 increasingY-copy.exr : 4080 x 3072, 3 channel, half openexr
@@ -22,7 +22,7 @@ increasingY-copy.exr : 4080 x 3072, 3 channel, half openexr
     screenWindowWidth: 1
     XResolution: 72
     YResolution: 72
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
 Reading decreasingY-resize.exr
 decreasingY-resize.exr : 4080 x 3072, 3 channel, half openexr
@@ -35,7 +35,7 @@ decreasingY-resize.exr : 4080 x 3072, 3 channel, half openexr
     screenWindowWidth: 1
     XResolution: 72
     YResolution: 72
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
 Reading decreasingY-copy.exr
 decreasingY-copy.exr : 4080 x 3072, 3 channel, half openexr
@@ -48,7 +48,7 @@ decreasingY-copy.exr : 4080 x 3072, 3 channel, half openexr
     screenWindowWidth: 1
     XResolution: 72
     YResolution: 72
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
 Comparing "increasingY-copy.exr" and "decreasingY-copy.exr"
 PASS

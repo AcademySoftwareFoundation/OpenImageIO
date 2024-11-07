@@ -386,6 +386,12 @@ ImageViewer::createActions()
     //    toggleImageAct->setEnabled(true);
     connect(toggleImageAct, SIGNAL(triggered()), this, SLOT(toggleImage()));
 
+    toggleWindowGuidesAct
+        = new QAction(tr("Show display and data window borders"), this);
+    toggleWindowGuidesAct->setCheckable(true);
+    connect(toggleWindowGuidesAct, SIGNAL(triggered()), this,
+            SLOT(toggleWindowGuides()));
+
     slideShowAct = new QAction(tr("Start Slide Show"), this);
     connect(slideShowAct, SIGNAL(triggered()), this, SLOT(slideShow()));
 
@@ -674,6 +680,7 @@ ImageViewer::createMenus()
     viewMenu->addAction(prevImageAct);
     viewMenu->addAction(nextImageAct);
     viewMenu->addAction(toggleImageAct);
+    viewMenu->addAction(toggleWindowGuidesAct);
     viewMenu->addSeparator();
     viewMenu->addAction(zoomInAct);
     viewMenu->addAction(zoomOutAct);
@@ -1345,6 +1352,14 @@ void
 ImageViewer::toggleImage()
 {
     current_image(m_last_image);
+}
+
+
+
+void
+ImageViewer::toggleWindowGuides()
+{
+    ((QOpenGLWidget*)(glwin))->update();
 }
 
 

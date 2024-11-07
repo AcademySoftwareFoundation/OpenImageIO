@@ -4,7 +4,7 @@
   <img src="ASWF/logos/openimageio-horizontal-gradient.png">
 </p>
 
-[![License](https://img.shields.io/badge/license-Apache2.0-blue.svg?style=flat-square)](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/master/LICENSE.md)
+[![License](https://img.shields.io/badge/license-Apache2.0-blue.svg?style=flat-square)](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/LICENSE.md)
 [![CI](https://github.com/AcademySoftwareFoundation/OpenImageIO/actions/workflows/ci.yml/badge.svg)](https://github.com/AcademySoftwareFoundation/OpenImageIO/actions/workflows/ci.yml)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2694/badge)](https://bestpractices.coreinfrastructure.org/projects/2694)
 [![latest packaged version(s)](https://repology.org/badge/latest-versions/openimageio.svg)](https://repology.org/project/openimageio/versions)
@@ -96,7 +96,7 @@ decisions, etc. Please be aware of our [Code of Conduct](CODE_OF_CONDUCT.md).
 💁 User Documentation
 ---------------------
 
-[OpenImageIO Documentation on ReadTheDocs](https://openimageio.readthedocs.io/)
+[OpenImageIO Documentation](https://docs.openimageio.org)
 is the best place to start if you are interested in how to use OpenImageIO,
 its APIs, its component programs (once they are built). There is also a [PDF
 version](https://readthedocs.org/projects/openimageio/downloads/pdf/latest/).
@@ -140,10 +140,10 @@ pull request (PR) mechanism.
 * [ROADMAP](docs/ROADMAP.md) is a high-level overview of the current
   development priorities for the next annual release, expected in September,
   2024.
-* [RELEASING](RELEASING.md) explains our policies and procedures for making
-  releases. We have a major, possibly-compatibility-breaking, release annually
-  in September/October, and minor bug fix and safe feature addition release at
-  the beginning of every month.
+* [RELEASING](docs/dev/RELEASING.md) explains our policies and procedures for
+  making releases. We have a major, possibly-compatibility-breaking, release
+  annually in September/October, and minor bug fix and safe feature addition
+  release at the beginning of every month.
 * [Building the docs](src/doc/Building_the_docs.md) has instructions for
   building the documentation locally, which may be helpful if you are editing
   the documentation in nontrivial ways and want to preview the appearance.

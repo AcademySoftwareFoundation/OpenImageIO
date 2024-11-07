@@ -8,6 +8,10 @@
 
 #include <iostream>
 
+#if defined(__linux__)
+#    include <fenv.h>  // For feenableexcept()
+#endif
+
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/filesystem.h>
@@ -21,6 +25,7 @@ using namespace OIIO;
 
 static std::string onlyformat = Sysutil::getenv("IMAGEINOUTTEST_ONLY_FORMAT");
 static bool nodelete          = false;  // Don't delete the test files
+static bool enable_fpe        = false;  // Throw exceptions on FP errors.
 
 
 
@@ -35,6 +40,8 @@ getargs(int argc, char* argv[])
 
     ap.arg("--no-delete", &nodelete)
       .help("Don't delete temporary test files");
+    ap.arg("--enable-fpe", &enable_fpe)
+      .help("Enable floating point exceptions.");
     ap.arg("--onlyformat %s:FORMAT", &onlyformat)
       .help("Test only one format");
 
@@ -528,6 +535,17 @@ int
 main(int argc, char* argv[])
 {
     getargs(argc, argv);
+
+    if (enable_fpe) {
+#if defined(__linux__)
+        fprintf(stderr, "Enable floating point exceptions.\n");
+        feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+#else
+        fprintf(
+            stderr,
+            "Warning - floating point exceptions not yet implemented for this platorm.\n");
+#endif
+    }
 
     test_all_formats();
     test_read_tricky_sizes();

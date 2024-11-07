@@ -382,8 +382,8 @@ private:
     static void cmyk_to_rgb(int n, cspan<T> cmyk, size_t cmyk_stride,
                             span<T> rgb, size_t rgb_stride)
     {
-        DASSERT(size_t(n) * cmyk_stride <= std::size(cmyk));
-        DASSERT(size_t(n) * rgb_stride <= std::size(rgb));
+        OIIO_DASSERT(size_t(n) * cmyk_stride <= std::size(cmyk));
+        OIIO_DASSERT(size_t(n) * rgb_stride <= std::size(rgb));
         for (int i = 0; i < n; ++i) {
             float C = convert_type<T, float>(cmyk[i * cmyk_stride + 0]);
             float M = convert_type<T, float>(cmyk[i * cmyk_stride + 1]);

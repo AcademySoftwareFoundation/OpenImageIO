@@ -1,0 +1,30 @@
+getNumColorSpaces = 23
+getColorSpaceNames = ['sRGB - Display', 'Display P3 - Display', 'Rec.1886 Rec.709 - Display', 'Rec.2100-PQ - Display', 'ST2084-P3-D65 - Display', 'P3-D65 - Display', 'ACES2065-1', 'ACEScc', 'ACEScct', 'ACEScg', 'sRGB Encoded Rec.709 (sRGB)', 'Gamma 1.8 Encoded Rec.709', 'Gamma 2.2 Encoded Rec.709', 'Gamma 2.4 Encoded Rec.709', 'sRGB Encoded P3-D65', 'Gamma 2.2 Encoded AdobeRGB', 'sRGB Encoded AP1', 'Gamma 2.2 Encoded AP1', 'Linear Rec.709 (sRGB)', 'Linear P3-D65', 'Linear AdobeRGB', 'Linear Rec.2020', 'Raw']
+Index of 'lin_srgb' = 18
+Index of 'unknown' = -1
+Name of color space 2 = Rec.1886 Rec.709 - Display
+getNumLooks = 1
+getLookNames = ['ACES 1.3 Reference Gamut Compression']
+getNumDisplays = 6
+getDisplayNames = ['sRGB - Display', 'Display P3 - Display', 'Rec.1886 Rec.709 - Display', 'Rec.2100-PQ - Display', 'ST2084-P3-D65 - Display', 'P3-D65 - Display']
+getDefaultDisplayName = sRGB - Display
+getNumViews = 3
+getViewNames = ['ACES 1.0 - SDR Video', 'Un-tone-mapped', 'Raw']
+getDefaultViewName = ACES 1.0 - SDR Video
+getNumRoles = 9
+getRoles = ['aces_interchange', 'cie_xyz_d65_interchange', 'color_picking', 'color_timing', 'compositing_log', 'data', 'matte_paint', 'scene_linear', 'texture_paint']
+aliases of 'scene_linear' are ['ACES - ACEScg', 'lin_ap1', 'lin_ap1_scene']
+resolve('foo'): foo
+resolve('linear'): Linear Rec.709 (sRGB)
+resolve('scene_linear'): ACEScg
+resolve('lin_srgb'): Linear Rec.709 (sRGB)
+resolve('srgb'): sRGB Encoded Rec.709 (sRGB)
+resolve('ACEScg'): ACEScg
+equivalent('lin_srgb', 'srgb'): False
+equivalent('scene_linear', 'srgb'): False
+equivalent('linear', 'lin_srgb'): False
+equivalent('scene_linear', 'lin_srgb'): False
+equivalent('ACEScg', 'scene_linear'): True
+equivalent('lnf', 'scene_linear'): False
+
+Done.

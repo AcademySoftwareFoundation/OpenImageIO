@@ -7,6 +7,7 @@
 #include <limits>
 #include <set>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <OpenImageIO/half.h>
 
@@ -732,18 +733,20 @@ static std::vector<std::string> all_font_files;
 static std::vector<std::string> all_fonts;
 static std::unordered_map<std::string, std::string> font_file_map;
 static std::mutex font_search_mutex;
-static bool fonts_are_enumerated = false;
-static const char* font_dir_prefix_envvars[]
-    = { "OPENIMAGEIO_FONTS", "HOME", "SystemRoot", "OpenImageIO_ROOT" };
-static const char* font_dir_prefixes[]
-    = { "/Library/Fonts", "/System/Library/Fonts",
-        "C:/Windows",     "/usr",
-        "/usr/local",     "/opt/local" };
+static bool fonts_are_enumerated      = false;
+static const char* font_dir_envvars[] = { "OPENIMAGEIO_FONTS",
+                                          "OpenImageIO_ROOT" };
 static const char* font_dir_suffixes[]
     = { "fonts",       "Fonts",       "Library/Fonts",
         "share/fonts", "share/Fonts", "share/fonts/OpenImageIO" };
 // static const char* font_extensions[]   = { "", ".ttf", ".ttc", ".pfa", ".pfb" };
 
+// list of available font families
+static std::vector<std::string> s_font_families;
+// available font styles per families
+static std::unordered_map<std::string, std::vector<std::string>> s_font_styles;
+// font filenames per family and style (e.g. "Arial Italic")
+static std::unordered_map<std::string, std::string> s_font_filename_per_family;
 
 
 // Add one dir to font_search_dirs, if the dir exists.
@@ -799,10 +802,33 @@ enumerate_fonts()
     // Find all the existing dirs from the font search path to populate
     // font_search_dirs.
     fontpath_add_from_searchpath(pvt::font_searchpath);
-    for (auto s : font_dir_prefix_envvars)
+    // Find all the existing dirs from specific environment variables.
+    for (auto s : font_dir_envvars)
         fontpath_add_from_searchpath(Sysutil::getenv(s));
-    for (auto s : font_dir_prefixes)
-        fontpath_add_from_dir(s);
+
+        // Add system font directories
+#ifdef _WIN32
+    fontpath_add_one_dir(std::string(Sysutil::getenv("SystemRoot")) + "/Fonts");
+    fontpath_add_one_dir(std::string(Sysutil::getenv("LOCALAPPDATA"))
+                         + "/Microsoft/Windows/Fonts");
+#endif
+#ifdef __APPLE__
+    fontpath_add_one_dir("/Library/Fonts");
+    fontpath_add_one_dir("/System/Library/Fonts");
+    fontpath_add_one_dir("/System/Library/Fonts/Supplemental");
+    fontpath_add_one_dir(std::string(Sysutil::getenv("HOME"))
+                         + "/Library/Fonts");
+#endif
+#ifdef __linux__
+    fontpath_add_one_dir("/usr/share/fonts", 1);
+    fontpath_add_one_dir("/usr/local/share/fonts", 1);
+    fontpath_add_one_dir(std::string(Sysutil::getenv("HOME")) + "/.fonts", 1);
+    fontpath_add_one_dir(std::string(Sysutil::getenv("HOME"))
+                             + "/.local/share/fonts",
+                         1);
+#endif
+    // Find font directories one level up from the place
+    // where the currently running binary lives.
     std::string this_program = OIIO::Sysutil::this_program_path();
     if (this_program.size()) {
         std::string path = Filesystem::parent_path(this_program);
@@ -810,20 +836,29 @@ enumerate_fonts()
         fontpath_add_from_dir(path);
     }
 
-    // Get list of directories one level deeper than the font_search_dirs
-    auto dirs = font_search_dirs;
-    for (auto& dir : font_search_dirs) {
-        std::vector<std::string> filenames;
-        Filesystem::get_directory_entries(dir, filenames, false);
-        for (auto& f : filenames)
-            if (f.size() && Filesystem::is_directory(f))
-                dirs.push_back(f);
+    // Make sure folders are not duplicated
+    std::vector<std::string> tmp_font_search_dirs = font_search_dirs;
+    font_search_dirs.clear();
+    std::unordered_set<std::string> font_search_dir_set;
+    for (const std::string& dir : tmp_font_search_dirs) {
+        std::string target_dir = dir;
+#ifdef _WIN32
+        // Windows is not case-sensitive, compare lower case paths
+        target_dir = Strutil::lower(target_dir);
+        // unify path separators
+        target_dir = Strutil::replace(target_dir, "/", "\\", true);
+#endif
+        if (font_search_dir_set.find(target_dir) != font_search_dir_set.end())
+            continue;
+
+        font_search_dirs.push_back(dir);
+        font_search_dir_set.insert(target_dir);
     }
 
     // Look for all the font files in dirs, populate font_file_set and font_set
     std::set<std::string> font_set;
     std::set<std::string> font_file_set;
-    for (auto& dir : dirs) {
+    for (auto& dir : font_search_dirs) {
         std::vector<std::string> filenames;
         Filesystem::get_directory_entries(dir, filenames, false);
         for (auto& f : filenames) {
@@ -921,6 +956,86 @@ text_size_from_unicode(cspan<uint32_t> utext, FT_Face face, int fontsize)
 }
 
 
+// Read available font families and styles.
+static void
+init_font_families()
+{
+    // skip if already initialized
+    if (!s_font_families.empty())
+        return;
+
+    // If we know FT is broken, don't bother trying again
+    if (ft_broken)
+        return;
+
+    // If FT not yet initialized, do it now.
+    if (!ft_library) {
+        if (FT_Init_FreeType(&ft_library)) {
+            ft_broken = true;
+            return;
+        }
+    }
+
+    // read available fonts
+    std::unordered_set<std::string> font_family_set;
+    std::unordered_map<std::string, std::unordered_set<std::string>>
+        font_style_set;
+    const std::vector<std::string>& font_files = pvt::font_file_list();
+    for (const std::string& filename : font_files) {
+        // Load the font.
+        FT_Face face;
+        int error = FT_New_Face(ft_library, filename.c_str(),
+                                0 /* face index */, &face);
+        if (error)
+            continue;
+
+        // Ignore if the font fmaily name is not defined.
+        if (!face->family_name) {
+            FT_Done_Face(face);
+            continue;
+        }
+
+        // Store the font family.
+        std::string family = std::string(face->family_name);
+        font_family_set.insert(family);
+
+        // Store the font style.
+        std::string style = face->style_name ? std::string(face->style_name)
+                                             : std::string();
+        if (!style.empty()) {
+            std::unordered_set<std::string>& styles = font_style_set[family];
+            styles.insert(style);
+        }
+
+        // Store the filename. Use the family and style as the key (e.g. "Arial Italic").
+        std::string font_name = family;
+        if (!style.empty())
+            font_name += " " + style;
+        s_font_filename_per_family[font_name] = filename;
+
+        // Store regular fonts also with the family name only (e.g. "Arial Regular" as "Arial").
+        if (style == "Regular")
+            s_font_filename_per_family[family] = filename;
+
+        FT_Done_Face(face);
+    }
+
+    // Sort font families.
+    s_font_families = std::vector<std::string>(font_family_set.begin(),
+                                               font_family_set.end());
+    std::sort(s_font_families.begin(), s_font_families.end());
+
+    // Sort font styles.
+    for (auto it : font_style_set) {
+        const std::string& family                   = it.first;
+        std::unordered_set<std::string>& styles_set = it.second;
+        std::vector<std::string> styles(styles_set.begin(), styles_set.end());
+        std::sort(styles.begin(), styles.end());
+        s_font_styles[family] = styles;
+    }
+}
+
+
 // Given font name, resolve it to an existing font filename.
 // If found, return true and put the resolved filename in result.
 // If not found, return false and put an error message in result.
@@ -959,12 +1074,26 @@ resolve_font(string_view font_, std::string& result)
             result = "Could not set default font face";
             return false;
         }
-    }
-    if (!Filesystem::is_regular(font)) {
+    } else if (Filesystem::is_regular(font)) {
+        // directly specified filename -- use it
+    } else {
         // A font name was specified but it's not a full path, look for it
-        auto f = font_file_map.find(font);
-        if (f != font_file_map.end()) {
-            font = f->second;
+        std::string f;
+
+        // first look for a font with the given family and style
+        init_font_families();
+        if (s_font_filename_per_family.find(font)
+            != s_font_filename_per_family.end())
+            f = s_font_filename_per_family[font];
+
+        // then look for a font with the given filename
+        if (f.empty()) {
+            if (font_file_map.find(font) != font_file_map.end())
+                f = font_file_map[font];
+        }
+
+        if (!f.empty()) {
+            font = f;
         } else {
             result = Strutil::fmt::format("Could not find font \"{}\"", font);
             return false;
@@ -1104,9 +1233,9 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
     if (alignx == TextAlignX::Center)
         x -= (textroi.width() / 2 + textroi.xbegin);
     if (aligny == TextAlignY::Top)
-        y += textroi.height();
+        y -= textroi.ybegin;
     if (aligny == TextAlignY::Bottom)
-        y -= textroi.height();
+        y -= textroi.yend;
     if (aligny == TextAlignY::Center)
         y -= (textroi.height() / 2 + textroi.ybegin);
 
@@ -1123,6 +1252,11 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
     // Glyph by glyph, fill in our textimg buffer
     int origx = x;
     for (auto ch : utext) {
+        // on Windows a newline is encoded as '\r\n'
+        // we simply ignore carriage return here
+        if (ch == '\r') {
+            continue;
+        }
         if (ch == '\n') {
             x = origx;
             y += fontsize;
@@ -1138,7 +1272,7 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
                 int rx  = x + i + slot->bitmap_left;
                 float b = slot->bitmap.buffer[slot->bitmap.pitch * j + i]
                           / 255.0f;
-                textimg.setpixel(rx, ry, &b, 1);
+                textimg.setpixel(rx, ry, b);
             }
         }
         // increment pen position
@@ -1160,7 +1294,7 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
     roi = roi_intersection(textroi, R.roi());
 
     // Now fill in the pixels of our destination image
-    float* pixelcolor = OIIO_ALLOCA(float, nchannels);
+    span<float> pixelcolor = OIIO_ALLOCA_SPAN(float, nchannels);
     ImageBuf::ConstIterator<float> t(textimg, roi, ImageBuf::WrapBlack);
     ImageBuf::ConstIterator<float> a(alphaimg, roi, ImageBuf::WrapBlack);
     ImageBuf::Iterator<float> r(R, roi);

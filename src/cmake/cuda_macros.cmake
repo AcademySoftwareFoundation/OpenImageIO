@@ -8,9 +8,6 @@ set_cache (CUDA_TARGET_ARCH "sm_60" "CUDA GPU architecture (e.g. sm_60)")
 set_cache (CUDAToolkit_ROOT "" "Path to CUDA toolkit")
 
 if (OIIO_USE_CUDA)
-    if (OIIO_USE_CUDA AND CMAKE_VERSION VERSION_LESS 3.18)
-        message (WARNING "CMake >= 3.18 is required to correctly find the CUDA dependency")
-    endif ()
     set (CUDA_PROPAGATE_HOST_FLAGS ON)
     set (CUDA_VERBOSE_BUILD ${VERBOSE})
     checked_find_package(CUDAToolkit

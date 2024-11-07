@@ -7,7 +7,7 @@
 #include <cstdlib>
 #include <ctime>
 
-#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
@@ -260,9 +260,15 @@ RLAOutput::open(const std::string& name, const ImageSpec& userspec,
     //           << m_rla.NumOfMatteChannels << " z " << m_rla.NumOfAuxChannels << "\n";
     m_rla.Revision = 0xFFFE;
 
+    const ColorConfig& colorconfig = ColorConfig::default_colorconfig();
     string_view colorspace = m_spec.get_string_attribute("oiio:ColorSpace");
-    if (Strutil::iequals(colorspace, "Linear"))
+    if (colorconfig.equivalent(colorspace, "linear")
+        || colorconfig.equivalent(colorspace, "scene_linear"))
         Strutil::safe_strcpy(m_rla.Gamma, "1.0", sizeof(m_rla.Gamma));
+    else if (colorconfig.equivalent(colorspace, "g22_rec709"))
+        Strutil::safe_strcpy(m_rla.Gamma, "2.2", sizeof(m_rla.Gamma));
+    else if (colorconfig.equivalent(colorspace, "g18_rec709"))
+        Strutil::safe_strcpy(m_rla.Gamma, "1.8", sizeof(m_rla.Gamma));
     else if (Strutil::istarts_with(colorspace, "Gamma")) {
         Strutil::parse_word(colorspace);
         float g = Strutil::from_string<float>(colorspace);
