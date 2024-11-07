@@ -4953,7 +4953,8 @@ OIIOTOOL_OP(contrast, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
 // --box
 // clang-format off
 OIIOTOOL_INPLACE_OP(box, 1, nullptr, ([&](OiiotoolOp& op, span<ImageBuf*> img) {
-    img[0]->copy(*img[1]);
+    OIIO_ASSERT(img[0] == img[1]);  // Assume we're operating in-place
+    // img[0]->copy(*img[1]);  // what we'd do if we weren't in-place
     const ImageSpec& Rspec(img[0]->spec());
     int x1, y1, x2, y2;
     string_view s(op.args(1));
@@ -4976,7 +4977,8 @@ OIIOTOOL_INPLACE_OP(box, 1, nullptr, ([&](OiiotoolOp& op, span<ImageBuf*> img) {
 
 // --line
 OIIOTOOL_INPLACE_OP(line, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
-    img[0]->copy(*img[1]);
+    OIIO_ASSERT(img[0] == img[1]);  // Assume we're operating in-place
+    // img[0]->copy(*img[1]);  // what we'd do if we weren't in-place
     const ImageSpec& Rspec(img[0]->spec());
     std::vector<int> points;
     Strutil::extract_from_list_string(points, op.args(1));
@@ -4996,7 +4998,8 @@ OIIOTOOL_INPLACE_OP(line, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
 
 // --point
 OIIOTOOL_INPLACE_OP(point, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
-    img[0]->copy(*img[1]);
+    OIIO_ASSERT(img[0] == img[1]);  // Assume we're operating in-place
+    // img[0]->copy(*img[1]);  // what we'd do if we weren't in-place
     const ImageSpec& Rspec(img[0]->spec());
     std::vector<int> points;
     Strutil::extract_from_list_string(points, op.args(1));
