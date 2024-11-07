@@ -404,7 +404,7 @@ ImageBufAlgo::demosaic(ImageBuf& dst, const ImageBuf& src, KWArgs options,
     std::string pattern;
     std::string algorithm;
     std::string layout;
-    float white_balance[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    float white_balance_RGGB[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
     for (auto&& pv : options) {
         if (pv.name() == pattern_us) {
@@ -427,13 +427,20 @@ ImageBufAlgo::demosaic(ImageBuf& dst, const ImageBuf& src, KWArgs options,
             }
         } else if (pv.name() == white_balance_us) {
             if (pv.type() == TypeFloat && pv.nvalues() == 4) {
-                for (size_t i = 0; i < 4; i++)
-                    white_balance[i] = pv.get_float_indexed(i);
+                // The order in the options is always (R,G1,B,G2)
+                white_balance_RGGB[0] = pv.get_float_indexed(0);
+                white_balance_RGGB[1] = pv.get_float_indexed(1);
+                white_balance_RGGB[2] = pv.get_float_indexed(3);
+                white_balance_RGGB[3] = pv.get_float_indexed(2);
+
+                if (white_balance_RGGB[2] == 0)
+                    white_balance_RGGB[2] = white_balance_RGGB[1];
             } else if (pv.type() == TypeFloat && pv.nvalues() == 3) {
-                white_balance[0] = pv.get_float_indexed(0);
-                white_balance[1] = pv.get_float_indexed(1);
-                white_balance[2] = white_balance[1];
-                white_balance[3] = pv.get_float_indexed(2);
+                // The order in the options is always (R,G,B)
+                white_balance_RGGB[0] = pv.get_float_indexed(0);
+                white_balance_RGGB[1] = pv.get_float_indexed(1);
+                white_balance_RGGB[2] = white_balance_RGGB[1];
+                white_balance_RGGB[3] = pv.get_float_indexed(2);
             } else {
                 dst.errorfmt("ImageBufAlgo::demosaic() invalid white balance");
             }
@@ -477,13 +484,13 @@ ImageBufAlgo::demosaic(ImageBuf& dst, const ImageBuf& src, KWArgs options,
             OIIO_DISPATCH_COMMON_TYPES2(ok, "bayer_demosaic_linear",
                                         bayer_demosaic_linear_impl,
                                         dst.spec().format, src.spec().format,
-                                        dst, src, layout, white_balance,
+                                        dst, src, layout, white_balance_RGGB,
                                         dst_roi, nthreads);
         } else if (algorithm == "MHC") {
             OIIO_DISPATCH_COMMON_TYPES2(ok, "bayer_demosaic_MHC",
                                         bayer_demosaic_MHC_impl,
                                         dst.spec().format, src.spec().format,
-                                        dst, src, layout, white_balance,
+                                        dst, src, layout, white_balance_RGGB,
                                         dst_roi, nthreads);
         } else {
             dst.errorfmt("ImageBufAlgo::demosaic() invalid algorithm");

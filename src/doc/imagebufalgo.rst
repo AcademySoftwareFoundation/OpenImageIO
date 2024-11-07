@@ -1166,10 +1166,10 @@ Shuffling channels
           ImageSpec hint;
           hint["raw:Demosaic"] = "none";
           ImageBuf Src ("test.cr3", 0, 0, nullptr, &hint);
-          float wb[4] = {2.0, 0.8, 1.2, 1.5};
+          float WB_RGBG[4] = {2.0, 0.8, 1.5, 1.2};
           ParamValue options[] = {
                 { "layout", "GRBG" },
-                ParamValue("white-balance", TypeFloat, 4, wb)
+                ParamValue("white-balance", TypeFloat, 4, WB_RGBG)
           };
           ImageBuf Dst = ImageBufAlgo::demosaic (Src, options);
 
@@ -1178,8 +1178,9 @@ Shuffling channels
           hint = ImageSpec()
           hint["raw:Demosaic"] = "none"
           Src = ImageBuf("test.cr3", 0, 0, hint)
+          WB_RGBG = (2.0, 0.8, 1.2, 1.5)
           Dst = OpenImageIO.ImageBufAlgo.demosaic(Src, layout="GRBG",
-              white_balance = (2.0, 0.8, 1.2, 1.5))
+              white_balance = WB_RGBG)
 
        .. code-tab:: bash oiiotool
 

@@ -4199,8 +4199,9 @@ current top image.
         the name of the algorithm to use: "linear"(simple bilinear demosaicing),
         "MHC"(Malvar-He-Cutler algorithm)
       `white-balance=` *v1,v2,v3...*
-        optional white balance weights, can contain either three (RGB) or four
-        (RGGB) values.
+        optional white balance weights, can contain either three (R,G,B) or four
+        (R,G1,B,G2) values. The order of the white balance multipliers is as
+        specified, it does not depend on the matrix layout.
 
     Examples::
 
