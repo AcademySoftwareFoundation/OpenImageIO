@@ -9,6 +9,7 @@
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/strutil.h>
 #include <OpenImageIO/tiffutils.h>
 
 #include "jpeg_pvt.h"
@@ -288,23 +289,41 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
             jpeg_decode_iptc((unsigned char*)m->data);
         else if (m->marker == JPEG_COM) {
             std::string data((const char*)m->data, m->data_length);
+            // Additional string metadata can be stored in JPEG files as
+            // comment markers in the form "key:value" or "ident:key:value".
+            // If the string contains a single colon, we assume key:value.
+            // If there's multiple, we try splitting as ident:key:value and
+            // check if ident and key are reasonable (in particular, whether
+            // ident is a C-style identifier and key is not surrounded by
+            // whitespace). If ident passes but key doesn't, assume key:value.
+            auto separator = data.find(':');
+            if (OIIO::get_int_attribute("jpeg:com_attributes")
+                && (separator != std::string::npos && separator > 0)) {
+                std::string left  = data.substr(0, separator);
+                std::string right = data.substr(separator + 1);
+                separator         = right.find(':');
+                if (separator != std::string::npos && separator > 0) {
+                    std::string mid   = right.substr(0, separator);
+                    std::string value = right.substr(separator + 1);
+                    if (Strutil::string_is_identifier(left)
+                        && (mid == Strutil::trimmed_whitespace(mid))) {
+                        // Valid parsing: left is ident, mid is key
+                        std::string attribute = left + ":" + mid;
+                        if (!m_spec.find_attribute(attribute, TypeDesc::STRING))
+                            m_spec.attribute(attribute, value);
+                        continue;
+                    }
+                }
+                if (left == Strutil::trimmed_whitespace(left)) {
+                    // Valid parsing: left is key, right is value
+                    if (!m_spec.find_attribute(left, TypeDesc::STRING))
+                        m_spec.attribute(left, right);
+                    continue;
+                }
+            }
+            // If we made it this far, treat the comment as a description
             if (!m_spec.find_attribute("ImageDescription", TypeDesc::STRING))
                 m_spec.attribute("ImageDescription", data);
-            // Additional string metadata can be stored in JPEG files as
-            // comment markers in the form "key:value".
-            // Since the key might also commonly contain a colon, the
-            // heuristic to separate them here is that if there are multiple
-            // colons, the first one belongs to the key, the second one is the
-            // separator, and any further ones belong to the value.
-            auto separator = data.find(':');
-            if (separator != std::string::npos && separator > 0) {
-                auto second_separator = data.find(':', separator + 1);
-                if (second_separator != std::string::npos)
-                    separator = second_separator;
-                std::string key = data.substr(0, separator);
-                if (!m_spec.find_attribute(key, TypeDesc::STRING))
-                    m_spec.attribute(key, data.substr(separator + 1));
-            }
         }
     }
 

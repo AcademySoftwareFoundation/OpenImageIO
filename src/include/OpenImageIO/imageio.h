@@ -2902,6 +2902,13 @@ OIIO_API std::string geterror(bool clear = true);
 ///    When nonzero, use the new "OpenEXR core C library" when available,
 ///    for OpenEXR >= 3.1. This is experimental, and currently defaults to 0.
 ///
+/// - `int jpeg:com_attributes`
+///
+///    When nonzero, try to parse JPEG comment blocks as key-value attributes,
+///    and only set ImageDescription if the parsing fails. Otherwise, always
+///    set ImageDescription to the first comment block. Default is 1.
+///
+///
 /// - `int limits:channels` (1024)
 ///
 ///    When nonzero, the maximum number of color channels in an image. Image
