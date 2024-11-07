@@ -2165,7 +2165,8 @@ bool OIIO_API repremult (ImageBuf &dst, const ImageBuf &src,
 ///
 ///   - "white-balance" : float[3] or float[4] (default: {1.0, 1.0, 1.0, 1.0})
 ///
-///     Optional white-balancing weights. Can contain either three (RGB), or four (RGGB) values.
+///     Optional white-balancing weights. Can contain either three (R,G,B), or four (R,G1,B,G2) values.
+///     The order of the white balance multipliers does not depend on the matrix layout.
 
 ImageBuf OIIO_API demosaic (const ImageBuf& src, KWArgs options = {},
                             ROI roi = {}, int nthreads = 0);
