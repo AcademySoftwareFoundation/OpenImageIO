@@ -5016,7 +5016,8 @@ OIIOTOOL_INPLACE_OP(point, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
 
 // --text
 OIIOTOOL_INPLACE_OP(text, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
-    img[0]->copy(*img[1]);
+    OIIO_ASSERT(img[0] == img[1]);  // Assume we're operating in-place
+    // img[0]->copy(*img[1]);  // what we'd do if we weren't in-place
     const ImageSpec& Rspec(img[0]->spec());
     int x            = op.options().get_int("x", Rspec.x + Rspec.width / 2);
     int y            = op.options().get_int("y", Rspec.y + Rspec.height / 2);
