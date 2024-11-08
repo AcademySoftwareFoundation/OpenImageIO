@@ -1,39 +1,21 @@
-Release 3.0 (beta 1 - Oct 15, 2024) -- compared to 2.5.16.0
+Release 3.0 (Nov 8, 2024) -- compared to 2.5.16.0
 -----------------------------------------------------------
-Beta 1 - Oct 15, 2024
-
-Beta 2 - Oct 29, 2024 (changes vs beta1)
-  - *string_view.h*: Deprecate OIIO::string_view::c_str() [#4511](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4511) (3.0.0.1)
-  - *font rendering*: Lookup font in text render based on family and style name [#4509](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4509) (by peterhorvath111) (3.0.0.1)
-  - *font rendering*: Fix incorrect vertical alignment in render_text [#4500](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4500) (by peterhorvath111)
-  - *font rendering*: Windows newline shows invalid character in text render [#4501](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4501) (by peterhorvath111)
-  - *font rendering*: Update font enumeration [#4508](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4508) (by peterhorvath111)
-  - *perf*: ImageBuf file read performance -- double reads, extra copies [#4507](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4507) (3.0.0.1)
-  - *perf*: Additional timing logging for performance investigations [#4506](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4506)
-  - *iinfo*: iinfo was not reading MIP levels correctly [#4498](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4498)
-  - *int*: Address fmt exceptions for left justification [#4510](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4510)
-  - *build*: Remove the enforced upper version limit for fmt [#4497](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4497)
-  - *build*: BUILD_MISSING_DEPS - fix minor configuration options [#4493](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4493) (by kaarrot)
-  - *deps*: Search for libbz2 only if FFmpeg or FreeType is enabled. [#4505](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4505) (by jreichel-nvidia)
-  - *deps*: Add build recipe for WebP [#4422](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4422) (by zachlewis)
-  - *ci*: Limit when automatic docs building ci happens [#4496](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4496)
-  - *ci*: Retire deprecated macos12 runner, try beta macos15 [#4514](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4514)
-  - *docs*: Convert ImageInput-unassociatedalpha examples from docs to tests [#4468](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4468) (by pfranz)
-  - *docs*: Fix typo in description of Strutil::parse_values [#4512](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4512)
-
-Release Candidate 1 - Nov 4, 2024 (no code changes vs beta2)
+- v3.0.0.0-beta1 - Oct 15, 2024
+- v3.0.0.1-beta2 - Oct 29, 2024
+- v3.0.0.2-RC1  - Nov 4, 2024 (no code changes vs beta2)
+- v3.0.0.3 / official release - Nov 8, 2024 (no code changes vs RC1)
 
 **Executive Summary / Highlights:**
 
 - Updated minimum toolchain: C++17/gcc9.3, Python 3.7, CMake 3.18.2, and
   raised min versions of most library dependencies.
 - New image format support: JPEG XL, R3D.
-- oiiotool new commands: --cryptomatte-colors, --demosaic, --buildinfo,
-  --ocionamedtransform, --popbottom, --stackreverse, --stackclear,
-  --stackextract; improved --for behavior for reverse direction.
+- oiiotool new commands: `--cryptomatte-colors`, `--demosaic`, `--buildinfo`,
+  `--ocionamedtransform`, `--popbottom`, `--stackreverse`, `--stackclear`,
+  `--stackextract`; improved `--for` behavior for reverse direction.
 - Lots of long-deprecated API calls have been removed entirely.
   Please see [the detailed deprecation list](docs/Deprecations-3.0.md).
-- New ImageBufAlgo: perpixel_op, demosaic, ocionamedtransform.
+- New ImageBufAlgo: `perpixel_op()`, `demosaic()`, `ocionamedtransform()`.
 - ImageBuf now by default does not use ImageCache to mediate file images,
   unless you explicitly ask for it.
 - ImageCache & TextureSystem now use shared_ptr for creation, not raw
