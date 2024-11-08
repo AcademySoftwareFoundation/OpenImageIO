@@ -10,17 +10,18 @@
 Our release numbers are of the form `MAJOR.MINOR.PATCH.TWEAK`, and we follow
 an almost-semantic-versioning scheme.
 
-MAJOR changes are those that break backward-compatibility of the public APIs,
+MAJOR releases are those that break backward-compatibility of the public APIs,
 requiring existing application code to change their source code where it calls
 OIIO API functions in order to compile and work correctly.
 
-MINOR changes guarantee API backward-compatibility with prior releases that
+MINOR releases guarantee API backward-compatibility with prior releases that
 have the same major number, but can introduce ABI or link incompatibilities.
 Applications using OIIO need to be recompiled to move to a new minor release,
-but should not need to change their source code. Minor releases are allowed
-to drop support for sufficiently old compilers and dependencies.
+but should not need to change their source code (except, of course, to take
+advantage of new features). Minor releases are allowed to drop support for
+sufficiently old compilers and dependencies.
 
-PATCH changes guarantee both API and ABI/link backward-compatibility with
+PATCH releases guarantee both API and ABI/link backward-compatibility with
 prior releases that have the same minor number. Features and new public API
 calls may be added (thus deviating from strict semantic versioning), but only
 if they preserve ABI/link compatibility. This means that standalone functions
@@ -32,7 +33,7 @@ guarantee that any compilers or dependencies supported for the first release
 of a minor series will continue to be supported for all patches to that minor
 series.
 
-TWEAK changes are restricted to critical bug fixes or build breaks that do
+TWEAK releases are restricted to critical bug fixes or build breaks that do
 not alter public APIs in any way.
 
 ### Cadence of releases
@@ -66,10 +67,10 @@ for releases.
 
 In the "main" branch:
 
-- TWEAK changes within "main" only guarantee ABI back-compatibility, but may
+- TWEAK tags within "main" only guarantee ABI back-compatibility, but may
   have additions or non-bug-fix behavior changes (akin to patch releases
   within a release branch).
-- PATCH changes within "main" are allowed to break ABI or API (changes that
+- PATCH tags within "main" are allowed to break ABI or API (changes that
   would require minor or major releases, if they were not in "main").
 - Beware of unmarked breaks in compatibility of commits in main that are
   in between developer preview tags.
@@ -85,8 +86,8 @@ following conventions:
 
 - `main` is the area for arbitrary changes intended for the next year's
   major or minor release.
-- `dev-1.2` are the areas for staging additions to the next month's patch
-  release for the designated minor version series.
+- `dev-1.2` are the areas for staging additions that will become the next
+  tweak or patch release for the minor version series.
 - `release` is a special branch marker that is always set to the latest tag of
   the currently supported, stable release family. People can count on
   "release" always being the latest stable release, whatever that may be at
@@ -263,17 +264,33 @@ truly critical bugs or build breaks that users will encounter.
 
 The following are the steps for making the release:
 
-1. Edit the top-level CMakeLists.txt to remove any RC designation
-   (i.e., `PROJECT_VERSION_RELEASE_TYPE` should be set to `""`).
+1. Double check the top-level CMakeLists.txt to ensure the right version
+   number and type of version designation (i.e.,
+   `PROJECT_VERSION_RELEASE_TYPE` should be set appropriately).
 
 2. Edit CHANGES.md to reflect the correct date of the release and ensure it
    includes any last-minute changes that were made during beta or release
    candidate stages. Please see the section "Generating release notes" below.
 
-3. Push it to **your** GitHub, make sure it passes CI.
+3. Push it to **your** GitHub fork, make sure it passes CI.
    
-4. Tag the release: `git tag v1.2.3.4` (no more beta, RC, or dev suffix).
+4. Tag the release with a signed tag:
+
+       $ git tag -s v1.2.3.4      # add a signed tag
+       $ git tag -v v1.2.3.4      # verify the tag
    
+   Be sure that the tag also reflects if it's an alpha (v1.2.3.4-alpha),
+   beta (v1.2.3.4-beta), release candidate (v1.2.3.4-RC1), or developer
+   preview (v1.2.3.4-dev). If it's a final release, just use the plain
+   version number (v1.2.3.4).
+
+   Note that the tag signing requires you to have a GPG key set up and
+   associated with your GitHub account. Please see [GitHub's signed tagging    instructions](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-tags) for more information.
+
+   If you get errors messages "gpg: signing failed: Inappropriate ioctl for device", then the solution is to first:
+
+       $ export GPG_TTY=$(tty)
+
 5. If this will now be the recommended stable release, move the `release`
    branch marker to the same position.
 
@@ -295,9 +312,9 @@ The following are the steps for making the release:
 
    For a monthly patch release:
 
-    > We have tagged v2.5.1.0 as the latest production release and moved the
+    > We have tagged v3.0.1.2 as the latest production release and moved the
     > "release" branch marker to that point.  This is guaranteed to be API,
-    > ABI, and link back-compatible with prior 2.5 releases. Release notes
+    > ABI, and link back-compatible with prior 3.0 releases. Release notes
     > can be found at *LINK TO THE GITHUB RELEASE PAGE.*
 
    For an annual major/minor release:
