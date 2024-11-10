@@ -40,9 +40,15 @@ flags and give an adequate review:
   altered code. (Though sometimes a patch addresses an edge case that's very
   hard to reproduce in the testsuite, and you have to rely on the submitter's
   word and the sensibility of their explanation.)
-- Least important, but nice if we can get it: You're an expert in the part of
+- Not required, but nice if we can get it: You're an expert in the part of
   the code being changed, and you agree that this is the best way to achieve
   an improvement.
+- Any objections should be explained in detail and invite counter-arguments
+  from the author or other onlookers. A reviewer should never close a PR
+  unless it fails to conform to even the basic requirements of any submitted
+  PR, or if enough time has passed that it's clear that the PR has been
+  abandoned by its author. It's ok to ultimately say "no" to a PR that can't
+  be salvaged, but that should be the result of a dialogue.
 
 Obviously, you also want any review comments you give to be constructive and
 helpful. If you don't understand something, ask for clarification. If you
@@ -88,6 +94,10 @@ In the best of circumstances, the code review process should be as follows for
 - At least a few work days should elapse between posting the PR and merging
   it, even if an approving review is received immediately. This is to allow
   additional reviewers or dissenting voices to get a chance to weigh in.
+- If the reviewer has suggestions for improvement, it's the original author
+  who should make the changes and push them to the PR, or at the very least,
+  the author should okay any changes made by the reviewer before a merge
+  occurs (if at all practical).
 
 Not all patches need the highest level of scrutiny. Reviews can be cursory and
 quick, and merges performed without additional delay, in some common low-risk
@@ -139,7 +149,10 @@ often.
   are raised within another few days, the PR may be merged by the author if
   they are a senior developer on the project. This is a fact of life, but
   should be minimized (with a rigor proportional to where the patch falls on
-  the "low risk / high risk" scale described above).
+  the "low risk / high risk" scale described above). If this is done, you
+  should leave an additional comment explaining why it was merged without
+  review and inviting people to submit post-merge comments if they
+  subsequently spot something that can be improved.
 - Time-critical patches: urgent security fixes, broken CI or builds, critical
   bugs affecting major stakeholders who are waiting for a repaired release,
   fixes that are blocking other work or preventing other PRs from advancing.
