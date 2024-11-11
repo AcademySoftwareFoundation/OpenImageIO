@@ -157,5 +157,5 @@ pull request (PR) mechanism.
 * [Developer mail list](https://lists.aswf.io/g/oiio-dev)
 * [ASWF Slack](https://slack.aswf.io) (look for the `#openimageio` channel)
 * Biweekly Technical Steering Committee (TSC) Zoom meetings are on the [ASWF
-  Calendar](https://www.aswf.io/meeting-calendar/) (click on the OpenImageIO
+  Calendar](https://calendar.openimageio.org) (click on the OpenImageIO
   meeting entries, every second Monday, to get the Zoom link, anyone may join)
