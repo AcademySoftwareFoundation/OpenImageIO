@@ -42,6 +42,7 @@ extern OIIO_UTIL_API int oiio_print_debug;
 extern OIIO_UTIL_API int oiio_print_uncaught_errors;
 extern int oiio_log_times;
 extern int openexr_core;
+extern int jpeg_com_attributes;
 extern int limit_channels;
 extern int limit_imagesize_MB;
 extern int imagebuf_print_uncaught_errors;
@@ -57,7 +58,12 @@ OIIO_API const std::vector<std::string>&
 font_file_list();
 OIIO_API const std::vector<std::string>&
 font_list();
-
+OIIO_API const std::vector<std::string>&
+font_family_list();
+OIIO_API const std::vector<std::string>
+font_style_list(string_view family);
+OIIO_API const std::string
+font_filename(string_view family, string_view style = "");
 
 
 // Make sure all plugins are inventoried. For internal use only.

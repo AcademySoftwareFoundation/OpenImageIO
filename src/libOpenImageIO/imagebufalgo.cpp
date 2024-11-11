@@ -354,7 +354,7 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf& dst, cspan<const ImageBuf*> srcs,
                       KWArgs options, ImageSpec* force_spec)
 {
     // OIIO_ASSERT(dst);
-    // Helper: ANY_SRC returns true if any of the source images s satisfy the
+    // Helper: ANY_SRC returns true if any of the source images satisfy the
     // condition cond.
 #define ANY_SRC(cond)                     \
     std::any_of(srcs.begin(), srcs.end(), \
@@ -947,17 +947,28 @@ ImageBufAlgo::make_kernel(string_view name, float width, float height,
 
 
 
-// Helper function for unsharp mask to perform the thresholding
+template<class Rtype>
 static bool
-threshold_to_zero(ImageBuf& dst, float threshold, ROI roi, int nthreads)
+unsharp_impl(ImageBuf& dst, const ImageBuf& blr, const ImageBuf& src,
+             const float contrast, const float threshold, ROI roi, int nthreads)
 {
-    OIIO_DASSERT(dst.spec().format.basetype == TypeDesc::FLOAT);
+    OIIO_DASSERT(dst.spec().nchannels == src.spec().nchannels
+                 && dst.spec().nchannels == blr.spec().nchannels);
 
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
-        for (ImageBuf::Iterator<float> p(dst, roi); !p.done(); ++p)
-            for (int c = roi.chbegin; c < roi.chend; ++c)
-                if (fabsf(p[c]) < threshold)
-                    p[c] = 0.0f;
+        ImageBuf::ConstIterator<Rtype> s(src, roi);
+        ImageBuf::ConstIterator<float> b(blr, roi);
+        for (ImageBuf::Iterator<Rtype> d(dst, roi); !d.done(); ++s, ++d, ++b) {
+            for (int c = roi.chbegin; c < roi.chend; ++c) {
+                const float diff     = s[c] - b[c];
+                const float abs_diff = fabsf(diff);
+                if (abs_diff > threshold) {
+                    d[c] = s[c] + contrast * diff;
+                } else {
+                    d[c] = s[c];
+                }
+            }
+        }
     });
     return true;
 }
@@ -977,10 +988,26 @@ ImageBufAlgo::unsharp_mask(ImageBuf& dst, const ImageBuf& src,
     // Blur the source image, store in Blurry
     ImageSpec BlurrySpec = src.spec();
     BlurrySpec.set_format(TypeDesc::FLOAT);  // force float
+    ImageBuf fst_pass(BlurrySpec);
     ImageBuf Blurry(BlurrySpec);
 
     if (kernel == "median") {
         median_filter(Blurry, src, ceilf(width), 0, roi, nthreads);
+    } else if (width > 3.0) {
+        ImageBuf K  = make_kernel(kernel, 1, width);
+        ImageBuf Kt = ImageBufAlgo::transpose(K);
+        if (K.has_error()) {
+            dst.errorfmt("{}", K.geterror());
+            return false;
+        }
+        if (!convolve(fst_pass, src, K, true, roi, nthreads)) {
+            dst.errorfmt("{}", fst_pass.geterror());
+            return false;
+        }
+        if (!convolve(Blurry, fst_pass, Kt, true, roi, nthreads)) {
+            dst.errorfmt("{}", Blurry.geterror());
+            return false;
+        }
     } else {
         ImageBuf K = make_kernel(kernel, width, width);
         if (K.has_error()) {
@@ -993,25 +1020,10 @@ ImageBufAlgo::unsharp_mask(ImageBuf& dst, const ImageBuf& src,
         }
     }
 
-    // Compute the difference between the source image and the blurry
-    // version.  (We store it in the same buffer we used for the difference
-    // image.)
-    ImageBuf& Diff(Blurry);
-    bool ok = sub(Diff, src, Blurry, roi, nthreads);
-
-    if (ok && threshold > 0.0f)
-        ok = threshold_to_zero(Diff, threshold, roi, nthreads);
-
-    // Scale the difference image by the contrast
-    if (ok)
-        ok = mul(Diff, Diff, contrast, roi, nthreads);
-    if (!ok) {
-        dst.errorfmt("{}", Diff.geterror());
-        return false;
-    }
-
-    // Add the scaled difference to the original, to get the final answer
-    ok = add(dst, src, Diff, roi, nthreads);
+    bool ok;
+    OIIO_DISPATCH_COMMON_TYPES(ok, "unsharp_mask", unsharp_impl,
+                               dst.spec().format, dst, Blurry, src, contrast,
+                               threshold, roi, nthreads);
 
     return ok;
 }

@@ -502,7 +502,7 @@ macro (build_dependency_with_cmake pkgname)
         # noValueKeywords:
         "NOINSTALL"
         # singleValueKeywords:
-        "GIT_REPOSITORY;GIT_TAG;VERSION"
+        "GIT_REPOSITORY;GIT_TAG;VERSION;SOURCE_SUBDIR"
         # multiValueKeywords:
         "CMAKE_ARGS"
         # argsToParse:
@@ -549,7 +549,7 @@ macro (build_dependency_with_cmake pkgname)
     execute_process (COMMAND
         ${CMAKE_COMMAND}
             # Put things in our special local build areas
-                -S ${${pkgname}_LOCAL_SOURCE_DIR}
+                -S ${${pkgname}_LOCAL_SOURCE_DIR}/${_pkg_SOURCE_SUBDIR}
                 -B ${${pkgname}_LOCAL_BUILD_DIR}
                 -DCMAKE_INSTALL_PREFIX=${${pkgname}_LOCAL_INSTALL_DIR}
             # Same build type as us

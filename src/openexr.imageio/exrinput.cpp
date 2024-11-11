@@ -652,7 +652,7 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
     }
 
     // EXR "name" also gets passed along as "oiio:subimagename".
-    if (header->hasName() && header->name() != "")
+    if (header->hasName())
         spec.attribute("oiio:subimagename", header->name());
 
     spec.attribute("oiio:subimages", in->m_nsubimages);

@@ -1,4 +1,4 @@
-These are all the release notes for versions 2.0 (Dec 2018) - 2.5 (Oct 2024).
+These are all the release notes for versions 2.0 (Dec 2018) - 2.5 (Nov 2024).
 For 1.x releases, see [CHANGES-1.x.md](CHANGES-1.x.md).
 For 0.x releases, see [CHANGES-0.x.md](CHANGES-0.x.md).
 For the full release notes of all versions, see:
@@ -6,9 +6,24 @@ For the full release notes of all versions, see:
 
 
 
+Release 2.5.17.0 (Nov 1, 2024) -- compared to 2.5.16.0
+--------------------------------------------------------
+- *iinfo*: fix: iinfo was not reading MIP levels correctly [#4498](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4498)
+- *text rendering*: Windows newline shows invalid character in text render [#4501](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4501) (by peterhorvath111)
+- *fix*: Address fmt exceptions for left justification [#4510](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4510)
+- *perf*: Additional timing logging for performance investigations [#4506](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4506)
+- *strutil.h*: Fix typo in description of Strutil::parse_values [#4512](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4512)
+- *build*: Don't change CMAKE_XXX_OUTPUT_DIRECTORY when built as subdir [#4417](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4417) (by Luc Touraille)
+- *deps*: Search for libbz2 only if FFmpeg or FreeType is enabled. [#4505](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4505) (by jreichel-nvidia)
+- *tests*: Fixup after directory refactor of OpenImageIO-images [#4473](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4473)
+- *ci*: Make scrorecards workflow not fail constantly [#4471](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4471)
+- *ci*: Retire deprecated macos12 runner, try beta macos15 [#4514](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4514)
+- *docs*: Update to vanity URL for the docs [#4494](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4494)
+
+
 Release 2.5.16.0 (Oct 1, 2024) -- compared to 2.5.15.0
 --------------------------------------------------------
-- *ImageInput*: Fix: Initialize pixels of partial tile conversion buffer to avoid possible floating point exceptionså. [#4462](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4462) (by Bram Stolk)
+- *ImageInput*: Fix: Initialize pixels of partial tile conversion buffer to avoid possible floating point exceptions. [#4462](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4462) (by Bram Stolk)
 - *iv*: Fix: Iv shows constant brown and GL error messages on start-up. [#4451](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4451) (by David Adler)
 - *iv*: Fix: Initialize variables before we use them. [#4457](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4457) (by Bram Stolk)
 - *pnm*: Fix: Initialize m_pfm_flip before use to avoid UB. [#4446](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4446) (by Bram Stolk)

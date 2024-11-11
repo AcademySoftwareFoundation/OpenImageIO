@@ -86,6 +86,10 @@ else ()
 endif ()
 
 
+# Ultra HDR
+checked_find_package (libuhdr)
+
+
 checked_find_package (TIFF REQUIRED
                       VERSION_MIN 4.0)
 alias_library_if_not_exists (TIFF::TIFF TIFF::tiff)
@@ -120,6 +124,11 @@ endif ()
 # we will continue building, but the related functionality will be disabled.
 
 checked_find_package (PNG VERSION_MIN 1.6.0)
+if (TARGET PNG::png_static)
+    set (PNG_TARGET PNG::png_static)
+elseif (TARGET PNG::PNG)
+    set (PNG_TARGET PNG::PNG)
+endif ()
 
 checked_find_package (Freetype
                       VERSION_MIN 2.10.0

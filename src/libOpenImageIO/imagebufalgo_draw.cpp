@@ -741,6 +741,12 @@ static const char* font_dir_suffixes[]
         "share/fonts", "share/Fonts", "share/fonts/OpenImageIO" };
 // static const char* font_extensions[]   = { "", ".ttf", ".ttc", ".pfa", ".pfb" };
 
+// list of available font families
+static std::vector<std::string> s_font_families;
+// available font styles per families
+static std::unordered_map<std::string, std::vector<std::string>> s_font_styles;
+// font filenames per family and style (e.g. "Arial Italic")
+static std::unordered_map<std::string, std::string> s_font_filename_per_family;
 
 
 // Add one dir to font_search_dirs, if the dir exists.
@@ -950,6 +956,86 @@ text_size_from_unicode(cspan<uint32_t> utext, FT_Face face, int fontsize)
 }
 
 
+// Read available font families and styles.
+static void
+init_font_families()
+{
+    // skip if already initialized
+    if (!s_font_families.empty())
+        return;
+
+    // If we know FT is broken, don't bother trying again
+    if (ft_broken)
+        return;
+
+    // If FT not yet initialized, do it now.
+    if (!ft_library) {
+        if (FT_Init_FreeType(&ft_library)) {
+            ft_broken = true;
+            return;
+        }
+    }
+
+    // read available fonts
+    std::unordered_set<std::string> font_family_set;
+    std::unordered_map<std::string, std::unordered_set<std::string>>
+        font_style_set;
+    const std::vector<std::string>& font_files = pvt::font_file_list();
+    for (const std::string& filename : font_files) {
+        // Load the font.
+        FT_Face face;
+        int error = FT_New_Face(ft_library, filename.c_str(),
+                                0 /* face index */, &face);
+        if (error)
+            continue;
+
+        // Ignore if the font fmaily name is not defined.
+        if (!face->family_name) {
+            FT_Done_Face(face);
+            continue;
+        }
+
+        // Store the font family.
+        std::string family = std::string(face->family_name);
+        font_family_set.insert(family);
+
+        // Store the font style.
+        std::string style = face->style_name ? std::string(face->style_name)
+                                             : std::string();
+        if (!style.empty()) {
+            std::unordered_set<std::string>& styles = font_style_set[family];
+            styles.insert(style);
+        }
+
+        // Store the filename. Use the family and style as the key (e.g. "Arial Italic").
+        std::string font_name = family;
+        if (!style.empty())
+            font_name += " " + style;
+        s_font_filename_per_family[font_name] = filename;
+
+        // Store regular fonts also with the family name only (e.g. "Arial Regular" as "Arial").
+        if (style == "Regular")
+            s_font_filename_per_family[family] = filename;
+
+        FT_Done_Face(face);
+    }
+
+    // Sort font families.
+    s_font_families = std::vector<std::string>(font_family_set.begin(),
+                                               font_family_set.end());
+    std::sort(s_font_families.begin(), s_font_families.end());
+
+    // Sort font styles.
+    for (auto it : font_style_set) {
+        const std::string& family                   = it.first;
+        std::unordered_set<std::string>& styles_set = it.second;
+        std::vector<std::string> styles(styles_set.begin(), styles_set.end());
+        std::sort(styles.begin(), styles.end());
+        s_font_styles[family] = styles;
+    }
+}
+
+
 // Given font name, resolve it to an existing font filename.
 // If found, return true and put the resolved filename in result.
 // If not found, return false and put an error message in result.
@@ -988,12 +1074,26 @@ resolve_font(string_view font_, std::string& result)
             result = "Could not set default font face";
             return false;
         }
-    }
-    if (!Filesystem::is_regular(font)) {
+    } else if (Filesystem::is_regular(font)) {
+        // directly specified filename -- use it
+    } else {
         // A font name was specified but it's not a full path, look for it
-        auto f = font_file_map.find(font);
-        if (f != font_file_map.end()) {
-            font = f->second;
+        std::string f;
+
+        // first look for a font with the given family and style
+        init_font_families();
+        if (s_font_filename_per_family.find(font)
+            != s_font_filename_per_family.end())
+            f = s_font_filename_per_family[font];
+
+        // then look for a font with the given filename
+        if (f.empty()) {
+            if (font_file_map.find(font) != font_file_map.end())
+                f = font_file_map[font];
+        }
+
+        if (!f.empty()) {
+            font = f;
         } else {
             result = Strutil::fmt::format("Could not find font \"{}\"", font);
             return false;
@@ -1214,6 +1314,56 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
     R.errorfmt("OpenImageIO was not compiled with FreeType for font rendering");
     return false;  // Font rendering not supported
 #endif
+}
+
+
+
+const std::vector<std::string>&
+pvt::font_family_list()
+{
+#ifdef USE_FREETYPE
+    lock_guard ft_lock(ft_mutex);
+    init_font_families();
+#endif
+    return s_font_families;
+}
+
+
+const std::vector<std::string>
+pvt::font_style_list(string_view family)
+{
+#ifdef USE_FREETYPE
+    lock_guard ft_lock(ft_mutex);
+    init_font_families();
+#endif
+    auto it = s_font_styles.find(family);
+    if (it != s_font_styles.end())
+        return it->second;
+    else
+        return std::vector<std::string>();
+}
+
+
+const std::string
+pvt::font_filename(string_view family, string_view style)
+{
+    if (family.empty())
+        return std::string();
+
+#ifdef USE_FREETYPE
+    lock_guard ft_lock(ft_mutex);
+    init_font_families();
+#endif
+
+    std::string font = family;
+    if (!style.empty())
+        font = Strutil::fmt::format("{} {}", family, style);
+
+    auto it = s_font_filename_per_family.find(font);
+    if (it != s_font_filename_per_family.end())
+        return it->second;
+    else
+        return std::string();
 }
 
 

@@ -6,5 +6,7 @@ Comparing "textshadowed.tif" and "ref/textshadowed.tif"
 PASS
 Comparing "textalpha.tif" and "ref/textalpha.tif"
 PASS
+Comparing "fontbyfamily.tif" and "ref/fontbyfamily.tif"
+PASS
 Comparing "unicode.tif" and "ref/unicode.tif"
 PASS

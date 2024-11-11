@@ -2902,6 +2902,13 @@ OIIO_API std::string geterror(bool clear = true);
 ///    When nonzero, use the new "OpenEXR core C library" when available,
 ///    for OpenEXR >= 3.1. This is experimental, and currently defaults to 0.
 ///
+/// - `int jpeg:com_attributes`
+///
+///    When nonzero, try to parse JPEG comment blocks as key-value attributes,
+///    and only set ImageDescription if the parsing fails. Otherwise, always
+///    set ImageDescription to the first comment block. Default is 1.
+///
+///
 /// - `int limits:channels` (1024)
 ///
 ///    When nonzero, the maximum number of color channels in an image. Image
@@ -3038,6 +3045,21 @@ inline bool attribute (string_view name, string_view val) {
 ///   OpenImageIO can find, all the font files that OpenImageIO can find (with
 ///   full paths), and all the directories that OpenImageIO will search for
 ///   fonts.  (Added in OpenImageIO 2.5)
+///
+/// - `string font_family_list`
+///
+///   A semicolon-separated list of all the font family names that
+///   OpenImageIO can find.  (Added in OpenImageIO 3.0)
+///
+/// - `string font_style_list:family`
+///
+///   A semicolon-separated list of all the font style names that
+///   belong to the given font family.  (Added in OpenImageIO 3.0)
+///
+/// - `string font_filename:family:style`
+///
+///   The font file (with full path) that defines the given font
+///   family and style.  (Added in OpenImageIO 3.0)
 ///
 /// - `string filter_list`
 ///

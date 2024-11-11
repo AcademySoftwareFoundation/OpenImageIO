@@ -104,6 +104,7 @@ jobs:
             setenvs: export USE_ICC=1 USE_OPENVDB=0
                             OIIO_EXTRA_CPP_ARGS="-fp-model=precise"
                             FREETYPE_VERSION=VER-2-13-0
+                            DISABLE_libuhdr=1
             # For icc, use fp-model precise to eliminate needless LSB errors
             # that make test results differ from other platforms.
           - desc: icx/C++17 py3.9 exr3.1 ocio2.2 qt5.15
@@ -120,8 +121,12 @@ jobs:
             simd: "avx2,f16c"
             setenvs: export USE_OPENVDB=0
                             OPENCOLORIO_CXX=g++
+                            UHDR_CMAKE_C_COMPILER=gcc
+                            UHDR_CMAKE_CXX_COMPILER=g++
             # OCIO doesn't build with icx, so we have to force the ocio build
             # to use g++.
+            # Building libuhdr with icx results in test failures
+            # so we force using gcc/g++.
           - desc: sanitizers
             nametag: sanitizer
             runner: ubuntu-latest
@@ -213,7 +218,7 @@ jobs:
             pybind11_ver: v2.10.0
             skip_tests: 1
             # abi_check: v2.6.2.0
-            abi_check: db9fe349d007feeceb25f3b6fec8f12ff54d6ea3
+            abi_check: 7929c81619ea8201065c475761546d51091f6773
             setenvs: export OIIO_CMAKE_FLAGS="-DOIIO_BUILD_TOOLS=0 -DOIIO_BUILD_TESTS=0 -DUSE_PYTHON=0"
                             USE_OPENCV=0 USE_FFMPEG=0 USE_PYTHON=0 USE_FREETYPE=0
                             CMAKE_BUILD_TYPE=RelWithDebInfo
@@ -506,16 +511,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - desc: MacOS-12
-            runner: macos-12
-            nametag: macos12-py310
-            cc_compiler: clang
-            cxx_compiler: clang++
-            cxx_std: 17
-            python_ver: "3.11"
-            aclang: 13
-            setenvs: export INSTALL_QT=0 INSTALL_OPENCV=0
-          - desc: MacOS-13
+          - desc: MacOS-13-Intel
             runner: macos-13
             nametag: macos13-py311
             cc_compiler: clang
@@ -524,6 +520,7 @@ jobs:
             python_ver: "3.11"
             aclang: 14
             simd: sse4.2,avx2
+            setenvs: export MACOSX_DEPLOYMENT_TARGET=12.0
           - desc: MacOS-14-ARM
             runner: macos-14
             nametag: macos14-arm-py312
@@ -532,6 +529,14 @@ jobs:
             cxx_std: 20
             python_ver: "3.12"
             aclang: 15
+          - desc: MacOS-15-ARM
+            runner: macos-15
+            nametag: macos15-arm-py313
+            cc_compiler: clang
+            cxx_compiler: clang++
+            cxx_std: 20
+            python_ver: "3.13"
+            aclang: 16
     runs-on: ${{ matrix.runner }}
     env:
       CXX: ${{matrix.cxx_compiler}}
