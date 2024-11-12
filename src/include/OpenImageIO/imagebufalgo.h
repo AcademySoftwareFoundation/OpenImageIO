@@ -129,6 +129,14 @@ class Filter2D;
 /// `OIIO::attribute()`, which itself defaults to be the detected level of
 /// hardware concurrency (number of cores available).
 ///
+/// Specifying a negative number for `nthreads` will reserve `-nthreads`
+/// threads. In this case the actual number of threads used is the number of
+/// cores + `nthreads` + 1.  One thread is always reserved for the caller.
+/// For example, on a 32 core system specifying `nthreads` as -2 means the
+/// OpenImageIO will use 31 cores: 32 + `nthreads` + 1. If `-nthreads` is
+/// specified larger than the number of available cores only a single core will
+/// be used.
+///
 /// Generally you can ignore this parameter (or pass 0), meaning to use all
 /// the cores available in order to perform the computation as quickly as
 /// possible.  The main reason to explicitly pass a different number
@@ -680,14 +688,14 @@ bool OIIO_API resize(ImageBuf &dst, const ImageBuf &src, KWArgs options = {},
 /// corresponding portion of `src` (mapping such that the "full" image
 /// window of each correspond to each other, regardless of resolution).  If
 /// `dst` is not yet initialized, it will be sized according to `roi`.
-/// 
+///
 /// Unlike `ImageBufAlgo::resize()`, `resample()` does not take a filter; it
 /// just samples either with a bilinear interpolation (if `interpolate` is
 /// `true`, the default) or uses the single "closest" pixel (if
 /// `interpolate` is `false`).  This makes it a lot faster than a proper
 /// `resize()`, though obviously with lower quality (aliasing when
 /// downsizing, pixel replication when upsizing).
-/// 
+///
 /// For "deep" images, this function returns copies the closest source pixel
 /// needed, rather than attempting to interpolate deep pixels (regardless of
 /// the value of `interpolate`).
@@ -880,12 +888,12 @@ bool OIIO_API warp(ImageBuf &dst, const ImageBuf &src, M33fParam M,
 /// @param flip_s
 ///             Whether to mirror the "s" coordinate along the horizontal axis
 ///             when computing source pixel positions. This is useful if the
-///             coordinates are defined in terms of a different image origin 
+///             coordinates are defined in terms of a different image origin
 ///             than OpenImageIO's.
 /// @param flip_t
 ///             Whether to mirror the "t" coordinate along the vertical axis
 ///             when computing source pixel positions. This is useful if the
-///             coordinates are defined in terms of a different image origin 
+///             coordinates are defined in terms of a different image origin
 ///             than OpenImageIO's.
 
 ImageBuf OIIO_API st_warp (const ImageBuf &src, const ImageBuf& stbuf,
@@ -1082,13 +1090,13 @@ bool OIIO_API pow (ImageBuf &dst, const ImageBuf &A, cspan<float> B,
 /// Expressed another way, the computation is conceptually:
 ///
 ///     out = outCenter + scale * (in - inCenter) / length(in - inCenter)
-/// 
+///
 bool OIIO_API normalize(ImageBuf& dst, const ImageBuf& A, float inCenter=0.0f,
                         float outCenter=0.0f, float scale=1.0f,
                         ROI roi={}, int nthreads=0);
 
 ImageBuf OIIO_API normalize(const ImageBuf& A, float inCenter=0.0f,
-                            float outCenter=0.0, float scale=1.0f, 
+                            float outCenter=0.0, float scale=1.0f,
                             ROI roi={}, int nthreads=0);
 
 
@@ -1462,12 +1470,12 @@ OIIO_API bool isMonochrome (const ImageBuf &src, float threshold=0.0f,
 
 /// Count how many pixels in the ROI match a list of colors. The colors to
 /// match are in:
-/// 
+///
 ///     colors[0 ... nchans-1]
 ///     colors[nchans ... 2*nchans-1]
 ///     ...
 ///     colors[(ncolors-1)*nchans ... (ncolors*nchans)-1]
-/// 
+///
 /// and so on, a total of `ncolors` consecutively stored colors of `nchans`
 /// channels each (`nchans` is the number of channels in the image, itself,
 /// it is not passed as a parameter).
@@ -1491,10 +1499,10 @@ bool OIIO_API color_count (const ImageBuf &src, imagesize_t *count,
 /// value range described by `low[roi.chbegin..roi.chend-1]` and
 /// `high[roi.chbegin..roi.chend-1]` as the low and high acceptable values
 /// for each color channel.
-/// 
+///
 /// The number of pixels containing values that fall below the lower bound
 /// will be stored in `*lowcount`, the number of pixels containing
-/// values that fall above the upper bound will be stored in 
+/// values that fall above the upper bound will be stored in
 /// `*highcount`, and the number of pixels for which all channels fell
 /// within the bounds will be stored in `*inrangecount`.  Any of these
 /// may be NULL, which simply means that the counts need not be collected or
@@ -1651,16 +1659,16 @@ bool OIIO_API ifft (ImageBuf &dst, const ImageBuf &src, ROI roi={}, int nthreads
 /// channels are interpreted as complex values (real and imaginary
 /// components) into the equivalent values expressed in polar form of
 /// amplitude and phase (with phase between 0 and \f$ 2\pi \f$.
-/// 
+///
 /// The `complex_to_polar()` function performs the reverse transformation,
 /// converting from  polar values (amplitude and phase) to complex (real and
 /// imaginary).
-/// 
+///
 /// In either case,  the section of `src` denoted by `roi` is transformed,
 /// storing the result in `dst`. If `roi` is not defined, it will be all of
 /// `src`'s pixels.  Only the first two channels of `src` will be
 /// transformed.
-/// 
+///
 /// The transformation between the two representations are:
 ///
 ///     real = amplitude * cos(phase);
@@ -1760,7 +1768,7 @@ bool OIIO_API median_filter (ImageBuf &dst, const ImageBuf &src,
 /// a blurring convolution (Gaussian and other blurs sometimes over-sharpen
 /// edges, whereas using the median filter will sharpen compact
 /// high-frequency details while not over-sharpening long edges).
-/// 
+///
 /// The `contrast` is a multiplier on the overall sharpening effect.  The
 /// thresholding step causes all differences less than `threshold` to be
 /// squashed to zero, which can be useful for suppressing sharpening of
@@ -2156,7 +2164,7 @@ bool OIIO_API repremult (ImageBuf &dst, const ImageBuf &src,
 ///     The demosaicing algorithm, pattern-specific.
 ///     The following algorithms are supported for Bayer-pattern images:
 ///     - `linear` - simple bilinear demosaicing. Fast, but can produce artefacts along sharp edges.
-///     - `MHC` - Malvar-He-Cutler linear demosaicing algorithm. Slower than `linear`, but produces 
+///     - `MHC` - Malvar-He-Cutler linear demosaicing algorithm. Slower than `linear`, but produces
 ///       significantly better results.
 ///
 ///   - "layout" : string (default: "RGGB")
