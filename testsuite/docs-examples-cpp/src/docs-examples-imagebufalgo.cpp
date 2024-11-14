@@ -498,8 +498,7 @@ void example_demosaic()
     // BEGIN-imagebufalgo-demosaic
     ImageSpec hint;
     hint["raw:Demosaic"] = "none";
-    ImageBuf Src("bayer.dng", 0, 0, nullptr, &hint);
-    Src = ImageBufAlgo::sub(Src, 2048.0/65535.0);
+    ImageBuf Src("bayer.png", 0, 0, nullptr, &hint);
     float WB[3] = {2.0, 1.0, 1.5};
     ParamValue options[] = {
         { "layout", "BGGR" },
@@ -507,7 +506,7 @@ void example_demosaic()
     };
     ImageBuf Dst = ImageBufAlgo::demosaic(Src, options);
     // END-imagebufalgo-demosaic
-    Dst.write("demosaic.exr");
+    Dst.write("demosaic.png");
 }
 
 
