@@ -434,6 +434,17 @@ def example_warp():
     # END-imagebufalgo-warp
     Dst.write("warp.exr", "half")
 
+def example_demosaic():
+    print("example_demosaic")
+    # BEGIN-imagebufalgo-demosaic
+    hint = ImageSpec()
+    hint["raw:Demosaic"] = "none"
+    Src = ImageBuf("bayer.dng", 0, 0, hint)
+    WB_RGBG = (2.0, 1.0, 1.5, 1.0)
+    Dst = OpenImageIO.ImageBufAlgo.demosaic(Src, layout="BGGR",
+      white_balance = WB_RGBG)
+    # END-imagebufalgo-demosaic
+    Dst.write("warp.exr", "half")
 
 # Section: Image Arithmetic
 def example_add():
@@ -610,6 +621,7 @@ if __name__ == '__main__':
     example_resample()
     example_fit()
     example_warp()
+    example_demosaic()
 
     # Section: Image Arithmetic
     example_add()
