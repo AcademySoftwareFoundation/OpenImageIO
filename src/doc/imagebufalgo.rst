@@ -1177,8 +1177,8 @@ Shuffling channels
 
           .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
              :language: py
-             :start-after: BEGIN-imagebufalgo-add
-             :end-before: END-imagebufalgo-add
+             :start-after: BEGIN-imagebufalgo-demosaic
+             :end-before: END-imagebufalgo-demosaic
              :dedent: 4
 
        .. code-tab:: bash oiiotool

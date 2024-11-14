@@ -507,7 +507,7 @@ void example_demosaic()
     };
     ImageBuf Dst = ImageBufAlgo::demosaic(Src, options);
     // END-imagebufalgo-demosaic
-    Dst.write("demosaic_.exr");
+    Dst.write("demosaic.exr");
 }
 
 
