@@ -757,7 +757,7 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
     // EXR "name" also gets passed along as "oiio:subimagename".
     const char* partname;
     if (exr_get_name(ctxt, subimage, &partname) == EXR_ERR_SUCCESS) {
-        if (partname && partname[0] != '\0')
+        if (partname)
             spec.attribute("oiio:subimagename", partname);
     }
 
