@@ -269,10 +269,13 @@ bool CSHA1::ReportHash(TCHAR* tszReport, REPORT_TYPE rtReportType) const
 		_sntprintf(tszTemp, 15, _T("%02X"), m_digest[0]);
 		Strutil::safe_strcpy(tszReport, tszTemp, HASH_TEMP_BUFFER_SIZE - 1);
 
-		const TCHAR* lpFmt = ((rtReportType == REPORT_HEX) ? _T(" %02X") : _T("%02X"));
+		// const TCHAR* lpFmt = ((rtReportType == REPORT_HEX) ? _T(" %02X") : _T("%02X"));
 		for(size_t i = 1; i < 20; ++i)
 		{
-			_sntprintf(tszTemp, 15, lpFmt, m_digest[i]);
+			if (rtReportType == REPORT_HEX)
+				_sntprintf(tszTemp, 15, _T(" %02X"), m_digest[i]);
+			else
+				_sntprintf(tszTemp, 15, _T("%02X"), m_digest[i]);
 			Strutil::safe_strcat(tszReport, tszTemp, HASH_TEMP_BUFFER_SIZE - 1);
 		}
 	}
