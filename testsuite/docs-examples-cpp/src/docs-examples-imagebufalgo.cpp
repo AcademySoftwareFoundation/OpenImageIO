@@ -496,9 +496,7 @@ void example_demosaic()
 {
     print("example_demosaic\n");
     // BEGIN-imagebufalgo-demosaic
-    ImageSpec hint;
-    hint["raw:Demosaic"] = "none";
-    ImageBuf Src("bayer.png", 0, 0, nullptr, &hint);
+    ImageBuf Src("bayer.png");
     float WB[3] = {2.0, 1.0, 1.5};
     ParamValue options[] = {
         { "layout", "BGGR" },

@@ -437,9 +437,7 @@ def example_warp():
 def example_demosaic():
     print("example_demosaic")
     # BEGIN-imagebufalgo-demosaic
-    hint = ImageSpec()
-    hint["raw:Demosaic"] = "none"
-    Src = ImageBuf("bayer.png", 0, 0, hint)
+    Src = ImageBuf("bayer.png")
     WB_RGBG = (2.0, 1.0, 1.5, 1.0)
     Dst = ImageBufAlgo.demosaic(Src, layout="BGGR",
       white_balance = WB_RGBG)
