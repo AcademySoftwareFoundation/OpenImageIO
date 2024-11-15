@@ -47,7 +47,7 @@ resolution and other metadata about the image in the file, reading or writing
 scanlines or tiles to/from caller-provided memory, and closing the file.
 
 All the details of the individual file formats and how the data is arranged or
-stored in the file are hidden by these classe. Furthermore, when reading or
+stored in the file are hidden by these classes. Furthermore, when reading or
 writing scanlines or tiles, the caller-side memory can use any of several
 different common data types (sometimes called "data formats" or "formats" in
 OIIO) such as `float`, `half`, 8 or 16 bit integers, etc. The `ImageInput` and
@@ -62,7 +62,7 @@ that all the different file formats might make. For example, on the
 have pixels that are 8- 16- or 32-bit int (signed or unsigned), 16- 32- or
 64-bit float. If the pixel data in the file uses another data type, or a
 number of bits per channel that is not 8, 16, or 32, those details are hidden
-from the application. There are many other such simpifications.
+from the application. There are many other such simplifications.
 
 ## Low level: File format implementations
 
@@ -167,13 +167,13 @@ The main APIs, and the underlying implementation, are in C++ (currently
 using C++17 features).
 
 A Python binding is provided, currently using the pybind11 library to
-generate the Pythong bindings for each C++ class or function.
+generate the Python bindings for each C++ class or function.
 
 There is an effort underway to eventually provide a Rust binding.
 
 ## Helper classes
 
-Several image-releated auxiliary classes are used by the public APIs of the
+Several image-related auxiliary classes are used by the public APIs of the
 image- and file-oriented classes described above. The most important ones are:
 
 - `ImageSpec` stores the specification for an image: its resolution, pixel data
