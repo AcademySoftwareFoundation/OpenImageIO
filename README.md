@@ -101,6 +101,11 @@ is the best place to start if you are interested in how to use OpenImageIO,
 its APIs, its component programs (once they are built). There is also a [PDF
 version](https://readthedocs.org/projects/openimageio/downloads/pdf/latest/).
 
+Additional resources:
+
+- [User quick start](docs/QuickStart.md) is a quick example of using
+  OpenImageIO in Python, C++, and the command line.
+
 
 👷 Building and installing OpenImageIO
 --------------------------------------

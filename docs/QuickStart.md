@@ -1,5 +1,11 @@
-OpenImageIO Quick Start
-=======================
+OpenImageIO Usage Quick Start
+=============================
+
+> [!NOTE]
+> For information about how to *install* or *build* OpenImageIO, please see
+> the [INSTALL guide](../INSTALL.md). This "Usage Quick Start" guide is
+> intended to help you get started using OpenImageIO once you have it
+> installed.
 
 To illustrate how to do a simple common image operation -- reading a TIFF file
 and writing it back as an OpenEXR file, with all necessary conversions -- we
@@ -81,3 +87,8 @@ output.write_image(pixels)
 # all the pixel values of the image.
 ```
 
+### Next Steps
+
+This is just a simple example to give you a flavor of the different major
+interfaces. For more advanced usage, you may want to explore the
+[documentation](https://docs.openimageio.org).
