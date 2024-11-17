@@ -25,6 +25,18 @@ Our policy is to address critical security vulnerabilities rapidly and post
 patches as quickly as possible.
 
 
+## Other security features
+
+### Signed tags
+Starting with OpenImageIO 3.0, we cryptographically sign release tags.
+To verify a tag, you can use the `git tag -v` command, which will check
+the signature against the public key that is included in the repository.
+For example,
+
+```bash
+git tag -v v3.0.0.3
+```
+
 ## Outstanding Security Issues
 
 None known
