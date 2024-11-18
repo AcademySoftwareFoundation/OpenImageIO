@@ -136,12 +136,16 @@ macro (oiio_add_all_tests)
                     iinfo igrep
                     nonwhole-tiles
                     oiiotool
-                    oiiotool-composite oiiotool-control oiiotool-copy
+                    oiiotool-composite
+                    oiiotool-control
+                    oiiotool-copy
+                    oiiotool-demosaic
                     oiiotool-fixnan
                     oiiotool-pattern
                     oiiotool-readerror
-                    oiiotool-subimage oiiotool-text oiiotool-xform
-                    oiiotool-demosaic
+                    oiiotool-subimage
+                    oiiotool-text
+                    oiiotool-xform
                     diff
                     dither dup-channels
                     jpeg-corrupt jpeg-metadata

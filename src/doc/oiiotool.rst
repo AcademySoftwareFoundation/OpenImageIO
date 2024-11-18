@@ -4184,6 +4184,36 @@ current top image.
 
 
 
+.. option:: --demosaic
+
+    Demosaic a raw digital camera image.
+
+    Optional appended modifiers include:
+
+      `pattern=` *name*
+        sensor pattern. Currently supported patterns: "bayer"
+      `layout=` *name*
+        photosite order of the specified pattern. For layouts of the Bayer
+        pattern supported: "RGGB", "GRBG", "GBRG", "BGGR".
+      `algorithm=` *name*
+        the name of the algorithm to use: "linear"(simple bilinear demosaicing),
+        "MHC"(Malvar-He-Cutler algorithm)
+      `white-balance=` *v1,v2,v3...*
+        optional white balance weights, can contain either three (R,G,B) or four
+        (R,G1,B,G2) values. The order of the white balance multipliers is as
+        specified, it does not depend on the matrix layout.
+
+    Examples::
+
+         oiiotool --iconfig raw:Demosaic none --input test.cr3 --demosaic \
+            --output out.exr
+
+         oiiotool --iconfig raw:Demosaic none --input test.cr3 \
+            --demosaic:pattern=bayer:layout=GRBG:algorithm=MHC:white_balance=2.0,0.8,1.2,1.5 \
+            --output out.exr
+
+
+
 :program:`oiiotool` commands for color management
 =================================================
 
