@@ -18,6 +18,7 @@ namespace {
 static const ustring pattern_us("pattern");
 static const ustring algorithm_us("algorithm");
 static const ustring layout_us("layout");
+static const ustring white_balance_us("white_balance");
 
 }  // namespace
 
@@ -31,7 +32,17 @@ protected:
         /// the source iterator.
         struct Row {
             ImageBuf::ConstIterator<Atype> iterator;
+            float white_balance[2];
+            int x_offset;
             float data[size];
+
+            float fetch()
+            {
+                float result = iterator[0] * white_balance[x_offset];
+                iterator++;
+                x_offset = 1 - x_offset;
+                return result;
+            }
         };
 
         std::vector<Row> rows;
@@ -46,7 +57,8 @@ protected:
         int src_yend;
         int x;
 
-        Window(int y, int xbegin, const ImageBuf& src)
+        Window(int y, int xbegin, const ImageBuf& src, int x_offset,
+               int y_offset, const float white_balance[4])
         {
             assert(size >= 3);
             assert(size % 2 == 1);
@@ -78,12 +90,15 @@ protected:
                     ystart = src_yend - 1 - (ystart - src_yend + 1) % 2;
                 }
 
-                Row row
-                    = { ImageBuf::ConstIterator<Atype>(src, xstart, ystart) };
+                int x_off = (xstart + x_offset) % 2;
+                int y_off = ((ystart + y_offset) % 2) * 2;
+
+                Row row = { ImageBuf::ConstIterator<Atype>(src, xstart, ystart),
+                            { white_balance[y_off], white_balance[y_off + 1] },
+                            x_off };
 
                 for (int j = skip; j < size; j++) {
-                    row.data[j] = row.iterator[0];
-                    row.iterator++;
+                    row.data[j] = row.fetch();
                 }
 
                 for (int j = 0; j < skip; j++) {
@@ -113,8 +128,7 @@ protected:
             if (x + size / 2 < src_xend) {
                 for (int i = 0; i < size; i++) {
                     Row& row       = rows[i];
-                    row.data[curr] = row.iterator[0];
-                    row.iterator++;
+                    row.data[curr] = row.fetch();
                 }
             } else {
                 int src = column_mapping[size - 3];
@@ -141,7 +155,7 @@ protected:
 
 public:
     bool process(ImageBuf& dst, const ImageBuf& src, const std::string& layout,
-                 ROI roi, int nthreads)
+                 const float white_balance[4], ROI roi, int nthreads)
     {
         int x_offset, y_offset;
 
@@ -167,7 +181,7 @@ public:
 
             for (int y = roi.ybegin; y < roi.yend; y++) {
                 typename BayerDemosaicing<Rtype, Atype, size>::Window window(
-                    y, roi.xbegin, src);
+                    y, roi.xbegin, src, x_offset, y_offset, white_balance);
 
                 int r          = (y_offset + y) % 2;
                 Decoder calc_0 = decoders[r][(x_offset + roi.xbegin + 0) % 2];
@@ -360,20 +374,21 @@ public:
 template<class Rtype, class Atype>
 static bool
 bayer_demosaic_linear_impl(ImageBuf& dst, const ImageBuf& src,
-                           const std::string& bayer_pattern, ROI roi,
-                           int nthreads)
+                           const std::string& bayer_pattern,
+                           const float white_balance[4], ROI roi, int nthreads)
 {
     LinearBayerDemosaicing<Rtype, Atype> obj;
-    return obj.process(dst, src, bayer_pattern, roi, nthreads);
+    return obj.process(dst, src, bayer_pattern, white_balance, roi, nthreads);
 }
 
 template<class Rtype, class Atype>
 static bool
 bayer_demosaic_MHC_impl(ImageBuf& dst, const ImageBuf& src,
-                        const std::string& bayer_pattern, ROI roi, int nthreads)
+                        const std::string& bayer_pattern,
+                        const float white_balance[4], ROI roi, int nthreads)
 {
     MHCBayerDemosaicing<Rtype, Atype> obj;
-    return obj.process(dst, src, bayer_pattern, roi, nthreads);
+    return obj.process(dst, src, bayer_pattern, white_balance, roi, nthreads);
 
     return true;
 }
@@ -389,6 +404,7 @@ ImageBufAlgo::demosaic(ImageBuf& dst, const ImageBuf& src, KWArgs options,
     std::string pattern;
     std::string algorithm;
     std::string layout;
+    float white_balance_RGGB[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
     for (auto&& pv : options) {
         if (pv.name() == pattern_us) {
@@ -409,6 +425,25 @@ ImageBufAlgo::demosaic(ImageBuf& dst, const ImageBuf& src, KWArgs options,
             } else {
                 dst.errorfmt("ImageBufAlgo::demosaic() invalid layout");
             }
+        } else if (pv.name() == white_balance_us) {
+            if (pv.type() == TypeFloat && pv.nvalues() == 4) {
+                // The order in the options is always (R,G1,B,G2)
+                white_balance_RGGB[0] = pv.get_float_indexed(0);
+                white_balance_RGGB[1] = pv.get_float_indexed(1);
+                white_balance_RGGB[2] = pv.get_float_indexed(3);
+                white_balance_RGGB[3] = pv.get_float_indexed(2);
+
+                if (white_balance_RGGB[2] == 0)
+                    white_balance_RGGB[2] = white_balance_RGGB[1];
+            } else if (pv.type() == TypeFloat && pv.nvalues() == 3) {
+                // The order in the options is always (R,G,B)
+                white_balance_RGGB[0] = pv.get_float_indexed(0);
+                white_balance_RGGB[1] = pv.get_float_indexed(1);
+                white_balance_RGGB[2] = white_balance_RGGB[1];
+                white_balance_RGGB[3] = pv.get_float_indexed(2);
+            } else {
+                dst.errorfmt("ImageBufAlgo::demosaic() invalid white balance");
+            }
         } else {
             dst.errorfmt("ImageBufAlgo::demosaic() unknown parameter {}",
                          pv.name());
@@ -418,7 +453,7 @@ ImageBufAlgo::demosaic(ImageBuf& dst, const ImageBuf& src, KWArgs options,
 
     ROI dst_roi = roi;
     if (!dst_roi.defined()) {
-        dst_roi = src.roi_full();
+        dst_roi = src.roi();
     }
 
     dst_roi.chbegin = 0;
@@ -449,12 +484,14 @@ ImageBufAlgo::demosaic(ImageBuf& dst, const ImageBuf& src, KWArgs options,
             OIIO_DISPATCH_COMMON_TYPES2(ok, "bayer_demosaic_linear",
                                         bayer_demosaic_linear_impl,
                                         dst.spec().format, src.spec().format,
-                                        dst, src, layout, dst_roi, nthreads);
+                                        dst, src, layout, white_balance_RGGB,
+                                        dst_roi, nthreads);
         } else if (algorithm == "MHC") {
             OIIO_DISPATCH_COMMON_TYPES2(ok, "bayer_demosaic_MHC",
                                         bayer_demosaic_MHC_impl,
                                         dst.spec().format, src.spec().format,
-                                        dst, src, layout, dst_roi, nthreads);
+                                        dst, src, layout, white_balance_RGGB,
+                                        dst_roi, nthreads);
         } else {
             dst.errorfmt("ImageBufAlgo::demosaic() invalid algorithm");
         }

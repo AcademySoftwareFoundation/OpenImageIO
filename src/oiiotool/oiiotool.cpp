@@ -3470,14 +3470,28 @@ OIIOTOOL_OP(warp, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
 
 // --demosaic
 OIIOTOOL_OP(demosaic, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
-    std::string pattern   = op.options().get_string("pattern");
-    std::string algorithm = op.options().get_string("algorithm");
-    std::string layout    = op.options().get_string("layout");
+    ParamValueList list;
+    const std::vector<std::string> keys = { "pattern", "algorithm", "layout" };
+    for (const auto& key : keys) {
+        auto iter = op.options().find(key);
+        if (iter != op.options().cend()) {
+            list.push_back(iter[0]);
+        }
+    }
 
-    return ImageBufAlgo::demosaic(*img[0], *img[1],
-                                  { { "pattern", pattern },
-                                    { "algorithm", algorithm },
-                                    { "layout", layout } });
+    std::string wb = op.options()["white_balance"];
+    string_view str(wb);
+    float f3[3];
+    float f4[4];
+    if (Strutil::parse_values(str, "", f4, ",") && str.empty()) {
+        ParamValue pv("white_balance", TypeFloat, 4, f4);
+        list.push_back(pv);
+    } else if (Strutil::parse_values(str, "", f3, ",") && str.empty()) {
+        ParamValue pv("white_balance", TypeFloat, 3, f3);
+        list.push_back(pv);
+    }
+
+    return ImageBufAlgo::demosaic(*img[0], *img[1], KWArgs(list));
 });
 
 
@@ -6850,7 +6864,7 @@ Oiiotool::getargs(int argc, char* argv[])
       .help("Render text into the current image (options: x=, y=, size=, color=)")
       .OTACTION(action_text);
     ap.arg("--demosaic")
-      .help("Demosaic (options: pattern=%s, algorithm=%s, layout=%s)")
+      .help("Demosaic (options: pattern=%s, algorithm=%s, layout=%s, white_balance=%f:R,G1,G2,B)")
       .OTACTION(action_demosaic);
 
     ap.separator("Manipulating channels or subimages:");

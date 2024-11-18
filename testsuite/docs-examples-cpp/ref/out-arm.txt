@@ -28,6 +28,7 @@ example_resize
 example_resample
 example_fit
 example_warp
+example_demosaic
 example_add
 example_sub
 example_absdiff

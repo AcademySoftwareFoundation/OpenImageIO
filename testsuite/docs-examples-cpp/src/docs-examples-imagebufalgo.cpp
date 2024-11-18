@@ -492,6 +492,21 @@ void example_warp()
     Dst.write("warp.exr");
 }
 
+void example_demosaic()
+{
+    print("example_demosaic\n");
+    // BEGIN-imagebufalgo-demosaic
+    ImageBuf Src("bayer.png");
+    float WB[3] = {2.0, 1.0, 1.5};
+    ParamValue options[] = {
+        { "layout", "BGGR" },
+        ParamValue("white_balance", TypeFloat, 3, WB)
+    };
+    ImageBuf Dst = ImageBufAlgo::demosaic(Src, options);
+    // END-imagebufalgo-demosaic
+    Dst.write("demosaic.png");
+}
+
 
 // Section: Image Arithmetic
 void example_add()
@@ -703,6 +718,7 @@ int main(int /*argc*/, char** /*argv*/)
     example_resample();
     example_fit();
     example_warp();
+    example_demosaic();
 
     // Section: Image Arithmetic
     example_add();

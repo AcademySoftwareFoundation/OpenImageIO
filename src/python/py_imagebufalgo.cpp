@@ -2377,28 +2377,38 @@ IBA_make_texture_filename(ImageBufAlgo::MakeTextureMode mode,
 ImageBuf
 IBA_demosaic_ret(const ImageBuf& src, const std::string& pattern = "",
                  const std::string& algorithm = "",
-                 const std::string& layout = "", ROI roi = ROI::All(),
+                 const std::string& layout    = "",
+                 py::object white_balance = py::none(), ROI roi = ROI::All(),
                  int nthreads = 0)
 {
     py::gil_scoped_release gil;
+    std::vector<float> wb;
+    py_to_stdvector(wb, white_balance);
     return ImageBufAlgo::demosaic(src,
                                   { { "pattern", pattern },
                                     { "algorithm", algorithm },
-                                    { "layout", layout } },
+                                    { "layout", layout },
+                                    ParamValue("white_balance", TypeFloat,
+                                               wb.size(), wb.data()) },
                                   roi, nthreads);
 }
 
 bool
 IBA_demosaic(ImageBuf& dst, const ImageBuf& src,
              const std::string& pattern = "", const std::string& algorithm = "",
-             const std::string& layout = "", ROI roi = ROI::All(),
+             const std::string& layout = "",
+             py::object white_balance = py::none(), ROI roi = ROI::All(),
              int nthreads = 0)
 {
     py::gil_scoped_release gil;
+    std::vector<float> wb;
+    py_to_stdvector(wb, white_balance);
     return ImageBufAlgo::demosaic(dst, src,
                                   { { "pattern", pattern },
                                     { "algorithm", algorithm },
-                                    { "layout", layout } },
+                                    { "layout", layout },
+                                    ParamValue("white_balance", TypeFloat,
+                                               wb.size(), wb.data()) },
                                   roi, nthreads);
 }
 
@@ -3106,9 +3116,11 @@ declare_imagebufalgo(py::module& m)
 
         .def_static("demosaic", &IBA_demosaic, "dst"_a, "src"_a,
                     "pattern"_a = "", "algorithm"_a = "", "layout"_a = "",
-                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+                    "white_balance"_a = py::none(), "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
         .def_static("demosaic", &IBA_demosaic_ret, "src"_a, "pattern"_a = "",
-                    "algorithm"_a = "", "layout"_a = "", "roi"_a = ROI::All(),
+                    "algorithm"_a = "", "layout"_a = "",
+                    "white_balance"_a = py::none(), "roi"_a = ROI::All(),
                     "nthreads"_a = 0);
 }
 
