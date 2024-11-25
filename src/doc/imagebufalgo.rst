@@ -1357,7 +1357,7 @@ Image arithmetic
        .. code-tab:: bash oiiotool
 
           # Pixel-by-pixel multiplication of all channels of one image by the only channel of another image
-          oiiotol a.exr mono.exr --scale -o scale.exr
+          oiiotool a.exr mono.exr --scale -o scale.exr
 
 |
 
