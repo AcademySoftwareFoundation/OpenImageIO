@@ -955,6 +955,17 @@ bool OIIO_API abs (ImageBuf &dst, const ImageBuf &A, ROI roi={}, int nthreads=0)
 
 /// Compute per-pixel product `A * B`, returning the result image.
 ///
+/// All channels of one of the images get multiplied by the value in the only channel of the other image.
+/// Either `A` or `B` must be a single channel image.
+ImageBuf OIIO_API scale (const ImageBuf &A, const ImageBuf &B, ROI roi={},
+                         int nthreads=0);
+/// Write to an existing image `dst` (allocating if it is uninitialized).
+bool OIIO_API scale (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
+                   ROI roi={}, int nthreads=0);
+
+
+/// Compute per-pixel product `A * B`, returning the result image.
+///
 /// Either both `A` and `B` are images, or one is an image and the other is
 /// a `cspan<float>` giving a per-channel constant or a single constant
 /// used for all channels.

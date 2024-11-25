@@ -33,6 +33,7 @@ example_add
 example_sub
 example_absdiff
 example_abs
+example_scale
 example_mul
 example_div
 example_fixNonFinite
