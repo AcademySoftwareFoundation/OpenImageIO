@@ -1700,17 +1700,17 @@ OpenEXROutput::write_deep_scanlines(int ybegin, int yend, int /*z*/,
         return false;
     }
 
-    int nchans         = m_spec.nchannels;
+    size_t nchans(m_spec.nchannels);
     const DeepData* dd = &deepdata;
     std::unique_ptr<DeepData> dd_local;  // In case we need a copy
     bool same_chantypes = true;
-    for (int c = 0; c < nchans; ++c)
+    for (size_t c = 0; c < nchans; ++c)
         same_chantypes &= (m_spec.channelformat(c) == deepdata.channeltype(c));
     if (!same_chantypes) {
         // If the channel types don't match, we need to make a copy of the
         // DeepData and convert the channels to the spec's channel types.
         std::vector<TypeDesc> chantypes;
-        if (m_spec.channelformats.size() == size_t(nchans))
+        if (m_spec.channelformats.size() == nchans)
             chantypes = m_spec.channelformats;
         else
             chantypes.resize(nchans, m_spec.format);
@@ -1729,11 +1729,11 @@ OpenEXROutput::write_deep_scanlines(int ybegin, int yend, int /*z*/,
         frameBuffer.insertSampleCountSlice(countslice);
         std::vector<void*> pointerbuf;
         dd->get_pointers(pointerbuf);
-        size_t slchans      = size_t(m_spec.width) * size_t(nchans);
-        size_t xstride      = sizeof(void*) * size_t(nchans);
+        size_t slchans      = size_t(m_spec.width) * nchans;
+        size_t xstride      = sizeof(void*) * nchans;
         size_t ystride      = sizeof(void*) * slchans;
         size_t samplestride = dd->samplesize();
-        for (int c = 0; c < nchans; ++c) {
+        for (size_t c = 0; c < nchans; ++c) {
             Imf::DeepSlice slice(m_pixeltype[c],
                                  (char*)(&pointerbuf[c] - m_spec.x * nchans
                                          - ybegin * slchans),
