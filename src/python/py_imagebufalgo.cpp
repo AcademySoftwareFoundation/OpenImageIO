@@ -657,7 +657,7 @@ IBA_scale_images(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
                  ROI roi = ROI::All(), int nthreads = 0)
 {
     py::gil_scoped_release gil;
-    return ImageBufAlgo::scale(dst, A, B, roi, nthreads);
+    return ImageBufAlgo::scale(dst, A, B, {}, roi, nthreads);
 }
 
 ImageBuf
@@ -665,7 +665,7 @@ IBA_scale_images_ret(const ImageBuf& A, const ImageBuf& B, ROI roi = ROI::All(),
                      int nthreads = 0)
 {
     py::gil_scoped_release gil;
-    return ImageBufAlgo::scale(A, B, roi, nthreads);
+    return ImageBufAlgo::scale(A, B, {}, roi, nthreads);
 }
 
 bool
