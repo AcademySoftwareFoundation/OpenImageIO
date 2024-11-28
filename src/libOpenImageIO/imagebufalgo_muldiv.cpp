@@ -45,7 +45,7 @@ scale_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
 
 bool
 ImageBufAlgo::scale(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
-                    ROI roi, int nthreads)
+                    KWArgs options, ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::scale");
     bool ok = false;
@@ -72,10 +72,11 @@ ImageBufAlgo::scale(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
 
 
 ImageBuf
-ImageBufAlgo::scale(const ImageBuf& A, const ImageBuf& B, ROI roi, int nthreads)
+ImageBufAlgo::scale(const ImageBuf& A, const ImageBuf& B, KWArgs options,
+                    ROI roi, int nthreads)
 {
     ImageBuf result;
-    bool ok = scale(result, A, B, roi, nthreads);
+    bool ok = scale(result, A, B, options, roi, nthreads);
     if (!ok && !result.has_error())
         result.errorfmt("ImageBufAlgo::scale() error");
     return result;
@@ -149,8 +150,6 @@ ImageBufAlgo::mul(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_, ROI roi,
     pvt::LoggedTimer logtime("IBA::mul");
     if (A_.is_img() && B_.is_img()) {
         const ImageBuf &A(A_.img()), &B(B_.img());
-        if (A.nchannels() == 1 || B.nchannels() == 1)
-            return scale(dst, A, B, roi, nthreads);
         if (!IBAprep(roi, &dst, &A, &B, IBAprep_CLAMP_MUTUAL_NCHANNELS))
             return false;
         bool ok;
