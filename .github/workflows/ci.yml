@@ -30,8 +30,8 @@ permissions: read-all
 
 jobs:
 
-  aswf:
-    name: "VFX${{matrix.vfxyear}} ${{matrix.desc}}"
+  aswf-old:
+    name: "OLD VFX${{matrix.vfxyear}} ${{matrix.desc}}"
     strategy:
       fail-fast: false
       matrix:
@@ -131,40 +131,20 @@ jobs:
             simd: "avx2,f16c"
             pybind11_ver: v2.9.0
             setenvs: export USE_OPENVDB=0
-          - desc: sanitizers
-            nametag: sanitizer
-            runner: ubuntu-latest
-            container: aswf/ci-osl:2022-clang13
-            vfxyear: 2022
-            cc_compiler: clang
-            cxx_compiler: clang++
-            cxx_std: 17
-            python_ver: 3.9
-            setenvs: export SANITIZE=address,undefined
-                            OIIO_CMAKE_FLAGS="-DSANITIZE=address,undefined -DUSE_PYTHON=0"
-                            CMAKE_BUILD_TYPE=Debug
-                            CTEST_TEST_TIMEOUT=1200
-                            CTEST_EXCLUSIONS="broken|png-damaged"
-          - desc: gcc11/C++17 py3.10 boost1.80 exr3.1 ocio2.2
-            nametag: linux-vfx2023
-            runner: ubuntu-latest
-            container: aswftesting/ci-osl:2023-clang15
-            vfxyear: 2023
-            cxx_std: 17
-            python_ver: "3.10"
-            simd: "avx2,f16c"
-            fmt_ver: 10.1.1
-            pybind11_ver: v2.10.0
-          - desc: gcc11/C++17 py3.11 boost1.82 exr3.2 ocio2.3
-            nametag: linux-vfx2024
-            runner: ubuntu-latest
-            container: aswftesting/ci-osl:2024-clang17
-            vfxyear: 2024
-            cxx_std: 17
-            python_ver: "3.11"
-            simd: "avx2,f16c"
-            fmt_ver: 10.1.1
-            pybind11_ver: v2.10.0
+          # - desc: sanitizers
+          #   nametag: sanitizer
+          #   runner: ubuntu-latest
+          #   container: aswf/ci-osl:2022-clang13
+          #   vfxyear: 2022
+          #   cc_compiler: clang
+          #   cxx_compiler: clang++
+          #   cxx_std: 17
+          #   python_ver: 3.9
+          #   setenvs: export SANITIZE=address,undefined
+          #                   OIIO_CMAKE_FLAGS="-DSANITIZE=address,undefined -DUSE_PYTHON=0"
+          #                   CMAKE_BUILD_TYPE=Debug
+          #                   CTEST_TEST_TIMEOUT=1200
+          #                   CTEST_EXCLUSIONS="broken|png-damaged"
           - desc: oldest/hobbled gcc6.3/C++14 py2.7 boost-1.66 exr-2.4 no-sse no-ocio
             # Oldest versions of the dependencies that we can muster, and various
             # things disabled (no SSE, OCIO, or OpenCV, don't embed plugins).
@@ -187,11 +167,99 @@ jobs:
                              USE_OPENCV=0
             depcmds: sudo rm -rf /usr/local/include/OpenEXR
 
-          # Test ABI stability. `abi_check` is the version or commit that we
-          # believe is the current standard against which we don't want to
-          # break the ABI. Basically, we will build that version as well as
-          # the current one, and compare the resulting libraries.
-          - desc: abi check
+    runs-on: ${{ matrix.runner }}
+    container:
+      image: ${{ matrix.container }}
+      volumes:
+        - /node20217:/node20217:rw,rshared
+        - /node20217:/__e/node20:ro,rshared
+    env:
+      CXX: ${{matrix.cxx_compiler}}
+      CC: ${{matrix.cc_compiler}}
+      CMAKE_CXX_STANDARD: ${{matrix.cxx_std}}
+      USE_SIMD: ${{matrix.simd}}
+      FMT_VERSION: ${{matrix.fmt_ver}}
+      OPENEXR_VERSION: ${{matrix.openexr_ver}}
+      PYBIND11_VERSION: ${{matrix.pybind11_ver}}
+      PYTHON_VERSION: ${{matrix.python_ver}}
+      ABI_CHECK: ${{matrix.abi_check}}
+    steps:
+      # Install nodejs 20 with glibc 2.17, to work around the face that the
+      # GHA runners are insisting on a node version that is too new for the
+      # glibc in the ASWF containers prior to 2023.
+      - name: install nodejs20glibc2.17
+        # if: matrix.old_node == '1'
+        run: |
+          curl --silent https://unofficial-builds.nodejs.org/download/release/v20.18.1/node-v20.18.1-linux-x64-glibc-217.tar.xz | tar -xJ --strip-components 1 -C /node20217 -f -
+      # We would like to use harden-runner, but it flags too many false
+      # positives, every time we download a dependency. We should use it only
+      # on CI runs where we are producing artifacts that users might rely on.
+      # - name: Harden Runner
+      #   uses: step-security/harden-runner@248ae51c2e8cc9622ecf50685c8bf7150c6e8813 # v1.4.3
+      #   with:
+      #     egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.2
+      - name: Prepare ccache timestamp
+        id: ccache_cache_keys
+        run: echo "date=`date -u +'%Y-%m-%dT%H:%M:%SZ'`" >> $GITHUB_OUTPUT
+      - name: ccache
+        id: ccache
+        uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d # v3.0.4
+        with:
+          path: /tmp/ccache
+          key: ${{github.job}}-${{matrix.nametag}}-${{steps.ccache_cache_keys.outputs.date}}
+          restore-keys: ${{github.job}}-
+      - name: Build setup
+        run: |
+            ${{matrix.setenvs}}
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            ${{matrix.depcmds}}
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: src/build-scripts/ci-build.bash
+      - name: Testsuite
+        if: matrix.skip_tests != '1'
+        run: src/build-scripts/ci-test.bash
+      - name: Check out ABI standard
+        if: matrix.abi_check != ''
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
+        with:
+          ref: ${{matrix.abi_check}}
+          path: abi_standard
+      - name: Build ABI standard
+        if: matrix.abi_check != ''
+        run: |
+            mkdir -p abi_standard/build
+            pushd abi_standard
+            src/build-scripts/ci-build.bash
+            popd
+      - name: Check ABI
+        if: matrix.abi_check != ''
+        run: |
+            src/build-scripts/ci-abicheck.bash ./build abi_standard/build libOpenImageIO libOpenImageIO_Util
+      - uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
+        if: failure()
+        with:
+          name: oiio-${{github.job}}-${{matrix.nametag}}
+          path: |
+            build/cmake-save
+            build/compat_reports
+            build/testsuite/*/*.*
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
+            !build/testsuite/j2kp4files_v1_5
+
+
+  aswf:
+    name: "VFX${{matrix.vfxyear}} ${{matrix.desc}}"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - desc: gcc11/C++17 py3.10 boost1.80 exr3.1 ocio2.2
             nametag: linux-vfx2023
             runner: ubuntu-latest
             container: aswftesting/ci-osl:2023-clang15
@@ -201,11 +269,50 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             pybind11_ver: v2.10.0
-            skip_tests: 1
-            abi_check: v2.5.3.0-beta1
-            setenvs: export OIIO_CMAKE_FLAGS="-DOIIO_BUILD_TOOLS=0 -DOIIO_BUILD_TESTS=0 -DUSE_PYTHON=0"
-                            USE_OPENCV=0 USE_FFMPEG=0 USE_PYTHON=0
-                            CMAKE_BUILD_TYPE=RelWithDebInfo
+          - desc: gcc11/C++17 py3.11 boost1.82 exr3.2 ocio2.3
+            nametag: linux-vfx2024
+            runner: ubuntu-latest
+            container: aswftesting/ci-osl:2024-clang17
+            vfxyear: 2024
+            cxx_std: 17
+            python_ver: "3.11"
+            simd: "avx2,f16c"
+            fmt_ver: 10.1.1
+            pybind11_ver: v2.10.0
+          - desc: sanitizers
+            nametag: sanitizer
+            runner: ubuntu-latest
+            container: aswftesting/ci-osl:2024-clang17
+            vfxyear: 2024
+            cc_compiler: clang
+            cxx_compiler: clang++
+            cxx_std: 17
+            python_ver: "3.11"
+            setenvs: export SANITIZE=address,undefined
+                            OIIO_CMAKE_FLAGS="-DSANITIZE=address,undefined -DUSE_PYTHON=0"
+                            CMAKE_BUILD_TYPE=Debug
+                            CTEST_TEST_TIMEOUT=1200
+                            CTEST_EXCLUSIONS="broken|png-damaged"
+
+          # # Test ABI stability. `abi_check` is the version or commit that we
+          # # believe is the current standard against which we don't want to
+          # # break the ABI. Basically, we will build that version as well as
+          # # the current one, and compare the resulting libraries.
+          # - desc: abi check
+          #   nametag: linux-vfx2023
+          #   runner: ubuntu-latest
+          #   container: aswftesting/ci-osl:2023-clang15
+          #   vfxyear: 2023
+          #   cxx_std: 17
+          #   python_ver: "3.10"
+          #   simd: "avx2,f16c"
+          #   fmt_ver: 10.1.1
+          #   pybind11_ver: v2.10.0
+          #   skip_tests: 1
+          #   abi_check: v2.5.3.0-beta1
+          #   setenvs: export OIIO_CMAKE_FLAGS="-DOIIO_BUILD_TOOLS=0 -DOIIO_BUILD_TESTS=0 -DUSE_PYTHON=0"
+          #                   USE_OPENCV=0 USE_FFMPEG=0 USE_PYTHON=0
+          #                   CMAKE_BUILD_TYPE=RelWithDebInfo
 
     runs-on: ${{ matrix.runner }}
     container:
@@ -220,8 +327,6 @@ jobs:
       PYBIND11_VERSION: ${{matrix.pybind11_ver}}
       PYTHON_VERSION: ${{matrix.python_ver}}
       ABI_CHECK: ${{matrix.abi_check}}
-      ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
-      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     steps:
       # We would like to use harden-runner, but it flags too many false
       # positives, every time we download a dependency. We should use it only
