@@ -1485,7 +1485,7 @@ OpenEXRInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
     try {
         size_t npixels = (yend - ybegin) * m_spec.width;
         chend          = clamp(chend, chbegin + 1, m_spec.nchannels);
-        int nchans     = chend - chbegin;
+        size_t nchans  = chend - chbegin;
 
         // Set up the count and pointers arrays and the Imf framebuffer
         std::vector<TypeDesc> channeltypes;
@@ -1502,16 +1502,17 @@ OpenEXRInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
                               sizeof(unsigned int),
                               sizeof(unsigned int) * m_spec.width);
         frameBuffer.insertSampleCountSlice(countslice);
+        size_t slchans      = m_spec.width * nchans;
+        size_t xstride      = sizeof(void*) * nchans;
+        size_t ystride      = sizeof(void*) * slchans;
+        size_t samplestride = deepdata.samplesize();
 
         for (int c = chbegin; c < chend; ++c) {
-            Imf::DeepSlice slice(
-                part.pixeltype[c],
-                (char*)(&pointerbuf[0] + (c - chbegin) - m_spec.x * nchans
-                        - ybegin * m_spec.width * nchans),
-                sizeof(void*) * nchans,  // xstride of pointer array
-                sizeof(void*) * nchans
-                    * m_spec.width,      // ystride of pointer array
-                deepdata.samplesize());  // stride of data sample
+            Imf::DeepSlice slice(part.pixeltype[c],
+                                 (char*)(&pointerbuf[0] + (c - chbegin)
+                                         - m_spec.x * nchans
+                                         - ybegin * slchans),
+                                 xstride, ystride, samplestride);
             frameBuffer.insert(m_spec.channelnames[c].c_str(), slice);
         }
         m_deep_scanline_input_part->setFrameBuffer(frameBuffer);
@@ -1564,7 +1565,7 @@ OpenEXRInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
         size_t height  = yend - ybegin;
         size_t npixels = width * height;
         chend          = clamp(chend, chbegin + 1, m_spec.nchannels);
-        int nchans     = chend - chbegin;
+        size_t nchans  = chend - chbegin;
 
         // Set up the count and pointers arrays and the Imf framebuffer
         std::vector<TypeDesc> channeltypes;
@@ -1579,14 +1580,15 @@ OpenEXRInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
             Imf::UINT, (char*)(&all_samples[0] - xbegin - ybegin * width),
             sizeof(unsigned int), sizeof(unsigned int) * width);
         frameBuffer.insertSampleCountSlice(countslice);
+        size_t slchans      = width * nchans;
+        size_t xstride      = sizeof(void*) * nchans;
+        size_t ystride      = sizeof(void*) * slchans;
+        size_t samplestride = deepdata.samplesize();
         for (int c = chbegin; c < chend; ++c) {
-            Imf::DeepSlice slice(
-                part.pixeltype[c],
-                (char*)(&pointerbuf[0] + (c - chbegin) - xbegin * nchans
-                        - ybegin * width * nchans),
-                sizeof(void*) * nchans,          // xstride of pointer array
-                sizeof(void*) * nchans * width,  // ystride of pointer array
-                deepdata.samplesize());          // stride of data sample
+            Imf::DeepSlice slice(part.pixeltype[c],
+                                 (char*)(&pointerbuf[0] + (c - chbegin)
+                                         - xbegin * nchans - ybegin * slchans),
+                                 xstride, ystride, samplestride);
             frameBuffer.insert(m_spec.channelnames[c].c_str(), slice);
         }
         m_deep_tiled_input_part->setFrameBuffer(frameBuffer);
