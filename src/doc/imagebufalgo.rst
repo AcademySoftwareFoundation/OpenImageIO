@@ -1329,12 +1329,12 @@ Image arithmetic
 
 |
 
-.. doxygenfunction:: scale(const ImageBuf &A, const ImageBuf &B, ROI roi = {}, int nthreads = 0)
+.. doxygenfunction:: scale(const ImageBuf &A, const ImageBuf &B, KWArgs options = {}, ROI roi = {}, int nthreads = 0)
 ..
 
   Result-as-parameter version:
 
-    .. doxygenfunction:: scale(ImageBuf &dst, const ImageBuf &A, const ImageBuf &B, ROI roi = {}, int nthreads = 0)
+    .. doxygenfunction:: scale(ImageBuf &dst, const ImageBuf &A, const ImageBuf &B, KWArgs options = {}, ROI roi = {}, int nthreads = 0)
 
   Examples:
 
