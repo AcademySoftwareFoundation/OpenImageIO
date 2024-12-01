@@ -3090,6 +3090,7 @@ BINARY_IMAGE_OP(add, ImageBufAlgo::add);          // --add
 BINARY_IMAGE_OP(sub, ImageBufAlgo::sub);          // --sub
 BINARY_IMAGE_OP(mul, ImageBufAlgo::mul);          // --mul
 BINARY_IMAGE_OP(div, ImageBufAlgo::div);          // --div
+BINARY_IMAGE_OP(scale, ImageBufAlgo::scale);      // --scale
 BINARY_IMAGE_OP(absdiff, ImageBufAlgo::absdiff);  // --absdiff
 
 BINARY_IMAGE_COLOR_OP(addc, ImageBufAlgo::add, 0);          // --addc
@@ -6644,6 +6645,9 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--csub %s:VAL")
       .hidden() // Deprecated synonym
       .OTACTION(action_subc);
+    ap.arg("--scale")
+      .help("Scale all channels of one image by the single channel of another image")
+      .OTACTION(action_scale);
     ap.arg("--mul")
       .help("Multiply two images")
       .OTACTION(action_mul);

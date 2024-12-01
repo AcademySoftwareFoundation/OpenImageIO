@@ -953,6 +953,21 @@ ImageBuf OIIO_API abs (const ImageBuf &A, ROI roi={}, int nthreads=0);
 bool OIIO_API abs (ImageBuf &dst, const ImageBuf &A, ROI roi={}, int nthreads=0);
 
 
+/// Compute per-pixel product `A * B`, returning the result image. At least
+/// one of `A` and `B` must be a single channel image, whose value is used to
+/// scale all channels of the other image.
+///
+/// @param  options
+///         Optional ParamValue's that may control the reconstruction.
+///         (Reserved for future expansion.)
+///
+ImageBuf OIIO_API scale (const ImageBuf &A, const ImageBuf &B,
+                         KWArgs options = {}, ROI roi={}, int nthreads=0);
+/// Write to an existing image `dst` (allocating if it is uninitialized).
+bool OIIO_API scale (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
+                     KWArgs options = {}, ROI roi={}, int nthreads=0);
+
+
 /// Compute per-pixel product `A * B`, returning the result image.
 ///
 /// Either both `A` and `B` are images, or one is an image and the other is

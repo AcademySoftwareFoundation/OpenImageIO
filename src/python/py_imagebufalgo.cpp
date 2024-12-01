@@ -653,6 +653,22 @@ IBA_abs_ret(const ImageBuf& A, ROI roi = ROI::All(), int nthreads = 0)
 
 
 bool
+IBA_scale_images(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
+                 ROI roi = ROI::All(), int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::scale(dst, A, B, {}, roi, nthreads);
+}
+
+ImageBuf
+IBA_scale_images_ret(const ImageBuf& A, const ImageBuf& B, ROI roi = ROI::All(),
+                     int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::scale(A, B, {}, roi, nthreads);
+}
+
+bool
 IBA_mul_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
               ROI roi = ROI::All(), int nthreads = 0)
 {
@@ -2624,6 +2640,11 @@ declare_imagebufalgo(py::module& m)
                     "nthreads"_a = 0)
         .def_static("abs", &IBA_abs_ret, "A"_a, "roi"_a = ROI::All(),
                     "nthreads"_a = 0)
+
+        .def_static("scale", &IBA_scale_images, "dst"_a, "A"_a, "B"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("scale", &IBA_scale_images_ret, "A"_a, "B"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
 
         .def_static("mul", &IBA_mul_images, "dst"_a, "A"_a, "B"_a,
                     "roi"_a = ROI::All(), "nthreads"_a = 0)

@@ -557,6 +557,19 @@ void example_abs()
     Abs.write("abs.exr");
 }
 
+void example_scale()
+{
+    print("example_scale\n");
+    // BEGIN-imagebufalgo-scale
+    // Pixel-by-pixel multiplication of all channels of A by the single channel of B
+    ImageBuf A("A.exr");
+    ImageBuf B("mono.exr");
+    ImageBuf Product = ImageBufAlgo::scale(A, B);
+
+    // END-imagebufalgo-scale
+    Product.write("scale.exr");
+}
+
 void example_mul()
 {
     print("example_mul\n");
@@ -725,6 +738,7 @@ int main(int /*argc*/, char** /*argv*/)
     example_sub();
     example_absdiff();
     example_abs();
+    example_scale();
     example_mul();
     example_div();
 
