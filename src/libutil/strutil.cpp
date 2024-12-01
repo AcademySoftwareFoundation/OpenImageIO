@@ -29,6 +29,9 @@ OIIO_PRAGMA_WARNING_POP
 #if defined(__APPLE__) || defined(__FreeBSD__)
 #    include <xlocale.h>
 #endif
+#ifdef _WIN32
+#    include <windows.h>
+#endif
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/string_view.h>
@@ -961,6 +964,17 @@ Strutil::replace(string_view str, string_view pattern, string_view replacement,
 std::wstring
 Strutil::utf8_to_utf16wstring(string_view str) noexcept
 {
+#ifdef _WIN32
+    // UTF8<->UTF16 conversions are primarily needed on Windows, so use the
+    // fastest option (C++11 <codecvt> is many times slower due to locale
+    // access overhead, and is deprecated starting with C++17).
+    std::wstring result;
+    result.resize(
+        MultiByteToWideChar(CP_UTF8, 0, str.data(), str.length(), NULL, 0));
+    MultiByteToWideChar(CP_UTF8, 0, str.data(), str.length(), result.data(),
+                        (int)result.size());
+    return result;
+#else
     try {
         OIIO_PRAGMA_WARNING_PUSH
         OIIO_CLANG_PRAGMA(GCC diagnostic ignored "-Wdeprecated-declarations")
@@ -970,6 +984,7 @@ Strutil::utf8_to_utf16wstring(string_view str) noexcept
     } catch (const std::exception&) {
         return std::wstring();
     }
+#endif
 }
 
 
@@ -977,6 +992,17 @@ Strutil::utf8_to_utf16wstring(string_view str) noexcept
 std::string
 Strutil::utf16_to_utf8(const std::wstring& str) noexcept
 {
+#ifdef _WIN32
+    // UTF8<->UTF16 conversions are primarily needed on Windows, so use the
+    // fastest option (C++11 <codecvt> is many times slower due to locale
+    // access overhead, and is deprecated starting with C++17).
+    std::string result;
+    result.resize(WideCharToMultiByte(CP_UTF8, 0, str.data(), str.length(),
+                                      NULL, 0, NULL, NULL));
+    WideCharToMultiByte(CP_UTF8, 0, str.data(), str.length(), &result[0],
+                        (int)result.size(), NULL, NULL);
+    return result;
+#else
     try {
         OIIO_PRAGMA_WARNING_PUSH
         OIIO_CLANG_PRAGMA(GCC diagnostic ignored "-Wdeprecated-declarations")
@@ -986,6 +1012,7 @@ Strutil::utf16_to_utf8(const std::wstring& str) noexcept
     } catch (const std::exception&) {
         return std::string();
     }
+#endif
 }
 
 
@@ -993,22 +1020,24 @@ Strutil::utf16_to_utf8(const std::wstring& str) noexcept
 std::string
 Strutil::utf16_to_utf8(const std::u16string& str) noexcept
 {
+#ifdef _WIN32
+    std::string result;
+    result.resize(WideCharToMultiByte(CP_UTF8, 0, (const WCHAR*)str.data(),
+                                      str.length(), NULL, 0, NULL, NULL));
+    WideCharToMultiByte(CP_UTF8, 0, (const WCHAR*)str.data(), str.length(),
+                        &result[0], (int)result.size(), NULL, NULL);
+    return result;
+#else
     try {
         OIIO_PRAGMA_WARNING_PUSH
         OIIO_CLANG_PRAGMA(GCC diagnostic ignored "-Wdeprecated-declarations")
-        // There is a bug in MSVS 2017 causing an unresolved symbol if char16_t is used (see https://stackoverflow.com/a/35103224)
-#if defined _MSC_VER && _MSC_VER >= 1900 && _MSC_VER < 1930
-        std::wstring_convert<std::codecvt_utf8_utf16<int16_t>, int16_t> convert;
-        auto p = reinterpret_cast<const int16_t*>(str.data());
-        return convert.to_bytes(p, p + str.size());
-#else
         std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> conv;
         return conv.to_bytes(str);
-#endif
         OIIO_PRAGMA_WARNING_POP
     } catch (const std::exception&) {
         return std::string();
     }
+#endif
 }
 
 
