@@ -2833,6 +2833,23 @@ Image arithmetic
 
 
 
+.. py:method:: ImageBuf ImageBufAlgo.scale (A, B, roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.scale (dst, A, B, roi=ROI.All, nthreads=0)
+
+    Per-pixel multiply all channels of one image by the single channle of the
+    other image. One of the input images must have only one channel.
+
+    Example:
+
+    .. code-block:: python
+
+        # Scale one image by the other
+        buf = ImageBufAlgo.scale (ImageBuf("a.exr"), ImageBuf("mono.exr"))
+
+        # Scale one image by the other, in place
+        ImageBufAlgo.scale (buf, buf, ImageBuf("mono.exr"))
+
+
 .. py:method:: ImageBuf ImageBufAlgo.mul (A, B, roi=ROI.All, nthreads=0)
                bool ImageBufAlgo.mul (dst, A, B, roi=ROI.All, nthreads=0)
 

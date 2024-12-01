@@ -27,6 +27,65 @@ OIIO_NAMESPACE_BEGIN
 
 template<class Rtype, class Atype, class Btype>
 static bool
+scale_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
+           int nthreads)
+{
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        ImageBuf::Iterator<Rtype> r(R, roi);
+        ImageBuf::ConstIterator<Atype> a(A, roi);
+        ImageBuf::ConstIterator<Btype> b(B, roi);
+        for (; !r.done(); ++r, ++a, ++b)
+            for (int c = roi.chbegin; c < roi.chend; ++c)
+                r[c] = a[c] * b[0];
+    });
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::scale(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
+                    KWArgs options, ROI roi, int nthreads)
+{
+    pvt::LoggedTimer logtime("IBA::scale");
+    bool ok = false;
+    if (B.nchannels() == 1) {
+        if (IBAprep(roi, &dst, &A, &B))
+            OIIO_DISPATCH_COMMON_TYPES3(ok, "scale", scale_impl,
+                                        dst.spec().format, A.spec().format,
+                                        B.spec().format, dst, A, B, roi,
+                                        nthreads);
+    } else if (A.nchannels() == 1) {
+        if (IBAprep(roi, &dst, &A, &B))
+            OIIO_DISPATCH_COMMON_TYPES3(ok, "scale", scale_impl,
+                                        dst.spec().format, B.spec().format,
+                                        A.spec().format, dst, B, A, roi,
+                                        nthreads);
+    } else {
+        dst.errorfmt(
+            "ImageBufAlgo::scale(): one of the arguments must be a single channel image.");
+    }
+
+    return ok;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::scale(const ImageBuf& A, const ImageBuf& B, KWArgs options,
+                    ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = scale(result, A, B, options, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.errorfmt("ImageBufAlgo::scale() error");
+    return result;
+}
+
+
+
+template<class Rtype, class Atype, class Btype>
+static bool
 mul_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
          int nthreads)
 {

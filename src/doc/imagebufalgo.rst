@@ -1329,6 +1329,38 @@ Image arithmetic
 
 |
 
+.. doxygenfunction:: scale(const ImageBuf &A, const ImageBuf &B, KWArgs options = {}, ROI roi = {}, int nthreads = 0)
+..
+
+  Result-as-parameter version:
+
+    .. doxygenfunction:: scale(ImageBuf &dst, const ImageBuf &A, const ImageBuf &B, KWArgs options = {}, ROI roi = {}, int nthreads = 0)
+
+  Examples:
+
+    .. tabs::
+
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-scale
+              :end-before: END-imagebufalgo-scale
+              :dedent: 4
+
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-scale
+              :end-before: END-imagebufalgo-scale
+              :dedent: 4
+
+       .. code-tab:: bash oiiotool
+
+          # Pixel-by-pixel multiplication of all channels of one image by the only channel of another image
+          oiiotool a.exr mono.exr --scale -o scale.exr
+
+|
+
 .. doxygenfunction:: mul(Image_or_Const A, Image_or_Const B, ROI roi = {}, int nthreads = 0)
 ..
 

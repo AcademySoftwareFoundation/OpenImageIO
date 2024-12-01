@@ -485,6 +485,16 @@ def example_abs():
     # END-imagebufalgo-absolute
     Abs.write("abs.exr", "half")
 
+def example_scale():
+    print("example_scale")
+    # BEGIN-imagebufalgo-scale
+    # Pixel-by-pixel multiplication of all channels of one image A by the single channel of the other image
+    A = ImageBuf("A.exr")
+    B = ImageBuf("mono.exr")
+    Product = ImageBufAlgo.scale (A, B)
+    #END-imagebufalgo-scale
+    Product.write("scale.exr", "half")
+
 def example_mul():
     print("example_mul")
     # BEGIN-imagebufalgo-mul
@@ -626,6 +636,7 @@ if __name__ == '__main__':
     example_sub()
     example_absdiff()
     example_abs()
+    example_scale()
     example_mul()
     example_div()
 

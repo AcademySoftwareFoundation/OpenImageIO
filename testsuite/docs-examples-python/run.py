@@ -20,6 +20,8 @@ command += run_app("cmake -E copy " + test_source_dir + "/../common/checker_with
 command += run_app("cmake -E copy " + test_source_dir + "/../common/unpremult.tif unpremult.tif")
 command += run_app("cmake -E copy " + test_source_dir + "/../common/bayer.png bayer.png")
 
+command += oiio_app("oiiotool") +  "--pattern fill:top=0:bottom=1 256x256 1 -o mono.exr > out.txt ;"
+
 # Copy the grid to both a tiled and scanline version
 command += oiio_app("iconvert") + "../common/grid.tif --scanline scanline.tif > out.txt ;" 
 command += oiio_app("iconvert") + "../common/grid.tif --tile 64 64 tiled.tif > out.txt ;" 

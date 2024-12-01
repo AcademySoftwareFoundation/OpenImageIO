@@ -2507,6 +2507,27 @@ current top image.
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
 
+.. option:: --scale
+
+    Replace the *two* top images with a new image that is the pixel-by-pixel
+    multiplicative product of those images. One of the images must have a single
+    channel, that channel's pixel value is used to scale all channels of the
+    other image by.
+
+
+    Example::
+
+        # Apply vertical gradient
+        oiiotool tahoe.jpg --pattern fill:top=0.5:bottom=1 512x384 1 --scale -o scale.jpg
+    ..
+
+        .. image:: figures/tahoe-small.jpg
+            :width: 2.0 in
+        .. image:: figures/scale.jpg
+            :width: 2.0 in
+        |
+
+
 .. option:: --mul
             --mulc <value>
             --mulc <value0,value1,value2...>
