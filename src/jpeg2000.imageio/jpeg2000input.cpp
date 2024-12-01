@@ -80,6 +80,7 @@ public:
         return feature == "ioproxy";
         // FIXME: we should support Exif/IPTC, but currently don't.
     }
+    bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     bool open(const std::string& name, ImageSpec& spec) override;
     bool open(const std::string& name, ImageSpec& newspec,
               const ImageSpec& config) override;
@@ -97,7 +98,8 @@ private:
 
     void init(void);
 
-    bool isJp2File(const int* const p_magicTable) const;
+    static bool is_jp2_header(const uint8_t header[12]);
+    static bool is_j2k_header(const uint8_t header[5]);
 
     opj_codec_t* create_decompressor();
     void destroy_decompressor();
@@ -208,7 +210,19 @@ Jpeg2000Input::init(void)
     ioproxy_clear();
 }
 
+bool
+Jpeg2000Input::valid_file(Filesystem::IOProxy* ioproxy) const
+{
+    if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Mode::Read)
+        return false;
 
+    uint8_t header[12];
+    auto r = ioproxy->pread(header, sizeof(header), 0);
+    if (r != sizeof(header)) {
+        return false;
+    }
+    return is_jp2_header(header) || is_j2k_header(header);
+}
 
 bool
 Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
@@ -409,36 +423,32 @@ Jpeg2000Input::close(void)
     return true;
 }
 
-
 bool
-Jpeg2000Input::isJp2File(const int* const p_magicTable) const
+Jpeg2000Input::is_jp2_header(const uint8_t header[12])
 {
-    const int32_t JP2_MAGIC = 0x0000000C, JP2_MAGIC2 = 0x0C000000;
-    if (p_magicTable[0] == JP2_MAGIC || p_magicTable[0] == JP2_MAGIC2) {
-        const int32_t JP2_SIG1_MAGIC = 0x6A502020, JP2_SIG1_MAGIC2 = 0x2020506A;
-        const int32_t JP2_SIG2_MAGIC = 0x0D0A870A, JP2_SIG2_MAGIC2 = 0x0A870A0D;
-        if ((p_magicTable[1] == JP2_SIG1_MAGIC
-             || p_magicTable[1] == JP2_SIG1_MAGIC2)
-            && (p_magicTable[2] == JP2_SIG2_MAGIC
-                || p_magicTable[2] == JP2_SIG2_MAGIC2)) {
-            return true;
-        }
-    }
-    return false;
+    const uint8_t jp2_header[] = { 0x0,  0x0,  0x0,  0x0C, 0x6A, 0x50,
+                                   0x20, 0x20, 0x0D, 0x0A, 0x87, 0x0A };
+    return memcmp(header, jp2_header, sizeof(jp2_header)) == 0;
 }
 
+bool
+Jpeg2000Input::is_j2k_header(const uint8_t header[5])
+{
+    const uint8_t j2k_header[] = { 0xFF, 0x4F, 0xFF, 0x51, 0x00 };
+    return memcmp(header, j2k_header, sizeof(j2k_header)) == 0;
+}
 
 opj_codec_t*
 Jpeg2000Input::create_decompressor()
 {
-    int magic[3];
-    auto r = ioproxy()->pread(magic, sizeof(magic), 0);
-    if (r != 3 * sizeof(int)) {
+    uint8_t header[12];
+    auto r = ioproxy()->pread(header, sizeof(header), 0);
+    if (r != sizeof(header)) {
         errorfmt("Empty file \"{}\"", m_filename);
         return nullptr;
     }
-    return opj_create_decompress(isJp2File(magic) ? OPJ_CODEC_JP2
-                                                  : OPJ_CODEC_J2K);
+    return opj_create_decompress(is_jp2_header(header) ? OPJ_CODEC_JP2
+                                                       : OPJ_CODEC_J2K);
 }
 
 
