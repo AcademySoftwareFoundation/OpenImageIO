@@ -437,9 +437,9 @@ JpgInput::read_icc_profile(j_decompress_ptr cinfo, ImageSpec& spec)
     std::string errormsg;
     bool ok = decode_icc_profile(icc_buf, spec, errormsg);
     if (!ok) {
-        // errorfmt("Could not decode ICC profile: {}\n", errormsg);
-        // return false;
-        // Nah, just skip an ICC specific error?
+        errorfmt("Possible corrupt file, could not decode ICC profile: {}\n",
+                 errormsg);
+        return false;
     }
 
     return true;
