@@ -891,6 +891,7 @@ test_numeric_conversion()
     OIIO_CHECK_EQUAL(Strutil::stoi("-12345678901234567890"),
                      std::numeric_limits<int>::min());
     OIIO_CHECK_EQUAL(Strutil::stoi("0x100", nullptr, 16), 256);  // hex
+    OIIO_CHECK_EQUAL(Strutil::stoi("25555555555555555551"), 2147483647);
 
     OIIO_CHECK_EQUAL(Strutil::stoui("hi"), 0);
     OIIO_CHECK_EQUAL(Strutil::stoui("  "), 0);
