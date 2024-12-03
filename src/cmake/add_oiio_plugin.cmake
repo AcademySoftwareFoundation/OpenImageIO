@@ -12,6 +12,7 @@
 #                   [ SRC source1 ... ]
 #                   [ INCLUDE_DIRS include_dir1 ... ]
 #                   [ LINK_LIBRARIES external_lib1 ... ]
+#                   [ COMPILE_OPTIONS -Wflag ... ]
 #                   [ DEFINITIONS FOO=bar ... ])
 #
 # The plugin name can be specified with NAME, otherwise is inferred from the
@@ -34,7 +35,7 @@
 # be handed off too the setup of the later OpenImageIO target.
 #
 macro (add_oiio_plugin)
-    cmake_parse_arguments (_plugin "" "NAME" "SRC;INCLUDE_DIRS;LINK_LIBRARIES;DEFINITIONS" ${ARGN})
+    cmake_parse_arguments (_plugin "" "NAME" "SRC;INCLUDE_DIRS;LINK_LIBRARIES;COMPILE_OPTIONS;DEFINITIONS" ${ARGN})
        # Arguments: <prefix> <options> <one_value_keywords> <multi_value_keywords> args...
     get_filename_component (_plugin_name ${CMAKE_CURRENT_SOURCE_DIR} NAME_WE)
     if (NOT _plugin_NAME)
@@ -61,6 +62,7 @@ macro (add_oiio_plugin)
             endforeach ()
             set (libOpenImageIO_srcs "${_plugin_all_source}" PARENT_SCOPE)
             set (format_plugin_definitions ${format_plugin_definitions} ${_plugin_DEFINITIONS} PARENT_SCOPE)
+            set (format_plugin_compile_options ${format_plugin_compile_options} ${_plugin_COMPILE_OPTIONS} PARENT_SCOPE)
             set (format_plugin_include_dirs ${format_plugin_include_dirs} ${_plugin_INCLUDE_DIRS} PARENT_SCOPE)
             set (format_plugin_libs ${format_plugin_libs} ${_plugin_LINK_LIBRARIES} PARENT_SCOPE)
         else ()
@@ -70,6 +72,7 @@ macro (add_oiio_plugin)
             target_compile_definitions (${_plugin_NAME} PRIVATE
                                         ${_plugin_DEFINITIONS}
                                         OpenImageIO_EXPORTS)
+            target_compile_options (${_plugin_NAME} PRIVATE ${_plugin_COMPILE_OPTIONS})
             target_include_directories (${_plugin_NAME} BEFORE PRIVATE ${_plugin_INCLUDE_DIRS})
             target_link_libraries (${_plugin_NAME} PUBLIC OpenImageIO
                                                    PRIVATE ${_plugin_LINK_LIBRARIES})
