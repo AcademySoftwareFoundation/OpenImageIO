@@ -85,7 +85,9 @@ if (EMBEDPLUGINS)
                                 PRIVATE
                                     EMBED_PLUGINS=1
                                     ${format_plugin_definitions})
-    target_include_directories (OpenImageIO
+    target_compile_options (OpenImageIO
+                            PRIVATE ${format_plugin_compile_options})
+    target_include_directories (OpenImageIO BEFORE
                                 PRIVATE ${format_plugin_include_dirs})
 
     # Organize the embedded plugins into source folders
