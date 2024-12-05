@@ -304,11 +304,6 @@ decode_icc_profile(cspan<uint8_t> iccdata, ImageSpec& spec, std::string& error)
         if (!extract(iccdata, offset, tag, error))
             return false;
         string_view signature(tag.signature, 4);
-        if (tag.offset + tag.size > iccdata.size()) {
-            error = format("ICC profile tag {} extends past end", signature);
-            return false;
-        }
-
         if (!check_span(iccdata, iccdata.data() + tag.offset,
                         std::max(4U, tag.size))) {
             error = format(
