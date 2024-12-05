@@ -1,6 +1,6 @@
 Reading src/corrupt-exif.jpg
 src/corrupt-exif.jpg :  256 x  256, 3 channel, uint8 jpeg
-    SHA-1: 4E7872E76ACB971D56715978C9C4F8FF4055AD67
+    SHA-1: 3EA7BAEB0871E9B9BAADF286521423199ACA2401
     channel list: R, G, B
     Orientation: 1 (normal)
     ResolutionUnit: "in"
@@ -10,7 +10,7 @@ src/corrupt-exif.jpg :  256 x  256, 3 channel, uint8 jpeg
     oiio:ColorSpace: "sRGB"
 Reading src/corrupt-exif-1626.jpg
 src/corrupt-exif-1626.jpg :  256 x  256, 3 channel, uint8 jpeg
-    SHA-1: FB711E5A0E4440C6B7C7A94835C44706569FFB78
+    SHA-1: 6CBB7DB602A67DB300AB28842F20F6DCA02B82B1
     channel list: R, G, B
     Orientation: 1 (normal)
     ResolutionUnit: "in"
@@ -19,4 +19,3 @@ src/corrupt-exif-1626.jpg :  256 x  256, 3 channel, uint8 jpeg
     jpeg:subsampling: "4:2:0"
     oiio:ColorSpace: "sRGB"
 corrupt-icc-4551.jpg
-DCT coefficient (lossy) or spatial difference (lossless) out of range
