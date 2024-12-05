@@ -304,11 +304,13 @@ decode_icc_profile(cspan<uint8_t> iccdata, ImageSpec& spec, std::string& error)
         if (!extract(iccdata, offset, tag, error))
             return false;
         string_view signature(tag.signature, 4);
-        if (tag.offset + tag.size > iccdata.size()) {
-            error = format("ICC profile tag {} extends past end", signature);
-            return false;
+        if (!check_span(iccdata, iccdata.data() + tag.offset,
+                        std::max(4U, tag.size))) {
+            error = format(
+                "ICC profile tag {} appears to contain corrupted/invalid data",
+                signature);
+            return false;  // Non-sensical: tag extends beyond icc data block
         }
-
         string_view typesignature((const char*)iccdata.data() + tag.offset, 4);
         // Strutil::print("   tag {} type {} offset {} size {}\n", signature,
         //                typesignature, tag.offset, tag.size);
@@ -360,6 +362,14 @@ decode_icc_profile(cspan<uint8_t> iccdata, ImageSpec& spec, std::string& error)
                     // Strutil::print(
                     //     "eng len={} stfoffset={} ({:x}) wcharsize={}\n", len,
                     //     stroffset, tag.offset + stroffset, sizeof(wchar_t));
+                    if (!check_span(iccdata,
+                                    iccdata.data() + tag.offset + stroffset,
+                                    len)) {
+                        error = format(
+                            "ICC profile tag {} appears to contain corrupted/invalid data",
+                            signature);
+                        return false;  // Non-sensical: tag extends beyond icc data block
+                    }
                     const char* start = (const char*)iccdata.data() + tag.offset
                                         + stroffset;
                     // The actual data is UTF-16

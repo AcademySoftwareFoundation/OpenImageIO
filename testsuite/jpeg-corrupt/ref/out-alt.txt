@@ -18,3 +18,5 @@ src/corrupt-exif-1626.jpg :  256 x  256, 3 channel, uint8 jpeg
     YResolution: 300
     jpeg:subsampling: "4:2:0"
     oiio:ColorSpace: "sRGB"
+corrupt-icc-4551.jpg
+DCT coefficient (lossy) or spatial difference (lossless) out of range
