@@ -2981,6 +2981,17 @@ OIIO_API std::string geterror(bool clear = true);
 ///   If nonzero, an `ImageBuf` that references a file but is not given an
 ///   ImageCache will read the image through the default ImageCache.
 ///
+/// - `imageinput:strict` (int: 0)
+///
+///   If zero (the default), ImageInput readers will try to be very tolerant
+///   of minor flaws or invalidity in image files being read, if possible just
+///   skipping something erroneous it encounters in the hopes that the rest of
+///   the file's data will be usable. If nonzero, anything clearly invalid in
+///   the file will be understood to be a corrupt file with unreliable data at
+///   best, and possibly malicious construction, and so will not attempt to
+///   further decode anything in the file. This may be a better choice to
+///   enable globally in an environment where security is a higher priority
+///   than being tolerant of partially broken image files.
 OIIO_API bool attribute(string_view name, TypeDesc type, const void* val);
 
 /// Shortcut attribute() for setting a single integer.
