@@ -119,7 +119,7 @@ std::string
 IvImage::longinfo() const
 {
     if (m_longinfo.empty()) {
-        const ImageSpec& m_spec(nativespec());
+        const ImageSpec& m_spec(spec());
         m_longinfo += "<table>";
         //        m_longinfo += html_table_row (Strutil::fmt::format("<b>{}</b>", m_name.c_str()).c_str(),
         //                                std::string());
