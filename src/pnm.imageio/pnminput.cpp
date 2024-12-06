@@ -377,6 +377,9 @@ PNMInput::open(const std::string& name, ImageSpec& newspec)
     if (!read_file_header())
         return false;
 
+    if (!check_open(m_spec))  // check for apparently invalid values
+        return false;
+
     newspec = m_spec;
     return true;
 }
