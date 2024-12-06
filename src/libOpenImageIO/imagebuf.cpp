@@ -687,6 +687,7 @@ ImageBufImpl::new_pixels(size_t size, const void* data)
         // consider this an uninitialized ImageBuf, issue an error, and hope
         // it's handled well downstream.
         m_pixels.reset();
+        m_bufspan = make_span<std::byte>(nullptr, 0);
         OIIO::debugfmt("ImageBuf unable to allocate {} bytes ({})\n", size,
                        e.what());
         error("ImageBuf unable to allocate {} bytes ({})\n", size, e.what());
@@ -720,6 +721,8 @@ ImageBufImpl::free_pixels()
         m_allocated_size = 0;
     }
     m_pixels.reset();
+    // print("IB Freed pixels of length {}\n", m_bufspan.size());
+    m_bufspan = make_span<std::byte>(nullptr, 0);
     m_deepdata.free();
     m_storage = ImageBuf::UNINITIALIZED;
     m_blackpixel.clear();
@@ -806,6 +809,7 @@ ImageBufImpl::clear()
     m_spec             = ImageSpec();
     m_nativespec       = ImageSpec();
     m_pixels.reset();
+    m_bufspan        = make_span<std::byte>(nullptr, 0);
     m_localpixels    = nullptr;
     m_spec_valid     = false;
     m_pixels_valid   = false;
