@@ -1572,8 +1572,9 @@ Strutil::stoi(string_view str, size_t* pos, int base)
         }
         if (c >= base)
             break;
-        acc       = acc * base + c;
         anydigits = true;
+        if (OIIO_LIKELY(!overflow))
+            acc = acc * base + c;
         if (OIIO_UNLIKELY(acc > maxval))
             overflow = true;
     }
