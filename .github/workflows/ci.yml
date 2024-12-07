@@ -239,7 +239,10 @@ jobs:
 
 
 
-  configs:
+  #
+  # Linux Tests
+  #
+  linux:
     name: "${{matrix.desc}}"
     uses: ./.github/workflows/build-steps.yml
     with:
@@ -486,9 +489,43 @@ jobs:
               sudo rm -rf /usr/local/include/OpenEXR
               sudo rm -rf /usr/local/lib64/cmake/{IlmBase,OpenEXR}
 
-          #
-          # Mac Tests
-          #
+
+  #
+  # MacOS Tests
+  #
+  macos:
+    name: "${{matrix.desc}}"
+    uses: ./.github/workflows/build-steps.yml
+    with:
+      nametag: ${{ matrix.nametag || 'unnamed!' }}
+      runner: ${{ matrix.runner || 'ubuntu-latest' }}
+      container: ${{ matrix.container }}
+      cc_compiler: ${{ matrix.cc_compiler || 'clang' }}
+      cxx_compiler: ${{ matrix.cxx_compiler || 'clang++' }}
+      cxx_std: ${{ matrix.cxx_std || '17' }}
+      build_type: ${{ matrix.build_type || 'Release' }}
+      depcmds: ${{ matrix.depcmds }}
+      extra_artifacts: ${{ matrix.extra_artifacts }}
+      fmt_ver: ${{ matrix.fmt_ver }}
+      opencolorio_ver: ${{ matrix.opencolorio_ver }}
+      openexr_ver: ${{ matrix.openexr_ver }}
+      pybind11_ver: ${{ matrix.pybind11_ver }}
+      python_ver: ${{ matrix.python_ver }}
+      setenvs: ${{ matrix.setenvs }}
+      simd: ${{ matrix.simd }}
+      skip_build: ${{ matrix.skip_build }}
+      skip_tests: ${{ matrix.skip_tests }}
+      abi_check: ${{ matrix.abi_check }}
+      build_docs: ${{ matrix.build_docs }}
+      generator: ${{ matrix.generator }}
+      ctest_args: ${{ matrix.ctest_args }}
+      ctest_test_timeout: ${{ matrix.ctest_test_timeout || '800' }}
+      coverage: ${{ matrix.coverage || 0 }}
+      sonar: ${{ matrix.sonar || 0 }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
           - desc: MacOS-13-Intel aclang14/C++17/py3.11
             runner: macos-13
             nametag: macos13-py311
@@ -506,31 +543,58 @@ jobs:
             cxx_compiler: clang++
             cxx_std: 20
             python_ver: "3.12"
-            ctest_test_timeout: 800
-          - desc: MacOS-15-ARM  aclang16/C++20/py3.13
+          - desc: MacOS-15-ARM aclang16/C++20/py3.13
             runner: macos-15
             nametag: macos15-arm-py313
             cc_compiler: clang
             cxx_compiler: clang++
             cxx_std: 20
             python_ver: "3.13"
-            ctest_test_timeout: 800
 
-          #
-          # Windows Tests
-          #
+
+  #
+  # Windows Tests
+  #
+  windows:
+    name: "${{matrix.desc}}"
+    uses: ./.github/workflows/build-steps.yml
+    with:
+      nametag: ${{ matrix.nametag || 'unnamed!' }}
+      runner: ${{ matrix.runner || 'ubuntu-latest' }}
+      container: ${{ matrix.container }}
+      cc_compiler: ${{ matrix.cc_compiler }}
+      cxx_compiler: ${{ matrix.cxx_compiler }}
+      cxx_std: ${{ matrix.cxx_std || '17' }}
+      build_type: ${{ matrix.build_type || 'Release' }}
+      depcmds: ${{ matrix.depcmds }}
+      extra_artifacts: ${{ matrix.extra_artifacts }}
+      fmt_ver: ${{ matrix.fmt_ver }}
+      opencolorio_ver: ${{ matrix.opencolorio_ver }}
+      openexr_ver: ${{ matrix.openexr_ver }}
+      pybind11_ver: ${{ matrix.pybind11_ver }}
+      python_ver: ${{ matrix.python_ver }}
+      setenvs: ${{ matrix.setenvs }}
+      simd: ${{ matrix.simd }}
+      skip_build: ${{ matrix.skip_build }}
+      skip_tests: ${{ matrix.skip_tests }}
+      abi_check: ${{ matrix.abi_check }}
+      build_docs: ${{ matrix.build_docs }}
+      generator: ${{ matrix.generator }}
+      ctest_args: ${{ matrix.ctest_args }}
+      ctest_test_timeout: ${{ matrix.ctest_test_timeout }}
+      coverage: ${{ matrix.coverage || 0 }}
+      sonar: ${{ matrix.sonar || 0 }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
           - desc: Windows-2019 VS2019
             runner: windows-2019
             vsver: 2019
             generator: "Visual Studio 16 2019"
-            # openexr_ver: v3.2.4
             python_ver: 3.7
-            # simd: sse4.2
           - desc: Windows-2022 VS2022
             runner: windows-2022
             vsver: 2022
             generator: "Visual Studio 17 2022"
-            # openexr_ver: v3.2.4
             python_ver: "3.9"
-            # simd: sse4.2
-            # setenvs: export OpenImageIO_BUILD_MISSING_DEPS=none
