@@ -1,3 +1,8 @@
+Release 3.0.2.0 (Jan 1, 2024) -- compared to 3.0.1.0
+-----------------------------------------------------
+
+
+
 Release 3.0.1.0 (Dec 1, 2024) -- compared to 3.0.0.3
 -----------------------------------------------------
 - *IBA*: New IBA::scale() [#4541](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4541) (by Anton Dukhovnikov) (3.0.1.0)
