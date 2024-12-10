@@ -8,6 +8,10 @@
 # be local to this directory and not override properly by command line `-D`.)
 set (ENABLE_INSTALL_testtex OFF PARENT_SCOPE)
 
+if (SKBUILD)
+    return ()
+endif ()
+
 fancy_add_executable (NAME testtex
                       INCLUDE_DIRS ${ROBINMAP_INCLUDES}
                       LINK_LIBRARIES OpenImageIO )

@@ -9,7 +9,7 @@
 set_cache (libdeflate_BUILD_VERSION 1.20 "libdeflate version for local builds")
 set (libdeflate_GIT_REPOSITORY "https://github.com/ebiggers/libdeflate")
 set (libdeflate_GIT_TAG "v${libdeflate_BUILD_VERSION}")
-set_cache (libdeflate_BUILD_SHARED_LIBS  ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
+set_cache (libdeflate_BUILD_SHARED_LIBS OFF # ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
            DOC "Should a local libdeflate build, if necessary, build shared libraries" ADVANCED)
 
 string (MAKE_C_IDENTIFIER ${libdeflate_BUILD_VERSION} libdeflate_VERSION_IDENT)
@@ -20,6 +20,7 @@ build_dependency_with_cmake(libdeflate
     GIT_TAG         ${libdeflate_GIT_TAG}
     CMAKE_ARGS
         -D BUILD_SHARED_LIBS=${libdeflate_BUILD_SHARED_LIBS}
+        -D LIBDEFLATE_BUILD_SHARED_LIB=${libdeflate_BUILD_SHARED_LIBS}
         -D CMAKE_POSITION_INDEPENDENT_CODE=ON
         -D CMAKE_INSTALL_LIBDIR=lib
         -D LIBDEFLATE_BUILD_GZIP=OFF
@@ -32,6 +33,7 @@ set (libdeflate_ROOT ${libdeflate_LOCAL_INSTALL_DIR})
 # Signal to caller that we need to find again at the installed location
 set (libdeflate_REFIND TRUE)
 set (libdeflate_REFIND_ARGS CONFIG)
+set (libdeflate_REFIND_VERSION ${libdeflate_BUILD_VERSION})
 
 if (libdeflate_BUILD_SHARED_LIBS)
     install_local_dependency_libs (libdeflate libdeflate)
