@@ -5801,7 +5801,8 @@ action_printstats(Oiiotool& ot, cspan<const char*> argv)
     auto options      = ot.extract_options(command);
     bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
 
-    ot.read();
+    if (!ot.read())
+        return;
     ImageRecRef top = ot.top();
 
     print_info_options opt = ot.info_opts();
@@ -5818,6 +5819,7 @@ action_printstats(Oiiotool& ot, cspan<const char*> argv)
                       opt.roi.chend);
     }
     std::string errstring;
+    OIIO_ASSERT(top.get());
     print_info(std::cout, ot, top.get(), opt, errstring);
 
     ot.printed_info = true;

@@ -20,6 +20,6 @@ for f in files:
                              safematch=True, hash=True)
 
 # Damaged files
-files = [ "src/bad-4553.pgm" ]
+files = [ "src/bad-4552.pgm", "src/bad-4553.pgm" ]
 for f in files:
     command += info_command (f, extraargs="--oiioattrib try_all_readers 0 --printstats", failureok=True)
