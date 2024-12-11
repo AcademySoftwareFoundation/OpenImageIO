@@ -47,6 +47,7 @@ extern int limit_channels;
 extern int limit_imagesize_MB;
 extern int imagebuf_print_uncaught_errors;
 extern int imagebuf_use_imagecache;
+extern int imageinput_strict;
 extern atomic_ll IB_local_mem_current;
 extern atomic_ll IB_local_mem_peak;
 extern std::atomic<float> IB_total_open_time;

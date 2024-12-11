@@ -55,6 +55,7 @@ int dds_bc5normal(0);
 int limit_channels(1024);
 int limit_imagesize_MB(std::min(32 * 1024,
                                 int(Sysutil::physical_memory() >> 20)));
+int imageinput_strict(0);
 ustring font_searchpath(Sysutil::getenv("OPENIMAGEIO_FONTS"));
 ustring plugin_searchpath(OIIO_DEFAULT_PLUGIN_SEARCHPATH);
 std::string format_list;         // comma-separated list of all formats
@@ -403,6 +404,10 @@ attribute(string_view name, TypeDesc type, const void* val)
         imagebuf_use_imagecache = *(const int*)val;
         return true;
     }
+    if (name == "imageinput:strict" && type == TypeInt) {
+        imageinput_strict = *(const int*)val;
+        return true;
+    }
     if (name == "use_tbb" && type == TypeInt) {
         oiio_use_tbb = *(const int*)val;
         return true;
@@ -576,6 +581,10 @@ getattribute(string_view name, TypeDesc type, void* val)
     }
     if (name == "imagebuf:use_imagecache" && type == TypeInt) {
         *(int*)val = imagebuf_use_imagecache;
+        return true;
+    }
+    if (name == "imageinput:strict" && type == TypeInt) {
+        *(int*)val = imageinput_strict;
         return true;
     }
     if (name == "use_tbb" && type == TypeInt) {
