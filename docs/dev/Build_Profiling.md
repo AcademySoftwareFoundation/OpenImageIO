@@ -7,7 +7,7 @@ These are instructions for profiling the build process of OpenImageIO --
 useful for figuring out where the build process is spending its time, and
 where it might be optimized.
 
-## Profiling module compilating with clang -ftime-trace
+## Profiling module compilation with clang -ftime-trace
 
 These instructions are based on the following references:
 

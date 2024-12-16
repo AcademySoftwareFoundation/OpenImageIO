@@ -412,7 +412,7 @@ having CC prefixes in as many commit messages possible helps make the release
 notes process be simpler and more automated.
 
 We have been using the [git-cliff](https://github.com/orhun/git-cliff) tool
-as the starting point for relese notes. The command we use is:
+as the starting point for release notes. The command we use is:
 
     git cliff -c src/doc/cliff.toml -d v1.2.3.4..HEAD > cliff.out.md
 

@@ -1,3 +1,7 @@
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Copyright Contributors to the OpenImageIO Project. -->
+
+
 Code Review Procedures
 ======================
 
@@ -131,7 +135,7 @@ stakeholders. These include:
   critical cases.
 - *Compatibility breaks*: changes that propose to break backward API
   compatibility with existing code or data files, or that change the required
-  toolchain or depeendencies needed to build the project.
+  toolchain or dependencies needed to build the project.
 - *Security*: Changes that could introduce security vulnerabilities, or that
   fix tricky security issues where the best fix is not obvious.
 
