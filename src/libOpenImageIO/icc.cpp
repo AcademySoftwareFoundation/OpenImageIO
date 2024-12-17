@@ -321,6 +321,12 @@ decode_icc_profile(cspan<uint8_t> iccdata, ImageSpec& spec, std::string& error)
         if (typesignature == "text") {
             // For text, the first 4 bytes are "text", the next 4 are 0, then
             // byte 8-end are the zero-terminated string itself.
+            if (tag.size < 8) {
+                error = format(
+                    "ICC profile tag {} appears to contain corrupted/invalid data",
+                    signature);
+                return false;
+            }
             spec.attribute(tagname, string_view((const char*)iccdata.data()
                                                     + tag.offset + 8,
                                                 tag.size - 8));
@@ -328,6 +334,12 @@ decode_icc_profile(cspan<uint8_t> iccdata, ImageSpec& spec, std::string& error)
             // I don't see this in the spec, but I've seen it in practice:
             // first 4 bytes are "desc", next 8 are unknown, then 12-end are
             // zero-terminated string itself.
+            if (tag.size < 12) {
+                error = format(
+                    "ICC profile tag {} appears to contain corrupted/invalid data",
+                    signature);
+                return false;
+            }
             spec.attribute(tagname, string_view((const char*)iccdata.data()
                                                     + tag.offset + 12,
                                                 tag.size - 12));
