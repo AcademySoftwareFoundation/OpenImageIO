@@ -980,15 +980,15 @@ bool OIIO_UTIL_API parse_int (string_view &str, int &val, bool eat=true) noexcep
 bool OIIO_UTIL_API parse_float (string_view &str, float &val, bool eat=true) noexcept;
 
 /// Synonym for parse_int
-inline bool parse_value(string_view &str, float &val, bool eat=true) noexcept
-{
-    return parse_float(str, val, eat);
-}
-
-/// Synonym for parse_float
 inline bool parse_value(string_view &str, int &val, bool eat=true) noexcept
 {
     return parse_int(str, val, eat);
+}
+
+/// Synonym for parse_float
+inline bool parse_value(string_view &str, float &val, bool eat=true) noexcept
+{
+    return parse_float(str, val, eat);
 }
 
 /// Parse from `str`: a `prefix`, a series of int values separated by the
