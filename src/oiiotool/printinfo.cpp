@@ -254,7 +254,7 @@ OiioTool::print_stats(std::ostream& out, Oiiotool& ot,
         return;
     }
     std::string err;
-    if (!pvt::print_stats(out, indent, input, input.nativespec(), roi, err))
+    if (!pvt::print_stats(out, indent, input, input.spec(), roi, err))
         ot.errorfmt("stats", "unable to compute: {}", err);
 }
 
@@ -469,7 +469,7 @@ print_info_subimage(std::ostream& out, Oiiotool& ot, int current_subimage,
                 std::string err;
                 if (!pvt::print_stats(out, nmip > 1 ? "      " : "    ",
                                       (*img)(current_subimage, m),
-                                      (*img)(current_subimage, m).nativespec(),
+                                      *img->nativespec(),
                                       opt.roi, err))
                     ot.errorfmt("stats", "unable to compute: {}", err);
             }
