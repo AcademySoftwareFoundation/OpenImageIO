@@ -116,16 +116,67 @@
 #    define OIIO_DISABLE_DEPRECATED 0
 #endif
 
-// Establish the name spaces
-namespace @PROJ_NAMESPACE_V@ { }
-namespace @PROJ_NAME@ = @PROJ_NAMESPACE_V@;
+// Establish the name spaces.
+//
+// The outer namespace defaults to OpenImageIO, but can be overriden at build
+// time. "OIIO" is always defined as an alias to this namespace, so client
+// software can always say `OIIO:Foo` without needing to know the custom outer
+// namespace.
+//
+// The primary inner namespace is vMAJ_MIN (or in main, vMAJ_MIN_PAT). The
+// outer namespace declares the inner namespace as "inline", so anything in it
+// is visible in OIIO by default.
+//
+// Current API symbols should declare things in the default namespace, which
+// has its version incremented with every minor (yearly) release:
+//
+//     // Foo.h
+//     OIIO_NAMESPACE_BEGIN /* implicitly means current for this version */
+//       void foo();
+//       void bar();
+//     OIIO_NAMESPACE_END
+//
+// Because the default inner namespace is "inline", client code can just refer
+// to `OIIO::Foo`, and `OIIO::v3_1::Foo` will be found (assuming that v3_1 is
+// the current inner namespace).
+//
+// Things can also be put in an explicit inner namespace, such as
+//
+//     OIIO_NS_BEGIN(v3_0)
+//        // for declarations that should be visible by explicit request only,
+//        // such as OIIO::v3_0::bar().
+//        int bar();
+//     OIIO_NS_END
+//
+// Currently, everything is defined with OIIO_NAMESPACE_BEGIN/END, and so is
+// put in the current-minor-release namespace. But the mechanisms outlined
+// above gives us the ability in the future to have multiple ABI (minor
+// release) generations of the same facilities existing simultaneously, to
+// preserve ABI compatibility even with minor version bumps.
+//
 
-// Macros to use in each file to enter and exit the right name spaces.
-#define @PROJ_NAME@_NAMESPACE @PROJ_NAMESPACE_V@
-#define @PROJ_NAME@_NAMESPACE_STRING "@PROJ_NAMESPACE_V@"
-#define @PROJ_NAME@_NAMESPACE_BEGIN namespace @PROJ_NAMESPACE_V@ {
-#define @PROJ_NAME@_NAMESPACE_END }
-#define @PROJ_NAME@_NAMESPACE_USING using namespace @PROJ_NAME@;
+namespace @PROJ_NAMESPACE@ {
+    // Current version's new inner namespace is inline so it's used by default.
+    inline namespace @PROJ_VERSION_NAMESPACE@ { }
+    // Legacy namespaces:
+    namespace v3_0 { }
+}
+namespace OIIO = @PROJ_NAMESPACE@;
+
+
+// Macros to declare things in the current version's inline namespace.
+#define OIIO_NAMESPACE_BEGIN namespace @PROJ_NAMESPACE@ { inline namespace @PROJ_VERSION_NAMESPACE@ {
+#define OIIO_NAMESPACE_END } }
+#define OIIO_CURRENT_NAMESPACE @PROJ_NAMESPACE@::@PROJ_VERSION_NAMESPACE@
+
+// Macros for defining legacy namespaces with an explicit version
+#define OIIO_NS_BEGIN(ver) namespace @PROJ_NAMESPACE@ { namespace ver {
+#define OIIO_NS_END } }
+
+// Specialty macro: Make something ABI compatible with 3.0
+#define OIIO_NAMESPACE_3_0 @PROJ_NAMESPACE@_v3_0
+#define OIIO_NAMESPACE_3_0_BEGIN namespace OIIO_NAMESPACE_3_0 {
+#define OIIO_NAMESPACE_3_0_END }
 
 
 /// Each imageio DSO/DLL should include this statement:
