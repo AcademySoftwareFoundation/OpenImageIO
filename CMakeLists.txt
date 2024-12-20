@@ -141,17 +141,29 @@ if (TEX_BATCH_SIZE)
     add_compile_definitions (OIIO_TEXTURE_SIMD_BATCH_WIDTH=${TEX_BATCH_SIZE})
 endif ()
 
-# Set the default namespace
-set (${PROJ_NAME}_NAMESPACE ${PROJECT_NAME} CACHE STRING
-     "Customized outer namespace base name (version will be added)")
-option (${PROJ_NAME}_NAMESPACE_INCLUDE_PATCH
+
+# Namespace settings
+#
+# The "outer namespace" defaults to the project name, but it can be overridden
+# to allow custom builds that put everything inside a unique namespace that
+# can't conflict with default builds.
+set (${PROJ_NAME}_OUTER_NAMESPACE ${PROJECT_NAME} CACHE STRING
+     "Customized outer namespace")
+set (PROJ_NAMESPACE "${${PROJ_NAME}_OUTER_NAMESPACE}")  # synonym
+# There is also an inner namespace that is either vMAJ_MIN or vMAJ_MIN_PATCH,
+# depending on the setting of ${PROJ_NAME}_INNER_NAMESPACE_INCLUDE_PATCH.
+option (${PROJ_NAME}_INNER_NAMESPACE_INCLUDE_PATCH
         "Should the inner namespace include the patch number" ${${PROJECT_NAME}_DEV_RELEASE})
-set (PROJ_NAMESPACE "${${PROJ_NAME}_NAMESPACE}")
-set (PROJ_NAMESPACE_V "${PROJ_NAMESPACE}_v${PROJECT_VERSION_MAJOR}_${PROJECT_VERSION_MINOR}")
-if (${PROJ_NAME}_NAMESPACE_INCLUDE_PATCH)
-    set (PROJ_NAMESPACE_V "${PROJ_NAMESPACE_V}_${PROJECT_VERSION_PATCH}")
+if (${PROJ_NAME}_INNER_NAMESPACE_INCLUDE_PATCH)
+    set (PROJ_VERSION_NAMESPACE "v${PROJECT_VERSION_MAJOR}_${PROJECT_VERSION_MINOR}_${PROJECT_VERSION_PATCH}")
+else ()
+    set (PROJ_VERSION_NAMESPACE "v${PROJECT_VERSION_MAJOR}_${PROJECT_VERSION_MINOR}")
 endif ()
-message(STATUS "Setting Namespace to: ${PROJ_NAMESPACE_V}")
+# PROJ_NAMESPACE_V combines the outer and inner namespaces into one symbol
+set (PROJ_NAMESPACE_V "${PROJ_NAMESPACE}_${PROJ_VERSION_NAMESPACE}")
+message(STATUS "Outer namespace PROJ_OUTER_NAMESPACE:   ${PROJ_NAMESPACE}")
+message(STATUS "Inner namespace PROJ_VERSION_NAMESPACE: ${PROJ_VERSION_NAMESPACE}")
+message(STATUS "Joint namespace PROJ_NAMESPACE_V:       ${PROJ_NAMESPACE_V}")
 
 
 # Define OIIO_INTERNAL symbol only when building OIIO itself, will not be
