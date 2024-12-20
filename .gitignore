@@ -4,13 +4,17 @@ branches/
 build/
 dist/
 ext/
+wheelhouse/
+_coverage/
+.python-version
 .idea
 .vscode
 .cproject
 .project
 .DS_Store
 *.pyc
-_coverage/
+/*.lock
+gastest.o
 
 # Exclude test files I tend to leave around at the top level. The leading
 # slash ensures that files with these extensions within subdirectories are not
@@ -21,3 +25,5 @@ _coverage/
 /*.jxl
 /*.tx
 /*.log
+
+
