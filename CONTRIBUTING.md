@@ -267,6 +267,8 @@ accepted. It happens to all of us.
 1. After approval, one of the senior developers (with commit approval to the
 official main repository) will merge your fixes into the main branch.
 
+Please see the [Code Review](docs/dev/CodeReview.md) document for more
+explanaton of the code review process.
 
 Coding Style
 ------------

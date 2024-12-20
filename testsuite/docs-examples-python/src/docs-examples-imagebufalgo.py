@@ -434,6 +434,15 @@ def example_warp():
     # END-imagebufalgo-warp
     Dst.write("warp.exr", "half")
 
+def example_demosaic():
+    print("example_demosaic")
+    # BEGIN-imagebufalgo-demosaic
+    Src = ImageBuf("bayer.png")
+    WB_RGBG = (2.0, 1.0, 1.5, 1.0)
+    Dst = ImageBufAlgo.demosaic(Src, layout="BGGR",
+      white_balance = WB_RGBG)
+    # END-imagebufalgo-demosaic
+    Dst.write("demosaic.png")
 
 # Section: Image Arithmetic
 def example_add():
@@ -475,6 +484,16 @@ def example_abs():
     Abs = ImageBufAlgo.abs (A)
     # END-imagebufalgo-absolute
     Abs.write("abs.exr", "half")
+
+def example_scale():
+    print("example_scale")
+    # BEGIN-imagebufalgo-scale
+    # Pixel-by-pixel multiplication of all channels of one image A by the single channel of the other image
+    A = ImageBuf("A.exr")
+    B = ImageBuf("mono.exr")
+    Product = ImageBufAlgo.scale (A, B)
+    #END-imagebufalgo-scale
+    Product.write("scale.exr", "half")
 
 def example_mul():
     print("example_mul")
@@ -610,12 +629,14 @@ if __name__ == '__main__':
     example_resample()
     example_fit()
     example_warp()
+    example_demosaic()
 
     # Section: Image Arithmetic
     example_add()
     example_sub()
     example_absdiff()
     example_abs()
+    example_scale()
     example_mul()
     example_div()
 

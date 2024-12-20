@@ -136,15 +136,19 @@ macro (oiio_add_all_tests)
                     iinfo igrep
                     nonwhole-tiles
                     oiiotool
-                    oiiotool-composite oiiotool-control oiiotool-copy
+                    oiiotool-composite
+                    oiiotool-control
+                    oiiotool-copy
+                    oiiotool-demosaic
                     oiiotool-fixnan
                     oiiotool-pattern
                     oiiotool-readerror
-                    oiiotool-subimage oiiotool-text oiiotool-xform
-                    oiiotool-demosaic
+                    oiiotool-subimage
+                    oiiotool-text
+                    oiiotool-xform
                     diff
                     dither dup-channels
-                    jpeg-corrupt
+                    jpeg-corrupt jpeg-metadata
                     maketx oiiotool-maketx
                     misnamed-file
                     missingcolor
@@ -262,6 +266,9 @@ macro (oiio_add_all_tests)
                     IMAGEDIR oiio-images/ico URL "Recent checkout of OpenImageIO-images")
     oiio_add_tests (iff
                     ENABLEVAR ENABLE_IFF
+                    IMAGEDIR oiio-images URL "Recent checkout of OpenImageIO-images")
+    oiio_add_tests (jpeg-ultrahdr
+                    FOUNDVAR libuhdr_FOUND
                     IMAGEDIR oiio-images URL "Recent checkout of OpenImageIO-images")
     oiio_add_tests (jpeg2000
                     FOUNDVAR OPENJPEG_FOUND

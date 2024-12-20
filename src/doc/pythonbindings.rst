@@ -2833,6 +2833,23 @@ Image arithmetic
 
 
 
+.. py:method:: ImageBuf ImageBufAlgo.scale (A, B, roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.scale (dst, A, B, roi=ROI.All, nthreads=0)
+
+    Per-pixel multiply all channels of one image by the single channle of the
+    other image. One of the input images must have only one channel.
+
+    Example:
+
+    .. code-block:: python
+
+        # Scale one image by the other
+        buf = ImageBufAlgo.scale (ImageBuf("a.exr"), ImageBuf("mono.exr"))
+
+        # Scale one image by the other, in place
+        ImageBufAlgo.scale (buf, buf, ImageBuf("mono.exr"))
+
+
 .. py:method:: ImageBuf ImageBufAlgo.mul (A, B, roi=ROI.All, nthreads=0)
                bool ImageBufAlgo.mul (dst, A, B, roi=ROI.All, nthreads=0)
 
@@ -3678,6 +3695,27 @@ Color manipulation
         # Convert in-place from associated alpha to unassociated alpha
         A = ImageBuf ("a.exr")
         ImageBufAlgo.unpremult (A, A)
+
+
+.. py:method:: ImageBuf ImageBufAlgo.demosaic (src, pattern="", algorithm="", layout="", white_balance=py::none(), roi=ROI.All, nthreads=0)
+                bool ImageBufAlgo.demosaic (dst, src, pattern="", algorithm="", layout="", white_balance=py::none(), roi=ROI.All, nthreads=0)
+    Demosaic a raw digital camera image.
+
+    `demosaic` can currently process Bayer pattern images (pattern="bayer")
+    using two algorithms: "linear" (simple bilinear demosaicing), and "MHC"
+    (Malvar-He-Cutler algorithm). The optional white_balance parameter can take
+    a tuple of three (R,G,B), or four (R,G1,B,G2) values. The order of the
+    white balance multipliers is as specified, it does not depend on the matrix
+    layout.
+
+    Example:
+
+    .. code-block:: python
+
+        Src = ImageBuf("test.cr3", 0, 0, hint)
+        WB_RGBG = (2.0, 0.8, 1.5, 1.2)
+        Dst = OpenImageIO.ImageBufAlgo.demosaic(Src, layout="GRBG",
+            white_balance = WB_RGBG)
 
 
 

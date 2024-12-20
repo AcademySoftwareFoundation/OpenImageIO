@@ -231,7 +231,10 @@ private:
     {
         TIFFOutput* self = (TIFFOutput*)user_data;
         spin_lock lock(self->m_last_error_mutex);
+        OIIO_PRAGMA_WARNING_PUSH
+        OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wformat-nonliteral")
         self->m_last_error = Strutil::vsprintf(fmt, ap);
+        OIIO_PRAGMA_WARNING_POP
         return 1;
     }
 
@@ -241,7 +244,10 @@ private:
     {
         TIFFOutput* self = (TIFFOutput*)user_data;
         spin_lock lock(self->m_last_error_mutex);
+        OIIO_PRAGMA_WARNING_PUSH
+        OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wformat-nonliteral")
         self->m_last_error = Strutil::vsprintf(fmt, ap);
+        OIIO_PRAGMA_WARNING_POP
         return 1;
     }
 #endif

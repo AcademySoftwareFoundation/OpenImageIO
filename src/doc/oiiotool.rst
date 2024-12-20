@@ -2507,6 +2507,27 @@ current top image.
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
 
+.. option:: --scale
+
+    Replace the *two* top images with a new image that is the pixel-by-pixel
+    multiplicative product of those images. One of the images must have a single
+    channel, that channel's pixel value is used to scale all channels of the
+    other image by.
+
+
+    Example::
+
+        # Apply vertical gradient
+        oiiotool tahoe.jpg --pattern fill:top=0.5:bottom=1 512x384 1 --scale -o scale.jpg
+    ..
+
+        .. image:: figures/tahoe-small.jpg
+            :width: 2.0 in
+        .. image:: figures/scale.jpg
+            :width: 2.0 in
+        |
+
+
 .. option:: --mul
             --mulc <value>
             --mulc <value0,value1,value2...>
@@ -4181,6 +4202,36 @@ current top image.
     Note that because of slightly differing fonts and versions of Freetype
     available, we do not expect drawn text to be pixel-for-pixel identical
     on different platforms supported by OpenImageIO.
+
+
+
+.. option:: --demosaic
+
+    Demosaic a raw digital camera image.
+
+    Optional appended modifiers include:
+
+      `pattern=` *name*
+        sensor pattern. Currently supported patterns: "bayer"
+      `layout=` *name*
+        photosite order of the specified pattern. For layouts of the Bayer
+        pattern supported: "RGGB", "GRBG", "GBRG", "BGGR".
+      `algorithm=` *name*
+        the name of the algorithm to use: "linear"(simple bilinear demosaicing),
+        "MHC"(Malvar-He-Cutler algorithm)
+      `white-balance=` *v1,v2,v3...*
+        optional white balance weights, can contain either three (R,G,B) or four
+        (R,G1,B,G2) values. The order of the white balance multipliers is as
+        specified, it does not depend on the matrix layout.
+
+    Examples::
+
+         oiiotool --iconfig raw:Demosaic none --input test.cr3 --demosaic \
+            --output out.exr
+
+         oiiotool --iconfig raw:Demosaic none --input test.cr3 \
+            --demosaic:pattern=bayer:layout=GRBG:algorithm=MHC:white_balance=2.0,0.8,1.2,1.5 \
+            --output out.exr
 
 
 

@@ -44,6 +44,11 @@ command += oiiotool ("--pattern constant:color=.1,.2,.3 64x64+0+0 3 "
             + " --sub -d half -o sub.exr")
 command += oiiotool ("--pattern constant:color=.1,.2,.3 64x64+0+0 3 "
             + " --subc 0.1,0.1,0.1 -d half -o subc.exr")
+            
+# Test -- scale
+command += oiiotool ("--pattern fill:topleft=0,0,1:topright=0,1,0:bottomleft=1,0,1:bottomright=1,1,0 64x64 3"
+            + " --pattern fill:top=0:bottom=1 64x64 1"
+            + " --scale -o scale.exr")
 
 # test --mul of images
 command += oiiotool ("grey64.exr -pattern constant:color=1.5,1,0.5 64x64 3 --mul -o mul.exr")

@@ -101,6 +101,11 @@ is the best place to start if you are interested in how to use OpenImageIO,
 its APIs, its component programs (once they are built). There is also a [PDF
 version](https://readthedocs.org/projects/openimageio/downloads/pdf/latest/).
 
+Additional resources:
+
+- [User quick start](docs/QuickStart.md) is a quick example of using
+  OpenImageIO in Python, C++, and the command line.
+
 
 👷 Building and installing OpenImageIO
 --------------------------------------
@@ -135,6 +140,8 @@ OpenImageIO welcomes code contributions, and [nearly 200 people](CREDITS.md)
 have done so over the years. We take code contributions via the usual GitHub
 pull request (PR) mechanism.
 
+* [Architecture overview](docs/dev/Architecture.md) is a high-level
+  description of the major classes and their relationships.
 * [CONTRIBUTING](CONTRIBUTING.md) has detailed instructions about the
   development process.
 * [ROADMAP](docs/ROADMAP.md) is a high-level overview of the current
@@ -147,6 +154,7 @@ pull request (PR) mechanism.
 * [Building the docs](src/doc/Building_the_docs.md) has instructions for
   building the documentation locally, which may be helpful if you are editing
   the documentation in nontrivial ways and want to preview the appearance.
+* Other developer documentation is in the [docs/dev](docs/dev) directory.
 
 
 ☎️ Communications channels and additional resources
@@ -157,5 +165,5 @@ pull request (PR) mechanism.
 * [Developer mail list](https://lists.aswf.io/g/oiio-dev)
 * [ASWF Slack](https://slack.aswf.io) (look for the `#openimageio` channel)
 * Biweekly Technical Steering Committee (TSC) Zoom meetings are on the [ASWF
-  Calendar](https://www.aswf.io/meeting-calendar/) (click on the OpenImageIO
+  Calendar](https://calendar.openimageio.org) (click on the OpenImageIO
   meeting entries, every second Monday, to get the Zoom link, anyone may join)

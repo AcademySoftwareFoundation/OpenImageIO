@@ -1,0 +1,10 @@
+4080 x 3072, 4 channel, float jpeg
+    Stats Min: 0.000000 0.000000 0.000000 1.000000 (float)
+    Stats Max: 1.000000 1.000000 1.000000 1.000000 (float)
+    Stats Avg: 0.068257 0.077759 0.100931 1.000000 (float)
+    Stats StdDev: 0.100425 0.102336 0.107618 0.000000 (float)
+    Stats NanCount: 0 0 0 0 
+    Stats InfCount: 0 0 0 0 
+    Stats FiniteCount: 12533760 12533760 12533760 12533760 
+    Constant: No
+    Monochrome: No

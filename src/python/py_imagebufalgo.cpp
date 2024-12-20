@@ -653,6 +653,22 @@ IBA_abs_ret(const ImageBuf& A, ROI roi = ROI::All(), int nthreads = 0)
 
 
 bool
+IBA_scale_images(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
+                 ROI roi = ROI::All(), int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::scale(dst, A, B, {}, roi, nthreads);
+}
+
+ImageBuf
+IBA_scale_images_ret(const ImageBuf& A, const ImageBuf& B, ROI roi = ROI::All(),
+                     int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::scale(A, B, {}, roi, nthreads);
+}
+
+bool
 IBA_mul_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
               ROI roi = ROI::All(), int nthreads = 0)
 {
@@ -2377,28 +2393,38 @@ IBA_make_texture_filename(ImageBufAlgo::MakeTextureMode mode,
 ImageBuf
 IBA_demosaic_ret(const ImageBuf& src, const std::string& pattern = "",
                  const std::string& algorithm = "",
-                 const std::string& layout = "", ROI roi = ROI::All(),
+                 const std::string& layout    = "",
+                 py::object white_balance = py::none(), ROI roi = ROI::All(),
                  int nthreads = 0)
 {
     py::gil_scoped_release gil;
+    std::vector<float> wb;
+    py_to_stdvector(wb, white_balance);
     return ImageBufAlgo::demosaic(src,
                                   { { "pattern", pattern },
                                     { "algorithm", algorithm },
-                                    { "layout", layout } },
+                                    { "layout", layout },
+                                    ParamValue("white_balance", TypeFloat,
+                                               wb.size(), wb.data()) },
                                   roi, nthreads);
 }
 
 bool
 IBA_demosaic(ImageBuf& dst, const ImageBuf& src,
              const std::string& pattern = "", const std::string& algorithm = "",
-             const std::string& layout = "", ROI roi = ROI::All(),
+             const std::string& layout = "",
+             py::object white_balance = py::none(), ROI roi = ROI::All(),
              int nthreads = 0)
 {
     py::gil_scoped_release gil;
+    std::vector<float> wb;
+    py_to_stdvector(wb, white_balance);
     return ImageBufAlgo::demosaic(dst, src,
                                   { { "pattern", pattern },
                                     { "algorithm", algorithm },
-                                    { "layout", layout } },
+                                    { "layout", layout },
+                                    ParamValue("white_balance", TypeFloat,
+                                               wb.size(), wb.data()) },
                                   roi, nthreads);
 }
 
@@ -2614,6 +2640,11 @@ declare_imagebufalgo(py::module& m)
                     "nthreads"_a = 0)
         .def_static("abs", &IBA_abs_ret, "A"_a, "roi"_a = ROI::All(),
                     "nthreads"_a = 0)
+
+        .def_static("scale", &IBA_scale_images, "dst"_a, "A"_a, "B"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("scale", &IBA_scale_images_ret, "A"_a, "B"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
 
         .def_static("mul", &IBA_mul_images, "dst"_a, "A"_a, "B"_a,
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
@@ -3106,9 +3137,11 @@ declare_imagebufalgo(py::module& m)
 
         .def_static("demosaic", &IBA_demosaic, "dst"_a, "src"_a,
                     "pattern"_a = "", "algorithm"_a = "", "layout"_a = "",
-                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+                    "white_balance"_a = py::none(), "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
         .def_static("demosaic", &IBA_demosaic_ret, "src"_a, "pattern"_a = "",
-                    "algorithm"_a = "", "layout"_a = "", "roi"_a = ROI::All(),
+                    "algorithm"_a = "", "layout"_a = "",
+                    "white_balance"_a = py::none(), "roi"_a = ROI::All(),
                     "nthreads"_a = 0);
 }
 

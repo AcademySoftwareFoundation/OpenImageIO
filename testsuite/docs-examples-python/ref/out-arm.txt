@@ -29,10 +29,12 @@ example_resize
 example_resample
 example_fit
 example_warp
+example_demosaic
 example_add
 example_sub
 example_absdiff
 example_abs
+example_scale
 example_mul
 example_div
 example_fixNonFinite
@@ -137,7 +139,7 @@ checker_with_alpha_filled.exr :  256 x  256, 4 channel, half openexr
 tahoe_median_filter.tif :  512 x  384, 3 channel, uint8 tiff
     SHA-1: A0B2E3A10A16EA8CC905F144C5F91B6A0964A177
 tahoe_unsharp_mask.tif :  512 x  384, 3 channel, uint8 tiff
-    SHA-1: CDE3FAC8053381C59B7BEB3B47991F357E14D9D2
+    SHA-1: 5842D16483BC74700DE9FD27967B2FFBD54DFCD2
 Comparing "simple.tif" and "../docs-examples-cpp/ref/simple.tif"
 PASS
 Comparing "scanlines.tif" and "../docs-examples-cpp/ref/scanlines.tif"

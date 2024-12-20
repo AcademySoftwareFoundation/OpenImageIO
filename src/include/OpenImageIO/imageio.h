@@ -2902,6 +2902,13 @@ OIIO_API std::string geterror(bool clear = true);
 ///    When nonzero, use the new "OpenEXR core C library" when available,
 ///    for OpenEXR >= 3.1. This is experimental, and currently defaults to 0.
 ///
+/// - `int jpeg:com_attributes`
+///
+///    When nonzero, try to parse JPEG comment blocks as key-value attributes,
+///    and only set ImageDescription if the parsing fails. Otherwise, always
+///    set ImageDescription to the first comment block. Default is 1.
+///
+///
 /// - `int limits:channels` (1024)
 ///
 ///    When nonzero, the maximum number of color channels in an image. Image
@@ -2974,6 +2981,17 @@ OIIO_API std::string geterror(bool clear = true);
 ///   If nonzero, an `ImageBuf` that references a file but is not given an
 ///   ImageCache will read the image through the default ImageCache.
 ///
+/// - `imageinput:strict` (int: 0)
+///
+///   If zero (the default), ImageInput readers will try to be very tolerant
+///   of minor flaws or invalidity in image files being read, if possible just
+///   skipping something erroneous it encounters in the hopes that the rest of
+///   the file's data will be usable. If nonzero, anything clearly invalid in
+///   the file will be understood to be a corrupt file with unreliable data at
+///   best, and possibly malicious construction, and so will not attempt to
+///   further decode anything in the file. This may be a better choice to
+///   enable globally in an environment where security is a higher priority
+///   than being tolerant of partially broken image files.
 OIIO_API bool attribute(string_view name, TypeDesc type, const void* val);
 
 /// Shortcut attribute() for setting a single integer.
@@ -3038,6 +3056,21 @@ inline bool attribute (string_view name, string_view val) {
 ///   OpenImageIO can find, all the font files that OpenImageIO can find (with
 ///   full paths), and all the directories that OpenImageIO will search for
 ///   fonts.  (Added in OpenImageIO 2.5)
+///
+/// - `string font_family_list`
+///
+///   A semicolon-separated list of all the font family names that
+///   OpenImageIO can find.  (Added in OpenImageIO 3.0)
+///
+/// - `string font_style_list:family`
+///
+///   A semicolon-separated list of all the font style names that
+///   belong to the given font family.  (Added in OpenImageIO 3.0)
+///
+/// - `string font_filename:family:style`
+///
+///   The font file (with full path) that defines the given font
+///   family and style.  (Added in OpenImageIO 3.0)
 ///
 /// - `string filter_list`
 ///

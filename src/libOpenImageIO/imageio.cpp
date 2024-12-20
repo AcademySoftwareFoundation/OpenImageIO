@@ -48,12 +48,14 @@ atomic_int oiio_try_all_readers(1);
 #endif
 // Should we use "Exr core C library"?
 int openexr_core(OIIO_OPENEXR_CORE_DEFAULT);
+int jpeg_com_attributes(1);
 int tiff_half(0);
 int tiff_multithread(1);
 int dds_bc5normal(0);
 int limit_channels(1024);
 int limit_imagesize_MB(std::min(32 * 1024,
                                 int(Sysutil::physical_memory() >> 20)));
+int imageinput_strict(0);
 ustring font_searchpath(Sysutil::getenv("OPENIMAGEIO_FONTS"));
 ustring plugin_searchpath(OIIO_DEFAULT_PLUGIN_SEARCHPATH);
 std::string format_list;         // comma-separated list of all formats
@@ -366,6 +368,10 @@ attribute(string_view name, TypeDesc type, const void* val)
         openexr_core = *(const int*)val;
         return true;
     }
+    if (name == "jpeg:com_attributes" && type == TypeInt) {
+        jpeg_com_attributes = *(const int*)val;
+        return true;
+    }
     if (name == "tiff:half" && type == TypeInt) {
         tiff_half = *(const int*)val;
         return true;
@@ -396,6 +402,10 @@ attribute(string_view name, TypeDesc type, const void* val)
     }
     if (name == "imagebuf:use_imagecache" && type == TypeInt) {
         imagebuf_use_imagecache = *(const int*)val;
+        return true;
+    }
+    if (name == "imageinput:strict" && type == TypeInt) {
+        imageinput_strict = *(const int*)val;
         return true;
     }
     if (name == "use_tbb" && type == TypeInt) {
@@ -505,6 +515,23 @@ getattribute(string_view name, TypeDesc type, void* val)
         *(ustring*)val = ustring(Strutil::join(font_list(), ";"));
         return true;
     }
+    if (name == "font_family_list" && type == TypeString) {
+        *(ustring*)val = ustring(Strutil::join(font_family_list(), ";"));
+        return true;
+    }
+    if (Strutil::starts_with(name, "font_style_list:") && type == TypeString) {
+        string_view family = name.substr(strlen("font_style_list:"));
+        *(ustring*)val = ustring(Strutil::join(font_style_list(family), ";"));
+        return true;
+    }
+    if (Strutil::starts_with(name, "font_filename:") && type == TypeString) {
+        std::vector<string_view> tokens;
+        Strutil::split(name, tokens, ":");
+        string_view family = tokens.size() >= 1 ? tokens[1] : string_view();
+        string_view style  = tokens.size() >= 2 ? tokens[2] : string_view();
+        *(ustring*)val     = ustring(font_filename(family, style));
+        return true;
+    }
     if (name == "filter_list" && type == TypeString) {
         std::vector<string_view> filternames;
         for (int i = 0, e = Filter2D::num_filters(); i < e; ++i)
@@ -518,6 +545,10 @@ getattribute(string_view name, TypeDesc type, void* val)
     }
     if (name == "openexr:core" && type == TypeInt) {
         *(int*)val = openexr_core;
+        return true;
+    }
+    if (name == "jpeg:com_attributes" && type == TypeInt) {
+        *(int*)val = jpeg_com_attributes;
         return true;
     }
     if (name == "tiff:half" && type == TypeInt) {
@@ -550,6 +581,10 @@ getattribute(string_view name, TypeDesc type, void* val)
     }
     if (name == "imagebuf:use_imagecache" && type == TypeInt) {
         *(int*)val = imagebuf_use_imagecache;
+        return true;
+    }
+    if (name == "imageinput:strict" && type == TypeInt) {
+        *(int*)val = imageinput_strict;
         return true;
     }
     if (name == "use_tbb" && type == TypeInt) {

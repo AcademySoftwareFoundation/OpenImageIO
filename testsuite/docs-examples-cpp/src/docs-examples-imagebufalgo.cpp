@@ -492,6 +492,21 @@ void example_warp()
     Dst.write("warp.exr");
 }
 
+void example_demosaic()
+{
+    print("example_demosaic\n");
+    // BEGIN-imagebufalgo-demosaic
+    ImageBuf Src("bayer.png");
+    float WB[3] = {2.0, 1.0, 1.5};
+    ParamValue options[] = {
+        { "layout", "BGGR" },
+        ParamValue("white_balance", TypeFloat, 3, WB)
+    };
+    ImageBuf Dst = ImageBufAlgo::demosaic(Src, options);
+    // END-imagebufalgo-demosaic
+    Dst.write("demosaic.png");
+}
+
 
 // Section: Image Arithmetic
 void example_add()
@@ -540,6 +555,19 @@ void example_abs()
     ImageBuf Abs = ImageBufAlgo::abs(A);
     // END-imagebufalgo-absolute
     Abs.write("abs.exr");
+}
+
+void example_scale()
+{
+    print("example_scale\n");
+    // BEGIN-imagebufalgo-scale
+    // Pixel-by-pixel multiplication of all channels of A by the single channel of B
+    ImageBuf A("A.exr");
+    ImageBuf B("mono.exr");
+    ImageBuf Product = ImageBufAlgo::scale(A, B);
+
+    // END-imagebufalgo-scale
+    Product.write("scale.exr");
 }
 
 void example_mul()
@@ -703,12 +731,14 @@ int main(int /*argc*/, char** /*argv*/)
     example_resample();
     example_fit();
     example_warp();
+    example_demosaic();
 
     // Section: Image Arithmetic
     example_add();
     example_sub();
     example_absdiff();
     example_abs();
+    example_scale();
     example_mul();
     example_div();
 

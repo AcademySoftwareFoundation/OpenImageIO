@@ -1163,22 +1163,27 @@ Shuffling channels
 
        .. code-tab:: c++
 
-          ImageSpec hint;
-          hint["raw:Demosaic"] = "none";
-          ImageBuf Src ("test.cr3", 0, 0, nullptr, &hint);
-          ParamValue options[] = { { "layout", "GRBG" } };
-          ImageBuf Dst = ImageBufAlgo::demosaic (Src, options);
+       .. tab:: C++
+
+          .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+             :language: c++
+             :start-after: BEGIN-imagebufalgo-demosaic
+             :end-before: END-imagebufalgo-demosaic
+             :dedent: 4
 
        .. code-tab:: py
 
-          hint = ImageSpec()
-          hint["raw:Demosaic"] = "none"
-          Src = ImageBuf("test.cr3", 0, 0, hint)
-          Dst = OpenImageIO.ImageBufAlgo.demosaic(Src, layout="GRBG")
+       .. tab:: Python
+
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+             :language: py
+             :start-after: BEGIN-imagebufalgo-demosaic
+             :end-before: END-imagebufalgo-demosaic
+             :dedent: 4
 
        .. code-tab:: bash oiiotool
 
-          oiiotool -iconfig raw:Demosaic none -i test.cr3 --demosaic:layout=GRBG -o out.exr
+          oiiotool -iconfig raw:Demosaic none -i test.cr3 --demosaic:layout=GRBG:white_balance=2.0,0.8,1.2,1.5 -o out.exr
 
 |
 
@@ -1321,6 +1326,38 @@ Image arithmetic
        .. code-tab:: bash oiiotool
 
           oiiotool a.exr --abs -o abs.exr
+
+|
+
+.. doxygenfunction:: scale(const ImageBuf &A, const ImageBuf &B, KWArgs options = {}, ROI roi = {}, int nthreads = 0)
+..
+
+  Result-as-parameter version:
+
+    .. doxygenfunction:: scale(ImageBuf &dst, const ImageBuf &A, const ImageBuf &B, KWArgs options = {}, ROI roi = {}, int nthreads = 0)
+
+  Examples:
+
+    .. tabs::
+
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-scale
+              :end-before: END-imagebufalgo-scale
+              :dedent: 4
+
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-scale
+              :end-before: END-imagebufalgo-scale
+              :dedent: 4
+
+       .. code-tab:: bash oiiotool
+
+          # Pixel-by-pixel multiplication of all channels of one image by the only channel of another image
+          oiiotool a.exr mono.exr --scale -o scale.exr
 
 |
 

@@ -61,7 +61,7 @@ different formats, comparing image data between two images, and examining
 image metadata.
 
 All of this is released as "open source" software using the very permissive
-"BSD 3-clause" license.  So you should feel free to use any or all of
+"Apache-2.0" license.  So you should feel free to use any or all of
 OpenImageIO in your own software, whether it is private or public, open
 source or proprietary, free or commercial.  You may also modify it on your
 own.  You are encouraged to contribute to the continued development of

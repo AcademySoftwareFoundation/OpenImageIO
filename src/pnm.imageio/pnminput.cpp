@@ -223,8 +223,10 @@ PNMInput::read_file_scanline(void* data, int y)
                 numbytes = m_spec.nchannels * 4 * m_spec.width;
             else
                 numbytes = m_spec.scanline_bytes();
-            if (size_t(numbytes) > m_remaining.size())
+            if (size_t(numbytes) > m_remaining.size()) {
+                errorfmt("Premature end of file");
                 return false;
+            }
             buf.assign(m_remaining.begin(), m_remaining.begin() + numbytes);
 
             m_remaining.remove_prefix(numbytes);
@@ -375,6 +377,9 @@ PNMInput::open(const std::string& name, ImageSpec& newspec)
     m_pfm_flip  = false;
 
     if (!read_file_header())
+        return false;
+
+    if (!check_open(m_spec))  // check for apparently invalid values
         return false;
 
     newspec = m_spec;

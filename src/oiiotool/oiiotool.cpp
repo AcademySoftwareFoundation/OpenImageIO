@@ -76,6 +76,18 @@ using pvt::print_info_options;
         op();                                                        \
     }
 
+// Lke OIIOTOOL_OP, but designate the op as "inplace" -- which means it
+// uses the input image itself as the destination.
+#define OIIOTOOL_INPLACE_OP(name, ninputs, ...)                      \
+    static void action_##name(Oiiotool& ot, cspan<const char*> argv) \
+    {                                                                \
+        if (ot.postpone_callback(ninputs, action_##name, argv))      \
+            return;                                                  \
+        OiiotoolOp op(ot, "-" #name, argv, ninputs, __VA_ARGS__);    \
+        op.inplace(true);                                            \
+        op();                                                        \
+    }
+
 // Canned setup for an op that uses one image on the stack.
 #define UNARY_IMAGE_OP(name, impl)                                 \
     OIIOTOOL_OP(name, 1, [](OiiotoolOp& op, span<ImageBuf*> img) { \
@@ -3078,6 +3090,7 @@ BINARY_IMAGE_OP(add, ImageBufAlgo::add);          // --add
 BINARY_IMAGE_OP(sub, ImageBufAlgo::sub);          // --sub
 BINARY_IMAGE_OP(mul, ImageBufAlgo::mul);          // --mul
 BINARY_IMAGE_OP(div, ImageBufAlgo::div);          // --div
+BINARY_IMAGE_OP(scale, ImageBufAlgo::scale);      // --scale
 BINARY_IMAGE_OP(absdiff, ImageBufAlgo::absdiff);  // --absdiff
 
 BINARY_IMAGE_COLOR_OP(addc, ImageBufAlgo::add, 0);          // --addc
@@ -3458,14 +3471,28 @@ OIIOTOOL_OP(warp, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
 
 // --demosaic
 OIIOTOOL_OP(demosaic, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
-    std::string pattern   = op.options().get_string("pattern");
-    std::string algorithm = op.options().get_string("algorithm");
-    std::string layout    = op.options().get_string("layout");
+    ParamValueList list;
+    const std::vector<std::string> keys = { "pattern", "algorithm", "layout" };
+    for (const auto& key : keys) {
+        auto iter = op.options().find(key);
+        if (iter != op.options().cend()) {
+            list.push_back(iter[0]);
+        }
+    }
 
-    return ImageBufAlgo::demosaic(*img[0], *img[1],
-                                  { { "pattern", pattern },
-                                    { "algorithm", algorithm },
-                                    { "layout", layout } });
+    std::string wb = op.options()["white_balance"];
+    string_view str(wb);
+    float f3[3];
+    float f4[4];
+    if (Strutil::parse_values(str, "", f4, ",") && str.empty()) {
+        ParamValue pv("white_balance", TypeFloat, 4, f4);
+        list.push_back(pv);
+    } else if (Strutil::parse_values(str, "", f3, ",") && str.empty()) {
+        ParamValue pv("white_balance", TypeFloat, 3, f3);
+        list.push_back(pv);
+    }
+
+    return ImageBufAlgo::demosaic(*img[0], *img[1], KWArgs(list));
 });
 
 
@@ -4940,8 +4967,9 @@ OIIOTOOL_OP(contrast, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
 
 // --box
 // clang-format off
-OIIOTOOL_OP(box, 1, nullptr, ([&](OiiotoolOp& op, span<ImageBuf*> img) {
-    img[0]->copy(*img[1]);
+OIIOTOOL_INPLACE_OP(box, 1, nullptr, ([&](OiiotoolOp& op, span<ImageBuf*> img) {
+    OIIO_ASSERT(img[0] == img[1]);  // Assume we're operating in-place
+    // img[0]->copy(*img[1]);  // what we'd do if we weren't in-place
     const ImageSpec& Rspec(img[0]->spec());
     int x1, y1, x2, y2;
     string_view s(op.args(1));
@@ -4963,8 +4991,9 @@ OIIOTOOL_OP(box, 1, nullptr, ([&](OiiotoolOp& op, span<ImageBuf*> img) {
 
 
 // --line
-OIIOTOOL_OP(line, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
-    img[0]->copy(*img[1]);
+OIIOTOOL_INPLACE_OP(line, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
+    OIIO_ASSERT(img[0] == img[1]);  // Assume we're operating in-place
+    // img[0]->copy(*img[1]);  // what we'd do if we weren't in-place
     const ImageSpec& Rspec(img[0]->spec());
     std::vector<int> points;
     Strutil::extract_from_list_string(points, op.args(1));
@@ -4983,8 +5012,9 @@ OIIOTOOL_OP(line, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
 
 
 // --point
-OIIOTOOL_OP(point, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
-    img[0]->copy(*img[1]);
+OIIOTOOL_INPLACE_OP(point, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
+    OIIO_ASSERT(img[0] == img[1]);  // Assume we're operating in-place
+    // img[0]->copy(*img[1]);  // what we'd do if we weren't in-place
     const ImageSpec& Rspec(img[0]->spec());
     std::vector<int> points;
     Strutil::extract_from_list_string(points, op.args(1));
@@ -5000,8 +5030,9 @@ OIIOTOOL_OP(point, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
 
 
 // --text
-OIIOTOOL_OP(text, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
-    img[0]->copy(*img[1]);
+OIIOTOOL_INPLACE_OP(text, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
+    OIIO_ASSERT(img[0] == img[1]);  // Assume we're operating in-place
+    // img[0]->copy(*img[1]);  // what we'd do if we weren't in-place
     const ImageSpec& Rspec(img[0]->spec());
     int x            = op.options().get_int("x", Rspec.x + Rspec.width / 2);
     int y            = op.options().get_int("y", Rspec.y + Rspec.height / 2);
@@ -5770,7 +5801,8 @@ action_printstats(Oiiotool& ot, cspan<const char*> argv)
     auto options      = ot.extract_options(command);
     bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
 
-    ot.read();
+    if (!ot.read())
+        return;
     ImageRecRef top = ot.top();
 
     print_info_options opt = ot.info_opts();
@@ -5787,6 +5819,7 @@ action_printstats(Oiiotool& ot, cspan<const char*> argv)
                       opt.roi.chend);
     }
     std::string errstring;
+    OIIO_ASSERT(top.get());
     print_info(std::cout, ot, top.get(), opt, errstring);
 
     ot.printed_info = true;
@@ -6614,6 +6647,9 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--csub %s:VAL")
       .hidden() // Deprecated synonym
       .OTACTION(action_subc);
+    ap.arg("--scale")
+      .help("Scale all channels of one image by the single channel of another image")
+      .OTACTION(action_scale);
     ap.arg("--mul")
       .help("Multiply two images")
       .OTACTION(action_mul);
@@ -6834,7 +6870,7 @@ Oiiotool::getargs(int argc, char* argv[])
       .help("Render text into the current image (options: x=, y=, size=, color=)")
       .OTACTION(action_text);
     ap.arg("--demosaic")
-      .help("Demosaic (options: pattern=%s, algorithm=%s, layout=%s)")
+      .help("Demosaic (options: pattern=%s, algorithm=%s, layout=%s, white_balance=%f:R,G1,G2,B)")
       .OTACTION(action_demosaic);
 
     ap.separator("Manipulating channels or subimages:");
