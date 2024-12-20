@@ -21,3 +21,6 @@ command += info_command ("src/corrupt-exif-1626.jpg", safematch=True)
 # extend beyond the boundaries of the ICC block itself.
 command += run_app (oiiotool("--echo corrupt-icc-4551.jpg"))
 command += run_app (oiio_app("iconvert") + " src/corrupt-icc-4551.jpg out-4551.jpg")
+
+# This file has a corrupted ICC profile block
+command += info_command ("src/corrupt-icc-4552.jpg", safematch=True)
