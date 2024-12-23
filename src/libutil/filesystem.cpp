@@ -541,6 +541,24 @@ Filesystem::ftell(FILE* file)
 
 
 
+std::string
+Filesystem::getline(FILE* file, size_t maxlen)
+{
+    std::string result;
+    char* buf;
+    OIIO_ALLOCATE_STACK_OR_HEAP(buf, char, maxlen + 1);
+    if (fgets(buf, int(maxlen + 1), file)) {
+        buf[maxlen] = 0;  // be sure it is terminated
+        if (!feof(file))
+            result.assign(buf);
+    } else {
+        result.assign("");
+    }
+    return result;
+}
+
+
+
 void
 Filesystem::open(OIIO::ifstream& stream, string_view path,
                  std::ios_base::openmode mode)
