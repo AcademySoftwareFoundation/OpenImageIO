@@ -243,11 +243,11 @@ private:
     size_t m_trials          = 10;
     size_t m_work            = 1;
     std::string m_name;
-    std::vector<double> m_times;  // times for each trial
-    double m_avg;                 // average time per iteration
-    double m_stddev;              // standard deviation per iteration
-    double m_range;               // range per iteration
-    double m_median;              // median per-iteration time
+    std::vector<double> m_times;   // times for each trial
+    double m_avg           = 0.0;  // average time per iteration
+    double m_stddev        = 0.0;  // standard deviation per iteration
+    double m_range         = 0.0;  // range per iteration
+    double m_median        = 0.0;  // median per-iteration time
     int m_exclude_outliers = 1;
     int m_verbose          = 1;
     int m_indent           = 0;
