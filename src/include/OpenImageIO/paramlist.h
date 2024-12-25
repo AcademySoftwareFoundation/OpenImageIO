@@ -215,6 +215,26 @@ public:
         b        = std::move(tmp);
     }
 
+    /// Return a `cspan<T>` pointing to the bounded data. If the type `T` is
+    /// not the actual underlying base type, return an empty span.
+    template<typename T> cspan<T> as_cspan() const noexcept
+    {
+        return BaseTypeFromC<T>::value == m_type.basetype
+                   ? make_cspan(reinterpret_cast<const T*>(data()),
+                                size_t(m_nvalues * m_type.basevalues()))
+                   : cspan<T>();
+    }
+
+    /// Return a `span<T>` pointing to the bounded data. If the type `T` is
+    /// not the actual underlying base type, return an empty span.
+    template<typename T> span<T> as_span() noexcept
+    {
+        return BaseTypeFromC<T>::value == m_type.basetype
+                   ? make_span(reinterpret_cast<T*>(const_cast<void*>(data())),
+                               size_t(m_nvalues * m_type.basevalues()))
+                   : span<T>();
+    }
+
     // Use with extreme caution! This is just doing a cast. You'd better
     // be really sure you are asking for the right type. Note that for
     // "string" data, you can get<ustring> or get<char*>, but it's not

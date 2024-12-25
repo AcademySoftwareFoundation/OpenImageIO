@@ -395,12 +395,18 @@ OIIO_INLINE_CONSTEXPR TypeDesc TypeUstringhash(TypeDesc::USTRINGHASH);
 template<typename T> struct BaseTypeFromC {};
 template<> struct BaseTypeFromC<unsigned char> { static const TypeDesc::BASETYPE value = TypeDesc::UINT8; };
 template<> struct BaseTypeFromC<char> { static const TypeDesc::BASETYPE value = TypeDesc::INT8; };
-template<> struct BaseTypeFromC<unsigned short> { static const TypeDesc::BASETYPE value = TypeDesc::UINT16; };
-template<> struct BaseTypeFromC<short> { static const TypeDesc::BASETYPE value = TypeDesc::INT16; };
-template<> struct BaseTypeFromC<unsigned int> { static const TypeDesc::BASETYPE value = TypeDesc::UINT; };
-template<> struct BaseTypeFromC<int> { static const TypeDesc::BASETYPE value = TypeDesc::INT; };
+template<> struct BaseTypeFromC<uint16_t> { static const TypeDesc::BASETYPE value = TypeDesc::UINT16; };
+template<> struct BaseTypeFromC<int16_t> { static const TypeDesc::BASETYPE value = TypeDesc::INT16; };
+template<> struct BaseTypeFromC<uint32_t> { static const TypeDesc::BASETYPE value = TypeDesc::UINT; };
+template<> struct BaseTypeFromC<int32_t> { static const TypeDesc::BASETYPE value = TypeDesc::INT; };
+template<> struct BaseTypeFromC<uint64_t> { static const TypeDesc::BASETYPE value = TypeDesc::UINT64; };
+template<> struct BaseTypeFromC<int64_t> { static const TypeDesc::BASETYPE value = TypeDesc::INT64; };
+#if defined(__GNUC__) && !defined(__apple_build_version__) && __WORDSIZE == 64
+// gcc on some platforms consider int64_t and long long to be different
+// types, even though they are actually the same size. 
 template<> struct BaseTypeFromC<unsigned long long> { static const TypeDesc::BASETYPE value = TypeDesc::UINT64; };
 template<> struct BaseTypeFromC<long long> { static const TypeDesc::BASETYPE value = TypeDesc::INT64; };
+#endif
 #if defined(_HALF_H_) || defined(IMATH_HALF_H_)
 template<> struct BaseTypeFromC<half> { static const TypeDesc::BASETYPE value = TypeDesc::HALF; };
 #endif

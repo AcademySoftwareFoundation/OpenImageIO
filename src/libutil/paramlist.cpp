@@ -35,7 +35,6 @@ ParamValue::init_noclear(ustring _name, TypeDesc _type, int _nvalues,
     m_type      = _type;
     m_nvalues   = _nvalues;
     m_interp    = _interp;
-    size_t n    = (size_t)(m_nvalues * m_type.numelements());
     size_t size = (size_t)(m_nvalues * m_type.size());
     bool small  = (size <= sizeof(m_data));
 
@@ -58,9 +57,9 @@ ParamValue::init_noclear(ustring _name, TypeDesc _type, int _nvalues,
             m_nonlocal = true;
         }
         if (m_type.basetype == TypeDesc::STRING && !_from_ustring) {
-            if (ustring* u = (ustring*)data())
-                for (size_t i = 0; i < n; ++i)
-                    u[i] = ustring(u[i].c_str());
+            // Convert non-ustrings to ustrings
+            for (ustring& u : as_span<ustring>())
+                u = ustring(u.c_str());
         }
     } else {
         // Big enough to warrant a malloc, but the caller said don't
@@ -126,17 +125,13 @@ template<class T>
 static void
 parse_elements(string_view value, ParamValue& p)
 {
-    using namespace Strutil;
-    TypeDesc type = p.type();
-    int num_items = type.numelements() * type.aggregate;
-    T* data       = (T*)p.data();
-    // Erase any leading whitespace
+    auto data = p.as_span<T>();
     value.remove_prefix(value.find_first_not_of(" \t"));
-    for (int i = 0; i < num_items; ++i) {
+    for (auto&& d : data) {
         // Make a temporary copy so we for sure have a 0-terminated string.
         std::string temp = value;
         // Grab the first value from it
-        data[i] = from_string<T>(temp);
+        d = Strutil::from_string<T>(temp);
         // Skip the value (eat until we find a delimiter -- space, comma, tab)
         value.remove_prefix(value.find_first_of(" ,\t"));
         // Skip the delimiter
