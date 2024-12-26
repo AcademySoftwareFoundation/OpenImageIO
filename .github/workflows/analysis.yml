@@ -25,10 +25,15 @@ on:
       - '!**/docs.yml'
       - '!**.properties'
       - '!docs/**'
+  # Run analysis on PRs only if the branch name indicates that the purpose of
+  # the PR is related to the Sonar analysis. We don't run on every PR because
+  # the analysis run is very expensive and just isn't usually necessary.
+  pull_request:
+    branches:
+      - '*analysis*'
+      - '*sonar*'
   # Allow manual kicking off of the workflow from github.com
   workflow_dispatch:
-  # Uncomment the following line if we want to run analysis on all PRs:
-  # pull_request:
 
 permissions: read-all
 
