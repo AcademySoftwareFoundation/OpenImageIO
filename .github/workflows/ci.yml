@@ -388,7 +388,7 @@ jobs:
             cc_compiler: gcc-13
             cxx_compiler: g++-13
             cxx_std: 20
-            fmt_ver: 11.0.2
+            fmt_ver: 11.1.1
             opencolorio_ver: v2.4.0
             openexr_ver: v3.3.0
             pybind11_ver: v2.13.5
@@ -400,7 +400,7 @@ jobs:
                             OPENJPEG_VERSION=v2.5.2
                             PTEX_VERSION=v2.4.3
                             PUGIXML_VERSION=v1.14
-                            WEBP_VERSION=v1.4.0
+                            WEBP_VERSION=v1.5.0
                             FREETYPE_VERSION=VER-2-13-3
                             USE_OPENVDB=0
           - desc: bleeding edge gcc14 C++20 py3.12 OCIO/libtiff/exr-main avx2
