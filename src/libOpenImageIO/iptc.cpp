@@ -84,6 +84,15 @@ static IIMtag iimtag[] = {
 // N.B. All "Date" fields are 8 digit strings: CCYYMMDD
 // All "Time" fields are 11 digit strings (what format?)
 
+// IPTC references:
+//
+// * https://www.iptc.org/std/photometadata/specification/IPTC-PhotoMetadata
+// * https://www.iptc.org/std/photometadata/specification/IPTC-PhotoMetadata#iptc-core-schema-1-5-specifications
+//   This is the one where you can find the length limits
+// * ExifTool's documentation about IPTC tags (caveat: not a definitive
+//   reference, could be outdated or incorrect):
+//   https://exiftool.org/TagNames/IPTC.html
+
 }  // anonymous namespace
 
 

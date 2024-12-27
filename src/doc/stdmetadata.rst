@@ -1063,6 +1063,16 @@ avoid conflicts with other plugins or standards.
     The history of the image or document.
 
 
+References for more information on IPTC metadata:
+
+* https://www.iptc.org/std/photometadata/specification/IPTC-PhotoMetadata
+* https://www.iptc.org/std/photometadata/specification/IPTC-PhotoMetadata#iptc-core-schema-1-5-specifications
+  This is the one where you can find the length limits
+* ExifTool's documentation about IPTC tags (caveat: not a definitive
+  reference, could be outdated or incorrect):
+  https://exiftool.org/TagNames/IPTC.html
+
+
 SMPTE metadata
 ==============
 
