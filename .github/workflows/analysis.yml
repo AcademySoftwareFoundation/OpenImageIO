@@ -14,20 +14,26 @@ on:
     # Run on pushes only to main or if the branch name contains "analysis"
     branches:
       - main
+      - dev-3.0
       - '*analysis*'
       - '*sonar*'
     paths:
       - '**'
       - '!**.md'
       - '!**.rst'
-      - '!**/analysis.yml'
+      - '!**/ci.yml'
       - '!**/docs.yml'
       - '!**.properties'
       - '!docs/**'
+  # Run analysis on PRs only if the branch name indicates that the purpose of
+  # the PR is related to the Sonar analysis. We don't run on every PR because
+  # the analysis run is very expensive and just isn't usually necessary.
+  pull_request:
+    branches:
+      - '*analysis*'
+      - '*sonar*'
   # Allow manual kicking off of the workflow from github.com
   workflow_dispatch:
-  # Uncomment the following line if we want to run analysis on all PRs:
-  # pull_request:
 
 permissions: read-all
 
@@ -45,6 +51,8 @@ jobs:
     # account credentials.
     if: github.repository == 'AcademySoftwareFoundation/OpenImageIO'
     uses: ./.github/workflows/build-steps.yml
+    # Must let the called steps workflow inherit our secrets
+    secrets: inherit
     with:
       nametag: ${{ matrix.nametag || 'unnamed!' }}
       runner: ${{ matrix.runner || 'ubuntu-latest' }}
@@ -75,7 +83,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - desc: sonar gcc9/C++14 py39 exr3.1 ocio2.2
+          - desc: sonar gcc11/C++17 py310 exr3.2 ocio2.3
             nametag: static-analysis-sonar
             os: ubuntu-latest
             container: aswf/ci-osl:2024-clang17
@@ -90,7 +98,7 @@ jobs:
             setenvs: export SONAR_SERVER_URL="https://sonarcloud.io"
                             BUILD_WRAPPER_OUT_DIR=/__w/OpenImageIO/OpenImageIO/bw_output
                             OIIO_CMAKE_BUILD_WRAPPER="build-wrapper-linux-x86-64 --out-dir /__w/OpenImageIO/OpenImageIO/bw_output"
-                            CMAKE_BUILD_TYPE=Debug
+                            OIIO_CMAKE_BUILD_TYPE=Debug
                             CMAKE_UNITY_BUILD=OFF
                             CODECOV=1
                             CTEST_TEST_TIMEOUT=1200
