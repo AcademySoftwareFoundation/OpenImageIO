@@ -21,67 +21,77 @@ struct IIMtag {
     const char* name;         // Attribute name we use
     const char* anothername;  // Optional second name
     bool repeatable;          // May repeat
+    unsigned int maxlen;      // Maximum length (if nonzero)
 };
 
 static IIMtag iimtag[] = {
-    { 3, "IPTC:ObjectTypeReference", NULL, false },
-    { 4, "IPTC:ObjectAttributeReference", NULL, true },
-    { 5, "IPTC:ObjectName", NULL, false },
-    { 7, "IPTC:EditStatus", NULL, false },
-    { 10, "IPTC:Urgency", NULL, false },  // deprecated by IPTC
-    { 12, "IPTC:SubjectReference", NULL, true },
-    { 15, "IPTC:Category", NULL, false },
-    { 20, "IPTC:SupplementalCategories", NULL, true },  // deprecated by IPTC
-    { 22, "IPTC:FixtureIdentifier", NULL, false },
-    { 25, "Keywords", NULL, true },
-    { 26, "IPTC:ContentLocationCode", NULL, true },
-    { 27, "IPTC:ContentLocationName", NULL, true },
-    { 30, "IPTC:ReleaseDate", NULL, false },
-    { 35, "IPTC:ReleaseTime", NULL, false },
-    { 37, "IPTC:ExpirationDate", NULL, false },
-    { 38, "IPTC:ExpirationTime", NULL, false },
-    { 40, "IPTC:Instructions", NULL, false },
-    { 45, "IPTC:ReferenceService", NULL, true },
-    { 47, "IPTC:ReferenceDate", NULL, false },
-    { 50, "IPTC:ReferenceNumber", NULL, true },
-    { 55, "IPTC:DateCreated", NULL, false },
-    { 60, "IPTC:TimeCreated", NULL, false },
-    { 62, "IPTC:DigitalCreationDate", NULL, false },
-    { 63, "IPTC:DigitalCreationTime", NULL, false },
-    { 65, "IPTC:OriginatingProgram", "Software", false },
-    { 70, "IPTC:ProgramVersion", NULL, false },
-    { 80, "IPTC:Creator", "Artist", true },      // sometimes called "byline"
-    { 85, "IPTC:AuthorsPosition", NULL, true },  // sometimes "byline title"
-    { 90, "IPTC:City", NULL, false },
-    { 92, "IPTC:Sublocation", NULL, false },
-    { 95, "IPTC:State", NULL, false },  // sometimes "Province/State"
-    { 100, "IPTC:CountryCode", NULL, false },
-    { 101, "IPTC:Country", NULL, false },
-    { 103, "IPTC:TransmissionReference", NULL, false },
-    { 105, "IPTC:Headline", NULL, false },
-    { 110, "IPTC:Provider", NULL, false },  // aka Credit
-    { 115, "IPTC:Source", NULL, false },
-    { 116, "IPTC:CopyrightNotice", "Copyright", false },
-    { 118, "IPTC:Contact", NULL, false },
-    { 120, "IPTC:Caption", "ImageDescription", false },
-    { 121, "IPTC:LocalCaption", NULL, false },
-    { 122, "IPTC:CaptionWriter", NULL, false },  // aka Writer/Editor
+    { 3, "IPTC:ObjectTypeReference", NULL, false, 67 },
+    { 4, "IPTC:ObjectAttributeReference", NULL, true, 68 },
+    { 5, "IPTC:ObjectName", NULL, false, 64 },
+    { 7, "IPTC:EditStatus", NULL, false, 64 },
+    { 10, "IPTC:Urgency", NULL, false, 1 },  // deprecated by IPTC
+    { 12, "IPTC:SubjectReference", NULL, true, 236 },
+    { 15, "IPTC:Category", NULL, false, 3 },
+    { 20, "IPTC:SupplementalCategories", NULL, true, 32 },  // deprecated by IPTC
+    { 22, "IPTC:FixtureIdentifier", NULL, false, 32 },
+    { 25, "IPTC:Keywords", NULL, true, 64 },
+    { 26, "IPTC:ContentLocationCode", NULL, true, 3 },
+    { 27, "IPTC:ContentLocationName", NULL, true, 64 },
+    { 30, "IPTC:ReleaseDate", NULL, false, 8 },
+    { 35, "IPTC:ReleaseTime", NULL, false, 11 },
+    { 37, "IPTC:ExpirationDate", NULL, false, 8 },
+    { 38, "IPTC:ExpirationTime", NULL, false, 11 },
+    { 40, "IPTC:Instructions", NULL, false, 256 },
+    { 45, "IPTC:ReferenceService", NULL, true, 10 },
+    { 47, "IPTC:ReferenceDate", NULL, false, 8 },
+    { 50, "IPTC:ReferenceNumber", NULL, true, 8 },
+    { 55, "IPTC:DateCreated", NULL, false, 8 },
+    { 60, "IPTC:TimeCreated", NULL, false, 11 },
+    { 62, "IPTC:DigitalCreationDate", NULL, false, 8 },
+    { 63, "IPTC:DigitalCreationTime", NULL, false, 11 },
+    { 65, "IPTC:OriginatingProgram", "Software", false, 32 },
+    { 70, "IPTC:ProgramVersion", NULL, false, 10 },
+    { 80, "IPTC:Creator", "Artist", true, 32 },  // sometimes called "byline"
+    { 85, "IPTC:AuthorsPosition", NULL, true, 32 },  // sometimes "byline title"
+    { 90, "IPTC:City", NULL, false, 32 },
+    { 92, "IPTC:Sublocation", NULL, false, 32 },
+    { 95, "IPTC:State", NULL, false, 32 },  // sometimes "Province/State"
+    { 100, "IPTC:CountryCode", NULL, false, 3 },
+    { 101, "IPTC:Country", NULL, false, 64 },
+    { 103, "IPTC:TransmissionReference", NULL, false, 32 },
+    { 105, "IPTC:Headline", NULL, false, 256 },
+    { 110, "IPTC:Provider", NULL, false, 32 },  // aka Credit
+    { 115, "IPTC:Source", NULL, false, 32 },
+    { 116, "IPTC:CopyrightNotice", "Copyright", false, 128 },
+    { 118, "IPTC:Contact", NULL, false, 128 },
+    { 120, "IPTC:Caption", "ImageDescription", false, 2000 },
+    { 121, "IPTC:LocalCaption", NULL, false, 256 },
+    { 122, "IPTC:CaptionWriter", NULL, false, 32 },  // aka Writer/Editor
     // Note: 150-154 is audio sampling stuff
-    { 184, "IPTC:JobID", NULL, false },
-    { 185, "IPTC:MasterDocumentID", NULL, false },
-    { 186, "IPTC:ShortDocumentID", NULL, false },
-    { 187, "IPTC:UniqueDocumentID", NULL, false },
-    { 188, "IPTC:OwnerID", NULL, false },
-    { 221, "IPTC:Prefs", NULL, false },
-    { 225, "IPTC:ClassifyState", NULL, false },
-    { 228, "IPTC:SimilarityIndex", NULL, false },
-    { 230, "IPTC:DocumentNotes", NULL, false },
-    { 231, "IPTC:DocumentHistory", NULL, false },
-    { -1, NULL, NULL, false }
+    { 184, "IPTC:JobID", NULL, false, 64 },
+    { 185, "IPTC:MasterDocumentID", NULL, false, 256 },
+    { 186, "IPTC:ShortDocumentID", NULL, false, 64 },
+    { 187, "IPTC:UniqueDocumentID", NULL, false, 128 },
+    { 188, "IPTC:OwnerID", NULL, false, 128 },
+    { 221, "IPTC:Prefs", NULL, false, 64 },
+    { 225, "IPTC:ClassifyState", NULL, false, 64 },
+    { 228, "IPTC:SimilarityIndex", NULL, false, 32 },
+    { 230, "IPTC:DocumentNotes", NULL, false, 1024 },
+    { 231, "IPTC:DocumentHistory", NULL, false, 256 },
+    { -1, NULL, NULL, false, 0 }
 };
 
 // N.B. All "Date" fields are 8 digit strings: CCYYMMDD
 // All "Time" fields are 11 digit strings (what format?)
+
+// IPTC references:
+//
+// * https://www.iptc.org/std/photometadata/specification/IPTC-PhotoMetadata
+// * https://www.iptc.org/std/photometadata/specification/IPTC-PhotoMetadata#iptc-core-schema-1-5-specifications
+//   This is the one where you can find the length limits
+// * ExifTool's documentation about IPTC tags (caveat: not a definitive
+//   reference, could be outdated or incorrect):
+//   https://exiftool.org/TagNames/IPTC.html
 
 }  // anonymous namespace
 
@@ -144,9 +154,13 @@ decode_iptc_iim(const void* iptc, int length, ImageSpec& spec)
                     } else {
                         spec.attribute(iimtag[i].name, s);
                     }
+#if 0
+                    // We are no longer confident about auto-translating IPTC
+                    // data into allegedly equivalent metadata.
                     if (iimtag[i].anothername
                         && !spec.extra_attribs.contains(iimtag[i].anothername))
                         spec.attribute(iimtag[i].anothername, s);
+#endif
                     break;
                 }
             }
@@ -193,18 +207,28 @@ encode_iptc_iim(const ImageSpec& spec, std::vector<char>& iptc)
                 Strutil::split(allvals, tokens, ";");
                 for (auto& token : tokens) {
                     token = Strutil::strip(token);
-                    if (token.size())
+                    if (token.size()) {
+                        if (iimtag[i].maxlen && iimtag[i].maxlen < token.size())
+                            token = token.substr(0, iimtag[i].maxlen);
                         encode_iptc_iim_one_tag(iimtag[i].tag, token, iptc);
+                    }
                 }
             } else {
                 // Regular, non-repeating
-                encode_iptc_iim_one_tag(iimtag[i].tag, p->get_string(0), iptc);
+                std::string token = p->get_string(0);
+                if (iimtag[i].maxlen && iimtag[i].maxlen < token.size())
+                    token = token.substr(0, iimtag[i].maxlen);
+                encode_iptc_iim_one_tag(iimtag[i].tag, token, iptc);
             }
         }
+#if 0
+        // We are no longer confident about auto-translating other metadata
+        // into allegedly equivalent IPTC.
         if (iimtag[i].anothername) {
             if ((p = spec.find_attribute(iimtag[i].anothername)))
                 encode_iptc_iim_one_tag(iimtag[i].tag, p->get_string(0), iptc);
         }
+#endif
     }
     return iptc.size() != 0;
 }
