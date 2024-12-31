@@ -760,9 +760,9 @@ ColorConfig::Impl::identify_builtin_equivalents()
 const char*
 ColorConfig::Impl::IdentifyBuiltinColorSpace(const char* name) const
 {
+#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 3, 0)
     if (!config_ || disable_builtin_configs)
         return nullptr;
-#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 3, 0)
     try {
         return OCIO::Config::IdentifyBuiltinColorSpace(config_, builtinconfig_,
                                                        name);

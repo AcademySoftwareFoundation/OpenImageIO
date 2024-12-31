@@ -104,7 +104,7 @@ private:
 
     /// Helper function - set keycode values from int array
     ///
-    void set_keycode_values(int* array);
+    void set_keycode_values(cspan<int> array);
 };
 
 
@@ -370,8 +370,7 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
 
     ParamValue* kc = spec0.find_attribute("smpte:KeyCode", TypeKeyCode, false);
     if (kc) {
-        int* array = (int*)kc->data();
-        set_keycode_values(array);
+        set_keycode_values(cspan<int>((int*)kc->data(), 7));
 
         // See if there is an overloaded dpx:Format
         std::string format = spec0.get_string_attribute("dpx:Format", "");
@@ -727,7 +726,7 @@ DPXOutput::get_image_descriptor()
 
 
 void
-DPXOutput::set_keycode_values(int* array)
+DPXOutput::set_keycode_values(cspan<int> array)
 {
     // Manufacturer code
     {
@@ -760,8 +759,8 @@ DPXOutput::set_keycode_values(int* array)
     }
 
     // Format
-    int& perfsPerFrame = array[5];
-    int& perfsPerCount = array[6];
+    int perfsPerFrame = array[5];
+    int perfsPerCount = array[6];
 
     if (perfsPerFrame == 15 && perfsPerCount == 120) {
         Strutil::safe_strcpy(m_dpx.header.format, "8kimax",

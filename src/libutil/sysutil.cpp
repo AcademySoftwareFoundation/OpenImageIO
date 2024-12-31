@@ -552,9 +552,8 @@ Sysutil::put_in_background(int argc, char* argv[])
     // Simplest case:
     // daemon returns 0 if successful, thus return true if successful
     return daemon(1, 1) == 0;
-#endif
 
-#if defined(__APPLE__) && TARGET_OS_OSX
+#elif defined(__APPLE__) && TARGET_OS_OSX
     std::string newcmd = std::string(argv[0]) + " -F";
     for (int i = 1; i < argc; ++i) {
         newcmd += " \"";
@@ -565,14 +564,14 @@ Sysutil::put_in_background(int argc, char* argv[])
     if (system(newcmd.c_str()) != -1)
         exit(0);
     return true;
-#endif
 
-#ifdef _WIN32
+#elif defined(_WIN32)
     return true;
-#endif
 
+#else
     // Otherwise, we don't know what to do
     return false;
+#endif
 }
 
 
