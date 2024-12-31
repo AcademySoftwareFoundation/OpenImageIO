@@ -1003,9 +1003,8 @@ Filesystem::scan_for_matching_filenames(const std::string& pattern,
         // case 3: pattern has format, but no view
         return scan_for_matching_filenames(pattern, frame_numbers, filenames);
     }
-
-    return true;
 }
+
 
 bool
 Filesystem::scan_for_matching_filenames(const std::string& pattern_,
@@ -1285,10 +1284,6 @@ Filesystem::IOFile::pwrite(const void* buf, size_t size, int64_t offset)
     // FIXME: the system pwrite returns ssize_t and is -1 on error.
     return r < 0 ? size_t(0) : size_t(r);
 #endif
-    offset += r;
-    if (m_pos > int64_t(m_size))
-        m_size = offset;
-    return r;
 }
 
 size_t
