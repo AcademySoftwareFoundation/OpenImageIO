@@ -6,6 +6,18 @@ For the full release notes of all versions, see:
 
 
 
+Release 2.5.18.0 (Jan 1, 2025) -- compared to 2.5.17.0
+--------------------------------------------------------
+- *exr*: Avoid integer overflow for large deep exr slice strides [#4542](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4542)
+- *pnm*: Broken pnm files with invalid resolution [#4561](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4561)
+- *build*: Use target_compile_options (fixes a LibRaw build issue) [#4556](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4556) (by Don Olmstead)
+- *testing*: Add new ref output for libheif updates [#4525](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4525)
+- *ci*: Increased the macos timeout slightly to fix spurious failures [#4526](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4526)
+- *ci*: Fix broken CI for ASWF 2021 and 2022 containers [#4543](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4543)
+- *docs*: Clarify 'copy_image' example [#4522](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4522)
+- *docs*: Update some old links to our new vanity URLs [#4533](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4533)
+
+
 Release 2.5.17.0 (Nov 1, 2024) -- compared to 2.5.16.0
 --------------------------------------------------------
 - *iinfo*: fix: iinfo was not reading MIP levels correctly [#4498](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4498)

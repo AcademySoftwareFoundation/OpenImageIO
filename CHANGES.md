@@ -1,4 +1,9 @@
-Release 3.0.2.0 (Jan 1, 2024) -- compared to 3.0.1.0
+Release 3.0.3.0 (Feb 1?, 2025) -- compared to 3.0.2.0
+-----------------------------------------------------
+
+
+
+Release 3.0.2.0 (Jan 1, 2025) -- compared to 3.0.1.0
 -----------------------------------------------------
 - *api*: Add global attribute `imageinput:strict` [#4560](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4560)
 - *various formats*: Detect invalid ICC profile tags [#4557](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4557) [#4565](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4565)
@@ -10,7 +15,7 @@ Release 3.0.2.0 (Jan 1, 2024) -- compared to 3.0.1.0
 - *ci*: Refactor using a single steps workflow [#4545](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4545)
 - *ci*: Fixups of analysis workflow [#4572](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4572)
 - *docs*: Minor fixes and typos [#4564](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4564)
-- *admin*: Sign release artifacts (#4580) [#4580](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4580)
+- *admin*: Sign release artifacts [#4580](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4580)
 
 
 Release 3.0.1.0 (Dec 1, 2024) -- compared to 3.0.0.3
