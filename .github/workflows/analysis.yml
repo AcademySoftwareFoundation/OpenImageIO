@@ -51,8 +51,10 @@ jobs:
     # account credentials.
     if: github.repository == 'AcademySoftwareFoundation/OpenImageIO'
     uses: ./.github/workflows/build-steps.yml
-    # Must let the called steps workflow inherit our secrets
-    secrets: inherit
+    # Must let the called steps workflow inherit necessary secrets
+    secrets:
+      PASSED_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PASSED_SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     with:
       nametag: ${{ matrix.nametag || 'unnamed!' }}
       runner: ${{ matrix.runner || 'ubuntu-latest' }}
