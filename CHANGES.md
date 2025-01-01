@@ -1,3 +1,7 @@
+Release 2.5.19.0 (??, 2025) -- compared to 2.5.18.0
+--------------------------------------------------------
+
+
 Release 2.5.18.0 (Jan 1, 2025) -- compared to 2.5.17.0
 --------------------------------------------------------
 - *exr*: Avoid integer overflow for large deep exr slice strides [#4542](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4542)
