@@ -49,7 +49,7 @@ jobs:
         shell: bash
 
       - name: Checkout
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Create archive
         run: git archive --format=tar.gz -o ${OPENIMAGEIO_TARBALL} --prefix ${OPENIMAGEIO_PREFIX} ${TAG}
