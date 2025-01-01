@@ -2164,7 +2164,9 @@ bool OIIO_API repremult (ImageBuf &dst, const ImageBuf &src,
 ///
 ///   - "pattern" : string (default: "bayer")
 ///
-///     The type of image sensor color filter array. Currently only the Bayer-pattern images are supported.
+///     The type of image sensor color filter array. Currently suported patterns:
+///     - `bayer` - Bayer-pattern image.
+///     - `xtrans` - X-Trans-pattern image.
 ///
 ///   - "algorithm" : string (default: "linear")
 ///
@@ -2174,11 +2176,14 @@ bool OIIO_API repremult (ImageBuf &dst, const ImageBuf &src,
 ///     - `MHC` - Malvar-He-Cutler linear demosaicing algorithm. Slower than `linear`, but produces 
 ///       significantly better results.
 ///
-///   - "layout" : string (default: "RGGB")
+///     The following algorithms are supported for X-Trans-pattern images:
+///     - `linear` - simple linear demosaicing. Fast, but can produce artefacts along sharp edges.
+///
+///   - "layout" : string (default: "RGGB" for Bayer, "GRBGBR BGGRGG RGGBGG GBRGRB RGGBGG BGGRGG" for X-Trans)
 ///
 ///     The order the color filter array elements are arranged in, pattern-specific.
 ///
-///   - "white-balance" : float[3] or float[4] (default: {1.0, 1.0, 1.0, 1.0})
+///   - "white-balance" : float[3] or float[4], (default: {1.0, 1.0, 1.0, 1.0})
 ///
 ///     Optional white-balancing weights. Can contain either three (R,G,B), or four (R,G1,B,G2) values.
 ///     The order of the white balance multipliers does not depend on the matrix layout.
