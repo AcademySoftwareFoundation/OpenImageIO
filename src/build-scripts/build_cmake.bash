@@ -12,7 +12,7 @@ set -ex
 echo "Building cmake"
 uname
 
-CMAKE_VERSION=${CMAKE_VERSION:=3.18.5}
+CMAKE_VERSION=${CMAKE_VERSION:=3.31.3}
 LOCAL_DEPS_DIR=${LOCAL_DEPS_DIR:=${PWD}/ext}
 CMAKE_INSTALL_DIR=${CMAKE_INSTALL_DIR:=${LOCAL_DEPS_DIR}/cmake}
 
@@ -25,8 +25,8 @@ fi
 
 if [[ `uname` == "Linux" && `uname -m` == "aarch64" ]] ; then
     mkdir -p ${CMAKE_INSTALL_DIR} || true
-    curl --location https://anaconda.org/conda-forge/cmake/3.17.0/download/linux-aarch64/cmake-3.17.0-h28c56e5_0.tar.bz2 -o cmake-3.17.0-h28c56e5_0.tar.bz2
-    tar -xjf cmake-3.17.0-h28c56e5_0.tar.bz2 -C ${CMAKE_INSTALL_DIR}
+    curl --location "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-aarch64.sh" -o "cmake.sh"
+    sh cmake.sh --skip-license --prefix=${CMAKE_INSTALL_DIR}
     export PATH=${CMAKE_INSTALL_DIR}/bin:$PATH
 
     # In case we ever need to build from scratch:
