@@ -42,6 +42,9 @@ private:
     read_pixels_mixed_run_length(const softimage_pvt::ChannelPacket& curPacket,
                                  void* data);
 
+    // Name for encoding
+    const char* encoding_name(int encoding);
+
     FILE* m_fd;
     softimage_pvt::PicFileHeader m_pic_header;
     std::vector<softimage_pvt::ChannelPacket> m_channel_packets;
@@ -108,6 +111,7 @@ SoftimageInput::open(const std::string& name, ImageSpec& spec)
     // Get the ChannelPackets
     ChannelPacket curPacket;
     int nchannels = 0;
+    std::vector<std::string> encodings;
     do {
         // Read the next packet into curPacket and store it off
         if (fread(&curPacket, 1, sizeof(ChannelPacket), m_fd)
@@ -120,6 +124,7 @@ SoftimageInput::open(const std::string& name, ImageSpec& spec)
 
         // Add the number of channels in this packet to nchannels
         nchannels += curPacket.channels().size();
+        encodings.push_back(encoding_name(m_channel_packets.back().type));
     } while (curPacket.chained);
 
     // Get the depth per pixel per channel
@@ -131,6 +136,8 @@ SoftimageInput::open(const std::string& name, ImageSpec& spec)
     m_spec = ImageSpec(m_pic_header.width, m_pic_header.height, nchannels,
                        chanType);
     m_spec.attribute("BitsPerSample", (int)curPacket.size);
+
+    m_spec.attribute("softimage:compression", Strutil::join(encodings, ","));
 
     if (m_pic_header.comment[0] != 0) {
         char comment[80];
@@ -225,35 +232,39 @@ SoftimageInput::close()
 
 
 
-inline bool
+const char*
+SoftimageInput::encoding_name(int encoding)
+{
+    switch (encoding & 0x3) {
+    case UNCOMPRESSED: return "none";
+    case PURE_RUN_LENGTH: return "rle";
+    case MIXED_RUN_LENGTH: return "mixed-rle";
+    default: return "unknown";
+    }
+}
+
+
+
+bool
 SoftimageInput::read_next_scanline(void* data)
 {
     // Each scanline is stored using one or more channel packets.
     // We go through each of those to pull the data
     for (auto& cp : m_channel_packets) {
-        if (cp.type & UNCOMPRESSED) {
-            if (!read_pixels_uncompressed(cp, data)) {
-                errorfmt("Failed to read uncompressed pixel data from \"{}\"",
-                         m_filename);
-                close();
-                return false;
-            }
-        } else if (cp.type & PURE_RUN_LENGTH) {
-            if (!read_pixels_pure_run_length(cp, data)) {
-                errorfmt(
-                    "Failed to read pure run length encoded pixel data from \"{}\"",
-                    m_filename);
-                close();
-                return false;
-            }
-        } else if (cp.type & MIXED_RUN_LENGTH) {
-            if (!read_pixels_mixed_run_length(cp, data)) {
-                errorfmt(
-                    "Failed to read mixed run length encoded pixel data from \"{}\"",
-                    m_filename);
-                close();
-                return false;
-            }
+        bool ok  = false;
+        int type = int(cp.type) & 0x3;
+        if (type == UNCOMPRESSED) {
+            ok = read_pixels_uncompressed(cp, data);
+        } else if (type == PURE_RUN_LENGTH) {
+            ok = read_pixels_pure_run_length(cp, data);
+        } else if (type == MIXED_RUN_LENGTH) {
+            ok = read_pixels_mixed_run_length(cp, data);
+        }
+        if (!ok) {
+            errorfmt("Failed to read channel packed type {:d} from \"{}\"",
+                     int(cp.type), m_filename);
+            close();
+            return false;
         }
     }
     return true;
@@ -261,7 +272,7 @@ SoftimageInput::read_next_scanline(void* data)
 
 
 
-inline bool
+bool
 SoftimageInput::read_pixels_uncompressed(
     const softimage_pvt::ChannelPacket& curPacket, void* data)
 {
@@ -304,7 +315,7 @@ SoftimageInput::read_pixels_uncompressed(
 
 
 
-inline bool
+bool
 SoftimageInput::read_pixels_pure_run_length(
     const softimage_pvt::ChannelPacket& curPacket, void* data)
 {
@@ -365,7 +376,7 @@ SoftimageInput::read_pixels_pure_run_length(
 
 
 
-inline bool
+bool
 SoftimageInput::read_pixels_mixed_run_length(
     const softimage_pvt::ChannelPacket& curPacket, void* data)
 {

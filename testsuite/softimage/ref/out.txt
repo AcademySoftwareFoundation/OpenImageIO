@@ -1,0 +1,32 @@
+Reading ../oiio-images/softimage/A4.pic
+../oiio-images/softimage/A4.pic :   64 x   64, 4 channel, uint8 softimage
+    SHA-1: 6A9FFED68FE36B0DA8544C1A3CBD671F662F8142
+    channel list: R, G, B, A
+    BitsPerSample: 8
+    ImageDescription: "Created by Houdini"
+    softimage:compression: "mixed-rle,mixed-rle"
+    Stats Min: 0 0 0 0 (of 255)
+    Stats Max: 255 255 255 255 (of 255)
+    Stats Avg: 2.29 2.29 2.29 2.29 (of 255)
+    Stats StdDev: 21.26 21.26 21.26 21.26 (of 255)
+    Stats NanCount: 0 0 0 0 
+    Stats InfCount: 0 0 0 0 
+    Stats FiniteCount: 4096 4096 4096 4096 
+    Constant: No
+    Monochrome: Yes
+Reading ../oiio-images/softimage/astone64.pic
+../oiio-images/softimage/astone64.pic :   64 x   64, 3 channel, uint8 softimage
+    SHA-1: 0FD57F8BBD941261055C65A64BBA294D9C21664F
+    channel list: R, G, B
+    BitsPerSample: 8
+    ImageDescription: "ImageFX SoftImage Saver (Amiga)"
+    softimage:compression: "none"
+    Stats Min: 26 30 0 (of 255)
+    Stats Max: 255 255 174 (of 255)
+    Stats Avg: 154.83 158.82 68.19 (of 255)
+    Stats StdDev: 37.89 37.86 29.05 (of 255)
+    Stats NanCount: 0 0 0 
+    Stats InfCount: 0 0 0 
+    Stats FiniteCount: 4096 4096 4096 
+    Constant: No
+    Monochrome: No
