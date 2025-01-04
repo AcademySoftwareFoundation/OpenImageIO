@@ -198,13 +198,15 @@ jobs:
       #   uses: step-security/harden-runner@248ae51c2e8cc9622ecf50685c8bf7150c6e8813 # v1.4.3
       #   with:
       #     egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
-      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: '0'
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
         run: echo "date=`date -u +'%Y-%m-%dT%H:%M:%SZ'`" >> $GITHUB_OUTPUT
       - name: ccache
         id: ccache
-        uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d # v3.0.4
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: /tmp/ccache
           key: ${{github.job}}-${{matrix.nametag}}-${{steps.ccache_cache_keys.outputs.date}}
@@ -224,7 +226,7 @@ jobs:
         run: src/build-scripts/ci-test.bash
       - name: Check out ABI standard
         if: matrix.abi_check != ''
-        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{matrix.abi_check}}
           path: abi_standard
@@ -239,7 +241,7 @@ jobs:
         if: matrix.abi_check != ''
         run: |
             src/build-scripts/ci-abicheck.bash ./build abi_standard/build libOpenImageIO libOpenImageIO_Util
-      - uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
+      - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         if: failure()
         with:
           name: oiio-${{github.job}}-${{matrix.nametag}}
@@ -335,13 +337,13 @@ jobs:
       #   uses: step-security/harden-runner@248ae51c2e8cc9622ecf50685c8bf7150c6e8813 # v1.4.3
       #   with:
       #     egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
-      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
         run: echo "date=`date -u +'%Y-%m-%dT%H:%M:%SZ'`" >> $GITHUB_OUTPUT
       - name: ccache
         id: ccache
-        uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d # v3.0.4
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: /tmp/ccache
           key: ${{github.job}}-${{matrix.nametag}}-${{steps.ccache_cache_keys.outputs.date}}
@@ -376,7 +378,7 @@ jobs:
         if: matrix.abi_check != ''
         run: |
             src/build-scripts/ci-abicheck.bash ./build abi_standard/build libOpenImageIO libOpenImageIO_Util
-      - uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
+      - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         if: failure()
         with:
           name: oiio-${{github.job}}-${{matrix.nametag}}
@@ -449,7 +451,7 @@ jobs:
                             # it will be fixed and we can do the update again later?
           - desc: clang14 C++20 avx2 exr3.1 ocio2.1
             nametag: linux-clang14
-            runner: ubuntu-20.04
+            runner: ubuntu-22.04
             cxx_compiler: clang++
             cc_compiler: clang
             cxx_std: 20
@@ -464,7 +466,7 @@ jobs:
                             # The installed OpenVDB has a TLS conflict with Python 3.8
           - desc: debug gcc7/C++14, sse4.2, exr2.4
             nametag: linux-gcc7-cpp14-debug
-            runner: ubuntu-20.04
+            runner: ubuntu-22.04
             container:
               image: ubuntu-18.04
             cxx_compiler: g++-7
@@ -479,7 +481,7 @@ jobs:
 
           - desc: gcc8 C++17 avx exr2.5
             nametag: linux-gcc8
-            runner: ubuntu-20.04
+            runner: ubuntu-22.04
             container:
               image: ubuntu-18.04
             cc_compiler: gcc-8
@@ -491,7 +493,7 @@ jobs:
             setenvs: export EXTRA_DEP_PACKAGES=libjpeg-turbo8-dev
           - desc: static libs gcc7 C++14 exr2.4
             nametag: linux-static
-            runner: ubuntu-20.04
+            runner: ubuntu-22.04
             container:
               image: ubuntu-18.04
             cxx_compiler: g++-7
@@ -537,13 +539,15 @@ jobs:
       #   uses: step-security/harden-runner@248ae51c2e8cc9622ecf50685c8bf7150c6e8813 # v1.4.3
       #   with:
       #     egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
-      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: '0'
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
         run: echo "date=`date -u +'%Y-%m-%dT%H:%M:%SZ'`" >> $GITHUB_OUTPUT
       - name: ccache
         id: ccache
-        uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d # v3.0.4
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: /tmp/ccache
           key: ${{github.job}}-${{matrix.nametag}}-${{ steps.ccache_cache_keys.outputs.date }}
@@ -562,7 +566,7 @@ jobs:
       - name: Testsuite
         if: matrix.skip_tests != '1'
         run: src/build-scripts/ci-test.bash
-      - uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
+      - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         if: failure()
         with:
           name: oiio-${{github.job}}-${{matrix.nametag}}
@@ -617,13 +621,13 @@ jobs:
       USE_SIMD: ${{matrix.simd}}
       CTEST_TEST_TIMEOUT: 800
     steps:
-      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
         run: echo "date=`date -u +'%Y-%m-%dT%H:%M:%SZ'`" >> $GITHUB_OUTPUT
       - name: ccache
         id: ccache
-        uses: actions/cache@c3f1317a9e7b1ef106c153ac8c0f00fed3ddbc0d # v3.0.4
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: /Users/runner/.ccache
           key: ${{github.job}}-${{matrix.nametag}}-${{ steps.ccache_cache_keys.outputs.date }}
@@ -643,7 +647,7 @@ jobs:
             src/build-scripts/ci-build.bash
       - name: Testsuite
         run: src/build-scripts/ci-test.bash
-      - uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
+      - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         if: failure()
         with:
           name: oiio-${{github.job}}-${{matrix.nametag}}
@@ -684,9 +688,9 @@ jobs:
       USE_SIMD: ${{matrix.simd}}
       CTEST_ARGS: "--timeout 180 --repeat after-timeout:6"
     steps:
-      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.2
-      - name: Setup Nuget.exe
-        uses: nuget/setup-nuget@a21f25cd3998bf370fde17e3f1b4c12c175172f9 # v2.0.0
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      # - name: Setup Nuget.exe
+      #   uses: nuget/setup-nuget@a21f25cd3998bf370fde17e3f1b4c12c175172f9 # v2.0.0
       - name: Build setup
         shell: bash
         run: |
@@ -701,7 +705,7 @@ jobs:
       - name: Testsuite
         shell: bash
         run: src/build-scripts/ci-test.bash
-      - uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
+      - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         if: failure()
         with:
           name: oiio-${{github.job}}-VS${{matrix.vsver}}
