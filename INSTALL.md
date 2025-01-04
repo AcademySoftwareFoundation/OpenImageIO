@@ -26,7 +26,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * **OpenColorIO >= 2.2** (tested through 2.4 and main)
  * libjpeg >= 8 (tested through jpeg9e), or **libjpeg-turbo >= 2.1** (tested
    through 3.0)
- * **[fmtlib](https://github.com/fmtlib/fmt) >= 7.0** (tested through 11.0).
+ * **[fmtlib](https://github.com/fmtlib/fmt) >= 7.0** (tested through 11.1).
    If not found at build time, this will be automatically downloaded unless
    the build sets `-DBUILD_MISSING_FMT=OFF`.
 
@@ -65,7 +65,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for DICOM medical image files:
      * DCMTK >= 3.6.1 (tested through 3.6.8)
  * If you want support for WebP images:
-     * **WebP >= 1.1** (tested through 1.4)
+     * **WebP >= 1.1** (tested through 1.5)
  * If you want support for Ptex:
      * Ptex >= 2.3.1 (probably works for older; tested through 2.4.2)
  * If you want to be able to do font rendering into images:
