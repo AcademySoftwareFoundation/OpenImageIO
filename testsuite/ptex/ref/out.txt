@@ -8,6 +8,37 @@ src/triangle.ptx     :    4 x    4, 3 channel, float ptex
     tile size: 4 x 4
     wrapmode: "clamp,clamp"
     ptex:meshType: "triangle"
+    MIP 0 of 3 (4 x 4):
+      Stats Min: 0.108809 0.137232 0.016301 (float)
+      Stats Max: 0.916195 0.998924 0.952230 (float)
+      Stats Avg: 0.455336 0.657517 0.507940 (float)
+      Stats StdDev: 0.250882 0.234866 0.294000 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 16 16 16 
+      Constant: No
+      Monochrome: No
+    MIP 1 of 3 (2 x 2):
+      Stats Min: 0.318420 0.497457 0.352619 (float)
+      Stats Max: 0.588968 0.750976 0.712977 (float)
+      Stats Avg: 0.455336 0.657517 0.507940 (float)
+      Stats StdDev: 0.109168 0.098600 0.134781 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 4 4 4 
+      Constant: No
+      Monochrome: No
+    MIP 2 of 3 (1 x 1):
+      Stats Min: 0.455336 0.657517 0.507940 (float)
+      Stats Max: 0.455336 0.657517 0.507940 (float)
+      Stats Avg: 0.455336 0.657517 0.507940 (float)
+      Stats StdDev: 0.000000 0.000000 0.000000 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 1 1 1 
+      Constant: Yes
+      Constant Color: 0.455336 0.657517 0.507940 (float)
+      Monochrome: No
  subimage  1:    4 x    4, 3 channel, float ptex
     MIP-map levels: 4x4 2x2 1x1
     SHA-1: 2E813D8DAA6013C7DFE8EF84E56B6BD9BEA7F93B
@@ -15,6 +46,37 @@ src/triangle.ptx     :    4 x    4, 3 channel, float ptex
     tile size: 4 x 4
     wrapmode: "clamp,clamp"
     ptex:meshType: "triangle"
+    MIP 0 of 3 (4 x 4):
+      Stats Min: 0.020023 0.192214 0.039280 (float)
+      Stats Max: 0.956468 0.970634 0.930810 (float)
+      Stats Avg: 0.543779 0.512279 0.565279 (float)
+      Stats StdDev: 0.328615 0.248004 0.301121 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 16 16 16 
+      Constant: No
+      Monochrome: No
+    MIP 1 of 3 (2 x 2):
+      Stats Min: 0.313192 0.412365 0.169771 (float)
+      Stats Max: 0.720291 0.637934 0.753850 (float)
+      Stats Avg: 0.543779 0.512279 0.565279 (float)
+      Stats StdDev: 0.157645 0.082725 0.231522 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 4 4 4 
+      Constant: No
+      Monochrome: No
+    MIP 2 of 3 (1 x 1):
+      Stats Min: 0.543779 0.512279 0.565279 (float)
+      Stats Max: 0.543779 0.512279 0.565279 (float)
+      Stats Avg: 0.543779 0.512279 0.565279 (float)
+      Stats StdDev: 0.000000 0.000000 0.000000 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 1 1 1 
+      Constant: Yes
+      Constant Color: 0.543779 0.512279 0.565279 (float)
+      Monochrome: No
  subimage  2:    4 x    4, 3 channel, float ptex
     MIP-map levels: 4x4 2x2 1x1
     SHA-1: 79B3511C35A63D9AD8EF2691E76DE191103CF450
@@ -22,6 +84,37 @@ src/triangle.ptx     :    4 x    4, 3 channel, float ptex
     tile size: 4 x 4
     wrapmode: "clamp,clamp"
     ptex:meshType: "triangle"
+    MIP 0 of 3 (4 x 4):
+      Stats Min: 0.103171 0.052529 0.074530 (float)
+      Stats Max: 0.950252 0.984752 0.935004 (float)
+      Stats Avg: 0.563713 0.436754 0.494340 (float)
+      Stats StdDev: 0.281871 0.289231 0.282866 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 16 16 16 
+      Constant: No
+      Monochrome: No
+    MIP 1 of 3 (2 x 2):
+      Stats Min: 0.381167 0.370179 0.320667 (float)
+      Stats Max: 0.719777 0.501763 0.594077 (float)
+      Stats Avg: 0.563713 0.436754 0.494340 (float)
+      Stats StdDev: 0.122539 0.051085 0.104512 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 4 4 4 
+      Constant: No
+      Monochrome: No
+    MIP 2 of 3 (1 x 1):
+      Stats Min: 0.563713 0.436754 0.494341 (float)
+      Stats Max: 0.563713 0.436754 0.494341 (float)
+      Stats Avg: 0.563713 0.436754 0.494341 (float)
+      Stats StdDev: 0.000000 0.000000 0.000000 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 1 1 1 
+      Constant: Yes
+      Constant Color: 0.563713 0.436754 0.494341 (float)
+      Monochrome: No
  subimage  3:    4 x    4, 3 channel, float ptex
     MIP-map levels: 4x4 2x2 1x1
     SHA-1: E5AEE2FB805B38C351034D4FECEF603AD8042ABE
@@ -29,6 +122,37 @@ src/triangle.ptx     :    4 x    4, 3 channel, float ptex
     tile size: 4 x 4
     wrapmode: "clamp,clamp"
     ptex:meshType: "triangle"
+    MIP 0 of 3 (4 x 4):
+      Stats Min: 0.051939 0.004162 0.078232 (float)
+      Stats Max: 0.997799 0.913027 0.999994 (float)
+      Stats Avg: 0.451218 0.483004 0.557300 (float)
+      Stats StdDev: 0.312809 0.289888 0.347698 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 16 16 16 
+      Constant: No
+      Monochrome: No
+    MIP 1 of 3 (2 x 2):
+      Stats Min: 0.257657 0.324523 0.324294 (float)
+      Stats Max: 0.584017 0.606003 0.776059 (float)
+      Stats Avg: 0.451218 0.483004 0.557300 (float)
+      Stats StdDev: 0.119579 0.116249 0.164337 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 4 4 4 
+      Constant: No
+      Monochrome: No
+    MIP 2 of 3 (1 x 1):
+      Stats Min: 0.451218 0.483004 0.557300 (float)
+      Stats Max: 0.451218 0.483004 0.557300 (float)
+      Stats Avg: 0.451218 0.483004 0.557300 (float)
+      Stats StdDev: 0.000000 0.000000 0.000000 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 1 1 1 
+      Constant: Yes
+      Constant Color: 0.451218 0.483004 0.557300 (float)
+      Monochrome: No
  subimage  4:    4 x    4, 3 channel, float ptex
     MIP-map levels: 4x4 2x2 1x1
     SHA-1: 749BBBD8B925A6F78B9A307AFDF56ACAE8E0B7E1
@@ -36,6 +160,37 @@ src/triangle.ptx     :    4 x    4, 3 channel, float ptex
     tile size: 4 x 4
     wrapmode: "clamp,clamp"
     ptex:meshType: "triangle"
+    MIP 0 of 3 (4 x 4):
+      Stats Min: 0.229137 0.003231 0.035421 (float)
+      Stats Max: 0.873271 0.971466 0.983596 (float)
+      Stats Avg: 0.591404 0.590163 0.475037 (float)
+      Stats StdDev: 0.174450 0.289065 0.354256 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 16 16 16 
+      Constant: No
+      Monochrome: No
+    MIP 1 of 3 (2 x 2):
+      Stats Min: 0.471063 0.345994 0.203815 (float)
+      Stats Max: 0.690243 0.698163 0.727344 (float)
+      Stats Avg: 0.591404 0.590163 0.475037 (float)
+      Stats StdDev: 0.079742 0.142186 0.211749 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 4 4 4 
+      Constant: No
+      Monochrome: No
+    MIP 2 of 3 (1 x 1):
+      Stats Min: 0.591404 0.590163 0.475037 (float)
+      Stats Max: 0.591404 0.590163 0.475037 (float)
+      Stats Avg: 0.591404 0.590163 0.475037 (float)
+      Stats StdDev: 0.000000 0.000000 0.000000 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 1 1 1 
+      Constant: Yes
+      Constant Color: 0.591404 0.590163 0.475037 (float)
+      Monochrome: No
  subimage  5:    4 x    4, 3 channel, float ptex
     MIP-map levels: 4x4 2x2 1x1
     SHA-1: 2125A335891CB63F42574D4CDE73B00A81530D00
@@ -43,6 +198,37 @@ src/triangle.ptx     :    4 x    4, 3 channel, float ptex
     tile size: 4 x 4
     wrapmode: "clamp,clamp"
     ptex:meshType: "triangle"
+    MIP 0 of 3 (4 x 4):
+      Stats Min: 0.111276 0.040864 0.003579 (float)
+      Stats Max: 0.877384 0.984363 0.920914 (float)
+      Stats Avg: 0.565089 0.502832 0.405740 (float)
+      Stats StdDev: 0.219740 0.287309 0.260266 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 16 16 16 
+      Constant: No
+      Monochrome: No
+    MIP 1 of 3 (2 x 2):
+      Stats Min: 0.441011 0.392536 0.171864 (float)
+      Stats Max: 0.685750 0.584574 0.557451 (float)
+      Stats Avg: 0.565089 0.502832 0.405740 (float)
+      Stats StdDev: 0.088632 0.069489 0.159387 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 4 4 4 
+      Constant: No
+      Monochrome: No
+    MIP 2 of 3 (1 x 1):
+      Stats Min: 0.565089 0.502832 0.405740 (float)
+      Stats Max: 0.565089 0.502832 0.405740 (float)
+      Stats Avg: 0.565089 0.502832 0.405740 (float)
+      Stats StdDev: 0.000000 0.000000 0.000000 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 1 1 1 
+      Constant: Yes
+      Constant Color: 0.565089 0.502832 0.405740 (float)
+      Monochrome: No
  subimage  6:    4 x    4, 3 channel, float ptex
     MIP-map levels: 4x4 2x2 1x1
     SHA-1: F4F98B602AC70B7FD5021A1493E769526927AB04
@@ -50,6 +236,37 @@ src/triangle.ptx     :    4 x    4, 3 channel, float ptex
     tile size: 4 x 4
     wrapmode: "clamp,clamp"
     ptex:meshType: "triangle"
+    MIP 0 of 3 (4 x 4):
+      Stats Min: 0.162757 0.121259 0.121143 (float)
+      Stats Max: 0.943051 0.916273 0.931895 (float)
+      Stats Avg: 0.594799 0.511685 0.570391 (float)
+      Stats StdDev: 0.240079 0.239136 0.314564 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 16 16 16 
+      Constant: No
+      Monochrome: No
+    MIP 1 of 3 (2 x 2):
+      Stats Min: 0.450439 0.366167 0.347403 (float)
+      Stats Max: 0.777456 0.620979 0.780870 (float)
+      Stats Avg: 0.594799 0.511685 0.570391 (float)
+      Stats StdDev: 0.126109 0.108686 0.156181 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 4 4 4 
+      Constant: No
+      Monochrome: No
+    MIP 2 of 3 (1 x 1):
+      Stats Min: 0.594799 0.511685 0.570391 (float)
+      Stats Max: 0.594799 0.511685 0.570391 (float)
+      Stats Avg: 0.594799 0.511685 0.570391 (float)
+      Stats StdDev: 0.000000 0.000000 0.000000 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 1 1 1 
+      Constant: Yes
+      Constant Color: 0.594799 0.511685 0.570391 (float)
+      Monochrome: No
  subimage  7:    4 x    4, 3 channel, float ptex
     MIP-map levels: 4x4 2x2 1x1
     SHA-1: EAC7068342FC9F973BE55178218E9B6191154C95
@@ -57,6 +274,37 @@ src/triangle.ptx     :    4 x    4, 3 channel, float ptex
     tile size: 4 x 4
     wrapmode: "clamp,clamp"
     ptex:meshType: "triangle"
+    MIP 0 of 3 (4 x 4):
+      Stats Min: 0.107848 0.005409 0.049162 (float)
+      Stats Max: 0.865535 0.986467 0.984845 (float)
+      Stats Avg: 0.460912 0.516886 0.469019 (float)
+      Stats StdDev: 0.198808 0.289930 0.321561 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 16 16 16 
+      Constant: No
+      Monochrome: No
+    MIP 1 of 3 (2 x 2):
+      Stats Min: 0.377302 0.242403 0.386407 (float)
+      Stats Max: 0.549650 0.728992 0.513476 (float)
+      Stats Avg: 0.460912 0.516886 0.469019 (float)
+      Stats StdDev: 0.081255 0.199093 0.048943 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 4 4 4 
+      Constant: No
+      Monochrome: No
+    MIP 2 of 3 (1 x 1):
+      Stats Min: 0.460912 0.516886 0.469018 (float)
+      Stats Max: 0.460912 0.516886 0.469018 (float)
+      Stats Avg: 0.460912 0.516886 0.469018 (float)
+      Stats StdDev: 0.000000 0.000000 0.000000 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 1 1 1 
+      Constant: Yes
+      Constant Color: 0.460912 0.516886 0.469018 (float)
+      Monochrome: No
  subimage  8:    4 x    4, 3 channel, float ptex
     MIP-map levels: 4x4 2x2 1x1
     SHA-1: 36A0877272CDB3322250E4097CCF09CDFCEA3F1C
@@ -64,3 +312,34 @@ src/triangle.ptx     :    4 x    4, 3 channel, float ptex
     tile size: 4 x 4
     wrapmode: "clamp,clamp"
     ptex:meshType: "triangle"
+    MIP 0 of 3 (4 x 4):
+      Stats Min: 0.036327 0.051508 0.053422 (float)
+      Stats Max: 0.578635 0.923728 0.888723 (float)
+      Stats Avg: 0.316691 0.450849 0.591512 (float)
+      Stats StdDev: 0.164422 0.282466 0.271684 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 16 16 16 
+      Constant: No
+      Monochrome: No
+    MIP 1 of 3 (2 x 2):
+      Stats Min: 0.199711 0.342857 0.372131 (float)
+      Stats Max: 0.443723 0.671889 0.727743 (float)
+      Stats Avg: 0.316691 0.450849 0.591512 (float)
+      Stats StdDev: 0.089302 0.129479 0.136447 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 4 4 4 
+      Constant: No
+      Monochrome: No
+    MIP 2 of 3 (1 x 1):
+      Stats Min: 0.316691 0.450849 0.591512 (float)
+      Stats Max: 0.316691 0.450849 0.591512 (float)
+      Stats Avg: 0.316691 0.450849 0.591512 (float)
+      Stats StdDev: 0.000000 0.000000 0.000000 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 1 1 1 
+      Constant: Yes
+      Constant Color: 0.316691 0.450849 0.591512 (float)
+      Monochrome: No
