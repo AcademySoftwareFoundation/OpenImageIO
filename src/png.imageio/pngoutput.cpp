@@ -47,6 +47,7 @@ private:
     int m_color_type;       ///< PNG color model type
     bool m_convert_alpha;   ///< Do we deassociate alpha?
     bool m_need_swap;       ///< Do we need to swap bytes?
+    bool m_linear_premult;  ///< Do premult for sRGB images in linear
     bool m_srgb   = false;  ///< It's an sRGB image (not gamma)
     float m_gamma = 1.0f;   ///< Gamma to use for alpha conversion
     std::vector<unsigned char> m_scratch;
@@ -57,13 +58,14 @@ private:
     // Initialize private members to pre-opened state
     void init(void)
     {
-        m_png           = NULL;
-        m_info          = NULL;
-        m_convert_alpha = true;
-        m_need_swap     = false;
-        m_srgb          = false;
-        m_err           = false;
-        m_gamma         = 1.0;
+        m_png            = NULL;
+        m_info           = NULL;
+        m_convert_alpha  = true;
+        m_need_swap      = false;
+        m_linear_premult = false;
+        m_srgb           = false;
+        m_err            = false;
+        m_gamma          = 1.0;
         m_pngtext.clear();
         ioproxy_clear();
     }
@@ -187,6 +189,10 @@ PNGOutput::open(const std::string& name, const ImageSpec& userspec,
 
     m_need_swap = (m_spec.format == TypeDesc::UINT16 && littleendian());
 
+    m_linear_premult = m_spec.get_int_attribute("png:linear_premult",
+                                                OIIO::get_int_attribute(
+                                                    "png:linear_premult"));
+
     png_set_filter(m_png, 0,
                    spec().get_int_attribute("png:filter", PNG_NO_FILTERS));
     // https://www.w3.org/TR/PNG-Encoders.html#E.Filter-selection
@@ -277,7 +283,8 @@ void
 PNGOutput::deassociateAlpha(T* data, size_t npixels, int channels,
                             int alpha_channel, bool srgb, float gamma)
 {
-    if (srgb) {
+    if (srgb && m_linear_premult) {
+        // sRGB with request to do unpremult in linear space
         for (size_t x = 0; x < npixels; ++x, data += channels) {
             DataArrayProxy<T, float> val(data);
             float alpha = val[alpha_channel];
@@ -290,18 +297,8 @@ PNGOutput::deassociateAlpha(T* data, size_t npixels, int channels,
                 }
             }
         }
-    } else if (gamma == 1) {
-        for (size_t x = 0; x < npixels; ++x, data += channels) {
-            DataArrayProxy<T, float> val(data);
-            float alpha = val[alpha_channel];
-            if (alpha != 0.0f && alpha != 1.0f) {
-                for (int c = 0; c < channels; c++) {
-                    if (c != alpha_channel)
-                        val[c] = data[c] / alpha;
-                }
-            }
-        }
-    } else {
+    } else if (gamma != 1.0f && m_linear_premult) {
+        // Gamma correction with request to do unpremult in linear space
         for (size_t x = 0; x < npixels; ++x, data += channels) {
             DataArrayProxy<T, float> val(data);
             float alpha = val[alpha_channel];
@@ -311,6 +308,20 @@ PNGOutput::deassociateAlpha(T* data, size_t npixels, int channels,
                 for (int c = 0; c < channels; c++) {
                     if (c != alpha_channel)
                         val[c] = val[c] * alpha_deassociate;
+                }
+            }
+        }
+    } else {
+        // Do the unpremult directly on the values. This is correct for the
+        // "gamma=1" case, and is also commonly what is needed for many sRGB
+        // images (even though it's technically wrong in that case).
+        for (size_t x = 0; x < npixels; ++x, data += channels) {
+            DataArrayProxy<T, float> val(data);
+            float alpha = val[alpha_channel];
+            if (alpha != 0.0f && alpha != 1.0f) {
+                for (int c = 0; c < channels; c++) {
+                    if (c != alpha_channel)
+                        val[c] = data[c] / alpha;
                 }
             }
         }

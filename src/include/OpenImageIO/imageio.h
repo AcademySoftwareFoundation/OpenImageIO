@@ -2908,6 +2908,14 @@ OIIO_API std::string geterror(bool clear = true);
 ///    and only set ImageDescription if the parsing fails. Otherwise, always
 ///    set ImageDescription to the first comment block. Default is 1.
 ///
+/// - `int png:linear_premult` (0)
+///
+///    If nonzero, will convert perform any necessary premultiplication by
+///    alpha steps needed of the PNG reader/writer in a linear color space.
+///    If zero (the default), any needed premultiplication will happen
+///    directly on the values, even if they are sRGB or gamma-corrected.
+///    For more information, please see OpenImageIO's documentation on the
+///    built-in PNG format support.
 ///
 /// - `int limits:channels` (1024)
 ///
