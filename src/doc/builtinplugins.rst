@@ -1827,7 +1827,7 @@ performed directly on the encoded values, so that is the default behavior for
 OpenImageIO's PNG reader and writer will. If you want to force the reader or
 writer to linearize the values for premultiplication, you can set either the
 reader/writer configuration hint or the global OIIO attribute
-``png:srgb_alpha_linear`` to 1.
+``png:linear_premult`` to 1.
 
 **Limitations**
 
