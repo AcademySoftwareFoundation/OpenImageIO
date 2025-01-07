@@ -27,6 +27,7 @@ exif.png             :   64 x   64, 3 channel, uint8 png
     SHA-1: 7CB41FEA50720B48BE0C145E1473982B23E9AB77
     channel list: R, G, B
     oiio:ColorSpace: "sRGB"
+alphagamma:
    1 x    1, 4 channel, float png
     channel list: R, G, B, A
     ResolutionUnit: "inch"
@@ -45,6 +46,43 @@ exif.png             :   64 x   64, 3 channel, uint8 png
     Stats FiniteCount: 1 1 1 1 
     Constant: Yes
     Constant Color: 186.00 186.00 186.00 127.00 (of 255)
+    Monochrome: No
+gimp_gradient:
+ 256 x  256, 4 channel, float png
+    channel list: R, G, B, A
+    Comment: "Created with GIMP"
+    DateTime: "2025:01:05 04:44:59"
+    ICCProfile: 0, 0, 2, 160, 108, 99, 109, 115, 4, 64, 0, 0, 109, 110, 116, 114, ... [672 x uint8]
+    ResolutionUnit: "inch"
+    XResolution: 300
+    YResolution: 300
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 1818455411
+    ICCProfile:color_space: "RGB"
+    ICCProfile:copyright: "Public Domain"
+    ICCProfile:creation_date: "2025:01:05 04:34:16"
+    ICCProfile:creator_signature: "6c636d73"
+    ICCProfile:device_class: "Display device profile"
+    ICCProfile:device_manufacturer_description: "GIMP"
+    ICCProfile:device_model_description: "sRGB"
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "0"
+    ICCProfile:model: "0"
+    ICCProfile:platform_signature: "Apple Computer, Inc."
+    ICCProfile:profile_connection_space: "XYZ"
+    ICCProfile:profile_description: "GIMP built-in sRGB"
+    ICCProfile:profile_size: 672
+    ICCProfile:profile_version: "4.4.0"
+    ICCProfile:rendering_intent: "Perceptual"
+    oiio:ColorSpace: "sRGB"
+    Stats Min: 0 0 0 0 (of 255)
+    Stats Max: 255 255 0 255 (of 255)
+    Stats Avg: 142.37 105.72 0.00 154.72 (of 255)
+    Stats StdDev: 79.19 98.91 0.00 87.39 (of 255)
+    Stats NanCount: 0 0 0 0 
+    Stats InfCount: 0 0 0 0 
+    Stats FiniteCount: 65536 65536 65536 65536 
+    Constant: No
     Monochrome: No
 smallalpha.png       :    1 x    1, 4 channel, uint8 png
     Pixel (0, 0): 240 108 119 1 (0.94117653 0.42352945 0.4666667 0.003921569)

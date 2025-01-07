@@ -45,6 +45,7 @@ private:
     Imath::Color3f m_bg;               ///< Background color
     int m_next_scanline;
     bool m_keep_unassociated_alpha;  ///< Do not convert unassociated alpha
+    bool m_linear_premult;           ///< Do premult for sRGB images in linear
     bool m_srgb   = false;           ///< It's an sRGB image (not gamma)
     bool m_err    = false;
     float m_gamma = 1.0f;
@@ -60,9 +61,10 @@ private:
         m_buf.clear();
         m_next_scanline           = 0;
         m_keep_unassociated_alpha = false;
-        m_srgb                    = false;
-        m_err                     = false;
-        m_gamma                   = 1.0;
+        m_linear_premult = OIIO::get_int_attribute("png:linear_premult");
+        m_srgb           = false;
+        m_err            = false;
+        m_gamma          = 1.0;
         m_config.reset();
         ioproxy_clear();
     }
@@ -88,8 +90,8 @@ private:
     }
 
     template<class T>
-    static void associateAlpha(T* data, int size, int channels,
-                               int alpha_channel, bool srgb, float gamma);
+    void associateAlpha(T* data, int size, int channels, int alpha_channel,
+                        bool srgb, float gamma);
 };
 
 
@@ -189,6 +191,9 @@ PNGInput::open(const std::string& name, ImageSpec& newspec,
     // Check 'config' for any special requests
     if (config.get_int_attribute("oiio:UnassociatedAlpha", 0) == 1)
         m_keep_unassociated_alpha = true;
+    m_linear_premult = config.get_int_attribute("png:linear_premult",
+                                                OIIO::get_int_attribute(
+                                                    "png:linear_premult"));
     ioproxy_retrieve_from_config(config);
     m_config.reset(new ImageSpec(config));  // save config spec
     return open(name, newspec);
@@ -229,7 +234,8 @@ PNGInput::associateAlpha(T* data, int size, int channels, int alpha_channel,
 {
     // We need to transform to linear space, associate the alpha, and then
     // transform back.
-    if (srgb) {
+    if (srgb && m_linear_premult) {
+        // sRGB with request to do premult in linear space
         for (int x = 0; x < size; ++x, data += channels) {
             DataArrayProxy<T, float> val(data);
             float alpha = val[alpha_channel];
@@ -242,17 +248,8 @@ PNGInput::associateAlpha(T* data, int size, int channels, int alpha_channel,
                 }
             }
         }
-    } else if (gamma == 1.0f) {
-        for (int x = 0; x < size; ++x, data += channels) {
-            DataArrayProxy<T, float> val(data);
-            float alpha = val[alpha_channel];
-            if (alpha != 1.0f) {
-                for (int c = 0; c < channels; c++)
-                    if (c != alpha_channel)
-                        data[c] = data[c] * alpha;
-            }
-        }
-    } else {  // With gamma correction
+    } else if (gamma != 1.0f && m_linear_premult) {
+        // Gamma correction with request to do premult in linear space
         float inv_gamma = 1.0f / gamma;
         for (int x = 0; x < size; ++x, data += channels) {
             DataArrayProxy<T, float> val(data);
@@ -261,6 +258,19 @@ PNGInput::associateAlpha(T* data, int size, int channels, int alpha_channel,
                 for (int c = 0; c < channels; c++)
                     if (c != alpha_channel)
                         val[c] = powf((powf(val[c], gamma)) * alpha, inv_gamma);
+            }
+        }
+    } else {
+        // Do the premult directly on the values. This is correct for the
+        // "gamma=1" case, and is also commonly what is needed for many sRGB
+        // images (even though it's technically wrong in that case).
+        for (int x = 0; x < size; ++x, data += channels) {
+            DataArrayProxy<T, float> val(data);
+            float alpha = val[alpha_channel];
+            if (alpha != 1.0f) {
+                for (int c = 0; c < channels; c++)
+                    if (c != alpha_channel)
+                        val[c] = val[c] * alpha;
             }
         }
     }
