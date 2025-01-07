@@ -2380,7 +2380,7 @@ current top image.
 
             --pattern fill:top=0.1,0.1,0.1:bottom=0,0,0.5 640x480 3
             --pattern fill:left=0.1,0.1,0.1:right=0,0.75,0 640x480 3
-            --pattern fill:topleft=.1,.1,.1:topright=1,0,0:bottomleft=0,1,0:botromright=0,0,1 640x480 3
+            --pattern fill:topleft=.1,.1,.1:topright=1,0,0:bottomleft=0,1,0:bottomright=0,0,1 640x480 3
 
         .. image:: figures/gradient.jpg
             :width: 2.0in
@@ -4130,7 +4130,7 @@ current top image.
 
        # four-corner interpolated gradient
        oiiotool --create 640x480 3 \
-           -fill:topleft=.1,.1,.1:topright=1,0,0:bottomleft=0,1,0:botromright=0,0,1 \
+           -fill:topleft=.1,.1,.1:topright=1,0,0:bottomleft=0,1,0:bottomright=0,0,1 \
                640x480 -o gradient.tif
 
     .. |gradimg1| image:: figures/gradient.jpg
