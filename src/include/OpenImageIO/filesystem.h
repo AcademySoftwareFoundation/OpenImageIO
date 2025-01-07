@@ -223,6 +223,16 @@ OIIO_UTIL_API int fseek (FILE *file, int64_t offset, int whence);
 /// Version of ftell that works with 64 bit offsets on all systems.
 OIIO_UTIL_API int64_t ftell (FILE *file);
 
+/// Read one line of text from an open text file file until the hitting a
+/// newline, reaching `maxlen` characters without encountering a newline, or
+/// reaching the end of the file, and return the characters read as a
+/// std::string. The newline will be included in the returned string, unless
+/// the line was too long, in which case the string returned will be the
+/// partial result with no newline at the end. If an error occurs or if the
+/// end of the file is encountered before either a newline is reached or
+/// maxlen characters are read, an empty string will be returned.
+OIIO_UTIL_API std::string getline(FILE* file, size_t maxlen = 4096);
+
 /// Return the current (".") directory path.
 ///
 OIIO_UTIL_API std::string current_path ();

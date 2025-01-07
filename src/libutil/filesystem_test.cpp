@@ -607,6 +607,44 @@ test_last_write_time()
 
 
 
+void
+test_getline()
+{
+    const char* contents    = "Line 1\n"
+                              "Line 2\n"
+                              "Really really really long long line line 3\n"
+                              "Line 4\n"
+                              "Line 5 no newline";
+    const char* tmpfilename = "getline.txt";
+    Filesystem::write_text_file(tmpfilename, contents);
+
+    FILE* in = Filesystem::fopen(tmpfilename, "r");
+    OIIO_CHECK_ASSERT(in != nullptr);
+    OIIO_CHECK_EQUAL(Filesystem::getline(in, 30), "Line 1\n");
+    OIIO_CHECK_EQUAL(Filesystem::getline(in, 30), "Line 2\n");
+    OIIO_CHECK_EQUAL(Filesystem::getline(in, 30),
+                     "Really really really long long");
+    OIIO_CHECK_EQUAL(Filesystem::getline(in, 30), " line line 3\n");
+    OIIO_CHECK_EQUAL(Filesystem::getline(in, 30), "Line 4\n");
+    OIIO_CHECK_EQUAL(Filesystem::getline(in, 30), "");  // EOF before \n
+    fclose(in);
+
+    // Again, with a complete line at the end to be sure we read it
+    Filesystem::write_text_file(tmpfilename, "Line 1\n"
+                                             "Line 2\n");
+    in = Filesystem::fopen(tmpfilename, "r");
+    OIIO_CHECK_ASSERT(in != nullptr);
+    OIIO_CHECK_EQUAL(Filesystem::getline(in, 30), "Line 1\n");
+    OIIO_CHECK_EQUAL(Filesystem::getline(in, 30), "Line 2\n");
+    OIIO_CHECK_EQUAL(Filesystem::getline(in, 30), "");
+    OIIO_CHECK_ASSERT(feof(in));
+    fclose(in);
+
+    Filesystem::remove(tmpfilename);
+}
+
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -617,6 +655,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_scan_sequences();
     test_mem_proxies();
     test_last_write_time();
+    test_getline();
 
     return unit_test_failures;
 }
