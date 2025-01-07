@@ -1,6 +1,12 @@
-Reading foo.null?RES=640x480&CHANNELS=3&TYPE=uint8&PIXEL=0.25,0.5,1
-foo.null?RES=640x480&CHANNELS=3&TYPE=uint8&PIXEL=0.25,0.5,1 :  640 x  480, 3 channel, uint8 null
+Reading foo.null?RES=640x480&CHANNELS=3&TYPE=uint8&PIXEL=0.25,0.5,1&a=1&b=2.5&c=foo&string d=bar&e=float 3&f="baz"
+foo.null?RES=640x480&CHANNELS=3&TYPE=uint8&PIXEL=0.25,0.5,1&a=1&b=2.5&c=foo&string d=bar&e=float 3&f="baz" :  640 x  480, 3 channel, uint8 null
     channel list: R, G, B
+    a: 1
+    b: 2.5
+    c: "foo"
+    d: "bar"
+    e: 3
+    f: "baz"
     Stats Min: 64 128 255 (of 255)
     Stats Max: 64 128 255 (of 255)
     Stats Avg: 64.00 128.00 255.00 (of 255)
@@ -11,3 +17,22 @@ foo.null?RES=640x480&CHANNELS=3&TYPE=uint8&PIXEL=0.25,0.5,1 :  640 x  480, 3 cha
     Constant: Yes
     Constant Color: 64.00 128.00 255.00 (of 255)
     Monochrome: No
+Writing out.null
+Reading bar.null?RES=128x128&CHANNELS=3&TILE=64x64&TEX=1&TYPE=uint16&PIXEL=0.25,0.5,1
+bar.null?RES=128x128&CHANNELS=3&TILE=64x64&TEX=1&TYPE=uint16&PIXEL=0.25,0.5,1 :  128 x  128, 3 channel, uint16 null
+    MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    channel list: R, G, B
+    tile size: 64 x 64
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+      Stats Min: 16384 32768 65535 (of 65535)
+      Stats Max: 16384 32768 65535 (of 65535)
+      Stats Avg: 16384.00 32768.00 65535.00 (of 65535)
+      Stats StdDev: 0.00 0.00 0.00 (of 65535)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 16384 16384 16384 
+      Constant: Yes
+      Constant Color: 16384.00 32768.00 65535.00 (of 65535)
+      Monochrome: No
+Writing outtile.null
