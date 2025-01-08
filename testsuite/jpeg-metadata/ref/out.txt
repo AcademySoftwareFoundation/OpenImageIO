@@ -83,7 +83,6 @@ with-attribs-and-desc.jpg :  640 x  480, 3 channel, uint8 jpeg
     Exif:ColorSpace: 1
     Exif:ExifVersion: "0230"
     Exif:FlashPixVersion: "0100"
-    IPTC:Caption: "A photo"
     jpeg:subsampling: "4:2:0"
     oiio:ColorSpace: "sRGB"
 Reading src/blender-render.jpg
@@ -109,6 +108,5 @@ with-colon-desc.jpg  :  640 x  480, 3 channel, uint8 jpeg
     Exif:ColorSpace: 1
     Exif:ExifVersion: "0230"
     Exif:FlashPixVersion: "0100"
-    IPTC:Caption: "Example:Text"
     jpeg:subsampling: "4:2:0"
     oiio:ColorSpace: "sRGB"

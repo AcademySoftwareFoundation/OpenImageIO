@@ -916,23 +916,8 @@ conventions for storing image metadata, and this standard is growing in
 popularity and is commonly used in photo-browsing programs to record
 captions and keywords.
 
-The following IPTC metadata items correspond exactly to metadata in the
-OpenImageIO conventions, so it is recommended that you use the standards and
-that plugins supporting IPTC metadata respond likewise:
-
-    ===============  =========================================================================================================
-    IPTC tag         OpenImageIO metadata convention
-    ===============  =========================================================================================================
-    Caption          `"ImageDescription"`
-    Keyword          IPTC keywords should be concatenated, separated by semicolons (`;`), and stored as the `Keywords` attribute.
-    ExposureTime     `ExposureTime`
-    CopyrightNotice  `Copyright`
-    Creator          `Artist`
-    ===============  =========================================================================================================
-
-
-The remainder of IPTC metadata fields should use the following names,
-prefixed with `IPTC:` to avoid conflicts with other plugins or standards.
+IPTC metadata fields should use the following names, prefixed with `IPTC:` to
+avoid conflicts with other plugins or standards.
 
 .. option:: "IPTC:ObjecTypeReference" : string
 
@@ -958,6 +943,10 @@ prefixed with `IPTC:` to avoid conflicts with other plugins or standards.
 
     Category.
 
+.. option:: "IPTC:Keywords" : string
+
+    Semicolon-separated keywords describing the contents of the image.
+
 .. option:: "IPTC:ContentLocationCode" : string
 
     Code for content location.
@@ -975,6 +964,10 @@ prefixed with `IPTC:` to avoid conflicts with other plugins or standards.
             "IPTC:ExpirationTime" : string
 
     Expiration date and time.
+
+.. option:: "IPTC:ExposureTime" : string
+
+    The exposure time (in seconds) of the captured image.
 
 .. option:: "IPTC:Instructions" : string
 
@@ -999,6 +992,10 @@ prefixed with `IPTC:` to avoid conflicts with other plugins or standards.
 .. option:: "IPTC:ProgramVersion" : string
 
     The version number of the creation software.
+
+.. option:: "IPTC:Creator" : string
+
+    The artist, creator, or owner of the image.
 
 .. option:: "IPTC:AuthorsPosition" : string
 
@@ -1025,10 +1022,18 @@ prefixed with `IPTC:` to avoid conflicts with other plugins or standards.
 
     The source of the image.
 
+.. option:: "IPTC:CopyrightNotice" : string
+
+    Any copyright notice for the image.
+
 .. option:: "IPTC:Contact" : string
 
     The contact information for the image (possibly including name, address,
     email, etc.).
+
+.. option:: "IPTC:Caption" : string
+
+    A caption for the image.
 
 .. option:: "IPTC:CaptionWriter" : string
 
@@ -1056,6 +1061,16 @@ prefixed with `IPTC:` to avoid conflicts with other plugins or standards.
 .. option:: "IPTC:DocumentHistory" : string
 
     The history of the image or document.
+
+
+References for more information on IPTC metadata:
+
+* https://www.iptc.org/std/photometadata/specification/IPTC-PhotoMetadata
+* https://www.iptc.org/std/photometadata/specification/IPTC-PhotoMetadata#iptc-core-schema-1-5-specifications
+  This is the one where you can find the length limits
+* ExifTool's documentation about IPTC tags (caveat: not a definitive
+  reference, could be outdated or incorrect):
+  https://exiftool.org/TagNames/IPTC.html
 
 
 SMPTE metadata

@@ -1209,6 +1209,7 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
             m_input_rgba->readPixels(ybegin, yend - 1);
 
             // FIXME There is probably some optimized code for this somewhere.
+            OIIO_DASSERT(chbegin >= 0 && chend > chbegin);
             for (int c = chbegin; c < chend; ++c) {
                 size_t chanbytes = m_spec.channelformat(c).size();
                 half* src        = &pixels[0][0].r + c;

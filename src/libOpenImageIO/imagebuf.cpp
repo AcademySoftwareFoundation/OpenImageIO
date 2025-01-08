@@ -1500,7 +1500,7 @@ ImageBuf::write(ImageOutput* out, ProgressCallback progress_callback,
     }
     bool ok = true;
     ok &= m_impl->validate_pixels();
-    pvt::LoggedTimer("IB::write inner");
+    pvt::LoggedTimer logtime("IB::write inner");
     if (out->supports("thumbnail") && has_thumbnail()) {
         auto thumb = get_thumbnail();
         // Strutil::print("IB::write: has thumbnail ROI {}\n", thumb->roi());
@@ -1617,7 +1617,7 @@ ImageBuf::write(string_view _filename, TypeDesc dtype, string_view _fileformat,
                 ProgressCallback progress_callback,
                 void* progress_callback_data) const
 {
-    pvt::LoggedTimer("IB::write");
+    pvt::LoggedTimer logtime("IB::write");
     string_view filename   = _filename.size() ? _filename : string_view(name());
     string_view fileformat = _fileformat.size() ? _fileformat : filename;
     if (filename.size() == 0) {

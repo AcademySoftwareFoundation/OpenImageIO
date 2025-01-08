@@ -1066,10 +1066,10 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
                                   Imf::FloatAttribute((float)*(half*)data));
                     return true;
                 }
-                if (type == TypeString && *(const char**)data) {
+                if (type == TypeString && !((const ustring*)data)->empty()) {
                     header.insert(xname.c_str(),
                                   Imf::StringAttribute(
-                                      *(const char**)data));  //NOSONAR
+                                      ((const ustring*)data)->c_str()));
                     return true;
                 }
                 if (type == TypeDesc::DOUBLE) {

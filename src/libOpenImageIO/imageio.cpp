@@ -49,6 +49,7 @@ atomic_int oiio_try_all_readers(1);
 // Should we use "Exr core C library"?
 int openexr_core(OIIO_OPENEXR_CORE_DEFAULT);
 int jpeg_com_attributes(1);
+int png_linear_premult(0);
 int tiff_half(0);
 int tiff_multithread(1);
 int dds_bc5normal(0);
@@ -72,7 +73,7 @@ using namespace pvt;
 
 namespace {
 // Hidden global OIIO data.
-static spin_mutex attrib_mutex;
+static std::recursive_mutex attrib_mutex;
 static const int maxthreads = 512;  // reasonable maximum for sanity check
 
 class TimingLog {
@@ -347,7 +348,7 @@ attribute(string_view name, TypeDesc type, const void* val)
     }
 
     // Things below here need to buarded by the attrib_mutex
-    spin_lock lock(attrib_mutex);
+    std::lock_guard lock(attrib_mutex);
     if (name == "read_chunk" && type == TypeInt) {
         oiio_read_chunk = *(const int*)val;
         return true;
@@ -370,6 +371,10 @@ attribute(string_view name, TypeDesc type, const void* val)
     }
     if (name == "jpeg:com_attributes" && type == TypeInt) {
         jpeg_com_attributes = *(const int*)val;
+        return true;
+    }
+    if (name == "png:linear_premult" && type == TypeInt) {
+        png_linear_premult = *(const int*)val;
         return true;
     }
     if (name == "tiff:half" && type == TypeInt) {
@@ -460,7 +465,7 @@ getattribute(string_view name, TypeDesc type, void* val)
     }
 
     // Things below here need to buarded by the attrib_mutex
-    spin_lock lock(attrib_mutex);
+    std::lock_guard lock(attrib_mutex);
     if (name == "read_chunk" && type == TypeInt) {
         *(int*)val = oiio_read_chunk;
         return true;
@@ -549,6 +554,10 @@ getattribute(string_view name, TypeDesc type, void* val)
     }
     if (name == "jpeg:com_attributes" && type == TypeInt) {
         *(int*)val = jpeg_com_attributes;
+        return true;
+    }
+    if (name == "png:linear_premult" && type == TypeInt) {
+        *(int*)val = png_linear_premult;
         return true;
     }
     if (name == "tiff:half" && type == TypeInt) {

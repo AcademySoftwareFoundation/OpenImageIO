@@ -1754,6 +1754,12 @@ attributes are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+   * - ``png:linear_premult``
+     - int
+     - If nonzero, will convert  or gamma-encoded values to linear color
+       space for any premultiplication-by-alpha step done by the PNG reader.
+       If zero (the default), any needed premultiplication will happen directly
+       to the encoded values.
 
 **Configuration settings for PNG output**
 
@@ -1797,13 +1803,31 @@ control aspects of the writing itself:
        to have larger PNG files on disk, you may want to use that value for
        this attribute.
 
+   * - ``png:linear_premult``
+     - int
+     - If nonzero, will convert sRGB or gamma-encoded values to linear color
+       space for any unpremultiplication-by-alpha step done by the PNG writer.
+       If zero (the default), any needed unpremultiplication will happen
+       directly to the encoded sRGB or gamma-corrected values.
+
 **Custom I/O Overrides**
 
 PNG input and output both support the "custom I/O" feature via the special
 ``"oiio:ioproxy"`` attributes (see Sections :ref:`sec-imageoutput-ioproxy`
 and :ref:`sec-imageinput-ioproxy`) as well as the `set_ioproxy()` methods.
 
+**Note on premultiplication**
 
+PNG files encoded as sRGB or gamma-corrected values that also have alpha
+should (in theory) have any premultiplication performed in a linear space
+(that is, the color should first be linearized, then premultiplied by alpha,
+then converted back to the nonlinear form). However, many existing PNG files
+are apparently encoded with the assumption that any premultiplication will be
+performed directly on the encoded values, so that is the default behavior for
+OpenImageIO's PNG reader and writer will. If you want to force the reader or
+writer to linearize the values for premultiplication, you can set either the
+reader/writer configuration hint or the global OIIO attribute
+``png:linear_premult`` to 1.
 
 **Limitations**
 
