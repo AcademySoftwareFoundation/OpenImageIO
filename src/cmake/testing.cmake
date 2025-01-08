@@ -332,6 +332,9 @@ macro (oiio_add_all_tests)
     oiio_add_tests (sgi
                     ENABLEVAR ENABLE_SGI
                     IMAGEDIR oiio-images)
+    oiio_add_tests (softimage
+                    ENABLEVAR ENABLE_SOFTIMAGE
+                    IMAGEDIR oiio-images/softimage)
     oiio_add_tests (targa
                     ENABLEVAR ENABLE_TARGA
                     IMAGEDIR oiio-images)
