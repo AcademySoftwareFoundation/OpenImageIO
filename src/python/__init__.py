@@ -23,8 +23,9 @@ if platform.system() == "Windows":
         # This works around the python 3.8 change to stop loading DLLs from PATH on Windows.
         # We reproduce the old behavior by manually tokenizing PATH, checking that the 
         # directories exist and are not ".", then add them to the DLL load path.
-        # Set the environment variable "OIIO_LOAD_DLLS_FROM_PATH" to "0" to disable this behavior.
-        if os.getenv("OIIO_LOAD_DLLS_FROM_PATH", "1") == "1":
+        # This behavior is disabled by default, but can be enabled by setting the environment
+        # variable "OIIO_PYTHON_LOAD_DLLS_FROM_PATH" to "1"
+        if os.getenv("OIIO_PYTHON_LOAD_DLLS_FROM_PATH", "0") == "1":
             for path in os.getenv("PATH", "").split(os.pathsep):
                 if os.path.exists(path) and path != ".":
                     os.add_dll_directory(path)
