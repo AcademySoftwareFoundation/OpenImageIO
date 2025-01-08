@@ -38,6 +38,11 @@ else ()
                DOC "Should a local dependency build, if necessary, build shared libraries" ADVANCED)
 endif ()
 
+# Search for regular libraries before searching for macOS frameworks.
+if (APPLE)
+    set_cache (CMAKE_FIND_FRAMEWORK LAST
+               DOC "Set relative priority of finding frameworks vs. regular libraries" ADVANCED)
+endif ()
 
 # Track all build deps we find with checked_find_package
 set (CFP_ALL_BUILD_DEPS_FOUND "")
