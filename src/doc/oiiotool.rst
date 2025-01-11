@@ -4212,13 +4212,17 @@ current top image.
     Optional appended modifiers include:
 
       `pattern=` *name*
-        sensor pattern. Currently supported patterns: "bayer"
+        sensor pattern. Currently supported patterns: "bayer", "xtrans".
       `layout=` *name*
-        photosite order of the specified pattern. For layouts of the Bayer
-        pattern supported: "RGGB", "GRBG", "GBRG", "BGGR".
+        photosite order of the specified pattern. The default value is "RGGB"
+        for Bayer, and "GRBGBR BGGRGG RGGBGG GBRGRB RGGBGG BGGRGG" for X-Trans.
       `algorithm=` *name*
-        the name of the algorithm to use: "linear"(simple bilinear demosaicing),
-        "MHC"(Malvar-He-Cutler algorithm)
+        the name of the algorithm to use.
+        The Bayer-pattern algorithms:
+        - "linear"(simple bilinear demosaicing),
+        - "MHC"(Malvar-He-Cutler algorithm).
+        The X-Trans-pattern algorithms:
+        - "linear"(simple bilinear demosaicing).
       `white-balance=` *v1,v2,v3...*
         optional white balance weights, can contain either three (R,G,B) or four
         (R,G1,B,G2) values. The order of the white balance multipliers is as
