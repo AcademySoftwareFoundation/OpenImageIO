@@ -4,12 +4,6 @@
 
 set (OIIO_IV_EXTRA_IV_LIBRARIES "" CACHE STRING "Paths to extra libraries to force iv to link against")
 
-
-# Don't build if installing as a Python wheel
-if (SKBUILD)
-    return ()
-endif ()
-
 set (CMAKE_AUTOMOC ON)
 set (CMAKE_AUTOMOC_PATH_PREFIX OFF)
 if (Qt5_POSITION_INDEPENDENT_CODE OR Qt6_POSITION_INDEPENDENT_CODE)

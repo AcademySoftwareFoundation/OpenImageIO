@@ -260,6 +260,17 @@ if (NOT BUILD_OIIOUTIL_ONLY)
     add_subdirectory (src/libOpenImageIO)
 endif ()
 
+# Disable building of certain tools when building Python wheels
+if (SKBUILD)
+    set (ENABLE_iconvert OFF)
+    set (ENABLE_idiff OFF)
+    set (ENABLE_igrep OFF)
+    set (ENABLE_iinfo OFF)
+    set (ENABLE_testtex OFF)
+    set (ENABLE_iv OFF)
+endif ()
+
+
 if (OIIO_BUILD_TOOLS AND NOT BUILD_OIIOUTIL_ONLY)
     add_subdirectory (src/iconvert)
     add_subdirectory (src/idiff)
