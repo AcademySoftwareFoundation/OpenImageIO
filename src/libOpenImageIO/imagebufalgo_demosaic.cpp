@@ -80,8 +80,8 @@ protected:
         Window(int y, int xbegin, const ImageBuf& src, int x_offset,
                int y_offset, const float (&white_balance_values)[4])
         {
-            assert(window_size >= 3);
-            assert(window_size % 2 == 1);
+            OIIO_DASSERT(window_size >= 3);
+            OIIO_DASSERT(window_size % 2 == 1);
 
             const ImageSpec& spec = src.spec();
             src_xbegin            = spec.x;
@@ -283,7 +283,7 @@ public:
         for (size_t y = 0; y < pattern_size; y++) {
             for (size_t x = 0; x < pattern_size; x++) {
                 int c = channel_at_offset(x + x_offset, y + y_offset);
-                assert(c < 4);
+                OIIO_DASSERT(c < 4);
 
                 layout[i] = channels[c];
                 i++;
