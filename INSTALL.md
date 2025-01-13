@@ -357,6 +357,15 @@ produce a dynamic-linked version.
 
 3. Execute the PowerShell command from where vcpkg is located in directory. ``vcpkg install openimageio``
 
+
+**Note: Importing the OpenImageIO Python Module**
+
+As of OpenImageIO 3.0.3.0, the default DLL-loading behavior for Python 3.8+ has changed.
+
+If you've built OIIO from source and ``import OpenImageIO`` is throwing a ModuleNotFound exception, revert to the legacy DLL-loading behavior by setting environment variable 
+``OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH=1``. 
+
+
 Test Images
 -----------
 
