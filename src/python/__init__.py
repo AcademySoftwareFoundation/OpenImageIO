@@ -24,8 +24,8 @@ if platform.system() == "Windows":
         # We reproduce the old behavior by manually tokenizing PATH, checking that the 
         # directories exist and are not ".", then add them to the DLL load path.
         # This behavior is disabled by default, but can be enabled by setting the environment
-        # variable "OIIO_PYTHON_LOAD_DLLS_FROM_PATH" to "1"
-        if os.getenv("OIIO_PYTHON_LOAD_DLLS_FROM_PATH", "0") == "1":
+        # variable "OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH" to "1"
+        if os.getenv("OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH", "0") == "1":
             for path in os.getenv("PATH", "").split(os.pathsep):
                 if os.path.exists(path) and path != ".":
                     os.add_dll_directory(path)

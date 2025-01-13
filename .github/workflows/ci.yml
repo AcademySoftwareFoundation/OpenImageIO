@@ -594,4 +594,4 @@ jobs:
             vsver: 2022
             generator: "Visual Studio 17 2022"
             python_ver: "3.9"
-            setenvs: export OIIO_PYTHON_LOAD_DLLS_FROM_PATH=1
+            setenvs: export OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH=1
