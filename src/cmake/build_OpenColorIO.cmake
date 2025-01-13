@@ -6,7 +6,7 @@
 # OpenColorIO by hand!
 ######################################################################
 
-set_cache (OpenColorIO_BUILD_VERSION 2.4.0 "OpenColorIO version for local builds")
+set_cache (OpenColorIO_BUILD_VERSION 2.4.1 "OpenColorIO version for local builds")
 set (OpenColorIO_GIT_REPOSITORY "https://github.com/AcademySoftwareFoundation/OpenColorIO")
 set (OpenColorIO_GIT_TAG "v${OpenColorIO_BUILD_VERSION}")
 set_cache (OpenColorIO_BUILD_SHARED_LIBS  OFF #ON
@@ -45,8 +45,6 @@ build_dependency_with_cmake(OpenColorIO
         -D OCIO_BUILD_TESTS=OFF
         -D OCIO_USE_OIIO_FOR_APPS=OFF
         -D OCIO_INSTALL_DOCS=OFF
-        # Disable versioning in OCIO shared library name
-        -D OCIO_USE_SOVERSION=OFF
         # Make OCIO build all its dependencies statically
         -D OCIO_INSTALL_EXT_PACKAGES=MISSING
         # Give the library a custom name and symbol namespace so it can't
