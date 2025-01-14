@@ -384,3 +384,17 @@ inside the source code.
     name and version of the software and an indecipherable hash of the command
     line, but not the full human-readable command line. (This was added in
     OpenImageIO 2.5.11.)
+
+.. cpp:var:: OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH
+
+    Windows only. Mimics the DLL-loading behavior of Python 3.7 and earlier. 
+    If set to "1", all directories under ``PATH`` will be added to the DLL load 
+    path before attempting to import the OpenImageIO module. (This was added in
+    OpenImageIO 3.0.3.0)
+
+    Note: This "opt-in-style" behavior replaces and inverts the "opt-out-style" 
+    Windows DLL-loading behavior governed by the now-defunct `OIIO_LOAD_DLLS_FROM_PATH` 
+    environment variable (added in OpenImageIO 2.4.0/2.3.18). 
+
+    In other words, to reproduce the default Python-module-loading behavior of 
+    earlier versions of OIIO, set ``OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH=1``.
