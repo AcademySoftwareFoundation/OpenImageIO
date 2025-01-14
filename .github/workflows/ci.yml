@@ -588,7 +588,7 @@ jobs:
             runner: windows-2019
             vsver: 2019
             generator: "Visual Studio 16 2019"
-            python_ver: 3.7
+            python_ver: "3.9"
           - desc: Windows-2022 VS2022
             runner: windows-2022
             vsver: 2022
