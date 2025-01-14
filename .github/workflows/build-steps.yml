@@ -64,6 +64,11 @@ on:
         type: string
       nametag:
         type: string
+    secrets:
+        PASSED_GITHUB_TOKEN:
+          required: false
+        PASSED_SONAR_TOKEN:
+          required: false
 
 permissions: read-all
 
@@ -145,8 +150,8 @@ jobs:
       - name: Sonar-scanner
         if: inputs.sonar == 1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PASSED_GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.PASSED_SONAR_TOKEN }}
         run: |
             which sonar-scanner
             ls -l /__w/OpenImageIO/OpenImageIO/bw_output
