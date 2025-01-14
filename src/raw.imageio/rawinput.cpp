@@ -246,13 +246,35 @@ OIIO_PLUGIN_EXPORTS_END
 
 namespace {
 std::string
-libraw_filter_to_str(unsigned int filters, const char* cdesc)
+libraw_bayer_filter_to_str(unsigned int filters, const char* cdesc)
 {
     char result[5] = { 0, 0, 0, 0, 0 };
     for (size_t i = 0; i < 4; i++) {
         size_t index = filters & 3;  // Grab the last 2 bits
         result[i]    = cdesc[index];
         filters >>= 2;
+    }
+    return result;
+}
+
+std::string
+libraw_xtrans_filter_to_str(char (&filters)[6][6])
+{
+    const char mapping[3] = { 'R', 'G', 'B' };
+
+    std::string result;
+    result.resize(41);
+
+    for (size_t y = 0; y < 6; y++) {
+        for (size_t x = 0; x < 6; x++) {
+            char c = filters[y][x];
+            if (c > 2 || c < 0)
+                c = 0;
+
+            result[y * 7 + x] = mapping[(size_t)c];
+        }
+        if (y > 0)
+            result[y * 7 - 1] = ' ';
     }
     return result;
 }
@@ -657,9 +679,20 @@ RawInput::open_raw(bool unpack, const std::string& name,
             m_spec.channelnames.emplace_back("Y");
 
             // Put the details about the filter pattern into the metadata
-            std::string filter(
-                libraw_filter_to_str(m_processor->imgdata.idata.filters,
-                                     m_processor->imgdata.idata.cdesc));
+            std::string filter;
+            const bool is_xtrans
+                = strncmp(m_processor->imgdata.idata.make, "Fujifilm", 8) == 0
+                  && m_processor->imgdata.idata.filters == 9;
+
+            if (is_xtrans) {
+                filter = libraw_xtrans_filter_to_str(
+                    m_processor->imgdata.idata.xtrans);
+            } else {
+                filter = libraw_bayer_filter_to_str(
+                    m_processor->imgdata.idata.filters,
+                    m_processor->imgdata.idata.cdesc);
+            }
+
             if (filter.empty()) {
                 filter = "unknown";
             }
