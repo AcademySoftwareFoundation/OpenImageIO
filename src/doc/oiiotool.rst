@@ -2193,6 +2193,18 @@ current top image.
     image comprised of the subimages of all original images appended
     together.
 
+.. option:: --layersplit
+
+    Remove the top image from the stack, split it into a separate image for
+    each of its constituent channel-name-based layers, and push them all
+    onto the stack (first to last).
+
+    By "layer" we mean a subset of the initial channels which, when named
+    using the convention "LAYERNAME.channelname", all share the same layer
+    name. Channels that do not contain a dot in their name are considered
+    to be part of an anonymous layer, and thus are all gathered into a
+    single image (the first one pushed on the stack).
+
 .. option:: --ch <channellist>
 
     Replaces the top image with a new image whose channels have been
