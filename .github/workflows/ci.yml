@@ -111,6 +111,7 @@ jobs:
             setenvs: export  CMAKE_VERSION=3.18.2
                              PTEX_VERSION=v2.3.2
                              WEBP_VERSION=v1.1.0
+                             PUGIXML_VERSION=v1.8
             depcmds: sudo rm -rf /usr/local/include/OpenEXR
           - desc: hobbled gcc9.3/C++17 py3.7 exr-3.1 no-sse
             # Use the oldest supported versions of required dependencies, and
@@ -135,6 +136,7 @@ jobs:
                              USE_JPEGTURBO=0
                              USE_OPENCV=0
                              FREETYPE_VERSION=VER-2-10-0
+                             PUGIXML_VERSION=v1.8
             depcmds: sudo rm -rf /usr/local/include/OpenEXR
 
     runs-on: ${{ matrix.runner }}
@@ -279,6 +281,7 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             pybind11_ver: v2.10.0
+            setenvs: PUGIXML_VERSION=v1.13
           - desc: VFX2023 icc/C++17 py3.10 exr3.1 ocio2.1 qt5.15
             nametag: linux-vfx2023-icc
             runner: ubuntu-latest
@@ -318,6 +321,7 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             pybind11_ver: v2.12.0
+            setenvs: PUGIXML_VERSION=v1.14
           - desc: VFX2024 clang/C++17 py3.11 exr3.2 ocio2.3
             nametag: linux-vfx2024
             runner: ubuntu-latest
@@ -328,6 +332,7 @@ jobs:
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             pybind11_ver: v2.12.0
+            setenvs: PUGIXML_VERSION=v1.14
           - desc: VFX2024 sanitizers
             nametag: sanitizer
             runner: ubuntu-latest
@@ -395,7 +400,7 @@ jobs:
                             LIBTIFF_VERSION=v4.7.0
                             OPENJPEG_VERSION=v2.5.2
                             PTEX_VERSION=v2.4.3
-                            PUGIXML_VERSION=v1.14
+                            PUGIXML_VERSION=v1.15
                             WEBP_VERSION=v1.5.0
                             FREETYPE_VERSION=VER-2-13-3
                             USE_OPENVDB=0
