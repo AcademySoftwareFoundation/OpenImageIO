@@ -2233,6 +2233,7 @@ PSDInput::decompress_packbits(const char* src, char* dst,
     int16_t header;
     int length;
 
+    char* dst_start = dst;
     while (src_remaining > 0 && dst_remaining > 0) {
         header = *reinterpret_cast<const signed char*>(src);
         src++;
@@ -2275,8 +2276,8 @@ PSDInput::decompress_packbits(const char* src, char* dst,
 
     if (!bigendian()) {
         switch (m_header.depth) {
-        case 16: swap_endian((uint16_t*)dst, m_spec.width); break;
-        case 32: swap_endian((uint32_t*)dst, m_spec.width); break;
+        case 16: swap_endian((uint16_t*)dst_start, m_spec.width); break;
+        case 32: swap_endian((uint32_t*)dst_start, m_spec.width); break;
         }
     }
 
