@@ -805,6 +805,36 @@ Reading ../oiio-images/psd/psd_rgba_8.psd
     stEvt:instanceID: "xmp.iid:037A91A22BCDE011A998CBE7B5CCEB92; xmp.iid:2793235262CFE011B8B8C52D9599FB9E"
     stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
     stEvt:when: "2011-08-22T22:07:44-04:00; 2011-08-25T17:39:28-04:00"
+Reading ../oiio-images/psd/psd_rgb_16_rle.psd
+../oiio-images/psd/psd_rgb_16_rle.psd : 3840 x 2160, 3 channel, uint16 psd
+    SHA-1: CF2071CFD7AF69ECEFC9EA00DC0EA7F8ED6A2E2B
+    channel list: R, G, B
+    DateTime: "2025-01-10T23:27:45+02:00"
+    ICCProfile: 0, 0, 2, 48, 65, 68, 66, 69, 2, 16, 0, 0, 109, 110, 116, 114, ... [560 x uint8]
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    Software: "Adobe Photoshop 26.0 (Windows)"
+    thumbnail_height: 90
+    thumbnail_nchannels: 3
+    thumbnail_width: 160
+    XResolution: 72
+    YResolution: 72
+    Exif:ColorSpace: 65535
+    Exif:PixelXDimension: 3840
+    Exif:PixelYDimension: 2160
+    IPTC:DocumentID: "xmp.did:9de7a004-9188-384a-a78b-5202a1f8a5ae"
+    IPTC:InstanceID: "xmp.iid:9de7a004-9188-384a-a78b-5202a1f8a5ae"
+    IPTC:MetadataDate: "2025-01-10T23:28:11+02:00"
+    IPTC:ModifyDate: "2025-01-10T23:28:11+02:00"
+    IPTC:OriginalDocumentID: "xmp.did:9de7a004-9188-384a-a78b-5202a1f8a5ae"
+    photoshop:ColorMode: 3
+    photoshop:ICCProfile: "Adobe RGB (1998)"
+    rdf:parseType: "Resource"
+    stEvt:action: "created"
+    stEvt:instanceID: "xmp.iid:9de7a004-9188-384a-a78b-5202a1f8a5ae"
+    stEvt:softwareAgent: "Adobe Photoshop 26.0 (Windows)"
+    stEvt:when: "2025-01-10T23:27:45+02:00"
 Reading ../oiio-images/psd/psd_123.psd
 ../oiio-images/psd/psd_123.psd :  257 x  126, 4 channel, uint8 psd
     4 subimages: 257x126 [u8,u8,u8,u8], 33x98 [u8,u8,u8,u8], 63x100 [u8,u8,u8,u8], 61x102 [u8,u8,u8,u8]
