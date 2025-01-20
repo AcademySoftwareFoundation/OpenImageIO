@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright Contributors to the OpenImageIO Project.
 #
+# This workflow will run on under two independent conditions:
+#   1) On the official AcademySoftwareFoundation repo, according to a nightly schedule.
+#   2) On forks, when submitting a PR that modifies Python-related files.
 
 name: Wheel
 
@@ -41,7 +44,6 @@ jobs:
   sdist:
     name: Build SDist
     runs-on: ubuntu-latest
-    # Don't run on OIIO forks
     if: |
       github.event_name != 'schedule' ||
       github.repository == 'AcademySoftwareFoundation/OpenImageIO'
@@ -68,7 +70,6 @@ jobs:
   linux:
     name: Build wheels on Linux
     runs-on: ubuntu-latest
-    # Don't run on OIIO forks
     if: |
       github.event_name != 'schedule' ||
       github.repository == 'AcademySoftwareFoundation/OpenImageIO'
@@ -157,7 +158,6 @@ jobs:
   linux-arm:
       name: Build wheels on Linux ARM
       runs-on: ubuntu-latest
-      # Don't run on OIIO forks
       if: |
         github.event_name != 'schedule' ||
         github.repository == 'AcademySoftwareFoundation/OpenImageIO'
@@ -228,7 +228,6 @@ jobs:
   macos:
     name: Build wheels on macOS
     runs-on: macos-13
-    # Don't run on OIIO forks
     if: |
       github.event_name != 'schedule' ||
       github.repository == 'AcademySoftwareFoundation/OpenImageIO'
@@ -286,7 +285,6 @@ jobs:
   macos-arm:
     name: Build wheels on macOS ARM
     runs-on: macos-14
-    # Don't run on OIIO forks
     if: |
       github.event_name != 'schedule' ||
       github.repository == 'AcademySoftwareFoundation/OpenImageIO'
@@ -343,7 +341,6 @@ jobs:
   windows:
     name: Build wheels on Windows
     runs-on: windows-2022
-    # Don't run on OIIO forks
     if: |
       github.event_name != 'schedule' ||
       github.repository == 'AcademySoftwareFoundation/OpenImageIO'
