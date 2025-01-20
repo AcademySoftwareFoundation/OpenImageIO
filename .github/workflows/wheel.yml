@@ -21,9 +21,9 @@ on:
     paths:
       - .github/workflows/wheel.yml
       - pyproject.toml
-      - src/python/OpenImageIO/*.py
-      - src/python/OpenImageIO/*.h
-      - src/python/OpenImageIO/*.cpp
+      - src/python/*.py
+      - src/python/*.h
+      - src/python/*.cpp
       - src/cmake/pythonutils.cmake
   schedule:
     # Nightly build
