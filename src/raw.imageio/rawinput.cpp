@@ -678,6 +678,23 @@ RawInput::open_raw(bool unpack, const std::string& name,
             m_spec.channelnames.clear();
             m_spec.channelnames.emplace_back("Y");
 
+            uint32_t raw_bps = m_processor->imgdata.rawdata.color.raw_bps;
+
+            float black_level = m_processor->imgdata.rawdata.color.black;
+            if (black_level == 0) {
+                unsigned* cblack = m_processor->imgdata.rawdata.color.cblack;
+                size_t size      = cblack[4] * cblack[5];
+                size_t offset    = 6;
+                if (size == 0) {
+                    size   = 4;
+                    offset = 0;
+                }
+
+                for (size_t i = 0; i < size; i++)
+                    black_level += cblack[offset + i];
+                black_level /= size;
+            }
+
             // Put the details about the filter pattern into the metadata
             std::string filter;
             const bool is_xtrans
@@ -697,6 +714,8 @@ RawInput::open_raw(bool unpack, const std::string& name,
                 filter = "unknown";
             }
             m_spec.attribute("raw:FilterPattern", filter);
+            m_spec.attribute("raw:BlackLevel", black_level);
+            m_spec.attribute("raw:BitsPerSample", raw_bps);
 
             // Also, any previously set demosaicing options are void, so remove them
             m_spec.erase_attribute("oiio:ColorSpace");
