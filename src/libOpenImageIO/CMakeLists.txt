@@ -231,7 +231,12 @@ if (UNIX AND NOT APPLE)
 endif ()
 set_target_properties (OpenImageIO PROPERTIES LINK_FLAGS ${OpenImageIO_LINK_FLAGS})
 
-install_targets (OpenImageIO)
+if (SKBUILD)
+    install_targets (NAMELINK_SKIP OpenImageIO )
+else ()
+    install_targets (OpenImageIO)
+endif ()
+
 
 
 # Testing

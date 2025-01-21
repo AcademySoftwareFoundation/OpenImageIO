@@ -230,19 +230,20 @@ Make targets you should know about:
 
 Additionally, a few helpful modifiers alter some build-time options:
 
-|  Target                   |  Command                                       |
-| ------------------------- | ---------------------------------------------- |
-| make VERBOSE=1 ...        |  Show all compilation commands                 |
-| make STOP_ON_WARNING=0    |  Do not stop building if compiler warns        |
-| make EMBEDPLUGINS=0 ...   |  Don't compile the plugins into libOpenImageIO |
-| make USE_OPENGL=0 ...     |  Skip anything that needs OpenGL               |
-| make USE_QT=0 ...         |  Skip anything that needs Qt                   |
-| make MYCC=xx MYCXX=yy ... |  Use custom compilers                          |
-| make USE_PYTHON=0 ...     |  Don't build the Python binding                |
-| make BUILD_SHARED_LIBS=0  |  Build static library instead of shared        |
-| make LINKSTATIC=1 ...     |  Link with static external libraries when possible |
-| make SOVERSION=nn ...     |  Include the specified major version number in the shared object metadata |
-| make NAMESPACE=name       |   Wrap everything in another namespace         |
+|  Target                       |  Command                                                                  |
+| ----------------------------- | ------------------------------------------------------------------------- |
+| make VERBOSE=1 ...            |  Show all compilation commands                                            |
+| make STOP_ON_WARNING=0        |  Do not stop building if compiler warns                                   |
+| make EMBEDPLUGINS=0 ...       |  Don't compile the plugins into libOpenImageIO                            |
+| make USE_OPENGL=0 ...         |  Skip anything that needs OpenGL                                          |
+| make USE_QT=0 ...             |  Skip anything that needs Qt                                              |
+| make MYCC=xx MYCXX=yy ...     |  Use custom compilers                                                     |
+| make USE_PYTHON=0 ...         |  Don't build the Python binding                                           |
+| make BUILD_SHARED_LIBS=0      |  Build static library instead of shared                                   |
+| make IGNORE_HOMEBREWED_DEPS=1 |  Ignore homebrew-managed dependencies                                     |
+| make LINKSTATIC=1 ...         |  Link with static external libraries when possible                        |
+| make SOVERSION=nn ...         |  Include the specified major version number in the shared object metadata |
+| make NAMESPACE=name           |  Wrap everything in another namespace                                     |
 
 The command 'make help' will list all possible options.
 
@@ -364,6 +365,29 @@ As of OpenImageIO 3.0.3.0, the default DLL-loading behavior for Python 3.8+ has 
 
 If you've built OIIO from source and ``import OpenImageIO`` is throwing a ModuleNotFound exception, revert to the legacy DLL-loading behavior by setting environment variable 
 ``OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH=1``. 
+
+
+
+Python-based Builds and Installs
+--------------------------------
+
+**Installing from prebuilt binary distributions**
+
+If you're only interested in the Python module and the CLI tools, you can install with `pip` or `uv`:
+
+> ```pip install OpenImageIO```
+
+**Building and installing from source**
+
+If you have a C++ compiler installed, you can also use the Python build-backend to compile and install
+from source by navigating to the root of the repository and running: ```pip install .```
+
+This will download and install CMake and Ninja if necessary, and invoke the CMake build system; which,
+in turn, will build missing dependencies, compile OIIO, and install the Python module, the libraries, 
+the headers, and the CLI tools to a platform-specific, Python-specific location. 
+
+See the [scikit-build-core docs](https://scikit-build-core.readthedocs.io/en/latest/configuration.html#configuring-cmake-arguments-and-defines)
+for more information on customizing and overriding build-tool options and CMake arguments.
 
 
 Test Images

@@ -181,6 +181,38 @@ include (compiler)
 # Dependency finding utilities and all dependency-related options
 include (dependency_utils)
 
+option (IGNORE_HOMEBREWED_DEPS "If ON, will ignore homebrew-installed dependencies" OFF)
+if (IGNORE_HOMEBREWED_DEPS)
+    # Define the list of prefixes to ignore
+    set (HOMEBREW_PREFIXES
+         /opt/homebrew
+         /usr/local
+         /usr/X11
+         /usr/X11R6
+         /opt/X11
+    )
+    message (STATUS "Ignoring Homebrew dependencies and adjusted environment and CMake variables accordingly.")
+    foreach (_cmake_var
+             CMAKE_SYSTEM_INCLUDE_PATH
+             CMAKE_SYSTEM_LIBRARY_PATH
+             CMAKE_PREFIX_PATH)
+        remove_prefixes_from_variable (CMAKE ${_cmake_var} "${HOMEBREW_PREFIXES}")
+    endforeach ()
+
+    # Adjust CMAKE_IGNORE_PATH
+    foreach (_prefix IN LISTS HOMEBREW_PREFIXES)
+        list (APPEND CMAKE_IGNORE_PATH
+              "${_prefix}"
+              "${_prefix}/lib"
+              "${_prefix}/bin"
+              "${_prefix}/include"
+             )
+    endforeach ()
+
+    message (STATUS "CMAKE_IGNORE_PATH: ${CMAKE_IGNORE_PATH}")
+endif ()
+
+
 # Utilities and options related to finding python and making python bindings
 include (pythonutils)
 
@@ -238,6 +270,17 @@ if (NOT BUILD_OIIOUTIL_ONLY)
     add_subdirectory (src/libOpenImageIO)
 endif ()
 
+# Disable building of certain tools when building Python wheels
+if (SKBUILD)
+    set (ENABLE_iconvert OFF)
+    set (ENABLE_idiff OFF)
+    set (ENABLE_igrep OFF)
+    set (ENABLE_iinfo OFF)
+    set (ENABLE_testtex OFF)
+    set (ENABLE_iv OFF)
+endif ()
+
+
 if (OIIO_BUILD_TOOLS AND NOT BUILD_OIIOUTIL_ONLY)
     add_subdirectory (src/iconvert)
     add_subdirectory (src/idiff)
@@ -258,10 +301,16 @@ if (NOT EMBEDPLUGINS AND NOT BUILD_OIIOUTIL_ONLY)
     endforeach ()
 endif ()
 
-if (USE_PYTHON AND Python3_Development_FOUND AND NOT BUILD_OIIOUTIL_ONLY)
+
+if (WIN32)
+    set (_py_dev_found Python3_Development_FOUND)    
+else ()
+    set (_py_dev_found Python3_Development.Module_FOUND)
+endif ()
+if (USE_PYTHON AND ${_py_dev_found} AND NOT BUILD_OIIOUTIL_ONLY)
     add_subdirectory (src/python)
 else ()
-    message (STATUS "Not building Python bindings: USE_PYTHON=${USE_PYTHON}, Python3_Development_FOUND=${Python3_Development_FOUND}")
+    message (STATUS "Not building Python bindings: USE_PYTHON=${USE_PYTHON}, Python3_Development.Module_FOUND=${Python3_Development.Module_FOUND}")
 endif ()
 
 add_subdirectory (src/include)

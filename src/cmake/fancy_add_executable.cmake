@@ -53,6 +53,12 @@ macro (fancy_add_executable)
         target_link_libraries (${_target_NAME} PRIVATE ${_target_LINK_LIBRARIES})
         target_link_libraries (${_target_NAME} PRIVATE ${PROFILER_LIBRARIES})
         set_target_properties (${_target_NAME} PROPERTIES FOLDER ${_target_FOLDER})
+        if (SKBUILD) 
+            # The installed bin and lib directories are at the same level, so we
+            # need to set the rpath to look for the libraries in ../lib
+            set_target_properties (${_target_NAME} PROPERTIES
+                INSTALL_RPATH "$<IF:$<BOOL:${APPLE}>,@loader_path,$ORIGIN>/../${CMAKE_INSTALL_LIBDIR}")
+        endif ()
         check_is_enabled (INSTALL_${_target_NAME} _target_NAME_INSTALL_enabled)
         if (CMAKE_UNITY_BUILD AND UNITY_BUILD_MODE STREQUAL GROUP)
             set_source_files_properties(${_target_SRC} PROPERTIES

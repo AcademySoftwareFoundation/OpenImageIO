@@ -6,7 +6,7 @@
 # OpenColorIO by hand!
 ######################################################################
 
-set_cache (OpenColorIO_BUILD_VERSION 2.4.0 "OpenColorIO version for local builds")
+set_cache (OpenColorIO_BUILD_VERSION 2.4.1 "OpenColorIO version for local builds")
 set (OpenColorIO_GIT_REPOSITORY "https://github.com/AcademySoftwareFoundation/OpenColorIO")
 set (OpenColorIO_GIT_TAG "v${OpenColorIO_BUILD_VERSION}")
 set_cache (OpenColorIO_BUILD_SHARED_LIBS  OFF #ON

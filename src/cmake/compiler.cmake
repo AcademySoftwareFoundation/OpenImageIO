@@ -693,7 +693,12 @@ if (CMAKE_SKIP_RPATH)
     unset (CMAKE_INSTALL_RPATH)
 else ()
     if (NOT CMAKE_INSTALL_RPATH)
-        set (CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_FULL_LIBDIR}")
+        if(APPLE)
+            set(BASEPOINT @loader_path)
+        else()
+            set(BASEPOINT $ORIGIN)
+        endif()
+        set (CMAKE_INSTALL_RPATH ${BASEPOINT} ${BASEPOINT}/${CMAKE_INSTALL_LIBDIR})
     endif ()
     # add the automatically determined parts of the RPATH that
     # point to directories outside the build tree to the install RPATH
@@ -717,9 +722,25 @@ set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 #    install_targets (target1 [target2 ...])
 #
 macro (install_targets)
-    install (TARGETS ${ARGN}
+    # Define options that can be passed to the macro
+    set(options NAMELINK_SKIP)
+
+    # Parse the arguments passed to the macro
+    cmake_parse_arguments(INSTALL_TARGETS "${options}" "" "" "${ARGN}")
+
+    # Check if NAMELINK_SKIP is specified
+    if (INSTALL_TARGETS_NAMELINK_SKIP)
+        # Set namelink_option to NAMELINK_SKIP if specified
+        set(namelink_option NAMELINK_SKIP)
+    else()
+        # Leave namelink_option empty if NAMELINK_SKIP is not specified
+        set(namelink_option)
+    endif()
+
+    # Use the install command with the appropriate options
+    install (TARGETS ${INSTALL_TARGETS_UNPARSED_ARGUMENTS}
              EXPORT ${PROJ_NAME}_EXPORTED_TARGETS
              RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT user
-             LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT user
+             LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT user ${namelink_option}
              ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT developer)
 endmacro()
