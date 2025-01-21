@@ -133,13 +133,19 @@ macro (setup_python_module)
     # non-python libraries of the same name (which aren't prefixed by "lib"
     # on Windows).
     set_target_properties (${target_name} PROPERTIES
-            LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/python/site-packages
-            ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/python/site-packages
+            LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/python${PYTHON_VERSION}/site-packages/$<CONFIG>/OpenImageIO
+            ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/python${PYTHON_VERSION}/site-packages/$<CONFIG>/OpenImageIO
             )
 
     install (TARGETS ${target_name}
              RUNTIME DESTINATION ${PYTHON_SITE_DIR} COMPONENT user
              LIBRARY DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
+
+    add_custom_command (
+        TARGET ${target_name} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+                ${CMAKE_CURRENT_SOURCE_DIR}/__init__.py
+                ${CMAKE_BINARY_DIR}/lib/python${PYTHON_VERSION}/site-packages/$<CONFIG>/OpenImageIO/__init__.py)
 
     install(FILES __init__.py DESTINATION ${PYTHON_SITE_DIR})
 
