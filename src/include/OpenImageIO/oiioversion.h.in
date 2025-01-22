@@ -178,6 +178,9 @@ namespace OIIO = @PROJ_NAMESPACE@;
 #define OIIO_NAMESPACE_3_0_BEGIN namespace OIIO_NAMESPACE_3_0 {
 #define OIIO_NAMESPACE_3_0_END }
 
+// Macro to use names without explicit qualifier
+#define OIIO_NAMESPACE_USING using namespace @PROJ_NAMESPACE@::@PROJ_VERSION_NAMESPACE@;
+
 
 /// Each imageio DSO/DLL should include this statement:
 ///      DLLPUBLIC int FORMAT_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
