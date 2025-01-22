@@ -2880,6 +2880,79 @@ action_subimage_split(Oiiotool& ot, cspan<const char*> argv)
 
 
 
+// --layersplit
+static void
+action_layer_split(Oiiotool& ot, cspan<const char*> argv)
+{
+    if (ot.postpone_callback(1, action_layer_split, argv))
+        return;
+    string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
+
+    ImageRecRef A = ot.pop();
+    ot.read(A);
+
+    // Split and push the individual channel-name-based layers onto the stack
+    ImageSpec* spec = A->spec();
+    int chbegin     = 0;
+    std::vector<std::string> newchannelnames;
+    for (size_t i = 0; i < spec->channelnames.size(); ++i) {
+        // Parse full channel name to extract the layer name
+        // and the actual channel name, which will be used for
+        // renaming channels during the split
+        // Examples:
+        // chname = "R" -> layername = "", newchname = "R"
+        // chname = "diffuse.G" -> layername = "diffuse", newchname = "G"
+        const std::string& chname   = spec->channelnames[i];
+        const auto parts            = Strutil::splits(chname, ".", 2);
+        const std::string layername = (parts.size() < 2) ? "" : parts[0];
+        const std::string newchname = (parts.size() < 2) ? parts[0] : parts[1];
+        newchannelnames.push_back(newchname);
+
+        bool pushlayer = false;
+        if (i < spec->channelnames.size() - 1) {
+            // Parse the layer name of the next channel,
+            // a different value means that we will be processing
+            // a new layer at the next iteration, therefore
+            // we should push the current one on the stack
+            const std::string& nextchname = spec->channelnames[i + 1];
+            const auto nextparts          = Strutil::splits(nextchname, ".", 2);
+            const std::string nextlayername = (nextparts.size() < 2)
+                                                  ? ""
+                                                  : nextparts[0];
+            pushlayer                       = (nextlayername != layername);
+        } else {
+            // Force flag to true at last iteration so that
+            // last layer is also pushed on the stack
+            pushlayer = true;
+        }
+
+        if (pushlayer) {
+            // Split the current layer by isolating its channels
+            // in a new ImageBuf and renaming them, and store the
+            // layer name in the oiio:subimagename metadata so we
+            // can reuse it later (e.g for creating a multi-part image)
+            const int chend = i + 1;
+            ImageBufRef img(new ImageBuf());
+            std::vector<int> channelorder(chend - chbegin);
+            std::iota(channelorder.begin(), channelorder.end(), chbegin);
+            ImageBufAlgo::channels(*img, (*A)(), chend - chbegin, channelorder,
+                                   {}, newchannelnames);
+            img->specmod().attribute("oiio:subimagename", layername);
+
+            // Create corresponding ImageRec and push it on the stack
+            ImageRecRef R(new ImageRec(img, true));
+            ot.push(R);
+
+            // Prepare processing of next layer
+            chbegin = chend;
+            newchannelnames.clear();
+        }
+    }
+}
+
+
+
 static void
 action_subimage_append_n(Oiiotool& ot, int n, string_view command)
 {
@@ -6898,6 +6971,9 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--siappendall")
       .help("Append all images on the stack into a single multi-subimage image")
       .OTACTION(action_subimage_append_all);
+    ap.arg("--layersplit")
+      .help("Split the top image's channel-name-based layers into separate images on the stack")
+      .OTACTION(action_layer_split);
     ap.arg("--deepen")
       .help("Deepen normal 2D image to deep")
       .OTACTION(action_deepen);
