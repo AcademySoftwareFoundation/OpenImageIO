@@ -141,6 +141,7 @@ macro (oiio_add_all_tests)
                     oiiotool-copy
                     oiiotool-demosaic
                     oiiotool-fixnan
+                    oiiotool-layers
                     oiiotool-pattern
                     oiiotool-readerror
                     oiiotool-subimage
