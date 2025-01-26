@@ -531,6 +531,22 @@ spancpy(span<T> dst, size_t dstoffset, cspan<T> src, size_t srcoffset = 0,
 
 
 
+/// Perform a safe `memcpy(dst, src, n*sizeof(T))` but ensuring that the
+/// memory accesses stay within the boundaries of spans `dst_span` and
+/// `src_span`.
+///
+/// This is intended to be used as a memory-safe replacement for memcpy if
+/// you know the spans representing safe areas.
+template<typename T>
+inline size_t
+span_memcpy(T* dst, const T* src, size_t n, span<T> dst_span, cspan<T> src_span)
+{
+    return spancpy(dst_span, dst - dst_span.begin(), src_span,
+                   src - src_span.begin(), n);
+}
+
+
+
 /// Try to write `n` copies of `val` into `dst[offset...]`. Don't write
 /// outside the span boundaries. Return the number of items actually written,
 /// which should be `n` if the operation was fully successful, but may be less
