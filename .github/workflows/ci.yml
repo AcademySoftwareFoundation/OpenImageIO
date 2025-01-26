@@ -34,6 +34,7 @@ permissions: read-all
 jobs:
 
   aswf-old:
+    if: ${{ ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'macos-only') }}
     name: "(old) ${{matrix.desc}}"
     strategy:
       fail-fast: false
@@ -241,6 +242,7 @@ jobs:
   # Linux Tests
   #
   linux:
+    if: ${{ ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'macos-only') }}
     name: "${{matrix.desc}}"
     uses: ./.github/workflows/build-steps.yml
     with:
@@ -495,6 +497,7 @@ jobs:
   # MacOS Tests
   #
   macos:
+    if: ${{ ! contains(github.ref, 'windows-only') && ! contains(github.ref, 'linux-only') }}
     name: "${{matrix.desc}}"
     uses: ./.github/workflows/build-steps.yml
     with:
@@ -557,6 +560,7 @@ jobs:
   # Windows Tests
   #
   windows:
+    if: ${{ ! contains(github.ref, 'linux-only') && ! contains(github.ref, 'macos-only') }}
     name: "${{matrix.desc}}"
     uses: ./.github/workflows/build-steps.yml
     with:
