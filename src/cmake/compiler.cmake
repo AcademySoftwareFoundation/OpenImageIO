@@ -180,14 +180,6 @@ if (CMAKE_COMPILER_IS_GNUCC AND NOT (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_I
     endif ()
 endif ()
 
-if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG)
-    # Options common to gcc and clang
-
-    # Ensure this macro is set for stdint.h
-    add_compile_definitions (__STDC_LIMIT_MACROS)
-    add_compile_definitions (__STDC_CONSTANT_MACROS)
-endif ()
-
 if (INTELCLANG_VERSION_STRING VERSION_GREATER_EQUAL 2022.1.0)
     # New versions of icx warn about changing certain floating point options
     add_compile_options ("-Wno-overriding-t-option")
