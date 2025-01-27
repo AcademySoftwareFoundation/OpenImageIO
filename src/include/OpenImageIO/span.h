@@ -34,7 +34,7 @@ OIIO_NAMESPACE_BEGIN
 using span_size_t = size_t;
 using oiio_span_size_type = OIIO::span_size_t;  // back-compat alias
 
-OIIO_INLINE_CONSTEXPR span_size_t dynamic_extent = -1;
+inline constexpr span_size_t dynamic_extent = -1;
 
 
 
