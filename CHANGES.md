@@ -1,6 +1,39 @@
-Release 3.0.3.0 (Feb 1?, 2025) -- compared to 3.0.2.0
+Release 3.0.3.0 (Feb 1, 2025) -- compared to 3.0.2.0
 -----------------------------------------------------
-
+  - 🐍🎉🍾 **Python wheels workflow and build backend** -- beginning with
+    OpenImageIO 3.0.3.0, releases should automatically trigger building of
+    Python wheels and upload to PyPI so that you can do a single-command `pip3
+    install openimageio` on any of Linux, Mac, or Windows, and get the Python
+    bindings, the OpenImageIO libraries, and a working oiiotool, without
+    having to build from source yourself.
+    [#4428](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4428) (by zachlewis)
+  - *oiiotool*: `oiiotool --layersplit`, new command to split multi-layer
+    OpenEXR files (using the usual channel naming convention to delineate
+    "layers") into separate images [#4591](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4591) (by Loïc Vital)
+  - *IBA*: IBA:demosaic() adds the ability for X-Trans demosaicing [#4579](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4579) (by Anton Dukhovnikov)
+  - *IBA*: fix demosaic handling of roi channels [#4602](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4602) (by Anton Dukhovnikov)
+  - *png*: Alpha premultiplication adjustment and attribute [#4585](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4585)
+  - *psd*: Perform endian byteswap on correct buffer area for PSD RLE [#4600](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4600) (by Jesse Yurkovich)
+  - *raw*: Add black level and BPS metadata [#4601](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4601) (by Anton Dukhovnikov)
+  - *python*: Disable loading Python DLLs from PATH by default on Windows [#4590](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4590) (by zachlewis)
+  - *dev (span.h)*: Span_memcpy is a safer memcpy when you know the span boundaries [#4597](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4597)
+  - *dev (filesystem.h)*: Filesystem::getline() [#4569](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4569)
+  - *dev (paramlist.h)*: ParamValue as_span, as_cspan [#4582](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4582)
+  - *build*: Recent change broke when using non-Apple clang on Apple [#4596](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4596)
+  - *build*: Fix build_cmake.bash script for aarch64, bump its default version [#4581](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4581)
+  - *build*: Fix libraw definitions (again) [#4588](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4588)
+  - *ci*: Upgrade to newer actions [#4570](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4570)
+  - *ci*: Test and document support for WebP 1.5 and fmt 11.1 [#4574](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4574)
+  - *ci*: Only pass build-steps the secrets it needs [#4576](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4576)
+  - *ci*: Fix Windows 2019 CI -- make python version match the runner [#4592](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4592)
+  - *ci*: Raise 'latest' tests to use new fmt 11.1.2 [#4593](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4593)
+  - *ci*: Adjust some pugixml versions [#4594](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4594)
+  - *ci*: Allow special branch names to prune CI jobs [#4604](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4604)
+  - *tests*: Improve Ptex testing [#4573](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4573)
+  - *tests*: Better testing coverage of null image reader/writer [#4578](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4578)
+  - *tests*: At long last, set up a softimage reading test. [#4583](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4583)
+  - *tests*: Additional ref output for jpeg-corrupt test [#4595](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4595)
+  - *docs*: Fix typo in oiiotool's gradient fill example [#4589](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4589) (by Loïc Vital)
 
 
 Release 3.0.2.0 (Jan 1, 2025) -- compared to 3.0.1.0
