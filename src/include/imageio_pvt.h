@@ -157,7 +157,7 @@ private:
 
 
 // Access to an internal periodic blue noise table.
-OIIO_INLINE_CONSTEXPR int bntable_res = 256;
+inline constexpr int bntable_res = 256;
 extern float bluenoise_table[bntable_res][bntable_res][4];
 
 // 1-channel value lookup of periodic blue noise of a 2D coordinate.
