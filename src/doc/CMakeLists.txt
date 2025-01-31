@@ -10,6 +10,7 @@ set (public_docs
      "${OpenImageIO_SOURCE_DIR}/CHANGES.md"
      "${OpenImageIO_SOURCE_DIR}/docs/CHANGES-0.x.md"
      "${OpenImageIO_SOURCE_DIR}/docs/CHANGES-1.x.md"
+     "${OpenImageIO_SOURCE_DIR}/docs/CHANGES-2.x.md"
 )
 
 if (INSTALL_DOCS)
