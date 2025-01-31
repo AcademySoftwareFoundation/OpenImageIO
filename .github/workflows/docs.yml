@@ -11,6 +11,7 @@ on:
     paths-ignore:
       - '**/ci.yml'
       - '**/analysis.yml'
+      - '**/scorecard.yml'
       - '**.properties'
       - 'src/**.cpp'
       - '**.cmake'
@@ -20,6 +21,7 @@ on:
     paths-ignore:
       - '**/ci.yml'
       - '**/analysis.yml'
+      - '**/scorecard.yml'
       - '**.properties'
       - 'src/**.cpp'
       - '**.cmake'

@@ -8,19 +8,13 @@ on:
   # Only the default branch is supported.
   branch_protection_rule:
   push:
-    # Run on pushes to main, but only the main repo, not forks
+    # Run on pushes to main, but only the official repo, not forks
     branches: [ "main" ]
     if: github.event.pull_request.head.repo.full_name == github.repository
-    paths-ignore:
-      - '**.md'
-      - '**.rst'
-      - 'docs/**'
   pull_request:
-    # Only run on individual PRs if the workflow file itself is changed.
-    paths-ignore:
-      - '**.md'
-      - '**.rst'
-      - 'docs/**'
+    # Only run on individual PRs if the workflows changed
+    paths:
+      - '.github/workflows/**'
 
 # Declare default permissions as read only.
 permissions: read-all
@@ -47,7 +41,7 @@ jobs:
     
     steps:
       - name: "Checkout code"
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
           fetch-depth: '0'
