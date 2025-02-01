@@ -173,13 +173,10 @@
 // See https://en.cppreference.com/w/cpp/compiler_support
 //
 // OIIO_CPLUSPLUS_VERSION : which C++ standard is compiling (14, 17, ...)
-// OIIO_CONSTEXPR14 :
 // OIIO_CONSTEXPR17 :
 // OIIO_CONSTEXPR20 : constexpr for C++ >= the designated version, otherwise
 //                    nothing (this is useful for things that can only be
 //                    constexpr for particular versions or greater).
-// OIIO_INLINE_CONSTEXPR : inline constexpr variables, added in C++17. For
-//                         older C++, static constexpr.
 //
 // Note: oiioversion.h defines OIIO_BUILD_CPP (set to 17, 20, etc.)
 // reflecting what OIIO itself was *built* with.  In contrast,
@@ -192,14 +189,15 @@
 #if (__cplusplus >= 202001L)
 #    define OIIO_CPLUSPLUS_VERSION 20
 #    define OIIO_CONSTEXPR20 constexpr
-#    define OIIO_INLINE_CONSTEXPR inline constexpr
 #elif (__cplusplus >= 201703L) || (defined(_MSC_VER) && _MSC_VER >= 1914)
 #    define OIIO_CPLUSPLUS_VERSION 17
 #    define OIIO_CONSTEXPR20 /* not constexpr before C++20 */
-#    define OIIO_INLINE_CONSTEXPR inline constexpr
 #else
 #    error "This version of OIIO is meant to work only with C++17 and above"
 #endif
+
+// DEPRECATED(3.1): use C++17 inline constexpr
+#define OIIO_INLINE_CONSTEXPR inline constexpr
 
 // DEPRECATED(3.0): use C++17 constexpr
 #define OIIO_CONSTEXPR17 constexpr

@@ -148,8 +148,8 @@ enum class InterpMode : uint8_t {
 /// The SIMD width for batched texturing operations. This is fixed within
 /// any release of OpenImageIO, but may change from release to release and
 /// also may be overridden at build time. A typical batch size is 16.
-OIIO_INLINE_CONSTEXPR int BatchWidth = OIIO_TEXTURE_SIMD_BATCH_WIDTH;
-OIIO_INLINE_CONSTEXPR int BatchAlign = BatchWidth * sizeof(float);
+inline constexpr int BatchWidth = OIIO_TEXTURE_SIMD_BATCH_WIDTH;
+inline constexpr int BatchAlign = BatchWidth * sizeof(float);
 
 /// A type alias for a SIMD vector of floats with the batch width.
 typedef simd::VecType<float, OIIO_TEXTURE_SIMD_BATCH_WIDTH>::type FloatWide;
@@ -168,15 +168,15 @@ typedef uint64_t RunMask;
 // The defined constant `RunMaskOn` contains the value with all bits
 // `0..BatchWidth-1` set to 1.
 #if OIIO_TEXTURE_SIMD_BATCH_WIDTH == 4
-OIIO_INLINE_CONSTEXPR RunMask RunMaskOn = 0xf;
+inline constexpr RunMask RunMaskOn = 0xf;
 #elif OIIO_TEXTURE_SIMD_BATCH_WIDTH == 8
-OIIO_INLINE_CONSTEXPR RunMask RunMaskOn = 0xff;
+inline constexpr RunMask RunMaskOn = 0xff;
 #elif OIIO_TEXTURE_SIMD_BATCH_WIDTH == 16
-OIIO_INLINE_CONSTEXPR RunMask RunMaskOn = 0xffff;
+inline constexpr RunMask RunMaskOn = 0xffff;
 #elif OIIO_TEXTURE_SIMD_BATCH_WIDTH == 32
-OIIO_INLINE_CONSTEXPR RunMask RunMaskOn = 0xffffffff;
+inline constexpr RunMask RunMaskOn = 0xffffffff;
 #elif OIIO_TEXTURE_SIMD_BATCH_WIDTH == 64
-OIIO_INLINE_CONSTEXPR RunMask RunMaskOn = 0xffffffffffffffffULL;
+inline constexpr RunMask RunMaskOn = 0xffffffffffffffffULL;
 #else
 #    error "Not a valid OIIO_TEXTURE_SIMD_BATCH_WIDTH choice"
 #endif
