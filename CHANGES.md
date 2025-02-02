@@ -1,3 +1,10 @@
+Release 3.0.3.1 (Feb 1, 2025) -- compared to 3.0.3.1
+-----------------------------------------------------
+The code is identical to v3.0.3.0, but some build issues were fixed to allow
+proper build and upload of the Python wheels to PyPI for the Linux ARM
+variants.
+
+
 Release 3.0.3.0 (Feb 1, 2025) -- compared to 3.0.2.0
 -----------------------------------------------------
   - 🐍🎉🍾 **Python wheels workflow and build backend** -- beginning with
