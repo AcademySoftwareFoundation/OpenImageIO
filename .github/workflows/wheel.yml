@@ -13,9 +13,13 @@ permissions:
 
 on:
   push:
-    # Workflow run on tags for v3 only.
+    # Workflow run on tags for v3 only, or pre-tagged pushes of release, or
+    # dev-3.* branches.
     tags:
       - v3.*
+    branches:
+      - release
+      - dev-3.*
   pull_request:
     # Workflow run on pull_request only when related files change.
     paths:
