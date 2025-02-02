@@ -189,7 +189,7 @@ public:
     TypeDesc pixeltype() const
     {
         validate_spec();
-        return m_localpixels ? m_spec.format : m_cachedpixeltype;
+        return cachedpixels() ? m_cachedpixeltype : m_spec.format;
     }
 
     DeepData* deepdata()
@@ -1128,6 +1128,7 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
         if (peltype != TypeDesc::UNKNOWN) {
             m_spec.format = (TypeDesc::BASETYPE)peltype;
             m_spec.channelformats.clear();
+            m_cachedpixeltype = m_spec.format;
         }
 
         if (m_nsubimages) {
