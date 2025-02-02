@@ -87,8 +87,8 @@ major release:
 
   Regardless of OCIO availability, version, or contents of any configs, have universal support for the [canonical color spaces](https://github.com/AcademySoftwareFoundation/MaterialX/blob/main/documents/Specification/MaterialX.Specification.md#color-spaces-and-color-management-systems) that seem to be the common consensus of ACES, MaterialX, and USD.
 - [ ] Preliminary Rust bindings for most of the OpenImageIO APIs.
-- [ ] Python wheel construction so `pip install openimageio` will be an easy way
-      for users to install the whole banana.
+- [x] Python wheel construction so `pip install openimageio` will be an easy way
+      for users to install the whole banana. [#4428](https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/4428)
 
 If there is something you think should be on the roadmap for the next major
 release but is not, please open an issue or discussion to propose it, or
