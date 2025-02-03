@@ -698,9 +698,9 @@ else ()
         else()
             set(BASEPOINT $ORIGIN)
         endif()
-        set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR}
-                                 ${BASEPOINT}
-                                 ${BASEPOINT}/${CMAKE_INSTALL_LIBDIR})
+        set (CMAKE_INSTALL_RPATH ${BASEPOINT}
+                                 ${BASEPOINT}/${CMAKE_INSTALL_LIBDIR}
+                                 ${BASEPOINT}/../${CMAKE_INSTALL_LIBDIR})
     endif ()
     # add the automatically determined parts of the RPATH that
     # point to directories outside the build tree to the install RPATH
