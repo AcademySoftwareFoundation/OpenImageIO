@@ -8,25 +8,6 @@
 #include <stdexcept>
 #include <vector>
 
-// We're including stdint.h to get int64_t and INT64_MIN. But on some
-// platforms, stdint.h only defines them if __STDC_LIMIT_MACROS is defined,
-// so we do so. But, oops, if user code included stdint.h before this file,
-// and without defining the macro, it may have had ints one and only include
-// and not seen the definitions we need, so at least try to make a helpful
-// compile-time error in that case.
-// And very old MSVC 9 versions don't even have stdint.h.
-#if defined(_MSC_VER) && _MSC_VER < 1600
-typedef __int64 int64_t;
-#else
-#    ifndef __STDC_LIMIT_MACROS
-#        define __STDC_LIMIT_MACROS /* needed for some defs in stdint.h */
-#    endif
-#    include <cstdint>
-#    if !defined(INT64_MIN)
-#        error You must define __STDC_LIMIT_MACROS prior to including stdint.h
-#    endif
-#endif
-
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/strided_ptr.h>
 
