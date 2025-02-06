@@ -107,8 +107,6 @@ function (setup_oiio_util_library targetname)
     
     if (SKBUILD)
         set (PYTHON_SITE_DIR .)
-        set_target_properties (${targetname} PROPERTIES
-                INSTALL_RPATH "$<IF:$<BOOL:${APPLE}>,@loader_path,$ORIGIN>/${CMAKE_INSTALL_LIBDIR}")
         install_targets (NAMELINK_SKIP ${targetname})
     else ()
         install_targets (${targetname})
