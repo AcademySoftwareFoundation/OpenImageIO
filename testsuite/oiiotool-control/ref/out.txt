@@ -281,7 +281,10 @@ Sequence -5--2:  -5
 Sequence -5--2:  -4
 Sequence -5--2:  -3
 Sequence -5--2:  -2
-oiiotool WARNING : oiiotool produced no output. Did you forget -o?
+oiiotool WARNING : No frame number or views matched the wildcards
+oiiotool ERROR: read : File does not exist: "notfound.#.jpg"
+Full command line was:
+> oiiotool notfound.#.jpg -o alsonotfound.#.jpg
 oiiotool ERROR : Not all sequence specifications matched: copyA.#.jpg (10 frames) vs. copyC.1-5#.jpg (5 frames)
 Full command line was:
 > 

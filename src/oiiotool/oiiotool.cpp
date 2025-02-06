@@ -7329,6 +7329,12 @@ handle_sequence(Oiiotool& ot, int argc, const char** argv)
         nfilenames = frame_numbers[0].size();
     }
 
+    if (!nfilenames) {
+        // No filenames matched the first wildcard pattern
+        ot.warning("", "No frame number or views matched the wildcards");
+        return false;
+    }
+
     // Make sure frame_numbers[0] has the canonical frame number list
     if (sequence_args.size() && frame_numbers[0].empty())
         frame_numbers[0] = frame_numbers[sequence_args[0]];
