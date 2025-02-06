@@ -317,6 +317,35 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
                 result = out.str();
                 if (result.size() && result.back() == '\n')
                     result.pop_back();
+
+            } else if (metadata == "IS_CONSTANT") {
+                std::vector<float> color((*img)(0, 0).nchannels());
+                if (ImageBufAlgo::isConstantColor((*img)(0, 0), color)) {
+                    result = "1";
+                } else {
+                    result = "0";
+                }
+
+
+            } else if (metadata == "IS_BLACK") {
+                auto pixstat = ImageBufAlgo::computePixelStats((*img)(0, 0));
+                std::vector<float> color((*img)(0, 0).nchannels());
+                // Check constant first to guard against false positive average of 0 with negative values i.e. -2, 1, 1
+                if (ImageBufAlgo::isConstantColor((*img)(0, 0), color)) {
+                    // Do we need this loop if we know that all channels should be the same value in constant frame?
+                    for (size_t i = 0; i < pixstat.avg.size(); ++i) {
+                        // If any of the pixel doesn't have an average of (0,0,0), then we don't have a black frame
+                        // Is this the best way to check? Feels fishy to have the specified number...should we look at 0.0f or other formats?
+                        if (pixstat.avg[i] == 0.000000) {
+                            result = "1";
+                        } else {
+                            result = "0";
+                        }
+                    }
+                } else {
+                    result = "0";
+                }
+
             } else if (using_bracket) {
                 // For the TOP[meta] syntax, if the metadata doesn't exist,
                 // return the empty string, and do not make an error.
