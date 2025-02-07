@@ -34,6 +34,12 @@ about being deprecated will be removed in the final 3.0 release.
 
 ---
 
+## argparse.h
+
+* Several long-deprecated old method names now will give deprecation warnings
+  if used. Most notable are `parse()` (you should use `parse_args()` instead)
+  and `usage()` (use `print_help()` instead).
+
 ## array_view.h
 
 * This header has been eliminated. It originally had the template `array_view`,
@@ -63,6 +69,13 @@ about being deprecated will be removed in the final 3.0 release.
 * The versions of `createDisplayTransform()` that lack an `inverse` parameter
   now have deprecation warnings. Use the version that takes an `inverse` bool.
 
+## dassert.h
+
+* Poorly named `ASSERT`, `DASSERT`, and `ASSERTMSG` macros have been removed.
+  They were deprecated since 2.1, since they could easily clash with macros
+  from other projects. Please instead use the `OIIO_ASSERT`, `OIIO_DASSERT`,
+  and `OIIO_ASSERT_MSG` macros.
+
 ## errorhandler.h
 
 * All of the old methods that did printf-style formatting have been deprecated
@@ -85,6 +98,33 @@ about being deprecated will be removed in the final 3.0 release.
 * The `ImageBuf::interppixel_NDC_full()` method, which has been marked as
   deprecated since OIIO 1.5, now has deprecation warnings. Use
   `interppixel_NDC()` instead.
+
+## imageio.h
+
+* The global OIIO::attribute query "opencv_version" has been removed. The
+  libOpenImageIO library itself no longer has OpenCV as a dependency or links
+  against it. (However, the IBA functions involving OpenCV still exist and are
+  defined in `imagebufalgo_opencv.h` as inline functions, so it is up to the
+  application calling these API functions to find and link against OpenCV.)
+* The old varieties of ImageInput::read_scanlines, read_tiles, and read_image
+  that did not take `subimage` and `miplevel` parameters, and were not
+  thread-safe, have been removed. These have been marked as deprecated since
+  OIIO 2.0.
+* The type aliases ImageIOParameter and ImageIOParameterList, which have been
+  marked as deprecated since OIIO 2.0, have been removed. Use ParamValue and
+  ParamValueList instead.
+* The utility functions convert_image and parallel_convert_image (the variety
+  that took alpha_channel and z_channel arguments) that have been deprecated
+  since OIIO 2.0 have been removed.
+
+## imagebuf.h
+
+* The style of ImageBuf constructor that "wraps" a caller-owned memory buffer
+  now has a new, preferred, version that takes a `span<>` or `cspan<>` instead
+  of a raw pointer. The old versions is considered deprecated.
+* New span-based versions of get_pixels, set_pixels, setpixel, getpixel,
+  interppixel, interppixel_NDC, interppixel_bicubic, interppixel_bicubic_NDC.
+  These are preferred over the old versions that took raw pointers.
 
 ## imagebufalgo.h
 
@@ -111,11 +151,18 @@ about being deprecated will be removed in the final 3.0 release.
   cv::Mat.
 * The pre-KWArgs versions of resize, warp, and fit now have deprecation
   warnings. Use the versions that take KWArgs instead.
+* The OpenCV-related functions `to_OpenCV()`, `from_OpenCV()`, and
+  `capture_image()` have moved to the `imagebufalgo_opencv.h` header.
 
 ## imagebufalgo_util.h
 
 * IBA::type_merge, deprecated since 2.3, now has a deprecation warning.
   Instead, use TypeDesc::basetype_merge().
+
+## imagecache.h
+
+* `ImageCache::create()` now returns a `std::shared_ptr<ImageCache>` instead
+  of a raw pointer.
 
 ## missingmath.h
 
@@ -148,13 +195,36 @@ about being deprecated will be removed in the final 3.0 release.
   `OIIO_MAYBE_UNUSED` as deprecated as well, now that C++17 is the minimum,
   there's no reason not to directly use the C++ attribute `[[maybe_unused]]`.
 
+## simd.h
+
+* The old (OIIO 1.x) type names float3, float4, float8, int4, int8, mask4,
+  bool4, bool8 have been removed. Use the new vbool4, vint4, vfloat4, etc.
+* The old rotl32 functions have been removed. They had been deprecated since
+  OIIO 2.1. Please use `rotl()` intead.
+* The old floori functions have been removed. They had been deprecated since
+  OIIO 1.8. Please use ifloor() instead.
+* The old OIIO_SIMD_HAS_FLOAT8 macro has been removed. It was deprecated since
+  OIIO 1.8.
+
+## string_view.h
+
+* The string_view::c_str() method has been marked as deprecated, since
+  it is not present in C++17 std::string_view. If you must use this
+  functionality (with caution about when it is safe), then use the
+  freestanding OIIO::c_str(string_view) function instead.
+
 ## strutil.h
 
+* The default behavior of `Strutil::format()` has been changed to use the
+  `std::format` conventions. If you want the old behavior, use
+  `Strutil::old::format()` instead.
 * Added deprecation warnings to all the old (printf-convention) string
   `format()` function.
 
 ## texture.h
 
+* `TextureSystem::create()` now returns a `std::shared_ptr<TextureSystem>`
+  instead of a raw pointer.
 * Removed stochastic-related tokens from the MipMode and InterpMode enums.
   These were originally experimental but never removed.
 * Removed the `bias` field from the TextureOpt structure. This was originally
@@ -185,7 +255,7 @@ about being deprecated will be removed in the final 3.0 release.
 ## ustring.h
 
 * Removed old `ustringHash` (which was just an alias for `std::hash<ustring>`,
-  which should be used instead.
+  which should be used instead).
 
 ## varyingref.h
 
@@ -193,3 +263,24 @@ about being deprecated will be removed in the final 3.0 release.
   it defines.
 
 
+## python bindings
+
+* The `ImageBufAlgo.capture_image()` function has been removed from the
+  Python bindings. Python scripts that wish to capture images from live
+  cameras should use OpenCV or other capture APIs of choice and then
+  pass the results to OIIO to construct an ImageBuf.
+* Static type names within the `TypeDesc` class (such as `TypeDesc.TypeFloat`)
+  have been removed after being considered deprecated since OIIO 1.8. Use the
+  names in the overall OpenImageIO namespace instead.
+* Older versions of `ImageBufAlgo.fit()` have been removed. Use the newer
+  function signatures.
+* Older versions of `ImageInput::read_native_deep_scanlines()` and
+  `read_native_deep_tiles()` have been removed. They had been deprecated
+  since OIIO 2.0.
+
+## maketx
+
+* The `--noresize` option has been removed. It was deprecated since OIIO 2.0,
+  when it became the default behavior.
+* The `--stats` option has been removed. It was deprecated since OIIO 1.6,
+  when it was renamed `--runstats`.

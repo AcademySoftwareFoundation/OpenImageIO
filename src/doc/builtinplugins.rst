@@ -1037,6 +1037,10 @@ anywhere near the acceptance of the original JPEG/JFIF format.
        reader/writer, and you should assume that nearly everything described
        Appendix :ref:`chap-stdmetadata` is properly translated when using
        JPEG files.
+   * - *other*
+     -
+     - Extra attributes will be read from comment blocks in the JPEG file,
+       and can optionally be written if ``jpeg:com_attributes`` is enabled.
 
 **Configuration settings for JPEG input**
 
@@ -1084,6 +1088,10 @@ control aspects of the writing itself:
    * - ``jpeg:progressive``
      - int
      - If nonzero, will write a progressive JPEG file.
+   * - ``jpeg:com_attributes``
+     - int
+     - If nonzero, extra attributes will be written into the file as comment
+       blocks.
 
 
 **Custom I/O Overrides**
@@ -1103,6 +1111,18 @@ via the `ImageInput::set_ioproxy()` method and the special
   regardless of requests to the contrary from the calling program.
 * OpenImageIO's JPEG/JFIF reader and writer always operate in scanline
   mode and do not support tiled image input or output.
+
+
+**Ultra HDR**
+
+JPEG input also suports Ultra HDR images.
+Ultra HDR is an image format that encodes a high dynamic range image
+in a JPEG image file by including a gain map in addition to the
+primary image.
+See https://developer.android.com/media/platform/hdr-image-format for
+a complete reference on the Ultra HDR image format.
+In the specific case of reading an Ultra HDR image, JPEG input will also
+support alpha channels and high dynamic range imagery (`half` pixels).
 
 
 
@@ -1293,29 +1313,28 @@ control aspects of the writing itself:
    * - ``jpegxl:use_boxes``
      - int (bool)
      - If nonzero, will enable metadata (Exif, XMP, jumb, iptc) writing to the
-     output file. Default is 1.
+       output file. Default is 1.
    * - ``jpegxl:compress_boxes``
      - int (bool)
      - If nonzero, will enable metadata compression. Default is 1.
    * - ``jpegxl:exif_box``
      - int (bool)
      - If nonzero, will enable Exif metadata writing to the output file.
-     Default is 1.
+       Default is 1.
    * - ``jpegxl:xmp_box``
      - int (bool)
      - If nonzero, will enable XMP metadata writing to the output file.
-     Default is 1.
+       Default is 1.
    * - ``jpegxl:jumb_box``
      - int (bool)
      - If nonzero, will enable JUMBF metadata writing to the output file.
-     Default is 0.
-     (dows not supported at this moment in OIIO)
+       Default is 0. (dows not supported at this moment in OIIO)
    * - ``jpegxl:iptc_box``
      - int (bool)
      - If nonzero, will enable IPTC metadata writing to the output file.
-     Default is 0.
-     (Do not work as expected at this moment. Box is written but content
-     unreadable in exif readers)
+       Default is 0.
+       (Does not work as expected at this moment. Box is written but content
+       unreadable in exif readers.)
 
 .. _sec-bundledplugins-ffmpeg:
 
@@ -1368,6 +1387,9 @@ Some special attributes are used for movie files:
    * - ``FramesPerSecond``
      - int[2] (rational)
      - Frames per second
+   * - ``ffmpeg:TimeCode``
+     - string
+     - Start time timecode
 
 
 
@@ -1732,6 +1754,12 @@ attributes are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+   * - ``png:linear_premult``
+     - int
+     - If nonzero, will convert  or gamma-encoded values to linear color
+       space for any premultiplication-by-alpha step done by the PNG reader.
+       If zero (the default), any needed premultiplication will happen directly
+       to the encoded values.
 
 **Configuration settings for PNG output**
 
@@ -1775,13 +1803,31 @@ control aspects of the writing itself:
        to have larger PNG files on disk, you may want to use that value for
        this attribute.
 
+   * - ``png:linear_premult``
+     - int
+     - If nonzero, will convert sRGB or gamma-encoded values to linear color
+       space for any unpremultiplication-by-alpha step done by the PNG writer.
+       If zero (the default), any needed unpremultiplication will happen
+       directly to the encoded sRGB or gamma-corrected values.
+
 **Custom I/O Overrides**
 
 PNG input and output both support the "custom I/O" feature via the special
 ``"oiio:ioproxy"`` attributes (see Sections :ref:`sec-imageoutput-ioproxy`
 and :ref:`sec-imageinput-ioproxy`) as well as the `set_ioproxy()` methods.
 
+**Note on premultiplication**
 
+PNG files encoded as sRGB or gamma-corrected values that also have alpha
+should (in theory) have any premultiplication performed in a linear space
+(that is, the color should first be linearized, then premultiplied by alpha,
+then converted back to the nonlinear form). However, many existing PNG files
+are apparently encoded with the assumption that any premultiplication will be
+performed directly on the encoded values, so that is the default behavior for
+OpenImageIO's PNG reader and writer will. If you want to force the reader or
+writer to linearize the values for premultiplication, you can set either the
+reader/writer configuration hint or the global OIIO attribute
+``png:linear_premult`` to 1.
 
 **Limitations**
 
@@ -2083,6 +2129,15 @@ options are supported:
        equal to 0, ``raw:use_auto_wb`` is not equal to 0. Takes 
        precedence over ``raw:user_mul``.
        (Default: 0, 0, 0, 0; meaning no correction.)
+   * - ``raw:cropbox``
+     - int[4]
+     - If present, sets the box to crop the image to. The four values are the 
+       X and Y coordinate of the top-left corner, the width and the height.
+       If not present, the image is cropped to match the in-camera JPEG,
+       assuming the necessary information is present in the metadata. The
+       cropping is done by setting the display window, so the whole image
+       pixels are still available. The default cropping can be disabled by
+       setting the cropbox to zero size.
    * - ``raw:use_camera_matrix``
      - int
      - Whether to use the embedded color profile, if it's present: 0 =
@@ -2168,6 +2223,11 @@ options are supported:
        0 - do not use FBDD noise reduction, 1 - light FBDD reduction,
        2 (and more) - full FBDD reduction
        (Default: 0)
+   * - ``raw:max_raw_memory_mb``
+     - int
+     - Maximum memory allocation for processing of raw images. Stop processing if
+       raw buffer size grows larger than that value (in megabytes).
+       (Default: 2048)
 
 
 |

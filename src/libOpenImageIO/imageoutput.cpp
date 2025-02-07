@@ -177,8 +177,13 @@ ImageOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
                     ok &= write_tile(x, y, z, format, tilestart, xstride,
                                      ystride, zstride);
                 } else {
-                    if (!buf.get())
-                        buf.reset(new char[pixelsize * m_spec.tile_pixels()]);
+                    if (!buf.get()) {
+                        const size_t sz = pixelsize * m_spec.tile_pixels();
+                        buf.reset(new char[sz]);
+                        // Not all pixels will be initialized, so we set them to zero here.
+                        // This will avoid generation of NaN, FPEs and valgrind errors.
+                        memset(buf.get(), 0, sz);
+                    }
                     OIIO::copy_image(m_spec.nchannels, xw, yh, zd, tilestart,
                                      pixelsize, xstride, ystride, zstride,
                                      &buf[0], pixelsize,
@@ -482,6 +487,7 @@ ImageOutput::write_image(TypeDesc format, const void* data, stride_t xstride,
                          ProgressCallback progress_callback,
                          void* progress_callback_data)
 {
+    pvt::LoggedTimer logtime("ImageOutput::write image");
     bool native          = (format == TypeDesc::UNKNOWN);
     stride_t pixel_bytes = native ? (stride_t)m_spec.pixel_bytes(native)
                                   : format.size() * m_spec.nchannels;
@@ -1022,12 +1028,46 @@ ImageOutput::check_open(OpenMode mode, const ImageSpec& userspec, ROI range,
 
 
 template<>
+inline size_t
+pvt::heapsize<ImageOutput::Impl>(const ImageOutput::Impl& impl)
+{
+    return impl.m_io_local ? sizeof(Filesystem::IOProxy) : 0;
+}
+
+
+
+size_t
+ImageOutput::heapsize() const
+{
+    size_t size = pvt::heapsize(m_impl);
+    size += pvt::heapsize(m_spec);
+    return size;
+}
+
+
+
+size_t
+ImageOutput::footprint() const
+{
+    return sizeof(ImageOutput) + heapsize();
+}
+
+
+
+template<>
 size_t
 pvt::heapsize<ImageOutput>(const ImageOutput& output)
 {
-    //! TODO: change ImageOutput API to add a virtual heapsize() function
-    //! to allow per image output override, and call that function here.
-    return pvt::heapsize(output.m_spec);
+    return output.heapsize();
+}
+
+
+
+template<>
+size_t
+pvt::footprint<ImageOutput>(const ImageOutput& output)
+{
+    return output.footprint();
 }
 
 

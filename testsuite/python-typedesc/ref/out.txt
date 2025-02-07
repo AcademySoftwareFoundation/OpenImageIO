@@ -167,47 +167,6 @@ type 'TypeString'
     c_str "string"
 type 'TypeInt'
     c_str "int"
-type 'TypePoint'
-    c_str "point"
-type 'TypeVector'
-    c_str "vector"
-type 'TypeNormal'
-    c_str "normal"
-type 'TypeMatrix'
-    c_str "matrix"
-type 'TypeMatrix33'
-    c_str "matrix33"
-type 'TypeMatrix44'
-    c_str "matrix"
-type 'TypeTimeCode'
-    c_str "timecode"
-type 'TypeKeyCode'
-    c_str "keycode"
-type 'TypeRational'
-    c_str "rational2i"
-type 'TypeFloat2'
-    c_str "float2"
-type 'TypeVector2'
-    c_str "vector2"
-type 'TypeFloat4'
-    c_str "float4"
-type 'TypeVector4'
-    c_str "float4"
-type 'TypeVector2i'
-    c_str "vector2i"
-type 'TypeVector3i'
-    c_str "vector3i"
-type 'TypeHalf'
-    c_str "half"
-
-type 'TypeFloat'
-    c_str "float"
-type 'TypeColor'
-    c_str "color"
-type 'TypeString'
-    c_str "string"
-type 'TypeInt'
-    c_str "int"
 type 'TypeUInt'
     c_str "uint"
 type 'TypeInt64'

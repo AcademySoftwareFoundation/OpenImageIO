@@ -4,12 +4,12 @@
 
 #include <cassert>
 #include <cstdio>
+#include <set>
 #include <vector>
 
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
-#include <OpenImageIO/span_util.h>
 #include <OpenImageIO/tiffutils.h>
 
 #include "jpeg_pvt.h"
@@ -117,6 +117,14 @@ OIIO_EXPORT const char* jpeg_output_extensions[]
 OIIO_PLUGIN_EXPORTS_END
 
 
+
+static std::set<std::string> metadata_include { "oiio:ConstantColor",
+                                                "oiio:AverageColor",
+                                                "oiio:SHA-1" };
+static std::set<std::string> metadata_exclude {
+    "XResolution",    "YResolution", "PixelAspectRatio",
+    "ResolutionUnit", "Orientation", "ImageDescription"
+};
 
 bool
 JpgOutput::open(const std::string& name, const ImageSpec& newspec,
@@ -230,7 +238,38 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
                           comment.size() + 1);
     }
 
-    if (Strutil::iequals(m_spec.get_string_attribute("oiio:ColorSpace"), "sRGB"))
+    // Write other metadata as JPEG comments if requested
+    if (m_spec.get_int_attribute("jpeg:com_attributes")) {
+        for (const auto& p : m_spec.extra_attribs) {
+            std::string name = p.name().string();
+            auto colon       = name.find(':');
+            if (metadata_include.count(name)) {
+                // Allow explicitly included metadata
+            } else if (metadata_exclude.count(name))
+                continue;  // Suppress metadata that is processed separately
+            else if (Strutil::istarts_with(name, "ICCProfile"))
+                continue;  // Suppress ICC profile, gets written separately
+            else if (colon != ustring::npos) {
+                auto prefix = p.name().substr(0, colon);
+                if (Strutil::iequals(prefix, "oiio"))
+                    continue;  // Suppress internal metadata
+                else if (Strutil::iequals(prefix, "exif")
+                         || Strutil::iequals(prefix, "GPS")
+                         || Strutil::iequals(prefix, "XMP"))
+                    continue;  // Suppress EXIF metadata, gets written separately
+                else if (Strutil::iequals(prefix, "iptc"))
+                    continue;  // Suppress IPTC metadata
+                else if (is_imageio_format_name(prefix))
+                    continue;  // Suppress format-specific metadata
+            }
+            auto data = p.name().string() + ":" + p.get_string();
+            jpeg_write_marker(&m_cinfo, JPEG_COM, (JOCTET*)data.c_str(),
+                              data.size());
+        }
+    }
+
+    if (equivalent_colorspace(m_spec.get_string_attribute("oiio:ColorSpace"),
+                              "sRGB"))
         m_spec.attribute("Exif:ColorSpace", 1);
 
     // Write EXIF info

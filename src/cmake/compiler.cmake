@@ -86,6 +86,9 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
     set (CMAKE_COMPILER_IS_INTEL 1)
     message (VERBOSE "Using Intel as the compiler")
 endif ()
+if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG)
+    set (COMPILER_IS_GCC_OR_ANY_CLANG TRUE)
+endif ()
 
 
 ###########################################################################
@@ -102,12 +105,12 @@ else ()
 endif()
 option (EXTRA_WARNINGS "Enable lots of extra pedantic warnings" OFF)
 if (NOT MSVC)
-    add_compile_options ("-Wall")
+    add_compile_options (-Wall -Wformat -Wformat=2)
     if (EXTRA_WARNINGS)
-        add_compile_options ("-Wextra")
+        add_compile_options (-Wextra)
     endif ()
     if (STOP_ON_WARNING)
-        add_compile_options ("-Werror")
+        add_compile_options (-Werror)
     endif ()
 endif ()
 
@@ -421,9 +424,29 @@ endif ()
 
 
 ###########################################################################
+# Runtime profiling
+#
+set_cache (PROFILER "" "Build executables with profiler support (choices: gperftools)")
+if (PROFILER STREQUAL "gperftools")
+    find_library(PROFILER_LIBRARIES NAMES profiler)
+    message (STATUS "Compiling for profiling with ${PROFILER}, found ${PROFILER_LIBRARIES}")
+endif ()
+
+
+###########################################################################
+# Build profiling
+#
+set_option (${PROJ_NAME}_BUILD_PROFILER "Profile the build process" OFF)
+if (${PROJ_NAME}_BUILD_PROFILER AND CMAKE_COMPILER_IS_CLANG)
+    add_compile_options (-ftime-trace)
+    message (STATUS "Profiling the build process")
+endif ()
+
+
+###########################################################################
 # Sanitizer options
 #
-set (SANITIZE "" CACHE STRING "Build code using sanitizer (address, thread)")
+set_cache (SANITIZE "" "Build code using sanitizer (address, thread, undefined)")
 if (SANITIZE AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
     message (STATUS "Compiling for sanitizer=${SANITIZE}")
     string (REPLACE "," ";" SANITIZE_FEATURE_LIST ${SANITIZE})
@@ -442,25 +465,60 @@ endif ()
 
 
 ###########################################################################
-# Fortification and hardening options
+# Safety/security hardening options
 #
-# In modern gcc and clang, FORTIFY_SOURCE provides buffer overflow checks
-# (with some compiler-assisted deduction of buffer lengths) for the following
-# functions: memcpy, mempcpy, memmove, memset, strcpy, stpcpy, strncpy,
-# strcat, strncat, sprintf, vsprintf, snprintf, vsnprintf, gets.
+# Explanation of levels:
+#  0 : do nothing, not recommended.
+#  1 : enable features that have no (or nearly no) performance impact,
+#      recommended default for optimized, shipping code.
+#  2 : enable features that trade off performance for security, recommended
+#      for debugging or deploying in security-sensitive environments.
+#  3 : enable features that have a significant performance impact, only
+#      recommended for debugging.
 #
-# We try to avoid these unsafe functions anyway, but it's good to have the
-# extra protection, at least as an extra set of checks during CI. Some users
-# may also wish to enable it at some level if they are deploying it in a
-# security-sensitive environment. FORTIFY_SOURCE=3 may have minor performance
-# impact, though FORTIFY_SOURCE=2 should not have a measurable effect on
-# performance versus not doing any fortification. All fortification levels are
-# not available in all compilers.
-
-set (FORTIFY_SOURCE "0" CACHE STRING "Turn on Fortification level (0, 1, 2, 3)")
-if (FORTIFY_SOURCE AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
-    message (STATUS "Compiling with _FORTIFY_SOURCE=${FORTIFY_SOURCE}")
-    add_compile_options (-D_FORTIFY_SOURCE=${FORTIFY_SOURCE})
+# Some documentation:
+# https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++.html
+# https://www.gnu.org/software/libc/manual/html_node/Source-Fortification.html
+# https://gcc.gnu.org/onlinedocs/libstdc++/manual/using_macros.html
+# https://libcxx.llvm.org/Hardening.html
+#
+if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+    set (${PROJ_NAME}_HARDENING_DEFAULT 3)
+else ()
+    set (${PROJ_NAME}_HARDENING_DEFAULT 1)
+endif ()
+set_cache (${PROJ_NAME}_HARDENING ${${PROJ_NAME}_HARDENING_DEFAULT}
+           "Turn on security hardening features 0, 1, 2, 3")
+# Implementation:
+if (HARDENING GREATER_EQUAL 1)
+    # Features that should not detectably affect performance
+    if (COMPILER_IS_GCC_OR_ANY_CLANG)
+        # Enable PIE and pie to build as position-independent executables,
+        # needed for address space randomiztion used by some kernels.
+        add_compile_options (-fPIE -pie)
+        add_link_options (-fPIE -pie)
+        # Protect against stack overwrites. Is allegedly not a performance
+        # tradeoff.
+        add_compile_options (-fstack-protector-strong)
+        add_link_options (-fstack-protector-strong)
+    endif ()
+    # Defining _FORTIFY_SOURCE provides buffer overflow checks in modern gcc &
+    # clang with some compiler-assisted deduction of buffer lengths) for the
+    # many C functions such as memcpy, strcpy, sprintf, etc. See:
+    add_compile_definitions (_FORTIFY_SOURCE=${${PROJ_NAME}_HARDENING})
+    # Setting _LIBCPP_HARDENING_MODE enables various hardening features in
+    # clang/llvm's libc++ 18.0 and later.
+    add_compiler_definitions (_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST)
+endif ()
+if (HARDENING GREATER_EQUAL 2)
+    # Features that might impact performance measurably
+    add_compile_definitions (_GLIBCXX_ASSERTIONS)
+    add_compiler_definitions (_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE)
+endif ()
+if (HARDENING GREATER_EQUAL 3)
+    # Debugging features that might impact performance significantly
+    add_compile_definitions (_GLIBCXX_DEBUG)
+    add_compiler_definitions (_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG)
 endif ()
 
 
@@ -573,7 +631,7 @@ if (${PROJECT_NAME}_SUPPORTED_RELEASE)
     set (SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
          CACHE STRING "Set the SO version for dynamic libraries")
 else ()
-    # Development master makes no ABI stability guarantee, so we make the
+    # Main development branch makes no ABI stability guarantee, so we make the
     # SO naming capture down to the major.minor.patch level.
     set (SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
          CACHE STRING "Set the SO version for dynamic libraries")
@@ -635,7 +693,13 @@ if (CMAKE_SKIP_RPATH)
     unset (CMAKE_INSTALL_RPATH)
 else ()
     if (NOT CMAKE_INSTALL_RPATH)
-        set (CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_FULL_LIBDIR}")
+        if(APPLE)
+            set(BASEPOINT @loader_path)
+        else()
+            set(BASEPOINT $ORIGIN)
+        endif()
+        set (CMAKE_INSTALL_RPATH ${BASEPOINT}
+                                 ${BASEPOINT}/../${CMAKE_INSTALL_LIBDIR})
     endif ()
     # add the automatically determined parts of the RPATH that
     # point to directories outside the build tree to the install RPATH
@@ -659,9 +723,25 @@ set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 #    install_targets (target1 [target2 ...])
 #
 macro (install_targets)
-    install (TARGETS ${ARGN}
+    # Define options that can be passed to the macro
+    set(options NAMELINK_SKIP)
+
+    # Parse the arguments passed to the macro
+    cmake_parse_arguments(INSTALL_TARGETS "${options}" "" "" "${ARGN}")
+
+    # Check if NAMELINK_SKIP is specified
+    if (INSTALL_TARGETS_NAMELINK_SKIP)
+        # Set namelink_option to NAMELINK_SKIP if specified
+        set(namelink_option NAMELINK_SKIP)
+    else()
+        # Leave namelink_option empty if NAMELINK_SKIP is not specified
+        set(namelink_option)
+    endif()
+
+    # Use the install command with the appropriate options
+    install (TARGETS ${INSTALL_TARGETS_UNPARSED_ARGUMENTS}
              EXPORT ${PROJ_NAME}_EXPORTED_TARGETS
              RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT user
-             LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT user
+             LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT user ${namelink_option}
              ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT developer)
 endmacro()

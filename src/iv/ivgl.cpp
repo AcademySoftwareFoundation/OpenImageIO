@@ -47,11 +47,16 @@ IvGL::IvGL(QWidget* parent, ImageViewer& viewer)
     : QOpenGLWidget(parent)
     , m_viewer(viewer)
     , m_shaders_created(false)
+    , m_vertex_shader(0)
+    , m_shader_program(0)
     , m_tex_created(false)
     , m_zoom(1.0)
     , m_centerx(0)
     , m_centery(0)
     , m_dragging(false)
+    , m_mousex(0)
+    , m_mousey(0)
+    , m_drag_button(Qt::NoButton)
     , m_use_shaders(false)
     , m_use_halffloat(false)
     , m_use_float(false)
@@ -468,6 +473,32 @@ gl_rect(float xmin, float ymin, float xmax, float ymax, float z = 0,
 
 
 static void
+gl_rect_border(float xmin, float ymin, float xmax, float ymax, float z = 0)
+{
+    glBegin(GL_LINE_LOOP);
+    glVertex3f(xmin, ymin, z);
+    glVertex3f(xmax, ymin, z);
+    glVertex3f(xmax, ymax, z);
+    glVertex3f(xmin, ymax, z);
+    glEnd();
+}
+
+
+
+static void
+gl_rect_dotted_border(float xmin, float ymin, float xmax, float ymax,
+                      float z = 0)
+{
+    glPushAttrib(GL_ENABLE_BIT);
+    glLineStipple(1, 0xF0F0);
+    glEnable(GL_LINE_STIPPLE);
+    gl_rect_border(xmin, ymin, xmax, ymax, z);
+    glPopAttrib();
+}
+
+
+
+static void
 handle_orientation(int orientation, int width, int height, float& scale_x,
                    float& scale_y, float& rotate_z, float& point_x,
                    float& point_y, bool pixel = false)
@@ -629,6 +660,10 @@ IvGL::paintGL()
         }
     }
 
+    if (m_viewer.windowguidesOn()) {
+        paint_windowguides();
+    }
+
     glPopMatrix();
 
     if (m_viewer.pixelviewOn()) {
@@ -785,9 +820,10 @@ IvGL::paint_pixelview()
                                      m_viewer.current_color_mode());
         }
 
-        void* zoombuffer = OIIO_ALLOCA(char, (xend - xbegin) * (yend - ybegin)
-                                                 * nchannels
-                                                 * spec.channel_bytes());
+        auto zoombuffer = OIIO_ALLOCA_SPAN(std::byte,
+                                           (xend - xbegin) * (yend - ybegin)
+                                               * nchannels
+                                               * spec.channel_bytes());
         if (!m_use_shaders) {
             img->get_pixels(ROI(spec.x + xbegin, spec.x + xend, spec.y + ybegin,
                                 spec.y + yend),
@@ -805,7 +841,7 @@ IvGL::paint_pixelview()
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
         glBindTexture(GL_TEXTURE_2D, m_pixelview_tex);
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, xend - xbegin, yend - ybegin,
-                        glformat, gltype, zoombuffer);
+                        glformat, gltype, zoombuffer.data());
         print_error("After tsi2d");
     } else {
         smin = -1;
@@ -898,6 +934,41 @@ IvGL::paint_pixelview()
 
     glPopAttrib();
     glPopMatrix();
+}
+
+
+
+void
+IvGL::paint_windowguides()
+{
+    IvImage* img = m_current_image;
+    const ImageSpec& spec(img->spec());
+
+    glDisable(GL_TEXTURE_2D);
+    glUseProgram(0);
+    glPushAttrib(GL_ENABLE_BIT);
+    glEnable(GL_COLOR_LOGIC_OP);
+    glLogicOp(GL_XOR);
+
+    // Data window
+    {
+        const float xmin = spec.x;
+        const float xmax = spec.x + spec.width;
+        const float ymin = spec.y;
+        const float ymax = spec.y + spec.height;
+        gl_rect_border(xmin, ymin, xmax, ymax);
+    }
+
+    // Display window
+    {
+        const float xmin = spec.full_x;
+        const float xmax = spec.full_x + spec.full_width;
+        const float ymin = spec.full_y;
+        const float ymax = spec.full_y + spec.full_height;
+        gl_rect_dotted_border(xmin, ymin, xmax, ymax);
+    }
+
+    glPopAttrib();
 }
 
 
@@ -1527,12 +1598,14 @@ IvGL::load_texture(int x, int y, int width, int height)
     // may not be resident at once.
     if (!m_use_shaders) {
         m_current_image->get_pixels(ROI(x, x + width, y, y + height),
-                                    spec.format, &m_tex_buffer[0]);
+                                    spec.format,
+                                    as_writable_bytes(make_span(m_tex_buffer)));
     } else {
         m_current_image->get_pixels(ROI(x, x + width, y, y + height, 0, 1,
                                         m_viewer.current_channel(),
                                         m_viewer.current_channel() + nchannels),
-                                    spec.format, &m_tex_buffer[0]);
+                                    spec.format,
+                                    as_writable_bytes(make_span(m_tex_buffer)));
     }
 
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo_objects[m_last_pbo_used]);

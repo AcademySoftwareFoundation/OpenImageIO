@@ -478,7 +478,10 @@ private:
     {
         TIFFInput* self = (TIFFInput*)user_data;
         spin_lock lock(self->m_last_error_mutex);
+        OIIO_PRAGMA_WARNING_PUSH
+        OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wformat-nonliteral")
         self->m_last_error = Strutil::vsprintf(fmt, ap);
+        OIIO_PRAGMA_WARNING_POP
         return 1;
     }
 
@@ -488,7 +491,10 @@ private:
     {
         TIFFInput* self = (TIFFInput*)user_data;
         spin_lock lock(self->m_last_error_mutex);
+        OIIO_PRAGMA_WARNING_PUSH
+        OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wformat-nonliteral")
         self->m_last_error = Strutil::vsprintf(fmt, ap);
+        OIIO_PRAGMA_WARNING_POP
         return 1;
     }
 #endif
@@ -534,7 +540,10 @@ oiio_tiff_last_error()
 static void
 my_error_handler(const char* /*str*/, const char* format, va_list ap)
 {
+    OIIO_PRAGMA_WARNING_PUSH
+    OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wformat-nonliteral")
     oiio_tiff_last_error() = Strutil::vsprintf(format, ap);
+    OIIO_PRAGMA_WARNING_POP
 }
 
 
@@ -1254,6 +1263,9 @@ TIFFInput::readspec(bool read_meta)
             // should be interpreted to be sRGB.
             if (m_spec.get_int_attribute("Exif:ColorSpace") != 0xffff)
                 m_spec.attribute("oiio:ColorSpace", "sRGB");
+            // NOTE: We must set "oiio:ColorSpace" explicitly, not call
+            // set_colorspace, or it will erase several other TIFF attribs we
+            // need to preserve.
         }
         // TIFFReadEXIFDirectory seems to do something to the internal state
         // that requires a TIFFSetDirectory to set things straight again.

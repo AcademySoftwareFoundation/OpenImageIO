@@ -56,7 +56,7 @@ Most ImageBufAlgo functions that produce image data come in two forms:
 
 
 2. Pass a destination ImageBuf reference as the first parameter.
-   
+
    The function is passed a *destination* ImageBuf where the results will
    be stored, and the return value is a `bool` that is `true` if the
    function succeeds or `false` if the function fails. Upon failure, the
@@ -196,21 +196,22 @@ zero() -- create a black image
               :end-before: END-imagebufalgo-zero
               :dedent: 4
 
-       .. code-tab:: bash oiiotool
+       .. tab:: oiiotool
+         .. code-block:: bash
 
-          # Create a new 3-channel, 512x512 float image filled with 0.0 values.
-          oiiotool --create 512x512 3 -d float -o out.exr
+             # Create a new 3-channel, 512x512 float image filled with 0.0 values.
+             oiiotool --create 512x512 3 -d float -o out.exr
 
-          # Zero out an existing image, keeping it the same size and data type.
-          # For simplicity, just scale all values by 0.0
-          oiiotool in.exr --mulc 0.0 -o out.exr
+             # Zero out an existing image, keeping it the same size and data type.
+             # For simplicity, just scale all values by 0.0
+             oiiotool in.exr --mulc 0.0 -o out.exr
 
-          # Zero out just the green channel, leave everything else the same.
-          # Again, rely on --mulc to scale the channels
-          oiiotool in.exr --mulc 1,0,1 -o out.exr
+             # Zero out just the green channel, leave everything else the same.
+             # Again, rely on --mulc to scale the channels
+             oiiotool in.exr --mulc 1,0,1 -o out.exr
 
-          # Zero out a rectangular region of an existing image
-          oiiotool in.exr --fill:color=0,0,0 100x100+0+0 -o out.exr
+             # Zero out a rectangular region of an existing image
+             oiiotool in.exr --fill:color=0,0,0 100x100+0+0 -o out.exr
 
 |
 
@@ -238,14 +239,15 @@ fill() -- fill a region with a solid color or gradient
               :end-before: END-imagebufalgo-fill
               :dedent: 4
 
-       .. code-tab:: bash oiiotool
-  
-          # Create a new 640x480 RGB image, with a top-to-bottom gradient
-          # from red to pink
-          oiiotool --pattern fill:top=1,0.7,0.7:bottom=1,0,0 640x480 3 -o A.exr
+       .. tab:: oiiotool
+           .. code-block:: bash
 
-          # Draw a filled red rectangle overtop existing image A.exr
-          oiiotool A.exr --pattern fill:color=1,0,0 25x75 3 --paste +50+100 -o A.exr
+             # Create a new 640x480 RGB image, with a top-to-bottom gradient
+             # from red to pink
+             oiiotool --pattern fill:top=1,0.7,0.7:bottom=1,0,0 640x480 3 -o A.exr
+
+             # Draw a filled red rectangle overtop existing image A.exr
+             oiiotool A.exr --pattern fill:color=1,0,0 25x75 3 --paste +50+100 -o A.exr
 
   .. image:: figures/fill.jpg
         :align: center
@@ -266,7 +268,7 @@ checker() -- make a checker pattern
   Examples:
 
     .. tabs::
-  
+
        .. tab:: C++
              .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
               :language: c++
@@ -281,11 +283,12 @@ checker() -- make a checker pattern
               :end-before: END-imagebufalgo-checker
               :dedent: 4
 
-       .. code-tab:: bash oiiotool
-  
-          # Create a new 640x480 RGB image, fill it with a two-toned gray
-          # checkerboard, the checkers being 64x64 pixels each.
-          oiiotool --pattern checker:width=64:color1=0.1,0.1,0.1:color2=0.4,0.4,0.4 640x480 3 -o A.exr
+       .. tab:: oiiotool
+           .. code-block:: bash
+
+             # Create a new 640x480 RGB image, fill it with a two-toned gray
+             # checkerboard, the checkers being 64x64 pixels each.
+             oiiotool --pattern checker:width=64:color1=0.1,0.1,0.1:color2=0.4,0.4,0.4 640x480 3 -o A.exr
 
   .. image:: figures/checker.jpg
         :align: center
@@ -322,19 +325,20 @@ Noise patterns
               :end-before: END-imagebufalgo-noise1
               :dedent: 4
 
-       .. code-tab:: bash oiiotool
-  
-          # Create a new 256x256 field of grayscale white noise on [0,1)
-          oiiotool --pattern noise:type=uniform:mono=1:seed=1 256x256 3 -o A.exr
-      
-          # Create a new 256x256 field of grayscale blue noise on [0,1)
-          oiiotool --pattern noise:type=blue:mono=1:seed=1 256x256 3 -o B.exr
-      
-          # Add color Gaussian noise to an existing image
-          oiiotool tahoe.jpg --noise:type=gaussian:stddev=0.1 -o C.exr
-      
-          # Use salt and pepper noise to make occasional random dropouts
-          oiiotool tahoe.jpg --noise:type=salt:value=0:portion=0.01:mono=1 -o D.exr
+       .. tab:: oiiotool
+           .. code-block:: bash
+
+             # Create a new 256x256 field of grayscale white noise on [0,1)
+             oiiotool --pattern noise:type=uniform:mono=1:seed=1 256x256 3 -o A.exr
+
+             # Create a new 256x256 field of grayscale blue noise on [0,1)
+             oiiotool --pattern noise:type=blue:mono=1:seed=1 256x256 3 -o B.exr
+
+             # Add color Gaussian noise to an existing image
+             oiiotool tahoe.jpg --noise:type=gaussian:stddev=0.1 -o C.exr
+
+             # Use salt and pepper noise to make occasional random dropouts
+             oiiotool tahoe.jpg --noise:type=salt:value=0:portion=0.01:mono=1 -o D.exr
 
   ..
 
@@ -404,9 +408,10 @@ Drawing shapes: points, lines, boxes
               :end-before: END-imagebufalgo-point
               :dedent: 4
 
-       .. code-tab:: bash oiiotool
-  
-          oiiotool A.exr -point:color=1,0,0,1 50,100 -o out.exr
+       .. tab:: oiiotool
+           .. code-block:: bash
+
+             oiiotool A.exr -point:color=1,0,0,1 50,100 -o out.exr
 
 |
 
@@ -432,9 +437,10 @@ Drawing shapes: points, lines, boxes
               :end-before: END-imagebufalgo-lines
               :dedent: 4
 
-       .. code-tab:: bash oiiotool
-  
-          oiiotool A.exr -line:color=1,0,0,1 10,60,20,100 -o out.exr
+       .. tab:: oiiotool
+           .. code-block:: bash
+
+             oiiotool A.exr -line:color=1,0,0,1 10,60,20,100 -o out.exr
 
   .. image:: figures/lines.png
     :align: center
@@ -448,7 +454,7 @@ Drawing shapes: points, lines, boxes
   Examples:
 
     .. tabs::
-  
+
        .. tab:: C++
              .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
               :language: c++
@@ -463,10 +469,11 @@ Drawing shapes: points, lines, boxes
               :end-before: END-imagebufalgo-box
               :dedent: 4
 
-       .. code-tab:: bash oiiotool
+       .. tab:: oiiotool
+         .. code-block:: bash
 
-          oiiotool A.exr -box:color=0,1,1,1 150,100,240,180 \
-                         -box:color=0.5,0.5,0,0.5 100,50,180,140 -o out.exr
+             oiiotool A.exr -box:color=0,1,1,1 150,100,240,180 \
+                            -box:color=0.5,0.5,0,0.5 100,50,180,140 -o out.exr
 
   .. image:: figures/box.png
     :align: center
@@ -484,7 +491,7 @@ Drawing text
   Examples:
 
     .. tabs::
-  
+
        .. tab:: C++
              .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
               :language: c++
@@ -499,15 +506,16 @@ Drawing text
               :end-before: END-imagebufalgo-text1
               :dedent: 4
 
-       .. code-tab:: bash oiiotool
+       .. tab:: oiiotool
+         .. code-block:: bash
 
-          oiiotool ImgA.exr --text:x=50:y=100 "Hello, world" \
-            --text:x=100:y=200:fontsize=60:fontname="Arial Bold":color=1,0,0,1 "Go Big Red!" \
-            -o out.exr
+             oiiotool ImgA.exr --text:x=50:y=100 "Hello, world" \
+               --text:x=100:y=200:fontsize=60:fontname="Arial Bold":color=1,0,0,1 "Go Big Red!" \
+               -o out.exr
 
-          oiiotool ImgB.exr \
-            --text:x=320:y=240:fontsize=60:fontname="Arial Bold":color=1,1,1,1:alignx=center:aligny=center "Centered" \
-            -o out.exr
+             oiiotool ImgB.exr \
+               --text:x=320:y=240:fontsize=60:fontname="Arial Bold":color=1,1,1,1:alignx=center:aligny=center "Centered" \
+               -o out.exr
 
 .. |textimg1| image:: figures/text.jpg
    :width: 2.5 in
@@ -528,7 +536,7 @@ Drawing text
   Examples:
 
     .. tabs::
-  
+
        .. tab:: C++
              .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
               :language: c++
@@ -565,63 +573,38 @@ Shuffling channels
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
-  
-          // Copy the first 3 channels of an RGBA, drop the alpha
-          ImageBuf RGBA (...);   // assume it's initialized, 4 chans
-          ImageBuf RGB = ImageBufAlgo::channels (RGBA, 3, {} /*default ordering*/);
-      
-          // Copy just the alpha channel, making a 1-channel image
-          ImageBuf Alpha = ImageBufAlgo::channels (RGBA, 1, 3 /*alpha_channel*/);
-      
-          // Swap the R and B channels
-          int channelorder[] = { 2 /*B*/, 1 /*G*/, 0 /*R*/, 3 /*A*/ };
-          ImageBuf BRGA = ImageBufAlgo::channels (BRGA, RGBA, 4, channelorder);
-      
-          // Add an alpha channel with value 1.0 everywhere to an RGB image,
-          // keep the other channels with their old ordering, values, and
-          // names.
-          int channelorder[] = { 0, 1, 2, -1 /*use a float value*/ };
-          float channelvalues[] = { 0 /*ignore*/, 0 /*ignore*/, 0 /*ignore*/, 1.0 };
-          std::string channelnames[] = { "", "", "", "A" };
-          ImageBuf RGBA = ImageBufAlgo::channels (RGB, 4, channelorder,
-                                                  channelvalues, channelnames);
-      
-       .. code-tab:: py
 
-          # Copy the first 3 channels of an RGBA, drop the alpha
-          RGBA = ImageBuf(...)   # assume it's initialized, 4 chans
-          RGB = ImageBufAlgo.channels (RGBA, (0, 1, 2))
-      
-          # Copy just the alpha channel, making a 1-channel image
-          Alpha = ImageBufAlgo.channels (RGBA, ("A",))
-      
-          # Swap the R and B channels
-          BRGA = ImageBufAlgo.channels (BRGA, RGBA, (2, 1, 0, 3))
-      
-          # Add an alpha channel with value 1.0 everywhere to an RGB image,
-          # keep the other channels with their old ordering, values, and
-          # names.
-          RGBA = ImageBufAlgo.channels (RGB, (0, 1, 2, 1.0),
-                                        newchannelnames=("", "", "", "A"))
-      
-       .. code-tab:: bash oiiotool
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-channels
+              :end-before: END-imagebufalgo-channels
+              :dedent: 4
 
-          # Copy the first 3 channels of an RGBA, drop the alpha
-          oiiotool RGBA.exr -ch R,G,B -o RGB.exr
-      
-          # Copy just the alpha channel, making a 1-channel image
-          oiiotool RGBA.exr -ch A -o A.exr
-      
-          # Swap the R and B channels
-          oiiotool RGBA.exr -ch R=B,G,B=R,A -o BGRA.exr
-      
-          # Add an alpha channel with value 1.0 everywhere to an RGB image,
-          # keep the other channels with their old ordering, values, and
-          # names.
-          oiiotool RGB.exr -ch 0,1,2,1.0 -o RGBA.exr
-      
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-channels
+              :end-before: END-imagebufalgo-channels
+              :dedent: 4
+
+       .. tab:: oiiotool
+         .. code-block:: bash
+
+             # Copy the first 3 channels of an RGBA, drop the alpha
+             oiiotool RGBA.exr -ch R,G,B -o RGB.exr
+
+             # Copy just the alpha channel, making a 1-channel image
+             oiiotool RGBA.exr -ch A -o A.exr
+
+             # Swap the R and B channels
+             oiiotool RGBA.exr -ch R=B,G,B=R,A -o BGRA.exr
+
+             # Add an alpha channel with value 1.0 everywhere to an RGB image,
+             # keep the other channels with their old ordering, values, and
+             # names.
+             oiiotool RGB.exr -ch 0,1,2,1.0 -o RGBA.exr
+
 |
 
 
@@ -635,22 +618,25 @@ Shuffling channels
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
-  
-          ImageBuf RGBA ("rgba.exr");
-          ImageBuf Z ("z.exr");
-          ImageBuf RGBAZ = ImageBufAlgo::channel_append (RGBA, Z);
 
-       .. code-tab:: py
-  
-          RGBA = ImageBuf("rgba.exr")
-          Z = ImageBuf("z.exr")
-          RGBAZ = ImageBufAlgo.channel_append (RGBA, Z)
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-channel-append
+              :end-before: END-imagebufalgo-channel-append
+              :dedent: 4
 
-       .. code-tab:: bash oiiotool
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-channel-append
+              :end-before: END-imagebufalgo-channel-append
+              :dedent: 4
 
-          oiiotool rgba.exr z.exr --chappend -o rgbaz.exr
+       .. tab:: oiiotool
+         .. code-block:: bash
+
+             oiiotool rgba.exr z.exr --chappend -o rgbaz.exr
 
 |
 
@@ -665,23 +651,26 @@ Shuffling channels
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
-  
-          // Set B to be a copy of A, but converted to float
-          ImageBuf A ("A.exr");
-          ImageBuf B = ImageBufAlgo::copy (A, TypeDesc::FLOAT);
 
-       .. code-tab:: py
-  
-          # Set B to be a copy of A, but converted to float
-          A = ImageBuf("A.exr")
-          B = ImageBufAlgo.copy (A, convert="float")
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-copy
+              :end-before: END-imagebufalgo-copy
+              :dedent: 4
 
-       .. code-tab:: bash oiiotool
-  
-          # Convert A to float pixels
-          oiiotool A.exr -d float -o B.exr
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-copy
+              :end-before: END-imagebufalgo-copy
+              :dedent: 4
+
+       .. tab:: oiiotool
+           .. code-block:: bash
+
+             # Convert A to float pixels
+             oiiotool A.exr -d float -o B.exr
 
 |
 
@@ -696,26 +685,27 @@ Shuffling channels
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
-  
-          // Set B to be a 200x100 region of A starting at (50,50), trimming
-          // the exterior away but leaving that region in its original position.
-          ImageBuf A ("A.exr");
-          ImageBuf B = ImageBufAlgo::crop (A, ROI(50,250,50,150));
 
-       .. code-tab:: py
-  
-          # Set B to be a 200x100 region of A starting at (50,50), trimming
-          # the exterior away but leaving that region in its original position.
-          A = ImageBuf("A.exr")
-          B = ImageBufAlgo.crop (A, ROI(50,250,50,150));
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-crop
+              :end-before: END-imagebufalgo-crop
+              :dedent: 4
 
-       .. code-tab:: bash oiiotool
-  
-          # Set B to be a 200x100 region of A starting at (50,50), trimming
-          # the exterior away but leaving that region in its original position.
-          oiiotool A.exr --crop 200x100+50+50 -o B.exr
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-crop
+              :end-before: END-imagebufalgo-crop
+              :dedent: 4
+
+       .. tab:: oiiotool
+           .. code-block:: bash
+
+             # Set B to be a 200x100 region of A starting at (50,50), trimming
+             # the exterior away but leaving that region in its original position.
+             oiiotool A.exr --crop 200x100+50+50 -o B.exr
 
 |
 
@@ -730,26 +720,27 @@ Shuffling channels
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
-  
-          // Set B to be a 200x100 region of A starting at (50,50), but
-          // moved to the upper left corner so its new origin is (0,0).
-          ImageBuf A ("A.exr");
-          ImageBuf B = ImageBufAlgo::cut (A, ROI(50,250,50,150));
 
-       .. code-tab:: py
-  
-          # Set B to be a 200x100 region of A starting at (50,50), but
-          # moved to the upper left corner so its new origin is (0,0).
-          A = ImageBuf("A.exr")
-          B = ImageBufAlgo.cut (A, ROI(50,250,50,150))
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-cut
+              :end-before: END-imagebufalgo-cut
+              :dedent: 4
 
-       .. code-tab:: bash oiiotool
-  
-          # Set B to be a 200x100 region of A starting at (50,50), but
-          # moved to the upper left corner so its new origin is (0,0).
-          oiiotool A.exr --cut 200x100+50+50 -o B.exr
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-cut
+              :end-before: END-imagebufalgo-cut
+              :dedent: 4
+
+       .. tab:: oiiotool
+           .. code-block:: bash
+
+             # Set B to be a 200x100 region of A starting at (50,50), but
+             # moved to the upper left corner so its new origin is (0,0).
+             oiiotool A.exr --cut 200x100+50+50 -o B.exr
 
 |
 
@@ -760,25 +751,26 @@ Shuffling channels
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
-  
-          // Paste fg.exr on top of bg.exr, offset by (100,100)
-          ImageBuf Bg ("bg.exr");
-          ImageBuf Fg ("fg.exr");
-          ImageBufAlgo::paste (Bg, 100, 100, 0, 0, fg);
 
-       .. code-tab:: py
-  
-          # Paste fg.exr on top of bg.exr, offset by (100,100)
-          Bg = ImageBuf("bg.exr")
-          Fg = ImageBuf("fg.exr")
-          ImageBufAlgo.paste (Bg, 100, 100, 0, 0, Fg)
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-paste
+              :end-before: END-imagebufalgo-paste
+              :dedent: 4
 
-       .. code-tab:: bash oiiotool
-  
-          # Paste fg.exr on top of bg.exr, offset by (100,100)
-          oiiotool bg.exr fg.exr --paste +100+100 -o bg.exr
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-paste
+              :end-before: END-imagebufalgo-paste
+              :dedent: 4
+
+       .. tab:: oiiotool
+           .. code-block:: bash
+
+             # Paste fg.exr on top of bg.exr, offset by (100,100)
+             oiiotool bg.exr fg.exr --paste +100+100 -o bg.exr
 
 
 .. doxygengroup:: rotateN
@@ -787,26 +779,27 @@ Shuffling channels
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
-  
-          ImageBuf A ("grid.jpg");
-          ImageBuf R90 = ImageBufAlgo::rotate90 (A);
-          ImageBuf R180 = ImageBufAlgo::rotate180 (A);
-          ImageBuf R270 = ImageBufAlgo::rotate270 (A);
 
-       .. code-tab:: py
-  
-          A = ImageBuf("grid.jpg")
-          R90 = ImageBufAlgo.rotate90 (A)
-          R180 = ImageBufAlgo.rotate180 (A)
-          R270 = ImageBufAlgo.rotate270 (A)
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-rotate-n
+              :end-before: END-imagebufalgo-rotate-n
+              :dedent: 4
 
-       .. code-tab:: bash oiiotool
-  
-          oiiotool grid.jpg -rotate 90 -o R90.jpg
-          oiiotool grid.jpg -rotate 180 -o R180.jpg
-          oiiotool grid.jpg -rotate 270 -o R270.jpg
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-rotate-n
+              :end-before: END-imagebufalgo-rotate-n
+              :dedent: 4
+
+       .. tab:: oiiotool
+           .. code-block:: bash
+
+             oiiotool grid.jpg -rotate 90 -o R90.jpg
+             oiiotool grid.jpg -rotate 180 -o R180.jpg
+             oiiotool grid.jpg -rotate 270 -o R270.jpg
 
 .. |rotimg1| image:: figures/grid-small.jpg
    :width: 1.5 in
@@ -832,27 +825,27 @@ Shuffling channels
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
-  
-          ImageBuf A ("grid.jpg");
-          ImageBuf B;
-          B = ImageBufAlgo::flip (A);
-          B = ImageBufAlgo::flop (A);
-          B = ImageBufAlgo::transpose (A);
 
-       .. code-tab:: py
-  
-          A = ImageBuf("grid.jpg")
-          B = ImageBufAlgo.flip (A)
-          B = ImageBufAlgo.flop (A)
-          B = ImageBufAlgo.transpose (A)
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-flip-flop-transpose
+              :end-before: END-imagebufalgo-flip-flop-transpose
+              :dedent: 4
 
-       .. code-tab:: bash oiiotool
-  
-          oiiotool grid.jpg --flip -o flip.jpg
-          oiiotool grid.jpg --flop -o flop.jpg
-          oiiotool grid.jpg --transpose -o transpose.jpg
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-flip-flop-transpose
+              :end-before: END-imagebufalgo-flip-flop-transpose
+              :dedent: 4
+
+       .. tab:: oiiotool
+           .. code-block:: bash
+
+             oiiotool grid.jpg --flip -o flip.jpg
+             oiiotool grid.jpg --flop -o flop.jpg
+             oiiotool grid.jpg --transpose -o transpose.jpg
 
 .. |flipimg1| image:: figures/grid-small.jpg
    :width: 1.5 in
@@ -883,20 +876,25 @@ Shuffling channels
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
 
-          ImageBuf A ("tahoe.jpg");
-          A = ImageBufAlgo::reorient (A);
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-reorient
+              :end-before: END-imagebufalgo-reorient
+              :dedent: 4
 
-       .. code-tab:: py
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-reorient
+              :end-before: END-imagebufalgo-reorient
+              :dedent: 4
 
-          A = ImageBuf("tahoe.jpg")
-          A = ImageBufAlgo.reorient (A)
+       .. tab:: oiiotool
+         .. code-block:: bash
 
-       .. code-tab:: bash oiiotool
-
-          oiiotool tahoe.jpg --reorient -o out.jpg
+             oiiotool tahoe.jpg --reorient -o out.jpg
 
 |
 
@@ -913,7 +911,7 @@ Shuffling channels
   Examples:
 
     .. tabs::
-  
+
        .. tab:: C++
 
           .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
@@ -956,20 +954,25 @@ Shuffling channels
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
 
-          ImageBuf Src ("tahoe.exr");
-          ImageBuf Dst = ImageBufAlgo::rotate (Src, 45.0);
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-rotate-angle
+              :end-before: END-imagebufalgo-rotate-angle
+              :dedent: 4
 
-       .. code-tab:: py
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-rotate-angle
+              :end-before: END-imagebufalgo-rotate-angle
+              :dedent: 4
 
-          Src = ImageBuf("tahoe.exr")
-          Dst = ImageBufAlgo.rotate (Src, 45.0)
+       .. tab:: oiiotool
+         .. code-block:: bash
 
-       .. code-tab:: bash oiiotool
-
-          oiiotool tahoe.exr --rotate 45.0 -o out.exr
+             oiiotool tahoe.exr --rotate 45.0 -o out.exr
 
 .. |rotateimg1| image:: figures/grid-small.jpg
    :width: 2.0 in
@@ -990,25 +993,26 @@ Shuffling channels
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
 
-          // Resize the image to 640x480, using the default filter
-          ImageBuf Src ("tahoe.exr");
-          ROI roi (0, 640, 0, 480, 0, 1, /*chans:*/ 0, Src.nchannels());
-          ImageBuf Dst = ImageBufAlgo::resize (Src, {}, roi);
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-resize
+              :end-before: END-imagebufalgo-resize
+              :dedent: 4
 
-       .. code-tab:: py
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-resize
+              :end-before: END-imagebufalgo-resize
+              :dedent: 4
 
-          # Resize the image to 640x480, using the default filter
-          Src = ImageBuf("tahoe.exr")
-          roi = ROI(0, 640, 0, 480, 0, 1, 0, Src.nchannels)
-          Dst = ImageBufAlgo.resize (Src, roi=roi)
+       .. tab:: oiiotool
+         .. code-block:: bash
 
-       .. code-tab:: bash oiiotool
-
-          # Resize the image to 640x480, using the default filter
-          oiiotool tahoe.exr --resize 640x480 -o out.exr
+             # Resize the image to 640x480, using the default filter
+             oiiotool grid.exr --resize 640x480 -o out.exr
 
 |
 
@@ -1024,25 +1028,26 @@ Shuffling channels
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
 
-          // Resample quickly to 320x240, with default interpolation
-          ImageBuf Src ("tahoe.exr");
-          ROI roi (0, 320, 0, 240, 0, 1, /*chans:*/ 0, Src.nchannels());
-          ImageBuf Dst = ImageBufAlgo::resiresampleze (Src, true, roi);
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-resample
+              :end-before: END-imagebufalgo-resample
+              :dedent: 4
 
-       .. code-tab:: py
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-resample
+              :end-before: END-imagebufalgo-resample
+              :dedent: 4
 
-          # Resample quickly to 320x240, with default interpolation
-          Src = ImageBuf("tahoe.exr")
-          roi = ROI(0, 320, 0, 240, 0, 1, 0, Src.nchannels)
-          Dst = ImageBufAlgo.resample (Src, roi=roi)
+       .. tab:: oiiotool
+         .. code-block:: bash
 
-       .. code-tab:: bash oiiotool
-
-          # Resample quickly to 320x240, with default interpolation
-          oiiotool tahoe.exr --resample 320x240 -o out.exr
+             # Resample quickly to 320x240, with default interpolation
+             oiiotool tahoe.exr --resample 320x240 -o out.exr
 
 |
 
@@ -1054,25 +1059,26 @@ Shuffling channels
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
 
-          // Resize to fit into a max of 640x480, preserving the aspect ratio
-          ImageBuf Src ("tahoe.exr");
-          ROI roi (0, 640, 0, 480, 0, 1, /*chans:*/ 0, Src.nchannels());
-          ImageBuf Dst = ImageBufAlgo::fit (Src, {}, roi);
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-fit
+              :end-before: END-imagebufalgo-fit
+              :dedent: 4
 
-       .. code-tab:: py
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-fit
+              :end-before: END-imagebufalgo-fit
+              :dedent: 4
 
-          # Resize to fit into a max of 640x480, preserving the aspect ratio
-          Src = ImageBuf("tahoe.exr")
-          roi = ROI(0, 640, 0, 480, 0, 1, 0, Src.nchannels)
-          Dst = ImageBufAlgo.fit (Src, roi=roi)
+       .. tab:: oiiotool
+         .. code-block:: bash
 
-       .. code-tab:: bash oiiotool
-
-          # Resize to fit into a max of 640x480, preserving the aspect ratio
-          oiiotool tahoe.exr --fit 640x480 -o out.exr
+             # Resize to fit into a max of 640x480, preserving the aspect ratio
+             oiiotool grid.exr --fit 640x480 -o out.exr
 
 |
 
@@ -1083,30 +1089,103 @@ Shuffling channels
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
 
-          Imath::M33f M ( 0.7071068, 0.7071068, 0,
-                         -0.7071068, 0.7071068, 0,
-                         20,        -8.284271,  1);
-          ImageBuf Src ("tahoe.exr");
-          ParamValue options[] = { { "filtername", "lanczos3" } };
-          ImageBuf Dst = ImageBufAlgo::warp (dst, src, M, options);
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-warp
+              :end-before: END-imagebufalgo-warp
+              :dedent: 4
 
-       .. code-tab:: py
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-warp
+              :end-before: END-imagebufalgo-warp
+              :dedent: 4
 
-          M = ( 0.7071068, 0.7071068, 0,
-               -0.7071068, 0.7071068, 0,
-                20,        -8.284271, 1)
-          Src = ImageBuf("tahoe.exr")
-          Dst = ImageBufAlgo.warp (dst, src, M, filtername="lanczos3")
+       .. tab:: oiiotool
+         .. code-block:: bash
 
-       .. code-tab:: bash oiiotool
-
-          oiiotool tahoe.exr --warp 0.7071068,0.7071068,0,-0.7071068,0.7071068,0,20,-8.284271,1 -o out.exr
+             oiiotool grid.exr --warp 0.7071068,0.7071068,0,-0.7071068,0.7071068,0,20,-8.284271,1 -o out.exr
 
 |
 
+
+.. doxygengroup:: st_warp
+..
+
+..
+  Examples:
+
+    FIX ME! This is not complete, examples need to be added to docs-examples-imagebufalgo.{cpp,py}
+    .. tabs::
+
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-st_warp
+              :end-before: END-imagebufalgo-st_warp
+              :dedent: 4
+
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-st_warp
+              :end-before: END-imagebufalgo-st_warp
+              :dedent: 4
+
+       .. tab:: oiiotool
+         .. code-block:: bash
+
+             oiiotool mandrill.tif distortion_st.tif --st_warp -o mandrill_distorted.tif
+
+             # Using an `st` map authored in terms of a lower-left origin (e.g. by
+             # Nuke), so flip the vertical (`t`) coordinate.
+             oiiotool mandrill.tif st_from_nuke.tif --st_warp:filter=triangle:flip_t=1 -o mandrill_distorted.tif
+
+             oiiotool grid.exr --st_warp 0.7071068,0.7071068,0,-0.7071068,0.7071068,0,20,-8.284271,1 -o out.exr
+
+|
+
+
+.. doxygenfunction:: demosaic(const ImageBuf &src, KWArgs options = {}, ROI roi = {}, int nthreads = 0)
+..
+
+  Result-as-parameter version:
+
+  .. doxygenfunction:: demosaic(ImageBuf &dst, const ImageBuf &src, KWArgs options = {}, ROI roi = {}, int nthreads = 0)
+  ..
+
+  Examples:
+
+    .. tabs::
+
+       .. code-tab:: c++
+
+       .. tab:: C++
+
+          .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+             :language: c++
+             :start-after: BEGIN-imagebufalgo-demosaic
+             :end-before: END-imagebufalgo-demosaic
+             :dedent: 4
+
+       .. code-tab:: py
+
+       .. tab:: Python
+
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+             :language: py
+             :start-after: BEGIN-imagebufalgo-demosaic
+             :end-before: END-imagebufalgo-demosaic
+             :dedent: 4
+
+       .. code-tab:: bash oiiotool
+
+          oiiotool -iconfig raw:Demosaic none -i test.cr3 --demosaic:layout=GRBG:white_balance=2.0,0.8,1.2,1.5 -o out.exr
+
+|
 
 
 
@@ -1125,26 +1204,24 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
-          // Add images A and B
-          ImageBuf A ("a.exr");
-          ImageBuf B ("b.exr");
-          ImageBuf Sum = ImageBufAlgo::add (A, B);
-      
-          // Add 0.2 to channels 0-2, but not to channel 3
-          ImageBuf Sum = ImageBufAlgo::add (A, { 0.2f, 0.2f, 0.2f, 0.0f });
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-add
+              :end-before: END-imagebufalgo-add
+              :dedent: 4
 
        .. code-tab:: py
 
-          # Add images A and B
-          A = ImageBuf("a.exr")
-          B = ImageBuf("b.exr")
-          sum = ImageBufAlgo.add (A, B)
-
-          # Add 0.2 to channels 0-2, but not to channel 3
-          Sum = ImageBufAlgo.add (A, (0.2, 0.2, 0.2, 0.0))
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-add
+              :end-before: END-imagebufalgo-add
+              :dedent: 4
 
        .. code-tab:: bash oiiotool
 
@@ -1166,18 +1243,22 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
 
-          ImageBuf A ("a.exr");
-          ImageBuf B ("b.exr");
-          ImageBuf Diff = ImageBufAlgo::sub (A, B);
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-sub
+              :end-before: END-imagebufalgo-sub
+              :dedent: 4
 
        .. code-tab:: py
 
-          A = ImageBuf("a.exr")
-          B = ImageBuf("b.exr")
-          Diff = ImageBufAlgo.sub (A, B)
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-sub
+              :end-before: END-imagebufalgo-sub
+              :dedent: 4
 
        .. code-tab:: bash oiiotool
 
@@ -1195,18 +1276,21 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
 
-          ImageBuf A ("a.exr");
-          ImageBuf B ("b.exr");
-          ImageBuf Diff = ImageBufAlgo::absdiff (A, B);
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-absdiff
+              :end-before: END-imagebufalgo-absdiff
+              :dedent: 4
 
-       .. code-tab:: py
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-absdiff
+              :end-before: END-imagebufalgo-absdiff
+              :dedent: 4
 
-          A = ImageBuf("a.exr")
-          B = ImageBuf("b.exr")
-          Diff = ImageBufAlgo.absdiff (A, B)
 
        .. code-tab:: bash oiiotool
 
@@ -1224,20 +1308,56 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
 
-          ImageBuf A ("a.exr");
-          ImageBuf Abs = ImageBufAlgo::abs (A);
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-absolute
+              :end-before: END-imagebufalgo-absolute
+              :dedent: 4
 
-       .. code-tab:: py
-
-          A = ImageBuf("a.exr")
-          Abs = ImageBufAlgo.abs (A)
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-absolute
+              :end-before: END-imagebufalgo-absolute
+              :dedent: 4
 
        .. code-tab:: bash oiiotool
 
           oiiotool a.exr --abs -o abs.exr
+
+|
+
+.. doxygenfunction:: scale(const ImageBuf &A, const ImageBuf &B, KWArgs options = {}, ROI roi = {}, int nthreads = 0)
+..
+
+  Result-as-parameter version:
+
+    .. doxygenfunction:: scale(ImageBuf &dst, const ImageBuf &A, const ImageBuf &B, KWArgs options = {}, ROI roi = {}, int nthreads = 0)
+
+  Examples:
+
+    .. tabs::
+
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-scale
+              :end-before: END-imagebufalgo-scale
+              :dedent: 4
+
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-scale
+              :end-before: END-imagebufalgo-scale
+              :dedent: 4
+
+       .. code-tab:: bash oiiotool
+
+          # Pixel-by-pixel multiplication of all channels of one image by the only channel of another image
+          oiiotool a.exr mono.exr --scale -o scale.exr
 
 |
 
@@ -1251,26 +1371,20 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
-       .. code-tab:: c++
 
-          // Pixel-by-pixel, channel-by-channel multiplication of A and B
-          ImageBuf A ("a.exr");
-          ImageBuf B ("b.exr");
-          ImageBuf Product = ImageBufAlgo::mul (A, B);
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-mul
+              :end-before: END-imagebufalgo-mul
+              :dedent: 4
 
-          // In-place reduce intensity of A's channels 0-2 by 50%
-          ImageBufAlgo::mul (A, A, { 0.5f, 0.5f, 0.5f, 1.0f });
-
-       .. code-tab:: py
-
-          # Pixel-by-pixel, channel-by-channel multiplication of A and B
-          A = ImageBuf("a.exr")
-          B = ImageBuf("b.exr")
-          Product = ImageBufAlgo.mul (A, B)
-
-          # In-place reduce intensity of A's channels 0-2 by 50%
-          ImageBufAlgo.mul (A, A, (0.5, 0.5, 0.5, 1.0))
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-mul
+              :end-before: END-imagebufalgo-mul
+              :dedent: 4
 
        .. code-tab:: bash oiiotool
 
@@ -1292,26 +1406,22 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
-          // Pixel-by-pixel, channel-by-channel division of A by B
-          ImageBuf A ("a.exr");
-          ImageBuf B ("b.exr");
-          ImageBuf Ratio = ImageBufAlgo::div (A, B);
+       .. tab:: C++
+             .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-div
+              :end-before: END-imagebufalgo-div
+              :dedent: 4
 
-          // In-place reduce intensity of A's channels 0-2 by 50%
-          ImageBufAlgo::div (A, A, { 2.0f, 2.0f, 2.0f, 1.0f });
-
-       .. code-tab:: py
-
-          # Pixel-by-pixel, channel-by-channel division of A by B
-          A = ImageBuf("a.exr")
-          B = ImageBuf("b.exr")
-          Ratio = ImageBufAlgo.div (A, B)
-
-          # In-place reduce intensity of A's channels 0-2 by 50%
-          ImageBufAlgo.div (A, A, (2.0, 2.0, 2.0, 1.0))
+       .. tab:: Python
+          .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-div
+              :end-before: END-imagebufalgo-div
+              :dedent: 4
 
        .. code-tab:: bash oiiotool
 
@@ -1333,7 +1443,7 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           // Pixel-by-pixel, channel-by-channel A * B + C
@@ -1378,7 +1488,7 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf A ("a.exr");
@@ -1407,7 +1517,7 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf A ("a.exr");
@@ -1436,7 +1546,7 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           // Invert all channels of A
@@ -1501,7 +1611,7 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           // Gamma-correct by 2.2 channels 0-2 of the image, in-place
@@ -1536,7 +1646,7 @@ Image arithmetic
     (assuming Rec709 primaries and a linear scale):
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           // Compute luminance via a weighted sum of R,G,B
@@ -1568,25 +1678,25 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           // min of images A and B, assign to MinImage
           ImageBuf A ("a.exr");
           ImageBuf B ("b.exr");
           ImageBuf MinImage = ImageBufAlgo::min (Sum, A, B);
-      
+
           // Squash negative values in A by taking max(A, 0.0) for all channels
           ImageBuf A ("a.exr");
           ImageBufAlgo::max (A, A, 0.0f);
 
           // Clamp image buffer A in-place to the [0,1] range for all pixels.
           ImageBufAlgo::clamp (A, A, 0.0f, 1.0f);
-      
+
           // Just clamp alpha to [0,1] in-place
           ImageBufAlgo::clamp (A, A, -std::numeric_limits<float>::max(),
                                std::numeric_limits<float>::max(), true);
-      
+
           // Clamp R & G to [0,0.5], leave other channels alone
           std::vector<float> min (A.nchannels(), -std::numeric_limits<float>::max());
           std::vector<float> max (A.nchannels(), std::numeric_limits<float>::max());
@@ -1600,17 +1710,17 @@ Image arithmetic
           A = ImageBuf("a.exr")
           B = ImageBuf("b.exr")
           MinImage = ImageBufAlgo.min (Sum, A, B)
-      
+
           # Squash negative values in A by taking max(A, 0.0) for all channels
           A = ImageBuf("a.exr")
           ImageBufAlgo.max (A, A, 0.0)
 
           # Clamp image buffer A in-place to the [0,1] range for all pixels.
           ImageBufAlgo.clamp (A, A, 0.0, 1.0)
-      
+
           # Just clamp alpha to [0,1] in-place
           ImageBufAlgo.clamp (A, A, -1.0e30, 1.0e30, True)
-      
+
           # Clamp R & G to [0,0.5], leave other channels alone
           ImageBufAlgo.clamp (A, A, (0, 0, -1.0e30, -1.0e30),
                               (0.5, 0.5, 1.0e30, 1.0e30), False)
@@ -1619,16 +1729,16 @@ Image arithmetic
 
           # min of images A and B, assign to MinImage
           oiiotool a.exr b.exr --min -o minimage.exr
-      
+
           # Squash negative values in A by taking max(A, 0.0) for all channels
           oiiotool.exr a.exr --maxc 0 -o a.exr
 
           # Clamp image buffer A in-place to the [0,1] range for all pixels.
           oiiotool.exr a.exr --clamp:min=0:max=1 -o a.exr
-      
+
           # Just clamp alpha to [0,1] in-place
           oiiotool.exr a.exr --clamp:min=,,,0:max=,,,1 -o a.exr
-      
+
           # Clamp R & G to [0,0.5], leave other channels alone
           oiiotool.exr a.exr --clamp:min=0,0,,,:max=1,1,,, -o a.exr
 
@@ -1641,7 +1751,7 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           // Computes the maximum of R, G, B.
@@ -1672,7 +1782,7 @@ Image arithmetic
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf A ("tahoe.tif");
@@ -1795,7 +1905,7 @@ Image arithmetic
        // scale) and map to a spectrum-like palette:
        ImageBuf A ("a.exr");
        ImageBuf B = ImageBufAlgo::color_map (A, -1, "turbo");
-   
+
        // Use a custom color map
        float mymap[] = { 0.25, 0.25, 0.25,  0, 0.5, 0,  1, 0, 0 };
        B = ImageBufAlgo::color_map (A, -1 /* use luminance */,
@@ -1808,7 +1918,7 @@ Image arithmetic
        # scale) and map to a spectrum-like palette:
        A = ImageBuf("a.exr")
        B = ImageBufAlgo.color_map (A, -1, "turbo")
-   
+
        # Use a custom color map
        B = ImageBufAlgo.color_map (A, -1, (0.25, 0.25, 0.25,  0, 0.5, 0,  1, 0, 0))
 
@@ -1817,7 +1927,7 @@ Image arithmetic
        # Use luminance of a.exr (assuming Rec709 primaries and a linear
        # scale) and map to a spectrum-like palette:
        oiiotool a.exr --colormap turbo -o b.exr
-   
+
        # Use a custom color map
        oiiotool a.exr --colormap turbo 0.25,0.25,0.25,0,0.5,0,1,0,0 -o b.exr
 
@@ -1853,36 +1963,36 @@ Image arithmetic
     resize, then re-expand the range.
 
     .. tabs::
-  
+
        .. code-tab:: c++
-      
+
           // 1. Read the original image
           ImageBuf Src ("tahoeHDR.exr");
-      
+
           // 2. Range compress to a logarithmic scale
           ImageBuf Compressed = ImageBufAlgo::rangecompress (Src);
-      
+
           // 3. Now do the resize
           ImageBuf Dst = ImageBufAlgo::resize (Compressed,
                                                { { "filtername", "lanczos3" }
                                                  { "filterwidth", 6.0f } },
                                                ROI(0, 640, 0, 480));
-      
+
           // 4. Expand range to be linear again (operate in-place)
           ImageBufAlgo::rangeexpand (Dst, Dst);
 
        .. code-tab:: py
-      
+
           # 1. Read the original image
           Src = ImageBuf("tahoeHDR.exr")
-      
+
           # 2. Range compress to a logarithmic scale
           Compressed = ImageBufAlgo.rangecompress (Src)
-      
+
           # 3. Now do the resize
           Dst = ImageBufAlgo.resize (Compressed, filtername="lanczos3",
                                      filterwidth=6.0, ROI(0, 640, 0, 480))
-      
+
           # 4. Expand range to be linear again (operate in-place)
           ImageBufAlgo.rangeexpand (Dst, Dst)
 
@@ -1988,8 +2098,8 @@ Image comparison and statistics
            std::cout << "Average error was " << comp.meanerror << "\n";
            std::cout << "RMS error was " << comp.rms_error << "\n";
            std::cout << "PSNR was " << comp.PSNR << "\n";
-           std::cout << "largest error was " << comp.maxerror 
-                     << " on pixel (" << comp.maxx << "," << comp.maxy 
+           std::cout << "largest error was " << comp.maxerror
+                     << " on pixel (" << comp.maxx << "," << comp.maxy
                      << "," << comp.maxz << "), channel " << comp.maxc << "\n";
        }
 
@@ -2147,10 +2257,10 @@ Image comparison and statistics
         ImageBuf A ("a.exr");
         ROI roi = get_roi (A.spec());
         roi.chend = std::min (roi.chend, 4);  // only compare RGBA
-    
+
         float low[] = {0, 0, 0, 0};
         float high[] = {1, 1, 1, 1};
-    
+
         imagesize_t lowcount, highcount, inrangecount;
         ImageBufAlgo::color_range_check (A, &lowcount, &highcount, &inrangecount,
                                          low, high, roi);
@@ -2163,10 +2273,10 @@ Image comparison and statistics
         A = ImageBuf("a.exr")
         roi = A.roi.copy()
         roi.chend = min (roi.chend, 4)  # only compare RGBA
-    
+
         low = (0, 0, 0, 0)
         high = (1, 1, 1, 1)
-    
+
         lowcount, highcount, inrangecount = ImageBufAlgo.color_range_check (A, low, high, roi)
         print(lowcount, "pixels had components < 0")
         print(highcount, "pixels had components > 1")
@@ -2462,24 +2572,27 @@ Image Enhancement / Restoration
 
   Examples:
 
-    .. tabs::
-  
-       .. code-tab:: c++
+   .. tabs::
 
-          ImageBuf Src ("tahoe.exr");
-          int pixelsFixed = 0;
-          ImageBufAlgo::fixNonFinite (Src, Src, ImageBufAlgo::NONFINITE_BOX3,
-                                      &pixelsFixed);
-          std::cout << "Repaired " << pixelsFixed << " non-finite pixels\n";
+      .. tab:: C++
+         .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-fixNonFinite
+              :end-before: END-imagebufalgo-fixNonFinite
+              :dedent: 4
 
-       .. code-tab:: py
+      .. tab:: Python
+         .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-fixNonFinite
+              :end-before: END-imagebufalgo-fixNonFinite
+              :dedent: 4
 
-          Src = ImageBuf("tahoe.exr")
-          ImageBufAlgo.fixNonFinite (Src, Src, "box3", oiio.NONFINITE_BOX3)
+      .. tab:: oiiotool
+         .. sourcecode:: bash
 
-       .. code-tab:: bash oiiotool
+            oiiotool with_nans.tif --fixnan box3 -o with_nans_fixed.tif
 
-          oiiotool tahoe.exr --fixnan box3 -o fixed.exr
 
 |
 
@@ -2491,21 +2604,27 @@ Image Enhancement / Restoration
 
   Examples:
 
-    .. tabs::
-  
-       .. code-tab:: c++
 
-          ImageBuf Src ("holes.exr");
-          ImageBuf Filled = ImageBufAlgo::fillholes_pushpull (Src);
+   .. tabs::
 
-       .. code-tab:: py
+      .. tab:: C++
+         .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-fillholes_pushpull
+              :end-before: END-imagebufalgo-fillholes_pushpull
+              :dedent: 4
 
-          Src = ImageBuf("holes.exr")
-          Filled = ImageBufAlgo.fillholes_pushpull (Src)
+      .. tab:: Python
+         .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-fillholes_pushpull
+              :end-before: END-imagebufalgo-fillholes_pushpull
+              :dedent: 4
 
-       .. code-tab:: bash oiiotool
-                 
-          oiiotool holes.exr --fillholes -o filled.exr
+      .. tab:: oiiotool
+         .. sourcecode:: bash
+
+            oiiotool checker_with_alpha.exr --fillholes -o checker_with_alpha_filled.exr
 
 |
 
@@ -2517,21 +2636,27 @@ Image Enhancement / Restoration
 
   Examples:
 
-    .. tabs::
-  
-       .. code-tab:: c++
 
-          ImageBuf Noisy ("tahoe.exr");
-          ImageBuf Clean = ImageBufAlgo::median_filter (Noisy, 3, 3);
+   .. tabs::
 
-       .. code-tab:: py
+      .. tab:: C++
+         .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-median_filter
+              :end-before: END-imagebufalgo-median_filter
+              :dedent: 4
 
-          Noisy = ImageBuf("tahoe.exr")
-          Clean = ImageBufAlgo.median_filter (Noisy, 3, 3)
+      .. tab:: Python
+         .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-median_filter
+              :end-before: END-imagebufalgo-median_filter
+              :dedent: 4
 
-       .. code-tab:: bash oiiotool
+      .. tab:: oiiotool
+         .. sourcecode:: bash
 
-          oiiotool tahoe.exr --median 3x3 -o clean.exr
+            oiiotool tahoe.tif --median 3x3 -o tahoe_median_filter.tif
 
 ..
 
@@ -2560,21 +2685,26 @@ Image Enhancement / Restoration
 
   Examples:
 
-    .. tabs::
-  
-       .. code-tab:: c++
+   .. tabs::
 
-          ImageBuf Blurry ("tahoe.exr");
-          ImageBuf Sharp = ImageBufAlgo::unsharp_mask (Blurry, "gaussian", 5.0f);
+      .. tab:: C++
+         .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagebufalgo.cpp
+              :language: c++
+              :start-after: BEGIN-imagebufalgo-unsharp_mask
+              :end-before: END-imagebufalgo-unsharp_mask
+              :dedent: 4
 
-       .. code-tab:: py
+      .. tab:: Python
+         .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagebufalgo.py
+              :language: py
+              :start-after: BEGIN-imagebufalgo-unsharp_mask
+              :end-before: END-imagebufalgo-unsharp_mask
+              :dedent: 4
 
-          Blurry ImageBuf("tahoe.exr")
-          Sharp = ImageBufAlgo.unsharp_mask (Blurry, "gaussian", 5.0)
+      .. tab:: oiiotool
+         .. sourcecode:: bash
 
-       .. code-tab:: bash oiiotool
-
-          oiiotool tahoe.exr --unsharp:kernel=gaussian:width=5 -o sharp.exr
+            oiiotool tahoe.tif --unsharp:kernel=gaussian:width=5 -o tahoe_unsharp_mask.tif
 
 |
 
@@ -2616,14 +2746,14 @@ are often constructed from them:
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf Source ("source.tif");
-      
+
           ImageBuf Dilated = ImageBufAlgo::dilate (Source, 3, 3);
           ImageBuf Eroded  = ImageBufAlgo::erode (Source, 3, 3);
-      
+
           // Morphological "open" is dilate(erode((source))
           ImageBuf Opened = ImageBufAlgo::dilate (Eroded, 3, 3);
           // Morphological "close" is erode(dilate(source))
@@ -2638,10 +2768,10 @@ are often constructed from them:
        .. code-tab:: py
 
           Source = ImageBuf("source.tif")
-      
+
           Dilated = ImageBufAlgo.dilate (Source, 3, 3)
           Eroded  = ImageBufAlgo.erode (Source, 3, 3)
-      
+
           # Morphological "open" is dilate(erode((source))
           Opened = ImageBufAlgo.dilate (Eroded, 3, 3)
           # Morphological "close" is erode(dilate(source))
@@ -2657,7 +2787,7 @@ are often constructed from them:
 
           oiiotool source.tif --dilate 3x3 -o dilated.tif
           oiiotool source.tif --erode 3x3 -o eroded.tif
-      
+
           # Morphological "open" is dilate(erode((source))
           oiiotool source.tif --erode 3x3 --dilate 3x3 -o opened.tif
           # Morphological "close" is erode(dilate(source))
@@ -2715,7 +2845,7 @@ Color space conversion
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf Src ("tahoe.jpg");
@@ -2741,7 +2871,7 @@ Color space conversion
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf Src ("tahoe.exr");
@@ -2761,8 +2891,8 @@ Color space conversion
           dst = ImageBufAlgo.colormatrixtransform (Src, M)
 
        .. code-tab:: bash oiiotool
-              
-          oiiotool tahoe.exr --colormatrixtransform 0.8047379,0.5058794,-0.3106172,0,-0.3106172,0.8047379,0.5058794,0.5058794,-0.3106172,0,0,0,0,1,0 -o tahoe_matrix.exr 
+
+          oiiotool tahoe.exr --colormatrixtransform 0.8047379,0.5058794,-0.3106172,0,-0.3106172,0.8047379,0.5058794,0.5058794,-0.3106172,0,0,0,0,1,0 -o tahoe_matrix.exr
 
 
 .. |ccmat1| image:: figures/tahoe-small.jpg
@@ -2788,7 +2918,7 @@ Color space conversion
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf Src ("tahoe.jpg");
@@ -2816,7 +2946,7 @@ Color space conversion
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf Src ("tahoe.exr");
@@ -2844,7 +2974,7 @@ Color space conversion
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf Src ("tahoe.exr");
@@ -2867,19 +2997,19 @@ Color space conversion
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           // Convert from unassociated alpha to associated alpha by
           // straightforward multiplication of color by alpha.
           ImageBuf Unassoc;  // Assume somehow this has unassociated alpha
           ImageBuf Assoc = ImageBufAlgo::premult (Unassoc);
-      
+
           // Convert in-place from associated alpha to unassociated alpha,
           // preserving the color of alpha==0 pixels.
           ImageBuf A;
           ImageBufAlgo::unpremult (A, A);
-      
+
           // Finish the round-trip back to associated, still preserving the
           // color of alpha==0 pixels. This should result in exactly the same
           // pixel values we started with (within precision limits).
@@ -2891,12 +3021,12 @@ Color space conversion
           # straightforward multiplication of color by alpha.
           Unassoc = ImageBuf(...)  # Assume somehow this has unassociated alpha
           Assoc = ImageBufAlgo.premult (Unassoc)
-      
+
           # Convert in-place from associated alpha to unassociated alpha,
           # preserving the color of alpha==0 pixels.
           A = ImageBuf(...)
           ImageBufAlgo.unpremult (A, A)
-      
+
           # Finish the round-trip back to associated, still preserving the
           # color of alpha==0 pixels. This should result in exactly the same
           # pixel values we started with (within precision limits).
@@ -2907,11 +3037,11 @@ Color space conversion
           # Convert from unassociated alpha to associated alpha by
           # straightforward multiplication of color by alpha.
           oiiotool unassoc.tif --premult -o assoc.tif
-      
+
           # Convert in-place from associated alpha to unassociated alpha,
           # preserving the color of alpha==0 pixels.
           oiiotool A.tif --unpremult -o A.tif
-      
+
           # Finish the round-trip back to associated, still preserving the
           # color of alpha==0 pixels. This should result in exactly the same
           # pixel values we started with (within precision limits).
@@ -2947,14 +3077,14 @@ Import / export
 
       .. tab:: oiiotool
          .. sourcecode:: bash
-         
+
             oiiotool in.exr -otex:hilightcomp=1:filtername=lanczos3:opaque_detect=1 texture.exr
 
       .. tab:: maketx
          .. sourcecode:: bash
 
             maketx in.exr --hicomp --filter lanczos3 --opaque-detect -o texture.exr
-      
+
 |
 
 OpenCV interoperability is performed by the `from_OpenCV()` and
@@ -2997,7 +3127,7 @@ Functions specific to deep images
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf Flat ("RGBAZ.exr");
@@ -3023,7 +3153,7 @@ Functions specific to deep images
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf Deep ("deepalpha.exr");
@@ -3049,7 +3179,7 @@ Functions specific to deep images
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf DeepA ("hardsurf.exr");
@@ -3077,7 +3207,7 @@ Functions specific to deep images
   Examples:
 
     .. tabs::
-  
+
        .. code-tab:: c++
 
           ImageBuf Src ("image.exr");

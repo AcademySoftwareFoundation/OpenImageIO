@@ -51,12 +51,7 @@ template<>
 inline size_t
 heapsize<ImageCacheFile>(const ImageCacheFile& file)
 {
-    size_t size = heapsize(file.m_subimages);
-    size += heapsize(file.m_configspec);
-    size += heapsize(file.m_input);
-    size += heapsize(file.m_mipreadcount);
-    size += heapsize(file.m_udim_lookup);
-    return size;
+    return file.heapsize();
 }
 
 // heapsize specialization for ImageCacheTile
@@ -72,9 +67,7 @@ template<>
 inline size_t
 heapsize<ImageCachePerThreadInfo>(const ImageCachePerThreadInfo& info)
 {
-    /// TODO: this should take into account the two last tiles, if their refcount is zero.
-    constexpr size_t sizeofPair = sizeof(ustring) + sizeof(ImageCacheFile*);
-    return info.m_thread_files.size() * sizeofPair;
+    return info.heapsize();
 }
 
 // heapsize specialization for ImageCacheImpl
@@ -82,26 +75,7 @@ template<>
 inline size_t
 heapsize<ImageCacheImpl>(const ImageCacheImpl& ic)
 {
-    size_t size = 0;
-    // strings
-    size += heapsize(ic.m_searchpath) + heapsize(ic.m_plugin_searchpath)
-            + heapsize(ic.m_searchdirs);
-    // thread info
-    size += heapsize(ic.m_all_perthread_info);
-    // tile cache
-    for (TileCache::iterator t = ic.m_tilecache.begin(),
-                             e = ic.m_tilecache.end();
-         t != e; ++t)
-        size += footprint(t->first) + footprint(t->second);
-    // files
-    for (FilenameMap::iterator t = ic.m_files.begin(), e = ic.m_files.end();
-         t != e; ++t)
-        size += footprint(t->first) + footprint(t->second);
-    // finger prints; we only account for references, this map does not own the files.
-    constexpr size_t sizeofFingerprintPair = sizeof(ustring)
-                                             + sizeof(ImageCacheFileRef);
-    size += ic.m_fingerprints.size() * sizeofFingerprintPair;
-    return size;
+    return ic.heapsize();
 }
 
 }  // namespace pvt

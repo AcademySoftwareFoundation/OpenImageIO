@@ -23,6 +23,8 @@
 #include <OpenImageIO/tiffutils.h>
 #include <OpenImageIO/timer.h>
 
+#include "imageio_pvt.h"
+
 
 // clang-format off
 #ifdef TIFFLIB_MAJOR_VERSION
@@ -229,7 +231,10 @@ private:
     {
         TIFFOutput* self = (TIFFOutput*)user_data;
         spin_lock lock(self->m_last_error_mutex);
+        OIIO_PRAGMA_WARNING_PUSH
+        OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wformat-nonliteral")
         self->m_last_error = Strutil::vsprintf(fmt, ap);
+        OIIO_PRAGMA_WARNING_POP
         return 1;
     }
 
@@ -239,7 +244,10 @@ private:
     {
         TIFFOutput* self = (TIFFOutput*)user_data;
         spin_lock lock(self->m_last_error_mutex);
+        OIIO_PRAGMA_WARNING_PUSH
+        OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wformat-nonliteral")
         self->m_last_error = Strutil::vsprintf(fmt, ap);
+        OIIO_PRAGMA_WARNING_POP
         return 1;
     }
 #endif
@@ -873,7 +881,8 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
             TIFFSetField(m_tif, TIFFTAG_ICCPROFILE, length, icc_profile);
     }
 
-    if (Strutil::iequals(m_spec.get_string_attribute("oiio:ColorSpace"), "sRGB"))
+    if (equivalent_colorspace(m_spec.get_string_attribute("oiio:ColorSpace"),
+                              "sRGB"))
         m_spec.attribute("Exif:ColorSpace", 1);
 
     // Deal with missing XResolution or YResolution, or a PixelAspectRatio
@@ -1339,6 +1348,7 @@ TIFFOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
                             const void* data, stride_t xstride,
                             stride_t ystride)
 {
+    pvt::LoggedTimer logger("TIFFOutput::write_scanlines");
     // If the stars all align properly, try to write strips, and use the
     // thread pool to parallelize the compression. This can give a large
     // speedup (5x or more!) because the zip compression dwarfs the
@@ -1565,6 +1575,7 @@ TIFFOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
                         int zend, TypeDesc format, const void* data,
                         stride_t xstride, stride_t ystride, stride_t zstride)
 {
+    pvt::LoggedTimer logger("TIFFOutput::write_tiles");
     if (!m_spec.valid_tile_range(xbegin, xend, ybegin, yend, zbegin, zend))
         return false;
 
@@ -1809,7 +1820,8 @@ TIFFOutput::fix_bitdepth(void* data, int nvals)
             v[i] = bit_range_convert<32, 24>(v[i]);
         bit_pack(cspan<unsigned int>(v, v + nvals), v, 24);
     } else {
-        OIIO_ASSERT(0 && "unsupported bit conversion -- shouldn't reach here");
+        errorfmt("unsupported bit conversion: {} -> {}", spec().format,
+                 m_bitspersample);
     }
 }
 

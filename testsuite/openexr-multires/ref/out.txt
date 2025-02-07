@@ -12,7 +12,7 @@ Reading ../openexr-images/MultiResolution/Bonita.exr
     screenWindowWidth: 1
     textureformat: "Plain Texture"
     wrapmodes: "clamp,clamp"
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:roundingmode: 0
 Comparing "../openexr-images/MultiResolution/Bonita.exr" and "Bonita.exr"
@@ -31,7 +31,7 @@ Reading ../openexr-images/MultiResolution/ColorCodedLevels.exr
     screenWindowWidth: 1
     textureformat: "Plain Texture"
     wrapmodes: "periodic,periodic"
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:roundingmode: 0
 Comparing "../openexr-images/MultiResolution/ColorCodedLevels.exr" and "ColorCodedLevels.exr"
@@ -50,7 +50,7 @@ Reading ../openexr-images/MultiResolution/KernerEnvCube.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     textureformat: "CubeFace Environment"
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:sampleborder: 1
     oiio:subimages: 1
     openexr:roundingmode: 0
@@ -68,7 +68,7 @@ Reading ../openexr-images/MultiResolution/KernerEnvLatLong.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     textureformat: "LatLong Environment"
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:sampleborder: 1
     oiio:subimages: 1
     oiio:updirection: "y"
@@ -88,7 +88,7 @@ Reading ../openexr-images/MultiResolution/MirrorPattern.exr
     screenWindowWidth: 1
     textureformat: "Plain Texture"
     wrapmodes: "mirror,mirror"
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:roundingmode: 0
 Comparing "../openexr-images/MultiResolution/MirrorPattern.exr" and "MirrorPattern.exr"
@@ -107,7 +107,7 @@ Reading ../openexr-images/MultiResolution/OrientationCube.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     textureformat: "CubeFace Environment"
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:sampleborder: 1
     oiio:subimages: 1
     openexr:roundingmode: 0
@@ -125,7 +125,7 @@ Reading ../openexr-images/MultiResolution/OrientationLatLong.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     textureformat: "LatLong Environment"
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:sampleborder: 1
     oiio:subimages: 1
     oiio:updirection: "y"
@@ -145,7 +145,7 @@ Reading ../openexr-images/MultiResolution/PeriodicPattern.exr
     screenWindowWidth: 1
     textureformat: "Plain Texture"
     wrapmodes: "periodic,periodic"
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:roundingmode: 0
 Comparing "../openexr-images/MultiResolution/PeriodicPattern.exr" and "PeriodicPattern.exr"
@@ -164,7 +164,7 @@ Reading ../openexr-images/MultiResolution/StageEnvCube.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     textureformat: "CubeFace Environment"
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:sampleborder: 1
     oiio:subimages: 1
     openexr:roundingmode: 0
@@ -182,7 +182,7 @@ Reading ../openexr-images/MultiResolution/StageEnvLatLong.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     textureformat: "LatLong Environment"
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:sampleborder: 1
     oiio:subimages: 1
     oiio:updirection: "y"
@@ -203,7 +203,7 @@ Reading ../openexr-images/MultiResolution/WavyLinesCube.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     textureformat: "CubeFace Environment"
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:sampleborder: 1
     oiio:subimages: 1
     openexr:roundingmode: 0
@@ -221,7 +221,7 @@ Reading ../openexr-images/MultiResolution/WavyLinesLatLong.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     textureformat: "LatLong Environment"
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:sampleborder: 1
     oiio:subimages: 1
     oiio:updirection: "y"
@@ -237,7 +237,7 @@ Reading ../openexr-images/MultiResolution/WavyLinesSphere.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
 Comparing "../openexr-images/MultiResolution/WavyLinesSphere.exr" and "WavyLinesSphere.exr"
 PASS
@@ -254,7 +254,7 @@ Reading ../openexr-images/MultiView/Adjuster.exr
     screenWindowWidth: 1
     XResolution: 100
     YResolution: 100
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
 Comparing "../openexr-images/MultiView/Adjuster.exr" and "Adjuster.exr"
 PASS
@@ -270,7 +270,7 @@ Reading ../openexr-images/MultiView/Balls.exr
     screenWindowWidth: 1
     XResolution: 100
     YResolution: 100
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
 Comparing "../openexr-images/MultiView/Balls.exr" and "Balls.exr"
 PASS
@@ -290,7 +290,6 @@ Reading ../openexr-images/MultiView/Fog.exr
     screenWindowWidth: 1
     XResolution: 100
     YResolution: 100
-    oiio:ColorSpace: "Linear"
     oiio:subimages: 1
 Comparing "../openexr-images/MultiView/Fog.exr" and "Fog.exr"
 PASS
@@ -312,7 +311,7 @@ Reading ../openexr-images/MultiView/Impact.exr
     wrapmodes: "clamp,clamp"
     XResolution: 100
     YResolution: 100
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
     openexr:roundingmode: 0
 Comparing "../openexr-images/MultiView/Impact.exr" and "Impact.exr"
@@ -332,7 +331,7 @@ Reading ../openexr-images/MultiView/LosPadres.exr
     screenWindowWidth: 1
     XResolution: 100
     YResolution: 100
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
 Comparing "../openexr-images/MultiView/LosPadres.exr" and "LosPadres.exr"
 PASS

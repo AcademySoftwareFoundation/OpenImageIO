@@ -57,6 +57,7 @@ checked_find_package (Imath REQUIRED
 
 checked_find_package (OpenEXR REQUIRED
     VERSION_MIN 3.1
+    NO_FP_RANGE_CHECK
     PRINT IMATH_INCLUDES OPENEXR_INCLUDES Imath_VERSION
     )
 
@@ -83,6 +84,10 @@ else ()
     # Try to find the non-turbo version
     checked_find_package (JPEG REQUIRED)
 endif ()
+
+
+# Ultra HDR
+checked_find_package (libuhdr)
 
 
 checked_find_package (TIFF REQUIRED
@@ -119,10 +124,10 @@ endif ()
 # we will continue building, but the related functionality will be disabled.
 
 checked_find_package (PNG VERSION_MIN 1.6.0)
-
-checked_find_package (BZip2)   # Used by ffmpeg and freetype
-if (NOT BZIP2_FOUND)
-    set (BZIP2_LIBRARIES "")  # TODO: why does it break without this?
+if (TARGET PNG::png_static)
+    set (PNG_TARGET PNG::png_static)
+elseif (TARGET PNG::PNG)
+    set (PNG_TARGET PNG::PNG)
 endif ()
 
 checked_find_package (Freetype
@@ -132,7 +137,6 @@ checked_find_package (Freetype
 checked_find_package (OpenColorIO REQUIRED
                       VERSION_MIN 2.2
                       VERSION_MAX 2.9
-                      PREFER_CONFIG
                      )
 if (NOT OPENCOLORIO_INCLUDES)
     get_target_property(OPENCOLORIO_INCLUDES OpenColorIO::OpenColorIO INTERFACE_INCLUDE_DIRECTORIES)
@@ -156,13 +160,9 @@ checked_find_package (FFmpeg VERSION_MIN 4.0)
 checked_find_package (GIF VERSION_MIN 5.0)
 
 # For HEIF/HEIC/AVIF formats
-checked_find_package (Libheif VERSION_MIN 1.3
+checked_find_package (Libheif VERSION_MIN 1.11
                       RECOMMEND_MIN 1.16
                       RECOMMEND_MIN_REASON "for orientation support")
-if (APPLE AND LIBHEIF_VERSION VERSION_GREATER_EQUAL 1.10 AND LIBHEIF_VERSION VERSION_LESS 1.11)
-    message (WARNING "Libheif 1.10 on Apple is known to be broken, disabling libheif support")
-    set (Libheif_FOUND 0)
-endif ()
 
 checked_find_package (LibRaw
                       VERSION_MIN 0.20.0
@@ -195,6 +195,13 @@ checked_find_package (R3DSDK NO_RECORD_NOTFOUND)  # RED camera
 set (NUKE_VERSION "7.0" CACHE STRING "Nuke version to target")
 checked_find_package (Nuke NO_RECORD_NOTFOUND)
 
+if (FFmpeg_FOUND OR FREETYPE_FOUND)
+    checked_find_package (BZip2)   # Used by ffmpeg and freetype
+    if (NOT BZIP2_FOUND)
+        set (BZIP2_LIBRARIES "")  # TODO: why does it break without this?
+    endif ()
+endif()
+
 
 # Qt -- used for iv
 option (USE_QT "Use Qt if found" ON)
@@ -223,7 +230,6 @@ checked_find_package (Robinmap REQUIRED
 option (OIIO_INTERNALIZE_FMT "Copy fmt headers into <install>/include/OpenImageIO/detail/fmt" ON)
 checked_find_package (fmt REQUIRED
                       VERSION_MIN 7.0
-                      VERSION_MAX 10.99
                       BUILD_LOCAL missing
                      )
 get_target_property(FMT_INCLUDE_DIR fmt::fmt-header-only INTERFACE_INCLUDE_DIRECTORIES)

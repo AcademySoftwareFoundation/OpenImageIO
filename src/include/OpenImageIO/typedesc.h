@@ -44,9 +44,9 @@ OIIO_NAMESPACE_BEGIN
 /// through APIs through blind pointers.  These are some simple classes
 /// that provide a simple type descriptor system.  This is not meant to
 /// be comprehensive -- for example, there is no provision for structs,
-/// unions, pointers, const, or 'nested' type definitions.  Just simple
-/// integer and floating point, *common* aggregates such as 3-points,
-/// and reasonably-lengthed arrays thereof.
+/// unions, typed pointers, const, or 'nested' type definitions.  Just simple
+/// integer and floating point, *common* aggregates such as 3-points, and
+/// reasonably-lengthed arrays thereof.
 ///
 /////////////////////////////////////////////////////////////////////////////
 
@@ -83,7 +83,7 @@ struct OIIO_UTIL_API TypeDesc {
         DOUBLE,             ///< 64-bit IEEE floating point values, (C/C++ `double`).
         STRING,             ///< Character string.
         PTR,                ///< A pointer value.
-        USTRINGHASH,        ///< The hash of a ustring
+        USTRINGHASH,        ///< A uint64 that is the hash of a ustring.
         LASTBASE
     };
 
@@ -338,37 +338,6 @@ struct OIIO_UTIL_API TypeDesc {
     static BASETYPE basetype_merge(TypeDesc a, TypeDesc b, TypeDesc c) {
         return basetype_merge(basetype_merge(a, b), c);
     }
-
-#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(1,8,0) && OIIO_VERSION_LESS(2,7,0) && !defined(OIIO_DOXYGEN)
-    // DEPRECATED(1.8): These static const member functions were mildly
-    // problematic because they required external linkage (and possibly
-    // even static initialization order fiasco) and were a memory reference
-    // that incurred some performance penalty and inability to optimize.
-    // Please instead use the out-of-class constexpr versions below.  We
-    // will eventually remove these.
-#ifdef __INTEL_COMPILER
-#    define OIIO_DEPRECATED_TYPEDESC_STATICS
-#else
-#    define OIIO_DEPRECATED_TYPEDESC_STATICS \
-        OIIO_DEPRECATED("Use the version that takes a tostring_formatting struct (1.8)")
-#endif
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeFloat;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeColor;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeString;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeInt;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeHalf;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypePoint;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeVector;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeNormal;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeMatrix;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeMatrix33;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeMatrix44;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeTimeCode;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeKeyCode;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeFloat4;
-    OIIO_DEPRECATED_TYPEDESC_STATICS static const TypeDesc TypeRational;
-#endif
-#undef OIIO_DEPRECATED_TYPEDESC_STATICS
 };
 
 // Validate that TypeDesc can be used directly as POD in a C interface.
@@ -382,57 +351,43 @@ static_assert(std::is_trivially_move_assignable<TypeDesc>(), "TypeDesc is not mo
 // Static values for commonly used types. Because these are constexpr,
 // they should incur no runtime construction cost and should optimize nicely
 // in various ways.
-OIIO_INLINE_CONSTEXPR TypeDesc TypeUnknown (TypeDesc::UNKNOWN);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeFloat (TypeDesc::FLOAT);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeColor (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::COLOR);
-OIIO_INLINE_CONSTEXPR TypeDesc TypePoint (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::POINT);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeVector (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::VECTOR);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeNormal (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::NORMAL);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeMatrix33 (TypeDesc::FLOAT, TypeDesc::MATRIX33);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeMatrix44 (TypeDesc::FLOAT, TypeDesc::MATRIX44);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeMatrix = TypeMatrix44;
-OIIO_INLINE_CONSTEXPR TypeDesc TypeFloat2 (TypeDesc::FLOAT, TypeDesc::VEC2);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeVector2 (TypeDesc::FLOAT, TypeDesc::VEC2, TypeDesc::VECTOR);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeFloat4 (TypeDesc::FLOAT, TypeDesc::VEC4);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeVector4 = TypeFloat4;
-OIIO_INLINE_CONSTEXPR TypeDesc TypeString (TypeDesc::STRING);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeInt (TypeDesc::INT);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeUInt (TypeDesc::UINT);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeInt32 (TypeDesc::INT);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeUInt32 (TypeDesc::UINT);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeInt16 (TypeDesc::INT16);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeUInt16 (TypeDesc::UINT16);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeInt8 (TypeDesc::INT8);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeUInt8 (TypeDesc::UINT8);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeInt64 (TypeDesc::INT64);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeUInt64 (TypeDesc::UINT64);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeVector2i(TypeDesc::INT, TypeDesc::VEC2);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeVector3i(TypeDesc::INT, TypeDesc::VEC3);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeBox2(TypeDesc::FLOAT, TypeDesc::VEC2, TypeDesc::BOX, 2);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeBox3(TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::BOX, 2);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeBox2i(TypeDesc::INT, TypeDesc::VEC2, TypeDesc::BOX, 2);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeBox3i(TypeDesc::INT, TypeDesc::VEC3, TypeDesc::BOX, 2);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeHalf (TypeDesc::HALF);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeTimeCode (TypeDesc::UINT, TypeDesc::SCALAR, TypeDesc::TIMECODE, 2);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeKeyCode (TypeDesc::INT, TypeDesc::SCALAR, TypeDesc::KEYCODE, 7);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeRational(TypeDesc::INT, TypeDesc::VEC2, TypeDesc::RATIONAL);
-OIIO_INLINE_CONSTEXPR TypeDesc TypePointer(TypeDesc::PTR);
-OIIO_INLINE_CONSTEXPR TypeDesc TypeUstringhash(TypeDesc::USTRINGHASH);
+inline constexpr TypeDesc TypeUnknown (TypeDesc::UNKNOWN);
+inline constexpr TypeDesc TypeFloat (TypeDesc::FLOAT);
+inline constexpr TypeDesc TypeColor (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::COLOR);
+inline constexpr TypeDesc TypePoint (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::POINT);
+inline constexpr TypeDesc TypeVector (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::VECTOR);
+inline constexpr TypeDesc TypeNormal (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::NORMAL);
+inline constexpr TypeDesc TypeMatrix33 (TypeDesc::FLOAT, TypeDesc::MATRIX33);
+inline constexpr TypeDesc TypeMatrix44 (TypeDesc::FLOAT, TypeDesc::MATRIX44);
+inline constexpr TypeDesc TypeMatrix = TypeMatrix44;
+inline constexpr TypeDesc TypeFloat2 (TypeDesc::FLOAT, TypeDesc::VEC2);
+inline constexpr TypeDesc TypeVector2 (TypeDesc::FLOAT, TypeDesc::VEC2, TypeDesc::VECTOR);
+inline constexpr TypeDesc TypeFloat4 (TypeDesc::FLOAT, TypeDesc::VEC4);
+inline constexpr TypeDesc TypeVector4 = TypeFloat4;
+inline constexpr TypeDesc TypeString (TypeDesc::STRING);
+inline constexpr TypeDesc TypeInt (TypeDesc::INT);
+inline constexpr TypeDesc TypeUInt (TypeDesc::UINT);
+inline constexpr TypeDesc TypeInt32 (TypeDesc::INT);
+inline constexpr TypeDesc TypeUInt32 (TypeDesc::UINT);
+inline constexpr TypeDesc TypeInt16 (TypeDesc::INT16);
+inline constexpr TypeDesc TypeUInt16 (TypeDesc::UINT16);
+inline constexpr TypeDesc TypeInt8 (TypeDesc::INT8);
+inline constexpr TypeDesc TypeUInt8 (TypeDesc::UINT8);
+inline constexpr TypeDesc TypeInt64 (TypeDesc::INT64);
+inline constexpr TypeDesc TypeUInt64 (TypeDesc::UINT64);
+inline constexpr TypeDesc TypeVector2i(TypeDesc::INT, TypeDesc::VEC2);
+inline constexpr TypeDesc TypeVector3i(TypeDesc::INT, TypeDesc::VEC3);
+inline constexpr TypeDesc TypeBox2(TypeDesc::FLOAT, TypeDesc::VEC2, TypeDesc::BOX, 2);
+inline constexpr TypeDesc TypeBox3(TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::BOX, 2);
+inline constexpr TypeDesc TypeBox2i(TypeDesc::INT, TypeDesc::VEC2, TypeDesc::BOX, 2);
+inline constexpr TypeDesc TypeBox3i(TypeDesc::INT, TypeDesc::VEC3, TypeDesc::BOX, 2);
+inline constexpr TypeDesc TypeHalf (TypeDesc::HALF);
+inline constexpr TypeDesc TypeTimeCode (TypeDesc::UINT, TypeDesc::SCALAR, TypeDesc::TIMECODE, 2);
+inline constexpr TypeDesc TypeKeyCode (TypeDesc::INT, TypeDesc::SCALAR, TypeDesc::KEYCODE, 7);
+inline constexpr TypeDesc TypeRational(TypeDesc::INT, TypeDesc::VEC2, TypeDesc::RATIONAL);
+inline constexpr TypeDesc TypePointer(TypeDesc::PTR);
+inline constexpr TypeDesc TypeUstringhash(TypeDesc::USTRINGHASH);
 
-
-
-#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(2,1,0) && OIIO_VERSION_LESS(2,7,0)
-// DEPRECATED(2.1)
-OIIO_DEPRECATED("Use the version that takes a tostring_formatting struct")
-OIIO_UTIL_API
-std::string tostring (TypeDesc type, const void *data,
-                      const char *float_fmt,                // E.g. "%g"
-                      const char *string_fmt = "%s",        // E.g. "\"%s\""
-                      const char aggregate_delim[2] = "()", // Both sides of vector
-                      const char *aggregate_sep = ",",      // E.g. ", "
-                      const char array_delim[2] = "{}",     // Both sides of array
-                      const char *array_sep = ",");         // E.g. "; "
-#endif
 
 
 /// A template mechanism for getting the a base type from C type
@@ -440,12 +395,20 @@ std::string tostring (TypeDesc type, const void *data,
 template<typename T> struct BaseTypeFromC {};
 template<> struct BaseTypeFromC<unsigned char> { static const TypeDesc::BASETYPE value = TypeDesc::UINT8; };
 template<> struct BaseTypeFromC<char> { static const TypeDesc::BASETYPE value = TypeDesc::INT8; };
-template<> struct BaseTypeFromC<unsigned short> { static const TypeDesc::BASETYPE value = TypeDesc::UINT16; };
-template<> struct BaseTypeFromC<short> { static const TypeDesc::BASETYPE value = TypeDesc::INT16; };
-template<> struct BaseTypeFromC<unsigned int> { static const TypeDesc::BASETYPE value = TypeDesc::UINT; };
-template<> struct BaseTypeFromC<int> { static const TypeDesc::BASETYPE value = TypeDesc::INT; };
+template<> struct BaseTypeFromC<uint16_t> { static const TypeDesc::BASETYPE value = TypeDesc::UINT16; };
+template<> struct BaseTypeFromC<int16_t> { static const TypeDesc::BASETYPE value = TypeDesc::INT16; };
+template<> struct BaseTypeFromC<uint32_t> { static const TypeDesc::BASETYPE value = TypeDesc::UINT; };
+template<> struct BaseTypeFromC<int32_t> { static const TypeDesc::BASETYPE value = TypeDesc::INT; };
+template<> struct BaseTypeFromC<uint64_t> { static const TypeDesc::BASETYPE value = TypeDesc::UINT64; };
+template<> struct BaseTypeFromC<int64_t> { static const TypeDesc::BASETYPE value = TypeDesc::INT64; };
+#if defined(__GNUC__) && __WORDSIZE == 64 && !(defined(__APPLE__) && defined(__MACH__))
+// Some platforms consider int64_t and long long to be different types, even
+// though they are actually the same size.
+static_assert(!std::is_same_v<unsigned long long, uint64_t>);
+static_assert(!std::is_same_v<long long, int64_t>);
 template<> struct BaseTypeFromC<unsigned long long> { static const TypeDesc::BASETYPE value = TypeDesc::UINT64; };
 template<> struct BaseTypeFromC<long long> { static const TypeDesc::BASETYPE value = TypeDesc::INT64; };
+#endif
 #if defined(_HALF_H_) || defined(IMATH_HALF_H_)
 template<> struct BaseTypeFromC<half> { static const TypeDesc::BASETYPE value = TypeDesc::HALF; };
 #endif

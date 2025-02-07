@@ -90,7 +90,7 @@ commit_parsers = [
 #   { message = '^feat\((.*)\)', group = 'Features and API changes (${1})' },
   { message = '^feat', group = '<!-- 10 -->⛰️  Features and API changes' },
   { message = '^api', group = '<!-- 10 -->⛰️  Features and API changes' },
-  { message = '^perf', group = '<!-- 20 -->🚀  Performance Improvements' },
+  { message = '^perf', group = '<!-- 20 -->🚀  Performance Improvements', scope='perf' },
   { message = '^fix', group = '<!-- 30 -->🐛  Fixes and feature enhancements' },
   { message = '^enh', group = '<!-- 30 -->🐛  Fixes and feature enhancements' },
   { message = '^int', group = '<!-- 40 -->🔧  Internals and developer goodies' },

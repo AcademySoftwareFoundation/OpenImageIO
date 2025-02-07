@@ -39,13 +39,16 @@ extern std::string output_format_list;
 extern std::string extension_list;
 extern std::string library_list;
 extern OIIO_UTIL_API int oiio_print_debug;
+extern OIIO_UTIL_API int oiio_print_uncaught_errors;
 extern int oiio_log_times;
 extern int openexr_core;
+extern int jpeg_com_attributes;
+extern int png_linear_premult;
 extern int limit_channels;
 extern int limit_imagesize_MB;
-extern int opencv_version;
 extern int imagebuf_print_uncaught_errors;
 extern int imagebuf_use_imagecache;
+extern int imageinput_strict;
 extern atomic_ll IB_local_mem_current;
 extern atomic_ll IB_local_mem_peak;
 extern std::atomic<float> IB_total_open_time;
@@ -57,7 +60,12 @@ OIIO_API const std::vector<std::string>&
 font_file_list();
 OIIO_API const std::vector<std::string>&
 font_list();
-
+OIIO_API const std::vector<std::string>&
+font_family_list();
+OIIO_API const std::vector<std::string>
+font_style_list(string_view family);
+OIIO_API const std::string
+font_filename(string_view family, string_view style = "");
 
 
 // Make sure all plugins are inventoried. For internal use only.
@@ -149,7 +157,7 @@ private:
 
 
 // Access to an internal periodic blue noise table.
-OIIO_INLINE_CONSTEXPR int bntable_res = 256;
+inline constexpr int bntable_res = 256;
 extern float bluenoise_table[bntable_res][bntable_res][4];
 
 // 1-channel value lookup of periodic blue noise of a 2D coordinate.

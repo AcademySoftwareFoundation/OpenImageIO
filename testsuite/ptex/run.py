@@ -8,4 +8,4 @@
 imagedir = "src"
 files = [ "triangle.ptx" ]
 for f in files:
-    command += info_command (imagedir + "/" + f)
+    command += info_command (imagedir + "/" + f, extraargs="--stats")

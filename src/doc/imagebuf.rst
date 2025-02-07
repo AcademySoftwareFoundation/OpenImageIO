@@ -47,8 +47,8 @@ Making an empty or uninitialized ImageBuf
 Constructing a readable ImageBuf
 --------------------------------
 
-.. doxygenfunction:: OIIO::ImageBuf::ImageBuf(string_view name, int subimage = 0, int miplevel = 0, ImageCache *imagecache = nullptr, const ImageSpec *config = nullptr, Filesystem::IOProxy *ioproxy = nullptr)
-.. doxygenfunction:: OIIO::ImageBuf::reset(string_view name, int subimage = 0, int miplevel = 0, ImageCache *imagecache = nullptr, const ImageSpec *config = nullptr, Filesystem::IOProxy *ioproxy = nullptr)
+.. doxygenfunction:: OIIO::ImageBuf::ImageBuf(string_view name, int subimage = 0, int miplevel = 0, std::shared_ptr<ImageCache> imagecache = {}, const ImageSpec *config = nullptr, Filesystem::IOProxy *ioproxy = nullptr)
+.. doxygenfunction:: OIIO::ImageBuf::reset(string_view name, int subimage = 0, int miplevel = 0, std::shared_ptr<ImageCache> imagecache = {}, const ImageSpec *config = nullptr, Filesystem::IOProxy *ioproxy = nullptr)
 
 
 Constructing a writable ImageBuf
@@ -163,10 +163,10 @@ Getting and setting pixel values
 .. doxygenfunction:: OIIO::ImageBuf::getchannel
 .. doxygenfunction:: OIIO::ImageBuf::getpixel(int x, int y, int z, float *pixel, int maxchannels = 1000, WrapMode wrap = WrapBlack) const
 
-.. doxygenfunction:: OIIO::ImageBuf::interppixel
-.. doxygenfunction:: OIIO::ImageBuf::interppixel_bicubic
-.. doxygenfunction:: OIIO::ImageBuf::interppixel_NDC
-.. doxygenfunction:: OIIO::ImageBuf::interppixel_bicubic_NDC
+.. doxygenfunction:: OIIO::ImageBuf::interppixel(float, float, span<float>, WrapMode) const
+.. doxygenfunction:: OIIO::ImageBuf::interppixel_bicubic(float, float, span<float>, WrapMode) const
+.. doxygenfunction:: OIIO::ImageBuf::interppixel_NDC(float, float, span<float>, WrapMode) const
+.. doxygenfunction:: OIIO::ImageBuf::interppixel_bicubic_NDC(float, float, span<float>, WrapMode) const
 
 .. doxygenfunction:: OIIO::ImageBuf::setpixel(int x, int y, int z, cspan<float> pixel)
 .. doxygenfunction:: OIIO::ImageBuf::setpixel(int i, cspan<float> pixel)
@@ -175,8 +175,10 @@ Getting and setting pixel values
 
 **Getting and setting regions of pixels -- fast**
 
-.. doxygenfunction:: OIIO::ImageBuf::get_pixels
-.. doxygenfunction:: OIIO::ImageBuf::set_pixels
+.. doxygenfunction:: OIIO::ImageBuf::get_pixels(ROI, span<T>, stride_t, stride_t, stride_t) const
+.. doxygenfunction:: OIIO::ImageBuf::get_pixels(ROI, span<T>, T*, stride_t, stride_t, stride_t) const
+.. doxygenfunction:: OIIO::ImageBuf::set_pixels(ROI, span<T>, stride_t, stride_t, stride_t)
+.. doxygenfunction:: OIIO::ImageBuf::set_pixels(ROI, span<T>, const T*, stride_t, stride_t, stride_t)
 
 
 
@@ -271,9 +273,9 @@ Cons/Limitations:
   this approach, especially for operations where you expect inputs to be float
   typically.
 
-.. doxygenfunction:: perpixel_op(const ImageBuf &src, bool (*op)(span<float>, cspan<float>), int prepflags = ImageBufAlgo::IBAprep_DEFAULT, int nthreads = 0)
+.. doxygenfunction:: perpixel_op(const ImageBuf &src, function_view<bool(span<float>, cspan<float>)> op, KWArgs options = {})
 
-.. doxygenfunction:: perpixel_op(const ImageBuf &srcA, const ImageBuf &srcB, bool (*op)(span<float>, cspan<float>, cspan<float>), int prepflags = ImageBufAlgo::IBAprep_DEFAULT, int nthreads = 0)
+.. doxygenfunction:: perpixel_op(const ImageBuf &srcA, const ImageBuf& srcB, function_view<bool(span<float>, cspan<float>, cspan<float>)> op, KWArgs options = {})
 
 Examples:
 

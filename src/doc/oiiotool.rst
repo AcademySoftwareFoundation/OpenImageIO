@@ -241,7 +241,7 @@ contents of an expression may be any of:
 
 To illustrate how this works, consider the following command, which trims
 a four-pixel border from all sides and outputs a new image prefixed with
-"cropped_", without needing to know the resolution or filename of the
+"`cropped_`", without needing to know the resolution or filename of the
 original image::
 
     oiiotool input.exr -cut "{TOP.width-2*4}x{TOP.height-2*4}+{TOP.x+4}+{TOP.y+4}" \
@@ -2193,6 +2193,18 @@ current top image.
     image comprised of the subimages of all original images appended
     together.
 
+.. option:: --layersplit
+
+    Remove the top image from the stack, split it into a separate image for
+    each of its constituent channel-name-based layers, and push them all
+    onto the stack (first to last).
+
+    By "layer" we mean a subset of the initial channels which, when named
+    using the convention "LAYERNAME.channelname", all share the same layer
+    name. Channels that do not contain a dot in their name are considered
+    to be part of an anonymous layer, and thus are all gathered into a
+    single image (the first one pushed on the stack).
+
 .. option:: --ch <channellist>
 
     Replaces the top image with a new image whose channels have been
@@ -2380,7 +2392,7 @@ current top image.
 
             --pattern fill:top=0.1,0.1,0.1:bottom=0,0,0.5 640x480 3
             --pattern fill:left=0.1,0.1,0.1:right=0,0.75,0 640x480 3
-            --pattern fill:topleft=.1,.1,.1:topright=1,0,0:bottomleft=0,1,0:botromright=0,0,1 640x480 3
+            --pattern fill:topleft=.1,.1,.1:topright=1,0,0:bottomleft=0,1,0:bottomright=0,0,1 640x480 3
 
         .. image:: figures/gradient.jpg
             :width: 2.0in
@@ -2505,6 +2517,27 @@ current top image.
 
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+
+
+.. option:: --scale
+
+    Replace the *two* top images with a new image that is the pixel-by-pixel
+    multiplicative product of those images. One of the images must have a single
+    channel, that channel's pixel value is used to scale all channels of the
+    other image by.
+
+
+    Example::
+
+        # Apply vertical gradient
+        oiiotool tahoe.jpg --pattern fill:top=0.5:bottom=1 512x384 1 --scale -o scale.jpg
+    ..
+
+        .. image:: figures/tahoe-small.jpg
+            :width: 2.0 in
+        .. image:: figures/scale.jpg
+            :width: 2.0 in
+        |
 
 
 .. option:: --mul
@@ -2781,8 +2814,7 @@ current top image.
       `max=` *vals*
         Specify the maximum range value(s), default 1.0.
       `scontrast=` *vals*
-        Specify sigmoidal contrast slope value(s),
-      default 1.0.
+        Specify sigmoidal contrast slope value(s), default 1.0.
       `sthresh=` *vals*
         Specify sigmoidal threshold value(s) giving the position of maximum
         slope, default 0.5.
@@ -4110,14 +4142,14 @@ current top image.
 
        # four-corner interpolated gradient
        oiiotool --create 640x480 3 \
-           -fill:topleft=.1,.1,.1:topright=1,0,0:bottomleft=0,1,0:botromright=0,0,1 \
+           -fill:topleft=.1,.1,.1:topright=1,0,0:bottomleft=0,1,0:bottomright=0,0,1 \
                640x480 -o gradient.tif
 
-    .. |textimg1| image:: figures/gradient.jpg
+    .. |gradimg1| image:: figures/gradient.jpg
        :width: 2.0 in
-    .. |textimg2| image:: figures/gradienth.jpg
+    .. |gradimg2| image:: figures/gradienth.jpg
        :width: 2.0 in
-    .. |textimg2| image:: figures/gradient4.jpg
+    .. |gradimg3| image:: figures/gradient4.jpg
        :width: 2.0 in
     ..
 
@@ -4175,13 +4207,47 @@ current top image.
        :width: 2.0 in
     .. |textimg2| image:: figures/textcentered.jpg
        :width: 2.0 in
-    .. |textimg2| image:: figures/textshadowed.jpg
+    .. |textimg3| image:: figures/textshadowed.jpg
        :width: 2.0 in
     ..
     
     Note that because of slightly differing fonts and versions of Freetype
     available, we do not expect drawn text to be pixel-for-pixel identical
     on different platforms supported by OpenImageIO.
+
+
+
+.. option:: --demosaic
+
+    Demosaic a raw digital camera image.
+
+    Optional appended modifiers include:
+
+      `pattern=` *name*
+        sensor pattern. Currently supported patterns: "bayer", "xtrans".
+      `layout=` *name*
+        photosite order of the specified pattern. The default value is "RGGB"
+        for Bayer, and "GRBGBR BGGRGG RGGBGG GBRGRB RGGBGG BGGRGG" for X-Trans.
+      `algorithm=` *name*
+        the name of the algorithm to use.
+        The Bayer-pattern algorithms:
+        - "linear"(simple bilinear demosaicing),
+        - "MHC"(Malvar-He-Cutler algorithm).
+        The X-Trans-pattern algorithms:
+        - "linear"(simple bilinear demosaicing).
+      `white-balance=` *v1,v2,v3...*
+        optional white balance weights, can contain either three (R,G,B) or four
+        (R,G1,B,G2) values. The order of the white balance multipliers is as
+        specified, it does not depend on the matrix layout.
+
+    Examples::
+
+         oiiotool --iconfig raw:Demosaic none --input test.cr3 --demosaic \
+            --output out.exr
+
+         oiiotool --iconfig raw:Demosaic none --input test.cr3 \
+            --demosaic:pattern=bayer:layout=GRBG:algorithm=MHC:white_balance=2.0,0.8,1.2,1.5 \
+            --output out.exr
 
 
 
@@ -4438,6 +4504,39 @@ will be printed with the command `oiiotool --colorconfiginfo`.
     Examples::
 
         oiiotool in.jpg --ociofiletransform footransform.csp -o out.jpg
+
+
+.. option:: --ocionamedtransform <name>
+
+    Replace the current image with a new image whose pixels are transformed
+    using the named OpenColorIO named transform.  Optional appended arguments
+    include:
+
+    - `key=` *name*, `value=` *str*
+
+      Adds a key/value pair to the "context" that OpenColorIO will used
+      when applying the look. Multiple key/value pairs may be specified by
+      making each one a comma-separated list.
+    
+    - `inverse=` *val* :
+
+      If *val* is nonzero, inverts the color transformation.
+
+    - `unpremult=` *val* :
+
+      If the numeric *val* is nonzero, the pixel values will be
+      "un-premultipled" (divided by alpha) prior to the actual color
+      conversion, and then re-multipled by alpha afterwards. The default is
+      0, meaning the color transformation not will be automatically
+      bracketed by divide-by-alpha / mult-by-alpha operations.
+
+      `:subimages=` *indices-or-names*
+        Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+
+    Examples::
+
+        oiiotool in.exr --ocionamedtransform:inverse=1 srgb_crv -o out.jpg
+
 
 .. option:: --unpremult
 

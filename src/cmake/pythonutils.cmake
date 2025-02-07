@@ -32,13 +32,24 @@ macro (find_python)
             list (APPEND _req EXACT)
         endif ()
     endif ()
+
+    # Support building on manylinux docker images, which do not contain
+    # the Development.Embedded component.
+    # https://pybind11.readthedocs.io/en/stable/compiling.html#findpython-mode
+    if (WIN32)
+        set (_py_components Interpreter Development)
+    else ()
+        set (_py_components Interpreter Development.Module)
+    endif ()
+
     checked_find_package (Python3 ${PYTHON_VERSION}
                           ${_req}
                           VERSION_MIN 3.7
-                          COMPONENTS Interpreter Development
+                          COMPONENTS ${_py_components}
                           PRINT Python3_VERSION Python3_EXECUTABLE
                                 Python3_LIBRARIES
                                 Python3_Development_FOUND
+                                Python3_Development.Module_FOUND
                                 Python3_Interpreter_FOUND )
 
     # The version that was found may not be the default or user
@@ -63,7 +74,7 @@ endmacro()
 # pybind11
 
 macro (setup_python_module)
-    cmake_parse_arguments (lib "" "TARGET;MODULE" "SOURCES;LIBS" ${ARGN})
+    cmake_parse_arguments (lib "" "TARGET;MODULE" "SOURCES;LIBS;INCLUDES;SYSTEM_INCLUDE_DIRS" ${ARGN})
     # Arguments: <prefix> <options> <one_value_keywords> <multi_value_keywords> args...
 
     set (target_name ${lib_TARGET})
@@ -79,6 +90,10 @@ macro (setup_python_module)
 #    add_library (${target_name} MODULE ${lib_SOURCES})
 #
     # Declare the libraries it should link against
+    target_include_directories (${target_name}
+                                PRIVATE ${lib_INCLUDES})
+    target_include_directories (${target_name}
+                                SYSTEM PRIVATE ${lib_SYSTEM_INCLUDE_DIRS})
     target_link_libraries (${target_name}
                            PRIVATE ${lib_LIBS})
 
@@ -125,6 +140,10 @@ macro (setup_python_module)
 #                               SUFFIX ".pyd")
 #    endif()
 
+    if (SKBUILD)
+        set (PYTHON_SITE_DIR .)
+    endif ()
+
     # In the build area, put it in lib/python so it doesn't clash with the
     # non-python libraries of the same name (which aren't prefixed by "lib"
     # on Windows).
@@ -137,7 +156,7 @@ macro (setup_python_module)
              RUNTIME DESTINATION ${PYTHON_SITE_DIR} COMPONENT user
              LIBRARY DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
 
-    install(FILES __init__.py DESTINATION ${PYTHON_SITE_DIR})
+    install(FILES __init__.py DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
 
 endmacro ()
 

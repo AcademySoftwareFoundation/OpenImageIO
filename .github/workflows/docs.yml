@@ -1,0 +1,91 @@
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
+
+name: docs
+
+on:
+  push:
+    # Skip jobs when only cpp files are changed. The materials for
+    # docs are all in md, rst, and .h files.
+    paths-ignore:
+      - '**/ci.yml'
+      - '**/analysis.yml'
+      - '**/scorecard.yml'
+      - '**.properties'
+      - 'src/**.cpp'
+      - '**.cmake'
+      - '**/CMakeLists.txt'
+      - '**/run.py'
+  pull_request:
+    paths-ignore:
+      - '**/ci.yml'
+      - '**/analysis.yml'
+      - '**/scorecard.yml'
+      - '**.properties'
+      - 'src/**.cpp'
+      - '**.cmake'
+      - '**/CMakeLists.txt'
+      - '**/run.py'
+  schedule:
+    # Full nightly build
+    - cron: "0 8 * * *"
+      if: github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+  workflow_dispatch:
+    # This allows manual triggering of the workflow from the web
+
+permissions: read-all
+
+# Allow subsequent pushes to the same PR or REF to cancel any previous jobs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+
+jobs:
+  docs:
+    name: "Docs / ${{matrix.desc}}"
+    uses: ./.github/workflows/build-steps.yml
+    with:
+      nametag: ${{ matrix.nametag || 'unnamed!' }}
+      runner: ${{ matrix.runner || 'ubuntu-latest' }}
+      container: ${{ matrix.container }}
+      cc_compiler: ${{ matrix.cc_compiler }}
+      cxx_compiler: ${{ matrix.cxx_compiler }}
+      cxx_std: ${{ matrix.cxx_std || '17' }}
+      build_type: ${{ matrix.build_type || 'Release' }}
+      depcmds: ${{ matrix.depcmds }}
+      extra_artifacts: ${{ matrix.extra_artifacts }}
+      fmt_ver: ${{ matrix.fmt_ver }}
+      opencolorio_ver: ${{ matrix.opencolorio_ver }}
+      openexr_ver: ${{ matrix.openexr_ver }}
+      pybind11_ver: ${{ matrix.pybind11_ver }}
+      python_ver: ${{ matrix.python_ver }}
+      setenvs: ${{ matrix.setenvs }}
+      simd: ${{ matrix.simd }}
+      skip_build: ${{ matrix.skip_build }}
+      skip_tests: ${{ matrix.skip_tests }}
+      abi_check: ${{ matrix.abi_check }}
+      build_docs: ${{ matrix.build_docs }}
+      generator: ${{ matrix.generator }}
+      ctest_args: ${{ matrix.ctest_args }}
+      ctest_test_timeout: ${{ matrix.ctest_test_timeout }}
+      coverage: ${{ matrix.coverage || '0' }}
+      sonar: ${{ matrix.sonar || '0' }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - desc: docs
+            nametag: docslinux
+            runner: ubuntu-latest
+            container: aswftesting/ci-openexr:2024
+            vfxyear: 2024
+            cxx_std: 17
+            python_ver: "3.11"
+            build_docs: 1
+            skip_build: 1
+            skip_tests: 1
+            setenvs: export EXTRA_DEP_PACKAGES="doxygen sphinx-doc"
+                            PIP_INSTALLS="sphinx breathe sphinx-tabs furo"

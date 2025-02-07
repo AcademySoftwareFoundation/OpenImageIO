@@ -1,10 +1,10 @@
 # Copyright Contributors to the OpenImageIO project.
-# SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
+# SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-cmake_minimum_required (VERSION 3.15)
+cmake_minimum_required (VERSION 3.18.2)
 
-set (OpenImageIO_VERSION "2.6.3.0")
+set (OpenImageIO_VERSION "3.1.0.0")
 set (OpenImageIO_VERSION_OVERRIDE "" CACHE STRING
      "Version override (use with caution)!")
 mark_as_advanced (OpenImageIO_VERSION_OVERRIDE)
@@ -24,7 +24,7 @@ set (PROJECT_VERSION_RELEASE_TYPE "dev" CACHE STRING
 set (${PROJECT_NAME}_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
 set (PROJECT_AUTHORS "Contributors to the OpenImageIO project")
 option (${PROJECT_NAME}_SUPPORTED_RELEASE
-        "Set ON for supported release branch, OFF for master" OFF)
+        "Set ON for supported release branches, OFF for 'main'" OFF)
 if (${PROJECT_NAME}_SUPPORTED_RELEASE)
     set (${PROJECT_NAME}_DEV_RELEASE OFF)
 else ()
@@ -87,9 +87,11 @@ message (STATUS "Build type             = ${CMAKE_BUILD_TYPE}")
 message (STATUS "Supported release      = ${${PROJECT_NAME}_SUPPORTED_RELEASE}")
 
 # Make the build area layout look a bit more like the final dist layout
-set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+if (PROJECT_IS_TOP_LEVEL)
+    set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+    set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+    set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+endif()
 
 if ("${PROJECT_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
     message (FATAL_ERROR "Not allowed to run in-source build!")
@@ -138,22 +140,30 @@ set (TEX_BATCH_SIZE "" CACHE STRING "Force TextureSystem SIMD batch size (e.g. 1
 if (TEX_BATCH_SIZE)
     add_compile_definitions (OIIO_TEXTURE_SIMD_BATCH_WIDTH=${TEX_BATCH_SIZE})
 endif ()
-option (OIIO_TEX_IMPLEMENT_VARYINGREF "Implement the deprecated batch texture functions taking VaryingRef params" ON)
-if (NOT OIIO_TEX_IMPLEMENT_VARYINGREF)
-    add_compile_definitions (OIIO_TEX_NO_IMPLEMENT_VARYINGREF=1)
-endif ()
 
-# Set the default namespace
-set (${PROJ_NAME}_NAMESPACE ${PROJECT_NAME} CACHE STRING
-     "Customized outer namespace base name (version will be added)")
-option (${PROJ_NAME}_NAMESPACE_INCLUDE_PATCH
+
+# Namespace settings
+#
+# The "outer namespace" defaults to the project name, but it can be overridden
+# to allow custom builds that put everything inside a unique namespace that
+# can't conflict with default builds.
+set (${PROJ_NAME}_OUTER_NAMESPACE ${PROJECT_NAME} CACHE STRING
+     "Customized outer namespace")
+set (PROJ_NAMESPACE "${${PROJ_NAME}_OUTER_NAMESPACE}")  # synonym
+# There is also an inner namespace that is either vMAJ_MIN or vMAJ_MIN_PATCH,
+# depending on the setting of ${PROJ_NAME}_INNER_NAMESPACE_INCLUDE_PATCH.
+option (${PROJ_NAME}_INNER_NAMESPACE_INCLUDE_PATCH
         "Should the inner namespace include the patch number" ${${PROJECT_NAME}_DEV_RELEASE})
-set (PROJ_NAMESPACE "${${PROJ_NAME}_NAMESPACE}")
-set (PROJ_NAMESPACE_V "${PROJ_NAMESPACE}_v${PROJECT_VERSION_MAJOR}_${PROJECT_VERSION_MINOR}")
-if (${PROJ_NAME}_NAMESPACE_INCLUDE_PATCH)
-    set (PROJ_NAMESPACE_V "${PROJ_NAMESPACE_V}_${PROJECT_VERSION_PATCH}")
+if (${PROJ_NAME}_INNER_NAMESPACE_INCLUDE_PATCH)
+    set (PROJ_VERSION_NAMESPACE "v${PROJECT_VERSION_MAJOR}_${PROJECT_VERSION_MINOR}_${PROJECT_VERSION_PATCH}")
+else ()
+    set (PROJ_VERSION_NAMESPACE "v${PROJECT_VERSION_MAJOR}_${PROJECT_VERSION_MINOR}")
 endif ()
-message(STATUS "Setting Namespace to: ${PROJ_NAMESPACE_V}")
+# PROJ_NAMESPACE_V combines the outer and inner namespaces into one symbol
+set (PROJ_NAMESPACE_V "${PROJ_NAMESPACE}_${PROJ_VERSION_NAMESPACE}")
+message(STATUS "Outer namespace PROJ_OUTER_NAMESPACE:   ${PROJ_NAMESPACE}")
+message(STATUS "Inner namespace PROJ_VERSION_NAMESPACE: ${PROJ_VERSION_NAMESPACE}")
+message(STATUS "Joint namespace PROJ_NAMESPACE_V:       ${PROJ_NAMESPACE_V}")
 
 
 # Define OIIO_INTERNAL symbol only when building OIIO itself, will not be
@@ -170,6 +180,38 @@ include (compiler)
 
 # Dependency finding utilities and all dependency-related options
 include (dependency_utils)
+
+option (IGNORE_HOMEBREWED_DEPS "If ON, will ignore homebrew-installed dependencies" OFF)
+if (IGNORE_HOMEBREWED_DEPS)
+    # Define the list of prefixes to ignore
+    set (HOMEBREW_PREFIXES
+         /opt/homebrew
+         /usr/local
+         /usr/X11
+         /usr/X11R6
+         /opt/X11
+    )
+    message (STATUS "Ignoring Homebrew dependencies and adjusted environment and CMake variables accordingly.")
+    foreach (_cmake_var
+             CMAKE_SYSTEM_INCLUDE_PATH
+             CMAKE_SYSTEM_LIBRARY_PATH
+             CMAKE_PREFIX_PATH)
+        remove_prefixes_from_variable (CMAKE ${_cmake_var} "${HOMEBREW_PREFIXES}")
+    endforeach ()
+
+    # Adjust CMAKE_IGNORE_PATH
+    foreach (_prefix IN LISTS HOMEBREW_PREFIXES)
+        list (APPEND CMAKE_IGNORE_PATH
+              "${_prefix}"
+              "${_prefix}/lib"
+              "${_prefix}/bin"
+              "${_prefix}/include"
+             )
+    endforeach ()
+
+    message (STATUS "CMAKE_IGNORE_PATH: ${CMAKE_IGNORE_PATH}")
+endif ()
+
 
 # Utilities and options related to finding python and making python bindings
 include (pythonutils)
@@ -228,6 +270,17 @@ if (NOT BUILD_OIIOUTIL_ONLY)
     add_subdirectory (src/libOpenImageIO)
 endif ()
 
+# Disable building of certain tools when building Python wheels
+if (SKBUILD)
+    set (ENABLE_iconvert OFF)
+    set (ENABLE_idiff OFF)
+    set (ENABLE_igrep OFF)
+    set (ENABLE_iinfo OFF)
+    set (ENABLE_testtex OFF)
+    set (ENABLE_iv OFF)
+endif ()
+
+
 if (OIIO_BUILD_TOOLS AND NOT BUILD_OIIOUTIL_ONLY)
     add_subdirectory (src/iconvert)
     add_subdirectory (src/idiff)
@@ -248,10 +301,16 @@ if (NOT EMBEDPLUGINS AND NOT BUILD_OIIOUTIL_ONLY)
     endforeach ()
 endif ()
 
-if (USE_PYTHON AND Python3_Development_FOUND AND NOT BUILD_OIIOUTIL_ONLY)
+
+if (WIN32)
+    set (_py_dev_found Python3_Development_FOUND)    
+else ()
+    set (_py_dev_found Python3_Development.Module_FOUND)
+endif ()
+if (USE_PYTHON AND ${_py_dev_found} AND NOT BUILD_OIIOUTIL_ONLY)
     add_subdirectory (src/python)
 else ()
-    message (STATUS "Not building Python bindings: USE_PYTHON=${USE_PYTHON}, Python3_Development_FOUND=${Python3_Development_FOUND}")
+    message (STATUS "Not building Python bindings: USE_PYTHON=${USE_PYTHON}, Python3_Development.Module_FOUND=${Python3_Development.Module_FOUND}")
 endif ()
 
 add_subdirectory (src/include)

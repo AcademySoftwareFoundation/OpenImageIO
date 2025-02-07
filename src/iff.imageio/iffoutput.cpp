@@ -134,7 +134,7 @@ IffOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     // limited to images.
     //
     // The openimageio IFF implementation deals specifically with Maya IFF
-    // images with it's data blocks structured as follows:
+    // images with its data blocks structured as follows:
     //
     // Header:
     // FOR4 <size> CIMG
@@ -679,8 +679,7 @@ IffOutput::compress_verbatim(const uint8_t*& in, uint8_t*& out, int size,
     // copy
     OIIO_DASSERT(out >= out_span.begin() && out < out_span.end());
     *out++ = count - 1;
-    OIIO_DASSERT(out >= out_span.begin() && out + count <= out_span.end());
-    memcpy(out, in, count);
+    span_memcpy(out, in, size_t(count), out_span, in_span);
 
     out += count;
     in += count;

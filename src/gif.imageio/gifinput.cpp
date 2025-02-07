@@ -259,7 +259,7 @@ GIFInput::read_subimage_metadata(ImageSpec& newspec)
     newspec.nchannels = 4;
     newspec.default_channel_names();
     newspec.alpha_channel = 4;
-    newspec.attribute("oiio:ColorSpace", "sRGB");
+    newspec.set_colorspace("sRGB");
 
     m_previous_disposal_method = m_disposal_method;
     m_disposal_method          = DISPOSAL_UNSPECIFIED;

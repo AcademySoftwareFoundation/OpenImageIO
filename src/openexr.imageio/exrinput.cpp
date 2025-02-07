@@ -148,6 +148,40 @@ namespace pvt {
 void
 set_exr_threads();
 
+
+// Split a full channel name into layer and suffix.
+void
+split_name(string_view fullname, string_view& layer, string_view& suffix)
+{
+    size_t dot = fullname.find_last_of('.');
+    if (dot == string_view::npos) {
+        suffix = fullname;
+        layer  = string_view();
+    } else {
+        layer  = string_view(fullname.data(), dot + 1);
+        suffix = string_view(fullname.data() + dot + 1,
+                             fullname.size() - dot - 1);
+    }
+}
+
+
+inline bool
+str_equal_either(string_view str, string_view a, string_view b)
+{
+    return Strutil::iequals(str, a) || Strutil::iequals(str, b);
+}
+
+
+// Do the channels appear to be R, G, B (or known common aliases)?
+bool
+channels_are_rgb(const ImageSpec& spec)
+{
+    return spec.nchannels >= 3
+           && str_equal_either(spec.channel_name(0), "R", "Red")
+           && str_equal_either(spec.channel_name(1), "G", "Green")
+           && str_equal_either(spec.channel_name(2), "B", "Blue");
+}
+
 }  // namespace pvt
 
 
@@ -357,8 +391,13 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
 
     spec.deep = Strutil::istarts_with(header->type(), "deep");
 
-    // Unless otherwise specified, exr files are assumed to be linear.
-    spec.attribute("oiio:ColorSpace", "Linear");
+    // Unless otherwise specified, exr files are assumed to be linear Rec709
+    // if the channels appear to be R, G, B.  I know this suspect, but I'm
+    // betting that this heuristic will guess the right thing that users want
+    // more often than if we pretending we have no idea what the color space
+    // is.
+    if (pvt::channels_are_rgb(spec))
+        spec.set_colorspace("lin_rec709");
 
     if (levelmode != Imf::ONE_LEVEL)
         spec.attribute("openexr:roundingmode", roundingmode);
@@ -613,7 +652,7 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
     }
 
     // EXR "name" also gets passed along as "oiio:subimagename".
-    if (header->hasName() && header->name() != "")
+    if (header->hasName())
         spec.attribute("oiio:subimagename", header->name());
 
     spec.attribute("oiio:subimages", in->m_nsubimages);
@@ -666,7 +705,7 @@ struct ChanNameHolder {
         , xSampling(exrchan.xSampling)
         , ySampling(exrchan.ySampling)
     {
-        split_name(fullname, layer, suffix);
+        pvt::split_name(fullname, layer, suffix);
     }
 
     // Compute canoninical channel list sort priority
@@ -1024,6 +1063,9 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
     m_miplevel = miplevel;
     m_spec     = part.spec;
 
+    if (!check_open(m_spec, { 0, 1 << 20, 0, 1 << 20, 0, 1 << 16, 0, 1 << 12 }))
+        return false;
+
     if (miplevel == 0 && part.levelmode == Imf::ONE_LEVEL) {
         return true;
     }
@@ -1167,6 +1209,7 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
             m_input_rgba->readPixels(ybegin, yend - 1);
 
             // FIXME There is probably some optimized code for this somewhere.
+            OIIO_DASSERT(chbegin >= 0 && chend > chbegin);
             for (int c = chbegin; c < chend; ++c) {
                 size_t chanbytes = m_spec.channelformat(c).size();
                 half* src        = &pixels[0][0].r + c;
@@ -1443,7 +1486,7 @@ OpenEXRInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
     try {
         size_t npixels = (yend - ybegin) * m_spec.width;
         chend          = clamp(chend, chbegin + 1, m_spec.nchannels);
-        int nchans     = chend - chbegin;
+        size_t nchans  = chend - chbegin;
 
         // Set up the count and pointers arrays and the Imf framebuffer
         std::vector<TypeDesc> channeltypes;
@@ -1460,16 +1503,17 @@ OpenEXRInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
                               sizeof(unsigned int),
                               sizeof(unsigned int) * m_spec.width);
         frameBuffer.insertSampleCountSlice(countslice);
+        size_t slchans      = m_spec.width * nchans;
+        size_t xstride      = sizeof(void*) * nchans;
+        size_t ystride      = sizeof(void*) * slchans;
+        size_t samplestride = deepdata.samplesize();
 
         for (int c = chbegin; c < chend; ++c) {
-            Imf::DeepSlice slice(
-                part.pixeltype[c],
-                (char*)(&pointerbuf[0] + (c - chbegin) - m_spec.x * nchans
-                        - ybegin * m_spec.width * nchans),
-                sizeof(void*) * nchans,  // xstride of pointer array
-                sizeof(void*) * nchans
-                    * m_spec.width,      // ystride of pointer array
-                deepdata.samplesize());  // stride of data sample
+            Imf::DeepSlice slice(part.pixeltype[c],
+                                 (char*)(&pointerbuf[0] + (c - chbegin)
+                                         - m_spec.x * nchans
+                                         - ybegin * slchans),
+                                 xstride, ystride, samplestride);
             frameBuffer.insert(m_spec.channelnames[c].c_str(), slice);
         }
         m_deep_scanline_input_part->setFrameBuffer(frameBuffer);
@@ -1522,7 +1566,7 @@ OpenEXRInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
         size_t height  = yend - ybegin;
         size_t npixels = width * height;
         chend          = clamp(chend, chbegin + 1, m_spec.nchannels);
-        int nchans     = chend - chbegin;
+        size_t nchans  = chend - chbegin;
 
         // Set up the count and pointers arrays and the Imf framebuffer
         std::vector<TypeDesc> channeltypes;
@@ -1537,14 +1581,15 @@ OpenEXRInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
             Imf::UINT, (char*)(&all_samples[0] - xbegin - ybegin * width),
             sizeof(unsigned int), sizeof(unsigned int) * width);
         frameBuffer.insertSampleCountSlice(countslice);
+        size_t slchans      = width * nchans;
+        size_t xstride      = sizeof(void*) * nchans;
+        size_t ystride      = sizeof(void*) * slchans;
+        size_t samplestride = deepdata.samplesize();
         for (int c = chbegin; c < chend; ++c) {
-            Imf::DeepSlice slice(
-                part.pixeltype[c],
-                (char*)(&pointerbuf[0] + (c - chbegin) - xbegin * nchans
-                        - ybegin * width * nchans),
-                sizeof(void*) * nchans,          // xstride of pointer array
-                sizeof(void*) * nchans * width,  // ystride of pointer array
-                deepdata.samplesize());          // stride of data sample
+            Imf::DeepSlice slice(part.pixeltype[c],
+                                 (char*)(&pointerbuf[0] + (c - chbegin)
+                                         - xbegin * nchans - ybegin * slchans),
+                                 xstride, ystride, samplestride);
             frameBuffer.insert(m_spec.channelnames[c].c_str(), slice);
         }
         m_deep_tiled_input_part->setFrameBuffer(frameBuffer);

@@ -104,8 +104,14 @@ function (setup_oiio_util_library targetname)
 
     set_target_properties (${targetname} PROPERTIES
                            LINK_FLAGS ${OpenImageIO_Util_LINK_FLAGS})
+    
+    if (SKBUILD)
+        set (PYTHON_SITE_DIR .)
+        install_targets (NAMELINK_SKIP ${targetname})
+    else ()
+        install_targets (${targetname})
+    endif ()
 
-    install_targets (${targetname})
 endfunction()
 
 

@@ -22,9 +22,6 @@
 #include <OpenEXR/ImfTiledOutputFile.h>
 
 #include "exr_pvt.h"
-#define OPENEXR_CODED_VERSION                                    \
-    (OPENEXR_VERSION_MAJOR * 10000 + OPENEXR_VERSION_MINOR * 100 \
-     + OPENEXR_VERSION_PATCH)
 
 // The way that OpenEXR uses dynamic casting for attributes requires
 // temporarily suspending "hidden" symbol visibility mode.
@@ -734,16 +731,33 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
             || !ispow2(spec.tile_width) || !ispow2(spec.tile_height))) {
         comp = "zip";
     }
-    if (Strutil::istarts_with(comp, "dwa")) {
-        spec.attribute("openexr:dwaCompressionLevel",
-                       qual > 0 ? float(qual) : 45.0f);
-    }
     spec.attribute("compression", comp);
+
+    // Zip and DWA compression have additional ways to set the levels
 #if OPENEXR_CODED_VERSION >= 30103
+    // OpenEXR 3.1.3 and later allow us to pick the quality level. We've found
+    // that 4 is a great tradeoff between size and speed, so that is our
+    // default.
     if (Strutil::istarts_with(comp, "zip")) {
         header.zipCompressionLevel() = (qual >= 1 && qual <= 9) ? qual : 4;
     }
 #endif
+    if (Strutil::istarts_with(comp, "dwa") && qual > 0) {
+#if OPENEXR_CODED_VERSION >= 30103
+        // OpenEXR 3.1.3 and later have an API for setting the quality level
+        // in the Header object. Older ones do it by setting an attribute, as
+        // below.
+        header.dwaCompressionLevel() = float(qual);
+#endif
+        // We set this attribute even for older openexr, because even if we
+        // set in the header (above), it gets saved as metadata in the file so
+        // that when we re-read it, we know what the compression level was.
+        spec.attribute("openexr:dwaCompressionLevel", float(qual));
+    } else {
+        // If we're not compressing via dwaa/dwab, clear this attrib so we
+        // aren't incorrectly carrying it around.
+        spec.erase_attribute("openexr:dwaCompressionLevel");
+    }
 
     // Default to increasingY line order
     if (!spec.find_attribute("openexr:lineOrder"))
@@ -1052,10 +1066,10 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
                                   Imf::FloatAttribute((float)*(half*)data));
                     return true;
                 }
-                if (type == TypeString && *(const char**)data) {
+                if (type == TypeString && !((const ustring*)data)->empty()) {
                     header.insert(xname.c_str(),
                                   Imf::StringAttribute(
-                                      *(const char**)data));  //NOSONAR
+                                      ((const ustring*)data)->c_str()));
                     return true;
                 }
                 if (type == TypeDesc::DOUBLE) {
@@ -1686,17 +1700,17 @@ OpenEXROutput::write_deep_scanlines(int ybegin, int yend, int /*z*/,
         return false;
     }
 
-    int nchans         = m_spec.nchannels;
+    size_t nchans(m_spec.nchannels);
     const DeepData* dd = &deepdata;
     std::unique_ptr<DeepData> dd_local;  // In case we need a copy
     bool same_chantypes = true;
-    for (int c = 0; c < nchans; ++c)
+    for (size_t c = 0; c < nchans; ++c)
         same_chantypes &= (m_spec.channelformat(c) == deepdata.channeltype(c));
     if (!same_chantypes) {
         // If the channel types don't match, we need to make a copy of the
         // DeepData and convert the channels to the spec's channel types.
         std::vector<TypeDesc> chantypes;
-        if (m_spec.channelformats.size() == size_t(nchans))
+        if (m_spec.channelformats.size() == nchans)
             chantypes = m_spec.channelformats;
         else
             chantypes.resize(nchans, m_spec.format);
@@ -1715,15 +1729,15 @@ OpenEXROutput::write_deep_scanlines(int ybegin, int yend, int /*z*/,
         frameBuffer.insertSampleCountSlice(countslice);
         std::vector<void*> pointerbuf;
         dd->get_pointers(pointerbuf);
-        for (int c = 0; c < nchans; ++c) {
+        size_t slchans      = size_t(m_spec.width) * nchans;
+        size_t xstride      = sizeof(void*) * nchans;
+        size_t ystride      = sizeof(void*) * slchans;
+        size_t samplestride = dd->samplesize();
+        for (size_t c = 0; c < nchans; ++c) {
             Imf::DeepSlice slice(m_pixeltype[c],
                                  (char*)(&pointerbuf[c] - m_spec.x * nchans
-                                         - ybegin * m_spec.width * nchans),
-                                 sizeof(void*)
-                                     * nchans,  // xstride of pointer array
-                                 sizeof(void*) * nchans
-                                     * m_spec.width,  // ystride of pointer array
-                                 dd->samplesize());   // stride of data sample
+                                         - ybegin * slchans),
+                                 xstride, ystride, samplestride);
             frameBuffer.insert(m_spec.channelnames[c].c_str(), slice);
         }
         m_deep_scanline_output_part->setFrameBuffer(frameBuffer);
@@ -1758,17 +1772,17 @@ OpenEXROutput::write_deep_tiles(int xbegin, int xend, int ybegin, int yend,
         return false;
     }
 
-    int nchans         = m_spec.nchannels;
+    size_t nchans      = size_t(m_spec.nchannels);
     const DeepData* dd = &deepdata;
     std::unique_ptr<DeepData> dd_local;  // In case we need a copy
     bool same_chantypes = true;
-    for (int c = 0; c < nchans; ++c)
+    for (size_t c = 0; c < nchans; ++c)
         same_chantypes &= (m_spec.channelformat(c) == deepdata.channeltype(c));
     if (!same_chantypes) {
         // If the channel types don't match, we need to make a copy of the
         // DeepData and convert the channels to the spec's channel types.
         std::vector<TypeDesc> chantypes;
-        if (m_spec.channelformats.size() == size_t(nchans))
+        if (m_spec.channelformats.size() == nchans)
             chantypes = m_spec.channelformats;
         else
             chantypes.resize(nchans, m_spec.format);
@@ -1789,15 +1803,15 @@ OpenEXROutput::write_deep_tiles(int xbegin, int xend, int ybegin, int yend,
         frameBuffer.insertSampleCountSlice(countslice);
         std::vector<void*> pointerbuf;
         dd->get_pointers(pointerbuf);
-        for (int c = 0; c < nchans; ++c) {
+        size_t slchans      = width * nchans;
+        size_t xstride      = sizeof(void*) * nchans;
+        size_t ystride      = sizeof(void*) * slchans;
+        size_t samplestride = dd->samplesize();
+        for (size_t c = 0; c < nchans; ++c) {
             Imf::DeepSlice slice(m_pixeltype[c],
                                  (char*)(&pointerbuf[c] - xbegin * nchans
-                                         - ybegin * width * nchans),
-                                 sizeof(void*)
-                                     * nchans,  // xstride of pointer array
-                                 sizeof(void*) * nchans
-                                     * width,        // ystride of pointer array
-                                 dd->samplesize());  // stride of data sample
+                                         - ybegin * slchans),
+                                 xstride, ystride, samplestride);
             frameBuffer.insert(m_spec.channelnames[c].c_str(), slice);
         }
         m_deep_tiled_output_part->setFrameBuffer(frameBuffer);

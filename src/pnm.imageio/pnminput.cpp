@@ -223,8 +223,10 @@ PNMInput::read_file_scanline(void* data, int y)
                 numbytes = m_spec.nchannels * 4 * m_spec.width;
             else
                 numbytes = m_spec.scanline_bytes();
-            if (size_t(numbytes) > m_remaining.size())
+            if (size_t(numbytes) > m_remaining.size()) {
+                errorfmt("Premature end of file");
                 return false;
+            }
             buf.assign(m_remaining.begin(), m_remaining.begin() + numbytes);
 
             m_remaining.remove_prefix(numbytes);
@@ -337,7 +339,7 @@ PNMInput::read_file_header()
         m_spec.attribute("pnm:bigendian", m_scaling_factor < 0 ? 0 : 1);
         m_spec.attribute("pnm:binary", 1);
     }
-    m_spec.attribute("oiio:ColorSpace", "Rec709");
+    m_spec.set_colorspace("Rec709");
     return true;
 }
 
@@ -372,8 +374,12 @@ PNMInput::open(const std::string& name, ImageSpec& newspec)
     m_file_contents.resize(m_io->size());
     m_io->pread(m_file_contents.data(), m_file_contents.size(), 0);
     m_remaining = string_view(m_file_contents.data(), m_file_contents.size());
+    m_pfm_flip  = false;
 
     if (!read_file_header())
+        return false;
+
+    if (!check_open(m_spec))  // check for apparently invalid values
         return false;
 
     newspec = m_spec;

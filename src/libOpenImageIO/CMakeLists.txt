@@ -55,7 +55,9 @@ set (libOpenImageIO_srcs
                           imagebufalgo_minmaxchan.cpp
                           imagebufalgo_orient.cpp
                           imagebufalgo_xform.cpp
-                          imagebufalgo_yee.cpp imagebufalgo_opencv.cpp
+                          imagebufalgo_demosaic.cpp
+                          imagebufalgo_yee.cpp
+                          imagebufalgo_yee.cpp
                           deepdata.cpp exif.cpp exif-canon.cpp
                           formatspec.cpp
                           icc.cpp imagebuf.cpp
@@ -86,7 +88,9 @@ if (EMBEDPLUGINS)
                                 PRIVATE
                                     EMBED_PLUGINS=1
                                     ${format_plugin_definitions})
-    target_include_directories (OpenImageIO
+    target_compile_options (OpenImageIO
+                            PRIVATE ${format_plugin_compile_options})
+    target_include_directories (OpenImageIO BEFORE
                                 PRIVATE ${format_plugin_include_dirs})
 
     # Organize the embedded plugins into source folders
@@ -120,7 +124,6 @@ endif ()
 target_compile_definitions(OpenImageIO
               PRIVATE
                   OIIO_FREETYPE_VERSION="${FREETYPE_VERSION_STRING}"
-                  OIIO_OpenCV_VERSION="${OpenCV_VERSION}"
                   OIIO_PYTHON_VERSION="${Python3_VERSION}"
                   OIIO_QT_VERSION="${Qt6_VERSION}${Qt5_VERSION}"
                   OIIO_TBB_VERSION="${TBB_VERSION}"
@@ -138,7 +141,6 @@ target_include_directories (OpenImageIO
                             PRIVATE
                                 ${ROBINMAP_INCLUDES}
                             )
-target_include_directories (OpenImageIO SYSTEM PUBLIC ${OpenCV_INCLUDES})
 
 if (NOT BUILD_SHARED_LIBS)
     target_compile_definitions (OpenImageIO PUBLIC OIIO_STATIC_DEFINE=1)
@@ -155,7 +157,6 @@ target_link_libraries (OpenImageIO
             ${OPENIMAGEIO_IMATH_TARGETS}
         PRIVATE
             ${OPENIMAGEIO_OPENEXR_TARGETS}
-            ${OpenCV_LIBRARIES}
             ${format_plugin_libs} # Add all the target link libraries from the plugins
             OpenColorIO::OpenColorIO
             $<TARGET_NAME_IF_EXISTS:OpenColorIO::OpenColorIOHeaders>
@@ -230,7 +231,12 @@ if (UNIX AND NOT APPLE)
 endif ()
 set_target_properties (OpenImageIO PROPERTIES LINK_FLAGS ${OpenImageIO_LINK_FLAGS})
 
-install_targets (OpenImageIO)
+if (SKBUILD)
+    install_targets (NAMELINK_SKIP OpenImageIO )
+else ()
+    install_targets (OpenImageIO)
+endif ()
+
 
 
 # Testing
@@ -253,6 +259,9 @@ if (OIIO_BUILD_TESTS AND BUILD_TESTING)
     add_test (unit_imagecache ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagecache_test)
 
     fancy_add_executable (NAME imagebufalgo_test SRC imagebufalgo_test.cpp
+                          SYSTEM_INCLUDE_DIRS
+                                ${ROBINMAP_INCLUDES}
+                                ${OpenCV_INCLUDES}            
                           LINK_LIBRARIES OpenImageIO
                                          ${OpenCV_LIBRARIES}
                                          ${OPENIMAGEIO_IMATH_TARGETS}

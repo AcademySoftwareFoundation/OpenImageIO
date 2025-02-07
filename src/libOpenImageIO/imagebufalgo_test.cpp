@@ -8,19 +8,16 @@
 #include <iostream>
 #include <string>
 
-#include <OpenImageIO/platform.h>
+// Must be first to ensure that half is defined before typedesc.h included
+#include <OpenImageIO/half.h>
 
-#if USE_OPENCV
-// Suppress gcc 11 / C++20 errors about opencv 4 headers
-#    if OIIO_GNUC_VERSION >= 110000 && OIIO_CPLUSPLUS_VERSION >= 20
-#        pragma GCC diagnostic ignored "-Wdeprecated-enum-enum-conversion"
-#    endif
-#    include <opencv2/opencv.hpp>
-#endif
+#include <OpenImageIO/platform.h>
 
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/color.h>
+#include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/half.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
@@ -28,6 +25,12 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/timer.h>
 #include <OpenImageIO/unittest.h>
+
+#include "imagebufalgo_demosaic_prv.h"
+
+#if USE_OPENCV
+#    include <OpenImageIO/imagebufalgo_opencv.h>
+#endif
 
 using namespace OIIO;
 
@@ -144,9 +147,9 @@ test_zero_fill()
 
     // Set a pixel to an odd value, make sure it takes
     const float arbitrary1[CHANNELS] = { 0.2f, 0.3f, 0.4f, 0.5f };
-    A.setpixel(1, 1, arbitrary1);
+    A.setpixel(1, 1, make_span(arbitrary1));
     float pixel[CHANNELS];  // test pixel
-    A.getpixel(1, 1, pixel);
+    A.getpixel(1, 1, make_span(pixel));
     for (int c = 0; c < CHANNELS; ++c)
         OIIO_CHECK_EQUAL(pixel[c], arbitrary1[c]);
 
@@ -155,7 +158,7 @@ test_zero_fill()
     for (int j = 0; j < HEIGHT; ++j) {
         for (int i = 0; i < WIDTH; ++i) {
             float pixel[CHANNELS];
-            A.getpixel(i, j, pixel);
+            A.getpixel(i, j, make_span(pixel));
             for (int c = 0; c < CHANNELS; ++c)
                 OIIO_CHECK_EQUAL(pixel[c], 0.0f);
         }
@@ -167,7 +170,7 @@ test_zero_fill()
     for (int j = 0; j < HEIGHT; ++j) {
         for (int i = 0; i < WIDTH; ++i) {
             float pixel[CHANNELS];
-            A.getpixel(i, j, pixel);
+            A.getpixel(i, j, make_span(pixel));
             for (int c = 0; c < CHANNELS; ++c)
                 OIIO_CHECK_EQUAL(pixel[c], arbitrary2[c]);
         }
@@ -182,7 +185,7 @@ test_zero_fill()
         for (int j = 0; j < HEIGHT; ++j) {
             for (int i = 0; i < WIDTH; ++i) {
                 float pixel[CHANNELS];
-                A.getpixel(i, j, pixel);
+                A.getpixel(i, j, make_span(pixel));
                 if (j >= ybegin && j < yend && i >= xbegin && i < xend) {
                     for (int c = 0; c < CHANNELS; ++c)
                         OIIO_CHECK_EQUAL(pixel[c], arbitrary3[c]);
@@ -311,7 +314,7 @@ test_crop()
     OIIO_CHECK_EQUAL(B.spec().width, xend - xbegin);
     OIIO_CHECK_EQUAL(B.spec().y, ybegin);
     OIIO_CHECK_EQUAL(B.spec().height, yend - ybegin);
-    float* pixel = OIIO_ALLOCA(float, CHANNELS);
+    span<float> pixel = OIIO_ALLOCA_SPAN(float, CHANNELS);
     for (int j = 0; j < B.spec().height; ++j) {
         for (int i = 0; i < B.spec().width; ++i) {
             B.getpixel(i + B.xbegin(), j + B.ybegin(), pixel);
@@ -349,19 +352,19 @@ test_paste()
 
     // Spot check
     float a[3], b[3];
-    B.getpixel(1, 1, 0, b);
+    B.getpixel(1, 1, 0, make_span(b));
     OIIO_CHECK_EQUAL(b[0], gray[0]);
     OIIO_CHECK_EQUAL(b[1], gray[1]);
     OIIO_CHECK_EQUAL(b[2], gray[2]);
 
-    B.getpixel(2, 2, 0, b);
-    A.getpixel(1, 1, 0, a);
+    B.getpixel(2, 2, 0, make_span(b));
+    A.getpixel(1, 1, 0, make_span(a));
     OIIO_CHECK_EQUAL(b[0], gray[0]);
     OIIO_CHECK_EQUAL(b[1], a[0]);
     OIIO_CHECK_EQUAL(b[2], a[1]);
 
-    B.getpixel(3, 4, 0, b);
-    A.getpixel(2, 3, 0, a);
+    B.getpixel(3, 4, 0, make_span(b));
+    A.getpixel(2, 3, 0, make_span(a));
     OIIO_CHECK_EQUAL(b[0], gray[0]);
     OIIO_CHECK_EQUAL(b[1], a[0]);
     OIIO_CHECK_EQUAL(b[2], a[1]);
@@ -788,7 +791,7 @@ test_isMonochrome()
 
     // Now introduce a tiny difference
     const float another[CHANNELS] = { 0.25f, 0.25f, 0.26f };
-    A.setpixel(2, 2, 0, another, 3);
+    A.setpixel(2, 2, 0, make_span(another));
     // It should still pass if within the threshold
     OIIO_CHECK_EQUAL(ImageBufAlgo::isMonochrome(A, 0.015f), true);
     // But not with lower threshold
@@ -811,10 +814,10 @@ test_computePixelStats()
     std::cout << "test computePixelStats\n";
     ImageBuf img(ImageSpec(2, 2, 3, TypeDesc::FLOAT));
     float black[3] = { 0, 0, 0 }, white[3] = { 1, 1, 1 };
-    img.setpixel(0, 0, black);
-    img.setpixel(1, 0, white);
-    img.setpixel(0, 1, black);
-    img.setpixel(1, 1, white);
+    img.setpixel(0, 0, make_span(black));
+    img.setpixel(1, 0, make_span(white));
+    img.setpixel(0, 1, make_span(black));
+    img.setpixel(1, 1, make_span(white));
     auto stats = ImageBufAlgo::computePixelStats(img);
     for (int c = 0; c < 3; ++c) {
         OIIO_CHECK_EQUAL(stats.min[c], 0.0f);
@@ -1109,8 +1112,10 @@ test_opencv()
     OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
 
     // Regression test: reading from ImageBuf-backed image to OpenCV
-    auto loaded_image = OIIO::ImageBuf("../../testsuite/common/tahoe-tiny.tif",
-                                       0, 0, ImageCache::create());
+    std::string filename = "testsuite/common/tahoe-tiny.tif";
+    if (!Filesystem::exists(filename))
+        filename = "../../testsuite/common/tahoe-tiny.tif";
+    auto loaded_image = OIIO::ImageBuf(filename, 0, 0, ImageCache::create());
     OIIO_CHECK_ASSERT(loaded_image.initialized());
     if (!loaded_image.initialized()) {
         std::cout << loaded_image.geterror() << 'n';
@@ -1186,6 +1191,29 @@ test_yee()
 
 
 
+// Raw function to reverse channels
+bool
+chan_reverse(span<float> d, cspan<float> s)
+{
+    for (size_t c = 0, nc = size_t(d.size()); c < nc; ++c)
+        d[c] = s[nc - 1 - c];
+    return true;
+}
+
+// Functor to reverse channels
+class ChannelReverser {
+public:
+    ChannelReverser() {}
+    bool operator()(span<float> d, cspan<float> s)
+    {
+        for (size_t c = 0, nc = size_t(d.size()); c < nc; ++c)
+            d[c] = s[nc - 1 - c];
+        return true;
+    }
+};
+
+
+
 template<typename T>
 static void
 test_simple_perpixel()
@@ -1195,12 +1223,33 @@ test_simple_perpixel()
     {
         print("  unary op\n");
         ImageBuf src = filled_image({ 0.25f, 0.5f, 0.75f, 1.0f }, 4, 4, td);
-        ImageBuf result
-            = ImageBufAlgo::perpixel_op(src, [](span<float> d, cspan<float> s) {
-                  for (size_t c = 0, nc = size_t(d.size()); c < nc; ++c)
-                      d[c] = s[nc - 1 - c];
-                  return true;
-              });
+        ImageBuf result;
+        // Test with raw function pointer
+        result = ImageBufAlgo::perpixel_op(src, chan_reverse);
+        OIIO_CHECK_EQUAL(result.spec().format, td);
+        for (ImageBuf::ConstIterator<T> r(result); !r.done(); ++r) {
+            OIIO_CHECK_EQUAL(r[0], 1.0f);
+            OIIO_CHECK_EQUAL(r[1], 0.75f);
+            OIIO_CHECK_EQUAL(r[2], 0.5f);
+            OIIO_CHECK_EQUAL(r[3], 0.25f);
+        }
+        // Test with functor
+        result = ImageBufAlgo::perpixel_op(src, ChannelReverser());
+        OIIO_CHECK_EQUAL(result.spec().format, td);
+        for (ImageBuf::ConstIterator<T> r(result); !r.done(); ++r) {
+            OIIO_CHECK_EQUAL(r[0], 1.0f);
+            OIIO_CHECK_EQUAL(r[1], 0.75f);
+            OIIO_CHECK_EQUAL(r[2], 0.5f);
+            OIIO_CHECK_EQUAL(r[3], 0.25f);
+        }
+        // Test with lambda, including variable capture
+        float bias = 0.0;  // Force capture of this variable
+        result     = ImageBufAlgo::perpixel_op(src, [&](span<float> d,
+                                                    cspan<float> s) {
+            for (size_t c = 0, nc = size_t(d.size()); c < nc; ++c)
+                d[c] = s[nc - 1 - c] + bias;
+            return true;
+        });
         OIIO_CHECK_EQUAL(result.spec().format, td);
         for (ImageBuf::ConstIterator<T> r(result); !r.done(); ++r) {
             OIIO_CHECK_EQUAL(r[0], 1.0f);
@@ -1214,7 +1263,7 @@ test_simple_perpixel()
         ImageBuf srcA   = filled_image({ 0.25f, 0.5f, 0.75f, 1.0f }, 4, 4, td);
         ImageBuf srcB   = filled_image({ 1.0f, 2.0f, 3.0f, 4.0f }, 4, 4, td);
         ImageBuf result = ImageBufAlgo::perpixel_op(
-            srcA, srcB, [](span<float> d, cspan<float> a, cspan<float> b) {
+            srcA, srcB, [&](span<float> d, cspan<float> a, cspan<float> b) {
                 for (size_t c = 0, nc = size_t(d.size()); c < nc; ++c)
                     d[c] = a[c] + b[c];
                 return true;
@@ -1263,6 +1312,206 @@ test_simple_perpixel()
 }
 
 
+template<class T>
+std::string
+mosaic(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
+       const std::string& pattern, const float (&white_balance)[4],
+       int nthreads);
+
+template<>
+std::string
+mosaic<float>(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
+              const std::string& pattern, const float (&white_balance)[4],
+              int nthreads)
+{
+    return ImageBufAlgo::mosaic_float(dst, src, x_offset, y_offset, pattern,
+                                      white_balance, nthreads);
+}
+
+template<>
+std::string
+mosaic<half>(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
+             const std::string& pattern, const float (&white_balance)[4],
+             int nthreads)
+{
+    return ImageBufAlgo::mosaic_half(dst, src, x_offset, y_offset, pattern,
+                                     white_balance, nthreads);
+}
+
+template<>
+std::string
+mosaic<uint16_t>(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
+                 const std::string& pattern, const float (&white_balance)[4],
+                 int nthreads)
+{
+    return ImageBufAlgo::mosaic_uint16(dst, src, x_offset, y_offset, pattern,
+                                       white_balance, nthreads);
+}
+
+template<>
+std::string
+mosaic<uint8_t>(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
+                const std::string& pattern, const float (&white_balance)[4],
+                int nthreads)
+{
+    return ImageBufAlgo::mosaic_uint8(dst, src, x_offset, y_offset, pattern,
+                                      white_balance, nthreads);
+}
+
+struct DemosaicTestConfig {
+    const char* pattern;
+    size_t size_x;
+    size_t size_y;
+    size_t algos_count;
+};
+
+struct DemosaicTestAlgo {
+    const char* name;
+    const int inset;
+};
+
+template<typename T, bool write_images>
+static void
+test_demosaic(const DemosaicTestConfig& config, const DemosaicTestAlgo* algos,
+              const ImageBuf& src_image, const float (&wb)[4],
+              const float thresholds[])
+{
+    for (size_t y = 0; y < config.size_y; y++) {
+        for (size_t x = 0; x < config.size_x; x++) {
+            auto type = TypeDescFromC<T>().value();
+
+            ImageSpec src_spec = src_image.spec();
+            ImageSpec dst_spec(src_spec.width, src_spec.height, 1, type);
+            ImageBuf mosaiced_image(dst_spec);
+
+            std::string layout = mosaic<T>(mosaiced_image, src_image, x, y,
+                                           config.pattern, wb, 0);
+
+            std::string pattern(config.pattern);
+            std::string ext = type.is_floating_point() ? "exr" : "png";
+
+            if (write_images) {
+                std::string path = pattern + "_" + std::string(type.c_str())
+                                   + "_" + std::to_string(y) + "_"
+                                   + std::to_string(x) + "_src." + ext;
+
+                auto imageOutput = ImageOutput::create(ext);
+                imageOutput->open(path, mosaiced_image.spec());
+                mosaiced_image.write(imageOutput.get());
+            }
+
+            for (size_t i = 0; i < config.algos_count; i++) {
+                std::string algo(algos[i].name);
+
+                ParamValueList list;
+                list.push_back(ParamValue("pattern", pattern));
+                list.push_back(ParamValue("algorithm", algo));
+                list.push_back(ParamValue("layout", layout));
+                list.push_back(
+                    ParamValue("white_balance", TypeDesc::FLOAT, 4, wb));
+                ImageBuf demosaiced_image
+                    = OIIO::ImageBufAlgo::demosaic(mosaiced_image, list);
+
+                int inset       = algos[i].inset;
+                float threshold = thresholds[i];
+
+                ROI roi = src_image.roi();
+                roi.xbegin += inset;
+                roi.ybegin += inset;
+                roi.xend -= inset;
+                roi.yend -= inset;
+
+                ImageBufAlgo::CompareResults cr
+                    = ImageBufAlgo::compare(src_image, demosaiced_image,
+                                            threshold, threshold, roi);
+                OIIO_CHECK_FALSE(cr.error);
+
+                if (write_images) {
+                    std::string path = pattern + "_" + std::string(type.c_str())
+                                       + "_" + std::to_string(y) + "_"
+                                       + std::to_string(x) + "_" + algo + "."
+                                       + ext;
+                    auto imageOutput = ImageOutput::create(ext);
+                    imageOutput->open(path, demosaiced_image.spec());
+                    demosaiced_image.write(imageOutput.get());
+                }
+            }
+        }
+    }
+}
+
+
+static void
+test_demosaic()
+{
+    print("Testing Demosaicing\n");
+
+    ImageSpec src_spec(256, 256, 3, TypeDesc::FLOAT);
+    ImageBuf src_image(src_spec);
+    ImageBufAlgo::fill(src_image, { 0.0f, 0.0f, 0.9f }, { 0.0f, 0.9f, 0.0f },
+                       { 0.9f, 0.0f, 0.9f }, { 0.9f, 0.9f, 0.0f });
+
+    float wb[4] = { 2.0, 1.1, 1.5, 0.9 };
+
+    const DemosaicTestConfig bayerConfig = { "bayer", 2, 2, 2 };
+    const DemosaicTestAlgo bayerAlgos[]  = { { "linear", 1 }, { "MHC", 2 } };
+
+    // There are 6x6=36 possible permutations of the XTrans pattern,
+    // of which only 18 are unique. It is sufficient to only test all variants of
+    // the top 3 vertical offsets, the bottom half is the same, but somewhat
+    // shuffled.
+    const DemosaicTestConfig xtransConfig = { "xtrans", 6, 3, 1 };
+    const DemosaicTestAlgo xtransAlgos[]  = { { "linear", 2 } };
+
+
+    const float bayer_thresholds[4][2] = {
+        { 1.8e-07, 2.4e-07 },  // float
+        { 0.00049, 0.00049 },  // half
+        { 3.1e-05, 4.6e-05 },  // int16
+        { 0.0079, 0.012 }      // int8
+    };
+
+    const float xtrans_thresholds[4][1] = {
+        { 0.00099 },  // float
+        { 0.0015 },   // half
+        { 0.0011 },   // int16
+        { 0.0079 }    // int8
+    };
+
+    constexpr bool write_files = false;
+    ImageBuf true_image;
+
+    if (write_files) {
+        auto imageOutput = OIIO::ImageOutput::create("exr");
+        imageOutput->open("source.exr", src_image.spec());
+        src_image.write(imageOutput.get());
+    }
+
+    true_image.copy(src_image, TypeDesc::FLOAT);
+    test_demosaic<float, write_files>(bayerConfig, bayerAlgos, true_image, wb,
+                                      bayer_thresholds[0]);
+    test_demosaic<float, write_files>(xtransConfig, xtransAlgos, true_image, wb,
+                                      xtrans_thresholds[0]);
+
+    true_image.copy(src_image, TypeDesc::HALF);
+    test_demosaic<half, write_files>(bayerConfig, bayerAlgos, true_image, wb,
+                                     bayer_thresholds[1]);
+    test_demosaic<half, write_files>(xtransConfig, xtransAlgos, true_image, wb,
+                                     xtrans_thresholds[1]);
+
+    true_image.copy(src_image, TypeDesc::UINT16);
+    test_demosaic<uint16_t, write_files>(bayerConfig, bayerAlgos, true_image,
+                                         wb, bayer_thresholds[2]);
+    test_demosaic<uint16_t, write_files>(xtransConfig, xtransAlgos, true_image,
+                                         wb, xtrans_thresholds[2]);
+
+    true_image.copy(src_image, TypeDesc::UINT8);
+    test_demosaic<uint8_t, write_files>(bayerConfig, bayerAlgos, true_image, wb,
+                                        bayer_thresholds[3]);
+    test_demosaic<uint8_t, write_files>(xtransConfig, xtransAlgos, true_image,
+                                        wb, xtrans_thresholds[3]);
+}
+
 
 int
 main(int argc, char** argv)
@@ -1304,6 +1553,7 @@ main(int argc, char** argv)
     test_opencv();
     test_color_management();
     test_yee();
+    test_demosaic();
     test_simple_perpixel<float>();
     test_simple_perpixel<half>();
 

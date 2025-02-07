@@ -48,12 +48,15 @@ atomic_int oiio_try_all_readers(1);
 #endif
 // Should we use "Exr core C library"?
 int openexr_core(OIIO_OPENEXR_CORE_DEFAULT);
+int jpeg_com_attributes(1);
+int png_linear_premult(0);
 int tiff_half(0);
 int tiff_multithread(1);
 int dds_bc5normal(0);
 int limit_channels(1024);
 int limit_imagesize_MB(std::min(32 * 1024,
                                 int(Sysutil::physical_memory() >> 20)));
+int imageinput_strict(0);
 ustring font_searchpath(Sysutil::getenv("OPENIMAGEIO_FONTS"));
 ustring plugin_searchpath(OIIO_DEFAULT_PLUGIN_SEARCHPATH);
 std::string format_list;         // comma-separated list of all formats
@@ -62,7 +65,6 @@ std::string output_format_list;  // comma-separated list of writable formats
 std::string extension_list;      // list of all extensions for all formats
 std::string library_list;        // list of all libraries for all formats
 int oiio_log_times = Strutil::stoi(Sysutil::getenv("OPENIMAGEIO_LOG_TIMES"));
-int oiio_print_uncaught_errors(1);
 std::vector<float> oiio_missingcolor;
 }  // namespace pvt
 
@@ -71,7 +73,7 @@ using namespace pvt;
 
 namespace {
 // Hidden global OIIO data.
-static spin_mutex attrib_mutex;
+static std::recursive_mutex attrib_mutex;
 static const int maxthreads = 512;  // reasonable maximum for sanity check
 
 class TimingLog {
@@ -285,51 +287,10 @@ openimageio_version()
 
 
 
-// ErrorHolder houses a string, with the addition that when it is destroyed,
-// it will disgorge any un-retrieved error messages, in an effort to help
-// beginning users diagnose their problems if they have forgotten to call
-// geterror().
-struct ErrorHolder {
-    std::string error_msg;
-
-    ~ErrorHolder()
-    {
-        if (!error_msg.empty() && pvt::oiio_print_uncaught_errors) {
-            OIIO::print(
-                "OpenImageIO exited with a pending error message that was never\n"
-                "retrieved via OIIO::geterror(). This was the error message:\n{}\n",
-                error_msg);
-        }
-    }
-};
-
-
-
-// To avoid thread oddities, we have the storage area buffering error
-// messages for append_error()/geterror() be thread-specific.
-static thread_local ErrorHolder error_msg_holder;
-
-
 void
 pvt::append_error(string_view message)
 {
-    // Remove a single trailing newline
-    if (message.size() && message.back() == '\n')
-        message.remove_suffix(1);
-    std::string& error_msg(error_msg_holder.error_msg);
-    OIIO_ASSERT(
-        error_msg.size() < 1024 * 1024 * 16
-        && "Accumulated error messages > 16MB. Try checking return codes!");
-    // If we are appending to existing error messages, separate them with
-    // a single newline.
-    if (error_msg.size() && error_msg.back() != '\n')
-        error_msg += '\n';
-    error_msg += std::string(message);
-
-    // Remove a single trailing newline
-    if (message.size() && message.back() == '\n')
-        message.remove_suffix(1);
-    error_msg = std::string(message);
+    Strutil::pvt::append_error(message);
 }
 
 
@@ -337,8 +298,7 @@ pvt::append_error(string_view message)
 bool
 has_error()
 {
-    std::string& error_msg(error_msg_holder.error_msg);
-    return !error_msg.empty();
+    return Strutil::pvt::has_error();
 }
 
 
@@ -346,11 +306,7 @@ has_error()
 std::string
 geterror(bool clear)
 {
-    std::string& error_msg(error_msg_holder.error_msg);
-    std::string e = error_msg;
-    if (clear)
-        error_msg.clear();
-    return e;
+    return Strutil::pvt::geterror(clear);
 }
 
 
@@ -392,7 +348,7 @@ attribute(string_view name, TypeDesc type, const void* val)
     }
 
     // Things below here need to buarded by the attrib_mutex
-    spin_lock lock(attrib_mutex);
+    std::lock_guard lock(attrib_mutex);
     if (name == "read_chunk" && type == TypeInt) {
         oiio_read_chunk = *(const int*)val;
         return true;
@@ -411,6 +367,14 @@ attribute(string_view name, TypeDesc type, const void* val)
     }
     if (name == "openexr:core" && type == TypeInt) {
         openexr_core = *(const int*)val;
+        return true;
+    }
+    if (name == "jpeg:com_attributes" && type == TypeInt) {
+        jpeg_com_attributes = *(const int*)val;
+        return true;
+    }
+    if (name == "png:linear_premult" && type == TypeInt) {
+        png_linear_premult = *(const int*)val;
         return true;
     }
     if (name == "tiff:half" && type == TypeInt) {
@@ -443,6 +407,10 @@ attribute(string_view name, TypeDesc type, const void* val)
     }
     if (name == "imagebuf:use_imagecache" && type == TypeInt) {
         imagebuf_use_imagecache = *(const int*)val;
+        return true;
+    }
+    if (name == "imageinput:strict" && type == TypeInt) {
+        imageinput_strict = *(const int*)val;
         return true;
     }
     if (name == "use_tbb" && type == TypeInt) {
@@ -497,7 +465,7 @@ getattribute(string_view name, TypeDesc type, void* val)
     }
 
     // Things below here need to buarded by the attrib_mutex
-    spin_lock lock(attrib_mutex);
+    std::lock_guard lock(attrib_mutex);
     if (name == "read_chunk" && type == TypeInt) {
         *(int*)val = oiio_read_chunk;
         return true;
@@ -552,6 +520,23 @@ getattribute(string_view name, TypeDesc type, void* val)
         *(ustring*)val = ustring(Strutil::join(font_list(), ";"));
         return true;
     }
+    if (name == "font_family_list" && type == TypeString) {
+        *(ustring*)val = ustring(Strutil::join(font_family_list(), ";"));
+        return true;
+    }
+    if (Strutil::starts_with(name, "font_style_list:") && type == TypeString) {
+        string_view family = name.substr(strlen("font_style_list:"));
+        *(ustring*)val = ustring(Strutil::join(font_style_list(family), ";"));
+        return true;
+    }
+    if (Strutil::starts_with(name, "font_filename:") && type == TypeString) {
+        std::vector<string_view> tokens;
+        Strutil::split(name, tokens, ":");
+        string_view family = tokens.size() >= 1 ? tokens[1] : string_view();
+        string_view style  = tokens.size() >= 2 ? tokens[2] : string_view();
+        *(ustring*)val     = ustring(font_filename(family, style));
+        return true;
+    }
     if (name == "filter_list" && type == TypeString) {
         std::vector<string_view> filternames;
         for (int i = 0, e = Filter2D::num_filters(); i < e; ++i)
@@ -565,6 +550,14 @@ getattribute(string_view name, TypeDesc type, void* val)
     }
     if (name == "openexr:core" && type == TypeInt) {
         *(int*)val = openexr_core;
+        return true;
+    }
+    if (name == "jpeg:com_attributes" && type == TypeInt) {
+        *(int*)val = jpeg_com_attributes;
+        return true;
+    }
+    if (name == "png:linear_premult" && type == TypeInt) {
+        *(int*)val = png_linear_premult;
         return true;
     }
     if (name == "tiff:half" && type == TypeInt) {
@@ -597,6 +590,10 @@ getattribute(string_view name, TypeDesc type, void* val)
     }
     if (name == "imagebuf:use_imagecache" && type == TypeInt) {
         *(int*)val = imagebuf_use_imagecache;
+        return true;
+    }
+    if (name == "imageinput:strict" && type == TypeInt) {
+        *(int*)val = imageinput_strict;
         return true;
     }
     if (name == "use_tbb" && type == TypeInt) {
@@ -663,10 +660,6 @@ getattribute(string_view name, TypeDesc type, void* val)
         int v          = ColorConfig::OpenColorIO_version_hex();
         *(ustring*)val = ustring::fmtformat("{}.{}.{}", v >> 24,
                                             (v >> 16) & 0xff, (v >> 8) & 0xff);
-        return true;
-    }
-    if (name == "opencv_version" && type == TypeInt) {
-        *(int*)val = OIIO::pvt::opencv_version;
         return true;
     }
     if (name == "IB_local_mem_current" && type == TypeInt64) {
@@ -1074,38 +1067,9 @@ add_dither(int nchannels, int width, int height, int depth, float* data,
            unsigned int ditherseed, int chorigin, int xorigin, int yorigin,
            int zorigin)
 {
-#if OIIO_VERSION < OIIO_MAKE_VERSION(2, 4, 0)
-    // Old: uniform random noise
-    ImageSpec::auto_stride(xstride, ystride, zstride, sizeof(float), nchannels,
-                           width, height);
-    char* plane = (char*)data;
-    for (int z = 0; z < depth; ++z, plane += zstride) {
-        char* scanline = plane;
-        for (int y = 0; y < height; ++y, scanline += ystride) {
-            char* pixel = scanline;
-            uint32_t ba = (z + zorigin) * 1311 + yorigin + y;
-            uint32_t bb = ditherseed + (chorigin << 24);
-            uint32_t bc = xorigin;
-            for (int x = 0; x < width; ++x, pixel += xstride) {
-                float* val = (float*)pixel;
-                for (int c = 0; c < nchannels; ++c, ++val, ++bc) {
-                    bjhash::bjmix(ba, bb, bc);
-                    int channel = c + chorigin;
-                    if (channel == alpha_channel || channel == z_channel)
-                        continue;
-                    float dither
-                        = bc / float(std::numeric_limits<uint32_t>::max());
-                    *val += ditheramplitude * (dither - 0.5f);
-                }
-            }
-        }
-    }
-#else
-    // New: Use blue noise for our dither
     add_bluenoise(nchannels, width, height, depth, data, xstride, ystride,
                   zstride, ditheramplitude, alpha_channel, z_channel,
                   ditherseed, chorigin, xorigin, yorigin, zorigin);
-#endif
 }
 
 

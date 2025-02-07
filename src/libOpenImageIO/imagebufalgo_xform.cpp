@@ -499,6 +499,19 @@ ImageBufAlgo::warp(ImageBuf& dst, const ImageBuf& src, M33fParam M,
 
 
 
+ImageBuf
+ImageBufAlgo::warp(const ImageBuf& src, M33fParam M, KWArgs options, ROI roi,
+                   int nthreads)
+{
+    ImageBuf result;
+    bool ok = warp(result, src, M, options, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.errorfmt("ImageBufAlgo::warp() error");
+    return result;
+}
+
+
+
 bool
 ImageBufAlgo::warp(ImageBuf& dst, const ImageBuf& src, M33fParam M,
                    const Filter2D* filter, bool recompute_roi,
@@ -1081,7 +1094,7 @@ resample_(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
         float dstfh          = dstspec.full_height;
         float dstpixelwidth  = 1.0f / dstfw;
         float dstpixelheight = 1.0f / dstfh;
-        float* pel           = OIIO_ALLOCA(float, nchannels);
+        span<float> pel      = OIIO_ALLOCA_SPAN(float, nchannels);
 
         ImageBuf::Iterator<DSTTYPE> out(dst, roi);
         ImageBuf::ConstIterator<SRCTYPE> srcpel(src);

@@ -268,7 +268,6 @@
 // the vfloat8 class (and friends) are in this version of simd.h, but that's
 // different from OIIO_SIMD >= 8, which means it's supported in hardware.
 #define OIIO_SIMD_HAS_MATRIX4 1  /* matrix44 defined */
-#define OIIO_SIMD_HAS_FLOAT8 1   /* DEPRECATED(1.8) */
 #define OIIO_SIMD_HAS_SIMD8 1    /* vfloat8, vint8, vbool8 defined */
 #define OIIO_SIMD_HAS_SIMD16 1   /* vfloat16, vint16, vbool16 defined */
 
@@ -300,21 +299,6 @@ class vfloat8;
 class vbool16;
 class vint16;
 class vfloat16;
-
-#if OIIO_DISABLE_DEPRECATED < OIIO_MAKE_VERSION(1,9,0) && !defined(OIIO_INTERNAL)
-// Deprecated names -- remove these in 1.9
-// These are removed from visibility for the OIIO codebase itself, or for any
-// downstream project that defines OIIO_DISABLE_DEPRECATED to exclude
-// declarations deprecated as of version 1.9 or later.
-OIIO_DEPRECATED("use vbool4") typedef vbool4 mask4;    // old name
-OIIO_DEPRECATED("use vbool4") typedef vbool4 bool4;
-OIIO_DEPRECATED("use vbool8") typedef vbool8 bool8;
-OIIO_DEPRECATED("use vint4") typedef vint4 int4;
-OIIO_DEPRECATED("use vint8") typedef vint8 int8;
-OIIO_DEPRECATED("use vfloat3") typedef vfloat3 float3;
-OIIO_DEPRECATED("use vfloat4") typedef vfloat4 float4;
-OIIO_DEPRECATED("use vfloat8") typedef vfloat8 float8;
-#endif
 
 } // namespace simd
 
@@ -1220,9 +1204,6 @@ vint4 max (const vint4& a, const vint4& b);
 
 /// Circular bit rotate by s bits, for N values at once.
 vint4 rotl (const vint4& x, const int s);
-// DEPRECATED(2.1)
-OIIO_DEPRECATED("Use rotl instead")
-vint4 rotl32 (const vint4& x, const unsigned int k);
 
 /// andnot(a,b) returns ((~a) & b)
 vint4 andnot (const vint4& a, const vint4& b);
@@ -1526,9 +1507,6 @@ vint8 max (const vint8& a, const vint8& b);
 
 /// Circular bit rotate by s bits, for N values at once.
 vint8 rotl (const vint8& x, const int s);
-// DEPRECATED(2.1)
-OIIO_DEPRECATED("Use rotl instead")
-vint8 rotl32 (const vint8& x, const unsigned int k);
 
 /// andnot(a,b) returns ((~a) & b)
 vint8 andnot (const vint8& a, const vint8& b);
@@ -1839,9 +1817,6 @@ vint16 max (const vint16& a, const vint16& b);
 
 /// Circular bit rotate by s bits, for N values at once.
 vint16 rotl (const vint16& x, const int s);
-// DEPRECATED(2.1)
-OIIO_DEPRECATED("Use rotl instead")
-vint16 rotl32 (const vint16& x, const unsigned int k);
 
 /// andnot(a,b) returns ((~a) & b)
 vint16 andnot (const vint16& a, const vint16& b);
@@ -2190,8 +2165,6 @@ vfloat4 sign (const vfloat4& a);   ///< 1.0 when value >= 0, -1 when negative
 vfloat4 ceil (const vfloat4& a);
 vfloat4 floor (const vfloat4& a);
 vint4 ifloor (const vfloat4& a);    ///< (int)floor
-OIIO_DEPRECATED("use ifloor (1.8)")
-inline vint4 floori (const vfloat4& a) { return ifloor(a); }  // DEPRECATED(1.8) alias
 
 /// Per-element round to nearest integer.
 /// CAVEAT: the rounding when mid-way between integers may differ depending
@@ -2806,8 +2779,6 @@ vfloat8 sign (const vfloat8& a);   ///< 1.0 when value >= 0, -1 when negative
 vfloat8 ceil (const vfloat8& a);
 vfloat8 floor (const vfloat8& a);
 vint8 ifloor (const vfloat8& a);    ///< (int)floor
-OIIO_DEPRECATED("Use ifloor instead")
-inline vint8 floori (const vfloat8& a) { return ifloor(a); }  // DEPRECATED(1.8) alias
 
 /// Per-element round to nearest integer.
 /// CAVEAT: the rounding when mid-way between integers may differ depending
@@ -3125,8 +3096,6 @@ vfloat16 sign (const vfloat16& a);   ///< 1.0 when value >= 0, -1 when negative
 vfloat16 ceil (const vfloat16& a);
 vfloat16 floor (const vfloat16& a);
 vint16 ifloor (const vfloat16& a);    ///< (int)floor
-OIIO_DEPRECATED("use ifloor (1.8)")
-inline vint16 floori (const vfloat16& a) { return ifloor(a); }  // DEPRECATED(1.8) alias
 
 /// Per-element round to nearest integer.
 /// CAVEAT: the rounding when mid-way between integers may differ depending
@@ -4979,13 +4948,6 @@ OIIO_FORCEINLINE vint4 rotl(const vint4& x, int s) {
 #endif
 }
 
-// DEPRECATED (2.1)
-OIIO_DEPRECATED("Use rotl instead")
-OIIO_FORCEINLINE vint4 rotl32 (const vint4& x, const unsigned int k) {
-    return rotl(x, k);
-}
-
-
 OIIO_FORCEINLINE vint4 andnot (const vint4& a, const vint4& b) {
 #if OIIO_SIMD_SSE
     return _mm_andnot_si128 (a.simd(), b.simd());
@@ -5808,12 +5770,6 @@ OIIO_FORCEINLINE vint8 rotl(const vint8& x, int s) {
 #endif
 }
 
-// DEPRECATED (2.1)
-OIIO_DEPRECATED("Use rotl instead")
-OIIO_FORCEINLINE vint8 rotl32 (const vint8& x, const unsigned int k) {
-    return rotl(x, k);
-}
-
 
 OIIO_FORCEINLINE vint8 andnot (const vint8& a, const vint8& b) {
 #if OIIO_SIMD_AVX >= 2
@@ -6614,12 +6570,6 @@ OIIO_FORCEINLINE vint16 rotl(const vint16& x, int s) {
 #else
     return (x<<s) | srl(x,32-s);
 #endif
-}
-
-// DEPRECATED (2.1)
-OIIO_DEPRECATED("Use rotl instead")
-OIIO_FORCEINLINE vint16 rotl32 (const vint16& x, const unsigned int k) {
-    return rotl(x, k);
 }
 
 

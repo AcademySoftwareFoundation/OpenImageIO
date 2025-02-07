@@ -69,3 +69,17 @@ Reading ../oiio-images/pnm/test-3.pfm
     oiio:ColorSpace: "Rec709"
     pnm:bigendian: 1
     pnm:binary: 1
+Reading src/bad-4552.pgm
+oiiotool ERROR: -info : SHA-1: Premature end of file
+Full command line was:
+> oiiotool --info -v -a --hash --oiioattrib try_all_readers 0 --printstats src/bad-4552.pgm
+src/bad-4552.pgm     :    9 x    1, 1 channel, uint8 pnm
+    channel list: Y
+    oiio:ColorSpace: "Rec709"
+    pnm:binary: 1
+oiiotool ERROR: read : "src/bad-4552.pgm": Premature end of file
+Full command line was:
+> oiiotool --info -v -a --hash --oiioattrib try_all_readers 0 --printstats src/bad-4552.pgm
+oiiotool ERROR: read : "src/bad-4553.pgm": pnm image resolution may not exceed 65535x65535, but the file appears to be 2147483647x255. Possible corrupt input?
+Full command line was:
+> oiiotool --info -v -a --hash --oiioattrib try_all_readers 0 --printstats src/bad-4553.pgm

@@ -386,6 +386,12 @@ ImageViewer::createActions()
     //    toggleImageAct->setEnabled(true);
     connect(toggleImageAct, SIGNAL(triggered()), this, SLOT(toggleImage()));
 
+    toggleWindowGuidesAct
+        = new QAction(tr("Show display and data window borders"), this);
+    toggleWindowGuidesAct->setCheckable(true);
+    connect(toggleWindowGuidesAct, SIGNAL(triggered()), this,
+            SLOT(toggleWindowGuides()));
+
     slideShowAct = new QAction(tr("Start Slide Show"), this);
     connect(slideShowAct, SIGNAL(triggered()), this, SLOT(slideShow()));
 
@@ -674,6 +680,7 @@ ImageViewer::createMenus()
     viewMenu->addAction(prevImageAct);
     viewMenu->addAction(nextImageAct);
     viewMenu->addAction(toggleImageAct);
+    viewMenu->addAction(toggleWindowGuidesAct);
     viewMenu->addSeparator();
     viewMenu->addAction(zoomInAct);
     viewMenu->addAction(zoomOutAct);
@@ -791,7 +798,7 @@ ImageViewer::readSettings(bool ui_is_set_up)
 
     OIIO::attribute("imagebuf:use_imagecache", 1);
 
-    ImageCache* imagecache = ImageCache::create(true);
+    auto imagecache = ImageCache::create(true);
     imagecache->attribute("automip", autoMipmap->isChecked());
     imagecache->attribute("max_memory_MB", (float)maxMemoryIC->value());
 }
@@ -1345,6 +1352,14 @@ void
 ImageViewer::toggleImage()
 {
     current_image(m_last_image);
+}
+
+
+
+void
+ImageViewer::toggleWindowGuides()
+{
+    ((QOpenGLWidget*)(glwin))->update();
 }
 
 

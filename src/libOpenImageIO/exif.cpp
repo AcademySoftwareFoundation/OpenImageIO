@@ -1216,7 +1216,7 @@ decode_exif(cspan<uint8_t> exif, ImageSpec& spec)
         // Exif spec says that anything other than 0xffff==uncalibrated
         // should be interpreted to be sRGB.
         if (cs != 0xffff)
-            spec.attribute("oiio:ColorSpace", "sRGB");
+            spec.set_colorspace("sRGB");
     }
 
     // Look for a maker note offset, now that we have seen all the metadata

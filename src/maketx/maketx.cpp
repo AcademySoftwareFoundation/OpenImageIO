@@ -244,8 +244,6 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
       .help("Specific t wrap mode separately");
     ap.arg("--resize", &doresize)
       .help("Resize textures to power of 2 (default: no)");
-    ap.arg("--noresize %!", &doresize)
-      .help("Do not resize textures to power of 2 (deprecated)");
     ap.arg("--filter %s:FILTERNAME", &filtername)
       .help(filter_help_string());
     ap.arg("--hicomp", &do_highlight_compensation)
@@ -302,8 +300,6 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
       .help("Ignore unassociated alpha tags in input (don't autoconvert)");
     ap.arg("--runstats", &runstats)
       .help("Print runtime statistics");
-    ap.arg("--stats", &runstats)
-      .hidden(); // DEPRECATED 1.6
     ap.arg("--mipimage %L:FILENAME", &mipimages)
       .help("Specify an individual MIP level");
     ap.arg("--cdf", &cdf)
@@ -502,7 +498,7 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
 
     if (ignore_unassoc) {
         configspec.attribute("maketx:ignore_unassoc", (int)ignore_unassoc);
-        ImageCache* ic = ImageCache::create();  // get the shared one
+        auto ic = ImageCache::create();  // get the shared one
         ic->attribute("unassociatedalpha", (int)ignore_unassoc);
     }
 
@@ -532,7 +528,7 @@ main(int argc, char* argv[])
     OIIO::attribute("threads", nthreads);
 
     // N.B. This will apply to the default IC that any ImageBuf's get.
-    ImageCache* ic = ImageCache::create();   // get the shared one
+    auto ic = ImageCache::create();          // get the shared one
     ic->attribute("forcefloat", 1);          // Force float upon read
     ic->attribute("max_memory_MB", 1024.0);  // 1 GB cache
 

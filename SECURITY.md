@@ -7,10 +7,10 @@ security vulnerabilities.
 
 | Version / branch  | Supported                                            |
 | ----------------- | ---------------------------------------------------- |
-| master            | :white_check_mark: :construction: ALL fixes immediately, but this is a branch under development with a frequently unstable ABI and occasionally unstable API. |
-| 2.5.x             | :white_check_mark: All fixes that can be backported without breaking ABI compatibility. New tagged releases monthly. |
-| 2.4.x             | :warning: Only receives occasional critical fixes, upon request, only if they can be easily backported. |
-| <= 2.3.x          | :x: No longer receiving patches of any kind.        |
+| main              | :white_check_mark: :construction: ALL fixes immediately, but this is a branch under development with a frequently unstable ABI and occasionally unstable API. |
+| 3.0.x             | :white_check_mark: All fixes that can be backported without breaking ABI compatibility. New tagged releases monthly. |
+| 2.5.x             | :white_check_mark: All fixes that can be backported without breaking ABI compatibility. New tagged releases monthly. But be warned that probably by mid-2025, the 2.5.x family will move to a state of only receiving critical fixes, upon request, only if they can be easily backported. |
+| <= 2.4.x          | :x: No longer receiving patches of any kind.        |
 
 
 ## Reporting a Vulnerability
@@ -24,6 +24,18 @@ respond to vulnerability reports within 14 days.
 Our policy is to address critical security vulnerabilities rapidly and post
 patches as quickly as possible.
 
+
+## Other security features
+
+### Signed tags
+Starting with OpenImageIO 3.0, we cryptographically sign release tags.
+To verify a tag, you can use the `git tag -v` command, which will check
+the signature against the public key that is included in the repository.
+For example,
+
+```bash
+git tag -v v3.0.0.3
+```
 
 ## Outstanding Security Issues
 

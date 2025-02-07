@@ -43,6 +43,10 @@
 #    include <OpenImageIO/unittest.h>
 #endif
 
+#ifdef USE_OPENCV
+#    include <OpenImageIO/imagebufalgo_opencv.h>
+#endif
+
 using namespace OIIO;
 using namespace OiioTool;
 using namespace ImageBufAlgo;
@@ -69,6 +73,18 @@ using pvt::print_info_options;
         if (ot.postpone_callback(ninputs, action_##name, argv))      \
             return;                                                  \
         OiiotoolOp op(ot, "-" #name, argv, ninputs, __VA_ARGS__);    \
+        op();                                                        \
+    }
+
+// Lke OIIOTOOL_OP, but designate the op as "inplace" -- which means it
+// uses the input image itself as the destination.
+#define OIIOTOOL_INPLACE_OP(name, ninputs, ...)                      \
+    static void action_##name(Oiiotool& ot, cspan<const char*> argv) \
+    {                                                                \
+        if (ot.postpone_callback(ninputs, action_##name, argv))      \
+            return;                                                  \
+        OiiotoolOp op(ot, "-" #name, argv, ninputs, __VA_ARGS__);    \
+        op.inplace(true);                                            \
         op();                                                        \
     }
 
@@ -194,6 +210,27 @@ Oiiotool::clear_options()
     input_dataformat    = TypeUnknown;
     input_bitspersample = 0;
     input_channelformats.clear();
+}
+
+
+
+ColorConfig&
+Oiiotool::colorconfig()
+{
+    // It's safe to check the pointer and if it exists, return it, since
+    // once it's created, it will never be changed.
+    if (ColorConfig* cc = m_colorconfig.get())
+        return *cc;
+
+    // Otherwise, we need to create it. But we need to be thread-safe.
+    static std::mutex colorconfig_mutex;
+    std::lock_guard lock(colorconfig_mutex);
+    if (!m_colorconfig) {
+        if (debug)
+            print("oiiotool Creating ColorConfig\n");
+        m_colorconfig.reset(new ColorConfig);
+    }
+    return *m_colorconfig.get();
 }
 
 
@@ -2188,9 +2225,9 @@ static void
 set_colorconfig(Oiiotool& ot, cspan<const char*> argv)
 {
     OIIO_DASSERT(argv.size() == 2);
-    ot.colorconfig.reset(argv[1]);
-    if (ot.colorconfig.has_error()) {
-        ot.errorfmt("--colorconfig", "{}", ot.colorconfig.geterror());
+    ot.colorconfig().reset(argv[1]);
+    if (ot.colorconfig().has_error()) {
+        ot.errorfmt("--colorconfig", "{}", ot.colorconfig().geterror());
     }
 }
 
@@ -2275,7 +2312,7 @@ public:
         }
         bool ok = ImageBufAlgo::colorconvert(*img[0], *img[1], fromspace,
                                              tospace, unpremult, contextkey,
-                                             contextvalue, &ot.colorconfig);
+                                             contextvalue, &ot.colorconfig());
         if (!ok && !strict) {
             // The color transform failed, but we were told not to be
             // strict, so ignore the error and just copy destination to
@@ -2350,7 +2387,7 @@ OIIOTOOL_OP(ociolook, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
         tospace = img[1]->spec().get_string_attribute("oiio:Colorspace");
     return ImageBufAlgo::ociolook(*img[0], *img[1], lookname, fromspace,
                                   tospace, unpremult, inverse, contextkey,
-                                  contextvalue, &ot.colorconfig);
+                                  contextvalue, &ot.colorconfig());
 });
 
 
@@ -2369,7 +2406,8 @@ OIIOTOOL_OP(ociodisplay, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
         fromspace = img[1]->spec().get_string_attribute("oiio:Colorspace");
     return ImageBufAlgo::ociodisplay(*img[0], *img[1], displayname, viewname,
                                      fromspace, looks, unpremult, inverse,
-                                     contextkey, contextvalue, &ot.colorconfig);
+                                     contextkey, contextvalue,
+                                     &ot.colorconfig());
 });
 
 
@@ -2380,7 +2418,21 @@ OIIOTOOL_OP(ociofiletransform, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
     bool inverse     = op.options().get_int("inverse");
     bool unpremult   = op.options().get_int("unpremult");
     return ImageBufAlgo::ociofiletransform(*img[0], *img[1], name, unpremult,
-                                           inverse, &ot.colorconfig);
+                                           inverse, &ot.colorconfig());
+});
+
+
+
+// --ocionamedtransform
+OIIOTOOL_OP(ocionamedtransform, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
+    string_view name         = op.args(1);
+    std::string contextkey   = op.options()["key"];
+    std::string contextvalue = op.options()["value"];
+    bool unpremult           = op.options().get_int("unpremult");
+    bool inverse             = op.options().get_int("inverse");
+    return ImageBufAlgo::ocionamedtransform(*img[0], *img[1], name, unpremult,
+                                            inverse, contextkey, contextvalue,
+                                            &ot.colorconfig());
 });
 
 
@@ -2828,6 +2880,79 @@ action_subimage_split(Oiiotool& ot, cspan<const char*> argv)
 
 
 
+// --layersplit
+static void
+action_layer_split(Oiiotool& ot, cspan<const char*> argv)
+{
+    if (ot.postpone_callback(1, action_layer_split, argv))
+        return;
+    string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
+
+    ImageRecRef A = ot.pop();
+    ot.read(A);
+
+    // Split and push the individual channel-name-based layers onto the stack
+    ImageSpec* spec = A->spec();
+    int chbegin     = 0;
+    std::vector<std::string> newchannelnames;
+    for (size_t i = 0; i < spec->channelnames.size(); ++i) {
+        // Parse full channel name to extract the layer name
+        // and the actual channel name, which will be used for
+        // renaming channels during the split
+        // Examples:
+        // chname = "R" -> layername = "", newchname = "R"
+        // chname = "diffuse.G" -> layername = "diffuse", newchname = "G"
+        const std::string& chname   = spec->channelnames[i];
+        const auto parts            = Strutil::splits(chname, ".", 2);
+        const std::string layername = (parts.size() < 2) ? "" : parts[0];
+        const std::string newchname = (parts.size() < 2) ? parts[0] : parts[1];
+        newchannelnames.push_back(newchname);
+
+        bool pushlayer = false;
+        if (i < spec->channelnames.size() - 1) {
+            // Parse the layer name of the next channel,
+            // a different value means that we will be processing
+            // a new layer at the next iteration, therefore
+            // we should push the current one on the stack
+            const std::string& nextchname = spec->channelnames[i + 1];
+            const auto nextparts          = Strutil::splits(nextchname, ".", 2);
+            const std::string nextlayername = (nextparts.size() < 2)
+                                                  ? ""
+                                                  : nextparts[0];
+            pushlayer                       = (nextlayername != layername);
+        } else {
+            // Force flag to true at last iteration so that
+            // last layer is also pushed on the stack
+            pushlayer = true;
+        }
+
+        if (pushlayer) {
+            // Split the current layer by isolating its channels
+            // in a new ImageBuf and renaming them, and store the
+            // layer name in the oiio:subimagename metadata so we
+            // can reuse it later (e.g for creating a multi-part image)
+            const int chend = i + 1;
+            ImageBufRef img(new ImageBuf());
+            std::vector<int> channelorder(chend - chbegin);
+            std::iota(channelorder.begin(), channelorder.end(), chbegin);
+            ImageBufAlgo::channels(*img, (*A)(), chend - chbegin, channelorder,
+                                   {}, newchannelnames);
+            img->specmod().attribute("oiio:subimagename", layername);
+
+            // Create corresponding ImageRec and push it on the stack
+            ImageRecRef R(new ImageRec(img, true));
+            ot.push(R);
+
+            // Prepare processing of next layer
+            chbegin = chend;
+            newchannelnames.clear();
+        }
+    }
+}
+
+
+
 static void
 action_subimage_append_n(Oiiotool& ot, int n, string_view command)
 {
@@ -3038,6 +3163,7 @@ BINARY_IMAGE_OP(add, ImageBufAlgo::add);          // --add
 BINARY_IMAGE_OP(sub, ImageBufAlgo::sub);          // --sub
 BINARY_IMAGE_OP(mul, ImageBufAlgo::mul);          // --mul
 BINARY_IMAGE_OP(div, ImageBufAlgo::div);          // --div
+BINARY_IMAGE_OP(scale, ImageBufAlgo::scale);      // --scale
 BINARY_IMAGE_OP(absdiff, ImageBufAlgo::absdiff);  // --absdiff
 
 BINARY_IMAGE_COLOR_OP(addc, ImageBufAlgo::add, 0);          // --addc
@@ -3416,6 +3542,31 @@ OIIOTOOL_OP(warp, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
     return ok;
 });
 
+// --demosaic
+OIIOTOOL_OP(demosaic, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
+    ParamValueList list;
+    const std::vector<std::string> keys = { "pattern", "algorithm", "layout" };
+    for (const auto& key : keys) {
+        auto iter = op.options().find(key);
+        if (iter != op.options().cend()) {
+            list.push_back(iter[0]);
+        }
+    }
+
+    std::string wb = op.options()["white_balance"];
+    string_view str(wb);
+    float f3[3];
+    float f4[4];
+    if (Strutil::parse_values(str, "", f4, ",") && str.empty()) {
+        ParamValue pv("white_balance", TypeFloat, 4, f4);
+        list.push_back(pv);
+    } else if (Strutil::parse_values(str, "", f3, ",") && str.empty()) {
+        ParamValue pv("white_balance", TypeFloat, 3, f3);
+        list.push_back(pv);
+    }
+
+    return ImageBufAlgo::demosaic(*img[0], *img[1], KWArgs(list));
+});
 
 
 // --st_warp
@@ -3716,14 +3867,19 @@ action_capture(Oiiotool& ot, cspan<const char*> argv)
     OIIO_DASSERT(argv.size() == 1);
     string_view command = ot.express(argv[0]);
     OTScopedTimer timer(ot, command);
+
+#ifdef USE_OPENCV
     auto options = ot.extract_options(command);
     int camera   = options.get_int("camera");
-
-    ImageBuf ib = ImageBufAlgo::capture_image(camera /*, TypeDesc::FLOAT*/);
+    ImageBuf ib  = ImageBufAlgo::capture_image(camera /*, TypeDesc::FLOAT*/);
     if (ib.has_error()) {
         ot.error(command, ib.geterror());
         return;
     }
+#else
+    ot.warning(command, "capture requires OpenCV support");
+    ImageBuf ib(ImageSpec(640, 480, 3, TypeDesc::FLOAT));
+#endif
     ImageRecRef img(new ImageRec("capture", ib.spec(), ot.imagecache));
     (*img)().copy(ib);
     ot.push(img);
@@ -4884,8 +5040,9 @@ OIIOTOOL_OP(contrast, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
 
 // --box
 // clang-format off
-OIIOTOOL_OP(box, 1, nullptr, ([&](OiiotoolOp& op, span<ImageBuf*> img) {
-    img[0]->copy(*img[1]);
+OIIOTOOL_INPLACE_OP(box, 1, nullptr, ([&](OiiotoolOp& op, span<ImageBuf*> img) {
+    OIIO_ASSERT(img[0] == img[1]);  // Assume we're operating in-place
+    // img[0]->copy(*img[1]);  // what we'd do if we weren't in-place
     const ImageSpec& Rspec(img[0]->spec());
     int x1, y1, x2, y2;
     string_view s(op.args(1));
@@ -4907,8 +5064,9 @@ OIIOTOOL_OP(box, 1, nullptr, ([&](OiiotoolOp& op, span<ImageBuf*> img) {
 
 
 // --line
-OIIOTOOL_OP(line, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
-    img[0]->copy(*img[1]);
+OIIOTOOL_INPLACE_OP(line, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
+    OIIO_ASSERT(img[0] == img[1]);  // Assume we're operating in-place
+    // img[0]->copy(*img[1]);  // what we'd do if we weren't in-place
     const ImageSpec& Rspec(img[0]->spec());
     std::vector<int> points;
     Strutil::extract_from_list_string(points, op.args(1));
@@ -4927,8 +5085,9 @@ OIIOTOOL_OP(line, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
 
 
 // --point
-OIIOTOOL_OP(point, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
-    img[0]->copy(*img[1]);
+OIIOTOOL_INPLACE_OP(point, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
+    OIIO_ASSERT(img[0] == img[1]);  // Assume we're operating in-place
+    // img[0]->copy(*img[1]);  // what we'd do if we weren't in-place
     const ImageSpec& Rspec(img[0]->spec());
     std::vector<int> points;
     Strutil::extract_from_list_string(points, op.args(1));
@@ -4944,8 +5103,9 @@ OIIOTOOL_OP(point, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
 
 
 // --text
-OIIOTOOL_OP(text, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
-    img[0]->copy(*img[1]);
+OIIOTOOL_INPLACE_OP(text, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
+    OIIO_ASSERT(img[0] == img[1]);  // Assume we're operating in-place
+    // img[0]->copy(*img[1]);  // what we'd do if we weren't in-place
     const ImageSpec& Rspec(img[0]->spec());
     int x            = op.options().get_int("x", Rspec.x + Rspec.width / 2);
     int y            = op.options().get_int("y", Rspec.y + Rspec.height / 2);
@@ -5127,7 +5287,7 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
         if (autocc) {
             // Try to deduce the color space it's in
             std::string colorspace(
-                ot.colorconfig.getColorSpaceFromFilepath(filename));
+                ot.colorconfig().getColorSpaceFromFilepath(filename));
             if (colorspace.size() && ot.debug)
                 print("  From {}, we deduce color space \"{}\"\n", filename,
                       colorspace);
@@ -5139,9 +5299,9 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
                     print("  Metadata of {} indicates color space \"{}\"\n",
                           colorspace, filename);
             }
-            std::string linearspace = ot.colorconfig.resolve("linear");
+            std::string linearspace = ot.colorconfig().resolve("scene_linear");
             if (colorspace.size()
-                && !ot.colorconfig.equivalent(colorspace, linearspace)) {
+                && !ot.colorconfig().equivalent(colorspace, linearspace)) {
                 std::string cmd = "colorconvert:strict=0";
                 if (autoccunpremult)
                     cmd += ":unpremult=1";
@@ -5425,12 +5585,12 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
     // automatically set -d based on the name if --autocc is used.
     bool autocc          = fileoptions.get_int("autocc", ot.autocc);
     bool autoccunpremult = fileoptions.get_int("unpremult", ot.autoccunpremult);
-    std::string outcolorspace = ot.colorconfig.getColorSpaceFromFilepath(
+    std::string outcolorspace = ot.colorconfig().getColorSpaceFromFilepath(
         filename);
     if (autocc && outcolorspace.size()) {
         TypeDesc type;
         int bits;
-        type = ot.colorconfig.getColorSpaceDataType(outcolorspace, &bits);
+        type = ot.colorconfig().getColorSpaceDataType(outcolorspace, &bits);
         if (type.basetype != TypeDesc::UNKNOWN) {
             if (ot.debug)
                 std::cout << "  Deduced data type " << type << " (" << bits
@@ -5448,7 +5608,7 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
         }
     }
     if (autocc) {
-        string_view linearspace = ot.colorconfig.resolve("linear");
+        string_view linearspace = ot.colorconfig().resolve("scene_linear");
         std::string currentspace
             = ir->spec()->get_string_attribute("oiio:ColorSpace", linearspace);
         // Special cases where we know formats should be particular color
@@ -5714,7 +5874,8 @@ action_printstats(Oiiotool& ot, cspan<const char*> argv)
     auto options      = ot.extract_options(command);
     bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
 
-    ot.read();
+    if (!ot.read())
+        return;
     ImageRecRef top = ot.top();
 
     print_info_options opt = ot.info_opts();
@@ -5731,6 +5892,7 @@ action_printstats(Oiiotool& ot, cspan<const char*> argv)
                       opt.roi.chend);
     }
     std::string errstring;
+    OIIO_ASSERT(top.get());
     print_info(std::cout, ot, top.get(), opt, errstring);
 
     ot.printed_info = true;
@@ -5944,24 +6106,28 @@ print_ocio_info(Oiiotool& ot, std::ostream& out)
     using Strutil::print;
     int columns = Sysutil::terminal_columns() - 1;
 
-    int ociover = ot.colorconfig.OpenColorIO_version_hex();
-    if (ociover)
+    ColorConfig& colorconfig = ot.colorconfig();
+    if (int ociover = colorconfig.OpenColorIO_version_hex())
         out << "OpenColorIO " << (ociover >> 24) << '.'
             << ((ociover >> 16) & 0xff) << '.' << ((ociover >> 8) & 0xff);
     else
         out << "No OpenColorIO";
-    out << "\nColor config: " << ot.colorconfig.configname() << "\n";
+    out << "\nColor config: " << colorconfig.configname() << "\n";
     out << "Known color spaces: \n";
-    const char* linear = ot.colorconfig.getColorSpaceNameByRole("linear");
-    for (int i = 0, e = ot.colorconfig.getNumColorSpaces(); i < e; ++i) {
-        const char* n = ot.colorconfig.getColorSpaceNameByIndex(i);
+    const char* linear       = colorconfig.getColorSpaceNameByRole("linear");
+    const char* scene_linear = colorconfig.getColorSpaceNameByRole(
+        "scene_linear");
+    for (int i = 0, e = colorconfig.getNumColorSpaces(); i < e; ++i) {
+        const char* n = colorconfig.getColorSpaceNameByIndex(i);
         out << "    - " << quote_if_spaces(n);
-        if ((linear && !ot.colorconfig.equivalent(n, "linear")
-             && ot.colorconfig.equivalent(n, linear))
-            || ot.colorconfig.isColorSpaceLinear(n))
+        if ((scene_linear && !colorconfig.equivalent(n, "scene_linear")
+             && colorconfig.equivalent(n, scene_linear))
+            || (linear && !colorconfig.equivalent(n, "linear")
+                && colorconfig.equivalent(n, linear))
+            || colorconfig.isColorSpaceLinear(n))
             out << " (linear)";
         out << "\n";
-        auto aliases = ot.colorconfig.getAliases(n);
+        auto aliases = colorconfig.getAliases(n);
         if (aliases.size()) {
             std::stringstream s;
             s << "      aliases: " << join_with_quotes(aliases, ", ");
@@ -5969,41 +6135,41 @@ print_ocio_info(Oiiotool& ot, std::ostream& out)
         }
     }
 
-    int roles = ot.colorconfig.getNumRoles();
+    int roles = colorconfig.getNumRoles();
     if (roles) {
         print(out, "Known roles:\n");
         for (int i = 0; i < roles; ++i) {
-            const char* r = ot.colorconfig.getRoleByIndex(i);
+            const char* r = colorconfig.getRoleByIndex(i);
             print(out, "    - {} -> {}\n", quote_if_spaces(r),
-                  quote_if_spaces(ot.colorconfig.getColorSpaceNameByRole(r)));
+                  quote_if_spaces(colorconfig.getColorSpaceNameByRole(r)));
         }
     }
 
-    int nlooks = ot.colorconfig.getNumLooks();
+    int nlooks = colorconfig.getNumLooks();
     if (nlooks) {
         print(out, "Known looks:\n");
         for (int i = 0; i < nlooks; ++i)
             print(out, "    - {}\n",
-                  quote_if_spaces(ot.colorconfig.getLookNameByIndex(i)));
+                  quote_if_spaces(colorconfig.getLookNameByIndex(i)));
     }
 
-    const char* default_display = ot.colorconfig.getDefaultDisplayName();
-    int ndisplays               = ot.colorconfig.getNumDisplays();
+    const char* default_display = colorconfig.getDefaultDisplayName();
+    int ndisplays               = colorconfig.getNumDisplays();
     if (ndisplays) {
         out << "Known displays: (* indicates default)\n";
         for (int i = 0; i < ndisplays; ++i) {
-            const char* d = ot.colorconfig.getDisplayNameByIndex(i);
+            const char* d = colorconfig.getDisplayNameByIndex(i);
             out << "    - " << quote_if_spaces(d);
             if (!strcmp(d, default_display))
                 out << " (*)";
-            const char* default_view = ot.colorconfig.getDefaultViewName(d);
-            int nviews               = ot.colorconfig.getNumViews(d);
+            const char* default_view = colorconfig.getDefaultViewName(d);
+            int nviews               = colorconfig.getNumViews(d);
             if (nviews) {
                 out << "\n      ";
                 std::stringstream s;
                 s << "views: ";
                 for (int i = 0; i < nviews; ++i) {
-                    const char* v = ot.colorconfig.getViewNameByIndex(d, i);
+                    const char* v = colorconfig.getViewNameByIndex(d, i);
                     s << quote_if_spaces(v);
                     if (!strcmp(v, default_view))
                         s << " (*)";
@@ -6015,7 +6181,16 @@ print_ocio_info(Oiiotool& ot, std::ostream& out)
             out << "\n";
         }
     }
-    if (!ot.colorconfig.supportsOpenColorIO())
+
+    int nnamed_transforms = colorconfig.getNumNamedTransforms();
+    if (nnamed_transforms) {
+        out << "Named transforms:\n";
+        for (int i = 0; i < nnamed_transforms; ++i) {
+            const char* x = colorconfig.getNamedTransformNameByIndex(i);
+            out << "    - " << quote_if_spaces(x) << "\n";
+        }
+    }
+    if (!colorconfig.supportsOpenColorIO())
         out << "No OpenColorIO support was enabled at build time.\n";
 }
 
@@ -6072,12 +6247,12 @@ print_help_end(Oiiotool& ot, std::ostream& out)
     out << formatted_format_list("Input", "input_format_list") << "\n";
     out << formatted_format_list("Output", "output_format_list") << "\n";
 
-    if (int ociover = ot.colorconfig.OpenColorIO_version_hex())
+    if (int ociover = ot.colorconfig().OpenColorIO_version_hex())
         print(out, "OpenColorIO {}.{}.{}\n", (ociover >> 24),
               ((ociover >> 16) & 0xff), ((ociover >> 8) & 0xff));
     else
         print(out, "No OpenColorIO\n");
-    print(out, "    Color config: {}\n", ot.colorconfig.configname());
+    print(out, "    Color config: {}\n", ot.colorconfig().configname());
     print(out, "    Run `oiiotool --colorconfiginfo` for a "
                "full color management inventory.\n");
 
@@ -6118,7 +6293,7 @@ print_help_end(Oiiotool& ot, std::ostream& out)
     // same area is this executable, otherwise just point to the copy on
     // GitHub corresponding to our version of the softare.
     print(out, "Full OIIO documentation can be found at\n");
-    print(out, "    https://openimageio.readthedocs.io\n");
+    print(out, "    https://docs.openimageio.org\n");
 }
 
 
@@ -6352,6 +6527,12 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--crash")
       .hidden()
       .action(crash_me);
+    ap.arg("--test-bad-format")
+      .hidden()
+      .action([&](cspan<const char*>){
+                  print("{}\n", Strutil::fmt::format("hey hey {:d} {}",
+                                                     "foo", "bar", "oops"));
+              });
 
     ap.separator("Commands that read images:");
     ap.arg("-i %s:FILENAME")
@@ -6539,6 +6720,9 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--csub %s:VAL")
       .hidden() // Deprecated synonym
       .OTACTION(action_subc);
+    ap.arg("--scale")
+      .help("Scale all channels of one image by the single channel of another image")
+      .OTACTION(action_scale);
     ap.arg("--mul")
       .help("Multiply two images")
       .OTACTION(action_mul);
@@ -6758,6 +6942,9 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--text %s:TEXT")
       .help("Render text into the current image (options: x=, y=, size=, color=)")
       .OTACTION(action_text);
+    ap.arg("--demosaic")
+      .help("Demosaic (options: pattern=%s, algorithm=%s, layout=%s, white_balance=%f:R,G1,G2,B)")
+      .OTACTION(action_demosaic);
 
     ap.separator("Manipulating channels or subimages:");
     ap.arg("--ch %s:CHANLIST")
@@ -6784,6 +6971,9 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--siappendall")
       .help("Append all images on the stack into a single multi-subimage image")
       .OTACTION(action_subimage_append_all);
+    ap.arg("--layersplit")
+      .help("Split the top image's channel-name-based layers into separate images on the stack")
+      .OTACTION(action_layer_split);
     ap.arg("--deepen")
       .help("Deepen normal 2D image to deep")
       .OTACTION(action_deepen);
@@ -6848,6 +7038,9 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--ociofiletransform %s:FILENAME")
       .help("Apply the named OCIO filetransform (options: inverse=, unpremult=)")
       .OTACTION(action_ociofiletransform);
+    ap.arg("--ocionamedtransform %s:NAME")
+      .help("Apply the named OCIO namedtransform (options: inverse=, key=, value=, unpremult=)")
+      .OTACTION(action_ocionamedtransform);
     ap.arg("--unpremult")
       .help("Divide all color channels of the current image by the alpha to \"un-premultiply\"")
       .OTACTION(action_unpremult);
@@ -7134,6 +7327,12 @@ handle_sequence(Oiiotool& ot, int argc, const char** argv)
         // Frame sequence specified, but no wildcards used
         Filesystem::enumerate_sequence(framespec, frame_numbers[0]);
         nfilenames = frame_numbers[0].size();
+    }
+
+    if (!nfilenames) {
+        // No filenames matched the first wildcard pattern
+        ot.warning("", "No frame number or views matched the wildcards");
+        return false;
     }
 
     // Make sure frame_numbers[0] has the canonical frame number list

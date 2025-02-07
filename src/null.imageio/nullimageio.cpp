@@ -24,7 +24,10 @@ public:
     NullOutput() {}
     ~NullOutput() override {}
     const char* format_name(void) const override { return "null"; }
-    int supports(string_view /*feature*/) const override { return true; }
+    int supports(string_view feature) const override
+    {
+        return feature != "rectangles";
+    }
     bool open(const std::string& /*name*/, const ImageSpec& spec,
               OpenMode /*mode*/) override
     {
@@ -316,10 +319,10 @@ NullInput::open(const std::string& name, ImageSpec& newspec,
         }
     }
 
+    m_value.resize(m_topspec.pixel_bytes());  // default fills with 0's
     if (fvalue.size()) {
         // Convert float to the native type
         fvalue.resize(m_topspec.nchannels, 0.0f);
-        m_value.resize(m_topspec.pixel_bytes());
         convert_pixel_values(TypeFloat, fvalue.data(), m_topspec.format,
                              m_value.data(), m_topspec.nchannels);
     }
@@ -365,13 +368,10 @@ bool
 NullInput::read_native_scanline(int /*subimage*/, int /*miplevel*/, int /*y*/,
                                 int /*z*/, void* data)
 {
-    if (m_value.size()) {
-        size_t s = m_spec.pixel_bytes();
-        for (int x = 0; x < m_spec.width; ++x)
-            memcpy((char*)data + s * x, m_value.data(), s);
-    } else {
-        memset(data, 0, m_spec.scanline_bytes());
-    }
+    size_t s = m_spec.pixel_bytes();
+    OIIO_DASSERT(m_value.size() == s);
+    for (int x = 0; x < m_spec.width; ++x)
+        memcpy((char*)data + s * x, m_value.data(), s);
     return true;
 }
 
@@ -381,13 +381,10 @@ bool
 NullInput::read_native_tile(int /*subimage*/, int /*miplevel*/, int /*x*/,
                             int /*y*/, int /*z*/, void* data)
 {
-    if (m_value.size()) {
-        size_t s = m_spec.pixel_bytes();
-        for (size_t x = 0, e = m_spec.tile_pixels(); x < e; ++x)
-            memcpy((char*)data + s * x, m_value.data(), s);
-    } else {
-        memset(data, 0, m_spec.tile_bytes());
-    }
+    size_t s = m_spec.pixel_bytes();
+    OIIO_DASSERT(m_value.size() == s);
+    for (size_t x = 0, e = m_spec.tile_pixels(); x < e; ++x)
+        memcpy((char*)data + s * x, m_value.data(), s);
     return true;
 }
 

@@ -203,6 +203,54 @@ OIIO_NAMESPACE_BEGIN
 using namespace pvt;
 using namespace simd;
 
+
+bool
+TextureSystem::environment(ustring filename, TextureOpt& options, V3fParam R,
+                           V3fParam dRdx, V3fParam dRdy, int nchannels,
+                           float* result, float* dresultds, float* dresultdt)
+{
+    return m_impl->environment(filename, options, R, dRdx, dRdy, nchannels,
+                               result, dresultds, dresultdt);
+}
+
+
+bool
+TextureSystem::environment(TextureHandle* texture_handle,
+                           Perthread* thread_info, TextureOpt& options,
+                           V3fParam R, V3fParam dRdx, V3fParam dRdy,
+                           int nchannels, float* result, float* dresultds,
+                           float* dresultdt)
+{
+    return m_impl->environment(texture_handle, thread_info, options, R, dRdx,
+                               dRdy, nchannels, result, dresultds, dresultdt);
+}
+
+
+bool
+TextureSystem::environment(ustring filename, TextureOptBatch& options,
+                           Tex::RunMask mask, const float* R, const float* dRdx,
+                           const float* dRdy, int nchannels, float* result,
+                           float* dresultds, float* dresultdt)
+{
+    return m_impl->environment(filename, options, mask, R, dRdx, dRdy,
+                               nchannels, result, dresultds, dresultdt);
+}
+
+
+bool
+TextureSystem::environment(TextureHandle* texture_handle,
+                           Perthread* thread_info, TextureOptBatch& options,
+                           Tex::RunMask mask, const float* R, const float* dRdx,
+                           const float* dRdy, int nchannels, float* result,
+                           float* dresultds, float* dresultdt)
+{
+    return m_impl->environment(texture_handle, thread_info, options, mask, R,
+                               dRdx, dRdy, nchannels, result, dresultds,
+                               dresultdt);
+}
+
+
+
 namespace pvt {
 
 
@@ -224,6 +272,8 @@ vector_to_latlong(const Imath::V3f& R, bool y_is_up, float& s, float& t)
     if (isnan(t))
         t = 0.0f;
 }
+
+}  // namespace pvt
 
 
 
@@ -593,7 +643,5 @@ TextureSystemImpl::environment(ustring filename, TextureOptBatch& options,
                        dRdy, nchannels, result, dresultds, dresultdt);
 }
 
-
-}  // end namespace pvt
 
 OIIO_NAMESPACE_END

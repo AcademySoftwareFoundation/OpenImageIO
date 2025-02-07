@@ -1,0 +1,202 @@
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
+
+##########################################################################
+# Common steps for all CI workflows
+##########################################################################
+
+name: CI Steps
+
+on:
+  workflow_call:
+    # This inputs receive values via the "with:" section in ci_workflow.yml
+    inputs:
+      build:
+        type: string
+      runner:
+        type: string
+      container:
+        type: string
+      cc_compiler:
+        type: string
+      cxx_compiler:
+        type: string
+      cxx_std:
+        type: string
+      build_type:
+        type: string
+      depcmds:
+        type: string
+      extra_artifacts:
+        type: string
+      fmt_ver:
+        type: string
+      opencolorio_ver:
+        type: string
+      openexr_ver:
+        type: string
+      pybind11_ver:
+        type: string
+      python_ver:
+        type: string
+      setenvs:
+        type: string
+      simd:
+        type: string
+      skip_build:
+        type: string
+      skip_tests:
+        type: string
+      abi_check:
+        type: string
+      build_docs:
+        type: string
+      generator:
+        type: string
+      ctest_args:
+        type: string
+      ctest_test_timeout:
+        type: string
+      coverage:
+        type: string
+      sonar:
+        type: string
+      nametag:
+        type: string
+    secrets:
+        PASSED_GITHUB_TOKEN:
+          required: false
+        PASSED_SONAR_TOKEN:
+          required: false
+
+permissions: read-all
+
+
+jobs:
+
+  steps:
+    name: "${{inputs.cxx_compiler}} c++${{inputs.cxx_std}} py${{inputs.python_ver}}"
+    runs-on: ${{ inputs.runner }}
+    container:
+      image: ${{ inputs.container }}
+
+    env:
+      CXX: ${{inputs.cxx_compiler}}
+      CC: ${{inputs.cc_compiler}}
+      CMAKE_BUILD_TYPE: ${{inputs.build_type}}
+      CMAKE_CXX_STANDARD: ${{inputs.cxx_std}}
+      CMAKE_GENERATOR: ${{inputs.generator}}
+      CTEST_ARGS: ${{inputs.ctest_args}}
+      CTEST_TEST_TIMEOUT: ${{inputs.ctest_test_timeout}}
+      USE_SIMD: ${{inputs.simd}}
+      FMT_VERSION: ${{inputs.fmt_ver}}
+      OPENCOLORIO_VERSION: ${{inputs.opencolorio_ver}}
+      OPENEXR_VERSION: ${{inputs.openexr_ver}}
+      PYBIND11_VERSION: ${{inputs.pybind11_ver}}
+      PYTHON_VERSION: ${{inputs.python_ver}}
+      ABI_CHECK: ${{inputs.abi_check}}
+      ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: '0'
+      - name: Prepare ccache timestamp
+        id: ccache_cache_keys
+        shell: bash
+        run: echo "date=`date -u +'%Y-%m-%dT%H:%M:%SZ'`" >> $GITHUB_OUTPUT
+      - name: ccache
+        id: ccache
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: ./ccache
+          key: ${{github.job}}-${{inputs.nametag}}-${{steps.ccache_cache_keys.outputs.date}}
+          restore-keys: ${{github.job}}-
+      - name: Setup Nuget.exe (Windows only)
+        if: runner.os == 'Windows'
+        uses: nuget/setup-nuget@a21f25cd3998bf370fde17e3f1b4c12c175172f9 # v2.0.0
+      - name: Build setup
+        shell: bash
+        run: |
+            ${{inputs.setenvs}}
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        shell: bash
+        run: |
+            ${{inputs.depcmds}}
+            if [[ "$RUNNER_OS" == "Linux" ]]; then
+                src/build-scripts/gh-installdeps.bash
+            elif [[ "$RUNNER_OS" == "macOS" ]]; then
+                src/build-scripts/install_homebrew_deps.bash
+            elif [[ "$RUNNER_OS" == "Windows" ]]; then
+                src/build-scripts/gh-win-installdeps.bash
+            fi
+      - name:  Install sonar-scanner and build-wrapper
+        if: inputs.sonar == '1'
+        uses: sonarsource/sonarcloud-github-c-cpp@e4882e1621ad2fb48dddfa48287411bed34789b1 # v2.0.2
+      - name: Build
+        if: inputs.skip_build != '1'
+        shell: bash
+        run: src/build-scripts/ci-build.bash
+      - name: Testsuite
+        if: inputs.skip_tests != '1'
+        shell: bash
+        run: src/build-scripts/ci-test.bash
+      - name: Code coverage
+        if: inputs.coverage == '1'
+        run: src/build-scripts/ci-coverage.bash
+      - name: Sonar-scanner
+        if: inputs.sonar == 1
+        env:
+          GITHUB_TOKEN: ${{ secrets.PASSED_GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.PASSED_SONAR_TOKEN }}
+        run: |
+            which sonar-scanner
+            ls -l /__w/OpenImageIO/OpenImageIO/bw_output
+            echo "BUILD_OUTPUT_DIR is " "${{ env.BUILD_WRAPPER_OUT_DIR }}"
+            find . -name "*.gcov" -print
+            # sonar-scanner --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
+            time sonar-scanner --define sonar.host.url="${{ env.SONAR_SERVER_URL }}" --define sonar.cfamily.build-wrapper-output="$BUILD_WRAPPER_OUT_DIR" --define sonar.cfamily.gcov.reportsPath="_coverage" --define sonar.cfamily.threads="$PARALLEL"
+        # Consult https://docs.sonarcloud.io/advanced-setup/ci-based-analysis/sonarscanner-cli/ for more information and options
+      - name: Check out ABI standard
+        if: inputs.abi_check != ''
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{inputs.abi_check}}
+          path: abi_standard
+      - name: Build ABI standard
+        if: inputs.abi_check != ''
+        shell: bash
+        run: |
+            mkdir -p abi_standard/build
+            pushd abi_standard
+            src/build-scripts/ci-build.bash
+            popd
+      - name: Check ABI
+        if: inputs.abi_check != ''
+        shell: bash
+        run: |
+            src/build-scripts/ci-abicheck.bash ./build abi_standard/build libOpenImageIO libOpenImageIO_Util
+      - name: Build Docs
+        if: inputs.build_docs == '1'
+        shell: bash
+        run: |
+            cd src/doc
+            time make doxygen
+            time make sphinx
+      - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        if: ${{ failure() || inputs.build_docs == '1'}}
+        with:
+          name: oiio-${{github.job}}-${{inputs.nametag}}
+          path: |
+            build/cmake-save
+            build/compat_reports
+            build/sphinx
+            build/testsuite/*/*.*
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
+            !build/testsuite/j2kp4files_v1_5
+            ${{ inputs.extra_artifacts }}

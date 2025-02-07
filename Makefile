@@ -180,10 +180,6 @@ ifeq (${CODECOV},1)
   MY_CMAKE_FLAGS += -DCODECOV:BOOL=${CODECOV}
 endif
 
-ifneq (${SANITIZE},)
-  MY_CMAKE_FLAGS += -DSANITIZE=${SANITIZE}
-endif
-
 ifneq (${CLANG_TIDY},)
   MY_CMAKE_FLAGS += -DCLANG_TIDY:BOOL=1
 endif
@@ -205,11 +201,6 @@ endif
 ifneq (${CLANG_FORMAT_EXCLUDES},)
   MY_CMAKE_FLAGS += -DCLANG_FORMAT_EXCLUDES:STRING=${CLANG_FORMAT_EXCLUDES}
 endif
-
-ifneq (${BUILD_MISSING_DEPS},)
-  MY_CMAKE_FLAGS += -DBUILD_MISSING_DEPS:BOOL=${BUILD_MISSING_DEPS}
-endif
-
 
 #$(info MY_CMAKE_FLAGS = ${MY_CMAKE_FLAGS})
 #$(info MY_MAKE_FLAGS = ${MY_MAKE_FLAGS})
@@ -360,7 +351,7 @@ help:
 	@echo "      USE_CCACHE=0             Disable ccache (even if available)"
 	@echo "      UNITY=BATCH              Do a 'Unity' build (BATCH or GROUP or nothing)"
 	@echo "      CODECOV=1                Enable code coverage tests"
-	@echo "      SANITIZE=name1,...       Enable sanitizers (address, leak, thread)"
+	@echo "      SANITIZE=name1,...       Enable sanitizers (address, leak, thread, undefined)"
 	@echo "      CLANG_TIDY=1             Run clang-tidy on all source (can be modified"
 	@echo "                                  by CLANG_TIDY_ARGS=... and CLANG_TIDY_FIX=1"
 	@echo "      CLANG_FORMAT_INCLUDES=... CLANG_FORMAT_EXCLUDES=..."
@@ -387,6 +378,7 @@ help:
 	@echo "      USE_NUKE=0               Don't build Nuke plugins"
 	@echo "      Nuke_ROOT=path           Custom Nuke installation"
 	@echo "      NUKE_VERSION=ver         Custom Nuke version"
+	@echo "      IGNORE_HOMEBREWED_DEPS=1 Don't use dependencies installed by Homebrew"
 	@echo "  OIIO build-time options:"
 	@echo "      INSTALL_PREFIX=path      Set installation prefix (default: ./${INSTALL_PREFIX})"
 	@echo "      NAMESPACE=name           Override namespace base name (default: OpenImageIO)"
@@ -399,7 +391,6 @@ help:
 	@echo "                                  0, sse2, sse3, ssse3, sse4.1, sse4.2, f16c,"
 	@echo "                                  avx, avx2, avx512f)"
 	@echo "      TEX_BATCH_SIZE=16        Override TextureSystem SIMD batch size"
-	@echo "      BUILD_MISSING_DEPS=1     Try to download/build missing dependencies"
 	@echo "  make test, extra options:"
 	@echo "      TEST=regex               Run only tests matching the regex"
 	@echo ""

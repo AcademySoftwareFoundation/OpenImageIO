@@ -338,6 +338,19 @@ OIIO_DECLARE_PYMODULE(PYMODULE_NAME)
         py::arg("name"), py::arg("defaultval") = "");
     m.def("getattribute", &oiio_getattribute_typed);
     m.def(
+        "set_colorspace",
+        [](ImageSpec& spec, const std::string& name) {
+            set_colorspace(spec, name);
+        },
+        py::arg("spec"), py::arg("name"));
+    m.def("set_colorspace_rec709_gamma", [](ImageSpec& spec, float gamma) {
+        set_colorspace_rec709_gamma(spec, gamma);
+    });
+    m.def("equivalent_colorspace",
+          [](const std::string& a, const std::string& b) {
+              return equivalent_colorspace(a, b);
+          });
+    m.def(
         "is_imageio_format_name",
         [](const std::string& name) {
             return OIIO::is_imageio_format_name(name);

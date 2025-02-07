@@ -1,0 +1,122 @@
+[project]
+name = "OpenImageIO"
+# The build backend ascertains the version from the CMakeLists.txt file.
+dynamic = ["version"]
+description = "Reading, writing, and processing images in a wide variety of file formats, using a format-agnostic API, aimed at VFX applications."
+authors = [
+    {name = "Larry Gritz", email = "lg@larrygritz.com"},
+    {name = "OpenImageIO Contributors", email = "oiio-dev@lists.aswf.io"}
+]
+maintainers = [
+    {name = "OpenImageIO Contributors", email="oiio-dev@lists.aswf.io"},
+]
+readme = "README.md"
+license = {text = "Apache-2.0"}
+classifiers = [
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: Apache Software License",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Multimedia :: Video :: Display",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+requires-python = ">= 3.8"
+
+[project.urls]
+Homepage = "https://openimageio.org/"
+Source = "https://github.com/AcademySoftwareFoundation/OpenImageIO"
+Documentation = "https://docs.openimageio.org"
+Issues = "https://github.com/AcademySoftwareFoundation/OpenImageIO/issues"
+
+
+[project.scripts]
+# Use the convention below to expose CLI tools as Python scripts.
+maketx = "OpenImageIO:_command_line"
+oiiotool = "OpenImageIO:_command_line"
+
+[build-system]
+build-backend = "scikit_build_core.build"
+requires = [
+    "scikit-build-core>=0.10.6,<1",
+    "pybind11",
+]
+
+[tool.scikit-build]
+build.verbose = true
+# Exclude unnecessary directories from the source distribution.
+sdist.exclude = [".github", "testsuite", "ASWF", "docs"]
+# Pin minimum scikit-build-core to that specified in build-system.requires.
+minimum-version = "build-system.requires"
+# Pin minimum CMake version to that specified in CMakeLists.txt.
+cmake.version = "CMakeLists.txt"
+wheel.license-files = ["LICENSE.md", "THIRD-PARTY.md"]
+# Make sure the package is structured as expected.
+wheel.install-dir = "OpenImageIO"
+# Only install the user and fonts components.
+install.components = ["user", "fonts"]
+
+[tool.scikit-build.cmake.define]
+# Build missing dependencies. See src/cmake for details.
+OpenImageIO_BUILD_MISSING_DEPS = "all"
+# Don't build tests. Dramatically improves build time.
+OIIO_BUILD_TESTS = "0"
+# Prefer linking static dependencies when possible.
+LINKSTATIC = "1"
+# Standardize the install directory for libraries, as expected by
+# other parts of the wheels build process.
+CMAKE_INSTALL_LIBDIR = "lib"
+
+# Dynamically set the package version metadata by pasrsing CMakeLists.txt.
+[tool.scikit-build.metadata.version]
+provider = "scikit_build_core.metadata.regex"
+input = "CMakeLists.txt" 
+regex = 'set \(OpenImageIO_VERSION "(?P<value>[0-9a-z.]+)"\)'
+
+# On macOS, ensure dependencies are only built for the target architecture.
+[[tool.scikit-build.overrides]]
+if.platform-system = "darwin"
+if.platform-machine  = "arm64"
+inherit.cmake.define = "append"
+cmake.define.CMAKE_OSX_ARCHITECTURES = "arm64"
+
+[[tool.scikit-build.overrides]]
+if.platform-system = "darwin"
+if.platform-machine  = "x86_64"
+inherit.cmake.define = "append"
+cmake.define.CMAKE_OSX_ARCHITECTURES = "x86_64"
+
+[tool.cibuildwheel]
+build-verbosity = 1
+skip = [
+    # Skip 32-bit builds
+    "*-win32",
+    "*-manylinux_i686",
+    # Building with musl seems to work, but the repair-wheel step seems to fail...
+    # This may be a bug in repairwheel (or auditwheel)?
+    "*musllinux*",  
+]
+test-command = "oiiotool --buildinfo"
+
+[tool.cibuildwheel.macos.environment]
+SKBUILD_CMAKE_ARGS = "-DLINKSTATIC=1; -DIGNORE_HOMEBREWED_DEPS=1"
+# C++17 - std::filesystem is only available in macOS 10.15 and later; ARM compatibility introduced in 11.
+MACOSX_DEPLOYMENT_TARGET = "11"
+# Optimize for size (not speed).
+SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
+
+[tool.cibuildwheel.linux.environment]
+SKBUILD_CMAKE_ARGS = "-DLINKSTATIC=1"
+# Suppress warnings that cause linux cibuildwheel build to fail
+CXXFLAGS = "-Wno-error=stringop-overflow -Wno-pragmas"
+SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
+
+[tool.cibuildwheel.windows.environment]
+SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"

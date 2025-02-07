@@ -427,7 +427,8 @@ ImageBufAlgo::transpose(ImageBuf& dst, const ImageBuf& src, ROI roi,
     ROI dst_roi(roi.ybegin, roi.yend, roi.xbegin, roi.xend, roi.zbegin,
                 roi.zend, roi.chbegin, roi.chend);
     bool dst_initialized = dst.initialized();
-    if (!IBAprep(dst_roi, &dst))
+    ParamValue options[] = { { "dst_format", src.spec().format.c_str() } };
+    if (!IBAprep(dst_roi, dst, {}, options))
         return false;
     if (!dst_initialized) {
         ROI r = src.roi_full();

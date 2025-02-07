@@ -60,64 +60,6 @@
 #endif
 
 
-/// ASSERT and ASSERT_MSG (and, ugh, ASSERTMSG) are deprecated assertion
-/// macros. They are deprecated for two reasons: (1) terrible names pollute
-/// the global namespace and might conflict with other packages; and (2)
-/// the fully unconditional nature of aborting even for release builds is
-/// unkind to applications. Consider these all to be deprecated and avoid
-/// using these macros.
-///
-/// DASSERT and DASSERT_MSG also are considered deprecated for the namespace
-/// reasons.
-#ifndef ASSERT
-#    define ASSERT(x)                                                       \
-        (OIIO_LIKELY(x)                                                     \
-             ? ((void)0)                                                    \
-             : (std::fprintf(stderr, "%s:%u: %s: Assertion '%s' failed.\n", \
-                             __FILE__, __LINE__, OIIO_PRETTY_FUNCTION, #x), \
-                abort()))
-#endif
-
-#ifndef ASSERT_MSG
-#    define ASSERT_MSG(x, msg, ...)                                         \
-        (OIIO_LIKELY(x)                                                     \
-             ? ((void)0)                                                    \
-             : (std::fprintf(stderr,                                        \
-                             "%s:%u: %s: Assertion '%s' failed: " msg "\n", \
-                             __FILE__, __LINE__, OIIO_PRETTY_FUNCTION, #x,  \
-                             __VA_ARGS__),                                  \
-                abort()))
-#endif
-
-#ifndef ASSERTMSG
-#    define ASSERTMSG ASSERT_MSG
-#endif
-
-
-/// DASSERT(condition) is just an alias for the usual assert() macro.
-/// It does nothing when in a non-DEBUG (optimized, shipping) build.
-#ifndef NDEBUG
-#    define DASSERT(x) assert(x)
-#else
-/* DASSERT does nothing when not debugging; sizeof trick prevents warnings */
-#    define DASSERT(x) ((void)sizeof(x)) /*NOLINT*/
-#endif
-
-/// DASSERT_MSG(condition,msg,...) is just like ASSERT_MSG, except that it
-/// only is functional in DEBUG mode, but does nothing when in a
-/// non-DEBUG (optimized, shipping) build.
-#ifndef NDEBUG
-#    define DASSERT_MSG ASSERT_MSG
-#else
-/* does nothing when not debugging */
-#    define DASSERT_MSG(x, ...) ((void)sizeof(x)) /*NOLINT*/
-#endif
-
-#ifndef DASSERTMSG
-#    define DASSERTMSG DASSERT_MSG
-#endif
-
-
 /// Define OIIO_STATIC_ASSERT(cond) as a wrapper around static_assert(cond),
 /// with appropriate fallbacks for older C++ standards.
 #if (__cplusplus >= 201700L) /* FIXME - guess the token, fix when C++17 */

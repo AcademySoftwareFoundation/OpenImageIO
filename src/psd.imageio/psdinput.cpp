@@ -19,7 +19,6 @@
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
-#include <OpenImageIO/span_util.h>
 #include <OpenImageIO/tiffutils.h>
 
 // #include "jpeg_memory_src.h"
@@ -383,8 +382,8 @@ private:
     static void cmyk_to_rgb(int n, cspan<T> cmyk, size_t cmyk_stride,
                             span<T> rgb, size_t rgb_stride)
     {
-        DASSERT(size_t(n) * cmyk_stride <= std::size(cmyk));
-        DASSERT(size_t(n) * rgb_stride <= std::size(rgb));
+        OIIO_DASSERT(size_t(n) * cmyk_stride <= std::size(cmyk));
+        OIIO_DASSERT(size_t(n) * rgb_stride <= std::size(rgb));
         for (int i = 0; i < n; ++i) {
             float C = convert_type<T, float>(cmyk[i * cmyk_stride + 0]);
             float M = convert_type<T, float>(cmyk[i * cmyk_stride + 1]);
@@ -2234,6 +2233,7 @@ PSDInput::decompress_packbits(const char* src, char* dst,
     int16_t header;
     int length;
 
+    char* dst_start = dst;
     while (src_remaining > 0 && dst_remaining > 0) {
         header = *reinterpret_cast<const signed char*>(src);
         src++;
@@ -2276,8 +2276,8 @@ PSDInput::decompress_packbits(const char* src, char* dst,
 
     if (!bigendian()) {
         switch (m_header.depth) {
-        case 16: swap_endian((uint16_t*)dst, m_spec.width); break;
-        case 32: swap_endian((uint32_t*)dst, m_spec.width); break;
+        case 16: swap_endian((uint16_t*)dst_start, m_spec.width); break;
+        case 32: swap_endian((uint32_t*)dst_start, m_spec.width); break;
         }
     }
 
