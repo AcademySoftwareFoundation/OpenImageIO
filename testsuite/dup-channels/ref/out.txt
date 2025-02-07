@@ -8,6 +8,7 @@ out.exr              :   64 x   64, 6 channel, half openexr
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Reading out2.exr
 out2.exr             :   64 x   64, 6 channel, half openexr
     SHA-1: 6FECD5769C727E137B7580AE3B1823B06EE6F9D9
@@ -21,3 +22,4 @@ out2.exr             :   64 x   64, 6 channel, half openexr
     oiio:subimagename: "Aimg"
     oiio:subimages: 1
     openexr:chunkCount: 4
+    openexr:lineOrder: "increasingY"

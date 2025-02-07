@@ -555,4 +555,5 @@ bumpslope-cdf.exr    :   64 x   64, 6 channel, half openexr
     oiio:AverageColor: "0.499779,-0.000457942,-4.17233e-05,0.00197116,0.00178894,3.45764e-05"
     oiio:SHA-1: "49B533110A914CE89BE0B14753A6A4CC037C964F"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
     openexr:roundingmode: 0
