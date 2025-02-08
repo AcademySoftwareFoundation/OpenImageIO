@@ -9,6 +9,7 @@ Reading ../openexr-images/Chromaticities/Rec709.exr
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/Chromaticities/Rec709.exr" and "Rec709.exr"
 PASS
 Reading ../openexr-images/Chromaticities/XYZ.exr
@@ -23,6 +24,7 @@ Reading ../openexr-images/Chromaticities/XYZ.exr
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/Chromaticities/XYZ.exr" and "XYZ.exr"
 PASS
 Reading ../openexr-images/LuminanceChroma/Garden.exr
@@ -36,5 +38,6 @@ Reading ../openexr-images/LuminanceChroma/Garden.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/LuminanceChroma/Garden.exr" and "Garden.exr"
 PASS

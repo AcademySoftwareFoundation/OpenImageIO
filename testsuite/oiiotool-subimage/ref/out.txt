@@ -14,6 +14,7 @@ gpgr.exr             :   64 x   64, 3 channel, half openexr
     oiio:subimagename: "layerA"
     oiio:subimages: 4
     openexr:chunkCount: 4
+    openexr:lineOrder: "increasingY"
  subimage  1:   64 x   64, 3 channel, half openexr
     SHA-1: 0E19BEFEF868E356A6A4C6450DA9A7B17DD11E12
     channel list: R, G, B
@@ -27,6 +28,7 @@ gpgr.exr             :   64 x   64, 3 channel, half openexr
     oiio:subimagename: "layerB"
     oiio:subimages: 4
     openexr:chunkCount: 4
+    openexr:lineOrder: "increasingY"
  subimage  2:   64 x   64, 3 channel, half openexr
     SHA-1: CFAF4AFC253320AC35B8E9014C6D750768354059
     channel list: R, G, B
@@ -40,6 +42,7 @@ gpgr.exr             :   64 x   64, 3 channel, half openexr
     oiio:subimagename: "layerC"
     oiio:subimages: 4
     openexr:chunkCount: 4
+    openexr:lineOrder: "increasingY"
  subimage  3:   64 x   64, 3 channel, half openexr
     SHA-1: 5FFA4616F46509627873D2C53744E47E2F492719
     channel list: R, G, B
@@ -53,6 +56,7 @@ gpgr.exr             :   64 x   64, 3 channel, half openexr
     oiio:subimagename: "layerD"
     oiio:subimages: 4
     openexr:chunkCount: 4
+    openexr:lineOrder: "increasingY"
 Reading mip4.tif
 mip4.tif             :   64 x   64, 4 channel, uint8 tiff
     SHA-1: 36CE573A20E682720B020FC689E2067579DE5B37

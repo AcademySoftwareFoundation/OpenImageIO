@@ -72,6 +72,7 @@ attrib2.exr          :   64 x   64, 3 channel, half openexr
     oiio:subimagename: "subimage00"
     oiio:subimages: 2
     openexr:chunkCount: 4
+    openexr:lineOrder: "increasingY"
  subimage  1:   64 x   64, 3 channel, half openexr
     SHA-1: EBDD38B69CD5B9F2D00D273C981E16960FBBB4F7
     channel list: R, G, B
@@ -85,6 +86,7 @@ attrib2.exr          :   64 x   64, 3 channel, half openexr
     oiio:subimagename: "subimage01"
     oiio:subimages: 2
     openexr:chunkCount: 4
+    openexr:lineOrder: "increasingY"
 Reading attrib0.exr
 attrib0.exr          :   64 x   64, 3 channel, half openexr
     2 subimages: 64x64 [h,h,h], 64x64 [h,h,h]
@@ -100,6 +102,7 @@ attrib0.exr          :   64 x   64, 3 channel, half openexr
     oiio:subimagename: "subimage00"
     oiio:subimages: 2
     openexr:chunkCount: 4
+    openexr:lineOrder: "increasingY"
  subimage  1:   64 x   64, 3 channel, half openexr
     SHA-1: EBDD38B69CD5B9F2D00D273C981E16960FBBB4F7
     channel list: R, G, B
@@ -112,6 +115,7 @@ attrib0.exr          :   64 x   64, 3 channel, half openexr
     oiio:subimagename: "subimage01"
     oiio:subimages: 2
     openexr:chunkCount: 4
+    openexr:lineOrder: "increasingY"
 Reading tahoe-icc.jpg
 tahoe-icc.jpg        :  128 x   96, 3 channel, uint8 jpeg
     SHA-1: BC4C6090E793819E1A2869AAA8FBEE3587CC6947
