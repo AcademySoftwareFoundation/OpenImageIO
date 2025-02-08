@@ -275,7 +275,6 @@ static std::map<std::string, std::string> cexr_tag_to_oiio_std {
     { "envmap", "" },
     { "tiledesc", "" },
     { "tiles", "" },
-    { "openexr:lineOrder", "openexr:lineOrder" },
     { "type", "" },
 
     // FIXME: Things to consider in the future:
@@ -737,7 +736,7 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
             case EXR_LINEORDER_RANDOM_Y: lineOrder = "randomY"; break;
             default: break;
             }
-            spec.attribute(oname, lineOrder);
+            spec.attribute("openexr:lineOrder", lineOrder);
             break;
         }
 

@@ -20,7 +20,7 @@ Reading ../openexr-images/v2/Stereo/composited.exr
     oiio:subimages: 4
     openexr:chunkCount: 1078
     openexr:lineOrder: "increasingY"
-subimage  1: 1918 x 1078, 1 channel, half openexr
+ subimage  1: 1918 x 1078, 1 channel, half openexr
     SHA-1: 5FAE17E1E8BDB2E7C3A6B3EBCA8E0CA15A07B80A
     channel list: Z
     pixel data origin: x=1, y=1
