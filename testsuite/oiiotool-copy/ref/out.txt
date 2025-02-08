@@ -15,6 +15,7 @@ allhalf.exr          :   38 x   38, 5 channel, half openexr
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Reading rgbahalf-zfloat.exr
 rgbahalf-zfloat.exr  :   38 x   38, 5 channel, half/half/half/half/float openexr
     SHA-1: 9324AFD44451321A8D87E09F656C7B86E827E5CD
@@ -28,6 +29,7 @@ rgbahalf-zfloat.exr  :   38 x   38, 5 channel, half/half/half/half/float openexr
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 explicit -d uint save result: 
 uint8.tif            :  128 x  128, 3 channel, uint8 tiff
     tile size: 16 x 16
@@ -68,6 +70,7 @@ chname.exr           :   38 x   38, 5 channel, float openexr
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Reading green.exr
 green.exr            :   64 x   64, 3 channel, half openexr
     SHA-1: 8B61993247469F3C208CA894D71856727B11606A
@@ -78,6 +81,7 @@ green.exr            :   64 x   64, 3 channel, half openexr
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Reading greenmeta.exr
 greenmeta.exr        :   64 x   64, 3 channel, half openexr
     SHA-1: 8B61993247469F3C208CA894D71856727B11606A
@@ -91,6 +95,7 @@ greenmeta.exr        :   64 x   64, 3 channel, half openexr
     weight: 20.5
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Reading nometamerge.exr
 nometamerge.exr      :   64 x   64, 6 channel, float openexr
     SHA-1: 9F13A523321C66208E90D45F87FA0CD9B370E111
@@ -102,6 +107,7 @@ nometamerge.exr      :   64 x   64, 6 channel, float openexr
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Reading metamerge.exr
 metamerge.exr        :   64 x   64, 6 channel, float openexr
     SHA-1: 9F13A523321C66208E90D45F87FA0CD9B370E111
@@ -114,6 +120,7 @@ metamerge.exr        :   64 x   64, 6 channel, float openexr
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Testing -o with no image
 oiiotool WARNING: -o : out.tif did not have any current image to output.
 Comparing "rgonly.exr" and "ref/rgonly.exr"
