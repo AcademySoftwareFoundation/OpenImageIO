@@ -14,6 +14,7 @@ Reading ../openexr-images/MultiResolution/Bonita.exr
     wrapmodes: "clamp,clamp"
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
     openexr:roundingmode: 0
 Comparing "../openexr-images/MultiResolution/Bonita.exr" and "Bonita.exr"
 PASS
@@ -33,6 +34,7 @@ Reading ../openexr-images/MultiResolution/ColorCodedLevels.exr
     wrapmodes: "periodic,periodic"
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
     openexr:roundingmode: 0
 Comparing "../openexr-images/MultiResolution/ColorCodedLevels.exr" and "ColorCodedLevels.exr"
 PASS
@@ -53,6 +55,7 @@ Reading ../openexr-images/MultiResolution/KernerEnvCube.exr
     oiio:ColorSpace: "lin_rec709"
     oiio:sampleborder: 1
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
     openexr:roundingmode: 0
 Comparing "../openexr-images/MultiResolution/KernerEnvCube.exr" and "KernerEnvCube.exr"
 PASS
@@ -72,6 +75,7 @@ Reading ../openexr-images/MultiResolution/KernerEnvLatLong.exr
     oiio:sampleborder: 1
     oiio:subimages: 1
     oiio:updirection: "y"
+    openexr:lineOrder: "increasingY"
     openexr:roundingmode: 0
 Comparing "../openexr-images/MultiResolution/KernerEnvLatLong.exr" and "KernerEnvLatLong.exr"
 PASS
@@ -90,6 +94,7 @@ Reading ../openexr-images/MultiResolution/MirrorPattern.exr
     wrapmodes: "mirror,mirror"
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
     openexr:roundingmode: 0
 Comparing "../openexr-images/MultiResolution/MirrorPattern.exr" and "MirrorPattern.exr"
 PASS
@@ -110,6 +115,7 @@ Reading ../openexr-images/MultiResolution/OrientationCube.exr
     oiio:ColorSpace: "lin_rec709"
     oiio:sampleborder: 1
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
     openexr:roundingmode: 0
 Comparing "../openexr-images/MultiResolution/OrientationCube.exr" and "OrientationCube.exr"
 PASS
@@ -129,6 +135,7 @@ Reading ../openexr-images/MultiResolution/OrientationLatLong.exr
     oiio:sampleborder: 1
     oiio:subimages: 1
     oiio:updirection: "y"
+    openexr:lineOrder: "increasingY"
     openexr:roundingmode: 0
 Comparing "../openexr-images/MultiResolution/OrientationLatLong.exr" and "OrientationLatLong.exr"
 PASS
@@ -147,6 +154,7 @@ Reading ../openexr-images/MultiResolution/PeriodicPattern.exr
     wrapmodes: "periodic,periodic"
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
     openexr:roundingmode: 0
 Comparing "../openexr-images/MultiResolution/PeriodicPattern.exr" and "PeriodicPattern.exr"
 PASS
@@ -167,6 +175,7 @@ Reading ../openexr-images/MultiResolution/StageEnvCube.exr
     oiio:ColorSpace: "lin_rec709"
     oiio:sampleborder: 1
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
     openexr:roundingmode: 0
 Comparing "../openexr-images/MultiResolution/StageEnvCube.exr" and "StageEnvCube.exr"
 PASS
@@ -186,6 +195,7 @@ Reading ../openexr-images/MultiResolution/StageEnvLatLong.exr
     oiio:sampleborder: 1
     oiio:subimages: 1
     oiio:updirection: "y"
+    openexr:lineOrder: "increasingY"
     openexr:roundingmode: 1
 Comparing "../openexr-images/MultiResolution/StageEnvLatLong.exr" and "StageEnvLatLong.exr"
 PASS
@@ -206,6 +216,7 @@ Reading ../openexr-images/MultiResolution/WavyLinesCube.exr
     oiio:ColorSpace: "lin_rec709"
     oiio:sampleborder: 1
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
     openexr:roundingmode: 0
 Comparing "../openexr-images/MultiResolution/WavyLinesCube.exr" and "WavyLinesCube.exr"
 PASS
@@ -225,6 +236,7 @@ Reading ../openexr-images/MultiResolution/WavyLinesLatLong.exr
     oiio:sampleborder: 1
     oiio:subimages: 1
     oiio:updirection: "y"
+    openexr:lineOrder: "increasingY"
     openexr:roundingmode: 0
 Comparing "../openexr-images/MultiResolution/WavyLinesLatLong.exr" and "WavyLinesLatLong.exr"
 PASS
@@ -239,6 +251,7 @@ Reading ../openexr-images/MultiResolution/WavyLinesSphere.exr
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/MultiResolution/WavyLinesSphere.exr" and "WavyLinesSphere.exr"
 PASS
 Reading ../openexr-images/MultiView/Adjuster.exr
@@ -256,6 +269,7 @@ Reading ../openexr-images/MultiView/Adjuster.exr
     YResolution: 100
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/MultiView/Adjuster.exr" and "Adjuster.exr"
 PASS
 Reading ../openexr-images/MultiView/Balls.exr
@@ -272,6 +286,7 @@ Reading ../openexr-images/MultiView/Balls.exr
     YResolution: 100
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/MultiView/Balls.exr" and "Balls.exr"
 PASS
 Reading ../openexr-images/MultiView/Fog.exr
@@ -291,6 +306,7 @@ Reading ../openexr-images/MultiView/Fog.exr
     XResolution: 100
     YResolution: 100
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/MultiView/Fog.exr" and "Fog.exr"
 PASS
 Reading ../openexr-images/MultiView/Impact.exr
@@ -313,6 +329,7 @@ Reading ../openexr-images/MultiView/Impact.exr
     YResolution: 100
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
     openexr:roundingmode: 0
 Comparing "../openexr-images/MultiView/Impact.exr" and "Impact.exr"
 PASS
@@ -333,5 +350,6 @@ Reading ../openexr-images/MultiView/LosPadres.exr
     YResolution: 100
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/MultiView/LosPadres.exr" and "LosPadres.exr"
 PASS

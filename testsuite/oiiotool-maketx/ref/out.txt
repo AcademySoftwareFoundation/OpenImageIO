@@ -281,6 +281,7 @@ nan.exr              :   64 x   64, 3 channel, half openexr
     oiio:SHA-1: "44B96A7C3AFBF8D7621E7C6453266E5DD1962D36"
     oiio:subimages: 1
     openexr:levelmode: 0
+    openexr:lineOrder: "increasingY"
     Stats Min: 0.000000 0.000000 0.000000 (float)
     Stats Max: 1.000000 1.000000 1.000000 (float)
     Stats Avg: 0.500000 0.500000 0.500000 (float)
@@ -310,6 +311,7 @@ bigval.exr           :    2 x    2, 3 channel, half openexr
     oiio:ConstantColor: "1e+06,1e+06,1e+06"
     oiio:SHA-1: "E3D97EED7EE68F1885685F312DDD7D8773C29862"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
     openexr:roundingmode: 0
     MIP 0 of 2 (2 x 2):
       Stats Min: 65504.000000 65504.000000 65504.000000 (float)
@@ -352,6 +354,7 @@ checker-exr.pdq      :  128 x  128, 4 channel, half openexr
     oiio:ColorSpace: "lin_rec709"
     oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
     openexr:roundingmode: 0
 Reading grid.tx
     oiio:SHA-1: "9B24D4CC05313A43973AC384718D81D19183B691"
@@ -600,4 +603,5 @@ bumpslope-cdf.exr    :   64 x   64, 6 channel, half openexr
     oiio:AverageColor: "0.499779,-0.000457942,-4.17233e-05,0.00197116,0.00178894,3.45764e-05"
     oiio:SHA-1: "49B533110A914CE89BE0B14753A6A4CC037C964F"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
     openexr:roundingmode: 0
