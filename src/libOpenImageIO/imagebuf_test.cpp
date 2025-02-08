@@ -300,6 +300,25 @@ ImageBuf_test_appbuffer_strided()
             }
         }
     }
+
+    // Test negative strides by filling with yellow, backwards
+    {
+        // Use the ImageBuf constructor from a pointer to the last pixel and
+        // negative strides.
+        ImageBuf neg(ImageSpec(res, res, nchans, TypeFloat),
+                     &mem[res - 1][res - 1][0] /* point to last pixel */,
+                     -nchans * sizeof(float) /* negative x stride */,
+                     -res * nchans * sizeof(float) /* negative y stride*/);
+        const float yellow[nchans] = { 1.0f, 1.0f, 0.0f };
+        ImageBufAlgo::fill(neg, cspan<float>(yellow));
+
+        for (int y = 0; y < res; ++y) {
+            for (int x = 0; x < res; ++x) {
+                OIIO_CHECK_ASSERT(make_cspan(mem[y][x], nchans)
+                                  == make_cspan(yellow));
+            }
+        }
+    }
 }
 
 
