@@ -64,6 +64,7 @@ src/test.exr         :   64 x   64, 3 channel, half openexr
     Exif:ImageHistory: "oiiotool cropped-stripped-Isabella.0.exr -cut 64x64+0+0 -o test.exr"
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
     smpte:TimeCode: 01:18:19:06
 Comparing "src/test.exr" and "test.exr"
 PASS
@@ -78,3 +79,4 @@ rat2.exr             :   64 x   64, 3 channel, float openexr
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_rec709"
     oiio:subimages: 1
+    openexr:lineOrder: "increasingY"
